@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import User from '../models/User';
+import { careerPilotMemberFilter } from './careerPilotPopulation';
 import PassportAttempt from '../models/PassportAttempt';
 import Payment from '../models/Payment';
 import PassportProgress from '../models/PassportProgress';
@@ -364,7 +365,9 @@ function classifyPipeline(tenantId: string, now: Date): any[] {
   };
 
   return [
-    { $match: { tenantId: asObjectId, passport: { $exists: true, $ne: null } } },
+    // Real CareerPilot members only. `passport: { $exists: true }` counted every LMS
+    // student, because the nested defaults materialise the subdocument on every user.
+    { $match: { tenantId: asObjectId, ...careerPilotMemberFilter() } },
     attemptLookup, paymentLookup, progressLookup,
     facts, membership, stage, lastTouch,
   ];

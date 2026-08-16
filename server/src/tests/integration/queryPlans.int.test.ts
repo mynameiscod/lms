@@ -15,6 +15,7 @@ jest.setTimeout(180_000);
 import User from '../../models/User';
 import PassportProgress from '../../models/PassportProgress';
 import { buildFunnel, funnelCounts, MAX_FUNNEL_ROWS } from '../../services/passportFunnelService';
+import { CAREERPILOT_PRODUCT } from '../../services/careerPilotPopulation';
 
 const TENANT = '507f1f77bcf86cd799439cc3';
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
@@ -111,7 +112,7 @@ describe('the funnel reads', () => {
         firstName: `M${i}`, lastName: 'X',
         email: `q${i}@example.com`, phone: `9333${String(i).padStart(6, '0')}`,
         password: 'x', role: 'STUDENT', createdAt: daysAgo(i % 90),
-        passport: { active: false, verifiedAt: daysAgo(i % 60) },
+        passport: { active: false, product: CAREERPILOT_PRODUCT, verifiedAt: daysAgo(i % 60) },
       })),
     );
   };
@@ -151,7 +152,9 @@ describe('the funnel reads', () => {
     await User.create({
       tenantId: TENANT, firstName: 'New', lastName: 'Signup',
       email: 'new@example.com', phone: '9444000000', password: 'x', role: 'STUDENT',
-      passport: { active: false },
+      // Carries the enrolment marker, as a real signup does — without it this is an
+      // ordinary LMS student and correctly not in the funnel at all.
+      passport: { active: false, product: CAREERPILOT_PRODUCT },
     });
 
     const { rows } = await buildFunnel(TENANT, { stage: 'unverified', limit: 50 });

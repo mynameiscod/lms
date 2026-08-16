@@ -1,5 +1,6 @@
 import User from '../models/User';
 import { resolveCareerProfile } from './careerStageService';
+import { isCareerPilotMember } from './careerPilotPopulation';
 
 /**
  * Keep a CareerPilot member's `passport.*` in step with their student profile.
@@ -37,8 +38,12 @@ export async function syncPassportFromProfile(
   profile: ProfileLike,
 ): Promise<{ synced: boolean; changed: string[] }> {
   const user: any = await User.findById(userId).select('passport').lean();
-  // Only CareerPilot members have a passport. An ordinary LMS student has nothing to sync.
-  if (!user?.passport) return { synced: false, changed: [] };
+  /**
+   * Members only. The old guard was `if (!user?.passport)`, which never fired — the nested
+   * defaults give every LMS student a passport subdocument — so this quietly wrote
+   * CareerPilot fields onto the records of students who have never opened the product.
+   */
+  if (!isCareerPilotMember(user?.passport)) return { synced: false, changed: [] };
 
   const p = user.passport;
   const deg = profile.education?.degree || {};

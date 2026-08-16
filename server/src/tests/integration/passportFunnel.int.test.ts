@@ -23,6 +23,7 @@ import PassportAttempt from '../../models/PassportAttempt';
 import Payment from '../../models/Payment';
 import PassportProgress from '../../models/PassportProgress';
 import { buildFunnel, STAGES, StageKey } from '../../services/passportFunnelService';
+import { CAREERPILOT_PRODUCT } from '../../services/careerPilotPopulation';
 
 /**
  * ObjectId-shaped, because User.tenantId is an ObjectId while the CareerPilot collections
@@ -37,7 +38,13 @@ const daysAhead = (n: number) => new Date(Date.now() + n * 86_400_000);
 
 let seq = 0;
 
-/** A CareerPilot member. Everything optional defaults to "never did anything". */
+/**
+ * A CareerPilot member, created the way the product creates one.
+ *
+ * `product: 'career_passport'` is the enrolment marker every signup path writes, and it is
+ * what now defines the population. This fixture used to omit it and still counted, because
+ * the old rule counted anybody with a passport subdocument — which is everybody.
+ */
 async function member(passport: any = {}, over: any = {}) {
   seq += 1;
   return User.create({
@@ -49,7 +56,7 @@ async function member(passport: any = {}, over: any = {}) {
     password: 'x',
     role: 'STUDENT',
     createdAt: over.createdAt || daysAgo(30),
-    passport: { active: false, ...passport },
+    passport: { active: false, product: CAREERPILOT_PRODUCT, ...passport },
   });
 }
 
@@ -311,30 +318,27 @@ describe('tenant isolation', () => {
   });
 
   /**
-   * KNOWN DEFECT, RECORDED RATHER THAN FIXED.
+   * THE DEFECT THIS SUITE RECORDED, NOW FIXED.
    *
-   * The member filter is `passport: { $exists: true, $ne: null }`, but User's `passport` is
-   * a nested path whose leaves carry defaults — so Mongoose materialises the subdocument on
-   * every user it writes, and `$exists` is true for ordinary LMS students who have never
-   * seen CareerPilot. The funnel therefore counts them, which inflates `totals.members` and
-   * deflates every percentage derived from it.
+   * The population was `passport: { $exists: true, $ne: null }`, and `passport` is a nested
+   * path whose leaves carry defaults — so Mongoose materialises the subdocument on every
+   * user it writes and `$exists` excluded nobody. Ordinary LMS students were counted as
+   * members, inflating totals.members and deflating every percentage derived from it.
    *
-   * This is pinned as-is because this suite exists to prove the aggregation rewrite changed
-   * nothing. Correcting the population is a separate, deliberate change to what the screen
-   * MEANS, and it needs its own decision — silently fixing it inside a performance rewrite
-   * is exactly the drift these tests are here to prevent.
+   * The rule is now the enrolment marker. This assertion is the before/after.
    */
-  it('counts any user whose passport subdocument exists — including plain students', async () => {
+  it('excludes ordinary LMS students, who are not members of anything', async () => {
     await User.create({
       tenantId: TENANT, firstName: 'Plain', lastName: 'Student', email: 'plain@example.com',
       password: 'x', role: 'STUDENT',
     });
     await member({ verifiedAt: daysAgo(1) });
 
-    const { totals, counts } = await buildFunnel(TENANT);
-    expect(totals.members).toBe(2);
-    // The plain student lands in `unverified`, alongside genuine drop-offs.
-    expect(counts.unverified).toBe(1);
+    const { totals, counts, rows } = await buildFunnel(TENANT);
+
+    expect(totals.members).toBe(1);          // was 2
+    expect(counts.unverified).toBe(0);       // was 1 — the plain student sat in this bucket
+    expect(rows.map(r => r.email)).toEqual(['m1@example.com']);
   });
 });
 
@@ -380,12 +384,14 @@ describe('a realistically larger tenant', () => {
         firstName: `Bulk${i}`, lastName: 'X',
         email: `bulk${i}@example.com`, phone: `9111${String(i).padStart(6, '0')}`,
         password: 'x', role: 'STUDENT', createdAt: daysAgo(60),
-        passport:
-          i % 5 === 0 ? { active: true, expiresAt: daysAhead(90), activatedAt: daysAgo(3), lastSeenAt: daysAgo(1) }
-          : i % 5 === 1 ? { active: true, expiresAt: daysAgo(2), activatedAt: daysAgo(400) }
-          : i % 5 === 2 ? { verifiedAt: daysAgo(30), careerScore: 60 }
-          : i % 5 === 3 ? { verifiedAt: daysAgo(30) }
-          : { },
+        passport: {
+          product: CAREERPILOT_PRODUCT,
+          ...(i % 5 === 0 ? { active: true, expiresAt: daysAhead(90), activatedAt: daysAgo(3), lastSeenAt: daysAgo(1) }
+            : i % 5 === 1 ? { active: true, expiresAt: daysAgo(2), activatedAt: daysAgo(400) }
+            : i % 5 === 2 ? { verifiedAt: daysAgo(30), careerScore: 60 }
+            : i % 5 === 3 ? { verifiedAt: daysAgo(30) }
+            : {}),
+        },
       });
     }
     const created = await User.insertMany(users);

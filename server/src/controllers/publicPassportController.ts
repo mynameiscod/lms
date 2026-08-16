@@ -10,6 +10,7 @@ import PassportConfig, { DEFAULT_ONBOARDING_FIELDS, DEFAULT_ENTITLEMENTS } from 
 import * as settings from '../services/settingsService';
 import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 import { jwtSecret } from '../config/secrets';
+import { isCareerPilotMember } from '../services/careerPilotPopulation';
 
 // Public CareerPilot funnel: signup (Name/Mobile/Email + admin-configured onboarding
 // fields) → OTP → account created (STUDENT + passport, not yet active/paid) → auto-login.
@@ -148,7 +149,19 @@ export const signup = async (req: Request, res: Response) => {
     if (user) {
       // Existing account: only resume if it's a not-yet-active passport signup.
       if (user.passport?.active) return res.status(409).json({ success: false, message: 'You already have a CareerPilot — please log in.' });
-      if (!user.passport) return res.status(409).json({ success: false, message: 'This email is already registered. Please log in.' });
+
+      /**
+       * An existing account that is NOT a CareerPilot signup must be sent to log in.
+       *
+       * This guard used to read `if (!user.passport)` and never fired: the nested defaults
+       * give every LMS student a passport subdocument. So an ordinary student's account
+       * fell through to the resume branch below, which overwrites `user.phone` with the
+       * mobile from THIS submission and sends the OTP there — handing whoever typed that
+       * email a verified login to somebody else's account.
+       */
+      if (!isCareerPilotMember(user.passport)) {
+        return res.status(409).json({ success: false, message: 'This email is already registered. Please log in.' });
+      }
 
       // Resuming an abandoned signup: persist what they just typed.
       //

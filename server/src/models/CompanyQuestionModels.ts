@@ -214,6 +214,27 @@ export interface ICompanyQuestion extends Document {
   questionText: string;
   /** A model answer or the approach expected — whichever the contributor gave. */
   answer?: string;
+  /**
+   * The choices, when this row is a multiple-choice question.
+   *
+   * WITHOUT THESE THE MOCK TEST CANNOT USE THE BANK. assembleTest() draws banked questions by
+   * reading `options` and `correctIndex`; while the schema did not declare them, Mongoose
+   * stripped both on write and on read, every banked row failed the "is this answerable"
+   * filter, and every company mock test was assembled entirely from AI-generated items — even
+   * at a company with a full curated bank.
+   *
+   * Empty for the many rows that are not MCQs. A technical or HR question is prose with a
+   * model `answer`, and that is still the common case.
+   */
+  options: string[];
+  /**
+   * Which option is correct — the answer key, and the reason it is never in publicQuestion().
+   *
+   * Only ever set together with `options`, and only when it indexes one of them. A row with an
+   * answer key that points nowhere is worse than one with no key: the test would still serve
+   * it and mark every attempt wrong.
+   */
+  correctIndex?: number | null;
   tags: string[];
 
   /** Where it came from. Drives what the member is told. */
@@ -249,6 +270,8 @@ const QuestionSchema = new Schema<ICompanyQuestion>({
   year:        { type: Number },
   questionText:{ type: String, required: true },
   answer:      { type: String, default: '' },
+  options:     [{ type: String }],
+  correctIndex:{ type: Number, default: null },
   tags:        [{ type: String }],
   source:      { type: String, enum: ['admin', 'student', 'ai'], default: 'admin' },
   aiPredicted: { type: Boolean, default: false },

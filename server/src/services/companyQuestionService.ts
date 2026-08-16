@@ -29,6 +29,39 @@ export async function refreshQuestionCount(tenantId: string, companyId: any): Pr
   await Company.updateOne({ _id: companyId, tenantId }, { $set: { questionCount: n } });
 }
 
+/** Fewest choices that is still a question rather than a statement. */
+export const MIN_CHOICES = 2;
+/** More than this and it is a list, not a question a candidate can read under time. */
+export const MAX_CHOICES = 6;
+
+/**
+ * Normalise a submitted multiple-choice question into something the mock test can mark.
+ *
+ * ALL OR NOTHING, deliberately. A row either carries a usable set of choices AND a key that
+ * indexes one of them, or it carries neither. Storing half of an MCQ — options with no key,
+ * or a key pointing past the end of the list — produces a question the test will still serve
+ * and will mark every candidate wrong on, which is worse than not having it in the bank.
+ *
+ * Most company questions are not MCQs at all. A technical or HR question is prose with a
+ * model answer, and this returns the empty shape for them without complaint.
+ */
+export function normaliseChoices(input: {
+  options?: unknown; correctIndex?: unknown;
+}): { options: string[]; correctIndex: number | null } {
+  const options = (Array.isArray(input.options) ? input.options : [])
+    .map(o => String(o ?? '').trim().slice(0, 300))
+    .filter(Boolean)
+    .slice(0, MAX_CHOICES);
+
+  if (options.length < MIN_CHOICES) return { options: [], correctIndex: null };
+
+  const idx = Number(input.correctIndex);
+  if (!Number.isInteger(idx) || idx < 0 || idx >= options.length) {
+    return { options: [], correctIndex: null };
+  }
+  return { options, correctIndex: idx };
+}
+
 export interface ParsedQuestion {
   questionText: string;
   round?: string;

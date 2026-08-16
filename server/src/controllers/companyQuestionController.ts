@@ -10,6 +10,7 @@ import { InterviewPattern } from '../models/CompanyQuestionModels';
 import { isEntitled } from '../services/passportEntitlementService';
 import {
   getTaxonomy, slugify, refreshQuestionCount, structureQuestions, predictQuestions,
+  normaliseChoices,
 } from '../services/companyQuestionService';
 import { awardCoins } from '../services/coinService';
 
@@ -22,6 +23,10 @@ const publicQuestion = (q: any) => ({
   year: q.year || null,
   questionText: q.questionText,
   answer: q.answer || '',
+  // The choices, so a banked MCQ renders as one. `correctIndex` is deliberately absent and
+  // must stay absent: this shape is what the member's browser receives, and the same rows
+  // are drawn into a scored mock test.
+  options: q.options || [],
   tags: q.tags || [],
   // Carried all the way to the UI so a prediction is never mistaken for a recollection.
   aiPredicted: !!q.aiPredicted,
@@ -617,6 +622,8 @@ export const adminQuestions = async (req: Request, res: Response) => {
     res.json({
       questions: rows.map(q => ({
         ...publicQuestion(q),
+        // Admin-only, and only here: the editor cannot correct an answer key it cannot see.
+        correctIndex: typeof q.correctIndex === 'number' ? q.correctIndex : null,
         status: q.status, companySlug: q.companySlug, reviewNote: q.reviewNote || '',
         contributor: q.contributedBy
           ? `${q.contributedBy.firstName || ''} ${q.contributedBy.lastName || ''}`.trim()
@@ -646,6 +653,9 @@ export const saveQuestions = async (req: Request, res: Response) => {
         role: String(q.role || '').slice(0, 80),
         year: Number(q.year) || undefined,
         answer: String(q.answer || '').slice(0, 4000),
+        // A well-formed MCQ becomes usable by the mock test; a half-typed one stores neither
+        // half and stays an ordinary prose question.
+        ...normaliseChoices(q),
         tags: Array.isArray(q.tags) ? q.tags.slice(0, 6) : [],
         practiceProblemId: String(q.practiceProblemId || ''),
         source: q.aiPredicted ? 'ai' : 'admin',
@@ -677,6 +687,17 @@ export const updateQuestion = async (req: Request, res: Response) => {
     }
     if (req.body.year !== undefined) q.year = Number(req.body.year) || undefined;
     if (Array.isArray(req.body.tags)) q.tags = req.body.tags.slice(0, 6);
+
+    // Choices move together or not at all. Editing the options without re-stating the key
+    // would leave a key pointing at whatever now sits in that position.
+    if (req.body.options !== undefined || req.body.correctIndex !== undefined) {
+      const choices = normaliseChoices({
+        options: req.body.options !== undefined ? req.body.options : q.options,
+        correctIndex: req.body.correctIndex !== undefined ? req.body.correctIndex : q.correctIndex,
+      });
+      q.options = choices.options;
+      q.correctIndex = choices.correctIndex;
+    }
 
     const wasPending = q.status === 'pending';
     if (['pending', 'published', 'rejected'].includes(req.body.status)) {

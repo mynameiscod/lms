@@ -122,9 +122,17 @@ export async function assembleTest(opts: {
       status: 'published', ...(def.category ? { category: def.category } : {}),
     }).select('questionText options correctIndex category difficulty').lean() as any[];
 
-    // Anything already answerable is used as-is; nothing beats a real item.
+    /**
+     * Anything already answerable is used as-is; nothing beats a real item.
+     *
+     * The bar is "can this be marked": at least two choices and a key that indexes one of
+     * them. It used to demand EXACTLY four, which quietly excluded every true/false and
+     * three-option item an admin had banked — and, while the model declared no `options`
+     * field at all, excluded the entire bank.
+     */
     const banked: MockQuestion[] = pool
-      .filter(q => Array.isArray(q.options) && q.options.length === 4 && Number.isInteger(q.correctIndex))
+      .filter(q => Array.isArray(q.options) && q.options.length >= 2
+        && Number.isInteger(q.correctIndex) && q.correctIndex >= 0 && q.correctIndex < q.options.length)
       .slice(0, def.questionCount)
       .map(q => ({
         id: String(q._id), text: q.questionText, options: q.options,

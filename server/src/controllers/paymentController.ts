@@ -175,6 +175,22 @@ export const webhook = async (req: Request, res: Response) => {
 };
 
 /**
+ * Is this a path on our own site, and nothing else?
+ *
+ * One leading slash, not two, and no backslash after it — those are the two spellings of a
+ * protocol-relative URL. Everything else that could carry a scheme or an authority is
+ * refused rather than sanitised, because a redirect target is not worth being clever about.
+ */
+export function isSafeReturnPath(to: string): boolean {
+  const v = String(to || '');
+  if (!v.startsWith('/')) return false;
+  if (v.startsWith('//') || v.startsWith('/' + String.fromCharCode(92))) return false;
+  // Control characters can be used to smuggle a second header or confuse a parser.
+  if (/[\r\n\t\0]/.test(v)) return false;
+  return true;
+}
+
+/**
  * Public return URL for Razorpay REDIRECT-mode checkout. When the hosted checkout
  * finishes (esp. on mobile / incognito / popup-blocked where the in-page modal
  * handler can't fire), Razorpay redirects the browser here with the payment fields.
@@ -185,9 +201,17 @@ export const paymentReturn = async (req: Request, res: Response) => {
   const orderId = String(src.razorpay_order_id || '');
   const paymentId = String(src.razorpay_payment_id || '');
   const signature = String(src.razorpay_signature || '');
-  // Only same-origin app paths are allowed as the return target.
+  /**
+   * Only same-origin app paths are allowed as the return target.
+   *
+   * `startsWith('/')` alone is not that check. `//evil.com` starts with a slash and is a
+   * PROTOCOL-RELATIVE URL: the browser resolves it to https://evil.com, so a link to our
+   * own payment-return endpoint would bounce the member to somebody else's site — carrying
+   * our domain in the referrer, immediately after a payment, which is the most persuasive
+   * possible moment to phish them. `/\evil.com` is the same trick with the other slash.
+   */
   let to = String(src.to || '/passport');
-  if (!to.startsWith('/')) to = '/passport';
+  if (!isSafeReturnPath(to)) to = '/passport';
 
   try {
     if (orderId) {

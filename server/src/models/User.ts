@@ -69,6 +69,19 @@ export interface IUser extends Document {
     contextCompletedAt?: Date;
     /** Lets a later module tell which schema a stored context was captured under. */
     contextVersion?: number;
+    /**
+     * Companies this member is preparing for, by Company.slug.
+     *
+     * PREPARATION CONTEXT, NOT A CAREER DIRECTION. `primaryRole` above is what they want to
+     * become and is untouched by any of this: a member targeting Amazon, Microsoft and TCS
+     * is still one backend engineer, and company readiness is that same role measured
+     * against three different sets of expectations.
+     *
+     * A short list on the member rather than a collection of its own. It is capped at a
+     * handful, only ever read for this one member, and has no attributes worth querying
+     * across — a collection would be a join for no gain.
+     */
+    targetCompanies?: { slug: string; primary: boolean; addedAt: Date }[];
 
     careerScore?: number;      // cached from latest assessment (for card/Mission Control)
     level?: string;
@@ -211,6 +224,17 @@ const UserSchema: Schema = new Schema(
       daysPerWeek:           { type: Number },
       contextCompletedAt:    { type: Date },
       contextVersion:        { type: Number },
+
+      // Companies the member is preparing for. `default: undefined` so a member who has
+      // chosen none carries no array at all, exactly like the context fields above.
+      targetCompanies: {
+        type: [new Schema({
+          slug:    { type: String, required: true },
+          primary: { type: Boolean, default: false },
+          addedAt: { type: Date, default: Date.now },
+        }, { _id: false })],
+        default: undefined,
+      },
 
       shareSlug:   { type: String, index: true },
       passwordSet: { type: Boolean, default: false },

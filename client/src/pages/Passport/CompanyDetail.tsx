@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { CompanyDetail as Detail, TaxItem, Stat, CompanyQuestionRow } from '../../api/passportApi';
 import PassportShell from './PassportShell';
+import CompanyReadinessTab from './CompanyReadinessTab';
 
 /**
  * One company: what it asks, round by round.
@@ -38,7 +39,7 @@ const HeadStat: React.FC<{ title: string; s: Stat<any>; fmt?: (v: any) => string
     );
   };
 
-type TabKey = 'overview' | 'pattern' | 'salary' | 'mocktest' | 'mockinterview' | 'questions';
+type TabKey = 'overview' | 'readiness' | 'pattern' | 'salary' | 'mocktest' | 'mockinterview' | 'questions';
 
 const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
   const nav = useNavigate();
@@ -170,8 +171,9 @@ const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
 
       {/* ── Tabs ── */}
       <div className="ci-tabs">
-        {([['overview', 'Overview'], ['pattern', 'Interview Patterns'], ['salary', 'Salary Range'],
-           ['mocktest', 'Mock Test'], ['mockinterview', 'Mock Interview'], ['questions', 'Questions']] as [TabKey, string][])
+        {([['overview', 'Overview'], ['readiness', 'Your Readiness'], ['pattern', 'Interview Patterns'],
+           ['salary', 'Salary Range'], ['mocktest', 'Mock Test'], ['mockinterview', 'Mock Interview'],
+           ['questions', 'Questions']] as [TabKey, string][])
           .map(([k, l]) => (
             <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
           ))}
@@ -310,6 +312,10 @@ const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
               </div>
             </>
           )}
+
+          {/* Where this member stands against THIS company — computed from their Skill DNA
+              and the company's published requirements, never stored. */}
+          {tab === 'readiness' && <CompanyReadinessTab slug={slug} />}
 
           {tab === 'overview' && (
             <>

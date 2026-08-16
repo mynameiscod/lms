@@ -616,6 +616,47 @@ export const passportApi = {
     return data;
   },
 
+  // ── Company preparation (Module 15) ──
+  /**
+   * How ready the member is for THIS company, alongside eligibility and their role figure.
+   *
+   * Four separate numbers, deliberately never combined. `fit.readiness` is null when nothing
+   * of theirs has been measured against this company's requirements — render that as "not
+   * assessed yet", never as 0%.
+   */
+  companyReadiness: async (slug: string): Promise<CompanyReadinessView> => {
+    const { data } = await axios.get(`${BASE}/companies/${slug}/readiness`, { headers: auth() });
+    return data;
+  },
+  companyPreparation: async (slug: string): Promise<CompanyPreparationView> => {
+    const { data } = await axios.get(`${BASE}/companies/${slug}/preparation`, { headers: auth() });
+    return data;
+  },
+  companyOverview: async (): Promise<CompanyOverviewView> => {
+    const { data } = await axios.get(`${BASE}/company-prep/overview`, { headers: auth() });
+    return data;
+  },
+  setCompanyTargets: async (slugs: string[], primary?: string): Promise<{
+    targets: { slug: string; primary: boolean }[]; maxTargets: number; rejected?: string[]; message?: string;
+  }> => {
+    const { data } = await axios.put(`${BASE}/company-prep/targets`, { slugs, primary }, { headers: auth() });
+    return data;
+  },
+
+  // ── Company preparation profiles (admin) ──
+  companyProfiles: async (slug: string): Promise<CompanyProfileAdmin> => {
+    const { data } = await axios.get(`${BASE}/company-admin/${slug}/profiles`, { headers: auth() });
+    return data;
+  },
+  saveCompanyProfile: async (slug: string, roleKey: string, body: any): Promise<{ profile: CompanyProfileRow }> => {
+    const { data } = await axios.put(`${BASE}/company-admin/${slug}/profiles/${roleKey}`, body, { headers: auth() });
+    return data;
+  },
+  publishCompanyProfile: async (slug: string, roleKey: string, profileId: string): Promise<{ profile: CompanyProfileRow }> => {
+    const { data } = await axios.post(`${BASE}/company-admin/${slug}/profiles/${roleKey}/publish`, { profileId }, { headers: auth() });
+    return data;
+  },
+
   // ── Company Questions ──
   listCompanies: async (): Promise<{ locked?: boolean; priceInr?: number; companyTypes?: TaxItem[]; companies?: CompanyRow[] }> => {
     const { data } = await axios.get(`${BASE}/companies`, { headers: auth() });
@@ -1151,6 +1192,135 @@ export interface NewsDraft {
 // ── Company Questions ──
 export interface TaxItem { key: string; label: string; order: number; enabled: boolean; count?: number; }
 export interface CompanyRow { id: string; name: string; slug: string; type: string; logoUrl: string; about: string; questionCount: number; }
+
+// ── Company preparation (Module 15) ──
+
+export type FitStatus =
+  | 'NOT_ASSESSED' | 'LIMITED_EVIDENCE' | 'PRIORITY_GAP' | 'NEEDS_WORK' | 'ON_TRACK' | 'STRONG';
+
+export interface CompanySkillFitRow {
+  skillKey: string; skillName: string; importance: string; weight: number;
+  targetLevel: string; targetScore: number;
+  /** Null means never measured. NOT zero — the UI must never render it as a score. */
+  studentScore: number | null;
+  skillConfidence: string | null;
+  evidenceCount: number;
+  gapPoints: number | null;
+  status: FitStatus;
+  countedInFit: boolean;
+  skillInactive: boolean;
+}
+
+export interface CompanyFitView {
+  available: boolean;
+  reason?: string;
+  message?: string;
+  /** Null when nothing is sufficiently assessed. Render "not assessed", never 0%. */
+  readiness?: number | null;
+  coverage?: number;
+  confidence?: 'LOW' | 'MEDIUM' | 'HIGH';
+  classification?: string | null;
+  classificationLabel?: string | null;
+  profileVersion?: number;
+  role?: { key: string; matched: boolean };
+  summary?: {
+    requiredSkills: number; assessedSkills: number; priorityGaps: number; needsWork: number;
+    onTrack: number; strong: number; limitedEvidence: number; notAssessed: number;
+  };
+  skills?: CompanySkillFitRow[];
+  strengths?: CompanySkillFitRow[];
+  gaps?: CompanySkillFitRow[];
+  unknowns?: CompanySkillFitRow[];
+}
+
+export interface EligibilityCriterionRow {
+  key: string; label: string; required: string;
+  studentValue: string | null;
+  status: 'MET' | 'NOT_MET' | 'UNKNOWN';
+  detail: string;
+}
+
+export interface CompanyEligibilityView {
+  verdict: 'ELIGIBLE' | 'POTENTIALLY_ELIGIBLE' | 'NOT_ELIGIBLE' | 'UNKNOWN';
+  decidedBy: string | null;
+  criteria: EligibilityCriterionRow[];
+  verified: boolean;
+  message: string;
+}
+
+export interface CompanyReadinessView {
+  company: { slug: string; name: string; type: string; logoUrl: string };
+  stage: string | null;
+  fit: CompanyFitView;
+  eligibility: CompanyEligibilityView;
+  roleReadiness: {
+    available: boolean; reason?: string; message?: string;
+    role?: { key: string; name: string };
+    readiness?: number | null; coverage?: number; confidence?: string;
+  };
+}
+
+export interface CompanyPreparationView {
+  company: { slug: string; name: string };
+  available: boolean;
+  reason?: string;
+  message?: string;
+  stage?: string | null;
+  /** LONG_TERM for a member years from placement; ACTIVE for one preparing now. */
+  horizon?: 'LONG_TERM' | 'ACTIVE';
+  profileVersion?: number;
+  focus: { skillKey: string; skillName: string; current: number | null; target: number; gap: number | null; importance: string; status: string }[];
+  validate: { skillKey: string; skillName: string; importance: string; status: string }[];
+  strengths?: { skillKey: string; skillName: string; current: number | null }[];
+  roundSkills?: { roundKey: string; skillKeys: string[] }[];
+  notes?: string;
+}
+
+export interface CompanyOverviewRow {
+  slug: string; name: string; type: string; logoUrl: string; questionCount: number;
+  readiness: number | null;
+  classification: string | null;
+  classificationLabel: string | null;
+  gaps: number | null;
+  isTarget: boolean;
+  isPrimaryTarget: boolean;
+}
+
+export interface CompanyProfileRow {
+  id: string; companySlug: string; roleKey: string; version: number;
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  skillRequirements: { skillKey: string; importance: string; targetLevel: string; weight: number }[];
+  roundSkills: { roundKey: string; skillKeys: string[] }[];
+  careerStages: string[];
+  sources: { type: string; reference: string; note?: string; verifiedAt?: string | null }[];
+  preparationNotes: string;
+  effectiveFrom: string | null;
+  lastReviewedAt: string | null;
+  publishedAt: string | null;
+  daysSinceReview: number | null;
+  reviewDue: boolean;
+}
+
+export interface CompanyProfileAdmin {
+  company: { slug: string; name: string };
+  profiles: CompanyProfileRow[];
+  roles: { key: string; name: string }[];
+  /** The canonical catalogue. The editor picks from this — it never accepts a typed key. */
+  skills: { key: string; name: string }[];
+  rounds: { key: string; label: string }[];
+  importanceOptions: string[];
+  targetLevelOptions: string[];
+  defaultWeights: Record<string, number>;
+}
+
+export interface CompanyOverviewView {
+  locked?: boolean;
+  priceInr?: number;
+  role?: { key: string } | null;
+  stage?: string | null;
+  maxTargets?: number;
+  companies?: CompanyOverviewRow[];
+}
 export interface CompanyQuestionRow {
   id: string; role: string; round: string; category: string; difficulty: string;
   year: number | null; questionText: string; answer: string; tags: string[];

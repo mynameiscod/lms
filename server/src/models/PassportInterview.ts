@@ -51,6 +51,17 @@ export interface IPassportInterview extends Document {
   interviewerName: string;
   companySlug?: string;
   companyName?: string;
+  /**
+   * Which round of that company's process this sitting imitates, and which version of their
+   * preparation profile was published when it started.
+   *
+   * PROVENANCE ONLY. Neither is read by finalization, by evaluation, or by anything that
+   * produces a score — they exist so a sitting stored today can still say what it was
+   * imitating after an admin republishes the company's expectations. Absent on role
+   * interviews and on every company mock that predates Module 15.
+   */
+  roundKey?: string | null;
+  companyProfileVersion?: number | null;
   maxQuestions: number;
   askedCount: number;
   /**
@@ -131,6 +142,8 @@ const PassportInterviewSchema = new Schema<IPassportInterview>(
     // history list can both stay company-aware.
     companySlug: { type: String, index: true },
     companyName: { type: String },
+    roundKey:              { type: String, default: null },
+    companyProfileVersion: { type: Number, default: null },
     maxQuestions:    { type: Number, default: 6 },
     askedCount:      { type: Number, default: 0 },
     status:     { type: String, enum: ['in_progress', 'finalizing', 'completed', 'abandoned'], default: 'in_progress', index: true },

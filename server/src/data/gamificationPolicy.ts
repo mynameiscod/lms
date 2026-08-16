@@ -82,6 +82,24 @@ export const XP_EVENTS: XpEventDefinition[] = [
     // showing up, and dropping that would break streaks for members who only interview.
     streakQualifying: true,
   },
+  {
+    key: 'COMPANY_MOCK_TEST_COMPLETED',
+    name: 'Company mock test completed',
+    description: 'A submitted company mock test. Awarded for sitting it, not for scoring well.',
+    // Below a personalised assessment and below an interview: it is a shorter sitting, and
+    // — unlike those two — it produces no skill evidence, so it moves nothing but practice.
+    defaultXp: 40,
+    // A retake is a legitimate thing to do and a farm is not. uniqueSource already means one
+    // award per attempt; the cap is what stops a member starting and submitting all day.
+    defaultDailyLimit: 80,
+    uniqueSource: true,
+    streakQualifying: true,
+  },
+  // There is deliberately NO separate company mock-interview event. A company-flavoured mock
+  // is the same Module 14 sitting with a company brief on the prompt — same engine, same
+  // grading, same effort — and it already pays MOCK_INTERVIEW_COMPLETED. A second event would
+  // mean branching finalization on companySlug to decide what to pay, which is a change to
+  // the one path in this product that must stay boring.
 ];
 
 export const XP_EVENT_KEYS = XP_EVENTS.map(e => e.key);

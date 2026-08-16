@@ -6,6 +6,9 @@ import { Company, CompanyMockConfig } from '../models/CompanyQuestionModels';
 import { isEntitled } from '../services/passportEntitlementService';
 import { assembleTest } from '../services/mockTestService';
 import { readinessFor } from '../services/companyReadinessService';
+import { resolveCompanyProfile } from '../services/companyFitService';
+import { getCareerContext } from '../services/careerContextService';
+import { processGamificationEvent } from '../services/gamificationEngine';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -82,9 +85,15 @@ export const startMockTest = async (req: Request, res: Response) => {
       return res.status(422).json({ message: 'There are not enough questions banked for a test here yet.' });
     }
 
+    // Stamped at the start, so a result always names the expectations it was sat against
+    // even if an admin publishes a new profile while the candidate is still answering.
+    const context = await getCareerContext(tenantId, studentId);
+    const { profile } = await resolveCompanyProfile(tenantId, slug, context?.career?.primaryRole || '');
+
     const minutes = built.sections.reduce((n, s) => n + s.durationMins, 0);
     const attempt = await MockTestAttempt.create({
       tenantId, studentId, companySlug: slug, companyName: company.name,
+      companyProfileVersion: profile?.version ?? null,
       sections: built.sections,
       // Server-side deadline. A browser countdown is a hint; this is what decides whether
       // a late submission counts.
@@ -181,7 +190,32 @@ export const submitMockTest = async (req: Request, res: Response) => {
     a.passed = r.passed;
     await a.save();
 
-    res.json({ result: r });
+    /**
+     * XP for sitting it, through Module 11.
+     *
+     * Keyed on the ATTEMPT, so the ledger's unique index refuses a replay — the early return
+     * above already handles a second submit, and this is the durable guarantee behind it.
+     * Awarded for completing the test, never for the score: paying for marks would reward
+     * retaking an easy company over practising a hard one.
+     *
+     * Wrapped, because a member who has just spent forty minutes on a test must get their
+     * result even if the gamification write fails.
+     */
+    let xpAwarded = 0;
+    try {
+      const xp = await processGamificationEvent({
+        tenantId, studentId,
+        eventKey: 'COMPANY_MOCK_TEST_COMPLETED',
+        sourceType: 'company_mock_test',
+        sourceId: String(a._id),
+        now: a.submittedAt,
+      });
+      xpAwarded = xp.awarded;
+    } catch (e: any) {
+      console.error('[mocktest] xp:', e?.message || e);
+    }
+
+    res.json({ result: r, xpAwarded });
   } catch (e: any) {
     console.error('[mocktest] submit:', e);
     res.status(500).json({ message: e.message || 'Could not submit' });

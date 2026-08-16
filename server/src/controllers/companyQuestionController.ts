@@ -13,9 +13,42 @@ import {
   normaliseChoices,
 } from '../services/companyQuestionService';
 import { awardCoins } from '../services/coinService';
+import AuditLog from '../models/AuditLog';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
+
+/**
+ * Record an admin change to company content.
+ *
+ * The writes that reach students are the ones worth auditing: creating or removing a
+ * company, editing its interview pattern, ticking the verification that releases salary and
+ * eligibility, and editing the taxonomy every company's questions are filed under. Student
+ * READS are not audited — the volume would bury the handful of rows anybody would ever look
+ * for.
+ *
+ * Best effort, and warned rather than thrown. An audit backend that is briefly unavailable
+ * must not stop an admin publishing a company.
+ */
+async function audit(
+  req: Request,
+  action: 'CREATE' | 'UPDATE' | 'DELETE',
+  details: string,
+  metadata: any = {},
+) {
+  try {
+    await AuditLog.create({
+      tenantId: (req as any).user?.tenantId || (req as any).tenantId,
+      userId: (req as any).user?.id || (req as any).user?._id,
+      action, module: 'SYSTEM',
+      targetType: 'Company',
+      details,
+      metadata,
+    });
+  } catch (e: any) {
+    console.warn('[companyq] audit write failed:', e?.message || e);
+  }
+}
 
 const publicQuestion = (q: any) => ({
   id: String(q._id),
@@ -425,6 +458,12 @@ export const verifyFields = async (req: Request, res: Response) => {
       if (rd.ready) company.publishedAt = new Date();
     }
     await company.save();
+    // Ticking these is what releases salary and eligibility to students, which is the whole
+    // reason they are a separate human action.
+    await audit(req, 'UPDATE', `Company verification changed: ${company.name}`, {
+      slug: company.slug,
+      eligibility: company.verified?.eligibility, salary: company.verified?.salary,
+    });
     res.json({ verified: company.verified, readiness: await readinessFor(tenantId, company.slug) });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Could not save' });
@@ -481,6 +520,9 @@ export const savePattern = async (req: Request, res: Response) => {
       { $set: { companyId: company._id, rounds: clean, aiDrafted: false } },
       { upsert: true, new: true },
     );
+    await audit(req, 'UPDATE', `Interview rounds changed: ${company.name}`, {
+      slug: company.slug, role: String(req.body?.role || ''), rounds: clean.length,
+    });
     res.json({ pattern: p, readiness: await readinessFor(tenantId, company.slug) });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Could not save the pattern' });
@@ -540,6 +582,9 @@ export const saveTaxonomy = async (req: Request, res: Response) => {
       if (req.body?.[k]) patch[k] = clean(req.body[k]);
     }
     const tax = await QuestionTaxonomy.findOneAndUpdate({ tenantId }, { $set: patch }, { new: true, upsert: true });
+    // One taxonomy governs every company's questions, so a single edit here re-files the
+    // whole bank. Worth a row.
+    await audit(req, 'UPDATE', 'Company question taxonomy changed', { changed: Object.keys(patch) });
     res.json({ taxonomy: tax });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Could not save the taxonomy' });
@@ -583,9 +628,11 @@ export const saveCompany = async (req: Request, res: Response) => {
     if (req.params.id) {
       const c = await Company.findOneAndUpdate({ _id: req.params.id, tenantId }, { $set: body }, { new: true });
       if (!c) return res.status(404).json({ message: 'Company not found' });
+      await audit(req, 'UPDATE', `Company updated: ${c.name}`, { slug: c.slug, active: body.active });
       return res.json({ company: c });
     }
     const c = await Company.create({ ...body, tenantId, slug: slugify(name) });
+    await audit(req, 'CREATE', `Company created: ${c.name}`, { slug: c.slug });
     res.status(201).json({ company: c });
   } catch (e: any) {
     if (e?.code === 11000) return res.status(409).json({ message: 'That company already exists.' });
@@ -598,8 +645,15 @@ export const deleteCompany = async (req: Request, res: Response) => {
     const tenantId = tenantOf(req);
     // Questions go with it — orphaned rows would still appear in search and could not be
     // traced back to an employer.
+    const doomed = await Company.findOne({ _id: req.params.id, tenantId }).select('name slug').lean() as any;
+    const removed = await CompanyQuestion.countDocuments({ tenantId, companyId: req.params.id });
     await CompanyQuestion.deleteMany({ tenantId, companyId: req.params.id });
     await Company.deleteOne({ _id: req.params.id, tenantId });
+    // The most destructive action on this screen, and the one most worth being able to
+    // answer "who removed Infosys and when" about.
+    await audit(req, 'DELETE', `Company deleted: ${doomed?.name || req.params.id}`, {
+      slug: doomed?.slug, questionsDeleted: removed,
+    });
     res.json({ success: true });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Could not delete' });

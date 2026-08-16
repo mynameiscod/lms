@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import passportApi, { CompanyAdmin, AdminQuestion, TaxItem, AdminExperience } from '../../api/passportApi';
 import AdminCompanyRoster from './AdminCompanyRoster';
 import AdminCompanyPattern from './AdminCompanyPattern';
+import AdminCompanyProfile from './AdminCompanyProfile';
 
 /**
  * Admin: companies, their questions, and the moderation queue.
@@ -16,7 +17,7 @@ const box: React.CSSProperties = { background: '#fff', border: '1px solid #eef0f
 const inp: React.CSSProperties = { width: '100%', padding: '9px 11px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13.5, boxSizing: 'border-box' };
 const lbl: React.CSSProperties = { display: 'block', fontSize: 11.5, fontWeight: 800, color: '#64748b', margin: '10px 0 5px' };
 
-type Tab = 'roster' | 'companies' | 'profile' | 'pattern' | 'questions' | 'import' | 'review' | 'experiences' | 'taxonomy';
+type Tab = 'roster' | 'companies' | 'profile' | 'prep' | 'pattern' | 'questions' | 'import' | 'review' | 'experiences' | 'taxonomy';
 
 const AdminCompanies: React.FC = () => {
   const [d, setD] = useState<CompanyAdmin | null>(null);
@@ -102,6 +103,7 @@ const AdminCompanies: React.FC = () => {
     ['questions', 'Questions'],
     ['import', '✨ Import / Generate'],
     ['review', `Review${d.pendingCount ? ` (${d.pendingCount})` : ''}`],
+    ['prep', 'Preparation Profile'],
     ['experiences', 'Interview reports'],
     ['taxonomy', 'Rounds & Categories'],
   ];
@@ -155,7 +157,7 @@ const AdminCompanies: React.FC = () => {
         </>
       )}
 
-      {(tab === 'questions' || tab === 'import' || tab === 'profile' || tab === 'pattern') && (
+      {(tab === 'questions' || tab === 'import' || tab === 'profile' || tab === 'pattern' || tab === 'prep') && (
         <div style={box}>
           <label style={lbl}>Company</label>
           <select style={{ ...inp, maxWidth: 300 }} value={slug} onChange={e => setSlug(e.target.value)}>
@@ -324,6 +326,10 @@ const AdminCompanies: React.FC = () => {
       {tab === 'pattern' && slug && (
         <AdminCompanyPattern slug={slug} rounds={tax.rounds.filter(r => r.enabled)} categories={tax.categories.filter(c => c.enabled)} />
       )}
+
+      {/* What this company expects, in canonical skills. The configuration every student's
+          company readiness is computed from — drafted here, published deliberately. */}
+      {tab === 'prep' && slug && <AdminCompanyProfile slug={slug} />}
 
       {tab === 'experiences' && (
         <div style={box}>

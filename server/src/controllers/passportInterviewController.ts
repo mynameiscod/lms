@@ -17,6 +17,7 @@ import {
   planInterviewCoverage, projectInterviewToEvidence, adaptPassportInterview,
 } from '../services/interviewIntelligenceService';
 import { Company, CompanyMockConfig, QuestionTaxonomy, CompanyQuestion } from '../models/CompanyQuestionModels';
+import { resolveCompanyProfile } from '../services/companyFitService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -146,6 +147,14 @@ export const start = async (req: Request, res: Response) => {
      * improving as the bank grows. The configured emphasis is the fallback.
      */
     let companyBrief: any;
+    /**
+     * Provenance for a company sitting, recorded at start and read by nothing that scores.
+     *
+     * The round comes from the company's own mock configuration rather than the request:
+     * a member choosing which round they are being interviewed for could choose the easy one.
+     */
+    let roundKey: string | null = null;
+    let companyProfileVersion: number | null = null;
     const slug = String(req.body?.companySlug || '').trim();
     if (slug) {
       const company = await Company.findOne({ tenantId, slug, active: true }).lean() as any;
@@ -173,6 +182,11 @@ export const start = async (req: Request, res: Response) => {
             ? tax?.rounds?.find((r: any) => r.key === cfg2.interview.rounds[0])?.label
             : undefined,
         };
+        roundKey = cfg2?.interview?.rounds?.[0] || null;
+        // The member's stored role, already loaded by the gate — not a second context read
+        // on a path that is otherwise three queries and an AI call.
+        const { profile } = await resolveCompanyProfile(tenantId, slug, user?.passport?.primaryRole || '');
+        companyProfileVersion = profile?.version ?? null;
       }
     }
 
@@ -231,6 +245,7 @@ export const start = async (req: Request, res: Response) => {
       tenantId, studentId, role, areas, skillTargets,
       companySlug: companyBrief ? slug : undefined,
       companyName: companyBrief?.name,
+      roundKey, companyProfileVersion,
       interviewerName: interviewerName(), maxQuestions: MAX_QUESTIONS, askedCount: 1,
       status: 'in_progress',
       live: true,

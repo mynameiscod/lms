@@ -19,6 +19,15 @@ export interface IMockTestAttempt extends Document {
   studentId: mongoose.Types.ObjectId;
   companySlug: string;
   companyName: string;
+  /**
+   * Which version of the company's preparation profile was in force when this was sat.
+   *
+   * Null for a company with no profile, and for every attempt that predates Module 15.
+   * Stamped rather than looked up later: hiring expectations are versioned, and a result
+   * read next year must say what it was measured against rather than being reinterpreted
+   * against whatever is published by then.
+   */
+  companyProfileVersion?: number | null;
   sections: {
     name: string;
     category: string;
@@ -47,6 +56,7 @@ const AttemptSchema = new Schema<IMockTestAttempt>({
   studentId:   { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   companySlug: { type: String, required: true, index: true },
   companyName: { type: String, default: '' },
+  companyProfileVersion: { type: Number, default: null },
   sections: [{
     name: String, category: String, durationMins: Number,
     questions: [{

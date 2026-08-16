@@ -39,6 +39,8 @@ import * as placement from '../controllers/placementReadinessController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
+import * as prep from '../controllers/companyPreparationController';
+import * as cprofile from '../controllers/companyProfileAdminController';
 
 const router = express.Router();
 
@@ -300,8 +302,19 @@ router.get('/leaderboard',          MEMBER, dashboard.getLeaderboard);
 // drafts and never publishes on its own.
 // Company Questions. Rounds and categories are DATA, so an admin adds "System Design"
 // without a deploy. AI-predicted rows stay flagged from generation to render.
+// Company preparation (Module 15). Company readiness and eligibility are DERIVED on read
+// from Skill DNA and the published company profile — nothing here writes a score, a roadmap
+// or a plan, and no AI call sits on any of these paths.
+// Under their own prefix rather than as `/companies/overview`, because `/companies/:slug`
+// already owns that shape: a company slugged "overview" or "targets" — and slugs are derived
+// from names an admin types — would silently shadow one of these.
+router.get('/company-prep/overview',         MEMBER, prep.companyOverview);
+router.put('/company-prep/targets',          MEMBER, prep.setTargets);
+
 router.get('/companies',                     MEMBER, cq.listCompanies);
 router.get('/companies/:slug',               MEMBER, cq.companyDetail);
+router.get('/companies/:slug/readiness',     MEMBER, prep.companyReadiness);
+router.get('/companies/:slug/preparation',   MEMBER, prep.companyPreparation);
 router.post('/companies/:slug/contribute',   MEMBER, cq.contribute);
 router.post('/companies/:slug/experience',   MEMBER, cq.submitExperience);
 
@@ -327,6 +340,13 @@ router.get('/company-admin/readiness',             MANAGE, cq.readinessBoard);
 router.post('/company-admin/:slug/draft-profile',  MANAGE, cq.draftProfile);
 router.put('/company-admin/:slug/verify',          MANAGE, cq.verifyFields);
 router.put('/company-admin/:slug/pattern',         MANAGE, cq.savePattern);
+
+// What a company expects, in canonical skills. Draft → publish, because a half-finished set
+// of weights must not move every student's company readiness the moment it is typed.
+router.get('/company-admin/:slug/profiles',                 MANAGE, cprofile.listProfiles);
+router.put('/company-admin/:slug/profiles/:roleKey',        MANAGE, cprofile.saveDraft);
+router.post('/company-admin/:slug/profiles/:roleKey/publish', MANAGE, cprofile.publish);
+router.delete('/company-admin/:slug/profiles/:id',          MANAGE, cprofile.discardDraft);
 router.get('/company-admin/experiences',           MANAGE, cq.listExperiences);
 router.put('/company-admin/experiences/:id',       MANAGE, cq.moderateExperience);
 router.put('/company-admin/questions/:id',         MANAGE, cq.updateQuestion);

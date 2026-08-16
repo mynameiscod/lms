@@ -9,6 +9,16 @@ export interface IAiUsage extends Document {
    *  both products, so the split has to be stated by the caller, not inferred from a
    *  name prefix. Absent on rows written before this existed; those read as 'lms'. */
   product?: string;
+  /**
+   * WHO the call was made for.
+   *
+   * Without it the ledger can show that spend doubled and cannot say whether a hundred new
+   * members arrived or one script found the resume endpoint — which is the difference
+   * between good news and an incident, and the difference between having a rate limit and
+   * being able to act on one. Optional: admin drafting and system jobs have no member, and
+   * rows written before this existed have none either.
+   */
+  studentId?: mongoose.Types.ObjectId;
   provider: 'openai' | 'anthropic' | 'whisper';
   aiModel: string;
   inputTokens: number;
@@ -32,6 +42,7 @@ const AiUsageSchema = new Schema<IAiUsage>(
     tenantId:    { type: Schema.Types.ObjectId, ref: 'Tenant' },
     module:      { type: String, required: true, index: true },
     product:     { type: String, index: true },
+    studentId:   { type: Schema.Types.ObjectId, ref: 'User' },
     provider:    { type: String, required: true },
     aiModel:     { type: String, required: true },
     inputTokens: { type: Number, default: 0 },
@@ -49,5 +60,7 @@ const AiUsageSchema = new Schema<IAiUsage>(
 AiUsageSchema.index({ tenantId: 1, date: 1 });
 AiUsageSchema.index({ date: 1, module: 1 });
 AiUsageSchema.index({ product: 1, date: 1 });
+/** "Who spent the most today" — the query an abuse investigation actually starts with. */
+AiUsageSchema.index({ tenantId: 1, studentId: 1, date: 1 });
 
 export default mongoose.model<IAiUsage>('AiUsage', AiUsageSchema);

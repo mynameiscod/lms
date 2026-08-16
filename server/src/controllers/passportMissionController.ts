@@ -134,7 +134,7 @@ export const completeMission = async (req: Request, res: Response) => {
     let feedback: string | null = null;
     if (newlyDone && valid.needsAnswer && answer) {
       const reviewed = await reviewAnswer({
-        tenantId, missionTitle: valid.title, missionDetail: valid.detail, answer,
+        tenantId, studentId, missionTitle: valid.title, missionDetail: valid.detail, answer,
       });
       if (reviewed) {
         const rec = progress.completed.find(c => c.day === day && c.key === key);

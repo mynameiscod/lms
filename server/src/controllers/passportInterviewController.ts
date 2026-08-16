@@ -652,7 +652,8 @@ export const speak = async (req: Request, res: Response) => {
 
     // Attributed like every other CareerPilot call, so the spend screen stays honest.
     await recordUsage({
-      tenantId: tenantOf(req), module: 'careerpilot_interview_tts', product: 'careerpilot',
+      tenantId: tenantOf(req), studentId: userIdOf(req),
+      module: 'careerpilot_interview_tts', product: 'careerpilot',
       provider: 'openai', model, chars: text.length,
     });
 

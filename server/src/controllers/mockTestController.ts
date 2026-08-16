@@ -79,7 +79,7 @@ export const startMockTest = async (req: Request, res: Response) => {
       return res.status(403).json({ message: `You have used all ${maxAttempts} attempts for ${company.name}.` });
     }
 
-    const built = await assembleTest({ tenantId, companySlug: slug, companyName: company.name });
+    const built = await assembleTest({ tenantId, studentId, companySlug: slug, companyName: company.name });
     const total = built.sections.reduce((n, s) => n + s.questions.length, 0);
     if (!total) {
       return res.status(422).json({ message: 'There are not enough questions banked for a test here yet.' });

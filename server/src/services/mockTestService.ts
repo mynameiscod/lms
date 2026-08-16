@@ -58,11 +58,14 @@ RULES:
 async function generate(opts: {
   tenantId: string; companyName: string; topic: string; difficulty: string;
   count: number; seedQuestions: string[];
+  /** Whose test this is being generated for — see AiUsage.studentId. */
+  studentId?: string;
 }): Promise<MockQuestion[]> {
   if (opts.count <= 0) return [];
 
   const raw = await aiComplete({
     tenantId: opts.tenantId,
+    studentId: opts.studentId,
     module: 'mock_test_generate',
     product: 'careerpilot',
     system: SYSTEM,
@@ -103,6 +106,8 @@ async function generate(opts: {
 
 export async function assembleTest(opts: {
   tenantId: string; companySlug: string; companyName: string;
+  /** Whose test this is, carried through so AI spend is attributable to a member. */
+  studentId?: string;
 }): Promise<{ sections: MockSection[]; generatedCount: number; bankedCount: number; passingPct: number }> {
   const [cfg, tax] = await Promise.all([
     CompanyMockConfig.findOne({ tenantId: opts.tenantId, companySlug: opts.companySlug }).lean() as any,
@@ -145,7 +150,7 @@ export async function assembleTest(opts: {
     let made: MockQuestion[] = [];
     if (short > 0 && aiTopUp) {
       made = await generate({
-        tenantId: opts.tenantId, companyName: opts.companyName,
+        tenantId: opts.tenantId, studentId: opts.studentId, companyName: opts.companyName,
         topic: def.category || 'general', difficulty: def.difficulty || '',
         count: short,
         // The bank steers the subject matter even when it cannot supply the items.

@@ -78,6 +78,8 @@ const asStrings = (v: any, max: number): string[] =>
  */
 export async function reviewAnswer(opts: {
   tenantId: string;
+  /** The member this feedback is for, so the spend is attributable to them. */
+  studentId?: string;
   missionTitle: string;
   missionDetail: string;
   answer: string;
@@ -85,6 +87,7 @@ export async function reviewAnswer(opts: {
   try {
     const raw = await aiComplete({
       tenantId: opts.tenantId,
+      studentId: opts.studentId,
       module: 'careerpilot_mission_answer',
       product: 'careerpilot',
       system: SYSTEM,

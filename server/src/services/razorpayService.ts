@@ -67,6 +67,36 @@ export async function createOrder(
   return { id: order.id, amount: Number(order.amount), currency: order.currency, keyId: cfg.keyId };
 }
 
+/**
+ * What Razorpay says was actually captured, straight from their API.
+ *
+ * The checkout signature proves a payment belongs to an order; it says nothing about how
+ * much was captured. Razorpay supports partial capture, so "authentic" and "paid in full"
+ * are different claims, and only this call can settle the second one. The webhook carries
+ * the same figures inside a signed body — this exists for the verify and return paths,
+ * where the browser hands us an id and nothing else worth trusting.
+ */
+export async function fetchPayment(tenantId: string, paymentId: string): Promise<{
+  id: string; amount: number; currency: string; status: string; orderId: string;
+} | null> {
+  const cfg = getConfig(tenantId);
+  if (!cfg) return null;
+  try {
+    const p: any = await client(cfg).payments.fetch(paymentId);
+    return {
+      id: String(p.id),
+      amount: Number(p.amount),
+      currency: String(p.currency),
+      status: String(p.status),
+      orderId: String(p.order_id || ''),
+    };
+  } catch {
+    // A lookup failure must not be read as "the amount was fine" — the caller treats null
+    // as unverifiable and refuses to settle.
+    return null;
+  }
+}
+
 /** Refund a captured payment (full or partial). amountInr in rupees; omit for full. */
 export async function refundPayment(tenantId: string, paymentId: string, amountInr?: number): Promise<{ id: string; amount: number; status: string }> {
   const cfg = getConfig(tenantId);

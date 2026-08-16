@@ -164,8 +164,14 @@ export const webhook = async (req: Request, res: Response) => {
 
     const evType = String(event?.event || '');
     if (evType === 'payment.captured' || evType === 'order.paid') {
-      const paymentId = event?.payload?.payment?.entity?.id || payment.paymentId;
-      await settlePayment(payment, paymentId, undefined);
+      const entity = event?.payload?.payment?.entity || {};
+      const paymentId = entity.id || payment.paymentId;
+      // The body is signature-verified above, so these figures are as authentic as an API
+      // lookup and cost nothing.
+      const captured = entity.amount !== undefined
+        ? { amount: Number(entity.amount), currency: String(entity.currency || ''), orderId: String(entity.order_id || '') }
+        : undefined;
+      await settlePayment(payment, paymentId, undefined, captured);
     }
     res.status(200).json({ success: true });
   } catch (e: any) {
@@ -375,7 +381,89 @@ export const createFeeOrder = async (req: AuthenticatedRequest, res: Response) =
  * can't both apply the payment. On a side-effect failure the claim is released
  * (status back to 'created') so a retry can re-run it (side effects are idempotent).
  */
-export async function settlePayment(payment: any, paymentId?: string, signature?: string): Promise<any> {
+/**
+ * What a settlement must match before anything is unlocked.
+ *
+ * `amount` and `currency` on the Payment record are copied from the order THE SERVER
+ * CREATED — razorpayService.createOrder computes the paise from configured pricing and
+ * hardcodes INR. Nothing a browser sends ever reaches them, so comparing against them is
+ * comparing against our own intent rather than against the customer's claim.
+ */
+export interface CapturedPayment {
+  amount: number;
+  currency: string;
+  orderId?: string;
+}
+
+export type SettleRefusal = 'amount_mismatch' | 'currency_mismatch' | 'wrong_order' | 'unverifiable';
+
+/**
+ * Does this capture actually pay for this order?
+ *
+ * A VALID SIGNATURE IS NOT A PAID INVOICE. It proves Razorpay issued the payment against
+ * the order, and nothing about how much was captured — Razorpay supports partial capture,
+ * so a ₹1 capture on a ₹499 order is authentic and signed and must not unlock a membership.
+ *
+ * Exact equality, deliberately. CareerPilot membership has no coupon, discount or partial
+ * path: one order, one price, computed server-side. Fees are installments, but each
+ * installment is its OWN order with its own server-created amount, so the same rule holds.
+ * A tolerance would be a discount nobody approved.
+ */
+export function checkCapture(
+  expected: { amount: number; currency: string; orderId: string },
+  captured: CapturedPayment | null,
+): { ok: true } | { ok: false; reason: SettleRefusal } {
+  // Null means we could not ask Razorpay. Unverifiable is not the same as fine.
+  if (!captured) return { ok: false, reason: 'unverifiable' };
+
+  if (captured.orderId && String(captured.orderId) !== String(expected.orderId)) {
+    return { ok: false, reason: 'wrong_order' };
+  }
+  if (String(captured.currency || '').toUpperCase() !== String(expected.currency || '').toUpperCase()) {
+    return { ok: false, reason: 'currency_mismatch' };
+  }
+  // Under-capture is the real risk. An over-capture cannot happen through our checkout and
+  // is refused too rather than quietly accepted.
+  if (Number(captured.amount) !== Number(expected.amount)) {
+    return { ok: false, reason: 'amount_mismatch' };
+  }
+  return { ok: true };
+}
+
+export async function settlePayment(
+  payment: any,
+  paymentId?: string,
+  signature?: string,
+  captured?: CapturedPayment,
+): Promise<any> {
+  /**
+   * VERIFY BEFORE CLAIMING.
+   *
+   * The claim below is what makes settlement idempotent, and it is one-way: once the row
+   * reads `paid` a retry returns the stored result rather than re-checking anything. So the
+   * amount has to be settled first — validating after the claim would mean a refused
+   * payment had already been marked paid.
+   *
+   * The webhook hands us the figures from its signed body. Verify and return hand us only
+   * an id, so we ask Razorpay directly.
+   */
+  if (paymentId) {
+    const seen = captured
+      || await razorpay.fetchPayment(String(payment.tenantId), paymentId);
+    const verdict = checkCapture(
+      { amount: Number(payment.amount), currency: String(payment.currency || 'INR'), orderId: String(payment.orderId) },
+      seen,
+    );
+    if (!verdict.ok) {
+      // Left as `created`, never `paid`: nothing is unlocked, the row is not burned, and a
+      // later full capture or a corrected webhook can still settle it.
+      console.error(
+        `[payment] refusing to settle ${payment.orderId}: ${(verdict as any).reason}`,
+      );
+      return { settled: false, refused: (verdict as any).reason };
+    }
+  }
+
   const claimed = await Payment.findOneAndUpdate(
     { _id: payment._id, status: 'created' },
     { $set: { status: 'paid', paidAt: new Date(), ...(paymentId ? { paymentId } : {}), ...(signature ? { signature } : {}) } },

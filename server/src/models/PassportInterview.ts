@@ -71,6 +71,19 @@ export interface IPassportInterview extends Document {
   finalizeToken?: string | null;
   /** When the current claim was taken. The only input to stale-claim recovery. */
   finalizingAt?: Date | null;
+  /**
+   * The one-live-interview lock, expressed as data so the DATABASE can enforce it.
+   *
+   * True for exactly the two live statuses — `in_progress` and `finalizing` — and false the
+   * moment a sitting reaches a terminal one. It carries no information `status` does not
+   * already have; it exists because a partial index filter has to be an equality expression,
+   * and "live" is two values. See PASSPORT_INTERVIEW_LIVE_INDEX.
+   *
+   * INVARIANT: live === true  ⟺  status ∈ { in_progress, finalizing }. Every write that
+   * moves `status` across that boundary must move this with it, or a member is locked out of
+   * ever starting another interview.
+   */
+  live?: boolean;
   transcript: IPassportTurn[];
   evaluation?: IPassportInterviewEval | null;
   xpAwarded: number;
@@ -123,6 +136,10 @@ const PassportInterviewSchema = new Schema<IPassportInterview>(
     status:     { type: String, enum: ['in_progress', 'finalizing', 'completed', 'abandoned'], default: 'in_progress', index: true },
     finalizeToken: { type: String, default: null },
     finalizingAt:  { type: Date, default: null },
+    // No default. A document that predates this field is simply not in the partial index,
+    // which is exactly right: the lock protects sittings started under the new rule, and
+    // the migration script backfills the ones that were already open.
+    live: { type: Boolean },
     transcript: [TurnSchema],
     evaluation: { type: EvalSchema, default: null },
     xpAwarded:  { type: Number, default: 0 },
@@ -133,5 +150,32 @@ const PassportInterviewSchema = new Schema<IPassportInterview>(
 );
 
 PassportInterviewSchema.index({ tenantId: 1, studentId: 1, createdAt: -1 });
+
+/** The live-session lock. Named so a migration can address it rather than guess at it. */
+export const PASSPORT_INTERVIEW_LIVE_INDEX = 'tenantId_1_studentId_1_live_unique';
+
+/**
+ * At most ONE live interview per member, enforced by MongoDB rather than by the handler.
+ *
+ * start() reads for a live session and resumes it — but a read followed by an insert is two
+ * statements, and two simultaneous requests both read "none" before either writes. The
+ * member ends up with two sittings where they meant to have one: two transcripts, and one of
+ * them silently orphaned by whichever the next request happens to find.
+ *
+ * A partial unique index answers the question in the same operation that acts on it. Of any
+ * number of concurrent inserts exactly one succeeds; the rest get E11000 and return the
+ * winner's session, so the loser of the race sees a resumed interview and not an error.
+ *
+ * PARTIAL, on `live`, and not on `status` directly. Uniqueness must hold across BOTH live
+ * statuses — a member must not open a second interview while the first is still being
+ * graded — and a partial filter cannot express "one of these two values" on every MongoDB
+ * version. `live` is that pair collapsed into the equality expression a partial index takes,
+ * and it leaves completed and abandoned sittings unindexed, which is why a member can sit as
+ * many interviews as they like over time.
+ */
+PassportInterviewSchema.index(
+  { tenantId: 1, studentId: 1 },
+  { unique: true, partialFilterExpression: { live: true }, name: PASSPORT_INTERVIEW_LIVE_INDEX },
+);
 
 export default mongoose.model<IPassportInterview>('PassportInterview', PassportInterviewSchema);

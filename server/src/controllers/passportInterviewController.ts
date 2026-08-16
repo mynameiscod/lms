@@ -46,6 +46,23 @@ const AREAS_BY_PATHWAY: Record<string, { role: string; areas: string[] }> = {
   it_bridge:      { role: 'IT Associate (Fresher)',       areas: ['Introduction & background', 'Communication', 'Basic technical awareness', 'Attitude & ownership', 'Career goals'] },
 };
 
+/**
+ * The statuses that mean "this member already has an interview open".
+ *
+ * `finalizing` is one of them. A member who hits finish and immediately asks for a new
+ * interview would otherwise open a second one while the first is still being graded, and end
+ * up with two sessions where they meant to have one. Kept next to the model's `live` flag —
+ * the two describe the same set and must not drift apart.
+ */
+const LIVE_STATUSES = ['in_progress', 'finalizing'];
+
+const findLiveSession = (tenantId: string, studentId: string) =>
+  PassportInterview.findOne({ tenantId, studentId, status: { $in: LIVE_STATUSES } });
+
+/** MongoDB's duplicate-key error, however the driver happens to have wrapped it. */
+const isDuplicateKey = (e: any): boolean =>
+  e?.code === 11000 || e?.cause?.code === 11000 || /E11000/.test(String(e?.message || ''));
+
 async function gate(req: Request) {
   const tenantId = tenantOf(req);
   const studentId = userIdOf(req);
@@ -98,13 +115,14 @@ export const start = async (req: Request, res: Response) => {
     /**
      * Only one live session at a time — resume it instead of stacking sessions.
      *
-     * `finalizing` counts as live. A member who hits finish and immediately asks for a new
-     * interview would otherwise open a second one while the first is still being graded,
-     * and end up with two sessions where they meant to have one.
+     * This read is the fast path, not the guarantee. It answers "does this member already
+     * have an interview open", which is the right question for the ordinary case of somebody
+     * coming back to a half-finished sitting. It cannot answer "is somebody opening one right
+     * now", because between this line and the insert below there is an AI call and two
+     * simultaneous requests both get here having seen nothing. The database settles that —
+     * see the create below.
      */
-    const existing = await PassportInterview.findOne({
-      tenantId, studentId, status: { $in: ['in_progress', 'finalizing'] },
-    });
+    const existing = await findLiveSession(tenantId, studentId);
     if (existing) {
       return res.json({
         session: publicSession(existing),
@@ -191,14 +209,56 @@ export const start = async (req: Request, res: Response) => {
       tenantId, product: PRODUCT, company: companyBrief,
     });
 
-    const session = await PassportInterview.create({
+    /**
+     * The insert IS the lock.
+     *
+     * `live: true` puts this document into the partial unique index on (tenantId, studentId),
+     * so of any number of simultaneous starts exactly one insert survives — MongoDB decides,
+     * in the same operation that writes the row, which is the part the read above cannot do.
+     *
+     * The loser is not an error. Its member asked for an interview and there is one: the
+     * winner's, which is the very interview they would have got had their two clicks arrived
+     * a second apart. So it reads the winner back and returns it as `resumed`, exactly as the
+     * fast path above would have.
+     *
+     * TWO ATTEMPTS, AND NO MORE. The winner is normally still live when we look, so the first
+     * catch returns it. Only if that winner ALSO reached a terminal status in the microseconds
+     * since does the slot fall open again, and the second attempt takes it. A third collision
+     * would need yet another racer to both win and finish inside the same window; at that
+     * point the member is better served by being told to try again than by a loop.
+     */
+    const insert = () => PassportInterview.create({
       tenantId, studentId, role, areas, skillTargets,
       companySlug: companyBrief ? slug : undefined,
       companyName: companyBrief?.name,
       interviewerName: interviewerName(), maxQuestions: MAX_QUESTIONS, askedCount: 1,
       status: 'in_progress',
+      live: true,
       transcript: [{ role: 'interviewer', text: first.say, at: new Date() }],
     });
+
+    let session: any = null;
+    for (let attempt = 0; attempt < 2 && !session; attempt += 1) {
+      try {
+        session = await insert();
+      } catch (e: any) {
+        if (!isDuplicateKey(e)) throw e;
+        const winner = await findLiveSession(tenantId, studentId);
+        // The same shape the fast path above returns, because it is the same answer: here is
+        // your live interview. Nothing downstream should be able to tell which path it took.
+        if (winner) {
+          return res.json({
+            session: publicSession(winner),
+            resumed: true,
+            finalizing: winner.status === 'finalizing',
+          });
+        }
+      }
+    }
+
+    if (!session) {
+      return res.status(409).json({ message: 'Another interview was just opened. Please try again.' });
+    }
 
     res.json({ session: publicSession(session), aiAvailable: isInterviewAIEnabled(), candidateName: user?.firstName || '' });
   } catch (e: any) {
@@ -359,7 +419,10 @@ export const finish = async (req: Request, res: Response) => {
     if (answered === 0) {
       const closed = await PassportInterview.findOneAndUpdate(
         { _id: id, status: 'finalizing', finalizeToken: token },
-        { $set: { status: 'abandoned', finalizeToken: null, finalizingAt: null } },
+        // `live: false` releases the one-live-interview lock. It rides with the status
+        // change, in the same atomic write, because the two must never disagree: a sitting
+        // left live after reaching a terminal status locks its member out for good.
+        { $set: { status: 'abandoned', finalizeToken: null, finalizingAt: null, live: false } },
         { new: true },
       );
       const out: any = closed || await PassportInterview.findOne({ _id: id, tenantId, studentId });
@@ -442,6 +505,8 @@ export const finish = async (req: Request, res: Response) => {
           xpAwarded,
           finalizeToken: null,
           finalizingAt: null,
+          // Releases the one-live-interview lock, in the same write that ends the sitting.
+          live: false,
         },
       },
       { new: true },

@@ -1,14 +1,18 @@
 import crypto from 'crypto';
+import { jwtSecret } from '../config/secrets';
 
 /**
  * Signed, stateless unsubscribe tokens for partner outreach. Encodes
  * tenantId.partnerId with an HMAC so the public unsubscribe link can't be forged
  * or enumerated. Uses the same irreducible secret as the rest of the app.
  */
-const SECRET = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'fallback-key-32-chars-minimum!!';
+// Signs public partner-unsubscribe links. Same reasoning as unsubscribeService: this is a
+// signature over a link, not encryption at rest, so it carries no decryption risk — and a
+// published key here means anyone can unsubscribe anyone.
+const SECRET = () => jwtSecret();
 
 const sign = (payload: string) =>
-  crypto.createHmac('sha256', SECRET).update(payload).digest('base64url').slice(0, 20);
+  crypto.createHmac('sha256', SECRET()).update(payload).digest('base64url').slice(0, 20);
 
 export function unsubToken(tenantId: string, partnerId: string): string {
   const payload = `${tenantId}.${partnerId}`;

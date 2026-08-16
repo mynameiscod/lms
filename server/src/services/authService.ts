@@ -4,6 +4,7 @@ import User, { IUser } from '../models/User';
 import Tenant from '../models/Tenant';
 import Role from '../models/Role';
 import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
+import { jwtSecret } from '../config/secrets';
 
 export class AuthService {
   async registerOrganizationFull(
@@ -152,7 +153,7 @@ export class AuthService {
 
     const tenant = await Tenant.findById(user.tenantId);
 
-    const secret = process.env.JWT_SECRET || 'secret-key';
+    const secret = jwtSecret();
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
 
     // Type assertion to bypass TypeScript strict checks

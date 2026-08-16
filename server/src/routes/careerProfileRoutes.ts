@@ -16,8 +16,10 @@ import {
 
 const router = express.Router();
 
-router.use(tenantResolver);
+// Auth first: tenantResolver takes the tenant from the verified token, so running it
+// before authMiddleware would leave it with nothing but the client's own header.
 router.use(authMiddleware);
+router.use(tenantResolver);
 
 // Student
 router.get('/my', getMyProfile);

@@ -42,8 +42,10 @@ const upload = multer({
 // Public, read-only share link — must be before auth middleware
 router.get('/public/:token', getPublicResume);
 
-router.use(tenantResolver);
+// Auth first: tenantResolver takes the tenant from the verified token, so running it
+// before authMiddleware would leave it with nothing but the client's own header.
 router.use(authMiddleware);
+router.use(tenantResolver);
 
 router.get('/my', getMyResume);
 router.post('/upload', upload.single('resume'), uploadResume);

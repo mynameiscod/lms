@@ -7,6 +7,7 @@ import cluster from 'cluster';
 import os from 'os';
 import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
+import { assertSecretsPresent } from './config/secrets';
 import { initSettings } from './services/settingsService';
 import { syncAllActiveSheets } from './services/googleSheetSyncService';
 import { fireFollowUpReminders, CRON_INTERVAL_MS } from './jobs/followUpCron';
@@ -37,6 +38,16 @@ const IS_JOB_RUNNER = !cluster.isWorker || cluster.worker?.id === 1;
 
 const startServer = async () => {
   try {
+    /**
+     * Refuse to start without a signing key.
+     *
+     * Before anything binds a port or opens a connection: a process that boots without
+     * JWT_SECRET used to fall back to a literal published in this repository, and every
+     * token it then accepted was forgeable. Failing here makes that a deploy that visibly
+     * did not start rather than one that quietly started insecure.
+     */
+    assertSecretsPresent();
+
     console.log('📡 Attempting to connect to MongoDB...');
     // Connect to database
     await connectDB();

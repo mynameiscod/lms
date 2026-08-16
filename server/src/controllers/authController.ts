@@ -6,6 +6,7 @@ import { AuthService } from '../services/authService';
 import { EmailService } from '../services/emailService';
 import User from '../models/User';
 import Tenant from '../models/Tenant';
+import { jwtSecret } from '../config/secrets';
 
 const authService = new AuthService();
 
@@ -242,7 +243,7 @@ export const refreshToken = async (
       return res.status(401).json({ success: false, message: 'No token provided', error: 'MISSING_TOKEN' });
     }
     const oldToken = authHeader.split(' ')[1];
-    const secret = process.env.JWT_SECRET || 'secret-key';
+    const secret = jwtSecret();
     let decoded: any;
     try {
       decoded = jwt.verify(oldToken, secret as string);

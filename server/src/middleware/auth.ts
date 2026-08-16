@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../types';
 import User from '../models/User';
+import { jwtSecret } from '../config/secrets';
 
 export const authMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
@@ -18,7 +19,7 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret-key') as any;
+    const decoded = jwt.verify(token, jwtSecret()) as any;
     console.log(`[AUTH] Token valid for user: ${decoded.id}`);
     
     // Check if user still exists and is active

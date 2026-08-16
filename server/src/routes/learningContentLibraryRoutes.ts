@@ -7,6 +7,7 @@ import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import * as ctrl from '../controllers/learningContentLibraryController';
 import * as bunny from '../controllers/bunnyController';
+import { jwtSecret } from '../config/secrets';
 
 const router = express.Router();
 
@@ -92,7 +93,7 @@ router.get('/:id/stream', (req, res) => {
   const tenantId = req.query.tenantId as string;
   if (!token || !tenantId) return res.status(401).json({ message: 'token and tenantId required' });
   try {
-    jwt.verify(token, process.env.JWT_SECRET || 'secret-key');
+    jwt.verify(token, jwtSecret());
   } catch {
     return res.status(401).json({ message: 'Invalid token' });
   }

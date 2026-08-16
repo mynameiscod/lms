@@ -9,6 +9,7 @@ import Tenant from '../models/Tenant';
 import PassportConfig, { DEFAULT_ONBOARDING_FIELDS, DEFAULT_ENTITLEMENTS } from '../models/PassportConfig';
 import * as settings from '../services/settingsService';
 import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
+import { jwtSecret } from '../config/secrets';
 
 // Public CareerPilot funnel: signup (Name/Mobile/Email + admin-configured onboarding
 // fields) → OTP → account created (STUDENT + passport, not yet active/paid) → auto-login.
@@ -224,7 +225,7 @@ function issueLogin(res: Response, user: any) {
       .catch(() => { /* best effort */ });
   }
 
-  const secret = (process.env.JWT_SECRET || 'secret-key') as string;
+  const secret = jwtSecret();
   const jwtToken = jwt.sign({ id: user._id, email: user.email, role: user.role, tenantId: user.tenantId }, secret, { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') } as any);
   return res.json({
     success: true,

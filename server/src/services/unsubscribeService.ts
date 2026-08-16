@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import EmailSuppression from '../models/EmailSuppression';
 import { APP_URL } from '../constants/brand';
+import { jwtSecret } from '../config/secrets';
 
 /**
  * One-click unsubscribe.
@@ -13,7 +14,10 @@ import { APP_URL } from '../constants/brand';
  * new configuration to forget in an environment.
  */
 
-const secret = () => process.env.JWT_SECRET || 'codebegun-dev-secret';
+// Signs public unsubscribe links. No default: a published signing key lets anyone forge an
+// unsubscribe for any recipient. Rotating it invalidates links in already-sent email, which
+// is a far smaller cost than a forgeable one.
+const secret = () => jwtSecret();
 
 const norm = (email: string) => String(email || '').trim().toLowerCase();
 

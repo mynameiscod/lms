@@ -190,6 +190,18 @@ describe('normalising what the editor sends', () => {
     expect(out[0].weight).toBe(10);
   });
 
+  it('falls back to the default weight when the box is cleared, not to the minimum', () => {
+    // `Number(null)` and `Number('')` are 0, which the old guard accepted and then clamped
+    // up to 1 — so clearing the field silently made the skill the least important one.
+    expect(cleanRequirements([{ skillKey: 'JAVA_OOP', weight: null }])[0].weight).toBe(7);
+    expect(cleanRequirements([{ skillKey: 'JAVA_OOP', weight: '' }])[0].weight).toBe(7);
+    expect(cleanRequirements([{ skillKey: 'JAVA_OOP' }])[0].weight).toBe(7);
+  });
+
+  it('still honours a weight that arrived as a string', () => {
+    expect(cleanRequirements([{ skillKey: 'JAVA_OOP', weight: '9' }])[0].weight).toBe(9);
+  });
+
   it('falls back to safe defaults for values that are not in the vocabulary', () => {
     const out = cleanRequirements([{ skillKey: 'JAVA_OOP', importance: 'CRITICAL', targetLevel: 'GODLIKE' }]);
 

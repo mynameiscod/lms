@@ -6,6 +6,7 @@ import {
   SKILL_IMPORTANCE, SKILL_TARGET_LEVELS, MIN_SKILL_WEIGHT, MAX_SKILL_WEIGHT,
 } from '../models/RoleSkillBlueprint';
 import { getCareerRole } from './careerRoleService';
+import { nullableNumber } from '../utils/nullableNumber';
 
 /**
  * Validating and versioning a company's preparation profile.
@@ -50,12 +51,19 @@ export function cleanRequirements(rows: any[]): ICompanySkillRequirement[] {
     if (!skillKey || seen.has(skillKey)) continue;      // last write wins would hide the clash
     seen.add(skillKey);
 
-    const weight = Number(r?.weight);
+    /**
+     * A cleared weight box means "use the default", not "weight 1".
+     *
+     * `Number(null)` and `Number('')` are both 0, which the old guard accepted as finite and
+     * then clamped up to the minimum — so an admin who emptied the field got the least
+     * important weight available rather than the sensible default they expected, silently.
+     */
+    const weight = nullableNumber(r?.weight);
     out.push({
       skillKey,
       importance: SKILL_IMPORTANCE.includes(r?.importance) ? r.importance : 'IMPORTANT',
       targetLevel: SKILL_TARGET_LEVELS.includes(r?.targetLevel) ? r.targetLevel : 'WORKING',
-      weight: Number.isFinite(weight)
+      weight: weight !== null
         ? Math.min(MAX_SKILL_WEIGHT, Math.max(MIN_SKILL_WEIGHT, Math.round(weight)))
         : 7,
     });

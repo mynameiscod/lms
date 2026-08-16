@@ -105,6 +105,34 @@ describe('normalising a submitted question', () => {
       expect(normaliseChoices({ options: ['a'], correctIndex: 0 }))
         .toEqual({ options: [], correctIndex: null });
     });
+
+    /**
+     * `Number(null)` is 0, so reading the key with a plain Number() accepted "no option
+     * selected" as "option A is correct" — a wrong answer key in a scored test, which marks
+     * every candidate who answered correctly as wrong.
+     */
+    it('drops a null answer key instead of silently marking the first option correct', () => {
+      expect(normaliseChoices({ options: ['a', 'b', 'c', 'd'], correctIndex: null }))
+        .toEqual({ options: [], correctIndex: null });
+    });
+
+    it('drops an empty answer key rather than reading it as zero', () => {
+      expect(normaliseChoices({ options: ['a', 'b', 'c', 'd'], correctIndex: '' }))
+        .toEqual({ options: [], correctIndex: null });
+      expect(normaliseChoices({ options: ['a', 'b', 'c', 'd'], correctIndex: '  ' }))
+        .toEqual({ options: [], correctIndex: null });
+    });
+  });
+
+  it('keeps a deliberate answer key of 0, because the first option can be correct', () => {
+    // The distinction the fix turns on: absent is not zero, and zero is not absent.
+    expect(normaliseChoices({ options: ['a', 'b'], correctIndex: 0 }))
+      .toEqual({ options: ['a', 'b'], correctIndex: 0 });
+  });
+
+  it('reads an answer key that arrived as a string, as a form body would send it', () => {
+    expect(normaliseChoices({ options: ['a', 'b', 'c'], correctIndex: '2' }))
+      .toEqual({ options: ['a', 'b', 'c'], correctIndex: 2 });
   });
 
   it('discards blank choices before deciding whether enough are left', () => {

@@ -180,6 +180,164 @@ describe('criteria nobody has signed off', () => {
   });
 });
 
+// ── regression: an unrecorded number is not a zero ──────────────────────────
+
+/**
+ * The shipped code read every nullable figure with
+ *
+ *     Number.isFinite(Number(v)) ? Number(v) : null
+ *
+ * and `Number(null)` is 0. CollegeMembership.cgpa DEFAULTS to null, so any college-linked
+ * student whose CGPA had never been entered was compared as a CGPA of 0 — and failed every
+ * cut-off a company had published, by the widest possible margin, with a confident message
+ * quoting the number back at them.
+ *
+ * What made it survive: `Number(undefined)` is NaN, so a student with NO membership row
+ * behaved correctly. The broken case was the one with a record.
+ */
+describe('a college record that exists but has no CGPA', () => {
+  it('is UNKNOWN, not a CGPA of zero', async () => {
+    membership = { cgpa: null, backlogs: 0 };
+
+    const r = await evaluateEligibility(TENANT, STUDENT, company({ cgpaMin: 7.0 }));
+
+    expect(criterion(r, 'cgpa').status).toBe('UNKNOWN');
+    expect(criterion(r, 'cgpa').studentValue).toBeNull();
+    // Emphatically not NOT_ELIGIBLE, and emphatically not "our record shows 0".
+    expect(r.verdict).toBe('POTENTIALLY_ELIGIBLE');
+    expect(criterion(r, 'cgpa').detail).not.toMatch(/0/);
+  });
+
+  it('does not let the missing CGPA drag the whole verdict down', async () => {
+    // Everything we can check passes; the only unknown is the CGPA.
+    membership = { cgpa: null, backlogs: 0 };
+    user = { passport: { branch: 'CSE' } };
+
+    const r = await evaluateEligibility(TENANT, STUDENT, company({
+      cgpaMin: 7.0, backlogsAllowed: 0, branches: ['CSE'],
+    }));
+
+    expect(r.verdict).toBe('POTENTIALLY_ELIGIBLE');
+    expect(r.decidedBy).toBeNull();
+    expect(criterion(r, 'backlogs').status).toBe('MET');
+    expect(criterion(r, 'branch').status).toBe('MET');
+  });
+
+  it('behaves the same as having no membership row at all', async () => {
+    membership = { cgpa: null };
+    const withRow = await evaluateEligibility(TENANT, STUDENT, company({ cgpaMin: 7.0 }));
+
+    membership = null;
+    const withoutRow = await evaluateEligibility(TENANT, STUDENT, company({ cgpaMin: 7.0 }));
+
+    expect(criterion(withRow, 'cgpa').status).toBe(criterion(withoutRow, 'cgpa').status);
+    expect(withRow.verdict).toBe(withoutRow.verdict);
+  });
+
+  it('still reads a genuine CGPA either side of the cut-off', async () => {
+    membership = { cgpa: 8.2 };
+    expect(criterion(await evaluateEligibility(TENANT, STUDENT, company({ cgpaMin: 7.0 })), 'cgpa').status).toBe('MET');
+
+    membership = { cgpa: 6.2 };
+    const low = await evaluateEligibility(TENANT, STUDENT, company({ cgpaMin: 7.0 }));
+    expect(criterion(low, 'cgpa').status).toBe('NOT_MET');
+    expect(low.verdict).toBe('NOT_ELIGIBLE');
+  });
+
+  it('still reads a CGPA that arrived as a string', async () => {
+    membership = { cgpa: '8.2' };
+    const r = await evaluateEligibility(TENANT, STUDENT, company({ cgpaMin: 7.0 }));
+
+    expect(criterion(r, 'cgpa').status).toBe('MET');
+    expect(criterion(r, 'cgpa').studentValue).toBe('8.2');
+  });
+});
+
+describe('backlog semantics are preserved deliberately', () => {
+  it('treats a recorded 0 as a real answer, because that is the schema default', async () => {
+    // CollegeMembership.backlogs defaults to 0, so a row with nothing entered genuinely
+    // asserts "no active backlogs". That must keep comparing as zero.
+    membership = { cgpa: 8.0, backlogs: 0 };
+
+    const r = await evaluateEligibility(TENANT, STUDENT, company({ backlogsAllowed: 0 }));
+
+    expect(criterion(r, 'backlogs').status).toBe('MET');
+    expect(criterion(r, 'backlogs').studentValue).toBe('0');
+    expect(r.verdict).toBe('ELIGIBLE');
+  });
+
+  it('treats an explicit null as unknown rather than as zero backlogs', async () => {
+    // The one case where nobody has asserted anything. Reading it as 0 would claim a clean
+    // record on the student's behalf.
+    membership = { cgpa: 8.0, backlogs: null };
+
+    const r = await evaluateEligibility(TENANT, STUDENT, company({ backlogsAllowed: 0 }));
+
+    expect(criterion(r, 'backlogs').status).toBe('UNKNOWN');
+    expect(r.verdict).toBe('POTENTIALLY_ELIGIBLE');
+  });
+
+  it('still fails a genuine backlog count over the allowance', async () => {
+    membership = { cgpa: 8.0, backlogs: 3 };
+
+    const r = await evaluateEligibility(TENANT, STUDENT, company({ backlogsAllowed: 1 }));
+
+    expect(r.verdict).toBe('NOT_ELIGIBLE');
+    expect(r.decidedBy).toBe('backlogs');
+  });
+});
+
+describe('a company threshold stored as null', () => {
+  it('is not configured, rather than a cut-off of zero', async () => {
+    // `Number(null)` would have produced "CGPA 0 and above" — a criterion every student
+    // passes, cluttering the panel with a rule nobody wrote.
+    membership = { cgpa: 8.0 };
+
+    const r = await evaluateEligibility(TENANT, STUDENT, company({ cgpaMin: null, backlogsAllowed: null }));
+
+    expect(r.criteria).toHaveLength(0);
+    expect(r.verdict).toBe('UNKNOWN');
+  });
+
+  it('still honours a genuine zero allowance', async () => {
+    // `backlogsAllowed: 0` is the most common real configuration there is.
+    membership = { cgpa: 8.0, backlogs: 2 };
+
+    const r = await evaluateEligibility(TENANT, STUDENT, company({ backlogsAllowed: 0 }));
+
+    expect(criterion(r, 'backlogs').required).toBe('No active backlogs');
+    expect(r.verdict).toBe('NOT_ELIGIBLE');
+  });
+});
+
+describe('other nullable profile numbers', () => {
+  it('never render a missing graduation year as 0', async () => {
+    user = { passport: { branch: 'CSE', graduationYear: null } };
+    membership = { cgpa: 8.0 };
+
+    const r: any = await evaluateEligibility(TENANT, STUDENT, company({ cgpaMin: 7.0, branches: ['CSE'] }));
+
+    // Not surfaced as a criterion today, but it must not be sitting in the record as a
+    // year 0 waiting for the first thing that reads it.
+    expect(JSON.stringify(r)).not.toMatch(/"0"/);
+    expect(r.verdict).toBe('ELIGIBLE');
+  });
+
+  it('never render any absent value as the string "0"', async () => {
+    membership = { cgpa: null, backlogs: null };
+    user = { passport: {} };
+
+    const r = await evaluateEligibility(TENANT, STUDENT, company({
+      cgpaMin: 7.0, backlogsAllowed: 0, branches: ['CSE'], tenthMin: 60,
+    }));
+
+    for (const c of r.criteria) {
+      if (c.status === 'UNKNOWN') expect(c.studentValue).toBeNull();
+    }
+    expect(r.criteria.some(c => c.studentValue === '0')).toBe(false);
+  });
+});
+
 // ── it is not readiness ─────────────────────────────────────────────────────
 
 describe('eligibility and readiness stay apart', () => {

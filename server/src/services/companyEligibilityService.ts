@@ -1,6 +1,7 @@
 import User from '../models/User';
 import CollegeMembership from '../models/CollegeMembership';
 import mongoose from 'mongoose';
+import { nullableNumber } from '../utils/nullableNumber';
 
 /**
  * Whether a student meets a company's stated eligibility criteria.
@@ -91,11 +92,22 @@ async function academicRecord(tenantId: string, studentId: string): Promise<{
 
   const p = user?.passport || {};
   return {
-    branch: p.branch ? String(p.branch) : null,
-    degree: p.program || p.degree ? String(p.program || p.degree) : null,
-    graduationYear: Number.isFinite(Number(p.graduationYear)) ? Number(p.graduationYear) : null,
-    cgpa: Number.isFinite(Number(membership?.cgpa)) ? Number(membership.cgpa) : null,
-    backlogs: Number.isFinite(Number(membership?.backlogs)) ? Number(membership.backlogs) : null,
+    branch: p.branch ? String(p.branch).trim() || null : null,
+    degree: p.program || p.degree ? String(p.program || p.degree).trim() || null : null,
+    /**
+     * Every one of these is read through nullableNumber, and none of them may become 0 by
+     * accident. See the note there: `Number(null)` is 0, and `cgpa` DEFAULTS to null on
+     * CollegeMembership, so the obvious guard read an unrecorded CGPA as zero and failed
+     * every published cut-off with it.
+     *
+     * `backlogs` behaves differently ON PURPOSE. Its schema default is 0, so a college
+     * record with nothing entered genuinely asserts "no active backlogs" and must keep
+     * comparing as zero — that is the model's own claim, not an absence. Only an explicit
+     * null becomes UNKNOWN here, which is the one case where nobody has asserted anything.
+     */
+    graduationYear: nullableNumber(p.graduationYear),
+    cgpa: nullableNumber(membership?.cgpa),
+    backlogs: nullableNumber(membership?.backlogs),
   };
 }
 
@@ -115,8 +127,17 @@ export async function evaluateEligibility(
   const record = await academicRecord(tenantId, studentId);
   const criteria: EligibilityCriterion[] = [];
 
-  if (Number.isFinite(Number(e.cgpaMin))) {
-    const min = Number(e.cgpaMin);
+  /**
+   * The company's own thresholds go through the same parser.
+   *
+   * A stored null here means "not configured" and must not become a cut-off of 0, which
+   * would render as a criterion every student trivially passes. `backlogsAllowed: 0` is the
+   * opposite case and a very common one — "no active backlogs" — so a real zero has to
+   * survive.
+   */
+  const cgpaMinValue = nullableNumber(e.cgpaMin);
+  if (cgpaMinValue !== null) {
+    const min = cgpaMinValue;
     criteria.push(record.cgpa === null
       ? {
           key: 'cgpa', label: 'CGPA', required: `${min} and above`,
@@ -133,8 +154,9 @@ export async function evaluateEligibility(
         });
   }
 
-  if (Number.isFinite(Number(e.backlogsAllowed))) {
-    const allowed = Number(e.backlogsAllowed);
+  const backlogsAllowedValue = nullableNumber(e.backlogsAllowed);
+  if (backlogsAllowedValue !== null) {
+    const allowed = backlogsAllowedValue;
     const requiredText = allowed === 0 ? 'No active backlogs' : `At most ${allowed} active backlog${allowed === 1 ? '' : 's'}`;
     criteria.push(record.backlogs === null
       ? {
@@ -176,24 +198,27 @@ export async function evaluateEligibility(
    * Reported as UNKNOWN rather than dropped: a student needs to know a cut-off exists and
    * that we cannot check it for them. Quietly omitting it would read as having passed.
    */
-  if (Number.isFinite(Number(e.tenthMin))) {
+  const tenthMinValue = nullableNumber(e.tenthMin);
+  if (tenthMinValue !== null) {
     criteria.push({
-      key: 'tenth', label: 'Class 10', required: `${Number(e.tenthMin)}% and above`,
+      key: 'tenth', label: 'Class 10', required: `${tenthMinValue}% and above`,
       studentValue: null, status: 'UNKNOWN',
       detail: 'We do not hold your Class 10 marks.',
     });
   }
-  if (Number.isFinite(Number(e.twelfthMin))) {
+  const twelfthMinValue = nullableNumber(e.twelfthMin);
+  if (twelfthMinValue !== null) {
     criteria.push({
-      key: 'twelfth', label: 'Class 12', required: `${Number(e.twelfthMin)}% and above`,
+      key: 'twelfth', label: 'Class 12', required: `${twelfthMinValue}% and above`,
       studentValue: null, status: 'UNKNOWN',
       detail: 'We do not hold your Class 12 marks.',
     });
   }
-  if (Number.isFinite(Number(e.gapYearsAllowed))) {
+  const gapYearsValue = nullableNumber(e.gapYearsAllowed);
+  if (gapYearsValue !== null) {
     criteria.push({
       key: 'gapYears', label: 'Education gap',
-      required: `At most ${Number(e.gapYearsAllowed)} year${Number(e.gapYearsAllowed) === 1 ? '' : 's'}`,
+      required: `At most ${gapYearsValue} year${gapYearsValue === 1 ? '' : 's'}`,
       studentValue: null, status: 'UNKNOWN',
       detail: 'We do not hold your education gap history.',
     });

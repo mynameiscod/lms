@@ -1,4 +1,5 @@
 import { aiComplete } from './aiGateway';
+import { nullableNumber } from '../utils/nullableNumber';
 import {
   QuestionTaxonomy, Company, CompanyQuestion, IQuestionTaxonomy,
 } from '../models/CompanyQuestionModels';
@@ -55,8 +56,16 @@ export function normaliseChoices(input: {
 
   if (options.length < MIN_CHOICES) return { options: [], correctIndex: null };
 
-  const idx = Number(input.correctIndex);
-  if (!Number.isInteger(idx) || idx < 0 || idx >= options.length) {
+  /**
+   * A missing answer key is missing, not zero.
+   *
+   * `Number(null)` and `Number('')` are both 0, so reading the key with a plain `Number()`
+   * accepted "no option selected" as "option A is correct" — a wrong key in a scored test,
+   * which marks every candidate who answered correctly as wrong. An index of 0 typed
+   * deliberately is still a perfectly good key and survives.
+   */
+  const idx = nullableNumber(input.correctIndex);
+  if (idx === null || !Number.isInteger(idx) || idx < 0 || idx >= options.length) {
     return { options: [], correctIndex: null };
   }
   return { options, correctIndex: idx };

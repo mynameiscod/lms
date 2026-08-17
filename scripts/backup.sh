@@ -10,7 +10,10 @@ set -e
 
 APP_DIR="/root/lms"
 BACKUP_DIR="/root/lms-backups"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+# A caller may pin the timestamp so it can find the archive this run produces.
+# deploy.sh does exactly that: it has to name the rollback point in its own output,
+# and picking "the newest file afterwards" would be a guess.
+TIMESTAMP="${TIMESTAMP:-$(date +%Y%m%d_%H%M%S)}"
 
 # Credentials come from the compose env file, never hardcoded. This script used
 # to carry admin:password123 inline, so the DB password was readable in git and

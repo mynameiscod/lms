@@ -14,6 +14,7 @@ set -e
 APP_DIR="/root/lms"
 BACKUP_DIR="/root/lms-backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo ""
 echo "========================================="
@@ -23,38 +24,55 @@ echo ""
 
 cd "$APP_DIR"
 
-# Step 1: Backup database
-echo "📦 Step 1: Backing up database..."
+# Step 1: Backup — database, .env and current commit
+#
+# THIS DELEGATES TO backup.sh RATHER THAN DUMPING AGAIN.
+# It used to run its own mongodump with `admin:password123` hardcoded and
+# `2>/dev/null || true` on the end. After the credentials were rotated that dump
+# failed authentication on every single deploy, the error went to /dev/null, the
+# `|| true` swallowed the exit code, and the success message was inside an
+# `if [ -d ... ]` that simply did not fire. So the step printed nothing, changed
+# nothing, and the deploy carried on — with no backup and no way to tell.
+#
+# backup.sh already reads credentials from the compose env file, passes them into
+# the container as env vars so they never reach `ps` or a log, fails loudly when
+# mongodump fails, and refuses to call a dump with zero collections a backup. One
+# implementation, kept correct in one place.
+echo "📦 Step 1: Backing up (scripts/backup.sh)..."
 mkdir -p "$BACKUP_DIR"
 
-if docker ps | grep -q "lms-mongodb"; then
-    docker exec lms-mongodb mongodump \
-        --uri="mongodb://admin:password123@localhost:27017/lms-saas?authSource=admin" \
-        --out="/data/backup" \
-        --gzip 2>/dev/null || true
-    
-    docker cp lms-mongodb:/data/backup "$BACKUP_DIR/db_$TIMESTAMP" 2>/dev/null || true
-    docker exec lms-mongodb rm -rf /data/backup 2>/dev/null || true
-    
-    if [ -d "$BACKUP_DIR/db_$TIMESTAMP" ]; then
-        tar -czf "$BACKUP_DIR/db_$TIMESTAMP.tar.gz" -C "$BACKUP_DIR" "db_$TIMESTAMP"
-        rm -rf "$BACKUP_DIR/db_$TIMESTAMP"
-        echo "   ✅ Database backed up: db_$TIMESTAMP.tar.gz"
-    fi
+if ! TIMESTAMP="$TIMESTAMP" bash "$SCRIPT_DIR/backup.sh"; then
+    echo ""
+    echo "❌ Pre-deploy backup FAILED — aborting." >&2
+    echo "   Nothing has been changed: no pull, no rebuild, no restart." >&2
+    echo "   Fix the backup first. Deploying without one is how you find out the" >&2
+    echo "   hard way, during a restore you cannot do." >&2
+    exit 1
 fi
 
-# Step 2: Backup .env
-echo "📦 Step 2: Backing up .env..."
+# backup.sh exits 0 when MongoDB is not running, which is reasonable for a
+# scheduled backup and not acceptable here: a deploy with no restorable archive
+# has no rollback. Verify the artifact this deploy is about to advertise.
+ARCHIVE="$BACKUP_DIR/db_$TIMESTAMP.tar.gz"
+if [ ! -s "$ARCHIVE" ]; then
+    echo ""
+    echo "❌ Expected backup archive is missing or empty: db_$TIMESTAMP.tar.gz" >&2
+    echo "   Refusing to deploy without a restorable backup." >&2
+    exit 1
+fi
+echo "   ✅ Backup verified: db_$TIMESTAMP.tar.gz ($(du -h "$ARCHIVE" 2>/dev/null | cut -f1))"
+
+# Step 2: Keep a working copy of .env across the pull
+# backup.sh already archived it; this copy is the one restored in Step 5.
+echo "📦 Step 2: Holding .env aside..."
 if [ -f "server/.env" ]; then
-    cp "server/.env" "$BACKUP_DIR/env_$TIMESTAMP"
     cp "server/.env" "/tmp/.env.backup"
-    echo "   ✅ .env backed up"
+    echo "   ✅ .env held"
 fi
 
-# Step 3: Save current commit
-echo "📦 Step 3: Saving current commit..."
+# Step 3: Note the commit to roll back to (backup.sh recorded it alongside the dump)
+echo "📦 Step 3: Current commit..."
 CURRENT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
-echo "$CURRENT_COMMIT" > "$BACKUP_DIR/commit_$TIMESTAMP"
 echo "   ✅ Commit: $CURRENT_COMMIT"
 
 # Step 4: Pull latest code
@@ -118,8 +136,5 @@ else
     exit 1
 fi
 
-# Cleanup old backups (keep last 10)
-cd "$BACKUP_DIR"
-ls -t db_*.tar.gz 2>/dev/null | tail -n +11 | xargs -r rm -f
-ls -t env_* 2>/dev/null | tail -n +11 | xargs -r rm -f
-ls -t commit_* 2>/dev/null | tail -n +11 | xargs -r rm -f
+# Rotation is backup.sh's job now, and it already ran in Step 1. A second copy
+# here would be one more thing to keep in step with the first.

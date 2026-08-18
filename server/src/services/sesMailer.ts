@@ -74,6 +74,35 @@ function clientFor(tenantId?: string): SESv2Client {
   return client;
 }
 
+let _warnedBadConfigSet = false;
+
+/**
+ * A configuration set is an AWS resource NAME (letters, digits, `-`, `_`), not a
+ * URL. Pasting the SNS webhook endpoint in here is an easy mistake — the two sit
+ * next to each other during setup — and SES rejects the whole SendEmail call on
+ * an invalid name, so one wrong secondary field would stop every email.
+ *
+ * Sending matters more than event tracking, so a malformed value is dropped with
+ * a loud, repeated warning rather than being allowed to break all mail. Silence
+ * here would be worse: bounce tracking would be off with nothing to show why.
+ */
+function validConfigurationSet(raw: string): string {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  if (/^[A-Za-z0-9_-]+$/.test(value)) return value;
+  if (!_warnedBadConfigSet) {
+    _warnedBadConfigSet = true;
+    console.error(
+      `[SES] ⚠️  SES_CONFIGURATION_SET is not a valid configuration set name: "${value}". ` +
+      `Expected an AWS resource name such as "codebegun-events" — a URL belongs in the SNS ` +
+      `subscription, not here. Ignoring it and sending WITHOUT event tracking, which means ` +
+      `bounces and complaints will NOT reach the suppression list until this is corrected ` +
+      `in Platform Settings → Email.`
+    );
+  }
+  return '';
+}
+
 /**
  * Build a raw MIME message.
  *
@@ -120,7 +149,7 @@ function needsRaw(args: SesSendArgs): boolean {
  */
 export async function sendViaSes(args: SesSendArgs, tenantId?: string): Promise<string> {
   const client = clientFor(tenantId);
-  const configurationSet = cfg('SES_CONFIGURATION_SET', tenantId);
+  const configurationSet = validConfigurationSet(cfg('SES_CONFIGURATION_SET', tenantId));
 
   const command = new SendEmailCommand({
     FromEmailAddress: args.from,

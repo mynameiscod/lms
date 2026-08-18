@@ -102,6 +102,25 @@ describe('sendViaSes', () => {
     expect(input.ConfigurationSetName).toBeUndefined();
   });
 
+  it('still sends when the configuration set is a pasted URL', async () => {
+    // Real misconfiguration: the SNS webhook endpoint was entered here. SES
+    // rejects an invalid name outright, so honouring it would break ALL mail.
+    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    settingsValues.SES_CONFIGURATION_SET = 'https://platform.codebegun.com/api/v1/public/ses-events';
+    const id = await sendViaSes({ ...base });
+    expect(id).toBe('ses-msg-1');
+    const { input } = mockSend.mock.calls[0][0];
+    expect(input.ConfigurationSetName).toBeUndefined();
+    expect(errSpy).toHaveBeenCalledWith(expect.stringContaining('not a valid configuration set name'));
+    errSpy.mockRestore();
+  });
+
+  it('accepts a normal configuration set name with dashes and underscores', async () => {
+    settingsValues.SES_CONFIGURATION_SET = 'codebegun_events-v2';
+    await sendViaSes({ ...base });
+    expect(mockSend.mock.calls[0][0].input.ConfigurationSetName).toBe('codebegun_events-v2');
+  });
+
   it('fails loudly when the region is missing', async () => {
     delete settingsValues.SES_REGION;
     await expect(sendViaSes({ ...base })).rejects.toThrow(/SES_REGION/);

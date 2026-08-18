@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import SystemSetting from '../models/SystemSetting';
-import { SECRET_KEYS, getDef } from '../config/settingsRegistry';
+import { SECRET_KEYS, getDef, MANAGED_KEYS } from '../config/settingsRegistry';
 
 /**
  * settingsService — single source of truth for admin-managed configuration.
@@ -86,11 +86,40 @@ const platformCache = new Map<string, string>();
 const tenantCache = new Map<string, Map<string, string>>(); // tenantId -> (key -> value)
 let loaded = false;
 
-/** Mirror platform values into process.env so call-time readers see UI values. */
+/**
+ * The real environment, captured before any UI value has been mirrored in.
+ *
+ * applyToEnv() writes platform values straight into process.env, which makes a
+ * mirrored value indistinguishable from one that genuinely came from .env. That
+ * broke clearing: deleting a setting removed the DB row and the cache entry, but
+ * left the previously-mirrored value sitting in process.env for the life of the
+ * process. get() then fell through to it, so the cleared value kept being used
+ * and the UI reported its origin as "From .env" when nothing was in .env at all.
+ *
+ * Keeping the boot snapshot lets applyToEnv() put a key back the way it found it
+ * instead of guessing.
+ */
+const bootEnv: Record<string, string | undefined> = { ...process.env };
+
+/**
+ * Mirror platform values into process.env so call-time readers see UI values,
+ * and un-mirror keys the UI no longer defines.
+ *
+ * Only keys the settings system manages (MANAGED_KEYS) are ever touched —
+ * unrelated environment variables are left alone.
+ */
 export function applyToEnv(): void {
   platformCache.forEach((v, k) => {
     if (v !== '') process.env[k] = v;
   });
+
+  for (const key of MANAGED_KEYS) {
+    const v = platformCache.get(key);
+    if (v !== undefined && v !== '') continue; // still set in the UI — keep the mirror
+    const original = bootEnv[key];
+    if (original === undefined) delete process.env[key];
+    else process.env[key] = original;
+  }
 }
 
 /** Load all settings from DB into the caches (decrypting secrets). */

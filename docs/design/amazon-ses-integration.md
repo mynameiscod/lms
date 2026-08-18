@@ -119,14 +119,28 @@ alignment), that subdomain needs its own MX and SPF records.
 Without this, hard bounces never reach the suppression list, and repeatedly
 mailing dead addresses is what gets a sending account throttled or suspended.
 
+Two different values are involved here and they are easy to swap. Keep them
+straight:
+
+| Value | Where it goes | Example |
+|---|---|---|
+| Configuration set **name** | `SES_CONFIGURATION_SET` in Platform Settings | `codebegun-events` |
+| Webhook **URL** | The SNS subscription endpoint, in the AWS console | `https://platform.codebegun.com/api/v1/public/ses-events` |
+
+`SES_CONFIGURATION_SET` takes a name only — letters, digits, `-`, `_`. It never
+contains a URL. A malformed value is ignored with a loud log warning rather than
+being sent to SES, because SES rejects the entire send on an invalid name and
+one wrong field here would otherwise stop all email.
+
 1. SNS → create topic `codebegun-ses-events`.
 2. SES → Configuration sets → create one (e.g. `codebegun-events`) → add an
    event destination for **Bounce** and **Complaint** → target the SNS topic.
-3. SNS → the topic → create an **HTTPS** subscription pointing at:
+3. SNS → the topic → create an **HTTPS** subscription whose *endpoint* is
    `https://platform.codebegun.com/api/v1/public/ses-events`
 4. The endpoint auto-confirms the subscription. Watch for
    `[SES-EVENTS] confirming SNS subscription` in the server log.
-5. Put the configuration set name into `SES_CONFIGURATION_SET`.
+5. Put the configuration set **name** from step 2 — not the URL from step 3 —
+   into `SES_CONFIGURATION_SET`.
 
 Test with SES's simulator addresses — these do not affect reputation:
 

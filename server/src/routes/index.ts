@@ -107,6 +107,7 @@ import { partnerUnsubscribe } from '../controllers/partnerPublicController';
 // Boot notification listeners
 import '../notifications/notificationService';
 import { unsubscribe } from '../controllers/unsubscribeController';
+import { sesEvents } from '../controllers/sesEventsController';
 
 const router = express.Router();
 
@@ -121,6 +122,10 @@ router.use('/public/certificate', publicCertificateRoutes); // certificate verif
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount
 router.use('/public/proof', publicProofRoutes); // HR-facing candidate proof profile (specific, before generic /public)
 router.get('/public/unsubscribe', unsubscribe);
+// Amazon SES bounce/complaint events via SNS (public, signature-verified).
+// express.json() only parses application/json; SNS posts text/plain, so this
+// route gets its own permissive parser before the generic /public mount.
+router.post('/public/ses-events', express.json({ type: '*/*', limit: '1mb', verify: (req, _res, buf) => { (req as any).rawBody = buf; } }), sesEvents);
 router.use('/public', publicBattleRoutes); // Tech Battle public funnel (specific battle paths, before generic /public)
 router.use('/public', publicLeadRoutes);
 router.use('/battles', battleRoutes);

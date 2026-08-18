@@ -28,7 +28,7 @@ export interface SettingGroup {
 
 export const SETTING_GROUPS: SettingGroup[] = [
   { id: 'ai',          label: 'AI / LLM',         icon: '🤖', description: 'Anthropic & OpenAI keys, models and pricing used by interviews, assessments, lessons and resume parsing.' },
-  { id: 'email',       label: 'Email / SMTP',     icon: '✉️', description: 'Outbound email — Gmail, custom SMTP, or Brevo API. Used for welcome, reset, notifications and receipts.' },
+  { id: 'email',       label: 'Email / SMTP',     icon: '✉️', description: 'Outbound email — Amazon SES (default), Gmail, custom SMTP, or Brevo API. Used for welcome, reset, notifications and receipts. Use “Send test email” after changing anything here.' },
   { id: 'storage',     label: 'Video Storage',    icon: '🎬', description: 'Bunny Stream credentials for class recordings and learning videos.' },
   { id: 'oauth',       label: 'OAuth Providers',  icon: '🔑', description: 'GitHub & LinkedIn OAuth apps used for student account connections and the code playground.' },
   { id: 'messaging',   label: 'Meta / WhatsApp',  icon: '💬', description: 'WhatsApp Cloud API + Meta Lead Ads webhook credentials.' },
@@ -53,7 +53,7 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'INTERVIEW_AI_PRICE_OUT', label: 'AI Price — Output ($/1M tokens)', group: 'ai', type: 'number', placeholder: '15' },
 
   // ── Email / SMTP ─────────────────────────────────────────────────────────── (per-tenant: sender + SMTP)
-  { key: 'EMAIL_SERVICE', label: 'Email Provider', group: 'email', type: 'select', options: ['gmail', 'smtp', 'brevo'], placeholder: 'gmail', help: 'gmail = Gmail SMTP (port 587); smtp = custom SMTP; brevo = Brevo HTTP API.', perTenant: true },
+  { key: 'EMAIL_SERVICE', label: 'Email Provider', group: 'email', type: 'select', options: ['ses', 'gmail', 'smtp', 'brevo'], placeholder: 'ses', help: 'ses = Amazon SES (platform default, recommended); gmail = Gmail SMTP (port 587); smtp = custom SMTP; brevo = Brevo HTTP API. Leave blank to inherit the platform default (SES).', perTenant: true },
   { key: 'EMAIL_FROM', label: 'From (Name <email>)', group: 'email', type: 'text', placeholder: 'CodeBegun <no-reply@codebegun.com>', help: 'The From header. Per-tenant so each institute can send from its own address.', perTenant: true },
   { key: 'EMAIL_USER', label: 'SMTP / Account Username', group: 'email', type: 'text', placeholder: 'you@gmail.com', perTenant: true },
   { key: 'EMAIL_PASSWORD', label: 'SMTP / App Password', group: 'email', isSecret: true, type: 'password', placeholder: 'app password', perTenant: true },
@@ -61,6 +61,12 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'SMTP_PORT', label: 'SMTP Port', group: 'email', type: 'number', placeholder: '587', perTenant: true },
   { key: 'SMTP_SECURE', label: 'SMTP Secure (TLS)', group: 'email', type: 'select', options: ['false', 'true'], placeholder: 'false', help: 'true = implicit TLS (465); false = STARTTLS (587).', perTenant: true },
   { key: 'BREVO_API_KEY', label: 'Brevo API Key', group: 'email', isSecret: true, type: 'password', placeholder: 'xkeysib-...', help: 'Only for provider = brevo.', perTenant: true },
+
+  // ── Amazon SES ───────────────────────────────────────────────────────────── (platform default provider)
+  { key: 'SES_REGION', label: 'SES Region', group: 'email', type: 'text', placeholder: 'ap-south-1', help: 'AWS region where the sending domain is verified, e.g. ap-south-1 (Mumbai) or eu-west-1. Must match the region the domain identity lives in — SES identities are per-region.', perTenant: true },
+  { key: 'SES_ACCESS_KEY_ID', label: 'SES Access Key ID', group: 'email', type: 'text', placeholder: 'AKIA...', help: 'IAM key with ses:SendEmail. Leave blank to use the machine\'s ambient AWS credentials (instance role).', perTenant: true },
+  { key: 'SES_SECRET_ACCESS_KEY', label: 'SES Secret Access Key', group: 'email', isSecret: true, type: 'password', placeholder: 'AWS secret key', perTenant: true },
+  { key: 'SES_CONFIGURATION_SET', label: 'SES Configuration Set', group: 'email', type: 'text', placeholder: 'codebegun-events', help: 'Optional but strongly recommended. The configuration set that publishes bounce/complaint events to SNS — without it, hard bounces never reach the suppression list and SES reputation degrades silently.', perTenant: true },
 
   // ── Video Storage (Bunny) ────────────────────────────────────────────────────
   { key: 'BUNNY_STREAM_API_KEY', label: 'Bunny Stream API Key', group: 'storage', isSecret: true, type: 'password', placeholder: 'bunny api key' },

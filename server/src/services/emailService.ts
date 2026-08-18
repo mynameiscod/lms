@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import * as settings from './settingsService';
 import { isSuppressed } from './unsubscribeService';
+import { sendViaSes, isTransientSesError, SesAttachment } from './sesMailer';
 import {
   getStudentWelcomeEmailHtml,
   getStudentWelcomeEmailPlainText,
@@ -12,25 +13,60 @@ import {
   TenantAdminEmailData
 } from './emailTemplates';
 
-// ─── Process-wide SMTP send throttle ────────────────────────────────────────
+// ─── Process-wide send throttle ─────────────────────────────────────────────
 // Hostinger (and most shared SMTP) throttles bursts — inviting several students
 // in a row, or a bulk quiz/assignment notification, fires sends back-to-back and
-// trips `451 4.7.1 Ratelimit "hostinger_out_ratelimit"`. We serialize SMTP sends
+// trips `451 4.7.1 Ratelimit "hostinger_out_ratelimit"`. We serialize sends
 // through a single chain and keep a minimum gap between them so we never burst.
 // A lone send after an idle period waits 0ms; only rapid consecutive sends pace out.
 const MIN_SEND_GAP_MS = Number(process.env.SMTP_MIN_SEND_GAP_MS) || 3_000;
+
+// SES sustains ~14+ messages/sec on a production account, so the 3s SMTP gap
+// would cap a 457-recipient Tech Battle approval run at ~23 minutes for no
+// reason. 80ms (≈12/sec) stays under a default quota while still pacing, and
+// SES throttling is retried by isTransientSesError anyway.
+//
+// NOTE: this is the PRODUCTION rate. A sandboxed SES account is limited to
+// 1 msg/sec — set SES_MIN_SEND_GAP_MS=1100 if the account is ever in sandbox.
+const SES_MIN_SEND_GAP_MS = Number(process.env.SES_MIN_SEND_GAP_MS) || 80;
+
 let _sendChain: Promise<void> = Promise.resolve();
 let _lastSendAt = 0;
 
-/** Await a throttle slot: serializes callers and enforces MIN_SEND_GAP_MS spacing. */
-function acquireSendSlot(): Promise<void> {
+/** Await a throttle slot: serializes callers and enforces `gapMs` spacing. */
+function acquireSendSlot(gapMs: number = MIN_SEND_GAP_MS): Promise<void> {
   const slot = _sendChain.then(async () => {
-    const wait = Math.max(0, MIN_SEND_GAP_MS - (Date.now() - _lastSendAt));
+    const wait = Math.max(0, gapMs - (Date.now() - _lastSendAt));
     if (wait > 0) await new Promise(r => setTimeout(r, wait));
     _lastSendAt = Date.now();
   });
   _sendChain = slot.catch(() => {}); // a failed slot must not break the chain
   return slot;
+}
+
+/** Providers the platform can send through. */
+export type MailProvider = 'ses' | 'brevo' | 'smtp' | 'gmail';
+
+/**
+ * Platform-wide default when a tenant has not chosen a provider.
+ *
+ * Amazon SES replaced the Gmail/Hostinger/Brevo mix. Overridable via env so a
+ * cutover can be reversed for every tenant at once without a deploy — set
+ * DEFAULT_MAIL_PROVIDER=brevo to roll the whole platform back.
+ */
+const DEFAULT_PROVIDER: MailProvider =
+  (process.env.DEFAULT_MAIL_PROVIDER as MailProvider) || 'ses';
+
+/** One outbound message, provider-agnostic. */
+export interface DispatchArgs {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  attachments?: { filename: string; content: Buffer }[];
+  opts?: EmailSendOpts;
+  /** Log label used in retry/warning output. */
+  label?: string;
 }
 
 /** Optional per-send headers (threading + deliverability). */
@@ -58,12 +94,110 @@ export class EmailService {
     return settings.getStr(key, '', this.tenantId);
   }
 
+  /**
+   * The provider this tenant sends through. Platform default is SES; a tenant
+   * that has been pinned to another provider in Platform Settings keeps it, so
+   * moving a single institute back to Brevo/SMTP is a settings change and not a
+   * deploy. `gmail` remains the fallback only when nothing is configured at all.
+   */
+  private get provider(): MailProvider {
+    const configured = this.cfg('EMAIL_SERVICE');
+    if (configured === 'ses' || configured === 'brevo' || configured === 'smtp' || configured === 'gmail') {
+      return configured;
+    }
+    return DEFAULT_PROVIDER;
+  }
+
   private get useBrevoApi(): boolean {
-    return (this.cfg('EMAIL_SERVICE') || 'gmail') === 'brevo';
+    return this.provider === 'brevo';
   }
 
   private fromHeader(): string {
     return this.cfg('EMAIL_FROM') || `CodeBegun <${this.cfg('EMAIL_USER')}>`;
+  }
+
+  /**
+   * THE send path. Every outbound email in this service goes through here.
+   *
+   * This used to be an `if (useBrevoApi) … else …` pasted at eleven call sites,
+   * which is how several of them ended up calling `transporter.sendMail()`
+   * directly — bypassing both the burst throttle and the transient retry that
+   * the other sites got. Adding SES as a third branch in eleven places would
+   * have made that worse, so the branch lives here once.
+   *
+   * Throws on failure; callers decide whether that is fatal.
+   */
+  private async dispatch(args: DispatchArgs): Promise<string> {
+    const { to, subject, html, text, attachments, opts } = args;
+    const label = args.label || `email to ${to}`;
+    const provider = this.provider;
+
+    if (provider === 'brevo') {
+      await this.sendViaBrevoApi(to, subject, html, text, attachments);
+      return '';
+    }
+
+    if (provider === 'ses') {
+      return await this.sendWithRetry(
+        () => sendViaSes({
+          from: this.fromHeader(),
+          to, subject, html, text,
+          ...(attachments?.length ? { attachments: attachments as SesAttachment[] } : {}),
+          ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
+          ...(opts?.headers ? { headers: opts.headers } : {}),
+          ...(opts?.messageId ? { messageId: opts.messageId } : {}),
+          ...(opts?.inReplyTo ? { inReplyTo: opts.inReplyTo } : {}),
+          ...(opts?.references ? { references: opts.references } : {}),
+        }, this.tenantId),
+        isTransientSesError,
+        SES_MIN_SEND_GAP_MS,
+        label,
+      );
+    }
+
+    // smtp / gmail
+    const info = await this.sendMailWithRetry({
+      from: this.fromHeader(),
+      to, subject, html, text,
+      ...(attachments?.length ? { attachments: attachments.map(a => ({ filename: a.filename, content: a.content })) } : {}),
+      ...(opts?.messageId ? { messageId: opts.messageId } : {}),
+      ...(opts?.inReplyTo ? { inReplyTo: opts.inReplyTo } : {}),
+      ...(opts?.references ? { references: opts.references } : {}),
+      ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
+      ...(opts?.headers ? { headers: opts.headers } : {}),
+    }, label);
+    return info?.messageId || '';
+  }
+
+  /**
+   * Provider-agnostic retry with escalating backoff. `isTransient` decides what
+   * is worth retrying, because SES signals throttling by error name while SMTP
+   * signals it by response code.
+   */
+  private async sendWithRetry<T>(
+    send: () => Promise<T>,
+    isTransient: (err: any) => boolean,
+    gapMs: number,
+    label: string,
+  ): Promise<T> {
+    const delaysMs = [2_000, 5_000, 12_000];
+    let lastErr: any;
+    for (let attempt = 0; attempt <= delaysMs.length; attempt++) {
+      try {
+        await acquireSendSlot(gapMs);
+        return await send();
+      } catch (err: any) {
+        lastErr = err;
+        if (attempt < delaysMs.length && isTransient(err)) {
+          const wait = delaysMs[attempt];
+          console.warn(`   ⏳ Transient send error for ${label} (${err?.name || err?.code || 'n/a'}): ${err?.message}. Retrying in ${wait / 1000}s (attempt ${attempt + 1}/${delaysMs.length})...`);
+          await new Promise(r => setTimeout(r, wait));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastErr;
   }
 
   private get transporter(): nodemailer.Transporter {
@@ -117,36 +251,20 @@ export class EmailService {
    * Non-transient errors (bad auth, invalid recipient) throw immediately.
    */
   private async sendMailWithRetry(mailOptions: any, label = 'email'): Promise<any> {
-    const delaysMs = [2_000, 5_000, 12_000]; // up to 3 retries after the first attempt
-    let lastErr: any;
-    for (let attempt = 0; attempt <= delaysMs.length; attempt++) {
-      try {
-        await acquireSendSlot(); // pace consecutive sends so we don't burst-trip the provider limit
-        return await this.transporter!.sendMail(mailOptions);
-      } catch (err: any) {
-        lastErr = err;
-        if (attempt < delaysMs.length && this.isTransientMailError(err)) {
-          const wait = delaysMs[attempt];
-          console.warn(`   ⏳ Transient send error for ${label} (${err.responseCode || err.code || 'n/a'}): ${err.message}. Retrying in ${wait / 1000}s (attempt ${attempt + 1}/${delaysMs.length})...`);
-          await new Promise(r => setTimeout(r, wait));
-          continue;
-        }
-        throw err;
-      }
-    }
-    throw lastErr;
+    return this.sendWithRetry(
+      () => this.transporter!.sendMail(mailOptions),
+      (err) => this.isTransientMailError(err),
+      MIN_SEND_GAP_MS,
+      label,
+    );
   }
 
   /** Send a plain test email to verify the current (platform or tenant) config. */
   async sendTestEmail(to: string): Promise<void> {
     const subject = '✅ CodeBegun email configuration test';
-    const html = `<div style="font-family:Arial,sans-serif"><h2>It works! 🎉</h2><p>Your CodeBegun email configuration is sending correctly.</p><p style="color:#888;font-size:12px">Provider: ${this.cfg('EMAIL_SERVICE') || 'gmail'} · From: ${this.fromHeader()}</p></div>`;
+    const html = `<div style="font-family:Arial,sans-serif"><h2>It works! 🎉</h2><p>Your CodeBegun email configuration is sending correctly.</p><p style="color:#888;font-size:12px">Provider: ${this.provider} · From: ${this.fromHeader()}</p></div>`;
     const text = 'It works! Your CodeBegun email configuration is sending correctly.';
-    if (this.useBrevoApi) {
-      await this.sendViaBrevoApi(to, subject, html, text);
-    } else {
-      await this.transporter.sendMail({ from: this.fromHeader(), to, subject, html, text });
-    }
+    await this.dispatch({ to, subject, html, text, label: 'test email' });
   }
 
   private async sendViaBrevoApi(to: string, subject: string, htmlContent: string, textContent: string, attachments?: { filename: string; content: Buffer }[]): Promise<void> {
@@ -215,24 +333,15 @@ export class EmailService {
     try {
       console.log('   Status: Sending...');
       
-      if (this.useBrevoApi) {
-        // Use Brevo HTTP API
-        await this.sendViaBrevoApi(email, DEFAULT_SUBJECT_LINE, htmlContent, plainTextContent);
-        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY (Brevo API)');
-      } else {
-        // Use nodemailer transporter
-        const mailOptions = {
-          from: this.fromHeader(),
-          to: email,
-          subject: DEFAULT_SUBJECT_LINE,
-          html: htmlContent,
-          text: plainTextContent
-        };
-        const info = await this.sendMailWithRetry(mailOptions, 'welcome email');
-        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
-        console.log('   Message ID:', info.messageId);
-        console.log('   Response:', info.response);
-      }
+      const messageId = await this.dispatch({
+        to: email,
+        subject: DEFAULT_SUBJECT_LINE,
+        html: htmlContent,
+        text: plainTextContent,
+        label: 'welcome email',
+      });
+      console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
+      if (messageId) console.log('   Message ID:', messageId);
       console.log('📧 [EMAIL SERVICE] Email delivery complete\n');
     } catch (error: any) {
       console.log('   ❌ STATUS: EMAIL SENT FAILED');
@@ -265,28 +374,20 @@ export class EmailService {
     }
     const text = textContent || htmlContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     try {
-      if (this.useBrevoApi) {
-        await this.sendViaBrevoApi(email, subject, htmlContent, text, attachments);
-      } else {
-        // Through sendMailWithRetry, NOT transporter.sendMail directly — this was the one
-        // send path that bypassed the throttle, and it is the path every bulk send uses.
-        // Approving 457 Tech Battle registrants fired 457 unpaced sends and Hostinger
-        // rejected 389 of them with `451 4.7.1 Ratelimit "hostinger_out_ratelimit"`; the
-        // students never got their exam links and nothing retried.
-        await this.sendMailWithRetry({
-          from: this.fromHeader(),
-          to: email,
-          subject,
-          html: htmlContent,
-          text,
-          ...(attachments && attachments.length ? { attachments: attachments.map(a => ({ filename: a.filename, content: a.content })) } : {}),
-          ...(opts?.messageId ? { messageId: opts.messageId } : {}),
-          ...(opts?.inReplyTo ? { inReplyTo: opts.inReplyTo } : {}),
-          ...(opts?.references ? { references: opts.references } : {}),
-          ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
-          ...(opts?.headers ? { headers: opts.headers } : {}),
-        }, `generic email to ${email}`);
-      }
+      // Through dispatch, NOT transporter.sendMail directly — this was the one
+      // send path that bypassed the throttle, and it is the path every bulk send uses.
+      // Approving 457 Tech Battle registrants fired 457 unpaced sends and Hostinger
+      // rejected 389 of them with `451 4.7.1 Ratelimit "hostinger_out_ratelimit"`; the
+      // students never got their exam links and nothing retried.
+      await this.dispatch({
+        to: email,
+        subject,
+        html: htmlContent,
+        text,
+        attachments,
+        opts,
+        label: `generic email to ${email}`,
+      });
       return true;
     } catch (error: any) {
       console.error('[EMAIL SERVICE] sendGenericEmail failed:', error?.message);
@@ -319,20 +420,9 @@ export class EmailService {
     try {
       console.log('   Status: Sending...');
       
-      if (this.useBrevoApi) {
-        await this.sendViaBrevoApi(email, subject, htmlContent, plainTextContent);
-        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY (Brevo API)');
-      } else {
-        const mailOptions = {
-          from: this.fromHeader(),
-          to: email,
-          subject: subject,
-          html: htmlContent,
-          text: plainTextContent
-        };
-        await this.transporter!.sendMail(mailOptions);
-        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
-      }
+      const messageId = await this.dispatch({ to: email, subject, html: htmlContent, text: plainTextContent });
+      console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
+      if (messageId) console.log('   Message ID:', messageId);
       console.log('📧 [EMAIL SERVICE] Email delivery complete\n');
     } catch (error) {
       console.error('❌ Failed to send password reset email:', error);
@@ -415,21 +505,9 @@ This is an automated message from CodeBegun Learning Management System.
     try {
       console.log('   Status: Sending...');
       
-      if (this.useBrevoApi) {
-        await this.sendViaBrevoApi(email, subject, htmlContent, plainTextContent);
-        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY (Brevo API)');
-      } else {
-        const mailOptions = {
-          from: this.fromHeader(),
-          to: email,
-          subject: subject,
-          html: htmlContent,
-          text: plainTextContent
-        };
-        const info = await this.sendMailWithRetry(mailOptions);
-        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
-        console.log('   Message ID:', info.messageId);
-      }
+      const messageId = await this.dispatch({ to: email, subject, html: htmlContent, text: plainTextContent });
+      console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
+      if (messageId) console.log('   Message ID:', messageId);
       console.log('📧 [EMAIL SERVICE] Email delivery complete\n');
     } catch (error: any) {
       console.log('   ❌ STATUS: EMAIL SENT FAILED');
@@ -638,21 +716,9 @@ ${quizDescription ? `📖 Description: ${quizDescription}\n` : ''}
     try {
       console.log('   Status: Sending...');
       
-      if (this.useBrevoApi) {
-        await this.sendViaBrevoApi(email, subject, htmlContent, plainTextContent);
-        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY (Brevo API)');
-      } else {
-        const mailOptions = {
-          from: this.fromHeader(),
-          to: email,
-          subject: subject,
-          html: htmlContent,
-          text: plainTextContent
-        };
-        const info = await this.sendMailWithRetry(mailOptions);
-        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
-        console.log('   Message ID:', info.messageId);
-      }
+      const messageId = await this.dispatch({ to: email, subject, html: htmlContent, text: plainTextContent });
+      console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
+      if (messageId) console.log('   Message ID:', messageId);
       console.log('📧 [EMAIL SERVICE] Email delivery complete\n');
     } catch (error: any) {
       console.log('   ❌ STATUS: EMAIL SENT FAILED');
@@ -771,21 +837,9 @@ This is an automated message from CodeBegun Learning Management System.
     try {
       console.log('   Status: Sending...');
       
-      if (this.useBrevoApi) {
-        await this.sendViaBrevoApi(email, subject, htmlContent, plainTextContent);
-        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY (Brevo API)');
-      } else {
-        const mailOptions = {
-          from: this.fromHeader(),
-          to: email,
-          subject: subject,
-          html: htmlContent,
-          text: plainTextContent
-        };
-        const info = await this.sendMailWithRetry(mailOptions);
-        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
-        console.log('   Message ID:', info.messageId);
-      }
+      const messageId = await this.dispatch({ to: email, subject, html: htmlContent, text: plainTextContent });
+      console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
+      if (messageId) console.log('   Message ID:', messageId);
       console.log('📧 [EMAIL SERVICE] Email delivery complete\n');
     } catch (error: any) {
       console.log('   ❌ STATUS: EMAIL SENT FAILED');
@@ -832,14 +886,7 @@ This is an automated message from CodeBegun Learning Management System.
       </div>`;
     const text = `${meta.headline}\n\nHello ${firstName},\n\nYour application for ${role} at ${companyName} has been updated.\nStatus: ${status.toUpperCase()}\n\nCodeBegun LMS`;
     try {
-      if (this.useBrevoApi) {
-        await this.sendViaBrevoApi(email, subject, html, text);
-      } else {
-        await this.transporter!.sendMail({
-          from: this.fromHeader(),
-          to: email, subject, html, text
-        });
-      }
+      await this.dispatch({ to: email, subject, html, text });
     } catch (err) {
       console.error('❌ sendPlacementStatusEmail failed:', err);
       // Non-fatal — don't throw
@@ -877,14 +924,7 @@ This is an automated message from CodeBegun Learning Management System.
       </div>`;
     const text = `New Placement Drive — ${companyName} (${role})\n\nHello ${firstName},\nApply by: ${applyDeadline}\n${link}`;
     try {
-      if (this.useBrevoApi) {
-        await this.sendViaBrevoApi(email, subject, html, text);
-      } else {
-        await this.transporter!.sendMail({
-          from: this.fromHeader(),
-          to: email, subject, html, text
-        });
-      }
+      await this.dispatch({ to: email, subject, html, text });
     } catch (err) {
       console.error('❌ sendNewDriveEmail failed:', err);
     }
@@ -1151,14 +1191,7 @@ ${googleCalUrl ? `Add to Calendar: ${googleCalUrl}` : ''}
     console.log('   Recipient:', email);
     console.log('   Event:', eventTitle);
     try {
-      if (this.useBrevoApi) {
-        await this.sendViaBrevoApi(email, subject, html, text);
-      } else {
-        await this.transporter!.sendMail({
-          from: this.fromHeader(),
-          to: email, subject, html, text,
-        });
-      }
+      await this.dispatch({ to: email, subject, html, text });
       console.log('   ✅ Tech battle approval email sent\n');
     } catch (err: any) {
       console.error('❌ sendTechBattleApprovalEmail failed:', err.message);
@@ -1174,17 +1207,7 @@ ${googleCalUrl ? `Add to Calendar: ${googleCalUrl}` : ''}
     console.log('   Recipient:', data.email);
     console.log('   Organization:', data.organizationName);
     try {
-      if (this.useBrevoApi) {
-        await this.sendViaBrevoApi(data.email, subject, html, text);
-      } else {
-        await this.transporter!.sendMail({
-          from: this.fromHeader(),
-          to: data.email,
-          subject,
-          html,
-          text
-        });
-      }
+      await this.dispatch({ to: data.email, subject, html, text });
       console.log('   ✅ Tenant admin welcome email sent\n');
     } catch (err: any) {
       console.error('❌ sendTenantAdminWelcomeEmail failed:', err.message);
@@ -1248,17 +1271,7 @@ ${googleCalUrl ? `Add to Calendar: ${googleCalUrl}` : ''}
 
     console.log('\n📧 [EMAIL SERVICE] Interview Invite →', opts.email);
     try {
-      if (this.useBrevoApi) {
-        await this.sendViaBrevoApi(opts.email, subject, html, text);
-      } else {
-        await this.transporter!.sendMail({
-          from: this.fromHeader(),
-          to: opts.email,
-          subject,
-          html,
-          text,
-        });
-      }
+      await this.dispatch({ to: opts.email, subject, html, text });
       console.log('   ✅ Interview invite sent to', opts.email);
     } catch (err: any) {
       console.error('❌ sendInterviewInviteEmail failed:', err.message);

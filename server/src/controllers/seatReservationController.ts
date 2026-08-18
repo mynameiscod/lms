@@ -6,27 +6,20 @@ import { AuthenticatedRequest } from '../types';
 import crypto from 'crypto';
 
 
-// Helper to send custom emails
-async function sendCustomEmail(to: string, subject: string, html: string) {
-  try {
-    // Use nodemailer directly for custom emails
-    const nodemailer = require('nodemailer');
-    const transporter = nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE || 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
-      }
-    });
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-      to,
-      subject,
-      html
-    });
-  } catch (error) {
-    console.error('Email send error:', error);
-  }
+/**
+ * Send a custom seat-reservation email.
+ *
+ * Previously built its own nodemailer transport from process.env with
+ * nodemailer's `service:` shorthand. That shorthand only understands well-known
+ * providers, so it silently could not address Amazon SES at all, and reading
+ * process.env meant it ignored whatever a tenant had configured in Platform
+ * Settings. Routing through EmailService picks up the tenant's provider, the
+ * burst throttle, the retry, and the suppression check.
+ */
+async function sendCustomEmail(to: string, subject: string, html: string, tenantId?: string) {
+  const { EmailService } = await import('../services/emailService');
+  const ok = await new EmailService(tenantId).sendGenericEmail(to, subject, html);
+  if (!ok) console.error('[SEAT-RESERVATION] email send failed for', to);
 }
 
 // ===================== CREATE SEAT RESERVATION (STANDALONE — no lead required) =====================
@@ -185,7 +178,7 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
 
         <p style="color:#64748b;font-size:13px;">Questions? Reply to this email or call us — we respond within 2 hours.</p>
       `;
-      await sendCustomEmail(emailNorm, `✅ Seat Reserved — ${courseName} | Welcome to CodeBegun`, emailWrapper(body));
+      await sendCustomEmail(emailNorm, `✅ Seat Reserved — ${courseName} | Welcome to CodeBegun`, emailWrapper(body), String(tenantId));
     } catch (emailErr) {
       console.error('Auto-confirmation email failed:', emailErr);
     }
@@ -292,7 +285,7 @@ export const sendReceiptEmail = async (req: AuthenticatedRequest, res: Response)
       <p style="color:#64748b;font-size:13px;">Keep this email as your payment receipt. Questions? Reply here anytime.</p>
     `;
 
-    await sendCustomEmail(toEmail, `🧾 Payment Receipt — ${reservation.courseName} | CodeBegun`, emailWrapper(body));
+    await sendCustomEmail(toEmail, `🧾 Payment Receipt — ${reservation.courseName} | CodeBegun`, emailWrapper(body), String(tenantId));
 
     reservation.receiptSent = true;
     reservation.receiptSentAt = new Date();
@@ -646,7 +639,7 @@ export const sendConfirmationEmail = async (req: AuthenticatedRequest, res: Resp
       <p style="color:#64748b;font-size:13px;">Questions? Call us or reply to this email — we respond within 2 hours.</p>
     `;
 
-    await sendCustomEmail(toEmail, `✅ Seat Reserved — ${reservation.courseName} | CodeBegun`, emailWrapper(body));
+    await sendCustomEmail(toEmail, `✅ Seat Reserved — ${reservation.courseName} | CodeBegun`, emailWrapper(body), String(tenantId));
 
     res.json({ success: true, message: `Confirmation sent to ${toEmail}` });
   } catch (error: any) {
@@ -708,7 +701,7 @@ export const sendPaymentReminderEmail = async (req: AuthenticatedRequest, res: R
       <p style="color:#64748b;font-size:13px;">After payment, please share the transaction ID with your counsellor for quick confirmation.</p>
     `;
 
-    await sendCustomEmail(toEmail, `⏰ Payment Reminder — ₹${reservation.balanceAmount.toLocaleString('en-IN')} Due | ${reservation.courseName}`, emailWrapper(body));
+    await sendCustomEmail(toEmail, `⏰ Payment Reminder — ₹${reservation.balanceAmount.toLocaleString('en-IN')} Due | ${reservation.courseName}`, emailWrapper(body), String(tenantId));
 
     res.json({ success: true, message: `Payment reminder sent to ${toEmail}` });
   } catch (error: any) {
@@ -781,7 +774,7 @@ export const sendPreJoiningInfoEmail = async (req: AuthenticatedRequest, res: Re
       <p style="color:#64748b;font-size:13px;">Portal login credentials will be sent separately before the start date.</p>
     `;
 
-    await sendCustomEmail(toEmail, `🗓️ Joining Details — ${reservation.courseName} Starts ${startDateStr}`, emailWrapper(body));
+    await sendCustomEmail(toEmail, `🗓️ Joining Details — ${reservation.courseName} Starts ${startDateStr}`, emailWrapper(body), String(tenantId));
 
     res.json({ success: true, message: `Pre-joining info sent to ${toEmail}` });
   } catch (error: any) {
@@ -850,7 +843,7 @@ export const sendJoiningDayEmail = async (req: AuthenticatedRequest, res: Respon
       <p style="color:#64748b;font-size:13px;">We're with you every step of the way. Let's build something great together!</p>
     `;
 
-    await sendCustomEmail(toEmail, `🎉 Welcome Aboard! Your CodeBegun Journey Starts Today — ${reservation.courseName}`, emailWrapper(body));
+    await sendCustomEmail(toEmail, `🎉 Welcome Aboard! Your CodeBegun Journey Starts Today — ${reservation.courseName}`, emailWrapper(body), String(tenantId));
 
     res.json({ success: true, message: `Joining day email sent to ${toEmail}` });
   } catch (error: any) {

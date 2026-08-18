@@ -4,7 +4,8 @@ import FollowUpReminder from '../models/FollowUpReminder';
 import User from '../models/User';
 import { EmailService } from '../services/emailService';
 
-const emailService = new EmailService();
+// Instantiated per tenant at the send site — a single shared instance would
+// resolve platform settings instead of the tenant's own email configuration.
 
 // Run check every minute; only fire once per day around 20:00
 const DAILY_CHECK_INTERVAL_MS = 60 * 1000;
@@ -106,34 +107,20 @@ export async function sendDailySummaryEmails(): Promise<void> {
 
       for (const admin of admins as any[]) {
         try {
-          // Use the internal Brevo/nodemailer path via a direct call
-          const fromEmail = process.env.EMAIL_FROM?.match(/<(.+)>/)?.[1] || process.env.EMAIL_USER;
-          const fromName = process.env.EMAIL_FROM?.match(/^([^<]+)/)?.[1]?.trim() || 'CodeBegun LMS';
-          const useBrevo = (process.env.EMAIL_SERVICE || 'gmail') === 'brevo';
-
-          if (useBrevo) {
-            await fetch('https://api.brevo.com/v3/smtp/email', {
-              method: 'POST',
-              headers: {
-                accept: 'application/json',
-                'api-key': process.env.BREVO_API_KEY || '',
-                'content-type': 'application/json',
-              },
-              body: JSON.stringify({
-                sender: { name: fromName, email: fromEmail },
-                to: [{ email: admin.email }],
-                subject,
-                htmlContent: html,
-                textContent: `Daily Lead Summary — ${new Date().toLocaleDateString('en-IN')}`,
-              }),
-            });
+          // Was an inline Brevo fetch reading process.env, with a non-Brevo
+          // branch whose own comment admitted it might "silently skip" — so on
+          // any non-Brevo config this summary simply never arrived. It also
+          // ignored per-tenant email settings entirely. One tenant-aware call
+          // now covers every provider, including SES.
+          const text = `Daily Lead Summary — ${new Date().toLocaleDateString('en-IN')}`;
+          const sent = await new EmailService(String(tenantId)).sendGenericEmail(
+            admin.email, subject, html, text,
+          );
+          if (sent) {
+            console.log(`[DAILY-SUMMARY] Sent to ${admin.email} (tenant ${key})`);
           } else {
-            // nodemailer path — reuse emailService's transporter via sendWelcomeEmail won't work
-            // so we send via the public sendAttendanceNotificationEmail as a workaround
-            await (emailService as any).sendGenericEmail?.(admin.email, subject, html);
-            // If sendGenericEmail doesn't exist, silently skip (brevo is the production mailer)
+            console.warn(`[DAILY-SUMMARY] Not sent to ${admin.email} (suppressed or send failed)`);
           }
-          console.log(`[DAILY-SUMMARY] Sent to ${admin.email} (tenant ${key})`);
         } catch (err) {
           console.error(`[DAILY-SUMMARY] Failed for ${admin.email}:`, err);
         }

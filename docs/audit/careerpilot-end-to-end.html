@@ -1,0 +1,397 @@
+<title>CareerPilot — End-to-End Module Guide</title>
+<style>
+  :root{
+    --ground:#fbfcfd; --panel:#ffffff; --line:#e3e9f0; --line-soft:#eef2f7;
+    --ink:#0d1826; --ink-2:#475569; --ink-3:#8494a6;
+    --accent:#5b2bd9; --accent-2:#005897; --accent-soft:#efeafd;
+    --good:#0f7a4d; --good-bg:#e4f5ec;
+    --warn:#8a5a00; --warn-bg:#fdf3dd;
+    --crit:#a8232b; --crit-bg:#fbe7e8;
+    --free:#0e6b7a; --free-bg:#e0f2f4;
+    --paid:#7a2a8a; --paid-bg:#f6e8f8;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#0b1017; --panel:#111823; --line:#22303f; --line-soft:#1a242f;
+      --ink:#e8eef5; --ink-2:#9fb0c2; --ink-3:#6d7e91;
+      --accent:#a98bf5; --accent-2:#5fa8dc; --accent-soft:#1e1836;
+      --good:#5cc98f; --good-bg:#10281d;
+      --warn:#e0b256; --warn-bg:#2b2210;
+      --crit:#f0868d; --crit-bg:#2e1417;
+      --free:#5cc2d1; --free-bg:#0d2a2f;
+      --paid:#d79ce4; --paid-bg:#2a1430;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0b1017; --panel:#111823; --line:#22303f; --line-soft:#1a242f;
+    --ink:#e8eef5; --ink-2:#9fb0c2; --ink-3:#6d7e91;
+    --accent:#a98bf5; --accent-2:#5fa8dc; --accent-soft:#1e1836;
+    --good:#5cc98f; --good-bg:#10281d; --warn:#e0b256; --warn-bg:#2b2210;
+    --crit:#f0868d; --crit-bg:#2e1417;
+    --free:#5cc2d1; --free-bg:#0d2a2f; --paid:#d79ce4; --paid-bg:#2a1430;
+  }
+  :root[data-theme="light"]{
+    --ground:#fbfcfd; --panel:#ffffff; --line:#e3e9f0; --line-soft:#eef2f7;
+    --ink:#0d1826; --ink-2:#475569; --ink-3:#8494a6;
+    --accent:#5b2bd9; --accent-2:#005897; --accent-soft:#efeafd;
+    --good:#0f7a4d; --good-bg:#e4f5ec; --warn:#8a5a00; --warn-bg:#fdf3dd;
+    --crit:#a8232b; --crit-bg:#fbe7e8;
+    --free:#0e6b7a; --free-bg:#e0f2f4; --paid:#7a2a8a; --paid-bg:#f6e8f8;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+    font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1060px;margin:0 auto;padding:44px 24px 80px;display:flex;flex-direction:column;gap:36px}
+  @media(max-width:640px){.wrap{padding:26px 15px 56px;gap:28px}}
+
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:750}
+  h1{font-size:32px;line-height:1.14;margin:6px 0 10px;font-weight:800;letter-spacing:-.022em;text-wrap:balance}
+  h2{font-size:19px;margin:0 0 3px;font-weight:750;letter-spacing:-.01em}
+  h3{font-size:14.5px;margin:0;font-weight:700}
+  p{margin:0;color:var(--ink-2);max-width:70ch}
+  .lede{font-size:16px}
+  code{font-family:var(--mono);font-size:.88em;background:var(--line-soft);padding:1.5px 6px;border-radius:5px}
+
+  .sec{display:flex;flex-direction:column;gap:15px}
+  .sec-head{display:flex;flex-direction:column;gap:3px;border-bottom:1px solid var(--line);padding-bottom:11px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:19px 21px}
+
+  .chip{display:inline-block;padding:2.5px 10px;border-radius:99px;font-size:10.5px;font-weight:750;white-space:nowrap}
+  .c-free{background:var(--free-bg);color:var(--free)}
+  .c-paid{background:var(--paid-bg);color:var(--paid)}
+  .c-good{background:var(--good-bg);color:var(--good)}
+  .c-warn{background:var(--warn-bg);color:var(--warn)}
+  .c-crit{background:var(--crit-bg);color:var(--crit)}
+
+  /* journey — numbered because the order genuinely matters: each stage gates the next */
+  .flow{display:flex;flex-direction:column;gap:0}
+  .stage{display:grid;grid-template-columns:38px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--line-soft)}
+  .stage:last-child{border-bottom:none}
+  .stage-n{width:30px;height:30px;border-radius:9px;background:var(--accent-soft);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;
+    font-variant-numeric:tabular-nums}
+  .stage-b{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .stage-t{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .stage-t b{font-size:15px;font-weight:750}
+  .route{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+  .stage p{font-size:13.5px}
+
+  /* feature grid */
+  .feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px}
+  .feat{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:15px 17px;
+    display:flex;flex-direction:column;gap:7px}
+  .feat-h{display:flex;align-items:center;justify-content:space-between;gap:9px}
+  .feat p{font-size:13px}
+  .feat .route{display:block}
+
+  /* split: admin vs student */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:800px){.split{grid-template-columns:1fr}}
+  .col-h{display:flex;align-items:center;gap:8px;margin-bottom:11px;padding-bottom:9px;border-bottom:2px solid var(--line)}
+  .col-h b{font-size:14.5px;font-weight:800}
+  .ctrl{padding:10px 0;border-bottom:1px solid var(--line-soft);display:flex;flex-direction:column;gap:3px}
+  .ctrl:last-child{border-bottom:none}
+  .ctrl b{font-size:13.5px;font-weight:700}
+  .ctrl span{font-size:12.5px;color:var(--ink-2)}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  .tw{overflow-x:auto}
+  th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);
+    font-weight:700;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:9px 10px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+  .tick{color:var(--good);font-weight:800}
+  .cross{color:var(--ink-3)}
+
+  .note{background:var(--accent-soft);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .note p{color:var(--ink)}
+  .warnbox{background:var(--warn-bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .warnbox p{color:var(--ink)}
+  ul{margin:0;padding-left:19px;color:var(--ink-2);font-size:13.5px}
+  li{margin-bottom:5px}
+  footer{border-top:1px solid var(--line);padding-top:16px;font-size:12px;color:var(--ink-3)}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Module Guide · CareerPilot by CodeBegun</div>
+    <h1>CareerPilot, end to end</h1>
+    <p class="lede">A consumer career product running alongside the LMS on shared infrastructure but with its own identity, its own signup, and its own paid tier. This is every feature it has, what an admin controls, and what a student does — traced against the deployed routes rather than the plan.</p>
+  </header>
+
+  <section class="sec">
+    <div class="panel">
+      <p><strong>What it is.</strong> A stranger arrives at <code>/passport/join</code> with no LMS account. They verify a phone number, take a free assessment, and are shown a career readiness score. Paying ₹499 unlocks a 90-day plan and five working tools. Nothing here requires them to be a CodeBegun student — which is the point: it is a separate funnel that happens to share a codebase.</p>
+    </div>
+  </section>
+
+  <!-- JOURNEY -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>The student journey</h2>
+      <p>Numbered because each stage genuinely gates the next — a member cannot reach step 5 without completing step 3.</p>
+    </div>
+
+    <div class="panel flow">
+
+      <div class="stage">
+        <div class="stage-n">1</div>
+        <div class="stage-b">
+          <div class="stage-t"><b>Landing &amp; signup</b><span class="chip c-free">free · public</span></div>
+          <div class="route">GET /passport/join · POST /public/passport/signup</div>
+          <p>Name, phone, email. No LMS account needed. The page states the product's claims and its price up front rather than after signup.</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-n">2</div>
+        <div class="stage-b">
+          <div class="stage-t"><b>WhatsApp OTP verification</b><span class="chip c-free">free</span></div>
+          <div class="route">POST /public/passport/verify · /resend</div>
+          <p>Phone ownership is proven before anything is created. Returning members can instead sign in by password or fall back to OTP — <code>/login-password</code>, <code>/login-otp</code>.</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-n">3</div>
+        <div class="stage-b">
+          <div class="stage-t"><b>Career assessment</b><span class="chip c-free">free</span></div>
+          <div class="route">GET /passport/assessment · POST /assessment/submit</div>
+          <p>A deterministic, non-AI assessment across weighted categories. Scoring is reproducible: the same answers always produce the same result, so two students comparing notes never see a contradiction.</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-n">4</div>
+        <div class="stage-b">
+          <div class="stage-t"><b>Result &amp; the paywall</b><span class="chip c-free">free to view</span></div>
+          <div class="route">GET /passport/assessment/result</div>
+          <p>Career score, per-category breakdown, weakest areas, and a recommended pathway. A 7-day preview of the roadmap is shown with later phases visible but empty — deliberately, so the preview cannot be mistaken for the whole product.</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-n">5</div>
+        <div class="stage-b">
+          <div class="stage-t"><b>Membership — ₹499</b><span class="chip c-paid">paid</span></div>
+          <div class="route">POST /passport/membership/order · /membership/verify</div>
+          <p>Razorpay, on the LMS's existing payment rail with <code>purpose: passport_membership</code>. Both popup and redirect modes are handled, including the case where payment completes in a tab that has lost the app.</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-n">6</div>
+        <div class="stage-b">
+          <div class="stage-t"><b>Mission Control</b><span class="chip c-paid">member home</span></div>
+          <div class="route">GET /passport/dashboard · /missions/today · POST /missions/complete</div>
+          <p>Three missions each day, chosen deterministically from the student's weakest categories plus one rotating focus. Completing them drives XP and a streak shared across every CareerPilot surface.</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-n">7</div>
+        <div class="stage-b">
+          <div class="stage-t"><b>Public proof card</b><span class="chip c-free">public link</span></div>
+          <div class="route">GET /passport/card/:slug</div>
+          <p>A shareable page carrying verified scores and progress — the artefact a member sends to a recruiter instead of a claim in a CV.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>The six member features</h2>
+      <p>What ₹499 actually buys. Verification status is stated per feature, because "deployed" and "known to work" are different things.</p>
+    </div>
+
+    <div class="feats">
+
+      <div class="feat">
+        <div class="feat-h"><h3>Daily Missions</h3><span class="chip c-good">verified</span></div>
+        <div class="route">/missions/today · /missions/complete</div>
+        <p>Three tasks a day from admin-editable pools, biased to the member's weakest categories. Deterministic per day and slot, so reloading never reshuffles the day's work. Feeds XP and streak.</p>
+      </div>
+
+      <div class="feat">
+        <div class="feat-h"><h3>90-Day Roadmap</h3><span class="chip c-good">verified</span></div>
+        <div class="route">/roadmap</div>
+        <p>Three phases, weekly themes and goals, every day resolved to the exact missions that day will serve. Locked to a 7-day preview until membership is active.</p>
+      </div>
+
+      <div class="feat">
+        <div class="feat-h"><h3>Practice Lab</h3><span class="chip c-warn">SQL verified only</span></div>
+        <div class="route">/practice · /practice/:id/run · /submit</div>
+        <p>Coding, SQL and MCQ problems executed on self-hosted Piston with hidden tests. The SQL path was verified end-to-end against production; the coding path has not been exercised.</p>
+      </div>
+
+      <div class="feat">
+        <div class="feat-h"><h3>Mock Interview</h3><span class="chip c-crit">never executed</span></div>
+        <div class="route">/interview/start · /:id/turn · /:id/finish</div>
+        <p>A turn-based AI interview with scored feedback. Fully deployed and, across roughly 25 releases, never run by a member or by us.</p>
+      </div>
+
+      <div class="feat">
+        <div class="feat-h"><h3>Resume Centre</h3><span class="chip c-crit">never executed</span></div>
+        <div class="route">/resume · /resume/score · /resume/improve</div>
+        <p>Build, score against ATS-style criteria, and get AI improvements. Same status as the interview: shipped, unproven.</p>
+      </div>
+
+      <div class="feat">
+        <div class="feat-h"><h3>Progress &amp; Streak</h3><span class="chip c-good">verified</span></div>
+        <div class="route">/dashboard</div>
+        <p>One XP total and one streak across missions, practice and interviews — a single number rather than a per-feature score, so effort anywhere counts once.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CONTROL SPLIT -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>Who controls what</h2>
+      <p>The dividing line: admins control the <em>content and the rules</em>; students control their <em>own effort and their own data</em>. Neither side can reach into the other's column.</p>
+    </div>
+
+    <div class="split">
+
+      <div class="panel">
+        <div class="col-h"><span class="chip c-paid">Admin</span><b>Controls the product</b></div>
+
+        <div class="ctrl"><b>Pricing &amp; configuration</b>
+          <span>Membership price, currency, feature toggles, journey length. <code>/passport/config</code> — <code>manage_passport</code> only.</span></div>
+
+        <div class="ctrl"><b>Mission pools</b>
+          <span>Every daily task, per category: title, detail, type, XP value, link. Editing the pool changes what members receive tomorrow. <code>/passport/content</code></span></div>
+
+        <div class="ctrl"><b>Pathways</b>
+          <span>Career tracks, weekly themes and the descriptions that shape a member's roadmap.</span></div>
+
+        <div class="ctrl"><b>Assessment bank</b>
+          <span>Questions, categories, weights and scoring bands. <code>/assessment/admin</code></span></div>
+
+        <div class="ctrl"><b>Member list</b>
+          <span>Who joined, who paid, where they are. Read-only under <code>view_passport_members</code>.</span></div>
+
+        <div class="ctrl"><b>Grant membership without payment</b>
+          <span>Convert a member manually. <code>convert_passport_member</code> — deliberately separate from viewing, because it moves money.</span></div>
+
+        <div class="ctrl"><b>Preview before publishing</b>
+          <span><code>/content/preview</code> renders what a member would receive, so pool edits are checked before they reach anyone.</span></div>
+      </div>
+
+      <div class="panel">
+        <div class="col-h"><span class="chip c-free">Student</span><b>Controls their journey</b></div>
+
+        <div class="ctrl"><b>Join without an LMS account</b>
+          <span>Self-serve signup and phone verification. No admin approval step.</span></div>
+
+        <div class="ctrl"><b>Take the assessment</b>
+          <span>Free, and repeatable only if an admin resets it — results cannot be quietly re-rolled.</span></div>
+
+        <div class="ctrl"><b>Buy or decline</b>
+          <span>The free tier stays usable. Declining leaves the assessment result and the 7-day preview intact.</span></div>
+
+        <div class="ctrl"><b>Complete missions</b>
+          <span>Mark today's three done. Cannot alter which missions appear — that is set by the pools and their own weakest categories.</span></div>
+
+        <div class="ctrl"><b>Practise and be graded</b>
+          <span>Run and submit against hidden tests. Scores are computed server-side; the client is never trusted.</span></div>
+
+        <div class="ctrl"><b>Own their resume</b>
+          <span>Create, edit, score and improve. It belongs to the member, not the tenant.</span></div>
+
+        <div class="ctrl"><b>Publish or withhold the card</b>
+          <span>The public proof link is theirs to share. Nothing is exposed until they choose.</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- PERMISSIONS -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>Permission matrix</h2>
+      <p>Four permissions, deliberately split so that seeing a member's data never implies being able to give away a paid product.</p>
+    </div>
+    <div class="tw panel">
+      <table>
+        <thead><tr><th>Permission</th><th>Grants</th><th>Admin</th><th>Staff</th><th>Instructor</th><th>Student</th></tr></thead>
+        <tbody>
+          <tr><td><code>manage_passport</code></td><td>Config, price, pools, pathways, assessment bank</td><td class="tick">✓</td><td class="cross">—</td><td class="cross">—</td><td class="cross">—</td></tr>
+          <tr><td><code>view_passport_members</code></td><td>Read the member list and progress</td><td class="tick">✓</td><td class="tick">✓</td><td class="cross">—</td><td class="cross">—</td></tr>
+          <tr><td><code>convert_passport_member</code></td><td>Grant membership without payment</td><td class="tick">✓</td><td class="cross">—</td><td class="cross">—</td><td class="cross">—</td></tr>
+          <tr><td><code>use_passport</code></td><td>Use CareerPilot as a member</td><td class="cross">—</td><td class="cross">—</td><td class="cross">—</td><td class="tick">✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <p><strong>Why the split matters.</strong> Before it existed, staff who could view members could also change the ₹499 price and grant free memberships. Reading a list and giving away a paid product are not the same act, and one role should not carry both by accident.</p>
+    </div>
+  </section>
+
+  <!-- ADMIN SCREENS -->
+  <section class="sec">
+    <div class="sec-head"><h2>Admin screens</h2></div>
+    <div class="tw panel">
+      <table>
+        <thead><tr><th>Screen</th><th>Purpose</th><th>Changes what members see</th></tr></thead>
+        <tbody>
+          <tr><td><b>Config</b></td><td>Price, currency, journey length, feature toggles</td><td>Immediately</td></tr>
+          <tr><td><b>Missions</b></td><td>Edit the daily task pools per category</td><td>Next day's missions</td></tr>
+          <tr><td><b>Pathways</b></td><td>Career tracks and weekly themes</td><td>Roadmap structure</td></tr>
+          <tr><td><b>Assessment</b></td><td>Questions, categories, weights, bands</td><td>New attempts only</td></tr>
+          <tr><td><b>Students</b></td><td>Members, payment state, progress; manual conversion</td><td>On conversion</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- DATA -->
+  <section class="sec">
+    <div class="sec-head"><h2>Data model</h2></div>
+    <div class="tw panel">
+      <table>
+        <thead><tr><th>Collection</th><th>Holds</th><th>Scope</th></tr></thead>
+        <tbody>
+          <tr><td><code>PassportConfig</code></td><td>Price, toggles, journey length</td><td>Per tenant</td></tr>
+          <tr><td><code>PassportContent</code></td><td>Mission pools, pathways — seeded on first use</td><td>Per tenant</td></tr>
+          <tr><td><code>PassportAssessment</code></td><td>Question bank, categories, weights</td><td>Per tenant</td></tr>
+          <tr><td><code>PassportAttempt</code></td><td>One member's answers, scores, pathway</td><td>Per member</td></tr>
+          <tr><td><code>PassportProgress</code></td><td>XP, streak, completed missions, start date</td><td>Per member</td></tr>
+          <tr><td><code>PassportInterview</code></td><td>Mock interview turns and scoring</td><td>Per member</td></tr>
+          <tr><td><code>PassportResume</code></td><td>Resume content and ATS scores</td><td>Per member</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- HONEST STATUS -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>Status, stated plainly</h2>
+      <p>The funnel is complete and live. Two paid features inside it are not proven.</p>
+    </div>
+    <div class="warnbox">
+      <p><strong>Mock Interview and Resume Centre have never been executed</strong> — not by a member, not by us, across roughly 25 deployments. They typecheck, they are routed, they are behind the paywall. Nobody has confirmed they run. Practice Lab was in the same position until its SQL path was executed end-to-end against production Piston this week; the coding path still is.</p>
+    </div>
+    <div class="panel">
+      <ul>
+        <li><strong>Run each once.</strong> Ten minutes settles whether a ₹499 entitlement works. This is the single highest-value action on the module.</li>
+        <li><strong>Confirm the landing-page figures.</strong> The 12,000+ students / 500+ colleges / 98% satisfaction claims sit beside testimonials that turned out to be mockup copy and were removed. The numbers were confirmed as accurate; they deserve the same scrutiny the testimonials got.</li>
+        <li><strong>Decide the assessment reset policy.</strong> Only an admin can reset an attempt today. That is defensible, but it should be a stated rule rather than an implementation detail.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    CareerPilot by CodeBegun · Traced against the deployed route surface, not the design document · 7 collections, 5 admin screens, 6 member features, 4 permissions · Generated 2 August 2026
+  </footer>
+
+</div>

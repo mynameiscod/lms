@@ -1,0 +1,384 @@
+<title>CodeBegun — Module Audit</title>
+<style>
+  :root{
+    --ground:#fbfcfd; --panel:#ffffff; --line:#e3e9f0; --line-soft:#eef2f7;
+    --ink:#0d1826; --ink-2:#475569; --ink-3:#8494a6;
+    --accent:#005897; --accent-soft:#e6f0f8;
+    --good:#0f7a4d; --good-bg:#e4f5ec;
+    --warn:#8a5a00; --warn-bg:#fdf3dd;
+    --crit:#a8232b; --crit-bg:#fbe7e8;
+    --unknown:#5b6472; --unknown-bg:#eef1f5;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#0b1017; --panel:#111823; --line:#22303f; --line-soft:#1a242f;
+      --ink:#e8eef5; --ink-2:#9fb0c2; --ink-3:#6d7e91;
+      --accent:#5fa8dc; --accent-soft:#14293a;
+      --good:#5cc98f; --good-bg:#10281d;
+      --warn:#e0b256; --warn-bg:#2b2210;
+      --crit:#f0868d; --crit-bg:#2e1417;
+      --unknown:#8b97a6; --unknown-bg:#1b232d;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0b1017; --panel:#111823; --line:#22303f; --line-soft:#1a242f;
+    --ink:#e8eef5; --ink-2:#9fb0c2; --ink-3:#6d7e91;
+    --accent:#5fa8dc; --accent-soft:#14293a;
+    --good:#5cc98f; --good-bg:#10281d;
+    --warn:#e0b256; --warn-bg:#2b2210;
+    --crit:#f0868d; --crit-bg:#2e1417;
+    --unknown:#8b97a6; --unknown-bg:#1b232d;
+  }
+  :root[data-theme="light"]{
+    --ground:#fbfcfd; --panel:#ffffff; --line:#e3e9f0; --line-soft:#eef2f7;
+    --ink:#0d1826; --ink-2:#475569; --ink-3:#8494a6;
+    --accent:#005897; --accent-soft:#e6f0f8;
+    --good:#0f7a4d; --good-bg:#e4f5ec;
+    --warn:#8a5a00; --warn-bg:#fdf3dd;
+    --crit:#a8232b; --crit-bg:#fbe7e8;
+    --unknown:#5b6472; --unknown-bg:#eef1f5;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+    font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:44px 24px 80px;display:flex;flex-direction:column;gap:34px}
+  @media(max-width:640px){.wrap{padding:26px 15px 56px;gap:26px}}
+
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+  h1{font-size:31px;line-height:1.15;margin:6px 0 8px;font-weight:800;letter-spacing:-.02em;text-wrap:balance}
+  h2{font-size:19px;margin:0 0 3px;font-weight:750;letter-spacing:-.01em}
+  h3{font-size:14.5px;margin:0;font-weight:700}
+  p{margin:0;color:var(--ink-2);max-width:68ch}
+  .lede{font-size:16px}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
+  .sec{display:flex;flex-direction:column;gap:14px}
+  .sec-head{display:flex;flex-direction:column;gap:3px;border-bottom:1px solid var(--line);padding-bottom:11px}
+
+  /* headline numbers */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+    display:flex;flex-direction:column;gap:2px}
+  .kpi b{font-size:27px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .kpi span{font-size:11.5px;color:var(--ink-3);font-weight:650}
+  .kpi small{font-size:11px;color:var(--ink-3)}
+
+  /* module rows */
+  .mods{display:flex;flex-direction:column;gap:9px}
+  .mod{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:13px 15px;
+    display:grid;grid-template-columns:1fr 190px 96px;gap:14px;align-items:center}
+  @media(max-width:760px){.mod{grid-template-columns:1fr;gap:9px}}
+  .mod-name{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .mod-name b{font-size:14px;font-weight:700}
+  .mod-name span{font-size:12.5px;color:var(--ink-2)}
+  .bar{height:7px;background:var(--line-soft);border-radius:99px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:99px}
+  .pct{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;text-align:right}
+  @media(max-width:760px){.pct{text-align:left}}
+
+  .chip{display:inline-block;padding:2px 9px;border-radius:99px;font-size:10.5px;font-weight:750;
+    letter-spacing:.02em;white-space:nowrap}
+  .c-good{background:var(--good-bg);color:var(--good)}
+  .c-warn{background:var(--warn-bg);color:var(--warn)}
+  .c-crit{background:var(--crit-bg);color:var(--crit)}
+  .c-unk{background:var(--unknown-bg);color:var(--unknown)}
+
+  /* gaps */
+  .gap{border-left:3px solid var(--line);padding:12px 0 12px 15px;display:flex;flex-direction:column;gap:5px}
+  .gap.crit{border-left-color:var(--crit)}
+  .gap.warn{border-left-color:var(--warn)}
+  .gap.info{border-left-color:var(--accent)}
+  .gap-h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .gap p{font-size:13.5px}
+  .ev{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);
+    background:var(--line-soft);padding:2px 7px;border-radius:5px;display:inline-block}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  .tw{overflow-x:auto}
+  th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--ink-3);font-weight:700;padding:8px 10px;border-bottom:1px solid var(--line)}
+  td{padding:9px 10px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  td:last-child,th:last-child{text-align:right;font-variant-numeric:tabular-nums}
+  tbody tr:last-child td{border-bottom:none}
+
+  .note{background:var(--accent-soft);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .note p{color:var(--ink)}
+  ul{margin:0;padding-left:19px;color:var(--ink-2);font-size:13.5px}
+  li{margin-bottom:5px}
+  footer{border-top:1px solid var(--line);padding-top:16px;font-size:12px;color:var(--ink-3)}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Engineering Audit · CodeBegun LMS</div>
+    <h1>Module completeness &amp; gap analysis</h1>
+    <p class="lede">A survey of 90 backend modules across a multi-tenant Node/React platform. Percentages are given <strong>only where there is evidence</strong> — a shipped build, a database query, an executed request. Everything else is marked unassessed rather than estimated.</p>
+  </header>
+
+  <section class="sec">
+    <div class="kpis">
+      <div class="kpi"><b>90</b><span>Modules in the codebase</span><small>routes registered</small></div>
+      <div class="kpi"><b>21</b><span>Assessed with evidence</span><small>23% of the surface</small></div>
+      <div class="kpi"><b>69</b><span>Not assessed this pass</span><small>no claim made</small></div>
+      <div class="kpi"><b style="color:var(--crit)">1</b><span>Critical security gap</span><small>open to the internet</small></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head">
+      <h2>How to read this</h2>
+      <p>A percentage means: the feature's data model, API, admin surface and student surface all exist, and the path has been exercised. A module can be 100% built and 0% used — those are different problems, and the notes say which.</p>
+    </div>
+    <div class="note">
+      <p><strong>Why only 21 of 90.</strong> Assigning a completion figure to a module I have not opened would be a guess wearing the costume of a measurement. The 69 unassessed modules are listed by name at the end; auditing them properly is a further pass, not a paragraph.</p>
+    </div>
+  </section>
+
+  <!-- ASSESSED MODULES -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>Assessed modules</h2>
+      <p>Ordered by risk-adjusted attention: what is closest to students, and what is furthest from finished.</p>
+    </div>
+
+    <div class="mods">
+
+      <div class="mod">
+        <div class="mod-name"><b>Tech Battles</b><span>Public competitions, self-serve funnel, live leaderboard <span class="chip c-good">load-tested</span></span></div>
+        <div class="bar"><i style="width:88%;background:var(--good)"></i></div>
+        <div class="pct">88%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Quizzes</b><span>Authoring, scheduling, delivery, attempts, grading <span class="chip c-good">mature</span></span></div>
+        <div class="bar"><i style="width:90%;background:var(--good)"></i></div>
+        <div class="pct">90%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Assignments</b><span>Reusable content + per-batch schedules, deadline policy</span></div>
+        <div class="bar"><i style="width:88%;background:var(--good)"></i></div>
+        <div class="pct">88%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Attendance</b><span>Marking, reports, live-class finalisation</span></div>
+        <div class="bar"><i style="width:85%;background:var(--good)"></i></div>
+        <div class="pct">85%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Permissions &amp; Roles</b><span>18 permission groups, custom roles replace base <span class="chip c-warn">coverage gap</span></span></div>
+        <div class="bar"><i style="width:72%;background:var(--warn)"></i></div>
+        <div class="pct">72%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Student Tracking</b><span>Unified assigned-work resolver, admin ↔ student parity</span></div>
+        <div class="bar"><i style="width:85%;background:var(--good)"></i></div>
+        <div class="pct">85%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Career Passport</b><span>Join → assessment → ₹499 → missions → card <span class="chip c-warn">3 surfaces unexecuted</span></span></div>
+        <div class="bar"><i style="width:78%;background:var(--warn)"></i></div>
+        <div class="pct">78%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Leads / CRM</b><span>16 route files, Meta ads, WhatsApp, scoring, distribution</span></div>
+        <div class="bar"><i style="width:82%;background:var(--good)"></i></div>
+        <div class="pct">82%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Fees &amp; Payments</b><span>Manual collection live; Razorpay rail exists, not wired to fees</span></div>
+        <div class="bar"><i style="width:70%;background:var(--warn)"></i></div>
+        <div class="pct">70%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Live Classes</b><span>100ms webinar stage model, attendance finalisation</span></div>
+        <div class="bar"><i style="width:75%;background:var(--warn)"></i></div>
+        <div class="pct">75%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Daily Lab Delivery</b><span>Tracks, derivation, gating engine, builder, progress <span class="chip c-good">infra complete</span></span></div>
+        <div class="bar"><i style="width:95%;background:var(--good)"></i></div>
+        <div class="pct">95%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Thinking Lab — content</b><span>41 of 145 concepts authored <span class="chip c-crit">blocks launch</span></span></div>
+        <div class="bar"><i style="width:28%;background:var(--crit)"></i></div>
+        <div class="pct">28%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Communication Lab — content</b><span>30 of 145 challenges <span class="chip c-crit">blocks launch</span></span></div>
+        <div class="bar"><i style="width:21%;background:var(--crit)"></i></div>
+        <div class="pct">21%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Exams (offline marks)</b><span>CRUD + bulk entry + permissions <span class="chip c-warn">never used in production</span></span></div>
+        <div class="bar"><i style="width:70%;background:var(--warn)"></i></div>
+        <div class="pct">70%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Gamification</b><span>XP, levels, streaks, badges, leaderboard <span class="chip c-warn">one lab only</span></span></div>
+        <div class="bar"><i style="width:65%;background:var(--warn)"></i></div>
+        <div class="pct">65%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Practice Lab (Passport)</b><span>SQL verified end-to-end on Piston; coding path unexecuted</span></div>
+        <div class="bar"><i style="width:60%;background:var(--warn)"></i></div>
+        <div class="pct">60%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Code Playground</b><span>Editor, Piston exec, GitHub push; no step debugger or connect UI</span></div>
+        <div class="bar"><i style="width:65%;background:var(--warn)"></i></div>
+        <div class="pct">65%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Interview Module</b><span>Manual + AI virtual tracks; templates needed to activate</span></div>
+        <div class="bar"><i style="width:70%;background:var(--warn)"></i></div>
+        <div class="pct">70%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Placement Partners</b><span>CSV import + Kanban; outreach automation partial</span></div>
+        <div class="bar"><i style="width:55%;background:var(--warn)"></i></div>
+        <div class="pct">55%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Mock Interview &amp; Resume (Passport)</b><span>Shipped across ~25 deploys, <strong>never executed by anyone</strong></span></div>
+        <div class="bar"><i style="width:45%;background:var(--crit)"></i></div>
+        <div class="pct">45%</div>
+      </div>
+
+      <div class="mod">
+        <div class="mod-name"><b>Infrastructure &amp; Security</b><span>Blue/green deploys work; exposure and isolation do not <span class="chip c-crit">critical</span></span></div>
+        <div class="bar"><i style="width:40%;background:var(--crit)"></i></div>
+        <div class="pct">40%</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- GAPS -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>Gaps, by consequence</h2>
+      <p>Each is something observed, not inferred. The evidence is stated so any of it can be re-checked.</p>
+    </div>
+
+    <div class="panel" style="display:flex;flex-direction:column;gap:4px">
+
+      <div class="gap crit">
+        <div class="gap-h"><h3>Redis is reachable from the internet with no password</h3><span class="chip c-crit">critical</span></div>
+        <p>Confirmed by connecting from outside the server: <code class="ev">187.124.97.56:6379 → +PONG</code>, firewall inactive. Unauthenticated Redis is a standard remote-code-execution path via <code>CONFIG SET dir</code>. The box was compromised by a cryptominer in July. 91 live BullMQ keys mean it cannot simply be stopped — it needs binding to localhost.</p>
+      </div>
+
+      <div class="gap crit">
+        <div class="gap-h"><h3>Daily labs cannot launch: 145-day plans are 28% and 21% full</h3><span class="chip c-crit">blocks launch</span></div>
+        <p>All delivery infrastructure is finished and deployed. A track cannot be published with empty days — by design — so no batch can run a full plan. 110 thinking and 115 communication concepts remain to author. This is now the critical path, not code.</p>
+      </div>
+
+      <div class="gap crit">
+        <div class="gap-h"><h3>Three paid Passport surfaces have never been run</h3><span class="chip c-crit">revenue risk</span></div>
+        <p>Practice, Mock Interview and Resume are entitlements behind a ₹499 payment. SQL practice was verified end-to-end against production Piston this session; the other two have shipped across roughly 25 deploys without a single execution by anyone, including us.</p>
+      </div>
+
+      <div class="gap warn">
+        <div class="gap-h"><h3>Authorisation coverage is incomplete</h3><span class="chip c-warn">high</span></div>
+        <p>29 route files carry no <code>roleGuard</code>, and 4 controllers hold hardcoded role arrays that bypass the permission system entirely — <code class="ev">assessmentSchedule · communication · liveClass · payment</code>. Permission groups themselves are well modelled; enforcement is not uniformly applied.</p>
+      </div>
+
+      <div class="gap warn">
+        <div class="gap-h"><h3>One server runs three products</h3><span class="chip c-warn">high</span></div>
+        <p>14 containers share 8 vCPU: LMS, CRM and VoicePilot together with MongoDB, Redis and Piston. A Tech Battle at scale degrades all three. There is also no staging environment — a temporary one had to be built to load-test, then torn down.</p>
+      </div>
+
+      <div class="gap warn">
+        <div class="gap-h"><h3>Realtime cannot scale horizontally</h3><span class="chip c-warn">medium</span></div>
+        <p>socket.io is used in 29 places with no Redis adapter, so a message emitted by one worker never reaches clients on another. Node clustering is therefore opt-in and off by default: safe for the HTTP-only battle path, unsafe for live classes and notifications.</p>
+      </div>
+
+      <div class="gap warn">
+        <div class="gap-h"><h3>Gamification measures one lab</h3><span class="chip c-warn">medium</span></div>
+        <p>XP comes solely from Thinking Lab. Communication Lab tracks streaks separately and feeds no XP, so a leaderboard used to award prizes currently ignores half the daily work students are being asked to do.</p>
+      </div>
+
+      <div class="gap info">
+        <div class="gap-h"><h3>An orphaned record and a stale data path</h3><span class="chip c-unk">low</span></div>
+        <p>One graded submission references a deleted user. Separately, 34 of one student's 40 attempted quizzes point at content no longer visible to them — historical, not broken, but it means raw attempt counts overstate current work.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FIXED -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>Closed during this audit</h2>
+      <p>Defects found and fixed, with how each was caught — the method matters more than the count.</p>
+    </div>
+    <div class="tw panel">
+      <table>
+        <thead><tr><th>Defect</th><th>Found by</th><th>Impact</th></tr></thead>
+        <tbody>
+          <tr><td>Battle ranking was O(n²) — 5 billion writes at 100k entrants</td><td>Reading the submit path</td><td>Event-fatal</td></tr>
+          <tr><td>Rank query fetched 22,275 documents per count</td><td><code class="ev">explain()</code></td><td>215ms → 58ms</td></tr>
+          <tr><td>Submit returned 500 <em>after</em> saving the paper</td><td>Load test</td><td>Candidate data loss appearance</td></tr>
+          <tr><td>Admin saw 1 quiz where the student saw 6</td><td>User report + DB query</td><td>Staff misinformed</td></tr>
+          <tr><td>Two report counters returned 0 for all 111 students</td><td>Live verification</td><td>Silent since inception</td></tr>
+          <tr><td>Leaderboard route shadowed by <code>/:id</code></td><td>User screenshot</td><td>Endpoint unreachable</td></tr>
+          <tr><td>Shuffle was <code>sort(() =&gt; Math.random() - 0.5)</code></td><td>Code review</td><td>Biased ordering</td></tr>
+          <tr><td>Execution time and memory were <code>Math.random()</code></td><td>Code review</td><td>Fabricated metrics shown to students</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- UNASSESSED -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>Not assessed in this pass — 69 modules</h2>
+      <p>Named rather than scored. Several are substantial and may well be complete; that is exactly why they should not be given a number here.</p>
+    </div>
+    <div class="panel">
+      <p style="font-family:var(--mono);font-size:12px;line-height:2;color:var(--ink-2)">
+        activity · adminLogs · adminPublicQuiz · aiCall · aiUsage · assessmentCandidates · assessmentItem · auth · batchOffering · candidateProof · careerProfile · certificate · chapter · codeSnippet · conceptLesson · concern · content · course · curriculum · dashboard · drill · enrollmentPlan · enrollment · followUp · googleAds · googleSheet · interactiveLesson · interviewQuestion · interviewTemplate · jobApplication · leadAI · leadDisposition · leadDistribution · leadFormConfig · leadPriority · leadScoring · leadSourceConfig · leadStageHistory · leadStage · learningContentLibrary · leaveRequest · liveSession · lostReason · meeting · mentor · metaLeadAds · oauth · progress · project · publicAssessment · publicCertificate · publicLead · publicProof · qualification · question · recordingLog · resource · resume · role · salesCallRecording · salesContent · scheduledInterview · seatReservation · share · speaking · subTopic · subject · systemSettings · tenant · topic · user · weeklyReport · whatsappDripConfig · whatsapp
+      </p>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head"><h2>What to do next</h2></div>
+    <div class="panel">
+      <ul>
+        <li><strong>Bind Redis to localhost.</strong> One line in docker-compose, one container restart. Nothing else on this list carries the same downside.</li>
+        <li><strong>Author lab content.</strong> 225 concepts stand between finished infrastructure and a running daily habit. Templates are committed; the standard is set.</li>
+        <li><strong>Run Mock Interview and Resume once each.</strong> Ten minutes settles whether a paid entitlement works.</li>
+        <li><strong>Audit the 29 unguarded route files.</strong> Read-only first — enumerate before changing 100+ endpoints.</li>
+        <li><strong>Decide whether Communication Lab earns XP.</strong> Prizes are being drawn from a board that measures one of two labs.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    Generated 2 August 2026 · 90 modules surveyed, 21 assessed against evidence · Figures reflect the deployed build at commit <code class="ev">cac2ad00</code>. Unassessed modules carry no implied score.
+  </footer>
+
+</div>

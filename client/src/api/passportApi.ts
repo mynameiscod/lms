@@ -466,6 +466,18 @@ export const passportApi = {
     return data;
   },
 
+  /**
+   * Can this member start a personalized assessment right now?
+   *
+   * Preflight so onboarding never offers a CTA that fails on click. All readiness rules
+   * (blueprint published, skills configured, question pool) stay on the server — this is
+   * a transport, not a second copy of the policy.
+   */
+  getAssessmentAvailability: async (): Promise<AssessmentAvailability> => {
+    const { data } = await axios.get(`${BASE}/me/assessment/personalized/availability`, { headers: auth() });
+    return data;
+  },
+
   // ── Pathway routing rules (who each pathway serves) ──
   /** Goals, stages, backgrounds and categories a rule may be written against. */
   ruleVocabulary: async (): Promise<RuleVocabulary> => {
@@ -1139,7 +1151,8 @@ export const passportPublicApi = {
   },
   verify: async (token: string, code: string) => {
     const { data } = await axios.post(`${PUB}/verify`, { token, code });
-    return data as { success: boolean; token: string; tenantId: string; user: any };
+    // `onboardingCompleted` decides where the member lands — see Join.tsx.
+    return data as { success: boolean; token: string; tenantId: string; user: any; onboardingCompleted?: boolean };
   },
   resend: async (token: string) => {
     const { data } = await axios.post(`${PUB}/resend`, { token });
@@ -1148,7 +1161,7 @@ export const passportPublicApi = {
   // Returning-member login (password — free) and OTP-login start (then reuse verify()).
   loginPassword: async (tenant: string, identifier: string, password: string) => {
     const { data } = await axios.post(`${PUB}/login-password`, { tenant, identifier, password });
-    return data as { success: boolean; token: string; tenantId: string; user: any };
+    return data as { success: boolean; token: string; tenantId: string; user: any; onboardingCompleted?: boolean };
   },
   loginOtp: async (tenant: string, mobile: string) => {
     const { data } = await axios.post(`${PUB}/login-otp`, { tenant, mobile });
@@ -1784,6 +1797,30 @@ export interface AdminCareerRole {
   systemRole: boolean;
   updatedBy?: string;
   updatedAt?: string;
+}
+
+/**
+ * Whether a personalized assessment can be started, decided entirely server-side.
+ *
+ * `reasonCode` is a stable token so the UI can pick a state without parsing the message;
+ * `message` is the sentence to show. Neither carries internal detail.
+ */
+export interface AssessmentAvailability {
+  assessmentAvailable: boolean;
+  reasonCode?:
+    | 'ACCOUNT_NOT_FOUND'
+    | 'CONTEXT_INCOMPLETE'
+    | 'STAGE_UNKNOWN'
+    | 'ROLE_NOT_CONFIGURED'
+    | 'BLUEPRINT_UNPUBLISHED'
+    | 'BLUEPRINT_EMPTY'
+    | 'SKILLS_NOT_CONFIGURED'
+    | 'QUESTION_POOL_EMPTY';
+  message?: string;
+  /** The member has no chosen role and would sit the broad discovery paper. */
+  discovery: boolean;
+  /** An attempt is already open — the CTA resumes rather than starts. */
+  inProgress: boolean;
 }
 
 /** Served alongside the context so the UI never hardcodes a list the server would reject. */

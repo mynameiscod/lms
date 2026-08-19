@@ -130,3 +130,26 @@
   .cps-nav .cps-btn { width: 100%; }
   .cps-sum .r span { flex: 1 0 100%; }
 }
+
+/* ── Known academic context, shown on Direction instead of asked again ── */
+/* Sits above the role cards as a statement of what we already have, with a quiet way
+   back to correct it — removing the question must not remove the correction. */
+.cps-ctxbadge { margin: 0 0 16px; align-items: center; }
+.cps-ctxbadge b { font-weight: 700; }
+.cps-link { margin-left: auto; background: none; border: 0; padding: 0 2px;
+  color: #1d4ed8; font-family: inherit; font-size: 12px; font-weight: 700;
+  text-decoration: underline; cursor: pointer; }
+.cps-link:hover { color: #1e40af; }
+
+/* ── Assessment not ready ── */
+/* Amber, not red: nothing has gone wrong for the student and their profile is saved.
+   The path simply is not configured yet, which is an administrator's task. */
+.cps-notready { background: #fffbeb; border-color: #fde68a; color: #92400e;
+  margin: 18px 0 0; text-align: left; }
+.cps-notready span { display: flex; flex-direction: column; gap: 3px; }
+.cps-notready em { font-style: normal; opacity: .85; }
+
+@media (max-width: 520px) {
+  .cps-ctxbadge { flex-wrap: wrap; }
+  .cps-link { margin-left: 0; }
+}

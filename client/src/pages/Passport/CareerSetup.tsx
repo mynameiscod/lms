@@ -1,19 +1,25 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import passportApi, { CareerContext, CareerContextOptions } from '../../api/passportApi';
+import passportApi, { AssessmentAvailability, CareerContext, CareerContextOptions } from '../../api/passportApi';
 import './careerSetup.css';
 
 /**
- * CareerPilot onboarding — four questions, not a registration form.
+ * CareerPilot onboarding — the questions registration did not already answer.
  *
- * Everything the LMS already knows is filled in before the member sees it. A student who
- * entered their degree, branch and college on their profile is not asked again; asking
- * would suggest the two systems are unrelated, and every re-typed answer is a chance for
- * the two records to disagree.
+ * Joining CareerPilot already asks for degree, branch and academic year. This screen used
+ * to open by asking for all three again, which reads as though the two forms belong to
+ * different companies, and every re-typed answer is a chance for the two records to
+ * disagree. A member arriving with that data now starts at Direction.
  *
- * Each step saves as it advances, so closing the tab on step 3 does not lose steps 1-2.
+ * WHICH STEPS APPEAR IS THE SERVER'S ANSWER, NOT THIS FILE'S. `status.missing` already
+ * states what onboarding still needs; re-deriving completeness here would be a second copy
+ * of a rule that lives in careerContextService.missingFor(), and the copy would drift.
+ * Education therefore appears only as a repair step — for a legacy member, an
+ * admin-created account, or a signup whose optional academic fields were skipped.
+ *
+ * Each step saves as it advances, so closing the tab on step 2 does not lose step 1.
  * Only the final step sends `complete`, because a partial save must never mark someone
- * done — later modules will act on that flag.
+ * done — later modules act on that flag.
  *
  * Career stage is NOT asked and NOT chosen here. The server derives it and this screen
  * displays what came back. Duplicating that rule in React is how the two would drift.
@@ -26,13 +32,31 @@ type Answers = {
   minutesPerDay: number | null;
 };
 
-const STEPS = ['Education', 'Direction', 'Technology', 'Commitment'];
+type StepKey = 'education' | 'direction' | 'technology' | 'commitment';
+
+const STEP_LABEL: Record<StepKey, string> = {
+  education: 'Your studies',
+  direction: 'Direction',
+  technology: 'Technology',
+  commitment: 'Commitment',
+};
+
+/**
+ * Does the server still need academic details?
+ *
+ * Reads the server's own `missing` list rather than inspecting the education fields, so
+ * the rule stays in one place. Branch is deliberately absent: it is optional under
+ * careerContextService policy and must not start gating anybody.
+ */
+const educationMissing = (missing: string[]) =>
+  missing.includes('education.degree') || missing.includes('education.currentAcademicYear');
 
 const CareerSetup: React.FC = () => {
   const nav = useNavigate();
   const [ctx, setCtx] = useState<CareerContext | null>(null);
   const [opts, setOpts] = useState<CareerContextOptions | null>(null);
-  const [step, setStep] = useState(0);
+  const [stepIx, setStepIx] = useState(0);
+  const [editEducation, setEditEducation] = useState(false);
   const [a, setA] = useState<Answers>({
     degree: '', branch: '', currentAcademicYear: '',
     primaryRole: '', preferredProgrammingLanguages: [], minutesPerDay: null,
@@ -40,6 +64,7 @@ const CareerSetup: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [done, setDone] = useState(false);
+  const [avail, setAvail] = useState<AssessmentAvailability | null>(null);
 
   useEffect(() => {
     passportApi.getCareerContext()
@@ -59,22 +84,45 @@ const CareerSetup: React.FC = () => {
       .catch(e => setErr(e?.response?.data?.message || 'Could not load your details.'));
   }, []);
 
+  /**
+   * The steps this member actually needs.
+   *
+   * `editEducation` lets someone who spots a wrong degree on the Direction step fix it
+   * without leaving onboarding — hiding a question we no longer need to ask must not also
+   * remove the ability to correct it.
+   */
+  const steps = useMemo<StepKey[]>(() => {
+    const needsEducation = ctx ? educationMissing(ctx.status.missing) : false;
+    return [
+      ...(needsEducation || editEducation ? ['education' as StepKey] : []),
+      'direction', 'technology', 'commitment',
+    ];
+  }, [ctx, editEducation]);
+
+  const step = steps[Math.min(stepIx, steps.length - 1)];
+  const isLast = stepIx >= steps.length - 1;
+
+  /** Only what this member was actually asked. Never sends education we did not show. */
   const patchFor = (upto: number) => {
+    const seen = steps.slice(0, upto + 1);
     const p: any = {};
-    if (upto >= 0) { p.degree = a.degree; p.program = a.degree; p.branch = a.branch; p.currentAcademicYear = a.currentAcademicYear; }
-    if (upto >= 1) p.primaryRole = a.primaryRole;
-    if (upto >= 2) p.preferredProgrammingLanguages = a.preferredProgrammingLanguages;
-    if (upto >= 3 && a.minutesPerDay) p.minutesPerDay = a.minutesPerDay;
+    if (seen.includes('education')) {
+      p.degree = a.degree; p.program = a.degree;
+      p.branch = a.branch; p.currentAcademicYear = a.currentAcademicYear;
+    }
+    if (seen.includes('direction')) p.primaryRole = a.primaryRole;
+    if (seen.includes('technology')) p.preferredProgrammingLanguages = a.preferredProgrammingLanguages;
+    if (seen.includes('commitment') && a.minutesPerDay) p.minutesPerDay = a.minutesPerDay;
     return p;
   };
 
-  /** Advancing saves. Losing three answered steps to a closed tab is not acceptable. */
+  /** Advancing saves. Losing answered steps to a closed tab is not acceptable. */
   const go = async (next: number, complete = false) => {
     setBusy(true); setErr('');
     try {
-      const r = await passportApi.updateCareerContext({ ...patchFor(step), ...(complete ? { complete: true } : {}) });
+      const r = await passportApi.updateCareerContext({ ...patchFor(stepIx), ...(complete ? { complete: true } : {}) });
       setCtx(r.context);
-      if (complete) setDone(true); else setStep(next);
+      if (complete) setDone(true); else setStepIx(next);
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Could not save that. Please try again.');
     }
@@ -82,11 +130,22 @@ const CareerSetup: React.FC = () => {
   };
 
   const canAdvance = useMemo(() => {
-    if (step === 0) return !!a.degree && !!a.currentAcademicYear;
-    if (step === 1) return !!a.primaryRole;             // NOT_SURE is a valid answer
-    if (step === 2) return true;                        // technology interest is optional
+    if (step === 'education') return !!a.degree && !!a.currentAcademicYear;
+    if (step === 'direction') return !!a.primaryRole;    // NOT_SURE is a valid answer
+    if (step === 'technology') return true;              // technology interest is optional
     return !!a.minutesPerDay;
   }, [step, a]);
+
+  // Whether the assessment can actually start is a server question — asked once the member
+  // is done, so the closing CTA is never a button that fails on click.
+  useEffect(() => {
+    if (!done) return;
+    let alive = true;
+    passportApi.getAssessmentAvailability()
+      .then(r => { if (alive) setAvail(r); })
+      .catch(() => { if (alive) setAvail({ assessmentAvailable: false, discovery: false, inProgress: false }); });
+    return () => { alive = false; };
+  }, [done]);
 
   const toggleLang = (l: string) =>
     setA(s => ({
@@ -98,6 +157,10 @@ const CareerSetup: React.FC = () => {
 
   if (err && !ctx) return <div className="cps"><div className="cps-err">{err}</div></div>;
   if (!ctx || !opts) return <div className="cps"><div className="cps-load">Loading your details…</div></div>;
+
+  /** "B.Tech · CSE · 3rd Year" — what we already know, shown rather than re-asked. */
+  const knownContext = [ctx.education.degree || ctx.education.program, ctx.education.branch, ctx.education.currentAcademicYear]
+    .filter(Boolean).join(' · ');
 
   // ── Result ──
   if (done) {
@@ -113,6 +176,7 @@ const CareerSetup: React.FC = () => {
           <div className="cps-sum">
             <div className="r"><span>Studying</span><b>{[ctx.education.degree, ctx.education.branch].filter(Boolean).join(' · ') || '—'}</b></div>
             <div className="r"><span>Year</span><b>{ctx.education.currentAcademicYear || '—'}</b></div>
+            {!!ctx.career.careerGoal && <div className="r"><span>Broad goal</span><b>{ctx.career.careerGoal}</b></div>}
             <div className="r"><span>Aiming for</span><b>{role?.label || 'Not sure yet'}</b></div>
             <div className="r"><span>Interested in</span><b>{ctx.career.preferredProgrammingLanguages.join(', ') || '—'}</b></div>
             <div className="r"><span>Time each day</span><b>{ctx.availability.minutesPerDay ? `${ctx.availability.minutesPerDay} minutes` : '—'}</b></div>
@@ -127,7 +191,34 @@ const CareerSetup: React.FC = () => {
             </div>
           )}
 
-          <button className="cps-btn primary" onClick={() => nav('/careerpilot/dashboard')}>
+          {/* The closing CTA appears only when the server says an assessment can start.
+              Offering it otherwise would send the student into a known failure. */}
+          {avail === null && <div className="cps-load">Checking your assessment…</div>}
+
+          {/* /careerpilot/skill-assessment is the PERSONALISED assessment (Modules 6-7).
+              /careerpilot/assessment is the free career-readiness questionnaire and is a
+              different thing entirely — the preflight above speaks for the former. */}
+          {avail?.assessmentAvailable && (
+            <button className="cps-btn primary" onClick={() => nav('/careerpilot/skill-assessment')}>
+              {avail.inProgress ? 'Continue my assessment' : 'Start my personalized assessment'}
+            </button>
+          )}
+
+          {avail && !avail.assessmentAvailable && (
+            <div className="cps-known cps-notready">
+              <i className="bi bi-info-circle" />
+              <span>
+                <b>{avail.message || 'This career path is not ready for assessment yet.'}</b>
+                <em>
+                  {avail.reasonCode === 'ROLE_NOT_CONFIGURED' || avail.reasonCode === 'BLUEPRINT_UNPUBLISHED' || avail.reasonCode === 'BLUEPRINT_EMPTY'
+                    ? 'Choose another role, or pick “Not sure yet” — everything else in your plan still works.'
+                    : 'Your profile is saved and the rest of CareerPilot works. We will let you know when it is ready.'}
+                </em>
+              </span>
+            </div>
+          )}
+
+          <button className="cps-btn ghost" onClick={() => nav('/careerpilot')}>
             Go to my dashboard
           </button>
         </div>
@@ -138,14 +229,18 @@ const CareerSetup: React.FC = () => {
   return (
     <div className="cps">
       <div className="cps-hd">
-        <h1>Set up CareerPilot</h1>
-        <p>Four quick questions so your plan fits you. Anything we already know is filled in.</p>
+        <h1>Choose your career direction</h1>
+        <p>
+          {steps.includes('education')
+            ? 'A few quick questions so your plan fits you.'
+            : 'We already know your academic background. Now choose where you would like CareerPilot to help you go.'}
+        </p>
       </div>
 
       <ol className="cps-steps">
-        {STEPS.map((s, i) => (
-          <li key={s} className={i === step ? 'on' : i < step ? 'ok' : ''}>
-            <span>{i < step ? <i className="bi bi-check" /> : i + 1}</span>{s}
+        {steps.map((s, i) => (
+          <li key={s} className={i === stepIx ? 'on' : i < stepIx ? 'ok' : ''}>
+            <span>{i < stepIx ? <i className="bi bi-check" /> : i + 1}</span>{STEP_LABEL[s]}
           </li>
         ))}
       </ol>
@@ -153,9 +248,10 @@ const CareerSetup: React.FC = () => {
       {err && <div className="cps-err">{err}</div>}
 
       <div className="cps-card">
-        {step === 0 && (
+        {step === 'education' && (
           <>
-            <h2>What are you studying?</h2>
+            <h2>Complete your academic details</h2>
+            <p className="cps-sub">We are missing a couple of things we need to size your plan.</p>
             <label className="cps-lbl">Program</label>
             <div className="cps-chips">
               {opts.programs.map(p => (
@@ -185,9 +281,22 @@ const CareerSetup: React.FC = () => {
           </>
         )}
 
-        {step === 1 && (
+        {step === 'direction' && (
           <>
-            <h2>What kind of software career interests you?</h2>
+            <h2>What role would you like to work toward?</h2>
+
+            {/* What we already know, shown rather than asked again. The Change link keeps
+                correction possible without putting the question back in everyone's way. */}
+            {!!knownContext && (
+              <p className="cps-known cps-ctxbadge">
+                <i className="bi bi-mortarboard" /> <b>{knownContext}</b>
+                {!steps.includes('education') && (
+                  <button type="button" className="cps-link"
+                    onClick={() => { setEditEducation(true); setStepIx(0); }}>Change</button>
+                )}
+              </p>
+            )}
+
             <p className="cps-sub">
               This list is set by your college and can change — pick what appeals to you now.
               You can change it later.
@@ -224,7 +333,7 @@ const CareerSetup: React.FC = () => {
           </>
         )}
 
-        {step === 2 && (
+        {step === 'technology' && (
           <>
             <h2>Which technologies interest you?</h2>
             <p className="cps-sub">
@@ -245,7 +354,7 @@ const CareerSetup: React.FC = () => {
           </>
         )}
 
-        {step === 3 && (
+        {step === 'commitment' && (
           <>
             <h2>How much time can you realistically give?</h2>
             <p className="cps-sub">Be honest rather than ambitious — a plan you can keep beats one you cannot.</p>
@@ -259,10 +368,10 @@ const CareerSetup: React.FC = () => {
         )}
 
         <div className="cps-nav">
-          {step > 0 && <button className="cps-btn ghost" disabled={busy} onClick={() => setStep(step - 1)}>Back</button>}
+          {stepIx > 0 && <button className="cps-btn ghost" disabled={busy} onClick={() => setStepIx(stepIx - 1)}>Back</button>}
           <button className="cps-btn primary" disabled={busy || !canAdvance}
-            onClick={() => (step === STEPS.length - 1 ? go(step, true) : go(step + 1))}>
-            {busy ? 'Saving…' : step === STEPS.length - 1 ? 'Finish' : 'Continue'}
+            onClick={() => (isLast ? go(stepIx, true) : go(stepIx + 1))}>
+            {busy ? 'Saving…' : isLast ? 'Finish' : 'Continue'}
           </button>
         </div>
       </div>

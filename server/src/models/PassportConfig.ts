@@ -101,7 +101,17 @@ export const DEFAULT_ONBOARDING_FIELDS: IOnboardingField[] = [
   { key: 'branch', label: 'Branch / Specialization', type: 'select', required: false, order: 5,
     options: ['Computer Science / IT', 'Electronics / ECE', 'Electrical / EEE', 'Mechanical', 'Civil',
               'Data Science / AI', 'Mathematics / Statistics', 'Commerce / Management', 'Other'] },
-  { key: 'careerGoal',  label: 'Career Goal',   type: 'select', required: false, order: 7, options: ['Software Development', 'Data Analytics', 'AI-Ready', 'Not sure yet'] },
+  // BROAD DIRECTION, not a role. The specific destination (Backend Engineer, QA/SDET, …)
+  // is chosen after OTP from the tenant's configured CareerRoles; this only captures the
+  // area a student thinks they are heading for.
+  //
+  // Offers only directions CareerPilot can actually deliver. "Data Analytics" and
+  // "AI-Ready" shipped here from the start with no Data or AI roles, skills or blueprints
+  // behind them — a student picking either was promised a path the product cannot serve.
+  // Restore them, and add Cybersecurity, only once the matching CareerRoles, CareerSkills
+  // and RoleSkillBlueprints exist. Existing members keep whatever they already chose:
+  // these are the options offered to new signups, not a constraint on stored values.
+  { key: 'careerGoal',  label: 'Career Goal',   type: 'select', required: false, order: 7, options: ['Software Development', 'Cloud & DevOps', 'Not Sure Yet'] },
 ];
 
 export const DEFAULT_ENTITLEMENTS: IEntitlement[] = [

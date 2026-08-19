@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import PersonalizedAssessment from '../models/PersonalizedAssessment';
 import {
   resolvePersonalizedAssessmentContext, buildPersonalizedAssessment,
+  getPersonalizedAssessmentAvailability,
 } from '../services/personalizedAssessmentService';
 import { loadItems, refKey } from '../services/skillEvidenceSourceRegistry';
 import { policyForStage, ASSESSMENT_POLICIES } from '../data/assessmentPolicies';
@@ -302,4 +303,30 @@ export const listPolicies = async (_req: Request, res: Response) => {
       allowedSkillDifficulty: p.allowedSkillDifficulty,
     })),
   });
+};
+
+/**
+ * GET /me/assessment/personalized/availability
+ *
+ * Preflight for the onboarding CTA: may this member start an assessment right now, and if
+ * not, why. Read-only and cheap enough to call on render — it deliberately does not
+ * generate a paper. Always 200: "not ready" is a state the UI renders, not an error.
+ */
+export const checkPersonalizedAssessmentAvailability = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const studentId = userIdOf(req);
+    if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
+    return res.json(await getPersonalizedAssessmentAvailability(tenantId, studentId));
+  } catch {
+    // A preflight that fails must not present as a broken page. Unavailable is the safe
+    // answer: the worst case is a student sees "not ready" and retries.
+    return res.json({
+      assessmentAvailable: false,
+      reasonCode: 'SKILLS_NOT_CONFIGURED',
+      message: 'This career path is not ready for assessment yet.',
+      discovery: false,
+      inProgress: false,
+    });
+  }
 };

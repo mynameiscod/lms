@@ -1,4 +1,5 @@
 import CareerSkill, { ICareerSkill } from '../models/CareerSkill';
+import PersonalizedAssessment from '../models/PersonalizedAssessment';
 import { getCareerContext } from './careerContextService';
 import { getRoleSkillBlueprint } from './roleSkillBlueprintService';
 import { findEvidenceCandidates } from './skillEvidenceService';
@@ -370,9 +371,27 @@ export const generationSeed = (studentId: string, policyKey: string, policyVersi
 
 // ── The database-touching ends of the pipeline ───────────────────────────────
 
+/**
+ * Why a personalized assessment cannot start.
+ *
+ * A stable code so the client can choose a state to render without parsing prose or
+ * re-deriving the rule. The message stays the human sentence; nothing internal is exposed.
+ */
+export type AssessmentUnavailableReason =
+  | 'ACCOUNT_NOT_FOUND'
+  | 'CONTEXT_INCOMPLETE'
+  | 'STAGE_UNKNOWN'
+  | 'ROLE_NOT_CONFIGURED'
+  | 'BLUEPRINT_UNPUBLISHED'
+  | 'BLUEPRINT_EMPTY'
+  | 'SKILLS_NOT_CONFIGURED'
+  | 'QUESTION_POOL_EMPTY';
+
 export interface ResolvedContext {
   ok: boolean;
   message?: string;
+  /** Set whenever ok is false. Additive — callers reading ok/message are unaffected. */
+  reasonCode?: AssessmentUnavailableReason;
   stage?: string;
   roleKey?: string;
   roleSkillKeys?: string[];
@@ -390,15 +409,15 @@ export interface ResolvedContext {
  */
 export async function resolvePersonalizedAssessmentContext(tenantId: string, studentId: string): Promise<ResolvedContext> {
   const context = await getCareerContext(tenantId, studentId);
-  if (!context) return { ok: false, message: 'Account not found.' };
+  if (!context) return { ok: false, reasonCode: 'ACCOUNT_NOT_FOUND', message: 'Account not found.' };
 
   if (!context.status.onboardingCompleted) {
-    return { ok: false, message: 'Complete your CareerPilot setup before starting the assessment.' };
+    return { ok: false, reasonCode: 'CONTEXT_INCOMPLETE', message: 'Complete your CareerPilot setup before starting the assessment.' };
   }
 
   const stage = context.derived.stage;
   if (!stage) {
-    return { ok: false, message: 'We could not work out your academic stage. Check your course and year in CareerPilot setup.' };
+    return { ok: false, reasonCode: 'STAGE_UNKNOWN', message: 'We could not work out your academic stage. Check your course and year in CareerPilot setup.' };
   }
 
   const policy = policyForStage(stage);
@@ -412,12 +431,12 @@ export async function resolvePersonalizedAssessmentContext(tenantId: string, stu
   }
 
   const blueprint = await getRoleSkillBlueprint(tenantId, roleKey);
-  if (!blueprint) return { ok: false, message: `Your target role is not configured yet.` };
+  if (!blueprint) return { ok: false, reasonCode: 'ROLE_NOT_CONFIGURED', message: `Your target role is not configured yet.` };
 
   // Draft blueprints are somebody's work in progress; assessing a student against one
   // would measure a standard nobody has agreed to.
   if (!blueprint.published) {
-    return { ok: false, message: `The ${blueprint.roleName} skill blueprint has not been published yet. Ask your administrator to publish it.` };
+    return { ok: false, reasonCode: 'BLUEPRINT_UNPUBLISHED', message: `The ${blueprint.roleName} skill blueprint has not been published yet. Ask your administrator to publish it.` };
   }
 
   const roleSkillKeys = blueprint.requirements
@@ -425,7 +444,7 @@ export async function resolvePersonalizedAssessmentContext(tenantId: string, stu
     .map(r => r.skillKey);
 
   if (!roleSkillKeys.length) {
-    return { ok: false, message: `The ${blueprint.roleName} blueprint has no usable skills yet.` };
+    return { ok: false, reasonCode: 'BLUEPRINT_EMPTY', message: `The ${blueprint.roleName} blueprint has no usable skills yet.` };
   }
 
   return { ok: true, stage, roleKey, policy, roleSkillKeys, blueprintVersion: blueprint.version };
@@ -505,4 +524,77 @@ export async function buildPersonalizedAssessment(input: GenerationInput): Promi
     },
     items, report, seed,
   };
+}
+
+/** What the student's UI needs to decide between a CTA and a "not ready" state. */
+export interface AssessmentAvailability {
+  assessmentAvailable: boolean;
+  reasonCode?: AssessmentUnavailableReason;
+  message?: string;
+  /** True when the member has no chosen role and would sit the broad discovery paper. */
+  discovery: boolean;
+  /** An attempt already open — the CTA should resume rather than start. */
+  inProgress: boolean;
+}
+
+/**
+ * Can this member actually start a personalized assessment right now?
+ *
+ * Preflight for the onboarding CTA. Onboarding used to end on a "Start My Assessment"
+ * button that called start() and discovered only then that the tenant has no published
+ * blueprint or no question pool — the student finished setup, clicked, and got an error.
+ * Routing someone into a known failure is worse than telling them the path is not ready.
+ *
+ * Deliberately reuses resolvePersonalizedAssessmentContext and findEvidenceCandidates
+ * rather than restating their rules, so this cannot drift from what start() will do.
+ * It stops short of generating a paper: generation is seeded per attempt and rate-limited
+ * as an AI operation, and a preflight that consumed that budget on every page view would
+ * be its own problem. It therefore answers "is the configuration there", not "will every
+ * slot fill" — a coverage shortfall is still reported by start(), as before.
+ */
+export async function getPersonalizedAssessmentAvailability(
+  tenantId: string,
+  studentId: string,
+): Promise<AssessmentAvailability> {
+  const open = await PersonalizedAssessment.findOne({ tenantId, studentId, status: 'IN_PROGRESS' })
+    .select('_id').lean();
+
+  const ctx = await resolvePersonalizedAssessmentContext(tenantId, studentId);
+  const discovery = !!ctx.discovery;
+
+  if (!ctx.ok) {
+    return { assessmentAvailable: false, reasonCode: ctx.reasonCode, message: ctx.message, discovery, inProgress: false };
+  }
+
+  // An attempt already in progress is startable by definition — it exists.
+  if (open) return { assessmentAvailable: true, discovery, inProgress: true };
+
+  // The skill graph has to exist before anything can be asked. NOT_SURE reaches here too:
+  // discovery scopes to a broad skill set, which is just as absent on a tenant that has
+  // not configured skills, and that is exactly the case that used to fail after the click.
+  const skillKeys = [...new Set((ctx.roleSkillKeys || []).map(k => String(k || '').trim().toUpperCase()))].filter(Boolean);
+  const skillCount = skillKeys.length
+    ? await CareerSkill.countDocuments({ key: { $in: skillKeys } })
+    : 0;
+  if (!skillCount) {
+    return {
+      assessmentAvailable: false,
+      reasonCode: 'SKILLS_NOT_CONFIGURED',
+      message: 'This career path is not ready for assessment yet.',
+      discovery, inProgress: false,
+    };
+  }
+
+  const pools = await findEvidenceCandidates(tenantId, { skillKeys, contribution: 'PRIMARY' });
+  const anyQuestions = pools.some(p => (p.items || []).length > 0);
+  if (!anyQuestions) {
+    return {
+      assessmentAvailable: false,
+      reasonCode: 'QUESTION_POOL_EMPTY',
+      message: 'This career path is not ready for assessment yet.',
+      discovery, inProgress: false,
+    };
+  }
+
+  return { assessmentAvailable: true, discovery, inProgress: false };
 }

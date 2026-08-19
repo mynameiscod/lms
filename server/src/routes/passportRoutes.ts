@@ -242,6 +242,8 @@ router.post('/assessments/:assessmentId/reproject',          MANAGE, skillDna.re
 // ── Personalised assessment generation (Module 6). A SEPARATE flow: the existing
 //    assessment endpoints are untouched, so incomplete evidence mapping cannot break a
 //    working exam. Role, stage and questions are all resolved server-side. ──
+// Preflight for the onboarding CTA — read-only, no generation, so no aiGenerate limit.
+router.get('/me/assessment/personalized/availability', MEMBER, personalized.checkPersonalizedAssessmentAvailability);
 router.post('/me/assessment/personalized/start', MEMBER, rateLimit('aiGenerate'), personalized.startPersonalizedAssessment);
 // Saving is not submitting: status is untouched and nothing is graded. It exists so a
 // refresh, a dead battery or a shared machine cannot cost somebody a half-finished paper.

@@ -245,6 +245,10 @@ function issueLogin(res: Response, user: any) {
     token: jwtToken,
     tenantId: String(user.tenantId),
     user: { id: String(user._id), email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role },
+    // Where to land. A member who has finished onboarding goes to their dashboard; one who
+    // has not is sent to setup rather than a dashboard whose panels have nothing to show.
+    // Server-stated so the client never infers it from a partial view of the record.
+    onboardingCompleted: !!user.passport?.contextCompletedAt,
   });
 }
 

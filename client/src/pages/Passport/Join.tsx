@@ -107,10 +107,21 @@ const PassportJoin: React.FC = () => {
           email: r.user.email, firstName: r.user.firstName, lastName: r.user.lastName, role: r.user.role,
         }));
       }
+      // Straight into setup, not the dashboard.
+      //
+      // Registration has just collected who they are and what they study; the one thing
+      // CareerPilot still needs is where they want to go. Landing on a dashboard whose
+      // panels are all empty until a role and a time commitment exist made the next step
+      // something the member had to go and find, behind a dismissible strip.
+      //
+      // A member who somehow arrives already complete — a resumed signup that was finished
+      // elsewhere — goes to the dashboard instead. The server decides which; onboarding
+      // completeness is not something to infer here.
+      //
       // Full page load so the auth context re-initializes from the stored token/user — a
       // client-side nav would hit the protected route before the context knows we're
       // logged in and bounce to /login.
-      window.location.href = '/careerpilot';
+      window.location.href = r.onboardingCompleted ? '/careerpilot' : '/careerpilot/setup';
     } catch (e: any) { setMsg(e?.response?.data?.message || 'Verification failed'); }
     setBusy(false);
   };

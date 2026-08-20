@@ -116,6 +116,21 @@ export function normalizeMinutes(v: any): number | null {
     Math.abs(o.minutes - n) < Math.abs(best - n) ? o.minutes : best, AVAILABILITY_OPTIONS[0].minutes);
 }
 
+/**
+ * Days a week, offered as choices.
+ *
+ * The roadmap planner multiplies minutesPerDay by daysPerWeek to get weekly capacity and
+ * refuses to plan without it, so this is a required answer even though career-context
+ * completeness does not list it. Kept beside AVAILABILITY_OPTIONS because the two are
+ * asked together and only mean anything as a pair.
+ */
+export const DAYS_PER_WEEK_OPTIONS: { days: number; label: string }[] = [
+  { days: 3, label: '3 days' },
+  { days: 5, label: '5 days' },
+  { days: 6, label: '6 days' },
+  { days: 7, label: 'Every day' },
+];
+
 export function normalizeDaysPerWeek(v: any): number | null {
   const n = Number(v);
   if (!Number.isFinite(n)) return null;

@@ -30,6 +30,7 @@ type Answers = {
   primaryRole: string;
   preferredProgrammingLanguages: string[];
   minutesPerDay: number | null;
+  daysPerWeek: number | null;
 };
 
 type StepKey = 'education' | 'direction' | 'technology' | 'commitment';
@@ -59,7 +60,7 @@ const CareerSetup: React.FC = () => {
   const [editEducation, setEditEducation] = useState(false);
   const [a, setA] = useState<Answers>({
     degree: '', branch: '', currentAcademicYear: '',
-    primaryRole: '', preferredProgrammingLanguages: [], minutesPerDay: null,
+    primaryRole: '', preferredProgrammingLanguages: [], minutesPerDay: null, daysPerWeek: null,
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -78,6 +79,7 @@ const CareerSetup: React.FC = () => {
           primaryRole: r.context.career.primaryRole || '',
           preferredProgrammingLanguages: r.context.career.preferredProgrammingLanguages || [],
           minutesPerDay: r.context.availability.minutesPerDay,
+          daysPerWeek: r.context.availability.daysPerWeek,
         });
         if (r.context.status.onboardingCompleted) setDone(true);
       })
@@ -112,7 +114,10 @@ const CareerSetup: React.FC = () => {
     }
     if (seen.includes('direction')) p.primaryRole = a.primaryRole;
     if (seen.includes('technology')) p.preferredProgrammingLanguages = a.preferredProgrammingLanguages;
-    if (seen.includes('commitment') && a.minutesPerDay) p.minutesPerDay = a.minutesPerDay;
+    if (seen.includes('commitment')) {
+      if (a.minutesPerDay) p.minutesPerDay = a.minutesPerDay;
+      if (a.daysPerWeek) p.daysPerWeek = a.daysPerWeek;
+    }
     return p;
   };
 
@@ -133,7 +138,7 @@ const CareerSetup: React.FC = () => {
     if (step === 'education') return !!a.degree && !!a.currentAcademicYear;
     if (step === 'direction') return !!a.primaryRole;    // NOT_SURE is a valid answer
     if (step === 'technology') return true;              // technology interest is optional
-    return !!a.minutesPerDay;
+    return !!a.minutesPerDay && !!a.daysPerWeek;
   }, [step, a]);
 
   // Whether the assessment can actually start is a server question — asked once the member
@@ -180,6 +185,7 @@ const CareerSetup: React.FC = () => {
             <div className="r"><span>Aiming for</span><b>{role?.label || 'Not sure yet'}</b></div>
             <div className="r"><span>Interested in</span><b>{ctx.career.preferredProgrammingLanguages.join(', ') || '—'}</b></div>
             <div className="r"><span>Time each day</span><b>{ctx.availability.minutesPerDay ? `${ctx.availability.minutesPerDay} minutes` : '—'}</b></div>
+            <div className="r"><span>Days a week</span><b>{ctx.availability.daysPerWeek || '—'}</b></div>
           </div>
 
           {stage && (
@@ -362,6 +368,17 @@ const CareerSetup: React.FC = () => {
               {opts.availability.map(o => (
                 <button key={o.minutes} className={`cps-chip${a.minutesPerDay === o.minutes ? ' on' : ''}`}
                   onClick={() => setA(s => ({ ...s, minutesPerDay: o.minutes }))}>{o.label} a day</button>
+              ))}
+            </div>
+
+            {/* Both halves are needed. The roadmap plans against minutes x days, and
+                without the second it refuses to generate — which used to happen only
+                after the assessment was finished, having asked about time already. */}
+            <label className="cps-lbl">How many days a week?</label>
+            <div className="cps-chips big">
+              {(opts.daysPerWeek || []).map(o => (
+                <button key={o.days} className={`cps-chip${a.daysPerWeek === o.days ? ' on' : ''}`}
+                  onClick={() => setA(s => ({ ...s, daysPerWeek: o.days }))}>{o.label}</button>
               ))}
             </div>
           </>

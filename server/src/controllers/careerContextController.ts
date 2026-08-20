@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { getCareerContext, updateCareerContext } from '../services/careerContextService';
-import { CAREER_DOMAINS, AVAILABILITY_OPTIONS, SUPPORTED_PROGRAMS, domainOf, normalizeDomain } from '../services/careerDomainService';
+import { CAREER_DOMAINS, AVAILABILITY_OPTIONS, SUPPORTED_PROGRAMS, domainOf, normalizeDomain, DAYS_PER_WEEK_OPTIONS } from '../services/careerDomainService';
 import { CAREER_STAGES } from '../services/careerStageService';
 import { getSelectableCareerRoles } from '../services/careerRoleService';
 
@@ -97,6 +97,7 @@ async function optionsFor(tenantId: string, domainKey: string) {
     roles: await getSelectableCareerRoles(tenantId, domainKey),
     languages: d.languages,
     availability: AVAILABILITY_OPTIONS,
+    daysPerWeek: DAYS_PER_WEEK_OPTIONS,
     programs: SUPPORTED_PROGRAMS,
     academicYears: ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Graduated'],
     // Sent for display only. The stage a member is in is decided by the server and is

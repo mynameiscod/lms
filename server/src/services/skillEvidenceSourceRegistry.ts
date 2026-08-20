@@ -209,6 +209,21 @@ const passportQuestionAdapter: SourceAdapter = {
   },
 };
 
+/**
+ * The Question document stores its prompt in `question`. `text` belongs to the OPTION
+ * subdocument, so reading `r.text` here returned undefined for every row: not one of the
+ * 3,868 quiz questions in production has a `text` field.
+ *
+ * That was not cosmetic. loadMany feeds studentShape, so a personalized paper built from
+ * this bank rendered its questions BLANK to the student, and the admin mapping screen
+ * listed them blank too — while `list`'s search filtered on the same absent field and
+ * therefore matched nothing, making the bank unmappable and unreadable at once.
+ *
+ * `r.question || r.text` rather than a bare rename because the other three adapters in
+ * this file legitimately carry `text`, and a future source may too.
+ */
+const questionText = (r: any): string => trim(r.question || r.text);
+
 const questionAdapter: SourceAdapter = {
   type: 'question',
   label: 'Quiz questions',
@@ -217,7 +232,7 @@ const questionAdapter: SourceAdapter = {
     return rows.map(r => ({
       sourceType: 'question' as const,
       sourceId: String(r._id),
-      text: trim(r.text),
+      text: questionText(r),
       itemType: r.type || 'mcq_single',
       difficulty: bandFromWord(r.difficultyLevel),
       sourceTag: null,
@@ -227,7 +242,12 @@ const questionAdapter: SourceAdapter = {
   },
   async list(tenantId, { search, limit, skip }) {
     const q: any = { tenantId };
-    if (search) q.text = new RegExp(search, 'i');
+    // Search the field the prompt actually lives in. Subject and topic are included
+    // because that is how this bank is organised and how an admin looks for "JDBC".
+    if (search) {
+      const re = new RegExp(search, 'i');
+      q.$or = [{ question: re }, { subject: re }, { topic: re }];
+    }
     const [rows, total] = await Promise.all([
       Question.find(q).sort({ createdAt: -1 }).skip(skip).limit(limit).lean() as any,
       Question.countDocuments(q),
@@ -236,7 +256,7 @@ const questionAdapter: SourceAdapter = {
       items: rows.map((r: any) => ({
         sourceType: 'question' as const,
         sourceId: String(r._id),
-        text: trim(r.text),
+        text: questionText(r),
         itemType: r.type || 'mcq_single',
         difficulty: bandFromWord(r.difficultyLevel),
         sourceTag: null,

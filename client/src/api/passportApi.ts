@@ -1830,6 +1830,8 @@ export interface CareerContextOptions {
   roles: { key: string; label: string; blurb: string; iconKey?: string }[];
   languages: string[];
   availability: { minutes: number; label: string }[];
+  /** Paired with `availability` — the roadmap needs both to size weekly capacity. */
+  daysPerWeek: { days: number; label: string }[];
   programs: string[];
   academicYears: string[];
   stages: { key: string; label: string; blurb: string }[];

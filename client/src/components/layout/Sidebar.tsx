@@ -415,7 +415,25 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'COLLEGE',                 labels: ['College'] },
     { title: 'BILLING',                 labels: ['Fees'] },
     { title: '⚔️ TECH BATTLES',         labels: ['Tech Battles'] },
-    { title: '🎫 CAREERPILOT',      labels: ['CareerPilot Config', 'CareerPilot Members', 'CareerPilot Pathways', 'CareerPilot Assessment', 'CareerPilot Missions', 'Career Stage Tagging', 'Paper Designer'] },
+    /**
+     * Every CareerPilot screen, in the order an admin actually works through them:
+     * set the role up, give it skills and evidence, check the paper, then run and watch it.
+     *
+     * All eighteen are listed deliberately. A label missing from here does not disappear —
+     * it falls through to the "MORE" bucket at the bottom of the sidebar, which is where
+     * eleven of these had ended up: the same product split across two places, one of them
+     * called "MORE".
+     */
+    { title: '🎫 CAREERPILOT', labels: [
+      // Setup — the launch sequence, in order
+      'CareerPilot Config', 'CareerPilot Career Roles', 'CareerPilot Skill Graph',
+      'CareerPilot Role Blueprint', 'CareerPilot Skill Evidence', 'CareerPilot Assessment Preview',
+      // Content
+      'CareerPilot Assessment', 'Paper Designer', 'CareerPilot Pathways', 'CareerPilot Pathway Rules',
+      'CareerPilot Curriculum', 'CareerPilot Missions', 'Company Questions', 'CareerPilot News',
+      // Run and watch
+      'CareerPilot Members', 'Career Stage Tagging', 'CareerPilot Coins', 'CareerPilot Drop-off',
+    ] },
     { title: 'PLATFORM',                labels: ['Student Features', 'AI Spend', 'API Logs', 'Recording Diagnostics', 'Tenant Management', 'Platform Settings'] },
   ];
   const adminSectionLabels = new Set(ADMIN_SECTIONS.flatMap(s => s.labels));

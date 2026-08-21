@@ -9,6 +9,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileSidebarOpen(false); };
@@ -16,9 +17,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
+  const handleMenuToggle = () => {
+    if (window.innerWidth <= 768) {
+      setMobileSidebarOpen(open => !open);
+    } else {
+      setSidebarCollapsed(collapsed => !collapsed);
+    }
+  };
+
   return (
-    <div className="layout">
-      <Navbar onHamburgerClick={() => setMobileSidebarOpen(open => !open)} />
+    <div className={`layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <Navbar onHamburgerClick={handleMenuToggle} />
       <div className="layout-body">
         {mobileSidebarOpen && (
           <div

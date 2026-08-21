@@ -202,6 +202,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'CareerPilot Role Blueprint', path: '/admin/passport/role-blueprints', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-clipboard-list', permissions: ['manage_passport'] },
     { label: 'CareerPilot Skill Evidence', path: '/admin/passport/skill-evidence', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-link', permissions: ['manage_passport'] },
     { label: 'CareerPilot Assessment Preview', path: '/admin/passport/assessment-preview', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-wand-magic-sparkles', permissions: ['manage_passport'] },
+    { label: 'CareerPilot Assessment Shape', path: '/admin/passport/assessment-shape', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-ruler-combined', permissions: ['manage_passport'] },
     { label: 'CareerPilot News', path: '/admin/passport/news', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-newspaper', permissions: ['manage_passport'] },
     { label: 'Company Questions', path: '/admin/passport/companies', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-building', permissions: ['manage_passport'] },
     { label: 'Career Stage Tagging', path: '/admin/careerpilot/staging', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport'] },
@@ -428,6 +429,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       // Setup — the launch sequence, in order
       'CareerPilot Config', 'CareerPilot Career Roles', 'CareerPilot Skill Graph',
       'CareerPilot Role Blueprint', 'CareerPilot Skill Evidence', 'CareerPilot Assessment Preview',
+      'CareerPilot Assessment Shape',
       // Content
       'CareerPilot Assessment', 'Paper Designer', 'CareerPilot Pathways', 'CareerPilot Pathway Rules',
       'CareerPilot Curriculum', 'CareerPilot Missions', 'Company Questions', 'CareerPilot News',

@@ -251,6 +251,9 @@ router.put('/me/assessment/personalized/answers', MEMBER, personalized.savePerso
 router.get('/me/assessment/personalized',        MEMBER, personalized.getMyPersonalizedAssessment);
 router.post('/assessment/personalized/preview',  MANAGE, personalized.previewPersonalizedAssessment);
 router.get('/assessment/personalized/policies',  MANAGE, personalized.listPolicies);
+// Admin-editable paper shape — question count, skill count, difficulty mix, optional timer.
+router.get('/assessment/policies/editable',      MANAGE, personalized.getEditablePolicies);
+router.put('/assessment/policies/editable',      MANAGE, personalized.saveEditablePolicies);
 
 // ── Assessment skill evidence: which content measures which canonical skill. Additive
 //    configuration — the live assessment generator does not read it, so incomplete

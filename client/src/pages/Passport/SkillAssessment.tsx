@@ -35,6 +35,8 @@ const SkillAssessment: React.FC = () => {
   const [at, setAt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
+  /** Seconds left when this stage is timed. null = untimed, which is the default. */
+  const [left, setLeft] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [done, setDone] = useState<any>(null);
@@ -48,6 +50,8 @@ const SkillAssessment: React.FC = () => {
 
   const adopt = useCallback((p: Paper) => {
     setPaper(p);
+    // Server-computed remaining time, so a reload cannot restart the clock.
+    setLeft(typeof p.secondsRemaining === 'number' ? p.secondsRemaining : null);
     const restored: Record<string, any> = {};
     for (const i of p.items) if (i.response !== undefined && i.response !== null) restored[keyOf(i)] = i.response;
     setAnswers(restored);
@@ -172,6 +176,27 @@ const SkillAssessment: React.FC = () => {
     );
   }
 
+
+  /**
+   * The clock, when a tenant has configured one.
+   *
+   * Seeded from the SERVER's remaining time rather than the configured limit, so a reload
+   * resumes where the paper actually is — restarting the countdown on refresh would be the
+   * obvious way to take an untimed paper. At zero it submits what exists: a paper that ran
+   * out of time is finished, and silently discarding the answers would be worse than
+   * scoring them.
+   */
+  useEffect(() => {
+    if (left === null) return;
+    if (left <= 0) { submit(); return; }
+    const id = setTimeout(() => setLeft(n => (n === null ? null : n - 1)), 1000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [left]);
+
+  const clock = (sec: number) =>
+    `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+
   // ── not started ───────────────────────────────────────────────────────────
   if (!paper) {
     return (
@@ -216,6 +241,14 @@ const SkillAssessment: React.FC = () => {
             : ''}
         </span>
       </div>
+
+      {left !== null && (
+        <div className={`ska-clock${left <= 60 ? ' low' : ''}`} role="timer" aria-live="off">
+          <i className="bi bi-stopwatch" />
+          <b>{clock(left)}</b>
+          <span>left</span>
+        </div>
+      )}
 
       {/* Position in the paper, not performance in it. */}
       <div className="ska-bar"><i style={{ width: `${pct}%` }} /></div>

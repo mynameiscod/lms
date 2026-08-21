@@ -13,6 +13,13 @@ const findSkill = jest.fn();
 const findEvidence = jest.fn();
 const findAssessmentItem = jest.fn();
 
+// Tenant assessment-policy overrides are read when the policy is resolved. Unmocked, the
+// query buffers against a connection this suite does not have and every test times out.
+jest.mock('../models/PassportConfig', () => ({
+  __esModule: true,
+  default: { findOne: () => ({ select: () => ({ lean: async () => null }) }) },
+}));
+
 jest.mock('../models/PersonalizedAssessment', () => ({
   __esModule: true,
   default: {

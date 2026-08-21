@@ -29,6 +29,18 @@ export interface IPassportConfig extends Document {
   assessmentMode: 'deterministic' | 'ai';
   onboardingFields: IOnboardingField[];
   entitlements: IEntitlement[];
+  /**
+   * Per-stage overrides for the shape of a personalized assessment.
+   *
+   * The shipped policies stay the default; an entry here changes ONE stage for THIS tenant.
+   * Deliberately per stage rather than per student: two members at the same stage must sit
+   * papers of the same shape or their scores stop being comparable, and comparability is
+   * the whole reason Skill DNA means anything across a cohort.
+   *
+   * Anything omitted falls back to the shipped policy, so an admin can change the question
+   * count without having to restate the difficulty mix.
+   */
+  assessmentPolicyOverrides?: IAssessmentPolicyOverride[];
   priceInr: number;
   membershipMonths: number;
   /**
@@ -72,6 +84,19 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
     assessmentMode:   { type: String, enum: ['deterministic', 'ai'], default: 'deterministic' },
     onboardingFields: [OnboardingFieldSchema],
     entitlements:     [EntitlementSchema],
+    assessmentPolicyOverrides: {
+      type: [new Schema<IAssessmentPolicyOverride>({
+        stage:       { type: String, required: true },
+        skillSlots:  { type: Number },
+        maxSkills:   { type: Number },
+        difficultyMix: {
+          type: new Schema({ EASY: Number, MEDIUM: Number, HARD: Number }, { _id: false }),
+          default: undefined,
+        },
+        timeLimitMinutes: { type: Number },
+      }, { _id: false })],
+      default: undefined,
+    },
     priceInr:         { type: Number, default: 499 },
     membershipMonths: { type: Number, default: 12 },
     // Skill check-in policy. Optional throughout — an existing tenant document without this
@@ -88,6 +113,16 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
 );
 
 // Sensible defaults applied when a tenant first opens the Passport admin.
+/** One stage's admin overrides. Every field optional — absent means "use the default". */
+export interface IAssessmentPolicyOverride {
+  stage: string;                 // foundation | build | placement | job_seeker
+  skillSlots?: number;           // how many questions
+  maxSkills?: number;            // how many skills the paper spans
+  difficultyMix?: { EASY: number; MEDIUM: number; HARD: number };  // percentages, summing to 100
+  /** Minutes. 0 or absent = untimed, which is the shipped behaviour. */
+  timeLimitMinutes?: number;
+}
+
 export const DEFAULT_ONBOARDING_FIELDS: IOnboardingField[] = [
   { key: 'name',   label: 'Full Name',   type: 'text',  required: true, locked: true, order: 1 },
   { key: 'mobile', label: 'Mobile',      type: 'phone', required: true, locked: true, order: 2 },

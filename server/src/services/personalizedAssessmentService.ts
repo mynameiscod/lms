@@ -9,6 +9,7 @@ import {
   AssessmentPolicy, policyForStage, difficultyQuota, DISCOVERY_SKILL_SCOPE,
 } from '../data/assessmentPolicies';
 import { ROLE_NOT_SURE } from './careerDomainService';
+import { resolveAssessmentPolicy } from './assessmentPolicyService';
 
 /**
  * Building one student's personalised assessment.
@@ -85,6 +86,14 @@ export interface GenerationInput {
   attemptNumber: number;
   /** Items this student has already seen, so a retake can prefer fresh ones. */
   seenSourceIds?: string[];
+  /**
+   * Already-resolved policy, so the build does not re-read tenant config.
+   *
+   * start() resolves the context — which resolves the policy — and then builds. Reading
+   * again here was a wasted round trip, and a way for the two halves of one paper to
+   * disagree if an admin saved a change between them.
+   */
+  policy?: AssessmentPolicy;
 }
 
 const norm = (v: any): string => String(v ?? '').trim().toUpperCase();
@@ -420,7 +429,9 @@ export async function resolvePersonalizedAssessmentContext(tenantId: string, stu
     return { ok: false, reasonCode: 'STAGE_UNKNOWN', message: 'We could not work out your academic stage. Check your course and year in CareerPilot setup.' };
   }
 
-  const policy = policyForStage(stage);
+  // The tenant's policy, not the shipped one — an admin can change the size and feel of a
+  // paper per stage. The rules that keep papers comparable stay in code.
+  const policy = await resolveAssessmentPolicy(tenantId, stage);
   const roleKey = context.career.primaryRole || ROLE_NOT_SURE;
 
   // A member who has not chosen a role gets the broad discovery scope. No role is inferred
@@ -465,7 +476,14 @@ export async function buildPersonalizedAssessment(input: GenerationInput): Promi
   report?: GenerationReport;
   seed?: string;
 }> {
-  const policy = policyForStage(input.stage);
+  /**
+   * The policy the CALLER already resolved, when it has one.
+   *
+   * start() resolves the context (which resolves the policy) and then builds, so reading
+   * the tenant config a second time here was both a wasted round trip and a way for the two
+   * halves of one paper to disagree if an admin saved between them.
+   */
+  const policy = input.policy || await resolveAssessmentPolicy(input.tenantId, input.stage);
 
   const skillDocs = await CareerSkill.find({
     key: { $in: [...new Set(input.roleSkillKeys.map(norm))] },

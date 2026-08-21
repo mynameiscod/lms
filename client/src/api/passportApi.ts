@@ -478,6 +478,17 @@ export const passportApi = {
     return data;
   },
 
+  // ── Assessment paper shape (admin) ──
+  /** Every stage with its shipped defaults and this tenant's current values. */
+  getEditablePolicies: async (): Promise<{ policies: EditablePolicy[]; bounds: PolicyBounds }> => {
+    const { data } = await axios.get(`${BASE}/assessment/policies/editable`, { headers: auth() });
+    return data;
+  },
+  saveEditablePolicies: async (policies: EditablePolicy[]): Promise<{ policies: EditablePolicy[]; bounds: PolicyBounds }> => {
+    const { data } = await axios.put(`${BASE}/assessment/policies/editable`, { policies }, { headers: auth() });
+    return data;
+  },
+
   // ── Pathway routing rules (who each pathway serves) ──
   /** Goals, stages, backgrounds and categories a rule may be written against. */
   ruleVocabulary: async (): Promise<RuleVocabulary> => {
@@ -1823,6 +1834,29 @@ export interface AssessmentAvailability {
   inProgress: boolean;
 }
 
+/** One stage's paper shape, as the admin screen edits it. */
+export interface EditablePolicy {
+  stage: string;
+  label: string;
+  defaults: { skillSlots: number; maxSkills: number; difficultyMix: { EASY: number; MEDIUM: number; HARD: number } };
+  skillSlots: number;
+  maxSkills: number;
+  difficultyMix: { EASY: number; MEDIUM: number; HARD: number };
+  /** 0 = untimed, which is the shipped behaviour. */
+  timeLimitMinutes: number;
+  overridden: boolean;
+  /** Read-only context — what this stage is allowed to ask about. */
+  allowedSkillDifficulty: string[];
+  minItemsPerSkill: number;
+  maxItemsPerSkill: number;
+}
+
+export interface PolicyBounds {
+  skillSlots: { min: number; max: number };
+  maxSkills: { min: number; max: number };
+  timeLimitMinutes: { min: number; max: number };
+}
+
 /** Served alongside the context so the UI never hardcodes a list the server would reject. */
 export interface CareerContextOptions {
   domains: { key: string; label: string }[];
@@ -1975,6 +2009,10 @@ export interface SkillAssessmentItem {
 export interface SkillAssessment {
   id: string;
   attemptNumber: number;
+  /** 0 = untimed. */
+  timeLimitMinutes?: number;
+  /** Server-computed, so a reload resumes with the time actually left. */
+  secondsRemaining?: number | null;
   status: 'IN_PROGRESS' | 'SUBMITTED' | 'ABANDONED';
   startedAt: string;
   totalQuestions: number;

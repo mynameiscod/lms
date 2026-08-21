@@ -67,6 +67,14 @@ export interface AssessmentPolicy {
    * Reported when used — a silent substitution changes what the score means.
    */
   allowDifficultyFallback: boolean;
+
+  /**
+   * Minutes allowed, or 0 for untimed.
+   *
+   * Not set on any shipped policy: a diagnostic is meant to measure what somebody knows,
+   * and a clock measures how fast they are as well. Available for tenants that want one.
+   */
+  timeLimitMinutes?: number;
 }
 
 const mix = (EASY: number, MEDIUM: number, HARD: number): DifficultyMix => ({ EASY, MEDIUM, HARD });

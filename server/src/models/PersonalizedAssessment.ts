@@ -134,6 +134,8 @@ export interface IPersonalizedAssessment extends Document {
     repeatedFromPreviousAttempt: number;
   };
 
+  /** Minutes allowed when the tenant configured a limit; 0/absent = untimed. */
+  timeLimitMinutes?: number;
   startedAt: Date;
   submittedAt?: Date;
   createdAt: Date;
@@ -222,6 +224,7 @@ const PersonalizedAssessmentSchema = new Schema<IPersonalizedAssessment>(
       repeatedFromPreviousAttempt: { type: Number, default: 0 },
     },
 
+    timeLimitMinutes: { type: Number },
     startedAt:   { type: Date, default: Date.now },
     submittedAt: { type: Date },
   },

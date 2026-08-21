@@ -47,6 +47,15 @@ const studentShape = (a: any, texts: Map<string, any>) => {
     status: a.status,
     startedAt: a.startedAt,
     totalQuestions: a.items.length,
+    /**
+     * The clock, if this stage has one. `startedAt` is the server's, so a reload resumes
+     * with the time actually remaining rather than a fresh countdown — the obvious way to
+     * get unlimited time otherwise.
+     */
+    timeLimitMinutes: a.timeLimitMinutes || 0,
+    secondsRemaining: a.timeLimitMinutes
+      ? Math.max(0, Math.round((new Date(a.startedAt).getTime() + a.timeLimitMinutes * 60_000 - Date.now()) / 1000))
+      : null,
     items: (a.items || []).slice().sort((x: any, y: any) => x.order - y.order).map((i: any) => {
       const key = refKey(i.sourceType, i.sourceId);
       const src = texts.get(key);
@@ -105,6 +114,7 @@ export const startPersonalizedAssessment = async (req: Request, res: Response) =
       blueprintVersion: ctx.blueprintVersion!,
       attemptNumber,
       seenSourceIds: seen,
+      policy: ctx.policy,
     });
 
     if (!built.ok) {
@@ -124,6 +134,9 @@ export const startPersonalizedAssessment = async (req: Request, res: Response) =
         policyVersion: built.specification!.policyVersion,
         stage: ctx.stage, roleKey: ctx.roleKey,
         blueprintVersion: ctx.blueprintVersion, discovery: !!ctx.discovery,
+        // Captured at start so an admin changing the limit mid-paper cannot shorten one
+        // already in progress.
+        timeLimitMinutes: (ctx.policy as any)?.timeLimitMinutes || 0,
         generationSeed: built.seed,
         specification: {
           slots: built.specification!.slots,
@@ -256,6 +269,7 @@ export const previewPersonalizedAssessment = async (req: Request, res: Response)
       roleSkillKeys: ctx.roleSkillKeys!,
       blueprintVersion: ctx.blueprintVersion!,
       attemptNumber: Number(req.body?.attemptNumber) || 1,
+      policy: ctx.policy,
     });
 
     const context = await getCareerContext(tenantId, studentId);
@@ -332,5 +346,38 @@ export const checkPersonalizedAssessmentAvailability = async (req: Request, res:
       discovery: false,
       inProgress: false,
     });
+  }
+};
+
+/** GET /passport/assessment/policies/editable — every stage, defaults and current values. */
+export const getEditablePolicies = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    if (!tenantId) return res.status(401).json({ message: 'Not authenticated' });
+    const { listEditablePolicies, POLICY_BOUNDS } = await import('../services/assessmentPolicyService');
+    res.json({ policies: await listEditablePolicies(tenantId), bounds: POLICY_BOUNDS });
+  } catch (e: any) {
+    console.error('[assessment-policy] list:', e?.message || e);
+    res.status(500).json({ message: 'Could not load assessment policies.' });
+  }
+};
+
+/**
+ * PUT /passport/assessment/policies/editable
+ *
+ * Values are clamped rather than rejected: the bounds exist so the generator can satisfy
+ * the request, and an admin discovering a limit through a failed generation — after a
+ * student has clicked start — is a worse way to learn it.
+ */
+export const saveEditablePolicies = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    if (!tenantId) return res.status(401).json({ message: 'Not authenticated' });
+    const { saveAssessmentPolicies, POLICY_BOUNDS } = await import('../services/assessmentPolicyService');
+    const policies = await saveAssessmentPolicies(tenantId, req.body?.policies || []);
+    res.json({ policies, bounds: POLICY_BOUNDS });
+  } catch (e: any) {
+    console.error('[assessment-policy] save:', e?.message || e);
+    res.status(500).json({ message: 'Could not save assessment policies.' });
   }
 };

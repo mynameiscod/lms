@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import XpLeaderboard from '../../components/dashboard/XpLeaderboard';
 import { useNavigate } from 'react-router-dom';
 import { dashboardApi } from '../../api';
 import './AdminOverview.css';
@@ -15,233 +14,36 @@ interface Overview {
   recentActivity: { icon: string; text: string; when: string }[];
   bottom: { newLeads: Stat; assessments: Stat; certificates: Stat; avgAttendance: Stat };
 }
+const inr=(n:number)=>`₹${(n||0).toLocaleString('en-IN')}`; const num=(n:number)=>(n||0).toLocaleString('en-IN');
+const Icon:React.FC<{name:string}>=({name})=><i className={`bi bi-${name}`} aria-hidden="true"/>;
+const Delta:React.FC<{pct:number|null}>=({pct})=>{if(pct==null)return null;const up=pct>=0;return <span className={`ov-delta ${up?'up':'down'}`}><Icon name={up?'arrow-up':'arrow-down'}/> {Math.abs(pct)}%</span>};
+const timeAgo=(iso:string)=>{const m=Math.floor((Date.now()-new Date(iso).getTime())/60000);if(m<1)return'just now';if(m<60)return`${m} min ago`;const h=Math.floor(m/60);if(h<24)return`${h} hr${h===1?'':'s'} ago`;const d=Math.floor(h/24);return`${d} day${d===1?'':'s'} ago`};
+const whenLabel=(iso:string|null)=>iso?new Date(iso).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+const activityIcon=(v:string)=>{v=(v||'').toLowerCase();if(v.includes('lead'))return'person-plus';if(v.includes('batch'))return'people';if(v.includes('fee')||v.includes('payment'))return'currency-rupee';if(v.includes('assessment')||v.includes('exam'))return'clipboard-check';return'person-check'};
+const reminderIcon=(v:string)=>{v=(v||'').toLowerCase();if(v.includes('fee'))return'currency-rupee';if(v.includes('batch'))return'calendar3';if(v.includes('placement'))return'briefcase';if(v.includes('interview'))return'person-video3';return'bell'};
 
-const inr = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
-const num = (n: number) => (n || 0).toLocaleString('en-IN');
-
-const Delta: React.FC<{ pct: number | null }> = ({ pct }) => {
-  if (pct === null || pct === undefined) return null;
-  const up = pct >= 0;
-  return <span className={`ov-delta ${up ? 'up' : 'down'}`}>{up ? '▲' : '▼'} {Math.abs(pct)}%</span>;
+const AdminOverview:React.FC<{firstName?:string}>=({firstName})=>{
+ const navigate=useNavigate(); const[d,setD]=useState<Overview|null>(null);const[loading,setLoading]=useState(true);const[err,setErr]=useState('');
+ useEffect(()=>{(async()=>{try{const res:any=await dashboardApi.getAdminOverview();setD((res?.data||res)as Overview)}catch(e:any){setErr(e?.message||'Failed to load dashboard')}finally{setLoading(false)}})()},[]);
+ if(loading)return <div className="ov-page"><div className="ov-state"><span className="ov-spinner"/><strong>Loading dashboard</strong><span>Preparing your latest overview.</span></div></div>;
+ if(err||!d)return <div className="ov-page"><div className="ov-state err"><Icon name="exclamation-circle"/><strong>Dashboard unavailable</strong><span>{err||'No dashboard data is available.'}</span></div></div>;
+ const series=d.enrollmentsSeries.map(p=>p.value),cw=640,ch=220,pad=12,max=Math.max(1,...series),stepX=cw/Math.max(1,series.length-1);const linePts=series.map((v,i)=>`${i*stepX},${ch-pad-(v/max)*(ch-pad*4)}`);const areaPath=series.length?`M0,${ch} ${linePts.map(p=>'L'+p).join(' ')} L${cw},${ch} Z`:'';
+ const stats=[['students','Total Students','people','navy',d.stats.students,num(d.stats.students.value)],['courses','Active Courses','journal-code','teal',d.stats.courses,num(d.stats.courses.value)],['batches','Active Batches','people-fill','navy',d.stats.batches,num(d.stats.batches.value)],['revenue','Total Revenue','currency-rupee','teal',d.stats.revenue,inr(d.stats.revenue.value)],['placements','Placements','briefcase','navy',d.stats.placements,num(d.stats.placements.value)]] as const;
+ const topMax=Math.max(1,...d.topCourses.map(c=>c.enrolled));const feeTotal=Math.max(1,d.fees.collected+d.fees.pending+d.fees.overdue);
+ return <div className="ov-page">
+  <div className="ov-head"><div><h1>Welcome back, <span>{firstName||'Admin'}!</span></h1><p>Here’s what’s happening in your learning ecosystem today.</p></div><div className="ov-range"><Icon name="calendar3"/> Last 30 days</div></div>
+  <section className="ov-stats">{stats.map(([key,label,icon,tint,stat,value])=><article className="ov-card ov-stat" key={key}><div className={`ov-icon ${tint}`}><Icon name={icon}/></div><div className="ov-stat-copy"><span>{label}</span><strong>{value}</strong><div><Delta pct={stat.deltaPct}/>{stat.deltaPct!=null&&<small>vs last month</small>}</div></div></article>)}</section>
+  <section className="ov-grid-main">
+   <article className="ov-card ov-enrollment"><div className="ov-card-head"><h2>Student Enrollments <span>(Last 30 Days)</span></h2><span className="ov-chip">Last 30 Days <Icon name="chevron-down"/></span></div>{series.length?<><div className="ov-chart-wrap"><div className="ov-ylabels"><span>{num(max)}</span><span>{num(Math.round(max*.75))}</span><span>{num(Math.round(max*.5))}</span><span>{num(Math.round(max*.25))}</span><span>0</span></div><svg className="ov-area" viewBox={`0 0 ${cw} ${ch}`} preserveAspectRatio="none"><defs><linearGradient id="ovArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#359AAD" stopOpacity=".24"/><stop offset="100%" stopColor="#359AAD" stopOpacity="0"/></linearGradient></defs>{[.25,.5,.75,1].map(n=><line key={n} x1="0" x2={cw} y1={ch*n} y2={ch*n} className="ov-gridline"/>)}<path d={areaPath} fill="url(#ovArea)"/><polyline points={linePts.join(' ')} fill="none" stroke="#359AAD" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"/>{linePts.map((p,i)=>{const[x,y]=p.split(',');return <circle key={i} cx={x} cy={y} r="3.5" fill="#359AAD" stroke="#fff" strokeWidth="2"/>})}</svg></div><div className="ov-area-x"><span>{d.enrollmentsSeries[0]?.label.slice(5)}</span><span>{d.enrollmentsSeries[Math.floor(d.enrollmentsSeries.length/2)]?.label.slice(5)}</span><span>{d.enrollmentsSeries.at(-1)?.label.slice(5)}</span></div></>:<div className="ov-empty">No enrollment data for this period.</div>}</article>
+   <article className="ov-card"><div className="ov-card-head"><h2>Recent Activity</h2></div><ul className="ov-list">{d.recentActivity.length?d.recentActivity.slice(0,5).map((a,i)=><li key={i}><span className="ov-list-icon"><Icon name={activityIcon(a.icon||a.text)}/></span><div><strong>{a.text}</strong><small>{timeAgo(a.when)}</small></div></li>):<li className="ov-empty">No recent activity.</li>}</ul></article>
+   <article className="ov-card"><div className="ov-card-head"><h2>Top Courses</h2></div><div className="ov-courses">{d.topCourses.length?d.topCourses.slice(0,5).map((c,i)=><div className="ov-course" key={i}><div><strong>{c.title}</strong><span>{num(c.enrolled)}</span></div><div className="ov-progress"><i style={{width:`${c.enrolled/topMax*100}%`}}/></div></div>):<div className="ov-empty">No course data available.</div>}</div></article>
+  </section>
+  <section className="ov-grid-secondary">
+   <article className="ov-card"><div className="ov-card-head"><h2>Fee Collection Summary</h2></div><div className="ov-fee-cards">{[['Collected',d.fees.collected,'cash-stack','success'],['Pending',d.fees.pending,'calendar2-minus','warning'],['Overdue',d.fees.overdue,'calendar2-x','danger']].map(([label,value,icon,cls]:any)=><div className="ov-fee-card" key={label}><span className={`ov-fee-icon ${cls}`}><Icon name={icon}/></span><small>{label}</small><strong>{inr(value)}</strong><span>{Math.round(value/feeTotal*100)}% of total</span></div>)}</div><button className="ov-link-btn" onClick={()=>navigate('/fees')}>View Fee Details <Icon name="arrow-right"/></button></article>
+   <article className="ov-card"><div className="ov-card-head"><h2>Batch Status</h2></div><div className="ov-table-wrap"><table className="ov-table"><thead><tr><th>Batch Name</th><th>Mode</th><th>Enrolled</th><th>Capacity</th></tr></thead><tbody>{d.batchStatus.length?d.batchStatus.slice(0,5).map((b,i)=><tr key={i}><td>{b.name}</td><td>{b.mode}</td><td>{b.enrolled}</td><td>{b.capacity}</td></tr>):<tr><td colSpan={4} className="ov-empty">No active batches.</td></tr>}</tbody></table></div></article>
+   <article className="ov-card"><div className="ov-card-head"><h2>Upcoming Reminders</h2></div><ul className="ov-list">{d.reminders.length?d.reminders.slice(0,5).map((r,i)=><li key={i}><span className={`ov-list-icon ${r.kind}`}><Icon name={reminderIcon(r.kind)}/></span><div><strong>{r.title}</strong><small>{whenLabel(r.when)}</small></div></li>):<li className="ov-empty">Nothing upcoming.</li>}</ul></article>
+  </section>
+  <section className="ov-bottom">{[[d.bottom.newLeads,'New Leads','people','teal',''],[d.bottom.assessments,'Assessments','clipboard-check','navy',''],[d.bottom.certificates,'Certificates Issued','award','teal',''],[d.bottom.avgAttendance,'Average Attendance','activity','navy','%']].map(([stat,label,icon,cls,suffix]:any)=><article className="ov-card ov-mini" key={label}><span className={`ov-mini-icon ${cls}`}><Icon name={icon}/></span><div><span>{label}</span><strong>{num(stat.value)}{suffix}</strong><div><Delta pct={stat.deltaPct}/>{stat.deltaPct!=null&&<small>vs last month</small>}</div></div></article>)}</section>
+ </div>;
 };
-
-const timeAgo = (iso: string) => {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m} min ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h} hr${h === 1 ? '' : 's'} ago`;
-  const d = Math.floor(h / 24);
-  return `${d} day${d === 1 ? '' : 's'} ago`;
-};
-const whenLabel = (iso: string | null) => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) + ', ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-};
-
-// Tiny area sparkline from a numeric series
-const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
-  const w = 120, h = 36;
-  if (!data.length) return <svg width={w} height={h} />;
-  const max = Math.max(1, ...data), min = Math.min(...data);
-  const span = Math.max(1, max - min);
-  const pts = data.map((v, i) => `${(i / (data.length - 1 || 1)) * w},${h - ((v - min) / span) * (h - 6) - 3}`);
-  return (
-    <svg width={w} height={h} className="ov-spark" preserveAspectRatio="none" viewBox={`0 0 ${w} ${h}`}>
-      <polyline points={pts.join(' ')} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  );
-};
-
-const AdminOverview: React.FC<{ firstName?: string }> = ({ firstName }) => {
-  const navigate = useNavigate();
-  const [d, setD] = useState<Overview | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState('');
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res: any = await dashboardApi.getAdminOverview();
-        setD((res?.data || res) as Overview);
-      } catch (e: any) {
-        setErr(e?.message || 'Failed to load dashboard');
-      } finally { setLoading(false); }
-    })();
-  }, []);
-
-  if (loading) return <div className="ov-page"><div className="ov-msg">Loading dashboard…</div></div>;
-  if (err || !d) return <div className="ov-page"><div className="ov-msg err">{err || 'No data'}</div></div>;
-
-  const series = d.enrollmentsSeries.map(p => p.value);
-  const sparkVals = series.length ? series : [0, 0];
-
-  // Enrollments area chart
-  const cw = 640, ch = 220, pad = 8;
-  const max = Math.max(1, ...series);
-  const stepX = cw / Math.max(1, series.length - 1);
-  const linePts = series.map((v, i) => `${i * stepX},${ch - pad - (v / max) * (ch - pad * 4)}`);
-  const areaPath = series.length ? `M0,${ch} ${linePts.map(p => 'L' + p).join(' ')} L${cw},${ch} Z` : '';
-
-  // Fee donut
-  const feeTotal = Math.max(1, d.fees.collected + d.fees.pending + d.fees.overdue);
-  const R = 54, C = 2 * Math.PI * R;
-  const seg = (v: number) => (v / feeTotal) * C;
-  const collectedLen = seg(d.fees.collected);
-  const pendingLen = seg(d.fees.pending);
-  const overdueLen = seg(d.fees.overdue);
-
-  const STAT_CARDS = [
-    { key: 'students', label: 'Total Students', icon: '🎓', tint: 'blue', value: num(d.stats.students.value), delta: d.stats.students.deltaPct },
-    { key: 'courses', label: 'Total Courses', icon: '📚', tint: 'green', value: num(d.stats.courses.value), delta: d.stats.courses.deltaPct },
-    { key: 'batches', label: 'Active Batches', icon: '👥', tint: 'purple', value: num(d.stats.batches.value), delta: d.stats.batches.deltaPct },
-    { key: 'revenue', label: 'Total Revenue', icon: '🧾', tint: 'orange', value: inr(d.stats.revenue.value), delta: d.stats.revenue.deltaPct },
-    { key: 'placements', label: 'Placements', icon: '💼', tint: 'cyan', value: num(d.stats.placements.value), delta: d.stats.placements.deltaPct },
-  ];
-  const sparkColors: Record<string, string> = { blue: '#3b82f6', green: '#22c55e', purple: '#8b5cf6', orange: '#f97316', cyan: '#06b6d4' };
-
-  const topMax = Math.max(1, ...d.topCourses.map(c => c.enrolled));
-  const courseColors = ['#3b82f6', '#22c55e', '#8b5cf6', '#f59e0b', '#06b6d4'];
-
-  return (
-    <div className="ov-page">
-      <XpLeaderboard />
-      <div className="ov-head">
-        <div>
-          <h1>Welcome back, {firstName || 'Admin'} 👋</h1>
-          <p>Here's what's happening with CodeBegun today.</p>
-        </div>
-        <span className="ov-range">Last 30 days</span>
-      </div>
-
-      {/* Stat cards */}
-      <div className="ov-stats">
-        {STAT_CARDS.map(c => (
-          <div className="ov-card ov-stat" key={c.key}>
-            <div className="ov-stat-top">
-              <span className={`ov-stat-ic ${c.tint}`}>{c.icon}</span>
-              <span className="ov-stat-label">{c.label}</span>
-            </div>
-            <div className="ov-stat-value">{c.value}</div>
-            <div className="ov-stat-foot">
-              <Delta pct={c.delta} />
-              {c.delta !== null && <span className="ov-stat-sub">vs last month</span>}
-            </div>
-            <Sparkline data={sparkVals} color={sparkColors[c.tint]} />
-          </div>
-        ))}
-      </div>
-
-      {/* Row: enrollments + recent activity + top courses */}
-      <div className="ov-row3">
-        <div className="ov-card">
-          <div className="ov-card-head"><h3>Student Enrollments Overview</h3></div>
-          <svg className="ov-area" viewBox={`0 0 ${cw} ${ch}`} preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="ovArea" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.28" />
-                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            {areaPath && <path d={areaPath} fill="url(#ovArea)" />}
-            {series.length > 0 && <polyline points={linePts.join(' ')} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" />}
-          </svg>
-          <div className="ov-area-x">
-            <span>{d.enrollmentsSeries[0]?.label.slice(5)}</span>
-            <span>{d.enrollmentsSeries[Math.floor(d.enrollmentsSeries.length / 2)]?.label.slice(5)}</span>
-            <span>{d.enrollmentsSeries[d.enrollmentsSeries.length - 1]?.label.slice(5)}</span>
-          </div>
-        </div>
-
-        <div className="ov-card">
-          <div className="ov-card-head"><h3>Recent Activity</h3></div>
-          <ul className="ov-feed">
-            {d.recentActivity.length === 0 ? <li className="ov-empty">No recent activity</li> :
-              d.recentActivity.map((a, i) => (
-                <li key={i} className="ov-feed-item">
-                  <span className="ov-feed-ic">{a.icon}</span>
-                  <div className="ov-feed-body"><span>{a.text}</span><time>{timeAgo(a.when)}</time></div>
-                </li>
-              ))}
-          </ul>
-        </div>
-
-        <div className="ov-card">
-          <div className="ov-card-head"><h3>Top Courses</h3></div>
-          <ul className="ov-top">
-            {d.topCourses.length === 0 ? <li className="ov-empty">No courses yet</li> :
-              d.topCourses.map((c, i) => (
-                <li key={i} className="ov-top-item">
-                  <div className="ov-top-line"><span className="ov-top-name">{c.title}</span><span className="ov-top-count">{num(c.enrolled)} Enrolled</span></div>
-                  <div className="ov-top-bar"><div style={{ width: `${(c.enrolled / topMax) * 100}%`, background: courseColors[i % courseColors.length] }} /></div>
-                </li>
-              ))}
-          </ul>
-        </div>
-      </div>
-
-      {/* Row: fee donut + batch status + reminders */}
-      <div className="ov-row3">
-        <div className="ov-card">
-          <div className="ov-card-head"><h3>Fee Collection Summary</h3></div>
-          <div className="ov-fee">
-            <div className="ov-donut-wrap">
-              <svg viewBox="0 0 140 140" className="ov-donut">
-                <circle cx="70" cy="70" r={R} fill="none" stroke="#eef2f7" strokeWidth="16" />
-                <circle cx="70" cy="70" r={R} fill="none" stroke="#22c55e" strokeWidth="16" strokeDasharray={`${collectedLen} ${C}`} strokeDashoffset="0" transform="rotate(-90 70 70)" strokeLinecap="butt" />
-                <circle cx="70" cy="70" r={R} fill="none" stroke="#f59e0b" strokeWidth="16" strokeDasharray={`${pendingLen} ${C}`} strokeDashoffset={`${-collectedLen}`} transform="rotate(-90 70 70)" />
-                <circle cx="70" cy="70" r={R} fill="none" stroke="#ef4444" strokeWidth="16" strokeDasharray={`${overdueLen} ${C}`} strokeDashoffset={`${-(collectedLen + pendingLen)}`} transform="rotate(-90 70 70)" />
-              </svg>
-              <div className="ov-donut-center"><span>{inr(d.fees.collected)}</span><small>Collected</small></div>
-            </div>
-            <ul className="ov-fee-legend">
-              <li><i className="dot g" />Collected <b>{inr(d.fees.collected)}</b></li>
-              <li><i className="dot y" />Pending <b>{inr(d.fees.pending)}</b></li>
-              <li><i className="dot r" />Overdue <b>{inr(d.fees.overdue)}</b></li>
-            </ul>
-          </div>
-          <button className="ov-btn" onClick={() => navigate('/fees')}>Go to Fee Management →</button>
-        </div>
-
-        <div className="ov-card">
-          <div className="ov-card-head"><h3>Batch Status</h3></div>
-          <ul className="ov-batches">
-            {d.batchStatus.length === 0 ? <li className="ov-empty">No active batches</li> :
-              d.batchStatus.map((b, i) => (
-                <li key={i} className="ov-batch">
-                  <span className="ov-batch-name">{b.name}</span>
-                  <span className={`ov-batch-mode ${b.mode}`}>{b.mode}</span>
-                  <span className="ov-batch-cap">{b.enrolled} / {b.capacity}</span>
-                </li>
-              ))}
-          </ul>
-        </div>
-
-        <div className="ov-card">
-          <div className="ov-card-head"><h3>Upcoming Reminders</h3></div>
-          <ul className="ov-reminders">
-            {d.reminders.length === 0 ? <li className="ov-empty">Nothing upcoming</li> :
-              d.reminders.map((r, i) => (
-                <li key={i} className="ov-reminder">
-                  <span className={`ov-rem-ic ${r.kind}`}>📅</span>
-                  <div className="ov-rem-body"><span>{r.title}</span><time>{whenLabel(r.when)}</time></div>
-                </li>
-              ))}
-          </ul>
-        </div>
-      </div>
-
-      {/* Bottom strip */}
-      <div className="ov-bottom">
-        <div className="ov-card ov-mini"><span className="ov-mini-ic purple">🧩</span><div><div className="ov-mini-label">New Leads This Month</div><div className="ov-mini-val">{num(d.bottom.newLeads.value)} <Delta pct={d.bottom.newLeads.deltaPct} /></div></div></div>
-        <div className="ov-card ov-mini"><span className="ov-mini-ic blue">📋</span><div><div className="ov-mini-label">Assessments Conducted</div><div className="ov-mini-val">{num(d.bottom.assessments.value)} <Delta pct={d.bottom.assessments.deltaPct} /></div></div></div>
-        <div className="ov-card ov-mini"><span className="ov-mini-ic green">📜</span><div><div className="ov-mini-label">Certificates Issued</div><div className="ov-mini-val">{num(d.bottom.certificates.value)} <Delta pct={d.bottom.certificates.deltaPct} /></div></div></div>
-        <div className="ov-card ov-mini"><span className="ov-mini-ic teal">✅</span><div><div className="ov-mini-label">Average Attendance</div><div className="ov-mini-val">{d.bottom.avgAttendance.value}% <Delta pct={d.bottom.avgAttendance.deltaPct} /></div></div></div>
-      </div>
-    </div>
-  );
-};
-
 export default AdminOverview;

@@ -2,7 +2,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: white;
+  background: #F8FAFC;
 }
 
 .layout-body {
@@ -13,15 +13,17 @@
 
 .main-content {
   flex: 1;
-  margin-left: 260px;
-  padding: 5px;
-  background: #f5f7fc;
-  transition: margin-left 0.4s ease;
   min-width: 0;
+  margin-left: 232px;
+  padding: 0;
+  background: #F8FAFC;
+  transition: margin-left .25s ease;
 }
 
-/* Full-width admin pages — override per-page max-width centering so
-   content fills the available area instead of sitting in a centered column. */
+.layout.sidebar-collapsed .main-content {
+  margin-left: 76px;
+}
+
 .main-content > * {
   max-width: none !important;
   margin-left: 0 !important;
@@ -29,32 +31,23 @@
   width: auto !important;
 }
 
-/* Mobile overlay backdrop (rendered by Layout.tsx) */
 .sidebar-mobile-overlay {
   position: fixed;
-  inset: 64px 0 0 0;
-  background: rgba(0,0,0,0.45);
+  inset: 68px 0 0 0;
+  background: rgba(15, 23, 42, 0.45);
   z-index: 199;
-}
-
-/* When sidebar is closed, adjust main content margin using sibling selector */
-.sidebar.closed ~ .main-content {
-  margin-left: 70px;
-}
-
-.main-content.sidebar-closed {
-  margin-left: 70px;
+  backdrop-filter: blur(2px);
 }
 
 @media (max-width: 1024px) {
   .main-content {
-    padding: 5px;
+    margin-left: 220px;
   }
 }
 
 @media (max-width: 768px) {
-  .main-content {
+  .main-content,
+  .layout.sidebar-collapsed .main-content {
     margin-left: 0 !important;
-    padding: 4px;
   }
 }

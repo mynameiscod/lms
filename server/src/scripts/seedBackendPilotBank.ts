@@ -1,9 +1,17 @@
 /**
  * Install the Backend Engineer pilot assessment content for one tenant.
  *
- * Run:
+ * Run in PRODUCTION (inside the container, against the compiled build):
+ *   docker exec lms-server-<slot> node dist/scripts/seedBackendPilotBank.js <tenantId> --dry-run
+ *   docker exec lms-server-<slot> node dist/scripts/seedBackendPilotBank.js <tenantId>
+ *
+ * ts-node is a dev dependency and the image runs `npm prune --omit=dev`, so it is NOT
+ * available in the container — only the compiled dist is. MONGODB_URI is already in the
+ * container's environment, which is also why running it there beats running it from a
+ * laptop that would need production credentials.
+ *
+ * Locally, from server/:
  *   npx ts-node src/scripts/seedBackendPilotBank.ts <tenantId> --dry-run
- *   npx ts-node src/scripts/seedBackendPilotBank.ts <tenantId>
  *
  * Idempotent: a second run creates nothing and reports every key as skipped. It never
  * overwrites an existing question, so an admin's correction survives a redeploy.

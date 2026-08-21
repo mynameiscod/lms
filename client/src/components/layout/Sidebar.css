@@ -13,9 +13,9 @@
   box-shadow: 8px 0 26px rgba(15,23,42,.06);
   transition: width .25s ease, transform .25s ease;
 }
-.sidebar.closed { width: 76px; }
+.sidebar.closed,
+.layout.sidebar-collapsed .sidebar { width: 76px; }
 
-/* Official CodeBegun logo — full colour artwork stays on a white surface. */
 .sidebar-brand {
   position: relative;
   height: 68px;
@@ -37,10 +37,11 @@
 }
 .brand-icon,
 .brand-menu-label { display: none !important; }
-.sidebar.closed .sidebar-brand { padding: 10px 8px; }
-.sidebar.closed .sidebar-brand::before { background-size: 56px auto; }
+.sidebar.closed .sidebar-brand,
+.layout.sidebar-collapsed .sidebar-brand { padding: 10px 8px; }
+.sidebar.closed .sidebar-brand::before,
+.layout.sidebar-collapsed .sidebar-brand::before { background-size: 56px auto; }
 
-/* Search lives in the approved top header, not duplicated in the sidebar. */
 .sidebar-search { display: none !important; }
 
 .sidebar-nav {
@@ -67,7 +68,8 @@
   letter-spacing: .13em;
   text-transform: uppercase;
 }
-.sidebar.closed .nav-section-label { display: none; }
+.sidebar.closed .nav-section-label,
+.layout.sidebar-collapsed .nav-section-label { display: none; }
 
 .sidebar-link,
 .sidebar-group-button {
@@ -147,14 +149,21 @@
 
 .sidebar.closed .sidebar-label,
 .sidebar.closed .group-label,
-.sidebar.closed .group-chevron { display: none; }
+.sidebar.closed .group-chevron,
+.layout.sidebar-collapsed .sidebar-label,
+.layout.sidebar-collapsed .group-label,
+.layout.sidebar-collapsed .group-chevron { display: none; }
 .sidebar.closed .sidebar-link,
-.sidebar.closed .sidebar-group-button { justify-content: center; padding: 6px; margin: 2px 5px; width: calc(100% - 10px); }
+.sidebar.closed .sidebar-group-button,
+.layout.sidebar-collapsed .sidebar-link,
+.layout.sidebar-collapsed .sidebar-group-button { justify-content: center; padding: 6px; margin: 2px 5px; width: calc(100% - 10px); }
 .sidebar.closed .menu-icon,
-.sidebar.closed .group-icon { width: 36px; min-width: 36px; height: 36px; }
-.sidebar.closed .submenu { display: none; }
+.sidebar.closed .group-icon,
+.layout.sidebar-collapsed .menu-icon,
+.layout.sidebar-collapsed .group-icon { width: 36px; min-width: 36px; height: 36px; }
+.sidebar.closed .submenu,
+.layout.sidebar-collapsed .submenu { display: none; }
 
-/* Remove decorative emoji presentation from the two known admin section labels. */
 .sidebar-nav > .nav-section:nth-of-type(10) > .nav-section-label,
 .sidebar-nav > .nav-section:nth-of-type(11) > .nav-section-label { font-size: 0; }
 .sidebar-nav > .nav-section:nth-of-type(10) > .nav-section-label::after { content: 'TECH BATTLES'; font-size: 9px; }
@@ -162,15 +171,18 @@
 
 @media (max-width: 1024px) {
   .sidebar { width: 220px; }
+  .layout.sidebar-collapsed .sidebar { width: 76px; }
 }
 
 @media (max-width: 768px) {
-  .sidebar {
+  .sidebar,
+  .layout.sidebar-collapsed .sidebar {
     width: 280px !important;
     transform: translateX(-100%);
     box-shadow: none;
   }
-  .sidebar.mobile-open {
+  .sidebar.mobile-open,
+  .layout.sidebar-collapsed .sidebar.mobile-open {
     transform: translateX(0);
     box-shadow: 10px 0 36px rgba(15,23,42,.26);
   }

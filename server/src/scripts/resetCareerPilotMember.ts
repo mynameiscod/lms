@@ -44,6 +44,21 @@ const JOURNEY_FIELDS = [
   'passport.preferredTechnologies',
   'passport.activatedAt', 'passport.expiresAt', 'passport.verifiedAt',
   'passport.lastSeenAt',
+
+  /**
+   * Career staging, cleared too — this was missed on the first version and it mattered.
+   *
+   * `stage`, `background` and `stageComputedAt` are caches of degree + academic year, so
+   * dropping them costs nothing: the next context write recomputes them. `graduated` is a
+   * raw answer rather than a cache, but it is one the legacy CareerProfilePrompt can set
+   * independently of academic year — which is how a member reading "2nd Year" ended up
+   * staged as a job seeker and was handed an ADVANCED paper the pilot has no content for.
+   *
+   * A reset that leaves that behind is not a reset: the member signs up again, answers
+   * "2nd Year" again, and is staged from the stale flag again.
+   */
+  'passport.graduated', 'passport.stage', 'passport.background',
+  'passport.stageComputedAt', 'passport.monthsToGraduation',
 ];
 
 async function main() {

@@ -8,6 +8,20 @@
 .ov-table-wrap{overflow-x:auto}.ov-table{width:100%;border-collapse:collapse;font-size:9.5px}.ov-table th{text-align:left;padding:6px 7px;background:#F8FAFC;color:#475569;font-size:8.5px;font-weight:600}.ov-table td{padding:7px;border-bottom:1px solid #F1F5F9;color:#1E293B}.ov-table tbody tr:last-child td{border-bottom:0}
 .ov-bottom{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.ov-mini{display:flex;align-items:center;gap:11px;min-height:80px}.ov-mini>div>strong{display:block;font-size:18px;margin:2px 0}.ov-mini-icon{width:40px;height:40px;flex-basis:40px;border-radius:50%}
 .ov-state{min-height:360px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#64748B;text-align:center}.ov-state strong{color:#0F172A}.ov-state.err i{font-size:28px;color:#DC2626}.ov-spinner{width:28px;height:28px;border:3px solid #E5E7EB;border-top-color:#359AAD;border-radius:50%;animation:ovspin .8s linear infinite}@keyframes ovspin{to{transform:rotate(360deg)}}
+
+/* Fit common 900px-ish laptop/projector heights at 100% browser zoom without forcing a page scroll. */
+@media (min-width:1041px) and (max-height:950px){
+  .ov-page{padding:18px 22px 20px}.ov-head{margin-bottom:11px}.ov-head h1{font-size:22px}.ov-head p{font-size:12px}.ov-range{padding:7px 10px}
+  .ov-stats{gap:10px;margin-bottom:10px}.ov-stat{min-height:88px;padding:13px}.ov-icon{width:40px;height:40px;flex-basis:40px;font-size:17px}.ov-stat-copy>strong{font-size:18px;margin:2px 0 3px}
+  .ov-grid-main,.ov-grid-secondary{gap:10px;margin-bottom:10px}.ov-card{padding:13px}.ov-card-head{margin-bottom:9px}.ov-chart-wrap,.ov-area{height:158px}.ov-area-x{margin-top:2px}
+  .ov-list{gap:7px}.ov-list-icon{width:25px;height:25px;flex-basis:25px}.ov-list strong{font-size:9.8px}.ov-list small{font-size:8px}.ov-courses{gap:10px}
+  .ov-fee-card{padding:8px 6px}.ov-fee-icon{width:26px;height:26px}.ov-link-btn{margin-top:7px}.ov-table th{padding:5px 6px}.ov-table td{padding:5px 6px}
+  .ov-bottom{gap:10px}.ov-mini{min-height:68px;padding:12px}.ov-mini-icon{width:36px;height:36px;flex-basis:36px}.ov-mini>div>strong{font-size:17px}
+}
+@media (min-width:1041px) and (max-height:820px){
+  .ov-page{padding:14px 18px 16px}.ov-head{margin-bottom:8px}.ov-head p{display:none}.ov-stats{margin-bottom:8px}.ov-stat{min-height:78px;padding:10px}.ov-grid-main,.ov-grid-secondary{margin-bottom:8px}.ov-chart-wrap,.ov-area{height:132px}.ov-card{padding:11px}.ov-card-head{margin-bottom:7px}.ov-list{gap:5px}.ov-fee-card{padding:6px 5px}.ov-table td{padding:4px 5px}.ov-mini{min-height:58px;padding:9px}
+}
+
 @media(max-width:1040px){.ov-stats{grid-template-columns:repeat(3,1fr)}.ov-grid-main,.ov-grid-secondary{grid-template-columns:1fr 1fr}.ov-enrollment{grid-column:1/-1}.ov-bottom{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:820px){.ov-page{padding:18px 14px 28px}.ov-head{align-items:flex-start}.ov-stats{grid-template-columns:repeat(2,1fr)}.ov-grid-main,.ov-grid-secondary{grid-template-columns:1fr}.ov-enrollment{grid-column:auto}.ov-bottom{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){.ov-head{flex-direction:column}.ov-head h1{font-size:21px}.ov-range{width:100%;justify-content:center}.ov-stats,.ov-bottom{grid-template-columns:1fr}.ov-stat{min-height:90px}.ov-fee-cards{grid-template-columns:1fr}.ov-card{padding:14px}.ov-chart-wrap,.ov-area{height:170px}}

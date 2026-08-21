@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 import AssessmentOtp from '../models/AssessmentOtp';
 import LeadSourceConfig from '../models/LeadSourceConfig';
+import * as settings from './settingsService';
 import { getDecryptedTokens } from '../controllers/leadSourceConfigController';
 
 /**
@@ -213,8 +214,26 @@ export async function sendWhatsAppText(tenantId: string, phone: string, message:
 export interface OtpSendResult {
   sent: boolean;
   channel: 'whatsapp' | 'none';
-  devCode?: string;       // present only when no channel is configured (non-prod)
+  devCode?: string;       // present when no channel is configured, or for an allowlisted test number
   throttledSeconds?: number;
+  /** True when the code was withheld deliberately because this is a configured test number. */
+  testNumber?: boolean;
+}
+
+/**
+ * Is this an allowlisted test mobile?
+ *
+ * Compared on digits alone so "+91 95735 16868", "9573516868" and "919573516868" all match
+ * the same entry — a list that only worked for one formatting would fail silently and look
+ * like the feature was off.
+ */
+function isTestNumber(tenantId: string, phone: string): boolean {
+  const raw = settings.getStr('OTP_TEST_NUMBERS', '', tenantId);
+  if (!raw.trim()) return false;
+  const digits = (v: string) => String(v || '').replace(/\D/g, '').slice(-10);
+  const target = digits(phone);
+  if (!target) return false;
+  return raw.split(',').map(s => digits(s)).filter(Boolean).includes(target);
 }
 
 /** Create (or refresh) and send an OTP for a submission token. */
@@ -230,6 +249,25 @@ export async function sendOtp(tenantId: string, token: string, phone: string): P
     { tenantId, token, phone, codeHash: hash(code), attempts: 0, lastSentAt: new Date(), expiresAt: new Date(Date.now() + OTP_TTL_MS) },
     { upsert: true, new: true }
   );
+
+  /**
+   * Test numbers: return the code instead of sending it.
+   *
+   * Needed to exercise the signup funnel repeatedly without a phone in hand. Scoped to an
+   * explicit list rather than a global switch, because a global one removes phone-ownership
+   * verification for EVERY signup while it is on — anyone could register any email and read
+   * the code out of the API response — and a temporary switch on a live product tends to
+   * outlive the reason for it. An allowlist cannot leak onto a real member's signup no
+   * matter how long it is left in place.
+   *
+   * Empty by default. Set OTP_TEST_NUMBERS in Platform Settings → Email to a comma-separated
+   * list of the mobiles used for testing, and clear it when finished.
+   */
+  if (isTestNumber(tenantId, phone)) {
+    console.warn(`[assessment-otp] TEST NUMBER ${phone} — code returned to the caller, not sent. `
+      + `This bypasses phone verification for this number. Clear OTP_TEST_NUMBERS when testing is done.`);
+    return { sent: false, channel: 'none', devCode: code, testNumber: true };
+  }
 
   const message = `Your CodeBegun verification code is ${code}. It is valid for 10 minutes.`;
   const candidates = await getWhatsAppCredentialCandidates(tenantId);

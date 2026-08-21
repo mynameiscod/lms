@@ -62,6 +62,10 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'SMTP_SECURE', label: 'SMTP Secure (TLS)', group: 'email', type: 'select', options: ['false', 'true'], placeholder: 'false', help: 'true = implicit TLS (465); false = STARTTLS (587).', perTenant: true },
   { key: 'BREVO_API_KEY', label: 'Brevo API Key', group: 'email', isSecret: true, type: 'password', placeholder: 'xkeysib-...', help: 'Only for provider = brevo.', perTenant: true },
 
+  // ── Signup testing ───────────────────────────────────────────────────────── (leave EMPTY in normal operation)
+  { key: 'OTP_TEST_NUMBERS', label: 'OTP test numbers (bypass)', group: 'email', type: 'text', placeholder: '9573516868, 9876543210',
+    help: '⚠️ Mobiles listed here are shown their OTP on screen instead of receiving it — phone ownership is NOT verified for them. Use only for testing the signup funnel, and CLEAR IT when finished. Empty = normal OTP for everyone.', perTenant: true },
+
   // ── Amazon SES ───────────────────────────────────────────────────────────── (platform default provider)
   { key: 'SES_REGION', label: 'SES Region', group: 'email', type: 'text', placeholder: 'ap-south-1', help: 'AWS region where the sending domain is verified, e.g. ap-south-1 (Mumbai) or eu-west-1. Must match the region the domain identity lives in — SES identities are per-region.', perTenant: true },
   { key: 'SES_ACCESS_KEY_ID', label: 'SES Access Key ID', group: 'email', type: 'text', placeholder: 'AKIA...', help: 'IAM key with ses:SendEmail. Leave blank to use the machine\'s ambient AWS credentials (instance role).', perTenant: true },

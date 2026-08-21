@@ -441,9 +441,40 @@ export const getCareerProfileStatus = async (req: Request, res: Response) => {
     const User = (await import('../models/User')).default;
     const u: any = await User.findById(userIdOf(req)).select('passport').lean();
     const p = u?.passport || {};
+
+    /**
+     * Do not ask for what we can already work out.
+     *
+     * This prompt is a BACKFILL for members who joined before the academic-year question
+     * existed. Degree plus year is a better answer than the graduation date it collects,
+     * so when both are present the stage is derived and cached here and the member is
+     * never shown the banner — which also removes the only route by which its
+     * "I have already graduated" checkbox could contradict what they told us at signup.
+     *
+     * Only ever fills a stage that is missing; nothing recorded is overwritten.
+     */
+    let stage = p.stage || null;
+    if (!stage && (p.degree || p.program) && p.yearOfStudy) {
+      const derived = resolveCareerProfile({
+        program: p.program, branch: p.branch, degree: p.degree, yearOfStudy: p.yearOfStudy,
+        graduationYear: p.graduationYear, graduationMonth: p.graduationMonth,
+        graduated: p.graduated === true,
+      });
+      if (derived.stage) {
+        stage = derived.stage;
+        await User.updateOne({ _id: userIdOf(req) }, {
+          $set: {
+            'passport.stage': derived.stage,
+            'passport.background': derived.background,
+            'passport.stageComputedAt': derived.stageComputedAt,
+          },
+        });
+      }
+    }
+
     res.json({
-      needed: !p.stage,
-      stage: p.stage || null,
+      needed: !stage,
+      stage,
       program: p.program || null,
       graduationMonth: p.graduationMonth || null,
       graduationYear: p.graduationYear || null,
@@ -466,21 +497,53 @@ export const setCareerProfile = async (req: Request, res: Response) => {
       }
     }
 
+    const User = (await import('../models/User')).default;
+    const userId = userIdOf(req);
+
+    /**
+     * Stage from COURSE POSITION where we have it, not from this form alone.
+     *
+     * This screen predates the academic-year question and used to re-derive the stage from
+     * its own two fields only — no degree, no year — so whatever it computed silently
+     * overwrote what the member had already told us at signup. A member whose record read
+     * "B.Tech, 2nd Year" ticked "I have already graduated" here and was staged as a job
+     * seeker, which handed them a JOB_SEEKER paper drawing on ADVANCED skills. The paper
+     * could not be generated and the failure surfaced three screens later as a coverage
+     * error naming a skill they had never chosen.
+     *
+     * resolveCareerProfile already prefers position over date; it just needs to be given
+     * the position. Reading it back from the record is what makes the two screens agree
+     * rather than race.
+     */
+    const existing: any = await User.findById(userId).select('passport.degree passport.yearOfStudy').lean();
+    const degree = existing?.passport?.degree;
+    const yearOfStudy = existing?.passport?.yearOfStudy;
+
+    /**
+     * "I have graduated" is not accepted against an academic year that says otherwise.
+     *
+     * The year is the more reliable of the two — it is a required question on the join
+     * form, while this checkbox is an optional afterthought on a dismissible banner. A
+     * member who really has graduated updates their year to "Graduated", which stages them
+     * correctly through the ordinary path.
+     */
+    const yearSaysStudying = !!yearOfStudy && !/grad/i.test(String(yearOfStudy));
+    const effectiveGraduated = grad && !yearSaysStudying;
+
     const derived = resolveCareerProfile({
-      program, branch,
+      program, branch, degree, yearOfStudy,
       graduationMonth: graduationMonth ? Number(graduationMonth) : null,
       graduationYear: graduationYear ? Number(graduationYear) : null,
-      graduated: grad,
+      graduated: effectiveGraduated,
     });
 
-    const User = (await import('../models/User')).default;
-    await User.updateOne({ _id: userIdOf(req) }, {
+    await User.updateOne({ _id: userId }, {
       $set: {
         'passport.program': program,
         'passport.branch': branch,
         'passport.graduationMonth': graduationMonth ? Number(graduationMonth) : undefined,
         'passport.graduationYear': graduationYear ? Number(graduationYear) : undefined,
-        'passport.graduated': grad,
+        'passport.graduated': effectiveGraduated,
         'passport.stage': derived.stage,
         'passport.background': derived.background,
         'passport.stageComputedAt': derived.stageComputedAt,

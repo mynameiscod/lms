@@ -6,8 +6,6 @@
   left: 0;
   width: 232px;
   height: 100dvh;
-  min-height: 100vh;
-  max-height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -21,11 +19,9 @@
 .layout.sidebar-collapsed .sidebar { width: 76px; }
 
 .sidebar-brand {
-  position: relative;
   height: 68px;
   min-height: 68px;
-  margin: 0;
-  padding: 10px 14px;
+  padding: 10px 12px;
   border-bottom: 1px solid rgba(255,255,255,.10);
   display: flex;
   align-items: center;
@@ -33,9 +29,9 @@
 .sidebar-brand-logo {
   display: block;
   width: 100%;
-  height: 48px;
-  padding: 6px;
-  border-radius: 10px;
+  height: 46px;
+  padding: 5px 8px;
+  border-radius: 9px;
   background: #FFFFFF;
   object-fit: contain;
   box-shadow: 0 1px 2px rgba(15,23,42,.08);
@@ -46,27 +42,29 @@
 .layout.sidebar-collapsed .sidebar-brand { padding: 10px 8px; }
 .sidebar.closed .sidebar-brand-logo,
 .layout.sidebar-collapsed .sidebar-brand-logo { width: 54px; padding: 5px; }
-.sidebar.mobile-open .sidebar-brand-logo { width: 100%; padding: 6px; }
+.sidebar.mobile-open .sidebar-brand-logo { width: 100%; }
 .sidebar-search { display: none !important; }
 
-/* Only the navigation body scrolls. The logo and bottom product footer remain fixed. */
+/* The menu owns all remaining height. Only this area scrolls. */
 .sidebar-nav {
   flex: 1 1 auto;
   min-height: 0;
-  padding: 8px 8px 82px;
+  padding: 8px 8px 10px;
   overflow-y: auto;
   overflow-x: hidden;
   scroll-behavior: smooth;
   overscroll-behavior: contain;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.18) transparent;
 }
-.sidebar-nav::-webkit-scrollbar { width: 0; height: 0; display: none; }
+.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 999px; }
 .sidebar-nav ul { list-style: none; padding: 0; margin: 0; }
-.nav-section { margin: 0 0 8px; }
+.nav-section { margin: 0 0 7px; }
 .nav-section-label {
   display: block;
-  padding: 9px 13px 5px;
+  padding: 8px 11px 4px;
   color: #9FB1CF;
   font-size: 9px;
   line-height: 1.2;
@@ -74,37 +72,25 @@
   letter-spacing: .13em;
   text-transform: uppercase;
 }
-
-/* Keep the primary overview visible even when the long admin menu is scrolled. */
-.sidebar-nav > .nav-section:first-child {
-  position: sticky;
-  top: -8px;
-  z-index: 5;
-  padding-top: 8px;
-  padding-bottom: 4px;
-  margin-bottom: 6px;
-  background: linear-gradient(180deg, #061F67 0%, #061F67 82%, rgba(6,31,103,.96) 100%);
-  box-shadow: 0 7px 12px rgba(3,23,71,.10);
-}
 .sidebar.closed .nav-section-label,
 .layout.sidebar-collapsed .nav-section-label { display: none; }
 
 .sidebar-link,
 .sidebar-group-button {
-  min-height: 40px;
+  min-height: 38px;
   width: calc(100% - 4px);
   margin: 1px 2px;
-  padding: 7px 10px;
+  padding: 6px 9px;
   border: 0;
   border-radius: 8px;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   background: transparent;
   color: #E7EDF8;
   text-decoration: none;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
@@ -125,15 +111,15 @@
 
 .menu-icon,
 .group-icon {
-  width: 30px;
-  min-width: 30px;
-  height: 30px;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
   display: inline-grid;
   place-items: center;
   border-radius: 7px;
   color: #B8C7DE;
   background: rgba(255,255,255,.04);
-  font-size: 12px;
+  font-size: 11px;
 }
 .sidebar-link:hover .menu-icon,
 .sidebar-group-button:hover .group-icon,
@@ -149,21 +135,21 @@
 
 .menu-group { margin: 1px 0; }
 .submenu {
-  margin: 3px 0 4px 26px;
-  padding: 2px 0 2px 8px !important;
+  margin: 2px 0 3px 24px;
+  padding: 2px 0 2px 7px !important;
   border-left: 1px solid rgba(255,255,255,.13);
 }
 .submenu-link {
-  min-height: 35px !important;
+  min-height: 33px !important;
   margin: 1px 0 !important;
-  padding: 6px 9px !important;
+  padding: 5px 8px !important;
   border-radius: 7px !important;
   color: #C6D1E3 !important;
-  font-size: 11.5px !important;
+  font-size: 11px !important;
 }
 .submenu-link:hover { color: #FFFFFF !important; background: rgba(255,255,255,.07) !important; }
 .submenu-link.active { color: #FFFFFF !important; background: rgba(53,154,173,.88) !important; }
-.submenu-icon { width: 20px; color: #8FA2C1; font-size: 9px; }
+.submenu-icon { width: 18px; color: #8FA2C1; font-size: 9px; }
 
 .sidebar.closed .sidebar-label,
 .sidebar.closed .group-label,
@@ -174,77 +160,22 @@
 .sidebar.closed .sidebar-link,
 .sidebar.closed .sidebar-group-button,
 .layout.sidebar-collapsed .sidebar-link,
-.layout.sidebar-collapsed .sidebar-group-button { justify-content: center; padding: 6px; margin: 2px 5px; width: calc(100% - 10px); }
+.layout.sidebar-collapsed .sidebar-group-button { justify-content: center; padding: 5px; margin: 1px 5px; width: calc(100% - 10px); }
 .sidebar.closed .menu-icon,
 .sidebar.closed .group-icon,
 .layout.sidebar-collapsed .menu-icon,
-.layout.sidebar-collapsed .group-icon { width: 36px; min-width: 36px; height: 36px; }
+.layout.sidebar-collapsed .group-icon { width: 34px; min-width: 34px; height: 34px; }
 .sidebar.closed .submenu,
 .layout.sidebar-collapsed .submenu { display: none; }
 
-/* Fixed product footer — always sits at the real bottom of the viewport. */
-.sidebar::after {
-  content: 'CodeBegun LMS\A v2.0.0';
-  white-space: pre;
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
-  min-height: 54px;
-  padding: 10px 12px 9px 45px;
-  display: flex;
-  align-items: center;
-  border: 1px solid rgba(255,255,255,.16);
-  border-radius: 10px;
-  background: rgba(2,18,58,.48);
-  color: #FFFFFF;
-  font-size: 11px;
-  line-height: 1.45;
-  font-weight: 600;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
-  pointer-events: none;
-}
-.sidebar::before {
-  content: 'CB';
-  position: absolute;
-  left: 22px;
-  bottom: 24px;
-  z-index: 2;
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  background: rgba(53,154,173,.22);
-  border: 1px solid rgba(124,196,208,.40);
-  color: #FFFFFF;
-  font-size: 10px;
-  font-weight: 800;
-  pointer-events: none;
-}
-.sidebar.closed::after,
-.layout.sidebar-collapsed .sidebar::after {
-  content: 'CB';
-  left: 9px;
-  right: 9px;
-  min-height: 46px;
-  padding: 0;
-  justify-content: center;
-  font-size: 10px;
-}
-.sidebar.closed::before,
-.layout.sidebar-collapsed .sidebar::before { display: none; }
-
 @media (max-height: 760px) and (min-width: 769px) {
-  .sidebar-brand { height: 60px; min-height: 60px; padding: 7px 12px; }
-  .sidebar-brand-logo { height: 44px; }
-  .sidebar-nav { padding-top: 5px; padding-bottom: 66px; }
-  .nav-section { margin-bottom: 5px; }
-  .nav-section-label { padding-top: 6px; padding-bottom: 3px; }
-  .sidebar-link,.sidebar-group-button { min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
-  .menu-icon,.group-icon { width: 27px; min-width: 27px; height: 27px; }
-  .sidebar::after { bottom: 7px; min-height: 44px; padding-top: 6px; padding-bottom: 6px; }
-  .sidebar::before { bottom: 15px; }
+  .sidebar-brand { height: 58px; min-height: 58px; padding: 6px 10px; }
+  .sidebar-brand-logo { height: 42px; }
+  .sidebar-nav { padding-top: 4px; }
+  .nav-section { margin-bottom: 4px; }
+  .nav-section-label { padding-top: 5px; padding-bottom: 2px; }
+  .sidebar-link,.sidebar-group-button { min-height: 34px; padding-top: 3px; padding-bottom: 3px; }
+  .menu-icon,.group-icon { width: 25px; min-width: 25px; height: 25px; }
 }
 
 @media (max-width: 1024px) {

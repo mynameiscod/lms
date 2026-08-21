@@ -223,6 +223,19 @@ const SkillAssessment: React.FC = () => {
       <div className="ska-q">
         <p className="qt">{item.text}</p>
 
+        {/* The code the question is about.
+            "Which line has the bug?" with nothing to look at is unanswerable, and that is
+            exactly how these reached students — the field existed on the item and was
+            dropped on the way into the paper. Line numbers are shown because several of
+            these questions ask about one. */}
+        {item.codeSnippet && (
+          <pre className="ska-code" aria-label={item.language ? `${item.language} code` : 'code'}>
+            {item.codeSnippet.split(/\r?\n/).map((line, i) => (
+              <span className="ln" key={i}><em>{i + 1}</em>{line || ' '}</span>
+            ))}
+          </pre>
+        )}
+
         {item.options?.length ? (
           <div className="ska-opts">
             {item.options.map(o => {

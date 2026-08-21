@@ -111,6 +111,27 @@ const SkillDna: React.FC = () => {
         Confidence shows how much assessment evidence CareerPilot has for a skill — not how
         good you are at it. A score based on one answer is less settled than one based on eight.
       </p>
+
+      {/* Where the journey goes next.
+          This page used to end here. A student finished their assessment, read their
+          scores, and found no way onward — the readiness, roadmap and daily plan all
+          existed and nothing linked to them. The only button on the page sent them to the
+          OTHER assessment, which is backwards. */}
+      <div className="dna-next">
+        <h2>What happens next</h2>
+        <p>Your scores feed straight into the plan — here is where they go.</p>
+        <div className="dna-next-row">
+          <button className="pm-btn primary" onClick={() => nav('/careerpilot/readiness')}>
+            <i className="bi bi-clipboard-check" /> See how ready I am for my role
+          </button>
+          <button className="pm-btn" onClick={() => nav('/careerpilot/roadmap')}>
+            <i className="bi bi-map" /> My roadmap
+          </button>
+          <button className="pm-btn ghost" onClick={() => nav('/careerpilot')}>
+            Back to dashboard
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

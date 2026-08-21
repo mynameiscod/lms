@@ -1963,6 +1963,9 @@ export interface SkillAssessmentItem {
   sourceId: string;
   text: string;
   itemType: string;
+  /** The code the question is about — debug / predict-output / complete-code items. */
+  codeSnippet?: string;
+  language?: string;
   options?: { id: string; text: string }[];
   points: number;
   /** What was saved earlier, so a resumed paper comes back filled in. */

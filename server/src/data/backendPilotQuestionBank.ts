@@ -403,10 +403,22 @@ export const BACKEND_PILOT_QUESTIONS: PilotQuestion[] = [
  * candidates are described in the header note.
  */
 export const EXISTING_REUSE: { skillKey: string; sourceType: 'assessment_item' | 'question'; match: { field: string; value: string }; why: string }[] = [
-  {
-    skillKey: 'DEBUGGING', sourceType: 'assessment_item', match: { field: 'type', value: 'debug' },
-    why: 'Genuine defect-location exercises ("which line causes the StackOverflowError in this binary search"). All graded difficulty 4 → HARD, which is exactly the band the authored EASY items do not cover.',
-  },
+  /**
+   * WITHDRAWN — the 18 `debug` items are not usable as evidence here.
+   *
+   * They are genuine defect-location exercises, which is why they were mapped. But they
+   * carry no options, so assessmentAnswerGradingService cannot mark them: they render as a
+   * free-text box, are recorded as "not marked right or wrong", and contribute nothing to
+   * Skill DNA while occupying a scored slot. A student answered one and it counted for
+   * nothing. They are also JavaScript, which is weak evidence for a language-neutral
+   * backend role.
+   *
+   * The HARD DEBUGGING band is covered by CP_DBG_04 and CP_DBG_05 instead, which are
+   * multiple-choice and therefore actually scored.
+   *
+   * The same disqualification applies to complete_code, predict_output, live_code and sql:
+   * every one of them has zero options. Only `mcq` items are gradable from this bank.
+   */
   {
     skillKey: 'DB_FUNDAMENTALS', sourceType: 'question', match: { field: 'subject', value: 'Sql introduction' },
     why: 'Relational fundamentals — what a row is, what WHERE selects, counting rows. All EASY, complementing the authored MEDIUM items.',

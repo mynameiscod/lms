@@ -65,3 +65,14 @@
   .dna-row .top { flex-wrap: wrap; }
   .dna-row .meta .retired { margin-left: 0; }
 }
+
+/* ── Where the journey goes next ────────────────────────────────────────────
+   Added because this page was a cul-de-sac: scores, then nothing. */
+.dna-next { margin-top: 26px; padding-top: 20px; border-top: 1px solid #eef2f7; }
+.dna-next h2 { margin: 0 0 4px; font-size: 15.5px; font-weight: 800; color: #0f172a; }
+.dna-next p { margin: 0 0 14px; font-size: 13px; color: #64748b; }
+.dna-next-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.dna-next-row .pm-btn i { margin-right: 7px; }
+@media (max-width: 560px) {
+  .dna-next-row { flex-direction: column; align-items: stretch; }
+}

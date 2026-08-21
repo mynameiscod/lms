@@ -56,6 +56,17 @@ export interface NormalisedItem {
   /** The source's own tag or category. NOT a skill — see the note in the service. */
   sourceTag: string | null;
   /**
+   * The code the question is ABOUT, for the families that have one.
+   *
+   * AssessmentItem carries this for predict_output, debug and complete_code, and for
+   * eighteen of its multiple-choice items. It used to be dropped here, so a student was
+   * asked "which line has the bug?" with no code on the screen — unanswerable, and
+   * indistinguishable from a broken page.
+   */
+  codeSnippet?: string;
+  /** Language of `codeSnippet`, for syntax presentation. */
+  language?: string;
+  /**
    * The choices, for families that have them. Loaded only by loadMany — the admin mapping
    * screen lists items to be tagged and has no use for options.
    */
@@ -136,6 +147,8 @@ const assessmentItemAdapter: SourceAdapter = {
       itemType: r.type || 'mcq',
       difficulty: bandFromNumber(r.difficulty),
       sourceTag: r.dimension || null,
+      codeSnippet: r.codeSnippet || undefined,
+      language: r.language || undefined,
       options: assessmentItemOptions(r),
       tenantId,
     }));

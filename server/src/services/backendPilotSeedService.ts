@@ -107,9 +107,19 @@ export async function seedBackendPilotContent(opts: {
 
   // ── Evidence for genuinely reusable existing items ────────────────────────
   for (const reuse of EXISTING_REUSE) {
+    /**
+     * Only map what can actually be scored.
+     *
+     * An item with no options is ungradable: it reaches the student as a free-text box,
+     * is recorded as "not marked right or wrong", and contributes nothing to Skill DNA
+     * while occupying a slot that should have measured something. Mapping one makes the
+     * generator green and the score quietly wrong — the exact failure this pack exists to
+     * avoid. Every non-mcq family in the assessment bank has zero options.
+     */
+    const hasOptions = { options: { $exists: true, $not: { $size: 0 } } };
     const ids: string[] = reuse.sourceType === 'assessment_item'
-      ? (await AssessmentItem.find({ tenantId, [reuse.match.field]: reuse.match.value }).select('_id').lean() as any[]).map(r => String(r._id))
-      : (await Question.find({ tenantId, [reuse.match.field]: reuse.match.value }).select('_id').lean() as any[]).map(r => String(r._id));
+      ? (await AssessmentItem.find({ tenantId, [reuse.match.field]: reuse.match.value, ...hasOptions }).select('_id').lean() as any[]).map(r => String(r._id))
+      : (await Question.find({ tenantId, [reuse.match.field]: reuse.match.value, ...hasOptions }).select('_id').lean() as any[]).map(r => String(r._id));
 
     for (const sourceId of ids) {
       bump(reuse.skillKey, 'reused');

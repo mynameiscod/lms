@@ -56,6 +56,10 @@ const studentShape = (a: any, texts: Map<string, any>) => {
         sourceId: i.sourceId,
         text: src?.text || '',
         itemType: src?.itemType || 'mcq',
+        // The code the question is about. Without it "which line has the bug?" is
+        // unanswerable, which is exactly how it reached students.
+        codeSnippet: src?.codeSnippet,
+        language: src?.language,
         // Choices only — the key stays on the server. See NormalisedOption.
         options: src?.options,
         points: i.points,

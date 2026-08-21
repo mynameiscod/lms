@@ -112,6 +112,8 @@ router.get('/tags/courses', ctrl.getCourseTags);
 // Bunny Stream — create video + resumable upload authorization
 router.get('/bunny/config',  bunny.bunnyConfigured);
 router.post('/bunny/videos', bunny.createBunnyVideo);
+// Mirrors Bunny's encode status onto our records — surfaces failed uploads.
+router.post('/bunny/refresh-status', bunny.refreshBunnyStatus);
 // Bunny content item — pure JSON (no multer), so the body reaches the controller intact
 router.post('/bunny/content', ctrl.createContent);
 

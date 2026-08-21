@@ -63,3 +63,23 @@ export const createBunnyVideo = async (req: Request, res: Response) => {
     return res.status(500).json({ message: `Bunny create-video failed: ${msg}` });
   }
 };
+
+/**
+ * POST /learning-content/bunny/refresh-status
+ *
+ * Re-reads Bunny's encode status for this tenant's videos and stores it, so a failed
+ * upload stops presenting as one that is still processing. Read-only against Bunny.
+ */
+export const refreshBunnyStatus = async (req: any, res: any) => {
+  try {
+    const tenantId = String(req.tenantId || req.user?.tenantId || '');
+    if (!tenantId) return res.status(401).json({ message: 'Not authenticated' });
+    const { refreshBunnyVideoStatuses } = await import('../services/bunnyVideoStatusService');
+    const report = await refreshBunnyVideoStatuses(tenantId);
+    if (report.error) return res.status(400).json({ message: report.error });
+    return res.json(report);
+  } catch (e: any) {
+    console.error('[bunny] refresh-status:', e?.message || e);
+    return res.status(500).json({ message: 'Could not refresh video status.' });
+  }
+};

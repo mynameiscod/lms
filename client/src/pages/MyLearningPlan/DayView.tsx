@@ -39,6 +39,45 @@ export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchE
   }
 
   if (content.videoSource === 'bunny' && content.bunnyVideoId && content.bunnyLibraryId) {
+    /**
+     * A failed encode must not be dressed up as a slow one.
+     *
+     * Bunny shows the same "Processing video" placeholder for a video that is transcoding
+     * and one that errored, so a recording that will never play looks like it is nearly
+     * ready — and a student waits for something that is not coming. 5 and 6 are terminal:
+     * say so, and tell whoever can act what to do about it.
+     */
+    if (content.bunnyStatus === 5 || content.bunnyStatus === 6) {
+      return (
+        <div style={{ borderRadius: 10, border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', padding: '20px 18px' }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>
+            <i className="bi bi-exclamation-triangle" style={{ marginRight: 8 }} />
+            This recording could not be processed
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+            The upload failed while being prepared, so there is nothing to play. It needs to be
+            uploaded again — please let your trainer know.
+          </div>
+        </div>
+      );
+    }
+
+    // Still working. Bunny's own placeholder is fine here, but say why, so "nothing is
+    // happening" reads as "not yet" rather than "broken".
+    if (content.bunnyStatus !== undefined && content.bunnyStatus < 4) {
+      return (
+        <div style={{ borderRadius: 10, border: '1px solid #bae6fd', background: '#f0f9ff', color: '#075985', padding: '20px 18px' }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>
+            <i className="bi bi-hourglass-split" style={{ marginRight: 8 }} />
+            Still being prepared
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+            This recording is being processed and will play shortly. Check back in a few minutes.
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '10px', overflow: 'hidden' }}>
         <iframe

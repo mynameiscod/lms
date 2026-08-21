@@ -64,6 +64,18 @@ export interface ILearningContentLibrary extends Document {
   videoThumbnail?: string;
   bunnyVideoId?: string;   // Bunny Stream video GUID (videoSource === 'bunny')
   bunnyLibraryId?: number; // Bunny Stream library ID
+  /**
+   * Bunny's own encode status, mirrored so a viewer can be told the truth.
+   *
+   * 0 Created · 1 Uploaded · 2 Processing · 3 Transcoding · 4 Finished · 5 Error · 6 UploadFailed
+   *
+   * Without this a failed encode is indistinguishable from one still in progress: both show
+   * Bunny's "Processing video" placeholder, so a video that will NEVER play looks like one
+   * that is nearly ready. Eight recordings sat like that, some for two months, and the first
+   * anyone knew was a student asking why it would not start.
+   */
+  bunnyStatus?: number;
+  bunnyStatusAt?: Date;
   completionThreshold: number; // 0 = just open, 80 = watch 80%
 
   // Notes
@@ -158,6 +170,8 @@ const LearningContentLibrarySchema = new Schema<ILearningContentLibrary>(
     videoThumbnail:      { type: String },
     bunnyVideoId:        { type: String },
     bunnyLibraryId:      { type: Number },
+    bunnyStatus:         { type: Number },
+    bunnyStatusAt:       { type: Date },
     completionThreshold: { type: Number, default: 0, min: 0, max: 100 },
 
     // Notes

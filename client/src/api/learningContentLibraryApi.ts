@@ -16,6 +16,8 @@ export interface ContentLibraryItem {
   videoSource?: 'upload' | 'youtube' | 'vimeo' | 'bunny';
   videoUrl?: string;
   bunnyVideoId?: string;
+  /** Bunny encode status, mirrored server-side. 4 = playable, 5/6 = failed. */
+  bunnyStatus?: number;
   bunnyLibraryId?: number;
   videoFilePath?: string;
   videoDuration?: number;

@@ -88,3 +88,25 @@ it on the Commitment step. The underlying mismatch — two different definitions
 **MongoDB is published on `0.0.0.0:27017`** on the VPS while every other datastore is
 loopback-bound. It has credentials, but the box has been mined twice. Close it via
 `DOCKER-USER`, not `ufw`.
+
+---
+
+## Video pipeline
+
+**Bunny encode failures are not alerted.** Eight recordings failed silently — six within two
+days — and the first anyone knew was a student asking why a video would not start. Status is
+now mirrored onto the content record and a failed video says so, but nothing yet *tells*
+anyone: no alert, and no scheduled sweep. `scripts/refreshBunnyVideoStatus.ts` has to be run
+by hand or wired to cron.
+
+**No retry affordance.** A failed recording has to be re-uploaded manually. An admin-facing
+"retry encode" button, or an automatic re-submit on failure, would close the loop.
+
+**Why they fail is unknown.** All eight stalled at exactly 5%, which points at the source file
+(truncated upload, or a container/codec Bunny rejects) rather than at the integration — 339 of
+347 encoded fine. Worth checking whether the failures share an origin: the "Class Recording"
+ones come from the 100ms live-class pipeline, the named ones from manual upload.
+
+**`server/.env` line 19 is unquoted:** `EMAIL_FROM=CodeBegun <noreply...>`. The `<` makes the
+file fail to parse in any script that sources it. `backup.sh` reads the other `.env` so it is
+unaffected, but it is a trap for the next script that does.

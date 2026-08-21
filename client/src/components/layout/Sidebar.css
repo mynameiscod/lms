@@ -26,21 +26,31 @@
   display: flex;
   align-items: center;
 }
-.sidebar-brand::before {
-  content: '';
+/* The official logo is an <img> in Sidebar.tsx, not a background here.
+   css-loader resolves a root-relative CSS asset path as a module against this file's
+   own directory rather than the web root, which broke the production build. object-fit
+   keeps the mark from stretching at any sidebar width. */
+.sidebar-brand-logo {
   display: block;
   width: 100%;
   height: 48px;
+  padding: 6px;
   border-radius: 10px;
-  background: #FFFFFF url('/assets/logo.png') center / 154px auto no-repeat;
+  background: #FFFFFF;
+  object-fit: contain;
   box-shadow: 0 1px 2px rgba(15,23,42,.08);
 }
 .brand-icon,
 .brand-menu-label { display: none !important; }
 .sidebar.closed .sidebar-brand,
 .layout.sidebar-collapsed .sidebar-brand { padding: 10px 8px; }
-.sidebar.closed .sidebar-brand::before,
-.layout.sidebar-collapsed .sidebar-brand::before { background-size: 56px auto; }
+/* Collapsed: a compact white card. `contain` scales the whole mark down rather than
+   cropping it, so the logo stays legible instead of losing its edges. */
+.sidebar.closed .sidebar-brand-logo,
+.layout.sidebar-collapsed .sidebar-brand-logo { width: 54px; padding: 5px; }
+
+/* Mobile drawer shows the full logo, same white-card treatment. */
+.sidebar.mobile-open .sidebar-brand-logo { width: 100%; padding: 6px; }
 
 .sidebar-search { display: none !important; }
 

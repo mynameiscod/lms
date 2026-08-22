@@ -49,19 +49,8 @@ const FAQS = [
   ['Can I change my target career later?', 'Yes. Career direction can evolve. CareerPilot is designed to help you reassess your goal and understand what changes in your roadmap.'],
 ];
 
-/**
- * What the form will accept, decided in one place.
- *
- * Every rule here is also enforced by the server, and that is the copy that matters — this
- * one exists so the member finds out while their cursor is still in the field rather than
- * after a round trip. Where the two could drift the server wins; the wording is kept the
- * same as `utils/phone.ts` so a rejection reads identically whichever side catches it.
- */
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-/** Digits only, at most ten. Applied on every keystroke, so an over-long paste is trimmed
- *  as it lands instead of being accepted and rejected later. A pasted +91 or a number with
- *  spaces becomes the ten digits it was always meant to be. */
 export const toMobile = (raw: string) => raw.replace(/\D/g, '').slice(-10);
 
 function validateJoin(
@@ -84,8 +73,6 @@ function validateJoin(
   if (!email) e.email = 'Email address is required.';
   else if (!EMAIL_RE.test(email)) e.email = 'That does not look like a valid email address.';
 
-  // Whatever else this tenant has marked required. The server checks the same list, so a
-  // field added in the admin screen starts being enforced here without a code change.
   for (const f of extra) {
     if (f.required && !String(form[f.key] || '').trim()) e[f.key] = `${f.label} is required.`;
   }
@@ -110,12 +97,6 @@ const PassportJoin: React.FC = () => {
 
   const sentMsg = (m: string) => m.startsWith('We sent') || m.startsWith('New code');
   const extra = useMemo(() => fieldsDef.filter(f => !['name', 'mobile', 'email'].includes(f.key)), [fieldsDef]);
-
-  /**
-   * A field's problem is shown once the member has left it, or once they have tried to
-   * submit — never while they are still part-way through typing it, which would put
-   * "that is only 3 digits" under a number they are in the middle of entering.
-   */
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [tried, setTried] = useState(false);
   const errors = useMemo(() => validateJoin(form, extra), [form, extra]);
@@ -148,7 +129,6 @@ const PassportJoin: React.FC = () => {
   const scrollToSignup = () => document.getElementById('careerpilot-signup')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   const submit = async () => {
-    // Show everything that is wrong at once rather than one field per attempt.
     setTried(true);
     if (Object.keys(errors).length) { setMsg(''); return; }
 
@@ -254,6 +234,17 @@ const PassportJoin: React.FC = () => {
                 <div className="cpj-check"><i className="bi bi-check-circle" />Find relevant jobs & internships</div>
               </div>
 
+              <div
+                className="cpj-hero-visual"
+                style={{ marginTop: 24, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+              >
+                <img
+                  src="/assets/careerpilot/careerpilot-hero-student.png"
+                  alt="CareerPilot student career readiness preview"
+                  style={{ width: '100%', maxWidth: 620, height: 'auto', display: 'block', objectFit: 'contain' }}
+                />
+              </div>
+
               <div className="cpj-intel" aria-label="CareerPilot product preview">
                 <div className="cpj-intel-main">
                   <div className="cpj-intel-label">Career Intelligence</div>
@@ -298,10 +289,6 @@ const PassportJoin: React.FC = () => {
                   </div>
                   <div className="cpj-field">
                     <label htmlFor="jn-mob">Mobile Number <em>*</em></label>
-                    {/* Digits are stripped and capped as they are typed, so an eleven-digit
-                        number or a pasted +91 cannot be entered at all. maxLength alone
-                        would not do it: it counts characters, so spaces and a leading +
-                        would still push real digits out. */}
                     <div className={`cpj-input-wrap${errFor('mobile') ? ' bad' : ''}`}><i className={`bi ${ICON.mobile}`} /><input id="jn-mob" value={form.mobile || ''} inputMode="numeric" autoComplete="tel" maxLength={10} aria-invalid={!!errFor('mobile')} aria-describedby={errFor('mobile') ? 'jn-mob-err' : undefined} onBlur={() => blur('mobile')} onChange={e => set('mobile', toMobile(e.target.value))} placeholder="Enter 10-digit mobile number" /></div>
                     {errFor('mobile') && <div className="cpj-fe" id="jn-mob-err">{errFor('mobile')}</div>}
                   </div>
@@ -328,11 +315,6 @@ const PassportJoin: React.FC = () => {
                     </div>
                   ))}
 
-                  {/* Deliberately NOT disabled on invalid input. A greyed-out button states
-                      that something is wrong without saying what, and the member is left
-                      comparing fields to guess; clicking it and being shown every problem
-                      at once is the faster way out. Only the in-flight state disables it,
-                      to stop a double send. */}
                   <button className="cpj-btn cpj-btn-primary cpj-submit" disabled={busy} onClick={submit}>
                     {busy ? 'Please wait…' : <>Start My Career Journey <i className="bi bi-arrow-right" /></>}
                   </button>

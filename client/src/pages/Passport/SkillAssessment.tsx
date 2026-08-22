@@ -142,6 +142,30 @@ const SkillAssessment: React.FC = () => {
     setConfirming(false);
   };
 
+  /**
+   * The clock, when a tenant has configured one.
+   *
+   * MUST sit above every early return: React requires hooks to run in the same order on
+   * each render, and this one previously lived after the "finished" branch — so a paper
+   * that reached that state changed the hook order and the production build refused to
+   * compile. tsc did not catch it; only the lint stage in the real build does.
+   *
+   * Seeded from the SERVER's remaining time rather than the configured limit, so a reload
+   * resumes where the paper actually is — restarting the countdown on refresh would be the
+   * obvious way to take an untimed paper. At zero it submits what exists: a paper that ran
+   * out of time is finished, and discarding the answers would be worse than scoring them.
+   */
+  useEffect(() => {
+    if (left === null) return;
+    if (left <= 0) { submit(); return; }
+    const id = setTimeout(() => setLeft(n => (n === null ? null : n - 1)), 1000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [left]);
+
+  const clock = (sec: number) =>
+    `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+
   if (loading) return <div className="ska"><div className="ska-load">Loading your assessment…</div></div>;
 
   // ── finished ──────────────────────────────────────────────────────────────
@@ -176,26 +200,6 @@ const SkillAssessment: React.FC = () => {
     );
   }
 
-
-  /**
-   * The clock, when a tenant has configured one.
-   *
-   * Seeded from the SERVER's remaining time rather than the configured limit, so a reload
-   * resumes where the paper actually is — restarting the countdown on refresh would be the
-   * obvious way to take an untimed paper. At zero it submits what exists: a paper that ran
-   * out of time is finished, and silently discarding the answers would be worse than
-   * scoring them.
-   */
-  useEffect(() => {
-    if (left === null) return;
-    if (left <= 0) { submit(); return; }
-    const id = setTimeout(() => setLeft(n => (n === null ? null : n - 1)), 1000);
-    return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [left]);
-
-  const clock = (sec: number) =>
-    `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 
   // ── not started ───────────────────────────────────────────────────────────
   if (!paper) {

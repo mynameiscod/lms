@@ -415,7 +415,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'CRM & GROWTH',            labels: ['Leads', 'Placement Partnership'] },
     { title: 'COLLEGE',                 labels: ['College'] },
     { title: 'BILLING',                 labels: ['Fees'] },
-    { title: '⚔️ TECH BATTLES',         labels: ['Tech Battles'] },
+    { title: 'TECH BATTLES',         labels: ['Tech Battles'] },
     /**
      * Every CareerPilot screen, in the order an admin actually works through them:
      * set the role up, give it skills and evidence, check the paper, then run and watch it.
@@ -425,7 +425,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
      * eleven of these had ended up: the same product split across two places, one of them
      * called "MORE".
      */
-    { title: '🎫 CAREERPILOT', labels: [
+    { title: 'CAREERPILOT', labels: [
       // Setup — the launch sequence, in order
       'CareerPilot Config', 'CareerPilot Career Roles', 'CareerPilot Skill Graph',
       'CareerPilot Role Blueprint', 'CareerPilot Skill Evidence', 'CareerPilot Assessment Preview',
@@ -455,6 +455,17 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     <aside className={`sidebar ${isOpen ? 'open' : 'closed'} ${mobileOpen ? 'mobile-open' : ''}`}>
       {/* Sidebar Header - Logo */}
       <div className="sidebar-brand">
+        {/* Rendered here rather than as a CSS background.
+            A root-relative url('/assets/…') in CSS is resolved by css-loader as a module
+            request against the stylesheet's own directory, not the web root, so the
+            production build failed to compile — while tsc passed, because TypeScript never
+            reads CSS. PUBLIC_URL keeps the asset served from public/ and keeps the path
+            correct under any deploy base path, with nothing duplicated into src/. */}
+        <img
+          src={`${process.env.PUBLIC_URL}/assets/logo.png`}
+          alt="CodeBegun"
+          className="sidebar-brand-logo"
+        />
         <div className="brand-icon" onClick={() => { if (mobileOpen) { onMobileClose?.(); } else { setIsOpen(!isOpen); } }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (mobileOpen) onMobileClose?.(); else setIsOpen(!isOpen); } }}>
           <i className="fa-solid fa-bars"></i>
         </div>
@@ -481,7 +492,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
             )}
             {dailyPracticeItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">🔥 DAILY PRACTICE</span>
+                <span className="nav-section-label">DAILY PRACTICE</span>
                 <ul>{dailyPracticeItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
@@ -499,7 +510,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
             )}
             {collegeItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">🎓 COLLEGE</span>
+                <span className="nav-section-label">COLLEGE</span>
                 <ul>{collegeItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}

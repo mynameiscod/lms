@@ -4,6 +4,7 @@ import { gradeSubmittedAnswers } from '../services/assessmentAnswerGradingServic
 import {
   projectAssessmentToSkillDna, rebuildSkillDnaForStudent, getSkillDna, explainSkill,
 } from '../services/skillDnaService';
+import { refreshCareerScoreFromReadiness } from '../services/careerScoreService';
 import { processGamificationEvent } from '../services/gamificationEngine';
 import { captureAfterSnapshot } from '../services/reassessmentService';
 
@@ -112,6 +113,31 @@ export const submitPersonalizedAssessment = async (req: Request, res: Response) 
     }
 
     /**
+     * The Career Score, recomputed from what this paper just measured.
+     *
+     * This is the moment the inputs actually changed, which is why it lives here and not on
+     * a read path — a score that moved because somebody opened a dashboard is a score
+     * nobody can explain, and the public card and the funnel report would disagree
+     * depending on who looked last.
+     *
+     * Guarded on the projection because readiness reads Skill DNA: running it after a
+     * failed projection would score the member on their PREVIOUS answers and present it as
+     * the result of this paper. It writes nothing when there is not enough of the blueprint
+     * measured to be honest about, so a member keeps whatever score they already had.
+     *
+     * Never fatal. The submission is saved and the answers are stored; a score that did not
+     * refresh is repaired by the rebuild endpoint replaying the same projection.
+     */
+    let careerScore: any = null;
+    if (!projectionError) {
+      try {
+        careerScore = await refreshCareerScoreFromReadiness(tenantId, studentId);
+      } catch (e: any) {
+        console.error('[career-score] refresh failed for', String(open._id), e?.message || e);
+      }
+    }
+
+    /**
      * Engagement credit for FINISHING, not for scoring well.
      *
      * One award per assessment, keyed on the attempt id, so a retried submission cannot pay
@@ -146,6 +172,12 @@ export const submitPersonalizedAssessment = async (req: Request, res: Response) 
       skillDna: projection
         ? { skillsAffected: projection.skillsAffected.length, evidenceCreated: projection.evidenceCreated }
         : null,
+      /**
+       * Reported even when nothing was written, with the reason. "Your score did not move
+       * because we have only measured a third of the role" is a useful thing for the
+       * result screen to be able to say; silence would read as a bug.
+       */
+      careerScore,
       // Surfaced honestly rather than hidden — the submission is safe either way.
       skillDnaPending: !!projectionError,
       // A check-in whose comparison is not ready yet. It becomes available once the

@@ -85,6 +85,19 @@ export interface IUser extends Document {
 
     careerScore?: number;      // cached from latest assessment (for card/Mission Control)
     level?: string;
+    /**
+     * Which instrument produced `careerScore`.
+     *
+     * Absent means the legacy Career Readiness questionnaire, because every score that
+     * predates role readiness came from it and backfilling a value onto historic members
+     * would assert a migration that never happened. A member is only 'role_readiness' once
+     * they have actually sat a skill assessment that covered enough of their blueprint.
+     */
+    careerScoreSource?: 'role_readiness' | 'legacy_questionnaire';
+    careerScoreAt?: Date;
+    /** How much of the role blueprint the score is based on, 0-100. */
+    careerScoreCoverage?: number;
+    careerScoreConfidence?: 'LOW' | 'MEDIUM' | 'HIGH';
     shareSlug?: string;        // public shareable CareerPilot card slug
     passwordSet?: boolean;     // member chose their own password (vs the signup placeholder)
   };
@@ -210,6 +223,10 @@ const UserSchema: Schema = new Schema(
       pathway:     { type: String },
       careerScore: { type: Number },
       level:       { type: String },
+      careerScoreSource:     { type: String, enum: ['role_readiness', 'legacy_questionnaire'] },
+      careerScoreAt:         { type: Date },
+      careerScoreCoverage:   { type: Number },
+      careerScoreConfidence: { type: String, enum: ['LOW', 'MEDIUM', 'HIGH'] },
       city:        { type: String },
 
       // CareerPilot career context. Every field optional with no default, so an existing

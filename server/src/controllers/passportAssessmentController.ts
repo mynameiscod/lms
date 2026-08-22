@@ -121,12 +121,35 @@ export const submitAssessment = async (req: Request, res: Response) => {
 
     const attempt = await PassportAttempt.create({ tenantId, studentId, answers, ...result });
 
-    // Cache pathway + score + level on the student for personalization and the card.
-    if (user) await User.updateOne({ _id: studentId }, { $set: {
-      'passport.pathway': result.pathway,
-      'passport.careerScore': result.careerScore,
-      'passport.level': result.level,
-    } });
+    /**
+     * Cache pathway + score + level on the student for personalization and the card.
+     *
+     * A score written here is a QUESTIONNAIRE score, and it is now labelled as one. Role
+     * readiness writes the same fields from a skill assessment, and without the label there
+     * is no way to tell a member measured against their role blueprint from one who
+     * answered twenty aptitude questions — which matters most on the public card, where the
+     * number is shown to somebody who is not the student.
+     *
+     * It does NOT overwrite a role_readiness score. That would walk a member backwards: a
+     * measured score replaced by a self-report one because they happened to open the older
+     * assessment afterwards. The attempt is still recorded either way — only the cached
+     * headline number is protected.
+     */
+    if (user) {
+      // Pathway is not something role readiness produces, so it always takes the newest
+      // answer. Only the headline score is contested, and only that is guarded.
+      await User.updateOne({ _id: studentId }, { $set: { 'passport.pathway': result.pathway } });
+
+      await User.updateOne(
+        { _id: studentId, 'passport.careerScoreSource': { $ne: 'role_readiness' } },
+        { $set: {
+          'passport.careerScore': result.careerScore,
+          'passport.level': result.level,
+          'passport.careerScoreSource': 'legacy_questionnaire',
+          'passport.careerScoreAt': new Date(),
+        } },
+      );
+    }
 
     res.json({ result: publicResult(attempt) });
   } catch (e: any) { console.error('[passport] submit failed:', e); res.status(500).json({ message: e.message || 'Failed to submit' }); }

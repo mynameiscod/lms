@@ -171,7 +171,7 @@ const MissionControl: React.FC = () => {
             </div>
 
             {today?.needsAssessment ? (
-              <div style={{ color: '#64748b', fontSize: 14 }}>Take the <button onClick={() => nav('/careerpilot/assessment')} style={linkBtn}>Career Readiness Assessment</button> first to personalize your missions.</div>
+              <div style={{ color: '#64748b', fontSize: 14 }}>Take the <button onClick={() => nav('/careerpilot/skill-assessment')} style={linkBtn}>skill assessment</button> first to personalize your missions.</div>
             ) : !today?.missions?.length ? (
               <div style={{ color: '#94a3b8', fontSize: 14 }}>No missions for today. Check back tomorrow.</div>
             ) : (
@@ -199,7 +199,14 @@ const MissionControl: React.FC = () => {
             <QuickCard ic="bi-code-slash" title="Practice Lab" onClick={() => nav('/careerpilot/practice')} sub="Code that actually runs" />
             <QuickCard ic="bi-mic-fill" title="Mock interview" onClick={() => nav('/careerpilot/interview')} sub="AI interviewer + scored feedback" />
             <QuickCard ic="bi-file-earmark-text-fill" title="Resume Center" onClick={() => nav('/careerpilot/resume')} sub="Build it, score it, fix it" />
-            <QuickCard ic="bi-bar-chart-fill" title="My assessment result" onClick={() => nav('/careerpilot/assessment')} sub="Score, breakdown & pathway" />
+            <QuickCard ic="bi-clipboard-check" title="Career intake" onClick={() => nav('/careerpilot/assessment')} sub="What you told us about yourself" />
+            {/* The PERSONALISED skill assessment, which is a different thing from the card
+                above it. That one is the free Career Readiness questionnaire that produced
+                the Career Score; this one measures named skills against the member's target
+                role and produces Skill DNA. Reachable from /careerpilot/setup on the way in
+                and from Skill Check-In afterwards, but not from here — so a member who had
+                already passed through setup had no route back to it. */}
+            <QuickCard ic="bi-diagram-3-fill" title="Skill assessment" onClick={() => nav('/careerpilot/skill-assessment')} sub="Measure your skills against your role" />
             <QuickCard ic="bi-ticket-perforated-fill" title="My CareerPilot" onClick={share} sub={copied ? 'Link copied!' : 'Share your verified card'} />
           </div>
         </div>
@@ -238,7 +245,7 @@ const MissionControl: React.FC = () => {
               <p className="mc-uh-note">Online payment isn’t enabled yet — please <a href="#contact" onClick={e => e.preventDefault()}>contact your mentor</a> to activate.</p>
             ) : null}
             {status?.paymentAvailable === false ? (
-              <button className="mc-uh-btn" onClick={() => nav('/careerpilot/assessment')}><i className="bi bi-unlock-fill" /> Unlock My 90-Day CareerPilot</button>
+              <button className="mc-uh-btn" onClick={() => nav('/careerpilot/skill-assessment')}><i className="bi bi-unlock-fill" /> Unlock My 90-Day CareerPilot</button>
             ) : (
               <button className="mc-uh-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : <><i className="bi bi-unlock-fill" /> Unlock My 90-Day CareerPilot — ₹{price}</>}</button>
             )}
@@ -267,7 +274,7 @@ const MissionControl: React.FC = () => {
         <div className="mc-left">
           <span className="mc-chip"><i className="bi bi-rocket-takeoff-fill" /> Mission Control</span>
           <h1 className="mc-h1">Your Career Journey <span className="b">Starts with Clarity</span></h1>
-          <p className="mc-lead">Take the free Career Readiness Assessment to know where you stand today and get a personalized roadmap to achieve your dream career.</p>
+          <p className="mc-lead">Take the free skill assessment to see how you measure up against the role you are aiming at, and get a personalized roadmap to close the gaps.</p>
 
           <div className="mc-checks">
             {CHECKS.map(c => (
@@ -281,7 +288,12 @@ const MissionControl: React.FC = () => {
 
           {!hasScore ? (
             <>
-              <button className="mc-cta" onClick={() => nav('/careerpilot/assessment')}><i className="bi bi-rocket-takeoff-fill" /> Start Free Assessment <i className="bi bi-arrow-right" /></button>
+              {/* The SKILL assessment, not the intake. The Career Score is computed from
+                  role readiness now (careerScoreService), so this is the paper that
+                  actually produces the number this screen goes on to sell against —
+                  sending a new member to the intake instead left them with a score built
+                  from self-report and generic aptitude. */}
+              <button className="mc-cta" onClick={() => nav('/careerpilot/skill-assessment')}><i className="bi bi-rocket-takeoff-fill" /> Start Free Assessment <i className="bi bi-arrow-right" /></button>
               <div className="mc-cta-note"><i className="bi bi-clock" /> Takes about 5 minutes <span className="dot">·</span> <i className="bi bi-graph-up-arrow" /> No payment needed</div>
             </>
           ) : (

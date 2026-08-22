@@ -469,9 +469,30 @@ const ResultView: React.FC<{
             </div>        </div>
         </div>
 
+        {/**
+          * The intake is self-report, and the next step is the one that measures.
+          *
+          * Every question on this paper asks the member to rate themselves — how clear they
+          * feel, whether they have a resume. That is genuinely useful for shaping a plan and
+          * is worth nothing as a verdict on ability, so a member who stops here has been
+          * told a number about themselves that they supplied. The Career Score is computed
+          * from role readiness now, and this is the route to it.
+          */}
+        <div className="rs-next">
+          <span className="ic"><i className="bi bi-diagram-3-fill" /></span>
+          <div className="tx">
+            <b>Next: your skill assessment</b>
+            <span>
+              What you just answered is how you see yourself. The skill assessment measures
+              you against the role you are aiming at — that is what sets your Career Score.
+            </span>
+          </div>
+          <button onClick={() => nav('/careerpilot/skill-assessment')}>Start it →</button>
+        </div>
+
         {/* Category breakdown */}
         <div className="rs-card">
-          <div className="rs-sec-h">Category Breakdown <span className="hint">This shows your current strength in key areas</span></div>
+          <div className="rs-sec-h">What you told us <span className="hint">Your own view of where you stand today</span></div>
           {result.categoryScores.map(c => {
             const b = BANDS(c.score);
             return (

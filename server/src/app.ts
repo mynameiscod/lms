@@ -57,6 +57,22 @@ const corsOptions = process.env.NODE_ENV === 'production'
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-tenant-id'],
     };
 
+/**
+ * Who the client actually is, when nginx is in front.
+ *
+ * Without this, `req.ip` is the address of the reverse proxy for EVERY request, so anything
+ * keyed on the caller's address — rate limiting above all — collapses into a single bucket
+ * shared by the whole internet. The signup limiter was therefore not "5 attempts per person
+ * per hour" in production but "5 attempts for all of humanity per hour", and the first five
+ * strangers to register locked the door behind them until the window rolled.
+ *
+ * The hop count is deliberate rather than `true`. Trusting every proxy header lets a caller
+ * put whatever they like in X-Forwarded-For and mint a fresh identity per request, which
+ * would defeat the limiter from the other direction. One hop is what this deployment has:
+ * nginx, then the app. TRUST_PROXY_HOPS exists for the day that stops being true.
+ */
+app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS ?? 1));
+
 // Middleware - PROPER ORDER for Express
 app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP to avoid blocking static assets

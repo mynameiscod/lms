@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.get('/config',  ctrl.getPublicConfig);
 router.get('/card/:slug', ctrl.getCard);
-router.post('/signup', rateLimit('signup'), ctrl.signup);
+router.post('/signup', rateLimit('signupBurst'), rateLimit('signup'), ctrl.signup);
 router.post('/verify', rateLimit('otp'), ctrl.verify);
 router.post('/resend', rateLimit('otp'), ctrl.resend);
 router.post('/login-password', rateLimit('otp'), ctrl.loginPassword);  // returning member: email/mobile + password

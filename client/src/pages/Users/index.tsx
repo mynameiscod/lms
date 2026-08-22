@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { userApi, roleApi, batchApi } from '../../api';
 import { studentProfileAPI } from '../../api/studentProfileAPI';
@@ -24,65 +24,40 @@ const UsersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [batchFilter, setBatchFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('active');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [showFilters, setShowFilters] = useState(false);
-  
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
-  // Modal state for invite student
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [inviteFormData, setInviteFormData] = useState({
-    email: '',
-    firstName: '',
-    lastName: '',
-    mobileNumber: '',
-    batchId: '',
-    role: 'STUDENT',
-    customRoleId: ''
-  });
+  const [inviteFormData, setInviteFormData] = useState({ email: '', firstName: '', lastName: '', mobileNumber: '', batchId: '', role: 'STUDENT', customRoleId: '' });
   const [invitingStudent, setInvitingStudent] = useState(false);
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
   const [inviteWarning, setInviteWarning] = useState<{ message: string; setupLink?: string } | null>(null);
 
-  // Modal state for create user (non-student)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [createFormData, setCreateFormData] = useState({
-    email: '',
-    firstName: '',
-    lastName: '',
-    role: 'INSTRUCTOR',
-    customRoleId: ''
-  });
+  const [createFormData, setCreateFormData] = useState({ email: '', firstName: '', lastName: '', role: 'INSTRUCTOR', customRoleId: '' });
   const [creatingUser, setCreatingUser] = useState(false);
   const [createModalError, setCreateModalError] = useState('');
 
-  // Modal state for edit role
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedRole, setSelectedRole] = useState('');
-  const [selectedCustomRoleId, setSelectedCustomRoleId] = useState<string>('');
+  const [selectedCustomRoleId, setSelectedCustomRoleId] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [bulkSending, setBulkSending] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [usersRes, rolesRes, batchesRes] = await Promise.all([
-        userApi.getUsers(),
-        roleApi.getRoles(),
-        batchApi.getBatches()
-      ]);
+      const [usersRes, rolesRes, batchesRes] = await Promise.all([userApi.getUsers(), roleApi.getRoles(), batchApi.getBatches()]);
       setUsers(usersRes.data || []);
       setRoles(rolesRes.data || []);
-      // Get all batches for filtering
-      const allBatches = (batchesRes.data || []);
-      setBatches(allBatches);
+      setBatches(batchesRes.data || []);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch data');
     } finally {
@@ -90,62 +65,36 @@ const UsersPage: React.FC = () => {
     }
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = `${user.firstName} ${user.lastName} ${user.email}`
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+  const prettyRole = (r: string) => r === 'SUPER_ADMIN' ? 'Super Admin' : r === 'TENANT_ADMIN' ? 'Tenant Admin' : r.charAt(0) + r.slice(1).toLowerCase();
+  const formatJoined = (d?: string) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  const currentUser: any = (() => { try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; } })();
+  const batchName = (user: User) => user.batchName || batches.find(b => b._id === user.batchId)?.name || '—';
 
-    const matchesBatch = 
-      batchFilter === 'all' || 
-      user.batchId === batchFilter;
+  const stats = useMemo(() => ({
+    total: users.length,
+    students: users.filter(u => u.role === 'STUDENT').length,
+    trainers: users.filter(u => u.role === 'INSTRUCTOR').length,
+    admins: users.filter(u => ['SUPER_ADMIN', 'TENANT_ADMIN'].includes(u.role)).length,
+  }), [users]);
 
-    const matchesRole = 
-      roleFilter === 'all' || 
-      user.role === roleFilter;
-
-    const matchesActive =
-      activeFilter === 'all' ||
-      (activeFilter === 'active' && user.isActive) ||
-      (activeFilter === 'inactive' && !user.isActive);
-
+  const filteredUsers = useMemo(() => users.filter(user => {
+    const haystack = `${user.firstName} ${user.lastName} ${user.email} ${user.phone || ''}`.toLowerCase();
+    const matchesSearch = haystack.includes(searchTerm.trim().toLowerCase());
+    const matchesBatch = batchFilter === 'all' || user.batchId === batchFilter;
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    const matchesActive = activeFilter === 'all' || (activeFilter === 'active' ? user.isActive : !user.isActive);
     return matchesSearch && matchesBatch && matchesRole && matchesActive;
-  });
+  }), [users, searchTerm, batchFilter, roleFilter, activeFilter]);
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
-  // Summary stats for the header cards
-  const distinctRoles = Array.from(new Set(users.map(u => u.role).filter(Boolean)));
-  const activeCount = users.filter(u => u.isActive).length;
-  const activePct = users.length ? Math.round((activeCount / users.length) * 100) : 0;
-  const now = new Date();
-  const newThisMonth = users.filter(u => {
-    if (!u.createdAt) return false;
-    const d = new Date(u.createdAt);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
-  const prettyRole = (r: string) => r === 'SUPER_ADMIN' ? 'Super Admin' : r === 'TENANT_ADMIN' ? 'Tenant Admin'
-    : r.charAt(0) + r.slice(1).toLowerCase();
-  const currentUser: any = (() => { try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; } })();
-  const formatJoined = (d?: string) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, batchFilter, roleFilter, activeFilter]);
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, batchFilter, roleFilter, activeFilter]);
 
   const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
-
-  const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setItemsPerPage(Number(e.target.value));
-    setCurrentPage(1);
+    if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
   const openEditModal = (user: User) => {
@@ -162,946 +111,200 @@ const UsersPage: React.FC = () => {
     setSelectedCustomRoleId('');
   };
 
-  const [exporting, setExporting] = useState(false);
   const handleExport = async () => {
     setExporting(true);
     try { await userApi.exportUsers(); }
-    catch (e: any) { alert(e?.message || 'Failed to export users'); }
+    catch (e: any) { setError(e?.message || 'Failed to export users'); }
     finally { setExporting(false); }
   };
 
-  const [bulkSending, setBulkSending] = useState(false);
   const handleBulkReminders = async () => {
     if (!window.confirm('Email every student with an incomplete profile a checklist of their missing items?')) return;
     setBulkSending(true);
     try {
       const res = await studentProfileAPI.sendBulkProfileReminders();
-      alert(res.message || 'Reminders are being sent.');
+      setSuccess(res.message || 'Reminders are being sent.');
     } catch (e: any) {
-      alert(e?.response?.data?.message || 'Failed to send reminders.');
+      setError(e?.response?.data?.message || 'Failed to send reminders.');
     } finally { setBulkSending(false); }
-  };
-
-  const openInviteModal = () => {
-    setIsInviteModalOpen(true);
   };
 
   const closeInviteModal = () => {
     setIsInviteModalOpen(false);
-    setInviteFormData({
-      email: '',
-      firstName: '',
-      lastName: '',
-      mobileNumber: '',
-      batchId: '',
-      role: 'STUDENT',
-      customRoleId: ''
-    });
-    setInviteError('');
-    setInviteSuccess('');
-    setInviteWarning(null);
-  };
-
-  const openCreateModal = () => {
-    setIsCreateModalOpen(true);
+    setInviteFormData({ email: '', firstName: '', lastName: '', mobileNumber: '', batchId: '', role: 'STUDENT', customRoleId: '' });
+    setInviteError(''); setInviteSuccess(''); setInviteWarning(null);
   };
 
   const closeCreateModal = () => {
-    setIsCreateModalOpen(false);
-    setCreateModalError('');
-    setCreateFormData({
-      email: '',
-      firstName: '',
-      lastName: '',
-      role: 'INSTRUCTOR',
-      customRoleId: ''
-    });
+    setIsCreateModalOpen(false); setCreateModalError('');
+    setCreateFormData({ email: '', firstName: '', lastName: '', role: 'INSTRUCTOR', customRoleId: '' });
   };
 
-  const handleInviteFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setInviteFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleCreateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setCreateFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const handleInviteFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setInviteFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleCreateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setCreateFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleInviteStudent = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!inviteFormData.email || !inviteFormData.firstName || !inviteFormData.lastName) {
-      setInviteError('Email, First Name, and Last Name are required');
-      return;
-    }
-
+    if (!inviteFormData.email || !inviteFormData.firstName || !inviteFormData.lastName) { setInviteError('Email, First Name, and Last Name are required'); return; }
     try {
-      setInvitingStudent(true);
-      setInviteError('');
-      setInviteSuccess('');
-      setInviteWarning(null);
-
-      // Use inviteStudent endpoint which sends welcome email
-      const result = await userApi.inviteStudent(
-        inviteFormData.email,
-        inviteFormData.firstName,
-        inviteFormData.lastName,
-        inviteFormData.batchId || undefined,
-        inviteFormData.role || undefined,
-        inviteFormData.customRoleId || undefined,
-        inviteFormData.mobileNumber || undefined
-      );
-
-      // Check if email was sent successfully
-      if (result.emailSent) {
-        setInviteSuccess(`✅ Student invited successfully! Welcome email sent to ${inviteFormData.email}`);
-      } else {
-        // Email failed but user was created - show warning with setup link
-        setInviteSuccess(`✅ Student account created for ${inviteFormData.email}`);
-        setInviteWarning({
-          message: `⚠️ Email could not be sent: ${result.emailError || 'Unknown error'}`,
-          setupLink: result.data?.setupLink
-        });
+      setInvitingStudent(true); setInviteError(''); setInviteSuccess(''); setInviteWarning(null);
+      const result = await userApi.inviteStudent(inviteFormData.email, inviteFormData.firstName, inviteFormData.lastName, inviteFormData.batchId || undefined, inviteFormData.role || undefined, inviteFormData.customRoleId || undefined, inviteFormData.mobileNumber || undefined);
+      if (result.emailSent) setInviteSuccess(`Student invited successfully. Welcome email sent to ${inviteFormData.email}`);
+      else {
+        setInviteSuccess(`Student account created for ${inviteFormData.email}`);
+        setInviteWarning({ message: `Email could not be sent: ${result.emailError || 'Unknown error'}`, setupLink: result.data?.setupLink });
       }
-      
       fetchData();
-    } catch (err: any) {
-      setInviteError(err.message || 'Failed to invite student');
-    } finally {
-      setInvitingStudent(false);
-    }
+    } catch (err: any) { setInviteError(err.message || 'Failed to invite student'); }
+    finally { setInvitingStudent(false); }
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!createFormData.email || !createFormData.firstName || !createFormData.lastName) {
-      setError('Email, First Name, and Last Name are required');
-      return;
-    }
-
+    if (!createFormData.email || !createFormData.firstName || !createFormData.lastName) { setCreateModalError('Email, First Name, and Last Name are required'); return; }
     try {
-      setCreatingUser(true);
-      setCreateModalError('');
-
-      // Generate a temporary password for non-student users
+      setCreatingUser(true); setCreateModalError('');
       const tempPassword = Math.random().toString(36).slice(-12);
-
-      // Use createUser endpoint for non-student users
-      await userApi.createUser(
-        createFormData.email,
-        createFormData.firstName,
-        createFormData.lastName,
-        tempPassword,
-        createFormData.role,
-        createFormData.customRoleId || undefined
-      );
-
-      setSuccess(`✅ User created successfully! Role: ${createFormData.role}`);
-      closeCreateModal();
-      fetchData();
-    } catch (err: any) {
-      setCreateModalError(err.message || 'Failed to create user');
-    } finally {
-      setCreatingUser(false);
-    }
+      await userApi.createUser(createFormData.email, createFormData.firstName, createFormData.lastName, tempPassword, createFormData.role, createFormData.customRoleId || undefined);
+      setSuccess(`User created successfully. Role: ${prettyRole(createFormData.role)}`);
+      closeCreateModal(); fetchData();
+    } catch (err: any) { setCreateModalError(err.message || 'Failed to create user'); }
+    finally { setCreatingUser(false); }
   };
 
   const handleRoleChange = async () => {
-    if (!editingUser || !selectedRole) {
-      setError('Please select a role');
-      return;
-    }
-
-    const roleChanged = selectedRole !== editingUser.role;
-    const customRoleChanged = selectedCustomRoleId !== (editingUser.customRoleId || '');
-
-    if (!roleChanged && !customRoleChanged) {
-      setError('No changes to save');
-      return;
-    }
-
+    if (!editingUser || !selectedRole) return;
     try {
-      setSubmitting(true);
-      setError('');
-
+      setSubmitting(true); setError('');
       await userApi.updateUserRole(editingUser._id, selectedRole, selectedCustomRoleId || null);
       setSuccess('User role updated successfully');
-
-      // Update local state
-      setUsers(users.map(u =>
-        u._id === editingUser._id ? { ...u, role: selectedRole, customRoleId: selectedCustomRoleId || undefined } : u
-      ));
-
+      setUsers(prev => prev.map(u => u._id === editingUser._id ? { ...u, role: selectedRole, customRoleId: selectedCustomRoleId || undefined } : u));
       closeRoleModal();
-    } catch (err: any) {
-      setError(err.message || 'Failed to update role');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (err: any) { setError(err.message || 'Failed to update role'); }
+    finally { setSubmitting(false); }
   };
 
   const handleActivateUser = async (user: User) => {
-    try {
-      setError('');
-      await userApi.activateUser(user._id);
-      setSuccess('User activated successfully');
-      await fetchData();
-    } catch (err: any) {
-      setError(err.message || 'Failed to activate user');
-    }
+    try { await userApi.activateUser(user._id); setSuccess('User activated successfully'); await fetchData(); }
+    catch (err: any) { setError(err.message || 'Failed to activate user'); }
   };
 
   const handleDeactivateUser = async (user: User) => {
-    if (!window.confirm(`Are you sure you want to deactivate ${user.firstName} ${user.lastName}?`)) {
-      return;
-    }
-
-    try {
-      setError('');
-      await userApi.deactivateUser(user._id);
-      setSuccess('User deactivated successfully');
-      await fetchData();
-    } catch (err: any) {
-      setError(err.message || 'Failed to deactivate user');
-    }
+    if (!window.confirm(`Deactivate ${user.firstName} ${user.lastName}?`)) return;
+    try { await userApi.deactivateUser(user._id); setSuccess('User deactivated successfully'); await fetchData(); }
+    catch (err: any) { setError(err.message || 'Failed to deactivate user'); }
   };
 
   const handleDeleteUser = async (user: User) => {
-    if (!window.confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      setError('');
-      await userApi.deleteUser(user._id);
-      setSuccess('User deleted successfully');
-      setUsers(users.filter(u => u._id !== user._id));
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete user');
-    }
+    if (!window.confirm(`Delete ${user.firstName} ${user.lastName}? This action cannot be undone.`)) return;
+    try { await userApi.deleteUser(user._id); setSuccess('User deleted successfully'); setUsers(prev => prev.filter(u => u._id !== user._id)); }
+    catch (err: any) { setError(err.message || 'Failed to delete user'); }
   };
 
   if (loading) return <Spinner fullScreen />;
 
+  const statCards = [
+    { label: 'Total Users', value: stats.total, icon: 'people', tone: 'navy', note: 'All user accounts' },
+    { label: 'Students', value: stats.students, icon: 'mortarboard', tone: 'teal', note: `${stats.total ? Math.round(stats.students / stats.total * 100) : 0}% of users` },
+    { label: 'Trainers', value: stats.trainers, icon: 'person-workspace', tone: 'purple', note: 'Instructor accounts' },
+    { label: 'Admins', value: stats.admins, icon: 'shield-check', tone: 'amber', note: 'Platform & tenant admins' },
+  ];
+
   return (
     <div className="users-page">
       <div className="users-header">
-        <div className="users-header-text">
-          <h1>User Management</h1>
-          <p className="users-subtitle">Manage tenant users, roles, and permissions</p>
-        </div>
-        <div className="users-header-actions">
-          <Button 
-            onClick={openInviteModal}
-            className="btn-header-sm"
-          >
-            📧 Invite Student
-          </Button>
-          <Button 
-            onClick={() => navigate('/bulk-upload')}
-            className="btn-header-sm btn-secondary-header"
-          >
-            📤 Bulk Upload
-          </Button>
-          <Button
-            onClick={openCreateModal}
-            className="btn-header-sm btn-secondary-header"
-          >
-            👥 Create User
-          </Button>
-          <Button
-            onClick={handleExport}
-            disabled={exporting}
-            className="btn-header-sm btn-secondary-header"
-          >
-            {exporting ? '⏳ Exporting…' : '📊 Export to Excel'}
-          </Button>
-          <Button
-            onClick={handleBulkReminders}
-            disabled={bulkSending}
-            className="btn-header-sm btn-secondary-header"
-          >
-            {bulkSending ? '⏳ Sending…' : '📧 Email incomplete profiles'}
-          </Button>
-        </div>
+        <div><h1>Users</h1><p>Manage students, instructors and administrators</p></div>
+        <details className="add-user-menu">
+          <summary><i className="bi bi-plus-lg" /> Add User <i className="bi bi-chevron-down" /></summary>
+          <div className="add-user-menu-panel">
+            <button onClick={() => setIsInviteModalOpen(true)}><i className="bi bi-envelope-plus" /><span><strong>Invite Student</strong><small>Send setup instructions by email</small></span></button>
+            <button onClick={() => setIsCreateModalOpen(true)}><i className="bi bi-person-plus" /><span><strong>Create User</strong><small>Create staff, trainer or admin</small></span></button>
+            <button onClick={() => navigate('/bulk-upload')}><i className="bi bi-file-earmark-arrow-up" /><span><strong>Bulk Upload</strong><small>Import multiple users</small></span></button>
+          </div>
+        </details>
       </div>
 
-      <div className="users-stats">
-        <div className="stat-card">
-          <div className="stat-card-head">
-            <span className="stat-icon blue">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-            </span>
-            <span className="stat-label">Total Users</span>
-          </div>
-          <div className="stat-value">{users.length}</div>
-          <div className="stat-sub up">↗ +12% from last month</div>
-          <svg className="stat-spark" viewBox="0 0 80 24" preserveAspectRatio="none"><polyline points="0,18 16,14 32,16 48,8 64,11 80,4" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-card-head">
-            <span className="stat-icon green">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" /></svg>
-            </span>
-            <span className="stat-label">Active Users</span>
-          </div>
-          <div className="stat-value">{activeCount}</div>
-          <div className="stat-sub">{activePct}% of total users</div>
-          <svg className="stat-spark" viewBox="0 0 80 24" preserveAspectRatio="none"><polyline points="0,16 16,10 32,13 48,6 64,9 80,5" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-card-head">
-            <span className="stat-icon purple">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5" /><path d="M20 21a8 8 0 0 0-16 0" /></svg>
-            </span>
-            <span className="stat-label">Roles</span>
-          </div>
-          <div className="stat-value">{distinctRoles.length}</div>
-          <div className="stat-sub">{distinctRoles.map(prettyRole).slice(0, 3).join(', ')}</div>
-          <svg className="stat-spark" viewBox="0 0 80 24" preserveAspectRatio="none"><polyline points="0,12 16,16 32,9 48,14 64,8 80,12" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-card-head">
-            <span className="stat-icon amber">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></svg>
-            </span>
-            <span className="stat-label">New Users</span>
-          </div>
-          <div className="stat-value">{newThisMonth}</div>
-          <div className="stat-sub">This month</div>
-          <svg className="stat-spark" viewBox="0 0 80 24" preserveAspectRatio="none"><polyline points="0,17 16,15 32,16 48,12 64,13 80,9" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </div>
-      </div>
+      <section className="users-stats" aria-label="User summary">
+        {statCards.map(card => <article className="user-stat-card" key={card.label}>
+          <span className={`user-stat-icon ${card.tone}`}><i className={`bi bi-${card.icon}`} /></span>
+          <div><span>{card.label}</span><strong>{card.value.toLocaleString('en-IN')}</strong><small>{card.note}</small></div>
+        </article>)}
+      </section>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
       {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
-      {warning && (
-        <div className="alert alert-warning" style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <strong>⚠️ Email Failed</strong>
-              <p style={{ margin: '0.5rem 0' }}>{warning.message}</p>
-              {warning.setupLink && (
-                <div style={{ marginTop: '0.5rem' }}>
-                  <p style={{ margin: '0.25rem 0', fontWeight: 'bold' }}>Share this setup link manually:</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    <input
-                      type="text"
-                      value={warning.setupLink}
-                      readOnly
-                      style={{ flex: 1, padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px', fontSize: '0.85rem' }}
-                    />
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(warning.setupLink || '');
-                        setSuccess('Setup link copied to clipboard!');
-                      }}
-                      style={{ padding: '0.5rem 1rem', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-            <button
-              onClick={() => setWarning(null)}
-              style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', padding: '0' }}
-            >
-              ×
-            </button>
-          </div>
+      {warning && <div className="users-warning"><i className="bi bi-exclamation-triangle" /><div><strong>Email delivery issue</strong><span>{warning.message}</span>{warning.setupLink && <button onClick={() => navigator.clipboard.writeText(warning.setupLink || '')}>Copy setup link</button>}</div><button className="icon-button" onClick={() => setWarning(null)}><i className="bi bi-x-lg" /></button></div>}
+
+      <div className="users-toolbar">
+        <div className="users-search"><i className="bi bi-search" /><input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Search by name, email or mobile..." /></div>
+        <div className={`filters-cluster ${showFilters ? 'mobile-open' : ''}`}>
+          <label><span>Role</span><select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}><option value="all">All Roles</option>{Array.from(new Set(users.map(u => u.role))).map(r => <option value={r} key={r}>{prettyRole(r)}</option>)}</select></label>
+          <label><span>Status</span><select value={activeFilter} onChange={e => setActiveFilter(e.target.value as any)}><option value="all">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+          <label><span>Batch</span><select value={batchFilter} onChange={e => setBatchFilter(e.target.value)}><option value="all">All Batches</option>{batches.map(b => <option value={b._id} key={b._id}>{b.name}</option>)}</select></label>
         </div>
-      )}
-
-      <div className="users-controls-card">
-        <div className="users-controls">
-          <div className="search-box">
-            <span className="search-ic">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-            </span>
-            <input
-              type="text"
-              placeholder="Search by name or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-          </div>
-
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Roles</option>
-            {Array.from(new Set(users.map(u => u.role).filter(Boolean))).map(r => (
-              <option key={r} value={r}>{prettyRole(r)}</option>
-            ))}
-          </select>
-
-          <select
-            value={activeFilter}
-            onChange={(e) => setActiveFilter(e.target.value as 'all' | 'active' | 'inactive')}
-            className="filter-select"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-
-          <select
-            value={batchFilter}
-            onChange={(e) => setBatchFilter(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Batches</option>
-            {batches.map(batch => (
-              <option key={batch._id} value={batch._id}>{batch.name}</option>
-            ))}
-          </select>
+        <button className="mobile-filter-button" onClick={() => setShowFilters(v => !v)}><i className="bi bi-funnel" /> Filters</button>
+        <div className="toolbar-actions">
+          <button className="secondary-action" onClick={handleExport} disabled={exporting}><i className="bi bi-download" /> {exporting ? 'Exporting...' : 'Export'}</button>
+          <details className="bulk-menu"><summary>Bulk Actions <i className="bi bi-chevron-down" /></summary><div><button onClick={handleBulkReminders} disabled={bulkSending}><i className="bi bi-envelope-check" /> {bulkSending ? 'Sending...' : 'Email incomplete profiles'}</button><button onClick={() => navigate('/bulk-upload')}><i className="bi bi-file-earmark-arrow-up" /> Bulk upload users</button></div></details>
         </div>
       </div>
 
-      <div className="users-table-container">
-        {filteredUsers.length === 0 ? (
-          <div className="no-users">
-            <p>No users found matching your criteria.</p>
+      <section className="users-list-card">
+        <div className="users-list-head"><h2>Users <span>({filteredUsers.length})</span></h2><span>{filteredUsers.length} users found</span></div>
+        {filteredUsers.length === 0 ? <div className="users-empty"><i className="bi bi-people" /><strong>No users found</strong><span>Try changing your search or filters.</span></div> : <>
+          <div className="users-table-wrap">
+            <table className="users-table">
+              <thead><tr><th>User</th><th>Contact</th><th>Role</th><th>Batch</th><th>Status</th><th>Joined On</th><th className="actions-col">Actions</th></tr></thead>
+              <tbody>{paginatedUsers.map(user => <tr key={user._id} className={!user.isActive ? 'inactive-row' : ''}>
+                <td data-label="User"><div className="user-identity"><span className="avatar">{(user.firstName?.[0] || '')}{(user.lastName?.[0] || '')}</span><div><button className={user.role === 'STUDENT' ? 'name-link' : 'plain-name'} onClick={() => user.role === 'STUDENT' && navigate(`/users/${user._id}`, { state: { user } })}>{user.firstName} {user.lastName}</button><small>{user.email}{currentUser && (currentUser._id === user._id || currentUser.id === user._id) && <span className="you-badge">You</span>}</small>{user.role === 'STUDENT' && user.completeness != null && <small className="completion">{user.completeness}% profile complete</small>}</div></div></td>
+                <td data-label="Contact"><div className="contact-cell"><span><i className="bi bi-envelope" />{user.email}</span>{user.phone && <span><i className="bi bi-telephone" />{user.phone}</span>}</div></td>
+                <td data-label="Role"><span className={`role-badge ${user.role.toLowerCase()}`}>{prettyRole(user.role)}</span>{user.customRoleId && <span className="role-badge custom">{roles.find(r => r._id === user.customRoleId)?.name || 'Custom'}</span>}</td>
+                <td data-label="Batch"><span className="batch-cell">{batchName(user)}</span></td>
+                <td data-label="Status"><span className={`status-badge ${user.isActive ? 'active' : 'inactive'}`}>{user.isActive ? 'Active' : 'Inactive'}</span></td>
+                <td data-label="Joined On"><span className="joined-cell">{formatJoined(user.createdAt)}</span></td>
+                <td data-label="Actions" className="actions-col"><details className="row-actions"><summary aria-label={`Actions for ${user.firstName} ${user.lastName}`}><i className="bi bi-three-dots-vertical" /></summary><div>{user.role === 'STUDENT' && <button onClick={() => navigate(`/users/${user._id}`, { state: { user } })}><i className="bi bi-eye" /> View details</button>}<button onClick={() => openEditModal(user)}><i className="bi bi-person-gear" /> Change role</button>{user.isActive ? <button onClick={() => handleDeactivateUser(user)}><i className="bi bi-person-dash" /> Deactivate</button> : <button onClick={() => handleActivateUser(user)}><i className="bi bi-person-check" /> Activate</button>}<button className="danger" onClick={() => handleDeleteUser(user)}><i className="bi bi-trash3" /> Delete</button></div></details></td>
+              </tr>)}</tbody>
+            </table>
           </div>
-        ) : (
-          <table className="users-table">
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Joined On</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedUsers.map((user) => (
-                <tr key={user._id} className={!user.isActive ? 'inactive-row' : ''}>
-                  <td>
-                    <div className="user-name">
-                      <span className="avatar">{user.firstName[0]}{user.lastName[0]}</span>
-                      <div>
-                        <div className="full-name">
-                          {user.role === 'STUDENT' ? (
-                            <span
-                              className="user-link"
-                              onClick={() => navigate(`/users/${user._id}`, { state: { user } })}
-                              title="View student details"
-                            >
-                              {user.firstName} {user.lastName}
-                            </span>
-                          ) : (
-                            <>{user.firstName} {user.lastName}</>
-                          )}
-                          {currentUser && (currentUser._id === user._id || currentUser.id === user._id) && (
-                            <span className="you-badge">You</span>
-                          )}
-                        </div>
-                        {user.role === 'STUDENT' && user.completeness != null && (
-                          <div style={{ fontSize: 11, fontWeight: 600, marginTop: 2, color: user.completeness >= 70 ? '#16a34a' : user.completeness >= 40 ? '#d97706' : '#dc2626' }} title="Profile completeness">
-                            {user.completeness}% profile complete
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td>{user.email}</td>
-                  <td>
-                    <span className={`role-badge ${user.role.toLowerCase()}`}>
-                      {user.role === 'TENANT_ADMIN' ? 'Tenant Admin' : user.role === 'SUPER_ADMIN' ? 'Super Admin' : user.role}
-                    </span>
-                    {user.customRoleId && (
-                      <span className="role-badge custom" style={{ marginLeft: 4, fontSize: 10 }}>
-                        {roles.find(r => r._id === user.customRoleId)?.name || 'Custom'}
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    <span className={`status-badge ${user.isActive ? 'active' : 'inactive'}`}>
-                      <span className="status-dot" />{user.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="joined-cell">{formatJoined(user.createdAt)}</td>
-                  <td>
-                    <div className="action-buttons">
-                      <span
-                        className="action-icon edit-icon"
-                        onClick={() => openEditModal(user)}
-                        title="Edit Role"
-                      >
-                        ✏️
-                      </span>
-                      {user.isActive ? (
-                        <span
-                          className="action-icon deactivate-icon"
-                          onClick={() => handleDeactivateUser(user)}
-                          title="Deactivate User"
-                        >
-                          ⊘
-                        </span>
-                      ) : (
-                        <span
-                          className="action-icon activate-icon"
-                          onClick={() => handleActivateUser(user)}
-                          title="Activate User"
-                        >
-                          ✓
-                        </span>
-                      )}
-                      <span
-                        className="action-icon delete-icon"
-                        onClick={() => handleDeleteUser(user)}
-                        title="Delete User"
-                      >
-                        🗑️
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
 
-        {/* Pagination Controls */}
-        {filteredUsers.length > 0 && (
-          <div className="pagination-container">
-            <div className="pagination-info">
-              <span>Showing {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} users</span>
-              <select
-                value={itemsPerPage}
-                onChange={handleItemsPerPageChange}
-                className="items-per-page-select"
-              >
-                <option value={5}>5 per page</option>
-                <option value={10}>10 per page</option>
-                <option value={25}>25 per page</option>
-                <option value={50}>50 per page</option>
-              </select>
-            </div>
-            <div className="pagination-controls">
-              <button
-                className="pagination-btn"
-                onClick={() => handlePageChange(1)}
-                disabled={currentPage === 1}
-                title="First page"
-              >
-                «
-              </button>
-              <button
-                className="pagination-btn"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                title="Previous page"
-              >
-                ‹
-              </button>
-              <div className="pagination-pages">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  return (
-                    <button
-                      key={pageNum}
-                      className={`pagination-btn ${currentPage === pageNum ? 'active' : ''}`}
-                      onClick={() => handlePageChange(pageNum)}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                className="pagination-btn"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                title="Next page"
-              >
-                ›
-              </button>
-              <button
-                className="pagination-btn"
-                onClick={() => handlePageChange(totalPages)}
-                disabled={currentPage === totalPages}
-                title="Last page"
-              >
-                »
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+          <div className="users-pagination"><span>Showing {startIndex + 1} to {Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} users</span><div className="pagination-actions"><button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}><i className="bi bi-chevron-left" /></button>{Array.from({ length: Math.min(5, totalPages) }, (_, i) => { const page = totalPages <= 5 ? i + 1 : Math.min(Math.max(currentPage - 2, 1), totalPages - 4) + i; return <button key={page} className={page === currentPage ? 'active' : ''} onClick={() => handlePageChange(page)}>{page}</button>; })}<button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}><i className="bi bi-chevron-right" /></button><select value={itemsPerPage} onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}><option value={10}>10 / page</option><option value={20}>20 / page</option><option value={25}>25 / page</option><option value={50}>50 / page</option></select></div></div>
+        </>}
+      </section>
 
-      {/* Invite Student Modal */}
-      <Modal
-        isOpen={isInviteModalOpen}
-        onClose={closeInviteModal}
-        title="📧 Invite New Student"
-        size="medium"
-      >
+      <Modal isOpen={isInviteModalOpen} onClose={closeInviteModal} title="Invite New Student" size="medium">
         <form onSubmit={handleInviteStudent} className="invite-form">
-          {inviteError && (
-            <Alert type="error" message={inviteError} onClose={() => setInviteError('')} />
-          )}
-          {inviteSuccess && (
-            <Alert type="success" message={inviteSuccess} onClose={() => setInviteSuccess('')} />
-          )}
-          {inviteWarning && (
-            <div className="invite-warning" style={{ background: '#fff8e1', border: '1px solid #ffcc02', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
-              <p style={{ margin: 0, color: '#856404' }}>{inviteWarning.message}</p>
-              {inviteWarning.setupLink && (
-                <p style={{ margin: '8px 0 0', fontSize: '13px' }}>
-                  <strong>Setup Link:</strong>{' '}
-                  <code style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', wordBreak: 'break-all' }}>
-                    {inviteWarning.setupLink}
-                  </code>
-                </p>
-              )}
-            </div>
-          )}
-
-          {!inviteSuccess ? (
-            <>
-              <div className="invite-info">
-                <p className="info-text">
-                  ℹ️ A welcome email with setup instructions will be sent to the student.
-                </p>
-              </div>
-
-              <Input
-                type="text"
-                name="firstName"
-                label="First Name *"
-                placeholder="John"
-                value={inviteFormData.firstName}
-                onChange={handleInviteFormChange}
-                required
-              />
-
-              <Input
-                type="text"
-                name="lastName"
-                label="Last Name *"
-                placeholder="Doe"
-                value={inviteFormData.lastName}
-                onChange={handleInviteFormChange}
-                required
-              />
-
-              <Input
-                type="email"
-                name="email"
-                label="Email Address *"
-                placeholder="john.doe@example.com"
-                value={inviteFormData.email}
-                onChange={handleInviteFormChange}
-                required
-              />
-
-              <Input
-                type="tel"
-                name="mobileNumber"
-                label="Mobile Number (Optional)"
-                placeholder="+91 9876543210"
-                value={inviteFormData.mobileNumber}
-                onChange={handleInviteFormChange}
-              />
-
-              <div className="form-group">
-                <label htmlFor="batch">Batch (Optional)</label>
-                <select
-                  id="batch"
-                  name="batchId"
-                  value={inviteFormData.batchId}
-                  onChange={handleInviteFormChange}
-                  className="form-select"
-                >
-                  <option value="">-- Select a batch --</option>
-                  {batches.map(batch => (
-                    <option key={batch._id} value={batch._id}>
-                      {batch.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="inviteRole">Role</label>
-                <select
-                  id="inviteRole"
-                  name="role"
-                  value={inviteFormData.role}
-                  onChange={handleInviteFormChange}
-                  className="form-select"
-                >
-                  <option value="STUDENT">Student</option>
-                  <option value="INSTRUCTOR">Instructor</option>
-                  <option value="STAFF">Staff</option>
-                  <option value="TENANT_ADMIN">Tenant Admin</option>
-                </select>
-              </div>
-
-              {roles.length > 0 && (
-                <div className="form-group">
-                  <label htmlFor="inviteCustomRole">Custom Permission Role <span className="optional-label">(Optional)</span></label>
-                  <select
-                    id="inviteCustomRole"
-                    name="customRoleId"
-                    value={inviteFormData.customRoleId}
-                    onChange={handleInviteFormChange}
-                    className="form-select"
-                  >
-                    <option value="">-- Use default permissions for base role --</option>
-                    {roles.map((r) => (
-                      <option key={r._id} value={r._id}>
-                        {r.name} ({r.permissions.length} permissions)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="modal-actions">
-                <Button
-                  type="button"
-                  onClick={closeInviteModal}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  loading={invitingStudent}
-                  className="btn-primary"
-                >
-                  Send Invitation Email
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="modal-actions">
-              <Button
-                type="button"
-                onClick={() => {
-                  setInviteSuccess('');
-                  setInviteWarning(null);
-                  setInviteFormData({ email: '', firstName: '', lastName: '', mobileNumber: '', batchId: '', role: 'STUDENT', customRoleId: '' });
-                }}
-                className="btn-secondary"
-              >
-                Invite Another
-              </Button>
-              <Button
-                type="button"
-                onClick={closeInviteModal}
-                className="btn-primary"
-              >
-                Done
-              </Button>
-            </div>
-          )}
+          {inviteError && <Alert type="error" message={inviteError} onClose={() => setInviteError('')} />}
+          {inviteSuccess && <Alert type="success" message={inviteSuccess} onClose={() => setInviteSuccess('')} />}
+          {inviteWarning && <div className="soft-warning"><i className="bi bi-exclamation-triangle" /><span>{inviteWarning.message}</span>{inviteWarning.setupLink && <code>{inviteWarning.setupLink}</code>}</div>}
+          {!inviteSuccess ? <>
+            <div className="form-info"><i className="bi bi-info-circle" /><span>A welcome email with setup instructions will be sent to the student.</span></div>
+            <Input type="text" name="firstName" label="First Name *" placeholder="John" value={inviteFormData.firstName} onChange={handleInviteFormChange} required />
+            <Input type="text" name="lastName" label="Last Name *" placeholder="Doe" value={inviteFormData.lastName} onChange={handleInviteFormChange} required />
+            <Input type="email" name="email" label="Email Address *" placeholder="john.doe@example.com" value={inviteFormData.email} onChange={handleInviteFormChange} required />
+            <Input type="tel" name="mobileNumber" label="Mobile Number (Optional)" placeholder="+91 9876543210" value={inviteFormData.mobileNumber} onChange={handleInviteFormChange} />
+            <div className="form-group"><label htmlFor="batch">Batch (Optional)</label><select id="batch" name="batchId" value={inviteFormData.batchId} onChange={handleInviteFormChange} className="form-select"><option value="">Select a batch</option>{batches.map(batch => <option key={batch._id} value={batch._id}>{batch.name}</option>)}</select></div>
+            <div className="form-group"><label htmlFor="inviteRole">Role</label><select id="inviteRole" name="role" value={inviteFormData.role} onChange={handleInviteFormChange} className="form-select"><option value="STUDENT">Student</option><option value="INSTRUCTOR">Instructor</option><option value="STAFF">Staff</option><option value="TENANT_ADMIN">Tenant Admin</option></select></div>
+            {roles.length > 0 && <div className="form-group"><label htmlFor="inviteCustomRole">Custom Permission Role <span className="optional-label">(Optional)</span></label><select id="inviteCustomRole" name="customRoleId" value={inviteFormData.customRoleId} onChange={handleInviteFormChange} className="form-select"><option value="">Use default permissions</option>{roles.map(r => <option key={r._id} value={r._id}>{r.name} ({r.permissions.length} permissions)</option>)}</select></div>}
+            <div className="modal-actions"><Button type="button" onClick={closeInviteModal} className="btn-secondary">Cancel</Button><Button type="submit" loading={invitingStudent} className="btn-primary">Send Invitation</Button></div>
+          </> : <div className="modal-actions"><Button type="button" onClick={() => { setInviteSuccess(''); setInviteWarning(null); setInviteFormData({ email: '', firstName: '', lastName: '', mobileNumber: '', batchId: '', role: 'STUDENT', customRoleId: '' }); }} className="btn-secondary">Invite Another</Button><Button type="button" onClick={closeInviteModal} className="btn-primary">Done</Button></div>}
         </form>
       </Modal>
 
-      {/* Create User Modal */}
-      <Modal
-        isOpen={isCreateModalOpen}
-        onClose={closeCreateModal}
-        title="👥 Create New User"
-        size="medium"
-      >
+      <Modal isOpen={isCreateModalOpen} onClose={closeCreateModal} title="Create New User" size="medium">
         <form onSubmit={handleCreateUser} className="create-user-form">
           {createModalError && <Alert type="error" message={createModalError} onClose={() => setCreateModalError('')} />}
-          <div className="create-info">
-            <p className="info-text">
-              ℹ️ Create staff, instructors, or administrators. No email will be sent.
-            </p>
-          </div>
-
-          <Input
-            type="text"
-            name="firstName"
-            label="First Name *"
-            placeholder="Jane"
-            value={createFormData.firstName}
-            onChange={handleCreateFormChange}
-            required
-          />
-
-          <Input
-            type="text"
-            name="lastName"
-            label="Last Name *"
-            placeholder="Smith"
-            value={createFormData.lastName}
-            onChange={handleCreateFormChange}
-            required
-          />
-
-          <Input
-            type="email"
-            name="email"
-            label="Email Address *"
-            placeholder="jane.smith@example.com"
-            value={createFormData.email}
-            onChange={handleCreateFormChange}
-            required
-          />
-
-          <div className="form-group">
-            <label htmlFor="role">Role *</label>
-            <select
-              id="role"
-              name="role"
-              value={createFormData.role}
-              onChange={handleCreateFormChange}
-              className="form-select"
-              required
-            >
-              <option value="STUDENT">Student</option>
-              <option value="INSTRUCTOR">Instructor</option>
-              <option value="STAFF">Staff</option>
-              <option value="TENANT_ADMIN">Tenant Admin</option>
-            </select>
-          </div>
-
-          {roles.length > 0 && (
-            <div className="form-group">
-              <label htmlFor="createCustomRole">Custom Permission Role <span className="optional-label">(Optional)</span></label>
-              <select
-                id="createCustomRole"
-                name="customRoleId"
-                value={createFormData.customRoleId}
-                onChange={handleCreateFormChange}
-                className="form-select"
-              >
-                <option value="">-- Use default permissions for base role --</option>
-                {roles.map((r) => (
-                  <option key={r._id} value={r._id}>
-                    {r.name} ({r.permissions.length} permissions)
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div className="modal-actions">
-            <Button
-              type="button"
-              onClick={closeCreateModal}
-              className="btn-secondary"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              loading={creatingUser}
-              className="btn-primary"
-            >
-              Create User
-            </Button>
-          </div>
+          <div className="form-info"><i className="bi bi-info-circle" /><span>Create staff, instructors or administrators. No email will be sent.</span></div>
+          <Input type="text" name="firstName" label="First Name *" placeholder="Jane" value={createFormData.firstName} onChange={handleCreateFormChange} required />
+          <Input type="text" name="lastName" label="Last Name *" placeholder="Smith" value={createFormData.lastName} onChange={handleCreateFormChange} required />
+          <Input type="email" name="email" label="Email Address *" placeholder="jane.smith@example.com" value={createFormData.email} onChange={handleCreateFormChange} required />
+          <div className="form-group"><label htmlFor="role">Role *</label><select id="role" name="role" value={createFormData.role} onChange={handleCreateFormChange} className="form-select" required><option value="STUDENT">Student</option><option value="INSTRUCTOR">Instructor</option><option value="STAFF">Staff</option><option value="TENANT_ADMIN">Tenant Admin</option></select></div>
+          {roles.length > 0 && <div className="form-group"><label htmlFor="createCustomRole">Custom Permission Role <span className="optional-label">(Optional)</span></label><select id="createCustomRole" name="customRoleId" value={createFormData.customRoleId} onChange={handleCreateFormChange} className="form-select"><option value="">Use default permissions</option>{roles.map(r => <option key={r._id} value={r._id}>{r.name} ({r.permissions.length} permissions)</option>)}</select></div>}
+          <div className="modal-actions"><Button type="button" onClick={closeCreateModal} className="btn-secondary">Cancel</Button><Button type="submit" loading={creatingUser} className="btn-primary">Create User</Button></div>
         </form>
       </Modal>
 
-      {/* Edit Role Modal */}
-      <Modal
-        isOpen={isRoleModalOpen}
-        onClose={closeRoleModal}
-        title="🔄 Change User Role"
-        size="medium"
-      >
-        {editingUser && (
-          <div className="role-modal-content">
-            <div className="user-info">
-              <p><strong>User:</strong> {editingUser.firstName} {editingUser.lastName}</p>
-              <p><strong>Email:</strong> {editingUser.email}</p>
-              <p><strong>Current Role:</strong> <span className="role-badge">{editingUser.role}</span></p>
-              {editingUser.customRoleId && (
-                <p><strong>Custom Role:</strong> <span className="role-badge custom">{roles.find(r => r._id === editingUser.customRoleId)?.name || 'Unknown'}</span></p>
-              )}
-            </div>
-
-            <div className="role-selection">
-              <label>Base Role</label>
-              <select
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-                className="form-select"
-              >
-                <option value="">-- Select a role --</option>
-                <option value="STUDENT">Student</option>
-                <option value="INSTRUCTOR">Instructor</option>
-                <option value="STAFF">Staff</option>
-                <option value="TENANT_ADMIN">Tenant Admin</option>
-              </select>
-            </div>
-
-            <div className="role-selection">
-              <label>Custom Permission Role <span className="optional-label">(Optional)</span></label>
-              <select
-                value={selectedCustomRoleId}
-                onChange={(e) => setSelectedCustomRoleId(e.target.value)}
-                className="form-select"
-              >
-                <option value="">-- Use default permissions for base role --</option>
-                {roles.map((r) => (
-                  <option key={r._id} value={r._id}>
-                    {r.name} ({r.permissions.length} permissions)
-                  </option>
-                ))}
-              </select>
-              <p className="role-help-text">
-                {selectedCustomRoleId
-                  ? '⚡ This user will get permissions from the selected custom role instead of the default permissions.'
-                  : 'ℹ️ User will get the default permissions for their base role.'}
-              </p>
-            </div>
-
-            <div className="modal-actions">
-              <Button
-                type="button"
-                onClick={closeRoleModal}
-                className="btn-secondary"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={handleRoleChange}
-                loading={submitting}
-                className="btn-primary"
-              >
-                Update Role
-              </Button>
-            </div>
-          </div>
-        )}
+      <Modal isOpen={isRoleModalOpen} onClose={closeRoleModal} title="Change User Role" size="medium">
+        {editingUser && <div className="role-modal-content"><div className="user-info"><strong>{editingUser.firstName} {editingUser.lastName}</strong><span>{editingUser.email}</span></div><div className="form-group"><label>Base Role</label><select value={selectedRole} onChange={e => setSelectedRole(e.target.value)} className="form-select"><option value="">Select a role</option><option value="STUDENT">Student</option><option value="INSTRUCTOR">Instructor</option><option value="STAFF">Staff</option><option value="TENANT_ADMIN">Tenant Admin</option></select></div><div className="form-group"><label>Custom Permission Role <span className="optional-label">(Optional)</span></label><select value={selectedCustomRoleId} onChange={e => setSelectedCustomRoleId(e.target.value)} className="form-select"><option value="">Use default permissions</option>{roles.map(r => <option key={r._id} value={r._id}>{r.name} ({r.permissions.length} permissions)</option>)}</select></div><div className="modal-actions"><Button type="button" onClick={closeRoleModal} className="btn-secondary">Cancel</Button><Button type="button" onClick={handleRoleChange} loading={submitting} className="btn-primary">Update Role</Button></div></div>}
       </Modal>
     </div>
   );

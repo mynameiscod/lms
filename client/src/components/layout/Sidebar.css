@@ -2,10 +2,15 @@
 .sidebar {
   position: fixed;
   top: 0;
-  bottom: 0;
+  bottom: auto;
   left: 0;
   width: 232px;
-  height: 100dvh;
+  /* #root is rendered at zoom:.75. A 100vh fixed element therefore covers only
+     75% of the visible browser height. Compensate so the sidebar reaches the
+     physical bottom edge at normal browser zoom. */
+  height: 133.333dvh;
+  min-height: 133.333vh;
+  max-height: 133.333dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -187,7 +192,9 @@
   .sidebar,
   .layout.sidebar-collapsed .sidebar {
     width: 280px !important;
-    height: 100dvh;
+    height: 133.333dvh;
+    min-height: 133.333vh;
+    max-height: 133.333dvh;
     transform: translateX(-100%);
     box-shadow: none;
   }

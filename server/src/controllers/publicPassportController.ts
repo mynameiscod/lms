@@ -147,8 +147,22 @@ export const signup = async (req: Request, res: Response) => {
 
     let user: any = await User.findOne({ email });
     if (user) {
-      // Existing account: only resume if it's a not-yet-active passport signup.
-      if (user.passport?.active) return res.status(409).json({ success: false, message: 'You already have a CareerPilot — please log in.' });
+      /**
+       * Only a signup that never completed may be resumed.
+       *
+       * This tested `active` alone, and `active` means "has paid" - it is set by
+       * activateMembership(), from the Razorpay verify or an admin conversion. So a member
+       * who had already verified their OTP, finished onboarding and been career-scored was
+       * still classed as an abandoned signup and walked back through the whole funnel,
+       * because the purchase was the only thing this guard could see. One such account
+       * re-ran signup a day later and the resume branch happily reissued its OTP.
+       *
+       * verifiedAt is the honest marker of a completed signup: past that point the account
+       * is real and the way back in is login, not signup. Nobody is stranded by this -
+       * loginOtpStart requires only that a passport subdocument exists, never that the
+       * membership is active, so an unpaid member still gets in by OTP.
+       */
+      if (user.passport?.active || user.passport?.verifiedAt) return res.status(409).json({ success: false, message: 'You already have a CareerPilot — please log in.' });
 
       /**
        * An existing account that is NOT a CareerPilot signup must be sent to log in.

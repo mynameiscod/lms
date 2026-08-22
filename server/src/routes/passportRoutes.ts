@@ -28,6 +28,7 @@ import * as careerRoles from '../controllers/careerRoleController';
 import * as careerSkills from '../controllers/careerSkillController';
 import * as roleBlueprints from '../controllers/roleSkillBlueprintController';
 import * as skillEvidence from '../controllers/skillEvidenceController';
+import * as questionDrafts from '../controllers/skillQuestionDraftController';
 import * as personalized from '../controllers/personalizedAssessmentController';
 import * as skillDna from '../controllers/skillDnaController';
 import * as readiness from '../controllers/roleReadinessController';
@@ -262,6 +263,16 @@ router.get('/skill-evidence',            MANAGE, skillEvidence.listEvidence);
 router.get('/skill-evidence/coverage',   MANAGE, skillEvidence.coverage);
 router.get('/skill-evidence/candidates', MANAGE, skillEvidence.candidates);
 router.get('/skill-evidence/skills',     MANAGE, skillEvidence.mappableSkills);
+/**
+ * AI question drafting. Generation spends money and is limited; review never is — an admin
+ * halfway through a queue of forty drafts must not be interrupted by a 429.
+ */
+router.get('/question-drafts',              MANAGE, questionDrafts.list);
+router.get('/question-drafts/coverage',     MANAGE, questionDrafts.coverage);
+router.post('/question-drafts/generate',    MANAGE, rateLimit('adminAi'), questionDrafts.generate);
+router.post('/question-drafts/:id/approve', MANAGE, questionDrafts.approve);
+router.post('/question-drafts/:id/reject',  MANAGE, questionDrafts.reject);
+
 router.get('/skill-evidence/:sourceType/:sourceId', MANAGE, skillEvidence.getItemEvidence);
 router.put('/skill-evidence/:sourceType/:sourceId', MANAGE, skillEvidence.saveItemEvidence);
 

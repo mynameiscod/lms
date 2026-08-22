@@ -78,6 +78,7 @@ import PassportAdminRoleBlueprint from './pages/Passport/AdminRoleBlueprint';
 import PassportAdminSkillEvidence from './pages/Passport/AdminSkillEvidence';
 import PassportAdminAssessmentPreview from './pages/Passport/AdminAssessmentPreview';
 import PassportAdminAssessmentShape from './pages/Passport/AdminAssessmentShape';
+import PassportAdminQuestionDrafts from './pages/Passport/AdminQuestionDrafts';
 import PassportAdminPathways from './pages/Passport/AdminPathways';
 import PassportAdminMissions from './pages/Passport/AdminMissions';
 import PassportHome from './pages/Passport/PassportHome';
@@ -500,6 +501,10 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/passport/skill-evidence" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminSkillEvidence /></Layout></ProtectedRoute>
+      } />
+      {/* AI drafts questions; a person approves them. Nothing reaches a student unreviewed. */}
+      <Route path="/admin/passport/question-drafts" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminQuestionDrafts /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/assessment-preview" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAssessmentPreview /></Layout></ProtectedRoute>

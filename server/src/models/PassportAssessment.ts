@@ -135,37 +135,57 @@ const PassportAssessmentSchema = new Schema<IPassportAssessment>(
 );
 
 // Starter bank (deterministic). Self-report items (career_clarity) score by option index.
-export const DEFAULT_QUESTIONS: IPassportQuestion[] = [
-  // Career clarity (self-report: later option = more clarity)
+/**
+ * THE CAREER INTAKE. Formerly the "Career Readiness Assessment".
+ *
+ * WHAT WAS REMOVED, AND WHY.
+ *
+ * Ten graded questions used to sit here: three aptitude ("25% of 200 is?"), three logical
+ * reasoning ("Odd one out: Apple, Mango, Carrot, Banana") and four technical ("Which is NOT
+ * a programming language?"). They produced most of the old Career Score, and that score
+ * gated a paid membership and was printed on a card shown to people who were not the
+ * student. None of them measured whether a member could do the role they were aiming at,
+ * they are trivially searchable, and the personalised skill assessment now measures the
+ * same ground properly — against named skills, against a published role blueprint, with an
+ * answer key somebody has actually read.
+ *
+ * WHAT SURVIVED, AND WHY.
+ *
+ * Every SELF-REPORT question. That is the whole rule, and it is not arbitrary: these ask
+ * about things no test can observe — how clear a member is about where they are going, how
+ * often they actually work on it, whether they have a resume, whether they have ever sat a
+ * mock interview. A skill assessment cannot see any of that, and it is exactly what decides
+ * which missions and nudges a member should get. They are cheap, they take a minute, and
+ * they are the reason this is now an INTAKE rather than an exam.
+ *
+ * These stay graded as `selfReport` with `correctIndex: -1`, so a later option means more
+ * readiness and nothing here is ever marked right or wrong.
+ *
+ * The Career Score no longer comes from this. It comes from role readiness — see
+ * careerScoreService. What a member says about themselves informs the plan; it does not set
+ * the number that is sold against.
+ */
+export const CAREER_INTAKE_QUESTIONS: IPassportQuestion[] = [
+  // Direction — how clear is this member about where they are going?
   { category: 'career_clarity', text: 'How clear are you about the career role you want?', options: ['No idea', 'Somewhat', 'Fairly clear', 'Very clear'], correctIndex: -1, selfReport: true, weight: 1 },
   { category: 'career_clarity', text: 'Do you know what skills your target role needs?', stages: ['foundation'], options: ['Not at all', 'A little', 'Mostly', 'Yes, in detail'], correctIndex: -1, selfReport: true, weight: 1 },
   { category: 'career_clarity', text: 'How often do you work on your career (weekly)?', options: ['Never', 'Rarely', 'Few times', 'Daily'], correctIndex: -1, selfReport: true, weight: 1 },
 
-  // Aptitude
-  { category: 'aptitude', text: 'If 5 pens cost ₹60, what do 8 pens cost?', options: ['₹80', '₹96', '₹90', '₹100'], correctIndex: 1, weight: 1 },
-  { category: 'aptitude', text: 'A train covers 120 km in 2 hours. Its speed is?', options: ['40 km/h', '50 km/h', '60 km/h', '80 km/h'], correctIndex: 2, weight: 1 },
-  { category: 'aptitude', text: '25% of 200 is?', options: ['25', '40', '50', '75'], correctIndex: 2, weight: 1 },
-
-  // Logical reasoning
-  { category: 'logical_reasoning', text: 'Find the next number: 2, 6, 12, 20, ?', options: ['24', '28', '30', '32'], correctIndex: 2, weight: 1 },
-  { category: 'logical_reasoning', text: 'If ALL Bloops are Razzies and ALL Razzies are Lazzies, then all Bloops are:', options: ['Lazzies', 'Not Lazzies', 'Sometimes Lazzies', 'None'], correctIndex: 0, weight: 1 },
-  { category: 'logical_reasoning', text: 'Odd one out: Apple, Mango, Carrot, Banana', options: ['Apple', 'Mango', 'Carrot', 'Banana'], correctIndex: 2, weight: 1 },
-
-  // Technical foundation
-  { category: 'technical', text: 'Which is NOT a programming language?', options: ['Python', 'Java', 'HTTP', 'C++'], correctIndex: 2, weight: 1 },
-  { category: 'technical', text: 'What does a "loop" do in code?', options: ['Stores data', 'Repeats a block', 'Ends a program', 'Prints once'], correctIndex: 1, weight: 1 },
-  { category: 'technical', text: 'SQL is mainly used to?', options: ['Style pages', 'Query databases', 'Compile code', 'Send emails'], correctIndex: 1, weight: 1 },
-  { category: 'technical', text: 'Which stores data in key–value pairs?', options: ['Array', 'Object/Dictionary', 'Integer', 'Boolean'], correctIndex: 1, weight: 1 },
-
-  // Communication (self-report)
+  // Communication — self-reported confidence, which the Communication Lab then tests.
   { category: 'communication', text: 'How comfortable are you giving a 2-minute self-introduction?', options: ['Very nervous', 'Somewhat', 'Comfortable', 'Very confident'], correctIndex: -1, selfReport: true, weight: 1 },
   { category: 'communication', text: 'Can you explain a project you built in simple English?', stages: ['build'], options: ['No', 'With difficulty', 'Mostly', 'Clearly'], correctIndex: -1, selfReport: true, weight: 1 },
 
-  // Employability (self-report)
+  // Employability — artefacts and practice, none of which an assessment can observe.
   { category: 'employability', text: 'Do you have a resume ready?', stages: ['build'], options: ['No', 'Draft', 'Yes, basic', 'Yes, polished'], correctIndex: -1, selfReport: true, weight: 1 },
   { category: 'employability', text: 'How many projects can you show (GitHub/demo)?', stages: ['placement', 'job_seeker'], options: ['0', '1', '2', '3+'], correctIndex: -1, selfReport: true, weight: 1 },
   { category: 'employability', text: 'Have you attempted a mock interview?', stages: ['build'], options: ['Never', 'Once', 'A few', 'Regularly'], correctIndex: -1, selfReport: true, weight: 1 },
 ];
+
+/**
+ * Kept as an alias so nothing that already imports it breaks, and so a tenant created
+ * before the trim and one created after start from the same place.
+ */
+export const DEFAULT_QUESTIONS = CAREER_INTAKE_QUESTIONS;
 
 /**
  * The categories in force for a tenant. Falls back to the built-in six, so every caller

@@ -49,6 +49,49 @@ const FAQS = [
   ['Can I change my target career later?', 'Yes. Career direction can evolve. CareerPilot is designed to help you reassess your goal and understand what changes in your roadmap.'],
 ];
 
+/**
+ * What the form will accept, decided in one place.
+ *
+ * Every rule here is also enforced by the server, and that is the copy that matters — this
+ * one exists so the member finds out while their cursor is still in the field rather than
+ * after a round trip. Where the two could drift the server wins; the wording is kept the
+ * same as `utils/phone.ts` so a rejection reads identically whichever side catches it.
+ */
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/** Digits only, at most ten. Applied on every keystroke, so an over-long paste is trimmed
+ *  as it lands instead of being accepted and rejected later. A pasted +91 or a number with
+ *  spaces becomes the ten digits it was always meant to be. */
+export const toMobile = (raw: string) => raw.replace(/\D/g, '').slice(-10);
+
+function validateJoin(
+  form: Record<string, any>,
+  extra: OnboardingField[],
+): Record<string, string> {
+  const e: Record<string, string> = {};
+
+  const name = String(form.name || '').trim();
+  if (!name) e.name = 'Please enter your full name.';
+  else if (name.length < 2) e.name = 'That looks too short — please enter your full name.';
+  else if (!/[A-Za-z]/.test(name)) e.name = 'Your name should contain letters.';
+
+  const mob = toMobile(String(form.mobile || ''));
+  if (!mob) e.mobile = 'Mobile number is required.';
+  else if (mob.length < 10) e.mobile = `That is only ${mob.length} digit${mob.length === 1 ? '' : 's'}. Enter your 10-digit mobile number.`;
+  else if (!/^[6-9]/.test(mob)) e.mobile = 'That does not look like a mobile number. It should start with 6, 7, 8 or 9.';
+
+  const email = String(form.email || '').trim();
+  if (!email) e.email = 'Email address is required.';
+  else if (!EMAIL_RE.test(email)) e.email = 'That does not look like a valid email address.';
+
+  // Whatever else this tenant has marked required. The server checks the same list, so a
+  // field added in the admin screen starts being enforced here without a code change.
+  for (const f of extra) {
+    if (f.required && !String(form[f.key] || '').trim()) e[f.key] = `${f.label} is required.`;
+  }
+  return e;
+}
+
 const ICON: Record<string, string> = { name: 'bi-person', mobile: 'bi-phone', email: 'bi-envelope' };
 
 const PassportJoin: React.FC = () => {
@@ -67,6 +110,17 @@ const PassportJoin: React.FC = () => {
 
   const sentMsg = (m: string) => m.startsWith('We sent') || m.startsWith('New code');
   const extra = useMemo(() => fieldsDef.filter(f => !['name', 'mobile', 'email'].includes(f.key)), [fieldsDef]);
+
+  /**
+   * A field's problem is shown once the member has left it, or once they have tried to
+   * submit — never while they are still part-way through typing it, which would put
+   * "that is only 3 digits" under a number they are in the middle of entering.
+   */
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [tried, setTried] = useState(false);
+  const errors = useMemo(() => validateJoin(form, extra), [form, extra]);
+  const errFor = (k: string) => ((touched[k] || tried) ? errors[k] : '');
+  const blur = (k: string) => setTouched(p => ({ ...p, [k]: true }));
   const networkRail = useMemo(() => [...NETWORK_ITEMS, ...NETWORK_ITEMS], []);
 
   useEffect(() => {
@@ -94,14 +148,18 @@ const PassportJoin: React.FC = () => {
   const scrollToSignup = () => document.getElementById('careerpilot-signup')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   const submit = async () => {
+    // Show everything that is wrong at once rather than one field per attempt.
+    setTried(true);
+    if (Object.keys(errors).length) { setMsg(''); return; }
+
     setBusy(true);
     setMsg('');
     try {
       const r = await passportPublicApi.signup({
         tenant,
-        name: form.name || '',
-        mobile: form.mobile || '',
-        email: form.email || '',
+        name: String(form.name || '').trim(),
+        mobile: toMobile(String(form.mobile || '')),
+        email: String(form.email || '').trim().toLowerCase(),
         fields: extra.reduce((o, f) => ({ ...o, [f.key]: form[f.key] }), {}),
       });
       setToken(r.token);
@@ -235,34 +293,47 @@ const PassportJoin: React.FC = () => {
 
                   <div className="cpj-field">
                     <label htmlFor="jn-name">Full Name <em>*</em></label>
-                    <div className="cpj-input-wrap"><i className={`bi ${ICON.name}`} /><input id="jn-name" value={form.name || ''} autoComplete="name" onChange={e => set('name', e.target.value)} placeholder="Enter your full name" /></div>
+                    <div className={`cpj-input-wrap${errFor('name') ? ' bad' : ''}`}><i className={`bi ${ICON.name}`} /><input id="jn-name" value={form.name || ''} autoComplete="name" aria-invalid={!!errFor('name')} aria-describedby={errFor('name') ? 'jn-name-err' : undefined} onBlur={() => blur('name')} onChange={e => set('name', e.target.value)} placeholder="Enter your full name" /></div>
+                    {errFor('name') && <div className="cpj-fe" id="jn-name-err">{errFor('name')}</div>}
                   </div>
                   <div className="cpj-field">
                     <label htmlFor="jn-mob">Mobile Number <em>*</em></label>
-                    <div className="cpj-input-wrap"><i className={`bi ${ICON.mobile}`} /><input id="jn-mob" value={form.mobile || ''} inputMode="numeric" autoComplete="tel" onChange={e => set('mobile', e.target.value)} placeholder="Enter 10-digit mobile number" /></div>
+                    {/* Digits are stripped and capped as they are typed, so an eleven-digit
+                        number or a pasted +91 cannot be entered at all. maxLength alone
+                        would not do it: it counts characters, so spaces and a leading +
+                        would still push real digits out. */}
+                    <div className={`cpj-input-wrap${errFor('mobile') ? ' bad' : ''}`}><i className={`bi ${ICON.mobile}`} /><input id="jn-mob" value={form.mobile || ''} inputMode="numeric" autoComplete="tel" maxLength={10} aria-invalid={!!errFor('mobile')} aria-describedby={errFor('mobile') ? 'jn-mob-err' : undefined} onBlur={() => blur('mobile')} onChange={e => set('mobile', toMobile(e.target.value))} placeholder="Enter 10-digit mobile number" /></div>
+                    {errFor('mobile') && <div className="cpj-fe" id="jn-mob-err">{errFor('mobile')}</div>}
                   </div>
                   <div className="cpj-field">
                     <label htmlFor="jn-mail">Email Address <em>*</em></label>
-                    <div className="cpj-input-wrap"><i className={`bi ${ICON.email}`} /><input id="jn-mail" type="email" value={form.email || ''} autoComplete="email" onChange={e => set('email', e.target.value)} placeholder="Enter your email address" /></div>
+                    <div className={`cpj-input-wrap${errFor('email') ? ' bad' : ''}`}><i className={`bi ${ICON.email}`} /><input id="jn-mail" type="email" value={form.email || ''} autoComplete="email" aria-invalid={!!errFor('email')} aria-describedby={errFor('email') ? 'jn-mail-err' : undefined} onBlur={() => blur('email')} onChange={e => set('email', e.target.value)} placeholder="Enter your email address" /></div>
+                    {errFor('email') && <div className="cpj-fe" id="jn-mail-err">{errFor('email')}</div>}
                   </div>
 
                   {extra.map(f => (
                     <div className="cpj-field" key={f.key}>
                       <label htmlFor={`jn-${f.key}`}>{f.label}{f.required ? <em> *</em> : null}</label>
-                      <div className="cpj-input-wrap plain">
+                      <div className={`cpj-input-wrap plain${errFor(f.key) ? ' bad' : ''}`}>
                         {f.type === 'select' ? (
-                          <select id={`jn-${f.key}`} value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)}>
+                          <select id={`jn-${f.key}`} value={form[f.key] || ''} aria-invalid={!!errFor(f.key)} onBlur={() => blur(f.key)} onChange={e => set(f.key, e.target.value)}>
                             <option value="">Select…</option>
                             {(f.options || []).map(o => <option key={o} value={o}>{o}</option>)}
                           </select>
                         ) : (
-                          <input id={`jn-${f.key}`} value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)} type={f.type === 'number' ? 'number' : 'text'} placeholder={`Enter ${f.label.toLowerCase()}`} />
+                          <input id={`jn-${f.key}`} value={form[f.key] || ''} aria-invalid={!!errFor(f.key)} onBlur={() => blur(f.key)} onChange={e => set(f.key, f.type === 'phone' ? toMobile(e.target.value) : e.target.value)} maxLength={f.type === 'phone' ? 10 : undefined} inputMode={f.type === 'phone' ? 'numeric' : undefined} type={f.type === 'number' ? 'number' : 'text'} placeholder={`Enter ${f.label.toLowerCase()}`} />
                         )}
                       </div>
+                      {errFor(f.key) && <div className="cpj-fe">{errFor(f.key)}</div>}
                     </div>
                   ))}
 
-                  <button className="cpj-btn cpj-btn-primary cpj-submit" disabled={busy || !form.name || !form.mobile || !form.email} onClick={submit}>
+                  {/* Deliberately NOT disabled on invalid input. A greyed-out button states
+                      that something is wrong without saying what, and the member is left
+                      comparing fields to guess; clicking it and being shown every problem
+                      at once is the faster way out. Only the in-flight state disables it,
+                      to stop a double send. */}
+                  <button className="cpj-btn cpj-btn-primary cpj-submit" disabled={busy} onClick={submit}>
                     {busy ? 'Please wait…' : <>Start My Career Journey <i className="bi bi-arrow-right" /></>}
                   </button>
                   <div className="cpj-login">Already have an account? <button type="button" onClick={goLogin}>Login</button></div>

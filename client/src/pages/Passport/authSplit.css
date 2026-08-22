@@ -315,3 +315,16 @@
 
 /* The feature tiles sit on white, so they keep a soft lift; the small ones do not. */
 .as-feat .ic { box-shadow: 0 3px 12px rgba(15,30,61,.10); }
+
+/* -- Per-field validation ---------------------------------------------------
+   The message sits under its own field rather than in the banner at the top of
+   the form: with several fields on this page a single summary makes the member
+   scroll up, read, and then scroll back down to work out which one it meant. */
+.as-in.bad input, .as-in.bad select{ border-color:#E5484D; background:#FFF7F7 }
+.as-in.bad input:focus, .as-in.bad select:focus{
+  border-color:#E5484D; box-shadow:0 0 0 3px rgba(229,72,77,.15)
+}
+.as-fe{
+  margin:-10px 0 14px; padding-left:2px;
+  color:#C62A2E; font-size:12.5px; line-height:1.45;
+}

@@ -27,7 +27,25 @@ export interface RateLimitPolicy {
   windowMs: number;
   /** What the caller is told. Written for the person, not the log. */
   message: string;
+  /**
+   * Who to count, when the address is the wrong answer.
+   *
+   * The address is a poor identity for public endpoints: a college computer lab is one
+   * public IP, so counting sign-ups per address means the sixth student of the day is told
+   * to come back in an hour because five classmates registered before them. Where the
+   * request itself names the subject — a mobile number being verified, a signup token —
+   * count THAT, and the limit falls on the person actually repeating themselves.
+   *
+   * Returning null falls back to user-then-address, so a malformed request is still bounded.
+   */
+  keyBy?: (req: Request) => string | null;
 }
+
+/** Last ten digits, which is how an Indian mobile is identified however it was typed. */
+const mobileSubject = (raw: unknown): string | null => {
+  const d = String(raw ?? '').replace(/\D/g, '').slice(-10);
+  return d.length === 10 ? `mob:${d}` : null;
+};
 
 /**
  * Every policy in one place, so the limits can be read and reasoned about together rather
@@ -37,15 +55,48 @@ export interface RateLimitPolicy {
  * this hour should get them; the limit exists for the case that wants three hundred.
  */
 export const POLICIES = {
-  /** Public, unauthenticated, and the door to account creation. */
+  /**
+   * Account creation, counted PER MOBILE NUMBER.
+   *
+   * What this is defending is the WhatsApp bill and duplicate identities, and both of those
+   * are properties of the number, not of the address it was typed from. Counting per number
+   * lets a whole lecture hall register at once — the case that was broken — while still
+   * stopping one number being pushed through the funnel over and over.
+   *
+   * Ten in fifteen minutes, not five in an hour: a person correcting a typo, being told
+   * their number is already registered, and trying again should never meet this, and if
+   * they somehow do the wait is a coffee rather than an afternoon.
+   */
   signup: {
-    max: 5, windowMs: 60 * 60_000,
-    message: 'Too many sign-up attempts. Please try again in an hour.',
+    max: 10, windowMs: 15 * 60_000,
+    keyBy: req => mobileSubject((req.body || {}).mobile),
+    message: 'Too many sign-up attempts for this mobile number.',
   },
-  /** Each send costs a WhatsApp message; each verify is a guess at a 6-digit code. */
+  /**
+   * A backstop on the address, sized for a shared connection rather than a person.
+   *
+   * The per-number limit above is the real control; this only exists so a script cannot
+   * walk a list of numbers from one machine. A college NAT will not reach it.
+   */
+  signupBurst: {
+    max: 100, windowMs: 60 * 60_000,
+    message: 'Too many sign-up attempts from this network.',
+  },
+  /**
+   * Each send costs a WhatsApp message; each verify is a guess at a 6-digit code.
+   *
+   * Counted per signup token — the thing being verified — so guessing at one account's code
+   * cannot lock everyone else on the same network out of theirs.
+   */
   otp: {
-    max: 10, windowMs: 60 * 60_000,
-    message: 'Too many code requests. Please wait a few minutes and try again.',
+    max: 15, windowMs: 30 * 60_000,
+    keyBy: req => {
+      const b = req.body || {};
+      const t = String(b.token ?? '').trim();
+      if (t) return `tok:${t}`;
+      return mobileSubject(b.mobile ?? b.identifier ?? b.email);
+    },
+    message: 'Too many code requests for this account.',
   },
   /** Every call here is a paid AI generation. */
   aiGenerate: {
@@ -102,9 +153,27 @@ function sweep(now: number) {
  * Only unauthenticated traffic falls back to the address, where there is nothing else.
  */
 export function rateLimitKey(req: Request, name: PolicyName): string {
+  const explicit = (POLICIES[name] as RateLimitPolicy).keyBy?.(req);
+  if (explicit) return `${name}:${explicit}`;
   const userId = (req as any).user?.id;
   const who = userId ? `u:${userId}` : `ip:${req.ip || 'unknown'}`;
   return `${name}:${who}`;
+}
+
+/**
+ * The wait, said the way a person would say it.
+ *
+ * Being refused without being told for how long is the part that reads as broken rather
+ * than as a limit — there is nothing to do but keep clicking. Retry-After already carries
+ * the number for machines; this is the same fact for the human reading the screen, so it
+ * gives nothing away that the response did not already contain.
+ */
+export function humanWait(sec: number): string {
+  if (sec <= 90) return `${Math.max(1, Math.ceil(sec / 10) * 10)} seconds`;
+  const min = Math.ceil(sec / 60);
+  if (min < 60) return `${min} minute${min === 1 ? '' : 's'}`;
+  const hr = Math.round(min / 60);
+  return `${hr} hour${hr === 1 ? '' : 's'}`;
 }
 
 /** Test seam. Nothing in production calls this. */
@@ -141,7 +210,11 @@ export const rateLimit = (name: PolicyName) => (req: Request, res: Response, nex
 
   if (!result.allowed) {
     res.setHeader('Retry-After', String(result.retryAfterSec));
-    return res.status(429).json({ success: false, message: policy.message });
+    return res.status(429).json({
+      success: false,
+      message: `${policy.message} Please try again in ${humanWait(result.retryAfterSec)}.`,
+      retryAfterSec: result.retryAfterSec,
+    });
   }
   next();
 };

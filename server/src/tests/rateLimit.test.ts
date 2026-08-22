@@ -14,7 +14,7 @@
 import fs from 'fs';
 import path from 'path';
 import {
-  consume, rateLimit, rateLimitKey, POLICIES, __resetRateLimits,
+  consume, rateLimit, rateLimitKey, humanWait, POLICIES, __resetRateLimits,
 } from '../middleware/rateLimit';
 
 const req = (over: any = {}): any => ({ ip: '1.2.3.4', headers: {}, ...over });
@@ -190,5 +190,104 @@ describe('the policies themselves', () => {
       expect(p.message.length).toBeGreaterThan(15);
       expect(name).toBeTruthy();
     }
+  });
+});
+
+
+/**
+ * Counting sign-ups by address was the bug that made this limiter look like an outage.
+ *
+ * A college computer lab, a hostel, an office - all one public IP. Five registrations from
+ * that address and the sixth student was told to come back in an hour, having done nothing
+ * wrong and with no way to tell that a classmate had used up the allowance. Worse, nginx
+ * sits in front in production and `trust proxy` was unset, so `req.ip` was the proxy for
+ * every request on earth and the whole internet shared ONE bucket.
+ *
+ * These pin the property that fixes it: the limit follows the mobile number being
+ * registered, which is the thing the sign-up actually spends money on.
+ */
+describe('sign-up is counted per mobile number, not per address', () => {
+  const from = (ip: string, mobile: string) => req({ ip, body: { mobile } });
+
+  it('lets a whole lecture hall register from one address', () => {
+    // Far more than the old per-address allowance, all on the same network.
+    for (let i = 0; i < POLICIES.signup.max * 3; i += 1) {
+      const mobile = `98765${String(10000 + i).slice(-5)}`;
+      expect(run('signup', from('10.0.0.1', mobile)).passed).toBe(true);
+    }
+  });
+
+  it('still bounds one number being pushed through over and over', () => {
+    const r = from('10.0.0.1', '9876543210');
+    for (let i = 0; i < POLICIES.signup.max; i += 1) expect(run('signup', r).passed).toBe(true);
+    expect(run('signup', r).passed).toBe(false);
+  });
+
+  it('does not let one exhausted number block a different one', () => {
+    const mine = from('10.0.0.1', '9876543210');
+    for (let i = 0; i < POLICIES.signup.max; i += 1) run('signup', mine);
+    expect(run('signup', mine).passed).toBe(false);
+    expect(run('signup', from('10.0.0.1', '9000000001')).passed).toBe(true);
+  });
+
+  it('identifies a number however it was typed', () => {
+    const forms = ['9876543210', '919876543210', '+91-98765 43210'];
+    const keys = forms.map(m => rateLimitKey(from('10.0.0.1', m), 'signup'));
+    expect(new Set(keys).size).toBe(1);
+  });
+
+  it('falls back to the address when the request names no usable number', () => {
+    // A malformed or hostile request must still be bounded by something.
+    expect(rateLimitKey(from('10.0.0.9', 'nonsense'), 'signup')).toContain('ip:10.0.0.9');
+    expect(rateLimitKey(req({ ip: '10.0.0.9' }), 'signup')).toContain('ip:10.0.0.9');
+  });
+
+  it('keeps a broad per-address backstop so a script cannot walk a list of numbers', () => {
+    // The per-number limit cannot see a caller trying a thousand DIFFERENT numbers.
+    expect(POLICIES.signupBurst.max).toBeGreaterThan(POLICIES.signup.max);
+    const r = req({ ip: '10.0.0.2', body: { mobile: '9876543210' } });
+    for (let i = 0; i < POLICIES.signupBurst.max; i += 1) run('signupBurst', r);
+    expect(run('signupBurst', r).passed).toBe(false);
+  });
+});
+
+describe('code requests are counted per account, not per address', () => {
+  it('does not let one member guessing codes lock out everyone on their network', () => {
+    const mine = req({ ip: '10.0.0.1', body: { token: 'user-a' } });
+    for (let i = 0; i < POLICIES.otp.max; i += 1) run('otp', mine);
+    expect(run('otp', mine).passed).toBe(false);
+
+    expect(run('otp', req({ ip: '10.0.0.1', body: { token: 'user-b' } })).passed).toBe(true);
+  });
+
+  it('still bounds guessing at one account', () => {
+    const r = req({ ip: '10.0.0.1', body: { token: 'user-a' } });
+    for (let i = 0; i < POLICIES.otp.max; i += 1) expect(run('otp', r).passed).toBe(true);
+    expect(run('otp', r).passed).toBe(false);
+  });
+});
+
+/**
+ * Being refused without being told for how long is the part that reads as broken: there is
+ * nothing to do but keep clicking. Retry-After already carries the number for machines.
+ */
+describe('the refusal says how long to wait', () => {
+  it('puts the wait in the message and in the body', () => {
+    const r = req({ ip: '10.0.0.1', body: { mobile: '9876543210' } });
+    for (let i = 0; i < POLICIES.signup.max; i += 1) run('signup', r);
+    const { res } = run('signup', r);
+
+    expect(res.statusCode).toBe(429);
+    expect(res.body.message).toMatch(/try again in .+(second|minute|hour)/i);
+    expect(res.body.retryAfterSec).toBeGreaterThan(0);
+    expect(res.headers['Retry-After']).toBe(String(res.body.retryAfterSec));
+  });
+
+  it('says it the way a person would', () => {
+    expect(humanWait(8)).toBe('10 seconds');
+    expect(humanWait(45)).toBe('50 seconds');
+    expect(humanWait(120)).toBe('2 minutes');
+    expect(humanWait(60 * 60)).toBe('1 hour');
+    expect(humanWait(3 * 60 * 60)).toBe('3 hours');
   });
 });

@@ -16,6 +16,49 @@ export interface PassportConfig {
   priceInr: number; membershipMonths: number;
 }
 
+/** One skill's share of the assessable pool. */
+export interface PoolCoverageRow {
+  skillKey: string;
+  skillName: string;
+  /** Mapped, approved questions — what a paper can actually draw from. */
+  approved: number;
+  /** Drafted but not yet reviewed. Reachable by nobody until approved. */
+  pending: number;
+}
+
+export interface DraftOption { text: string; isCorrect: boolean }
+
+export interface QuestionDraft {
+  _id: string;
+  skillKey: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  question: string;
+  options: DraftOption[];
+  explanation: string;
+  codeSnippet?: string;
+  language?: string;
+  /** Why a student would pick each wrong option. Empty is itself a warning. */
+  distractorRationale?: string[];
+  status: 'pending' | 'approved' | 'rejected';
+  /** What the automatic checks noticed. Not errors — places to look first. */
+  warnings: string[];
+  batchId: string;
+  generatedBy: string;
+  createdAt: string;
+  reviewNote?: string;
+  approvedQuestionId?: string;
+}
+
+export interface DraftBatchReport {
+  batchId: string;
+  skillKey: string;
+  requested: number;
+  returned: number;
+  stored: number;
+  flagged: number;
+  dropped: { reason: string; question: string }[];
+}
+
 export const passportApi = {
   getConfig: async (): Promise<{ config: PassportConfig; platformEnabled: boolean }> => {
     const { data } = await axios.get(`${BASE}/config`, { headers: auth() });
@@ -486,6 +529,35 @@ export const passportApi = {
   },
   saveEditablePolicies: async (policies: EditablePolicy[]): Promise<{ policies: EditablePolicy[]; bounds: PolicyBounds }> => {
     const { data } = await axios.put(`${BASE}/assessment/policies/editable`, { policies }, { headers: auth() });
+    return data;
+  },
+
+  // ── AI question drafting (admin) ──
+  /**
+   * How much pool each assessable skill has, worst first. The number that matters is per
+   * skill, not the total: a paper draws slots per skill, so a large pool concentrated on a
+   * few skills still produces a repetitive paper.
+   */
+  draftCoverage: async (): Promise<{ skills: PoolCoverageRow[] }> => {
+    const { data } = await axios.get(`${BASE}/question-drafts/coverage`, { headers: auth() });
+    return data;
+  },
+  listDrafts: async (q: { status?: string; skillKey?: string; page?: number; limit?: number } = {}):
+    Promise<{ drafts: QuestionDraft[]; total: number; page: number; limit: number }> => {
+    const { data } = await axios.get(`${BASE}/question-drafts`, { params: q, headers: auth() });
+    return data;
+  },
+  generateDrafts: async (body: { skillKey: string; difficulty: string; count: number }):
+    Promise<{ report: DraftBatchReport }> => {
+    const { data } = await axios.post(`${BASE}/question-drafts/generate`, body, { headers: auth() });
+    return data;
+  },
+  approveDraft: async (id: string, edits?: Partial<QuestionDraft>, note?: string): Promise<{ questionId: string }> => {
+    const { data } = await axios.post(`${BASE}/question-drafts/${id}/approve`, { edits, note }, { headers: auth() });
+    return data;
+  },
+  rejectDraft: async (id: string, note?: string): Promise<{ success: boolean }> => {
+    const { data } = await axios.post(`${BASE}/question-drafts/${id}/reject`, { note }, { headers: auth() });
     return data;
   },
 

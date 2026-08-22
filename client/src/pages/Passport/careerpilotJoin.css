@@ -15,3 +15,143 @@
 .cpj-fe{
   margin-top:6px; color:#C62A2E; font-size:12.5px; line-height:1.45;
 }
+
+/* --------------------------------------------------------------------------
+   Product-layout pass v2
+   The public join page should use the viewport like a real SaaS landing page,
+   not sit inside the narrow 1180px LMS content container. These are deliberate
+   overrides so the existing functional form and all downstream sections remain
+   untouched while the shell/hero moves to the approved full-width composition.
+   -------------------------------------------------------------------------- */
+@media (min-width:981px){
+  .cpj-wrap{
+    width:min(1540px,calc(100% - 64px));
+  }
+
+  .cpj-nav{
+    height:78px;
+    box-shadow:0 1px 0 rgba(5,29,100,.035);
+  }
+  .cpj-nav-in{
+    gap:36px;
+  }
+  .cpj-brand img{
+    height:42px;
+  }
+  .cpj-brand-product{
+    font-size:22px;
+  }
+  .cpj-nav-links{
+    gap:28px;
+  }
+
+  .cpj-hero{
+    padding:44px 0 34px;
+    background:
+      radial-gradient(circle at 54% 22%,rgba(53,154,173,.12),transparent 24%),
+      radial-gradient(circle at 18% 70%,rgba(5,29,100,.045),transparent 28%),
+      linear-gradient(135deg,#f8fbff 0%,#fff 53%,#eef9fa 100%);
+  }
+  .cpj-hero-grid{
+    grid-template-columns:minmax(0,1fr) minmax(420px,500px);
+    gap:34px;
+    align-items:start;
+  }
+  .cpj-hero-grid>div:first-child{
+    min-width:0;
+  }
+  .cpj-hero h1{
+    font-size:clamp(46px,3.3vw,62px);
+    max-width:860px;
+    margin-top:14px;
+  }
+  .cpj-hero-lead{
+    max-width:760px;
+    font-size:16px;
+  }
+  .cpj-checks{
+    max-width:790px;
+    column-gap:34px;
+    row-gap:14px;
+    margin-top:22px;
+  }
+  .cpj-check{
+    font-size:13px;
+  }
+
+  .cpj-intel{
+    width:min(850px,100%);
+    grid-template-columns:minmax(0,1.38fr) minmax(220px,.72fr);
+    gap:16px;
+    margin-top:28px;
+  }
+  .cpj-intel-main{
+    min-height:248px;
+    padding:25px;
+  }
+  .cpj-intel-title{
+    font-size:24px;
+    max-width:360px;
+  }
+  .cpj-intel-side{
+    min-width:0;
+  }
+  .cpj-micro-card{
+    padding:17px;
+  }
+
+  .cpj-signup{
+    width:100%;
+    max-width:500px;
+    justify-self:end;
+    top:96px;
+    padding:27px 29px 24px;
+    border-radius:20px;
+    box-shadow:0 24px 70px rgba(5,29,100,.11);
+  }
+  .cpj-signup h2{
+    font-size:27px;
+  }
+  .cpj-field{
+    margin-bottom:12px;
+  }
+  .cpj-input-wrap input,.cpj-input-wrap select{
+    height:45px;
+  }
+
+  .cpj-network{
+    padding:25px 0 29px;
+  }
+  .cpj-network .cpj-wrap{
+    width:min(1600px,calc(100% - 40px));
+  }
+  .cpj-college{
+    width:250px;
+  }
+
+  .cpj-section .cpj-wrap,
+  .cpj-product .cpj-wrap,
+  .cpj-final .cpj-wrap,
+  .cpj-footer .cpj-wrap{
+    width:min(1460px,calc(100% - 72px));
+  }
+}
+
+@media (min-width:1500px){
+  .cpj-wrap{
+    width:min(1600px,calc(100% - 72px));
+  }
+  .cpj-hero-grid{
+    grid-template-columns:minmax(0,1fr) 500px;
+    gap:42px;
+  }
+  .cpj-intel{
+    width:min(900px,100%);
+  }
+}
+
+@media (min-width:1900px){
+  .cpj-wrap{
+    width:min(1680px,calc(100% - 96px));
+  }
+}

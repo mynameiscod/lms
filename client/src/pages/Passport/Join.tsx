@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
 import type { OnboardingField } from '../../api/passportApi';
@@ -41,6 +41,49 @@ const COLLEGES: { name: string; sub: string }[] = [];
 // membership are a claim we cannot stand behind. Only add real, consented stories.
 const STORIES: { quote: string; name: string; role: string; company: string }[] = [];
 
+/**
+ * What the form will accept, decided in one place.
+ *
+ * Every rule here is also enforced by the server, and that is the copy that matters — this
+ * one exists so the member finds out while their cursor is still in the field rather than
+ * after a round trip. Where the two could drift the server wins; the wording is kept the
+ * same as `utils/phone.ts` so a rejection reads identically whichever side catches it.
+ */
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/** Digits only, at most ten. Applied on every keystroke, so an over-long paste is trimmed
+ *  as it lands instead of being accepted and rejected later. A pasted +91 or a number with
+ *  spaces becomes the ten digits it was always meant to be. */
+export const toMobile = (raw: string) => raw.replace(/\D/g, '').slice(-10);
+
+function validateJoin(
+  form: Record<string, any>,
+  extra: OnboardingField[],
+): Record<string, string> {
+  const e: Record<string, string> = {};
+
+  const name = String(form.name || '').trim();
+  if (!name) e.name = 'Please enter your full name.';
+  else if (name.length < 2) e.name = 'That looks too short — please enter your full name.';
+  else if (!/[A-Za-z]/.test(name)) e.name = 'Your name should contain letters.';
+
+  const mob = toMobile(String(form.mobile || ''));
+  if (!mob) e.mobile = 'Mobile number is required.';
+  else if (mob.length < 10) e.mobile = `That is only ${mob.length} digit${mob.length === 1 ? '' : 's'}. Enter your 10-digit mobile number.`;
+  else if (!/^[6-9]/.test(mob)) e.mobile = 'That does not look like a mobile number. It should start with 6, 7, 8 or 9.';
+
+  const email = String(form.email || '').trim();
+  if (!email) e.email = 'Email address is required.';
+  else if (!EMAIL_RE.test(email)) e.email = 'That does not look like a valid email address.';
+
+  // Whatever else this tenant has marked required. The server checks the same list, so a
+  // field added in the admin screen starts being enforced here without a code change.
+  for (const f of extra) {
+    if (f.required && !String(form[f.key] || '').trim()) e[f.key] = `${f.label} is required.`;
+  }
+  return e;
+}
+
 /** Bootstrap Icons for the three locked signup fields. */
 const ICON: Record<string, string> = { name: 'bi-person-fill', mobile: 'bi-phone-fill', email: 'bi-envelope-fill' };
 
@@ -77,13 +120,34 @@ const PassportJoin: React.FC = () => {
 
 
   const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
-  const extra = fieldsDef.filter(f => !['name', 'mobile', 'email'].includes(f.key));
+  const extra = useMemo(
+    () => fieldsDef.filter(f => !['name', 'mobile', 'email'].includes(f.key)),
+    [fieldsDef],
+  );
+
+  /**
+   * A field's problem is shown once the member has left it, or once they have tried to
+   * submit — never while they are still part-way through typing it, which would put
+   * "that is only 3 digits" under a number they are in the middle of entering.
+   */
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [tried, setTried] = useState(false);
+  const errors = useMemo(() => validateJoin(form, extra), [form, extra]);
+  const errFor = (k: string) => ((touched[k] || tried) ? errors[k] : '');
+  const blur = (k: string) => setTouched(p => ({ ...p, [k]: true }));
 
   const submit = async () => {
+    // Show everything that is wrong at once rather than one field per attempt.
+    setTried(true);
+    if (Object.keys(errors).length) { setMsg(''); return; }
+
     setBusy(true); setMsg('');
     try {
       const r = await passportPublicApi.signup({
-        tenant, name: form.name || '', mobile: form.mobile || '', email: form.email || '',
+        tenant,
+        name: String(form.name || '').trim(),
+        mobile: toMobile(String(form.mobile || '')),
+        email: String(form.email || '').trim().toLowerCase(),
         fields: extra.reduce((o, f) => ({ ...o, [f.key]: form[f.key] }), {}),
       });
       setToken(r.token); setDevCode(r.otp?.devCode || ''); setStep('otp');
@@ -160,45 +224,69 @@ const PassportJoin: React.FC = () => {
             {msg && <div className="as-msg err">{msg}</div>}
 
             <label className="as-lab" htmlFor="jn-name">Full Name</label>
-            <div className="as-in">
+            <div className={`as-in${errFor('name') ? ' bad' : ''}`}>
               <span className="lic" aria-hidden="true"><i className={`bi ${ICON.name}`} /></span>
               <input id="jn-name" value={form.name || ''} autoComplete="name"
+                aria-invalid={!!errFor('name')} aria-describedby={errFor('name') ? 'jn-name-err' : undefined}
+                onBlur={() => blur('name')}
                 onChange={e => set('name', e.target.value)} placeholder="Enter your full name" />
             </div>
+            {errFor('name') && <div className="as-fe" id="jn-name-err">{errFor('name')}</div>}
 
             <label className="as-lab" htmlFor="jn-mob">Mobile Number</label>
-            <div className="as-in">
+            <div className={`as-in${errFor('mobile') ? ' bad' : ''}`}>
               <span className="lic" aria-hidden="true"><i className={`bi ${ICON.mobile}`} /></span>
+              {/* Digits are stripped and capped as they are typed, so an eleven-digit number
+                  or a pasted +91 cannot be entered at all - the field simply holds the ten
+                  digits that are the number. maxLength alone would not do it: it counts
+                  characters, so spaces and a leading + would still push real digits out. */}
               <input id="jn-mob" value={form.mobile || ''} inputMode="numeric" autoComplete="tel"
-                onChange={e => set('mobile', e.target.value)} placeholder="Enter 10-digit mobile number" />
+                maxLength={10}
+                aria-invalid={!!errFor('mobile')} aria-describedby={errFor('mobile') ? 'jn-mob-err' : undefined}
+                onBlur={() => blur('mobile')}
+                onChange={e => set('mobile', toMobile(e.target.value))} placeholder="Enter 10-digit mobile number" />
             </div>
+            {errFor('mobile') && <div className="as-fe" id="jn-mob-err">{errFor('mobile')}</div>}
 
             <label className="as-lab" htmlFor="jn-mail">Email Address</label>
-            <div className="as-in">
+            <div className={`as-in${errFor('email') ? ' bad' : ''}`}>
               <span className="lic" aria-hidden="true"><i className={`bi ${ICON.email}`} /></span>
               <input id="jn-mail" type="email" value={form.email || ''} autoComplete="email"
+                aria-invalid={!!errFor('email')} aria-describedby={errFor('email') ? 'jn-mail-err' : undefined}
+                onBlur={() => blur('email')}
                 onChange={e => set('email', e.target.value)} placeholder="Enter your email address" />
             </div>
+            {errFor('email') && <div className="as-fe" id="jn-mail-err">{errFor('email')}</div>}
 
             {/* Whatever else the admin has asked for on this tenant. */}
             {extra.map(f => (
               <div key={f.key}>
                 <label className="as-lab" htmlFor={`jn-${f.key}`}>{f.label}{f.required ? '' : ' (optional)'}</label>
-                <div className="as-in plain">
+                <div className={`as-in plain${errFor(f.key) ? ' bad' : ''}`}>
                   {f.type === 'select'
-                    ? <select id={`jn-${f.key}`} value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)}>
+                    ? <select id={`jn-${f.key}`} value={form[f.key] || ''}
+                        aria-invalid={!!errFor(f.key)} onBlur={() => blur(f.key)}
+                        onChange={e => set(f.key, e.target.value)}>
                         <option value="">Select…</option>
                         {(f.options || []).map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     : <input id={`jn-${f.key}`} value={form[f.key] || ''}
-                        onChange={e => set(f.key, e.target.value)}
+                        aria-invalid={!!errFor(f.key)} onBlur={() => blur(f.key)}
+                        onChange={e => set(f.key, f.type === 'phone' ? toMobile(e.target.value) : e.target.value)}
+                        maxLength={f.type === 'phone' ? 10 : undefined}
+                        inputMode={f.type === 'phone' ? 'numeric' : undefined}
                         type={f.type === 'number' ? 'number' : 'text'}
                         placeholder={`Enter ${f.label.toLowerCase()}`} />}
                 </div>
+                {errFor(f.key) && <div className="as-fe">{errFor(f.key)}</div>}
               </div>
             ))}
 
-            <button className="as-go" disabled={busy || !form.name || !form.mobile || !form.email} onClick={submit}>
+            {/* Deliberately NOT disabled on invalid input. A greyed-out button states that
+                something is wrong without saying what, and the member is left comparing
+                fields to guess; clicking it and being shown every problem at once is the
+                faster way out. Only the in-flight state disables it, to stop a double send. */}
+            <button className="as-go" disabled={busy} onClick={submit}>
               {busy ? 'Please wait…' : 'Create My CareerPilot →'}
             </button>
 

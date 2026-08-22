@@ -136,17 +136,23 @@ export const DEFAULT_ONBOARDING_FIELDS: IOnboardingField[] = [
   { key: 'branch', label: 'Branch / Specialization', type: 'select', required: false, order: 5,
     options: ['Computer Science / IT', 'Electronics / ECE', 'Electrical / EEE', 'Mechanical', 'Civil',
               'Data Science / AI', 'Mathematics / Statistics', 'Commerce / Management', 'Other'] },
-  // BROAD DIRECTION, not a role. The specific destination (Backend Engineer, QA/SDET, …)
-  // is chosen after OTP from the tenant's configured CareerRoles; this only captures the
-  // area a student thinks they are heading for.
+  // CAREER GOAL IS NOT ASKED AT SIGNUP ANY MORE.
   //
-  // Offers only directions CareerPilot can actually deliver. "Data Analytics" and
-  // "AI-Ready" shipped here from the start with no Data or AI roles, skills or blueprints
-  // behind them — a student picking either was promised a path the product cannot serve.
-  // Restore them, and add Cybersecurity, only once the matching CareerRoles, CareerSkills
-  // and RoleSkillBlueprints exist. Existing members keep whatever they already chose:
-  // these are the options offered to new signups, not a constraint on stored values.
-  { key: 'careerGoal',  label: 'Career Goal',   type: 'select', required: false, order: 7, options: ['Software Development', 'Cloud & DevOps', 'Not Sure Yet'] },
+  // It was a broad direction ('Software Development', 'Cloud & DevOps', 'Not Sure Yet')
+  // collected before the member had seen anything, and then immediately superseded: the
+  // very next screen, /careerpilot/setup, asks them to choose a real CareerRole from the
+  // tenant's published list, and it is that role — not this — which drives the skill
+  // scope, the blueprint, the assessment paper and the roadmap. Asking twice made the
+  // narrower, meaningful answer look like a repeat of a question already answered.
+  //
+  // The field is only removed from what NEW signups are asked. `passport.careerGoal`
+  // stays on the model and every consumer still reads it, so members who answered it
+  // keep their value and any pathway or blueprint rule written against a goal keeps
+  // working. Those rules all treat an absent goal as "no constraint", so a member who
+  // never had one is not excluded from anything — with one exception worth knowing:
+  // a PathwayRule that DECLARES goals will not match a member without one
+  // (pathwayMatchService.ruleHolds). Leave such rules' goal list empty, or re-add this
+  // field through the admin onboarding-fields screen, if you need that targeting back.
 ];
 
 export const DEFAULT_ENTITLEMENTS: IEntitlement[] = [

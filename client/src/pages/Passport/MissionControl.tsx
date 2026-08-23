@@ -4,6 +4,7 @@ import passportApi, { AssessResult, TodayMissions } from '../../api/passportApi'
 import { useAuth } from '../../contexts/AuthContext';
 import { MEMBER_NAV } from './PassportShell';
 import './missionControl.css';
+import './missionControlUnlock.css';
 import './member.css';
 import './missionsRedesign.css';
 import MemberFooter from './MemberFooter';
@@ -13,26 +14,34 @@ const CAT_ICON: Record<string, string> = {
   technical: 'bi-code-slash', communication: 'bi-chat-dots-fill', employability: 'bi-briefcase-fill',
 };
 
-const CHECKS: { ic: string; tone: string; title: string; desc: string }[] = [
+const CHECKS = [
   { ic: 'bi-graph-up-arrow', tone: 'blue', title: 'Know Your Current Level', desc: 'Get your Career Score and see how career-ready you are.' },
   { ic: 'bi-bullseye', tone: 'teal', title: 'Identify Your Strengths & Gaps', desc: "Discover what you're good at and what needs improvement." },
   { ic: 'bi-map-fill', tone: 'amber', title: 'Get Your Personalized Roadmap', desc: 'Receive a 90-day plan tailored to your goals and academic year.' },
   { ic: 'bi-lightning-charge-fill', tone: 'violet', title: 'Start Taking Daily Action', desc: 'Unlock daily missions, practice, and expert guidance.' },
 ];
 
-const CATS: { ic: string; tone: string; title: string; desc: string }[] = [
+const CATS = [
   { ic: 'bi-bar-chart-fill', tone: 'teal', title: 'Skills', desc: 'Evaluate your technical skills' },
   { ic: 'bi-calculator-fill', tone: 'amber', title: 'Aptitude', desc: 'Test your logical & numerical ability' },
   { ic: 'bi-chat-dots-fill', tone: 'violet', title: 'Communication', desc: 'Assess your communication readiness' },
   { ic: 'bi-briefcase-fill', tone: 'blue', title: 'Employability', desc: 'Check your job readiness factors' },
 ];
 
-const WHY: { ic: string; tone: string; title: string; desc: string }[] = [
+const WHY = [
   { ic: 'bi-bullseye', tone: 'rose', title: 'Right Career Direction', desc: 'Understand which career path suits you best based on your strengths and interests.' },
   { ic: 'bi-map-fill', tone: 'blue', title: 'Personalized Roadmap', desc: 'Get a customized 90-day roadmap based on your academic year and goals.' },
   { ic: 'bi-star-fill', tone: 'amber', title: 'Improve Faster', desc: 'Focus on the right skills and activities that will make the biggest impact.' },
   { ic: 'bi-trophy-fill', tone: 'violet', title: 'Stand Out', desc: 'Build a strong profile and become the kind of candidate employers value.' },
   { ic: 'bi-graph-up-arrow', tone: 'teal', title: 'Track Your Growth', desc: 'See your progress over time and celebrate every improvement.' },
+];
+
+const UNLOCK_CARDS = [
+  { ic: 'bi-bullseye', tone: 'teal', title: 'Personalized Roadmap', desc: 'A custom plan that adapts to your goals and measured skills.' },
+  { ic: 'bi-clipboard2-check-fill', tone: 'violet', title: 'Daily Missions', desc: 'Clear actions that keep your career preparation moving every day.' },
+  { ic: 'bi-code-slash', tone: 'blue', title: 'Verified Practice', desc: 'Focused practice that helps you build real skill evidence.' },
+  { ic: 'bi-mic-fill', tone: 'amber', title: 'Mock Interviews', desc: 'Practice interviews with structured feedback before the real one.' },
+  { ic: 'bi-graph-up-arrow', tone: 'teal', title: 'Track & Improve', desc: 'See your progress over time and know what to improve next.' },
 ];
 
 const MissionControl: React.FC = () => {
@@ -94,21 +103,7 @@ const MissionControl: React.FC = () => {
 
   const firstName = user?.firstName || (status?.name || '').split(' ')[0] || 'there';
   const initial = (firstName[0] || 'C').toUpperCase();
-
-  /**
-   * "My result" is not one page — it depends which paper they sat.
-   *
-   * These links pointed at /careerpilot/assessment, which for a member measured by the
-   * SKILL assessment is not their result at all: they have no legacy attempt, so that page
-   * shows them the intake questionnaire. Sending somebody to "view my full result" and
-   * showing them a form to fill in is the same dead end as the rest of this, in the one
-   * place they are most likely to click after being told they have been measured.
-   */
-  const resultHref = status?.assessedVia === 'attempt'
-    ? '/careerpilot/assessment'
-    : '/careerpilot/readiness';
-
-  /** Payment is not wired up on this tenant, so nothing here can actually be bought. */
+  const resultHref = status?.assessedVia === 'attempt' ? '/careerpilot/assessment' : '/careerpilot/readiness';
   const canPay = status?.paymentAvailable !== false;
 
   const Topbar = (
@@ -142,66 +137,12 @@ const MissionControl: React.FC = () => {
   if (loading) return <div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>Loading your CareerPilot…</div>;
 
   const active = !!status?.active;
-  /**
-   * "Has this member been measured?" — by EITHER instrument.
-   *
-   * This was `!!result`, and `result` is the legacy PassportAttempt. A member who sat the
-   * personalised skill assessment has no attempt, so the dashboard showed them the
-   * pre-assessment landing hero — "take the free assessment to know where you stand" —
-   * immediately after they had been measured and shown their role readiness. Worse, the
-   * button then sent them to the very assessment they had just completed.
-   *
-   * `careerScore` on the passport is written by BOTH paths: by the legacy submit, and by
-   * careerScoreService from role readiness once enough of the blueprint is covered. So it
-   * is the honest answer to this question, and the one screens should ask.
-   */
-  /**
-   * Gate on the FACT that they were measured, which the server states, not on the score.
-   *
-   * This read `careerScore`, and that is derived: careerScoreService writes nothing until
-   * role-readiness coverage reaches 40%, because readiness over two skills of twenty-four
-   * is not a score worth publishing. A member who really had sat the skill assessment, but
-   * whose blueprint is only thinly covered, therefore had no careerScore — and this screen
-   * concluded they had never been assessed and sent them to take one. Same dead end, one
-   * layer up from the roadmap gate.
-   *
-   * `result` stays in the expression so a member with a legacy attempt is unaffected even
-   * on a stale /me response.
-   */
   const hasScore = !!result || status?.assessed === true;
-
-  /**
-   * Whether there is a NUMBER to show, which is a separate question from whether they were
-   * measured. Showing 0 to somebody whose coverage is still thin would read as a verdict —
-   * "you scored zero" — for an assessment that simply has not measured enough yet.
-   */
   const hasNumber = typeof (result?.careerScore ?? status?.passport?.careerScore) === 'number';
-
-
-  /**
-   * A member who has not finished setup cannot sit the assessment.
-   *
-   * The generator refuses them — resolvePersonalizedAssessmentContext returns
-   * CONTEXT_INCOMPLETE — so every "start your assessment" button on this screen was an
-   * invitation to a refusal, with nothing anywhere linking to the setup it demanded.
-   *
-   * `setupCompleted` comes from the server (contextCompletedAt), NOT from `onboarded`,
-   * which signup sets to true for everyone and therefore cannot answer this question.
-   *
-   * Undefined is treated as complete: a member on an older client, or a status call that
-   * failed, should get the normal route rather than be pushed back through setup they may
-   * already have done. Being wrong in that direction costs a click; being wrong in the
-   * other direction strands somebody who is ready.
-   */
   const needsSetup = status != null && status.setupCompleted === false;
   const assessmentHref = needsSetup ? '/careerpilot/setup' : '/careerpilot/skill-assessment';
   const price = status?.priceInr ?? 499;
-  // Falls back to the cached passport score, which is where a skill-assessed member's
-  // number lives — reading `result!` would have thrown for exactly those members.
   const scoreNum = result?.careerScore ?? status?.passport?.careerScore ?? 0;
-  // Same reason as scoreNum: `result` is null for a member measured by the skill
-  // assessment, and `hasScore` is now true for them. Every read of it has to tolerate that
-  // or the panel crashes for precisely the members this was meant to unblock.
   const levelLabel = result?.level ?? status?.passport?.level ?? '';
   const pathwayLabel = result?.pathwayLabel ?? status?.passport?.pathway ?? '';
 
@@ -224,19 +165,14 @@ const MissionControl: React.FC = () => {
             </button>
           ))}
         </nav>
-
         <main className="mc-missions-page">
           <div className="mc-missions-head">
-            <div>
-              <h1>Missions</h1>
-              <p>Practice daily. Earn XP. Build skills. Get job-ready.</p>
-            </div>
+            <div><h1>Missions</h1><p>Practice daily. Earn XP. Build skills. Get job-ready.</p></div>
             <div className="mc-missions-head-actions">
               <span className="mc-metric-pill"><i className="bi bi-lightning-charge-fill" /> {today?.xp ?? 0} XP</span>
               <span className="mc-metric-pill"><i className="bi bi-fire" /> {streak} day streak</span>
             </div>
           </div>
-
           <div className="mc-missions-grid">
             <section className="mc-missions-main">
               <div className="mc-today-hero">
@@ -244,111 +180,34 @@ const MissionControl: React.FC = () => {
                   <span className="mc-today-label"><i className="bi bi-star-fill" /> Today’s mission{today?.day ? ` · Day ${today.day}` : ''}</span>
                   <h2>{focus?.title || (today?.needsAssessment ? 'Unlock your personalized missions' : 'Your mission plan is clear for today')}</h2>
                   <p>{focus?.detail || (today?.needsAssessment ? 'Complete your skill assessment so CareerPilot can build missions around your target role.' : 'Come back tomorrow for your next personalized action.')}</p>
-                  {focus && (
-                    <div className="mc-today-meta">
-                      <span><i className={`bi ${CAT_ICON[focus.category] || 'bi-bullseye'}`} /> Personalized</span>
-                      <span><i className="bi bi-lightning-charge-fill" /> +{focus.xp} XP</span>
-                      <span><i className="bi bi-map" /> Connected to roadmap</span>
-                    </div>
-                  )}
+                  {focus && <div className="mc-today-meta"><span><i className={`bi ${CAT_ICON[focus.category] || 'bi-bullseye'}`} /> Personalized</span><span><i className="bi bi-lightning-charge-fill" /> +{focus.xp} XP</span><span><i className="bi bi-map" /> Connected to roadmap</span></div>}
                   <div className="mc-today-actions">
-                    {today?.needsAssessment ? (
-                      <button className="mc-mission-primary" onClick={() => nav(assessmentHref)}><i className="bi bi-play-fill" /> Start Skill Assessment</button>
-                    ) : focus?.link && !focus.done ? (
-                      <button className="mc-mission-primary" onClick={() => nav(focus.link!)}><i className="bi bi-play-fill" /> Start Mission</button>
-                    ) : focus && !focus.done ? (
-                      <button className="mc-mission-primary" onClick={() => toggleMission(focus.key)}><i className="bi bi-check2-circle" /> Mark Complete</button>
-                    ) : (
-                      <button className="mc-mission-primary" onClick={() => nav('/careerpilot/roadmap')}><i className="bi bi-map" /> Explore Roadmap</button>
-                    )}
+                    {today?.needsAssessment ? <button className="mc-mission-primary" onClick={() => nav(assessmentHref)}><i className="bi bi-play-fill" /> Start Skill Assessment</button>
+                      : focus?.link && !focus.done ? <button className="mc-mission-primary" onClick={() => nav(focus.link!)}><i className="bi bi-play-fill" /> Start Mission</button>
+                      : focus && !focus.done ? <button className="mc-mission-primary" onClick={() => toggleMission(focus.key)}><i className="bi bi-check2-circle" /> Mark Complete</button>
+                      : <button className="mc-mission-primary" onClick={() => nav('/careerpilot/roadmap')}><i className="bi bi-map" /> Explore Roadmap</button>}
                     <button className="mc-mission-secondary" onClick={() => nav('/careerpilot/roadmap')}>View Roadmap</button>
                   </div>
                 </div>
                 <div className="mc-today-visual" aria-hidden="true"><img src="/assets/careerpilot/careerpilot-hero-student.png" alt="" /></div>
                 <span className="mc-roadmap-chip">Foundation → Build → Launch</span>
               </div>
-
               <div className="mc-panel">
-                <div className="mc-panel-head">
-                  <h3><i className="bi bi-calendar-check" /> Daily Missions</h3>
-                  {today?.allDone ? <span className="mc-all-done"><i className="bi bi-check-circle-fill" /> All done — see you tomorrow!</span> : <span>{completed}/{total || 0} complete</span>}
-                </div>
-                {today?.needsAssessment ? (
-                  <div className="mc-empty-state"><i className="bi bi-diagram-3" />Complete your skill assessment first to personalize today’s missions.</div>
-                ) : !missions.length ? (
-                  <div className="mc-empty-state"><i className="bi bi-stars" />No missions for today. Check back tomorrow.</div>
-                ) : (
-                  <div className="mc-daily-list">
-                    {missions.map(m => (
-                      <div className={`mc-daily-row${m.done ? ' done' : ''}`} key={m.key}>
-                        <div className="mc-daily-icon"><i className={`bi ${CAT_ICON[m.category] || 'bi-bullseye'}`} /></div>
-                        <div className="mc-daily-copy"><b>{m.title}</b><p>{m.detail}</p></div>
-                        <div className="mc-daily-meta">
-                          <span className="mc-xp">+{m.xp} XP</span>
-                          {m.link && !m.done && <button className="mc-open-btn" onClick={() => nav(m.link!)}>Open →</button>}
-                          <button className={`mc-check-btn${m.done ? ' done' : ''}`} disabled={m.done} onClick={() => !m.done && toggleMission(m.key)} aria-label={m.done ? 'Mission complete' : 'Mark mission complete'}>
-                            {m.done && <i className="bi bi-check-lg" />}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="mc-panel-head"><h3><i className="bi bi-calendar-check" /> Daily Missions</h3>{today?.allDone ? <span className="mc-all-done"><i className="bi bi-check-circle-fill" /> All done — see you tomorrow!</span> : <span>{completed}/{total || 0} complete</span>}</div>
+                {today?.needsAssessment ? <div className="mc-empty-state"><i className="bi bi-diagram-3" />Complete your skill assessment first to personalize today’s missions.</div>
+                  : !missions.length ? <div className="mc-empty-state"><i className="bi bi-stars" />No missions for today. Check back tomorrow.</div>
+                  : <div className="mc-daily-list">{missions.map(m => <div className={`mc-daily-row${m.done ? ' done' : ''}`} key={m.key}><div className="mc-daily-icon"><i className={`bi ${CAT_ICON[m.category] || 'bi-bullseye'}`} /></div><div className="mc-daily-copy"><b>{m.title}</b><p>{m.detail}</p></div><div className="mc-daily-meta"><span className="mc-xp">+{m.xp} XP</span>{m.link && !m.done && <button className="mc-open-btn" onClick={() => nav(m.link!)}>Open →</button>}<button className={`mc-check-btn${m.done ? ' done' : ''}`} disabled={m.done} onClick={() => !m.done && toggleMission(m.key)} aria-label={m.done ? 'Mission complete' : 'Mark mission complete'}>{m.done && <i className="bi bi-check-lg" />}</button></div></div>)}</div>}
               </div>
-
-              <div className="mc-panel">
-                <div className="mc-panel-head"><h3><i className="bi bi-signpost-split" /> Mission Path</h3><span>Your 90-day journey</span></div>
-                <div className="mc-journey">
-                  <div className="mc-journey-phase current"><small>Phase 1</small><b>Foundation</b><span>Build the basics consistently</span></div>
-                  <div className="mc-journey-phase"><small>Phase 2</small><b>Build</b><span>Projects, practice and depth</span></div>
-                  <div className="mc-journey-phase"><small>Phase 3</small><b>Launch</b><span>Interview and placement readiness</span></div>
-                </div>
-              </div>
-
-              <div className="mc-panel">
-                <div className="mc-panel-head"><h3>Quick Actions</h3><span>Keep building evidence</span></div>
-                <div className="mc-quick-grid">
-                  <QuickCard ic="bi-map-fill" title="My 90-day roadmap" onClick={() => nav('/careerpilot/roadmap')} sub="Every week, every day, planned" />
-                  <QuickCard ic="bi-code-slash" title="Practice Lab" onClick={() => nav('/careerpilot/practice')} sub="Code that actually runs" />
-                  <QuickCard ic="bi-mic-fill" title="Mock interview" onClick={() => nav('/careerpilot/interview')} sub="AI interviewer + scored feedback" />
-                  <QuickCard ic="bi-file-earmark-text-fill" title="Resume Center" onClick={() => nav('/careerpilot/resume')} sub="Build it, score it, fix it" />
-                </div>
-              </div>
+              <div className="mc-panel"><div className="mc-panel-head"><h3><i className="bi bi-signpost-split" /> Mission Path</h3><span>Your 90-day journey</span></div><div className="mc-journey"><div className="mc-journey-phase current"><small>Phase 1</small><b>Foundation</b><span>Build the basics consistently</span></div><div className="mc-journey-phase"><small>Phase 2</small><b>Build</b><span>Projects, practice and depth</span></div><div className="mc-journey-phase"><small>Phase 3</small><b>Launch</b><span>Interview and placement readiness</span></div></div></div>
+              <div className="mc-panel"><div className="mc-panel-head"><h3>Quick Actions</h3><span>Keep building evidence</span></div><div className="mc-quick-grid"><QuickCard ic="bi-map-fill" title="My 90-day roadmap" onClick={() => nav('/careerpilot/roadmap')} sub="Every week, every day, planned" /><QuickCard ic="bi-code-slash" title="Practice Lab" onClick={() => nav('/careerpilot/practice')} sub="Code that actually runs" /><QuickCard ic="bi-mic-fill" title="Mock interview" onClick={() => nav('/careerpilot/interview')} sub="AI interviewer + scored feedback" /><QuickCard ic="bi-file-earmark-text-fill" title="Resume Center" onClick={() => nav('/careerpilot/resume')} sub="Build it, score it, fix it" /></div></div>
             </section>
-
             <aside className="mc-missions-side">
-              <div className="mc-side-card">
-                <div className="mc-side-title"><i className="bi bi-fire" /> Current Streak</div>
-                <div className="mc-streak-wrap"><div><strong>{streak} Days</strong><span>Best: {longest} Days</span></div><div className="mc-fire"><i className="bi bi-fire" /></div></div>
-              </div>
-
-              <div className="mc-side-card">
-                <div className="mc-side-title"><i className="bi bi-bullseye" /> Today’s Progress</div>
-                <div className="mc-progress-big">{progress}%</div>
-                <div className="mc-progress-track"><i style={{ width: `${progress}%` }} /></div>
-                <div style={{ fontSize: 11, color: '#7b899c' }}>{completed} of {total} missions complete</div>
-              </div>
-
-              <div className="mc-side-card">
-                <div className="mc-side-title"><i className="bi bi-trophy" /> Achievements</div>
-                <div className="mc-ach-list">
-                  <div className="mc-ach"><div className="mc-ach-ic"><i className="bi bi-fire" /></div><div><b>Consistency</b><span>{streak ? `${streak}-day active streak` : 'Start your first streak today'}</span></div></div>
-                  <div className="mc-ach"><div className="mc-ach-ic"><i className="bi bi-check2-circle" /></div><div><b>Mission Momentum</b><span>{completed} missions completed today</span></div></div>
-                  <div className="mc-ach"><div className="mc-ach-ic"><i className="bi bi-lightning-charge" /></div><div><b>XP Builder</b><span>{today?.xp ?? 0} XP earned overall</span></div></div>
-                </div>
-              </div>
-
-              <div className="mc-side-card">
-                <div className="mc-side-title"><i className="bi bi-share" /> My CareerPilot</div>
-                <div style={{ color: '#718096', fontSize: 12, lineHeight: 1.55, marginBottom: 12 }}>Share your verified CareerPilot profile when you’re ready.</div>
-                <button className="mc-mission-secondary" onClick={share}>{copied ? 'Link copied!' : 'Share CareerPilot'}</button>
-              </div>
+              <div className="mc-side-card"><div className="mc-side-title"><i className="bi bi-fire" /> Current Streak</div><div className="mc-streak-wrap"><div><strong>{streak} Days</strong><span>Best: {longest} Days</span></div><div className="mc-fire"><i className="bi bi-fire" /></div></div></div>
+              <div className="mc-side-card"><div className="mc-side-title"><i className="bi bi-bullseye" /> Today’s Progress</div><div className="mc-progress-big">{progress}%</div><div className="mc-progress-track"><i style={{ width: `${progress}%` }} /></div><div style={{ fontSize: 11, color: '#7b899c' }}>{completed} of {total} missions complete</div></div>
+              <div className="mc-side-card"><div className="mc-side-title"><i className="bi bi-trophy" /> Achievements</div><div className="mc-ach-list"><div className="mc-ach"><div className="mc-ach-ic"><i className="bi bi-fire" /></div><div><b>Consistency</b><span>{streak ? `${streak}-day active streak` : 'Start your first streak today'}</span></div></div><div className="mc-ach"><div className="mc-ach-ic"><i className="bi bi-check2-circle" /></div><div><b>Mission Momentum</b><span>{completed} missions completed today</span></div></div><div className="mc-ach"><div className="mc-ach-ic"><i className="bi bi-lightning-charge" /></div><div><b>XP Builder</b><span>{today?.xp ?? 0} XP earned overall</span></div></div></div></div>
+              <div className="mc-side-card"><div className="mc-side-title"><i className="bi bi-share" /> My CareerPilot</div><div style={{ color: '#718096', fontSize: 12, lineHeight: 1.55, marginBottom: 12 }}>Share your verified CareerPilot profile when you’re ready.</div><button className="mc-mission-secondary" onClick={share}>{copied ? 'Link copied!' : 'Share CareerPilot'}</button></div>
             </aside>
-
-            <div className="mc-motivation">
-              <div className="mc-motivation-copy"><div className="mc-motivation-ic"><i className="bi bi-award-fill" /></div><div><b>Great work, {firstName}! 🚀</b><span>Small daily wins build the skills and evidence employers can trust.</span></div></div>
-              <button className="mc-mission-secondary" onClick={() => nav('/careerpilot/roadmap')}>Explore Roadmap →</button>
-            </div>
+            <div className="mc-motivation"><div className="mc-motivation-copy"><div className="mc-motivation-ic"><i className="bi bi-award-fill" /></div><div><b>Great work, {firstName}! 🚀</b><span>Small daily wins build the skills and evidence employers can trust.</span></div></div><button className="mc-mission-secondary" onClick={() => nav('/careerpilot/roadmap')}>Explore Roadmap →</button></div>
           </div>
         </main>
       </div>
@@ -359,39 +218,59 @@ const MissionControl: React.FC = () => {
     return (
       <div className="mc-shell">
         {Topbar}
-        <div className="mc-scored">
+        <div className="mc-scored mc-unlock-page">
           <div className="mc-hd"><h1><i className="bi bi-rocket-takeoff-fill" /> Mission <span className="b">Control</span></h1><p>Your CodeBegun CareerPilot — one place that tells you what to do next.</p></div>
           <div className="mc-stats">
             <div className="mc-stat"><span className="ic t-teal"><i className="bi bi-graph-up-arrow" /></span><div><div className="lbl">Career Score</div><div className="val">{hasNumber ? scoreNum : '—'}</div><div className="hint">{hasNumber ? levelLabel : 'Still measuring'}</div></div></div>
-            <div className="mc-stat"><span className="ic t-violet"><i className="bi bi-signpost-split-fill" /></span><div><div className="lbl">Pathway</div><div className="val" style={{ fontSize: 16 }}>{pathwayLabel || '—'}</div></div></div>
+            <div className="mc-stat"><span className="ic t-violet"><i className="bi bi-signpost-split-fill" /></span><div><div className="lbl">Pathway</div><div className="val" style={{ fontSize: 16 }}>{pathwayLabel || '—'}</div><div className="hint">{pathwayLabel ? 'Personalized for you' : 'Not selected yet'}</div></div></div>
             <div className="mc-stat"><span className="ic t-amber"><i className="bi bi-fire" /></span><div><div className="lbl">Streak</div><div className="val">0d</div><div className="hint">Unlock to start</div></div></div>
             <div className="mc-stat"><span className="ic t-blue"><i className="bi bi-star-fill" /></span><div><div className="lbl">XP</div><div className="val">—</div><div className="hint">Unlock to earn</div></div></div>
           </div>
-          <div className="mc-unlock-hero">
-            <h2>Unlock your full <span className="y">90-day</span> journey</h2>
-            <div className="mc-uh-feats">
-              <div><span className="ck"><i className="bi bi-check-lg" /></span> Daily missions</div><div><span className="ck"><i className="bi bi-check-lg" /></span> Verified practice</div><div><span className="ck"><i className="bi bi-check-lg" /></span> Mock interviews</div><div><span className="ck"><i className="bi bi-check-lg" /></span> Shareable CareerPilot</div><div><span className="ck"><i className="bi bi-check-lg" /></span> Personalized for your score</div>
+
+          <section className="mc-unlock2-hero">
+            <div className="mc-unlock2-copy">
+              <h2>Unlock your full <span className="y">90-day journey</span></h2>
+              <div className="mc-unlock2-feats">
+                <div className="mc-unlock2-feat"><span className="ck"><i className="bi bi-check-lg" /></span>Daily missions</div>
+                <div className="mc-unlock2-feat"><span className="ck"><i className="bi bi-check-lg" /></span>Shareable CareerPilot</div>
+                <div className="mc-unlock2-feat"><span className="ck"><i className="bi bi-check-lg" /></span>Verified practice</div>
+                <div className="mc-unlock2-feat"><span className="ck"><i className="bi bi-check-lg" /></span>Personalized for your score</div>
+                <div className="mc-unlock2-feat"><span className="ck"><i className="bi bi-check-lg" /></span>Mock interviews</div>
+              </div>
+              {!canPay ? (
+                <>
+                  <p className="mc-unlock2-note">Online payment isn’t enabled yet — please contact your mentor to activate your 90-day journey.</p>
+                  <button className="mc-unlock2-btn" disabled><i className="bi bi-lock-fill" /> Unlock My 90-Day CareerPilot</button>
+                </>
+              ) : (
+                <>
+                  <p className="mc-unlock2-note">Activate your personalized journey and start building consistent career progress.</p>
+                  <button className="mc-unlock2-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : <><i className="bi bi-unlock-fill" /> Unlock My 90-Day CareerPilot — ₹{price}</>}</button>
+                </>
+              )}
+              {payMsg && <div className="mc-unlock2-paymsg">{payMsg}</div>}
+              <div className="mc-unlock2-links"><button className="mc-unlock2-link" onClick={() => nav('/careerpilot/roadmap')}>See what’s in the 90 days →</button><button className="mc-unlock2-link" onClick={() => nav(resultHref)}>View my full result →</button></div>
             </div>
-            {/**
-              * When payment is not configured there is nothing to unlock, and the button
-              * must not imply otherwise. This one navigated to the ASSESSMENT — which
-              * unlocks nothing, contradicts the sentence directly above it, and dropped a
-              * member who had already been measured back onto an assessment page. It is
-              * now plainly unavailable, and the note carries the explanation, so the
-              * screen says one thing instead of two.
-              */}
-            {!canPay ? (
-              <>
-                <p className="mc-uh-note">Online payment isn’t enabled yet — please contact your mentor to activate your 90-day journey.</p>
-                <button className="mc-uh-btn" disabled><i className="bi bi-lock-fill" /> Unlock — not available yet</button>
-              </>
-            ) : (
-              <button className="mc-uh-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : <><i className="bi bi-unlock-fill" /> Unlock My 90-Day CareerPilot — ₹{price}</>}</button>
-            )}
-            {payMsg && <div className="mc-uh-paymsg">{payMsg}</div>}
-            <button className="mc-uh-link" onClick={() => nav('/careerpilot/roadmap')}>See what's in the 90 days →</button>
-            <button className="mc-uh-link" onClick={() => nav(resultHref)}>View my full result →</button>
-          </div>
+            <div className="mc-unlock2-visual" aria-hidden="true">
+              <div className="mc-unlock2-road" />
+              <img className="mc-unlock2-student" src="/assets/careerpilot/careerpilot-hero-student.png" alt="" />
+              <span className="mc-milestone m1"><i>✓</i>Assess</span><span className="mc-milestone m2"><i>⌘</i>Practice</span><span className="mc-milestone m3"><i>✓</i>Mock</span><span className="mc-milestone m4"><i>⚑</i>Achieve</span>
+            </div>
+          </section>
+
+          <section className="mc-unlock-section" ref={whyRef}>
+            <h2 className="mc-unlock-title"><i className="bi bi-gift-fill" style={{ color: '#359aad', marginRight: 9 }} />What you’ll unlock</h2>
+            <p className="mc-unlock-sub">Everything you need to learn, practice and build toward your career goals.</p>
+            <div className="mc-unlock-grid">{UNLOCK_CARDS.map(card => <div className="mc-unlock-card" key={card.title}><div className={`ic t-${card.tone}`}><i className={`bi ${card.ic}`} /></div><b>{card.title}</b><span>{card.desc}</span></div>)}</div>
+          </section>
+
+          <section className="mc-result-preview">
+            <div className="mc-preview-art" aria-hidden="true"><div className="mc-preview-sheet"><div className="ring"><b>{hasNumber ? scoreNum : '—'}</b></div><div className="mc-preview-line" /><div className="mc-preview-line w2" /><div className="mc-preview-line w3" /></div></div>
+            <div className="mc-result-copy"><h3>Your result preview <i className="bi bi-lock-fill" style={{ color: '#75869f', fontSize: 14 }} /></h3><p>{hasNumber ? 'Your assessment has already measured where you stand. Activate your journey to connect that result to ongoing missions, practice and progress tracking.' : 'Your assessment is complete. Some readiness measures are still building enough evidence to publish a score.'}</p><div className="mc-result-points"><span><i className="bi bi-lock-fill" />Career Score</span><span><i className="bi bi-lock-fill" />Skill Breakdown</span><span><i className="bi bi-lock-fill" />Strengths & Gaps</span><span><i className="bi bi-lock-fill" />Recommended Pathway</span></div></div>
+            <div className="mc-preview-lock"><i className="bi bi-lock-fill" /><b>Unlock after activation</b><span>Your ongoing 90-day guidance becomes available when your journey is activated.</span></div>
+          </section>
+
+          <section className="mc-unlock-bottom"><div className="mc-unlock-bottom-copy"><span className="rocket"><i className="bi bi-rocket-takeoff-fill" /></span><div><b>You’re one step away from starting your 90-day journey.</b><span>Activate CareerPilot and turn your assessment into a clear daily action plan.</span></div></div><button className="mc-mentor" onClick={() => whyRef.current?.scrollIntoView({ behavior: 'smooth' })}><i className="bi bi-headset" /> Need help? Talk to your mentor</button></section>
         </div>
       </div>
     );
@@ -406,11 +285,7 @@ const MissionControl: React.FC = () => {
           <h1 className="mc-h1">Your Career Journey <span className="b">Starts with Clarity</span></h1>
           <p className="mc-lead">Take the free skill assessment to see how you measure up against the role you are aiming at, and get a personalized roadmap to close the gaps.</p>
           <div className="mc-checks">{CHECKS.map(c => <div className="mc-check" key={c.title}><span className={`ic t-${c.tone}`}><i className={`bi ${c.ic}`} /></span><span className="ck"><i className="bi bi-check-lg" /></span><div><b>{c.title}</b><span>{c.desc}</span></div></div>)}</div>
-          <button className="mc-cta" onClick={() => nav(assessmentHref)}>
-            <i className="bi bi-rocket-takeoff-fill" />
-            {needsSetup ? 'Finish Setup to Start' : 'Start Free Assessment'}
-            <i className="bi bi-arrow-right" />
-          </button>
+          <button className="mc-cta" onClick={() => nav(assessmentHref)}><i className="bi bi-rocket-takeoff-fill" />{needsSetup ? 'Finish Setup to Start' : 'Start Free Assessment'}<i className="bi bi-arrow-right" /></button>
           <div className="mc-cta-note"><i className="bi bi-clock" /> Takes about 5 minutes · <i className="bi bi-graph-up-arrow" /> No payment needed</div>
         </div>
         <div className="mc-right"><div className="mc-scorewrap"><div className="mc-score-head"><h3><i className="bi bi-key-fill" /> Your Career Score can open new doors</h3><p>Measure where you stand and what to improve next.</p></div><div className="mc-score-card"><div className="mc-score-top"><div><div className="lbl">Career Readiness Score</div><div className="num">{scoreNum}<small> / 100</small></div></div><div className="mc-rocket"><i className="bi bi-rocket-takeoff-fill" /></div></div><div className="mc-bar"><i style={{ width: `${Math.max(scoreNum, 4)}%` }} /></div><div className="mc-cats">{CATS.map(c => <div className="mc-cat" key={c.title}><span className={`ic t-${c.tone}`}><i className={`bi ${c.ic}`} /></span><div><b>{c.title}</b><span>{c.desc}</span></div></div>)}</div></div></div></div>

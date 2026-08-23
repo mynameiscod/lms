@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { InterviewSession } from '../../api/passportApi';
 import PassportShell, { LockedPanel } from './PassportShell';
-import { useSearchParams } from 'react-router-dom';
 import { useInterviewVoice, speechInSupported, speechOutSupported } from './useInterviewVoice';
 import { INTERVIEWER_FACE_ENABLED } from './interviewFace';
+import './interviewRedesign.css';
 
-// Lazy so three.js and the avatar land in their own chunk. While the face is switched off
-// that chunk is never requested, so the code costs nothing to keep.
 const InterviewAvatar = React.lazy(() => import('./InterviewAvatar'));
 
 const READINESS_LABEL: Record<string, string> = {
@@ -18,13 +17,9 @@ const READINESS_LABEL: Record<string, string> = {
 
 const VERDICT_LABEL: Record<string, string> = { strong: 'Strong', okay: 'Okay', weak: 'Needs work' };
 
-/**
- * AI Mock Interview room — the `mock_interview` entitlement.
- * Shares the LMS interview brain (nextInterviewerTurn / evaluateTranscript) but runs
- * on Passport's own session record: no template, no batch, no scheduled slot.
- */
 const Interview: React.FC = () => {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<InterviewSession | null>(null);
@@ -33,30 +28,21 @@ const Interview: React.FC = () => {
   const [err, setErr] = useState('');
   const [paying, setPaying] = useState(false);
   const chatEnd = useRef<HTMLDivElement>(null);
-
-  // Voice is opt-in but ON by default when the browser can do it — an interview you hear
-  // is the point, and a member who wants to type can turn it off in one click.
   const [voiceOn, setVoiceOn] = useState(speechOutSupported);
   const [elapsed, setElapsed] = useState(0);
   const spokenRef = useRef<string>('');
 
-  // Speech arrives in fragments; append rather than replace so a pause mid-sentence does
-  // not wipe what they already said.
   const onFinalTranscript = useCallback((text: string) => {
     setAnswer(a => (a ? `${a} ${text}` : text));
   }, []);
   const voice = useInterviewVoice({ onFinalTranscript });
 
-  // Interview clock. Real interviews are timed, and seeing it run is most of why a mock
-  // one feels like practice rather than a chat window.
   useEffect(() => {
     if (!session || session.status !== 'in_progress') return;
     const t = setInterval(() => setElapsed(e => e + 1), 1000);
     return () => clearInterval(t);
   }, [session?.id, session?.status]);
 
-  // Read each NEW interviewer line aloud, exactly once. Keyed on the text itself: a
-  // re-render or a poll must not make her repeat the question.
   useEffect(() => {
     if (!voiceOn || !session || session.status !== 'in_progress') return;
     const last = session.transcript?.[session.transcript.length - 1];
@@ -64,7 +50,7 @@ const Interview: React.FC = () => {
     spokenRef.current = last.text;
     voice.stopListening();
     voice.speak(last.text);
-  }, [session?.transcript?.length, voiceOn]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [session?.transcript?.length, voiceOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = useCallback(async () => {
     try { setData(await passportApi.listInterviews()); } catch { /* ignore */ }
@@ -84,16 +70,12 @@ const Interview: React.FC = () => {
   const start = async () => {
     setBusy(true); setErr('');
     try {
-      // ?company=<slug> arrives when the member started from a company page, and primes
-      // the interviewer for that employer. ?mode=role arrives from Placement Readiness and
-      // asks the server to build the paper from the member's own role blueprint — the only
-      // kind of sitting that can later become skill evidence. Both are hints; the server
-      // resolves the actual coverage, so neither lets a member pick their own questions.
       const r = await passportApi.startInterview(
         params.get('company') || undefined,
         params.get('mode') === 'role' ? 'role' : undefined,
       );
       setSession(r.session);
+      setElapsed(0);
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not start the interview.'); }
     setBusy(false);
   };
@@ -103,7 +85,6 @@ const Interview: React.FC = () => {
     const text = answer.trim();
     setAnswer(''); setBusy(true); setErr('');
     voice.stopListening();
-    // Optimistic — the candidate's turn shows instantly while the interviewer thinks.
     setSession(s => s && ({ ...s, transcript: [...s.transcript, { role: 'candidate', text }] }));
     try {
       const r = await passportApi.interviewTurn(session.id, text);
@@ -116,15 +97,6 @@ const Interview: React.FC = () => {
     setBusy(false);
   };
 
-  /**
-   * Close the interview and show the graded result.
-   *
-   * The server hands finalization to exactly ONE request. If this one is not the owner — the
-   * member tapped twice, or an earlier attempt timed out and is still grading — it answers
-   * `finalizing` instead of a result. That is not an error and nothing is lost: the other
-   * request is grading this very transcript, so wait and ask again rather than dropping the
-   * member back to a start screen with their interview apparently gone.
-   */
   const finish = async (id?: string) => {
     const sid = id || session?.id;
     if (!sid) return;
@@ -136,8 +108,6 @@ const Interview: React.FC = () => {
         if (!r.finalizing) { setSession(r.session); load(); graded = true; break; }
         await new Promise(res => setTimeout(res, 2000));
       }
-      // Grading is taking far longer than it should. Say so — the transcript is saved
-      // either way, and silently giving up would look like the interview vanished.
       if (!graded) setErr('This interview is taking longer than usual to grade. Your answers are saved — reopen it in a minute.');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not finish the interview.'); }
     setBusy(false);
@@ -164,250 +134,220 @@ const Interview: React.FC = () => {
   const sessions: InterviewSession[] = data?.sessions || [];
   const aiAvailable = data?.aiAvailable !== false;
 
-  // ── Completed session → feedback report ──
   if (session && session.status === 'completed') {
     const ev = session.evaluation;
     return (
       <PassportShell>
-        <button className="pm-btn ghost" onClick={() => setSession(null)} style={{ marginBottom: 10 }}>← Back to mock interviews</button>
-        <div className="pm-head">
-          <h1>Your interview feedback</h1>
-          <p>{session.role} · {session.transcript.filter(t => t.role === 'candidate').length} answers given</p>
-        </div>
-
-        <div className="iv-room">
-          <div>
-            <div className="pm-card">
-              <h3 style={{ fontSize: 15, fontWeight: 900, color: '#0f172a', margin: '0 0 12px' }}>How you did</h3>
-              <p style={{ fontSize: 14, color: '#334155', lineHeight: 1.7, margin: 0 }}>{ev?.summary || 'No feedback available.'}</p>
+        <div className="cp-iv-page">
+          <button className="pm-btn ghost" onClick={() => setSession(null)}>← Back to mock interviews</button>
+          <div className="cp-iv-feedback-head">
+            <div>
+              <span className="cp-iv-kicker">Interview report</span>
+              <h1>Your interview feedback</h1>
+              <p>{session.role} · {session.transcript.filter(t => t.role === 'candidate').length} answers given</p>
             </div>
-
-            {!!ev?.areaScores?.length && (
-              <div className="pm-card">
-                <h3 style={{ fontSize: 15, fontWeight: 900, color: '#0f172a', margin: '0 0 6px' }}>Area by area</h3>
-                {ev.areaScores.map((a, i) => (
-                  <div key={i}>
-                    <div className="iv-area-row">
-                      <span className="t">{a.title}</span>
-                      <span className="b"><i style={{ width: `${a.percentage}%` }} /></span>
-                      <span className="p">{a.percentage}%</span>
-                    </div>
-                    {a.feedback && <div style={{ fontSize: 12.5, color: '#64748b', lineHeight: 1.6, padding: '0 0 8px' }}>{a.feedback}</div>}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {!!ev?.questionFeedback?.length && (
-              <div className="pm-card">
-                <h3 style={{ fontSize: 15, fontWeight: 900, color: '#0f172a', margin: '0 0 4px' }}>Question by question</h3>
-                <p style={{ fontSize: 12.5, color: '#64748b', margin: '0 0 14px' }}>
-                  What to say instead, next time you're asked this.
-                </p>
-                {ev.questionFeedback.map((q, i) => (
-                  <div className="iv-qf" key={i}>
-                    <div className="iv-qf-head">
-                      <span className={`iv-verdict ${q.verdict}`}>{VERDICT_LABEL[q.verdict] || q.verdict}</span>
-                      <span className="iv-qf-q">{q.question}</span>
-                    </div>
-                    {q.whatWorked && <p className="iv-qf-line good"><b>Worked:</b> {q.whatWorked}</p>}
-                    {q.whatToFix && <p className="iv-qf-line fix"><b>Fix:</b> {q.whatToFix}</p>}
-                    {q.betterAnswer && (
-                      <div className="iv-qf-better">
-                        <span className="lbl">A stronger answer</span>
-                        <p>"{q.betterAnswer}"</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="pm-card">
-              <h3 style={{ fontSize: 15, fontWeight: 900, color: '#0f172a', margin: '0 0 10px' }}>Full transcript</h3>
-              {session.transcript.map((t, i) => (
-                <div className={`iv-turn ${t.role}`} key={i} style={{ marginBottom: 10 }}>
-                  <span className="av">{t.role === 'interviewer' ? '🎙️' : '🙋'}</span>
-                  <div className="bub">{t.text}</div>
-                </div>
-              ))}
+            <div className="cp-iv-score-ring" style={{ '--score': `${ev?.overallScore ?? 0}%` } as React.CSSProperties}>
+              <strong>{ev?.overallScore ?? 0}</strong><span>/100</span>
             </div>
           </div>
 
-          <div className="iv-side">
-            <div className="pm-card">
-              <div className="iv-score">
-                <div className="num">{ev?.overallScore ?? 0}<span style={{ fontSize: 20, color: '#94a3b8' }}>%</span></div>
-                <div className="lbl">Overall score</div>
-                <span className="iv-badge">{READINESS_LABEL[ev?.readinessLevel || ''] || ev?.readinessLevel}</span>
+          <div className="iv-room cp-iv-report-grid">
+            <div>
+              <div className="pm-card cp-iv-card">
+                <h3>How you did</h3>
+                <p>{ev?.summary || 'No feedback available.'}</p>
               </div>
-              {session.xpAwarded > 0 && (
-                <div className="pm-msg ok" style={{ textAlign: 'center' }}>+{session.xpAwarded} XP added to your journey</div>
+
+              {!!ev?.areaScores?.length && (
+                <div className="pm-card cp-iv-card">
+                  <h3>Area by area</h3>
+                  {ev.areaScores.map((a, i) => (
+                    <div key={i} className="cp-iv-area-wrap">
+                      <div className="iv-area-row">
+                        <span className="t">{a.title}</span>
+                        <span className="b"><i style={{ width: `${a.percentage}%` }} /></span>
+                        <span className="p">{a.percentage}%</span>
+                      </div>
+                      {a.feedback && <div className="cp-iv-area-feedback">{a.feedback}</div>}
+                    </div>
+                  ))}
+                </div>
               )}
+
+              {!!ev?.questionFeedback?.length && (
+                <div className="pm-card cp-iv-card">
+                  <h3>Question by question</h3>
+                  <p className="cp-iv-muted">What to say instead, next time you're asked this.</p>
+                  {ev.questionFeedback.map((q, i) => (
+                    <div className="iv-qf" key={i}>
+                      <div className="iv-qf-head">
+                        <span className={`iv-verdict ${q.verdict}`}>{VERDICT_LABEL[q.verdict] || q.verdict}</span>
+                        <span className="iv-qf-q">{q.question}</span>
+                      </div>
+                      {q.whatWorked && <p className="iv-qf-line good"><b>Worked:</b> {q.whatWorked}</p>}
+                      {q.whatToFix && <p className="iv-qf-line fix"><b>Fix:</b> {q.whatToFix}</p>}
+                      {q.betterAnswer && <div className="iv-qf-better"><span className="lbl">A stronger answer</span><p>“{q.betterAnswer}”</p></div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="pm-card cp-iv-card">
+                <h3>Full transcript</h3>
+                {session.transcript.map((t, i) => (
+                  <div className={`iv-turn ${t.role}`} key={i} style={{ marginBottom: 10 }}>
+                    <span className="av">{t.role === 'interviewer' ? '🎙️' : '🙋'}</span>
+                    <div className="bub">{t.text}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {!!ev?.strengths?.length && (
-              <div className="pm-card">
-                <h3 style={{ fontSize: 14, fontWeight: 900, color: '#0f766e', margin: 0 }}>✓ Strengths</h3>
-                <ul className="iv-list">{ev.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul>
+            <div className="iv-side">
+              <div className="pm-card cp-iv-card cp-iv-center">
+                <div className="iv-score">
+                  <div className="num">{ev?.overallScore ?? 0}<span>%</span></div>
+                  <div className="lbl">Overall score</div>
+                  <span className="iv-badge">{READINESS_LABEL[ev?.readinessLevel || ''] || ev?.readinessLevel}</span>
+                </div>
+                {session.xpAwarded > 0 && <div className="pm-msg ok">+{session.xpAwarded} XP added to your journey</div>}
               </div>
-            )}
-            {!!ev?.improvements?.length && (
-              <div className="pm-card">
-                <h3 style={{ fontSize: 14, fontWeight: 900, color: '#b45309', margin: 0 }}>△ Work on this</h3>
-                <ul className="iv-list">{ev.improvements.map((s, i) => <li key={i}>{s}</li>)}</ul>
-              </div>
-            )}
-            <button className="pm-btn primary" style={{ width: '100%', marginTop: 12 }} onClick={() => { setSession(null); start(); }}>
-              Start another interview
-            </button>
+              {!!ev?.strengths?.length && <div className="pm-card cp-iv-card"><h3 className="good-title">✓ Strengths</h3><ul className="iv-list">{ev.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul></div>}
+              {!!ev?.improvements?.length && <div className="pm-card cp-iv-card"><h3 className="warn-title">△ Work on this</h3><ul className="iv-list">{ev.improvements.map((s, i) => <li key={i}>{s}</li>)}</ul></div>}
+              <button className="pm-btn primary cp-iv-full" onClick={() => { setSession(null); start(); }}>Start another interview</button>
+              <button className="pm-btn cp-iv-full" onClick={() => navigate('/careerpilot/placement')}>Go to placement readiness</button>
+            </div>
           </div>
         </div>
       </PassportShell>
     );
   }
 
-  // ── Live session ──
   if (session && session.status === 'in_progress') {
     return (
       <PassportShell hideNav meta={<span className="pm-pill"><i>🎙️</i>Question <b>{session.askedCount}</b> / {session.maxQuestions}</span>}>
-        <div className="pm-head">
-          <h1>{session.companyName ? `${session.companyName} mock interview` : 'Mock interview in progress'}</h1>
-          <p>{session.role} · with {session.interviewerName}. Answer as if this were the real thing — full sentences, specific examples.</p>
+        <div className="cp-iv-live-head">
+          <div><span className="cp-iv-kicker">Live practice</span><h1>{session.companyName ? `${session.companyName} mock interview` : 'Mock interview in progress'}</h1><p>{session.role} · with {session.interviewerName}. Answer as if this were the real thing — full sentences, specific examples.</p></div>
+          <div className="cp-iv-live-timer"><i className="bi bi-stopwatch" /><b>{String(Math.floor(elapsed / 60)).padStart(2, '0')}:{String(elapsed % 60).padStart(2, '0')}</b><span>elapsed</span></div>
         </div>
 
         <div className="iv-room">
-          <div className="iv-chat">
-            {/* The face sits above the transcript rather than beside it: on a phone the
-                room is one column, and a talking head pushed below the fold is the same
-                as no head at all. Currently off — see interviewFace.ts. */}
-            {INTERVIEWER_FACE_ENABLED && (
-              <React.Suspense fallback={null}>
-                <InterviewAvatar speaking={voice.speaking} name={session.interviewerName} />
-              </React.Suspense>
-            )}
-
-            {session.transcript.map((t, i) => (
-              <div className={`iv-turn ${t.role}`} key={i}>
-                <span className="av">{t.role === 'interviewer' ? '🎙️' : '🙋'}</span>
-                <div className="bub">{t.text}</div>
-              </div>
-            ))}
-            {busy && <div className="iv-turn interviewer"><span className="av">🎙️</span><div className="bub" style={{ color: '#94a3b8' }}>typing…</div></div>}
+          <div className="iv-chat cp-iv-chat">
+            {INTERVIEWER_FACE_ENABLED && <React.Suspense fallback={null}><InterviewAvatar speaking={voice.speaking} name={session.interviewerName} /></React.Suspense>}
+            {session.transcript.map((t, i) => <div className={`iv-turn ${t.role}`} key={i}><span className="av">{t.role === 'interviewer' ? '🎙️' : '🙋'}</span><div className="bub">{t.text}</div></div>)}
+            {busy && <div className="iv-turn interviewer"><span className="av">🎙️</span><div className="bub cp-iv-muted">thinking…</div></div>}
             <div ref={chatEnd} />
-
-            {voice.speaking && (
-              <div className="iv-speaking">
-                <span className="dot" /> {session.interviewerName} is speaking…
-                <button onClick={voice.stopSpeaking}>Skip</button>
-              </div>
-            )}
-
+            {voice.speaking && <div className="iv-speaking"><span className="dot" /> {session.interviewerName} is speaking… <button onClick={voice.stopSpeaking}>Skip</button></div>}
             <div className="iv-compose">
-              <textarea
-                value={answer + (voice.interim ? ` ${voice.interim}` : '')}
-                onChange={e => setAnswer(e.target.value)}
-                placeholder={voice.listening ? 'Listening — just talk…' : 'Type your answer, or tap the mic…'}
-                onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send(); }}
-                disabled={busy}
-              />
-              {speechInSupported && (
-                <button
-                  className={`iv-mic${voice.listening ? ' on' : ''}`}
-                  onClick={() => (voice.listening ? voice.stopListening() : voice.startListening())}
-                  disabled={busy || voice.speaking}
-                  title={voice.speaking ? 'Wait for the interviewer to finish' : voice.listening ? 'Stop recording' : 'Answer out loud'}
-                >
-                  {voice.listening ? '⏹' : '🎤'}
-                </button>
-              )}
+              <textarea value={answer + (voice.interim ? ` ${voice.interim}` : '')} onChange={e => setAnswer(e.target.value)} placeholder={voice.listening ? 'Listening — just talk…' : 'Type your answer, or tap the mic…'} onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send(); }} disabled={busy} />
+              {speechInSupported && <button className={`iv-mic${voice.listening ? ' on' : ''}`} onClick={() => (voice.listening ? voice.stopListening() : voice.startListening())} disabled={busy || voice.speaking} title={voice.speaking ? 'Wait for the interviewer to finish' : voice.listening ? 'Stop recording' : 'Answer out loud'}>{voice.listening ? '⏹' : '🎤'}</button>}
               <button className="pm-btn primary" onClick={send} disabled={busy || !answer.trim()}>Send</button>
             </div>
             {err && <div className="pm-msg err">{err}</div>}
           </div>
 
           <div className="iv-side">
-            <div className="pm-card">
-              <h3 style={{ fontSize: 14, fontWeight: 900, color: '#0f172a', margin: 0 }}>Areas covered</h3>
-              <div className="iv-areas">
-                {session.areas.map((a, i) => <div key={i}><span>•</span>{a}</div>)}
-              </div>
+            <div className="pm-card cp-iv-card"><h3>Areas covered</h3><div className="iv-areas">{session.areas.map((a, i) => <div key={i}><span>•</span>{a}</div>)}</div></div>
+            <div className="pm-card cp-iv-card">
+              {speechOutSupported && <label className="iv-voice-toggle"><input type="checkbox" checked={voiceOn} onChange={e => { setVoiceOn(e.target.checked); if (!e.target.checked) voice.stopSpeaking(); }} /> Hear the interviewer</label>}
+              {!speechInSupported && <div className="iv-note">Speaking your answer needs Chrome or Edge. Typing works everywhere.</div>}
             </div>
-            <div className="pm-card">
-              <div className="iv-clock">
-                <span>⏱</span>
-                <b>{String(Math.floor(elapsed / 60)).padStart(2, '0')}:{String(elapsed % 60).padStart(2, '0')}</b>
-                <span className="lbl">elapsed</span>
-              </div>
-              {speechOutSupported && (
-                <label className="iv-voice-toggle">
-                  <input type="checkbox" checked={voiceOn} onChange={e => { setVoiceOn(e.target.checked); if (!e.target.checked) voice.stopSpeaking(); }} />
-                  Hear the interviewer
-                </label>
-              )}
-              {!speechInSupported && (
-                <div className="iv-note">Speaking your answer needs Chrome or Edge. Typing works everywhere.</div>
-              )}
-            </div>
-            <div className="pm-card">
-              <div style={{ fontSize: 12.5, color: '#64748b', lineHeight: 1.6 }}>
-                Ctrl+Enter sends your answer. End early any time — you'll still get feedback on what you answered.
-              </div>
-              <button className="pm-btn" style={{ width: '100%', marginTop: 12 }} onClick={() => finish()} disabled={busy}>
-                End & get my feedback
-              </button>
-            </div>
+            <div className="pm-card cp-iv-card"><div className="cp-iv-muted">Ctrl+Enter sends your answer. End early any time — you'll still get feedback on what you answered.</div><button className="pm-btn cp-iv-full cp-iv-end" onClick={() => finish()} disabled={busy}>End & get my feedback</button></div>
           </div>
         </div>
       </PassportShell>
     );
   }
 
-  // ── Landing: start + history ──
+  const completed = sessions.filter(s => s.status === 'completed' && s.evaluation);
+  const recentCompleted = completed.slice(0, 5);
+  const latest = recentCompleted[0];
+  const latestScore = latest?.evaluation?.overallScore ?? null;
+  const latestAreas = latest?.evaluation?.areaScores?.slice(0, 5) || [];
+  const readiness = latestScore === null ? 'Start your first mock' : READINESS_LABEL[latest?.evaluation?.readinessLevel || ''] || 'Keep practicing';
+  const totalAnswers = completed.reduce((n, s) => n + s.transcript.filter(t => t.role === 'candidate').length, 0);
+  const strongest = latestAreas.length ? [...latestAreas].sort((a, b) => b.percentage - a.percentage)[0] : null;
+
   return (
-    <PassportShell>
-      <div className="pm-head">
-        <h1>AI Mock Interview</h1>
-        <p>A real conversation, not a quiz. The interviewer reads your answers, asks follow-ups, and grades you area by area at the end. Each completed round adds 60 XP.</p>
-      </div>
-
-      {!aiAvailable && (
-        <div className="pm-msg info" style={{ marginBottom: 14 }}>
-          AI isn't configured on this tenant yet, so interviews will run on scripted questions and won't be scored. Ask your admin to add an Anthropic key in Platform Settings.
+    <PassportShell meta={latestScore !== null ? <span className="pm-pill"><i className="bi bi-mic" /> Interview <b>{latestScore}%</b></span> : undefined}>
+      <div className="cp-iv-page cp-iv-dashboard">
+        <div className="cp-iv-title-row">
+          <div><span className="cp-iv-kicker">Interview practice</span><h1>Mock Interview</h1><p>Practice. Improve. Perform. Get interview ready with AI.</p></div>
+          <button className="pm-btn primary cp-iv-start-top" onClick={start} disabled={busy}><i className="bi bi-play-fill" /> {busy ? 'Setting up…' : 'Start AI Mock Interview'}</button>
         </div>
-      )}
 
-      <div className="pm-card" style={{ textAlign: 'center', padding: '34px 24px' }}>
-        <div style={{ fontSize: 40, marginBottom: 10 }}>🎙️</div>
-        <div style={{ fontSize: 17, fontWeight: 900, color: '#0f172a', marginBottom: 6 }}>Ready for a round?</div>
-        <div style={{ fontSize: 13.5, color: '#64748b', marginBottom: 18, lineHeight: 1.6 }}>
-          About 6 questions, 10–15 minutes. Tailored to your pathway from the assessment.
-        </div>
-        <button className="pm-btn primary" onClick={start} disabled={busy}>{busy ? 'Setting up…' : 'Start mock interview →'}</button>
-        {err && <div className="pm-msg err" style={{ maxWidth: 420, margin: '12px auto 0' }}>{err}</div>}
-      </div>
+        {!aiAvailable && <div className="pm-msg info">AI isn't configured on this tenant yet, so interviews will run on scripted questions and won't be scored.</div>}
 
-      {!!sessions.length && (
-        <>
-          <h2 style={{ fontSize: 17, fontWeight: 900, color: '#0f172a', margin: '26px 0 12px' }}>Past rounds</h2>
-          <div className="iv-history">
-            {sessions.map(s => (
-              <button className="iv-hist-row" key={s.id} onClick={() => openPast(s)}>
-                <span className="sc">{s.status === 'completed' ? `${s.evaluation?.overallScore ?? 0}%` : '—'}</span>
-                <span className="info">
-                  <b>{s.role}</b>
-                  <span>
-                    {new Date(s.startedAt).toLocaleDateString()} ·{' '}
-                    {s.status === 'completed' ? READINESS_LABEL[s.evaluation?.readinessLevel || ''] || 'Completed'
-                      : s.status === 'in_progress' ? 'In progress — resume' : 'Not completed'}
-                  </span>
-                </span>
-                <span style={{ color: '#cbd5e1' }}>›</span>
-              </button>
-            ))}
+        <div className="cp-iv-main-grid">
+          <div className="cp-iv-main-column">
+            <section className="cp-iv-hero">
+              <div className="cp-iv-hero-art"><img src="/assets/careerpilot/careerpilot-hero-student.png" alt="CareerPilot student preparing for an interview" /></div>
+              <div className="cp-iv-hero-copy">
+                <span className="cp-iv-kicker">AI interview coach</span>
+                <h2>{latestScore === null ? 'Ready for your first round?' : 'Interview Ready?'}</h2>
+                <p>{latestScore === null ? 'Run a realistic mock interview and get specific feedback on every answer.' : 'Consistent practice is the fastest way to turn feedback into confident interview performance.'}</p>
+                <div className="cp-iv-role"><span>Target role</span><b>{latest?.role || 'Your CareerPilot role'}</b></div>
+                <div className="cp-iv-tags">{latestAreas.slice(0, 4).map(a => <span key={a.title}>{a.title}</span>)}{!latestAreas.length && <><span>Role based</span><span>Follow-ups</span><span>Voice enabled</span></>}</div>
+              </div>
+              <div className="cp-iv-practice-card"><i className="bi bi-calendar2-check" /><div><b>Practice regularly</b><p>Each round adapts to your pathway and ends with actionable feedback.</p><button onClick={start} disabled={busy}>Start a round <i className="bi bi-arrow-right" /></button></div></div>
+            </section>
+
+            <div className="cp-iv-metric-row">
+              {(latestAreas.length ? latestAreas : [
+                { title: 'Mock rounds', percentage: Math.min(100, completed.length * 20) },
+                { title: 'Answers practiced', percentage: Math.min(100, totalAnswers * 4) },
+              ]).map((a: any, i: number) => (
+                <div className="cp-iv-metric" key={`${a.title}-${i}`}><div className={`cp-iv-metric-icon m${i % 5}`}><i className={`bi ${['bi-code-slash','bi-diagram-3','bi-chat-dots','bi-person-check','bi-cpu'][i % 5]}`} /></div><div><span>{a.title}</span><b>{a.percentage}{latestAreas.length ? '/100' : '%'}</b><div className="cp-iv-progress"><i style={{ width: `${Math.min(100, a.percentage)}%` }} /></div></div></div>
+              ))}
+            </div>
+
+            <div className="cp-iv-insights-grid">
+              <section className="cp-iv-panel">
+                <div className="cp-iv-panel-head"><h3>Performance trend</h3><span>{completed.length} completed rounds</span></div>
+                {recentCompleted.length ? <div className="cp-iv-trend">{[...recentCompleted].reverse().map((s, i) => <div className="cp-iv-trend-point" key={s.id}><span style={{ height: `${Math.max(18, s.evaluation?.overallScore || 0)}%` }}><b>{s.evaluation?.overallScore ?? 0}</b></span><small>{i + 1}</small></div>)}</div> : <div className="cp-iv-empty">Your interview score trend will appear after your first completed round.</div>}
+              </section>
+
+              <div className="cp-iv-stack">
+                <section className="cp-iv-panel"><h3 className="good-title"><i className="bi bi-check-circle" /> Top strengths</h3>{latest?.evaluation?.strengths?.length ? <ul>{latest.evaluation.strengths.slice(0, 4).map((x, i) => <li key={i}>{x}</li>)}</ul> : <p className="cp-iv-muted">Complete a mock interview to discover what you already do well.</p>}</section>
+                <section className="cp-iv-panel cp-iv-improve"><h3 className="warn-title"><i className="bi bi-exclamation-circle" /> Areas to improve</h3>{latest?.evaluation?.improvements?.length ? <ul>{latest.evaluation.improvements.slice(0, 4).map((x, i) => <li key={i}>{x}</li>)}</ul> : <p className="cp-iv-muted">Your priority improvement areas will appear here after grading.</p>}</section>
+              </div>
+            </div>
+
+            <section className="cp-iv-practice-strip">
+              <div><i className="bi bi-robot" /><span><b>AI Mock Interview</b><small>Real conversation with adaptive follow-up questions.</small></span></div>
+              <div><i className="bi bi-mic" /><span><b>Voice Practice</b><small>Speak naturally in supported browsers, or type anywhere.</small></span></div>
+              <div><i className="bi bi-clipboard2-check" /><span><b>Detailed Feedback</b><small>Area scores, strengths, improvements and better answers.</small></span></div>
+              <button className="pm-btn primary" onClick={start} disabled={busy}>Start now <i className="bi bi-arrow-right" /></button>
+            </section>
           </div>
-        </>
-      )}
+
+          <aside className="cp-iv-side-column">
+            <section className="cp-iv-panel cp-iv-readiness">
+              <h3>Interview Readiness Score</h3>
+              <div className="cp-iv-readiness-body">
+                <div className="cp-iv-score-ring" style={{ '--score': `${latestScore ?? 0}%` } as React.CSSProperties}><strong>{latestScore ?? '—'}</strong><span>/100</span></div>
+                <div><b>{readiness}</b><p>{latestScore === null ? 'Complete a mock interview to establish your baseline.' : 'Use each round to turn your weakest area into your next strength.'}</p>{strongest && <span className="cp-iv-status">Strongest: {strongest.title}</span>}</div>
+              </div>
+              {latest && <button className="cp-iv-link-btn" onClick={() => openPast(latest)}>View detailed report <i className="bi bi-arrow-right" /></button>}
+            </section>
+
+            <section className="cp-iv-panel">
+              <div className="cp-iv-panel-head"><h3>Recent Mock Interviews</h3><span>{sessions.length} total</span></div>
+              <div className="cp-iv-history-list">
+                {sessions.slice(0, 5).map(s => <button key={s.id} onClick={() => openPast(s)}><span className={`cp-iv-mini-score ${s.status}`}>{s.status === 'completed' ? s.evaluation?.overallScore ?? 0 : '•'}</span><span><b>{s.role}</b><small>{new Date(s.startedAt).toLocaleDateString()} · {s.status === 'completed' ? READINESS_LABEL[s.evaluation?.readinessLevel || ''] || 'Completed' : s.status === 'in_progress' ? 'In progress — resume' : 'Not completed'}</small></span><i className="bi bi-chevron-right" /></button>)}
+                {!sessions.length && <div className="cp-iv-empty compact">No mock interviews yet.</div>}
+              </div>
+            </section>
+
+            <section className="cp-iv-panel cp-iv-tips"><h3>Interview Tips for You</h3><div><i className="bi bi-chat-square-text" /><span><b>Use specific examples</b><small>Structure experience answers with context, action and result.</small></span></div><div><i className="bi bi-clock-history" /><span><b>Think before answering</b><small>A short pause is better than an unfocused response.</small></span></div><div><i className="bi bi-volume-up" /><span><b>Practice out loud</b><small>Voice practice makes real interviews feel more familiar.</small></span></div></section>
+
+            <section className="cp-iv-panel cp-iv-placement-card"><i className="bi bi-bullseye" /><div><h3>Placement Ready?</h3><p>Connect interview performance with your overall CareerPilot readiness.</p><button className="pm-btn primary cp-iv-full" onClick={() => navigate('/careerpilot/placement')}>Go to Placement Readiness <i className="bi bi-arrow-right" /></button></div></section>
+          </aside>
+        </div>
+
+        <div className="cp-iv-bottom-cta"><i className="bi bi-stars" /><div><b>Consistent practice builds interview confidence.</b><span>Your feedback becomes more useful as you complete more rounds.</span></div><button className="pm-btn" onClick={start} disabled={busy}>Practice again <i className="bi bi-arrow-right" /></button></div>
+        {err && <div className="pm-msg err">{err}</div>}
+      </div>
     </PassportShell>
   );
 };

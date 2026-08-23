@@ -28,6 +28,28 @@ const RoleReadiness: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  /**
+   * ABOVE THE EARLY RETURNS, DELIBERATELY.
+   *
+   * This sat below them — after the loading, error, null and unavailable branches — so the
+   * hook ran on some renders and not others. React requires the same hooks in the same
+   * order every render, and the count changing the moment `loading` flipped is exactly the
+   * case it refuses.
+   *
+   * That means it cannot read the narrowed `ready` value, so it derives from `data` and
+   * treats every not-yet-available state as an empty list. The rows are only rendered on
+   * the available branch anyway, so nothing is lost by computing them as empty first.
+   *
+   * Worth knowing: `tsc` does not catch this. It is a lint rule, so it only shows up in
+   * the dev overlay or a CI build — which is why it reached master.
+   */
+  const categoryRows = useMemo(() => {
+    const list = data?.available ? ((data as RoleReadinessAvailable).skills || []) : [];
+    return [...list]
+      .sort((a, b) => (b.targetScore || 0) - (a.targetScore || 0))
+      .slice(0, 6);
+  }, [data]);
+
   if (loading) return <div className="rdy-shell"><div className="rdy-state">Working out your readiness…</div></div>;
   if (err) return <div className="rdy-shell"><div className="rdy-state error">{err}</div></div>;
   if (!data) return null;
@@ -60,12 +82,6 @@ const RoleReadiness: React.FC = () => {
   const overallEvidence = measured.reduce((sum, s) => sum + (s.evidenceCount || 0), 0);
 
   const readinessLabel = readiness === null ? 'Still measuring' : readiness >= 80 ? 'Strong alignment' : readiness >= 60 ? 'Getting close' : readiness >= 40 ? 'Building momentum' : 'Early stage';
-
-  const categoryRows = useMemo(() => {
-    return [...skills]
-      .sort((a, b) => (b.targetScore || 0) - (a.targetScore || 0))
-      .slice(0, 6);
-  }, [skills]);
 
   return (
     <div className="rdy-shell">

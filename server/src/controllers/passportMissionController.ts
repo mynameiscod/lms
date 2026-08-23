@@ -3,6 +3,8 @@ import { memberAxes } from '../services/careerStageService';
 import User from '../models/User';
 import PassportConfig from '../models/PassportConfig';
 import PassportAttempt from '../models/PassportAttempt';
+import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
+import { resolveAssessedState } from '../services/memberAssessmentStateService';
 import PassportProgress from '../models/PassportProgress';
 import { isEntitled } from '../services/passportEntitlementService';
 import { missionsForDay, dayNumber, ensureContent, poolMapOf, ymd } from '../services/passportMissionService';
@@ -27,7 +29,7 @@ async function ctx(req: Request) {
   // length rides along because mission emphasis tapers over the WHOLE journey, and a
   // tenant may run 150, 300 or 365 days rather than the default 90.
   return {
-    tenantId, studentId, user, cfg,
+    tenantId, studentId, user, cfg, content,
     pools: poolMapOf(content.missionPools, memberAxes(user)),
     curriculum: await curriculumFor(tenantId, user?.passport?.pathway, user?.passport?.stage),
     journeyDays: content.journeyDays || 90,
@@ -37,13 +39,24 @@ async function ctx(req: Request) {
 /** Student: today's missions + streak/xp. Gated behind the `daily_missions` entitlement. */
 export const getToday = async (req: Request, res: Response) => {
   try {
-    const { tenantId, studentId, user, cfg, pools, curriculum, journeyDays } = await ctx(req);
+    const { tenantId, studentId, user, cfg, content, pools, curriculum, journeyDays } = await ctx(req);
     if (!isEntitled(cfg?.entitlements as any, user?.passport, 'daily_missions')) {
       return res.json({ locked: true, priceInr: cfg?.priceInr ?? 499, reason: 'Membership required to unlock daily missions.' });
     }
 
-    const attempt = await PassportAttempt.findOne({ tenantId, studentId }).sort({ createdAt: -1 }).lean() as any;
-    if (!attempt) return res.json({ locked: false, needsAssessment: true });
+    /**
+     * Same gate as the roadmap, same reason: this looked for a PassportAttempt, which only
+     * the legacy questionnaire writes, so a member measured by the skill assessment was
+     * told their missions needed an assessment they had already sat.
+     */
+    const assessed = await resolveAssessedState({
+      tenantId, studentId,
+      passport: user?.passport,
+      categories: categoriesOf(await PassportAssessment.findOne({ tenantId }).lean() as any),
+      defaultPathway: content.pathways?.[0] || null,
+    });
+    if (!assessed.assessed) return res.json({ locked: false, needsAssessment: true });
+    const attempt = assessed.attempt as any;
 
     let progress = await PassportProgress.findOne({ tenantId, studentId });
     if (!progress) progress = await PassportProgress.create({ tenantId, studentId, startDate: user?.passport?.activatedAt || new Date() });
@@ -84,7 +97,7 @@ export const getToday = async (req: Request, res: Response) => {
 /** Student: mark one mission done → award XP + update streak. Idempotent per (day,key). */
 export const completeMission = async (req: Request, res: Response) => {
   try {
-    const { tenantId, studentId, user, cfg, pools, curriculum, journeyDays } = await ctx(req);
+    const { tenantId, studentId, user, cfg, content, pools, curriculum, journeyDays } = await ctx(req);
     if (!isEntitled(cfg?.entitlements as any, user?.passport, 'daily_missions')) {
       return res.status(403).json({ message: 'Membership required.' });
     }

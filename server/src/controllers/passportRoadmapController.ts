@@ -3,6 +3,8 @@ import { memberAxes } from '../services/careerStageService';
 import User from '../models/User';
 import PassportConfig from '../models/PassportConfig';
 import PassportAttempt from '../models/PassportAttempt';
+import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
+import { resolveAssessedState } from '../services/memberAssessmentStateService';
 import { isEntitled } from '../services/passportEntitlementService';
 import { ensureContent, poolMapOf, dayNumber } from '../services/passportMissionService';
 import { curriculumFor } from '../services/curriculumService';
@@ -30,10 +32,24 @@ export const getRoadmap = async (req: Request, res: Response) => {
       ensureContent(tenantId),
     ]);
 
-    const attempt = await PassportAttempt.findOne({ tenantId, studentId }).sort({ createdAt: -1 }).lean() as any;
-    if (!attempt) {
+    /**
+     * EITHER instrument counts as being measured.
+     *
+     * This looked for a PassportAttempt, which only the legacy questionnaire writes — so a
+     * member who sat the personalised skill assessment was told to go and take an
+     * assessment, on the click straight after reading their measured role readiness. The
+     * page even rendered their skill plan above the message telling them they had none.
+     */
+    const assessed = await resolveAssessedState({
+      tenantId, studentId,
+      passport: user?.passport,
+      categories: categoriesOf(await PassportAssessment.findOne({ tenantId }).lean() as any),
+      defaultPathway: content.pathways?.[0] || null,
+    });
+    if (!assessed.assessed) {
       return res.json({ needsAssessment: true, priceInr: cfg?.priceInr ?? 499 });
     }
+    const attempt = assessed.attempt as any;
 
     const entitled = isEntitled(cfg?.entitlements as any, user?.passport, 'roadmap_full');
 
@@ -60,8 +76,10 @@ export const getRoadmap = async (req: Request, res: Response) => {
       roadmap: entitled ? full : toPreview(full, 7),
       entitled,
       priceInr: cfg?.priceInr ?? 499,
-      careerScore: attempt.careerScore,
-      level: attempt.level,
+      careerScore: assessed.careerScore,
+      level: assessed.level,
+      /** Which instrument this plan was built from, so the screen can say so. */
+      assessedVia: assessed.source,
     });
   } catch (e: any) {
     console.error('[passport] getRoadmap:', e);

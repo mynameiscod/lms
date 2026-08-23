@@ -126,7 +126,20 @@ const MissionControl: React.FC = () => {
   if (loading) return <div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>Loading your CareerPilot…</div>;
 
   const active = !!status?.active;
-  const hasScore = !!result;
+  /**
+   * "Has this member been measured?" — by EITHER instrument.
+   *
+   * This was `!!result`, and `result` is the legacy PassportAttempt. A member who sat the
+   * personalised skill assessment has no attempt, so the dashboard showed them the
+   * pre-assessment landing hero — "take the free assessment to know where you stand" —
+   * immediately after they had been measured and shown their role readiness. Worse, the
+   * button then sent them to the very assessment they had just completed.
+   *
+   * `careerScore` on the passport is written by BOTH paths: by the legacy submit, and by
+   * careerScoreService from role readiness once enough of the blueprint is covered. So it
+   * is the honest answer to this question, and the one screens should ask.
+   */
+  const hasScore = !!result || typeof status?.passport?.careerScore === 'number';
 
   /**
    * A member who has not finished setup cannot sit the assessment.
@@ -146,7 +159,14 @@ const MissionControl: React.FC = () => {
   const needsSetup = status != null && status.setupCompleted === false;
   const assessmentHref = needsSetup ? '/careerpilot/setup' : '/careerpilot/skill-assessment';
   const price = status?.priceInr ?? 499;
-  const scoreNum = hasScore ? result!.careerScore : 0;
+  // Falls back to the cached passport score, which is where a skill-assessed member's
+  // number lives — reading `result!` would have thrown for exactly those members.
+  const scoreNum = result?.careerScore ?? status?.passport?.careerScore ?? 0;
+  // Same reason as scoreNum: `result` is null for a member measured by the skill
+  // assessment, and `hasScore` is now true for them. Every read of it has to tolerate that
+  // or the panel crashes for precisely the members this was meant to unblock.
+  const levelLabel = result?.level ?? status?.passport?.level ?? '';
+  const pathwayLabel = result?.pathwayLabel ?? status?.passport?.pathway ?? '';
 
   if (active) {
     const missions = today?.missions || [];
@@ -305,8 +325,8 @@ const MissionControl: React.FC = () => {
         <div className="mc-scored">
           <div className="mc-hd"><h1><i className="bi bi-rocket-takeoff-fill" /> Mission <span className="b">Control</span></h1><p>Your CodeBegun CareerPilot — one place that tells you what to do next.</p></div>
           <div className="mc-stats">
-            <div className="mc-stat"><span className="ic t-teal"><i className="bi bi-graph-up-arrow" /></span><div><div className="lbl">Career Score</div><div className="val">{result!.careerScore}</div><div className="hint">{result!.level}</div></div></div>
-            <div className="mc-stat"><span className="ic t-violet"><i className="bi bi-signpost-split-fill" /></span><div><div className="lbl">Pathway</div><div className="val" style={{ fontSize: 16 }}>{result!.pathwayLabel}</div></div></div>
+            <div className="mc-stat"><span className="ic t-teal"><i className="bi bi-graph-up-arrow" /></span><div><div className="lbl">Career Score</div><div className="val">{scoreNum}</div><div className="hint">{levelLabel}</div></div></div>
+            <div className="mc-stat"><span className="ic t-violet"><i className="bi bi-signpost-split-fill" /></span><div><div className="lbl">Pathway</div><div className="val" style={{ fontSize: 16 }}>{pathwayLabel || '—'}</div></div></div>
             <div className="mc-stat"><span className="ic t-amber"><i className="bi bi-fire" /></span><div><div className="lbl">Streak</div><div className="val">0d</div><div className="hint">Unlock to start</div></div></div>
             <div className="mc-stat"><span className="ic t-blue"><i className="bi bi-star-fill" /></span><div><div className="lbl">XP</div><div className="val">—</div><div className="hint">Unlock to earn</div></div></div>
           </div>

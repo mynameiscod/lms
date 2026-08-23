@@ -1,21 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { SkillDnaRow } from '../../api/passportApi';
+import { useAuth } from '../../contexts/AuthContext';
 import './skillDna.css';
-
-/**
- * What the assessment showed about each skill.
- *
- * Three numbers, kept visibly distinct: the SCORE is how the student performed, the
- * CONFIDENCE is how much evidence sits behind it, and the COUNT is that evidence. Showing
- * a bar alone would let one lucky answer read as mastery — which is the single most
- * misleading thing this screen could do, because the student would act on it.
- *
- * No verdicts. Nothing here says ready, weak, good or bad: a score is an observation, and
- * what it means for a career depends on a target role this module deliberately does not
- * consult. Turning 64 into a judgement is a later module's job and a heavier claim than
- * the evidence currently supports.
- */
 
 const CONFIDENCE_COPY: Record<string, string> = {
   HIGH: 'Well evidenced',
@@ -23,8 +10,27 @@ const CONFIDENCE_COPY: Record<string, string> = {
   LOW: 'Limited evidence',
 };
 
+const SKILL_ICON = (name: string) => {
+  const n = name.toLowerCase();
+  if (n.includes('java') || n.includes('program') || n.includes('code')) return 'bi-code-slash';
+  if (n.includes('data') || n.includes('sql') || n.includes('database')) return 'bi-database';
+  if (n.includes('communication')) return 'bi-chat-dots';
+  if (n.includes('logic') || n.includes('reason')) return 'bi-lightbulb';
+  if (n.includes('problem') || n.includes('algorithm')) return 'bi-puzzle';
+  if (n.includes('cloud') || n.includes('devops')) return 'bi-cloud';
+  if (n.includes('system') || n.includes('design')) return 'bi-diagram-3';
+  return 'bi-stars';
+};
+
+const radarPoint = (score: number, index: number, total: number) => {
+  const angle = (-90 + (360 / total) * index) * (Math.PI / 180);
+  const r = 39 * Math.max(0, Math.min(100, score)) / 100;
+  return `${50 + Math.cos(angle) * r}% ${50 + Math.sin(angle) * r}%`;
+};
+
 const SkillDna: React.FC = () => {
   const nav = useNavigate();
+  const { user } = useAuth();
   const [skills, setSkills] = useState<SkillDnaRow[]>([]);
   const [assessed, setAssessed] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -37,101 +43,163 @@ const SkillDna: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="dna"><div className="dna-load">Loading your skills…</div></div>;
-  if (err) return <div className="dna"><div className="dna-err">{err}</div></div>;
+  const activeSkills = useMemo(() => skills.filter(s => s.skillActive !== false), [skills]);
+  const avgScore = activeSkills.length
+    ? Math.round(activeSkills.reduce((sum, s) => sum + Number(s.score || 0), 0) / activeSkills.length)
+    : 0;
+  const ranked = useMemo(() => [...activeSkills].sort((a, b) => b.score - a.score), [activeSkills]);
+  const topObserved = ranked.slice(0, 5);
+  const evidenceNeeds = [...activeSkills]
+    .sort((a, b) => {
+      const rank: Record<string, number> = { LOW: 0, MEDIUM: 1, HIGH: 2 };
+      return (rank[a.confidence] ?? 3) - (rank[b.confidence] ?? 3) || a.evidenceCount - b.evidenceCount;
+    })
+    .slice(0, 5);
+  const lowEvidence = activeSkills.filter(s => s.confidence === 'LOW').length;
+  const highEvidence = activeSkills.filter(s => s.confidence === 'HIGH').length;
+  const evidenceTotal = activeSkills.reduce((sum, s) => sum + (s.evidenceCount || 0), 0);
+  const radarSkills = ranked.slice(0, 6);
+  const radarPolygon = radarSkills.length >= 3
+    ? radarSkills.map((s, i) => radarPoint(s.score, i, radarSkills.length)).join(',')
+    : '50% 18%, 82% 72%, 18% 72%';
+  const firstName = user?.firstName || 'there';
 
-  // Absence of evidence is "not measured yet", never a screen of zeros — those would read
-  // as "you know nothing" rather than "we have not asked you".
+  if (loading) return <div className="dna dna-state"><div className="dna-load">Loading your skills…</div></div>;
+  if (err) return <div className="dna dna-state"><div className="dna-err">{err}</div></div>;
+
   if (!assessed) {
     return (
-      <div className="dna">
+      <div className="dna dna-empty-wrap">
         <div className="dna-empty">
-          <i className="bi bi-fingerprint" />
-          <b>Your Skill DNA appears after your assessment</b>
-          <span>
-            Once you complete your CareerPilot assessment, this page shows what it revealed
-            about each skill — and how much evidence sits behind every number.
-          </span>
-          <button className="pm-btn primary" onClick={() => nav('/careerpilot/assessment')}>
-            Go to my assessment
+          <div className="dna-empty-art"><i className="bi bi-fingerprint" /></div>
+          <span className="dna-eyebrow">YOUR SKILL DNA</span>
+          <h1>Your skills profile appears after your assessment</h1>
+          <p>Complete your CareerPilot assessment and we’ll show each measured skill together with the evidence behind it.</p>
+          <button className="dna-btn primary" onClick={() => nav('/careerpilot/skill-assessment')}>
+            Go to my assessment <i className="bi bi-arrow-right" />
           </button>
         </div>
       </div>
     );
   }
 
-  const lowEvidence = skills.filter(s => s.confidence === 'LOW').length;
-
   return (
     <div className="dna">
-      <div className="dna-hd">
-        <h1>Your Skill DNA</h1>
-        <p>
-          What your assessment showed about each skill. The score is how you did; the
-          confidence is how much we have to go on so far.
-        </p>
-      </div>
+      <section className="dna-hero">
+        <div className="dna-hero-copy">
+          <span className="dna-eyebrow"><i className="bi bi-fingerprint" /> YOUR SKILL DNA</span>
+          <h1>Your Skill DNA</h1>
+          <p>AI-powered view of what your assessment measured, with confidence and evidence kept separate from the score.</p>
+          <div className="dna-hero-meta">
+            <span><i className="bi bi-check2-circle" /> Assessment completed</span>
+            <span><i className="bi bi-bar-chart-line" /> {activeSkills.length} skills measured</span>
+            <span><i className="bi bi-shield-check" /> Evidence-backed insights</span>
+          </div>
+        </div>
+        <div className="dna-hero-art">
+          <img src="/assets/careerpilot/careerpilot-hero-student.png" alt="CareerPilot student reviewing skill insights" />
+        </div>
+        <div className="dna-overall">
+          <div>
+            <span>Average observed score</span>
+            <strong>{avgScore}<small>/100</small></strong>
+            <em>Across {activeSkills.length} measured skills</em>
+          </div>
+          <div className="dna-ring" style={{ ['--dna-score' as any]: `${avgScore * 3.6}deg` }}>
+            <span><i className="bi bi-stars" /></span>
+          </div>
+        </div>
+      </section>
 
-      {!!lowEvidence && (
+      {lowEvidence > 0 && (
         <div className="dna-note">
           <i className="bi bi-info-circle" />
-          {lowEvidence} skill{lowEvidence === 1 ? ' has' : 's have'} limited evidence — a
-          single question tells us less than several. Taking the assessment again adds to it.
+          <span><b>{lowEvidence} skill{lowEvidence === 1 ? '' : 's'} still need more evidence.</b> A single answer tells us less than repeated evidence, so CareerPilot keeps confidence visible beside every score.</span>
         </div>
       )}
 
-      <div className="dna-list">
-        {skills.map(s => (
-          <div className={`dna-row c-${s.confidence.toLowerCase()}`} key={s.skillKey}>
-            <div className="top">
-              <b>{s.skillName}</b>
-              <span className="score">{s.score}</span>
+      <section className="dna-grid dna-grid-main">
+        <article className="dna-card dna-radar-card">
+          <div className="dna-card-head"><div><span>Skill DNA overview</span><small>Your highest observed scores</small></div><i className="bi bi-info-circle" /></div>
+          <div className="dna-radar-wrap">
+            <div className="dna-radar">
+              <div className="dna-radar-grid g1" />
+              <div className="dna-radar-grid g2" />
+              <div className="dna-radar-grid g3" />
+              <div className="dna-radar-shape" style={{ clipPath: `polygon(${radarPolygon})` }} />
+              <div className="dna-radar-center"><b>{avgScore}</b><span>Average</span></div>
             </div>
-
-            <div className="bar"><i style={{ width: `${s.score}%` }} /></div>
-
-            <div className="meta">
-              {/* Confidence sits beside the score deliberately — a number without it invites
-                  the reader to treat one answer as proof. */}
-              <span className={`conf ${s.confidence.toLowerCase()}`}>
-                {CONFIDENCE_COPY[s.confidence] || s.confidence}
-              </span>
-              <em>
-                {s.evidenceCount} answer{s.evidenceCount === 1 ? '' : 's'}
-                {s.distinctItems !== s.evidenceCount && ` · ${s.distinctItems} question${s.distinctItems === 1 ? '' : 's'}`}
-              </em>
-              {!s.skillActive && <i className="retired" title="No longer part of the skill graph">retired</i>}
+            <div className="dna-radar-labels">
+              {radarSkills.map((s, i) => (
+                <div key={s.skillKey} className={`p p${i + 1}`}><i className={`bi ${SKILL_ICON(s.skillName)}`} /><span>{s.skillName}</span><b>{s.score}/100</b></div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+          <div className="dna-insight"><i className="bi bi-stars" /> Scores describe assessment performance; confidence describes how settled that observation is.</div>
+        </article>
 
-      <p className="dna-foot">
-        <i className="bi bi-question-circle" />
-        Confidence shows how much assessment evidence CareerPilot has for a skill — not how
-        good you are at it. A score based on one answer is less settled than one based on eight.
-      </p>
+        <article className="dna-card">
+          <div className="dna-card-head"><div><span>Top observed skills</span><small>Highest scores from your assessment</small></div><i className="bi bi-graph-up-arrow good" /></div>
+          <div className="dna-ranked-list">
+            {topObserved.map(s => (
+              <div className="dna-ranked" key={s.skillKey}>
+                <span className="dna-skill-icon"><i className={`bi ${SKILL_ICON(s.skillName)}`} /></span>
+                <div className="dna-ranked-body"><div><b>{s.skillName}</b><strong>{s.score}/100</strong></div><div className="dna-mini"><i style={{ width: `${s.score}%` }} /></div></div>
+              </div>
+            ))}
+          </div>
+        </article>
 
-      {/* Where the journey goes next.
-          This page used to end here. A student finished their assessment, read their
-          scores, and found no way onward — the readiness, roadmap and daily plan all
-          existed and nothing linked to them. The only button on the page sent them to the
-          OTHER assessment, which is backwards. */}
-      <div className="dna-next">
-        <h2>What happens next</h2>
-        <p>Your scores feed straight into the plan — here is where they go.</p>
-        <div className="dna-next-row">
-          <button className="pm-btn primary" onClick={() => nav('/careerpilot/readiness')}>
-            <i className="bi bi-clipboard-check" /> See how ready I am for my role
-          </button>
-          <button className="pm-btn" onClick={() => nav('/careerpilot/roadmap')}>
-            <i className="bi bi-map" /> My roadmap
-          </button>
-          <button className="pm-btn ghost" onClick={() => nav('/careerpilot')}>
-            Back to dashboard
-          </button>
-        </div>
-      </div>
+        <article className="dna-card">
+          <div className="dna-card-head"><div><span>Needs more evidence</span><small>Where CareerPilot should learn more</small></div><i className="bi bi-lightbulb warn" /></div>
+          <div className="dna-ranked-list evidence">
+            {evidenceNeeds.map(s => (
+              <div className="dna-ranked" key={s.skillKey}>
+                <span className="dna-skill-icon soft"><i className={`bi ${SKILL_ICON(s.skillName)}`} /></span>
+                <div className="dna-ranked-body">
+                  <div><b>{s.skillName}</b><strong>{s.evidenceCount} evidence</strong></div>
+                  <div className="dna-confidence-line"><span className={`dna-conf ${s.confidence.toLowerCase()}`}>{CONFIDENCE_COPY[s.confidence] || s.confidence}</span><em>{s.distinctItems} question{s.distinctItems === 1 ? '' : 's'}</em></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="dna-grid dna-grid-lower">
+        <article className="dna-card dna-breakdown">
+          <div className="dna-card-head"><div><span>Skill breakdown</span><small>Every measured skill, score and confidence</small></div><i className="bi bi-grid" /></div>
+          <div className="dna-skill-grid">
+            {activeSkills.map(s => (
+              <div className={`dna-skill-tile c-${s.confidence.toLowerCase()}`} key={s.skillKey}>
+                <div className="dna-tile-icon"><i className={`bi ${SKILL_ICON(s.skillName)}`} /></div>
+                <div className="dna-tile-ring" style={{ ['--tile-score' as any]: `${s.score * 3.6}deg` }}><b>{s.score}%</b></div>
+                <strong>{s.skillName}</strong>
+                <span>{CONFIDENCE_COPY[s.confidence] || s.confidence}</span>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="dna-card dna-evidence-card">
+          <div className="dna-card-head"><div><span>Skill evidence</span><small>How much CareerPilot has to go on</small></div><i className="bi bi-shield-check" /></div>
+          <div className="dna-evidence-stats">
+            <div><span>Total evidence</span><b>{evidenceTotal}</b></div>
+            <div><span>Well evidenced</span><b>{highEvidence}</b></div>
+            <div><span>Limited evidence</span><b>{lowEvidence}</b></div>
+          </div>
+          <div className="dna-explain">
+            <i className="bi bi-question-circle" />
+            <p><b>Confidence is not your ability score.</b> It tells you how much assessment evidence sits behind the score. One answer is less settled than several independent questions.</p>
+          </div>
+        </article>
+      </section>
+
+      <section className="dna-next">
+        <div className="dna-next-icon"><i className="bi bi-rocket-takeoff" /></div>
+        <div><span>Great progress, {firstName}!</span><p>Your Skill DNA is ready. Next, see how these measured skills compare with the role you’re working toward.</p></div>
+        <button className="dna-btn primary" onClick={() => nav('/careerpilot/readiness')}>Check Role Readiness <i className="bi bi-arrow-right" /></button>
+      </section>
     </div>
   );
 };

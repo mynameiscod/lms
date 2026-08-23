@@ -10,6 +10,8 @@ import { settlePayment } from './paymentController';
 import { membershipActive, entitlementMap } from '../services/passportEntitlementService';
 import PassportProgress from '../models/PassportProgress';
 import PassportAttempt from '../models/PassportAttempt';
+import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
+import { resolveAssessedState } from '../services/memberAssessmentStateService';
 import { ensureContent, poolMapOf, missionsForDay } from '../services/passportMissionService';
 import { memberAxes } from '../services/careerStageService';
 import PassportInterview from '../models/PassportInterview';
@@ -70,7 +72,31 @@ export const getMyStatus = async (req: Request, res: Response) => {
     const cfg = await PassportConfig.findOne({ tenantId }).lean();
     const user = await User.findById(userIdOf(req)).select('passport firstName lastName email').lean() as any;
     const active = membershipActive(user?.passport);
+
+    /**
+     * HAS THIS MEMBER BEEN MEASURED — stated by the server, not inferred from the score.
+     *
+     * Mission Control inferred it from `careerScore`, and that is a DERIVED value:
+     * careerScoreService deliberately writes nothing until role-readiness coverage reaches
+     * 40%, because readiness over two skills of twenty-four is not a score worth
+     * publishing. So a member who really had sat the skill assessment, but whose blueprint
+     * is only thinly covered, had no careerScore — and the dashboard concluded they had
+     * never been assessed and told them to go and take one. The same dead end as the
+     * roadmap gate, reproduced one layer up.
+     *
+     * "Did they sit a paper" and "is there enough evidence for a headline number" are
+     * different questions. This answers the first; careerScore answers the second.
+     */
+    const assessedState = await resolveAssessedState({
+      tenantId,
+      studentId: String(user?._id || userIdOf(req)),
+      passport: user?.passport,
+      categories: categoriesOf(await PassportAssessment.findOne({ tenantId }).lean() as any),
+    });
+
     res.json({
+      assessed: assessedState.assessed,
+      assessedVia: assessedState.source,
       enabled: passportEnabled(tenantId, cfg),
       active,
       /**

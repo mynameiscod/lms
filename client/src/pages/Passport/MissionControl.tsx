@@ -139,7 +139,27 @@ const MissionControl: React.FC = () => {
    * careerScoreService from role readiness once enough of the blueprint is covered. So it
    * is the honest answer to this question, and the one screens should ask.
    */
-  const hasScore = !!result || typeof status?.passport?.careerScore === 'number';
+  /**
+   * Gate on the FACT that they were measured, which the server states, not on the score.
+   *
+   * This read `careerScore`, and that is derived: careerScoreService writes nothing until
+   * role-readiness coverage reaches 40%, because readiness over two skills of twenty-four
+   * is not a score worth publishing. A member who really had sat the skill assessment, but
+   * whose blueprint is only thinly covered, therefore had no careerScore — and this screen
+   * concluded they had never been assessed and sent them to take one. Same dead end, one
+   * layer up from the roadmap gate.
+   *
+   * `result` stays in the expression so a member with a legacy attempt is unaffected even
+   * on a stale /me response.
+   */
+  const hasScore = !!result || status?.assessed === true;
+
+  /**
+   * Whether there is a NUMBER to show, which is a separate question from whether they were
+   * measured. Showing 0 to somebody whose coverage is still thin would read as a verdict —
+   * "you scored zero" — for an assessment that simply has not measured enough yet.
+   */
+  const hasNumber = typeof (result?.careerScore ?? status?.passport?.careerScore) === 'number';
 
   /**
    * A member who has not finished setup cannot sit the assessment.
@@ -325,7 +345,7 @@ const MissionControl: React.FC = () => {
         <div className="mc-scored">
           <div className="mc-hd"><h1><i className="bi bi-rocket-takeoff-fill" /> Mission <span className="b">Control</span></h1><p>Your CodeBegun CareerPilot — one place that tells you what to do next.</p></div>
           <div className="mc-stats">
-            <div className="mc-stat"><span className="ic t-teal"><i className="bi bi-graph-up-arrow" /></span><div><div className="lbl">Career Score</div><div className="val">{scoreNum}</div><div className="hint">{levelLabel}</div></div></div>
+            <div className="mc-stat"><span className="ic t-teal"><i className="bi bi-graph-up-arrow" /></span><div><div className="lbl">Career Score</div><div className="val">{hasNumber ? scoreNum : '—'}</div><div className="hint">{hasNumber ? levelLabel : 'Still measuring'}</div></div></div>
             <div className="mc-stat"><span className="ic t-violet"><i className="bi bi-signpost-split-fill" /></span><div><div className="lbl">Pathway</div><div className="val" style={{ fontSize: 16 }}>{pathwayLabel || '—'}</div></div></div>
             <div className="mc-stat"><span className="ic t-amber"><i className="bi bi-fire" /></span><div><div className="lbl">Streak</div><div className="val">0d</div><div className="hint">Unlock to start</div></div></div>
             <div className="mc-stat"><span className="ic t-blue"><i className="bi bi-star-fill" /></span><div><div className="lbl">XP</div><div className="val">—</div><div className="hint">Unlock to earn</div></div></div>

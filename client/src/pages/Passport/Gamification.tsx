@@ -50,7 +50,7 @@ const Gamification: React.FC = () => {
   const locked = summary?.badges.filter(b => !b.earned) || [];
   const shownBadges = showAllBadges ? [...earned, ...locked] : [...earned, ...locked].slice(0, 6);
   const nextMilestone = summary && [7, 21, 30, 100].find(d => d > summary.streak);
-  const levelProgress = summary?.level?.progressPct ?? 0;
+  const levelProgress = Math.max(0, Math.min(100, summary?.level?.pct ?? 0));
   const collegeRank = summary?.ranks?.college;
   const globalRank = summary?.ranks?.global;
 
@@ -84,8 +84,8 @@ const Gamification: React.FC = () => {
                 <div className="gam-xp">{summary.xp.toLocaleString()} <small>XP</small></div>
                 <div className="gam-level-progress"><span style={{ width: `${levelProgress}%` }} /></div>
                 <div className="gam-level-meta">
-                  <span>{summary.level?.xpIntoLevel ?? 0} XP into this level</span>
-                  <span>{summary.level?.xpToNextLevel ?? 0} XP to Level {summary.level?.nextLevel ?? ((summary.level?.level ?? 1) + 1)}</span>
+                  <span>{levelProgress}% through this level</span>
+                  <span>Next: Level {summary.level?.nextLevel ?? ((summary.level?.level ?? 1) + 1)} · {summary.level?.nextTitle || 'Next level'}</span>
                 </div>
               </div>
               <div className="gam-level-orb"><i className="bi bi-award-fill" /><span>{summary.level?.title || 'Career Builder'}</span></div>

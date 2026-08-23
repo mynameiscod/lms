@@ -103,3 +103,18 @@
   .ps-nav-note { flex: 1 1 100%; }
   .ps-fields { grid-template-columns: 1fr; }
 }
+
+/* The empty state is nearly always a FILTER, not an absence of settings — so it says
+   so and offers the way out, rather than reading as a broken page. */
+.ps-empty p { margin: 0 0 6px; }
+.ps-empty-hint { font-size: 13px; color: #94a3b8; }
+.ps-empty-clear {
+  margin-top: 14px; padding: 9px 18px; border-radius: 8px; cursor: pointer;
+  border: 1px solid #d8dee9; background: #fff; color: #334155;
+  font-size: 14px; font-weight: 600;
+}
+.ps-empty-clear:hover { border-color: #2f6fed; color: #2f6fed; }
+
+/* type="search" renders a native clear button in WebKit; hide it so the styled
+   .ps-search-clear is the only one and there are not two X controls stacked. */
+.ps-search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }

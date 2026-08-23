@@ -216,7 +216,22 @@ const PlatformSettings: React.FC = () => {
           <aside className="ps-nav">
             <div className="ps-search">
               <i className="fa-solid fa-magnifying-glass" />
+              {/**
+                * autoComplete="off" and a name, because Chrome was filling this with a
+                * saved EMAIL address. A bare text input with no name is exactly what
+                * autofill targets, and the result presented as "Platform Settings is
+                * empty" — every group filtered to nothing by a term the admin never
+                * typed. The field inputs a few lines above already carry autoComplete
+                *="off" for the same reason; this one was missed.
+                *
+                * type="search" additionally gives a native clear affordance and Escape
+                * handling, which is what a filter should have had.
+                */}
               <input
+                type="search"
+                name="settings-search"
+                autoComplete="off"
+                spellCheck={false}
                 placeholder="Search settings…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -247,7 +262,17 @@ const PlatformSettings: React.FC = () => {
           {/* Right: only the active module (or search results) */}
           <main className="ps-panel">
             {visibleGroups.length === 0 && (
-              <div className="ps-empty">No settings match “{query}”.</div>
+              /**
+               * A filter that hides everything looks identical to a screen with nothing on
+               * it, and "no settings match" is easy to skim past when you arrived expecting
+               * a form. Say plainly that a filter is the reason, and put the way out here
+               * rather than only back in the sidebar.
+               */
+              <div className="ps-empty">
+                <p>No settings match “{query}”.</p>
+                <p className="ps-empty-hint">Every setting is hidden by this search.</p>
+                <button className="ps-empty-clear" onClick={() => setQuery('')}>Clear search</button>
+              </div>
             )}
             {visibleGroups.map((g) => {
               const groupFields = (byGroup[g.id] || []).filter(matches);

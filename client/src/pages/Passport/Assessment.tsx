@@ -72,12 +72,31 @@ const Assessment: React.FC = () => {
       try {
         const existing = await passportApi.getResult();
         if (existing.result) { setResult(existing.result); setLoading(false); return; }
+
+        /**
+         * ALREADY MEASURED, JUST NOT BY THIS PAPER.
+         *
+         * Several places across the member surface link here as "My result" / "View full
+         * report". For a member measured by the SKILL assessment there is no legacy attempt,
+         * so this page fell through to rendering the intake QUESTIONNAIRE — showing somebody
+         * a form to fill in immediately after telling them they had been assessed, and
+         * inviting them to sit a second paper they did not need.
+         *
+         * Fixing it here rather than at each link is deliberate: the links live in
+         * MissionControl, MemberShell, the dashboard and the roadmap, several of which read
+         * a different endpoint and have no idea which instrument the member sat. The page
+         * that knows what it is about is this one, and correcting it once covers every
+         * entry point, including any added later.
+         */
+        const me = await passportApi.me().catch(() => null);
+        if (me?.assessed) { nav('/careerpilot/readiness', { replace: true }); return; }
+
         const a = await passportApi.getAssessment();
         setQuestions(a.questions);
       } catch (e: any) { setError(e?.response?.data?.message || 'Could not load the assessment.'); }
       setLoading(false);
     })();
-  }, []);
+  }, [nav]);
 
   // Soft countdown while taking the assessment.
   const taking = !loading && !result;

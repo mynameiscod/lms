@@ -95,6 +95,22 @@ const MissionControl: React.FC = () => {
   const firstName = user?.firstName || (status?.name || '').split(' ')[0] || 'there';
   const initial = (firstName[0] || 'C').toUpperCase();
 
+  /**
+   * "My result" is not one page — it depends which paper they sat.
+   *
+   * These links pointed at /careerpilot/assessment, which for a member measured by the
+   * SKILL assessment is not their result at all: they have no legacy attempt, so that page
+   * shows them the intake questionnaire. Sending somebody to "view my full result" and
+   * showing them a form to fill in is the same dead end as the rest of this, in the one
+   * place they are most likely to click after being told they have been measured.
+   */
+  const resultHref = status?.assessedVia === 'attempt'
+    ? '/careerpilot/assessment'
+    : '/careerpilot/readiness';
+
+  /** Payment is not wired up on this tenant, so nothing here can actually be bought. */
+  const canPay = status?.paymentAvailable !== false;
+
   const Topbar = (
     <div className="mc-topbar">
       <div className="mc-brand">
@@ -113,7 +129,7 @@ const MissionControl: React.FC = () => {
           </button>
           {menuOpen && (
             <div className="mc-menu">
-              <button onClick={() => nav('/careerpilot/assessment')}>My assessment result</button>
+              <button onClick={() => nav(resultHref)}>My assessment result</button>
               {status?.active && status?.shareSlug && <button onClick={share}>{copied ? 'Link copied!' : 'Share my Passport'}</button>}
               <button onClick={() => logout()}>Log out</button>
             </div>
@@ -160,6 +176,7 @@ const MissionControl: React.FC = () => {
    * "you scored zero" — for an assessment that simply has not measured enough yet.
    */
   const hasNumber = typeof (result?.careerScore ?? status?.passport?.careerScore) === 'number';
+
 
   /**
    * A member who has not finished setup cannot sit the assessment.
@@ -355,11 +372,25 @@ const MissionControl: React.FC = () => {
             <div className="mc-uh-feats">
               <div><span className="ck"><i className="bi bi-check-lg" /></span> Daily missions</div><div><span className="ck"><i className="bi bi-check-lg" /></span> Verified practice</div><div><span className="ck"><i className="bi bi-check-lg" /></span> Mock interviews</div><div><span className="ck"><i className="bi bi-check-lg" /></span> Shareable CareerPilot</div><div><span className="ck"><i className="bi bi-check-lg" /></span> Personalized for your score</div>
             </div>
-            {status?.paymentAvailable === false ? <p className="mc-uh-note">Online payment isn’t enabled yet — please contact your mentor to activate.</p> : null}
-            {status?.paymentAvailable === false ? <button className="mc-uh-btn" onClick={() => nav(assessmentHref)}><i className="bi bi-unlock-fill" /> Unlock My 90-Day CareerPilot</button> : <button className="mc-uh-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : <><i className="bi bi-unlock-fill" /> Unlock My 90-Day CareerPilot — ₹{price}</>}</button>}
+            {/**
+              * When payment is not configured there is nothing to unlock, and the button
+              * must not imply otherwise. This one navigated to the ASSESSMENT — which
+              * unlocks nothing, contradicts the sentence directly above it, and dropped a
+              * member who had already been measured back onto an assessment page. It is
+              * now plainly unavailable, and the note carries the explanation, so the
+              * screen says one thing instead of two.
+              */}
+            {!canPay ? (
+              <>
+                <p className="mc-uh-note">Online payment isn’t enabled yet — please contact your mentor to activate your 90-day journey.</p>
+                <button className="mc-uh-btn" disabled><i className="bi bi-lock-fill" /> Unlock — not available yet</button>
+              </>
+            ) : (
+              <button className="mc-uh-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : <><i className="bi bi-unlock-fill" /> Unlock My 90-Day CareerPilot — ₹{price}</>}</button>
+            )}
             {payMsg && <div className="mc-uh-paymsg">{payMsg}</div>}
             <button className="mc-uh-link" onClick={() => nav('/careerpilot/roadmap')}>See what's in the 90 days →</button>
-            <button className="mc-uh-link" onClick={() => nav('/careerpilot/assessment')}>View my full result →</button>
+            <button className="mc-uh-link" onClick={() => nav(resultHref)}>View my full result →</button>
           </div>
         </div>
       </div>

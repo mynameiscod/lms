@@ -61,6 +61,9 @@ function systemPrompt(): string {
     '  wrong. One short paragraph.',
     '- If the question needs code, put it in codeSnippet, not in the question text, and set',
     '  language. Keep it under 20 lines.',
+    '- NEVER write "the following code", "the snippet below" or "the output of this program"',
+    '  unless codeSnippet actually contains that code. A stem pointing at code that is not',
+    '  there is unanswerable, and it will be rejected.',
     '',
     'Reply with JSON only. No prose, no markdown fence. Shape:',
     '{"questions":[{"question":"...","codeSnippet":null,"language":null,',
@@ -165,6 +168,26 @@ export function checkDraft(d: any, existing: Set<string>): CheckResult {
   }
 
   if (existing.has(norm(stem))) return fail('duplicate of a question already in the pool');
+
+  /**
+   * A stem that points at code which is not there.
+   *
+   * "What will be the output of the following code snippet?" with no snippet is not a hard
+   * question, it is an unanswerable one — and a student who guesses is marked wrong for a
+   * question that never existed. The model does this readily: asked for a code question it
+   * writes the stem and then omits the code, because the stem alone reads complete.
+   *
+   * Fatal rather than flagged. There is no version of this a reviewer can salvage without
+   * writing the code themselves, at which point they have authored the question.
+   */
+  const refersToCode = /\b(following|below|this|above)\s+(code|snippet|program|function|method|output)\b|\boutput of the\b|\bcode snippet\b/i.test(stem);
+  const hasCode = !!String(d?.codeSnippet || '').trim();
+  if (refersToCode && !hasCode) return fail('the question refers to code that was not provided');
+
+  // The mirror of the above: code nobody is asked about is noise on the screen.
+  if (hasCode && !refersToCode && !/code|snippet|program|output/i.test(stem)) {
+    warnings.push('A code snippet is attached but the question does not refer to it.');
+  }
 
   /**
    * The length tell.

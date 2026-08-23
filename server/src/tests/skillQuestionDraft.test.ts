@@ -83,6 +83,32 @@ describe('drafts that must never reach a reviewer', () => {
     expect(checkDraft(d, pool).fatal).toMatch(/duplicate/);
   });
 
+  it('drops a question that points at code which is not there', () => {
+    /**
+     * Caught on the very first real batch. The model was asked for a programming question
+     * and wrote "What will be the output of the following code snippet?" with codeSnippet
+     * empty — a question no one can answer, on which a student is nonetheless marked wrong.
+     * It reads perfectly well in a list, which is exactly why a machine has to catch it.
+     */
+    const d = { ...good(), question: 'What will be the output of the following code snippet?', codeSnippet: null };
+    expect(checkDraft(d, none).fatal).toMatch(/refers to code/);
+  });
+
+  it('accepts the same question once the code is actually attached', () => {
+    const d = {
+      ...good(),
+      question: 'What will be the output of the following code snippet?',
+      codeSnippet: 'let x = 5; console.log(x + "5");',
+    };
+    expect(checkDraft(d, none).fatal).toBeNull();
+  });
+
+  it('does not mistake ordinary wording for a code reference', () => {
+    // "code" appears in plenty of legitimate stems that show nothing.
+    const d = { ...good(), question: 'Why is readable code easier to maintain over time?' };
+    expect(checkDraft(d, none).fatal).toBeNull();
+  });
+
   it('lets a good one through', () => {
     const r = checkDraft(good(), none);
     expect(r.fatal).toBeNull();

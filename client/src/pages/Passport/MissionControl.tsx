@@ -127,6 +127,24 @@ const MissionControl: React.FC = () => {
 
   const active = !!status?.active;
   const hasScore = !!result;
+
+  /**
+   * A member who has not finished setup cannot sit the assessment.
+   *
+   * The generator refuses them — resolvePersonalizedAssessmentContext returns
+   * CONTEXT_INCOMPLETE — so every "start your assessment" button on this screen was an
+   * invitation to a refusal, with nothing anywhere linking to the setup it demanded.
+   *
+   * `setupCompleted` comes from the server (contextCompletedAt), NOT from `onboarded`,
+   * which signup sets to true for everyone and therefore cannot answer this question.
+   *
+   * Undefined is treated as complete: a member on an older client, or a status call that
+   * failed, should get the normal route rather than be pushed back through setup they may
+   * already have done. Being wrong in that direction costs a click; being wrong in the
+   * other direction strands somebody who is ready.
+   */
+  const needsSetup = status != null && status.setupCompleted === false;
+  const assessmentHref = needsSetup ? '/careerpilot/setup' : '/careerpilot/skill-assessment';
   const price = status?.priceInr ?? 499;
   const scoreNum = hasScore ? result!.careerScore : 0;
 
@@ -178,7 +196,7 @@ const MissionControl: React.FC = () => {
                   )}
                   <div className="mc-today-actions">
                     {today?.needsAssessment ? (
-                      <button className="mc-mission-primary" onClick={() => nav('/careerpilot/skill-assessment')}><i className="bi bi-play-fill" /> Start Skill Assessment</button>
+                      <button className="mc-mission-primary" onClick={() => nav(assessmentHref)}><i className="bi bi-play-fill" /> Start Skill Assessment</button>
                     ) : focus?.link && !focus.done ? (
                       <button className="mc-mission-primary" onClick={() => nav(focus.link!)}><i className="bi bi-play-fill" /> Start Mission</button>
                     ) : focus && !focus.done ? (
@@ -298,7 +316,7 @@ const MissionControl: React.FC = () => {
               <div><span className="ck"><i className="bi bi-check-lg" /></span> Daily missions</div><div><span className="ck"><i className="bi bi-check-lg" /></span> Verified practice</div><div><span className="ck"><i className="bi bi-check-lg" /></span> Mock interviews</div><div><span className="ck"><i className="bi bi-check-lg" /></span> Shareable CareerPilot</div><div><span className="ck"><i className="bi bi-check-lg" /></span> Personalized for your score</div>
             </div>
             {status?.paymentAvailable === false ? <p className="mc-uh-note">Online payment isn’t enabled yet — please contact your mentor to activate.</p> : null}
-            {status?.paymentAvailable === false ? <button className="mc-uh-btn" onClick={() => nav('/careerpilot/skill-assessment')}><i className="bi bi-unlock-fill" /> Unlock My 90-Day CareerPilot</button> : <button className="mc-uh-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : <><i className="bi bi-unlock-fill" /> Unlock My 90-Day CareerPilot — ₹{price}</>}</button>}
+            {status?.paymentAvailable === false ? <button className="mc-uh-btn" onClick={() => nav(assessmentHref)}><i className="bi bi-unlock-fill" /> Unlock My 90-Day CareerPilot</button> : <button className="mc-uh-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : <><i className="bi bi-unlock-fill" /> Unlock My 90-Day CareerPilot — ₹{price}</>}</button>}
             {payMsg && <div className="mc-uh-paymsg">{payMsg}</div>}
             <button className="mc-uh-link" onClick={() => nav('/careerpilot/roadmap')}>See what's in the 90 days →</button>
             <button className="mc-uh-link" onClick={() => nav('/careerpilot/assessment')}>View my full result →</button>
@@ -317,7 +335,11 @@ const MissionControl: React.FC = () => {
           <h1 className="mc-h1">Your Career Journey <span className="b">Starts with Clarity</span></h1>
           <p className="mc-lead">Take the free skill assessment to see how you measure up against the role you are aiming at, and get a personalized roadmap to close the gaps.</p>
           <div className="mc-checks">{CHECKS.map(c => <div className="mc-check" key={c.title}><span className={`ic t-${c.tone}`}><i className={`bi ${c.ic}`} /></span><span className="ck"><i className="bi bi-check-lg" /></span><div><b>{c.title}</b><span>{c.desc}</span></div></div>)}</div>
-          <button className="mc-cta" onClick={() => nav('/careerpilot/skill-assessment')}><i className="bi bi-rocket-takeoff-fill" /> Start Free Assessment <i className="bi bi-arrow-right" /></button>
+          <button className="mc-cta" onClick={() => nav(assessmentHref)}>
+            <i className="bi bi-rocket-takeoff-fill" />
+            {needsSetup ? 'Finish Setup to Start' : 'Start Free Assessment'}
+            <i className="bi bi-arrow-right" />
+          </button>
           <div className="mc-cta-note"><i className="bi bi-clock" /> Takes about 5 minutes · <i className="bi bi-graph-up-arrow" /> No payment needed</div>
         </div>
         <div className="mc-right"><div className="mc-scorewrap"><div className="mc-score-head"><h3><i className="bi bi-key-fill" /> Your Career Score can open new doors</h3><p>Measure where you stand and what to improve next.</p></div><div className="mc-score-card"><div className="mc-score-top"><div><div className="lbl">Career Readiness Score</div><div className="num">{scoreNum}<small> / 100</small></div></div><div className="mc-rocket"><i className="bi bi-rocket-takeoff-fill" /></div></div><div className="mc-bar"><i style={{ width: `${Math.max(scoreNum, 4)}%` }} /></div><div className="mc-cats">{CATS.map(c => <div className="mc-cat" key={c.title}><span className={`ic t-${c.tone}`}><i className={`bi ${c.ic}`} /></span><div><b>{c.title}</b><span>{c.desc}</span></div></div>)}</div></div></div></div>

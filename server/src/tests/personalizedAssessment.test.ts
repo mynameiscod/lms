@@ -255,15 +255,36 @@ describe('coverage failure', () => {
     expect(validateGeneration(report).ok).toBe(false);
   });
 
-  it('names the skill and difficulty so an admin can fix it', () => {
+  it('names the skill and difficulty in the ADMIN message, so it can be fixed', () => {
     const { report } = selectItems(
       [{ skillKey: 'JAVA_OOP', difficulty: 'MEDIUM', reason: 'role_blueprint' }] as any,
       new Map(), 'seed', { allowDifficultyFallback: false },
     );
     const v = validateGeneration(report);
     expect(v.ok).toBe(false);
-    expect(v.message).toMatch(/JAVA_OOP/);
-    expect(v.message).toMatch(/medium/i);
+    expect(v.adminMessage).toMatch(/JAVA_OOP/);
+    expect(v.adminMessage).toMatch(/medium/i);
+  });
+
+  it('tells the STUDENT nothing they cannot act on', () => {
+    /**
+     * This message used to be the admin's: it named an internal skill key, described the
+     * evidence-mapping data model, and instructed the reader to "map more assessment
+     * content and try again" — a thing no student can do. What a member took from it was
+     * that the product was broken and that it was somehow their move.
+     */
+    const { report } = selectItems(
+      [{ skillKey: 'JAVA_OOP', difficulty: 'MEDIUM', reason: 'role_blueprint' }] as any,
+      new Map(), 'seed', { allowDifficultyFallback: false },
+    );
+    const v = validateGeneration(report);
+
+    expect(v.message).toBeTruthy();
+    expect(v.message).not.toMatch(/JAVA_OOP/);      // no internal key
+    expect(v.message).not.toMatch(/map/i);       // no instruction they cannot follow
+    expect(v.message).not.toMatch(/mapped|evidence|difficulty/i);  // no data model
+    // And it should say whose problem it is, so nobody goes looking at their own account.
+    expect(v.message).toMatch(/nothing.*(wrong|for you to fix)/i);
   });
 
   it('passes when every slot is filled', () => {

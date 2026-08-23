@@ -73,7 +73,18 @@ export const getMyStatus = async (req: Request, res: Response) => {
     res.json({
       enabled: passportEnabled(tenantId, cfg),
       active,
+      /**
+       * `onboarded` is set to true by SIGNUP, so it answers "did they fill the join form",
+       * not "are they ready to be assessed". Every consumer that wanted the second question
+       * and asked this one got true for members who had never opened setup.
+       *
+       * `setupCompleted` is the honest marker: contextCompletedAt is written when the member
+       * finishes /careerpilot/setup and chooses a role, which is the thing the assessment
+       * actually requires. Stated by the server rather than inferred from the passport blob
+       * below, so a client cannot get it subtly wrong.
+       */
       onboarded: !!user?.passport?.onboarded,
+      setupCompleted: !!user?.passport?.contextCompletedAt,
       passport: user?.passport || null,
       entitlements: cfg?.entitlements || [],
       entitled: entitlementMap(cfg?.entitlements as any, user?.passport),

@@ -58,7 +58,7 @@ const PassportLogin: React.FC = () => {
     return () => clearInterval(t);
   }, [otpStep, token]);
 
-  const land = (r: { token: string; tenantId: string; user: any }) => {
+  const land = (r: { token: string; tenantId: string; user: any; onboardingCompleted?: boolean }) => {
     if (remember && identifier) localStorage.setItem(REMEMBER_KEY, identifier);
     else localStorage.removeItem(REMEMBER_KEY);
 
@@ -70,9 +70,27 @@ const PassportLogin: React.FC = () => {
         email: r.user.email, firstName: r.user.firstName, lastName: r.user.lastName, role: r.user.role,
       }));
     }
-    // Full page load so the auth context re-initialises from the stored token — a
-    // client-side nav would hit the protected route before the context knows we are in.
-    window.location.href = '/careerpilot';
+    /**
+     * WHERE THEY LAND DEPENDS ON WHETHER SETUP IS FINISHED.
+     *
+     * This sent everybody to /careerpilot unconditionally, and for a member who registered
+     * but never finished setup that was a dead end: Mission Control shows them a "start your
+     * assessment" call to action, the assessment refuses with "Complete your CareerPilot
+     * setup first", and nothing on either screen links to setup. The only ways out were
+     * typing the URL or giving up, and most people give up.
+     *
+     * The signup path has always got this right — Join.tsx routes to setup when onboarding
+     * is incomplete. So the same member was routed correctly on the day they registered and
+     * incorrectly every time they came back.
+     *
+     * `onboardingCompleted` was already on this response: issueLogin sends it for password
+     * and OTP login alike, with a comment saying it exists precisely so the client does not
+     * have to infer it. It was simply being thrown away here.
+     *
+     * Full page load either way, so the auth context re-initialises from the stored token —
+     * a client-side nav would hit the protected route before the context knows we are in.
+     */
+    window.location.href = r.onboardingCompleted ? '/careerpilot' : '/careerpilot/setup';
   };
 
   const doPassword = async () => {

@@ -263,7 +263,13 @@ describe('coverage failure', () => {
     await startPersonalizedAssessment(mockReq({}), res);
 
     expect(res.statusCode).toBe(409);
-    expect(res.body.message).toMatch(/not enough mapped questions/i);
+    // The member is told it is not ready and that it is not their fault — NOT which skill
+    // key is short, which is an administrator's problem and was previously sent to them.
+    expect(res.body.message).toMatch(/not ready yet/i);
+    expect(res.body.message).not.toMatch(/mapped|skill key|PROGRAMMING_FUNDAMENTALS/i);
+    // `shortfalls` is a list of internal skill keys and difficulty bands. No student
+    // surface reads it, so sending it only exposed the data model to the browser.
+    expect(res.body.coverage).toBeUndefined();
     // A half-generated attempt would be a paper that quietly measures less.
     expect(createPA).not.toHaveBeenCalled();
   });

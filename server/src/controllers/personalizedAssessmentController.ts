@@ -98,7 +98,18 @@ export const startPersonalizedAssessment = async (req: Request, res: Response) =
     }
 
     const ctx = await resolvePersonalizedAssessmentContext(tenantId, studentId);
-    if (!ctx.ok) return res.status(400).json({ message: ctx.message });
+    if (!ctx.ok) {
+      /**
+       * The reason travels with the message.
+       *
+       * It was resolved and then dropped, so the screen could only show a sentence. Some of
+       * these refusals are things the member can fix — CONTEXT_INCOMPLETE means "finish
+       * setup", which is one click away — and without the code the client would have to
+       * match on the message text to know that, which breaks the moment the wording
+       * changes. The code names no internal data and is safe to send.
+       */
+      return res.status(400).json({ message: ctx.message, reasonCode: ctx.reasonCode });
+    }
 
     const prior = await PersonalizedAssessment.find({ tenantId, studentId })
       .select('attemptNumber items').sort({ attemptNumber: -1 }).lean() as any[];
@@ -118,12 +129,19 @@ export const startPersonalizedAssessment = async (req: Request, res: Response) =
     });
 
     if (!built.ok) {
-      // A coverage failure is a configuration problem, not the student's. It says what is
-      // missing without exposing anything internal.
-      return res.status(409).json({
-        message: built.message,
-        coverage: built.report?.shortfalls || [],
-      });
+      /**
+       * A coverage failure is OUR configuration problem, not the student's.
+       *
+       * The comment here used to claim it exposed nothing internal while returning
+       * `shortfalls` — which is a list of internal skill keys and difficulty bands. No
+       * student surface reads it, so it was leaking the data model to the browser for
+       * nobody's benefit. The member gets the member-facing message and nothing else.
+       *
+       * The diagnostic is not lost: it is logged for whoever has to fix it, and the admin
+       * preview screen returns it in full.
+       */
+      console.warn('[personalized-assessment] generation blocked for', studentId, '-', built.adminMessage || built.message);
+      return res.status(409).json({ message: built.message });
     }
 
     let created: any;
@@ -276,8 +294,11 @@ export const previewPersonalizedAssessment = async (req: Request, res: Response)
     const policy = policyForStage(ctx.stage);
 
     if (!built.ok) {
+      // The admin screen is the audience that can act on this, so it gets the full
+      // diagnostic — skill keys, difficulty bands and every shortfall, not just the first.
       return res.json({
-        ok: false, message: built.message,
+        ok: false, message: built.adminMessage || built.message,
+        studentMessage: built.message,
         context: { stage: ctx.stage, roleKey: ctx.roleKey, discovery: !!ctx.discovery, policy: policy.label },
         shortfalls: built.report?.shortfalls || [],
       });

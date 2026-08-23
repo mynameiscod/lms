@@ -42,13 +42,30 @@ const SkillAssessment: React.FC = () => {
       .finally(() => setLoading(false));
   }, [adopt]);
 
+  /**
+   * When the refusal is something the member CAN act on, offer the way out.
+   *
+   * Being told "complete your CareerPilot setup before starting the assessment" on a screen
+   * with no link to setup is a dead end — the member either knows the URL or gives up. The
+   * server names the reason, so the button is chosen from that rather than by matching on
+   * the message text, which would break the moment the wording changed.
+   *
+   * Reasons that are OUR problem (an empty question pool, an unpublished blueprint) get no
+   * button, because there is genuinely nothing for them to do about it.
+   */
+  const [fixHref, setFixHref] = useState('');
+
   const start = async () => {
-    setStarting(true); setErr('');
+    setStarting(true); setErr(''); setFixHref('');
     try {
       const r = await passportApi.startSkillAssessment();
       adopt(r.assessment);
     } catch (e: any) {
-      setErr(e?.response?.data?.message || 'Could not start your assessment.');
+      const d = e?.response?.data || {};
+      setErr(d.message || 'Could not start your assessment.');
+      if (d.reasonCode === 'CONTEXT_INCOMPLETE' || d.reasonCode === 'STAGE_UNKNOWN') {
+        setFixHref('/careerpilot/setup');
+      }
     }
     setStarting(false);
   };
@@ -179,8 +196,19 @@ const SkillAssessment: React.FC = () => {
               <div><span className="tone-amber"><i className="bi bi-bullseye" /></span><p><b>Built for your target role</b><small>Your result feeds directly into your roadmap.</small></p></div>
             </div>
             <div className="ska-estimate"><i className="bi bi-clock" /> Short, focused assessment</div>
-            {err && <p className="ska-err">{err}</p>}
-            <button className="ska-btn primary lg" disabled={starting} onClick={start}>{starting ? 'Preparing your paper…' : <>Start assessment <i className="bi bi-arrow-right" /></>}</button>
+            {err && (
+              <div className="ska-err">
+                <p>{err}</p>
+                {fixHref && (
+                  <button className="ska-btn primary" onClick={() => nav(fixHref)}>
+                    Finish my setup <i className="bi bi-arrow-right" />
+                  </button>
+                )}
+              </div>
+            )}
+            {!fixHref && (
+              <button className="ska-btn primary lg" disabled={starting} onClick={start}>{starting ? 'Preparing your paper…' : <>Start assessment <i className="bi bi-arrow-right" /></>}</button>
+            )}
           </section>
 
           <section className="ska-intro-art">

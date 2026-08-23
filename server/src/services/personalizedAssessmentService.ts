@@ -359,17 +359,44 @@ export function selectItems(
  * invisible in the score — so a clean failure an admin can act on beats a paper that
  * quietly means less.
  */
-export function validateGeneration(report: GenerationReport): { ok: boolean; message?: string } {
+export function validateGeneration(
+  report: GenerationReport,
+): { ok: boolean; message?: string; adminMessage?: string } {
+  /**
+   * TWO MESSAGES, BECAUSE THERE ARE TWO AUDIENCES.
+   *
+   * There was one, and it read: "Not enough mapped questions for DSA_LINKED_LIST at medium
+   * difficulty. Needed 1 more. Map more assessment content to this skill and try again."
+   * That is a work instruction for an administrator, and it was being shown to students —
+   * naming an internal skill key, describing an internal data model, and telling a member
+   * to do something they have no access to do. A student reading it learns only that the
+   * product is broken and that it is somehow their move.
+   *
+   * `message` is what the member sees: honest that it is our gap, not their fault, and with
+   * nothing in it they cannot act on. `adminMessage` keeps the full diagnostic for the
+   * preview screen and the logs, where it is exactly what is wanted.
+   */
   if (report.shortfalls.length) {
     const first = report.shortfalls[0];
+    const skills = [...new Set(report.shortfalls.map(s => s.skillKey))];
     return {
       ok: false,
-      message: `Not enough mapped questions for ${first.skillKey} at ${first.difficulty.toLowerCase()} difficulty. `
-        + `Needed ${first.wanted} more. Map more assessment content to this skill and try again.`,
+      message: 'Your assessment is not ready yet — we are still adding questions for some of '
+        + 'the skills your target role needs. Nothing is wrong with your account, and there '
+        + 'is nothing for you to fix. Please check back shortly.',
+      adminMessage: `Not enough mapped questions for ${first.skillKey} at ${first.difficulty.toLowerCase()} difficulty. `
+        + `Needed ${first.wanted} more. `
+        + (skills.length > 1 ? `${skills.length} skills are short: ${skills.join(', ')}. ` : '')
+        + 'Map more assessment content to these skills, or draft questions for them, and try again.',
     };
   }
   if (report.filled < report.requestedSlots) {
-    return { ok: false, message: 'The assessment could not be completed from the available question pool.' };
+    return {
+      ok: false,
+      message: 'Your assessment is not ready yet — we are still adding questions for your '
+        + 'target role. Please check back shortly.',
+      adminMessage: `Only ${report.filled} of ${report.requestedSlots} slots could be filled from the available pool.`,
+    };
   }
   return { ok: true };
 }
@@ -471,6 +498,8 @@ export async function resolvePersonalizedAssessmentContext(tenantId: string, stu
 export async function buildPersonalizedAssessment(input: GenerationInput): Promise<{
   ok: boolean;
   message?: string;
+  /** The full diagnostic, for the admin preview and the logs — never for a member. */
+  adminMessage?: string;
   specification?: AssessmentSpecification;
   items?: SelectedItem[];
   report?: GenerationReport;
@@ -522,7 +551,7 @@ export async function buildPersonalizedAssessment(input: GenerationInput): Promi
   });
 
   const valid = validateGeneration(report);
-  if (!valid.ok) return { ok: false, message: valid.message, report };
+  if (!valid.ok) return { ok: false, message: valid.message, adminMessage: valid.adminMessage, report };
 
   const skillCoverage: Record<string, number> = {};
   const difficultyCoverage: Record<string, number> = {};

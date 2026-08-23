@@ -24,6 +24,8 @@ const PlatformSettings: React.FC = () => {
   // Which module (group) is open in the right panel; '' when a search is active.
   const [active, setActive] = useState<string>('');
   const [query, setQuery] = useState('');
+  /** Drives the read-only guard above — see the comment on the search input. */
+  const [searchFocused, setSearchFocused] = useState(false);
 
   // Scope: '' = platform, or a tenantId
   const [scope, setScope] = useState<string>('');
@@ -227,11 +229,33 @@ const PlatformSettings: React.FC = () => {
                 * type="search" additionally gives a native clear affordance and Escape
                 * handling, which is what a filter should have had.
                 */}
+              {/**
+                * READ-ONLY UNTIL FOCUSED.
+                *
+                * autoComplete="off" alone did not hold: Chrome and password-manager
+                * extensions both override it, and this box was still being filled with a
+                * saved email on load — which silently hid every setting on the page and
+                * read as "Platform Settings is broken".
+                *
+                * Autofill skips read-only fields, and clearing the flag on focus means a
+                * person who clicks or tabs in can type normally. The cost is that assistive
+                * tech announces it as read-only until focus, which is a real trade — taken
+                * because a filter nobody set, hiding everything, is the worse failure.
+                *
+                * The data-* attributes cover 1Password, LastPass and Bitwarden, which do
+                * not honour autoComplete at all.
+                */}
               <input
                 type="search"
                 name="settings-search"
                 autoComplete="off"
                 spellCheck={false}
+                readOnly={!searchFocused}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                data-1p-ignore
+                data-lpignore="true"
+                data-bwignore
                 placeholder="Search settings…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -310,8 +334,13 @@ const PlatformSettings: React.FC = () => {
 
                   {g.id === 'email' && (
                     <div className="ps-email-test">
+                      {/* Named and labelled so the browser's autofill has an obvious,
+                          correct target on this page. Left unlabelled, it hunts for
+                          something email-shaped and lands on the search box instead. */}
                       <input
                         type="email"
+                        name="smtp-test-recipient"
+                        autoComplete="email"
                         placeholder="you@example.com"
                         value={testEmailTo}
                         onChange={(e) => setTestEmailTo(e.target.value)}

@@ -118,3 +118,7 @@
 /* type="search" renders a native clear button in WebKit; hide it so the styled
    .ps-search-clear is the only one and there are not two X controls stacked. */
 .ps-search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+
+/* The read-only guard is invisible to the eye — the field must not look disabled while
+   it is waiting to be focused, or it reads as "search is turned off". */
+.ps-search input[readonly] { background: inherit; color: inherit; cursor: text; }

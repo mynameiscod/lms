@@ -4,6 +4,7 @@ import CareerSetupPrompt from './CareerSetupPrompt';
 import { Outlet } from 'react-router-dom';
 import passportApi, { DashboardData } from '../../api/passportApi';
 import MemberShell from './MemberShell';
+import './memberLayoutFix.css';
 
 /**
  * Layout route for every paid Passport page.
@@ -48,7 +49,9 @@ const MemberLayout: React.FC = () => {
     return <div style={{ padding: 60, textAlign: 'center', color: '#7b8496' }}>Loading your CareerPilot…</div>;
   }
 
-  const isMember = !!data?.active && !!data?.hasAssessment;
+  // Membership activation owns the paid shell. Assessment/setup state controls the
+  // content shown inside it, not whether a paid member gets navigation at all.
+  const isMember = !!data?.active;
   const ctx = { data, reload: load };
 
   // Free candidates keep each page's own chrome — the rail's destinations are all

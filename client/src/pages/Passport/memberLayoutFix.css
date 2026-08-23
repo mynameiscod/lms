@@ -1,0 +1,5 @@
+/* Paid CareerPilot routes use MemberShell as the single source of navigation/chrome. */
+.gd .mc-shell > .mc-topbar,
+.gd .mc-shell > .pm-nav {
+  display: none !important;
+}

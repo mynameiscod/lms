@@ -1,0 +1,43 @@
+/* CareerPilot paid-member shell — system style override */
+.gd{background:#f6f9fc!important}
+.gd-side{width:264px!important;background:linear-gradient(180deg,#051d64 0%,#071a49 100%)!important;border-right:0!important;padding:18px 14px 16px!important;box-shadow:14px 0 36px rgba(5,29,100,.08)!important}
+.gd-logo{padding:2px 8px 20px!important;border-bottom:1px solid rgba(255,255,255,.08)!important;margin-bottom:12px!important}
+.gd-logo .mk{width:42px!important;height:42px!important;border-radius:13px!important;background:linear-gradient(135deg,#359aad,#63c8d3)!important;box-shadow:0 10px 24px rgba(53,154,173,.25)!important}
+.gd-logo .mk img{background:#fff!important;padding:2px!important}
+.gd-logo b{color:#fff!important;font-size:17px!important;letter-spacing:-.02em!important}
+.gd-logo small{color:#9fb1d2!important;font-size:9.8px!important}
+.gd-nav{gap:5px!important;padding:4px 2px 8px!important;scrollbar-color:#31558c transparent!important}
+.gd-nav::-webkit-scrollbar-thumb{background:#31558c!important}
+.gd-nav-btn{color:#c6d3ea!important;border-radius:11px!important;padding:11px 12px!important;font-size:13.2px!important;font-weight:650!important;transition:background .16s ease,color .16s ease,transform .16s ease!important}
+.gd-nav-btn .ic{color:#8fb1d1!important}
+.gd-nav-btn:hover{background:rgba(255,255,255,.08)!important;color:#fff!important;transform:translateX(1px)!important}
+.gd-nav-btn:hover .ic{color:#77d0d9!important}
+.gd-nav-btn.on{background:linear-gradient(90deg,#123b7b 0%,#227f97 58%,#359aad 100%)!important;color:#fff!important;box-shadow:0 10px 24px rgba(0,0,0,.2)!important;font-weight:800!important}
+.gd-nav-btn.on .ic{color:#fff!important}
+.gd-nav-label{color:#748caf!important;padding:15px 12px 6px!important;font-size:9.5px!important;letter-spacing:.12em!important}
+.gd-sub{border-left-color:rgba(255,255,255,.12)!important}
+.gd-sub button{color:#aebed8!important}
+.gd-sub button:hover{background:rgba(255,255,255,.07)!important;color:#fff!important}
+.gd-sub button.on{background:rgba(53,154,173,.16)!important;color:#7bd2dc!important}
+.gd-goal{border:1px solid rgba(255,255,255,.11)!important;background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(53,154,173,.09))!important;border-radius:16px!important;padding:15px!important}
+.gd-goal .hd,.gd-goal .big{color:#fff!important}
+.gd-goal .big small,.gd-goal .note{color:#9fb1d2!important}
+.gd-goal .bar{background:rgba(255,255,255,.12)!important}
+.gd-goal .bar i{background:linear-gradient(90deg,#359aad,#6fd0d8)!important}
+.gd-goal .cta{background:#359aad!important;color:#fff!important;box-shadow:0 8px 20px rgba(53,154,173,.24)!important}
+.gd-side-account{border-top:1px solid rgba(255,255,255,.08)!important;padding-top:10px!important}
+.gd-side-me .av,.gd-user-btn .av{background:linear-gradient(135deg,#359aad,#66c6d1)!important}
+.gd-side-me .t b,.gd-side-me .t span{color:#fff!important}
+.gd-main{margin-left:264px!important;padding:24px 30px 44px!important}
+.gd-hello h1{color:#051d64!important}
+.gd-hello p{color:#718096!important}
+.gd-pill.level .hex{background:linear-gradient(135deg,#051d64,#359aad)!important}
+.gd-pill.level .lbar i,.gd-tile-bar .tr i,.gd-part .b i,.gd-next .bar i{background:linear-gradient(90deg,#051d64,#359aad)!important}
+.gd-card-hd .lnk,.gd-rank{color:#237f91!important}
+.gd-rank{background:#eaf7f8!important}
+.gd-mission-cta{background:linear-gradient(90deg,#051d64,#359aad)!important;box-shadow:0 10px 24px rgba(5,29,100,.18)!important}
+.gd-reward .chip{background:#eaf7f8!important;color:#237f91!important}
+.gd-empty-state button{background:#eaf7f8!important;color:#237f91!important}
+.gd-week .l.today{color:#237f91!important}
+.gd-next .medal{background:linear-gradient(140deg,#051d64,#359aad)!important;box-shadow:0 12px 26px rgba(5,29,100,.22)!important}
+@media(max-width:980px){.gd-side{width:280px!important}.gd-main{margin-left:0!important;padding:72px 16px 36px!important}.gd-burger{background:#051d64!important;color:#fff!important;border:0!important;box-shadow:0 8px 22px rgba(5,29,100,.22)!important}}

@@ -56,3 +56,74 @@ code {
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
 }
+
+/* CareerPilot paid-member navigation must use the same visual language as the
+   main CodeBegun admin shell: deep navy rail + teal active destination.  These
+   selectors intentionally live in the global stylesheet and use !important so
+   page-level Passport styles cannot silently turn the shared rail white again. */
+body .gd-side {
+  background: #061e66 !important;
+  border-right: 0 !important;
+  box-shadow: none !important;
+}
+body .gd-logo {
+  background: #fff !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  margin: 0 0 14px !important;
+  padding: 9px 10px !important;
+}
+body .gd-logo .mk {
+  background: #fff !important;
+  box-shadow: none !important;
+}
+body .gd-logo .mk img {
+  background: #fff !important;
+  padding: 0 !important;
+  object-fit: contain !important;
+}
+body .gd-logo b { color: #061e66 !important; }
+body .gd-logo small { color: #7d8ba4 !important; }
+body .gd-nav-btn {
+  color: #d3def1 !important;
+  background: transparent !important;
+}
+body .gd-nav-btn .ic { color: #9fb5d9 !important; }
+body .gd-nav-btn:hover {
+  background: rgba(255,255,255,.08) !important;
+  color: #fff !important;
+}
+body .gd-nav-btn:hover .ic { color: #fff !important; }
+body .gd-nav-btn.on {
+  background: #359aad !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px rgba(0,0,0,.15) !important;
+}
+body .gd-nav-btn.on .ic { color: #fff !important; }
+body .gd-nav-label { color: #8fa6ce !important; }
+body .gd-sub { border-left-color: rgba(255,255,255,.15) !important; }
+body .gd-sub button { color: #b8c8e2 !important; }
+body .gd-sub button:hover { color: #fff !important; background: rgba(255,255,255,.07) !important; }
+body .gd-sub button.on { color: #fff !important; background: rgba(53,154,173,.24) !important; }
+body .gd-goal {
+  background: rgba(255,255,255,.06) !important;
+  border-color: rgba(255,255,255,.12) !important;
+}
+body .gd-goal .hd,
+body .gd-goal .big { color: #fff !important; }
+body .gd-goal .big small,
+body .gd-goal .note { color: #aebfdd !important; }
+body .gd-goal .bar { background: rgba(255,255,255,.13) !important; }
+body .gd-goal .bar i { background: #359aad !important; }
+body .gd-goal .cta { background: #359aad !important; color: #fff !important; }
+body .gd-side-account,
+body .gd-me { border-color: rgba(255,255,255,.1) !important; }
+body .gd-side-me,
+body .gd-me-card { background: rgba(255,255,255,.05) !important; border-color: rgba(255,255,255,.12) !important; }
+body .gd-side-me .t b,
+body .gd-side-me .t span,
+body .gd-me-top b { color: #fff !important; }
+body .gd-me-top span,
+body .gd-me-stats span { color: #aebfdd !important; }
+body .gd-me-stats b { color: #fff !important; }
+body .gd-me-btn { background: rgba(255,255,255,.08) !important; border-color: rgba(255,255,255,.15) !important; color: #fff !important; }

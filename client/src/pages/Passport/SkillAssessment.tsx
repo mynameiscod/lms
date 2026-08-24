@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import passportApi, { SkillAssessment as Paper, SkillAssessmentItem } from '../../api/passportApi';
+import passportApi, { SkillAssessment as Paper, SkillAssessmentItem, AssessmentAvailability } from '../../api/passportApi';
 import { AnswerQueue, enqueueAnswer, drainQueue, requeueFailed, hasPending } from './answerQueue';
 import './skillAssessment.css';
 
@@ -20,6 +20,8 @@ const SkillAssessment: React.FC = () => {
   const [done, setDone] = useState<any>(null);
   const [err, setErr] = useState('');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'retrying'>('idle');
+  /** Preflight: whether they have already sat one, and whether a real attempt is open. */
+  const [avail, setAvail] = useState<AssessmentAvailability | null>(null);
 
   const pending = useRef<AnswerQueue>({});
   const timer = useRef<any>(null);
@@ -40,6 +42,9 @@ const SkillAssessment: React.FC = () => {
       .then(r => { if (r.assessment) adopt(r.assessment); })
       .catch(() => {})
       .finally(() => setLoading(false));
+    // Separate call, deliberately not blocking the paper load: the intro can render while
+    // this resolves, and a failure here must not stop a member resuming real work.
+    passportApi.getAssessmentAvailability().then(setAvail).catch(() => {});
   }, [adopt]);
 
   /**
@@ -206,8 +211,34 @@ const SkillAssessment: React.FC = () => {
                 )}
               </div>
             )}
-            {!fixHref && (
-              <button className="ska-btn primary lg" disabled={starting} onClick={start}>{starting ? 'Preparing your paper…' : <>Start assessment <i className="bi bi-arrow-right" /></>}</button>
+            {/**
+              * ALREADY DONE IS THE DEFAULT ANSWER, NOT "START AGAIN".
+              *
+              * This offered "Start assessment" to everyone, including a member who had
+              * submitted one minutes earlier — with nothing on screen saying they had. One
+              * stray click created a second, untouched paper, which then told them
+              * "You already have an assessment open. Finish it first." about a paper they
+              * had never begun. Seen in production: submitted 20/20 at 08:26, phantom
+              * attempt at 08:27.
+              *
+              * A retake is a real feature — Skill check-in — but it is a deliberate,
+              * cooldown-gated act, not the button that happens to be under the cursor.
+              */}
+            {!fixHref && avail?.alreadyCompleted && !avail?.inProgress && (
+              <div className="ska-done">
+                <p><i className="bi bi-check-circle-fill" /> You have already completed your skill assessment.</p>
+                <div className="ska-done-actions">
+                  <button className="ska-btn primary" onClick={() => nav('/careerpilot/readiness')}>
+                    See my results <i className="bi bi-arrow-right" />
+                  </button>
+                  <button className="ska-btn ghost" onClick={() => nav('/careerpilot/skills')}>View my Skill DNA</button>
+                </div>
+                <small>Want to be re-measured? That happens through a Skill check-in, so your
+                  progress is compared rather than overwritten.</small>
+              </div>
+            )}
+            {!fixHref && !(avail?.alreadyCompleted && !avail?.inProgress) && (
+              <button className="ska-btn primary lg" disabled={starting} onClick={start}>{starting ? 'Preparing your paper…' : (avail?.inProgress ? <>Continue my assessment <i className="bi bi-arrow-right" /></> : <>Start assessment <i className="bi bi-arrow-right" /></>)}</button>
             )}
           </section>
 

@@ -133,7 +133,7 @@ export async function evaluateReassessmentEligibility(
   const [user, passportCfg, open, lastInitial, lastReassessment] = await Promise.all([
     User.findOne({ _id: studentId, tenantId }).select('passport').lean() as any,
     PassportConfig.findOne({ tenantId }).lean() as any,
-    PersonalizedAssessment.findOne({ tenantId, studentId, status: 'IN_PROGRESS' }).select('_id purpose').lean() as any,
+    PersonalizedAssessment.findOne({ tenantId, studentId, status: 'IN_PROGRESS' }).select('_id purpose answers').lean() as any,
     PersonalizedAssessment.findOne({
       tenantId, studentId, status: 'SUBMITTED',
       $or: [{ purpose: 'INITIAL' }, { purpose: { $exists: false } }],
@@ -158,7 +158,26 @@ export async function evaluateReassessmentEligibility(
   // first one.
   if (!lastInitial) blockers.push('INITIAL_ASSESSMENT_REQUIRED');
 
-  if (open) blockers.push('ASSESSMENT_IN_PROGRESS');
+  /**
+   * AN UNTOUCHED ATTEMPT IS NOT AN ATTEMPT IN PROGRESS.
+   *
+   * A paper can be created and never answered — a member lands on the assessment page after
+   * finishing one, clicks Start out of habit, and leaves. That row sits IN_PROGRESS with
+   * zero answers forever, and this told them "You already have an assessment open. Finish
+   * it first." about a paper they never began. Observed in production: attempt #1 submitted
+   * with 20 of 20 answered at 08:26, attempt #2 created at 08:27 with 0 answered, and the
+   * member correctly insisting they had already finished.
+   *
+   * Blocking on it is also the wrong shape: there is nothing to finish, and no way offered
+   * to discard it, so the check-in stays shut until somebody edits the database.
+   *
+   * An attempt with at least one answer is real work and still blocks — losing that by
+   * starting a fresh paper over the top would be worse.
+   */
+  const started = (open?.answers || []).some(
+    (a: any) => a && a.response !== undefined && a.response !== null && a.response !== '',
+  );
+  if (open && started) blockers.push('ASSESSMENT_IN_PROGRESS');
 
   /**
    * Cooldown runs from the last COMPLETED sitting.
@@ -207,7 +226,9 @@ export async function evaluateReassessmentEligibility(
     cooldownDays: cfg.cooldownDays,
     targetSkills: targets,
     estimatedQuestions: cfg.questionBudget,
-    activeAttemptId: open ? String(open._id) : null,
+    // Only a genuinely started paper is worth resuming. An untouched one is reused by
+    // startPersonalizedAssessment anyway, so pointing the member at it adds nothing.
+    activeAttemptId: open && started ? String(open._id) : null,
     message: eligible
       ? 'Your skill check-in is ready.'
       : blockerMessage(blockers[0], nextEligibleAt),

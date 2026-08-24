@@ -32,10 +32,14 @@ jest.mock('../models/CareerSkill', () => ({
     find: () => ({ lean: async () => [] }),
   },
 }));
+/** Whether this member has ever submitted an assessment. Default: no. */
+const submittedExistsMock = jest.fn(async () => null as any);
+
 jest.mock('../models/PersonalizedAssessment', () => ({
   __esModule: true,
   default: {
     findOne: () => ({ select: () => ({ lean: async () => findOpenAttemptMock() }) }),
+    exists: (...a: any[]) => submittedExistsMock(...(a as [])),
   },
 }));
 
@@ -76,11 +80,34 @@ describe('a fully configured role', () => {
     expect(r.discovery).toBe(false);
   });
 
-  it('reports an open attempt so the CTA can say "continue" instead of "start"', async () => {
+  it('reports a PARTLY ANSWERED attempt so the CTA can say "continue"', async () => {
     getCareerContextMock.mockResolvedValue(readyContext('BACKEND_ENGINEER'));
-    findOpenAttemptMock.mockReturnValue({ _id: 'a1' });
+    findOpenAttemptMock.mockReturnValue({ _id: 'a1', answers: [{ response: 2 }] });
     const r = await getPersonalizedAssessmentAvailability('t1', 's1');
     expect(r).toMatchObject({ assessmentAvailable: true, inProgress: true });
+  });
+
+  it('does NOT call an untouched attempt "in progress"', async () => {
+    /**
+     * A paper can be created and never answered — a member lands here after finishing one,
+     * clicks Start out of habit, and leaves. Calling that "continue where you left off" is
+     * how a member ended up being told "You already have an assessment open. Finish it
+     * first." about a paper they had never begun, one minute after submitting 20 of 20.
+     */
+    getCareerContextMock.mockResolvedValue(readyContext('BACKEND_ENGINEER'));
+    findOpenAttemptMock.mockReturnValue({ _id: 'a1', answers: [] });
+    const r = await getPersonalizedAssessmentAvailability('t1', 's1');
+    expect(r).toMatchObject({ assessmentAvailable: true, inProgress: false });
+  });
+
+  it('says so when they have already submitted one', async () => {
+    // Without this the page offers "Start" to somebody who finished minutes ago, and one
+    // stray click gives them a second paper.
+    getCareerContextMock.mockResolvedValue(readyContext('BACKEND_ENGINEER'));
+    findOpenAttemptMock.mockReturnValue(null);
+    submittedExistsMock.mockResolvedValue({ _id: 'done' } as any);
+    const r = await getPersonalizedAssessmentAvailability('t1', 's1');
+    expect(r.alreadyCompleted).toBe(true);
   });
 });
 

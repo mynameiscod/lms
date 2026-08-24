@@ -20,3 +20,15 @@
    link to setup is a dead end, so the button is part of the error, not next to it. */
 .ska-err p{margin:0}
 .ska-err .ska-btn{margin-top:11px;min-height:40px;font-size:12.5px}
+
+/* -- "already completed" state ---------------------------------------------
+   Shown instead of a Start button to a member who has already sat the paper, so
+   a stray click cannot create a second, untouched attempt. */
+.ska-done{
+  background:#F2FBF5; border:1px solid #CDE9D8; border-radius:14px;
+  padding:18px 20px; margin-top:6px;
+}
+.ska-done p{ margin:0 0 14px; font-size:15px; font-weight:700; color:#17683A }
+.ska-done p i{ margin-right:8px }
+.ska-done-actions{ display:flex; gap:10px; flex-wrap:wrap }
+.ska-done small{ display:block; margin-top:12px; font-size:12px; color:#5B7466; line-height:1.5 }

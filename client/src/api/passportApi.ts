@@ -1904,6 +1904,8 @@ export interface AssessmentAvailability {
   discovery: boolean;
   /** An attempt is already open — the CTA resumes rather than starts. */
   inProgress: boolean;
+  /** They have already submitted one — offering "Start" as the default creates a second. */
+  alreadyCompleted?: boolean;
 }
 
 /** One stage's paper shape, as the admin screen edits it. */

@@ -580,8 +580,14 @@ export interface AssessmentAvailability {
   message?: string;
   /** True when the member has no chosen role and would sit the broad discovery paper. */
   discovery: boolean;
-  /** An attempt already open — the CTA should resume rather than start. */
+  /** An attempt already open AND partly answered — the CTA should resume, not start. */
   inProgress: boolean;
+  /**
+   * The member has already submitted an assessment. The page should show that rather than
+   * offering "Start" as the default action, which is how a completed member acquires a
+   * second, untouched paper with one stray click.
+   */
+  alreadyCompleted?: boolean;
 }
 
 /**
@@ -603,18 +609,43 @@ export async function getPersonalizedAssessmentAvailability(
   tenantId: string,
   studentId: string,
 ): Promise<AssessmentAvailability> {
-  const open = await PersonalizedAssessment.findOne({ tenantId, studentId, status: 'IN_PROGRESS' })
-    .select('_id').lean();
+  const [open, completed] = await Promise.all([
+    PersonalizedAssessment.findOne({ tenantId, studentId, status: 'IN_PROGRESS' }).select('_id answers').lean() as any,
+    /**
+     * HAVE THEY ALREADY SAT ONE?
+     *
+     * Without this the assessment page offers "Start assessment" to a member who finished
+     * minutes ago, with nothing on screen saying so — one stray click and they have a
+     * second paper. That is exactly how a member ended up with attempt #1 submitted 20 of
+     * 20 at 08:26 and an untouched attempt #2 at 08:27, then being told to go and finish
+     * the assessment they had just completed.
+     *
+     * The page needs to know, so it can show the result and make a retake deliberate
+     * rather than the default action.
+     */
+    // `exists` rather than a sorted findOne: the only question is whether one has ever been
+    // submitted, and asking for the newest means fetching and ordering rows to answer yes.
+    PersonalizedAssessment.exists({ tenantId, studentId, status: 'SUBMITTED' }),
+  ]);
+  const alreadyCompleted = !!completed;
 
   const ctx = await resolvePersonalizedAssessmentContext(tenantId, studentId);
   const discovery = !!ctx.discovery;
 
   if (!ctx.ok) {
-    return { assessmentAvailable: false, reasonCode: ctx.reasonCode, message: ctx.message, discovery, inProgress: false };
+    return { assessmentAvailable: false, reasonCode: ctx.reasonCode, message: ctx.message, discovery, inProgress: false, alreadyCompleted };
   }
 
-  // An attempt already in progress is startable by definition — it exists.
-  if (open) return { assessmentAvailable: true, discovery, inProgress: true };
+  /**
+   * An attempt in progress is startable by definition — it exists. But `inProgress` is
+   * reported only when the member has actually ANSWERED something: an untouched row is a
+   * mis-click, not work to resume, and calling it "continue where you left off" is how the
+   * phantom attempt above became a nag.
+   */
+  const started = (open?.answers || []).some(
+    (a: any) => a && a.response !== undefined && a.response !== null && a.response !== '',
+  );
+  if (open) return { assessmentAvailable: true, discovery, inProgress: started, alreadyCompleted };
 
   // The skill graph has to exist before anything can be asked. NOT_SURE reaches here too:
   // discovery scopes to a broad skill set, which is just as absent on a tenant that has
@@ -628,7 +659,7 @@ export async function getPersonalizedAssessmentAvailability(
       assessmentAvailable: false,
       reasonCode: 'SKILLS_NOT_CONFIGURED',
       message: 'This career path is not ready for assessment yet.',
-      discovery, inProgress: false,
+      discovery, inProgress: false, alreadyCompleted,
     };
   }
 
@@ -639,9 +670,9 @@ export async function getPersonalizedAssessmentAvailability(
       assessmentAvailable: false,
       reasonCode: 'QUESTION_POOL_EMPTY',
       message: 'This career path is not ready for assessment yet.',
-      discovery, inProgress: false,
+      discovery, inProgress: false, alreadyCompleted,
     };
   }
 
-  return { assessmentAvailable: true, discovery, inProgress: false };
+  return { assessmentAvailable: true, discovery, inProgress: false, alreadyCompleted };
 }

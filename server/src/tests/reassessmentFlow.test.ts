@@ -221,14 +221,34 @@ describe('eligibility', () => {
     expect(s.blockers).toContain('REASSESSMENT_DISABLED');
   });
 
-  it('resumes rather than starting a second when one is already open', async () => {
+  it('resumes rather than starting a second when one is already STARTED', async () => {
     attempts = [
       submitted('INITIAL', '2026-07-01'),
-      { _id: 'open1', tenantId: T, studentId: S, status: 'IN_PROGRESS', purpose: 'REASSESSMENT' },
+      { _id: 'open1', tenantId: T, studentId: S, status: 'IN_PROGRESS', purpose: 'REASSESSMENT',
+        answers: [{ sourceType: 'question', sourceId: 'q1', response: 2 }] },
     ];
     const s = await evaluateReassessmentEligibility(T, S, NOW);
     expect(s.activeAttemptId).toBe('open1');
     expect(s.blockers).toContain('ASSESSMENT_IN_PROGRESS');
+  });
+
+  it('is NOT blocked by an untouched attempt nobody ever answered', async () => {
+    /**
+     * The failure this prevents, seen in production: a member submitted 20 of 20 at 08:26,
+     * a second paper was created at 08:27 and never answered, and the check-in then told
+     * them "You already have an assessment open. Finish it first." There was nothing to
+     * finish and no way offered to discard it, so the check-in stayed shut.
+     *
+     * An untouched row is a mis-click, not work. Real work — one answer or more — still
+     * blocks, because starting a fresh paper over the top would discard it.
+     */
+    attempts = [
+      submitted('INITIAL', '2026-07-01'),
+      { _id: 'ghost', tenantId: T, studentId: S, status: 'IN_PROGRESS', purpose: 'INITIAL', answers: [] },
+    ];
+    const s = await evaluateReassessmentEligibility(T, S, NOW);
+    expect(s.blockers).not.toContain('ASSESSMENT_IN_PROGRESS');
+    expect(s.activeAttemptId).toBeNull();
   });
 
   it('treats a legacy attempt with no purpose as the initial one', async () => {

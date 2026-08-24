@@ -48,7 +48,16 @@ const mins = (n: number) => (n >= 60 ? `${Math.floor(n / 60)}h${n % 60 ? ` ${n %
 /** Where an unavailable plan should send the member. Each reason has exactly one fix. */
 const NEXT_ACTION: Record<string, { label: string; to: string }> = {
   CAREER_CONTEXT_INCOMPLETE: { label: 'Complete career setup', to: '/careerpilot/setup' },
-  ROLE_NOT_SELECTED: { label: 'Choose my target role', to: '/careerpilot/setup' },
+  /**
+   * `?step=direction` lands on the role picker itself.
+   *
+   * Plain /careerpilot/setup showed a member who had already finished onboarding the
+   * "Your CareerPilot is ready!" summary — which offered an assessment and a dashboard,
+   * and no way to choose a role. So the button labelled "Choose my target role" led to a
+   * screen on which choosing a role was impossible, and back to the dashboard, and back
+   * here. A member on "Not sure yet" could circle that indefinitely.
+   */
+  ROLE_NOT_SELECTED: { label: 'Choose my target role', to: '/careerpilot/setup?step=direction' },
   ROLE_BLUEPRINT_NOT_READY: { label: 'See my skills', to: '/careerpilot/skills' },
   // A lapsed membership is the one refusal with a commercial answer. It points at the
   // journey page's existing unlock rather than a second checkout of its own.

@@ -72,7 +72,7 @@ const ResumePanel: React.FC<{ data: ResumeReadinessView }> = ({ data }) => {
         <div className="plr-card-title"><span className="plr-icon blue"><i className="bi bi-file-earmark-text" /></span><div><b>Resume readiness</b><small>Does your resume show what you can do?</small></div></div>
         <div className="plr-empty"><p>{data.message}</p>
           {data.reason === 'NO_RESUME' && <button className="plr-btn primary" onClick={() => nav('/careerpilot/resume')}>Build your resume</button>}
-          {data.reason === 'ROLE_NOT_SELECTED' && <button className="plr-btn primary" onClick={() => nav('/careerpilot/setup')}>Choose a target role</button>}
+          {data.reason === 'ROLE_NOT_SELECTED' && <button className="plr-btn primary" onClick={() => nav('/careerpilot/setup?step=direction')}>Choose a target role</button>}
         </div>
       </section>
     );

@@ -186,7 +186,7 @@ const ResumeCenter: React.FC = () => {
             <div className="rc-kicker">RESUME READINESS</div>
             <h1>Resume Center</h1>
             <p>Build a resume that reflects your real skills and gets you interview-ready.</p>
-            <div className="rc-target">Target Role: <b>{targetRole}</b> <button onClick={() => nav('/careerpilot/setup')}><i className="bi bi-pencil" /> Change</button></div>
+            <div className="rc-target">Target Role: <b>{targetRole}</b> <button onClick={() => nav('/careerpilot/setup?step=direction')}><i className="bi bi-pencil" /> Change</button></div>
             <div className="rc-hero-actions">
               <label className={`rc-action primary ${importing ? 'disabled' : ''}`}>
                 <i className="bi bi-upload" /> <span><b>{importing ? 'Reading…' : 'Import Resume'}</b><small>Upload PDF/DOCX</small></span>

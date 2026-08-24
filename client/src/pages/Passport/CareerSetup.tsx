@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { AssessmentAvailability, CareerContext, CareerContextOptions } from '../../api/passportApi';
 import './careerSetup.css';
 
@@ -66,6 +66,8 @@ const educationMissing = (missing: string[]) =>
 
 const CareerSetup: React.FC = () => {
   const nav = useNavigate();
+  /** `?step=direction` — which part of setup the member came back to change. */
+  const [params] = useSearchParams();
   const [ctx, setCtx] = useState<CareerContext | null>(null);
   const [opts, setOpts] = useState<CareerContextOptions | null>(null);
   const [stepIx, setStepIx] = useState(0);
@@ -89,7 +91,21 @@ const CareerSetup: React.FC = () => {
           minutesPerDay: r.context.availability.minutesPerDay,
           daysPerWeek: r.context.availability.daysPerWeek,
         });
-        if (r.context.status.onboardingCompleted) setDone(true);
+        /**
+         * ARRIVING TO CHANGE SOMETHING IS NOT THE SAME AS ARRIVING FRESH.
+         *
+         * Setup jumped straight to the "Your CareerPilot is ready!" summary whenever
+         * onboarding was complete — and that summary had no way to change anything, despite
+         * saying "You can change any of it later". So the roadmap's "Choose my target role"
+         * button landed here and showed a page with two buttons, neither of which chose a
+         * role: assessment, or dashboard. A member aiming at "Not sure yet" could go round
+         * that loop forever without ever reaching the picker.
+         *
+         * `?step=direction` says which part they came to edit, and lands them on it.
+         */
+        const want = params.get('step') as StepKey | null;
+        if (want) { setDone(false); setEditEducation(want === 'education'); }
+        else if (r.context.status.onboardingCompleted) setDone(true);
       })
       .catch(e => setErr(e?.response?.data?.message || 'Could not load your details.'));
   }, []);
@@ -209,6 +225,12 @@ const CareerSetup: React.FC = () => {
               {avail && !avail.assessmentAvailable && (
                 <div className="cps-known cps-notready"><i className="bi bi-info-circle" /><span><b>{avail.message || 'This career path is not ready for assessment yet.'}</b><em>{avail.reasonCode === 'ROLE_NOT_CONFIGURED' || avail.reasonCode === 'BLUEPRINT_UNPUBLISHED' || avail.reasonCode === 'BLUEPRINT_EMPTY' ? 'Choose another role, or pick “Not sure yet” — everything else in your plan still works.' : 'Your profile is saved and the rest of CareerPilot works. We will let you know when it is ready.'}</em></span></div>
               )}
+              {/* The page promises "You can change any of it later" — this is what makes
+                  that true. Without it the summary is a terminus, and every screen that
+                  sends a member here to change their role sends them into a loop. */}
+              <button className="cps-btn ghost" onClick={() => { setDone(false); setStepIx(steps.indexOf('direction')); }}>
+                <i className="bi bi-pencil" /> Change my choices
+              </button>
               <button className="cps-btn ghost" onClick={() => nav('/careerpilot')}>Go to my dashboard</button>
             </section>
           </div>

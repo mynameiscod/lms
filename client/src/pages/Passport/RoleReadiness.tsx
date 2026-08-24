@@ -64,7 +64,7 @@ const RoleReadiness: React.FC = () => {
           <h1>{roleMissing ? 'Choose your target role first' : 'Role readiness is not available yet'}</h1>
           <p>{un.message}</p>
           {roleMissing && (
-            <button className="rdy-btn primary" onClick={() => nav('/careerpilot/setup')}>
+            <button className="rdy-btn primary" onClick={() => nav('/careerpilot/setup?step=direction')}>
               Set my target role <i className="bi bi-arrow-right" />
             </button>
           )}
@@ -93,7 +93,7 @@ const RoleReadiness: React.FC = () => {
           <div className="rdy-role-card">
             <div className="rdy-role-icon"><i className="bi bi-bullseye" /></div>
             <div><span>Your Target Role</span><strong>{role.name}</strong></div>
-            <button onClick={() => nav('/careerpilot/setup')}>Change role <i className="bi bi-pencil" /></button>
+            <button onClick={() => nav('/careerpilot/setup?step=direction')}>Change role <i className="bi bi-pencil" /></button>
           </div>
         </div>
 

@@ -1,0 +1,43 @@
+/* CareerPilot migration layer — shared visual language for remaining member/admin surfaces. */
+:root{--cp-navy:#051d64;--cp-navy-2:#061e66;--cp-teal:#359aad;--cp-teal-soft:#eaf7f8;--cp-bg:#f6f9fc;--cp-card:#fff;--cp-border:#e0e7ef;--cp-text:#10213c;--cp-muted:#718097;--cp-radius:16px;--cp-shadow:0 8px 24px rgba(12,39,80,.055)}
+
+/* ADMIN — applies only to CareerPilot admin routes via Layout route scope. */
+.careerpilot-admin-surface .main-content{background:var(--cp-bg)!important;color:var(--cp-text);padding:28px 30px!important}
+.careerpilot-admin-surface .main-content>div{max-width:1440px!important;margin:0 auto!important;padding:0!important}
+.careerpilot-admin-surface .main-content h1{color:var(--cp-navy)!important;font-size:28px!important;line-height:1.15!important;letter-spacing:-.025em!important;font-weight:850!important;margin-bottom:7px!important}
+.careerpilot-admin-surface .main-content h2,.careerpilot-admin-surface .main-content h3,.careerpilot-admin-surface .main-content h4{color:var(--cp-navy)!important}
+.careerpilot-admin-surface .main-content p{color:var(--cp-muted)}
+.careerpilot-admin-surface .main-content>div>div[style*="background: rgb(255, 255, 255)"],
+.careerpilot-admin-surface .main-content>div>div[style*="background: '#fff'"],
+.careerpilot-admin-surface .main-content section,
+.careerpilot-admin-surface .main-content .card{border-color:var(--cp-border)!important;border-radius:var(--cp-radius)!important;box-shadow:var(--cp-shadow)!important}
+.careerpilot-admin-surface .main-content input:not([type=checkbox]):not([type=radio]),.careerpilot-admin-surface .main-content select,.careerpilot-admin-surface .main-content textarea{border:1px solid #d9e2ec!important;border-radius:10px!important;min-height:40px;background:#fff!important;color:var(--cp-text)!important;outline:none!important}
+.careerpilot-admin-surface .main-content input:focus,.careerpilot-admin-surface .main-content select:focus,.careerpilot-admin-surface .main-content textarea:focus{border-color:var(--cp-teal)!important;box-shadow:0 0 0 3px rgba(53,154,173,.12)!important}
+.careerpilot-admin-surface .main-content button{border-radius:10px!important;font-weight:750!important;transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+.careerpilot-admin-surface .main-content button:not(:disabled):hover{transform:translateY(-1px)}
+.careerpilot-admin-surface .main-content button[style*="#4f46e5"],.careerpilot-admin-surface .main-content button[style*="#6366f1"],.careerpilot-admin-surface .main-content button[style*="rgb(79, 70, 229)"],.careerpilot-admin-surface .main-content button[style*="rgb(99, 102, 241)"]{background:var(--cp-navy)!important;color:#fff!important}
+.careerpilot-admin-surface .main-content table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--cp-border);border-radius:14px;overflow:hidden}
+.careerpilot-admin-surface .main-content th{background:#f2f6fa!important;color:#52637a!important;text-transform:uppercase;font-size:11px!important;letter-spacing:.045em!important;font-weight:850!important}
+.careerpilot-admin-surface .main-content th,.careerpilot-admin-surface .main-content td{border-color:#edf1f5!important;padding:12px 14px!important}
+.careerpilot-admin-surface .main-content tr:hover td{background:#f9fcfd}
+.careerpilot-admin-surface .main-content a{color:#287f90}
+
+/* MEMBER CONTENT — the shared shell remains navy/teal; normalize all nested pages. */
+.gd-main,.gd-content{background:var(--cp-bg)!important;color:var(--cp-text)}
+.gd-main h1,.gd-content h1{color:var(--cp-navy)!important;letter-spacing:-.025em}
+.gd-main h2,.gd-main h3,.gd-main h4,.gd-content h2,.gd-content h3,.gd-content h4{color:var(--cp-navy)}
+.gd-main input:not([type=checkbox]):not([type=radio]),.gd-main select,.gd-main textarea,.gd-content input:not([type=checkbox]):not([type=radio]),.gd-content select,.gd-content textarea{border-color:#d9e2ec!important;border-radius:10px!important;background:#fff!important}
+.gd-main input:focus,.gd-main select:focus,.gd-main textarea:focus,.gd-content input:focus,.gd-content select:focus,.gd-content textarea:focus{border-color:var(--cp-teal)!important;box-shadow:0 0 0 3px rgba(53,154,173,.12)!important;outline:none}
+.gd-main button,.gd-content button{border-radius:10px}
+.gd-main table,.gd-content table{border-color:var(--cp-border)!important;background:#fff}
+.gd-main th,.gd-content th{background:#f2f6fa!important;color:#52637a!important}
+
+/* Remove legacy purple from common Passport controls without changing semantic status colors. */
+.gd-main [style*="#4f46e5"],.gd-main [style*="#6366f1"],.gd-main [style*="#7c3aed"],.gd-content [style*="#4f46e5"],.gd-content [style*="#6366f1"],.gd-content [style*="#7c3aed"]{background-color:var(--cp-navy)!important;border-color:var(--cp-navy)!important}
+.gd-main [style*="color: rgb(79, 70, 229)"],.gd-content [style*="color: rgb(79, 70, 229)"]{color:var(--cp-teal)!important}
+
+/* Shared empty/loading/error presentation. */
+.careerpilot-admin-surface .main-content [class*="empty"],.gd-main [class*="empty"],.gd-content [class*="empty"]{border:1px dashed #ced9e5!important;border-radius:16px!important;background:#fbfdff!important;color:var(--cp-muted)!important;padding:28px!important;text-align:center}
+
+@media(max-width:900px){.careerpilot-admin-surface .main-content{padding:20px 18px!important}.careerpilot-admin-surface .main-content h1{font-size:24px!important}.careerpilot-admin-surface .main-content table{display:block;overflow-x:auto;white-space:nowrap}}
+@media(max-width:600px){.careerpilot-admin-surface .main-content{padding:16px 12px!important}.careerpilot-admin-surface .main-content h1{font-size:22px!important}.careerpilot-admin-surface .main-content button{min-height:40px}.gd-main,.gd-content{min-width:0!important}}

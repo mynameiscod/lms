@@ -48,14 +48,22 @@
 #root .gd .gd-week .l.today{color:#237f91!important}
 #root .gd .gd-next .medal{background:linear-gradient(140deg,#051d64,#359aad)!important;box-shadow:0 12px 26px rgba(5,29,100,.22)!important}
 
-/* Shared module baseline: preserve each screen's layout/data, normalize typography,
-   card surfaces, primary actions, and progress accents across the whole member area. */
-#root .gd :is(.rq,.rc-page,.cp-iv-page,.gam,.opp-shell){color:#071632}
-#root .gd :is(.rq-title h1,.rc-hero h1,.cp-iv-title-row h1,.cp-iv-live-head h1,.cp-iv-feedback-head h1,.gam-hd h1,.opp-head h1){color:#051d64!important;letter-spacing:-.035em!important}
-#root .gd :is(.rq-stat,.rq-card,.rc-stat,.rc-panel,.cp-iv-panel,.cp-iv-card,.gam-card,.gam-metric,.opp-metric,.opp-card,.opp-side-card){border-color:#e0e7ef!important;box-shadow:0 8px 24px rgba(5,29,100,.045)!important}
-#root .gd :is(.rq-primary,.rc-btn.primary,.gam-tabs button.on,.opp-btn.primary){background:#051d64!important;border-color:#051d64!important;color:#fff!important}
-#root .gd :is(.rq-mini i,.rq-timeline .line i,.rc-break-bar i,.cp-iv-progress i,.gam-mile-bar span){background:linear-gradient(90deg,#051d64,#359aad)!important}
-#root .gd :is(.rq-days,.rq-phase-row .pc,.rc-editor-head>span,.gam-periods button.on,.opp-tabs button.on){color:#237f91!important}
+/* Shared module baseline: preserve each screen's real data/behavior and normalize the
+   visual system across Roadmap, Practice, Interview, Resume, Opportunities, Progress,
+   Rewards and Coins in one pass. */
+#root .gd :is(.rq,.rc-page,.cp-iv-page,.gam,.opp-shell,.rwd,.cpw){color:#071632}
+#root .gd :is(.rq-title h1,.rc-hero h1,.cp-iv-title-row h1,.cp-iv-live-head h1,.cp-iv-feedback-head h1,.gam-hd h1,.opp-head h1,.rwd-hd h1,.cpw-head h1){color:#051d64!important;letter-spacing:-.035em!important}
+#root .gd :is(.rq-stat,.rq-card,.rc-stat,.rc-panel,.cp-iv-panel,.cp-iv-card,.gam-card,.gam-metric,.opp-metric,.opp-card,.opp-side-card,.rwd-card,.rwd-panel,.cpw-stat,.cpw-card){border-color:#e0e7ef!important;box-shadow:0 8px 24px rgba(5,29,100,.045)!important}
+#root .gd :is(.rq-primary,.rc-btn.primary,.gam-tabs button.on,.opp-btn.primary,.cpw-rewards-btn){background:#051d64!important;border-color:#051d64!important;color:#fff!important}
+#root .gd :is(.rq-mini i,.rq-timeline .line i,.rc-break-bar i,.cp-iv-progress i,.gam-mile-bar span,.rwd-progress span){background:linear-gradient(90deg,#051d64,#359aad)!important}
+#root .gd :is(.rq-days,.rq-phase-row .pc,.rc-editor-head>span,.gam-periods button.on,.opp-tabs button.on,.rwd-kicker,.cpw-kicker){color:#237f91!important}
+
+/* Practice Lab was the last member module still carrying the old violet system. */
+#root .gd .pl-back{color:#051d64!important}
+#root .gd .pl-nextprev button.on{background:#051d64!important;color:#fff!important;border-color:#051d64!important}
+#root .gd .pl-btn.primary,#root .gd .pl-run{background:linear-gradient(90deg,#051d64,#359aad)!important;color:#fff!important;border-color:transparent!important}
+#root .gd .pl-chip.on,#root .gd .pr-chip.on{background:#051d64!important;color:#fff!important;border-color:#051d64!important}
+#root .gd .pl-problem,#root .gd .pl-editor,#root .gd .pr-item{border-color:#e0e7ef!important;box-shadow:0 8px 24px rgba(5,29,100,.04)!important}
 
 @media(max-width:980px){
 #root .gd .gd-side{width:280px!important}

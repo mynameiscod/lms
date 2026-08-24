@@ -1,43 +1,64 @@
-/* CareerPilot paid-member shell — system style override */
-.gd{background:#f6f9fc!important}
-.gd-side{width:264px!important;background:linear-gradient(180deg,#051d64 0%,#071a49 100%)!important;border-right:0!important;padding:18px 14px 16px!important;box-shadow:14px 0 36px rgba(5,29,100,.08)!important}
-.gd-logo{padding:2px 8px 20px!important;border-bottom:1px solid rgba(255,255,255,.08)!important;margin-bottom:12px!important}
-.gd-logo .mk{width:42px!important;height:42px!important;border-radius:13px!important;background:linear-gradient(135deg,#359aad,#63c8d3)!important;box-shadow:0 10px 24px rgba(53,154,173,.25)!important}
-.gd-logo .mk img{background:#fff!important;padding:2px!important}
-.gd-logo b{color:#fff!important;font-size:17px!important;letter-spacing:-.02em!important}
-.gd-logo small{color:#9fb1d2!important;font-size:9.8px!important}
-.gd-nav{gap:5px!important;padding:4px 2px 8px!important;scrollbar-color:#31558c transparent!important}
-.gd-nav::-webkit-scrollbar-thumb{background:#31558c!important}
-.gd-nav-btn{color:#c6d3ea!important;border-radius:11px!important;padding:11px 12px!important;font-size:13.2px!important;font-weight:650!important;transition:background .16s ease,color .16s ease,transform .16s ease!important}
-.gd-nav-btn .ic{color:#8fb1d1!important}
-.gd-nav-btn:hover{background:rgba(255,255,255,.08)!important;color:#fff!important;transform:translateX(1px)!important}
-.gd-nav-btn:hover .ic{color:#77d0d9!important}
-.gd-nav-btn.on{background:linear-gradient(90deg,#123b7b 0%,#227f97 58%,#359aad 100%)!important;color:#fff!important;box-shadow:0 10px 24px rgba(0,0,0,.2)!important;font-weight:800!important}
-.gd-nav-btn.on .ic{color:#fff!important}
-.gd-nav-label{color:#748caf!important;padding:15px 12px 6px!important;font-size:9.5px!important;letter-spacing:.12em!important}
-.gd-sub{border-left-color:rgba(255,255,255,.12)!important}
-.gd-sub button{color:#aebed8!important}
-.gd-sub button:hover{background:rgba(255,255,255,.07)!important;color:#fff!important}
-.gd-sub button.on{background:rgba(53,154,173,.16)!important;color:#7bd2dc!important}
-.gd-goal{border:1px solid rgba(255,255,255,.11)!important;background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(53,154,173,.09))!important;border-radius:16px!important;padding:15px!important}
-.gd-goal .hd,.gd-goal .big{color:#fff!important}
-.gd-goal .big small,.gd-goal .note{color:#9fb1d2!important}
-.gd-goal .bar{background:rgba(255,255,255,.12)!important}
-.gd-goal .bar i{background:linear-gradient(90deg,#359aad,#6fd0d8)!important}
-.gd-goal .cta{background:#359aad!important;color:#fff!important;box-shadow:0 8px 20px rgba(53,154,173,.24)!important}
-.gd-side-account{border-top:1px solid rgba(255,255,255,.08)!important;padding-top:10px!important}
-.gd-side-me .av,.gd-user-btn .av{background:linear-gradient(135deg,#359aad,#66c6d1)!important}
-.gd-side-me .t b,.gd-side-me .t span{color:#fff!important}
-.gd-main{margin-left:264px!important;padding:24px 30px 44px!important}
-.gd-hello h1{color:#051d64!important}
-.gd-hello p{color:#718096!important}
-.gd-pill.level .hex{background:linear-gradient(135deg,#051d64,#359aad)!important}
-.gd-pill.level .lbar i,.gd-tile-bar .tr i,.gd-part .b i,.gd-next .bar i{background:linear-gradient(90deg,#051d64,#359aad)!important}
-.gd-card-hd .lnk,.gd-rank{color:#237f91!important}
-.gd-rank{background:#eaf7f8!important}
-.gd-mission-cta{background:linear-gradient(90deg,#051d64,#359aad)!important;box-shadow:0 10px 24px rgba(5,29,100,.18)!important}
-.gd-reward .chip{background:#eaf7f8!important;color:#237f91!important}
-.gd-empty-state button{background:#eaf7f8!important;color:#237f91!important}
-.gd-week .l.today{color:#237f91!important}
-.gd-next .medal{background:linear-gradient(140deg,#051d64,#359aad)!important;box-shadow:0 12px 26px rgba(5,29,100,.22)!important}
-@media(max-width:980px){.gd-side{width:280px!important}.gd-main{margin-left:0!important;padding:72px 16px 36px!important}.gd-burger{background:#051d64!important;color:#fff!important;border:0!important;box-shadow:0 8px 22px rgba(5,29,100,.22)!important}}
+/* CareerPilot paid-member shell — one system style for every paid student screen.
+   High specificity is intentional: page-level CSS must never recolor the shared rail. */
+#root .gd{background:#f6f9fc!important}
+#root .gd .gd-side{width:264px!important;background:#061e66!important;border-right:0!important;padding:18px 14px 16px!important;box-shadow:12px 0 30px rgba(5,29,100,.10)!important;color:#fff!important}
+#root .gd .gd-logo{padding:2px 7px 18px!important;border-bottom:1px solid rgba(255,255,255,.10)!important;margin-bottom:11px!important}
+#root .gd .gd-logo .mk{width:100%!important;height:58px!important;border-radius:11px!important;background:#fff!important;box-shadow:none!important;display:flex!important;align-items:center!important;justify-content:center!important}
+#root .gd .gd-logo .mk .mono{display:none!important}
+#root .gd .gd-logo .mk img{position:static!important;width:auto!important;max-width:148px!important;height:44px!important;object-fit:contain!important;border-radius:0!important;background:#fff!important;padding:0!important}
+#root .gd .gd-logo>div{display:none!important}
+#root .gd .gd-nav{gap:4px!important;padding:4px 1px 8px!important;scrollbar-color:#31558c transparent!important}
+#root .gd .gd-nav::-webkit-scrollbar-thumb{background:#31558c!important}
+#root .gd .gd-nav-label{color:#8299bd!important;padding:15px 11px 6px!important;font-size:9.5px!important;letter-spacing:.12em!important}
+#root .gd .gd-nav-btn{color:#c7d4ea!important;background:transparent!important;border-radius:9px!important;padding:11px 12px!important;min-height:42px!important;font-size:13.2px!important;font-weight:650!important;box-shadow:none!important;transform:none!important}
+#root .gd .gd-nav-btn .ic{color:#9fb2d0!important}
+#root .gd .gd-nav-btn:hover{background:rgba(255,255,255,.08)!important;color:#fff!important;transform:none!important}
+#root .gd .gd-nav-btn:hover .ic{color:#fff!important}
+#root .gd .gd-nav-btn.on{background:#359aad!important;color:#fff!important;font-weight:800!important;box-shadow:0 7px 18px rgba(0,0,0,.16)!important}
+#root .gd .gd-nav-btn.on .ic{color:#fff!important}
+#root .gd .gd-sub{border-left-color:rgba(255,255,255,.14)!important}
+#root .gd .gd-sub button{color:#adbed8!important;background:transparent!important}
+#root .gd .gd-sub button:hover{background:rgba(255,255,255,.07)!important;color:#fff!important}
+#root .gd .gd-sub button.on{background:rgba(53,154,173,.22)!important;color:#fff!important}
+#root .gd .gd-nav-gap{height:10px!important}
+#root .gd .gd-goal{border:1px solid rgba(255,255,255,.12)!important;background:rgba(255,255,255,.07)!important;border-radius:13px!important;padding:14px!important;box-shadow:none!important}
+#root .gd .gd-goal .hd,#root .gd .gd-goal .big{color:#fff!important}
+#root .gd .gd-goal .big small,#root .gd .gd-goal .note{color:#9fb1d2!important}
+#root .gd .gd-goal .bar{background:rgba(255,255,255,.13)!important}
+#root .gd .gd-goal .bar i{background:#359aad!important}
+#root .gd .gd-goal .cta{background:#359aad!important;color:#fff!important;border-radius:9px!important;box-shadow:none!important}
+#root .gd .gd-side-account{border-top:1px solid rgba(255,255,255,.09)!important;padding-top:10px!important}
+#root .gd .gd-side-me .av,#root .gd .gd-user-btn .av{background:#359aad!important;color:#fff!important}
+#root .gd .gd-side-me .t b,#root .gd .gd-side-me .t span{color:#fff!important}
+#root .gd .gd-main{margin-left:264px!important;background:#f6f9fc!important;padding:24px 30px 44px!important}
+#root .gd .gd-main>.pm-body{max-width:none!important;padding:0!important;margin:0!important}
+#root .gd .gd-main .pm-shell{background:transparent!important;min-height:0!important;padding:0!important}
+#root .gd .gd-topbar{background:transparent!important;border:0!important;box-shadow:none!important;margin-bottom:18px!important}
+#root .gd .gd-hello h1{color:#051d64!important}
+#root .gd .gd-hello p{color:#718096!important}
+#root .gd .gd-user-btn{border:1px solid #e0e6ee!important;border-radius:999px!important;background:#fff!important;box-shadow:0 4px 14px rgba(5,29,100,.05)!important}
+#root .gd .gd-pill{border:1px solid #e0e6ee!important;background:#fff!important;border-radius:12px!important;box-shadow:none!important}
+#root .gd .gd-pill.level .hex{background:linear-gradient(135deg,#051d64,#359aad)!important}
+#root .gd .gd-pill.level .lbar i,#root .gd .gd-tile-bar .tr i,#root .gd .gd-part .b i,#root .gd .gd-next .bar i{background:linear-gradient(90deg,#051d64,#359aad)!important}
+#root .gd .gd-card-hd .lnk,#root .gd .gd-rank{color:#237f91!important}
+#root .gd .gd-rank{background:#eaf7f8!important}
+#root .gd .gd-mission-cta{background:linear-gradient(90deg,#051d64,#359aad)!important;box-shadow:0 10px 24px rgba(5,29,100,.18)!important}
+#root .gd .gd-reward .chip{background:#eaf7f8!important;color:#237f91!important}
+#root .gd .gd-empty-state button{background:#eaf7f8!important;color:#237f91!important}
+#root .gd .gd-week .l.today{color:#237f91!important}
+#root .gd .gd-next .medal{background:linear-gradient(140deg,#051d64,#359aad)!important;box-shadow:0 12px 26px rgba(5,29,100,.22)!important}
+
+/* Shared module baseline: preserve each screen's layout/data, normalize typography,
+   card surfaces, primary actions, and progress accents across the whole member area. */
+#root .gd :is(.rq,.rc-page,.cp-iv-page,.gam,.opp-shell){color:#071632}
+#root .gd :is(.rq-title h1,.rc-hero h1,.cp-iv-title-row h1,.cp-iv-live-head h1,.cp-iv-feedback-head h1,.gam-hd h1,.opp-head h1){color:#051d64!important;letter-spacing:-.035em!important}
+#root .gd :is(.rq-stat,.rq-card,.rc-stat,.rc-panel,.cp-iv-panel,.cp-iv-card,.gam-card,.gam-metric,.opp-metric,.opp-card,.opp-side-card){border-color:#e0e7ef!important;box-shadow:0 8px 24px rgba(5,29,100,.045)!important}
+#root .gd :is(.rq-primary,.rc-btn.primary,.gam-tabs button.on,.opp-btn.primary){background:#051d64!important;border-color:#051d64!important;color:#fff!important}
+#root .gd :is(.rq-mini i,.rq-timeline .line i,.rc-break-bar i,.cp-iv-progress i,.gam-mile-bar span){background:linear-gradient(90deg,#051d64,#359aad)!important}
+#root .gd :is(.rq-days,.rq-phase-row .pc,.rc-editor-head>span,.gam-periods button.on,.opp-tabs button.on){color:#237f91!important}
+
+@media(max-width:980px){
+#root .gd .gd-side{width:280px!important}
+#root .gd .gd-main{margin-left:0!important;padding:72px 16px 36px!important}
+#root .gd .gd-burger{background:#061e66!important;color:#fff!important;border:0!important;box-shadow:0 8px 22px rgba(5,29,100,.22)!important}
+}

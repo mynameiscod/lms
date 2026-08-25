@@ -4,25 +4,9 @@ import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
 import { unlockPlanCheckout } from '../../api/paymentApi';
 import { concernApi } from '../../api/concernApi';
 import RaiseConcern from '../../components/RaiseConcern';
+import './Journey.css';
 
-/**
- * "My Journey" — the sell-focused student plan view (Slice 3).
- * Renders the structured plan from GET /enrollment-plans/:id/journey:
- * outcome hero, progress, milestone timeline, week-by-week with locked teasers,
- * and (for preview enrollments) the unlock CTAs. Replaces the bare day list.
- */
-
-const PURPLE = '#6650d8', TEAL = '#14a89c', NAVY = '#0a2a5e', INK = '#1f2937', MUTED = '#6b7280';
-
-const statusStyle = (s: string): React.CSSProperties => {
-  switch (s) {
-    case 'completed': return { background: '#e7f8f4', color: '#0a8d7a', borderColor: '#bfeee5' };
-    case 'current':   return { background: '#efeaff', color: PURPLE, borderColor: '#d9d2fb', fontWeight: 800 };
-    case 'locked':    return { background: '#f1f5f9', color: '#94a3b8', borderColor: '#e2e8f0' };
-    default:          return { background: '#fff', color: INK, borderColor: '#e8ecf3' };
-  }
-};
-const milestoneEmoji = (k: string) => (k === 'mock' ? '🎤' : k === 'project' ? '🏆' : '⭐');
+const milestoneIcon = (kind: string) => kind === 'mock' ? 'bi-mic' : kind === 'project' ? 'bi-trophy' : 'bi-star';
 
 const MyJourney: React.FC = () => {
   const { enrollmentId } = useParams<{ enrollmentId: string }>();
@@ -33,11 +17,17 @@ const MyJourney: React.FC = () => {
   const [paying, setPaying] = useState(false);
   const [mentorSent, setMentorSent] = useState(false);
   const [payMsg, setPayMsg] = useState('');
+  const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
 
   const loadJourney = async () => {
-    try { setJ(await enrollmentPlanApi.getJourney(enrollmentId!)); }
-    catch (e: any) { setErr(e?.response?.data?.message || e.message || 'Failed to load your journey'); }
-    finally { setLoading(false); }
+    try {
+      const data = await enrollmentPlanApi.getJourney(enrollmentId!);
+      setJ(data);
+      const current = data?.plan?.weeks?.find((w: any) => w.days?.some((d: any) => d.status === 'current'));
+      setExpandedWeek(current?.week ?? data?.plan?.weeks?.[0]?.week ?? null);
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || e.message || 'Failed to load your journey');
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { loadJourney(); /* eslint-disable-next-line */ }, [enrollmentId]);
@@ -46,7 +36,7 @@ const MyJourney: React.FC = () => {
     setPayMsg(''); setPaying(true);
     try {
       const unlocked = await unlockPlanCheckout(enrollmentId);
-      if (unlocked) { await loadJourney(); setPayMsg(''); }
+      if (unlocked) await loadJourney();
     } catch (e: any) {
       setPayMsg(e?.response?.data?.message || e?.message || 'Payment could not be completed. Please try again.');
     } finally { setPaying(false); }
@@ -54,123 +44,108 @@ const MyJourney: React.FC = () => {
 
   const handleTalkToMentor = async () => {
     try {
-      await concernApi.raise({
-        category: 'mentor',
-        message: 'I would like to talk to a mentor about unlocking my full plan.',
-        context: { enrollmentId: enrollmentId!, curriculumTitle: j?.plan?.title },
-      });
-      setMentorSent(true);
-    } catch {
-      setMentorSent(true); // optimistic — don't block the lead
-    }
+      await concernApi.raise({ category: 'mentor', message: 'I would like to talk to a mentor about unlocking my full plan.', context: { enrollmentId: enrollmentId!, curriculumTitle: j?.plan?.title } });
+    } finally { setMentorSent(true); }
   };
 
-  if (loading) return <div style={{ padding: 40, color: MUTED }}>Loading your journey…</div>;
-  if (err) return <div style={{ padding: 40, color: '#b91c1c' }}>{err}</div>;
+  if (loading) return <div className="journey-state"><span className="spinner-border spinner-border-sm" /> Loading your journey…</div>;
+  if (err) return <div className="journey-state journey-error">{err}</div>;
   if (!j) return null;
 
   const { plan, progress, access } = j;
-  const role = plan.targetRole || 'your target role';
-  const openDay = (d: number, locked: boolean) => { if (!locked) navigate(`/my-learning/${enrollmentId}/day/${d}`); };
+  const role = plan.targetRole || 'Your target role';
+  const totalDays = Number(plan.totalDays || 0);
+  const completed = Number(progress.completedDays || 0);
+  const currentDay = Number(progress.currentDay || 1);
+  const percent = Math.max(0, Math.min(100, Number(progress.percent || 0)));
+  const openDay = (day: number, locked: boolean) => !locked && navigate(`/my-learning/${enrollmentId}/day/${day}`);
+  const currentWeek = plan.weeks?.find((w: any) => w.days?.some((d: any) => d.day === currentDay));
+  const currentDayData = currentWeek?.days?.find((d: any) => d.day === currentDay);
+  const endDate = j.estimatedEndDate ? new Date(j.estimatedEndDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  const nextMilestone = plan.milestones?.find((m: any) => Number(m.day) >= currentDay);
 
   return (
-    <div style={{ maxWidth: 1060, margin: '0 auto', padding: '18px 20px 60px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <button onClick={() => navigate('/my-learning')} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 13 }}>← All plans</button>
+    <div className="journey-page">
+      <div className="journey-heading">
+        <div>
+          <button className="journey-back" onClick={() => navigate('/my-learning')}><i className="bi bi-arrow-left" /> My Learning Plan</button>
+          <h1>My Journey</h1>
+          <p>Track your progress and achieve your learning goals.</p>
+        </div>
         <RaiseConcern context={{ enrollmentId: enrollmentId!, curriculumTitle: plan.title }} />
       </div>
 
-      {/* Hero */}
-      <div style={{ borderRadius: 18, padding: '26px 28px', color: '#fff', background: `linear-gradient(120deg, ${NAVY} 0%, ${PURPLE} 60%, ${TEAL} 120%)`, position: 'relative', overflow: 'hidden' }}>
-        <div style={{ fontSize: 12.5, opacity: .85, fontWeight: 600, letterSpacing: .3 }}>YOUR PERSONALIZED PATH</div>
-        <h1 style={{ fontSize: 26, fontWeight: 800, margin: '6px 0 4px' }}>{plan.title}</h1>
-        <div style={{ fontSize: 14.5, opacity: .92 }}>{plan.totalWeeks} weeks · {plan.totalDays} days to become job-ready for a <b>{role}</b> role</div>
-        <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <div style={{ height: 9, background: 'rgba(255,255,255,.25)', borderRadius: 6, overflow: 'hidden' }}>
-              <div style={{ width: `${progress.percent}%`, height: '100%', background: '#fff', borderRadius: 6 }} />
+      <div className="journey-grid">
+        <main>
+          <section className="journey-card journey-summary">
+            <div className="progress-ring" style={{ '--progress': `${percent * 3.6}deg` } as React.CSSProperties}>
+              <div><strong>{percent}%</strong><span>Overall Progress</span></div>
             </div>
-            <div style={{ fontSize: 12, opacity: .9, marginTop: 6 }}>{progress.percent}% complete · {progress.completedDays}/{plan.totalDays} days · you're on Day {progress.currentDay}</div>
-          </div>
-          <button onClick={() => openDay(progress.currentDay, false)} style={{ background: '#fff', color: PURPLE, border: 'none', borderRadius: 10, padding: '11px 20px', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
-            Continue → Day {progress.currentDay}
-          </button>
-        </div>
-      </div>
+            <div className="summary-stat"><i className="bi bi-calendar3" /><span>Current Day<strong>{currentDay}</strong><small>of {totalDays} days</small></span></div>
+            <div className="summary-stat"><i className="bi bi-journal-bookmark" /><span>Total Weeks<strong>{plan.totalWeeks}</strong><small>Weeks of learning</small></span></div>
+            <div className="summary-stat"><i className="bi bi-bullseye" /><span>Target Role<strong>{role}</strong><small>Your career goal</small></span></div>
+            <div className="summary-progress"><div><span style={{ width: `${percent}%` }} /></div><b>{completed} / {totalDays} Days</b></div>
+          </section>
 
-      {/* Preview / unlock banner */}
-      {access.previewOnly && (
-        <div style={{ marginTop: 16, borderRadius: 14, padding: '16px 18px', background: '#fff7ed', border: '1px solid #fed7aa' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 240 }}>
-              <div style={{ fontWeight: 800, color: '#9a3412', fontSize: 14.5 }}>✨ You're on the free preview</div>
-              <div style={{ fontSize: 12.8, color: '#9a3412', marginTop: 3 }}>Days 1–{access.previewDays} are unlocked. Unlock your full {plan.totalWeeks}-week plan — every lesson, mock interview, project, mentor support &amp; placement.</div>
+          <section className="journey-card road-card">
+            <div className="section-title"><div><span className="eyebrow">YOUR ROAD TO JOB-READY</span><h2>Keep moving forward</h2></div></div>
+            <div className="roadmap">
+              {[
+                { name: 'Foundation', from: 1, to: Math.max(1, Math.round(totalDays * .2)) },
+                { name: 'Build', from: Math.round(totalDays * .2) + 1, to: Math.round(totalDays * .4) },
+                { name: 'Practice', from: Math.round(totalDays * .4) + 1, to: Math.round(totalDays * .67) },
+                { name: 'Launch', from: Math.round(totalDays * .67) + 1, to: totalDays },
+              ].map((s, idx) => {
+                const done = currentDay > s.to; const active = currentDay >= s.from && currentDay <= s.to;
+                return <div className={`road-step ${done ? 'done' : ''} ${active ? 'active' : ''}`} key={s.name}>
+                  <div className="road-node">{done ? <i className="bi bi-check-lg" /> : active ? <span /> : <i className={idx === 3 ? 'bi bi-lock' : 'bi bi-circle'} />}</div>
+                  {active && <em>You are here</em>}<strong>{s.name}</strong><small>Day {s.from} - {s.to}</small>
+                </div>;
+              })}
             </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {access.paymentAvailable && (
-                <button onClick={handleUnlock} disabled={paying} style={{ background: `linear-gradient(90deg,${PURPLE},${TEAL})`, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontWeight: 800, fontSize: 13.5, cursor: paying ? 'wait' : 'pointer', opacity: paying ? .7 : 1 }}>
-                  {paying ? 'Opening…' : access.priceInr ? `Unlock full plan · ₹${Number(access.priceInr).toLocaleString('en-IN')}` : 'Unlock full plan'}
-                </button>
-              )}
-              <button onClick={handleTalkToMentor} disabled={mentorSent} style={{ background: '#fff', color: PURPLE, border: `1.5px solid ${PURPLE}`, borderRadius: 10, padding: '11px 18px', fontWeight: 700, fontSize: 13.5, cursor: mentorSent ? 'default' : 'pointer', opacity: mentorSent ? .7 : 1 }}>
-                {mentorSent ? '✓ A mentor will reach out' : 'Talk to a mentor'}
-              </button>
-            </div>
-          </div>
-          {payMsg && <div style={{ marginTop: 10, fontSize: 12.5, color: '#b91c1c', fontWeight: 600 }}>{payMsg}</div>}
-        </div>
-      )}
+          </section>
 
-      {/* Milestone timeline */}
-      {plan.milestones?.length > 0 && (
-        <div style={{ marginTop: 22 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 750, color: NAVY, marginBottom: 10 }}>🎯 Milestones</h3>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {plan.milestones.map((mi: any, i: number) => (
-              <div key={i} style={{ background: 'linear-gradient(135deg,#f6f4ff,#eafaf7)', border: '1px solid #e6e2fb', borderRadius: 11, padding: '9px 13px', fontSize: 12.5 }}>
-                <span style={{ fontSize: 16, marginRight: 6 }}>{milestoneEmoji(mi.kind)}</span>
-                <b style={{ color: NAVY }}>{mi.title}</b><span style={{ color: MUTED }}> · Day {mi.day}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+          {access.previewOnly && <section className="journey-card preview-banner">
+            <div><i className="bi bi-stars" /><span><strong>You're on the free preview</strong><small>Days 1–{access.previewDays} are unlocked. Unlock every lesson, mock interview, project, mentor support and placement journey.</small></span></div>
+            <div className="preview-actions">
+              {access.paymentAvailable && <button onClick={handleUnlock} disabled={paying}>{paying ? 'Opening…' : access.priceInr ? `Unlock Full Journey · ₹${Number(access.priceInr).toLocaleString('en-IN')}` : 'Unlock Full Journey'}</button>}
+              <button className="outline" onClick={handleTalkToMentor} disabled={mentorSent}>{mentorSent ? '✓ Mentor will reach out' : 'Talk to a mentor'}</button>
+            </div>{payMsg && <p className="payment-error">{payMsg}</p>}
+          </section>}
 
-      {/* Weeks */}
-      <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {plan.weeks.map((wk: any) => (
-          <div key={wk.week} style={{ background: '#fff', border: '1px solid #e8ecf3', borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(15,23,42,.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12 }}>
-              <span style={{ fontSize: 11, fontWeight: 800, color: PURPLE, letterSpacing: .5 }}>WEEK {wk.week}</span>
-              <span style={{ fontSize: 15, fontWeight: 700, color: INK }}>{wk.title}</span>
-              {wk.milestones?.length > 0 && <span style={{ marginLeft: 'auto', fontSize: 12 }}>{wk.milestones.map((mm: any) => milestoneEmoji(mm.kind)).join(' ')}</span>}
+          <section className="journey-card curriculum-card">
+            <div className="section-title"><div><span className="eyebrow">JOURNEY CURRICULUM</span><h2>Your week-by-week path</h2></div><div className="legend"><span className="complete-dot" /> Completed <span className="current-dot" /> Current <span className="locked-dot" /> Locked</div></div>
+            <div className="week-list">
+              {plan.weeks.map((wk: any) => {
+                const weekCompleted = wk.days.filter((d: any) => d.status === 'completed').length;
+                const weekPercent = wk.days.length ? Math.round((weekCompleted / wk.days.length) * 100) : 0;
+                const isOpen = expandedWeek === wk.week;
+                return <div className={`week-row ${isOpen ? 'open' : ''}`} key={wk.week}>
+                  <button className="week-header" onClick={() => setExpandedWeek(isOpen ? null : wk.week)}>
+                    <span className="week-icon"><i className={`bi ${weekPercent === 100 ? 'bi-check2-circle' : isOpen ? 'bi-code-slash' : 'bi-layers'}`} /></span>
+                    <span className="week-copy"><small>Week {wk.week}</small><strong>{wk.title}</strong><em>{wk.days?.[0]?.day && wk.days?.[wk.days.length - 1]?.day ? `Days ${wk.days[0].day} - ${wk.days[wk.days.length - 1].day}` : ''}</em></span>
+                    <span className="week-percent"><strong>{weekPercent}%</strong><small>{weekPercent === 100 ? 'Completed' : isOpen ? 'In Progress' : 'Upcoming'}</small></span>
+                    <span className="week-bar"><i><b style={{ width: `${weekPercent}%` }} /></i><small>{weekCompleted} / {wk.days.length} Days</small></span>
+                    <i className={`bi bi-chevron-${isOpen ? 'up' : 'down'}`} />
+                  </button>
+                  {isOpen && <div className="day-strip">{wk.days.map((d: any) => <button key={d.day} onClick={() => openDay(d.day, d.locked)} disabled={d.locked} className={`day-chip ${d.status}`}><small>Day {d.day}</small>{d.locked ? <i className="bi bi-lock" /> : d.status === 'completed' ? <i className="bi bi-check-circle-fill" /> : d.status === 'current' ? <i className="bi bi-play-circle-fill" /> : <i className="bi bi-circle" />}</button>)}</div>}
+                </div>;
+              })}
             </div>
-            <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
-              {wk.days.map((d: any) => (
-                <button
-                  key={d.day}
-                  onClick={() => openDay(d.day, d.locked)}
-                  title={d.title}
-                  style={{
-                    width: 132, textAlign: 'left', border: '1px solid', borderRadius: 11, padding: '10px 11px',
-                    cursor: d.locked ? 'default' : 'pointer', ...statusStyle(d.status),
-                  }}
-                >
-                  <div style={{ fontSize: 10.5, fontWeight: 800, opacity: .8, display: 'flex', justifyContent: 'space-between' }}>
-                    <span>DAY {d.day}</span>
-                    <span>{d.locked ? '🔒' : d.status === 'completed' ? '✓' : d.milestone ? milestoneEmoji(d.milestone.kind) : ''}</span>
-                  </div>
-                  <div style={{ fontSize: 11.5, marginTop: 4, lineHeight: 1.3, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.title}</div>
-                  {d.milestone && <div style={{ fontSize: 10, marginTop: 3, opacity: .85 }}>{d.milestone.title}</div>}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+          </section>
+        </main>
 
-      <div style={{ marginTop: 18, fontSize: 12, color: MUTED, textAlign: 'center' }}>
-        {plan.totalDays} days · estimated completion {new Date(j.estimatedEndDate).toLocaleDateString()} at {plan.pace?.hoursPerDay || 1.5} hrs/day
+        <aside className="journey-aside">
+          <section className="journey-card continue-card"><span className="aside-icon"><i className="bi bi-book" /></span><div><span className="eyebrow">CONTINUE LEARNING</span><h3>Day {currentDay}: {currentDayData?.title || currentWeek?.title || 'Keep learning'}</h3><p>Pick up where you left off and keep your momentum going.</p><button onClick={() => openDay(currentDay, false)}>Continue Day {currentDay} <i className="bi bi-play-fill" /></button></div></section>
+
+          <section className="journey-card snapshot"><span className="eyebrow">JOURNEY SNAPSHOT</span>
+            <dl><div><dt><i className="bi bi-calendar-check" /> Expected Completion</dt><dd>{endDate}</dd></div><div><dt><i className="bi bi-clock" /> Daily Goal</dt><dd>{plan.pace?.hoursPerDay || 1.5} hrs / day</dd></div><div><dt><i className="bi bi-check2-circle" /> Completed Days</dt><dd>{completed} days</dd></div><div><dt><i className="bi bi-flag" /> Next Milestone</dt><dd>{nextMilestone?.title || 'Job Ready'}</dd></div></dl>
+          </section>
+
+          {plan.milestones?.length > 0 && <section className="journey-card milestone-card"><span className="eyebrow">MILESTONES</span><div className="milestone-list">{plan.milestones.map((mi: any, i: number) => <div className={Number(mi.day) < currentDay ? 'done' : Number(mi.day) === currentDay ? 'active' : ''} key={i}><span><i className={`bi ${milestoneIcon(mi.kind)}`} /></span><p><strong>{mi.title}</strong><small>Day {mi.day}</small></p></div>)}</div></section>}
+
+          <section className="journey-cheer"><i className="bi bi-trophy-fill" /><div><strong>You're doing great!</strong><span>Consistency is the key to success.</span></div></section>
+        </aside>
       </div>
     </div>
   );

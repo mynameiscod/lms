@@ -673,7 +673,7 @@ export const passportApi = {
    * kind of sitting that can later become skill evidence. The member never names the skills
    * — coverage is resolved server-side.
    */
-  startInterview: async (companySlug?: string, mode?: 'role'): Promise<{ session: InterviewSession; resumed?: boolean; aiAvailable?: boolean }> => {
+  startInterview: async (companySlug?: string, mode?: 'role' | 'intro'): Promise<{ session: InterviewSession; resumed?: boolean; aiAvailable?: boolean }> => {
     const body: any = {};
     if (companySlug) body.companySlug = companySlug;
     if (mode) body.mode = mode;
@@ -1076,7 +1076,7 @@ export interface DashboardData {
     xpThisWeek: number; xpLastWeek: number; xpDelta: number;
   };
   recentActivity?: { label: string; icon: string; color: string; xp: number; ago: string }[];
-  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; verify?: 'interview'; done: boolean; answer?: string; feedback?: string }[];
+  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; verify?: 'interview' | 'resume'; done: boolean; answer?: string; feedback?: string }[];
   allDone?: boolean;
   dailyGoal?: { earned: number; target: number; pct: number; met: boolean };
   streakWeek?: { date: string; letter: string; active: boolean; isToday: boolean }[];
@@ -1197,7 +1197,7 @@ export interface TodayMissions {
   isPast?: boolean;
   locked?: boolean; needsAssessment?: boolean; priceInr?: number; reason?: string;
   day?: number; streak?: number; longestStreak?: number; xp?: number; allDone?: boolean;
-  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; verify?: 'interview'; done: boolean; answer?: string; feedback?: string }[];
+  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; verify?: 'interview' | 'resume'; done: boolean; answer?: string; feedback?: string }[];
 }
 
 export interface PassportCard {

@@ -11,6 +11,7 @@ import { missionsForDay, dayNumber, ensureContent, poolMapOf, ymd } from '../ser
 import { curriculumFor } from '../services/curriculumService';
 import { completeMissionOnce } from '../services/passportXpService';
 import PassportInterview from '../models/PassportInterview';
+import PassportResume from '../models/PassportResume';
 import { awardCoins } from '../services/coinService';
 import { reviewAnswer } from '../services/passportAnswerAIService';
 
@@ -134,6 +135,50 @@ export const completeMission = async (req: Request, res: Response) => {
       if (!done) {
         return res.status(400).json({
           message: 'Finish a mock interview to complete this one — it will tick itself when you do.',
+        });
+      }
+    }
+
+    /**
+     * A resume mission is checked against the saved resume rather than asserted.
+     *
+     * Unlike the interview there is no single "finished" event to hang this on — the
+     * Resume Center saves continuously — so this is read at the moment the member ticks.
+     * The bar is exactly the three sections the mission text names, and exactly what the
+     * Resume Center's own done-markers use, so a member who sees three green ticks there
+     * can never be told here that they have not finished.
+     */
+    if (valid.verify === 'resume') {
+      // WHICH part of the resume, from the link's own ?focus= — the same seam the
+      // interview uses for ?mode=. Three resume missions ask for three different things,
+      // so one blanket "is the resume filled in" bar would tell a member who had just
+      // added a project that they had not done it.
+      const focus = new URLSearchParams((valid.link || '').split('?')[1] || '').get('focus') || 'basics';
+      const s = (await PassportResume.findOne({ tenantId, studentId }).lean() as any)?.sections;
+      const missing: string[] = [];
+
+      if (focus === 'projects') {
+        const projects = Array.isArray(s?.projects) ? s.projects.filter((p: any) => p?.name?.trim()) : [];
+        if (!projects.length) missing.push('one project with a name');
+      } else if (focus === 'title') {
+        if (!s?.contact?.title?.trim()) missing.push('a target title in your contact details');
+      } else {
+        // The three sections "Resume kickoff" names — and exactly the criteria the Resume
+        // Center's own done-markers use, so a member looking at three green ticks there
+        // can never be told here that they have not finished.
+        if (!s?.contact?.name?.trim() || !s?.contact?.email?.trim() || !s?.contact?.phone?.trim()) {
+          missing.push('your name, email and phone');
+        }
+        if (!(Array.isArray(s?.education) && s.education.length)) missing.push('one education entry');
+        const skills = Array.isArray(s?.skills)
+          ? s.skills.reduce((n: number, g: any) => n + (Array.isArray(g?.items) ? g.items.filter((i: any) => String(i || '').trim()).length : 0), 0)
+          : 0;
+        if (skills < 3) missing.push(`${3 - skills} more skill${3 - skills === 1 ? '' : 's'}`);
+      }
+
+      if (missing.length) {
+        return res.status(400).json({
+          message: `Add ${missing.join(', ')} in the Resume Center, then tick this again.`,
         });
       }
     }

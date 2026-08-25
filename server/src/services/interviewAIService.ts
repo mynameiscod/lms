@@ -433,6 +433,15 @@ export interface NextTurnInput {
    */
   company?: { name: string; type: string; emphasis: string[]; roundLabel?: string };
   /**
+   * Pins the sitting to ONE thing — currently the self-introduction round a daily mission
+   * asks for. Without it the opening question is the model's choice, so a mission that
+   * says "record a 2-minute self-intro" could open on anything at all.
+   *
+   * A line in the existing prompt rather than a second prompt, for the same reason the
+   * company brief is: one interviewer to keep good, not two.
+   */
+  focus?: string;
+  /**
    * How many past turns to send. Every turn re-sends this window, so it is the single
    * biggest driver of interview cost. Six is ample for "probe the last answer or move
    * on"; twelve was re-sending most of the interview to decide one follow-up.
@@ -458,7 +467,7 @@ export async function nextInterviewerTurn(input: NextTurnInput): Promise<NextTur
 
   if (!isInterviewAIEnabled()) {
     // Scripted fallback so the interview still flows without AI.
-    if (history.length === 0) return { say: `Hi, I'm ${interviewerName}. Tell me a bit about yourself.`, kind: 'intro', endInterview: false };
+    if (history.length === 0) return { say: `Hi, I'm ${interviewerName}. ${input.focus ? `Let's keep this one short — ${input.focus.charAt(0).toLowerCase()}${input.focus.slice(1)}.` : 'Tell me a bit about yourself.'}`, kind: 'intro', endInterview: false };
     if (nearEnd) return { say: `That's all I had — thanks for your time.`, kind: 'closing', endInterview: true };
     const topic = areas[Math.min(askedCount, areas.length - 1)] || 'your experience';
     return { say: `Thanks. How would you approach ${topic}?`, kind: 'question', endInterview: false };
@@ -491,14 +500,18 @@ export async function nextInterviewerTurn(input: NextTurnInput): Promise<NextTur
     `- If they say they don't know, accept it in a few words and move on.`,
     `- Never restate the question you just asked, and never number your questions.`,
     ``,
-    `Cover these areas across the interview: ${areas.join(', ') || 'background, technical skills, problem solving'}.`,
+    input.focus
+      ? `THIS IS A SHORT, SINGLE-PURPOSE ROUND: ${input.focus}. Open on exactly that and stay on it. Do not branch into technical or project questions — this sitting is only about that one thing.`
+      : `Cover these areas across the interview: ${areas.join(', ') || 'background, technical skills, problem solving'}.`,
     `Ask exactly one question per turn, under 25 words. Output ONLY raw JSON.`,
   ].filter(Boolean).join('\n');
   const user = [
     `Interviewer questions asked so far: ${askedCount} (aim for about ${maxQuestions}).`,
     timeLeftSeconds !== undefined ? `Time left: ~${Math.round(timeLeftSeconds / 60)} min.` : '',
     nearEnd ? 'You are near the end — wrap up warmly after this.' : '',
-    history.length === 0 ? 'The interview is just starting — greet the candidate by introducing yourself and ask an opening question.' : '',
+    history.length === 0
+      ? `The interview is just starting — greet the candidate by introducing yourself and ${input.focus ? `ask them for: ${input.focus}` : 'ask an opening question'}.`
+      : '',
     '',
     `Conversation so far:\n${transcript || '(none yet)'}`,
     '',

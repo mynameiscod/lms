@@ -228,18 +228,18 @@ export const DEFAULT_MISSION_POOLS: IMissionPool[] = [
   {
     category: 'communication',
     items: [
-      { title: 'Record a self-introduction', detail: 'Run a 2-minute self-intro round in the Mock Interview room.', type: 'communication', xp: 30, link: '/careerpilot/interview' },
-      { title: 'Explain a concept', detail: 'Explain "what is a database" in 5 simple sentences.', type: 'communication', xp: 25, link: '/careerpilot/interview' },
+      { title: 'Record a self-introduction', detail: 'Opens a short 2-question intro round. Say who you are, what you are studying, and the role you want — out loud, in full sentences. You get scored feedback at the end.', type: 'communication', xp: 30, link: '/careerpilot/interview?mode=intro' },
+      { title: 'Explain a concept', detail: 'Opens a short round. Explain "what is a database" in about 5 plain sentences, as if to someone non-technical.', type: 'communication', xp: 25, link: '/careerpilot/interview?mode=intro' },
       { title: 'Email practice', detail: 'Write a short professional email requesting an interview slot.', type: 'communication', xp: 20 },
     ],
   },
   {
     category: 'employability',
     items: [
-      { title: 'Resume kickoff', detail: 'Fill your name, education & 3 skills in the Resume Center.', type: 'resume', xp: 25, link: '/careerpilot/resume' },
-      { title: 'Add a project', detail: 'Write 2 lines about one project you built.', type: 'resume', xp: 25, link: '/careerpilot/resume' },
-      { title: 'LinkedIn headline', detail: 'Write a 1-line LinkedIn headline for your target role.', type: 'resume', xp: 15, link: '/careerpilot/resume' },
-      { title: 'Mock interview round', detail: 'Complete one AI mock interview and read your feedback.', type: 'mock', xp: 30, link: '/careerpilot/interview' },
+      { title: 'Resume kickoff', detail: 'In the Resume Center fill three things: contact details (name, email, phone), one education entry, and 3 skills. That is the minimum for your ATS score to run.', type: 'resume', xp: 25, link: '/careerpilot/resume' },
+      { title: 'Add a project', detail: 'In the Resume Center, add one project: its name, the tech you used, and 2 lines on what it does and what you built yourself.', type: 'resume', xp: 25, link: '/careerpilot/resume?focus=projects' },
+      { title: 'LinkedIn headline', detail: 'Write a 1-line headline for your target role and save it as your title in the Resume Center, then copy it onto LinkedIn.', type: 'resume', xp: 15, link: '/careerpilot/resume?focus=title' },
+      { title: 'Mock interview round', detail: 'Opens a full 6-question round for your target role. Answer as if it were real, then read the scored feedback at the end.', type: 'mock', xp: 30, link: '/careerpilot/interview?mode=role' },
     ],
   },
   {

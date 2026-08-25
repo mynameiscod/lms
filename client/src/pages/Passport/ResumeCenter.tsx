@@ -1,8 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { ResumeSections, ResumeScore } from '../../api/passportApi';
 import PassportShell, { LockedPanel } from './PassportShell';
 import './resumeCenter.css';
+
+/** ?focus= on a mission link → the section it should land on. 'title' is the target title
+ *  field, which lives inside Contact Information. */
+const FOCUS_SECTION: Record<string, string> = {
+  basics: 'rc-contact', title: 'rc-contact', education: 'rc-education',
+  skills: 'rc-skills', projects: 'rc-projects',
+};
 
 const SECTION_MAX: Record<string, number> = {
   contact: 10, summary: 15, experience: 20, education: 15, skills: 20, projects: 10, ats: 10,
@@ -64,6 +71,7 @@ const ResumeCenter: React.FC = () => {
   const [sections, setSections] = useState<ResumeSections>(BLANK);
   const [importing, setImporting] = useState(false);
   const nav = useNavigate();
+  const [params] = useSearchParams();
   const [score, setScore] = useState<ResumeScore | null>(null);
   const [locked, setLocked] = useState<{ priceInr?: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,6 +95,24 @@ const ResumeCenter: React.FC = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  /**
+   * A mission that says "add one project" lands on the project section, not the top of a
+   * seven-section page. The mission's link carries the same ?focus= the server reads when
+   * it verifies the tick, so what the member is sent to and what is checked cannot drift.
+   */
+  const focus = params.get('focus');
+  useEffect(() => {
+    if (loading || locked || !focus) return;
+    const id = FOCUS_SECTION[focus];
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('rc-focused');
+    const t = setTimeout(() => el.classList.remove('rc-focused'), 2600);
+    return () => clearTimeout(t);
+  }, [loading, locked, focus]);
 
   const unlock = async () => {
     setPaying(true);
@@ -228,20 +254,20 @@ const ResumeCenter: React.FC = () => {
           <main className="rc-editor">
             <div className="rc-editor-head"><div><h2>Resume Builder</h2><p>Complete each section to build a strong, evidence-backed resume.</p></div><span>{completedCount}/7 complete</span></div>
 
-            <section className="rs-section rc-section-card">
+            <section className="rs-section rc-section-card" id="rc-contact">
               <SectionTitle icon="bi-person" title="Contact Information" subtitle="Name, email, phone, location, links" done={completed.contact} />
               <div className="rc-fields"><div className="rs-row"><Field label="Full name" value={sections.contact.name} onChange={v => patch(s => { s.contact.name = v; })} /><Field label="Target title" value={sections.contact.title || ''} onChange={v => patch(s => { s.contact.title = v; })} placeholder="e.g. Backend Engineer" /></div><div className="rs-row"><Field label="Email" value={sections.contact.email} onChange={v => patch(s => { s.contact.email = v; })} /><Field label="Phone" value={sections.contact.phone} onChange={v => patch(s => { s.contact.phone = v; })} /></div><div className="rs-row"><Field label="LinkedIn" value={sections.contact.linkedin || ''} onChange={v => patch(s => { s.contact.linkedin = v; })} /><Field label="GitHub" value={sections.contact.github || ''} onChange={v => patch(s => { s.contact.github = v; })} /></div><Field label="Location" value={sections.contact.location || ''} onChange={v => patch(s => { s.contact.location = v; })} /></div>
             </section>
 
             <section className="rs-section rc-section-card"><SectionTitle icon="bi-file-text" title="Professional Summary" subtitle="Highlight your experience and key strengths" done={completed.summary} /><div className="rc-fields"><Field label="2–3 lines" area value={sections.summary} onChange={v => patch(s => { s.summary = v; })} placeholder="Final-year CSE student with hands-on Java and SQL experience through 3 projects…" /></div></section>
 
-            <section className="rs-section rc-section-card"><SectionTitle icon="bi-mortarboard" title="Education" subtitle="Your educational background" done={completed.education} /><div className="rc-fields">{sections.education.map((e, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.education.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Degree" value={e.degree} onChange={v => patch(s => { s.education[i].degree = v; })} placeholder="B.Tech CSE" /><Field label="College" value={e.college} onChange={v => patch(s => { s.education[i].college = v; })} /></div><div className="rs-row"><Field label="Year" value={e.year || ''} onChange={v => patch(s => { s.education[i].year = v; })} placeholder="2026" /><Field label="CGPA" value={e.cgpa || ''} onChange={v => patch(s => { s.education[i].cgpa = v; })} /></div></div>)}<button className="rs-add" onClick={() => patch(s => { s.education.push({ degree: '', college: '', year: '', cgpa: '' }); })}>+ Add education</button></div></section>
+            <section className="rs-section rc-section-card" id="rc-education"><SectionTitle icon="bi-mortarboard" title="Education" subtitle="Your educational background" done={completed.education} /><div className="rc-fields">{sections.education.map((e, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.education.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Degree" value={e.degree} onChange={v => patch(s => { s.education[i].degree = v; })} placeholder="B.Tech CSE" /><Field label="College" value={e.college} onChange={v => patch(s => { s.education[i].college = v; })} /></div><div className="rs-row"><Field label="Year" value={e.year || ''} onChange={v => patch(s => { s.education[i].year = v; })} placeholder="2026" /><Field label="CGPA" value={e.cgpa || ''} onChange={v => patch(s => { s.education[i].cgpa = v; })} /></div></div>)}<button className="rs-add" onClick={() => patch(s => { s.education.push({ degree: '', college: '', year: '', cgpa: '' }); })}>+ Add education</button></div></section>
 
-            <section className="rs-section rc-section-card"><SectionTitle icon="bi-code-slash" title="Skills" subtitle="Technical and soft skills" done={completed.skills} /><div className="rc-fields">{sections.skills.map((g, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.skills.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Group" value={g.category} onChange={v => patch(s => { s.skills[i].category = v; })} placeholder="Languages" /><ListField label="Items (comma separated)" items={g.items} onChange={v => patch(s => { s.skills[i].items = v; })} placeholder="Java, SQL, Git" /></div></div>)}<button className="rs-add" onClick={() => patch(s => { s.skills.push({ category: '', items: [] }); })}>+ Add skill group</button></div></section>
+            <section className="rs-section rc-section-card" id="rc-skills"><SectionTitle icon="bi-code-slash" title="Skills" subtitle="Technical and soft skills" done={completed.skills} /><div className="rc-fields">{sections.skills.map((g, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.skills.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Group" value={g.category} onChange={v => patch(s => { s.skills[i].category = v; })} placeholder="Languages" /><ListField label="Items (comma separated)" items={g.items} onChange={v => patch(s => { s.skills[i].items = v; })} placeholder="Java, SQL, Git" /></div></div>)}<button className="rs-add" onClick={() => patch(s => { s.skills.push({ category: '', items: [] }); })}>+ Add skill group</button></div></section>
 
             <section className="rs-section rc-section-card"><SectionTitle icon="bi-briefcase" title="Experience / Internships" subtitle="Your work experience and responsibilities" done={completed.experience} /><div className="rc-fields">{sections.experience.map((x, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.experience.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Company" value={x.company} onChange={v => patch(s => { s.experience[i].company = v; })} /><Field label="Role" value={x.role} onChange={v => patch(s => { s.experience[i].role = v; })} /></div><div className="rs-row"><Field label="From" value={x.from} onChange={v => patch(s => { s.experience[i].from = v; })} placeholder="Jun 2025" /><Field label="To" value={x.to} onChange={v => patch(s => { s.experience[i].to = v; })} placeholder="Aug 2025" /></div><ListField label="Bullets (one per line)" area sep={'\n'} items={x.bullets} placeholder={'Built the payment screen in React\nCut page load from 4s to 1.2s'} onChange={v => patch(s => { s.experience[i].bullets = v; })} /></div>)}<button className="rs-add" onClick={() => patch(s => { s.experience.push({ company: '', role: '', from: '', to: '', current: false, bullets: [] }); })}>+ Add experience</button></div></section>
 
-            <section className="rs-section rc-section-card"><SectionTitle icon="bi-folder2-open" title="Projects" subtitle="Key projects and achievements" done={completed.projects} /><div className="rc-fields">{sections.projects.map((p, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.projects.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Name" value={p.name} onChange={v => patch(s => { s.projects[i].name = v; })} /><ListField label="Tech (comma separated)" items={p.tech} onChange={v => patch(s => { s.projects[i].tech = v; })} /></div><Field label="What it does & what you built" area value={p.description} onChange={v => patch(s => { s.projects[i].description = v; })} /><Field label="Link" value={p.link || ''} onChange={v => patch(s => { s.projects[i].link = v; })} placeholder="https://github.com/…" /></div>)}<button className="rs-add" onClick={() => patch(s => { s.projects.push({ name: '', tech: [], description: '', link: '' }); })}>+ Add project</button></div></section>
+            <section className="rs-section rc-section-card" id="rc-projects"><SectionTitle icon="bi-folder2-open" title="Projects" subtitle="Key projects and achievements" done={completed.projects} /><div className="rc-fields">{sections.projects.map((p, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.projects.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Name" value={p.name} onChange={v => patch(s => { s.projects[i].name = v; })} /><ListField label="Tech (comma separated)" items={p.tech} onChange={v => patch(s => { s.projects[i].tech = v; })} /></div><Field label="What it does & what you built" area value={p.description} onChange={v => patch(s => { s.projects[i].description = v; })} /><Field label="Link" value={p.link || ''} onChange={v => patch(s => { s.projects[i].link = v; })} placeholder="https://github.com/…" /></div>)}<button className="rs-add" onClick={() => patch(s => { s.projects.push({ name: '', tech: [], description: '', link: '' }); })}>+ Add project</button></div></section>
 
             <section className="rs-section rc-section-card"><SectionTitle icon="bi-award" title="Certifications" subtitle="Certifications and achievements" done={completed.certifications} /><div className="rc-fields">{sections.certifications.map((c, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.certifications.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Name" value={c.name} onChange={v => patch(s => { s.certifications[i].name = v; })} /><Field label="Issuer" value={c.issuer} onChange={v => patch(s => { s.certifications[i].issuer = v; })} /></div><Field label="Year" value={c.year || ''} onChange={v => patch(s => { s.certifications[i].year = v; })} /></div>)}<button className="rs-add" onClick={() => patch(s => { s.certifications.push({ name: '', issuer: '', year: '' }); })}>+ Add certification</button></div></section>
           </main>

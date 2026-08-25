@@ -29,8 +29,12 @@ export interface Mission {
    * dashboard without ever starting one — the tick was the only evidence, so the XP and
    * the streak were both free. Where the product can check, it should: the member does
    * the thing, and the mission closes itself.
+   *
+   * 'interview' closes itself when a mock interview finishes. 'resume' is checked at the
+   * moment the member ticks it — the Resume Center has no single "finished" event, but the
+   * sections it asks for are on the saved resume and can simply be read.
    */
-  verify?: 'interview';
+  verify?: 'interview' | 'resume';
 }
 export interface AttemptLite {
   careerScore: number;
@@ -199,6 +203,23 @@ function actionableLink(link?: string): string | undefined {
 }
 
 /**
+ * Which destinations the product can actually CHECK, derived from where a mission points.
+ *
+ * Stored nowhere, so a mission becomes verifiable the moment an admin points it at one of
+ * these — and stops being verifiable if they point it elsewhere.
+ *
+ * The query string is stripped deliberately. `/careerpilot/interview?mode=intro` is still
+ * the interview, and a mission that deep-links into a specific round must not lose its
+ * verification for having said which round it wants.
+ */
+function verifyFor(link?: string): 'interview' | 'resume' | undefined {
+  const path = (link || '').split(/[?#]/)[0].replace(/\/+$/, '');
+  if (path === '/careerpilot/interview' || path === '/passport/interview') return 'interview';
+  if (path === '/careerpilot/resume' || path === '/passport/resume') return 'resume';
+  return undefined;
+}
+
+/**
  * Share `total` appearances across `weights`, with no category exceeding `cap`.
  *
  * Largest-remainder, so the parts sum to exactly `total` — proportional rounding on
@@ -322,8 +343,7 @@ export function missionsForDay(
         link,
         // Same rule as a generated mission: verifiable only when it points somewhere
         // that can actually prove completion.
-        verify: /^\/(careerpilot|passport)\/interview\/?$/.test((link || '').split(/[?#]/)[0])
-          ? ('interview' as const) : undefined,
+        verify: verifyFor(link),
         authored: true,
       } as Mission;
     });
@@ -350,9 +370,8 @@ export function missionsForDay(
     usedTitles.add(pick.title);
     const link = actionableLink(pick.link);
     // Derived from the destination rather than stored on the pool item, so a mission
-    // becomes verifiable the moment an admin points it at the interview.
-    const verify = /^\/(careerpilot|passport)\/interview\/?$/.test((link || '').split(/[?#]/)[0])
-      ? ('interview' as const) : undefined;
+    // becomes verifiable the moment an admin points it at one of these.
+    const verify = verifyFor(link);
 
     return {
       key: `d${day}-s${slot}`,

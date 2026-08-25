@@ -222,11 +222,14 @@ const MissionControl: React.FC = () => {
                   {focus && <div className="mc-today-meta"><span><i className={`bi ${CAT_ICON[focus.category] || 'bi-bullseye'}`} /> Personalized</span><span><i className="bi bi-lightning-charge-fill" /> +{focus.xp} XP</span><span><i className="bi bi-map" /> Connected to roadmap</span></div>}
                   <div className="mc-today-actions">
                     {today?.needsAssessment ? <button className="mc-mission-primary" onClick={() => nav(assessmentHref)}><i className="bi bi-play-fill" /> Start Skill Assessment</button>
+                      // Ahead of the generic link branch so the label names the sitting the
+                      // mission actually opens, and follows the mission's own link — which
+                      // now carries ?mode=, so the round starts on arrival.
+                      : focus?.verify === 'interview' && !focus.done ? <button className="mc-mission-primary" onClick={() => nav(focus.link || '/careerpilot/interview')}><i className="bi bi-mic-fill" /> Start Mock Interview</button>
                       : focus?.link && !focus.done ? <button className="mc-mission-primary" onClick={() => nav(focus.link!)}><i className="bi bi-play-fill" /> Start Mission</button>
                       // Same dead end as the row tick: "Mark Complete" on a written
                       // mission just draws a 400. Send them to the answer box instead.
                       : focus?.needsAnswer && !focus.done ? <button className="mc-mission-primary" onClick={() => { openAnswer(focus.key); document.getElementById(`mission-${focus.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}><i className="bi bi-pencil-square" /> Write Your Answer</button>
-                      : focus?.verify === 'interview' && !focus.done ? <button className="mc-mission-primary" onClick={() => nav('/careerpilot/interview')}><i className="bi bi-mic-fill" /> Start Mock Interview</button>
                       : focus && !focus.done ? <button className="mc-mission-primary" onClick={() => toggleMission(focus.key)}><i className="bi bi-check2-circle" /> Mark Complete</button>
                       : <button className="mc-mission-primary" onClick={() => nav('/careerpilot/roadmap')}><i className="bi bi-map" /> Explore Roadmap</button>}
                     <button className="mc-mission-secondary" onClick={() => nav('/careerpilot/roadmap')}>View Roadmap</button>
@@ -247,8 +250,9 @@ const MissionControl: React.FC = () => {
                           tickable: the server rejects both, and offering the tick was
                           what made this look broken. */}
                       <button className={`mc-check-btn${m.done ? ' done' : ''}`}
-                        disabled={m.done || (m.needsAnswer && !m.done) || (!!m.verify && !m.done)}
+                        disabled={m.done || (m.needsAnswer && !m.done) || (m.verify === 'interview' && !m.done)}
                         title={m.verify === 'interview' && !m.done ? 'Finish a mock interview — this ticks itself when you do'
+                          : m.verify === 'resume' && !m.done ? 'Fill this in the Resume Center, then tick it — we check your resume before awarding the XP'
                           : m.needsAnswer && !m.done ? 'Write your answer to complete this one' : undefined}
                         onClick={() => !m.done && toggleMission(m.key)}
                         aria-label={m.done ? 'Mission complete' : 'Mark mission complete'}>{m.done && <i className="bi bi-check-lg" />}</button></div></div>

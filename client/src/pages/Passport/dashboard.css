@@ -436,3 +436,16 @@
 .gd-day-nav button:hover:not(:disabled) { background: #f8fafc; border-color: #cbd5e1; }
 .gd-day-nav button:disabled { opacity: .35; cursor: default; }
 .gd-day-nav button.today { width: auto; padding: 0 11px; font-size: 12px; font-weight: 800; color: #6d4bd8; }
+
+/* A tick can be refused — a resume mission is checked against the saved resume when the
+   member ticks it. Reverting the tick without saying why reads as a broken button. */
+.gd-mission-error {
+  margin: 0 0 10px 43px;
+  border: 1px solid #f0cfc6;
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: #fdf5f3;
+  color: #b4462f;
+  font-size: 11.5px;
+  font-weight: 700;
+}

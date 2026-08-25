@@ -28,6 +28,16 @@ const userIdOf = (req: Request): string => String((req as any).user?.id || '');
 // Cost scales linearly with turns: every turn re-sends the history window and pays for a
 // completion. Six is a real interview; the lever exists here if it ever needs trimming.
 const MAX_QUESTIONS = 6;
+/**
+ * `mode=intro` — the short self-introduction round the daily mission asks for.
+ *
+ * The mission said "a 2-minute self-intro round" while the only thing the product could
+ * start was a six-question role interview, so the member was promised one sitting and given
+ * a different, much longer one. Two questions is the intro plus one follow-up, which is what
+ * two minutes actually holds.
+ */
+const INTRO_QUESTIONS = 2;
+const INTRO_FOCUS = 'a two-minute self-introduction — who they are, what they are studying or working on, and what role they are aiming for';
 /** Turns of transcript sent per request. The single biggest driver of interview cost. */
 const HISTORY_WINDOW = 6;
 const PRODUCT = 'careerpilot';
@@ -216,11 +226,26 @@ export const start = async (req: Request, res: Response) => {
       }
     }
 
+    /**
+     * Intro mode — one short sitting pinned to the self-introduction.
+     *
+     * Mutually exclusive with a company mock for the same reason role mode is: a company
+     * round and a two-question intro are different sittings, and merging them would grade
+     * an employer's emphasis against an interview that never asked about it.
+     */
+    const introMode = String(req.body?.mode || '') === 'intro' && !companyBrief;
+    let maxQuestions = MAX_QUESTIONS;
+    if (introMode) {
+      areas = ['Self-introduction', 'Communication'];
+      maxQuestions = INTRO_QUESTIONS;
+    }
+
     const first = await nextInterviewerTurn({
       interviewerName: interviewerName(), role, areas,
-      history: [], askedCount: 0, maxQuestions: MAX_QUESTIONS,
+      history: [], askedCount: 0, maxQuestions,
       candidateName: user?.firstName || '', historyWindow: HISTORY_WINDOW,
       tenantId, product: PRODUCT, company: companyBrief,
+      focus: introMode ? INTRO_FOCUS : undefined,
     });
 
     /**
@@ -246,7 +271,7 @@ export const start = async (req: Request, res: Response) => {
       companySlug: companyBrief ? slug : undefined,
       companyName: companyBrief?.name,
       roundKey, companyProfileVersion,
-      interviewerName: interviewerName(), maxQuestions: MAX_QUESTIONS, askedCount: 1,
+      interviewerName: interviewerName(), maxQuestions, focus: introMode ? INTRO_FOCUS : null, askedCount: 1,
       status: 'in_progress',
       live: true,
       transcript: [{ role: 'interviewer', text: first.say, at: new Date() }],
@@ -301,6 +326,8 @@ export const turn = async (req: Request, res: Response) => {
     const next = await nextInterviewerTurn({
       interviewerName: session.interviewerName, role: session.role, areas: session.areas,
       history, askedCount: session.askedCount, maxQuestions: session.maxQuestions,
+      // Keep a single-purpose round on its one subject for every turn, not just the opener.
+      focus: session.focus || undefined,
       candidateName: user?.firstName || '', historyWindow: HISTORY_WINDOW,
       tenantId, product: PRODUCT,
       // Re-sent every turn. The brief lives in the system prompt, not the transcript, so

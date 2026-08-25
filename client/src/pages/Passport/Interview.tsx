@@ -67,18 +67,41 @@ const Interview: React.FC = () => {
     if (res.ok) load();
   };
 
-  const start = async () => {
+  const mode = params.get('mode');
+  const company = params.get('company');
+
+  const start = useCallback(async () => {
     setBusy(true); setErr('');
     try {
       const r = await passportApi.startInterview(
-        params.get('company') || undefined,
-        params.get('mode') === 'role' ? 'role' : undefined,
+        company || undefined,
+        mode === 'role' || mode === 'intro' ? mode : undefined,
       );
       setSession(r.session);
       setElapsed(0);
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not start the interview.'); }
     setBusy(false);
-  };
+  }, [company, mode]);
+
+  /**
+   * A URL that already says WHICH sitting it wants starts it — no landing page in between.
+   *
+   * A daily mission linking here ("Record a self-introduction") used to drop the member on
+   * the marketing panel, where the only button ran a generic six-question role interview.
+   * They asked for one thing and had to go find another. Only fires when the URL carries
+   * intent, so the plain /careerpilot/interview landing is untouched.
+   *
+   * Guarded by a ref rather than the session: after a member finishes and the session is
+   * cleared, this must not silently start a second interview.
+   */
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (loading || autoStarted.current) return;
+    if (!mode && !company) return;
+    if (data?.locked || session) return;
+    autoStarted.current = true;
+    start();
+  }, [loading, mode, company, data?.locked, session, start]);
 
   const send = async () => {
     if (!session || !answer.trim()) return;

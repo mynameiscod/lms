@@ -152,15 +152,23 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const [answerBusy, setAnswerBusy] = useState(false);
   const [answerMsg, setAnswerMsg] = useState('');
   const [justCoached, setJustCoached] = useState<{ key: string; feedback: string } | null>(null);
+  const [missionMsg, setMissionMsg] = useState('');
 
   const toggleMission = async (key: string, answer?: string) => {
+    setMissionMsg('');
     // Optimistic tick, then reload. Deliberately NOT optimistic for a written answer —
     // the server rejects one that is too short, and showing it as done before that
     // check would tell the member they had finished something they had not.
     if (!answer) {
       setD(p => ({ ...p, missions: p.missions?.map(m => m.key === key ? { ...m, done: true } : m) }));
     }
-    try { await passportApi.completeMission(key, answer); } finally { reload(); }
+    try {
+      await passportApi.completeMission(key, answer);
+    } catch (e: any) {
+      // A resume mission is checked when it is ticked, so a tick can legitimately be
+      // refused. Reverting without saying why would read as a broken button.
+      setMissionMsg(e?.response?.data?.message || 'Could not complete that mission.');
+    } finally { reload(); }
   };
 
   const saveAnswer = async (key: string) => {
@@ -433,10 +441,15 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
                           which meant the XP was available without the work. */}
                       <button
                         className={`gd-check${m.done ? ' on' : ''}`}
-                        disabled={m.done || (!!m.verify && !m.done) || (m.needsAnswer && !m.done)}
+                        // 'resume' stays tickable: the Resume Center has no single finish
+                        // event, so the server reads the saved resume when they tick and
+                        // says what is still missing. Only 'interview' ticks itself.
+                        disabled={m.done || (m.verify === 'interview' && !m.done) || (m.needsAnswer && !m.done)}
                         title={
                           m.verify === 'interview' && !m.done
                             ? 'Finish a mock interview — this ticks itself when you do'
+                            : m.verify === 'resume' && !m.done
+                              ? 'Fill this in the Resume Center, then tick it — we check your resume before awarding the XP'
                             : m.needsAnswer && !m.done ? 'Write your answer to complete this one' : undefined
                         }
                         onClick={() => toggleMission(m.key)}
@@ -493,6 +506,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
                     the pools), so whenever the next thing to do was one of those, Start
                     Now silently sent the member to the coding lab instead. It now does
                     what the next mission actually needs. */}
+                {missionMsg && <div className="gd-mission-error">{missionMsg}</div>}
                 <button className="gd-mission-cta" onClick={startNext}>
                   {nextMission
                     ? (nextMission.link ? 'Start Now →' : 'Write your answer →')

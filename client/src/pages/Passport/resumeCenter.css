@@ -4,3 +4,13 @@
 @media(max-width:1280px){.rc-hero{grid-template-columns:1fr 190px 320px}.rc-hero-art img{max-height:185px}.rc-workspace{grid-template-columns:minmax(0,1.4fr) minmax(300px,.8fr)}}
 @media(max-width:1050px){.rc-hero{grid-template-columns:1fr 300px}.rc-hero-art{display:none}.rc-stats{grid-template-columns:1fr 1fr}.rc-workspace{grid-template-columns:1fr}.rc-intelligence{position:static;grid-template-columns:1fr 1fr}.rc-score-panel{grid-column:1/-1}.rc-sticky-actions{position:static}}
 @media(max-width:760px){.rc-page{padding-top:0}.rc-hero{grid-template-columns:1fr;padding:20px;border-radius:16px}.rc-score-card{order:3}.rc-hero h1{font-size:30px}.rc-hero-actions{display:grid;grid-template-columns:1fr}.rc-action{width:100%}.rc-stats{grid-template-columns:1fr}.rc-ai-compare{grid-template-columns:1fr}.rc-ai-arrow{transform:rotate(90deg)}.rc-intelligence{grid-template-columns:1fr}.rc-sticky-actions{align-items:stretch;flex-direction:column}.rc-sticky-actions>div:last-child{display:grid;grid-template-columns:1fr}.rc-sticky-actions .rc-btn{width:100%}.rs-row{grid-template-columns:1fr!important}}
+
+/* Transient highlight when a mission deep-links to one section, so the member can see
+   which of the seven the mission actually meant. */
+.rs-section.rc-focused {
+  animation: rc-focus-pulse 2.6s ease-out;
+}
+@keyframes rc-focus-pulse {
+  0%, 70% { box-shadow: 0 0 0 3px rgba(53, 154, 173, .35); border-color: #359aad; }
+  100%    { box-shadow: 0 0 0 0 rgba(53, 154, 173, 0); }
+}

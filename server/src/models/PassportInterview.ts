@@ -63,6 +63,12 @@ export interface IPassportInterview extends Document {
   roundKey?: string | null;
   companyProfileVersion?: number | null;
   maxQuestions: number;
+  /**
+   * Pins a single-purpose sitting (currently `mode=intro`, the self-introduction round a
+   * daily mission asks for). Stored rather than re-derived, so every turn of the round
+   * stays on the one thing the member was told it would be about — not just the opener.
+   */
+  focus?: string | null;
   askedCount: number;
   /**
    * `finalizing` is the finalization CLAIM.
@@ -145,6 +151,7 @@ const PassportInterviewSchema = new Schema<IPassportInterview>(
     roundKey:              { type: String, default: null },
     companyProfileVersion: { type: Number, default: null },
     maxQuestions:    { type: Number, default: 6 },
+    focus:           { type: String, default: null },
     askedCount:      { type: Number, default: 0 },
     status:     { type: String, enum: ['in_progress', 'finalizing', 'completed', 'abandoned'], default: 'in_progress', index: true },
     finalizeToken: { type: String, default: null },

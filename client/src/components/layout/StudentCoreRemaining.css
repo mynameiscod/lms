@@ -1,0 +1,574 @@
+/*
+ * CodeBegun Student Core — remaining student-facing surfaces
+ *
+ * This stylesheet is intentionally route-scoped by Layout.tsx. It standardises the
+ * remaining Student Core pages without changing API calls, component state, or business
+ * logic. Existing migrated core screens (Dashboard, Learning Plan, Tasks, Attendance,
+ * Quizzes, Assignments and Code Practice) are deliberately not included in the route map.
+ */
+
+.student-core-remaining-surface {
+  --cb-primary: #005897;
+  --cb-primary-700: #004b81;
+  --cb-secondary: #1976d2;
+  --cb-secondary-soft: #eaf3fd;
+  --cb-bg: #f4f8fc;
+  --cb-card: #ffffff;
+  --cb-text: #1e293b;
+  --cb-heading: #102a4f;
+  --cb-muted: #64748b;
+  --cb-muted-2: #8a98aa;
+  --cb-border: #e4eaf1;
+  --cb-green: #16a36a;
+  --cb-green-soft: #eaf8f1;
+  --cb-amber: #d97706;
+  --cb-amber-soft: #fff5e5;
+  --cb-red: #dc2626;
+  --cb-red-soft: #fff0f0;
+  --cb-radius: 16px;
+  --cb-radius-sm: 10px;
+  --cb-shadow: 0 3px 14px rgba(15, 46, 77, 0.05);
+  --cb-shadow-lg: 0 16px 42px rgba(15, 46, 77, 0.13);
+
+  min-width: 0;
+  background: var(--cb-bg) !important;
+  color: var(--cb-text);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.student-core-remaining-layout .layout-body,
+.student-core-remaining-layout .main-content {
+  background: var(--cb-bg, #f4f8fc);
+}
+
+.student-core-remaining-surface,
+.student-core-remaining-surface * {
+  box-sizing: border-box;
+}
+
+.student-core-remaining-surface > * {
+  min-width: 0;
+}
+
+/* ── Typography ─────────────────────────────────────────────────────────── */
+.student-core-remaining-surface h1,
+.student-core-remaining-surface h2,
+.student-core-remaining-surface h3,
+.student-core-remaining-surface h4 {
+  color: var(--cb-heading) !important;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+.student-core-remaining-surface h1 {
+  letter-spacing: -0.45px;
+}
+
+.student-core-remaining-surface p,
+.student-core-remaining-surface small,
+.student-core-remaining-surface label {
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Inputs / selects / textareas ───────────────────────────────────────── */
+.student-core-remaining-surface input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.student-core-remaining-surface select,
+.student-core-remaining-surface textarea {
+  border-radius: var(--cb-radius-sm) !important;
+  border-color: #dce5ed !important;
+  font-family: inherit !important;
+}
+
+.student-core-remaining-surface input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+.student-core-remaining-surface select:focus,
+.student-core-remaining-surface textarea:focus {
+  outline: none !important;
+  border-color: #78afc4 !important;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.08) !important;
+}
+
+.student-core-remaining-surface input[type="checkbox"],
+.student-core-remaining-surface input[type="radio"] {
+  accent-color: var(--cb-primary);
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.student-core-remaining-surface button,
+.student-core-remaining-surface .btn,
+.student-core-remaining-surface [class*="-btn"],
+.student-core-remaining-surface [class*="Btn"] {
+  font-family: inherit;
+  border-radius: 9px;
+}
+
+.student-core-remaining-surface button:focus-visible,
+.student-core-remaining-surface a:focus-visible,
+.student-core-remaining-surface input:focus-visible,
+.student-core-remaining-surface select:focus-visible,
+.student-core-remaining-surface textarea:focus-visible {
+  outline: 3px solid rgba(25, 118, 210, 0.22) !important;
+  outline-offset: 2px;
+}
+
+/* ── Common cards / panels / modals ─────────────────────────────────────── */
+.student-core-remaining-surface :where(
+  .card,
+  .panel,
+  .section-card,
+  .content-card,
+  .stat-card,
+  .metric-card,
+  .summary-card,
+  .empty-state,
+  .form-section,
+  [class$="-card"],
+  [class*="-card "],
+  [class$="Card"],
+  [class*="Card "]
+) {
+  border-radius: var(--cb-radius) !important;
+}
+
+.student-core-remaining-surface :where(
+  .card,
+  .panel,
+  .section-card,
+  .content-card,
+  .stat-card,
+  .metric-card,
+  .summary-card,
+  .form-section
+) {
+  border-color: var(--cb-border) !important;
+}
+
+.student-core-remaining-surface table {
+  border-collapse: collapse;
+}
+
+.student-core-remaining-surface table thead th {
+  color: #748396 !important;
+  background: #f8fafc !important;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.035em;
+}
+
+.student-core-remaining-surface table tbody tr {
+  border-color: #edf1f5 !important;
+}
+
+.student-core-remaining-surface table tbody tr:hover {
+  background: #fbfdff;
+}
+
+/* ── Utility status treatment ───────────────────────────────────────────── */
+.student-core-remaining-surface :where([class*="success"], [class*="completed"], [class*="passed"]) {
+  --cb-status-color: var(--cb-green);
+}
+.student-core-remaining-surface :where([class*="pending"], [class*="warning"], [class*="progress"]) {
+  --cb-status-color: var(--cb-amber);
+}
+.student-core-remaining-surface :where([class*="error"], [class*="failed"], [class*="danger"], [class*="overdue"]) {
+  --cb-status-color: var(--cb-red);
+}
+
+/* ── Route: Code Playground ─────────────────────────────────────────────── */
+.student-core-remaining-surface[data-student-core-route="playground"] {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.student-core-remaining-surface[data-student-core-route="playground"] .cp-root {
+  --cp-primary: #005897;
+  --cp-blue: #1976d2;
+  --cp-border: #26364a;
+  font-family: Inter, system-ui, sans-serif !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="playground"] .cp-top,
+.student-core-remaining-surface[data-student-core-route="playground"] .cp-toolbar,
+.student-core-remaining-surface[data-student-core-route="playground"] .cp-tabs,
+.student-core-remaining-surface[data-student-core-route="playground"] .cp-statusbar {
+  border-color: #26364a !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="playground"] :where(.cp-run, .cp-save, .cp-primary, button[data-primary="true"]) {
+  background: linear-gradient(135deg, var(--cb-primary), var(--cb-secondary)) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="playground"] :where(.monaco-editor, pre, code) {
+  font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace !important;
+}
+
+/* ── Route: Project Builder ─────────────────────────────────────────────── */
+.student-core-remaining-surface[data-student-core-route="project-builder"] {
+  padding: 0 !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="project-builder"] > div {
+  background: var(--cb-bg) !important;
+  min-height: 100% !important;
+  padding: 26px 28px 56px !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="project-builder"] > div > div {
+  max-width: 1180px !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="project-builder"] button:not([title="Delete"]):not([style*="text-transform"]):not([style*="background: none"]):not([style*="background: transparent"]) {
+  background: linear-gradient(135deg, var(--cb-primary), var(--cb-secondary)) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 5px 14px rgba(0, 88, 151, 0.12) !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="project-builder"] [style*="borderRadius: 14"],
+.student-core-remaining-surface[data-student-core-route="project-builder"] [style*="border-radius: 14"] {
+  border-radius: var(--cb-radius) !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="project-builder"] [style*="background: rgb(238, 242, 255)"],
+.student-core-remaining-surface[data-student-core-route="project-builder"] [style*="#eef2ff"] {
+  background: #eaf5f8 !important;
+  color: var(--cb-primary) !important;
+}
+
+/* ── Route: Job Tracker ─────────────────────────────────────────────────── */
+.student-core-remaining-surface[data-student-core-route="job-tracker"] {
+  padding: 0 !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="job-tracker"] > div {
+  max-width: 1480px !important;
+  padding: 26px 28px 52px !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="job-tracker"] > div > div:first-child button {
+  background: linear-gradient(135deg, var(--cb-primary), var(--cb-secondary)) !important;
+  color: #fff !important;
+  box-shadow: 0 5px 14px rgba(0, 88, 151, 0.12) !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="job-tracker"] [draggable="true"] {
+  border-color: var(--cb-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(15, 46, 77, 0.05) !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="job-tracker"] [draggable="true"]:hover {
+  border-color: #b8d3df !important;
+  box-shadow: 0 7px 20px rgba(15, 46, 77, 0.08) !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="job-tracker"] [style*="position: fixed"] > div {
+  border-radius: 16px !important;
+  box-shadow: var(--cb-shadow-lg) !important;
+}
+
+/* ── Route: AI Mentor ───────────────────────────────────────────────────── */
+.student-core-remaining-surface[data-student-core-route="ai-mentor"] {
+  padding: 22px 26px !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="ai-mentor"] > div {
+  max-width: 980px !important;
+  height: calc(100dvh - 132px) !important;
+  min-height: 560px;
+  padding: 0 !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="ai-mentor"] > div > div:nth-of-type(2) {
+  background: #fff !important;
+  border-color: var(--cb-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--cb-shadow) !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="ai-mentor"] form button {
+  background: linear-gradient(135deg, var(--cb-primary), var(--cb-secondary)) !important;
+  color: #fff !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="ai-mentor"] form input {
+  min-height: 46px;
+  background: #fff !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="ai-mentor"] button:not([type="submit"]) {
+  border-color: var(--cb-border) !important;
+}
+
+/* ── Route: Resource / Project Library ──────────────────────────────────── */
+.student-core-remaining-surface[data-student-core-route="resource-library"] {
+  padding: 26px 28px 54px !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="resource-library"] :where(
+  [class*="resource-card"],
+  [class*="project-card"],
+  [class*="library-card"],
+  [class*="resource-item"]
+) {
+  background: #fff !important;
+  border: 1px solid var(--cb-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--cb-shadow) !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="resource-library"] :where(button[class*="primary"], a[class*="primary"], .btn-primary) {
+  background: linear-gradient(135deg, var(--cb-primary), var(--cb-secondary)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+
+/* ── Route: Live Classes hub ────────────────────────────────────────────── */
+.student-core-remaining-surface[data-student-core-route="hms-classes"] {
+  padding: 26px 28px 54px !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="hms-classes"] :where(
+  [class*="class-card"],
+  [class*="session-card"],
+  [class*="hms-card"],
+  [class*="meeting-card"]
+) {
+  background: #fff !important;
+  border: 1px solid var(--cb-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--cb-shadow) !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="hms-classes"] :where(.btn-primary, button[class*="join"], a[class*="join"]) {
+  background: linear-gradient(135deg, var(--cb-primary), var(--cb-secondary)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+
+/* ── Routes: Daily Practice labs ────────────────────────────────────────── */
+.student-core-remaining-surface[data-student-core-route="ai-communication-lab"],
+.student-core-remaining-surface[data-student-core-route="thinking-lab"],
+.student-core-remaining-surface[data-student-core-route="logic-gym"] {
+  padding: 26px 28px 54px !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="ai-communication-lab"] :where([class*="card"], [class*="panel"]),
+.student-core-remaining-surface[data-student-core-route="thinking-lab"] :where([class*="card"], [class*="panel"]),
+.student-core-remaining-surface[data-student-core-route="logic-gym"] :where([class*="card"], [class*="panel"]) {
+  border-radius: 16px !important;
+  border-color: var(--cb-border) !important;
+  box-shadow: var(--cb-shadow) !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="ai-communication-lab"] :where(.btn-primary, button[class*="primary"], button[class*="start"]),
+.student-core-remaining-surface[data-student-core-route="thinking-lab"] :where(.btn-primary, button[class*="primary"], button[class*="start"]),
+.student-core-remaining-surface[data-student-core-route="logic-gym"] :where(.btn-primary, button[class*="primary"], button[class*="start"]) {
+  background: linear-gradient(135deg, var(--cb-primary), var(--cb-secondary)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+
+/* ── Routes: Resume Builder / Career Profile / Profile ──────────────────── */
+.student-core-remaining-surface[data-student-core-route="resume-builder"],
+.student-core-remaining-surface[data-student-core-route="career-profile"],
+.student-core-remaining-surface[data-student-core-route="profile"] {
+  padding: 26px 28px 56px !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="resume-builder"] :where([class*="card"], [class*="section"], [class*="panel"]),
+.student-core-remaining-surface[data-student-core-route="career-profile"] :where([class*="card"], [class*="section"], [class*="panel"]),
+.student-core-remaining-surface[data-student-core-route="profile"] :where([class*="card"], [class*="section"], [class*="panel"]) {
+  border-radius: 16px !important;
+  border-color: var(--cb-border) !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="resume-builder"] :where(.btn-primary, button[class*="primary"], button[class*="save"], button[class*="download"]),
+.student-core-remaining-surface[data-student-core-route="career-profile"] :where(.btn-primary, button[class*="primary"], button[class*="save"], button[class*="analy"]),
+.student-core-remaining-surface[data-student-core-route="profile"] :where(.btn-primary, button[class*="primary"], button[class*="save"]) {
+  background: linear-gradient(135deg, var(--cb-primary), var(--cb-secondary)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+
+/* ── Routes: Interviews ─────────────────────────────────────────────────── */
+.student-core-remaining-surface[data-student-core-route="my-interviews"],
+.student-core-remaining-surface[data-student-core-route="student-interviews"] {
+  padding: 26px 28px 56px !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="my-interviews"] :where([class*="card"], [class*="panel"], [class*="interview-item"]),
+.student-core-remaining-surface[data-student-core-route="student-interviews"] :where([class*="card"], [class*="panel"], [class*="interview-item"]) {
+  border-radius: 16px !important;
+  border-color: var(--cb-border) !important;
+  box-shadow: var(--cb-shadow) !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="my-interviews"] :where(.btn-primary, button[class*="start"], button[class*="primary"]),
+.student-core-remaining-surface[data-student-core-route="student-interviews"] :where(.btn-primary, button[class*="start"], button[class*="primary"]) {
+  background: linear-gradient(135deg, var(--cb-primary), var(--cb-secondary)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+
+/* ── Routes: College ────────────────────────────────────────────────────── */
+.student-core-remaining-surface[data-student-core-route="student-college"],
+.student-core-remaining-surface[data-student-core-route="student-my-applications"],
+.student-core-remaining-surface[data-student-core-route="student-alumni-directory"] {
+  padding: 26px 28px 56px !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="student-college"] :where([class*="card"], [class*="panel"], [class*="tile"]),
+.student-core-remaining-surface[data-student-core-route="student-my-applications"] :where([class*="card"], [class*="panel"], [class*="application"]),
+.student-core-remaining-surface[data-student-core-route="student-alumni-directory"] :where([class*="card"], [class*="panel"], [class*="alumni"]),
+.student-core-remaining-surface[data-student-core-route="student-fee-details"] :where([class*="card"], [class*="panel"], [class*="summary"]) {
+  border-radius: 16px !important;
+  border-color: var(--cb-border) !important;
+  box-shadow: var(--cb-shadow) !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="student-college"] :where(.btn-primary, button[class*="primary"], a[class*="primary"]),
+.student-core-remaining-surface[data-student-core-route="student-my-applications"] :where(.btn-primary, button[class*="primary"], a[class*="primary"]),
+.student-core-remaining-surface[data-student-core-route="student-alumni-directory"] :where(.btn-primary, button[class*="primary"], a[class*="primary"]) {
+  background: linear-gradient(135deg, var(--cb-primary), var(--cb-secondary)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+
+/* ── Route: Fee Details ─────────────────────────────────────────────────── */
+.student-core-remaining-surface[data-student-core-route="student-fee-details"] {
+  padding: 26px 28px 56px !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="student-fee-details"] :where(.paid, .success, [class*="paid"]) {
+  color: var(--cb-green) !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="student-fee-details"] :where(.pending, [class*="pending"]) {
+  color: var(--cb-amber) !important;
+}
+
+/* ── Routes: Notifications / Leave ──────────────────────────────────────── */
+.student-core-remaining-surface[data-student-core-route="notifications"],
+.student-core-remaining-surface[data-student-core-route="my-leave"] {
+  padding: 26px 28px 56px !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="notifications"] :where([class*="notification"], [class*="card"], [class*="item"]),
+.student-core-remaining-surface[data-student-core-route="my-leave"] :where([class*="leave"], [class*="card"], [class*="panel"]) {
+  border-radius: 14px !important;
+  border-color: var(--cb-border) !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="my-leave"] :where(.btn-primary, button[class*="primary"], button[type="submit"]) {
+  background: linear-gradient(135deg, var(--cb-primary), var(--cb-secondary)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+
+/* ── Route: Interview Questions from course content ─────────────────────── */
+.student-core-remaining-surface[data-student-core-route="interview-questions"] {
+  padding: 26px 28px 56px !important;
+}
+
+.student-core-remaining-surface[data-student-core-route="interview-questions"] :where([class*="question"], [class*="card"], [class*="answer"]) {
+  border-radius: 14px !important;
+  border-color: var(--cb-border) !important;
+}
+
+/* ── Full-screen student experiences that do not mount Layout ───────────── */
+.live-interview-page,
+.live-interview,
+.interview-live-page {
+  --cb-primary: #005897;
+  --cb-secondary: #1976d2;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.live-interview-page :where(button[class*="primary"], button[class*="start"]),
+.live-interview :where(button[class*="primary"], button[class*="start"]),
+.interview-live-page :where(button[class*="primary"], button[class*="start"]) {
+  background: linear-gradient(135deg, var(--cb-primary), var(--cb-secondary)) !important;
+}
+
+/* ── Responsive rules shared by every remaining route ───────────────────── */
+@media (max-width: 1100px) {
+  .student-core-remaining-surface[data-student-core-route] {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  .student-core-remaining-surface[data-student-core-route="project-builder"] > div,
+  .student-core-remaining-surface[data-student-core-route="job-tracker"] > div {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .student-core-remaining-surface[data-student-core-route] {
+    padding: 18px 14px 40px !important;
+  }
+
+  .student-core-remaining-surface[data-student-core-route="playground"] {
+    padding: 0 !important;
+  }
+
+  .student-core-remaining-surface[data-student-core-route="project-builder"] > div,
+  .student-core-remaining-surface[data-student-core-route="job-tracker"] > div {
+    padding: 18px 14px 40px !important;
+  }
+
+  .student-core-remaining-surface h1 {
+    font-size: 24px !important;
+    line-height: 1.2 !important;
+  }
+
+  .student-core-remaining-surface h2 {
+    font-size: 19px !important;
+  }
+
+  .student-core-remaining-surface button,
+  .student-core-remaining-surface .btn,
+  .student-core-remaining-surface input,
+  .student-core-remaining-surface select {
+    min-height: 42px;
+  }
+
+  .student-core-remaining-surface table {
+    font-size: 12px;
+  }
+
+  .student-core-remaining-surface[data-student-core-route="ai-mentor"] > div {
+    height: auto !important;
+    min-height: 560px;
+  }
+}
+
+@media (max-width: 480px) {
+  .student-core-remaining-surface[data-student-core-route] {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .student-core-remaining-surface :where(.card, .panel, [class$="-card"], [class*="-card "]) {
+    border-radius: 13px !important;
+  }
+
+  .student-core-remaining-surface input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  .student-core-remaining-surface select,
+  .student-core-remaining-surface textarea {
+    font-size: 16px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-core-remaining-surface *,
+  .student-core-remaining-surface *::before,
+  .student-core-remaining-surface *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

@@ -1,22 +1,69 @@
 /* Screen #3 — Learning Plan Day View
-   Route-scoped through :has() so the existing feature-rich DayView keeps its
-   API/interaction logic while inheriting the CodeBegun student design system. */
+   The existing DayView is intentionally logic-heavy and uses inline styles.
+   Scope the visual migration to its unique root signature so no other LMS page
+   is affected while videos, notes, Q&A, practice, lessons and gating stay intact. */
 :root {
   --cb-navy: #051d64;
   --cb-teal: #359aad;
   --cb-ink: #10224f;
   --cb-muted: #66789b;
   --cb-line: #e3eaf3;
-  --cb-surface: #ffffff;
   --cb-bg: #f6f9fc;
 }
 
-/* Modernise the learning-day content surface without changing functional states. */
-main:has(a[href="/my-learning"]),
-main:has(button) {
-  --bs-primary: var(--cb-navy);
+/* DayView root */
+div[style*="padding: 24px 28px 60px"][style*="width: 100%"] {
+  max-width: 1440px;
+  margin: 0 auto;
+  background: transparent;
+  color: var(--cb-ink);
+}
+
+/* Header/content cards */
+div[style*="padding: 24px 28px 60px"][style*="width: 100%"] > div[style*="border-radius: 12px"] {
+  border-color: var(--cb-line) !important;
+  box-shadow: 0 8px 28px rgba(5, 29, 100, .055);
+}
+
+/* Strong CodeBegun hierarchy */
+div[style*="padding: 24px 28px 60px"][style*="width: 100%"] h2,
+div[style*="padding: 24px 28px 60px"][style*="width: 100%"] h3 {
+  color: var(--cb-navy) !important;
+  letter-spacing: -.02em;
+}
+
+/* Navigation and action buttons */
+div[style*="padding: 24px 28px 60px"][style*="width: 100%"] button {
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+div[style*="padding: 24px 28px 60px"][style*="width: 100%"] button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(5, 29, 100, .10);
+}
+
+/* Media and embedded learning content */
+div[style*="padding: 24px 28px 60px"][style*="width: 100%"] iframe,
+div[style*="padding: 24px 28px 60px"][style*="width: 100%"] video {
+  border-radius: 14px !important;
+}
+
+/* Keep long lesson content readable on large monitors. */
+div[style*="padding: 24px 28px 60px"][style*="width: 100%"] .ql-editor {
+  color: #26385f !important;
+  line-height: 1.8 !important;
 }
 
 @media (max-width: 768px) {
-  main:has(a[href="/my-learning"]) { padding-inline: 12px; }
+  div[style*="padding: 24px 28px 60px"][style*="width: 100%"] {
+    padding: 16px 12px 40px !important;
+  }
+  div[style*="padding: 24px 28px 60px"][style*="width: 100%"] iframe[height="600px"] {
+    height: 440px;
+  }
+}
+
+@media (max-width: 480px) {
+  div[style*="padding: 24px 28px 60px"][style*="width: 100%"] {
+    padding-inline: 8px !important;
+  }
 }

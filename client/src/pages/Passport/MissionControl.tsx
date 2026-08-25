@@ -85,12 +85,51 @@ const MissionControl: React.FC = () => {
     else setPayMsg(res.message || 'Payment did not complete.');
   };
 
+  // A mission with no link has no surface to do it on, so the server completes it only
+  // against a written answer (needsAnswer, derived there as !link). This screen used to
+  // offer a bare tick for those: it flipped optimistically, the POST came back 400, and
+  // the `catch` swallowed the reason — so the tick appeared, vanished, and said nothing.
+  const [answerFor, setAnswerFor] = useState<string | null>(null);
+  const [answerText, setAnswerText] = useState('');
+  const [answerBusy, setAnswerBusy] = useState(false);
+  const [answerMsg, setAnswerMsg] = useState('');
+  const [justCoached, setJustCoached] = useState<{ key: string; feedback: string } | null>(null);
+  const [missionMsg, setMissionMsg] = useState('');
+
+  const openAnswer = (key: string) => {
+    setAnswerFor(answerFor === key ? null : key);
+    setAnswerText(''); setAnswerMsg(''); setMissionMsg('');
+  };
+
   const toggleMission = async (key: string) => {
+    setMissionMsg('');
+    // Optimistic only for a mission the server will actually accept on a bare tick.
     setToday(t => t && ({ ...t, missions: t.missions?.map(m => m.key === key ? { ...m, done: true } : m) }));
     try {
       const r = await passportApi.completeMission(key);
       setToday(t => t && ({ ...t, xp: r.xp, streak: r.streak, longestStreak: r.longestStreak, allDone: r.allDone }));
-    } catch { load(); }
+    } catch (e: any) {
+      // Say why. A silent revert reads as a broken button rather than a missing step.
+      setMissionMsg(e?.response?.data?.message || 'Could not complete that mission.');
+      load();
+    }
+  };
+
+  const saveAnswer = async (key: string) => {
+    const text = answerText.trim();
+    if (text.length < 10) { setAnswerMsg('Write a little more — at least 10 characters.'); return; }
+    setAnswerBusy(true); setAnswerMsg('');
+    try {
+      const r = await passportApi.completeMission(key, text);
+      setAnswerFor(null); setAnswerText('');
+      // Show the coaching immediately; load() brings the same text back but slower than
+      // the moment the member is waiting on.
+      if (r?.feedback) setJustCoached({ key, feedback: r.feedback });
+      await load();
+    } catch (e: any) {
+      setAnswerMsg(e?.response?.data?.message || 'Could not save your answer.');
+    }
+    setAnswerBusy(false);
   };
 
   const share = async () => {
@@ -184,6 +223,10 @@ const MissionControl: React.FC = () => {
                   <div className="mc-today-actions">
                     {today?.needsAssessment ? <button className="mc-mission-primary" onClick={() => nav(assessmentHref)}><i className="bi bi-play-fill" /> Start Skill Assessment</button>
                       : focus?.link && !focus.done ? <button className="mc-mission-primary" onClick={() => nav(focus.link!)}><i className="bi bi-play-fill" /> Start Mission</button>
+                      // Same dead end as the row tick: "Mark Complete" on a written
+                      // mission just draws a 400. Send them to the answer box instead.
+                      : focus?.needsAnswer && !focus.done ? <button className="mc-mission-primary" onClick={() => { openAnswer(focus.key); document.getElementById(`mission-${focus.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}><i className="bi bi-pencil-square" /> Write Your Answer</button>
+                      : focus?.verify === 'interview' && !focus.done ? <button className="mc-mission-primary" onClick={() => nav('/careerpilot/interview')}><i className="bi bi-mic-fill" /> Start Mock Interview</button>
                       : focus && !focus.done ? <button className="mc-mission-primary" onClick={() => toggleMission(focus.key)}><i className="bi bi-check2-circle" /> Mark Complete</button>
                       : <button className="mc-mission-primary" onClick={() => nav('/careerpilot/roadmap')}><i className="bi bi-map" /> Explore Roadmap</button>}
                     <button className="mc-mission-secondary" onClick={() => nav('/careerpilot/roadmap')}>View Roadmap</button>
@@ -196,7 +239,45 @@ const MissionControl: React.FC = () => {
                 <div className="mc-panel-head"><h3><i className="bi bi-calendar-check" /> Daily Missions</h3>{today?.allDone ? <span className="mc-all-done"><i className="bi bi-check-circle-fill" /> All done — see you tomorrow!</span> : <span>{completed}/{total || 0} complete</span>}</div>
                 {today?.needsAssessment ? <div className="mc-empty-state"><i className="bi bi-diagram-3" />Complete your skill assessment first to personalize today’s missions.</div>
                   : !missions.length ? <div className="mc-empty-state"><i className="bi bi-stars" />No missions for today. Check back tomorrow.</div>
-                  : <div className="mc-daily-list">{missions.map(m => <div className={`mc-daily-row${m.done ? ' done' : ''}`} key={m.key}><div className="mc-daily-icon"><i className={`bi ${CAT_ICON[m.category] || 'bi-bullseye'}`} /></div><div className="mc-daily-copy"><b>{m.title}</b><p>{m.detail}</p></div><div className="mc-daily-meta"><span className="mc-xp">+{m.xp} XP</span>{m.link && !m.done && <button className="mc-open-btn" onClick={() => nav(m.link!)}>Open →</button>}<button className={`mc-check-btn${m.done ? ' done' : ''}`} disabled={m.done} onClick={() => !m.done && toggleMission(m.key)} aria-label={m.done ? 'Mission complete' : 'Mark mission complete'}>{m.done && <i className="bi bi-check-lg" />}</button></div></div>)}</div>}
+                  : <div className="mc-daily-list">{missions.map(m => <React.Fragment key={m.key}>
+                    <div className={`mc-daily-row${m.done ? ' done' : ''}`} id={`mission-${m.key}`}><div className="mc-daily-icon"><i className={`bi ${CAT_ICON[m.category] || 'bi-bullseye'}`} /></div><div className="mc-daily-copy"><b>{m.title}</b><p>{m.detail}</p></div><div className="mc-daily-meta"><span className="mc-xp">+{m.xp} XP</span>{m.link && !m.done && <button className="mc-open-btn" onClick={() => nav(m.link!)}>Open →</button>}
+                      {/* No surface to do it on — the written answer IS the completion. */}
+                      {m.needsAnswer && !m.done && <button className="mc-open-btn" onClick={() => openAnswer(m.key)}>{answerFor === m.key ? 'Close' : 'Write answer →'}</button>}
+                      {/* Neither a written mission nor one the product can CHECK is
+                          tickable: the server rejects both, and offering the tick was
+                          what made this look broken. */}
+                      <button className={`mc-check-btn${m.done ? ' done' : ''}`}
+                        disabled={m.done || (m.needsAnswer && !m.done) || (!!m.verify && !m.done)}
+                        title={m.verify === 'interview' && !m.done ? 'Finish a mock interview — this ticks itself when you do'
+                          : m.needsAnswer && !m.done ? 'Write your answer to complete this one' : undefined}
+                        onClick={() => !m.done && toggleMission(m.key)}
+                        aria-label={m.done ? 'Mission complete' : 'Mark mission complete'}>{m.done && <i className="bi bi-check-lg" />}</button></div></div>
+
+                    {m.needsAnswer && !m.done && answerFor === m.key && (
+                      <div className="mc-daily-answer">
+                        <textarea value={answerText} autoFocus rows={3} placeholder="Type your answer here…"
+                          onChange={e => setAnswerText(e.target.value)}
+                          // Paste and drop are both blocked: the point of this box is that
+                          // the words are the member's own. A speed bump, not a control —
+                          // the hint below says so rather than letting a dead paste look
+                          // like a broken box.
+                          onPaste={e => e.preventDefault()}
+                          onDrop={e => e.preventDefault()} />
+                        <div className="hint">✍️ Write it in your own words — pasting is turned off for this one.</div>
+                        <div className="row">
+                          <button className="save" onClick={() => saveAnswer(m.key)} disabled={answerBusy}>{answerBusy ? 'Saving…' : `Save & complete  +${m.xp} XP`}</button>
+                          <button className="cancel" onClick={() => { setAnswerFor(null); setAnswerMsg(''); }}>Cancel</button>
+                          {answerMsg && <span className="msg">{answerMsg}</span>}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Once done, show what they wrote — that record is what they came back for. */}
+                    {m.done && m.answer && <div className="mc-daily-answer saved"><b>Your answer</b><p>{m.answer}</p></div>}
+                    {(m.feedback || (justCoached?.key === m.key && justCoached.feedback)) && (
+                      <div className="mc-daily-coach"><b>💬 Coach</b><p>{m.feedback || justCoached?.feedback}</p></div>
+                    )}
+                  </React.Fragment>)}{missionMsg && <div className="mc-daily-error">{missionMsg}</div>}</div>}
               </div>
               <div className="mc-panel"><div className="mc-panel-head"><h3><i className="bi bi-signpost-split" /> Mission Path</h3><span>Your 90-day journey</span></div><div className="mc-journey"><div className="mc-journey-phase current"><small>Phase 1</small><b>Foundation</b><span>Build the basics consistently</span></div><div className="mc-journey-phase"><small>Phase 2</small><b>Build</b><span>Projects, practice and depth</span></div><div className="mc-journey-phase"><small>Phase 3</small><b>Launch</b><span>Interview and placement readiness</span></div></div></div>
               <div className="mc-panel"><div className="mc-panel-head"><h3>Quick Actions</h3><span>Keep building evidence</span></div><div className="mc-quick-grid"><QuickCard ic="bi-map-fill" title="My 90-day roadmap" onClick={() => nav('/careerpilot/roadmap')} sub="Every week, every day, planned" /><QuickCard ic="bi-code-slash" title="Practice Lab" onClick={() => nav('/careerpilot/practice')} sub="Code that actually runs" /><QuickCard ic="bi-mic-fill" title="Mock interview" onClick={() => nav('/careerpilot/interview')} sub="AI interviewer + scored feedback" /><QuickCard ic="bi-file-earmark-text-fill" title="Resume Center" onClick={() => nav('/careerpilot/resume')} sub="Build it, score it, fix it" /></div></div>

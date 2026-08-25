@@ -1,0 +1,67 @@
+/* CodeBegun System Style Guide — CareerPilot administration */
+.careerpilot-admin-surface {
+  --cp-navy:#051D64; --cp-teal:#359AAD; --cp-primary:#005897; --cp-blue:#1976D2;
+  --cp-bg:#F4F8FC; --cp-card:#fff; --cp-ink:#102A4F; --cp-text:#33475B; --cp-muted:#64748B;
+  --cp-border:#E3EAF1; --cp-green:#17885D; --cp-green-bg:#EAF8F1; --cp-amber:#B86B00;
+  --cp-amber-bg:#FFF6E5; --cp-red:#C93737; --cp-red-bg:#FFF0F0; --cp-radius:16px;
+  min-width:0; min-height:calc(100vh - 64px); background:var(--cp-bg)!important; color:var(--cp-text);
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+.careerpilot-admin-layout .layout-body,.careerpilot-admin-layout .main-content{background:var(--cp-bg)!important}
+.careerpilot-admin-surface,.careerpilot-admin-surface *{box-sizing:border-box}
+.careerpilot-admin-surface>:where(div,section,article){max-width:100%}
+.careerpilot-admin-surface :where(.page-container,.page-content,.content-wrapper,.admin-page,.management-page,.dashboard-container){padding:24px 28px 48px}
+.careerpilot-admin-surface :where(h1,h2,h3,h4,h5,h6){font-family:Inter,system-ui,sans-serif!important;color:var(--cp-ink)!important}
+.careerpilot-admin-surface h1{font-size:clamp(22px,2vw,28px);font-weight:800;letter-spacing:-.45px}
+.careerpilot-admin-surface h2{font-weight:760;letter-spacing:-.2px}
+.careerpilot-admin-surface :where(.subtitle,.page-subtitle,.description,.text-muted,.muted,.helper-text){color:var(--cp-muted)!important}
+.careerpilot-admin-surface :where(.page-header,.content-header){margin-bottom:20px}
+.careerpilot-admin-surface :where(.toolbar,.action-bar,.filter-bar,.filters-row,.search-bar){gap:10px;border-color:var(--cp-border)!important}
+.careerpilot-admin-surface :where(.card,.panel,.content-card,.section-card,.stat-card,.metric-card,.summary-card,.dashboard-card,.table-card,.filter-card,.form-card,.settings-card,.analytics-card,.report-card,.widget,.form-section,[class$="-card"],[class*="-card "]){border-radius:var(--cp-radius)!important;border-color:var(--cp-border)!important;box-shadow:0 3px 14px rgba(15,46,77,.055)}
+.careerpilot-admin-surface :where(.stat-card,.metric-card,.summary-card,.dashboard-card){background:#fff!important}
+.careerpilot-admin-surface :where(.card-header,.panel-header,.section-header){border-color:var(--cp-border)!important}
+.careerpilot-admin-surface input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),.careerpilot-admin-surface select,.careerpilot-admin-surface textarea,.careerpilot-admin-surface .form-control,.careerpilot-admin-surface .form-select{min-height:40px;border:1px solid #D5E0EA!important;border-radius:10px!important;background:#fff;color:var(--cp-text);box-shadow:none}
+.careerpilot-admin-surface textarea{min-height:88px}
+.careerpilot-admin-surface input:focus,.careerpilot-admin-surface select:focus,.careerpilot-admin-surface textarea:focus,.careerpilot-admin-surface .form-control:focus,.careerpilot-admin-surface .form-select:focus{border-color:#78AFC4!important;box-shadow:0 0 0 3px rgba(0,88,151,.08)!important;outline:none!important}
+.careerpilot-admin-surface input[type=checkbox],.careerpilot-admin-surface input[type=radio]{accent-color:var(--cp-primary)}
+.careerpilot-admin-surface label,.careerpilot-admin-surface .form-label{color:#42556B;font-weight:650}
+.careerpilot-admin-surface button,.careerpilot-admin-surface .btn,.careerpilot-admin-surface [class*="-btn"]{border-radius:9px;font-weight:650}
+.careerpilot-admin-surface :where(.btn-primary,.primary-btn,.primary-button,.save-btn,.submit-btn,.create-btn,.add-btn,.action-primary){background:var(--cp-primary)!important;border-color:var(--cp-primary)!important;color:#fff!important;box-shadow:0 4px 10px rgba(0,88,151,.13)}
+.careerpilot-admin-surface :where(.btn-primary,.primary-btn,.primary-button,.save-btn,.submit-btn,.create-btn,.add-btn,.action-primary):hover:not(:disabled){background:#004B81!important;border-color:#004B81!important}
+.careerpilot-admin-surface :where(.btn-secondary,.secondary-btn,.secondary-button,.btn-outline-primary){background:#fff!important;border-color:#B9CFDE!important;color:var(--cp-primary)!important}
+.careerpilot-admin-surface :where(.btn-danger,.danger-btn,.delete-btn){background:var(--cp-red-bg)!important;border-color:#F2CACA!important;color:var(--cp-red)!important}
+.careerpilot-admin-surface :where(button,a,input,select,textarea):focus-visible{outline:3px solid rgba(25,118,210,.2)!important;outline-offset:2px}
+.careerpilot-admin-surface button:disabled,.careerpilot-admin-surface .btn:disabled{opacity:.58;cursor:not-allowed}
+.careerpilot-admin-surface :where(.table-responsive,.table-wrapper,.table-container,.data-table-wrapper){border-radius:16px!important;overflow-x:auto}
+.careerpilot-admin-surface table{width:100%;border-collapse:collapse;background:#fff}
+.careerpilot-admin-surface table thead th{background:#F7FAFC!important;color:#6B7C90!important;border-color:var(--cp-border)!important;font-size:11px;font-weight:760;letter-spacing:.045em;text-transform:uppercase;white-space:nowrap}
+.careerpilot-admin-surface table tbody td{border-color:#EDF1F5!important;color:#30445A}
+.careerpilot-admin-surface table tbody tr:hover{background:#FBFDFF!important}
+.careerpilot-admin-surface :where(.tabs,.nav-tabs,.tab-list,.tabs-list){border-color:var(--cp-border)!important}
+.careerpilot-admin-surface :where(.nav-tabs .nav-link,.tab,.tab-button,[role=tab]){border-radius:9px;font-weight:650;color:#617389}
+.careerpilot-admin-surface :where(.nav-tabs .nav-link.active,.tab.active,.tab-button.active,[role=tab][aria-selected=true]){color:var(--cp-primary)!important;background:#EAF3FD!important;border-color:#C9DEED!important}
+.careerpilot-admin-surface :where(.badge,.status-badge,.pill,.chip){border-radius:999px;font-weight:700;letter-spacing:.01em}
+.careerpilot-admin-surface :where(.badge-success,.status-active,.status-completed,.success){color:var(--cp-green)!important;background:var(--cp-green-bg)!important}
+.careerpilot-admin-surface :where(.badge-warning,.status-pending,.warning){color:var(--cp-amber)!important;background:var(--cp-amber-bg)!important}
+.careerpilot-admin-surface :where(.badge-danger,.status-error,.status-failed,.danger){color:var(--cp-red)!important;background:var(--cp-red-bg)!important}
+.careerpilot-admin-surface :where(.modal-content,[role=dialog]){border:1px solid var(--cp-border)!important;border-radius:18px!important;box-shadow:0 18px 48px rgba(15,46,77,.14)!important}
+.careerpilot-admin-surface :where(.modal-header,.modal-footer){border-color:var(--cp-border)!important}
+.careerpilot-admin-surface :where(.alert,.notification,.message-box){border-radius:12px;border-width:1px}
+.careerpilot-admin-surface :where(.pagination,.pagination-controls,.pager){gap:5px}
+.careerpilot-admin-surface :where(.pagination button,.page-link,.pager button){min-width:34px;min-height:34px;border-radius:8px!important;border-color:var(--cp-border)!important;color:var(--cp-primary)!important;background:#fff!important}
+.careerpilot-admin-surface :where(.pagination .active .page-link,.page-link.active,.pager button.active){background:var(--cp-primary)!important;color:#fff!important;border-color:var(--cp-primary)!important}
+.careerpilot-admin-surface :where(pre,code,.code-block,.json-viewer,.log-output){font-family:"JetBrains Mono","Cascadia Code",Consolas,monospace}
+.careerpilot-admin-surface pre,.careerpilot-admin-surface :where(.code-block,.json-viewer,.log-output){border-radius:12px;border:1px solid #203659;background:#071B3C;color:#DCE9F7}
+/* CareerPilot-specific information architecture */
+.careerpilot-admin-surface [data-section="careerpilot"],.careerpilot-admin-surface :where(.passport-header,.careerpilot-header){border-left:4px solid var(--cp-teal)}
+.careerpilot-admin-surface :where(.skill-node,.pathway-node,.mission-card,.role-card,.blueprint-card,.evidence-card,.question-card,.company-card){background:#fff;border:1px solid var(--cp-border);border-radius:14px}
+.careerpilot-admin-surface :where(.skill-node,.pathway-node,.mission-card,.role-card,.blueprint-card,.evidence-card):hover{border-color:#B8D6DF;box-shadow:0 8px 24px rgba(5,29,100,.07)}
+.careerpilot-admin-surface :where(.funnel-step,.stage-card,.shape-card,.paper-section){border-radius:14px;border-color:var(--cp-border)!important}
+.careerpilot-admin-surface :where(.progress,.progress-track){height:8px;border-radius:999px;background:#E7EEF5;overflow:hidden}
+.careerpilot-admin-surface :where(.progress-bar,.progress-fill){background:linear-gradient(90deg,var(--cp-primary),var(--cp-teal));border-radius:999px}
+.careerpilot-admin-surface :where(.empty-state,.no-data,.no-results){padding:40px 24px;text-align:center;color:var(--cp-muted)}
+.careerpilot-admin-surface :where(.spinner-border,.loader,.loading-spinner){color:var(--cp-primary)}
+@media(max-width:1024px){.careerpilot-admin-surface :where(.page-container,.page-content,.content-wrapper,.admin-page,.management-page,.dashboard-container){padding:20px 20px 40px}.careerpilot-admin-surface :where(.stats-grid,.metrics-grid,.summary-grid){grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:768px){.careerpilot-admin-surface :where(.page-container,.page-content,.content-wrapper,.admin-page,.management-page,.dashboard-container){padding:16px 14px 32px}.careerpilot-admin-surface :where(.page-header,.content-header,.toolbar,.action-bar,.filters-row){flex-wrap:wrap}.careerpilot-admin-surface :where(.stats-grid,.metrics-grid,.summary-grid,.form-grid){grid-template-columns:1fr!important}.careerpilot-admin-surface table{min-width:680px}.careerpilot-admin-surface :where(.modal-dialog){margin:10px}}
+@media(max-width:480px){.careerpilot-admin-surface h1{font-size:21px}.careerpilot-admin-surface :where(.btn,button){max-width:100%}}
+@media(prefers-reduced-motion:reduce){.careerpilot-admin-surface *{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}

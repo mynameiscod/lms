@@ -1,0 +1,22 @@
+/* Screen #3 — Learning Plan Day View
+   Route-scoped through :has() so the existing feature-rich DayView keeps its
+   API/interaction logic while inheriting the CodeBegun student design system. */
+:root {
+  --cb-navy: #051d64;
+  --cb-teal: #359aad;
+  --cb-ink: #10224f;
+  --cb-muted: #66789b;
+  --cb-line: #e3eaf3;
+  --cb-surface: #ffffff;
+  --cb-bg: #f6f9fc;
+}
+
+/* Modernise the learning-day content surface without changing functional states. */
+main:has(a[href="/my-learning"]),
+main:has(button) {
+  --bs-primary: var(--cb-navy);
+}
+
+@media (max-width: 768px) {
+  main:has(a[href="/my-learning"]) { padding-inline: 12px; }
+}

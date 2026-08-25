@@ -1,0 +1,589 @@
+/*
+ * CodeBegun Admin Core
+ * ---------------------------------------------------------------------------
+ * One role-scoped design layer for every LMS administration surface. The scope
+ * is attached by Layout.tsx for non-student users and deliberately excludes the
+ * separate CareerPilot admin product.
+ *
+ * System language
+ *   Brand navy   #051D64
+ *   Brand teal   #359AAD
+ *   LMS primary  #005897
+ *   Action blue  #1976D2
+ *   Canvas       #F4F8FC
+ *   Card         #FFFFFF
+ *   Ink          #102A4F
+ *   Muted        #64748B
+ *   Border       #E3EAF1
+ */
+
+.admin-core-surface {
+  --cb-admin-navy: #051d64;
+  --cb-admin-navy-2: #0b2d72;
+  --cb-admin-teal: #359aad;
+  --cb-admin-primary: #005897;
+  --cb-admin-blue: #1976d2;
+  --cb-admin-bg: #f4f8fc;
+  --cb-admin-card: #ffffff;
+  --cb-admin-heading: #102a4f;
+  --cb-admin-text: #24364b;
+  --cb-admin-muted: #64748b;
+  --cb-admin-muted-2: #8b99aa;
+  --cb-admin-border: #e3eaf1;
+  --cb-admin-border-strong: #d5e0ea;
+  --cb-admin-green: #17885d;
+  --cb-admin-green-soft: #eaf8f1;
+  --cb-admin-amber: #c87808;
+  --cb-admin-amber-soft: #fff6e5;
+  --cb-admin-red: #c93737;
+  --cb-admin-red-soft: #fff0f0;
+  --cb-admin-blue-soft: #eaf3fd;
+  --cb-admin-radius: 16px;
+  --cb-admin-radius-sm: 10px;
+  --cb-admin-shadow: 0 3px 14px rgba(15, 46, 77, 0.055);
+  --cb-admin-shadow-lg: 0 18px 48px rgba(15, 46, 77, 0.14);
+
+  min-width: 0;
+  min-height: calc(100vh - 64px);
+  background: var(--cb-admin-bg) !important;
+  color: var(--cb-admin-text);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.admin-core-layout .layout-body,
+.admin-core-layout .main-content {
+  background: var(--cb-admin-bg) !important;
+}
+
+.admin-core-surface,
+.admin-core-surface * {
+  box-sizing: border-box;
+}
+
+.admin-core-surface > * {
+  min-width: 0;
+}
+
+/* ── Page rhythm ────────────────────────────────────────────────────────── */
+.admin-core-surface > :where(div, section, article):not(.modal):not([role="dialog"]) {
+  max-width: 100%;
+}
+
+.admin-core-surface :where(.page-container, .page-content, .content-wrapper, .dashboard-container, .admin-page, .management-page, .reports-page) {
+  padding: 24px 28px 48px;
+}
+
+.admin-core-surface :where(.container, .container-fluid) {
+  max-width: 100%;
+}
+
+/* ── Typography ─────────────────────────────────────────────────────────── */
+.admin-core-surface h1,
+.admin-core-surface h2,
+.admin-core-surface h3,
+.admin-core-surface h4,
+.admin-core-surface h5,
+.admin-core-surface h6 {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  color: var(--cb-admin-heading) !important;
+}
+
+.admin-core-surface h1 {
+  font-size: clamp(22px, 2vw, 28px);
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.45px;
+}
+
+.admin-core-surface h2 {
+  font-weight: 760;
+  letter-spacing: -0.2px;
+}
+
+.admin-core-surface p,
+.admin-core-surface label,
+.admin-core-surface small,
+.admin-core-surface span,
+.admin-core-surface li,
+.admin-core-surface td,
+.admin-core-surface th,
+.admin-core-surface input,
+.admin-core-surface select,
+.admin-core-surface textarea,
+.admin-core-surface button {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.admin-core-surface :where(.page-subtitle, .subtitle, .text-muted, .muted, .description, .helper-text) {
+  color: var(--cb-admin-muted) !important;
+}
+
+/* ── Header / toolbar treatment ─────────────────────────────────────────── */
+.admin-core-surface :where(.page-header, .content-header, .section-header, .toolbar, .action-bar, .filter-bar, .filters-row, .search-bar) {
+  border-color: var(--cb-admin-border) !important;
+}
+
+.admin-core-surface :where(.page-header, .content-header) {
+  margin-bottom: 20px;
+}
+
+.admin-core-surface :where(.toolbar, .action-bar, .filter-bar, .filters-row) {
+  gap: 10px;
+}
+
+/* ── Cards / panels ─────────────────────────────────────────────────────── */
+.admin-core-surface :where(
+  .card,
+  .panel,
+  .content-card,
+  .section-card,
+  .stat-card,
+  .metric-card,
+  .summary-card,
+  .dashboard-card,
+  .table-card,
+  .filter-card,
+  .form-card,
+  .settings-card,
+  .report-card,
+  .analytics-card,
+  .widget,
+  .empty-state,
+  .form-section,
+  [class$="-card"],
+  [class*="-card "],
+  [class$="Card"],
+  [class*="Card "]
+) {
+  border-radius: var(--cb-admin-radius) !important;
+}
+
+.admin-core-surface :where(
+  .card,
+  .panel,
+  .content-card,
+  .section-card,
+  .stat-card,
+  .metric-card,
+  .summary-card,
+  .dashboard-card,
+  .table-card,
+  .filter-card,
+  .form-card,
+  .settings-card,
+  .report-card,
+  .analytics-card,
+  .widget,
+  .form-section
+) {
+  border-color: var(--cb-admin-border) !important;
+  box-shadow: var(--cb-admin-shadow);
+}
+
+.admin-core-surface :where(.stat-card, .metric-card, .summary-card, .dashboard-card) {
+  background: var(--cb-admin-card) !important;
+}
+
+.admin-core-surface :where(.card-header, .panel-header, .section-header) {
+  border-color: var(--cb-admin-border) !important;
+}
+
+/* ── Forms ──────────────────────────────────────────────────────────────── */
+.admin-core-surface input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+.admin-core-surface select,
+.admin-core-surface textarea,
+.admin-core-surface .form-control,
+.admin-core-surface .form-select {
+  min-height: 40px;
+  border: 1px solid var(--cb-admin-border-strong) !important;
+  border-radius: var(--cb-admin-radius-sm) !important;
+  background: #fff;
+  color: var(--cb-admin-text);
+  box-shadow: none;
+}
+
+.admin-core-surface textarea {
+  min-height: 88px;
+}
+
+.admin-core-surface input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+.admin-core-surface select:focus,
+.admin-core-surface textarea:focus,
+.admin-core-surface .form-control:focus,
+.admin-core-surface .form-select:focus {
+  border-color: #78afc4 !important;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.08) !important;
+  outline: none !important;
+}
+
+.admin-core-surface input[type="checkbox"],
+.admin-core-surface input[type="radio"] {
+  accent-color: var(--cb-admin-primary);
+}
+
+.admin-core-surface label,
+.admin-core-surface .form-label {
+  color: #42556b;
+  font-weight: 650;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.admin-core-surface button,
+.admin-core-surface .btn,
+.admin-core-surface [class*="-btn"],
+.admin-core-surface [class$="Button"] {
+  border-radius: 9px;
+  font-weight: 650;
+}
+
+.admin-core-surface :where(
+  .btn-primary,
+  .primary-btn,
+  .primary-button,
+  .save-btn,
+  .submit-btn,
+  .create-btn,
+  .add-btn,
+  .action-primary
+) {
+  background: var(--cb-admin-primary) !important;
+  border-color: var(--cb-admin-primary) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 10px rgba(0, 88, 151, 0.13);
+}
+
+.admin-core-surface :where(.btn-primary, .primary-btn, .primary-button, .save-btn, .submit-btn, .create-btn, .add-btn, .action-primary):hover:not(:disabled) {
+  background: #004b81 !important;
+  border-color: #004b81 !important;
+}
+
+.admin-core-surface :where(.btn-secondary, .secondary-btn, .secondary-button, .btn-outline-primary) {
+  background: #fff !important;
+  border-color: #b9cfde !important;
+  color: var(--cb-admin-primary) !important;
+}
+
+.admin-core-surface :where(.btn-danger, .danger-btn, .delete-btn) {
+  background: var(--cb-admin-red-soft) !important;
+  border-color: #f2caca !important;
+  color: var(--cb-admin-red) !important;
+}
+
+.admin-core-surface button:focus-visible,
+.admin-core-surface a:focus-visible,
+.admin-core-surface input:focus-visible,
+.admin-core-surface select:focus-visible,
+.admin-core-surface textarea:focus-visible {
+  outline: 3px solid rgba(25, 118, 210, 0.2) !important;
+  outline-offset: 2px;
+}
+
+.admin-core-surface button:disabled,
+.admin-core-surface .btn:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+/* ── Tables ─────────────────────────────────────────────────────────────── */
+.admin-core-surface .table-responsive,
+.admin-core-surface :where(.table-wrapper, .table-container, .data-table-wrapper) {
+  border-radius: var(--cb-admin-radius) !important;
+  overflow-x: auto;
+}
+
+.admin-core-surface table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.admin-core-surface table thead th {
+  background: #f7fafc !important;
+  color: #6b7c90 !important;
+  border-color: var(--cb-admin-border) !important;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 760;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-core-surface table tbody td {
+  border-color: #edf1f5 !important;
+  color: #30445a;
+}
+
+.admin-core-surface table tbody tr:hover {
+  background: #fbfdff !important;
+}
+
+.admin-core-surface table :where(.actions, .action-cell, .table-actions) {
+  white-space: nowrap;
+}
+
+/* ── Tabs / pills / badges ──────────────────────────────────────────────── */
+.admin-core-surface :where(.tabs, .nav-tabs, .tab-list, .tabs-list) {
+  border-color: var(--cb-admin-border) !important;
+}
+
+.admin-core-surface :where(.tab, .nav-link, .tab-button) {
+  border-radius: 8px 8px 0 0;
+}
+
+.admin-core-surface :where(.tab.active, .nav-link.active, .tab-button.active) {
+  color: var(--cb-admin-primary) !important;
+  border-color: var(--cb-admin-teal) !important;
+}
+
+.admin-core-surface :where(.badge, .chip, .pill, .status-badge, [class*="badge"]) {
+  border-radius: 999px !important;
+  font-weight: 700;
+}
+
+.admin-core-surface :where([class*="success"], [class*="active"], [class*="completed"], [class*="approved"]) {
+  --admin-status-color: var(--cb-admin-green);
+}
+.admin-core-surface :where([class*="pending"], [class*="warning"], [class*="scheduled"]) {
+  --admin-status-color: var(--cb-admin-amber);
+}
+.admin-core-surface :where([class*="danger"], [class*="error"], [class*="failed"], [class*="rejected"], [class*="overdue"]) {
+  --admin-status-color: var(--cb-admin-red);
+}
+
+/* ── Modals / drawers ───────────────────────────────────────────────────── */
+.admin-core-surface :where(.modal-content, .dialog, .drawer, .side-panel, [role="dialog"]) {
+  border-radius: 18px !important;
+  border-color: var(--cb-admin-border) !important;
+  box-shadow: var(--cb-admin-shadow-lg) !important;
+}
+
+.admin-core-surface :where(.modal-header, .modal-footer, .dialog-header, .dialog-footer, .drawer-header) {
+  border-color: var(--cb-admin-border) !important;
+}
+
+.admin-core-surface :where(.modal-backdrop, .overlay, .dialog-overlay) {
+  backdrop-filter: blur(2px);
+}
+
+/* ── Empty / loading / error states ─────────────────────────────────────── */
+.admin-core-surface :where(.empty-state, .no-data, .no-results) {
+  background: #fff;
+  border: 1px dashed #cad7e2 !important;
+  color: var(--cb-admin-muted) !important;
+}
+
+.admin-core-surface :where(.error-message, .alert-danger, .error-state) {
+  background: var(--cb-admin-red-soft) !important;
+  border-color: #f2caca !important;
+  color: #a32d2d !important;
+}
+
+.admin-core-surface :where(.success-message, .alert-success, .success-state) {
+  background: var(--cb-admin-green-soft) !important;
+  border-color: #ccebdc !important;
+  color: #166d4d !important;
+}
+
+.admin-core-surface :where(.warning-message, .alert-warning, .warning-state) {
+  background: var(--cb-admin-amber-soft) !important;
+  border-color: #f5dfae !important;
+  color: #9a5c08 !important;
+}
+
+/* ── Charts / metrics ───────────────────────────────────────────────────── */
+.admin-core-surface :where(.recharts-cartesian-grid line, .chart-grid line) {
+  stroke: #e9eef4;
+}
+
+.admin-core-surface :where(.metric-value, .stat-value, .kpi-value) {
+  color: var(--cb-admin-heading) !important;
+  font-weight: 800;
+}
+
+/* ── Code / JSON / diagnostic surfaces ─────────────────────────────────── */
+.admin-core-surface :where(pre, code, .monaco-editor, .code-block, .json-viewer, .log-output) {
+  font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace !important;
+}
+
+.admin-core-surface :where(pre, .code-block, .json-viewer, .log-output) {
+  border-radius: 12px !important;
+}
+
+/* ── Admin navigation shell ─────────────────────────────────────────────── */
+.admin-core-layout .sidebar-link.active,
+.admin-core-layout .submenu-link.active {
+  background: var(--cb-admin-teal) !important;
+}
+
+.admin-core-layout .nav-section-label {
+  color: #a8b7d0;
+}
+
+.admin-core-layout .sidebar-link,
+.admin-core-layout .sidebar-group-button {
+  letter-spacing: 0.005em;
+}
+
+/* ── Route families: tuned spacing without touching business logic ─────── */
+.admin-core-surface[data-admin-core-route^="users"],
+.admin-core-surface[data-admin-core-route^="batches"],
+.admin-core-surface[data-admin-core-route^="fees"],
+.admin-core-surface[data-admin-core-route^="roles"],
+.admin-core-surface[data-admin-core-route^="student-features"],
+.admin-core-surface[data-admin-core-route^="attendance"],
+.admin-core-surface[data-admin-core-route^="quiz"],
+.admin-core-surface[data-admin-core-route^="question"],
+.admin-core-surface[data-admin-core-route^="admin-assignments"],
+.admin-core-surface[data-admin-core-route^="admin-coding-snippets"],
+.admin-core-surface[data-admin-core-route^="admin-college"],
+.admin-core-surface[data-admin-core-route^="learning-library"],
+.admin-core-surface[data-admin-core-route^="curriculum-builder"],
+.admin-core-surface[data-admin-core-route^="enrollment-plans"],
+.admin-core-surface[data-admin-core-route^="batch-offerings"],
+.admin-core-surface[data-admin-core-route^="weekly-reports"] {
+  padding-bottom: 40px;
+}
+
+/* Users / student detail */
+.admin-core-surface[data-admin-core-route^="users"] :where(.user-card, .student-card, .profile-card, .detail-card) {
+  background: #fff !important;
+  border: 1px solid var(--cb-admin-border) !important;
+  border-radius: 16px !important;
+}
+
+/* Attendance */
+.admin-core-surface[data-admin-core-route^="attendance"] :where(.present, .status-present) {
+  color: var(--cb-admin-green) !important;
+}
+.admin-core-surface[data-admin-core-route^="attendance"] :where(.absent, .status-absent) {
+  color: var(--cb-admin-red) !important;
+}
+
+/* Quizzes / question bank */
+.admin-core-surface:is([data-admin-core-route^="quiz"], [data-admin-core-route^="question"]) :where(.question-card, .quiz-card) {
+  border-left: 3px solid rgba(0, 88, 151, 0.28) !important;
+}
+
+/* Assignment / coding grading */
+.admin-core-surface:is([data-admin-core-route^="admin-assignments"], [data-admin-core-route^="admin-coding-snippets"]) :where(.score, .grade, .points) {
+  color: var(--cb-admin-primary) !important;
+  font-weight: 800;
+}
+
+/* College admin */
+.admin-core-surface[data-admin-core-route^="admin-college"] :where(.department-card, .drive-card, .alumni-card, .member-card) {
+  background: #fff !important;
+  border: 1px solid var(--cb-admin-border) !important;
+}
+
+/* Learning plan admin */
+.admin-core-surface:is([data-admin-core-route^="learning-library"], [data-admin-core-route^="curriculum-builder"], [data-admin-core-route^="enrollment-plans"], [data-admin-core-route^="batch-offerings"]) :where(.step, .node, .lesson-card, .curriculum-card) {
+  border-color: var(--cb-admin-border) !important;
+}
+
+/* Interviews */
+.admin-core-surface:is([data-admin-core-route^="admin-interviews"], [data-admin-core-route^="scheduled-interviews"], [data-admin-core-route^="interview-question-bank"]) :where(.interview-card, .template-card, .question-card) {
+  background: #fff !important;
+  border-color: var(--cb-admin-border) !important;
+}
+
+/* Labs / resources */
+.admin-core-surface:is([data-admin-core-route^="admin-communication-lab"], [data-admin-core-route^="admin-thinking-lab"], [data-admin-core-route^="lab-tracks"], [data-admin-core-route^="admin-resources"], [data-admin-core-route^="admin-speaking-tasks"]) :where(.task-card, .resource-card, .track-card, .prompt-card) {
+  background: #fff !important;
+  border-color: var(--cb-admin-border) !important;
+}
+
+/* CRM / Leads admin */
+.admin-core-surface:is(
+  [data-admin-core-route^="leads"],
+  [data-admin-core-route^="lead-"],
+  [data-admin-core-route^="follow-ups"],
+  [data-admin-core-route^="seat-reservations"],
+  [data-admin-core-route^="meetings"],
+  [data-admin-core-route^="sales-content"],
+  [data-admin-core-route^="qualification-settings"],
+  [data-admin-core-route^="google-sheet-integration"],
+  [data-admin-core-route^="ai-call-config"]
+) :where(.lead-card, .pipeline-card, .activity-card, .kanban-column, .meeting-card) {
+  border-color: var(--cb-admin-border) !important;
+  border-radius: 14px !important;
+}
+
+/* System / logs / diagnostics */
+.admin-core-surface:is([data-admin-core-route^="admin-logs"], [data-admin-core-route^="admin-recording-diagnostics"], [data-admin-core-route^="admin-platform-settings"], [data-admin-core-route^="admin-ai-spend"]) :where(pre, .log-row, .diagnostic-card, .setting-card) {
+  border-color: var(--cb-admin-border) !important;
+}
+
+/* Tech Battles admin */
+.admin-core-surface[data-admin-core-route^="admin-battles"] :where(.battle-card, .metric-card, .result-card) {
+  border-color: var(--cb-admin-border) !important;
+}
+
+/* ── Responsive system ──────────────────────────────────────────────────── */
+@media (max-width: 1180px) {
+  .admin-core-surface :where(.page-container, .page-content, .content-wrapper, .dashboard-container, .admin-page, .management-page, .reports-page) {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+
+  .admin-core-surface :where(.stats-grid, .metrics-grid, .kpi-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-core-surface {
+    min-height: calc(100vh - 56px);
+  }
+
+  .admin-core-surface :where(.page-container, .page-content, .content-wrapper, .dashboard-container, .admin-page, .management-page, .reports-page) {
+    padding: 18px 14px 36px;
+  }
+
+  .admin-core-surface :where(.page-header, .content-header, .toolbar, .action-bar, .filter-bar, .filters-row) {
+    flex-wrap: wrap !important;
+    align-items: stretch !important;
+  }
+
+  .admin-core-surface :where(.stats-grid, .metrics-grid, .kpi-grid) {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-core-surface :where(.toolbar, .action-bar, .filter-bar, .filters-row) > :where(input, select, button, .btn) {
+    max-width: 100%;
+  }
+
+  .admin-core-surface table {
+    min-width: 680px;
+  }
+
+  .admin-core-surface :where(.modal-content, .dialog, .drawer, [role="dialog"]) {
+    max-width: calc(100vw - 24px) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-core-surface h1 {
+    font-size: 21px;
+  }
+
+  .admin-core-surface :where(.page-container, .page-content, .content-wrapper, .dashboard-container, .admin-page, .management-page, .reports-page) {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .admin-core-surface :where(.btn, button) {
+    min-height: 38px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-core-surface *,
+  .admin-core-layout .sidebar * {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

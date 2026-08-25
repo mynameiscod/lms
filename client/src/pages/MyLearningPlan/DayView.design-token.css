@@ -1,0 +1,7 @@
+/* Reserved component-level tokens for the Learning Plan Day View migration. */
+.learning-day-system {
+  --learning-day-primary: #051d64;
+  --learning-day-secondary: #359aad;
+  --learning-day-radius: 14px;
+  --learning-day-border: #e3eaf3;
+}

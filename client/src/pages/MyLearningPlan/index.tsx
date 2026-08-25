@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,158 +8,75 @@ function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
-const tileColors = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
-const tileColor = (s: string) => tileColors[(s?.charCodeAt(0) || 0) % tileColors.length];
-
 export default function MyLearningPlan() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const firstName = (user as any)?.firstName || 'there';
-
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    enrollmentPlanApi.getMyEnrollments()
-      .then(setEnrollments)
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    enrollmentPlanApi.getMyEnrollments().then(setEnrollments).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
-    return (
-      <div className="lp-page">
-        <div className="lp-loading"><div className="lp-spinner" /></div>
-      </div>
-    );
+  if (loading) return <div className="lp-page"><div className="lp-loading"><div className="lp-spinner" /></div></div>;
+
+  if (!enrollments.length) {
+    return <div className="lp-page"><header className="lp-page-head"><div><span className="lp-eyebrow">LEARNING JOURNEY</span><h1>My Learning Plan</h1><p>Your personalized plan to learn, practice and grow every day.</p></div></header><div className="lp-empty"><div className="lp-empty-icon"><i className="bi bi-mortarboard" /></div><h3>No active learning plan yet</h3><p>Your instructor will enroll you in a curriculum. Once assigned, your daily journey will appear here.</p></div></div>;
   }
 
   return (
     <div className="lp-page">
-      <div className="lp-header">
-        <div>
-          <h1 className="lp-title">My Learning Plans</h1>
-          <p className="lp-subtitle">Your enrolled curricula and daily learning plans.</p>
-        </div>
-      </div>
+      <header className="lp-page-head">
+        <div><span className="lp-eyebrow">LEARNING JOURNEY</span><h1>My Learning Plan</h1><p>Your personalized plan to help you learn, practice and grow every day.</p></div>
+        <div className="lp-head-message"><i className="bi bi-stars" /><span>Keep going, <strong>{firstName}</strong>!</span></div>
+      </header>
 
-      {enrollments.length === 0 ? (
-        <div className="lp-empty">
-          <div className="lp-empty-ic"><i className="fa-solid fa-graduation-cap" /></div>
-          <h3>No active learning plans</h3>
-          <p>Your instructor will enroll you in a curriculum. Check back soon!</p>
-        </div>
-      ) : (
-        <div className="lp-list">
-          {enrollments.map((e: any) => {
-            const today = e.todayPlanDay;
-            const totalDays = e.totalDays || 145;
-            const pct = e.progressPct || 0;
-            const doneCount = e.completedDays?.length || 0;
-            const daysLeft = today ? totalDays - today : null;
-            const itemCount = e.todayPlan?.items?.length || 0;
-            const estMins = itemCount > 0
-              ? e.todayPlan.items.reduce((sum: number, i: any) => sum + (i.estimatedDuration || 0), 0)
-              : 0;
-            const initial = (e.curriculumTitle?.[0] || '📘').toUpperCase();
+      <div className="lp-list">
+        {enrollments.map((e: any) => {
+          const today = e.todayPlanDay;
+          const totalDays = e.totalDays || 145;
+          const pct = Math.max(0, Math.min(100, e.progressPct || 0));
+          const doneCount = e.completedDays?.length || 0;
+          const daysLeft = today ? Math.max(0, totalDays - today) : totalDays;
+          const items = e.todayPlan?.items || [];
+          const estMins = items.reduce((sum: number, i: any) => sum + (i.estimatedDuration || 0), 0);
 
-            return (
-              <div key={e._id} className="lp-card">
-                {/* progress strip */}
-                <div className="lp-progress-strip"><div className="lp-progress-fill" style={{ width: `${pct}%` }} /></div>
-
-                <div className="lp-card-body">
-                  {/* Top: identity + motivational panel */}
-                  <div className="lp-top">
-                    <div className="lp-identity">
-                      <div className="lp-tile" style={{ background: tileColor(e.curriculumTitle || '') }}>{initial}</div>
-                      <div className="lp-identity-text">
-                        <h2 className="lp-plan-title">{e.curriculumTitle}</h2>
-                        <div className="lp-plan-sub">
-                          <span className={`lp-status ${e.status === 'active' ? 'active' : ''}`}>
-                            {e.status === 'active' ? '● Active' : e.status}
-                          </span>
-                          <span className="lp-started">Started on {fmtDate(e.startDate)}</span>
-                          {e.batchName && <span className="lp-batch">· {e.batchName}</span>}
-                        </div>
-
-                        {/* Stat row */}
-                        <div className="lp-stats">
-                          <div className="lp-stat">
-                            <div className="lp-stat-val">{today || '—'}</div>
-                            <div className="lp-stat-label">Today's Day</div>
-                          </div>
-                          <div className="lp-stat">
-                            <div className="lp-stat-val green">{doneCount}</div>
-                            <div className="lp-stat-label">Days Completed</div>
-                          </div>
-                          <div className="lp-stat">
-                            <div className="lp-stat-val muted">{totalDays}</div>
-                            <div className="lp-stat-label">Total Days</div>
-                          </div>
-                          <div className="lp-stat">
-                            <div className="lp-stat-val blue">{pct}%</div>
-                            <div className="lp-stat-label">Progress</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="lp-motivate">
-                      <div className="lp-motivate-text">
-                        <div className="lp-motivate-title">Keep going, {firstName}! 🚀</div>
-                        <div className="lp-motivate-sub">Consistency today, mastery tomorrow.</div>
-                      </div>
-                      <div className="lp-motivate-art">🏆</div>
-                    </div>
-                  </div>
-
-                  {/* Today notice */}
-                  {itemCount > 0 ? (
-                    <div className="lp-notice info">
-                      <span className="lp-notice-ic">📅</span>
-                      <span>
-                        <strong>Today's Plan — Day {today}:</strong> {itemCount} content item{itemCount !== 1 ? 's' : ''} assigned
-                        {estMins > 0 && <span className="lp-notice-est"> · {estMins}m estimated</span>}
-                      </span>
-                    </div>
-                  ) : today ? (
-                    <div className="lp-notice warn">
-                      <span className="lp-notice-ic">📅</span>
-                      <span>No content assigned for Day {today} yet.</span>
-                    </div>
-                  ) : null}
-
-                  {/* Actions */}
-                  <div className="lp-actions">
-                    <div className="lp-actions-left">
-                      <button className="lp-btn primary" onClick={() => navigate(`/my-learning/${e._id}/journey`)}>
-                        🗺️ My Journey
-                      </button>
-                      {today && (
-                        <button className="lp-btn primary" onClick={() => navigate(`/my-learning/${e._id}/day/${today}`)}>
-                          📅 Go to Today (Day {today})
-                        </button>
-                      )}
-                      {doneCount > 0 && (
-                        <button className="lp-btn outline" onClick={() => navigate(`/my-learning/${e._id}/day/${Math.min(e.currentDay, totalDays)}`)}>
-                          Continue from Day {Math.min(e.currentDay, totalDays)}
-                        </button>
-                      )}
-                      <button className="lp-btn outline" onClick={() => navigate(`/my-learning/${e._id}/day/1`)}>
-                        📋 View from Day 1
-                      </button>
-                    </div>
-                    {daysLeft !== null && daysLeft > 0 && (
-                      <div className="lp-daysleft">📅 {daysLeft} weekdays remaining</div>
-                    )}
-                  </div>
-                </div>
+          return <section className="lp-plan" key={e._id}>
+            <div className="lp-plan-hero">
+              <div className="lp-plan-copy">
+                <div className="lp-plan-meta"><span className="lp-active"><i className="bi bi-check-circle-fill" /> Active Plan</span>{e.batchName && <span>{e.batchName}</span>}<span>Started {fmtDate(e.startDate)}</span></div>
+                <h2>{e.curriculumTitle}</h2>
+                <p>Stay consistent and move forward one focused day at a time.</p>
+                <div className="lp-hero-actions"><button className="lp-btn primary" onClick={() => navigate(`/my-learning/${e._id}/journey`)}><i className="bi bi-map" /> View My Journey</button>{today && <button className="lp-btn secondary" onClick={() => navigate(`/my-learning/${e._id}/day/${today}`)}><i className="bi bi-play-circle" /> Continue Day {today}</button>}</div>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div className="lp-progress-ring" style={{ '--progress': `${pct * 3.6}deg` } as React.CSSProperties}><div><strong>{pct}%</strong><span>Complete</span></div></div>
+            </div>
+
+            <div className="lp-metrics">
+              <article><span className="lp-metric-icon teal"><i className="bi bi-calendar-check" /></span><div><small>Today's Day</small><strong>{today || '—'} <em>/ {totalDays}</em></strong></div></article>
+              <article><span className="lp-metric-icon green"><i className="bi bi-check2-circle" /></span><div><small>Days Completed</small><strong>{doneCount}</strong></div></article>
+              <article><span className="lp-metric-icon orange"><i className="bi bi-hourglass-split" /></span><div><small>Days Remaining</small><strong>{daysLeft}</strong></div></article>
+              <article><span className="lp-metric-icon blue"><i className="bi bi-clock" /></span><div><small>Today's Study</small><strong>{estMins ? `${estMins} min` : 'Not set'}</strong></div></article>
+            </div>
+
+            <div className="lp-content-grid">
+              <div className="lp-today-card">
+                <div className="lp-section-head"><div><span className="lp-section-kicker">TODAY</span><h3>{today ? `Day ${today} Learning Plan` : 'Today’s Learning Plan'}</h3></div><span className="lp-count">{items.length} {items.length === 1 ? 'activity' : 'activities'}</span></div>
+                {items.length ? <div className="lp-activities">{items.map((item: any, idx: number) => <div className="lp-activity" key={item._id || idx}><span className={`lp-step ${idx === 0 ? 'current' : ''}`}>{idx + 1}</span><div className="lp-activity-copy"><strong>{item.title || item.contentTitle || item.name || `Learning activity ${idx + 1}`}</strong><span>{item.estimatedDuration ? `${item.estimatedDuration} min` : 'Learning activity'}{item.type ? ` · ${item.type}` : ''}</span></div>{today && <button onClick={() => navigate(`/my-learning/${e._id}/day/${today}`)}>{idx === 0 ? 'Continue' : 'Open'} <i className="bi bi-arrow-right" /></button>}</div>)}</div> : <div className="lp-no-items"><i className="bi bi-calendar2-week" /><div><strong>No content assigned for this day yet</strong><span>Check back after your instructor updates the plan.</span></div></div>}
+                {today && <button className="lp-full-plan" onClick={() => navigate(`/my-learning/${e._id}/day/${today}`)}>View full day plan <i className="bi bi-arrow-right" /></button>}
+              </div>
+
+              <aside className="lp-side-stack">
+                <div className="lp-side-card"><div className="lp-side-title"><i className="bi bi-bullseye" /> Journey Progress</div><div className="lp-progress-row"><span>Course completion</span><strong>{pct}%</strong></div><div className="lp-bar"><span style={{ width: `${pct}%` }} /></div><div className="lp-progress-row muted"><span>{doneCount} days completed</span><span>{daysLeft} remaining</span></div></div>
+                <div className="lp-side-card motivation"><i className="bi bi-rocket-takeoff" /><div><strong>Consistency is the key to success!</strong><p>Small steps every day build a stronger future. Keep your learning streak alive.</p></div></div>
+                <div className="lp-side-card quick"><div className="lp-side-title">Quick actions</div><button onClick={() => navigate(`/my-learning/${e._id}/journey`)}><i className="bi bi-signpost-split" /> My Journey <i className="bi bi-chevron-right" /></button><button onClick={() => navigate(`/my-learning/${e._id}/day/1`)}><i className="bi bi-calendar3" /> View from Day 1 <i className="bi bi-chevron-right" /></button>{doneCount > 0 && <button onClick={() => navigate(`/my-learning/${e._id}/day/${Math.min(e.currentDay || today || 1, totalDays)}`)}><i className="bi bi-arrow-repeat" /> Resume Learning <i className="bi bi-chevron-right" /></button>}</div>
+              </aside>
+            </div>
+          </section>;
+        })}
+      </div>
+      <div className="lp-footer-note"><i className="bi bi-stars" /> Stay consistent and trust the process. Small steps every day lead to big results!</div>
     </div>
   );
 }

@@ -1,0 +1,420 @@
+/* CodeBegun Student Core — Screen 11: Assignment Workspace / Attempt
+   Scoped overrides only. Existing assignment APIs and behavior remain unchanged. */
+
+.workspace-container {
+  --cb-primary: #005897;
+  --cb-secondary: #1976d2;
+  --cb-bg: #f4f8fc;
+  --cb-text: #1e293b;
+  --cb-muted: #64748b;
+  --cb-border: #e4eaf1;
+  --cb-green: #16a36a;
+  --cb-red: #dc2626;
+  --cb-amber: #f59e0b;
+  width: 100%;
+  height: calc(100vh - 76px);
+  min-height: 680px;
+  background: var(--cb-bg);
+  color: var(--cb-text);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-container * { box-sizing: border-box; }
+
+.workspace-header {
+  min-height: 88px;
+  padding: 14px 18px !important;
+  background: #fff !important;
+  border-bottom: 1px solid var(--cb-border) !important;
+  box-shadow: 0 2px 10px rgba(19, 54, 83, .035);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.workspace-header h2 {
+  color: #0c2d60 !important;
+  font-size: 19px !important;
+  font-weight: 800 !important;
+  letter-spacing: -.2px;
+}
+
+.workspace-header > div:first-child > button {
+  background: #fff !important;
+  color: var(--cb-primary) !important;
+  border: 1px solid #cfe0e9 !important;
+  border-radius: 9px !important;
+  box-shadow: none !important;
+}
+
+.workspace-header > div:first-child > div > span {
+  color: var(--cb-muted) !important;
+  font-size: 12px !important;
+}
+
+.workspace-header > div:last-child {
+  gap: 8px !important;
+}
+
+.workspace-header > div:last-child > div {
+  background: #fff8ed !important;
+  color: #c76c08 !important;
+  border: 1px solid #f3d6ad !important;
+  border-radius: 9px !important;
+  box-shadow: none !important;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+  font-size: 12px !important;
+}
+
+.workspace-header > div:last-child > span {
+  color: #6d7b8d !important;
+}
+
+.workspace-header .btn {
+  min-height: 36px;
+  padding: 8px 13px !important;
+  border-radius: 9px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+.workspace-header .btn:nth-last-child(3) {
+  background: #fff !important;
+  color: var(--cb-primary) !important;
+  border: 1px solid #cbdde7 !important;
+}
+
+.workspace-header .btn:nth-last-child(2) {
+  background: #0d9b64 !important;
+  color: #fff !important;
+  border: 1px solid #0d9b64 !important;
+}
+
+.workspace-header .btn:last-child {
+  background: linear-gradient(135deg, var(--cb-secondary), #0867c9) !important;
+  color: #fff !important;
+  border: 1px solid var(--cb-secondary) !important;
+  box-shadow: 0 5px 14px rgba(25, 118, 210, .18) !important;
+}
+
+.workspace-container > .alert {
+  margin: 10px 16px 0 !important;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.workspace-layout {
+  flex: 1;
+  min-height: 0;
+  display: grid !important;
+  grid-template-columns: minmax(330px, .78fr) minmax(560px, 1.42fr) !important;
+  gap: 14px !important;
+  padding: 14px 16px 16px !important;
+  background: var(--cb-bg) !important;
+  overflow: hidden;
+}
+
+.workspace-problem,
+.workspace-editor {
+  min-width: 0;
+  min-height: 0;
+  background: #fff !important;
+  border: 1px solid var(--cb-border) !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: 0 3px 14px rgba(15, 46, 77, .04) !important;
+}
+
+.workspace-problem {
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-problem .tabs {
+  flex: 0 0 auto;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  background: #fff !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid var(--cb-border) !important;
+  gap: 22px !important;
+}
+
+.workspace-problem .tab {
+  position: relative;
+  padding: 14px 2px !important;
+  color: #607087 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+.workspace-problem .tab.active {
+  color: var(--cb-secondary) !important;
+}
+
+.workspace-problem .tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--cb-secondary);
+  border-radius: 2px 2px 0 0;
+}
+
+.workspace-problem > div:last-child {
+  padding: 16px !important;
+  background: #fff;
+}
+
+.workspace-problem h3 {
+  color: #142d52 !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+
+.workspace-problem .rich-content {
+  background: #f8fbfd !important;
+  color: #3b4d63 !important;
+  border: 1px solid #edf2f6;
+  border-radius: 10px !important;
+  font-size: 13px;
+  line-height: 1.65 !important;
+}
+
+.workspace-problem .test-case-card {
+  border: 1px solid #e5ebf1 !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  background: #fff !important;
+}
+
+.workspace-problem .test-case-header {
+  padding: 10px 12px !important;
+  background: #f8fafc !important;
+  color: #29405e;
+  font-size: 12px;
+}
+
+.workspace-problem .test-case-content {
+  padding: 12px;
+  font-size: 12px;
+}
+
+.workspace-problem pre,
+.workspace-editor pre {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+}
+
+.workspace-problem .test-results {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #fff !important;
+  border-radius: 0 !important;
+}
+
+.workspace-problem .test-result-card {
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+.workspace-editor {
+  display: flex;
+  flex-direction: column;
+  background: #fff !important;
+}
+
+.workspace-editor .language-pills {
+  min-height: 46px;
+  padding: 8px 10px !important;
+  gap: 6px !important;
+  align-items: center;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--cb-border);
+  background: #fbfcfe !important;
+}
+
+.workspace-editor .language-pill {
+  min-height: 30px;
+  padding: 6px 10px !important;
+  border-radius: 8px !important;
+  border: 1px solid #dfe7ee !important;
+  background: #fff !important;
+  color: #526176 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+}
+
+.workspace-editor .language-pill.active {
+  color: #fff !important;
+  background: var(--cb-primary) !important;
+  border-color: var(--cb-primary) !important;
+  box-shadow: 0 3px 10px rgba(0, 88, 151, .14);
+}
+
+.workspace-editor .code-editor-container {
+  flex: 1;
+  min-height: 0;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+  background: #101827;
+}
+
+.workspace-editor .monaco-editor,
+.workspace-editor .monaco-editor-background,
+.workspace-editor .margin {
+  border-radius: 0 !important;
+}
+
+.workspace-editor .theory-editor {
+  height: 100%;
+  padding: 22px !important;
+  background: #fff !important;
+}
+
+.workspace-editor .theory-editor textarea {
+  min-height: 430px;
+  border: 1px solid #dfe7ee !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.65;
+  outline: none;
+}
+
+.workspace-editor .theory-editor textarea:focus {
+  border-color: #7fb2c7 !important;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, .08);
+}
+
+.workspace-editor .mcq-card {
+  border: 1px solid var(--cb-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(15, 46, 77, .03);
+}
+
+.workspace-editor .mcq-header {
+  background: #f8fafc !important;
+  border-bottom: 1px solid var(--cb-border) !important;
+}
+
+.workspace-editor .mcq-option {
+  border-color: #e1e8ee !important;
+  background: #fff !important;
+}
+
+.workspace-editor .mcq-option:hover {
+  border-color: #a8c9d8 !important;
+  background: #f8fcfd !important;
+}
+
+.workspace-editor .mcq-option.selected {
+  border-color: var(--cb-secondary) !important;
+  background: #eef6ff !important;
+  color: #17365f !important;
+}
+
+/* Existing pre-start assignment screen: align it to the same Student Core system. */
+.asgn-detail {
+  background: var(--cb-bg, #f4f8fc) !important;
+}
+
+.asgn-hero {
+  background: #fff !important;
+  color: #1e293b !important;
+  border: 1px solid #e4eaf1 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 3px 14px rgba(15, 46, 77, .04) !important;
+}
+
+.asgn-hero-title { color: #0c2d60 !important; }
+.asgn-hero-sub { color: #64748b !important; }
+.asgn-back { color: #005897 !important; }
+.asgn-hero-badge {
+  background: #f4f8fc !important;
+  color: #496078 !important;
+  border: 1px solid #e4eaf1 !important;
+}
+
+.asgn-meta-card,
+.asgn-card,
+.asgn-side-card {
+  border-color: #e4eaf1 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 3px 12px rgba(15, 46, 77, .04) !important;
+}
+
+.asgn-title-banner {
+  background: linear-gradient(135deg, #005897, #1976d2) !important;
+}
+
+.asgn-btn-primary {
+  background: linear-gradient(135deg, #005897, #1976d2) !important;
+  border-radius: 9px !important;
+}
+
+@media (max-width: 1180px) {
+  .workspace-layout {
+    grid-template-columns: minmax(300px, .85fr) minmax(460px, 1.15fr) !important;
+    gap: 10px !important;
+    padding: 10px !important;
+  }
+  .workspace-header { padding: 11px 12px !important; }
+}
+
+@media (max-width: 900px) {
+  .workspace-container {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .workspace-header {
+    align-items: flex-start;
+  }
+  .workspace-header > div:last-child {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .workspace-layout {
+    display: flex !important;
+    flex-direction: column;
+    overflow: visible;
+  }
+  .workspace-problem,
+  .workspace-editor {
+    min-height: 520px;
+    overflow: hidden !important;
+  }
+  .workspace-problem { min-height: 440px; }
+  .workspace-editor .code-editor-container { min-height: 520px; }
+}
+
+@media (max-width: 560px) {
+  .workspace-header { padding: 10px !important; }
+  .workspace-header h2 { font-size: 16px !important; }
+  .workspace-header > div:first-child { gap: 9px !important; }
+  .workspace-header > div:last-child { gap: 6px !important; }
+  .workspace-header .btn { min-height: 34px; padding: 7px 9px !important; font-size: 11px !important; }
+  .workspace-layout { padding: 8px !important; }
+  .workspace-problem .tabs { gap: 12px !important; padding: 0 10px !important; }
+  .workspace-problem .tab { font-size: 11px !important; }
+  .workspace-problem > div:last-child { padding: 12px !important; }
+  .workspace-problem,
+  .workspace-editor { border-radius: 12px !important; }
+  .workspace-editor .code-editor-container { min-height: 480px; }
+  .workspace-editor .theory-editor { padding: 14px !important; }
+}

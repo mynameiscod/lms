@@ -126,7 +126,12 @@ async function loadGraph(keys: string[]): Promise<Map<string, PlannerGraphNode>>
  *   expiry ahead of us  min(90, days remaining) — never plan work into weeks they cannot reach
  *   expiry behind us    EXPIRED. No window at all, and the caller must refuse.
  */
-function windowFor(passport: any, now: Date): {
+/**
+ * `planDays` is the tenant's configured roadmap length, defaulted and clamped by the caller.
+ * It was MAX_ROADMAP_DAYS, a constant — which meant a tenant could set a journey length for
+ * their missions and have the skill plan quietly ignore it.
+ */
+function windowFor(passport: any, now: Date, planDays: number): {
   roadmapDays: number;
   entitlementLimited: boolean;
   expired: boolean;
@@ -136,12 +141,12 @@ function windowFor(passport: any, now: Date): {
   // No authoritative end date. §7 is explicit that one has to already exist for us to clamp
   // to it, and inventing one here would be inventing a subscription model.
   if (!raw || Number.isNaN(raw.getTime())) {
-    return { roadmapDays: MAX_ROADMAP_DAYS, entitlementLimited: false, expired: false };
+    return { roadmapDays: planDays, entitlementLimited: false, expired: false };
   }
 
   const left = daysBetween(now, raw) + 1;
   if (left <= 0) return { roadmapDays: 0, entitlementLimited: true, expired: true };
-  if (left >= MAX_ROADMAP_DAYS) return { roadmapDays: MAX_ROADMAP_DAYS, entitlementLimited: false, expired: false };
+  if (left >= planDays) return { roadmapDays: planDays, entitlementLimited: false, expired: false };
   return { roadmapDays: left, entitlementLimited: true, expired: false };
 }
 
@@ -222,7 +227,16 @@ async function gatherInputs(
     PassportConfig.findOne({ tenantId }).lean() as any,
   ]);
 
-  let { roadmapDays, entitlementLimited, expired } = windowFor(user?.passport, now);
+  /**
+   * The tenant's plan length, bounded by the policy maximum.
+   *
+   * MAX_ROADMAP_DAYS stays as the CEILING rather than the value: the planner's reasoning
+   * about staleness does not stop being true because somebody typed 400 into a box, and a
+   * plan longer than the evidence behind it is a promise the product cannot keep.
+   */
+  const planDays = Math.max(7, Math.min(MAX_ROADMAP_DAYS, Number(cfg?.roadmapDays) || MAX_ROADMAP_DAYS));
+
+  let { roadmapDays, entitlementLimited, expired } = windowFor(user?.passport, now, planDays);
 
   // Clamp to whatever remains of an already-granted window. Membership expiry may bite first
   // or this may; whichever is sooner wins, and neither extends anything.

@@ -47,7 +47,7 @@ const AdminMissions: React.FC = () => {
     if (!content) return;
     setBusy(true); setMsg(null);
     try {
-      const r = await passportApi.saveContent({ missionPools: content.missionPools, missionsPerDay: content.missionsPerDay ?? 3 });
+      const r = await passportApi.saveContent({ missionPools: content.missionPools });
       setContent(r.content);
       setMsg({ kind: 'ok', text: 'Saved. Today’s missions regenerate from these pools on next load.' });
     } catch (e: any) { setMsg({ kind: 'err', text: e?.response?.data?.message || 'Could not save.' }); }
@@ -91,22 +91,12 @@ const AdminMissions: React.FC = () => {
           </p>
         </div>
         <div className="pa-actions">
-          {/*
-            How many missions a member gets each day. Capped at 6 because missions are drawn
-            per category — asking for more than there are categories forces repeats out of
-            pools that are already thin.
-          */}
-          <label className="pa-perday">
-            Missions per day
-            <input
-              type="number" min={1} max={6}
-              value={content.missionsPerDay ?? 3}
-              onChange={e => patch(c => {
-                const n = Number(e.target.value);
-                c.missionsPerDay = Number.isFinite(n) ? Math.max(1, Math.min(6, Math.round(n))) : 3;
-              })}
-            />
-          </label>
+          {/* Moved to Config, with the other CareerPilot settings. Shown, not editable, so
+              the number is still visible next to the pools it governs. */}
+          <span className="pa-perday-note">
+            {content.missionsPerDay ?? 3} missions/day ·{' '}
+            <a href="/admin/passport/config">change in Config</a>
+          </span>
           <button className="pm-btn" onClick={runPreview} disabled={busy}>Preview 7 days</button>
           <button className="pm-btn" onClick={reset} disabled={busy}>Restore defaults</button>
           <button className="pm-btn primary" onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</button>

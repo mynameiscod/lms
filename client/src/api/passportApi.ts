@@ -13,7 +13,11 @@ export interface Entitlement { featureKey: string; label: string; tier: 'free' |
 export interface PassportConfig {
   _id?: string; enabled: boolean; assessmentMode: 'deterministic' | 'ai';
   onboardingFields: OnboardingField[]; entitlements: Entitlement[];
-  priceInr: number; membershipMonths: number;
+  priceInr: number;
+  /** How long access lasts after paying. */
+  membershipMonths: number;
+  /** How many days of work a plan covers. Capped at 90 by the planner. */
+  roadmapDays?: number;
 }
 
 /** One skill's share of the assessable pool. */

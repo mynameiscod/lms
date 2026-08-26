@@ -55,7 +55,7 @@ export const updateConfig = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);
     await ensureConfig(tenantId);
-    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths'];
+    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays'];
     const $set: any = {};
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
     const cfg = await PassportConfig.findOneAndUpdate({ tenantId }, { $set }, { new: true });
@@ -116,6 +116,7 @@ export const getMyStatus = async (req: Request, res: Response) => {
       entitled: entitlementMap(cfg?.entitlements as any, user?.passport),
       priceInr: cfg?.priceInr ?? 499,
       membershipMonths: cfg?.membershipMonths ?? 12,
+      roadmapDays: cfg?.roadmapDays ?? 90,
       paymentAvailable: razorpay.isConfigured(tenantId),
       expiresAt: user?.passport?.expiresAt || null,
       shareSlug: user?.passport?.shareSlug || null,

@@ -131,18 +131,15 @@ const AdminPathways: React.FC = () => {
 
       {msg && <div className={`pm-msg ${msg.kind}`} style={{ marginBottom: 14 }}>{msg.text}</div>}
 
+      {/* Moved to Config. A pointer rather than a silent removal — somebody who knew this
+          control lived here needs to be told where it went, not left hunting for it. */}
       <div className="pa-card">
         <h3>Journey length</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <input
-            className="pa-inp" style={{ width: 120 }} type="number" min={7} max={365}
-            value={content.journeyDays}
-            onChange={e => patch(c => { c.journeyDays = Number(e.target.value) || 90; })}
-          />
-          <span style={{ fontSize: 13, color: '#64748b' }}>
-            days — the full journey every member buys. Weeks are derived from this ({Math.ceil((content.journeyDays || 90) / 7)} weeks). Changing it does not disturb members already mid-journey; their day count just runs against the new total.
-          </span>
-        </div>
+        <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+          Currently <b>{content.journeyDays || 90} days</b> ({Math.ceil((content.journeyDays || 90) / 7)} weeks).
+          Every CareerPilot setting now lives in one place — change it under{' '}
+          <a href="/admin/passport/config" style={{ color: '#0b5fbc', fontWeight: 700 }}>Passport → Config</a>.
+        </p>
       </div>
 
       <div className="pa-tabs">

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import PassportContent, { DEFAULT_PATHWAYS, DEFAULT_MISSION_POOLS } from '../models/PassportContent';
 import PassportAttempt from '../models/PassportAttempt';
+import PassportConfig from '../models/PassportConfig';
 import { ensureContent, poolMapOf, missionsForDay, clampSlots } from '../services/passportMissionService';
 import { buildRoadmap } from '../services/passportRoadmapService';
 import { validateRules } from '../services/pathwayMatchService';
@@ -47,6 +48,17 @@ export const saveContent = async (req: Request, res: Response) => {
       const n = Number(req.body.journeyDays);
       if (!Number.isFinite(n) || n < 7 || n > 365) return res.status(400).json({ message: 'Journey length must be between 7 and 365 days.' });
       $set.journeyDays = Math.round(n);
+
+      /**
+       * Keep the two roadmaps on ONE number.
+       *
+       * A tenant set this to 365 while the skill plan stayed on its hardcoded 90, so the
+       * same member was promised thirteen weeks on one screen and fifty-three on another.
+       * Writing both here means the drift cannot reopen — and the planner still clamps to
+       * its own ceiling when it reads the value, so a 365 here does not stretch a plan past
+       * the horizon its evidence supports.
+       */
+      await PassportConfig.updateOne({ tenantId }, { $set: { roadmapDays: Math.round(n) } });
     }
     if (req.body?.missionsPerDay !== undefined) {
       const n = Number(req.body.missionsPerDay);

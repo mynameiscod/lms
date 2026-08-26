@@ -42,7 +42,24 @@ export interface IPassportConfig extends Document {
    */
   assessmentPolicyOverrides?: IAssessmentPolicyOverride[];
   priceInr: number;
+  /**
+   * How long a member's ACCESS lasts, in months. What they bought.
+   *
+   * Distinct from the roadmap length below, and the two were being confused because only
+   * one of them was visible: access is "how long can they log in", the roadmap is "how many
+   * days of work is the plan". A member can perfectly well hold twelve months of access to a
+   * ninety-day plan and renew it — that is the product.
+   */
   membershipMonths: number;
+  /**
+   * How many days of work a plan covers.
+   *
+   * This replaces a hardcoded 90 in roadmapPolicy. Two roadmaps existed with two different
+   * lengths — the skill plan fixed at 90 in code, the mission journey read from
+   * PassportContent.journeyDays which a tenant had set to 365 — so the same member was
+   * promised thirteen weeks on one screen and fifty-three on another. One number now.
+   */
+  roadmapDays: number;
   /**
    * Skill check-in policy (Module 13).
    *
@@ -99,6 +116,10 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
     },
     priceInr:         { type: Number, default: 499 },
     membershipMonths: { type: Number, default: 12 },
+    // 90 is the shipped default, and the horizon the planner was designed around: beyond it
+    // the evidence a plan was built from is months stale and the personalisation is a claim
+    // rather than a fact.
+    roadmapDays: { type: Number, default: 90 },
     // Skill check-in policy. Optional throughout — an existing tenant document without this
     // subtree resolves to the shipped defaults, so nothing has to be backfilled.
     reassessment: {

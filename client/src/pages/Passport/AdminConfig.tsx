@@ -12,10 +12,30 @@ const PassportAdminConfig: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  /**
+   * Journey length and missions-per-day live on PassportContent, not PassportConfig — a
+   * different collection with a different endpoint. They are edited HERE anyway: which
+   * document a value happens to sit in is an implementation detail, and hunting three admin
+   * screens to find one setting is not.
+   */
+  const [journeyDays, setJourneyDays] = useState(90);
+  const [missionsPerDay, setMissionsPerDay] = useState(3);
 
   const load = async () => {
     setLoading(true);
-    try { const r = await passportApi.getConfig(); setCfg(r.config); setPlatformEnabled(r.platformEnabled); } catch (e: any) { setMsg(e?.response?.data?.message || 'Failed to load'); }
+    try {
+      const [r, content] = await Promise.all([
+        passportApi.getConfig(),
+        // Content is a separate concern and may legitimately not load; the config half of
+        // this screen should still work if it does not.
+        passportApi.getContent().catch(() => null),
+      ]);
+      setCfg(r.config); setPlatformEnabled(r.platformEnabled);
+      if (content?.content) {
+        setJourneyDays(content.content.journeyDays || 90);
+        setMissionsPerDay(content.content.missionsPerDay ?? 3);
+      }
+    } catch (e: any) { setMsg(e?.response?.data?.message || 'Failed to load'); }
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -24,9 +44,14 @@ const PassportAdminConfig: React.FC = () => {
     if (!cfg) return;
     setSaving(true); setMsg('');
     try {
+      // Two documents, one Save. The content write goes first: it mirrors journeyDays onto
+      // the config's roadmapDays server-side, so saving the config afterwards keeps whatever
+      // the admin typed here rather than being overwritten by that mirror.
+      await passportApi.saveContent({ journeyDays, missionsPerDay });
       const saved = await passportApi.updateConfig({
         enabled: cfg.enabled, assessmentMode: cfg.assessmentMode, priceInr: cfg.priceInr,
-        membershipMonths: cfg.membershipMonths, entitlements: cfg.entitlements, onboardingFields: cfg.onboardingFields,
+        membershipMonths: cfg.membershipMonths, roadmapDays: cfg.roadmapDays,
+        entitlements: cfg.entitlements, onboardingFields: cfg.onboardingFields,
       });
       setCfg(saved); setMsg('✅ Saved.');
     } catch (e: any) { setMsg(e?.response?.data?.message || 'Save failed'); }
@@ -58,7 +83,50 @@ const PassportAdminConfig: React.FC = () => {
             <input type="checkbox" checked={cfg.enabled} onChange={e => setCfg({ ...cfg, enabled: e.target.checked })} /> Enable Passport for this tenant
           </label>
           <div><span style={label}>Price (₹)</span><input style={{ ...input, width: 110 }} type="number" value={cfg.priceInr} onChange={e => setCfg({ ...cfg, priceInr: Number(e.target.value) })} /></div>
-          <div><span style={label}>Membership (months)</span><input style={{ ...input, width: 110 }} type="number" value={cfg.membershipMonths} onChange={e => setCfg({ ...cfg, membershipMonths: Number(e.target.value) })} /></div>
+          {/*
+            Two different questions, side by side and labelled as such — they were being
+            confused because only one of them was visible anywhere. ACCESS is how long they
+            can log in; ROADMAP is how many days of work the plan covers. A member can hold
+            twelve months of access to a ninety-day plan and renew it. That is the product.
+          */}
+          <div>
+            <span style={label}>Account access (months)</span>
+            <input style={{ ...input, width: 110 }} type="number" min={1} max={60}
+              value={cfg.membershipMonths}
+              onChange={e => setCfg({ ...cfg, membershipMonths: Number(e.target.value) })} />
+            <span style={{ display: 'block', fontSize: 11, color: '#8494a8', marginTop: 4, maxWidth: 220 }}>
+              How long a member can use CareerPilot after paying. Sets their expiry date.
+            </span>
+          </div>
+          <div>
+            <span style={label}>Journey length (days)</span>
+            <input style={{ ...input, width: 110 }} type="number" min={7} max={365}
+              value={journeyDays}
+              onChange={e => setJourneyDays(Number(e.target.value) || 90)} />
+            <span style={{ display: 'block', fontSize: 11, color: '#8494a8', marginTop: 4, maxWidth: 240 }}>
+              How long the daily-mission journey runs ({Math.ceil((journeyDays || 90) / 7)} weeks).
+              Saving this also sets the roadmap length below.
+            </span>
+          </div>
+          <div>
+            <span style={label}>Missions per day</span>
+            <input style={{ ...input, width: 110 }} type="number" min={1} max={6}
+              value={missionsPerDay}
+              onChange={e => setMissionsPerDay(Math.max(1, Math.min(6, Number(e.target.value) || 3)))} />
+            <span style={{ display: 'block', fontSize: 11, color: '#8494a8', marginTop: 4, maxWidth: 240 }}>
+              Drawn one per category, so 6 is the ceiling — beyond that the same pools repeat.
+            </span>
+          </div>
+          <div>
+            <span style={label}>Roadmap length (days)</span>
+            <input style={{ ...input, width: 110 }} type="number" min={7} max={90}
+              value={cfg.roadmapDays ?? 90}
+              onChange={e => setCfg({ ...cfg, roadmapDays: Number(e.target.value) })} />
+            <span style={{ display: 'block', fontSize: 11, color: '#8494a8', marginTop: 4, maxWidth: 240 }}>
+              How many days of work a plan covers. Capped at 90 — past that the assessment a
+              plan was built from is too old for it to still be personal.
+            </span>
+          </div>
           <div><span style={label}>Free assessment engine</span>
             <select style={{ ...input, minWidth: 200 }} value={cfg.assessmentMode} onChange={e => setCfg({ ...cfg, assessmentMode: e.target.value as any })}>
               <option value="deterministic">Deterministic (no AI — cheap, scales)</option>

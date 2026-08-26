@@ -60,10 +60,14 @@ const AdminCompanies: React.FC = () => {
   useEffect(() => {
     load();
     loadBoard();
-    // Mount only. The suppression was previously inline on this line, where
-    // eslint-disable-next-line has nothing to disable — so it silently did nothing and the
-    // warning stood. Both loaders refetch the whole admin payload; re-running them on
-    // every render is exactly what the empty dependency list is for.
+    // Mount only. The suppression used to sit inline on the same line as the effect, where
+    // a next-line directive has nothing to disable — it silently did nothing and the warning
+    // stood. Both loaders refetch the whole admin payload; re-running them on every render is
+    // exactly what the empty dependency list is for.
+    //
+    // Note the wording: naming that directive at the START of a comment line makes ESLint
+    // read it AS one and treat the rest of the sentence as a rule name, which fails the
+    // build. Describe it, never quote it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {

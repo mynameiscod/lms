@@ -19,6 +19,35 @@ const SKIP_SECONDS = 10;
 const BIG_SKIP_SECONDS = 30;
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 
+/**
+ * Bunny publishes a Player.js build for driving its embed from the parent page.
+ * Loaded once per page and shared, rather than per player instance.
+ */
+const PLAYERJS_SRC = 'https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js';
+let playerjsLoad: Promise<any> | null = null;
+
+function loadPlayerjs(): Promise<any> {
+  if ((window as any).playerjs) return Promise.resolve((window as any).playerjs);
+  if (playerjsLoad) return playerjsLoad;
+
+  playerjsLoad = new Promise((resolve, reject) => {
+    const done = () => resolve((window as any).playerjs);
+    const existing = document.querySelector(`script[src="${PLAYERJS_SRC}"]`);
+    if (existing) {
+      existing.addEventListener('load', done);
+      existing.addEventListener('error', reject);
+      return;
+    }
+    const tag = document.createElement('script');
+    tag.src = PLAYERJS_SRC;
+    tag.async = true;
+    tag.onload = done;
+    tag.onerror = () => reject(new Error('playerjs failed to load'));
+    document.head.appendChild(tag);
+  });
+  return playerjsLoad;
+}
+
 function formatTime(secs: number): string {
   if (!secs || !isFinite(secs) || secs < 0) return '0:00';
   const total = Math.floor(secs);
@@ -153,10 +182,16 @@ function useSeekKeys(onSkip: (delta: number) => void, onTogglePlay?: () => void)
 // ─── Bunny embed, driven over Player.js ───────────────────────────────────────
 
 /**
- * The Bunny iframe is cross-origin, so the only way in is the Player.js postMessage
- * protocol it implements. Worth the wiring twice over: it also gives us the timeupdate
- * stream, and with it real watch-percent tracking, which the iframe branches never had —
- * completionThreshold was silently ignored for every Bunny, YouTube and Vimeo lesson.
+ * The Bunny iframe is cross-origin, so the only way in is the Player.js protocol it
+ * implements. Worth the wiring twice over: the timeupdate stream also gives us real
+ * watch-percent tracking, which the iframe branches never had — completionThreshold was
+ * silently ignored for every Bunny, YouTube and Vimeo lesson.
+ *
+ * Two paths run side by side on purpose. The first attempt here hand-rolled the protocol
+ * and shipped dead: it only accepted string payloads, so an embed that posts objects was
+ * ignored down to the last message and every button did nothing. Bunny's own library is
+ * now the primary path, with a corrected raw listener behind it, and `ready` gates the
+ * controls so a bridge that fails again hides the buttons instead of faking them.
  */
 function useBunnyPlayer(
   iframeRef: React.RefObject<HTMLIFrameElement>,
@@ -164,6 +199,8 @@ function useBunnyPlayer(
 ) {
   const clock = useRef({ time: 0, duration: 0 });
   const [tick, setTick] = useState({ time: 0, duration: 0 });
+  const [ready, setReady] = useState(false);
+  const player = useRef<any>(null);
   const report = useRef(onProgress);
   report.current = onProgress;
 
@@ -175,55 +212,90 @@ function useBunnyPlayer(
   }, [iframeRef]);
 
   useEffect(() => {
-    const subscribe = () => post({ method: 'addEventListener', value: 'timeupdate', listener: 'tu' });
+    let cancelled = false;
 
+    const accept = (seconds: any, duration: any) => {
+      if (cancelled) return;
+      const time = Number(seconds) || 0;
+      const total = Number(duration) || 0;
+      clock.current = { time, duration: total };
+      setTick({ time, duration: total });
+      if (total > 0) setReady(true);
+      report.current(time, total);
+    };
+
+    // Primary: the library Bunny publishes for exactly this.
+    loadPlayerjs()
+      .then(pj => {
+        if (cancelled || !pj || !iframeRef.current) return;
+        const p = new pj.Player(iframeRef.current);
+        player.current = p;
+        p.on('ready', () => {
+          if (cancelled) return;
+          setReady(true);
+          p.on('timeupdate', (d: any) => accept(d?.seconds, d?.duration));
+        });
+      })
+      .catch(() => { /* the raw listener below is the fallback */ });
+
+    // Fallback: the same protocol by hand, accepting both payload encodings this time.
+    const subscribe = () => post({ method: 'addEventListener', value: 'timeupdate', listener: 'tu' });
     const onMessage = (e: MessageEvent) => {
-      if (typeof e.data !== 'string') return;
-      let data: any;
-      try {
-        data = JSON.parse(e.data);
-      } catch {
-        return;
+      let data: any = e.data;
+      if (typeof data === 'string') {
+        try {
+          data = JSON.parse(data);
+        } catch {
+          return;
+        }
       }
       if (!data || data.context !== 'player.js') return;
 
-      if (data.event === 'ready') subscribe();
-      if (data.event === 'timeupdate' && data.value) {
-        const time = Number(data.value.seconds) || 0;
-        const duration = Number(data.value.duration) || 0;
-        clock.current = { time, duration };
-        setTick({ time, duration });
-        report.current(time, duration);
+      if (data.event === 'ready') {
+        setReady(true);
+        subscribe();
       }
+      if (data.event === 'timeupdate' && data.value) accept(data.value.seconds, data.value.duration);
     };
 
     window.addEventListener('message', onMessage);
-    // The player may have become ready before this listener existed, in which case its one
-    // "ready" is already gone. Ask again unprompted rather than wait forever for a second.
+    // The embed may have gone ready before this listener existed, in which case its one
+    // "ready" is already gone. Ask again unprompted rather than wait for a second.
     const retry = window.setTimeout(subscribe, 1200);
     return () => {
+      cancelled = true;
       window.removeEventListener('message', onMessage);
       window.clearTimeout(retry);
     };
-  }, [post]);
+  }, [post, iframeRef]);
 
   const skip = useCallback((delta: number) => {
     const { time, duration } = clock.current;
     let next = time + delta;
     if (next < 0) next = 0;
     if (duration > 0 && next > duration) next = duration;
+
+    if (player.current?.setCurrentTime) {
+      try {
+        player.current.setCurrentTime(next);
+      } catch { /* fall through to the raw post */ }
+    }
     post({ method: 'setCurrentTime', value: next });
+
     clock.current = { ...clock.current, time: next };
     setTick(t => ({ ...t, time: next }));
   }, [post]);
 
-  return { skip, ...tick };
+  return { skip, ready, ...tick };
 }
 
 function BunnyPlayer({ content, threshold, onWatchEnough }: { content: any; threshold: number; onWatchEnough: () => void }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { pct, report } = useWatchProgress(threshold, onWatchEnough);
-  const { skip, time, duration } = useBunnyPlayer(iframeRef, report);
+  const { skip, ready, time, duration } = useBunnyPlayer(iframeRef, report);
+  // Keyboard reaches us only while focus sits outside the iframe, which it rarely does
+  // once playback starts. Wired because it costs nothing, never advertised because it
+  // cannot be relied on — the buttons are the honest control here.
   const onKeyDown = useSeekKeys(skip);
 
   return (
@@ -239,12 +311,7 @@ function BunnyPlayer({ content, threshold, onWatchEnough }: { content: any; thre
           title={content.title}
         />
       </div>
-      <SeekControls
-        onSkip={skip}
-        currentTime={time}
-        duration={duration}
-        note="Tip: click just outside the video, then use the left and right arrow keys (hold Shift for 30s)."
-      />
+      {ready && <SeekControls onSkip={skip} currentTime={time} duration={duration} />}
       <ProgressNote threshold={threshold} pct={pct} />
     </div>
   );

@@ -51,6 +51,22 @@ import * as cpanalytics from '../controllers/careerPilotAnalyticsController';
 
 const router = express.Router();
 
+/**
+ * Session recordings land here only long enough to be streamed to Bunny, then the controller
+ * deletes them. Kept off the resume uploader because the limits are nothing alike — a CV is
+ * 8 MB of PDF, a few minutes of video is two orders of magnitude bigger.
+ */
+const INTERVIEW_REC_TMP = 'uploads/careerpilot-interview-tmp';
+if (!fs.existsSync(INTERVIEW_REC_TMP)) fs.mkdirSync(INTERVIEW_REC_TMP, { recursive: true });
+const recordingUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _f, cb) => cb(null, INTERVIEW_REC_TMP),
+    filename: (_req, _f, cb) => cb(null, `iv-${Date.now()}-${Math.round(Math.random() * 1e9)}.webm`),
+  }),
+  limits: { fileSize: 200 * 1024 * 1024 },
+  fileFilter: (_req, f, cb) => cb(null, /^(video|audio)\//.test(f.mimetype || '')),
+});
+
 const RESUME_TMP = 'uploads/resumes';
 if (!fs.existsSync(RESUME_TMP)) fs.mkdirSync(RESUME_TMP, { recursive: true });
 const resumeUpload = multer({
@@ -450,6 +466,10 @@ router.get('/interview/:id',          MEMBER, interview.get);
 router.post('/interview/:id/turn',    MEMBER, rateLimit('aiInterview'), interview.turn);
 router.post('/interview/speak',       MEMBER, interview.speak);
 router.post('/interview/:id/finish',  MEMBER, interview.finish);
+// The recording is an extra on top of an already-graded session, so it is its own call:
+// a failed upload must never cost the member the interview they just sat.
+router.post('/interview/:id/recording', MEMBER, recordingUpload.single('recording'), interview.uploadRecording);
+router.get('/interview/:id/recording',  MEMBER, interview.playRecording);
 
 // Resume Center (resume entitlement)
 router.get('/resume',            MEMBER, resume.get);

@@ -18,6 +18,9 @@ import {
 } from '../services/interviewIntelligenceService';
 import { Company, CompanyMockConfig, QuestionTaxonomy, CompanyQuestion } from '../models/CompanyQuestionModels';
 import { resolveCompanyProfile } from '../services/companyFitService';
+import * as bunny from '../services/bunnyStorageService';
+import fs from 'fs';
+import crypto from 'crypto';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -43,6 +46,14 @@ const INTRO_QUESTIONS = 2;
  * single forgotten sitting into a permanent block on ever starting another.
  */
 const STALE_LIVE_HOURS = 6;
+/**
+ * How long a session recording is kept before the retention sweep deletes it from Bunny.
+ * This is a student's face and voice, so it expires on a schedule rather than living
+ * forever by default.
+ */
+const RECORDING_RETENTION_DAYS = 365;
+/** Refuse anything larger rather than streaming it to Bunny and paying for it. */
+const MAX_RECORDING_BYTES = 200 * 1024 * 1024;
 const INTRO_FOCUS = 'a two-minute self-introduction — who they are, what they are studying or working on, and what role they are aiming for';
 /** Turns of transcript sent per request. The single biggest driver of interview cost. */
 const HISTORY_WINDOW = 6;
@@ -101,6 +112,9 @@ const publicSession = (s: any) => ({
   transcript: (s.transcript || []).map((t: any) => ({ role: t.role, text: t.text, at: t.at })),
   evaluation: s.evaluation || null,
   xpAwarded: s.xpAwarded, startedAt: s.startedAt, completedAt: s.completedAt,
+  // Presence only. The key is a path into a private bucket and never leaves the server.
+  hasRecording: !!s.recordingKey,
+  recordingDurationSec: s.recordingDurationSec || null,
 });
 
 /** GET /passport/interview — past sessions + whether one is still open. */
@@ -427,6 +441,89 @@ const newFinalizeToken = (): string =>
  * the claim — belt and braces, because several of them are shared with older code paths
  * whose own guarantees are only sequential.
  */
+/**
+ * POST /passport/interview/:id/recording — store the session video.
+ *
+ * Uploaded once at the END of the sitting rather than streamed live: a mock interview is a
+ * few minutes, and one PUT that either works or does not is far easier to reason about than
+ * a chunked session that can half-fail and leave an unplayable file on the bill.
+ *
+ * A failure here must never cost the member their interview. The transcript, the score, the
+ * XP and the streak are all already saved by finish(); the recording is an extra. So this is
+ * a separate call the client makes after finishing, and every error path leaves the graded
+ * session exactly as it was.
+ */
+export const uploadRecording = async (req: Request, res: Response) => {
+  const file = (req as any).file;
+  const cleanup = () => { if (file?.path) { try { fs.unlinkSync(file.path); } catch { /* gone */ } } };
+  try {
+    const { tenantId, studentId, entitled } = await gate(req);
+    if (!entitled) { cleanup(); return res.status(403).json({ message: 'Membership required.' }); }
+    if (!file) return res.status(400).json({ message: 'No recording received.' });
+    if (file.size > MAX_RECORDING_BYTES) { cleanup(); return res.status(413).json({ message: 'That recording is too large to store.' }); }
+    if (!bunny.isBunnyStorageConfigured()) {
+      // Said plainly rather than swallowed: without this the feature looks like it works and
+      // silently keeps nothing, which is worse than not offering it.
+      cleanup();
+      return res.status(503).json({ message: 'Recording storage is not configured on this tenant.' });
+    }
+
+    // Ownership is the whole access check — scoping the query by studentId means a member
+    // cannot attach a recording to somebody else's interview by guessing an id.
+    const session = await PassportInterview.findOne({ _id: req.params.id, tenantId, studentId });
+    if (!session) { cleanup(); return res.status(404).json({ message: 'Interview not found.' }); }
+    if ((session as any).recordingKey) { cleanup(); return res.status(409).json({ message: 'This interview already has a recording.' }); }
+
+    const key = `careerpilot/interviews/${tenantId}/${studentId}/${session._id}-${crypto.randomBytes(4).toString('hex')}.webm`;
+    await bunny.uploadStream(key, fs.createReadStream(file.path), file.mimetype || 'video/webm', file.size);
+    cleanup();
+
+    const durationSec = Math.max(0, Math.round(Number(req.body?.durationSec) || 0)) || null;
+    await PassportInterview.updateOne({ _id: session._id }, {
+      $set: {
+        recordingKey: key,
+        recordingMime: file.mimetype || 'video/webm',
+        recordingBytes: file.size,
+        recordingDurationSec: durationSec,
+        recordingExpiresAt: new Date(Date.now() + RECORDING_RETENTION_DAYS * 86400_000),
+      },
+    });
+
+    res.json({ ok: true, durationSec, bytes: file.size });
+  } catch (e: any) {
+    cleanup();
+    console.error('[passport] interview recording upload:', e);
+    res.status(500).json({ message: e.message || 'Could not save the recording.' });
+  }
+};
+
+/**
+ * GET /passport/interview/:id/recording — stream it back through the app.
+ *
+ * Gated rather than served from a CDN URL. The bucket is private and the key never leaves
+ * the server, so the only way to watch a recording is to be the member it belongs to.
+ */
+export const playRecording = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const studentId = userIdOf(req);
+    const session = await PassportInterview.findOne({ _id: req.params.id, tenantId, studentId })
+      .select('recordingKey recordingMime').lean() as any;
+    if (!session?.recordingKey) return res.status(404).json({ message: 'No recording for this interview.' });
+
+    const { stream, size } = await bunny.getFileStream(session.recordingKey);
+    res.setHeader('Content-Type', session.recordingMime || 'video/webm');
+    if (size != null) res.setHeader('Content-Length', String(size));
+    // Private media: never let a shared cache hold a student's face.
+    res.setHeader('Cache-Control', 'private, no-store');
+    stream.on('error', () => { if (!res.headersSent) res.status(502).end(); else res.end(); });
+    stream.pipe(res);
+  } catch (e: any) {
+    console.error('[passport] interview recording play:', e);
+    if (!res.headersSent) res.status(500).json({ message: e.message || 'Could not load the recording.' });
+  }
+};
+
 export const finish = async (req: Request, res: Response) => {
   try {
     const { tenantId, studentId, cfg, entitled } = await gate(req);

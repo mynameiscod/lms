@@ -71,6 +71,21 @@ export interface IPassportInterview extends Document {
   focus?: string | null;
   askedCount: number;
   /**
+   * The session recorded to video, so the member can watch themselves back — the point of
+   * practising an introduction is seeing how it landed, which a transcript cannot show.
+   *
+   * Only the KEY is stored. The file lives in a private Bunny zone and is streamed back
+   * through a gated endpoint, so access control applies on every play; a public CDN URL on
+   * this document would be a permanent unauthenticated link to a student's face and voice.
+   * The key is never included in any API response for the same reason.
+   */
+  recordingKey?: string | null;
+  recordingMime?: string | null;
+  recordingBytes?: number | null;
+  recordingDurationSec?: number | null;
+  /** Deleted from Bunny after this. Set at upload from RECORDING_RETENTION_DAYS. */
+  recordingExpiresAt?: Date | null;
+  /**
    * `finalizing` is the finalization CLAIM.
    *
    * Grading a transcript takes an AI call, so finish() cannot be one atomic write. Moving
@@ -153,6 +168,12 @@ const PassportInterviewSchema = new Schema<IPassportInterview>(
     maxQuestions:    { type: Number, default: 6 },
     focus:           { type: String, default: null },
     askedCount:      { type: Number, default: 0 },
+    recordingKey:         { type: String, default: null },
+    recordingMime:        { type: String, default: null },
+    recordingBytes:       { type: Number, default: null },
+    recordingDurationSec: { type: Number, default: null },
+    // Indexed because the retention sweep queries on it alone.
+    recordingExpiresAt:   { type: Date, default: null, index: true },
     status:     { type: String, enum: ['in_progress', 'finalizing', 'completed', 'abandoned'], default: 'in_progress', index: true },
     finalizeToken: { type: String, default: null },
     finalizingAt:  { type: Date, default: null },

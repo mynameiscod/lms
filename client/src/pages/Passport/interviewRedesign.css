@@ -3,3 +3,12 @@
 @media(max-width:1200px){.cp-iv-main-grid{grid-template-columns:1fr}.cp-iv-side-column{grid-template-columns:repeat(2,minmax(0,1fr))}.cp-iv-side-column .cp-iv-placement-card{grid-column:1/-1}.cp-iv-hero{grid-template-columns:180px 1fr 220px}.cp-iv-metric-row{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:860px){.cp-iv-title-row,.cp-iv-live-head,.cp-iv-feedback-head{align-items:flex-start;flex-direction:column}.cp-iv-start-top{width:100%}.cp-iv-hero{grid-template-columns:1fr;text-align:left}.cp-iv-hero-art{height:170px}.cp-iv-practice-card{width:100%}.cp-iv-metric-row{grid-template-columns:repeat(2,1fr)}.cp-iv-insights-grid{grid-template-columns:1fr}.cp-iv-practice-strip{grid-template-columns:1fr 1fr}.cp-iv-side-column{grid-template-columns:1fr}.cp-iv-side-column .cp-iv-placement-card{grid-column:auto}.cp-iv-readiness-body{grid-template-columns:100px 1fr}.cp-iv-score-ring{width:96px;height:96px}.cp-iv-score-ring:before{inset:10px}.cp-iv-score-ring strong{font-size:26px}}
 @media(max-width:560px){.cp-iv-title-row h1,.cp-iv-live-head h1,.cp-iv-feedback-head h1{font-size:27px}.cp-iv-metric-row,.cp-iv-practice-strip{grid-template-columns:1fr}.cp-iv-hero{padding:16px}.cp-iv-panel,.cp-iv-card{padding:15px!important}.cp-iv-readiness-body{grid-template-columns:1fr}.cp-iv-bottom-cta{align-items:flex-start;flex-wrap:wrap}.cp-iv-bottom-cta button{width:100%}.cp-iv-trend{gap:8px}.cp-iv-metric{padding:12px}}
+
+/* Session recording — the camera has to be visibly on. A member discovering afterwards that
+   they were filmed is the one outcome this must never produce, so the preview and the dot
+   are the consent signal, not a decoration. */
+.cp-iv-rec-head{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;color:#b4302a;margin-bottom:10px}
+.cp-iv-rec-dot{width:9px;height:9px;border-radius:50%;background:#d93a31;animation:cp-iv-rec-pulse 1.6s ease-in-out infinite;flex:none}
+@keyframes cp-iv-rec-pulse{0%,100%{opacity:1}50%{opacity:.28}}
+.cp-iv-rec-preview{width:100%;border-radius:11px;background:#0b1220;aspect-ratio:4/3;object-fit:cover;display:block;margin-bottom:9px;transform:scaleX(-1)}
+.cp-iv-playback{width:100%;border-radius:12px;background:#0b1220;display:block;max-height:60vh}

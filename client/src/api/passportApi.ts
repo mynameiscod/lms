@@ -697,6 +697,31 @@ export const passportApi = {
     const { data } = await axios.post(`${BASE}/interview/${id}/finish`, {}, { headers: auth() });
     return data;
   },
+  /**
+   * Store the session video. Deliberately separate from finishInterview: the interview is
+   * already graded and paid for by then, so a failed upload costs the recording and nothing
+   * else. Callers should treat a rejection as a warning, never as a lost interview.
+   */
+  uploadInterviewRecording: async (id: string, blob: Blob, durationSec: number): Promise<{ ok: boolean }> => {
+    const fd = new FormData();
+    fd.append('recording', blob, 'interview.webm');
+    fd.append('durationSec', String(Math.round(durationSec)));
+    const { data } = await axios.post(`${BASE}/interview/${id}/recording`, fd, {
+      headers: { ...auth(), 'Content-Type': 'multipart/form-data' },
+      timeout: 300000,
+    });
+    return data;
+  },
+  /**
+   * A playable URL for a stored recording. Fetched with the auth header and turned into a
+   * blob URL, because a <video src> cannot carry one and the bucket is private — there is no
+   * public link to point at. The caller must revoke the URL.
+   */
+  interviewRecordingUrl: async (id: string): Promise<string> => {
+    const res = await fetch(`${BASE}/interview/${id}/recording`, { headers: auth() as any });
+    if (!res.ok) throw new Error('Could not load the recording');
+    return URL.createObjectURL(await res.blob());
+  },
   /** The interviewer's line as real spoken audio. Returns a blob URL the caller must revoke. */
   speakInterviewLine: async (text: string): Promise<string> => {
     const { data } = await axios.post(`${BASE}/interview/speak`, { text }, { headers: auth(), responseType: 'blob' });
@@ -1131,6 +1156,8 @@ export interface SubmitOutcome extends Partial<RunOutcome> {
 // ── Mock interview ──
 export interface InterviewTurn { role: 'interviewer' | 'candidate'; text: string; at?: string; }
 export interface InterviewSession {
+  hasRecording?: boolean;
+  recordingDurationSec?: number | null;
   id: string; role: string; areas: string[]; interviewerName: string;
   companySlug?: string | null; companyName?: string | null;
   maxQuestions: number; askedCount: number; status: 'in_progress' | 'completed' | 'abandoned';

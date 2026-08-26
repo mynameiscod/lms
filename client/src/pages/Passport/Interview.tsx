@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { InterviewSession } from '../../api/passportApi';
 import PassportShell, { LockedPanel } from './PassportShell';
+import { useSessionRecorder } from './useSessionRecorder';
 import { useInterviewVoice, speechInSupported, speechOutSupported } from './useInterviewVoice';
 import { INTERVIEWER_FACE_ENABLED } from './interviewFace';
 import './interviewRedesign.css';
@@ -27,6 +28,14 @@ const Interview: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [notice, setNotice] = useState('');
+  const recorder = useSessionRecorder();
+  // Pulled out because it is a stable useCallback; the recorder object itself is a new
+  // literal every render and would make `start` change identity on each one.
+  const { start: startRecording } = recorder;
+  const previewRef = useRef<HTMLVideoElement>(null);
+  const [savingRec, setSavingRec] = useState(false);
+  const [recWarning, setRecWarning] = useState('');
+  const [playUrl, setPlayUrl] = useState('');
   const [paying, setPaying] = useState(false);
   const chatEnd = useRef<HTMLDivElement>(null);
   const [voiceOn, setVoiceOn] = useState(speechOutSupported);
@@ -80,6 +89,10 @@ const Interview: React.FC = () => {
       );
       setSession(r.session);
       setElapsed(0);
+      // Camera starts with the sitting, not before it — asking for permission on a screen
+      // the member has not committed to yet is how permission prompts get denied for good.
+      // A refusal is not fatal: recorder.start() reports it and the interview carries on.
+      if (!r.session?.status || r.session.status === 'in_progress') await startRecording();
       // The member has an interview already open that is NOT the round they asked for, and
       // it had answers in it so it was kept rather than discarded. Say so — running a
       // different interview without a word is how this looked broken in the first place.
@@ -88,7 +101,7 @@ const Interview: React.FC = () => {
         : '');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not start the interview.'); }
     setBusy(false);
-  }, [company, mode]);
+  }, [company, mode, startRecording]);
 
   /**
    * A URL that already says WHICH sitting it wants starts it — no landing page in between.
@@ -130,7 +143,18 @@ const Interview: React.FC = () => {
   const finish = async (id?: string) => {
     const sid = id || session?.id;
     if (!sid) return;
-    setBusy(true); setErr('');
+    setBusy(true); setErr(''); setRecWarning('');
+
+    /**
+     * Stop the camera and keep the file BEFORE grading starts.
+     *
+     * Grading is a slow AI call that can take many seconds. Leaving the camera live through
+     * it would keep recording a member who has already finished talking, and leave the light
+     * on while they read their score.
+     */
+    let take: { blob: Blob; seconds: number } | null = null;
+    try { take = await recorder.stop(); } catch { /* no recording is not a failure */ }
+
     try {
       let graded = false;
       for (let attempt = 0; attempt < 12 && !graded; attempt += 1) {
@@ -140,10 +164,48 @@ const Interview: React.FC = () => {
       }
       if (!graded) setErr('This interview is taking longer than usual to grade. Your answers are saved — reopen it in a minute.');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not finish the interview.'); }
+
+    /**
+     * Upload AFTER grading, and never let it fail the finish. By this point the transcript,
+     * the score, the XP and the streak are all saved; the video is the one part that can be
+     * lost without costing the member the sitting. So a failure here is a warning about the
+     * recording, not an error about the interview.
+     */
+    if (take?.blob?.size) {
+      setSavingRec(true);
+      try {
+        await passportApi.uploadInterviewRecording(sid, take.blob, take.seconds);
+        load();
+      } catch (e: any) {
+        setRecWarning(e?.response?.data?.message || 'Your interview is saved, but the video recording could not be uploaded.');
+      }
+      setSavingRec(false);
+    }
     setBusy(false);
   };
 
-  const openPast = async (s: InterviewSession) => setSession(s);
+  /**
+   * Attach the live stream to the preview when BOTH exist.
+   *
+   * Assigning at getUserMedia time does not work: the element is not mounted until the
+   * session renders, so srcObject would be set on nothing. This runs whenever either side
+   * appears, which covers both orders.
+   */
+  useEffect(() => {
+    if (previewRef.current && recorder.stream) previewRef.current.srcObject = recorder.stream;
+  }, [recorder.stream, session?.id]);
+
+  const openPast = async (s: InterviewSession) => {
+    setSession(s);
+    setPlayUrl(u => { if (u) URL.revokeObjectURL(u); return ''; });
+    if (s.hasRecording) {
+      try { setPlayUrl(await passportApi.interviewRecordingUrl(s.id)); }
+      catch { /* the session is still readable without its video */ }
+    }
+  };
+
+  // Blob URLs hold the whole video in memory until revoked.
+  useEffect(() => () => { if (playUrl) URL.revokeObjectURL(playUrl); }, [playUrl]);
 
   if (loading) return <PassportShell><div className="pm-loading">Loading mock interviews…</div></PassportShell>;
 
@@ -241,7 +303,17 @@ const Interview: React.FC = () => {
                   <span className="iv-badge">{READINESS_LABEL[ev?.readinessLevel || ''] || ev?.readinessLevel}</span>
                 </div>
                 {session.xpAwarded > 0 && <div className="pm-msg ok">+{session.xpAwarded} XP added to your journey</div>}
+                {savingRec && <div className="pm-msg info">Saving your recording…</div>}
+                {recWarning && <div className="pm-msg err">{recWarning}</div>}
               </div>
+              {/* Watch yourself back — the reason for recording at all. A transcript cannot
+                  show pace, eye contact or how an answer actually landed. */}
+              {playUrl && (
+                <div className="pm-card cp-iv-card">
+                  <h3>Your recording</h3>
+                  <video src={playUrl} controls playsInline className="cp-iv-playback" />
+                </div>
+              )}
               {!!ev?.strengths?.length && <div className="pm-card cp-iv-card"><h3 className="good-title">✓ Strengths</h3><ul className="iv-list">{ev.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul></div>}
               {!!ev?.improvements?.length && <div className="pm-card cp-iv-card"><h3 className="warn-title">△ Work on this</h3><ul className="iv-list">{ev.improvements.map((s, i) => <li key={i}>{s}</li>)}</ul></div>}
               <button className="pm-btn primary cp-iv-full" onClick={() => { setSession(null); start(); }}>Start another interview</button>
@@ -278,6 +350,19 @@ const Interview: React.FC = () => {
           </div>
 
           <div className="iv-side">
+            {/* The camera must be visibly on. A recording the member only discovers afterwards
+                is a nasty surprise, so the preview and the dot are the consent signal. */}
+            {(recorder.recording || recorder.error) && (
+              <div className="pm-card cp-iv-card cp-iv-rec">
+                {recorder.recording ? (
+                  <>
+                    <div className="cp-iv-rec-head"><span className="cp-iv-rec-dot" /> Recording · {String(Math.floor(recorder.seconds / 60)).padStart(2, '0')}:{String(recorder.seconds % 60).padStart(2, '0')}</div>
+                    <video ref={previewRef} autoPlay muted playsInline className="cp-iv-rec-preview" />
+                    <div className="cp-iv-muted">Saved when you finish, so you can watch it back later.</div>
+                  </>
+                ) : <div className="iv-note">{recorder.error}</div>}
+              </div>
+            )}
             <div className="pm-card cp-iv-card"><h3>Areas covered</h3><div className="iv-areas">{session.areas.map((a, i) => <div key={i}><span>•</span>{a}</div>)}</div></div>
             <div className="pm-card cp-iv-card">
               {speechOutSupported && <label className="iv-voice-toggle"><input type="checkbox" checked={voiceOn} onChange={e => { setVoiceOn(e.target.checked); if (!e.target.checked) voice.stopSpeaking(); }} /> Hear the interviewer</label>}

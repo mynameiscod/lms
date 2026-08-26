@@ -23,6 +23,7 @@ import { startInterviewReminderScheduler } from './jobs/interviewReminderCron';
 import { startLiveClassReminderScheduler } from './jobs/liveClassReminderCron';
 import { startBattleReminderScheduler } from './jobs/battleReminderCron';
 import { startCommunicationReminderScheduler } from './jobs/communicationReminderCron';
+import { startInterviewRecordingRetentionScheduler } from './jobs/interviewRecordingRetentionCron';
 import { startPartnerOutreachScheduler } from './jobs/partnerOutreachCron';
 import { startPartnerRetentionScheduler } from './jobs/partnerRetentionCron';
 import { startPartnerReplyScheduler } from './jobs/partnerReplyCron';
@@ -342,6 +343,7 @@ const startServer = async () => {
 
     // Start communication-lab daily streak-nudge scheduler (in-app, once/day)
     startCommunicationReminderScheduler();
+    startInterviewRecordingRetentionScheduler();
 
     // Start placement-partner outreach sender (cap + gap enforced in service)
     startPartnerOutreachScheduler();

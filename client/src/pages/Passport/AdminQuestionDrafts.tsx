@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import passportApi, {
   PoolCoverageRow, QuestionDraft, DraftBatchReport, DraftOption,
 } from '../../api/passportApi';
-import AudiencePicker, { Audience, EMPTY_AUDIENCE, audienceSummary } from './AudiencePicker';
+import AudiencePicker, { audienceSummary } from './AudiencePicker';
 import ManualQuestionForm from './ManualQuestionForm';
 import './adminQuestionDrafts.css';
 

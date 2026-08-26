@@ -10,10 +10,14 @@ import './skillPlan.css';
 /**
  * The 90-day skill plan, shown above the mission journey on the same page.
  *
- * TWO LAYERS, ONE PAGE. The journey below answers "what do I do today"; this answers "what
- * am I working toward, and why that". They are deliberately not merged — a member who has
- * not generated a plan still has their daily missions, and a member who has one still needs
- * somewhere to see today.
+ * THE PRIMARY ROADMAP, WHEN THERE IS ONE. This answers "what am I working toward, and why
+ * that". The mission journey answers "what do I do today" and lives on Home; on this page it
+ * shrinks to a strip as soon as this section has a real plan to show, so a member is never
+ * reading two roadmaps of two different lengths at once.
+ *
+ * When there is no plan yet, this reports that and the journey stays full — the fallback
+ * matters, because a plan only exists after an assessment and an empty page would be worse
+ * than a duplicated one.
  *
  * THIS WEEK COMES FIRST. Ninety days rendered at once is a wall, and the thing a member
  * actually came for is the next few hours of work. Phases collapse; the current week does
@@ -64,7 +68,16 @@ const NEXT_ACTION: Record<string, { label: string; to: string }> = {
   MEMBERSHIP_REQUIRED: { label: 'See membership options', to: '/careerpilot/roadmap' },
 };
 
-const SkillPlan: React.FC = () => {
+/**
+ * What this section ended up rendering, reported to the page around it.
+ *
+ * The roadmap page shows ONE full roadmap at a time, so it has to know whether a skill plan
+ * exists before it decides how much weight to give the mission journey. Only this component
+ * knows that, and it knows it asynchronously.
+ */
+export type SkillPlanState = 'loading' | 'none' | 'cta' | 'plan';
+
+const SkillPlan: React.FC<{ onState?: (s: SkillPlanState) => void }> = ({ onState }) => {
   const nav = useNavigate();
   const [data, setData] = useState<SkillRoadmapResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -124,6 +137,15 @@ const SkillPlan: React.FC = () => {
       setOpenPhase(cur?.key || ready.roadmap.phases[0]?.key || null);
     }
   }, [ready, openPhase]);
+
+  /**
+   * Reported from an effect rather than from the branches below, because those run during
+   * render and telling the parent to re-render mid-render is the "cannot update a component
+   * while rendering a different component" warning.
+   */
+  const state: SkillPlanState =
+    loading ? 'loading' : !data ? 'none' : data.available ? 'plan' : 'cta';
+  useEffect(() => { onState?.(state); }, [state, onState]);
 
   if (loading) return null;
   if (!data) return null;

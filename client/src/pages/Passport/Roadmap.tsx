@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { Roadmap as RoadmapT, RoadmapWeek, RoadmapPhase } from '../../api/passportApi';
 import { useMember } from './MemberLayout';
-import SkillPlan from './SkillPlan';
+import SkillPlan, { SkillPlanState } from './SkillPlan';
 import './roadmap.css';
 
 /**
@@ -35,6 +35,19 @@ const Roadmap: React.FC = () => {
   const [open, setOpen] = useState<Record<number, boolean>>({});
   const [phaseOpen, setPhaseOpen] = useState<Record<string, boolean>>({});
   const [full, setFull] = useState(false);
+  const [skillState, setSkillState] = useState<SkillPlanState>('loading');
+
+  /**
+   * A remount must not un-decide the layout.
+   *
+   * "View full journey" unmounts SkillPlan, so coming back mounts it fresh and it reports
+   * 'loading' again before its request lands. Taking that at face value would expand the
+   * journey to full width for a moment and then collapse it back — the exact flash this
+   * layout exists to avoid. Once a real answer is known, ignore the reset.
+   */
+  const reportSkillState = useCallback((next: SkillPlanState) => {
+    setSkillState(prev => (next === 'loading' && prev !== 'loading' ? prev : next));
+  }, []);
   const [phaseFilter, setPhaseFilter] = useState<string>('all');
   const [view, setView] = useState<'timeline' | 'list'>('timeline');
   const [paying, setPaying] = useState(false);
@@ -79,6 +92,20 @@ const Roadmap: React.FC = () => {
     () => (member?.badges || []).filter(b => !b.earned).slice(0, 3),
     [member?.badges],
   );
+
+  /**
+   * ONE FULL ROADMAP AT A TIME.
+   *
+   * This page used to stack two of them — a skill plan and the mission journey — each with
+   * its own heading, phases and length. Even once both read the same number of days, a
+   * member still had to work out which of the two was "their" roadmap.
+   *
+   * So whichever one is authoritative for this member gets the full page and the other
+   * becomes a strip. The skill plan wins when it exists, because it is built from that
+   * member's own measured gaps; the journey wins otherwise, which is the case that stops an
+   * unassessed member landing on an empty screen.
+   */
+  const compact = skillState === 'plan';
 
   if (loading) return <div className="pm-loading">Loading your roadmap…</div>;
 
@@ -347,14 +374,55 @@ const Roadmap: React.FC = () => {
   // ══ COMPACT VIEW ══
   return (
     <div className="rq">
-      {/*
-        The 90-day SKILL plan sits above the mission journey.
-        Two layers, deliberately not merged: this one answers "what am I working toward and
-        why that", the journey below answers "what do I do today". It renders nothing at all
-        until a member has one, so the page is unchanged for everybody else.
-      */}
-      <SkillPlan />
+      <SkillPlan onState={reportSkillState} />
 
+      {/*
+        Held back until the skill plan has reported, so a member who has one does not watch
+        the full journey render and then collapse into the strip a moment later.
+      */}
+      {skillState === 'loading' && <div className="rq-strip rq-strip-wait" aria-hidden="true" />}
+
+      {compact && (
+        <div className="rq-strip">
+          <div className="rq-strip-main">
+            <div className="rq-strip-top">
+              <b>{rm.pathwayLabel}</b>
+              <span className="rq-strip-day">Day {rm.currentDay} of {rm.totalDays}</span>
+              <span className="chip gold">⭐ {rm.earnedXp} XP</span>
+            </div>
+            <div className="rq-mini"><i style={{ width: `${Math.max(pct, 2)}%` }} /></div>
+            <div className="rq-strip-phases">
+              {rm.phases.map(ph => (
+                <em key={ph.key} className={ph.key === currentPhase.key ? 'on' : ''}>
+                  {ph.label.replace(/^Phase (\d+) · /, '')}
+                </em>
+              ))}
+            </div>
+          </div>
+          <div className="rq-strip-actions">
+            <button className="rq-primary" onClick={() => nav('/careerpilot')}>Today's missions →</button>
+            <button className="rq-ghost" onClick={() => setFull(true)}>View full journey</button>
+          </div>
+        </div>
+      )}
+
+      {/*
+        The unlock still shows in compact mode. It is the only paywall on this page, and
+        hiding it behind "View full journey" would put a conversion step one click further
+        away for exactly the members who have not paid yet.
+      */}
+      {compact && !entitled && (
+        <div className="rq-lock">
+          <h3>🔒 That's your first week — {rm.totalDays - (rm.previewDays || 7)} more days are waiting</h3>
+          <p>Unlock daily missions, the Practice Lab, AI mock interviews, the Resume Center and your shareable CareerPilot.</p>
+          <button className="rq-primary" onClick={unlock} disabled={paying}>
+            {paying ? 'Opening payment…' : `Unlock My ${rm.totalDays}-Day CareerPilot — ₹${data?.priceInr ?? 499}`}
+          </button>
+          {payMsg && <div className="pm-msg err" style={{ maxWidth: 420, margin: '12px auto 0' }}>{payMsg}</div>}
+        </div>
+      )}
+
+      {!compact && skillState !== 'loading' && (<>
       <div className="rq-title row">
         <div>
           <h1>Your {rm.totalDays}-Day Roadmap 🚀</h1>
@@ -452,6 +520,7 @@ const Roadmap: React.FC = () => {
 
         {Aside}
       </div>
+      </>)}
     </div>
   );
 };

@@ -92,7 +92,29 @@ export interface CandidateQuery {
   difficulty?: EvidenceDifficulty;
   contribution?: EvidenceContribution;
   limitPerSkill?: number;
+  /**
+   * Who the paper is for. Omit it and NOTHING is narrowed — every mapping is returned, which
+   * is exactly how this behaved before audiences existed.
+   *
+   * Supplied, it keeps an item when the item is universal for that dimension (no tags) or
+   * explicitly names this student. Universal items therefore remain available to everyone,
+   * so adding one targeted question never removes a question from anybody else.
+   */
+  audience?: { roleKey?: string; year?: string; course?: string };
 }
+
+/**
+ * "Untagged, or tagged for this student."
+ *
+ * Written as a Mongo condition rather than filtered in memory so a thin pool is not first
+ * fetched and then thrown away. `$in: [null, []]` covers both rows written before the field
+ * existed (absent) and rows an admin cleared (empty array).
+ */
+const audienceClause = (field: string, value?: string) => {
+  const universal = { $or: [{ [field]: { $in: [null, []] } }, { [field]: { $exists: false } }] };
+  if (!value) return universal;
+  return { $or: [universal.$or[0], universal.$or[1], { [field]: value }] };
+};
 
 export interface CandidatePool {
   skillKey: string;
@@ -116,6 +138,14 @@ export async function findEvidenceCandidates(tenantId: string, q: CandidateQuery
 
   const filter: any = { tenantId, skillKey: { $in: keys }, active: true };
   if (q.sourceTypes?.length) filter.sourceType = { $in: q.sourceTypes };
+  if (q.audience) {
+    // $and, because each dimension has its own $or and Mongo would otherwise keep only the last.
+    filter.$and = [
+      audienceClause('audienceRoles', q.audience.roleKey ? String(q.audience.roleKey).toUpperCase() : undefined),
+      audienceClause('audienceYears', q.audience.year),
+      audienceClause('audienceCourses', q.audience.course ? String(q.audience.course).toUpperCase() : undefined),
+    ];
+  }
   if (q.contribution) filter.contribution = q.contribution;
 
   const rows = await SkillEvidence.find(filter).lean() as any[];

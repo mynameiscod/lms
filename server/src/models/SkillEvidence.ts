@@ -69,6 +69,26 @@ export interface ISkillEvidence extends Document {
    * which is what lets a mapping be withdrawn without rewriting the past.
    */
   active: boolean;
+  /**
+   * Who this item is FOR. Empty means everyone — and that is the important half.
+   *
+   * Every mapping written before this existed has no audience, so it stays universal and
+   * nothing that worked yesterday narrows today. An admin adds targeting on top: a question
+   * tagged BACKEND_ENGINEER is offered only to backend students, one tagged "2nd Year" only
+   * to second years, and one left untagged to all of them.
+   *
+   * Targeting lives HERE rather than on the Question because the question is a shared LMS
+   * record with its own life, while this row is the CareerPilot-owned mapping the pool query
+   * already reads — and because the same question can legitimately be aimed differently for
+   * two different skills.
+   *
+   * A caution worth keeping in view: the pool is thin. Narrowing a bucket that holds two
+   * items to one audience leaves one item, and every student in that audience then sees the
+   * same question. Tag deliberately, not by default.
+   */
+  audienceRoles: string[];
+  audienceYears: string[];
+  audienceCourses: string[];
 
   createdBy?: string;
   updatedBy?: string;
@@ -87,6 +107,10 @@ const SkillEvidenceSchema = new Schema<ISkillEvidence>(
     contribution:  { type: String, enum: EVIDENCE_CONTRIBUTIONS, default: 'PRIMARY' },
 
     active:        { type: Boolean, default: true },
+    // Uppercased and trimmed so a filter never misses on case or a stray space.
+    audienceRoles:   [{ type: String, uppercase: true, trim: true }],
+    audienceYears:   [{ type: String, trim: true }],
+    audienceCourses: [{ type: String, uppercase: true, trim: true }],
 
     createdBy: { type: String },
     updatedBy: { type: String },

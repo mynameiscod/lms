@@ -122,6 +122,43 @@ describe('evidence pools for a set of skills', () => {
     expect(findEvidence.mock.calls[0][0].active).toBe(true);
   });
 
+  /**
+   * The rule the whole targeting feature rests on. Every mapping written before audiences
+   * existed has no tags, and must keep reaching every student — a regression here would
+   * silently empty the pool for everybody rather than failing loudly.
+   */
+  it('does not narrow anything when no audience is asked for', async () => {
+    await findEvidenceCandidates('t1', { skillKeys: ['JAVA_OOP'] });
+    expect(findEvidence.mock.calls[0][0].$and).toBeUndefined();
+  });
+
+  it('keeps untagged mappings available to every audience', async () => {
+    await findEvidenceCandidates('t1', {
+      skillKeys: ['JAVA_OOP'],
+      audience: { roleKey: 'BACKEND_ENGINEER', year: '2nd Year', course: 'B.Tech' },
+    });
+    const and = findEvidence.mock.calls[0][0].$and;
+    expect(and).toHaveLength(3);
+    // Each dimension accepts absent, empty, OR an exact match — so a question tagged for
+    // nobody in particular is still offered alongside the targeted ones.
+    for (const clause of and) {
+      expect(clause.$or).toHaveLength(3);
+    }
+    expect(and[0].$or[2]).toEqual({ audienceRoles: 'BACKEND_ENGINEER' });
+    expect(and[1].$or[2]).toEqual({ audienceYears: '2nd Year' });
+    expect(and[2].$or[2]).toEqual({ audienceCourses: 'B.TECH' });
+  });
+
+  it('leaves a dimension unfiltered when the student has no value for it', async () => {
+    await findEvidenceCandidates('t1', { skillKeys: ['JAVA_OOP'], audience: { roleKey: 'QA_SDET' } });
+    const and = findEvidence.mock.calls[0][0].$and;
+    // Role is matched; year and course only accept universal rows, never an exact match on
+    // a value that does not exist.
+    expect(and[0].$or).toHaveLength(3);
+    expect(and[1].$or).toHaveLength(2);
+    expect(and[2].$or).toHaveLength(2);
+  });
+
   it('scopes the pool to the tenant', async () => {
     await findEvidenceCandidates('t7', { skillKeys: ['JAVA_OOP'] });
     expect(findEvidence.mock.calls[0][0].tenantId).toBe('t7');

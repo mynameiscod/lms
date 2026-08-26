@@ -2,8 +2,13 @@ import { Request, Response } from 'express';
 import SkillQuestionDraft from '../models/SkillQuestionDraft';
 import AuditLog from '../models/AuditLog';
 import {
-  generateDrafts, approveDraft, rejectDraft, poolCoverage,
+  generateDrafts, approveDraft, rejectDraft, poolCoverage, createManualQuestion,
 } from '../services/skillQuestionDraftService';
+import { listCareerRoles } from '../services/careerRoleService';
+import { SUPPORTED_PROGRAMS } from '../services/careerDomainService';
+
+/** The same list the member picks from in setup — see the audiences handler. */
+const ACADEMIC_YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Graduated'];
 
 /**
  * The admin side of AI question drafting.
@@ -123,6 +128,99 @@ export const approve = async (req: Request, res: Response) => {
     res.json({ success: true, questionId });
   } catch (e: any) {
     res.status(400).json({ success: false, message: e?.message || 'Could not approve' });
+  }
+};
+
+/**
+ * GET /passport/question-drafts/audiences — the values a question may be targeted at.
+ *
+ * Served from here rather than reusing the member context endpoint, which needs a CareerPilot
+ * profile the admin may not have. The YEAR list is the same one the student picks from in
+ * setup, deliberately: a question tagged "2nd Year" has to match the string the member
+ * actually stored, and two lists that drift would target nobody.
+ */
+export const audiences = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    // EVERY role, not just the selectable ones for one domain: an admin may legitimately
+    // aim a question at a role students cannot pick themselves yet.
+    const roles = await listCareerRoles(tenantId).catch(() => []);
+    res.json({
+      success: true,
+      roles: (roles as any[]).filter(r => r.active !== false).map(r => ({ key: r.key, label: r.label || r.key })),
+      years: ACADEMIC_YEARS,
+      courses: SUPPORTED_PROGRAMS,
+    });
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: e?.message || 'Could not load audiences' });
+  }
+};
+
+/**
+ * POST /passport/question-drafts/approve-bulk — approve a selection in one request.
+ *
+ * Each draft is approved INDEPENDENTLY and a failure is reported rather than thrown. The
+ * whole point of selecting twenty is not to babysit them; one near-duplicate in the middle
+ * must not discard the nineteen that were fine, and the reviewer needs to know which one it
+ * was. So this always returns 200 with a per-id outcome, never a half-applied error.
+ */
+export const approveBulk = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String).filter(Boolean) : [];
+    if (!ids.length) return res.status(400).json({ success: false, message: 'Select at least one draft.' });
+    if (ids.length > 100) return res.status(400).json({ success: false, message: 'Approve at most 100 at a time.' });
+
+    const approved: string[] = [];
+    const failed: { id: string; message: string }[] = [];
+    // Sequential on purpose: approval reads the live pool to reject duplicates, and running
+    // them in parallel would let two near-identical drafts in the same batch both pass.
+    for (const id of ids) {
+      try {
+        await approveDraft({ tenantId, draftId: id, reviewedBy: whoOf(req) });
+        approved.push(id);
+      } catch (e: any) {
+        failed.push({ id, message: e?.message || 'Could not approve' });
+      }
+    }
+
+    await audit(req, 'UPDATE', `Bulk-approved ${approved.length}/${ids.length} drafts`, { approved: approved.length, failed: failed.length });
+    res.json({ success: true, approved, failed });
+  } catch (e: any) {
+    res.status(400).json({ success: false, message: e?.message || 'Could not approve the selection' });
+  }
+};
+
+/**
+ * POST /passport/question-drafts/manual — an admin writes a question themselves.
+ *
+ * Goes live immediately: there is no second reviewer to wait for when the author IS the
+ * reviewer, and a pending queue that only its own writer can clear is just a delay.
+ */
+export const createManual = async (req: Request, res: Response) => {
+  try {
+    const b = req.body || {};
+    const difficulty = ['easy', 'medium', 'hard'].includes(b.difficulty) ? b.difficulty : 'medium';
+    const result = await createManualQuestion({
+      tenantId: tenantOf(req),
+      createdBy: whoOf(req),
+      skillKey: String(b.skillKey || ''),
+      difficulty,
+      question: String(b.question || ''),
+      options: Array.isArray(b.options) ? b.options : [],
+      explanation: b.explanation ? String(b.explanation) : undefined,
+      codeSnippet: b.codeSnippet ? String(b.codeSnippet) : undefined,
+      language: b.language ? String(b.language) : undefined,
+      audienceRoles: Array.isArray(b.audienceRoles) ? b.audienceRoles : [],
+      audienceYears: Array.isArray(b.audienceYears) ? b.audienceYears : [],
+      audienceCourses: Array.isArray(b.audienceCourses) ? b.audienceCourses : [],
+    });
+    await audit(req, 'CREATE', `Wrote a question for ${String(b.skillKey || '').toUpperCase()}`, result);
+    res.json({ success: true, ...result });
+  } catch (e: any) {
+    // A rejected question is the admin's to fix (a blank option, a duplicate stem), so the
+    // reason goes back verbatim rather than as a generic failure.
+    res.status(400).json({ success: false, message: e?.message || 'Could not save the question' });
   }
 };
 

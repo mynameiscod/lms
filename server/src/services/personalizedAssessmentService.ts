@@ -94,6 +94,11 @@ export interface GenerationInput {
    * disagree if an admin saved a change between them.
    */
   policy?: AssessmentPolicy;
+  /**
+   * Who this paper is for, so audience-tagged items can be offered or withheld. Omitted,
+   * the pool is unnarrowed — which is what every caller written before targeting did.
+   */
+  audience?: { roleKey?: string; year?: string; course?: string };
 }
 
 const norm = (v: any): string => String(v ?? '').trim().toUpperCase();
@@ -434,6 +439,12 @@ export interface ResolvedContext {
   blueprintVersion?: number;
   policy?: AssessmentPolicy;
   discovery?: boolean;
+  /**
+   * The member's own role, year and course, so audience-tagged questions can be matched
+   * against them. Optional: a discovery paper resolves without one, and a caller that
+   * ignores it gets the unnarrowed pool, which is the pre-targeting behaviour.
+   */
+  audience?: { roleKey?: string; year?: string; course?: string };
 }
 
 /**
@@ -485,7 +496,16 @@ export async function resolvePersonalizedAssessmentContext(tenantId: string, stu
     return { ok: false, reasonCode: 'BLUEPRINT_EMPTY', message: `The ${blueprint.roleName} blueprint has no usable skills yet.` };
   }
 
-  return { ok: true, stage, roleKey, policy, roleSkillKeys, blueprintVersion: blueprint.version };
+  return {
+    ok: true, stage, roleKey, policy, roleSkillKeys, blueprintVersion: blueprint.version,
+    // Year and course come straight from the member's own CareerPilot setup, so an admin
+    // tagging a question "2nd Year" targets the same value the student chose there.
+    audience: {
+      roleKey,
+      year: context.education?.currentAcademicYear || undefined,
+      course: context.education?.branch || context.education?.degree || undefined,
+    },
+  };
 }
 
 /**
@@ -539,6 +559,9 @@ export async function buildPersonalizedAssessment(input: GenerationInput): Promi
   const pools = await findEvidenceCandidates(input.tenantId, {
     skillKeys: scoped.map(s => s.skillKey),
     contribution: 'PRIMARY',
+    // Defaults to the paper's own role when the caller did not spell out an audience, so a
+    // role-tagged question reaches the right students without every call site being updated.
+    audience: input.audience || (input.roleKey ? { roleKey: input.roleKey } : undefined),
   });
   const poolMap = new Map<string, PoolItem[]>(pools.map(p => [p.skillKey, p.items.map(i => ({
     sourceType: i.sourceType, sourceId: i.sourceId, difficulty: i.difficulty as any, contribution: i.contribution,

@@ -165,6 +165,10 @@ export const startPersonalizedAssessment = async (req: Request, res: Response) =
       tenantId, studentId,
       stage: ctx.stage!, roleKey: ctx.roleKey!,
       roleSkillKeys: scopedSkill ? [scopedSkill] : ctx.roleSkillKeys!,
+      // The member's own role, year and course — so a question an admin aimed at, say,
+      // 2nd-year CSE backend students reaches exactly them, and untagged questions still
+      // reach everybody.
+      audience: (ctx as any).audience,
       blueprintVersion: ctx.blueprintVersion!,
       attemptNumber,
       seenSourceIds: seen,

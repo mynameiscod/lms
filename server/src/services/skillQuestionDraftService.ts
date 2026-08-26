@@ -347,7 +347,9 @@ export async function approveDraft(o: {
   tenantId: string;
   draftId: string;
   reviewedBy: string;
-  edits?: Partial<Pick<ISkillQuestionDraft, 'question' | 'options' | 'explanation' | 'difficulty' | 'codeSnippet' | 'language'>>;
+  edits?: Partial<Pick<ISkillQuestionDraft,
+    'question' | 'options' | 'explanation' | 'difficulty' | 'codeSnippet' | 'language'
+    | 'audienceRoles' | 'audienceYears' | 'audienceCourses'>>;
   note?: string;
 }): Promise<{ questionId: string }> {
   const draft: any = await SkillQuestionDraft.findOne({ _id: o.draftId, tenantId: o.tenantId });
@@ -355,7 +357,10 @@ export async function approveDraft(o: {
   if (draft.status !== 'pending') throw new Error(`This draft was already ${draft.status}.`);
 
   if (o.edits) {
-    for (const k of ['question', 'explanation', 'difficulty', 'codeSnippet', 'language'] as const) {
+    for (const k of [
+      'question', 'explanation', 'difficulty', 'codeSnippet', 'language',
+      'audienceRoles', 'audienceYears', 'audienceCourses',
+    ] as const) {
       if (o.edits[k] !== undefined) (draft as any)[k] = o.edits[k];
     }
     if (o.edits.options) draft.options = o.edits.options;
@@ -394,6 +399,11 @@ export async function approveDraft(o: {
       skillKey: draft.skillKey,
       contribution: 'PRIMARY',
       active: true,
+      // Targeting rides onto the mapping, which is what the pool query reads. Empty stays
+      // empty, and an untargeted question remains available to every student.
+      audienceRoles: draft.audienceRoles || [],
+      audienceYears: draft.audienceYears || [],
+      audienceCourses: draft.audienceCourses || [],
       createdBy: o.reviewedBy,
     });
   } catch (err) {
@@ -410,6 +420,115 @@ export async function approveDraft(o: {
   await draft.save();
 
   return { questionId: String(question._id) };
+}
+
+/**
+ * An admin writes a question themselves.
+ *
+ * Deliberately runs the SAME checkDraft the model's output must survive — a blank option, a
+ * duplicated choice, two correct answers or a near-duplicate of an existing stem are just as
+ * wrong when a person types them. Sharing the check is the point: a hand-written path with
+ * looser rules would slowly become the way bad questions get in.
+ *
+ * A row is written to the draft collection too, already approved. It is not ceremony: the
+ * review queue, the coverage counts and the provenance trail all read that collection, and a
+ * question that appeared in the pool with no draft behind it would be invisible to every one
+ * of them. `manual: true` is what tells them apart later.
+ */
+export async function createManualQuestion(o: {
+  tenantId: string;
+  createdBy: string;
+  skillKey: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  question: string;
+  options: { text: string; isCorrect: boolean }[];
+  explanation?: string;
+  codeSnippet?: string;
+  language?: string;
+  audienceRoles?: string[];
+  audienceYears?: string[];
+  audienceCourses?: string[];
+}): Promise<{ questionId: string; draftId: string }> {
+  const skillKey = String(o.skillKey || '').trim().toUpperCase();
+  if (!skillKey) throw new Error('Pick the skill this question measures.');
+
+  const shaped = {
+    question: String(o.question || '').trim(),
+    options: (o.options || []).map(x => ({ text: String(x?.text ?? '').trim(), isCorrect: x?.isCorrect === true })),
+    explanation: o.explanation,
+    difficulty: o.difficulty,
+  };
+
+  // Checked against the live pool for this skill, so a hand-written duplicate of a question
+  // that already exists is refused here rather than discovered by a student seeing it twice.
+  const { set } = await existingStems(o.tenantId, skillKey);
+  const { fatal, warnings } = checkDraft(shaped, set);
+  if (fatal) throw new Error(fatal);
+
+  const question: any = await Question.create({
+    tenantId: o.tenantId,
+    createdBy: o.createdBy,
+    type: 'mcq_single',
+    question: shaped.question,
+    options: shaped.options.map(x => ({ text: x.text, isCorrect: x.isCorrect })),
+    marks: 1,
+    difficultyLevel: o.difficulty,
+    explanation: o.explanation,
+    subject: skillKey,
+    // Not 'ai'. If a question turns out to be wrong, the first thing anyone asks is who
+    // wrote it, and this is the field that answers.
+    source: 'manual',
+    tags: ['careerpilot-manual', skillKey],
+    usageCount: 0,
+    ...(o.codeSnippet ? { description: o.codeSnippet } : {}),
+  });
+
+  const audience = {
+    audienceRoles: (o.audienceRoles || []).map(x => String(x).trim().toUpperCase()).filter(Boolean),
+    audienceYears: (o.audienceYears || []).map(x => String(x).trim()).filter(Boolean),
+    audienceCourses: (o.audienceCourses || []).map(x => String(x).trim().toUpperCase()).filter(Boolean),
+  };
+
+  let draft: any;
+  try {
+    await SkillEvidence.create({
+      tenantId: o.tenantId,
+      sourceType: 'question',
+      sourceId: String(question._id),
+      skillKey,
+      contribution: 'PRIMARY',
+      active: true,
+      ...audience,
+      createdBy: o.createdBy,
+    });
+    draft = await SkillQuestionDraft.create({
+      tenantId: o.tenantId,
+      skillKey,
+      difficulty: o.difficulty,
+      question: shaped.question,
+      options: shaped.options,
+      explanation: o.explanation,
+      codeSnippet: o.codeSnippet,
+      language: o.language,
+      ...audience,
+      manual: true,
+      status: 'approved',
+      batchId: `manual-${Date.now()}`,
+      warnings,
+      generatedBy: o.createdBy,
+      reviewedBy: o.createdBy,
+      reviewedAt: new Date(),
+      approvedQuestionId: String(question._id),
+    });
+  } catch (err) {
+    // Same rule as approveDraft: an unmapped question is a slow leak into the LMS bank, so
+    // a failure anywhere after the question is written takes the question with it.
+    await Question.deleteOne({ _id: question._id }).catch(() => {});
+    await SkillEvidence.deleteOne({ sourceType: 'question', sourceId: String(question._id) }).catch(() => {});
+    throw err;
+  }
+
+  return { questionId: String(question._id), draftId: String(draft._id) };
 }
 
 export async function rejectDraft(o: {

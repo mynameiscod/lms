@@ -40,6 +40,12 @@ export interface QuestionDraft {
   /** Why a student would pick each wrong option. Empty is itself a warning. */
   distractorRationale?: string[];
   status: 'pending' | 'approved' | 'rejected';
+  /** Who the question is for. Empty on every axis means everyone. */
+  audienceRoles?: string[];
+  audienceYears?: string[];
+  audienceCourses?: string[];
+  /** Written by a person rather than the model. */
+  manual?: boolean;
   /** What the automatic checks noticed. Not errors — places to look first. */
   warnings: string[];
   batchId: string;
@@ -568,6 +574,33 @@ export const passportApi = {
   },
   rejectDraft: async (id: string, note?: string): Promise<{ success: boolean }> => {
     const { data } = await axios.post(`${BASE}/question-drafts/${id}/reject`, { note }, { headers: auth() });
+    return data;
+  },
+  /** Roles, years and courses a question may be aimed at. Admin-gated. */
+  draftAudiences: async (): Promise<{
+    roles: { key: string; label: string }[]; years: string[]; courses: string[];
+  }> => {
+    const { data } = await axios.get(`${BASE}/question-drafts/audiences`, { headers: auth() });
+    return data;
+  },
+  /**
+   * Approve a selection. Always resolves with a per-draft outcome — one refusal in the
+   * middle must not discard the rest, and the reviewer needs to know which one it was.
+   */
+  approveDrafts: async (ids: string[]): Promise<{
+    approved: string[]; failed: { id: string; message: string }[];
+  }> => {
+    const { data } = await axios.post(`${BASE}/question-drafts/approve-bulk`, { ids }, { headers: auth() });
+    return data;
+  },
+  /** Write a question by hand. Goes live immediately — the author is the reviewer. */
+  createManualQuestion: async (body: {
+    skillKey: string; difficulty: string; question: string;
+    options: { text: string; isCorrect: boolean }[];
+    explanation?: string; codeSnippet?: string; language?: string;
+    audienceRoles?: string[]; audienceYears?: string[]; audienceCourses?: string[];
+  }): Promise<{ questionId: string; draftId: string }> => {
+    const { data } = await axios.post(`${BASE}/question-drafts/manual`, body, { headers: auth() });
     return data;
   },
 
@@ -1220,6 +1253,8 @@ export interface PassportContentDoc {
   pathways: PassportPathway[];
   missionPools: MissionPool[];
   journeyDays: number;
+  /** Missions served per day, 1–6. Absent on tenants that never set one — read as 3. */
+  missionsPerDay?: number;
   /** Off = pathway rules are a draft and the built-in sorting still decides. */
   pathwayRulesActive?: boolean;
 }

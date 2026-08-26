@@ -124,3 +124,66 @@
   .qd-gen select, .qd-gen input { min-width: 0; width: 100%; }
   .qd-gen label { flex: 1 1 100%; }
 }
+
+/* ── Bulk selection ───────────────────────────────────────────────────────── */
+.qd-bulk { display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  border: 1px solid #dbe6f0; background: #f6fafd; border-radius: 11px;
+  padding: 10px 13px; margin-bottom: 14px; }
+.qd-pickall { display: flex; align-items: center; gap: 8px; font-size: 12.5px;
+  font-weight: 700; color: #26405f; cursor: pointer; }
+.qd-picked { font-size: 12px; color: #5d6f88; margin-right: auto; }
+.qd-pick { width: 16px; height: 16px; cursor: pointer; }
+
+/* ── Pagination ───────────────────────────────────────────────────────────── */
+.qd-pager { display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; margin-top: 18px; padding-top: 14px; border-top: 1px solid #edf1f6; }
+.qd-pager span { font-size: 12.5px; color: #5d6f88; }
+.qd-pager b { color: #16294a; }
+
+/* ── Audience picker ──────────────────────────────────────────────────────── */
+.aud { border: 1px solid #e2e8f0; border-radius: 12px; padding: 13px; background: #fcfdfe; }
+.aud-row { display: grid; grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px; align-items: start; padding: 9px 0; border-top: 1px solid #eef2f7; }
+.aud-row:first-child { border-top: 0; padding-top: 0; }
+.aud-label { font-size: 12.5px; font-weight: 800; color: #22364f; }
+.aud-label small { display: block; font-size: 10.5px; font-weight: 500;
+  color: #7d8da3; margin-top: 2px; }
+.aud-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.aud-none { font-size: 11.5px; color: #93a1b5; }
+.aud-chip { border: 1px solid #dbe3ec; background: #fff; color: #45566e;
+  border-radius: 999px; padding: 6px 12px; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.aud-chip:hover { border-color: #b6c6d8; }
+.aud-chip.on { background: #0b2f6b; border-color: #0b2f6b; color: #fff; font-weight: 800; }
+.aud-summary { display: flex; align-items: center; gap: 10px; margin-top: 11px;
+  padding-top: 10px; border-top: 1px solid #eef2f7; font-size: 12px; color: #5d6f88; }
+.aud-summary b { color: #16294a; }
+.aud-clear { margin-left: auto; border: 0; background: none; color: #0b5fbc;
+  font-size: 11.5px; font-weight: 700; cursor: pointer; text-decoration: underline; }
+.aud-warn { margin-top: 10px; border: 1px solid #f5d9a8; background: #fffaf0;
+  color: #8a5a12; border-radius: 10px; padding: 9px 11px; font-size: 11.5px; line-height: 1.5; }
+
+/* ── Manual composer ──────────────────────────────────────────────────────── */
+.qd-manual-hd { display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; margin-bottom: 14px; }
+.qd-manual-hd h3 { margin: 0; font-size: 15px; color: #16294a; }
+.qd-field { display: block; margin-top: 14px; font-size: 12.5px;
+  font-weight: 800; color: #22364f; }
+.qd-field small { font-weight: 500; color: #8494a8; margin-left: 6px; }
+.qd-field textarea { display: block; width: 100%; margin-top: 6px; padding: 10px 12px;
+  border: 1px solid #dbe3ec; border-radius: 10px; font: inherit; font-size: 13px;
+  font-weight: 400; color: #1c2c45; resize: vertical; }
+.qd-field textarea:focus { outline: 0; border-color: #359aad;
+  box-shadow: 0 0 0 3px rgba(53, 154, 173, .12); }
+.qd-field textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.qd-opt-x { border: 0; background: none; color: #b4462f; font-size: 17px;
+  line-height: 1; cursor: pointer; padding: 0 4px; }
+.qd-btn.sm { padding: 6px 11px; font-size: 11.5px; margin-top: 8px; }
+.qd-actions.end { justify-content: flex-end; }
+
+/* Who a draft reaches, and the editor for it. */
+.qd-aud-edit { margin-top: 12px; border: 1px solid #e6ebf2; border-radius: 11px; padding: 10px 12px; }
+.qd-aud-edit > summary { cursor: pointer; font-size: 12px; color: #5d6f88; }
+.qd-aud-edit > summary b { color: #16294a; }
+.qd-aud-edit .aud { margin-top: 11px; }
+.chip.aud { background: #eef4fb; color: #34506f; }
+.chip.s-manual { background: #eaf7f0; color: #1a7a52; }

@@ -42,6 +42,15 @@ export interface ISkillQuestionDraft extends Document {
   /** The CareerSkill this was drafted to measure. Becomes the SkillEvidence mapping. */
   skillKey: string;
   difficulty: 'easy' | 'medium' | 'hard';
+  /**
+   * Who the approved question will be for. Copied onto the SkillEvidence mapping at
+   * approval — empty means everyone, which is what an untargeted draft should be.
+   */
+  audienceRoles: string[];
+  audienceYears: string[];
+  audienceCourses: string[];
+  /** True when a person wrote this rather than the model. Kept for provenance, like source. */
+  manual?: boolean;
 
   question: string;
   options: IDraftOption[];
@@ -102,6 +111,10 @@ const SkillQuestionDraftSchema = new Schema<ISkillQuestionDraft>(
     tenantId:   { type: String, required: true, index: true },
     skillKey:   { type: String, required: true, index: true },
     difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
+    audienceRoles:   [{ type: String, uppercase: true, trim: true }],
+    audienceYears:   [{ type: String, trim: true }],
+    audienceCourses: [{ type: String, uppercase: true, trim: true }],
+    manual: { type: Boolean, default: false },
 
     question:    { type: String, required: true },
     options:     { type: [DraftOptionSchema], default: [] },

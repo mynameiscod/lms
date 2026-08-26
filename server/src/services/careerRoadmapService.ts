@@ -5,6 +5,7 @@ import CareerRoadmap, { ICareerRoadmap, GenerationReason } from '../models/Caree
 import { getCareerContext, StudentCareerContext } from './careerContextService';
 import { calculateStudentRoleReadiness, RoleReadinessResult } from './roleReadinessService';
 import PassportConfig from '../models/PassportConfig';
+import PassportContent from '../models/PassportContent';
 import { isEntitled } from './passportEntitlementService';
 import { buildRoadmapPlan, PlannerGraphNode, PlannerProfile } from './roadmapPlannerService';
 import {
@@ -222,19 +223,30 @@ async function gatherInputs(
     rows.map(r => [r.skillKey, { score: r.score, confidence: r.confidence }]),
   );
 
-  const [user, cfg] = await Promise.all([
+  const [user, cfg, content] = await Promise.all([
     User.findOne({ _id: studentId, tenantId }).select('passport').lean() as any,
     PassportConfig.findOne({ tenantId }).lean() as any,
+    PassportContent.findOne({ tenantId }).select('journeyDays').lean() as any,
   ]);
 
   /**
-   * The tenant's plan length, bounded by the policy maximum.
+   * The tenant's programme length, bounded by the policy maximum.
+   *
+   * ONE STORED NUMBER, READ IN PREFERENCE. `PassportContent.journeyDays` drives the mission
+   * journey, and it is what the admin screen now writes. Reading it here too is what stops
+   * the two from drifting: a tenant on journeyDays 100 and roadmapDays 90 showed a member a
+   * "90-day plan" directly above a "100-Day Roadmap", and no amount of relabelling fixes a
+   * disagreement that lives in two rows of the database.
+   *
+   * `cfg.roadmapDays` remains the fallback so a tenant whose content row predates the field
+   * keeps whatever they had rather than silently jumping to the default.
    *
    * MAX_ROADMAP_DAYS stays as the CEILING rather than the value: the planner's reasoning
    * about staleness does not stop being true because somebody typed 400 into a box, and a
    * plan longer than the evidence behind it is a promise the product cannot keep.
    */
-  const planDays = Math.max(7, Math.min(MAX_ROADMAP_DAYS, Number(cfg?.roadmapDays) || MAX_ROADMAP_DAYS));
+  const configuredDays = Number(content?.journeyDays) || Number(cfg?.roadmapDays) || MAX_ROADMAP_DAYS;
+  const planDays = Math.max(7, Math.min(MAX_ROADMAP_DAYS, configuredDays));
 
   let { roadmapDays, entitlementLimited, expired } = windowFor(user?.passport, now, planDays);
 

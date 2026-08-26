@@ -12,6 +12,8 @@
 const roadmapStore: any[] = [];
 let userDoc: any = null;
 let configDoc: any = null;
+/** The content row now carries the programme length; null means the tenant has none set. */
+let contentDoc: any = null;
 
 const matches = (doc: any, q: any) =>
   Object.entries(q).every(([k, v]) => String(doc[k]) === String(v));
@@ -59,6 +61,13 @@ jest.mock('../models/User', () => ({
 jest.mock('../models/PassportConfig', () => ({
   __esModule: true,
   default: { findOne: () => ({ lean: async () => configDoc }) },
+}));
+
+// The programme length is read from here in preference to PassportConfig, so that the skill
+// plan and the mission journey cannot be configured to two different lengths.
+jest.mock('../models/PassportContent', () => ({
+  __esModule: true,
+  default: { findOne: () => ({ select: () => ({ lean: async () => contentDoc }) }) },
 }));
 
 const getCareerContextMock = jest.fn();
@@ -130,6 +139,7 @@ beforeEach(() => {
   roadmapStore.length = 0;
   userDoc = { passport: { active: true } };
   configDoc = null;
+  contentDoc = null;
   SKILL_DOCS = ['REST_API', 'SQL', 'DOCKER'].map(k => ({
     key: k, name: k, nodeType: 'SKILL', prerequisiteKeys: [], active: true,
   }));
@@ -485,6 +495,36 @@ describe('entitlement', () => {
   });
 
   // ── admin configuration is respected, but cannot conjure days ────────────────
+
+  /**
+   * The programme length comes from ONE stored number.
+   *
+   * Production had journeyDays 100 on the content row and roadmapDays 90 on the config row,
+   * so a member was shown a "90-day plan" stacked directly above a "100-Day Roadmap". The
+   * service reads the journey's number first precisely so that pair cannot disagree.
+   */
+  it('takes the programme length from the journey, not the older config field', async () => {
+    contentDoc = { journeyDays: 30 };
+    configDoc = { roadmapDays: 90 };
+
+    await generateRoadmap(TENANT, STUDENT, { now: NOW });
+    expect(roadmapStore[0].roadmapDays).toBe(30);
+  });
+
+  it('falls back to the config field for a tenant whose content predates it', async () => {
+    contentDoc = null;
+    configDoc = { roadmapDays: 45 };
+
+    await generateRoadmap(TENANT, STUDENT, { now: NOW });
+    expect(roadmapStore[0].roadmapDays).toBe(45);
+  });
+
+  it('still clamps a journey longer than the policy ceiling', async () => {
+    contentDoc = { journeyDays: 365 };
+
+    await generateRoadmap(TENANT, STUDENT, { now: NOW });
+    expect(roadmapStore[0].roadmapDays).toBe(90);
+  });
 
   it('honours a tenant that has made the full roadmap free', async () => {
     // Re-tiering in Platform Settings is an existing, deliberate admin action.

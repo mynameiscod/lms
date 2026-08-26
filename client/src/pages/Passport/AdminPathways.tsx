@@ -134,7 +134,7 @@ const AdminPathways: React.FC = () => {
       {/* Moved to Config. A pointer rather than a silent removal — somebody who knew this
           control lived here needs to be told where it went, not left hunting for it. */}
       <div className="pa-card">
-        <h3>Journey length</h3>
+        <h3>Programme length</h3>
         <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
           Currently <b>{content.journeyDays || 90} days</b> ({Math.ceil((content.journeyDays || 90) / 7)} weeks).
           Every CareerPilot setting now lives in one place — change it under{' '}

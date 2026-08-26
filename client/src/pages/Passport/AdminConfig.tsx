@@ -44,13 +44,17 @@ const PassportAdminConfig: React.FC = () => {
     if (!cfg) return;
     setSaving(true); setMsg('');
     try {
-      // Two documents, one Save. The content write goes first: it mirrors journeyDays onto
-      // the config's roadmapDays server-side, so saving the config afterwards keeps whatever
-      // the admin typed here rather than being overwritten by that mirror.
+      // Two documents, one Save — programme length lives on PassportContent, the rest on
+      // PassportConfig. Both writes carry the SAME length, so it no longer matters which
+      // lands last; the server mirrors it too, which covers an API caller that only touches
+      // content.
       await passportApi.saveContent({ journeyDays, missionsPerDay });
       const saved = await passportApi.updateConfig({
         enabled: cfg.enabled, assessmentMode: cfg.assessmentMode, priceInr: cfg.priceInr,
-        membershipMonths: cfg.membershipMonths, roadmapDays: cfg.roadmapDays,
+        membershipMonths: cfg.membershipMonths,
+        // Same number in both places. The planner still clamps it to its own ceiling when it
+        // reads, which is what the note above the field explains.
+        roadmapDays: journeyDays,
         entitlements: cfg.entitlements, onboardingFields: cfg.onboardingFields,
       });
       setCfg(saved); setMsg('✅ Saved.');
@@ -99,13 +103,32 @@ const PassportAdminConfig: React.FC = () => {
             </span>
           </div>
           <div>
-            <span style={label}>Journey length (days)</span>
+            {/*
+              ONE number for the whole programme. There used to be two — a journey length for
+              the daily missions and a separate roadmap length for the skill plan — and they
+              disagreed: 365 on one screen, a hardcoded 90 on the other, for the same member.
+              Two knobs for one product invited exactly that.
+            */}
+            <span style={label}>Programme length (days)</span>
             <input style={{ ...input, width: 110 }} type="number" min={7} max={365}
               value={journeyDays}
               onChange={e => setJourneyDays(Number(e.target.value) || 90)} />
-            <span style={{ display: 'block', fontSize: 11, color: '#8494a8', marginTop: 4, maxWidth: 240 }}>
-              How long the daily-mission journey runs ({Math.ceil((journeyDays || 90) / 7)} weeks).
-              Saving this also sets the roadmap length below.
+            <span style={{ display: 'block', fontSize: 11, color: '#8494a8', marginTop: 4, maxWidth: 260 }}>
+              Daily missions and the roadmap both run for this long
+              ({Math.ceil((journeyDays || 90) / 7)} weeks).
+              {journeyDays > 90 && (
+                /*
+                  Said out loud rather than clamped quietly. The skill plan is built from an
+                  assessment, and past ~90 days that evidence is too old for the plan to still
+                  be personal — so it covers the first 90 and the member reassesses. An admin
+                  who sets 365 should know that, not discover it from a screen that disagrees
+                  with the number they typed.
+                */
+                <>
+                  {' '}Missions run the full {journeyDays} days; the skill plan covers the
+                  first <b>90</b> and is rebuilt at the next assessment.
+                </>
+              )}
             </span>
           </div>
           <div>
@@ -117,16 +140,7 @@ const PassportAdminConfig: React.FC = () => {
               Drawn one per category, so 6 is the ceiling — beyond that the same pools repeat.
             </span>
           </div>
-          <div>
-            <span style={label}>Roadmap length (days)</span>
-            <input style={{ ...input, width: 110 }} type="number" min={7} max={90}
-              value={cfg.roadmapDays ?? 90}
-              onChange={e => setCfg({ ...cfg, roadmapDays: Number(e.target.value) })} />
-            <span style={{ display: 'block', fontSize: 11, color: '#8494a8', marginTop: 4, maxWidth: 240 }}>
-              How many days of work a plan covers. Capped at 90 — past that the assessment a
-              plan was built from is too old for it to still be personal.
-            </span>
-          </div>
+
           <div><span style={label}>Free assessment engine</span>
             <select style={{ ...input, minWidth: 200 }} value={cfg.assessmentMode} onChange={e => setCfg({ ...cfg, assessmentMode: e.target.value as any })}>
               <option value="deterministic">Deterministic (no AI — cheap, scales)</option>

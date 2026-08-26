@@ -55,6 +55,47 @@ describe('the configured roadmap length', () => {
   });
 });
 
+/**
+ * Which stored number the length comes from.
+ *
+ * Exactly as careerRoadmapService resolves it: the content row first, the config row as a
+ * fallback for tenants whose content predates the field, the shipped default last.
+ */
+const configuredDaysFor = (journeyDays: unknown, roadmapDays: unknown) =>
+  Number(journeyDays) || Number(roadmapDays) || MAX_ROADMAP_DAYS;
+
+const resolve = (journeyDays: unknown, roadmapDays: unknown) =>
+  planDaysFor(configuredDaysFor(journeyDays, roadmapDays));
+
+describe('where the length is read from', () => {
+  /**
+   * The bug this closes. A tenant sat on journeyDays 100 / roadmapDays 90 and a member was
+   * shown a "90-day plan" stacked directly above a "100-Day Roadmap" — two headings, two
+   * lengths, one programme. The journey's number wins so the pair cannot disagree.
+   */
+  it('prefers the journey length over the older config field', () => {
+    expect(resolve(100, 90)).toBe(90);   // clamped, but read from journeyDays
+    expect(resolve(60, 90)).toBe(60);
+    expect(resolve(30, 90)).toBe(30);
+  });
+
+  it('falls back to the config field when content has no value', () => {
+    expect(resolve(undefined, 45)).toBe(45);
+    expect(resolve(0, 45)).toBe(45);
+    expect(resolve(null, 45)).toBe(45);
+  });
+
+  it('falls back to the shipped default when neither is set', () => {
+    expect(resolve(undefined, undefined)).toBe(MAX_ROADMAP_DAYS);
+    expect(resolve(null, null)).toBe(MAX_ROADMAP_DAYS);
+  });
+
+  /** The ceiling still applies to whichever source won. */
+  it('clamps a journey length that exceeds the ceiling', () => {
+    expect(resolve(365, undefined)).toBe(MAX_ROADMAP_DAYS);
+  });
+});
+
 describe('the policy still owns the ceiling', () => {
   it('ships at 90 days', () => {
     expect(MAX_ROADMAP_DAYS).toBe(90);

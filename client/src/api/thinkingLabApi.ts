@@ -44,7 +44,9 @@ export interface TLVoiceEval { transcript: string; durationSec: number; confiden
 export interface TLProfile { summary?: string; strengths: string[]; weaknesses: string[]; traits: { label: string; note?: string }[]; recommendations: string[]; basedOnCount: number; computedAt?: string; }
 export interface TLRunResult { results: { index: number; passed: boolean; hidden: boolean }[]; allPassed: boolean; compileError?: string; passedCount: number; total: number; }
 export interface TLSubmitResult extends TLRunResult { feedback: TLRubric; xpEarned: number; coinsEarned: number; newBadges: { key: string; name: string; icon: string }[]; status: string; }
-export interface TLAdminProblem { id: string; title: string; category: string; difficulty: string; language: string; xp: number; active: boolean; timesAssigned: number; timesSolved: number; createdAt: string; }
+export interface TLAdminProblem { id: string; title: string; category: string; difficulty: string; language: string; xp: number; active: boolean; timesAssigned: number; timesSolved: number; createdAt: string;
+  /** Empty or absent means LMS only — the same rule the server applies. */
+  audiences?: ('lms' | 'careerpilot')[]; attemptCount?: number; }
 
 const h = () => ({ headers: authHeader() });
 

@@ -38,6 +38,12 @@ const PracticeItem: React.FC = () => {
   const [tab, setTab] = useState<Tab>('tests');
   const [activeTest, setActiveTest] = useState(0);
   const [hintsShown, setHintsShown] = useState(0);
+  /** Left-pane tab. The statement, the help, and the videos are different jobs. */
+  const [side, setSide] = useState<'problem' | 'hints' | 'video'>('problem');
+  const [detail, setDetail] = useState<any | null>(null);
+  const [aiHint, setAiHint] = useState('');
+  const [aiBusy, setAiBusy] = useState(false);
+  const [saved, setSaved] = useState('');
 
   const [answers, setAnswers] = useState<number[]>([]);
   const [review, setReview] = useState<SubmitOutcome['review'] | null>(null);
@@ -70,15 +76,19 @@ const PracticeItem: React.FC = () => {
       ]);
       setProblem(r.problem);
       setAlreadySolved(r.solved);
+      setDetail(r);
       if (list?.problems) setSiblings(list.problems);
 
       if (r.problem.kind === 'sql') {
         setLang('sql');
         setCode('-- Write your SELECT query here\n\nSELECT ');
       } else if (r.problem.kind === 'coding') {
-        const first = r.problem.languages?.[0] || 'python';
+        const first = (r.savedLanguage as any) || r.problem.languages?.[0] || 'python';
         setLang(first);
-        setCode(r.problem.starter?.[first] || '');
+        // Their own work wins over the starter. Reopening a problem you were part-way
+        // through and finding it wiped back to the template is the fastest way to make
+        // somebody stop trusting a Save button.
+        setCode(r.savedCode || r.problem.starter?.[first] || '');
       } else {
         setAnswers(new Array(r.problem.questions.length).fill(-1));
       }
@@ -99,6 +109,39 @@ const PracticeItem: React.FC = () => {
     setLang(l);
     const starters = Object.values(problem?.starter || {});
     if (!code.trim() || starters.includes(code)) setCode(problem?.starter?.[l] || '');
+  };
+
+  /**
+   * Save without grading.
+   *
+   * Run already persists the draft server-side, but only when there is runnable code and
+   * only as a side effect. A member who has written half an approach and wants to close the
+   * tab needs a button that says so.
+   */
+  const doSave = async () => {
+    if (!id) return;
+    setSaved('Saving…');
+    try {
+      await passportApi.runPractice(id, code, lang);
+      setSaved('Saved');
+    } catch {
+      // The draft is theirs; failing to store it is worth saying rather than swallowing.
+      setSaved('Could not save');
+    }
+    setTimeout(() => setSaved(''), 2500);
+  };
+
+  /** A nudge about THIS code, as opposed to the written hints which are the same for all. */
+  const askAi = async () => {
+    if (!id) return;
+    setAiBusy(true); setAiHint('');
+    try {
+      const r = await passportApi.practiceAiHint(id, code);
+      setAiHint(r.hint || 'No hint came back — try the written hints.');
+    } catch (e: any) {
+      setAiHint(e?.response?.data?.message || 'The hint service is unavailable right now.');
+    }
+    setAiBusy(false);
   };
 
   const doRun = async () => {
@@ -230,7 +273,76 @@ const PracticeItem: React.FC = () => {
             <span className="pl-chip xp">+{problem.xp} XP</span>
             <span className="pl-chip kind">{problem.kind.toUpperCase()}</span>
             <span className="pl-chip">{problem.testCount} {problem.testCount === 1 ? 'test' : 'tests'}</span>
+            {detail?.attempts ? <span className="pl-chip">{detail.attempts} attempt{detail.attempts === 1 ? '' : 's'}</span> : null}
           </div>
+
+          {/* The statement, the help and the videos are three different jobs, and stacking
+              them in one scroll meant the hints sat below the fold exactly when a stuck
+              student was looking for them. */}
+          <div className="pl-sidetabs">
+            <button className={side === 'problem' ? 'on' : ''} onClick={() => setSide('problem')}>Problem</button>
+            <button className={side === 'hints' ? 'on' : ''} onClick={() => setSide('hints')}>
+              Hints{problem.hints?.length ? ` (${problem.hints.length})` : ''}
+            </button>
+            <button className={side === 'video' ? 'on' : ''} onClick={() => setSide('video')}>Videos</button>
+          </div>
+
+          {side === 'hints' && (
+            <div className="pl-side-panel">
+              {/* Written hints, revealed one at a time. Staged rather than dumped so a
+                  student can take the smallest help that unblocks them. */}
+              {(problem.hints || []).slice(0, hintsShown).map((h, i) => (
+                <div className="pl-hint" key={i}><b>Hint {i + 1}</b><p>{h}</p></div>
+              ))}
+              {hintsShown < (problem.hints?.length || 0) ? (
+                <button className="pl-hint-more" onClick={() => setHintsShown(n => n + 1)}>
+                  Show hint {hintsShown + 1} of {problem.hints?.length}
+                </button>
+              ) : (
+                !!problem.hints?.length && <p className="pl-side-note">That is every written hint.</p>
+              )}
+
+              <div className="pl-ai">
+                <button className="pl-ai-btn" disabled={aiBusy} onClick={askAi}>
+                  {aiBusy ? 'Thinking…' : '✨ Ask AI about my code'}
+                </button>
+                <span className="pl-side-note">Looks at what you have written. Counts toward hints used.</span>
+                {aiHint && <div className="pl-ai-out">{aiHint}</div>}
+              </div>
+            </div>
+          )}
+
+          {side === 'video' && (
+            <div className="pl-side-panel">
+              {detail?.explainerVideo ? (
+                <>
+                  <h3 className="pl-h3">Problem explained</h3>
+                  <a className="pl-video-link" href={detail.explainerVideo} target="_blank" rel="noreferrer noopener">▶ Watch the explanation</a>
+                </>
+              ) : <p className="pl-side-note">No explanation video for this problem yet.</p>}
+
+              <h3 className="pl-h3" style={{ marginTop: 16 }}>Solution</h3>
+              {/*
+                The server decides this, not the page. When it is locked the URL is not in
+                the payload at all — there is nothing here to reveal by editing the DOM.
+              */}
+              {detail?.solutionUnlocked ? (
+                <>
+                  {detail.solutionVideo
+                    ? <a className="pl-video-link" href={detail.solutionVideo} target="_blank" rel="noreferrer noopener">▶ Watch the solution</a>
+                    : <p className="pl-side-note">No solution video was added for this problem.</p>}
+                  {detail.referenceSolution && <pre className="pl-solution">{detail.referenceSolution}</pre>}
+                </>
+              ) : (
+                <p className="pl-locked">
+                  🔒 Unlocks after {detail?.attemptsToUnlock ?? 3} more submission{(detail?.attemptsToUnlock ?? 3) === 1 ? '' : 's'} — or as soon as you solve it.
+                </p>
+              )}
+            </div>
+          )}
+
+          {side === 'problem' && (
+          <>
           <h1>{problem.title}</h1>
           {problem.subtitle && <p className="pl-sub">{problem.subtitle}</p>}
           <div className="pl-desc">{problem.prompt}</div>
@@ -277,6 +389,8 @@ const PracticeItem: React.FC = () => {
           {problem.tip && (
             <div className="pl-tip"><b>💡 Tip</b><span>{problem.tip}</span></div>
           )}
+          </>
+          )}
         </div>
 
         {/* ── Editor + results ── */}
@@ -315,6 +429,7 @@ const PracticeItem: React.FC = () => {
 
             <div className="pl-actions">
               <button className="pl-btn" onClick={doRun} disabled={running || submitting}>▷ {running ? 'Running…' : 'Run Sample'}</button>
+              <button className="pl-btn" onClick={doSave} disabled={running || submitting}>💾 {saved || 'Save'}</button>
               <button className="pl-btn" onClick={resetCode} disabled={running || submitting}>↺ Reset</button>
               <button className="pl-btn primary" onClick={doSubmit} disabled={running || submitting}>➤ {submitting ? 'Submitting…' : 'Submit'}</button>
             </div>

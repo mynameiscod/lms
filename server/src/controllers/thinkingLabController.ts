@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import fs from 'fs';
-import ThinkingProblem from '../models/ThinkingProblem';
+import ThinkingProblem, { audienceFilter, PROBLEM_AUDIENCES } from '../models/ThinkingProblem';
 import DailyChallenge from '../models/DailyChallenge';
 import StudentGameStats from '../models/StudentGameStats';
 import ThinkingProfile from '../models/ThinkingProfile';
@@ -88,7 +88,9 @@ async function pickProblem(tenantId: string, studentId: string): Promise<any | n
   const weakCats = Object.entries(catAgg).filter(([, v]) => v.total >= 2 && v.solved / v.total < 0.6)
     .sort((a, b) => a[1].solved / a[1].total - b[1].solved / b[1].total).map(([c]) => c);
 
-  const base: any = { tenantId, active: true };
+  // Thinking Lab serves LMS students. Problems opted into CareerPilot only are not theirs,
+  // and rows predating the field are read as LMS — so today's behaviour is unchanged.
+  const base: any = { tenantId, active: true, ...audienceFilter('lms') };
   const tries: any[] = [];
   if (weakCats.length) tries.push({ ...base, difficulty: target, category: { $in: weakCats }, _id: { $nin: solvedIds } });
   tries.push({ ...base, difficulty: target, _id: { $nin: solvedIds } });
@@ -512,7 +514,7 @@ export const listProblems = async (req: Request, res: Response) => {
     if (req.query.category) filter.category = req.query.category;
     if (req.query.difficulty) filter.difficulty = req.query.difficulty;
     const rows = await ThinkingProblem.find(filter).sort({ createdAt: -1 }).limit(500)
-      .select('title category difficulty language xp active timesAssigned timesSolved createdAt').lean();
+      .select('title category difficulty language xp active timesAssigned timesSolved attemptCount audiences createdAt').lean();
     const total = await ThinkingProblem.countDocuments({ tenantId: tId(req) });
     res.json({ problems: rows.map((p: any) => ({ ...p, id: String(p._id) })), total });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
@@ -576,7 +578,7 @@ function sanitizeProblemInput(b: any) {
     .map((t: any) => ({ input: String(t.input || ''), expectedOutput: String(t.expectedOutput || ''), hidden: !!t.hidden }));
   const examples = (Array.isArray(b.examples) ? b.examples : [])
     .map((e: any) => ({ input: String(e.input || ''), expectedOutput: String(e.expectedOutput || ''), explanation: e.explanation ? String(e.explanation) : undefined }));
-  return {
+  const out: any = {
     title: String(b.title || '').slice(0, 120),
     category: lab.THINKING_CATEGORIES.includes(b.category) ? b.category : 'Brain Teasers',
     difficulty, language: String(b.language || 'javascript'),
@@ -595,7 +597,31 @@ function sanitizeProblemInput(b: any) {
     xp: Number(b.xp) > 0 ? Math.min(500, Number(b.xp)) : (lab.XP_BY_DIFFICULTY[difficulty] || 50),
     estimatedMinutes: Number(b.estimatedMinutes) > 0 ? Math.min(120, Number(b.estimatedMinutes)) : 15,
     tags: (Array.isArray(b.tags) ? b.tags : []).map((t: any) => String(t).slice(0, 40)).slice(0, 10),
-  };
+  } as any;
+
+  /**
+   * The new fields are added ONLY when the caller sent them, unlike everything above.
+   *
+   * updateProblem $sets this whole object, so a key that is always present overwrites on
+   * every save. For title or xp that is what you want — the form always carries them. For
+   * audiences it is not: an API call or an older client that omits the field would silently
+   * reset a problem shared with CareerPilot back to LMS-only, and nobody would see it happen.
+   * Absent means "leave as it is"; the schema default covers creation.
+   */
+  if (Array.isArray(b.audiences)) {
+    const picked = b.audiences.filter((a: any) => PROBLEM_AUDIENCES.includes(a));
+    // A problem for nobody is not a state worth saving — an empty pick keeps the LMS.
+    out.audiences = picked.length ? [...new Set(picked)] : ['lms'];
+  }
+  if (b.solutionUnlockAfterAttempts !== undefined) {
+    const n = Number(b.solutionUnlockAfterAttempts);
+    // 0 means "never hide it". Capped so a typo cannot make the video unreachable forever.
+    out.solutionUnlockAfterAttempts = Number.isFinite(n) ? Math.max(0, Math.min(20, Math.round(n))) : 3;
+  }
+  if (b.videoKey !== undefined) out.videoKey = String(b.videoKey || '').slice(0, 400);
+  if (b.solutionVideoKey !== undefined) out.solutionVideoKey = String(b.solutionVideoKey || '').slice(0, 400);
+
+  return out;
 }
 
 // POST /thinking-lab/admin/problems — manual authoring.

@@ -148,7 +148,7 @@ const ThinkingLabAdmin: React.FC = () => {
       </div>
       <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 12, overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13, minWidth: 780 }}>
-          <thead><tr style={{ background: '#f8fafc', textAlign: 'left' }}>{['Title', 'Category', 'Level', 'Lang', 'XP', 'Assigned', 'Solved', 'Active', ''].map(h => <th key={h} style={{ padding: '9px 12px', fontSize: 11, textTransform: 'uppercase', color: SUB }}>{h}</th>)}</tr></thead>
+          <thead><tr style={{ background: '#f8fafc', textAlign: 'left' }}>{['Title', 'Category', 'Level', 'Lang', 'XP', 'Audience', 'Attempted', 'Solved', 'Active', ''].map(h => <th key={h} style={{ padding: '9px 12px', fontSize: 11, textTransform: 'uppercase', color: SUB }}>{h}</th>)}</tr></thead>
           <tbody>
             {problems.map(p => (
               <tr key={p.id} style={{ borderTop: '1px solid #eef1f6' }}>
@@ -157,7 +157,16 @@ const ThinkingLabAdmin: React.FC = () => {
                 <td style={{ padding: '9px 12px' }}><span style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: DIFF_COLORS[p.difficulty] || BLUE, borderRadius: 999, padding: '2px 9px', textTransform: 'capitalize' }}>{p.difficulty}</span></td>
                 <td style={{ padding: '9px 12px', color: SUB }}>{p.language}</td>
                 <td style={{ padding: '9px 12px', fontWeight: 700 }}>{p.xp}</td>
-                <td style={{ padding: '9px 12px', color: SUB }}>{p.timesAssigned}</td>
+                {/* Who it reaches. "LMS" is also what an untagged problem resolves to, so the
+                    column never renders a blank that could be read as "everyone". */}
+                <td style={{ padding: '9px 12px' }}>
+                  {((p as any).audiences?.length ? (p as any).audiences : ['lms']).map((a: string) => (
+                    <span key={a} style={{ display: 'inline-block', marginRight: 4, borderRadius: 999, padding: '2px 8px', fontSize: 10.5, fontWeight: 700, background: a === 'careerpilot' ? '#e8f1fd' : '#eef7f0', color: a === 'careerpilot' ? '#1d4f91' : '#1a7a4a' }}>
+                      {a === 'careerpilot' ? 'CareerPilot' : 'LMS'}
+                    </span>
+                  ))}
+                </td>
+                <td style={{ padding: '9px 12px', color: SUB }}>{(p as any).attemptCount ?? p.timesAssigned}</td>
                 <td style={{ padding: '9px 12px', color: '#16a34a', fontWeight: 700 }}>{p.timesSolved}</td>
                 <td style={{ padding: '9px 12px' }}><button onClick={() => toggle(p)} style={{ border: 'none', background: p.active ? '#dcfce7' : '#f1f5f9', color: p.active ? '#15803d' : '#94a3b8', borderRadius: 999, padding: '3px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>{p.active ? '● Active' : '○ Off'}</button></td>
                 <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
@@ -166,7 +175,7 @@ const ThinkingLabAdmin: React.FC = () => {
                 </td>
               </tr>
             ))}
-            {problems.length === 0 && <tr><td colSpan={9} style={{ padding: 26, color: SUB, textAlign: 'center' }}>No problems yet — generate or author some above.</td></tr>}
+            {problems.length === 0 && <tr><td colSpan={10} style={{ padding: 26, color: SUB, textAlign: 'center' }}>No problems yet — generate or author some above.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -178,7 +187,7 @@ const ThinkingLabAdmin: React.FC = () => {
 
 // ── Manual create / edit modal ───────────────────────────────────────────────
 const ProblemEditor: React.FC<{ id: string | null; categories: string[]; difficulties: string[]; onClose: () => void; onSaved: () => void }> = ({ id, categories, difficulties, onClose, onSaved }) => {
-  const empty = { title: '', category: categories[0] || 'Brain Teasers', difficulty: 'easy', language: 'javascript', statement: '', constraints: '', notes: '', starterCode: '', hints: ['', '', ''], expectedTimeComplexity: '', expectedSpaceComplexity: '', imageUrl: '', videoUrl: '', referenceVideo: '', xp: 50, estimatedMinutes: 15, testCases: [{ input: '', expectedOutput: '', hidden: false }] as any[] };
+  const empty = { title: '', category: categories[0] || 'Brain Teasers', difficulty: 'easy', language: 'javascript', statement: '', constraints: '', notes: '', starterCode: '', hints: ['', '', ''], expectedTimeComplexity: '', expectedSpaceComplexity: '', imageUrl: '', videoUrl: '', referenceVideo: '', xp: 50, estimatedMinutes: 15, audiences: ['lms'], solutionUnlockAfterAttempts: 3, videoKey: '', solutionVideoKey: '', testCases: [{ input: '', expectedOutput: '', hidden: false }] as any[] };
   const [f, setF] = useState<any>(empty);
   const [loading, setLoading] = useState(!!id);
   const [saving, setSaving] = useState(false);
@@ -243,7 +252,48 @@ const ProblemEditor: React.FC<{ id: string | null; categories: string[]; difficu
               <label><span style={lbl}>Expected time complexity</span><input style={inp} placeholder="O(n)" value={f.expectedTimeComplexity} onChange={e => setF({ ...f, expectedTimeComplexity: e.target.value })} /></label>
               <label><span style={lbl}>Expected space complexity</span><input style={inp} placeholder="O(1)" value={f.expectedSpaceComplexity} onChange={e => setF({ ...f, expectedSpaceComplexity: e.target.value })} /></label>
               <label><span style={lbl}>Image URL (optional)</span><input style={inp} value={f.imageUrl} onChange={e => setF({ ...f, imageUrl: e.target.value })} /></label>
-              <label><span style={lbl}>Reference video URL (shown after solve)</span><input style={inp} value={f.referenceVideo} onChange={e => setF({ ...f, referenceVideo: e.target.value })} /></label>
+              <label><span style={lbl}>Problem explanation video URL</span><input style={inp} placeholder="https://…" value={f.videoUrl || ''} onChange={e => setF({ ...f, videoUrl: e.target.value })} /></label>
+              <label><span style={lbl}>Solution video URL</span><input style={inp} placeholder="https://…" value={f.referenceVideo} onChange={e => setF({ ...f, referenceVideo: e.target.value })} /></label>
+            </div>
+
+            {/* WHO gets this problem. One bank feeds both products, so it has to be said
+                per problem rather than inferred — and an untagged problem stays LMS-only,
+                which is what every problem written before this field was. */}
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
+              <span style={lbl}>Who can see this problem</span>
+              <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>
+                {([['lms', 'LMS students'], ['careerpilot', 'CareerPilot members']] as const).map(([k, label]) => (
+                  <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: INK, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={(f.audiences || []).includes(k)}
+                      onChange={e => setF((p: any) => ({
+                        ...p,
+                        audiences: e.target.checked
+                          ? [...new Set([...(p.audiences || []), k])]
+                          : (p.audiences || []).filter((a: string) => a !== k),
+                      }))}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              {!(f.audiences || []).length && (
+                <div style={{ marginTop: 8, fontSize: 12, color: '#b45309' }}>
+                  Nobody is selected — this will be saved as LMS students only.
+                </div>
+              )}
+              <label style={{ display: 'block', marginTop: 12 }}>
+                <span style={lbl}>Unlock the solution after this many failed submissions</span>
+                <input
+                  style={{ ...inp, maxWidth: 120 }} type="number" min={0} max={20}
+                  value={f.solutionUnlockAfterAttempts ?? 3}
+                  onChange={e => setF({ ...f, solutionUnlockAfterAttempts: Math.max(0, Math.min(20, parseInt(e.target.value) || 0)) })}
+                />
+                <span style={{ fontSize: 11.5, color: SUB }}>
+                  Counts submissions, not runs. 0 shows the solution immediately.
+                </span>
+              </label>
             </div>
 
             {err && <div style={{ color: '#dc2626', fontSize: 13, fontWeight: 600 }}>{err}</div>}

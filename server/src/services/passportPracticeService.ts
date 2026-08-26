@@ -7,7 +7,9 @@
 // The bank lives in code on purpose: it must exist for every tenant on day one with
 // no seeding step. Admins tune WHICH problems get surfaced via the mission pools.
 
+import mongoose from 'mongoose';
 import codeRunner from './codeRunnerService';
+import ThinkingProblem, { audienceFilter } from '../models/ThinkingProblem';
 import { ProgrammingLanguage } from '../models/Assignment';
 
 export type PracticeKind = 'coding' | 'sql' | 'mcq';
@@ -24,7 +26,7 @@ export interface PracticeProblem {
   title: string;
   subtitle?: string;                      // one-line "what you'll learn"
   category: string;                       // PASSPORT_CATEGORIES key
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert' | 'interview';
   xp: number;
   estimatedMinutes?: number;
   prompt: string;
@@ -403,6 +405,111 @@ export function toPublic(p: PracticeProblem) {
     testCount: (p.tests || []).length,
     questions: (p.questions || []).map(q => ({ q: q.q, options: q.options })),
   };
+}
+
+/**
+ * The shared bank, in this module's shape.
+ *
+ * Two sources feed the Practice Lab: the eighteen built-ins that ship in code so a brand-new
+ * tenant is never empty, and the admin-authored bank the Thinking Lab already owns. Rather
+ * than teach every caller about both, a database problem is translated INTO PracticeProblem
+ * here and everything downstream — toPublic, runProblem, grading — stays unchanged.
+ *
+ * The id is prefixed. A built-in is `c-even-odd`; a database one is `db:<objectid>`, so the
+ * two id spaces can never collide and `findCareerPilotProblem` can route on the prefix alone
+ * without a speculative Mongo lookup for every built-in.
+ */
+export const DB_PREFIX = 'db:';
+
+export function fromThinkingProblem(doc: any): PracticeProblem {
+  const lang = String(doc.language || 'python').toLowerCase() as ProgrammingLanguage;
+  return {
+    id: `${DB_PREFIX}${String(doc._id)}`,
+    kind: 'coding',
+    title: doc.title,
+    subtitle: doc.category,
+    category: 'technical',
+    difficulty: doc.difficulty,
+    xp: Number(doc.xp) || 50,
+    estimatedMinutes: doc.estimatedMinutes,
+    prompt: doc.statement,
+    hints: doc.hints || [],
+    tip: doc.constraints || undefined,
+    languages: [lang],
+    starter: doc.starterCode ? ({ [lang]: doc.starterCode } as any) : undefined,
+    // `hidden` carries straight through, which is what keeps a hidden case out of the
+    // sample list toPublic builds and out of a Run.
+    tests: (doc.testCases || []).map((t: any) => ({
+      input: String(t.input ?? ''),
+      expected: String(t.expectedOutput ?? ''),
+      hidden: !!t.hidden,
+    })),
+  };
+}
+
+/**
+ * One problem, from whichever bank owns it.
+ *
+ * Routed on the id prefix rather than by trying both: a built-in lookup is an array scan
+ * and a database lookup is a round trip, and doing the round trip for every built-in would
+ * make the common case pay for the rare one.
+ *
+ * The audience filter is applied HERE too, not only in the list. A member who types or
+ * guesses a URL for an LMS-only problem must be refused the same way they would be if it
+ * simply never appeared — a list filter that a direct fetch can walk around is decoration.
+ */
+export async function findCareerPilotProblem(
+  tenantId: string, id: string,
+): Promise<{ problem: PracticeProblem; doc?: any } | null> {
+  if (!id.startsWith(DB_PREFIX)) {
+    const p = findProblem(id);
+    return p ? { problem: p } : null;
+  }
+  const rawId = id.slice(DB_PREFIX.length);
+  if (!mongoose.Types.ObjectId.isValid(rawId)) return null;
+  const doc: any = await ThinkingProblem.findOne({
+    _id: rawId, tenantId, active: true, ...audienceFilter('careerpilot'),
+  }).lean();
+  return doc ? { problem: fromThinkingProblem(doc), doc } : null;
+}
+
+/**
+ * The list a CareerPilot member sees: the built-ins plus everything an admin has shared
+ * with them. Database problems come first — they are the tenant's own curriculum, and the
+ * built-ins are the floor that stops a new tenant seeing nothing.
+ */
+export async function listCareerPilotProblems(
+  tenantId: string, filter?: { kind?: PracticeKind; category?: string; difficulty?: string },
+) {
+  const builtIns = listProblems({ kind: filter?.kind, category: filter?.category })
+    .filter(p => !filter?.difficulty || p.difficulty === filter.difficulty);
+
+  // Only coding problems live in the shared bank, so a kind filter for sql or mcq can skip
+  // the query entirely rather than running one that cannot match.
+  if (filter?.kind && filter.kind !== 'coding') return builtIns;
+
+  const q: any = { tenantId, active: true, ...audienceFilter('careerpilot') };
+  if (filter?.difficulty) q.difficulty = filter.difficulty;
+  const docs: any[] = await ThinkingProblem.find(q)
+    .select('title category difficulty xp testCases timesSolved attemptCount estimatedMinutes')
+    .sort({ difficulty: 1, title: 1 })
+    .limit(500)
+    .lean();
+
+  const fromDb = docs.map(d => ({
+    id: `${DB_PREFIX}${String(d._id)}`,
+    kind: 'coding' as PracticeKind,
+    title: d.title,
+    category: 'technical',
+    difficulty: d.difficulty,
+    xp: Number(d.xp) || 50,
+    count: (d.testCases || []).length,
+    solvedCount: d.timesSolved || 0,
+    attemptCount: d.attemptCount || 0,
+    estimatedMinutes: d.estimatedMinutes,
+  }));
+
+  return [...fromDb, ...builtIns];
 }
 
 export function findProblem(id: string): PracticeProblem | undefined {

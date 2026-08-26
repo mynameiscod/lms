@@ -690,8 +690,16 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/practice`, { headers: auth(), params });
     return data;
   },
-  getPractice: async (id: string): Promise<{ problem: PracticeProblem; solved: boolean }> => {
+  getPractice: async (id: string): Promise<PracticeDetail> => {
     const { data } = await axios.get(`${BASE}/practice/${encodeURIComponent(id)}`, { headers: auth() });
+    return data;
+  },
+  /**
+   * A nudge about the member's OWN code, as opposed to the written hints which are the same
+   * for everyone. Counts toward hintsUsed and reduces the XP a solve pays.
+   */
+  practiceAiHint: async (id: string, code: string): Promise<{ hint: string }> => {
+    const { data } = await axios.post(`${BASE}/practice/${encodeURIComponent(id)}/ai-hint`, { code }, { headers: auth() });
     return data;
   },
   runPractice: async (id: string, code: string, language: string): Promise<RunOutcome> => {
@@ -1173,7 +1181,37 @@ export interface RoadmapResponse {
 }
 
 // ── Practice ──
-export interface PracticeListItem { id: string; kind: 'coding' | 'sql' | 'mcq'; title: string; category: string; difficulty: string; xp: number; count: number; }
+export interface PracticeListItem {
+  id: string; kind: 'coding' | 'sql' | 'mcq'; title: string; category: string;
+  difficulty: string; xp: number; count: number;
+  /** This member's own standing. `solved` merges the attempt row with the older list. */
+  solved?: boolean; attempts?: number; testsPassed?: number | null; testsTotal?: number | null;
+  /** How many members have solved it. Only present for admin-authored problems. */
+  solvedCount?: number; attemptCount?: number; estimatedMinutes?: number;
+}
+export interface PracticeDetail {
+  problem: PracticeProblem;
+  solved: boolean;
+  attempts: number;
+  testsPassed: number | null;
+  testsTotal: number | null;
+  /** Their last editor contents, so reopening resumes rather than restarts. */
+  savedCode: string;
+  savedLanguage: string;
+  /** Always sent — it teaches the problem rather than giving it away. */
+  explainerVideo: string;
+  explainerVideoKey: string;
+  solutionUnlocked: boolean;
+  attemptsToUnlock: number;
+  /**
+   * ABSENT until unlocked — the server omits these keys entirely rather than sending them
+   * for the client to hide, so there is nothing to read out of the network tab.
+   */
+  solutionVideo?: string;
+  solutionVideoKey?: string;
+  referenceSolution?: string;
+}
+
 export interface PracticeListResponse { locked?: boolean; priceInr?: number; problems: PracticeListItem[]; solved: string[]; xp?: number; streak?: number; }
 export interface SchemaTable { table: string; columns: { column: string; type: string }[] }
 export interface PracticeProblem {

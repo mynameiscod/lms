@@ -93,15 +93,31 @@ const Practice: React.FC = () => {
             <button key={p.id} className="pr-item" onClick={() => nav(`/careerpilot/practice/${p.id}`)}>
               <div className="top">
                 <span className={`kind ${p.kind}`}>{p.kind}</span>
-                {solved.includes(p.id) && <span className="solved">✓ Solved</span>}
+                <span className={`pr-diff d-${p.difficulty}`}>{p.difficulty}</span>
+                {/* `solved` comes from the attempt row; the older solved[] list still covers
+                    problems finished before attempts were recorded, so both are consulted. */}
+                {(p.solved || solved.includes(p.id)) && <span className="solved">✓ Solved</span>}
               </div>
               <h3>{p.title}</h3>
               <div className="meta">
                 <span>{CAT_LABEL[p.category] || p.category}</span>
-                <span>· {p.difficulty}</span>
                 <span>· {p.count} {p.kind === 'mcq' ? 'questions' : 'tests'}</span>
                 <span>· +{p.xp} XP</span>
+                {p.estimatedMinutes ? <span>· ~{p.estimatedMinutes} min</span> : null}
               </div>
+              {/* Progress, only once there is some. A row of zeroes on an untouched problem
+                  reads as failure rather than as "not started". */}
+              {(p.attempts || p.testsTotal || p.solvedCount) ? (
+                <div className="pr-progress">
+                  {p.testsTotal ? (
+                    <span className={`pr-tests${p.testsPassed === p.testsTotal ? ' all' : ''}`}>
+                      {p.testsPassed}/{p.testsTotal} tests
+                    </span>
+                  ) : null}
+                  {p.attempts ? <span>· {p.attempts} attempt{p.attempts === 1 ? '' : 's'}</span> : null}
+                  {p.solvedCount ? <span>· {p.solvedCount} solved this</span> : null}
+                </div>
+              ) : null}
             </button>
           ))}
         </div>

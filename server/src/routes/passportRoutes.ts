@@ -463,6 +463,8 @@ router.get('/practice',              MEMBER, practice.list);
 router.get('/practice/:id',          MEMBER, practice.get);
 router.post('/practice/:id/run',     MEMBER, practice.run);
 router.post('/practice/:id/submit',  MEMBER, practice.submit);
+// Rate-limited with the other AI spend: a hint button is one click and costs a call.
+router.post('/practice/:id/ai-hint', MEMBER, rateLimit('aiGenerate'), practice.aiHint);
 
 // AI Mock Interviews (mock_interview entitlement)
 router.get('/interview',              MEMBER, interview.list);

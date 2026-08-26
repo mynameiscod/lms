@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import mongoose from 'mongoose';
 import { LabTrack, LabTrackItem, LabTrackAssignment } from '../models/LabTrack';
-import ThinkingProblem from '../models/ThinkingProblem';
+import ThinkingProblem, { audienceFilter } from '../models/ThinkingProblem';
 import CommunicationChallenge from '../models/CommunicationChallenge';
 import { AuthRequest } from '../types/express';
 import { resolveLabDay, dayIndexFor, expectedDaysSoFar } from '../services/labTrackService';
@@ -139,7 +139,8 @@ export const libraryFor = async (req: AuthRequest, res: Response) => {
     const rx = search ? new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
 
     if (lab === 'thinking') {
-      const q: any = { tenantId: tid(req) };
+      // The admin assigns Thinking Lab work, so the pickable list is the LMS audience.
+      const q: any = { tenantId: tid(req), ...audienceFilter('lms') };
       if (rx) q.title = rx;
       const rows = await ThinkingProblem.find(q).select('title category difficulty').sort({ title: 1 }).limit(500).lean();
       return res.json({ success: true, data: rows });

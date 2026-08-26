@@ -237,8 +237,18 @@ export const passportApi = {
 
   // ── Personalised assessment + daily plan (Module 10) ──
   /** Starts, or resumes an open paper. Never generates a second one. */
-  startSkillAssessment: async (): Promise<{ assessment: SkillAssessment; resumed: boolean }> => {
-    const { data } = await axios.post(`${BASE}/me/assessment/personalized/start`, {}, { headers: auth() });
+  /**
+   * `skillKey` narrows the paper to ONE skill — what a daily plan item's "Check" means.
+   * Omitted, the paper covers the whole role, which is the initial assessment.
+   */
+  startSkillAssessment: async (skillKey?: string): Promise<{
+    assessment: SkillAssessment; resumed: boolean; mismatched?: boolean;
+  }> => {
+    const { data } = await axios.post(
+      `${BASE}/me/assessment/personalized/start`,
+      skillKey ? { skillKey } : {},
+      { headers: auth() },
+    );
     return data;
   },
   getSkillAssessment: async (): Promise<{ assessment: SkillAssessment | null }> => {

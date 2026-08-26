@@ -47,6 +47,17 @@ export const MISSION_GRANULARITY = 5;
  */
 export const ASSESSMENT_ROUTE = '/careerpilot/skill-assessment';
 
+/**
+ * The assessment aimed at ONE skill — what an ASSESS mission actually wants.
+ *
+ * The bare route builds a paper across the whole role blueprint, so "Database Fundamentals
+ * — Check, 15 min" opened a twenty-question sitting measuring everything and confirmed
+ * nothing it named. The skill travels in the query, exactly as ?mode= does for the mock
+ * interview, and the start endpoint narrows the paper to it.
+ */
+export const assessmentRouteForSkill = (skillKey: string): string =>
+  (skillKey ? `${ASSESSMENT_ROUTE}?skill=${encodeURIComponent(skillKey)}` : ASSESSMENT_ROUTE);
+
 /** Where a mapped Practice Lab item is opened. */
 export const practiceRoute = (resourceId: string): string =>
   `/careerpilot/practice/${encodeURIComponent(resourceId)}`;

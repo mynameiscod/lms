@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { SkillAssessment as Paper, SkillAssessmentItem, AssessmentAvailability } from '../../api/passportApi';
 import { AnswerQueue, enqueueAnswer, drainQueue, requeueFailed, hasPending } from './answerQueue';
 import './skillAssessment.css';
@@ -9,6 +9,13 @@ const RETRY_MS = 4000;
 
 const SkillAssessment: React.FC = () => {
   const nav = useNavigate();
+  const [params] = useSearchParams();
+  /**
+   * `?skill=` — a daily plan item asking to confirm ONE skill rather than re-measure the
+   * whole role. Carried straight to the start endpoint, which narrows the paper to it.
+   */
+  const skillKey = params.get('skill') || '';
+  const [scopeNotice, setScopeNotice] = useState('');
   const [paper, setPaper] = useState<Paper | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [at, setAt] = useState(0);
@@ -63,8 +70,14 @@ const SkillAssessment: React.FC = () => {
   const start = async () => {
     setStarting(true); setErr(''); setFixHref('');
     try {
-      const r = await passportApi.startSkillAssessment();
+      const r = await passportApi.startSkillAssessment(skillKey || undefined);
       adopt(r.assessment);
+      // An open paper of a different shape was resumed instead. Said plainly, because
+      // sitting a full role assessment believing it is a 15-minute check is the exact
+      // substitution this change removes.
+      setScopeNotice(r.mismatched
+        ? 'You already had an assessment in progress, so we have brought you back to it — this is not the single-skill check you opened.'
+        : '');
     } catch (e: any) {
       const d = e?.response?.data || {};
       setErr(d.message || 'Could not start your assessment.');
@@ -338,6 +351,7 @@ const SkillAssessment: React.FC = () => {
             })}
           </div>
           {err && <p className="ska-err">{err}</p>}
+          {scopeNotice && <p className="ska-notice">{scopeNotice}</p>}
         </section>
       </main>
 

@@ -3,7 +3,7 @@ import {
 } from '../services/dailyMissionOrchestrator';
 import {
   MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES, dailyBudget, dailySliceOf,
-  MISSION_ORCHESTRATION_VERSION, ASSESSMENT_ROUTE,
+  MISSION_ORCHESTRATION_VERSION, ASSESSMENT_ROUTE, assessmentRouteForSkill,
 } from '../data/missionOrchestrationPolicy';
 
 /**
@@ -194,9 +194,15 @@ describe('resources', () => {
   it('routes validation work to the assessment without needing a mapping', () => {
     const [m] = select({ objectives: [obj({ sequence: 1, skillKey: 'DOCKER', workType: 'ASSESS' })] });
     expect(m.resourceState).toBe('READY');
-    // Asserted against the policy constant rather than a literal: the route is a product
+    // Asserted against the policy helper rather than a literal: the route is a product
     // decision that lives in one place, and a copy here would silently rot.
-    expect(m.resource?.route).toBe(ASSESSMENT_ROUTE);
+    expect(m.resource?.route).toBe(assessmentRouteForSkill('DOCKER'));
+    // The skill has to TRAVEL. The bare route builds a paper across the whole role, so a
+    // mission that says "DOCKER — Check" would measure everything and confirm nothing it
+    // named. Asserted separately because the helper could regress to the bare constant and
+    // the comparison above would still pass.
+    expect(m.resource?.route).not.toBe(ASSESSMENT_ROUTE);
+    expect(m.resource?.route).toContain('skill=DOCKER');
   });
 });
 

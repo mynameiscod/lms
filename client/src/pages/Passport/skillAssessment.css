@@ -32,3 +32,7 @@
 .ska-done p i{ margin-right:8px }
 .ska-done-actions{ display:flex; gap:10px; flex-wrap:wrap }
 .ska-done small{ display:block; margin-top:12px; font-size:12px; color:#5B7466; line-height:1.5 }
+
+/* A resumed paper that is not the one the member opened. Informational, not an error —
+   nothing failed, they are simply somewhere other than where they expected to be. */
+.ska-notice{margin:10px 0 0;padding:10px 12px;border:1px solid #cfe4eb;border-left:3px solid #359aad;border-radius:10px;background:#f7fcfd;color:#3e506b;font-size:12px;line-height:1.55}

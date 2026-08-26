@@ -19,8 +19,16 @@
 
 export const REASSESSMENT_VERSION = 'REASSESSMENT_V1';
 
-/** What a sitting was for. Historical attempts predate this and are read as INITIAL. */
-export const ASSESSMENT_PURPOSES = ['INITIAL', 'REASSESSMENT'] as const;
+/**
+ * What a sitting was for. Historical attempts predate this and are read as INITIAL.
+ *
+ * SKILL_CHECK is the short, single-skill paper a daily plan item opens ("Database
+ * Fundamentals — Check, 15 min"). It is deliberately NOT a REASSESSMENT: a check-in has a
+ * cooldown, freezes before/after snapshots and re-measures a ranked set of skills, none of
+ * which should happen because somebody worked through today's plan. Kept apart so the
+ * cooldown, the history and the analytics can each ask for the kind they mean.
+ */
+export const ASSESSMENT_PURPOSES = ['INITIAL', 'REASSESSMENT', 'SKILL_CHECK'] as const;
 export type AssessmentPurpose = typeof ASSESSMENT_PURPOSES[number];
 
 /**

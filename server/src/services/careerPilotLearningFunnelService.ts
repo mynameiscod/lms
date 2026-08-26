@@ -175,10 +175,11 @@ export async function buildLearningFunnel(
     }),
     distinctMembers(PersonalizedAssessment, ids, { tenantId }),
     distinctMembers(PersonalizedAssessment, ids, { tenantId, status: 'SUBMITTED' }),
-    // A reassessment is any submitted sitting that is not the first one. Module 13 owns the
-    // purpose vocabulary; anything other than INITIAL is a later sitting.
+    // Reassessments only. This used to read "anything other than INITIAL", which was true
+    // when those were the only two kinds; SKILL_CHECK — the one-skill paper a daily plan
+    // item opens — would otherwise be reported as a check-in nobody performed.
     distinctMembers(PersonalizedAssessment, ids, {
-      tenantId, status: 'SUBMITTED', purpose: { $ne: 'INITIAL' },
+      tenantId, status: 'SUBMITTED', purpose: 'REASSESSMENT',
     }),
     distinctMembers(StudentSkillProfile, ids, { tenantId }),
     distinctMembers(CareerRoadmap, ids, { tenantId }),

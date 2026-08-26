@@ -91,10 +91,43 @@ export const startPersonalizedAssessment = async (req: Request, res: Response) =
     const studentId = userIdOf(req);
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
 
+    /**
+     * A daily plan item asks for ONE skill.
+     *
+     * "Database Fundamentals — Check, 15 min" used to open this endpoint bare, which builds
+     * a paper across every skill in the role blueprint — so the member was told they were
+     * confirming one score and handed a full twenty-question role assessment measuring
+     * everything. The skill was never carried, so it could not have done anything else.
+     */
+    const wantSkill = String(req.body?.skillKey || '').trim();
+
     const open = await PersonalizedAssessment.findOne({ tenantId, studentId, status: 'IN_PROGRESS' }).lean() as any;
     if (open) {
-      const texts = await loadItems(tenantId, open.items.map((i: any) => ({ sourceType: i.sourceType, sourceId: i.sourceId })));
-      return res.json({ assessment: studentShape(open, texts), resumed: true });
+      /**
+       * Resume only what was actually asked for.
+       *
+       * There is one open paper per member (partial unique index), so without this a member
+       * mid-way through a full assessment who clicks a daily skill check is silently handed
+       * the full paper back — the same substitution this change exists to remove. A paper
+       * they have not answered has nothing worth keeping, so it gives way; one they have
+       * started is kept and the client is told it is not the check they asked for.
+       */
+      const openSkills: string[] = open.purpose === 'SKILL_CHECK' ? (open.targetSkillKeys || []) : [];
+      const matches = wantSkill
+        ? (openSkills.length === 1 && openSkills[0] === wantSkill)
+        : open.purpose !== 'SKILL_CHECK';
+      const answered = (open.answers || []).some(
+        (a: any) => a?.response !== undefined && a?.response !== null && a?.response !== '',
+      );
+
+      if (matches || answered) {
+        const texts = await loadItems(tenantId, open.items.map((i: any) => ({ sourceType: i.sourceType, sourceId: i.sourceId })));
+        return res.json({ assessment: studentShape(open, texts), resumed: true, mismatched: !matches || undefined });
+      }
+      // Untouched and not what was requested — release the slot and build the right paper.
+      // updateOne rather than a loaded document: this read stays lean so it costs one
+      // projection, and abandoning is a single field write with nothing to validate.
+      await PersonalizedAssessment.updateOne({ _id: open._id }, { $set: { status: 'ABANDONED' } });
     }
 
     const ctx = await resolvePersonalizedAssessmentContext(tenantId, studentId);
@@ -116,12 +149,22 @@ export const startPersonalizedAssessment = async (req: Request, res: Response) =
     const attemptNumber = (prior[0]?.attemptNumber || 0) + 1;
     const seen = prior.flatMap((p: any) => (p.items || []).map((i: any) => i.sourceId));
 
+    /**
+     * The narrowing — the same lever a reassessment uses, aimed at one skill.
+     *
+     * Validated against the role's own skills rather than trusted: a key the blueprint does
+     * not contain would generate an empty paper, and the member would meet a coverage
+     * failure they cannot act on. An unknown key falls back to the full paper, which is the
+     * behaviour that existed before and is never worse than an error.
+     */
+    const scopedSkill = wantSkill && (ctx.roleSkillKeys || []).includes(wantSkill) ? wantSkill : '';
+
     // Built in full BEFORE anything is written. A half-generated attempt would be a paper
     // that quietly measures less than its peers, and the score would not show it.
     const built = await buildPersonalizedAssessment({
       tenantId, studentId,
       stage: ctx.stage!, roleKey: ctx.roleKey!,
-      roleSkillKeys: ctx.roleSkillKeys!,
+      roleSkillKeys: scopedSkill ? [scopedSkill] : ctx.roleSkillKeys!,
       blueprintVersion: ctx.blueprintVersion!,
       attemptNumber,
       seenSourceIds: seen,
@@ -148,6 +191,17 @@ export const startPersonalizedAssessment = async (req: Request, res: Response) =
     try {
       created = await PersonalizedAssessment.create({
         tenantId, studentId, attemptNumber, status: 'IN_PROGRESS',
+        /**
+         * Recorded as its own kind, NOT as a reassessment. A check-in carries a cooldown,
+         * freezes before/after snapshots and re-measures a ranked set of skills; none of
+         * that should follow from working through today's plan.
+         *
+         * Skill DNA still updates correctly and only for this skill — the projection writes
+         * exactly the skills mentioned on the paper, so a one-skill paper cannot disturb the
+         * rest of the profile.
+         */
+        purpose: scopedSkill ? 'SKILL_CHECK' : 'INITIAL',
+        targetSkillKeys: scopedSkill ? [scopedSkill] : [],
         policyKey: built.specification!.policyKey,
         policyVersion: built.specification!.policyVersion,
         stage: ctx.stage, roleKey: ctx.roleKey,

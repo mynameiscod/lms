@@ -8,7 +8,7 @@ import { findProblem } from './passportPracticeService';
 import { ymd } from './passportMissionService';
 import {
   MISSION_ORCHESTRATION_VERSION, MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES,
-  ASSESSMENT_ROUTE, practiceRoute, dailySliceOf, dailyBudget,
+  ASSESSMENT_ROUTE, assessmentRouteForSkill, practiceRoute, dailySliceOf, dailyBudget,
   MissionResourceState, DailyPlanUnavailable,
 } from '../data/missionOrchestrationPolicy';
 
@@ -163,7 +163,12 @@ export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
     const resource = o.workType === 'ASSESS'
       // The measuring instrument is built in — it always exists, so validation work is
       // never stranded waiting for somebody to map it.
-      ? { type: 'assessment', id: 'personalized', title: 'CareerPilot skill assessment', route: ASSESSMENT_ROUTE }
+      // Aimed at THIS objective's skill. The generic route measured the whole role, so a
+      // fifteen-minute check on one skill opened a full paper and re-scored everything.
+      ? {
+        type: 'assessment', id: `personalized:${o.skillKey}`,
+        title: `${o.skillName} check`, route: assessmentRouteForSkill(o.skillKey),
+      }
       : input.resources.get(`${o.skillKey}:${o.workType}`);
 
     chosen.push({

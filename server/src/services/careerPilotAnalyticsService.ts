@@ -271,7 +271,10 @@ export async function improvementAnalytics(tenantId: string, range: DateRange) {
 
   const rows = await PersonalizedAssessment.find({
     tenantId, studentId: { $in: ids }, status: 'SUBMITTED',
-    purpose: { $ne: 'INITIAL' },
+    // Named explicitly, not "anything but INITIAL". A SKILL_CHECK is a daily plan item, not
+    // a check-in, and it carries no before/after snapshots — counting it here would divide
+    // the improvement rate by sittings that can never be compared.
+    purpose: 'REASSESSMENT',
     submittedAt: { $gte: range.from, $lte: range.to },
   }).select('beforeSnapshot afterSnapshot').lean() as any[];
 

@@ -26,6 +26,7 @@ const Interview: React.FC = () => {
   const [answer, setAnswer] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [notice, setNotice] = useState('');
   const [paying, setPaying] = useState(false);
   const chatEnd = useRef<HTMLDivElement>(null);
   const [voiceOn, setVoiceOn] = useState(speechOutSupported);
@@ -79,6 +80,12 @@ const Interview: React.FC = () => {
       );
       setSession(r.session);
       setElapsed(0);
+      // The member has an interview already open that is NOT the round they asked for, and
+      // it had answers in it so it was kept rather than discarded. Say so — running a
+      // different interview without a word is how this looked broken in the first place.
+      setNotice(r.mismatched
+        ? 'You already had an interview in progress, so we have brought you back to it. Finish or end it, then open the mission again to get the round you asked for.'
+        : '');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not start the interview.'); }
     setBusy(false);
   }, [company, mode]);
@@ -267,6 +274,7 @@ const Interview: React.FC = () => {
               <button className="pm-btn primary" onClick={send} disabled={busy || !answer.trim()}>Send</button>
             </div>
             {err && <div className="pm-msg err">{err}</div>}
+            {notice && <div className="pm-msg info">{notice}</div>}
           </div>
 
           <div className="iv-side">

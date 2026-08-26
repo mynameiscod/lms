@@ -673,7 +673,7 @@ export const passportApi = {
    * kind of sitting that can later become skill evidence. The member never names the skills
    * — coverage is resolved server-side.
    */
-  startInterview: async (companySlug?: string, mode?: 'role' | 'intro'): Promise<{ session: InterviewSession; resumed?: boolean; aiAvailable?: boolean }> => {
+  startInterview: async (companySlug?: string, mode?: 'role' | 'intro'): Promise<{ session: InterviewSession; resumed?: boolean; aiAvailable?: boolean; mismatched?: boolean }> => {
     const body: any = {};
     if (companySlug) body.companySlug = companySlug;
     if (mode) body.mode = mode;

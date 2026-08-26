@@ -37,6 +37,12 @@ const MAX_QUESTIONS = 6;
  * two minutes actually holds.
  */
 const INTRO_QUESTIONS = 2;
+/**
+ * After this, an `in_progress` session is abandoned in fact whatever the row says — nobody
+ * returns to a mock interview the next day. Without this the one-live-session lock turns a
+ * single forgotten sitting into a permanent block on ever starting another.
+ */
+const STALE_LIVE_HOURS = 6;
 const INTRO_FOCUS = 'a two-minute self-introduction — who they are, what they are studying or working on, and what role they are aiming for';
 /** Turns of transcript sent per request. The single biggest driver of interview cost. */
 const HISTORY_WINDOW = 6;
@@ -133,13 +139,48 @@ export const start = async (req: Request, res: Response) => {
      * simultaneous requests both get here having seen nothing. The database settles that —
      * see the create below.
      */
+    const wantMode = String(req.body?.mode || '');
+    const wantCompany = String(req.body?.companySlug || '');
+
     const existing = await findLiveSession(tenantId, studentId);
     if (existing) {
-      return res.json({
-        session: publicSession(existing),
-        resumed: true,
-        finalizing: existing.status === 'finalizing',
-      });
+      /**
+       * Resuming is right for somebody coming back to a half-finished sitting. It is WRONG
+       * when the live session is not the sitting that was asked for — which is what a
+       * mission link does. "Record a self-introduction" opened ?mode=intro and was handed a
+       * fifteen-day-old generic six-question interview instead, because this fast path
+       * returned before the mode was ever read. The member asked for one thing and got
+       * another, with no way to tell that had happened.
+       *
+       * So the live session only wins when it is BOTH current and the thing being asked for.
+       */
+      const startedAt = new Date((existing as any).startedAt || (existing as any).createdAt || Date.now());
+      const stale = Date.now() - startedAt.getTime() > STALE_LIVE_HOURS * 3600_000;
+      const engaged = ((existing as any).transcript || []).some((t: any) => t.role === 'candidate');
+      const liveMode = (existing as any).focus ? 'intro' : ((existing as any).skillTargets?.length ? 'role' : '');
+      const mismatched = (!!wantMode && wantMode !== liveMode)
+        || (!!wantCompany && wantCompany !== ((existing as any).companySlug || ''));
+
+      /**
+       * Discarded only when nothing would be lost: a sitting older than STALE_LIVE_HOURS is
+       * abandoned in fact whatever its status says, and one the member never answered has
+       * nothing in it to come back to. A session they actually engaged with today is kept
+       * and resumed — but `mismatched` tells the client it is not the round that was
+       * requested, so the screen can say so instead of quietly running the wrong interview.
+       */
+      if (stale || (mismatched && !engaged)) {
+        await PassportInterview.updateOne(
+          { _id: (existing as any)._id },
+          { $set: { status: 'abandoned', finalizeToken: null, finalizingAt: null, live: false } },
+        );
+      } else {
+        return res.json({
+          session: publicSession(existing),
+          resumed: true,
+          finalizing: existing.status === 'finalizing',
+          mismatched: mismatched || undefined,
+        });
+      }
     }
 
     const attempt = await PassportAttempt.findOne({ tenantId, studentId }).sort({ createdAt: -1 }).lean() as any;

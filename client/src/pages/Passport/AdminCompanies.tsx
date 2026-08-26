@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import passportApi, { CompanyAdmin, AdminQuestion, TaxItem, AdminExperience } from '../../api/passportApi';
+import passportApi, { CompanyAdmin, AdminQuestion, TaxItem, AdminExperience, ReadinessRow } from '../../api/passportApi';
 import AdminCompanyRoster from './AdminCompanyRoster';
 import AdminCompanyPattern from './AdminCompanyPattern';
 import AdminCompanyProfile from './AdminCompanyProfile';
@@ -17,7 +17,7 @@ const box: React.CSSProperties = { background: '#fff', border: '1px solid #eef0f
 const inp: React.CSSProperties = { width: '100%', padding: '9px 11px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13.5, boxSizing: 'border-box' };
 const lbl: React.CSSProperties = { display: 'block', fontSize: 11.5, fontWeight: 800, color: '#64748b', margin: '10px 0 5px' };
 
-type Tab = 'roster' | 'companies' | 'profile' | 'prep' | 'pattern' | 'questions' | 'import' | 'review' | 'experiences' | 'taxonomy';
+type Tab = 'roster' | 'profile' | 'prep' | 'pattern' | 'questions' | 'import' | 'review' | 'experiences' | 'taxonomy';
 
 const AdminCompanies: React.FC = () => {
   const [d, setD] = useState<CompanyAdmin | null>(null);
@@ -35,12 +35,37 @@ const AdminCompanies: React.FC = () => {
   const [experiences, setExperiences] = useState<AdminExperience[]>([]);
   // The record being edited on the Profile tab.
   const [profile, setProfile] = useState<any | null>(null);
+  /**
+   * Readiness for every company, so the workspace header can say whether the company being
+   * edited is live and what is still missing.
+   *
+   * The screen used to make that invisible: ten sibling tabs, five of which edited ONE
+   * company chosen by a dropdown buried inside one of them, and nothing anywhere said which
+   * company you were in or whether students could see it. The four checks are the whole
+   * point of the screen — they decide whether the work reaches anybody — so they belong at
+   * the top of it, not on a separate tab.
+   */
+  const [board, setBoard] = useState<ReadinessRow[]>([]);
 
   const load = () => passportApi.getCompanyAdmin()
     .then(r => { setD(r); if (!slug && r.companies[0]) setSlug(r.companies[0].slug); })
     .catch(e => setErr(e?.response?.data?.message || 'Could not load'));
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  const loadBoard = () => passportApi.readinessBoard()
+    .then(r => setBoard(r.rows))
+    // The header degrades to just the company name. A readiness call that fails should not
+    // take the editor down with it.
+    .catch(() => setBoard([]));
+
+  useEffect(() => {
+    load();
+    loadBoard();
+    // Mount only. The suppression was previously inline on this line, where
+    // eslint-disable-next-line has nothing to disable — so it silently did nothing and the
+    // warning stood. Both loaders refetch the whole admin payload; re-running them on
+    // every render is exactly what the empty dependency list is for.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     if (tab === 'review') passportApi.adminQuestions('all', 'pending').then(r => setPending(r.questions)).catch(() => setPending([]));
     if (tab === 'questions' && slug) passportApi.adminQuestions(slug).then(r => setQuestions(r.questions)).catch(() => setQuestions([]));
@@ -95,37 +120,92 @@ const AdminCompanies: React.FC = () => {
   const tax = d.taxonomy;
   const lab = (list: TaxItem[], k: string) => list.find(x => x.key === k)?.label || k;
 
-  const TABS: [Tab, string][] = [
-    ['roster', '🏢 Roster'],
-    ['companies', `Companies (${d.companies.length})`],
-    ['profile', 'Company profile'],
-    ['pattern', 'Interview pattern'],
-    ['questions', 'Questions'],
-    ['import', '✨ Import / Generate'],
-    ['review', `Review${d.pendingCount ? ` (${d.pendingCount})` : ''}`],
-    ['prep', 'Preparation Profile'],
-    ['experiences', 'Interview reports'],
-    ['taxonomy', 'Rounds & Categories'],
+  /**
+   * Three groups, because these ten tabs were never siblings.
+   *
+   * ALL COMPANIES is where you pick what to work on. ONE COMPANY edits whichever company is
+   * selected — five tabs that were indistinguishable from the global ones, so it was never
+   * clear that switching from "Questions" to "Rounds & Categories" changed scope from one
+   * company to the whole tenant. INBOX is work arriving from students, and it carries the
+   * counts because that is the only part with a queue.
+   */
+  const GROUPS: { label: string; tabs: [Tab, string][] }[] = [
+    { label: 'All companies', tabs: [['roster', `Companies (${d.companies.length})`]] },
+    {
+      label: 'This company',
+      tabs: [
+        ['profile', 'Profile'],
+        ['pattern', 'Interview pattern'],
+        ['questions', 'Questions'],
+        ['import', 'Import / Generate'],
+        ['prep', 'Preparation'],
+      ],
+    },
+    {
+      label: 'From students',
+      tabs: [
+        ['review', `Question review${d.pendingCount ? ` (${d.pendingCount})` : ''}`],
+        ['experiences', 'Interview reports'],
+      ],
+    },
+    { label: 'Settings', tabs: [['taxonomy', 'Rounds & categories']] },
   ];
+
+  const PER_COMPANY: Tab[] = ['profile', 'pattern', 'questions', 'import', 'prep'];
+  const row = board.find(r => r.slug === slug);
+  const current = d.companies.find((c: any) => c.slug === slug);
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-        {TABS.map(([k, label]) => (
-          <button key={k} className={`pm-btn${tab === k ? ' primary' : ' ghost'}`} onClick={() => setTab(k)}>{label}</button>
+      <div className="cadm-nav">
+        {GROUPS.map(g => (
+          <div className="cadm-group" key={g.label}>
+            <span className="cadm-group-label">{g.label}</span>
+            <div className="cadm-group-tabs">
+              {g.tabs.map(([k, label]) => (
+                <button key={k} className={`cadm-tab${tab === k ? ' on' : ''}`} onClick={() => setTab(k)}>{label}</button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
+
+      {/*
+        WHICH company, and can a student see it.
+        Shown only on the tabs that edit one company — on the roster or the taxonomy it
+        would be claiming a scope those screens do not have.
+      */}
+      {PER_COMPANY.includes(tab) && current && (
+        <div className="cadm-ctx">
+          <div className="cadm-ctx-who">
+            <select value={slug} onChange={e => setSlug(e.target.value)}>
+              {d.companies.map((c: any) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+            </select>
+            <span className={`cadm-live${row?.ready ? ' on' : ''}`}>
+              {row?.ready ? 'Students can see this' : 'Not visible to students yet'}
+            </span>
+          </div>
+          {row && !row.ready && (
+            <div className="cadm-ctx-missing">
+              Still needed:
+              {row.checks.filter(c => c.required && !c.done).map(c => (
+                <span className="cadm-need" key={c.key}>{c.label}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {msg && <div className="pm-msg ok">{msg}</div>}
       {err && <div className="pm-msg err">{err}</div>}
 
       {tab === 'roster' && (
-        <AdminCompanyRoster onOpen={slugToOpen => { setSlug(slugToOpen); setTab('profile'); }} />
-      )}
-
-      {tab === 'companies' && (
         <>
-          <div style={box}>
+          {/* The roster is the landing screen: every company, whether students can see it,
+              and exactly which checks are outstanding. Adding one sits underneath, because
+              you look before you add. */}
+          <AdminCompanyRoster onOpen={slugToOpen => { setSlug(slugToOpen); setTab('profile'); }} />
+        <div style={box}>
             <h3 style={{ fontSize: 15, fontWeight: 900, margin: '0 0 12px' }}>Add a company</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
               <div><label style={lbl}>Name</label><input style={inp} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Infosys" /></div>
@@ -139,32 +219,11 @@ const AdminCompanies: React.FC = () => {
             <label style={lbl}>About</label>
             <input style={inp} value={form.about} onChange={e => setForm(f => ({ ...f, about: e.target.value }))} placeholder="One line students would find useful" />
             <button className="pm-btn primary" style={{ marginTop: 14 }} disabled={busy || !form.name.trim()} onClick={addCompany}>Add company</button>
-          </div>
-
-          <div style={box}>
-            {!d.companies.length && <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>No companies yet.</p>}
-            {d.companies.map(c => (
-              <div key={c.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f4f6fa' }}>
-                <b style={{ flex: 1, fontSize: 13.5, color: '#0f172a' }}>{c.name}</b>
-                <span style={{ fontSize: 11.5, color: '#94a3b8' }}>{lab(tax.companyTypes, c.type)}</span>
-                <span style={{ fontSize: 12, fontWeight: 800, color: '#6650d8' }}>{c.questionCount} Qs</span>
-                <button className="pm-btn ghost" onClick={() => { setSlug(c.slug); setTab('questions'); }}>Open</button>
-                <button className="pm-btn ghost" style={{ color: '#b91c1c' }}
-                  onClick={async () => { if (window.confirm(`Delete ${c.name} and all its questions?`)) { await passportApi.deleteCompany(c.id); load(); } }}>Delete</button>
-              </div>
-            ))}
-          </div>
+        </div>
         </>
       )}
 
-      {(tab === 'questions' || tab === 'import' || tab === 'profile' || tab === 'pattern' || tab === 'prep') && (
-        <div style={box}>
-          <label style={lbl}>Company</label>
-          <select style={{ ...inp, maxWidth: 300 }} value={slug} onChange={e => setSlug(e.target.value)}>
-            {d.companies.map(c => <option key={c.id} value={c.slug}>{c.name}</option>)}
-          </select>
-        </div>
-      )}
+
 
       {tab === 'import' && slug && (
         <>
@@ -272,7 +331,11 @@ const AdminCompanies: React.FC = () => {
             sample size, so they cannot be typed in.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12 }}>
-            {([['location', 'Location'], ['industry', 'Industry'], ['employeeBand', 'Employees'], ['website', 'Website']] as const).map(([k, l]) => (
+            {([['location', 'Location'], ['industry', 'Industry'], ['employeeBand', 'Employees'], ['website', 'Website'],
+               ['foundedYear', 'Founded (year)'],
+               // Free text: companies report in different currencies, periods and units, and
+               // a number field would either lose the unit or invent precision.
+               ['revenue', 'Revenue (e.g. $19.4B FY2024)']] as const).map(([k, l]) => (
               <div key={k}>
                 <label style={lbl}>{l}</label>
                 <input style={inp} value={profile[k] || ''} onChange={e => setProfile((p: any) => ({ ...p, [k]: e.target.value }))} />
@@ -283,6 +346,27 @@ const AdminCompanies: React.FC = () => {
           <label style={lbl}>About</label>
           <textarea style={{ ...inp, minHeight: 60 }} value={profile.about || ''}
             onChange={e => setProfile((p: any) => ({ ...p, about: e.target.value }))} />
+
+          {/* One founder per line, "Name — Title". A textarea rather than a row editor
+              because this is typed once from a reference page and never maintained; a
+              repeating form would be more machinery than the field is worth. */}
+          <label style={lbl}>Founders (one per line — "Name — Title")</label>
+          <textarea
+            style={{ ...inp, minHeight: 60 }}
+            placeholder={'Narayana Murthy — Co-founder\nNandan Nilekani — Co-founder'}
+            value={(profile.founders || []).map((f: any) => (f.title ? `${f.name} — ${f.title}` : f.name)).join('\n')}
+            onChange={e => setProfile((p: any) => ({
+              ...p,
+              founders: e.target.value.split('\n')
+                .map((line: string) => {
+                  // Accepts an em dash, an en dash or a hyphen, because whoever types this
+                  // will use whichever their keyboard gives them.
+                  const [name, ...rest] = line.split(/\s+[—–-]\s+/);
+                  return { name: (name || '').trim(), title: rest.join(' - ').trim() };
+                })
+                .filter((f: any) => f.name),
+            }))}
+          />
 
           <label style={lbl}>Tips (one per line)</label>
           <textarea style={{ ...inp, minHeight: 80 }} value={(profile.tips || []).join('\n')}

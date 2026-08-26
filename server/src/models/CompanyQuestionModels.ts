@@ -97,6 +97,19 @@ export interface ICompany extends Document {
   industry?: string;
   employeeBand?: string;
   website?: string;
+  /**
+   * Who started it, and when — the context a student actually repeats in an interview when
+   * asked "what do you know about us". Free text per person because titles vary wildly
+   * (founder, co-founder, founding CEO) and forcing a taxonomy would only lose detail.
+   */
+  founders: { name: string; title?: string }[];
+  foundedYear?: number;
+  /**
+   * Revenue as a STRING, deliberately. Companies report in different currencies, periods
+   * and units — "$19.4B (FY2024)", "₹2.25 lakh crore (FY24)" — and a number field would
+   * either lose the unit or invent a false precision nobody can verify.
+   */
+  revenue?: string;
   /** Free-form advice shown on the Tips tab. */
   tips: string[];
 
@@ -164,6 +177,9 @@ const CompanySchema = new Schema<ICompany>({
   industry:     { type: String, default: '' },
   employeeBand: { type: String, default: '' },
   website:      { type: String, default: '' },
+  founders:     [{ name: { type: String, default: '' }, title: { type: String, default: '' }, _id: false }],
+  foundedYear:  { type: Number, default: null },
+  revenue:      { type: String, default: '' },
   tips:         [{ type: String }],
   hiringTimeline: { type: String, default: '' },
   eligibility: {

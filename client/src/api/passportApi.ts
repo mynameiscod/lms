@@ -1384,6 +1384,8 @@ export interface NewsDraft {
 // ── Company Questions ──
 export interface TaxItem { key: string; label: string; order: number; enabled: boolean; count?: number; }
 export interface CompanyRow { id: string; name: string; slug: string; type: string; logoUrl: string; about: string; questionCount: number; }
+/** Who founded a company, for the student-facing profile. */
+export interface CompanyFounder { name: string; title?: string }
 
 // ── Company preparation (Module 15) ──
 
@@ -1617,6 +1619,7 @@ export interface CompanyDetail {
   company: {
     id: string; name: string; slug: string; type: string; logoUrl: string; about: string;
     roles: string[]; location: string; industry: string; employeeBand: string; website: string;
+    founders?: CompanyFounder[]; foundedYear?: number | null; revenue?: string;
     tips: string[]; salaryBands: SalaryBand[];
     /** Null until an admin has verified it — never shown to a student unverified. */
     eligibility: {

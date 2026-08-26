@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collegeMembershipApi, placementDriveApi } from '../../api';
-import passportApi from '../../api/passportApi';
+import passportApi, { CompanyRow } from '../../api/passportApi';
 import { useMember } from './MemberLayout';
 import './opportunities.css';
 
@@ -68,7 +68,13 @@ const Opportunities: React.FC = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
-  const [type, setType] = useState<'all' | 'jobs' | 'internships'>('all');
+  const [type, setType] = useState<'all' | 'jobs' | 'internships' | 'companies'>('all');
+  /**
+   * Companies a student can prepare AGAINST, which is a different thing from a drive they
+   * can apply TO. The endpoint has existed since Module 15 and nothing rendered it, so a
+   * member could only reach a company page by knowing its slug.
+   */
+  const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [location, setLocation] = useState('');
   const [saved, setSaved] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem(SAVED_KEY) || '[]')); }
@@ -79,13 +85,17 @@ const Opportunities: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const [upcoming, ongoing, apps, profile, ready] = await Promise.all([
+      const [upcoming, ongoing, apps, profile, ready, cos] = await Promise.all([
         placementDriveApi.list('upcoming').catch(() => ({ data: [] })),
         placementDriveApi.list('ongoing').catch(() => ({ data: [] })),
         placementDriveApi.getMyApplications().catch(() => ({ data: [] })),
         collegeMembershipApi.getMe().catch(() => ({ data: null })),
         passportApi.getMyReadiness().catch(() => null),
+        // Failure is not fatal to the page: drives and companies are independent, and a
+        // company list that will not load should cost its own tab, not the whole screen.
+        passportApi.listCompanies().catch(() => ({ companies: [] as CompanyRow[] })),
       ]);
+      setCompanies((cos as any)?.companies || []);
       const open = [...(upcoming?.data || []), ...(ongoing?.data || [])] as Drive[];
       const uniq = Array.from(new Map(open.map(d => [d._id, d])).values());
       setDrives(uniq);
@@ -231,10 +241,42 @@ const Opportunities: React.FC = () => {
             <button className={type === 'all' ? 'on' : ''} onClick={() => setType('all')}>Recommended for You</button>
             <button className={type === 'jobs' ? 'on' : ''} onClick={() => setType('jobs')}>Jobs</button>
             <button className={type === 'internships' ? 'on' : ''} onClick={() => setType('internships')}>Internships</button>
-            <span>{listed.length} open</span>
+            {/* Companies to PREPARE for, as opposed to drives to apply to. */}
+            <button className={type === 'companies' ? 'on' : ''} onClick={() => setType('companies')}>
+              Companies{companies.length ? ` (${companies.length})` : ''}
+            </button>
+            <span>{type === 'companies' ? `${companies.length} to prepare for` : `${listed.length} open`}</span>
           </div>
 
-          {!listed.length ? (
+          {type === 'companies' ? (
+            !companies.length ? (
+              /* Said precisely. A company is hidden until it has an overview, an interview
+                 pattern, 20+ questions and human-verified eligibility — so "none yet" here
+                 means unpublished, not missing, and an admin can act on that sentence. */
+              <div className="opp-empty">
+                <i className="bi bi-building" />
+                <h3>No company guides published yet</h3>
+                <p>A company appears here once its overview, interview pattern, questions and eligibility have been completed and verified.</p>
+              </div>
+            ) : (
+              <div className="opp-co-grid">
+                {companies
+                  .filter(co => !query || co.name.toLowerCase().includes(query.toLowerCase()))
+                  .map(co => (
+                    <button className="opp-co" key={co.slug} onClick={() => nav(`/careerpilot/companies/${co.slug}`)}>
+                      {co.logoUrl
+                        ? <img className="opp-co-logo" src={co.logoUrl} alt="" />
+                        : <span className="opp-co-fallback">{co.name.slice(0, 1).toUpperCase()}</span>}
+                      <span className="opp-co-body">
+                        <b>{co.name}</b>
+                        <p>{co.about || 'Interview pattern and past questions.'}</p>
+                        <span className="opp-co-meta">{co.questionCount} past question{co.questionCount === 1 ? '' : 's'}</span>
+                      </span>
+                    </button>
+                  ))}
+              </div>
+            )
+          ) : !listed.length ? (
             <div className="opp-empty"><i className="bi bi-briefcase" /><h3>No matching opportunities right now</h3><p>Try another filter or check back when new placement drives are published.</p></div>
           ) : (
             <div className="opp-list">

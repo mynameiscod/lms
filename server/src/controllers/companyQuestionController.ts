@@ -147,6 +147,8 @@ export const companyDetail = async (req: Request, res: Response) => {
         logoUrl: company.logoUrl || '', about: company.about || '', roles: company.roles || [],
         location: company.location || '', industry: company.industry || '',
         employeeBand: company.employeeBand || '', website: company.website || '',
+        founders: company.founders || [], foundedYear: company.foundedYear || null,
+        revenue: company.revenue || '',
         tips: company.tips || [],
         // Flagged as the tenant's own estimate rather than surveyed data. The client
         // renders that label, and it must never be dropped in transit.
@@ -609,6 +611,22 @@ export const saveCompany = async (req: Request, res: Response) => {
       industry: String(b.industry || '').trim().slice(0, 80),
       employeeBand: String(b.employeeBand || '').trim().slice(0, 40),
       website: String(b.website || '').trim().slice(0, 300),
+      // A founder row with no name is nothing — dropped rather than stored as a blank
+      // bullet the student would see.
+      founders: Array.isArray(b.founders)
+        ? b.founders
+            .map((f: any) => ({
+              name: String(f?.name || '').trim().slice(0, 80),
+              title: String(f?.title || '').trim().slice(0, 60),
+            }))
+            .filter((f: any) => f.name)
+            .slice(0, 10)
+        : [],
+      // Bounded to something plausible so a typo cannot render "founded 202" or "20255".
+      foundedYear: Number(b.foundedYear) >= 1800 && Number(b.foundedYear) <= new Date().getFullYear()
+        ? Math.round(Number(b.foundedYear))
+        : null,
+      revenue: String(b.revenue || '').trim().slice(0, 80),
       tips: Array.isArray(b.tips) ? b.tips.map((t: any) => String(t).slice(0, 400)).filter(Boolean).slice(0, 20) : [],
       // Ranges only — a band whose max is below its min would render as nonsense, and a
       // salary claim about a named employer is not the place to be sloppy.

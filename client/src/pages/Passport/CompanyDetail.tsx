@@ -329,6 +329,42 @@ const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
                     🗓 {c.hiringTimeline}
                   </p>
                 )}
+
+                {/* The facts a student is expected to repeat when asked "what do you know
+                    about us". Each line is omitted rather than shown empty — a blank
+                    "Revenue —" teaches nothing and reads as a broken page. */}
+                {(c.foundedYear || c.revenue || c.location || c.industry || c.employeeBand || c.website) && (
+                  <dl className="cd-facts">
+                    {c.foundedYear ? <div><dt>Founded</dt><dd>{c.foundedYear}</dd></div> : null}
+                    {c.industry ? <div><dt>Industry</dt><dd>{c.industry}</dd></div> : null}
+                    {c.location ? <div><dt>Locations</dt><dd>{c.location}</dd></div> : null}
+                    {c.employeeBand ? <div><dt>Employees</dt><dd>{c.employeeBand}</dd></div> : null}
+                    {c.revenue ? <div><dt>Revenue</dt><dd>{c.revenue}</dd></div> : null}
+                    {c.website ? (
+                      <div>
+                        <dt>Website</dt>
+                        <dd>
+                          <a href={c.website} target="_blank" rel="noreferrer noopener">
+                            {c.website.replace(/^https?:\/\//, '')}
+                          </a>
+                        </dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                )}
+
+                {!!c.founders?.length && (
+                  <div className="cd-founders">
+                    <span className="cd-founders-label">Founded by</span>
+                    <div className="cd-founder-list">
+                      {c.founders.map((f, i) => (
+                        <span className="cd-founder" key={i}>
+                          <b>{f.name}</b>{f.title ? <em>{f.title}</em> : null}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Eligibility is the first thing a student actually needs, so it sits above

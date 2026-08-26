@@ -1157,6 +1157,8 @@ export interface SubmitOutcome extends Partial<RunOutcome> {
 export interface InterviewTurn { role: 'interviewer' | 'candidate'; text: string; at?: string; }
 export interface InterviewSession {
   hasRecording?: boolean;
+  /** Wall-clock cap in seconds (intro rounds), or null for an untimed sitting. */
+  timeLimitSec?: number | null;
   recordingDurationSec?: number | null;
   id: string; role: string; areas: string[]; interviewerName: string;
   companySlug?: string | null; companyName?: string | null;

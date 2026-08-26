@@ -47,11 +47,39 @@ const Interview: React.FC = () => {
   }, []);
   const voice = useInterviewVoice({ onFinalTranscript });
 
+  /**
+   * Counted from the session's OWN startedAt, not from a counter that begins at zero here.
+   * A refresh, a resumed sitting or a slow first paint would otherwise hand the member back
+   * a full two minutes on a round that is nearly over.
+   */
   useEffect(() => {
     if (!session || session.status !== 'in_progress') return;
-    const t = setInterval(() => setElapsed(e => e + 1), 1000);
+    const startedAt = new Date(session.startedAt || Date.now()).getTime();
+    const tick = () => setElapsed(Math.max(0, Math.round((Date.now() - startedAt) / 1000)));
+    tick();
+    const t = setInterval(tick, 1000);
     return () => clearInterval(t);
-  }, [session?.id, session?.status]);
+  }, [session?.id, session?.status, session?.startedAt]);
+
+  /**
+   * A capped round ends itself.
+   *
+   * The intro mission promises two minutes, so two minutes has to be what actually happens —
+   * leaving it to the member to stop makes the promise decorative. The ref guard matters:
+   * this fires from a 1s tick, and finish() is not instant, so without it the timer would
+   * call finish repeatedly while the first call is still grading.
+   */
+  const autoEnded = useRef(false);
+  useEffect(() => { autoEnded.current = false; }, [session?.id]);
+  useEffect(() => {
+    if (!session || session.status !== 'in_progress' || !session.timeLimitSec) return;
+    if (autoEnded.current || elapsed < session.timeLimitSec) return;
+    autoEnded.current = true;
+    finish(session.id);
+    // finish is redefined each render; depending on it here would restart this effect every
+    // second. The ref guard is what makes calling it once safe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elapsed, session?.id, session?.status, session?.timeLimitSec]);
 
   useEffect(() => {
     if (!voiceOn || !session || session.status !== 'in_progress') return;
@@ -330,7 +358,19 @@ const Interview: React.FC = () => {
       <PassportShell hideNav meta={<span className="pm-pill"><i>🎙️</i>Question <b>{session.askedCount}</b> / {session.maxQuestions}</span>}>
         <div className="cp-iv-live-head">
           <div><span className="cp-iv-kicker">Live practice</span><h1>{session.companyName ? `${session.companyName} mock interview` : 'Mock interview in progress'}</h1><p>{session.role} · with {session.interviewerName}. Answer as if this were the real thing — full sentences, specific examples.</p></div>
-          <div className="cp-iv-live-timer"><i className="bi bi-stopwatch" /><b>{String(Math.floor(elapsed / 60)).padStart(2, '0')}:{String(elapsed % 60).padStart(2, '0')}</b><span>elapsed</span></div>
+          {(() => {
+            // A capped round counts DOWN. "1:12 elapsed" does not tell somebody with a
+            // deadline what they need to know, which is how long they have left.
+            const cap = session.timeLimitSec || 0;
+            const shown = cap ? Math.max(0, cap - elapsed) : elapsed;
+            return (
+              <div className={`cp-iv-live-timer${cap && shown <= 20 ? ' low' : ''}`}>
+                <i className="bi bi-stopwatch" />
+                <b>{String(Math.floor(shown / 60)).padStart(2, '0')}:{String(shown % 60).padStart(2, '0')}</b>
+                <span>{cap ? 'left' : 'elapsed'}</span>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="iv-room">

@@ -228,8 +228,8 @@ export const DEFAULT_MISSION_POOLS: IMissionPool[] = [
   {
     category: 'communication',
     items: [
-      { title: 'Record a self-introduction', detail: 'Opens a short 2-question intro round. Say who you are, what you are studying, and the role you want — out loud, in full sentences. You get scored feedback at the end.', type: 'communication', xp: 30, link: '/careerpilot/interview?mode=intro' },
-      { title: 'Explain a concept', detail: 'Opens a short round. Explain "what is a database" in about 5 plain sentences, as if to someone non-technical.', type: 'communication', xp: 25, link: '/careerpilot/interview?mode=intro' },
+      { title: 'Record a self-introduction', detail: 'Opens a 2-minute round with ONE question: introduce yourself. Say who you are, what you are studying, and the role you want — out loud, in full sentences. It ends itself at 2 minutes, then scores you.', type: 'communication', xp: 30, link: '/careerpilot/interview?mode=intro' },
+      { title: 'Explain a concept', detail: 'Opens a 2-minute round with ONE question. Explain "what is a database" in about 5 plain sentences, as if to someone non-technical. It ends itself at 2 minutes.', type: 'communication', xp: 25, link: '/careerpilot/interview?mode=intro' },
       { title: 'Email practice', detail: 'Write a short professional email requesting an interview slot.', type: 'communication', xp: 20 },
     ],
   },

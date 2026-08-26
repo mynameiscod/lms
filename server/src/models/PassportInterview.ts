@@ -69,6 +69,15 @@ export interface IPassportInterview extends Document {
    * stays on the one thing the member was told it would be about — not just the opener.
    */
   focus?: string | null;
+  /**
+   * Hard wall-clock cap in seconds, or null for an untimed round.
+   *
+   * A self-intro round is sold as "two minutes". Without a cap that was only true if the
+   * member happened to stop, so the promise and the product disagreed. Stored per session
+   * rather than derived from the mode, so the length is visible on the row that has to
+   * honour it.
+   */
+  timeLimitSec?: number | null;
   askedCount: number;
   /**
    * The session recorded to video, so the member can watch themselves back — the point of
@@ -167,6 +176,7 @@ const PassportInterviewSchema = new Schema<IPassportInterview>(
     companyProfileVersion: { type: Number, default: null },
     maxQuestions:    { type: Number, default: 6 },
     focus:           { type: String, default: null },
+    timeLimitSec:    { type: Number, default: null },
     askedCount:      { type: Number, default: 0 },
     recordingKey:         { type: String, default: null },
     recordingMime:        { type: String, default: null },

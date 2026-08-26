@@ -12,3 +12,7 @@
 @keyframes cp-iv-rec-pulse{0%,100%{opacity:1}50%{opacity:.28}}
 .cp-iv-rec-preview{width:100%;border-radius:11px;background:#0b1220;aspect-ratio:4/3;object-fit:cover;display:block;margin-bottom:9px;transform:scaleX(-1)}
 .cp-iv-playback{width:100%;border-radius:12px;background:#0b1220;display:block;max-height:60vh}
+
+/* Last seconds of a capped round — the countdown has to be noticeable before it ends. */
+.cp-iv-live-timer.low{border-color:#f0c3bb;background:#fdf5f3}
+.cp-iv-live-timer.low b,.cp-iv-live-timer.low i{color:#b4302a}

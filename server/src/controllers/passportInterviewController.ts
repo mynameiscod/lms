@@ -39,7 +39,12 @@ const MAX_QUESTIONS = 6;
  * a different, much longer one. Two questions is the intro plus one follow-up, which is what
  * two minutes actually holds.
  */
-const INTRO_QUESTIONS = 2;
+const INTRO_QUESTIONS = 1;
+/**
+ * The wall-clock cap for an intro round. The mission says two minutes, so two minutes is
+ * what it runs — the sitting ends itself rather than relying on the member to stop.
+ */
+const INTRO_LIMIT_SEC = 120;
 /**
  * After this, an `in_progress` session is abandoned in fact whatever the row says — nobody
  * returns to a mock interview the next day. Without this the one-live-session lock turns a
@@ -114,6 +119,7 @@ const publicSession = (s: any) => ({
   xpAwarded: s.xpAwarded, startedAt: s.startedAt, completedAt: s.completedAt,
   // Presence only. The key is a path into a private bucket and never leaves the server.
   hasRecording: !!s.recordingKey,
+  timeLimitSec: s.timeLimitSec ?? null,
   recordingDurationSec: s.recordingDurationSec || null,
 });
 
@@ -290,9 +296,14 @@ export const start = async (req: Request, res: Response) => {
      */
     const introMode = String(req.body?.mode || '') === 'intro' && !companyBrief;
     let maxQuestions = MAX_QUESTIONS;
+    let timeLimitSec: number | null = null;
     if (introMode) {
       areas = ['Self-introduction', 'Communication'];
+      // ONE question. The member is asked to introduce themselves and that is the whole
+      // round — a follow-up turns a two-minute intro into a conversation, which is the
+      // longer sitting this mode exists to avoid.
       maxQuestions = INTRO_QUESTIONS;
+      timeLimitSec = INTRO_LIMIT_SEC;
     }
 
     const first = await nextInterviewerTurn({
@@ -326,7 +337,7 @@ export const start = async (req: Request, res: Response) => {
       companySlug: companyBrief ? slug : undefined,
       companyName: companyBrief?.name,
       roundKey, companyProfileVersion,
-      interviewerName: interviewerName(), maxQuestions, focus: introMode ? INTRO_FOCUS : null, askedCount: 1,
+      interviewerName: interviewerName(), maxQuestions, focus: introMode ? INTRO_FOCUS : null, timeLimitSec, askedCount: 1,
       status: 'in_progress',
       live: true,
       transcript: [{ role: 'interviewer', text: first.say, at: new Date() }],
@@ -383,6 +394,11 @@ export const turn = async (req: Request, res: Response) => {
       history, askedCount: session.askedCount, maxQuestions: session.maxQuestions,
       // Keep a single-purpose round on its one subject for every turn, not just the opener.
       focus: session.focus || undefined,
+      // On a capped round the interviewer needs to know the clock, or it will open a fresh
+      // question with twenty seconds left and be cut off mid-thought by the auto-finish.
+      timeLeftSeconds: session.timeLimitSec
+        ? Math.max(0, session.timeLimitSec - Math.round((Date.now() - new Date(session.startedAt || (session as any).createdAt).getTime()) / 1000))
+        : undefined,
       candidateName: user?.firstName || '', historyWindow: HISTORY_WINDOW,
       tenantId, product: PRODUCT,
       // Re-sent every turn. The brief lives in the system prompt, not the transcript, so

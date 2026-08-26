@@ -37,12 +37,12 @@ interface Update { category: string; title: string; detail: string; link?: strin
 const UPDATES: Update[] = [
   {
     category: 'communication', title: 'Record a self-introduction',
-    detail: 'Opens a short 2-question intro round. Say who you are, what you are studying, and the role you want — out loud, in full sentences. You get scored feedback at the end.',
+    detail: 'Opens a 2-minute round with ONE question: introduce yourself. Say who you are, what you are studying, and the role you want — out loud, in full sentences. It ends itself at 2 minutes, then scores you.',
     link: '/careerpilot/interview?mode=intro',
   },
   {
     category: 'communication', title: 'Explain a concept',
-    detail: 'Opens a short round. Explain "what is a database" in about 5 plain sentences, as if to someone non-technical.',
+    detail: 'Opens a 2-minute round with ONE question. Explain "what is a database" in about 5 plain sentences, as if to someone non-technical. It ends itself at 2 minutes.',
     link: '/careerpilot/interview?mode=intro',
   },
   {

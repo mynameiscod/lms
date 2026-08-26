@@ -12,7 +12,7 @@ import PassportProgress from '../models/PassportProgress';
 import PassportAttempt from '../models/PassportAttempt';
 import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
 import { resolveAssessedState } from '../services/memberAssessmentStateService';
-import { ensureContent, poolMapOf, missionsForDay } from '../services/passportMissionService';
+import { ensureContent, poolMapOf, missionsForDay, clampSlots } from '../services/passportMissionService';
 import { memberAxes } from '../services/careerStageService';
 import PassportInterview from '../models/PassportInterview';
 import { normalizePhone, mobileError } from '../utils/phone';
@@ -206,7 +206,7 @@ export const listStudentAnswers = async (req: Request, res: Response) => {
     const byDay = new Map<number, any[]>();
     const missionsOn = (day: number) => {
       if (!byDay.has(day)) {
-        byDay.set(day, attempt ? missionsForDay(attempt, day, pools, content.journeyDays || 90) : []);
+        byDay.set(day, attempt ? missionsForDay(attempt, day, pools, content.journeyDays || 90, undefined, clampSlots((content as any).missionsPerDay)) : []);
       }
       return byDay.get(day)!;
     };

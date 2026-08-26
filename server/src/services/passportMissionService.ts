@@ -176,8 +176,20 @@ function eligibleCategories(attempt: AttemptLite): { key: string; score: number 
   return active.length >= 3 ? active : all.slice(0, Math.min(3, all.length));
 }
 
-/** Mission slots in a day. */
+/**
+ * Mission slots in a day — the DEFAULT, now that a tenant can set its own.
+ *
+ * Still the fallback everywhere, so a tenant with no stored value (every tenant written
+ * before this was configurable) behaves exactly as it always did.
+ */
 const SLOTS_PER_DAY = 3;
+/**
+ * One is a real choice for a tenant that wants a light daily habit. Six is where raising it
+ * stops helping: the pools are drawn per category, and asking for more than there are
+ * categories forces the repeats this whole area keeps fighting.
+ */
+export const clampSlots = (n?: number): number =>
+  (Number.isFinite(n) ? Math.max(1, Math.min(6, Math.round(n as number))) : SLOTS_PER_DAY);
 
 /**
  * Drop a mission link that cannot actually complete the mission.
@@ -272,9 +284,11 @@ export function categoriesForDay(
   attempt: AttemptLite,
   day: number,
   journeyDays: number = DEFAULT_JOURNEY_DAYS,
+  slotsPerDay: number = SLOTS_PER_DAY,
 ): string[] {
+  const slots = clampSlots(slotsPerDay);
   const cats = eligibleCategories(attempt);
-  if (cats.length <= SLOTS_PER_DAY) return cats.map(c => c.key);
+  if (cats.length <= slots) return cats.map(c => c.key);
 
   const t = taperAt(day, journeyDays);
 
@@ -285,7 +299,7 @@ export function categoriesForDay(
   const avg = needs.reduce((a, b) => a + b, 0) / needs.length;
   const weights = avg <= 0 ? needs.map(() => 1) : needs.map(n => n * t + avg * (1 - t));
 
-  const quota = allocate(weights, EMPHASIS_CYCLE * SLOTS_PER_DAY, EMPHASIS_CYCLE);
+  const quota = allocate(weights, EMPHASIS_CYCLE * slots, EMPHASIS_CYCLE);
 
   // Replay the cycle up to this day. EMPHASIS_CYCLE is 12, so this is a dozen cheap
   // iterations — worth it to keep the function pure rather than caching state.
@@ -300,12 +314,12 @@ export function categoriesForDay(
       // first, so the lower index); then index, so ties never depend on sort stability.
       .sort((a, b) => left[b] - left[a] || a - b)
       .filter(i => left[i] > 0)
-      .slice(0, SLOTS_PER_DAY);
+      .slice(0, slots);
 
-    // Quota sums to exactly SLOTS_PER_DAY per remaining day and no category exceeds
+    // Quota sums to exactly `slots` per remaining day and no category exceeds
     // the cycle length, so three are always available. Top up from the weakest anyway
     // rather than hand back a short day if that invariant ever changes.
-    for (let i = 0; picked.length < SLOTS_PER_DAY && i < cats.length; i++) {
+    for (let i = 0; picked.length < slots && i < cats.length; i++) {
       if (!picked.includes(i)) picked.push(i);
     }
     for (const i of picked) left[i]--;
@@ -328,10 +342,18 @@ export function missionsForDay(
    * thirty-day curriculum sit on a 365-day journey without leaving a hole.
    */
   curriculum?: Map<number, { day: number; theme?: string; items: any[] }>,
+  /**
+   * How many missions to serve. Defaults to the long-standing 3, so a caller that has not
+   * been updated — and a tenant that has never set one — is unchanged.
+   */
+  slotsPerDay: number = SLOTS_PER_DAY,
 ): Mission[] {
+  const slots = clampSlots(slotsPerDay);
   const authored = curriculum?.get(day);
   if (authored?.items?.length) {
-    return authored.items.slice(0, SLOTS_PER_DAY).map((it, slot) => {
+    // An authored day is served as written, so the tenant's count caps it rather than
+    // padding it: if an admin wrote two items for today, today has two.
+    return authored.items.slice(0, slots).map((it, slot) => {
       const link = actionableLink(it.link);
       return {
         key: `d${day}-a${slot}`,
@@ -349,7 +371,7 @@ export function missionsForDay(
     });
   }
 
-  const cats = categoriesForDay(attempt, day, journeyDays);
+  const cats = categoriesForDay(attempt, day, journeyDays, slots);
   if (!cats.length) return [];
   const h = hash(day);
 

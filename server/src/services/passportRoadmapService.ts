@@ -96,6 +96,11 @@ export function buildRoadmap(opts: {
   stage?: string | null;
   /** Admin-authored days for this member's pathway; a day here overrides the pool. */
   curriculum?: Map<number, any>;
+  /**
+   * The tenant's missions-per-day. The roadmap must show the SAME days the member will be
+   * given — a plan built on three when they receive two is a plan that never matches.
+   */
+  slotsPerDay?: number;
 }): Roadmap {
   const totalDays = Math.max(7, opts.totalDays || 90);
   const pw = pathwayOf(opts.pathways, opts.attempt.pathway, opts.stage);
@@ -114,7 +119,7 @@ export function buildRoadmap(opts: {
     let weekDone = 0;
 
     for (let d = fromDay; d <= toDay; d++) {
-      const missions = missionsForDay(opts.attempt, d, opts.pools, totalDays, opts.curriculum);
+      const missions = missionsForDay(opts.attempt, d, opts.pools, totalDays, opts.curriculum, opts.slotsPerDay);
       const xp = missions.reduce((s, m) => s + (m.xp || 0), 0);
       const allDone = missions.length > 0 && missions.every(m => completed.has(m.key));
       totalXp += xp;

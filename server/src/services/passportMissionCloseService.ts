@@ -1,7 +1,7 @@
 import PassportProgress from '../models/PassportProgress';
 import PassportAttempt from '../models/PassportAttempt';
 import User from '../models/User';
-import { ensureContent, poolMapOf, missionsForDay, dayNumber, ymd } from './passportMissionService';
+import { ensureContent, poolMapOf, missionsForDay, dayNumber, ymd, clampSlots } from './passportMissionService';
 import { memberAxes } from './careerStageService';
 import { completeMissionOnce } from './passportXpService';
 import { awardCoins } from './coinService';
@@ -35,7 +35,8 @@ export async function completeInterviewMissions(
 
   const day = dayNumber(progress.startDate, now);
   const pools = poolMapOf(content.missionPools, memberAxes(user));
-  const todays = missionsForDay(attempt, day, pools, content.journeyDays || 90);
+  // Must match what the member was SHOWN, or a finished interview closes nothing.
+  const todays = missionsForDay(attempt, day, pools, content.journeyDays || 90, undefined, clampSlots((content as any).missionsPerDay));
 
   // Keyed by mission KEY, not title: the dashboard path awards coins on the key, and a
   // title-based key here would let one mission pay twice — once down each route.

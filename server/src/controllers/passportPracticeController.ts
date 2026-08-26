@@ -6,7 +6,7 @@ import { isEntitled } from '../services/passportEntitlementService';
 import { getOrCreateProgress, addXp, completeMissionOnce } from '../services/passportXpService';
 import { awardCoins } from '../services/coinService';
 import PassportAttempt from '../models/PassportAttempt';
-import { ensureContent, poolMapOf, missionsForDay, dayNumber } from '../services/passportMissionService';
+import { ensureContent, poolMapOf, missionsForDay, dayNumber, clampSlots } from '../services/passportMissionService';
 import { memberAxes } from '../services/careerStageService';
 import {
   listProblems, findProblem, toPublic, runProblem, gradeMcq, PracticeKind,
@@ -146,7 +146,7 @@ export const submit = async (req: Request, res: Response) => {
         if (attempt) {
           const day = dayNumber(progress.startDate, new Date());
           const pools = poolMapOf(content.missionPools, memberAxes(user));
-          const todays = missionsForDay(attempt, day, pools, content.journeyDays || 90);
+          const todays = missionsForDay(attempt, day, pools, content.journeyDays || 90, undefined, clampSlots((content as any).missionsPerDay));
           const match = todays.find(m => {
             if (!m.link) return false;
             const kind = new URLSearchParams(m.link.split('?')[1] || '').get('kind');

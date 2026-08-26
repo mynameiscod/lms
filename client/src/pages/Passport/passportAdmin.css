@@ -1,0 +1,9 @@
+
+/* Missions-per-day sits with the page actions rather than in the pools below: it governs
+   every pool at once, so putting it inside one of them would read as a per-pool setting. */
+.pa-perday { display: flex; align-items: center; gap: 8px; font-size: 12px;
+  font-weight: 700; color: #33445c; white-space: nowrap; }
+.pa-perday input { width: 62px; padding: 8px 10px; border: 1px solid #d7dfe9;
+  border-radius: 9px; font: inherit; font-size: 13px; font-weight: 700; color: #0f2340; }
+.pa-perday input:focus { outline: 0; border-color: #359aad;
+  box-shadow: 0 0 0 3px rgba(53, 154, 173, .12); }

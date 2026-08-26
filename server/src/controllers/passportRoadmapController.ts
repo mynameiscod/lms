@@ -6,7 +6,7 @@ import PassportAttempt from '../models/PassportAttempt';
 import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
 import { resolveAssessedState } from '../services/memberAssessmentStateService';
 import { isEntitled } from '../services/passportEntitlementService';
-import { ensureContent, poolMapOf, dayNumber } from '../services/passportMissionService';
+import { ensureContent, poolMapOf, dayNumber, clampSlots } from '../services/passportMissionService';
 import { curriculumFor } from '../services/curriculumService';
 import { getOrCreateProgress } from '../services/passportXpService';
 import { buildRoadmap, toPreview } from '../services/passportRoadmapService';
@@ -70,6 +70,7 @@ export const getRoadmap = async (req: Request, res: Response) => {
       stage: memberAxes(user).stage,
       totalDays: content.journeyDays || 90,
       startDate, currentDay, completedKeys,
+      slotsPerDay: clampSlots((content as any).missionsPerDay),
     });
 
     res.json({

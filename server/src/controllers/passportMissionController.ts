@@ -2,12 +2,11 @@ import { Request, Response } from 'express';
 import { memberAxes } from '../services/careerStageService';
 import User from '../models/User';
 import PassportConfig from '../models/PassportConfig';
-import PassportAttempt from '../models/PassportAttempt';
 import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
 import { resolveAssessedState } from '../services/memberAssessmentStateService';
 import PassportProgress from '../models/PassportProgress';
 import { isEntitled } from '../services/passportEntitlementService';
-import { missionsForDay, dayNumber, ensureContent, poolMapOf, ymd } from '../services/passportMissionService';
+import { missionsForDay, dayNumber, ensureContent, poolMapOf, ymd, clampSlots } from '../services/passportMissionService';
 import { curriculumFor } from '../services/curriculumService';
 import { completeMissionOnce } from '../services/passportXpService';
 import PassportInterview from '../models/PassportInterview';
@@ -34,13 +33,17 @@ async function ctx(req: Request) {
     pools: poolMapOf(content.missionPools, memberAxes(user)),
     curriculum: await curriculumFor(tenantId, user?.passport?.pathway, user?.passport?.stage),
     journeyDays: content.journeyDays || 90,
+    // Read once here so every path in this file — list, complete, and the answer review —
+    // agrees on how many missions today has. Two paths disagreeing about the day's shape is
+    // what produced "Take the assessment first" on a mission the member could see.
+    slots: clampSlots((content as any).missionsPerDay),
   };
 }
 
 /** Student: today's missions + streak/xp. Gated behind the `daily_missions` entitlement. */
 export const getToday = async (req: Request, res: Response) => {
   try {
-    const { tenantId, studentId, user, cfg, content, pools, curriculum, journeyDays } = await ctx(req);
+    const { tenantId, studentId, user, cfg, content, pools, curriculum, journeyDays, slots } = await ctx(req);
     if (!isEntitled(cfg?.entitlements as any, user?.passport, 'daily_missions')) {
       return res.json({ locked: true, priceInr: cfg?.priceInr ?? 499, reason: 'Membership required to unlock daily missions.' });
     }
@@ -78,7 +81,7 @@ export const getToday = async (req: Request, res: Response) => {
     const asked = Number(req.query.day);
     const day = Number.isFinite(asked) ? Math.min(today, Math.max(1, Math.round(asked))) : today;
 
-    const missions = missionsForDay(attempt, day, pools, journeyDays, curriculum);
+    const missions = missionsForDay(attempt, day, pools, journeyDays, curriculum, slots);
     const doneKeys = new Set(progress.completed.filter(c => c.day === day).map(c => c.key));
 
     res.json({
@@ -98,12 +101,32 @@ export const getToday = async (req: Request, res: Response) => {
 /** Student: mark one mission done → award XP + update streak. Idempotent per (day,key). */
 export const completeMission = async (req: Request, res: Response) => {
   try {
-    const { tenantId, studentId, user, cfg, content, pools, curriculum, journeyDays } = await ctx(req);
+    const { tenantId, studentId, user, cfg, content, pools, curriculum, journeyDays, slots } = await ctx(req);
     if (!isEntitled(cfg?.entitlements as any, user?.passport, 'daily_missions')) {
       return res.status(403).json({ message: 'Membership required.' });
     }
-    const attempt = await PassportAttempt.findOne({ tenantId, studentId }).sort({ createdAt: -1 }).lean() as any;
-    if (!attempt) return res.status(400).json({ message: 'Take the assessment first.' });
+    /**
+     * The SAME gate getToday uses, for the same reason — and it had to be the same one.
+     *
+     * getToday was moved onto resolveAssessedState because a PassportAttempt is only ever
+     * written by the legacy questionnaire, so a member measured by the skill assessment was
+     * told to sit an assessment they had already sat. This half was left behind, and the
+     * result was worse than the original bug: the missions rendered, the member wrote their
+     * answer, and only on saving were they told to "Take the assessment first" — about an
+     * assessment they had completed. Seen in production: careerScore 12, one SUBMITTED
+     * PersonalizedAssessment, zero PassportAttempt rows.
+     *
+     * A read path and a write path disagreeing about who is allowed in is the shape of the
+     * bug; keeping them on one resolver is the fix.
+     */
+    const assessed = await resolveAssessedState({
+      tenantId, studentId,
+      passport: user?.passport,
+      categories: categoriesOf(await PassportAssessment.findOne({ tenantId }).lean() as any),
+      defaultPathway: content.pathways?.[0] || null,
+    });
+    if (!assessed.assessed) return res.status(400).json({ message: 'Take the assessment first.' });
+    const attempt = assessed.attempt as any;
 
     let progress = await PassportProgress.findOne({ tenantId, studentId });
     if (!progress) progress = await PassportProgress.create({ tenantId, studentId, startDate: user?.passport?.activatedAt || new Date() });
@@ -112,7 +135,7 @@ export const completeMission = async (req: Request, res: Response) => {
     const day = dayNumber(progress.startDate, now);
     const key = String(req.body?.key || '');
     const answer = String(req.body?.answer || '').trim();
-    const valid = missionsForDay(attempt, day, pools, journeyDays, curriculum).find(m => m.key === key);
+    const valid = missionsForDay(attempt, day, pools, journeyDays, curriculum, slots).find(m => m.key === key);
     if (!valid) return res.status(400).json({ message: 'Unknown mission.' });
 
     // A mission with no surface to do it on completes by writing the answer. Ticking a
@@ -204,7 +227,7 @@ export const completeMission = async (req: Request, res: Response) => {
     if (newlyDone) await progress.save();
 
     const doneKeys = new Set(progress.completed.filter(c => c.day === day).map(c => c.key));
-    const missions = missionsForDay(attempt, day, pools, journeyDays, curriculum);
+    const missions = missionsForDay(attempt, day, pools, journeyDays, curriculum, slots);
     const allDone = missions.every(m => doneKeys.has(m.key));
 
     // Coins are awarded AFTER the completion is saved, and each key names the event

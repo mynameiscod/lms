@@ -85,6 +85,18 @@ export interface IPassportContent extends Document {
   missionPools: IMissionPool[];
   journeyDays: number;    // length of the full journey (default 90)
   /**
+   * How many missions a member is given each day.
+   *
+   * Absent on every tenant written before this existed, which is why the default is 3 —
+   * that was the hardcoded number, so reading a missing value as 3 changes nothing for
+   * anybody. Clamped 1..6 where it is read, not here: a stored value is data, and the
+   * guard belongs next to the code that would break on a silly one.
+   *
+   * Raising it draws more missions from the SAME pools. A thin category repeats sooner,
+   * so this is only worth increasing once the pools are deep enough to carry it.
+   */
+  missionsPerDay: number;
+  /**
    * Whether pathway assignment follows the admin's rules or the built-in defaults.
    *
    * Explicit, and off until switched on, because rules were previously activated by the
@@ -147,6 +159,7 @@ const PassportContentSchema = new Schema<IPassportContent>(
     pathways:     [PathwaySchema],
     missionPools: [MissionPoolSchema],
     journeyDays:  { type: Number, default: 90 },
+    missionsPerDay: { type: Number, default: 3 },
     pathwayRulesActive: { type: Boolean, default: false },
   },
   { timestamps: true }

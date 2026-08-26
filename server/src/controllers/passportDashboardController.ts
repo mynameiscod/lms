@@ -8,7 +8,7 @@ import PassportInterview from '../models/PassportInterview';
 import PassportResume from '../models/PassportResume';
 import TechBattle from '../models/TechBattle';
 import { membershipActive, entitlementMap } from '../services/passportEntitlementService';
-import { ensureContent, poolMapOf, missionsForDay, dayNumber, ymd } from '../services/passportMissionService';
+import { ensureContent, poolMapOf, missionsForDay, dayNumber, ymd, clampSlots } from '../services/passportMissionService';
 import { curriculumFor } from '../services/curriculumService';
 import { awardCoins, getAccount } from '../services/coinService';
 import { getOrCreateProgress } from '../services/passportXpService';
@@ -110,7 +110,7 @@ export const getDashboard = async (req: Request, res: Response) => {
     const totalDays = content.journeyDays || 90;
 
     // Today's missions + completion state
-    const todaysMissions = missionsForDay(attempt, day, pools, totalDays, curriculum);
+    const todaysMissions = missionsForDay(attempt, day, pools, totalDays, curriculum, clampSlots((content as any)?.missionsPerDay));
     // Carry the saved answer back so a completed reflective mission shows what the
     // member wrote, rather than just a tick they cannot review.
     const todayDone = new Map(progress.completed.filter(c => c.day === day).map(c => [c.key, c]));
@@ -127,6 +127,7 @@ export const getDashboard = async (req: Request, res: Response) => {
     const roadmap = buildRoadmap({
       attempt, pools, pathways: content.pathways,
       totalDays, startDate: progress.startDate, currentDay: day, completedKeys,
+      slotsPerDay: clampSlots((content as any)?.missionsPerDay),
     });
 
     // Interviews + resume

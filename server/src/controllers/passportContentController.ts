@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import PassportContent, { DEFAULT_PATHWAYS, DEFAULT_MISSION_POOLS } from '../models/PassportContent';
 import PassportAttempt from '../models/PassportAttempt';
-import { ensureContent, poolMapOf, missionsForDay } from '../services/passportMissionService';
+import { ensureContent, poolMapOf, missionsForDay, clampSlots } from '../services/passportMissionService';
 import { buildRoadmap } from '../services/passportRoadmapService';
 import { validateRules } from '../services/pathwayMatchService';
 import PassportAssessment, { PASSPORT_CATEGORIES, categoriesOf } from '../models/PassportAssessment';
@@ -47,6 +47,15 @@ export const saveContent = async (req: Request, res: Response) => {
       const n = Number(req.body.journeyDays);
       if (!Number.isFinite(n) || n < 7 || n > 365) return res.status(400).json({ message: 'Journey length must be between 7 and 365 days.' });
       $set.journeyDays = Math.round(n);
+    }
+    if (req.body?.missionsPerDay !== undefined) {
+      const n = Number(req.body.missionsPerDay);
+      // Refused rather than clamped silently. An admin who typed 12 meant something, and a
+      // value that quietly became 6 would leave them believing the screen was broken.
+      if (!Number.isFinite(n) || n < 1 || n > 6) {
+        return res.status(400).json({ message: 'Missions per day must be between 1 and 6.' });
+      }
+      $set.missionsPerDay = Math.round(n);
     }
     if (!Object.keys($set).length) return res.status(400).json({ message: 'Nothing to save.' });
 
@@ -97,11 +106,13 @@ export const previewContent = async (req: Request, res: Response) => {
     attempt.pathway = pathwayKey;
 
     const previewDays = Number(req.body?.journeyDays) || content.journeyDays || 90;
-    const days = [1, 2, 3, 4, 5, 6, 7].map(d => ({ day: d, missions: missionsForDay(attempt, d, pools, previewDays) }));
+    // The preview has to show what the tenant will actually get, count included.
+    const days = [1, 2, 3, 4, 5, 6, 7].map(d => ({ day: d, missions: missionsForDay(attempt, d, pools, previewDays, undefined, clampSlots(Number(req.body?.missionsPerDay) || (content as any).missionsPerDay)) }));
     const roadmap = buildRoadmap({
       attempt, pools, pathways,
       totalDays: previewDays,
       currentDay: 1,
+      slotsPerDay: clampSlots(Number(req.body?.missionsPerDay) || (content as any).missionsPerDay),
     });
 
     res.json({

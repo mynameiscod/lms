@@ -47,7 +47,7 @@ const AdminMissions: React.FC = () => {
     if (!content) return;
     setBusy(true); setMsg(null);
     try {
-      const r = await passportApi.saveContent({ missionPools: content.missionPools });
+      const r = await passportApi.saveContent({ missionPools: content.missionPools, missionsPerDay: content.missionsPerDay ?? 3 });
       setContent(r.content);
       setMsg({ kind: 'ok', text: 'Saved. Today’s missions regenerate from these pools on next load.' });
     } catch (e: any) { setMsg({ kind: 'err', text: e?.response?.data?.message || 'Could not save.' }); }
@@ -68,7 +68,7 @@ const AdminMissions: React.FC = () => {
   const runPreview = async () => {
     if (!content) return;
     setBusy(true); setMsg(null);
-    try { setPreview(await passportApi.previewContent({ missionPools: content.missionPools })); }
+    try { setPreview(await passportApi.previewContent({ missionPools: content.missionPools, missionsPerDay: content.missionsPerDay ?? 3 })); }
     catch (e: any) { setMsg({ kind: 'err', text: e?.response?.data?.message || 'Preview failed.' }); }
     setBusy(false);
   };
@@ -84,9 +84,29 @@ const AdminMissions: React.FC = () => {
       <div className="pa-head">
         <div>
           <h1>CareerPilot Missions</h1>
-          <p>Daily missions are generated deterministically — no AI cost per member. Each day picks 3 items: two from the member's weakest categories and one rotating. Edit the pools here and both daily missions and the 90-day roadmap change.</p>
+          <p>
+            Daily missions are generated deterministically — no AI cost per member. Each day
+            draws from the member's weakest categories first, then rotates. Edit the pools
+            here and both the daily missions and the roadmap change.
+          </p>
         </div>
         <div className="pa-actions">
+          {/*
+            How many missions a member gets each day. Capped at 6 because missions are drawn
+            per category — asking for more than there are categories forces repeats out of
+            pools that are already thin.
+          */}
+          <label className="pa-perday">
+            Missions per day
+            <input
+              type="number" min={1} max={6}
+              value={content.missionsPerDay ?? 3}
+              onChange={e => patch(c => {
+                const n = Number(e.target.value);
+                c.missionsPerDay = Number.isFinite(n) ? Math.max(1, Math.min(6, Math.round(n))) : 3;
+              })}
+            />
+          </label>
           <button className="pm-btn" onClick={runPreview} disabled={busy}>Preview 7 days</button>
           <button className="pm-btn" onClick={reset} disabled={busy}>Restore defaults</button>
           <button className="pm-btn primary" onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</button>

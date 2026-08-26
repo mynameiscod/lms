@@ -1,132 +1,16 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
-import { learningContentLibraryApi, CONTENT_TYPE_ICONS, CONTENT_TYPE_COLORS } from '../../api/learningContentLibraryApi';
+import { CONTENT_TYPE_ICONS, CONTENT_TYPE_COLORS } from '../../api/learningContentLibraryApi';
 import { interactiveLessonApi } from '../../api/interactiveLessonApi';
 import InteractiveActivityViewer from './InteractiveActivityViewer';
+import { VideoPlayer } from './VideoPlayer';
 
 // ─── Video Player ─────────────────────────────────────────────────────────────
+// Moved to its own module when it grew seek controls and a Bunny Player.js bridge.
+// Re-exported here so the existing importers keep working unchanged.
 
-export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchEnough: () => void }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [pct, setPct] = useState(0);
-  const [notified, setNotified] = useState(false);
-  const threshold = content.completionThreshold || 0;
-
-  const handleTimeUpdate = useCallback(() => {
-    const v = videoRef.current;
-    if (!v || !v.duration) return;
-    const watched = Math.round((v.currentTime / v.duration) * 100);
-    setPct(watched);
-    if (!notified && watched >= threshold) {
-      setNotified(true);
-      onWatchEnough();
-    }
-  }, [threshold, notified, onWatchEnough]);
-
-  if (content.videoSource === 'youtube' && content.videoUrl) {
-    const ytId = content.videoUrl.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)?.[1];
-    return (
-      <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '10px', overflow: 'hidden' }}>
-        <iframe
-          src={`https://www.youtube.com/embed/${ytId}`}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-          allowFullScreen
-          title={content.title}
-        />
-      </div>
-    );
-  }
-
-  if (content.videoSource === 'bunny' && content.bunnyVideoId && content.bunnyLibraryId) {
-    /**
-     * A failed encode must not be dressed up as a slow one.
-     *
-     * Bunny shows the same "Processing video" placeholder for a video that is transcoding
-     * and one that errored, so a recording that will never play looks like it is nearly
-     * ready — and a student waits for something that is not coming. 5 and 6 are terminal:
-     * say so, and tell whoever can act what to do about it.
-     */
-    if (content.bunnyStatus === 5 || content.bunnyStatus === 6) {
-      return (
-        <div style={{ borderRadius: 10, border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', padding: '20px 18px' }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>
-            <i className="bi bi-exclamation-triangle" style={{ marginRight: 8 }} />
-            This recording could not be processed
-          </div>
-          <div style={{ fontSize: 13, lineHeight: 1.55 }}>
-            The upload failed while being prepared, so there is nothing to play. It needs to be
-            uploaded again — please let your trainer know.
-          </div>
-        </div>
-      );
-    }
-
-    // Still working. Bunny's own placeholder is fine here, but say why, so "nothing is
-    // happening" reads as "not yet" rather than "broken".
-    if (content.bunnyStatus !== undefined && content.bunnyStatus < 4) {
-      return (
-        <div style={{ borderRadius: 10, border: '1px solid #bae6fd', background: '#f0f9ff', color: '#075985', padding: '20px 18px' }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>
-            <i className="bi bi-hourglass-split" style={{ marginRight: 8 }} />
-            Still being prepared
-          </div>
-          <div style={{ fontSize: 13, lineHeight: 1.55 }}>
-            This recording is being processed and will play shortly. Check back in a few minutes.
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '10px', overflow: 'hidden' }}>
-        <iframe
-          src={`https://iframe.mediadelivery.net/embed/${content.bunnyLibraryId}/${content.bunnyVideoId}?autoplay=false&preload=true&responsive=true`}
-          loading="lazy"
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-          allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
-          allowFullScreen
-          title={content.title}
-        />
-      </div>
-    );
-  }
-
-  if (content.videoSource === 'vimeo' && content.videoUrl) {
-    const vimeoId = content.videoUrl.match(/vimeo\.com\/(\d+)/)?.[1];
-    return (
-      <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '10px', overflow: 'hidden' }}>
-        <iframe
-          src={`https://player.vimeo.com/video/${vimeoId}`}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-          allowFullScreen
-          title={content.title}
-        />
-      </div>
-    );
-  }
-
-  // Uploaded video (streaming)
-  const streamUrl = learningContentLibraryApi.getStreamUrl(content._id);
-  return (
-    <div>
-      <video
-        ref={videoRef}
-        src={streamUrl}
-        poster={content.videoThumbnail || undefined}
-        controls
-        onTimeUpdate={handleTimeUpdate}
-        style={{ width: '100%', borderRadius: '10px', background: '#000' }}
-      />
-      {threshold > 0 && (
-        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px' }}>
-          Watch progress: {pct}% · Completion at {threshold}%
-          {pct >= threshold && <span style={{ color: '#10b981', marginLeft: '8px' }}>✓ Threshold reached</span>}
-        </div>
-      )}
-    </div>
-  );
-}
+export { VideoPlayer };
 
 // ─── Notes Viewer ─────────────────────────────────────────────────────────────
 

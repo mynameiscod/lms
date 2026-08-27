@@ -1,0 +1,126 @@
+/* Concepts page hotfixes after page-level migration.
+   Keep these overrides isolated so the existing Concepts styles remain stable. */
+
+/* Remove the visual affordance reserved for the deleted secondary CTA. */
+.cb-concept{justify-content:flex-start}
+.cb-concept-stats{margin-left:auto}
+.cb-empty-content{min-height:220px;justify-content:center}
+
+/* Editor: explicit two-column placement.
+   Left = content authoring. Right = audience targeting, beginning at the top. */
+.cb-editor-page .cbf{
+  grid-template-columns:minmax(0,1.65fr) minmax(340px,.72fr);
+  grid-auto-flow:row;
+  column-gap:18px;
+  row-gap:0;
+  align-items:start;
+}
+
+.cb-editor-page .cbf-head{
+  grid-column:1 / -1;
+  grid-row:1;
+  margin-bottom:14px;
+}
+
+.cb-editor-page .cbf-sec,
+.cb-editor-page .cbf-grid,
+.cb-editor-page .cbf-full,
+.cb-editor-page .cbf-fold{
+  grid-column:1;
+}
+
+/* This was the bug: targeting was flowing after several left-side sections.
+   Pin it to the first content row in column 2 and let it stay visible while authoring. */
+.cb-editor-page .cbf-target{
+  grid-column:2!important;
+  grid-row:2 / span 30;
+  align-self:start;
+  position:sticky;
+  top:18px;
+  z-index:2;
+  max-height:calc(100vh - 118px);
+  overflow:auto;
+  margin:0!important;
+  box-shadow:0 6px 20px rgba(15,46,77,.06);
+}
+
+.cb-editor-page .cbf-target>p{
+  margin-top:6px;
+}
+
+/* Keep footer actions aligned across the full editor instead of being trapped in column 1. */
+.cb-editor-page .cbf-foot{
+  grid-column:1 / -1!important;
+  position:sticky;
+  bottom:0;
+  z-index:8;
+  margin-top:4px!important;
+  padding:14px 16px!important;
+  background:rgba(255,255,255,.97);
+  border:1px solid #e2eaf2;
+  border-radius:14px;
+  box-shadow:0 -8px 24px rgba(15,46,77,.08);
+  backdrop-filter:blur(8px);
+}
+
+/* Better breathing room and legibility for the editor itself. */
+.cb-editor-page .cbf label>span,
+.cb-editor-page .cbf-full>span{
+  font-size:12px!important;
+}
+.cb-editor-page .cbf input,
+.cb-editor-page .cbf textarea,
+.cb-editor-page .cbf select{
+  font-size:13px!important;
+}
+.cb-editor-page .cbf-fold>summary{
+  font-size:13px!important;
+}
+.cb-editor-page .cbf-target{
+  font-size:12.5px;
+}
+
+/* Tablet: targeting becomes a normal full-width section below authoring content. */
+@media (max-width:1180px){
+  .cb-editor-page .cbf{
+    grid-template-columns:1fr;
+  }
+  .cb-editor-page .cbf-head,
+  .cb-editor-page .cbf-sec,
+  .cb-editor-page .cbf-grid,
+  .cb-editor-page .cbf-full,
+  .cb-editor-page .cbf-fold,
+  .cb-editor-page .cbf-target,
+  .cb-editor-page .cbf-foot{
+    grid-column:1!important;
+  }
+  .cb-editor-page .cbf-target{
+    grid-row:auto;
+    position:static;
+    max-height:none;
+    overflow:visible;
+    margin-bottom:12px!important;
+  }
+  .cb-editor-page .cbf-foot{
+    grid-row:auto;
+  }
+}
+
+@media (max-width:760px){
+  .cb-concept{
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+  .cb-concept-stats{
+    margin-left:57px;
+    width:calc(100% - 57px);
+    justify-content:flex-start;
+  }
+  .cb-editor-page .cbf-foot{
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .cb-editor-page .cbf-foot button{
+    flex:1 1 150px;
+  }
+}

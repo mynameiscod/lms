@@ -1052,6 +1052,36 @@ export const passportApi = {
   },
 
   // ── Admin content (Pathways + Mission pools) ──
+  // ── Concept bank ──
+  listConcepts: async (): Promise<{ concepts: ConceptRow[]; summary: ConceptSummary }> => {
+    const { data } = await axios.get(`${BASE}/skill-resources/concepts`, { headers: auth() });
+    return data;
+  },
+  audienceOptions: async (): Promise<AudienceOptions> => {
+    const { data } = await axios.get(`${BASE}/skill-resources/audience-options`, { headers: auth() });
+    return data;
+  },
+  listMaterials: async (skillKey: string): Promise<{
+    resources: MaterialRow[]; workTypes: string[]; resourceTypes: string[]; materialTypes: string[];
+  }> => {
+    const { data } = await axios.get(`${BASE}/skill-resources`, {
+      headers: auth(), params: { skillKey },
+    });
+    return data;
+  },
+  createMaterial: async (payload: any): Promise<{ resource: MaterialRow }> => {
+    const { data } = await axios.post(`${BASE}/skill-resources`, payload, { headers: auth() });
+    return data;
+  },
+  updateMaterial: async (id: string, payload: any): Promise<{ resource: MaterialRow }> => {
+    const { data } = await axios.put(`${BASE}/skill-resources/${id}`, payload, { headers: auth() });
+    return data;
+  },
+  deleteMaterial: async (id: string): Promise<{ deleted: boolean }> => {
+    const { data } = await axios.delete(`${BASE}/skill-resources/${id}`, { headers: auth() });
+    return data;
+  },
+
   getContent: async (): Promise<{ content: PassportContentDoc; categories: { key: string; label: string; weight: number }[] }> => {
     const { data } = await axios.get(`${BASE}/content`, { headers: auth() });
     return data;
@@ -2478,3 +2508,84 @@ export interface InterviewCoverageView {
   role?: { key: string; name: string };
   targets?: { skillKey: string; skillName: string; slots: number; bands: ('core' | 'gaps' | 'strengths')[] }[];
 }
+
+// ── Concept bank types ──
+export interface ConceptRow {
+  key: string;
+  name: string;
+  domainKey: string;
+  difficulty?: string;
+  learnable: boolean;
+  assessable: boolean;
+  materialCount: number;
+  byWorkType: Record<string, number>;
+  /** The plan can ask a member to LEARN this and have nothing to offer them. */
+  missingLearn: boolean;
+}
+
+export interface ConceptSummary {
+  total: number;
+  withAnyMaterial: number;
+  missingLearn: number;
+}
+
+export interface AudienceOptions {
+  years: string[];
+  courses: string[];
+  branches: string[];
+  roles: string[];
+  languages: string[];
+  stages: string[];
+}
+
+export interface MaterialAudience {
+  years: string[]; courses: string[]; branches: string[];
+  roles: string[]; languages: string[]; stages: string[];
+}
+
+export interface MaterialStep {
+  title: string; detail: string; command?: string; expectedOutput?: string;
+}
+export interface MaterialBreakdown { term: string; explanation: string; example?: string }
+export interface MaterialCheck { question: string; answer: string }
+
+export interface MaterialBody {
+  overview?: string;
+  notes?: string;
+  videoUrl?: string;
+  videoKey?: string;
+  steps: MaterialStep[];
+  breakdown: MaterialBreakdown[];
+  checks: MaterialCheck[];
+  references: { label: string; url: string }[];
+}
+
+export interface MaterialRow {
+  id: string;
+  skillKey: string;
+  skillName: string;
+  resourceType: string;
+  resourceId: string;
+  title: string;
+  description: string;
+  url: string;
+  fileKey: string;
+  language: string;
+  audience: MaterialAudience;
+  scoreWindow: { min: number | null; max: number | null };
+  body: MaterialBody;
+  resourceTitle: string | null;
+  resourceMissing: boolean;
+  workTypes: string[];
+  priority: number;
+  active: boolean;
+}
+
+export const emptyAudience = (): MaterialAudience => ({
+  years: [], courses: [], branches: [], roles: [], languages: [], stages: [],
+});
+
+export const emptyBody = (): MaterialBody => ({
+  overview: '', notes: '', videoUrl: '', videoKey: '',
+  steps: [], breakdown: [], checks: [], references: [],
+});

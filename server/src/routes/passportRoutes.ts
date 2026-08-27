@@ -213,6 +213,8 @@ router.post('/me/plan/complete',                MEMBER, dailyPlan.completeMyDail
 //    nothing is inferred from titles, and an unmapped objective is reported as a
 //    configuration gap rather than filled with a plausible guess. ──
 router.get('/skill-resources',            MANAGE, skillResources.listSkillResources);
+router.get('/skill-resources/concepts',   MANAGE, skillResources.listConcepts);
+router.get('/skill-resources/audience-options', MANAGE, skillResources.listAudienceOptions);
 router.get('/skill-resources/catalogue',  MANAGE, skillResources.listMappableResources);
 router.post('/skill-resources',           MANAGE, skillResources.createSkillResource);
 router.put('/skill-resources/:id',        MANAGE, skillResources.updateSkillResource);

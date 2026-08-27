@@ -29,8 +29,8 @@
   grid-column:1;
 }
 
-/* This was the bug: targeting was flowing after several left-side sections.
-   Pin it to the first content row in column 2 and let it stay visible while authoring. */
+/* Audience targeting stays anchored in the right column but must never create
+   a nested scroll container. The page/browser owns vertical scrolling. */
 .cb-editor-page .cbf-target{
   grid-column:2!important;
   grid-row:2 / span 30;
@@ -38,8 +38,11 @@
   position:sticky;
   top:18px;
   z-index:2;
-  max-height:calc(100vh - 118px);
-  overflow:auto;
+  max-height:none!important;
+  height:auto!important;
+  overflow:visible!important;
+  overflow-y:visible!important;
+  overscroll-behavior:auto;
   margin:0!important;
   box-shadow:0 6px 20px rgba(15,46,77,.06);
 }
@@ -97,8 +100,10 @@
   .cb-editor-page .cbf-target{
     grid-row:auto;
     position:static;
-    max-height:none;
-    overflow:visible;
+    max-height:none!important;
+    height:auto!important;
+    overflow:visible!important;
+    overflow-y:visible!important;
     margin-bottom:12px!important;
   }
   .cb-editor-page .cbf-foot{

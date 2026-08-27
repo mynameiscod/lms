@@ -5,6 +5,7 @@ import passportApi, {
 } from '../../api/passportApi';
 import MaterialForm, { Draft, blankDraft } from './ConceptMaterialForm';
 import './concepts.css';
+import './conceptsLayoutFixes.css';
 
 const WORK_TYPES = ['LEARN', 'PRACTICE', 'ASSESS', 'REVIEW'] as const;
 
@@ -219,7 +220,6 @@ const AdminConcepts: React.FC = () => {
                   <div><b>{current.materialCount}</b><span>Content items</span></div>
                   <div><b>{WORK_TYPES.filter(w => current.byWorkType[w]).length}</b><span>Work types</span></div>
                 </div>
-                <button className="cb-primary" onClick={() => setDraft(blankDraft())}><i className="bi bi-plus-lg" /> Add Content</button>
               </div>
 
               {current.missingLearn && (
@@ -250,7 +250,7 @@ const AdminConcepts: React.FC = () => {
                   </div>
                 ))}
                 {!materials.length && (
-                  <div className="cb-empty cb-empty-content"><i className="bi bi-folder2-open" /><b>No content mapped yet</b><span>Add notes, video, practice, problems or links for this concept.</span><button onClick={() => setDraft(blankDraft())}>Add first content</button></div>
+                  <div className="cb-empty cb-empty-content"><i className="bi bi-folder2-open" /><b>No content mapped yet</b><span>Use the Add Content button above to add notes, video, practice, problems or links for this concept.</span></div>
                 )}
               </div>
             </>

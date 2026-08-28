@@ -2,6 +2,7 @@ import React from 'react';
 import {
   AudienceOptions, MaterialAudience, MaterialBody, emptyAudience, emptyBody,
 } from '../../api/passportApi';
+import ConceptNotesEditor from './ConceptNotesEditor';
 
 /**
  * The material editor.
@@ -53,6 +54,7 @@ export interface Draft {
   fileKey: string;
   language: string;
   workTypes: string[];
+  xp: number | null;
   audience: MaterialAudience;
   scoreWindow: { min: number | null; max: number | null };
   body: MaterialBody;
@@ -63,6 +65,7 @@ export interface Draft {
 export const blankDraft = (): Draft => ({
   id: '', resourceType: 'note', resourceId: '', title: '', description: '',
   url: '', fileKey: '', language: '', workTypes: ['LEARN'],
+  xp: null,
   audience: emptyAudience(),
   scoreWindow: { min: null, max: null },
   body: emptyBody(), priority: 100, active: true,
@@ -186,6 +189,25 @@ const MaterialForm: React.FC<Props> = ({ draft, patch, options, busy, onSave, on
         </span>
       </div>
 
+      {/* ── what it is worth ──────────────────────────────────────── */}
+      <div className="cbf-sec">
+        <span className="cbf-lbl">XP for finishing this</span>
+        <input
+          style={{ width: 130 }}
+          type="number" min={0} max={1000}
+          value={draft.xp ?? ''}
+          placeholder="tenant default"
+          onChange={e => patch(d => {
+            d.xp = e.target.value === '' ? null : (Number(e.target.value) || 0);
+          })} />
+        <span className="cbf-hint">
+          Leave blank and the tenant&rsquo;s flat rate applies, which is what every plan item
+          paid before. Setting a number is how a ninety-minute build-along stops being worth
+          the same as a fifteen-minute check. <b>0</b> is a real choice &mdash; material worth
+          reading and worth no points.
+        </span>
+      </div>
+
       {/* ── content ───────────────────────────────────────────────── */}
       {isMaterial && (
         <>
@@ -200,13 +222,14 @@ const MaterialForm: React.FC<Props> = ({ draft, patch, options, busy, onSave, on
                 onChange={e => patch(d => { d.body.overview = e.target.value; })} />
             </label>
 
-            <label className="cbf-full">
+            <div className="cbf-full">
               <span>Notes</span>
-              <textarea
-                rows={7} value={draft.body.notes || ''}
-                placeholder="The written material. Line breaks are kept."
-                onChange={e => patch(d => { d.body.notes = e.target.value; })} />
-            </label>
+              <ConceptNotesEditor
+                notes={draft.body.notes || ''}
+                attachments={draft.body.attachments || []}
+                onNotes={html => patch(d => { d.body.notes = html; })}
+                onAttachments={list => patch(d => { d.body.attachments = list; })} />
+            </div>
 
             <div className="cbf-grid">
               <label>

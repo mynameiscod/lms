@@ -41,7 +41,11 @@ export const list = async (req: Request, res: Response) => {
     const difficulty = req.query.difficulty ? String(req.query.difficulty) : undefined;
     // Built-ins plus whatever an admin has shared with CareerPilot. Audience-filtered in the
     // query, so an LMS-only problem is never in this list to begin with.
-    const problems = await listCareerPilotProblems(tenantId, { kind, category, difficulty });
+    // 'bank' is the Thinking Lab screen, 'builtin' the Practice Lab one; anything else
+    // (including an absent value) keeps the merged list every existing caller expects.
+    const sourceRaw = String(req.query.source || 'all');
+    const source = (sourceRaw === 'bank' || sourceRaw === 'builtin') ? sourceRaw : 'all';
+    const problems = await listCareerPilotProblems(tenantId, { kind, category, difficulty, source });
 
     if (!entitled) {
       return res.json({ locked: true, priceInr: cfg?.priceInr ?? 499, problems, solved: [] });

@@ -116,6 +116,15 @@ export const completeMyDailyMission = async (req: Request, res: Response) => {
           eventKey: 'CAREER_MISSION_COMPLETED',
           sourceType: 'mission', sourceId: key,
           metadata: { skillKey: mission.skillKey, workType: mission.workType },
+          /**
+           * What THIS objective is worth, when its material says so.
+           *
+           * Undefined for an objective with no mapped material, or one whose material left
+           * the field blank — both fall back to the tenant's rate, which is what every
+           * completion paid before per-material XP existed. The rule still decides whether
+           * anything is paid at all; this only sets the amount.
+           */
+          xpOverride: mission.resource?.xp ?? undefined,
         })
       : null;
 

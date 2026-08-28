@@ -134,6 +134,26 @@ export interface IResourceCheck {
   answer: string;
 }
 
+/**
+ * A file attached to written notes — a diagram, a PDF handout, a spreadsheet.
+ *
+ * `storage` records WHERE it went, because the two destinations are not interchangeable
+ * later: a Bunny path is fetched over HTTP, a local one off the shared uploads volume. That
+ * volume is mounted into both blue and green, so a locally-stored file survives a deploy and
+ * is readable from whichever slot is live — which is what makes local a real fallback rather
+ * than a file that quietly disappears at the next release.
+ */
+export interface IResourceAttachment {
+  /** Storage path. Server-generated — never a client-supplied name. */
+  fileKey: string;
+  /** What the admin called it, shown to the student. */
+  fileName: string;
+  mimeType: string;
+  size: number;
+  storage: 'bunny' | 'local';
+  uploadedAt?: Date;
+}
+
 export interface IResourceBody {
   /** Why this matters, in a paragraph. Shown first. */
   overview?: string;
@@ -146,11 +166,13 @@ export interface IResourceBody {
   breakdown: IResourceBreakdownItem[];
   checks: IResourceCheck[];
   references: { label: string; url: string }[];
+  /** Images, PDFs, Word and Excel files that go with the notes. */
+  attachments: IResourceAttachment[];
 }
 
 export const EMPTY_BODY = (): IResourceBody => ({
   overview: '', notes: '', videoUrl: '', videoKey: '',
-  steps: [], breakdown: [], checks: [], references: [],
+  steps: [], breakdown: [], checks: [], references: [], attachments: [],
 });
 
 /** Does this material actually contain anything a student could open? */
@@ -162,7 +184,8 @@ export const bodyIsEmpty = (b?: IResourceBody | null): boolean => !b || (
   !(b.steps || []).length &&
   !(b.breakdown || []).length &&
   !(b.checks || []).length &&
-  !(b.references || []).length
+  !(b.references || []).length &&
+  !(b.attachments || []).length
 );
 
 /** Which roadmap work a resource is suitable for. Mirrors Module 9's vocabulary exactly. */
@@ -201,6 +224,19 @@ export interface ICareerSkillResource extends Document {
    * nobody has taught them yet.
    */
   workTypes: ResourceWorkType[];
+  /**
+      * What finishing this is worth, overriding the tenant's flat rate.
+      *
+      * NULL MEANS "USE THE TENANT RATE", which is what every material written before this
+      * did, so nothing changes until an admin sets a number. A zero is a real choice and is
+      * honoured — some material is worth reading and worth no points.
+      *
+      * This exists because the daily plan paid one flat amount for every objective: a
+      * fifteen-minute check and a ninety-minute build-along scored identically, and the
+      * mission pool and the problem bank had per-item XP while the plan did not.
+      */
+  xp?: number | null;
+
   /** Ordering when several resources fit the same slot. Lower is preferred. */
   priority: number;
   active: boolean;
@@ -263,9 +299,19 @@ const CareerSkillResourceSchema = new Schema<ICareerSkillResource>(
         label: { type: String, default: '' },
         url:   { type: String, default: '' },
       }],
+      attachments: [{
+        _id: false,
+        fileKey:    { type: String, default: '' },
+        fileName:   { type: String, default: '' },
+        mimeType:   { type: String, default: '' },
+        size:       { type: Number, default: 0 },
+        storage:    { type: String, enum: ['bunny', 'local'], default: 'local' },
+        uploadedAt: { type: Date },
+      }],
     },
 
     workTypes:    { type: [String], default: ['PRACTICE'] },
+    xp:           { type: Number, default: null },
     priority:     { type: Number, default: 100 },
     active:       { type: Boolean, default: true },
     createdBy:    { type: String },

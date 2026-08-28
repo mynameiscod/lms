@@ -77,7 +77,7 @@ const ThinkingLabAdmin: React.FC = () => {
     <div style={{ maxWidth: 1120, margin: '0 auto', padding: 22 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 24, color: INK, fontWeight: 800 }}>Logical Thinking Lab — Question Bank</h1>
+          <h1 style={{ margin: 0, fontSize: 24, color: INK, fontWeight: 800 }}>Thinking Lab — Question Bank</h1>
           <p style={{ color: SUB, fontSize: 13.5 }}>Build the bank students draw from as their daily challenge. Generate with AI, author manually, and schedule specific problems for batches.</p>
         </div>
         <button onClick={() => { setEditId(null); setEditorOpen(true); }} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>＋ New problem (manual)</button>

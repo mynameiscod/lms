@@ -38,6 +38,19 @@ export interface GamificationEvent {
   /** The specific thing. A mission key, an assessment id. */
   sourceId: string;
   metadata?: Record<string, any>;
+  /**
+   * What this specific thing is worth, when the caller knows better than the tenant rule.
+   *
+   * The rule still decides WHETHER anything is paid — enabled, not already claimed, inside
+   * the daily cap — and this only replaces the amount. That split matters: an override that
+   * bypassed the rule would let a caller pay for a disabled event or blow through a cap that
+   * exists to stop farming.
+   *
+   * Undefined means "use the rule's amount", so every existing caller is unchanged. Zero is
+   * honoured as a real choice; a negative is ignored rather than deducted, because nothing
+   * in this ledger is meant to take XP away.
+   */
+  xpOverride?: number | null;
   now?: Date;
 }
 
@@ -119,6 +132,21 @@ export async function processGamificationEvent(event: GamificationEvent): Promis
   if (!rule.enabled) return empty('disabled');
   if (!rule.xp || rule.xp <= 0) return empty('zero');
 
+  /**
+   * The amount actually paid.
+   *
+   * Read AFTER the rule checks above, never instead of them: the rule owns whether this
+   * event pays at all, and the override owns only how much. A finite, non-negative number
+   * wins; anything else falls back to the rule so a bad value cannot silently zero a
+   * student's award.
+   */
+  const amount = (typeof event.xpOverride === 'number'
+    && Number.isFinite(event.xpOverride)
+    && event.xpOverride >= 0)
+    ? Math.round(event.xpOverride)
+    : rule.xp;
+  if (amount <= 0) return empty('zero');
+
   // A cap is an advisory read: under a genuine race two awards could straddle it by one
   // event. That is an acceptable rounding error on an engagement score, and the guarantee
   // that actually matters — never twice for the same thing — is enforced by the index below.
@@ -127,7 +155,9 @@ export async function processGamificationEvent(event: GamificationEvent): Promis
       { $match: { tenantId, studentId: toId(studentId), eventKey, at: { $gte: startOfDay(now) } } },
       { $group: { _id: null, total: { $sum: '$amount' } } },
     ]);
-    if ((today?.total || 0) + rule.xp > rule.dailyLimit) return empty('daily_cap');
+    // Capped on what would actually be paid, not on the rule's nominal amount — an
+    // override above the rate must not slip past a limit set to bound the day.
+    if ((today?.total || 0) + amount > rule.dailyLimit) return empty('daily_cap');
   }
 
   const idempotencyKey = xpIdempotencyKey(event);
@@ -136,7 +166,7 @@ export async function processGamificationEvent(event: GamificationEvent): Promis
     await XpLedger.create({
       tenantId, studentId, eventKey,
       sourceType: event.sourceType, sourceId: event.sourceId,
-      idempotencyKey, amount: rule.xp, metadata: event.metadata, at: now,
+      idempotencyKey, amount, metadata: event.metadata, at: now,
     });
   } catch (e: any) {
     // Already counted. Not an error — a student clicking twice is normal.
@@ -150,10 +180,10 @@ export async function processGamificationEvent(event: GamificationEvent): Promis
   await PassportProgress.updateOne(
     { tenantId, studentId },
     {
-      $inc: { xp: rule.xp },
+      $inc: { xp: amount },
       // The existing capped log keeps feeding the activity chart, unchanged. The ledger is
       // the durable record; this stays exactly what it always was.
-      $push: { xpLog: { $each: [{ at: now, amount: rule.xp, source: eventKey }], $slice: -400 } },
+      $push: { xpLog: { $each: [{ at: now, amount, source: eventKey }], $slice: -400 } },
       $setOnInsert: { startDate: now },
     },
     { upsert: true },
@@ -186,7 +216,7 @@ export async function processGamificationEvent(event: GamificationEvent): Promis
     .select('xp streak longestStreak').lean();
 
   return {
-    awarded: rule.xp,
+    awarded: amount,
     xpTotal: final?.xp ?? after?.xp ?? 0,
     streak: final?.streak || 0,
     longestStreak: final?.longestStreak || 0,

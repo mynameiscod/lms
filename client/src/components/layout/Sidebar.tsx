@@ -225,7 +225,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Live Classes', path: '/hms-classes', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-video', featureKey: 'liveClasses' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'AI Communication Lab', path: '/ai-communication-lab', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-comment-dots', moduleKey: 'aiCommunicationLab', featureKey: 'aiCommunicationLab' as keyof StudentFeatures, permissions: ['use_communication_lab', 'manage_communication_lab'] },
     { label: 'Communication Lab — Manage', path: '/admin/communication-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-headset', moduleKey: 'aiCommunicationLab', permissions: ['manage_communication_lab'] },
-    { label: 'Logical Thinking Lab', path: '/thinking-lab', roles: ['STUDENT'], icon: 'fa-solid fa-brain', moduleKey: 'thinkingLab', featureKey: 'thinkingLab' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
+    { label: 'Thinking Lab', path: '/thinking-lab', roles: ['STUDENT'], icon: 'fa-solid fa-brain', moduleKey: 'thinkingLab', featureKey: 'thinkingLab' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
     { label: 'Thinking Lab — Bank', path: '/admin/thinking-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-lightbulb', moduleKey: 'thinkingLab', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Daily Lab Tracks', path: '/lab-tracks', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-days', moduleKey: 'thinkingLab', permissions: ['manage_thinking_lab', 'manage_communication_lab', 'manage_tenant'] },
     { label: 'Resource Library', path: '/admin/resources', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-box-archive', moduleKey: 'resourceLibrary', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
@@ -411,7 +411,17 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'OVERVIEW',                labels: ['Dashboard', 'Notifications'] },
     { title: 'PEOPLE',                  labels: ['Users', 'Roles', 'Batches', 'Concerns'] },
     { title: 'TEACHING',                labels: ['Learning Plans', 'Quizzes', 'Assignments', 'Code Snippets', 'Attendance', 'Live Classes', 'Leave Requests'] },
-    { title: 'STUDENT LABS',            labels: ['AI Communication Lab', 'Communication Lab — Manage', 'Logical Thinking Lab', 'Thinking Lab — Bank', 'Daily Lab Tracks', 'Speaking Practice', 'Speaking Tasks', 'Code Playground', 'Resource Library', 'Project Library'] },
+    { title: 'STUDENT LABS',            labels: ['AI Communication Lab', 'Communication Lab — Manage', 'Daily Lab Tracks', 'Speaking Practice', 'Speaking Tasks', 'Code Playground', 'Resource Library', 'Project Library'] },
+    /**
+     * Thinking Lab gets its own heading rather than a line inside STUDENT LABS.
+     *
+     * It is now a browsable problem bank with difficulty, XP and per-problem progress,
+     * not one drill among nine — and a student looking for "the coding problems" was
+     * scanning a ten-item list for a label that did not say that. A group renders only
+     * when it contains something the viewer may see, so a student sees one entry here
+     * and an admin sees both.
+     */
+    { title: 'THINKING LAB',            labels: ['Thinking Lab', 'Thinking Lab — Bank'] },
     { title: 'ASSESSMENTS & INTERVIEWS',labels: ['Skill Assessment', 'Assessment Candidates', 'AI Interviews', 'Scheduled Interviews', 'Interview Q&A Bank'] },
     { title: 'CAREER',                  labels: ['Resume Builder', 'Career Profiles', 'Project Builder', 'Job Tracker', 'AI Mentor'] },
     { title: 'CRM & GROWTH',            labels: ['Leads', 'Placement Partnership'] },
@@ -445,12 +455,25 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
 
   // ── Student navigation grouped by the real daily flow ────────────────────────
   const homeItems = filteredItems.filter(i => ['Dashboard', 'My Course', 'My courses'].includes(i.label));
-  const dailyPracticeItems = filteredItems.filter(i => ['AI Communication Lab', 'Logical Thinking Lab'].includes(i.label));
+  const dailyPracticeItems = filteredItems.filter(i => ['AI Communication Lab'].includes(i.label));
+  /**
+   * Thinking Lab stands on its own for students.
+   *
+   * It sat inside DAILY PRACTICE next to the communication drill, which undersold what it
+   * now is: a browsable problem bank with difficulty, XP and per-problem progress, not one
+   * exercise a day. A student looking for "the coding problems" was scanning a section
+   * whose heading did not describe them.
+   *
+   * NOTE FOR ANYONE EDITING THE ADMIN GROUPS ABOVE: they do not feed this. Students and
+   * admins render from two different structures, so a section added to ADMIN_SECTIONS
+   * changes nothing here — which is exactly the mistake this comment exists to prevent.
+   */
+  const thinkingLabItems = filteredItems.filter(i => i.label === 'Thinking Lab');
   const learnItems = filteredItems.filter(i => ['My Learning Plan', 'My Tasks', 'My Work', 'Live Classes', 'Attendance'].includes(i.label));
   const careerItems = filteredItems.filter(i => ['Code Playground', 'My Interviews', 'Resume Builder', 'Career Profile', 'AI Mentor', 'Job Tracker', 'Project Builder', 'Project Library', 'Resource Library'].includes(i.label));
   const accountItems = filteredItems.filter(i => ['Fee Details', 'Apply Leave'].includes(i.label));
   const collegeItems = filteredItems.filter(i => ['My College Portal', 'My Applications', 'Alumni Directory'].includes(i.label));
-  const studentGrouped = new Set<any>([...homeItems, ...dailyPracticeItems, ...learnItems, ...careerItems, ...accountItems, ...collegeItems, ...supportItems]);
+  const studentGrouped = new Set<any>([...homeItems, ...dailyPracticeItems, ...thinkingLabItems, ...learnItems, ...careerItems, ...accountItems, ...collegeItems, ...supportItems]);
   const studentMiscItems = filteredItems.filter(i => !studentGrouped.has(i));
 
   return (
@@ -496,6 +519,12 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
               <div className="nav-section">
                 <span className="nav-section-label">DAILY PRACTICE</span>
                 <ul>{dailyPracticeItems.map(item => renderMenuItem(item))}</ul>
+              </div>
+            )}
+            {thinkingLabItems.length > 0 && (
+              <div className="nav-section">
+                <span className="nav-section-label">THINKING LAB</span>
+                <ul>{thinkingLabItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
             {learnItems.length > 0 && (

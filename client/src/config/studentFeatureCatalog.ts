@@ -59,7 +59,7 @@ export const FEATURE_META: FeatureMeta[] = [
   { key: 'dashboard',           label: 'Dashboard',                description: 'Student dashboard with stats, progress and deadlines', icon: '☑', group: 'Home' },
   // Daily Practice
   { key: 'aiCommunicationLab',  label: 'AI Communication Lab',     description: 'Daily self-introduction practice with AI feedback and streaks', icon: '🎙', group: 'Daily Practice' },
-  { key: 'thinkingLab',         label: 'Logical Thinking Lab',     description: 'AI-graded logic, aptitude and problem-solving drills', icon: '🧩', group: 'Daily Practice' },
+  { key: 'thinkingLab',         label: 'Thinking Lab',     description: 'AI-graded logic, aptitude and problem-solving drills', icon: '🧩', group: 'Daily Practice' },
   { key: 'speakingPractice',    label: 'Speaking Practice (retired)', description: 'Superseded by AI Communication Lab — usually leave off', icon: '🗣', group: 'Daily Practice' },
   // My Learning
   { key: 'myCourse',            label: 'My Course',                description: 'Course content, chapters and learning materials', icon: '📚', group: 'My Learning' },

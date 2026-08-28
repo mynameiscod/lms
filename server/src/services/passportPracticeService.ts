@@ -478,11 +478,26 @@ export async function findCareerPilotProblem(
  * with them. Database problems come first — they are the tenant's own curriculum, and the
  * built-ins are the floor that stops a new tenant seeing nothing.
  */
+/**
+ * Which half of the merged list a caller wants.
+ *
+ * The two are genuinely different things and now have their own screens: the built-ins are
+ * short warm-up exercises that ship in code, the bank is the admin-authored problem set with
+ * difficulty, XP and solve counts. Serving both lists from one function keeps the shape,
+ * the grader and the routes identical — only the source differs.
+ */
+export type PracticeSource = 'all' | 'builtin' | 'bank';
+
 export async function listCareerPilotProblems(
-  tenantId: string, filter?: { kind?: PracticeKind; category?: string; difficulty?: string },
+  tenantId: string,
+  filter?: { kind?: PracticeKind; category?: string; difficulty?: string; source?: PracticeSource },
 ) {
-  const builtIns = listProblems({ kind: filter?.kind, category: filter?.category })
+  const source: PracticeSource = filter?.source || 'all';
+
+  const builtIns = source === 'bank' ? [] : listProblems({ kind: filter?.kind, category: filter?.category })
     .filter(p => !filter?.difficulty || p.difficulty === filter.difficulty);
+
+  if (source === 'builtin') return builtIns;
 
   // Only coding problems live in the shared bank, so a kind filter for sql or mcq can skip
   // the query entirely rather than running one that cannot match.

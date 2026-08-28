@@ -15,3 +15,31 @@ em.w-learn{background:#eef0ff!important;color:#4338ca!important}em.w-practice{ba
 @media(max-width:1180px){.cb-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cb-body{grid-template-columns:310px minmax(0,1fr)}.cbf{grid-template-columns:1fr}.cbf-target{grid-column:1;grid-row:auto;position:static}.cbf-sec,.cbf-grid,.cbf-full,.cbf-fold,.cbf-target,.cbf-foot{grid-column:1}}
 @media(max-width:900px){.cb{padding:18px}.cb-body{grid-template-columns:1fr}.cb-list{position:static}.cb-rows{max-height:360px}.cb-toolbar{flex-wrap:wrap}.cb-search-wrap{flex:1 0 100%}.cb-result-count{margin-left:0}.cb-editor-head{align-items:flex-start;flex-wrap:wrap}.cb-editor-concept{margin-left:72px}}
 @media(max-width:700px){.cb{padding:14px 12px 32px}.cb-head,.cb-editor-head{align-items:flex-start}.cb-head-copy{align-items:flex-start}.cb-head h1,.cb-editor-head h1{font-size:24px!important}.cb-title-icon{width:46px;height:46px;flex-basis:46px;font-size:20px}.cb-head-action{margin-left:0}.cb-head{flex-wrap:wrap}.cb-kpis{grid-template-columns:1fr}.cb-toolbar{align-items:stretch}.cb-toggle{white-space:normal}.cb-concept{align-items:flex-start;flex-wrap:wrap}.cb-concept-stats{width:100%}.cb-concept-stats div{flex:1;border-left:0;border-top:1px solid #edf1f5}.cb-primary{margin-left:0}.cb-mat{flex-wrap:wrap}.cb-mat .ax{width:100%;justify-content:flex-end}.cbf-grid{grid-template-columns:1fr}.cb-editor-concept{margin-left:0;width:100%}.cbf-foot{position:static}.cbf-save,.cbf-cancel{flex:1}}
+
+/* ── notes editor + attachments ───────────────────────────────────────────── */
+.cne{display:grid;gap:12px}
+.cne-editor .ql-toolbar{border:1px solid #d7e1ea;border-radius:10px 10px 0 0;background:#fbfcfd}
+.cne-editor .ql-container{border:1px solid #d7e1ea;border-top:0;border-radius:0 0 10px 10px;font-family:inherit;font-size:13.5px}
+.cne-editor .ql-editor{min-height:220px;line-height:1.7;color:#243c5a}
+.cne-editor .ql-editor.ql-blank::before{color:#9aa8b8;font-style:normal}
+/* Pasted images are part of the prose, so they must not blow the column open. */
+.cne-editor .ql-editor img{max-width:100%;height:auto;border-radius:8px}
+
+.cne-files{border:1px solid #e2eaf2;border-radius:12px;background:#fbfcfd;padding:13px 14px}
+.cne-files-head{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.cne-files-head>span{font-size:12.5px;font-weight:800;color:#17315f;display:inline-flex;align-items:center;gap:7px}
+.cne-files-head>span em{font-style:normal;font-size:10px;font-weight:800;background:#eaf3fd;color:#1976d2;border-radius:999px;padding:2px 8px}
+.cne-files-head>button{margin-left:auto;border:1px dashed #b9cbd9;background:#fff;border-radius:9px;padding:8px 13px;font-size:12px;font-weight:700;color:#237f91;cursor:pointer}
+.cne-files-head>button:disabled{opacity:.55;cursor:not-allowed}
+
+.cne-hint{font-size:11.5px;color:#8494a8;line-height:1.55;margin:0}
+.cne-err{background:#fff0f0;color:#a83232;border:1px solid #f2caca;border-radius:9px;padding:8px 11px;font-size:11.5px;margin-bottom:9px}
+
+.cne-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.cne-list li{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e6ecf3;border-radius:9px;padding:8px 11px}
+.cne-list li>i{font-size:16px;color:#5b7086;flex:0 0 auto}
+.cne-list .nm{flex:1;min-width:0;font-size:12.5px;font-weight:650;color:#243c5a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cne-list .sz{font-size:11px;color:#93a1b2;white-space:nowrap}
+.cne-list .vw{border:0;background:none;color:#1976d2;font-size:11.5px;font-weight:750;cursor:pointer;padding:0 4px;text-decoration:underline}
+.cne-list li>button:last-child{border:0;background:none;color:#a12b2b;font-size:17px;line-height:1;cursor:pointer;padding:0 3px}
+.cb-mat .meta em.xp{background:#fff8e6;color:#a16207}

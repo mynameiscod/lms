@@ -49,7 +49,7 @@ export interface DailyMission {
   explanation: string;
   reasonCode: string;
   resourceState: MissionResourceState;
-  resource?: { type: string; id: string; title: string; route: string };
+  resource?: { type: string; id: string; title: string; route: string; xp?: number | null };
   done: boolean;
 }
 
@@ -112,7 +112,7 @@ export interface SelectionInput {
   /** Keys completed today — marks a mission done without removing it from the list. */
   completedToday: Set<string>;
   /** skillKey:workType -> the resource to send the student to. */
-  resources: Map<string, { type: string; id: string; title: string; route: string }>;
+  resources: Map<string, { type: string; id: string; title: string; route: string; xp?: number | null }>;
 }
 
 /**
@@ -212,8 +212,8 @@ const dayNumberFrom = (start: Date, now: Date): number =>
 async function resolveResources(
   tenantId: string,
   skillKeys: string[],
-): Promise<Map<string, { type: string; id: string; title: string; route: string }>> {
-  const out = new Map<string, { type: string; id: string; title: string; route: string }>();
+): Promise<Map<string, { type: string; id: string; title: string; route: string; xp?: number | null }>> {
+  const out = new Map<string, { type: string; id: string; title: string; route: string; xp?: number | null }>();
   if (!skillKeys.length) return out;
 
   const rows = await CareerSkillResource
@@ -232,6 +232,8 @@ async function resolveResources(
       out.set(slot, {
         type: 'practice', id: String(r.resourceId),
         title: problem.title, route: practiceRoute(String(r.resourceId)),
+        // Null unless an admin set one, in which case the tenant's flat rate still applies.
+        xp: typeof r.xp === 'number' ? r.xp : null,
       });
     }
   }

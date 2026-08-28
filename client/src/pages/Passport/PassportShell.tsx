@@ -18,6 +18,7 @@ export const MEMBER_NAV: { path: string; label: string; icon: string }[] = [
   { path: '/careerpilot',           label: 'Mission Control', icon: '🚀' },
   { path: '/careerpilot/roadmap',   label: '90-Day Roadmap',  icon: '🗺️' },
   { path: '/careerpilot/practice',  label: 'Practice Lab',    icon: '💻' },
+  { path: '/careerpilot/thinking-lab', label: 'Thinking Lab', icon: '🧠' },
   { path: '/careerpilot/interview', label: 'Mock Interview',  icon: '🎙️' },
   { path: '/careerpilot/resume',    label: 'Resume Center',   icon: '📄' },
   { path: '/careerpilot/companies', label: 'Opportunities',   icon: '💼' },

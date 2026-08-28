@@ -81,6 +81,7 @@ const AdminConcepts: React.FC = () => {
     id: m.id, resourceType: m.resourceType, resourceId: m.resourceId,
     title: m.title, description: m.description, url: m.url, fileKey: m.fileKey,
     language: m.language, workTypes: [...m.workTypes],
+    xp: m.xp ?? null,
     audience: { ...emptyAudience(), ...(m.audience || {}) },
     scoreWindow: { min: m.scoreWindow?.min ?? null, max: m.scoreWindow?.max ?? null },
     body: { ...emptyBody(), ...(m.body || {}) },
@@ -239,6 +240,7 @@ const AdminConcepts: React.FC = () => {
                         <em className="ty">{TYPE_LABEL[m.resourceType] || m.resourceType}</em>
                         {m.workTypes.map(w => <em key={w} className={`w-${w.toLowerCase()}`}>{w}</em>)}
                         {m.language && <em>{m.language}</em>}
+                        {typeof m.xp === 'number' && <em className="xp">{m.xp} XP</em>}
                         {m.resourceMissing && <em className="bad">Target missing</em>}
                       </span>
                       <AudienceSummary audience={m.audience} scoreWindow={m.scoreWindow} />

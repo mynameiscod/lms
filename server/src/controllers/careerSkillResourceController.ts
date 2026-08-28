@@ -1,8 +1,14 @@
 import { Request, Response } from 'express';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
 import CareerSkillResource, {
   RESOURCE_WORK_TYPES, SKILL_RESOURCE_TYPES, MATERIAL_TYPES,
   EMPTY_AUDIENCE, EMPTY_BODY, bodyIsEmpty, IResourceBody,
 } from '../models/CareerSkillResource';
+import jwt from 'jsonwebtoken';
+import * as bunny from '../services/bunnyStorageService';
+import { jwtSecret } from '../config/secrets';
 import CareerSkill from '../models/CareerSkill';
 import User from '../models/User';
 import PassportConfig from '../models/PassportConfig';
@@ -57,6 +63,19 @@ const readBody = (v: any): IResourceBody => ({
   references: (Array.isArray(v?.references) ? v.references : [])
     .map((x: any) => ({ label: str(x?.label), url: str(x?.url) }))
     .filter((x: any) => x.url),
+  /**
+   * Echoed back from what upload already stored, so only server-generated fields are kept.
+   * `fileKey` is never treated as a path here — it is re-checked against KEY_RE, so a
+   * tampered value is dropped on save rather than reaching the filesystem later.
+   */
+  attachments: (Array.isArray(v?.attachments) ? v.attachments : [])
+    .map((x: any) => ({
+      fileKey: str(x?.fileKey), fileName: str(x?.fileName),
+      mimeType: str(x?.mimeType), size: Number(x?.size) || 0,
+      storage: x?.storage === 'bunny' ? 'bunny' : 'local',
+      uploadedAt: x?.uploadedAt ? new Date(x.uploadedAt) : new Date(),
+    }))
+    .filter((x: any) => KEY_RE.test(x.fileKey)),
 });
 
 /**
@@ -148,6 +167,7 @@ export const listSkillResources = async (req: Request, res: Response) => {
           url: r.url || '',
           fileKey: r.fileKey || '',
           language: r.language || '',
+          xp: typeof r.xp === 'number' ? r.xp : null,
           audience: r.audience || EMPTY_AUDIENCE(),
           scoreWindow: r.scoreWindow || { min: null, max: null },
           body: r.body || EMPTY_BODY(),
@@ -179,8 +199,232 @@ export const listMappableResources = async (_req: Request, res: Response) => {
   });
 };
 
+/* -- attachments -----------------------------------------------------------
+ *
+ * Notes carry files: a diagram, a PDF handout, a spreadsheet of worked examples.
+ *
+ * TWO DESTINATIONS, BOTH DURABLE. Bunny when the tenant has it configured, otherwise the
+ * shared `uploads_data` volume - which is mounted into BOTH blue and green, so a locally
+ * stored file survives a deploy and is readable from whichever slot is live. Without that
+ * volume, local storage would be a file that silently vanishes at the next release, and
+ * refusing the upload outright would have been the honest option instead.
+ */
+
+const LOCAL_DIR = 'uploads/concept-attachments';
+if (!fs.existsSync(LOCAL_DIR)) fs.mkdirSync(LOCAL_DIR, { recursive: true });
+
 /**
- * GET /passport/skill-resources/concepts — every concept, with what it already has.
+ * The only shape a key may take.
+ *
+ * Every key is server-generated, so this is not about parsing user input - it is the last
+ * line of defence against a stored value being replayed as a path. Neither `..` nor a
+ * second slash can match, so a key cannot climb out of the directory it belongs to.
+ */
+const KEY_RE = /^[a-z0-9]{1,40}\/[a-f0-9]{32}\.[a-z0-9]{1,8}$/;
+
+/** What a notes attachment may be. Anything else is refused WITH the list, not a shrug. */
+const ALLOWED_EXT: Record<string, string> = {
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif', '.webp': 'image/webp',
+  '.pdf': 'application/pdf',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xls': 'application/vnd.ms-excel',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.csv': 'text/csv',
+  '.ppt': 'application/vnd.ms-powerpoint',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.txt': 'text/plain', '.md': 'text/markdown',
+};
+
+export const ATTACHMENT_EXTENSIONS = Object.keys(ALLOWED_EXT);
+
+const remotePathOf = (key: string) => `concept-attachments/${key}`;
+
+/** POST /passport/skill-resources/attachments - one file, multipart field `file`. */
+export const uploadAttachment = async (req: Request, res: Response) => {
+  const tmp = (req as any).file?.path as string | undefined;
+  try {
+    const f = (req as any).file;
+    if (!f) return res.status(400).json({ message: 'No file received.' });
+
+    const ext = path.extname(String(f.originalname || '')).toLowerCase();
+    const mime = ALLOWED_EXT[ext];
+    if (!mime) {
+      return res.status(400).json({
+        message: `That file type is not supported. Allowed: ${ATTACHMENT_EXTENSIONS.join(', ')}`,
+      });
+    }
+
+    // Tenant ids are hex, but a stray character would break KEY_RE and strand the file, so
+    // the folder segment is normalised rather than trusted.
+    const folder = String(tenantOf(req) || 'shared')
+      .toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 40) || 'shared';
+    const key = `${folder}/${crypto.randomBytes(16).toString('hex')}${ext}`;
+
+    /**
+     * NOTHING HERE HOLDS THE FILE IN MEMORY.
+     *
+     * Multer has already spooled the upload to a temp file. Reading that back with
+     * readFileSync would allocate a Buffer the size of the upload — survivable at 25MB,
+     * fatal at 1GB, and the failure would be the process dying rather than a message the
+     * admin could act on. Both destinations therefore work off the file on disk.
+     */
+    const size = Number((req as any).file?.size) || 0;
+    let storage: 'bunny' | 'local' = 'local';
+
+    if (bunny.isBunnyStorageConfigured()) {
+      await bunny.uploadStream(remotePathOf(key), fs.createReadStream(tmp as string), mime, size);
+      storage = 'bunny';
+    } else {
+      const dest = path.join(LOCAL_DIR, key);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      try {
+        // Same volume, so this is a metadata operation rather than a gigabyte of copying.
+        fs.renameSync(tmp as string, dest);
+      } catch (e: any) {
+        // EXDEV: the temp dir and the store ended up on different filesystems. Fall back to
+        // a streamed copy — still no full-size buffer — rather than failing the upload.
+        if (e?.code !== 'EXDEV') throw e;
+        await new Promise<void>((resolve, reject) => {
+          const rd = fs.createReadStream(tmp as string);
+          const wr = fs.createWriteStream(dest);
+          rd.on('error', reject); wr.on('error', reject); wr.on('finish', () => resolve());
+          rd.pipe(wr);
+        });
+      }
+    }
+
+    res.status(201).json({
+      attachment: {
+        fileKey: key,
+        fileName: String(f.originalname || 'file').slice(0, 200),
+        mimeType: mime,
+        size,
+        storage,
+        uploadedAt: new Date(),
+      },
+    });
+  } catch (e: any) {
+    console.error('[skill-resource] attachment upload:', e?.message || e);
+    res.status(500).json({ message: 'Could not store that file.' });
+  } finally {
+    // The temp copy is never the copy of record, whichever destination won.
+    if (tmp) { try { fs.unlinkSync(tmp); } catch { /* already gone */ } }
+  }
+};
+
+/**
+ * GET /passport/skill-resources/attachments/:folder/:name - stream one back.
+ *
+ * Two params rather than one, so Express never has to interpret a slash inside a single
+ * segment; they are re-joined and re-checked against KEY_RE before anything is opened.
+ */
+export const downloadAttachment = async (req: Request, res: Response) => {
+  try {
+    const key = `${String(req.params.folder || '')}/${String(req.params.name || '')}`;
+    if (!KEY_RE.test(key)) return res.status(400).json({ message: 'Bad file reference.' });
+
+    const ext = path.extname(key).toLowerCase();
+    const mime = ALLOWED_EXT[ext] || 'application/octet-stream';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Disposition', 'inline');
+    // The stored type is the served type. Without this a browser may sniff an uploaded
+    // file into something executable.
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    const local = path.join(LOCAL_DIR, key);
+    if (fs.existsSync(local)) { fs.createReadStream(local).pipe(res); return; }
+
+    if (bunny.isBunnyStorageConfigured()) {
+      const { stream, size } = await bunny.getFileStream(remotePathOf(key));
+      if (size) res.setHeader('Content-Length', String(size));
+      stream.pipe(res);
+      return;
+    }
+    res.status(404).json({ message: 'That file is no longer available.' });
+  } catch (e: any) {
+    console.error('[skill-resource] attachment read:', e?.message || e);
+    if (!res.headersSent) res.status(404).json({ message: 'That file is no longer available.' });
+  }
+};
+
+/**
+ * POST /passport/skill-resources/attachment-token - a short-lived ticket for one file.
+ *
+ * WHY NOT JUST FETCH THE BYTES. The first version pulled an attachment through axios with
+ * the Authorization header and wrapped it in a blob URL. That is correct and completely
+ * unusable at this size: a 1GB attachment would be assembled in browser memory before the
+ * first byte was shown. A URL the browser can stream natively is the only thing that works,
+ * and a URL cannot carry a header.
+ *
+ * WHY NOT THE SESSION JWT IN THE QUERY STRING. It would work, and it would write the user's
+ * full credential into nginx access logs, browser history and any Referer sent onward. This
+ * ticket names ONE file, expires in ten minutes, and grants nothing else.
+ */
+export const issueAttachmentToken = async (req: Request, res: Response) => {
+  try {
+    const key = `${String(req.body?.folder || '')}/${String(req.body?.name || '')}`;
+    if (!KEY_RE.test(key)) return res.status(400).json({ message: 'Bad file reference.' });
+    const token = jwt.sign({ k: key, typ: 'attach' }, jwtSecret(), { expiresIn: '10m' });
+    res.json({ token });
+  } catch (e: any) {
+    console.error('[skill-resource] attachment token:', e?.message || e);
+    res.status(500).json({ message: 'Could not authorise that download.' });
+  }
+};
+
+/**
+ * GET /passport/skill-resources/attachment-file/:folder/:name?t=... - stream one out.
+ *
+ * Deliberately outside the normal auth middleware, because a <a href> and an <img src>
+ * cannot send a header. The ticket is the authorisation, and it is checked against the very
+ * path being served: a ticket for one file cannot be replayed against another.
+ */
+export const streamAttachment = async (req: Request, res: Response) => {
+  try {
+    const key = `${String(req.params.folder || '')}/${String(req.params.name || '')}`;
+    if (!KEY_RE.test(key)) return res.status(400).json({ message: 'Bad file reference.' });
+
+    let claim: any;
+    try {
+      claim = jwt.verify(String(req.query.t || ''), jwtSecret());
+    } catch {
+      return res.status(401).json({ message: 'That download link has expired. Reopen the file.' });
+    }
+    // The ticket must name THIS file, and must be an attachment ticket rather than any
+    // other token this secret happens to sign.
+    if (claim?.typ !== 'attach' || claim?.k !== key) {
+      return res.status(403).json({ message: 'That link is not valid for this file.' });
+    }
+
+    const ext = path.extname(key).toLowerCase();
+    const mime = ALLOWED_EXT[ext] || 'application/octet-stream';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Disposition', 'inline');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    const local = path.join(LOCAL_DIR, key);
+    if (fs.existsSync(local)) {
+      res.setHeader('Content-Length', String(fs.statSync(local).size));
+      fs.createReadStream(local).pipe(res);
+      return;
+    }
+    if (bunny.isBunnyStorageConfigured()) {
+      const { stream, size } = await bunny.getFileStream(remotePathOf(key));
+      if (size) res.setHeader('Content-Length', String(size));
+      stream.pipe(res);
+      return;
+    }
+    res.status(404).json({ message: 'That file is no longer available.' });
+  } catch (e: any) {
+    console.error('[skill-resource] attachment stream:', e?.message || e);
+    if (!res.headersSent) res.status(404).json({ message: 'That file is no longer available.' });
+  }
+};
+
+/**
+ * GET /passport/skill-resources/concepts - every concept, with what it already has.
  *
  * The coverage counts are the point of the screen. "72 concepts" tells an admin nothing;
  * "61 concepts have no LEARN material" tells them exactly where to spend an afternoon.
@@ -322,6 +566,7 @@ export const createSkillResource = async (req: Request, res: Response) => {
         fileKey: str(req.body?.fileKey),
         language: str(req.body?.language).toLowerCase(),
         audience: readAudience(req.body?.audience),
+        xp: numOrNull(req.body?.xp),
         scoreWindow: {
           min: numOrNull(req.body?.scoreWindow?.min),
           max: numOrNull(req.body?.scoreWindow?.max),
@@ -360,6 +605,7 @@ export const updateSkillResource = async (req: Request, res: Response) => {
     if (req.body?.url !== undefined) row.url = str(req.body.url);
     if (req.body?.fileKey !== undefined) row.fileKey = str(req.body.fileKey);
     if (req.body?.language !== undefined) row.language = str(req.body.language).toLowerCase();
+    if (req.body?.xp !== undefined) row.xp = numOrNull(req.body.xp);
     if (req.body?.audience !== undefined) row.audience = readAudience(req.body.audience) as any;
     if (req.body?.scoreWindow !== undefined) {
       row.scoreWindow = {

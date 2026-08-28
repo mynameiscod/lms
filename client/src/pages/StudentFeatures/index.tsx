@@ -70,7 +70,7 @@ const FEATURE_META: { key: keyof FeatureConfig; label: string; description: stri
   { key: 'dashboard',      label: 'Dashboard',                       description: 'Student dashboard with stats, progress, deadlines, and daily challenge cards', icon: '☑', group: 'Home' },
   // Daily Practice
   { key: 'aiCommunicationLab', label: 'AI Communication Lab', description: 'Daily self-introduction practice — record, get AI feedback, build a streak', icon: '🎙', group: 'Daily Practice' },
-  { key: 'thinkingLab',     label: 'Logical Thinking Lab',    description: 'AI-graded logic, aptitude and problem-solving drills', icon: '🧩', group: 'Daily Practice' },
+  { key: 'thinkingLab',     label: 'Thinking Lab',    description: 'AI-graded logic, aptitude and problem-solving drills', icon: '🧩', group: 'Daily Practice' },
   { key: 'speakingPractice',label: 'Speaking Practice (retired)', description: 'Superseded by AI Communication Lab — hidden from students. Leave off unless you specifically need the old tool.', icon: '🗣', group: 'Daily Practice' },
   // My Learning
   { key: 'myCourse',       label: 'My Course',                       description: 'Course content, chapters, and learning materials', icon: '📚', group: 'My Learning' },

@@ -17,7 +17,22 @@ const CAT_LABEL: Record<string, string> = {
 
 /** Practice Lab — the `practice` entitlement. Coding + SQL run on the same self-hosted
  *  Piston the LMS uses; MCQ sets grade instantly. Never leaves /passport. */
-const Practice: React.FC = () => {
+/**
+ * Serves both member practice screens.
+ *
+ * `source` decides which half of the shared bank is listed: the built-in warm-up exercises
+ * that ship in code, or the admin-authored problem bank behind Thinking Lab. One component
+ * rather than two because the card, the filters, the entitlement gate and the route into a
+ * problem are identical — only the source and the heading differ, and a fork would leave two
+ * of each to keep in step.
+ */
+interface PracticeProps {
+  source?: 'all' | 'builtin' | 'bank';
+  heading?: string;
+  blurb?: string;
+}
+
+const Practice: React.FC<PracticeProps> = ({ source = 'all', heading, blurb }) => {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const kind = params.get('kind') || '';
@@ -27,9 +42,14 @@ const Practice: React.FC = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setData(await passportApi.listPractice(kind ? { kind } : {})); } catch { /* ignore */ }
+    try {
+      setData(await passportApi.listPractice({
+        ...(kind ? { kind } : {}),
+        ...(source !== 'all' ? { source } : {}),
+      }));
+    } catch { /* ignore */ }
     setLoading(false);
-  }, [kind]);
+  }, [kind, source]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -69,8 +89,8 @@ const Practice: React.FC = () => {
       }
     >
       <div className="pm-head">
-        <h1>Practice Lab</h1>
-        <p>Your code actually compiles and runs here — same engine your assessments use. Solve a problem for the first time and its XP is added to your journey.</p>
+        <h1>{heading || 'Practice Lab'}</h1>
+        <p>{blurb || 'Your code actually compiles and runs here — same engine your assessments use. Solve a problem for the first time and its XP is added to your journey.'}</p>
       </div>
 
       <div className="pr-filters">

@@ -195,7 +195,7 @@ const ThinkingLab: React.FC = () => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 26, color: INK, fontWeight: 800 }}>Logical Thinking Lab</h1>
+          <h1 style={{ margin: 0, fontSize: 26, color: INK, fontWeight: 800 }}>Thinking Lab</h1>
           <p style={{ margin: '4px 0 0', color: SUB, fontSize: 13.5 }}>Your daily brain gym — think first, then code. One challenge a day builds real problem-solving.</p>
         </div>
         {stats && (

@@ -44,7 +44,7 @@ const MODULE_DEFS: { key: keyof TenantModules; label: string; icon: string; desc
   { key: 'leads',           label: 'Leads / CRM',          icon: 'fa-solid fa-user-tag',          desc: 'Lead management & telecaller' },
   { key: 'marketing',       label: 'Marketing',            icon: 'fa-solid fa-bullhorn',          desc: 'Campaigns, analytics, insights' },
   { key: 'feeManagement',   label: 'Fee Management',       icon: 'fa-solid fa-wallet',            desc: 'Seat reservations, payments, receipts, installments' },
-  { key: 'thinkingLab',     label: 'Logical Thinking Lab', icon: 'fa-solid fa-brain',             desc: 'AI-graded logic & aptitude drills' },
+  { key: 'thinkingLab',     label: 'Thinking Lab', icon: 'fa-solid fa-brain',             desc: 'AI-graded logic & aptitude drills' },
   { key: 'speakingPractice',label: 'Speaking Practice',    icon: 'fa-solid fa-microphone',        desc: 'AI speaking practice & feedback' },
   { key: 'resourceLibrary', label: 'Resource Library',     icon: 'fa-solid fa-box-archive',       desc: 'Projects, references & downloads' },
   { key: 'careerPilot',     label: 'CareerPilot',          icon: 'fa-solid fa-compass',           desc: 'AI Mentor, Job Tracker, Project Builder, Career Profile' },

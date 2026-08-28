@@ -551,6 +551,18 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/practice" element={<PassportPractice />} />
         <Route path="/passport/practice" element={<LegacyRedirect to="/careerpilot/practice" />} />
         <Route path="/careerpilot/practice/:id" element={<PassportPracticeItem />} />
+        {/*
+          Thinking Lab reuses the Practice screen against the admin-authored bank. A problem
+          opened from either list lands on the same /careerpilot/practice/:id, because the id
+          already carries its source — the bank rows are prefixed `db:`.
+        */}
+        <Route path="/careerpilot/thinking-lab" element={
+          <PassportPractice
+            source="bank"
+            heading="Thinking Lab"
+            blurb="Problems set by your mentors, with difficulty, XP and how many people have solved each one. Your code compiles and runs here."
+          />
+        } />
         <Route path="/passport/practice/:id" element={<LegacyRedirect to="/careerpilot/practice/:id" />} />
         <Route path="/careerpilot/interview" element={<PassportInterview />} />
         <Route path="/passport/interview" element={<LegacyRedirect to="/careerpilot/interview" />} />

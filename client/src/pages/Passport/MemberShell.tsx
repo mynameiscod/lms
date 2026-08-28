@@ -212,6 +212,10 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Home', 'home', '/careerpilot')}
           {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap')}
           {navBtn('Practice', 'code', '/careerpilot/practice')}
+          {/* The admin-authored problem bank. Separate from Practice because that screen
+              lists the built-in warm-ups; this one lists what mentors set, with difficulty,
+              XP and solve counts. */}
+          {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview')}
           {navBtn('Opportunities', 'building', '/careerpilot/companies')}
           {navBtn('Resume', 'resume', '/careerpilot/resume')}

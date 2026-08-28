@@ -690,7 +690,7 @@ export const passportApi = {
   },
 
   // ── Practice Lab ──
-  listPractice: async (params: { kind?: string; category?: string } = {}): Promise<PracticeListResponse> => {
+  listPractice: async (params: { kind?: string; category?: string; source?: 'all' | 'builtin' | 'bank' } = {}): Promise<PracticeListResponse> => {
     const { data } = await axios.get(`${BASE}/practice`, { headers: auth(), params });
     return data;
   },
@@ -1080,6 +1080,32 @@ export const passportApi = {
   deleteMaterial: async (id: string): Promise<{ deleted: boolean }> => {
     const { data } = await axios.delete(`${BASE}/skill-resources/${id}`, { headers: auth() });
     return data;
+  },
+
+  uploadAttachment: async (file: File): Promise<{ attachment: MaterialAttachment }> => {
+    const form = new FormData();
+    form.append('file', file);
+    // Content-Type is left to the browser on purpose: setting it by hand drops the
+    // multipart boundary and the server receives a body it cannot parse.
+    const { data } = await axios.post(`${BASE}/skill-resources/attachments`, form, { headers: auth() });
+    return data;
+  },
+
+  /**
+   * A URL the browser can stream one attachment from.
+   *
+   * Not a blob: an attachment may be up to 1GB, and fetching it through axios would
+   * assemble the whole thing in browser memory before a single byte was shown. A real URL
+   * lets the browser stream, resume and hand off to its own PDF or video viewer.
+   *
+   * The credential is a ten-minute ticket naming this one file, NOT the session JWT — a
+   * JWT here would be written into access logs, browser history and Referer headers.
+   */
+  attachmentUrl: async (fileKey: string): Promise<string> => {
+    const [folder, name] = fileKey.split('/');
+    const { data } = await axios.post(
+      `${BASE}/skill-resources/attachment-token`, { folder, name }, { headers: auth() });
+    return `${BASE}/skill-resources/attachment-file/${folder}/${name}?t=${encodeURIComponent(data.token)}`;
   },
 
   getContent: async (): Promise<{ content: PassportContentDoc; categories: { key: string; label: string; weight: number }[] }> => {
@@ -2549,6 +2575,15 @@ export interface MaterialStep {
 export interface MaterialBreakdown { term: string; explanation: string; example?: string }
 export interface MaterialCheck { question: string; answer: string }
 
+export interface MaterialAttachment {
+  fileKey: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  storage: 'bunny' | 'local';
+  uploadedAt?: string;
+}
+
 export interface MaterialBody {
   overview?: string;
   notes?: string;
@@ -2558,6 +2593,7 @@ export interface MaterialBody {
   breakdown: MaterialBreakdown[];
   checks: MaterialCheck[];
   references: { label: string; url: string }[];
+  attachments: MaterialAttachment[];
 }
 
 export interface MaterialRow {
@@ -2571,6 +2607,8 @@ export interface MaterialRow {
   url: string;
   fileKey: string;
   language: string;
+  /** Null means "use the tenant's flat rate". */
+  xp: number | null;
   audience: MaterialAudience;
   scoreWindow: { min: number | null; max: number | null };
   body: MaterialBody;
@@ -2587,5 +2625,5 @@ export const emptyAudience = (): MaterialAudience => ({
 
 export const emptyBody = (): MaterialBody => ({
   overview: '', notes: '', videoUrl: '', videoKey: '',
-  steps: [], breakdown: [], checks: [], references: [],
+  steps: [], breakdown: [], checks: [], references: [], attachments: [],
 });

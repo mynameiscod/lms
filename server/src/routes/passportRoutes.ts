@@ -1,5 +1,5 @@
 import express from 'express';
-import multer from 'multer';
+import multer, { MulterError } from 'multer';
 import fs from 'fs';
 import path from 'path';
 import * as staging from '../controllers/careerStagingController';
@@ -84,6 +84,20 @@ const resumeUpload = multer({
     cb(null, ok.includes(f.mimetype));
   },
 });
+/**
+ * Streamed attachment reads, registered BEFORE the auth middleware on purpose.
+ *
+ * A browser streaming a file from an <a href> or an <img src> cannot send an Authorization
+ * header, so this route authorises itself from the signed `t` parameter instead: a ticket
+ * naming one file, valid for ten minutes, issued only to a signed-in caller by the
+ * attachment-token route below.
+ *
+ * ORDER IS THE WHOLE POINT. Registered after the router.use on the next line, every request
+ * would be rejected for the missing header this design exists to avoid — the ticket would
+ * never be reached, and large attachments would simply not open.
+ */
+router.get('/skill-resources/attachment-file/:folder/:name', skillResources.streamAttachment);
+
 router.use(authMiddleware, tenantMiddleware);
 
 /**
@@ -212,6 +226,72 @@ router.post('/me/plan/complete',                MEMBER, dailyPlan.completeMyDail
 // ── Canonical skill → executable resource mapping (Module 10). Deliberately explicit:
 //    nothing is inferred from titles, and an unmapped objective is reported as a
 //    configuration gap rather than filled with a plausible guess. ──
+/**
+ * Notes attachments.
+ *
+ * A generous 25MB cap: a scanned PDF handout or a slide deck routinely exceeds the few
+ * megabytes an image needs, and an admin hitting a silent limit mid-upload learns nothing
+ * from it. The extension whitelist lives in the controller so the error can name what IS
+ * allowed rather than only what was refused.
+ */
+const CONCEPT_ATTACH_TMP = 'uploads/tmp-concept';
+if (!fs.existsSync(CONCEPT_ATTACH_TMP)) fs.mkdirSync(CONCEPT_ATTACH_TMP, { recursive: true });
+
+/**
+ * 1GB, matching what the vhost already permits (`client_max_body_size 1200M`).
+ *
+ * A cap below the proxy's buys nothing except a refusal, and recorded lecture video is
+ * routinely this size. The number is only safe because nothing on the upload path holds a
+ * whole file in memory: multer spools to disk, and the controller streams from there to its
+ * destination. An earlier version read the temp file into a Buffer, which at this size would
+ * have taken the process out rather than returned an error.
+ *
+ * DISK IS THE REAL LIMIT NOW. These land on the shared `uploads_data` volume, so a handful
+ * of gigabyte attachments is a full disk and a dead server for every tenant on the box.
+ */
+const CONCEPT_ATTACH_MAX_MB = 1024;
+
+const conceptAttachUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _f, cb) => cb(null, CONCEPT_ATTACH_TMP),
+    filename: (_req, f, cb) =>
+      cb(null, `ca-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(f.originalname || '')}`),
+  }),
+  limits: { fileSize: CONCEPT_ATTACH_MAX_MB * 1024 * 1024 },
+});
+
+/**
+ * Turn a multer rejection into JSON.
+ *
+ * Without this, an oversized file leaves multer throwing into Express's default handler,
+ * which answers with an HTML error page. The browser then has no `message` to read and the
+ * admin is told only "could not be uploaded" — a refusal that does not say what to change.
+ * The same wrapper is used by the battle and lead upload routes.
+ */
+const conceptAttach = (req: any, res: any, next: any) =>
+  conceptAttachUpload.single('file')(req, res, (err: any) => {
+    if (err instanceof MulterError) {
+      return res.status(413).json({
+        message: err.code === 'LIMIT_FILE_SIZE'
+          ? `That file is larger than ${Math.round(CONCEPT_ATTACH_MAX_MB / 1024)}GB.`
+          : `Upload rejected: ${err.code}.`,
+      });
+    }
+    if (err) return res.status(400).json({ message: err.message || 'Upload failed.' });
+    next();
+  });
+
+router.post('/skill-resources/attachments', MANAGE, conceptAttach, skillResources.uploadAttachment);
+/**
+ * Readable by any signed-in member, not just an admin: the same file is what a student
+ * opens from their daily plan, and a second route serving identical bytes would be one
+ * more thing to keep in step.
+ */
+router.get('/skill-resources/attachments/:folder/:name', MEMBER, skillResources.downloadAttachment);
+
+/** Issuing a ticket needs a real session; spending it does not. See above router.use. */
+router.post('/skill-resources/attachment-token', MEMBER, skillResources.issueAttachmentToken);
+
 router.get('/skill-resources',            MANAGE, skillResources.listSkillResources);
 router.get('/skill-resources/concepts',   MANAGE, skillResources.listConcepts);
 router.get('/skill-resources/audience-options', MANAGE, skillResources.listAudienceOptions);

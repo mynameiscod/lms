@@ -1,0 +1,52 @@
+/* CareerPilot Member — CodeBegun System Style Guide
+   Shared visual contract for authenticated CareerPilot member surfaces. */
+.gd{
+  --cb-navy:#051D64;--cb-navy-2:#0B2D72;--cb-primary:#005897;--cb-teal:#359AAD;--cb-blue:#1976D2;
+  --cb-bg:#F4F8FC;--cb-card:#FFFFFF;--cb-ink:#102A4F;--cb-text:#33475B;--cb-muted:#64748B;
+  --cb-border:#E2EAF2;--cb-green:#17885D;--cb-green-bg:#EAF8F1;--cb-amber:#B86B00;--cb-red:#C93737;
+  background:var(--cb-bg);color:var(--cb-text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+.gd .gd-main{background:var(--cb-bg)}
+.gd :where(.pm-head,.rq-title){margin-bottom:24px}
+.gd :where(.pm-head h1,.rq-title h1){font-size:clamp(28px,2.2vw,36px)!important;line-height:1.14!important;letter-spacing:-.65px!important;color:var(--cb-navy)!important;font-weight:850!important}
+.gd :where(.pm-head p,.rq-title p){font-size:15px!important;line-height:1.65!important;color:var(--cb-muted)!important;max-width:820px}
+.gd :where(h2){font-size:22px;color:var(--cb-ink);font-weight:800}
+.gd :where(h3){font-size:18px;color:var(--cb-ink);font-weight:760}
+.gd :where(.gd-card,.pm-card,.rq-card,.pr-item,.comm-card,.passport-card){border:1px solid var(--cb-border)!important;border-radius:16px!important;background:#fff!important;box-shadow:0 3px 14px rgba(15,46,77,.055)!important}
+.gd :where(button,.pm-btn,.rq-primary,.rq-ghost,.pr-chip){font-family:inherit;border-radius:10px;font-weight:700}
+.gd :where(.pm-btn.primary,.rq-primary){background:var(--cb-primary)!important;border-color:var(--cb-primary)!important;color:#fff!important;box-shadow:0 5px 14px rgba(0,88,151,.15)}
+.gd :where(.pm-btn.primary,.rq-primary):hover{background:#004B81!important}
+.gd :where(.pr-chip,.rq-ghost){background:#fff!important;border:1px solid #C9D8E5!important;color:#53677D!important}
+.gd :where(.pr-chip.on){background:#EAF3FD!important;border-color:#BBD7EA!important;color:var(--cb-primary)!important}
+.gd :where(.pm-pill){border:1px solid var(--cb-border);background:#fff;color:#52667D;border-radius:999px;font-size:13px}
+.gd :where(.pr-grid){gap:16px}
+.gd .pr-item{padding:20px!important;text-align:left;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.gd .pr-item:hover{border-color:#B7D3E1!important;box-shadow:0 8px 24px rgba(5,29,100,.075)!important;transform:translateY(-1px)}
+.gd .pr-item h3{font-size:17px!important;margin-top:14px!important}
+.gd .pr-item .meta{font-size:13px!important;color:var(--cb-muted)!important}
+.gd :where(.pr-diff,.kind,.solved){border-radius:999px!important;font-weight:750!important}
+.gd :where(.pm-empty,.gd-chart-empty){border:1px dashed #C9D8E5;border-radius:16px;background:#fff;padding:42px 24px;color:var(--cb-muted);text-align:center}
+.gd :where(.rq-stats){gap:14px}
+.gd :where(.rq-stat){background:#fff;border:1px solid var(--cb-border);border-radius:15px;box-shadow:0 3px 12px rgba(15,46,77,.045)}
+.gd :where(.rq-stat .val){color:var(--cb-navy)!important;font-weight:800}
+.gd :where(.rq-stat .lbl){color:#617389!important;font-weight:700}
+.gd :where(.rq-timeline,.rq-filters){border-color:var(--cb-border)!important;background:#fff!important;border-radius:16px!important}
+.gd :where(.rq-phase-row,.rq-mile){border-color:#EDF2F6!important}
+.gd .rq-motivate{background:linear-gradient(145deg,#F0F7FC,#EAF7F8)!important;border:1px solid #D4E8ED!important;color:var(--cb-ink)!important;border-radius:16px!important}
+.gd .rq-motivate button{background:var(--cb-primary)!important;color:#fff!important}
+/* Normalize the old purple Passport palette without changing API/state behavior. */
+.gd .gd-ring circle[stroke="url(#ringGrad)"],.gd .rq-donut circle[stroke="#6d4bd8"]{stroke:var(--cb-primary)!important}
+.gd .gd-radar polygon[stroke="#6d4bd8"]{stroke:var(--cb-primary)!important;fill:rgba(53,154,173,.24)!important}
+.gd .gd-radar circle[fill="#6d4bd8"]{fill:var(--cb-primary)!important}
+.gd .gd-chart polyline[stroke="#6d4bd8"]{stroke:var(--cb-primary)!important}
+.gd .gd-chart circle[fill="#6d4bd8"]{fill:var(--cb-primary)!important}
+.gd :where(input,select,textarea){font-family:inherit;font-size:14px;border-radius:10px;border-color:#D5E0EA}
+.gd :where(input,select,textarea):focus{outline:none;border-color:#78AFC4!important;box-shadow:0 0 0 3px rgba(0,88,151,.08)!important}
+.gd :where(button,a,input,select,textarea):focus-visible{outline:3px solid rgba(25,118,210,.2)!important;outline-offset:2px}
+/* Bootstrap Icon treatment. Member screens use .bi instead of decorative emoji. */
+.gd .bi{font-size:1em;line-height:1;vertical-align:-.08em}
+.gd .cb-icon-chip{width:38px;height:38px;display:inline-grid;place-items:center;border-radius:11px;background:#EAF3FD;color:var(--cb-primary);flex:0 0 38px}
+.gd .cb-icon-chip.teal{background:#EAF7F8;color:#287F91}.gd .cb-icon-chip.green{background:var(--cb-green-bg);color:var(--cb-green)}
+@media(max-width:900px){.gd :where(.pm-head h1,.rq-title h1){font-size:28px!important}.gd :where(.pm-head p,.rq-title p){font-size:14.5px!important}}
+@media(max-width:640px){.gd :where(.pm-head h1,.rq-title h1){font-size:25px!important}.gd .pr-item{padding:17px!important}}
+@media(prefers-reduced-motion:reduce){.gd *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}

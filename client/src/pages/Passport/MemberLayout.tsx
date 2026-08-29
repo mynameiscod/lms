@@ -5,18 +5,7 @@ import { Outlet } from 'react-router-dom';
 import passportApi, { DashboardData } from '../../api/passportApi';
 import MemberShell from './MemberShell';
 import './memberLayoutFix.css';
-
-/**
- * Layout route for every paid Passport page.
- *
- * Previously each page rendered its own <MemberShell>, so React Router unmounted the
- * whole tree on navigation: the rail remounted, re-fetched /passport/dashboard, lost
- * its expand state and visibly flashed on every click. Mounting the shell ONCE here
- * and swapping only <Outlet/> fixes that — the rail is now persistent chrome.
- *
- * The dashboard payload is fetched once and shared through context, so pages don't
- * each issue their own request for it either.
- */
+import './memberCodebegun.css';
 
 interface MemberCtx {
   data: DashboardData | null;
@@ -38,7 +27,6 @@ const MemberLayout: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  // Reflect work finished in another tab (a payment, a solved problem) on return.
   useEffect(() => {
     const onFocus = () => load();
     window.addEventListener('focus', onFocus);
@@ -46,16 +34,12 @@ const MemberLayout: React.FC = () => {
   }, [load]);
 
   if (loading) {
-    return <div style={{ padding: 60, textAlign: 'center', color: '#7b8496' }}>Loading your CareerPilot…</div>;
+    return <div style={{ padding: 60, textAlign: 'center', color: '#64748B' }}>Loading your CareerPilot…</div>;
   }
 
-  // Membership activation owns the paid shell. Assessment/setup state controls the
-  // content shown inside it, not whether a paid member gets navigation at all.
   const isMember = !!data?.active;
   const ctx = { data, reload: load };
 
-  // Free candidates keep each page's own chrome — the rail's destinations are all
-  // locked to them, so wrapping them in it would be a menu of dead ends.
   if (!isMember) {
     return (
       <Ctx.Provider value={ctx}>
@@ -68,8 +52,6 @@ const MemberLayout: React.FC = () => {
   return (
     <Ctx.Provider value={ctx}>
       <MemberShell data={data}>
-        {/* Additive and dismissible. Members who ignore it keep every surface exactly as
-            it was — nothing yet requires the career context to be filled in. */}
         <CareerSetupPrompt />
         <Outlet />
       </MemberShell>

@@ -240,7 +240,6 @@ import InterviewDetailPage from './pages/ScheduledInterviews/InterviewDetail';
 import HmsClassesPage from './pages/HmsClasses';
 import HmsRoomPage from './pages/HmsClasses/Room';
 import CommunicationLab from './pages/CommunicationLab';
-import PassportShell from './pages/Passport/PassportShell';
 import CommunicationLabAdmin from './pages/CommunicationLabAdmin';
 import MyInterviewsPage from './pages/MyInterviews';
 
@@ -562,6 +561,13 @@ const AppRoutes: React.FC = () => {
           opened from either list lands on the same /careerpilot/practice/:id, because the id
           already carries its source — the bank rows are prefixed `db:`.
         */}
+        {/*
+          Communication Lab, inside the member layout so it gets the rail.
+          Registered outside this block first, it rendered as a bare page with no navigation
+          — PassportShell is only a metabar passthrough; the rail comes from the layout route
+          above, and a member route that skips it strands the member with no way back.
+        */}
+        <Route path="/careerpilot/communication" element={<CommunicationLab />} />
         <Route path="/careerpilot/thinking-lab" element={
           <PassportPractice
             source="bank"
@@ -763,20 +769,6 @@ const AppRoutes: React.FC = () => {
             <Layout>
               <HmsClassesPage />
             </Layout>
-          </ProtectedRoute>
-        }
-      />
-      {/*
-        The same Communication Lab, in the member shell.
-        CareerPilot members have no batch, so the controller serves them the challenges an
-        admin tagged for CareerPilot instead of a batch assignment. The page itself renders
-        no chrome of its own, so it drops straight into either shell.
-      */}
-      <Route
-        path="/careerpilot/communication"
-        element={
-          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN']}>
-            <PassportShell><CommunicationLab /></PassportShell>
           </ProtectedRoute>
         }
       />

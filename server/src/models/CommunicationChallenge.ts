@@ -30,11 +30,41 @@ export interface ICommunicationChallenge extends Document {
   sequenceNumber: number;
   active: boolean;
   batchIds: mongoose.Types.ObjectId[]; // empty = all batches; else only these batches see it
+  /**
+   * Which product this challenge is written for.
+   *
+   * Same vocabulary and the same asymmetry as the Thinking Lab bank, so an admin who has
+   * learned one audience control has learned both: an untagged challenge belongs to the
+   * LMS and nobody else, while CareerPilot requires an EXPLICIT tag. Inheriting every
+   * existing challenge into CareerPilot the moment members could read them would be a
+   * content review nobody performed.
+   */
+  audiences: ChallengeAudience[];
   isSeed?: boolean;           // marks the built-in seeded set (so re-seeding is idempotent)
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
+
+/**
+ * Who a challenge is for. Mirrors PROBLEM_AUDIENCES in the Thinking Lab bank deliberately —
+ * two vocabularies for the same idea would be one more thing to keep in step.
+ */
+export const CHALLENGE_AUDIENCES = ['lms', 'careerpilot'] as const;
+export type ChallengeAudience = typeof CHALLENGE_AUDIENCES[number];
+
+/**
+ * The audience half of a query.
+ *
+ * LMS matches three shapes — tagged, field absent (written before audiences existed), or an
+ * empty array — so no existing challenge disappears from the LMS. CareerPilot matches only
+ * an explicit tag, which is what keeps an unreviewed back-catalogue out of the member app.
+ */
+export const challengeAudienceFilter = (audience: ChallengeAudience) => (
+  audience === 'lms'
+    ? { $or: [{ audiences: 'lms' }, { audiences: { $exists: false } }, { audiences: { $size: 0 } }] }
+    : { audiences: audience }
+);
 
 const CommunicationChallengeSchema = new Schema<ICommunicationChallenge>(
   {
@@ -58,6 +88,7 @@ const CommunicationChallengeSchema = new Schema<ICommunicationChallenge>(
     sequenceNumber: { type: Number, default: 0, index: true },
     active: { type: Boolean, default: true, index: true },
     batchIds: { type: [Schema.Types.ObjectId], ref: 'Batch', default: [] },
+    audiences: { type: [String], enum: CHALLENGE_AUDIENCES, default: ['lms'] },
     isSeed: { type: Boolean, default: false },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },

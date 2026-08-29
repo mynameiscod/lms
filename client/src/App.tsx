@@ -240,6 +240,7 @@ import InterviewDetailPage from './pages/ScheduledInterviews/InterviewDetail';
 import HmsClassesPage from './pages/HmsClasses';
 import HmsRoomPage from './pages/HmsClasses/Room';
 import CommunicationLab from './pages/CommunicationLab';
+import PassportShell from './pages/Passport/PassportShell';
 import CommunicationLabAdmin from './pages/CommunicationLabAdmin';
 import MyInterviewsPage from './pages/MyInterviews';
 
@@ -762,6 +763,20 @@ const AppRoutes: React.FC = () => {
             <Layout>
               <HmsClassesPage />
             </Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/*
+        The same Communication Lab, in the member shell.
+        CareerPilot members have no batch, so the controller serves them the challenges an
+        admin tagged for CareerPilot instead of a batch assignment. The page itself renders
+        no chrome of its own, so it drops straight into either shell.
+      */}
+      <Route
+        path="/careerpilot/communication"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <PassportShell><CommunicationLab /></PassportShell>
           </ProtectedRoute>
         }
       />

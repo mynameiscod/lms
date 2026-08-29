@@ -216,6 +216,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
               lists the built-in warm-ups; this one lists what mentors set, with difficulty,
               XP and solve counts. */}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab')}
+          {navBtn('Communication Lab', 'practice', '/careerpilot/communication')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview')}
           {navBtn('Opportunities', 'building', '/careerpilot/companies')}
           {navBtn('Resume', 'resume', '/careerpilot/resume')}

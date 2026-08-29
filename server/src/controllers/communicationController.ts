@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import mongoose from 'mongoose';
 import CommunicationProfile from '../models/CommunicationProfile';
-import CommunicationChallenge from '../models/CommunicationChallenge';
+import CommunicationChallenge, { challengeAudienceFilter, CHALLENGE_AUDIENCES } from '../models/CommunicationChallenge';
 import CommunicationSchedule from '../models/CommunicationSchedule';
 import { resolveLabDay } from '../services/labTrackService';
 import CommunicationAttempt from '../models/CommunicationAttempt';
@@ -62,11 +62,64 @@ export const getToday = async (req: Request, res: Response) => {
     await ensureSeedChallenges(tenantId, uId(req));
     const today = validDate(req.query.date);
 
-    const me: any = await User.findById(uId(req)).select('batchId').lean();
-    // Admin-controlled: a student only sees challenges explicitly targeted at THEIR
-    // batch (or scheduled for it via Lab Challenge Windows). No "no batchIds = everyone"
-    // fallback — a fresh/unconfigured batch sees nothing until the instructor assigns.
-    if (!me?.batchId) return res.json({ challenge: null, status: 'not_started' });
+    const me: any = await User.findById(uId(req)).select('batchId passport').lean();
+
+    /**
+     * CareerPilot members have no batch, so the batch path below can never serve them.
+     *
+     * They get the challenges an admin tagged for CareerPilot, walked in sequence by day so
+     * everybody works through the same ordered set rather than being handed a random one.
+     * The order is the admin's `sequenceNumber`, and the position is derived from the
+     * member's own start date — no clock beyond the date, no randomness, so a refresh never
+     * changes today's task and the roadmap preview and this view agree.
+     *
+     * Still admin-controlled: an untagged challenge is invisible here, exactly as an
+     * unassigned one is invisible to a batch.
+     */
+    if (!me?.batchId) {
+      if (!me?.passport?.active) return res.json({ challenge: null, status: 'not_started' });
+
+      const memberChallenges = await CommunicationChallenge.find({
+        tenantId, active: true, ...challengeAudienceFilter('careerpilot'),
+      }).sort({ sequenceNumber: 1, _id: 1 }).lean();
+
+      if (!memberChallenges.length) return res.json({ challenge: null, status: 'not_started' });
+
+      const streakDoc = await CommunicationStreak.findOne({ tenantId, studentId: uId(req) }).lean();
+      const attemptToday = await CommunicationAttempt.findOne({
+        tenantId, studentId: uId(req), practiceDate: today,
+      }).sort({ createdAt: -1 }).lean();
+
+      // Today's task is the one they already started, so a page refresh mid-attempt does
+      // not swap the challenge underneath them.
+      const startedId = attemptToday?.challengeId ? String(attemptToday.challengeId) : null;
+      const started = startedId ? memberChallenges.find(c => String(c._id) === startedId) : null;
+
+      /**
+       * Position = days since they joined, wrapped over the set.
+       *
+       * Counting COMPLETED days instead would stall the whole programme on a missed day;
+       * counting elapsed days keeps the schedule moving and lets History show what was
+       * skipped, which is the honest record.
+       */
+      const startedAt = me?.passport?.activatedAt ? new Date(me.passport.activatedAt) : new Date();
+      const dayIndex = Math.max(0, Math.floor(
+        (Date.parse(`${today}T00:00:00Z`) - Date.UTC(
+          startedAt.getUTCFullYear(), startedAt.getUTCMonth(), startedAt.getUTCDate(),
+        )) / 86400000,
+      ));
+      const challenge = started || memberChallenges[dayIndex % memberChallenges.length];
+
+      return res.json({
+        challenge,
+        status: attemptToday ? (attemptToday.status || 'completed') : 'not_started',
+        attempt: attemptToday || null,
+        currentStreak: streakDoc?.currentStreak || 0,
+        longestStreak: streakDoc?.longestStreak || 0,
+        dayNumber: dayIndex + 1,
+        totalChallenges: memberChallenges.length,
+      });
+    }
     // Admin-scheduled batch challenge (may carry a time window) — IST-based.
     const now = istParts();
     let sc: any = await CommunicationSchedule.findOne({ tenantId, batchId: me.batchId, date: now.date }).lean();
@@ -355,6 +408,12 @@ export const createChallenge = async (req: Request, res: Response) => {
       minSeconds: Number(b.minSeconds) || 120, targetSeconds: Number(b.targetSeconds) || 180, maxSeconds: Number(b.maxSeconds) || 210,
       maxAttempts: Number(b.maxAttempts) || 2, recordingModes: arr(b.recordingModes).length ? arr(b.recordingModes) : ['audio', 'video'],
       batchIds: arr(b.batchIds).filter((s: string) => mongoose.isValidObjectId(s)).map((s: string) => new mongoose.Types.ObjectId(s)),
+      // Defaults to LMS when omitted, so an older client or a scripted call cannot
+      // accidentally publish a challenge to CareerPilot members.
+      audiences: (() => {
+        const picked = arr(b.audiences).filter((a: string) => CHALLENGE_AUDIENCES.includes(a as any));
+        return picked.length ? picked : ['lms'];
+      })(),
       sequenceNumber: (last?.sequenceNumber || 0) + 1, active: b.active !== false, createdBy: uId(req),
     });
     res.status(201).json({ challenge: c });
@@ -363,11 +422,17 @@ export const createChallenge = async (req: Request, res: Response) => {
 
 export const updateChallenge = async (req: Request, res: Response) => {
   try {
-    const allowed = ['title', 'description', 'instructions', 'suggestedPoints', 'minSeconds', 'targetSeconds', 'maxSeconds', 'maxAttempts', 'recordingModes', 'sequenceNumber', 'active', 'challengeType', 'batchIds'];
-    const listKeys = ['suggestedPoints', 'recordingModes', 'batchIds'];
+    const allowed = ['title', 'description', 'instructions', 'suggestedPoints', 'minSeconds', 'targetSeconds', 'maxSeconds', 'maxAttempts', 'recordingModes', 'sequenceNumber', 'active', 'challengeType', 'batchIds', 'audiences'];
+    const listKeys = ['suggestedPoints', 'recordingModes', 'batchIds', 'audiences'];
     const set: any = {};
     for (const k of allowed) if (k in req.body) {
       if (k === 'batchIds') set[k] = arr(req.body[k]).filter((s: string) => mongoose.isValidObjectId(s)).map((s: string) => new mongoose.Types.ObjectId(s));
+      // An empty pick would make the challenge invisible everywhere, which is never what
+      // clearing every tick means — fall back to LMS rather than silently retiring it.
+      else if (k === 'audiences') {
+        const picked = arr(req.body[k]).filter((a: string) => CHALLENGE_AUDIENCES.includes(a as any));
+        set[k] = picked.length ? picked : ['lms'];
+      }
       else set[k] = listKeys.includes(k) ? arr(req.body[k]) : req.body[k];
     }
     const c = await CommunicationChallenge.findOneAndUpdate({ _id: req.params.id, tenantId: tId(req) }, { $set: set }, { new: true });

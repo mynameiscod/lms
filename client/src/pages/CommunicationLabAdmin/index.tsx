@@ -165,7 +165,14 @@ const CommunicationLabAdmin: React.FC = () => {
                       <td style={td}>{c.sequenceNumber}</td>
                       <td style={{ ...td, fontWeight: 600, color: '#111827' }}>{c.title}</td>
                       <td style={td}>{Math.round(c.targetSeconds / 60)}m</td>
-                      <td style={td}>{(c as any).batchIds?.length ? `${(c as any).batchIds.length} batch(es)` : 'All'}</td>
+                      <td style={td}>
+                        {(c as any).batchIds?.length ? `${(c as any).batchIds.length} batch(es)` : 'All'}
+                        {((c as any).audiences || ['lms']).includes('careerpilot') && (
+                          <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#7c3aed', background: '#f3ecff', borderRadius: 99, padding: '2px 7px' }}>
+                            CareerPilot
+                          </span>
+                        )}
+                      </td>
                       <td style={td}>
                         <button onClick={() => toggleActive(c)} style={sBtn(c.active ? '#16a34a' : '#94a3b8')}>{c.active ? 'ON' : 'OFF'}</button>
                       </td>
@@ -237,12 +244,19 @@ const ChallengeModal: React.FC<{ challenge: CommChallenge | 'new'; batches: { _i
     suggestedPoints: (c?.suggestedPoints || []).join(', '),
     minSeconds: c?.minSeconds || 120, targetSeconds: c?.targetSeconds || 180, maxSeconds: c?.maxSeconds || 210,
     maxAttempts: c?.maxAttempts || 2, recordingModes: (c?.recordingModes || ['audio', 'video']),
-    batchIds: (c as any)?.batchIds || [], active: c?.active !== false,
+    batchIds: (c as any)?.batchIds || [],
+    audiences: (c as any)?.audiences?.length ? (c as any).audiences : ['lms'],
+    active: c?.active !== false,
   });
   const [busy, setBusy] = useState(false);
   const set = (k: string, v: any) => setF((x: any) => ({ ...x, [k]: v }));
   const toggleMode = (m: string) => set('recordingModes', f.recordingModes.includes(m) ? f.recordingModes.filter((x: string) => x !== m) : [...f.recordingModes, m]);
   const toggleBatch = (id: string) => set('batchIds', f.batchIds.includes(id) ? f.batchIds.filter((x: string) => x !== id) : [...f.batchIds, id]);
+  /** Clearing every tick would hide the challenge from everyone, so LMS is restored. */
+  const toggleAudience = (a: string) => {
+    const next = f.audiences.includes(a) ? f.audiences.filter((x: string) => x !== a) : [...f.audiences, a];
+    set('audiences', next.length ? next : ['lms']);
+  };
   const save = async () => {
     if (!f.title) return;
     setBusy(true);
@@ -270,6 +284,17 @@ const ChallengeModal: React.FC<{ challenge: CommChallenge | 'new'; batches: { _i
           <label style={lbl}>Recording modes</label>
           <div style={{ display: 'flex', gap: 8 }}>
             {['audio', 'video'].map((m) => <button key={m} onClick={() => toggleMode(m)} style={sBtn(f.recordingModes.includes(m) ? '#1a5490' : '#cbd5e1')}>{m}</button>)}
+          </div>
+        </div>
+        <div>
+          <label style={lbl}>Who gets this challenge?</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <button onClick={() => toggleAudience('lms')} style={sBtn(f.audiences.includes('lms') ? '#1a5490' : '#cbd5e1')}>LMS students</button>
+            <button onClick={() => toggleAudience('careerpilot')} style={sBtn(f.audiences.includes('careerpilot') ? '#7c3aed' : '#cbd5e1')}>CareerPilot members</button>
+          </div>
+          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6, lineHeight: 1.5 }}>
+            CareerPilot members have no batch, so they get the challenges ticked here — walked
+            in sequence order, one per day. Batches below apply to LMS students only.
           </div>
         </div>
         <div>

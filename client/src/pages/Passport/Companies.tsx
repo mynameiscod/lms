@@ -3,15 +3,14 @@ import { useParams } from 'react-router-dom';
 import CompanyDetail from './CompanyDetail';
 import Opportunities from './Opportunities';
 
-/**
- * Career opportunities live at the existing member destination so the persistent
- * CareerPilot shell does not need a second competing jobs route. Company interview
- * preparation remains available on /careerpilot/companies/:slug.
- */
+/** Career opportunities and company-prep detail share one CodeBegun member surface. */
 const Companies: React.FC = () => {
   const { slug } = useParams();
-  if (slug) return <CompanyDetail slug={slug} />;
-  return <Opportunities />;
+  return (
+    <section className="cb-companies-surface" aria-label="Career opportunities">
+      {slug ? <CompanyDetail slug={slug} /> : <Opportunities />}
+    </section>
+  );
 };
 
 export default Companies;

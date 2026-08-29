@@ -1,22 +1,11 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import CareerProfilePrompt from './CareerProfilePrompt';
 import CareerSetupPrompt from './CareerSetupPrompt';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import passportApi, { DashboardData } from '../../api/passportApi';
 import MemberShell from './MemberShell';
 import './memberLayoutFix.css';
-
-/**
- * Layout route for every paid Passport page.
- *
- * Previously each page rendered its own <MemberShell>, so React Router unmounted the
- * whole tree on navigation: the rail remounted, re-fetched /passport/dashboard, lost
- * its expand state and visibly flashed on every click. Mounting the shell ONCE here
- * and swapping only <Outlet/> fixes that — the rail is now persistent chrome.
- *
- * The dashboard payload is fetched once and shared through context, so pages don't
- * each issue their own request for it either.
- */
+import './memberCodebegun.css';
 
 interface MemberCtx {
   data: DashboardData | null;
@@ -26,9 +15,31 @@ interface MemberCtx {
 const Ctx = createContext<MemberCtx>({ data: null, reload: () => {} });
 export const useMember = () => useContext(Ctx);
 
+/**
+ * The 11 authenticated member surfaces currently migrated to the CodeBegun system.
+ * Keeping this mapping here gives every page an explicit frame instead of relying on a
+ * broad global CSS overlay. Company detail routes intentionally share the companies frame.
+ */
+const pageKeyFor = (pathname: string) => {
+  if (pathname === '/careerpilot') return 'dashboard';
+  if (pathname.startsWith('/careerpilot/roadmap')) return 'roadmap';
+  if (pathname.startsWith('/careerpilot/thinking-lab')) return 'thinking';
+  if (pathname.startsWith('/careerpilot/practice')) return 'practice';
+  if (pathname.startsWith('/careerpilot/communication')) return 'communication';
+  if (pathname.startsWith('/careerpilot/interview')) return 'interview';
+  if (pathname.startsWith('/careerpilot/companies')) return 'companies';
+  if (pathname.startsWith('/careerpilot/resume')) return 'resume';
+  if (pathname.startsWith('/careerpilot/profile')) return 'profile';
+  if (pathname.startsWith('/careerpilot/readiness')) return 'readiness';
+  if (pathname.startsWith('/careerpilot/news')) return 'news';
+  return 'other';
+};
+
 const MemberLayout: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { pathname } = useLocation();
+  const pageKey = useMemo(() => pageKeyFor(pathname), [pathname]);
 
   const load = useCallback(async () => {
     try { setData(await passportApi.getDashboard()); }
@@ -68,10 +79,10 @@ const MemberLayout: React.FC = () => {
   return (
     <Ctx.Provider value={ctx}>
       <MemberShell data={data}>
-        {/* Additive and dismissible. Members who ignore it keep every surface exactly as
-            it was — nothing yet requires the career context to be filled in. */}
         <CareerSetupPrompt />
-        <Outlet />
+        <div className={`cb-member-page cb-member-${pageKey}`} data-member-page={pageKey}>
+          <Outlet />
+        </div>
       </MemberShell>
     </Ctx.Provider>
   );

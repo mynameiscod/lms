@@ -39,9 +39,14 @@ const ICONS: Record<string, React.ReactNode> = {
   board:     <><path d="M4 20h4V10H4zM10 20h4V4h-4zM16 20h4v-7h-4z" /></>,
   medal:     <><circle cx="12" cy="15" r="6" /><path d="M8.5 9.5 6 2.5h12L15.5 9.5" /><path d="m12 12.8 1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2L8.8 15l2.2-.3z" /></>,
   grid:      <><rect x="3" y="3" width="7.5" height="7.5" rx="1.6" /><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6" /><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6" /><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6" /></>,
+  /* Communication Lab. It reused `practice` — a conical flask — which reads as
+     chemistry, and sat next to Practice's own icon meaning something unrelated. */
+  speech:    <><path d="M20.5 11.8a7.7 7.7 0 0 1-8.3 7.7 8.6 8.6 0 0 1-2.5-.4L4.5 21l1.4-4.4a7.4 7.4 0 0 1-1.4-4.4 7.7 7.7 0 0 1 7.7-7.7 7.7 7.7 0 0 1 8.3 7.3z" /><path d="M9 10.5h6" /><path d="M9 14h3.5" /></>,
   code:      <><path d="m8 8-4.5 4L8 16" /><path d="m16 8 4.5 4L16 16" /><path d="m13.5 5-3 14" /></>,
   db:        <><ellipse cx="12" cy="5.5" rx="7.5" ry="3" /><path d="M4.5 5.5v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6" /><path d="M4.5 11.5v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6" /></>,
-  brain:     <><path d="M9.5 3.5A3 3 0 0 0 6.6 7 3 3 0 0 0 5 12.6 3 3 0 0 0 7.5 18a3 3 0 0 0 4.5 2.2V4.6a3 3 0 0 0-2.5-1.1z" /><path d="M14.5 3.5A3 3 0 0 1 17.4 7 3 3 0 0 1 19 12.6 3 3 0 0 1 16.5 18" /></>,
+  /* Two MIRRORED closed halves plus a centre line. The previous pair drew one closed
+     lobe and one open arc, which at 18px read as a bracket rather than a brain. */
+  brain:     <><path d="M12 5a3 3 0 0 0-5.1 2.1A2.8 2.8 0 0 0 5.6 11.8 2.9 2.9 0 0 0 7.4 16.6 3 3 0 0 0 12 19z" /><path d="M12 5a3 3 0 0 1 5.1 2.1 2.8 2.8 0 0 1 1.3 4.7 2.9 2.9 0 0 1-1.8 4.8A3 3 0 0 1 12 19z" /><path d="M12 5v14" /></>,
 };
 
 export const Icon: React.FC<{ name: string }> = ({ name }) => (
@@ -216,7 +221,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
               lists the built-in warm-ups; this one lists what mentors set, with difficulty,
               XP and solve counts. */}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab')}
-          {navBtn('Communication Lab', 'practice', '/careerpilot/communication')}
+          {navBtn('Communication Lab', 'speech', '/careerpilot/communication')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview')}
           {navBtn('Opportunities', 'building', '/careerpilot/companies')}
           {navBtn('Resume', 'resume', '/careerpilot/resume')}

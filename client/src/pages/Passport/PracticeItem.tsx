@@ -21,6 +21,19 @@ const PracticeItem: React.FC = () => {
   const { id = '' } = useParams();
   const nav = useNavigate();
 
+  /**
+   * Where "back" belongs, derived from the id rather than remembered.
+   *
+   * A problem opened from Thinking Lab used to return the member to the Practice Lab, which
+   * is a different list they were never on. The id already says which bank it came from —
+   * admin-authored rows are prefixed `db:` — so this needs no query parameter, survives a
+   * refresh, and works when the link is shared or bookmarked, none of which a remembered
+   * origin would.
+   */
+  const fromBank = id.startsWith('db:');
+  const backTo = fromBank ? '/careerpilot/thinking-lab' : '/careerpilot/practice';
+  const backLabel = fromBank ? 'Thinking Lab' : 'Practice Lab';
+
   const [problem, setProblem] = useState<PracticeProblem | null>(null);
   const [siblings, setSiblings] = useState<PracticeListItem[]>([]);
   const [alreadySolved, setAlreadySolved] = useState(false);
@@ -72,7 +85,14 @@ const PracticeItem: React.FC = () => {
     try {
       const [r, list] = await Promise.all([
         passportApi.getPractice(id),
-        passportApi.listPractice().catch(() => null),
+        /**
+         * Siblings from the SAME bank the problem belongs to.
+         *
+         * Fetched unfiltered, Previous/Next walked the merged list, so a member working
+         * through Thinking Lab would silently land on a built-in warm-up and have no way
+         * back to where they were.
+         */
+        passportApi.listPractice({ source: fromBank ? 'bank' : 'builtin' }).catch(() => null),
       ]);
       setProblem(r.problem);
       setAlreadySolved(r.solved);
@@ -96,7 +116,7 @@ const PracticeItem: React.FC = () => {
       setErr(e?.response?.data?.message || 'Could not load this problem.');
     }
     setLoading(false);
-  }, [id]);
+  }, [id, fromBank]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -186,7 +206,7 @@ const PracticeItem: React.FC = () => {
     return (
       <>
         <div className="pl-bar">
-          <button className="pl-back" onClick={() => nav('/careerpilot/practice')}>← Back to Practice Lab</button>
+          <button className="pl-back" onClick={() => nav(backTo)}>← Back to {backLabel}</button>
           <div className="pl-nextprev">
             {prev && <button onClick={() => nav(`/careerpilot/practice/${prev.id}`)}>‹ Previous</button>}
             {next && <button className="on" onClick={() => nav(`/careerpilot/practice/${next.id}`)}>Next ›</button>}
@@ -253,7 +273,7 @@ const PracticeItem: React.FC = () => {
   return (
     <>
       <div className="pl-bar">
-        <button className="pl-back" onClick={() => nav('/careerpilot/practice')}>← Back to Practice Lab</button>
+        <button className="pl-back" onClick={() => nav(backTo)}>← Back to {backLabel}</button>
         <div className="pl-meta">
           {problem.estimatedMinutes && <span><i>⏱</i>Est. {problem.estimatedMinutes} min</span>}
           <span><i>⭐</i>+{problem.xp} XP</span>

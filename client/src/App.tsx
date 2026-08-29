@@ -548,7 +548,12 @@ const AppRoutes: React.FC = () => {
         {/* Coins buy rewards; XP never does. */}
         <Route path="/careerpilot/rewards" element={<PassportRewards />} />
         <Route path="/passport/roadmap" element={<LegacyRedirect to="/careerpilot/roadmap" />} />
-        <Route path="/careerpilot/practice" element={<PassportPractice />} />
+        {/*
+          Built-ins ONLY. Left on the default 'all', this listed the admin-authored bank as
+          well, so every Thinking Lab problem appeared on both screens — the same problem
+          under two names, which is worse than having no second screen at all.
+        */}
+        <Route path="/careerpilot/practice" element={<PassportPractice source="builtin" />} />
         <Route path="/passport/practice" element={<LegacyRedirect to="/careerpilot/practice" />} />
         <Route path="/careerpilot/practice/:id" element={<PassportPracticeItem />} />
         {/*

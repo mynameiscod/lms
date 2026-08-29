@@ -3,10 +3,14 @@ import { useParams } from 'react-router-dom';
 import CompanyDetail from './CompanyDetail';
 import Opportunities from './Opportunities';
 
-/** Career opportunities and company-prep detail share one member destination. */
+/** Career opportunities and company-prep detail share one CodeBegun member surface. */
 const Companies: React.FC = () => {
   const { slug } = useParams();
-  return <div className="cb-companies-surface">{slug ? <CompanyDetail slug={slug} /> : <Opportunities />}</div>;
+  return (
+    <section className="cb-companies-surface" aria-label="Career opportunities">
+      {slug ? <CompanyDetail slug={slug} /> : <Opportunities />}
+    </section>
+  );
 };
 
 export default Companies;

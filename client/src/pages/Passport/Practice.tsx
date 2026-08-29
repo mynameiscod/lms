@@ -3,11 +3,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { PracticeListItem } from '../../api/passportApi';
 import PassportShell, { LockedPanel } from './PassportShell';
 
-const KINDS: { key: string; label: string }[] = [
-  { key: '', label: 'All' },
-  { key: 'coding', label: '💻 Coding' },
-  { key: 'sql', label: '🗄️ SQL' },
-  { key: 'mcq', label: '📝 MCQ Sets' },
+const KINDS: { key: string; label: string; icon: string }[] = [
+  { key: '', label: 'All', icon: 'bi-grid' },
+  { key: 'coding', label: 'Coding', icon: 'bi-code-slash' },
+  { key: 'sql', label: 'SQL', icon: 'bi-database' },
+  { key: 'mcq', label: 'MCQ Sets', icon: 'bi-ui-checks-grid' },
 ];
 
 const CAT_LABEL: Record<string, string> = {
@@ -15,17 +15,6 @@ const CAT_LABEL: Record<string, string> = {
   communication: 'Communication', employability: 'Employability', career_clarity: 'Career Clarity',
 };
 
-/** Practice Lab — the `practice` entitlement. Coding + SQL run on the same self-hosted
- *  Piston the LMS uses; MCQ sets grade instantly. Never leaves /passport. */
-/**
- * Serves both member practice screens.
- *
- * `source` decides which half of the shared bank is listed: the built-in warm-up exercises
- * that ship in code, or the admin-authored problem bank behind Thinking Lab. One component
- * rather than two because the card, the filters, the entitlement gate and the route into a
- * problem are identical — only the source and the heading differ, and a fork would leave two
- * of each to keep in step.
- */
 interface PracticeProps {
   source?: 'all' | 'builtin' | 'bank';
   heading?: string;
@@ -47,7 +36,7 @@ const Practice: React.FC<PracticeProps> = ({ source = 'all', heading, blurb }) =
         ...(kind ? { kind } : {}),
         ...(source !== 'all' ? { source } : {}),
       }));
-    } catch { /* ignore */ }
+    } catch { /* keep current state */ }
     setLoading(false);
   }, [kind, source]);
 
@@ -78,35 +67,37 @@ const Practice: React.FC<PracticeProps> = ({ source = 'all', heading, blurb }) =
 
   const problems: PracticeListItem[] = data?.problems || [];
   const solved: string[] = data?.solved || [];
+  const isThinkingLab = source === 'bank';
 
   return (
     <PassportShell
       meta={
         <>
-          <span className="pm-pill"><i>✅</i><b>{solved.length}</b> solved</span>
-          <span className="pm-pill"><i>⭐</i><b>{data?.xp ?? 0}</b> XP</span>
+          <span className="pm-pill"><i className="bi bi-check-circle" aria-hidden="true" /><b>{solved.length}</b> solved</span>
+          <span className="pm-pill"><i className="bi bi-lightning-charge" aria-hidden="true" /><b>{data?.xp ?? 0}</b> XP</span>
         </>
       }
     >
       <div className="pm-head">
+        <span className={`cb-icon-chip ${isThinkingLab ? 'teal' : ''}`} aria-hidden="true"><i className={`bi ${isThinkingLab ? 'bi-lightbulb' : 'bi-code-square'}`} /></span>
         <h1>{heading || 'Practice Lab'}</h1>
         <p>{blurb || 'Your code actually compiles and runs here — same engine your assessments use. Solve a problem for the first time and its XP is added to your journey.'}</p>
       </div>
 
-      <div className="pr-filters">
+      <div className="pr-filters" aria-label="Practice type filters">
         {KINDS.map(k => (
           <button
             key={k.key}
             className={`pr-chip${kind === k.key ? ' on' : ''}`}
             onClick={() => { if (k.key) setParams({ kind: k.key }); else setParams({}); }}
           >
-            {k.label}
+            <i className={`bi ${k.icon}`} aria-hidden="true" /> {k.label}
           </button>
         ))}
       </div>
 
       {!problems.length ? (
-        <div className="pm-empty">No problems in this category yet.</div>
+        <div className="pm-empty"><i className="bi bi-inbox" aria-hidden="true" /> No problems in this category yet.</div>
       ) : (
         <div className="pr-grid">
           {problems.map(p => (
@@ -114,9 +105,7 @@ const Practice: React.FC<PracticeProps> = ({ source = 'all', heading, blurb }) =
               <div className="top">
                 <span className={`kind ${p.kind}`}>{p.kind}</span>
                 <span className={`pr-diff d-${p.difficulty}`}>{p.difficulty}</span>
-                {/* `solved` comes from the attempt row; the older solved[] list still covers
-                    problems finished before attempts were recorded, so both are consulted. */}
-                {(p.solved || solved.includes(p.id)) && <span className="solved">✓ Solved</span>}
+                {(p.solved || solved.includes(p.id)) && <span className="solved"><i className="bi bi-check-circle-fill" aria-hidden="true" /> Solved</span>}
               </div>
               <h3>{p.title}</h3>
               <div className="meta">
@@ -125,15 +114,9 @@ const Practice: React.FC<PracticeProps> = ({ source = 'all', heading, blurb }) =
                 <span>· +{p.xp} XP</span>
                 {p.estimatedMinutes ? <span>· ~{p.estimatedMinutes} min</span> : null}
               </div>
-              {/* Progress, only once there is some. A row of zeroes on an untouched problem
-                  reads as failure rather than as "not started". */}
               {(p.attempts || p.testsTotal || p.solvedCount) ? (
                 <div className="pr-progress">
-                  {p.testsTotal ? (
-                    <span className={`pr-tests${p.testsPassed === p.testsTotal ? ' all' : ''}`}>
-                      {p.testsPassed}/{p.testsTotal} tests
-                    </span>
-                  ) : null}
+                  {p.testsTotal ? <span className={`pr-tests${p.testsPassed === p.testsTotal ? ' all' : ''}`}>{p.testsPassed}/{p.testsTotal} tests</span> : null}
                   {p.attempts ? <span>· {p.attempts} attempt{p.attempts === 1 ? '' : 's'}</span> : null}
                   {p.solvedCount ? <span>· {p.solvedCount} solved this</span> : null}
                 </div>

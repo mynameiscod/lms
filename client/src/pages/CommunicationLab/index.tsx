@@ -1,284 +1,144 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { communicationApi, CommToday, CommProfile, CommAttempt, CommProgress } from '../../api/communicationApi';
+import { communicationApi, CommProfile, CommAttempt, CommProgress } from '../../api/communicationApi';
+import './communicationLab.css';
 
 const todayStr = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
-const scoreColor = (s: number) => (s >= 80 ? '#16a34a' : s >= 60 ? '#d97706' : s >= 40 ? '#ea580c' : '#dc2626');
+
+const scoreColor = (s?: number | null) => {
+  if (s == null) return '#94a3b8';
+  if (s >= 80) return '#16835d';
+  if (s >= 60) return '#b86b00';
+  return '#c93737';
+};
+
 const pickMime = (video: boolean) => {
   const list = video
     ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']
     : ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
-  for (const m of list) { if ((window as any).MediaRecorder?.isTypeSupported?.(m)) return m; }
+  for (const m of list) if ((window as any).MediaRecorder?.isTypeSupported?.(m)) return m;
   return '';
 };
 
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,.05)' };
-const btn = (bg: string, disabled = false): React.CSSProperties => ({ padding: '10px 18px', background: disabled ? '#cbd5e1' : bg, color: '#fff', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 600, cursor: disabled ? 'default' : 'pointer' });
-const input: React.CSSProperties = { padding: '9px 11px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, width: '100%', outline: 'none' };
-const lbl: React.CSSProperties = { fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 4, display: 'block' };
+const TABS = [
+  ['daily', 'Daily Practice'], ['profile', 'My Profile'], ['history', 'History'],
+  ['progress', 'Progress'], ['achievements', 'Achievements'], ['leaderboard', 'Leaderboard'],
+] as const;
 
-// ── Score chip ────────────────────────────────────────────────────────────────
-const ScoreChip: React.FC<{ label: string; value: number | null }> = ({ label, value }) => (
-  <div style={{ ...card, padding: '12px 14px', textAlign: 'center' }}>
-    <div style={{ fontSize: 22, fontWeight: 800, color: value == null ? '#9ca3af' : scoreColor(value) }}>{value == null ? '—' : value}</div>
-    <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>{label}</div>
-  </div>
+type Tab = typeof TABS[number][0];
+
+const Metric: React.FC<{ icon: string; value: React.ReactNode; label: string; tone?: string }> = ({ icon, value, label, tone = '' }) => (
+  <div className={`clx-kpi ${tone}`}><i className={`bi ${icon}`} /><div><b>{value}</b><span>{label}</span></div></div>
 );
 
-// ── Result view ───────────────────────────────────────────────────────────────
-const ResultView: React.FC<{ a: CommAttempt; onClose: () => void }> = ({ a, onClose }) => {
-  const e = a.evaluation!;
-  return (
-    <div style={{ display: 'grid', gap: 16 }}>
-      <div style={{ ...card, padding: 22, display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 48, fontWeight: 800, color: scoreColor(e.overallScore), lineHeight: 1 }}>{e.overallScore}</div>
-          <div style={{ fontSize: 12, color: '#6b7280' }}>/ 100</div>
-        </div>
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>{e.readinessLevel}</div>
-          <div style={{ fontSize: 13.5, color: '#4b5563', marginTop: 4 }}>{e.dailyCoachMessage}</div>
-          <div style={{ fontSize: 12.5, color: '#6b7280', marginTop: 6 }}>
-            🗣 {e.speakingSpeed.wordsPerMinute} wpm ({e.speakingSpeed.status.replace('_', ' ').toLowerCase()}) · 🧯 {e.fillerWords.total} filler words
-          </div>
-        </div>
-        <button onClick={onClose} style={btn('#1a5490')}>Done</button>
-      </div>
+const ScoreCard: React.FC<{ label: string; value: number | null | undefined }> = ({ label, value }) => (
+  <div className="clx-card clx-score-card"><b style={{ color: scoreColor(value) }}>{value ?? '—'}</b><span>{label}</span></div>
+);
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 10 }}>
-        <ScoreChip label="Confidence" value={e.confidenceScore} />
-        <ScoreChip label="Clarity" value={e.clarityScore} />
-        <ScoreChip label="Fluency" value={e.fluencyScore} />
-        <ScoreChip label="Grammar" value={e.grammarScore} />
-        <ScoreChip label="Content" value={e.contentScore} />
-        <ScoreChip label="Project" value={e.projectExplanationScore} />
-        <ScoreChip label="Career Goal" value={e.careerGoalScore} />
-        <ScoreChip label="Closing" value={e.closingScore} />
-      </div>
-
-      {a.recordingType === 'video' && (
-        <div style={{ ...card, padding: 14, fontSize: 12.5, color: '#6b7280' }}>
-          👁 Eye contact, expression & posture: <strong>Not Evaluated</strong> (visual analysis isn’t available yet — audio & content only).
-        </div>
-      )}
-
-      {(e.strengths.length > 0 || e.areasToImprove.length > 0) && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14 }}>
-          {e.strengths.length > 0 && (
-            <div style={{ ...card, padding: 16 }}>
-              <div style={{ fontWeight: 700, color: '#16a34a', marginBottom: 8 }}>✓ Strengths</div>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#374151', display: 'grid', gap: 5 }}>{e.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul>
-            </div>
-          )}
-          {e.areasToImprove.length > 0 && (
-            <div style={{ ...card, padding: 16 }}>
-              <div style={{ fontWeight: 700, color: '#d97706', marginBottom: 8 }}>↗ Areas to improve</div>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#374151', display: 'grid', gap: 5 }}>{e.areasToImprove.map((s, i) => <li key={i}>{s}</li>)}</ul>
-            </div>
-          )}
-        </div>
-      )}
-
-      {e.missingSections.length > 0 && (
-        <div style={{ ...card, padding: 16, background: '#fffbeb', borderColor: '#fde68a' }}>
-          <div style={{ fontWeight: 700, color: '#b45309', marginBottom: 6 }}>Missing sections</div>
-          <div style={{ fontSize: 13.5, color: '#92400e' }}>{e.missingSections.join(' · ')}</div>
-        </div>
-      )}
-
-      {e.sentenceImprovements.length > 0 && (
-        <div style={{ ...card, padding: 16 }}>
-          <div style={{ fontWeight: 700, marginBottom: 10 }}>Sentence improvements</div>
-          <div style={{ display: 'grid', gap: 10 }}>
-            {e.sentenceImprovements.map((s, i) => (
-              <div key={i} style={{ fontSize: 13.5 }}>
-                <div style={{ color: '#dc2626' }}>✗ {s.original}</div>
-                <div style={{ color: '#16a34a' }}>✓ {s.improved}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {e.improvedIntroduction && (
-        <div style={{ ...card, padding: 16 }}>
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>✨ Improved version <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 12 }}>(uses only your real details — speak it in your own words)</span></div>
-          <div style={{ fontSize: 13.5, color: '#374151', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{e.improvedIntroduction}</div>
-        </div>
-      )}
-
-      {a.transcript && (
-        <details style={{ ...card, padding: 16 }}>
-          <summary style={{ cursor: 'pointer', fontWeight: 700 }}>📝 Your transcript</summary>
-          <div style={{ fontSize: 13.5, color: '#4b5563', marginTop: 10, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{a.transcript}</div>
-        </details>
-      )}
-    </div>
-  );
-};
-
-// ── Recorder modal ────────────────────────────────────────────────────────────
-const Recorder: React.FC<{ today: CommToday; onDone: (a: CommAttempt) => void; onClose: () => void }> = ({ today, onDone, onClose }) => {
-  const ch = today.challenge!;
-  const [mode, setMode] = useState<'video' | 'audio'>(ch.recordingModes.includes('video') ? 'video' : 'audio');
+const Recorder: React.FC<{ today: any; onDone: (a: CommAttempt) => void; onClose: () => void }> = ({ today, onDone, onClose }) => {
+  const ch = today.challenge;
+  const [mode, setMode] = useState<'video' | 'audio'>(ch?.recordingModes?.includes('video') ? 'video' : 'audio');
   const [phase, setPhase] = useState<'setup' | 'ready' | 'count' | 'rec' | 'done' | 'submitting'>('setup');
   const [err, setErr] = useState('');
   const [elapsed, setElapsed] = useState(0);
   const [count, setCount] = useState(3);
+  const [playUrl, setPlayUrl] = useState('');
   const streamRef = useRef<MediaStream | null>(null);
-  // Bumped when a stream is acquired, so the attach effect re-runs. The stream lives in a
-  // ref (it must not trigger renders), and a ref changing cannot wake an effect on its own.
-  const [streamTick, setStreamTick] = useState(0);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const blobRef = useRef<Blob | null>(null);
   const previewRef = useRef<HTMLVideoElement>(null);
-  const playbackRef = useRef<HTMLVideoElement>(null);
   const timerRef = useRef<any>(null);
-  const [playUrl, setPlayUrl] = useState('');
+  const [streamTick, setStreamTick] = useState(0);
 
   const stopStream = () => { streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; };
-  useEffect(() => () => { clearInterval(timerRef.current); stopStream(); }, []);
+  useEffect(() => () => { clearInterval(timerRef.current); stopStream(); if (playUrl) URL.revokeObjectURL(playUrl); }, [playUrl]);
 
-  /**
-   * Attach the camera stream to whichever <video> is currently mounted.
-   *
-   * The element is unmounted and remounted as the phase changes (setup -> ready -> count
-   * -> rec, and again when returning from 'done' for a retry), and each new element starts
-   * with no srcObject. Assigning once, at getUserMedia time, therefore attached to nothing
-   * — so this runs on every phase change and re-attaches, but only when the element does
-   * not already hold the stream.
-   */
   useEffect(() => {
     const v = previewRef.current;
-    const s = streamRef.current;
-    if (!v || !s || mode !== 'video' || phase === 'done' || phase === 'setup') return;
-    if (v.srcObject === s) return;
-    v.srcObject = s;
-    // Safari and some Android browsers do not always honour autoPlay on a late srcObject.
-    v.play?.().catch(() => { /* muted+playsInline means this rarely fails; ignore if it does */ });
+    if (v && streamRef.current && mode === 'video' && phase !== 'setup' && phase !== 'done') {
+      v.srcObject = streamRef.current;
+      v.play?.().catch(() => {});
+    }
   }, [phase, mode, streamTick]);
 
   const check = async () => {
     setErr('');
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: mode === 'video', audio: true });
-      streamRef.current = s;
-      // Do NOT attach the stream here. This runs while phase === 'setup', and the whole
-      // preview block is behind `phase !== 'setup'` — so previewRef.current is null, the
-      // old assignment was silently skipped by its own guard, and the <video> that mounts
-      // a moment later never received the stream. Recording still worked (MediaRecorder
-      // reads streamRef directly), which is why it showed a live REC timer over a black
-      // box. The effect below attaches it whenever the element actually exists.
-      setStreamTick(t => t + 1);
-      setPhase('ready');
-    } catch (e: any) {
-      setErr(mode === 'video' ? 'Camera/mic blocked. Allow access in your browser and retry.' : 'Microphone blocked. Allow access in your browser and retry.');
+      streamRef.current = await navigator.mediaDevices.getUserMedia({ video: mode === 'video', audio: true });
+      setStreamTick(x => x + 1); setPhase('ready');
+    } catch {
+      setErr(mode === 'video' ? 'Camera or microphone access is blocked. Allow access and retry.' : 'Microphone access is blocked. Allow access and retry.');
     }
   };
 
-  const startRec = () => {
+  const start = () => {
     if (!streamRef.current) return;
     setPhase('count'); setCount(3);
-    let c = 3;
+    let n = 3;
     const cd = setInterval(() => {
-      c -= 1; setCount(c);
-      if (c <= 0) {
-        clearInterval(cd);
-        const mime = pickMime(mode === 'video');
-        chunksRef.current = [];
-        const rec = new MediaRecorder(streamRef.current!, mime ? { mimeType: mime } : undefined);
-        rec.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
-        rec.onstop = () => {
-          const blob = new Blob(chunksRef.current, { type: mime || 'video/webm' });
-          blobRef.current = blob; setPlayUrl(URL.createObjectURL(blob));
-          clearInterval(timerRef.current); setPhase('done');
-        };
-        rec.start(1000); recRef.current = rec;
-        setPhase('rec'); setElapsed(0);
-        timerRef.current = setInterval(() => setElapsed((x) => {
-          const n = x + 1;
-          if (n >= ch.maxSeconds) { try { rec.stop(); } catch { /* */ } }
-          return n;
-        }), 1000);
-      }
+      n -= 1; setCount(n);
+      if (n > 0) return;
+      clearInterval(cd);
+      const mime = pickMime(mode === 'video');
+      chunksRef.current = [];
+      const rec = new MediaRecorder(streamRef.current!, mime ? { mimeType: mime } : undefined);
+      rec.ondataavailable = e => { if (e.data.size) chunksRef.current.push(e.data); };
+      rec.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: mime || (mode === 'video' ? 'video/webm' : 'audio/webm') });
+        blobRef.current = blob;
+        setPlayUrl(URL.createObjectURL(blob));
+        clearInterval(timerRef.current);
+        setPhase('done');
+      };
+      rec.start(1000); recRef.current = rec; setElapsed(0); setPhase('rec');
+      timerRef.current = setInterval(() => setElapsed(x => {
+        const next = x + 1;
+        if (ch?.maxSeconds && next >= ch.maxSeconds) try { rec.stop(); } catch {}
+        return next;
+      }), 1000);
     }, 1000);
   };
 
-  const stopRec = () => { try { recRef.current?.stop(); } catch { /* */ } };
-  const reRecord = () => { setPlayUrl(''); blobRef.current = null; setElapsed(0); setPhase('ready'); };
-
   const submit = async () => {
     if (!blobRef.current) return;
-    if (elapsed < ch.minSeconds) { setErr(`Please speak at least ${ch.minSeconds}s (you did ${elapsed}s).`); return; }
-    setPhase('submitting'); setErr(''); stopStream();
-    try {
-      const a = await communicationApi.submit(ch._id, today.date, mode, blobRef.current);
-      onDone(a);
-    } catch (e: any) {
-      setErr(e?.response?.data?.message || 'Submission failed. Try again.');
-      setPhase('done');
-    }
+    if (elapsed < (ch?.minSeconds || 0)) { setErr(`Please speak for at least ${ch.minSeconds} seconds.`); return; }
+    setPhase('submitting'); stopStream(); setErr('');
+    try { onDone(await communicationApi.submit(ch._id, today.date, mode, blobRef.current)); }
+    catch (e: any) { setErr(e?.response?.data?.message || 'Submission failed. Please try again.'); setPhase('done'); }
   };
 
-  const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  const remaining = ch.maxSeconds - elapsed;
-
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '24px 16px' }}>
-      <div style={{ ...card, width: '100%', maxWidth: 620, padding: 22 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{ch.title}</h3>
-          <button onClick={() => { stopStream(); onClose(); }} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
-        </div>
-
-        {err && <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#b91c1c', borderRadius: 8, padding: '8px 12px', fontSize: 13, marginBottom: 12 }}>{err}</div>}
-
-        {phase === 'setup' && (
-          <div>
-            <div style={{ fontSize: 13.5, color: '#4b5563', marginBottom: 14 }}>{ch.description}</div>
-            <label style={lbl}>Recording mode</label>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-              {ch.recordingModes.includes('video') && <button onClick={() => setMode('video')} style={btn(mode === 'video' ? '#1a5490' : '#94a3b8')}>🎥 Video + Audio</button>}
-              {ch.recordingModes.includes('audio') && <button onClick={() => setMode('audio')} style={btn(mode === 'audio' ? '#1a5490' : '#94a3b8')}>🎙 Audio only</button>}
-            </div>
-            <button onClick={check} style={{ ...btn('#16a34a'), width: '100%' }}>Check device & continue</button>
-          </div>
-        )}
-
-        {phase !== 'setup' && (
+    <div className="clx-modal">
+      <div className="clx-modal-card">
+        <div className="clx-modal-head"><div><h3>{ch?.title}</h3></div><button className="clx-close" onClick={() => { stopStream(); onClose(); }}><i className="bi bi-x-lg" /></button></div>
+        {err && <div className="pm-msg err" style={{ marginBottom: 12 }}>{err}</div>}
+        {phase === 'setup' ? (
           <>
-            <div style={{ position: 'relative', background: '#0b1220', borderRadius: 12, overflow: 'hidden', aspectRatio: '16 / 9', marginBottom: 14, display: 'grid', placeItems: 'center' }}>
-              {mode === 'video' && (phase === 'done' ? (
-                <video ref={playbackRef} src={playUrl} controls playsInline style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              ) : (
-                <video ref={previewRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
-              ))}
-              {mode === 'audio' && phase === 'done' && <audio src={playUrl} controls style={{ width: '90%' }} />}
-              {mode === 'audio' && phase !== 'done' && <div style={{ color: '#94a3b8', fontSize: 40 }}>🎙</div>}
-              {phase === 'count' && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.4)', color: '#fff', fontSize: 64, fontWeight: 800 }}>{count}</div>}
-              {phase === 'rec' && (
-                <div style={{ position: 'absolute', top: 10, left: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span style={{ background: '#dc2626', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>● REC {mmss(elapsed)}</span>
-                  {remaining <= 30 && <span style={{ background: '#f59e0b', color: '#fff', padding: '3px 8px', borderRadius: 20, fontSize: 11 }}>{remaining}s left</span>}
-                </div>
-              )}
+            <p>{ch?.description}</p>
+            <div className="clx-actions">
+              {ch?.recordingModes?.includes('video') && <button className={`clx-btn ${mode === 'video' ? 'primary' : ''}`} onClick={() => setMode('video')}><i className="bi bi-camera-video" /> Video + Audio</button>}
+              {ch?.recordingModes?.includes('audio') && <button className={`clx-btn ${mode === 'audio' ? 'primary' : ''}`} onClick={() => setMode('audio')}><i className="bi bi-mic" /> Audio only</button>}
             </div>
-
-            <div style={{ fontSize: 12.5, color: '#6b7280', textAlign: 'center', marginBottom: 12 }}>
-              Target {mmss(ch.targetSeconds)} · min {mmss(ch.minSeconds)} · max {mmss(ch.maxSeconds)}
+            <button className="clx-btn teal" style={{ width: '100%', marginTop: 16 }} onClick={check}><i className="bi bi-shield-check" /> Check device & continue</button>
+          </>
+        ) : (
+          <>
+            <div className="clx-preview">
+              {mode === 'video' && phase !== 'done' && <video ref={previewRef} autoPlay muted playsInline />}
+              {mode === 'video' && phase === 'done' && <video src={playUrl} controls playsInline />}
+              {mode === 'audio' && phase === 'done' && <audio src={playUrl} controls style={{ width: '88%' }} />}
+              {mode === 'audio' && phase !== 'done' && <i className="bi bi-mic" style={{ fontSize: 42 }} />}
+              {phase === 'count' && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.45)', color: '#fff', fontSize: 64, fontWeight: 900 }}>{count}</div>}
+              {phase === 'rec' && <span className="clx-rec-status"><i className="bi bi-record-circle" /> REC {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>}
             </div>
-
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-              {phase === 'ready' && <button onClick={startRec} style={btn('#dc2626')}>● Start recording</button>}
-              {phase === 'rec' && <button onClick={stopRec} style={btn('#111827')}>■ Stop</button>}
-              {phase === 'done' && <>
-                <button onClick={reRecord} style={btn('#94a3b8')}>↻ Re-record</button>
-                <button onClick={submit} style={btn('#16a34a')}>Submit for AI feedback</button>
-              </>}
-              {phase === 'submitting' && <div style={{ padding: '10px 0', color: '#6b7280' }}>⏳ Transcribing & evaluating… this takes ~20–40s</div>}
+            <div className="clx-actions" style={{ justifyContent: 'center' }}>
+              {phase === 'ready' && <button className="clx-btn primary" onClick={start}><i className="bi bi-mic-fill" /> Start recording</button>}
+              {phase === 'rec' && <button className="clx-btn primary" onClick={() => recRef.current?.stop()}><i className="bi bi-stop-fill" /> Stop</button>}
+              {phase === 'done' && <><button className="clx-btn" onClick={() => { setPlayUrl(''); blobRef.current = null; setElapsed(0); setPhase('ready'); }}><i className="bi bi-arrow-counterclockwise" /> Re-record</button><button className="clx-btn teal" onClick={submit}><i className="bi bi-stars" /> Submit for AI feedback</button></>}
+              {phase === 'submitting' && <span style={{ color: '#64748b', fontSize: 13 }}><i className="bi bi-hourglass-split" /> Transcribing and evaluating…</span>}
             </div>
           </>
         )}
@@ -287,255 +147,70 @@ const Recorder: React.FC<{ today: CommToday; onDone: (a: CommAttempt) => void; o
   );
 };
 
-// ── Profile form ──────────────────────────────────────────────────────────────
 const ProfileForm: React.FC = () => {
   const [p, setP] = useState<CommProfile>({});
   const [template, setTemplate] = useState('');
-  const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
-  useEffect(() => { communicationApi.getProfile().then((r) => { setP(r.profile || {}); setTemplate(r.template); setLoading(false); }); }, []);
-  const set = (k: keyof CommProfile, v: any) => setP((x) => ({ ...x, [k]: v }));
-  const setList = (k: keyof CommProfile, v: string) => setP((x) => ({ ...x, [k]: v.split(',').map(s => s.trim()).filter(Boolean) }));
-  const save = async () => { const r = await communicationApi.updateProfile(p); setTemplate(r.template); setSaved(true); setTimeout(() => setSaved(false), 2500); };
-  const txt = (k: keyof CommProfile, label: string, ph = '') => (
-    <div><label style={lbl}>{label}</label><input style={input} value={(p[k] as string) || ''} onChange={(e) => set(k, e.target.value)} placeholder={ph} /></div>
-  );
-  const lst = (k: keyof CommProfile, label: string, ph = '') => (
-    <div><label style={lbl}>{label} <span style={{ fontWeight: 400, color: '#9ca3af' }}>(comma-separated)</span></label>
-      <input style={input} value={((p[k] as string[]) || []).join(', ')} onChange={(e) => setList(k, e.target.value)} placeholder={ph} /></div>
-  );
-  if (loading) return <div style={{ color: '#9ca3af', padding: 40, textAlign: 'center' }}>Loading…</div>;
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 360px', gap: 20, alignItems: 'start' }} className="cl-profile">
-      <div style={{ ...card, padding: 20, display: 'grid', gap: 12 }}>
-        <div style={{ fontWeight: 700, fontSize: 15 }}>Your communication profile</div>
-        <p style={{ margin: 0, fontSize: 12.5, color: '#6b7280' }}>Fill these once. We use them to generate your intro template and to give the AI real context (it never invents facts).</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>{txt('fullName', 'Full name')}{txt('currentCity', 'Current city')}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>{txt('degree', 'Degree', 'B.Tech')}{txt('specialization', 'Specialization', 'CSE')}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>{txt('college', 'College')}{txt('graduationYear', 'Grad year', '2025')}{txt('cgpaOrPercentage', 'CGPA / %')}</div>
-        {lst('primarySkills', 'Primary skills', 'Java, Spring Boot, SQL')}
-        {lst('secondarySkills', 'Secondary skills', 'Git, Docker')}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>{txt('trainingInstitute', 'Training institute', 'CodeBegun')}{txt('internshipDetails', 'Internship details')}</div>
-        {txt('projectName', 'Main project name')}
-        {txt('projectObjective', 'Project objective')}
-        {lst('projectTechnologies', 'Project technologies', 'React, Node, MongoDB')}
-        {txt('projectResponsibilities', 'Your responsibilities')}
-        {lst('strengths', 'Strengths', 'Quick learner, Team player')}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>{txt('shortTermGoal', 'Short-term goal')}{txt('longTermGoal', 'Long-term goal')}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>{txt('targetRole', 'Target role', 'Java Developer')}{lst('targetCompanies', 'Target companies')}</div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <button onClick={save} style={btn('#1a5490')}>Save profile</button>
-          {saved && <span style={{ color: '#16a34a', fontSize: 13, fontWeight: 600 }}>✓ Saved</span>}
-        </div>
-      </div>
-      <div style={{ ...card, padding: 18, position: 'sticky', top: 12 }}>
-        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>📄 Your intro template</div>
-        <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 10 }}>Use this as a structure — speak naturally in your own words. Don’t memorize word-for-word.</div>
-        <div style={{ fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{template}</div>
-      </div>
-    </div>
-  );
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { communicationApi.getProfile().then(r => { setP(r.profile || {}); setTemplate(r.template || ''); }).finally(() => setLoading(false)); }, []);
+  const set = (k: keyof CommProfile, v: any) => setP(x => ({ ...x, [k]: v }));
+  const text = (k: keyof CommProfile, label: string, ph = '', full = false) => <div className={`clx-field ${full ? 'full' : ''}`}><label>{label}</label><input value={(p[k] as string) || ''} placeholder={ph} onChange={e => set(k, e.target.value)} /></div>;
+  const list = (k: keyof CommProfile, label: string, ph = '', full = false) => <div className={`clx-field ${full ? 'full' : ''}`}><label>{label}</label><input value={((p[k] as string[]) || []).join(', ')} placeholder={ph} onChange={e => set(k, e.target.value.split(',').map(s => s.trim()).filter(Boolean))} /></div>;
+  const save = async () => { const r = await communicationApi.updateProfile(p); setTemplate(r.template || ''); setSaved(true); setTimeout(() => setSaved(false), 2200); };
+  if (loading) return <div className="clx-card clx-empty">Loading your communication profile…</div>;
+  return <div className="clx-profile"><div className="clx-card clx-form"><div className="clx-section" style={{ padding: 0, marginBottom: 16 }}><h2>Your communication profile</h2><p style={{ color: '#64748b', fontSize: 13 }}>Give the AI real context so your practice and introduction feedback stay personal and accurate.</p></div><div className="clx-form-grid">{text('fullName','Full name')}{text('currentCity','Current city')}{text('degree','Degree','B.Tech')}{text('specialization','Specialization','CSE')}{text('college','College')}{text('graduationYear','Graduation year','2026')}{text('cgpaOrPercentage','CGPA / Percentage')}{text('targetRole','Target role','Java Developer')}{list('primarySkills','Primary skills','Java, Spring Boot, SQL',true)}{list('secondarySkills','Secondary skills','Git, Docker',true)}{text('trainingInstitute','Training institute','CodeBegun')}{text('internshipDetails','Internship details')}{text('projectName','Main project name', '', true)}{text('projectObjective','Project objective','',true)}{list('projectTechnologies','Project technologies','React, Node, MongoDB',true)}{text('projectResponsibilities','Your responsibilities','',true)}{list('strengths','Strengths','Quick learner, Team player',true)}{text('shortTermGoal','Short-term goal')}{text('longTermGoal','Long-term goal')}{list('targetCompanies','Target companies','ServiceNow, Microsoft',true)}</div><div className="clx-actions"><button className="clx-btn primary" onClick={save}><i className="bi bi-check2-circle" /> Save profile</button>{saved && <span style={{ color:'#16835d',fontWeight:700,fontSize:13 }}><i className="bi bi-check-circle-fill" /> Saved</span>}</div></div><aside className="clx-card clx-template"><h3><i className="bi bi-file-earmark-text" /> Your intro template</h3><p style={{ color:'#64748b' }}>Use this as a structure and speak naturally in your own words.</p><p>{template || 'Complete your profile to generate a personal introduction structure.'}</p></aside></div>;
 };
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+const ResultView: React.FC<{ a: CommAttempt; onClose: () => void }> = ({ a, onClose }) => {
+  const e: any = a.evaluation;
+  if (!e) return null;
+  return <div className="clx-feedback"><div className="clx-card clx-feedback-head"><div className="clx-feedback-score"><div><b>{e.overallScore}</b><div style={{ fontSize: 11 }}>/100</div></div></div><div style={{ flex:1 }}><h2 style={{ margin:'0 0 5px',color:'#051d64' }}>{e.readinessLevel}</h2><p style={{ margin:0,color:'#64748b',fontSize:13.5 }}>{e.dailyCoachMessage}</p><p style={{ margin:'8px 0 0',fontSize:12.5,color:'#64748b' }}><i className="bi bi-speedometer2" /> {e.speakingSpeed?.wordsPerMinute || 0} wpm &nbsp; <i className="bi bi-chat-dots" /> {e.fillerWords?.total || 0} filler words</p></div><button className="clx-btn" onClick={onClose}><i className="bi bi-arrow-left" /> Back</button></div><div className="clx-score-grid"><ScoreCard label="Confidence" value={e.confidenceScore}/><ScoreCard label="Clarity" value={e.clarityScore}/><ScoreCard label="Fluency" value={e.fluencyScore}/><ScoreCard label="Grammar" value={e.grammarScore}/><ScoreCard label="Content" value={e.contentScore}/><ScoreCard label="Project" value={e.projectExplanationScore}/><ScoreCard label="Career Goal" value={e.careerGoalScore}/><ScoreCard label="Closing" value={e.closingScore}/></div>{(e.strengths?.length || e.areasToImprove?.length) ? <div className="clx-grid"><div className="clx-card clx-panel"><h3 style={{ color:'#16835d' }}><i className="bi bi-check-circle" /> Strengths</h3><ul>{(e.strengths || []).map((s:string,i:number)=><li key={i}>{s}</li>)}</ul></div><div className="clx-card clx-panel"><h3 style={{ color:'#b86b00' }}><i className="bi bi-arrow-up-right-circle" /> Areas to improve</h3><ul>{(e.areasToImprove || []).map((s:string,i:number)=><li key={i}>{s}</li>)}</ul></div></div> : null}{e.transcript && <div className="clx-card clx-panel"><h3><i className="bi bi-file-text" /> Your transcript</h3><p style={{ whiteSpace:'pre-wrap',lineHeight:1.65 }}>{e.transcript}</p></div>}</div>;
+};
+
 const CommunicationLab: React.FC = () => {
-  const [tab, setTab] = useState<'daily' | 'profile' | 'history' | 'progress' | 'achievements' | 'leaderboard'>('daily');
-  const [today, setToday] = useState<CommToday | null>(null);
-  const [recording, setRecording] = useState(false);
-  const [result, setResult] = useState<CommAttempt | null>(null);
+  const [tab, setTab] = useState<Tab>('daily');
+  const [today, setToday] = useState<any>(null);
   const [history, setHistory] = useState<CommAttempt[]>([]);
   const [progress, setProgress] = useState<CommProgress | null>(null);
   const [achievements, setAchievements] = useState<any[]>([]);
-  const [board, setBoard] = useState<{ enabled: boolean; rows: any[]; me: any } | null>(null);
+  const [board, setBoard] = useState<any>(null);
+  const [recording, setRecording] = useState(false);
+  const [result, setResult] = useState<CommAttempt | null>(null);
 
-  const loadToday = useCallback(() => { communicationApi.today(todayStr()).then(setToday).catch(() => {}); }, []);
-  useEffect(() => { loadToday(); }, [loadToday]);
-  useEffect(() => { if (tab === 'history') communicationApi.history().then(setHistory).catch(() => {}); }, [tab]);
-  useEffect(() => { if (tab === 'progress') communicationApi.progress().then(setProgress).catch(() => {}); }, [tab]);
-  useEffect(() => { if (tab === 'achievements') communicationApi.achievements().then((r) => setAchievements(r.achievements)).catch(() => {}); }, [tab]);
-  useEffect(() => { if (tab === 'leaderboard') communicationApi.leaderboard().then(setBoard).catch(() => {}); }, [tab]);
+  const loadToday = useCallback(() => communicationApi.today(todayStr()).then(setToday).catch(() => setToday(null)), []);
+  const loadOverview = useCallback(() => {
+    communicationApi.progress().then(setProgress).catch(() => {});
+    communicationApi.history().then(setHistory).catch(() => {});
+  }, []);
+  useEffect(() => { loadToday(); loadOverview(); }, [loadToday, loadOverview]);
+  useEffect(() => { if (tab === 'progress') communicationApi.progress().then(setProgress).catch(() => {}); if (tab === 'history') communicationApi.history().then(setHistory).catch(() => {}); if (tab === 'achievements') communicationApi.achievements().then((r:any) => setAchievements(r.achievements || [])).catch(() => {}); if (tab === 'leaderboard') communicationApi.leaderboard().then(setBoard).catch(() => {}); }, [tab]);
 
-  const onDone = (a: CommAttempt) => { setRecording(false); setResult(a); loadToday(); };
+  const onDone = (a: CommAttempt) => { setRecording(false); setResult(a); loadToday(); loadOverview(); };
+  const streak = today?.currentStreak ?? progress?.currentStreak ?? 0;
+  const totalSessions = progress?.totalPracticeDays ?? history.length;
+  const bestScore = progress?.best ?? today?.lastScore ?? 0;
+  const completed = today?.status === 'completed';
+  const recent = history.slice(0, 2);
+  const daysDone = Math.min(7, streak || 0);
+  const weekdays = ['M','T','W','T','F','S','S'];
 
-  const tabBtn = (k: typeof tab, label: string) => (
-    <button onClick={() => { setTab(k); setResult(null); }}
-      style={{ padding: '8px 16px', border: 'none', borderBottom: tab === k ? '2px solid #1a5490' : '2px solid transparent', background: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: tab === k ? '#1a5490' : '#6b7280' }}>{label}</button>
-  );
+  return <div className="clx">
+    <header className="clx-head"><div className="clx-title"><span className="clx-title-icon"><i className="bi bi-person-video3" /></span><div><h1>AI Communication Lab</h1><p>Practise your communication every day. Record, get AI feedback, and build a streak.</p></div></div><div className="clx-kpis"><Metric icon="bi-fire" value={streak} label="Day Streak"/><Metric icon="bi-graph-up-arrow" value={totalSessions} label="Sessions" tone="teal"/><Metric icon="bi-star" value={bestScore || '—'} label="Best Score" tone="amber"/></div></header>
+    <nav className="clx-tabs">{TABS.map(([k,l]) => <button key={k} className={`clx-tab ${tab===k?'on':''}`} onClick={()=>{setTab(k);setResult(null);}}>{l}</button>)}</nav>
 
-  return (
-    <div style={{ padding: 24, maxWidth: 1060, margin: '0 auto' }}>
-      <div style={{ marginBottom: 16 }}>
-        <h2 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#111827' }}>🎙 AI Communication Lab</h2>
-        <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: 14 }}>Practise your communication every day. Record, get AI feedback, and build a streak.</p>
-      </div>
+    {tab === 'daily' && (result ? <ResultView a={result} onClose={()=>setResult(null)} /> : <>
+      <section className="clx-card clx-hero"><div className="clx-hero-main"><div className="clx-hero-art"><span className="person"><i className="bi bi-person-lines-fill" /></span><span className="mic"><i className="bi bi-mic-fill" /></span></div><div className="clx-hero-copy"><h2>{today?.challenge ? 'Start Your Daily Practice' : 'Your Daily Practice'}</h2><p>{today?.challenge ? 'Record your response and get instant AI feedback to improve your communication skills.' : (today?.message || 'A new communication challenge will appear here when it is available.')}</p><div className="clx-actions"><button className="clx-btn primary" disabled={!today?.challenge || completed} onClick={()=>setRecording(true)}><i className="bi bi-mic" /> {completed ? 'Completed Today' : 'Start Practice'}</button><button className="clx-btn" onClick={()=>setTab('profile')}><i className="bi bi-person-gear" /> My Profile</button></div></div></div><aside className="clx-goal"><h3>Today's Goal</h3><p>Complete 1 practice session</p><div className="clx-progress-line"><div className="clx-progress-track"><i style={{ width: completed ? '100%' : '0%' }} /></div><b>{completed?'1 / 1':'0 / 1'}</b></div><div className={`clx-goal-msg ${completed?'':'pending'}`}><i className={`bi ${completed?'bi-check-circle-fill':'bi-hourglass-split'}`} /> {completed ? 'Goal completed! Great job!' : 'One focused practice completes today’s goal.'}</div></aside></section>
+      <div className="clx-grid"><section className="clx-card clx-section"><h2>Today's Practice Task</h2>{today?.challenge ? <div className="clx-task"><span className="clx-task-icon"><i className="bi bi-megaphone" /></span><div className="clx-task-main"><div className="clx-task-title"><b>{today.challenge.title}</b><span className="clx-badge">Daily</span></div><p>{today.challenge.description}</p><div className="clx-meta"><span><i className="bi bi-clock" /> {Math.max(1,Math.round((today.challenge.targetSeconds || 60)/60))} min</span><span><i className="bi bi-arrow-repeat" /> {today.challenge.maxAttempts || 1} attempts</span><span><i className="bi bi-calendar-check" /> Today</span></div></div><button className="clx-btn primary" disabled={completed} onClick={()=>setRecording(true)}>{completed?'Done':'Practice Now'} <i className="bi bi-arrow-right" /></button></div> : <div className="clx-empty"><i className="bi bi-calendar2-check" /><h3>No challenge available yet</h3><p>{today?.message || 'Please check back later for today’s communication challenge.'}</p></div>}</section><aside className="clx-side"><div className="clx-card clx-side-card"><h3><i className="bi bi-calendar3" /> Your Streak</h3><div className="clx-streak-days">{weekdays.map((d,i)=><div className={`clx-day ${i < daysDone ? 'done':''}`} key={`${d}-${i}`}><b>{d}</b><span><i className={`bi ${i < daysDone ? 'bi-check-lg':'bi-circle-fill'}`} /></span></div>)}</div><div className="clx-side-note">{streak ? `${streak} day${streak===1?'':'s'} in a row. Keep it going.` : 'Complete today’s practice to start your streak.'}</div></div><div className="clx-card clx-side-card"><div className="clx-tip"><i className="bi bi-lightbulb" /><div><h3>AI Communication Tip</h3><p>Speak clearly, use short pauses between ideas, and support key points with one concrete example.</p></div></div></div><div className="clx-card clx-side-card"><h3><i className="bi bi-clock-history" /> Recent Activity</h3><div className="clx-activity">{recent.length ? recent.map(a=><div className="clx-activity-row" key={a._id}><span className="check"><i className="bi bi-check2" /></span><div><b>{a.challengeTitle}</b><p>{a.practiceDate}</p></div><strong style={{ color:scoreColor(a.evaluation?.overallScore) }}>{a.evaluation?.overallScore ?? '—'}/100</strong></div>) : <p style={{ color:'#64748b',fontSize:12.5 }}>No completed sessions yet.</p>}</div></div></aside></div>
+    </>)}
 
-      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #e5e7eb', marginBottom: 20, flexWrap: 'wrap' }}>
-        {tabBtn('daily', 'Daily Practice')}{tabBtn('profile', 'My Profile')}{tabBtn('history', 'History')}{tabBtn('progress', 'Progress')}{tabBtn('achievements', 'Achievements')}{tabBtn('leaderboard', 'Leaderboard')}
-      </div>
+    {tab === 'profile' && <ProfileForm />}
+    {tab === 'history' && <div className="clx-card clx-panel"><h2 style={{ marginTop:0,color:'#051d64' }}>Practice History</h2><div className="clx-list">{history.length ? history.map(a=><div className="clx-history-row" key={a._id}><div className="clx-score" style={{color:scoreColor(a.evaluation?.overallScore)}}>{a.evaluation?.overallScore ?? '—'}</div><div><b>{a.challengeTitle}</b><p>{a.practiceDate} · {a.recordingType} · {a.recordingDuration}s · {a.wordsPerMinute || 0} wpm</p></div><button className="clx-btn" disabled={!a.evaluation} onClick={()=>setResult(a)}>View</button></div>) : <div className="clx-empty"><i className="bi bi-clock-history"/><h3>No practice history yet</h3><p>Complete your first daily challenge and it will appear here.</p></div>}</div>{result && <div style={{marginTop:18}}><ResultView a={result} onClose={()=>setResult(null)}/></div>}</div>}
+    {tab === 'progress' && <div>{progress ? <><div className="clx-progress-kpis"><div className="clx-card clx-mini"><i className="bi bi-fire"/><b>{progress.currentStreak}</b><span>Current streak</span></div><div className="clx-card clx-mini"><i className="bi bi-trophy"/><b>{progress.longestStreak}</b><span>Longest streak</span></div><div className="clx-card clx-mini"><i className="bi bi-calendar-check"/><b>{progress.totalPracticeDays}</b><span>Practice days</span></div><div className="clx-card clx-mini"><i className="bi bi-graph-up-arrow"/><b>{progress.improvement}</b><span>Improvement</span></div></div><div className="clx-card clx-panel" style={{marginTop:16}}><h3 style={{color:'#051d64'}}>Performance Summary</h3><p style={{color:'#64748b'}}>Best <strong>{progress.best}</strong> · Latest <strong>{progress.latest}</strong> · Average <strong>{progress.avg}</strong></p><p style={{color:'#64748b'}}>Strongest: <strong style={{color:'#16835d'}}>{progress.strongestSkill || '—'}</strong> · Focus next: <strong style={{color:'#b86b00'}}>{progress.weakestSkill || '—'}</strong></p></div></> : <div className="clx-card clx-empty">Loading progress…</div>}</div>}
+    {tab === 'achievements' && <div className="clx-achievements">{achievements.length ? achievements.map((a:any)=><div className="clx-card clx-ach" key={a.code}><span className="icon"><i className={`bi ${a.earned?'bi-trophy-fill':'bi-award'}`} /></span><h3>{a.name}</h3><p>{a.description}</p>{a.earned?<span style={{color:'#16835d',fontSize:12,fontWeight:800}}><i className="bi bi-check-circle-fill"/> Earned</span>:<div className="clx-progress-track"><i style={{width:`${a.progress || 0}%`}}/></div>}</div>) : <div className="clx-card clx-empty"><i className="bi bi-award"/><h3>No achievements yet</h3><p>Keep practising to unlock communication achievements.</p></div>}</div>}
+    {tab === 'leaderboard' && <div className="clx-card">{!board ? <div className="clx-empty">Loading leaderboard…</div> : !board.enabled ? <div className="clx-empty"><i className="bi bi-bar-chart"/><h3>Leaderboard unavailable</h3><p>The leaderboard is turned off for your institute.</p></div> : board.rows?.length ? board.rows.map((r:any)=><div className={`clx-rank ${r.me?'me':''}`} key={r.studentId}><span className="place">{r.rank <= 3 ? <i className="bi bi-trophy-fill" /> : r.rank}</span><span className="name">{r.name}{r.me?' (You)':''}</span><span className="stat"><i className="bi bi-fire"/> {r.streak} · {r.days} days</span><strong style={{color:scoreColor(r.avg)}}>{r.avg}</strong></div>) : <div className="clx-empty"><i className="bi bi-people"/><h3>No rankings yet</h3><p>Complete a practice session to get started.</p></div>}</div>}
 
-      {tab === 'daily' && (result ? (
-        <ResultView a={result} onClose={() => setResult(null)} />
-      ) : !today ? (
-        <div style={{ color: '#9ca3af', padding: 40, textAlign: 'center' }}>Loading today’s challenge…</div>
-      ) : !today.challenge ? (
-        <div style={{ ...card, padding: 40, textAlign: 'center' }}>
-          {today.locked && today.window ? (
-            <>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>{today.window.status === 'upcoming' ? '⏳' : '🔒'}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#0b2e63', marginBottom: 4 }}>{today.message || 'This challenge is not open right now.'}</div>
-              <div style={{ fontSize: 13, color: '#6b7280' }}>Available window: {today.window.startTime || '00:00'} – {today.window.endTime || '23:59'} IST</div>
-            </>
-          ) : (
-            <div style={{ color: '#9ca3af' }}>{today.message || 'No challenge available yet. Please check back later.'}</div>
-          )}
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 300px', gap: 20, alignItems: 'start' }} className="cl-daily">
-          <div style={{ ...card, padding: 22 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: '#1a5490' }}>Today’s Challenge</span>
-            <h3 style={{ margin: '6px 0 8px', fontSize: 20, fontWeight: 700, color: '#111827' }}>{today.challenge.title}</h3>
-            <p style={{ margin: '0 0 14px', color: '#4b5563', fontSize: 14 }}>{today.challenge.description}</p>
-            {today.challenge.suggestedPoints && today.challenge.suggestedPoints.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ ...lbl, marginBottom: 6 }}>Cover these points</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {today.challenge.suggestedPoints.map((s, i) => <span key={i} style={{ fontSize: 12, background: '#eff6ff', color: '#1e40af', padding: '3px 9px', borderRadius: 20 }}>{s}</span>)}
-                </div>
-              </div>
-            )}
-            <div style={{ display: 'flex', gap: 18, fontSize: 13, color: '#6b7280', marginBottom: 18, flexWrap: 'wrap' }}>
-              <span>⏱ Target {Math.round(today.challenge.targetSeconds / 60)} min</span>
-              <span>🔁 {today.challenge.maxAttempts} attempts</span>
-              <span>📅 Deadline: Today 11:59 PM</span>
-            </div>
-            {today.status === 'completed' ? (
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', borderRadius: 10, padding: '12px 16px', fontSize: 14, fontWeight: 600 }}>
-                ✓ Completed today. Great work! Come back tomorrow for a new challenge.
-              </div>
-            ) : (
-              <button onClick={() => setRecording(true)} style={{ ...btn('#dc2626'), fontSize: 15, padding: '12px 26px' }}>▶ Start Practice</button>
-            )}
-          </div>
-          <div style={{ display: 'grid', gap: 12 }}>
-            <div style={{ ...card, padding: 18, textAlign: 'center' }}>
-              <div style={{ fontSize: 32, fontWeight: 800, color: '#f59e0b' }}>🔥 {today.currentStreak}</div>
-              <div style={{ fontSize: 12.5, color: '#6b7280' }}>day streak · longest {today.longestStreak}</div>
-            </div>
-            <div style={{ ...card, padding: 18, textAlign: 'center' }}>
-              <div style={{ fontSize: 32, fontWeight: 800, color: today.lastScore == null ? '#9ca3af' : scoreColor(today.lastScore) }}>{today.lastScore == null ? '—' : `${today.lastScore}%`}</div>
-              <div style={{ fontSize: 12.5, color: '#6b7280' }}>last score</div>
-            </div>
-            <div style={{ ...card, padding: 14, fontSize: 12.5, color: '#6b7280' }}>
-              💡 Fill your <strong>Profile</strong> tab first to get a personalized intro template.
-            </div>
-          </div>
-        </div>
-      ))}
-
-      {tab === 'profile' && <ProfileForm />}
-
-      {tab === 'history' && (
-        <div style={{ display: 'grid', gap: 10 }}>
-          {history.length === 0 && <div style={{ ...card, padding: 40, textAlign: 'center', color: '#9ca3af' }}>No practice yet. Start today’s challenge!</div>}
-          {history.map((a) => (
-            <div key={a._id} style={{ ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ width: 46, textAlign: 'center' }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: a.evaluation ? scoreColor(a.evaluation.overallScore) : '#9ca3af' }}>{a.evaluation?.overallScore ?? '—'}</div>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{a.challengeTitle}</div>
-                <div style={{ fontSize: 12.5, color: '#6b7280' }}>{a.practiceDate} · {a.recordingType} · {a.recordingDuration}s · {a.wordsPerMinute || 0} wpm</div>
-              </div>
-              <button onClick={() => setResult(a)} style={{ ...btn('#1a5490'), padding: '6px 14px', fontSize: 13 }} disabled={!a.evaluation}>View</button>
-            </div>
-          ))}
-          {result && <div style={{ marginTop: 8 }}><ResultView a={result} onClose={() => setResult(null)} /></div>}
-        </div>
-      )}
-
-      {tab === 'progress' && (!progress ? <div style={{ color: '#9ca3af', padding: 40, textAlign: 'center' }}>Loading…</div> : (
-        <div style={{ display: 'grid', gap: 16 }}>
-          <div style={{ ...card, padding: 20, display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-            <div><div style={{ fontSize: 12, color: '#6b7280' }}>Level</div><div style={{ fontSize: 20, fontWeight: 800, color: '#1a5490' }}>{progress.level}</div></div>
-            <div style={{ flex: 1 }} />
-            {[['Best', progress.best], ['Latest', progress.latest], ['Average', progress.avg]].map(([l, v]) => (
-              <div key={l as string} style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: scoreColor(v as number) }}>{v}</div><div style={{ fontSize: 11.5, color: '#6b7280' }}>{l}</div></div>
-            ))}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 12 }}>
-            <ScoreChip label="🔥 Current streak" value={progress.currentStreak} />
-            <ScoreChip label="🏆 Longest streak" value={progress.longestStreak} />
-            <ScoreChip label="📅 Practice days" value={progress.totalPracticeDays} />
-            <ScoreChip label="↗ Improvement" value={progress.improvement} />
-          </div>
-          <div style={{ ...card, padding: 20 }}>
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>Focus areas</div>
-            <div style={{ fontSize: 13.5, color: '#374151' }}>
-              Strongest: <strong style={{ color: '#16a34a' }}>{progress.strongestSkill || '—'}</strong> · Work on: <strong style={{ color: '#d97706' }}>{progress.weakestSkill || '—'}</strong>
-            </div>
-          </div>
-          {progress.timeline.length > 1 && (
-            <div style={{ ...card, padding: 20 }}>
-              <div style={{ fontWeight: 700, marginBottom: 12 }}>Score over time</div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
-                {progress.timeline.slice(-20).map((t, i) => (
-                  <div key={i} title={`${t.date}: ${t.score}`} style={{ flex: 1, background: scoreColor(t.score), height: `${Math.max(4, t.score)}%`, borderRadius: '4px 4px 0 0', minWidth: 6 }} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      ))}
-
-      {tab === 'achievements' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 14 }}>
-          {achievements.map((a) => (
-            <div key={a.code} style={{ ...card, padding: 18, textAlign: 'center', opacity: a.earned ? 1 : 0.6 }}>
-              <div style={{ fontSize: 38, filter: a.earned ? 'none' : 'grayscale(1)' }}>{a.icon}</div>
-              <div style={{ fontWeight: 700, fontSize: 14, marginTop: 6, color: '#111827' }}>{a.name}</div>
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3, minHeight: 32 }}>{a.description}</div>
-              {a.earned ? (
-                <div style={{ fontSize: 11.5, color: '#16a34a', fontWeight: 600, marginTop: 6 }}>✓ Earned</div>
-              ) : (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ height: 6, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}><div style={{ width: `${a.progress}%`, height: '100%', background: '#1a5490' }} /></div>
-                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>{a.progress}%</div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === 'leaderboard' && (!board ? <div style={{ color: '#9ca3af', padding: 40, textAlign: 'center' }}>Loading…</div> : !board.enabled ? (
-        <div style={{ ...card, padding: 40, textAlign: 'center', color: '#9ca3af' }}>The leaderboard is turned off for your institute.</div>
-      ) : (
-        <div style={{ ...card, padding: 8 }}>
-          {board.rows.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>No rankings yet — be the first to practise!</div>}
-          {board.rows.map((r) => (
-            <div key={r.studentId} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderBottom: '1px solid #f1f5f9', background: r.me ? '#eff6ff' : 'transparent' }}>
-              <div style={{ width: 30, fontWeight: 800, color: r.rank <= 3 ? '#f59e0b' : '#9ca3af', fontSize: 16 }}>{r.rank <= 3 ? ['🥇', '🥈', '🥉'][r.rank - 1] : r.rank}</div>
-              <div style={{ flex: 1, fontWeight: 600, color: '#111827' }}>{r.name}{r.me ? ' (You)' : ''}</div>
-              <div style={{ fontSize: 12.5, color: '#6b7280' }}>🔥 {r.streak} · {r.days} days</div>
-              <div style={{ fontWeight: 700, color: scoreColor(r.avg), width: 44, textAlign: 'right' }}>{r.avg}</div>
-            </div>
-          ))}
-          {board.me && board.me.rank > 10 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: '#eff6ff', borderTop: '2px solid #dbeafe' }}>
-              <div style={{ width: 30, fontWeight: 800, color: '#1a5490' }}>{board.me.rank}</div>
-              <div style={{ flex: 1, fontWeight: 600 }}>{board.me.name} (You)</div>
-              <div style={{ fontSize: 12.5, color: '#6b7280' }}>🔥 {board.me.streak} · {board.me.days} days</div>
-              <div style={{ fontWeight: 700, color: scoreColor(board.me.avg), width: 44, textAlign: 'right' }}>{board.me.avg}</div>
-            </div>
-          )}
-        </div>
-      ))}
-
-      {recording && today?.challenge && <Recorder today={today} onDone={onDone} onClose={() => setRecording(false)} />}
-
-      <style>{`@media (max-width: 820px){ .cl-daily, .cl-profile { grid-template-columns: 1fr !important; } }`}</style>
-    </div>
-  );
+    {recording && today?.challenge && <Recorder today={today} onDone={onDone} onClose={()=>setRecording(false)} />}
+  </div>;
 };
 
 export default CommunicationLab;

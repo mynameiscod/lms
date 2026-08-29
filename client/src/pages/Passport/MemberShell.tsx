@@ -225,6 +225,16 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview')}
           {navBtn('Opportunities', 'building', '/careerpilot/companies')}
           {navBtn('Resume', 'resume', '/careerpilot/resume')}
+          {/*
+            XP had no menu entry at all. It was reachable only through the topbar chips,
+            and those render only once `stats` and `level` exist — so a member who had not
+            yet earned anything saw no chips, and therefore had no route to their points,
+            badges, coins or the leaderboard. The entry points appeared only after you no
+            longer needed to go looking for them.
+
+            A rail entry is unconditional, so this works on day one.
+          */}
+          {navBtn('My Progress', 'trophy', '/careerpilot/progress')}
         </nav>
 
         {/* M4 — the account block. On a phone the topbar menu is hidden outright (it used
@@ -311,10 +321,20 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                     <div className="lbar"><i style={{ width: `${lv.progressPct}%` }} /></div>
                   </div>
                 </Link>
-                <div className="gd-pill">
+                {/*
+                  Earned, not remaining. This read "1,200 XP to next level", which is the
+                  one number a member cannot use: it goes DOWN as they work, and their
+                  actual total appeared nowhere in the product. Now it shows what they have
+                  and links to the page that breaks it down.
+                */}
+                <Link to="/careerpilot/progress" className="gd-pill" style={{ textDecoration: 'none' }}
+                  title="See your XP, badges and streak">
                   <span className="em">⚡</span>
-                  <div><b>{lv.xpToNextLevel.toLocaleString()} XP</b><span>to next level</span></div>
-                </div>
+                  <div>
+                    <b>{lv.xp.toLocaleString()} XP</b>
+                    <span>{lv.xpToNextLevel.toLocaleString()} to level {lv.nextLevel}</span>
+                  </div>
+                </Link>
               </>
             )}
             <div className="gd-user" ref={userRef}>

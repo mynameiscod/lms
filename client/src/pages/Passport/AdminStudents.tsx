@@ -84,6 +84,44 @@ const PassportAdminStudents: React.FC = () => {
     catch (e: any) { setMsg(e?.response?.data?.message || 'Could not change status'); }
   };
 
+  /**
+    * Complimentary access, with the reason recorded.
+    *
+    * The reason is required by the server rather than optional here: a grant with no
+    * reason is indistinguishable from a mistake once whoever made it has moved on, which
+    * is exactly the state hand-editing the database used to leave things in.
+    */
+  const grantAccess = async (r: any) => {
+    const reason = window.prompt(
+      `Give ${r.firstName || 'this member'} complimentary access.\n\nWhy? (shown to staff later, e.g. "sales demo", "college pilot")`,
+      'Demo account',
+    );
+    if (reason === null) return;
+    if (!reason.trim()) { setMsg('A reason is required.'); return; }
+
+    const daysRaw = window.prompt('For how many days? (1–365)', '30');
+    if (daysRaw === null) return;
+    const days = Number(daysRaw);
+    if (!Number.isFinite(days) || days < 1 || days > 365) { setMsg('Enter a number of days between 1 and 365.'); return; }
+
+    setMsg('');
+    try {
+      const res = await passportApi.grantMembership(r._id, days, reason.trim());
+      setMsg(`✅ Access granted until ${new Date(res.expiresAt).toLocaleDateString('en-IN')}.`);
+      await load();
+    } catch (e: any) { setMsg(e?.response?.data?.message || 'Could not grant access'); }
+  };
+
+  const revokeAccess = async (r: any) => {
+    if (!window.confirm(`Revoke complimentary access for ${r.firstName || 'this member'}?\n\nThey keep their data and can be granted access again.`)) return;
+    setMsg('');
+    try {
+      await passportApi.revokeMembership(r._id);
+      setMsg('✅ Access revoked.');
+      await load();
+    } catch (e: any) { setMsg(e?.response?.data?.message || 'Could not revoke access'); }
+  };
+
   const removeMember = async (r: any) => {
     // The server refuses this for anyone who has paid or been assessed and returns the
     // reason, so the UI does not duplicate that rule — it just shows what came back.
@@ -141,6 +179,15 @@ const PassportAdminStudents: React.FC = () => {
                     {/* Paid and active are different facts: someone can be a member whose
                         account has been deactivated, and staff need to see both. */}
                     <span style={r.passport?.active ? pillPaid : pillFree}>{r.passport?.active ? 'Member' : 'Free'}</span>
+                    {/* A complimentary member is a member — but staff must be able to tell
+                        them apart from a customer at a glance, and see why. */}
+                    {r.passport?.grant?.at && (
+                      <span
+                        style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#7c3aed', background: '#f3ecff', borderRadius: 99, padding: '2px 8px' }}
+                        title={`${r.passport.grant.reason || 'granted'} — by ${r.passport.grant.byName || 'admin'} on ${new Date(r.passport.grant.at).toLocaleDateString('en-IN')}`}>
+                        Comp
+                      </span>
+                    )}
                     {r.isActive === false && <span style={pillOff}>Deactivated</span>}
                   </td>
                   <td style={{ padding: '10px 14px', color: '#64748b' }}>{r.passport?.activatedAt ? new Date(r.passport.activatedAt).toLocaleDateString('en-IN') : '—'}</td>
@@ -156,6 +203,9 @@ const PassportAdminStudents: React.FC = () => {
                         <button style={mini} onClick={() => openAnswers(r._id)}>{answersFor === r._id ? 'Hide answers' : 'Answers'}</button>
                         <button style={mini} onClick={() => openInterviews(r._id)}>{ivFor === r._id ? 'Hide interviews' : 'Interviews'}</button>
                         <button style={mini} onClick={() => { setEditId(r._id); setEditVal(`${r.firstName || ''} ${r.lastName || ''}`.trim()); }}>Edit</button>
+                        {r.passport?.grant?.at
+                          ? <button style={mini} onClick={() => revokeAccess(r)}>Revoke access</button>
+                          : <button style={mini} onClick={() => grantAccess(r)}>Grant access</button>}
                         <button style={mini} onClick={() => toggleActive(r)}>{r.isActive === false ? 'Restore' : 'Deactivate'}</button>
                         <button style={{ ...mini, color: '#b91c1c' }} onClick={() => removeMember(r)}>Delete</button>
                       </>

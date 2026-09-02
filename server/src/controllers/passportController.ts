@@ -679,6 +679,132 @@ export const setMemberActive = async (req: Request, res: Response) => {
   } catch (e: any) { res.status(500).json({ message: e.message }); }
 };
 
+/**
+ * POST /passport/members/:userId/grant — complimentary membership, on the record.
+ *
+ * WHY THIS EXISTS. Membership is set by a Razorpay payment and nothing else, so the only
+ * way to produce a working demo account was to hand-edit `passport.active` in production.
+ * That works, and it leaves nothing behind: no reason, no expiry, no way to tell a demo
+ * from a customer six months later.
+ *
+ * ACCESS STILL RUNS THROUGH `active` + `expiresAt`. This deliberately does NOT introduce a
+ * second notion of entitlement — every gate in the product keeps reading what it already
+ * read, and a grant is simply a membership somebody did not pay for.
+ *
+ * TIME-BOXED BY DEFAULT. `membershipActive` already refuses an expired passport, so a grant
+ * lapses on its own with no cron and no cleanup. A demo that never expires is how a
+ * free-for-life account gets created by accident.
+ */
+export const grantMembership = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const User = (await import('../models/User')).default;
+
+    /**
+     * `> 0` matters as much as `isFinite`. An empty string and null both coerce to 0, which
+     * previously survived the finite check and clamped to a ONE DAY grant — so a caller who
+     * omitted the field got a demo that died tomorrow rather than the intended default.
+     */
+    const raw = Number(req.body?.days);
+    const days = (Number.isFinite(raw) && raw > 0) ? Math.min(365, Math.round(raw)) : 30;
+    const reason = String(req.body?.reason || '').trim().slice(0, 200);
+    if (!reason) {
+      return res.status(400).json({ message: 'Give a reason — it is what makes this grant auditable later.' });
+    }
+
+    const u: any = await User.findOne({ _id: req.params.userId, tenantId }).select('passport firstName lastName').lean();
+    if (!u) return res.status(404).json({ message: 'Member not found' });
+
+    const now = new Date();
+
+    /**
+     * Never touch a CURRENT paying member.
+     *
+     * Granting over live paid access would rewrite `product` to the grant value and could
+     * SHORTEN their expiry — turning a customer into a complimentary account that lapses
+     * early, silently, and with no payment record to explain it.
+     *
+     * Expiry is judged here rather than reading `active` alone, because a lapsed member
+     * keeps `active: true` — expiry is applied at read time by membershipActive. Checking
+     * only the flag would refuse the very case this button is useful for: extending
+     * somebody whose paid year has run out.
+     */
+    const paidStillRunning = u.passport?.product === 'career_passport'
+      && u.passport?.active
+      && (!u.passport?.expiresAt || new Date(u.passport.expiresAt).getTime() > now.getTime());
+
+    if (paidStillRunning) {
+      return res.status(409).json({
+        message: 'This member has a paid membership that is still running. Granting over it would replace their paid access with a shorter complimentary one.',
+      });
+    }
+    const expiresAt = new Date(now.getTime() + days * 86400000);
+    const actor: any = (req as any).user || {};
+    const byName = [actor.firstName, actor.lastName].filter(Boolean).join(' ') || actor.email || 'admin';
+
+    const set: any = {
+      'passport.active': true,
+      'passport.product': 'career_passport_grant',
+      'passport.expiresAt': expiresAt,
+      'passport.grant': { by: actor.id || actor._id, byName, at: now, reason, days },
+    };
+    // Preserved if they already had one: the journey clock is theirs, not this grant's.
+    if (!u.passport?.activatedAt) set['passport.activatedAt'] = now;
+
+    await User.updateOne({ _id: req.params.userId, tenantId }, { $set: set });
+
+    /**
+     * The journey needs a start date or the roadmap has no day 1. Upserted the same way a
+     * paid activation does it, so a granted member is not a second kind of member with a
+     * different set of rows behind them.
+     */
+    const PassportProgress = (await import('../models/PassportProgress')).default;
+    const mongoose = (await import('mongoose')).default;
+    await PassportProgress.updateOne(
+      { tenantId, studentId: req.params.userId },
+      { $setOnInsert: {
+        tenantId, studentId: new mongoose.Types.ObjectId(req.params.userId),
+        startDate: u.passport?.activatedAt || now,
+      } },
+      { upsert: true },
+    );
+
+    res.json({ success: true, granted: true, expiresAt, days, reason });
+  } catch (e: any) {
+    console.error('[passport] grant:', e?.message || e);
+    res.status(500).json({ message: 'Could not grant access.' });
+  }
+};
+
+/**
+ * DELETE /passport/members/:userId/grant — take a complimentary membership back.
+ *
+ * Refuses a PAID membership outright. Revoking one here would look like an admin action
+ * and leave a customer locked out with their payment still on file; a refund is a
+ * different process and belongs nowhere near this button.
+ */
+export const revokeMembership = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const User = (await import('../models/User')).default;
+
+    const u: any = await User.findOne({ _id: req.params.userId, tenantId }).select('passport').lean();
+    if (!u) return res.status(404).json({ message: 'Member not found' });
+    if (u.passport?.product === 'career_passport') {
+      return res.status(409).json({ message: 'This is a paid membership and cannot be revoked here.' });
+    }
+
+    await User.updateOne(
+      { _id: req.params.userId, tenantId },
+      { $set: { 'passport.active': false }, $unset: { 'passport.grant': 1 } },
+    );
+    res.json({ success: true, revoked: true });
+  } catch (e: any) {
+    console.error('[passport] revoke grant:', e?.message || e);
+    res.status(500).json({ message: 'Could not revoke access.' });
+  }
+};
+
 /** Hard delete — refused for anyone who has paid or been assessed. */
 export const deleteMember = async (req: Request, res: Response) => {
   try {

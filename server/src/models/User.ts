@@ -208,6 +208,27 @@ const UserSchema: Schema = new Schema(
       product:     { type: String },
       activatedAt: { type: Date },
       expiresAt:   { type: Date },
+      /**
+       * A membership an admin granted rather than one somebody paid for.
+       *
+       * Access itself still runs through `active` + `expiresAt`, so every gate in the
+       * product works unchanged and nothing has to learn about grants. This block only
+       * records WHY the membership exists, which is the part a hand-edit to the database
+       * loses: who granted it, when, what for, and when it lapses on its own.
+       *
+       * `passport.product` is set to a distinct value for a grant, so a complimentary
+       * account is never counted alongside sales. Revenue is read from Payment rows
+       * regardless, but member counts are read from `product` and would otherwise include
+       * every demo ever issued.
+       */
+      grant: {
+        by:        { type: Schema.Types.ObjectId, ref: 'User' },
+        byName:    { type: String },
+        at:        { type: Date },
+        reason:    { type: String },
+        /** What was asked for, kept beside expiresAt so a shortened grant is visible. */
+        days:      { type: Number },
+      },
       // Drop-off tracking. Signing up and proving you own the number are different
       // events, and until now only the first left a trace — so someone who never
       // entered their OTP looked identical to someone who verified and then stalled.

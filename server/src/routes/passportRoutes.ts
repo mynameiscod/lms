@@ -417,6 +417,13 @@ router.post('/convert',  roleGuard(['convert_passport_member']), ctrl.convertStu
 router.post('/members',                MANAGE, ctrl.createMember);
 router.put('/members/:userId',         MANAGE, ctrl.updateMember);
 router.post('/members/:userId/active', MANAGE, ctrl.setMemberActive);
+/**
+ * Complimentary membership. Separate from `/active` above, which controls LOGIN — these
+ * are different facts and staff need both: a member can be deactivated while their
+ * membership runs, or hold a grant while their login is disabled.
+ */
+router.post('/members/:userId/grant',    MANAGE, ctrl.grantMembership);
+router.delete('/members/:userId/grant',  MANAGE, ctrl.revokeMembership);
 router.delete('/members/:userId',      MANAGE, ctrl.deleteMember);
 
 // Coins — the member's balance, and the admin's dials. Earning rules are data, so

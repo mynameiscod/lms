@@ -125,6 +125,14 @@ export const passportApi = {
     const { data } = await axios.post(`${BASE}/members/${userId}/active`, { active }, { headers: auth() });
     return data;
   },
+  grantMembership: async (userId: string, days: number, reason: string): Promise<any> => {
+    const { data } = await axios.post(`${BASE}/members/${userId}/grant`, { days, reason }, { headers: auth() });
+    return data;
+  },
+  revokeMembership: async (userId: string): Promise<any> => {
+    const { data } = await axios.delete(`${BASE}/members/${userId}/grant`, { headers: auth() });
+    return data;
+  },
   deleteMember: async (userId: string): Promise<any> => {
     const { data } = await axios.delete(`${BASE}/members/${userId}`, { headers: auth() });
     return data;

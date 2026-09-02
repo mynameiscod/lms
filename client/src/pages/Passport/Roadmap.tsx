@@ -107,6 +107,37 @@ const Roadmap: React.FC = () => {
    */
   const compact = skillState === 'plan';
 
+  /**
+   * When access ends, but ONLY when it ends before the programme does.
+   *
+   * A paying member has twelve months for a 90-day plan; telling them their access runs to
+   * next August is noise, and a banner that appears for everybody is one people stop
+   * reading. It earns its place exactly when the two disagree — a demo granted 30 days
+   * being shown a 90-day roadmap they cannot finish.
+   */
+  const accessNote = useMemo(() => {
+    const iso = data?.accessExpiresAt;
+    const total = data?.roadmap?.totalDays;
+    if (!iso || !total) return null;
+
+    const ends = new Date(iso);
+    if (Number.isNaN(ends.getTime())) return null;
+
+    const daysLeft = Math.ceil((ends.getTime() - Date.now()) / 86400000);
+    // Already lapsed is a different message, and the unlock panel already carries it.
+    if (daysLeft <= 0) return null;
+
+    const dayNow = data?.roadmap?.currentDay || 1;
+    // Days of plan still ahead of them. Compared against days of access left, because a
+    // member on day 80 of 90 with 30 days left has no problem to be told about.
+    if (daysLeft >= total - dayNow + 1) return null;
+
+    return {
+      daysLeft,
+      on: ends.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+    };
+  }, [data]);
+
   if (loading) return <div className="pm-loading">Loading your roadmap…</div>;
 
   if (data?.needsAssessment) {
@@ -374,6 +405,20 @@ const Roadmap: React.FC = () => {
   // ══ COMPACT VIEW ══
   return (
     <div className="rq">
+      {accessNote && (
+        <div className="rq-access">
+          <span className="ic">🗓️</span>
+          <div>
+            <b>Your access runs to {accessNote.on}</b>
+            <span>
+              That is {accessNote.daysLeft} {accessNote.daysLeft === 1 ? 'day' : 'days'} of the
+              {' '}{rm.totalDays}-day programme below. The plan does not shorten — you simply
+              pick up where you left off if your access is extended.
+            </span>
+          </div>
+        </div>
+      )}
+
       <SkillPlan onState={reportSkillState} />
 
       {/*

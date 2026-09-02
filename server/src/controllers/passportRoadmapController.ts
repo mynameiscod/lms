@@ -79,6 +79,18 @@ export const getRoadmap = async (req: Request, res: Response) => {
       priceInr: cfg?.priceInr ?? 499,
       careerScore: assessed.careerScore,
       level: assessed.level,
+      /**
+       * When their access ends, so the screen can say so rather than let them discover it.
+       *
+       * The programme length and the membership length are different numbers and were never
+       * meant to match: a paying member gets twelve months of access to the same 90-day
+       * plan. That only becomes confusing when access is SHORTER than the plan — a demo
+       * granted 30 days is shown a 90-day roadmap with nothing to say they cannot finish it.
+       *
+       * Sent unconditionally; the client decides whether it is worth showing, because only
+       * it knows the plan length it ended up rendering.
+       */
+      accessExpiresAt: user?.passport?.expiresAt || null,
       /** Which instrument this plan was built from, so the screen can say so. */
       assessedVia: assessed.source,
     });

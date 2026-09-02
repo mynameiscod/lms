@@ -1245,6 +1245,8 @@ export interface Roadmap {
 }
 export interface RoadmapResponse {
   needsAssessment?: boolean; roadmap?: Roadmap; entitled?: boolean;
+  /** When membership lapses. Null for a member with no expiry recorded. */
+  accessExpiresAt?: string | null;
   priceInr?: number; careerScore?: number; level?: string;
 }
 

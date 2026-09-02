@@ -19,3 +19,9 @@
 /* Holds the row's height while the skill plan decides, so the page does not jump. */
 .rq-strip-wait{min-height:78px;background:#fbfcfd;border-style:dashed;box-shadow:none}
 @media(max-width:760px){.rq-strip{gap:12px}.rq-strip-actions{width:100%}.rq-strip-actions button{flex:1}}
+
+/* Access window — shown only when membership ends before the programme does. */
+.rq-access{display:flex;gap:12px;align-items:flex-start;background:#fffaf3;border:1px solid #f3d9b5;border-radius:14px;padding:13px 16px;margin:0 0 14px}
+.rq-access .ic{font-size:17px;line-height:1.2;flex:none}
+.rq-access b{display:block;font-size:13px;color:#92400e;margin-bottom:3px}
+.rq-access span{display:block;font-size:11.5px;color:#9a6b33;line-height:1.55}

@@ -15,6 +15,17 @@ export interface DailyMission { key: string; roadmapId: string; objectiveSequenc
 export interface DailyPlanAvailable { available: true; policyVersion: string; roadmapId: string; date: string; roadmapDay: number; roadmapWeek: number; weekCount: number; capacity: { minutesPerDay: number; plannedMinutes: number }; missions: DailyMission[]; progress: { plannedMinutes: number; completedMinutes: number; percent: number }; week: { plannedMinutes: number; completedMinutes: number }; unmappedObjectives: number; outdated: boolean; }
 export interface DailyPlanUnavailableResult { available: false; reason: DailyPlanUnavailable; message: string; }
 export type DailyPlanOutcome = DailyPlanAvailable | DailyPlanUnavailableResult;
+
+/**
+ * Narrow an outcome to the unavailable case.
+ *
+ * A plain `if (!plan.available)` reads better and does not compile here: this project runs
+ * with `strictNullChecks: false`, and without it TypeScript will not narrow a union by a
+ * NEGATED boolean discriminant — while `plan.available ? ... : ...` in the same file
+ * narrows fine, which is what makes the failure look arbitrary. An explicit predicate works
+ * under either setting.
+ */
+export const planUnavailable = (p: DailyPlanOutcome): p is DailyPlanUnavailableResult => !p.available;
 const WORK_LABEL: Record<string, string> = { LEARN: 'Learn', PRACTICE: 'Practice', ASSESS: 'Check', REVIEW: 'Review' };
 const slotKey = (skillKey: string, workType: string): string => `${String(skillKey).toUpperCase()}:${String(workType).toUpperCase()}`;
 export const missionKey = (roadmapId: string, sequence: number, date: string): string => `cp:${roadmapId}:${sequence}:${date}`;

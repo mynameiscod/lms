@@ -41,6 +41,15 @@ jest.mock('../models/CareerRoadmap', () => ({
 
 jest.mock('../models/CareerSkillResource', () => ({
   __esModule: true,
+  /**
+   * The MODEL is stubbed; the pure helpers beside it are not.
+   *
+   * The orchestrator now filters each mapping through `resourceServes`, and a mock that
+   * replaces the whole module removes it — so the call resolved to undefined and every plan
+   * with a mapped resource threw. Keeping the real helpers means these tests exercise the
+   * targeting rules rather than a reimplementation of them.
+   */
+  ...jest.requireActual('../models/CareerSkillResource'),
   default: {
     find: (q: any) => ({
       sort: () => ({ lean: async () => resourceDocs.filter(d => matches(d, q)) }),

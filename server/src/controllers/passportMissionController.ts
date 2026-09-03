@@ -13,7 +13,7 @@ import PassportInterview from '../models/PassportInterview';
 import PassportResume from '../models/PassportResume';
 import { awardCoins } from '../services/coinService';
 import { reviewAnswer } from '../services/passportAnswerAIService';
-import { getTodaysPlan } from '../services/dailyMissionOrchestrator';
+import { getTodaysPlan, planUnavailable } from '../services/dailyMissionOrchestrator';
 import { completeCareerMission } from '../services/careerMissionCompletionService';
 import { processGamificationEvent, evaluateRoadmapBadges } from '../services/gamificationEngine';
 
@@ -84,7 +84,7 @@ async function completeRoadmapMission(req: Request, res: Response, key: string) 
   const tenantId = tenantOf(req);
   const studentId = userIdOf(req);
   const plan = await getTodaysPlan(tenantId, studentId);
-  if (!plan.available) {
+  if (planUnavailable(plan)) {
     return res.status(plan.reason === 'MEMBERSHIP_REQUIRED' ? 403 : 409).json(plan);
   }
 

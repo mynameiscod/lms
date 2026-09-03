@@ -29,16 +29,44 @@ echo "║  Version        : $APP_VERSION"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""
 
-# ── Ensure the prebuilt image is present ─────────────────────────────────────
-if ! docker image inspect lms-server:latest >/dev/null 2>&1; then
-  echo "❌ Prebuilt image 'lms-server:latest' not found. Ship it first:"
-  echo "   docker save lms-server:latest | gzip | ssh <vps> 'gunzip | docker load'"
-  exit 1
+# ── Pick the image the version argument actually names ───────────────────────
+# THE TRAP THIS CLOSES. The version was only ever stamped as APP_VERSION metadata
+# while the image deployed was hardcoded to lms-server:latest. Ship
+# lms-server:my-fix, run ./deploy-image.sh my-fix, and the script cheerfully
+# reports "Version: my-fix" while flipping slots onto whatever stale :latest was
+# left on the box from a previous deploy — a green health check, a clean nginx
+# switch, and none of the code you just shipped. It is silent by construction:
+# every line of output is truthful except the one that matters.
+#
+# Now the tag is looked up first, and :latest is only the fallback for a bare
+# invocation with no argument.
+IMAGE="lms-server:$APP_VERSION"
+if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+  if [ -n "${1:-}" ]; then
+    echo "❌ Image '$IMAGE' not found on this box. Ship it first:"
+    echo "   docker save $IMAGE | gzip > img.tgz && scp img.tgz <vps>:/root/lms/"
+    echo "   ssh <vps> 'gunzip -c /root/lms/img.tgz | docker load'"
+    echo ""
+    echo "   Refusing to fall back to lms-server:latest — that would deploy"
+    echo "   whatever happens to be on the box and call it '$APP_VERSION'."
+    exit 1
+  fi
+  IMAGE="lms-server:latest"
+  if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+    echo "❌ Prebuilt image 'lms-server:latest' not found. Ship it first:"
+    echo "   docker save lms-server:latest | gzip | ssh <vps> 'gunzip | docker load'"
+    exit 1
+  fi
 fi
 
+# The digest is printed so the deploy log carries proof of WHAT shipped, not just
+# a version string somebody typed. Compare it against the image you built.
+echo "==> Deploying image : $IMAGE"
+echo "==> Image digest    : $(docker images --no-trunc -q "$IMAGE")"
+
 # ── Tag the prebuilt image as the target slot's compose image ────────────────
-echo "==> [1/4] Tagging prebuilt image → lms-server-$NEW:latest ..."
-docker tag lms-server:latest "lms-server-$NEW:latest"
+echo "==> [1/4] Tagging $IMAGE → lms-server-$NEW:latest ..."
+docker tag "$IMAGE" "lms-server-$NEW:latest"
 
 # ── Start new slot WITHOUT building ──────────────────────────────────────────
 echo "==> [2/4] Starting server-$NEW (no build)..."
@@ -83,9 +111,23 @@ if [ "$ACTIVE" != "none" ]; then
   echo "   ✅ server-$OLD stopped"
 fi
 
+# ── Prove the running container is the image we meant to ship ────────────────
+# A health check only proves SOMETHING is up. It passed just as happily when the
+# box was serving a stale image under a new version label, which is how the
+# hardcoded-:latest bug above stayed invisible. This compares the container's
+# resolved image id against the one we tagged, so a mismatch is loud.
+RUNNING=$(docker inspect -f "{{.Image}}" "lms-server-$NEW" 2>/dev/null || echo "")
+EXPECTED=$(docker images --no-trunc -q "$IMAGE")
+if [ -n "$RUNNING" ] && [ "$RUNNING" != "$EXPECTED" ]; then
+  echo "⚠️  WARNING: server-$NEW is running $RUNNING, not the $IMAGE you shipped ($EXPECTED)."
+  echo "   The flip has already happened. Investigate before trusting this deploy."
+fi
+
 echo ""
 echo "╔══════════════════════════════════════════════════════╗"
 echo "║  ✅ Deployment complete (prebuilt image)!             ║"
 echo "║  Active slot : $NEW (port $NEW_PORT)                  ║"
 echo "╚══════════════════════════════════════════════════════╝"
+echo "   Image  : $IMAGE"
+echo "   Digest : $EXPECTED"
 echo ""

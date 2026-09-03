@@ -9,6 +9,17 @@ import { findProblem, findCareerPilotProblem } from './passportPracticeService';
 import { ymd } from './passportMissionService';
 import { MISSION_ORCHESTRATION_VERSION, MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES, assessmentRouteForSkill, practiceRoute, dailySliceOf, dailyBudget, MissionResourceState, DailyPlanUnavailable } from '../data/missionOrchestrationPolicy';
 
+/**
+ * Daily Mission Engine execution layer.
+ *
+ * The stored CareerRoadmap owns WHAT the member must improve. This service owns WHEN a
+ * slice lands today and HOW that objective is made executable. HOW is selected only from
+ * admin-authored CareerSkillResource rows that match the member's audience and current
+ * measured score. No title guessing, AI generation or fallback filler is allowed.
+ *
+ * A completion is engagement/progress, never skill evidence. Skill DNA is read here only
+ * for score-window targeting and is never written by this service.
+ */
 export interface MissionResource { type: string; id: string; title: string; route: string; xp?: number | null; }
 export interface DailyMission { key: string; roadmapId: string; objectiveSequence: number; skillKey: string; skillName: string; workType: string; plannedMinutes: number; title: string; explanation: string; reasonCode: string; resourceState: MissionResourceState; resource?: MissionResource; done: boolean; }
 export interface DailyPlanAvailable { available: true; policyVersion: string; roadmapId: string; date: string; roadmapDay: number; roadmapWeek: number; weekCount: number; capacity: { minutesPerDay: number; plannedMinutes: number }; missions: DailyMission[]; progress: { plannedMinutes: number; completedMinutes: number; percent: number }; week: { plannedMinutes: number; completedMinutes: number }; unmappedObjectives: number; outdated: boolean; }
@@ -42,7 +53,14 @@ export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
 
 const dayNumberFrom = (start: Date, now: Date): number => Math.floor((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())) / 86400000) + 1;
 
-/** Select the first stable, executable resource that serves this member and their score. */
+/**
+ * Resolve one executable activity per skill/work-type slot for this member.
+ *
+ * The database already sorts by admin priority. We then reject rows that do not serve the
+ * member's year/course/branch/role/stage/language or measured score. The first surviving
+ * executable target wins, which keeps refreshes deterministic. Empty targeting axes mean
+ * everyone; an unmeasured skill is allowed through a score window by resourceServes().
+ */
 async function resolveResources(tenantId: string, skillKeys: string[], member: ResourceMember, scores: Map<string, number>): Promise<Map<string, MissionResource>> {
   const out = new Map<string, MissionResource>(); const unique = [...new Set(skillKeys.map(k => String(k).toUpperCase()))]; if (!unique.length) return out;
   const rows = await CareerSkillResource.find({ tenantId, skillKey: { $in: unique }, active: true }).sort({ priority: 1, resourceId: 1, _id: 1 }).lean() as any[];
@@ -59,6 +77,9 @@ async function resolveResources(tenantId: string, skillKeys: string[], member: R
     } else if (r.resourceType === 'mock_interview') {
       resolved = { type: 'mock_interview', id: String(r._id), title: r.title || 'Mock interview', route: '/careerpilot/interview', xp: typeof r.xp === 'number' ? r.xp : null };
     } else if (MATERIAL_TYPES.includes(r.resourceType)) {
+      // Rich inline/upload-only concepts already exist in Admin Concepts, but there is not
+      // yet a member concept-view route in App.tsx. Until that surface is added, only a
+      // material with a real URL is executable; the rest stays visibly unmapped.
       if (!String(r.url || '').trim()) continue;
       resolved = { type: r.resourceType, id: String(r._id), title: r.title, route: String(r.url).trim(), xp: typeof r.xp === 'number' ? r.xp : null };
     }

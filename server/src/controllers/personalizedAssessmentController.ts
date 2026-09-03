@@ -5,6 +5,29 @@ import {
   getPersonalizedAssessmentAvailability,
 } from '../services/personalizedAssessmentService';
 import { loadItems, refKey } from '../services/skillEvidenceSourceRegistry';
+import { hashSeed, rng, shuffle } from '../services/paperBuilderService';
+
+/**
+ * Present the choices in a different order per attempt, WITHOUT moving their ids.
+ *
+ * The generator's prompt listed the correct answer first, so 189 of 196 drafted questions
+ * had their answer at option A. A student who always picked A scored around 96%, and a 100%
+ * score means no measured gaps — which quietly empties the roadmap, the Skill DNA and every
+ * readiness figure built on them.
+ *
+ * Generation is fixed, but these questions store options as plain `{text, isCorrect}` with
+ * no `_id`, so the id a student answers with IS the array position. Reordering the stored
+ * rows would therefore change what each answer means and invalidate anything already
+ * recorded. Shuffling the PRESENTED order while each option keeps its original id fixes
+ * every existing question at once and leaves grading untouched.
+ *
+ * Seeded on the attempt, so a reload shows the same order — a reshuffle mid-question reads
+ * as the paper changing underneath you.
+ */
+const presentOptions = (options: any[] | undefined, seed: string): any[] | undefined => {
+  if (!Array.isArray(options) || options.length < 2) return options;
+  return shuffle(options.slice(), rng(hashSeed(seed)));
+};
 import { policyForStage, ASSESSMENT_POLICIES } from '../data/assessmentPolicies';
 import { getCareerContext } from '../services/careerContextService';
 
@@ -70,7 +93,8 @@ const studentShape = (a: any, texts: Map<string, any>) => {
         codeSnippet: src?.codeSnippet,
         language: src?.language,
         // Choices only — the key stays on the server. See NormalisedOption.
-        options: src?.options,
+        // Order varies per attempt and question; each option keeps the id it is graded by.
+        options: presentOptions(src?.options, `${String(a._id)}:${key}`),
         points: i.points,
         response: saved.has(key) ? saved.get(key) : undefined,
       };

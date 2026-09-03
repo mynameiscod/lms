@@ -36,7 +36,42 @@ import { aiComplete } from './aiGateway';
  */
 
 /** Bump when the prompt changes, so a bad batch can be found by what produced it. */
-export const PROMPT_VERSION = 1;
+/**
+ * Version 2: the example no longer shows the answer first.
+ *
+ * Bumped so a batch drafted under the old prompt is identifiable — every question it wrote
+ * has its correct answer at position A, and they need re-checking rather than trusting.
+ */
+export const PROMPT_VERSION = 2;
+
+/**
+ * Put the correct answer somewhere other than first.
+ *
+ * THE BUG THIS FIXES. The prompt's example JSON listed `isCorrect: true` as the opening
+ * option, so the model copied that shape and every generated question had its answer at A.
+ * Nothing shuffled afterwards — not at storage, approval, or serve — so a student who
+ * always picked A scored 100%. That is not merely a scoring bug: a 100% score means no
+ * measured gaps, which means the personalised roadmap has nothing to personalise on, and
+ * every number downstream (Skill DNA, Career Score, readiness) quietly becomes meaningless.
+ *
+ * Fisher-Yates, unseeded. These are authored once and stored; there is nothing to reproduce
+ * later, unlike a paper draw which must be identical on refresh.
+ */
+export function shuffleOptions<T>(options: T[]): T[] {
+  const out = options.slice();
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/**
+ * Where the correct answer landed, for the batch-level check below.
+ * Returns -1 when there is no correct option, which checkDraft already refuses.
+ */
+export const correctPositionOf = (options: { isCorrect?: boolean }[]): number =>
+  (options || []).findIndex(o => o?.isCorrect === true);
 
 const norm = (s: string) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
@@ -69,8 +104,12 @@ function systemPrompt(): string {
     '',
     'Reply with JSON only. No prose, no markdown fence. Shape:',
     '{"questions":[{"question":"...","codeSnippet":null,"language":null,',
-    '"options":[{"text":"...","isCorrect":true},{"text":"...","isCorrect":false},',
-    '{"text":"...","isCorrect":false},{"text":"...","isCorrect":false}],',
+    // The correct option is shown THIRD here on purpose. Listing it first taught the model
+    // to always answer A — the options are shuffled before storage regardless, but a prompt
+    // that demonstrates a pattern will have it copied.
+    '"options":[{"text":"...","isCorrect":false},{"text":"...","isCorrect":false},',
+    '{"text":"...","isCorrect":true},{"text":"...","isCorrect":false}],',
+    'Vary which option is the correct one across the set you return. ',
     '"explanation":"...","distractorRationale":["why someone picks option 2","...","..."]}]}',
   ].join('\n');
 }
@@ -295,6 +334,9 @@ export async function generateDrafts(o: GenerateOpts): Promise<GenerateReport> {
     stored: 0, dropped: [], flagged: 0,
   };
 
+  /** Where the correct answer landed in each stored question, for the tripwire below. */
+  const positions: number[] = [];
+
   // Seeded from the pool, then grown as the batch is walked, so a batch cannot duplicate
   // itself — which is the usual way the same question arrives twice.
   const seen = new Set(avoidSet);
@@ -313,7 +355,11 @@ export async function generateDrafts(o: GenerateOpts): Promise<GenerateReport> {
       skillKey: o.skillKey,
       difficulty: o.difficulty,
       question: String(d.question).trim(),
-      options: d.options.map((x: any) => ({ text: String(x.text).trim(), isCorrect: x.isCorrect === true })),
+      // Shuffled BEFORE storage, so the stored row is already correct and a later
+      // approval or export cannot reintroduce the pattern by skipping a serve-time step.
+      options: shuffleOptions(
+        d.options.map((x: any) => ({ text: String(x.text).trim(), isCorrect: x.isCorrect === true })),
+      ),
       explanation: String(d.explanation || '').trim(),
       codeSnippet: d.codeSnippet ? String(d.codeSnippet) : undefined,
       language: d.language ? String(d.language) : undefined,

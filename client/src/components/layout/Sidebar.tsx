@@ -193,6 +193,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'CareerPilot Pathways', path: '/admin/passport/pathways', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-route', permissions: ['manage_passport'] },
     { label: 'CareerPilot Assessment', path: '/admin/passport/assessment', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-clipboard-question', permissions: ['manage_passport'] },
     { label: 'CareerPilot Missions', path: '/admin/passport/missions', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-bullseye', permissions: ['manage_passport'] },
+    { label: 'Assessment Coverage', path: '/admin/passport/assessment-coverage', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-table-cells', permissions: ['manage_passport'] },
     { label: 'Concept Bank', path: '/admin/passport/concepts', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-book-open-reader', permissions: ['manage_passport'] },
     { label: 'CareerPilot Coins', path: '/admin/passport/coins', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-coins', permissions: ['manage_passport'] },
     { label: 'CareerPilot Drop-off', path: '/admin/passport/funnel', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-line', permissions: ['view_passport_funnel'] },
@@ -443,7 +444,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       'CareerPilot Role Blueprint', 'CareerPilot Skill Evidence', 'CareerPilot Assessment Preview',
       'CareerPilot Assessment Shape',
       // Content
-      'CareerPilot Assessment', 'Paper Designer', 'CareerPilot Pathways', 'CareerPilot Pathway Rules',
+      'CareerPilot Assessment', 'Assessment Coverage', 'Paper Designer', 'CareerPilot Pathways', 'CareerPilot Pathway Rules',
       'CareerPilot Curriculum', 'CareerPilot Missions', 'Concept Bank', 'Company Questions', 'CareerPilot News',
       // Run and watch
       'CareerPilot Members', 'Career Stage Tagging', 'CareerPilot Coins', 'CareerPilot Drop-off',

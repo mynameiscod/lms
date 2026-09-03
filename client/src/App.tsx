@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CareerPilotStaging from './pages/Passport/AdminStaging';
 import CareerPilotConcepts from './pages/Passport/AdminConcepts';
+import CareerPilotCoverage from './pages/Passport/AdminAssessmentCoverage';
 import CareerPilotPaperDesign from './pages/Passport/AdminPaperDesign';
 import LabTracks from './pages/LabTracks';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
@@ -455,6 +456,9 @@ const AppRoutes: React.FC = () => {
       } />
 
       {/* ── CareerPilot (separate product) ── */}
+      <Route path="/admin/passport/assessment-coverage" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><CareerPilotCoverage /></Layout></ProtectedRoute>
+      } />
       <Route path="/admin/passport/concepts" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><CareerPilotConcepts /></Layout></ProtectedRoute>
       } />

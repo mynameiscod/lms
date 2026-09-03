@@ -367,6 +367,7 @@ router.get('/skill-evidence/skills',     MANAGE, skillEvidence.mappableSkills);
  */
 router.get('/question-drafts',              MANAGE, questionDrafts.list);
 router.get('/question-drafts/coverage',     MANAGE, questionDrafts.coverage);
+router.get('/question-drafts/role-coverage', MANAGE, questionDrafts.roleCoverage);
 router.post('/question-drafts/generate',    MANAGE, rateLimit('adminAi'), questionDrafts.generate);
 // Bulk approve and manual authoring sit BEFORE the '/:id/...' routes so 'approve-bulk'
 // and 'manual' are never captured as an id.

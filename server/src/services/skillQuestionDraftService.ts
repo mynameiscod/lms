@@ -2,6 +2,8 @@ import crypto from 'crypto';
 import SkillQuestionDraft, { ISkillQuestionDraft, IDraftOption } from '../models/SkillQuestionDraft';
 import Question from '../models/Question';
 import SkillEvidence from '../models/SkillEvidence';
+import RoleSkillBlueprint from '../models/RoleSkillBlueprint';
+import { findEvidenceCandidates } from './skillEvidenceService';
 import CareerSkill from '../models/CareerSkill';
 import { aiComplete } from './aiGateway';
 
@@ -554,6 +556,176 @@ export async function rejectDraft(o: {
  * skill, so five hundred questions concentrated on two skills still produces a repetitive
  * paper. This is what tells an admin where to point the next batch.
  */
+/**
+ * Where the assessment can and cannot build a paper, per role.
+ *
+ * Phase 1 of moving CareerPilot onto its own question bank: before anything is switched or
+ * retired, this says how much of the current pool is genuinely CareerPilot's and how much is
+ * borrowed from the LMS quiz bank. Nobody could answer that, and the answer decides whether
+ * filling the bank is 80 questions of work or 600.
+ *
+ * REPORTS WHAT THE GENERATOR SEES, not a second count of its own. It calls the same
+ * findEvidenceCandidates the paper builder calls, so a skill this says has 4 medium
+ * candidates has exactly 4 — including the normalisation that makes a quiz question and a
+ * thinking problem comparable, and the skipping of mappings whose content was deleted. A
+ * parallel implementation would drift and would be believed.
+ *
+ * OWNED vs BORROWED. Approving a draft writes into the LMS `Question` collection tagged
+ * `careerpilot-drafted`, so the two banks are not separate stores — they are the same
+ * collection told apart by provenance. Anything from a CareerPilot-only family
+ * (assessment_item, passport_question, thinking_problem) is owned; a `question` is owned
+ * only if it carries that tag.
+ */
+/**
+ * UPPERCASE, because that is what the source registry normalises to.
+ *
+ * Written lowercase first, which silently matched nothing: the difficulty filter in
+ * findEvidenceCandidates is an exact compare against the normalised value, so every skill
+ * reported zero candidates while the pool was in fact healthy. A coverage screen that reads
+ * zero everywhere is worse than none — it would have sent someone to write 600 questions
+ * that already existed.
+ */
+export const COVERAGE_DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'] as const;
+
+export interface RoleSkillCoverage {
+  skillKey: string;
+  skillName: string;
+  importance: string;
+  /** Pending drafts waiting on review — coverage already generated but not yet usable. */
+  pending: number;
+  byDifficulty: Record<string, { owned: number; borrowed: number }>;
+  /** True when some difficulty has nothing at all — the paper cannot fill that slot. */
+  hasHole: boolean;
+}
+
+export interface RoleCoverage {
+  roleKey: string;
+  skills: RoleSkillCoverage[];
+  /** Skills with no candidates at any difficulty. These are what blocks generation. */
+  blocking: string[];
+}
+
+export async function assessmentCoverage(tenantId: string): Promise<{
+  roles: RoleCoverage[];
+  totals: { owned: number; borrowed: number; pending: number; skills: number; blockingSkills: number };
+}> {
+  const [blueprints, skills, drafts] = await Promise.all([
+    RoleSkillBlueprint.find({ tenantId }).lean() as any,
+    CareerSkill.find({}).select('key name').lean() as any,
+    SkillQuestionDraft.aggregate([
+      { $match: { tenantId, status: 'pending' } },
+      { $group: { _id: '$skillKey', n: { $sum: 1 } } },
+    ]),
+  ]);
+
+  const nameOf = new Map((skills as any[]).map(s => [s.key, s.name]));
+  const pendingOf = new Map(drafts.map((r: any) => [r._id, r.n]));
+
+  // Every skill any role needs, asked for once. Per-role queries would repeat most of them.
+  const allKeys = [...new Set((blueprints as any[]).flatMap((b: any) =>
+    (b.requirements || []).filter((r: any) => r.active !== false).map((r: any) => r.skillKey)))];
+
+  /**
+   * One pass per difficulty rather than per skill. `findEvidenceCandidates` takes a set of
+   * skills, so three calls cover the whole matrix instead of 43 × 3.
+   */
+  const ownedIds = await ownedQuestionIds(tenantId);
+
+  const perDifficulty: Record<string, Map<string, { owned: number; borrowed: number }>> = {};
+  for (const difficulty of COVERAGE_DIFFICULTIES) {
+    const pools = await findEvidenceCandidates(tenantId, { skillKeys: allKeys, difficulty } as any);
+    const m = new Map<string, { owned: number; borrowed: number }>();
+    for (const pool of pools) {
+      let owned = 0, borrowed = 0;
+      for (const item of pool.items as any[]) {
+        if (isOwnedItem(item, ownedIds)) owned += 1; else borrowed += 1;
+      }
+      m.set(pool.skillKey, { owned, borrowed });
+    }
+    perDifficulty[difficulty] = m;
+  }
+
+  let tOwned = 0, tBorrowed = 0, tPending = 0, blockingSkills = 0;
+
+  const roles: RoleCoverage[] = (blueprints as any[]).map((b: any) => {
+    const reqs = (b.requirements || []).filter((r: any) => r.active !== false);
+    const rows: RoleSkillCoverage[] = reqs.map((r: any) => {
+      const byDifficulty: Record<string, { owned: number; borrowed: number }> = {};
+      let any = 0, hole = false;
+      for (const d of COVERAGE_DIFFICULTIES) {
+        const c = perDifficulty[d].get(r.skillKey) || { owned: 0, borrowed: 0 };
+        byDifficulty[d] = c;
+        any += c.owned + c.borrowed;
+        if (c.owned + c.borrowed === 0) hole = true;
+      }
+      return {
+        skillKey: r.skillKey,
+        skillName: nameOf.get(r.skillKey) || r.skillKey,
+        importance: r.importance || 'SUPPORTING',
+        pending: Number(pendingOf.get(r.skillKey) || 0),
+        byDifficulty,
+        hasHole: hole && any > 0 ? true : hole,
+      };
+    });
+
+    return {
+      roleKey: b.roleKey,
+      skills: rows.sort((x, y) => {
+        const tot = (z: RoleSkillCoverage) => COVERAGE_DIFFICULTIES
+          .reduce((n, d) => n + z.byDifficulty[d].owned + z.byDifficulty[d].borrowed, 0);
+        return tot(x) - tot(y) || x.skillName.localeCompare(y.skillName);
+      }),
+      blocking: rows.filter(z => COVERAGE_DIFFICULTIES
+        .every(d => z.byDifficulty[d].owned + z.byDifficulty[d].borrowed === 0)).map(z => z.skillKey),
+    };
+  });
+
+  // Totals count each SKILL once, not once per role that needs it — roles overlap heavily
+  // and summing per role would triple-count the same questions.
+  const seen = new Set<string>();
+  for (const role of roles) {
+    for (const sk of role.skills) {
+      if (seen.has(sk.skillKey)) continue;
+      seen.add(sk.skillKey);
+      for (const d of COVERAGE_DIFFICULTIES) {
+        tOwned += sk.byDifficulty[d].owned;
+        tBorrowed += sk.byDifficulty[d].borrowed;
+      }
+      tPending += sk.pending;
+      if (COVERAGE_DIFFICULTIES.every(d => sk.byDifficulty[d].owned + sk.byDifficulty[d].borrowed === 0)) {
+        blockingSkills += 1;
+      }
+    }
+  }
+
+  return {
+    roles,
+    totals: { owned: tOwned, borrowed: tBorrowed, pending: tPending, skills: seen.size, blockingSkills },
+  };
+}
+
+/**
+ * Which questions are CareerPilot's own.
+ *
+ * NOT derivable from the loaded candidate: the registry normalises a question down to what a
+ * paper needs and drops `tags`, so provenance is invisible by the time findEvidenceCandidates
+ * hands it back. An earlier version tested `item.tags` and would have labelled every question
+ * borrowed — reporting zero owned content while the draft pipeline had in fact written some.
+ *
+ * So the tag is read from the Question collection directly, once, and passed down as a set.
+ */
+async function ownedQuestionIds(tenantId: string): Promise<Set<string>> {
+  const rows = await Question.find({ tenantId, tags: 'careerpilot-drafted' })
+    .select('_id').lean() as any[];
+  return new Set(rows.map(r => String(r._id)));
+}
+
+/** Families that exist only for CareerPilot are owned by definition. */
+function isOwnedItem(item: any, ownedIds: Set<string>): boolean {
+  if (item?.sourceType && item.sourceType !== 'question') return true;
+  return ownedIds.has(String(item?.id ?? item?.sourceId ?? ''));
+}
+
 export async function poolCoverage(tenantId: string): Promise<{
   skillKey: string; skillName: string; approved: number; pending: number;
 }[]> {

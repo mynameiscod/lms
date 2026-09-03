@@ -3,6 +3,7 @@ import SkillQuestionDraft from '../models/SkillQuestionDraft';
 import AuditLog from '../models/AuditLog';
 import {
   generateDrafts, approveDraft, rejectDraft, poolCoverage, createManualQuestion,
+  assessmentCoverage,
 } from '../services/skillQuestionDraftService';
 import { listCareerRoles } from '../services/careerRoleService';
 import { SUPPORTED_PROGRAMS } from '../services/careerDomainService';
@@ -43,6 +44,23 @@ async function audit(req: Request, action: 'CREATE' | 'UPDATE' | 'DELETE', detai
  * useful question is not "how many questions do we have" but "which skill will produce a
  * repetitive paper tomorrow".
  */
+/**
+ * GET /passport/question-drafts/role-coverage
+ *
+ * Role x skill x difficulty, split by whether the question is CareerPilot's own or borrowed
+ * from the LMS quiz bank. The older `coverage` above answers "how much evidence exists per
+ * skill", which cannot tell you that a paper will fail because one difficulty is empty, nor
+ * how much of the pool would disappear if the borrowed half were retired.
+ */
+export const roleCoverage = async (req: Request, res: Response) => {
+  try {
+    res.json({ success: true, ...(await assessmentCoverage(tenantOf(req))) });
+  } catch (e: any) {
+    console.error('[question-drafts] role coverage:', e?.message || e);
+    res.status(500).json({ success: false, message: e?.message || 'Could not read coverage' });
+  }
+};
+
 export const coverage = async (req: Request, res: Response) => {
   try {
     res.json({ success: true, skills: await poolCoverage(tenantOf(req)) });

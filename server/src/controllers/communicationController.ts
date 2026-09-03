@@ -4,6 +4,7 @@ import fs from 'fs';
 import mongoose from 'mongoose';
 import CommunicationProfile from '../models/CommunicationProfile';
 import CommunicationChallenge, { challengeAudienceFilter, CHALLENGE_AUDIENCES } from '../models/CommunicationChallenge';
+import { audienceServes, readMemberAudience } from '../models/memberAudience';
 import CommunicationSchedule from '../models/CommunicationSchedule';
 import { resolveLabDay } from '../services/labTrackService';
 import CommunicationAttempt from '../models/CommunicationAttempt';
@@ -79,9 +80,18 @@ export const getToday = async (req: Request, res: Response) => {
     if (!me?.batchId) {
       if (!me?.passport?.active) return res.json({ challenge: null, status: 'not_started' });
 
-      const memberChallenges = await CommunicationChallenge.find({
+      const tagged = await CommunicationChallenge.find({
         tenantId, active: true, ...challengeAudienceFilter('careerpilot'),
       }).sort({ sequenceNumber: 1, _id: 1 }).lean();
+
+      /**
+       * Narrowed to this member's year, course, branch, role and stage.
+       *
+       * In memory rather than in the query: "empty means everyone" needs an $or per axis
+       * against a field older rows do not have, and five of those in one find() is a query
+       * nobody could reason about later. The set is small and read once a day.
+       */
+      const memberChallenges = tagged.filter(c => audienceServes((c as any).audience, me?.passport));
 
       if (!memberChallenges.length) return res.json({ challenge: null, status: 'not_started' });
 
@@ -140,8 +150,11 @@ export const getToday = async (req: Request, res: Response) => {
       }
     }
 
-    const challenges = await CommunicationChallenge.find({ tenantId, challengeType: 'self_introduction', active: true, batchIds: me.batchId })
+    const batchTagged = await CommunicationChallenge.find({ tenantId, challengeType: 'self_introduction', active: true, batchIds: me.batchId })
       .sort({ sequenceNumber: 1 }).lean();
+    // A batch narrows by class; this narrows within it. A batch holding second and final
+    // years is exactly where one-size-fits-all shows.
+    const challenges = batchTagged.filter(c => audienceServes((c as any).audience, me?.passport));
     // Nothing targeted at this batch AND nothing scheduled → empty until the admin assigns.
     if (!challenges.length && !sc) return res.json({ challenge: null, status: 'not_started' });
 
@@ -414,6 +427,7 @@ export const createChallenge = async (req: Request, res: Response) => {
         const picked = arr(b.audiences).filter((a: string) => CHALLENGE_AUDIENCES.includes(a as any));
         return picked.length ? picked : ['lms'];
       })(),
+      audience: readMemberAudience(b.audience),
       sequenceNumber: (last?.sequenceNumber || 0) + 1, active: b.active !== false, createdBy: uId(req),
     });
     res.status(201).json({ challenge: c });
@@ -422,13 +436,14 @@ export const createChallenge = async (req: Request, res: Response) => {
 
 export const updateChallenge = async (req: Request, res: Response) => {
   try {
-    const allowed = ['title', 'description', 'instructions', 'suggestedPoints', 'minSeconds', 'targetSeconds', 'maxSeconds', 'maxAttempts', 'recordingModes', 'sequenceNumber', 'active', 'challengeType', 'batchIds', 'audiences'];
+    const allowed = ['title', 'description', 'instructions', 'suggestedPoints', 'minSeconds', 'targetSeconds', 'maxSeconds', 'maxAttempts', 'recordingModes', 'sequenceNumber', 'active', 'challengeType', 'batchIds', 'audiences', 'audience'];
     const listKeys = ['suggestedPoints', 'recordingModes', 'batchIds', 'audiences'];
     const set: any = {};
     for (const k of allowed) if (k in req.body) {
       if (k === 'batchIds') set[k] = arr(req.body[k]).filter((s: string) => mongoose.isValidObjectId(s)).map((s: string) => new mongoose.Types.ObjectId(s));
       // An empty pick would make the challenge invisible everywhere, which is never what
       // clearing every tick means — fall back to LMS rather than silently retiring it.
+      else if (k === 'audience') set[k] = readMemberAudience(req.body[k]);
       else if (k === 'audiences') {
         const picked = arr(req.body[k]).filter((a: string) => CHALLENGE_AUDIENCES.includes(a as any));
         set[k] = picked.length ? picked : ['lms'];

@@ -10,6 +10,7 @@
 import mongoose from 'mongoose';
 import codeRunner from './codeRunnerService';
 import ThinkingProblem, { audienceFilter } from '../models/ThinkingProblem';
+import { audienceServes, AudienceMember } from '../models/memberAudience';
 import { ProgrammingLanguage } from '../models/Assignment';
 
 export type PracticeKind = 'coding' | 'sql' | 'mcq';
@@ -491,6 +492,17 @@ export type PracticeSource = 'all' | 'builtin' | 'bank';
 export async function listCareerPilotProblems(
   tenantId: string,
   filter?: { kind?: PracticeKind; category?: string; difficulty?: string; source?: PracticeSource },
+  /**
+   * Who is asking, so the bank can be narrowed to them.
+   *
+   * Filtered in memory rather than in the query. "Empty means everyone" needs an $or per
+   * axis against a field that may not exist on older rows, and five of those in one find()
+   * is a query nobody will be able to reason about later. The bank is capped at 500 rows,
+   * so the cost is a loop.
+   *
+   * Absent member => no narrowing, which keeps every existing caller working.
+   */
+  member?: AudienceMember | null,
 ) {
   const source: PracticeSource = filter?.source || 'all';
 
@@ -511,7 +523,11 @@ export async function listCareerPilotProblems(
     .limit(500)
     .lean();
 
-  const fromDb = docs.map(d => ({
+  const forMember = member
+    ? docs.filter(d => audienceServes((d as any).audience, member))
+    : docs;
+
+  const fromDb = forMember.map(d => ({
     id: `${DB_PREFIX}${String(d._id)}`,
     kind: 'coding' as PracticeKind,
     title: d.title,

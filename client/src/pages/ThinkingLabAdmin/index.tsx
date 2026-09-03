@@ -1,3 +1,4 @@
+import MemberAudiencePicker, { emptyMemberAudience } from '../../components/common/MemberAudiencePicker';
 import React, { useEffect, useState } from 'react';
 import { thinkingLabApi, TLAdminProblem, TL_LANGS, DIFF_COLORS } from '../../api/thinkingLabApi';
 import { batchApi } from '../../api';
@@ -187,7 +188,7 @@ const ThinkingLabAdmin: React.FC = () => {
 
 // ── Manual create / edit modal ───────────────────────────────────────────────
 const ProblemEditor: React.FC<{ id: string | null; categories: string[]; difficulties: string[]; onClose: () => void; onSaved: () => void }> = ({ id, categories, difficulties, onClose, onSaved }) => {
-  const empty = { title: '', category: categories[0] || 'Brain Teasers', difficulty: 'easy', language: 'javascript', statement: '', constraints: '', notes: '', starterCode: '', hints: ['', '', ''], expectedTimeComplexity: '', expectedSpaceComplexity: '', imageUrl: '', videoUrl: '', referenceVideo: '', xp: 50, estimatedMinutes: 15, audiences: ['lms'], solutionUnlockAfterAttempts: 3, videoKey: '', solutionVideoKey: '', testCases: [{ input: '', expectedOutput: '', hidden: false }] as any[] };
+  const empty = { title: '', category: categories[0] || 'Brain Teasers', difficulty: 'easy', language: 'javascript', statement: '', constraints: '', notes: '', starterCode: '', hints: ['', '', ''], expectedTimeComplexity: '', expectedSpaceComplexity: '', imageUrl: '', videoUrl: '', referenceVideo: '', xp: 50, estimatedMinutes: 15, audiences: ['lms'], audience: emptyMemberAudience(), solutionUnlockAfterAttempts: 3, videoKey: '', solutionVideoKey: '', testCases: [{ input: '', expectedOutput: '', hidden: false }] as any[] };
   const [f, setF] = useState<any>(empty);
   const [loading, setLoading] = useState(!!id);
   const [saving, setSaving] = useState(false);
@@ -283,6 +284,13 @@ const ProblemEditor: React.FC<{ id: string | null; categories: string[]; difficu
                   Nobody is selected — this will be saved as LMS students only.
                 </div>
               )}
+              {/* Product first, then WHICH members within it — the two narrow different
+                  things and stacking them here keeps that visible. */}
+              <div style={{ marginTop: 12 }}>
+                <MemberAudiencePicker
+                  value={f.audience || emptyMemberAudience()}
+                  onChange={a => setF((p: any) => ({ ...p, audience: a }))} />
+              </div>
               <label style={{ display: 'block', marginTop: 12 }}>
                 <span style={lbl}>Unlock the solution after this many failed submissions</span>
                 <input

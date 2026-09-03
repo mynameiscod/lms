@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { IMemberAudience, MemberAudienceSchema } from './memberAudience';
 
 export type ChallengeType =
   | 'self_introduction'
@@ -40,6 +41,14 @@ export interface ICommunicationChallenge extends Document {
    * content review nobody performed.
    */
   audiences: ChallengeAudience[];
+  /**
+   * Which members this is for, beyond the product tag above.
+   *
+   * Empty on every axis means everyone, so nothing already written changes. Narrowing is
+   * how a second-year CSE student and a final-year ECE student stop being handed the same
+   * item on the same day.
+   */
+  audience: IMemberAudience;
   isSeed?: boolean;           // marks the built-in seeded set (so re-seeding is idempotent)
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -89,6 +98,7 @@ const CommunicationChallengeSchema = new Schema<ICommunicationChallenge>(
     active: { type: Boolean, default: true, index: true },
     batchIds: { type: [Schema.Types.ObjectId], ref: 'Batch', default: [] },
     audiences: { type: [String], enum: CHALLENGE_AUDIENCES, default: ['lms'] },
+    audience: MemberAudienceSchema,
     isSeed: { type: Boolean, default: false },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import fs from 'fs';
 import ThinkingProblem, { audienceFilter, PROBLEM_AUDIENCES } from '../models/ThinkingProblem';
+import { readMemberAudience } from '../models/memberAudience';
 import DailyChallenge from '../models/DailyChallenge';
 import StudentGameStats from '../models/StudentGameStats';
 import ThinkingProfile from '../models/ThinkingProfile';
@@ -613,6 +614,13 @@ function sanitizeProblemInput(b: any) {
     // A problem for nobody is not a state worth saving — an empty pick keeps the LMS.
     out.audiences = picked.length ? [...new Set(picked)] : ['lms'];
   }
+  /**
+   * Same "absent means leave alone" rule as audiences above, and for the same reason: an
+   * older client that omits the block would otherwise widen a narrowly targeted problem
+   * back to everyone, silently.
+   */
+  if (b.audience !== undefined) out.audience = readMemberAudience(b.audience);
+
   if (b.solutionUnlockAfterAttempts !== undefined) {
     const n = Number(b.solutionUnlockAfterAttempts);
     // 0 means "never hide it". Capped so a typo cannot make the video unreachable forever.

@@ -35,7 +35,7 @@ async function gate(req: Request) {
 /** GET /passport/practice — the problem list (+ what this member has already solved). */
 export const list = async (req: Request, res: Response) => {
   try {
-    const { tenantId, studentId, cfg, entitled } = await gate(req);
+    const { tenantId, studentId, user, cfg, entitled } = await gate(req);
     const kind = req.query.kind ? String(req.query.kind) as PracticeKind : undefined;
     const category = req.query.category ? String(req.query.category) : undefined;
     const difficulty = req.query.difficulty ? String(req.query.difficulty) : undefined;
@@ -45,7 +45,10 @@ export const list = async (req: Request, res: Response) => {
     // (including an absent value) keeps the merged list every existing caller expects.
     const sourceRaw = String(req.query.source || 'all');
     const source = (sourceRaw === 'bank' || sourceRaw === 'builtin') ? sourceRaw : 'all';
-    const problems = await listCareerPilotProblems(tenantId, { kind, category, difficulty, source });
+    // The member's own axes, so two students on the same day do not get the same list.
+    // Taken from the gate's fetch rather than a second round trip for the same document.
+    const problems = await listCareerPilotProblems(
+      tenantId, { kind, category, difficulty, source }, user?.passport || null);
 
     if (!entitled) {
       return res.json({ locked: true, priceInr: cfg?.priceInr ?? 499, problems, solved: [] });

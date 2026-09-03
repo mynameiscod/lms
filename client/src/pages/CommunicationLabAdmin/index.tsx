@@ -1,3 +1,4 @@
+import MemberAudiencePicker, { emptyMemberAudience, audienceSummary } from '../../components/common/MemberAudiencePicker';
 import React, { useCallback, useEffect, useState } from 'react';
 import { communicationApi, CommChallenge } from '../../api/communicationApi';
 import { batchApi } from '../../api';
@@ -167,6 +168,7 @@ const CommunicationLabAdmin: React.FC = () => {
                       <td style={td}>{Math.round(c.targetSeconds / 60)}m</td>
                       <td style={td}>
                         {(c as any).batchIds?.length ? `${(c as any).batchIds.length} batch(es)` : 'All'}
+                        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>{audienceSummary((c as any).audience)}</div>
                         {((c as any).audiences || ['lms']).includes('careerpilot') && (
                           <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#7c3aed', background: '#f3ecff', borderRadius: 99, padding: '2px 7px' }}>
                             CareerPilot
@@ -246,6 +248,7 @@ const ChallengeModal: React.FC<{ challenge: CommChallenge | 'new'; batches: { _i
     maxAttempts: c?.maxAttempts || 2, recordingModes: (c?.recordingModes || ['audio', 'video']),
     batchIds: (c as any)?.batchIds || [],
     audiences: (c as any)?.audiences?.length ? (c as any).audiences : ['lms'],
+    audience: { ...emptyMemberAudience(), ...((c as any)?.audience || {}) },
     active: c?.active !== false,
   });
   const [busy, setBusy] = useState(false);
@@ -296,6 +299,9 @@ const ChallengeModal: React.FC<{ challenge: CommChallenge | 'new'; batches: { _i
             CareerPilot members have no batch, so they get the challenges ticked here — walked
             in sequence order, one per day. Batches below apply to LMS students only.
           </div>
+        </div>
+        <div>
+          <MemberAudiencePicker value={f.audience} onChange={a => set('audience', a)} />
         </div>
         <div>
           <label style={lbl}>Assign to batches <span style={{ fontWeight: 400, color: '#9ca3af' }}>(none = all batches)</span></label>

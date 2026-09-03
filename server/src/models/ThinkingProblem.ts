@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { IMemberAudience, MemberAudienceSchema } from './memberAudience';
 
 /**
  * The two products this bank serves. Named rather than boolean flags so a third surface
@@ -58,6 +59,14 @@ export interface IThinkingProblem extends Document {
    */
   audiences: ProblemAudience[];
   /**
+   * Which members this is for, beyond the product tag above.
+   *
+   * Empty on every axis means everyone, so nothing already written changes. Narrowing is
+   * how a second-year CSE student and a final-year ECE student stop being handed the same
+   * problem on the same day.
+   */
+  audience: IMemberAudience;
+  /**
    * Failed attempts after which the solution video and reference solution unlock.
    *
    * A stuck student is the case this exists for. The gate is enforced where the payload is
@@ -107,6 +116,7 @@ const ThinkingProblemSchema = new Schema<IThinkingProblem>(
     estimatedMinutes: { type: Number, default: 15 },
     tags:       { type: [String], default: [] },
     audiences:  { type: [String], enum: PROBLEM_AUDIENCES, default: ['lms'] },
+    audience:   MemberAudienceSchema,
     solutionUnlockAfterAttempts: { type: Number, default: 3 },
     videoKey:          { type: String, default: '' },
     solutionVideoKey:  { type: String, default: '' },

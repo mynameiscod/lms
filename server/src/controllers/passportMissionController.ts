@@ -13,6 +13,9 @@ import PassportInterview from '../models/PassportInterview';
 import PassportResume from '../models/PassportResume';
 import { awardCoins } from '../services/coinService';
 import { reviewAnswer } from '../services/passportAnswerAIService';
+import { getTodaysPlan } from '../services/dailyMissionOrchestrator';
+import { completeCareerMission } from '../services/careerMissionCompletionService';
+import { processGamificationEvent, evaluateRoadmapBadges } from '../services/gamificationEngine';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -25,22 +28,16 @@ async function ctx(req: Request) {
     PassportConfig.findOne({ tenantId }).lean(),
     ensureContent(tenantId),
   ]);
-  // Missions come from the tenant's admin-editable pools (PassportContent). The journey
-  // length rides along because mission emphasis tapers over the WHOLE journey, and a
-  // tenant may run 150, 300 or 365 days rather than the default 90.
   return {
     tenantId, studentId, user, cfg, content,
     pools: poolMapOf(content.missionPools, memberAxes(user)),
     curriculum: await curriculumFor(tenantId, user?.passport?.pathway, user?.passport?.stage),
     journeyDays: content.journeyDays || 90,
-    // Read once here so every path in this file — list, complete, and the answer review —
-    // agrees on how many missions today has. Two paths disagreeing about the day's shape is
-    // what produced "Take the assessment first" on a mission the member could see.
     slots: clampSlots((content as any).missionsPerDay),
   };
 }
 
-/** Student: today's missions + streak/xp. Gated behind the `daily_missions` entitlement. */
+/** Student: legacy day browser. Current-day Home no longer uses this list. */
 export const getToday = async (req: Request, res: Response) => {
   try {
     const { tenantId, studentId, user, cfg, content, pools, curriculum, journeyDays, slots } = await ctx(req);
@@ -48,11 +45,6 @@ export const getToday = async (req: Request, res: Response) => {
       return res.json({ locked: true, priceInr: cfg?.priceInr ?? 499, reason: 'Membership required to unlock daily missions.' });
     }
 
-    /**
-     * Same gate as the roadmap, same reason: this looked for a PassportAttempt, which only
-     * the legacy questionnaire writes, so a member measured by the skill assessment was
-     * told their missions needed an assessment they had already sat.
-     */
     const assessed = await resolveAssessedState({
       tenantId, studentId,
       passport: user?.passport,
@@ -67,17 +59,6 @@ export const getToday = async (req: Request, res: Response) => {
 
     const now = new Date();
     const today = dayNumber(progress.startDate, now);
-
-    /**
-     * B9 — look back at an earlier day.
-     *
-     * Missions were only ever generated for TODAY, so a member who missed Tuesday had no
-     * way to see what Tuesday had asked of them. `missionsForDay` is deterministic in
-     * (attempt, day, journeyDays), so any past day can be rebuilt exactly as it was.
-     *
-     * Clamped forward at today on purpose: showing tomorrow would leak the pacing the
-     * roadmap exists to enforce, and let a member burn through a week in an afternoon.
-     */
     const asked = Number(req.query.day);
     const day = Number.isFinite(asked) ? Math.min(today, Math.max(1, Math.round(asked))) : today;
 
@@ -85,40 +66,88 @@ export const getToday = async (req: Request, res: Response) => {
     const doneKeys = new Set(progress.completed.filter(c => c.day === day).map(c => c.key));
 
     res.json({
-      locked: false,
-      day,
-      today,
-      isPast: day < today,
-      streak: progress.streak,
-      longestStreak: progress.longestStreak,
-      xp: progress.xp,
+      locked: false, day, today, isPast: day < today,
+      streak: progress.streak, longestStreak: progress.longestStreak, xp: progress.xp,
       missions: missions.map(m => ({ ...m, done: doneKeys.has(m.key) })),
       allDone: missions.length > 0 && missions.every(m => doneKeys.has(m.key)),
     });
   } catch (e: any) { console.error('[passport] getToday:', e); res.status(500).json({ message: e.message || 'Failed to load missions' }); }
 };
 
-/** Student: mark one mission done → award XP + update streak. Idempotent per (day,key). */
+/**
+ * Compatibility bridge for the existing Dashboard UI.
+ * New roadmap mission keys start with `cp:`. The existing button still posts to this route,
+ * so roadmap keys are completed through the same services as /me/plan/complete. Legacy pool
+ * keys continue down the old path for past-day/history compatibility during migration.
+ */
+async function completeRoadmapMission(req: Request, res: Response, key: string) {
+  const tenantId = tenantOf(req);
+  const studentId = userIdOf(req);
+  const plan = await getTodaysPlan(tenantId, studentId);
+  if (!plan.available) {
+    return res.status(plan.reason === 'MEMBERSHIP_REQUIRED' ? 403 : 409).json(plan);
+  }
+
+  const mission = plan.missions.find(m => m.key === key);
+  if (!mission) return res.status(400).json({ message: 'That mission is not on today’s plan.' });
+
+  const user: any = await User.findOne({ _id: studentId, tenantId }).select('passport').lean();
+  const outcome = await completeCareerMission({
+    tenantId, studentId,
+    day: plan.roadmapDay,
+    key,
+    trace: {
+      roadmapId: mission.roadmapId,
+      objectiveSequence: mission.objectiveSequence,
+      skillKey: mission.skillKey,
+      workType: mission.workType,
+      minutes: mission.plannedMinutes,
+    },
+    startDate: user?.passport?.activatedAt,
+  });
+
+  const award = outcome.newlyCompleted
+    ? await processGamificationEvent({
+        tenantId, studentId,
+        eventKey: 'CAREER_MISSION_COMPLETED',
+        sourceType: 'mission', sourceId: key,
+        metadata: { skillKey: mission.skillKey, workType: mission.workType },
+        xpOverride: mission.resource?.xp ?? undefined,
+      })
+    : null;
+  const roadmapBadges = outcome.newlyCompleted
+    ? await evaluateRoadmapBadges(tenantId, studentId)
+    : [];
+  const after = await getTodaysPlan(tenantId, studentId);
+  const allDone = after.available ? after.missions.length > 0 && after.missions.every(m => m.done) : false;
+
+  return res.json({
+    ok: true,
+    completed: true,
+    newlyCompleted: outcome.newlyCompleted,
+    xpAwarded: award?.awarded || 0,
+    xp: award?.xpTotal ?? null,
+    streak: award?.streak ?? null,
+    longestStreak: null,
+    badges: [...(award?.badges || []), ...roadmapBadges],
+    streakBonus: award?.streakBonus,
+    allDone,
+    feedback: null,
+  });
+}
+
+/** Student: mark one mission done. Roadmap keys use the new engine; legacy keys remain compatible. */
 export const completeMission = async (req: Request, res: Response) => {
   try {
+    const requestedKey = String(req.body?.key || '').trim();
+    if (requestedKey.startsWith('cp:')) {
+      return await completeRoadmapMission(req, res, requestedKey);
+    }
+
     const { tenantId, studentId, user, cfg, content, pools, curriculum, journeyDays, slots } = await ctx(req);
     if (!isEntitled(cfg?.entitlements as any, user?.passport, 'daily_missions')) {
       return res.status(403).json({ message: 'Membership required.' });
     }
-    /**
-     * The SAME gate getToday uses, for the same reason — and it had to be the same one.
-     *
-     * getToday was moved onto resolveAssessedState because a PassportAttempt is only ever
-     * written by the legacy questionnaire, so a member measured by the skill assessment was
-     * told to sit an assessment they had already sat. This half was left behind, and the
-     * result was worse than the original bug: the missions rendered, the member wrote their
-     * answer, and only on saving were they told to "Take the assessment first" — about an
-     * assessment they had completed. Seen in production: careerScore 12, one SUBMITTED
-     * PersonalizedAssessment, zero PassportAttempt rows.
-     *
-     * A read path and a write path disagreeing about who is allowed in is the shape of the
-     * bug; keeping them on one resolver is the fix.
-     */
     const assessed = await resolveAssessedState({
       tenantId, studentId,
       passport: user?.passport,
@@ -133,23 +162,15 @@ export const completeMission = async (req: Request, res: Response) => {
 
     const now = new Date();
     const day = dayNumber(progress.startDate, now);
-    const key = String(req.body?.key || '');
+    const key = requestedKey;
     const answer = String(req.body?.answer || '').trim();
     const valid = missionsForDay(attempt, day, pools, journeyDays, curriculum, slots).find(m => m.key === key);
     if (!valid) return res.status(400).json({ message: 'Unknown mission.' });
 
-    // A mission with no surface to do it on completes by writing the answer. Ticking a
-    // box was the only option before, which made XP a claim rather than work — and threw
-    // away the very thing worth keeping: the member's own words about the role they want
-    // and the gaps they see.
     if (valid.needsAnswer && answer.length < 10) {
       return res.status(400).json({ message: 'Write a short answer (at least 10 characters) to complete this one.' });
     }
 
-    // M5 — a mission the product can CHECK cannot be closed by asserting it. Ticking the
-    // box was the only evidence that a mock interview had happened, so the XP, the coins
-    // and the streak were all available without doing one. The interview closes this
-    // mission itself when it finishes (see passportInterviewController.finish).
     if (valid.verify === 'interview') {
       const done = await PassportInterview.countDocuments({
         tenantId, studentId, status: 'completed',
@@ -162,20 +183,7 @@ export const completeMission = async (req: Request, res: Response) => {
       }
     }
 
-    /**
-     * A resume mission is checked against the saved resume rather than asserted.
-     *
-     * Unlike the interview there is no single "finished" event to hang this on — the
-     * Resume Center saves continuously — so this is read at the moment the member ticks.
-     * The bar is exactly the three sections the mission text names, and exactly what the
-     * Resume Center's own done-markers use, so a member who sees three green ticks there
-     * can never be told here that they have not finished.
-     */
     if (valid.verify === 'resume') {
-      // WHICH part of the resume, from the link's own ?focus= — the same seam the
-      // interview uses for ?mode=. Three resume missions ask for three different things,
-      // so one blanket "is the resume filled in" bar would tell a member who had just
-      // added a project that they had not done it.
       const focus = new URLSearchParams((valid.link || '').split('?')[1] || '').get('focus') || 'basics';
       const s = (await PassportResume.findOne({ tenantId, studentId }).lean() as any)?.sections;
       const missing: string[] = [];
@@ -186,9 +194,6 @@ export const completeMission = async (req: Request, res: Response) => {
       } else if (focus === 'title') {
         if (!s?.contact?.title?.trim()) missing.push('a target title in your contact details');
       } else {
-        // The three sections "Resume kickoff" names — and exactly the criteria the Resume
-        // Center's own done-markers use, so a member looking at three green ticks there
-        // can never be told here that they have not finished.
         if (!s?.contact?.name?.trim() || !s?.contact?.email?.trim() || !s?.contact?.phone?.trim()) {
           missing.push('your name, email and phone');
         }
@@ -208,10 +213,6 @@ export const completeMission = async (req: Request, res: Response) => {
 
     const newlyDone = completeMissionOnce(progress, day, key, valid.xp, now, valid.needsAnswer ? answer : undefined);
 
-    // Coach the answer AFTER the mission is already recorded. The order matters: this is
-    // a network call to a third party, and a provider outage must cost the member their
-    // feedback, never their progress or their XP. Feedback is a bonus on top of a
-    // completion that has already happened.
     let feedback: string | null = null;
     if (newlyDone && valid.needsAnswer && answer) {
       const reviewed = await reviewAnswer({
@@ -230,10 +231,6 @@ export const completeMission = async (req: Request, res: Response) => {
     const missions = missionsForDay(attempt, day, pools, journeyDays, curriculum, slots);
     const allDone = missions.every(m => doneKeys.has(m.key));
 
-    // Coins are awarded AFTER the completion is saved, and each key names the event
-    // rather than the request — the calendar day for the daily ones, the day+key for a
-    // single mission. Re-submitting the same mission cannot mint a second award, and a
-    // failure here cannot cost the member the mission itself.
     let coins = 0;
     if (newlyDone) {
       const today = ymd(now);
@@ -245,7 +242,6 @@ export const completeMission = async (req: Request, res: Response) => {
         const all = await awardCoins({ ...base, eventKey: 'mission_all_done', note: 'All missions done', idempotencyKey: `missions_all:${studentId}:${today}` });
         coins += all.awarded;
       }
-      // A streak pays once per completed week, not once per day it stays alive.
       if (progress.streak > 0 && progress.streak % 7 === 0) {
         const st = await awardCoins({ ...base, eventKey: 'streak_7', note: `${progress.streak}-day streak`, idempotencyKey: `streak:${studentId}:${progress.streak}` });
         coins += st.awarded;
@@ -254,11 +250,7 @@ export const completeMission = async (req: Request, res: Response) => {
 
     res.json({
       ok: true, xp: progress.xp, streak: progress.streak, longestStreak: progress.longestStreak,
-      coins,
-      allDone,
-      // null when AI is unavailable — the client shows the completion without coaching
-      // rather than pretending the feature is broken.
-      feedback,
+      coins, allDone, feedback,
     });
   } catch (e: any) { console.error('[passport] completeMission:', e); res.status(500).json({ message: e.message || 'Failed' }); }
 };

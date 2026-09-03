@@ -76,3 +76,22 @@
 
 @media (max-width:1080px) { .ac-kpis { grid-template-columns:repeat(2,1fr); } }
 @media (max-width:640px)  { .ac { padding:16px; } .ac-kpis { grid-template-columns:1fr; } .ac-toggle { margin-left:0; } }
+
+/* Gap generation — the action lives where the gap is visible. */
+.ac-gapbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#fffaf3;border:1px solid #f3d9b5;
+           border-radius:12px;padding:13px 16px;margin-bottom:12px}
+.ac-gapbar>div{flex:1;min-width:240px}
+.ac-gapbar b{display:block;font-size:13.5px;color:#102a4f}
+.ac-gapbar span{display:block;font-size:11.5px;color:#8a6a3a;line-height:1.5;margin-top:2px}
+.ac-per{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:#6b5330;white-space:nowrap}
+.ac-per input{width:58px;border:1px solid #e2cba6;border-radius:8px;padding:6px 8px;font-size:12.5px;
+              text-align:center;font-variant-numeric:tabular-nums}
+.ac-gen{border:0;border-radius:9px;padding:10px 16px;font-size:12.5px;font-weight:800;color:#fff;
+        cursor:pointer;background:#b06a00;white-space:nowrap}
+.ac-gen:disabled{opacity:.6;cursor:not-allowed}
+.ac-genmsg{background:#eef7fb;border:1px solid #cfe3ef;border-radius:10px;padding:10px 14px;
+           font-size:12.5px;color:#2c4c62;margin-bottom:12px;line-height:1.5}
+.ac-cellgen{border:1px dashed #d9a7a7;background:#fff;color:#a83232;border-radius:7px;
+            padding:3px 10px;font-size:11px;font-weight:750;cursor:pointer}
+.ac-cellgen:hover{background:#a83232;color:#fff;border-style:solid}
+.ac-cellgen:disabled{opacity:.55;cursor:not-allowed}

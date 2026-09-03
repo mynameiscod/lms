@@ -40,8 +40,14 @@ interface SkillRow {
 interface RoleRow { roleKey: string; skills: SkillRow[]; blocking: string[] }
 interface Totals { owned: number; borrowed: number; pending: number; skills: number; blockingSkills: number }
 
+/** What one generated question costs, for the warning below. Sonnet-class list pricing. */
+const RUPEES_PER_QUESTION = 0.9;
+
 const AdminAssessmentCoverage: React.FC = () => {
   const [roles, setRoles] = useState<RoleRow[]>([]);
+  const [busyCell, setBusyCell] = useState('');
+  const [genMsg, setGenMsg] = useState('');
+  const [perGap, setPerGap] = useState(6);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [role, setRole] = useState('');
   const [onlyGaps, setOnlyGaps] = useState(false);
@@ -63,6 +69,62 @@ const AdminAssessmentCoverage: React.FC = () => {
   }, []);
 
   const current = roles.find(r => r.roleKey === role);
+
+  const reload = () =>
+    axios.get(`${BASE}/question-drafts/role-coverage`, { headers: auth() })
+      .then(r => { setRoles(r.data.roles || []); setTotals(r.data.totals || null); })
+      .catch(() => { /* the numbers on screen simply stay as they were */ });
+
+  /**
+   * Draft questions for one empty cell.
+   *
+   * The generator already took a skill, a difficulty and a count — what was missing was a
+   * way to reach it from the place the gap is visible. Closing fifteen skills across three
+   * difficulties meant forty-five trips through a form, which is why nobody had.
+   *
+   * Drafts land PENDING. Nothing generated here reaches a student until it is reviewed:
+   * these questions decide a member's Skill DNA, and a wrong answer key mis-scores them
+   * silently.
+   */
+  const generateFor = async (skillKey: string, difficulty: string) => {
+    const cell = `${skillKey}:${difficulty}`;
+    setBusyCell(cell); setGenMsg('');
+    try {
+      const r = await axios.post(`${BASE}/question-drafts/generate`,
+        { skillKey, difficulty: difficulty.toLowerCase(), count: perGap },
+        { headers: auth() });
+      const rep = r.data?.report;
+      setGenMsg(`${skillKey} · ${difficulty}: ${rep?.stored ?? 0} of ${rep?.requested ?? perGap} drafted`
+        + (rep?.dropped?.length ? `, ${rep.dropped.length} dropped by the duplicate and quality checks` : '')
+        + ' — review them under Question Drafts before they can be used.');
+      await reload();
+    } catch (e: any) {
+      setGenMsg(e?.response?.data?.message
+        || (e?.response?.status === 502 ? 'The AI provider did not return usable questions. Try again.'
+          : `Generation failed (HTTP ${e?.response?.status ?? '—'}).`));
+    }
+    setBusyCell('');
+  };
+
+  /** Every empty cell for the role on screen. */
+  const gaps = useMemo(() => (current?.skills || []).flatMap(sk =>
+    DIFFS.filter(d => sk.byDifficulty[d].owned + sk.byDifficulty[d].borrowed === 0)
+      .map(d => ({ skillKey: sk.skillKey, difficulty: d }))),
+    [current]);
+
+  const generateAllGaps = async () => {
+    const cost = Math.round(gaps.length * perGap * RUPEES_PER_QUESTION);
+    if (!window.confirm(
+      `Draft ${perGap} questions for each of ${gaps.length} empty slots?\n\n`
+      + `That is ${gaps.length * perGap} questions, roughly ₹${cost} of AI usage, and they all `
+      + `land as drafts for review — nothing reaches a student until you approve it.`)) return;
+
+    // Sequential on purpose: the endpoint is rate-limited, and a failure part-way should
+    // leave the drafts already written rather than an unknown partial state.
+    for (const g of gaps) {
+      await generateFor(g.skillKey, g.difficulty);
+    }
+  };
 
   const rows = useMemo(() => {
     const list = current?.skills || [];
@@ -121,6 +183,30 @@ const AdminAssessmentCoverage: React.FC = () => {
         </label>
       </div>
 
+      {gaps.length > 0 && (
+        <div className="ac-gapbar">
+          <div>
+            <b>{gaps.length} empty slot{gaps.length === 1 ? '' : 's'} for {role.replace(/_/g, ' ')}</b>
+            <span>
+              Drafting {perGap} each is {gaps.length * perGap} questions, about
+              {' '}₹{Math.round(gaps.length * perGap * RUPEES_PER_QUESTION)} of AI usage.
+              All land as drafts for review.
+            </span>
+          </div>
+          <label className="ac-per">
+            Per slot
+            <input
+              type="number" min={1} max={20} value={perGap}
+              onChange={e => setPerGap(Math.max(1, Math.min(20, Number(e.target.value) || 6)))} />
+          </label>
+          <button className="ac-gen" disabled={!!busyCell} onClick={generateAllGaps}>
+            {busyCell ? 'Drafting…' : 'Draft for every empty slot'}
+          </button>
+        </div>
+      )}
+
+      {genMsg && <div className="ac-genmsg">{genMsg}</div>}
+
       {emptyColumns.length > 0 && (
         <div className="ac-note">
           <b>No {emptyColumns.join(' or ')} question exists for any skill this role needs.</b>
@@ -161,7 +247,15 @@ const AdminAssessmentCoverage: React.FC = () => {
                   const total = c.owned + c.borrowed;
                   return (
                     <td key={d} className={`c cell${total === 0 ? ' zero' : ''}`}>
-                      {total === 0 ? <span className="none">none</span> : (
+                      {total === 0 ? (
+                        <button
+                          className="ac-cellgen"
+                          disabled={busyCell === `${s.skillKey}:${d}`}
+                          title={`Draft ${perGap} ${d.toLowerCase()} questions for ${s.skillName}`}
+                          onClick={() => generateFor(s.skillKey, d)}>
+                          {busyCell === `${s.skillKey}:${d}` ? '…' : 'draft'}
+                        </button>
+                      ) : (
                         <>
                           <span className="own" title="Written for CareerPilot">{c.owned}</span>
                           <span className="slash">/</span>

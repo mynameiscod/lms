@@ -1,42 +1,38 @@
 import CareerRoadmap, { ICareerRoadmap } from '../models/CareerRoadmap';
-import CareerSkillResource from '../models/CareerSkillResource';
+import CareerSkillResource, { resourceServes, ResourceMember, MATERIAL_TYPES } from '../models/CareerSkillResource';
+import StudentSkillProfile from '../models/StudentSkillProfile';
 import PassportProgress from '../models/PassportProgress';
 import PassportConfig from '../models/PassportConfig';
 import User from '../models/User';
 import { isEntitled } from './passportEntitlementService';
-import { findProblem } from './passportPracticeService';
+import { findProblem, findCareerPilotProblem } from './passportPracticeService';
 import { ymd } from './passportMissionService';
 import {
   MISSION_ORCHESTRATION_VERSION, MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES,
-  ASSESSMENT_ROUTE, assessmentRouteForSkill, practiceRoute, dailySliceOf, dailyBudget,
+  assessmentRouteForSkill, practiceRoute, dailySliceOf, dailyBudget,
   MissionResourceState, DailyPlanUnavailable,
 } from '../data/missionOrchestrationPolicy';
 
 /**
  * What a student should do today to move their roadmap forward.
  *
- * THE ROADMAP DECIDES WHAT; THIS DECIDES WHEN. Every objective, its minutes, its priority
- * and its position in the week were settled by Module 9 and are read here unchanged. This
- * module never re-ranks a gap, never re-plans a week and never invents work — if the
- * roadmap has nothing left for the current week, today is finished, and saying so is the
- * correct answer rather than a reason to find filler.
+ * THE ROADMAP DECIDES WHAT; THIS DECIDES WHEN. Resource selection decides HOW, but may not
+ * rewrite the roadmap. It filters admin-authored CareerSkillResource rows by the member's
+ * audience and measured skill score, then takes the first eligible row by stable priority.
  *
- * NOT A SECOND MISSION SYSTEM. Completions are written to PassportProgress through the same
- * completeMissionOnce the legacy daily missions use, so XP, the streak and the
- * once-per-key guarantee are inherited exactly as they are. What differs is only the
- * SOURCE of the list, which is the entire point of the module.
- *
- * COMPLETING SOMETHING IS NOT PROOF OF IT. Nothing on this path writes evidence or touches
- * a skill score. Ticking "Practise arrays" moves roadmap progress and nothing else; Skill
- * DNA continues to come only from a graded assessment through Module 7.
- *
- * DETERMINISTIC AND STABLE WITHIN A DAY. Today's slate is computed from work credited on
- * EARLIER days, so finishing a mission at noon marks it done without reshuffling the two
- * beneath it. A refresh returns the same three tasks in the same order.
+ * COMPLETING SOMETHING IS NOT PROOF OF IT. Nothing here writes Skill DNA. Scores are read
+ * only to choose an appropriate activity; capability still changes only from evidence.
  */
 
+export interface MissionResource {
+  type: string;
+  id: string;
+  title: string;
+  route: string;
+  xp?: number | null;
+}
+
 export interface DailyMission {
-  /** Stable business identity: same roadmap, same objective, same date, same key. */
   key: string;
   roadmapId: string;
   objectiveSequence: number;
@@ -45,11 +41,10 @@ export interface DailyMission {
   workType: string;
   plannedMinutes: number;
   title: string;
-  /** Module 9's own words for why this is in the plan. Not regenerated here. */
   explanation: string;
   reasonCode: string;
   resourceState: MissionResourceState;
-  resource?: { type: string; id: string; title: string; route: string; xp?: number | null };
+  resource?: MissionResource;
   done: boolean;
 }
 
@@ -63,10 +58,8 @@ export interface DailyPlanAvailable {
   weekCount: number;
   capacity: { minutesPerDay: number; plannedMinutes: number };
   missions: DailyMission[];
-  /** Progress across the whole plan, from credited minutes. Never a skill figure. */
   progress: { plannedMinutes: number; completedMinutes: number; percent: number };
   week: { plannedMinutes: number; completedMinutes: number };
-  /** Objectives this week that no resource can execute yet — a configuration gap. */
   unmappedObjectives: number;
   outdated: boolean;
 }
@@ -83,11 +76,9 @@ const WORK_LABEL: Record<string, string> = {
   LEARN: 'Learn', PRACTICE: 'Practice', ASSESS: 'Check', REVIEW: 'Review',
 };
 
-/** The identity a completion is recorded against. Deterministic, and never random. */
 export const missionKey = (roadmapId: string, sequence: number, date: string): string =>
   `cp:${roadmapId}:${sequence}:${date}`;
 
-/** One roadmap objective, as the selector needs it. */
 export interface SelectableObjective {
   sequence: number;
   skillKey: string;
@@ -107,22 +98,11 @@ export interface SelectionInput {
   objectives: SelectableObjective[];
   minutesPerDay: number;
   daysPerWeek: number;
-  /** Minutes credited per objective sequence on days BEFORE today. */
   creditedBefore: Map<number, number>;
-  /** Keys completed today — marks a mission done without removing it from the list. */
   completedToday: Set<string>;
-  /** skillKey:workType -> the resource to send the student to. */
-  resources: Map<string, { type: string; id: string; title: string; route: string; xp?: number | null }>;
+  resources: Map<string, MissionResource>;
 }
 
-/**
- * Choose today's missions.
- *
- * Pure, so the rules that matter — capacity, prerequisite order, stability — can be tested
- * without a database. Objectives arrive in Module 9's sequence, which already encodes
- * prerequisite ordering; the gate below enforces it a second time at the day level, because
- * a week's worth of order is not the same as a day's.
- */
 export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
   const thisWeek = input.objectives
     .filter(o => o.week === input.week)
@@ -140,13 +120,6 @@ export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
     if (chosen.length >= MAX_MISSIONS_PER_DAY) break;
     if (isSettled(o)) continue;
 
-    /**
-     * Prerequisite gate.
-     *
-     * Module 9 put HTTP before REST APIs for a reason, and a day that offered both at once
-     * would waste the ordering it worked out. Anything earlier in the week that exists to
-     * unblock THIS skill has to be finished first — priority does not override sequence.
-     */
     const blocked = thisWeek.some(p =>
       p.sequence < o.sequence && p.prerequisiteFor === o.skillKey && !isSettled(p));
     if (blocked) continue;
@@ -154,17 +127,12 @@ export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
     const slice = dailySliceOf(o.plannedMinutes, creditedOf(o.sequence), input.daysPerWeek);
     if (slice < MIN_MISSION_MINUTES) continue;
 
-    // Never overspend the day. A shorter final mission is fine; a fourth hour is not.
     const remainingBudget = budget - spent;
     if (remainingBudget < MIN_MISSION_MINUTES) break;
     const minutes = Math.min(slice, remainingBudget);
 
     const key = missionKey(input.roadmapId, o.sequence, input.date);
     const resource = o.workType === 'ASSESS'
-      // The measuring instrument is built in — it always exists, so validation work is
-      // never stranded waiting for somebody to map it.
-      // Aimed at THIS objective's skill. The generic route measured the whole role, so a
-      // fifteen-minute check on one skill opened a full paper and re-scored everything.
       ? {
         type: 'assessment', id: `personalized:${o.skillKey}`,
         title: `${o.skillName} check`, route: assessmentRouteForSkill(o.skillKey),
@@ -182,8 +150,6 @@ export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
       title: `${o.skillName} — ${WORK_LABEL[o.workType] || o.workType}`,
       explanation: o.explanation,
       reasonCode: o.reasonCode,
-      // An unmapped objective still appears. Hiding it would make the plan look emptier
-      // than it is and leave the gap invisible to the admin who can close it.
       resourceState: resource ? 'READY' : 'RESOURCE_NOT_CONFIGURED',
       resource,
       done: input.completedToday.has(key),
@@ -194,60 +160,82 @@ export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
   return chosen;
 }
 
-/** Whole days between two dates, matching how the existing journey counts them. */
 const dayNumberFrom = (start: Date, now: Date): number =>
   Math.floor((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
     - Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())) / 86400000) + 1;
 
 /**
- * Resolve one executable resource per (skill, work type).
+ * A material is already an admin-authored CareerSkillResource row. The existing Concepts
+ * admin owns its content, so its stable id is the mapping row id. The member viewer route
+ * is the single seam the UI can use for note/video/link/research material.
+ */
+const materialRoute = (id: string): string => `/careerpilot/concepts/${encodeURIComponent(id)}`;
+
+/**
+ * Resolve one executable resource per (skill, work type) for THIS member.
  *
- * ONE query for every skill in the week, not one per objective. The chosen resource is the
- * lowest priority number then the lowest id, so the same objective resolves to the same
- * activity every day rather than rotating underneath the student.
- *
- * A mapping whose target has since been deleted is skipped rather than served — a Start
- * button that leads nowhere is worse than an honest configuration gap.
+ * Filtering order is deliberate:
+ *   active + skill (database) → audience → score window → target exists → priority.
+ * Rows are sorted before filtering, so the first eligible row is deterministic. A resource
+ * that is perfect for another year/branch/role is skipped, not treated as a configuration
+ * gap until every candidate for the slot has been considered.
  */
 async function resolveResources(
   tenantId: string,
   skillKeys: string[],
-): Promise<Map<string, { type: string; id: string; title: string; route: string; xp?: number | null }>> {
-  const out = new Map<string, { type: string; id: string; title: string; route: string; xp?: number | null }>();
-  if (!skillKeys.length) return out;
+  member: ResourceMember,
+  scores: Map<string, number>,
+): Promise<Map<string, MissionResource>> {
+  const out = new Map<string, MissionResource>();
+  const unique = [...new Set(skillKeys.map(k => String(k).toUpperCase()))];
+  if (!unique.length) return out;
 
   const rows = await CareerSkillResource
-    .find({ tenantId, skillKey: { $in: [...new Set(skillKeys)] }, active: true })
-    .sort({ priority: 1, resourceId: 1 })
+    .find({ tenantId, skillKey: { $in: unique }, active: true })
+    .sort({ priority: 1, resourceId: 1, _id: 1 })
     .lean() as any[];
 
   for (const r of rows) {
-    if (r.resourceType !== 'practice') continue;
-    const problem = findProblem(String(r.resourceId));
-    if (!problem) continue;                       // deleted or renamed; skip, never crash
+    const score = scores.has(r.skillKey) ? scores.get(r.skillKey)! : null;
+    if (!resourceServes(r, member, score)) continue;
 
+    let resolved: MissionResource | null = null;
+
+    if (r.resourceType === 'practice') {
+      const problem = findProblem(String(r.resourceId));
+      if (!problem) continue;
+      resolved = {
+        type: 'practice', id: String(r.resourceId), title: problem.title,
+        route: practiceRoute(String(r.resourceId)), xp: typeof r.xp === 'number' ? r.xp : null,
+      };
+    } else if (r.resourceType === 'problem') {
+      const hit = await findCareerPilotProblem(tenantId, String(r.resourceId));
+      if (!hit) continue;
+      resolved = {
+        type: 'problem', id: String(r.resourceId), title: hit.problem.title,
+        route: practiceRoute(String(r.resourceId)), xp: typeof r.xp === 'number' ? r.xp : null,
+      };
+    } else if (r.resourceType === 'mock_interview') {
+      resolved = {
+        type: 'mock_interview', id: String(r._id), title: r.title || 'Mock interview',
+        route: '/careerpilot/interview', xp: typeof r.xp === 'number' ? r.xp : null,
+      };
+    } else if (MATERIAL_TYPES.includes(r.resourceType)) {
+      resolved = {
+        type: r.resourceType, id: String(r._id), title: r.title,
+        route: materialRoute(String(r._id)), xp: typeof r.xp === 'number' ? r.xp : null,
+      };
+    }
+
+    if (!resolved) continue;
     for (const wt of (r.workTypes || [])) {
       const slot = `${r.skillKey}:${wt}`;
-      if (out.has(slot)) continue;                // first by (priority, id) wins — stable
-      out.set(slot, {
-        type: 'practice', id: String(r.resourceId),
-        title: problem.title, route: practiceRoute(String(r.resourceId)),
-        // Null unless an admin set one, in which case the tenant's flat rate still applies.
-        xp: typeof r.xp === 'number' ? r.xp : null,
-      });
+      if (!out.has(slot)) out.set(slot, resolved);
     }
   }
   return out;
 }
 
-/**
- * Today's plan for one student.
- *
- * Reads only. Nothing is materialised, because the selection is deterministic in
- * (roadmap, date, prior completions) — exactly the property the legacy daily engine already
- * relies on. Storing a slate would add a collection whose only job is to remember something
- * we can recompute exactly, plus a new way for it to disagree with the roadmap.
- */
 export async function getTodaysPlan(
   tenantId: string,
   studentId: string,
@@ -259,8 +247,6 @@ export async function getTodaysPlan(
     PassportConfig.findOne({ tenantId }).lean() as any,
   ]);
 
-  // Daily missions are a paid feature already; the same key the legacy engine uses gates
-  // this one, so nothing new has to be configured and nothing commercial is invented here.
   if (!isEntitled(cfg?.entitlements, user?.passport, 'daily_missions', now)) {
     return {
       available: false, reason: 'MEMBERSHIP_REQUIRED',
@@ -268,8 +254,6 @@ export async function getTodaysPlan(
     };
   }
 
-  // Only the ACTIVE roadmap drives today. A superseded plan keeps its history and stops
-  // producing work the moment it is replaced.
   if (!roadmap) {
     return {
       available: false, reason: 'ROADMAP_REQUIRED',
@@ -300,7 +284,6 @@ export async function getTodaysPlan(
   const completions = (progress?.completed || [])
     .filter((c: any) => c.careerpilot && c.careerpilot.roadmapId === roadmapId);
 
-  // Credited BEFORE today, so completing something now cannot reshuffle the rest of the day.
   const creditedBefore = new Map<number, number>();
   const completedToday = new Set<string>();
   let completedMinutes = 0;
@@ -313,7 +296,25 @@ export async function getTodaysPlan(
   }
 
   const weekObjectives = objectives.filter(o => o.week === week);
-  const resources = await resolveResources(tenantId, weekObjectives.map(o => o.skillKey));
+  const weekSkillKeys = [...new Set(weekObjectives.map(o => String(o.skillKey).toUpperCase()))];
+  const skillRows = await StudentSkillProfile
+    .find({ tenantId, studentId, skillKey: { $in: weekSkillKeys } })
+    .select('skillKey score').lean() as any[];
+  const scores = new Map<string, number>(skillRows.map(s => [String(s.skillKey).toUpperCase(), Number(s.score)]));
+
+  const p = user?.passport || {};
+  const member: ResourceMember = {
+    yearOfStudy: p.yearOfStudy,
+    degree: p.degree,
+    program: p.program,
+    branch: p.branch,
+    primaryRole: p.primaryRole,
+    secondaryRole: p.secondaryRole,
+    stage: p.stage,
+    preferredLanguages: p.preferredLanguages || [],
+  };
+
+  const resources = await resolveResources(tenantId, weekSkillKeys, member, scores);
 
   const missions = selectTodaysMissions({
     roadmapId, date, week, objectives,
@@ -342,8 +343,6 @@ export async function getTodaysPlan(
       plannedMinutes: missions.reduce((n, m) => n + m.plannedMinutes, 0),
     },
     missions,
-    // Roadmap progress, and deliberately not readiness. Finishing the plan is not the same
-    // as being ready for the role, and the two must never be shown as one number.
     progress: {
       plannedMinutes: totalPlanned,
       completedMinutes,

@@ -174,6 +174,33 @@ const PassportAdminConfig: React.FC = () => {
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: f.locked ? '#94a3b8' : '#475569' }}>
               <input type="checkbox" disabled={f.locked} checked={f.required} onChange={e => setField(i, { required: e.target.checked })} /> Required {f.locked && '🔒'}
             </label>
+            {/*
+              Editable here so adding a course or a branch is a settings change rather than
+              a release. Previously only `required` could be changed, which meant every new
+              college with an unlisted branch needed a code deploy — and until then their
+              students picked "Other" and became untargetable.
+
+              One per line rather than comma-separated: several of these legitimately
+              contain a comma or a slash, and splitting on those would quietly break them.
+            */}
+            {f.type === 'select' && (
+              <label style={{ display: 'block', marginTop: 8 }}>
+                <span style={{ display: 'block', fontSize: 11.5, color: '#64748b', marginBottom: 4 }}>
+                  Choices — one per line ({(f.options || []).length})
+                </span>
+                <textarea
+                  rows={Math.min(12, Math.max(3, (f.options || []).length))}
+                  value={(f.options || []).join('\n')}
+                  onChange={e => setField(i, {
+                    options: e.target.value.split('\n').map(o => o.trim()).filter(Boolean),
+                  })}
+                  style={{ width: '100%', border: '1px solid #dce4ef', borderRadius: 8, padding: '8px 10px', fontSize: 12.5, fontFamily: 'inherit', lineHeight: 1.6 }} />
+                <span style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                  Renaming a choice does not change members who already picked the old one —
+                  they keep the value they chose until it is edited on their record.
+                </span>
+              </label>
+            )}
           </div>
         ))}
       </div>

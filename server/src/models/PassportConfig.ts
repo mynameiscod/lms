@@ -148,15 +148,39 @@ export const DEFAULT_ONBOARDING_FIELDS: IOnboardingField[] = [
   { key: 'name',   label: 'Full Name',   type: 'text',  required: true, locked: true, order: 1 },
   { key: 'mobile', label: 'Mobile',      type: 'phone', required: true, locked: true, order: 2 },
   { key: 'email',  label: 'Email',       type: 'email', required: true, locked: true, order: 3 },
-  { key: 'degree', label: 'Degree',      type: 'select', required: false, order: 4, options: ['B.Tech', 'B.E.', 'BCA', 'B.Sc.', 'MCA', 'Diploma', 'Other'] },
+  // Narrowed to what is actually being onboarded. The list is data, not code: more can
+  // be added from Platform Settings without a release.
+  { key: 'degree', label: 'Degree',      type: 'select', required: false, order: 4, options: ['B.Tech'] },
   { key: 'yearOfStudy', label: 'Academic Year', type: 'select', required: false, order: 6, options: ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Graduated'] },
   // Degree alone cannot say CS or not — a B.Tech is CSE and Civil alike — so without
   // this the background axis resolves to 'any' for nearly everyone and any question or
   // mission tagged non_cs reaches nobody. Placed after Degree because that is the order
   // a student thinks in.
+  /**
+    * Specific branches, not broad buckets.
+    *
+    * The old list paired unrelated things — 'Data Science / AI' was one option, so an AI
+    * student and a Data Science student were indistinguishable and could not be given
+    * different material. These are the branches colleges actually enrol under.
+    *
+    * ORDERED BY FAMILY (core CS, then AI, data, security, cloud, emerging) because that is
+    * how a student scans for their own, not alphabetically.
+    */
   { key: 'branch', label: 'Branch / Specialization', type: 'select', required: false, order: 5,
-    options: ['Computer Science / IT', 'Electronics / ECE', 'Electrical / EEE', 'Mechanical', 'Civil',
-              'Data Science / AI', 'Mathematics / Statistics', 'Commerce / Management', 'Other'] },
+    options: [
+      'CSE', 'IT / CSIT / CSBS',
+      'AI', 'AI & ML', 'AI & Data Science', 'AI & Future Technologies',
+      'Data Science', 'Data Analytics', 'Big Data Analytics',
+      'Cyber Security', 'Information Security',
+      'Cloud Computing', 'Distributed & Cloud Computing', 'IoT',
+      'Blockchain', 'Software Engineering', 'Product Engineering with AI',
+      // Non-CS branches are kept because colleges onboard whole campuses, not CS
+      // departments. Dropping them would leave an ECE student with only "Other", which is
+      // a value nothing can meaningfully target.
+      'Electronics / ECE', 'Electrical / EEE', 'Mechanical', 'Civil',
+      'Commerce / Management', 'Mathematics / Statistics',
+      'Other',
+    ] },
   // CAREER GOAL IS NOT ASKED AT SIGNUP ANY MORE.
   //
   // It was a broad direction ('Software Development', 'Cloud & DevOps', 'Not Sure Yet')

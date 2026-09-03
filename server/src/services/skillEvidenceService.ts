@@ -116,10 +116,30 @@ const audienceClause = (field: string, value?: string) => {
   return { $or: [universal.$or[0], universal.$or[1], { [field]: value }] };
 };
 
+/**
+ * How specifically a mapping was targeted: the number of audience axes it constrains.
+ *
+ * Carried out of the query because "untagged OR matching" makes a targeted question and a
+ * universal one equally eligible, and the draw then shuffles them together. Five questions
+ * written for first-year CSE sat in a pool of two hundred universal ones and appeared about
+ * 2% of the time — so tagging looked like it did nothing.
+ *
+ * 0 means universal. Higher is more specific.
+ */
+export type AudienceSpecificity = number;
+
 export interface CandidatePool {
   skillKey: string;
-  items: (NormalisedItem & { contribution: EvidenceContribution })[];
+  items: (NormalisedItem & {
+    contribution: EvidenceContribution;
+    audienceSpecificity: AudienceSpecificity;
+  })[];
 }
+
+/** Counts the constrained axes on an evidence row. */
+export const specificityOf = (row: any): AudienceSpecificity =>
+  ['audienceRoles', 'audienceYears', 'audienceCourses', 'audienceBranches']
+    .reduce((n, f) => n + ((row?.[f] || []).length ? 1 : 0), 0);
 
 /**
  * The evidence pool for a set of skills — what a later generator will draw from.
@@ -165,7 +185,9 @@ export async function findEvidenceCandidates(tenantId: string, q: CandidateQuery
     // Difficulty is filtered here rather than in the query because each family expresses it
     // differently; the registry has already normalised it onto the loaded item.
     if (q.difficulty && item.difficulty !== q.difficulty) continue;
-    pools.get(r.skillKey)?.items.push({ ...item, contribution: r.contribution });
+    pools.get(r.skillKey)?.items.push({
+      ...item, contribution: r.contribution, audienceSpecificity: specificityOf(r),
+    });
   }
 
   if (q.limitPerSkill) {

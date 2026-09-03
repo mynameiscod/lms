@@ -264,6 +264,8 @@ export interface PoolItem {
   sourceId: string;
   difficulty: EvidenceDifficulty | null;
   contribution?: string;
+  /** Constrained audience axes on the mapping. 0 = universal. Drives the preference below. */
+  audienceSpecificity?: number;
 }
 
 /**
@@ -301,10 +303,29 @@ export function selectItems(
         .slice()
         .sort((a, b) => `${a.sourceType}:${a.sourceId}`.localeCompare(`${b.sourceType}:${b.sourceId}`));
       const drawn = shuffle(stable, rand);
-      // Unseen first, order otherwise preserved — a stable partition, not a re-sort.
+
+      /**
+       * TARGETED BEFORE UNIVERSAL, unseen before seen.
+       *
+       * The query keeps a question when it is untagged OR tagged for this student, which
+       * makes both equally eligible — and the shuffle then treated them alike. Five
+       * questions written for first-year CSE sitting among two hundred universal ones came
+       * up about 2% of the time, so tagging appeared to do nothing and the same paper
+       * reached every year.
+       *
+       * Preference, not exclusion: universal questions still fill the slot when the targeted
+       * ones run out, which is what stops a thinly-tagged skill from producing a short paper.
+       *
+       * Unseen stays the OUTER partition. A repeat across attempts reads as broken to a
+       * student in a way that a slightly less specific question never does.
+       */
+      const byPreference = (list: PoolItem[]) => list
+        .slice()
+        .sort((a, b) => (b.audienceSpecificity ?? 0) - (a.audienceSpecificity ?? 0));
+
       shuffled.set(skillKey, [
-        ...drawn.filter(i => !seen.has(i.sourceId)),
-        ...drawn.filter(i => seen.has(i.sourceId)),
+        ...byPreference(drawn.filter(i => !seen.has(i.sourceId))),
+        ...byPreference(drawn.filter(i => seen.has(i.sourceId))),
       ]);
     }
     return shuffled.get(skillKey)!;
@@ -573,6 +594,7 @@ export async function buildPersonalizedAssessment(input: GenerationInput): Promi
   });
   const poolMap = new Map<string, PoolItem[]>(pools.map(p => [p.skillKey, p.items.map(i => ({
     sourceType: i.sourceType, sourceId: i.sourceId, difficulty: i.difficulty as any, contribution: i.contribution,
+    audienceSpecificity: (i as any).audienceSpecificity ?? 0,
   }))]));
 
   const seed = generationSeed(input.studentId, policy.key, policy.version, input.attemptNumber);

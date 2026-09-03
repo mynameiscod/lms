@@ -8,28 +8,18 @@ import PassportInterview from '../models/PassportInterview';
 import PassportResume from '../models/PassportResume';
 import TechBattle from '../models/TechBattle';
 import { membershipActive, entitlementMap } from '../services/passportEntitlementService';
-import { ensureContent, poolMapOf, missionsForDay, dayNumber, ymd, clampSlots } from '../services/passportMissionService';
-import { curriculumFor } from '../services/curriculumService';
+import { ensureContent, poolMapOf, dayNumber, ymd, clampSlots } from '../services/passportMissionService';
 import { awardCoins, getAccount } from '../services/coinService';
 import { getOrCreateProgress } from '../services/passportXpService';
 import { buildRoadmap } from '../services/passportRoadmapService';
 import { PRACTICE_BANK } from '../services/passportPracticeService';
+import { getTodaysPlan } from '../services/dailyMissionOrchestrator';
 import * as g from '../services/passportGamificationService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
 
-/**
- * GET /passport/leaderboard — the full board, not the podium.
- *
- * The dashboard deliberately shows only the top 3 plus the member's own row, because a
- * longer list there is mostly strangers. This is the page for people who DO want the
- * list. The nav has always pointed at it — at a `#leaderboard` anchor that never existed,
- * so those links silently did nothing but reload the dashboard.
- *
- * `rank` is the true position in the whole cohort, and a percentile is included because
- * "top 12%" stays meaningful at a million members in a way that "#4,182" does not.
- */
+/** GET /passport/leaderboard — the full board, not the podium. */
 export const getLeaderboard = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);
@@ -71,9 +61,9 @@ export const getLeaderboard = async (req: Request, res: Response) => {
 /**
  * GET /passport/dashboard — everything the gamified member home renders, in one call.
  *
- * Every figure traces back to stored data (assessment attempt, progress, interviews,
- * resume, tech battles). Where a member has no data yet the field is null and the UI
- * shows an empty state rather than a made-up number.
+ * Daily work has ONE source of truth: the active CareerRoadmap through getTodaysPlan().
+ * The legacy pool roadmap is retained here only for the older journey/coder-score widgets
+ * until those widgets are migrated; it never decides what the student should do today.
  */
 export const getDashboard = async (req: Request, res: Response) => {
   try {
@@ -89,8 +79,6 @@ export const getDashboard = async (req: Request, res: Response) => {
     const active = membershipActive(user?.passport);
     const attempt = await PassportAttempt.findOne({ tenantId, studentId }).sort({ createdAt: -1 }).lean() as any;
 
-    // Not a member, or hasn't taken the assessment → the client shows the landing /
-    // unlock states instead of the dashboard.
     if (!active || !attempt) {
       return res.json({
         active,
@@ -104,25 +92,35 @@ export const getDashboard = async (req: Request, res: Response) => {
 
     const progress = await getOrCreateProgress(tenantId, studentId, user?.passport?.activatedAt || new Date());
     const pools = poolMapOf(content.missionPools, memberAxes(user));
-    const curriculum = await curriculumFor(tenantId, attempt?.pathway, user?.passport?.stage);
     const now = new Date();
     const day = dayNumber(progress.startDate, now);
     const totalDays = content.journeyDays || 90;
 
-    // Today's missions + completion state
-    const todaysMissions = missionsForDay(attempt, day, pools, totalDays, curriculum, clampSlots((content as any)?.missionsPerDay));
-    // Carry the saved answer back so a completed reflective mission shows what the
-    // member wrote, rather than just a tick they cannot review.
-    const todayDone = new Map(progress.completed.filter(c => c.day === day).map(c => [c.key, c]));
-    const missions = todaysMissions.map(m => ({
-      ...m,
-      done: todayDone.has(m.key),
-      answer: todayDone.get(m.key)?.answer || undefined,
-      feedback: todayDone.get(m.key)?.feedback || undefined,
-    }));
-    const targetXp = todaysMissions.reduce((s, m) => s + (m.xp || 0), 0);
+    // SINGLE DAILY-MISSION SOURCE. The dedicated /me/plan/today endpoint calls this same
+    // service, so Home and the plan API can no longer disagree about today's work.
+    const dailyPlan = await getTodaysPlan(tenantId, studentId, now);
+    const missions = dailyPlan.available
+      ? dailyPlan.missions.map(m => ({
+          key: m.key,
+          category: m.skillKey,
+          icon: m.workType === 'LEARN' ? '📘' : m.workType === 'PRACTICE' ? '💻' : m.workType === 'ASSESS' ? '✓' : '↻',
+          title: m.title,
+          detail: m.explanation,
+          xp: m.resource?.xp ?? 0,
+          link: m.resource?.route,
+          done: m.done,
+          skillKey: m.skillKey,
+          skillName: m.skillName,
+          workType: m.workType,
+          plannedMinutes: m.plannedMinutes,
+          reasonCode: m.reasonCode,
+          resourceState: m.resourceState,
+          resource: m.resource,
+        }))
+      : [];
+    const targetXp = missions.reduce((s, m) => s + (m.xp || 0), 0);
 
-    // Roadmap — used for the journey stepper and the completed-days figure
+    // Legacy journey remains visual-only during Phase 1. It no longer supplies daily work.
     const completedKeys = new Set(progress.completed.map(c => c.key));
     const roadmap = buildRoadmap({
       attempt, pools, pathways: content.pathways,
@@ -130,7 +128,6 @@ export const getDashboard = async (req: Request, res: Response) => {
       slotsPerDay: clampSlots((content as any)?.missionsPerDay),
     });
 
-    // Interviews + resume
     const [interviews, resume] = await Promise.all([
       PassportInterview.find({ tenantId, studentId, status: 'completed' }).select('evaluation completedAt role').lean(),
       PassportResume.findOne({ tenantId, studentId }).select('score').lean() as any,
@@ -138,12 +135,10 @@ export const getDashboard = async (req: Request, res: Response) => {
     const bestInterview = interviews.reduce<number | null>(
       (best, i: any) => Math.max(best ?? 0, i?.evaluation?.overallScore ?? 0) || null, null);
 
-    // Practice
     const codingIds = new Set(PRACTICE_BANK.filter(p => p.kind === 'coding').map(p => p.id));
     const solved = progress.solvedProblems || [];
     const codingSolved = solved.filter(id => codingIds.has(id)).length;
 
-    // Leaderboard — this tenant's Passport members by XP (top 3 + where I sit)
     const board = await PassportProgress.find({ tenantId })
       .select('studentId xp').sort({ xp: -1 }).limit(200).lean();
     const boardIds = board.map(b => b.studentId);
@@ -155,16 +150,10 @@ export const getDashboard = async (req: Request, res: Response) => {
       xp: b.xp,
       me: String(b.studentId) === studentId,
     }));
-    // Top 3 only, plus the member's own row when they are not in it. A longer
-    // board mostly showed strangers; what a member acts on is the podium and
-    // their own standing. `rank` is the TRUE position within the whole cohort,
-    // so the client can render the jump (1,2,3 … 27) honestly rather than
-    // implying the person sitting below third place is fourth.
     const myRow = ranked.find(r => r.me);
     const leaderboard = ranked.slice(0, 3);
     if (myRow && !leaderboard.some(r => r.me)) leaderboard.push(myRow);
 
-    // Upcoming Tech Battles (a real, separate CodeBegun product — surfaced, not faked)
     const contests = await TechBattle.find({ tenantId, status: 'live', startAt: { $gt: now } })
       .select('title prize startAt slug').sort({ startAt: 1 }).limit(3).lean();
 
@@ -190,7 +179,6 @@ export const getDashboard = async (req: Request, res: Response) => {
       coderScore: score,
       percentileAhead: g.percentileAhead(progress.xp, board.map(b => b.xp)),
 
-      // Skill radar — the 6 assessment categories, exactly
       skills: (attempt.categoryScores || []).map((c: any) => ({ key: c.key, label: c.label, score: c.score })),
       careerScore: attempt.careerScore,
       careerLevel: attempt.level,
@@ -204,7 +192,8 @@ export const getDashboard = async (req: Request, res: Response) => {
         streak: progress.streak,
         longestStreak: progress.longestStreak,
         xp: progress.xp,
-        day, totalDays,
+        day: dailyPlan.available ? dailyPlan.roadmapDay : day,
+        totalDays: dailyPlan.available ? Math.max(1, dailyPlan.weekCount * 7) : totalDays,
         completedDays: roadmap.completedDays,
         interviews: interviews.length,
         bestInterview,
@@ -216,6 +205,7 @@ export const getDashboard = async (req: Request, res: Response) => {
       recentActivity: g.recentActivity(progress, 6, now),
 
       missions,
+      dailyPlan,
       allDone: missions.length > 0 && missions.every(m => m.done),
       dailyGoal: g.dailyGoal(progress, targetXp, now),
       streakWeek: g.streakWeek(progress, now),
@@ -245,13 +235,8 @@ export const getDashboard = async (req: Request, res: Response) => {
         startAt: c.startAt, slug: c.slug || null,
       })),
 
-      // Which day of the journey the member is on. The missions card needs it to offer a
-      // step back to a day they missed.
-      day,
+      day: dailyPlan.available ? dailyPlan.roadmapDay : day,
 
-      // Opening the dashboard IS the daily visit — there is no separate login event to
-      // hook, and a member who never opens this screen has not shown up in any sense
-      // worth paying for. Keyed on the calendar day, so refreshing costs nothing.
       coins: await (async () => {
         try {
           await awardCoins({
@@ -262,7 +247,6 @@ export const getDashboard = async (req: Request, res: Response) => {
           const acct = await getAccount(tenantId, studentId);
           return { balance: acct.balance, lifetimeEarned: acct.lifetimeEarned };
         } catch {
-          // The dashboard is the member's home screen. It renders with or without coins.
           return null;
         }
       })(),

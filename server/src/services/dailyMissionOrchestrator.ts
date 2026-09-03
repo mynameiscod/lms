@@ -9,11 +9,7 @@ import { findProblem, findCareerPilotProblem } from './passportPracticeService';
 import { ymd } from './passportMissionService';
 import { MISSION_ORCHESTRATION_VERSION, MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES, assessmentRouteForSkill, practiceRoute, dailySliceOf, dailyBudget, MissionResourceState, DailyPlanUnavailable } from '../data/missionOrchestrationPolicy';
 
-/**
- * Daily Mission Engine execution layer.
- * The roadmap owns WHAT; this service owns WHEN and resolves HOW from admin-authored
- * resources filtered by audience and current Skill DNA. It never writes capability data.
- */
+/** Daily Mission Engine: roadmap=WHAT, this service=WHEN, targeted resource=HOW. */
 export interface MissionResource { type: string; id: string; title: string; route: string; xp?: number | null; }
 export interface DailyMission { key: string; roadmapId: string; objectiveSequence: number; skillKey: string; skillName: string; workType: string; plannedMinutes: number; title: string; explanation: string; reasonCode: string; resourceState: MissionResourceState; resource?: MissionResource; done: boolean; }
 export interface DailyPlanAvailable { available: true; policyVersion: string; roadmapId: string; date: string; roadmapDay: number; roadmapWeek: number; weekCount: number; capacity: { minutesPerDay: number; plannedMinutes: number }; missions: DailyMission[]; progress: { plannedMinutes: number; completedMinutes: number; percent: number }; week: { plannedMinutes: number; completedMinutes: number }; unmappedObjectives: number; outdated: boolean; }
@@ -42,7 +38,10 @@ export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
 }
 const dayNumberFrom = (start: Date, now: Date): number => Math.floor((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())) / 86400000) + 1;
 
-/** First eligible row by admin priority wins; filtering is audience + score + executable target. */
+/**
+ * First eligible row by admin priority wins. Eligibility is the intersection of the
+ * resource's year/course/branch/role/stage/language audience and its Skill DNA score window.
+ */
 async function resolveResources(tenantId: string, skillKeys: string[], member: ResourceMember, scores: Map<string, number>): Promise<Map<string, MissionResource>> {
   const out = new Map<string, MissionResource>(); const unique = [...new Set(skillKeys.map(k => String(k).toUpperCase()))]; if (!unique.length) return out;
   const rows = await CareerSkillResource.find({ tenantId, skillKey: { $in: unique }, active: true }).sort({ priority: 1, resourceId: 1, _id: 1 }).lean() as any[];
@@ -54,12 +53,13 @@ async function resolveResources(tenantId: string, skillKeys: string[], member: R
       resolved = { type: 'practice', id: String(r.resourceId), title: problem.title, route: practiceRoute(String(r.resourceId)), xp: typeof r.xp === 'number' ? r.xp : null };
     } else if (r.resourceType === 'problem') {
       const hit = await findCareerPilotProblem(tenantId, String(r.resourceId)); if (!hit) continue;
-      resolved = { type: 'problem', id: String(r.resourceId), title: hit.problem.title, route: practiceRoute(String(r.resourceId)), xp: typeof r.xp === 'number' ? r.xp : null };
+      // `problem` is another catalogue source for the same member Practice workspace. Keep
+      // the public resource type as practice because the client API contract intentionally
+      // exposes only assessment/practice destinations today.
+      resolved = { type: 'practice', id: String(r.resourceId), title: hit.problem.title, route: practiceRoute(String(r.resourceId)), xp: typeof r.xp === 'number' ? r.xp : null };
     } else if (r.resourceType === 'mock_interview') {
       resolved = { type: 'mock_interview', id: String(r._id), title: r.title || 'Mock interview', route: '/careerpilot/interview', xp: typeof r.xp === 'number' ? r.xp : null };
     } else if (MATERIAL_TYPES.includes(r.resourceType)) {
-      // Inline/upload-only concept material needs the forthcoming member concept viewer.
-      // Until then only an explicit URL is executable; otherwise expose an honest gap.
       if (!String(r.url || '').trim()) continue;
       resolved = { type: r.resourceType, id: String(r._id), title: r.title, route: String(r.url).trim(), xp: typeof r.xp === 'number' ? r.xp : null };
     }

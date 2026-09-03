@@ -48,6 +48,7 @@ export interface QuestionDraft {
   audienceRoles?: string[];
   audienceYears?: string[];
   audienceCourses?: string[];
+  audienceBranches?: string[];
   /** Written by a person rather than the model. */
   manual?: boolean;
   /** What the automatic checks noticed. Not errors — places to look first. */
@@ -590,7 +591,7 @@ export const passportApi = {
   },
   /** Roles, years and courses a question may be aimed at. Admin-gated. */
   draftAudiences: async (): Promise<{
-    roles: { key: string; label: string }[]; years: string[]; courses: string[];
+    roles: { key: string; label: string }[]; years: string[]; courses: string[]; branches?: string[];
   }> => {
     const { data } = await axios.get(`${BASE}/question-drafts/audiences`, { headers: auth() });
     return data;

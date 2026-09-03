@@ -89,6 +89,18 @@ export interface ISkillEvidence extends Document {
   audienceRoles: string[];
   audienceYears: string[];
   audienceCourses: string[];
+  /**
+   * Branch, alongside role, year and course.
+   *
+   * The fourth axis and the last to arrive: a question that only makes sense for CSE could
+   * not be expressed, so the nearest available targeting also reached every ECE and
+   * Mechanical student taking the same paper.
+   *
+   * Kept DELIBERATELY sparing in practice. Narrowing by branch removes a candidate from
+   * everybody outside it, and this pool is already thin — targeting should be for questions
+   * that genuinely only apply to one branch, not a habit.
+   */
+  audienceBranches: string[];
 
   createdBy?: string;
   updatedBy?: string;
@@ -111,6 +123,7 @@ const SkillEvidenceSchema = new Schema<ISkillEvidence>(
     audienceRoles:   [{ type: String, uppercase: true, trim: true }],
     audienceYears:   [{ type: String, trim: true }],
     audienceCourses: [{ type: String, uppercase: true, trim: true }],
+    audienceBranches: [{ type: String, trim: true }],
 
     createdBy: { type: String },
     updatedBy: { type: String },

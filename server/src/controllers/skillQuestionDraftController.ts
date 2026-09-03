@@ -168,6 +168,19 @@ export const audiences = async (req: Request, res: Response) => {
       roles: (roles as any[]).filter(r => r.active !== false).map(r => ({ key: r.key, label: r.label || r.key })),
       years: ACADEMIC_YEARS,
       courses: SUPPORTED_PROGRAMS,
+      /**
+       * Branches come from the tenant's own onboarding list, not a constant.
+       *
+       * Years and courses are fixed vocabularies; branch is not — it is edited in Platform
+       * config as colleges arrive, so a hardcoded list here would drift out of step with
+       * what students can actually pick and produce chips that match nobody.
+       */
+      branches: await (async () => {
+        const PassportConfig = (await import('../models/PassportConfig')).default;
+        const cfg: any = await PassportConfig.findOne({ tenantId }).select('onboardingFields').lean();
+        const field = (cfg?.onboardingFields || []).find((f: any) => f.key === 'branch');
+        return (field?.options || []).map(String);
+      })(),
     });
   } catch (e: any) {
     res.status(500).json({ success: false, message: e?.message || 'Could not load audiences' });
@@ -232,6 +245,7 @@ export const createManual = async (req: Request, res: Response) => {
       audienceRoles: Array.isArray(b.audienceRoles) ? b.audienceRoles : [],
       audienceYears: Array.isArray(b.audienceYears) ? b.audienceYears : [],
       audienceCourses: Array.isArray(b.audienceCourses) ? b.audienceCourses : [],
+      audienceBranches: Array.isArray(b.audienceBranches) ? b.audienceBranches : [],
     });
     await audit(req, 'CREATE', `Wrote a question for ${String(b.skillKey || '').toUpperCase()}`, result);
     res.json({ success: true, ...result });

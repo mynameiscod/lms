@@ -100,7 +100,7 @@ export interface CandidateQuery {
    * explicitly names this student. Universal items therefore remain available to everyone,
    * so adding one targeted question never removes a question from anybody else.
    */
-  audience?: { roleKey?: string; year?: string; course?: string };
+  audience?: { roleKey?: string; year?: string; course?: string; branch?: string };
 }
 
 /**
@@ -144,6 +144,9 @@ export async function findEvidenceCandidates(tenantId: string, q: CandidateQuery
       audienceClause('audienceRoles', q.audience.roleKey ? String(q.audience.roleKey).toUpperCase() : undefined),
       audienceClause('audienceYears', q.audience.year),
       audienceClause('audienceCourses', q.audience.course ? String(q.audience.course).toUpperCase() : undefined),
+      // Not uppercased: branch values are display strings chosen from a configured list
+      // ("IT / CSIT / CSBS"), unlike role and course which are stored as keys.
+      audienceClause('audienceBranches', q.audience.branch),
     ];
   }
   if (q.contribution) filter.contribution = q.contribution;

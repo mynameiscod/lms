@@ -44,8 +44,8 @@ const AdminQuestionDrafts: React.FC = () => {
   const [bulkBusy, setBulkBusy] = useState(false);
 
   const [audienceOpts, setAudienceOpts] = useState<{
-    roles: { key: string; label: string }[]; years: string[]; courses: string[];
-  }>({ roles: [], years: [], courses: [] });
+    roles: { key: string; label: string }[]; years: string[]; courses: string[]; branches: string[];
+  }>({ roles: [], years: [], courses: [], branches: [] });
   const [showManual, setShowManual] = useState(false);
 
   const [genSkill, setGenSkill] = useState('');
@@ -96,7 +96,11 @@ const AdminQuestionDrafts: React.FC = () => {
   useEffect(loadPool, [loadPool]);
   useEffect(loadDrafts, [loadDrafts]);
   useEffect(() => {
-    passportApi.draftAudiences().then(setAudienceOpts).catch(() => { /* targeting simply stays empty */ });
+    // `branches` is newer than this endpoint, so it is defaulted rather than assumed —
+    // an older server simply yields no branch chips instead of breaking the picker.
+    passportApi.draftAudiences()
+      .then(o => setAudienceOpts({ branches: [], ...o }))
+      .catch(() => { /* targeting simply stays empty */ });
   }, []);
 
   /**
@@ -436,6 +440,7 @@ const AdminQuestionDrafts: React.FC = () => {
                       audienceRoles: d.audienceRoles || [],
                       audienceYears: d.audienceYears || [],
                       audienceCourses: d.audienceCourses || [],
+                      audienceBranches: d.audienceBranches || [],
                     }}
                     options={audienceOpts}
                     poolCount={pool.find(x => x.skillKey === d0.skillKey)?.approved}

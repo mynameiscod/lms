@@ -98,7 +98,7 @@ export interface GenerationInput {
    * Who this paper is for, so audience-tagged items can be offered or withheld. Omitted,
    * the pool is unnarrowed — which is what every caller written before targeting did.
    */
-  audience?: { roleKey?: string; year?: string; course?: string };
+  audience?: { roleKey?: string; year?: string; course?: string; branch?: string };
 }
 
 const norm = (v: any): string => String(v ?? '').trim().toUpperCase();
@@ -444,7 +444,7 @@ export interface ResolvedContext {
    * against them. Optional: a discovery paper resolves without one, and a caller that
    * ignores it gets the unnarrowed pool, which is the pre-targeting behaviour.
    */
-  audience?: { roleKey?: string; year?: string; course?: string };
+  audience?: { roleKey?: string; year?: string; course?: string; branch?: string };
 }
 
 /**
@@ -503,7 +503,15 @@ export async function resolvePersonalizedAssessmentContext(tenantId: string, stu
     audience: {
       roleKey,
       year: context.education?.currentAcademicYear || undefined,
-      course: context.education?.branch || context.education?.degree || undefined,
+      /**
+       * COURSE IS THE DEGREE. It read `branch || degree`, which meant a question tagged
+       * "B.Tech" did not reach any member who had a branch recorded — course resolved to
+       * "CSE" and never matched. The single tagged mapping in production carries B.E,
+       * B.TECH and MCA, so degree was always the intent; branch now has its own axis and
+       * the two no longer stand in for each other.
+       */
+      course: context.education?.degree || undefined,
+      branch: context.education?.branch || undefined,
     },
   };
 }

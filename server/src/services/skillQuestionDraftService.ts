@@ -351,7 +351,7 @@ export async function approveDraft(o: {
   reviewedBy: string;
   edits?: Partial<Pick<ISkillQuestionDraft,
     'question' | 'options' | 'explanation' | 'difficulty' | 'codeSnippet' | 'language'
-    | 'audienceRoles' | 'audienceYears' | 'audienceCourses'>>;
+    | 'audienceRoles' | 'audienceYears' | 'audienceCourses' | 'audienceBranches'>>;
   note?: string;
 }): Promise<{ questionId: string }> {
   const draft: any = await SkillQuestionDraft.findOne({ _id: o.draftId, tenantId: o.tenantId });
@@ -361,7 +361,7 @@ export async function approveDraft(o: {
   if (o.edits) {
     for (const k of [
       'question', 'explanation', 'difficulty', 'codeSnippet', 'language',
-      'audienceRoles', 'audienceYears', 'audienceCourses',
+      'audienceRoles', 'audienceYears', 'audienceCourses', 'audienceBranches',
     ] as const) {
       if (o.edits[k] !== undefined) (draft as any)[k] = o.edits[k];
     }
@@ -406,6 +406,7 @@ export async function approveDraft(o: {
       audienceRoles: draft.audienceRoles || [],
       audienceYears: draft.audienceYears || [],
       audienceCourses: draft.audienceCourses || [],
+      audienceBranches: draft.audienceBranches || [],
       createdBy: o.reviewedBy,
     });
   } catch (err) {
@@ -450,6 +451,7 @@ export async function createManualQuestion(o: {
   audienceRoles?: string[];
   audienceYears?: string[];
   audienceCourses?: string[];
+  audienceBranches?: string[];
 }): Promise<{ questionId: string; draftId: string }> {
   const skillKey = String(o.skillKey || '').trim().toUpperCase();
   if (!skillKey) throw new Error('Pick the skill this question measures.');
@@ -489,6 +491,8 @@ export async function createManualQuestion(o: {
     audienceRoles: (o.audienceRoles || []).map(x => String(x).trim().toUpperCase()).filter(Boolean),
     audienceYears: (o.audienceYears || []).map(x => String(x).trim()).filter(Boolean),
     audienceCourses: (o.audienceCourses || []).map(x => String(x).trim().toUpperCase()).filter(Boolean),
+    // Not uppercased: branch is a display string from a configured list, not a key.
+    audienceBranches: (o.audienceBranches || []).map(x => String(x).trim()).filter(Boolean),
   };
 
   let draft: any;

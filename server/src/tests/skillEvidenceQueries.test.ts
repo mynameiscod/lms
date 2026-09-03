@@ -127,6 +127,23 @@ describe('evidence pools for a set of skills', () => {
    * existed has no tags, and must keep reaching every student — a regression here would
    * silently empty the pool for everybody rather than failing loudly.
    */
+  /**
+   * A member with no branch recorded gets UNTAGGED branch content only — not everything.
+   * Worth pinning: it is the difference between "we do not know your branch, so here is the
+   * general pool" and "we do not know your branch, so here is content written for someone
+   * else's".
+   */
+  it('restricts an axis to untagged when the member has no value for it', async () => {
+    await findEvidenceCandidates('t1', {
+      skillKeys: ['JAVA_OOP'],
+      audience: { roleKey: 'BACKEND_ENGINEER' },
+    });
+    const and = findEvidence.mock.calls[0][0].$and;
+    const branchClause = and.find((c: any) => JSON.stringify(c).includes('audienceBranches'));
+    expect(branchClause.$or).toHaveLength(2);
+    expect(JSON.stringify(branchClause)).not.toContain('CSE');
+  });
+
   it('does not narrow anything when no audience is asked for', async () => {
     await findEvidenceCandidates('t1', { skillKeys: ['JAVA_OOP'] });
     expect(findEvidence.mock.calls[0][0].$and).toBeUndefined();
@@ -135,10 +152,12 @@ describe('evidence pools for a set of skills', () => {
   it('keeps untagged mappings available to every audience', async () => {
     await findEvidenceCandidates('t1', {
       skillKeys: ['JAVA_OOP'],
-      audience: { roleKey: 'BACKEND_ENGINEER', year: '2nd Year', course: 'B.Tech' },
+      audience: { roleKey: 'BACKEND_ENGINEER', year: '2nd Year', course: 'B.Tech', branch: 'CSE' },
     });
     const and = findEvidence.mock.calls[0][0].$and;
-    expect(and).toHaveLength(3);
+    // FOUR dimensions since branch was separated from course. Asserted as a count because
+    // that is what catches an axis being added without its clause being built.
+    expect(and).toHaveLength(4);
     // Each dimension accepts absent, empty, OR an exact match — so a question tagged for
     // nobody in particular is still offered alongside the targeted ones.
     for (const clause of and) {

@@ -17,15 +17,24 @@ export interface Audience {
   audienceRoles: string[];
   audienceYears: string[];
   audienceCourses: string[];
+  /**
+   * Branch, and the last axis to arrive.
+   *
+   * Course was doing double duty: the paper builder read `branch || degree` into one
+   * `course` value, so a question tagged "B.Tech" never reached a member who had a branch
+   * recorded. The two are now separate on both sides.
+   */
+  audienceBranches: string[];
 }
 
-export const EMPTY_AUDIENCE: Audience = { audienceRoles: [], audienceYears: [], audienceCourses: [] };
+export const EMPTY_AUDIENCE: Audience = { audienceRoles: [], audienceYears: [], audienceCourses: [], audienceBranches: [] };
 
 export const audienceSummary = (a?: Partial<Audience>): string => {
   const parts = [
     a?.audienceRoles?.length ? a.audienceRoles.join(', ') : '',
     a?.audienceYears?.length ? a.audienceYears.join(', ') : '',
     a?.audienceCourses?.length ? a.audienceCourses.join(', ') : '',
+    a?.audienceBranches?.length ? a.audienceBranches.join(', ') : '',
   ].filter(Boolean);
   return parts.length ? parts.join(' · ') : 'Everyone';
 };
@@ -60,7 +69,7 @@ const Row: React.FC<{
 
 const AudiencePicker: React.FC<{
   value: Audience;
-  options: { roles: { key: string; label: string }[]; years: string[]; courses: string[] };
+  options: { roles: { key: string; label: string }[]; years: string[]; courses: string[]; branches?: string[] };
   onChange: (next: Audience) => void;
   /** Poolsize for the chosen skill, when known — drives the thin-pool warning. */
   poolCount?: number;
@@ -73,7 +82,8 @@ const AudiencePicker: React.FC<{
     });
   };
 
-  const targeted = !!(value.audienceRoles.length || value.audienceYears.length || value.audienceCourses.length);
+  const targeted = !!(value.audienceRoles.length || value.audienceYears.length
+    || value.audienceCourses.length || (value.audienceBranches || []).length);
 
   return (
     <div className="aud">
@@ -94,6 +104,13 @@ const AudiencePicker: React.FC<{
         options={options.courses.map(c => ({ key: c, label: c }))}
         chosen={value.audienceCourses}
         onToggle={k => toggle('audienceCourses', k)}
+      />
+
+      <Row
+        label="Branch" hint="Leave empty for every branch"
+        options={(options.branches || []).map(b => ({ key: b, label: b }))}
+        chosen={value.audienceBranches || []}
+        onToggle={k => toggle('audienceBranches', k)}
       />
 
       <div className="aud-summary">

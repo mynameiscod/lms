@@ -49,6 +49,8 @@ export interface ISkillQuestionDraft extends Document {
   audienceRoles: string[];
   audienceYears: string[];
   audienceCourses: string[];
+  /** See SkillEvidence.audienceBranches — this rides onto the mapping on approval. */
+  audienceBranches: string[];
   /** True when a person wrote this rather than the model. Kept for provenance, like source. */
   manual?: boolean;
 
@@ -114,6 +116,7 @@ const SkillQuestionDraftSchema = new Schema<ISkillQuestionDraft>(
     audienceRoles:   [{ type: String, uppercase: true, trim: true }],
     audienceYears:   [{ type: String, trim: true }],
     audienceCourses: [{ type: String, uppercase: true, trim: true }],
+    audienceBranches: [{ type: String, trim: true }],
     manual: { type: Boolean, default: false },
 
     question:    { type: String, required: true },

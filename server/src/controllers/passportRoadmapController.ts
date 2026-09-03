@@ -66,7 +66,9 @@ export const getRoadmap = async (req: Request, res: Response) => {
 
     const full = buildRoadmap({
       attempt, pools: poolMapOf(content.missionPools, memberAxes(user)), pathways: content.pathways,
-      curriculum: await curriculumFor(tenantId, attempt?.pathway, user?.passport?.stage),
+      // Retired — see passportMissionController. The journey's days are generated from
+      // the member's own category scores; authored days no longer override them.
+      curriculum: undefined,
       stage: memberAxes(user).stage,
       totalDays: content.journeyDays || 90,
       startDate, currentDay, completedKeys,

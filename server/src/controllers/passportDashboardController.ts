@@ -13,7 +13,7 @@ import { awardCoins, getAccount } from '../services/coinService';
 import { getOrCreateProgress } from '../services/passportXpService';
 import { buildRoadmap } from '../services/passportRoadmapService';
 import { PRACTICE_BANK } from '../services/passportPracticeService';
-import { getTodaysPlan } from '../services/dailyMissionOrchestrator';
+import { getTodaysPlan, toMemberMissions } from '../services/dailyMissionOrchestrator';
 import * as g from '../services/passportGamificationService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
@@ -99,25 +99,10 @@ export const getDashboard = async (req: Request, res: Response) => {
     // SINGLE DAILY-MISSION SOURCE. The dedicated /me/plan/today endpoint calls this same
     // service, so Home and the plan API can no longer disagree about today's work.
     const dailyPlan = await getTodaysPlan(tenantId, studentId, now);
-    const missions = dailyPlan.available
-      ? dailyPlan.missions.map(m => ({
-          key: m.key,
-          category: m.skillKey,
-          icon: m.workType === 'LEARN' ? '📘' : m.workType === 'PRACTICE' ? '💻' : m.workType === 'ASSESS' ? '✓' : '↻',
-          title: m.title,
-          detail: m.explanation,
-          xp: m.resource?.xp ?? 0,
-          link: m.resource?.route,
-          done: m.done,
-          skillKey: m.skillKey,
-          skillName: m.skillName,
-          workType: m.workType,
-          plannedMinutes: m.plannedMinutes,
-          reasonCode: m.reasonCode,
-          resourceState: m.resourceState,
-          resource: m.resource,
-        }))
-      : [];
+    // Mapped by the orchestrator, not here. Home and /missions/today rendered the same plan
+    // through two copies of this block; a field added to one was missing from the other, and
+    // the two views of a single day could disagree with nothing to explain why.
+    const missions = toMemberMissions(dailyPlan);
     const targetXp = missions.reduce((s, m) => s + (m.xp || 0), 0);
 
     // Legacy journey remains visual-only during Phase 1. It no longer supplies daily work.

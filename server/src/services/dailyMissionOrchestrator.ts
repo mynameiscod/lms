@@ -25,6 +25,50 @@ export type DailyPlanOutcome = DailyPlanAvailable | DailyPlanUnavailableResult;
  * narrows fine, which is what makes the failure look arbitrary. An explicit predicate works
  * under either setting.
  */
+/**
+ * One plan, in the shape the member screens already speak.
+ *
+ * Home and the missions endpoint each mapped the plan themselves, which is how two views of
+ * the same day drift apart: a field added to one is missing from the other, and nobody sees
+ * it until a student reports that Home and the missions list disagree. Written once here so
+ * they cannot.
+ *
+ * `xp` falls back to 0 rather than a guess. The gamification rule decides the real amount at
+ * completion time; a made-up number on the card would be a promise the ledger does not keep.
+ */
+export interface MemberFacingMission {
+  key: string; category: string; icon: string; title: string; detail: string;
+  xp: number; link?: string; done: boolean;
+  skillKey: string; skillName: string; workType: string;
+  plannedMinutes: number; reasonCode: string; resourceState: string;
+  resource?: MissionResource;
+}
+
+const WORK_ICON: Record<string, string> = {
+  LEARN: '📘', PRACTICE: '💻', ASSESS: '✓', REVIEW: '↻',
+};
+
+export function toMemberMissions(plan: DailyPlanOutcome): MemberFacingMission[] {
+  if (planUnavailable(plan)) return [];
+  return plan.missions.map(m => ({
+    key: m.key,
+    category: m.skillKey,
+    icon: WORK_ICON[m.workType] || '•',
+    title: m.title,
+    detail: m.explanation,
+    xp: m.resource?.xp ?? 0,
+    link: m.resource?.route,
+    done: m.done,
+    skillKey: m.skillKey,
+    skillName: m.skillName,
+    workType: m.workType,
+    plannedMinutes: m.plannedMinutes,
+    reasonCode: m.reasonCode,
+    resourceState: m.resourceState,
+    resource: m.resource,
+  }));
+}
+
 export const planUnavailable = (p: DailyPlanOutcome): p is DailyPlanUnavailableResult => !p.available;
 const WORK_LABEL: Record<string, string> = { LEARN: 'Learn', PRACTICE: 'Practice', ASSESS: 'Check', REVIEW: 'Review' };
 const slotKey = (skillKey: string, workType: string): string => `${String(skillKey).toUpperCase()}:${String(workType).toUpperCase()}`;

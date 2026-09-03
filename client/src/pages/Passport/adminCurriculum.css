@@ -104,3 +104,9 @@
   .cur-item .r1 .t, .cur-item .xp { width: 100%; flex: none; }
   .cur-bar { flex-direction: column; align-items: stretch; }
 }
+
+/* Retired: the screen still opens and still shows what was written, but says plainly that
+   it no longer decides anything, so nobody authors into a void. */
+.cur-retired{display:inline-block;vertical-align:middle;margin-left:10px;font-size:11px;font-weight:800;
+             letter-spacing:.04em;text-transform:uppercase;color:#9a5b00;background:#fdf1de;
+             border:1px solid #f0d9b0;border-radius:99px;padding:3px 10px}

@@ -13,7 +13,7 @@ import PassportInterview from '../models/PassportInterview';
 import PassportResume from '../models/PassportResume';
 import { awardCoins } from '../services/coinService';
 import { reviewAnswer } from '../services/passportAnswerAIService';
-import { getTodaysPlan, planUnavailable } from '../services/dailyMissionOrchestrator';
+import { getTodaysPlan, planUnavailable, toMemberMissions } from '../services/dailyMissionOrchestrator';
 import { completeCareerMission } from '../services/careerMissionCompletionService';
 import { processGamificationEvent, evaluateRoadmapBadges } from '../services/gamificationEngine';
 
@@ -31,45 +31,78 @@ async function ctx(req: Request) {
   return {
     tenantId, studentId, user, cfg, content,
     pools: poolMapOf(content.missionPools, memberAxes(user)),
-    curriculum: await curriculumFor(tenantId, user?.passport?.pathway, user?.passport?.stage),
+    /**
+     * RETIRED. Daily work comes from the member's roadmap through dailyMissionOrchestrator,
+     * and nothing else decides what a student should do.
+     *
+     * Authored days contradicted the thing the product sells: they handed identical items to
+     * everyone on a pathway regardless of what that member's assessment measured. They were
+     * also keyed on PATHWAY rather than role, so a Backend and a Frontend member on one
+     * pathway got the same days — and anyone who arrived through the personalised assessment
+     * had no pathway at all, so nothing authored ever reached them.
+     *
+     * The stored curricula are deliberately NOT deleted. Passing undefined here is the whole
+     * retirement: restore it by putting the call back, and the authored days resume.
+     */
+    curriculum: undefined,
     journeyDays: content.journeyDays || 90,
     slots: clampSlots((content as any).missionsPerDay),
   };
 }
 
-/** Student: legacy day browser. Current-day Home no longer uses this list. */
+/**
+ * Student: today's missions.
+ *
+ * ONE SOURCE. This used to build its own day from the mission pools and the authored
+ * curriculum while Home built a different one from the member's roadmap — two engines
+ * answering "what should I do today" with different answers on the same day. It now serves
+ * the same plan Home does, mapped through the same function, so they cannot disagree.
+ *
+ * The `?day=` browser is gone with it. The old list could be regenerated for any past day
+ * because it was derived from pools; a roadmap plan is a record of what was actually
+ * assigned, and inventing a past day from today's roadmap would show a student work they
+ * were never given. History belongs to the completion record, not to a re-derivation.
+ */
 export const getToday = async (req: Request, res: Response) => {
   try {
-    const { tenantId, studentId, user, cfg, content, pools, curriculum, journeyDays, slots } = await ctx(req);
-    if (!isEntitled(cfg?.entitlements as any, user?.passport, 'daily_missions')) {
-      return res.json({ locked: true, priceInr: cfg?.priceInr ?? 499, reason: 'Membership required to unlock daily missions.' });
+    const tenantId = tenantOf(req);
+    const studentId = userIdOf(req);
+    const cfg = await PassportConfig.findOne({ tenantId }).lean() as any;
+
+    const plan = await getTodaysPlan(tenantId, studentId);
+
+    if (planUnavailable(plan)) {
+      // The orchestrator's own reasons, passed through rather than reinterpreted. It knows
+      // whether the block is a membership, a missing roadmap or an unassessed member, and
+      // the screen already renders each differently.
+      return res.json({
+        // The three real reasons, each a different situation for the member:
+        //   MEMBERSHIP_REQUIRED — pay or be granted access
+        //   ROADMAP_REQUIRED    — no plan yet, which means the assessment has not produced one
+        //   ROADMAP_COMPLETED   — they finished; not a block, just nothing left today
+        locked: plan.reason === 'MEMBERSHIP_REQUIRED',
+        needsAssessment: plan.reason === 'ROADMAP_REQUIRED',
+        completed: plan.reason === 'ROADMAP_COMPLETED',
+        reason: plan.message,
+        priceInr: cfg?.priceInr ?? 499,
+        missions: [],
+        allDone: false,
+      });
     }
 
-    const assessed = await resolveAssessedState({
-      tenantId, studentId,
-      passport: user?.passport,
-      categories: categoriesOf(await PassportAssessment.findOne({ tenantId }).lean() as any),
-      defaultPathway: content.pathways?.[0] || null,
-    });
-    if (!assessed.assessed) return res.json({ locked: false, needsAssessment: true });
-    const attempt = assessed.attempt as any;
-
-    let progress = await PassportProgress.findOne({ tenantId, studentId });
-    if (!progress) progress = await PassportProgress.create({ tenantId, studentId, startDate: user?.passport?.activatedAt || new Date() });
-
-    const now = new Date();
-    const today = dayNumber(progress.startDate, now);
-    const asked = Number(req.query.day);
-    const day = Number.isFinite(asked) ? Math.min(today, Math.max(1, Math.round(asked))) : today;
-
-    const missions = missionsForDay(attempt, day, pools, journeyDays, curriculum, slots);
-    const doneKeys = new Set(progress.completed.filter(c => c.day === day).map(c => c.key));
+    const progress = await PassportProgress.findOne({ tenantId, studentId }).lean() as any;
+    const missions = toMemberMissions(plan);
 
     res.json({
-      locked: false, day, today, isPast: day < today,
-      streak: progress.streak, longestStreak: progress.longestStreak, xp: progress.xp,
-      missions: missions.map(m => ({ ...m, done: doneKeys.has(m.key) })),
-      allDone: missions.length > 0 && missions.every(m => doneKeys.has(m.key)),
+      locked: false,
+      day: plan.roadmapDay,
+      today: plan.roadmapDay,
+      isPast: false,
+      streak: progress?.streak || 0,
+      longestStreak: progress?.longestStreak || 0,
+      xp: progress?.xp || 0,
+      missions,
+      allDone: missions.length > 0 && missions.every(m => m.done),
     });
   } catch (e: any) { console.error('[passport] getToday:', e); res.status(500).json({ message: e.message || 'Failed to load missions' }); }
 };

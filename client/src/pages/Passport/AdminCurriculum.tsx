@@ -149,10 +149,16 @@ const AdminCurriculum: React.FC = () => {
     <div className="cur">
       <div className="cur-hd">
         <div>
-          <h1>Pathway Curriculum</h1>
+          <h1>Pathway Curriculum <span className="cur-retired">Retired</span></h1>
           <p>
-            Write the days you want to control. Every day you don’t write is still generated
-            from the member’s own scores, so nothing is ever blank.
+            <b>These days no longer reach students.</b> Daily work now comes from each
+            member’s own roadmap, built from what their assessment measured — authored days
+            handed identical items to everyone on a pathway, which is the opposite of that.
+          </p>
+          <p style={{ marginTop: 6 }}>
+            Nothing has been deleted: what you wrote is still stored and still shown below.
+            To shape what a student does, use <b>Role Blueprint</b> (which skills their plan
+            covers) and <b>Concept Bank</b> (what each objective opens).
           </p>
         </div>
         <button className="pm-btn primary" disabled={!dirty || !!busy} onClick={save}>

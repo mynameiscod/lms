@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { CSSProperties, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { AssessmentAvailability, CareerContext, CareerContextOptions } from '../../api/passportApi';
 import './careerSetup.css';
@@ -257,7 +257,7 @@ const CareerSetup: React.FC = () => {
 
         <section className="cps-panel">
           <div className="cps-progress-head"><b>Step {stepIx + 1} of {steps.length}</b><span>{Math.round(((stepIx + 1) / steps.length) * 100)}% complete</span></div>
-          <ol className="cps-steps">
+          <ol className="cps-steps" style={{ '--cps-steps': steps.length } as CSSProperties}>
             {steps.map((s, i) => (
               <li key={s} className={i === stepIx ? 'on' : i < stepIx ? 'ok' : ''}><span>{i < stepIx ? <i className="bi bi-check" /> : <i className={`bi ${STEP_ICON[s]}`} />}</span><b>{STEP_LABEL[s]}</b></li>
             ))}
@@ -325,7 +325,6 @@ const CareerSetup: React.FC = () => {
               </>
             )}
 
-            <div className="cps-tip"><i className="bi bi-info-circle" /> You can always update these details later from your profile.</div>
             <div className="cps-nav">
               {stepIx > 0 && <button className="cps-btn ghost" disabled={busy} onClick={() => setStepIx(stepIx - 1)}><i className="bi bi-arrow-left" /> Back</button>}
               <button className="cps-btn primary" disabled={busy || !canAdvance} onClick={() => (isLast ? go(stepIx, true) : go(stepIx + 1))}>{busy ? 'Saving…' : isLast ? 'Finish setup' : 'Continue'} <i className="bi bi-arrow-right" /></button>

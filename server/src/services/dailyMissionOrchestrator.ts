@@ -11,14 +11,8 @@ import { MISSION_ORCHESTRATION_VERSION, MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTE
 
 /**
  * Daily Mission Engine execution layer.
- *
- * The stored CareerRoadmap owns WHAT the member must improve. This service owns WHEN a
- * slice lands today and HOW that objective is made executable. HOW is selected only from
- * admin-authored CareerSkillResource rows that match the member's audience and current
- * measured score. No title guessing, AI generation or fallback filler is allowed.
- *
- * A completion is engagement/progress, never skill evidence. Skill DNA is read here only
- * for score-window targeting and is never written by this service.
+ * The roadmap owns WHAT; this service owns WHEN and resolves HOW from admin-authored
+ * resources filtered by audience and current Skill DNA. It never writes capability data.
  */
 export interface MissionResource { type: string; id: string; title: string; route: string; xp?: number | null; }
 export interface DailyMission { key: string; roadmapId: string; objectiveSequence: number; skillKey: string; skillName: string; workType: string; plannedMinutes: number; title: string; explanation: string; reasonCode: string; resourceState: MissionResourceState; resource?: MissionResource; done: boolean; }
@@ -33,40 +27,27 @@ export interface SelectionInput { roadmapId: string; date: string; week: number;
 
 export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
   const thisWeek = input.objectives.filter(o => o.week === input.week).slice().sort((a, b) => a.sequence - b.sequence);
-  const creditedOf = (seq: number) => input.creditedBefore.get(seq) || 0;
-  const isSettled = (o: SelectableObjective) => creditedOf(o.sequence) >= o.plannedMinutes;
+  const creditedOf = (seq: number) => input.creditedBefore.get(seq) || 0; const isSettled = (o: SelectableObjective) => creditedOf(o.sequence) >= o.plannedMinutes;
   const budget = dailyBudget(input.minutesPerDay); const chosen: DailyMission[] = []; let spent = 0;
   for (const o of thisWeek) {
-    if (chosen.length >= MAX_MISSIONS_PER_DAY) break;
-    if (isSettled(o)) continue;
+    if (chosen.length >= MAX_MISSIONS_PER_DAY) break; if (isSettled(o)) continue;
     if (thisWeek.some(p => p.sequence < o.sequence && p.prerequisiteFor === o.skillKey && !isSettled(p))) continue;
-    const slice = dailySliceOf(o.plannedMinutes, creditedOf(o.sequence), input.daysPerWeek);
-    if (slice < MIN_MISSION_MINUTES) continue;
+    const slice = dailySliceOf(o.plannedMinutes, creditedOf(o.sequence), input.daysPerWeek); if (slice < MIN_MISSION_MINUTES) continue;
     const remainingBudget = budget - spent; if (remainingBudget < MIN_MISSION_MINUTES) break;
     const minutes = Math.min(slice, remainingBudget); const key = missionKey(input.roadmapId, o.sequence, input.date);
     const resource = o.workType === 'ASSESS' ? { type: 'assessment', id: `personalized:${o.skillKey}`, title: `${o.skillName} check`, route: assessmentRouteForSkill(o.skillKey) } : input.resources.get(slotKey(o.skillKey, o.workType));
-    chosen.push({ key, roadmapId: input.roadmapId, objectiveSequence: o.sequence, skillKey: o.skillKey, skillName: o.skillName, workType: o.workType, plannedMinutes: minutes, title: `${o.skillName} — ${WORK_LABEL[o.workType] || o.workType}`, explanation: o.explanation, reasonCode: o.reasonCode, resourceState: resource ? 'READY' : 'RESOURCE_NOT_CONFIGURED', resource, done: input.completedToday.has(key) });
-    spent += minutes;
+    chosen.push({ key, roadmapId: input.roadmapId, objectiveSequence: o.sequence, skillKey: o.skillKey, skillName: o.skillName, workType: o.workType, plannedMinutes: minutes, title: `${o.skillName} — ${WORK_LABEL[o.workType] || o.workType}`, explanation: o.explanation, reasonCode: o.reasonCode, resourceState: resource ? 'READY' : 'RESOURCE_NOT_CONFIGURED', resource, done: input.completedToday.has(key) }); spent += minutes;
   }
   return chosen;
 }
-
 const dayNumberFrom = (start: Date, now: Date): number => Math.floor((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())) / 86400000) + 1;
 
-/**
- * Resolve one executable activity per skill/work-type slot for this member.
- *
- * The database already sorts by admin priority. We then reject rows that do not serve the
- * member's year/course/branch/role/stage/language or measured score. The first surviving
- * executable target wins, which keeps refreshes deterministic. Empty targeting axes mean
- * everyone; an unmeasured skill is allowed through a score window by resourceServes().
- */
+/** First eligible row by admin priority wins; filtering is audience + score + executable target. */
 async function resolveResources(tenantId: string, skillKeys: string[], member: ResourceMember, scores: Map<string, number>): Promise<Map<string, MissionResource>> {
   const out = new Map<string, MissionResource>(); const unique = [...new Set(skillKeys.map(k => String(k).toUpperCase()))]; if (!unique.length) return out;
   const rows = await CareerSkillResource.find({ tenantId, skillKey: { $in: unique }, active: true }).sort({ priority: 1, resourceId: 1, _id: 1 }).lean() as any[];
   for (const r of rows) {
-    const resourceSkill = String(r.skillKey).toUpperCase(); const score = scores.has(resourceSkill) ? scores.get(resourceSkill)! : null;
-    if (!resourceServes(r, member, score)) continue;
+    const resourceSkill = String(r.skillKey).toUpperCase(); const score = scores.has(resourceSkill) ? scores.get(resourceSkill)! : null; if (!resourceServes(r, member, score)) continue;
     let resolved: MissionResource | null = null;
     if (r.resourceType === 'practice') {
       const problem = findProblem(String(r.resourceId)); if (!problem) continue;
@@ -77,9 +58,8 @@ async function resolveResources(tenantId: string, skillKeys: string[], member: R
     } else if (r.resourceType === 'mock_interview') {
       resolved = { type: 'mock_interview', id: String(r._id), title: r.title || 'Mock interview', route: '/careerpilot/interview', xp: typeof r.xp === 'number' ? r.xp : null };
     } else if (MATERIAL_TYPES.includes(r.resourceType)) {
-      // Rich inline/upload-only concepts already exist in Admin Concepts, but there is not
-      // yet a member concept-view route in App.tsx. Until that surface is added, only a
-      // material with a real URL is executable; the rest stays visibly unmapped.
+      // Inline/upload-only concept material needs the forthcoming member concept viewer.
+      // Until then only an explicit URL is executable; otherwise expose an honest gap.
       if (!String(r.url || '').trim()) continue;
       resolved = { type: r.resourceType, id: String(r._id), title: r.title, route: String(r.url).trim(), xp: typeof r.xp === 'number' ? r.xp : null };
     }
@@ -107,6 +87,5 @@ export async function getTodaysPlan(tenantId: string, studentId: string, now: Da
   const weekPlanned = weekObjectives.reduce((n, o) => n + o.plannedMinutes, 0); const weekCompleted = completions.filter((c: any) => weekObjectives.some(o => o.sequence === c.careerpilot.objectiveSequence)).reduce((n: number, c: any) => n + (c.careerpilot.minutes || 0), 0); const totalPlanned = roadmap.capacity?.plannedMinutes || 0;
   return { available: true, policyVersion: MISSION_ORCHESTRATION_VERSION, roadmapId, date, roadmapDay, roadmapWeek: week, weekCount: roadmap.weekCount, capacity: { minutesPerDay: roadmap.input.minutesPerDay, plannedMinutes: missions.reduce((n, m) => n + m.plannedMinutes, 0) }, missions, progress: { plannedMinutes: totalPlanned, completedMinutes, percent: totalPlanned > 0 ? Math.min(100, Math.round((completedMinutes / totalPlanned) * 100)) : 0 }, week: { plannedMinutes: weekPlanned, completedMinutes: weekCompleted }, unmappedObjectives: weekObjectives.filter(o => o.workType !== 'ASSESS' && !resources.has(slotKey(o.skillKey, o.workType))).length, outdated: false };
 }
-
 export { CareerRoadmap as _CareerRoadmap };
 export type { ICareerRoadmap };

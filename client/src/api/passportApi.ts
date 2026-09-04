@@ -1191,6 +1191,12 @@ export interface LevelInfo {
 }
 export interface Badge { key: string; label: string; icon: string; color: string; hint: string; earned: boolean; progress: number; }
 export interface DashboardData {
+  /**
+   * The daily plan's own outcome, including WHY it is unavailable. The dashboard used to
+   * render a bare "No missions generated for today", which is true and useless: the member
+   * is not told that the plan needs generating, nor given the button that does it.
+   */
+  dailyPlan?: { available: boolean; reason?: string; message?: string };
   active: boolean;
   /** Which day of the journey the member is on. */
   day?: number;
@@ -2126,8 +2132,14 @@ export interface CareerContextOptions {
   availability: { minutes: number; label: string }[];
   /** Paired with `availability` — the roadmap needs both to size weekly capacity. */
   daysPerWeek: { days: number; label: string }[];
+  /** All three come from the tenant's onboarding configuration, not from constants. */
   programs: string[];
   academicYears: string[];
+  /**
+   * Empty when the tenant has not curated a branch list, in which case the screen keeps a
+   * free-text box rather than showing a picker with nothing in it.
+   */
+  branches?: string[];
   stages: { key: string; label: string; blurb: string }[];
 }
 

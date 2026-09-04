@@ -413,7 +413,21 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             </div>
 
             {!totalMissions ? (
-              <div className="gd-chart-empty">No missions generated for today.</div>
+              /* Say what is missing and offer the one action that fixes it. "No missions
+                 generated" is accurate and leaves the member stuck: daily work comes from
+                 the roadmap, so a member without one needs to build it, not wait. */
+              <div className="gd-chart-empty">
+                {data.dailyPlan && !data.dailyPlan.available ? (
+                  <>
+                    <p style={{ margin: '0 0 10px' }}>{data.dailyPlan.message}</p>
+                    {data.dailyPlan.reason === 'ROADMAP_REQUIRED' && (
+                      <button className="gd-btn primary" onClick={() => nav('/careerpilot/roadmap')}>
+                        Build my 90-day plan
+                      </button>
+                    )}
+                  </>
+                ) : 'No missions generated for today.'}
+              </div>
             ) : (
               <>
                 {shownMissions.map(m => (

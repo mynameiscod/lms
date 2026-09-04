@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { memberAxes } from '../services/careerStageService';
 import User from '../models/User';
 import PassportConfig from '../models/PassportConfig';
-import PassportAttempt from '../models/PassportAttempt';
 import PassportProgress from '../models/PassportProgress';
 import PassportInterview from '../models/PassportInterview';
 import PassportResume from '../models/PassportResume';
@@ -14,6 +13,8 @@ import { getOrCreateProgress } from '../services/passportXpService';
 import { buildRoadmap } from '../services/passportRoadmapService';
 import { PRACTICE_BANK } from '../services/passportPracticeService';
 import { getTodaysPlan, toMemberMissions } from '../services/dailyMissionOrchestrator';
+import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
+import { resolveAssessedState } from '../services/memberAssessmentStateService';
 import * as g from '../services/passportGamificationService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
@@ -77,14 +78,38 @@ export const getDashboard = async (req: Request, res: Response) => {
     ]);
 
     const active = membershipActive(user?.passport);
-    const attempt = await PassportAttempt.findOne({ tenantId, studentId }).sort({ createdAt: -1 }).lean() as any;
 
-    if (!active || !attempt) {
+    /**
+     * ASKED ABOUT THE MEMBER, NOT ABOUT A COLLECTION.
+     *
+     * This looked for a PassportAttempt, which ONLY the legacy Career Readiness
+     * questionnaire creates. A member who sat the personalised skill assessment has a
+     * PersonalizedAssessment and a Skill DNA profile instead — so `attempt` was null,
+     * `hasAssessment` came back false, and Home rendered Mission Control telling them to
+     * "Start Skill Assessment": the one thing they had already finished.
+     *
+     * Worse, `!attempt` short-circuited before the plan was ever built, so the same member
+     * also saw no missions, 0 XP and a 0-day streak — three symptoms, one wrong question.
+     *
+     * memberAssessmentStateService was written for exactly this and already fixed the
+     * roadmap and the missions endpoint; this controller was simply never moved onto it. It
+     * returns the real attempt when one exists, so every existing member is unaffected, and
+     * a synthesised one shaped identically when the measurement came from Skill DNA.
+     */
+    const assessedState = await resolveAssessedState({
+      tenantId,
+      studentId,
+      passport: user?.passport,
+      categories: categoriesOf(await PassportAssessment.findOne({ tenantId }).lean() as any),
+    });
+    const attempt = assessedState.attempt as any;
+
+    if (!active || !assessedState.assessed) {
       return res.json({
         active,
-        hasAssessment: !!attempt,
-        careerScore: attempt?.careerScore ?? null,
-        level: attempt?.level ?? null,
+        hasAssessment: assessedState.assessed,
+        careerScore: assessedState.careerScore,
+        level: assessedState.level,
         priceInr: cfg?.priceInr ?? 499,
         entitled: entitlementMap(cfg?.entitlements as any, user?.passport),
       });
@@ -166,7 +191,7 @@ export const getDashboard = async (req: Request, res: Response) => {
 
       skills: (attempt.categoryScores || []).map((c: any) => ({ key: c.key, label: c.label, score: c.score })),
       careerScore: attempt.careerScore,
-      careerLevel: attempt.level,
+      careerLevel: assessedState.level,
       pathwayLabel: attempt.pathwayLabel,
 
       stats: {

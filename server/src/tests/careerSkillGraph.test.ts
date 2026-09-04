@@ -264,8 +264,18 @@ describe('the shipped taxonomy is internally consistent', () => {
   });
 
   it('is the intended size — meaningful nodes, not a textbook index', () => {
+    /**
+     * The ceiling moved from 80 to 120 when the first-year Foundation layer landed: the
+     * taxonomy had been written for students who already had a target role, and measuring a
+     * first-year needed nodes for the things they are actually taught — loops, conditionals,
+     * aptitude, spoken English.
+     *
+     * The guard is not removed, because the reason for it has not changed. Every node here
+     * must still be something you can say "this student is 62% there" about; a taxonomy that
+     * grows without that test becomes a textbook index nobody can navigate.
+     */
     expect(CAREER_SKILL_TAXONOMY.length).toBeGreaterThanOrEqual(40);
-    expect(CAREER_SKILL_TAXONOMY.length).toBeLessThanOrEqual(80);
+    expect(CAREER_SKILL_TAXONOMY.length).toBeLessThanOrEqual(120);
   });
 
   it('has unique keys', () => {
@@ -285,22 +295,46 @@ describe('the shipped taxonomy is internally consistent', () => {
     }
   });
 
-  it('covers the seven intended areas', () => {
+  it('covers the nine intended areas', () => {
+    // APTITUDE and LEARNING_SKILLS joined with the first-year layer: a campus drive opens
+    // with an aptitude round, and whether a student shows up decides whether any of the
+    // rest happens. Listed exactly rather than counted, so a stray new root fails here.
     const roots = CAREER_SKILL_TAXONOMY.filter(s => !s.parentKey).map(s => s.key).sort();
     expect(roots).toEqual([
-      'CS_FUNDAMENTALS', 'DATABASES', 'DSA', 'PROFESSIONAL_SKILLS',
-      'PROGRAMMING', 'SE_PRACTICES', 'WEB_FUNDAMENTALS',
+      'APTITUDE', 'CS_FUNDAMENTALS', 'DATABASES', 'DSA', 'LEARNING_SKILLS',
+      'PROFESSIONAL_SKILLS', 'PROGRAMMING', 'SE_PRACTICES', 'WEB_FUNDAMENTALS',
     ]);
   });
 
-  it('does NOT duplicate the assessment scoring dimensions', () => {
-    // aptitude and logical_reasoning are owned by PassportAssessment. Two owners for one
-    // concept is the ambiguity the audit exists to prevent.
+  it('does not duplicate a scoring dimension with a bare, ambiguous key', () => {
+    /**
+     * NARROWED DELIBERATELY, and worth reading before widening it again.
+     *
+     * This forbade APTITUDE outright because `aptitude` and `logical_reasoning` are scoring
+     * dimensions of PASSPORT_CATEGORIES, and two owners for one concept is real ambiguity.
+     * That held while the legacy questionnaire was the only instrument: it scored six
+     * categories, and a skill node of the same name would have been a second, disagreeing
+     * answer to the same question.
+     *
+     * The personalised assessment measures SKILLS, not categories, and a campus drive opens
+     * with an aptitude round that a first-year has to be measured on somehow. So the group
+     * exists — but every node under it is namespaced (APTITUDE_QUANT_ARITHMETIC, not
+     * QUANTITATIVE_APTITUDE), which is what keeps the two vocabularies distinguishable.
+     *
+     * The bare names stay banned: those are the ones that would read as the category.
+     */
     const keys = CAREER_SKILL_TAXONOMY.map(s => s.key);
-    expect(keys).not.toContain('APTITUDE');
     expect(keys).not.toContain('LOGICAL_REASONING');
     expect(keys).not.toContain('QUANTITATIVE_APTITUDE');
     expect(keys).not.toContain('VERBAL_ABILITY');
+    expect(keys).not.toContain('CAREER_CLARITY');
+    expect(keys).not.toContain('EMPLOYABILITY');
+
+    // Everything under the aptitude group carries the namespace, so no node can be mistaken
+    // for the category that shares its subject.
+    const aptitude = CAREER_SKILL_TAXONOMY.filter(s => s.parentKey === 'APTITUDE');
+    expect(aptitude.length).toBeGreaterThan(0);
+    for (const s of aptitude) expect(s.key.startsWith('APTITUDE_')).toBe(true);
   });
 
   it('separates language-agnostic OOP from OOP in a language', () => {

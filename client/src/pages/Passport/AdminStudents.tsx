@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import passportApi from '../../api/passportApi';
 
 const PassportAdminStudents: React.FC = () => {
+  const nav = useNavigate();
   const [rows, setRows] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [convertId, setConvertId] = useState('');
@@ -200,6 +202,7 @@ const PassportAdminStudents: React.FC = () => {
                       </>
                     ) : (
                       <>
+                        <button style={mini} onClick={() => nav(`/admin/passport/students/${r._id}/roadmap`)}>Roadmap</button>
                         <button style={mini} onClick={() => openAnswers(r._id)}>{answersFor === r._id ? 'Hide answers' : 'Answers'}</button>
                         <button style={mini} onClick={() => openInterviews(r._id)}>{ivFor === r._id ? 'Hide interviews' : 'Interviews'}</button>
                         <button style={mini} onClick={() => { setEditId(r._id); setEditVal(`${r.firstName || ''} ${r.lastName || ''}`.trim()); }}>Edit</button>

@@ -2,6 +2,7 @@ import StudentSkillProfile from '../models/StudentSkillProfile';
 import CareerSkill from '../models/CareerSkill';
 import { getCareerContext } from './careerContextService';
 import { getRoleSkillBlueprint } from './roleSkillBlueprintService';
+import { getStageBlueprint } from './stageSkillSetService';
 import { ROLE_NOT_SURE } from './careerDomainService';
 import {
   ROLE_READINESS_VERSION, targetScoreFor, classifyGap, skillRatio, priorityScore,
@@ -115,17 +116,42 @@ export async function calculateStudentRoleReadiness(
   // role they already match.
   const roleKey = (roleKeyOverride || context.career.primaryRole || '').toUpperCase();
 
+  /**
+   * NO ROLE IS NOT NOTHING TO MEASURE.
+   *
+   * This refused outright, and everything downstream is built from the list it refused to
+   * produce — so a first-year who honestly answered "I'm not sure yet" got no assessment,
+   * no Skill DNA and no roadmap. The product turned away the cohort least able to name a
+   * job title and most in need of being told where to start.
+   *
+   * Their stage is already known: it is derived from degree and year, and the foundation
+   * policy already restricted them to FOUNDATION-difficulty skills. It just had no list of
+   * its own to filter. If an admin has configured one for this stage, it stands in.
+   *
+   * A CHOSEN ROLE STILL WINS — this is only consulted when there is no role, so nothing
+   * changes for a student who has picked one.
+   */
+  let blueprint: Awaited<ReturnType<typeof getRoleSkillBlueprint>> = null;
+
   if (!roleKey || roleKey === ROLE_NOT_SURE) {
-    return {
-      available: false, reason: 'ROLE_NOT_SELECTED',
-      message: 'Choose a target role to see how your skills compare with it.',
-    };
+    const stage = context.derived?.stage;
+    blueprint = stage ? await getStageBlueprint(tenantId, stage) : null;
+    if (!blueprint) {
+      return {
+        available: false, reason: 'ROLE_NOT_SELECTED',
+        message: 'Choose a target role to see how your skills compare with it.',
+      };
+    }
+  } else {
+    blueprint = await getRoleSkillBlueprint(tenantId, roleKey);
+    if (!blueprint) {
+      return { available: false, reason: 'ROLE_BLUEPRINT_NOT_READY', role: { key: roleKey }, message: 'That role is not configured yet.' };
+    }
   }
 
-  const blueprint = await getRoleSkillBlueprint(tenantId, roleKey);
-  if (!blueprint) {
-    return { available: false, reason: 'ROLE_BLUEPRINT_NOT_READY', role: { key: roleKey }, message: 'That role is not configured yet.' };
-  }
+  // Whatever the list turned out to be, the rest of this function is told which one it is
+  // reporting on. A stage set names itself STAGE:<stage>, never a real role key.
+  const effectiveRoleKey = blueprint.roleKey;
 
   // A draft blueprint is somebody's work in progress. Measuring a student against it would
   // report a standard nobody has agreed to, and the number would move when they finished.
@@ -220,7 +246,7 @@ export async function calculateStudentRoleReadiness(
   return {
     available: true,
     policyVersion: ROLE_READINESS_VERSION,
-    role: { key: roleKey, name: blueprint.roleName },
+    role: { key: effectiveRoleKey, name: blueprint.roleName },
     blueprintVersion: blueprint.version,
     blueprintUpdatedAt: blueprint.updatedAt,
 

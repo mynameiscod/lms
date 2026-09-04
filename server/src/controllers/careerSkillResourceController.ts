@@ -2,10 +2,12 @@ import { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import CareerSkillResource, {
   RESOURCE_WORK_TYPES, SKILL_RESOURCE_TYPES, MATERIAL_TYPES,
-  EMPTY_AUDIENCE, EMPTY_BODY, bodyIsEmpty, IResourceBody,
+  EMPTY_AUDIENCE, EMPTY_BODY, bodyIsEmpty, IResourceBody, resourceServes,
 } from '../models/CareerSkillResource';
+import StudentSkillProfile from '../models/StudentSkillProfile';
 import jwt from 'jsonwebtoken';
 import * as bunny from '../services/bunnyStorageService';
 import { jwtSecret } from '../config/secrets';
@@ -650,5 +652,61 @@ export const deleteSkillResource = async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error('[skill-resource] delete:', e?.message || e);
     res.status(500).json({ message: 'Could not delete that mapping.' });
+  }
+};
+
+/**
+ * GET /passport/me/material/:id — one material, for the member it was written for.
+ *
+ * Serving this needed a route at all: materials without an external URL were dropped by the
+ * mission engine, so an admin could write a full lesson that no student could open. This is
+ * the destination that makes the Concept Bank deliver.
+ *
+ * THE AUDIENCE IS RE-CHECKED HERE, not trusted from the mission that linked here. A member
+ * who guesses an id, or keeps a link after their year rolls over, must not read material
+ * targeted at somebody else — and the mission list is not an authorisation record.
+ */
+export const getMemberMaterial = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const studentId = String((req as any).user?.id || '');
+    const id = String(req.params.id || '');
+    if (!mongoose.isValidObjectId(id)) return res.status(404).json({ message: 'Material not found.' });
+
+    const row: any = await CareerSkillResource.findOne({ _id: id, tenantId, active: true }).lean();
+    if (!row) return res.status(404).json({ message: 'Material not found.' });
+
+    const user: any = await User.findOne({ _id: studentId, tenantId }).select('passport').lean();
+    const p = user?.passport || {};
+    const member = {
+      yearOfStudy: p.yearOfStudy, degree: p.degree, program: p.program, branch: p.branch,
+      primaryRole: p.primaryRole, secondaryRole: p.secondaryRole, stage: p.stage,
+      preferredLanguages: p.preferredLanguages || [],
+    };
+    const profile: any = await StudentSkillProfile
+      .findOne({ tenantId, studentId, skillKey: row.skillKey }).select('score').lean();
+
+    if (!resourceServes(row, member, typeof profile?.score === 'number' ? profile.score : null)) {
+      return res.status(403).json({ message: 'This material is not part of your plan.' });
+    }
+
+    const skill: any = await CareerSkill.findOne({ key: row.skillKey }).select('key name description').lean();
+
+    res.json({
+      id: String(row._id),
+      title: row.title,
+      description: row.description || '',
+      resourceType: row.resourceType,
+      language: row.language || '',
+      skill: { key: row.skillKey, name: skill?.name || row.skillKey, description: skill?.description || '' },
+      // Sent whole. Every part is optional by design — a material may be a bare video, a
+      // bare set of steps, or all of it — and the viewer renders what is there.
+      body: row.body || EMPTY_BODY(),
+      url: row.url || '',
+      xp: typeof row.xp === 'number' ? row.xp : null,
+    });
+  } catch (e: any) {
+    console.error('[skill-resource] member material:', e?.message || e);
+    res.status(500).json({ message: 'Could not load that material.' });
   }
 };

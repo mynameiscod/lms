@@ -8,7 +8,7 @@ import { isEntitled } from './passportEntitlementService';
 import { findProblem, findCareerPilotProblem } from './passportPracticeService';
 import { ymd } from './passportMissionService';
 import { XpRule } from '../models/GamificationModels';
-import { MISSION_ORCHESTRATION_VERSION, MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES, assessmentRouteForSkill, practiceRoute, dailySliceOf, dailyBudget, MissionResourceState, DailyPlanUnavailable } from '../data/missionOrchestrationPolicy';
+import { MISSION_ORCHESTRATION_VERSION, MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES, assessmentRouteForSkill, practiceRoute, materialRoute, dailySliceOf, dailyBudget, MissionResourceState, DailyPlanUnavailable } from '../data/missionOrchestrationPolicy';
 
 /** Daily Mission Engine: roadmap=WHAT, this service=WHEN, targeted resource=HOW. */
 export interface MissionResource { type: string; id: string; title: string; route: string; xp?: number | null; }
@@ -130,8 +130,41 @@ async function resolveResources(tenantId: string, skillKeys: string[], member: R
     } else if (r.resourceType === 'mock_interview') {
       resolved = { type: 'mock_interview', id: String(r._id), title: r.title || 'Mock interview', route: '/careerpilot/interview', xp: typeof r.xp === 'number' ? r.xp : null };
     } else if (MATERIAL_TYPES.includes(r.resourceType)) {
-      if (!String(r.url || '').trim()) continue;
-      resolved = { type: r.resourceType, id: String(r._id), title: r.title, route: String(r.url).trim(), xp: typeof r.xp === 'number' ? r.xp : null };
+      /**
+       * A MATERIAL NO LONGER NEEDS TO LIVE SOMEWHERE ELSE.
+       *
+       * This required a URL and skipped anything without one — so everything the Concept
+       * Bank's editor writes (the notes, the steps, the term breakdown, the self-checks,
+       * the uploaded files) was discarded, because all of it lives in `body`. An admin
+       * could author a complete lesson that no student could ever be shown, and the
+       * mission fell through to "work on this in your own time".
+       *
+       * An external URL still wins where one is set: that is an admin pointing somewhere
+       * deliberately, and second-guessing it would be worse than obeying it. Otherwise the
+       * material opens in the member's own viewer, which renders what they wrote.
+       */
+      const url = String(r.url || '').trim();
+      const hasBody = !!(r.body && (
+        String(r.body.overview || '').trim()
+        || String(r.body.notes || '').trim()
+        || String(r.body.videoUrl || '').trim()
+        || String(r.body.videoKey || '').trim()
+        || (r.body.steps || []).length
+        || (r.body.breakdown || []).length
+        || (r.body.checks || []).length
+        || (r.body.references || []).length
+        || (r.body.attachments || []).length
+      ));
+      // Neither a destination nor content is an empty row, and offering it would be a
+      // Start button that opens nothing — the one thing worse than an honest gap.
+      if (!url && !hasBody) continue;
+      resolved = {
+        type: r.resourceType,
+        id: String(r._id),
+        title: r.title,
+        route: url || materialRoute(String(r._id)),
+        xp: typeof r.xp === 'number' ? r.xp : null,
+      };
     }
     if (!resolved) continue;
     for (const wt of (r.workTypes || [])) { const slot = slotKey(resourceSkill, wt); if (!out.has(slot)) out.set(slot, resolved); }

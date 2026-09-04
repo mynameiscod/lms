@@ -11,6 +11,17 @@ const findSkill = jest.fn();
 const getCareerContextMock = jest.fn();
 const getRoleSkillBlueprintMock = jest.fn();
 
+/**
+ * A student with no role now falls back to their STAGE's skill set, if an admin configured
+ * one. These scenarios are about the role path, so the stage set is absent — which is what
+ * every tenant has until somebody writes one, and keeps Scenario E asserting what it always
+ * asserted: no role and no stage list means nothing to measure against.
+ */
+jest.mock('../models/StageSkillSet', () => ({
+  __esModule: true,
+  default: { findOne: () => ({ lean: () => Promise.resolve(null) }) },
+}));
+
 jest.mock('../models/StudentSkillProfile', () => ({
   __esModule: true, default: { find: (...a: any[]) => findProfile(...a) },
 }));

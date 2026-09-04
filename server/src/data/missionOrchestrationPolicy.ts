@@ -58,6 +58,15 @@ export const ASSESSMENT_ROUTE = '/careerpilot/skill-assessment';
 export const assessmentRouteForSkill = (skillKey: string): string =>
   (skillKey ? `${ASSESSMENT_ROUTE}?skill=${encodeURIComponent(skillKey)}` : ASSESSMENT_ROUTE);
 
+/**
+ * Where a material an admin wrote is opened.
+ *
+ * Materials used to need an external URL or they were dropped, so the Concept Bank could
+ * author a lesson with nowhere to render it. This is that somewhere.
+ */
+export const materialRoute = (resourceId: string): string =>
+  `/careerpilot/material/${encodeURIComponent(resourceId)}`;
+
 /** Where a mapped Practice Lab item is opened. */
 export const practiceRoute = (resourceId: string): string =>
   `/careerpilot/practice/${encodeURIComponent(resourceId)}`;

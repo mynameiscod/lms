@@ -70,6 +70,8 @@ import LeaveRequests from './pages/LeaveRequests';
 import CodePlayground from './pages/CodePlayground';
 import PassportAdminConfig from './pages/Passport/AdminConfig';
 import PassportAdminStudents from './pages/Passport/AdminStudents';
+import PassportAdminStudentRoadmap from './pages/Passport/AdminStudentRoadmap';
+import PassportAdminStageSkills from './pages/Passport/AdminStageSkills';
 import PassportAdminCoins from './pages/Passport/AdminCoins';
 import PassportAdminFunnel from './pages/Passport/AdminFunnel';
 import PassportAdminCurriculum from './pages/Passport/AdminCurriculum';
@@ -85,6 +87,7 @@ import PassportAdminQuestionBank from './pages/Passport/AdminQuestionBank';
 import PassportAdminPathways from './pages/Passport/AdminPathways';
 import PassportAdminMissions from './pages/Passport/AdminMissions';
 import PassportHome from './pages/Passport/PassportHome';
+import PassportMaterialViewer from './pages/Passport/MaterialViewer';
 import PassportMemberLayout from './pages/Passport/MemberLayout';
 import PassportCareerSetup from './pages/Passport/CareerSetup';
 import PassportRoadmap from './pages/Passport/Roadmap';
@@ -475,6 +478,11 @@ const AppRoutes: React.FC = () => {
       <Route path="/admin/passport/students" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
       } />
+      {/* Why THIS member got THESE missions. The endpoint existed with no screen calling
+          it, so the only way to answer that question was a database query. */}
+      <Route path="/admin/passport/students/:studentId/roadmap" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudentRoadmap /></Layout></ProtectedRoute>
+      } />
       <Route path="/admin/passport/analytics" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAnalytics /></Layout></ProtectedRoute>
       } />
@@ -504,6 +512,11 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/passport/skills" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminSkillGraph /></Layout></ProtectedRoute>
+      } />
+      {/* What a student with NO chosen role is measured against. The role blueprint
+          answered that for everyone else; a first-year who says "not sure" had no list. */}
+      <Route path="/admin/passport/stage-skills" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminStageSkills /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/role-blueprints" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminRoleBlueprint /></Layout></ProtectedRoute>
@@ -566,6 +579,9 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/practice" element={<PassportPractice source="builtin" />} />
         <Route path="/passport/practice" element={<LegacyRedirect to="/careerpilot/practice" />} />
         <Route path="/careerpilot/practice/:id" element={<PassportPracticeItem />} />
+        {/* A material an admin wrote. Materials without an external URL were dropped by the
+            mission engine, so a full lesson could be authored with nowhere to open it. */}
+        <Route path="/careerpilot/material/:id" element={<PassportMaterialViewer />} />
         {/*
           Thinking Lab reuses the Practice screen against the admin-authored bank. A problem
           opened from either list lands on the same /careerpilot/practice/:id, because the id

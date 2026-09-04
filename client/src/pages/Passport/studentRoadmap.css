@@ -1,0 +1,143 @@
+/* One member's plan — a long explanation table that has to stay readable.
+   Tokens defined here: this screen renders inside the LMS admin Layout, not the member
+   `.gd` scope, so --cb-* would resolve to nothing. Values mirror the CodeBegun guide. */
+.sr{
+  --sr-navy:#051D64; --sr-teal:#359AAD; --sr-ink:#102A4F; --sr-text:#33475B;
+  --sr-muted:#64748B; --sr-line:#E2EAF2; --sr-card:#FFFFFF;
+  --sr-green:#17885D; --sr-green-bg:#EAF8F1;
+  --sr-amber:#B86B00; --sr-amber-bg:#FFF7E8;
+  --sr-red:#C93737;   --sr-red-bg:#FFF0F0;
+  --sr-violet:#4338CA; --sr-violet-bg:#EEF2FF;
+  color:var(--sr-text); padding:22px 26px 60px;
+  font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+.sr *{box-sizing:border-box}
+
+.sr-back{border:1px solid var(--sr-line); background:#fff; border-radius:9px; padding:7px 13px;
+  font-size:12.5px; font-weight:700; color:var(--sr-muted); cursor:pointer; margin-bottom:16px;
+  font-family:inherit}
+.sr-back:hover{color:var(--sr-navy); border-color:var(--sr-muted)}
+
+/* ── header ─────────────────────────────────────────── */
+.sr-hd{display:flex; gap:22px; align-items:flex-start; margin-bottom:18px; flex-wrap:wrap}
+.sr-hd>div:first-child{flex:1; min-width:300px}
+.sr-eyebrow{display:block; font-size:11px; letter-spacing:.11em; text-transform:uppercase;
+  font-weight:800; color:var(--sr-teal); margin-bottom:5px}
+.sr-hd h1{font-size:27px; font-weight:850; color:var(--sr-navy); margin:0 0 6px; letter-spacing:-.4px}
+.sr-hd p{font-size:14px; color:var(--sr-muted); margin:0; max-width:74ch; line-height:1.55}
+.sr-facts{display:flex; gap:10px; flex-wrap:wrap}
+.sr-facts>div{background:var(--sr-card); border:1px solid var(--sr-line); border-radius:12px;
+  padding:11px 15px; min-width:96px; text-align:center; box-shadow:0 2px 8px rgba(15,46,77,.04)}
+.sr-facts small{display:block; font-size:10.5px; color:var(--sr-muted); font-weight:700;
+  text-transform:uppercase; letter-spacing:.05em}
+.sr-facts b{display:block; font-size:20px; color:var(--sr-navy); margin-top:3px;
+  font-variant-numeric:tabular-nums}
+
+/* ── meta strip ─────────────────────────────────────── */
+.sr-meta{display:flex; gap:0; flex-wrap:wrap; background:var(--sr-card); border:1px solid var(--sr-line);
+  border-radius:13px; overflow:hidden; margin-bottom:14px}
+.sr-meta>div{flex:1; min-width:150px; padding:12px 16px; border-right:1px solid var(--sr-line)}
+.sr-meta>div:last-child{border-right:0}
+.sr-meta small{display:block; font-size:10.5px; color:var(--sr-muted); font-weight:700;
+  text-transform:uppercase; letter-spacing:.05em}
+.sr-meta b{display:block; font-size:13.5px; color:var(--sr-ink); margin-top:3px; font-weight:600}
+
+/* ── notes ──────────────────────────────────────────── */
+.sr-note{border-radius:12px; padding:14px 17px; margin-bottom:14px; font-size:13.5px; line-height:1.55}
+.sr-note.warn{background:var(--sr-amber-bg); border:1px solid #f3d9b5; border-left:3px solid var(--sr-amber)}
+.sr-note b{display:block; color:var(--sr-ink); margin-bottom:6px}
+.sr-note ul{margin:0 0 8px; padding-left:20px}
+.sr-note li{margin:3px 0; color:#6b5330}
+.sr-note span{color:#6b5330; font-size:12.5px}
+
+/* ── where to change it ─────────────────────────────── */
+.sr-links{display:flex; gap:9px; align-items:center; flex-wrap:wrap; margin-bottom:22px;
+  background:#EEF6FA; border:1px solid #c9e3ee; border-radius:12px; padding:12px 15px}
+.sr-links>span{font-size:12.5px; font-weight:700; color:#2c5b6b}
+.sr-links button{border:1px solid #bcdcea; background:#fff; border-radius:9px; padding:7px 13px;
+  font-size:12px; font-weight:700; color:var(--sr-navy); cursor:pointer; font-family:inherit}
+.sr-links button:hover{border-color:var(--sr-teal); background:#f6fdff}
+
+/* ── weeks ──────────────────────────────────────────── */
+.sr-week{margin-bottom:20px}
+.sr-week-hd{display:flex; align-items:baseline; gap:12px; margin-bottom:9px}
+.sr-week-hd h2{font-size:17px; font-weight:800; color:var(--sr-navy); margin:0}
+.sr-week-hd span{font-size:12px; color:var(--sr-muted)}
+
+.sr-tablewrap{overflow-x:auto; border:1px solid var(--sr-line); border-radius:13px;
+  background:var(--sr-card); box-shadow:0 2px 8px rgba(15,46,77,.04)}
+.sr-table{border-collapse:collapse; width:100%; min-width:900px; font-size:13px}
+.sr-table th,.sr-table td{padding:11px 14px; text-align:left; border-bottom:1px solid #eef2f7;
+  vertical-align:top}
+.sr-table th{background:#F6F9FC; font-size:10.5px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--sr-muted); font-weight:750; border-bottom:1px solid var(--sr-line)}
+.sr-table tr:last-child td{border-bottom:0}
+.sr-table th.c,.sr-table td.c{text-align:center}
+.sr-table td.num{font-variant-numeric:tabular-nums; font-weight:600; color:var(--sr-ink)}
+.sr-table td.seq{color:var(--sr-muted); font-variant-numeric:tabular-nums}
+.sr-table td b{display:block; color:var(--sr-ink); font-weight:700}
+.sr-table td .key{display:block; font-size:10px; color:#93a1b2; margin-top:2px;
+  font-family:ui-monospace,Menlo,monospace}
+.sr-table td.why{max-width:420px}
+.sr-table td.why p{margin:6px 0 0; font-size:12px; line-height:1.5; color:var(--sr-muted)}
+.sr-table td em{display:block; font-style:normal; font-size:10.5px; color:var(--sr-muted); margin-top:3px}
+
+/* work type */
+.w{display:inline-block; font-size:10.5px; font-weight:800; border-radius:99px; padding:3px 10px}
+.w-assess{background:var(--sr-violet-bg); color:var(--sr-violet)}
+.w-learn{background:#E7F1FF; color:#1F5FBF}
+.w-practice{background:var(--sr-green-bg); color:var(--sr-green)}
+.w-review{background:#F1F4F8; color:#5b6b7f}
+
+/* reason */
+.rc{display:inline-block; font-size:11px; font-weight:700; color:var(--sr-ink)}
+.rc-prerequisite{color:#1F5FBF}
+.rc-critical_gap{color:var(--sr-red)}
+.rc-priority_gap{color:var(--sr-amber)}
+.prereq{display:block; font-size:11px; color:var(--sr-muted); margin-top:3px}
+.prereq b{display:inline; font-family:ui-monospace,Menlo,monospace; font-size:10.5px; color:var(--sr-ink)}
+
+/* gap status */
+.gap{display:inline-block; font-size:10.5px; font-weight:800; border-radius:99px; padding:3px 9px}
+.g-not_assessed{background:#F1F4F8; color:#5b6b7f}
+.g-critical{background:var(--sr-red-bg); color:var(--sr-red)}
+.g-behind{background:var(--sr-amber-bg); color:var(--sr-amber)}
+.g-on_track,.g-strong{background:var(--sr-green-bg); color:var(--sr-green)}
+
+/* status */
+.st{display:inline-block; font-size:10.5px; font-weight:800; border-radius:99px; padding:3px 9px}
+.st-active{background:var(--sr-green-bg); color:var(--sr-green)}
+.st-superseded{background:#F1F4F8; color:#5b6b7f}
+
+/* ── deferred / workings / history ──────────────────── */
+.sr-deferred,.sr-workings,.sr-history{margin-top:26px; padding-top:20px; border-top:1px solid var(--sr-line)}
+.sr-deferred h2,.sr-history h2{font-size:17px; font-weight:800; color:var(--sr-navy); margin:0 0 6px}
+.sr-deferred p,.sr-history p{font-size:13px; color:var(--sr-muted); margin:0 0 11px; max-width:74ch}
+.sr-chips{display:flex; gap:7px; flex-wrap:wrap}
+.sr-chips span{background:#F1F4F8; color:#5b6b7f; border-radius:99px; padding:5px 12px;
+  font-size:11.5px; font-weight:700}
+.sr-workings button{border:1px solid var(--sr-line); background:#fff; border-radius:9px;
+  padding:8px 14px; font-size:12.5px; font-weight:700; color:var(--sr-ink); cursor:pointer;
+  font-family:inherit}
+.sr-workings pre{background:#0C1E3C; color:#DCE5EE; border-radius:11px; padding:16px;
+  font-size:11.5px; line-height:1.65; overflow-x:auto; margin-top:11px;
+  font-family:ui-monospace,Menlo,monospace}
+.sr-muted{font-size:12.5px; color:var(--sr-muted)}
+
+.sr-state{text-align:center; padding:52px 30px; background:var(--sr-card);
+  border:1px solid var(--sr-line); border-radius:14px; color:var(--sr-muted); font-size:14px}
+.sr-state b{display:block; color:var(--sr-ink); font-size:16px; margin-bottom:8px}
+.sr-state p{max-width:62ch; margin:0 auto; line-height:1.6}
+.sr-state.err{color:#8f2b2b; background:var(--sr-red-bg); border-color:#f0c4c4}
+
+@media (max-width:900px){ .sr{padding:16px} .sr-hd{flex-direction:column} }
+
+/* The remaining reason and gap codes, so no row falls back to an unstyled raw value. */
+.rc-assessment_needed{color:#5b6b7f}
+.rc-limited_evidence{color:var(--sr-amber)}
+.rc-needs_work{color:var(--sr-amber)}
+.rc-maintenance{color:var(--sr-green)}
+.rc-validation{color:var(--sr-violet)}
+.g-limited_evidence{background:var(--sr-amber-bg); color:var(--sr-amber)}
+.g-priority_gap{background:var(--sr-red-bg); color:var(--sr-red)}
+.g-needs_work{background:var(--sr-amber-bg); color:var(--sr-amber)}

@@ -30,6 +30,7 @@ import * as roleBlueprints from '../controllers/roleSkillBlueprintController';
 import * as skillEvidence from '../controllers/skillEvidenceController';
 import * as questionDrafts from '../controllers/skillQuestionDraftController';
 import * as questionBank from '../controllers/questionBankController';
+import * as stageSkills from '../controllers/stageSkillSetController';
 import * as personalized from '../controllers/personalizedAssessmentController';
 import * as skillDna from '../controllers/skillDnaController';
 import * as readiness from '../controllers/roleReadinessController';
@@ -160,6 +161,15 @@ router.post('/curriculum/:pathwayKey/draft',  MANAGE, curriculum.draftPathwayCur
 //    JAVA_OOP means the same thing in every tenant. Reading it is ordinary CareerPilot
 //    admin work; WRITING it changes what every tenant sees, which is a platform-wide
 //    act and follows the same SUPER_ADMIN rule as system settings. ──
+/**
+ * What a student WITHOUT a target role is measured against. The role blueprint answered
+ * that question for everyone else; a first-year who says "I'm not sure yet" had no list at
+ * all, and so no assessment and no roadmap.
+ */
+router.get('/stage-skill-sets',         MANAGE,      stageSkills.list);
+router.get('/stage-skill-sets/:stage',  MANAGE,      stageSkills.get);
+router.put('/stage-skill-sets/:stage',  SUPER_ADMIN, stageSkills.save);
+
 router.get('/skills',             MANAGE,        careerSkills.listSkills);
 router.get('/skills/:key/usage',  MANAGE,        careerSkills.skillUsage);
 router.post('/skills',            SUPER_ADMIN,   careerSkills.createSkill);
@@ -292,6 +302,13 @@ router.get('/skill-resources/attachments/:folder/:name', MEMBER, skillResources.
 
 /** Issuing a ticket needs a real session; spending it does not. See above router.use. */
 router.post('/skill-resources/attachment-token', MEMBER, skillResources.issueAttachmentToken);
+
+/**
+ * One material, for the member it was written for. Materials without an external URL used
+ * to be dropped by the mission engine, so an admin could author a lesson with nowhere to
+ * open it; this is that destination. The audience is re-checked server-side.
+ */
+router.get('/me/material/:id',            MEMBER, skillResources.getMemberMaterial);
 
 router.get('/skill-resources',            MANAGE, skillResources.listSkillResources);
 router.get('/skill-resources/concepts',   MANAGE, skillResources.listConcepts);

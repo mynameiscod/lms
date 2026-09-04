@@ -248,6 +248,25 @@ export const passportApi = {
     const { data } = await axios.post(`${BASE}/me/roadmap/replan`, {}, { headers: auth() });
     return data;
   },
+  // ── Stage skill sets: what a student with no role is measured against ─────
+  listStageSkillSets: async (): Promise<{
+    stages: { stage: string; label: string; enabled: boolean; count: number; activeCount: number; version: number }[];
+    stageCatalogue: { key: string; label: string; blurb: string }[];
+  }> => {
+    const { data } = await axios.get(`${BASE}/stage-skill-sets`, { headers: auth() });
+    return data;
+  },
+  getStageSkillSet: async (stage: string): Promise<any> => {
+    const { data } = await axios.get(`${BASE}/stage-skill-sets/${stage}`, { headers: auth() });
+    return data;
+  },
+  saveStageSkillSet: async (stage: string, body: {
+    label?: string; enabled?: boolean; requirements: any[];
+  }): Promise<{ success: boolean; version: number; enabled: boolean }> => {
+    const { data } = await axios.put(`${BASE}/stage-skill-sets/${stage}`, body, { headers: auth() });
+    return data;
+  },
+
   /** Admin: one member's plan, with the workings and their roadmap history. */
   getStudentSkillRoadmap: async (studentId: string): Promise<any> => {
     const { data } = await axios.get(`${BASE}/students/${studentId}/roadmap`, { headers: auth() });
@@ -1149,6 +1168,12 @@ export const passportApi = {
    * The credential is a ten-minute ticket naming this one file, NOT the session JWT — a
    * JWT here would be written into access logs, browser history and Referer headers.
    */
+  /** Member: one material an admin wrote, with its audience re-checked server-side. */
+  getMemberMaterial: async (id: string): Promise<any> => {
+    const { data } = await axios.get(`${BASE}/me/material/${id}`, { headers: auth() });
+    return data;
+  },
+
   attachmentUrl: async (fileKey: string): Promise<string> => {
     const [folder, name] = fileKey.split('/');
     const { data } = await axios.post(

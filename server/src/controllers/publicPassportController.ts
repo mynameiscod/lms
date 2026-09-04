@@ -11,6 +11,7 @@ import * as settings from '../services/settingsService';
 import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 import { jwtSecret } from '../config/secrets';
 import { isCareerPilotMember } from '../services/careerPilotPopulation';
+import PendingPassportSignup from '../models/PendingPassportSignup';
 
 // Public CareerPilot funnel: signup (Name/Mobile/Email + admin-configured onboarding
 // fields) → OTP → account created (STUDENT + passport, not yet active/paid) → auto-login.
@@ -128,16 +129,26 @@ export const signup = async (req: Request, res: Response) => {
       }
     }
 
-    const [firstName, ...rest] = name.split(' ');
-    const lastName = rest.join(' ') || '-';
+    /**
+     * NOTHING IS CREATED HERE. The account begins to exist at verification, not now.
+     *
+     * This block used to User.create() the member before the OTP had even been sent. An
+     * abandoned or failed signup therefore left a real account behind, and since one mobile
+     * may own only one account, that number was claimed permanently — the member came back,
+     * typed the same number, and was told it "is already registered", blocked by their own
+     * failed attempt with no way to clear it. It also meant anyone could burn a stranger's
+     * mobile by typing it into the form.
+     *
+     * A CONFLICT NOW ONLY COUNTS IF THE OTHER ACCOUNT IS PROVED. An unverified row holds no
+     * claim on an email or a number: whoever proves ownership first gets it. That is what
+     * clears the accounts the old flow already stranded, without deleting anything.
+     */
+    const proved = (u: any): boolean => !!(u?.passport?.verifiedAt || u?.passport?.active);
 
-    // ONE MOBILE, ONE ACCOUNT. The lookup below is by email alone, so the same person
-    // could sign up again with a fresh address and the same phone — and end up with two
-    // accounts, two sets of progress, and an OTP login that finds whichever it happens to
-    // match first. Existing duplicates are left alone deliberately; this only stops new
-    // ones, so nobody currently signed in loses access.
-    const phoneOwner: any = await User.findOne({ phone: mobile, tenantId }).select('email').lean();
-    if (phoneOwner && String(phoneOwner.email || '').toLowerCase() !== email) {
+    // ONE MOBILE, ONE ACCOUNT — but only against an account somebody actually proved.
+    const phoneOwner: any = await User.findOne({ phone: mobile, tenantId })
+      .select('email passport.verifiedAt passport.active').lean();
+    if (phoneOwner && proved(phoneOwner) && String(phoneOwner.email || '').toLowerCase() !== email) {
       const masked = String(phoneOwner.email || '').replace(/^(.{2})[^@]*(@.*)$/, '$1•••$2');
       return res.status(409).json({
         success: false,
@@ -145,83 +156,45 @@ export const signup = async (req: Request, res: Response) => {
       });
     }
 
-    let user: any = await User.findOne({ email });
-    if (user) {
+    const emailOwner: any = await User.findOne({ email })
+      .select('passport role').lean();
+    if (emailOwner) {
       /**
-       * Only a signup that never completed may be resumed.
-       *
-       * This tested `active` alone, and `active` means "has paid" - it is set by
-       * activateMembership(), from the Razorpay verify or an admin conversion. So a member
-       * who had already verified their OTP, finished onboarding and been career-scored was
-       * still classed as an abandoned signup and walked back through the whole funnel,
-       * because the purchase was the only thing this guard could see. One such account
-       * re-ran signup a day later and the resume branch happily reissued its OTP.
-       *
-       * verifiedAt is the honest marker of a completed signup: past that point the account
-       * is real and the way back in is login, not signup. Nobody is stranded by this -
-       * loginOtpStart requires only that a passport subdocument exists, never that the
-       * membership is active, so an unpaid member still gets in by OTP.
+       * A finished signup is sent to log in. `verifiedAt` is the honest marker: `active`
+       * alone means "has paid", so a member who had verified and onboarded but never
+       * purchased was previously walked back through the whole funnel.
        */
-      if (user.passport?.active || user.passport?.verifiedAt) return res.status(409).json({ success: false, message: 'You already have a CareerPilot — please log in.' });
-
+      if (proved(emailOwner)) {
+        return res.status(409).json({ success: false, message: 'You already have a CareerPilot — please log in.' });
+      }
       /**
-       * An existing account that is NOT a CareerPilot signup must be sent to log in.
+       * An existing account that is not a CareerPilot signup must log in instead.
        *
-       * This guard used to read `if (!user.passport)` and never fired: the nested defaults
-       * give every LMS student a passport subdocument. So an ordinary student's account
-       * fell through to the resume branch below, which overwrites `user.phone` with the
-       * mobile from THIS submission and sends the OTP there — handing whoever typed that
-       * email a verified login to somebody else's account.
+       * Every LMS student has a passport subdocument from the nested defaults, so this
+       * cannot be `if (!user.passport)` — that guard never fired, and an ordinary student's
+       * email fell through to a branch that overwrote their phone with the one typed here
+       * and sent the OTP to it, handing the sender a login to somebody else's account.
        */
-      if (!isCareerPilotMember(user.passport)) {
+      if (!isCareerPilotMember(emailOwner.passport)) {
         return res.status(409).json({ success: false, message: 'This email is already registered. Please log in.' });
       }
-
-      // Resuming an abandoned signup: persist what they just typed.
-      //
-      // The OTP is sent to the mobile from THIS submission, but the record kept
-      // whatever was entered the first time. So someone could resume with a new
-      // number, receive the code on it, and still not own that number as far as
-      // the system is concerned — and OTP login later looks up by phone, so it
-      // would never find them. Same for a corrected name.
-      if (mobile && user.phone !== mobile) user.phone = mobile;
-      if (name) {
-        const [fn, ...rn] = name.split(' ');
-        user.firstName = fn;
-        user.lastName = rn.join(' ') || '-';
-      }
-      if (user.isModified()) await user.save();
-    } else {
-      user = await User.create({
-        email, firstName, lastName, phone: mobile,
-        password: crypto.randomBytes(16).toString('hex'), // placeholder; they use OTP login
-        role: 'STUDENT', tenantId, isActive: true,
-        passport: {
-          active: false, product: 'career_passport', onboarded: true,
-          degree: fields.degree, yearOfStudy: fields.yearOfStudy, careerGoal: fields.careerGoal, pathway: fields.pathway,
-          // Career staging. Stored raw AND derived: the raw inputs are the fact, `stage`
-          // is a cached read of them that is recomputed on every login so a member
-          // advances from foundation to placement without anyone editing them.
-          program: fields.program, branch: fields.branch,
-          graduationMonth: fields.graduationMonth ? Number(fields.graduationMonth) : undefined,
-          graduationYear: fields.graduationYear ? Number(fields.graduationYear) : undefined,
-          graduated: fields.graduated === true || fields.graduated === 'true',
-          ...resolveCareerProfile({
-            // degree + yearOfStudy are the fields the form actually asks for, so these
-            // are what stage every real signup. The graduation date below is optional
-            // and only present when an admin has added those fields to onboarding.
-            degree: fields.degree, yearOfStudy: fields.yearOfStudy,
-            program: fields.program, branch: fields.branch,
-            graduationMonth: fields.graduationMonth ? Number(fields.graduationMonth) : null,
-            graduationYear: fields.graduationYear ? Number(fields.graduationYear) : null,
-            graduated: fields.graduated === true || fields.graduated === 'true',
-          }),
-        },
-      });
     }
 
-    const otp = await sendOtp(tenantId, String(user._id), mobile);
-    res.json({ success: true, token: String(user._id), otp: { sent: otp.sent, channel: otp.channel, devCode: otp.devCode, throttledSeconds: otp.throttledSeconds } });
+    /**
+     * One live attempt per person, replaced rather than accumulated, so retrying the form
+     * does not leave a trail of pending rows for the same number.
+     */
+    const token = crypto.randomBytes(24).toString('hex');
+    await PendingPassportSignup.deleteMany({ tenantId, $or: [{ email }, { mobile }] });
+    await PendingPassportSignup.create({
+      token, tenantId, email, mobile, name, fields,
+      // Longer than the OTP's ten minutes, so an expired code can be resent against the
+      // same pending row instead of sending the member back to a form they have filled in.
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+    });
+
+    const otp = await sendOtp(tenantId, token, mobile);
+    res.json({ success: true, token, otp: { sent: otp.sent, channel: otp.channel, devCode: otp.devCode, throttledSeconds: otp.throttledSeconds } });
   } catch (e: any) {
     console.error('[passport] signup failed:', e);
     res.status(500).json({ success: false, message: e.message || 'Signup failed' });
@@ -266,6 +239,70 @@ function issueLogin(res: Response, user: any) {
   });
 }
 
+/**
+ * Turn a proved pending signup into a real account.
+ *
+ * REUSES A STRANDED ROW RATHER THAN DELETING IT. The old flow created accounts before
+ * verification, so unverified rows are already sitting on real emails and mobiles in
+ * production. Deleting them would be the obvious way to clear the path and the wrong one —
+ * these are `users` documents, and a delete keyed on the wrong condition removes people.
+ * An unverified row has nothing worth keeping and no claim on anything, so it is written
+ * over in place: same document, the answers just proved, and now stamped verified.
+ *
+ * Matched by email first and mobile second, because the email is what the member typed as
+ * their identity; a stale row under a different email that happens to hold this mobile is
+ * the second-best match and is taken over the same way.
+ */
+async function materialiseSignup(pending: any): Promise<any> {
+  const { tenantId, email, mobile, name, fields } = pending;
+  const [firstName, ...rest] = String(name || '').split(' ');
+  const lastName = rest.join(' ') || '-';
+  const now = new Date();
+
+  const passportFields = {
+    active: false, product: 'career_passport', onboarded: true, verifiedAt: now,
+    degree: fields.degree, yearOfStudy: fields.yearOfStudy, careerGoal: fields.careerGoal, pathway: fields.pathway,
+    // Career staging. Stored raw AND derived: the raw inputs are the fact, `stage` is a
+    // cached read of them that is recomputed on every login so a member advances from
+    // foundation to placement without anyone editing them.
+    program: fields.program, branch: fields.branch,
+    graduationMonth: fields.graduationMonth ? Number(fields.graduationMonth) : undefined,
+    graduationYear: fields.graduationYear ? Number(fields.graduationYear) : undefined,
+    graduated: fields.graduated === true || fields.graduated === 'true',
+    ...resolveCareerProfile({
+      degree: fields.degree, yearOfStudy: fields.yearOfStudy,
+      program: fields.program, branch: fields.branch,
+      graduationMonth: fields.graduationMonth ? Number(fields.graduationMonth) : null,
+      graduationYear: fields.graduationYear ? Number(fields.graduationYear) : null,
+      graduated: fields.graduated === true || fields.graduated === 'true',
+    }),
+  };
+
+  const stranded: any =
+    await User.findOne({ email })
+    || await User.findOne({ tenantId, phone: mobile });
+
+  // Only a row nobody ever proved may be taken over. Anything else is a real account and
+  // signup refused it long before this point.
+  if (stranded && !stranded.passport?.verifiedAt && !stranded.passport?.active) {
+    stranded.email = email;
+    stranded.phone = mobile;
+    stranded.firstName = firstName;
+    stranded.lastName = lastName;
+    stranded.isActive = true;
+    stranded.passport = { ...(stranded.passport?.toObject?.() || stranded.passport || {}), ...passportFields };
+    await stranded.save();
+    return stranded;
+  }
+
+  return User.create({
+    email, firstName, lastName, phone: mobile,
+    password: crypto.randomBytes(16).toString('hex'), // placeholder; they use OTP login
+    role: 'STUDENT', tenantId, isActive: true,
+    passport: passportFields,
+  });
+}
+
 /** POST /public/passport/verify — verify OTP and issue a login token (signup + OTP login). */
 export const verify = async (req: Request, res: Response) => {
   try {
@@ -275,8 +312,31 @@ export const verify = async (req: Request, res: Response) => {
       const msg: any = { invalid: 'Incorrect code', expired: 'Code expired — resend', too_many_attempts: 'Too many attempts — resend', not_found: 'Start over' };
       return res.status(400).json({ success: false, message: msg[result] || 'Verification failed' });
     }
-    const user: any = await User.findById(token);
-    if (!user) return res.status(404).json({ success: false, message: 'Account not found' });
+    /**
+     * THE ACCOUNT IS BORN HERE, for a signup.
+     *
+     * Two kinds of token reach this endpoint: a pending signup (random, from /signup) and a
+     * user id (from /login-otp, where the account already exists). A pending row means the
+     * member has just proved the number, so this is the first moment there is anything to
+     * create.
+     */
+    const pending: any = await PendingPassportSignup.findOne({ token }).lean();
+    if (pending) {
+      const user = await materialiseSignup(pending);
+      await PendingPassportSignup.deleteOne({ token });
+      return issueLogin(res, user);
+    }
+
+    // A signup token is 48 hex characters, not an ObjectId, so findById would throw a
+    // CastError and surface as a 500. If the pending row has expired the honest answer is
+    // "start over", which is what the funnel already knows how to handle.
+    const user: any = mongoose.isValidObjectId(token) ? await User.findById(token) : null;
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: mongoose.isValidObjectId(token) ? 'Account not found' : 'Your signup expired — please start over.',
+      });
+    }
     // The moment they proved they own the number. Only stamped once — it marks when
     // they crossed out of "signed up but unverified", not the most recent OTP.
     if (user.passport && !user.passport.verifiedAt) {
@@ -340,7 +400,24 @@ export const loginOtpStart = async (req: Request, res: Response) => {
 /** POST /public/passport/resend — resend OTP. */
 export const resend = async (req: Request, res: Response) => {
   try {
-    const user: any = await User.findById(String((req.body || {}).token)).select('tenantId phone');
+    const token = String((req.body || {}).token || '');
+
+    /**
+     * A signup token names a pending row, not an account — during signup there is no user
+     * to look up any more. Checked first because it is the shorter-lived of the two, and a
+     * random hex token can never collide with an ObjectId lookup anyway.
+     */
+    const pending: any = await PendingPassportSignup.findOne({ token }).select('tenantId mobile').lean();
+    if (pending) {
+      const otp = await sendOtp(String(pending.tenantId), token, pending.mobile);
+      return res.json({ success: true, otp: { sent: otp.sent, channel: otp.channel, devCode: otp.devCode, throttledSeconds: otp.throttledSeconds } });
+    }
+
+    // findById throws on a non-ObjectId string, which a signup token is; a resend arriving
+    // after the pending row has expired must read as "start over", not a 500.
+    const user: any = mongoose.isValidObjectId(token)
+      ? await User.findById(token).select('tenantId phone')
+      : null;
     if (!user) return res.status(404).json({ success: false, message: 'Start over' });
     const otp = await sendOtp(String(user.tenantId), String(user._id), user.phone);
     res.json({ success: true, otp: { sent: otp.sent, channel: otp.channel, devCode: otp.devCode, throttledSeconds: otp.throttledSeconds } });

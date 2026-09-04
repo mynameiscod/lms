@@ -10,6 +10,9 @@
  * the client does not infer completeness from a partial view of the record.
  */
 
+/** A real ObjectId: the OTP-login token IS the member's user id. */
+const STUDENT_ID = '6a9a5aedc74cef1bdd94e2f2';
+
 const findByIdUser = jest.fn();
 const verifyOtpMock = jest.fn();
 const updateOneUser = jest.fn();
@@ -25,6 +28,19 @@ jest.mock('../services/assessmentOtpService', () => ({
   verifyOtp: (...a: any[]) => verifyOtpMock(...a),
   sendOtp: jest.fn(),
 }));
+/**
+ * This suite is about the OTP-LOGIN path, where the token is the member's own user id and
+ * no pending signup exists. Signup's token is a random 48-char string and is covered by
+ * signupDefersAccount; here it must simply not match, so verify falls through to the
+ * account it was given.
+ */
+jest.mock('../models/PendingPassportSignup', () => ({
+  __esModule: true,
+  default: {
+    findOne: () => ({ lean: async () => null }),
+    deleteOne: async () => ({ deletedCount: 0 }),
+  },
+}));
 jest.mock('../config/secrets', () => ({ jwtSecret: () => 'test-secret-at-least-32-chars-long!!' }));
 
 import { verify } from '../controllers/publicPassportController';
@@ -38,7 +54,7 @@ function mockRes() {
 
 function memberDoc(passport: any) {
   return {
-    _id: 'student-a', email: 'a@example.com', firstName: 'Asha', lastName: 'R',
+    _id: STUDENT_ID, email: 'a@example.com', firstName: 'Asha', lastName: 'R',
     role: 'STUDENT', tenantId: 'tenant-1', isActive: true,
     passport,
     save: jest.fn(async () => undefined),
@@ -48,7 +64,7 @@ function memberDoc(passport: any) {
 const run = async (doc: any) => {
   findByIdUser.mockResolvedValue(doc);
   const res = mockRes();
-  await verify({ body: { token: 'student-a', code: '123456' } } as any, res);
+  await verify({ body: { token: STUDENT_ID, code: '123456' } } as any, res);
   return res.json.mock.calls[0][0];
 };
 
@@ -69,7 +85,7 @@ describe('a first-time CareerPilot signup', () => {
   it('still issues a working session — the landing change is additive', async () => {
     const body = await run(memberDoc({ product: 'career_passport', active: true }));
     expect(body.tenantId).toBe('tenant-1');
-    expect(body.user).toMatchObject({ id: 'student-a', email: 'a@example.com', role: 'STUDENT' });
+    expect(body.user).toMatchObject({ id: STUDENT_ID, email: 'a@example.com', role: 'STUDENT' });
   });
 });
 
@@ -89,7 +105,7 @@ describe('OTP failures are unaffected', () => {
   it('rejects a wrong code without issuing a session', async () => {
     verifyOtpMock.mockResolvedValue('invalid');
     const res = mockRes();
-    await verify({ body: { token: 'student-a', code: '000000' } } as any, res);
+    await verify({ body: { token: STUDENT_ID, code: '000000' } } as any, res);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json.mock.calls[0][0].success).toBe(false);
     expect(res.json.mock.calls[0][0].token).toBeUndefined();
@@ -100,7 +116,7 @@ describe('OTP failures are unaffected', () => {
     (doc as any).isActive = false;
     findByIdUser.mockResolvedValue(doc);
     const res = mockRes();
-    await verify({ body: { token: 'student-a', code: '123456' } } as any, res);
+    await verify({ body: { token: STUDENT_ID, code: '123456' } } as any, res);
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json.mock.calls[0][0].code).toBe('ACCOUNT_DEACTIVATED');
   });

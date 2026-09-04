@@ -11,6 +11,11 @@
  * looked abandoned, and signing up again quietly reissued a code for a live account. These
  * pin the boundary at verifiedAt instead: once a signup has completed, the way back in is
  * login, and only a signup that never completed may be resumed.
+ *
+ * SINCE DEFERRED CREATION, "resuming" no longer means reusing an account row, because
+ * signup does not create one — it stores a pending signup and creates the account at
+ * verification. The boundary is unchanged and is what these still test; what changed is
+ * that a permitted attempt now writes a pending row instead of a User.
  */
 
 const TENANT = '69c7723868202a8e4616ef3d';
@@ -22,17 +27,29 @@ let existingUser: any = null;
 
 const sendOtp = jest.fn();
 const create = jest.fn();
+const pendingCreate = jest.fn();
 
 jest.mock('../models/User', () => ({
   __esModule: true,
   default: {
-    // Two different call shapes in signup(): the phone-ownership probe chains
-    // .select().lean(), the account lookup is awaited directly.
-    findOne: (q: any) =>
-      q && q.phone
-        ? { select: () => ({ lean: async () => phoneOwner }) }
-        : Promise.resolve(existingUser),
+    // Both probes now chain .select().lean(): signup only reads these to decide whether a
+    // conflict is real, and never loads a document it intends to write.
+    findOne: (q: any) => ({
+      select: () => ({ lean: async () => (q && q.phone ? phoneOwner : existingUser) }),
+    }),
     create: (...a: any[]) => { create(...a); return Promise.resolve({ _id: 'new-id' }); },
+  },
+}));
+
+/**
+ * The pending row is what signup writes now, in place of an account. Recorded so the tests
+ * below can assert that a permitted attempt got as far as storing one.
+ */
+jest.mock('../models/PendingPassportSignup', () => ({
+  __esModule: true,
+  default: {
+    deleteMany: async () => ({ deletedCount: 0 }),
+    create: (...a: any[]) => { pendingCreate(...a); return Promise.resolve(a[0]); },
   },
 }));
 
@@ -81,6 +98,7 @@ function accountWith(passport: any) {
 beforeEach(() => {
   sendOtp.mockReset();
   create.mockReset();
+  pendingCreate.mockReset();
   phoneOwner = { email: EMAIL };   // same person: the one-mobile-one-account probe passes
   existingUser = null;
   jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -127,17 +145,23 @@ describe('a signup that never completed', () => {
 
     expect(res.status).not.toHaveBeenCalledWith(409);
     expect(sendOtp).toHaveBeenCalled();
-    expect(create).not.toHaveBeenCalled();   // resumed, not duplicated
+    // No account is written on this path at all — not a new one, and not the stranded row,
+    // which is only taken over once the number has actually been proved.
+    expect(create).not.toHaveBeenCalled();
+    expect(pendingCreate).toHaveBeenCalled();
   });
 
-  it('creates a brand new account when nothing exists for that email', async () => {
+  it('does NOT create an account yet when nothing exists for that email', async () => {
     phoneOwner = null;
     existingUser = null;
     const res = mockRes();
 
     await signup({ body } as any, res);
 
-    expect(create).toHaveBeenCalled();
+    // THE FIX. Creating the account here is what let a failed OTP claim a mobile number
+    // permanently. It is created at verification, once ownership is proved.
+    expect(create).not.toHaveBeenCalled();
+    expect(pendingCreate).toHaveBeenCalled();
     expect(sendOtp).toHaveBeenCalled();
     expect(res.status).not.toHaveBeenCalledWith(409);
   });

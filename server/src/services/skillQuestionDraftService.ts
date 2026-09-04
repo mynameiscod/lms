@@ -149,6 +149,48 @@ function userPrompt(o: {
  * would throw away good batches. Anything that cannot be read as JSON is a failed call, not
  * a silent empty batch, so the caller can say so.
  */
+/**
+ * Every complete top-level {...} in a string, found by balancing braces.
+ *
+ * Aware of strings and escapes, because the whole reason this exists is code inside the
+ * questions: a snippet containing a brace or a quote would otherwise end an object early
+ * and cascade into nonsense.
+ */
+function topLevelObjects(raw: string): string[] {
+  const out: string[] = [];
+  let depth = 0, start = -1, inString = false, escaped = false;
+
+  for (let i = 0; i < raw.length; i += 1) {
+    const c = raw[i];
+    if (escaped) { escaped = false; continue; }
+    if (c === '\\') { escaped = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (c === '{') { if (depth === 0) start = i; depth += 1; continue; }
+    if (c === '}') {
+      depth -= 1;
+      // Only a brace that closes back to zero ends a question. A partial tail after the
+      // last complete one is simply never collected.
+      if (depth === 0 && start >= 0) { out.push(raw.slice(start, i + 1)); start = -1; }
+      if (depth < 0) depth = 0;
+    }
+  }
+  return out;
+}
+
+/**
+ * A model's JSON, parsed as far as it can honestly be.
+ *
+ * ONE BAD QUESTION USED TO COST THE WHOLE BATCH. This did a single JSON.parse over the
+ * response, so a stray character anywhere threw "Unexpected number in JSON at position
+ * 2498" — a message naming a byte offset in a document the admin cannot see, for a batch of
+ * ten where nine were probably fine. Seen on a C batch, where snippets carry braces, quotes
+ * and newlines that a model does not always escape.
+ *
+ * The clean parse is still tried first and is still the normal path. Only when it fails does
+ * this fall back to reading the response question by question, keeping the ones that stand
+ * on their own. Recovering nine beats discarding ten, and the caller is told which happened.
+ */
 export function parseDraftResponse(text: string): any[] {
   let raw = String(text || '').trim();
   const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -157,13 +199,41 @@ export function parseDraftResponse(text: string): any[] {
     const start = raw.search(/[[{]/);
     if (start >= 0) raw = raw.slice(start);
   }
-  const end = Math.max(raw.lastIndexOf('}'), raw.lastIndexOf(']'));
-  if (end >= 0) raw = raw.slice(0, end + 1);
 
-  const parsed = JSON.parse(raw);
-  const list = Array.isArray(parsed) ? parsed : parsed.questions;
-  if (!Array.isArray(list)) throw new Error('Response contained no question list');
-  return list;
+  // Fast path: the response is well-formed, which is the overwhelming majority of the time.
+  const end = Math.max(raw.lastIndexOf('}'), raw.lastIndexOf(']'));
+  if (end >= 0) {
+    try {
+      const parsed = JSON.parse(raw.slice(0, end + 1));
+      const list = Array.isArray(parsed) ? parsed : parsed.questions;
+      // Well-formed JSON is not automatically a question list: a model answering
+      // [{"error":"rate limited"}] parses perfectly and contains no question. An EMPTY array
+      // is a real answer and is returned as one — "the model wrote nothing" and "the model
+      // wrote something else" are different, and only the second is worth reporting.
+      if (Array.isArray(list) && (!list.length || list.some((x: any) => x && x.question))) return list;
+    } catch { /* fall through and salvage what is there */ }
+  }
+
+  const salvaged: any[] = [];
+  for (const chunk of topLevelObjects(raw)) {
+    try {
+      const obj = JSON.parse(chunk);
+      // A wrapper object — {"questions":[...]} — rather than a question itself.
+      if (Array.isArray(obj?.questions)) { salvaged.push(...obj.questions); continue; }
+      if (obj && typeof obj === 'object' && obj.question) salvaged.push(obj);
+    } catch { /* this one question is malformed; the others are not */ }
+  }
+
+  if (!salvaged.length) {
+    // Nothing survived. Say what came back rather than a character offset, so the admin can
+    // tell "the model returned prose" from "the model returned nothing" and retry knowingly.
+    const preview = raw.slice(0, 120).replace(/\s+/g, ' ');
+    throw new Error(
+      `The model's reply could not be read as questions${preview ? ` — it began: "${preview}…"` : '.'} `
+      + 'Try drafting a smaller batch.',
+    );
+  }
+  return salvaged;
 }
 
 // ── The quality gate ────────────────────────────────────────────────────────

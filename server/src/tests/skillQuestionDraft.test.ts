@@ -192,7 +192,13 @@ describe('reading what the model sent back', () => {
   it('throws rather than silently returning nothing', () => {
     // A failed call must be reportable. An empty batch would look like the model simply
     // had nothing to say, and the admin would run it again.
+    //
+    // The message changed when the parser learned to salvage: it used to say "no question
+    // list", which is true but says nothing about WHY. It now quotes what actually came
+    // back, so an admin can tell "the model returned prose" from "the model returned
+    // something else" without reading a log. The assertion follows the intent, not the
+    // old wording.
     expect(() => parseDraftResponse('I cannot help with that.')).toThrow();
-    expect(() => parseDraftResponse('{"notes":"none"}')).toThrow(/no question list/);
+    expect(() => parseDraftResponse('{"notes":"none"}')).toThrow(/could not be read as questions/);
   });
 });

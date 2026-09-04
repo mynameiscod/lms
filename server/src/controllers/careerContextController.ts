@@ -3,6 +3,7 @@ import { getCareerContext, updateCareerContext } from '../services/careerContext
 import { CAREER_DOMAINS, AVAILABILITY_OPTIONS, SUPPORTED_PROGRAMS, domainOf, normalizeDomain, DAYS_PER_WEEK_OPTIONS } from '../services/careerDomainService';
 import { CAREER_STAGES } from '../services/careerStageService';
 import { getSelectableCareerRoles } from '../services/careerRoleService';
+import PassportConfig from '../models/PassportConfig';
 
 /**
  * A member's own career context.
@@ -89,6 +90,15 @@ export const updateMyCareerContext = async (req: Request, res: Response) => {
  */
 async function optionsFor(tenantId: string, domainKey: string) {
   const d = domainOf(normalizeDomain(domainKey));
+
+  const cfg = await PassportConfig.findOne({ tenantId }).select('onboardingFields').lean() as any;
+  /** An admin's list for a field, or the built-in one when they have not set it. */
+  const fieldOptions = (key: string, fallback: string[]): string[] => {
+    const field = (cfg?.onboardingFields || []).find((f: any) => f.key === key);
+    const chosen = (field?.options || []).map((v: any) => String(v).trim()).filter(Boolean);
+    return chosen.length ? chosen : fallback;
+  };
+
   return {
     domains: CAREER_DOMAINS.filter(x => x.active).map(x => ({ key: x.key, label: x.label })),
     // From admin configuration now, not a constant. Same {key,label,blurb} shape the
@@ -98,8 +108,20 @@ async function optionsFor(tenantId: string, domainKey: string) {
     languages: d.languages,
     availability: AVAILABILITY_OPTIONS,
     daysPerWeek: DAYS_PER_WEEK_OPTIONS,
-    programs: SUPPORTED_PROGRAMS,
-    academicYears: ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Graduated'],
+    // ADMIN-CONFIGURED, not constants. These were a code constant and a literal array, so
+    // the programme list an admin curated in Platform Settings — where they had already
+    // narrowed Degree to B.Tech and written the real branch taxonomy — was ignored by the
+    // one screen that asks a student for it. The onboarding form and this setup screen
+    // asked the same question and offered different answers.
+    //
+    // Falling back to the constants keeps a tenant that has configured nothing working
+    // exactly as before; an empty list would leave a student with no chips to press.
+    programs: fieldOptions('degree', SUPPORTED_PROGRAMS),
+    academicYears: fieldOptions('yearOfStudy', ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Graduated']),
+    // Branch has no constant to fall back to — it was a free-text box here while the admin
+    // maintained a curated list. Empty means the client keeps the text input, so a tenant
+    // that has not configured branches is no worse off.
+    branches: fieldOptions('branch', []),
     // Sent for display only. The stage a member is in is decided by the server and is
     // not among the things they can pick.
     stages: CAREER_STAGES.map(s => ({ key: s.key, label: s.label, blurb: s.blurb })),

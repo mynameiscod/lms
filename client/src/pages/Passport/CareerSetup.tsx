@@ -222,16 +222,31 @@ const CareerSetup: React.FC = () => {
                   {avail.inProgress ? 'Continue my assessment' : 'Start my personalized assessment'} <i className="bi bi-arrow-right" />
                 </button>
               )}
+              {/*
+                ONE ACTION ON THIS SCREEN: start the assessment. "Change my choices" and
+                "Go to my dashboard" were removed deliberately — the summary exists to send
+                a member into the assessment, and two ghost buttons under the primary one
+                gave equal weight to leaving.
+
+                Changing choices is unaffected: Role Readiness, Resume Center and Placement
+                Readiness all link to `setup?step=direction`, which is honoured on load and
+                lands on that step directly, so nothing depends on a button here.
+
+                THE EXCEPTION BELOW IS NOT DECORATION. When the assessment is unavailable
+                the primary button does not render at all, so removing these two would
+                leave a screen with no action whatsoever — and this state is reachable: a
+                role whose blueprint is unpublished lands here. The way out stays only in
+                the case where there is otherwise nothing to press.
+              */}
               {avail && !avail.assessmentAvailable && (
-                <div className="cps-known cps-notready"><i className="bi bi-info-circle" /><span><b>{avail.message || 'This career path is not ready for assessment yet.'}</b><em>{avail.reasonCode === 'ROLE_NOT_CONFIGURED' || avail.reasonCode === 'BLUEPRINT_UNPUBLISHED' || avail.reasonCode === 'BLUEPRINT_EMPTY' ? 'Choose another role, or pick “Not sure yet” — everything else in your plan still works.' : 'Your profile is saved and the rest of CareerPilot works. We will let you know when it is ready.'}</em></span></div>
+                <>
+                  <div className="cps-known cps-notready"><i className="bi bi-info-circle" /><span><b>{avail.message || 'This career path is not ready for assessment yet.'}</b><em>{avail.reasonCode === 'ROLE_NOT_CONFIGURED' || avail.reasonCode === 'BLUEPRINT_UNPUBLISHED' || avail.reasonCode === 'BLUEPRINT_EMPTY' ? 'Choose another role, or pick “Not sure yet” — everything else in your plan still works.' : 'Your profile is saved and the rest of CareerPilot works. We will let you know when it is ready.'}</em></span></div>
+                  <button className="cps-btn ghost" onClick={() => { setDone(false); setStepIx(steps.indexOf('direction')); }}>
+                    <i className="bi bi-pencil" /> Choose a different role
+                  </button>
+                  <button className="cps-btn ghost" onClick={() => nav('/careerpilot')}>Go to my dashboard</button>
+                </>
               )}
-              {/* The page promises "You can change any of it later" — this is what makes
-                  that true. Without it the summary is a terminus, and every screen that
-                  sends a member here to change their role sends them into a loop. */}
-              <button className="cps-btn ghost" onClick={() => { setDone(false); setStepIx(steps.indexOf('direction')); }}>
-                <i className="bi bi-pencil" /> Change my choices
-              </button>
-              <button className="cps-btn ghost" onClick={() => nav('/careerpilot')}>Go to my dashboard</button>
             </section>
           </div>
         </main>
@@ -271,7 +286,19 @@ const CareerSetup: React.FC = () => {
                 <label className="cps-lbl">Program</label>
                 <div className="cps-chips">{opts.programs.map(p => <button key={p} className={`cps-chip${a.degree === p ? ' on' : ''}`} onClick={() => setA(s => ({ ...s, degree: p }))}>{p}</button>)}</div>
                 <label className="cps-lbl">Branch or specialisation <em>optional</em></label>
-                <input className="cps-inp" value={a.branch} placeholder="e.g. Computer Science" onChange={e => setA(s => ({ ...s, branch: e.target.value }))} />
+                {/* A picker only when the tenant has curated branches. Typed branches do not
+                    match the values questions and material are targeted at — "CSE", "cse"
+                    and "Computer Science" are three different audiences to the matcher — so
+                    where a list exists the student chooses from it. */}
+                {opts.branches?.length ? (
+                  <div className="cps-chips">
+                    {opts.branches.map(b => (
+                      <button key={b} className={`cps-chip${a.branch === b ? ' on' : ''}`} onClick={() => setA(s => ({ ...s, branch: s.branch === b ? '' : b }))}>{b}</button>
+                    ))}
+                  </div>
+                ) : (
+                  <input className="cps-inp" value={a.branch} placeholder="e.g. Computer Science" onChange={e => setA(s => ({ ...s, branch: e.target.value }))} />
+                )}
                 <label className="cps-lbl">Which year are you in?</label>
                 <div className="cps-chips">{opts.academicYears.map(y => <button key={y} className={`cps-chip${a.currentAcademicYear === y ? ' on' : ''}`} onClick={() => setA(s => ({ ...s, currentAcademicYear: y }))}>{y}</button>)}</div>
                 {ctx.education.collegeName && <p className="cps-known"><i className="bi bi-info-circle" /> From your profile: <b>{ctx.education.collegeName}</b>{ctx.location.city ? ` · ${ctx.location.city}` : ''}</p>}
@@ -281,7 +308,7 @@ const CareerSetup: React.FC = () => {
             {step === 'direction' && (
               <>
                 <div className="cps-question-head"><div className="cps-qicon"><i className="bi bi-compass" /></div><div><h2>What role would you like to work toward?</h2><p>Pick what appeals to you now. You can change it later.</p></div></div>
-                {!!knownContext && <p className="cps-known cps-ctxbadge"><i className="bi bi-mortarboard" /> <b>{knownContext}</b>{!steps.includes('education') && <button type="button" className="cps-link" onClick={() => { setEditEducation(true); setStepIx(0); }}>Change</button>}</p>}
+                {!!knownContext && <p className="cps-known cps-ctxbadge"><i className="bi bi-mortarboard" /> <b>{knownContext}</b>{!steps.includes('education') && <button type="button" className="cps-link" onClick={() => { setEditEducation(true); setStepIx(0); }}>Change academic details</button>}</p>}
                 {opts.roles.filter(r => r.key === 'NOT_SURE').map(r => <button key={r.key} className={`cps-unsure${a.primaryRole === r.key ? ' on' : ''}`} onClick={() => setA(s => ({ ...s, primaryRole: r.key }))}><i className="bi bi-compass" /><span><b>{r.label}</b><em>{r.blurb}</em></span></button>)}
                 <div className="cps-roles">
                   {opts.roles.filter(r => r.key !== 'NOT_SURE').map((r, index) => (

@@ -75,6 +75,26 @@ export const correctPositionOf = (options: { isCorrect?: boolean }[]): number =>
 
 const norm = (s: string) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
+/**
+ * Comparing two OPTIONS for sameness, without destroying what makes them different.
+ *
+ * `norm` above strips every non-alphanumeric character, which is right for a prose stem and
+ * wrong for code. In C, `char str[] = "Hello"` and `char *str = "Hello"` are an array and a
+ * pointer — genuinely different answers — and both normalise to "char str hello". The
+ * duplicate check then rejected sound questions for having "two options that say the same
+ * thing", which they did not. Seen on the first C batch: two of three rejections were this.
+ *
+ * Case and spacing are still ignored, and a trailing full stop still does not make two
+ * options distinct. Everything a programming language uses to mean something is kept.
+ */
+const normOption = (s: string) => String(s || '')
+  .toLowerCase()
+  .replace(/\s+/g, ' ')
+  // Trailing sentence punctuation only. Two options that differ by a full stop or an
+  // exclamation mark are the same answer; two that differ by a `*` or `[]` are not.
+  .replace(/[.,;:!?]+$/, '')
+  .trim();
+
 // ── Prompt ──────────────────────────────────────────────────────────────────
 
 function systemPrompt(): string {
@@ -273,7 +293,7 @@ export function checkDraft(d: any, existing: Set<string>): CheckResult {
 
   const seen = new Set<string>();
   for (const o of opts) {
-    const k = norm(o.text);
+    const k = normOption(o.text);
     if (seen.has(k)) return fail('two options say the same thing');
     seen.add(k);
   }
@@ -292,11 +312,26 @@ export function checkDraft(d: any, existing: Set<string>): CheckResult {
    * writing the code themselves, at which point they have authored the question.
    */
   const refersToCode = /\b(following|below|this|above)\s+(code|snippet|program|function|method|output)\b|\boutput of the\b|\bcode snippet\b/i.test(stem);
-  const hasCode = !!String(d?.codeSnippet || '').trim();
+  /**
+   * Code inside the stem counts as provided.
+   *
+   * The prompt asks for it in `codeSnippet` and usually gets it, but a model that writes
+   * "What does the following code do? `char str[5] = \"Test\";`" HAS given the student the
+   * code — just in the other field. Rejecting that loses an answerable question over
+   * formatting, and this check exists to catch a stem pointing at code that exists nowhere,
+   * not to enforce which field it arrived in.
+   */
+  const inlineCode = /`[^`]+`/.test(stem) || /[;{}]/.test(stem);
+  const hasCode = !!String(d?.codeSnippet || '').trim() || inlineCode;
   if (refersToCode && !hasCode) return fail('the question refers to code that was not provided');
 
   // The mirror of the above: code nobody is asked about is noise on the screen.
-  if (hasCode && !refersToCode && !/code|snippet|program|output/i.test(stem)) {
+  //
+  // Deliberately asks about the ATTACHED snippet rather than the widened `hasCode`. Since
+  // inline code in the stem now counts as provided, using hasCode here would tell a
+  // reviewer "a code snippet is attached" about a question that has none.
+  const attachedSnippet = !!String(d?.codeSnippet || '').trim();
+  if (attachedSnippet && !refersToCode && !/code|snippet|program|output/i.test(stem)) {
     warnings.push('A code snippet is attached but the question does not refer to it.');
   }
 

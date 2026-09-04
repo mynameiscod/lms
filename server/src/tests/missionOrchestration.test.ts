@@ -37,6 +37,9 @@ function select(over: Partial<SelectionInput> & { objectives: SelectableObjectiv
     week: 1,
     minutesPerDay: 60,
     daysPerWeek: 6,
+    // What CAREER_MISSION_COMPLETED pays. Real in the plan, fixed here so the selection
+    // tests assert on selection rather than on a tenant's pricing.
+    missionXp: 10,
     creditedBefore: new Map(),
     completedToday: new Set(),
     resources: new Map(),

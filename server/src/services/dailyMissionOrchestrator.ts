@@ -7,6 +7,7 @@ import User from '../models/User';
 import { isEntitled } from './passportEntitlementService';
 import { findProblem, findCareerPilotProblem } from './passportPracticeService';
 import { ymd } from './passportMissionService';
+import { XpRule } from '../models/GamificationModels';
 import { MISSION_ORCHESTRATION_VERSION, MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES, assessmentRouteForSkill, practiceRoute, dailySliceOf, dailyBudget, MissionResourceState, DailyPlanUnavailable } from '../data/missionOrchestrationPolicy';
 
 /** Daily Mission Engine: roadmap=WHAT, this service=WHEN, targeted resource=HOW. */
@@ -74,7 +75,9 @@ const WORK_LABEL: Record<string, string> = { LEARN: 'Learn', PRACTICE: 'Practice
 const slotKey = (skillKey: string, workType: string): string => `${String(skillKey).toUpperCase()}:${String(workType).toUpperCase()}`;
 export const missionKey = (roadmapId: string, sequence: number, date: string): string => `cp:${roadmapId}:${sequence}:${date}`;
 export interface SelectableObjective { sequence: number; skillKey: string; skillName: string; workType: string; plannedMinutes: number; week: number; reasonCode: string; explanation: string; prerequisiteFor?: string; }
-export interface SelectionInput { roadmapId: string; date: string; week: number; objectives: SelectableObjective[]; minutesPerDay: number; daysPerWeek: number; creditedBefore: Map<number, number>; completedToday: Set<string>; resources: Map<string, MissionResource>; }
+export interface SelectionInput { roadmapId: string; date: string; week: number; objectives: SelectableObjective[]; minutesPerDay: number; daysPerWeek: number; creditedBefore: Map<number, number>; completedToday: Set<string>; resources: Map<string, MissionResource>;
+  /** What CAREER_MISSION_COMPLETED pays, so the card shows what the ledger will award. */
+  missionXp: number; }
 
 export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
   const thisWeek = input.objectives.filter(o => o.week === input.week).slice().sort((a, b) => a.sequence - b.sequence);
@@ -86,7 +89,19 @@ export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
     const slice = dailySliceOf(o.plannedMinutes, creditedOf(o.sequence), input.daysPerWeek); if (slice < MIN_MISSION_MINUTES) continue;
     const remainingBudget = budget - spent; if (remainingBudget < MIN_MISSION_MINUTES) break;
     const minutes = Math.min(slice, remainingBudget); const key = missionKey(input.roadmapId, o.sequence, input.date);
-    const resource = o.workType === 'ASSESS' ? { type: 'assessment', id: `personalized:${o.skillKey}`, title: `${o.skillName} check`, route: assessmentRouteForSkill(o.skillKey) } : input.resources.get(slotKey(o.skillKey, o.workType));
+    // WHAT THE LEDGER WILL ACTUALLY PAY, not zero.
+    //
+    // The ASSESS resource is built here and carried no xp, so every mission card read
+    // `resource.xp ?? 0` and printed "+0 XP" — while completing it awarded 10 from the
+    // CAREER_MISSION_COMPLETED rule. Students were told nothing and paid ten, which reads
+    // as a broken screen and quietly undersells the only reward the product offers.
+    //
+    // The rule's amount is used wherever a resource has no override of its own, so the
+    // number on the card is the number that lands.
+    const mapped = input.resources.get(slotKey(o.skillKey, o.workType));
+    const resource = o.workType === 'ASSESS'
+      ? { type: 'assessment', id: `personalized:${o.skillKey}`, title: `${o.skillName} check`, route: assessmentRouteForSkill(o.skillKey), xp: input.missionXp }
+      : (mapped ? { ...mapped, xp: mapped.xp ?? input.missionXp } : undefined);
     chosen.push({ key, roadmapId: input.roadmapId, objectiveSequence: o.sequence, skillKey: o.skillKey, skillName: o.skillName, workType: o.workType, plannedMinutes: minutes, title: `${o.skillName} — ${WORK_LABEL[o.workType] || o.workType}`, explanation: o.explanation, reasonCode: o.reasonCode, resourceState: resource ? 'READY' : 'RESOURCE_NOT_CONFIGURED', resource, done: input.completedToday.has(key) }); spent += minutes;
   }
   return chosen;
@@ -138,7 +153,17 @@ export async function getTodaysPlan(tenantId: string, studentId: string, now: Da
   const skillRows = await StudentSkillProfile.find({ tenantId, studentId, skillKey: { $in: weekSkillKeys } }).select('skillKey score').lean() as any[]; const scores = new Map<string, number>(skillRows.map(s => [String(s.skillKey).toUpperCase(), Number(s.score)]));
   const p = user?.passport || {}; const member: ResourceMember = { yearOfStudy: p.yearOfStudy, degree: p.degree, program: p.program, branch: p.branch, primaryRole: p.primaryRole, secondaryRole: p.secondaryRole, stage: p.stage, preferredLanguages: p.preferredLanguages || [] };
   const resources = await resolveResources(tenantId, weekSkillKeys, member, scores);
-  const missions = selectTodaysMissions({ roadmapId, date, week, objectives, minutesPerDay: roadmap.input.minutesPerDay, daysPerWeek: roadmap.input.daysPerWeek, creditedBefore, completedToday, resources });
+  /**
+   * Read from the same rule the ledger pays from, rather than restated as a constant here.
+   * A tenant that re-prices missions in the gamification screen re-prices the card too, and
+   * the two cannot drift apart. Falls back to 10 only if the rule row is missing.
+   */
+  // Never allowed to cost a student their day. A pricing lookup that fails falls back to
+  // the default rather than taking the whole plan down with it.
+  const xpRule = await XpRule.findOne({ tenantId, eventKey: 'CAREER_MISSION_COMPLETED' })
+    .select('xp enabled').lean().catch(() => null) as any;
+  const missionXp = xpRule?.enabled === false ? 0 : (typeof xpRule?.xp === 'number' ? xpRule.xp : 10);
+  const missions = selectTodaysMissions({ roadmapId, date, week, objectives, minutesPerDay: roadmap.input.minutesPerDay, daysPerWeek: roadmap.input.daysPerWeek, creditedBefore, completedToday, resources, missionXp });
   const weekPlanned = weekObjectives.reduce((n, o) => n + o.plannedMinutes, 0); const weekCompleted = completions.filter((c: any) => weekObjectives.some(o => o.sequence === c.careerpilot.objectiveSequence)).reduce((n: number, c: any) => n + (c.careerpilot.minutes || 0), 0); const totalPlanned = roadmap.capacity?.plannedMinutes || 0;
   return { available: true, policyVersion: MISSION_ORCHESTRATION_VERSION, roadmapId, date, roadmapDay, roadmapWeek: week, weekCount: roadmap.weekCount, capacity: { minutesPerDay: roadmap.input.minutesPerDay, plannedMinutes: missions.reduce((n, m) => n + m.plannedMinutes, 0) }, missions, progress: { plannedMinutes: totalPlanned, completedMinutes, percent: totalPlanned > 0 ? Math.min(100, Math.round((completedMinutes / totalPlanned) * 100)) : 0 }, week: { plannedMinutes: weekPlanned, completedMinutes: weekCompleted }, unmappedObjectives: weekObjectives.filter(o => o.workType !== 'ASSESS' && !resources.has(slotKey(o.skillKey, o.workType))).length, outdated: false };
 }

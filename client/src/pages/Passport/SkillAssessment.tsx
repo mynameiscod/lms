@@ -15,6 +15,14 @@ const SkillAssessment: React.FC = () => {
    * whole role. Carried straight to the start endpoint, which narrows the paper to it.
    */
   const skillKey = params.get('skill') || '';
+  /**
+   * The key is all the mission carries, so it is humanised here rather than fetched — one
+   * request for a label the member reads once would be a poor trade, and SQL_JOINS reads as
+   * "Sql Joins" which is close enough to name a button honestly.
+   */
+  const skillLabel = skillKey
+    ? skillKey.toLowerCase().split('_').filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ')
+    : '';
   const [scopeNotice, setScopeNotice] = useState('');
   const [paper, setPaper] = useState<Paper | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
@@ -237,7 +245,21 @@ const SkillAssessment: React.FC = () => {
               * A retake is a real feature — Skill check-in — but it is a deliberate,
               * cooldown-gated act, not the button that happens to be under the cursor.
               */}
-            {!fixHref && avail?.alreadyCompleted && !avail?.inProgress && (
+            {/*
+              THE WALL IS FOR THE FULL ASSESSMENT ONLY — note the `!skillKey`.
+              Without it this blocked the single-skill check too, and every ASSESS mission in
+              the daily plan is exactly that: "Programming Fundamentals — Check" opened this
+              page and was told "you have already completed your skill assessment", with two
+              buttons that both lead away. Since every objective in these roadmaps is an
+              ASSESS, the entire daily plan dead-ended here.
+
+              The guard below still does its real job: stopping a member who has just
+              submitted from creating a phantom second full paper with one stray click. A
+              named single-skill check is the opposite of a stray click, and the server has
+              supported it all along — it takes skillKey, builds a SKILL_CHECK paper and
+              resumes the right one.
+            */}
+            {!fixHref && !skillKey && avail?.alreadyCompleted && !avail?.inProgress && (
               <div className="ska-done">
                 <p><i className="bi bi-check-circle-fill" /> You have already completed your skill assessment.</p>
                 <div className="ska-done-actions">
@@ -250,8 +272,8 @@ const SkillAssessment: React.FC = () => {
                   progress is compared rather than overwritten.</small>
               </div>
             )}
-            {!fixHref && !(avail?.alreadyCompleted && !avail?.inProgress) && (
-              <button className="ska-btn primary lg" disabled={starting} onClick={start}>{starting ? 'Preparing your paper…' : (avail?.inProgress ? <>Continue my assessment <i className="bi bi-arrow-right" /></> : <>Start assessment <i className="bi bi-arrow-right" /></>)}</button>
+            {!fixHref && (!!skillKey || !(avail?.alreadyCompleted && !avail?.inProgress)) && (
+              <button className="ska-btn primary lg" disabled={starting} onClick={start}>{starting ? 'Preparing your paper…' : (avail?.inProgress ? <>Continue my assessment <i className="bi bi-arrow-right" /></> : skillKey ? <>Check {skillLabel} <i className="bi bi-arrow-right" /></> : <>Start assessment <i className="bi bi-arrow-right" /></>)}</button>
             )}
           </section>
 

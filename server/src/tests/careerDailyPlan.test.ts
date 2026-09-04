@@ -89,6 +89,18 @@ jest.mock('../models/StudentSkillProfile', () => ({
   },
 }));
 
+/**
+ * The plan reads what CAREER_MISSION_COMPLETED pays, so the mission card shows the amount
+ * the ledger will actually award rather than a zero. Fixed here so these tests assert on
+ * selection rather than on a tenant's pricing.
+ */
+jest.mock('../models/GamificationModels', () => ({
+  __esModule: true,
+  XpRule: {
+    findOne: () => ({ select: () => ({ lean: async () => ({ xp: 10, enabled: true }) }) }),
+  },
+}));
+
 import { getTodaysPlan } from '../services/dailyMissionOrchestrator';
 import { completeMissionOnce } from '../services/passportXpService';
 

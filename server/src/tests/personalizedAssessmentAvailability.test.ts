@@ -25,6 +25,17 @@ jest.mock('../services/roleSkillBlueprintService', () => ({
 jest.mock('../services/skillEvidenceService', () => ({
   findEvidenceCandidates: (...a: any[]) => findEvidenceCandidatesMock(...a),
 }));
+/**
+ * A student with no role is now scoped by their STAGE's skill set when an admin has enabled
+ * one, falling back to DISCOVERY_SKILL_SCOPE otherwise. These scenarios are about the
+ * fallback, so no set exists — which is every tenant until somebody writes one, and keeps
+ * these asserting exactly what they always asserted.
+ */
+jest.mock('../models/StageSkillSet', () => ({
+  __esModule: true,
+  default: { findOne: () => ({ lean: () => Promise.resolve(null) }) },
+}));
+
 jest.mock('../models/CareerSkill', () => ({
   __esModule: true,
   default: {

@@ -9,6 +9,7 @@ import {
   AssessmentPolicy, policyForStage, difficultyQuota, DISCOVERY_SKILL_SCOPE,
 } from '../data/assessmentPolicies';
 import { ROLE_NOT_SURE } from './careerDomainService';
+import { getStageBlueprint } from './stageSkillSetService';
 import { resolveAssessmentPolicy } from './assessmentPolicyService';
 
 /**
@@ -82,6 +83,11 @@ export interface GenerationInput {
   roleKey: string;
   /** Skills the role expects, already filtered to active assessable ones. */
   roleSkillKeys: string[];
+  /**
+   * The admin's ordering for those skills, when they came from a stage skill set. Absent
+   * for a role blueprint, which keeps ranking exactly as it did.
+   */
+  skillPriority?: Map<string, { importance: string; weight: number; order: number }>;
   blueprintVersion: number;
   attemptNumber: number;
   /** Items this student has already seen, so a retake can prefer fresh ones. */
@@ -167,8 +173,21 @@ export function rankSkills(
   candidates: { skillKey: string; reason: AssessmentSlot['reason'] }[],
   skills: Map<string, ICareerSkill>,
   policy: AssessmentPolicy,
+  /**
+   * What the admin said matters, when the scope came from a stage skill set.
+   *
+   * WITHOUT IT THE ALPHABET DECIDES. A paper covers `maxSkills` — six at foundation — and
+   * once reason and difficulty tie, the only remaining tiebreak was the key. A list of 47
+   * equally-weighted FOUNDATION skills therefore always produced the six sorting first:
+   * every APTITUDE_* key, and never Loops or Conditionals, however the admin had ordered
+   * them. Their Importance, Weight and Order columns had no effect on what was measured.
+   */
+  priority?: Map<string, { importance: string; weight: number; order: number }>,
 ): { skillKey: string; reason: AssessmentSlot['reason'] }[] {
   const difficultyRank: Record<string, number> = { FOUNDATION: 0, INTERMEDIATE: 1, ADVANCED: 2 };
+  const importanceRank: Record<string, number> = {
+    ESSENTIAL: 0, IMPORTANT: 1, SUPPORTING: 2, OPTIONAL: 3,
+  };
   // Early stages want the ground floor first; later stages want the destination.
   const preferPrerequisites = policy.prerequisiteDepth > 0;
 
@@ -181,6 +200,21 @@ export function rankSkills(
       const da = difficultyRank[skills.get(a.skillKey)?.difficulty || 'FOUNDATION'] ?? 0;
       const db = difficultyRank[skills.get(b.skillKey)?.difficulty || 'FOUNDATION'] ?? 0;
       if (da !== db) return preferPrerequisites ? da - db : db - da;
+
+      // The admin's own ordering, ahead of the alphabet. Only consulted where a priority
+      // was supplied, so a role blueprint ranks exactly as it did before.
+      const pa = priority?.get(a.skillKey);
+      const pb = priority?.get(b.skillKey);
+      if (pa && pb) {
+        const ia = importanceRank[pa.importance] ?? 1;
+        const ib = importanceRank[pb.importance] ?? 1;
+        if (ia !== ib) return ia - ib;
+        if (pa.weight !== pb.weight) return pb.weight - pa.weight;   // heavier first
+        if (pa.order !== pb.order) return pa.order - pb.order;       // then their own order
+      }
+
+      // Last resort, and deterministic: the order must never depend on how Mongo returned
+      // the rows, or two students at the same stage would sit different papers.
       return a.skillKey.localeCompare(b.skillKey);
     })
     .slice(0, policy.maxSkills);
@@ -461,6 +495,15 @@ export interface ResolvedContext {
   policy?: AssessmentPolicy;
   discovery?: boolean;
   /**
+   * The admin's own ordering for the skills in scope, when it came from a stage skill set.
+   *
+   * Without this the ranking falls through to alphabetical, so a list of 47 equally-weighted
+   * foundation skills always yields the six whose keys sort first — an all-aptitude paper
+   * for a first-year, with Loops and Conditionals never appearing. Absent for a role
+   * blueprint, which keeps its existing order.
+   */
+  skillPriority?: Map<string, { importance: string; weight: number; order: number }>;
+  /**
    * The member's own role, year and course, so audience-tagged questions can be matched
    * against them. Optional: a discovery paper resolves without one, and a caller that
    * ignores it gets the unnarrowed pool, which is the pre-targeting behaviour.
@@ -497,6 +540,34 @@ export async function resolvePersonalizedAssessmentContext(tenantId: string, stu
   // and none is assigned — saying "not sure" is an answer, and recommending one is a later
   // module's job.
   if (roleKey === ROLE_NOT_SURE) {
+    /**
+     * THE ADMIN'S LIST WINS OVER THE BUILT-IN ONE.
+     *
+     * DISCOVERY_SKILL_SCOPE is twelve hardcoded keys, and a first-year who said "not sure"
+     * was measured against them no matter what their college had configured — which is how
+     * a question about waiting on database access at work reached somebody in their first
+     * term. The stage skill set exists precisely to answer "what should this student be
+     * measured on", and this is where it has to be read.
+     *
+     * Falls back to the built-in list when no set is enabled, so a tenant that has
+     * configured nothing behaves exactly as before.
+     */
+    const stageSet = await getStageBlueprint(tenantId, stage);
+    const stageKeys = (stageSet?.requirements || [])
+      .filter(r => r.active && r.skillActive && !r.missing)
+      .map(r => r.skillKey);
+
+    if (stageKeys.length) {
+      const skillPriority = new Map(
+        (stageSet!.requirements || []).map(r => [r.skillKey, {
+          importance: r.importance, weight: r.weight, order: r.displayOrder,
+        }]),
+      );
+      return {
+        ok: true, stage, roleKey, policy, discovery: true,
+        roleSkillKeys: stageKeys, skillPriority, blueprintVersion: stageSet!.version || 0,
+      };
+    }
     return { ok: true, stage, roleKey, policy, discovery: true, roleSkillKeys: DISCOVERY_SKILL_SCOPE, blueprintVersion: 0 };
   }
 
@@ -576,7 +647,7 @@ export async function buildPersonalizedAssessment(input: GenerationInput): Promi
 
   const skills = new Map<string, ICareerSkill>([...skillDocs, ...extra].map(s => [s.key, s]));
 
-  const scoped = rankSkills(expandSkillScope(input.roleSkillKeys, skills, policy), skills, policy);
+  const scoped = rankSkills(expandSkillScope(input.roleSkillKeys, skills, policy), skills, policy, input.skillPriority);
   if (!scoped.length) {
     return { ok: false, message: 'No assessable skills are configured for your stage and role yet.' };
   }

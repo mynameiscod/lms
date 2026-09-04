@@ -189,6 +189,9 @@ export const startPersonalizedAssessment = async (req: Request, res: Response) =
       tenantId, studentId,
       stage: ctx.stage!, roleKey: ctx.roleKey!,
       roleSkillKeys: scopedSkill ? [scopedSkill] : ctx.roleSkillKeys!,
+      // The admin's ordering for a stage skill set. Irrelevant to a single-skill check,
+      // which has one skill and nothing to rank, and absent for a role blueprint.
+      skillPriority: scopedSkill ? undefined : ctx.skillPriority,
       // The member's own role, year and course — so a question an admin aimed at, say,
       // 2nd-year CSE backend students reaches exactly them, and untagged questions still
       // reach everybody.
@@ -367,6 +370,9 @@ export const previewPersonalizedAssessment = async (req: Request, res: Response)
       tenantId, studentId,
       stage: ctx.stage!, roleKey: ctx.roleKey!,
       roleSkillKeys: ctx.roleSkillKeys!,
+      // Carried through, or the admin's ordering is resolved and then dropped on the floor:
+      // the ranking would fall back to alphabetical and the stage set would look ignored.
+      skillPriority: ctx.skillPriority,
       blueprintVersion: ctx.blueprintVersion!,
       attemptNumber: Number(req.body?.attemptNumber) || 1,
       policy: ctx.policy,

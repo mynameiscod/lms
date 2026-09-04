@@ -1,0 +1,262 @@
+/* Final CareerPilot dashboard fidelity layer.
+   Loaded after dashboard.css and dashboard-redesign.css so legacy styles cannot leak.
+   CodeBegun System Style Guide: navy #051D64, teal #359AAD, Bootstrap Icons only. */
+
+.gd {
+  --cb-navy: #051D64;
+  --cb-navy-2: #082A77;
+  --cb-teal: #359AAD;
+  --cb-teal-dark: #187E8F;
+  --cb-bg: #F4F8FB;
+  --cb-card: #FFFFFF;
+  --cb-border: #DCE7F0;
+  --cb-text: #16325C;
+  --cb-muted: #6E7F98;
+  --cb-soft: #EEF5F8;
+  color: var(--cb-text) !important;
+  background: var(--cb-bg) !important;
+  font-family: Inter, "Segoe UI", Arial, sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.45;
+}
+
+/* Eliminate black/default text leaking from legacy CSS. */
+.gd h1, .gd h2, .gd h3, .gd h4, .gd h5, .gd h6,
+.gd strong, .gd b,
+.gd .val, .gd .v, .gd .nm, .gd .lv,
+.gd .gd-card-hd h2, .gd .gd-mission .txt b,
+.gd .gd-lb .nm, .gd .gd-lb .sc .xp,
+.gd .gd-next .lv, .gd .gd-next .unlock b,
+.gd .gd-badge b, .gd .gd-contest .info b {
+  color: var(--cb-navy) !important;
+}
+
+.gd p, .gd small, .gd .sub, .gd .lbl, .gd .t,
+.gd .gd-score-side p, .gd .gd-part .t, .gd .gd-parts-hd,
+.gd .gd-mission .txt span, .gd .gd-feed-row .ago,
+.gd .gd-badge span, .gd .gd-contest .info span,
+.gd .gd-streak-num small, .gd .gd-milestone .t span {
+  color: var(--cb-muted) !important;
+}
+
+/* Main page proportions: do not compress the dashboard into one viewport. */
+.gd-main {
+  margin-left: 232px !important;
+  padding: 24px 28px 56px !important;
+  background: var(--cb-bg) !important;
+  min-width: 0 !important;
+}
+.gd-main > .pm-body,
+.gd-main .pm-body,
+.gd-main .pm-shell {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Desktop shell */
+.gd-side {
+  width: 232px !important;
+  background: linear-gradient(180deg, #06256D 0%, #07367C 58%, #05245F 100%) !important;
+}
+.gd-logo b, .gd-logo small { color: #FFFFFF !important; }
+.gd-nav-btn { font-size: 14px !important; min-height: 42px; }
+.gd-nav-btn.on {
+  background: linear-gradient(90deg, #159AAE 0%, #2FC4CE 100%) !important;
+  color: #FFFFFF !important;
+}
+.gd-nav-btn .lbl, .gd-nav-btn .ic { color: inherit !important; }
+
+/* Header hierarchy */
+.gd-topbar {
+  align-items: flex-start !important;
+  gap: 18px !important;
+  margin-bottom: 18px !important;
+}
+.gd-hello h1 {
+  color: var(--cb-navy) !important;
+  font-size: 34px !important;
+  line-height: 1.12 !important;
+  font-weight: 800 !important;
+  letter-spacing: -.7px !important;
+}
+.gd-hello p { font-size: 14px !important; margin-top: 5px !important; }
+.gd-topbar-r { gap: 10px !important; }
+.gd-pill {
+  min-height: 58px !important;
+  padding: 10px 14px !important;
+  border: 1px solid var(--cb-border) !important;
+  border-radius: 12px !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 4px 14px rgba(5,29,100,.04) !important;
+}
+.gd-pill b { font-size: 16px !important; }
+.gd-pill span { font-size: 11px !important; }
+.gd-user-btn { min-height: 46px; }
+
+/* Password banner */
+.gd-pwd-nudge {
+  background: linear-gradient(90deg, #E7F7F9 0%, #DDF5F1 100%) !important;
+  border: 1px solid #C9E8E8 !important;
+  border-radius: 12px !important;
+  padding: 14px 16px !important;
+  margin-bottom: 18px !important;
+}
+.gd-pwd-nudge .txt b { color: var(--cb-navy) !important; font-size: 14px !important; }
+.gd-pwd-nudge .txt span { color: #61768D !important; font-size: 12px !important; }
+.gd-pwd-nudge .go, .gd-pwd-nudge .save {
+  background: var(--cb-navy) !important;
+  color: #FFFFFF !important;
+  border-radius: 8px !important;
+}
+
+/* Cards */
+.gd-grid { gap: 16px !important; }
+.gd-card,
+.gd-tile {
+  background: var(--cb-card) !important;
+  border: 1px solid var(--cb-border) !important;
+  box-shadow: 0 6px 18px rgba(5,29,100,.045) !important;
+  border-radius: 12px !important;
+}
+.gd-card { padding: 18px !important; }
+.gd-card-hd { margin-bottom: 12px !important; }
+.gd-card-hd h2 {
+  font-size: 19px !important;
+  line-height: 1.25 !important;
+  font-weight: 800 !important;
+  color: var(--cb-navy) !important;
+}
+.gd-card-hd .lnk, .gd-card .lnk {
+  color: var(--cb-teal-dark) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+/* Top analytics: match approved visual proportions. */
+.gd-3 {
+  grid-template-columns: minmax(430px, 1.22fr) minmax(380px, 1.08fr) minmax(290px, .78fr) !important;
+  align-items: stretch !important;
+}
+.gd-3 > .gd-card { min-height: 335px; }
+.gd-score { gap: 28px !important; align-items: center !important; }
+.gd-score-side { min-width: 0; }
+.gd-score-side p { font-size: 13px !important; }
+.gd-parts-hd { font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase; letter-spacing: .4px; }
+.gd-part { min-height: 27px; }
+.gd-part .t { font-size: 12px !important; }
+.gd-part .v { font-size: 12px !important; font-weight: 800 !important; }
+.gd-tag { font-size: 11px !important; font-weight: 800 !important; }
+.gd-rank { color: #0A7584 !important; }
+
+.gd-radar text { fill: #506482 !important; font-size: 9.5px !important; }
+.gd-radar text.v { fill: var(--cb-navy) !important; font-size: 10.5px !important; }
+
+.gd-statrow { min-height: 43px; padding: 9px 0 !important; }
+.gd-statrow .t { font-size: 13px !important; color: #536681 !important; }
+.gd-statrow .v { font-size: 13px !important; font-weight: 800 !important; }
+
+/* Summary cards */
+.gd-tiles {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0,1fr)) !important;
+  gap: 14px !important;
+  margin-top: 16px !important;
+}
+.gd-tile {
+  min-height: 96px !important;
+  padding: 15px 16px !important;
+  align-items: center !important;
+}
+.gd-tile .lbl { font-size: 12px !important; }
+.gd-tile .val { font-size: 19px !important; font-weight: 800 !important; }
+.gd-tile .sub { font-size: 11px !important; }
+
+/* Mission / streak section */
+.gd-2b {
+  grid-template-columns: minmax(0,1.42fr) minmax(360px,.88fr) !important;
+  gap: 16px !important;
+}
+.gd-mission { min-height: 58px; padding: 10px 12px !important; }
+.gd-mission .txt b { font-size: 13px !important; }
+.gd-mission .txt span { font-size: 11.5px !important; }
+.gd-mission .cnt { font-size: 11px !important; }
+.gd-mission-cta {
+  min-height: 42px;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+.gd-streak-num { font-size: 25px !important; font-weight: 800 !important; }
+.gd-week { gap: 8px !important; }
+.gd-week .dot { width: 34px !important; height: 34px !important; }
+.gd-week .l { font-size: 11px !important; }
+.gd-milestone { padding: 12px 14px !important; }
+.gd-next .lv { font-size: 15px !important; }
+
+/* Lower cards */
+.gd-feed-row { min-height: 46px; padding: 9px 0 !important; }
+.gd-feed-row .t { font-size: 12.5px !important; }
+.gd-feed-row .xp, .gd-feed-row .ago { font-size: 11px !important; }
+.gd-badges { gap: 14px !important; }
+.gd-badge b { font-size: 11.5px !important; }
+.gd-badge span { font-size: 10.5px !important; }
+.gd-contest { padding: 12px !important; }
+.gd-contest .info b { font-size: 13px !important; }
+.gd-contest .info span { font-size: 11px !important; }
+.gd-lb { min-height: 48px; }
+.gd-lb .nm { font-size: 12.5px !important; }
+.gd-lb .sc .xp { font-size: 12px !important; }
+.gd-lb .sc .rnk { font-size: 10px !important; color: var(--cb-muted) !important; }
+
+/* Career path */
+.gd-path {
+  margin-top: 18px !important;
+  min-height: 112px;
+  padding: 18px 20px !important;
+  background: linear-gradient(105deg,#05245F 0%,#073984 62%,#075E88 100%) !important;
+  border: 1px solid #0A367D !important;
+  border-radius: 12px !important;
+}
+.gd-path-lead small, .gd-path-lead b,
+.gd-step .cap, .gd-step .cap .st,
+.gd-path-end small { color: #FFFFFF !important; }
+
+/* Buttons and accents */
+.gd button, .gd a { font-family: inherit; }
+.gd .gd-btn.primary,
+.gd .gd-mission-cta,
+.gd .gd-contest .go {
+  color: #FFFFFF !important;
+}
+.gd .gd-contest .go { background: var(--cb-teal) !important; }
+.gd .gd-check.on { background: var(--cb-teal) !important; border-color: var(--cb-teal) !important; }
+.gd .gd-lb.me { background: #EAF8F9 !important; border-color: #C6E9ED !important; }
+
+/* Keep Bootstrap icons crisp and on-brand. */
+.gd .bi { color: currentColor; }
+.gd .cp-bi, .gd .gd-card-hd .cp-bi { color: var(--cb-teal-dark) !important; }
+
+/* Breakpoints: desktop remains spacious; scrolling is expected. */
+@media (max-width: 1500px) {
+  .gd-3 { grid-template-columns: minmax(0,1.15fr) minmax(0,1fr) minmax(280px,.78fr) !important; }
+  .gd-main { padding-left: 22px !important; padding-right: 22px !important; }
+}
+@media (max-width: 1280px) {
+  .gd-3 { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+  .gd-3 > :last-child { grid-column: 1 / -1 !important; min-height: auto; }
+  .gd-tiles { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+}
+@media (max-width: 980px) {
+  .gd-main { margin-left: 0 !important; padding: 68px 16px 40px !important; }
+  .gd-side { width: 274px !important; }
+  .gd-2b { grid-template-columns: 1fr !important; }
+  .gd-topbar { align-items: stretch !important; }
+}
+@media (max-width: 720px) {
+  .gd-3, .gd-tiles { grid-template-columns: 1fr !important; }
+  .gd-card { padding: 15px !important; }
+  .gd-hello h1 { font-size: 28px !important; }
+  .gd-score { flex-direction: column !important; align-items: stretch !important; }
+  .gd-score .gd-ring { margin-inline: auto; }
+}

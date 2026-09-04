@@ -2184,6 +2184,8 @@ export interface QuestionBankRow {
   difficulty: string | null;
   /** False means it is shared with the LMS quiz bank and must be copied before editing. */
   owned: boolean;
+  /** 'careerpilot' ours · 'lms' shared with quizzes · 'exam' the skill-assessment bank. */
+  origin: 'careerpilot' | 'lms' | 'exam';
   active: boolean;
   skills: { skillKey: string; skillName: string; contribution: string }[];
   audience: QuestionAudience;

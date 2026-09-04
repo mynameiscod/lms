@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import SkillEvidence from '../models/SkillEvidence';
 import Question from '../models/Question';
+import AssessmentItem from '../models/AssessmentItem';
 import CareerSkill from '../models/CareerSkill';
 import PersonalizedAssessment from '../models/PersonalizedAssessment';
 
@@ -125,6 +126,13 @@ export interface BankRow {
   explanation: string;
   difficulty: string | null;
   owned: boolean;
+  /**
+   * Where the content lives, which decides what may be done to it:
+   *   'careerpilot' — ours, fully editable
+   *   'lms'         — shared with the LMS quiz bank; copy before editing
+   *   'exam'        — the skill-assessment exam bank, edited in its own screen
+   */
+  origin: 'careerpilot' | 'lms' | 'exam';
   active: boolean;
   /** Every skill this question measures, because one question can measure several. */
   skills: { skillKey: string; skillName: string; contribution: string }[];
@@ -169,6 +177,22 @@ export async function listBank(tenantId: string, f: BankFilters): Promise<{
     : [];
   const qById = new Map(questions.map(q => [String(q._id), q]));
 
+  /**
+   * Exam-bank items are loaded too, and this is not optional polish: 18 of the mappings
+   * point at AssessmentItem rather than Question, and reading only the Question collection
+   * rendered every one of them as "(source content missing)" with no options and no
+   * difficulty — then labelled them Borrowed and offered a copy that would have failed.
+   * They carry `prompt` and their own option shape, so they are read on their own terms.
+   */
+  const aIds = [...byQuestion.keys()]
+    .filter(k => k.startsWith('assessment_item:'))
+    .map(k => oid(k.split(':')[1]))
+    .filter(Boolean) as mongoose.Types.ObjectId[];
+  const items = aIds.length
+    ? await AssessmentItem.find({ _id: { $in: aIds } }).lean() as any[]
+    : [];
+  const aById = new Map(items.map(i => [String(i._id), i]));
+
   const skills = await CareerSkill.find({
     key: { $in: [...new Set(evidence.map(e => e.skillKey))] },
   }).select('key name').lean() as any[];
@@ -177,20 +201,31 @@ export async function listBank(tenantId: string, f: BankFilters): Promise<{
   let rows: BankRow[] = [];
   for (const [key, maps] of byQuestion) {
     const [sourceType, sourceId] = [key.slice(0, key.indexOf(':')), key.slice(key.indexOf(':') + 1)];
-    const q = qById.get(sourceId);
-    // A mapping whose question has since been deleted. Surfaced rather than hidden — it is
-    // a broken row an admin needs to see, not a row to quietly drop.
-    const text = q?.question ?? '(source content missing)';
+    const isExam = sourceType === 'assessment_item';
+    const q = isExam ? aById.get(sourceId) : qById.get(sourceId);
+    // A mapping whose source has since been deleted. Surfaced rather than hidden — it is a
+    // broken row an admin needs to see, not a row to quietly drop.
+    const text = (isExam ? q?.prompt : q?.question) ?? '(source content missing)';
+    const owned = !isExam && isOwned(q);
+    const origin: 'careerpilot' | 'lms' | 'exam' = isExam ? 'exam' : owned ? 'careerpilot' : 'lms';
 
     const first = maps[0];
     rows.push({
       sourceType, sourceId,
       question: text,
-      options: (q?.options || []).map((o: any) =>
-        (typeof o === 'string' ? { text: o, isCorrect: false } : { text: String(o?.text ?? ''), isCorrect: o?.isCorrect === true })),
+      // Three option shapes across two collections: plain strings and {text,isCorrect} in
+      // the LMS bank, {id,text} plus a separate correctOptionIds list in the exam bank.
+      options: (q?.options || []).map((o: any) => {
+        if (typeof o === 'string') return { text: o, isCorrect: false };
+        const correct = isExam
+          ? (q?.correctOptionIds || []).includes(o?.id)
+          : o?.isCorrect === true;
+        return { text: String(o?.text ?? ''), isCorrect: correct };
+      }),
       explanation: q?.explanation || '',
       difficulty: normalizeDifficulty(q?.difficultyLevel ?? q?.difficulty),
-      owned: isOwned(q),
+      owned,
+      origin,
       active: maps.every(m => m.active !== false),
       skills: maps.map(m => ({
         skillKey: m.skillKey,
@@ -219,8 +254,11 @@ export async function listBank(tenantId: string, f: BankFilters): Promise<{
     const want = normalizeDifficulty(f.difficulty);
     rows = rows.filter(r => r.difficulty === want);
   }
-  if (f.provenance === 'owned') rows = rows.filter(r => r.owned);
-  if (f.provenance === 'borrowed') rows = rows.filter(r => !r.owned);
+  if (f.provenance === 'owned') rows = rows.filter(r => r.origin === 'careerpilot');
+  // 'borrowed' means shared with the LMS quiz bank specifically. Exam-bank items are not
+  // borrowed from anywhere and lumping them in overstated the count by 18.
+  if (f.provenance === 'borrowed') rows = rows.filter(r => r.origin === 'lms');
+  if (f.provenance === 'exam') rows = rows.filter(r => r.origin === 'exam');
 
   // Stable order: the newest questions first is what an author expects, and _id carries it.
   rows.sort((a, b) => (a.sourceId < b.sourceId ? 1 : a.sourceId > b.sourceId ? -1 : 0));
@@ -240,7 +278,9 @@ export async function listBank(tenantId: string, f: BankFilters): Promise<{
       text: r.owned,
       optionText: r.owned,
       // The rule that protects recorded scores. Also closed on borrowed questions, which
-      // must be copied into CareerPilot before any edit.
+      // must be copied into CareerPilot before any edit, and on exam-bank items, which are
+      // authored in their own screen. Targeting stays editable on all three — it lives on
+      // the mapping and touches no content.
       optionStructure: r.owned && !answered,
       hardDelete: !answered,
     };

@@ -202,9 +202,10 @@ const AdminQuestionBank: React.FC = () => {
         </select>
 
         <select value={q.provenance || ''} onChange={e => set({ provenance: e.target.value || undefined })}>
-          <option value="">Ours and borrowed</option>
+          <option value="">Every source</option>
           <option value="owned">Written for CareerPilot</option>
           <option value="borrowed">Borrowed from the LMS</option>
+          <option value="exam">Exam bank</option>
         </select>
 
         <select value={q.status || ''} onChange={e => set({ status: e.target.value || undefined })}>
@@ -279,7 +280,8 @@ const AdminQuestionBank: React.FC = () => {
                         <span className="chip skill" key={s.skillKey} title={s.contribution}>{s.skillName}</span>
                       ))}
                       {r.difficulty && <span className={`chip d-${r.difficulty.toLowerCase()}`}>{r.difficulty}</span>}
-                      {!r.owned && <span className="chip borrowed" title="Shared with the LMS quiz bank">Borrowed</span>}
+                      {r.origin === 'lms' && <span className="chip borrowed" title="Shared with the LMS quiz bank — copy it before editing">Borrowed</span>}
+                      {r.origin === 'exam' && <span className="chip exam" title="From the skill-assessment exam bank; edited in its own screen. Targeting still applies here.">Exam bank</span>}
                       {!r.active && <span className="chip retired">Retired</span>}
                       {r.answerCount > 0 && (
                         <span className="chip answered" title="Options are locked — answers name them by position">
@@ -297,7 +299,7 @@ const AdminQuestionBank: React.FC = () => {
 
                   <div className="qb-actions">
                     <button className="qb-btn" onClick={() => setEditing(r)}>Edit</button>
-                    {!r.owned && (
+                    {r.origin === 'lms' && (
                       <button className="qb-btn" disabled={busy === k} onClick={() => copyIntoCareerPilot(r)}>
                         {busy === k ? '…' : 'Copy into CareerPilot'}
                       </button>
@@ -376,7 +378,17 @@ const EditDrawer: React.FC<{
 
         {err && <div className="qb-banner err">{err}</div>}
 
-        {!row.owned && (
+        {row.origin === 'exam' && (
+          <div className="qb-note">
+            <b>This item belongs to the skill-assessment exam bank.</b>
+            <span>
+              Its wording and options are authored in that screen, not here. Targeting is
+              still yours to change below — it lives on the skill mapping, not the item.
+            </span>
+          </div>
+        )}
+
+        {row.origin === 'lms' && (
           <div className="qb-note warn">
             <b>This question is shared with the LMS quiz bank.</b>
             <span>

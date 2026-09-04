@@ -94,8 +94,30 @@ export const getMyStatus = async (req: Request, res: Response) => {
       categories: categoriesOf(await PassportAssessment.findOne({ tenantId }).lean() as any),
     });
 
+    /**
+     * XP and streak, because the screens that show them before activation had no source.
+     *
+     * Mission Control's locked view printed a hardcoded "0d" streak and an em dash for XP —
+     * not a stale read, but literal text in the markup, because this payload never carried
+     * the numbers. A member who had genuinely earned 100 XP and a one-day streak was shown
+     * zero and nothing, on the very screen asking them to pay to "start earning". The two
+     * cards next to them were live, which made the dead ones read as a broken page.
+     *
+     * Progress exists independently of membership — it is earned by doing the work, not by
+     * paying — so it is reported whether or not the membership is active, and the screen
+     * decides how to present it.
+     */
+    const progress = await PassportProgress
+      .findOne({ tenantId, studentId: String(user?._id || userIdOf(req)) })
+      .select('xp streak longestStreak').lean() as any;
+
     res.json({
       assessed: assessedState.assessed,
+      progress: {
+        xp: progress?.xp ?? 0,
+        streak: progress?.streak ?? 0,
+        longestStreak: progress?.longestStreak ?? 0,
+      },
       assessedVia: assessedState.source,
       enabled: passportEnabled(tenantId, cfg),
       active,

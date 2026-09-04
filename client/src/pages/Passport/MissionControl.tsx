@@ -185,6 +185,16 @@ const MissionControl: React.FC = () => {
   const levelLabel = result?.level ?? status?.passport?.level ?? '';
   const pathwayLabel = result?.pathwayLabel ?? status?.passport?.pathway ?? '';
 
+  /**
+   * Progress is earned by doing the work, not by paying for it, so it is shown in the locked
+   * view too. `today` is only fetched once a membership is active, which is exactly why the
+   * locked cards had nothing to read and ended up hardcoded — the status payload now carries
+   * these, and `today` still wins while it is loaded so the active view stays live.
+   */
+  const earnedXp = today?.xp ?? status?.progress?.xp ?? 0;
+  const streakDays = today?.streak ?? status?.progress?.streak ?? 0;
+  const bestStreak = today?.longestStreak ?? status?.progress?.longestStreak ?? 0;
+
   if (active) {
     const missions = today?.missions || [];
     const completed = missions.filter(m => m.done).length;
@@ -290,7 +300,7 @@ const MissionControl: React.FC = () => {
               <div className="mc-side-card"><div className="mc-side-title"><i className="bi bi-fire" /> Current Streak</div><div className="mc-streak-wrap"><div><strong>{streak} Days</strong><span>Best: {longest} Days</span></div><div className="mc-fire"><i className="bi bi-fire" /></div></div></div>
               <div className="mc-side-card"><div className="mc-side-title"><i className="bi bi-bullseye" /> Today’s Progress</div><div className="mc-progress-big">{progress}%</div><div className="mc-progress-track"><i style={{ width: `${progress}%` }} /></div><div style={{ fontSize: 11, color: '#7b899c' }}>{completed} of {total} missions complete</div></div>
               <div className="mc-side-card"><div className="mc-side-title"><i className="bi bi-trophy" /> Achievements</div><div className="mc-ach-list"><div className="mc-ach"><div className="mc-ach-ic"><i className="bi bi-fire" /></div><div><b>Consistency</b><span>{streak ? `${streak}-day active streak` : 'Start your first streak today'}</span></div></div><div className="mc-ach"><div className="mc-ach-ic"><i className="bi bi-check2-circle" /></div><div><b>Mission Momentum</b><span>{completed} missions completed today</span></div></div><div className="mc-ach"><div className="mc-ach-ic"><i className="bi bi-lightning-charge" /></div><div><b>XP Builder</b><span>{today?.xp ?? 0} XP earned overall</span></div></div></div></div>
-              <div className="mc-side-card"><div className="mc-side-title"><i className="bi bi-share" /> My CareerPilot</div><div style={{ color: '#718096', fontSize: 12, lineHeight: 1.55, marginBottom: 12 }}>Share your verified CareerPilot profile when you’re ready.</div><button className="mc-mission-secondary" onClick={share}>{copied ? 'Link copied!' : 'Share CareerPilot'}</button></div>
+              <div className="mc-side-card"><div className="mc-side-title"><i className="bi bi-share" /> My CareerPilot</div><div className="mc-side-note">Share your verified CareerPilot profile when you’re ready.</div><button className="mc-mission-secondary" onClick={share}>{copied ? 'Link copied!' : 'Share CareerPilot'}</button></div>
             </aside>
             <div className="mc-motivation"><div className="mc-motivation-copy"><div className="mc-motivation-ic"><i className="bi bi-award-fill" /></div><div><b>Great work, {firstName}! 🚀</b><span>Small daily wins build the skills and evidence employers can trust.</span></div></div><button className="mc-mission-secondary" onClick={() => nav('/careerpilot/roadmap')}>Explore Roadmap →</button></div>
           </div>
@@ -308,8 +318,12 @@ const MissionControl: React.FC = () => {
           <div className="mc-stats">
             <div className="mc-stat"><span className="ic t-teal"><i className="bi bi-graph-up-arrow" /></span><div><div className="lbl">Career Score</div><div className="val">{hasNumber ? scoreNum : '—'}</div><div className="hint">{hasNumber ? levelLabel : 'Still measuring'}</div></div></div>
             <div className="mc-stat"><span className="ic t-violet"><i className="bi bi-signpost-split-fill" /></span><div><div className="lbl">Pathway</div><div className="val" style={{ fontSize: 16 }}>{pathwayLabel || '—'}</div><div className="hint">{pathwayLabel ? 'Personalized for you' : 'Not selected yet'}</div></div></div>
-            <div className="mc-stat"><span className="ic t-amber"><i className="bi bi-fire" /></span><div><div className="lbl">Streak</div><div className="val">0d</div><div className="hint">Unlock to start</div></div></div>
-            <div className="mc-stat"><span className="ic t-blue"><i className="bi bi-star-fill" /></span><div><div className="lbl">XP</div><div className="val">—</div><div className="hint">Unlock to earn</div></div></div>
+            {/* Real numbers. These two were literal "0d" and "—" in the markup, so a member
+                who had earned 100 XP and a streak was told they had neither — on the screen
+                asking them to pay to start earning. The hint still explains what activating
+                adds, which is the honest pitch; erasing what they already did was not. */}
+            <div className="mc-stat"><span className="ic t-amber"><i className="bi bi-fire" /></span><div><div className="lbl">Streak</div><div className="val">{streakDays}d</div><div className="hint">{streakDays ? `Best: ${bestStreak}d` : 'Unlock to start'}</div></div></div>
+            <div className="mc-stat"><span className="ic t-blue"><i className="bi bi-star-fill" /></span><div><div className="lbl">XP</div><div className="val">{earnedXp || '—'}</div><div className="hint">{earnedXp ? 'Earned so far' : 'Unlock to earn'}</div></div></div>
           </div>
 
           <section className="mc-unlock2-hero">
@@ -344,14 +358,14 @@ const MissionControl: React.FC = () => {
           </section>
 
           <section className="mc-unlock-section" ref={whyRef}>
-            <h2 className="mc-unlock-title"><i className="bi bi-gift-fill" style={{ color: '#359aad', marginRight: 9 }} />What you’ll unlock</h2>
+            <h2 className="mc-unlock-title"><i className="bi bi-gift-fill mc-unlock-title-ic" />What you’ll unlock</h2>
             <p className="mc-unlock-sub">Everything you need to learn, practice and build toward your career goals.</p>
             <div className="mc-unlock-grid">{UNLOCK_CARDS.map(card => <div className="mc-unlock-card" key={card.title}><div className={`ic t-${card.tone}`}><i className={`bi ${card.ic}`} /></div><b>{card.title}</b><span>{card.desc}</span></div>)}</div>
           </section>
 
           <section className="mc-result-preview">
             <div className="mc-preview-art" aria-hidden="true"><div className="mc-preview-sheet"><div className="ring"><b>{hasNumber ? scoreNum : '—'}</b></div><div className="mc-preview-line" /><div className="mc-preview-line w2" /><div className="mc-preview-line w3" /></div></div>
-            <div className="mc-result-copy"><h3>Your result preview <i className="bi bi-lock-fill" style={{ color: '#75869f', fontSize: 14 }} /></h3><p>{hasNumber ? 'Your assessment has already measured where you stand. Activate your journey to connect that result to ongoing missions, practice and progress tracking.' : 'Your assessment is complete. Some readiness measures are still building enough evidence to publish a score.'}</p><div className="mc-result-points"><span><i className="bi bi-lock-fill" />Career Score</span><span><i className="bi bi-lock-fill" />Skill Breakdown</span><span><i className="bi bi-lock-fill" />Strengths & Gaps</span><span><i className="bi bi-lock-fill" />Recommended Pathway</span></div></div>
+            <div className="mc-result-copy"><h3>Your result preview <i className="bi bi-lock-fill mc-lock-ic" /></h3><p>{hasNumber ? 'Your assessment has already measured where you stand. Activate your journey to connect that result to ongoing missions, practice and progress tracking.' : 'Your assessment is complete. Some readiness measures are still building enough evidence to publish a score.'}</p><div className="mc-result-points"><span><i className="bi bi-lock-fill" />Career Score</span><span><i className="bi bi-lock-fill" />Skill Breakdown</span><span><i className="bi bi-lock-fill" />Strengths & Gaps</span><span><i className="bi bi-lock-fill" />Recommended Pathway</span></div></div>
             <div className="mc-preview-lock"><i className="bi bi-lock-fill" /><b>Unlock after activation</b><span>Your ongoing 90-day guidance becomes available when your journey is activated.</span></div>
           </section>
 

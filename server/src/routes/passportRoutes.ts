@@ -29,6 +29,7 @@ import * as careerSkills from '../controllers/careerSkillController';
 import * as roleBlueprints from '../controllers/roleSkillBlueprintController';
 import * as skillEvidence from '../controllers/skillEvidenceController';
 import * as questionDrafts from '../controllers/skillQuestionDraftController';
+import * as questionBank from '../controllers/questionBankController';
 import * as personalized from '../controllers/personalizedAssessmentController';
 import * as skillDna from '../controllers/skillDnaController';
 import * as readiness from '../controllers/roleReadinessController';
@@ -365,6 +366,21 @@ router.get('/skill-evidence/skills',     MANAGE, skillEvidence.mappableSkills);
  * AI question drafting. Generation spends money and is limited; review never is — an admin
  * halfway through a queue of forty drafts must not be interrupted by a 429.
  */
+/**
+ * The assessment question bank — the approved questions, browsable and editable.
+ *
+ * Distinct from /question-drafts, which only ever shows what is still pending review. Once
+ * a draft was approved there was no route that could reach it again, so targeting could not
+ * be changed and a typo could not be fixed.
+ */
+router.get('/question-bank',                MANAGE, questionBank.list);
+router.post('/question-bank/targeting',     MANAGE, questionBank.bulkTargeting);
+router.post('/question-bank/active',        MANAGE, questionBank.setActive);
+router.post('/question-bank/:sourceId/copy', MANAGE, questionBank.copy);
+// Registered after the fixed paths above so 'targeting' and 'active' are never read as ids.
+router.put('/question-bank/:sourceType/:sourceId',    MANAGE, questionBank.update);
+router.delete('/question-bank/:sourceType/:sourceId', MANAGE, questionBank.remove);
+
 router.get('/question-drafts',              MANAGE, questionDrafts.list);
 router.get('/question-drafts/coverage',     MANAGE, questionDrafts.coverage);
 router.get('/question-drafts/role-coverage', MANAGE, questionDrafts.roleCoverage);

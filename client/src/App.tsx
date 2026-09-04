@@ -81,6 +81,7 @@ import PassportAdminSkillEvidence from './pages/Passport/AdminSkillEvidence';
 import PassportAdminAssessmentPreview from './pages/Passport/AdminAssessmentPreview';
 import PassportAdminAssessmentShape from './pages/Passport/AdminAssessmentShape';
 import PassportAdminQuestionDrafts from './pages/Passport/AdminQuestionDrafts';
+import PassportAdminQuestionBank from './pages/Passport/AdminQuestionBank';
 import PassportAdminPathways from './pages/Passport/AdminPathways';
 import PassportAdminMissions from './pages/Passport/AdminMissions';
 import PassportHome from './pages/Passport/PassportHome';
@@ -513,6 +514,11 @@ const AppRoutes: React.FC = () => {
       {/* AI drafts questions; a person approves them. Nothing reaches a student unreviewed. */}
       <Route path="/admin/passport/question-drafts" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminQuestionDrafts /></Layout></ProtectedRoute>
+      } />
+      {/* The approved bank. Drafting shows only what is still pending, so before this there
+          was no screen that could reach a question once it had been approved. */}
+      <Route path="/admin/passport/question-bank" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminQuestionBank /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/assessment-preview" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAssessmentPreview /></Layout></ProtectedRoute>

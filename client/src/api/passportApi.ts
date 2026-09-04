@@ -567,6 +567,45 @@ export const passportApi = {
    * skill, not the total: a paper draws slots per skill, so a large pool concentrated on a
    * few skills still produces a repetitive paper.
    */
+
+  // ── Question bank: the approved questions, browsable and editable ─────────
+  //
+  // Separate from question-drafts, which only ever lists what is still pending. Once a
+  // draft was approved nothing could reach it again — targeting could not be changed and a
+  // typo could not be fixed.
+  listQuestionBank: async (q: QuestionBankQuery): Promise<QuestionBankPage> => {
+    const { data } = await axios.get(`${BASE}/question-bank`, { params: q, headers: auth() });
+    return data;
+  },
+  updateBankQuestion: async (
+    sourceType: string, sourceId: string, body: QuestionBankEdit,
+  ): Promise<{ success: boolean }> => {
+    const { data } = await axios.put(`${BASE}/question-bank/${sourceType}/${sourceId}`, body, { headers: auth() });
+    return data;
+  },
+  /** Take a borrowed LMS question into CareerPilot so it can be edited without touching the LMS. */
+  copyBankQuestion: async (sourceId: string): Promise<{ success: boolean; sourceId: string }> => {
+    const { data } = await axios.post(`${BASE}/question-bank/${sourceId}/copy`, {}, { headers: auth() });
+    return data;
+  },
+  /** Apply one audience to many questions — the reason the screen exists. */
+  bulkBankTargeting: async (
+    targets: { sourceType: string; sourceId: string }[], audience: QuestionAudience,
+  ): Promise<{ success: boolean; questions: number; mappings: number }> => {
+    const { data } = await axios.post(`${BASE}/question-bank/targeting`, { targets, audience }, { headers: auth() });
+    return data;
+  },
+  setBankActive: async (
+    targets: { sourceType: string; sourceId: string }[], active: boolean,
+  ): Promise<{ success: boolean; mappings: number }> => {
+    const { data } = await axios.post(`${BASE}/question-bank/active`, { targets, active }, { headers: auth() });
+    return data;
+  },
+  deleteBankQuestion: async (sourceType: string, sourceId: string): Promise<{ success: boolean }> => {
+    const { data } = await axios.delete(`${BASE}/question-bank/${sourceType}/${sourceId}`, { headers: auth() });
+    return data;
+  },
+
   draftCoverage: async (): Promise<{ skills: PoolCoverageRow[] }> => {
     const { data } = await axios.get(`${BASE}/question-drafts/coverage`, { headers: auth() });
     return data;
@@ -2124,6 +2163,47 @@ export interface PolicyBounds {
 }
 
 /** Served alongside the context so the UI never hardcodes a list the server would reject. */
+/** Filters the question bank accepts. Every one of them is a field that actually exists. */
+export interface QuestionBankQuery {
+  skillKey?: string; difficulty?: string; provenance?: string; status?: string;
+  targeting?: string; year?: string; course?: string; branch?: string; role?: string;
+  search?: string; page?: number; pageSize?: number;
+}
+
+export interface QuestionAudience {
+  audienceRoles: string[]; audienceYears: string[];
+  audienceCourses: string[]; audienceBranches: string[];
+}
+
+export interface QuestionBankRow {
+  sourceType: string;
+  sourceId: string;
+  question: string;
+  options: { text: string; isCorrect: boolean }[];
+  explanation: string;
+  difficulty: string | null;
+  /** False means it is shared with the LMS quiz bank and must be copied before editing. */
+  owned: boolean;
+  active: boolean;
+  skills: { skillKey: string; skillName: string; contribution: string }[];
+  audience: QuestionAudience;
+  /** Non-zero freezes option structure: answers name options by position. */
+  answerCount: number;
+  editable: { text: boolean; optionText: boolean; optionStructure: boolean; hardDelete: boolean };
+}
+
+export interface QuestionBankPage {
+  rows: QuestionBankRow[]; total: number; page: number; pageSize: number;
+}
+
+export interface QuestionBankEdit {
+  question?: string;
+  options?: { text: string; isCorrect: boolean }[];
+  explanation?: string;
+  difficulty?: string;
+  audience?: QuestionAudience;
+}
+
 export interface CareerContextOptions {
   domains: { key: string; label: string }[];
   /** From admin configuration. `iconKey` is optional and purely presentational. */

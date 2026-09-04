@@ -176,9 +176,10 @@ function userPrompt(o: {
  * questions: a snippet containing a brace or a quote would otherwise end an object early
  * and cascade into nonsense.
  */
-function topLevelObjects(raw: string): string[] {
+function balancedObjects(raw: string): string[] {
   const out: string[] = [];
-  let depth = 0, start = -1, inString = false, escaped = false;
+  const starts: number[] = [];
+  let inString = false, escaped = false;
 
   for (let i = 0; i < raw.length; i += 1) {
     const c = raw[i];
@@ -186,13 +187,12 @@ function topLevelObjects(raw: string): string[] {
     if (c === '\\') { escaped = true; continue; }
     if (c === '"') { inString = !inString; continue; }
     if (inString) continue;
-    if (c === '{') { if (depth === 0) start = i; depth += 1; continue; }
+    if (c === '{') { starts.push(i); continue; }
     if (c === '}') {
-      depth -= 1;
-      // Only a brace that closes back to zero ends a question. A partial tail after the
-      // last complete one is simply never collected.
-      if (depth === 0 && start >= 0) { out.push(raw.slice(start, i + 1)); start = -1; }
-      if (depth < 0) depth = 0;
+      const from = starts.pop();
+      // A brace with no opener is a fragment of a reply that began mid-object; ignore it
+      // rather than slicing from zero and producing nonsense.
+      if (from !== undefined) out.push(raw.slice(from, i + 1));
     }
   }
   return out;
@@ -234,14 +234,41 @@ export function parseDraftResponse(text: string): any[] {
     } catch { /* fall through and salvage what is there */ }
   }
 
+  /**
+   * EVERY DEPTH, NOT JUST THE TOP.
+   *
+   * The prompt asks for {"questions":[...]}, so the reply is normally ONE object with every
+   * question nested inside it. Collecting only top-level objects therefore salvaged the
+   * whole wrapper or nothing at all — and since a wrapper containing one malformed question
+   * does not parse, the answer was nothing. That is the exact failure this salvage exists to
+   * prevent, reintroduced one level down.
+   *
+   * Objects are now collected at any nesting depth and kept if they parse AND look like a
+   * question. An option or a rationale nested inside a question is collected too and then
+   * discarded for having no `question` field, which costs nothing and needs no special case.
+   */
   const salvaged: any[] = [];
-  for (const chunk of topLevelObjects(raw)) {
+  const seenStems = new Set<string>();
+  for (const chunk of balancedObjects(raw)) {
     try {
       const obj = JSON.parse(chunk);
-      // A wrapper object — {"questions":[...]} — rather than a question itself.
-      if (Array.isArray(obj?.questions)) { salvaged.push(...obj.questions); continue; }
-      if (obj && typeof obj === 'object' && obj.question) salvaged.push(obj);
-    } catch { /* this one question is malformed; the others are not */ }
+      if (!obj || typeof obj !== 'object') continue;
+
+      // A wrapper that parsed whole: take its questions and move on.
+      if (Array.isArray(obj.questions)) {
+        for (const q of obj.questions) {
+          const stem = String(q?.question || '').trim();
+          if (stem && !seenStems.has(stem)) { seenStems.add(stem); salvaged.push(q); }
+        }
+        continue;
+      }
+
+      const stem = String(obj.question || '').trim();
+      // Deduped by stem: a question is collected once on its own and again inside any
+      // ancestor that happens to parse, and storing it twice would look like the model
+      // repeated itself.
+      if (stem && !seenStems.has(stem)) { seenStems.add(stem); salvaged.push(obj); }
+    } catch { /* this fragment is malformed; the others are not */ }
   }
 
   if (!salvaged.length) {

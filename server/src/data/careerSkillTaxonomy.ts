@@ -61,6 +61,37 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
     aliases: ['Coding Basics', 'Programming Basics'],
   },
 
+  // C sits at 15 rather than the end, because it is the first language most of these
+  // students are taught and the tree should read in the order they meet it.
+  SUB('C', 'C', 'PROGRAMMING', 15, 'The C language: the one most students meet first, and where memory becomes visible.'),
+  { key: 'C_BASICS', name: 'C Basics', parentKey: 'C', difficulty: 'FOUNDATION', displayOrder: 10,
+    description: 'Syntax, primitive types, variables, operators and formatted input/output.', aliases: ['c'],
+    prerequisiteKeys: ['PROGRAMMING_FUNDAMENTALS'] },
+  { key: 'C_CONTROL_FLOW', name: 'C Control Flow', parentKey: 'C', difficulty: 'FOUNDATION', displayOrder: 20,
+    description: 'Conditionals, loops, switch and branching.', prerequisiteKeys: ['C_BASICS'] },
+  { key: 'C_FUNCTIONS', name: 'C Functions', parentKey: 'C', difficulty: 'FOUNDATION', displayOrder: 30,
+    description: 'Declaring and calling functions, parameters, return values and scope.',
+    prerequisiteKeys: ['C_CONTROL_FLOW'] },
+  { key: 'C_ARRAYS_STRINGS', name: 'C Arrays & Strings', parentKey: 'C', difficulty: 'FOUNDATION', displayOrder: 40,
+    description: 'Arrays, character strings and the null terminator.',
+    prerequisiteKeys: ['C_CONTROL_FLOW'] },
+  // The skill C is actually taught for, and the one that separates students who can read
+  // C from students who only recognise it. Everything below depends on it.
+  { key: 'C_POINTERS', name: 'C Pointers', parentKey: 'C', difficulty: 'INTERMEDIATE', displayOrder: 50,
+    description: 'Addresses, dereferencing, pointer arithmetic and the relationship between pointers and arrays.',
+    aliases: ['Pointers'],
+    prerequisiteKeys: ['C_FUNCTIONS', 'C_ARRAYS_STRINGS'] },
+  { key: 'C_STRUCTS', name: 'C Structures', parentKey: 'C', difficulty: 'INTERMEDIATE', displayOrder: 60,
+    description: 'struct, union and typedef, and building compound types.',
+    prerequisiteKeys: ['C_POINTERS'] },
+  // The track stops here on purpose. File handling was the obvious ninth node and was cut:
+  // it is the least distinctive of C's skills, and the taxonomy's size guard is a real
+  // constraint rather than a formality — a tree nobody can navigate measures nothing.
+  { key: 'C_MEMORY', name: 'C Memory Management', parentKey: 'C', difficulty: 'ADVANCED', displayOrder: 70,
+    description: 'The stack and the heap, malloc and free, and the leaks and dangling pointers that follow from getting it wrong.',
+    aliases: ['Dynamic Memory Allocation'],
+    prerequisiteKeys: ['C_POINTERS'] },
+
   SUB('JAVA', 'Java', 'PROGRAMMING', 20, 'The Java language and its standard library.'),
   { key: 'JAVA_BASICS', name: 'Java Basics', parentKey: 'JAVA', difficulty: 'FOUNDATION', displayOrder: 10,
     description: 'Syntax, types, variables and input/output in Java.', aliases: ['java'],

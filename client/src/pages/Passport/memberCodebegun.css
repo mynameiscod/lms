@@ -29,3 +29,11 @@
 @media(max-width:700px){.gd .nw-card{grid-template-columns:1fr!important}.gd .nw-img{height:190px!important}.gd .opp-head,.gd .rc-head{align-items:flex-start!important;flex-direction:column!important}.gd .opp-head-actions,.gd .rc-head-actions{width:100%!important}.gd .opp-head-actions button,.gd .rc-head-actions button{flex:1!important}.gd .student-profile-page .profile-form-container{padding:18px!important}.gd .student-profile-page .step-indicators{overflow-x:auto!important;flex-wrap:nowrap!important}.gd .student-profile-page .step-indicator{min-width:105px!important}.gd .cb-member-communication>div[style*="max-width: 1060px"]>div:first-child h2:after{font-size:25px!important}}
 @media(max-width:640px){.gd .gd-main{padding:18px 14px 34px!important}.gd :where(.pm-head h1,.rq-title h1,.opp-head h1,.rdy-hero h1,.rc-head h1){font-size:25px!important}.gd .pr-item{padding:17px!important}.gd .gd-card,.gd .rdy-card,.gd .rc-panel{padding:16px!important}.gd .nw-tx{padding:16px!important}}
 @media(prefers-reduced-motion:reduce){.gd *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+
+
+/* 8 Communication Lab
+   The shell's own main element already pads 30px and sets the content width. The lab page
+   then applied max-width:1280px with auto margins of its own, so on a wide screen it was
+   constrained twice and floated in the middle with a wide gap between it and the rail.
+   Inside the shell the shell decides; outside it the page keeps its own centering. */
+.gd .clx{max-width:none!important;margin:0!important;padding-left:0!important;padding-right:0!important}

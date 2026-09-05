@@ -16,6 +16,7 @@ import * as missions from '../controllers/passportMissionController';
 import * as roadmap from '../controllers/passportRoadmapController';
 import * as practice from '../controllers/passportPracticeController';
 import * as interview from '../controllers/passportInterviewController';
+import * as interviewPlans from '../controllers/interviewPlanController';
 import * as resume from '../controllers/passportResumeController';
 import * as content from '../controllers/passportContentController';
 import * as dashboard from '../controllers/passportDashboardController';
@@ -142,6 +143,17 @@ const SUPER_ADMIN = (req: any, res: any, next: any) => {
 // Admin config + members
 router.get('/config',    MANAGE, ctrl.getConfig);
 router.put('/config',    MANAGE, ctrl.updateConfig);
+
+// ── Mock interview plans: how many sittings a member gets and how each is composed,
+//    targeted by year / course / branch / role. Ordinary CareerPilot configuration, so
+//    MANAGE — like the config screen it is edited from. `reorder` is declared before the
+//    :id routes so it is not swallowed by them as an id. ──
+router.get('/interview-plans',          MANAGE, interviewPlans.list);
+router.get('/interview-plans/preview',  MANAGE, interviewPlans.preview);
+router.post('/interview-plans',         MANAGE, interviewPlans.create);
+router.put('/interview-plans/reorder',  MANAGE, interviewPlans.reorder);
+router.put('/interview-plans/:id',      MANAGE, interviewPlans.update);
+router.delete('/interview-plans/:id',   MANAGE, interviewPlans.remove);
 // ── Day-by-day curriculum per pathway. Authored days override the generator. ──
 router.get('/curriculum',                     MANAGE, curriculum.listPathwayCurricula);
 router.get('/curriculum/:pathwayKey',         MANAGE, curriculum.getPathwayCurriculum);

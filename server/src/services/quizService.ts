@@ -1,4 +1,5 @@
 import Quiz, { IQuiz } from '../models/Quiz';
+import { reconcileQuizTotalMarks, computeQuizTotalMarks, percentageOf } from './quizMarksService';
 import AssessmentSchedule from '../models/AssessmentSchedule';
 import Question from '../models/Question';
 import QuizAttempt from '../models/QuizAttempt';
@@ -293,12 +294,29 @@ export class QuizService {
 
     // Create new attempt
     const attemptCount = await QuizAttempt.countDocuments({ quizId, studentId }) + 1;
+    /**
+     * The paper's real total, taken at the moment the attempt begins.
+     *
+     * quiz.totalMarks is typed by an author and never reconciled with the questions actually
+     * attached, so it drifts: a quiz of eighteen questions worth twenty marks declared itself
+     * out of eighteen, and a student earning nineteen was shown 106%. Reconciled here as well
+     * as on save, because a quiz created before this existed still carries a stale figure and
+     * the attempt would otherwise inherit it permanently.
+     */
+    const reconciled = await reconcileQuizTotalMarks(quiz);
+    if (reconciled.changed) {
+      await Quiz.updateOne({ _id: quiz._id }, { $set: { totalMarks: reconciled.to } }).catch(() => {});
+      console.log('[quiz-marks] corrected total on attempt start', JSON.stringify({
+        quizId: String(quiz._id), from: reconciled.from, to: reconciled.to,
+      }));
+    }
+
     const attempt = new QuizAttempt({
       quizId,
       studentId,
       tenantId,
       attemptNo: attemptCount,
-      totalMarks: quiz.totalMarks,
+      totalMarks: reconciled.to || quiz.totalMarks,
       status: 'in_progress',
       startedAt: new Date()
     });
@@ -460,7 +478,11 @@ export class QuizService {
     if (submissionDocs.length) await QuizSubmission.insertMany(submissionDocs, { ordered: false });
 
     // Update attempt
-    const percentage = (obtainedMarks / quiz.totalMarks) * 100;
+    // Against the paper's REAL total, and clamped. A quiz edited between a student starting
+    // and submitting can still put obtained above the stored total, and 106% on a result page
+    // destroys a member's trust in every other number on it.
+    const submitTotal = await computeQuizTotalMarks(quiz) || quiz.totalMarks;
+    const percentage = percentageOf(obtainedMarks, submitTotal);
     const passed = quiz.passingMarks ? obtainedMarks >= quiz.passingMarks : 
                   (quiz.passPercentage ? percentage >= quiz.passPercentage : false);
 
@@ -472,6 +494,9 @@ export class QuizService {
     attempt.status = 'submitted';
     attempt.submittedAt = new Date();
     attempt.obtainedMarks = obtainedMarks;
+    // The denominator the result page shows. Without this the card reads "19/18" even though
+    // the percentage beside it was worked out against the real twenty.
+    attempt.totalMarks = submitTotal;
     attempt.percentage = percentage;
     attempt.passed = passed;
     attempt.questionsAnswered = answers.length;
@@ -536,7 +561,8 @@ export class QuizService {
         }
       }
 
-      const percentage = quiz.totalMarks ? (obtainedMarks / quiz.totalMarks) * 100 : 0;
+      const regradeTotal = await computeQuizTotalMarks(quiz) || quiz.totalMarks;
+      const percentage = percentageOf(obtainedMarks, regradeTotal);
       const passed = quiz.passingMarks ? obtainedMarks >= quiz.passingMarks
         : (quiz.passPercentage ? percentage >= quiz.passPercentage : false);
 

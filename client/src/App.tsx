@@ -91,6 +91,8 @@ import PassportMaterialViewer from './pages/Passport/MaterialViewer';
 import PassportMemberLayout from './pages/Passport/MemberLayout';
 import PassportCareerSetup from './pages/Passport/CareerSetup';
 import PassportAdminActivity from './pages/Passport/AdminActivity';
+import PassportLearningStudio from './pages/Passport/AdminLearningStudio';
+import PassportLearningUnit from './pages/Passport/AdminLearningUnit';
 import PassportRoadmap from './pages/Passport/Roadmap';
 import PassportSkillDna from './pages/Passport/SkillDna';
 import PassportRoleReadiness from './pages/Passport/RoleReadiness';
@@ -516,6 +518,15 @@ const AppRoutes: React.FC = () => {
       } />
       {/* What a student with NO chosen role is measured against. The role blueprint
           answered that for everyone else; a first-year who says "not sure" had no list. */}
+      {/* The ordered journey for a concept: what a student meets first, and what follows.
+          Sits beside Concept Bank rather than replacing it — the bank owns the material,
+          this owns the sequence. */}
+      <Route path="/admin/passport/learning-studio" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportLearningStudio /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/passport/learning-studio/:skillKey" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportLearningUnit /></Layout></ProtectedRoute>
+      } />
       {/* What people actually did, in order, including the visits that never became an
           account. Separate from /admin/logs, which answers "what went wrong for this
           student" and needs a student to answer it at all. */}

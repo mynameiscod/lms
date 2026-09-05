@@ -192,6 +192,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'CareerPilot Members', path: '/admin/passport/students', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-id-card-clip', permissions: ['view_passport_members', 'manage_passport'] },
     { label: 'CareerPilot Missions', path: '/admin/passport/missions', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-bullseye', permissions: ['manage_passport'] },
     { label: 'Assessment Coverage', path: '/admin/passport/assessment-coverage', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-table-cells', permissions: ['manage_passport'] },
+    { label: 'Learning Studio', path: '/admin/passport/learning-studio', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-diagram-successor', permissions: ['manage_passport'] },
     { label: 'Concept Bank', path: '/admin/passport/concepts', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-book-open-reader', permissions: ['manage_passport'] },
     { label: 'CareerPilot Coins', path: '/admin/passport/coins', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-coins', permissions: ['manage_passport'] },
     { label: 'CareerPilot Drop-off', path: '/admin/passport/funnel', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-line', permissions: ['view_passport_funnel'] },
@@ -444,9 +445,9 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       'CareerPilot Assessment Shape',
       // Content
       'CareerPilot Assessment', 'Assessment Coverage', 'Paper Designer', 'CareerPilot Pathways', 'CareerPilot Pathway Rules',
-      'CareerPilot Missions', 'Concept Bank', 'Company Questions', 'CareerPilot News',
+      'CareerPilot Missions', 'Learning Studio', 'Concept Bank', 'Company Questions', 'CareerPilot News',
       // Run and watch
-      'CareerPilot Members', 'Career Stage Tagging', 'CareerPilot Coins', 'CareerPilot Drop-off',
+      'CareerPilot Members', 'Career Stage Tagging', 'CareerPilot Coins', 'CareerPilot Drop-off', 'Activity',
     ] },
     { title: 'PLATFORM',                labels: ['Student Features', 'AI Spend', 'API Logs', 'Recording Diagnostics', 'Tenant Management', 'Platform Settings'] },
   ];

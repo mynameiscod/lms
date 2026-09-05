@@ -197,6 +197,31 @@ export const passportApi = {
       { headers: auth() });
     return r.data;
   },
+  // ── Learning Studio ─────────────────────────────────────────────────────────
+  studioConcepts: async (): Promise<{ concepts: StudioConcept[]; summary: any }> => {
+    const r = await axios.get(`${BASE.replace('/passport', '/careerpilot')}/concept-learning-units/concepts`, { headers: auth() });
+    return r.data;
+  },
+  learningUnitBySkill: async (skillKey: string): Promise<{
+    skill: any; unit: LearningUnit | null; versions: any[];
+    readiness: UnitReadiness | null; resources: StudioResource[];
+  }> => {
+    const r = await axios.get(`${BASE.replace('/passport', '/careerpilot')}/concept-learning-units/by-skill/${encodeURIComponent(skillKey)}`, { headers: auth() });
+    return r.data;
+  },
+  saveLearningUnit: async (skillKey: string, unit: Partial<LearningUnit>):
+    Promise<{ unit: LearningUnit; readiness: UnitReadiness }> => {
+    const r = await axios.put(`${BASE.replace('/passport', '/careerpilot')}/concept-learning-units/by-skill/${encodeURIComponent(skillKey)}`, unit, { headers: auth() });
+    return r.data;
+  },
+  publishLearningUnit: async (id: string): Promise<{ published: boolean; version?: number; readiness: UnitReadiness; message?: string }> => {
+    const r = await axios.post(`${BASE.replace('/passport', '/careerpilot')}/concept-learning-units/${id}/publish`, {}, { headers: auth() });
+    return r.data;
+  },
+  previewLearningUnit: async (id: string): Promise<{ unit: any; steps: any[] }> => {
+    const r = await axios.get(`${BASE.replace('/passport', '/careerpilot')}/concept-learning-units/${id}/preview`, { headers: auth() });
+    return r.data;
+  },
   saveAssessment: async (patch: { title?: string; maxQuestions?: number; questions?: AssessQuestionFull[] }): Promise<{ assessment: AssessmentBank }> => {
     const { data } = await axios.put(`${BASE}/assessment/admin`, patch, { headers: auth() });
     return data;
@@ -1661,6 +1686,37 @@ export interface ActivitySummary {
   byBrowser: { key: string; visitors: number }[];
   topPages: { name: string; views: number }[];
   topFailures: { name: string; message: string; count: number }[];
+}
+
+/** One concept as the Learning Studio lists it. */
+export interface StudioConcept {
+  skillKey: string; skillName: string; category: string; difficulty: string;
+  unitId: string | null; unitTitle: string; unitStatus: string | null;
+  version: number; stepCount: number; estimatedMinutes: number; resources: number;
+  readiness: number; blocking: string[];
+  status: 'NOT_CONFIGURED' | 'INCOMPLETE' | 'READY' | 'PUBLISHED' | 'ARCHIVED';
+}
+
+export interface LearningStep {
+  stepId: string; sequence: number; phase: string;
+  resourceId?: string; titleOverride?: string;
+  estimatedMinutes: number; required: boolean;
+  scoreWindow?: { min: number | null; max: number | null };
+  audience?: MaterialAudience; notes?: string;
+}
+
+export interface LearningUnit {
+  _id?: string; skillKey: string; title: string; description?: string;
+  learningOutcomes: string[]; steps: LearningStep[];
+  estimatedMinutes: number; version: number; status: string;
+  audience?: MaterialAudience; completionThreshold?: number;
+}
+
+export interface UnitReadinessCheck { key: string; label: string; passed: boolean; required: boolean; detail: string; }
+export interface UnitReadiness { publishable: boolean; percent: number; checks: UnitReadinessCheck[]; blocking: string[]; }
+
+export interface StudioResource {
+  id: string; title: string; resourceType: string; workTypes: string[]; priority: number; hasContent: boolean;
 }
 
 export interface AssessmentBank { _id?: string; tenantId: string; title: string; maxQuestions?: number; questions: AssessQuestionFull[]; categories?: AssessCategory[]; }

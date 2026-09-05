@@ -18,6 +18,7 @@ import * as practice from '../controllers/passportPracticeController';
 import * as interview from '../controllers/passportInterviewController';
 import * as interviewPlans from '../controllers/interviewPlanController';
 import * as activity from '../controllers/careerPilotActivityController';
+import * as learningUnits from '../controllers/conceptLearningUnitController';
 import * as resume from '../controllers/passportResumeController';
 import * as content from '../controllers/passportContentController';
 import * as dashboard from '../controllers/passportDashboardController';
@@ -151,6 +152,20 @@ router.put('/config',    MANAGE, ctrl.updateConfig);
 //    targeted by year / course / branch / role. Ordinary CareerPilot configuration, so
 //    MANAGE — like the config screen it is edited from. `reorder` is declared before the
 //    :id routes so it is not swallowed by them as an id. ──
+// ── Concept Learning Units: the ordered journey for a concept. MANAGE, like every other
+//    authoring surface — publishing one changes what students are taught. Saving is a whole
+//    unit at a time because reordering three steps is one intention, not three requests. ──
+router.get('/concept-learning-units/concepts',            MANAGE, learningUnits.listConcepts);
+router.get('/concept-learning-units/analytics',           MANAGE, learningUnits.analytics);
+router.get('/concept-learning-units/by-skill/:skillKey',  MANAGE, learningUnits.getBySkill);
+router.put('/concept-learning-units/by-skill/:skillKey',  MANAGE, learningUnits.saveBySkill);
+router.get('/concept-learning-units/:id/readiness',       MANAGE, learningUnits.readiness);
+router.get('/concept-learning-units/:id/preview',         MANAGE, learningUnits.preview);
+router.post('/concept-learning-units/:id/publish',        MANAGE, learningUnits.publish);
+router.post('/concept-learning-units/:id/archive',        MANAGE, learningUnits.archive);
+// The member's own progress through a concept. MEMBER, and scoped to the caller.
+router.get('/me/concept-journey/:skillKey',               MEMBER, learningUnits.myJourney);
+
 // ── Activity trail: what a person actually did, in order, from the first page view.
 //    MANAGE, like every other admin surface here — it carries names, emails and addresses. ──
 router.get('/admin/activity/sessions',            MANAGE, activity.sessions);

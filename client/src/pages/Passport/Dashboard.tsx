@@ -230,7 +230,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
         <div className="gd-card">
           <div className="gd-card-hd">
             <h2><Bi name="stars" /> Skill Meter <span className="gd-help" title="Your six Career Readiness Assessment categories.">?</span></h2>
-            <button className="lnk" onClick={() => nav('/careerpilot/assessment')}>View full report <Bi name="arrow-right" /></button>
+            <button className="lnk" onClick={() => nav('/careerpilot/readiness')}>View full report <Bi name="arrow-right" /></button>
           </div>
           <div className="gd-skill-wrap"><Radar skills={d.skills || []} /></div>
         </div>

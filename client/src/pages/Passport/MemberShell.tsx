@@ -166,7 +166,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
             <div className="t"><b>{d?.name || firstName}</b>{lv && <span>Level {lv.level} · {lv.title}</span>}</div>
           </div>
           <button className="gd-nav-btn" onClick={() => nav('/careerpilot/profile')}><span className="ic"><Icon name="user" /></span><span className="lbl">My profile</span></button>
-          <button className="gd-nav-btn" onClick={() => nav('/careerpilot/assessment')}><span className="ic"><Icon name="chart" /></span><span className="lbl">My result</span></button>
+          <button className="gd-nav-btn" onClick={() => nav('/careerpilot/readiness')}><span className="ic"><Icon name="chart" /></span><span className="lbl">My result</span></button>
           <button className="gd-nav-btn" onClick={() => nav('/careerpilot/news')}><span className="ic"><Icon name="news" /></span><span className="lbl">Tech news</span></button>
           <button className="gd-nav-btn" onClick={share} disabled={!d?.shareSlug}><span className="ic"><Icon name="share" /></span><span className="lbl">{copied ? 'Link copied!' : 'Share my card'}</span></button>
           <button className="gd-nav-btn out" onClick={() => logout()}><span className="ic"><Icon name="logout" /></span><span className="lbl">Log out</span></button>
@@ -207,7 +207,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                 <div className="hd"><b>{d?.name || firstName}</b>{lv && <span>Level {lv.level} · {lv.title}</span>}</div>
                 {st && <div className="stats"><div><b>{st.xp.toLocaleString()}</b><span>XP</span></div><div><b>{st.streak}</b><span>Streak</span></div><div><b>{myRank ? `#${myRank}` : '—'}</b><span>Rank</span></div></div>}
                 <button onClick={() => { setUserOpen(false); nav('/careerpilot/profile'); }}>My profile</button>
-                <button onClick={() => { setUserOpen(false); nav('/careerpilot/assessment'); }}>My result</button>
+                <button onClick={() => { setUserOpen(false); nav('/careerpilot/readiness'); }}>My result</button>
                 <button onClick={() => { setUserOpen(false); nav('/careerpilot/news'); }}>Tech news</button>
                 <button onClick={share} disabled={!d?.shareSlug}>{copied ? 'Link copied!' : 'Share my CareerPilot card'}</button>
                 <button className="out" onClick={() => logout()}>Log out</button>

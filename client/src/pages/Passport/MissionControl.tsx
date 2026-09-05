@@ -142,7 +142,9 @@ const MissionControl: React.FC = () => {
 
   const firstName = user?.firstName || (status?.name || '').split(' ')[0] || 'there';
   const initial = (firstName[0] || 'C').toUpperCase();
-  const resultHref = status?.assessedVia === 'attempt' ? '/careerpilot/assessment' : '/careerpilot/readiness';
+  // One report now. The branch sent members with a legacy questionnaire attempt to the
+  // legacy result; that instrument is retired and no attempt can be created any more.
+  const resultHref = '/careerpilot/readiness';
   const canPay = status?.paymentAvailable !== false;
 
   const Topbar = (
@@ -317,7 +319,11 @@ const MissionControl: React.FC = () => {
           <div className="mc-hd"><h1><i className="bi bi-rocket-takeoff-fill" /> Mission <span className="b">Control</span></h1><p>Your CodeBegun CareerPilot — one place that tells you what to do next.</p></div>
           <div className="mc-stats">
             <div className="mc-stat"><span className="ic t-teal"><i className="bi bi-graph-up-arrow" /></span><div><div className="lbl">Career Score</div><div className="val">{hasNumber ? scoreNum : '—'}</div><div className="hint">{hasNumber ? levelLabel : 'Still measuring'}</div></div></div>
-            <div className="mc-stat"><span className="ic t-violet"><i className="bi bi-signpost-split-fill" /></span><div><div className="lbl">Pathway</div><div className="val" style={{ fontSize: 16 }}>{pathwayLabel || '—'}</div><div className="hint">{pathwayLabel ? 'Personalized for you' : 'Not selected yet'}</div></div></div>
+            {/* The Pathway card is gone. A pathway is assigned by the retired questionnaire
+                and is read by nothing that decides what a member does — not the assessment,
+                the roadmap, or the daily plan, all of which run on role and stage. Members
+                arriving through the personalised assessment never get one, so the card said
+                "Not selected yet" to everybody while implying something was missing. */}
             {/* Real numbers. These two were literal "0d" and "—" in the markup, so a member
                 who had earned 100 XP and a streak was told they had neither — on the screen
                 asking them to pay to start earning. The hint still explains what activating
@@ -365,7 +371,7 @@ const MissionControl: React.FC = () => {
 
           <section className="mc-result-preview">
             <div className="mc-preview-art" aria-hidden="true"><div className="mc-preview-sheet"><div className="ring"><b>{hasNumber ? scoreNum : '—'}</b></div><div className="mc-preview-line" /><div className="mc-preview-line w2" /><div className="mc-preview-line w3" /></div></div>
-            <div className="mc-result-copy"><h3>Your result preview <i className="bi bi-lock-fill mc-lock-ic" /></h3><p>{hasNumber ? 'Your assessment has already measured where you stand. Activate your journey to connect that result to ongoing missions, practice and progress tracking.' : 'Your assessment is complete. Some readiness measures are still building enough evidence to publish a score.'}</p><div className="mc-result-points"><span><i className="bi bi-lock-fill" />Career Score</span><span><i className="bi bi-lock-fill" />Skill Breakdown</span><span><i className="bi bi-lock-fill" />Strengths & Gaps</span><span><i className="bi bi-lock-fill" />Recommended Pathway</span></div></div>
+            <div className="mc-result-copy"><h3>Your result preview <i className="bi bi-lock-fill mc-lock-ic" /></h3><p>{hasNumber ? 'Your assessment has already measured where you stand. Activate your journey to connect that result to ongoing missions, practice and progress tracking.' : 'Your assessment is complete. Some readiness measures are still building enough evidence to publish a score.'}</p><div className="mc-result-points"><span><i className="bi bi-lock-fill" />Career Score</span><span><i className="bi bi-lock-fill" />Skill Breakdown</span><span><i className="bi bi-lock-fill" />Strengths & Gaps</span><span><i className="bi bi-lock-fill" />Role Readiness</span></div></div>
             <div className="mc-preview-lock"><i className="bi bi-lock-fill" /><b>Unlock after activation</b><span>Your ongoing 90-day guidance becomes available when your journey is activated.</span></div>
           </section>
 

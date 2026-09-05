@@ -610,10 +610,31 @@ router.post('/resume/import',    MEMBER, rateLimit('aiGenerate'), resumeUpload.s
 router.post('/resume/score',     MEMBER, resume.score);
 router.post('/resume/improve',   MEMBER, resume.improve);
 
-// Assessment — student
-router.get('/assessment',        MEMBER, assess.getAssessment);
-router.post('/assessment/submit', MEMBER, assess.submitAssessment);
-router.get('/assessment/result', MEMBER, assess.getResult);
+/**
+ * The legacy Career Readiness questionnaire — RETIRED.
+ *
+ * Six categories, a Career Score and a recommended pathway, taken free by anyone. It was the
+ * top of a Meta-ads funnel: a visitor got a result, and the result sold the upgrade. That
+ * funnel is not being run — the product is sold to colleges — so the only thing it still did
+ * was produce a SECOND measurement that disagreed with the first.
+ *
+ * It measured six categories; the personalised assessment measures skills. Both wrote
+ * careerScore and level onto the same passport fields, and memberAssessmentStateService
+ * preferred the questionnaire whenever one existed — so a member who had sat both was
+ * reported on the weaker instrument.
+ *
+ * `submit` is gone, so no new attempts can be created. `get` and `result` are gone with it:
+ * a paper nobody can submit is not worth serving. Every read of PassportAttempt elsewhere
+ * already falls through to Skill DNA when none is found, which is now always.
+ *
+ * The controller, the model and the admin bank screens are deliberately left in place. There
+ * are no attempts left in the database and nothing can make more, so they are inert — and
+ * removing thirty-one references across ten files is a separate change that should be made
+ * against a product nobody is mid-funnel on, not folded into this one.
+ */
+// router.get('/assessment',        MEMBER, assess.getAssessment);
+// router.post('/assessment/submit', MEMBER, assess.submitAssessment);
+// router.get('/assessment/result', MEMBER, assess.getResult);
 
 // Assessment — admin bank management
 // Career-stage tagging. Admin-only: it decides which students see which content.

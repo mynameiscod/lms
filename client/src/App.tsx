@@ -555,7 +555,10 @@ const AppRoutes: React.FC = () => {
         {/* CareerPilot onboarding — inside the member shell, so the rail and chrome
             stay put rather than the member dropping into a separate application. */}
         <Route path="/careerpilot/setup" element={<PassportCareerSetup />} />
-        <Route path="/careerpilot/assessment" element={<PassportAssessmentPage />} />
+        {/* The legacy Career Readiness questionnaire is retired: its submit endpoint is
+            gone, so the paper could be opened and never handed in. Members go to the
+            skill assessment, which is the instrument everything downstream reads. */}
+        <Route path="/careerpilot/assessment" element={<Navigate to="/careerpilot/skill-assessment" replace />} />
         <Route path="/passport/assessment" element={<LegacyRedirect to="/careerpilot/assessment" />} />
         <Route path="/careerpilot/roadmap" element={<PassportRoadmap />} />
         <Route path="/careerpilot/skills" element={<PassportSkillDna />} />

@@ -153,7 +153,7 @@ const Roadmap: React.FC = () => {
         </div>
         <div className="pm-card" style={{ textAlign: 'center', padding: '40px 24px' }}>
           <div style={{ fontSize: 38, marginBottom: 10 }}>🧭</div>
-          <button className="pm-btn primary" onClick={() => nav('/careerpilot/assessment')}>Start Free Assessment →</button>
+          <button className="pm-btn primary" onClick={() => nav('/careerpilot/skill-assessment')}>Start Free Assessment →</button>
         </div>
       </>
     );

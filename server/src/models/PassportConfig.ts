@@ -26,6 +26,15 @@ export interface IEntitlement {
 export interface IPassportConfig extends Document {
   tenantId: string;
   enabled: boolean;                    // master kill-switch (also gated by PASSPORT_ENABLED setting)
+  /**
+   * Whether daily missions follow authored Concept Learning Units.
+   *
+   * OFF by default, and off is not a degraded mode: with it off the mission engine behaves
+   * exactly as it did before the layer existed. It exists so the sequencing can be switched
+   * on per tenant once their journeys are published, and switched off again without a deploy
+   * if something is wrong with the content rather than the code.
+   */
+  conceptLearningEnabled: boolean;
   assessmentMode: 'deterministic' | 'ai';
   onboardingFields: IOnboardingField[];
   entitlements: IEntitlement[];
@@ -98,6 +107,7 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
   {
     tenantId:         { type: String, required: true, unique: true, index: true },
     enabled:          { type: Boolean, default: false },
+    conceptLearningEnabled: { type: Boolean, default: false },
     assessmentMode:   { type: String, enum: ['deterministic', 'ai'], default: 'deterministic' },
     onboardingFields: [OnboardingFieldSchema],
     entitlements:     [EntitlementSchema],

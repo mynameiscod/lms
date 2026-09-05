@@ -8,11 +8,14 @@ import { isEntitled } from './passportEntitlementService';
 import { findProblem, findCareerPilotProblem } from './passportPracticeService';
 import { ymd } from './passportMissionService';
 import { XpRule } from '../models/GamificationModels';
+import { resolveLearningSteps, logResolution, LearningProvenance } from './conceptLearningMissionBridge';
 import { MISSION_ORCHESTRATION_VERSION, MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES, assessmentRouteForSkill, practiceRoute, materialRoute, dailySliceOf, dailyBudget, MissionResourceState, DailyPlanUnavailable } from '../data/missionOrchestrationPolicy';
 
 /** Daily Mission Engine: roadmap=WHAT, this service=WHEN, targeted resource=HOW. */
 export interface MissionResource { type: string; id: string; title: string; route: string; xp?: number | null; }
-export interface DailyMission { key: string; roadmapId: string; objectiveSequence: number; skillKey: string; skillName: string; workType: string; plannedMinutes: number; title: string; explanation: string; reasonCode: string; resourceState: MissionResourceState; resource?: MissionResource; done: boolean; }
+/** Present when the mission came from an authored journey — the step it corresponds to. */
+export interface MissionLearning extends LearningProvenance {}
+export interface DailyMission { learning?: MissionLearning; key: string; roadmapId: string; objectiveSequence: number; skillKey: string; skillName: string; workType: string; plannedMinutes: number; title: string; explanation: string; reasonCode: string; resourceState: MissionResourceState; resource?: MissionResource; done: boolean; }
 export interface DailyPlanAvailable { available: true; policyVersion: string; roadmapId: string; date: string; roadmapDay: number; roadmapWeek: number; weekCount: number; capacity: { minutesPerDay: number; plannedMinutes: number }; missions: DailyMission[]; progress: { plannedMinutes: number; completedMinutes: number; percent: number }; week: { plannedMinutes: number; completedMinutes: number }; unmappedObjectives: number; outdated: boolean; }
 export interface DailyPlanUnavailableResult { available: false; reason: DailyPlanUnavailable; message: string; }
 export type DailyPlanOutcome = DailyPlanAvailable | DailyPlanUnavailableResult;
@@ -76,6 +79,8 @@ const slotKey = (skillKey: string, workType: string): string => `${String(skillK
 export const missionKey = (roadmapId: string, sequence: number, date: string): string => `cp:${roadmapId}:${sequence}:${date}`;
 export interface SelectableObjective { sequence: number; skillKey: string; skillName: string; workType: string; plannedMinutes: number; week: number; reasonCode: string; explanation: string; prerequisiteFor?: string; }
 export interface SelectionInput { roadmapId: string; date: string; week: number; objectives: SelectableObjective[]; minutesPerDay: number; daysPerWeek: number; creditedBefore: Map<number, number>; completedToday: Set<string>; resources: Map<string, MissionResource>;
+  /** Journey steps by slot. Optional, so existing callers and tests are unaffected. */
+  learningBySlot?: Map<string, { resource?: MissionResource; learning: LearningProvenance }>;
   /** What CAREER_MISSION_COMPLETED pays, so the card shows what the ledger will award. */
   missionXp: number; }
 
@@ -98,11 +103,25 @@ export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
     //
     // The rule's amount is used wherever a resource has no override of its own, so the
     // number on the card is the number that lands.
-    const mapped = input.resources.get(slotKey(o.skillKey, o.workType));
-    const resource = o.workType === 'ASSESS'
+    /**
+     * AN AUTHORED JOURNEY WINS OVER THE FIRST-BY-PRIORITY RESOURCE.
+     *
+     * The legacy map holds one resource per skill and work type and never changes, so a
+     * concept with six pieces of material served the same piece every day. When a published
+     * learning unit exists, the bridge has already worked out which step this student has
+     * not done yet, and that is what opens. With no unit — which is every skill until an
+     * admin publishes one — this is exactly the behaviour that was here before.
+     */
+    const slot = slotKey(o.skillKey, o.workType);
+    const journey = input.learningBySlot?.get(slot);
+    const mapped = input.resources.get(slot);
+    const legacyResource = o.workType === 'ASSESS'
       ? { type: 'assessment', id: `personalized:${o.skillKey}`, title: `${o.skillName} check`, route: assessmentRouteForSkill(o.skillKey), xp: input.missionXp }
       : (mapped ? { ...mapped, xp: mapped.xp ?? input.missionXp } : undefined);
-    chosen.push({ key, roadmapId: input.roadmapId, objectiveSequence: o.sequence, skillKey: o.skillKey, skillName: o.skillName, workType: o.workType, plannedMinutes: minutes, title: `${o.skillName} — ${WORK_LABEL[o.workType] || o.workType}`, explanation: o.explanation, reasonCode: o.reasonCode, resourceState: resource ? 'READY' : 'RESOURCE_NOT_CONFIGURED', resource, done: input.completedToday.has(key) }); spent += minutes;
+    const resource = journey?.resource
+      ? { ...journey.resource, xp: journey.resource.xp ?? input.missionXp }
+      : legacyResource;
+    chosen.push({ ...(journey ? { learning: journey.learning } : {}), key, roadmapId: input.roadmapId, objectiveSequence: o.sequence, skillKey: o.skillKey, skillName: o.skillName, workType: o.workType, plannedMinutes: minutes, title: `${o.skillName} — ${WORK_LABEL[o.workType] || o.workType}`, explanation: o.explanation, reasonCode: o.reasonCode, resourceState: resource ? 'READY' : 'RESOURCE_NOT_CONFIGURED', resource, done: input.completedToday.has(key) }); spent += minutes;
   }
   return chosen;
 }
@@ -186,6 +205,26 @@ export async function getTodaysPlan(tenantId: string, studentId: string, now: Da
   const skillRows = await StudentSkillProfile.find({ tenantId, studentId, skillKey: { $in: weekSkillKeys } }).select('skillKey score').lean() as any[]; const scores = new Map<string, number>(skillRows.map(s => [String(s.skillKey).toUpperCase(), Number(s.score)]));
   const p = user?.passport || {}; const member: ResourceMember = { yearOfStudy: p.yearOfStudy, degree: p.degree, program: p.program, branch: p.branch, primaryRole: p.primaryRole, secondaryRole: p.secondaryRole, stage: p.stage, preferredLanguages: p.preferredLanguages || [] };
   const resources = await resolveResources(tenantId, weekSkillKeys, member, scores);
+
+  /**
+   * The authored journey, where one exists.
+   *
+   * Tried for every slot this week needs, and allowed to fail per slot: a skill with no
+   * published unit keeps the legacy resource above, which is why switching this on cannot
+   * take anybody's missions away. The flag is read from PassportConfig so a tenant can turn
+   * the layer off without a deploy.
+   *
+   * Never fatal. A learning layer that could break the daily plan would be a worse product
+   * than one that occasionally falls back, so the whole thing is wrapped.
+   */
+  const learningEnabled = (cfg as any)?.conceptLearningEnabled === true;
+  const slots = weekObjectives
+    .filter(o => o.workType !== 'ASSESS')
+    .map(o => ({ skillKey: o.skillKey, workType: o.workType }));
+  const learning = await resolveLearningSteps({
+    tenantId, studentId, member, scores, slots, enabled: learningEnabled,
+  }).catch(() => ({ bySlot: new Map(), fallbacks: new Map() }));
+  if (learningEnabled) logResolution(studentId, learning as any);
   /**
    * Read from the same rule the ledger pays from, rather than restated as a constant here.
    * A tenant that re-prices missions in the gamification screen re-prices the card too, and
@@ -196,7 +235,7 @@ export async function getTodaysPlan(tenantId: string, studentId: string, now: Da
   const xpRule = await XpRule.findOne({ tenantId, eventKey: 'CAREER_MISSION_COMPLETED' })
     .select('xp enabled').lean().catch(() => null) as any;
   const missionXp = xpRule?.enabled === false ? 0 : (typeof xpRule?.xp === 'number' ? xpRule.xp : 10);
-  const missions = selectTodaysMissions({ roadmapId, date, week, objectives, minutesPerDay: roadmap.input.minutesPerDay, daysPerWeek: roadmap.input.daysPerWeek, creditedBefore, completedToday, resources, missionXp });
+  const missions = selectTodaysMissions({ roadmapId, date, week, objectives, minutesPerDay: roadmap.input.minutesPerDay, daysPerWeek: roadmap.input.daysPerWeek, creditedBefore, completedToday, resources, learningBySlot: learning.bySlot as any, missionXp });
   const weekPlanned = weekObjectives.reduce((n, o) => n + o.plannedMinutes, 0); const weekCompleted = completions.filter((c: any) => weekObjectives.some(o => o.sequence === c.careerpilot.objectiveSequence)).reduce((n: number, c: any) => n + (c.careerpilot.minutes || 0), 0); const totalPlanned = roadmap.capacity?.plannedMinutes || 0;
   return { available: true, policyVersion: MISSION_ORCHESTRATION_VERSION, roadmapId, date, roadmapDay, roadmapWeek: week, weekCount: roadmap.weekCount, capacity: { minutesPerDay: roadmap.input.minutesPerDay, plannedMinutes: missions.reduce((n, m) => n + m.plannedMinutes, 0) }, missions, progress: { plannedMinutes: totalPlanned, completedMinutes, percent: totalPlanned > 0 ? Math.min(100, Math.round((completedMinutes / totalPlanned) * 100)) : 0 }, week: { plannedMinutes: weekPlanned, completedMinutes: weekCompleted }, unmappedObjectives: weekObjectives.filter(o => o.workType !== 'ASSESS' && !resources.has(slotKey(o.skillKey, o.workType))).length, outdated: false };
 }

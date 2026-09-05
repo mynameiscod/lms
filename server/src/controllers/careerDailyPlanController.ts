@@ -96,6 +96,14 @@ export const completeMyDailyMission = async (req: Request, res: Response) => {
         skillKey: mission.skillKey,
         workType: mission.workType,
         minutes: mission.plannedMinutes,
+        // Journey provenance, taken from the mission the server itself built. Never from the
+        // request: a caller able to name a step could mark any part of any journey complete.
+        ...(mission.learning ? {
+          learningUnitId: mission.learning.unitId,
+          learningUnitVersion: mission.learning.unitVersion,
+          learningStepId: mission.learning.stepId,
+          resourceId: mission.resource?.id,
+        } : {}),
       },
       startDate: user?.passport?.activatedAt,
     });

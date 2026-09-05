@@ -45,6 +45,11 @@ export interface IPassportProgress extends Document {
       skillKey: string;
       workType: string;
       minutes: number;
+      /** Set when the mission came from an authored journey. Absent for legacy missions. */
+      learningUnitId?: string;
+      learningUnitVersion?: number;
+      learningStepId?: string;
+      resourceId?: string;
     };
   }[];
   /** Practice Lab attempts. `solvedProblems` makes the XP award idempotent per problem. */
@@ -83,6 +88,12 @@ const PassportProgressSchema = new Schema<IPassportProgress>(
         skillKey: String,
         workType: String,
         minutes: Number,
+        // Journey provenance. Optional, so every completion written before the learning
+        // layer existed stays valid exactly as it is.
+        learningUnitId: String,
+        learningUnitVersion: Number,
+        learningStepId: String,
+        resourceId: String,
       },
     }],
     practice: [{

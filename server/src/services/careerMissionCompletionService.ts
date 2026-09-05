@@ -1,4 +1,5 @@
 import PassportProgress from '../models/PassportProgress';
+import { recordStepCompletion } from './conceptLearningResolverService';
 
 /**
  * Recording a CareerPilot daily mission as done — atomically.
@@ -36,6 +37,18 @@ export interface CareerMissionTrace {
   workType: string;
   /** The server's own figure for this slice — never a duration supplied by the caller. */
   minutes: number;
+  /**
+   * Where in an authored journey this mission came from, when it came from one.
+   *
+   * Recorded rather than inferred. Working out afterwards which step a completed mission
+   * corresponded to would mean re-running the resolver against a student whose progress has
+   * since moved — and matching on a title string, which is how a rename silently breaks
+   * somebody's sequence. Absent for legacy missions, which is most of them.
+   */
+  learningUnitId?: string;
+  learningUnitVersion?: number;
+  learningStepId?: string;
+  resourceId?: string;
 }
 
 export interface CompletionResult {
@@ -81,5 +94,36 @@ export async function completeCareerMission(input: {
     { $push: { completed: { day: input.day, key, at: now, careerpilot: input.trace } } },
   );
 
-  return { newlyCompleted: (res?.modifiedCount ?? res?.nModified ?? 0) === 1 };
+  const newlyCompleted = (res?.modifiedCount ?? res?.nModified ?? 0) === 1;
+
+  /**
+   * Advance the learning journey, but only for a completion that actually happened.
+   *
+   * Guarded on `newlyCompleted` so a retried request cannot push the student a second step
+   * forward — the progress writer is idempotent on its own, but a mission that was already
+   * finished should not touch anything at all.
+   *
+   * Never fatal. The mission is recorded, the minutes are credited and the XP is paid before
+   * this runs; a journey that failed to advance is repaired by the next completion, whereas
+   * throwing here would lose a completion the student had genuinely earned.
+   */
+  const t = input.trace;
+  if (newlyCompleted && t.learningUnitId && t.learningStepId) {
+    try {
+      await recordStepCompletion({
+        tenantId, studentId, skillKey: t.skillKey,
+        learningUnitId: t.learningUnitId,
+        learningUnitVersion: t.learningUnitVersion || 1,
+        stepId: t.learningStepId,
+        missionKey: key,
+        resourceId: t.resourceId,
+        creditedMinutes: t.minutes,
+        now,
+      });
+    } catch (e: any) {
+      console.error('[concept-learning] step completion failed', key, e?.message || e);
+    }
+  }
+
+  return { newlyCompleted };
 }

@@ -405,8 +405,18 @@ describe('gamification stays exactly-once', () => {
   });
 });
 
-describe('no roadmap is ever replaced automatically', () => {
-  it('leaves the active roadmap alone through submit, failure and recovery', async () => {
+/**
+ * NARROWED, because the product moved and the old title stopped being true.
+ *
+ * A SUCCESSFUL assessment now replans automatically — that is the whole point of closing the
+ * measure → plan loop, and without it a member stays in the diagnostic phase for ever. What
+ * still holds, and what this asserts, is the case that matters here: a projection that FAILED
+ * must not move the plan, because replanning on a failed projection would rebuild tomorrow
+ * from yesterday's evidence and present it as a response to this paper. Recovery does not
+ * replan either; it repairs the snapshot.
+ */
+describe('a failed projection never replaces the roadmap', () => {
+  it('leaves the active roadmap alone through a failed submit and its recovery', async () => {
     projectionShouldFail = true;
     await submit();
     projectionShouldFail = false;

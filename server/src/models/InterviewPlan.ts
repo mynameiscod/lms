@@ -93,14 +93,15 @@ export interface IInterviewPlan extends Document {
 /**
  * Bounds, enforced server-side and published to the admin screen.
  *
- * `questions` is capped at 12 for a reason that is not arbitrary: evaluateTranscript stores
- * `questionFeedback.slice(0, 12)`, so question thirteen is asked, answered, and then given
- * no coaching at all. A plan that exceeds it would quietly sell a member feedback they never
- * receive.
+ * EACH ROUND IS ITS OWN SITTING, so the cap that matters is per round and not per plan: a
+ * member sits the technical round, then the HR round, and each is graded on its own
+ * transcript. `questionsPerRound` is 12 for a reason that is not arbitrary —
+ * evaluateTranscript stores `questionFeedback.slice(0, 12)`, so question thirteen of a
+ * sitting is asked, answered, and then given no coaching at all. A round that exceeded it
+ * would quietly sell a member feedback they never receive.
  */
 export const PLAN_BOUNDS = {
   questionsPerRound: { min: 1, max: 12 },
-  totalQuestions:    { min: 1, max: 12 },
   minutesPerRound:   { min: 1, max: 60 },
   rounds:            { min: 1, max: 4 },
   perThirtyDays:     { min: 0, max: 60 },

@@ -16,7 +16,9 @@
  * changes.
  */
 
-import { resolvePlan, validatePlans, planTotals } from '../services/interviewPlanService';
+import {
+  resolvePlan, validatePlans, planTotals, summariseEntitlement, roundKeyFor,
+} from '../services/interviewPlanService';
 import { EMPTY_MEMBER_AUDIENCE } from '../models/memberAudience';
 
 let seq = 0;
@@ -137,13 +139,137 @@ describe('validatePlans', () => {
     expect(w.some(x => x.level === 'warn' && /catch-all/.test(x.message))).toBe(true);
   });
 
-  it('warns past the point where per-question coaching stops being produced', () => {
-    // 14 questions, but evaluateTranscript only ever stores feedback for the first 12.
-    const p = plan({ _id: 'big', rounds: [
-      { type: 'technical', label: '', questions: 7, minutes: 20 },
-      { type: 'hr',        label: '', questions: 7, minutes: 20 },
+  it('warns when the allowance cannot pay for all the rounds offered', () => {
+    // Three cards on the member's screen, two interviews a month — one is unreachable, and
+    // nothing else on either screen would say so.
+    const p = plan({ _id: 'short', quota: { perThirtyDays: 2, cooldownHours: 0 }, rounds: [
+      { type: 'technical',     label: '', questions: 3, minutes: 12 },
+      { type: 'hr',            label: '', questions: 2, minutes: 8 },
+      { type: 'communication', label: '', questions: 1, minutes: 4 },
     ] });
-    expect(planTotals(p.rounds).questions).toBe(14);
-    expect(validatePlans([p]).some(x => x.planId === 'big' && /coaching/.test(x.message))).toBe(true);
+    expect(planTotals(p.rounds).questions).toBe(6);
+    expect(validatePlans([p]).some(x => x.planId === 'short' && /never sit them all/.test(x.message))).toBe(true);
+  });
+
+  it('does not warn when the allowance covers every round', () => {
+    const p = plan({ _id: 'ok', quota: { perThirtyDays: 4, cooldownHours: 0 }, rounds: [
+      { type: 'technical', label: '', questions: 3, minutes: 12 },
+      { type: 'hr',        label: '', questions: 2, minutes: 8 },
+    ] });
+    expect(validatePlans([p]).some(x => x.planId === 'ok' && /never sit them all/.test(x.message))).toBe(false);
+  });
+});
+
+/**
+ * What a member is entitled to, and when they run out.
+ *
+ * These are the numbers a student is SHOWN and then held to, which is why they are computed
+ * by a pure function and tested without a database: the screen saying "2 left" and start()
+ * refusing the next one have to be the same arithmetic, or the product tells a member they
+ * have an interview and then denies it.
+ */
+describe('summariseEntitlement', () => {
+  const twoRoundPlan = () => resolvePlan([plan({
+    _id: 'p', name: 'Final year',
+    rounds: [
+      { type: 'technical',     label: 'DSA', questions: 3, minutes: 12 },
+      { type: 'communication', label: '',    questions: 1, minutes: 4 },
+    ],
+    quota: { perThirtyDays: 3, cooldownHours: 12 },
+  })], member());
+
+  const sat = (daysAgo: number, key: string | null, engaged = true) => ({
+    planRoundKey: key,
+    createdAt: new Date(Date.now() - daysAgo * 86400_000),
+    engaged,
+  });
+
+  it('names every round, and keeps the admin label separate from the title', () => {
+    const e = summariseEntitlement(twoRoundPlan(), []);
+    expect(e.rounds.map(r => r.title)).toEqual(['Technical Interview', 'Communication Round']);
+    expect(e.rounds[0].label).toBe('DSA');
+    // Unnamed by the admin, so the card has nothing to put under the title.
+    expect(e.rounds[1].label).toBe('');
+  });
+
+  it('counts usage per round as well as overall', () => {
+    const e = summariseEntitlement(twoRoundPlan(), [sat(1, 'technical'), sat(2, 'technical')]);
+    expect(e.used).toBe(2);
+    expect(e.remaining).toBe(1);
+    expect(e.rounds.find(r => r.key === 'technical')!.used).toBe(2);
+    expect(e.rounds.find(r => r.key === 'communication')!.used).toBe(0);
+  });
+
+  it('ignores sittings the member never answered, so a failed start costs them nothing', () => {
+    const e = summariseEntitlement(twoRoundPlan(), [sat(1, 'technical', false), sat(2, 'technical', false)]);
+    expect(e.used).toBe(0);
+    expect(e.canStart).toBe(true);
+  });
+
+  it('ignores sittings that have aged out of the rolling window', () => {
+    const e = summariseEntitlement(twoRoundPlan(), [sat(45, 'technical'), sat(31, 'technical')]);
+    expect(e.used).toBe(0);
+  });
+
+  it('blocks at the limit and says when an attempt comes back', () => {
+    const e = summariseEntitlement(twoRoundPlan(), [sat(29, 'technical'), sat(20, 'technical'), sat(15, 'technical')]);
+    expect(e.remaining).toBe(0);
+    expect(e.canStart).toBe(false);
+    expect(e.blockedReason).toMatch(/all 3/);
+    // The OLDEST counted sitting is the one whose expiry frees an attempt — 29 days ago, so
+    // roughly a day from now, not thirty.
+    const backIn = new Date(e.windowResetsAt!).getTime() - Date.now();
+    expect(backIn).toBeLessThan(2 * 86400_000);
+    expect(backIn).toBeGreaterThan(0);
+  });
+
+  it('holds them to the cooldown even with attempts left', () => {
+    const e = summariseEntitlement(twoRoundPlan(), [
+      { planRoundKey: 'technical', createdAt: new Date(Date.now() - 2 * 3600_000), engaged: true },
+    ]);
+    expect(e.remaining).toBe(2);
+    expect(e.canStart).toBe(false);
+    expect(e.nextAvailableAt).toBeTruthy();
+  });
+
+  it('lets them straight back in once the cooldown has passed', () => {
+    const e = summariseEntitlement(twoRoundPlan(), [
+      { planRoundKey: 'technical', createdAt: new Date(Date.now() - 13 * 3600_000), engaged: true },
+    ]);
+    expect(e.canStart).toBe(true);
+    expect(e.nextAvailableAt).toBeNull();
+  });
+
+  it('is unlimited when the plan sets no limit', () => {
+    const r = resolvePlan([plan({ quota: { perThirtyDays: 0, cooldownHours: 0 } })], member());
+    const e = summariseEntitlement(r, [sat(1, 'technical'), sat(2, 'technical'), sat(3, 'technical')]);
+    expect(e.remaining).toBeNull();
+    expect(e.canStart).toBe(true);
+  });
+
+  it('still gives a member no plan matches the built-in rounds, unlimited', () => {
+    const r = resolvePlan([plan({ audience: { branches: ['Mechanical'] } })], member({ branch: 'CSE' }));
+    const e = summariseEntitlement(r, []);
+    expect(r.plan).toBeNull();
+    expect(e.planName).toBeNull();
+    expect(e.rounds.length).toBeGreaterThan(0);
+    expect(e.canStart).toBe(true);
+  });
+});
+
+describe('roundKeyFor', () => {
+  it('keys on the type, so renaming a round does not reset a member usage count', () => {
+    const before = [{ type: 'technical', label: 'Technical', questions: 3, minutes: 12 }] as any;
+    const after  = [{ type: 'technical', label: 'DSA & fundamentals', questions: 3, minutes: 12 }] as any;
+    expect(roundKeyFor(before, 0)).toBe(roundKeyFor(after, 0));
+  });
+
+  it('distinguishes two rounds of the same type without colliding', () => {
+    const rounds = [
+      { type: 'technical', label: 'Round 1', questions: 3, minutes: 12 },
+      { type: 'hr',        label: '',        questions: 2, minutes: 8 },
+      { type: 'technical', label: 'Round 2', questions: 3, minutes: 12 },
+    ] as any;
+    expect([0, 1, 2].map(i => roundKeyFor(rounds, i))).toEqual(['technical', 'hr', 'technical-1']);
   });
 });

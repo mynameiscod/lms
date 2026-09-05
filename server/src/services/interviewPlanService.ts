@@ -243,10 +243,17 @@ export function validatePlans(plans: IInterviewPlan[]): PlanWarning[] {
     if (!p.rounds?.length) {
       out.push({ level: 'warn', planId: String(p._id), message: `"${p.name}" has no rounds, so it cannot build an interview.` });
     }
-    if (t.questions > PLAN_BOUNDS.totalQuestions.max) {
+    /**
+     * More rounds than the allowance can pay for.
+     *
+     * Each round is a separate sitting, so a plan offering three interviews on an allowance
+     * of two shows the member a card they can never reach — and there is nothing on either
+     * screen that would say why. This is the one arithmetic mistake this form makes easy.
+     */
+    if (p.active && p.quota.perThirtyDays > 0 && (p.rounds?.length || 0) > p.quota.perThirtyDays) {
       out.push({
         level: 'warn', planId: String(p._id),
-        message: `"${p.name}" asks ${t.questions} questions. Only the first ${PLAN_BOUNDS.totalQuestions.max} get per-question coaching in the feedback, so the rest are asked but never coached.`,
+        message: `"${p.name}" offers ${p.rounds.length} interviews but allows only ${p.quota.perThirtyDays} in 30 days, so a member can never sit them all.`,
       });
     }
     if (p.active && !p.fallback && audienceIsOpen(p.audience)) {
@@ -275,6 +282,199 @@ export function validatePlans(plans: IInterviewPlan[]): PlanWarning[] {
   }
 
   return out;
+}
+
+// ─── What a member is entitled to ────────────────────────────────────────────
+
+/**
+ * A round's stable identity.
+ *
+ * DERIVED FROM THE TYPE, NOT THE LABEL OR THE POSITION. Usage is counted by this key across
+ * a rolling window, so it has to survive the two things admins actually do to plans: rename
+ * a round ("Technical" → "DSA & fundamentals") and reorder them. Either would otherwise
+ * reset a member's usage mid-window and hand them their allowance twice.
+ *
+ * The suffix only appears when a plan has more than one round of the same type, so the
+ * common case stays the readable `technical`.
+ */
+export function roundKeyFor(rounds: IInterviewRound[], index: number): string {
+  const type = rounds[index]?.type;
+  const nth = rounds.slice(0, index).filter(r => r.type === type).length;
+  return nth === 0 ? String(type) : `${type}-${nth}`;
+}
+
+export const withRoundKeys = (rounds: IInterviewRound[]): (IInterviewRound & { key: string })[] =>
+  rounds.map((r, i) => ({ ...r, key: roundKeyFor(rounds, i) }));
+
+/**
+ * What the interviewer is told this round is FOR.
+ *
+ * Rides the `focus` mechanism mode=intro already proves: one line in the existing prompt,
+ * not a second prompt per type. Without it a round labelled "HR" would open on a technical
+ * question, because the label lives on a card the model never sees.
+ */
+export const ROUND_FOCUS: Record<InterviewRoundType, string> = {
+  technical:
+    'the technical side — what they have actually built, what they understand about it, and how they debug when it breaks',
+  hr:
+    'the behavioural side — motivation, ownership, how they work with other people, and why they want this role. Do not ask technical questions',
+  communication:
+    'how clearly they can explain themselves — structure, fluency and confidence. Judge the explaining, not the technical depth',
+};
+
+/**
+ * Topics for the non-technical rounds.
+ *
+ * A technical round keeps whatever the caller already resolved — the role blueprint's
+ * canonical skills, a company's emphasis, or the pathway preset — because that resolution is
+ * what makes its answers admissible as skill evidence. An HR or communication round must NOT
+ * inherit those: grading "Spring Boot" against a question about handling a setback would
+ * write evidence about a skill nobody asked about.
+ */
+export const ROUND_AREAS: Record<InterviewRoundType, string[]> = {
+  technical: [],
+  hr: ['Motivation & fit', 'Ownership', 'Working with people', 'Handling setbacks', 'Career goals'],
+  communication: ['Self-introduction', 'Explaining your work', 'Structure & clarity', 'Confidence'],
+};
+
+/** One sitting, as far as usage counting is concerned. */
+export interface CountedSitting {
+  planRoundKey?: string | null;
+  createdAt: Date | string;
+  /** Only sittings the member actually engaged with count. See `countsTowardQuota`. */
+  engaged: boolean;
+}
+
+/**
+ * What a round is called to the MEMBER.
+ *
+ * The admin's label is a subtitle, never a replacement: "DSA & fundamentals" tells a student
+ * what will be asked, but only "Technical Interview" tells them what kind of thing they are
+ * about to sit. A plan with no custom label still has to name itself properly.
+ */
+export const ROUND_TITLE: Record<InterviewRoundType, string> = {
+  technical:     'Technical Interview',
+  hr:            'HR Interview',
+  communication: 'Communication Round',
+};
+
+export interface MemberRoundView {
+  key: string;
+  type: InterviewRoundType;
+  /** Always set — the kind of interview this is. */
+  title: string;
+  /** The admin's own name for it, or empty. A subtitle, not the title. */
+  label: string;
+  questions: number;
+  minutes: number;
+  /** Sittings of this round inside the window. */
+  used: number;
+  lastSatAt: string | null;
+}
+
+export interface MemberEntitlement {
+  planId: string | null;
+  planName: string | null;
+  rounds: MemberRoundView[];
+  /** 0 means unlimited. */
+  perThirtyDays: number;
+  used: number;
+  /** Null when unlimited. */
+  remaining: number | null;
+  cooldownHours: number;
+  /** When the cooldown lifts, or null if nothing is holding them back. */
+  nextAvailableAt: string | null;
+  /** When the oldest counted sitting ages out and an attempt comes back. */
+  windowResetsAt: string | null;
+  canStart: boolean;
+  /** Why not, in the member's own terms. Empty when they can start. */
+  blockedReason: string;
+}
+
+export const QUOTA_WINDOW_DAYS = 30;
+
+/**
+ * A sitting only counts once the member has actually answered something.
+ *
+ * Counting STARTS would punish somebody whose session died in the stale sweep or whose
+ * interviewer failed to open; counting only COMPLETIONS would let anyone farm unlimited
+ * interviews by abandoning each one. "They engaged with it" is the line that is fair in both
+ * directions, and it is the same test the resume path already uses to decide whether a live
+ * session is worth keeping.
+ */
+export const countsTowardQuota = (s: CountedSitting): boolean => !!s.engaged;
+
+/**
+ * Turn a plan plus a member's recent sittings into what the student screen shows.
+ *
+ * Pure, and takes the sittings rather than reading them, because this is the number a member
+ * is shown and then held to — it needs to be testable without a database.
+ */
+export function summariseEntitlement(
+  resolved: ResolvedPlan,
+  sittings: CountedSitting[],
+  now: Date = new Date(),
+): MemberEntitlement {
+  const windowStart = new Date(now.getTime() - QUOTA_WINDOW_DAYS * 86400_000);
+  const counted = sittings
+    .filter(countsTowardQuota)
+    .filter(s => new Date(s.createdAt) >= windowStart)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  const rounds: MemberRoundView[] = withRoundKeys(resolved.rounds).map(r => {
+    const mine = counted.filter(s => s.planRoundKey === r.key);
+    const last = mine[mine.length - 1];
+    return {
+      key: r.key,
+      type: r.type,
+      title: ROUND_TITLE[r.type],
+      // Raw, so the screen can tell "the admin named this" from "the admin did not" and
+      // avoid printing "Technical" underneath "Technical Interview".
+      label: (r.label || '').trim(),
+      questions: r.questions,
+      minutes: r.minutes,
+      used: mine.length,
+      lastSatAt: last ? new Date(last.createdAt).toISOString() : null,
+    };
+  });
+
+  const { perThirtyDays, cooldownHours } = resolved.quota;
+  const used = counted.length;
+  const remaining = perThirtyDays > 0 ? Math.max(0, perThirtyDays - used) : null;
+
+  // The oldest sitting still inside the window is the one whose expiry gives an attempt
+  // back. Only worth stating when they have actually run out.
+  const oldest = counted[0];
+  const windowResetsAt = oldest && remaining === 0
+    ? new Date(new Date(oldest.createdAt).getTime() + QUOTA_WINDOW_DAYS * 86400_000).toISOString()
+    : null;
+
+  const newest = counted[counted.length - 1];
+  const cooldownEndsAt = newest && cooldownHours > 0
+    ? new Date(new Date(newest.createdAt).getTime() + cooldownHours * 3600_000)
+    : null;
+  const coolingDown = !!cooldownEndsAt && cooldownEndsAt > now;
+
+  let blockedReason = '';
+  if (remaining === 0) {
+    blockedReason = `You have used all ${perThirtyDays} of your mock interviews for this 30-day period.`;
+  } else if (coolingDown) {
+    blockedReason = 'You have just finished an interview. Take a short break before the next one.';
+  }
+
+  return {
+    planId: resolved.plan ? String(resolved.plan._id) : null,
+    planName: resolved.plan?.name || null,
+    rounds,
+    perThirtyDays,
+    used,
+    remaining,
+    cooldownHours,
+    nextAvailableAt: coolingDown ? cooldownEndsAt!.toISOString() : null,
+    windowResetsAt,
+    canStart: !blockedReason,
+    blockedReason,
+  };
 }
 
 export { ROUND_TYPES, ROUND_TYPE_LABEL, PLAN_BOUNDS, DEFAULT_PLAN_SHAPE };

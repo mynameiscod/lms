@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import passportApi, { InterviewSession } from '../../api/passportApi';
+import passportApi, { InterviewSession, MemberEntitlement, MemberRoundView } from '../../api/passportApi';
 import PassportShell, { LockedPanel } from './PassportShell';
 import { useSessionRecorder } from './useSessionRecorder';
 import { useInterviewVoice, speechInSupported, speechOutSupported } from './useInterviewVoice';
@@ -17,6 +17,34 @@ const READINESS_LABEL: Record<string, string> = {
 };
 
 const VERDICT_LABEL: Record<string, string> = { strong: 'Strong', okay: 'Okay', weak: 'Needs work' };
+
+const ROUND_ICON: Record<string, string> = {
+  technical: 'bi-code-slash', hr: 'bi-person-check', communication: 'bi-chat-dots',
+};
+
+/**
+ * What each round is, said to the student.
+ *
+ * Written here rather than reusing the interviewer's `focus` line, which is an instruction
+ * to a model in the third person ("what they have actually built") and reads like a
+ * description of somebody else when shown to the person about to sit it.
+ */
+const ROUND_BLURB: Record<string, string> = {
+  technical:     'What you have built, what you understand about it, and how you work through a problem.',
+  hr:            'Motivation, ownership, and how you work with other people.',
+  communication: 'How clearly you explain yourself — structure, fluency and confidence.',
+};
+
+/** "in 3 hours" / "on 12 Mar" — whichever is the more useful way to say when. */
+const whenFree = (iso: string | null): string => {
+  if (!iso) return '';
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return 'now';
+  const hours = Math.ceil(ms / 3600_000);
+  if (hours <= 1) return 'in under an hour';
+  if (hours < 24) return `in ${hours} hours`;
+  return `on ${new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
+};
 
 const Interview: React.FC = () => {
   const [params] = useSearchParams();
@@ -108,12 +136,19 @@ const Interview: React.FC = () => {
   const mode = params.get('mode');
   const company = params.get('company');
 
-  const start = useCallback(async () => {
+  /**
+   * `round` is the key of one of the member's own plan rounds — what the cards start.
+   *
+   * Optional so every existing caller (the mission deep-link, "practice again", a company
+   * page) keeps working unchanged and gets the untyped mock it always got.
+   */
+  const start = useCallback(async (round?: string) => {
     setBusy(true); setErr('');
     try {
       const r = await passportApi.startInterview(
         company || undefined,
         mode === 'role' || mode === 'intro' ? mode : undefined,
+        round,
       );
       setSession(r.session);
       setElapsed(0);
@@ -254,6 +289,23 @@ const Interview: React.FC = () => {
   const sessions: InterviewSession[] = data?.sessions || [];
   const aiAvailable = data?.aiAvailable !== false;
 
+  /**
+   * What this member's plan gives them. Always present for an entitled member — a member no
+   * admin plan matches still resolves to the built-in set, so the cards are never empty.
+   */
+  const entitlement: MemberEntitlement | undefined = data?.entitlement;
+  const rounds: MemberRoundView[] = entitlement?.rounds || [];
+  const canStartRound = entitlement ? entitlement.canStart : true;
+  /**
+   * What to practise next: whichever round they have sat least, ties broken by the order the
+   * admin put them in. Gives every general "start" button on this page one unambiguous
+   * meaning instead of quietly running a different, untyped interview to the cards.
+   */
+  const nextRound = rounds.length
+    ? [...rounds].sort((a, b) => a.used - b.used || rounds.indexOf(a) - rounds.indexOf(b))[0]
+    : null;
+
+
   if (session && session.status === 'completed') {
     const ev = session.evaluation;
     return (
@@ -264,7 +316,7 @@ const Interview: React.FC = () => {
             <div>
               <span className="cp-iv-kicker">Interview report</span>
               <h1>Your interview feedback</h1>
-              <p>{session.role} · {session.transcript.filter(t => t.role === 'candidate').length} answers given</p>
+              <p>{session.planRoundLabel || session.role} · {session.transcript.filter(t => t.role === 'candidate').length} answers given</p>
             </div>
             <div className="cp-iv-score-ring" style={{ '--score': `${ev?.overallScore ?? 0}%` } as React.CSSProperties}>
               <strong>{ev?.overallScore ?? 0}</strong><span>/100</span>
@@ -344,7 +396,14 @@ const Interview: React.FC = () => {
               )}
               {!!ev?.strengths?.length && <div className="pm-card cp-iv-card"><h3 className="good-title">✓ Strengths</h3><ul className="iv-list">{ev.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul></div>}
               {!!ev?.improvements?.length && <div className="pm-card cp-iv-card"><h3 className="warn-title">△ Work on this</h3><ul className="iv-list">{ev.improvements.map((s, i) => <li key={i}>{s}</li>)}</ul></div>}
-              <button className="pm-btn primary cp-iv-full" onClick={() => { setSession(null); start(); }}>Start another interview</button>
+              <button
+                className="pm-btn primary cp-iv-full"
+                onClick={() => { setSession(null); start(nextRound?.key); }}
+                disabled={!canStartRound}
+              >
+                {nextRound ? `Next: ${nextRound.title}` : 'Start another interview'}
+              </button>
+              {!canStartRound && <div className="cp-iv-muted">{entitlement?.blockedReason}</div>}
               <button className="pm-btn cp-iv-full" onClick={() => navigate('/careerpilot/placement')}>Go to placement readiness</button>
             </div>
           </div>
@@ -357,7 +416,9 @@ const Interview: React.FC = () => {
     return (
       <PassportShell hideNav meta={<span className="pm-pill"><i>🎙️</i>Question <b>{session.askedCount}</b> / {session.maxQuestions}</span>}>
         <div className="cp-iv-live-head">
-          <div><span className="cp-iv-kicker">Live practice</span><h1>{session.companyName ? `${session.companyName} mock interview` : 'Mock interview in progress'}</h1><p>{session.role} · with {session.interviewerName}. Answer as if this were the real thing — full sentences, specific examples.</p></div>
+          {/* Named for the round the member picked, so the screen agrees with the card they
+              tapped. Falls back to the old wording for an untyped mock. */}
+          <div><span className="cp-iv-kicker">Live practice</span><h1>{session.companyName ? `${session.companyName} mock interview` : session.planRoundLabel || 'Mock interview in progress'}</h1><p>{session.role} · with {session.interviewerName}. Answer as if this were the real thing — full sentences, specific examples.</p></div>
           {(() => {
             // A capped round counts DOWN. "1:12 elapsed" does not tell somebody with a
             // deadline what they need to know, which is how long they have left.
@@ -429,10 +490,88 @@ const Interview: React.FC = () => {
       <div className="cp-iv-page cp-iv-dashboard">
         <div className="cp-iv-title-row">
           <div><span className="cp-iv-kicker">Interview practice</span><h1>Mock Interview</h1><p>Practice. Improve. Perform. Get interview ready with AI.</p></div>
-          <button className="pm-btn primary cp-iv-start-top" onClick={start} disabled={busy}><i className="bi bi-play-fill" /> {busy ? 'Setting up…' : 'Start AI Mock Interview'}</button>
+          <button
+            className="pm-btn primary cp-iv-start-top"
+            onClick={() => start(nextRound?.key)}
+            disabled={busy || !canStartRound}
+          >
+            <i className="bi bi-play-fill" />
+            {busy ? 'Setting up…' : nextRound ? `Start ${nextRound.title}` : 'Start AI Mock Interview'}
+          </button>
         </div>
 
         {!aiAvailable && <div className="pm-msg info">AI isn't configured on this tenant yet, so interviews will run on scripted questions and won't be scored.</div>}
+
+        {/*
+          THE INTERVIEWS THIS MEMBER HAS ACTUALLY BEEN GIVEN.
+          One card per round of their plan, named for what it is, so a student can see what
+          is expected of them before starting rather than pressing one generic button and
+          finding out. The allowance is shared across the cards — the plan grants a number of
+          interviews, not a number per type — which is why it is stated once, up here.
+        */}
+        <section className="cp-iv-assigned">
+          <div className="cp-iv-assigned-head">
+            <div>
+              <h2>Your mock interviews</h2>
+              <p>
+                {entitlement?.planName
+                  ? <>Assigned to you on the <b>{entitlement.planName}</b> plan.</>
+                  : <>The standard practice set for your course and year.</>}
+              </p>
+            </div>
+            <div className={`cp-iv-allowance${entitlement?.remaining === 0 ? ' out' : ''}`}>
+              {entitlement && entitlement.perThirtyDays > 0 ? (
+                <>
+                  <b>{entitlement.remaining}</b>
+                  <span>of {entitlement.perThirtyDays} left</span>
+                  <small>rolling 30 days</small>
+                </>
+              ) : (
+                <><b><i className="bi bi-infinity" /></b><span>no limit</span><small>practise as often as you like</small></>
+              )}
+            </div>
+          </div>
+
+          {!canStartRound && (
+            <div className="cp-iv-blocked">
+              <i className="bi bi-hourglass-split" />
+              <span>
+                {entitlement?.blockedReason}
+                {/* Never a dead end: always say when it comes back. */}
+                {entitlement?.nextAvailableAt && <> You can start again {whenFree(entitlement.nextAvailableAt)}.</>}
+                {entitlement?.windowResetsAt && <> Your next attempt frees up {whenFree(entitlement.windowResetsAt)}.</>}
+              </span>
+            </div>
+          )}
+
+          <div className="cp-iv-round-cards">
+            {rounds.map(r => (
+              <article className={`cp-iv-round-card ${r.type}${!canStartRound ? ' locked' : ''}`} key={r.key}>
+                <div className="cp-iv-round-icon"><i className={`bi ${ROUND_ICON[r.type] || 'bi-mic'}`} /></div>
+                <h3>{r.title}</h3>
+                {/* Only when the admin actually named it — otherwise this repeats the title. */}
+                {!!r.label && <span className="cp-iv-round-sub">{r.label}</span>}
+                <p className="cp-iv-round-blurb">{ROUND_BLURB[r.type] || ''}</p>
+                <div className="cp-iv-round-meta">
+                  <span><i className="bi bi-patch-question" /> {r.questions} question{r.questions === 1 ? '' : 's'}</span>
+                  <span><i className="bi bi-clock" /> {r.minutes} min</span>
+                </div>
+                <div className="cp-iv-round-foot">
+                  <span className="cp-iv-round-used">
+                    {r.used ? `Practised ${r.used}×` : 'Not practised yet'}
+                  </span>
+                  <button
+                    className="cp-iv-round-go"
+                    onClick={() => start(r.key)}
+                    disabled={busy || !canStartRound}
+                  >
+                    {r.used ? 'Practise again' : 'Start'} <i className="bi bi-arrow-right" />
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
 
         <div className="cp-iv-main-grid">
           <div className="cp-iv-main-column">
@@ -445,7 +584,7 @@ const Interview: React.FC = () => {
                 <div className="cp-iv-role"><span>Target role</span><b>{latest?.role || 'Your CareerPilot role'}</b></div>
                 <div className="cp-iv-tags">{latestAreas.slice(0, 4).map(a => <span key={a.title}>{a.title}</span>)}{!latestAreas.length && <><span>Role based</span><span>Follow-ups</span><span>Voice enabled</span></>}</div>
               </div>
-              <div className="cp-iv-practice-card"><i className="bi bi-calendar2-check" /><div><b>Practice regularly</b><p>Each round adapts to your pathway and ends with actionable feedback.</p><button onClick={start} disabled={busy}>Start a round <i className="bi bi-arrow-right" /></button></div></div>
+              <div className="cp-iv-practice-card"><i className="bi bi-calendar2-check" /><div><b>Practice regularly</b><p>Each round adapts to your pathway and ends with actionable feedback.</p><button onClick={() => start(nextRound?.key)} disabled={busy || !canStartRound}>Start a round <i className="bi bi-arrow-right" /></button></div></div>
             </section>
 
             <div className="cp-iv-metric-row">
@@ -473,7 +612,7 @@ const Interview: React.FC = () => {
               <div><i className="bi bi-robot" /><span><b>AI Mock Interview</b><small>Real conversation with adaptive follow-up questions.</small></span></div>
               <div><i className="bi bi-mic" /><span><b>Voice Practice</b><small>Speak naturally in supported browsers, or type anywhere.</small></span></div>
               <div><i className="bi bi-clipboard2-check" /><span><b>Detailed Feedback</b><small>Area scores, strengths, improvements and better answers.</small></span></div>
-              <button className="pm-btn primary" onClick={start} disabled={busy}>Start now <i className="bi bi-arrow-right" /></button>
+              <button className="pm-btn primary" onClick={() => start(nextRound?.key)} disabled={busy || !canStartRound}>Start now <i className="bi bi-arrow-right" /></button>
             </section>
           </div>
 
@@ -490,7 +629,9 @@ const Interview: React.FC = () => {
             <section className="cp-iv-panel">
               <div className="cp-iv-panel-head"><h3>Recent Mock Interviews</h3><span>{sessions.length} total</span></div>
               <div className="cp-iv-history-list">
-                {sessions.slice(0, 5).map(s => <button key={s.id} onClick={() => openPast(s)}><span className={`cp-iv-mini-score ${s.status}`}>{s.status === 'completed' ? s.evaluation?.overallScore ?? 0 : '•'}</span><span><b>{s.role}</b><small>{new Date(s.startedAt).toLocaleDateString()} · {s.status === 'completed' ? READINESS_LABEL[s.evaluation?.readinessLevel || ''] || 'Completed' : s.status === 'in_progress' ? 'In progress — resume' : 'Not completed'}</small></span><i className="bi bi-chevron-right" /></button>)}
+                {/* Titled by the round it WAS, read off the row — so a member's history keeps
+                    saying "HR Interview" after an admin renames that round. */}
+                {sessions.slice(0, 5).map(s => <button key={s.id} onClick={() => openPast(s)}><span className={`cp-iv-mini-score ${s.status}`}>{s.status === 'completed' ? s.evaluation?.overallScore ?? 0 : '•'}</span><span><b>{s.planRoundLabel || s.role}</b><small>{new Date(s.startedAt).toLocaleDateString()} · {s.status === 'completed' ? READINESS_LABEL[s.evaluation?.readinessLevel || ''] || 'Completed' : s.status === 'in_progress' ? 'In progress — resume' : 'Not completed'}</small></span><i className="bi bi-chevron-right" /></button>)}
                 {!sessions.length && <div className="cp-iv-empty compact">No mock interviews yet.</div>}
               </div>
             </section>
@@ -501,7 +642,7 @@ const Interview: React.FC = () => {
           </aside>
         </div>
 
-        <div className="cp-iv-bottom-cta"><i className="bi bi-stars" /><div><b>Consistent practice builds interview confidence.</b><span>Your feedback becomes more useful as you complete more rounds.</span></div><button className="pm-btn" onClick={start} disabled={busy}>Practice again <i className="bi bi-arrow-right" /></button></div>
+        <div className="cp-iv-bottom-cta"><i className="bi bi-stars" /><div><b>Consistent practice builds interview confidence.</b><span>Your feedback becomes more useful as you complete more rounds.</span></div><button className="pm-btn" onClick={() => start(nextRound?.key)} disabled={busy || !canStartRound}>Practice again <i className="bi bi-arrow-right" /></button></div>
         {err && <div className="pm-msg err">{err}</div>}
       </div>
     </PassportShell>

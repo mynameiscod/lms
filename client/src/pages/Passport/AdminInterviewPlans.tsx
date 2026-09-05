@@ -165,6 +165,10 @@ const AdminInterviewPlans: React.FC = () => {
     };
   }, [draft]);
 
+  /** More rounds than the allowance pays for — the one arithmetic slip this form invites. */
+  const draftShort = !!draft && draft.quota.perThirtyDays > 0
+    && draft.rounds.length > draft.quota.perThirtyDays;
+
   if (loading) return <div style={{ padding: 20, color: '#64748b' }}>Loading interview plans…</div>;
   if (!data) return <div style={{ padding: 20, color: '#dc2626' }}>{err || 'Could not load interview plans.'}</div>;
 
@@ -218,9 +222,10 @@ const AdminInterviewPlans: React.FC = () => {
       <div className="ivp-sec">
         <h4>Rounds</h4>
         <p>
-          Questions are the target, minutes the cap — whichever comes first ends the round.
-          The three types are graded on different criteria, so the mix decides what the
-          feedback can tell a member about.
+          <b>Each round is a separate interview the member sits and is graded on.</b> They see
+          one card per round. Questions are the target and minutes the cap — whichever comes
+          first ends it. The three types are graded on different criteria, so the mix decides
+          what the feedback can tell a member about.
         </p>
         {(draft?.rounds || []).map((r, i) => (
           <div className="ivp-rrow" key={i}>
@@ -257,11 +262,13 @@ const AdminInterviewPlans: React.FC = () => {
         {(draft?.rounds.length || 0) < (bounds?.rounds.max || 4) && (
           <button className="ivp-btn sm" type="button" onClick={addRound}>+ Add round</button>
         )}
-        <div className={`ivp-total${draftTotals.questions > (bounds?.totalQuestions.max || 12) ? ' over' : ''}`}>
-          Whole interview: <b>{draftTotals.questions} question{draftTotals.questions === 1 ? '' : 's'}</b> ·
-          up to <b>{draftTotals.minutes} min</b>
-          {draftTotals.questions > (bounds?.totalQuestions.max || 12) && (
-            <> — only the first {bounds?.totalQuestions.max} get per-question coaching in the feedback.</>
+        <div className={`ivp-total${draftShort ? ' over' : ''}`}>
+          <b>{draft?.rounds.length || 0} separate interview{(draft?.rounds.length || 0) === 1 ? '' : 's'}</b>
+          {' · '}{draftTotals.questions} question{draftTotals.questions === 1 ? '' : 's'} in total
+          {' · '}up to {draftTotals.minutes} min across them
+          {draftShort && (
+            <> — but only <b>{draft?.quota.perThirtyDays}</b> allowed per 30 days, so a member
+              cannot sit them all.</>
           )}
         </div>
       </div>
@@ -331,7 +338,7 @@ const AdminInterviewPlans: React.FC = () => {
             ))}
           </div>
           <div className="ivp-meta">
-            <span><b>{p.totals.questions}</b> questions · up to <b>{p.totals.minutes} min</b></span>
+            <span><b>{p.rounds.length}</b> interview{p.rounds.length === 1 ? '' : 's'} · {p.totals.questions} questions · up to {p.totals.minutes} min</span>
             <span>
               {p.quota.perThirtyDays > 0
                 ? <><b>{p.quota.perThirtyDays}</b> per 30 days</>

@@ -41,6 +41,9 @@ const matchOne = (value: any, cond: any): boolean => {
     if ('$in' in cond) return cond.$in.map(String).includes(String(value));
     if ('$nin' in cond) return !cond.$nin.map(String).includes(String(value));
     if ('$lte' in cond) return value != null && new Date(value) <= new Date(cond.$lte);
+    // The quota window's lower bound. Without it every `createdAt: { $gte }` query fell
+    // through to the string compare below and silently matched nothing.
+    if ('$gte' in cond) return value != null && new Date(value) >= new Date(cond.$gte);
     if ('$exists' in cond) return (value !== undefined && value !== null) === cond.$exists;
   }
   if (cond === null) return value === null || value === undefined;
@@ -89,6 +92,9 @@ jest.mock('../models/PassportInterview', () => ({
   __esModule: true,
   default: {
     findOne: async (q: any) => interviews.find(d => matches(d, q)) || null,
+    // Read by the quota check, which counts a member's recent sittings before letting them
+    // open another. Returns the same in-memory rows every other operation here works on.
+    find: (q: any) => lean(interviews.filter(d => matches(d, q))),
     create: async (doc: any) => {
       if (wouldCollide(doc)) throw duplicateKeyError();
       seq += 1;
@@ -178,6 +184,19 @@ jest.mock('../services/interviewIntelligenceService', () => ({
   planInterviewCoverage: async () => ({ ok: false }),
   projectInterviewToEvidence: async () => null,
   adaptPassportInterview: () => ({ questions: [], dimensionScores: [] }),
+}));
+/**
+ * No interview plans configured, which is the state this suite is about: a tenant that has
+ * never opened the plans screen still gets the built-in shape and no quota, so the lock is
+ * the only thing deciding whether a second start succeeds.
+ */
+jest.mock('../models/InterviewPlan', () => ({
+  __esModule: true,
+  default: { find: () => lean([]) },
+  DEFAULT_PLAN_SHAPE: jest.requireActual('../models/InterviewPlan').DEFAULT_PLAN_SHAPE,
+  ROUND_TYPES: jest.requireActual('../models/InterviewPlan').ROUND_TYPES,
+  ROUND_TYPE_LABEL: jest.requireActual('../models/InterviewPlan').ROUND_TYPE_LABEL,
+  PLAN_BOUNDS: jest.requireActual('../models/InterviewPlan').PLAN_BOUNDS,
 }));
 jest.mock('../services/aiClients', () => ({ __esModule: true, getOpenAI: () => null }));
 jest.mock('../services/aiGateway', () => ({ __esModule: true, recordUsage: async () => {} }));

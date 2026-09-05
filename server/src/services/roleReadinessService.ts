@@ -1,3 +1,4 @@
+import { requirementForYear } from '../models/RoleSkillBlueprint';
 import StudentSkillProfile from '../models/StudentSkillProfile';
 import CareerSkill from '../models/CareerSkill';
 import { getCareerContext } from './careerContextService';
@@ -163,7 +164,35 @@ export async function calculateStudentRoleReadiness(
     };
   }
 
-  const requirements = (blueprint.requirements || []).filter(r => r.active);
+  /**
+   * THE STUDENT'S YEAR NARROWS THE BLUEPRINT.
+   *
+   * One blueprint per role is still the model — a role means one thing — but not every
+   * requirement in it applies to every year. A first-year and a final-year who both chose
+   * Software Engineer were previously measured against the identical list at identical
+   * targets, so the first-year was scored on System Design and REST APIs and shown a
+   * readiness figure in the low teens. That is not a measurement, it is a discouragement.
+   *
+   * Resolved here rather than in each caller, because this is the one function every
+   * downstream module reads its skill list from: the roadmap planner, coverage, the question
+   * drafter and the daily plan all inherit whatever this decides, which is exactly why it
+   * must be decided once.
+   *
+   * A requirement with no years still applies to everyone, so an untouched blueprint behaves
+   * as it always has.
+   */
+  const studentYear = context.education?.currentAcademicYear || null;
+  const requirements = (blueprint.requirements || [])
+    .filter(r => r.active)
+    .map(r => {
+      const resolved = requirementForYear(r as any, studentYear);
+      // The target travels with the requirement so everything below — the gap verdict, the
+      // roadmap's targetScore, the explanation shown to the student — uses the year's bar
+      // rather than the role's default.
+      return resolved.applies ? { ...(r as any), targetLevel: resolved.targetLevel } : null;
+    })
+    .filter(Boolean) as typeof blueprint.requirements;
+
   if (!requirements.length) {
     return {
       available: false, reason: 'ROLE_BLUEPRINT_NOT_READY',

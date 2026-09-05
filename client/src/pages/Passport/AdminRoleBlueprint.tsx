@@ -24,6 +24,13 @@ const AdminRoleBlueprint: React.FC = () => {
   const [rows, setRows] = useState<BlueprintRequirement[]>([]);
   const [tree, setTree] = useState<SkillNode[]>([]);
   const [vocab, setVocab] = useState<any>(null);
+  /**
+   * Years come from the tenant's own onboarding configuration, not a constant here — an admin
+   * who renamed "1st Year" would otherwise get a picker offering a value no student can hold.
+   */
+  const [yearOptions, setYearOptions] = useState<string[]>([]);
+  /** Which requirement has its year panel open. The row is dense; this keeps it out of it. */
+  const [yearsOpen, setYearsOpen] = useState<string | null>(null);
   const [gaps, setGaps] = useState<string[]>([]);
   const [picking, setPicking] = useState(false);
   const [filter, setFilter] = useState('');
@@ -50,6 +57,11 @@ const AdminRoleBlueprint: React.FC = () => {
       .then(r => {
         setBp(r.blueprint); setRows(r.blueprint.requirements); setTree(r.skillTree);
         setVocab(r.vocabulary); setDirty(false); setPicking(false);
+        passportApi.audienceOptions()
+          .then(o => setYearOptions(o.years || []))
+          // A picker with no options is a worse failure than one with the usual four, and the
+          // blueprint itself must still load if the options call fails.
+          .catch(() => setYearOptions(['1st Year', '2nd Year', '3rd Year', '4th Year']));
       })
       .catch(e => setErr(e?.response?.data?.message || 'Could not load that blueprint.'));
   }, [roleKey]);
@@ -252,6 +264,15 @@ const AdminRoleBlueprint: React.FC = () => {
                       onChange={e => patch(r.skillKey, { weight: Number(e.target.value) })} />
                   </span>
 
+                  <span className="yr">
+                    <button className="rbp-years-btn" onClick={() => setYearsOpen(yearsOpen === r.skillKey ? null : r.skillKey)}
+                            title="Which years this applies to, and at what level">
+                      {!(r.years || []).length ? 'All years' : (r.years || []).join(', ')}
+                      {(r.yearTargets || []).length ? ' ·' : ''}
+                      <i className="bi bi-chevron-down" />
+                    </button>
+                  </span>
+
                   <span className="tg">
                     <select value={r.targetLevel} onChange={e => patch(r.skillKey, { targetLevel: e.target.value })}>
                       {(vocab?.targetLevels || []).map((t: string) => <option key={t} value={t}>{title(t)}</option>)}
@@ -263,6 +284,42 @@ const AdminRoleBlueprint: React.FC = () => {
                       <i className="bi bi-x-lg" />
                     </button>
                   </span>
+
+                  {yearsOpen === r.skillKey && (
+                    <div className="rbp-years">
+                      <p>
+                        Leave every year unticked and this applies to <b>all</b> of them — which is
+                        what every requirement did before years existed. Tick some to narrow it, and
+                        set a level beside a year to expect more or less of that year specifically.
+                      </p>
+                      {yearOptions.map(y => {
+                        const on = (r.years || []).includes(y);
+                        const override = (r.yearTargets || []).find(t => t.year === y);
+                        return (
+                          <div className="rbp-year-row" key={y}>
+                            <label>
+                              <input type="checkbox" checked={on} onChange={e => {
+                                const next = e.target.checked
+                                  ? [...(r.years || []), y]
+                                  : (r.years || []).filter(v => v !== y);
+                                patch(r.skillKey, { years: next });
+                              }} />
+                              {y}
+                            </label>
+                            <select value={override?.targetLevel || ''} onChange={e => {
+                              const rest = (r.yearTargets || []).filter(t => t.year !== y);
+                              patch(r.skillKey, {
+                                yearTargets: e.target.value ? [...rest, { year: y, targetLevel: e.target.value }] : rest,
+                              });
+                            }}>
+                              <option value="">same as role ({title(r.targetLevel)})</option>
+                              {(vocab?.targetLevels || []).map((t: string) => <option key={t} value={t}>{title(t)}</option>)}
+                            </select>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
 

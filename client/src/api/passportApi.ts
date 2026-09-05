@@ -2285,6 +2285,10 @@ export interface BlueprintRequirement {
   importance: string;
   weight: number;
   targetLevel: string;
+  /** Which years this applies to. Empty means all of them, which is the default. */
+  years?: string[];
+  /** The same skill at a different bar per year. Falls back to targetLevel. */
+  yearTargets?: { year: string; targetLevel: string }[];
   active: boolean;
   displayOrder: number;
   note?: string;

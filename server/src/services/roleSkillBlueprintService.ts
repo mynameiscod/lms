@@ -233,6 +233,17 @@ export function cleanRequirements(raw: any): IRoleSkillRequirement[] {
       // omitted weight is at least consistent with what the admin did say.
       weight: Number.isFinite(w) ? Math.round(w) : DEFAULT_WEIGHT[importance],
       targetLevel: SKILL_TARGET_LEVELS.includes(r?.targetLevel) ? r.targetLevel : 'WORKING',
+      // Empty means every year, which is what every blueprint written before this said.
+      years: Array.isArray(r?.years)
+        ? r.years.map((v: any) => String(v).trim()).filter(Boolean).slice(0, 12) : [],
+      // Only overrides naming a real level are kept — an unrecognised one would silently
+      // become the default and read as a deliberate choice nobody made.
+      yearTargets: Array.isArray(r?.yearTargets)
+        ? r.yearTargets
+            .filter((t: any) => t?.year && SKILL_TARGET_LEVELS.includes(t?.targetLevel))
+            .map((t: any) => ({ year: String(t.year).trim(), targetLevel: t.targetLevel }))
+            .slice(0, 12)
+        : [],
       active: r?.active !== false,
       displayOrder: Number.isFinite(Number(r?.displayOrder)) ? Number(r.displayOrder) : (i + 1) * 10,
       note: r?.note ? String(r.note).trim().slice(0, 240) : undefined,

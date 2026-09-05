@@ -240,11 +240,26 @@ const CareerSetup: React.FC = () => {
               */}
               {avail && !avail.assessmentAvailable && (
                 <>
-                  <div className="cps-known cps-notready"><i className="bi bi-info-circle" /><span><b>{avail.message || 'This career path is not ready for assessment yet.'}</b><em>{avail.reasonCode === 'ROLE_NOT_CONFIGURED' || avail.reasonCode === 'BLUEPRINT_UNPUBLISHED' || avail.reasonCode === 'BLUEPRINT_EMPTY' ? 'Choose another role, or pick “Not sure yet” — everything else in your plan still works.' : 'Your profile is saved and the rest of CareerPilot works. We will let you know when it is ready.'}</em></span></div>
-                  <button className="cps-btn ghost" onClick={() => { setDone(false); setStepIx(steps.indexOf('direction')); }}>
-                    <i className="bi bi-pencil" /> Choose a different role
-                  </button>
-                  <button className="cps-btn ghost" onClick={() => nav('/careerpilot')}>Go to my dashboard</button>
+                  <div className="cps-known cps-notready"><i className="bi bi-info-circle" /><span><b>{avail.message || 'This career path is not ready for assessment yet.'}</b><em>{avail.reasonCode === 'ROLE_NOT_CONFIGURED' || avail.reasonCode === 'BLUEPRINT_UNPUBLISHED' || avail.reasonCode === 'BLUEPRINT_EMPTY' ? 'Choose another role, or pick “Not sure yet” — everything else in your plan still works.' : 'Nothing is wrong with your profile — we are still writing the questions for your stage. There is nothing for you to do; we will let you know the moment it is ready.'}</em></span></div>
+                  {/*
+                    OFFER AN ACTION ONLY WHEN ONE WOULD HELP.
+
+                    Two very different situations produce the same sentence. A role whose
+                    blueprint is missing or unpublished IS fixed by choosing another one. An
+                    empty question pool is not — it is our content gap, no role has questions
+                    either, and inviting a student to pick again sends them round a loop that
+                    ends where it started.
+
+                    "Go to my dashboard" is gone entirely: without an assessment the dashboard
+                    has nothing to show, so it was an exit to an empty room.
+                  */}
+                  {(avail.reasonCode === 'ROLE_NOT_CONFIGURED'
+                    || avail.reasonCode === 'BLUEPRINT_UNPUBLISHED'
+                    || avail.reasonCode === 'BLUEPRINT_EMPTY') && (
+                    <button className="cps-btn ghost" onClick={() => { setDone(false); setStepIx(steps.indexOf('direction')); }}>
+                      <i className="bi bi-pencil" /> Choose a different role
+                    </button>
+                  )}
                 </>
               )}
             </section>

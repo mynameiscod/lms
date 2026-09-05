@@ -64,6 +64,23 @@ export interface IPassportInterview extends Document {
   companyProfileVersion?: number | null;
   maxQuestions: number;
   /**
+   * Which InterviewPlan round this sitting was started from, if any.
+   *
+   * RECORDED AT START AND NEVER RE-DERIVED. The plan an admin edits tomorrow is not the plan
+   * this member sat under today: rounds get renamed, reordered and retargeted, and a history
+   * row that resolved its own name at read time would silently rewrite what the member was
+   * told they were doing. `planRoundLabel` is therefore a copy, not a lookup.
+   *
+   * `planRoundKey` is what usage counting groups on, so it must stay stable across a rename —
+   * which is why the key is derived from the round TYPE and not from its label.
+   *
+   * All null on a sitting started before plans existed, and on any start that resolved to no
+   * plan. Those are ordinary mock interviews and count against nothing.
+   */
+  planId?: mongoose.Types.ObjectId | null;
+  planRoundKey?: string | null;
+  planRoundLabel?: string | null;
+  /**
    * Pins a single-purpose sitting (currently `mode=intro`, the self-introduction round a
    * daily mission asks for). Stored rather than re-derived, so every turn of the round
    * stays on the one thing the member was told it would be about — not just the opener.
@@ -175,6 +192,9 @@ const PassportInterviewSchema = new Schema<IPassportInterview>(
     roundKey:              { type: String, default: null },
     companyProfileVersion: { type: Number, default: null },
     maxQuestions:    { type: Number, default: 6 },
+    planId:          { type: Schema.Types.ObjectId, ref: 'InterviewPlan', default: null },
+    planRoundKey:    { type: String, default: null },
+    planRoundLabel:  { type: String, default: null },
     focus:           { type: String, default: null },
     timeLimitSec:    { type: Number, default: null },
     askedCount:      { type: Number, default: 0 },

@@ -783,7 +783,12 @@ export const passportApi = {
   },
 
   // ── Mock interviews ──
-  listInterviews: async (): Promise<{ locked?: boolean; priceInr?: number; aiAvailable?: boolean; sessions?: InterviewSession[]; openSessionId?: string | null }> => {
+  listInterviews: async (): Promise<{
+    locked?: boolean; priceInr?: number; aiAvailable?: boolean;
+    sessions?: InterviewSession[]; openSessionId?: string | null;
+    /** The member's plan — the rounds they were given and what is left of their allowance. */
+    entitlement?: MemberEntitlement;
+  }> => {
     const { data } = await axios.get(`${BASE}/interview`, { headers: auth() });
     return data;
   },
@@ -795,10 +800,18 @@ export const passportApi = {
    * kind of sitting that can later become skill evidence. The member never names the skills
    * — coverage is resolved server-side.
    */
-  startInterview: async (companySlug?: string, mode?: 'role' | 'intro'): Promise<{ session: InterviewSession; resumed?: boolean; aiAvailable?: boolean; mismatched?: boolean }> => {
+  /**
+   * `round` is a key from the member's own entitlement — it picks one of the rounds their
+   * plan gives them, and the server rejects a key that is not on it. Passing none is the
+   * old behaviour: an untyped mock of the built-in shape.
+   */
+  startInterview: async (
+    companySlug?: string, mode?: 'role' | 'intro', round?: string,
+  ): Promise<{ session: InterviewSession; resumed?: boolean; aiAvailable?: boolean; mismatched?: boolean }> => {
     const body: any = {};
     if (companySlug) body.companySlug = companySlug;
     if (mode) body.mode = mode;
+    if (round) body.round = round;
     const { data } = await axios.post(`${BASE}/interview/start`, body, { headers: auth() });
     return data;
   },
@@ -1312,8 +1325,8 @@ export type InterviewPlanInput = Omit<InterviewPlan, 'id' | 'totals' | 'members'
 export interface PlanWarning { level: 'warn' | 'info'; planId?: string; message: string }
 
 export interface PlanBounds {
+  /** Per ROUND, because each round is its own sitting and is graded on its own transcript. */
   questionsPerRound: { min: number; max: number };
-  totalQuestions: { min: number; max: number };
   minutesPerRound: { min: number; max: number };
   rounds: { min: number; max: number };
   perThirtyDays: { min: number; max: number };
@@ -1334,6 +1347,41 @@ export interface InterviewPlansResponse {
 
 export interface PlanTraceRow {
   id: string; name: string; priority: number; fallback: boolean; matched: boolean; reason: string;
+}
+
+/**
+ * One interview the member has been given — the student-side view of an admin's plan round.
+ *
+ * `used` is inside the same rolling 30-day window the allowance is counted over, so the two
+ * numbers on the screen always describe the same period.
+ */
+export interface MemberRoundView {
+  key: string;
+  type: InterviewRoundType;
+  /** Always set — the kind of interview this is ("Technical Interview"). */
+  title: string;
+  /** The admin's own name for it, or empty. A subtitle, not the title. */
+  label: string;
+  questions: number;
+  minutes: number;
+  used: number;
+  lastSatAt: string | null;
+}
+
+export interface MemberEntitlement {
+  planId: string | null;
+  planName: string | null;
+  rounds: MemberRoundView[];
+  /** 0 means unlimited. */
+  perThirtyDays: number;
+  used: number;
+  /** Null when unlimited. */
+  remaining: number | null;
+  cooldownHours: number;
+  nextAvailableAt: string | null;
+  windowResetsAt: string | null;
+  canStart: boolean;
+  blockedReason: string;
 }
 
 export interface InterviewPlanPreview {
@@ -1482,6 +1530,9 @@ export interface InterviewSession {
   recordingDurationSec?: number | null;
   id: string; role: string; areas: string[]; interviewerName: string;
   companySlug?: string | null; companyName?: string | null;
+  /** Which plan round this was, and what it was called at the time. Null on untyped mocks. */
+  planRoundKey?: string | null;
+  planRoundLabel?: string | null;
   maxQuestions: number; askedCount: number; status: 'in_progress' | 'completed' | 'abandoned';
   transcript: InterviewTurn[];
   evaluation?: {

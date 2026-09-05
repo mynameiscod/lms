@@ -159,26 +159,35 @@ const SkillAssessment: React.FC = () => {
 
   const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 
-  const BrandHeader = ({ compact = false }: { compact?: boolean }) => (
-    <header className="ska-topbar">
-      <div className="ska-brand">
-        <img src="/assets/logo.png" alt="CodeBegun" />
-        <span className="ska-brand-divider" />
-        <b>Career<span>Pilot</span></b>
-      </div>
-      <div className="ska-top-actions">
-        {!compact && <span className="ska-safe"><i className="bi bi-shield-check" /> Your data is safe & secure</span>}
-        {compact && <button className="ska-exit" onClick={() => nav('/careerpilot')}><i className="bi bi-box-arrow-left" /> Save & exit</button>}
-      </div>
-    </header>
+  /**
+   * NO SECOND BRAND BAR.
+   *
+   * The member shell already carries the CodeBegun logo, the CareerPilot wordmark and the
+   * member's own header. This page drew its own copy of all three, so a member who opened a
+   * mission met the branding twice, one bar stacked under the other — two logos on one
+   * screen, which reads as a page that has been pasted inside another page.
+   *
+   * It was never dead weight in the logged-out funnel, because there is no logged-out case:
+   * the route sits under ProtectedRoute and PassportMemberLayout, so it only ever renders
+   * inside the shell.
+   *
+   * What did earn its place is the way out of a half-finished paper, so that is all that is
+   * left, and only while a paper is open. Answers are saved as they are given, so leaving
+   * costs the member nothing.
+   */
+  const ExitBar = () => (
+    <div className="ska-topbar ska-topbar-exit">
+      <button className="ska-exit" onClick={() => nav('/careerpilot')}>
+        <i className="bi bi-box-arrow-left" /> Save & exit
+      </button>
+    </div>
   );
 
-  if (loading) return <div className="ska-page"><BrandHeader /><div className="ska-state"><div className="ska-load">Loading your assessment…</div></div></div>;
+  if (loading) return <div className="ska-page"><div className="ska-state"><div className="ska-load">Loading your assessment…</div></div></div>;
 
   if (done) {
     return (
       <div className="ska-page">
-        <BrandHeader />
         <main className="ska-complete-wrap">
           <section className="ska-complete-card">
             <div className="ska-complete-copy">
@@ -210,7 +219,6 @@ const SkillAssessment: React.FC = () => {
   if (!paper) {
     return (
       <div className="ska-page">
-        <BrandHeader />
         <main className="ska-intro-shell">
           <section className="ska-intro-copy">
             <span className="ska-eyebrow">KNOW YOUR STRENGTHS</span>
@@ -305,7 +313,7 @@ const SkillAssessment: React.FC = () => {
 
   return (
     <div className="ska-page">
-      <BrandHeader compact />
+      <ExitBar />
       <main className="ska-assessment-shell">
         <aside className="ska-progress-panel">
           <span className="ska-progress-label">ASSESSMENT PROGRESS</span>

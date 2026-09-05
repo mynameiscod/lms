@@ -446,6 +446,17 @@ const Interview: React.FC = () => {
               {speechInSupported && <button className={`iv-mic${voice.listening ? ' on' : ''}`} onClick={() => (voice.listening ? voice.stopListening() : voice.startListening())} disabled={busy || voice.speaking} title={voice.speaking ? 'Wait for the interviewer to finish' : voice.listening ? 'Stop recording' : 'Answer out loud'}>{voice.listening ? '⏹' : '🎤'}</button>}
               <button className="pm-btn primary" onClick={send} disabled={busy || !answer.trim()}>Send</button>
             </div>
+            {/* The only way out used to be the last card in the right-hand rail, below the
+                areas list and the voice toggle — off-screen on a laptop once the transcript
+                grew, so members reported having no way to end at all. It belongs under the
+                box they are typing into. Kept visually quiet so it is never mistaken for
+                Send, and it says what it does rather than just "End". */}
+            <div className="cp-iv-underbar">
+              <span className="cp-iv-count">Question {Math.min(session.askedCount, session.maxQuestions)} of {session.maxQuestions}</span>
+              <button className="cp-iv-endlink" onClick={() => finish()} disabled={busy}>
+                End & get my feedback
+              </button>
+            </div>
             {err && <div className="pm-msg err">{err}</div>}
             {notice && <div className="pm-msg info">{notice}</div>}
           </div>

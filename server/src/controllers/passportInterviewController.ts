@@ -536,11 +536,31 @@ export const turn = async (req: Request, res: Response) => {
         : undefined,
     });
 
-    session.transcript.push({ role: 'interviewer', text: next.say, at: new Date() } as any);
-    if (!next.endInterview) session.askedCount += 1;
+    /**
+     * THE ADMIN'S NUMBER IS A LIMIT, NOT A SUGGESTION.
+     *
+     * maxQuestions reached the model as "aim for about N" and nothing enforced it: whether a
+     * round ended came entirely from the model's own endInterview flag. A model that kept
+     * finding the next follow-up interesting ran straight past the count configured on the
+     * interview plan, so a six-question round could ask ten and neither the member nor the
+     * admin could tell which number was real. The soft budget stays — it shapes pacing, so
+     * the interviewer winds down rather than stopping mid-thought — but it no longer decides.
+     *
+     * The closing line is ours rather than the model's, because when the budget runs out the
+     * model is mid-question: showing that question and then ending would ask the member
+     * something we are not going to score.
+     */
+    const overBudget = session.askedCount >= session.maxQuestions;
+    const forceClose = !next.endInterview && overBudget;
+    const say = forceClose ? `That's everything I wanted to cover — thanks for your time.` : next.say;
+    const kind = forceClose ? 'closing' : next.kind;
+    const endInterview = next.endInterview || overBudget;
+
+    session.transcript.push({ role: 'interviewer', text: say, at: new Date() } as any);
+    if (!endInterview) session.askedCount += 1;
     await session.save();
 
-    res.json({ say: next.say, kind: next.kind, endInterview: next.endInterview, session: publicSession(session) });
+    res.json({ say, kind, endInterview, session: publicSession(session) });
   } catch (e: any) {
     console.error('[passport] interview turn:', e);
     res.status(500).json({ message: e.message || 'Could not continue the interview' });

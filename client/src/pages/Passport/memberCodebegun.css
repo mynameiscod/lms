@@ -37,3 +37,62 @@
    constrained twice and floated in the middle with a wide gap between it and the rail.
    Inside the shell the shell decides; outside it the page keeps its own centering. */
 .gd .clx{max-width:none!important;margin:0!important;padding-left:0!important;padding-right:0!important}
+
+
+/* 9 Today's Mission rows
+   Four stylesheets style .gd-mission between them, and neither of the two controls on the
+   right had a rule of its own inside a mission row — so both fell through to the global
+   button styling that ships with Bootstrap. The completion circle rendered as a large solid
+   navy blob instead of a 26px outline, and "Open" as a cramped dark pill whose label sat
+   almost against its border. Both are given explicit styles here, in the last sheet to load,
+   rather than by adding a fifth opinion further up the cascade.
+
+   Fixed widths on the trailing controls, because the rows have different amounts of text and
+   the right-hand cluster has to line up down the card regardless. */
+.gd .gd-mission{align-items:center!important;gap:12px!important}
+.gd .gd-mission .txt{flex:1 1 auto!important;min-width:0!important;padding-right:6px}
+.gd .gd-mission .txt b{display:block;line-height:1.35}
+.gd .gd-mission .txt span{display:block;line-height:1.45}
+
+/* Open: a quiet outlined pill, not a filled navy button competing with Start Now below it. */
+.gd .gd-mission .lnk{
+  flex:none!important;min-width:92px;height:32px;
+  display:inline-flex!important;align-items:center;justify-content:center;gap:6px;
+  padding:0 12px!important;border-radius:8px!important;
+  border:1px solid var(--cb-border)!important;background:#fff!important;
+  color:var(--cb-primary)!important;font-size:12px!important;font-weight:800!important;
+  line-height:1!important;cursor:pointer;box-shadow:none!important;
+}
+.gd .gd-mission .lnk:hover{border-color:var(--cb-primary)!important;background:#F4FAFE!important}
+
+/* The XP chip: centred in a fixed box so the three rows agree on where the column starts. */
+.gd .gd-mission .cnt{
+  flex:none!important;min-width:62px;text-align:center;
+  padding:5px 8px!important;border-radius:999px!important;line-height:1!important;
+}
+
+/* The completion circle, back to a circle. */
+.gd .gd-mission .gd-check{
+  flex:none!important;width:26px!important;height:26px!important;min-width:26px;
+  border-radius:50%!important;border:2px solid #C6D5E4!important;background:#fff!important;
+  padding:0!important;display:grid!important;place-items:center;
+  color:#fff!important;font-size:12px!important;line-height:1!important;box-shadow:none!important;
+}
+.gd .gd-mission .gd-check:hover:not(:disabled){border-color:var(--cb-primary)!important}
+.gd .gd-mission .gd-check:disabled{opacity:.55;cursor:not-allowed}
+.gd .gd-mission .gd-check.on{
+  background:var(--cb-teal)!important;border-color:var(--cb-teal)!important;opacity:1;
+}
+
+@media(max-width:720px){
+  /* Wrap rather than place: a row can hold two .lnk buttons (Open, and the answer toggle),
+     and named grid areas would stack them in the same cell. Letting the row wrap keeps the
+     badge and text on the first line and drops the controls onto the second, whatever
+     combination of them a mission happens to have. */
+  .gd .gd-mission{flex-wrap:wrap!important}
+  .gd .gd-mission .txt{flex:1 1 100%!important;order:2;padding-right:0}
+  .gd .gd-mission .badge{order:1}
+  .gd .gd-mission .lnk{order:3;margin-left:42px}
+  .gd .gd-mission .cnt{order:4}
+  .gd .gd-mission .gd-check{order:5;margin-left:auto}
+}

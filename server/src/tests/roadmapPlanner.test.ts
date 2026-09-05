@@ -3,7 +3,7 @@ import {
 } from '../services/roadmapPlannerService';
 import { classifyGap, priorityScore, targetScoreFor } from '../data/roleReadinessPolicy';
 import {
-  MIN_BLOCK_MINUTES, MAX_SKILL_SHARE, MAX_ROADMAP_DAYS, weekBudgets, capacityFor,
+  MIN_BLOCK_MINUTES, ASSESS_BLOCK_MINUTES, MAX_SKILL_SHARE, MAX_ROADMAP_DAYS, weekBudgets, capacityFor,
 } from '../data/roadmapPolicy';
 
 /**
@@ -144,9 +144,30 @@ describe('the plan fits the time the student actually has', () => {
     });
   }
 
-  it('never plans a block too small to be worth doing', () => {
+  /**
+   * NARROWED TO STUDY BLOCKS, which is what the rule was always about.
+   *
+   * MIN_BLOCK_MINUTES exists so a plan never says "Study Java, 7 minutes" — a fragment of
+   * learning is noise. A diagnostic is not a fragment: it is a whole skill check, eight
+   * questions, complete in itself, and it carries its own fixed price precisely because its
+   * cost has nothing to do with how much there is to learn. Holding it to the study minimum
+   * was what priced an eight-question check at 45 minutes and gave a member with 22 unknowns
+   * four weeks of testing before anything was taught.
+   *
+   * Both rules are still pinned, each to its own constant.
+   */
+  it('never plans a study block too small to be worth doing', () => {
     const p = plan({ skills: busy, minutesPerDay: 30, daysPerWeek: 5 });
-    for (const o of p.objectives) expect(o.plannedMinutes).toBeGreaterThanOrEqual(MIN_BLOCK_MINUTES);
+    for (const o of p.objectives.filter(o => o.workType !== 'ASSESS')) {
+      expect(o.plannedMinutes).toBeGreaterThanOrEqual(MIN_BLOCK_MINUTES);
+    }
+  });
+
+  it('prices every diagnostic at the same fixed cost, whatever it measures', () => {
+    const p = plan({ skills: busy, minutesPerDay: 30, daysPerWeek: 5 });
+    for (const o of p.objectives.filter(o => o.workType === 'ASSESS')) {
+      expect(o.plannedMinutes).toBe(ASSESS_BLOCK_MINUTES);
+    }
   });
 
   it('keeps a week focused rather than spreading it across everything', () => {
@@ -558,8 +579,18 @@ describe('career stage', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('when there is far more to do than there is time', () => {
-  const many = Array.from({ length: 14 }, (_, i) =>
-    req(`SKILL_${String(i).padStart(2, '0')}`, { score: 20 + i, importance: 'ESSENTIAL', weight: 10 - (i % 5) }));
+  /**
+   * Grown from 14 to 32. Not to make a test pass — to keep it testing what it says.
+   *
+   * Repricing diagnostics from 45 minutes to 15 freed most of a diagnostic budget back into
+   * the gap pool, and 14 skills stopped being "far more to do than there is time": everything
+   * fitted, nothing was deferred, and the assertions below became vacuously false. The rule
+   * they describe is unchanged and still worth pinning, so the scenario is restored to one
+   * that genuinely overflows a 30-minute-a-day commitment. Measured rather than guessed: at
+   * 32 the small commitment defers 6 and the large defers 4, which is what this describes.
+   */
+  const many = Array.from({ length: 32 }, (_, i) =>
+    req(`SKILL_${String(i).padStart(2, '0')}`, { score: 20 + (i % 30), importance: 'ESSENTIAL', weight: 10 - (i % 5) }));
 
   it('plans the highest-value subset rather than overbooking', () => {
     const p = plan({ skills: many, minutesPerDay: 30, daysPerWeek: 5 });

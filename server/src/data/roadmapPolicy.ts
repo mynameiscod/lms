@@ -47,8 +47,35 @@ export const BLOCK_GRANULARITY = 15;
 /**
  * A diagnostic costs the same whatever it measures — it is a fixed, small price paid to
  * avoid teaching somebody something they already know.
+ *
+ * FIFTEEN, NOT FORTY-FIVE. A skill check is eight questions and takes a few minutes; 45 was
+ * never what one costs. The figure mattered far more than it looked, because it is paid once
+ * per unmeasured skill: a member with 22 unknowns and 255 plannable minutes a week was
+ * budgeted 990 minutes of diagnostics, which is four weeks of being tested before a single
+ * thing is taught. Measured in production before this changed — weeks 1 to 5 of a real plan
+ * held nothing but ASSESS, and 45% of the whole 90 days was testing.
+ *
+ * Fifteen keeps the price honest and takes the same 22 unknowns to a week and a half.
  */
-export const ASSESS_BLOCK_MINUTES = 45;
+export const ASSESS_BLOCK_MINUTES = 15;
+
+/**
+ * How many diagnostics may sit in the opening phase before teaching starts.
+ *
+ * Cheaper checks alone were not enough. Every diagnostic was assigned to FOUNDATION and
+ * ordered ahead of everything else, so a long list of unknowns still produced a solid block of
+ * testing at the start — shorter, but still the first thing a new member meets, and the least
+ * convincing possible opening for a product they have just paid for.
+ *
+ * The first few are worth front-loading: they are chosen essential-first and they are what
+ * stops the rest of the plan being spent on a guess. Past that, a member learns more from
+ * starting work on a gap already known than from settling the twelfth unknown, so the
+ * remainder is scheduled alongside the teaching instead of before it.
+ *
+ * Eight is roughly one week at a typical commitment — enough to shape a plan, short enough
+ * that week two teaches.
+ */
+export const FOUNDATION_DIAGNOSTICS_MAX = 8;
 
 /** Maintenance for a skill that is already where it needs to be. Deliberately small. */
 export const REVIEW_BLOCK_MINUTES = 30;

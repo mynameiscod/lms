@@ -1,7 +1,7 @@
 import { GapStatus, classifyGap, priorityScore, TARGET_SCORE } from '../data/roleReadinessPolicy';
 import {
   ROADMAP_VERSION, PHASES, PhaseKey, WorkType, ReasonCode,
-  MIN_BLOCK_MINUTES, ASSESS_BLOCK_MINUTES, REVIEW_BLOCK_MINUTES,
+  MIN_BLOCK_MINUTES, ASSESS_BLOCK_MINUTES, REVIEW_BLOCK_MINUTES, FOUNDATION_DIAGNOSTICS_MAX,
   MAX_SKILL_SHARE, PREREQUISITE_DEPTH, PREREQUISITE_BUDGET,
   VALIDATION_SHARE, MAINTENANCE_SHARE, diagnosticShareFor, effortEstimate,
   capacityFor, weekBudgets, activeSkillsPerWeek, roundBlock, mixFor, planningConfidence,
@@ -470,6 +470,15 @@ export function buildRoadmapPlan(input: PlannerInput): PlannedRoadmap {
   ];
 
   let diagnosticMinutes = 0;
+  /**
+   * Position in the priority order, which decides WHEN a diagnostic runs rather than whether.
+   *
+   * The candidates are already sorted by what matters most — limited evidence first, then
+   * unknown prerequisites, then unmeasured essentials. The first few lead the plan; the rest
+   * are scheduled alongside the teaching instead of ahead of it, so a member with twenty-two
+   * unknowns does not spend their opening weeks being tested and nothing else.
+   */
+  let diagnosticIndex = 0;
   for (const c of diagnosticCandidates) {
     const s = c.skill;
     if (diagnosticMinutes + ASSESS_BLOCK_MINUTES > diagnosticBudget) {
@@ -481,10 +490,15 @@ export function buildRoadmapPlan(input: PlannerInput): PlannedRoadmap {
       continue;
     }
     diagnosticMinutes += ASSESS_BLOCK_MINUTES;
+    // Past the opening allowance a diagnostic still runs — it moves, it is not dropped. The
+    // deferred list above is for work that did not fit the plan at all, and confusing the two
+    // would tell a member a skill went unmeasured when it was merely measured later.
+    const leadsThePlan = diagnosticIndex < FOUNDATION_DIAGNOSTICS_MAX;
+    diagnosticIndex += 1;
     drafts.push({
       skillKey: s.skillKey, skillName: s.skillName, workType: 'ASSESS',
       plannedMinutes: ASSESS_BLOCK_MINUTES,
-      phase: 'FOUNDATION',
+      phase: leadsThePlan ? 'FOUNDATION' : 'CORE_GAPS',
       reasonCode: c.reason,
       sourceGapStatus: s.status,
       targetLevel: s.targetLevel, targetScore: s.targetScore, studentScore: s.studentScore,
@@ -495,8 +509,12 @@ export function buildRoadmapPlan(input: PlannerInput): PlannedRoadmap {
         prerequisiteForName: c.prerequisiteFor ? nameOf(c.prerequisiteFor) : undefined,
       }),
       // Diagnostics lead the plan, and the DEEPER a prerequisite sits the earlier it goes:
-      // the thing at the bottom of the chain is the thing everything else waits on.
-      order: -1000 - ('depth' in s ? (s as Candidate).depth : 0),
+      // the thing at the bottom of the chain is the thing everything else waits on. Past the
+      // opening allowance the order is positive, so those checks sort in among the teaching
+      // rather than ahead of all of it.
+      order: leadsThePlan
+        ? -1000 - ('depth' in s ? (s as Candidate).depth : 0)
+        : 500 + diagnosticIndex,
     });
   }
 

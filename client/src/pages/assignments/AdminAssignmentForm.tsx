@@ -532,7 +532,10 @@ const AdminAssignmentForm: React.FC = () => {
           setAllowedLanguages([primaryLang, ...allowedLanguages]);
         }
         if (data.starterCode) {
-          setStarterCode([{ language: primaryLang, code: data.starterCode }]);
+          // The reference solution is kept, not discarded. It is what produced every
+          // expectedOutput below, and it is the only thing that can re-derive them later if
+          // an assignment ever needs repairing.
+          setStarterCode([{ language: primaryLang, code: data.starterCode, solutionCode: data.solutionCode }]);
         }
         if (data.testCases && Array.isArray(data.testCases)) {
           setTestCases(data.testCases.map((tc: any) => ({
@@ -545,6 +548,22 @@ const AdminAssignmentForm: React.FC = () => {
         }
         if (data.topics && Array.isArray(data.topics)) {
           setTopics(prev => [...new Set([...prev, ...data.topics])]);
+        }
+        /**
+         * Say so when the draft came back smaller than asked for.
+         *
+         * Every expected output above was produced by actually running the reference
+         * solution, and any test case it could not run was dropped rather than guessed at.
+         * That is the right outcome, but it is invisible — an admin who asked for 6 cases
+         * and silently got 4 would assume the form was broken.
+         */
+        const v = data.verification;
+        if (v && v.verified < v.requested) {
+          setAiCodingError(
+            `${v.verified} of ${v.requested} test cases were verified by running the solution; `
+            + `${v.requested - v.verified} were dropped because the solution could not produce an output for them. `
+            + (v.dropped?.[0] ? `First: ${v.dropped[0]}` : ''),
+          );
         }
         // Switch to coding tab to show results
         setActiveTab('coding');

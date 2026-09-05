@@ -30,7 +30,7 @@
  */
 import mongoose from 'mongoose';
 import CareerSkill from '../models/CareerSkill';
-import SkillEvidence from '../models/SkillEvidence';
+import { findEvidenceCandidates } from '../services/skillEvidenceService';
 import SkillQuestionDraft from '../models/SkillQuestionDraft';
 import RoleSkillBlueprint from '../models/RoleSkillBlueprint';
 import StageSkillSet from '../models/StageSkillSet';
@@ -86,25 +86,57 @@ async function main() {
   const byKey = new Map(skills.map(s => [s.key, s]));
 
   // ── what the pool already holds ────────────────────────────────────────────
-  const rows: { key: string; name: string; band: Band; have: number; need: number; who: string }[] = [];
+  const eligible: { key: string; name: string; who: Set<string> }[] = [];
   for (const [key, who] of wanted) {
     const s = byKey.get(key);
     // A key nothing can measure would produce drafts that can never be approved into a slot.
     if (!s) { console.log('  skip ' + key.padEnd(28) + 'not in the skill graph'); continue; }
     if (s.active === false) { console.log('  skip ' + key.padEnd(28) + 'retired'); continue; }
     if (s.assessable === false) { console.log('  skip ' + key.padEnd(28) + 'not assessable'); continue; }
+    eligible.push({ key, name: s.name, who });
+  }
 
-    for (const band of BANDS) {
-      if (only && band !== only) continue;
-      // Approved questions AND pending drafts both count: drafting more on top of a full
-      // review queue spends money to make the queue longer.
-      const [have, pending] = await Promise.all([
-        SkillEvidence.countDocuments({ tenantId, skillKey: key, difficulty: band }),
-        SkillQuestionDraft.countDocuments({ tenantId, skillKey: key, difficulty: band.toLowerCase(), status: 'pending' }),
-      ]);
-      const total = have + pending;
-      const need = Math.max(0, target[band] - total);
-      if (need > 0) rows.push({ key, name: s.name, band, have: total, need, who: [...who].join(', ') });
+  const bands = BANDS.filter(b => !only || b === only);
+  const keys = eligible.map(e => e.key);
+
+  /**
+   * ASK THE EVIDENCE SERVICE, NOT THE MAPPING COLLECTION.
+   *
+   * SkillEvidence has no `difficulty` field and never did — deliberately. The four content
+   * families grade difficulty differently (items 1-5, questions easy/medium/hard, thinking
+   * problems five bands of their own, CareerPilot's embedded questions none at all), so it
+   * lives on the source document and the registry normalises it onto the item as it loads.
+   *
+   * This script originally counted `SkillEvidence.countDocuments({ difficulty: band })`,
+   * which can only ever match zero. Every skill therefore reported an empty pool no matter
+   * how many approved questions it had, and a second sweep bought a second set of questions
+   * for skills that were already full — real money, silently, with the plan showing
+   * "have 0" to justify it. API_FUNDAMENTALS reached 16 approved questions against a
+   * target of 8 that way.
+   *
+   * findEvidenceCandidates resolves difficulty through the source exactly as the paper
+   * generator does, so "have" now means what the student would actually be served. It also
+   * batches: one query per band for every skill, rather than one per skill per band.
+   */
+  const pool = new Map<string, number>();          // `${skillKey}:${band}` -> approved questions
+  for (const band of bands) {
+    for (const p of await findEvidenceCandidates(tenantId, { skillKeys: keys, difficulty: band })) {
+      pool.set(p.skillKey + ':' + band, p.items.length);
+    }
+  }
+
+  const rows: { key: string; name: string; band: Band; have: number; pend: number; need: number; who: string }[] = [];
+  for (const e of eligible) {
+    for (const band of bands) {
+      const have = pool.get(e.key + ':' + band) || 0;
+      // Pending drafts count too: drafting on top of a full review queue spends money to
+      // make the queue longer. Kept separate from `have` in the report, because one is a
+      // question a student can be asked and the other is work waiting for a reviewer.
+      const pend = await SkillQuestionDraft.countDocuments({
+        tenantId, skillKey: e.key, difficulty: band.toLowerCase(), status: 'pending',
+      });
+      const need = Math.max(0, target[band] - (have + pend));
+      if (need > 0) rows.push({ key: e.key, name: e.name, band, have, pend, need, who: [...e.who].join(', ') });
     }
   }
 
@@ -114,8 +146,10 @@ async function main() {
   console.log('\n=== gaps ===');
   if (!planned.length) { console.log('  none — every skill meets the target'); await mongoose.disconnect(); return; }
   for (const r of planned) {
-    console.log('  ' + r.key.padEnd(28) + r.band.padEnd(8) + 'have ' + String(r.have).padStart(2)
-      + '  draft ' + String(r.need).padStart(2) + '   ' + r.who.slice(0, 44));
+    console.log('  ' + r.key.padEnd(28) + r.band.padEnd(8)
+      + 'pool ' + String(r.have).padStart(2)
+      + '  pending ' + String(r.pend).padStart(2)
+      + '  draft ' + String(r.need).padStart(2) + '   ' + r.who.slice(0, 40));
   }
   const calls = planned.length;
   const questions = planned.reduce((n, r) => n + r.need, 0);
@@ -144,7 +178,14 @@ async function main() {
       } as any);
       stored += report.stored;
       console.log('  ' + r.key.padEnd(28) + r.band.padEnd(8)
-        + 'asked ' + String(r.need).padStart(2) + '  stored ' + String(report.stored).padStart(2)
+        + 'asked ' + String(r.need).padStart(2)
+        // `returned` is what the parser got out of the reply. Printed because a short reply
+        // is otherwise invisible: stored 1 of 8 with nothing dropped looks like a filter
+        // being strict, when it actually means the model returned one question — usually a
+        // reply that hit the token ceiling mid-question and was salvaged down to what was
+        // complete. Only the gap between asked and returned tells them apart.
+        + '  returned ' + String(report.returned).padStart(2)
+        + '  stored ' + String(report.stored).padStart(2)
         + (report.dropped.length ? '  dropped ' + report.dropped.length : '')
         + (report.flagged ? '  flagged ' + report.flagged : ''));
     } catch (e: any) {

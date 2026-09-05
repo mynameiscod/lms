@@ -206,10 +206,14 @@ const SkillAssessment: React.FC = () => {
               <div><i className="bi bi-shield-check" /><span><small>Assessment</small><b>Complete</b></span></div>
             </div>
             {done.skillDnaPending && <div className="ska-note">Your answers are safely recorded. Your skills profile is still updating and will appear shortly.</div>}
-            <div className="ska-complete-actions">
-              <button className="ska-btn primary wide" onClick={() => nav('/careerpilot/skills')}>View my Skill DNA & roadmap <i className="bi bi-arrow-right" /></button>
-              <button className="ska-btn ghost wide" onClick={() => nav('/careerpilot')}>Go to dashboard</button>
-            </div>
+            {/* No navigation buttons here. The member is signed in and the shell's rail is
+                already on screen with Home, My Roadmap and Skill DNA on it — offering the
+                same two destinations again as full-width buttons is the page telling somebody
+                how to get somewhere they can already see. What belongs on a completion screen
+                is what just happened, which is the three figures above. */}
+            {done.roadmapReplanned && (
+              <div className="ska-note">Your 90-day plan has been rebuilt around what this paper measured.</div>
+            )}
           </section>
         </main>
       </div>

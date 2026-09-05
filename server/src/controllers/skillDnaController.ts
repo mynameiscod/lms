@@ -7,6 +7,7 @@ import {
 import { refreshCareerScoreFromReadiness } from '../services/careerScoreService';
 import { processGamificationEvent } from '../services/gamificationEngine';
 import { captureAfterSnapshot } from '../services/reassessmentService';
+import { generateRoadmap } from '../services/careerRoadmapService';
 
 /**
  * Submitting a personalised assessment, and reading the Skill DNA it produces.
@@ -138,6 +139,43 @@ export const submitPersonalizedAssessment = async (req: Request, res: Response) 
     }
 
     /**
+     * REBUILD THE PLAN AGAINST WHAT THIS PAPER JUST PROVED.
+     *
+     * Without this the loop never closes. A roadmap for a barely-measured member is almost
+     * entirely ASSESS objectives — "find out first" — and finishing one of those diagnostics
+     * measured the skill but left the plan untouched. The member was still being asked to
+     * check Clean Code the next morning, having just scored 11 on it with high confidence,
+     * and no LEARN objective ever appeared, so the notes and videos an admin had mapped to
+     * that concept could not reach them. The replan endpoint existed; nothing called it, and
+     * no screen offered it, so in practice a plan never moved past its diagnostic phase.
+     *
+     * Guarded on the projection, like the career score above: replanning after a failed
+     * projection would build tomorrow from yesterday's evidence and present it as a response
+     * to this paper.
+     *
+     * Only when something actually moved. A paper that produced no skill changes has nothing
+     * to replan against, and rebuilding anyway would churn a plan the member is working
+     * through for no reason.
+     *
+     * The old plan is superseded rather than deleted, which is the endpoint's own guarantee —
+     * what a member was asked to do last month stays part of their record.
+     *
+     * Never fatal. A submission is not lost because a plan could not be rebuilt; the member
+     * keeps the plan they had and the next replan picks the change up.
+     */
+    let roadmapReplanned = false;
+    if (!projectionError && (projection?.skillsAffected?.length || 0) > 0) {
+      try {
+        // STUDENT, because the student's own submission caused it — the actor field records who
+        // the plan was rebuilt for, and there is no SYSTEM actor in this union.
+        const replan = await generateRoadmap(tenantId, studentId, { actor: 'STUDENT', replan: true });
+        roadmapReplanned = !!replan?.outcome?.available;
+      } catch (e: any) {
+        console.error('[career-roadmap] replan after assessment failed', String(open._id), e?.message || e);
+      }
+    }
+
+    /**
      * Engagement credit for FINISHING, not for scoring well.
      *
      * One award per assessment, keyed on the attempt id, so a retried submission cannot pay
@@ -169,6 +207,7 @@ export const submitPersonalizedAssessment = async (req: Request, res: Response) 
         earnedPoints: earned,
         maxPoints: max,
       },
+      roadmapReplanned,
       skillDna: projection
         ? { skillsAffected: projection.skillsAffected.length, evidenceCreated: projection.evidenceCreated }
         : null,

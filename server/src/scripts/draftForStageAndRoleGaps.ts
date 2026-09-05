@@ -48,7 +48,7 @@ const has = (name: string) => process.argv.includes('--' + name);
 async function main() {
   const tenantId = process.argv[2];
   if (!tenantId || tenantId.startsWith('--')) {
-    console.error('Usage: draftForStageAndRoleGaps.ts <tenantId> [--apply] [--easy N] [--medium N] [--hard N] [--limit N] [--only DIFFICULTY]');
+    console.error('Usage: draftForStageAndRoleGaps.ts <tenantId> [--apply] [--easy N] [--medium N] [--hard N] [--limit N] [--only DIFFICULTY] [--empty]');
     process.exit(1);
   }
 
@@ -60,6 +60,7 @@ async function main() {
   };
   const limit = Number(arg('limit', '0'));           // 0 = no cap on skills
   const only = arg('only', '').toUpperCase();        // restrict to one band
+  const emptyOnly = has('empty');                    // skills with nothing at all, first
 
   await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI || '');
   console.log((apply ? '' : '[PLAN ONLY] ') + 'tenant ' + tenantId);
@@ -125,7 +126,8 @@ async function main() {
     }
   }
 
-  const rows: { key: string; name: string; band: Band; have: number; pend: number; need: number; who: string }[] = [];
+  const rows: { key: string; name: string; band: Band; have: number; pend: number; need: number;
+                consumers: number; who: string }[] = [];
   for (const e of eligible) {
     for (const band of bands) {
       const have = pool.get(e.key + ':' + band) || 0;
@@ -136,11 +138,34 @@ async function main() {
         tenantId, skillKey: e.key, difficulty: band.toLowerCase(), status: 'pending',
       });
       const need = Math.max(0, target[band] - (have + pend));
-      if (need > 0) rows.push({ key: e.key, name: e.name, band, have, pend, need, who: [...e.who].join(', ') });
+      // A skill nothing can measure at all cannot be assessed; one that is a question or two
+      // short still works. --empty keeps only the former.
+      if (emptyOnly && have + pend > 0) continue;
+      if (need > 0) {
+        rows.push({ key: e.key, name: e.name, band, have, pend, need,
+                    consumers: e.who.size, who: [...e.who].join(', ') });
+      }
     }
   }
 
-  rows.sort((a, b) => a.key.localeCompare(b.key) || BANDS.indexOf(a.band) - BANDS.indexOf(b.band));
+  /**
+   * WORST FIRST, NOT ALPHABETICAL.
+   *
+   * --limit exists so a sweep can be run in affordable batches, and with an alphabetical
+   * order it spent them on whatever sorted early. In practice that meant topping a skill up
+   * from 7 to 8 while C_POINTERS, CONDITIONALS_BASICS and the rest of the first-year
+   * foundation sat at zero — skills that cannot be assessed at all, because a band with no
+   * questions produces no paper.
+   *
+   * Emptiest first, then by how many roles and stages the skill unblocks, so the first batch
+   * is always the one that makes the most students assessable. The key is the last tiebreak
+   * only, to keep the order stable between runs.
+   */
+  rows.sort((a, b) =>
+    (a.have + a.pend) - (b.have + b.pend)
+    || b.consumers - a.consumers
+    || a.key.localeCompare(b.key)
+    || BANDS.indexOf(a.band) - BANDS.indexOf(b.band));
   const planned = limit > 0 ? rows.slice(0, limit) : rows;
 
   console.log('\n=== gaps ===');

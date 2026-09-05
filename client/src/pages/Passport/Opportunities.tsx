@@ -70,6 +70,13 @@ const Opportunities: React.FC = () => {
   const [query, setQuery] = useState('');
   const [type, setType] = useState<'all' | 'jobs' | 'internships' | 'companies'>('all');
   /**
+   * Twelve to a page. The cards are tall — company, role, pay, deadline, eligibility and two
+   * buttons each — so a single college drive season put forty of them in one scroll and the
+   * resume prompt at the bottom of the list became unreachable in practice.
+   */
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 12;
+  /**
    * Companies a student can prepare AGAINST, which is a different thing from a drive they
    * can apply TO. The endpoint has existed since Module 15 and nothing rendered it, so a
    * member could only reach a company page by knowing its slug.
@@ -113,6 +120,9 @@ const Opportunities: React.FC = () => {
 
   useEffect(() => { load(); }, []);
 
+  // Any change to what is being listed starts again at the first page.
+  useEffect(() => { setPage(1); }, [type, query, location]);
+
   useEffect(() => {
     localStorage.setItem(SAVED_KEY, JSON.stringify(Array.from(saved)));
   }, [saved]);
@@ -151,6 +161,12 @@ const Opportunities: React.FC = () => {
   const recommended = shown.filter(d => eligibility(d).eligible);
   const listed = type === 'all' ? [...recommended, ...shown.filter(d => !eligibility(d).eligible)] : shown;
 
+  const pageCount = Math.max(1, Math.ceil(listed.length / PER_PAGE));
+  // Clamped rather than trusted: switching from a tab of 40 to one of 5 while on page 3 would
+  // otherwise render nothing and read as "no opportunities" rather than "wrong page".
+  const current = Math.min(page, pageCount);
+  const pageItems = listed.slice((current - 1) * PER_PAGE, current * PER_PAGE);
+
   const toggleSave = (id: string) => setSaved(prev => {
     const next = new Set(prev);
     next.has(id) ? next.delete(id) : next.add(id);
@@ -182,7 +198,6 @@ const Opportunities: React.FC = () => {
   const readinessValue = readiness?.available ? readiness.readiness : null;
   const readinessLabel = readinessValue == null ? 'Keep building evidence' : readinessValue >= 80 ? 'Strong readiness' : readinessValue >= 60 ? 'Getting close' : 'Keep building';
   const gaps = readiness?.available ? (readiness.skills || []).filter((s: any) => s.status === 'PRIORITY_GAP' || s.status === 'NEEDS_WORK').slice(0, 3) : [];
-  const firstName = member?.firstName || (member as any)?.name?.split?.(' ')?.[0] || 'there';
   const interviewCount = applications.filter(a => (a.rounds || []).some(r => r.date && new Date(r.date).getTime() >= Date.now())).length;
   const statusCounts = applications.reduce<Record<string, number>>((acc, a) => { acc[a.status] = (acc[a.status] || 0) + 1; return acc; }, {});
 
@@ -213,15 +228,6 @@ const Opportunities: React.FC = () => {
       {error && <div className="opp-alert error">{error}<button onClick={() => setError('')}>×</button></div>}
 
       <section className="opp-overview">
-        <div className="opp-hero-copy">
-          <img src="/assets/careerpilot/careerpilot-hero-student.png" alt="CareerPilot student" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-          <div>
-            <span className="opp-eyebrow">YOUR NEXT STEP</span>
-            <h2>Great progress, {firstName}! 👏</h2>
-            <p>You’re building the right skills. Explore open opportunities and take the next step in your career.</p>
-            <button onClick={() => nav('/careerpilot/profile')}>View My Profile <i className="bi bi-arrow-right" /></button>
-          </div>
-        </div>
         <div className="opp-metrics">
           <Metric icon="bi-briefcase-fill" value={recommended.length} label="Open & eligible" tone="teal" />
           <Metric icon="bi-bookmark-fill" value={saved.size} label="Saved opportunities" tone="violet" />
@@ -280,7 +286,7 @@ const Opportunities: React.FC = () => {
             <div className="opp-empty"><i className="bi bi-briefcase" /><h3>No matching opportunities right now</h3><p>Try another filter or check back when new placement drives are published.</p></div>
           ) : (
             <div className="opp-list">
-              {listed.map(d => {
+              {pageItems.map(d => {
                 const check = eligibility(d);
                 const app = appByDrive.get(d._id);
                 const isSaved = saved.has(d._id);
@@ -318,6 +324,38 @@ const Opportunities: React.FC = () => {
                 );
               })}
             </div>
+          )}
+
+          {/* Only when there is more than one page. A pager over a single page of results is
+              chrome that tells the reader nothing. */}
+          {type !== 'companies' && pageCount > 1 && (
+            <nav className="opp-pager" aria-label="Opportunity pages">
+              <button className="opp-pager-step" onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={current <= 1} aria-label="Previous page">
+                <i className="bi bi-chevron-left" /> Previous
+              </button>
+              <span className="opp-pager-nums">
+                {Array.from({ length: pageCount }, (_, i) => i + 1)
+                  // Long lists collapse to first, last and a window around the current page,
+                  // so twenty drives do not produce twenty buttons.
+                  .filter(n => n === 1 || n === pageCount || Math.abs(n - current) <= 1)
+                  .map((n, idx, arr) => (
+                    <React.Fragment key={n}>
+                      {idx > 0 && arr[idx - 1] !== n - 1 && <em className="opp-pager-gap">…</em>}
+                      <button className={`opp-pager-num${n === current ? ' on' : ''}`}
+                              onClick={() => setPage(n)}
+                              aria-current={n === current ? 'page' : undefined}>{n}</button>
+                    </React.Fragment>
+                  ))}
+              </span>
+              <button className="opp-pager-step" onClick={() => setPage(p => Math.min(pageCount, p + 1))}
+                      disabled={current >= pageCount} aria-label="Next page">
+                Next <i className="bi bi-chevron-right" />
+              </button>
+              <span className="opp-pager-count">
+                {(current - 1) * PER_PAGE + 1}–{Math.min(current * PER_PAGE, listed.length)} of {listed.length}
+              </span>
+            </nav>
           )}
 
           <div className="opp-resume-cta">

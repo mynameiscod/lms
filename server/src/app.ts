@@ -1,6 +1,7 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -72,6 +73,27 @@ const corsOptions = process.env.NODE_ENV === 'production'
  * nginx, then the app. TRUST_PROXY_HOPS exists for the day that stops being true.
  */
 app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS ?? 1));
+
+/**
+ * COMPRESS EVERYTHING TEXTUAL, BEFORE ANYTHING ELSE WRITES A BODY.
+ *
+ * The front-end bundle is 5.3 MB of JavaScript and it was going over the wire uncompressed:
+ * no Content-Encoding on the response even when the browser asked for gzip and brotli. On one
+ * connection that is a few seconds and nobody notices. On the shared router of a college or a
+ * PG, thirty browsers pulling 5.3 MB each is 159 MB through one uplink, and the platform
+ * appears to hang while the same URL on mobile data opens normally — which is exactly how the
+ * problem was reported, and why it looked like the network rather than the app.
+ *
+ * gzip takes that bundle to roughly a fifth. It has to be registered before the routes and
+ * the static handler, because compression works by wrapping the response as it is written.
+ */
+app.use(compression({
+  // Below about a KB the header costs more than the saving.
+  threshold: 1024,
+  // Honour a client that explicitly asks for no compression, otherwise compress by type.
+  filter: (req: Request, res: Response) =>
+    req.headers['x-no-compression'] ? false : compression.filter(req, res),
+}));
 
 // Middleware - PROPER ORDER for Express
 app.use(helmet({
@@ -150,7 +172,31 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-app.use(express.static(staticPath));
+/**
+ * Hashed assets are content-addressed, so they may be cached for a year.
+ *
+ * The comment above has said so since the SPA shell was made uncacheable, but the option was
+ * never passed: express.static defaults to maxAge 0, so every asset went out as
+ * "Cache-Control: public, max-age=0" and every visit re-downloaded the whole 5.3 MB bundle.
+ * Combined with there being no compression, a student who opened the portal twice paid for it
+ * twice, at full size.
+ *
+ * `immutable` is the honest header here rather than an optimisation: the filename contains a
+ * hash of the contents, so this exact URL can never mean anything else. A new build produces a
+ * new filename, which is why this cannot pin anyone to a stale bundle — and index.html, sw.js
+ * and / are still sent no-store by the handler above, so the page that names the bundles is
+ * always fetched fresh.
+ */
+app.use(express.static(staticPath, {
+  setHeaders: (res, filePath) => {
+    // A plain containment check rather than a regex: the separator differs between the
+    // Linux image and a Windows dev box, and an escaping slip here fails silently by
+    // sending max-age=0 again.
+    if (filePath.includes('/static/') || filePath.includes('\\static\\')) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  },
+}));
 console.log(`📁 Serving static files from: ${staticPath}`);
 
 // Certificate OG meta tags for LinkedIn/social media crawlers

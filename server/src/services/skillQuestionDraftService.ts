@@ -211,42 +211,76 @@ function balancedObjects(raw: string): string[] {
  * this fall back to reading the response question by question, keeping the ones that stand
  * on their own. Recovering nine beats discarding ten, and the caller is told which happened.
  */
+/**
+ * The content of the OUTERMOST markdown fence, or null.
+ *
+ * Deliberately spans to the LAST closing fence rather than the next one. A model asked for
+ * JSON containing code writes a fence around its reply and then another around a snippet
+ * inside a codeSnippet string — so a non-greedy match captured from the opening fence to the
+ * INNER one and returned JSON truncated mid-string.
+ */
+function outermostFence(raw: string): string | null {
+  const open = raw.indexOf('```');
+  if (open < 0) return null;
+  const close = raw.lastIndexOf('```');
+  if (close <= open) return null;
+  // Skip the opening marker and any language tag on the same line.
+  const afterMarker = open + 3;
+  const nl = raw.indexOf('\n', afterMarker);
+  const from = nl >= 0 && nl < close ? nl + 1 : afterMarker;
+  return raw.slice(from, close).trim() || null;
+}
+
+/** From the first plausible JSON opening to the last closing bracket. */
+function fromJsonStart(raw: string): string | null {
+  const keyed = raw.indexOf('{"questions"');
+  const start = keyed >= 0 ? keyed : raw.search(/[[{]/);
+  if (start < 0) return null;
+  const end = Math.max(raw.lastIndexOf('}'), raw.lastIndexOf(']'));
+  if (end <= start) return null;
+  return raw.slice(start, end + 1);
+}
+
+/**
+ * A model's JSON, parsed as far as it can honestly be.
+ *
+ * NOTHING IS SLICED DESTRUCTIVELY ANY MORE, and that is the whole shape of this function.
+ * It used to rewrite `raw` in place — strip a fence, then jump to the first brace — and both
+ * steps could corrupt a good reply before parsing was ever attempted. A reply whose
+ * codeSnippet contained a nested ``` fence had its JSON cut mid-string by the first step,
+ * and the second then sliced to the opening brace of an `if` block inside that snippet. The
+ * salvage below never stood a chance: by the time it ran there was no JSON left to find.
+ *
+ * Now the candidates are tried WHOLE, in order of likelihood, and the salvage scans the
+ * ORIGINAL text. A wrong guess costs nothing because nothing was thrown away to make it.
+ *
+ * ONE BAD QUESTION STILL MUST NOT COST THE BATCH. A stray character anywhere used to surface
+ * as "Unexpected number in JSON at position 2498" — a byte offset into a document the admin
+ * cannot see, for a batch where most were fine and all were paid for.
+ */
 export function parseDraftResponse(text: string): any[] {
-  let raw = String(text || '').trim();
-  const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fence) raw = fence[1].trim();
-  if (!raw.startsWith('{') && !raw.startsWith('[')) {
-    const start = raw.search(/[[{]/);
-    if (start >= 0) raw = raw.slice(start);
+  const raw = String(text || '').trim();
+
+  const candidates = [raw, outermostFence(raw), fromJsonStart(raw)]
+    .filter((c): c is string => !!c);
+  // A fence may itself wrap prose before the JSON, so each candidate gets the same treatment.
+  for (const c of candidates.slice()) {
+    const inner = fromJsonStart(c);
+    if (inner && !candidates.includes(inner)) candidates.push(inner);
   }
 
-  // Fast path: the response is well-formed, which is the overwhelming majority of the time.
-  const end = Math.max(raw.lastIndexOf('}'), raw.lastIndexOf(']'));
-  if (end >= 0) {
+  for (const c of candidates) {
     try {
-      const parsed = JSON.parse(raw.slice(0, end + 1));
-      const list = Array.isArray(parsed) ? parsed : parsed.questions;
+      const parsed = JSON.parse(c);
+      const list = Array.isArray(parsed) ? parsed : (parsed as any)?.questions;
       // Well-formed JSON is not automatically a question list: a model answering
       // [{"error":"rate limited"}] parses perfectly and contains no question. An EMPTY array
       // is a real answer and is returned as one — "the model wrote nothing" and "the model
       // wrote something else" are different, and only the second is worth reporting.
       if (Array.isArray(list) && (!list.length || list.some((x: any) => x && x.question))) return list;
-    } catch { /* fall through and salvage what is there */ }
+    } catch { /* try the next candidate, then salvage */ }
   }
 
-  /**
-   * EVERY DEPTH, NOT JUST THE TOP.
-   *
-   * The prompt asks for {"questions":[...]}, so the reply is normally ONE object with every
-   * question nested inside it. Collecting only top-level objects therefore salvaged the
-   * whole wrapper or nothing at all — and since a wrapper containing one malformed question
-   * does not parse, the answer was nothing. That is the exact failure this salvage exists to
-   * prevent, reintroduced one level down.
-   *
-   * Objects are now collected at any nesting depth and kept if they parse AND look like a
-   * question. An option or a rationale nested inside a question is collected too and then
-   * discarded for having no `question` field, which costs nothing and needs no special case.
-   */
   const salvaged: any[] = [];
   const seenStems = new Set<string>();
   for (const chunk of balancedObjects(raw)) {

@@ -108,10 +108,23 @@ export const POLICIES = {
     max: 20, windowMs: 60 * 60_000,
     message: 'Too many interview requests. Please try again shortly.',
   },
-  /** Admin AI drafting. Rarer, but a loop here bills the tenant. */
+  /**
+   * Admin AI drafting. Rarer, but a loop here bills the tenant.
+   *
+   * Raised from 30 to 120. Thirty was tuned for topping up an established bank; filling one
+   * from empty is a different job — the coverage screen's bulk button makes ONE call per
+   * empty role-skill-difficulty slot, so a real sweep runs into three figures and stopped
+   * halfway with "try again shortly", leaving the bank half-filled and the admin unsure
+   * which slots had landed.
+   *
+   * Still capped, because the reason for a cap has not changed: every call is billed, and a
+   * misfiring loop spends money with nothing to show. 120 covers any sweep somebody would
+   * deliberately run and still stops one that has gone wrong.
+   */
   adminAi: {
-    max: 30, windowMs: 60 * 60_000,
-    message: 'Too many generation requests. Please try again shortly.',
+    max: 120, windowMs: 60 * 60_000,
+    message: 'Too many generation requests in the last hour. Wait a few minutes, or use the '
+      + 'draftQuestionsForEmptySkills script for a large sweep.',
   },
   /** Money moves. Bounded so a stuck client cannot open orders indefinitely. */
   payment: {

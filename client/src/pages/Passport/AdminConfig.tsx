@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import passportApi, { PassportConfig } from '../../api/passportApi';
+import AdminInterviewPlans from './AdminInterviewPlans';
 
 const card: React.CSSProperties = { background: '#fff', border: '1px solid #eef1f6', borderRadius: 14, padding: '18px 20px', marginBottom: 16, boxShadow: '0 1px 3px rgba(16,24,40,.04)' };
 const h: React.CSSProperties = { fontSize: 15, fontWeight: 800, color: '#0f172a', margin: '0 0 12px' };
@@ -20,6 +21,15 @@ const PassportAdminConfig: React.FC = () => {
    */
   const [journeyDays, setJourneyDays] = useState(90);
   const [missionsPerDay, setMissionsPerDay] = useState(3);
+  /**
+   * Which half of the screen is showing.
+   *
+   * Interview plans are a list with its own editor rather than another block of fields, so
+   * they get a tab instead of a fifth card — but they stay on THIS screen, because "how many
+   * mock interviews does a member get" is the same question as the entitlement two cards
+   * above it, and a separate nav entry would split one decision across two places.
+   */
+  const [tab, setTab] = useState<'settings' | 'interviews'>('settings');
 
   const load = async () => {
     setLoading(true);
@@ -68,18 +78,34 @@ const PassportAdminConfig: React.FC = () => {
   const setEnt = (i: number, tier: 'free' | 'paid') => setCfg({ ...cfg, entitlements: cfg.entitlements.map((e, j) => j === i ? { ...e, tier } : e) });
   const setField = (i: number, patch: any) => setCfg({ ...cfg, onboardingFields: cfg.onboardingFields.map((f, j) => j === i ? { ...f, ...patch } : f) });
 
+  const tabBtn = (key: 'settings' | 'interviews'): React.CSSProperties => ({
+    border: 'none', background: 'none', cursor: 'pointer',
+    padding: '9px 2px', marginRight: 22, fontSize: 14,
+    fontWeight: tab === key ? 800 : 600,
+    color: tab === key ? '#4f46e5' : '#64748b',
+    borderBottom: `2.5px solid ${tab === key ? '#4f46e5' : 'transparent'}`,
+  });
+
   return (
-    <div style={{ padding: '22px 26px', maxWidth: 900 }}>
+    <div style={{ padding: '22px 26px', maxWidth: tab === 'interviews' ? 1120 : 900 }}>
       <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>CareerPilot <span style={{ color: '#cbd5e1' }}>›</span> <b style={{ color: '#334155' }}>Config</b></div>
       <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>CareerPilot — Configuration</h1>
-      <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 18px' }}>Set up the whole CareerPilot product here. Changes apply without a deploy.</p>
+      <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 12px' }}>Set up the whole CareerPilot product here. Changes apply without a deploy.</p>
 
+      {/* The kill-switch warning sits above the tabs: it applies to everything below it. */}
       {!platformEnabled && (
         <div style={{ ...card, background: '#fffbeb', borderColor: '#fde68a' }}>
           ⚠️ <b>PASSPORT_ENABLED</b> is off in Platform Settings → Other Integrations. Even with the switch below on, the student experience stays hidden until you enable it there. (This is the master kill-switch.)
         </div>
       )}
 
+      <div style={{ borderBottom: '1px solid #e8edf4', marginBottom: 18 }}>
+        <button style={tabBtn('settings')} onClick={() => setTab('settings')}>Settings</button>
+        <button style={tabBtn('interviews')} onClick={() => setTab('interviews')}>Mock interviews</button>
+      </div>
+
+      {tab === 'interviews' ? <AdminInterviewPlans /> : (
+      <>
       <div style={card}>
         <div style={h}>Product</div>
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -209,6 +235,8 @@ const PassportAdminConfig: React.FC = () => {
         <button onClick={save} disabled={saving} style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontWeight: 800, fontSize: 14, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : 'Save changes'}</button>
         {msg && <span style={{ fontSize: 13, color: msg.startsWith('✅') ? '#16a34a' : '#dc2626' }}>{msg}</span>}
       </div>
+      </>
+      )}
     </div>
   );
 };

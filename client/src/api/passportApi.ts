@@ -1245,7 +1245,105 @@ export const passportApi = {
       rzp.open();
     });
   },
+
+  // ── Mock interview plans (admin) ──
+  listInterviewPlans: async (): Promise<InterviewPlansResponse> => {
+    const { data } = await axios.get(`${BASE}/interview-plans`, { headers: auth() });
+    return data;
+  },
+  createInterviewPlan: async (payload: InterviewPlanInput): Promise<{ plan: InterviewPlan }> => {
+    const { data } = await axios.post(`${BASE}/interview-plans`, payload, { headers: auth() });
+    return data;
+  },
+  updateInterviewPlan: async (id: string, payload: InterviewPlanInput): Promise<{ plan: InterviewPlan }> => {
+    const { data } = await axios.put(`${BASE}/interview-plans/${id}`, payload, { headers: auth() });
+    return data;
+  },
+  deleteInterviewPlan: async (id: string): Promise<void> => {
+    await axios.delete(`${BASE}/interview-plans/${id}`, { headers: auth() });
+  },
+  reorderInterviewPlans: async (ids: string[]): Promise<{ plans: InterviewPlan[]; warnings: PlanWarning[] }> => {
+    const { data } = await axios.put(`${BASE}/interview-plans/reorder`, { ids }, { headers: auth() });
+    return data;
+  },
+  previewInterviewPlan: async (studentId: string): Promise<InterviewPlanPreview> => {
+    const { data } = await axios.get(`${BASE}/interview-plans/preview`, { headers: auth(), params: { studentId } });
+    return data;
+  },
 };
+
+// ── Mock interview plans ──
+
+export type InterviewRoundType = 'technical' | 'hr' | 'communication';
+
+export interface InterviewRound {
+  type: InterviewRoundType;
+  label: string;
+  questions: number;
+  minutes: number;
+}
+
+/** The shared targeting shape — same five axes the concept and question banks use. */
+export interface PlanAudience {
+  years: string[]; courses: string[]; branches: string[]; roles: string[]; stages: string[];
+}
+
+export const emptyPlanAudience = (): PlanAudience => ({
+  years: [], courses: [], branches: [], roles: [], stages: [],
+});
+
+export interface InterviewPlan {
+  id: string;
+  name: string;
+  active: boolean;
+  fallback: boolean;
+  priority: number;
+  audience: PlanAudience;
+  rounds: InterviewRound[];
+  quota: { perThirtyDays: number; cooldownHours: number };
+  notes: string;
+  totals: { questions: number; minutes: number };
+  /** How many members this plan actually WINS — not how many match its audience. */
+  members?: number;
+}
+
+export type InterviewPlanInput = Omit<InterviewPlan, 'id' | 'totals' | 'members'>;
+
+export interface PlanWarning { level: 'warn' | 'info'; planId?: string; message: string }
+
+export interface PlanBounds {
+  questionsPerRound: { min: number; max: number };
+  totalQuestions: { min: number; max: number };
+  minutesPerRound: { min: number; max: number };
+  rounds: { min: number; max: number };
+  perThirtyDays: { min: number; max: number };
+  cooldownHours: { min: number; max: number };
+  priority: { min: number; max: number };
+}
+
+export interface InterviewPlansResponse {
+  plans: InterviewPlan[];
+  warnings: PlanWarning[];
+  totals: { members: number; onDefault: number };
+  /** Measured from the AiUsage ledger. `perInterviewInr` is null when the sample is too small. */
+  cost: { perInterviewInr: number | null; sample: number; windowDays: number };
+  bounds: PlanBounds;
+  roundTypes: { key: InterviewRoundType; label: string }[];
+  defaultShape: { rounds: InterviewRound[]; totals: { questions: number; minutes: number } };
+}
+
+export interface PlanTraceRow {
+  id: string; name: string; priority: number; fallback: boolean; matched: boolean; reason: string;
+}
+
+export interface InterviewPlanPreview {
+  student: { id: string; name: string; year: string; course: string; branch: string; role: string; stage: string };
+  plan: InterviewPlan | null;
+  rounds: InterviewRound[];
+  quota: { perThirtyDays: number; cooldownHours: number };
+  totals: { questions: number; minutes: number };
+  trace: PlanTraceRow[];
+}
 
 // ── Gamified dashboard ──
 export interface LevelInfo {

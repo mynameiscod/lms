@@ -9,6 +9,17 @@ interface ExecutionInput {
   timeLimit: number;  // in ms
   memoryLimit: number; // in MB
   comparisonMode?: 'lenient' | 'exact' | 'case_insensitive' | 'numeric';
+  /**
+   * Let JavaScript read its input with browser-style `prompt()`.
+   *
+   * OPT-IN, AND OFF BY DEFAULT, because this service is shared by six callers — the
+   * playground, interactive lessons, public assessments, drills, CareerPilot practice and
+   * assignments. Only the assignment module asks for it, so everything else keeps exactly
+   * the behaviour it has today.
+   *
+   * Ignored for every language but JavaScript: Java keeps Scanner, Python keeps input().
+   */
+  enablePromptInput?: boolean;
 }
 
 interface ExecutionResult {
@@ -32,6 +43,32 @@ interface ExecutionResult {
  * does NOT run real code — it pattern-matches common problems — so always use
  * Piston for trustworthy output/grading.
  */
+/**
+ * `prompt()` for Node, so a student can write the JavaScript they were taught.
+ *
+ * Browsers have prompt(); Node does not. Without this, a JavaScript assignment has to be
+ * written against `readline` or `readFileSync(0)` — neither of which is what a beginner has
+ * been shown, and the async one is a reliable source of wrong answers because output order
+ * and program exit both stop being obvious.
+ *
+ * THE STDIN READ IS LAZY, AND THAT IS THE WHOLE SAFETY ARGUMENT. Nothing is consumed until
+ * the first prompt() call, so code that reads stdin the old way is completely undisturbed —
+ * this can only ever add a capability, never take one away. That is what makes it safe to
+ * switch on for every JavaScript assignment, including ones written before it existed.
+ *
+ * ONE LINE, deliberately: it is prepended to the student's file, so every line number in a
+ * stack trace shifts by exactly one and can be shifted back. See shiftJsLineNumbers.
+ *
+ * Returns STRINGS, like the browser does — `Number(prompt())` stays the student's decision.
+ * The message argument is discarded rather than printed: prompt("Enter a number:") must not
+ * put "Enter a number:" in stdout, or the output being graded is not the program's answer.
+ */
+export const JS_PROMPT_PRELUDE =
+  `globalThis.prompt=(function(){var L=null,i=0;return function(){if(L===null){var r='';try{r=require('fs').readFileSync(0,'utf8')}catch(e){r=''}r=String(r).replace(/\\r\\n?/g,'\\n').replace(/\\n+$/,'');L=r.length?r.split('\\n'):[]}if(i>=L.length){throw new Error('Your program asked for more input than this test case provides — it called prompt() '+(i+1)+' time(s), but only '+L.length+' input value(s) were given.')}return String(L[i++])}})();`;
+
+/** How many lines the prelude adds. Kept next to it so the two cannot drift apart. */
+const JS_PROMPT_PRELUDE_LINES = 1;
+
 class CodeRunnerService {
   private pistonUrl: string | null;
   private useRealExecution: boolean;
@@ -556,7 +593,16 @@ class CodeRunnerService {
 
     try {
       const pistonLanguage = this.mapToPistonLanguage(language);
-      
+
+      /**
+       * The only place a student's file is assembled, so the only place the prompt() shim
+       * needs to exist. Both the reference solution (during generation) and the student's
+       * submission come through here, which is what makes their outputs comparable at all.
+       */
+      const usePromptShim = !!input.enablePromptInput && language === ProgrammingLanguage.JAVASCRIPT;
+      const sourceCode = usePromptShim ? `${JS_PROMPT_PRELUDE}\n${code}` : code;
+      const lineOffset = usePromptShim ? JS_PROMPT_PRELUDE_LINES : 0;
+
       // For Java, filename MUST match the public class name or Piston fails to compile
       let fileName: string | undefined;
       if (language === ProgrammingLanguage.JAVA) {
@@ -579,7 +625,7 @@ class CodeRunnerService {
       const requestBody = {
         language: pistonLanguage.language,
         version: pistonLanguage.version,
-        files: [{ name: fileName, content: code }],
+        files: [{ name: fileName, content: sourceCode }],
         stdin: stdin || '',
         run_timeout: runLimit,
         run_cpu_time: runLimit,
@@ -633,7 +679,10 @@ class CodeRunnerService {
         };
       }
 
-      const runStderr = (result.run.stderr || '').trim();
+      // Reported against the student's own line numbering, not the file we actually sent.
+      // Without this a syntax error on their line 3 is reported as line 4, and they go
+      // looking at the wrong line of their own code.
+      const runStderr = this.shiftJsLineNumbers((result.run.stderr || '').trim(), lineOffset);
 
       // Run stage failed or was killed
       if (result.run.code !== 0 || result.run.signal) {
@@ -802,6 +851,19 @@ class CodeRunnerService {
   // the student and never meaningful to a problem: line-ending style, trailing
   // whitespace on each line (e.g. a stray space from print(x + " ")), and
   // trailing blank lines. Content and internal spacing are preserved.
+  /**
+   * Put stack-trace line numbers back into the student's coordinate system.
+   *
+   * The prompt() prelude is prepended to their file, so Node reports every line one higher
+   * than the student wrote. Matches both `file.js:4` and `file.js:4:11`, which is how Node
+   * prints the offending line and each stack frame. A no-op when no prelude was added.
+   */
+  private shiftJsLineNumbers(text: string, offset: number): string {
+    if (!text || !offset) return text;
+    return text.replace(/(\.js:)(\d+)/g, (_m, prefix: string, n: string) =>
+      `${prefix}${Math.max(1, Number(n) - offset)}`);
+  }
+
   private normalizeOutput(output: string, mode: string = 'lenient'): string {
     let s = (output || '')
       .replace(/\r\n?/g, '\n')                 // normalize CRLF / CR → LF

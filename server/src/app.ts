@@ -38,7 +38,7 @@ const corsOptions = process.env.NODE_ENV === 'production'
   ? { 
       origin: true, 
       credentials: true,
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-tenant-id'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-tenant-id', 'x-cp-visitor', 'x-cp-session'],
     }
   : {
       origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -55,7 +55,7 @@ const corsOptions = process.env.NODE_ENV === 'production'
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-tenant-id'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-tenant-id', 'x-cp-visitor', 'x-cp-session'],
     };
 
 /**

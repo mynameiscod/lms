@@ -17,6 +17,7 @@ import * as roadmap from '../controllers/passportRoadmapController';
 import * as practice from '../controllers/passportPracticeController';
 import * as interview from '../controllers/passportInterviewController';
 import * as interviewPlans from '../controllers/interviewPlanController';
+import * as activity from '../controllers/careerPilotActivityController';
 import * as resume from '../controllers/passportResumeController';
 import * as content from '../controllers/passportContentController';
 import * as dashboard from '../controllers/passportDashboardController';
@@ -150,6 +151,15 @@ router.put('/config',    MANAGE, ctrl.updateConfig);
 //    targeted by year / course / branch / role. Ordinary CareerPilot configuration, so
 //    MANAGE — like the config screen it is edited from. `reorder` is declared before the
 //    :id routes so it is not swallowed by them as an id. ──
+// ── Activity trail: what a person actually did, in order, from the first page view.
+//    MANAGE, like every other admin surface here — it carries names, emails and addresses. ──
+router.get('/admin/activity/sessions',            MANAGE, activity.sessions);
+router.get('/admin/activity/summary',             MANAGE, activity.summary);
+router.get('/admin/activity/timeline/:visitorId', MANAGE, activity.timeline);
+// The beacon again, for members who ARE signed in: same handler, but this router has already
+// resolved the user, so the row is attributed rather than anonymous.
+router.post('/activity', activity.ingest);
+
 router.get('/interview-plans',          MANAGE, interviewPlans.list);
 router.get('/interview-plans/preview',  MANAGE, interviewPlans.preview);
 router.post('/interview-plans',         MANAGE, interviewPlans.create);

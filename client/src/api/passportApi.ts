@@ -1,11 +1,18 @@
 import axios from 'axios';
 import { loadRazorpay } from './paymentApi';
+import { visitorId, sessionId } from '../pages/Passport/activityBeacon';
 
 const BASE = (process.env.REACT_APP_API_URL || '/api/v1') + '/passport';
 const auth = () => {
   const token = localStorage.getItem('token');
   const tenantId = localStorage.getItem('tenantId');
-  return { ...(token && { Authorization: `Bearer ${token}` }), ...(tenantId && { 'X-Tenant-Id': tenantId }) };
+  // The visitor headers ride on every call so the server-side half of the activity trail can be
+  // joined to the browser-side half. Without them an API row has no trail to belong to, and the
+  // timeline would show what the server did with no idea which person it was doing it for —
+  // least of all before sign-in, where there is no user id to fall back on.
+  let trail: Record<string, string> = {};
+  try { trail = { 'X-CP-Visitor': visitorId(), 'X-CP-Session': sessionId() }; } catch { trail = {}; }
+  return { ...trail, ...(token && { Authorization: `Bearer ${token}` }), ...(tenantId && { 'X-Tenant-Id': tenantId }) };
 };
 
 export interface OnboardingField { key: string; label: string; type: string; required: boolean; locked?: boolean; options?: string[]; order: number; }
@@ -170,6 +177,25 @@ export const passportApi = {
   getAssessmentAdmin: async (): Promise<{ assessment: AssessmentBank; categories: AssessCategory[]; usage: CategoryUsage[] }> => {
     const { data } = await axios.get(`${BASE}/assessment/admin`, { headers: auth() });
     return data;
+  },
+  // ── Activity trail ──────────────────────────────────────────────────────────
+  activitySessions: async (q: { from?: string; to?: string; search?: string; deviceType?: string;
+                               onlyFailures?: boolean; limit?: number; skip?: number }):
+    Promise<{ sessions: ActivitySession[]; total: number; limit: number; skip: number }> => {
+    const r = await axios.get(`${BASE.replace('/passport', '/careerpilot')}/admin/activity/sessions`,
+      { headers: auth(), params: q });
+    return r.data;
+  },
+  activitySummary: async (q: { from?: string; to?: string; deviceType?: string }): Promise<ActivitySummary> => {
+    const r = await axios.get(`${BASE.replace('/passport', '/careerpilot')}/admin/activity/summary`,
+      { headers: auth(), params: q });
+    return r.data;
+  },
+  activityTimeline: async (visitorId: string): Promise<{ visitorId: string; events: ActivityEvent[] }> => {
+    const r = await axios.get(
+      `${BASE.replace('/passport', '/careerpilot')}/admin/activity/timeline/${encodeURIComponent(visitorId)}`,
+      { headers: auth() });
+    return r.data;
   },
   saveAssessment: async (patch: { title?: string; maxQuestions?: number; questions?: AssessQuestionFull[] }): Promise<{ assessment: AssessmentBank }> => {
     const { data } = await axios.put(`${BASE}/assessment/admin`, patch, { headers: auth() });
@@ -1609,6 +1635,34 @@ export interface PassportCard {
 
 export interface AssessQuestion { id: string; category: string; text: string; options: string[]; dependsOn?: { questionId: string; minChosen: number }; }
 export interface AssessQuestionFull { _id?: string; category: string; text: string; options: string[]; correctIndex: number; weight: number; selfReport?: boolean; stages?: string[]; goals?: string[]; background?: string; dependsOn?: { questionId: string; minChosen: number }; }
+/** One person's trip through CareerPilot, collapsed to a row. */
+export interface ActivitySession {
+  visitorId: string;
+  firstSeen: string; lastSeen: string; durationMs: number;
+  events: number; pages: number; actions: number; failures: number;
+  userId: string | null; personName: string | null; personEmail: string | null;
+  device: { browser?: string; browserVersion?: string; os?: string; deviceType?: string;
+            screen?: string; language?: string; timezone?: string } | null;
+  ip: string | null; lastRoute: string | null; lastName: string | null;
+}
+
+export interface ActivityEvent {
+  _id: string; kind: 'page' | 'action' | 'api' | 'error'; name: string;
+  route?: string; method?: string; status?: number;
+  outcome: 'success' | 'failure' | 'info'; errorMessage?: string;
+  durationMs?: number; meta?: any; createdAt: string;
+  device?: ActivitySession['device']; ip?: string; userAgent?: string; referrer?: string;
+  personName?: string; personEmail?: string;
+}
+
+export interface ActivitySummary {
+  events: number; visitors: number; identified: number; failures: number; bots: number;
+  byDevice: { key: string; visitors: number }[];
+  byBrowser: { key: string; visitors: number }[];
+  topPages: { name: string; views: number }[];
+  topFailures: { name: string; message: string; count: number }[];
+}
+
 export interface AssessmentBank { _id?: string; tenantId: string; title: string; maxQuestions?: number; questions: AssessQuestionFull[]; categories?: AssessCategory[]; }
 /** A scoring category. `weight` scales its contribution to the career score (0.1–3). */
 export interface AssessCategory { key: string; label: string; weight: number; order?: number; }

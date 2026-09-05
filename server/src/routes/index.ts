@@ -79,6 +79,7 @@ import thinkingLabRoutes from './thinkingLabRoutes';
 import batchOfferingRoutes from './batchOfferingRoutes';
 import assessmentScheduleRoutes from './assessmentScheduleRoutes';
 import passportRoutes from './passportRoutes';
+import { careerPilotActivity } from '../middleware/careerPilotActivity';
 import publicPassportRoutes from './publicPassportRoutes';
 import conceptLessonRoutes from './conceptLessonRoutes';
 import interactiveLessonRoutes from './interactiveLessonRoutes';
@@ -115,8 +116,8 @@ const router = express.Router();
 // CareerPilot signup (specific, before generic /public). Mounted at BOTH paths:
 // /passport is the legacy path and must keep answering, because member card links
 // already sent to recruiters point at it and cannot be recalled.
-router.use('/public/careerpilot', publicPassportRoutes);
-router.use('/public/passport', publicPassportRoutes);
+router.use('/public/careerpilot', careerPilotActivity, publicPassportRoutes);
+router.use('/public/passport', careerPilotActivity, publicPassportRoutes);
 router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public/certificate', publicCertificateRoutes); // certificate verification (specific, before generic /public)
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount
@@ -219,7 +220,9 @@ router.use('/thinking-lab', thinkingLabRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/batch-offerings', batchOfferingRoutes);
 router.use('/assessment-schedules', assessmentScheduleRoutes);
-router.use('/careerpilot', passportRoutes);
+// Every CareerPilot request is recorded on its way out — structural rather than per-handler,
+// so an endpoint added next month is in the trail without anybody remembering to add a line.
+router.use('/careerpilot', careerPilotActivity, passportRoutes);
 router.use('/passport', passportRoutes);   // legacy alias — keeps existing clients working
 router.use('/concept-lessons', conceptLessonRoutes);
 router.use('/interactive-lessons', interactiveLessonRoutes);

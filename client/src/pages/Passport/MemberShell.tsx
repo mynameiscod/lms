@@ -4,6 +4,7 @@ import passportApi, { DashboardData } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
 import './dashboard.css';
 import './member.css';
+import { startActivityBeacon, trackPage } from './activityBeacon';
 
 const ICONS: Record<string, string> = {
   home: 'house-door-fill',
@@ -41,6 +42,28 @@ interface Props {
   data?: DashboardData | null;
 }
 
+/**
+ * Route to the name an admin should read on the activity screen.
+ *
+ * An unmapped route still records, as "Opened /careerpilot/whatever" — a missing entry costs a
+ * readable label, never the event itself, which is the right way round for a log.
+ */
+const SCREEN_NAMES: Record<string, string> = {
+  '/careerpilot': 'Mission Control',
+  '/careerpilot/setup': 'Setup — academic details',
+  '/careerpilot/skill-assessment': 'Skill assessment',
+  '/careerpilot/roadmap': 'My roadmap',
+  '/careerpilot/skills': 'Skill DNA',
+  '/careerpilot/readiness': 'Role readiness',
+  '/careerpilot/placement': 'Placement readiness',
+  '/careerpilot/progress': 'My progress',
+  '/careerpilot/rewards': 'Rewards',
+  '/careerpilot/interview': 'Mock interview',
+  '/careerpilot/communication': 'Communication Lab',
+  '/careerpilot/resume': 'Resume',
+  '/careerpilot/practice': 'Practice',
+};
+
 const MemberShell: React.FC<Props> = ({ children, data }) => {
   const nav = useNavigate();
   const loc = useLocation();
@@ -49,6 +72,22 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const userRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Page views, recorded here because this shell is the one component every CareerPilot screen
+   * renders through — so a screen added later is in the trail without anybody remembering.
+   *
+   * A single-page app never asks the server for a screen change, so without this the activity
+   * log would show API calls and no navigation at all: an admin could see that somebody
+   * fetched their daily plan, but not that they then sat on the roadmap for ten minutes and
+   * left without starting anything. Where people stop is the question this screen exists for.
+   *
+   * The label is what a person would say, not the URL — the route is stored alongside it.
+   */
+  useEffect(() => {
+    startActivityBeacon();
+    trackPage(SCREEN_NAMES[loc.pathname] || `Opened ${loc.pathname}`, loc.pathname);
+  }, [loc.pathname]);
 
   const openDrawer = () => { setUserOpen(false); setMobileOpen(true); };
   const toggleUserMenu = () => { setMobileOpen(false); setUserOpen(o => !o); };

@@ -98,6 +98,27 @@ export const POLICIES = {
     },
     message: 'Too many code requests for this account.',
   },
+  /**
+   * The activity beacon. Cheap per call, but every browser sends them continuously.
+   *
+   * COUNTED BY VISITOR, NOT BY ADDRESS. This is the case the address would get wrong: a whole
+   * college browsing from one router shares one public IP, so an IP-keyed limit would let the
+   * first few students silence the trail for everybody else — and a screen built to show what a
+   * college did during a demo would go blank precisely when a college is demoing. The visitor id
+   * is forgeable, but forging it only lets a stranger fill their own bucket.
+   *
+   * The allowance is deliberately loose. A member working through an assessment produces a page
+   * view and several actions a minute, batched ten at a time, and a limit that clips an ordinary
+   * session would leave gaps in the timeline that read as the member having stopped.
+   */
+  activityBeacon: {
+    max: 300, windowMs: 15 * 60_000,
+    keyBy: req => {
+      const v = String((req.body || {}).visitorId ?? '').trim();
+      return v ? `v:${v.slice(0, 80)}` : '';
+    },
+    message: 'Too much activity reported from this browser.',
+  },
   /** Every call here is a paid AI generation. */
   aiGenerate: {
     max: 12, windowMs: 60 * 60_000,

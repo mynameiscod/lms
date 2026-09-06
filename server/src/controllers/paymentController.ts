@@ -9,6 +9,8 @@ import * as settings from '../services/settingsService';
 import { applyFeePayment, reverseFeePayment } from '../services/feePaymentService';
 import { unlockCandidatePlans } from '../services/assessmentEnrollmentService';
 import { activateMembership } from '../services/passportActivationService';
+import HackathonRegistration from '../models/HackathonRegistration';
+import { settleRegistration } from './publicHackathonController';
 
 /**
  * paymentController — Razorpay self-serve unlock of a candidate's full
@@ -140,6 +142,45 @@ export const verifyPayment = async (req: AuthenticatedRequest, res: Response) =>
  * Razorpay webhook (public, raw body). Server-side fallback that unlocks the
  * plan on payment.captured even if the browser never reached /verify. Idempotent.
  */
+/**
+ * The same webhook, for a public hackathon registration.
+ *
+ * Kept here rather than on a second endpoint because Razorpay sends every event for the
+ * account to one URL; a separate route would simply never be called. The verification is
+ * identical and just as strict — the signature is checked against the tenant that owns the
+ * order, and the captured amount comes from the signed body.
+ */
+async function handleHackathonWebhook(
+  _req: Request, res: Response, event: any, orderId: string,
+  raw: Buffer | string, signature: string,
+): Promise<Response> {
+  const reg = await HackathonRegistration.findOne({ 'payment.orderId': orderId });
+  if (!reg) return res.status(200).json({ success: true, ignored: true });
+
+  if (!razorpay.verifyWebhookSignature(reg.tenantId, raw, signature)) {
+    return res.status(400).json({ success: false, message: 'Invalid signature' });
+  }
+
+  const evType = String(event?.event || '');
+  if (evType === 'payment.captured' || evType === 'order.paid') {
+    const entity = event?.payload?.payment?.entity || {};
+    const captured = entity.amount !== undefined
+      ? { amount: Number(entity.amount), currency: String(entity.currency || ''), orderId: String(entity.order_id || '') }
+      : undefined;
+    // Idempotent, and it has to be: this and the browser's return trip both call it, in
+    // whichever order they happen to arrive.
+    await settleRegistration(reg, entity.id || reg.payment?.paymentId || '', undefined, captured);
+  } else if (evType === 'payment.failed' && reg.status === 'pending_payment' && reg.payment) {
+    // Frees the team's name and their members' numbers immediately, instead of making them
+    // wait out the pending window before they can try again.
+    reg.payment.status = 'failed';
+    reg.status = 'cancelled';
+    reg.cancelReason = 'Payment failed';
+    await reg.save().catch(() => { /* the pending window releases it anyway */ });
+  }
+  return res.status(200).json({ success: true });
+}
+
 export const webhook = async (req: Request, res: Response) => {
   try {
     const signature = String(req.headers['x-razorpay-signature'] || '');
@@ -155,7 +196,16 @@ export const webhook = async (req: Request, res: Response) => {
     if (!orderId) return res.status(200).json({ success: true, ignored: true });
 
     const payment = await Payment.findOne({ orderId });
-    if (!payment) return res.status(200).json({ success: true, ignored: true });
+    /**
+     * Not a fee payment — try the public hackathon funnel before giving up.
+     *
+     * Razorpay is configured with ONE webhook URL for the whole account, so every product
+     * that takes money arrives here. A hackathon registration is not in the Payment ledger
+     * (that ledger is student-scoped and a public registrant has no account), so it needs
+     * its own lookup rather than being silently ignored — which would leave every paid team
+     * sitting at `pending_payment` unless their browser happened to complete the return trip.
+     */
+    if (!payment) return handleHackathonWebhook(req, res, event, orderId, raw, signature);
 
     // Verify against the tenant that owns this order.
     if (!razorpay.verifyWebhookSignature(String(payment.tenantId), raw, signature)) {

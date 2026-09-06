@@ -41,7 +41,9 @@ import leadAIRoutes from './leadAIRoutes';
 import lostReasonRoutes from './lostReasonRoutes';
 import publicLeadRoutes from './publicLeadRoutes';
 import battleRoutes from './battleRoutes';
+import hackathonRoutes from './hackathonRoutes';
 import publicBattleRoutes from './publicBattleRoutes';
+import publicHackathonRoutes from './publicHackathonRoutes';
 import metaLeadAdsRoutes from './metaLeadAdsRoutes';
 import googleSheetRoutes from './googleSheetRoutes';
 import leadScoringRoutes from './leadScoringRoutes';
@@ -127,9 +129,13 @@ router.get('/public/unsubscribe', unsubscribe);
 // express.json() only parses application/json; SNS posts text/plain, so this
 // route gets its own permissive parser before the generic /public mount.
 router.post('/public/ses-events', express.json({ type: '*/*', limit: '1mb', verify: (req, _res, buf) => { (req as any).rawBody = buf; } }), sesEvents);
+// Public hackathon funnel — no auth, called from the marketing site. Specific paths, so
+// mounted before the generic /public router.
+router.use('/public', publicHackathonRoutes);
 router.use('/public', publicBattleRoutes); // Tech Battle public funnel (specific battle paths, before generic /public)
 router.use('/public', publicLeadRoutes);
 router.use('/battles', battleRoutes);
+router.use('/hackathons', hackathonRoutes);
 router.use('/certificates', certificateRoutes);
 router.use('/ai-usage', aiUsageRoutes);
 router.use('/meta-leads', metaLeadAdsRoutes);

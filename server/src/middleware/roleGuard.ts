@@ -208,6 +208,20 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'export_battle_data', label: 'Export Registration Data (contains public PII)' },
     ]
   },
+  /**
+   * Separate from techBattles because they are different products with different risk.
+   * A battle is an online exam; a hackathon takes MONEY from the public and holds the
+   * phone number and email of every member of every team. Exporting that is its own
+   * permission for the same reason it is on battles.
+   */
+  hackathons: {
+    label: 'Hackathons (Public Registrations)',
+    permissions: [
+      { key: 'manage_hackathons', label: 'Create, Edit & Close Hackathons (sets the fee)' },
+      { key: 'view_hackathons', label: 'View Hackathons & Registrations' },
+      { key: 'export_hackathon_data', label: 'Export Registration Data (contains public PII)' },
+    ]
+  },
   careerPassport: {
     label: 'CareerPilot',
     permissions: [
@@ -291,7 +305,11 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // CareerPilot — full control, including granting membership without payment
     'manage_passport', 'manage_passport_categories', 'view_passport_members', 'view_passport_funnel', 'convert_passport_member', 'reroute_passport_members', 'use_passport',
     // Tech Battles — full control, including exporting public registrant PII
-    'manage_battles', 'view_battles', 'review_battle_registrations', 'export_battle_data',
+    'manage_battles', 'view_battles', 'review_battle_registrations',
+    // Hackathons — run the event, but exporting registrant PII stays with admins
+    'manage_hackathons', 'view_hackathons', 'export_battle_data',
+    // Hackathons — full control, including setting the fee and exporting registrant PII
+    'manage_hackathons', 'view_hackathons', 'export_hackathon_data',
     // Exams — record and correct offline/external marks
     'manage_exams', 'view_exams',
   ],

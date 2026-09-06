@@ -147,6 +147,24 @@ export const POLICIES = {
     message: 'Too many generation requests in the last hour. Wait a few minutes, or use the '
       + 'draftQuestionsForEmptySkills script for a large sweep.',
   },
+  /**
+   * Public hackathon registration — unauthenticated, writes a row, and opens a payment order.
+   *
+   * COUNTED PER TEAM LEAD'S MOBILE, not per address, for the reason the signup policy gives:
+   * a college computer lab is one public IP, and counting there would stop the sixth team of
+   * the day registering because five classmates went first. A team that legitimately retries
+   * after a failed payment should never meet this.
+   */
+  hackathonRegister: {
+    max: 10, windowMs: 30 * 60_000,
+    keyBy: req => mobileSubject(((req.body || {}).members || [])[0]?.mobile),
+    message: 'Too many registration attempts for this mobile number. Please try again shortly.',
+  },
+  /** A backstop on the address, sized for a shared connection rather than a person. */
+  hackathonPayment: {
+    max: 60, windowMs: 30 * 60_000,
+    message: 'Too many payment checks just now. Please wait a moment and try again.',
+  },
   /** Money moves. Bounded so a stuck client cannot open orders indefinitely. */
   payment: {
     max: 20, windowMs: 60 * 60_000,

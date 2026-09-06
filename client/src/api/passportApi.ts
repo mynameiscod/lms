@@ -25,6 +25,13 @@ export interface PassportConfig {
   membershipMonths: number;
   /** How many days of work a plan covers. Capped at 90 by the planner. */
   roadmapDays?: number;
+  /**
+   * Whether daily missions follow authored Concept Learning Units.
+   *
+   * Off is not a degraded mode: with it off the mission engine behaves exactly as it did
+   * before the layer existed, resolving the first mapped resource for a skill.
+   */
+  conceptLearningEnabled?: boolean;
 }
 
 /** One skill's share of the assessable pool. */

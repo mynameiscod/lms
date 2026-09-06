@@ -61,6 +61,7 @@ const PassportAdminConfig: React.FC = () => {
       await passportApi.saveContent({ journeyDays, missionsPerDay });
       const saved = await passportApi.updateConfig({
         enabled: cfg.enabled, assessmentMode: cfg.assessmentMode, priceInr: cfg.priceInr,
+        conceptLearningEnabled: cfg.conceptLearningEnabled,
         membershipMonths: cfg.membershipMonths,
         // Same number in both places. The planner still clamps it to its own ceiling when it
         // reads, which is what the note above the field explains.
@@ -172,6 +173,19 @@ const PassportAdminConfig: React.FC = () => {
               <option value="deterministic">Deterministic (no AI — cheap, scales)</option>
               <option value="ai">AI (rich, costs tokens)</option>
             </select>
+
+          {/*
+            Whether daily missions follow an authored journey or the legacy resolver.
+            OFF is not a degraded mode: with it off the engine behaves exactly as it did before
+            Concept Learning Units existed, serving the first resource mapped to a skill. It is
+            here rather than hidden in an env file so a tenant can be switched back without a
+            deploy if the content turns out to be wrong rather than the code.
+          */}
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600 }}>
+            <input type="checkbox" checked={!!cfg.conceptLearningEnabled}
+                   onChange={e => setCfg({ ...cfg, conceptLearningEnabled: e.target.checked })} />
+            Teach from published learning journeys
+          </label>
           </div>
         </div>
       </div>

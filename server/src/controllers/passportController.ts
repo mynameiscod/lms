@@ -55,7 +55,9 @@ export const updateConfig = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);
     await ensureConfig(tenantId);
-    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays'];
+    // The allow-list is the whole security model for this endpoint, so a field absent from it
+    // is silently discarded — a toggle that appears to save and changes nothing.
+    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'conceptLearningEnabled'];
     const $set: any = {};
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
     const cfg = await PassportConfig.findOneAndUpdate({ tenantId }, { $set }, { new: true });

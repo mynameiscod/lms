@@ -1699,6 +1699,8 @@ export interface StudioConcept {
 
 export interface LearningStep {
   stepId: string; sequence: number; phase: string;
+  /** Sub-concept label — "Inheritance". Presentational grouping only. */
+  topic?: string;
   resourceId?: string; titleOverride?: string;
   estimatedMinutes: number; required: boolean;
   scoreWindow?: { min: number | null; max: number | null };

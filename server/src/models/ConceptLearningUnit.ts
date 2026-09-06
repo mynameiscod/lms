@@ -50,6 +50,24 @@ export interface IConceptLearningStep {
    * anybody authoring a second unit for them.
    */
   scoreWindow?: IScoreWindow;
+
+  /**
+   * The sub-concept this step belongs to. Presentational, and only that.
+   *
+   * A skill is not a single idea. JAVA_OOP contains classes, encapsulation, inheritance and
+   * polymorphism, and a realistic journey for it runs to a dozen steps — at which point a flat
+   * list stops being readable and an author cannot see that steps 6 and 7 are both Inheritance.
+   *
+   * Sub-concepts are NOT skills and must not become them. Making inheritance a CareerSkill
+   * would give it a blueprint entry, a target level, a question pool and a share of the
+   * readiness figure; 104 skills would become several hundred and every blueprint would
+   * quadruple. The learning unit is where that granularity belongs, and this label is how it
+   * reads as a syllabus rather than a list.
+   *
+   * It changes nothing else: not resolution, not the roadmap, not scoring. Steps with no topic
+   * simply render ungrouped, which is every unit authored before this existed.
+   */
+  topic?: string;
   /** Narrows a step further than the unit's own audience. Empty inherits the unit's. */
   audience?: IResourceAudience;
   notes?: string;
@@ -93,6 +111,7 @@ const StepSchema = new Schema<IConceptLearningStep>({
   estimatedMinutes: { type: Number, default: 15 },
   required:      { type: Boolean, default: true },
   scoreWindow:   { min: { type: Number, default: null }, max: { type: Number, default: null } },
+  topic:         { type: String, default: '', trim: true },
   audience:      { type: AudienceSchema, default: EMPTY_AUDIENCE },
   notes:         { type: String, default: '' },
 }, { _id: false });

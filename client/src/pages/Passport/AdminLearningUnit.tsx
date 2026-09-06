@@ -34,9 +34,9 @@ const PHASE_WORK: Record<string, string> = {
   CHECK: 'ASSESS', APPLY: 'PRACTICE', REVIEW: 'REVIEW',
 };
 
-const blankStep = (sequence: number): LearningStep => ({
+const blankStep = (sequence: number, topic = ''): LearningStep => ({
   stepId: '', sequence, phase: 'LEARN', resourceId: '', titleOverride: '',
-  estimatedMinutes: 15, required: true,
+  estimatedMinutes: 15, required: true, topic,
 });
 
 const AdminLearningUnit: React.FC = () => {
@@ -174,8 +174,16 @@ const AdminLearningUnit: React.FC = () => {
             {steps.map((s, i) => {
               const res = resources.find(r => r.id === s.resourceId);
               const isCheck = s.phase === 'CHECK';
+              /**
+               * A heading whenever the sub-concept changes, so a twelve-step journey reads as
+               * sections. Nothing is reordered or nested — the list stays flat and the label is
+               * only a divider, which is why steps with no topic simply flow on.
+               */
+              const startsTopic = !!s.topic && s.topic !== (steps[i - 1]?.topic || '');
               return (
-                <div className="lst-step" key={s.stepId || i}>
+                <React.Fragment key={s.stepId || i}>
+                {startsTopic && <div className="lst-topic"><span>{s.topic}</span></div>}
+                <div className="lst-step">
                   <span className="lst-seq">{String(i + 1).padStart(2, '0')}</span>
                   <div className="lst-step-body">
                     <div className="lst-step-row">
@@ -203,6 +211,8 @@ const AdminLearningUnit: React.FC = () => {
                       </label>
                     </div>
                     <div className="lst-step-foot">
+                      <input className="lst-topic-input" value={s.topic || ''} placeholder="sub-concept, e.g. Inheritance"
+                             onChange={e => patchStep(i, { topic: e.target.value })} />
                       <span className="lst-tag">{PHASE_WORK[s.phase]}</span>
                       <span className="lst-hint-inline">{PHASE_HINT[s.phase]}</span>
                       {!isCheck && !s.resourceId && <span className="lst-warn">No resource — this step opens nothing</span>}
@@ -215,10 +225,11 @@ const AdminLearningUnit: React.FC = () => {
                     <button onClick={() => setSteps(l => l.filter((_, n) => n !== i))} title="Remove">×</button>
                   </div>
                 </div>
+                </React.Fragment>
               );
             })}
 
-            <button className="lst-add" onClick={() => setSteps(l => [...l, blankStep(l.length + 1)])}>
+            <button className="lst-add" onClick={() => setSteps(l => [...l, blankStep(l.length + 1, l[l.length - 1]?.topic || '')])}>
               + Add step
             </button>
           </div>

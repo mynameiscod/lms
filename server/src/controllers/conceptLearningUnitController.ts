@@ -73,6 +73,7 @@ function sanitiseSteps(raw: any): any[] {
       languages: Array.isArray(s?.audience?.languages) ? s.audience.languages.map((x: any) => clean(x, 40)) : [],
       stages:    Array.isArray(s?.audience?.stages) ? s.audience.stages.map((x: any) => clean(x, 40)) : [],
     },
+    topic: clean(s.topic, 80),
     notes: clean(s.notes, 1000),
   }));
   return normaliseSequence(steps as any);
@@ -291,6 +292,7 @@ export const preview = async (req: Request, res: Response) => {
         const r = s.resourceId ? byId.get(String(s.resourceId)) : null;
         return {
           stepId: s.stepId, sequence: s.sequence, phase: s.phase,
+          topic: s.topic || '',
           workType: workTypeForPhase(s.phase),
           title: s.titleOverride || r?.title || (workTypeForPhase(s.phase) === 'ASSESS' ? 'Skill check' : '(no resource)'),
           resourceType: r?.resourceType || (s.resourceId ? 'missing' : 'assessment'),

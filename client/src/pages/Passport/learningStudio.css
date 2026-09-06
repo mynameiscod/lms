@@ -154,3 +154,26 @@
   .lst-kpis { grid-template-columns: 1fr; }
   .lst-step-row { grid-template-columns: 1fr 1fr; }
 }
+
+
+/* Sub-concept sections inside a journey.
+   A divider, not a container — the step list stays flat so reordering across sections works
+   exactly as it does within one, and a step with no topic simply flows on. */
+.lst-topic {
+  display: flex; align-items: center; gap: 10px;
+  margin: 14px 0 2px; padding-top: 10px; border-top: 1px solid #e3e9f0;
+}
+.lst-topic:first-child { border-top: 0; padding-top: 0; margin-top: 4px; }
+.lst-topic span {
+  font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--lst-teal); background: #eef8fa; border-radius: 999px; padding: 4px 10px;
+}
+.lst-topic::after { content: ""; flex: 1; height: 1px; background: #eef2f6; }
+
+.lst-topic-input {
+  border: 1px dashed #cfdae6 !important; background: #fbfdff !important;
+  border-radius: 7px !important; padding: 3px 8px !important;
+  font-size: 10.5px !important; color: #55637a !important; width: 190px;
+}
+.lst-topic-input:focus { border-style: solid !important; border-color: var(--lst-teal) !important; }
+.lst-topic-input::placeholder { color: #a9b6c6; }

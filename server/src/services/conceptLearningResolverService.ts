@@ -304,6 +304,9 @@ export async function journeyFor(tenantId: string, studentId: string, skillKey: 
     },
     steps: steps.map(s => ({
       stepId: s.stepId, sequence: s.sequence, phase: s.phase,
+      // The sub-concept, so a member's journey reads as sections rather than twelve numbered
+      // rows. Empty for anything authored before topics existed, which renders ungrouped.
+      topic: s.topic || '',
       title: s.titleOverride || '', estimatedMinutes: s.estimatedMinutes,
       required: s.required, done: done.has(s.stepId),
     })),

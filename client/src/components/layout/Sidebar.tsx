@@ -187,6 +187,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Platform Settings', path: '/admin/platform-settings', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-key', permissions: ['manage_tenants'] },
     // ── Tech Battles (public competitions) ──
     { label: 'Tech Battles', path: '/admin/battles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-trophy', permissions: ['manage_battles', 'view_battles'] },
+    // ── Hackathons (public team registrations, with a fee) ──
+    { label: 'Hackathons', path: '/admin/hackathons', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-laptop-code', permissions: ['manage_hackathons', 'view_hackathons'] },
     // ── CareerPilot (separate product) ──
     { label: 'CareerPilot Config', path: '/admin/passport/config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_passport'] },
     { label: 'CareerPilot Members', path: '/admin/passport/students', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-id-card-clip', permissions: ['view_passport_members', 'manage_passport'] },
@@ -428,7 +430,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'CRM & GROWTH',            labels: ['Leads', 'Placement Partnership'] },
     { title: 'COLLEGE',                 labels: ['College'] },
     { title: 'BILLING',                 labels: ['Fees'] },
-    { title: 'TECH BATTLES',         labels: ['Tech Battles'] },
+    { title: 'EVENTS',                  labels: ['Tech Battles', 'Hackathons'] },
     /**
      * Every CareerPilot screen, in the order an admin actually works through them:
      * set the role up, give it skills and evidence, check the paper, then run and watch it.

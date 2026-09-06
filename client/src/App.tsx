@@ -124,6 +124,8 @@ import BattleExam from './pages/Battles/Exam';
 import BattleLeaderboard from './pages/Battles/Leaderboard';
 import BattlesAdmin from './pages/BattlesAdmin';
 import BattleDetail from './pages/BattlesAdmin/BattleDetail';
+import HackathonsAdmin from './pages/HackathonsAdmin';
+import HackathonDetail from './pages/HackathonsAdmin/HackathonDetail';
 import ProjectBuilder from './pages/ProjectBuilder';
 import JobTracker from './pages/JobTracker';
 import AIMentor from './pages/AIMentor';
@@ -460,6 +462,14 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/battles/:id" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'STAFF']}><Layout><BattleDetail /></Layout></ProtectedRoute>
+      } />
+
+      {/* ── Hackathons (public registrations, admin side) ── */}
+      <Route path="/admin/hackathons" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'STAFF']}><Layout><HackathonsAdmin /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/hackathons/:id" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'STAFF']}><Layout><HackathonDetail /></Layout></ProtectedRoute>
       } />
 
       {/* ── CareerPilot (separate product) ── */}

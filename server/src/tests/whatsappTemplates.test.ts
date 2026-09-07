@@ -275,3 +275,64 @@ describe('reporting how much of the team was reached', () => {
     expect(tally([false, false]).whatsapp).toBe(false);
   });
 });
+
+/**
+ * What Meta actually said when a real registration went out, and what each answer means.
+ *
+ * These are transcribed from production logs rather than invented, because each one was a
+ * separate cause with the same symptom — a team hearing nothing — and the next person to see
+ * one of these codes should not have to rediscover which is which.
+ */
+describe('reading Meta send errors', () => {
+  const diagnose = (code: number, details: string): string => {
+    if (code === 132018 && /QuickReply/i.test(details)) return 'template-button-is-quick-reply';
+    if (code === 132012 && /expected IMAGE/i.test(details)) return 'template-wants-an-image-header';
+    if (code === 132000) return 'wrong-number-of-body-variables';
+    return 'unknown';
+  };
+
+  it('names a quick-reply button where a url button was expected', () => {
+    // The pending template was approved with "Custom" instead of "Visit website", so the
+    // resume link could not be attached to it at all.
+    expect(diagnose(132018, 'buttons: Button at index 0 must be of type QuickReply'))
+      .toBe('template-button-is-quick-reply');
+  });
+
+  it('names a missing image on a template that declares one', () => {
+    // An event with no banner. Sent once per team member, so one blank field silently cost a
+    // whole team their confirmation.
+    expect(diagnose(132012, 'header: Format mismatch, expected IMAGE, received UNKNOWN'))
+      .toBe('template-wants-an-image-header');
+  });
+
+  it('names a variable-count mismatch', () => {
+    // What the free-form fallback hit every time: one flattened variable sent to a template
+    // that declares two.
+    expect(diagnose(132000, 'body: number of localizable_params (1) does not match the expected number of params (2)'))
+      .toBe('wrong-number-of-body-variables');
+  });
+});
+
+/**
+ * The free-form fallback must be free-form.
+ *
+ * It exists for the case where the caller's own template failed. Routing it through ANOTHER
+ * template — of unknown shape — cannot help: it either fails on parameter count, as it did in
+ * production, or succeeds at sending something no one designed.
+ */
+describe('the fallback after a template send fails', () => {
+  const payloadType = (templateName: string, plainOnly: boolean) =>
+    (templateName && !plainOnly) ? 'template' : 'text';
+
+  it('sends real text, not another template, when the caller asks for plain', () => {
+    expect(payloadType('battle_exam__remainder', true)).toBe('text');
+  });
+
+  it('still uses the notify template for callers that have no template of their own', () => {
+    expect(payloadType('battle_exam__remainder', false)).toBe('template');
+  });
+
+  it('sends text when nothing is configured at all', () => {
+    expect(payloadType('', false)).toBe('text');
+  });
+});

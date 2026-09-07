@@ -273,7 +273,7 @@ async function notifyWhatsApp(
 
     // Free-form text reaches only people inside the 24h service window. Kept as a courtesy for
     // the case where a template is not configured yet; NOT a substitute for one.
-    const txt = await sendWhatsAppText(tenantId, mobile, plain);
+    const txt = await sendWhatsAppText(tenantId, mobile, plain, { plainOnly: true });
     if (!txt.ok) console.warn(`[hackathon] WhatsApp text fallback also failed: ${txt.error}`);
     return txt.ok;
   } catch (e: any) {

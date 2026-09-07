@@ -236,7 +236,27 @@ export async function sendWhatsAppTemplate(
  * free-form text (only delivers inside the 24h window / to opted-in users).
  * Returns { ok, error? } with Meta's error message on failure.
  */
-export async function sendWhatsAppText(tenantId: string, phone: string, message: string): Promise<{ ok: boolean; error?: string }> {
+export async function sendWhatsAppText(
+  tenantId: string,
+  phone: string,
+  message: string,
+  opts?: {
+    /**
+     * Send genuine free-form text and do NOT route through the notification template.
+     *
+     * The template path here flattens a whole message into a single {{1}}, which only works
+     * if the configured template happens to take exactly one variable. The configured one
+     * takes two, so every fallback send failed with 132000 — the caller had already failed
+     * its own template send, fell back to this, and failed again for an unrelated reason,
+     * leaving two confusing errors in the log and nothing delivered.
+     *
+     * A caller that has ALREADY tried its own template wants the free-form path or nothing:
+     * within the 24-hour service window it delivers, and outside it nothing was going to
+     * arrive anyway. Guessing at another template's shape cannot help either case.
+     */
+    plainOnly?: boolean;
+  }
+): Promise<{ ok: boolean; error?: string }> {
   const to = normalizeTo(phone);
   if (!to) return { ok: false, error: 'invalid phone' };
   const candidates = await getWhatsAppCredentialCandidates(tenantId);
@@ -248,7 +268,7 @@ export async function sendWhatsAppText(tenantId: string, phone: string, message:
 
   let lastError: string | undefined;
   for (const creds of candidates) {
-    const payload = tpl.name
+    const payload = (tpl.name && !opts?.plainOnly)
       ? { messaging_product: 'whatsapp', to, type: 'template', template: { name: tpl.name, language: { code: tpl.lang }, components: [{ type: 'body', parameters: [{ type: 'text', text: oneLine }] }] } }
       : { messaging_product: 'whatsapp', to, type: 'text', text: { body: message } };
     const r = await waPost(creds, payload);

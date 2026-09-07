@@ -490,6 +490,59 @@ export const resendResumeLink = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * POST /public/hackathons/registration/:code/pay — reopen payment from the link we sent.
+ *
+ * WHY THIS EXISTS SEPARATELY FROM register(). Resuming was only reachable by submitting the
+ * WHOLE FORM AGAIN and having it recognised as the same team — which is exactly what the
+ * student who reported this could not do: their browser had closed and the form was on
+ * another site. The registration code is already the address of their registration, already
+ * in their email and WhatsApp, and already accepted by the public lookup. This makes it
+ * enough to finish paying, which is the only thing they were ever trying to do.
+ *
+ * THE CODE IS THE ONLY CREDENTIAL, so it must not become a way to learn about other people.
+ * It returns the same team-own view the lookup already returns — names, never contact
+ * details — and every refusal below is about the registration's own state, so a wrong guess
+ * reveals nothing beyond "no such code".
+ */
+export const startPaymentByCode = async (req: Request, res: Response) => {
+  try {
+    const code = String(req.params.code || '').toUpperCase();
+    const reg = await HackathonRegistration.findOne({ registrationCode: code });
+    if (!reg) return fail(res, 404, 'We could not find that registration.');
+
+    // Already settled. Told plainly rather than reopened — a second order against a paid
+    // registration is how a student gets charged twice for one seat.
+    if (reg.status === 'confirmed' || reg.payment?.status === 'paid') {
+      return res.json({
+        success: true, alreadyPaid: true, paymentRequired: false,
+        registration: publicRegistration(reg),
+      });
+    }
+    if (reg.status === 'cancelled') {
+      return fail(res, 409, 'That registration was cancelled. Please register again.');
+    }
+
+    const h = await Hackathon.findById(reg.hackathonId).lean() as any;
+    if (!h) return fail(res, 404, 'That event is no longer available.');
+
+    // A free event has nothing to pay; confirm it here rather than sending them to a
+    // checkout for ₹0, which Razorpay will not open.
+    if (!(reg.amountInr || h.feeInr)) {
+      return fail(res, 409, 'This event has no fee. Contact us if your place is not confirmed.');
+    }
+
+    // The window still applies: an event whose registration has closed cannot take money.
+    const closed = registrationWindowError(h);
+    if (closed) return fail(res, 409, closed);
+
+    return resumeRegistration(res, String(reg.tenantId), h, reg);
+  } catch (e: any) {
+    console.error('[hackathon] startPaymentByCode:', e);
+    res.status(500).json({ success: false, message: 'Could not reopen that payment.' });
+  }
+};
+
 export const getRegistration = async (req: Request, res: Response) => {
   try {
     const reg = await HackathonRegistration.findOne({ registrationCode: String(req.params.code || '').toUpperCase() }).lean() as any;

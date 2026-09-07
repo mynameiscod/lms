@@ -1,0 +1,115 @@
+/**
+ * Every class is prefixed `hkr-`, and nothing here styles a bare element.
+ *
+ * This page is mounted outside the app shell, but it still shares one stylesheet with the
+ * whole product — a plain `.card` or `.status` rule from here would silently repaint screens
+ * that have nothing to do with hackathons. That has already happened once on this codebase.
+ */
+
+.hkr-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  background: #f4f6fb;
+}
+
+.hkr-card {
+  width: 100%;
+  max-width: 560px;
+  background: #fff;
+  border: 1px solid #e3e8f2;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 10px 30px rgba(5, 29, 100, 0.07);
+}
+
+.hkr-status {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 999px;
+  margin-bottom: 16px;
+}
+.hkr-status.is-pending { background: #fff4e0; color: #8a5300; }
+.hkr-status.is-paid    { background: #e6f7ed; color: #10693c; }
+
+.hkr-title {
+  margin: 0 0 6px;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 800;
+  color: #0d1b3e;
+  text-wrap: balance;
+}
+
+.hkr-sub   { margin: 0 0 18px; color: #5b6785; font-size: 14px; }
+.hkr-lede  { margin: 0 0 22px; color: #33405e; font-size: 15px; line-height: 1.55; }
+.hkr-muted { color: #5b6785; }
+
+.hkr-facts {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 22px;
+  padding: 18px;
+  background: #f8fafd;
+  border: 1px solid #eaeff8;
+  border-radius: 12px;
+}
+.hkr-facts > div {
+  display: grid;
+  grid-template-columns: 148px 1fr;
+  gap: 12px;
+  align-items: baseline;
+}
+.hkr-facts dt {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #7a86a3;
+}
+.hkr-facts dd { margin: 0; font-size: 15px; color: #16244a; word-break: break-word; }
+
+.hkr-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-size: 16px !important;
+}
+
+.hkr-pay {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  background: #051d64;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 14px 20px;
+  cursor: pointer;
+}
+.hkr-pay:hover:not(:disabled) { background: #0a2a86; }
+.hkr-pay:disabled { opacity: 0.6; cursor: default; }
+.hkr-pay:focus-visible { outline: 3px solid #96b0ff; outline-offset: 2px; }
+
+.hkr-fine { margin: 14px 0 0; font-size: 13px; line-height: 1.5; color: #6b7794; }
+
+.hkr-notice, .hkr-error {
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.hkr-notice { background: #e6f7ed; color: #10693c; border: 1px solid #bfe6cf; }
+.hkr-error  { background: #fdecec; color: #8f1d1d; border: 1px solid #f5c6c6; }
+
+@media (max-width: 520px) {
+  .hkr-card { padding: 24px 20px; }
+  .hkr-facts > div { grid-template-columns: 1fr; gap: 2px; }
+}

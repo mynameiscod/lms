@@ -39,6 +39,25 @@ export function resumeUrl(tenantId: string, registrationCode: string): string {
   return `${base.replace(/\/+$/, '')}/hackathons/resume/${encodeURIComponent(registrationCode)}`;
 }
 
+/**
+ * The poster Meta will fetch for the confirmation template's header.
+ *
+ * META FETCHES IT THEMSELVES, from their own servers, with no session and no headers of ours.
+ * So a relative path, a localhost URL, or anything behind authentication resolves to nothing
+ * for them and the send fails on media rather than on content. Only an absolute public https
+ * URL is offered; anything else is dropped and the template goes out header-less, which the
+ * approved template will reject — visibly, in the send result — rather than half-sending.
+ */
+function posterUrl(h: any): string | undefined {
+  const raw = String(h?.bannerUrl || '').trim();
+  if (!raw) return undefined;
+  if (/^https:\/\//i.test(raw)) return raw;
+  // A site-relative upload path is still usable IF the site itself is public https.
+  const base = settings.getStr('PUBLIC_SITE_URL', '', String(h?.tenantId || '')) || '';
+  if (raw.startsWith('/') && /^https:\/\//i.test(base)) return `${base.replace(/\/+$/, '')}${raw}`;
+  return undefined;
+}
+
 const leadOf = (reg: any) =>
   (reg.members || []).find((m: any) => m.isLead) || (reg.members || [])[0] || null;
 
@@ -74,9 +93,14 @@ export async function sendPendingPaymentNotice(h: any, reg: any): Promise<Notice
     } catch (e: any) { out.error = e?.message || 'email failed'; }
   }
 
-  if (lead.mobile) out.whatsapp = await notifyWhatsApp(reg.tenantId, lead.mobile, [
-    lead.name, reg.teamName, h.title,
-  ], reg.registrationCode, `Hi ${lead.name}, your team "${reg.teamName}" is saved for ${h.title}. `
+  if (lead.mobile) out.whatsapp = await notifyWhatsApp(reg.tenantId, lead.mobile, {
+    purpose: 'HACKATHON_PENDING',
+    // {{1}} name, {{2}} team, {{3}} hackathon. No image: an image header can push a template
+    // from Utility into Marketing, and a Marketing template is withheld from anyone who has
+    // opted out of marketing — which would silently drop the one message that must arrive.
+    body: [lead.name, reg.teamName, h.title],
+    urlButtonParam: reg.registrationCode,
+  }, `Hi ${lead.name}, your team "${reg.teamName}" is saved for ${h.title}. `
     + `Finish payment here: ${url} (code ${reg.registrationCode}). Your place is not confirmed until payment completes.`);
 
   return out;
@@ -114,9 +138,15 @@ export async function sendConfirmedNotice(h: any, reg: any): Promise<NoticeResul
     } catch (e: any) { out.error = e?.message || 'email failed'; }
   }
 
-  if (lead.mobile) out.whatsapp = await notifyWhatsApp(reg.tenantId, lead.mobile, [
-    lead.name, reg.teamName, h.title,
-  ], reg.registrationCode, `Hi ${lead.name}, your team "${reg.teamName}" is confirmed for ${h.title}. `
+  if (lead.mobile) out.whatsapp = await notifyWhatsApp(reg.tenantId, lead.mobile, {
+    purpose: 'HACKATHON_CONFIRMED',
+    // {{1}} name, {{2}} team, {{3}} hackathon, {{4}} code, {{5}} when, {{6}} venue.
+    // A variable may not be empty — Meta rejects the send outright rather than rendering a
+    // gap — so venue falls back to text rather than passing through blank.
+    body: [lead.name, reg.teamName, h.title, reg.registrationCode, when, h.venue || 'To be announced'],
+    urlButtonParam: reg.registrationCode,
+    headerImageUrl: posterUrl(h),
+  }, `Hi ${lead.name}, your team "${reg.teamName}" is confirmed for ${h.title}. `
     + `Registration code: ${reg.registrationCode}. Bring it to the venue.`);
 
   return out;
@@ -133,10 +163,13 @@ export async function sendConfirmedNotice(h: any, reg: any): Promise<NoticeResul
  * open, and its failure is not treated as an error.
  */
 async function notifyWhatsApp(
-  tenantId: string, mobile: string, bodyParams: string[], urlParam: string, plain: string,
+  tenantId: string,
+  mobile: string,
+  tplOpts: { purpose: string; body: string[]; urlButtonParam?: string; headerImageUrl?: string },
+  plain: string,
 ): Promise<boolean> {
   try {
-    const tpl = await sendWhatsAppTemplate(tenantId, mobile, { body: bodyParams, urlButtonParam: urlParam });
+    const tpl = await sendWhatsAppTemplate(tenantId, mobile, tplOpts);
     if (tpl.ok) return true;
     const txt = await sendWhatsAppText(tenantId, mobile, plain);
     return txt.ok;

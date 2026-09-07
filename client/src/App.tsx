@@ -125,6 +125,7 @@ import BattleLeaderboard from './pages/Battles/Leaderboard';
 import BattlesAdmin from './pages/BattlesAdmin';
 import BattleDetail from './pages/BattlesAdmin/BattleDetail';
 import HackathonsAdmin from './pages/HackathonsAdmin';
+import HackathonResume from './pages/HackathonResume';
 import HackathonDetail from './pages/HackathonsAdmin/HackathonDetail';
 import ProjectBuilder from './pages/ProjectBuilder';
 import JobTracker from './pages/JobTracker';
@@ -463,6 +464,10 @@ const AppRoutes: React.FC = () => {
       <Route path="/admin/battles/:id" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'STAFF']}><Layout><BattleDetail /></Layout></ProtectedRoute>
       } />
+
+      {/* Public: the link in the hackathon email and WhatsApp. No auth — the registration
+          code is the credential, and the page shows only the team's own details. */}
+      <Route path="/hackathons/resume/:code" element={<HackathonResume />} />
 
       {/* ── Hackathons (public registrations, admin side) ── */}
       <Route path="/admin/hackathons" element={

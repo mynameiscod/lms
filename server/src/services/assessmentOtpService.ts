@@ -122,12 +122,40 @@ function normalizeTo(phone: string): string {
 // window (i.e. every battle registrant). Create + approve a template in Meta Business
 // Manager with a single body variable {{1}} and set its name here (via Platform Settings
 // or env). Without it, sends fall back to plain text, which Meta rejects for cold users.
-const notifyTemplate = () => process.env.WHATSAPP_NOTIFY_TEMPLATE || '';
-const notifyTemplateLang = () => process.env.WHATSAPP_NOTIFY_TEMPLATE_LANG || 'en';
-// Templates with a DYNAMIC url button need the variable half of that url passed as a
-// button component — Meta rejects the send otherwise (132000, parameter count mismatch).
-// Set to "false" for a template whose button is static, or that has no button at all.
-const notifyTemplateHasButton = () => String(process.env.WHATSAPP_NOTIFY_TEMPLATE_BUTTON || 'true') !== 'false';
+/**
+ * WHICH TEMPLATE, FOR WHICH PURPOSE.
+ *
+ * There was one global slot, WHATSAPP_NOTIFY_TEMPLATE, read straight from process.env — so
+ * every business-initiated message had to be the SAME approved template. That is not merely
+ * untidy: Meta validates parameter count against the named template and rejects a mismatch
+ * with error 132000, and the one configured slot is a Tech Battle template taking two body
+ * variables. Any caller needing three would have failed every send.
+ *
+ * Each purpose now resolves its own name, language and button shape, through the settings
+ * service — so tenant override → Platform Settings → env, like every other credential, and a
+ * college can point at its own approved templates. A purpose with nothing configured falls
+ * back to the global slot, so what worked before this still works.
+ */
+type TemplateConfig = { name: string; lang: string; hasButton: boolean };
+
+function templateConfig(purpose?: string, tenantId?: string): TemplateConfig {
+  const scoped = (suffix: string): string => {
+    if (!purpose) return '';
+    return settings.getStr(`WHATSAPP_TEMPLATE_${purpose.toUpperCase()}${suffix}`, '', tenantId);
+  };
+  const name = scoped('') || settings.getStr('WHATSAPP_NOTIFY_TEMPLATE', '', tenantId);
+  // Language and button belong to the template that was actually chosen. Reading them from
+  // the global slot while sending a scoped template is how you get a template that exists in
+  // en_US addressed as en, which fails with a message that names neither.
+  const scopedName = !!scoped('');
+  const lang = scoped('_LANG')
+    || (scopedName ? 'en' : settings.getStr('WHATSAPP_NOTIFY_TEMPLATE_LANG', 'en', tenantId));
+  const buttonRaw = scoped('_BUTTON')
+    || (scopedName ? 'true' : settings.getStr('WHATSAPP_NOTIFY_TEMPLATE_BUTTON', 'true', tenantId));
+  return { name, lang, hasButton: String(buttonRaw) !== 'false' };
+}
+
+const notifyTemplate = () => templateConfig().name;
 
 /** Whether a notification template is configured at all. Callers use this to decide
  *  between a template send (reaches cold contacts) and free-form text (does not). */
@@ -149,21 +177,40 @@ export const hasNotifyTemplate = () => !!notifyTemplate();
 export async function sendWhatsAppTemplate(
   tenantId: string,
   phone: string,
-  opts: { body: string[]; urlButtonParam?: string }
+  opts: {
+    body: string[];
+    urlButtonParam?: string;
+    /** Which approved template this is for. Falls back to the global slot when unset. */
+    purpose?: string;
+    /**
+     * A dynamic image for the template's header.
+     *
+     * Meta FETCHES this from their own servers, so it has to be publicly reachable HTTPS —
+     * an authenticated upload URL resolves to nothing for them and the send fails with a
+     * media error that says little. Ignored unless the approved template actually declares an
+     * image header; supplying one to a template without it is a parameter mismatch (132000).
+     */
+    headerImageUrl?: string;
+  }
 ): Promise<{ ok: boolean; error?: string }> {
   const to = normalizeTo(phone);
   if (!to) return { ok: false, error: 'invalid phone' };
-  const tpl = notifyTemplate();
-  if (!tpl) return { ok: false, error: 'No WhatsApp template configured (Platform Settings → Messaging).' };
+  const tpl = templateConfig(opts.purpose, tenantId);
+  if (!tpl.name) return { ok: false, error: 'No WhatsApp template configured (Platform Settings → Messaging).' };
 
   const candidates = await getWhatsAppCredentialCandidates(tenantId);
   if (!candidates.length) return { ok: false, error: 'WhatsApp is not configured for this tenant (set it in Platform Settings).' };
 
   const clean = (s: string) => String(s ?? '').replace(/[\r\n\t]+/g, ' ').replace(/ {2,}/g, ' ').trim();
-  const components: any[] = [
+  const components: any[] = [];
+  // Header first — Meta requires components in the order the template declares them.
+  if (opts.headerImageUrl && /^https:\/\//i.test(opts.headerImageUrl)) {
+    components.push({ type: 'header', parameters: [{ type: 'image', image: { link: opts.headerImageUrl } }] });
+  }
+  components.push(
     { type: 'body', parameters: opts.body.map((v) => ({ type: 'text', text: clean(v) })) },
-  ];
-  if (opts.urlButtonParam && notifyTemplateHasButton()) {
+  );
+  if (opts.urlButtonParam && tpl.hasButton) {
     components.push({
       type: 'button', sub_type: 'url', index: '0',
       parameters: [{ type: 'text', text: clean(opts.urlButtonParam) }],
@@ -174,7 +221,7 @@ export async function sendWhatsAppTemplate(
   for (const creds of candidates) {
     const r = await waPost(creds, {
       messaging_product: 'whatsapp', to, type: 'template',
-      template: { name: tpl, language: { code: notifyTemplateLang() }, components },
+      template: { name: tpl.name, language: { code: tpl.lang }, components },
     });
     if (r.ok) return { ok: true };
     lastError = r.error;
@@ -195,14 +242,14 @@ export async function sendWhatsAppText(tenantId: string, phone: string, message:
   const candidates = await getWhatsAppCredentialCandidates(tenantId);
   if (!candidates.length) return { ok: false, error: 'WhatsApp is not configured for this tenant (set it in Platform Settings).' };
 
-  const tpl = notifyTemplate();
+  const tpl = templateConfig(undefined, tenantId);
   // Template body variables reject newlines/tabs and >4 consecutive spaces — sanitize.
   const oneLine = String(message).replace(/[\r\n\t]+/g, ' ').replace(/ {2,}/g, ' ').trim();
 
   let lastError: string | undefined;
   for (const creds of candidates) {
-    const payload = tpl
-      ? { messaging_product: 'whatsapp', to, type: 'template', template: { name: tpl, language: { code: notifyTemplateLang() }, components: [{ type: 'body', parameters: [{ type: 'text', text: oneLine }] }] } }
+    const payload = tpl.name
+      ? { messaging_product: 'whatsapp', to, type: 'template', template: { name: tpl.name, language: { code: tpl.lang }, components: [{ type: 'body', parameters: [{ type: 'text', text: oneLine }] }] } }
       : { messaging_product: 'whatsapp', to, type: 'text', text: { body: message } };
     const r = await waPost(creds, payload);
     if (r.ok) return { ok: true };

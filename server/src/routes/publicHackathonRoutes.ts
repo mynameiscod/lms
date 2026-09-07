@@ -12,6 +12,9 @@ import { rateLimit } from '../middleware/rateLimit';
 const router = express.Router();
 
 router.get('/hackathons/registration/:code', ctrl.getRegistration);
+// Reopening payment from the link in the confirmation email / WhatsApp. Rate limited on the
+// payment policy: it opens a Razorpay order, so it is a write, not a lookup.
+router.post('/hackathons/registration/:code/pay', express.json(), rateLimit('hackathonPayment'), ctrl.startPaymentByCode);
 router.post('/hackathons/payment/verify', express.json(), rateLimit('hackathonPayment'), ctrl.verifyPayment);
 
 // Listing and event pages. Declared AFTER the literal paths above so `registration` and

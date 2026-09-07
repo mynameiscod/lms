@@ -51,13 +51,24 @@ export function resumeUrl(tenantId: string, registrationCode: string): string {
  * approved template will reject — visibly, in the send result — rather than half-sending.
  */
 function posterUrl(h: any): string | undefined {
-  const raw = String(h?.bannerUrl || '').trim();
+  const tenantId = String(h?.tenantId || '');
+  /**
+   * A FALLBACK POSTER, because the approved confirmation template REQUIRES an image header.
+   *
+   * Meta validates components against the template it is given: a template that declares an
+   * image header and is sent without one is rejected outright with error 132000, so an event
+   * whose banner was simply never filled in would fail every confirmation — silently, since
+   * the registration itself succeeds and nothing in the product looks wrong. An organiser
+   * forgetting to upload artwork must not cost a paid team their confirmation.
+   */
+  const raw = String(h?.bannerUrl || '').trim()
+    || settings.getStr('HACKATHON_DEFAULT_POSTER_URL', '', tenantId).trim();
   if (!raw) return undefined;
   if (/^https:\/\//i.test(raw)) return raw;
   // A site-relative upload path is still usable IF the site itself is public https. Resolved
   // against the SAME base as the resume link — reading a different setting here is how a
   // banner silently produces no poster while the link in the same message works fine.
-  const base = publicBase(String(h?.tenantId || ''));
+  const base = publicBase(tenantId);
   if (raw.startsWith('/') && /^https:\/\//i.test(base)) return `${base}${raw}`;
   return undefined;
 }
@@ -247,9 +258,26 @@ async function notifyWhatsApp(
   try {
     const tpl = await sendWhatsAppTemplate(tenantId, mobile, tplOpts);
     if (tpl.ok) return true;
+
+    /**
+     * SAY WHY, IN THE LOG.
+     *
+     * Every failure here is invisible from the product: the registration succeeds, the screen
+     * looks right, and the student simply never hears from us. The first time this happened it
+     * took a query against the production database to discover the template name had never been
+     * configured — which the send had known all along and thrown away. Meta's own message is
+     * the useful part (an unconfigured template, a parameter mismatch, an unfetchable image),
+     * so it is recorded rather than discarded.
+     */
+    console.warn(`[hackathon] WhatsApp template "${tplOpts.purpose}" failed for ...${String(mobile).slice(-4)}: ${tpl.error}`);
+
+    // Free-form text reaches only people inside the 24h service window. Kept as a courtesy for
+    // the case where a template is not configured yet; NOT a substitute for one.
     const txt = await sendWhatsAppText(tenantId, mobile, plain);
+    if (!txt.ok) console.warn(`[hackathon] WhatsApp text fallback also failed: ${txt.error}`);
     return txt.ok;
-  } catch {
+  } catch (e: any) {
+    console.warn(`[hackathon] WhatsApp send threw: ${e?.message || e}`);
     return false;
   }
 }

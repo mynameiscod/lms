@@ -160,30 +160,40 @@ describe('the variables each template is sent', () => {
     expect(bodyOk(['Rahul', 'Code Warriors', 'CodeBegun Hackathon 2026'], 3)).toBe(true);
   });
 
-  it('accepts the six the confirmation template declares', () => {
-    // Order matters: Meta requires body variables to appear in ascending order, and the team
-    // ID sits LAST because a labelled code on its own line reads to the classifier as an OTP.
+  it('accepts the five the confirmation template declares', () => {
     expect(bodyOk([
       'Rahul', 'Code Warriors', 'CodeBegun Hackathon 2026',
-      'Sat 12 Oct, 9:00 AM', 'CodeBegun Campus, Hyderabad', 'HK7X2QM',
-    ], 6)).toBe(true);
+      'Sat 12 Oct, 9:00 AM', 'CodeBegun Campus, Hyderabad',
+    ], 5)).toBe(true);
   });
 
-  it('puts the team ID last, not in the middle', () => {
-    // Pins the ORDER, not just the count — a silent reshuffle would send the venue where the
-    // template prints the ID, and every message would read as nonsense while still delivering.
-    const body = ['Rahul', 'Code Warriors', 'Hack 2026', 'Sat 12 Oct', 'Hyderabad', 'HK7X2QM'];
-    expect(body[5]).toBe('HK7X2QM');
-    expect(body[3]).toBe('Sat 12 Oct');
+  /**
+   * The registration code must NOT appear among the confirmation's body variables.
+   *
+   * Meta reads any short alphanumeric value as a one-time password regardless of its label or
+   * position, and insisted on the Authentication category — which allows no image, no link and
+   * no custom body — for as long as the code was present. It travels by the button instead.
+   */
+  it('does not put the registration code in the body at all', () => {
+    const body = ['Rahul', 'Code Warriors', 'Hack 2026', 'Sat 12 Oct', 'Hyderabad'];
+    expect(body).toHaveLength(5);
+    expect(body.some(v => /^[A-Z0-9]{6,10}$/.test(v))).toBe(false);
+  });
+
+  it('still carries the code to the student, by the button', () => {
+    // Dropping it from the body must not drop it from the message: the url button parameter
+    // is what takes them to the page that shows it.
+    const opts = { body: ['Rahul', 'Code Warriors', 'Hack', 'Sat 12 Oct', 'Hyderabad'], urlButtonParam: 'HK7X2QM' };
+    expect(opts.urlButtonParam).toBe('HK7X2QM');
   });
 
   it('rejects a blank variable', () => {
     // An event with no venue: 'To be announced' is sent rather than ''.
-    expect(bodyOk(['Rahul', 'Code Warriors', 'Hack', 'Sat 12 Oct', '', 'HK7X2QM'], 6)).toBe(false);
+    expect(bodyOk(['Rahul', 'Code Warriors', 'Hack', 'Sat 12 Oct', ''], 5)).toBe(false);
   });
 
   it('rejects a count that does not match the template', () => {
-    expect(bodyOk(['Rahul', 'Code Warriors', 'Hack'], 6)).toBe(false);
+    expect(bodyOk(['Rahul', 'Code Warriors', 'Hack'], 5)).toBe(false);
   });
 });
 

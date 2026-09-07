@@ -198,22 +198,23 @@ export async function sendConfirmedNotice(h: any, reg: any): Promise<NoticeResul
   const results = await Promise.all(recipients.map((m: any) => notifyWhatsApp(reg.tenantId, m.mobile, {
     purpose: 'HACKATHON_CONFIRMED',
     /**
-     * {{1}} name, {{2}} team, {{3}} hackathon, {{4}} when, {{5}} venue, {{6}} team ID.
+     * {{1}} name, {{2}} team, {{3}} hackathon, {{4}} when, {{5}} venue.
      *
-     * THE ID COMES LAST, AND INSIDE A SENTENCE. A label followed by a bare short code on its
-     * own line — "Team ID: HK7X2QM" — is exactly the shape of a one-time password, and Meta's
-     * classifier reads structure rather than wording: it refused the template as Authentication
-     * whether the label said "code" or "ID". Authentication templates cannot carry a poster, a
-     * venue or a link, so that classification had to be avoided rather than accepted.
+     * THE TEAM ID IS NOT IN THE BODY, and that is not an oversight. Meta's classifier reads a
+     * short alphanumeric value as a one-time password no matter how it is labelled or where in
+     * the sentence it sits — it insisted on the Authentication category through every rewording.
+     * An Authentication template has a fixed body, no media header and no link button, so it
+     * could carry neither the poster nor the venue nor the way back. The ID therefore travels
+     * by the button instead: the resume page shows it, along with everything else about the
+     * registration, and the confirmation email carries it in full text.
      *
-     * The order is dictated by Meta too — variables must appear in ascending order in the body,
-     * so moving the ID to the end of the message moves it to the end of this array.
+     * Variables must appear in ascending order in the body, so this array is that order.
      *
      * Addressed to THIS member by name, so it reads as their own confirmation rather than a
      * forwarded copy of the lead's. A variable may not be empty — Meta rejects the send
      * outright rather than rendering a gap — so venue falls back to text.
      */
-    body: [m.name, reg.teamName, h.title, when, venue, reg.registrationCode],
+    body: [m.name, reg.teamName, h.title, when, venue],
     urlButtonParam: reg.registrationCode,
     headerImageUrl: poster,
   }, `Hi ${m.name}, your team "${reg.teamName}" is confirmed for ${h.title}. `

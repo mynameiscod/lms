@@ -5,8 +5,10 @@ import Hackathon, { IHackathon } from '../models/Hackathon';
 import HackathonRegistration from '../models/HackathonRegistration';
 import * as razorpay from '../services/razorpayService';
 import { EmailService } from '../services/emailService';
+import { sendPendingPaymentNotice, sendConfirmedNotice } from '../services/hackathonNoticeService';
+import { PENDING_TTL_MINUTES } from '../models/HackathonRegistration';
 import {
-  validateTeam, findConflicts, registrationWindowError, newRegistrationCode,
+  validateTeam, findResumable, findConflicts, registrationWindowError, newRegistrationCode,
   confirmedTeamCount, isDuplicateKey, publicRegistration, ValidationFailure,
 } from '../services/hackathonRegistrationService';
 
@@ -118,6 +120,83 @@ export const getHackathon = async (req: Request, res: Response) => {
  * A FREE HACKATHON NEVER TOUCHES THE GATEWAY. It confirms on the spot: an order for ₹0
  * cannot be paid, so a pending registration nobody can settle would strand every team.
  */
+/**
+ * Hand a returning team back their own registration and a usable way to pay.
+ *
+ * THE HOLD IS EXTENDED, not merely honoured. A student who opens the payment link an hour
+ * after registering would otherwise find their thirty minutes long gone and their team name
+ * released — having done nothing wrong except read their email late. Touching createdAt moves
+ * the window, because the window is measured from it.
+ *
+ * A CEILING STOPS THAT BEING FOREVER. Without one, an abandoned registration reopened once a
+ * day would hold a team name for the life of the event and no one else could use it.
+ */
+const RESUME_HOLD_CEILING_HOURS = 24;
+
+async function resumeRegistration(res: Response, tenantId: string, h: any, reg: any) {
+  const firstSeen = reg.firstRegisteredAt || reg.createdAt;
+  const ageHours = (Date.now() - new Date(firstSeen).getTime()) / 3_600_000;
+
+  if (ageHours > RESUME_HOLD_CEILING_HOURS) {
+    // Past the ceiling this is not a resume, it is a stale row occupying a name. Released so
+    // the student can register cleanly rather than being told they clash with themselves.
+    await HackathonRegistration.updateOne({ _id: reg._id },
+      { $set: { status: 'cancelled', cancelReason: 'Payment hold expired' } });
+    return fail(res, 409, 'Your earlier registration expired before payment. Please register again.');
+  }
+
+  /**
+   * REUSE THE ORDER IF IT IS STILL GOOD, RECREATE IF IT IS NOT.
+   *
+   * A Razorpay order does not live forever, and re-opening a dead one fails at the checkout
+   * widget with an error the student cannot act on. Always recreating instead would leave an
+   * orphan order per retry in the dashboard, which makes reconciliation miserable. So: ask.
+   */
+  let order: any = null;
+  if (reg.payment?.orderId) {
+    order = await razorpay.fetchOrder(tenantId, reg.payment.orderId).catch(() => null);
+    if (order && (order.status === 'paid' || order.amount_paid > 0)) {
+      /**
+       * Money was taken and we never heard about it — the callback was lost, not the payment.
+       * Charging again would be the worst outcome of the day, so this is reported rather than
+       * retried, and an admin can settle it from the order id.
+       */
+      return fail(res, 409,
+        'A payment for this registration has already been received. Our team will confirm it shortly.');
+    }
+    if (order && order.status !== 'created') order = null;   // expired or attempted-out
+  }
+
+  if (!order) {
+    order = await razorpay.createOrder(tenantId, reg.amountInr || h.feeInr, reg.registrationCode, {
+      purpose: 'hackathon', hackathon: h.slug,
+      registrationCode: reg.registrationCode, team: String(reg.teamName).slice(0, 40),
+      retry: 'true',
+    });
+  }
+
+  reg.payment = { provider: 'razorpay', orderId: order.id, amountPaise: order.amount, status: 'created' };
+  // Moves the hold window, bounded by the ceiling above. firstRegisteredAt remembers when this
+  // actually began, so extending cannot be used to hold a name indefinitely.
+  if (!reg.firstRegisteredAt) reg.firstRegisteredAt = firstSeen;
+  reg.createdAt = new Date();
+  await reg.save();
+
+  return res.json({
+    success: true,
+    resumed: true,
+    paymentRequired: true,
+    registration: publicRegistration(reg),
+    payment: {
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency || 'INR',
+      keyId: razorpay.getConfig(tenantId)?.keyId,
+      registrationCode: reg.registrationCode,
+    },
+  });
+}
+
 export const register = async (req: Request, res: Response) => {
   try {
     const tenantId = await tenantIdFromSlug(req.params.tenantSlug);
@@ -136,6 +215,20 @@ export const register = async (req: Request, res: Response) => {
     if (h.maxTeams > 0 && (await confirmedTeamCount(h._id)) >= h.maxTeams) {
       return fail(res, 409, 'All places for this hackathon have been taken.');
     }
+
+    /**
+     * THE SAME TEAM COMING BACK IS NOT A CLASH.
+     *
+     * A student whose payment failed, or whose browser closed, refilled the form and was told
+     * they were already registered — because their own unpaid attempt was holding their own
+     * team name and mobiles for thirty minutes. Checked BEFORE conflicts, because their own
+     * row is exactly what findConflicts would report against them.
+     *
+     * Returning the existing registration rather than creating a second one also keeps one
+     * team to one Razorpay order, so a retry cannot end in two payments for one place.
+     */
+    const resumable = await findResumable(h._id, team);
+    if (resumable) return resumeRegistration(res, tenantId, h, resumable);
 
     const conflicts = await findConflicts(h._id, team);
     if (conflicts.length) return fail(res, 409, 'This team cannot be registered as it is.', conflicts);
@@ -172,7 +265,7 @@ export const register = async (req: Request, res: Response) => {
     }
 
     if (isFree) {
-      await sendConfirmation(h, reg).catch(() => { /* never fail a good registration on a mail problem */ });
+      await sendConfirmedNotice(h, reg).catch(() => { /* never fail a good registration on a mail problem */ });
       return res.json({ success: true, paymentRequired: false, registration: publicRegistration(reg) });
     }
 
@@ -192,6 +285,17 @@ export const register = async (req: Request, res: Response) => {
       });
       reg.payment = { provider: 'razorpay', orderId: order.id, amountPaise: order.amount, status: 'created' };
       await reg.save();
+
+      /**
+       * THE MESSAGE THAT SURVIVES A CLOSED BROWSER.
+       *
+       * Sent before any money moves, because it is the only copy of the registration code the
+       * student will have if the payment page goes away. Not awaited and never allowed to
+       * throw: a registration that is stored has happened, and a mail server having a bad
+       * afternoon must not turn it into an error the student sees.
+       */
+      sendPendingPaymentNotice(h, reg).catch((e: any) =>
+        console.error('[hackathon] pending notice failed', reg.registrationCode, e?.message || e));
 
       return res.json({
         success: true,
@@ -339,11 +443,53 @@ export async function settleRegistration(
   }
 
   const h = await Hackathon.findById(reg.hackathonId).lean() as any;
-  if (h) await sendConfirmation(h, reg).catch(() => { /* a mail failure must not undo a paid place */ });
+  if (h) await sendConfirmedNotice(h, reg).catch(() => { /* a mail failure must not undo a paid place */ });
   return { ok: true, reg };
 }
 
 /** GET /public/hackathons/registration/:code — a team checking on itself. */
+/**
+ * POST /hackathons/resume-link — "I lost the email, send it again."
+ *
+ * The last way back for a student who closed the browser AND cannot find the message. Keyed
+ * on the mobile they registered with, which is the one thing they will certainly still have.
+ *
+ * DELIBERATELY SAYS THE SAME THING EITHER WAY. Answering "no registration found" for an
+ * unknown number turns this endpoint into a way to ask whether a given mobile is registered
+ * for an event, which is nobody's business but theirs. The reply is identical whether we
+ * found something or not; only the inbox differs.
+ */
+export const resendResumeLink = async (req: Request, res: Response) => {
+  const generic = { success: true, message: 'If that number has a registration awaiting payment, we have sent the link again.' };
+  try {
+    const tenantId = await tenantIdFromSlug(req.params.tenantSlug);
+    if (!tenantId) return res.json(generic);
+
+    const mobile = String(req.body?.mobile || '').replace(/\D/g, '').slice(-10);
+    if (mobile.length !== 10) return res.json(generic);
+
+    const cutoff = new Date(Date.now() - PENDING_TTL_MINUTES * 60_000);
+    const reg: any = await HackathonRegistration.findOne({
+      tenantId,
+      status: 'pending_payment',
+      memberMobiles: { $regex: mobile + '$' },
+      createdAt: { $gte: cutoff },
+    }).sort({ createdAt: -1 }).lean();
+    if (!reg) return res.json(generic);
+
+    const h = await Hackathon.findById(reg.hackathonId).lean() as any;
+    if (h) {
+      await sendPendingPaymentNotice(h, reg)
+        .catch((e: any) => console.error('[hackathon] resend failed', reg.registrationCode, e?.message || e));
+    }
+    return res.json(generic);
+  } catch (e: any) {
+    console.error('[hackathon] resendResumeLink:', e?.message || e);
+    // Even a failure answers the same way — an error here would leak that the lookup ran.
+    return res.json(generic);
+  }
+};
+
 export const getRegistration = async (req: Request, res: Response) => {
   try {
     const reg = await HackathonRegistration.findOne({ registrationCode: String(req.params.code || '').toUpperCase() }).lean() as any;
@@ -356,30 +502,11 @@ export const getRegistration = async (req: Request, res: Response) => {
   }
 };
 
-/** The one email that matters: proof to the team lead that the place is theirs. */
-async function sendConfirmation(h: any, reg: any): Promise<void> {
-  const lead = (reg.members || []).find((m: any) => m.isLead) || (reg.members || [])[0];
-  if (!lead?.email) return;
-
-  const when = new Date(h.startAt).toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' });
-  const roster = (reg.members || [])
-    .map((m: any, i: number) => `<li>${escapeHtml(m.name)}${i === 0 ? ' <b>(team lead)</b>' : ''}</li>`).join('');
-
-  const html = `
-    <p>Hi ${escapeHtml(lead.name)},</p>
-    <p>Your team <b>${escapeHtml(reg.teamName)}</b> is registered for <b>${escapeHtml(h.title)}</b>.</p>
-    <p>
-      <b>Registration code:</b> ${escapeHtml(reg.registrationCode)}<br/>
-      <b>When:</b> ${escapeHtml(when)}<br/>
-      ${h.venue ? `<b>Where:</b> ${escapeHtml(h.venue)}<br/>` : ''}
-      <b>College:</b> ${escapeHtml(reg.college)}<br/>
-      ${reg.amountInr ? `<b>Fee paid:</b> ₹${reg.amountInr}<br/>` : ''}
-    </p>
-    <p><b>Your team</b></p><ul>${roster}</ul>
-    <p>Keep your registration code — you will be asked for it at the venue.</p>`;
-
-  await emailService.sendGenericEmail(lead.email, `You're registered for ${h.title} 🎉`, html);
-}
+/**
+ * The confirmation email and its WhatsApp twin now live in hackathonNoticeService, beside the
+ * pending-payment notice they share their shape with. Keeping one here and one there is how
+ * the two drift apart — a venue added to one and not the other.
+ */
 
 const escapeHtml = (s: string): string =>
   String(s ?? '').replace(/[&<>"']/g, c => (

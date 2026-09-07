@@ -97,6 +97,36 @@ export async function fetchPayment(tenantId: string, paymentId: string): Promise
   }
 }
 
+/**
+ * An order as Razorpay currently sees it.
+ *
+ * Needed to answer one question before a student retries a failed payment: is the order we
+ * stored still usable? An order does not live forever, and re-opening a dead one fails inside
+ * the checkout widget with an error the student cannot act on. `amount_paid` matters as much
+ * as `status` — it is how we notice money was taken on an order our callback never heard
+ * about, which is the case where charging again would be unforgivable.
+ *
+ * Null on any failure, and the caller treats that as "cannot verify" rather than "fine".
+ */
+export async function fetchOrder(tenantId: string, orderId: string): Promise<{
+  id: string; amount: number; amount_paid: number; currency: string; status: string;
+} | null> {
+  const cfg = getConfig(tenantId);
+  if (!cfg) return null;
+  try {
+    const o: any = await client(cfg).orders.fetch(orderId);
+    return {
+      id: String(o.id),
+      amount: Number(o.amount),
+      amount_paid: Number(o.amount_paid || 0),
+      currency: String(o.currency || 'INR'),
+      status: String(o.status),
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Refund a captured payment (full or partial). amountInr in rupees; omit for full. */
 export async function refundPayment(tenantId: string, paymentId: string, amountInr?: number): Promise<{ id: string; amount: number; status: string }> {
   const cfg = getConfig(tenantId);

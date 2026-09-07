@@ -73,6 +73,8 @@ export interface IHackathonRegistration extends Document {
   memberEmails: string[];
 
   status: RegistrationStatus;
+  /** When this registration first began, so extending its hold cannot be endless. */
+  firstRegisteredAt?: Date | null;
   /** What the team was quoted, in rupees. Frozen here so a later fee change cannot rewrite it. */
   amountInr: number;
   payment?: IHackathonPayment | null;
@@ -132,6 +134,14 @@ const HackathonRegistrationSchema = new Schema<IHackathonRegistration>({
   memberEmails:  { type: [String], default: [] },
 
   status:    { type: String, enum: ['pending_payment', 'confirmed', 'cancelled', 'refund_due'], default: 'pending_payment', index: true },
+  /**
+   * When this registration FIRST began, as opposed to when its hold was last extended.
+   *
+   * Reopening the payment link moves createdAt so the thirty-minute hold survives a student
+   * reading their email late. Without a memory of the original moment, that could be repeated
+   * indefinitely and one abandoned team would hold a name for the life of the event.
+   */
+  firstRegisteredAt: { type: Date, default: null },
   amountInr: { type: Number, default: 0 },
   payment:   { type: PaymentSchema, default: null },
 

@@ -182,6 +182,38 @@ export function holdingFilter(hackathonId: any, now = new Date()) {
 }
 
 /**
+ * Is this the SAME team coming back, rather than a clash with somebody else?
+ *
+ * The thirty-minute hold is right — without it two teams could race for one name while one is
+ * mid-payment. What was wrong is that it did not recognise a student returning to their own
+ * abandoned attempt: their own pending row held their own team name and mobiles, and refilling
+ * the form told them they were already registered. Reported from a real registration.
+ *
+ * Deliberately STRICT. Every member mobile must match and the team name must match, because a
+ * corrected email or a swapped member is a different team composition and must not silently
+ * inherit somebody else's order and amount. A partial match is a genuine clash and is reported
+ * as one.
+ */
+export async function findResumable(
+  hackathonId: any, team: ValidatedTeam, now = new Date(),
+): Promise<IHackathonRegistration | null> {
+  const pendingCutoff = new Date(now.getTime() - PENDING_TTL_MINUTES * 60_000);
+  const candidates = await HackathonRegistration.find({
+    hackathonId,
+    status: 'pending_payment',
+    createdAt: { $gte: pendingCutoff },
+    teamNameKey: team.teamNameKey,
+  }).sort({ createdAt: -1 }) as any as IHackathonRegistration[];
+
+  const wanted = [...team.memberMobiles].sort().join('|');
+  for (const c of candidates) {
+    const have = [...(c.memberMobiles || [])].sort().join('|');
+    if (have === wanted) return c;
+  }
+  return null;
+}
+
+/**
  * Is anything in this team already taken?
  *
  * Deliberately a READ, and deliberately not the guarantee — the unique indexes are that.

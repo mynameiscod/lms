@@ -19,5 +19,8 @@ router.post('/hackathons/payment/verify', express.json(), rateLimit('hackathonPa
 router.get('/hackathons/:tenantSlug', ctrl.listHackathons);
 router.get('/hackathons/:tenantSlug/:slug', ctrl.getHackathon);
 router.post('/hackathons/:tenantSlug/:slug/register', express.json(), rateLimit('hackathonRegister'), ctrl.register);
+// "I lost the email." Rate limited on the same policy as registering, and keyed by mobile
+// rather than address so a college behind one router cannot lock itself out.
+router.post('/hackathons/:tenantSlug/resume-link', express.json(), rateLimit('hackathonRegister'), ctrl.resendResumeLink);
 
 export default router;

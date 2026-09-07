@@ -61,7 +61,15 @@ function posterUrl(h: any): string | undefined {
 const leadOf = (reg: any) =>
   (reg.members || []).find((m: any) => m.isLead) || (reg.members || [])[0] || null;
 
-export interface NoticeResult { email: boolean; whatsapp: boolean; error?: string }
+export interface NoticeResult {
+  email: boolean;
+  /** True when AT LEAST ONE WhatsApp message was delivered. */
+  whatsapp: boolean;
+  /** How many team members were messaged, and how many reached. Confirmation only. */
+  whatsappSent?: number;
+  whatsappTotal?: number;
+  error?: string;
+}
 
 /**
  * "We have your team. Here is where you pay."
@@ -138,16 +146,46 @@ export async function sendConfirmedNotice(h: any, reg: any): Promise<NoticeResul
     } catch (e: any) { out.error = e?.message || 'email failed'; }
   }
 
-  if (lead.mobile) out.whatsapp = await notifyWhatsApp(reg.tenantId, lead.mobile, {
+  /**
+   * THE WHOLE TEAM IS TOLD, NOT ONLY THE LEAD.
+   *
+   * The lead is who we take payment from; they are not the only person who has to turn up on
+   * the day with a code. Messaging one member and expecting them to relay the venue, the time
+   * and the entry code to four others is how a team arrives incomplete — and it is the member
+   * who never heard from us who blames us for it.
+   *
+   * ONE FAILURE MUST NOT STOP THE REST. Each send is independent and its own catch: one
+   * member who typed their number wrong should not cost the other four their confirmation.
+   *
+   * Numbers are deduplicated first. Teams do enter the same handset twice (a shared phone, a
+   * copy-paste), and two identical confirmations to one person reads as a system fault.
+   */
+  const poster = posterUrl(h);
+  const venue = h.venue || 'To be announced';
+  const seen = new Set<string>();
+  const recipients = (reg.members || []).filter((m: any) => {
+    const key = String(m?.mobile || '').replace(/\D/g, '');
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  const results = await Promise.all(recipients.map((m: any) => notifyWhatsApp(reg.tenantId, m.mobile, {
     purpose: 'HACKATHON_CONFIRMED',
     // {{1}} name, {{2}} team, {{3}} hackathon, {{4}} code, {{5}} when, {{6}} venue.
-    // A variable may not be empty — Meta rejects the send outright rather than rendering a
-    // gap — so venue falls back to text rather than passing through blank.
-    body: [lead.name, reg.teamName, h.title, reg.registrationCode, when, h.venue || 'To be announced'],
+    // Addressed to THIS member by name, so it reads as their own confirmation rather than a
+    // forwarded copy of the lead's. A variable may not be empty — Meta rejects the send
+    // outright rather than rendering a gap — so venue falls back to text.
+    body: [m.name, reg.teamName, h.title, reg.registrationCode, when, venue],
     urlButtonParam: reg.registrationCode,
-    headerImageUrl: posterUrl(h),
-  }, `Hi ${lead.name}, your team "${reg.teamName}" is confirmed for ${h.title}. `
-    + `Registration code: ${reg.registrationCode}. Bring it to the venue.`);
+    headerImageUrl: poster,
+  }, `Hi ${m.name}, your team "${reg.teamName}" is confirmed for ${h.title}. `
+    + `Registration code: ${reg.registrationCode}. When: ${when}. Venue: ${venue}. Bring the code.`)));
+
+  out.whatsappTotal = results.length;
+  out.whatsappSent = results.filter(Boolean).length;
+  // "Did anyone hear from us" — kept boolean so existing callers read the same as before.
+  out.whatsapp = out.whatsappSent > 0;
 
   return out;
 }

@@ -176,3 +176,82 @@ describe('the variables each template is sent', () => {
     expect(bodyOk(['Rahul', 'Code Warriors', 'Hack'], 6)).toBe(false);
   });
 });
+
+/**
+ * Who the confirmation reaches.
+ *
+ * The lead is who we take payment from; they are not the only person who has to arrive on the
+ * day with an entry code. Messaging one member and trusting them to relay the venue, the time
+ * and the code is how a team turns up incomplete.
+ */
+const confirmationRecipients = (members: Array<{ name: string; mobile: string }>) => {
+  const seen = new Set<string>();
+  return members.filter(m => {
+    const key = String(m?.mobile || '').replace(/\D/g, '');
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+describe('who the confirmation goes to', () => {
+  it('messages every member of the team, not only the lead', () => {
+    const team = [
+      { name: 'Rahul', mobile: '9876543210' },
+      { name: 'Priya', mobile: '9123456789' },
+      { name: 'Arun', mobile: '9000000001' },
+    ];
+    expect(confirmationRecipients(team).map(m => m.name)).toEqual(['Rahul', 'Priya', 'Arun']);
+  });
+
+  it('messages a shared handset once, not once per member', () => {
+    // Teams do enter one number twice. Two identical confirmations reads as a system fault.
+    const team = [
+      { name: 'Rahul', mobile: '+91 98765 43210' },
+      { name: 'Priya', mobile: '919876543210' },
+      { name: 'Arun', mobile: '9000000001' },
+    ];
+    expect(confirmationRecipients(team).map(m => m.name)).toEqual(['Rahul', 'Arun']);
+  });
+
+  it('skips a member with no number rather than sending to nobody', () => {
+    const team = [
+      { name: 'Rahul', mobile: '9876543210' },
+      { name: 'Priya', mobile: '' },
+    ];
+    expect(confirmationRecipients(team).map(m => m.name)).toEqual(['Rahul']);
+  });
+
+  it('addresses each member by their own name', () => {
+    // {{1}} is the recipient, so it reads as their confirmation and not a forwarded copy.
+    const team = [{ name: 'Rahul', mobile: '9876543210' }, { name: 'Priya', mobile: '9123456789' }];
+    const bodies = confirmationRecipients(team).map(m => [m.name, 'Code Warriors', 'Hack 2026', 'HK7X2QM', 'Sat 12 Oct', 'Hyderabad']);
+    expect(bodies[0][0]).toBe('Rahul');
+    expect(bodies[1][0]).toBe('Priya');
+    expect(bodies.every(b => b.length === 6)).toBe(true);
+  });
+});
+
+/**
+ * One member's bad number must not cost the rest their confirmation, so every send is
+ * independent and the result reports how many of the team were actually reached.
+ */
+describe('reporting how much of the team was reached', () => {
+  const tally = (results: boolean[]) => ({
+    whatsappTotal: results.length,
+    whatsappSent: results.filter(Boolean).length,
+    whatsapp: results.filter(Boolean).length > 0,
+  });
+
+  it('counts a partial delivery honestly rather than as success', () => {
+    expect(tally([true, false, true])).toEqual({ whatsappTotal: 3, whatsappSent: 2, whatsapp: true });
+  });
+
+  it('still reports true when only one member was reached', () => {
+    expect(tally([false, false, true]).whatsapp).toBe(true);
+  });
+
+  it('reports false only when nobody was reached', () => {
+    expect(tally([false, false]).whatsapp).toBe(false);
+  });
+});

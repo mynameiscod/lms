@@ -197,11 +197,23 @@ export async function sendConfirmedNotice(h: any, reg: any): Promise<NoticeResul
 
   const results = await Promise.all(recipients.map((m: any) => notifyWhatsApp(reg.tenantId, m.mobile, {
     purpose: 'HACKATHON_CONFIRMED',
-    // {{1}} name, {{2}} team, {{3}} hackathon, {{4}} code, {{5}} when, {{6}} venue.
-    // Addressed to THIS member by name, so it reads as their own confirmation rather than a
-    // forwarded copy of the lead's. A variable may not be empty — Meta rejects the send
-    // outright rather than rendering a gap — so venue falls back to text.
-    body: [m.name, reg.teamName, h.title, reg.registrationCode, when, venue],
+    /**
+     * {{1}} name, {{2}} team, {{3}} hackathon, {{4}} when, {{5}} venue, {{6}} team ID.
+     *
+     * THE ID COMES LAST, AND INSIDE A SENTENCE. A label followed by a bare short code on its
+     * own line — "Team ID: HK7X2QM" — is exactly the shape of a one-time password, and Meta's
+     * classifier reads structure rather than wording: it refused the template as Authentication
+     * whether the label said "code" or "ID". Authentication templates cannot carry a poster, a
+     * venue or a link, so that classification had to be avoided rather than accepted.
+     *
+     * The order is dictated by Meta too — variables must appear in ascending order in the body,
+     * so moving the ID to the end of the message moves it to the end of this array.
+     *
+     * Addressed to THIS member by name, so it reads as their own confirmation rather than a
+     * forwarded copy of the lead's. A variable may not be empty — Meta rejects the send
+     * outright rather than rendering a gap — so venue falls back to text.
+     */
+    body: [m.name, reg.teamName, h.title, when, venue, reg.registrationCode],
     urlButtonParam: reg.registrationCode,
     headerImageUrl: poster,
   }, `Hi ${m.name}, your team "${reg.teamName}" is confirmed for ${h.title}. `

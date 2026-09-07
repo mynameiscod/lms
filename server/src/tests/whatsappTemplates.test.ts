@@ -161,15 +161,25 @@ describe('the variables each template is sent', () => {
   });
 
   it('accepts the six the confirmation template declares', () => {
+    // Order matters: Meta requires body variables to appear in ascending order, and the team
+    // ID sits LAST because a labelled code on its own line reads to the classifier as an OTP.
     expect(bodyOk([
       'Rahul', 'Code Warriors', 'CodeBegun Hackathon 2026',
-      'HK7X2QM', 'Sat 12 Oct, 9:00 AM', 'CodeBegun Campus, Hyderabad',
+      'Sat 12 Oct, 9:00 AM', 'CodeBegun Campus, Hyderabad', 'HK7X2QM',
     ], 6)).toBe(true);
+  });
+
+  it('puts the team ID last, not in the middle', () => {
+    // Pins the ORDER, not just the count — a silent reshuffle would send the venue where the
+    // template prints the ID, and every message would read as nonsense while still delivering.
+    const body = ['Rahul', 'Code Warriors', 'Hack 2026', 'Sat 12 Oct', 'Hyderabad', 'HK7X2QM'];
+    expect(body[5]).toBe('HK7X2QM');
+    expect(body[3]).toBe('Sat 12 Oct');
   });
 
   it('rejects a blank variable', () => {
     // An event with no venue: 'To be announced' is sent rather than ''.
-    expect(bodyOk(['Rahul', 'Code Warriors', 'Hack', 'HK7X2QM', 'Sat 12 Oct', ''], 6)).toBe(false);
+    expect(bodyOk(['Rahul', 'Code Warriors', 'Hack', 'Sat 12 Oct', '', 'HK7X2QM'], 6)).toBe(false);
   });
 
   it('rejects a count that does not match the template', () => {

@@ -32,11 +32,13 @@ const esc = (s: string): string =>
  * lookup accepts, and it avoids the characters people misread when reading it aloud — which
  * is what makes it safe to put in a URL somebody may retype from a phone screen.
  */
-export function resumeUrl(tenantId: string, registrationCode: string): string {
-  const base = settings.getStr('PUBLIC_SITE_URL', '', tenantId)
+const publicBase = (tenantId?: string): string =>
+  (settings.getStr('PUBLIC_SITE_URL', '', tenantId)
     || settings.getStr('CLIENT_URL', '', tenantId)
-    || 'https://platform.codebegun.com';
-  return `${base.replace(/\/+$/, '')}/hackathons/resume/${encodeURIComponent(registrationCode)}`;
+    || 'https://platform.codebegun.com').replace(/\/+$/, '');
+
+export function resumeUrl(tenantId: string, registrationCode: string): string {
+  return `${publicBase(tenantId)}/hackathons/resume/${encodeURIComponent(registrationCode)}`;
 }
 
 /**
@@ -52,9 +54,11 @@ function posterUrl(h: any): string | undefined {
   const raw = String(h?.bannerUrl || '').trim();
   if (!raw) return undefined;
   if (/^https:\/\//i.test(raw)) return raw;
-  // A site-relative upload path is still usable IF the site itself is public https.
-  const base = settings.getStr('PUBLIC_SITE_URL', '', String(h?.tenantId || '')) || '';
-  if (raw.startsWith('/') && /^https:\/\//i.test(base)) return `${base.replace(/\/+$/, '')}${raw}`;
+  // A site-relative upload path is still usable IF the site itself is public https. Resolved
+  // against the SAME base as the resume link — reading a different setting here is how a
+  // banner silently produces no poster while the link in the same message works fine.
+  const base = publicBase(String(h?.tenantId || ''));
+  if (raw.startsWith('/') && /^https:\/\//i.test(base)) return `${base}${raw}`;
   return undefined;
 }
 
@@ -128,7 +132,28 @@ export async function sendConfirmedNotice(h: any, reg: any): Promise<NoticeResul
   if (lead.email) {
     const roster = (reg.members || [])
       .map((m: any, i: number) => `<li>${esc(m.name)}${i === 0 ? ' <b>(team lead)</b>' : ''}</li>`).join('');
+    /**
+     * THE POSTER LIVES HERE, NOT ON WHATSAPP.
+     *
+     * Meta classifies a template by what it carries, and an event poster advertising prizes
+     * and a schedule is promotional material — enough to push a confirmation out of Utility,
+     * where it is delivered to everyone, into Marketing, where anyone who has opted out of
+     * marketing never receives it. Email has no such rule and no review, so the poster goes
+     * out in full here while WhatsApp carries the part people actually read on the day.
+     *
+     * Wrapped in a link to the registration page, because a poster in an email is the thing
+     * people tap. Width is capped inline — email clients ignore stylesheets, and an
+     * uncapped 2000px banner is what makes a phone scroll sideways.
+     */
+    const poster = posterUrl(h);
+    const posterHtml = poster
+      ? `<p style="margin:0 0 20px"><a href="${esc(resumeUrl(reg.tenantId, reg.registrationCode))}">
+           <img src="${esc(poster)}" alt="${esc(h.title)}"
+                style="width:100%;max-width:560px;height:auto;border:0;border-radius:10px"/></a></p>`
+      : '';
+
     const html = `
+      ${posterHtml}
       <p>Hi ${esc(lead.name)},</p>
       <p>Your team <b>${esc(reg.teamName)}</b> is registered for <b>${esc(h.title)}</b>.</p>
       <p>

@@ -615,3 +615,86 @@ describe('an undecided student whose exploration list was never populated', () =
     expect(d.state).toBe('NOT_RELEVANT');
   });
 });
+
+/* ================================================================== *
+ * The unreachable plan
+ * ================================================================== */
+
+describe('a topic whose prerequisite the direction filtered away', () => {
+  /**
+   * Found by generating a real plan, not by reasoning about one. A backend student had "How the
+   * Web Talks" LOCKED behind HTML — and HTML had been marked NOT_RELEVANT, because it is web
+   * work. The lock could never be satisfied: the student was told to finish something their own
+   * plan would never teach them, for the life of the plan.
+   *
+   * A skill your plan depends on is relevant to you whatever your direction says.
+   */
+  const http = topic({ title: 'How the Web Talks', skillKeys: ['HTTP'] });
+  const html = topic({ title: 'HTML', skillKeys: ['HTML'], applicableDirections: ['WEB_DEVELOPMENT'] });
+
+  const plan = run({
+    topics: [http, html],
+    selectedDirection: 'SOFTWARE_BACKEND',
+    directionStatus: 'SELECTED',
+    graphPrerequisites: new Map([['HTTP', ['HTML']]]),
+    beliefs: new Map([['HTTP', belief(50)]]),
+  });
+  const by = Object.fromEntries(plan.decisions.map(d => [d.title, d]));
+
+  it('pulls the prerequisite back into the plan', () => {
+    expect(by['HTML'].state).not.toBe('NOT_RELEVANT');
+  });
+
+  it('so the lock on the dependent topic can actually be satisfied', () => {
+    expect(by['How the Web Talks'].locked).toBe(true);
+    expect(by['How the Web Talks'].lockedBy).toBe('HTML');
+    // The thing it names is present and teachable, which is what makes the lock honest.
+    expect(by['HTML'].mandatory || by['HTML'].state !== 'NOT_RELEVANT').toBe(true);
+  });
+
+  it('does not drag in unrelated direction work', () => {
+    const withCss = run({
+      topics: [http, html, topic({ title: 'CSS', skillKeys: ['CSS'], applicableDirections: ['WEB_DEVELOPMENT'] })],
+      selectedDirection: 'SOFTWARE_BACKEND',
+      directionStatus: 'SELECTED',
+      graphPrerequisites: new Map([['HTTP', ['HTML']]]),
+      beliefs: new Map([['HTTP', belief(50)]]),
+    });
+    const m = Object.fromEntries(withCss.decisions.map(d => [d.title, d]));
+    expect(m['CSS'].state).toBe('NOT_RELEVANT');
+  });
+
+  it('terminates on a curriculum with a prerequisite cycle', () => {
+    const a = topic({ title: 'A', skillKeys: ['A_SKILL'], applicableDirections: ['WEB_DEVELOPMENT'] });
+    const b = topic({ title: 'B', skillKeys: ['B_SKILL'], applicableDirections: ['WEB_DEVELOPMENT'] });
+    const cyc = run({
+      topics: [a, b, topic({ title: 'Root', skillKeys: ['ROOT'], mandatory: true })],
+      selectedDirection: 'SOFTWARE_BACKEND', directionStatus: 'SELECTED',
+      graphPrerequisites: new Map([['ROOT', ['A_SKILL']], ['A_SKILL', ['B_SKILL']], ['B_SKILL', ['A_SKILL']]]),
+      beliefs: new Map([['ROOT', belief(50)]]),
+    });
+    expect(cyc.decisions).toHaveLength(3);
+  });
+});
+
+describe('topics that share an identifier', () => {
+  /**
+   * Relevance is tracked by object, not by code or title. Two topics can share a title across
+   * modules, and topicCode is optional on curricula authored before codes existed — either
+   * collision would mark an irrelevant topic relevant, which is how a web student was briefly
+   * assigned Java.
+   */
+  it('does not leak relevance between two topics with the same code', () => {
+    const plan = run({
+      topics: [
+        topic({ topicCode: 'DUP', title: 'Git', skillKeys: ['GIT'], mandatory: true }),
+        topic({ topicCode: 'DUP', title: 'Java', skillKeys: ['JAVA'], applicableDirections: ['SOFTWARE_BACKEND'] }),
+      ],
+      selectedDirection: 'WEB_DEVELOPMENT', directionStatus: 'SELECTED',
+      beliefs: new Map([['GIT', belief(50)], ['JAVA', belief(50)]]),
+    });
+    const by = Object.fromEntries(plan.decisions.map(d => [d.title, d]));
+    expect(by['Java'].state).toBe('NOT_RELEVANT');
+    expect(by['Git'].state).not.toBe('NOT_RELEVANT');
+  });
+});

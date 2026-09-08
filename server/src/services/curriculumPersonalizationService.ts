@@ -181,7 +181,17 @@ function unmetPrerequisite(
   return undefined;
 }
 
-function decideTopic(topic: PlannableTopic, input: PersonalizationInput): TopicDecision {
+function decideTopic(
+  topic: PlannableTopic,
+  input: PersonalizationInput,
+  /**
+   * Topic codes that survived relevance, INCLUDING those pulled in as prerequisites.
+   *
+   * See expandRelevance below: a topic the student's own plan depends on is relevant whatever
+   * their direction says, so this is consulted instead of re-deriving direction here.
+   */
+  relevantTopics: Set<PlannableTopic>,
+): TopicDecision {
   const skillName = input.skillNames.get(topic.skillKeys[0]) || topic.title;
   const direction = directionByKey(input.selectedDirection);
   const directionName = direction?.name;
@@ -210,14 +220,7 @@ function decideTopic(topic: PlannableTopic, input: PersonalizationInput): TopicD
    * undecided student needs, and it renders as a perfectly healthy plan, so the empty list
    * defaults to the full exploration set rather than to nothing.
    */
-  const exploring = wantsExploration(input.directionStatus);
-  const exploreSet = exploring && !input.explorationDirections.length
-    ? explorationDirections().map(d => String(d.key))
-    : input.explorationDirections.map(d => String(d).toUpperCase());
-
-  const relevant = topic.mandatory
-    || appliesToDirection(topic.applicableDirections, input.selectedDirection)
-    || (exploring && topic.applicableDirections.some(d => exploreSet.includes(String(d).toUpperCase())));
+  const relevant = relevantTopics.has(topic);
 
   if (!relevant) {
     const d = depthFor('NOT_RELEVANT');
@@ -292,6 +295,75 @@ const base = (t: PlannableTopic) => ({
   moduleOrder: t.moduleOrder,
 });
 
+
+/**
+ * Which topics this student's plan covers — direction first, then what those topics DEPEND on.
+ *
+ * WHY THE SECOND STEP EXISTS. Direction filtering alone produced an unreachable plan the first
+ * time this ran against real data: a backend student had "How the Web Talks" locked behind HTML,
+ * and HTML had been filtered out as not part of Software & Backend. The lock could never be
+ * satisfied, so the topic was shut for the life of the plan and the student was told to finish
+ * something they would never be given.
+ *
+ * A SKILL YOUR OWN PLAN DEPENDS ON IS RELEVANT TO YOU, whatever your direction says. So topics
+ * teaching a prerequisite of an already-relevant topic are pulled back in — the same expansion
+ * the roadmap planner does over the skill graph, applied here to curriculum topics.
+ *
+ * Bounded at three rounds and guarded by `seen`: a curriculum with a prerequisite cycle must
+ * produce a plan, not a hang.
+ */
+function expandRelevance(input: PersonalizationInput): Set<PlannableTopic> {
+  const exploring = wantsExploration(input.directionStatus);
+  const exploreSet = exploring && !input.explorationDirections.length
+    ? explorationDirections().map(d => String(d.key))
+    : input.explorationDirections.map(d => String(d).toUpperCase());
+
+  const directlyRelevant = (t: PlannableTopic): boolean =>
+    t.mandatory
+    || appliesToDirection(t.applicableDirections, input.selectedDirection)
+    || (exploring && t.applicableDirections.some(d => exploreSet.includes(String(d).toUpperCase())));
+
+  /**
+   * Identified by object, not by code or title.
+   *
+   * Two topics can legitimately share a title across modules, and topicCode is optional on a
+   * curriculum authored before codes existed — either collision would silently mark an
+   * irrelevant topic relevant. A test caught exactly that: Java became relevant to a web
+   * student because it shared an identifier with a mandatory topic.
+   */
+  const relevant = new Set<PlannableTopic>();
+  for (const t of input.topics) if (directlyRelevant(t)) relevant.add(t);
+
+  // Which topics teach a given skill.
+  const providers = new Map<string, PlannableTopic[]>();
+  for (const t of input.topics) {
+    for (const k of t.skillKeys) {
+      if (!providers.has(k)) providers.set(k, []);
+      providers.get(k)!.push(t);
+    }
+  }
+
+  for (let round = 0; round < 3; round++) {
+    let added = false;
+    for (const t of input.topics) {
+      if (!relevant.has(t)) continue;
+      const needs = Array.from(new Set([
+        ...t.prerequisiteSkillKeys,
+        ...t.skillKeys.flatMap(k => input.graphPrerequisites.get(k) || []),
+      ])).filter(k => !t.skillKeys.includes(k));
+
+      for (const skill of needs) {
+        for (const provider of (providers.get(skill) || [])) {
+          if (!relevant.has(provider)) { relevant.add(provider); added = true; }
+        }
+      }
+    }
+    if (!added) break;
+  }
+
+  return relevant;
+}
+
 /* ------------------------------------------------------------------ *
  * The plan
  * ------------------------------------------------------------------ */
@@ -306,8 +378,11 @@ const base = (t: PlannableTopic) => ({
 export function personalizeCurriculum(input: PersonalizationInput): PersonalizationResult {
   const pace = paceFor(input.availability);
 
+  const relevantTopics = expandRelevance(input);
+
   const decisions = input.topics
-    .map(t => decideTopic(t, input))
+
+    .map(t => decideTopic(t, input, relevantTopics))
     .sort((a, b) =>
       a.moduleOrder - b.moduleOrder
       || stateRank(a.state) - stateRank(b.state)

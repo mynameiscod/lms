@@ -128,6 +128,16 @@ export const ASSESSMENT_POLICIES: AssessmentPolicy[] = [
      */
     prerequisiteDepth: 2,
     /**
+     * Stated explicitly, not left to the fallback.
+     *
+     * The fallback derives this from prerequisiteDepth, and the stage-set path overrides that
+     * depth to 0 — so an unstated preference was recomputed from the override and came out
+     * false, putting the hardest skills in scope at the top of a first-year's paper. Operating
+     * systems and networking before loops. Saying it here survives any override of the other
+     * field, which is the whole point of separating them.
+     */
+    preferFoundationalSkills: true,
+    /**
      * INTERMEDIATE admitted alongside FOUNDATION.
      *
      * Eight of the curriculum's thirty-four skills are graded INTERMEDIATE in the taxonomy —

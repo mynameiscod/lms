@@ -72,6 +72,19 @@ export interface DirectionInfo {
   message: string;
 }
 
+export interface AssignedContent {
+  id: string;
+  title: string;
+  description?: string;
+  type: string;
+  depth: string | null;
+  estimatedMinutes: number;
+  skillKeys: string[];
+  notesContent: string | null;
+  videoUrl: string | null;
+  practiceQuestions: { title: string; description: string; difficulty: string; marks: number; options: { text: string }[] }[];
+}
+
 export const adaptiveApi = {
   listDirections: async (): Promise<{ key: string; name: string; blurb: string }[]> => {
     const { data } = await axios.get(`${BASE}/directions`, { headers: auth() });
@@ -104,6 +117,12 @@ export const adaptiveApi = {
     const { data } = await axios.get(
       `${BASE}/students/${studentId}/plan/${curriculumId}/replan-check`, { headers: auth() });
     return data;
+  },
+
+  /** One piece of assigned material. Answers are stripped server-side. */
+  getContent: async (contentId: string): Promise<AssignedContent> => {
+    const { data } = await axios.get(`${BASE}/content/${contentId}`, { headers: auth() });
+    return data.content;
   },
 
   contentGaps: async (curriculumId: string) => {

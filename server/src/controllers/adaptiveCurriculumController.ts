@@ -21,6 +21,7 @@ import { resolveDirection, describeDirection } from '../services/careerDirection
 import { CAREER_DIRECTIONS } from '../data/careerDirectionPolicy';
 import { STATE_ORDER } from '../data/adaptiveCurriculumPolicy';
 import LearningCurriculum from '../models/LearningCurriculum';
+import LearningContentLibrary from '../models/LearningContentLibrary';
 import User from '../models/User';
 
 const tenantOf = (req: Request): string => String((req as any).tenantId || (req as any).user?.tenantId || '');
@@ -212,6 +213,55 @@ export const getContentGaps = async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error('[adaptive] getContentGaps:', e);
     res.status(500).json({ success: false, message: 'Could not build that report.' });
+  }
+};
+
+
+/**
+ * GET /adaptive/content/:contentId — open one piece of assigned material.
+ *
+ * WHY THE PLAN SERVES ITS OWN CONTENT. The member material viewer reads a different model
+ * entirely, so a LearningContentLibrary id handed to it resolves to nothing. Rather than
+ * teach that screen a second shape, the plan returns what it assigned — it already knows
+ * which rows it chose and why.
+ *
+ * PUBLISHED ONLY, AND NO ANSWERS GIVEN AWAY. Correct options are stripped: this endpoint is
+ * how a student opens practice, and returning the key alongside the questions would make the
+ * practice pointless for anybody who opened the network tab.
+ */
+export const getAssignedContent = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const row = await LearningContentLibrary.findOne({
+      _id: req.params.contentId, tenantId, isPublished: true,
+    }).lean() as any;
+    if (!row) return fail(res, 404, 'That material is not available.');
+
+    res.json({
+      success: true,
+      content: {
+        id: String(row._id),
+        title: row.title,
+        description: row.description,
+        type: row.type,
+        depth: row.learningDepth || null,
+        estimatedMinutes: row.estimatedDuration || 0,
+        skillKeys: row.skillKeys || [],
+        notesContent: row.notesContent || null,
+        videoUrl: row.videoUrl || null,
+        // Questions without their answers. Grading happens server-side or not at all.
+        practiceQuestions: (row.practiceQuestions || []).map((q: any) => ({
+          title: q.title,
+          description: q.description,
+          difficulty: q.difficulty,
+          marks: q.marks,
+          options: (q.options || []).map((o: any) => ({ text: o.text })),
+        })),
+      },
+    });
+  } catch (e: any) {
+    console.error('[adaptive] getAssignedContent:', e);
+    res.status(500).json({ success: false, message: 'Could not open that material.' });
   }
 };
 

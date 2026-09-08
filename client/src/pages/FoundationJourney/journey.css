@@ -120,3 +120,48 @@
   .fj-head { flex-direction: column; }
   .fj-topic-main { align-items: flex-start; }
 }
+
+/* ---- material inside a topic ---- */
+.fj-topic-body { display: flex; flex-direction: column; gap: 12px; }
+.fj-small { font-size: 13px; }
+
+.fj-materials { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+
+.fj-material {
+  width: 100%; display: grid; grid-template-columns: 92px 1fr auto; gap: 10px; align-items: center;
+  background: #f8fafd; border: 1px solid #e6ebf4; border-radius: 9px;
+  padding: 9px 12px; cursor: pointer; text-align: left; font-family: inherit;
+}
+.fj-material:hover { background: #f1f5fc; }
+.fj-material:focus-visible { outline: 2px solid #96b0ff; outline-offset: 2px; }
+.fj-material-type {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em;
+  color: #5b6785; background: #fff; border: 1px solid #e0e6f0;
+  border-radius: 999px; padding: 3px 8px; text-align: center; white-space: nowrap;
+}
+.fj-material-title { font-size: 14px; color: #16244a; min-width: 0; }
+.fj-material-mins { font-size: 12px; color: #7a86a3; white-space: nowrap; }
+
+/* The reader. Placeholder notes are marked as such in the body copy, so the panel itself
+   stays neutral rather than dressing scaffolding up as a finished lesson. */
+.fj-reader {
+  border: 1px solid #e6ebf4; border-top: 0;
+  border-radius: 0 0 9px 9px; padding: 14px 16px;
+  font-size: 14px; line-height: 1.6; color: #33405e; background: #fff;
+}
+.fj-reader h2 { font-size: 16px; margin: 0 0 8px; color: #0d1b3e; }
+.fj-reader p { margin: 0 0 10px; }
+.fj-reader em { color: #7a86a3; }
+
+.fj-practice { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 12px; }
+.fj-practice > li > p { font-weight: 600; color: #16244a; margin: 0 0 6px; }
+.fj-practice ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.fj-practice ul li {
+  border: 1px solid #e6ebf4; border-radius: 7px; padding: 7px 10px;
+  font-size: 13.5px; color: #4a566f; background: #fbfcfe;
+}
+
+@media (max-width: 560px) {
+  .fj-material { grid-template-columns: 1fr; gap: 4px; }
+  .fj-material-type { justify-self: start; }
+}

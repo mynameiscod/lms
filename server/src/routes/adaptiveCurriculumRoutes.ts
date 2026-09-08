@@ -30,6 +30,10 @@ router.get('/students/:studentId/plan/:curriculumId/history', ctrl.getHistory);
 router.post('/students/:studentId/plan/:curriculumId/generate', express.json(), ctrl.generatePlan);
 router.post('/students/:studentId/plan/:curriculumId/replan', express.json(), ctrl.replanPlan);
 
+// Opening assigned material. Any signed-in member may read published content; the plan is
+// what decided they should see it, and the row itself carries nothing student-specific.
+router.get('/content/:contentId', ctrl.getAssignedContent);
+
 // Authoring coverage — staff only, enforced in the handler.
 router.get('/curricula/:curriculumId/content-gaps', ctrl.getContentGaps);
 

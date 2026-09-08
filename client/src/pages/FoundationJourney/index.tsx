@@ -11,7 +11,7 @@
  * showing a closed door. A first-year reading this should feel located, not judged.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { adaptiveApi, AdaptivePlan, PlanTopic, STATE_LABEL, STATE_TONE } from '../../api/adaptiveApi';
+import { adaptiveApi, AdaptivePlan, PlanTopic, AssignedContent, STATE_LABEL, STATE_TONE } from '../../api/adaptiveApi';
 import './journey.css';
 
 interface Props {
@@ -167,24 +167,91 @@ const Stat: React.FC<{ n: number; label: string; tone: string }> = ({ n, label, 
   </div>
 );
 
-const TopicRow: React.FC<{ topic: PlanTopic; open: boolean; onToggle: () => void }> = ({ topic, open, onToggle }) => (
-  <li className={`fj-topic fj-tone-${STATE_TONE[topic.state]}`}>
-    <div className="fj-topic-main">
-      <div className="fj-topic-text">
-        <span className="fj-topic-title">{topic.title}</span>
-        <span className="fj-topic-state">{STATE_LABEL[topic.state]}</span>
+/**
+ * One topic, and what it actually gives the student to do.
+ *
+ * A journey that lists topics without opening them is a table of contents, not a plan. The
+ * material is fetched only when a topic is expanded — a first-year plan carries twenty-five
+ * topics and loading every lesson to render a list would be slow for no benefit.
+ */
+const TopicRow: React.FC<{ topic: PlanTopic; open: boolean; onToggle: () => void }> = ({ topic, open, onToggle }) => {
+  const [items, setItems] = useState<AssignedContent[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [reading, setReading] = useState<AssignedContent | null>(null);
+
+  useEffect(() => {
+    if (!open || !topic.contentIds.length || items.length) return;
+    setBusy(true);
+    Promise.all(topic.contentIds.map(id => adaptiveApi.getContent(id).catch(() => null)))
+      .then(rows => setItems(rows.filter(Boolean) as AssignedContent[]))
+      .finally(() => setBusy(false));
+  }, [open, topic.contentIds, items.length]);
+
+  return (
+    <li className={`fj-topic fj-tone-${STATE_TONE[topic.state]}`}>
+      <div className="fj-topic-main">
+        <div className="fj-topic-text">
+          <span className="fj-topic-title">{topic.title}</span>
+          <span className="fj-topic-state">
+            {STATE_LABEL[topic.state]}
+            {topic.contentIds.length > 0 && ` · ${topic.contentIds.length} item${topic.contentIds.length === 1 ? '' : 's'}`}
+          </span>
+        </div>
+        <button className="fj-why-btn" onClick={onToggle} aria-expanded={open}>
+          {open ? 'Hide' : topic.locked ? 'Why locked?' : 'Open'}
+        </button>
       </div>
-      <button className="fj-why-btn" onClick={onToggle} aria-expanded={open}>
-        {open ? 'Hide' : 'Why this?'}
-      </button>
-    </div>
-    {open && (
-      <p className="fj-why">
-        {topic.why}
-        {topic.state === 'VERIFIED' && ' Nothing here is required — there is a challenge if you want it.'}
-      </p>
-    )}
-  </li>
-);
+
+      {open && (
+        <div className="fj-topic-body">
+          <p className="fj-why">
+            {topic.why}
+            {topic.state === 'VERIFIED' && ' Nothing here is required — there is a challenge if you want it.'}
+          </p>
+
+          {busy && <p className="fj-muted fj-small">Loading your material…</p>}
+
+          {!busy && !topic.contentIds.length && !topic.locked && (
+            /* Honest rather than blank: the plan decided this topic and the library has
+               nothing for it yet. A student seeing an empty panel assumes a broken page. */
+            <p className="fj-muted fj-small">No material has been added for this topic yet.</p>
+          )}
+
+          {items.length > 0 && (
+            <ul className="fj-materials">
+              {items.map(it => (
+                <li key={it.id}>
+                  <button className="fj-material" onClick={() => setReading(reading?.id === it.id ? null : it)}>
+                    <span className="fj-material-type">{it.type.replace(/_/g, ' ')}</span>
+                    <span className="fj-material-title">{it.title}</span>
+                    <span className="fj-material-mins">{it.estimatedMinutes} min</span>
+                  </button>
+                  {reading?.id === it.id && (
+                    <div className="fj-reader">
+                      {it.notesContent && <div dangerouslySetInnerHTML={{ __html: it.notesContent }} />}
+                      {it.practiceQuestions.length > 0 && (
+                        <ol className="fj-practice">
+                          {it.practiceQuestions.map((q, i) => (
+                            <li key={i}>
+                              <p>{q.description || q.title}</p>
+                              <ul>{q.options.map((o, n) => <li key={n}>{o.text}</li>)}</ul>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                      {!it.notesContent && !it.practiceQuestions.length && (
+                        <p className="fj-muted fj-small">This item has no readable content.</p>
+                      )}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </li>
+  );
+};
 
 export default FoundationJourney;

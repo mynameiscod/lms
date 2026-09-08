@@ -18,7 +18,7 @@
 import mongoose from 'mongoose';
 import StudentCurriculumAssignment from '../models/StudentCurriculumAssignment';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
-import { generateAssignment, assessReplanNeed } from './studentCurriculumAssignmentService';
+import { generateAssignment, assessReplanNeed, ensureAdaptivePlan } from './studentCurriculumAssignmentService';
 import { ReplanTrigger } from '../data/adaptiveCurriculumPolicy';
 
 /**
@@ -64,7 +64,29 @@ export async function replanForTrigger(input: {
       ? [input.curriculumId]
       : await activeCurriculumIdsFor(input.tenantId, input.studentId);
 
-    if (!curriculumIds.length) return quiet;
+    /**
+     * A student with no enrollment is not a student with nothing to learn.
+     *
+     * This used to return silently, which meant every brand-new member — the exact case the
+     * product exists for — finished their diagnostic and received no plan at all. Enrolling
+     * them in the curriculum for their stage is the missing step; it does nothing when the
+     * tenant has not marked one, so nothing changes for anyone who has not opted in.
+     */
+    if (!curriculumIds.length) {
+      const seeded = await ensureAdaptivePlan({
+        tenantId: input.tenantId,
+        studentId: input.studentId,
+        trigger: input.trigger,
+        assessmentId: input.assessmentId,
+      });
+      if (!seeded.planned) {
+        console.log('[adaptive] no plan for ' + input.studentId + ': ' + (seeded.reason || 'generation refused'));
+        return quiet;
+      }
+      console.log('[adaptive] first plan for ' + input.studentId
+        + (seeded.enrolled ? ' (auto-enrolled)' : '') + ' on ' + seeded.curriculumId);
+      return { replanned: true, recommended: false, changedSkills: [], reason: input.trigger };
+    }
 
     let outcome: ReplanOutcome = quiet;
 

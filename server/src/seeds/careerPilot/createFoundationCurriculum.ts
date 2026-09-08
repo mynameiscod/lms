@@ -121,7 +121,7 @@ export async function createFoundationCurriculum(opts: {
   }
 
   if (existing) {
-    existing.set({ topics, totalDays: report.totalDays, isPublished: true });
+    existing.set({ topics, totalDays: report.totalDays, isPublished: true, adaptiveStage: 'foundation' });
     await existing.save();
     report.updated = true;
     report.curriculumId = String(existing._id);
@@ -136,6 +136,9 @@ export async function createFoundationCurriculum(opts: {
       totalDays: report.totalDays,
       topics,
       isPublished: true,
+      // Claims the foundation stage, which is what lets a new first-year be enrolled in this
+      // automatically rather than somebody picking a curriculum for them.
+      adaptiveStage: 'foundation',
       createdBy: opts.createdBy || 'foundation-seed',
     });
     report.created = true;

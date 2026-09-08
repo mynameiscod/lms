@@ -380,3 +380,86 @@ export async function assessReplanNeed(tenantId: string, studentId: string, curr
     reason: changed.length ? 'SIGNIFICANT_MASTERY_CHANGE' : null,
   };
 }
+
+/* ------------------------------------------------------------------ *
+ * Getting a new member onto a plan at all
+ * ------------------------------------------------------------------ */
+
+/**
+ * Enrol a student in the curriculum for their stage, and build them a plan.
+ *
+ * THE GAP THIS CLOSES. Replanning only ever looked at curricula a student was already enrolled
+ * in, so a brand-new member finished their diagnostic, had Skill DNA written, and got nothing:
+ * no enrollment, therefore no curriculum, therefore no plan. Every plan that existed had been
+ * created by hand from a script, which is fine for one test account and useless for a product.
+ *
+ * WHICH CURRICULUM. The one that claims their stage via adaptiveStage. Nothing is auto-enrolled
+ * until a curriculum is deliberately marked, so a tenant that has not set one up keeps exactly
+ * its current behaviour rather than having students dropped into whatever was found first.
+ *
+ * NEVER FATAL, AND NEVER DUPLICATES. Called from an event handler after a submission is already
+ * safe; a unique index on (curriculum, student) is what actually prevents a second enrollment,
+ * and the pre-check only saves the work.
+ */
+export async function ensureAdaptivePlan(input: {
+  tenantId: string;
+  studentId: string;
+  trigger?: ReplanTrigger;
+  assessmentId?: string;
+}): Promise<{ enrolled: boolean; planned: boolean; curriculumId?: string; reason?: string }> {
+  const { tenantId, studentId } = input;
+
+  const user = await User.findOne({ _id: studentId, tenantId }).select('passport firstName lastName email').lean() as any;
+  if (!user) return { enrolled: false, planned: false, reason: 'no such student' };
+
+  const stage = String(user.passport?.stage || '').trim();
+  if (!stage) return { enrolled: false, planned: false, reason: 'no academic stage resolved' };
+
+  const curriculum = await LearningCurriculum.findOne({
+    tenantId, adaptiveStage: stage, isPublished: true, personalizedFor: null,
+  }).select('_id title').lean() as any;
+
+  if (!curriculum) {
+    // Not an error: this tenant simply has no curriculum for that stage yet.
+    return { enrolled: false, planned: false, reason: `no curriculum claims stage "${stage}"` };
+  }
+
+  const curriculumId = String(curriculum._id);
+
+  let enrolled = false;
+  const existing = await CurriculumEnrollment.findOne({
+    curriculumId: new mongoose.Types.ObjectId(curriculumId),
+    studentId: new mongoose.Types.ObjectId(studentId),
+  }).lean();
+
+  if (!existing) {
+    try {
+      await CurriculumEnrollment.create({
+        tenantId,
+        curriculumId: new mongoose.Types.ObjectId(curriculumId),
+        curriculumTitle: curriculum.title,
+        studentId: new mongoose.Types.ObjectId(studentId),
+        studentName: [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Student',
+        studentEmail: user.email || '',
+        startDate: new Date(),
+        status: 'active',
+        enrolledBy: 'adaptive-auto',
+        assessmentOriginated: true,
+        stage,
+      });
+      enrolled = true;
+    } catch (e: any) {
+      // 11000 means another request won the race, which is the outcome we wanted anyway.
+      if (e?.code !== 11000) throw e;
+    }
+  }
+
+  const result = await generateAssignment({
+    tenantId, studentId, curriculumId,
+    replan: true,
+    trigger: input.trigger || 'DIAGNOSTIC_COMPLETED',
+    generatedFromAssessmentId: input.assessmentId,
+  });
+
+  return { enrolled, planned: !!result.assignment, curriculumId };
+}

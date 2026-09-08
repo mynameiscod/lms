@@ -87,6 +87,20 @@ export interface ILearningCurriculum extends Document {
   audienceLevel?: 'fresher' | 'professional';
   pace?: ITrackPace;
   personalizedFor?: mongoose.Types.ObjectId; // set on a candidate-specific clone (the student/user id)
+
+  /**
+   * The academic stage this curriculum is THE curriculum for.
+   *
+   * How a new member gets enrolled in the right thing without anybody choosing by hand: a
+   * first-year finishing their diagnostic needs the foundation curriculum, and something has
+   * to know which one that is. Matching on a title would break the moment somebody renamed
+   * it; matching on targetCourse would break on a typo.
+   *
+   * Optional and unset on every existing curriculum, so nothing is auto-enrolled in anything
+   * until a curriculum is deliberately marked as a stage's own.
+   */
+  adaptiveStage?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -133,6 +147,7 @@ const LearningCurriculumSchema = new Schema<ILearningCurriculum>(
     audienceLevel:   { type: String, enum: ['fresher', 'professional'] },
     pace:            { type: { hoursPerDay: Number, weekends: Boolean, targetWeeks: Number }, default: undefined },
     personalizedFor: { type: Schema.Types.ObjectId, ref: 'User' },
+    adaptiveStage:   { type: String, trim: true, index: true },
   },
   { timestamps: true }
 );

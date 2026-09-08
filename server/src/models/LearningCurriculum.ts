@@ -12,7 +12,54 @@ export interface ICurriculumTopic {
   // master-track per candidate (compress mastered areas, expand weak ones).
   // One of: aptitude | fundamentals | dsa | core_stack | problem_solving |
   // system_design. Leave empty for "always include" topics (e.g. interview prep).
+  //
+  // SUPERSEDED BY skillKeys, and kept. Dimension personalization resizes a topic by one of six
+  // broad scores; skill personalization decides depth per capability. Removing it would break
+  // every existing master-track and the public funnel that reads them, so both run side by side
+  // and the adaptive planner simply prefers skillKeys when they are present.
   dimension?: string;
+
+  /* ---- adaptive curriculum (ADAPTIVE_CURRICULUM_V1) — all optional ---- */
+
+  /** Stable identifier for the module this topic belongs to, e.g. 'M03_PROGRAMMING'. */
+  moduleCode?: string;
+  /** Stable identifier for the topic itself, so an assignment can survive a title edit. */
+  topicCode?: string;
+
+  /**
+   * Canonical CareerSkill keys this topic teaches.
+   *
+   * THE BRIDGE. Until this existed there was no route from a measured skill to anything a
+   * student could be given to learn — the two halves of the product could not see each other.
+   * Keys, not ObjectIds, matching every other skill reference in the codebase: the key is the
+   * contract and survives a reseed.
+   */
+  skillKeys?: string[];
+
+  /**
+   * Skills that must be reached before this topic is useful.
+   *
+   * Usually derivable from CareerSkill.prerequisiteKeys; stated here only when a topic needs
+   * something the skill graph does not say — a pedagogical order rather than a logical one.
+   */
+  prerequisiteSkillKeys?: string[];
+
+  /** Depth to use when no measurement exists to choose one. */
+  defaultDepth?: 'FOUNDATION' | 'GUIDED' | 'STANDARD' | 'REVISION' | 'CHALLENGE';
+
+  /**
+   * Part of the universal foundation, and therefore never removed by direction filtering.
+   *
+   * Git does not stop mattering because a student chose AI. Mandatory topics are exempt from
+   * every relevance filter and can only be satisfied by being learned.
+   */
+  mandatory?: boolean;
+
+  /** Directions this topic serves. Empty means everyone — see careerDirectionPolicy. */
+  applicableDirections?: string[];
+
+  /** What a student can do after it, in their words. Shown in the plan and passed to AI generation. */
+  learningOutcomes?: string[];
 }
 
 // Suggested study pace for a master-track, copied onto a candidate's enrollment.
@@ -53,6 +100,17 @@ const CurriculumTopicSchema = new Schema<ICurriculumTopic>(
     endDay:      { type: Number, required: true, min: 1 },
     color:       { type: String, default: '#3b82f6' },
     dimension:   { type: String },
+
+    // Adaptive curriculum. Every field optional with no default, so existing topic
+    // subdocuments are untouched and read back exactly as they were written.
+    moduleCode:            { type: String, trim: true },
+    topicCode:             { type: String, trim: true },
+    skillKeys:             { type: [String], default: undefined },
+    prerequisiteSkillKeys: { type: [String], default: undefined },
+    defaultDepth:          { type: String, enum: ['FOUNDATION', 'GUIDED', 'STANDARD', 'REVISION', 'CHALLENGE'] },
+    mandatory:             { type: Boolean },
+    applicableDirections:  { type: [String], default: undefined },
+    learningOutcomes:      { type: [String], default: undefined },
   },
   { _id: true }
 );

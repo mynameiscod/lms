@@ -40,6 +40,26 @@ export interface ICurriculumEnrollment extends Document {
   goalTargets: { videos: number; assignments: number; quizzes: number };  // Today's Goal targets
   // Assessment-funnel gating: a free "taste" then locked until a mentor/payment unlocks.
   assessmentOriginated?: boolean;
+
+  /* ---- adaptive curriculum (ADAPTIVE_CURRICULUM_V1) — all optional ---- */
+
+  /**
+   * The StudentCurriculumAssignment driving this enrollment, when one exists.
+   *
+   * WHERE THE STUDENT IS stays here; WHAT THEY SHOULD LEARN lives in the assignment. Keeping the
+   * two in separate documents is what lets a plan be replanned without touching a single
+   * completed day — progress is history, and a new decision must never rewrite it.
+   */
+  assignmentId?: mongoose.Types.ObjectId;
+
+  /** Which version of that assignment this enrollment last rendered. */
+  currentPlanVersion?: number;
+
+  /** When the remaining plan was last rebuilt. Absent means never replanned. */
+  lastReplannedAt?: Date;
+
+  /** Academic stage at enrollment, so a plan can be read in the context it was built for. */
+  stage?: string;
   previewOnly?: boolean;   // when true, days beyond previewDays are locked
   previewDays?: number;    // number of free days (default 2)
   createdAt: Date;
@@ -85,6 +105,13 @@ const CurriculumEnrollmentSchema = new Schema<ICurriculumEnrollment>(
     completedAt:    { type: Date },
     enrolledBy:     { type: String, required: true },
     assessmentOriginated: { type: Boolean, default: false },
+
+    // Adaptive curriculum. Optional with no defaults, so every existing enrollment behaves
+    // exactly as it does today until an assignment is generated for it.
+    assignmentId:       { type: Schema.Types.ObjectId, ref: 'StudentCurriculumAssignment' },
+    currentPlanVersion: { type: Number },
+    lastReplannedAt:    { type: Date },
+    stage:              { type: String, trim: true },
     previewOnly:    { type: Boolean, default: false },
     previewDays:    { type: Number, default: 2 },
     xp:             { type: Number, default: 0 },

@@ -61,6 +61,20 @@ export const SOURCE_WEIGHT: Record<string, number> = {
    * reliability.
    */
   MOCK_INTERVIEW: 0.6,
+  /**
+   * An in-course module assessment.
+   *
+   * Objectively graded and canonically mapped, so it qualifies — but taken unsupervised, at a
+   * time of the student's choosing, and RETAKEABLE. That last property is the one that sets the
+   * number: evidence a student can repeat until it is favourable is weaker than evidence taken
+   * once under control, however cleanly it was marked.
+   *
+   * 0.5 means roughly two module assessments carry the weight of one marked paper — enough that
+   * doing the coursework visibly moves a score, not enough that it can be ground out. If this
+   * turns out to be the wrong balance it is one number, here, and the arithmetic below does not
+   * change.
+   */
+  MODULE_ASSESSMENT: 0.5,
 };
 
 /**

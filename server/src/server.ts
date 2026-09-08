@@ -9,6 +9,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
 import { assertSecretsPresent } from './config/secrets';
 import { initSettings } from './services/settingsService';
+import { registerAdaptiveHandlers } from './services/adaptiveCurriculumEvents';
 import { syncAllActiveSheets } from './services/googleSheetSyncService';
 import { fireFollowUpReminders, CRON_INTERVAL_MS } from './jobs/followUpCron';
 import { startDailySummaryScheduler } from './jobs/dailySummaryCron';
@@ -56,6 +57,15 @@ const startServer = async () => {
 
     // Load admin-managed configuration from DB (keys/models set in the UI).
     await initSettings();
+
+    /**
+     * Connect the adaptive planner to the events that concern it.
+     *
+     * Idempotent, and cheap: it registers in-process listeners and touches nothing. Without it
+     * every publish is a no-op and plans quietly stop reacting to anything — which looks exactly
+     * like a working system, so it is wired at start-up rather than lazily.
+     */
+    registerAdaptiveHandlers();
 
     console.log('📦 Creating HTTP server with Socket.io...');
     // Create HTTP server with Socket.io

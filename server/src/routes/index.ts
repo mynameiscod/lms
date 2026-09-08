@@ -67,6 +67,7 @@ import adminPublicQuizRoutes from './adminPublicQuizRoutes';
 import learningContentLibraryRoutes from './learningContentLibraryRoutes';
 import liveSessionRoutes from './liveSessionRoutes';
 import learningCurriculumRoutes from './curriculumRoutes';
+import adaptiveCurriculumRoutes from './adaptiveCurriculumRoutes';
 import enrollmentPlanRoutes from './enrollmentPlanRoutes';
 import projectRoutes from './projectRoutes';
 import jobApplicationRoutes from './jobApplicationRoutes';
@@ -214,6 +215,9 @@ router.use('/learning-library', learningContentLibraryRoutes);
 router.use('/live-classes', liveSessionRoutes);
 router.use('/hms-classes', liveClassRoutes); // 100ms-backed hybrid live classes (webinar stage model)
 router.use('/curricula', learningCurriculumRoutes);
+// Adaptive plans. Mounted alongside rather than inside /curricula: the resource is a
+// STUDENT'S plan, not a curriculum, and nesting it would imply curriculum permissions apply.
+router.use('/adaptive', adaptiveCurriculumRoutes);
 router.use('/enrollment-plans', enrollmentPlanRoutes);
 router.use('/projects', projectRoutes);
 router.use('/job-applications', jobApplicationRoutes);

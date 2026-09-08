@@ -37,7 +37,7 @@ export type EvidenceRelationship = 'PRIMARY' | 'SECONDARY';
  * not a demonstration, and letting a keyword move a score would make Skill DNA a measure of
  * what students write about themselves.
  */
-export type EvidenceSource = 'PERSONALIZED_ASSESSMENT' | 'MOCK_INTERVIEW';
+export type EvidenceSource = 'PERSONALIZED_ASSESSMENT' | 'MOCK_INTERVIEW' | 'MODULE_ASSESSMENT';
 
 export const EVIDENCE_RELATIONSHIPS: EvidenceRelationship[] = ['PRIMARY', 'SECONDARY'];
 /**
@@ -45,10 +45,15 @@ export const EVIDENCE_RELATIONSHIPS: EvidenceRelationship[] = ['PRIMARY', 'SECON
  *
  * A mock interview joined the personalised assessment once its questions could be mapped to
  * canonical skills and graded against a rubric — those two properties are the entry
- * requirement, not the format. Quizzes and projects still have no canonical mapping, so
- * admitting them would mix incomparable observations into one number.
+ * requirement, not the format. Projects still have no canonical mapping, so admitting them
+ * would mix incomparable observations into one number.
+ *
+ * A MODULE ASSESSMENT joined on the same terms: its items carry skillKeys and are graded
+ * objectively. It is admitted at a lower weight than a marked paper for one specific reason —
+ * it is unproctored and retakeable, so a student may attempt it until they pass, and evidence
+ * that can be repeated until it is favourable is weaker evidence. See SOURCE_WEIGHT.
  */
-export const EVIDENCE_SOURCES: EvidenceSource[] = ['PERSONALIZED_ASSESSMENT', 'MOCK_INTERVIEW'];
+export const EVIDENCE_SOURCES: EvidenceSource[] = ['PERSONALIZED_ASSESSMENT', 'MOCK_INTERVIEW', 'MODULE_ASSESSMENT'];
 
 export interface IStudentSkillEvidence extends Document {
   tenantId: string;

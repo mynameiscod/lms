@@ -33,6 +33,17 @@ const SkillAssessment: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [done, setDone] = useState<any>(null);
+  const [paying, setPaying] = useState(false);
+  const [payMsg, setPayMsg] = useState('');
+
+  /** Membership checkout, matching Mission Control and Interview rather than a second flow. */
+  const unlockMembership = async () => {
+    setPaying(true); setPayMsg('');
+    const res = await passportApi.membershipCheckout();
+    setPaying(false);
+    if (res.ok) nav('/careerpilot/roadmap');
+    else setPayMsg(res.message || 'Payment did not complete.');
+  };
   const [err, setErr] = useState('');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'retrying'>('idle');
   /** Preflight: whether they have already sat one, and whether a real attempt is open. */
@@ -194,7 +205,46 @@ const SkillAssessment: React.FC = () => {
               <span className="ska-eyebrow">ASSESSMENT COMPLETE</span>
               <h1>Well done!</h1>
               <p>You’ve completed your CareerPilot skill assessment. We’re turning your answers into your personalized Skill DNA and role-readiness insights.</p>
-              <div className="ska-analysis-note"><i className="bi bi-lightbulb" /><span>We’re analyzing your responses to prepare your personalized insights and roadmap.</span></div>
+              {/*
+                * WHAT HAPPENS NEXT, TRUTHFULLY.
+                *
+                * This used to say "we're analyzing your responses to prepare your roadmap"
+                * unconditionally — and for a member without the paid entitlement it then did
+                * nothing, forever. They had answered sixteen questions and were left on a
+                * promise that would never be kept, which reads as a broken product rather
+                * than a locked feature, at the exact moment they most want to know what they
+                * got. Each outcome now says its own true thing.
+                */}
+              {done.roadmapStatus === 'READY' && (
+                <div className="ska-analysis-note ska-note-ready">
+                  <i className="bi bi-check-circle-fill" />
+                  <span>Your roadmap has been rebuilt around what this paper measured.</span>
+                </div>
+              )}
+              {done.roadmapStatus === 'MEMBERSHIP_REQUIRED' && (
+                <div className="ska-analysis-note ska-note-locked">
+                  <i className="bi bi-stars" />
+                  <span>
+                    Your Skill DNA is ready and free to view. The full 90-day roadmap is part of
+                    membership.
+                  </span>
+                </div>
+              )}
+              {done.roadmapStatus === 'NOT_ENOUGH_EVIDENCE' && (
+                <div className="ska-analysis-note">
+                  <i className="bi bi-lightbulb" />
+                  <span>
+                    Your Skill DNA is ready. We need a target role and a little more evidence
+                    before we can build a full roadmap.
+                  </span>
+                </div>
+              )}
+              {(done.roadmapStatus === 'UNAVAILABLE' || done.roadmapStatus === 'NOT_ATTEMPTED' || !done.roadmapStatus) && (
+                <div className="ska-analysis-note">
+                  <i className="bi bi-lightbulb" />
+                  <span>Your Skill DNA is ready to view.</span>
+                </div>
+              )}
             </div>
             <div className="ska-complete-art">
               <img src="/assets/careerpilot/careerpilot-hero-student.png" alt="CareerPilot assessment completed" />
@@ -211,9 +261,31 @@ const SkillAssessment: React.FC = () => {
                 same two destinations again as full-width buttons is the page telling somebody
                 how to get somewhere they can already see. What belongs on a completion screen
                 is what just happened, which is the three figures above. */}
-            {done.roadmapReplanned && (
-              <div className="ska-note">Your 90-day plan has been rebuilt around what this paper measured.</div>
-            )}
+            {/*
+              * A way onward, always. The rail does carry these destinations, but a member who
+              * has just finished a paper is looking at this card, not at the navigation — and
+              * "your Skill DNA is ready" with nothing to press is a dead end dressed as good
+              * news. The link goes to the thing they can actually see: their own results.
+              */}
+            <div className="ska-complete-actions">
+              <button className="ska-cta" onClick={() => nav('/careerpilot/skills')}>
+                See your Skill DNA <i className="bi bi-arrow-right" />
+              </button>
+              {done.roadmapStatus === 'READY' && (
+                <button className="ska-cta-ghost" onClick={() => nav('/careerpilot/roadmap')}>
+                  View my roadmap
+                </button>
+              )}
+              {done.roadmapStatus === 'MEMBERSHIP_REQUIRED' && (
+                // The same checkout every other locked surface uses, rather than a page of
+                // its own — there is no membership route, and inventing one here would give
+                // this screen a different upgrade path from the rest of the product.
+                <button className="ska-cta-ghost" onClick={unlockMembership} disabled={paying}>
+                  {paying ? 'Opening…' : 'Unlock my roadmap'}
+                </button>
+              )}
+            </div>
+            {payMsg && <div className="ska-note">{payMsg}</div>}
           </section>
         </main>
       </div>

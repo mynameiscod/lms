@@ -184,14 +184,38 @@ export const submitPersonalizedAssessment = async (req: Request, res: Response) 
      * keeps the plan they had and the next replan picks the change up.
      */
     let roadmapReplanned = false;
+    /**
+     * WHY THERE IS NO PLAN, WHEN THERE IS NO PLAN.
+     *
+     * The completion screen used to say "we are analyzing your responses to prepare your
+     * roadmap" and then, for a member without the paid entitlement, do nothing forever. They
+     * had answered sixteen questions and were left on a sentence that would never come true —
+     * which reads as a broken product rather than a locked feature, and wastes the one moment
+     * they are most interested in what happens next.
+     *
+     * So the refusal is reported rather than swallowed. `MEMBERSHIP_REQUIRED` is a paywall and
+     * the screen can offer the upgrade; anything else is a real problem and the screen can say
+     * so honestly instead of pretending to be busy.
+     */
+    let roadmapStatus: 'READY' | 'MEMBERSHIP_REQUIRED' | 'NOT_ENOUGH_EVIDENCE' | 'UNAVAILABLE' | 'NOT_ATTEMPTED' = 'NOT_ATTEMPTED';
     if (!projectionError && (projection?.skillsAffected?.length || 0) > 0) {
       try {
         // STUDENT, because the student's own submission caused it — the actor field records who
         // the plan was rebuilt for, and there is no SYSTEM actor in this union.
         const replan = await generateRoadmap(tenantId, studentId, { actor: 'STUDENT', replan: true });
         roadmapReplanned = !!replan?.outcome?.available;
+        if (roadmapReplanned) roadmapStatus = 'READY';
+        else {
+          // `reason` only exists on the unavailable branch of the union, so narrow first.
+          const out: any = replan?.outcome;
+          const reason = String((out && out.available === false ? out.reason : '') || replan?.refused || '');
+          roadmapStatus = /MEMBERSHIP|ENTITLE/i.test(reason) ? 'MEMBERSHIP_REQUIRED'
+            : /EVIDENCE|COVERAGE|ROLE_NOT_SELECTED|BLUEPRINT/i.test(reason) ? 'NOT_ENOUGH_EVIDENCE'
+              : 'UNAVAILABLE';
+        }
       } catch (e: any) {
         console.error('[career-roadmap] replan after assessment failed', String(open._id), e?.message || e);
+        roadmapStatus = 'UNAVAILABLE';
       }
     }
 
@@ -228,6 +252,11 @@ export const submitPersonalizedAssessment = async (req: Request, res: Response) 
         maxPoints: max,
       },
       roadmapReplanned,
+      /**
+       * What the member should be told about their plan. Never silence: the screen has to be
+       * able to distinguish "here it is", "this needs membership" and "something went wrong".
+       */
+      roadmapStatus,
       skillDna: projection
         ? { skillsAffected: projection.skillsAffected.length, evidenceCreated: projection.evidenceCreated }
         : null,

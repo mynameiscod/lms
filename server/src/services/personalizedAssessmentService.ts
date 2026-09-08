@@ -107,6 +107,15 @@ export interface GenerationInput {
   audience?: { roleKey?: string; year?: string; course?: string; branch?: string };
 }
 
+/**
+ * Stages where a configured stage skill set replaces the role blueprint as the paper's scope.
+ *
+ * Foundation only. By `build` a student has chosen a direction and is being taught toward it,
+ * and by `placement` the role IS the point — measuring them against anything else would be
+ * measuring the wrong thing at exactly the moment it matters most.
+ */
+const STAGE_SCOPE_OVERRIDES_ROLE = ['foundation'];
+
 const norm = (v: any): string => String(v ?? '').trim().toUpperCase();
 
 // ── Step 1: which skills this stage should assess ────────────────────────────
@@ -561,10 +570,26 @@ export async function resolvePersonalizedAssessmentContext(tenantId: string, stu
   const policy = await resolveAssessmentPolicy(tenantId, stage);
   const roleKey = context.career.primaryRole || ROLE_NOT_SURE;
 
-  // A member who has not chosen a role gets the broad discovery scope. No role is inferred
-  // and none is assigned — saying "not sure" is an answer, and recommending one is a later
-  // module's job.
-  if (roleKey === ROLE_NOT_SURE) {
+  /**
+   * AT AN EARLY STAGE, THE STAGE DECIDES — NOT THE ROLE.
+   *
+   * A first-year who names a target role was measured against that role's blueprint, which
+   * describes a job: system design, frameworks, the things the role needs on the day somebody
+   * is hired. Measuring a first-term student against it says only how far away they are, and
+   * it means two first-years learning the same syllabus are assessed on different things
+   * because one of them ticked a box during signup.
+   *
+   * The stage skill set is what a student at this point should be measured on, and it is
+   * authored from the curriculum they are actually being taught. So where one is configured
+   * for an early stage, it wins over the role, and the role does what it is good for — steering
+   * DIRECTION in the plan, deciding which topics are relevant, not which questions are asked.
+   *
+   * Only where a stage set is configured. A tenant that has set one up has said what it wants;
+   * one that has not keeps the previous behaviour exactly.
+   */
+  const stageOwnsTheScope = STAGE_SCOPE_OVERRIDES_ROLE.includes(stage);
+
+  if (roleKey === ROLE_NOT_SURE || stageOwnsTheScope) {
     /**
      * THE ADMIN'S LIST WINS OVER THE BUILT-IN ONE.
      *
@@ -582,6 +607,10 @@ export async function resolvePersonalizedAssessmentContext(tenantId: string, stu
       .filter(r => r.active && r.skillActive && !r.missing)
       .map(r => r.skillKey);
 
+    /**
+     * Falls through to the role blueprint when the set is empty or disabled, so turning a
+     * stage set off restores the role path rather than leaving a member with nothing.
+     */
     if (stageKeys.length) {
       const skillPriority = new Map(
         (stageSet!.requirements || []).map(r => [r.skillKey, {
@@ -609,7 +638,22 @@ export async function resolvePersonalizedAssessmentContext(tenantId: string, stu
         audience: audienceOf(roleKey),
       };
     }
-    return { ok: true, stage, roleKey, policy, discovery: true, roleSkillKeys: DISCOVERY_SKILL_SCOPE, blueprintVersion: 0, audience: audienceOf(roleKey) };
+    /**
+     * No stage set configured, so this stage has no opinion of its own.
+     *
+     * A member who named a role falls through to their blueprint — the branch above claims a
+     * stage set can replace a role, and where there is no stage set there is nothing to replace
+     * it with. Returning the built-in discovery list here instead would have quietly ignored a
+     * role the student chose AND skipped every check on their blueprint: a draft or emptied one
+     * would have produced a paper rather than the refusal an admin needs to see.
+     *
+     * Only a member with no role gets the built-in list, which is what it is for.
+     */
+    if (roleKey !== ROLE_NOT_SURE) {
+      // fall through to the blueprint path below
+    } else {
+      return { ok: true, stage, roleKey, policy, discovery: true, roleSkillKeys: DISCOVERY_SKILL_SCOPE, blueprintVersion: 0, audience: audienceOf(roleKey) };
+    }
   }
 
   const blueprint = await getRoleSkillBlueprint(tenantId, roleKey);

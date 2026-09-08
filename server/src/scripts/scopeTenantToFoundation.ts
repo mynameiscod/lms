@@ -19,7 +19,11 @@
  *
  *   npx ts-node src/scripts/scopeTenantToFoundation.ts <tenantId>
  *   npx ts-node src/scripts/scopeTenantToFoundation.ts <tenantId> --apply
+ *   npx ts-node src/scripts/scopeTenantToFoundation.ts <tenantId> --apply --foundation-only
  *   npx ts-node src/scripts/scopeTenantToFoundation.ts <tenantId> --apply --restore
+ *
+ * --foundation-only additionally disables the other three stage sets and unpublishes every role
+ * blueprint, so a member cannot reach a path this tenant has no content for. See below.
  */
 
 import dotenv from 'dotenv';
@@ -29,6 +33,7 @@ import CareerSkill from '../models/CareerSkill';
 import SkillEvidence from '../models/SkillEvidence';
 import StudentSkillProfile from '../models/StudentSkillProfile';
 import RoleSkillBlueprint from '../models/RoleSkillBlueprint';
+import StageSkillSet from '../models/StageSkillSet';
 
 dotenv.config();
 
@@ -46,6 +51,7 @@ const looksLocal = (uri: string): boolean =>
   const apply = process.argv.includes('--apply');
   const restore = process.argv.includes('--restore');
   const force = process.argv.includes('--i-know-this-is-not-local');
+  const foundationOnly = process.argv.includes('--foundation-only');
 
   if (!tenantId) {
     console.error('Usage: scopeTenantToFoundation.ts <tenantId> [--apply] [--restore]');
@@ -66,7 +72,10 @@ const looksLocal = (uri: string): boolean =>
   if (restore) {
     const r = await CareerSkill.updateMany({ active: false }, { $set: { active: true } });
     const e = await SkillEvidence.updateMany({ tenantId, active: false }, { $set: { active: true } });
-    console.log(`restored: ${r.modifiedCount} skills, ${e.modifiedCount} question mappings reactivated`);
+    const st = await StageSkillSet.updateMany({ tenantId, enabled: false }, { $set: { enabled: true } });
+    const bp = await RoleSkillBlueprint.updateMany({ tenantId, published: false }, { $set: { published: true } });
+    console.log(`restored: ${r.modifiedCount} skills, ${e.modifiedCount} question mappings, `
+      + `${st.modifiedCount} stage sets, ${bp.modifiedCount} role blueprints reactivated`);
     await mongoose.disconnect();
     return;
   }
@@ -134,6 +143,31 @@ const looksLocal = (uri: string): boolean =>
   );
 
   console.log(`\n✅ ${s.modifiedCount} skills switched off, ${e.modifiedCount} question mappings deactivated.`);
+
+  if (foundationOnly) {
+    /**
+     * Close every path this tenant cannot serve.
+     *
+     * The other stage sets and the role blueprints still name skills that are now switched off,
+     * so a second-year — or anyone who picks a target role — reaches a scope that is mostly
+     * gone. That does not fail loudly. It produces a thin paper, or a plan built on a handful
+     * of skills, which looks like a working product measuring the wrong things.
+     *
+     * Disabling them means such a student is told plainly that nothing is configured for them
+     * yet, which is true, instead of being quietly served something worse.
+     */
+    const st = await StageSkillSet.updateMany(
+      { tenantId, stage: { $ne: 'foundation' }, enabled: true },
+      { $set: { enabled: false } },
+    );
+    const bp = await RoleSkillBlueprint.updateMany(
+      { tenantId, published: true },
+      { $set: { published: false } },
+    );
+    console.log(`✅ ${st.modifiedCount} stage sets disabled, ${bp.modifiedCount} role blueprints unpublished.`);
+    console.log('   Every member now takes the foundation path, whatever role they picked.');
+  }
+
   console.log('Student skill history is untouched. Reverse with --apply --restore.');
   await mongoose.disconnect();
 })().catch(e => { console.error('ERR', e.message); process.exit(1); });

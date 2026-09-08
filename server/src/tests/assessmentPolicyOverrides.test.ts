@@ -113,7 +113,18 @@ describe('what is NOT editable stays fixed', () => {
     const p = await resolveAssessmentPolicy('t1', 'foundation');
 
     expect(p.prerequisiteDepth).toBe(2);
-    expect(p.allowedSkillDifficulty).toEqual(['FOUNDATION']);
+    /**
+     * FOUNDATION and INTERMEDIATE, not FOUNDATION alone.
+     *
+     * Eight of the Year-1 curriculum's skills are graded INTERMEDIATE in the taxonomy —
+     * operating systems, networking, the DOM, git branching, technical explanation. Restricting
+     * the paper to FOUNDATION excluded all eight from measurement while the curriculum carried
+     * on teaching them, so their scores could never move off "not yet exposed" and the plan
+     * could never personalise them. The taxonomy grades a skill's inherent depth; what a
+     * first-year should be ASKED is a property of the stage set, which is authored from the
+     * curriculum.
+     */
+    expect(p.allowedSkillDifficulty).toEqual(['FOUNDATION', 'INTERMEDIATE']);
     expect(p.allowDifficultyFallback).toBe(true);
   });
 });
@@ -121,7 +132,9 @@ describe('what is NOT editable stays fixed', () => {
 describe('saving', () => {
   it('stores only stages that genuinely differ from the default', async () => {
     await saveAssessmentPolicies('t1', [
-      { stage: 'foundation', skillSlots: 16, maxSkills: 6, difficultyMix: { EASY: 60, MEDIUM: 35, HARD: 5 }, timeLimitMinutes: 0 },
+      // maxSkills 8, matching the shipped foundation policy — sixteen items over eight
+      // skills rather than six, so no single thin pool is asked for more than it holds.
+      { stage: 'foundation', skillSlots: 16, maxSkills: 8, difficultyMix: { EASY: 60, MEDIUM: 35, HARD: 5 }, timeLimitMinutes: 0 },
       { stage: 'build', skillSlots: 12, maxSkills: 8, difficultyMix: { EASY: 35, MEDIUM: 50, HARD: 15 }, timeLimitMinutes: 0 },
     ]);
 

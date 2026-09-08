@@ -55,6 +55,22 @@ export interface AssessmentPolicy {
    * in particular.
    */
   prerequisiteDepth: number;
+  /**
+   * Ask about the ground floor first, rather than the destination.
+   *
+   * SEPARATE FROM prerequisiteDepth ON PURPOSE. This used to be inferred as
+   * `prerequisiteDepth > 0`, which quietly tied two unrelated ideas together: turning off
+   * prerequisite expansion at foundation also REVERSED the difficulty preference, so a
+   * first-year's paper filled up with the hardest skills in scope — operating systems,
+   * networking, the DOM — before anything asked them about a loop. One flag cannot mean both
+   * "how far to walk the graph" and "which end of the ladder to start at".
+   *
+   * OPTIONAL, and absent means the old derivation. Making it required would have meant every
+   * policy object anywhere — including the partial ones tests construct — silently flipping to
+   * "hardest first" the moment it was omitted, which is precisely the trap this field exists to
+   * remove. A caller that has an opinion states it; one that does not keeps the old behaviour.
+   */
+  preferFoundationalSkills?: boolean;
 
   /**
    * Skill difficulty bands this stage will assess at all. A foundation paper containing an
@@ -81,13 +97,48 @@ const mix = (EASY: number, MEDIUM: number, HARD: number): DifficultyMix => ({ EA
 
 export const ASSESSMENT_POLICIES: AssessmentPolicy[] = [
   {
-    key: 'FOUNDATION_V1', stage: 'foundation', label: 'Foundation diagnostic', version: 1,
-    skillSlots: 16, maxSkills: 6, minItemsPerSkill: 2, maxItemsPerSkill: 4,
+    key: 'FOUNDATION_V1', stage: 'foundation', label: 'Foundation diagnostic', version: 2,
+    /**
+     * EIGHT SKILLS, TWO ITEMS EACH.
+     *
+     * Was six skills with up to four items apiece, which asked one skill for more questions
+     * than the thinner foundation pools hold — PROGRAMMING_FUNDAMENTALS carries thirteen, and a
+     * paper wanting four of a particular difficulty from it came up short and refused the whole
+     * assessment. Sixteen items over eight skills asks two of each, which every foundation
+     * skill can supply, and measures a third more of the curriculum for the same length of
+     * paper. Capped at two so no skill can be over-drawn again.
+     */
+    skillSlots: 16, maxSkills: 8, minItemsPerSkill: 2, maxItemsPerSkill: 2,
     // Weighted easy: this is a first measurement of someone who has recently started, and
     // a paper they cannot attempt tells us only that it was too hard.
     difficultyMix: mix(0.6, 0.35, 0.05),
+    /**
+     * The walk-back stays at two for the ROLE path, and is turned off for the stage-set path.
+     *
+     * A first-year aiming at Backend Engineer must be asked about HTTP and programming, not
+     * REST API design — a blueprint names the destination, and asking about it measures how far
+     * they have to go rather than where they are. That expansion is the whole reason a role can
+     * be assessed at an early stage at all.
+     *
+     * A stage skill set needs none of it: it is authored from the curriculum, so it already
+     * contains the right skills in the right order, and expanding it reached past the syllabus
+     * and admitted things a first-year is never taught. The override therefore lives with the
+     * stage-set branch of the resolver, where that distinction is known — not here, where the
+     * policy cannot tell the two paths apart.
+     */
     prerequisiteDepth: 2,
-    allowedSkillDifficulty: ['FOUNDATION'],
+    /**
+     * INTERMEDIATE admitted alongside FOUNDATION.
+     *
+     * Eight of the curriculum's thirty-four skills are graded INTERMEDIATE in the taxonomy —
+     * operating systems, networking, the DOM, git branching, technical explanation. Restricting
+     * the paper to FOUNDATION silently excluded all eight from measurement while the curriculum
+     * carried on teaching them, so their scores could never move off "not yet exposed".
+     *
+     * The taxonomy's grading is about the SKILL's inherent depth; what a first-year should be
+     * asked is a property of the stage set, and that is now authored from the curriculum.
+     */
+    allowedSkillDifficulty: ['FOUNDATION', 'INTERMEDIATE'],
     allowDifficultyFallback: true,
   },
   {
@@ -95,6 +146,7 @@ export const ASSESSMENT_POLICIES: AssessmentPolicy[] = [
     skillSlots: 20, maxSkills: 8, minItemsPerSkill: 2, maxItemsPerSkill: 4,
     difficultyMix: mix(0.35, 0.5, 0.15),
     prerequisiteDepth: 1,
+    preferFoundationalSkills: true,
     allowedSkillDifficulty: ['FOUNDATION', 'INTERMEDIATE'],
     allowDifficultyFallback: true,
   },
@@ -105,6 +157,7 @@ export const ASSESSMENT_POLICIES: AssessmentPolicy[] = [
     // At placement the role's own destination skills are the point; walking back into
     // prerequisites would test what they were asked two years ago.
     prerequisiteDepth: 0,
+    preferFoundationalSkills: false,
     allowedSkillDifficulty: ['FOUNDATION', 'INTERMEDIATE', 'ADVANCED'],
     allowDifficultyFallback: true,
   },
@@ -113,6 +166,7 @@ export const ASSESSMENT_POLICIES: AssessmentPolicy[] = [
     skillSlots: 24, maxSkills: 10, minItemsPerSkill: 2, maxItemsPerSkill: 3,
     difficultyMix: mix(0.15, 0.5, 0.35),
     prerequisiteDepth: 0,
+    preferFoundationalSkills: false,
     allowedSkillDifficulty: ['FOUNDATION', 'INTERMEDIATE', 'ADVANCED'],
     allowDifficultyFallback: true,
   },

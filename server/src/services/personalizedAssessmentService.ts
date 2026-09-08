@@ -188,8 +188,14 @@ export function rankSkills(
   const importanceRank: Record<string, number> = {
     ESSENTIAL: 0, IMPORTANT: 1, SUPPORTING: 2, OPTIONAL: 3,
   };
-  // Early stages want the ground floor first; later stages want the destination.
-  const preferPrerequisites = policy.prerequisiteDepth > 0;
+  /**
+   * Early stages want the ground floor first; later stages want the destination.
+   *
+   * Read from the policy rather than inferred from prerequisiteDepth. Inferring it meant that
+   * scoping a stage tightly — depth 0 — also inverted its difficulty preference, and a
+   * first-year ended up measured on the hardest skills in their curriculum before the basics.
+   */
+  const preferPrerequisites = policy.preferFoundationalSkills ?? policy.prerequisiteDepth > 0;
 
   return candidates
     .slice()
@@ -520,6 +526,25 @@ export interface ResolvedContext {
  */
 export async function resolvePersonalizedAssessmentContext(tenantId: string, studentId: string): Promise<ResolvedContext> {
   const context = await getCareerContext(tenantId, studentId);
+
+  /**
+   * WHO THIS PAPER IS FOR — built once, returned by every successful path.
+   *
+   * The role path returned an audience and the stage-set and discovery paths did not, so a
+   * member with no target role reached the generator with no year and no course. The builder
+   * then falls back to a role-only audience, which reads as "year unknown" and excludes every
+   * year-tagged question — and the one foundation skill whose questions are all tagged
+   * "1st Year" came back with an empty pool, three items short, refusing the assessment for
+   * exactly the first-years those questions were written for.
+   *
+   * Defining it above the branches is the fix that lasts: a future return path cannot omit it.
+   */
+  const audienceOf = (roleKey?: string) => ({
+    roleKey,
+    year: context?.education?.currentAcademicYear || undefined,
+    course: context?.education?.degree || undefined,
+    branch: context?.education?.branch || undefined,
+  });
   if (!context) return { ok: false, reasonCode: 'ACCOUNT_NOT_FOUND', message: 'Account not found.' };
 
   if (!context.status.onboardingCompleted) {
@@ -563,12 +588,28 @@ export async function resolvePersonalizedAssessmentContext(tenantId: string, stu
           importance: r.importance, weight: r.weight, order: r.displayOrder,
         }]),
       );
+      /**
+       * A stage skill set is already the right scope, so it is not expanded.
+       *
+       * The set is authored from the stage's own curriculum: the skills a first-year should be
+       * measured on, in the order they are taught. Walking back into prerequisites from there
+       * reaches past the syllabus — a first-year was measured on quantitative aptitude and Java
+       * specifics nothing in their plan would ever cover, and those slots came out of the
+       * skills that ARE taught, leaving the paper short and refusing the assessment outright.
+       *
+       * Overridden here rather than in the policy because only this branch knows the scope came
+       * from a curriculum-derived list. The role path keeps its expansion, which it needs: a
+       * blueprint names destinations, and a first-year aiming at Backend has to be asked about
+       * HTTP rather than REST API design.
+       */
       return {
-        ok: true, stage, roleKey, policy, discovery: true,
+        ok: true, stage, roleKey, discovery: true,
+        policy: { ...policy, prerequisiteDepth: 0 },
         roleSkillKeys: stageKeys, skillPriority, blueprintVersion: stageSet!.version || 0,
+        audience: audienceOf(roleKey),
       };
     }
-    return { ok: true, stage, roleKey, policy, discovery: true, roleSkillKeys: DISCOVERY_SKILL_SCOPE, blueprintVersion: 0 };
+    return { ok: true, stage, roleKey, policy, discovery: true, roleSkillKeys: DISCOVERY_SKILL_SCOPE, blueprintVersion: 0, audience: audienceOf(roleKey) };
   }
 
   const blueprint = await getRoleSkillBlueprint(tenantId, roleKey);

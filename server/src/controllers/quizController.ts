@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import quizService from '../services/quizService';
+import { projectQuizAttemptToSkills } from '../services/quizSkillBridge';
 import questionService from '../services/questionService';
 import Quiz from '../models/Quiz';
 import QuizAttempt from '../models/QuizAttempt';
@@ -272,6 +273,17 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
     }
 
     const result = await quizService.submitQuizAttempt(attemptId, answers);
+
+    /**
+     * Record what this attempt says about the student's skills.
+     *
+     * AFTER the response is decided and deliberately not awaited: the student has finished,
+     * their marks are saved, and none of what follows may make them wait or see an error. A
+     * quiz whose questions carry no skill mapping projects nothing and costs one query.
+     */
+    projectQuizAttemptToSkills(String(attemptId))
+      .catch(e => console.error('[adaptive] quiz projection failed:', e?.message || e));
+
     res.json(result);
   } catch (error: any) {
     res.status(400).json({ message: error.message });

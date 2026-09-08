@@ -1,0 +1,102 @@
+/**
+ * Every class is prefixed `sm-`. Nothing here styles a bare element.
+ *
+ * This stylesheet is shared with the whole product; a plain `.topic` or `.field` rule would
+ * repaint screens that have nothing to do with skill mapping. That has already happened once
+ * on this codebase.
+ */
+
+.sm-wrap {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sm-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.sm-title { margin: 0 0 3px; font-size: 22px; font-weight: 800; color: #0d1b3e; }
+.sm-sub   { margin: 0; color: #5b6785; font-size: 14px; }
+.sm-muted { color: #5b6785; }
+
+/* ---- coverage ---- */
+.sm-coverage {
+  display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: baseline;
+  background: #f7f9fc; border: 1px solid #e3e8f2; border-radius: 10px; padding: 12px 16px;
+  font-size: 14px; color: #33405e;
+}
+.sm-cov-stat strong { color: #0d1b3e; }
+.sm-cov-gap { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; color: #8a5300; }
+.sm-gap-keys {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px; word-break: break-word;
+}
+
+/* ---- topic list ---- */
+.sm-topics { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.sm-topic {
+  border: 1px solid #e3e8f2; border-left: 3px solid #34a06a;
+  border-radius: 10px; background: #fff;
+}
+.sm-topic.is-unmapped { border-left-color: #d99a2b; }
+
+.sm-topic-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; cursor: pointer;
+}
+.sm-topic-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sm-topic-title { font-size: 15px; font-weight: 600; color: #16244a; }
+.sm-topic-meta  { font-size: 12.5px; color: #6b7794; word-break: break-word; }
+.sm-topic.is-unmapped .sm-topic-meta { color: #8a5300; }
+.sm-chev { font-size: 18px; color: #7a86a3; flex-shrink: 0; }
+
+/* ---- editor ---- */
+.sm-editor {
+  border-top: 1px solid #eef1f6; padding: 14px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.sm-row { display: flex; flex-wrap: wrap; gap: 12px; }
+
+.sm-field { display: flex; flex-direction: column; gap: 5px; flex: 1 1 100%; }
+.sm-field.sm-narrow { flex: 1 1 180px; }
+.sm-field > span {
+  font-size: 12.5px; font-weight: 700; color: #4a566f;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.sm-field em { font-weight: 400; font-style: normal; color: #7a86a3; font-size: 12px; }
+
+.sm-field select,
+.sm-field input {
+  border: 1px solid #d7dded; border-radius: 8px; padding: 8px 10px;
+  font-size: 14px; color: #16244a; background: #fff; font-family: inherit;
+}
+.sm-field select[multiple] { min-height: 128px; }
+.sm-field select:focus, .sm-field input:focus { outline: 2px solid #96b0ff; outline-offset: 1px; }
+
+.sm-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: #33405e; }
+.sm-check input { margin-top: 3px; }
+.sm-check span { display: flex; flex-direction: column; gap: 2px; }
+.sm-check em { font-style: normal; color: #7a86a3; font-size: 12px; }
+
+/* ---- buttons and messages ---- */
+.sm-btn {
+  border: 0; border-radius: 9px; background: #051d64; color: #fff;
+  font-size: 14px; font-weight: 700; padding: 10px 18px; cursor: pointer; flex-shrink: 0;
+}
+.sm-btn:hover:not(:disabled) { background: #0a2a86; }
+.sm-btn:disabled { opacity: 0.6; cursor: default; }
+.sm-btn:focus-visible { outline: 3px solid #96b0ff; outline-offset: 2px; }
+
+.sm-error, .sm-notice {
+  border-radius: 9px; padding: 11px 14px; font-size: 14px;
+}
+.sm-error  { background: #fdecec; color: #8f1d1d; border: 1px solid #f5c6c6; }
+.sm-notice { background: #e6f7ed; color: #10693c; border: 1px solid #bfe6cf; }
+
+@media (max-width: 560px) {
+  .sm-wrap { padding: 18px 14px 48px; }
+  .sm-head { flex-direction: column; }
+  .sm-field.sm-narrow { flex: 1 1 100%; }
+}

@@ -229,6 +229,8 @@ import MyTasksPage from './pages/MyTasks';
 import MyLearningPlanPage from './pages/MyLearningPlan';
 import DayViewPage from './pages/MyLearningPlan/LearningPlanPro';
 import MyJourneyPage from './pages/MyLearningPlan/Journey';
+import FoundationJourneyPage from './pages/FoundationJourney/FoundationJourneyPage';
+import SkillMappingPage from './pages/SkillMapping/SkillMappingPage';
 import AdminConcernsPage from './pages/AdminConcerns';
 
 // Public quiz session (no auth required — token-based)
@@ -2103,6 +2105,27 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <Layout><MyJourneyPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* The adaptive plan. Keyed by curriculum rather than enrollment: the plan belongs to
+          the student and the curriculum, and survives an enrollment being recreated. */}
+      <Route
+        path="/my-learning/foundation/:curriculumId"
+        element={
+          <ProtectedRoute>
+            <Layout><FoundationJourneyPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Authoring the bridge: which topics teach which skills. Staff only — the server
+          enforces the permission, this only decides who is shown the door. */}
+      <Route
+        path="/admin/curricula/:curriculumId/skills"
+        element={
+          <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR']}>
+            <Layout><SkillMappingPage /></Layout>
           </ProtectedRoute>
         }
       />

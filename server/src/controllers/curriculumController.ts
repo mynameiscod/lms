@@ -78,13 +78,64 @@ export const createCurriculum = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Fields a topic carries for the adaptive planner, which most clients know nothing about.
+ *
+ * The Curriculum Builder sends the whole topics array on every save, built from the fields IT
+ * understands. Because the update replaces the array wholesale, a save from that screen would
+ * silently erase every skill mapping — turning a mapped curriculum back into an unmapped one
+ * with no error, no warning, and no way to tell it had happened except that students stopped
+ * being personalised.
+ *
+ * So these are preserved from the stored topic unless the caller explicitly sends them. A
+ * client that knows about them can still change them; one that does not cannot destroy them.
+ */
+const ADAPTIVE_TOPIC_FIELDS = [
+  'moduleCode', 'topicCode', 'skillKeys', 'prerequisiteSkillKeys',
+  'defaultDepth', 'mandatory', 'applicableDirections', 'learningOutcomes',
+] as const;
+
+/**
+ * Merge incoming topics over the stored ones, keeping adaptive fields the caller omitted.
+ *
+ * Matched by subdocument id first, then by topicCode — a rebuilt topic keeps its mapping if it
+ * kept either identity. A genuinely new topic simply has nothing to preserve.
+ */
+function preserveAdaptiveFields(incoming: any[], stored: any[]): any[] {
+  const byId = new Map<string, any>();
+  const byCode = new Map<string, any>();
+  for (const t of stored || []) {
+    if (t?._id) byId.set(String(t._id), t);
+    if (t?.topicCode) byCode.set(String(t.topicCode), t);
+  }
+
+  return (incoming || []).map(t => {
+    const prev = (t?._id && byId.get(String(t._id))) || (t?.topicCode && byCode.get(String(t.topicCode)));
+    if (!prev) return t;
+    const merged = { ...t };
+    for (const f of ADAPTIVE_TOPIC_FIELDS) {
+      // `undefined` means "not mentioned". An explicit null or [] is a real instruction to clear.
+      if (merged[f] === undefined && prev[f] !== undefined) merged[f] = prev[f];
+    }
+    return merged;
+  });
+}
+
 export const updateCurriculum = async (req: Request, res: Response) => {
   try {
     const tId = tenantId(req);
     const { title, description, targetCourse, totalDays, topics } = req.body;
+
+    let nextTopics = topics;
+    if (topics !== undefined) {
+      const current = await LearningCurriculum.findOne({ _id: req.params.id, tenantId: tId })
+        .select('topics').lean() as any;
+      nextTopics = preserveAdaptiveFields(topics, current?.topics || []);
+    }
+
     const curriculum = await LearningCurriculum.findOneAndUpdate(
       { _id: req.params.id, tenantId: tId },
-      { $set: { title, description, targetCourse, totalDays, ...(topics !== undefined && { topics }) } },
+      { $set: { title, description, targetCourse, totalDays, ...(topics !== undefined && { topics: nextTopics }) } },
       { new: true, runValidators: true }
     );
     if (!curriculum) return res.status(404).json({ message: 'Curriculum not found' });

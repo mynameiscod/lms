@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import PersonalizedAssessment from '../models/PersonalizedAssessment';
 import { gradeSubmittedAnswers } from '../services/assessmentAnswerGradingService';
+import { publish } from '../services/adaptiveCurriculumEvents';
 import {
   projectAssessmentToSkillDna, rebuildSkillDnaForStudent, getSkillDna, explainSkill,
 } from '../services/skillDnaService';
@@ -83,6 +84,25 @@ export const submitPersonalizedAssessment = async (req: Request, res: Response) 
     } catch (e: any) {
       projectionError = e?.message || 'Skill projection failed';
       console.error('[skill-dna] projection failed for assessment', String(open._id), projectionError);
+    }
+
+    /**
+     * Tell the adaptive planner the diagnostic landed.
+     *
+     * ONLY IF THE PROJECTION SUCCEEDED. Announcing it after a failed projection would rebuild
+     * the plan from the scores the student had BEFORE they sat the paper — a plan that looks
+     * freshly personalised and is built on stale evidence, which is worse than no plan at all.
+     * A later reproject fires this from its own path.
+     *
+     * Not awaited: the student is finished, and nothing downstream may make them wait.
+     */
+    if (projection && !projectionError) {
+      publish({
+        name: 'DIAGNOSTIC_COMPLETED',
+        tenantId,
+        studentId: String(studentId),
+        assessmentId: String(open._id),
+      }).catch(e => console.error('[adaptive] diagnostic event failed:', e?.message || e));
     }
 
     /**

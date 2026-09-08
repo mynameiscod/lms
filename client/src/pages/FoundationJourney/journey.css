@@ -1,0 +1,122 @@
+/**
+ * Every class is prefixed `fj-`, and nothing here styles a bare element.
+ *
+ * This page shares one stylesheet with the whole product, and a plain `.stat` or `.topic` rule
+ * would silently repaint screens that have nothing to do with the journey. That has already
+ * happened once on this codebase.
+ *
+ * The state colours are TONES, not severities. Nothing a student has not done yet is styled as
+ * an error, because none of it is one.
+ */
+
+.fj-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.fj-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.fj-title { margin: 0 0 4px; font-size: 26px; font-weight: 800; color: #0d1b3e; line-height: 1.2; }
+.fj-sub   { margin: 0; color: #5b6785; font-size: 14.5px; }
+.fj-lede  { margin: 0 0 18px; color: #33405e; font-size: 15.5px; line-height: 1.55; max-width: 52ch; }
+.fj-muted { color: #5b6785; }
+.fj-version {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; color: #7a86a3; background: #f1f4f9;
+  border: 1px solid #e3e8f2; border-radius: 999px; padding: 3px 10px; white-space: nowrap;
+}
+
+/* ---- summary ---- */
+.fj-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+.fj-stat {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 14px 16px; border-radius: 12px; border: 1px solid #e3e8f2; background: #fff;
+}
+.fj-stat-n { font-size: 24px; font-weight: 800; line-height: 1; }
+.fj-stat-l { font-size: 12.5px; color: #5b6785; }
+
+.fj-tone-done   .fj-stat-n, .fj-stat.fj-tone-done   { color: #10693c; border-color: #bfe6cf; background: #f2fbf6; }
+.fj-tone-active .fj-stat-n, .fj-stat.fj-tone-active { color: #1e4fa3; border-color: #c7d8f5; background: #f4f8ff; }
+.fj-tone-build  .fj-stat-n, .fj-stat.fj-tone-build  { color: #8a5300; border-color: #f0dcb4; background: #fffaf1; }
+.fj-tone-locked .fj-stat-n, .fj-stat.fj-tone-locked { color: #5b6785; border-color: #e0e4ec; background: #f7f8fb; }
+
+/* ---- notice ---- */
+.fj-notice {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  background: #f4f8ff; border: 1px solid #c7d8f5; border-radius: 12px;
+  padding: 14px 16px; font-size: 14.5px; color: #1e4fa3;
+}
+
+/* ---- modules ---- */
+.fj-module { display: flex; flex-direction: column; gap: 10px; }
+.fj-module-title {
+  margin: 0; font-size: 15px; font-weight: 700; color: #0d1b3e;
+  padding-bottom: 8px; border-bottom: 1px solid #e8ecf3;
+}
+
+.fj-topics { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.fj-topic {
+  border: 1px solid #e3e8f2; border-left-width: 3px; border-radius: 10px;
+  background: #fff; padding: 12px 14px;
+}
+.fj-topic.fj-tone-done   { border-left-color: #34a06a; }
+.fj-topic.fj-tone-active { border-left-color: #3b74d4; }
+.fj-topic.fj-tone-build  { border-left-color: #d99a2b; }
+.fj-topic.fj-tone-locked { border-left-color: #b6bdcb; }
+.fj-topic.fj-tone-muted  { border-left-color: #dfe3ea; background: #fafbfd; }
+
+.fj-topic-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fj-topic-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fj-topic-title { font-size: 15px; font-weight: 600; color: #16244a; }
+.fj-topic-state { font-size: 12.5px; color: #5b6785; }
+
+.fj-why-btn {
+  flex-shrink: 0;
+  background: transparent; border: 1px solid #d7dded; color: #3b5a92;
+  border-radius: 8px; padding: 5px 11px; font-size: 12.5px; cursor: pointer;
+}
+.fj-why-btn:hover { background: #f4f7fd; }
+.fj-why-btn:focus-visible { outline: 2px solid #96b0ff; outline-offset: 2px; }
+
+.fj-why {
+  margin: 10px 0 0; padding-top: 10px; border-top: 1px dashed #e3e8f2;
+  font-size: 13.5px; line-height: 1.55; color: #4a566f;
+}
+
+.fj-aside { margin-top: 4px; }
+.fj-aside summary {
+  cursor: pointer; font-size: 13px; color: #6b7794; padding: 6px 0;
+}
+.fj-aside summary:focus-visible { outline: 2px solid #96b0ff; outline-offset: 2px; }
+.fj-aside .fj-topics { margin-top: 8px; }
+
+/* ---- empty state ---- */
+.fj-empty {
+  background: #fff; border: 1px solid #e3e8f2; border-radius: 14px;
+  padding: 32px; display: flex; flex-direction: column; align-items: flex-start;
+}
+
+/* ---- buttons and messages ---- */
+.fj-btn {
+  border: 0; border-radius: 10px; background: #051d64; color: #fff;
+  font-size: 15px; font-weight: 700; padding: 12px 20px; cursor: pointer;
+}
+.fj-btn:hover:not(:disabled) { background: #0a2a86; }
+.fj-btn:disabled { opacity: 0.6; cursor: default; }
+.fj-btn:focus-visible { outline: 3px solid #96b0ff; outline-offset: 2px; }
+.fj-btn-sm { font-size: 13.5px; padding: 8px 14px; }
+
+.fj-error {
+  background: #fdecec; color: #8f1d1d; border: 1px solid #f5c6c6;
+  border-radius: 10px; padding: 12px 14px; font-size: 14px;
+}
+
+@media (max-width: 560px) {
+  .fj-wrap { padding: 20px 14px 48px; gap: 18px; }
+  .fj-head { flex-direction: column; }
+  .fj-topic-main { align-items: flex-start; }
+}

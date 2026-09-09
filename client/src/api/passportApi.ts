@@ -2441,7 +2441,9 @@ export interface EditablePolicy {
   stage: string;
   label: string;
   defaults: {
-    skillSlots: number; maxSkills: number; minItemsPerSkill: number;
+    skillSlots: number; maxSkills: number;
+    /** Absent when the API is older than this bundle. */
+    minItemsPerSkill?: number;
     difficultyMix: { EASY: number; MEDIUM: number; HARD: number };
   };
   skillSlots: number;
@@ -2462,7 +2464,7 @@ export interface EditablePolicy {
    * divided by questions-per-skill caps the skills, and a skill asked too few times counts for
    * nothing however long the paper is.
    */
-  effective: {
+  effective?: {
     skills: number;
     itemsPerSkill: number;
     slotsUsed: number;
@@ -2474,7 +2476,8 @@ export interface EditablePolicy {
 export interface PolicyBounds {
   skillSlots: { min: number; max: number };
   maxSkills: { min: number; max: number };
-  itemsPerSkill: { min: number; max: number };
+  /** Absent when the API is older than this bundle. */
+  itemsPerSkill?: { min: number; max: number };
   timeLimitMinutes: { min: number; max: number };
 }
 

@@ -42,7 +42,7 @@ const AdminAssessmentShape: React.FC = () => {
     patch(r.stage, {
       skillSlots: r.defaults.skillSlots,
       maxSkills: r.defaults.maxSkills,
-      minItemsPerSkill: r.defaults.minItemsPerSkill,
+      minItemsPerSkill: r.defaults?.minItemsPerSkill ?? r.minItemsPerSkill,
       difficultyMix: { ...r.defaults.difficultyMix },
       timeLimitMinutes: 0,
     });
@@ -97,34 +97,34 @@ const AdminAssessmentShape: React.FC = () => {
               <label>
                 Questions
                 <input type="number" value={r.skillSlots}
-                  min={bounds?.skillSlots.min} max={bounds?.skillSlots.max}
+                  min={bounds?.skillSlots?.min} max={bounds?.skillSlots?.max}
                   onChange={e => patch(r.stage, { skillSlots: Number(e.target.value) })} />
-                <em>default {r.defaults.skillSlots} · allowed {bounds?.skillSlots.min}–{bounds?.skillSlots.max}</em>
+                <em>default {r.defaults.skillSlots} · allowed {bounds?.skillSlots?.min}–{bounds?.skillSlots?.max}</em>
               </label>
 
               <label>
                 Skills covered
                 <input type="number" value={r.maxSkills}
-                  min={bounds?.maxSkills.min} max={bounds?.maxSkills.max}
+                  min={bounds?.maxSkills?.min} max={bounds?.maxSkills?.max}
                   onChange={e => patch(r.stage, { maxSkills: Number(e.target.value) })} />
-                <em>default {r.defaults.maxSkills} · allowed {bounds?.maxSkills.min}–{bounds?.maxSkills.max}</em>
+                <em>default {r.defaults.maxSkills} · allowed {bounds?.maxSkills?.min}–{bounds?.maxSkills?.max}</em>
               </label>
 
               <label>
                 Questions per skill
-                <input type="number" value={r.minItemsPerSkill}
-                  min={bounds?.itemsPerSkill.min} max={bounds?.itemsPerSkill.max}
+                <input type="number" value={r.minItemsPerSkill ?? r.defaults?.minItemsPerSkill ?? 1}
+                  min={bounds?.itemsPerSkill?.min} max={bounds?.itemsPerSkill?.max}
                   onChange={e => patch(r.stage, { minItemsPerSkill: Number(e.target.value) })} />
                 <em>
-                  default {r.defaults.minItemsPerSkill} · needs {r.effective.itemsForConfidence} to
-                  measure reliably at this difficulty mix
+                  default {r.defaults?.minItemsPerSkill ?? r.minItemsPerSkill}
+                  {r.effective && ` · needs ${r.effective.itemsForConfidence} to measure reliably at this difficulty mix`}
                 </em>
               </label>
 
               <label>
                 Time limit (minutes)
                 <input type="number" value={r.timeLimitMinutes}
-                  min={0} max={bounds?.timeLimitMinutes.max}
+                  min={0} max={bounds?.timeLimitMinutes?.max}
                   onChange={e => patch(r.stage, { timeLimitMinutes: Number(e.target.value) })} />
                 <em>0 = untimed, the shipped behaviour</em>
               </label>
@@ -140,24 +140,26 @@ const AdminAssessmentShape: React.FC = () => {
               real reason a student's skill map stayed empty. Both are stated here rather than
               left for an admin to derive.
             */}
-            <div className={`aps-effective${r.effective.measuresReliably ? '' : ' warn'}`}>
-              <b>{r.effective.skills} skills</b> × {r.effective.itemsPerSkill} questions
-              {' '}= <b>{r.effective.slotsUsed}</b> of {r.skillSlots} questions used
-              {r.effective.skills < r.maxSkills && (
-                <span className="aps-note">
-                  {' '}· asking for {r.maxSkills} skills needs at least{' '}
-                  {r.maxSkills * r.effective.itemsPerSkill} questions
-                </span>
-              )}
-              {!r.effective.measuresReliably && (
-                <span className="aps-note">
-                  {' '}· at {r.effective.itemsPerSkill} question
-                  {r.effective.itemsPerSkill === 1 ? '' : 's'} per skill nothing reaches the
-                  confidence needed to count toward readiness — this mix needs{' '}
-                  {r.effective.itemsForConfidence}
-                </span>
-              )}
-            </div>
+            {r.effective && (
+              <div className={`aps-effective${r.effective.measuresReliably ? '' : ' warn'}`}>
+                <b>{r.effective.skills} skills</b> × {r.effective.itemsPerSkill} questions
+                {' '}= <b>{r.effective.slotsUsed}</b> of {r.skillSlots} questions used
+                {r.effective.skills < r.maxSkills && (
+                  <span className="aps-note">
+                    {' '}· asking for {r.maxSkills} skills needs at least{' '}
+                    {r.maxSkills * r.effective.itemsPerSkill} questions
+                  </span>
+                )}
+                {!r.effective.measuresReliably && (
+                  <span className="aps-note">
+                    {' '}· at {r.effective.itemsPerSkill} question
+                    {r.effective.itemsPerSkill === 1 ? '' : 's'} per skill nothing reaches the
+                    confidence needed to count toward readiness — this mix needs{' '}
+                    {r.effective.itemsForConfidence}
+                  </span>
+                )}
+              </div>
+            )}
 
             <div className="aps-mix">
               <span className="aps-mix-lbl">Difficulty mix</span>

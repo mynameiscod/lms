@@ -269,15 +269,15 @@ q('GB_CB_022', 'CB_FAM07_CHAIN_ORDER', 'D2',
   provenance='LEGACY_REMAP', source='61ba8e')
 
 q('GB_CB_023', 'CB_FAM07_CHAIN_ORDER', 'D3',
-  'A chain reads: if score >= 75 print "B"; else if score >= 90 print "A"; else print "C". The '
-  'score is 95. What is printed?',
-  'B, because the first condition it meets is the one written first',
-  ['A, because 95 is at least 90',
-   'Both B and A, because 95 satisfies each of them',
-   'C, because the chain has no branch for a score this high'],
-  'A score of 95 satisfies both of the first two conditions, and the chain stops at whichever is '
-  'written earlier. Written in this order the branch for the highest scores can never be reached, '
-  'which is why order is part of the meaning rather than a matter of style.',
+  'A chain reads: if speed >= 40 report "fast"; else if speed >= 80 report "very fast"; else '
+  'report "slow". The speed is 95. What is reported?',
+  'fast, because the earlier condition is tested first and 95 satisfies it',
+  ['very fast, because 95 is at least 80',
+   'both fast and very fast, because 95 satisfies each of them',
+   'slow, because no branch covers a speed this high'],
+  'A speed of 95 satisfies both of the first two conditions, and the chain stops at whichever is '
+  'written earlier. Written in this order the branch meant for the highest speeds can never be '
+  'reached at all, which is why order is part of the meaning rather than a matter of style.',
   provenance='LEGACY_REWRITE', source='76562f')
 
 q('GB_CB_024', 'CB_FAM07_CHAIN_ORDER', 'D4',

@@ -116,11 +116,16 @@ def words(s):
     print(7 / 2) reduced to the same three words of prose and scored a perfect 1.00 against each
     other. A similarity check blind to the code cannot see code duplicates either way round.
     """
+    # Standalone short uppercase tokens are content, not noise: a letter series is written
+    # entirely in them. Collected from the original case, before lowering, so that A, C, E, G is
+    # distinguishable from Z, X, V, T — which the length filter alone reduced to nothing, making
+    # two unrelated letter series score a perfect 1.00 against each other.
+    letters = set(re.findall(r'(?<![A-Za-z0-9])[A-Z][A-Z0-9]?(?![A-Za-z0-9])', s))
     s = s.lower()
     prose = set(w for w in re.findall(r'[a-z]+', s) if w not in STOP and len(w) > 2)
     numbers = set(re.findall(r'-?\d+(?:\.\d+)?', s))
     operators = set(re.findall(r'//|%|\*\*|[+\-*/=<>!]=?', s))
-    return prose | numbers | operators
+    return prose | numbers | operators | letters
 
 
 def mentions(text, option):

@@ -58,8 +58,9 @@ q('GB_TE_003', 'TE_FAM01_EXPLANATION_VS_DESCRIPTION', 'D1',
   ['Files are persistent',
    'The file was not deleted',
    'A file is a named collection of data'],
-  'The first names why persistence happens. "Files are persistent" is the observation dressed as '
-  'a reason, and the others are a definition and a statement of what did not occur.')
+  'Saving writes the data to storage, which keeps its contents without power — that names why the '
+  'file is still there. "Files are persistent" is the observation dressed as a reason, and the '
+  'others are a definition and a statement of what did not occur.')
 
 q('GB_TE_004', 'TE_FAM01_EXPLANATION_VS_DESCRIPTION', 'D1',
   'What makes a statement an explanation rather than a description?',
@@ -350,7 +351,7 @@ q('GB_TE_029', 'TE_FAM09_CAUSE_IDENTIFICATION', 'D4',
   'Both are accurate and they sit at different distances from something actionable. Clearing the '
   'disk addresses the first and the job fails again next week; limiting the log addresses the '
   'second.',
-  evidence='Both are true')
+  evidence='because a log file grew without limit and filled the disk')
 
 # =========================================================================
 # TE_FAM10_EXAMPLE_CHOICE — D2, D3, D4

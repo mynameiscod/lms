@@ -24,6 +24,10 @@ jest.mock('../models/PassportConfig', () => ({
 import {
   resolveAssessmentPolicy, listEditablePolicies, saveAssessmentPolicies, POLICY_BOUNDS,
 } from '../services/assessmentPolicyService';
+import { ASSESSMENT_POLICIES } from '../data/assessmentPolicies';
+
+/** The policy as shipped, so a test never restates numbers it is not the owner of. */
+const shipped = (stage: string) => ASSESSMENT_POLICIES.find(p => p.stage === stage)!;
 
 beforeEach(() => {
   findOne.mockReset().mockResolvedValue(null);
@@ -76,7 +80,10 @@ describe('with an override', () => {
   it('does not affect a different stage', async () => {
     findOne.mockResolvedValue({ assessmentPolicyOverrides: [{ stage: 'build', skillSlots: 12 }] });
     const p = await resolveAssessmentPolicy('t1', 'foundation');
-    expect(p.skillSlots).toBe(16);
+    // Compared against the shipped policy rather than a copy of its numbers: this test is
+    // about one stage's override not leaking into another, and hardcoding the default made it
+    // fail whenever the default legitimately changed, which says nothing about leaking.
+    expect(p.skillSlots).toBe(shipped('foundation').skillSlots);
   });
 });
 
@@ -131,10 +138,17 @@ describe('what is NOT editable stays fixed', () => {
 
 describe('saving', () => {
   it('stores only stages that genuinely differ from the default', async () => {
+    const foundation = shipped('foundation');
     await saveAssessmentPolicies('t1', [
-      // maxSkills 8, matching the shipped foundation policy — sixteen items over eight
-      // skills rather than six, so no single thin pool is asked for more than it holds.
-      { stage: 'foundation', skillSlots: 16, maxSkills: 8, difficultyMix: { EASY: 60, MEDIUM: 35, HARD: 5 }, timeLimitMinutes: 0 },
+      // Echoed back from the shipped policy, so this stays a test about detecting "no change"
+      // rather than a second place the foundation numbers are written down.
+      {
+        stage: 'foundation',
+        skillSlots: foundation.skillSlots,
+        maxSkills: foundation.maxSkills,
+        difficultyMix: { EASY: 60, MEDIUM: 35, HARD: 5 },
+        timeLimitMinutes: 0,
+      },
       { stage: 'build', skillSlots: 12, maxSkills: 8, difficultyMix: { EASY: 35, MEDIUM: 50, HARD: 15 }, timeLimitMinutes: 0 },
     ]);
 

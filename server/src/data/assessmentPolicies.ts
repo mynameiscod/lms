@@ -97,18 +97,27 @@ const mix = (EASY: number, MEDIUM: number, HARD: number): DifficultyMix => ({ EA
 
 export const ASSESSMENT_POLICIES: AssessmentPolicy[] = [
   {
-    key: 'FOUNDATION_V1', stage: 'foundation', label: 'Foundation diagnostic', version: 2,
+    key: 'FOUNDATION_V1', stage: 'foundation', label: 'Foundation diagnostic', version: 3,
     /**
-     * EIGHT SKILLS, TWO ITEMS EACH.
+     * SIX SKILLS, FOUR ITEMS EACH.
      *
-     * Was six skills with up to four items apiece, which asked one skill for more questions
-     * than the thinner foundation pools hold — PROGRAMMING_FUNDAMENTALS carries thirteen, and a
-     * paper wanting four of a particular difficulty from it came up short and refused the whole
-     * assessment. Sixteen items over eight skills asks two of each, which every foundation
-     * skill can supply, and measures a third more of the curriculum for the same length of
-     * paper. Capped at two so no skill can be over-drawn again.
+     * Two items per skill could never produce a usable measurement, and that was the real cause
+     * of readiness sitting on "still measuring" however many skills the paper touched. Evidence
+     * is weighted by relationship, difficulty and source, and MEDIUM confidence needs three
+     * points of it: two easy PRIMARY items are worth 1.7, so eight skills were each measured to
+     * LOW and none of them counted. Four items clear the threshold at 3.4 even when all four are
+     * easy, which is what makes a skill count toward readiness at all.
+     *
+     * Fewer skills per sitting is the deliberate trade. Twenty-four items is already the longest
+     * paper a first-year will finish honestly, and covering all thirty-three at this depth would
+     * take a hundred and thirty — so the rest are measured after they are taught, by the module
+     * checkpoints, rather than guessed at here from two questions apiece.
+     *
+     * The earlier objection to four — that thin pools could not supply four of one difficulty —
+     * no longer holds: every skill the paper can choose now has at least four PRIMARY items, and
+     * allowDifficultyFallback serves an adjacent band when a specific one runs out.
      */
-    skillSlots: 16, maxSkills: 8, minItemsPerSkill: 2, maxItemsPerSkill: 2,
+    skillSlots: 24, maxSkills: 6, minItemsPerSkill: 4, maxItemsPerSkill: 4,
     // Weighted easy: this is a first measurement of someone who has recently started, and
     // a paper they cannot attempt tells us only that it was too hard.
     difficultyMix: mix(0.6, 0.35, 0.05),

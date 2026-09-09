@@ -250,6 +250,24 @@ export function buildSlots(
 ): AssessmentSlot[] {
   if (!scopedSkills.length) return [];
 
+  /**
+   * MEASURE FEWER SKILLS PROPERLY RATHER THAN MORE OF THEM BADLY.
+   *
+   * The per-skill floor is not a preference, it is what makes a skill count: below it the
+   * evidence stays LOW confidence and readiness ignores the result, so a skill measured under
+   * the floor was not measured at all. When more skills arrive than the budget can fund at the
+   * floor, the surplus is therefore dropped rather than every skill being thinned to fit.
+   *
+   * Callers normally rank and cut to maxSkills before reaching here, so this changes nothing in
+   * the ordinary path. It matters when a policy sets the floor equal to the ceiling — the
+   * balancing loop below can only shrink a skill's share down to the floor, so with no room
+   * between them it cannot shrink at all, and eight skills on a twenty-four-slot policy quietly
+   * produced a thirty-two-item paper: longer than its own specification, and no longer
+   * comparable with anybody else's.
+   */
+  const affordable = Math.max(1, Math.floor(policy.skillSlots / policy.minItemsPerSkill));
+  if (scopedSkills.length > affordable) scopedSkills = scopedSkills.slice(0, affordable);
+
   const perSkill = Math.max(
     policy.minItemsPerSkill,
     Math.min(policy.maxItemsPerSkill, Math.floor(policy.skillSlots / scopedSkills.length)),

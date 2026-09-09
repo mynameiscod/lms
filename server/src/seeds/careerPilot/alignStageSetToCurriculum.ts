@@ -31,22 +31,28 @@ import LearningCurriculum from '../../models/LearningCurriculum';
 import StageSkillSet from '../../models/StageSkillSet';
 import CareerSkill from '../../models/CareerSkill';
 import SkillEvidence from '../../models/SkillEvidence';
+import { policyForStage } from '../../data/assessmentPolicies';
 
 dotenv.config();
 
 /**
  * How many questions a skill needs before it can hold a slot.
  *
- * Two, matching the generator's own floor. A skill with one question can be asked once and then
- * has nothing left, which is how a paper ends up short — the exact failure that refused a
- * no-role first-year.
+ * Read from the policy that will draw on this set, never written down again here. A skill in the
+ * set is one the paper may choose, and buildSlots chooses before it looks at any content — so a
+ * skill admitted with fewer questions than the policy asks per skill produces a shortfall, and a
+ * shortfall refuses the whole assessment. That is the failure that turned away a no-role
+ * first-year, and it came back the moment the policy went from two items per skill to four while
+ * this number stayed at two. Deriving it means raising the policy can no longer outrun the gate.
  */
-const MIN_QUESTIONS_TO_MEASURE = 2;
+const minQuestionsToMeasure = (stage: string): number => policyForStage(stage).minItemsPerSkill;
 
 export interface AlignReport {
   stage: string;
   taught: number;
   measurable: number;
+  /** The per-skill question floor this stage's policy requires. */
+  minItems: number;
   unmeasurable: string[];
   kept: number;
   added: string[];
@@ -95,10 +101,11 @@ export async function alignStageSetToCurriculum(opts: {
   ]);
   const questionCount = new Map(counts.map((c: any) => [String(c._id).toUpperCase(), c.n]));
 
+  const minItems = minQuestionsToMeasure(stage);
   const measurable: string[] = [];
   const unmeasurable: string[] = [];
   for (const key of keys) {
-    const askable = assessable.has(key) && (questionCount.get(key) || 0) >= MIN_QUESTIONS_TO_MEASURE;
+    const askable = assessable.has(key) && (questionCount.get(key) || 0) >= minItems;
     (askable ? measurable : unmeasurable).push(key);
   }
 
@@ -128,6 +135,7 @@ export async function alignStageSetToCurriculum(opts: {
     stage,
     taught: keys.length,
     measurable: measurable.length,
+    minItems,
     unmeasurable,
     kept: [...after].filter(k => before.has(k)).length,
     added: [...after].filter(k => !before.has(k)),
@@ -170,7 +178,7 @@ if (require.main === module) {
 
     console.log(`\nstage "${r.stage}"`);
     console.log(`  curriculum teaches : ${r.taught} skills`);
-    console.log(`  askable now        : ${r.measurable}  (>= ${MIN_QUESTIONS_TO_MEASURE} questions each)`);
+    console.log(`  askable now        : ${r.measurable}  (>= ${r.minItems} PRIMARY questions each)`);
     console.log(`  already in the set : ${r.kept}`);
     console.log(`  ADDED              : ${r.added.length}${r.added.length ? '  ' + r.added.join(', ') : ''}`);
     console.log(`  DROPPED            : ${r.dropped.length}${r.dropped.length ? '  ' + r.dropped.join(', ') : ''}`);

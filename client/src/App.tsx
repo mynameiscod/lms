@@ -72,6 +72,7 @@ import PassportAdminConfig from './pages/Passport/AdminConfig';
 import PassportAdminStudents from './pages/Passport/AdminStudents';
 import PassportAdminStudentRoadmap from './pages/Passport/AdminStudentRoadmap';
 import PassportAdminStageSkills from './pages/Passport/AdminStageSkills';
+import PassportAdminStageCurriculum from './pages/Passport/AdminStageCurriculum';
 import PassportAdminCoins from './pages/Passport/AdminCoins';
 import PassportAdminFunnel from './pages/Passport/AdminFunnel';
 import PassportAdminCurriculum from './pages/Passport/AdminCurriculum';
@@ -552,6 +553,11 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/passport/stage-skills" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminStageSkills /></Layout></ProtectedRoute>
+      } />
+      {/* One stage, whole: modules, topics, the skills each teaches, and the questions behind
+          them. Joins what the curriculum teaches to what the stage can actually measure. */}
+      <Route path="/admin/passport/stage-curriculum" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminStageCurriculum /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/role-blueprints" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminRoleBlueprint /></Layout></ProtectedRoute>

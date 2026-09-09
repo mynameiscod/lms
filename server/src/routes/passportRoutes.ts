@@ -34,6 +34,7 @@ import * as skillEvidence from '../controllers/skillEvidenceController';
 import * as questionDrafts from '../controllers/skillQuestionDraftController';
 import * as questionBank from '../controllers/questionBankController';
 import * as stageSkills from '../controllers/stageSkillSetController';
+import * as stageCurriculum from '../controllers/stageCurriculumController';
 import * as personalized from '../controllers/personalizedAssessmentController';
 import * as skillDna from '../controllers/skillDnaController';
 import * as readiness from '../controllers/roleReadinessController';
@@ -206,6 +207,23 @@ router.post('/curriculum/:pathwayKey/draft',  MANAGE, curriculum.draftPathwayCur
 router.get('/stage-skill-sets',         MANAGE,      stageSkills.list);
 router.get('/stage-skill-sets/:stage',  MANAGE,      stageSkills.get);
 router.put('/stage-skill-sets/:stage',  SUPER_ADMIN, stageSkills.save);
+
+/**
+ * ── One stage, whole: modules, topics, the skills each teaches, and what can measure them ──
+ *
+ * The curriculum and the stage skill set were two screens with nothing joining them, so
+ * "Web Fundamentals teaches six skills and none of them can be assessed" was a fact you could
+ * only reach by opening both and comparing by hand. Reads are MANAGE because seeing the gap is
+ * how it gets closed; writes reshape what every student at the stage is taught, so they sit
+ * behind the same guard as the stage skill set itself.
+ */
+router.get('/stage-curriculum',                              MANAGE,      stageCurriculum.listStages);
+router.get('/stage-curriculum/:stage',                       MANAGE,      stageCurriculum.getStage);
+router.put('/stage-curriculum/:stage/modules',               SUPER_ADMIN, express.json(), stageCurriculum.putModule);
+router.delete('/stage-curriculum/:stage/modules/:moduleCode', SUPER_ADMIN, stageCurriculum.removeModule);
+router.post('/stage-curriculum/:stage/topics',               SUPER_ADMIN, express.json(), stageCurriculum.postTopic);
+router.put('/stage-curriculum/:stage/topics/:topicId',       SUPER_ADMIN, express.json(), stageCurriculum.putTopic);
+router.delete('/stage-curriculum/:stage/topics/:topicId',    SUPER_ADMIN, stageCurriculum.removeTopic);
 
 router.get('/skills',             MANAGE,        careerSkills.listSkills);
 router.get('/skills/:key/usage',  MANAGE,        careerSkills.skillUsage);

@@ -201,6 +201,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'CareerPilot Career Roles', path: '/admin/passport/career-roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-briefcase', permissions: ['manage_passport'] },
     { label: 'CareerPilot Skill Graph', path: '/admin/passport/skills', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-diagram-project', permissions: ['manage_passport'] },
     { label: 'CareerPilot Role Blueprint', path: '/admin/passport/role-blueprints', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-clipboard-list', permissions: ['manage_passport'] },
+    { label: 'Stage Curriculum', path: '/admin/passport/stage-curriculum', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sitemap', permissions: ['manage_passport'] },
     { label: 'Skills by Stage', path: '/admin/passport/stage-skills', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport'] },
     { label: 'Activity', path: '/admin/passport/activity', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-shoe-prints', permissions: ['manage_passport'] },
     { label: 'CareerPilot Skill Evidence', path: '/admin/passport/skill-evidence', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-link', permissions: ['manage_passport'] },

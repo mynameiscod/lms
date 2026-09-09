@@ -314,6 +314,40 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/stage-skill-sets`, { headers: auth() });
     return data;
   },
+  /* ── One stage, whole: modules, topics, skills and what can measure them ── */
+
+  listStageCurriculumStages: async (): Promise<{ stages: { key: string; label: string; blurb: string; who: string }[] }> => {
+    const { data } = await axios.get(`${BASE}/stage-curriculum`, { headers: auth() });
+    return data;
+  },
+  getStageCurriculum: async (stage: string): Promise<StageCurriculumView> => {
+    const { data } = await axios.get(`${BASE}/stage-curriculum/${stage}`, { headers: auth() });
+    return data;
+  },
+  saveStageModule: async (stage: string, body: {
+    moduleCode: string; moduleName?: string; displayOrder?: number; blurb?: string;
+  }): Promise<StageCurriculumView> => {
+    const { data } = await axios.put(`${BASE}/stage-curriculum/${stage}/modules`, body, { headers: auth() });
+    return data;
+  },
+  deleteStageModule: async (stage: string, moduleCode: string): Promise<StageCurriculumView> => {
+    const { data } = await axios.delete(
+      `${BASE}/stage-curriculum/${stage}/modules/${encodeURIComponent(moduleCode)}`, { headers: auth() });
+    return data;
+  },
+  createStageTopic: async (stage: string, body: StageTopicInput): Promise<StageCurriculumView> => {
+    const { data } = await axios.post(`${BASE}/stage-curriculum/${stage}/topics`, body, { headers: auth() });
+    return data;
+  },
+  updateStageTopic: async (stage: string, topicId: string, body: StageTopicInput): Promise<StageCurriculumView> => {
+    const { data } = await axios.put(`${BASE}/stage-curriculum/${stage}/topics/${topicId}`, body, { headers: auth() });
+    return data;
+  },
+  deleteStageTopic: async (stage: string, topicId: string): Promise<StageCurriculumView> => {
+    const { data } = await axios.delete(`${BASE}/stage-curriculum/${stage}/topics/${topicId}`, { headers: auth() });
+    return data;
+  },
+
   getStageSkillSet: async (stage: string): Promise<any> => {
     const { data } = await axios.get(`${BASE}/stage-skill-sets/${stage}`, { headers: auth() });
     return data;
@@ -3051,3 +3085,73 @@ export const emptyBody = (): MaterialBody => ({
   overview: '', notes: '', videoUrl: '', videoKey: '',
   steps: [], breakdown: [], checks: [], references: [], attachments: [],
 });
+
+
+/* ── Stage curriculum: the one screen that joins what a stage teaches to what it can measure ── */
+
+export interface StageSkillNode {
+  skillKey: string;
+  skillName: string;
+  /** Taxonomy band, not question difficulty. */
+  difficulty: string | null;
+  active: boolean;
+  assessable: boolean;
+  /** Distinct questions available in each band the generator draws on. */
+  questions: { easy: number; medium: number; hard: number; total: number };
+  inStageSet: boolean;
+  measurable: boolean;
+}
+
+export interface StageTopicNode {
+  id: string;
+  topicCode: string | null;
+  title: string;
+  description?: string;
+  order: number;
+  startDay: number;
+  endDay: number;
+  defaultDepth: string | null;
+  mandatory: boolean;
+  applicableDirections: string[];
+  learningOutcomes: string[];
+  prerequisiteSkillKeys: string[];
+  skills: StageSkillNode[];
+  unknownSkillKeys: string[];
+}
+
+export interface StageModuleNode {
+  moduleCode: string;
+  moduleName: string;
+  displayOrder: number;
+  blurb?: string;
+  topics: StageTopicNode[];
+  skillCount: number;
+  measurableCount: number;
+}
+
+export interface StageCurriculumView {
+  stage: string;
+  stageLabel: string;
+  curriculum: { id: string; title: string; totalDays: number; isPublished: boolean } | null;
+  policy: { skillSlots: number; maxSkills: number; itemsPerSkill: number };
+  modules: StageModuleNode[];
+  totals: {
+    modules: number; topics: number; skills: number;
+    measurable: number; inStageSet: number; unmapped: number;
+  };
+  measuredButNotTaught: string[];
+}
+
+export interface StageTopicInput {
+  title?: string;
+  description?: string;
+  moduleCode?: string;
+  topicCode?: string;
+  skillKeys?: string[];
+  prerequisiteSkillKeys?: string[];
+  defaultDepth?: string;
+  mandatory?: boolean;
+  applicableDirections?: string[];
+  learningOutcomes?: string[];
+  order?: number;
+}

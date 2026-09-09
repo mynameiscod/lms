@@ -69,6 +69,24 @@ export interface ITrackPace {
   targetWeeks?: number;       // intended completion window
 }
 
+/**
+ * A module — the shelf a group of topics sits on.
+ *
+ * WHY THIS EXISTS SEPARATELY FROM THE TOPICS. A module was only ever a `moduleCode` repeated on
+ * each of its topics, so it had no name, no order and no description of its own: the seed knew
+ * that M05_WEB_FUNDAMENTALS is called "Web Fundamentals" and that knowledge was thrown away on
+ * import. Every screen since has had to show a student "M05_WEB_FUNDAMENTALS", or invent a
+ * title by unpicking the code, and neither is something an admin can edit.
+ *
+ * Optional, and derived from the codes when absent, so every existing curriculum keeps working.
+ */
+export interface ICurriculumModule {
+  moduleCode: string;
+  moduleName: string;
+  displayOrder: number;
+  blurb?: string;
+}
+
 export interface ILearningCurriculum extends Document {
   tenantId: string;
   title: string;
@@ -76,6 +94,8 @@ export interface ILearningCurriculum extends Document {
   targetCourse?: string;
   totalDays: number;
   topics: ICurriculumTopic[];
+  /** Names and ordering for the modules the topics reference. See ICurriculumModule. */
+  modules?: ICurriculumModule[];
   isPublished: boolean;
   shared: boolean;            // published to the cross-tenant template library
   clonedFrom?: mongoose.Types.ObjectId;
@@ -104,6 +124,16 @@ export interface ILearningCurriculum extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+const CurriculumModuleSchema = new Schema<ICurriculumModule>(
+  {
+    moduleCode:   { type: String, required: true, trim: true },
+    moduleName:   { type: String, required: true, trim: true },
+    displayOrder: { type: Number, default: 0 },
+    blurb:        { type: String, trim: true },
+  },
+  { _id: false },
+);
 
 const CurriculumTopicSchema = new Schema<ICurriculumTopic>(
   {
@@ -137,6 +167,7 @@ const LearningCurriculumSchema = new Schema<ILearningCurriculum>(
     targetCourse:    { type: String, trim: true },
     totalDays:       { type: Number, default: 145, min: 1 },
     topics:          [CurriculumTopicSchema],
+    modules:         { type: [CurriculumModuleSchema], default: undefined },
     isPublished:     { type: Boolean, default: false },
     shared:          { type: Boolean, default: false, index: true },
     clonedFrom:      { type: Schema.Types.ObjectId, ref: 'LearningCurriculum' },

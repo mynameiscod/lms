@@ -355,8 +355,9 @@ q('GB_CF_030', 'CF_FAM10_FALL_THROUGH', 'D2',
   provenance='LEGACY_REMAP', source='8f128c')
 
 q('GB_CF_031', 'CF_FAM10_FALL_THROUGH', 'D3',
-  'A C fragment reads: int x = 1; switch (x) { case 1: printf("A"); case 2: printf("B"); break; '
-  'case 3: printf("C"); break; } What is printed?',
+  'A multi-way selection is written with three cases and the first of them has no break: int x = '
+  '1; switch (x) { case 1: printf("A"); case 2: printf("B"); break; case 3: printf("C"); break; } '
+  'What appears?',
   'A then B',
   ['A', 'A, B then C', 'B'],
   'Execution enters at the matching case and continues until a break, so the missing break after '

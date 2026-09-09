@@ -121,11 +121,18 @@ def words(s):
     # distinguishable from Z, X, V, T — which the length filter alone reduced to nothing, making
     # two unrelated letter series score a perfect 1.00 against each other.
     letters = set(re.findall(r'(?<![A-Za-z0-9])[A-Z][A-Z0-9]?(?![A-Za-z0-9])', s))
+    # A run of single letters separated by spaces is a symbol sequence, and it is the entire
+    # content of a pattern question — "x y x y x y" against "p q r p q r". Single lowercase
+    # letters cannot be added individually without flooding every prose item with the word "a",
+    # so each run is kept whole, as one token. Three unrelated symbol sequences scored 1.00
+    # against each other before this was added.
+    runs = set('seq:' + ' '.join(m.split())
+               for m in re.findall(r'(?<![A-Za-z0-9])[A-Za-z](?:\s+[A-Za-z])+(?![A-Za-z0-9])', s))
     s = s.lower()
     prose = set(w for w in re.findall(r'[a-z]+', s) if w not in STOP and len(w) > 2)
     numbers = set(re.findall(r'-?\d+(?:\.\d+)?', s))
     operators = set(re.findall(r'//|%|\*\*|[+\-*/=<>!]=?', s))
-    return prose | numbers | operators | letters
+    return prose | numbers | operators | letters | runs
 
 
 def mentions(text, option):

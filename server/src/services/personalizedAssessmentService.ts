@@ -73,6 +73,8 @@ export interface GenerationReport {
 
 export interface AssessmentSpecification {
   policyKey: string;
+  /** Skills in scope that had too little evidence to be measured when this paper was built. */
+  notMeasuredSkills?: NotMeasuredSkill[];
   policyVersion: number;
   stage: string;
   roleKey: string;
@@ -367,6 +369,50 @@ export interface PoolItem {
 }
 
 /**
+ * A skill the stage covers that today's content cannot measure.
+ *
+ * Carries the arithmetic rather than a verdict, because the number is what anyone acting on this
+ * needs: "HTML 0/4" says author four questions, where "not measurable" says nothing at all.
+ */
+export interface NotMeasuredSkill {
+  skillKey: string;
+  reasonCode: 'INSUFFICIENT_EVIDENCE';
+  /** Distinct PRIMARY questions that exist now. */
+  availablePrimary: number;
+  /** What this stage's policy asks of every skill it measures. */
+  requiredPrimary: number;
+}
+
+/**
+ * How many genuinely different PRIMARY questions a pool holds.
+ *
+ * DISTINCT BY FACT, not by row. A generated bank reaches its size by recombining a small set of
+ * claims, so a hundred rows can rest on one fact — counting rows would call a skill measurable
+ * on the strength of a single question repeated, and the paper would then ask it four times.
+ * Anything hand-authored carries no factKeys and counts once per item, which is correct there.
+ */
+export function distinctPrimaryCount(items: PoolItem[]): number {
+  const facts = new Set<string>();
+  const rows = new Set<string>();
+  for (const i of items) {
+    if (i.contribution && i.contribution !== 'PRIMARY') continue;
+    rows.add(`${i.sourceType}:${i.sourceId}`);
+    if (i.factKeys?.length) for (const f of i.factKeys) facts.add(f);
+    else facts.add(`item:${i.sourceType}:${i.sourceId}`);
+  }
+  /**
+   * The LESSER of the two, because two different limits apply and either can bind.
+   *
+   * Filling four slots needs four distinct ITEMS — the selector never uses one twice, so two
+   * items carrying four facts between them can only fill two slots. Measuring honestly needs
+   * four distinct FACTS — a hundred rows resting on one claim can fill four slots and has
+   * measured one thing. Reporting the larger of the two would promise a paper that cannot be
+   * built, or a measurement that has not happened.
+   */
+  return Math.min(rows.size, facts.size);
+}
+
+/**
  * Choose the questions, deterministically.
  *
  * Candidates are sorted by a stable key BEFORE the seeded shuffle: relying on the order
@@ -586,7 +632,9 @@ export type AssessmentUnavailableReason =
   | 'BLUEPRINT_UNPUBLISHED'
   | 'BLUEPRINT_EMPTY'
   | 'SKILLS_NOT_CONFIGURED'
-  | 'QUESTION_POOL_EMPTY';
+  | 'QUESTION_POOL_EMPTY'
+  /** The stage's skills exist and are intended; none of them has enough questions yet. */
+  | 'INSUFFICIENT_EVIDENCE';
 
 export interface ResolvedContext {
   ok: boolean;
@@ -795,10 +843,19 @@ export async function buildPersonalizedAssessment(input: GenerationInput): Promi
   message?: string;
   /** The full diagnostic, for the admin preview and the logs — never for a member. */
   adminMessage?: string;
+  reasonCode?: AssessmentUnavailableReason;
   specification?: AssessmentSpecification;
   items?: SelectedItem[];
   report?: GenerationReport;
   seed?: string;
+  /**
+   * Skills the stage covers that this paper could not measure, with the counts.
+   *
+   * Returned on SUCCESS as well as failure, and stored on the specification. A student asking
+   * "why is HTML not in my skill map" has an answer, and an admin can see what to author without
+   * reading a log.
+   */
+  notMeasuredSkills?: NotMeasuredSkill[];
 }> {
   /**
    * The policy the CALLER already resolved, when it has one.
@@ -822,17 +879,29 @@ export async function buildPersonalizedAssessment(input: GenerationInput): Promi
 
   const skills = new Map<string, ICareerSkill>([...skillDocs, ...extra].map(s => [s.key, s]));
 
-  const scoped = rankSkills(expandSkillScope(input.roleSkillKeys, skills, policy), skills, policy, input.skillPriority);
-  if (!scoped.length) {
+  const candidates = expandSkillScope(input.roleSkillKeys, skills, policy);
+  if (!candidates.length) {
     return { ok: false, message: 'No assessable skills are configured for your stage and role yet.' };
   }
 
-  const slots = buildSlots(scoped, policy);
-
-  // ONE batched evidence query for every skill at once — Module 5 was built for this, and
-  // a query per slot would be twenty round trips per student.
+  /**
+   * EVIDENCE IS COUNTED BEFORE THE PAPER IS SHAPED, NOT AFTER.
+   *
+   * The order used to be the other way round: shape the paper from the whole scope, then look
+   * for questions, then refuse the entire assessment if any slot could not be filled. That made
+   * one unanswerable skill fatal to a paper the other thirty could have supported — a first-year
+   * was turned away because nothing had been authored for Git yet.
+   *
+   * It also pushed the problem into the stage skill set, which was then pruned to whatever the
+   * bank happened to contain. So the definition of what a stage is about drifted with the
+   * content, and eighteen skills the curriculum teaches vanished from it when a bank was cleared.
+   *
+   * Counting first separates the two questions properly. What SHOULD be measured is the stage
+   * set — intent, stable. What CAN be measured today is arithmetic over the evidence. A skill
+   * that fails the second is skipped and reported, never silently dropped and never fatal.
+   */
   const pools = await findEvidenceCandidates(input.tenantId, {
-    skillKeys: scoped.map(s => s.skillKey),
+    skillKeys: candidates.map(s => s.skillKey),
     contribution: 'PRIMARY',
     // Defaults to the paper's own role when the caller did not spell out an audience, so a
     // role-tagged question reaches the right students without every call site being updated.
@@ -843,6 +912,49 @@ export async function buildPersonalizedAssessment(input: GenerationInput): Promi
     audienceSpecificity: (i as any).audienceSpecificity ?? 0,
     factKeys: (i as any).factKeys,
   }))]));
+
+  const required = policy.minItemsPerSkill;
+  const notMeasuredSkills: NotMeasuredSkill[] = [];
+  const measurable = candidates.filter(c => {
+    const available = distinctPrimaryCount(poolMap.get(c.skillKey) || []);
+    if (available >= required) return true;
+    notMeasuredSkills.push({
+      skillKey: c.skillKey,
+      reasonCode: 'INSUFFICIENT_EVIDENCE',
+      availablePrimary: available,
+      requiredPrimary: required,
+    });
+    return false;
+  });
+
+  /**
+   * Nothing measurable is the one case that must still fail.
+   *
+   * A paper with no questions is not a shorter paper, and telling a student their skills are
+   * unknown after they sat nothing would be worse than telling them to come back.
+   */
+  if (!measurable.length) {
+    return {
+      ok: false,
+      reasonCode: 'INSUFFICIENT_EVIDENCE',
+      notMeasuredSkills,
+      message: 'Your assessment is not ready yet — we are still adding questions for the skills '
+        + 'your stage covers. Nothing is wrong with your account, and there is nothing for you '
+        + 'to fix. Please check back shortly.',
+      adminMessage: `None of the ${candidates.length} skills in scope has the ${required} `
+        + `PRIMARY questions this stage needs. Shortest gaps: `
+        + notMeasuredSkills
+          .slice()
+          .sort((a, b) => b.availablePrimary - a.availablePrimary)
+          .slice(0, 5)
+          .map(n => `${n.skillKey} ${n.availablePrimary}/${n.requiredPrimary}`)
+          .join(', ')
+        + '. Author or map questions for them and try again.',
+    };
+  }
+
+  const scoped = rankSkills(measurable, skills, policy, input.skillPriority);
+  const slots = buildSlots(scoped, policy);
 
   const seed = generationSeed(input.studentId, policy.key, policy.version, input.attemptNumber);
   const { items, report } = selectItems(slots, poolMap, seed, {
@@ -869,8 +981,12 @@ export async function buildPersonalizedAssessment(input: GenerationInput): Promi
       blueprintVersion: input.blueprintVersion,
       slots, skillCoverage, difficultyCoverage,
       totalPoints: items.reduce((n, i) => n + i.points, 0),
+      // Recorded with the paper so "why was I not measured on HTML" is answerable months
+      // later, when the content has changed and the counts no longer reproduce.
+      notMeasuredSkills: notMeasuredSkills.length ? notMeasuredSkills : undefined,
     },
     items, report, seed,
+    notMeasuredSkills,
   };
 }
 

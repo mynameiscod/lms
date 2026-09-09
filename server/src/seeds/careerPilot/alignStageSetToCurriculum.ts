@@ -37,14 +37,10 @@ import { policyForStage } from '../../data/assessmentPolicies';
 dotenv.config();
 
 /**
- * How many questions a skill needs before it can hold a slot.
+ * How many questions a skill needs before a paper can measure it.
  *
- * Read from the policy that will draw on this set, never written down again here. A skill in the
- * set is one the paper may choose, and buildSlots chooses before it looks at any content — so a
- * skill admitted with fewer questions than the policy asks per skill produces a shortfall, and a
- * shortfall refuses the whole assessment. That is the failure that turned away a no-role
- * first-year, and it came back the moment the policy went from two items per skill to four while
- * this number stayed at two. Deriving it means raising the policy can no longer outrun the gate.
+ * Read from the policy that will draw on this set, never written down again here. NO LONGER A
+ * GATE ON MEMBERSHIP — it decides only what this script REPORTS. See the note below.
  */
 const minQuestionsToMeasure = (stage: string): number => policyForStage(stage).minItemsPerSkill;
 
@@ -52,6 +48,13 @@ export interface AlignReport {
   stage: string;
   taught: number;
   measurable: number;
+  /**
+   * Admitted skills that no paper can currently ask about — fewer than minItems questions.
+   *
+   * Reported rather than excluded. They stay in the set because the curriculum teaches them;
+   * the generator skips them until somebody authors the questions.
+   */
+  thin: string[];
   /** The per-skill question floor this stage's policy requires. */
   minItems: number;
   unmeasurable: string[];
@@ -135,12 +138,33 @@ export async function alignStageSetToCurriculum(opts: {
   const questionCount = new Map([...factsBySkill].map(([k, v]) => [k, v.size]));
 
   const minItems = minQuestionsToMeasure(stage);
+
+  /**
+   * MEMBERSHIP IS INTENT. MEASURABILITY IS A FACT ABOUT TODAY'S CONTENT.
+   *
+   * This used to drop any skill with too few questions, so the stage set was quietly rewritten
+   * every time the bank changed — clearing the generated bank cut it from thirty-three skills to
+   * fifteen, and eighteen skills the curriculum teaches simply disappeared from the definition of
+   * what the stage is about. Nothing was wrong with those skills. The questions were missing, and
+   * the set is not the place that fact belongs.
+   *
+   * So the set now holds every skill the curriculum teaches that the taxonomy can assess, and the
+   * generator partitions it at generation time: skills with enough evidence are measured, the
+   * rest are reported as INSUFFICIENT_EVIDENCE and skipped. Authoring four questions makes a
+   * skill measurable without anybody remembering to re-run this script, and deleting them makes
+   * it unmeasurable without erasing the intent.
+   *
+   * A skill that is inactive or non-assessable is still excluded, because that is a statement
+   * about the skill rather than about the content — no amount of authoring would help.
+   */
   const measurable: string[] = [];
   const unmeasurable: string[] = [];
   for (const key of keys) {
-    const askable = assessable.has(key) && (questionCount.get(key) || 0) >= minItems;
-    (askable ? measurable : unmeasurable).push(key);
+    (assessable.has(key) ? measurable : unmeasurable).push(key);
   }
+
+  // Reported, not enforced: which of the admitted skills no paper can currently ask about.
+  const thin = measurable.filter(k => (questionCount.get(k) || 0) < minItems);
 
   // Sorted by the order the curriculum introduces them, so the ranking follows the teaching.
   measurable.sort((a, b) => (taught.get(a)!.order - taught.get(b)!.order) || a.localeCompare(b));
@@ -168,6 +192,7 @@ export async function alignStageSetToCurriculum(opts: {
     stage,
     taught: keys.length,
     measurable: measurable.length,
+    thin,
     minItems,
     unmeasurable,
     kept: [...after].filter(k => before.has(k)).length,
@@ -211,7 +236,13 @@ if (require.main === module) {
 
     console.log(`\nstage "${r.stage}"`);
     console.log(`  curriculum teaches : ${r.taught} skills`);
-    console.log(`  askable now        : ${r.measurable}  (>= ${r.minItems} distinct FACTS each)`);
+    console.log(`  in the set now     : ${r.measurable}  (every taught skill the taxonomy can assess)`);
+    if (r.thin.length) {
+      console.log(`  of those, NOT yet measurable (< ${r.minItems} questions): ${r.thin.length}`);
+      console.log(`    ${r.thin.join(', ')}`);
+      console.log('    They stay in the set. The generator skips them and reports');
+      console.log('    INSUFFICIENT_EVIDENCE until questions exist.');
+    }
     console.log(`  already in the set : ${r.kept}`);
     console.log(`  ADDED              : ${r.added.length}${r.added.length ? '  ' + r.added.join(', ') : ''}`);
     console.log(`  DROPPED            : ${r.dropped.length}${r.dropped.length ? '  ' + r.dropped.join(', ') : ''}`);

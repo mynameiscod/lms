@@ -25,8 +25,9 @@
  * HOW_COMPUTERS_WORK, because the honest allocation was otherwise impossible.
  */
 
-/** [D1, D2, D3, D4, D5] for one family. Zeroes are meaningful — see the note above. */
-export type Allocation = [number, number, number, number, number];
+import { allocateByTemplate, Allocation } from './allocationTemplate';
+
+export type { Allocation };
 
 export const FAMILY_ALLOCATION: Record<string, Allocation> = {
   /* ── COMPUTER_ARCHITECTURE ── D1 from 3 families, D5 from 4 ── */
@@ -202,6 +203,27 @@ export const FAMILY_ALLOCATION: Record<string, Allocation> = {
   FN_FAM13_FUNCTION_BUG_DIAGNOSIS: [0, 0, 0, 1, 4],
   FN_FAM14_FUNCTION_EDGE_BEHAVIOUR: [0, 0, 0, 1, 3],
 };
+
+/**
+ * Batches 3 to 5 are allocated by the shared template.
+ *
+ * Their families were authored in the order the template expects — three recognition, then
+ * application, then diagnosis, then transfer — so the numbers follow from the design rather than
+ * being chosen for each family separately. The merge still checks every allocated level against
+ * the family's own declared range, so a design that drifted from the template order fails
+ * validation instead of being quietly mis-planned.
+ */
+export function templatedAllocation(
+  rows: Array<{ skillKey: string; familyId: string }>,
+  skills: string[],
+): Record<string, Allocation> {
+  const out: Record<string, Allocation> = {};
+  for (const skill of skills) {
+    const ids = rows.filter(r => r.skillKey === skill).map(r => r.familyId);
+    Object.assign(out, allocateByTemplate(ids));
+  }
+  return out;
+}
 
 /** Every skill's fifty questions, ten at each difficulty. Asserted, not assumed. */
 export const PER_SKILL_TOTAL = 50;

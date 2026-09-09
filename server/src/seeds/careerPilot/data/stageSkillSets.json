@@ -1,0 +1,710 @@
+[
+ {
+  "stage": "foundation",
+  "label": "Foundation",
+  "enabled": true,
+  "version": 15,
+  "requirements": [
+   {
+    "skillKey": "C_BASICS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 10
+   },
+   {
+    "skillKey": "C_CONTROL_FLOW",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 20
+   },
+   {
+    "skillKey": "C_FUNCTIONS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 30
+   },
+   {
+    "skillKey": "C_ARRAYS_STRINGS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 40
+   },
+   {
+    "skillKey": "C_POINTERS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 50
+   },
+   {
+    "skillKey": "PYTHON_BASICS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 60
+   },
+   {
+    "skillKey": "PYTHON_CONTROL_FLOW",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 70
+   },
+   {
+    "skillKey": "PYTHON_FUNCTIONS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 80
+   },
+   {
+    "skillKey": "PYTHON_LISTS_BASICS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 90
+   },
+   {
+    "skillKey": "JAVA_BASICS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 100
+   },
+   {
+    "skillKey": "JAVA_CONTROL_FLOW",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 110
+   },
+   {
+    "skillKey": "JAVA_METHODS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 120
+   },
+   {
+    "skillKey": "JAVA_ARRAYS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 130
+   },
+   {
+    "skillKey": "PROBLEM_SOLVING",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 140
+   },
+   {
+    "skillKey": "PSEUDOCODE_FLOWCHARTS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 150
+   },
+   {
+    "skillKey": "PATTERN_RECOGNITION",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 160
+   },
+   {
+    "skillKey": "DEBUGGING",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 170
+   },
+   {
+    "skillKey": "DSA_COMPLEXITY",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 180
+   },
+   {
+    "skillKey": "DSA_ARRAYS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 190
+   },
+   {
+    "skillKey": "DSA_STRINGS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 200
+   },
+   {
+    "skillKey": "DSA_SEARCHING",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 210
+   },
+   {
+    "skillKey": "APTITUDE_QUANT_ARITHMETIC",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 220
+   },
+   {
+    "skillKey": "APTITUDE_QUANT_TIME",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 230
+   },
+   {
+    "skillKey": "APTITUDE_REASONING_SERIES",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 240
+   },
+   {
+    "skillKey": "APTITUDE_REASONING_LOGIC",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 250
+   },
+   {
+    "skillKey": "APTITUDE_DATA_INTERPRETATION",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 260
+   },
+   {
+    "skillKey": "APTITUDE_VERBAL_GRAMMAR",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 270
+   },
+   {
+    "skillKey": "APTITUDE_VERBAL_READING",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 280
+   },
+   {
+    "skillKey": "COMMUNICATION",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 290
+   },
+   {
+    "skillKey": "SELF_INTRODUCTION",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 300
+   },
+   {
+    "skillKey": "SPOKEN_ENGLISH_CONFIDENCE",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 310
+   },
+   {
+    "skillKey": "WRITTEN_COMMUNICATION_BASICS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 320
+   },
+   {
+    "skillKey": "OOP_CONCEPTS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 330
+   },
+   {
+    "skillKey": "HOW_COMPUTERS_WORK",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 340
+   },
+   {
+    "skillKey": "GIT_FUNDAMENTALS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 350
+   },
+   {
+    "skillKey": "HTML",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 360
+   },
+   {
+    "skillKey": "CSS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 370
+   },
+   {
+    "skillKey": "DB_FUNDAMENTALS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 380
+   },
+   {
+    "skillKey": "TECH_CAREER_AWARENESS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 390
+   },
+   {
+    "skillKey": "DAILY_PRACTICE_HABIT",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 400
+   },
+   {
+    "skillKey": "TYPING_SPEED",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 410
+   },
+   {
+    "skillKey": "SELF_LEARNING",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 420
+   },
+   {
+    "skillKey": "PROGRAMMING_FUNDAMENTALS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 1
+   },
+   {
+    "skillKey": "INPUT_OUTPUT_BASICS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 2
+   },
+   {
+    "skillKey": "CONDITIONALS_BASICS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 3
+   },
+   {
+    "skillKey": "LOOPS_BASICS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 4
+   },
+   {
+    "skillKey": "FUNCTIONS_BASICS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "FOUNDATION",
+    "active": true,
+    "displayOrder": 5
+   }
+  ],
+  "updatedBy": "69c7723868202a8e4616ef3f"
+ },
+ {
+  "stage": "build",
+  "label": "2nd & 3rd year — no role chosen",
+  "enabled": true,
+  "requirements": [
+   {
+    "skillKey": "DSA_RECURSION",
+    "importance": "ESSENTIAL",
+    "weight": 10,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 10
+   },
+   {
+    "skillKey": "DSA_SORTING",
+    "importance": "ESSENTIAL",
+    "weight": 10,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 20
+   },
+   {
+    "skillKey": "DSA_HASHING",
+    "importance": "ESSENTIAL",
+    "weight": 10,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 30
+   },
+   {
+    "skillKey": "SQL_JOINS",
+    "importance": "ESSENTIAL",
+    "weight": 9,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 40
+   },
+   {
+    "skillKey": "OOP_CONCEPTS",
+    "importance": "ESSENTIAL",
+    "weight": 9,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 50
+   },
+   {
+    "skillKey": "PROBLEM_SOLVING",
+    "importance": "ESSENTIAL",
+    "weight": 9,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 60
+   },
+   {
+    "skillKey": "DSA_STACK",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 70
+   },
+   {
+    "skillKey": "DSA_LINKED_LIST",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 80
+   },
+   {
+    "skillKey": "SQL_FILTERING",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 90
+   },
+   {
+    "skillKey": "GIT_BRANCHING",
+    "importance": "IMPORTANT",
+    "weight": 6,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 100
+   },
+   {
+    "skillKey": "APTITUDE_QUANT_TIME",
+    "importance": "IMPORTANT",
+    "weight": 6,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 110
+   },
+   {
+    "skillKey": "APTITUDE_REASONING_LOGIC",
+    "importance": "IMPORTANT",
+    "weight": 6,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 120
+   },
+   {
+    "skillKey": "TECHNICAL_COMMUNICATION",
+    "importance": "SUPPORTING",
+    "weight": 4,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 130
+   }
+  ],
+  "version": 2,
+  "updatedBy": "69c7723868202a8e4616ef3f"
+ },
+ {
+  "stage": "placement",
+  "label": "4th year — no role chosen",
+  "enabled": true,
+  "requirements": [
+   {
+    "skillKey": "DSA_TREES",
+    "importance": "ESSENTIAL",
+    "weight": 10,
+    "targetLevel": "PROFICIENT",
+    "active": true,
+    "displayOrder": 10
+   },
+   {
+    "skillKey": "DSA_HASHING",
+    "importance": "ESSENTIAL",
+    "weight": 10,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 20
+   },
+   {
+    "skillKey": "SQL_JOINS",
+    "importance": "ESSENTIAL",
+    "weight": 9,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 30
+   },
+   {
+    "skillKey": "REST_APIS",
+    "importance": "ESSENTIAL",
+    "weight": 9,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 40
+   },
+   {
+    "skillKey": "TECHNICAL_EXPLANATION",
+    "importance": "ESSENTIAL",
+    "weight": 9,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 50
+   },
+   {
+    "skillKey": "DSA_GRAPHS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "PROFICIENT",
+    "active": true,
+    "displayOrder": 60
+   },
+   {
+    "skillKey": "DSA_DP",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "PROFICIENT",
+    "active": true,
+    "displayOrder": 70
+   },
+   {
+    "skillKey": "DB_DESIGN",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 80
+   },
+   {
+    "skillKey": "SYSTEM_DESIGN_BASICS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "PROFICIENT",
+    "active": true,
+    "displayOrder": 90
+   },
+   {
+    "skillKey": "APTITUDE_QUANT_ARITHMETIC",
+    "importance": "IMPORTANT",
+    "weight": 6,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 100
+   },
+   {
+    "skillKey": "TESTING_FUNDAMENTALS",
+    "importance": "SUPPORTING",
+    "weight": 4,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 110
+   },
+   {
+    "skillKey": "APTITUDE_VERBAL_READING",
+    "importance": "SUPPORTING",
+    "weight": 4,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 120
+   }
+  ],
+  "version": 2,
+  "updatedBy": "69c7723868202a8e4616ef3f"
+ },
+ {
+  "stage": "job_seeker",
+  "label": "Graduated — no role chosen",
+  "enabled": true,
+  "requirements": [
+   {
+    "skillKey": "TECHNICAL_EXPLANATION",
+    "importance": "ESSENTIAL",
+    "weight": 10,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 10
+   },
+   {
+    "skillKey": "SELF_INTRODUCTION",
+    "importance": "ESSENTIAL",
+    "weight": 10,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 20
+   },
+   {
+    "skillKey": "DSA_HASHING",
+    "importance": "ESSENTIAL",
+    "weight": 9,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 30
+   },
+   {
+    "skillKey": "SQL_JOINS",
+    "importance": "ESSENTIAL",
+    "weight": 9,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 40
+   },
+   {
+    "skillKey": "REST_APIS",
+    "importance": "ESSENTIAL",
+    "weight": 9,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 50
+   },
+   {
+    "skillKey": "DSA_TREES",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "PROFICIENT",
+    "active": true,
+    "displayOrder": 60
+   },
+   {
+    "skillKey": "SYSTEM_DESIGN_BASICS",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "PROFICIENT",
+    "active": true,
+    "displayOrder": 70
+   },
+   {
+    "skillKey": "DB_DESIGN",
+    "importance": "IMPORTANT",
+    "weight": 7,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 80
+   },
+   {
+    "skillKey": "SPOKEN_ENGLISH_CONFIDENCE",
+    "importance": "IMPORTANT",
+    "weight": 6,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 90
+   },
+   {
+    "skillKey": "APTITUDE_QUANT_ARITHMETIC",
+    "importance": "IMPORTANT",
+    "weight": 6,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 100
+   },
+   {
+    "skillKey": "DSA_GRAPHS",
+    "importance": "SUPPORTING",
+    "weight": 4,
+    "targetLevel": "PROFICIENT",
+    "active": true,
+    "displayOrder": 110
+   },
+   {
+    "skillKey": "TESTING_FUNDAMENTALS",
+    "importance": "SUPPORTING",
+    "weight": 4,
+    "targetLevel": "WORKING",
+    "active": true,
+    "displayOrder": 120
+   }
+  ],
+  "version": 2,
+  "updatedBy": "69c7723868202a8e4616ef3f"
+ }
+]

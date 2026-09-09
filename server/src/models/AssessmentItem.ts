@@ -58,6 +58,18 @@ export interface IAssessmentItem extends Document {
   points: number;            // max points this item contributes
   timeLimitSeconds?: number; // soft per-item suggestion
   tags: string[];
+  /**
+   * The curriculum facts this item actually tests.
+   *
+   * A generated bank reaches its row count by recombining a small set of claims: forty
+   * thousand rows over three hundred and forty facts, so one fact underlies a hundred items.
+   * Selecting by item id alone therefore cannot tell that two questions are the same question —
+   * a paper can spend four slots on one fact and call it a skill measured, and a re-assessment
+   * can re-ask what the student already saw and read the remembered answer as progress.
+   *
+   * Empty for hand-authored items, where each question is its own fact and the id is enough.
+   */
+  factKeys?: string[];
   active: boolean;
   createdBy: string;
   createdAt: Date;
@@ -118,6 +130,7 @@ const AssessmentItemSchema = new Schema<IAssessmentItem>(
     points: { type: Number, default: 1 },
     timeLimitSeconds: { type: Number },
     tags: { type: [String], default: [] },
+    factKeys: { type: [String], default: undefined },
     active: { type: Boolean, default: true },
     createdBy: { type: String, required: true },
   },

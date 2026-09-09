@@ -31,6 +31,7 @@ import LearningCurriculum from '../../models/LearningCurriculum';
 import StageSkillSet from '../../models/StageSkillSet';
 import CareerSkill from '../../models/CareerSkill';
 import SkillEvidence from '../../models/SkillEvidence';
+import AssessmentItem from '../../models/AssessmentItem';
 import { policyForStage } from '../../data/assessmentPolicies';
 
 dotenv.config();
@@ -95,11 +96,43 @@ export async function alignStageSetToCurriculum(opts: {
   }).select('key').lean() as any[];
   const assessable = new Set(skills.map(s => String(s.key).toUpperCase()));
 
-  const counts = await SkillEvidence.aggregate([
-    { $match: { tenantId, skillKey: { $in: keys }, contribution: 'PRIMARY', active: true } },
-    { $group: { _id: '$skillKey', n: { $sum: 1 } } },
-  ]);
-  const questionCount = new Map(counts.map((c: any) => [String(c._id).toUpperCase(), c.n]));
+  /**
+   * WHAT IS COUNTED IS DISTINCT FACTS, NOT MAPPED ROWS.
+   *
+   * The generated foundation bank carries about a hundred and twenty rows per fact, so counting
+   * rows would report a skill with three facts as having 1,200 questions and admit it to the
+   * set. The paper would then ask that skill four times, get the same knowledge back three
+   * times over, and record a confident measurement of something it barely probed. An item with
+   * no factKeys — anything hand-authored — counts as its own fact, which is exactly right:
+   * there, one question really is one question.
+   */
+  const evidence = await SkillEvidence.find({
+    tenantId, skillKey: { $in: keys }, contribution: 'PRIMARY', active: true,
+  }).select('skillKey sourceType sourceId').lean() as any[];
+
+  const itemIds = [...new Set(evidence
+    .filter(e => e.sourceType === 'assessment_item')
+    .map(e => String(e.sourceId)))]
+    .filter(id => mongoose.Types.ObjectId.isValid(id))
+    .map(id => new mongoose.Types.ObjectId(id));
+
+  const factsById = new Map<string, string[]>();
+  if (itemIds.length) {
+    const items = await AssessmentItem.find({ _id: { $in: itemIds } })
+      .select('factKeys').lean() as any[];
+    for (const i of items) factsById.set(String(i._id), i.factKeys || []);
+  }
+
+  const factsBySkill = new Map<string, Set<string>>();
+  for (const e of evidence) {
+    const key = String(e.skillKey).toUpperCase();
+    let set = factsBySkill.get(key);
+    if (!set) { set = new Set(); factsBySkill.set(key, set); }
+    const facts = factsById.get(String(e.sourceId));
+    if (facts?.length) facts.forEach(f => set!.add(f));
+    else set.add(`${e.sourceType}:${e.sourceId}`);   // authored item: one question, one fact
+  }
+  const questionCount = new Map([...factsBySkill].map(([k, v]) => [k, v.size]));
 
   const minItems = minQuestionsToMeasure(stage);
   const measurable: string[] = [];
@@ -178,7 +211,7 @@ if (require.main === module) {
 
     console.log(`\nstage "${r.stage}"`);
     console.log(`  curriculum teaches : ${r.taught} skills`);
-    console.log(`  askable now        : ${r.measurable}  (>= ${r.minItems} PRIMARY questions each)`);
+    console.log(`  askable now        : ${r.measurable}  (>= ${r.minItems} distinct FACTS each)`);
     console.log(`  already in the set : ${r.kept}`);
     console.log(`  ADDED              : ${r.added.length}${r.added.length ? '  ' + r.added.join(', ') : ''}`);
     console.log(`  DROPPED            : ${r.dropped.length}${r.dropped.length ? '  ' + r.dropped.join(', ') : ''}`);

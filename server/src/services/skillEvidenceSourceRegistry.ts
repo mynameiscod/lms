@@ -71,6 +71,17 @@ export interface NormalisedItem {
    * screen lists items to be tagged and has no use for options.
    */
   options?: NormalisedOption[];
+  /**
+   * The curriculum facts this item tests, for banks that were generated rather than written.
+   *
+   * A generated bank reaches its size by recombining a small set of claims, so two items with
+   * different ids can be the same question. Where the importer worked out which facts an item
+   * rests on, they travel with it — the selector needs them to avoid spending four slots on one
+   * fact, and to avoid re-asking at a retake what the student has already answered.
+   *
+   * Absent for hand-authored content, where the id already identifies the question.
+   */
+  factKeys?: string[];
   tenantId: string;
 }
 
@@ -150,6 +161,7 @@ const assessmentItemAdapter: SourceAdapter = {
       codeSnippet: r.codeSnippet || undefined,
       language: r.language || undefined,
       options: assessmentItemOptions(r),
+      factKeys: r.factKeys?.length ? r.factKeys : undefined,
       tenantId,
     }));
   },

@@ -14,11 +14,15 @@
  *   npx ts-node src/scripts/localAdaptiveDoctor.ts <tenantId> --fix
  */
 
+import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import CareerSkill from '../models/CareerSkill';
 import StageSkillSet from '../models/StageSkillSet';
 import SkillEvidence from '../models/SkillEvidence';
 import RoleSkillBlueprint from '../models/RoleSkillBlueprint';
+
+/** Without this the fallback URI wins and the script silently works on the wrong database. */
+dotenv.config();
 
 /**
  * Skills that describe a HABIT rather than a capability.

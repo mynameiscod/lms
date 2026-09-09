@@ -60,6 +60,13 @@ export interface GenerationReport {
   exactMatches: number;
   difficultyFallbacks: number;
   repeatedFromPreviousAttempt: number;
+  /**
+   * Slots that had to re-test a fact already covered earlier in the same paper.
+   *
+   * Zero on a healthy bank. A positive number means some skill has fewer distinct facts than
+   * the policy asks slots of it, so the paper measures less than its length suggests.
+   */
+  repeatedFactsInPaper: number;
   /** Slots no evidence could fill. Non-empty means generation failed. */
   shortfalls: { skillKey: string; difficulty: string; wanted: number; got: number }[];
 }
@@ -92,6 +99,14 @@ export interface GenerationInput {
   attemptNumber: number;
   /** Items this student has already seen, so a retake can prefer fresh ones. */
   seenSourceIds?: string[];
+  /**
+   * Facts this student has already been asked about, so a retake is fresh in substance.
+   *
+   * Ids alone cannot carry this for a generated bank: the same fact appears under a hundred
+   * different ids, so every one of them looks unseen and a retake re-asks what the student has
+   * already answered — measuring memory and reporting it as improvement.
+   */
+  seenFactKeys?: string[];
   /**
    * Already-resolved policy, so the build does not re-read tenant config.
    *
@@ -333,6 +348,14 @@ export interface PoolItem {
   contribution?: string;
   /** Constrained audience axes on the mapping. 0 = universal. Drives the preference below. */
   audienceSpecificity?: number;
+  /**
+   * The curriculum facts this item tests, where the bank is generated rather than authored.
+   *
+   * Absent for hand-written questions, where one item is one question and the id says all
+   * there is to say. Present for the foundation bank, where forty thousand rows rest on about
+   * three hundred and forty facts and two different ids are routinely the same question.
+   */
+  factKeys?: string[];
 }
 
 /**
@@ -350,16 +373,41 @@ export function selectItems(
   slots: AssessmentSlot[],
   pools: Map<string, PoolItem[]>,
   seed: string,
-  opts: { allowDifficultyFallback: boolean; seenSourceIds?: string[] } = { allowDifficultyFallback: true },
+  opts: {
+    allowDifficultyFallback: boolean;
+    seenSourceIds?: string[];
+    /** Facts this student has already been asked about, from earlier attempts. */
+    seenFactKeys?: string[];
+  } = { allowDifficultyFallback: true },
 ): { items: SelectedItem[]; report: GenerationReport } {
   const rand = rng(hashSeed(seed));
   const seen = new Set((opts.seenSourceIds || []).map(String));
+  const seenFacts = new Set((opts.seenFactKeys || []).map(String));
   const used = new Set<string>();
+  /** Facts already spent in THIS paper, so no two slots test the same knowledge. */
+  const usedFacts = new Set<string>();
+
+  /**
+   * Has this student already been asked what this item asks?
+   *
+   * By id for authored content. By fact for a generated bank, where a hundred and twenty rows
+   * share one fact and id-matching would call a question fresh that the student has answered
+   * before — the retake would then measure recall and report it as progress. An item counts as
+   * seen once EVERY fact in it is seen: one new fact among three old ones is still something
+   * not asked before, and treating it as stale would empty the pool for no gain.
+   */
+  const alreadySeen = (i: PoolItem): boolean =>
+    seen.has(i.sourceId)
+    || (!!i.factKeys?.length && i.factKeys.every(f => seenFacts.has(f)));
+
+  /** Would this item repeat knowledge already tested earlier in the same paper? */
+  const repeatsInThisPaper = (i: PoolItem): boolean =>
+    !!i.factKeys?.length && i.factKeys.some(f => usedFacts.has(f));
 
   const items: SelectedItem[] = [];
   const report: GenerationReport = {
     requestedSlots: slots.length, filled: 0, exactMatches: 0,
-    difficultyFallbacks: 0, repeatedFromPreviousAttempt: 0, shortfalls: [],
+    difficultyFallbacks: 0, repeatedFromPreviousAttempt: 0, repeatedFactsInPaper: 0, shortfalls: [],
   };
 
   /** Shuffled once per skill, so repeated slots for one skill draw different items. */
@@ -391,8 +439,8 @@ export function selectItems(
         .sort((a, b) => (b.audienceSpecificity ?? 0) - (a.audienceSpecificity ?? 0));
 
       shuffled.set(skillKey, [
-        ...byPreference(drawn.filter(i => !seen.has(i.sourceId))),
-        ...byPreference(drawn.filter(i => seen.has(i.sourceId))),
+        ...byPreference(drawn.filter(i => !alreadySeen(i))),
+        ...byPreference(drawn.filter(i => alreadySeen(i))),
       ]);
     }
     return shuffled.get(skillKey)!;
@@ -405,16 +453,30 @@ export function selectItems(
   for (const slot of slots) {
     const pool = poolFor(slot.skillKey);
 
-    let chosen = pool.find(i => !used.has(i.sourceId) && i.difficulty === slot.difficulty);
+    /**
+     * A candidate must be unused, and must not re-test knowledge already spent in this paper.
+     *
+     * Both passes exist because the fact rule can empty a pool. Four slots on a skill with ten
+     * facts is comfortable; four slots on a skill with two would find nothing on the third, and
+     * an unfilled slot refuses the whole assessment. So a second pass drops the fact rule and
+     * takes a repeat rather than turning the student away — a paper that measures one fact twice
+     * is worse than one that does not, and far better than none at all. The relaxation is
+     * counted, so a skill that keeps needing it can be found and given more content.
+     */
+    const pick = (match: (i: PoolItem) => boolean): PoolItem | undefined =>
+      pool.find(i => !used.has(i.sourceId) && !repeatsInThisPaper(i) && match(i))
+      ?? pool.find(i => !used.has(i.sourceId) && match(i));
+
+    let chosen = pick(i => i.difficulty === slot.difficulty);
     let served: EvidenceDifficulty | null = null;
 
     // An item with no difficulty of its own (CareerPilot's own bank has none) counts for
     // any band rather than being unusable.
-    if (!chosen) chosen = pool.find(i => !used.has(i.sourceId) && i.difficulty === null);
+    if (!chosen) chosen = pick(i => i.difficulty === null);
 
     if (!chosen && opts.allowDifficultyFallback) {
       for (const alt of adjacent[slot.difficulty]) {
-        chosen = pool.find(i => !used.has(i.sourceId) && i.difficulty === alt);
+        chosen = pick(i => i.difficulty === alt);
         if (chosen) { served = alt; break; }
       }
     }
@@ -427,7 +489,9 @@ export function selectItems(
     }
 
     used.add(chosen.sourceId);
-    if (seen.has(chosen.sourceId)) report.repeatedFromPreviousAttempt++;
+    if (repeatsInThisPaper(chosen)) report.repeatedFactsInPaper++;
+    chosen.factKeys?.forEach(f => usedFacts.add(f));
+    if (alreadySeen(chosen)) report.repeatedFromPreviousAttempt++;
     if (served) report.difficultyFallbacks++; else report.exactMatches++;
 
     items.push({
@@ -769,12 +833,14 @@ export async function buildPersonalizedAssessment(input: GenerationInput): Promi
   const poolMap = new Map<string, PoolItem[]>(pools.map(p => [p.skillKey, p.items.map(i => ({
     sourceType: i.sourceType, sourceId: i.sourceId, difficulty: i.difficulty as any, contribution: i.contribution,
     audienceSpecificity: (i as any).audienceSpecificity ?? 0,
+    factKeys: (i as any).factKeys,
   }))]));
 
   const seed = generationSeed(input.studentId, policy.key, policy.version, input.attemptNumber);
   const { items, report } = selectItems(slots, poolMap, seed, {
     allowDifficultyFallback: policy.allowDifficultyFallback,
     seenSourceIds: input.seenSourceIds,
+    seenFactKeys: input.seenFactKeys,
   });
 
   const valid = validateGeneration(report);

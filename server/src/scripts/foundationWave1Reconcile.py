@@ -39,6 +39,12 @@ OUT = os.path.join(AUDIT, 'foundation-golden-bank-wave1-reconciliation.csv')
 WAVE1 = ['PROGRAMMING_FUNDAMENTALS', 'PYTHON_BASICS', 'CONDITIONALS_BASICS', 'LOOPS_BASICS',
          'FUNCTIONS_BASICS', 'PSEUDOCODE_FLOWCHARTS', 'PROBLEM_SOLVING']
 
+# Later waves reconcile the same way against the same frozen blueprint; the skills are given on
+# the command line so the logic is not duplicated per wave.
+if len(sys.argv) > 1:
+    WAVE1 = sys.argv[1:]
+    OUT = os.path.join(AUDIT, 'foundation-golden-bank-wave-reconciliation.csv')
+
 
 def read_csv(path):
     with io.open(path, encoding='utf-8', newline='') as f:
@@ -178,7 +184,7 @@ def main():
     write_csv(OUT, list(rows[0].keys()), rows)
 
     print('')
-    print('PHASE 3A WAVE 1 — RECONCILIATION BEFORE AUTHORING')
+    print('RECONCILIATION BEFORE AUTHORING — %d skills' % len(WAVE1))
     print('')
     hdr = '%-26s %9s %5s %5s %5s %6s %7s %7s' % (
         'skill', 'allocated', 'pool', 'KEEP', 'rewr', 'remap', 'unused', 'author')
@@ -197,7 +203,7 @@ def main():
     print('legacy consuming a Golden slot: %d  (KEEP %d + rewritten %d + remapped %d)'
           % (t('keep') + t('rewrite') + t('remap'), t('keep'), t('rewrite'), t('remap')))
     print('still to author               : %d' % t('author'))
-    assert t('keep') + t('rewrite') + t('remap') + t('author') == 350
+    assert t('keep') + t('rewrite') + t('remap') + t('author') == 50 * len(WAVE1)
 
     print('')
     print('LEGACY NOT USED — the slot its measurement belongs to was already full')

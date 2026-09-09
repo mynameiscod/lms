@@ -645,3 +645,50 @@ q('GB_OS_050', 'OS_FAM12_EXHAUSTION_DIAGNOSIS', 'D5',
   'The overflow buys capacity and pays for it in time, because disks are far slower than memory. '
   'That is why it rescues a machine that is slightly short and cripples one that is badly short: '
   'the more traffic goes to the overflow, the more the cost is paid.')
+
+# =========================================================================
+# D4 AND D5 DECLARATIONS, ADDED AFTER THE FACT
+#
+# The pilot was authored before Wave 1 introduced the requirement that a D4 item name the evidence
+# in its own stem that rules the wrong answers out, and a D5 item declare whether it is transfer,
+# an edge case or a trade-off and name the hinge. Nothing about these fifty questions changes; what
+# is added is the claim each one was already making, written down where a validator can check it
+# against the stem. Attaching them here rather than editing fifty call sites keeps the authored
+# items exactly as they were reviewed and approved.
+# =========================================================================
+
+_D4_EVIDENCE = {
+    'GB_OS_020': 'In one case the second program waits and then succeeds; in another the second '
+                 'program is refused straight away',
+    'GB_OS_023': 'Both are then closed, the editor is opened again, and the preference has changed',
+    'GB_OS_026': 'Every other program keeps running normally and the machine stays up',
+    'GB_OS_029': 'The file has not been moved or altered',
+    'GB_OS_031': 'nothing about the application was changed to make that work',
+    'GB_OS_033': 'yet the processor is mostly idle',
+    'GB_OS_038': "The file's own permissions have not changed",
+    'GB_OS_043': 'still cannot write to the disk hardware directly',
+    'GB_OS_047': 'It responds normally in every other way, and closing programs does not help',
+    'GB_OS_048': 'A monitoring tool reports the processor fully used, with ample free memory and '
+                 'disk',
+}
+
+_D5_DECLARATIONS = {
+    'GB_OS_034': ('TRADEOFF', 'If the scheduler gave both equal turns of the same long length'),
+    'GB_OS_035': ('EDGE', 'Every program on a machine is waiting for something'),
+    'GB_OS_036': ('TRADEOFF', 'Which arrangement is defensible, and what does it cost?'),
+    'GB_OS_039': ('TRANSFER', 'may add files to a directory but may not list what it contains'),
+    'GB_OS_040': ('EDGE', 'removes their own permission to change it'),
+    'GB_OS_041': ('TRANSFER', 'allowed to run a program but not to read its contents'),
+    'GB_OS_044': ('TRANSFER', 'when a driver running with kernel privilege contains one'),
+    'GB_OS_045': ('TRADEOFF', 'take a driver out of the kernel and run it as an ordinary program '
+                              'instead'),
+    'GB_OS_049': ('TRANSFER', 'Adding the same memory to a machine whose processor was already '
+                              'fully used'),
+    'GB_OS_050': ('TRADEOFF', 'let it use disk space as overflow'),
+}
+
+for _item in Q:
+    if _item['id'] in _D4_EVIDENCE:
+        _item['evidence'] = _D4_EVIDENCE[_item['id']]
+    if _item['id'] in _D5_DECLARATIONS:
+        _item['mode'], _item['hinge'] = _D5_DECLARATIONS[_item['id']]

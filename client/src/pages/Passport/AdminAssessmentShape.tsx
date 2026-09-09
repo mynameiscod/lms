@@ -42,6 +42,7 @@ const AdminAssessmentShape: React.FC = () => {
     patch(r.stage, {
       skillSlots: r.defaults.skillSlots,
       maxSkills: r.defaults.maxSkills,
+      minItemsPerSkill: r.defaults.minItemsPerSkill,
       difficultyMix: { ...r.defaults.difficultyMix },
       timeLimitMinutes: 0,
     });
@@ -110,12 +111,52 @@ const AdminAssessmentShape: React.FC = () => {
               </label>
 
               <label>
+                Questions per skill
+                <input type="number" value={r.minItemsPerSkill}
+                  min={bounds?.itemsPerSkill.min} max={bounds?.itemsPerSkill.max}
+                  onChange={e => patch(r.stage, { minItemsPerSkill: Number(e.target.value) })} />
+                <em>
+                  default {r.defaults.minItemsPerSkill} · needs {r.effective.itemsForConfidence} to
+                  measure reliably at this difficulty mix
+                </em>
+              </label>
+
+              <label>
                 Time limit (minutes)
                 <input type="number" value={r.timeLimitMinutes}
                   min={0} max={bounds?.timeLimitMinutes.max}
                   onChange={e => patch(r.stage, { timeLimitMinutes: Number(e.target.value) })} />
                 <em>0 = untimed, the shipped behaviour</em>
               </label>
+            </div>
+
+            {/*
+              WHAT THE NUMBERS ACTUALLY PRODUCE.
+
+              The three fields interact and the interaction is invisible: questions divided by
+              questions-per-skill caps the skills, so asking for twelve skills on twenty-four
+              questions silently returns six. And a skill asked fewer times than its mix requires
+              contributes nothing to readiness however long the paper is — which used to be the
+              real reason a student's skill map stayed empty. Both are stated here rather than
+              left for an admin to derive.
+            */}
+            <div className={`aps-effective${r.effective.measuresReliably ? '' : ' warn'}`}>
+              <b>{r.effective.skills} skills</b> × {r.effective.itemsPerSkill} questions
+              {' '}= <b>{r.effective.slotsUsed}</b> of {r.skillSlots} questions used
+              {r.effective.skills < r.maxSkills && (
+                <span className="aps-note">
+                  {' '}· asking for {r.maxSkills} skills needs at least{' '}
+                  {r.maxSkills * r.effective.itemsPerSkill} questions
+                </span>
+              )}
+              {!r.effective.measuresReliably && (
+                <span className="aps-note">
+                  {' '}· at {r.effective.itemsPerSkill} question
+                  {r.effective.itemsPerSkill === 1 ? '' : 's'} per skill nothing reaches the
+                  confidence needed to count toward readiness — this mix needs{' '}
+                  {r.effective.itemsForConfidence}
+                </span>
+              )}
             </div>
 
             <div className="aps-mix">
@@ -138,8 +179,8 @@ const AdminAssessmentShape: React.FC = () => {
             <p className="aps-fixed">
               <i className="bi bi-lock" />
               Fixed for this stage: asks only <b>{r.allowedSkillDifficulty.join(', ').toLowerCase()}</b> skills,
-              {' '}{r.minItemsPerSkill}–{r.maxItemsPerSkill} questions per skill. These decide what the stage
-              means, so every tenant measures it the same way.
+              and how far it walks back into prerequisites. These decide what the stage means, so
+              every tenant measures it the same way.
             </p>
           </div>
         );

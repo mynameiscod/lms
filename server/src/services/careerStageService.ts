@@ -16,7 +16,7 @@
  * being edited, and a student who pushes their graduation back moves with it.
  */
 
-export type CareerStage = 'foundation' | 'build' | 'placement' | 'job_seeker';
+export type CareerStage = 'foundation' | 'build' | 'specialize' | 'placement' | 'job_seeker';
 
 /**
  * `who` spells out which degree-and-year answers land in each stage, because that is the
@@ -25,7 +25,8 @@ export type CareerStage = 'foundation' | 'build' | 'placement' | 'job_seeker';
  */
 export const CAREER_STAGES: { key: CareerStage; label: string; blurb: string; who: string }[] = [
   { key: 'foundation', label: 'Foundation', blurb: 'Fundamentals and study habits — no achievements to report yet.', who: '1st year of B.Tech, B.Sc, BCA, Diploma' },
-  { key: 'build',      label: 'Build',      blurb: 'Projects, depth, the first real proof of ability.',              who: 'B.Tech 2nd–3rd · B.Sc 2nd · MCA 1st' },
+  { key: 'build',      label: 'Build',      blurb: 'Projects, depth, the first real proof of ability.',              who: 'B.Tech 2nd · B.Sc 2nd · MCA 1st' },
+  { key: 'specialize', label: 'Specialize', blurb: 'Depth in a chosen direction, internships, the first serious portfolio.', who: 'B.Tech 3rd — courses long enough to have a third-of-four year' },
   { key: 'placement',  label: 'Placement',  blurb: 'Resume, mock interviews, applications.',                        who: 'Final year of any course' },
   { key: 'job_seeker', label: 'Job Seeker', blurb: 'Active in the market now.',                                     who: 'Graduated' },
 ];
@@ -100,8 +101,23 @@ export function stageFromCourse(degree?: string | null, yearOfStudy?: string | n
   const total = COURSE_YEARS[key];
   if (!total) return null;                       // unknown course — do not guess
 
+  /**
+   * ONE STAGE PER YEAR OF THE COURSE, read by POSITION rather than by the year number.
+   *
+   * Every year now has its own skill set, its own paper and its own roadmap, so the stages
+   * have to separate years that used to share one: second and third year were both 'build',
+   * which made "a second-year is measured like a first-year, a third-year against their role"
+   * impossible to express — the rule keys on stage, and both years produced the same one.
+   *
+   * Position, not the literal year, because courses are not all four years long. A third year
+   * IS the final year of a BCA or a B.Sc, and mapping it to 'specialize' would take a student
+   * facing placements and hand them a syllabus for the middle of a degree. So the final year
+   * claims its student first, whatever number it carries, and only the years genuinely in
+   * between fall through to build and specialize.
+   */
   if (year >= total) return 'placement';         // final year (or beyond, on a mismatch)
   if (year === 1 && total >= 3) return 'foundation';
+  if (year === 3) return 'specialize';           // only reachable on a course of 4 years or more
   return 'build';
 }
 

@@ -23,7 +23,7 @@ describe('career stage — position in the course, not months on a clock', () =>
   const cases: [string, string, string][] = [
     ['B.Tech', '1st Year', 'foundation'],
     ['B.Tech', '2nd Year', 'build'],
-    ['B.Tech', '3rd Year', 'build'],
+    ['B.Tech', '3rd Year', 'specialize'],
     ['B.Tech', '4th Year', 'placement'],
     ['B.E',    '1st Year', 'foundation'],
     ['B.E',    '4th Year', 'placement'],
@@ -42,9 +42,11 @@ describe('career stage — position in the course, not months on a clock', () =>
   });
 
   it('treats a 3rd year as final in a 3-year course but mid-course in a 4-year one', () => {
-    // The single distinction the whole design exists for.
+    // The single distinction the whole design exists for. Still the point now that each year
+    // has its own stage: the same year number means "facing placements" in one course and
+    // "a year still to go" in another, so the number alone can never decide.
     expect(stageFromCourse('B.Sc', '3rd Year')).toBe('placement');
-    expect(stageFromCourse('B.Tech', '3rd Year')).toBe('build');
+    expect(stageFromCourse('B.Tech', '3rd Year')).toBe('specialize');
   });
 
   it('starts postgraduates at build — they already hold a degree', () => {
@@ -221,7 +223,7 @@ describe('acceptance scenarios', () => {
     expect(r.stage).toBe('placement');
     expect(r.background).toBe('cs');
     // The trap: the same year number in a 4-year course means something else.
-    expect(resolveCareerProfile({ degree: 'B.Tech', yearOfStudy: '3rd Year', now: NOW }).stage).toBe('build');
+    expect(resolveCareerProfile({ degree: 'B.Tech', yearOfStudy: '3rd Year', now: NOW }).stage).toBe('specialize');
   });
 
   it('C — Arjun, MCA 1st year → build', () => {

@@ -36,3 +36,24 @@
 .aps-foot { margin-top: 18px; font-size: 12px; color: #94a3b8; }
 
 @media (max-width: 720px) { .aps-grid { grid-template-columns: 1fr; } }
+
+/*
+ * What the settings actually produce.
+ *
+ * Sits directly under the inputs because it is a consequence of them, not a separate fact —
+ * an admin changing "skills covered" needs to see, in the same glance, that the paper is not
+ * long enough to fund it.
+ */
+.aps-effective {
+  margin: 10px 0 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--aps-soft, rgba(127, 127, 127, 0.08));
+  font-size: 13px;
+  line-height: 1.5;
+}
+.aps-effective.warn {
+  background: rgba(214, 138, 20, 0.12);
+  box-shadow: inset 2px 0 0 rgba(214, 138, 20, 0.7);
+}
+.aps-effective .aps-note { opacity: 0.85; }

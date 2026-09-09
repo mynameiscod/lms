@@ -125,11 +125,19 @@ export interface GenerationInput {
 /**
  * Stages where a configured stage skill set replaces the role blueprint as the paper's scope.
  *
- * Foundation only. By `build` a student has chosen a direction and is being taught toward it,
- * and by `placement` the role IS the point — measuring them against anything else would be
- * measuring the wrong thing at exactly the moment it matters most.
+ * The first two years. Through second year every student is on the same syllabus whatever they
+ * eventually aim at, so measuring two of them differently because one ticked a box at signup
+ * would compare scores that were never comparable. The role still steers the ROADMAP at these
+ * stages — which topics are relevant — it just does not choose the questions.
+ *
+ * From `specialize` onward the role is the point: a third-year has committed to a direction and
+ * has a year to close the gap to it, and by `placement` measuring against anything but the job
+ * would be measuring the wrong thing at the moment it matters most.
+ *
+ * This list is only expressible because each year now has its own stage. While second and third
+ * year shared `build`, no entry here could separate them.
  */
-const STAGE_SCOPE_OVERRIDES_ROLE = ['foundation'];
+const STAGE_SCOPE_OVERRIDES_ROLE = ['foundation', 'build'];
 
 const norm = (v: any): string => String(v ?? '').trim().toUpperCase();
 

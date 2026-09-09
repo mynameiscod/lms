@@ -40,15 +40,15 @@ const saved = () => updateOne.mock.calls.at(-1)?.[1]?.$set?.assessmentPolicyOver
 describe('with no override', () => {
   it('uses the shipped policy exactly', async () => {
     const p = await resolveAssessmentPolicy('t1', 'build');
-    expect(p.skillSlots).toBe(20);
-    expect(p.maxSkills).toBe(8);
+    expect(p.skillSlots).toBe(shipped('build').skillSlots);
+    expect(p.maxSkills).toBe(shipped('build').maxSkills);
     expect((p as any).timeLimitMinutes).toBeFalsy();   // untimed by default
   });
 
   it('survives a config read failure rather than blocking a student', async () => {
     findOne.mockRejectedValue(new Error('mongo down'));
     const p = await resolveAssessmentPolicy('t1', 'build');
-    expect(p.skillSlots).toBe(20);
+    expect(p.skillSlots).toBe(shipped('build').skillSlots);
   });
 });
 
@@ -58,8 +58,8 @@ describe('with an override', () => {
     const p = await resolveAssessmentPolicy('t1', 'build');
 
     expect(p.skillSlots).toBe(12);
-    expect(p.maxSkills).toBe(8);                       // untouched
-    expect(p.difficultyMix).toEqual({ EASY: 0.35, MEDIUM: 0.5, HARD: 0.15 });
+    expect(p.maxSkills).toBe(shipped('build').maxSkills);   // untouched
+    expect(p.difficultyMix).toEqual(shipped('build').difficultyMix);
   });
 
   it('normalises a difficulty mix that does not sum to 100', async () => {
@@ -172,10 +172,10 @@ describe('the admin listing', () => {
     findOne.mockResolvedValue({ assessmentPolicyOverrides: [{ stage: 'build', skillSlots: 12 }] });
     const rows = await listEditablePolicies('t1');
 
-    expect(rows).toHaveLength(4);
+    expect(rows).toHaveLength(ASSESSMENT_POLICIES.length);
     const build = rows.find(r => r.stage === 'build')!;
     expect(build.skillSlots).toBe(12);
-    expect(build.defaults.skillSlots).toBe(20);
+    expect(build.defaults.skillSlots).toBe(shipped('build').skillSlots);
     expect(build.overridden).toBe(true);
 
     const foundation = rows.find(r => r.stage === 'foundation')!;

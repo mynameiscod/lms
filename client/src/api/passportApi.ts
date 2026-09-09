@@ -2440,7 +2440,10 @@ export interface AssessmentAvailability {
 export interface EditablePolicy {
   stage: string;
   label: string;
-  defaults: { skillSlots: number; maxSkills: number; difficultyMix: { EASY: number; MEDIUM: number; HARD: number } };
+  defaults: {
+    skillSlots: number; maxSkills: number; minItemsPerSkill: number;
+    difficultyMix: { EASY: number; MEDIUM: number; HARD: number };
+  };
   skillSlots: number;
   maxSkills: number;
   difficultyMix: { EASY: number; MEDIUM: number; HARD: number };
@@ -2449,13 +2452,29 @@ export interface EditablePolicy {
   overridden: boolean;
   /** Read-only context — what this stage is allowed to ask about. */
   allowedSkillDifficulty: string[];
+  /** Editable: how many questions each covered skill is asked. */
   minItemsPerSkill: number;
   maxItemsPerSkill: number;
+  /**
+   * What these settings really produce, computed server-side.
+   *
+   * The three numbers interact in a way no one should have to work out from the form: slots
+   * divided by questions-per-skill caps the skills, and a skill asked too few times counts for
+   * nothing however long the paper is.
+   */
+  effective: {
+    skills: number;
+    itemsPerSkill: number;
+    slotsUsed: number;
+    itemsForConfidence: number;
+    measuresReliably: boolean;
+  };
 }
 
 export interface PolicyBounds {
   skillSlots: { min: number; max: number };
   maxSkills: { min: number; max: number };
+  itemsPerSkill: { min: number; max: number };
   timeLimitMinutes: { min: number; max: number };
 }
 

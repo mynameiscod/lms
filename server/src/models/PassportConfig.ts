@@ -116,6 +116,7 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
         stage:       { type: String, required: true },
         skillSlots:  { type: Number },
         maxSkills:   { type: Number },
+        minItemsPerSkill: { type: Number },
         difficultyMix: {
           type: new Schema({ EASY: Number, MEDIUM: Number, HARD: Number }, { _id: false }),
           default: undefined,
@@ -146,9 +147,17 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
 // Sensible defaults applied when a tenant first opens the Passport admin.
 /** One stage's admin overrides. Every field optional — absent means "use the default". */
 export interface IAssessmentPolicyOverride {
-  stage: string;                 // foundation | build | placement | job_seeker
+  stage: string;                 // foundation | build | specialize | placement | job_seeker
   skillSlots?: number;           // how many questions
   maxSkills?: number;            // how many skills the paper spans
+  /**
+   * How many questions each covered skill is asked.
+   *
+   * The setting that decides whether a skill is measured at all: below the confidence floor
+   * it contributes nothing to readiness however long the paper is. It used to be derived from
+   * the other two, which turned a request for more breadth into a silent loss of depth.
+   */
+  minItemsPerSkill?: number;
   difficultyMix?: { EASY: number; MEDIUM: number; HARD: number };  // percentages, summing to 100
   /** Minutes. 0 or absent = untimed, which is the shipped behaviour. */
   timeLimitMinutes?: number;

@@ -159,6 +159,10 @@ export const PHASES: { key: PhaseKey; title: string; blurb: string }[] = [
 export const STAGE_MIX: Record<string, { learn: number; practice: number }> = {
   foundation: { learn: 0.60, practice: 0.40 },
   build:      { learn: 0.45, practice: 0.55 },
+  // Third year: the balance tips to doing. A direction has been chosen, so the work is depth
+  // and a portfolio rather than fresh instruction — but there is still a year to learn in,
+  // which is what separates it from the placement mix.
+  specialize: { learn: 0.35, practice: 0.65 },
   placement:  { learn: 0.30, practice: 0.70 },
   job_seeker: { learn: 0.30, practice: 0.70 },
 };

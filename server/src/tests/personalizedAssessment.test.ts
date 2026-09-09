@@ -4,6 +4,7 @@ import {
 } from '../services/personalizedAssessmentService';
 import { policyForStage, difficultyQuota, ASSESSMENT_POLICIES, DISCOVERY_SKILL_SCOPE } from '../data/assessmentPolicies';
 import { CAREER_SKILL_TAXONOMY } from '../data/careerSkillTaxonomy';
+import { CAREER_STAGES } from '../services/careerStageService';
 
 /**
  * Module 6 — fairness, determinism and coverage.
@@ -359,8 +360,11 @@ describe('FAIRNESS — different papers, same standard', () => {
 
 describe('policies and discovery scope', () => {
   it('covers every career stage', () => {
+    // Compared against the stages the product can actually derive, rather than a copy of the
+    // list. A stage with no policy produces no paper, and the way that happens is somebody
+    // adding a stage and not thinking about assessment — which a hardcoded list here hides.
     expect(ASSESSMENT_POLICIES.map(p => p.stage).sort())
-      .toEqual(['build', 'foundation', 'job_seeker', 'placement']);
+      .toEqual(CAREER_STAGES.map(s => s.key).sort());
   });
 
   it('falls back to foundation for an unknown stage rather than throwing', () => {

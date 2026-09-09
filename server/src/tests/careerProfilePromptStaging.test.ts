@@ -59,7 +59,7 @@ describe('"I have already graduated" against a studying academic year', () => {
     await setCareerProfile(reqWith({ program: 'B.Tech', branch: 'CSE', graduated: true }), res);
 
     expect(graduatedWritten()).toBe(false);        // the tick is refused
-    expect(stageWritten()).toBe('build');          // position wins
+    expect(stageWritten()).toBe('build');               // position wins
   });
 
   it('still honours "graduated" when the year agrees', async () => {
@@ -84,7 +84,8 @@ describe('"I have already graduated" against a studying academic year', () => {
   });
 
   it('uses the academic year rather than the graduation date for a current student', async () => {
-    // A far-future date would otherwise read as 'foundation' for a 3rd year.
+    // A far-future date would otherwise read as 'foundation' for a 3rd year, who is two
+    // years into a four-year course and belongs in their own stage.
     findById.mockReturnValue(lean({ passport: { degree: 'B.Tech', yearOfStudy: '3rd Year' } }));
     const res = mockRes();
 
@@ -93,7 +94,7 @@ describe('"I have already graduated" against a studying academic year', () => {
       res,
     );
 
-    expect(stageWritten()).toBe('build');
+    expect(stageWritten()).toBe('specialize');
   });
 });
 
@@ -107,7 +108,7 @@ describe('the prompt is not shown when the answer is already known', () => {
     const body = res.json.mock.calls[0][0];
     expect(body.needed).toBe(false);       // banner suppressed
     expect(body.stage).toBe('build');
-    expect(stageWritten()).toBe('build');  // cached for the engines that read it
+    expect(stageWritten()).toBe('build');       // cached for the engines that read it
   });
 
   it('still asks when there is genuinely nothing to derive from', async () => {

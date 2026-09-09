@@ -161,17 +161,56 @@ export const ASSESSMENT_POLICIES: AssessmentPolicy[] = [
     allowDifficultyFallback: true,
   },
   {
-    key: 'BUILD_V1', stage: 'build', label: 'Build-stage diagnostic', version: 1,
-    skillSlots: 20, maxSkills: 8, minItemsPerSkill: 2, maxItemsPerSkill: 4,
-    difficultyMix: mix(0.35, 0.5, 0.15),
+    key: 'BUILD_V1', stage: 'build', label: 'Build-stage diagnostic', version: 2,
+    /**
+     * Eight skills at three items, on a mix weighted at medium.
+     *
+     * Was eight skills at TWO, which could measure none of them — the old 35/50/15 mix needs
+     * four items to reach MEDIUM confidence, so every skill on the paper landed at LOW and
+     * nothing counted toward readiness. Twenty questions that measure nothing is a worse paper
+     * than twenty-four that measure eight things.
+     *
+     * The fix is the mix rather than the length. A second-year has a year of the curriculum
+     * behind them, so a paper still weighted a third easy is measuring ground they have already
+     * covered; moving to 25/50/25 makes each item worth a full point of evidence, and three of
+     * them then carry a skill to MEDIUM where four were needed before. Breadth survives — eight
+     * skills, not the six a heavier per-skill cost would have forced.
+     */
+    skillSlots: 24, maxSkills: 8, minItemsPerSkill: 3, maxItemsPerSkill: 3,
+    difficultyMix: mix(0.25, 0.5, 0.25),
     prerequisiteDepth: 1,
     preferFoundationalSkills: true,
     allowedSkillDifficulty: ['FOUNDATION', 'INTERMEDIATE'],
     allowDifficultyFallback: true,
   },
   {
-    key: 'PLACEMENT_V1', stage: 'placement', label: 'Placement readiness', version: 1,
-    skillSlots: 24, maxSkills: 10, minItemsPerSkill: 2, maxItemsPerSkill: 3,
+    key: 'SPECIALIZE_V1', stage: 'specialize', label: 'Specialisation diagnostic', version: 1,
+    /**
+     * Third year, where the role starts to matter and the syllabus stops being shared.
+     *
+     * Sits deliberately between build and placement. Eight skills at three items apiece rather
+     * than four: by this point a student has chosen a direction, so the paper has to cover the
+     * breadth that direction implies, and three items is the most it can spend on each and
+     * still finish in one sitting. Skills measured at three items reach MEDIUM confidence on a
+     * medium-weighted mix, which this has — the easy-weighted foundation paper needs four for
+     * the same certainty.
+     *
+     * Prerequisite depth of one, unlike placement's zero: a third-year aiming at a role should
+     * still be asked about what that role rests on, because there is a year left to fix it.
+     */
+    skillSlots: 24, maxSkills: 8, minItemsPerSkill: 3, maxItemsPerSkill: 3,
+    difficultyMix: mix(0.25, 0.5, 0.25),
+    prerequisiteDepth: 1,
+    preferFoundationalSkills: false,
+    allowedSkillDifficulty: ['FOUNDATION', 'INTERMEDIATE', 'ADVANCED'],
+    allowDifficultyFallback: true,
+  },
+  {
+    key: 'PLACEMENT_V1', stage: 'placement', label: 'Placement readiness', version: 2,
+    // Eight skills at three items. The harder mix reaches MEDIUM confidence in three where an
+    // easy-weighted paper needs four, so this covers more ground than foundation for the same
+    // length — but two items, as it carried before, measured none of the ten it claimed.
+    skillSlots: 24, maxSkills: 8, minItemsPerSkill: 3, maxItemsPerSkill: 3,
     difficultyMix: mix(0.2, 0.5, 0.3),
     // At placement the role's own destination skills are the point; walking back into
     // prerequisites would test what they were asked two years ago.
@@ -181,8 +220,9 @@ export const ASSESSMENT_POLICIES: AssessmentPolicy[] = [
     allowDifficultyFallback: true,
   },
   {
-    key: 'JOB_SEEKER_V1', stage: 'job_seeker', label: 'Job-seeker readiness', version: 1,
-    skillSlots: 24, maxSkills: 10, minItemsPerSkill: 2, maxItemsPerSkill: 3,
+    key: 'JOB_SEEKER_V1', stage: 'job_seeker', label: 'Job-seeker readiness', version: 2,
+    // Three items per skill, for the same reason as placement.
+    skillSlots: 24, maxSkills: 8, minItemsPerSkill: 3, maxItemsPerSkill: 3,
     difficultyMix: mix(0.15, 0.5, 0.35),
     prerequisiteDepth: 0,
     preferFoundationalSkills: false,

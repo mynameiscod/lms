@@ -3,7 +3,7 @@ import PersonalizedAssessment from '../models/PersonalizedAssessment';
 import { getCareerContext } from './careerContextService';
 import { getRoleSkillBlueprint } from './roleSkillBlueprintService';
 import { findEvidenceCandidates } from './skillEvidenceService';
-import { EvidenceDifficulty } from './skillEvidenceSourceRegistry';
+import { EvidenceDifficulty, loadItems } from './skillEvidenceSourceRegistry';
 import { hashSeed, rng, shuffle } from './paperBuilderService';
 import {
   AssessmentPolicy, policyForStage, difficultyQuota, DISCOVERY_SKILL_SCOPE,
@@ -829,6 +829,35 @@ export async function resolvePersonalizedAssessmentContext(tenantId: string, stu
       branch: context.education?.branch || undefined,
     },
   };
+}
+
+/**
+ * The facts a student has already been asked about, read from the papers they have sat.
+ *
+ * WHY THIS IS NOT OPTIONAL. `seenSourceIds` alone is enough only where one question is one piece
+ * of knowledge. The Foundation Golden bank is not built that way: its four hundred and eighty
+ * facts carry three and a half questions each, so a retake that excludes only the ids it has
+ * already shown can hand the student a different item resting on the fact they answered last
+ * month — and read the remembered answer as improvement. The selector has always known how to
+ * prevent that; it was simply never told what had been seen, because both callers passed ids and
+ * nothing else.
+ *
+ * A frozen paper records the item's id, not its facts, so they are read back through the
+ * registry — one batched query per source family, however many papers there are. Content that
+ * carries no facts contributes nothing, which is correct for a hand-authored bank where the id
+ * already identifies the question.
+ */
+export async function seenFactKeysFor(
+  tenantId: string,
+  items: { sourceType: string; sourceId: string }[],
+): Promise<string[]> {
+  if (!items.length) return [];
+  const loaded = await loadItems(tenantId, items).catch(() => new Map());
+  const facts = new Set<string>();
+  for (const item of loaded.values()) {
+    for (const f of (item as any).factKeys || []) facts.add(f);
+  }
+  return [...facts];
 }
 
 /**

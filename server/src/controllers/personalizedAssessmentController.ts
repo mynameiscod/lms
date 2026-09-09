@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import PersonalizedAssessment from '../models/PersonalizedAssessment';
 import {
   resolvePersonalizedAssessmentContext, buildPersonalizedAssessment,
-  getPersonalizedAssessmentAvailability,
+  getPersonalizedAssessmentAvailability, seenFactKeysFor,
 } from '../services/personalizedAssessmentService';
 import { loadItems, refKey } from '../services/skillEvidenceSourceRegistry';
 import { hashSeed, rng, shuffle } from '../services/paperBuilderService';
@@ -171,7 +171,13 @@ export const startPersonalizedAssessment = async (req: Request, res: Response) =
     const prior = await PersonalizedAssessment.find({ tenantId, studentId })
       .select('attemptNumber items').sort({ attemptNumber: -1 }).lean() as any[];
     const attemptNumber = (prior[0]?.attemptNumber || 0) + 1;
-    const seen = prior.flatMap((p: any) => (p.items || []).map((i: any) => i.sourceId));
+    const priorItems = prior.flatMap((p: any) => (p.items || []).map((i: any) => ({
+      sourceType: String(i.sourceType), sourceId: String(i.sourceId),
+    })));
+    const seen = priorItems.map(i => i.sourceId);
+    // Ids are not enough on a bank where several questions rest on one fact — see
+    // seenFactKeysFor. Without this a retake re-asks what the student already answered.
+    const seenFacts = await seenFactKeysFor(tenantId, priorItems);
 
     /**
      * The narrowing — the same lever a reassessment uses, aimed at one skill.
@@ -199,6 +205,7 @@ export const startPersonalizedAssessment = async (req: Request, res: Response) =
       blueprintVersion: ctx.blueprintVersion!,
       attemptNumber,
       seenSourceIds: seen,
+      seenFactKeys: seenFacts,
       policy: ctx.policy,
     });
 

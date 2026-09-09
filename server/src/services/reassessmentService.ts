@@ -6,7 +6,7 @@ import PersonalizedAssessment, { IAssessmentSnapshot } from '../models/Personali
 import { calculateStudentRoleReadiness, RoleReadinessResult } from './roleReadinessService';
 import { isEntitled } from './passportEntitlementService';
 import {
-  resolvePersonalizedAssessmentContext, buildPersonalizedAssessment,
+  resolvePersonalizedAssessmentContext, buildPersonalizedAssessment, seenFactKeysFor,
 } from './personalizedAssessmentService';
 import {
   REASSESSMENT_VERSION, resolveReassessmentConfig, ReassessmentConfig,
@@ -345,6 +345,9 @@ export async function startReassessment(input: {
   const prior = await PersonalizedAssessment.find({ tenantId, studentId })
     .select('attemptNumber items').sort({ attemptNumber: -1 }).lean() as any[];
   const attemptNumber = (prior[0]?.attemptNumber || 0) + 1;
+  const priorItems = prior.flatMap((p: any) => (p.items || []).map((i: any) => ({
+    sourceType: String(i.sourceType), sourceId: String(i.sourceId),
+  })));
 
   // Built in full before anything is written, so a coverage failure cannot leave a
   // half-generated check-in behind.
@@ -356,7 +359,16 @@ export async function startReassessment(input: {
     blueprintVersion: ctx.blueprintVersion!,
     attemptNumber,
     // Avoid repeating questions this student has already been shown, where the bank allows.
-    seenSourceIds: prior.flatMap((p: any) => (p.items || []).map((i: any) => i.sourceId)),
+    seenSourceIds: priorItems.map(i => i.sourceId),
+    /**
+     * And avoid re-asking the same FACT in different wording.
+     *
+     * A check-in exists to find out whether something changed. The Foundation bank carries
+     * several questions per fact, so excluding ids alone leaves the student answering the
+     * same knowledge a second time — and a remembered answer would be recorded as progress,
+     * which is the one failure a reassessment must not have.
+     */
+    seenFactKeys: await seenFactKeysFor(tenantId, priorItems),
   });
 
   if (!built.ok) return { ok: false, blocker: 'NO_TARGET_SKILLS', message: built.message };

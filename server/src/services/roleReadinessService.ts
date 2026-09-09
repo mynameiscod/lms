@@ -145,6 +145,29 @@ export async function calculateStudentRoleReadiness(
     }
   } else {
     blueprint = await getRoleSkillBlueprint(tenantId, roleKey);
+    /**
+     * A CHOSEN ROLE MUST NEVER LEAVE A STUDENT WITH LESS THAN AN UNDECIDED ONE.
+     *
+     * The branch above already stands the stage blueprint in when nobody has chosen a role. This
+     * one refused outright when a role WAS chosen and its blueprint was not published — so at
+     * the foundation stage, where every student is on the same syllabus and the stage skill set
+     * already governs which skills a paper may ask about, naming a direction took away the skill
+     * check-in that an undecided classmate could still open. Choosing where you are heading
+     * cannot be the thing that costs you a measurement.
+     *
+     * The fallback fires ONLY where the answer today is "unavailable", so nothing that currently
+     * works changes, and it is the same substitution, for the same reason, as the branch above.
+     * A published role blueprint still wins whenever there is one.
+     */
+    if (!blueprint || !blueprint.published) {
+      // An UNPUBLISHED blueprint counts as absent here, not as something to measure against.
+      // getRoleSkillBlueprint hands back drafts, and the published check further down rejects
+      // them for a good reason — so the fallback has to be tried before that point or it can
+      // never fire for the case that actually occurs.
+      const stage = context.derived?.stage;
+      const stageBlueprint = stage ? await getStageBlueprint(tenantId, stage) : null;
+      if (stageBlueprint) blueprint = stageBlueprint;
+    }
     if (!blueprint) {
       return { available: false, reason: 'ROLE_BLUEPRINT_NOT_READY', role: { key: roleKey }, message: 'That role is not configured yet.' };
     }

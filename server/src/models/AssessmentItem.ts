@@ -70,6 +70,48 @@ export interface IAssessmentItem extends Document {
    * Empty for hand-authored items, where each question is its own fact and the id is enough.
    */
   factKeys?: string[];
+  /**
+   * Why the keyed answer is right, shown after grading.
+   *
+   * The admin bank screen already reads `explanation` off both content families, so the field
+   * was expected here before it existed and every exam-bank row rendered a blank one. Optional,
+   * because the generated bank never had one.
+   */
+  explanation?: string;
+  /**
+   * Set only on rows imported from the frozen Foundation Golden Bank.
+   *
+   * WHY IT SITS ON THE CONTENT AND NOT ON THE MAPPING. Every field here is a property of the
+   * question — which fact it rests on, which family it belongs to, where it came from. The
+   * mapping row answers a different question, which skill this measures, and it already carries
+   * that. Splitting content properties across the mapping would mean two rows to read before
+   * anything can be said about one question.
+   *
+   * `questionId` is the bank's own identifier and the key idempotency rests on: the importer
+   * derives each row's `_id` from it, so a rerun updates rather than inserts, and the unique
+   * index below refuses a second row claiming the same Golden question even if something else
+   * writes one.
+   *
+   * `factId` is ALSO copied into `factKeys`, which is not duplication for its own sake: the
+   * selector reads factKeys and knows nothing about this block, and a value only readable here
+   * would leave the anti-repeat machinery blind. This is the audit trail; factKeys is the
+   * working copy.
+   *
+   * Absent on everything else, and nothing outside the Golden importer reads it.
+   */
+  golden?: {
+    questionId: string;
+    skillKey: string;
+    conceptId: string;
+    factId: string;
+    familyId: string;
+    reassessmentGroup: string;
+    /** D1-D5 as authored. `difficulty` above holds the same value as the 1-5 the engine reads. */
+    difficultyBand: string;
+    provenance: string;
+    /** The legacy question this was kept, rewritten or remapped from. Empty when authored. */
+    sourceQuestionId?: string;
+  };
   active: boolean;
   createdBy: string;
   createdAt: Date;
@@ -131,6 +173,27 @@ const AssessmentItemSchema = new Schema<IAssessmentItem>(
     timeLimitSeconds: { type: Number },
     tags: { type: [String], default: [] },
     factKeys: { type: [String], default: undefined },
+    explanation: { type: String },
+    golden: {
+      type: new Schema(
+        {
+          questionId: { type: String, required: true },
+          skillKey: { type: String, required: true, uppercase: true, trim: true },
+          conceptId: { type: String, required: true },
+          factId: { type: String, required: true },
+          familyId: { type: String, required: true },
+          reassessmentGroup: { type: String, required: true },
+          difficultyBand: { type: String, required: true, enum: ['D1', 'D2', 'D3', 'D4', 'D5'] },
+          provenance: {
+            type: String, required: true,
+            enum: ['AUTHORED', 'LEGACY_KEEP', 'LEGACY_REWRITE', 'LEGACY_REMAP'],
+          },
+          sourceQuestionId: { type: String },
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
     active: { type: Boolean, default: true },
     createdBy: { type: String, required: true },
   },
@@ -139,5 +202,17 @@ const AssessmentItemSchema = new Schema<IAssessmentItem>(
 
 // Primary lookup the blueprint engine uses to pull items for an exam.
 AssessmentItemSchema.index({ tenantId: 1, active: 1, dimension: 1, type: 1, difficulty: 1 });
+/**
+ * One row per Golden question per tenant — the second guard on idempotency.
+ *
+ * The importer already derives a stable `_id`, so a rerun updates in place. This refuses a
+ * duplicate written by any other path: a partial index rather than a sparse one, so the
+ * uniqueness applies only to rows that actually carry a Golden identifier and the millions of
+ * ordinary items are not all treated as sharing a null.
+ */
+AssessmentItemSchema.index(
+  { tenantId: 1, 'golden.questionId': 1 },
+  { unique: true, partialFilterExpression: { 'golden.questionId': { $exists: true } } },
+);
 
 export default mongoose.model<IAssessmentItem>('AssessmentItem', AssessmentItemSchema);

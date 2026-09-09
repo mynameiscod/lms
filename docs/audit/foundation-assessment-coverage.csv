@@ -1,34 +1,34 @@
 skillKey,skillName,stageIncluded,assessable,active,primaryAssessmentItems,distinctPrimaryFacts,requiredPrimary,questionsNeeded,measurementStatus
-BROWSER_FUNDAMENTALS,Browser Fundamentals,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-C_CONTROL_FLOW,C Control Flow,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-COMPUTER_NETWORKS,Computer Networks,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-CSS,CSS,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-DB_FUNDAMENTALS,Database Fundamentals,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-DSA_ARRAYS,Arrays,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-DSA_STRINGS,Strings,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-FUNCTIONS_BASICS,Functions,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-GIT_BRANCHING,Git Branching,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-GIT_FUNDAMENTALS,Git Fundamentals,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-HTML,HTML,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-HTTP,HTTP,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-JS_BASICS,JavaScript Basics,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-JS_DOM,JavaScript DOM,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-OPERATING_SYSTEMS,Operating Systems,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-SQL_BASICS,SQL Basics,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-TECH_CAREER_AWARENESS,Tech Career Awareness,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-TECHNICAL_EXPLANATION,Technical Explanation,true,true,true,0,0,4,4,INSUFFICIENT_EVIDENCE
-APTITUDE_DATA_INTERPRETATION,Data Interpretation,true,true,true,66,66,4,0,MEASURABLE
-APTITUDE_REASONING_LOGIC,Reasoning: Logic Puzzles,true,true,true,41,41,4,0,MEASURABLE
-APTITUDE_REASONING_SERIES,Reasoning: Series & Analogy,true,true,true,8,8,4,0,MEASURABLE
-C_BASICS,C Basics,true,true,true,12,12,4,0,MEASURABLE
-COMPUTER_ARCHITECTURE,Computer Architecture Basics,true,true,true,8,8,4,0,MEASURABLE
-CONDITIONALS_BASICS,Conditionals,true,true,true,18,18,4,0,MEASURABLE
-DEBUGGING,Debugging,true,true,true,13,13,4,0,MEASURABLE
-HOW_COMPUTERS_WORK,How Computers Work,true,true,true,45,45,4,0,MEASURABLE
-LOOPS_BASICS,Loops,true,true,true,7,7,4,0,MEASURABLE
-PATTERN_RECOGNITION,Pattern Recognition,true,true,true,21,21,4,0,MEASURABLE
-PROBLEM_SOLVING,Problem Solving,true,true,true,22,22,4,0,MEASURABLE
-PROGRAMMING_FUNDAMENTALS,Programming Fundamentals,true,true,true,53,53,4,0,MEASURABLE
-PSEUDOCODE_FLOWCHARTS,Pseudocode & Flowcharts,true,true,true,10,10,4,0,MEASURABLE
-PYTHON_BASICS,Python Basics,true,true,true,12,12,4,0,MEASURABLE
-TECHNICAL_COMMUNICATION,Technical Communication,true,true,true,30,30,4,0,MEASURABLE
+APTITUDE_DATA_INTERPRETATION,Data Interpretation,true,true,true,103,68,4,0,MEASURABLE
+APTITUDE_REASONING_LOGIC,Reasoning: Logic Puzzles,true,true,true,79,44,4,0,MEASURABLE
+APTITUDE_REASONING_SERIES,Reasoning: Series & Analogy,true,true,true,58,23,4,0,MEASURABLE
+BROWSER_FUNDAMENTALS,Browser Fundamentals,true,true,true,50,15,4,0,MEASURABLE
+C_BASICS,C Basics,true,true,true,53,18,4,0,MEASURABLE
+C_CONTROL_FLOW,C Control Flow,true,true,true,50,15,4,0,MEASURABLE
+COMPUTER_ARCHITECTURE,Computer Architecture Basics,true,true,true,56,20,4,0,MEASURABLE
+COMPUTER_NETWORKS,Computer Networks,true,true,true,50,15,4,0,MEASURABLE
+CONDITIONALS_BASICS,Conditionals,true,true,true,60,23,4,0,MEASURABLE
+CSS,CSS,true,true,true,50,15,4,0,MEASURABLE
+DB_FUNDAMENTALS,Database Fundamentals,true,true,true,50,15,4,0,MEASURABLE
+DEBUGGING,Debugging,true,true,true,52,17,4,0,MEASURABLE
+DSA_ARRAYS,Arrays,true,true,true,50,15,4,0,MEASURABLE
+DSA_STRINGS,Strings,true,true,true,50,15,4,0,MEASURABLE
+FUNCTIONS_BASICS,Functions,true,true,true,50,13,4,0,MEASURABLE
+GIT_BRANCHING,Git Branching,true,true,true,50,15,4,0,MEASURABLE
+GIT_FUNDAMENTALS,Git Fundamentals,true,true,true,50,13,4,0,MEASURABLE
+HOW_COMPUTERS_WORK,How Computers Work,true,true,true,80,44,4,0,MEASURABLE
+HTML,HTML,true,true,true,50,14,4,0,MEASURABLE
+HTTP,HTTP,true,true,true,50,15,4,0,MEASURABLE
+JS_BASICS,JavaScript Basics,true,true,true,50,15,4,0,MEASURABLE
+JS_DOM,JavaScript DOM,true,true,true,50,15,4,0,MEASURABLE
+LOOPS_BASICS,Loops,true,true,true,52,16,4,0,MEASURABLE
+OPERATING_SYSTEMS,Operating Systems,true,true,true,50,13,4,0,MEASURABLE
+PATTERN_RECOGNITION,Pattern Recognition,true,true,true,57,22,4,0,MEASURABLE
+PROBLEM_SOLVING,Problem Solving,true,true,true,66,31,4,0,MEASURABLE
+PROGRAMMING_FUNDAMENTALS,Programming Fundamentals,true,true,true,80,43,4,0,MEASURABLE
+PSEUDOCODE_FLOWCHARTS,Pseudocode & Flowcharts,true,true,true,54,18,4,0,MEASURABLE
+PYTHON_BASICS,Python Basics,true,true,true,50,15,4,0,MEASURABLE
+SQL_BASICS,SQL Basics,true,true,true,50,15,4,0,MEASURABLE
+TECH_CAREER_AWARENESS,Tech Career Awareness,true,true,true,50,15,4,0,MEASURABLE
+TECHNICAL_COMMUNICATION,Technical Communication,true,true,true,65,30,4,0,MEASURABLE
+TECHNICAL_EXPLANATION,Technical Explanation,true,true,true,50,15,4,0,MEASURABLE

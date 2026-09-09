@@ -51,3 +51,4 @@ yarn.lock
 # Miscellaneous
 .DS_Store
 .eslintcache
+__pycache__/

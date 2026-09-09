@@ -29,6 +29,7 @@ import { FOUNDATION_BATCH2, BATCH2_SKILLS } from '../data/goldenBank/foundationB
 import { FOUNDATION_BATCH3, BATCH3_SKILLS } from '../data/goldenBank/foundationBatch3';
 import { FOUNDATION_BATCH4, BATCH4_SKILLS } from '../data/goldenBank/foundationBatch4';
 import { FOUNDATION_BATCH5, BATCH5_SKILLS } from '../data/goldenBank/foundationBatch5';
+import { FOUNDATION_BATCH6, BATCH6_SKILLS } from '../data/goldenBank/foundationBatch6';
 import {
   FAMILY_ALLOCATION, PER_SKILL_TOTAL, PER_LEVEL_TOTAL, templatedAllocation,
 } from '../data/goldenBank/foundationAllocation';
@@ -41,6 +42,7 @@ const REVIEW2 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-bat
 const REVIEW3 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-batch3-review.csv');
 const REVIEW4 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-batch4-review.csv');
 const REVIEW5 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-batch5-review.csv');
+const REVIEW6 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-batch6-review.csv');
 
 const HEADER = [
   'skillKey', 'skillName', 'conceptId', 'conceptName', 'factId', 'factStatement',
@@ -96,10 +98,11 @@ const lvl = (d: string) => Number(String(d).slice(1));
 
   const populatedSkills = [
     ...BATCH1_SKILLS, ...BATCH2_SKILLS, ...BATCH3_SKILLS, ...BATCH4_SKILLS, ...BATCH5_SKILLS,
+    ...BATCH6_SKILLS,
   ];
   const authored = [
     ...FOUNDATION_BATCH1, ...FOUNDATION_BATCH2,
-    ...FOUNDATION_BATCH3, ...FOUNDATION_BATCH4, ...FOUNDATION_BATCH5,
+    ...FOUNDATION_BATCH3, ...FOUNDATION_BATCH4, ...FOUNDATION_BATCH5, ...FOUNDATION_BATCH6,
   ];
 
   /**
@@ -112,8 +115,8 @@ const lvl = (d: string) => Number(String(d).slice(1));
   const allocation: Record<string, any> = {
     ...FAMILY_ALLOCATION,
     ...templatedAllocation(
-      [...FOUNDATION_BATCH3, ...FOUNDATION_BATCH4, ...FOUNDATION_BATCH5],
-      [...BATCH3_SKILLS, ...BATCH4_SKILLS, ...BATCH5_SKILLS],
+      [...FOUNDATION_BATCH3, ...FOUNDATION_BATCH4, ...FOUNDATION_BATCH5, ...FOUNDATION_BATCH6],
+      [...BATCH3_SKILLS, ...BATCH4_SKILLS, ...BATCH5_SKILLS, ...BATCH6_SKILLS],
     ),
   };
 
@@ -160,6 +163,7 @@ const lvl = (d: string) => Number(String(d).slice(1));
   writeCsv(REVIEW3, withPlan.filter(r => BATCH3_SKILLS.includes(r.skillKey)));
   writeCsv(REVIEW4, withPlan.filter(r => BATCH4_SKILLS.includes(r.skillKey)));
   writeCsv(REVIEW5, withPlan.filter(r => BATCH5_SKILLS.includes(r.skillKey)));
+  writeCsv(REVIEW6, withPlan.filter(r => BATCH6_SKILLS.includes(r.skillKey)));
 
   /* ---- rule checks --------------------------------------------------------------------- */
 
@@ -194,7 +198,7 @@ const lvl = (d: string) => Number(String(d).slice(1));
 
   /* ---- report -------------------------------------------------------------------------- */
 
-  console.log('\nGOLDEN BANK BLUEPRINT — BATCHES 1 TO 5\n');
+  console.log('\nGOLDEN BANK BLUEPRINT — ALL BATCHES\n');
   console.log(`${'skill'.padEnd(28)}${'fams'.padStart(5)}${'facts'.padStart(6)}${'grps'.padStart(5)}`
     + `${'D1'.padStart(4)}${'D2'.padStart(4)}${'D3'.padStart(4)}${'D4'.padStart(4)}${'D5'.padStart(4)}`
     + `${'total'.padStart(7)}   coverage`);

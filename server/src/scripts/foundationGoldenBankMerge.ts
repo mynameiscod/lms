@@ -30,9 +30,11 @@ import { FOUNDATION_BATCH3, BATCH3_SKILLS } from '../data/goldenBank/foundationB
 import { FOUNDATION_BATCH4, BATCH4_SKILLS } from '../data/goldenBank/foundationBatch4';
 import { FOUNDATION_BATCH5, BATCH5_SKILLS } from '../data/goldenBank/foundationBatch5';
 import { FOUNDATION_BATCH6, BATCH6_SKILLS } from '../data/goldenBank/foundationBatch6';
+import { FOUNDATION_BATCH7, BATCH7_SKILLS } from '../data/goldenBank/foundationBatch7';
 import {
   FAMILY_ALLOCATION, PER_SKILL_TOTAL, PER_LEVEL_TOTAL, templatedAllocation,
 } from '../data/goldenBank/foundationAllocation';
+import { CAREER_SKILL_TAXONOMY } from '../data/careerSkillTaxonomy';
 
 const ROOT = path.join(__dirname, '../../..');
 const REGISTRY_IN = path.join(ROOT, 'docs/audit/foundation-golden-bank-skill-registry.csv');
@@ -43,6 +45,7 @@ const REVIEW3 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-bat
 const REVIEW4 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-batch4-review.csv');
 const REVIEW5 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-batch5-review.csv');
 const REVIEW6 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-batch6-review.csv');
+const REVIEW7 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-batch7-review.csv');
 
 const HEADER = [
   'skillKey', 'skillName', 'conceptId', 'conceptName', 'factId', 'factStatement',
@@ -96,13 +99,36 @@ const lvl = (d: string) => Number(String(d).slice(1));
   const nameByKey = new Map(registry.rows.map(r => [r.skillKey, r.skillName]));
   const skillOrder = registry.rows.map(r => r.skillKey);
 
+  const problems: string[] = [];
+
   const populatedSkills = [
     ...BATCH1_SKILLS, ...BATCH2_SKILLS, ...BATCH3_SKILLS, ...BATCH4_SKILLS, ...BATCH5_SKILLS,
-    ...BATCH6_SKILLS,
+    ...BATCH6_SKILLS, ...BATCH7_SKILLS,
   ];
+
+  /**
+   * A skill authored before the registry knew about it still belongs in the blueprint.
+   *
+   * The registry is a snapshot taken from the database, and the Mathematics skills reached the
+   * taxonomy after it was last generated. Ordering by the registry alone would have dropped all
+   * hundred and five Batch 7 families out of the merged file without a word, because the loop
+   * below emits only the skills the registry names — and a blueprint silently missing a batch is
+   * exactly the failure this script exists to prevent. So the registry stays the source of ORDER,
+   * which is what it is good for, and stops being the source of MEMBERSHIP, which it never was.
+   * The names of the appended skills come from the taxonomy, the same place the registry got its
+   * own; falling back to the raw key would put a placeholder in a reviewer-facing column.
+   */
+  const missingFromRegistry = populatedSkills.filter(k => !skillOrder.includes(k));
+  const emitOrder = [...skillOrder, ...missingFromRegistry];
+  for (const key of missingFromRegistry) {
+    const node = CAREER_SKILL_TAXONOMY.find(s => s.key === key);
+    if (!node) problems.push(`${key} is authored but is not in the taxonomy either`);
+    nameByKey.set(key, node?.name || key);
+  }
   const authored = [
     ...FOUNDATION_BATCH1, ...FOUNDATION_BATCH2,
     ...FOUNDATION_BATCH3, ...FOUNDATION_BATCH4, ...FOUNDATION_BATCH5, ...FOUNDATION_BATCH6,
+    ...FOUNDATION_BATCH7,
   ];
 
   /**
@@ -115,12 +141,12 @@ const lvl = (d: string) => Number(String(d).slice(1));
   const allocation: Record<string, any> = {
     ...FAMILY_ALLOCATION,
     ...templatedAllocation(
-      [...FOUNDATION_BATCH3, ...FOUNDATION_BATCH4, ...FOUNDATION_BATCH5, ...FOUNDATION_BATCH6],
-      [...BATCH3_SKILLS, ...BATCH4_SKILLS, ...BATCH5_SKILLS, ...BATCH6_SKILLS],
+      [...FOUNDATION_BATCH3, ...FOUNDATION_BATCH4, ...FOUNDATION_BATCH5, ...FOUNDATION_BATCH6,
+        ...FOUNDATION_BATCH7],
+      [...BATCH3_SKILLS, ...BATCH4_SKILLS, ...BATCH5_SKILLS, ...BATCH6_SKILLS, ...BATCH7_SKILLS],
     ),
   };
 
-  const problems: string[] = [];
 
   /** Attach the allocation, and refuse a family the allocation does not mention. */
   const withPlan = authored.map((r: BlueprintRow) => {
@@ -147,8 +173,19 @@ const lvl = (d: string) => Number(String(d).slice(1));
 
   const untouched = scaffold.rows.filter(r => !populatedSkills.includes(r.skillKey));
 
+  /**
+   * The target is derived, never a constant, because it has already moved once.
+   *
+   * It read 33 while the Foundation set was 33 skills, and Batch 7 made that a lie in the only
+   * direction a hard-coded total ever fails: the report went on printing "40 of 33 skills" and
+   * "untouched: -7" while everything it described was correct. A count taken from what is
+   * actually authored plus what is actually left in the scaffold cannot drift from either.
+   */
+  const untouchedSkillCount = new Set(untouched.map(r => r.skillKey)).size;
+  const TARGET_SKILLS = populatedSkills.length + untouchedSkillCount;
+
   const merged: Record<string, any>[] = [];
-  for (const key of skillOrder) {
+  for (const key of emitOrder) {
     if (populatedSkills.includes(key)) merged.push(...withPlan.filter(r => r.skillKey === key));
     else {
       for (const r of untouched.filter(x => x.skillKey === key)) {
@@ -164,6 +201,7 @@ const lvl = (d: string) => Number(String(d).slice(1));
   writeCsv(REVIEW4, withPlan.filter(r => BATCH4_SKILLS.includes(r.skillKey)));
   writeCsv(REVIEW5, withPlan.filter(r => BATCH5_SKILLS.includes(r.skillKey)));
   writeCsv(REVIEW6, withPlan.filter(r => BATCH6_SKILLS.includes(r.skillKey)));
+  writeCsv(REVIEW7, withPlan.filter(r => BATCH7_SKILLS.includes(r.skillKey)));
 
   /* ---- rule checks --------------------------------------------------------------------- */
 
@@ -226,7 +264,7 @@ const lvl = (d: string) => Number(String(d).slice(1));
 
   console.log('-'.repeat(94));
   const grand = withPlan.reduce((n, r) => n + r.plannedTotal, 0);
-  console.log(`${`TOTAL (${populatedSkills.length} of 33 skills)`.padEnd(28)}${String(withPlan.length).padStart(5)}`
+  console.log(`${`TOTAL (${populatedSkills.length} of ${TARGET_SKILLS} skills)`.padEnd(28)}${String(withPlan.length).padStart(5)}`
     + `${''.padStart(11)}${''.padStart(20)}${String(grand).padStart(7)}`);
 
   const facts = new Set(withPlan.map(r => r.factId));
@@ -237,8 +275,9 @@ const lvl = (d: string) => Number(String(d).slice(1));
   console.log(`facts measured by >1 family      : ${reused.length}  (now permitted)`);
   console.log(`questionType mcq_single          : ${withPlan.every(r => r.questionType === 'mcq_single')}`);
   console.log(`reassessment groups skill-local  : ${[...groupSkills.values()].every(s => s.size === 1)}`);
-  console.log(`untouched scaffold skills        : ${33 - populatedSkills.length}`);
-  console.log(`planned so far                   : ${grand} of ${33 * PER_SKILL_TOTAL} (33 x ${PER_SKILL_TOTAL})`);
+  console.log(`untouched scaffold skills        : ${untouchedSkillCount}`);
+  console.log(`planned so far                   : ${grand} of ${TARGET_SKILLS * PER_SKILL_TOTAL}`
+    + ` (${TARGET_SKILLS} x ${PER_SKILL_TOTAL})`);
   console.log(`database writes                  : 0`);
   console.log(`assessment questions generated   : 0`);
 

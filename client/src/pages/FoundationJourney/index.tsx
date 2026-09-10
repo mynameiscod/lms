@@ -217,6 +217,19 @@ const TopicRow: React.FC<{ topic: PlanTopic; open: boolean; onToggle: () => void
             <p className="fj-muted fj-small">No material has been added for this topic yet.</p>
           )}
 
+          {/**
+            * The full lesson lives on its own page, which is where a mission also lands.
+            *
+            * The list below stays as a peek — useful while scanning a plan — but the topic page
+            * is the one place that renders a lesson properly, so there is one screen to fix when
+            * something about a lesson is wrong rather than two that can disagree.
+            */}
+          {!!topic.topicCode && !topic.locked && (
+            <a className="fj-open-topic" href={`/careerpilot/topic/${encodeURIComponent(topic.topicCode)}`}>
+              Open the full lesson →
+            </a>
+          )}
+
           {items.length > 0 && (
             <ul className="fj-materials">
               {items.map(it => (

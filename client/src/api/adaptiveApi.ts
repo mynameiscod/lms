@@ -85,6 +85,49 @@ export interface AssignedContent {
   practiceQuestions: { title: string; description: string; difficulty: string; marks: number; options: { text: string }[] }[];
 }
 
+/** One item inside a topic — a video, the notes, or the practice set. */
+export interface TopicItem {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  depth: string | null;
+  estimatedMinutes: number;
+  /** True while this is still scaffolding. Shown to the student, never hidden from them. */
+  placeholder: boolean;
+  notesContent: string | null;
+  videoUrl: string | null;
+  videoSource: string | null;
+  practiceQuestions: {
+    type: string; title: string; description: string;
+    difficulty: string; marks: number; options: { text: string }[];
+  }[];
+}
+
+export interface TopicView {
+  topic: {
+    topicCode: string;
+    title: string;
+    moduleCode: string | null;
+    moduleName: string | null;
+    state: AssignmentState;
+    reason: string;
+    reasonText: string;
+    depth: string;
+    mandatory: boolean;
+    locked: boolean;
+    lockedBy: string | null;
+    skillKeys: string[];
+  };
+  items: TopicItem[];
+  coverage: {
+    wanted: string[]; missing: string[]; placeholders: number;
+    /** The plan points at material that no longer resolves — older than the library. */
+    stale: boolean;
+    assignedButUnavailable: number;
+  };
+}
+
 export const adaptiveApi = {
   listDirections: async (): Promise<{ key: string; name: string; blurb: string }[]> => {
     const { data } = await axios.get(`${BASE}/directions`, { headers: auth() });
@@ -123,6 +166,18 @@ export const adaptiveApi = {
   getContent: async (contentId: string): Promise<AssignedContent> => {
     const { data } = await axios.get(`${BASE}/content/${contentId}`, { headers: auth() });
     return data.content;
+  },
+
+  /**
+   * One topic, with the three items chosen for this student at their depth.
+   *
+   * This is where a mission lands. The server returns what the PLAN already chose rather than
+   * resolving again, so the page cannot show different material from the week it came from.
+   */
+  getTopic: async (studentId: string, topicCode: string): Promise<TopicView> => {
+    const { data } = await axios.get(
+      `${BASE}/students/${studentId}/topic/${encodeURIComponent(topicCode)}`, { headers: auth() });
+    return { topic: data.topic, items: data.items || [], coverage: data.coverage };
   },
 
   contentGaps: async (curriculumId: string) => {

@@ -436,6 +436,16 @@ export const getTopic = async (req: Request, res: Response) => {
         missing: ['video', 'notes', 'practice'].filter(want => !items.some(i =>
           (want === 'practice' ? i.type.startsWith('practice') : i.type === want))),
         placeholders: items.filter(i => i.placeholder).length,
+        /**
+         * The plan points at material that no longer resolves.
+         *
+         * Not the same thing as an empty topic, and telling a student "nothing is written yet"
+         * when the truth is "your plan is older than the library" sends them to complain about
+         * missing content that exists. It happens when rows are retired after a plan was built —
+         * which is exactly what the move to per-topic content did to every plan made before it.
+         */
+        stale: ids.length > 0 && items.length === 0,
+        assignedButUnavailable: Math.max(0, ids.length - items.length),
       },
     });
   } catch (e: any) {

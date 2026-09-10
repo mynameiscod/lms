@@ -165,3 +165,9 @@
   .fj-material { grid-template-columns: 1fr; gap: 4px; }
   .fj-material-type { justify-self: start; }
 }
+
+/* Through to the full lesson — the same page a mission opens. */
+.fj-open-topic { display: inline-block; margin: 4px 0 12px; background: #1d4ed8; color: #fff;
+  text-decoration: none; border-radius: 9px; padding: 8px 14px;
+  font-size: 12.5px; font-weight: 700; }
+.fj-open-topic:hover { background: #1e40af; }

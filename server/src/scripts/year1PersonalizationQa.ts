@@ -268,7 +268,17 @@ const check = (name: string, ok: boolean, detail = '') => { checks.push({ name, 
 
     /* ---- direction ------------------------------------------------------------------- */
 
-    const AIML_ONLY = ['T_STATS', 'T_ML_INTRO'];
+    /**
+     * Only T_STATS is AI/ML-only. T_ML_INTRO no longer is, and that is the curriculum's doing.
+     *
+     * The Year-1 audit made T_GENAI mandatory for every student, and GENERATIVE_AI_LLM lists
+     * AI_ML_CONCEPTS as a skill-graph prerequisite — which only T_ML_INTRO teaches. So the plan
+     * depends on it whatever direction the student is heading in, and expandRelevance pulls it
+     * back for the same reason it pulls T_HTML back. Listing it as direction-only failed against
+     * a correct engine, and demanding it be set aside would ask for a plan that gates a mandatory
+     * topic behind something it refuses to teach.
+     */
+    const AIML_ONLY = ['T_STATS'];
     const WEB_ONLY = ['T_CSS'];   // T_HTML is pulled back in by anything needing BROWSER_FUNDAMENTALS
 
     if (p.name === 'web') {
@@ -311,7 +321,7 @@ const check = (name: string, ok: boolean, detail = '') => { checks.push({ name, 
         onDir.map((d: any) => `${d.topicCode}=${d.state}`).join(' '));
       const mlIntro = byTopic.get('T_ML_INTRO');
       check(`${p.label}: on-direction topic with a met prerequisite is not locked`,
-        !!mlIntro && mlIntro.state !== 'LOCKED',
+        !!mlIntro && mlIntro.state !== 'LOCKED' && mlIntro.state !== 'NOT_RELEVANT',
         mlIntro ? `T_ML_INTRO=${mlIntro.state}` : 'topic missing');
     }
     if (p.name === 'undecided') {

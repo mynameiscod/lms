@@ -285,8 +285,18 @@ const note = (text: string) => console.log(`  ....  ${text}`);
     const was = plan1.find(p => p.topicCode === t.topicCode);
     return was && was.state !== t.state;
   });
+  /**
+   * The plan may respond on the topic that TEACHES the improved skill, or on one that was
+   * LOCKED BY it — both are the plan reacting to the new evidence.
+   *
+   * Only the first was accepted at first, and the check failed against a correct engine: the
+   * topic teaching the skill stayed NOT_EXPOSED because a sibling skill in it is still
+   * unmeasured, while the topic gated behind the skill unlocked. Insisting on the narrower
+   * signal would demand the planner ignore its own governing-belief rule.
+   */
   check('improving a skill changes what the plan asks of it',
-    movedTopics.some(t => (t.skillKeys || []).includes(weakest.skillKey)),
+    movedTopics.some(t => (t.skillKeys || []).includes(weakest.skillKey)
+      || plan1.find(p => p.topicCode === t.topicCode)?.lockedBy === weakest.skillKey),
     movedTopics.map(t => {
       const was = plan1.find(p => p.topicCode === t.topicCode);
       return `${t.topicCode} ${was!.state}->${t.state}`;

@@ -139,6 +139,38 @@ const DIMENSION: Record<string, AssessmentDimension> = {
   OPERATING_SYSTEMS: 'core_stack',
   SQL_BASICS: 'core_stack',
 
+  // Mathematics for CS (M10). Quantitative and logical reasoning, which is where the other
+  // reasoning skills already sit — not `fundamentals`, which holds programming.
+  BOOLEAN_ALGEBRA: 'aptitude',
+  MATRICES: 'aptitude',
+  NUMBER_SYSTEMS_BINARY: 'aptitude',
+  PROBABILITY_STATISTICS: 'aptitude',
+  PROPOSITIONAL_LOGIC: 'aptitude',
+  RELATIONS_FUNCTIONS: 'aptitude',
+  SET_THEORY: 'aptitude',
+
+  // AI literacy (M11). Conceptual and judgement skills rather than a technology in the stack,
+  // so they group with the other things a student is taught to understand rather than operate.
+  AI_ASSISTED_CODING: 'fundamentals',
+  AI_ML_CONCEPTS: 'fundamentals',
+  AI_RESPONSIBLE_USE: 'fundamentals',
+  GENERATIVE_AI_LLM: 'fundamentals',
+  PROMPT_ENGINEERING: 'fundamentals',
+
+  // Operating systems and the shell (M09), joining OPERATING_SYSTEMS in the practical stack.
+  FILE_SYSTEMS_PERMISSIONS: 'core_stack',
+  OS_MEMORY: 'core_stack',
+  OS_PROCESSES: 'core_stack',
+  SHELL_COMMANDS: 'core_stack',
+  SHELL_PIPELINES: 'core_stack',
+
+  // Web and tooling, alongside HTML and CSS.
+  HTML_FORMS: 'core_stack',
+  IDE_PROFICIENCY: 'core_stack',
+  WEB_ACCESSIBILITY: 'core_stack',
+
+  PYTHON_STRINGS: 'fundamentals',
+
   COMPUTER_ARCHITECTURE: 'fundamentals',
   CONDITIONALS_BASICS: 'fundamentals',
   C_BASICS: 'fundamentals',

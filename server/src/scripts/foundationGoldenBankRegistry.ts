@@ -34,22 +34,27 @@ const CSV_OUT = path.join(ROOT, 'docs/audit/foundation-golden-bank-skill-registr
  * The state of the tenant when this registry was last generated, so a drift is reported rather
  * than absorbed.
  *
- * THESE ARE PRE-AUDIT FIGURES AND ARE KNOWN TO BE STALE. They describe the database before the
- * Year-1 audit added twenty-one skills and before the Golden Bank was completed to 2,700
- * questions across 54. Running this script today will report drift on every line, and that is
- * the correct behaviour rather than a fault: the numbers describe a database, this file cannot
- * see one, and inventing figures that had never been observed would turn a drift check into a
- * rubber stamp.
+ * THESE ARE NOW OBSERVED FIGURES, not the pre-audit placeholders they replaced. The Golden Bank
+ * was imported into the codebegun development tenant on 2026-09-10 — 2,700 questions across 54
+ * skills, every one of them measurable — and these are what the run reported. The previous values
+ * (33 assessable, 15 measurable, 18 insufficient) described the database before the Year-1 audit
+ * and were deliberately left stale so the drift lines would keep saying the import had not
+ * happened. It has, so they say so no longer.
  *
- * WHAT TO DO ABOUT IT. Run the script against the tenant after the bank has been imported, read
- * the drift it reports, and replace these values with what was actually observed. Until that
- * happens the drift lines are the reminder that the import has not been run.
+ * WHAT TO DO IF THIS DRIFTS AGAIN. Read what changed before editing these numbers. A drop in
+ * `measurable` means a skill lost its pool; a rise in `assessableSkills` means the curriculum
+ * grew and the stage set was realigned. Either is worth understanding before it is recorded, and
+ * a number updated without that is a rubber stamp rather than a check.
+ *
+ * `totalQuestions` counts the LEGACY quiz bank, not the Golden bank — those rows are retired from
+ * Foundation selection but never deleted, so the figure is a check that nobody has quietly
+ * removed content, not a measure of what the diagnostic draws on.
  */
 const EXPECTED = {
-  assessableSkills: 33,
+  assessableSkills: 54,
   nonAssessableExcluded: ['SELF_LEARNING'],
-  measurable: 15,
-  insufficient: 18,
+  measurable: 54,
+  insufficient: 0,
   totalQuestions: 366,
 };
 

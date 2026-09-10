@@ -2,7 +2,90 @@
 
 **Tenant** `69eccfcec11281afe4edce88` (codebegun, local development)
 **Branch** `new_cp_concept`
-**Date** 2026-09-09
+**Accepted** 2026-09-09 at 33 skills / 1,650 questions
+**Installed** 2026-09-10 at 54 skills / 2,700 questions — see §0
+
+---
+
+## 0. Install record — 2026-09-10
+
+The Year-1 build had never been applied to a database. It has now been installed into the
+development tenant, in the documented order, every step dry-run and read before `--apply`.
+
+| step | result |
+|---|---|
+| `seedCareerSkills` | 23 skills installed, taxonomy **104 → 127**. Insert-only, so no admin edit was overwritten |
+| `createFoundationCurriculum` | **15 modules, 39 topics**, all 39 mapped to skills; updated the existing curriculum rather than creating a second |
+| `seedFoundationCurriculum` | matched 39, 0 to update — the create step had already written the mappings |
+| `importGoldenBank` | **1,050 inserted, 1,650 updated** on both AssessmentItem and SkillEvidence; 0 deleted; 0 student rows written |
+| `alignStageSetToCurriculum` | stage set **33 → 54** skills, 0 dropped; `SELF_LEARNING` correctly left out as not answerable by a question |
+
+Re-running the importer dry reports **0 creates, 2,700 updates** — idempotent, as designed.
+
+**Final state**
+
+```
+taxonomy                 127 skills
+foundation stage set      54 skills          curriculum   15 modules / 39 topics
+Golden items (active)   2700                 mappings     2700 PRIMARY across 54 skills
+skills not at exactly 50   0                 legacy active   0   (366 Question rows kept)
+StudentSkillEvidence     102 unchanged       StudentSkillProfile   25 unchanged
+```
+
+**Verification after install**
+
+```
+foundationCoverageReport   54 assessable, 54 measurable, 0 insufficient, 2700 PRIMARY items
+foundationGoldenBankRegistry   matches expected values exactly
+year1DiagnosticQa          100/100
+year1PersonalizationQa     634/634
+year1E2E                    26/26 for a chosen direction, 26/26 undecided
+npm test -w server         123 suites, 2224 passed, 42 skipped, 0 failed
+```
+
+### Two defects fixed during the install
+
+1. **`seedFoundationCurriculum` never loaded `.env`** — it read an empty `MONGODB_URI` and died on
+   `Invalid scheme`. Every other script in the sequence calls `dotenv.config()`; this one was the
+   odd one out. Added.
+
+2. **The importer's `DIMENSION` map had no entry for the 21 new skills**, so the dry run refused
+   with 21 blocking problems. `dimension` is a required enum on `AssessmentItem` that nothing in
+   the Golden path selects on, but a row cannot be written without one. Extended: maths → `aptitude`,
+   AI literacy → `fundamentals`, OS/shell/web/tooling → `core_stack`, `PYTHON_STRINGS` →
+   `fundamentals`. The refusal was the importer working correctly — it named all 21 and wrote
+   nothing.
+
+### The gap this install leaves open
+
+**Learning content covers 33 of the 54 stage skills.** All 21 skills added by the audit have their
+50 questions each and no content rows, so the planner marks their topics for teaching and the
+resolver reports them as unmapped — visible in plan generation as *"5 unmapped skills"*. The
+diagnostic, Skill DNA, plan and check-in all work; what a student would open for those topics is
+not there yet. `seedFoundationContent` writes placeholders and `contentTemplates.ts` shows an
+author what a finished topic contains. **Nothing was seeded here** — placeholder rows that look
+like content are not something to create unasked.
+
+The skills without content: `AI_ASSISTED_CODING`, `AI_ML_CONCEPTS`, `AI_RESPONSIBLE_USE`,
+`BOOLEAN_ALGEBRA`, `FILE_SYSTEMS_PERMISSIONS`, `GENERATIVE_AI_LLM`, `HTML_FORMS`,
+`IDE_PROFICIENCY`, `MATRICES`, `NUMBER_SYSTEMS_BINARY`, `OS_MEMORY`, `OS_PROCESSES`,
+`PROBABILITY_STATISTICS`, `PROMPT_ENGINEERING`, `PROPOSITIONAL_LOGIC`, `PYTHON_STRINGS`,
+`RELATIONS_FUNCTIONS`, `SET_THEORY`, `SHELL_COMMANDS`, `SHELL_PIPELINES`, `WEB_ACCESSIBILITY`.
+
+### Two more QA assertions corrected against a correct engine
+
+Both are the same shape as those already recorded in §6 — the engine was right.
+
+- **`T_ML_INTRO` is no longer AI/ML-only.** The audit made `T_GENAI` mandatory for every student,
+  and `GENERATIVE_AI_LLM` lists `AI_ML_CONCEPTS` as a graph prerequisite, which only `T_ML_INTRO`
+  teaches. `expandRelevance` therefore keeps it for every direction — the same rule that keeps
+  `T_HTML`.
+- **Improving a skill can move a topic that was *locked by* it** rather than one that teaches it.
+  Raising `AI_ML_CONCEPTS` from 0 to 51 unlocked `T_GENAI` while the topic teaching the skill
+  stayed `NOT_EXPOSED`, because a sibling skill in it is still unmeasured.
+
+The sections below record the 2026-09-09 acceptance at 33 skills / 1,650 questions. Their findings
+and verdict stand; their counts describe the smaller bank that preceded this install.
 
 ---
 

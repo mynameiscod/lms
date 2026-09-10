@@ -17,9 +17,14 @@
  *   ts-node src/seeds/careerPilot/seedFoundationCurriculum.ts --tenant=<id> --curriculum=<id> --apply
  */
 
+import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import LearningCurriculum from '../../models/LearningCurriculum';
 import CareerSkill from '../../models/CareerSkill';
+
+// Without this the script reads an empty MONGODB_URI and dies on "Invalid scheme" — every
+// other script in this sequence loads the env file, and this one was the odd one out.
+dotenv.config();
 import { FOUNDATION_MODULES, referencedSkillKeys, isMandatoryCategory } from './foundationSkillMap';
 
 export interface SeedReport {

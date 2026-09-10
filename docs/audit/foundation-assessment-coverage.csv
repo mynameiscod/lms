@@ -1,7 +1,11 @@
 skillKey,skillName,stageIncluded,assessable,active,primaryAssessmentItems,distinctPrimaryFacts,requiredPrimary,questionsNeeded,measurementStatus
+AI_ASSISTED_CODING,AI for Coding,true,true,true,50,15,4,0,MEASURABLE
+AI_ML_CONCEPTS,"AI, ML & Deep Learning",true,true,true,50,15,4,0,MEASURABLE
+AI_RESPONSIBLE_USE,Responsible AI Use,true,true,true,50,15,4,0,MEASURABLE
 APTITUDE_DATA_INTERPRETATION,Data Interpretation,true,true,true,50,15,4,0,MEASURABLE
 APTITUDE_REASONING_LOGIC,Reasoning: Logic Puzzles,true,true,true,50,15,4,0,MEASURABLE
 APTITUDE_REASONING_SERIES,Reasoning: Series & Analogy,true,true,true,50,15,4,0,MEASURABLE
+BOOLEAN_ALGEBRA,Boolean Algebra,true,true,true,50,15,4,0,MEASURABLE
 BROWSER_FUNDAMENTALS,Browser Fundamentals,true,true,true,50,15,4,0,MEASURABLE
 C_BASICS,C Basics,true,true,true,50,15,4,0,MEASURABLE
 C_CONTROL_FLOW,C Control Flow,true,true,true,50,15,4,0,MEASURABLE
@@ -13,22 +17,39 @@ DB_FUNDAMENTALS,Database Fundamentals,true,true,true,50,15,4,0,MEASURABLE
 DEBUGGING,Debugging,true,true,true,50,15,4,0,MEASURABLE
 DSA_ARRAYS,Arrays,true,true,true,50,15,4,0,MEASURABLE
 DSA_STRINGS,Strings,true,true,true,50,15,4,0,MEASURABLE
+FILE_SYSTEMS_PERMISSIONS,File Systems & Permissions,true,true,true,50,15,4,0,MEASURABLE
 FUNCTIONS_BASICS,Functions,true,true,true,50,13,4,0,MEASURABLE
+GENERATIVE_AI_LLM,Generative AI & LLMs,true,true,true,50,15,4,0,MEASURABLE
 GIT_BRANCHING,Git Branching,true,true,true,50,15,4,0,MEASURABLE
 GIT_FUNDAMENTALS,Git Fundamentals,true,true,true,50,13,4,0,MEASURABLE
 HOW_COMPUTERS_WORK,How Computers Work,true,true,true,50,14,4,0,MEASURABLE
 HTML,HTML,true,true,true,50,14,4,0,MEASURABLE
+HTML_FORMS,HTML Forms,true,true,true,50,15,4,0,MEASURABLE
 HTTP,HTTP,true,true,true,50,15,4,0,MEASURABLE
+IDE_PROFICIENCY,Editor & Dev Environment,true,true,true,50,15,4,0,MEASURABLE
 JS_BASICS,JavaScript Basics,true,true,true,50,15,4,0,MEASURABLE
 JS_DOM,JavaScript DOM,true,true,true,50,15,4,0,MEASURABLE
 LOOPS_BASICS,Loops,true,true,true,50,14,4,0,MEASURABLE
+MATRICES,Matrices,true,true,true,50,15,4,0,MEASURABLE
+NUMBER_SYSTEMS_BINARY,Number Systems & Binary,true,true,true,50,15,4,0,MEASURABLE
 OPERATING_SYSTEMS,Operating Systems,true,true,true,50,13,4,0,MEASURABLE
+OS_MEMORY,Memory Concepts,true,true,true,50,15,4,0,MEASURABLE
+OS_PROCESSES,Processes & Programs,true,true,true,50,15,4,0,MEASURABLE
 PATTERN_RECOGNITION,Pattern Recognition,true,true,true,50,15,4,0,MEASURABLE
+PROBABILITY_STATISTICS,Probability & Statistics Basics,true,true,true,50,15,4,0,MEASURABLE
 PROBLEM_SOLVING,Problem Solving,true,true,true,50,15,4,0,MEASURABLE
 PROGRAMMING_FUNDAMENTALS,Programming Fundamentals,true,true,true,50,13,4,0,MEASURABLE
+PROMPT_ENGINEERING,Prompting Fundamentals,true,true,true,50,15,4,0,MEASURABLE
+PROPOSITIONAL_LOGIC,Propositional Logic,true,true,true,50,15,4,0,MEASURABLE
 PSEUDOCODE_FLOWCHARTS,Pseudocode & Flowcharts,true,true,true,50,14,4,0,MEASURABLE
 PYTHON_BASICS,Python Basics,true,true,true,50,15,4,0,MEASURABLE
+PYTHON_STRINGS,Python Strings,true,true,true,50,15,4,0,MEASURABLE
+RELATIONS_FUNCTIONS,Relations & Functions,true,true,true,50,15,4,0,MEASURABLE
+SET_THEORY,Sets,true,true,true,50,15,4,0,MEASURABLE
+SHELL_COMMANDS,Shell Commands,true,true,true,50,15,4,0,MEASURABLE
+SHELL_PIPELINES,Pipes & Redirection,true,true,true,50,15,4,0,MEASURABLE
 SQL_BASICS,SQL Basics,true,true,true,50,15,4,0,MEASURABLE
 TECH_CAREER_AWARENESS,Tech Career Awareness,true,true,true,50,15,4,0,MEASURABLE
 TECHNICAL_COMMUNICATION,Technical Communication,true,true,true,50,15,4,0,MEASURABLE
 TECHNICAL_EXPLANATION,Technical Explanation,true,true,true,50,15,4,0,MEASURABLE
+WEB_ACCESSIBILITY,Web Accessibility Basics,true,true,true,50,15,4,0,MEASURABLE

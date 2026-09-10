@@ -39,6 +39,8 @@ export interface ContentLibraryItem {
    * Without skillKeys a row is findable by keyword and by nothing else — the adaptive plan
    * resolves material by canonical skill, so unmapped content is invisible to it. */
   skillKeys?: string[];
+  /** Written for one specific curriculum topic; preferred over skill-only matches for it. */
+  topicCode?: string;
   learningDepth?: LearningDepth;
   /** Practice difficulty on the 1-4 scale the planner assigns against. */
   difficultyLevel?: 1 | 2 | 3 | 4;

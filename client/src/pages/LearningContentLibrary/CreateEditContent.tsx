@@ -252,6 +252,7 @@ export default function CreateEditContent() {
         // Adaptive fields. Arrays go as JSON because multipart has no array type, and the
         // server parses them back — the same convention topicTags already uses above.
         fd.append('skillKeys',            JSON.stringify(form.skillKeys || []));
+        fd.append('topicCode',            form.topicCode || '');
         fd.append('learningDepth',        form.learningDepth || '');
         fd.append('difficultyLevel',      form.difficultyLevel ? String(form.difficultyLevel) : '');
         fd.append('canonical',            String(!!form.canonical));
@@ -297,6 +298,7 @@ export default function CreateEditContent() {
          */
         const adaptive: Record<string, any> = {
           skillKeys:            form.skillKeys || [],
+          topicCode:            form.topicCode || '',
           learningDepth:        form.learningDepth || '',
           difficultyLevel:      form.difficultyLevel || '',
           canonical:            !!form.canonical,
@@ -570,6 +572,20 @@ export default function CreateEditContent() {
               </div>
             </>
           )}
+        </Field>
+
+        <Field label="Written for one specific topic (optional)">
+          <input
+            value={form.topicCode || ''}
+            onChange={e => set('topicCode', e.target.value)}
+            placeholder="e.g. T_CAREERS_DATA — leave blank to serve every topic that teaches these skills"
+            style={{ ...inputStyle, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13 }}
+          />
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6, lineHeight: 1.5 }}>
+            Only needed where several topics teach the same skill and each deserves its own
+            material — the six career topics, or the six Linux topics. Content with a topic code
+            wins that topic; content without one still serves them all.
+          </div>
         </Field>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>

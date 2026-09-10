@@ -51,6 +51,12 @@ export interface ResolveRequest {
   practiceCount: number;
   /** Used to prefer worked examples from the student's own field. */
   direction?: string | null;
+  /**
+   * The topic being taught, so material written for it is preferred over material that merely
+   * shares its skills. Optional: a topic with no purpose-written content resolves exactly as
+   * it did before.
+   */
+  topicCode?: string | null;
 }
 
 export interface ResolvedContent {
@@ -72,13 +78,25 @@ export interface ResolvedContent {
 /**
  * Rank candidates for one slot.
  *
- * `canonical` wins first — that is what the flag is for, and without it the tie-break falls to
+ * A TOPIC MATCH WINS ABOVE EVERYTHING, including canonical. Where several curriculum topics
+ * legitimately teach one skill — six career topics on TECH_CAREER_AWARENESS, six operating
+ * system topics on OPERATING_SYSTEMS — skill matching alone hands all six the same video.
+ * Material written for THIS topic is not merely a better match, it is the only one that is
+ * about the right subject, so it outranks a flag that only means "prefer me among equals".
+ * Content with no topicCode is unaffected and still serves every topic teaching its skills.
+ *
+ * `canonical` wins next — that is what the flag is for, and without it the tie-break falls to
  * insertion order, which is how AI day-generation ended up de-duplicating by "oldest match" for
  * years. Then a career-context match, so an AI student gets the dataset example and a web
  * student the shopping-cart one for the identical skill. Everything after that is a stable
  * tie-break so two runs cannot disagree.
  */
-function rank(a: any, b: any, direction?: string | null): number {
+function rank(a: any, b: any, direction?: string | null, topicCode?: string | null): number {
+  if (topicCode) {
+    const topic = (x: any) => (String(x.topicCode || '') === topicCode ? 0 : 1);
+    if (topic(a) !== topic(b)) return topic(a) - topic(b);
+  }
+
   const canon = (x: any) => (x.canonical ? 0 : 1);
   if (canon(a) !== canon(b)) return canon(a) - canon(b);
 
@@ -114,7 +132,7 @@ export async function resolveContentForTopic(req: ResolveRequest): Promise<Resol
     tenantId: req.tenantId,
     isPublished: true,
     skillKeys: { $in: req.skillKeys },
-  }).select('_id type learningDepth difficultyLevel skillKeys applicableDirections careerContexts canonical usageCount').lean() as any[];
+  }).select('_id type learningDepth difficultyLevel skillKeys topicCode applicableDirections careerContexts canonical usageCount').lean() as any[];
 
   if (!rows.length) return empty;
 
@@ -141,7 +159,7 @@ export async function resolveContentForTopic(req: ResolveRequest): Promise<Resol
   if (!depthUsed) { depthUsed = req.depth; atDepth = pool; }
 
   const contentIds: string[] = [];
-  const byType = (t: string) => atDepth.filter(r => r.type === t).sort((a, b) => rank(a, b, req.direction));
+  const byType = (t: string) => atDepth.filter(r => r.type === t).sort((a, b) => rank(a, b, req.direction, req.topicCode));
 
   // Teaching: one of each available, in the order a lesson is delivered.
   let hasTeaching = false;
@@ -158,7 +176,7 @@ export async function resolveContentForTopic(req: ResolveRequest): Promise<Resol
       if (!Number.isFinite(lvl)) return true;   // unrated content is usable, not excluded
       return lvl >= req.difficultyMin && lvl <= req.difficultyMax;
     })
-    .sort((a, b) => rank(a, b, req.direction))
+    .sort((a, b) => rank(a, b, req.direction, req.topicCode))
     .slice(0, Math.max(0, req.practiceCount));
 
   for (const p of practice) contentIds.push(String(p._id));

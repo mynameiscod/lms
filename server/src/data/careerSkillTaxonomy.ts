@@ -153,6 +153,13 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'PYTHON_FUNCTIONS', name: 'Python Functions', parentKey: 'PYTHON', difficulty: 'FOUNDATION', displayOrder: 30,
     description: 'Defining functions, arguments, scope and returning values.',
     prerequisiteKeys: ['PYTHON_CONTROL_FLOW'] },
+  { key: 'PYTHON_STRINGS', name: 'Python Strings', parentKey: 'PYTHON',
+    difficulty: 'FOUNDATION', displayOrder: 33,
+    // Not DSA_STRINGS, which is the algorithmic node — palindromes, anagrams, two-pointer work.
+    // This is the language one: indexing, slicing and the built-in methods. A beginner meets
+    // this months before they meet the algorithms, and scoring them as one hides the gap.
+    description: 'Indexing, slicing, immutability, traversal and the common string methods.',
+    prerequisiteKeys: ['PYTHON_CONTROL_FLOW'] },
   { key: 'PYTHON_LISTS_BASICS', name: 'Python Lists (Basics)', parentKey: 'PYTHON',
     difficulty: 'FOUNDATION', displayOrder: 35,
     description: 'Creating, indexing, slicing and looping over lists. Precedes PYTHON_COLLECTIONS.',
@@ -263,8 +270,35 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'DBMS_CONCEPTS', name: 'DBMS Concepts', parentKey: 'CS_FUNDAMENTALS', difficulty: 'INTERMEDIATE', displayOrder: 20,
     description: 'How a database engine works: storage, query processing and concurrency.',
     prerequisiteKeys: ['DB_FUNDAMENTALS'] },
+  /**
+   * NARROWED, AND THE FIVE BELOW ARE WHY.
+   *
+   * This node used to read "processes, threads, memory management and scheduling" — the whole
+   * of an OS course in one number. The Year-1 curriculum spends six topics here, and all six
+   * resolved to this single key: a student would have been served the same lesson six times
+   * and measured on one score that could not say which part they were missing.
+   *
+   * The five that follow are separately measurable, which is the only test that matters for
+   * splitting a skill. Someone can drive a shell fluently and have no idea what a permission
+   * bit means; someone can explain virtual memory and never have used a pipe.
+   */
   { key: 'OPERATING_SYSTEMS', name: 'Operating Systems', parentKey: 'CS_FUNDAMENTALS', difficulty: 'INTERMEDIATE', displayOrder: 30,
-    description: 'Processes, threads, memory management and scheduling.', aliases: ['OS'] },
+    description: 'What an OS is for: the kernel, user space, resource management and multi-tasking.', aliases: ['OS'] },
+  { key: 'OS_PROCESSES', name: 'Processes & Programs', parentKey: 'CS_FUNDAMENTALS', difficulty: 'INTERMEDIATE', displayOrder: 31,
+    description: 'A program on disk versus a process running: lifecycle, PIDs, foreground and background.',
+    prerequisiteKeys: ['OPERATING_SYSTEMS'] },
+  { key: 'OS_MEMORY', name: 'Memory Concepts', parentKey: 'CS_FUNDAMENTALS', difficulty: 'INTERMEDIATE', displayOrder: 32,
+    description: 'RAM, virtual memory, stack versus heap and why memory limits bite.',
+    prerequisiteKeys: ['OPERATING_SYSTEMS'] },
+  { key: 'FILE_SYSTEMS_PERMISSIONS', name: 'File Systems & Permissions', parentKey: 'CS_FUNDAMENTALS', difficulty: 'FOUNDATION', displayOrder: 33,
+    description: 'Directories, absolute and relative paths, ownership and read/write/execute.',
+    prerequisiteKeys: ['OPERATING_SYSTEMS'] },
+  { key: 'SHELL_COMMANDS', name: 'Shell Commands', parentKey: 'CS_FUNDAMENTALS', difficulty: 'FOUNDATION', displayOrder: 34,
+    description: 'Navigating and managing files from a terminal instead of a file manager.',
+    aliases: ['Command Line', 'Terminal'] },
+  { key: 'SHELL_PIPELINES', name: 'Pipes & Redirection', parentKey: 'CS_FUNDAMENTALS', difficulty: 'INTERMEDIATE', displayOrder: 35,
+    description: 'Composing commands: stdin/stdout, redirection, pipes and filtering text.',
+    prerequisiteKeys: ['SHELL_COMMANDS'] },
   { key: 'COMPUTER_NETWORKS', name: 'Computer Networks', parentKey: 'CS_FUNDAMENTALS', difficulty: 'INTERMEDIATE', displayOrder: 40,
     description: 'The network stack, TCP/IP, DNS and how a request reaches a server.',
     aliases: ['Networking'] },
@@ -273,9 +307,18 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
 
   // ── Web Fundamentals ──────────────────────────────────────────────────────────
   GROUP('WEB_FUNDAMENTALS', 'Web Fundamentals', 50, 'How the web works, below any framework.'),
+  // Narrowed for the same reason as OPERATING_SYSTEMS: this one key claimed structure, forms
+  // AND accessibility, so four Year-1 topics collapsed onto it. Forms and accessibility are
+  // the two a student most visibly lacks on their own, so they get their own keys.
   { key: 'HTML', name: 'HTML', parentKey: 'WEB_FUNDAMENTALS', difficulty: 'FOUNDATION', displayOrder: 10,
-    description: 'Document structure, semantic elements, forms and accessibility basics.',
+    description: 'Document structure and semantic elements: headings, text, links, images, lists and tables.',
     aliases: ['html_css'] },
+  { key: 'HTML_FORMS', name: 'HTML Forms', parentKey: 'WEB_FUNDAMENTALS', difficulty: 'FOUNDATION', displayOrder: 12,
+    description: 'Collecting input: form, label, input types, buttons and validation attributes.',
+    prerequisiteKeys: ['HTML'] },
+  { key: 'WEB_ACCESSIBILITY', name: 'Web Accessibility Basics', parentKey: 'WEB_FUNDAMENTALS', difficulty: 'INTERMEDIATE', displayOrder: 14,
+    description: 'Alt text, labelling, keyboard reachability and why semantic markup carries meaning.',
+    prerequisiteKeys: ['HTML'] },
   { key: 'CSS', name: 'CSS', parentKey: 'WEB_FUNDAMENTALS', difficulty: 'FOUNDATION', displayOrder: 20,
     description: 'Selectors, the box model, flexbox, grid and responsive layout.',
     prerequisiteKeys: ['HTML'] },
@@ -295,6 +338,9 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'GIT_BRANCHING', name: 'Git Branching', parentKey: 'SE_PRACTICES', difficulty: 'INTERMEDIATE', displayOrder: 20,
     description: 'Branches, merges, conflicts and pull requests.',
     prerequisiteKeys: ['GIT_FUNDAMENTALS'] },
+  { key: 'IDE_PROFICIENCY', name: 'Editor & Dev Environment', parentKey: 'SE_PRACTICES', difficulty: 'FOUNDATION', displayOrder: 25,
+    description: 'Working in a modern editor: navigation, extensions, the integrated terminal and running code.',
+    aliases: ['VS Code', 'IDE'] },
   { key: 'DEBUGGING', name: 'Debugging', parentKey: 'SE_PRACTICES', difficulty: 'FOUNDATION', displayOrder: 30,
     description: 'Reading errors, isolating a fault and forming a hypothesis.',
     prerequisiteKeys: ['PROGRAMMING_FUNDAMENTALS'] },
@@ -353,6 +399,80 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
     difficulty: 'FOUNDATION', displayOrder: 50,
     description: 'What backend, frontend, data, QA and cloud engineers actually do day to day.',
     aliases: ['Career Orientation'] },
+
+  // ── Mathematics for Computer Science ──────────────────────────────────────────
+  /**
+   * NOT THE SAME THING AS APTITUDE, and the distinction is the reason this group exists.
+   *
+   * The file header warns against two owners for one concept, so this needs stating: APTITUDE
+   * is the campus placement round — percentages, seating puzzles, reading comprehension, all
+   * under time pressure. This is the mathematics a CSE degree is built on and that later
+   * subjects assume. Nobody passes a compiler course on arithmetic speed, and nobody clears
+   * an aptitude round with Boolean algebra. Different content, different evidence, different
+   * consequence when it is missing.
+   *
+   * The Year-1 curriculum devotes a whole module to it and, before this, had nowhere to put
+   * any of it: seven topics with no skill to teach or measure against.
+   */
+  GROUP('MATHEMATICS', 'Mathematics for Computer Science', 45, 'The mathematics later CS subjects assume you already have.'),
+  { key: 'NUMBER_SYSTEMS_BINARY', name: 'Number Systems & Binary', parentKey: 'MATHEMATICS',
+    difficulty: 'FOUNDATION', displayOrder: 10,
+    description: 'Decimal, binary, octal and hex; conversions; bits and bytes; binary arithmetic.',
+    aliases: ['Binary', 'Number Systems'] },
+  { key: 'SET_THEORY', name: 'Sets', parentKey: 'MATHEMATICS',
+    difficulty: 'FOUNDATION', displayOrder: 20,
+    description: 'Union, intersection, difference, complement and Venn diagrams — and their echo in queries.',
+    aliases: ['Set Theory'] },
+  { key: 'RELATIONS_FUNCTIONS', name: 'Relations & Functions', parentKey: 'MATHEMATICS',
+    difficulty: 'FOUNDATION', displayOrder: 30,
+    description: 'Ordered pairs, domain and range, one-to-one versus many-to-one, composition.',
+    prerequisiteKeys: ['SET_THEORY'] },
+  { key: 'PROPOSITIONAL_LOGIC', name: 'Propositional Logic', parentKey: 'MATHEMATICS',
+    difficulty: 'FOUNDATION', displayOrder: 40,
+    description: 'Statements, AND/OR/NOT, implication and truth tables — the maths under an if condition.',
+    aliases: ['Truth Tables'] },
+  { key: 'BOOLEAN_ALGEBRA', name: 'Boolean Algebra', parentKey: 'MATHEMATICS',
+    difficulty: 'INTERMEDIATE', displayOrder: 50,
+    description: 'Boolean variables, the basic laws, simplification and the link to logic gates.',
+    prerequisiteKeys: ['PROPOSITIONAL_LOGIC'] },
+  { key: 'MATRICES', name: 'Matrices', parentKey: 'MATHEMATICS',
+    difficulty: 'INTERMEDIATE', displayOrder: 60,
+    description: 'Addition, multiplication, transpose, and how grids and images are represented.' },
+  { key: 'PROBABILITY_STATISTICS', name: 'Probability & Statistics Basics', parentKey: 'MATHEMATICS',
+    difficulty: 'INTERMEDIATE', displayOrder: 70,
+    description: 'Sample space, events, probability, mean/median/mode and reading a small dataset.',
+    aliases: ['Statistics'] },
+
+  // ── AI Literacy ───────────────────────────────────────────────────────────────
+  /**
+   * USING AI IS NOT BUILDING AI, and these keys deliberately measure only the first.
+   *
+   * The curriculum is explicit that tool usage must not be confused with engineering
+   * expertise, so nothing here implies a student can train a model. What it does measure is
+   * whether they can use these tools without being misled by them — which for a first-year
+   * is the more urgent capability, and one nothing in the taxonomy could previously express.
+   */
+  GROUP('AI_LITERACY', 'AI Literacy', 85, 'Using AI tools well, and knowing where they are wrong.'),
+  { key: 'AI_ML_CONCEPTS', name: 'AI, ML & Deep Learning', parentKey: 'AI_LITERACY',
+    difficulty: 'FOUNDATION', displayOrder: 10,
+    description: 'Telling the three apart, and rule-based versus learned systems.',
+    aliases: ['AI Basics'] },
+  { key: 'GENERATIVE_AI_LLM', name: 'Generative AI & LLMs', parentKey: 'AI_LITERACY',
+    difficulty: 'FOUNDATION', displayOrder: 20,
+    description: 'Tokens, context, training versus inference, and why the same prompt can differ.',
+    aliases: ['LLM'], prerequisiteKeys: ['AI_ML_CONCEPTS'] },
+  { key: 'PROMPT_ENGINEERING', name: 'Prompting Fundamentals', parentKey: 'AI_LITERACY',
+    difficulty: 'FOUNDATION', displayOrder: 30,
+    description: 'Goal, context, constraints, examples and output format — then iterating.',
+    aliases: ['Prompting'], prerequisiteKeys: ['GENERATIVE_AI_LLM'] },
+  { key: 'AI_ASSISTED_CODING', name: 'AI for Coding', parentKey: 'AI_LITERACY',
+    difficulty: 'INTERMEDIATE', displayOrder: 40,
+    description: 'Reviewing generated code, finding what it got wrong, and testing before trusting.',
+    prerequisiteKeys: ['PROMPT_ENGINEERING', 'DEBUGGING'] },
+  { key: 'AI_RESPONSIBLE_USE', name: 'Responsible AI Use', parentKey: 'AI_LITERACY',
+    difficulty: 'FOUNDATION', displayOrder: 50,
+    description: 'Hallucination, source verification, bias, confidential data and academic integrity.',
+    prerequisiteKeys: ['GENERATIVE_AI_LLM'] },
 
   // ── Aptitude ──────────────────────────────────────────────────────────────────
   GROUP('APTITUDE', 'Aptitude', 80, 'The quantitative, reasoning and verbal round that opens every campus drive.'),

@@ -210,6 +210,9 @@ export async function generateAssignment(opts: GenerateOptions): Promise<Generat
       tenantId, skillKeys: d.skillKeys, depth: d.contentDepth,
       difficultyMin: d.difficultyMin, difficultyMax: d.difficultyMax,
       practiceCount: d.practiceCount, direction: resolved.direction?.key || null,
+      // Lets material written for this exact topic beat material that merely shares its
+      // skills — the difference between six career topics and six copies of one video.
+      topicCode: d.topicCode || null,
     });
     for (const k of r.coverage.unmappedSkills) contentGaps.add(k);
     return { decision: d, contentIds: r.contentIds };

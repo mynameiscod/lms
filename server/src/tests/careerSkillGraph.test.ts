@@ -270,12 +270,21 @@ describe('the shipped taxonomy is internally consistent', () => {
      * first-year needed nodes for the things they are actually taught — loops, conditionals,
      * aptitude, spoken English.
      *
+     * It moved again to 140 when the Year-1 curriculum was audited topic by topic and two
+     * whole modules turned out to have nothing to map to. Mathematics for CS had no node at
+     * all — the APTITUDE group is a placement round, not discrete maths — and AI Literacy had
+     * one loose fit. Three over-broad nodes were also split, because six Year-1 topics were
+     * landing on OPERATING_SYSTEMS alone and four on HTML: a student would have been served
+     * the same lesson repeatedly and scored on a number that could not say which part was
+     * missing.
+     *
      * The guard is not removed, because the reason for it has not changed. Every node here
      * must still be something you can say "this student is 62% there" about; a taxonomy that
-     * grows without that test becomes a textbook index nobody can navigate.
+     * grows without that test becomes a textbook index nobody can navigate. Splitting a node
+     * has to earn it: the test is whether the two halves are separately measurable.
      */
     expect(CAREER_SKILL_TAXONOMY.length).toBeGreaterThanOrEqual(40);
-    expect(CAREER_SKILL_TAXONOMY.length).toBeLessThanOrEqual(120);
+    expect(CAREER_SKILL_TAXONOMY.length).toBeLessThanOrEqual(140);
   });
 
   it('has unique keys', () => {
@@ -295,14 +304,20 @@ describe('the shipped taxonomy is internally consistent', () => {
     }
   });
 
-  it('covers the nine intended areas', () => {
+  it('covers the eleven intended areas', () => {
     // APTITUDE and LEARNING_SKILLS joined with the first-year layer: a campus drive opens
     // with an aptitude round, and whether a student shows up decides whether any of the
     // rest happens. Listed exactly rather than counted, so a stray new root fails here.
+    //
+    // MATHEMATICS and AI_LITERACY joined when the Year-1 curriculum was audited: each is a
+    // full module of it, and neither had a single node to teach or measure against. Maths is
+    // deliberately its own root rather than living under APTITUDE — a placement round and a
+    // degree's mathematical foundation are different content with different consequences,
+    // and the file header warns against giving one concept two owners.
     const roots = CAREER_SKILL_TAXONOMY.filter(s => !s.parentKey).map(s => s.key).sort();
     expect(roots).toEqual([
-      'APTITUDE', 'CS_FUNDAMENTALS', 'DATABASES', 'DSA', 'LEARNING_SKILLS',
-      'PROFESSIONAL_SKILLS', 'PROGRAMMING', 'SE_PRACTICES', 'WEB_FUNDAMENTALS',
+      'AI_LITERACY', 'APTITUDE', 'CS_FUNDAMENTALS', 'DATABASES', 'DSA', 'LEARNING_SKILLS',
+      'MATHEMATICS', 'PROFESSIONAL_SKILLS', 'PROGRAMMING', 'SE_PRACTICES', 'WEB_FUNDAMENTALS',
     ]);
   });
 

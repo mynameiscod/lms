@@ -72,6 +72,24 @@ export interface ILearningContentLibrary extends Document {
   skillKeys?: string[];
 
   /**
+   * The ONE curriculum topic this material was written for.
+   *
+   * WHY SKILLS ALONE WERE NOT ENOUGH. Content is found by skill, and that is right for most
+   * of a curriculum — but not all of it. Auditing the Year-1 foundation found six career
+   * topics resolving to TECH_CAREER_AWARENESS and six operating-system topics resolving to
+   * OPERATING_SYSTEMS. Skill mapping is not wrong there: "Data Careers" and "Cybersecurity
+   * Careers" genuinely are one capability seen twice, and inventing a skill per topic would
+   * put a number on something no assessment can measure separately. But it left every one of
+   * those topics serving the same video.
+   *
+   * So this is the narrower hook, used only where it is needed. A row carrying it is
+   * preferred for that topic; a row without it still serves every topic that teaches its
+   * skills, exactly as before. Nothing is required to set it, and nothing breaks when it is
+   * absent — which is what keeps one authored video usable across a whole spiral.
+   */
+  topicCode?: string;
+
+  /**
    * WHO this version of the material is pitched at, which is not the same as how hard it is.
    *
    * `difficulty` describes the content; `learningDepth` describes the student it suits. The same
@@ -216,6 +234,7 @@ const LearningContentLibrarySchema = new Schema<ILearningContentLibrary>(
     // Adaptive curriculum. Optional with no defaults, so existing rows are unchanged and
     // continue to be found by the topicTags queries every current screen uses.
     skillKeys:            { type: [String], default: undefined },
+    topicCode:            { type: String, trim: true },
     learningDepth:        { type: String, enum: ['FOUNDATION', 'GUIDED', 'STANDARD', 'REVISION', 'CHALLENGE'] },
     difficultyLevel:      { type: Number, min: 1, max: 4 },
     applicableDirections: { type: [String], default: undefined },

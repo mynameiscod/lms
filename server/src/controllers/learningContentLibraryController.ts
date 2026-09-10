@@ -103,6 +103,18 @@ async function readAdaptiveFields(body: any): Promise<Record<string, any>> {
   const skillKeys = await validateSkillKeys(body.skillKeys);
   if (skillKeys !== undefined) out.skillKeys = skillKeys;
 
+  /**
+   * Not validated against a curriculum, deliberately.
+   *
+   * Content is authored before the topic that will use it exists as often as after, and
+   * rejecting a code because no curriculum carries it yet would block the normal order of
+   * work. A code that matches nothing simply never wins a slot — it costs a wrong guess
+   * nothing, where a hard check would cost every early author a blocked save.
+   */
+  if (body.topicCode !== undefined) {
+    out.topicCode = String(body.topicCode ?? '').trim() || undefined;
+  }
+
   if (body.learningDepth !== undefined) {
     const depth = upper(body.learningDepth);
     if (!depth) out.learningDepth = undefined;              // '' from a multipart form → unset

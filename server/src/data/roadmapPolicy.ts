@@ -179,7 +179,17 @@ export type RoadmapUnavailable =
   | 'ROLE_BLUEPRINT_NOT_READY'
   | 'NO_READINESS_DATA'
   /** No active membership, or one whose authoritative end date has already passed. */
-  | 'MEMBERSHIP_REQUIRED';
+  | 'MEMBERSHIP_REQUIRED'
+  /**
+   * The curriculum plan this roadmap should be built from does not exist yet.
+   *
+   * The plan is created by an event that fires after a diagnostic is submitted and is
+   * deliberately not awaited, so a student who presses build immediately can arrive before it
+   * lands. Refusing for a moment is right; the alternative is building from the gap planner
+   * instead and pinning the wrong ordering to their account permanently, because a roadmap then
+   * exists and nothing rebuilds it.
+   */
+  | 'PLAN_NOT_READY';
 
 /** Round a planned duration to something a student would actually sit down and do. */
 export function roundBlock(minutes: number): number {

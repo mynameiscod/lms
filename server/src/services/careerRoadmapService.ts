@@ -10,6 +10,7 @@ import PassportContent from '../models/PassportContent';
 import { isEntitled } from './passportEntitlementService';
 import { buildRoadmapPlan, PlannerGraphNode, PlannerProfile } from './roadmapPlannerService';
 import StudentCurriculumAssignment from '../models/StudentCurriculumAssignment';
+import LearningCurriculum from '../models/LearningCurriculum';
 import { projectPlanToObjectives, ProjectedTopic } from './curriculumRoadmapProjection';
 import {
   MAX_ROADMAP_DAYS, PREREQUISITE_DEPTH, ROADMAP_VERSION, RoadmapUnavailable,
@@ -364,6 +365,34 @@ async function planFrom(inputs: PlanningInputs, now: Date, tenantId?: string, st
    * stops working.
    */
   const topics = tenantId && studentId ? await curriculumTopicsFor(tenantId, studentId) : null;
+
+  /**
+   * If this tenant teaches a curriculum, the roadmap waits for the plan rather than guessing.
+   *
+   * Falling through to the gap planner here is correct for a tenant that has no curriculum at
+   * all. It is wrong for one that does: the student would get the alphabetically-ordered,
+   * gap-derived plan — the exact thing the projection exists to replace — and it would stay,
+   * because a roadmap now exists and nothing rebuilds it on its own.
+   */
+  if (!topics && tenantId) {
+    /**
+     * A PROBE, not a requirement — its failure means "assume this tenant teaches no curriculum".
+     *
+     * This asks whether a Year-1 curriculum exists at all, to tell "the plan is a moment away"
+     * apart from "this tenant does not work that way". A caller with no database for this model
+     * cannot answer it, and the honest answer to an unanswerable probe is the behaviour that
+     * existed before the probe did: build from the gap planner.
+     *
+     * The connection is checked BEFORE asking rather than catching the failure afterwards.
+     * Mongoose buffers a query on a disconnected model for ten seconds before rejecting, and
+     * two of those inside one generation is twenty seconds of nothing — slow enough to time a
+     * caller out on a question whose answer did not matter.
+     */
+    const teaches = mongoose.connection.readyState === 1
+      ? await LearningCurriculum.exists({ tenantId, adaptiveStage: 'foundation' }).catch(() => null)
+      : null;
+    if (teaches) return { plan, body: null, notReady: true as const };
+  }
   const projected = topics
     ? projectPlanToObjectives({
       topics,
@@ -518,7 +547,7 @@ export interface GenerateResult {
   /** False when an existing plan was returned untouched, which is the normal retry case. */
   created: boolean;
   /** Set when generation was refused for a reason that is not a missing input. */
-  refused?: 'PROGRAM_WINDOW_COMPLETED';
+  refused?: 'PROGRAM_WINDOW_COMPLETED' | 'PLAN_NOT_READY';
 }
 
 /**
@@ -568,7 +597,19 @@ export async function generateRoadmap(
   );
   if (!('context' in inputs)) return { outcome: inputs, created: false };
 
-  const { body } = await planFrom(inputs, now, tenantId, studentId);
+  const planned = await planFrom(inputs, now, tenantId, studentId);
+  if ((planned as any).notReady) {
+    return {
+      outcome: {
+        available: false,
+        reason: 'PLAN_NOT_READY',
+        message: 'We are still preparing your learning plan. Try again in a moment.',
+      },
+      created: false,
+      refused: 'PLAN_NOT_READY',
+    };
+  }
+  const { body } = planned;
 
   if (existing) {
     existing.status = 'SUPERSEDED';

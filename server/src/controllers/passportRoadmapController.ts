@@ -10,6 +10,7 @@ import { ensureContent, poolMapOf, dayNumber, clampSlots } from '../services/pas
 import { curriculumFor } from '../services/curriculumService';
 import { getOrCreateProgress } from '../services/passportXpService';
 import { buildRoadmap, toPreview } from '../services/passportRoadmapService';
+import { buildCurriculumJourney } from '../services/curriculumJourneyService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -64,6 +65,34 @@ export const getRoadmap = async (req: Request, res: Response) => {
       completedKeys = new Set(progress.completed.map(c => c.key));
     }
 
+    /**
+     * THE CURRICULUM JOURNEY WINS, WHERE THERE IS ONE.
+     *
+     * This screen has always been fed by buildRoadmap, which composes days out of mission pools
+     * chosen from a pathway template — a real 90 days with no connection to the fifteen modules
+     * the student is actually being taught. They were shown "Blood relations" and "Email
+     * practice" while their plan taught hardware, then problem solving, then variables.
+     *
+     * When their roadmap was projected from the curriculum, that is what they see. The pool
+     * journey stays for anybody who has no such roadmap yet, so nothing that works today stops.
+     */
+    const curriculum = await buildCurriculumJourney({
+      tenantId, studentId, startDate, currentDay, completedKeys,
+    });
+    if (curriculum.available) {
+      return res.json({
+        roadmap: entitled ? curriculum.roadmap : toPreview(curriculum.roadmap, 7),
+        entitled,
+        priceInr: cfg?.priceInr ?? 499,
+        careerScore: assessed.careerScore,
+        level: assessed.level,
+        accessExpiresAt: user?.passport?.expiresAt || null,
+        assessedVia: assessed.source,
+        /** Which journey this is, so the screen can say what it is showing. */
+        source: 'curriculum',
+      });
+    }
+
     const full = buildRoadmap({
       attempt, pools: poolMapOf(content.missionPools, memberAxes(user)), pathways: content.pathways,
       // Retired — see passportMissionController. The journey's days are generated from
@@ -95,6 +124,7 @@ export const getRoadmap = async (req: Request, res: Response) => {
       accessExpiresAt: user?.passport?.expiresAt || null,
       /** Which instrument this plan was built from, so the screen can say so. */
       assessedVia: assessed.source,
+      source: 'pool',
     });
   } catch (e: any) {
     console.error('[passport] getRoadmap:', e);

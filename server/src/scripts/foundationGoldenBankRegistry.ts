@@ -30,7 +30,21 @@ const ROOT = path.join(__dirname, '../../..');
 const COVERAGE_IN = path.join(ROOT, 'docs/audit/foundation-assessment-coverage.csv');
 const CSV_OUT = path.join(ROOT, 'docs/audit/foundation-golden-bank-skill-registry.csv');
 
-/** Expected values, stated so a drift is reported rather than absorbed. */
+/**
+ * The state of the tenant when this registry was last generated, so a drift is reported rather
+ * than absorbed.
+ *
+ * THESE ARE PRE-AUDIT FIGURES AND ARE KNOWN TO BE STALE. They describe the database before the
+ * Year-1 audit added twenty-one skills and before the Golden Bank was completed to 2,700
+ * questions across 54. Running this script today will report drift on every line, and that is
+ * the correct behaviour rather than a fault: the numbers describe a database, this file cannot
+ * see one, and inventing figures that had never been observed would turn a drift check into a
+ * rubber stamp.
+ *
+ * WHAT TO DO ABOUT IT. Run the script against the tenant after the bank has been imported, read
+ * the drift it reports, and replace these values with what was actually observed. Until that
+ * happens the drift lines are the reminder that the import has not been run.
+ */
 const EXPECTED = {
   assessableSkills: 33,
   nonAssessableExcluded: ['SELF_LEARNING'],

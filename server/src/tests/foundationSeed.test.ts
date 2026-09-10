@@ -15,8 +15,13 @@ import { isDirectionKey } from '../data/careerDirectionPolicy';
 const allTopics = FOUNDATION_MODULES.flatMap(m => m.topics);
 
 describe('the Year-1 skill map', () => {
-  it('covers the fourteen foundation areas', () => {
-    expect(FOUNDATION_MODULES).toHaveLength(14);
+  /**
+   * Fifteen since the Year-1 audit. Aptitude was split out of Mathematics because a placement
+   * round and a degree's mathematical foundation are different work, and mapping both onto one
+   * set of skills meant neither could be taught or measured on its own.
+   */
+  it('covers the fifteen foundation areas', () => {
+    expect(FOUNDATION_MODULES).toHaveLength(15);
   });
 
   /**

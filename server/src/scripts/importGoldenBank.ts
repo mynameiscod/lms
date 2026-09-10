@@ -8,7 +8,8 @@
  *
  * The architecture is untouched: CareerSkill -> SkillEvidence -> sourceType + sourceId ->
  * registered adapter. What this file decides is only which registered content family holds the
- * 1,650 questions, and it is `assessment_item` rather than `question`. Four things settle it,
+ * bank — 2,700 questions across 54 skills since the Year-1 audit — and it is `assessment_item`
+ * rather than `question`. Four things settle it,
  * and all four are properties of this repository rather than preferences:
  *
  *   1. Question.difficultyLevel is an enum of three values. The Golden bank is authored on a
@@ -23,8 +24,9 @@
  *      and a student could be asked four questions from one family and told a skill was measured.
  *
  *   3. Question is the shared LMS quiz bank: quizzes compose from it, the admin question-bank
- *      screen lists it, usageCount and duplicate detection run over it. Putting 1,650 CareerPilot
- *      diagnostic items in there makes them selectable into ordinary college quizzes, and there
+ *      screen lists it, usageCount and duplicate detection run over it. Putting thousands of
+ *      CareerPilot diagnostic items in there makes them selectable into ordinary college quizzes,
+ *      and there
  *      is no `active` flag to retire one with — only deletion.
  *
  *   4. AssessmentItem is already handled end to end. gradeSubmittedAnswers has a branch for it,
@@ -159,7 +161,8 @@ const DIMENSION: Record<string, AssessmentDimension> = {
  * first 24 hex characters of a sha1 over a namespaced questionId are a valid ObjectId and the
  * same every time. Namespaced so a future bank cannot collide with this one by reusing an id.
  *
- * The dry run checks all 1,650 for collisions rather than trusting the hash.
+ * The dry run checks every row for collisions rather than trusting the hash, so the count is
+ * whatever the master file holds rather than a number stated here.
  */
 const stableId = (questionId: string): mongoose.Types.ObjectId =>
   new mongoose.Types.ObjectId(

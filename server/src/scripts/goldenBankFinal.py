@@ -28,9 +28,20 @@ REPORT = os.path.join(G.AUDIT, 'foundation-golden-bank-final-validation.csv')
 
 REPORT_COLS = ['checkId', 'category', 'scope', 'expectation', 'observed', 'status', 'detail']
 
-EXPECTED_SKILLS = 33
 EXPECTED_PER_SKILL = 50
-EXPECTED_PER_DIFFICULTY = 330
+
+
+def expected_skills(bp):
+    """How many skills the blueprint plans for, derived rather than stated.
+
+    This was a constant reading 33 while the Foundation set was 33 skills, and the Year-1 audit
+    made that a lie in the direction a hard-coded total always fails: the report went on
+    demanding 33 while everything it described was correct at 54. Counting the skills the frozen
+    blueprint actually allocates cannot drift from the blueprint, and the blueprint is what every
+    question was authored against.
+    """
+    return len(set(f['skillKey'] for f in bp.values()
+                   if any(int(f['plannedD%d' % n] or 0) for n in range(1, 6))))
 
 
 def row(n, category, scope, expectation, observed, ok, detail=''):
@@ -48,6 +59,9 @@ def main():
     rows, problems, bp = G.build(paths)
     skills = sorted(set(r['skillKey'] for r in rows))
     v = G.validate(rows, problems, bp, skills)
+
+    EXPECTED_SKILLS = expected_skills(bp)
+    EXPECTED_PER_DIFFICULTY = EXPECTED_SKILLS * (EXPECTED_PER_SKILL // 5)
 
     G.write_csv(MASTER, G.COLS, rows)
 

@@ -78,6 +78,23 @@ export async function createFoundationCurriculum(opts: {
   let order = 0;
   const topics: any[] = [];
 
+  /**
+   * The module HEADERS, written from the same source as the topics.
+   *
+   * These were never written by this script at all — neither the create branch nor the update
+   * branch mentioned `modules` — so the array in the database was whatever an older seed had left
+   * there. It said fourteen while the topics referenced fifteen module codes, and M15_APTITUDE
+   * rendered with no name because nothing had ever described it. A curriculum that names its
+   * modules in one place and groups its topics by another will drift again the moment somebody
+   * adds a module, so both now come from FOUNDATION_MODULES in the same pass.
+   */
+  const modules = FOUNDATION_MODULES.map(m => ({
+    moduleCode: m.moduleCode,
+    moduleName: m.moduleName,
+    displayOrder: m.displayOrder,
+    blurb: m.blurb,
+  }));
+
   for (let mi = 0; mi < FOUNDATION_MODULES.length; mi++) {
     const m = FOUNDATION_MODULES[mi];
     for (const t of m.topics) {
@@ -121,7 +138,7 @@ export async function createFoundationCurriculum(opts: {
   }
 
   if (existing) {
-    existing.set({ topics, totalDays: report.totalDays, isPublished: true, adaptiveStage: 'foundation' });
+    existing.set({ topics, modules, totalDays: report.totalDays, isPublished: true, adaptiveStage: 'foundation' });
     await existing.save();
     report.updated = true;
     report.curriculumId = String(existing._id);
@@ -135,6 +152,7 @@ export async function createFoundationCurriculum(opts: {
       targetCourse: 'B.Tech Year 1',
       totalDays: report.totalDays,
       topics,
+      modules,
       isPublished: true,
       // Claims the foundation stage, which is what lets a new first-year be enrolled in this
       // automatically rather than somebody picking a curriculum for them.

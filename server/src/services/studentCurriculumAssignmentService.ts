@@ -64,14 +64,44 @@ export interface GenerateResult {
  */
 function toPlannableTopics(curriculum: any): PlannableTopic[] {
   const topics = (curriculum.topics || []) as any[];
+
+  /**
+   * Module names and ordering come from the curriculum's own module headers.
+   *
+   * A topic stores only its moduleCode, so reading `t.moduleName` — which is what this did —
+   * yielded undefined for every topic, and every module in every student's plan was persisted
+   * with no name at all. The screen had a module code or a blank where "Programming Fundamentals"
+   * belonged, for as long as this has been running.
+   *
+   * displayOrder comes from the header too. The topic's own `order` sorted correctly by accident,
+   * because topics happen to be numbered straight through the curriculum — but reordering topics
+   * inside one module would have silently reordered the modules. The header is the thing that
+   * actually knows where a module sits.
+   */
+  const headers = new Map<string, { moduleName?: string; displayOrder?: number }>(
+    ((curriculum.modules || []) as any[]).map(m => [String(m.moduleCode), m]),
+  );
+
   return topics.map((t, i) => {
     const days = Math.max(1, (t.endDay || t.startDay || 1) - (t.startDay || 1) + 1);
+    const header = headers.get(String(t.moduleCode));
     return {
       topicId: t._id ? String(t._id) : undefined,
       topicCode: t.topicCode,
       title: t.title,
       moduleCode: t.moduleCode || 'UNGROUPED',
-      moduleName: t.moduleName,
+      // The header's name, falling back to anything the topic carries, then to the code — a
+      // module always renders as something a person can read.
+      moduleName: header?.moduleName || t.moduleName || t.moduleCode,
+      /**
+       * Deliberately the TOPIC's order, not the module header's displayOrder.
+       *
+       * The personalizer sorts on moduleOrder and falls through to state when it ties. Every topic
+       * in a module sharing one displayOrder would therefore reorder topics INSIDE a module by how
+       * urgent they are — conditions after loops, which is not a syllabus. Topics are numbered
+       * straight through the curriculum, so the topic's own order already sorts the modules
+       * correctly AND keeps the authored sequence within each one.
+       */
       moduleOrder: typeof t.order === 'number' ? t.order : i,
       order: typeof t.order === 'number' ? t.order : i,
       skillKeys: (t.skillKeys || []).map((k: string) => String(k).toUpperCase()),

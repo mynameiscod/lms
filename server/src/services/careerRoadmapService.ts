@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import User from '../models/User';
 import CareerSkill from '../models/CareerSkill';
 import StudentSkillProfile from '../models/StudentSkillProfile';
@@ -8,6 +9,8 @@ import PassportConfig from '../models/PassportConfig';
 import PassportContent from '../models/PassportContent';
 import { isEntitled } from './passportEntitlementService';
 import { buildRoadmapPlan, PlannerGraphNode, PlannerProfile } from './roadmapPlannerService';
+import StudentCurriculumAssignment from '../models/StudentCurriculumAssignment';
+import { projectPlanToObjectives, ProjectedTopic } from './curriculumRoadmapProjection';
 import {
   MAX_ROADMAP_DAYS, PREREQUISITE_DEPTH, ROADMAP_VERSION, RoadmapUnavailable,
 } from '../data/roadmapPolicy';
@@ -289,8 +292,50 @@ async function gatherInputs(
   return { context, readiness: ready, graph, profiles, roadmapDays, entitlementLimited };
 }
 
+/**
+ * The student's curriculum plan, flattened into the order it teaches.
+ *
+ * Returns null when there is no active plan, which is the case for a student who has a role and
+ * no curriculum — the gap-derived planner still answers for them, exactly as it did.
+ */
+async function curriculumTopicsFor(
+  tenantId: string, studentId: string,
+): Promise<ProjectedTopic[] | null> {
+  /**
+   * A studentId that is not an ObjectId means there is no plan to find, not a crash.
+   *
+   * StudentCurriculumAssignment stores studentId as an ObjectId, and casting an arbitrary string
+   * throws inside the driver rather than returning nothing — so an id from a caller that uses a
+   * different identifier took the whole roadmap generation down with it. Checked rather than
+   * caught, so the absence is a decision instead of a swallowed error.
+   */
+  if (!mongoose.Types.ObjectId.isValid(studentId)) return null;
+
+  const assignment = await StudentCurriculumAssignment.findOne({
+    tenantId, studentId: new mongoose.Types.ObjectId(studentId), status: 'ACTIVE',
+  }).lean() as any;
+  if (!assignment) return null;
+
+  const topics = ((assignment.moduleAssignments || []) as any[])
+    .flatMap(m => (m.topicAssignments || []) as any[])
+    .filter(t => t.topicCode);
+  if (!topics.length) return null;
+
+  return topics.map(t => ({
+    topicCode: String(t.topicCode),
+    title: String(t.title || t.topicCode),
+    skillKeys: (t.skillKeys || []).map((k: string) => String(k).toUpperCase()),
+    state: String(t.state),
+    practiceCount: Number(t.practiceCount) || 0,
+    mandatory: t.mandatory !== false,
+    locked: !!t.locked,
+    reasonText: t.reasonText || '',
+    scoreAtAssignment: t.scoreAtAssignment ?? null,
+  }));
+}
+
 /** Build the plan document body from gathered inputs. Pure apart from the planner call. */
-function planFrom(inputs: PlanningInputs, now: Date) {
+async function planFrom(inputs: PlanningInputs, now: Date, tenantId?: string, studentId?: string) {
   const { context, readiness } = inputs;
 
   const plan = buildRoadmapPlan({
@@ -306,6 +351,28 @@ function planFrom(inputs: PlanningInputs, now: Date) {
     graph: inputs.graph,
     profiles: inputs.profiles,
   });
+
+  /**
+   * THE CURRICULUM DECIDES THE ORDER, WHERE THERE IS ONE.
+   *
+   * buildRoadmapPlan above still runs, because its capacity arithmetic, phase split and week
+   * count are what the calendar is made of and they are not in dispute. What is replaced is the
+   * list of objectives: a plan ordered by gap priority, whose tie-break is alphabetical, against
+   * one ordered by what the curriculum actually teaches.
+   *
+   * Falls through untouched for a student with no curriculum plan, so nothing that works today
+   * stops working.
+   */
+  const topics = tenantId && studentId ? await curriculumTopicsFor(tenantId, studentId) : null;
+  const projected = topics
+    ? projectPlanToObjectives({
+      topics,
+      skillNames: new Map(readiness.skills.map((sk: any) => [sk.skillKey, sk.skillName])),
+      minutesPerDay: context.availability.minutesPerDay!,
+      daysPerWeek: context.availability.daysPerWeek!,
+      weekCount: plan.weekCount,
+    })
+    : null;
 
   const startDate = startOfUtcDay(now);
   const endDate = new Date(startDate.getTime() + (inputs.roadmapDays - 1) * 86400000);
@@ -337,9 +404,19 @@ function planFrom(inputs: PlanningInputs, now: Date) {
       capacity: plan.capacity,
       planningConfidence: plan.planningConfidence,
       phases: plan.phases,
-      objectives: plan.objectives.map(o => ({ ...o, origin: 'GENERATED' as const })),
-      deferred: plan.deferred,
-      report: plan.report,
+      objectives: projected
+        ? projected.objectives
+        : plan.objectives.map(o => ({ ...o, origin: 'GENERATED' as const })),
+      deferred: projected
+        ? projected.deferred.map(d => ({
+          skillKey: d.skillKey, skillName: d.skillName,
+          reasonCode: 'NOT_ASSESSED' as any,
+          reason: `${d.topicCode} did not fit inside the ${plan.weekCount}-week window.`,
+        }))
+        : plan.deferred,
+      report: projected
+        ? { ...plan.report, projectedFromCurriculum: 1, curriculumObjectives: projected.objectives.length }
+        : plan.report,
     },
   };
 }
@@ -491,7 +568,7 @@ export async function generateRoadmap(
   );
   if (!('context' in inputs)) return { outcome: inputs, created: false };
 
-  const { body } = planFrom(inputs, now);
+  const { body } = await planFrom(inputs, now, tenantId, studentId);
 
   if (existing) {
     existing.status = 'SUPERSEDED';

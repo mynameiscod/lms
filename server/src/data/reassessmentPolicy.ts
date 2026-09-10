@@ -27,8 +27,14 @@ export const REASSESSMENT_VERSION = 'REASSESSMENT_V1';
  * cooldown, freezes before/after snapshots and re-measures a ranked set of skills, none of
  * which should happen because somebody worked through today's plan. Kept apart so the
  * cooldown, the history and the analytics can each ask for the kind they mean.
+ *
+ * MODULE_ASSESSMENT is the paper at the end of a curriculum module. Also deliberately its own
+ * kind: it measures several skills at once like a reassessment but carries no cooldown and no
+ * before/after snapshot, and it gates nothing — a student may open the next module whether or
+ * not they passed it. Recording it as a REASSESSMENT would start a cooldown nobody asked for;
+ * recording it as a SKILL_CHECK would claim it measured one skill.
  */
-export const ASSESSMENT_PURPOSES = ['INITIAL', 'REASSESSMENT', 'SKILL_CHECK'] as const;
+export const ASSESSMENT_PURPOSES = ['INITIAL', 'REASSESSMENT', 'SKILL_CHECK', 'MODULE_ASSESSMENT'] as const;
 export type AssessmentPurpose = typeof ASSESSMENT_PURPOSES[number];
 
 /**

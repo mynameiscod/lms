@@ -71,6 +71,18 @@ export const materialRoute = (resourceId: string): string =>
 export const practiceRoute = (resourceId: string): string =>
   `/careerpilot/practice/${encodeURIComponent(resourceId)}`;
 
+/**
+ * Where a curriculum topic is opened — the video, the notes and the practice, together.
+ *
+ * This is the destination a learning mission has wanted since there were learning missions. Until
+ * the roadmap was projected from the curriculum an objective knew only its skill, and a skill is
+ * not a thing that renders; the mission therefore either linked to an assessment or reported that
+ * no resource was configured. An objective now carries the topic it teaches, and this is the page
+ * that teaches it.
+ */
+export const topicRoute = (topicCode: string): string =>
+  `/careerpilot/topic/${encodeURIComponent(topicCode)}`;
+
 /** Why a mission could not be made executable. Reported, never silently dropped. */
 export type MissionResourceState = 'READY' | 'RESOURCE_NOT_CONFIGURED';
 

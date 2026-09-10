@@ -32,6 +32,8 @@ router.post('/students/:studentId/plan/:curriculumId/replan', express.json(), ct
 
 // Opening assigned material. Any signed-in member may read published content; the plan is
 // what decided they should see it, and the row itself carries nothing student-specific.
+// One topic, with the three items chosen for this student. The destination of a mission.
+router.get('/students/:studentId/topic/:topicCode', ctrl.getTopic);
 router.get('/content/:contentId', ctrl.getAssignedContent);
 
 // Authoring coverage — staff only, enforced in the handler.

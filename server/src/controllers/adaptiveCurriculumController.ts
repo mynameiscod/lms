@@ -22,6 +22,7 @@ import { CAREER_DIRECTIONS } from '../data/careerDirectionPolicy';
 import { STATE_ORDER } from '../data/adaptiveCurriculumPolicy';
 import LearningCurriculum from '../models/LearningCurriculum';
 import LearningContentLibrary from '../models/LearningContentLibrary';
+import StudentCurriculumAssignment from '../models/StudentCurriculumAssignment';
 import User from '../models/User';
 
 const tenantOf = (req: Request): string => String((req as any).tenantId || (req as any).user?.tenantId || '');
@@ -329,5 +330,116 @@ const refusalMessage = (code: string): string => {
   switch (code) {
     case 'CURRICULUM_NOT_FOUND': return 'That curriculum no longer exists.';
     default: return 'That plan could not be built.';
+  }
+};
+
+/**
+ * GET /adaptive/students/:studentId/topic/:topicCode — one topic, ready to teach.
+ *
+ * THE DESTINATION A LEARNING MISSION POINTS AT. A mission used to name a skill, and a skill is
+ * not a thing that renders — so the card either linked to an assessment or reported that no
+ * resource was configured. It now names a topic, and this returns what that topic holds for THIS
+ * student: the video, the notes and the practice, already chosen at the depth their Skill DNA
+ * earned, in the order a lesson is delivered.
+ *
+ * IT READS THE PLAN RATHER THAN RESOLVING AGAIN. The three items were chosen when the plan was
+ * generated and are stored on the topic. Re-resolving here would let the page disagree with the
+ * plan it came from — a student could be shown different material from the one their week was
+ * built around, and nothing would report the difference.
+ *
+ * ANSWER KEYS NEVER LEAVE THE SERVER, the same way getAssignedContent handles it: options come
+ * back as text and `isCorrect` stays behind.
+ */
+export const getTopic = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const studentId = String(req.params.studentId);
+    const topicCode = String(req.params.topicCode);
+    if (!mayViewStudent(req, studentId)) return fail(res, 403, 'Not allowed.');
+
+    const assignment = await StudentCurriculumAssignment.findOne({
+      tenantId, studentId: new mongoose.Types.ObjectId(studentId), status: 'ACTIVE',
+    }).lean() as any;
+    if (!assignment) return fail(res, 404, 'You do not have a learning plan yet.');
+
+    const modules = (assignment.moduleAssignments || []) as any[];
+    let topic: any = null;
+    let moduleOf: any = null;
+    for (const m of modules) {
+      const hit = (m.topicAssignments || []).find((t: any) => String(t.topicCode) === topicCode);
+      if (hit) { topic = hit; moduleOf = m; break; }
+    }
+    if (!topic) return fail(res, 404, 'That topic is not in your plan.');
+
+    const ids = (topic.assignedContentIds || []).map((id: any) => String(id));
+    const rows = ids.length
+      ? await LearningContentLibrary.find({
+        _id: { $in: ids }, tenantId, isPublished: true,
+      }).lean() as any[]
+      : [];
+
+    /**
+     * Delivery order, not storage order.
+     *
+     * A lesson is watched, then read, then practised. The resolver returns items in that order
+     * already, but the database does not promise to hand back an $in query in the order it was
+     * given — so the order is restated here rather than assumed.
+     */
+    const RANK: Record<string, number> = {
+      video: 0, notes: 1, interactive_lesson: 2, tech_qa: 3, practice_coding: 4, practice_theory: 5,
+    };
+    const items = rows
+      .sort((a, b) => (RANK[a.type] ?? 9) - (RANK[b.type] ?? 9))
+      .map(r => ({
+        id: String(r._id),
+        type: r.type,
+        title: r.title,
+        description: r.description || '',
+        depth: r.learningDepth || null,
+        estimatedMinutes: r.estimatedDuration || 0,
+        /** True while this is still scaffolding rather than a lesson. Shown, never hidden. */
+        placeholder: (r.topicTags || []).includes('placeholder'),
+        notesContent: r.type === 'notes' ? (r.notesContent || null) : null,
+        videoUrl: r.type === 'video' ? (r.videoUrl || null) : null,
+        videoSource: r.type === 'video' ? (r.videoSource || null) : null,
+        practiceQuestions: (r.practiceQuestions || []).map((q: any) => ({
+          type: q.type,
+          title: q.title,
+          description: q.description,
+          difficulty: q.difficulty,
+          marks: q.marks,
+          options: (q.options || []).map((o: any) => ({ text: o.text })),
+        })),
+      }));
+
+    res.json({
+      success: true,
+      topic: {
+        topicCode: topic.topicCode,
+        title: topic.title,
+        moduleCode: moduleOf?.moduleCode || null,
+        moduleName: moduleOf?.moduleName || null,
+        state: topic.state,
+        // Why this topic is here at all, in the words already frozen onto the plan.
+        reason: topic.reason,
+        reasonText: topic.reasonText || '',
+        depth: topic.contentDepth,
+        mandatory: topic.mandatory !== false,
+        locked: !!topic.locked,
+        lockedBy: topic.lockedBy || null,
+        skillKeys: topic.skillKeys || [],
+      },
+      items,
+      /** What the plan asked for against what the library could supply. */
+      coverage: {
+        wanted: ['video', 'notes', 'practice'],
+        missing: ['video', 'notes', 'practice'].filter(want => !items.some(i =>
+          (want === 'practice' ? i.type.startsWith('practice') : i.type === want))),
+        placeholders: items.filter(i => i.placeholder).length,
+      },
+    });
+  } catch (e: any) {
+    console.error('[adaptive] getTopic:', e);
+    res.status(500).json({ success: false, message: 'Could not open that topic.' });
   }
 };

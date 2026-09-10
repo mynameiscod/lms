@@ -36,6 +36,10 @@ import { projectAssessmentToSkillDna, getSkillDna } from '../services/skillDnaSe
 import { resolveAssessmentPolicy } from '../services/assessmentPolicyService';
 import { generateAssignment } from '../services/studentCurriculumAssignmentService';
 import { startReassessment, evaluateReassessmentEligibility } from '../services/reassessmentService';
+import { generateRoadmap } from '../services/careerRoadmapService';
+import CareerRoadmap from '../models/CareerRoadmap';
+import LearningContentLibrary from '../models/LearningContentLibrary';
+import { startModuleAssessment, submitModuleAssessment } from '../services/moduleAssessmentService';
 import { resolveContentForTopic } from '../services/adaptiveContentResolver';
 import { updateCareerContext } from '../services/careerContextService';
 import { calculateStudentRoleReadiness } from '../services/roleReadinessService';
@@ -197,6 +201,81 @@ const note = (text: string) => console.log(`  ....  ${text}`);
   const gapTopics = plan1.filter(t => t.state === 'FOUNDATION_REQUIRED' || t.state === 'GUIDED');
   if (gen1.contentGaps.length) note(`content gaps reported by the resolver: ${gen1.contentGaps.length} skills`);
 
+  /* ---- 4b. the roadmap is the plan, laid out over weeks -------------------------------- */
+
+  console.log('\n4b ROADMAP PROJECTED FROM THE CURRICULUM');
+  const rm = await generateRoadmap(tenantId, String(STUDENT), { replan: true, reason: 'REPLAN_REQUESTED' as any });
+  const roadmap: any = await CareerRoadmap.findOne({
+    tenantId, studentId: STUDENT, status: 'ACTIVE',
+  }).lean();
+
+  if (!roadmap) {
+    check('a roadmap is generated', false,
+      (rm as any)?.outcome?.message || (rm as any)?.refused || 'no active roadmap');
+  } else {
+    const objectives = (roadmap.objectives || []) as any[];
+    check('a roadmap is generated', objectives.length > 0,
+      `${objectives.length} objectives over ${roadmap.weekCount} weeks`);
+
+    check('the roadmap was projected from the curriculum, not from gap ranking',
+      roadmap.report?.projectedFromCurriculum === 1,
+      `report: ${JSON.stringify(roadmap.report || {})}`);
+
+    /**
+     * The ordering test that matters.
+     *
+     * The old planner sorted by priority and broke ties alphabetically, so a first-year whose
+     * gaps included AI_ML_CONCEPTS opened their plan at AI — before variables — because A sorts
+     * first. The projection must follow the curriculum instead, so the first objective has to
+     * belong to the first module.
+     */
+    const planOrder = plan1.map(t => t.topicCode);
+    const objectiveOrder = [...new Set(objectives.map(o => String(o.topicCode)).filter(Boolean))];
+    const firstTopic = objectiveOrder[0];
+    check('the roadmap starts where the curriculum starts',
+      firstTopic === planOrder.find(c => {
+        const t = plan1.find(x => x.topicCode === c);
+        return t && t.state !== 'NOT_RELEVANT';
+      }),
+      `roadmap starts at ${firstTopic}, curriculum starts at ${planOrder[0]}`);
+
+    const positions = objectiveOrder.map(c => planOrder.indexOf(c));
+    const ascending = positions.every((p, i) => i === 0 || p > positions[i - 1]);
+    check('every topic appears in curriculum order, never alphabetical',
+      ascending, ascending ? `${positions.length} topics in sequence`
+        : `out of order at ${objectiveOrder[positions.findIndex((p, i) => i > 0 && p <= positions[i - 1])]}`);
+
+    /**
+     * The missions test. Twenty-five ASSESS objectives and no LEARN was why every mission on the
+     * board was another test.
+     */
+    const byType: Record<string, number> = {};
+    for (const o of objectives) byType[o.workType] = (byType[o.workType] || 0) + 1;
+    check('the roadmap contains real learning work, not only assessments',
+      (byType.LEARN || 0) > 0,
+      Object.entries(byType).map(([k, v]) => `${k} ${v}`).join(', '));
+
+    check('every learning objective names a topic a student can open',
+      objectives.filter(o => o.workType === 'LEARN' || o.workType === 'PRACTICE')
+        .every(o => !!o.topicCode),
+      'all LEARN and PRACTICE objectives carry a topicCode');
+
+    const verified = plan1.filter(t => t.state === 'VERIFIED').map(t => t.topicCode);
+    if (verified.length) {
+      const verifiedObjectives = objectives.filter(o => verified.includes(String(o.topicCode)));
+      check('a verified topic stays visible as an optional review',
+        verifiedObjectives.length > 0 && verifiedObjectives.every(o => o.workType === 'REVIEW'),
+        verifiedObjectives.map(o => `${o.topicCode}=${o.workType}`).join(' ') || 'none present');
+    }
+
+    const notRelevant = plan1.filter(t => t.state === 'NOT_RELEVANT').map(t => t.topicCode);
+    check('topics set aside by direction produce no work',
+      !objectives.some(o => notRelevant.includes(String(o.topicCode))),
+      `${notRelevant.length} set aside`);
+
+    note(`weeks: ${[...new Set(objectives.map(o => o.week))].length} used of ${roadmap.weekCount}`);
+  }
+
   /* ---- 5. learning content and practice ------------------------------------------------ */
 
   console.log('\n5  LEARNING CONTENT AND PRACTICE');
@@ -222,6 +301,50 @@ const note = (text: string) => console.log(`  ....  ${text}`);
   check('remediation carries a practice budget',
     gapTopics.every(t => t.practiceCount >= 5),
     gapTopics.map(t => `${t.topicCode}:${t.practiceCount}`).join(' ') || 'no gap topics');
+
+  /* ---- 5b. the topic a mission opens ---------------------------------------------------- */
+
+  console.log('\n5b THE TOPIC A MISSION OPENS');
+  {
+    const teachableTopic = plan1.find(t => t.state !== 'NOT_RELEVANT' && !t.locked
+      && (t.assignedContentIds || []).length > 0);
+    if (!teachableTopic) {
+      check('a teachable topic exists to open', false, 'no topic in the plan carries content');
+    } else {
+      const rows = await LearningContentLibrary.find({
+        _id: { $in: teachableTopic.assignedContentIds }, tenantId, isPublished: true,
+      }).lean() as any[];
+
+      const RANK: Record<string, number> = {
+        video: 0, notes: 1, interactive_lesson: 2, tech_qa: 3, practice_coding: 4, practice_theory: 5,
+      };
+      const ordered = rows.sort((a, b) => (RANK[a.type] ?? 9) - (RANK[b.type] ?? 9));
+      const kinds = ordered.map(r => (String(r.type).startsWith('practice') ? 'practice' : r.type));
+
+      check('the topic opens onto video, notes and practice',
+        kinds.includes('video') && kinds.includes('notes') && kinds.includes('practice'),
+        `${teachableTopic.topicCode}: ${kinds.join(' -> ')}`);
+      check('the three items are delivered in teaching order',
+        kinds.indexOf('video') < kinds.indexOf('notes')
+        && kinds.indexOf('notes') < kinds.indexOf('practice'),
+        kinds.join(' -> '));
+      check('every item is written for THIS topic, not merely for its skill',
+        ordered.every(r => String(r.topicCode) === String(teachableTopic.topicCode)),
+        `${ordered.filter(r => String(r.topicCode) === String(teachableTopic.topicCode)).length}/${ordered.length}`);
+      check('every item is pitched at the depth the plan assigned',
+        ordered.every(r => r.learningDepth === teachableTopic.contentDepth),
+        `plan asked for ${teachableTopic.contentDepth}, got `
+        + `${[...new Set(ordered.map(r => r.learningDepth))].join('/')}`);
+
+      const placeholders = ordered.filter(r => (r.topicTags || []).includes('placeholder')).length;
+      note(`${placeholders} of ${ordered.length} items are still placeholders — visible, not hidden`);
+
+      const practice = ordered.find(r => String(r.type).startsWith('practice'));
+      check('practice carries questions rather than an empty shell',
+        !!practice && (practice.practiceQuestions || []).length > 0,
+        `${(practice?.practiceQuestions || []).length} question(s)`);
+    }
+  }
 
   /* ---- 6. a skill check on the weakest skill ------------------------------------------- */
 
@@ -303,6 +426,80 @@ const note = (text: string) => console.log(`  ....  ${text}`);
     }).join(' ') || 'nothing moved');
   note(`plan v1 ${summarize(plan1)}`);
   note(`plan v2 ${summarize(plan2)}`);
+
+  /* ---- 7b. the module assessment -------------------------------------------------------- */
+
+  console.log('\n7b MODULE ASSESSMENT, COMPOSED FROM THE GOLDEN BANK');
+  {
+    const active: any = await StudentCurriculumAssignment.findOne({
+      tenantId, studentId: STUDENT, status: 'ACTIVE',
+    }).lean();
+    const firstModule = (active?.moduleAssignments || [])[0];
+
+    const started = await startModuleAssessment({
+      tenantId, studentId: String(STUDENT), moduleCode: String(firstModule?.moduleCode),
+    });
+
+    if (!started.ok) {
+      check('a module paper can be built', false, `${started.refused}: ${started.message}`);
+    } else {
+      check('a module paper can be built', true,
+        `${firstModule.moduleCode}: ${(started.items || []).length} questions over `
+        + `${(started.skillKeys || []).length} skills`);
+
+      check('the module paper draws only on the Golden Bank',
+        (started.items || []).every(i => gold.has(String(i.sourceId))),
+        `${(started.items || []).length} items`);
+
+      // Freshness: nothing on this paper may have been asked before, by id or by fact.
+      const priorPapers = await PersonalizedAssessment.find({
+        tenantId, studentId: STUDENT, _id: { $ne: new mongoose.Types.ObjectId(started.assessmentId!) },
+      }).select('items').lean() as any[];
+      const seenIds = new Set(priorPapers.flatMap(p => (p.items || []).map((i: any) => String(i.sourceId))));
+      const seenFacts = new Set(await seenFactKeysFor(tenantId,
+        priorPapers.flatMap(p => (p.items || []).map((i: any) => ({
+          sourceType: String(i.sourceType), sourceId: String(i.sourceId),
+        })))));
+
+      check('the module paper repeats no question already seen',
+        !(started.items || []).some(i => seenIds.has(String(i.sourceId))),
+        `${seenIds.size} previously seen`);
+      check('the module paper repeats no FACT already asked',
+        !(started.items || []).some(i => seenFacts.has(gold.get(String(i.sourceId))?.golden?.factId)),
+        `${seenFacts.size} facts previously asked`);
+
+      const onlyTaught = (started.skillKeys || []).every(k =>
+        (firstModule.topicAssignments || []).some((t: any) =>
+          t.state !== 'NOT_RELEVANT' && (t.skillKeys || []).includes(k)));
+      check('it examines only what the module actually taught this student',
+        onlyTaught, (started.skillKeys || []).join(', '));
+
+      // Answer it correctly and confirm it moves Skill DNA without gating anything.
+      const before = new Map((await getSkillDna(tenantId, String(STUDENT))).map(d => [d.skillKey, d.score]));
+      const answers = (started.items || []).map(i => ({
+        sourceType: i.sourceType, sourceId: String(i.sourceId),
+        response: gold.get(String(i.sourceId))!.correctOptionIds as string[],
+      }));
+      const result = await submitModuleAssessment({
+        tenantId, studentId: String(STUDENT), assessmentId: started.assessmentId!, answers,
+      });
+
+      check('the module result is recorded as evidence', !!result.ok && (result.recorded || 0) > 0,
+        `score ${result.moduleScore}, ${result.recorded} observations, `
+        + `${(result.skillScores || []).length} skills diagnosed`);
+      check('a module score is a grade AND a per-skill diagnosis',
+        (result.skillScores || []).length > 1,
+        (result.skillScores || []).map(s => `${s.skillKey} ${s.percentage}%`).join(' '));
+      check('the module assessment gates nothing', result.gatesNextModule === false,
+        'the next module opens regardless of this score');
+
+      const after = new Map((await getSkillDna(tenantId, String(STUDENT))).map(d => [d.skillKey, d.score]));
+      const moved = [...after.entries()].filter(([k, v]) => before.get(k) !== v);
+      check('answering the module paper changes Skill DNA',
+        moved.length > 0,
+        moved.map(([k, v]) => `${k} ${before.get(k) ?? 'none'}->${v}`).join(' ') || 'nothing moved');
+    }
+  }
 
   /* ---- 8. reassessment ----------------------------------------------------------------- */
 
@@ -451,16 +648,18 @@ const note = (text: string) => console.log(`  ....  ${text}`);
   }
 
   async function cleanup(quiet = false) {
-    const [u, a, e, p, c] = await Promise.all([
+    const [u, a, e, p, c, rmDel] = await Promise.all([
       User.deleteMany({ _id: STUDENT }),
       PersonalizedAssessment.deleteMany({ tenantId, studentId: STUDENT }),
       StudentSkillEvidence.deleteMany({ tenantId, studentId: STUDENT }),
       StudentSkillProfile.deleteMany({ tenantId, studentId: STUDENT }),
       StudentCurriculumAssignment.deleteMany({ tenantId, studentId: STUDENT }),
+      CareerRoadmap.deleteMany({ tenantId, studentId: STUDENT }),
     ]);
     if (!quiet) {
       console.log(`\ncleanup — ${u.deletedCount} user, ${a.deletedCount} papers, `
-        + `${e.deletedCount} evidence, ${p.deletedCount} profiles, ${c.deletedCount} plans`);
+        + `${e.deletedCount} evidence, ${p.deletedCount} profiles, ${c.deletedCount} plans, `
+        + `${rmDel.deletedCount} roadmaps`);
     }
   }
 })().catch(e => { console.error('ERR', e?.message || e, e?.stack); process.exit(1); });

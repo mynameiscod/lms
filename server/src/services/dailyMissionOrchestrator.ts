@@ -9,7 +9,7 @@ import { findProblem, findCareerPilotProblem } from './passportPracticeService';
 import { ymd } from './passportMissionService';
 import { XpRule } from '../models/GamificationModels';
 import { resolveLearningSteps, logResolution, LearningProvenance } from './conceptLearningMissionBridge';
-import { MISSION_ORCHESTRATION_VERSION, MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES, assessmentRouteForSkill, practiceRoute, materialRoute, dailySliceOf, dailyBudget, MissionResourceState, DailyPlanUnavailable } from '../data/missionOrchestrationPolicy';
+import { MISSION_ORCHESTRATION_VERSION, MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES, assessmentRouteForSkill, practiceRoute, materialRoute, topicRoute, dailySliceOf, dailyBudget, MissionResourceState, DailyPlanUnavailable } from '../data/missionOrchestrationPolicy';
 
 /** Daily Mission Engine: roadmap=WHAT, this service=WHEN, targeted resource=HOW. */
 export interface MissionResource { type: string; id: string; title: string; route: string; xp?: number | null; }
@@ -77,7 +77,9 @@ export const planUnavailable = (p: DailyPlanOutcome): p is DailyPlanUnavailableR
 const WORK_LABEL: Record<string, string> = { LEARN: 'Learn', PRACTICE: 'Practice', ASSESS: 'Check', REVIEW: 'Review' };
 const slotKey = (skillKey: string, workType: string): string => `${String(skillKey).toUpperCase()}:${String(workType).toUpperCase()}`;
 export const missionKey = (roadmapId: string, sequence: number, date: string): string => `cp:${roadmapId}:${sequence}:${date}`;
-export interface SelectableObjective { sequence: number; skillKey: string; skillName: string; workType: string; plannedMinutes: number; week: number; reasonCode: string; explanation: string; prerequisiteFor?: string; }
+export interface SelectableObjective { sequence: number; skillKey: string; skillName: string; workType: string; plannedMinutes: number; week: number; reasonCode: string; explanation: string; prerequisiteFor?: string;
+  /** The curriculum topic this teaches, when the roadmap was projected from a curriculum. */
+  topicCode?: string; }
 export interface SelectionInput { roadmapId: string; date: string; week: number; objectives: SelectableObjective[]; minutesPerDay: number; daysPerWeek: number; creditedBefore: Map<number, number>; completedToday: Set<string>; resources: Map<string, MissionResource>;
   /** Journey steps by slot. Optional, so existing callers and tests are unaffected. */
   learningBySlot?: Map<string, { resource?: MissionResource; learning: LearningProvenance }>;
@@ -115,9 +117,20 @@ export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
     const slot = slotKey(o.skillKey, o.workType);
     const journey = input.learningBySlot?.get(slot);
     const mapped = input.resources.get(slot);
+    /**
+     * THE TOPIC IS THE DESTINATION FOR LEARNING WORK.
+     *
+     * Ordered last on purpose, so it changes nothing that already resolves: an authored journey
+     * still wins, and a resource an admin mapped by hand still beats a generic page. It fires
+     * where the mission would otherwise have been RESOURCE_NOT_CONFIGURED — which, with the
+     * CareerSkillResource collection empty, was every learning mission there has ever been.
+     */
+    const topicDestination = o.topicCode && o.workType !== 'ASSESS'
+      ? { type: 'topic', id: String(o.topicCode), title: o.skillName, route: topicRoute(String(o.topicCode)), xp: input.missionXp }
+      : undefined;
     const legacyResource = o.workType === 'ASSESS'
       ? { type: 'assessment', id: `personalized:${o.skillKey}`, title: `${o.skillName} check`, route: assessmentRouteForSkill(o.skillKey), xp: input.missionXp }
-      : (mapped ? { ...mapped, xp: mapped.xp ?? input.missionXp } : undefined);
+      : (mapped ? { ...mapped, xp: mapped.xp ?? input.missionXp } : topicDestination);
     const resource = journey?.resource
       ? { ...journey.resource, xp: journey.resource.xp ?? input.missionXp }
       : legacyResource;
@@ -197,7 +210,7 @@ export async function getTodaysPlan(tenantId: string, studentId: string, now: Da
   if (!roadmap) return { available: false, reason: 'ROADMAP_REQUIRED', message: 'Generate your 90-day roadmap and your daily plan starts from it.' };
   const roadmapDay = Math.max(1, dayNumberFrom(new Date(roadmap.startDate), now)); if (roadmapDay > roadmap.roadmapDays) return { available: false, reason: 'ROADMAP_COMPLETED', message: 'This 90-day plan has finished.' };
   const week = Math.min(roadmap.weekCount, Math.max(1, Math.ceil(roadmapDay / 7))); const date = ymd(now); const roadmapId = String(roadmap._id);
-  const objectives: SelectableObjective[] = (roadmap.objectives || []).map((o: any) => ({ sequence: o.sequence, skillKey: o.skillKey, skillName: o.skillName, workType: o.workType, plannedMinutes: o.plannedMinutes, week: o.week, reasonCode: o.reasonCode, explanation: o.explanation, prerequisiteFor: o.prerequisiteFor }));
+  const objectives: SelectableObjective[] = (roadmap.objectives || []).map((o: any) => ({ sequence: o.sequence, skillKey: o.skillKey, skillName: o.skillName, workType: o.workType, plannedMinutes: o.plannedMinutes, week: o.week, reasonCode: o.reasonCode, explanation: o.explanation, prerequisiteFor: o.prerequisiteFor, topicCode: o.topicCode }));
   const progress: any = await PassportProgress.findOne({ tenantId, studentId }).lean(); const completions = (progress?.completed || []).filter((c: any) => c.careerpilot && c.careerpilot.roadmapId === roadmapId);
   const creditedBefore = new Map<number, number>(); const completedToday = new Set<string>(); let completedMinutes = 0;
   for (const c of completions) { const cp = c.careerpilot; completedMinutes += cp.minutes || 0; if (String(c.key).endsWith(`:${date}`)) { completedToday.add(c.key); continue; } creditedBefore.set(cp.objectiveSequence, (creditedBefore.get(cp.objectiveSequence) || 0) + (cp.minutes || 0)); }
@@ -237,7 +250,7 @@ export async function getTodaysPlan(tenantId: string, studentId: string, now: Da
   const missionXp = xpRule?.enabled === false ? 0 : (typeof xpRule?.xp === 'number' ? xpRule.xp : 10);
   const missions = selectTodaysMissions({ roadmapId, date, week, objectives, minutesPerDay: roadmap.input.minutesPerDay, daysPerWeek: roadmap.input.daysPerWeek, creditedBefore, completedToday, resources, learningBySlot: learning.bySlot as any, missionXp });
   const weekPlanned = weekObjectives.reduce((n, o) => n + o.plannedMinutes, 0); const weekCompleted = completions.filter((c: any) => weekObjectives.some(o => o.sequence === c.careerpilot.objectiveSequence)).reduce((n: number, c: any) => n + (c.careerpilot.minutes || 0), 0); const totalPlanned = roadmap.capacity?.plannedMinutes || 0;
-  return { available: true, policyVersion: MISSION_ORCHESTRATION_VERSION, roadmapId, date, roadmapDay, roadmapWeek: week, weekCount: roadmap.weekCount, capacity: { minutesPerDay: roadmap.input.minutesPerDay, plannedMinutes: missions.reduce((n, m) => n + m.plannedMinutes, 0) }, missions, progress: { plannedMinutes: totalPlanned, completedMinutes, percent: totalPlanned > 0 ? Math.min(100, Math.round((completedMinutes / totalPlanned) * 100)) : 0 }, week: { plannedMinutes: weekPlanned, completedMinutes: weekCompleted }, unmappedObjectives: weekObjectives.filter(o => o.workType !== 'ASSESS' && !resources.has(slotKey(o.skillKey, o.workType))).length, outdated: false };
+  return { available: true, policyVersion: MISSION_ORCHESTRATION_VERSION, roadmapId, date, roadmapDay, roadmapWeek: week, weekCount: roadmap.weekCount, capacity: { minutesPerDay: roadmap.input.minutesPerDay, plannedMinutes: missions.reduce((n, m) => n + m.plannedMinutes, 0) }, missions, progress: { plannedMinutes: totalPlanned, completedMinutes, percent: totalPlanned > 0 ? Math.min(100, Math.round((completedMinutes / totalPlanned) * 100)) : 0 }, week: { plannedMinutes: weekPlanned, completedMinutes: weekCompleted }, unmappedObjectives: weekObjectives.filter(o => o.workType !== 'ASSESS' && !o.topicCode && !resources.has(slotKey(o.skillKey, o.workType))).length, outdated: false };
 }
 export { CareerRoadmap as _CareerRoadmap };
 export type { ICareerRoadmap };

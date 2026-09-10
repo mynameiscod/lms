@@ -34,6 +34,20 @@ export interface ContentLibraryItem {
   qaItems: QAItem[];
   // Practice
   practiceQuestions: PracticeQuestion[];
+
+  /* ---- adaptive curriculum (ADAPTIVE_CURRICULUM_V1) ----
+   * Without skillKeys a row is findable by keyword and by nothing else — the adaptive plan
+   * resolves material by canonical skill, so unmapped content is invisible to it. */
+  skillKeys?: string[];
+  learningDepth?: LearningDepth;
+  /** Practice difficulty on the 1-4 scale the planner assigns against. */
+  difficultyLevel?: 1 | 2 | 3 | 4;
+  /** The preferred row when several teach the same skill at the same depth. */
+  canonical?: boolean;
+  /** Empty means every direction. */
+  applicableDirections?: string[];
+  /** Which field the worked examples are drawn from. */
+  careerContexts?: string[];
   isPublished: boolean;
   viewCount: number;
   usageCount: number;
@@ -82,6 +96,22 @@ export interface PracticeQuestion {
   gradingMode: 'auto' | 'self';
 }
 
+export type LearningDepth = 'FOUNDATION' | 'GUIDED' | 'STANDARD' | 'REVISION' | 'CHALLENGE';
+
+/** What the adaptive section of the editor offers, straight from the canonical taxonomy. */
+export interface SkillOption {
+  key: string;
+  name: string;
+  parentKey: string | null;
+  difficulty?: string;
+  assessable: boolean;
+}
+export interface SkillOptions {
+  skills: SkillOption[];
+  depths: LearningDepth[];
+  directions: { key: string; name: string }[];
+}
+
 export interface ListFilters {
   type?: ContentLibraryType;
   topic?: string;
@@ -89,6 +119,10 @@ export interface ListFilters {
   search?: string;
   published?: 'true' | 'false';
   source?: 'generated' | 'all';   // omit = curriculum/manual content only (default)
+  /** Only content teaching this canonical skill. */
+  skill?: string;
+  /** 'false' is the authoring to-do list: rows the adaptive planner cannot see. */
+  mapped?: 'true' | 'false';
 }
 
 const authHeader = () => {
@@ -109,6 +143,8 @@ export const learningContentLibraryApi = {
     if (filters.search)    params.set('search',     filters.search);
     if (filters.published) params.set('published',  filters.published);
     if (filters.source)    params.set('source',     filters.source);
+    if (filters.skill)     params.set('skill',      filters.skill);
+    if (filters.mapped)    params.set('mapped',     filters.mapped);
     const { data } = await axios.get(`${BASE}?${params}`, { headers: authHeader() });
     return data;
   },
@@ -172,6 +208,12 @@ export const learningContentLibraryApi = {
 
   getCourseTags: async (): Promise<string[]> => {
     const { data } = await axios.get(`${BASE}/tags/courses`, { headers: authHeader() });
+    return data;
+  },
+
+  /** Canonical skills, depths and directions for the adaptive section of the editor. */
+  getSkillOptions: async (): Promise<SkillOptions> => {
+    const { data } = await axios.get(`${BASE}/skill-options`, { headers: authHeader() });
     return data;
   },
 

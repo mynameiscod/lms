@@ -34,6 +34,14 @@ export default function LearningContentLibrary() {
   const [search,      setSearch]      = useState('');
   const [topicFilter, setTopicFilter] = useState('');
   const [topicTags,   setTopicTags]   = useState<string[]>([]);
+  /**
+   * The authoring to-do list.
+   *
+   * Content with no canonical skill is served by day plans and manual curricula but is
+   * invisible to CareerPilot's adaptive plan, and until now nothing in the product said so —
+   * an author could fill the library and wonder why students were never given any of it.
+   */
+  const [onlyUnmapped, setOnlyUnmapped] = useState(false);
   const [deleting,    setDeleting]    = useState<string | null>(null);
   const [toggling,    setToggling]    = useState<string | null>(null);
   const [previewId,   setPreviewId]   = useState<string | null>(null);
@@ -46,6 +54,7 @@ export default function LearningContentLibrary() {
       if (search)               filters.search = search;
       if (topicFilter)          filters.topic  = topicFilter;
       if (sourceView === 'generated') filters.source = 'generated';
+      if (onlyUnmapped)         filters.mapped = 'false';
       const res = await learningContentLibraryApi.list(filters);
       setItems(res.items);
       setTotal(res.total);
@@ -54,7 +63,7 @@ export default function LearningContentLibrary() {
     } finally {
       setLoading(false);
     }
-  }, [activeType, search, topicFilter, sourceView]);
+  }, [activeType, search, topicFilter, sourceView, onlyUnmapped]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -234,6 +243,19 @@ export default function LearningContentLibrary() {
             <option key={tag} value={tag}>{tag}</option>
           ))}
         </select>
+        <button
+          onClick={() => setOnlyUnmapped(v => !v)}
+          title="Content with no canonical skill is invisible to CareerPilot's adaptive plan."
+          style={{
+            padding: '9px 14px', borderRadius: '8px', fontSize: '14px', fontWeight: 600,
+            cursor: 'pointer', whiteSpace: 'nowrap',
+            border: `1.5px solid ${onlyUnmapped ? '#b45309' : '#e2e8f0'}`,
+            background: onlyUnmapped ? '#fffbeb' : '#fff',
+            color: onlyUnmapped ? '#92400e' : '#64748b',
+          }}
+        >
+          ⚠️ Not skill-mapped
+        </button>
       </div>
 
       {/* Content grid */}
@@ -372,6 +394,37 @@ function ContentCard({ item, onEdit, onPreview, onDelete, onTogglePublish, isDel
             {item.description}
           </p>
         )}
+
+        {/* Skill mapping — the difference between content a plan can serve and content it cannot */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '10px' }}>
+          {(item.skillKeys || []).length > 0 ? (
+            <>
+              {(item.skillKeys || []).slice(0, 3).map(key => (
+                <span key={key} style={{
+                  background: '#dcfce7', color: '#166534',
+                  borderRadius: '4px', padding: '2px 8px', fontSize: '11px', fontWeight: 600,
+                }}>
+                  {key}
+                </span>
+              ))}
+              {(item.skillKeys || []).length > 3 && (
+                <span style={{ color: '#94a3b8', fontSize: '11px', alignSelf: 'center' }}>
+                  +{(item.skillKeys || []).length - 3}
+                </span>
+              )}
+            </>
+          ) : (
+            <span
+              title="No canonical skill — CareerPilot's adaptive plan cannot find this content. Edit it to map a skill."
+              style={{
+                background: '#fffbeb', color: '#92400e', border: '1px solid #fde68a',
+                borderRadius: '4px', padding: '2px 8px', fontSize: '11px', fontWeight: 600,
+              }}
+            >
+              ⚠️ Not skill-mapped
+            </span>
+          )}
+        </div>
 
         {/* Tags */}
         {item.topicTags?.length > 0 && (

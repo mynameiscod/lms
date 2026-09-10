@@ -109,6 +109,10 @@ router.use(tenantMiddleware);
 router.get('/tags/topics',  ctrl.getTopicTags);
 router.get('/tags/courses', ctrl.getCourseTags);
 
+// Canonical skills, depths and directions for the adaptive section of the editor.
+// Declared before '/:id' — an id route placed above it would swallow this path.
+router.get('/skill-options', ctrl.getSkillOptions);
+
 // Bunny Stream — create video + resumable upload authorization
 router.get('/bunny/config',  bunny.bunnyConfigured);
 router.post('/bunny/videos', bunny.createBunnyVideo);

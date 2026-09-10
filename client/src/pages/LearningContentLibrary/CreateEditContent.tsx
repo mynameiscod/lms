@@ -9,6 +9,7 @@ import {
   ContentLibraryType,
   QAItem,
   PracticeQuestion,
+  SkillOptions,
   CONTENT_TYPE_LABELS,
   CONTENT_TYPE_ICONS,
 } from '../../api/learningContentLibraryApi';
@@ -25,6 +26,22 @@ const TYPE_OPTIONS: { value: ContentLibraryType; label: string; icon: string; de
 ];
 
 const LANGUAGES = ['javascript', 'typescript', 'java', 'python', 'cpp', 'c', 'sql', 'html', 'css'];
+
+/**
+ * What each depth means to the person choosing one.
+ *
+ * Depth is not difficulty, and the two get confused constantly. Difficulty describes the
+ * CONTENT; depth describes the STUDENT it suits — the same skill needs a slow build for
+ * somebody meeting it and a one-page recap for somebody proving they still have it. Spelling
+ * that out here is cheaper than an author picking CHALLENGE because it sounded impressive.
+ */
+const DEPTH_OPTIONS: { value: string; label: string; hint: string }[] = [
+  { value: 'FOUNDATION', label: 'Foundation', hint: 'Meeting this for the first time — build it from nothing' },
+  { value: 'GUIDED',     label: 'Guided',     hint: 'Has the idea, needs worked examples alongside' },
+  { value: 'STANDARD',   label: 'Standard',   hint: 'The normal teaching pass' },
+  { value: 'REVISION',   label: 'Revision',   hint: 'Knows it — a recap of what people forget' },
+  { value: 'CHALLENGE',  label: 'Challenge',  hint: 'Already strong — stretch work beyond the requirement' },
+];
 
 const blankQA  = (): QAItem => ({ question: '', answer: '', tips: '', order: 0 });
 const blankPQ  = (): PracticeQuestion => ({
@@ -52,6 +69,9 @@ export default function CreateEditContent() {
   const [notesFile,   setNotesFile]   = useState<File | null>(null);
   const [thumbFile,   setThumbFile]   = useState<File | null>(null);
   const [uploadPct,   setUploadPct]   = useState(0);
+  const [skillOpts,   setSkillOpts]   = useState<SkillOptions | null>(null);
+  const [skillOptsErr, setSkillOptsErr] = useState('');
+  const [skillSearch, setSkillSearch] = useState('');
   const videoRef = useRef<HTMLInputElement>(null);
   const notesRef = useRef<HTMLInputElement>(null);
   const thumbRef = useRef<HTMLInputElement>(null);
@@ -67,6 +87,9 @@ export default function CreateEditContent() {
     difficulty:        undefined,
     estimatedDuration: 0,
     isPublished:       false,
+    skillKeys:         [],
+    applicableDirections: [],
+    careerContexts:    [],
     videoSource:       'upload',
     videoUrl:          '',
     completionThreshold: 80,
@@ -93,6 +116,23 @@ export default function CreateEditContent() {
       .finally(() => setLoading(false));
   }, [id, isEdit]);
 
+  /**
+   * The skill picker's options.
+   *
+   * A FAILED FETCH AND AN EMPTY TAXONOMY ARE REPORTED DIFFERENTLY, because they need different
+   * people to fix them and an author cannot tell them apart from an empty list. Swallowing the
+   * error into "no skills" is how somebody concludes there is nothing to map to and saves
+   * content the adaptive plan will never find — the exact failure this change exists to end.
+   */
+  useEffect(() => {
+    learningContentLibraryApi.getSkillOptions()
+      .then(opts => { setSkillOpts(opts); setSkillOptsErr(''); })
+      .catch(e => {
+        setSkillOpts({ skills: [], depths: [], directions: [] });
+        setSkillOptsErr(e?.response?.data?.message || 'The skill list could not be loaded.');
+      });
+  }, []);
+
   const set = (field: keyof FormState, value: any) =>
     setForm(prev => ({ ...prev, [field]: value }));
 
@@ -106,6 +146,25 @@ export default function CreateEditContent() {
 
   const removeTag = (field: 'topicTags' | 'courseTags', tag: string) =>
     set(field, (form[field] || []).filter((t: string) => t !== tag));
+
+  // ── Adaptive helpers ────────────────────────────────────────────────────────
+  const toggleIn = (field: 'skillKeys' | 'applicableDirections' | 'careerContexts', value: string) =>
+    setForm(prev => {
+      const list = (prev[field] || []) as string[];
+      return {
+        ...prev,
+        [field]: list.includes(value) ? list.filter(v => v !== value) : [...list, value],
+      };
+    });
+
+  const skillName = (key: string) =>
+    skillOpts?.skills.find(s => s.key === key)?.name || key;
+
+  const visibleSkills = (skillOpts?.skills || []).filter(s => {
+    if (!skillSearch.trim()) return true;
+    const hay = `${s.name} ${s.key}`.toLowerCase();
+    return hay.includes(skillSearch.trim().toLowerCase());
+  });
 
   // ── Q&A helpers ─────────────────────────────────────────────────────────────
   const setQA = (idx: number, field: keyof QAItem, val: string) =>
@@ -190,6 +249,14 @@ export default function CreateEditContent() {
         fd.append('videoThumbnail',    form.videoThumbnail || '');
         fd.append('completionThreshold', String(form.completionThreshold || 0));
         fd.append('notesSource',       form.notesSource || '');
+        // Adaptive fields. Arrays go as JSON because multipart has no array type, and the
+        // server parses them back — the same convention topicTags already uses above.
+        fd.append('skillKeys',            JSON.stringify(form.skillKeys || []));
+        fd.append('learningDepth',        form.learningDepth || '');
+        fd.append('difficultyLevel',      form.difficultyLevel ? String(form.difficultyLevel) : '');
+        fd.append('canonical',            String(!!form.canonical));
+        fd.append('applicableDirections', JSON.stringify(form.applicableDirections || []));
+        fd.append('careerContexts',       JSON.stringify(form.careerContexts || []));
         if (videoFile) fd.append('videoFile', videoFile);
         if (thumbFile) fd.append('thumbnailFile', thumbFile);
         if (notesFile) fd.append('notesFile', notesFile);
@@ -218,9 +285,28 @@ export default function CreateEditContent() {
           qaItems:           (form.qaItems || []).filter(q => q.question.trim()),
           practiceQuestions: (form.practiceQuestions || []).filter(q => q.title.trim()),
         };
+
+        /**
+         * Adaptive curriculum — what lets a measured skill gap find this row at all.
+         *
+         * Kept out of the typed body and sent loosely, because CLEARING a depth or a
+         * difficulty means sending '' — the server reads an empty string as "unset this"
+         * and a missing key as "leave it alone". The item type quite correctly does not
+         * allow '' as a depth, but the wire has to carry a value the type cannot hold,
+         * and a value you cannot remove is one you have to fix in the database.
+         */
+        const adaptive: Record<string, any> = {
+          skillKeys:            form.skillKeys || [],
+          learningDepth:        form.learningDepth || '',
+          difficultyLevel:      form.difficultyLevel || '',
+          canonical:            !!form.canonical,
+          applicableDirections: form.applicableDirections || [],
+          careerContexts:       form.careerContexts || [],
+        };
+
         result = isEdit
-          ? await learningContentLibraryApi.updateJson(id!, body)
-          : await learningContentLibraryApi.createJson(body);
+          ? await learningContentLibraryApi.updateJson(id!, { ...body, ...adaptive })
+          : await learningContentLibraryApi.createJson({ ...body, ...adaptive });
       }
 
       navigate('/learning-library');
@@ -390,6 +476,161 @@ export default function CreateEditContent() {
           onRemove={t => removeTag('courseTags', t)}
           placeholder="e.g. Java Fullstack — press Enter"
         />
+      </Section>
+
+      {/* ── Adaptive learning ──
+        * The section that decides whether CareerPilot can ever serve this content.
+        * Everything above is descriptive; a plan built from a student's measured scores
+        * resolves material by canonical skill, so a row with no skills here is reachable
+        * only by keyword search. */}
+      <Section title="Adaptive Learning (CareerPilot)">
+        {!(form.skillKeys || []).length && (
+          <div style={warnBoxStyle}>
+            <b>Not mapped to any skill.</b> CareerPilot's adaptive plan finds material by
+            canonical skill — until you pick at least one below, this content will not be
+            served to any student automatically. It stays fully usable in day plans and
+            manual curricula.
+          </div>
+        )}
+
+        {/* Not marked required: recordings and legacy content save without it, and an asterisk
+          * on a field the save does not enforce is a lie the author learns to ignore. The
+          * banner above says what leaving it empty costs. */}
+        <Field label="Skills this content teaches">
+          {(form.skillKeys || []).length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+              {(form.skillKeys || []).map(key => (
+                <span key={key} style={{
+                  background: '#dcfce7', color: '#166534', borderRadius: '6px',
+                  padding: '3px 10px', fontSize: '12px', fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                }}>
+                  {skillName(key)}
+                  <button
+                    onClick={() => toggleIn('skillKeys', key)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#166534', fontSize: '13px', padding: 0, lineHeight: 1 }}
+                  >×</button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {skillOpts === null ? (
+            <div style={{ fontSize: '13px', color: '#94a3b8' }}>Loading skills…</div>
+          ) : skillOptsErr ? (
+            <div style={warnBoxStyle}>
+              <b>{skillOptsErr}</b> Mapping is unavailable until it loads — saving now will
+              leave this content unmapped. Reload the page to try again.
+            </div>
+          ) : skillOpts.skills.length === 0 ? (
+            <div style={warnBoxStyle}>
+              The canonical skill taxonomy is empty for this environment, so there is nothing
+              to map to yet. It has to be seeded before adaptive content can be authored.
+            </div>
+          ) : (
+            <>
+              <input
+                value={skillSearch}
+                onChange={e => setSkillSearch(e.target.value)}
+                placeholder="Search skills — e.g. loops, SQL, Git"
+                style={{ ...inputStyle, marginBottom: '8px' }}
+              />
+              <div style={{
+                maxHeight: '190px', overflowY: 'auto', border: '1.5px solid #e2e8f0',
+                borderRadius: '7px', padding: '6px', background: '#fff',
+              }}>
+                {visibleSkills.length === 0 && (
+                  <div style={{ fontSize: '13px', color: '#94a3b8', padding: '8px' }}>
+                    Nothing matches “{skillSearch}”.
+                  </div>
+                )}
+                {visibleSkills.map(s => {
+                  const on = (form.skillKeys || []).includes(s.key);
+                  return (
+                    <label
+                      key={s.key}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 8px',
+                        borderRadius: '6px', cursor: 'pointer', fontSize: '13px',
+                        background: on ? '#f0fdf4' : 'transparent',
+                      }}
+                    >
+                      <input type="checkbox" checked={on} onChange={() => toggleIn('skillKeys', s.key)} />
+                      <span style={{ fontWeight: on ? 600 : 500, color: '#0f172a' }}>{s.name}</span>
+                      <code style={{ color: '#94a3b8', fontSize: '11px' }}>{s.key}</code>
+                      {!s.assessable && (
+                        <span
+                          title="No paper can ask about this skill, so a plan can teach it but never measure it."
+                          style={{ color: '#b45309', fontSize: '11px', fontWeight: 600 }}
+                        >not assessable</span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </Field>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <Field label="Learning depth — who this version is pitched at">
+            <select
+              value={form.learningDepth || ''}
+              onChange={e => set('learningDepth', e.target.value || undefined)}
+              style={inputStyle}
+            >
+              <option value="">— Not set (serves any depth) —</option>
+              {DEPTH_OPTIONS.map(d => (
+                <option key={d.value} value={d.value}>{d.label} — {d.hint}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Practice difficulty (1–4, planner scale)">
+            <select
+              value={form.difficultyLevel ? String(form.difficultyLevel) : ''}
+              onChange={e => set('difficultyLevel', e.target.value ? Number(e.target.value) : undefined)}
+              style={inputStyle}
+            >
+              <option value="">— Not set —</option>
+              <option value="1">1 — Easiest</option>
+              <option value="2">2 — Easy/medium</option>
+              <option value="3">3 — Medium</option>
+              <option value="4">4 — Hard</option>
+            </select>
+          </Field>
+        </div>
+
+        <Field label="Directions this content serves">
+          <DirectionChips
+            options={skillOpts?.directions || []}
+            selected={form.applicableDirections || []}
+            onToggle={k => toggleIn('applicableDirections', k)}
+            emptyHint="None selected = served to every direction."
+          />
+        </Field>
+
+        <Field label="Worked examples drawn from">
+          <DirectionChips
+            options={skillOpts?.directions || []}
+            selected={form.careerContexts || []}
+            onToggle={k => toggleIn('careerContexts', k)}
+            emptyHint="The same skill can be taught with a shopping-cart example or a dataset one. Tagging it here lets a student get the version from their own field."
+          />
+        </Field>
+
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#374151', marginTop: '4px' }}>
+          <input
+            type="checkbox"
+            checked={!!form.canonical}
+            onChange={e => set('canonical', e.target.checked)}
+            style={{ marginTop: '2px' }}
+          />
+          <span>
+            <b>Preferred version</b> — pick this first when several pieces teach the same skill
+            at the same depth. Without it the tie-break falls to insertion order.
+          </span>
+        </label>
       </Section>
 
       {/* ── Type-specific content ── */}
@@ -833,6 +1074,53 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+/**
+ * Toggle chips over the career directions.
+ *
+ * A checkbox list would read as "tick everything that could possibly apply", which is how
+ * direction filtering stops filtering. Chips make the selected set visible at a glance, and
+ * the hint says what selecting nothing means — because for both of these fields, empty is a
+ * real and usually correct answer rather than an unfinished one.
+ */
+function DirectionChips({ options, selected, onToggle, emptyHint }: {
+  options: { key: string; name: string }[];
+  selected: string[];
+  onToggle: (key: string) => void;
+  emptyHint: string;
+}) {
+  if (!options.length) {
+    return <div style={{ fontSize: '13px', color: '#94a3b8' }}>Directions unavailable.</div>;
+  }
+  return (
+    <div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        {options.map(d => {
+          const on = selected.includes(d.key);
+          return (
+            <button
+              key={d.key}
+              type="button"
+              onClick={() => onToggle(d.key)}
+              style={{
+                border: `1.5px solid ${on ? '#0369a1' : '#e2e8f0'}`,
+                background: on ? '#e0f2fe' : '#fff',
+                color: on ? '#0369a1' : '#64748b',
+                borderRadius: '999px', padding: '4px 12px',
+                fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              {d.name}
+            </button>
+          );
+        })}
+      </div>
+      {selected.length === 0 && (
+        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '6px' }}>{emptyHint}</div>
+      )}
+    </div>
+  );
+}
+
 interface TagInputProps {
   label: string; tags: string[]; inputVal: string;
   onInputChange: (v: string) => void; onAdd: () => void;
@@ -889,6 +1177,11 @@ const cancelBtnStyle: React.CSSProperties = {
   border: '1.5px solid #e2e8f0',
   borderRadius: '8px', padding: '10px 20px',
   fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+};
+const warnBoxStyle: React.CSSProperties = {
+  background: '#fffbeb', border: '1.5px solid #fde68a', color: '#92400e',
+  borderRadius: '8px', padding: '10px 12px', fontSize: '13px',
+  lineHeight: 1.5, marginBottom: '14px',
 };
 const removeBtnStyle: React.CSSProperties = {
   background: '#fff', color: '#dc2626', border: '1px solid #fecaca',

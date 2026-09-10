@@ -1,0 +1,16 @@
+moduleCode,moduleName,topics,items,real,placeholder,missingVideo,missingNotes,missingPractice
+M01_CS_FUNDAMENTALS,Computer Science Fundamentals,2,12,0,12,0,0,0
+M02_COMPUTATIONAL_THINKING,Computational Thinking,2,12,0,12,0,0,0
+M03_PROGRAMMING,Programming Fundamentals,4,24,0,24,0,0,0
+M04_DEVELOPER_TOOLS,Developer Tools,2,12,0,12,0,0,0
+M05_WEB_FUNDAMENTALS,Web Fundamentals,6,36,0,36,0,0,0
+M06_C_PROGRAMMING,C Programming (Academic Support),1,6,0,6,0,0,0
+M07_DSA,DSA Foundation,1,6,0,6,0,0,0
+M08_DATABASES,Database Foundations,1,6,0,6,0,0,0
+M09_LINUX,Linux and Operating Systems,5,30,0,30,0,0,0
+M10_MATHS,Mathematics for Computer Science,6,36,0,36,0,0,0
+M11_AI_LITERACY,AI Literacy,4,24,0,24,0,0,0
+M12_COMMUNICATION,Communication Foundation,1,6,0,6,0,0,0
+M13_CAREER,Career Awareness,1,6,0,6,0,0,0
+M14_CAPSTONE,Foundation Capstone,1,6,0,6,0,0,0
+M15_APTITUDE,Aptitude and Placement Rounds,2,12,0,12,0,0,0

@@ -31,6 +31,9 @@ import { FOUNDATION_BATCH4, BATCH4_SKILLS } from '../data/goldenBank/foundationB
 import { FOUNDATION_BATCH5, BATCH5_SKILLS } from '../data/goldenBank/foundationBatch5';
 import { FOUNDATION_BATCH6, BATCH6_SKILLS } from '../data/goldenBank/foundationBatch6';
 import { FOUNDATION_BATCH7, BATCH7_SKILLS } from '../data/goldenBank/foundationBatch7';
+import { FOUNDATION_BATCH8, BATCH8_SKILLS } from '../data/goldenBank/foundationBatch8';
+import { FOUNDATION_BATCH9, BATCH9_SKILLS } from '../data/goldenBank/foundationBatch9';
+import { FOUNDATION_BATCH10, BATCH10_SKILLS } from '../data/goldenBank/foundationBatch10';
 import {
   FAMILY_ALLOCATION, PER_SKILL_TOTAL, PER_LEVEL_TOTAL, templatedAllocation,
 } from '../data/goldenBank/foundationAllocation';
@@ -46,6 +49,9 @@ const REVIEW4 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-bat
 const REVIEW5 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-batch5-review.csv');
 const REVIEW6 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-batch6-review.csv');
 const REVIEW7 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-batch7-review.csv');
+const REVIEW8 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-batch8-review.csv');
+const REVIEW9 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-batch9-review.csv');
+const REVIEW10 = path.join(ROOT, 'docs/audit/foundation-golden-bank-blueprint-batch10-review.csv');
 
 const HEADER = [
   'skillKey', 'skillName', 'conceptId', 'conceptName', 'factId', 'factStatement',
@@ -103,7 +109,7 @@ const lvl = (d: string) => Number(String(d).slice(1));
 
   const populatedSkills = [
     ...BATCH1_SKILLS, ...BATCH2_SKILLS, ...BATCH3_SKILLS, ...BATCH4_SKILLS, ...BATCH5_SKILLS,
-    ...BATCH6_SKILLS, ...BATCH7_SKILLS,
+    ...BATCH6_SKILLS, ...BATCH7_SKILLS, ...BATCH8_SKILLS, ...BATCH9_SKILLS, ...BATCH10_SKILLS,
   ];
 
   /**
@@ -128,7 +134,7 @@ const lvl = (d: string) => Number(String(d).slice(1));
   const authored = [
     ...FOUNDATION_BATCH1, ...FOUNDATION_BATCH2,
     ...FOUNDATION_BATCH3, ...FOUNDATION_BATCH4, ...FOUNDATION_BATCH5, ...FOUNDATION_BATCH6,
-    ...FOUNDATION_BATCH7,
+    ...FOUNDATION_BATCH7, ...FOUNDATION_BATCH8, ...FOUNDATION_BATCH9, ...FOUNDATION_BATCH10,
   ];
 
   /**
@@ -142,8 +148,10 @@ const lvl = (d: string) => Number(String(d).slice(1));
     ...FAMILY_ALLOCATION,
     ...templatedAllocation(
       [...FOUNDATION_BATCH3, ...FOUNDATION_BATCH4, ...FOUNDATION_BATCH5, ...FOUNDATION_BATCH6,
-        ...FOUNDATION_BATCH7],
-      [...BATCH3_SKILLS, ...BATCH4_SKILLS, ...BATCH5_SKILLS, ...BATCH6_SKILLS, ...BATCH7_SKILLS],
+        ...FOUNDATION_BATCH7, ...FOUNDATION_BATCH8, ...FOUNDATION_BATCH9,
+        ...FOUNDATION_BATCH10],
+      [...BATCH3_SKILLS, ...BATCH4_SKILLS, ...BATCH5_SKILLS, ...BATCH6_SKILLS, ...BATCH7_SKILLS,
+        ...BATCH8_SKILLS, ...BATCH9_SKILLS, ...BATCH10_SKILLS],
     ),
   };
 
@@ -202,6 +210,9 @@ const lvl = (d: string) => Number(String(d).slice(1));
   writeCsv(REVIEW5, withPlan.filter(r => BATCH5_SKILLS.includes(r.skillKey)));
   writeCsv(REVIEW6, withPlan.filter(r => BATCH6_SKILLS.includes(r.skillKey)));
   writeCsv(REVIEW7, withPlan.filter(r => BATCH7_SKILLS.includes(r.skillKey)));
+  writeCsv(REVIEW8, withPlan.filter(r => BATCH8_SKILLS.includes(r.skillKey)));
+  writeCsv(REVIEW9, withPlan.filter(r => BATCH9_SKILLS.includes(r.skillKey)));
+  writeCsv(REVIEW10, withPlan.filter(r => BATCH10_SKILLS.includes(r.skillKey)));
 
   /* ---- rule checks --------------------------------------------------------------------- */
 

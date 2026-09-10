@@ -40,7 +40,23 @@ import importlib.util
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 AUDIT = os.path.join(ROOT, 'docs', 'audit')
 BLUEPRINT = os.path.join(AUDIT, 'foundation-golden-bank-blueprint.csv')
-COMBINED = os.path.join(AUDIT, 'foundation-golden-bank-wave1.csv')
+def combined_path(paths):
+    """Where the combined CSV for THIS run goes.
+
+    It used to be a constant naming wave 1, which meant every later run overwrote wave 1's
+    artifact with whatever it happened to be building — a single-skill check reduced a 1,650-row
+    file to 50 rows, silently, because the constant knew nothing about its inputs. The name is
+    now taken from the wave prefix the module filenames share, so a run can only ever overwrite
+    the artifact for the wave it actually built. Inputs that do not agree on a prefix get a
+    neutral name rather than one wave's.
+    """
+    waves = set()
+    for p in paths:
+        m = re.match(r'(wave\d+)_', os.path.basename(p))
+        if m:
+            waves.add(m.group(1))
+    name = waves.pop() if len(waves) == 1 else 'mixed'
+    return os.path.join(AUDIT, 'foundation-golden-bank-%s.csv' % name)
 
 LETTERS = ['A', 'B', 'C', 'D']
 ROTATION = [1, 3, 0, 2]
@@ -341,7 +357,7 @@ def main():
     skills = sorted(set(r['skillKey'] for r in rows))
     v = validate(rows, problems, bp, skills)
 
-    write_csv(COMBINED, COLS, rows)
+    write_csv(combined_path(paths), COLS, rows)
     for s in skills:
         write_csv(os.path.join(AUDIT, 'foundation-golden-bank-%s.csv' % s.lower().replace('_', '-')),
                   COLS, [r for r in rows if r['skillKey'] == s])
@@ -439,7 +455,8 @@ def main():
     print('appears in its own stem, every D5 naming its mode and hinge, and no blueprint')
     print('vocabulary in anything a student reads.')
     print('')
-    print('written: docs/audit/foundation-golden-bank-wave1.csv  (+ one file per skill)')
+    print('written: %s  (+ one file per skill)'
+          % os.path.relpath(combined_path(paths), ROOT).replace(os.sep, '/'))
 
 
 if __name__ == '__main__':

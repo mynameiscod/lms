@@ -71,6 +71,7 @@
 .ss-table td .key{display:block; font-size:10px; color:#93a1b2; margin-top:2px;
   font-family:ui-monospace,Menlo,monospace}
 .ss-table td .warn{display:block; font-size:10.5px; color:var(--ss-red); margin-top:3px; font-weight:700}
+.ss-table td .src{display:block; font-size:10.5px; color:#7b8794; margin-top:3px}
 .ss-table select{border:1px solid var(--ss-line); border-radius:8px; padding:6px 9px;
   font-size:12px; font-family:inherit; color:var(--ss-ink); background:#fff}
 .ss-table input[type=number]{width:62px; border:1px solid var(--ss-line); border-radius:8px;

@@ -206,6 +206,11 @@ const AdminStageSkills: React.FC = () => {
                           {/* A key that resolves to nothing is an admin problem, not a row
                               to hide — the list would otherwise be quietly shorter than it looks. */}
                           {!s && <span className="warn">this skill no longer exists</span>}
+                          {/* Where the row came from. The Year-1 seed writes the module and
+                              topic here, and an admin deciding whether to switch a row on is
+                              deciding about that module — a bare skill key does not tell them
+                              which part of the curriculum they are turning off. */}
+                          {r.note && <span className="src">{r.note}</span>}
                         </td>
                         <td>
                           <select value={r.importance} onChange={e => patch(r.skillKey, { importance: e.target.value })}>

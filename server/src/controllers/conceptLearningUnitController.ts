@@ -74,6 +74,9 @@ function sanitiseSteps(raw: any): any[] {
       stages:    Array.isArray(s?.audience?.stages) ? s.audience.stages.map((x: any) => clean(x, 40)) : [],
     },
     topic: clean(s.topic, 80),
+    // Kept at the same length as topic. Omitted from this list the field would be dropped on
+    // every save while the model happily accepted it, which is a silent loss of an author's work.
+    subtopic: clean(s.subtopic, 80),
     notes: clean(s.notes, 1000),
   }));
   return normaliseSequence(steps as any);

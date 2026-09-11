@@ -176,6 +176,19 @@ const Roadmap: React.FC = () => {
 
   const entitled = !!data?.entitled;
   const pct = rm.totalDays ? Math.round((rm.completedDays / rm.totalDays) * 100) : 0;
+
+  /**
+   * WHY THE NUMBER IN THE TITLE IS NOT NINETY.
+   *
+   * The journey is as long as the WORK, not as long as the window: the plan is projected from
+   * the topics actually assigned to this student, and nothing is padded out to fill the ninety
+   * days. A student who needs three weeks of work gets a three-week plan.
+   *
+   * Left unexplained, that reads as a broken promise — "21-Day Roadmap" under a product sold as
+   * ninety days, with a year of access. It is neither a bug nor a shorter entitlement, and the
+   * screen is the only place that can say so.
+   */
+  const shortOfWindow = rm.totalDays < 90;
   const allWeeks = rm.phases.flatMap(p => p.weeks);
   const todayDone = allWeeks.flatMap(w => w.days).find(d => d.isToday)?.done ?? false;
   const inProgress = entitled && !todayDone ? 1 : 0;
@@ -278,8 +291,12 @@ const Roadmap: React.FC = () => {
         </div>
 
         <div className="rq-title">
-          <h1>Your {rm.totalDays}-Day Roadmap 🚀</h1>
-          <p>A structured {rm.totalDays}-day plan to build strong foundations, skills and confidence.</p>
+          <h1>Your Learning Roadmap 🚀</h1>
+          <p>
+            {rm.totalDays} day{rm.totalDays === 1 ? '' : 's'} of work, in the order it builds.
+            {shortOfWindow && <> That is everything assigned to you so far — your plan can run to
+              90 days, and it grows as more is assigned.</>}
+          </p>
         </div>
 
         <div className="rq-stats five">
@@ -474,7 +491,7 @@ const Roadmap: React.FC = () => {
           <h3>🔒 That's your first week — {rm.totalDays - (rm.previewDays || 7)} more days are waiting</h3>
           <p>Unlock daily missions, the Practice Lab, AI mock interviews, the Resume Center and your shareable CareerPilot.</p>
           <button className="rq-primary" onClick={unlock} disabled={paying}>
-            {paying ? 'Opening payment…' : `Unlock My ${rm.totalDays}-Day CareerPilot — ₹${data?.priceInr ?? 499}`}
+            {paying ? 'Opening payment…' : `Unlock CareerPilot — ₹${data?.priceInr ?? 499}`}
           </button>
           {payMsg && <div className="pm-msg err" style={{ maxWidth: 420, margin: '12px auto 0' }}>{payMsg}</div>}
         </div>
@@ -483,8 +500,14 @@ const Roadmap: React.FC = () => {
       {!compact && skillState !== 'loading' && (<>
       <div className="rq-title row">
         <div>
-          <h1>Your {rm.totalDays}-Day Roadmap 🚀</h1>
+          <h1>Your Learning Roadmap 🚀</h1>
           <p><b>{rm.pathwayLabel}</b> — {rm.pathwayDescription}</p>
+          <p className="rq-window">
+            {rm.totalDays} day{rm.totalDays === 1 ? '' : 's'} of work at your pace.
+            {shortOfWindow
+              ? ' That is everything assigned to you so far; your plan can run to 90 days and grows as more is assigned.'
+              : ' Your plan covers the full 90-day window.'}
+          </p>
         </div>
         <div className="rq-title-chips">
           <span className="chip">📅 Day {rm.currentDay} / {rm.totalDays}</span>
@@ -569,7 +592,7 @@ const Roadmap: React.FC = () => {
               <h3>🔒 That's your first week — {rm.totalDays - (rm.previewDays || 7)} more days are waiting</h3>
               <p>Unlock daily missions, the Practice Lab, AI mock interviews, the Resume Center and your shareable CareerPilot.</p>
               <button className="rq-primary" onClick={unlock} disabled={paying}>
-                {paying ? 'Opening payment…' : `Unlock My ${rm.totalDays}-Day CareerPilot — ₹${data?.priceInr ?? 499}`}
+                {paying ? 'Opening payment…' : `Unlock CareerPilot — ₹${data?.priceInr ?? 499}`}
               </button>
               {payMsg && <div className="pm-msg err" style={{ maxWidth: 420, margin: '12px auto 0' }}>{payMsg}</div>}
             </div>

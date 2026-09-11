@@ -123,8 +123,8 @@ export async function buildCurriculumJourney(input: {
     available: false,
     roadmap: {
       totalDays: 90, pathway: '', pathwayLabel: '', pathwayDescription: '',
-      currentDay: 1, phases: [], totalXp: 0, earnedXp: 0,
-    } as Roadmap,
+      currentDay: 1, phases: [], totalXp: 0, earnedXp: 0, completedDays: 0,
+    },
   };
 
   if (!mongoose.Types.ObjectId.isValid(studentId)) return empty;
@@ -240,6 +240,15 @@ export async function buildCurriculumJourney(input: {
   const weeks: RoadmapWeek[] = [];
   let totalXp = 0;
   let earnedXp = 0;
+  /**
+   * DAYS FINISHED ACROSS THE WHOLE JOURNEY, not just within a week.
+   *
+   * Every week already counted its own, and the journey never summed them — so the top-level
+   * figure was simply absent, and every screen that divides by it rendered `NaN%`: the progress
+   * ring, the "of N days complete" line and the remaining-days count, all at once. The legacy
+   * builder has always returned this; the curriculum journey was written beside it and missed it.
+   */
+  let completedDaysTotal = 0;
 
   for (let w = 1; w <= weekCount; w++) {
     const mine = byWeek.get(w) || [];
@@ -286,6 +295,7 @@ export async function buildCurriculumJourney(input: {
       ? (topicModule.get(String(first.topicCode)) || first.skillName || `Week ${w}`)
       : `Week ${w}`;
 
+    completedDaysTotal += completedDays;
     weeks.push({
       week: w, theme, fromDay, toDay,
       focusLabels: [...new Set(mine.map(o => topicTitle.get(String(o.topicCode)) || o.skillName))].slice(0, 4),
@@ -335,6 +345,9 @@ export async function buildCurriculumJourney(input: {
       phases,
       totalXp,
       earnedXp,
-    } as Roadmap,
+      completedDays: completedDaysTotal,
+      // No `as Roadmap` here on purpose. The cast that used to sit on this object is exactly
+      // what let a required field go missing without the compiler saying a word.
+    },
   };
 }

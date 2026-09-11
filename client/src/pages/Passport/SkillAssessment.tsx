@@ -239,6 +239,18 @@ const SkillAssessment: React.FC = () => {
                   </span>
                 </div>
               )}
+              {done.roadmapStatus === 'NOT_GENERATED' && (
+                /* They have never built a plan, and submitting a paper no longer builds one for
+                   them. Not a failure and not a paywall — an invitation, which is what this
+                   moment actually is. */
+                <div className="ska-analysis-note ska-note-ready">
+                  <i className="bi bi-compass" />
+                  <span>
+                    Your Skill DNA is ready. Build your 90-day plan whenever you are — it starts
+                    from exactly what this paper measured.
+                  </span>
+                </div>
+              )}
               {(done.roadmapStatus === 'UNAVAILABLE' || done.roadmapStatus === 'NOT_ATTEMPTED' || !done.roadmapStatus) && (
                 <div className="ska-analysis-note">
                   <i className="bi bi-lightbulb" />
@@ -274,6 +286,13 @@ const SkillAssessment: React.FC = () => {
               {done.roadmapStatus === 'READY' && (
                 <button className="ska-cta-ghost" onClick={() => nav('/careerpilot/roadmap')}>
                   View my roadmap
+                </button>
+              )}
+              {done.roadmapStatus === 'NOT_GENERATED' && (
+                // Straight to the one screen with the Build button on it. The plan is still
+                // their press; this only removes the hunt for where to press it.
+                <button className="ska-cta-ghost" onClick={() => nav('/careerpilot/roadmap')}>
+                  Build my 90-day plan
                 </button>
               )}
               {done.roadmapStatus === 'MEMBERSHIP_REQUIRED' && (

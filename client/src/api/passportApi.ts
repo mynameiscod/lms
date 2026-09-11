@@ -1560,6 +1560,27 @@ export interface DashboardData {
   shareSlug?: string | null;
   passwordSet?: boolean;
   entitled?: Record<string, boolean>;
+  /**
+   * The parts of the product this member cannot open, and why they would want them.
+   *
+   * Computed and sent by the server rather than worked out here: whether a section is free or
+   * paid is the tenant's setting, and a client that decided it for itself would be a lock
+   * anybody could remove with dev tools. Empty for a member with everything.
+   */
+  locked?: LockedSection[];
+}
+
+/** A part of the member experience that can be locked on its own. Mirrors memberAccessPolicy. */
+export type MemberSection =
+  | 'score' | 'roadmap' | 'missions' | 'progress'
+  | 'practice' | 'interview' | 'resume' | 'companies' | 'news';
+
+export interface LockedSection {
+  section: MemberSection;
+  /** The PassportConfig entitlement that would open it. */
+  featureKey: string;
+  title: string;
+  blurb: string;
 }
 
 // ── Roadmap ──
@@ -1573,6 +1594,8 @@ export interface Roadmap {
 }
 export interface RoadmapResponse {
   needsAssessment?: boolean; roadmap?: Roadmap; entitled?: boolean;
+  /** False when even the 7-day preview is closed — the tenant set roadmap_preview to paid. */
+  canPreview?: boolean;
   /** When membership lapses. Null for a member with no expiry recorded. */
   accessExpiresAt?: string | null;
   priceInr?: number; careerScore?: number; level?: string;

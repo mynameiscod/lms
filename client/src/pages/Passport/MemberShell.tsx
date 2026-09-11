@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import passportApi, { DashboardData } from '../../api/passportApi';
+import passportApi, { DashboardData, MemberSection } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
 import './dashboard.css';
 import './member.css';
@@ -163,11 +163,37 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const goal = d?.dailyGoal;
   const myRank = d?.leaderboard?.find(r => r.me)?.rank;
 
-  const navBtn = (label: string, icon: string, to: string) => (
-    <button className={`gd-nav-btn${path === to ? ' on' : ''}`} onClick={() => nav(to)} key={to}>
-      <span className="ic"><Icon name={icon} /></span><span className="lbl">{label}</span>
-    </button>
-  );
+  /**
+   * Which parts of the product this member cannot open yet.
+   *
+   * Read from the dashboard payload — the server decides free versus paid from the tenant's
+   * own settings, and a rail that worked it out for itself would disagree with the API the
+   * moment an admin changed anything.
+   */
+  const lockedSet = new Set((d?.locked || []).map(l => l.section));
+
+  /**
+   * A locked item is SHOWN AND MARKED, never hidden.
+   *
+   * Hiding it removes the only reason to buy — a student cannot want what they cannot see —
+   * and it also makes the product look smaller than it is. It still navigates, because the
+   * destination now explains itself rather than dead-ending.
+   */
+  const navBtn = (label: string, icon: string, to: string, section?: MemberSection) => {
+    const locked = !!section && lockedSet.has(section);
+    return (
+      <button
+        className={`gd-nav-btn${path === to ? ' on' : ''}${locked ? ' locked' : ''}`}
+        onClick={() => nav(to)}
+        key={to}
+        title={locked ? 'Part of membership' : undefined}
+      >
+        <span className="ic"><Icon name={icon} /></span>
+        <span className="lbl">{label}</span>
+        {locked && <span className="lk" aria-label="Membership"><i className="bi bi-lock-fill" /></span>}
+      </button>
+    );
+  };
 
   return (
     <div className="gd">
@@ -189,14 +215,14 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
 
         <nav className="gd-nav">
           {navBtn('Home', 'home', '/careerpilot')}
-          {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap')}
-          {navBtn('Practice', 'code', '/careerpilot/practice')}
-          {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab')}
+          {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap')}
+          {navBtn('Practice', 'code', '/careerpilot/practice', 'practice')}
+          {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'practice')}
           {navBtn('Communication Lab', 'speech', '/careerpilot/communication')}
-          {navBtn('Mock Interview', 'interview', '/careerpilot/interview')}
-          {navBtn('Opportunities', 'building', '/careerpilot/companies')}
-          {navBtn('Resume', 'resume', '/careerpilot/resume')}
-          {navBtn('My Progress', 'trophy', '/careerpilot/progress')}
+          {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview')}
+          {navBtn('Opportunities', 'building', '/careerpilot/companies', 'companies')}
+          {navBtn('Resume', 'resume', '/careerpilot/resume', 'resume')}
+          {navBtn('My Progress', 'trophy', '/careerpilot/progress', 'progress')}
         </nav>
 
         <div className="gd-side-account">
@@ -206,7 +232,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           </div>
           <button className="gd-nav-btn" onClick={() => nav('/careerpilot/profile')}><span className="ic"><Icon name="user" /></span><span className="lbl">My profile</span></button>
           <button className="gd-nav-btn" onClick={() => nav('/careerpilot/readiness')}><span className="ic"><Icon name="chart" /></span><span className="lbl">My result</span></button>
-          <button className="gd-nav-btn" onClick={() => nav('/careerpilot/news')}><span className="ic"><Icon name="news" /></span><span className="lbl">Tech news</span></button>
+          {navBtn('Tech news', 'news', '/careerpilot/news', 'news')}
           <button className="gd-nav-btn" onClick={share} disabled={!d?.shareSlug}><span className="ic"><Icon name="share" /></span><span className="lbl">{copied ? 'Link copied!' : 'Share my card'}</span></button>
           <button className="gd-nav-btn out" onClick={() => logout()}><span className="ic"><Icon name="logout" /></span><span className="lbl">Log out</span></button>
         </div>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import passportApi, { Roadmap as RoadmapT, RoadmapWeek, RoadmapPhase } from '../../api/passportApi';
 import { useMember } from './MemberLayout';
 import SkillPlan, { SkillPlanState } from './SkillPlan';
+import SectionLock from './SectionLock';
 import './roadmap.css';
 
 /**
@@ -159,7 +160,19 @@ const Roadmap: React.FC = () => {
     );
   }
 
-  if (!rm) return <div className="pm-empty">Roadmap unavailable right now.</div>;
+  /**
+   * No journey at all. Two different situations, and they must not share one sentence.
+   *
+   * `canPreview === false` means the tenant closed even the seven-day preview, so this is a
+   * paywall and gets the lock. Anything else is a genuine fault, and "unavailable right now"
+   * is the honest thing to say about it — telling somebody to buy their way out of our bug
+   * would be the worse mistake.
+   */
+  if (!rm) {
+    return data?.canPreview === false
+      ? <SectionLock section="roadmap" />
+      : <div className="pm-empty">Roadmap unavailable right now.</div>;
+  }
 
   const entitled = !!data?.entitled;
   const pct = rm.totalDays ? Math.round((rm.completedDays / rm.totalDays) * 100) : 0;

@@ -1287,6 +1287,23 @@ export const passportApi = {
    * authored journey yet, and a screen that showed a red box for that would be shouting about
    * content the student was never promised.
    */
+  /**
+   * This student's ninety days, or why they do not have them yet.
+   *
+   * The unavailable case is an ordinary 200, not an error: a curriculum still being written is a
+   * true state of the product, and the screen renders it rather than throwing.
+   */
+  getMySpine: async (): Promise<SpineOutcome> => {
+    const { data } = await axios.get(`${BASE}/me/spine`, { headers: auth() });
+    return data;
+  },
+
+  /** For the people authoring it. How much of the spine exists, band by band. */
+  getSpineCoverage: async (q: { language?: string; direction?: string } = {}): Promise<SpineCoverage> => {
+    const { data } = await axios.get(`${BASE}/spine/coverage`, { headers: auth(), params: q });
+    return data;
+  },
+
   getMyConceptJourney: async (skillKey: string): Promise<ConceptJourney | null> => {
     try {
       const { data } = await axios.get(
@@ -1580,6 +1597,55 @@ export interface DashboardData {
    * anybody could remove with dev tools. Empty for a member with everything.
    */
   locked?: LockedSection[];
+}
+
+/** One day of the ninety. A unit of curriculum, not a calendar date. */
+export interface SpineDay {
+  day: number;
+  band: string;
+  dayUnitId: string;
+  title: string;
+  skillKey: string;
+  journeyTopic: string;
+  subtopics: string[];
+  /** How much of the day's journey this student is served, from what they were measured on. */
+  depth: 'FULL' | 'STANDARD' | 'REVIEW';
+  estimatedMinutes: number;
+}
+
+export interface SpineBand {
+  key: string; label: string; blurb: string; fromDay: number; toDay: number;
+}
+
+/**
+ * One shape, not a union — deliberately, and for the same reason the selector uses one.
+ *
+ * A discriminated union would make every screen narrow before it could read either half, and
+ * this project's tsconfig does not narrow boolean literals reliably. Optional fields say what is
+ * present in which state, and `available` is still the thing to branch on.
+ */
+export interface SpineOutcome {
+  available: boolean;
+
+  /** Present when available. */
+  totalDays?: number;
+  days?: SpineDay[];
+  bands?: SpineBand[];
+  estimatedMinutes?: number;
+
+  /** Present when not. */
+  reason?: 'CURRICULUM_INCOMPLETE' | 'NO_CONTEXT';
+  message?: string;
+  /** Which bands fall short. Named, so the wait can be explained rather than just announced. */
+  shortfalls?: { band: string; needed: number; available: number }[];
+  authored?: number;
+  total?: number;
+}
+
+export interface SpineCoverage {
+  total: number; filled: number; percent: number; spineDays: number;
+  rows: { band: string; label: string; needed: number; available: number; short: number; complete: boolean }[];
+  bands: (SpineBand & { days: number; variance: string })[];
 }
 
 /** A part of the member experience that can be locked on its own. Mirrors memberAccessPolicy. */

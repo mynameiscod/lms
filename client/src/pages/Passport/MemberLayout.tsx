@@ -102,12 +102,20 @@ const MemberLayout: React.FC = () => {
    * The alternative was what we had: a paywall as the first screen, asking somebody to buy
    * before they had seen anything.
    *
-   * BEFORE THE ASSESSMENT TOO. A student who has not been measured used to get a bare page
-   * with no navigation, on the theory that they had nothing to navigate to. But they do — the
-   * assessment, their profile, the setup they may not have finished — and taking the rail away
-   * at the exact moment somebody is deciding whether this product is for them shows them less
-   * of it than anyone. The home screen leads with the paper; the rail stays.
+   * NOT BEFORE THE ASSESSMENT. I argued the opposite a change ago — that a student deciding
+   * whether this product is for them should see the most of it, not the least — and that was
+   * wrong in practice. Onboarding and the paper are a single flow with their own chrome, and
+   * wrapping them in a rail of nine locked destinations turns the one screen with a clear next
+   * action into a menu. The rail earns its place once there is a dashboard behind it.
    */
+  if (!data.hasAssessment) {
+    return (
+      <Ctx.Provider value={ctx}>
+        <Outlet />
+      </Ctx.Provider>
+    );
+  }
+
   return (
     <Ctx.Provider value={ctx}>
       <MemberShell data={data}>

@@ -39,6 +39,7 @@ import * as personalized from '../controllers/personalizedAssessmentController';
 import * as skillDna from '../controllers/skillDnaController';
 import * as readiness from '../controllers/roleReadinessController';
 import * as careerRoadmap from '../controllers/careerRoadmapController';
+import * as spine from '../controllers/spineController';
 import * as dailyPlan from '../controllers/careerDailyPlanController';
 import * as skillResources from '../controllers/careerSkillResourceController';
 import * as gamification from '../controllers/gamificationController';
@@ -395,6 +396,14 @@ router.get('/me/placement-readiness',    MEMBER, placement.getMyPlacementReadine
 router.get('/me/resume-readiness',       MEMBER, placement.getMyResumeReadiness);
 router.get('/me/interview/coverage',     MEMBER, placement.getMyInterviewCoverage);
 router.get('/students/:studentId/placement-readiness', MANAGE, placement.getStudentPlacementReadiness);
+
+/**
+ * The ninety-day spine. Read only — nothing here creates a plan, because there is nothing to
+ * create: it is derived from published day-units and the student's own evidence each time.
+ */
+router.get('/me/spine',                         MEMBER, spine.getMySpine);
+/** For the people authoring the curriculum, not for a student. */
+router.get('/spine/coverage',                   MANAGE, spine.getSpineCoverage);
 
 router.get('/me/roadmap',                       MEMBER, careerRoadmap.getMyRoadmap);
 router.post('/me/roadmap/generate',             MEMBER, careerRoadmap.generateMyRoadmap);

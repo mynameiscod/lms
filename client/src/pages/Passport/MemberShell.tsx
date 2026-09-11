@@ -215,6 +215,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
 
         <nav className="gd-nav">
           {navBtn('Home', 'home', '/careerpilot')}
+          {navBtn('My 90 Days', 'grid', '/careerpilot/plan', 'roadmap')}
           {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap')}
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice')}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'practice')}

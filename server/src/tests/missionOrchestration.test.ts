@@ -219,13 +219,55 @@ describe('what it refuses to do', () => {
     expect(missions).toEqual([]);
   });
 
-  it('never pulls work forward from a later week', () => {
-    // §62: week 8's objective is not today's problem just because today looks quiet.
+  /**
+   * REPLACES THE OLD §62 RULE, WHICH REFUSED TO SHOW WORK FROM A LATER WEEK.
+   *
+   * That rule made the plan advance because time passed, and it cost more than it bought.
+   * Work a student had not finished in week 3 vanished on the Monday of week 4 — not
+   * completed, not deferred, simply gone from the only screen that would have shown it. And
+   * a student who worked faster than the plan expected was shown an empty day until the
+   * calendar caught up with them.
+   *
+   * The product is self-paced within a one-year membership, so the planner's week numbers
+   * are a suggested pace rather than a gate. What still constrains order is the prerequisite
+   * relation, which is checked below and is now checked across the whole plan rather than
+   * inside one week. The suggested pace is reported to the student as a signal instead.
+   */
+  it('advances to the earliest unfinished objective rather than waiting for its week', () => {
     const missions = select({
       objectives: [obj({ sequence: 9, skillKey: 'DOCKER', week: 8 })],
       week: 2,
     });
-    expect(missions).toEqual([]);
+    expect(missions).toHaveLength(1);
+    expect(missions[0].skillKey).toBe('DOCKER');
+  });
+
+  it('carries unfinished work forward instead of losing it when its week passes', () => {
+    // The bug the old rule caused: an objective left half-done in week 1 was unreachable
+    // from week 2 onwards, however much of it remained.
+    const missions = select({
+      objectives: [
+        obj({ sequence: 1, skillKey: 'OOP', week: 1, plannedMinutes: 120 }),
+        obj({ sequence: 2, skillKey: 'SQL', week: 2, plannedMinutes: 120 }),
+      ],
+      creditedBefore: new Map([[1, 30]]),   // 90 minutes of week 1 still owed
+      week: 2,
+    });
+    expect(missions[0].skillKey).toBe('OOP');
+  });
+
+  it('still refuses to start something whose prerequisite is unfinished', () => {
+    // Pacing was relaxed; ordering was not. A dependency left owing in an earlier week
+    // blocks what depends on it, which the old within-one-week check could not even see.
+    const missions = select({
+      objectives: [
+        obj({ sequence: 1, skillKey: 'PY', week: 1, plannedMinutes: 120, prerequisiteFor: 'DJANGO' }),
+        obj({ sequence: 2, skillKey: 'DJANGO', week: 3, plannedMinutes: 120 }),
+      ],
+      creditedBefore: new Map([[1, 30]]),
+      week: 3,
+    });
+    expect(missions.every(m => m.skillKey !== 'DJANGO')).toBe(true);
   });
 
   it('plans nothing for a student with no stated capacity', () => {

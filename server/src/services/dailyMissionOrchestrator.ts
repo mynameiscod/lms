@@ -9,14 +9,14 @@ import { findProblem, findCareerPilotProblem } from './passportPracticeService';
 import { ymd } from './passportMissionService';
 import { XpRule } from '../models/GamificationModels';
 import { resolveLearningSteps, logResolution, LearningProvenance } from './conceptLearningMissionBridge';
-import { MISSION_ORCHESTRATION_VERSION, MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES, assessmentRouteForSkill, practiceRoute, materialRoute, dailySliceOf, dailyBudget, MissionResourceState, DailyPlanUnavailable } from '../data/missionOrchestrationPolicy';
+import { MISSION_ORCHESTRATION_VERSION, MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES, assessmentRouteForSkill, practiceRoute, materialRoute, dailySliceOf, dailyBudget, MissionResourceState, DailyPlanUnavailable, paceSignal, PaceSignal } from '../data/missionOrchestrationPolicy';
 
 /** Daily Mission Engine: roadmap=WHAT, this service=WHEN, targeted resource=HOW. */
 export interface MissionResource { type: string; id: string; title: string; route: string; xp?: number | null; }
 /** Present when the mission came from an authored journey — the step it corresponds to. */
 export interface MissionLearning extends LearningProvenance {}
 export interface DailyMission { learning?: MissionLearning; key: string; roadmapId: string; objectiveSequence: number; skillKey: string; skillName: string; workType: string; plannedMinutes: number; title: string; explanation: string; reasonCode: string; resourceState: MissionResourceState; resource?: MissionResource; done: boolean; }
-export interface DailyPlanAvailable { available: true; policyVersion: string; roadmapId: string; date: string; roadmapDay: number; roadmapWeek: number; weekCount: number; capacity: { minutesPerDay: number; plannedMinutes: number }; missions: DailyMission[]; progress: { plannedMinutes: number; completedMinutes: number; percent: number }; week: { plannedMinutes: number; completedMinutes: number }; unmappedObjectives: number; outdated: boolean; }
+export interface DailyPlanAvailable { available: true; policyVersion: string; roadmapId: string; date: string; roadmapDay: number; roadmapWeek: number; weekCount: number; /** Where the student sits against the suggested pace. Never withholds work. */ pace: PaceSignal; capacity: { minutesPerDay: number; plannedMinutes: number }; missions: DailyMission[]; progress: { plannedMinutes: number; completedMinutes: number; percent: number }; week: { plannedMinutes: number; completedMinutes: number }; unmappedObjectives: number; outdated: boolean; }
 export interface DailyPlanUnavailableResult { available: false; reason: DailyPlanUnavailable; message: string; }
 export type DailyPlanOutcome = DailyPlanAvailable | DailyPlanUnavailableResult;
 
@@ -84,13 +84,32 @@ export interface SelectionInput { roadmapId: string; date: string; week: number;
   /** What CAREER_MISSION_COMPLETED pays, so the card shows what the ledger will award. */
   missionXp: number; }
 
+/**
+ * THE FRONTIER IS WHAT IS UNFINISHED, NOT WHAT THE CALENDAR SAYS.
+ *
+ * This used to select `o.week === input.week`, which meant the plan advanced because time
+ * passed. Two things followed and both were wrong for a self-paced product. Work a student
+ * had not finished in week 3 disappeared on the Monday of week 4 — not completed, not
+ * deferred, simply gone from the only screen that would have shown it. And a student who
+ * finished a week early was shown nothing until the calendar caught up.
+ *
+ * Objectives are already emitted in the order the planner intends — by week, then by
+ * sequence within it — so taking the earliest unsettled ones honours that order exactly
+ * while carrying unfinished work forward and letting a fast student move on. The day's
+ * budget and the mission cap are what stop this becoming a wall of forty tasks.
+ *
+ * The suggested pace has not been thrown away; it moved to a signal the student is shown,
+ * which is information they can act on rather than a gate that removes their work.
+ */
 export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
-  const thisWeek = input.objectives.filter(o => o.week === input.week).slice().sort((a, b) => a.sequence - b.sequence);
+  const ordered = input.objectives.slice().sort((a, b) => a.week - b.week || a.sequence - b.sequence);
   const creditedOf = (seq: number) => input.creditedBefore.get(seq) || 0; const isSettled = (o: SelectableObjective) => creditedOf(o.sequence) >= o.plannedMinutes;
   const budget = dailyBudget(input.minutesPerDay); const chosen: DailyMission[] = []; let spent = 0;
-  for (const o of thisWeek) {
+  for (const o of ordered) {
     if (chosen.length >= MAX_MISSIONS_PER_DAY) break; if (isSettled(o)) continue;
-    if (thisWeek.some(p => p.sequence < o.sequence && p.prerequisiteFor === o.skillKey && !isSettled(p))) continue;
+    // Prerequisites are checked across the whole plan now rather than within one week, so a
+    // dependency left unfinished in an earlier week still blocks what depends on it.
+    if (ordered.some(p => p.sequence < o.sequence && p.prerequisiteFor === o.skillKey && !isSettled(p))) continue;
     const slice = dailySliceOf(o.plannedMinutes, creditedOf(o.sequence), input.daysPerWeek); if (slice < MIN_MISSION_MINUTES) continue;
     const remainingBudget = budget - spent; if (remainingBudget < MIN_MISSION_MINUTES) break;
     const minutes = Math.min(slice, remainingBudget); const key = missionKey(input.roadmapId, o.sequence, input.date);
@@ -195,13 +214,46 @@ export async function getTodaysPlan(tenantId: string, studentId: string, now: Da
   const [roadmap, user, cfg] = await Promise.all([CareerRoadmap.findOne({ tenantId, studentId, status: 'ACTIVE' }).lean() as any, User.findOne({ _id: studentId, tenantId }).select('passport').lean() as any, PassportConfig.findOne({ tenantId }).lean() as any]);
   if (!isEntitled(cfg?.entitlements, user?.passport, 'daily_missions', now)) return { available: false, reason: 'MEMBERSHIP_REQUIRED', message: 'A CareerPilot membership is needed for your daily plan.' };
   if (!roadmap) return { available: false, reason: 'ROADMAP_REQUIRED', message: 'Generate your 90-day roadmap and your daily plan starts from it.' };
-  const roadmapDay = Math.max(1, dayNumberFrom(new Date(roadmap.startDate), now)); if (roadmapDay > roadmap.roadmapDays) return { available: false, reason: 'ROADMAP_COMPLETED', message: 'This 90-day plan has finished.' };
+  /**
+   * THE PLAN ENDS WHEN THE WORK IS DONE, NOT WHEN THE DAYS RUN OUT.
+   *
+   * This used to refuse a plan once `roadmapDay` passed `roadmapDays`, which told a student
+   * on day 91 that their plan had finished whether or not they had learned anything — and
+   * did it while their membership still had nine months to run. The completion check now
+   * sits below, after the objectives have been read, and asks whether anything is left.
+   *
+   * `roadmapDay` is still computed and still reported, because the suggested pace is worth
+   * telling a student about. It no longer decides what they are allowed to see.
+   */
+  const roadmapDay = Math.max(1, dayNumberFrom(new Date(roadmap.startDate), now));
   const week = Math.min(roadmap.weekCount, Math.max(1, Math.ceil(roadmapDay / 7))); const date = ymd(now); const roadmapId = String(roadmap._id);
   const objectives: SelectableObjective[] = (roadmap.objectives || []).map((o: any) => ({ sequence: o.sequence, skillKey: o.skillKey, skillName: o.skillName, workType: o.workType, plannedMinutes: o.plannedMinutes, week: o.week, reasonCode: o.reasonCode, explanation: o.explanation, prerequisiteFor: o.prerequisiteFor }));
   const progress: any = await PassportProgress.findOne({ tenantId, studentId }).lean(); const completions = (progress?.completed || []).filter((c: any) => c.careerpilot && c.careerpilot.roadmapId === roadmapId);
   const creditedBefore = new Map<number, number>(); const completedToday = new Set<string>(); let completedMinutes = 0;
   for (const c of completions) { const cp = c.careerpilot; completedMinutes += cp.minutes || 0; if (String(c.key).endsWith(`:${date}`)) { completedToday.add(c.key); continue; } creditedBefore.set(cp.objectiveSequence, (creditedBefore.get(cp.objectiveSequence) || 0) + (cp.minutes || 0)); }
-  const weekObjectives = objectives.filter(o => o.week === week); const weekSkillKeys = [...new Set(weekObjectives.map(o => String(o.skillKey).toUpperCase()))];
+  /**
+   * Settled means credited to at least its planned minutes. A roadmap with nothing unsettled
+   * is genuinely finished, which is the only honest reason to stop serving a plan.
+   */
+  const settled = (o: SelectableObjective) => (creditedBefore.get(o.sequence) || 0) >= o.plannedMinutes;
+  if (objectives.length > 0 && objectives.every(settled)) {
+    return { available: false, reason: 'ROADMAP_COMPLETED', message: 'Every objective in this plan is complete.' };
+  }
+
+  /**
+   * Resources are loaded for the objectives that can actually open today.
+   *
+   * This was the current calendar week; with the frontier now decided by progress, loading
+   * one week's skills would miss the unfinished earlier objective the student is about to be
+   * given. Taking the unsettled frontier in plan order and capping it well above the daily
+   * mission limit keeps the query bounded without guessing which ones will be chosen.
+   */
+  const RESOURCE_LOOKAHEAD = MAX_MISSIONS_PER_DAY * 4;
+  const weekObjectives = objectives
+    .filter(o => !settled(o))
+    .sort((a, b) => a.week - b.week || a.sequence - b.sequence)
+    .slice(0, RESOURCE_LOOKAHEAD);
+  const weekSkillKeys = [...new Set(weekObjectives.map(o => String(o.skillKey).toUpperCase()))];
   const skillRows = await StudentSkillProfile.find({ tenantId, studentId, skillKey: { $in: weekSkillKeys } }).select('skillKey score').lean() as any[]; const scores = new Map<string, number>(skillRows.map(s => [String(s.skillKey).toUpperCase(), Number(s.score)]));
   const p = user?.passport || {}; const member: ResourceMember = { yearOfStudy: p.yearOfStudy, degree: p.degree, program: p.program, branch: p.branch, primaryRole: p.primaryRole, secondaryRole: p.secondaryRole, stage: p.stage, preferredLanguages: p.preferredLanguages || [] };
   const resources = await resolveResources(tenantId, weekSkillKeys, member, scores);
@@ -236,8 +288,29 @@ export async function getTodaysPlan(tenantId: string, studentId: string, now: Da
     .select('xp enabled').lean().catch(() => null) as any;
   const missionXp = xpRule?.enabled === false ? 0 : (typeof xpRule?.xp === 'number' ? xpRule.xp : 10);
   const missions = selectTodaysMissions({ roadmapId, date, week, objectives, minutesPerDay: roadmap.input.minutesPerDay, daysPerWeek: roadmap.input.daysPerWeek, creditedBefore, completedToday, resources, learningBySlot: learning.bySlot as any, missionXp });
-  const weekPlanned = weekObjectives.reduce((n, o) => n + o.plannedMinutes, 0); const weekCompleted = completions.filter((c: any) => weekObjectives.some(o => o.sequence === c.careerpilot.objectiveSequence)).reduce((n: number, c: any) => n + (c.careerpilot.minutes || 0), 0); const totalPlanned = roadmap.capacity?.plannedMinutes || 0;
-  return { available: true, policyVersion: MISSION_ORCHESTRATION_VERSION, roadmapId, date, roadmapDay, roadmapWeek: week, weekCount: roadmap.weekCount, capacity: { minutesPerDay: roadmap.input.minutesPerDay, plannedMinutes: missions.reduce((n, m) => n + m.plannedMinutes, 0) }, missions, progress: { plannedMinutes: totalPlanned, completedMinutes, percent: totalPlanned > 0 ? Math.min(100, Math.round((completedMinutes / totalPlanned) * 100)) : 0 }, week: { plannedMinutes: weekPlanned, completedMinutes: weekCompleted }, unmappedObjectives: weekObjectives.filter(o => o.workType !== 'ASSESS' && !resources.has(slotKey(o.skillKey, o.workType))).length, outdated: false };
+  /**
+   * The week figures stay about the calendar week, not the frontier.
+   *
+   * `weekObjectives` now holds whatever can open next, which may span several planned weeks
+   * and is capped for the resource query. Reporting that as "this week" would put a number
+   * on screen that answers no question a student asked. These are computed from the planned
+   * week the student is currently in, which is what the label says.
+   */
+  const calendarWeekObjectives = objectives.filter(o => o.week === week);
+  const weekPlanned = calendarWeekObjectives.reduce((n, o) => n + o.plannedMinutes, 0);
+  const weekCompleted = completions
+    .filter((c: any) => calendarWeekObjectives.some(o => o.sequence === c.careerpilot.objectiveSequence))
+    .reduce((n: number, c: any) => n + (c.careerpilot.minutes || 0), 0);
+  const totalPlanned = roadmap.capacity?.plannedMinutes || 0;
+
+  /**
+   * Reported on every plan, so the screen never has to work it out or guess.
+   *
+   * Derived from the same completedMinutes and totalPlanned shown beside it, which is what
+   * stops the signal and the progress bar telling a student two different stories.
+   */
+  const pace = paceSignal(roadmapDay, roadmap.roadmapDays, completedMinutes, totalPlanned);
+  return { available: true, policyVersion: MISSION_ORCHESTRATION_VERSION, roadmapId, date, roadmapDay, roadmapWeek: week, weekCount: roadmap.weekCount, pace, capacity: { minutesPerDay: roadmap.input.minutesPerDay, plannedMinutes: missions.reduce((n, m) => n + m.plannedMinutes, 0) }, missions, progress: { plannedMinutes: totalPlanned, completedMinutes, percent: totalPlanned > 0 ? Math.min(100, Math.round((completedMinutes / totalPlanned) * 100)) : 0 }, week: { plannedMinutes: weekPlanned, completedMinutes: weekCompleted }, unmappedObjectives: weekObjectives.filter(o => o.workType !== 'ASSESS' && !resources.has(slotKey(o.skillKey, o.workType))).length, outdated: false };
 }
 export { CareerRoadmap as _CareerRoadmap };
 export type { ICareerRoadmap };

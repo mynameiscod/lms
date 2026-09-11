@@ -176,9 +176,29 @@ describe('today comes from the active roadmap', () => {
     expect(plan.missions[0].skillKey).toBe('NEW_SKILL');
   });
 
-  it('stops once the 90 days are over', async () => {
+  /**
+   * THE PLAN ENDS WHEN THE WORK IS DONE, NOT WHEN THE DAYS RUN OUT.
+   *
+   * This used to assert the opposite: past day 90 the plan refused to serve anything. That
+   * told a student on day 91 their plan had finished whether or not they had learned any of
+   * it, and did so while their membership still had months to run. The suggested pace is
+   * now reported rather than enforced.
+   */
+  it('keeps serving work past the suggested end, and says the student is behind', async () => {
     const plan: any = await getTodaysPlan(TENANT, STUDENT, new Date('2027-01-01T00:00:00Z'));
-    expect(plan.reason).toBe('ROADMAP_COMPLETED');
+    expect(plan.available).toBe(true);
+    expect(plan.missions.length).toBeGreaterThan(0);
+    expect(plan.pace.status).toBe('BEHIND');
+    // Uncapped on purpose: "day 140 of a 90-day plan" is the honest answer.
+    expect(plan.pace.daysElapsed).toBeGreaterThan(plan.pace.daysSuggested);
+  });
+
+  it('reports pace without ever withholding the work', async () => {
+    const plan: any = await getTodaysPlan(TENANT, STUDENT, NOW);
+    expect(plan.available).toBe(true);
+    expect(['AHEAD', 'ON_TRACK', 'BEHIND']).toContain(plan.pace.status);
+    expect(plan.pace.actualPercent).toBeGreaterThanOrEqual(0);
+    expect(plan.pace.expectedPercent).toBeLessThanOrEqual(100);
   });
 
   it('requires a membership, using the key daily missions already use', async () => {

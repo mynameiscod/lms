@@ -80,6 +80,71 @@ export type DailyPlanUnavailable =
   | 'ROADMAP_COMPLETED'
   | 'MEMBERSHIP_REQUIRED';
 
+/**
+ * How the student is doing against the suggested pace.
+ *
+ * A SIGNAL, NEVER A GATE. The roadmap is planned over a number of days, and how long a
+ * student actually takes is their business: somebody working through Loops properly over
+ * nine days has not failed, and somebody who skimmed it in one has not won. What the
+ * membership buys is the material for a year, so the only hard boundary is entitlement.
+ *
+ * WHY REPORT IT AT ALL. A plan that never mentions pace leaves a student unable to tell
+ * whether they are on course for a placement season that does have dates. Saying "you are
+ * about a week behind the suggested pace" is information they can act on; refusing to serve
+ * them the work is not.
+ */
+export type PaceStatus = 'AHEAD' | 'ON_TRACK' | 'BEHIND';
+
+export interface PaceSignal {
+  status: PaceStatus;
+  /** Days since the roadmap started. Uncapped: day 140 of a 90-day plan is a real answer. */
+  daysElapsed: number;
+  /** What the plan was drawn up over. A suggestion, and the denominator for the signal. */
+  daysSuggested: number;
+  /** Share of planned minutes actually credited, 0-100. */
+  actualPercent: number;
+  /** Share the suggested pace would have reached by now, 0-100. */
+  expectedPercent: number;
+  /** Positive means ahead. Days of work, at the suggested rate. */
+  daysAheadOrBehind: number;
+}
+
+/**
+ * Either side of the suggested pace before the signal stops saying ON_TRACK.
+ *
+ * Ten points rather than an exact match, because a student who has done 48 per cent where
+ * the pace suggests 50 is not behind in any sense worth telling them about, and a signal
+ * that flickers between states on a single completed mission is noise.
+ */
+export const PACE_TOLERANCE_PERCENT = 10;
+
+/**
+ * Where the student sits against the suggested pace.
+ *
+ * Deterministic and derived entirely from figures the plan already holds, so it cannot
+ * disagree with the progress shown beside it.
+ */
+export function paceSignal(
+  daysElapsed: number, daysSuggested: number,
+  completedMinutes: number, plannedMinutes: number,
+): PaceSignal {
+  const days = Math.max(1, Math.round(daysSuggested || 0));
+  const elapsed = Math.max(0, Math.round(daysElapsed || 0));
+  const actualPercent = plannedMinutes > 0
+    ? Math.min(100, Math.round((completedMinutes / plannedMinutes) * 100)) : 0;
+  // Capped at 100: past the suggested end the expectation is simply "all of it".
+  const expectedPercent = Math.min(100, Math.round((elapsed / days) * 100));
+
+  const delta = actualPercent - expectedPercent;
+  const status: PaceStatus = delta > PACE_TOLERANCE_PERCENT ? 'AHEAD'
+    : delta < -PACE_TOLERANCE_PERCENT ? 'BEHIND' : 'ON_TRACK';
+
+  return {
+    status, daysElapsed: elapsed, daysSuggested: days, actualPercent, expectedPercent,
+    daysAheadOrBehind: Math.round((delta / 100) * days),
+  };
+}
+
 export const roundMission = (minutes: number): number =>
   Math.max(MIN_MISSION_MINUTES, Math.round(minutes / MISSION_GRANULARITY) * MISSION_GRANULARITY);
 

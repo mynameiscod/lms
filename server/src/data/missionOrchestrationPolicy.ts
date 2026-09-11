@@ -14,14 +14,47 @@
 export const MISSION_ORCHESTRATION_VERSION = 'MISSION_ORCHESTRATION_V1';
 
 /**
- * How many CareerPilot missions a day may hold.
+ * The fewest missions a day may hold.
  *
  * Three, matching the legacy daily engine. That number is a long-standing product rhythm
  * rather than an implementation artefact — the dashboard, the roadmap preview and the
- * "all done" state are all built around a short, finishable list — and changing it here
- * would quietly redesign the daily experience for everybody.
+ * "all done" state are all built around a short, finishable list — so it stays the floor.
+ * A student who committed an hour a day sees exactly what they saw before.
  */
-export const MAX_MISSIONS_PER_DAY = 3;
+export const MISSION_COUNT_FLOOR = 3;
+
+/**
+ * The most, however much time a student has committed.
+ *
+ * Six, matching the ceiling the legacy engine already clamps its own slots to. Past that a
+ * day stops reading as a finishable list and starts reading as a backlog, which is the
+ * failure the floor exists to prevent at the other end.
+ */
+export const MISSION_COUNT_CEILING = 6;
+
+/**
+ * How many missions today may hold, given what the student committed to.
+ *
+ * A FIXED THREE WAS THE WRONG SHAPE ONCE SKILLS BECAME JOURNEYS. A skill used to be one
+ * resource, so three missions was three skills and the number was a reasonable rhythm. A
+ * skill is now an authored sequence whose steps are often short — an explanation, a worked
+ * example, some practice, fifteen minutes each — and a student who set aside two hours was
+ * being handed three of them and told that was the day. The budget had room for the rest and
+ * the cap refused to spend it.
+ *
+ * So the count follows the capacity the student themselves stated: as many minimum-length
+ * sittings as their day's budget holds, never below the established floor and never above a
+ * length that stops being finishable. An easy topic yields several short missions in one day;
+ * a heavy one yields fewer and spreads across more days, which is what `dailySliceOf` was
+ * already doing and the cap was overriding.
+ *
+ * The day's budget remains the real constraint. This only stops the count from being the
+ * binding one when it should not be.
+ */
+export function missionCapForDay(minutesPerDay: number): number {
+  const fits = Math.floor(dailyBudget(minutesPerDay) / MIN_MISSION_MINUTES);
+  return Math.max(MISSION_COUNT_FLOOR, Math.min(MISSION_COUNT_CEILING, fits));
+}
 
 /**
  * How much of the day's stated capacity to fill.

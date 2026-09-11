@@ -9,7 +9,7 @@ import { findProblem, findCareerPilotProblem } from './passportPracticeService';
 import { ymd } from './passportMissionService';
 import { XpRule } from '../models/GamificationModels';
 import { resolveLearningSteps, logResolution, LearningProvenance } from './conceptLearningMissionBridge';
-import { MISSION_ORCHESTRATION_VERSION, MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES, assessmentRouteForSkill, practiceRoute, materialRoute, dailySliceOf, dailyBudget, MissionResourceState, DailyPlanUnavailable, paceSignal, PaceSignal } from '../data/missionOrchestrationPolicy';
+import { MISSION_ORCHESTRATION_VERSION, missionCapForDay, MISSION_COUNT_CEILING, MIN_MISSION_MINUTES, assessmentRouteForSkill, practiceRoute, materialRoute, dailySliceOf, dailyBudget, MissionResourceState, DailyPlanUnavailable, paceSignal, PaceSignal } from '../data/missionOrchestrationPolicy';
 
 /** Daily Mission Engine: roadmap=WHAT, this service=WHEN, targeted resource=HOW. */
 export interface MissionResource { type: string; id: string; title: string; route: string; xp?: number | null; }
@@ -104,9 +104,9 @@ export interface SelectionInput { roadmapId: string; date: string; week: number;
 export function selectTodaysMissions(input: SelectionInput): DailyMission[] {
   const ordered = input.objectives.slice().sort((a, b) => a.week - b.week || a.sequence - b.sequence);
   const creditedOf = (seq: number) => input.creditedBefore.get(seq) || 0; const isSettled = (o: SelectableObjective) => creditedOf(o.sequence) >= o.plannedMinutes;
-  const budget = dailyBudget(input.minutesPerDay); const chosen: DailyMission[] = []; let spent = 0;
+  const budget = dailyBudget(input.minutesPerDay); const cap = missionCapForDay(input.minutesPerDay); const chosen: DailyMission[] = []; let spent = 0;
   for (const o of ordered) {
-    if (chosen.length >= MAX_MISSIONS_PER_DAY) break; if (isSettled(o)) continue;
+    if (chosen.length >= cap) break; if (isSettled(o)) continue;
     // Prerequisites are checked across the whole plan now rather than within one week, so a
     // dependency left unfinished in an earlier week still blocks what depends on it.
     if (ordered.some(p => p.sequence < o.sequence && p.prerequisiteFor === o.skillKey && !isSettled(p))) continue;
@@ -248,7 +248,7 @@ export async function getTodaysPlan(tenantId: string, studentId: string, now: Da
    * given. Taking the unsettled frontier in plan order and capping it well above the daily
    * mission limit keeps the query bounded without guessing which ones will be chosen.
    */
-  const RESOURCE_LOOKAHEAD = MAX_MISSIONS_PER_DAY * 4;
+  const RESOURCE_LOOKAHEAD = MISSION_COUNT_CEILING * 4;
   const weekObjectives = objectives
     .filter(o => !settled(o))
     .sort((a, b) => a.week - b.week || a.sequence - b.sequence)

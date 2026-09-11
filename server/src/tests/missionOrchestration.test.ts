@@ -2,7 +2,7 @@ import {
   selectTodaysMissions, missionKey, SelectableObjective, SelectionInput,
 } from '../services/dailyMissionOrchestrator';
 import {
-  MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES, dailyBudget, dailySliceOf,
+  missionCapForDay, MISSION_COUNT_FLOOR, MISSION_COUNT_CEILING, MIN_MISSION_MINUTES, dailyBudget, dailySliceOf,
   MISSION_ORCHESTRATION_VERSION, ASSESSMENT_ROUTE, assessmentRouteForSkill,
 } from '../data/missionOrchestrationPolicy';
 
@@ -65,8 +65,40 @@ describe('the day fits the commitment', () => {
     }
   });
 
-  it('keeps the list short enough to finish', () => {
-    expect(select({ objectives: busy, minutesPerDay: 240 }).length).toBeLessThanOrEqual(MAX_MISSIONS_PER_DAY);
+  /**
+   * The cap follows the student's own stated capacity now, rather than being three for
+   * everybody. A skill is an authored sequence of short steps, so a student who set aside two
+   * hours was being handed three fifteen-minute sittings and told that was the day, while
+   * their budget sat unspent.
+   */
+  it('keeps the list short enough to finish, however much time was committed', () => {
+    expect(select({ objectives: busy, minutesPerDay: 240 }).length)
+      .toBeLessThanOrEqual(MISSION_COUNT_CEILING);
+  });
+
+  it('gives an hour-a-day student exactly what it always did', () => {
+    // The floor is the long-standing product rhythm. Nobody who was getting three missions
+    // starts getting a different number because of this change.
+    expect(missionCapForDay(60)).toBe(MISSION_COUNT_FLOOR);
+  });
+
+  it('lets a student who committed more time do more short sittings', () => {
+    expect(missionCapForDay(120)).toBeGreaterThan(MISSION_COUNT_FLOOR);
+    expect(select({ objectives: busy, minutesPerDay: 120 }).length)
+      .toBeGreaterThan(MISSION_COUNT_FLOOR);
+  });
+
+  it('stops at the ceiling rather than turning a day into a backlog', () => {
+    expect(missionCapForDay(600)).toBe(MISSION_COUNT_CEILING);
+  });
+
+  it('never lets the count outrun the minutes', () => {
+    // The budget stays the real constraint; the count simply stopped being the binding one.
+    for (const minutesPerDay of [30, 60, 120, 240]) {
+      const missions = select({ objectives: busy, minutesPerDay });
+      expect(total(missions)).toBeLessThanOrEqual(dailyBudget(minutesPerDay));
+      expect(missions.length).toBeLessThanOrEqual(missionCapForDay(minutesPerDay));
+    }
   });
 
   it('never surfaces a task too small to be worth opening', () => {

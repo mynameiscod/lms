@@ -25,12 +25,27 @@
  * It always returns the whole journey. toPreview trims it to the first week for a non-member,
  * exactly as it always has. Building a short version here would put the paywall in two places
  * and guarantee they eventually disagree.
+ *
+ * ───────────────── A NON-MEMBER HAS NO STORED ROADMAP, AND STILL GETS THE REAL ONE ─────────────────
+ *
+ * Building the stored 90-day plan is gated on the `roadmap_full` entitlement, which is right:
+ * the plan is the paid thing. But the seven-day preview exists to SELL that plan, and it was
+ * fed by whatever roadmap happened to exist — which for a non-member is none, so it fell
+ * through to the pool journey. The preview meant to advertise the curriculum was the one
+ * surface guaranteed never to show it.
+ *
+ * So when there is no stored plan the objectives are projected from the curriculum assignment
+ * on the fly and NOTHING IS WRITTEN. A projection is a reading; a roadmap is a commitment with
+ * a start date and a clock. Persisting one here would hand a non-member the paid artefact as a
+ * side effect of looking at the advert for it.
  */
 
 import mongoose from 'mongoose';
 import CareerRoadmap from '../models/CareerRoadmap';
 import StudentCurriculumAssignment from '../models/StudentCurriculumAssignment';
 import { Roadmap, RoadmapDay, RoadmapPhase, RoadmapWeek } from './passportRoadmapService';
+import { projectPlanToObjectives, ProjectedTopic } from './curriculumRoadmapProjection';
+import { MAX_ROADMAP_DAYS } from '../data/roadmapPolicy';
 
 /** Days in a week of the journey. The screen is built around sevens. */
 const DAYS_PER_WEEK = 7;
@@ -66,8 +81,17 @@ const WORK_VERB: Record<string, string> = {
 
 export interface CurriculumJourneyResult {
   roadmap: Roadmap;
-  /** False when this student has no curriculum-projected roadmap to build from. */
+  /** False when there is neither a curriculum roadmap nor a curriculum plan to project from. */
   available: boolean;
+  /**
+   * True when this was projected on the fly rather than read from a stored plan.
+   *
+   * The content is the same curriculum in the same order; what it lacks is a start date and a
+   * clock, because those belong to a plan somebody committed to. Reported so a caller never
+   * mistakes it for a plan in force — and so "why did my dates move after I paid" has an
+   * answer that is written down.
+   */
+  provisional?: boolean;
 }
 
 /**
@@ -105,14 +129,32 @@ export async function buildCurriculumJourney(input: {
 
   if (!mongoose.Types.ObjectId.isValid(studentId)) return empty;
 
-  const roadmap = await CareerRoadmap.findOne({
-    tenantId, studentId: new mongoose.Types.ObjectId(studentId), status: 'ACTIVE',
-  }).lean() as any;
-  if (!roadmap || roadmap.report?.projectedFromCurriculum !== 1) return empty;
+  const [roadmap, assignment] = await Promise.all([
+    CareerRoadmap.findOne({
+      tenantId, studentId: new mongoose.Types.ObjectId(studentId), status: 'ACTIVE',
+    }).lean() as any,
+    StudentCurriculumAssignment.findOne({
+      tenantId, studentId: new mongoose.Types.ObjectId(studentId), status: 'ACTIVE',
+    }).lean() as any,
+  ]);
 
-  const assignment = await StudentCurriculumAssignment.findOne({
-    tenantId, studentId: new mongoose.Types.ObjectId(studentId), status: 'ACTIVE',
-  }).lean() as any;
+  /**
+   * A STORED PLAN IS PREFERRED; A CURRICULUM PLAN IS ENOUGH.
+   *
+   * Preferred, because a stored roadmap is the one the student committed to and its week
+   * placement is fixed — re-projecting for somebody who has a plan would let the screen drift
+   * from the plan underneath it. Enough, because a student with a curriculum assignment and no
+   * roadmap has still been told what they will be taught, and showing them a pathway template
+   * instead is showing them somebody else's syllabus.
+   *
+   * A roadmap that exists but was NOT projected is treated as absent, on purpose. Its ordering
+   * came from the retired gap planner, so reading it here would put the old order back on the
+   * screen under the curriculum's name. ensureCurriculumRoadmap replaces those for anybody
+   * entitled to a stored plan; this covers the moment before that runs, and everybody it cannot
+   * run for.
+   */
+  const stored = roadmap?.report?.projectedFromCurriculum === 1 ? roadmap : null;
+  if (!stored && !assignment) return empty;
 
   /** Topic title and module, so a day reads as a lesson rather than as a skill key. */
   const topicTitle = new Map<string, string>();
@@ -125,9 +167,42 @@ export async function buildCurriculumJourney(input: {
     }
   }
 
-  const objectives = ((roadmap.objectives || []) as any[])
+  /**
+   * Project the plan when there is no stored roadmap to read one from.
+   *
+   * The pacing comes from the ASSIGNMENT's own availability rather than from career context or a
+   * constant, because that is the pace the curriculum plan was built at — projecting at any
+   * other rate would advertise a week of work the student will never actually be given.
+   *
+   * skillNames is deliberately empty. The projection falls back to the topic's own title, which
+   * is what this screen renders anyway, so reading CareerSkill would cost a query to produce a
+   * string that is then thrown away.
+   */
+  const provisional = !stored;
+  const projectedNow = stored ? null : projectPlanToObjectives({
+    topics: ((assignment?.moduleAssignments || []) as any[])
+      .flatMap(m => (m.topicAssignments || []) as any[])
+      .filter(t => t.topicCode)
+      .map(t => ({
+        topicCode: String(t.topicCode),
+        title: String(t.title || t.topicCode),
+        skillKeys: (t.skillKeys || []).map((k: string) => String(k).toUpperCase()),
+        state: String(t.state),
+        practiceCount: Number(t.practiceCount) || 0,
+        mandatory: t.mandatory !== false,
+        locked: !!t.locked,
+        reasonText: t.reasonText || '',
+        scoreAtAssignment: t.scoreAtAssignment ?? null,
+      })) as ProjectedTopic[],
+    skillNames: new Map<string, string>(),
+    minutesPerDay: Math.max(1, Math.round((Number(assignment?.availability?.hoursPerDay) || 1) * 60)),
+    daysPerWeek: Math.max(1, Number(assignment?.availability?.daysPerWeek) || 5),
+    weekCount: Math.ceil(MAX_ROADMAP_DAYS / DAYS_PER_WEEK),
+  });
+
+  const objectives = (((stored ? stored.objectives : projectedNow?.objectives) || []) as any[])
     .slice()
-    .sort((a, b) => (a.week - b.week) || (a.sequence - b.sequence));
+    .sort((a: any, b: any) => (a.week - b.week) || (a.sequence - b.sequence));
 
   if (!objectives.length) return empty;
 
@@ -139,8 +214,8 @@ export async function buildCurriculumJourney(input: {
    * roadmap with eight blank weeks reads as broken rather than as finished early. The window
    * still caps it; what changes is that nothing is padded out to fill it.
    */
-  const windowDays = Math.max(DAYS_PER_WEEK, Number(roadmap.roadmapDays) || 90);
-  const windowWeeks = Math.max(1, Number(roadmap.weekCount) || Math.ceil(windowDays / DAYS_PER_WEEK));
+  const windowDays = Math.max(DAYS_PER_WEEK, Number(stored?.roadmapDays) || MAX_ROADMAP_DAYS);
+  const windowWeeks = Math.max(1, Number(stored?.weekCount) || Math.ceil(windowDays / DAYS_PER_WEEK));
   const lastWorkingWeek = Math.max(1, ...objectives.map(o => Math.min(windowWeeks, Number(o.week) || 1)));
   const weekCount = Math.min(windowWeeks, lastWorkingWeek);
   const totalDays = Math.min(windowDays, weekCount * DAYS_PER_WEEK);
@@ -245,6 +320,7 @@ export async function buildCurriculumJourney(input: {
 
   return {
     available: true,
+    provisional,
     roadmap: {
       totalDays,
       pathway: 'curriculum',

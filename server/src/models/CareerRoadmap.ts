@@ -52,7 +52,17 @@ export type GenerationReason =
   | 'REPLAN_REQUESTED'
   | 'REPLAN_ROLE_CHANGED'
   | 'REPLAN_COMMITMENT_CHANGED'
-  | 'REPLAN_BLUEPRINT_CHANGED';
+  | 'REPLAN_BLUEPRINT_CHANGED'
+  /**
+   * The plan was rebuilt because it had been ordered by the retired gap planner.
+   *
+   * Distinct from the other replans, which are all "something about the student changed". This
+   * one means the plan's SOURCE changed: it was built before the curriculum projection existed,
+   * or while the student's curriculum plan was not ready, so its ordering came from somewhere
+   * that no longer decides ordering. Worth its own reason because a support question about why
+   * a roadmap changed under somebody's feet has a different answer here than for a role change.
+   */
+  | 'REPLAN_CURRICULUM_ADOPTED';
 
 export interface IRoadmapObjective {
   skillKey: string;

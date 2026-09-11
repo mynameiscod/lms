@@ -11,6 +11,7 @@ import { curriculumFor } from '../services/curriculumService';
 import { getOrCreateProgress } from '../services/passportXpService';
 import { buildRoadmap, toPreview } from '../services/passportRoadmapService';
 import { buildCurriculumJourney } from '../services/curriculumJourneyService';
+import { ensureCurriculumRoadmap } from '../services/careerRoadmapService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -88,13 +89,52 @@ export const getRoadmap = async (req: Request, res: Response) => {
      * When their roadmap was projected from the curriculum, that is what they see. The pool
      * journey stays for anybody who has no such roadmap yet, so nothing that works today stops.
      */
+    /**
+     * BEFORE READING THE JOURNEY, MAKE SURE THE ROADMAP UNDER IT IS THE CURRICULUM'S.
+     *
+     * buildCurriculumJourney only answers for a roadmap that was projected from the curriculum,
+     * and correctly returns nothing for one that was not. That correctness was the bug from the
+     * student's side: a plan built by the retired gap planner, or no plan at all, silently fell
+     * through to the pool journey below — so somebody who had been assessed, had a fifteen-module
+     * curriculum plan waiting, and opened their roadmap was shown a template pathway instead of
+     * their own syllabus. The only escape was a button labelled "update my roadmap", which
+     * describes nothing a student would know they needed.
+     *
+     * A no-op for anybody already on a curriculum roadmap, which is every student after their
+     * first load of this screen. See ensureCurriculumRoadmap for the four bounds on it.
+     *
+     * Failure is swallowed on purpose. This is a read, and a student whose upgrade could not run
+     * should still be shown the plan that exists rather than an error — the fallback below is
+     * precisely what they were being shown before, so the worst case is the status quo.
+     */
+    await ensureCurriculumRoadmap(tenantId, studentId).catch((e: any) => {
+      console.error('[passport-roadmap] curriculum upgrade:', e?.message || e);
+      return null;
+    });
+
     const curriculum = await buildCurriculumJourney({
       tenantId, studentId, startDate, currentDay, completedKeys,
     });
     if (curriculum.available) {
+      /**
+       * The preview entitlement is enforced HERE TOO, and it was not before.
+       *
+       * This branch handed every non-member seven days unconditionally. That was invisible
+       * while non-members always fell through to the pool journey below, which does check it
+       * — and it stopped being invisible the moment a non-member could reach a curriculum
+       * journey at all. A tenant who set roadmap_preview to paid, meaning "show non-members
+       * nothing", would have had the curriculum handed out instead.
+       *
+       * Two branches enforcing one rule is already one too many; what makes it survivable is
+       * that they now enforce it identically. An admin believing they have closed something
+       * they have not is worse than never offering the switch.
+       */
       return res.json({
-        roadmap: entitled ? curriculum.roadmap : toPreview(curriculum.roadmap, 7),
+        roadmap: entitled
+          ? curriculum.roadmap
+          : canPreview ? toPreview(curriculum.roadmap, 7) : null,
         entitled,
+        canPreview,
         priceInr: cfg?.priceInr ?? 499,
         careerScore: assessed.careerScore,
         level: assessed.level,
@@ -102,6 +142,17 @@ export const getRoadmap = async (req: Request, res: Response) => {
         assessedVia: assessed.source,
         /** Which journey this is, so the screen can say what it is showing. */
         source: 'curriculum',
+        /**
+         * True when no stored plan existed and this was projected from the curriculum for the
+         * read — which is every non-member, because building the stored plan is the paid thing.
+         *
+         * Sent so the screen can distinguish "the plan you are on" from "the plan you would be
+         * given", and so a support question about dates changing after payment has an answer.
+         * Nothing on the client depends on it yet; it is here because the two cases are
+         * genuinely different and a response that hid that would make them impossible to tell
+         * apart later.
+         */
+        provisional: !!curriculum.provisional,
       });
     }
 

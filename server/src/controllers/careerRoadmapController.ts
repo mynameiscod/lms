@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import CareerRoadmap from '../models/CareerRoadmap';
 import {
-  getActiveRoadmap, generateRoadmap, explainRoadmap, stalenessOf,
+  getActiveRoadmap, generateRoadmap, explainRoadmap, stalenessOf, ensureCurriculumRoadmap,
   RoadmapOutcome, RoadmapView, RoadmapUnavailableResult,
 } from '../services/careerRoadmapService';
 import { getCareerContext } from '../services/careerContextService';
@@ -107,6 +107,22 @@ export const getMyRoadmap = async (req: Request, res: Response) => {
     const tenantId = tenantOf(req);
     const studentId = userIdOf(req);
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
+
+    /**
+     * The same upgrade the journey screen does, because this screen has the same stale plan.
+     *
+     * Without it the two disagree: open the journey and the curriculum rebuilds the roadmap,
+     * then open this page and it shows the plan the journey just replaced, or the other way
+     * round depending on which was loaded first. A rule about which plan is correct has to hold
+     * everywhere the plan is read, or it is not a rule, it is a race between two screens.
+     *
+     * Swallowed on failure for the same reason as there — a read that cannot upgrade should
+     * still answer with the plan that exists.
+     */
+    await ensureCurriculumRoadmap(tenantId, studentId).catch((e: any) => {
+      console.error('[career-roadmap] curriculum upgrade:', e?.message || e);
+      return null;
+    });
 
     res.json(shape(await getActiveRoadmap(tenantId, studentId)));
   } catch (e: any) {

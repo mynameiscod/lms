@@ -1569,6 +1569,8 @@ export interface DashboardData {
   contests?: { id: string; title: string; prize: string | null; startAt: string; slug: string | null }[];
   shareSlug?: string | null;
   passwordSet?: boolean;
+  /** False until onboarding is finished, so the home screen sends them to setup, not the paper. */
+  setupCompleted?: boolean;
   entitled?: Record<string, boolean>;
   /**
    * The parts of the product this member cannot open, and why they would want them.

@@ -1,5 +1,4 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import CareerProfilePrompt from './CareerProfilePrompt';
 import CareerSetupPrompt from './CareerSetupPrompt';
 import { Outlet, useLocation } from 'react-router-dom';
 import passportApi, { DashboardData } from '../../api/passportApi';
@@ -60,10 +59,38 @@ const MemberLayout: React.FC = () => {
     return <div style={{ padding: 60, textAlign: 'center', color: '#7b8496' }}>Loading your CareerPilot…</div>;
   }
 
+  /**
+   * The dashboard call failed. Say so.
+   *
+   * Now that the home screen renders for every state, a null payload would otherwise draw a
+   * perfectly convincing "start here" dashboard for somebody whose session has expired or
+   * whose server is down — telling them to take an assessment they cannot reach. A screen
+   * that is wrong confidently is worse than one that admits it does not know.
+   */
+  if (!data) {
+    return (
+      <div style={{ padding: 60, textAlign: 'center', color: '#5b6478' }}>
+        <p style={{ margin: '0 0 14px', fontWeight: 700, color: '#0f172a' }}>
+          We could not load your CareerPilot.
+        </p>
+        <p style={{ margin: '0 0 18px', fontSize: 14 }}>
+          Your session may have ended, or we could not reach the server.
+        </p>
+        <button
+          onClick={() => { setLoading(true); load(); }}
+          style={{ border: '1px solid #cfd7e8', background: '#fff', borderRadius: 10,
+                   padding: '10px 18px', fontWeight: 700, cursor: 'pointer' }}
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
   const ctx = { data, reload: load };
 
   /**
-   * THE RAIL IS EVERYONE'S, ONCE THEY HAVE BEEN MEASURED.
+   * THE RAIL IS EVERYONE'S.
    *
    * It used to be withheld from anyone without an active membership, and the reason given was
    * sound at the time: "the rail's destinations are all locked to them, so wrapping them in it
@@ -75,19 +102,12 @@ const MemberLayout: React.FC = () => {
    * The alternative was what we had: a paywall as the first screen, asking somebody to buy
    * before they had seen anything.
    *
-   * BEFORE THE ASSESSMENT, STILL NOT. A student who has not been measured has nothing behind
-   * any of those doors yet — not locked, empty — and the one thing worth doing is the paper.
-   * They keep the bare page, which is what puts it in front of them.
+   * BEFORE THE ASSESSMENT TOO. A student who has not been measured used to get a bare page
+   * with no navigation, on the theory that they had nothing to navigate to. But they do — the
+   * assessment, their profile, the setup they may not have finished — and taking the rail away
+   * at the exact moment somebody is deciding whether this product is for them shows them less
+   * of it than anyone. The home screen leads with the paper; the rail stays.
    */
-  if (!data?.hasAssessment) {
-    return (
-      <Ctx.Provider value={ctx}>
-        <CareerProfilePrompt />
-        <Outlet />
-      </Ctx.Provider>
-    );
-  }
-
   return (
     <Ctx.Provider value={ctx}>
       <MemberShell data={data}>

@@ -114,13 +114,27 @@ export const getDashboard = async (req: Request, res: Response) => {
      * answer it always was — a dashboard full of locks would bury the assessment under nine
      * things they cannot use until they have taken it.
      */
+    /**
+     * `contextCompletedAt` is the honest marker for onboarding, exactly as /passport/me reads
+     * it. Sent on every branch because the home screen has to know whether "take your
+     * assessment" should go to the paper or finish setup first — it used to get this from a
+     * second endpoint, and only Mission Control called that one.
+     */
+    const setupCompleted = !!user?.passport?.contextCompletedAt;
+
     if (!assessedState.assessed) {
       return res.json({
         active,
         hasAssessment: false,
+        setupCompleted,
         careerScore: assessedState.careerScore,
         level: assessedState.level,
+        name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+        firstName: user?.firstName || '',
+        skills: [],
         priceInr: cfg?.priceInr ?? 499,
+        shareSlug: user?.passport?.shareSlug || null,
+        passwordSet: !!user?.passport?.passwordSet,
         entitled,
         locked,
       });
@@ -145,6 +159,7 @@ export const getDashboard = async (req: Request, res: Response) => {
       return res.json({
         active: false,
         hasAssessment: true,
+        setupCompleted,
         name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
         firstName: user?.firstName || '',
 
@@ -239,6 +254,7 @@ export const getDashboard = async (req: Request, res: Response) => {
     res.json({
       active: true,
       hasAssessment: true,
+      setupCompleted,
       name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
       firstName: user?.firstName || '',
 

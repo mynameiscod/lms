@@ -34,6 +34,7 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
   const [readiness, setReadiness] = useState<RoleReadinessAvailable | null>(null);
 
   useEffect(() => {
+    if (!data.hasAssessment) return;   // nothing measured, so nothing to report
     let live = true;
     // Allowed to fail quietly: a student with no target role yet has no gap figures, and the
     // locks read perfectly well without them.
@@ -41,12 +42,27 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
       .then(r => { if (live && r.available) setReadiness(r); })
       .catch(() => {});
     return () => { live = false; };
-  }, []);
+  }, [data.hasAssessment]);
 
   const skills = data.skills || [];
+  /**
+   * Not measured yet. THE HOME SCREEN STILL RENDERS — it just leads with the one thing worth
+   * doing instead of a skill meter of zeroes.
+   *
+   * This is why Mission Control stopped being the home screen. A student who had not sat the
+   * paper was sent to a full-page sales pitch with its own chrome and no navigation, and a
+   * student who had sat it saw the dashboard: the same click produced two completely different
+   * products depending on state they could not see. The assessment is the argument at this
+   * stage anyway, so it leads here and everything else stays where it will be found later.
+   */
+  const measured = !!data.hasAssessment;
+  const assessmentHref = data.setupCompleted === false
+    ? '/careerpilot/setup'
+    : '/careerpilot/skill-assessment';
+
   const gaps = readiness?.summary.priorityGaps ?? null;
   const needsWork = readiness?.summary.needsWork ?? null;
-  const measured = readiness?.summary.assessedSkills ?? (skills.length || null);
+  const measuredCount = readiness?.summary.assessedSkills ?? (skills.length || null);
 
   const roadmapFacts = [
     gaps !== null ? { value: gaps, label: 'priority gaps in your profile' } : null,
@@ -60,8 +76,11 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
         <div>
           <h1>{data.firstName ? `Welcome back, ${data.firstName}` : 'Welcome back'}</h1>
           <p>
-            Your assessment is done and your results are below. The rest of CareerPilot — your
-            plan, your daily work and everything that runs off it — opens with membership.
+            {measured
+              ? <>Your assessment is done and your results are below. The rest of CareerPilot — your
+                  plan, your daily work and everything that runs off it — opens with membership.</>
+              : <>Start with the free skill assessment. It measures where you actually are, and
+                  everything else here is built from what it finds.</>}
           </p>
         </div>
         {data.careerScore !== null && data.careerScore !== undefined && (
@@ -75,8 +94,20 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
       {/* Free, and the reason the rest is worth having. Sits first for exactly that reason. */}
       <div className="gd-grid gd-2b">
         <div className="gd-card">
-          <div className="gd-card-hd"><h2>Your skill meter</h2></div>
-          {skills.length ? (
+          <div className="gd-card-hd"><h2>{measured ? 'Your skill meter' : 'Start here'}</h2></div>
+          {!measured ? (
+            /* The one free thing, and the one thing worth doing. It gets the whole panel. */
+            <div className="dlk-start">
+              <p>
+                Twenty minutes of questions, and you will know where you stand against the role
+                you are aiming at — skill by skill, with nothing guessed.
+              </p>
+              <button className="dlk-cta" onClick={() => nav(assessmentHref)}>
+                {data.setupCompleted === false ? 'Finish setup to start' : 'Start the free assessment'} →
+              </button>
+              <span className="dlk-free">Free. No membership needed.</span>
+            </div>
+          ) : skills.length ? (
             <ul className="dlk-skills">
               {skills.map(s => (
                 <li key={s.key}>
@@ -89,9 +120,11 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
           ) : (
             <p className="dlk-empty">Your assessment results will appear here shortly.</p>
           )}
-          <button className="dlk-link" onClick={() => nav('/careerpilot/skills')}>
-            See your full Skill DNA →
-          </button>
+          {measured && (
+            <button className="dlk-link" onClick={() => nav('/careerpilot/skills')}>
+              See your full Skill DNA →
+            </button>
+          )}
         </div>
 
         <div className="gd-card dlk-locked">
@@ -113,7 +146,7 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
           <SectionLock
             section="missions"
             variant="panel"
-            facts={measured ? [{ value: measured, label: 'skills measured to plan from' }] : undefined}
+            facts={measuredCount ? [{ value: measuredCount, label: 'skills measured to plan from' }] : undefined}
           />
         </div>
 

@@ -90,6 +90,7 @@ import PassportAdminMissions from './pages/Passport/AdminMissions';
 import PassportHome from './pages/Passport/PassportHome';
 import PassportMaterialViewer from './pages/Passport/MaterialViewer';
 import PassportTopic from './pages/Passport/Topic';
+import { captureCareerPilotAttribution } from './utils/careerPilotAttribution';
 import PassportConceptJourney from './pages/Passport/ConceptJourney';
 import PassportMemberLayout from './pages/Passport/MemberLayout';
 import PassportCareerSetup from './pages/Passport/CareerSetup';
@@ -400,6 +401,18 @@ const LegacyRedirect: React.FC<{ to: string }> = ({ to }) => {
 };
 
 const AppRoutes: React.FC = () => {
+  /**
+   * A second capture, for a tagged URL reached WITHOUT a page load.
+   *
+   * index.tsx handles the entry, which is every real campaign click. This covers the case it
+   * cannot see: an in-app navigation that carries campaign parameters — a link inside the
+   * product, a router push that preserves them. Idempotent and a no-op when untagged, so the
+   * cost of it being unnecessary is nothing and the cost of it being missing is a lost sale's
+   * provenance.
+   */
+  const { search } = useLocation();
+  useEffect(() => { captureCareerPilotAttribution(search); }, [search]);
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />

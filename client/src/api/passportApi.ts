@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { attributionForSubmit } from '../utils/careerPilotAttribution';
 import { loadRazorpay } from './paymentApi';
 import { visitorId, sessionId } from '../pages/Passport/activityBeacon';
 
@@ -1327,7 +1328,16 @@ export const passportApi = {
     if (!ready) return { ok: false, message: 'Could not load the payment window. Check your connection.' };
     let order: any;
     try {
-      const { data } = await axios.post(`${BASE}/membership/order`, {}, { headers: auth() });
+      /**
+       * Sent so a member who arrived again through a NEW campaign has that recorded against the
+       * order that followed it. The server still reads first touch from the account, so this can
+       * only ever add a last touch — a client cannot claim an introduction it did not produce.
+       */
+      const { data } = await axios.post(
+        `${BASE}/membership/order`,
+        { attribution: attributionForSubmit() },
+        { headers: auth() },
+      );
       order = data;
     } catch (e: any) {
       return { ok: false, message: e?.response?.data?.message || 'Could not start payment.' };
@@ -1834,7 +1844,13 @@ export const passportPublicApi = {
     return data as { success: boolean; enabled: boolean; onboardingFields: OnboardingField[]; priceInr: number; tenantId: string };
   },
   signup: async (body: { tenant: string; name: string; mobile: string; email: string; fields: Record<string, any> }) => {
-    const { data } = await axios.post(`${PUB}/signup`, body);
+    /**
+     * Attribution is attached here rather than asked of every caller.
+     *
+     * A signup form has no business knowing about campaigns, and a second call site that forgot
+     * to pass it would lose the provenance of every lead it created without anything failing.
+     */
+    const { data } = await axios.post(`${PUB}/signup`, { ...body, attribution: attributionForSubmit() });
     return data as { success: boolean; token: string; otp: { sent: boolean; channel: string; devCode?: string; throttledSeconds?: number } };
   },
   verify: async (token: string, code: string) => {

@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { CareerPilotAttributionSchema, ICareerPilotAttribution } from './careerPilotAttribution';
 
 /**
  * A payment transaction — currently the Razorpay self-serve unlock of a
@@ -34,6 +35,18 @@ export interface IPayment extends Document {
   // Admin-initiated refund (P1).
   refund?: { refundId?: string; amount: number; at: Date; by?: mongoose.Types.ObjectId; reason?: string };
   notes?: Record<string, any>;
+  /**
+   * The campaign this ORDER came from, frozen when the order was created.
+   *
+   * Deliberately not read from the member's account at report time. Somebody may arrive from one
+   * campaign, not buy, come back months later through another, and pay then — the account holds
+   * the introduction, and only the order can say which campaign was on screen when money moved.
+   * That is the question "which ad produced this paid enrollment" actually asks.
+   *
+   * Not folded into `notes` either: notes is an untyped grab-bag that nothing can query
+   * reliably, and this is the field a revenue-by-campaign report has to group by.
+   */
+  attribution?: ICareerPilotAttribution;
   paidAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -59,6 +72,7 @@ const PaymentSchema = new Schema<IPayment>(
     unlockedPlans:{ type: Number },
     refund:       { refundId: { type: String }, amount: { type: Number }, at: { type: Date }, by: { type: Schema.Types.ObjectId, ref: 'User' }, reason: { type: String } },
     notes:        { type: Schema.Types.Mixed },
+    attribution:  { type: CareerPilotAttributionSchema, default: undefined },
     paidAt:       { type: Date },
   },
   { timestamps: true }

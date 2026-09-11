@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { CareerPilotAttributionSchema, ICareerPilotAttribution } from './careerPilotAttribution';
 
 /**
  * A CareerPilot signup that has been typed but NOT yet proved.
@@ -34,6 +35,14 @@ export interface IPendingPassportSignup extends Document {
   fields: Record<string, any>;
   createdAt: Date;
   expiresAt: Date;
+  /**
+   * The campaign that produced this lead.
+   *
+   * Held here rather than inside `fields` because `fields` is the admin-configured onboarding
+   * answers — what the member typed — and attribution is what the URL carried. Putting one in
+   * the other means a tenant who adds an onboarding question called `utm_source` overwrites it.
+   */
+  attribution?: ICareerPilotAttribution;
 }
 
 const PendingPassportSignupSchema = new Schema<IPendingPassportSignup>(
@@ -44,6 +53,7 @@ const PendingPassportSignupSchema = new Schema<IPendingPassportSignup>(
     mobile:   { type: String, required: true, trim: true },
     name:     { type: String, default: '', trim: true },
     fields:   { type: Schema.Types.Mixed, default: {} },
+    attribution: { type: CareerPilotAttributionSchema, default: undefined },
     /**
      * Comfortably longer than the OTP's own ten minutes, so a code that expires can still
      * be resent against the same pending row rather than sending the member back to a form

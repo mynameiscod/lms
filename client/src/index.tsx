@@ -6,6 +6,19 @@ import './App.css';
 import './pages/MyLearningPlan/DayView.system.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { captureCareerPilotAttribution } from './utils/careerPilotAttribution';
+
+/**
+ * Campaign attribution is captured BEFORE React renders anything.
+ *
+ * Every later moment is too late for at least one real path: the join flow redirects, a login
+ * bounce replaces the URL, and the router normalises the address — and the query string the
+ * marketing site attached is gone by the time any component could read it. This runs on the raw
+ * entry URL, once, before a single route is evaluated.
+ *
+ * It is a no-op for an untagged visit and cannot throw: see the utility.
+ */
+captureCareerPilotAttribution();
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

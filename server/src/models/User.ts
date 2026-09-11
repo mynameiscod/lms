@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { CareerPilotAttributionSchema, ICareerPilotAttribution } from './careerPilotAttribution';
 import bcryptjs from 'bcryptjs';
 
 export interface IUser extends Document {
@@ -100,6 +101,14 @@ export interface IUser extends Document {
     careerScoreConfidence?: 'LOW' | 'MEDIUM' | 'HIGH';
     shareSlug?: string;        // public shareable CareerPilot card slug
     passwordSet?: boolean;     // member chose their own password (vs the signup placeholder)
+    /**
+     * The campaign that produced this member.
+     *
+     * Carried up from the pending signup when the account is created, so a lead that never
+     * converts and a member who did are answered by the same field in two places rather than
+     * by a join nobody remembers to write.
+     */
+    attribution?: ICareerPilotAttribution;
   };
   phone?: string;
   avatar?: string;
@@ -276,6 +285,7 @@ const UserSchema: Schema = new Schema(
 
       shareSlug:   { type: String, index: true },
       passwordSet: { type: Boolean, default: false },
+      attribution: { type: CareerPilotAttributionSchema, default: undefined },
     },
     phone: {
       type: String,

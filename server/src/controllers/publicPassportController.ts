@@ -12,6 +12,7 @@ import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 import { jwtSecret } from '../config/secrets';
 import { isCareerPilotMember } from '../services/careerPilotPopulation';
 import PendingPassportSignup from '../models/PendingPassportSignup';
+import { sanitiseAttribution, mergeAttribution } from '../models/careerPilotAttribution';
 
 // Public CareerPilot funnel: signup (Name/Mobile/Email + admin-configured onboarding
 // fields) → OTP → account created (STUDENT + passport, not yet active/paid) → auto-login.
@@ -188,6 +189,15 @@ export const signup = async (req: Request, res: Response) => {
     await PendingPassportSignup.deleteMany({ tenantId, $or: [{ email }, { mobile }] });
     await PendingPassportSignup.create({
       token, tenantId, email, mobile, name, fields,
+      /**
+       * Sanitised, never taken as sent.
+       *
+       * This arrives from a public endpoint, so the body is whatever anybody chose to post.
+       * sanitiseAttribution keeps the nine known fields, trims and caps them, and returns
+       * undefined when there is nothing real — so a lead is never stored holding an empty
+       * attribution that later reads as "we asked and the answer was nothing".
+       */
+      attribution: sanitiseAttribution(b.attribution),
       // Longer than the OTP's ten minutes, so an expired code can be resent against the
       // same pending row instead of sending the member back to a form they have filled in.
       expiresAt: new Date(Date.now() + 30 * 60 * 1000),
@@ -254,13 +264,15 @@ function issueLogin(res: Response, user: any) {
  * the second-best match and is taken over the same way.
  */
 async function materialiseSignup(pending: any): Promise<any> {
-  const { tenantId, email, mobile, name, fields } = pending;
+  const { tenantId, email, mobile, name, fields, attribution } = pending;
   const [firstName, ...rest] = String(name || '').split(' ');
   const lastName = rest.join(' ') || '-';
   const now = new Date();
 
   const passportFields = {
     active: false, product: 'career_passport', onboarded: true, verifiedAt: now,
+    // The campaign that produced this member, carried up from the lead it came from.
+    ...(attribution ? { attribution } : {}),
     degree: fields.degree, yearOfStudy: fields.yearOfStudy, careerGoal: fields.careerGoal, pathway: fields.pathway,
     // Career staging. Stored raw AND derived: the raw inputs are the fact, `stage` is a
     // cached read of them that is recomputed on every login so a member advances from
@@ -290,7 +302,17 @@ async function materialiseSignup(pending: any): Promise<any> {
     stranded.firstName = firstName;
     stranded.lastName = lastName;
     stranded.isActive = true;
-    stranded.passport = { ...(stranded.passport?.toObject?.() || stranded.passport || {}), ...passportFields };
+    const previous = stranded.passport?.toObject?.() || stranded.passport || {};
+    stranded.passport = { ...previous, ...passportFields };
+    /**
+     * A taken-over row may already carry a first touch, and the spread above would replace it.
+     *
+     * This is the abandoned-signup case: somebody arrived through one ad, did not finish, and
+     * has come back through another. The introduction belongs to the first campaign, so the two
+     * are merged under the same rule the browser uses rather than the newer one simply winning.
+     */
+    const merged = mergeAttribution(previous.attribution, attribution);
+    if (merged) stranded.passport.attribution = merged;
     await stranded.save();
     return stranded;
   }

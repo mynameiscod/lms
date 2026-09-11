@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { sanitiseAttribution, mergeAttribution } from '../models/careerPilotAttribution';
 import { resolveCareerProfile } from '../services/careerStageService';
 import PassportConfig, { DEFAULT_ONBOARDING_FIELDS, DEFAULT_ENTITLEMENTS } from '../models/PassportConfig';
 import User from '../models/User';
@@ -439,11 +440,29 @@ export const createMembershipOrder = async (req: Request, res: Response) => {
       purpose: 'passport_membership', studentId,
     });
 
+    /**
+     * The campaign this order came from, frozen onto the order itself.
+     *
+     * Taken from the ACCOUNT rather than from the request body. The member is authenticated here
+     * and their attribution was recorded when they signed up, so reading it server-side means a
+     * client cannot claim a campaign it did not come from — which it could if this trusted a
+     * posted body, and revenue attribution is exactly the number somebody would want to move.
+     *
+     * The browser's current attribution is still accepted, but only to fill a LAST touch: a
+     * member who first arrived months ago and came back today through a new ad should have that
+     * recorded against the order that followed it.
+     */
+    const orderAttribution = mergeAttribution(
+      user?.passport?.attribution,
+      sanitiseAttribution(req.body?.attribution),
+    );
+
     await Payment.create({
       tenantId, studentId, purpose: 'passport_membership', provider: 'razorpay',
       target: { refModel: 'User', refId: studentId },
       orderId: order.id, amount: order.amount, currency: order.currency, status: 'created',
       notes: { priceInr, product: 'career_passport' },
+      ...(orderAttribution ? { attribution: orderAttribution } : {}),
     });
 
     res.json({

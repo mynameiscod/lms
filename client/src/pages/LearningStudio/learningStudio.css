@@ -1,0 +1,161 @@
+/**
+ * Every class is prefixed `ls-`. Nothing here styles a bare element.
+ *
+ * This stylesheet is shared with the whole product; a plain `.step` or `.chip` rule would
+ * repaint screens that have nothing to do with the Learning Studio. That has already happened
+ * once on this codebase, which is why skillMapping.css carries the same warning.
+ */
+
+.ls-wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ls-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ls-head-text { min-width: 0; }
+.ls-title { margin: 0 0 3px; font-size: 22px; font-weight: 800; color: #0d1b3e; }
+.ls-sub   { margin: 0; color: #5b6785; font-size: 14px; }
+.ls-muted { color: #5b6785; }
+.ls-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.ls-btn {
+  border: 1px solid #cfd7e8; background: #fff; color: #23325c;
+  border-radius: 8px; padding: 8px 14px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.ls-btn:hover:not(:disabled) { border-color: #9fb0d4; }
+.ls-btn:disabled { opacity: .55; cursor: not-allowed; }
+.ls-btn.is-primary { background: #1f4fd8; border-color: #1f4fd8; color: #fff; }
+.ls-btn.is-danger  { color: #a12b2b; border-color: #e6c9c9; }
+.ls-btn.is-small   { padding: 4px 9px; font-size: 12px; border-radius: 6px; }
+
+.ls-error  { background: #fdecec; border: 1px solid #f3c9c9; color: #8c2020; border-radius: 9px; padding: 10px 14px; font-size: 13.5px; }
+.ls-notice { background: #eaf6ef; border: 1px solid #c6e5d3; color: #1d6b40; border-radius: 9px; padding: 10px 14px; font-size: 13.5px; }
+
+/* ---- summary strip ---- */
+.ls-summary {
+  display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: baseline;
+  background: #f7f9fc; border: 1px solid #e3e8f2; border-radius: 10px; padding: 12px 16px;
+  font-size: 13.5px; color: #33405e;
+}
+.ls-summary strong { color: #0d1b3e; }
+
+/* ---- filters ---- */
+.ls-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.ls-filters input, .ls-filters select {
+  border: 1px solid #d7dfee; border-radius: 8px; padding: 7px 10px; font-size: 13.5px; color: #23325c; background: #fff;
+}
+.ls-filters input { min-width: 220px; }
+
+/* ---- concept list ---- */
+.ls-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.ls-item {
+  border: 1px solid #e3e8f2; border-left: 3px solid #cfd7e8;
+  border-radius: 10px; background: #fff;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; cursor: pointer; text-align: left; width: 100%;
+  font: inherit;
+}
+.ls-item:hover { border-color: #9fb0d4; }
+.ls-item.is-published     { border-left-color: #34a06a; }
+.ls-item.is-ready         { border-left-color: #2f76c9; }
+.ls-item.is-incomplete    { border-left-color: #d99a2b; }
+.ls-item.is-notconfigured { border-left-color: #b7bfd2; }
+
+.ls-item-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ls-item-title { font-size: 15px; font-weight: 600; color: #16244a; }
+.ls-item-meta  { font-size: 12.5px; color: #6b7794; word-break: break-word; }
+.ls-item-blocking { font-size: 12.5px; color: #8a5300; }
+.ls-item-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.ls-chip {
+  font-size: 11px; font-weight: 700; letter-spacing: .03em;
+  border-radius: 999px; padding: 3px 9px; border: 1px solid transparent; white-space: nowrap;
+}
+.ls-chip.is-published     { background: #eaf6ef; color: #1d6b40; border-color: #c6e5d3; }
+.ls-chip.is-ready         { background: #eaf1fd; color: #1b4a94; border-color: #c9d9f5; }
+.ls-chip.is-incomplete    { background: #fdf3e3; color: #8a5300; border-color: #f0dcb8; }
+.ls-chip.is-notconfigured { background: #f2f4f8; color: #5b6785; border-color: #e0e5ef; }
+.ls-chip.is-draft         { background: #f2f4f8; color: #46527a; border-color: #e0e5ef; }
+.ls-chip.is-review        { background: #fdf3e3; color: #8a5300; border-color: #f0dcb8; }
+.ls-chip.is-archived      { background: #f6f2f2; color: #7a5c5c; border-color: #e8dede; }
+
+/* ---- readiness ---- */
+.ls-readiness { border: 1px solid #e3e8f2; border-radius: 10px; background: #fff; padding: 14px; }
+.ls-readiness h2 { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: #16244a; }
+.ls-bar { height: 6px; border-radius: 999px; background: #eef1f6; overflow: hidden; margin: 8px 0 12px; }
+.ls-bar > span { display: block; height: 100%; background: #34a06a; }
+.ls-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.ls-check { display: flex; gap: 8px; align-items: baseline; color: #33405e; }
+.ls-check .ls-mark { flex-shrink: 0; width: 14px; font-weight: 700; }
+.ls-check.is-passed .ls-mark { color: #34a06a; }
+.ls-check.is-failed .ls-mark { color: #c2410c; }
+.ls-check.is-advisory { color: #6b7794; }
+.ls-check em { font-style: normal; color: #6b7794; }
+
+/* ---- unit fields ---- */
+.ls-panel { border: 1px solid #e3e8f2; border-radius: 10px; background: #fff; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.ls-panel h2 { margin: 0; font-size: 14px; font-weight: 700; color: #16244a; }
+.ls-field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: #33405e; flex: 1 1 200px; min-width: 0; }
+.ls-field > span { font-weight: 600; color: #23325c; display: flex; flex-direction: column; gap: 2px; }
+.ls-field em { font-style: normal; font-weight: 400; font-size: 12px; color: #6b7794; }
+.ls-field input, .ls-field select, .ls-field textarea {
+  border: 1px solid #d7dfee; border-radius: 8px; padding: 7px 10px;
+  font-size: 13.5px; color: #23325c; background: #fff; font-family: inherit;
+}
+.ls-field textarea { resize: vertical; min-height: 60px; }
+.ls-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.ls-narrow { flex: 0 1 150px; }
+.ls-check-box { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: #33405e; }
+.ls-check-box input { margin-top: 2px; }
+
+/* ---- the journey ---- */
+.ls-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+
+.ls-group-topic {
+  margin: 16px 0 2px; font-size: 12.5px; font-weight: 800; color: #0d1b3e;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.ls-steps > .ls-group-topic:first-child { margin-top: 0; }
+.ls-group-subtopic { margin: 8px 0 2px 14px; font-size: 13px; font-weight: 600; color: #46527a; }
+.ls-group-untitled { color: #a1741f; font-weight: 600; text-transform: none; letter-spacing: 0; }
+
+/* The header IS the name field: renaming from inside one step would split the group in two. */
+.ls-group-name {
+  font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit;
+  border: 0; border-bottom: 1px dashed transparent; background: transparent;
+  padding: 0; width: 100%;
+}
+.ls-group-name:hover { border-bottom-color: #cfd7e8; }
+.ls-group-name:focus { outline: none; border-bottom-color: #1f4fd8; }
+
+.ls-check-box em { font-style: normal; font-size: 12px; color: #6b7794; }
+
+.ls-step { border: 1px solid #e3e8f2; border-left: 3px solid #2f76c9; border-radius: 10px; background: #fff; margin-left: 14px; }
+.ls-step.is-optional { border-left-color: #b7bfd2; }
+.ls-step.is-broken   { border-left-color: #c2410c; }
+
+.ls-step-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; }
+.ls-step-open { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; font: inherit; }
+.ls-step-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ls-step-title { font-size: 14px; font-weight: 600; color: #16244a; }
+.ls-step-meta  { font-size: 12.5px; color: #6b7794; }
+.ls-step.is-broken .ls-step-meta { color: #c2410c; }
+.ls-step-tools { display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
+.ls-seq { font-size: 12px; color: #8a93ab; font-variant-numeric: tabular-nums; min-width: 20px; flex-shrink: 0; }
+
+.ls-step-body { border-top: 1px solid #eef1f6; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+
+.ls-empty { border: 1px dashed #cfd7e8; border-radius: 10px; padding: 22px; text-align: center; color: #6b7794; font-size: 13.5px; }
+.ls-empty p { margin: 0 0 10px; }
+
+.ls-versions { font-size: 12.5px; color: #6b7794; display: flex; flex-wrap: wrap; gap: 8px 14px; }
+
+@media (max-width: 640px) {
+  .ls-narrow { flex: 1 1 100%; }
+  .ls-step, .ls-group-subtopic { margin-left: 0; }
+}

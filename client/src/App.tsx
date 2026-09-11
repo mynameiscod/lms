@@ -232,6 +232,8 @@ import DayViewPage from './pages/MyLearningPlan/LearningPlanPro';
 import MyJourneyPage from './pages/MyLearningPlan/Journey';
 import FoundationJourneyPage from './pages/FoundationJourney/FoundationJourneyPage';
 import SkillMappingPage from './pages/SkillMapping/SkillMappingPage';
+import LearningStudio from './pages/LearningStudio';
+import ConceptEditor from './pages/LearningStudio/ConceptEditor';
 import AdminConcernsPage from './pages/AdminConcerns';
 
 // Public quiz session (no auth required — token-based)
@@ -2132,6 +2134,26 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR']}>
             <Layout><SkillMappingPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* The Learning Studio: how each skill is taught, broken into topics and subtopics.
+          The editor route is nested under the list so a breadcrumb back always exists.
+          Staff only — the server enforces the permission, this only decides who is shown
+          the door. */}
+      <Route
+        path="/admin/learning-studio"
+        element={
+          <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR']}>
+            <Layout><LearningStudio /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/learning-studio/:skillKey"
+        element={
+          <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR']}>
+            <Layout><ConceptEditor /></Layout>
           </ProtectedRoute>
         }
       />

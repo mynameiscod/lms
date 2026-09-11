@@ -44,6 +44,18 @@ const UNLOCK_CARDS = [
   { ic: 'bi-graph-up-arrow', tone: 'teal', title: 'Track & Improve', desc: 'See your progress over time and know what to improve next.' },
 ];
 
+/**
+ * A mission's link may be an ABSOLUTE URL — the server returns a material's own external link
+ * when it has one. Handing that to react-router built an in-app path out of a URL, so pressing
+ * Open on any externally hosted material landed the student on a blank screen. Somebody else's
+ * site opens in a tab; ours goes through the router.
+ */
+const openMissionLink = (link: string, nav: (to: string) => void) => {
+  if (!link) return;
+  if (/^https?:\/\//i.test(link)) window.open(link, '_blank', 'noopener');
+  else nav(link);
+};
+
 const MissionControl: React.FC = () => {
   const nav = useNavigate();
   const { user, logout } = useAuth();
@@ -255,7 +267,7 @@ const MissionControl: React.FC = () => {
                 {today?.needsAssessment ? <div className="mc-empty-state"><i className="bi bi-diagram-3" />Complete your skill assessment first to personalize today’s missions.</div>
                   : !missions.length ? <div className="mc-empty-state"><i className="bi bi-stars" />No missions for today. Check back tomorrow.</div>
                   : <div className="mc-daily-list">{missions.map(m => <React.Fragment key={m.key}>
-                    <div className={`mc-daily-row${m.done ? ' done' : ''}`} id={`mission-${m.key}`}><div className="mc-daily-icon"><i className={`bi ${CAT_ICON[m.category] || 'bi-bullseye'}`} /></div><div className="mc-daily-copy"><b>{m.title}</b><p>{m.detail}</p></div><div className="mc-daily-meta"><span className="mc-xp">+{m.xp} XP</span>{m.link && !m.done && <button className="mc-open-btn" onClick={() => nav(m.link!)}>Open →</button>}
+                    <div className={`mc-daily-row${m.done ? ' done' : ''}`} id={`mission-${m.key}`}><div className="mc-daily-icon"><i className={`bi ${CAT_ICON[m.category] || 'bi-bullseye'}`} /></div><div className="mc-daily-copy"><b>{m.title}</b><p>{m.detail}</p></div><div className="mc-daily-meta"><span className="mc-xp">+{m.xp} XP</span>{m.link && !m.done && <button className="mc-open-btn" onClick={() => openMissionLink(m.link!, nav)}>Open →</button>}
                       {/* No surface to do it on — the written answer IS the completion. */}
                       {m.needsAnswer && !m.done && <button className="mc-open-btn" onClick={() => openAnswer(m.key)}>{answerFor === m.key ? 'Close' : 'Write answer →'}</button>}
                       {/* Neither a written mission nor one the product can CHECK is

@@ -1279,6 +1279,24 @@ export const passportApi = {
     return data;
   },
 
+  /**
+   * The whole course for one skill: its topics, its subtopics, and where the student is.
+   *
+   * Returns null on 404, which is the ordinary case rather than an error — most skills have no
+   * authored journey yet, and a screen that showed a red box for that would be shouting about
+   * content the student was never promised.
+   */
+  getMyConceptJourney: async (skillKey: string): Promise<ConceptJourney | null> => {
+    try {
+      const { data } = await axios.get(
+        `${BASE}/me/concept-journey/${encodeURIComponent(skillKey)}`, { headers: auth() });
+      return data;
+    } catch (e: any) {
+      if (e?.response?.status === 404) return null;
+      throw e;
+    }
+  },
+
   attachmentUrl: async (fileKey: string): Promise<string> => {
     const [folder, name] = fileKey.split('/');
     const { data } = await axios.post(
@@ -2733,6 +2751,46 @@ export interface SkillAssessment {
   startedAt: string;
   totalQuestions: number;
   items: SkillAssessmentItem[];
+}
+
+/**
+ * One step of a student's journey through a skill.
+ *
+ * `topic` and `subtopic` are grouping, not skills — "Loops" divides into "For loops", which
+ * divides again into "Counting with range". Order is `sequence`; the labels never reorder
+ * anything, so a journey may return to a topic later and the screen shows it where it falls.
+ */
+export interface ConceptJourneyStep {
+  stepId: string;
+  sequence: number;
+  phase: string;
+  workType: 'LEARN' | 'PRACTICE' | 'ASSESS' | 'REVIEW';
+  topic: string;
+  subtopic: string;
+  title: string;
+  resourceId: string;
+  resourceType: string;
+  /** Where it opens. Empty when nothing is attached; absolute for an external link. */
+  route: string;
+  /** False when the step points at a retired or empty material — it would open nothing. */
+  hasContent: boolean;
+  estimatedMinutes: number;
+  required: boolean;
+  done: boolean;
+}
+
+export interface ConceptJourney {
+  skillKey: string;
+  title: string;
+  description: string;
+  learningOutcomes: string[];
+  version: number;
+  status: string;
+  estimatedMinutes: number;
+  /** The first step not yet done — what "Continue" opens. Null once the journey is finished. */
+  nextStepId: string | null;
+  progress: { completed: number; totalRequired: number; percent: number };
+  steps: ConceptJourneyStep[];
 }
 
 export interface DailyMission {

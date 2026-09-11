@@ -19,8 +19,11 @@
 import mongoose from 'mongoose';
 import ConceptLearningUnit, { IConceptLearningUnit, IConceptLearningStep } from '../models/ConceptLearningUnit';
 import StudentConceptProgress from '../models/StudentConceptProgress';
-import CareerSkillResource, { resourceServes, ResourceMember } from '../models/CareerSkillResource';
+import CareerSkillResource, { resourceServes, ResourceMember, bodyIsEmpty } from '../models/CareerSkillResource';
+import StudentSkillProfile from '../models/StudentSkillProfile';
+import User from '../models/User';
 import { LearningFallbackReason, phasesForWorkType, workTypeForPhase } from '../data/conceptLearningPolicy';
+import { assessmentRouteForSkill, materialRoute, practiceRoute } from '../data/missionOrchestrationPolicy';
 import { publishedUnitForSkill, unitVersion } from './conceptLearningUnitService';
 
 export interface ResolvedStep {
@@ -274,7 +277,136 @@ export async function recordStepCompletion(input: {
   return { recorded, unitCompleted };
 }
 
-/** The member-facing journey view: where they are and what is next. */
+/** One material, as much of it as the syllabus needs to describe a step. */
+export interface JourneyResource {
+  title?: string;
+  resourceType?: string;
+  url?: string;
+  body?: any;
+  /** The linked Practice Lab problem, for the types that have one. Not the material's own id. */
+  resourceId?: string;
+}
+
+/**
+ * Where a step opens.
+ *
+ * DELIBERATELY THE SAME DESTINATIONS THE MISSION CARD USES. A student who opens "For loops,
+ * counting with range" from their syllabus and then meets the same step as tomorrow's mission
+ * must land in the same place — two routing rules would eventually disagree, and the student
+ * would be the one who found out.
+ */
+export function stepRoute(
+  step: { resourceId?: string; phase: string },
+  skillKey: string,
+  res?: JourneyResource,
+): string {
+  if (!step.resourceId) {
+    // No material means the assessment engine owns it, exactly as the bridge decides.
+    return workTypeForPhase(step.phase) === 'ASSESS' ? assessmentRouteForSkill(skillKey) : '';
+  }
+  if (!res) return '';
+  if (res.resourceType === 'practice' || res.resourceType === 'problem') {
+    return res.resourceId ? practiceRoute(String(res.resourceId)) : '';
+  }
+  if (res.resourceType === 'mock_interview') return '/careerpilot/interview';
+  // An external link is returned whole. The client opens an absolute URL in a new tab rather
+  // than handing it to the router, which would read it as an in-app path.
+  return String(res.url || '').trim() || materialRoute(String(step.resourceId));
+}
+
+/**
+ * Shape the whole course for one skill. PURE — the decisions, without the reads.
+ *
+ * Split out for the same reason the rest of this module's logic is: which steps a student can
+ * see, which one is next and what each is called are ordinary decisions over a unit, a progress
+ * record and some materials. Exercising them through Mongo would test Mongo.
+ */
+export function journeyView(input: {
+  unit: IConceptLearningUnit;
+  completedStepIds: Iterable<string>;
+  member: ResourceMember;
+  skillScore: number | null;
+  resources: Map<string, JourneyResource>;
+  status?: string;
+}) {
+  const { unit, member, skillScore, resources } = input;
+  const done = new Set([...input.completedStepIds].map(String));
+
+  /**
+   * SHOWS WHAT WILL ACTUALLY BE SERVED, NOT EVERY AUTHORED STEP.
+   *
+   * The same audience and score-window filter the resolver applies, applied here. A strong
+   * student whose intro steps are skipped must not be shown a syllabus full of items they will
+   * never be given, and nobody is shown a step aimed at a different branch. Any disagreement
+   * between this list and what opens tomorrow is a bug the student notices before we do.
+   */
+  const steps = (unit.steps || [])
+    .slice()
+    .sort((a, b) => a.sequence - b.sequence)
+    .filter(s => servesMember(unit, s, member, skillScore));
+
+  const required = steps.filter(s => s.required);
+  const completedRequired = required.filter(s => done.has(s.stepId)).length;
+
+  // The first thing they have not done. Not necessarily a required one — an optional step
+  // sitting in the middle of the sequence is still the next thing in front of them.
+  const next = steps.find(s => !done.has(s.stepId)) || null;
+
+  return {
+    skillKey: unit.skillKey,
+    title: unit.title,
+    description: unit.description || '',
+    learningOutcomes: (unit.learningOutcomes || []).filter(Boolean),
+    version: unit.version,
+    status: input.status || 'NOT_STARTED',
+    estimatedMinutes: steps.reduce((n, s) => n + (Number(s.estimatedMinutes) || 0), 0),
+    nextStepId: next?.stepId || null,
+    progress: {
+      completed: completedRequired,
+      totalRequired: required.length,
+      percent: required.length ? Math.round((completedRequired / required.length) * 100) : 0,
+    },
+    steps: steps.map(s => {
+      const res = s.resourceId ? resources.get(String(s.resourceId)) : undefined;
+      return {
+        stepId: s.stepId, sequence: s.sequence, phase: s.phase,
+        workType: workTypeForPhase(s.phase),
+        // The two grouping levels, so a member's journey reads as a course rather than as
+        // fourteen numbered rows. Empty for anything authored before they existed, which
+        // simply renders ungrouped.
+        topic: s.topic || '',
+        subtopic: s.subtopic || '',
+        /**
+         * Titles come from the material, not from the step. `titleOverride` is usually empty —
+         * an author names the resource once and the step points at it — so a syllabus built
+         * from the step alone was a column of phases: LEARN, LEARN, PRACTICE.
+         */
+        title: s.titleOverride || res?.title || '',
+        resourceId: s.resourceId ? String(s.resourceId) : '',
+        resourceType: res?.resourceType || '',
+        route: stepRoute(s, unit.skillKey, res),
+        // A step pointing at a retired or empty resource opens nothing. Said here, rather than
+        // discovered on the day it comes up.
+        hasContent: !!res && (!!String(res.url || '').trim() || !bodyIsEmpty(res.body)),
+        estimatedMinutes: s.estimatedMinutes,
+        required: s.required,
+        done: done.has(s.stepId),
+      };
+    }),
+  };
+}
+
+/**
+ * The member-facing journey view: the whole course for one skill, and where they are in it.
+ *
+ * WHY A STUDENT NEEDS THIS AND NOT JUST TODAY'S STEP. A mission shows one step. A student
+ * working through fourteen of them has no idea whether they are near the end of for loops or
+ * near the end of loops, what is still ahead, or why any of it is in the order it is in. Being
+ * shown one thing at a time forever is how a course feels like a treadmill.
+ *
+ * IT IS A READ. Opening the syllabus is not doing any of it; progress is written when a mission
+ * completes, exactly as everywhere else in this module.
+ */
 export async function journeyFor(tenantId: string, studentId: string, skillKey: string) {
   const key = String(skillKey).toUpperCase();
   const progress: any = await StudentConceptProgress.findOne({
@@ -286,31 +418,33 @@ export async function journeyFor(tenantId: string, studentId: string, skillKey: 
     : await publishedUnitForSkill(tenantId, key);
   if (!unit) return null;
 
-  const done = new Set((progress?.completedSteps || []).map((c: any) => String(c.stepId)));
-  const steps = (unit.steps || []).slice().sort((a, b) => a.sequence - b.sequence);
-  const required = steps.filter(s => s.required);
-
-  return {
-    skillKey: key,
-    title: unit.title,
-    version: unit.version,
-    status: progress?.status || 'NOT_STARTED',
-    progress: {
-      completed: required.filter(s => done.has(s.stepId)).length,
-      totalRequired: required.length,
-      percent: required.length
-        ? Math.round((required.filter(s => done.has(s.stepId)).length / required.length) * 100)
-        : 0,
-    },
-    steps: steps.map(s => ({
-      stepId: s.stepId, sequence: s.sequence, phase: s.phase,
-      // The sub-concept, so a member's journey reads as sections rather than twelve numbered
-      // rows. Empty for anything authored before topics existed, which renders ungrouped.
-      topic: s.topic || '',
-      title: s.titleOverride || '', estimatedMinutes: s.estimatedMinutes,
-      required: s.required, done: done.has(s.stepId),
-    })),
+  // The same two inputs the resolver filters on, read the same way.
+  const [user, profile]: any[] = await Promise.all([
+    User.findOne({ _id: studentId, tenantId }).select('passport').lean(),
+    StudentSkillProfile.findOne({ tenantId, studentId, skillKey: key }).select('score').lean(),
+  ]);
+  const p = user?.passport || {};
+  const member: ResourceMember = {
+    yearOfStudy: p.yearOfStudy, degree: p.degree, program: p.program, branch: p.branch,
+    primaryRole: p.primaryRole, secondaryRole: p.secondaryRole, stage: p.stage,
+    preferredLanguages: p.preferredLanguages || [],
   };
+
+  const ids = (unit.steps || []).map(s => String(s.resourceId || ''))
+    .filter(id => id && mongoose.isValidObjectId(id));
+  const rows = ids.length
+    ? await CareerSkillResource.find({ tenantId, _id: { $in: ids }, active: true })
+        .select('_id title resourceType url body resourceId').lean() as any[]
+    : [];
+
+  return journeyView({
+    unit,
+    completedStepIds: (progress?.completedSteps || []).map((c: any) => String(c.stepId)),
+    member,
+    skillScore: typeof profile?.score === 'number' ? profile.score : null,
+    resources: new Map(rows.map(r => [String(r._id), r as JourneyResource])),
+    status: progress?.status || 'NOT_STARTED',
+  });
 }
 
 export { ConceptLearningUnit };

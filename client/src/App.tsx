@@ -89,6 +89,7 @@ import PassportAdminPathways from './pages/Passport/AdminPathways';
 import PassportAdminMissions from './pages/Passport/AdminMissions';
 import PassportHome from './pages/Passport/PassportHome';
 import PassportMaterialViewer from './pages/Passport/MaterialViewer';
+import PassportConceptJourney from './pages/Passport/ConceptJourney';
 import PassportMemberLayout from './pages/Passport/MemberLayout';
 import PassportCareerSetup from './pages/Passport/CareerSetup';
 import PassportAdminActivity from './pages/Passport/AdminActivity';
@@ -626,6 +627,10 @@ const AppRoutes: React.FC = () => {
         {/* A material an admin wrote. Materials without an external URL were dropped by the
             mission engine, so a full lesson could be authored with nowhere to open it. */}
         <Route path="/careerpilot/material/:id" element={<PassportMaterialViewer />} />
+        {/* The whole course for one skill: its topics, its subtopics, and where the student is
+            in it. The endpoint behind this existed with nothing calling it, so a member could
+            only ever see one step at a time and never the shape of what they were learning. */}
+        <Route path="/careerpilot/learn/:skillKey" element={<PassportConceptJourney />} />
         {/*
           Thinking Lab reuses the Practice screen against the admin-authored bank. A problem
           opened from either list lands on the same /careerpilot/practice/:id, because the id

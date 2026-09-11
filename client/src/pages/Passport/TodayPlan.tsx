@@ -33,8 +33,24 @@ const REASON_LABEL: Record<string, string> = {
 
 const mins = (n: number) => (n >= 60 ? `${Math.floor(n / 60)}h${n % 60 ? ` ${n % 60}m` : ''}` : `${n} min`);
 
+/**
+ * A mission's resource route may be an ABSOLUTE URL.
+ *
+ * The server returns the material's own external link when it has one, so `nav(route)` handed
+ * react-router a "https://…" and it built an in-app path out of it — the student pressed Start
+ * on any externally hosted material and landed on a blank screen inside the app. Somebody
+ * else's site opens in a tab; ours goes through the router.
+ */
+const isExternal = (route: string) => /^https?:\/\//i.test(String(route || ''));
+
 const TodayPlan: React.FC = () => {
   const nav = useNavigate();
+  const start = (m: DailyMission) => {
+    const route = m.resource?.route;
+    if (!route) return;
+    if (isExternal(route)) window.open(route, '_blank', 'noopener');
+    else nav(route);
+  };
   const [data, setData] = useState<DailyPlanResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -126,6 +142,12 @@ const TodayPlan: React.FC = () => {
                   {/* Module 9's reason, shown where the work is. */}
                   <p className="why">{m.explanation}</p>
 
+                  {/* Today's step is one step. This is the way to the rest of the course it
+                      belongs to, which a student otherwise never sees. */}
+                  <button className="tdp-course" onClick={() => nav(`/careerpilot/learn/${m.skillKey}`)}>
+                    See the whole {m.skillName} course →
+                  </button>
+
                   {m.resourceState === 'RESOURCE_NOT_CONFIGURED' && !m.done && (
                     // No broken Start button. The student gets an honest instruction; the
                     // gap is reported to admin through the mapping screen, not here.
@@ -137,7 +159,7 @@ const TodayPlan: React.FC = () => {
 
                 <div className="ax">
                   {m.resourceState === 'READY' && !m.done && (
-                    <button className="tdp-btn primary" onClick={() => nav(m.resource!.route)}>
+                    <button className="tdp-btn primary" onClick={() => start(m)}>
                       Start
                     </button>
                   )}

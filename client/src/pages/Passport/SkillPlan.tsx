@@ -185,10 +185,20 @@ const SkillPlan: React.FC<{ onState?: (s: SkillPlanState) => void }> = ({ onStat
   const plan = rm!;
   const thisWeek = plan.objectives.filter(o => o.week === view.currentWeek);
 
+  /**
+   * One objective of the plan.
+   *
+   * The skill name is a link now. Every row here named something the student was going to be
+   * taught and gave them no way to look at it — the plan was a list of promises with nothing
+   * behind any of them until the day it came up. The course page handles a skill with no
+   * authored journey gracefully, so linking every row is honest rather than optimistic.
+   */
   const Row: React.FC<{ o: RoadmapObjective }> = ({ o }) => (
     <div className={`skp-row r-${o.reasonCode.toLowerCase()}`}>
       <div className="hd">
-        <b>{o.skillName}</b>
+        <button className="skp-skill" onClick={() => nav(`/careerpilot/learn/${o.skillKey}`)}>
+          {o.skillName}
+        </button>
         <span className="wt">{WORK_LABEL[o.workType] || o.workType}</span>
         <span className="mn">{mins(o.plannedMinutes)}</span>
       </div>

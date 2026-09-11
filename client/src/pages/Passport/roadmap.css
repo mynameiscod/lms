@@ -31,3 +31,7 @@
 .rq-title .rq-window{
   margin-top:6px; font-size:12.5px; line-height:1.6; color:#64748B; max-width:64ch;
 }
+
+.rq-title .rq-inline{border:0; background:none; padding:0; font:inherit; font-weight:700;
+  color:#359AAD; cursor:pointer}
+.rq-title .rq-inline:hover{text-decoration:underline}

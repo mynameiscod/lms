@@ -19,6 +19,18 @@ export const useMember = () => useContext(Ctx);
  * Keeping this mapping here gives every page an explicit frame instead of relying on a
  * broad global CSS overlay. Company detail routes intentionally share the companies frame.
  */
+/**
+ * Screens that own the whole window.
+ *
+ * Onboarding and a paper in progress. Both are one task with one next action, and a navigation
+ * rail beside them is an invitation to abandon it.
+ */
+const FOCUSED_ROUTES = [
+  '/careerpilot/setup',
+  '/careerpilot/skill-assessment',
+  '/careerpilot/assessment',
+];
+
 const pageKeyFor = (pathname: string) => {
   if (pathname === '/careerpilot') return 'dashboard';
   if (pathname.startsWith('/careerpilot/roadmap')) return 'roadmap';
@@ -102,13 +114,20 @@ const MemberLayout: React.FC = () => {
    * The alternative was what we had: a paywall as the first screen, asking somebody to buy
    * before they had seen anything.
    *
-   * NOT BEFORE THE ASSESSMENT. I argued the opposite a change ago — that a student deciding
-   * whether this product is for them should see the most of it, not the least — and that was
-   * wrong in practice. Onboarding and the paper are a single flow with their own chrome, and
-   * wrapping them in a rail of nine locked destinations turns the one screen with a clear next
-   * action into a menu. The rail earns its place once there is a dashboard behind it.
+   * THE RAIL IS HIDDEN BY ROUTE, NOT BY STATE.
+   *
+   * I have had this wrong twice, in both directions. First the rail was withheld from anyone
+   * without a membership, so a paying-to-be student saw a paywall with no product behind it.
+   * Then I gated it on having an assessment, which took the navigation away from the dashboard
+   * itself — a student who had not yet sat the paper got a bare page where the whole product
+   * should have been.
+   *
+   * The thing that actually needs no rail is not a KIND OF STUDENT, it is a KIND OF SCREEN.
+   * Onboarding and the assessment are single-purpose flows with their own chrome and exactly one
+   * next action; wrapping those in nine destinations turns a clear step into a menu. Everywhere
+   * else — the dashboard included, measured or not — the rail is how somebody sees what this is.
    */
-  if (!data.hasAssessment) {
+  if (FOCUSED_ROUTES.some(r => pathname.startsWith(r))) {
     return (
       <Ctx.Provider value={ctx}>
         <Outlet />

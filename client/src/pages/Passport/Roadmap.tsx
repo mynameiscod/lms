@@ -502,11 +502,14 @@ const Roadmap: React.FC = () => {
         <div>
           <h1>Your Learning Roadmap 🚀</h1>
           <p><b>{rm.pathwayLabel}</b> — {rm.pathwayDescription}</p>
+          {/* The two plans are different things and the rail does not say so. This does. */}
           <p className="rq-window">
             {rm.totalDays} day{rm.totalDays === 1 ? '' : 's'} of work at your pace.
             {shortOfWindow
-              ? ' That is everything assigned to you so far; your plan can run to 90 days and grows as more is assigned.'
-              : ' Your plan covers the full 90-day window.'}
+              ? ' That is everything assigned to you so far.'
+              : ''}
+            {' '}Your full first-year curriculum — ninety days, day by day — is under{' '}
+            <button className="rq-inline" onClick={() => nav('/careerpilot/plan')}>My 90 Days</button>.
           </p>
         </div>
         <div className="rq-title-chips">

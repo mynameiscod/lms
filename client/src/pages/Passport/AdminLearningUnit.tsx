@@ -34,9 +34,15 @@ const PHASE_WORK: Record<string, string> = {
   CHECK: 'ASSESS', APPLY: 'PRACTICE', REVIEW: 'REVIEW',
 };
 
-const blankStep = (sequence: number, topic = ''): LearningStep => ({
+/**
+ * A new step inherits the grouping of the one above it.
+ *
+ * Adding the practice that follows a worked example is the common case, and retyping both
+ * labels each time is how free-text grouping ends up split across three spellings.
+ */
+const blankStep = (sequence: number, topic = '', subtopic = ''): LearningStep => ({
   stepId: '', sequence, phase: 'LEARN', resourceId: '', titleOverride: '',
-  estimatedMinutes: 15, required: true, topic,
+  estimatedMinutes: 15, required: true, topic, subtopic,
 });
 
 const AdminLearningUnit: React.FC = () => {
@@ -81,6 +87,15 @@ const AdminLearningUnit: React.FC = () => {
       const r = await passportApi.saveLearningUnit(skillKey, {
         title, description,
         learningOutcomes: outcomes.filter(o => o.trim()),
+        /**
+         * Sent back unchanged because the server REBUILDS a unit from the request body rather
+         * than merging into the stored document. Omitting a field is not "leave it alone", it
+         * is "clear it" — audience was being emptied and the completion threshold reset to 1
+         * on every save, silently, showing up much later as a unit that would not close.
+         */
+        ...(unit?.audience ? { audience: unit.audience } : {}),
+        ...(typeof unit?.completionThreshold === 'number'
+          ? { completionThreshold: unit.completionThreshold } : {}),
         steps: steps.map((s, i) => ({ ...s, sequence: i + 1 })),
       });
       setUnit(r.unit); setReadiness(r.readiness);
@@ -166,7 +181,9 @@ const AdminLearningUnit: React.FC = () => {
             <h3>Student journey</h3>
             <p className="lst-hint">
               The order a student meets this concept in. Each step is served once — the mission
-              engine remembers what they finished and moves on.
+              engine remembers what they finished and moves on. Group the steps with a
+              <b> topic</b> and a <b> subtopic</b> and the skill reads as a course rather than a
+              list: <i>Loops → For loops → Counting with range</i>.
             </p>
 
             {!steps.length && <div className="lst-empty compact">No steps yet. Add the first one below.</div>}
@@ -175,14 +192,27 @@ const AdminLearningUnit: React.FC = () => {
               const res = resources.find(r => r.id === s.resourceId);
               const isCheck = s.phase === 'CHECK';
               /**
-               * A heading whenever the sub-concept changes, so a twelve-step journey reads as
-               * sections. Nothing is reordered or nested — the list stays flat and the label is
-               * only a divider, which is why steps with no topic simply flow on.
+               * A heading whenever the grouping changes, so a fourteen-step journey reads as
+               * sections. Nothing is reordered or nested — the list stays flat and the labels
+               * are only dividers, which is why steps with no topic simply flow on.
+               *
+               * TWO LEVELS, BECAUSE A TOPIC IS NOT THE SMALLEST THING. Loops divides into for
+               * loops and while loops; for loops divides again into the explanation, the
+               * worked example and the practice. One level left an author staring at fourteen
+               * steps under "Loops" unable to see where one ended and the next began.
+               *
+               * HEADINGS FOLLOW THE ORDER, THEY DO NOT IMPOSE ONE. A journey may teach for
+               * loops, teach while loops, then come back to nested loops, and a revisited
+               * topic prints its heading again rather than being gathered up out of sequence.
                */
-              const startsTopic = !!s.topic && s.topic !== (steps[i - 1]?.topic || '');
+              const prev = steps[i - 1];
+              const startsTopic = !!s.topic && s.topic !== (prev?.topic || '');
+              const startsSub = !!s.subtopic
+                && (startsTopic || s.subtopic !== (prev?.subtopic || ''));
               return (
                 <React.Fragment key={s.stepId || i}>
                 {startsTopic && <div className="lst-topic"><span>{s.topic}</span></div>}
+                {startsSub && <div className="lst-subtopic"><span>{s.subtopic}</span></div>}
                 <div className="lst-step">
                   <span className="lst-seq">{String(i + 1).padStart(2, '0')}</span>
                   <div className="lst-step-body">
@@ -211,8 +241,12 @@ const AdminLearningUnit: React.FC = () => {
                       </label>
                     </div>
                     <div className="lst-step-foot">
-                      <input className="lst-topic-input" value={s.topic || ''} placeholder="sub-concept, e.g. Inheritance"
+                      <input className="lst-topic-input" value={s.topic || ''} list="lst-topics"
+                             placeholder="topic, e.g. For loops"
                              onChange={e => patchStep(i, { topic: e.target.value })} />
+                      <input className="lst-topic-input" value={s.subtopic || ''} list="lst-subtopics"
+                             placeholder="subtopic, e.g. Counting with range"
+                             onChange={e => patchStep(i, { subtopic: e.target.value })} />
                       <span className="lst-tag">{PHASE_WORK[s.phase]}</span>
                       <span className="lst-hint-inline">{PHASE_HINT[s.phase]}</span>
                       {!isCheck && !s.resourceId && <span className="lst-warn">No resource — this step opens nothing</span>}
@@ -229,7 +263,21 @@ const AdminLearningUnit: React.FC = () => {
               );
             })}
 
-            <button className="lst-add" onClick={() => setSteps(l => [...l, blankStep(l.length + 1, l[l.length - 1]?.topic || '')])}>
+            {/* The names already in use, so the second step of a topic is chosen rather than
+                retyped. Free-text grouping splits on a typo, and a split topic is invisible
+                until a student meets it. */}
+            <datalist id="lst-topics">
+              {[...new Set(steps.map(x => (x.topic || '').trim()).filter(Boolean))]
+                .map(t => <option key={t} value={t} />)}
+            </datalist>
+            <datalist id="lst-subtopics">
+              {[...new Set(steps.map(x => (x.subtopic || '').trim()).filter(Boolean))]
+                .map(t => <option key={t} value={t} />)}
+            </datalist>
+
+            <button className="lst-add" onClick={() => setSteps(l => [...l, blankStep(
+              l.length + 1, l[l.length - 1]?.topic || '', l[l.length - 1]?.subtopic || '',
+            )])}>
               + Add step
             </button>
           </div>

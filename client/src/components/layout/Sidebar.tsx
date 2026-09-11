@@ -174,9 +174,6 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       permissions: ['create_courses', 'edit_courses', 'manage_own_courses'],
       submenu: [
         { label: 'Content Library',    path: '/learning-library',    roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-book',          permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
-        // Sits beside the content library because that is the order of the work: map content to
-        // a skill, then arrange it into the journey that teaches it.
-        { label: 'Learning Studio',    path: '/admin/learning-studio', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-diagram-project', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
         { label: 'Curriculum Builder', path: '/curriculum-builder',  roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-sitemap',       permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
         { label: 'Enrollments',        path: '/enrollment-plans',    roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-user-graduate',  permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
         { label: 'Batch Offerings',    path: '/batch-offerings',     roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-days',  permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },

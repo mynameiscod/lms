@@ -1376,177 +1376,7 @@ export const passportApi = {
     return data;
   },
 
-  /* ── Concept learning journeys ──────────────────────────────────────────────────────────
-   *
-   * The endpoints existed and nothing called them, so a journey could only be authored by
-   * hand against the API. These are what the editor screen uses.
-   */
-
-  listConceptJourneys: async (): Promise<ConceptJourneyList> => {
-    const { data } = await axios.get(`${BASE}/concept-learning-units/concepts`, { headers: auth() });
-    return data;
-  },
-  getConceptJourney: async (skillKey: string): Promise<ConceptJourneyDetail> => {
-    const { data } = await axios.get(`${BASE}/concept-learning-units/by-skill/${skillKey}`, { headers: auth() });
-    return data;
-  },
-  /** Saving against a published concept forks a draft; it never edits what students are reading. */
-  saveConceptJourney: async (skillKey: string, body: ConceptJourneySave): Promise<ConceptJourneySaved> => {
-    const { data } = await axios.put(`${BASE}/concept-learning-units/by-skill/${skillKey}`, body, { headers: auth() });
-    return data;
-  },
-  publishConceptJourney: async (unitId: string): Promise<ConceptJourneyPublish> => {
-    const { data } = await axios.post(`${BASE}/concept-learning-units/${unitId}/publish`, {}, { headers: auth() });
-    return data;
-  },
-  archiveConceptJourney: async (unitId: string): Promise<any> => {
-    const { data } = await axios.post(`${BASE}/concept-learning-units/${unitId}/archive`, {}, { headers: auth() });
-    return data;
-  },
-  previewConceptJourney: async (unitId: string): Promise<any> => {
-    const { data } = await axios.get(`${BASE}/concept-learning-units/${unitId}/preview`, { headers: auth() });
-    return data;
-  },
 };
-
-/** The seven phases an author sequences a journey from. Mirrors conceptLearningPolicy. */
-export const LEARNING_PHASES = [
-  'UNDERSTAND', 'LEARN', 'TRY', 'PRACTICE', 'CHECK', 'APPLY', 'REVIEW',
-] as const;
-export type LearningPhase = typeof LEARNING_PHASES[number];
-
-export type LearningUnitStatus = 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED';
-
-/** How far from teachable a concept is, as the studio list reports it. */
-export type ConceptReadinessStatus = 'PUBLISHED' | 'READY' | 'INCOMPLETE' | 'NOT_CONFIGURED';
-
-/** One row of the journey list — a skill, and whatever has been authored for it. */
-export interface ConceptJourneyRow {
-  skillKey: string; skillName: string; category: string; difficulty: string;
-  unitId: string | null; unitTitle: string;
-  unitStatus: LearningUnitStatus | null;
-  version: number; stepCount: number; estimatedMinutes: number;
-  /** Content already mapped to this skill — what a journey can be built from. */
-  resources: number;
-  readiness: number;
-  /** Why it cannot be published yet, in an author's words. */
-  blocking: string[];
-  status: ConceptReadinessStatus;
-}
-
-export interface ConceptJourneyList {
-  concepts: ConceptJourneyRow[];
-  summary: {
-    total: number; published: number; ready: number;
-    incomplete: number; notConfigured: number;
-  };
-}
-
-/**
- * One step of a journey.
- *
- * `topic` and `subtopic` are the two levels of grouping that make a skill read as a course:
- * LOOPS_BASICS divides into for loops and while loops, and for loops divides again into the
- * explanation, the worked example and the practice. Both are labels only — neither is a
- * skill, and neither carries scoring or ordering meaning. Order comes from `sequence`.
- */
-export interface ConceptJourneyStep {
-  stepId: string;
-  sequence: number;
-  phase: LearningPhase;
-  /** Absent for CHECK steps, which route to the assessment rather than to content. */
-  resourceId?: string;
-  titleOverride?: string;
-  estimatedMinutes: number;
-  required: boolean;
-  topic?: string;
-  subtopic?: string;
-  notes?: string;
-  scoreWindow?: { min: number | null; max: number | null };
-  audience?: ConceptAudience;
-}
-
-/** Something an author can drop into a step. */
-export interface ConceptJourneyResource {
-  id: string; title: string; resourceType: string;
-  workTypes: string[]; priority: number; hasContent: boolean;
-}
-
-export interface ConceptReadinessCheck {
-  key: string; label: string; passed: boolean; required: boolean; detail: string;
-}
-
-export interface ConceptJourneyReadiness {
-  publishable: boolean;
-  percent: number;
-  checks: ConceptReadinessCheck[];
-  /** The failed required checks only — what publish would refuse on. */
-  blocking: string[];
-}
-
-/**
- * Who a journey is for. Not edited in the studio yet, but carried through every save.
- *
- * The server rebuilds this from the request body rather than merging into what is stored, so a
- * save that omits it does not leave it alone — it empties it. Anything the editor does not show
- * it must still round-trip.
- */
-export interface ConceptAudience {
-  years: string[]; courses: string[]; branches: string[];
-  roles: string[]; languages: string[]; stages: string[];
-}
-
-export interface ConceptJourneyUnit {
-  _id: string;
-  skillKey: string;
-  title: string;
-  description: string;
-  learningOutcomes: string[];
-  steps: ConceptJourneyStep[];
-  version: number;
-  status: LearningUnitStatus;
-  estimatedMinutes: number;
-  audience?: ConceptAudience;
-  /** Fraction of REQUIRED steps that completes the unit. 1 means all of them. */
-  completionThreshold?: number;
-  updatedAt?: string;
-}
-
-export interface ConceptJourneyDetail {
-  skill: { key: string; name: string; category?: string; difficulty?: string };
-  /** The draft if one exists, else the live unit, else null for a concept never authored. */
-  unit: ConceptJourneyUnit | null;
-  versions: { id: string; version: number; status: LearningUnitStatus; updatedAt: string }[];
-  readiness: ConceptJourneyReadiness | null;
-  resources: ConceptJourneyResource[];
-}
-
-export interface ConceptJourneySaved {
-  unit: ConceptJourneyUnit;
-  readiness: ConceptJourneyReadiness;
-}
-
-export interface ConceptJourneyPublish {
-  published: boolean;
-  readiness: ConceptJourneyReadiness;
-  message?: string;
-}
-
-export interface ConceptJourneySave {
-  title: string;
-  description?: string;
-  learningOutcomes?: string[];
-  audience?: ConceptAudience;
-  completionThreshold?: number;
-  steps: ConceptJourneyStep[];
-}
-
-/** A fresh step, so the editor never has to invent the defaults itself. */
-export const emptyJourneyStep = (sequence: number): ConceptJourneyStep => ({
-  stepId: `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
-  sequence, phase: 'LEARN', estimatedMinutes: 15, required: true,
-  topic: '', subtopic: '', titleOverride: '', notes: '',
-});
 
 // ── Mock interview plans ──
 
@@ -1911,8 +1741,16 @@ export interface StudioConcept {
 
 export interface LearningStep {
   stepId: string; sequence: number; phase: string;
-  /** Sub-concept label — "Inheritance". Presentational grouping only. */
+  /** The part of the skill this belongs to — "Loops" divides into "For loops". Grouping only. */
   topic?: string;
+  /**
+   * The idea inside the topic — "Counting with range". Grouping only.
+   *
+   * The second level exists because "For loops" is itself three or four steps: the
+   * explanation, the worked example, the practice. With one level an author looking at
+   * fourteen steps under Loops cannot see where for loops end and while loops begin.
+   */
+  subtopic?: string;
   resourceId?: string; titleOverride?: string;
   estimatedMinutes: number; required: boolean;
   scoreWindow?: { min: number | null; max: number | null };

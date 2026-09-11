@@ -68,6 +68,27 @@ export interface IConceptLearningStep {
    * simply render ungrouped, which is every unit authored before this existed.
    */
   topic?: string;
+
+  /**
+   * The division of the topic this step belongs to. Presentational, exactly like `topic`.
+   *
+   * A topic is not a single sitting either. LOOPS_BASICS divides into for loops, while
+   * loops, nested loops and break/continue, and each of those wants its own explanation,
+   * its own worked example and its own practice — three or four steps apiece. With one level
+   * of grouping an author sees "Loops" above fourteen steps and cannot tell where for loops
+   * end and while loops begin; with two they see the syllabus they actually wrote.
+   *
+   * THE LINE THIS DOES NOT CROSS IS THE SAME LINE `topic` DOES NOT CROSS. Neither is a
+   * CareerSkill and neither may become one. Making "for loops" a skill would give it a
+   * blueprint entry, a target level, a question pool and a share of the readiness figure;
+   * 112 skills would become several hundred and every blueprint would multiply. Measurement
+   * stays at the skill, and these two labels are how a skill reads as a course rather than
+   * as a list.
+   *
+   * Steps with no subtopic render directly under their topic, which is every step authored
+   * before this field existed.
+   */
+  subtopic?: string;
   /** Narrows a step further than the unit's own audience. Empty inherits the unit's. */
   audience?: IResourceAudience;
   notes?: string;
@@ -112,6 +133,9 @@ const StepSchema = new Schema<IConceptLearningStep>({
   required:      { type: Boolean, default: true },
   scoreWindow:   { min: { type: Number, default: null }, max: { type: Number, default: null } },
   topic:         { type: String, default: '', trim: true },
+  // Defaults to empty rather than being required, so every unit authored before this field
+  // existed stays valid and simply renders its steps directly under their topic.
+  subtopic:      { type: String, default: '', trim: true },
   audience:      { type: AudienceSchema, default: EMPTY_AUDIENCE },
   notes:         { type: String, default: '' },
 }, { _id: false });

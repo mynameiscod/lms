@@ -54,6 +54,18 @@ export const getRoadmap = async (req: Request, res: Response) => {
 
     const entitled = isEntitled(cfg?.entitlements as any, user?.passport, 'roadmap_full');
 
+    /**
+     * The preview is its own entitlement, and until now it was not checked anywhere.
+     *
+     * `roadmap_preview` sat in the admin screen next to the others with a free/paid switch, and
+     * `isEntitled` was never called with it — so a tenant who set it to paid, meaning "show
+     * non-members nothing", still had the first seven days handed out. An admin believing they
+     * had closed something they had not is worse than not offering the switch at all.
+     *
+     * Free by default, so nothing changes for anyone who has not deliberately changed it.
+     */
+    const canPreview = isEntitled(cfg?.entitlements as any, user?.passport, 'roadmap_preview');
+
     // Only a paying member has a real journey clock; a free user previews from day 1.
     let startDate: Date | null = null;
     let currentDay = 1;
@@ -105,8 +117,10 @@ export const getRoadmap = async (req: Request, res: Response) => {
     });
 
     res.json({
-      roadmap: entitled ? full : toPreview(full, 7),
+      roadmap: entitled ? full : canPreview ? toPreview(full, 7) : null,
       entitled,
+      /** False when even the preview is closed, so the screen offers membership, not an empty plan. */
+      canPreview,
       priceInr: cfg?.priceInr ?? 499,
       careerScore: assessed.careerScore,
       level: assessed.level,

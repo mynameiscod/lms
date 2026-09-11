@@ -197,15 +197,30 @@ export const submitPersonalizedAssessment = async (req: Request, res: Response) 
      * the screen can offer the upgrade; anything else is a real problem and the screen can say
      * so honestly instead of pretending to be busy.
      */
-    let roadmapStatus: 'READY' | 'MEMBERSHIP_REQUIRED' | 'NOT_ENOUGH_EVIDENCE' | 'UNAVAILABLE' | 'NOT_ATTEMPTED' = 'NOT_ATTEMPTED';
+    let roadmapStatus: 'READY' | 'MEMBERSHIP_REQUIRED' | 'NOT_ENOUGH_EVIDENCE'
+      | 'UNAVAILABLE' | 'NOT_GENERATED' | 'NOT_ATTEMPTED' = 'NOT_ATTEMPTED';
     if (!projectionError && (projection?.skillsAffected?.length || 0) > 0) {
       try {
-        // STUDENT, because the student's own submission caused it — the actor field records who
-        // the plan was rebuilt for, and there is no SYSTEM actor in this union.
-        const replan = await generateRoadmap(tenantId, studentId, { actor: 'STUDENT', replan: true });
+        /**
+         * REPLAN ONLY. A student whose evidence moved should have their plan moved with it —
+         * that is what this call is for. A student who has never built a plan should not be
+         * handed ninety days of commitments as a side effect of answering some questions: they
+         * did not ask for a plan, and the one screen where they would have chosen to build one
+         * is where that decision belongs.
+         *
+         * STUDENT, because the student's own submission caused it — the actor field records who
+         * the plan was rebuilt for, and there is no SYSTEM actor in this union.
+         */
+        const replan = await generateRoadmap(tenantId, studentId, {
+          actor: 'STUDENT', replan: true, replanOnly: true,
+        });
         roadmapReplanned = !!replan?.outcome?.available;
         if (roadmapReplanned) roadmapStatus = 'READY';
-        else {
+        else if (replan?.refused === 'NO_PLAN_TO_REPLAN') {
+          // Not a failure and not a paywall: they simply have not built one yet, and the
+          // completion screen can offer exactly that instead of apologising.
+          roadmapStatus = 'NOT_GENERATED';
+        } else {
           // `reason` only exists on the unavailable branch of the union, so narrow first.
           const out: any = replan?.outcome;
           const reason = String((out && out.available === false ? out.reason : '') || replan?.refused || '');

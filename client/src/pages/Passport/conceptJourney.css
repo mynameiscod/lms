@@ -1,0 +1,132 @@
+/* The course map for one skill.
+
+   Tokens are defined here rather than inherited: this can open from a mission, from a link, or
+   on its own, and --cb-* is only present when the member shell is mounted. Values mirror the
+   CodeBegun guide, and deliberately match materialViewer.css so that stepping from the map into
+   a lesson does not look like stepping into a different product. */
+.cj{
+  --cj-navy:#051D64; --cj-teal:#359AAD; --cj-ink:#102A4F; --cj-text:#33475B;
+  --cj-muted:#64748B; --cj-line:#E2EAF2; --cj-card:#FFFFFF; --cj-bg:#F4F8FC;
+  --cj-green:#17885D; --cj-green-bg:#EAF8F1;
+  --cj-red:#C93737;   --cj-red-bg:#FFF0F0;
+  color:var(--cj-text); background:var(--cj-bg); min-height:100%;
+  padding:22px clamp(16px,4vw,40px) 70px;
+  font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+.cj *{box-sizing:border-box}
+.cj > *{max-width:820px; margin-left:auto; margin-right:auto}
+
+.cj-back{display:block; border:1px solid var(--cj-line); background:#fff; border-radius:9px;
+  padding:7px 13px; font-size:12.5px; font-weight:700; color:var(--cj-muted); cursor:pointer;
+  margin-bottom:18px; font-family:inherit}
+.cj-back:hover{color:var(--cj-navy); border-color:var(--cj-muted)}
+
+/* ── header ─────────────────────────────────────────── */
+.cj-hd{margin-bottom:16px}
+.cj-kicker{display:inline-block; font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+  font-weight:800; color:var(--cj-teal); background:#EAF7F8; border-radius:99px;
+  padding:4px 12px; margin-bottom:10px}
+.cj-hd h1{font-size:clamp(25px,3.6vw,34px); font-weight:800; color:var(--cj-navy);
+  margin:0 0 8px; letter-spacing:-.5px; line-height:1.15; text-wrap:balance}
+.cj-blurb{font-size:15.5px; color:var(--cj-text); margin:0; line-height:1.65; max-width:64ch}
+
+/* ── progress ───────────────────────────────────────── */
+.cj-progress{background:var(--cj-card); border:1px solid var(--cj-line); border-radius:14px;
+  padding:17px 19px; margin-bottom:14px; box-shadow:0 2px 10px rgba(15,46,77,.04)}
+.cj-progress-text{display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between;
+  gap:6px 16px}
+.cj-progress-text b{font-size:15px; color:var(--cj-navy); font-weight:800}
+.cj-progress-text span{font-size:12.5px; color:var(--cj-muted)}
+.cj-bar{display:block; height:8px; border-radius:99px; background:#E8EEF5; overflow:hidden;
+  margin:11px 0 0}
+.cj-bar i{display:block; height:100%; border-radius:99px;
+  background:linear-gradient(90deg,var(--cj-teal),#4FB3C4); transition:width .3s ease}
+.cj-bar i.full{background:linear-gradient(90deg,var(--cj-green),#3FAE86)}
+.cj-continue{margin-top:14px; width:100%; text-align:left}
+
+/* ── outcomes ───────────────────────────────────────── */
+.cj-outcomes{background:#EAF7F8; border:1px solid #c9e3ee; border-left:3px solid var(--cj-teal);
+  border-radius:12px; padding:15px 19px; margin-bottom:22px}
+.cj-outcomes h2{font-size:12px; font-weight:800; color:var(--cj-teal); margin:0 0 8px;
+  text-transform:uppercase; letter-spacing:.07em}
+.cj-outcomes ul{margin:0; padding-left:18px; display:flex; flex-direction:column; gap:5px}
+.cj-outcomes li{font-size:14.5px; line-height:1.55; color:var(--cj-ink)}
+
+/* ── the course ─────────────────────────────────────── */
+.cj-course-h{font-size:12px; font-weight:800; color:var(--cj-muted); margin:0 0 12px;
+  text-transform:uppercase; letter-spacing:.08em}
+
+.cj-section + .cj-section{margin-top:26px}
+
+/* Two levels, told apart by weight and inset rather than by two identical pills — the indent is
+   the only thing saying which is which. */
+.cj-topic{font-size:17px; font-weight:800; color:var(--cj-navy); margin:0 0 3px;
+  letter-spacing:-.2px}
+.cj-subtopic{font-size:13.5px; font-weight:700; color:var(--cj-teal); margin:0 0 9px;
+  padding-left:2px}
+.cj-topic + .cj-steps, .cj-subtopic + .cj-steps{margin-top:9px}
+
+.cj-none{background:var(--cj-card); border:1px solid var(--cj-line); border-radius:12px;
+  padding:18px; margin:0; font-size:14px; color:var(--cj-muted); line-height:1.65}
+
+.cj-steps{list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:7px}
+
+.cj-step{background:var(--cj-card); border:1px solid var(--cj-line); border-radius:12px;
+  overflow:hidden}
+.cj-step.is-done{background:#FBFDFC; border-color:#DCEDE5}
+.cj-step.is-next{border-color:var(--cj-teal); box-shadow:0 0 0 3px rgba(53,154,173,.12)}
+.cj-step.is-blocked{background:#FAFBFC}
+
+.cj-step-open{display:flex; align-items:center; gap:13px; width:100%; text-align:left;
+  border:0; background:none; padding:13px 15px; cursor:pointer; font-family:inherit}
+.cj-step-open:disabled{cursor:default}
+.cj-step:not(.is-blocked) .cj-step-open:hover{background:#F7FBFD}
+.cj-step-open:focus-visible{outline:2px solid var(--cj-teal); outline-offset:-2px}
+
+.cj-tick{flex-shrink:0; width:28px; height:28px; border-radius:50%;
+  display:grid; place-items:center; font-size:11.5px; font-weight:800;
+  background:#EEF3F8; color:var(--cj-muted);
+  font-variant-numeric:tabular-nums}
+.cj-step.is-done .cj-tick{background:var(--cj-green-bg); color:var(--cj-green); font-size:14px}
+.cj-step.is-next .cj-tick{background:var(--cj-navy); color:#fff}
+
+.cj-step-text{display:flex; flex-direction:column; gap:2px; min-width:0; flex:1}
+.cj-step-title{font-size:14.5px; font-weight:700; color:var(--cj-ink); line-height:1.35;
+  overflow-wrap:anywhere}
+.cj-step.is-done .cj-step-title{color:var(--cj-muted)}
+.cj-step-meta{font-size:11.5px; color:var(--cj-muted)}
+.cj-step.is-blocked .cj-step-meta{color:#A2701C}
+.cj-step.is-optional .cj-step-title{font-weight:600}
+
+.cj-next-flag{flex-shrink:0; font-size:10px; font-weight:800; letter-spacing:.07em;
+  text-transform:uppercase; color:#fff; background:var(--cj-teal);
+  border-radius:99px; padding:4px 10px}
+.cj-go{flex-shrink:0; color:#9FB0C4; font-size:16px}
+
+/* ── footer / states ────────────────────────────────── */
+.cj-foot{text-align:center; margin-top:30px; padding-top:22px; border-top:1px solid var(--cj-line)}
+.cj-foot p{font-size:13px; color:var(--cj-muted); margin:0 0 12px; max-width:56ch;
+  margin-left:auto; margin-right:auto; line-height:1.6}
+
+.cj-btn{display:inline-block; border:1px solid var(--cj-line); background:#fff;
+  color:var(--cj-ink); border-radius:10px; padding:11px 18px; font-size:13.5px;
+  font-weight:700; cursor:pointer; font-family:inherit; text-decoration:none}
+.cj-btn:hover:not(:disabled){border-color:var(--cj-muted)}
+.cj-btn.primary{background:var(--cj-navy); border-color:var(--cj-navy); color:#fff}
+.cj-btn.primary:hover:not(:disabled){background:#0b2d72}
+.cj-btn:disabled{opacity:.55; cursor:default}
+
+.cj-state{text-align:center; padding:48px 30px; background:var(--cj-card);
+  border:1px solid var(--cj-line); border-radius:14px; color:var(--cj-muted); font-size:14px}
+.cj-state b{display:block; color:var(--cj-ink); font-size:17px; margin-bottom:10px}
+.cj-state p{max-width:52ch; margin:0 auto 16px; line-height:1.65}
+.cj-state.err{background:var(--cj-red-bg); border-color:#f0c4c4}
+.cj-state.err b{color:#8f2b2b; margin-bottom:14px}
+
+@media (max-width:520px){
+  .cj-continue{font-size:13px}
+  .cj-step-open{gap:10px; padding:12px 13px}
+}
+@media (prefers-reduced-motion:reduce){
+  .cj-bar i{transition:none}
+}

@@ -2,7 +2,7 @@ import {
   selectTodaysMissions, missionKey, SelectableObjective, SelectionInput,
 } from '../services/dailyMissionOrchestrator';
 import {
-  MAX_MISSIONS_PER_DAY, MIN_MISSION_MINUTES, dailyBudget, dailySliceOf,
+  missionCapForDay, MISSION_COUNT_FLOOR, MISSION_COUNT_CEILING, MIN_MISSION_MINUTES, dailyBudget, dailySliceOf,
   MISSION_ORCHESTRATION_VERSION, ASSESSMENT_ROUTE, assessmentRouteForSkill,
 } from '../data/missionOrchestrationPolicy';
 
@@ -65,8 +65,40 @@ describe('the day fits the commitment', () => {
     }
   });
 
-  it('keeps the list short enough to finish', () => {
-    expect(select({ objectives: busy, minutesPerDay: 240 }).length).toBeLessThanOrEqual(MAX_MISSIONS_PER_DAY);
+  /**
+   * The cap follows the student's own stated capacity now, rather than being three for
+   * everybody. A skill is an authored sequence of short steps, so a student who set aside two
+   * hours was being handed three fifteen-minute sittings and told that was the day, while
+   * their budget sat unspent.
+   */
+  it('keeps the list short enough to finish, however much time was committed', () => {
+    expect(select({ objectives: busy, minutesPerDay: 240 }).length)
+      .toBeLessThanOrEqual(MISSION_COUNT_CEILING);
+  });
+
+  it('gives an hour-a-day student exactly what it always did', () => {
+    // The floor is the long-standing product rhythm. Nobody who was getting three missions
+    // starts getting a different number because of this change.
+    expect(missionCapForDay(60)).toBe(MISSION_COUNT_FLOOR);
+  });
+
+  it('lets a student who committed more time do more short sittings', () => {
+    expect(missionCapForDay(120)).toBeGreaterThan(MISSION_COUNT_FLOOR);
+    expect(select({ objectives: busy, minutesPerDay: 120 }).length)
+      .toBeGreaterThan(MISSION_COUNT_FLOOR);
+  });
+
+  it('stops at the ceiling rather than turning a day into a backlog', () => {
+    expect(missionCapForDay(600)).toBe(MISSION_COUNT_CEILING);
+  });
+
+  it('never lets the count outrun the minutes', () => {
+    // The budget stays the real constraint; the count simply stopped being the binding one.
+    for (const minutesPerDay of [30, 60, 120, 240]) {
+      const missions = select({ objectives: busy, minutesPerDay });
+      expect(total(missions)).toBeLessThanOrEqual(dailyBudget(minutesPerDay));
+      expect(missions.length).toBeLessThanOrEqual(missionCapForDay(minutesPerDay));
+    }
   });
 
   it('never surfaces a task too small to be worth opening', () => {
@@ -219,13 +251,55 @@ describe('what it refuses to do', () => {
     expect(missions).toEqual([]);
   });
 
-  it('never pulls work forward from a later week', () => {
-    // §62: week 8's objective is not today's problem just because today looks quiet.
+  /**
+   * REPLACES THE OLD §62 RULE, WHICH REFUSED TO SHOW WORK FROM A LATER WEEK.
+   *
+   * That rule made the plan advance because time passed, and it cost more than it bought.
+   * Work a student had not finished in week 3 vanished on the Monday of week 4 — not
+   * completed, not deferred, simply gone from the only screen that would have shown it. And
+   * a student who worked faster than the plan expected was shown an empty day until the
+   * calendar caught up with them.
+   *
+   * The product is self-paced within a one-year membership, so the planner's week numbers
+   * are a suggested pace rather than a gate. What still constrains order is the prerequisite
+   * relation, which is checked below and is now checked across the whole plan rather than
+   * inside one week. The suggested pace is reported to the student as a signal instead.
+   */
+  it('advances to the earliest unfinished objective rather than waiting for its week', () => {
     const missions = select({
       objectives: [obj({ sequence: 9, skillKey: 'DOCKER', week: 8 })],
       week: 2,
     });
-    expect(missions).toEqual([]);
+    expect(missions).toHaveLength(1);
+    expect(missions[0].skillKey).toBe('DOCKER');
+  });
+
+  it('carries unfinished work forward instead of losing it when its week passes', () => {
+    // The bug the old rule caused: an objective left half-done in week 1 was unreachable
+    // from week 2 onwards, however much of it remained.
+    const missions = select({
+      objectives: [
+        obj({ sequence: 1, skillKey: 'OOP', week: 1, plannedMinutes: 120 }),
+        obj({ sequence: 2, skillKey: 'SQL', week: 2, plannedMinutes: 120 }),
+      ],
+      creditedBefore: new Map([[1, 30]]),   // 90 minutes of week 1 still owed
+      week: 2,
+    });
+    expect(missions[0].skillKey).toBe('OOP');
+  });
+
+  it('still refuses to start something whose prerequisite is unfinished', () => {
+    // Pacing was relaxed; ordering was not. A dependency left owing in an earlier week
+    // blocks what depends on it, which the old within-one-week check could not even see.
+    const missions = select({
+      objectives: [
+        obj({ sequence: 1, skillKey: 'PY', week: 1, plannedMinutes: 120, prerequisiteFor: 'DJANGO' }),
+        obj({ sequence: 2, skillKey: 'DJANGO', week: 3, plannedMinutes: 120 }),
+      ],
+      creditedBefore: new Map([[1, 30]]),
+      week: 3,
+    });
+    expect(missions.every(m => m.skillKey !== 'DJANGO')).toBe(true);
   });
 
   it('plans nothing for a student with no stated capacity', () => {

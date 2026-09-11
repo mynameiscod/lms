@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { InterviewSession, MemberEntitlement, MemberRoundView } from '../../api/passportApi';
-import PassportShell, { LockedPanel } from './PassportShell';
+import PassportShell from './PassportShell';
+import SectionLock from './SectionLock';
 import { useSessionRecorder } from './useSessionRecorder';
 import { useInterviewVoice, speechInSupported, speechOutSupported } from './useInterviewVoice';
 import { INTERVIEWER_FACE_ENABLED } from './interviewFace';
@@ -64,7 +65,6 @@ const Interview: React.FC = () => {
   const [savingRec, setSavingRec] = useState(false);
   const [recWarning, setRecWarning] = useState('');
   const [playUrl, setPlayUrl] = useState('');
-  const [paying, setPaying] = useState(false);
   const chatEnd = useRef<HTMLDivElement>(null);
   const [voiceOn, setVoiceOn] = useState(speechOutSupported);
   const [elapsed, setElapsed] = useState(0);
@@ -125,13 +125,6 @@ const Interview: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { chatEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [session?.transcript?.length]);
-
-  const unlock = async () => {
-    setPaying(true);
-    const res = await passportApi.membershipCheckout();
-    setPaying(false);
-    if (res.ok) load();
-  };
 
   const mode = params.get('mode');
   const company = params.get('company');
@@ -275,12 +268,9 @@ const Interview: React.FC = () => {
   if (data?.locked) {
     return (
       <PassportShell>
-        <LockedPanel
-          title="AI Mock Interviews are part of your membership"
-          blurb="A real interviewer that reacts to your answers, asks follow-ups, and then grades you area by area with specific, actionable feedback."
-          priceInr={data.priceInr}
-          busy={paying}
-          onUnlock={unlock}
+        <SectionLock
+          section="interview"
+          blurb="An interviewer that reacts to your answers, asks follow-ups, and then grades you area by area with specific, actionable feedback."
         />
       </PassportShell>
     );

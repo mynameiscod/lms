@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import passportApi, { NewsItem } from '../../api/passportApi';
-import PassportShell, { LockedPanel } from './PassportShell';
+import PassportShell from './PassportShell';
+import SectionLock from './SectionLock';
 
 /** Daily tech news for members. Every card remains a summary plus an attributed link. */
 const dayLabel = (iso: string): string => {
@@ -24,7 +25,13 @@ const News: React.FC = () => {
       .catch(e => setErr(e?.response?.data?.message || 'Could not load the news'));
   }, []);
 
-  if (locked) return <PassportShell><LockedPanel title="Daily Tech News is part of your membership" blurb="A couple of things a day from the tech industry, summarised for someone job hunting — what happened, and why it matters to you." priceInr={locked.priceInr} /></PassportShell>;
+  /**
+   * This rendered a LockedPanel with NO `onUnlock`, so the one button on the one screen whose
+   * entire job is to sell was a dead click. The shared lock owns the checkout, which is why it
+   * exists: six hand-rolled locks meant six places for the payment flow to rot, and it had
+   * already rotted here.
+   */
+  if (locked) return <PassportShell><SectionLock section="news" /></PassportShell>;
   if (err) return <PassportShell><div className="pm-msg err">{err}</div></PassportShell>;
   if (!items) return <PassportShell><div className="pm-card">Loading…</div></PassportShell>;
 

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { PracticeListItem } from '../../api/passportApi';
-import PassportShell, { LockedPanel } from './PassportShell';
+import PassportShell from './PassportShell';
+import SectionLock from './SectionLock';
 
 const KINDS: { key: string; label: string; icon: string }[] = [
   { key: '', label: 'All', icon: 'bi-grid' },
@@ -27,7 +28,6 @@ const Practice: React.FC<PracticeProps> = ({ source = 'all', heading, blurb }) =
   const kind = params.get('kind') || '';
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,24 +42,19 @@ const Practice: React.FC<PracticeProps> = ({ source = 'all', heading, blurb }) =
 
   useEffect(() => { load(); }, [load]);
 
-  const unlock = async () => {
-    setPaying(true);
-    const res = await passportApi.membershipCheckout();
-    setPaying(false);
-    if (res.ok) load();
-  };
-
   if (loading && !data) return <PassportShell><div className="pm-loading">Loading the Practice Lab…</div></PassportShell>;
 
   if (data?.locked) {
     return (
       <PassportShell>
-        <LockedPanel
-          title="Practice Lab is part of your membership"
-          blurb="Real coding problems that compile and run, SQL against a live database, and timed aptitude sets — all scored instantly and all counting toward your XP."
-          priceInr={data.priceInr}
-          busy={paying}
-          onUnlock={unlock}
+        {/* The problem count comes back even while locked, so the lock can say how much is
+            actually waiting rather than describing the feature in the abstract. */}
+        <SectionLock
+          section="practice"
+          blurb="Real coding problems that compile and run, SQL against a live database, and timed aptitude sets — all scored instantly."
+          facts={(data.problems || []).length
+            ? [{ value: (data.problems || []).length, label: 'problems ready for you' }]
+            : undefined}
         />
       </PassportShell>
     );

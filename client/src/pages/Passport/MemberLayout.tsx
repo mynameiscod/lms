@@ -60,14 +60,26 @@ const MemberLayout: React.FC = () => {
     return <div style={{ padding: 60, textAlign: 'center', color: '#7b8496' }}>Loading your CareerPilot…</div>;
   }
 
-  // Membership activation owns the paid shell. Assessment/setup state controls the
-  // content shown inside it, not whether a paid member gets navigation at all.
-  const isMember = !!data?.active;
   const ctx = { data, reload: load };
 
-  // Free candidates keep each page's own chrome — the rail's destinations are all
-  // locked to them, so wrapping them in it would be a menu of dead ends.
-  if (!isMember) {
+  /**
+   * THE RAIL IS EVERYONE'S, ONCE THEY HAVE BEEN MEASURED.
+   *
+   * It used to be withheld from anyone without an active membership, and the reason given was
+   * sound at the time: "the rail's destinations are all locked to them, so wrapping them in it
+   * would be a menu of dead ends." That was true while every locked destination WAS a dead end.
+   * They are not any more — each one now names what is behind it and shows this student's own
+   * figures for it — so the rail has stopped being a menu of dead ends and become the only
+   * place a free student can see what the product actually is.
+   *
+   * The alternative was what we had: a paywall as the first screen, asking somebody to buy
+   * before they had seen anything.
+   *
+   * BEFORE THE ASSESSMENT, STILL NOT. A student who has not been measured has nothing behind
+   * any of those doors yet — not locked, empty — and the one thing worth doing is the paper.
+   * They keep the bare page, which is what puts it in front of them.
+   */
+  if (!data?.hasAssessment) {
     return (
       <Ctx.Provider value={ctx}>
         <CareerProfilePrompt />

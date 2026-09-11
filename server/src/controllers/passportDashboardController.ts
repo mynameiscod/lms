@@ -7,6 +7,7 @@ import PassportInterview from '../models/PassportInterview';
 import PassportResume from '../models/PassportResume';
 import TechBattle from '../models/TechBattle';
 import { membershipActive, entitlementMap } from '../services/passportEntitlementService';
+import { lockedSections, lockedSectionViews } from '../data/memberAccessPolicy';
 import { ensureContent, poolMapOf, dayNumber, ymd, clampSlots } from '../services/passportMissionService';
 import { awardCoins, getAccount } from '../services/coinService';
 import { getOrCreateProgress } from '../services/passportXpService';
@@ -104,14 +105,70 @@ export const getDashboard = async (req: Request, res: Response) => {
     });
     const attempt = assessedState.attempt as any;
 
-    if (!active || !assessedState.assessed) {
+    const entitled = entitlementMap(cfg?.entitlements as any, user?.passport);
+    const lockedKeys = lockedSections(entitled);
+    const locked = lockedSectionViews(entitled);
+
+    /**
+     * Not measured yet. There is nothing to show and one thing to do, so this stays the short
+     * answer it always was — a dashboard full of locks would bury the assessment under nine
+     * things they cannot use until they have taken it.
+     */
+    if (!assessedState.assessed) {
       return res.json({
         active,
-        hasAssessment: assessedState.assessed,
+        hasAssessment: false,
         careerScore: assessedState.careerScore,
         level: assessedState.level,
         priceInr: cfg?.priceInr ?? 499,
-        entitled: entitlementMap(cfg?.entitlements as any, user?.passport),
+        entitled,
+        locked,
+      });
+    }
+
+    /**
+     * MEASURED, BUT NOT A MEMBER — the real dashboard, minus what membership pays for.
+     *
+     * This used to return the same six fields as the not-measured case, which is why the
+     * client sent these students to a paywall screen instead: there was nothing to render. A
+     * paywall as the first thing they see asks them to buy before they have seen anything, and
+     * it hides the work they already did.
+     *
+     * So their own numbers come back — the score, the skills, the pathway, all of it the
+     * result of a paper THEY sat — and everything membership buys is named in `locked` for the
+     * client to draw a lock over. The zeroed structures below exist so the dashboard's panels
+     * still have a shape to lay out behind those locks; none of their values is ever displayed,
+     * because every panel they belong to is in `locked`.
+     */
+    if (!active) {
+      const scoreVisible = !lockedKeys.includes('score');
+      return res.json({
+        active: false,
+        hasAssessment: true,
+        name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+        firstName: user?.firstName || '',
+
+        careerScore: scoreVisible ? assessedState.careerScore : null,
+        careerLevel: scoreVisible ? assessedState.level : null,
+        level: assessedState.level,
+        pathwayLabel: scoreVisible ? (attempt?.pathwayLabel ?? null) : null,
+        skills: scoreVisible
+          ? (attempt?.categoryScores || []).map((c: any) => ({ key: c.key, label: c.label, score: c.score }))
+          : [],
+
+        // Shape without substance, for the panels a lock is drawn over.
+        stats: null,
+        missions: [],
+        dailyPlan: { available: false, reason: 'MEMBERSHIP_REQUIRED', message: 'A CareerPilot membership is needed for your daily plan.' },
+        journey: [],
+        badges: [],
+        leaderboard: [],
+
+        priceInr: cfg?.priceInr ?? 499,
+        shareSlug: user?.passport?.shareSlug || null,
+        passwordSet: !!user?.passport?.passwordSet,
+        entitled,
+        locked,
       });
     }
 
@@ -263,7 +320,10 @@ export const getDashboard = async (req: Request, res: Response) => {
 
       shareSlug: user?.passport?.shareSlug || null,
       passwordSet: !!user?.passport?.passwordSet,
-      entitled: entitlementMap(cfg?.entitlements as any, user?.passport),
+      entitled,
+      // Empty for a paying member at default settings, but not necessarily: a tenant may sell
+      // tiers, and the client draws its locks from this either way.
+      locked,
     });
   } catch (e: any) {
     console.error('[passport] getDashboard:', e);

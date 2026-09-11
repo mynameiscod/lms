@@ -14,14 +14,47 @@
 export const MISSION_ORCHESTRATION_VERSION = 'MISSION_ORCHESTRATION_V1';
 
 /**
- * How many CareerPilot missions a day may hold.
+ * The fewest missions a day may hold.
  *
  * Three, matching the legacy daily engine. That number is a long-standing product rhythm
  * rather than an implementation artefact — the dashboard, the roadmap preview and the
- * "all done" state are all built around a short, finishable list — and changing it here
- * would quietly redesign the daily experience for everybody.
+ * "all done" state are all built around a short, finishable list — so it stays the floor.
+ * A student who committed an hour a day sees exactly what they saw before.
  */
-export const MAX_MISSIONS_PER_DAY = 3;
+export const MISSION_COUNT_FLOOR = 3;
+
+/**
+ * The most, however much time a student has committed.
+ *
+ * Six, matching the ceiling the legacy engine already clamps its own slots to. Past that a
+ * day stops reading as a finishable list and starts reading as a backlog, which is the
+ * failure the floor exists to prevent at the other end.
+ */
+export const MISSION_COUNT_CEILING = 6;
+
+/**
+ * How many missions today may hold, given what the student committed to.
+ *
+ * A FIXED THREE WAS THE WRONG SHAPE ONCE SKILLS BECAME JOURNEYS. A skill used to be one
+ * resource, so three missions was three skills and the number was a reasonable rhythm. A
+ * skill is now an authored sequence whose steps are often short — an explanation, a worked
+ * example, some practice, fifteen minutes each — and a student who set aside two hours was
+ * being handed three of them and told that was the day. The budget had room for the rest and
+ * the cap refused to spend it.
+ *
+ * So the count follows the capacity the student themselves stated: as many minimum-length
+ * sittings as their day's budget holds, never below the established floor and never above a
+ * length that stops being finishable. An easy topic yields several short missions in one day;
+ * a heavy one yields fewer and spreads across more days, which is what `dailySliceOf` was
+ * already doing and the cap was overriding.
+ *
+ * The day's budget remains the real constraint. This only stops the count from being the
+ * binding one when it should not be.
+ */
+export function missionCapForDay(minutesPerDay: number): number {
+  const fits = Math.floor(dailyBudget(minutesPerDay) / MIN_MISSION_MINUTES);
+  return Math.max(MISSION_COUNT_FLOOR, Math.min(MISSION_COUNT_CEILING, fits));
+}
 
 /**
  * How much of the day's stated capacity to fill.
@@ -91,6 +124,71 @@ export type DailyPlanUnavailable =
   | 'ROADMAP_REQUIRED'
   | 'ROADMAP_COMPLETED'
   | 'MEMBERSHIP_REQUIRED';
+
+/**
+ * How the student is doing against the suggested pace.
+ *
+ * A SIGNAL, NEVER A GATE. The roadmap is planned over a number of days, and how long a
+ * student actually takes is their business: somebody working through Loops properly over
+ * nine days has not failed, and somebody who skimmed it in one has not won. What the
+ * membership buys is the material for a year, so the only hard boundary is entitlement.
+ *
+ * WHY REPORT IT AT ALL. A plan that never mentions pace leaves a student unable to tell
+ * whether they are on course for a placement season that does have dates. Saying "you are
+ * about a week behind the suggested pace" is information they can act on; refusing to serve
+ * them the work is not.
+ */
+export type PaceStatus = 'AHEAD' | 'ON_TRACK' | 'BEHIND';
+
+export interface PaceSignal {
+  status: PaceStatus;
+  /** Days since the roadmap started. Uncapped: day 140 of a 90-day plan is a real answer. */
+  daysElapsed: number;
+  /** What the plan was drawn up over. A suggestion, and the denominator for the signal. */
+  daysSuggested: number;
+  /** Share of planned minutes actually credited, 0-100. */
+  actualPercent: number;
+  /** Share the suggested pace would have reached by now, 0-100. */
+  expectedPercent: number;
+  /** Positive means ahead. Days of work, at the suggested rate. */
+  daysAheadOrBehind: number;
+}
+
+/**
+ * Either side of the suggested pace before the signal stops saying ON_TRACK.
+ *
+ * Ten points rather than an exact match, because a student who has done 48 per cent where
+ * the pace suggests 50 is not behind in any sense worth telling them about, and a signal
+ * that flickers between states on a single completed mission is noise.
+ */
+export const PACE_TOLERANCE_PERCENT = 10;
+
+/**
+ * Where the student sits against the suggested pace.
+ *
+ * Deterministic and derived entirely from figures the plan already holds, so it cannot
+ * disagree with the progress shown beside it.
+ */
+export function paceSignal(
+  daysElapsed: number, daysSuggested: number,
+  completedMinutes: number, plannedMinutes: number,
+): PaceSignal {
+  const days = Math.max(1, Math.round(daysSuggested || 0));
+  const elapsed = Math.max(0, Math.round(daysElapsed || 0));
+  const actualPercent = plannedMinutes > 0
+    ? Math.min(100, Math.round((completedMinutes / plannedMinutes) * 100)) : 0;
+  // Capped at 100: past the suggested end the expectation is simply "all of it".
+  const expectedPercent = Math.min(100, Math.round((elapsed / days) * 100));
+
+  const delta = actualPercent - expectedPercent;
+  const status: PaceStatus = delta > PACE_TOLERANCE_PERCENT ? 'AHEAD'
+    : delta < -PACE_TOLERANCE_PERCENT ? 'BEHIND' : 'ON_TRACK';
+
+  return {
+    status, daysElapsed: elapsed, daysSuggested: days, actualPercent, expectedPercent,
+    daysAheadOrBehind: Math.round((delta / 100) * days),
+  };
+}
 
 export const roundMission = (minutes: number): number =>
   Math.max(MIN_MISSION_MINUTES, Math.round(minutes / MISSION_GRANULARITY) * MISSION_GRANULARITY);

@@ -90,6 +90,7 @@ import PassportAdminMissions from './pages/Passport/AdminMissions';
 import PassportHome from './pages/Passport/PassportHome';
 import PassportMaterialViewer from './pages/Passport/MaterialViewer';
 import PassportTopic from './pages/Passport/Topic';
+import PassportConceptJourney from './pages/Passport/ConceptJourney';
 import PassportMemberLayout from './pages/Passport/MemberLayout';
 import PassportCareerSetup from './pages/Passport/CareerSetup';
 import PassportAdminActivity from './pages/Passport/AdminActivity';
@@ -631,6 +632,10 @@ const AppRoutes: React.FC = () => {
             Where a learning mission lands: an objective used to name a skill, and a skill is
             not a thing that renders, so the card had nowhere to send anybody. */}
         <Route path="/careerpilot/topic/:topicCode" element={<PassportTopic />} />
+        {/* The whole course for one skill: its topics, its subtopics, and where the student is
+            in it. The endpoint behind this existed with nothing calling it, so a member could
+            only ever see one step at a time and never the shape of what they were learning. */}
+        <Route path="/careerpilot/learn/:skillKey" element={<PassportConceptJourney />} />
         {/*
           Thinking Lab reuses the Practice screen against the admin-authored bank. A problem
           opened from either list lands on the same /careerpilot/practice/:id, because the id

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { ResumeSections, ResumeScore } from '../../api/passportApi';
-import PassportShell, { LockedPanel } from './PassportShell';
+import PassportShell from './PassportShell';
+import SectionLock from './SectionLock';
 import './resumeCenter.css';
 
 /** ?focus= on a mission link → the section it should land on. 'title' is the target title
@@ -80,7 +81,6 @@ const ResumeCenter: React.FC = () => {
   const [improving, setImproving] = useState(false);
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err' | 'info'; text: string } | null>(null);
   const [preview, setPreview] = useState<ResumeSections | null>(null);
-  const [paying, setPaying] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -114,12 +114,6 @@ const ResumeCenter: React.FC = () => {
     return () => clearTimeout(t);
   }, [loading, locked, focus]);
 
-  const unlock = async () => {
-    setPaying(true);
-    const res = await passportApi.membershipCheckout();
-    setPaying(false);
-    if (res.ok) { setLocked(null); setLoading(true); load(); }
-  };
 
   const patch = (fn: (s: ResumeSections) => void) => {
     setSections(prev => { const next = JSON.parse(JSON.stringify(prev)); fn(next); return next; });
@@ -201,7 +195,7 @@ const ResumeCenter: React.FC = () => {
   if (loading) return <PassportShell><div className="pm-loading">Loading your resume…</div></PassportShell>;
 
   if (locked) {
-    return <PassportShell><LockedPanel title="The Resume Center is part of your membership" blurb="Build a one-page fresher resume, get an honest ATS score with a specific fix list, and let AI sharpen your wording — facts untouched." priceInr={locked.priceInr} busy={paying} onUnlock={unlock} /></PassportShell>;
+    return <PassportShell><SectionLock section="resume" blurb="Build a one-page fresher resume, get an honest ATS score with a specific fix list, and let AI sharpen your wording — facts untouched." /></PassportShell>;
   }
 
   return (

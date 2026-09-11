@@ -85,3 +85,12 @@
   .tdp-row .ax { flex-direction: row; width: 100%; margin-top: 4px; }
   .tdp-row .ax .tdp-btn { flex: 1; }
 }
+
+/* The way from today's one step to the whole course it belongs to. Quiet, because it is a
+   second action on a row whose first action is Start. */
+.tdp-row .tdp-course{
+  border:0; background:none; padding:0; margin-top:6px; font-family:inherit;
+  font-size:12px; font-weight:700; color:#359AAD; cursor:pointer; text-align:left;
+}
+.tdp-row .tdp-course:hover{text-decoration:underline}
+.tdp-row.done .tdp-course{color:#8A97A8}

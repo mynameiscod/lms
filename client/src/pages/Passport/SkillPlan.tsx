@@ -5,6 +5,7 @@ import passportApi, {
 } from '../../api/passportApi';
 import TodayPlan from './TodayPlan';
 import SkillCheckIn from './SkillCheckIn';
+import SectionLock from './SectionLock';
 import './skillPlan.css';
 
 /**
@@ -63,9 +64,9 @@ const NEXT_ACTION: Record<string, { label: string; to: string }> = {
    */
   ROLE_NOT_SELECTED: { label: 'Choose my target role', to: '/careerpilot/setup?step=direction' },
   ROLE_BLUEPRINT_NOT_READY: { label: 'See my skills', to: '/careerpilot/skills' },
-  // A lapsed membership is the one refusal with a commercial answer. It points at the
-  // journey page's existing unlock rather than a second checkout of its own.
-  MEMBERSHIP_REQUIRED: { label: 'See membership options', to: '/careerpilot/roadmap' },
+  // MEMBERSHIP_REQUIRED is not in here on purpose: it is handled by the shared lock, which
+  // opens checkout in place. An entry here would send the student to the page they are on.
+
 };
 
 /**
@@ -160,6 +161,18 @@ const SkillPlan: React.FC<{ onState?: (s: SkillPlanState) => void }> = ({ onStat
     const canGenerate = un.reason === 'NO_READINESS_DATA';
     const action = NEXT_ACTION[un.reason];
 
+    /**
+     * A paywall is not "one more thing your plan needs".
+     *
+     * This refusal used to render like every other missing input, with a button labelled "See
+     * membership options" pointing at /careerpilot/roadmap — the page the student was already
+     * on. They could press it forever. It is the one refusal with a commercial answer, so it
+     * gets the lock that owns the checkout, with the size of their own plan on it.
+     */
+    if (un.reason === 'MEMBERSHIP_REQUIRED') {
+      return <SectionLock section="roadmap" blurb={un.message} />;
+    }
+
     return (
       <div className="skp skp-cta">
         <div className="tx">
@@ -185,10 +198,20 @@ const SkillPlan: React.FC<{ onState?: (s: SkillPlanState) => void }> = ({ onStat
   const plan = rm!;
   const thisWeek = plan.objectives.filter(o => o.week === view.currentWeek);
 
+  /**
+   * One objective of the plan.
+   *
+   * The skill name is a link now. Every row here named something the student was going to be
+   * taught and gave them no way to look at it — the plan was a list of promises with nothing
+   * behind any of them until the day it came up. The course page handles a skill with no
+   * authored journey gracefully, so linking every row is honest rather than optimistic.
+   */
   const Row: React.FC<{ o: RoadmapObjective }> = ({ o }) => (
     <div className={`skp-row r-${o.reasonCode.toLowerCase()}`}>
       <div className="hd">
-        <b>{o.skillName}</b>
+        <button className="skp-skill" onClick={() => nav(`/careerpilot/learn/${o.skillKey}`)}>
+          {o.skillName}
+        </button>
         <span className="wt">{WORK_LABEL[o.workType] || o.workType}</span>
         <span className="mn">{mins(o.plannedMinutes)}</span>
       </div>

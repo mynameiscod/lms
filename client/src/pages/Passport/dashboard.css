@@ -59,6 +59,14 @@
 .gd-nav-btn .cr svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .gd-nav-btn .cr.open { transform: rotate(180deg); }
 
+/* A locked destination is shown and marked, never hidden — a student cannot want what they
+   cannot see, and hiding it also makes the product look smaller than it is. Dimmed rather
+   than disabled, because the destination now explains itself instead of dead-ending. */
+.gd-nav-btn.locked .lbl, .gd-nav-btn.locked .ic { opacity: .62; }
+.gd-nav-btn.locked .lk { flex-shrink: 0; display: grid; place-items: center; font-size: 10px; color: #9aa2b1; }
+.gd-nav-btn.locked:hover .lbl, .gd-nav-btn.locked:hover .ic { opacity: 1; }
+.gd-nav-btn.locked.on .lk { color: rgba(255,255,255,.8); }
+
 .gd-sub { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 4px 22px; padding-left: 12px; border-left: 1.5px solid #eef0f7; }
 .gd-sub button { background: none; border: none; text-align: left; padding: 7px 11px; border-radius: 8px; font-size: 12.5px; color: #7b8496; cursor: pointer; font-weight: 600; }
 .gd-sub button:hover { background: #f5f6fb; color: #0f172a; }

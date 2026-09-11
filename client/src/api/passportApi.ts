@@ -1279,6 +1279,24 @@ export const passportApi = {
     return data;
   },
 
+  /**
+   * The whole course for one skill: its topics, its subtopics, and where the student is.
+   *
+   * Returns null on 404, which is the ordinary case rather than an error — most skills have no
+   * authored journey yet, and a screen that showed a red box for that would be shouting about
+   * content the student was never promised.
+   */
+  getMyConceptJourney: async (skillKey: string): Promise<ConceptJourney | null> => {
+    try {
+      const { data } = await axios.get(
+        `${BASE}/me/concept-journey/${encodeURIComponent(skillKey)}`, { headers: auth() });
+      return data;
+    } catch (e: any) {
+      if (e?.response?.status === 404) return null;
+      throw e;
+    }
+  },
+
   attachmentUrl: async (fileKey: string): Promise<string> => {
     const [folder, name] = fileKey.split('/');
     const { data } = await axios.post(
@@ -1375,6 +1393,7 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/interview-plans/preview`, { headers: auth(), params: { studentId } });
     return data;
   },
+
 };
 
 // ── Mock interview plans ──
@@ -1541,6 +1560,27 @@ export interface DashboardData {
   shareSlug?: string | null;
   passwordSet?: boolean;
   entitled?: Record<string, boolean>;
+  /**
+   * The parts of the product this member cannot open, and why they would want them.
+   *
+   * Computed and sent by the server rather than worked out here: whether a section is free or
+   * paid is the tenant's setting, and a client that decided it for itself would be a lock
+   * anybody could remove with dev tools. Empty for a member with everything.
+   */
+  locked?: LockedSection[];
+}
+
+/** A part of the member experience that can be locked on its own. Mirrors memberAccessPolicy. */
+export type MemberSection =
+  | 'score' | 'roadmap' | 'missions' | 'progress'
+  | 'practice' | 'interview' | 'resume' | 'companies' | 'news';
+
+export interface LockedSection {
+  section: MemberSection;
+  /** The PassportConfig entitlement that would open it. */
+  featureKey: string;
+  title: string;
+  blurb: string;
 }
 
 // ── Roadmap ──
@@ -1554,6 +1594,8 @@ export interface Roadmap {
 }
 export interface RoadmapResponse {
   needsAssessment?: boolean; roadmap?: Roadmap; entitled?: boolean;
+  /** False when even the 7-day preview is closed — the tenant set roadmap_preview to paid. */
+  canPreview?: boolean;
   /** When membership lapses. Null for a member with no expiry recorded. */
   accessExpiresAt?: string | null;
   priceInr?: number; careerScore?: number; level?: string;
@@ -1740,8 +1782,16 @@ export interface StudioConcept {
 
 export interface LearningStep {
   stepId: string; sequence: number; phase: string;
-  /** Sub-concept label — "Inheritance". Presentational grouping only. */
+  /** The part of the skill this belongs to — "Loops" divides into "For loops". Grouping only. */
   topic?: string;
+  /**
+   * The idea inside the topic — "Counting with range". Grouping only.
+   *
+   * The second level exists because "For loops" is itself three or four steps: the
+   * explanation, the worked example, the practice. With one level an author looking at
+   * fourteen steps under Loops cannot see where for loops end and while loops begin.
+   */
+  subtopic?: string;
   resourceId?: string; titleOverride?: string;
   estimatedMinutes: number; required: boolean;
   scoreWindow?: { min: number | null; max: number | null };
@@ -2724,6 +2774,46 @@ export interface SkillAssessment {
   startedAt: string;
   totalQuestions: number;
   items: SkillAssessmentItem[];
+}
+
+/**
+ * One step of a student's journey through a skill.
+ *
+ * `topic` and `subtopic` are grouping, not skills — "Loops" divides into "For loops", which
+ * divides again into "Counting with range". Order is `sequence`; the labels never reorder
+ * anything, so a journey may return to a topic later and the screen shows it where it falls.
+ */
+export interface ConceptJourneyStep {
+  stepId: string;
+  sequence: number;
+  phase: string;
+  workType: 'LEARN' | 'PRACTICE' | 'ASSESS' | 'REVIEW';
+  topic: string;
+  subtopic: string;
+  title: string;
+  resourceId: string;
+  resourceType: string;
+  /** Where it opens. Empty when nothing is attached; absolute for an external link. */
+  route: string;
+  /** False when the step points at a retired or empty material — it would open nothing. */
+  hasContent: boolean;
+  estimatedMinutes: number;
+  required: boolean;
+  done: boolean;
+}
+
+export interface ConceptJourney {
+  skillKey: string;
+  title: string;
+  description: string;
+  learningOutcomes: string[];
+  version: number;
+  status: string;
+  estimatedMinutes: number;
+  /** The first step not yet done — what "Continue" opens. Null once the journey is finished. */
+  nextStepId: string | null;
+  progress: { completed: number; totalRequired: number; percent: number };
+  steps: ConceptJourneyStep[];
 }
 
 export interface DailyMission {

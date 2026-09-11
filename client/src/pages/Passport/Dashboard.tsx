@@ -116,6 +116,18 @@ interface Props {
   reload: () => void;
 }
 
+/**
+ * A mission's link may be an ABSOLUTE URL — the server returns a material's own external link
+ * when it has one. Handing that to react-router built an in-app path out of a URL, so pressing
+ * Open on any externally hosted material landed the student on a blank screen. Somebody else's
+ * site opens in a tab; ours goes through the router.
+ */
+const openMissionLink = (link: string, nav: (to: string) => void) => {
+  if (!link) return;
+  if (/^https?:\/\//i.test(link)) window.open(link, '_blank', 'noopener');
+  else nav(link);
+};
+
 const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const nav = useNavigate();
   const [d, setD] = useState<DashboardData>(data);
@@ -286,7 +298,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
                 <div className={`gd-mission${m.done ? ' done' : ''}`} id={`mission-${m.key}`}>
                   <span className="badge"><Bi name={MISSION_ICON[m.category] || 'circle'} /></span>
                   <div className="txt"><b>{m.title}</b><span>{m.detail}</span></div>
-                  {m.link && !m.done && <button className="lnk" onClick={() => nav(m.link!)}>Open <Bi name="arrow-right" /></button>}
+                  {m.link && !m.done && <button className="lnk" onClick={() => openMissionLink(m.link!, nav)}>Open <Bi name="arrow-right" /></button>}
                   {m.needsAnswer && !m.done && <button className="lnk" onClick={() => { setAnswerFor(answerFor === m.key ? null : m.key); setAnswerText(''); setAnswerMsg(''); }}>{answerFor === m.key ? 'Close' : 'Write answer'} <Bi name="arrow-right" /></button>}
                   <span className="cnt">+{m.xp} XP</span>
                   <button className={`gd-check${m.done ? ' on' : ''}`} disabled={m.done || (m.verify === 'interview' && !m.done) || (m.needsAnswer && !m.done)} onClick={() => toggleMission(m.key)}>{m.done && <Bi name="check-lg" />}</button>

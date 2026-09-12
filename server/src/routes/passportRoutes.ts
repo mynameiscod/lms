@@ -41,6 +41,7 @@ import * as readiness from '../controllers/roleReadinessController';
 import * as careerRoadmap from '../controllers/careerRoadmapController';
 import * as spine from '../controllers/spineController';
 import * as learningUnits2 from '../controllers/curriculumLearningUnitController';
+import * as foundationJourney from '../controllers/foundationJourneyController';
 import * as dailyPlan from '../controllers/careerDailyPlanController';
 import * as skillResources from '../controllers/careerSkillResourceController';
 import * as gamification from '../controllers/gamificationController';
@@ -254,6 +255,16 @@ router.post('/skills/seed',       SUPER_ADMIN,   careerSkills.seedSkills);
 //    published blueprint — nothing is stored, so a new blueprint or new evidence changes
 //    the next answer with nothing to invalidate. The role comes from stored context. ──
 router.get('/me/readiness',                     MEMBER, readiness.getMyRoleReadiness);
+
+/**
+ * ── The student's ninety days ──
+ *
+ * MEMBER, and read-only. A student may see their own journey and nothing else: the routes take
+ * no student id, so there is no parameter to tamper with, and the composer internals that
+ * produced the plan are not on these responses at all.
+ */
+router.get('/me/foundation-journey',            MEMBER, foundationJourney.getMyJourney);
+router.get('/me/foundation-journey/day/:dayNumber', MEMBER, foundationJourney.getMyJourneyDay);
 router.get('/students/:studentId/readiness',    MANAGE, readiness.getStudentRoleReadiness);
 
 // ── 90-day roadmap (Module 9). The PLANNING layer: what to achieve over the window, in

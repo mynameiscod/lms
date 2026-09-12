@@ -211,6 +211,15 @@ export const passportApi = {
       { headers: auth() });
     return r.data;
   },
+  // ── The student's ninety days ─────────────────────────────────────
+  myFoundationJourney: async (): Promise<FoundationJourney> => {
+    const r = await axios.get(`${CP}/me/foundation-journey`, { headers: auth() });
+    return r.data;
+  },
+  myFoundationJourneyDay: async (day: number): Promise<FoundationJourneyDay> => {
+    const r = await axios.get(`${CP}/me/foundation-journey/day/${day}`, { headers: auth() });
+    return r.data;
+  },
   // ── Mega curriculum: Learning Units ───────────────────────────────
   megaCurriculum: async (stage = 'foundation'): Promise<{
     stageKey: string; curriculumTitle: string | null;
@@ -2142,6 +2151,74 @@ export interface UnitAssessments {
   candidates: UnitAssessment[];
   hasAssessment: boolean;
   hasSubmission: boolean;
+}
+
+/* ── The student's Foundation journey ──────────────────────────────────────
+   Deliberately narrow. No composer scores, no role allocations, no readiness
+   rungs, no master-curriculum inventory — those are authoring instruments and
+   tell a student nothing about what to do today. */
+
+export type JourneyDayStatus = 'COMPLETED' | 'CURRENT' | 'SKIPPED' | 'UPCOMING';
+
+export interface FoundationJourneyDaySummary {
+  day: number;
+  title: string;
+  activities: number;
+  minutes: number;
+  status: JourneyDayStatus;
+}
+
+/**
+ * One interface rather than a discriminated union on `available`.
+ *
+ * The union was the natural shape and does not survive this project's compiler settings:
+ * with `strictNullChecks: false`, narrowing a `T | null` state through a discriminant leaves
+ * the union undiscriminated in the guarded branch, so every consumer would need a cast. A
+ * single interface with the unavailable-state fields optional says the same thing and reads
+ * correctly at every call site.
+ */
+export interface FoundationJourney {
+  available: boolean;
+  /** Always 90, available or not. A student is told how long it will be before it exists. */
+  totalDays: number;
+
+  /** Present only when `available` is false. */
+  reason?: string;
+  message?: string;
+
+  /** Present only when `available` is true. */
+  title?: string;
+  currentDay?: number;
+  completedCount?: number;
+  percentComplete?: number;
+  startedAt?: string | null;
+  days?: FoundationJourneyDaySummary[];
+}
+
+export interface FoundationJourneyActivity {
+  id: string;
+  kind: 'content' | 'quiz' | 'assignment' | 'codeSnippet' | 'mockInterview';
+  title: string;
+  type: string;
+  required: boolean;
+  /** Holds the day open until it is done. */
+  gating: boolean;
+  minutes: number;
+  order: number;
+  contentId: string | null;
+  sourceId: string | null;
+}
+
+export interface FoundationJourneyDay {
+  day: number;
+  totalDays: number;
+  title: string;
+  /** The unit's own description. The one piece of planning a student is shown. */
+  objective: string | null;
+  outcomes: string[];
+  status: JourneyDayStatus;
+  minutes: number;
+  activities: FoundationJourneyActivity[];
 }
 
 export interface StudioConcept {

@@ -92,6 +92,7 @@ import PassportMaterialViewer from './pages/Passport/MaterialViewer';
 import PassportTopic from './pages/Passport/Topic';
 import { captureCareerPilotAttribution } from './utils/careerPilotAttribution';
 import PassportConceptJourney from './pages/Passport/ConceptJourney';
+import PassportFoundationJourney from './pages/Passport/FoundationJourney';
 import PassportMyPlan from './pages/Passport/MyPlan';
 import PassportMemberLayout from './pages/Passport/MemberLayout';
 import PassportCareerSetup from './pages/Passport/CareerSetup';
@@ -660,6 +661,10 @@ const AppRoutes: React.FC = () => {
         {/* The ninety days, day by day. Separate from /roadmap, which still renders the legacy
             week-grouped journey — the two will merge once the day screen lands. */}
         <Route path="/careerpilot/plan" element={<PassportMyPlan />} />
+        {/* The UNIT-engine Foundation journey: ninety days, one Learning Unit each. Served
+            only to a student who has one, and gated by the engine flag — a member on the
+            TOPIC engine sees the "not created yet" state rather than an error. */}
+        <Route path="/careerpilot/journey" element={<PassportFoundationJourney />} />
         {/*
           Thinking Lab reuses the Practice screen against the admin-authored bank. A problem
           opened from either list lands on the same /careerpilot/practice/:id, because the id

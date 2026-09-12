@@ -1,0 +1,245 @@
+/**
+ * CareerPilot Foundation Journey — 90 Days.
+ *
+ * ── WHAT THIS SCREEN IS FOR ───────────────────────────────────────────────────────────────
+ *
+ * One question: what am I doing today, and where does it sit in the ninety. Everything on the
+ * page serves that and nothing else appears.
+ *
+ * ── WHAT A STUDENT NEVER SEES HERE ────────────────────────────────────────────────────────
+ *
+ * The 337-unit master curriculum, composer scores, role allocations, readiness rungs,
+ * publication status, reallocation reports. The server does not send them, and it would be
+ * wrong to show them if it did: they are instruments for authoring the curriculum, and a
+ * student reading "ADVANCED_UNIVERSAL, rank 41" learns nothing about today and quite a lot
+ * about how little of this was written for them.
+ *
+ * The one piece of planning that IS shown is the day's objective, in the unit's own words.
+ * "Why am I doing this" deserves an answer.
+ *
+ * ── NINETY IS ALWAYS NINETY ───────────────────────────────────────────────────────────────
+ *
+ * The header says "Day 31 of 90" for every student. A strong learner must not be able to
+ * infer they were given harder material by noticing a shorter course, and somebody struggling
+ * must never see a longer one. What differs is the content of the days, which is the thing
+ * the screen actually shows.
+ */
+import React, { useCallback, useEffect, useState } from 'react';
+import passportApi, {
+  FoundationJourney as Journey, FoundationJourneyDay, FoundationJourneyActivity,
+} from '../../api/passportApi';
+import './foundationJourney.css';
+
+/** Content types, in words a first-year recognises. */
+const TYPE_LABEL: Record<string, string> = {
+  video: 'Watch',
+  notes: 'Read',
+  worked_example: 'Worked example',
+  interactive_lesson: 'Interactive',
+  interactive_activity: 'Activity',
+  tech_qa: 'Q&A',
+  behavioral_qa: 'Q&A',
+  practice_theory: 'Practice',
+  practice_coding: 'Code practice',
+  aptitude: 'Aptitude',
+  quiz: 'Checkpoint',
+  assignment: 'Project',
+};
+
+const ICON: Record<string, string> = {
+  video: 'bi-play-circle',
+  notes: 'bi-file-text',
+  worked_example: 'bi-lightbulb',
+  practice_theory: 'bi-pencil-square',
+  practice_coding: 'bi-code-slash',
+  quiz: 'bi-patch-question',
+  assignment: 'bi-upload',
+};
+
+const mins = (n: number) =>
+  (n >= 60 ? `${Math.floor(n / 60)}h${n % 60 ? ` ${n % 60}m` : ''}` : `${n} min`);
+
+/** Shown before a journey exists. Still states the length, because ninety is the promise. */
+const NotReady: React.FC<{ totalDays: number; message?: string }> = ({ totalDays, message }) => (
+  <div className="fj-page">
+    <header className="fj-head">
+      <span className="fj-kicker">CAREERPILOT</span>
+      <h1>Foundation Journey</h1>
+    </header>
+    <div className="fj-msg info">
+      <b>{message || 'Your journey has not been created yet.'}</b>
+      <p>
+        Your Foundation programme is {totalDays} learning days, personalised to what you
+        already know. It appears here once your assessment is complete.
+      </p>
+    </div>
+  </div>
+);
+
+const FoundationJourneyPage: React.FC = () => {
+  const [journey, setJourney] = useState<Journey | null>(null);
+  const [day, setDay] = useState<FoundationJourneyDay | null>(null);
+  const [openDay, setOpenDay] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [dayLoading, setDayLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true); setErr('');
+    try {
+      const j = await passportApi.myFoundationJourney();
+      setJourney(j);
+      if (j.available) setOpenDay(j.currentDay);
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || 'Could not load your journey.');
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  /**
+   * The open day is fetched on its own.
+   *
+   * Ninety full bundles is a large response for a screen that renders a strip of numbers, so
+   * the overview carries a summary per day and only the day being read is fetched in full.
+   */
+  useEffect(() => {
+    if (openDay === null) return;
+    let cancelled = false;
+    setDayLoading(true);
+    passportApi.myFoundationJourneyDay(openDay)
+      .then(d => { if (!cancelled) setDay(d); })
+      .catch(() => { if (!cancelled) setDay(null); })
+      .finally(() => { if (!cancelled) setDayLoading(false); });
+    return () => { cancelled = true; };
+  }, [openDay]);
+
+  if (loading) {
+    return <div className="fj-page"><div className="fj-skeleton">Loading your journey…</div></div>;
+  }
+
+  if (err) {
+    return <div className="fj-page"><div className="fj-msg err">{err}</div></div>;
+  }
+
+  /**
+   * No journey yet is an ordinary state, not an error.
+   *
+   * A member reaches it before their assessment, or while the tenant is still on the TOPIC
+   * engine. The two guards are SEPARATE on purpose: this project compiles with
+   * `strictNullChecks: false`, so a `journey === null` disjunct narrows nothing and, combined
+   * with the availability check by `||`, leaves the union undiscriminated in the body. Split
+   * apart, the second guard discriminates cleanly.
+   */
+  if (!journey) return <NotReady totalDays={90} />;
+  if (!journey.available) {
+    return <NotReady totalDays={journey.totalDays} message={journey.message} />;
+  }
+
+  /**
+   * Defaulted at the point of use, because the interface marks the available-state fields
+   * optional. `totalDays` is the one that must never be guessed low — it is the promise.
+   */
+  const totalDays = journey.totalDays ?? 90;
+  const currentDay = journey.currentDay ?? 1;
+  const completedCount = journey.completedCount ?? 0;
+  const percentComplete = journey.percentComplete ?? 0;
+  const days = journey.days ?? [];
+
+  return (
+    <div className="fj-page">
+      <header className="fj-head">
+        <div>
+          <span className="fj-kicker">CAREERPILOT</span>
+          <h1>Foundation Journey</h1>
+          {/* Identical for every student. The count is the promise, not a score. */}
+          <p className="fj-sub">Day {currentDay} of {totalDays}</p>
+        </div>
+        <div className="fj-progress-card">
+          <b>{percentComplete}%</b>
+          <span>{completedCount} of {totalDays} days done</span>
+        </div>
+      </header>
+
+      <div className="fj-bar" role="progressbar" aria-valuenow={percentComplete}
+           aria-valuemin={0} aria-valuemax={100} aria-label="Journey progress">
+        <span style={{ width: `${percentComplete}%` }} />
+      </div>
+
+      {/* The ninety, as a strip. Scrolls horizontally on a phone rather than reflowing into
+          a grid nobody can read. */}
+      <section className="fj-strip-wrap" aria-label="All ninety days">
+        <ol className="fj-strip">
+          {days.map(d => (
+            <li key={d.day}>
+              <button
+                type="button"
+                className={`fj-chip s-${d.status.toLowerCase()}${openDay === d.day ? ' open' : ''}`}
+                onClick={() => setOpenDay(d.day)}
+                aria-current={d.day === currentDay ? 'step' : undefined}
+                title={`Day ${d.day} — ${d.title}`}
+              >
+                <span className="fj-chip-n">{d.day}</span>
+                {d.status === 'COMPLETED' && <i className="bi bi-check-lg" aria-hidden />}
+              </button>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="fj-day" aria-live="polite">
+        {dayLoading && <div className="fj-skeleton">Loading day…</div>}
+
+        {!dayLoading && day && (
+          <>
+            <div className="fj-day-head">
+              <div>
+                <span className={`fj-status s-${day.status.toLowerCase()}`}>
+                  {day.status === 'COMPLETED' ? 'Completed'
+                    : day.status === 'CURRENT' ? 'Today' : 'Upcoming'}
+                </span>
+                <h2>Day {day.day} · {day.title}</h2>
+                {/* The one piece of planning a student sees, in the unit's own words. */}
+                {day.objective && <p className="fj-objective">{day.objective}</p>}
+              </div>
+              {day.minutes > 0 && <span className="fj-mins">{mins(day.minutes)}</span>}
+            </div>
+
+            {day.outcomes.length > 0 && (
+              <div className="fj-outcomes">
+                <span>By the end of today you can</span>
+                <ul>{day.outcomes.map((o, i) => <li key={i}>{o}</li>)}</ul>
+              </div>
+            )}
+
+            {day.activities.length === 0 ? (
+              <p className="fj-empty">
+                This day is still being prepared. It will appear here before you reach it.
+              </p>
+            ) : (
+              <ol className="fj-acts">
+                {day.activities.map((a: FoundationJourneyActivity) => (
+                  <li key={a.id || `${a.order}`} className={a.gating ? 'gating' : ''}>
+                    <span className="fj-act-icon">
+                      <i className={`bi ${ICON[a.type] || 'bi-journal-text'}`} aria-hidden />
+                    </span>
+                    <span className="fj-act-body">
+                      <b>{a.title}</b>
+                      <small>
+                        {TYPE_LABEL[a.type] || a.type}
+                        {a.minutes > 0 && <> · {mins(a.minutes)}</>}
+                        {a.gating && <> · must be completed</>}
+                      </small>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </>
+        )}
+      </section>
+    </div>
+  );
+};
+
+export default FoundationJourneyPage;

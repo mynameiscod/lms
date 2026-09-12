@@ -346,6 +346,43 @@ const roleOfUnit = (u: ComposableUnit): Role => {
       }
     }
 
+    /**
+     * WHERE THE PRACTICAL WORK LANDS.
+     *
+     * A plan can have a perfect role mix and still be a bad journey: sixty days of reading
+     * followed by thirty of doing satisfies every count in this report and is exactly the thing
+     * the composition-shape layer was built to prevent, one level subtler. So the plan is cut in
+     * thirds and each third reported on its own.
+     *
+     * Interleaving is not enforced by quota — prerequisite structure already produces most of it,
+     * because practice becomes schedulable as soon as its topic has been taught rather than at
+     * some arbitrary later point. This measures whether that is actually true.
+     */
+    if (r.units.length >= 30) {
+      const third = Math.ceil(r.units.length / 3);
+      const segs: [string, typeof r.units][] = [
+        ['days 1-30', r.units.slice(0, third)],
+        ['days 31-60', r.units.slice(third, third * 2)],
+        ['days 61-90', r.units.slice(third * 2)],
+      ];
+      console.log('');
+      console.log(`      ${pad('segment', 12)}${pad('concept', 9)}${pad('practice', 10)}`
+        + `${pad('apply', 7)}${pad('build', 7)}verify`);
+      for (const [label, units] of segs) {
+        const n = (...types: string[]) => units.filter(u => types.includes(u.unitType)).length;
+        console.log(`      ${pad(label, 12)}${num(n('CONCEPT', 'WORKED_EXAMPLE'), 6)}   `
+          + `${num(n('PRACTICE'), 7)}   ${num(n('DEBUG'), 4)}   ${num(n('PROJECT'), 4)}   `
+          + `${num(n('CHECKPOINT', 'REVIEW'), 5)}`);
+      }
+      const doingIn = (units: typeof r.units) =>
+        units.filter(u => u.unitType !== 'CONCEPT' && u.unitType !== 'WORKED_EXAMPLE').length;
+      const total = doingIn(r.units);
+      const last = doingIn(segs[2][1]);
+      if (total > 0 && last / total > 0.6) {
+        console.log(`      BACK-LOADED: ${last} of ${total} practical units fall in the last third`);
+      }
+    }
+
     if (verbose && r.units.length) {
       console.log('');
       for (const u of r.units.slice(0, 20)) {

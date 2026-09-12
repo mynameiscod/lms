@@ -189,6 +189,26 @@
   "estimatedMinutes": 50
  },
  {
+  "unitCode": "T_AI_CODING_MINI_PROJECT",
+  "title": "Mini Project — built with AI, explained without it",
+  "moduleCode": "M11_AI_LITERACY",
+  "topicCode": "T_AI_CODING",
+  "displayOrder": 900,
+  "skillKeys": [
+   "AI_ASSISTED_CODING"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_AI_CODING_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 120
+ },
+ {
   "unitCode": "T_AI_CODING_OWNERSHIP",
   "title": "You Are Responsible For It",
   "moduleCode": "M11_AI_LITERACY",
@@ -660,6 +680,25 @@
   "estimatedMinutes": 45
  },
  {
+  "unitCode": "T_APTITUDE_REASONING_DEBUGGING",
+  "title": "Why the Obvious Answer Is Wrong",
+  "moduleCode": "M15_APTITUDE",
+  "topicCode": "T_APTITUDE_REASONING",
+  "displayOrder": 800,
+  "skillKeys": [
+   "APTITUDE_REASONING_LOGIC",
+   "APTITUDE_REASONING_SERIES"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [],
+  "category": "ACADEMIC",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 45
+ },
+ {
   "unitCode": "T_APTITUDE_REASONING_DIRECTIONS",
   "title": "Direction Sense",
   "moduleCode": "M15_APTITUDE",
@@ -885,6 +924,27 @@
   "estimatedMinutes": 45
  },
  {
+  "unitCode": "T_ARRAYS_MINI_PROJECT",
+  "title": "Mini Project — solve it, then justify the cost",
+  "moduleCode": "M07_DSA",
+  "topicCode": "T_ARRAYS",
+  "displayOrder": 900,
+  "skillKeys": [
+   "DSA_ARRAYS",
+   "DSA_STRINGS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_ARRAYS_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 120
+ },
+ {
   "unitCode": "T_ARRAYS_PRACTICE",
   "title": "Array and String Practice",
   "moduleCode": "M07_DSA",
@@ -1087,6 +1147,25 @@
   "defaultDepth": "STANDARD",
   "mandatory": true,
   "estimatedMinutes": 40
+ },
+ {
+  "unitCode": "T_BOOLEAN_DEBUGGING",
+  "title": "Finding the Flaw in an Argument",
+  "moduleCode": "M10_MATHS",
+  "topicCode": "T_BOOLEAN",
+  "displayOrder": 800,
+  "skillKeys": [
+   "BOOLEAN_ALGEBRA",
+   "PROPOSITIONAL_LOGIC"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [],
+  "category": "ACADEMIC",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 45
  },
  {
   "unitCode": "T_BOOLEAN_GATES",
@@ -1328,6 +1407,26 @@
   "estimatedMinutes": 60
  },
  {
+  "unitCode": "T_CAPSTONE_READING_SOMEBODY_ELSES",
+  "title": "A Stranger Bug, and Nobody to Ask",
+  "moduleCode": "M14_CAPSTONE",
+  "topicCode": "T_CAPSTONE",
+  "displayOrder": 800,
+  "skillKeys": [
+   "PROBLEM_SOLVING",
+   "DEBUGGING",
+   "SELF_LEARNING"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 60
+ },
+ {
   "unitCode": "T_CAREER_MAP_CHOOSING",
   "title": "Choosing a Direction Without Closing Doors",
   "moduleCode": "M13_CAREER",
@@ -1355,6 +1454,26 @@
    "REVISION",
    "VERIFIED"
   ]
+ },
+ {
+  "unitCode": "T_CAREER_MAP_DIRECTION_PROJECT",
+  "title": "Direction Project — Spend a Day Inside One",
+  "moduleCode": "M13_CAREER",
+  "topicCode": "T_CAREER_MAP",
+  "displayOrder": 900,
+  "skillKeys": [
+   "TECH_CAREER_AWARENESS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_CAREER_MAP_PRACTICE"
+  ],
+  "category": "EXPLORATION",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": false,
+  "estimatedMinutes": 120
  },
  {
   "unitCode": "T_CAREER_MAP_EARLY_CAREER",
@@ -2016,6 +2135,27 @@
   "estimatedMinutes": 45
  },
  {
+  "unitCode": "T_C_BASICS_MINI_PROJECT",
+  "title": "Mini Project — a C program end to end",
+  "moduleCode": "M06_C_PROGRAMMING",
+  "topicCode": "T_C_BASICS",
+  "displayOrder": 900,
+  "skillKeys": [
+   "C_BASICS",
+   "C_CONTROL_FLOW"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_C_BASICS_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": false,
+  "estimatedMinutes": 120
+ },
+ {
   "unitCode": "T_C_BASICS_POINTERS",
   "title": "Pointers",
   "moduleCode": "M06_C_PROGRAMMING",
@@ -2360,6 +2500,25 @@
   "defaultDepth": "FOUNDATION",
   "mandatory": true,
   "estimatedMinutes": 30
+ },
+ {
+  "unitCode": "T_FILES_DEBUGGING",
+  "title": "When the Path Is Wrong",
+  "moduleCode": "M01_CS_FUNDAMENTALS",
+  "topicCode": "T_FILES",
+  "displayOrder": 800,
+  "skillKeys": [
+   "FILE_SYSTEMS_PERMISSIONS",
+   "SHELL_COMMANDS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "FOUNDATION",
+  "mandatory": true,
+  "estimatedMinutes": 45
  },
  {
   "unitCode": "T_FILES_FILESYSTEM_SHAPE",
@@ -3121,6 +3280,27 @@
   "estimatedMinutes": 50
  },
  {
+  "unitCode": "T_GIT_MINI_PROJECT",
+  "title": "Mini Project — a repository somebody else can follow",
+  "moduleCode": "M04_DEVELOPER_TOOLS",
+  "topicCode": "T_GIT",
+  "displayOrder": 900,
+  "skillKeys": [
+   "GIT_FUNDAMENTALS",
+   "GIT_BRANCHING"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_GIT_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 120
+ },
+ {
   "unitCode": "T_GIT_PRACTICE",
   "title": "Git Practice",
   "moduleCode": "M04_DEVELOPER_TOOLS",
@@ -3307,6 +3487,25 @@
   "defaultDepth": "FOUNDATION",
   "mandatory": true,
   "estimatedMinutes": 40
+ },
+ {
+  "unitCode": "T_HARDWARE_DEBUGGING",
+  "title": "Why Is It Slow?",
+  "moduleCode": "M01_CS_FUNDAMENTALS",
+  "topicCode": "T_HARDWARE",
+  "displayOrder": 800,
+  "skillKeys": [
+   "HOW_COMPUTERS_WORK",
+   "COMPUTER_ARCHITECTURE"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "FOUNDATION",
+  "mandatory": true,
+  "estimatedMinutes": 45
  },
  {
   "unitCode": "T_HARDWARE_MEMORY_HIERARCHY",
@@ -4298,6 +4497,27 @@
   "estimatedMinutes": 50
  },
  {
+  "unitCode": "T_LOGIC_MATH_MINI_PROJECT",
+  "title": "Mini Project — model a real problem in logic and sets",
+  "moduleCode": "M10_MATHS",
+  "topicCode": "T_LOGIC_MATH",
+  "displayOrder": 900,
+  "skillKeys": [
+   "PROPOSITIONAL_LOGIC",
+   "SET_THEORY"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_LOGIC_MATH_PRACTICE"
+  ],
+  "category": "ACADEMIC",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 120
+ },
+ {
   "unitCode": "T_LOGIC_MATH_PRACTICE",
   "title": "Logic and Sets Practice",
   "moduleCode": "M10_MATHS",
@@ -4717,6 +4937,209 @@
   "estimatedMinutes": 40
  },
  {
+  "unitCode": "T_MILESTONE_EARLY_CHECKPOINT",
+  "title": "Checkpoint: From Problem to Plan",
+  "moduleCode": "M02_COMPUTATIONAL_THINKING",
+  "topicCode": "T_MILESTONE_EARLY",
+  "displayOrder": 10,
+  "skillKeys": [
+   "HOW_COMPUTERS_WORK",
+   "COMPUTER_ARCHITECTURE",
+   "FILE_SYSTEMS_PERMISSIONS",
+   "PROBLEM_SOLVING",
+   "PSEUDOCODE_FLOWCHARTS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_PSEUDOCODE_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "CHECKPOINT",
+  "defaultDepth": "FOUNDATION",
+  "mandatory": true,
+  "estimatedMinutes": 90
+ },
+ {
+  "unitCode": "T_MILESTONE_FOUNDATION_MIDPOINT",
+  "title": "Midpoint Reassessment",
+  "moduleCode": "M14_CAPSTONE",
+  "topicCode": "T_MILESTONE_FOUNDATION",
+  "displayOrder": 10,
+  "skillKeys": [
+   "PROBLEM_SOLVING",
+   "DEBUGGING",
+   "SELF_LEARNING",
+   "PROGRAMMING_FUNDAMENTALS"
+  ],
+  "prerequisiteSkillKeys": [
+   "PROGRAMMING_FUNDAMENTALS"
+  ],
+  "prerequisiteUnitCodes": [],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "CHECKPOINT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 90
+ },
+ {
+  "unitCode": "T_MILESTONE_FOUNDATION_READINESS",
+  "title": "Foundation Readiness Review",
+  "moduleCode": "M14_CAPSTONE",
+  "topicCode": "T_MILESTONE_FOUNDATION",
+  "displayOrder": 20,
+  "skillKeys": [
+   "PROBLEM_SOLVING",
+   "DEBUGGING",
+   "SELF_LEARNING",
+   "TECHNICAL_COMMUNICATION"
+  ],
+  "prerequisiteSkillKeys": [
+   "PROGRAMMING_FUNDAMENTALS"
+  ],
+  "prerequisiteUnitCodes": [
+   "T_MILESTONE_FOUNDATION_MIDPOINT"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "CHECKPOINT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 90
+ },
+ {
+  "unitCode": "T_MILESTONE_PROGRAMMING_CHECKPOINT",
+  "title": "Checkpoint: Write a Program Unaided",
+  "moduleCode": "M03_PROGRAMMING",
+  "topicCode": "T_MILESTONE_PROGRAMMING",
+  "displayOrder": 10,
+  "skillKeys": [
+   "PROGRAMMING_FUNDAMENTALS",
+   "PYTHON_BASICS",
+   "CONDITIONALS_BASICS",
+   "LOOPS_BASICS",
+   "FUNCTIONS_BASICS"
+  ],
+  "prerequisiteSkillKeys": [
+   "PROGRAMMING_FUNDAMENTALS"
+  ],
+  "prerequisiteUnitCodes": [
+   "T_FUNCTIONS_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "CHECKPOINT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 90
+ },
+ {
+  "unitCode": "T_MILESTONE_PROGRAMMING_REVISION",
+  "title": "Revisiting What the Checkpoint Found",
+  "moduleCode": "M03_PROGRAMMING",
+  "topicCode": "T_MILESTONE_PROGRAMMING",
+  "displayOrder": 20,
+  "skillKeys": [
+   "PROGRAMMING_FUNDAMENTALS",
+   "CONDITIONALS_BASICS",
+   "LOOPS_BASICS",
+   "FUNCTIONS_BASICS"
+  ],
+  "prerequisiteSkillKeys": [
+   "PROGRAMMING_FUNDAMENTALS"
+  ],
+  "prerequisiteUnitCodes": [
+   "T_MILESTONE_PROGRAMMING_CHECKPOINT"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "REVIEW",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 60
+ },
+ {
+  "unitCode": "T_MILESTONE_QUANT_CHECKPOINT",
+  "title": "Checkpoint: Reasoning You Can Show",
+  "moduleCode": "M10_MATHS",
+  "topicCode": "T_MILESTONE_QUANT",
+  "displayOrder": 10,
+  "skillKeys": [
+   "NUMBER_SYSTEMS_BINARY",
+   "PROPOSITIONAL_LOGIC",
+   "SET_THEORY",
+   "BOOLEAN_ALGEBRA",
+   "RELATIONS_FUNCTIONS",
+   "APTITUDE_REASONING_LOGIC"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_BOOLEAN_PRACTICE"
+  ],
+  "category": "ACADEMIC",
+  "applicableDirections": [],
+  "unitType": "CHECKPOINT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 75
+ },
+ {
+  "unitCode": "T_MILESTONE_SYSTEMS_CHECKPOINT",
+  "title": "Checkpoint: Working on a Real Machine",
+  "moduleCode": "M09_LINUX",
+  "topicCode": "T_MILESTONE_SYSTEMS",
+  "displayOrder": 10,
+  "skillKeys": [
+   "OPERATING_SYSTEMS",
+   "OS_PROCESSES",
+   "OS_MEMORY",
+   "SHELL_PIPELINES",
+   "SHELL_COMMANDS"
+  ],
+  "prerequisiteSkillKeys": [
+   "SHELL_COMMANDS"
+  ],
+  "prerequisiteUnitCodes": [
+   "T_SHELL_PIPELINES_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "CHECKPOINT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 75
+ },
+ {
+  "unitCode": "T_MILESTONE_WEB_CHECKPOINT",
+  "title": "Checkpoint: Build and Explain a Page",
+  "moduleCode": "M05_WEB_FUNDAMENTALS",
+  "topicCode": "T_MILESTONE_WEB",
+  "displayOrder": 10,
+  "skillKeys": [
+   "HTML",
+   "CSS",
+   "JS_BASICS",
+   "JS_DOM",
+   "HTML_FORMS",
+   "WEB_ACCESSIBILITY"
+  ],
+  "prerequisiteSkillKeys": [
+   "HTML"
+  ],
+  "prerequisiteUnitCodes": [
+   "T_CSS_PRACTICE"
+  ],
+  "category": "DIRECTION",
+  "applicableDirections": [
+   "WEB_DEVELOPMENT"
+  ],
+  "unitType": "CHECKPOINT",
+  "defaultDepth": "STANDARD",
+  "mandatory": false,
+  "estimatedMinutes": 90
+ },
+ {
   "unitCode": "T_ML_INTRO_AI_ML_DL",
   "title": "AI, Machine Learning, Deep Learning",
   "moduleCode": "M11_AI_LITERACY",
@@ -4763,6 +5186,29 @@
   "defaultDepth": "GUIDED",
   "mandatory": false,
   "estimatedMinutes": 45
+ },
+ {
+  "unitCode": "T_ML_INTRO_MINI_PROJECT",
+  "title": "Mini Project — a model, its errors, and what you would tell somebody",
+  "moduleCode": "M11_AI_LITERACY",
+  "topicCode": "T_ML_INTRO",
+  "displayOrder": 900,
+  "skillKeys": [
+   "AI_ML_CONCEPTS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_ML_INTRO_PRACTICE"
+  ],
+  "category": "DIRECTION",
+  "applicableDirections": [
+   "AI_ML",
+   "DATA"
+  ],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": false,
+  "estimatedMinutes": 120
  },
  {
   "unitCode": "T_ML_INTRO_PRACTICE",
@@ -4943,6 +5389,29 @@
   "defaultDepth": "GUIDED",
   "mandatory": false,
   "estimatedMinutes": 45
+ },
+ {
+  "unitCode": "T_NETWORKING_MINI_PROJECT",
+  "title": "Mini Project — map and diagnose a network",
+  "moduleCode": "M09_LINUX",
+  "topicCode": "T_NETWORKING",
+  "displayOrder": 900,
+  "skillKeys": [
+   "COMPUTER_NETWORKS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_NETWORKING_PRACTICE"
+  ],
+  "category": "DIRECTION",
+  "applicableDirections": [
+   "CLOUD_DEVOPS",
+   "CYBERSECURITY"
+  ],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": false,
+  "estimatedMinutes": 120
  },
  {
   "unitCode": "T_NETWORKING_PORTS",
@@ -5708,6 +6177,27 @@
   "estimatedMinutes": 50
  },
  {
+  "unitCode": "T_SHELL_PIPELINES_MINI_PROJECT",
+  "title": "Mini Project — automate something you do by hand",
+  "moduleCode": "M09_LINUX",
+  "topicCode": "T_SHELL_PIPELINES",
+  "displayOrder": 900,
+  "skillKeys": [
+   "SHELL_PIPELINES",
+   "SHELL_COMMANDS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_SHELL_PIPELINES_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 120
+ },
+ {
   "unitCode": "T_SHELL_PIPELINES_PIPES",
   "title": "Pipes",
   "moduleCode": "M09_LINUX",
@@ -5965,6 +6455,27 @@
   "estimatedMinutes": 50
  },
  {
+  "unitCode": "T_SQL_MINI_PROJECT",
+  "title": "Mini Project — design a schema and answer real questions",
+  "moduleCode": "M08_DATABASES",
+  "topicCode": "T_SQL",
+  "displayOrder": 900,
+  "skillKeys": [
+   "DB_FUNDAMENTALS",
+   "SQL_BASICS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_SQL_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 120
+ },
+ {
   "unitCode": "T_SQL_ORDER_AND_LIMIT",
   "title": "Sorting and Limiting",
   "moduleCode": "M08_DATABASES",
@@ -6136,6 +6647,27 @@
   "estimatedMinutes": 55
  },
  {
+  "unitCode": "T_STATS_DEBUGGING",
+  "title": "Finding the Error in an Analysis",
+  "moduleCode": "M10_MATHS",
+  "topicCode": "T_STATS",
+  "displayOrder": 800,
+  "skillKeys": [
+   "PROBABILITY_STATISTICS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [],
+  "category": "DIRECTION",
+  "applicableDirections": [
+   "AI_ML",
+   "DATA"
+  ],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": false,
+  "estimatedMinutes": 50
+ },
+ {
   "unitCode": "T_STATS_DISTRIBUTIONS",
   "title": "Distributions",
   "moduleCode": "M10_MATHS",
@@ -6157,6 +6689,29 @@
   "defaultDepth": "STANDARD",
   "mandatory": false,
   "estimatedMinutes": 50
+ },
+ {
+  "unitCode": "T_STATS_MINI_PROJECT",
+  "title": "Mini Project — a claim, a dataset, and an honest conclusion",
+  "moduleCode": "M10_MATHS",
+  "topicCode": "T_STATS",
+  "displayOrder": 900,
+  "skillKeys": [
+   "PROBABILITY_STATISTICS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_STATS_PRACTICE"
+  ],
+  "category": "DIRECTION",
+  "applicableDirections": [
+   "AI_ML",
+   "DATA"
+  ],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": false,
+  "estimatedMinutes": 120
  },
  {
   "unitCode": "T_STATS_MISLEADING",
@@ -6302,6 +6857,25 @@
   "estimatedMinutes": 45
  },
  {
+  "unitCode": "T_TECH_COMM_DEBUGGING",
+  "title": "Fixing an Explanation That Failed",
+  "moduleCode": "M12_COMMUNICATION",
+  "topicCode": "T_TECH_COMM",
+  "displayOrder": 800,
+  "skillKeys": [
+   "TECHNICAL_COMMUNICATION",
+   "TECHNICAL_EXPLANATION"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 45
+ },
+ {
   "unitCode": "T_TECH_COMM_FEEDBACK",
   "title": "Giving and Taking Feedback",
   "moduleCode": "M12_COMMUNICATION",
@@ -6340,6 +6914,27 @@
   "defaultDepth": "STANDARD",
   "mandatory": true,
   "estimatedMinutes": 45
+ },
+ {
+  "unitCode": "T_TECH_COMM_MINI_PROJECT",
+  "title": "Mini Project — documentation somebody else can act on",
+  "moduleCode": "M12_COMMUNICATION",
+  "topicCode": "T_TECH_COMM",
+  "displayOrder": 900,
+  "skillKeys": [
+   "TECHNICAL_COMMUNICATION",
+   "TECHNICAL_EXPLANATION"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_TECH_COMM_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 90
  },
  {
   "unitCode": "T_TECH_COMM_PRACTICE",

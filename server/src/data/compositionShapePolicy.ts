@@ -191,51 +191,86 @@ export interface RoleAllocation {
 const PROGRAM_DAYS_BASELINE = 90;
 
 const BASE: Record<LearnerShape, RoleAllocation[]> = {
-  /** Nothing proven. Teach, then practise what was taught. */
+  /**
+   * Nothing proven. Teach, then practise what was taught, then apply it.
+   *
+   * CALIBRATED AGAINST THE 337-UNIT CURRICULUM (P8B2). The earlier numbers were written for a
+   * design with nine projects, eighteen debugging units and no verification at all, and they
+   * described that shortage rather than a decision: a beginner received 74 instruction units
+   * because application inventory ran out, not because anybody wanted 74.
+   *
+   * Raising the doing roles further was swept and REJECTED. Allocations at 30 and 32 doing-units
+   * came back worse, starving direction and exploration to nothing. The ceiling is prerequisite
+   * depth, not preference: reaching one practice unit means teaching its topic first, and topics
+   * are five to eight concept units deep, so instruction arrives whether or not it is asked for.
+   */
   EMERGING: [
-    { role: 'FOUNDATION_INSTRUCTION', min: 20, target: 30 },
-    { role: 'GUIDED_INSTRUCTION', min: 10, target: 18 },
-    { role: 'ADVANCED_UNIVERSAL', min: 2, target: 10 },
-    { role: 'DIRECTION_LEARNING', min: 0, target: 11 },
-    { role: 'EXPLORATION', min: 0, target: 2 },
-    { role: 'PRACTICE', min: 6, target: 12 },
-    { role: 'APPLICATION', min: 2, target: 4 },
-    { role: 'INTEGRATION', min: 1, target: 3 },
-    { role: 'VERIFICATION', min: 0, target: 0 },
+    { role: 'FOUNDATION_INSTRUCTION', min: 16, target: 24 },
+    { role: 'GUIDED_INSTRUCTION', min: 9, target: 17 },
+    { role: 'ADVANCED_UNIVERSAL', min: 2, target: 11 },
+    { role: 'DIRECTION_LEARNING', min: 0, target: 9 },
+    // A floor of one: exploration units rank last and were starved to zero without it.
+    { role: 'EXPLORATION', min: 1, target: 2 },
+    /**
+     * PRACTICE LANDS AT EIGHT OR NINE, NOT FOURTEEN, AND THE FLOOR STAYS AT EIGHT.
+     *
+     * The target is intent; the outcome is bounded by what prerequisites cost. Raising the floor
+     * to force it was measured and made the plan WORSE: at ten, practice rose to ten and
+     * integration fell from four to two and verification from two to one, with total practical
+     * work dropping from twenty-one units to twenty; at eleven it breached a floor outright.
+     *
+     * So the shortfall is left visible rather than tuned away — the capacity audit prints "asked
+     * 14 got 8" — because the honest reading is that a ninety-day plan carrying this much
+     * instruction cannot also carry fourteen practice units, and hiding that by lowering the
+     * number would only move the capacity back into instruction.
+     */
+    { role: 'PRACTICE', min: 8, target: 14 },
+    { role: 'APPLICATION', min: 4, target: 7 },
+    { role: 'INTEGRATION', min: 2, target: 4 },
+    // Two milestones in ninety days: the early checkpoint and the midpoint reassessment.
+    { role: 'VERIFICATION', min: 1, target: 2 },
   ],
 
   /** Some ground held. The most common real student, and the least forgiving to shape. */
   DEVELOPING: [
-    { role: 'FOUNDATION_INSTRUCTION', min: 8, target: 18 },
-    { role: 'GUIDED_INSTRUCTION', min: 8, target: 15 },
-    { role: 'ADVANCED_UNIVERSAL', min: 6, target: 15 },
-    { role: 'DIRECTION_LEARNING', min: 4, target: 18 },
-    { role: 'EXPLORATION', min: 0, target: 2 },
-    { role: 'PRACTICE', min: 6, target: 12 },
-    { role: 'APPLICATION', min: 3, target: 6 },
-    { role: 'INTEGRATION', min: 2, target: 4 },
-    { role: 'VERIFICATION', min: 0, target: 0 },
+    { role: 'FOUNDATION_INSTRUCTION', min: 6, target: 15 },
+    { role: 'GUIDED_INSTRUCTION', min: 5, target: 12 },
+    { role: 'ADVANCED_UNIVERSAL', min: 4, target: 12 },
+    { role: 'DIRECTION_LEARNING', min: 4, target: 15 },
+    { role: 'EXPLORATION', min: 1, target: 2 },
+    { role: 'PRACTICE', min: 8, target: 14 },
+    { role: 'APPLICATION', min: 5, target: 9 },
+    { role: 'INTEGRATION', min: 3, target: 6 },
+    /**
+     * The most verification of the three shapes, on purpose.
+     *
+     * A learner with a mixed diagnostic is the one whose state estimate is least certain and most
+     * worth re-measuring — a beginner has little to re-measure yet, and an established learner
+     * has already proven most of it.
+     */
+    { role: 'VERIFICATION', min: 2, target: 5 },
   ],
 
   /**
    * Most of the design proven. Fewer elementary units, not fewer days.
    *
-   * FOUNDATION_INSTRUCTION keeps a min of 0 and a target of 5 rather than dropping to nothing: a
-   * strong learner still meets material they have never encountered, and pretending otherwise is
-   * how "strong" turns into "skipped".
+   * FOUNDATION_INSTRUCTION keeps a target above zero rather than dropping to nothing: a strong
+   * learner still meets material they have never encountered, and pretending otherwise is how
+   * "strong" turns into "skipped".
    */
   ESTABLISHED: [
-    { role: 'FOUNDATION_INSTRUCTION', min: 0, target: 5 },
-    { role: 'GUIDED_INSTRUCTION', min: 0, target: 8 },
-    { role: 'ADVANCED_UNIVERSAL', min: 8, target: 20 },
-    { role: 'DIRECTION_LEARNING', min: 8, target: 25 },
-    { role: 'EXPLORATION', min: 0, target: 2 },
-    { role: 'PRACTICE', min: 4, target: 12 },
-    { role: 'APPLICATION', min: 4, target: 10 },
-    { role: 'INTEGRATION', min: 3, target: 8 },
-    { role: 'VERIFICATION', min: 0, target: 0 },
+    { role: 'FOUNDATION_INSTRUCTION', min: 0, target: 3 },
+    { role: 'GUIDED_INSTRUCTION', min: 0, target: 5 },
+    { role: 'ADVANCED_UNIVERSAL', min: 5, target: 15 },
+    { role: 'DIRECTION_LEARNING', min: 8, target: 21 },
+    { role: 'EXPLORATION', min: 1, target: 2 },
+    { role: 'PRACTICE', min: 6, target: 12 },
+    { role: 'APPLICATION', min: 7, target: 13 },
+    { role: 'INTEGRATION', min: 5, target: 11 },
+    { role: 'VERIFICATION', min: 3, target: 8 },
   ],
 };
+
 
 export type DirectionStance = 'SELECTED' | 'EXPLORING' | 'UNDECIDED';
 

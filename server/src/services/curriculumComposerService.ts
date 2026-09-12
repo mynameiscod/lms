@@ -803,13 +803,41 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    * possible. A project cannot be scheduled until something has taught and practised its skill,
    * and COMPOSITION_ROLES is already in that order.
    */
-  for (const a of allocation) {
-    let guard = 0;
-    while ((roleCount.get(a.role) || 0) < a.min
-      && selected.length < targetUnits
-      && guard++ <= targetUnits * 2) {
-      const floor = breadthFloor();
+  /**
+   * ROLE BY ROLE WAS WRONG. THE FLOORS ARE SATISFIED IN ROTATION.
+   *
+   * Walking the roles in order and finishing each one produced a block-structured plan: sixteen
+   * foundation units, then nine guided, then two advanced — a first month of twenty-eight
+   * instruction units and two practice, for every profile, with every project in the final third.
+   * Every count in the report was correct and the journey was wrong.
+   *
+   * Rotating fixes it without a quota, because prerequisite structure does the pacing itself.
+   * Early on the practical roles have nothing suitable — nothing has been taught yet — so they
+   * are skipped and instruction fills the rotation. As teaching accumulates their units become
+   * schedulable and the rotation picks them up naturally, which is the interleaving.
+   *
+   * The role chosen each pass is the one furthest below its floor IN PROPORTION to that floor, so
+   * a role needing sixteen and a role needing two advance together rather than the larger one
+   * monopolising the early plan. Ties break on allocation order, so two runs cannot disagree.
+   */
+  let guard = 0;
+  while (guard++ <= targetUnits * 4 && selected.length < targetUnits) {
+    const floor = breadthFloor();
 
+    const shortfall = (a: RoleAllocation) => {
+      const have = roleCount.get(a.role) || 0;
+      return a.min > 0 && have < a.min ? (a.min - have) / a.min : 0;
+    };
+
+    const behind = allocation
+      .filter(a => shortfall(a) > 0)
+      .sort((x, y) => shortfall(y) - shortfall(x)
+        || allocation.indexOf(x) - allocation.indexOf(y));
+
+    if (!behind.length) break;
+
+    let took = false;
+    for (const a of behind) {
       const direct = ranked.find(u =>
         !chosen.has(u.unitCode)
         && roleOf.get(u.unitCode) === a.role
@@ -817,16 +845,16 @@ export function composeUnits(input: ComposerInput): ComposerResult {
         && suitableNow(u)
         && readyToTake(u));
 
-      if (direct) { take(direct, true); continue; }
+      if (direct) { take(direct, true); took = true; break; }
 
       /**
        * Not teachable yet, so teach towards it.
        *
-       * This is the chicken-and-egg the mini-projects fell into. A project needs STANDARD, which
-       * the plan only reaches by teaching and then practising the skill; until that happens the
-       * project is unsuitable, so nothing ever pulled the practice unit that would have made it
-       * suitable. Reaching for a unit the plan cannot teach YET is exactly how the promise gets
-       * kept — and only the takeable link is taken, so nothing unsuitable is scheduled.
+       * A project needs STANDARD, which the plan only reaches by teaching and then practising the
+       * skill; until that happens the project is unsuitable, so nothing would ever pull in the
+       * practice unit that makes it suitable. Reaching for a unit that cannot be taught YET is
+       * how the promise gets kept — and only the takeable link is taken, so nothing unsuitable is
+       * ever scheduled.
        */
       const aspirant = ranked.find(u =>
         !chosen.has(u.unitCode)
@@ -835,11 +863,16 @@ export function composeUnits(input: ComposerInput): ComposerResult {
         && pullTargetFor(u, floor));
 
       const pulled = aspirant && pullTargetFor(aspirant, floor);
-      if (!pulled) break;   // the floor is genuinely unreachable from this inventory
-
-      asPrerequisite.add(pulled.unitCode);
-      take(pulled, true);
+      if (pulled) {
+        asPrerequisite.add(pulled.unitCode);
+        take(pulled, true);
+        took = true;
+        break;
+      }
     }
+
+    // Nothing anywhere can advance a floor: the rest are unreachable from this inventory.
+    if (!took) break;
   }
 
   /* ---- 4b. fill the rest by rank, within the allocation -------------- */
@@ -858,7 +891,35 @@ export function composeUnits(input: ComposerInput): ComposerResult {
      * across the whole pool. That is the entire difference between this and the P7A composer, and
      * it is why the ordering rule could be kept intact.
      */
-    const next = ranked.find(u => affordable(u) && suitableNow(u) && readyToTake(u));
+    /**
+     * FINISH WHAT YOU STARTED BEFORE STARTING SOMETHING NEW.
+     *
+     * Ranking alone produced a first month of 28 concept units and 2 practice, for every profile,
+     * with every project in the final third — the back-loaded journey the shape layer exists to
+     * prevent, one level subtler than ninety CONCEPT units. Suitability was not the cause: by
+     * day ten a beginner has been taught ten topics and the practice for them is schedulable. The
+     * composer simply preferred another new topic every time, because NOT_EXPOSED outranks
+     * everything and there is always another untouched topic.
+     *
+     * So a practical unit in a topic the plan has ALREADY OPENED is taken ahead of instruction in
+     * a topic it has not. That is not a quota and adds no numbers to tune: it is the ordinary
+     * teaching sequence the curriculum already encodes in its own `after` chains — teach it,
+     * practise it, debug it, build with it, then move on.
+     *
+     * Every other rule still binds. The unit must be affordable within its bucket, suitable now,
+     * ready on prerequisites and within the breadth rule; this only decides WHICH of the takeable
+     * units goes next, and the practical roles remain capped by their own budgets, so preferring
+     * them cannot run away with the plan.
+     */
+    const takeable = (u: ComposableUnit) => affordable(u) && suitableNow(u) && readyToTake(u);
+    const openTopics = new Set(selected.map(u => u.topicCode));
+
+    const followUp = ranked.find(u =>
+      openTopics.has(u.topicCode)
+      && !isInstructionalRole(roleOf.get(u.unitCode)!)
+      && takeable(u));
+
+    const next = followUp ?? ranked.find(takeable);
 
     if (next) {
       /**

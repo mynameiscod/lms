@@ -14,7 +14,8 @@ import {
 } from '../services/curriculumComposerService';
 import { SUITABILITY_OVERRIDES } from '../seeds/careerPilot/seedUnitSuitabilityOverrides';
 import { YEAR1, UnitSeed } from '../seeds/careerPilot/year1MegaCurriculum';
-import { SUITABILITY_BY_TYPE } from '../data/unitSuitabilityPolicy';
+import { SUITABILITY_BY_TYPE, isSuitableFor } from '../data/unitSuitabilityPolicy';
+import { AssignmentState } from '../data/adaptiveCurriculumPolicy';
 import YEAR1_METADATA from './fixtures/year1UnitMetadata.json';
 
 const unit = (over: Partial<ComposableUnit> & { unitCode: string }): ComposableUnit => ({
@@ -821,5 +822,223 @@ describe('undecided learners explore across directions', () => {
         expect(full.applicableDirections.map(String)).toContain('WEB_DEVELOPMENT');
       }
     }
+  });
+});
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════ *
+ * P8B2 — sequencing, and the checkpoints that now exist
+ *
+ * Held against the frozen 337-unit inventory.
+ * ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+describe('P8B2 — practical work is not deferred to the end', () => {
+  const INVENTORY = YEAR1_METADATA as unknown as ComposableUnit[];
+  const DAYS = 90;
+
+  const ALL_SKILLS = [...new Set(INVENTORY.flatMap(u => u.skillKeys))].sort();
+  const UNIVERSAL_SKILLS = [...new Set(
+    INVENTORY.filter(u => u.category === 'UNIVERSAL').flatMap(u => u.skillKeys),
+  )].sort();
+
+  const mk = (over: Partial<StudentProfile>): StudentProfile => ({
+    skills: new Map(), primaryDirection: null, directionStatus: 'UNDECIDED', ...over,
+  });
+  const scored = (keys: string[], score: number) =>
+    new Map(keys.map(k => [k, { score, confidence: 'HIGH' as const }]));
+
+  const PROFILES: [string, StudentProfile][] = [
+    ['beginner', mk({})],
+    ['mixed', mk({
+      skills: new Map(ALL_SKILLS.slice(0, Math.ceil(ALL_SKILLS.length / 3))
+        .map((k, i) => [k, { score: [18, 34, 52, 68, 44, 76, 28, 58][i % 8], confidence: 'HIGH' as const }])),
+    })],
+    ['strong-undecided', mk({ skills: scored(UNIVERSAL_SKILLS, 91) })],
+    ['web', mk({
+      skills: scored(ALL_SKILLS.filter(k => /HTML|CSS|JS|WEB|HTTP/.test(k)), 32),
+      primaryDirection: 'WEB_DEVELOPMENT', directionStatus: 'SELECTED',
+    })],
+    ['software_backend', mk({
+      skills: scored(ALL_SKILLS.filter(k => /PROGRAMMING|PYTHON|LOOPS|FUNCTIONS|CONDITIONALS|DSA|C_/.test(k)), 66),
+      primaryDirection: 'SOFTWARE_BACKEND', directionStatus: 'SELECTED',
+    })],
+    ['cloud-cyber', mk({
+      skills: scored(ALL_SKILLS.filter(k => /OPERATING|OS_|SHELL|NETWORK|FILE_SYSTEM/.test(k)), 74),
+      primaryDirection: 'CLOUD_DEVOPS', directionStatus: 'SELECTED',
+    })],
+    ['undecided', mk({
+      skills: scored(ALL_SKILLS.slice(0, 4), 55),
+      directionStatus: 'EXPLORING',
+      explorationDirections: ['WEB_DEVELOPMENT', 'AI_ML', 'DATA', 'CLOUD_DEVOPS'],
+    })],
+  ];
+
+  const plan = (p: StudentProfile) =>
+    composeUnits({ candidates: INVENTORY, targetUnits: DAYS, student: p });
+
+  const PRACTICAL = ['PRACTICE', 'DEBUG', 'PROJECT', 'CHECKPOINT', 'REVIEW'];
+  const thirds = (r: ReturnType<typeof plan>) => {
+    const n = Math.ceil(r.units.length / 3);
+    return [r.units.slice(0, n), r.units.slice(n, n * 2), r.units.slice(n * 2)];
+  };
+
+  it.each(PROFILES)('%s does not defer practical work to the final third', (_name, p) => {
+    /**
+     * THE PATHOLOGY THIS TEST EXISTS FOR, AND IT WAS REAL.
+     *
+     * Before the floor pass was made to rotate, every profile opened with twenty-eight
+     * instruction units and two practice — no debugging, nothing built, no checkpoint — and every
+     * project landed in the last thirty days. Each count in the capacity report was correct and
+     * the journey was still wrong: a student would read for a month before doing anything.
+     *
+     * A majority of the practical work in the last third is the signature of that failure, and it
+     * can return silently from any change to ranking, floors or budgets.
+     */
+    const r = plan(p);
+    const [, , last] = thirds(r);
+    const total = r.units.filter(u => PRACTICAL.includes(u.unitType)).length;
+    const inLast = last.filter(u => PRACTICAL.includes(u.unitType)).length;
+
+    expect(total).toBeGreaterThan(0);
+    expect(inLast / total).toBeLessThanOrEqual(0.6);
+  });
+
+  it.each(PROFILES)('%s starts doing something inside the first thirty days', (_name, p) => {
+    // Not merely "not back-loaded": the opening month must contain real work, not a promise of it.
+    const [first] = thirds(plan(p));
+    expect(first.filter(u => PRACTICAL.includes(u.unitType)).length).toBeGreaterThan(0);
+  });
+
+  it('every third of a beginner plan contains practical work', () => {
+    const segs = thirds(plan(PROFILES[0][1]));
+    for (const seg of segs) {
+      expect(seg.filter(u => PRACTICAL.includes(u.unitType)).length).toBeGreaterThan(0);
+    }
+  });
+
+  it('a beginner is still mostly taught early on', () => {
+    /**
+     * The opposite failure. Interleaving must not turn into front-loading application at somebody
+     * who has been taught nothing — the first third should still be predominantly instruction.
+     */
+    const [first] = thirds(plan(PROFILES[0][1]));
+    const teaching = first.filter(u => u.unitType === 'CONCEPT').length;
+    expect(teaching / first.length).toBeGreaterThan(0.5);
+  });
+});
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════ *
+ * Checkpoint semantics
+ * ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+describe('P8B2 — checkpoints measure, but never before there is something to measure', () => {
+  const INVENTORY = YEAR1_METADATA as unknown as ComposableUnit[];
+
+  const unitOf = (code: string) => INVENTORY.find(u => u.unitCode === code)!;
+
+  const mk = (over: Partial<StudentProfile>): StudentProfile => ({
+    skills: new Map(), primaryDirection: null, directionStatus: 'UNDECIDED', ...over,
+  });
+
+  it('CHECKPOINT is suitable for every measured state', () => {
+    /**
+     * Measuring is how a state is established in the first place, so a checkpoint is the one kind
+     * of unit that suits a learner at any point on the ladder — including one who has demonstrated
+     * the skill, because re-measuring is what keeps a claim current.
+     */
+    const checkpoint = INVENTORY.find(u => u.unitType === 'CHECKPOINT')!;
+    const STATES: AssignmentState[] = [
+      'NOT_EXPOSED', 'FOUNDATION_REQUIRED', 'GUIDED', 'STANDARD',
+      'REVISION', 'VERIFIED', 'ENRICHMENT',
+    ];
+    for (const state of STATES) expect(isSuitableFor(checkpoint, state)).toBe(true);
+  });
+
+  it('a beginner gets a checkpoint, and never before the block it measures', () => {
+    /**
+     * Suitability alone would let a checkpoint land on day one — it suits NOT_EXPOSED. What stops
+     * that is the prerequisite, and this is the case where the two rules must disagree and the
+     * prerequisite must win.
+     */
+    const r = composeUnits({ candidates: INVENTORY, targetUnits: 90, student: mk({}) });
+    const checkpoints = r.units.filter(u => u.unitType === 'CHECKPOINT');
+    expect(checkpoints.length).toBeGreaterThan(0);
+
+    for (const c of checkpoints) {
+      const position = r.units.findIndex(u => u.unitCode === c.unitCode);
+      for (const prereq of unitOf(c.unitCode).prerequisiteUnitCodes) {
+        const at = r.units.findIndex(u => u.unitCode === prereq);
+        // Either scheduled earlier in this plan, or resolved another way and reported as such.
+        if (at >= 0) expect(at).toBeLessThan(position);
+        else {
+          const outcome = r.prerequisites.find(
+            o => o.unitCode === c.unitCode && o.prerequisite === prereq);
+          expect(outcome?.resolution).not.toBe('BLOCKED_MISSING_PREREQUISITE');
+        }
+      }
+    }
+  });
+
+  it('an established learner gets more checkpoints than a beginner', () => {
+    // They have more to re-measure, and less that needs teaching for the first time.
+    const beginner = composeUnits({ candidates: INVENTORY, targetUnits: 90, student: mk({}) });
+    const universalSkills = [...new Set(
+      INVENTORY.filter(u => u.category === 'UNIVERSAL').flatMap(u => u.skillKeys),
+    )];
+    const strong = composeUnits({
+      candidates: INVENTORY,
+      targetUnits: 90,
+      student: mk({
+        skills: new Map(universalSkills.map(k => [k, { score: 91, confidence: 'HIGH' as const }])),
+      }),
+    });
+
+    const verify = (r: ReturnType<typeof composeUnits>) =>
+      r.units.filter(u => u.unitType === 'CHECKPOINT' || u.unitType === 'REVIEW').length;
+
+    expect(verify(strong)).toBeGreaterThan(verify(beginner));
+  });
+
+  it('a checkpoint whose prerequisite is in the plan is SATISFIED_BY_PLAN', () => {
+    const r = composeUnits({ candidates: INVENTORY, targetUnits: 90, student: mk({}) });
+    const resolved = r.prerequisites.filter(o => {
+      const u = INVENTORY.find(x => x.unitCode === o.unitCode);
+      return u?.unitType === 'CHECKPOINT' || u?.unitType === 'REVIEW';
+    });
+
+    expect(resolved.length).toBeGreaterThan(0);
+    expect(resolved.some(o => o.resolution === 'SATISFIED_BY_PLAN')).toBe(true);
+    expect(resolved.every(o => o.resolution !== 'BLOCKED_MISSING_PREREQUISITE')).toBe(true);
+  });
+
+  it('a checkpoint whose prerequisite is already mastered is SATISFIED_BY_MASTERY', () => {
+    /**
+     * The other half of P7A.1's semantics, and the one that used to be unreachable: a learner who
+     * has demonstrated what the prerequisite teaches does not have to sit it again to earn the
+     * checkpoint.
+     */
+    const checkpoint = INVENTORY.find(u =>
+      u.unitType === 'CHECKPOINT' && u.prerequisiteUnitCodes.length > 0)!;
+    const prereq = unitOf(checkpoint.prerequisiteUnitCodes[0]);
+
+    const student = mk({
+      skills: new Map(prereq.skillKeys.map(k => [k, { score: 95, confidence: 'HIGH' as const }])),
+    });
+    const r = composeUnits({ candidates: [checkpoint, prereq], targetUnits: 2, student });
+
+    const outcome = r.prerequisites.find(
+      o => o.unitCode === checkpoint.unitCode && o.prerequisite === prereq.unitCode);
+
+    expect(outcome).toBeDefined();
+    expect(outcome!.resolution).toBe('SATISFIED_BY_MASTERY');
+  });
+
+  it('never schedules a checkpoint whose prerequisite is absent and unproven', () => {
+    // The checkpoint alone, with its prerequisite neither in the pool nor demonstrated.
+    const checkpoint = INVENTORY.find(u =>
+      u.unitType === 'CHECKPOINT' && u.prerequisiteUnitCodes.length > 0)!;
+    const r = composeUnits({ candidates: [checkpoint], targetUnits: 1, student: mk({}) });
+
+    expect(r.units).toHaveLength(0);
+    expect(r.blocked.map(b => b.unitCode)).toContain(checkpoint.unitCode);
   });
 });

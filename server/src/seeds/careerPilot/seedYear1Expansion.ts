@@ -154,6 +154,19 @@ async function validate(tenantId: string): Promise<Problem[]> {
   /**
    * Checked against the SKILL REGISTRY, not against the curriculum's own usage.
    *
+   * ── PRODUCTION-READINESS ITEM: THE REGISTRY IS EMPTY ────────────────────────────────────
+   *
+   * On the CareerPilot tenant, CareerSkill has no documents, so this check falls back to the keys
+   * the existing units already use. That is a weaker guarantee and it is recorded here rather
+   * than quietly accepted: the fallback can only catch a key nothing else uses, so a typo
+   * duplicated across two units would pass.
+   *
+   * It does not block composition and is deliberately NOT solved here. What it needs before
+   * production is an admin skill-selection flow backed by a canonical validated registry rather
+   * than free-text entry — today a curriculum author can type any string into skillKeys and
+   * nothing anywhere will object. The unit imports, composes, and simply never matches a
+   * student's profile.
+   *
    * A skill key that no CareerSkill defines is a typo that survives every other check: the unit
    * imports, composes, and simply never matches a student's profile — it would quietly be
    * unteachable rather than visibly broken.

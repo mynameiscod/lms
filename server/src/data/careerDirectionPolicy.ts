@@ -217,3 +217,72 @@ export function directionForRole(roleKey?: string | null): CareerDirection | und
     .sort((a, b) => a.displayOrder - b.displayOrder)
     .find(d => d.roleKeys.includes(key));
 }
+
+/* ------------------------------------------------------------------ *
+ * Shared core — the modules a direction is actually made of
+ * ------------------------------------------------------------------ */
+
+/**
+ * Which UNIVERSAL modules constitute each direction's core.
+ *
+ * ── THE PROBLEM THIS SOLVES ───────────────────────────────────────────────────────────────
+ *
+ * Year 1 deliberately scopes almost nothing to SOFTWARE_BACKEND. Programming, C, DSA,
+ * Databases and Developer Tools are UNIVERSAL because they are the foundation everybody needs
+ * — and they are also, between them, exactly the backend track. That decision is right and it
+ * is frozen: scoping them to a direction would withhold the core of computing from a student
+ * who happened to say "web" in week one.
+ *
+ * But it left a real gap. A software-focused learner's plan allocates fifteen days to
+ * DIRECTION_LEARNING, finds zero direction-scoped units, and reallocates that capacity into
+ * whatever instruction ranks next — which is not software. The student chose a direction and
+ * the plan responded by giving them more of everything else.
+ *
+ * ── WHY AFFINITY AND NOT DUPLICATION ──────────────────────────────────────────────────────
+ *
+ * The obvious fix is to clone Programming into SOFTWARE_BACKEND-scoped copies. That would
+ * double the maintenance of the most-used module in the curriculum, and the two copies would
+ * diverge the first time somebody fixed a typo in one. This instead says: when a plan is
+ * choosing between equally-ranked universal units, prefer the ones belonging to the modules
+ * this student's direction is built from. One curriculum, ordered differently per learner.
+ *
+ * ── IT IS SUBORDINATE, BY POSITION ────────────────────────────────────────────────────────
+ *
+ * Affinity enters the priority tuple BELOW measured state and BELOW mandatory, so it can never
+ * re-teach a skill somebody has demonstrated, never push the universal foundation behind
+ * optional material, and never satisfy a prerequisite that is not met. It reorders peers; it
+ * does not promote anything past a rule.
+ *
+ * A direction absent from this map simply has no affinity, which is the pre-existing behaviour.
+ */
+export const DIRECTION_CORE_MODULES: Record<string, string[]> = {
+  /** The named five from the Year-1 decision, in the order they are usually met. */
+  SOFTWARE_BACKEND: [
+    'M03_PROGRAMMING', 'M06_C_PROGRAMMING', 'M07_DSA', 'M08_DATABASES', 'M04_DEVELOPER_TOOLS',
+  ],
+  WEB_DEVELOPMENT: [
+    'M05_WEB_FUNDAMENTALS', 'M03_PROGRAMMING', 'M04_DEVELOPER_TOOLS', 'M08_DATABASES',
+  ],
+  AI_ML: ['M11_AI_LITERACY', 'M10_MATHS', 'M03_PROGRAMMING'],
+  DATA: ['M08_DATABASES', 'M10_MATHS', 'M11_AI_LITERACY', 'M03_PROGRAMMING'],
+  CLOUD_DEVOPS: ['M09_LINUX', 'M04_DEVELOPER_TOOLS', 'M03_PROGRAMMING'],
+  CYBERSECURITY: ['M09_LINUX', 'M01_CS_FUNDAMENTALS', 'M04_DEVELOPER_TOOLS'],
+  MOBILE: ['M03_PROGRAMMING', 'M05_WEB_FUNDAMENTALS', 'M04_DEVELOPER_TOOLS'],
+};
+
+/**
+ * Does this module belong to the core of the direction this student is heading for?
+ *
+ * Also true for a direction being SAMPLED, so an exploring student's breadth is drawn from
+ * material that actually represents each direction rather than from whatever sorts first.
+ */
+export function isCoreModuleFor(
+  moduleCode: string | undefined,
+  primaryDirection: string | null | undefined,
+  exploring: string[] = [],
+): boolean {
+  if (!moduleCode) return false;
+  const mod = String(moduleCode).toUpperCase();
+  const directions = [primaryDirection, ...exploring].filter(Boolean) as string[];
+  return directions.some(d => (DIRECTION_CORE_MODULES[String(d).toUpperCase()] || []).includes(mod));
+}

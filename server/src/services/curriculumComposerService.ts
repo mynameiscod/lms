@@ -35,7 +35,7 @@ import {
 } from '../data/adaptiveCurriculumPolicy';
 // Imported from the model that owns it, which is where adaptiveCurriculumPolicy takes it from.
 import { SkillConfidence } from '../models/StudentSkillProfile';
-import { appliesToDirection, DirectionStatus } from '../data/careerDirectionPolicy';
+import { isCoreModuleFor, appliesToDirection, DirectionStatus } from '../data/careerDirectionPolicy';
 import {
   isSuitableFor, isInstructional,
   PrerequisiteOutcome, PrerequisiteResolution,
@@ -345,10 +345,48 @@ function priorityOf(unit: ComposableUnit, state: AssignmentState, student: Stude
       && (unit.applicableDirections || []).length > 0
     : false;
 
+  /**
+   * SHARED-CORE AFFINITY. Term 4, and its position is the whole safety argument.
+   *
+   * Year 1 scopes almost nothing to SOFTWARE_BACKEND on purpose — Programming, C, DSA,
+   * Databases and Developer Tools are UNIVERSAL because everybody needs them, and they are
+   * also exactly the backend track. The consequence was that a software-focused student
+   * allocated fifteen days to DIRECTION_LEARNING, found zero direction-scoped units, and had
+   * that capacity reallocated into instruction that was not software. They chose a direction
+   * and the plan answered with more of everything else.
+   *
+   * This prefers, among otherwise equal peers, the universal modules the student's direction
+   * is actually built from. No unit is duplicated into a direction-labelled copy; one
+   * curriculum is simply ordered differently per learner.
+   *
+   * BELOW state and mandatory, which is what makes it safe. It cannot re-teach a demonstrated
+   * skill, cannot push the universal foundation behind optional material, and cannot satisfy
+   * an unmet prerequisite — suitability and the prerequisite walk both run downstream of
+   * ranking and are untouched. It reorders peers; it never promotes anything past a rule.
+   *
+   * ── AND IT APPLIES ONLY TO PRACTICAL WORK. MEASURED, NOT ASSUMED. ───────────────────────
+   *
+   * The first version applied it to every unit type, and the audit said plainly that it made
+   * the software profile WORSE: concept units rose 67 -> 70 while practice fell 10 -> 8 and
+   * projects 4 -> 3. Preferring core-module INSTRUCTION simply crowded out practical work from
+   * elsewhere, which is the opposite of the complaint. A student who has demonstrated
+   * programming does not need more programming lessons ranked higher; they need the practice,
+   * debugging and projects that let them USE it.
+   *
+   * So the affinity is restricted to the three practical types. Instruction continues to be
+   * ordered by state and category alone, exactly as it was before this change.
+   */
+  const PRACTICAL: LearningUnitType[] = ['PRACTICE', 'DEBUG', 'PROJECT'];
+  const coreAffinity = PRACTICAL.includes(unit.unitType)
+    && isCoreModuleFor(
+      unit.moduleCode, student.primaryDirection, student.explorationDirections || [],
+    );
+
   return [
     STATE_ORDER[state],
     unit.mandatory ? 0 : 1,
     servesDirection ? 0 : 1,
+    coreAffinity ? 0 : 1,
     CATEGORY_RANK[unit.category] ?? 9,
   ];
 }

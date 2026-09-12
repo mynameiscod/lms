@@ -1956,6 +1956,16 @@ export interface UnitCoverage {
   missing: string[];
   /** Everything it has is its topic's — nothing was written for this unit. */
   inheritedOnly: boolean;
+  /**
+   * Counted from UNIT-SPECIFIC content only. These are the numbers readiness turns on;
+   * `inheritedCount` is reported beside them and never added to them.
+   */
+  ownTeaching: number;
+  ownPractice: number;
+  ownAssessment: number;
+  inheritedCount: number;
+  /** Attached to this unit but unpublished — it resolves for nothing. */
+  unpublishedAttached: number;
   items: number;
   types: string[];
   hasTeaching: boolean;

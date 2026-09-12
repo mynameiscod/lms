@@ -14,7 +14,7 @@ import {
   classifyContent, isAutoBindable, distinctiveWords, stripDepthSuffix, MappableUnit,
 } from '../services/unitContentMappingService';
 import {
-  evaluateReadiness, meetsPublishBar, REQUIREMENTS, READINESS_ORDER,
+  evaluateReadiness, meetsPublishBar, TYPE_RULES, READINESS_ORDER,
 } from '../data/unitReadinessPolicy';
 
 /* ------------------------------------------------------------------ *
@@ -143,76 +143,122 @@ const teachRow = { type: 'video' };
 const practiceRow = { type: 'practice_coding' };
 
 describe('unit readiness', () => {
-  it('is EMPTY when nothing resolves', () => {
-    const r = evaluateReadiness({ unitType: 'CONCEPT', ownContent: [], inheritedContent: [], boundAssessments: 0 });
-    expect(r.readiness).toBe('EMPTY');
+  const teach = { type: 'notes' };
+  const worked = { type: 'worked_example' };
+  const practice = { type: 'practice_coding' };
+
+  const evalUnit = (over: any = {}) => evaluateReadiness({
+    unitType: 'CONCEPT', ownContent: [], inheritedContent: [], boundAssessments: 0, ...over,
   });
 
-  /**
-   * The state every one of the 310 live units is in, and the reason the ladder has five rungs.
-   */
-  it('caps a unit at PARTIAL when everything it has is its topic’s', () => {
-    const r = evaluateReadiness({
-      unitType: 'CONCEPT', ownContent: [], inheritedContent: [teachRow, practiceRow], boundAssessments: 0,
-    });
+  it('is EMPTY when nothing resolves at all', () => {
+    expect(evalUnit().readiness).toBe('EMPTY');
+  });
+
+  /* ── The rule the whole phase turns on ────────────────────────────────── */
+
+  it('caps an inheriting unit at PARTIAL however complete its topic is', () => {
+    const r = evalUnit({ inheritedContent: [teach, worked, practice], boundAssessments: 0 });
     expect(r.readiness).toBe('PARTIAL');
     expect(r.inheritedOnly).toBe(true);
-    expect(r.missing.join(' ')).toMatch(/only inherits/);
+    expect(r.own.teachingCount).toBe(0);
   });
 
-  it('reaches READY on content written for the unit', () => {
-    const r = evaluateReadiness({
-      unitType: 'CONCEPT', ownContent: [teachRow, practiceRow], inheritedContent: [], boundAssessments: 0,
-    });
-    expect(r.readiness).toBe('READY');
-    expect(r.missing).toEqual([]);
+  it('caps EVERY unit type at PARTIAL on inheritance, with no exemptions', () => {
+    // An earlier draft exempted PROJECT and REVIEW on the reasoning that a topic-level brief
+    // serves the one project unit in its topic. Plausible, and still wrong to encode: an
+    // exemption is a hole somebody fills later, and the rule's whole value is having none.
+    for (const unitType of Object.keys(TYPE_RULES) as (keyof typeof TYPE_RULES)[]) {
+      const r = evaluateReadiness({
+        unitType, ownContent: [], inheritedContent: [teach, practice], boundAssessments: 0,
+      });
+      expect([unitType, r.readiness]).toEqual([unitType, 'PARTIAL']);
+    }
   });
 
-  it('says what is missing rather than only that something is', () => {
-    const r = evaluateReadiness({
-      unitType: 'CONCEPT', ownContent: [teachRow], inheritedContent: [], boundAssessments: 0,
-    });
+  it('lifts a unit off PARTIAL the moment it owns one asset', () => {
+    const r = evalUnit({ ownContent: [teach], inheritedContent: [teach, practice] });
     expect(r.readiness).toBe('TEACHABLE');
-    expect(r.missing).toEqual(['nothing to practise']);
+    expect(r.inheritedOnly).toBe(false);
   });
 
-  it('does not require a practice unit to teach', () => {
-    // Its sibling concept unit taught it. Requiring each to re-teach would duplicate lessons
-    // across every topic.
+  /* ── Per-type rules ──────────────────────────────────────────────────── */
+
+  it('walks a CONCEPT unit up the ladder as content is written for it', () => {
+    expect(evalUnit({ ownContent: [teach] }).readiness).toBe('TEACHABLE');
+    expect(evalUnit({ ownContent: [teach], boundAssessments: 1 }).readiness).toBe('ASSESSABLE');
+    expect(evalUnit({ ownContent: [teach, practice], boundAssessments: 1 }).readiness).toBe('READY');
+  });
+
+  it('does not let practice alone make a CONCEPT unit teachable', () => {
+    // Exercises with no explanation behind them are homework, not a lesson.
+    const r = evalUnit({ ownContent: [practice] });
+    expect(r.readiness).toBe('PARTIAL');
+  });
+
+  it('does not require a PRACTICE unit to teach', () => {
+    // Its sibling concept unit taught it; requiring each to re-teach duplicates a lesson into
+    // every topic.
     const r = evaluateReadiness({
-      unitType: 'PRACTICE', ownContent: [practiceRow], inheritedContent: [], boundAssessments: 0,
+      unitType: 'PRACTICE', ownContent: [practice], inheritedContent: [], boundAssessments: 0,
     });
     expect(r.readiness).toBe('READY');
   });
 
-  it('does not require a project to carry separate practice', () => {
-    // The project IS the practice; demanding an exercise beside it is a box authors tick with
-    // something meaningless.
-    expect(REQUIREMENTS.PROJECT.needsPractice).toBe(false);
-    const r = evaluateReadiness({
-      unitType: 'PROJECT', ownContent: [], inheritedContent: [teachRow], boundAssessments: 0,
+  it('requires a DEBUG unit to own a broken-code exercise', () => {
+    const without = evaluateReadiness({
+      unitType: 'DEBUG', ownContent: [teach], inheritedContent: [], boundAssessments: 0,
     });
-    // And a project brief written for the topic genuinely serves the one project unit in it.
-    expect(r.readiness).not.toBe('PARTIAL');
+    expect(without.readiness).not.toBe('READY');
+
+    const withIt = evaluateReadiness({
+      unitType: 'DEBUG', ownContent: [practice], inheritedContent: [], boundAssessments: 0,
+    });
+    expect(withIt.readiness).toBe('READY');
   });
 
-  it('requires a checkpoint to have something that measures', () => {
-    const without = evaluateReadiness({
-      unitType: 'CHECKPOINT', ownContent: [teachRow], inheritedContent: [], boundAssessments: 0,
+  it('requires a PROJECT unit to own a brief AND something to submit against', () => {
+    const briefOnly = evaluateReadiness({
+      unitType: 'PROJECT', ownContent: [teach], inheritedContent: [], boundAssessments: 0,
     });
-    expect(without.missing).toContain('no quiz or assignment bound to it');
+    expect(briefOnly.readiness).toBe('TEACHABLE');
+
+    const withAssignment = evaluateReadiness({
+      unitType: 'PROJECT', ownContent: [teach], inheritedContent: [], boundAssessments: 1,
+    });
+    // Submission and evaluation stay with the existing Assignment engine, bound by unitCode.
+    expect(withAssignment.readiness).toBe('READY');
+  });
+
+  it('does not require a PROJECT to carry separate practice', () => {
+    // The project IS the practice. Demanding an exercise beside it is a box authors tick with
+    // something meaningless.
+    expect(TYPE_RULES.PROJECT.ready({ teaching: true, practice: false, assessment: true })).toBe(true);
+  });
+
+  it('requires a CHECKPOINT to own something that measures', () => {
+    const without = evaluateReadiness({
+      unitType: 'CHECKPOINT', ownContent: [teach], inheritedContent: [], boundAssessments: 0,
+    });
+    expect(without.readiness).not.toBe('READY');
 
     const withQuiz = evaluateReadiness({
-      unitType: 'CHECKPOINT', ownContent: [teachRow], inheritedContent: [], boundAssessments: 1,
+      unitType: 'CHECKPOINT', ownContent: [], inheritedContent: [], boundAssessments: 1,
     });
     expect(withQuiz.readiness).toBe('READY');
   });
 
-  it('counts a bound quiz as something to practise against', () => {
-    const r = evaluateReadiness({
-      unitType: 'CONCEPT', ownContent: [teachRow], inheritedContent: [], boundAssessments: 1,
-    });
-    expect(r.readiness).toBe('READY');
+  it('says what is missing rather than only that something is', () => {
+    const r = evalUnit({ ownContent: [teach] });
+    expect(r.missing.join(' ')).toMatch(/checkpoint/);
+  });
+
+  it('counts only unit-specific content, never inherited, towards its capabilities', () => {
+    const r = evalUnit({ ownContent: [teach], inheritedContent: [practice, practice] });
+    expect(r.own.practiceCount).toBe(0);
+    expect(r.inheritedCount).toBe(2);
+    // Two inherited practice rows do not satisfy the practice requirement.
+    expect(r.readiness).not.toBe('READY');
   });
 });
 

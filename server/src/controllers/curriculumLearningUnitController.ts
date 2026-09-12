@@ -5,6 +5,8 @@ import CurriculumLearningUnit, {
 import LearningContentLibrary from '../models/LearningContentLibrary';
 import LearningCurriculum from '../models/LearningCurriculum';
 import CareerSkill from '../models/CareerSkill';
+import Quiz from '../models/Quiz';
+import Assignment from '../models/Assignment';
 import { SPINE_BANDS } from '../data/ninetyDayPolicy';
 import { inTeachingOrder, roleOf, teaches, TEACHING_ORDER } from '../data/contentBundlePolicy';
 import { evaluateReadiness } from '../data/unitReadinessPolicy';
@@ -179,8 +181,40 @@ export const listUnits = async (req: Request, res: Response) => {
      * opens constantly. The library is small enough to hold and bucket in memory, and the answer
      * is identical.
      */
-    const published = ((await LearningContentLibrary.find({ tenantId, isPublished: true })
-      .select('type topicCode skillKeys unitCode').lean()) as any[]);
+    const [published, boundQuizzes, boundAssignments] = await Promise.all([
+      LearningContentLibrary.find({ tenantId, isPublished: true })
+        .select('type topicCode skillKeys unitCode').lean() as any,
+      Quiz.find({ tenantId, unitCode: { $exists: true, $ne: '' } }).select('unitCode').lean() as any,
+      Assignment.find({ tenantId, unitCode: { $exists: true, $ne: '' } }).select('unitCode').lean() as any,
+    ]);
+
+    /**
+     * Checkpoints, counted from the engines that already own them.
+     *
+     * Quiz and Assignment carry the unit's code directly. Nothing here reimplements assessment
+     * — a "checkpoint" content type would duplicate attempts, scoring and results, and the two
+     * would drift.
+     */
+    /**
+     * Rows attached to a unit that are NOT published.
+     *
+     * They resolve for nothing, so they contribute no readiness while looking, in any list of
+     * attachments, exactly like content that does.
+     */
+    const unpublishedAttached = await LearningContentLibrary
+      .find({ tenantId, isPublished: false, unitCode: { $exists: true, $ne: '' } })
+      .select('unitCode').lean() as any;
+    const unpublishedByUnit = new Map<string, number>();
+    for (const r of unpublishedAttached as any[]) {
+      const k = String(r.unitCode);
+      unpublishedByUnit.set(k, (unpublishedByUnit.get(k) || 0) + 1);
+    }
+
+    const assessmentsByUnit = new Map<string, number>();
+    for (const row of [...(boundQuizzes as any[]), ...(boundAssignments as any[])]) {
+      const k = String(row.unitCode);
+      assessmentsByUnit.set(k, (assessmentsByUnit.get(k) || 0) + 1);
+    }
 
     const byUnitCode = new Map<string, any[]>();
     const byTopicCode = new Map<string, any[]>();
@@ -203,17 +237,30 @@ export const listUnits = async (req: Request, res: Response) => {
       }
       const pool = own.length ? own : inherited;
       const types = [...new Set(pool.map((r: any) => String(r.type)))];
-      const { readiness, missing, inheritedOnly } = evaluateReadiness({
+      const evaluated = evaluateReadiness({
         unitType: unit.unitType,
         ownContent: own,
         inheritedContent: inherited,
         // Quiz and Assignment binding exists but nothing is bound yet; counted when it is.
-        boundAssessments: 0,
+        boundAssessments: assessmentsByUnit.get(String(unit.unitCode)) || 0,
       });
+      const { readiness, missing, inheritedOnly } = evaluated;
+      /**
+       * Own and inherited are reported SEPARATELY, never summed.
+       *
+       * An author has to tell "written for this unit" from "shared with eleven siblings" at a
+       * glance; a single count would read as coverage and hide the distinction the readiness
+       * rule turns on.
+       */
       return {
         readiness,
         missing,
         inheritedOnly,
+        ownTeaching: (evaluated as any).own.teachingCount,
+        ownPractice: (evaluated as any).own.practiceCount,
+        ownAssessment: (evaluated as any).own.assessmentCount,
+        inheritedCount: inherited.length,
+        unpublishedAttached: unpublishedByUnit.get(String(unit.unitCode)) || 0,
         items: pool.length,
         types,
         hasTeaching: pool.some((r: any) => teaches(String(r.type))),

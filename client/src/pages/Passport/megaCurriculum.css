@@ -283,3 +283,11 @@
 .mgc-cov b.r-assessable{ background: #e7f6ef; color: var(--mgc-ok); }
 .mgc-cov b.r-ready     { background: var(--mgc-ok); color: #fff; }
 @media (max-width: 900px) { .mgc-cov { display: none; } }
+
+.mgc-cov em.inh { color: #8290a5; background: #eef1f6; }
+.mgc-cov em.unpub { color: var(--mgc-warn); background: var(--mgc-warn-w, #fff8ec); }
+.mgc-legend {
+  font-size: 11px; color: var(--mgc-muted); line-height: 1.6;
+  margin: -6px 0 16px; max-width: 78ch;
+}
+.mgc-legend b { color: var(--mgc-navy); }

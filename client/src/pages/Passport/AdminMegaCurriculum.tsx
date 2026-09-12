@@ -257,7 +257,17 @@ const AdminMegaCurriculum: React.FC = () => {
           <div className={`mgc-kpi ${(summary.readiness?.PARTIAL || 0) ? 'warn' : ''}`}>
             <span>Topic content only</span><b>{summary.readiness?.PARTIAL || 0}</b>
             <small>inherit their topic — nothing written for them</small></div>
+          <div className="mgc-kpi good"><span>Ready</span><b>{summary.readiness?.READY || 0}</b>
+            <small>own everything their type needs</small></div>
         </div>
+      )}
+
+      {summary && (
+        <p className="mgc-legend">
+          <b>T</b> teaching · <b>P</b> practice · <b>C</b> checkpoint — all counted from content
+          written FOR the unit. <b>inh</b> is what it inherits from its topic, shared with every
+          sibling unit, and never counts towards readiness.
+        </p>
       )}
 
       {!loading && summary?.totalUnits === 0 && (
@@ -322,8 +332,22 @@ const AdminMegaCurriculum: React.FC = () => {
                               <span className="mgc-cov" title={(u.coverage?.missing || []).join('; ') || 'Everything this unit type needs'}>
                                 {u.coverage && (
                                   <>
-                                    <em className={u.coverage.hasTeaching ? 'on' : ''}>Teach</em>
-                                    <em className={u.coverage.hasPractice ? 'on' : ''}>Practise</em>
+                                    {/* Own counts only. Inherited is shown separately and never
+                                        added in — summing them is exactly the false signal that
+                                        made 310 units look fully covered. */}
+                                    <em className={u.coverage.ownTeaching ? 'on' : ''}>T{u.coverage.ownTeaching}</em>
+                                    <em className={u.coverage.ownPractice ? 'on' : ''}>P{u.coverage.ownPractice}</em>
+                                    <em className={u.coverage.ownAssessment ? 'on' : ''}>C{u.coverage.ownAssessment}</em>
+                                    {u.coverage.inheritedCount > 0 && (
+                                      <em className="inh" title={`${u.coverage.inheritedCount} inherited from the topic — shared with sibling units`}>
+                                        +{u.coverage.inheritedCount} inh
+                                      </em>
+                                    )}
+                                    {u.coverage.unpublishedAttached > 0 && (
+                                      <em className="unpub" title="Attached but unpublished — resolves for nothing">
+                                        {u.coverage.unpublishedAttached} draft
+                                      </em>
+                                    )}
                                     <b className={`r-${u.coverage.readiness.toLowerCase()}`}>
                                       {READINESS_LABEL[u.coverage.readiness]}
                                     </b>

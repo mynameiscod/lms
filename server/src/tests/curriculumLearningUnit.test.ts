@@ -114,6 +114,22 @@ jest.mock('../models/LearningCurriculum', () => ({
   default: { findOne: () => chain(curriculum) },
 }));
 
+/**
+ * listUnits counts checkpoints from the existing engines rather than a tenth content type.
+ *
+ * Mocked empty: these tests are about structure and content binding, and a unit's assessment
+ * count is covered where the readiness rule lives.
+ */
+jest.mock('../models/Quiz', () => ({
+  __esModule: true,
+  default: { find: () => chain([]) },
+}));
+
+jest.mock('../models/Assignment', () => ({
+  __esModule: true,
+  default: { find: () => chain([]) },
+}));
+
 jest.mock('../models/CareerSkill', () => ({
   __esModule: true,
   default: { find: () => chain([{ key: 'JAVA_OOP', name: 'Java OOP' }]) },

@@ -1,183 +1,223 @@
 /**
  * Whether a Learning Unit is safe for the composer to schedule.
  *
- * ── PROPOSED, NOT ENFORCED ────────────────────────────────────────────────────────────────
+ * ── THE RULE EVERYTHING ELSE SERVES ───────────────────────────────────────────────────────
  *
- * Nothing calls this yet. It is here to be read and argued with before it becomes the gate on
- * publishing, because the decision it encodes — what PUBLISHED is allowed to mean — is a product
- * decision wearing a function's clothing.
+ * INHERITED CONTENT CAN NEVER TAKE A UNIT ABOVE PARTIAL. No exceptions, no unit type exempted.
  *
- * ── THE PROBLEM IT EXISTS TO SOLVE ────────────────────────────────────────────────────────
+ * The P4 audit is why. All 310 Year-1 units reported "has teaching" and "has practice" at 100%,
+ * while only 39 distinct bundles sat behind them: every one of the twelve HTML units inherits the
+ * same topic-level video. A composer trusting that signal would schedule twelve days that each
+ * open one identical asset, and the student would meet one lesson twelve times.
  *
- * Today PUBLISHED means the metadata validated and something resolved. The P4 audit showed how
- * little that guarantees: all 310 units report "has teaching" and "has practice" at 100%, while
- * only 39 DISTINCT bundles sit behind them. Every one of the twelve HTML units inherits the same
- * topic-level video. A composer trusting the current signal would schedule twelve days that each
- * open the identical asset, and the student would meet one lesson twelve times.
+ * An earlier draft of this file exempted PROJECT and REVIEW, on the reasoning that a topic-level
+ * project brief genuinely serves the one project unit in its topic. That reasoning is plausible
+ * and was still wrong to encode: an exemption is a hole somebody fills later, and the whole value
+ * of the rule is that it has none. A project brief written for a project unit takes thirty
+ * minutes; inheriting one costs the guarantee.
  *
- * So readiness has to distinguish content written FOR a unit from content a unit merely inherits.
- * That distinction is the whole point; everything below is bookkeeping around it.
+ * ── WHAT THE FIVE STATES ARE FOR ──────────────────────────────────────────────────────────
  *
- * ── WHY FIVE STATES AND NOT A BOOLEAN ─────────────────────────────────────────────────────
+ *   EMPTY       nothing resolves at all. A title and an intention.
+ *   PARTIAL     something resolves, but every piece is shared with sibling units.
+ *   TEACHABLE   content written FOR this unit that teaches it.
+ *   ASSESSABLE  teachable, and something bound to it can measure whether it landed.
+ *   READY       everything this unit type requires.
  *
- * A boolean would collapse two situations an author must tell apart: "nothing exists" and
- * "something exists but it is shared with eleven siblings". The first is a writing task; the
- * second is a judgement about whether sharing is acceptable for this unit. A single flag would
- * make both look like the same red light, and the backlog would be unreadable.
+ * A boolean would collapse EMPTY and PARTIAL into one red light, and they are a writing task and
+ * a judgement call respectively. Five is also the most that stays memorable, and each rung names
+ * what is missing rather than a score.
  *
- * Five is also the most that stays memorable. EMPTY / PARTIAL / TEACHABLE / ASSESSABLE / READY
- * reads as a ladder, and each rung names what is missing rather than a score.
+ * ── REQUIREMENTS DIFFER BY TYPE, BECAUSE THE WORK DIFFERS ─────────────────────────────────
  *
- * ── REQUIREMENTS DIFFER BY UNIT TYPE, BECAUSE THE WORK DIFFERS ────────────────────────────
- *
- * A CONCEPT unit needs something that teaches. A PRACTICE unit needs something to practise and is
- * not required to teach at all — that is its sibling's job. Holding every type to one bar would
- * either block practice units forever or let empty concept units through, and both are worse than
- * a table.
+ * Holding every type to one bar would either block practice units forever or let empty concept
+ * units through. The table below is per type and deliberately explicit: a reader should be able
+ * to answer "what does a DEBUG unit need" without tracing code.
  */
 
 import { ContentLibraryType } from '../models/LearningContentLibrary';
 import { LearningUnitType } from '../models/CurriculumLearningUnit';
 import { roleOf, teaches } from './contentBundlePolicy';
 
-export type UnitReadiness =
-  /** Nothing resolves at all. The unit is a title and an intention. */
-  | 'EMPTY'
-  /**
-   * Something resolves, but only by inheritance — it is shared with every sibling unit.
-   *
-   * The state the entire Year-1 curriculum is in today. Deliberately NOT called "ready with
-   * caveats": a plan built from it would teach the same lesson a dozen times.
-   */
-  | 'PARTIAL'
-  /** Content written for THIS unit that teaches it. Schedulable, if the composer accepts no practice. */
-  | 'TEACHABLE'
-  /** Teachable, and there is something to practise or be checked on. */
-  | 'ASSESSABLE'
-  /** Everything this unit type requires. Safe to schedule without qualification. */
-  | 'READY';
+export type UnitReadiness = 'EMPTY' | 'PARTIAL' | 'TEACHABLE' | 'ASSESSABLE' | 'READY';
 
 export const READINESS_ORDER: UnitReadiness[] =
   ['EMPTY', 'PARTIAL', 'TEACHABLE', 'ASSESSABLE', 'READY'];
 
-export interface ReadinessRequirement {
-  /** Must resolve something that teaches (video, notes, worked example, lesson, activity). */
-  needsTeaching: boolean;
-  /** Must resolve practice, or carry a bound quiz or assignment. */
-  needsPractice: boolean;
-  /** Must carry a bound quiz or assignment specifically. */
-  needsAssessment: boolean;
-  /** Inherited content is enough to reach READY. False means it needs its own. */
-  inheritanceSufficient: boolean;
+/** The three things a unit can own. Each is counted from UNIT-SPECIFIC content only. */
+export interface OwnCapability {
+  teaching: boolean;
+  practice: boolean;
+  assessment: boolean;
+}
+
+export interface TypeRule {
+  /** What the unit must own to be worth scheduling at all. */
+  teachable: (own: OwnCapability) => boolean;
+  /** Teachable, plus a way to tell whether it landed. */
+  assessable: (own: OwnCapability) => boolean;
+  /** Everything this type requires. */
+  ready: (own: OwnCapability) => boolean;
+  /** One line an author can act on, per rung missed. */
+  describe: string;
 }
 
 /**
- * What each kind of unit actually needs.
+ * What each kind of unit needs, in its own terms.
  *
- * PROJECT deliberately does not require practice: the project IS the practice, and demanding a
- * separate exercise beside it would be a box-ticking requirement that authors would satisfy with
- * something meaningless.
+ * PRACTICE and DEBUG do not require teaching: the concept unit before them taught it, and
+ * requiring each to re-teach would duplicate a lesson into every topic. Their practice IS their
+ * teaching, so it satisfies the teachable rung as well as the ready one.
  *
- * PRACTICE and DEBUG do not require teaching: they follow a concept unit that taught it, and
- * requiring each to re-teach would produce duplicated lessons across every topic.
+ * PROJECT requires a brief written for it and does not require separate practice — the project is
+ * the practice, and demanding an exercise beside it is a box authors tick with something
+ * meaningless. Submission and evaluation stay with the existing Assignment engine, bound by
+ * unitCode; nothing here builds a second one.
  *
- * CHECKPOINT requires assessment and nothing else — measuring is the entire job.
+ * CHECKPOINT requires only something that measures. Measuring is the entire job.
  */
-export const REQUIREMENTS: Record<LearningUnitType, ReadinessRequirement> = {
-  CONCEPT:        { needsTeaching: true,  needsPractice: true,  needsAssessment: false, inheritanceSufficient: false },
-  WORKED_EXAMPLE: { needsTeaching: true,  needsPractice: false, needsAssessment: false, inheritanceSufficient: false },
-  PRACTICE:       { needsTeaching: false, needsPractice: true,  needsAssessment: false, inheritanceSufficient: false },
-  DEBUG:          { needsTeaching: false, needsPractice: true,  needsAssessment: false, inheritanceSufficient: false },
-  PROJECT:        { needsTeaching: true,  needsPractice: false, needsAssessment: false, inheritanceSufficient: true  },
-  CHECKPOINT:     { needsTeaching: false, needsPractice: false, needsAssessment: true,  inheritanceSufficient: false },
-  REVIEW:         { needsTeaching: true,  needsPractice: false, needsAssessment: false, inheritanceSufficient: true  },
+export const TYPE_RULES: Record<LearningUnitType, TypeRule> = {
+  CONCEPT: {
+    teachable: o => o.teaching,
+    assessable: o => o.teaching && o.assessment,
+    ready: o => o.teaching && o.practice && o.assessment,
+    describe: 'needs its own lesson, practice and a checkpoint',
+  },
+  WORKED_EXAMPLE: {
+    teachable: o => o.teaching,
+    assessable: o => o.teaching && o.assessment,
+    ready: o => o.teaching,
+    describe: 'needs its own worked example',
+  },
+  PRACTICE: {
+    teachable: o => o.practice,
+    assessable: o => o.practice && o.assessment,
+    ready: o => o.practice,
+    describe: 'needs its own practice',
+  },
+  DEBUG: {
+    teachable: o => o.practice,
+    assessable: o => o.practice && o.assessment,
+    ready: o => o.practice,
+    describe: 'needs its own broken-code exercise',
+  },
+  PROJECT: {
+    teachable: o => o.teaching,
+    assessable: o => o.teaching && o.assessment,
+    ready: o => o.teaching && o.assessment,
+    describe: 'needs its own brief and a bound assignment to submit against',
+  },
+  CHECKPOINT: {
+    teachable: o => o.assessment,
+    assessable: o => o.assessment,
+    ready: o => o.assessment,
+    describe: 'needs a quiz or assignment bound to it',
+  },
+  REVIEW: {
+    teachable: o => o.teaching,
+    assessable: o => o.teaching && o.assessment,
+    ready: o => o.teaching,
+    describe: 'needs its own recap',
+  },
 };
 
 export interface ReadinessInput {
   unitType: LearningUnitType;
-  /** Published content bound to this unit by unitCode. */
+  /** Published library rows bound to THIS unit by unitCode. */
   ownContent: { type: ContentLibraryType | string }[];
-  /** Published content the unit resolves through its topic or its skills. */
+  /** Published rows the unit reaches only through its topic or its skills. */
   inheritedContent: { type: ContentLibraryType | string }[];
-  /** Quizzes and assignments bound to this unit by unitCode. */
+  /** Quizzes and assignments carrying this unit's code. */
   boundAssessments: number;
 }
 
 export interface ReadinessResult {
   readiness: UnitReadiness;
-  /** What is missing, in the words an author can act on. Empty when READY. */
+  /** What is still missing, in words an author can act on. Empty when READY. */
   missing: string[];
-  /** True when everything it has is shared with its sibling units. */
+  /** True when the unit owns nothing and everything it shows is its topic's. */
   inheritedOnly: boolean;
+  own: OwnCapability & { teachingCount: number; practiceCount: number; assessmentCount: number };
+  inheritedCount: number;
 }
 
-/**
- * Where a unit stands, and what it still needs.
- *
- * Pure, so the rule can be argued with in a test rather than discovered in production.
- */
 export function evaluateReadiness(input: ReadinessInput): ReadinessResult {
-  const req = REQUIREMENTS[input.unitType] || REQUIREMENTS.CONCEPT;
-  const own = input.ownContent || [];
+  const rule = TYPE_RULES[input.unitType] || TYPE_RULES.CONCEPT;
+  const ownRows = input.ownContent || [];
   const inherited = input.inheritedContent || [];
-  const pool = own.length ? own : inherited;
-  const inheritedOnly = !own.length && inherited.length > 0;
+  const assessments = input.boundAssessments || 0;
 
-  const missing: string[] = [];
+  const teachingCount = ownRows.filter(c => teaches(String(c.type))).length;
+  const practiceCount = ownRows.filter(c => roleOf(String(c.type)) === 'PRACTISE').length;
 
-  if (!pool.length && !input.boundAssessments) {
-    return { readiness: 'EMPTY', missing: ['nothing resolves for this unit at all'], inheritedOnly: false };
+  const own: OwnCapability = {
+    teaching: teachingCount > 0,
+    practice: practiceCount > 0,
+    assessment: assessments > 0,
+  };
+
+  const ownAnything = ownRows.length > 0 || assessments > 0;
+  const detail = {
+    ...own,
+    teachingCount,
+    practiceCount,
+    assessmentCount: assessments,
+  };
+
+  if (!ownAnything && !inherited.length) {
+    return {
+      readiness: 'EMPTY',
+      missing: [`nothing resolves for this unit — it ${rule.describe}`],
+      inheritedOnly: false,
+      own: detail,
+      inheritedCount: 0,
+    };
   }
-
-  const hasTeaching = pool.some(c => teaches(String(c.type)));
-  const hasPractice = pool.some(c => roleOf(String(c.type)) === 'PRACTISE') || input.boundAssessments > 0;
-  const hasAssessment = input.boundAssessments > 0;
-
-  if (req.needsTeaching && !hasTeaching) missing.push('nothing that teaches it');
-  if (req.needsPractice && !hasPractice) missing.push('nothing to practise');
-  if (req.needsAssessment && !hasAssessment) missing.push('no quiz or assignment bound to it');
 
   /**
-   * INHERITANCE CAPS READINESS AT PARTIAL, unless the type says otherwise.
+   * THE CAP. Owning nothing means PARTIAL, whatever the topic provides and whatever the type.
    *
-   * This is the rule the audit exists to justify. A unit whose only content is its topic's is not
-   * ready for a composer to schedule as a distinct day, however complete the topic's material is
-   * — because twelve units sharing it produce twelve identical days.
-   *
-   * PROJECT and REVIEW are exempt: a project brief written for a topic genuinely serves the one
-   * project unit in it, and a review unit revisiting a topic is meant to be topic-wide.
+   * Stated before any rung is evaluated rather than as a modifier afterwards, so no future edit
+   * to the rules table can route around it.
    */
-  if (inheritedOnly && !req.inheritanceSufficient) {
+  if (!ownAnything) {
     return {
       readiness: 'PARTIAL',
-      missing: [...missing, 'only inherits its topic’s content — nothing written for this unit'],
-      inheritedOnly,
+      missing: [`only inherits its topic’s content — ${rule.describe}`],
+      inheritedOnly: true,
+      own: detail,
+      inheritedCount: inherited.length,
     };
   }
 
-  if (missing.length) {
-    // It teaches but lacks something else, or the reverse. Report the rung it reached.
-    return {
-      readiness: hasTeaching ? 'TEACHABLE' : 'PARTIAL',
-      missing,
-      inheritedOnly,
-    };
+  const missing: string[] = [];
+  if (!rule.teachable(own)) missing.push(rule.describe);
+
+  let readiness: UnitReadiness = 'PARTIAL';
+  if (rule.ready(own)) readiness = 'READY';
+  else if (rule.assessable(own)) readiness = 'ASSESSABLE';
+  else if (rule.teachable(own)) readiness = 'TEACHABLE';
+
+  if (readiness === 'TEACHABLE' || readiness === 'ASSESSABLE') {
+    if (!own.practice && rule.ready.toString().includes('practice')) missing.push('nothing to practise');
+    if (!own.assessment) missing.push('no checkpoint bound to it');
   }
 
-  if (req.needsAssessment || hasAssessment) {
-    return { readiness: 'READY', missing: [], inheritedOnly };
-  }
-
-  // Everything required is present; assessment is the one thing that would add nothing required.
-  return { readiness: hasPractice ? 'READY' : 'ASSESSABLE', missing: [], inheritedOnly };
+  return {
+    readiness,
+    missing: readiness === 'READY' ? [] : [...new Set(missing)],
+    inheritedOnly: false,
+    own: detail,
+    inheritedCount: inherited.length,
+  };
 }
 
 /**
- * Whether publishing should be allowed.
+ * The bar for publishing.
  *
- * PROPOSED. The intent is that PUBLISHED eventually means "the composer may schedule this",
- * rather than "its metadata validated" — but flipping that on today would block all 310 units,
- * so the bar is stated here and enforced when the content exists to clear it.
+ * PROPOSED, and not yet enforced on the publish route: turning it on today would block every one
+ * of the 310 Year-1 units, because none of them owns anything. It becomes the gate once the
+ * pilot topics prove an author can clear it.
  */
 export const MINIMUM_TO_PUBLISH: UnitReadiness = 'TEACHABLE';
 

@@ -32,6 +32,7 @@ import User from '../../models/User';
 import { PILOT_TOPICS } from './pilotUnitContent';
 import { YEAR1_BUNDLES } from './year1UnitContent';
 import { PROGRAMMING_SPINE_BUNDLES } from './year1ContentProgramming';
+import { VERIFICATION_BUNDLES } from './year1ContentVerification';
 import { findDuplication, identifyingWordsFor } from '../../services/contentDuplicationService';
 
 dotenv.config();
@@ -68,7 +69,9 @@ const readingMinutes = (text: string): number =>
    * Split across files because one module of thirty thousand lines is unreviewable, not because
    * they are different kinds of thing — the seed treats them identically.
    */
-  const ALL_BUNDLES = [...YEAR1_BUNDLES, ...PROGRAMMING_SPINE_BUNDLES];
+  const ALL_BUNDLES = [
+    ...YEAR1_BUNDLES, ...PROGRAMMING_SPINE_BUNDLES, ...VERIFICATION_BUNDLES,
+  ];
 
   const units = await CurriculumLearningUnit
     .find({ tenantId, unitCode: { $in: ALL_BUNDLES.map(b => b.unitCode) } })

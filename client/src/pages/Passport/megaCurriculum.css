@@ -291,3 +291,99 @@
   margin: -6px 0 16px; max-width: 78ch;
 }
 .mgc-legend b { color: var(--mgc-navy); }
+
+/* ── skill picker ────────────────────────────────────────────────────────────
+   A registry search, not a text box. The chip shows the key and its human name
+   together so a wrong pick is visible without cross-referencing anything. */
+
+.mgc-skills { position: relative; }
+
+.mgc-chips {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 6px; min-height: 4px;
+}
+
+.mgc-chips-empty { font-size: 12px; color: #94a3b8; font-style: italic; }
+
+.mgc-chip {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  padding: 3px 6px 3px 8px; border-radius: 6px;
+  background: #eef2ff; border: 1px solid #c7d2fe;
+  font-size: 12px; line-height: 1.4;
+}
+
+.mgc-chip-key { font-weight: 600; color: #3730a3; letter-spacing: .01em; }
+.mgc-chip-name { color: #6366f1; font-size: 11px; }
+
+/* An unrecognised key is flagged rather than rendered like any other chip. */
+.mgc-chip-unknown { background: #fef2f2; border-color: #fecaca; }
+.mgc-chip-unknown .mgc-chip-key { color: #b91c1c; }
+.mgc-chip-unknown .mgc-chip-name { color: #dc2626; font-style: italic; }
+
+.mgc-chip button {
+  border: 0; background: none; cursor: pointer;
+  color: inherit; opacity: .55; font-size: 14px; line-height: 1; padding: 0 1px;
+}
+.mgc-chip button:hover { opacity: 1; }
+
+.mgc-skill-matches {
+  list-style: none; margin: 4px 0 0; padding: 4px;
+  border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, .08);
+  max-height: 210px; overflow-y: auto;
+}
+
+.mgc-skill-matches li + li { border-top: 1px solid #f1f5f9; }
+
+.mgc-skill-matches button {
+  display: flex; flex-direction: column; gap: 1px;
+  width: 100%; text-align: left; padding: 6px 8px;
+  border: 0; background: none; cursor: pointer; border-radius: 6px;
+}
+.mgc-skill-matches button:hover { background: #f8fafc; }
+.mgc-skill-matches strong { font-size: 13px; color: #0f172a; font-weight: 600; }
+.mgc-skill-matches span { font-size: 11px; color: #64748b; letter-spacing: .02em; }
+
+/* ── suitability override ────────────────────────────────────────────────────
+   Deliberately plain. Overriding is rare and should not look like a setting
+   somebody is expected to touch. */
+
+.mgc-state-grid { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+
+.mgc-state-grid button {
+  padding: 3px 8px; border-radius: 999px; cursor: pointer;
+  border: 1px solid #e2e8f0; background: #fff;
+  font-size: 11px; color: #64748b; text-transform: capitalize;
+}
+.mgc-state-grid button:hover { border-color: #cbd5e1; color: #475569; }
+.mgc-state-grid button.on {
+  background: #0f172a; border-color: #0f172a; color: #fff; font-weight: 500;
+}
+
+.mgc-linkish {
+  border: 0; background: none; padding: 0; cursor: pointer;
+  color: #4f46e5; text-decoration: underline; font-size: inherit;
+}
+
+/* ── Reordering modules and topics ──────────────────────────────────────────
+   Arrows rather than drag-and-drop: the list is long, the moves are small and
+   deliberate, and a drag that lands one row off in a 39-topic curriculum is
+   harder to notice than it is to make. */
+.mgc-move { display: inline-flex; gap: 2px; margin-left: 8px; vertical-align: middle; }
+.mgc-move.topic { position: absolute; right: 44px; top: 50%; transform: translateY(-50%); z-index: 2; }
+.mgc-move button {
+  border: 1px solid #e2e8f0; background: #fff; color: #64748b;
+  border-radius: 6px; width: 24px; height: 24px; line-height: 1;
+  font-size: 11px; cursor: pointer; padding: 0;
+}
+.mgc-move button:hover:not(:disabled) { border-color: #cbd5e1; color: #0f172a; background: #f8fafc; }
+.mgc-move button:disabled { opacity: .35; cursor: default; }
+.mgc-topic { position: relative; }
+
+/* Composer eligibility: published AND ready. Deliberately distinct from the
+   "Live" chip, because the two are constantly mistaken for one another. */
+.mgc-ce {
+  background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;
+  border-radius: 999px; padding: 1px 7px; font-size: 10px; font-style: normal;
+  font-weight: 600; letter-spacing: .02em; margin-left: 6px;
+}

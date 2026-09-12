@@ -239,11 +239,39 @@ export function evaluateReadiness(input: ReadinessInput): ReadinessResult {
 }
 
 /**
- * The bar for publishing.
+ * Whether this type of unit needs TEACHING MATERIAL before it can go live.
  *
- * PROPOSED, and not yet enforced on the publish route: turning it on today would block every one
- * of the 310 Year-1 units, because none of them owns anything. It becomes the gate once the
- * pilot topics prove an author can clear it.
+ * Asked of the rules table rather than answered by a second list, by probing the teachable rung
+ * with everything present EXCEPT teaching: if the type is still teachable without it, teaching
+ * is not what it needs.
+ *
+ * ── WHY THE PUBLISH ROUTE HAD TO ASK ──────────────────────────────────────────────────────
+ *
+ * Publishing ran a blanket content check — "does anything resolve, and does some of it teach"
+ * — that predates this table and contradicts it for three of the seven types. A CHECKPOINT's
+ * rule is `assessment` at every rung, and it was refused publication for having no lesson: a
+ * checkpoint IS the measurement, and demanding a lesson of its own would have made the type
+ * unusable no matter what an author bound to it. PRACTICE and DEBUG were refused on the same
+ * mistaken grounds, though the table says in as many words that the concept unit before them
+ * did the teaching.
+ *
+ * Nothing is relaxed by asking. Each type still has to clear its own rung, and the readiness
+ * bar below still applies to every one of them.
+ */
+export const typeRequiresTeaching = (unitType: LearningUnitType): boolean => {
+  const rule = TYPE_RULES[unitType] || TYPE_RULES.CONCEPT;
+  return !rule.teachable({
+    teaching: false, practice: true, assessment: true, submission: true,
+  });
+};
+
+/**
+ * The bar for publishing. ENFORCED on the publish route since P8C.0.
+ *
+ * It was written with the rest of the readiness policy and then never called, so publishing was
+ * gated only on the blanket content check above — which inherited content satisfies. A unit with
+ * nothing of its own could be published on the strength of material shared with eleven siblings,
+ * showing PARTIAL on the very screen that published it.
  */
 export const MINIMUM_TO_PUBLISH: UnitReadiness = 'TEACHABLE';
 

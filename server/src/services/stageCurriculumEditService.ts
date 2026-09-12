@@ -18,7 +18,8 @@
  */
 
 import LearningCurriculum from '../models/LearningCurriculum';
-import CareerSkill from '../models/CareerSkill';
+import { requireAuthorableSkills } from './skillRegistryService';
+import { DIRECTION_KEYS } from '../data/careerDirectionPolicy';
 
 export interface TopicInput {
   title?: string;
@@ -79,17 +80,34 @@ function relayDays(doc: any) {
   doc.markModified('topics');
 }
 
-/** Reject skill keys that do not exist, rather than storing a mapping to nothing. */
+/**
+ * Reject skill keys an author may not use, rather than storing a mapping to nothing.
+ *
+ * Delegates to the registry service so a topic and a Learning Unit apply the IDENTICAL rule —
+ * active SKILL nodes only. They previously differed: this checked mere existence, units checked
+ * nothing, and the selector offered a third answer again. Two halves of one hierarchy
+ * disagreeing about what a valid skill is meant a key could pass one screen and fail the other.
+ *
+ * `undefined` still means "the caller did not mention skills" and survives untouched; only the
+ * rule about what a mentioned key may be has changed.
+ */
 async function validateSkillKeys(keys: string[] | undefined): Promise<string[] | undefined> {
   if (keys === undefined) return undefined;
+  return requireAuthorableSkills(keys, 'skill');
+}
+
+/**
+ * Directions on a topic, checked against the canonical list for the same reason units are.
+ *
+ * A topic scoped to a direction nothing defines is offered to nobody, and looks authored.
+ */
+function validateDirections(keys: string[] | undefined): string[] | undefined {
+  if (keys === undefined) return undefined;
   const wanted = [...new Set(keys.map(upper).filter(Boolean))];
-  if (!wanted.length) return [];
-  const found = await CareerSkill.find({ key: { $in: wanted } }).select('key').lean() as any[];
-  const have = new Set(found.map(s => String(s.key).toUpperCase()));
-  const missing = wanted.filter(k => !have.has(k));
-  if (missing.length) {
-    // Named rather than dropped: a silently ignored key looks saved and teaches nothing.
-    throw new Error(`These skills do not exist: ${missing.join(', ')}`);
+  const unknown = wanted.filter(k => !(DIRECTION_KEYS as string[]).includes(k));
+  if (unknown.length) {
+    throw new Error(`${unknown.join(', ')} does not exist as a career direction. `
+      + `The directions are: ${(DIRECTION_KEYS as string[]).join(', ')}`);
   }
   return wanted;
 }
@@ -184,7 +202,7 @@ export async function createTopic(tenantId: string, stage: string, input: TopicI
     prerequisiteSkillKeys: prereqs && prereqs.length ? prereqs : undefined,
     defaultDepth: DEPTHS.includes(upper(input.defaultDepth)) ? upper(input.defaultDepth) : 'FOUNDATION',
     mandatory: input.mandatory !== false,
-    applicableDirections: input.applicableDirections || [],
+    applicableDirections: validateDirections(input.applicableDirections) || [],
     learningOutcomes: (input.learningOutcomes || []).map(clean).filter(Boolean),
   });
 
@@ -208,7 +226,9 @@ export async function updateTopic(tenantId: string, stage: string, topicId: stri
   if (input.moduleCode !== undefined) topic.moduleCode = clean(input.moduleCode) || 'UNGROUPED';
   if (input.order !== undefined) topic.order = Number(input.order) || 0;
   if (input.mandatory !== undefined) topic.mandatory = !!input.mandatory;
-  if (input.applicableDirections !== undefined) topic.applicableDirections = input.applicableDirections;
+  if (input.applicableDirections !== undefined) {
+    topic.applicableDirections = validateDirections(input.applicableDirections);
+  }
   if (input.learningOutcomes !== undefined) {
     topic.learningOutcomes = (input.learningOutcomes || []).map(clean).filter(Boolean);
   }
@@ -240,4 +260,106 @@ export async function deleteTopic(tenantId: string, stage: string, topicId: stri
   relayDays(doc);
   await doc.save();
   return { deleted: String(topicId), remaining: doc.topics.length };
+}
+
+/* ── bulk reordering ─────────────────────────────────────────────────────── */
+
+/**
+ * Set the order of several modules in one call.
+ *
+ * ONE REQUEST, BECAUSE REORDERING IS ONE INTENTION. Sending a save per module would leave the
+ * curriculum half reordered the moment one of them failed, and "half reordered" is not a state
+ * an author can see or recover from — two modules would silently share a position and the
+ * grouped view would show them in an order nobody chose.
+ *
+ * Positions are renumbered from the SEQUENCE the caller sends rather than from numbers it
+ * supplies. An author dragging a row thinks in "third", not in "displayOrder 30", and letting
+ * them send both invites the two to disagree. Gaps of ten leave room to insert by hand later.
+ *
+ * Codes not named are left alone and keep their positions, so reordering one module's
+ * neighbours cannot disturb a part of the curriculum the author was not looking at.
+ */
+export async function reorderModules(tenantId: string, stage: string, moduleCodes: string[]) {
+  const doc: any = await loadStageCurriculum(tenantId, stage);
+  const wanted = moduleCodes.map(clean).filter(Boolean);
+  if (!wanted.length) throw new Error('Nothing to reorder.');
+
+  const list = (doc.modules || []) as any[];
+  const known = new Set(list.map(m => String(m.moduleCode)));
+  const unknown = wanted.filter(c => !known.has(c));
+  if (unknown.length) {
+    throw new Error(`No such module: ${unknown.join(', ')}.`);
+  }
+  const duplicated = wanted.filter((c, i) => wanted.indexOf(c) !== i);
+  if (duplicated.length) {
+    // Two positions for one module is not an order. Refused rather than resolved by guessing.
+    throw new Error(`${[...new Set(duplicated)].join(', ')} appears more than once in the order.`);
+  }
+
+  const position = new Map<string, number>(wanted.map((c, i) => [c, (i + 1) * 10]));
+  for (const m of list) {
+    const p = position.get(String(m.moduleCode));
+    if (p !== undefined) m.displayOrder = p;
+  }
+
+  doc.modules = list;
+  doc.markModified('modules');
+  // Days follow module order, so they are relaid: a module moved earlier takes its topics' days
+  // with it, and leaving the old spans behind would produce overlapping days across modules.
+  relayDays(doc);
+  await doc.save();
+  return { reordered: wanted.length };
+}
+
+/**
+ * Set the order of several topics WITHIN ONE MODULE.
+ *
+ * Scoped to a module on purpose. `order` is only ever compared between siblings — relayDays
+ * sorts by module first — so a global topic ordering would be a number that means nothing on
+ * its own, and an author reordering one module would be handed the other thirty-eight topics
+ * to think about.
+ */
+export async function reorderTopics(
+  tenantId: string, stage: string, moduleCode: string, topicCodes: string[],
+) {
+  const doc: any = await loadStageCurriculum(tenantId, stage);
+  const code = clean(moduleCode);
+  const wanted = topicCodes.map(clean).filter(Boolean);
+  if (!wanted.length) throw new Error('Nothing to reorder.');
+
+  const siblings = ((doc.topics || []) as any[])
+    .filter(t => String(t.moduleCode || '') === code);
+  if (!siblings.length) throw new Error(`"${code}" has no topics to reorder.`);
+
+  const known = new Set(siblings.map(t => String(t.topicCode)));
+  const strangers = wanted.filter(c => !known.has(c));
+  if (strangers.length) {
+    throw new Error(`${strangers.join(', ')} ${strangers.length === 1 ? 'is not a topic' : 'are not topics'} `
+      + `of "${code}". Move it to this module first.`);
+  }
+  const duplicated = wanted.filter((c, i) => wanted.indexOf(c) !== i);
+  if (duplicated.length) {
+    throw new Error(`${[...new Set(duplicated)].join(', ')} appears more than once in the order.`);
+  }
+
+  /**
+   * Topics the caller did not name keep their relative order, AFTER the ones it did.
+   *
+   * A partial order is a real thing to send — "put these three first" — and dropping the rest
+   * to position zero would scramble the module every time somebody reordered part of it.
+   */
+  const position = new Map<string, number>(wanted.map((c, i) => [c, i + 1]));
+  const rest = siblings
+    .filter(t => !position.has(String(t.topicCode)))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  rest.forEach((t, i) => position.set(String(t.topicCode), wanted.length + i + 1));
+
+  for (const t of siblings) {
+    const p = position.get(String(t.topicCode));
+    if (p !== undefined) t.order = p;
+  }
+
+  relayDays(doc);
+  await doc.save();
+  return { reordered: wanted.length, moduleCode: code };
 }

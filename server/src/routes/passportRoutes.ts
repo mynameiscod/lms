@@ -215,17 +215,33 @@ router.put('/stage-skill-sets/:stage',  SUPER_ADMIN, stageSkills.save);
  *
  * The curriculum and the stage skill set were two screens with nothing joining them, so
  * "Web Fundamentals teaches six skills and none of them can be assessed" was a fact you could
- * only reach by opening both and comparing by hand. Reads are MANAGE because seeing the gap is
- * how it gets closed; writes reshape what every student at the stage is taught, so they sit
- * behind the same guard as the stage skill set itself.
+ * only reach by opening both and comparing by hand.
+ *
+ * ── WHY THESE WRITES ARE MANAGE AND NOT SUPER_ADMIN ───────────────────────────────────────
+ *
+ * They were SUPER_ADMIN, and that was an over-application of a guard written for something
+ * else. Read its definition above: it exists because the SKILL CATALOGUE is global, so one
+ * admin's edit is every tenant's edit, and no tenant-scoped permission can express that. A
+ * stage curriculum is the opposite — it is a LearningCurriculum belonging to one tenant, and
+ * editing it changes nothing for anybody else.
+ *
+ * The cost of the mismatch was concrete: Learning Unit authoring is MANAGE, so a curriculum
+ * author could write the units of a topic but could not create the topic to put them in. Half
+ * a hierarchy behind one permission and half behind another is not a security boundary; it is
+ * a workflow that has to be completed by somebody else or by writing to Mongo by hand.
+ *
+ * The genuinely global routes below — the skill catalogue and the stage skill set — keep
+ * SUPER_ADMIN, because for those the original argument still holds exactly.
  */
-router.get('/stage-curriculum',                              MANAGE,      stageCurriculum.listStages);
-router.get('/stage-curriculum/:stage',                       MANAGE,      stageCurriculum.getStage);
-router.put('/stage-curriculum/:stage/modules',               SUPER_ADMIN, express.json(), stageCurriculum.putModule);
-router.delete('/stage-curriculum/:stage/modules/:moduleCode', SUPER_ADMIN, stageCurriculum.removeModule);
-router.post('/stage-curriculum/:stage/topics',               SUPER_ADMIN, express.json(), stageCurriculum.postTopic);
-router.put('/stage-curriculum/:stage/topics/:topicId',       SUPER_ADMIN, express.json(), stageCurriculum.putTopic);
-router.delete('/stage-curriculum/:stage/topics/:topicId',    SUPER_ADMIN, stageCurriculum.removeTopic);
+router.get('/stage-curriculum',                              MANAGE, stageCurriculum.listStages);
+router.get('/stage-curriculum/:stage',                       MANAGE, stageCurriculum.getStage);
+router.put('/stage-curriculum/:stage/modules',               MANAGE, express.json(), stageCurriculum.putModule);
+router.post('/stage-curriculum/:stage/modules/reorder',      MANAGE, express.json(), stageCurriculum.postModuleOrder);
+router.delete('/stage-curriculum/:stage/modules/:moduleCode', MANAGE, stageCurriculum.removeModule);
+router.post('/stage-curriculum/:stage/topics',               MANAGE, express.json(), stageCurriculum.postTopic);
+router.post('/stage-curriculum/:stage/topics/reorder',       MANAGE, express.json(), stageCurriculum.postTopicOrder);
+router.put('/stage-curriculum/:stage/topics/:topicId',       MANAGE, express.json(), stageCurriculum.putTopic);
+router.delete('/stage-curriculum/:stage/topics/:topicId',    MANAGE, stageCurriculum.removeTopic);
 
 router.get('/skills',             MANAGE,        careerSkills.listSkills);
 router.get('/skills/:key/usage',  MANAGE,        careerSkills.skillUsage);
@@ -426,6 +442,25 @@ router.post('/curriculum-units/:unitCode/status',   MANAGE, express.json(), lear
 router.get('/curriculum-units/:unitCode/content',    MANAGE, learningUnits2.unitContent);
 router.post('/curriculum-units/:unitCode/content/:contentId',   MANAGE, learningUnits2.attachContent);
 router.delete('/curriculum-units/:unitCode/content/:contentId', MANAGE, learningUnits2.detachContent);
+
+/**
+ * ── What a unit MEASURES with ──
+ *
+ * Ordered before the bare `/:unitCode` delete for the same reason the content routes are: a
+ * more specific path has to be registered first or the shorter one swallows it.
+ *
+ * These are what made a CHECKPOINT unit authorable at all. Its readiness rule is "something
+ * measures this" at every rung, so without a way to bind a quiz it could not reach TEACHABLE,
+ * could not be published, and no screen explained why. The rule is unchanged; the missing
+ * half was the binding.
+ */
+router.get('/curriculum-units/:unitCode/assessments',    MANAGE, learningUnits2.unitAssessments);
+router.post('/curriculum-units/:unitCode/assessments',   MANAGE, express.json(), learningUnits2.createUnitAssessment);
+router.post('/curriculum-units/:unitCode/quiz/:quizId',           MANAGE, learningUnits2.bindUnitQuiz);
+router.delete('/curriculum-units/:unitCode/quiz/:quizId',         MANAGE, learningUnits2.unbindUnitQuiz);
+router.post('/curriculum-units/:unitCode/assignment/:assignmentId',   MANAGE, learningUnits2.bindUnitAssignment);
+router.delete('/curriculum-units/:unitCode/assignment/:assignmentId', MANAGE, learningUnits2.unbindUnitAssignment);
+
 router.delete('/curriculum-units/:unitCode',        MANAGE, learningUnits2.deleteUnit);
 
 router.get('/me/roadmap',                       MEMBER, careerRoadmap.getMyRoadmap);

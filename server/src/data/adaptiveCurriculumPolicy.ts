@@ -66,6 +66,37 @@ export const STATE_ORDER: Record<AssignmentState, number> = {
 };
 
 /**
+ * The states an AUTHOR may name in a unit's `suitableStates` override. Seven of the nine.
+ *
+ * A unit's suitability answers "who is this material for", and only a state that describes a
+ * learner's relationship to the skill can answer it. Two states do not:
+ *
+ *   LOCKED       is a scheduling verdict the composer reaches — a prerequisite is unmet — and
+ *                never a property of the material. Authoring a unit as "suitable when locked"
+ *                would assert the opposite of what LOCKED means.
+ *   NOT_RELEVANT is a statement about the student's DIRECTION, not their ability, and the unit
+ *                already expresses direction through `applicableDirections` and `category`.
+ *                Allowing it here would give one decision two owners that could disagree.
+ *
+ * Kept as a deliberate subset rather than derived from STATE_ORDER, so that a state added to the
+ * wider taxonomy tomorrow does not silently become authorable. The screen reads this list from
+ * the server; it is not restated in the client.
+ */
+export const AUTHORABLE_SUITABLE_STATES: AssignmentState[] = [
+  'NOT_EXPOSED',
+  'FOUNDATION_REQUIRED',
+  'GUIDED',
+  'STANDARD',
+  'REVISION',
+  'VERIFIED',
+  'ENRICHMENT',
+];
+
+/** Whether an author may name this state on a unit. */
+export const isAuthorableState = (s: string): boolean =>
+  (AUTHORABLE_SUITABLE_STATES as string[]).includes(String(s).toUpperCase());
+
+/**
  * Score bands, from the brief.
  *
  * Read as "up to and including". A score of exactly 40 is GUIDED, not FOUNDATION_REQUIRED —

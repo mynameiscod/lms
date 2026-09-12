@@ -17,7 +17,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import passportApi, {
   CurriculumLearningUnit, MegaCurriculumTopicRow, MegaCurriculumSummary,
-  MegaCurriculumOptions, UnitContent,
+  MegaCurriculumOptions, UnitContent, UnitAssessments,
 } from '../../api/passportApi';
 import './megaCurriculum.css';
 
@@ -84,6 +84,164 @@ const suggestCode = (topicCode: string, title: string): string =>
 const asList = (v: string): string[] =>
   v.split(',').map(x => x.trim()).filter(Boolean);
 
+/**
+ * Pick skills from the registry, rather than typing them and hoping.
+ *
+ * A free-text box was the previous answer and it was quietly the worst field on the screen: a
+ * mistyped key saves, publishes, composes, and then never matches a student's profile. The unit
+ * is unteachable rather than broken, and nothing anywhere says so. Topics have always validated
+ * their skills; units did not, so two halves of the same hierarchy disagreed about whether a
+ * skill had to exist.
+ *
+ * Search is over key AND name, because an author thinks "recursion" and the key is
+ * RECURSION_BASICS. Selected skills are chips with the human name underneath, so a wrong pick is
+ * visible at a glance instead of hiding inside an uppercase string.
+ */
+const SkillPicker: React.FC<{
+  value: string[];
+  options: { key: string; name: string }[];
+  onChange: (next: string[]) => void;
+  placeholder?: string;
+}> = ({ value, options, onChange, placeholder }) => {
+  const [query, setQuery] = useState('');
+  const chosen = new Set(value);
+
+  const matches = query.trim().length < 1 ? [] : options
+    .filter(o => !chosen.has(o.key))
+    .filter(o => {
+      const q = query.trim().toLowerCase();
+      return o.key.toLowerCase().includes(q) || (o.name || '').toLowerCase().includes(q);
+    })
+    .slice(0, 8);
+
+  const nameOf = (key: string) => options.find(o => o.key === key)?.name;
+
+  return (
+    <div className="mgc-skills">
+      <div className="mgc-chips">
+        {value.length === 0 && <span className="mgc-chips-empty">none yet</span>}
+        {value.map(k => {
+          const known = nameOf(k);
+          return (
+            <span key={k} className={`mgc-chip${known ? '' : ' mgc-chip-unknown'}`}>
+              <span className="mgc-chip-key">{k}</span>
+              {/* An unrecognised key is shown as such rather than silently accepted. */}
+              <span className="mgc-chip-name">{known || 'not in the registry'}</span>
+              <button type="button" onClick={() => onChange(value.filter(x => x !== k))}
+                      aria-label={`Remove ${k}`}>×</button>
+            </span>
+          );
+        })}
+      </div>
+      <input value={query} onChange={e => setQuery(e.target.value)}
+             placeholder={placeholder || 'search skills…'} />
+      {matches.length > 0 && (
+        <ul className="mgc-skill-matches">
+          {matches.map(o => (
+            <li key={o.key}>
+              <button type="button" onClick={() => { onChange([...value, o.key]); setQuery(''); }}>
+                <strong>{o.name || o.key}</strong><span>{o.key}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {query.trim() && matches.length === 0 && (
+        <p className="mgc-hint">Nothing in the registry matches that. Skills cannot be invented here.</p>
+      )}
+    </div>
+  );
+};
+
+/**
+ * Pick from a short, closed vocabulary the SERVER supplies.
+ *
+ * Used for directions, and shaped so nothing about the list is known here. The states and the
+ * directions were both hardcoded copies of server policy — seven states restated beside a
+ * taxonomy of nine, and directions not constrained at all — and a client-side copy of a
+ * server-side rule drifts silently, because nothing fails when it does.
+ */
+const ChipToggle: React.FC<{
+  value: string[];
+  options: { key: string; name?: string }[];
+  onChange: (next: string[]) => void;
+  empty?: string;
+}> = ({ value, options, onChange, empty }) => (
+  <div className="mgc-state-grid">
+    {options.length === 0 && <span className="mgc-chips-empty">{empty || 'nothing to choose'}</span>}
+    {options.map(o => {
+      const on = value.includes(o.key);
+      return (
+        <button key={o.key} type="button" className={on ? 'on' : ''}
+                onClick={() => onChange(on ? value.filter(x => x !== o.key) : [...value, o.key])}>
+          {o.name || o.key.replace(/_/g, ' ').toLowerCase()}
+        </button>
+      );
+    })}
+  </div>
+);
+
+/**
+ * Choose prerequisite units by searching the curriculum, rather than typing codes.
+ *
+ * A mistyped code is now refused by the backend, which is right but arrives late — the author
+ * has already written the unit. Searching the real list means the invalid case mostly cannot be
+ * expressed, and the refusal is a backstop rather than the primary defence.
+ */
+const UnitPicker: React.FC<{
+  value: string[];
+  options: { unitCode: string; title: string }[];
+  onChange: (next: string[]) => void;
+}> = ({ value, options, onChange }) => {
+  const [query, setQuery] = useState('');
+  const chosen = new Set(value);
+  const titleOf = (code: string) => options.find(o => o.unitCode === code)?.title;
+
+  const matches = query.trim().length < 1 ? [] : options
+    .filter(o => !chosen.has(o.unitCode))
+    .filter(o => {
+      const q = query.trim().toLowerCase();
+      return o.unitCode.toLowerCase().includes(q) || o.title.toLowerCase().includes(q);
+    })
+    .slice(0, 8);
+
+  return (
+    <div className="mgc-skills">
+      <div className="mgc-chips">
+        {value.length === 0 && <span className="mgc-chips-empty">none</span>}
+        {value.map(code => {
+          const known = titleOf(code);
+          return (
+            <span key={code} className={`mgc-chip${known ? '' : ' mgc-chip-unknown'}`}>
+              <span className="mgc-chip-key">{code}</span>
+              <span className="mgc-chip-name">{known || 'no such unit'}</span>
+              <button type="button" onClick={() => onChange(value.filter(x => x !== code))}
+                      aria-label={`Remove ${code}`}>x</button>
+            </span>
+          );
+        })}
+      </div>
+      <input value={query} onChange={e => setQuery(e.target.value)}
+             placeholder="search units in this curriculum..." />
+      {matches.length > 0 && (
+        <ul className="mgc-skill-matches">
+          {matches.map(o => (
+            <li key={o.unitCode}>
+              <button type="button"
+                      onClick={() => { onChange([...value, o.unitCode]); setQuery(''); }}>
+                <strong>{o.title}</strong><span>{o.unitCode}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {query.trim() && matches.length === 0 && (
+        <p className="mgc-hint">No unit matches that. A prerequisite must name a unit that exists.</p>
+      )}
+    </div>
+  );
+};
+
 const AdminMegaCurriculum: React.FC = () => {
   const [rows, setRows] = useState<MegaCurriculumTopicRow[]>([]);
   const [orphaned, setOrphaned] = useState<CurriculumLearningUnit[]>([]);
@@ -95,6 +253,7 @@ const AdminMegaCurriculum: React.FC = () => {
   const [editingCode, setEditingCode] = useState<string>('');
   const [content, setContent] = useState<UnitContent | null>(null);
   const [contentBusy, setContentBusy] = useState(false);
+  const [exams, setExams] = useState<UnitAssessments | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
@@ -138,6 +297,20 @@ const AdminMegaCurriculum: React.FC = () => {
     return [...m.entries()].sort((a, b) => a[1].order - b[1].order);
   }, [rows]);
 
+  /**
+   * Every unit in the stage, flattened, for the prerequisite picker.
+   *
+   * Orphans are included deliberately: a unit whose topic was deleted still EXISTS, so it is
+   * still a legal prerequisite, and leaving it out would make the picker disagree with the
+   * backend about what can be referenced.
+   */
+  const allUnits = useMemo(
+    () => [...rows.flatMap(r => r.units), ...orphaned]
+      .map(u => ({ unitCode: u.unitCode, title: u.title }))
+      .sort((a, b) => a.unitCode.localeCompare(b.unitCode)),
+    [rows, orphaned],
+  );
+
   const startNew = (row: MegaCurriculumTopicRow) => {
     setEditingCode(''); setContent(null); setNote('');
     setEditing(blankUnit(
@@ -151,9 +324,34 @@ const AdminMegaCurriculum: React.FC = () => {
     catch { setContent(null); }
   }, []);
 
+  /** What the unit measures with. Separate call, same reason: binding must not redraw the page. */
+  const loadExams = useCallback(async (unitCode: string) => {
+    try { setExams(await passportApi.unitAssessments(unitCode)); }
+    catch { setExams(null); }
+  }, []);
+
   const startEdit = async (u: CurriculumLearningUnit) => {
-    setEditingCode(u.unitCode); setEditing({ ...u }); setNote(''); setContent(null);
-    await loadContent(u.unitCode);
+    setEditingCode(u.unitCode); setEditing({ ...u }); setNote('');
+    setContent(null); setExams(null);
+    await Promise.all([loadContent(u.unitCode), loadExams(u.unitCode)]);
+  };
+
+  /**
+   * Bind, unbind or create an assessment, then reload the stage.
+   *
+   * The full reload is the point: readiness is computed server-side from what is bound, so a
+   * CHECKPOINT that was EMPTY a moment ago becomes READY in the same click. Refreshing only the
+   * panel would leave the readiness badge next to it stale and wrong.
+   */
+  const withExams = async (fn: () => Promise<any>, fallback: string) => {
+    if (!editingCode) return;
+    setContentBusy(true); setErr(''); setNote('');
+    try {
+      await fn();
+      await Promise.all([loadExams(editingCode), load()]);
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || fallback);
+    } finally { setContentBusy(false); }
   };
 
   const attach = async (contentId: string) => {
@@ -228,6 +426,46 @@ const AdminMegaCurriculum: React.FC = () => {
   const patch = (p: Partial<CurriculumLearningUnit>) =>
     setEditing(e => (e ? { ...e, ...p } : e));
 
+  /**
+   * Move a module or a topic one place, by sending the WHOLE new order.
+   *
+   * The server renumbers from the sequence rather than from numbers sent with it, so two
+   * adjacent moves cannot leave a gap or a collision. Sending one changed position instead
+   * would make the client responsible for keeping every other number consistent, which is
+   * exactly the hand-renumbering this replaced.
+   */
+  const moveModule = async (moduleCode: string, delta: number) => {
+    const order = modules.map(([code]) => code);
+    const i = order.indexOf(moduleCode);
+    const j = i + delta;
+    if (i < 0 || j < 0 || j >= order.length) return;
+    [order[i], order[j]] = [order[j], order[i]];
+    setErr(''); setNote('');
+    try {
+      await passportApi.reorderStageModules(opts?.stageKey || 'foundation', order);
+      await load();
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || 'Could not reorder the modules.');
+    }
+  };
+
+  const moveTopic = async (moduleCode: string, topicCode: string, delta: number) => {
+    const mod = modules.find(([code]) => code === moduleCode);
+    if (!mod) return;
+    const order = mod[1].topics.map(t => t.topicCode);
+    const i = order.indexOf(topicCode);
+    const j = i + delta;
+    if (i < 0 || j < 0 || j >= order.length) return;
+    [order[i], order[j]] = [order[j], order[i]];
+    setErr(''); setNote('');
+    try {
+      await passportApi.reorderStageTopics(opts?.stageKey || 'foundation', moduleCode, order);
+      await load();
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || 'Could not reorder the topics.');
+    }
+  };
+
   return (
     <div className="mgc-page">
       <header className="mgc-head">
@@ -259,6 +497,11 @@ const AdminMegaCurriculum: React.FC = () => {
             <small>inherit their topic — nothing written for them</small></div>
           <div className="mgc-kpi good"><span>Ready</span><b>{summary.readiness?.READY || 0}</b>
             <small>own everything their type needs</small></div>
+          {/* Published and Ready are different claims and are constantly mistaken for each
+              other. The gap between this number and "Live" is the actual backlog. */}
+          <div className={`mgc-kpi ${summary.composerReady ? 'good' : 'warn'}`}>
+            <span>Composer eligible</span><b>{summary.composerReady ?? 0}</b>
+            <small>published AND ready — all a plan may use</small></div>
         </div>
       )}
 
@@ -286,14 +529,39 @@ const AdminMegaCurriculum: React.FC = () => {
         </div>
       )}
 
-      {modules.map(([moduleCode, mod]) => (
+      {modules.map(([moduleCode, mod], mi) => (
         <section className="mgc-module" key={moduleCode}>
-          <h2>{mod.name} <code>{moduleCode}</code></h2>
+          <h2>
+            {mod.name} <code>{moduleCode}</code>
+            <span className="mgc-move">
+              <button type="button" disabled={mi === 0} title="Move this module up"
+                      onClick={() => moveModule(moduleCode, -1)}>
+                <i className="bi bi-arrow-up" />
+              </button>
+              <button type="button" disabled={mi === modules.length - 1} title="Move this module down"
+                      onClick={() => moveModule(moduleCode, 1)}>
+                <i className="bi bi-arrow-down" />
+              </button>
+            </span>
+          </h2>
 
-          {mod.topics.map(row => {
+          {mod.topics.map((row, ti) => {
             const isOpen = open === row.topicCode;
             return (
               <div className={`mgc-topic ${isOpen ? 'open' : ''}`} key={row.topicCode}>
+                {/* Outside the disclosure button, because a button inside a button is not
+                    valid markup and the click would reach both. */}
+                <span className="mgc-move topic">
+                  <button type="button" disabled={ti === 0} title="Move this topic up"
+                          onClick={() => moveTopic(moduleCode, row.topicCode, -1)}>
+                    <i className="bi bi-arrow-up" />
+                  </button>
+                  <button type="button" disabled={ti === mod.topics.length - 1}
+                          title="Move this topic down"
+                          onClick={() => moveTopic(moduleCode, row.topicCode, 1)}>
+                    <i className="bi bi-arrow-down" />
+                  </button>
+                </span>
                 <button className="mgc-topichead" onClick={() => setOpen(isOpen ? '' : row.topicCode)}>
                   <span className="mgc-tname">
                     <b>{row.topicTitle}</b>
@@ -338,6 +606,14 @@ const AdminMegaCurriculum: React.FC = () => {
                                     <em className={u.coverage.ownTeaching ? 'on' : ''}>T{u.coverage.ownTeaching}</em>
                                     <em className={u.coverage.ownPractice ? 'on' : ''}>P{u.coverage.ownPractice}</em>
                                     <em className={u.coverage.ownAssessment ? 'on' : ''}>C{u.coverage.ownAssessment}</em>
+                                    {/* Only shown where it decides something: a PROJECT is not
+                                        READY without an assignment, however many quizzes it has. */}
+                                    {u.unitType === 'PROJECT' && (
+                                      <em className={u.coverage.ownSubmission ? 'on' : ''}
+                                          title="Bound assignments — the only thing that can receive submitted work">
+                                        S{u.coverage.ownSubmission}
+                                      </em>
+                                    )}
                                     {u.coverage.inheritedCount > 0 && (
                                       <em className="inh" title={`${u.coverage.inheritedCount} inherited from the topic — shared with sibling units`}>
                                         +{u.coverage.inheritedCount} inh
@@ -351,6 +627,11 @@ const AdminMegaCurriculum: React.FC = () => {
                                     <b className={`r-${u.coverage.readiness.toLowerCase()}`}>
                                       {READINESS_LABEL[u.coverage.readiness]}
                                     </b>
+                                    {u.coverage.composerReady && (
+                                      <em className="mgc-ce" title="Published and READY — a plan may use this unit">
+                                        composer
+                                      </em>
+                                    )}
                                   </>
                                 )}
                               </span>
@@ -458,21 +739,39 @@ const AdminMegaCurriculum: React.FC = () => {
               </p>
             )}
 
-            <label>Skills it teaches <em>comma separated</em>
-              <input value={editing.skillKeys.join(', ')}
-                     onChange={e => patch({ skillKeys: asList(e.target.value).map(x => x.toUpperCase()) })}
-                     placeholder="JAVA_OOP" />
+            <label>Skills it teaches <em>from the registry</em>
+              <SkillPicker value={editing.skillKeys} options={opts?.skills || []}
+                           onChange={next => patch({ skillKeys: next })}
+                           placeholder="search skills this unit teaches…" />
             </label>
 
             <label>Skills required first <em>blank means none</em>
-              <input value={editing.prerequisiteSkillKeys.join(', ')}
-                     onChange={e => patch({ prerequisiteSkillKeys: asList(e.target.value).map(x => x.toUpperCase()) })} />
+              <SkillPicker value={editing.prerequisiteSkillKeys} options={opts?.skills || []}
+                           onChange={next => patch({ prerequisiteSkillKeys: next })}
+                           placeholder="search prerequisite skills…" />
             </label>
 
-            <label>Units required first <em>codes, within this curriculum</em>
-              <input value={editing.prerequisiteUnitCodes.join(', ')}
-                     onChange={e => patch({ prerequisiteUnitCodes: asList(e.target.value).map(x => x.toUpperCase()) })}
-                     placeholder="T_OOP_CLASSES_AND_OBJECTS" />
+            <label className="mgc-states">Serves which states
+              <em>blank derives from the unit type — only override with a reason</em>
+              {/* The vocabulary is the server's. See MegaCurriculumOptions.suitableStates. */}
+              <ChipToggle value={editing.suitableStates || []}
+                          options={(opts?.suitableStates || []).map(k => ({ key: k }))}
+                          onChange={next => patch({ suitableStates: next })} />
+              {(editing.suitableStates || []).length > 0 && (
+                <p className="mgc-hint">
+                  Overridden. This unit will be offered at these states regardless of what
+                  “{editing.unitType}” would normally imply.{' '}
+                  <button type="button" className="mgc-linkish"
+                          onClick={() => patch({ suitableStates: [] })}>
+                    back to the default
+                  </button>
+                </p>
+              )}
+            </label>
+
+            <label>Units required first <em>a loop is refused, so is a unit that does not exist</em>
+              <UnitPicker value={editing.prerequisiteUnitCodes} options={allUnits}
+                          onChange={next => patch({ prerequisiteUnitCodes: next })} />
             </label>
 
             <label>Learning outcomes <em>one per line</em>
@@ -497,9 +796,11 @@ const AdminMegaCurriculum: React.FC = () => {
             </div>
 
             <label>Directions <em>blank means every direction</em>
-              <input value={editing.applicableDirections.join(', ')}
-                     onChange={e => patch({ applicableDirections: asList(e.target.value).map(x => x.toUpperCase()) })}
-                     placeholder="WEB_DEVELOPMENT" />
+              {/* SOFTWARE_BACKEND is the frozen name. Offering the list rather than a text box
+                  is what stops SOFTWARE_DEVELOPMENT being invented a second time. */}
+              <ChipToggle value={editing.applicableDirections}
+                          options={opts?.directions || []}
+                          onChange={next => patch({ applicableDirections: next })} />
             </label>
 
             <label className="mgc-check">
@@ -593,6 +894,99 @@ const AdminMegaCurriculum: React.FC = () => {
               </div>
             )}
 
+            {editingCode && exams && (
+              <div className="mgc-content">
+                <div className={`mgc-bundle ${exams.hasAssessment ? '' : 'thin'}`}>
+                  <span>What measures this unit</span>
+                  <b>
+                    {exams.bound.length} bound
+                    {exams.hasSubmission ? ' · can receive submitted work' : ''}
+                  </b>
+                  <small>
+                    {/* Said plainly, because the distinction decides whether a PROJECT can ever
+                        be READY and nothing else on the screen explains it. */}
+                    A quiz measures recall; only an assignment can receive what a student built.
+                    {exams.unitType === 'CHECKPOINT' && !exams.hasAssessment
+                      && ' A checkpoint with nothing bound cannot be published at all.'}
+                    {exams.unitType === 'PROJECT' && !exams.hasSubmission
+                      && ' A project needs a bound assignment before it can be READY.'}
+                  </small>
+                </div>
+
+                {exams.bound.length > 0 && (
+                  <ol className="mgc-clist">
+                    {exams.bound.map(a => (
+                      <li key={a._id} className="bound">
+                        <span className="mgc-crole">{a.kind === 'QUIZ' ? 'QUIZ' : 'SUBMIT'}</span>
+                        <span className="mgc-cbody">
+                          <b>{a.title}</b>
+                          <small>
+                            {a.kind === 'QUIZ' ? 'Quiz' : `Assignment${a.type ? ` · ${a.type}` : ''}`}
+                            {!a.live && <> · <b className="mgc-unpub">not live yet</b></>}
+                            {a.countsAsSubmission && <> · counts as submission</>}
+                          </small>
+                        </span>
+                        <button className="mgc-cbtn" disabled={contentBusy}
+                                title="Unbind — the quiz or assignment itself is kept"
+                                onClick={() => withExams(
+                                  () => passportApi.unbindUnitAssessment(editingCode, a.kind, a._id),
+                                  'Could not unbind this assessment.')}>
+                          <i className="bi bi-x-lg" />
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+
+                {exams.candidates.length > 0 && (
+                  <>
+                    <span className="mgc-lbl">
+                      Bind an existing one <em>only ones no other unit has claimed</em>
+                    </span>
+                    <ol className="mgc-clist cand">
+                      {exams.candidates.slice(0, 12).map(a => (
+                        <li key={a._id}>
+                          <span className="mgc-crole">{a.kind === 'QUIZ' ? 'QUIZ' : 'SUBMIT'}</span>
+                          <span className="mgc-cbody">
+                            <b>{a.title}</b>
+                            <small>
+                              {a.kind === 'QUIZ' ? 'Quiz' : 'Assignment'}
+                              {!a.live && <> · not live</>}
+                            </small>
+                          </span>
+                          <button className="mgc-cbtn add" disabled={contentBusy}
+                                  title="Bind to this unit"
+                                  onClick={() => withExams(
+                                    () => passportApi.bindUnitAssessment(editingCode, a.kind, a._id),
+                                    'Could not bind this assessment.')}>
+                            <i className="bi bi-plus-lg" />
+                          </button>
+                        </li>
+                      ))}
+                    </ol>
+                  </>
+                )}
+
+                {/* Creating one from here answers the question the quiz and assignment builders
+                    cannot see: WHICH unit is the one still missing its checkpoint. Both shells
+                    are created inactive, and are finished in the screens that own them. */}
+                <div className="mgc-actions" style={{ marginTop: 4 }}>
+                  <button className="mgc-btn" disabled={contentBusy}
+                          onClick={() => withExams(
+                            () => passportApi.createUnitAssessment(editingCode, 'QUIZ'),
+                            'Could not create a quiz.')}>
+                    <i className="bi bi-patch-question" /> New quiz for this unit
+                  </button>
+                  <button className="mgc-btn" disabled={contentBusy}
+                          onClick={() => withExams(
+                            () => passportApi.createUnitAssessment(editingCode, 'ASSIGNMENT'),
+                            'Could not create an assignment.')}>
+                    <i className="bi bi-upload" /> New assignment for this unit
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="mgc-actions">
               <button className="mgc-btn primary" onClick={save} disabled={saving}>
                 {saving ? 'Saving…' : 'Save unit'}
@@ -601,7 +995,9 @@ const AdminMegaCurriculum: React.FC = () => {
                 <button className="mgc-btn" onClick={() => publish(editingCode)}>Publish</button>
               )}
               <button className="mgc-btn ghost"
-                      onClick={() => { setEditing(null); setEditingCode(''); setContent(null); }}>
+                      onClick={() => {
+                        setEditing(null); setEditingCode(''); setContent(null); setExams(null);
+                      }}>
                 Close
               </button>
             </div>

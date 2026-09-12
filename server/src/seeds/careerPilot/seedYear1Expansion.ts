@@ -29,6 +29,7 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import CurriculumLearningUnit from '../../models/CurriculumLearningUnit';
+import { buildPrerequisiteGraph, findPrerequisiteCycles } from '../../data/unitPrerequisiteGraph';
 import LearningCurriculum from '../../models/LearningCurriculum';
 import CareerSkill from '../../models/CareerSkill';
 import { PROPOSED_UNITS, PROPOSED_TOPICS } from './year1ExpansionSpec';
@@ -152,40 +153,40 @@ async function validate(tenantId: string): Promise<Problem[]> {
 
   /* ---- 6. prerequisite skill existence ----------------------------- */
   /**
-   * Checked against the SKILL REGISTRY, not against the curriculum's own usage.
+   * Checked against the SKILL REGISTRY, which is GLOBAL and has no tenant.
    *
-   * ── PRODUCTION-READINESS ITEM: THE REGISTRY IS EMPTY ────────────────────────────────────
+   * An earlier version of this check queried CareerSkill by tenantId — a field the model
+   * deliberately does not have, because a skill key means the same thing everywhere ("if JAVA_OOP
+   * meant two different things at two colleges, neither could be measured"). It therefore matched
+   * nothing, reported the registry as empty, and silently fell back to validating against the
+   * curriculum's own keys, which can only catch a typo that nothing else uses.
    *
-   * On the CareerPilot tenant, CareerSkill has no documents, so this check falls back to the keys
-   * the existing units already use. That is a weaker guarantee and it is recorded here rather
-   * than quietly accepted: the fallback can only catch a key nothing else uses, so a typo
-   * duplicated across two units would pass.
+   * The registry was never empty: all 127 skills exist and every one of the Year-1 canonical 55
+   * is among them. Querying it correctly is the check.
    *
-   * It does not block composition and is deliberately NOT solved here. What it needs before
-   * production is an admin skill-selection flow backed by a canonical validated registry rather
-   * than free-text entry — today a curriculum author can type any string into skillKeys and
-   * nothing anywhere will object. The unit imports, composes, and simply never matches a
-   * student's profile.
-   *
-   * A skill key that no CareerSkill defines is a typo that survives every other check: the unit
-   * imports, composes, and simply never matches a student's profile — it would quietly be
-   * unteachable rather than visibly broken.
+   * A skill key no CareerSkill defines is a typo that survives every other check — the unit
+   * imports, composes, and simply never matches a student's profile. Unteachable rather than
+   * visibly broken.
    */
   const registered = new Set(
-    ((await CareerSkill.find({ tenantId }).select('key').lean()) as any[]).map(s => String(s.key)),
+    ((await CareerSkill.find({}).select('key').lean()) as any[]).map(s => String(s.key).toUpperCase()),
   );
-  const inDesign = new Set(existingUnits.flatMap(u => (u.skillKeys || []).map(String)));
-  const known = registered.size ? registered : inDesign;
-  const source = registered.size ? 'CareerSkill registry' : 'existing unit skillKeys (registry empty)';
+  if (!registered.size) {
+    fail('skill exists', 'the CareerSkill registry is empty — seed the canonical taxonomy first');
+  }
 
   for (const u of PROPOSED_UNITS) {
     for (const k of [...u.skillKeys, ...u.prerequisiteSkillKeys]) {
-      if (!known.has(k)) fail('skill exists', `${u.unitCode} references ${k}, not found in ${source}`);
+      if (registered.size && !registered.has(k)) {
+        fail('skill exists', `${u.unitCode} references ${k}, which no CareerSkill defines`);
+      }
     }
   }
   for (const t of PROPOSED_TOPICS) {
     for (const k of [...t.skillKeys, ...t.prerequisiteSkillKeys]) {
-      if (!known.has(k)) fail('skill exists', `topic ${t.topicCode} references ${k}, not found in ${source}`);
+      if (registered.size && !registered.has(k)) {
+        fail('skill exists', `topic ${t.topicCode} references ${k}, which no CareerSkill defines`);
+      }
     }
   }
 
@@ -198,34 +199,27 @@ async function validate(tenantId: string): Promise<Problem[]> {
    * can create. A cycle is unrecoverable for the composer: nothing in the loop is ever takeable,
    * so the units silently vanish from every plan.
    */
-  const deps = new Map<string, string[]>();
-  for (const u of existingUnits) deps.set(String(u.unitCode), []);
+  /**
+   * The walk itself now lives in data/unitPrerequisiteGraph, and the Admin save path uses the
+   * SAME one. It was inline here first; leaving a copy behind would eventually let this seed
+   * and the authoring screen disagree about what a cycle is, and the curriculum would then
+   * depend on which door a change came through.
+   */
   const fullExisting = await CurriculumLearningUnit
     .find({ tenantId }).select('unitCode prerequisiteUnitCodes').lean() as any[];
-  for (const u of fullExisting) {
-    deps.set(String(u.unitCode), (u.prerequisiteUnitCodes || []).map(String));
-  }
-  for (const u of PROPOSED_UNITS) deps.set(u.unitCode, u.prerequisiteUnitCodes);
 
-  const WHITE = 0; const GREY = 1; const BLACK = 2;
-  const colour = new Map<string, number>();
-  const cycles: string[] = [];
+  const deps = buildPrerequisiteGraph([
+    ...existingUnits.map((u: any) => ({ unitCode: String(u.unitCode), prerequisiteUnitCodes: [] })),
+    ...fullExisting.map(u => ({
+      unitCode: String(u.unitCode),
+      prerequisiteUnitCodes: (u.prerequisiteUnitCodes || []).map(String),
+    })),
+    ...PROPOSED_UNITS.map(u => ({
+      unitCode: u.unitCode, prerequisiteUnitCodes: u.prerequisiteUnitCodes,
+    })),
+  ]);
 
-  const walk = (code: string, path: string[]) => {
-    colour.set(code, GREY);
-    for (const next of deps.get(code) || []) {
-      if (!deps.has(next)) continue;
-      const c = colour.get(next) ?? WHITE;
-      if (c === GREY) {
-        cycles.push([...path, code, next].join(' -> '));
-      } else if (c === WHITE) {
-        walk(next, [...path, code]);
-      }
-    }
-    colour.set(code, BLACK);
-  };
-  for (const code of deps.keys()) if ((colour.get(code) ?? WHITE) === WHITE) walk(code, []);
-  for (const c of [...new Set(cycles)]) fail('no prerequisite cycles', c);
+  for (const c of findPrerequisiteCycles(deps)) fail('no prerequisite cycles', c);
 
   /* ---- 8. learning outcomes present -------------------------------- */
   for (const u of PROPOSED_UNITS) {

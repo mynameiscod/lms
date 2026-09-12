@@ -266,6 +266,51 @@ export const passportApi = {
     const r = await axios.delete(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}`, { headers: auth() });
     return r.data;
   },
+  // ── What a unit measures with ─────────────────────────────────────
+  unitAssessments: async (unitCode: string): Promise<UnitAssessments> => {
+    const r = await axios.get(
+      `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/assessments`, { headers: auth() });
+    return r.data;
+  },
+  bindUnitAssessment: async (
+    unitCode: string, kind: 'QUIZ' | 'ASSIGNMENT', id: string,
+  ): Promise<{ bound: boolean }> => {
+    const seg = kind === 'QUIZ' ? 'quiz' : 'assignment';
+    const r = await axios.post(
+      `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/${seg}/${encodeURIComponent(id)}`,
+      {}, { headers: auth() });
+    return r.data;
+  },
+  unbindUnitAssessment: async (
+    unitCode: string, kind: 'QUIZ' | 'ASSIGNMENT', id: string,
+  ): Promise<{ unbound: boolean }> => {
+    const seg = kind === 'QUIZ' ? 'quiz' : 'assignment';
+    const r = await axios.delete(
+      `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/${seg}/${encodeURIComponent(id)}`,
+      { headers: auth() });
+    return r.data;
+  },
+  createUnitAssessment: async (
+    unitCode: string, kind: 'QUIZ' | 'ASSIGNMENT', title?: string,
+  ): Promise<{ created: boolean; id: string }> => {
+    const r = await axios.post(
+      `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/assessments`,
+      { kind, title }, { headers: auth() });
+    return r.data;
+  },
+  // ── Module and topic order ────────────────────────────────────────
+  reorderStageModules: async (stage: string, order: string[]): Promise<any> => {
+    const r = await axios.post(
+      `${CP}/stage-curriculum/${encodeURIComponent(stage)}/modules/reorder`,
+      { order }, { headers: auth() });
+    return r.data;
+  },
+  reorderStageTopics: async (stage: string, moduleCode: string, order: string[]): Promise<any> => {
+    const r = await axios.post(
+      `${CP}/stage-curriculum/${encodeURIComponent(stage)}/topics/reorder`,
+      { moduleCode, order }, { headers: auth() });
+    return r.data;
+  },
   // ── Learning Studio ─────────────────────────────────────────────────────────
   studioConcepts: async (): Promise<{ concepts: StudioConcept[]; summary: any }> => {
     const r = await axios.get(`${BASE.replace('/passport', '/careerpilot')}/concept-learning-units/concepts`, { headers: auth() });
@@ -1931,6 +1976,11 @@ export interface CurriculumLearningUnit {
   description: string;
   displayOrder: number;
   skillKeys: string[];
+  /**
+   * Authored suitability. ABSENT means derived from unitType, which is what almost every unit
+   * does; a list is a claim that this unit serves states its type does not.
+   */
+  suitableStates?: string[];
   prerequisiteSkillKeys: string[];
   prerequisiteUnitCodes: string[];
   learningOutcomes: string[];
@@ -1963,6 +2013,14 @@ export interface UnitCoverage {
   ownTeaching: number;
   ownPractice: number;
   ownAssessment: number;
+  /**
+   * Bound ASSIGNMENTS only — the submission axis, which a quiz can never satisfy.
+   *
+   * Reported apart from `ownAssessment` because a PROJECT with two quizzes and no assignment
+   * has assessment and still cannot be READY, and one merged number would hide the reason.
+   */
+  ownSubmission: number;
+  boundAssessments: number;
   inheritedCount: number;
   /** Attached to this unit but unpublished — it resolves for nothing. */
   unpublishedAttached: number;
@@ -1970,6 +2028,10 @@ export interface UnitCoverage {
   types: string[];
   hasTeaching: boolean;
   hasPractice: boolean;
+  /** Whether the publish bar is met right now, so the button can say why not. */
+  publishable: boolean;
+  /** PUBLISHED **and** READY. The only state a student's plan may be built from. */
+  composerReady: boolean;
 }
 
 export interface MegaCurriculumTopicRow {
@@ -1990,6 +2052,8 @@ export interface MegaCurriculumSummary {
   totalUnits: number;
   published: number;
   drafts: number;
+  /** Published AND ready. The gap between this and `published` is the real backlog. */
+  composerReady: number;
   orphaned: number;
   /** How many units sit at each readiness rung. PARTIAL is the real backlog. */
   readiness?: Record<string, number>;
@@ -2040,10 +2104,44 @@ export interface MegaCurriculumOptions {
     moduleCode: string; topicCode: string; title: string; skillKeys: string[];
     defaultDepth: string | null; applicableDirections: string[];
   }[];
+  /** Active SKILL nodes only — the same set the backend will accept on save. */
   skills: { key: string; name: string }[];
   unitTypes: LearningUnitType[];
   categories: LearningUnitCategory[];
   bands: { key: string; label: string; days: number }[];
+  /**
+   * Served by the server, never restated here.
+   *
+   * Both of these were hardcoded in the screen, which meant the client held a second copy of a
+   * server taxonomy and the two could drift with nothing to report it. The seven authorable
+   * states are a deliberate SUBSET of the nine AssignmentStates — see the server policy for why
+   * LOCKED and NOT_RELEVANT are excluded — so deriving them in the client was never possible
+   * anyway without repeating the reasoning.
+   */
+  suitableStates: string[];
+  directions: { key: string; name: string }[];
+}
+
+export interface UnitAssessment {
+  _id: string;
+  kind: 'QUIZ' | 'ASSIGNMENT';
+  title: string;
+  /** Bound but not live teaches nobody — the same trap as attached-but-unpublished content. */
+  live: boolean;
+  /** Only an ASSIGNMENT can receive submitted work. */
+  countsAsSubmission: boolean;
+  type?: string;
+  totalMarks?: number;
+}
+
+export interface UnitAssessments {
+  unitCode: string;
+  unitType: string;
+  bound: UnitAssessment[];
+  /** Assessments carrying no unit code at all. One already bound elsewhere is never offered. */
+  candidates: UnitAssessment[];
+  hasAssessment: boolean;
+  hasSubmission: boolean;
 }
 
 export interface StudioConcept {

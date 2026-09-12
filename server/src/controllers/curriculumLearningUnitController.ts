@@ -5,12 +5,18 @@ import CurriculumLearningUnit, {
 } from '../models/CurriculumLearningUnit';
 import LearningContentLibrary from '../models/LearningContentLibrary';
 import LearningCurriculum from '../models/LearningCurriculum';
-import CareerSkill from '../models/CareerSkill';
 import Quiz from '../models/Quiz';
 import Assignment from '../models/Assignment';
 import { SPINE_BANDS } from '../data/ninetyDayPolicy';
 import { inTeachingOrder, roleOf, teaches, TEACHING_ORDER } from '../data/contentBundlePolicy';
-import { evaluateReadiness } from '../data/unitReadinessPolicy';
+import {
+  evaluateReadiness, meetsPublishBar, MINIMUM_TO_PUBLISH, typeRequiresTeaching,
+} from '../data/unitReadinessPolicy';
+import { AUTHORABLE_SUITABLE_STATES } from '../data/adaptiveCurriculumPolicy';
+import { DIRECTION_KEYS, CAREER_DIRECTIONS } from '../data/careerDirectionPolicy';
+import { cyclesIntroducedBy } from '../data/unitPrerequisiteGraph';
+import { requireAuthorableSkills, listAuthorableSkills } from '../services/skillRegistryService';
+import * as assessments from '../services/unitAssessmentService';
 
 /**
  * Authoring the mega curriculum's Learning Units.
@@ -36,6 +42,31 @@ const actorOf = (req: Request): string =>
   String((req as any).user?.email || (req as any).user?.id || '');
 
 const clean = (v: any, n: number): string => String(v ?? '').trim().slice(0, n);
+
+/**
+ * Directions must name a direction that EXISTS, for the same reason skills must.
+ *
+ * `applicableDirections` decides who a unit is offered to. A key nothing defines narrows the
+ * audience to nobody, and the unit disappears from every plan while looking perfectly authored
+ * on the screen — the identical failure the skill registry check closed, one field along.
+ *
+ * The canonical list is DIRECTION_KEYS, which is where the frozen SOFTWARE_BACKEND naming
+ * lives. Nothing here restates it, so "SOFTWARE_DEVELOPMENT" is refused by construction rather
+ * than by a rule somebody has to remember.
+ */
+function requireKnownDirections(keys: string[]): string[] {
+  const unknown = keys.filter(k => !(DIRECTION_KEYS as string[]).includes(k));
+  if (unknown.length) {
+    throw Object.assign(
+      new Error(`${unknown.join(', ')} ${unknown.length === 1 ? 'is not a' : 'are not'} `
+        + `career direction${unknown.length === 1 ? '' : 's'}. `
+        + `The directions are: ${(DIRECTION_KEYS as string[]).join(', ')}.`),
+      { status: 400 },
+    );
+  }
+  return keys;
+}
+
 const cleanList = (v: any, n: number, upper = false): string[] =>
   (Array.isArray(v) ? v : [])
     .map(x => { const t = clean(x, n); return upper ? t.toUpperCase() : t; })
@@ -256,13 +287,14 @@ export const listUnits = async (req: Request, res: Response) => {
       }
       const pool = own.length ? own : inherited;
       const types = [...new Set(pool.map((r: any) => String(r.type)))];
+      const boundAssessments = assessmentsByUnit.get(String(unit.unitCode)) || 0;
+      const boundAssignments = assignmentsByUnit.get(String(unit.unitCode)) || 0;
       const evaluated = evaluateReadiness({
         unitType: unit.unitType,
         ownContent: own,
         inheritedContent: inherited,
-        // Quiz and Assignment binding exists but nothing is bound yet; counted when it is.
-        boundAssessments: assessmentsByUnit.get(String(unit.unitCode)) || 0,
-        boundAssignments: assignmentsByUnit.get(String(unit.unitCode)) || 0,
+        boundAssessments,
+        boundAssignments,
       });
       const { readiness, missing, inheritedOnly } = evaluated;
       /**
@@ -279,12 +311,31 @@ export const listUnits = async (req: Request, res: Response) => {
         ownTeaching: (evaluated as any).own.teachingCount,
         ownPractice: (evaluated as any).own.practiceCount,
         ownAssessment: (evaluated as any).own.assessmentCount,
+        /**
+         * The submission axis, reported apart from assessment because they are different claims.
+         *
+         * A quiz measures recall; only an Assignment can receive the thing a student built. A
+         * PROJECT with two quizzes and no assignment has `boundAssessments: 2` and cannot be
+         * READY, and an author looking at one number would have no way to see why.
+         */
+        ownSubmission: boundAssignments,
+        boundAssessments,
         inheritedCount: inherited.length,
         unpublishedAttached: unpublishedByUnit.get(String(unit.unitCode)) || 0,
         items: pool.length,
         types,
         hasTeaching: pool.some((r: any) => teaches(String(r.type))),
         hasPractice: pool.some((r: any) => roleOf(String(r.type)) === 'PRACTISE'),
+        /** Would publishing be allowed right now. Reported so the button can say why not. */
+        publishable: meetsPublishBar(readiness),
+        /**
+         * PUBLISHED **and** READY — the only thing a student's plan may be built from.
+         *
+         * Shown beside the status rather than inferred from it, because the two are constantly
+         * mistaken for each other: publishing is an author's decision and readiness is a fact
+         * about the material, and a unit can very easily be one without the other.
+         */
+        composerReady: unit.status === 'PUBLISHED' && readiness === 'READY',
       };
     };
 
@@ -335,6 +386,13 @@ export const listUnits = async (req: Request, res: Response) => {
         totalUnits: (units as any[]).length,
         published: (units as any[]).filter(u => u.status === 'PUBLISHED').length,
         drafts: (units as any[]).filter(u => u.status === 'DRAFT').length,
+        /**
+         * How many units a student's plan could actually be built from today.
+         *
+         * Counted separately from `published` because the gap between the two IS the backlog:
+         * a stage with 300 published units and 4 composer-ready ones is not nearly finished.
+         */
+        composerReady: rows.flatMap(r => r.units).filter((u: any) => u.coverage?.composerReady).length,
         orphaned: orphaned.length,
       },
     });
@@ -370,10 +428,18 @@ export const unitOptions = async (req: Request, res: Response) => {
     if (!tenantId) return res.status(400).json({ message: 'No tenant on this request.' });
 
     const stageKey = clean(req.query.stage, 60) || 'foundation';
+    /**
+     * Skills come from the registry service, which is the SAME source that validates a save.
+     *
+     * The selector used to offer `active: true` while the validator accepted anything in the
+     * collection, GROUP nodes and retired skills included. A screen that offers one set and a
+     * backend that accepts another is a screen an author cannot trust: either it hides a legal
+     * choice or it accepts one it never offered.
+     */
     const [curriculum, skills] = await Promise.all([
       LearningCurriculum.findOne({ tenantId, adaptiveStage: stageKey })
         .select('topics modules').lean() as any,
-      CareerSkill.find({ active: true }).select('key name').lean() as any,
+      listAuthorableSkills(),
     ]);
 
     res.json({
@@ -391,10 +457,22 @@ export const unitOptions = async (req: Request, res: Response) => {
           defaultDepth: t.defaultDepth || null,
           applicableDirections: t.applicableDirections || [],
         })),
-      skills: (skills as any[]).map(s => ({ key: s.key, name: s.name || s.key })),
+      skills: skills.map(s => ({ key: s.key, name: s.name })),
       unitTypes: LEARNING_UNIT_TYPES,
       categories: LEARNING_UNIT_CATEGORIES,
       bands: SPINE_BANDS.map(b => ({ key: b.key, label: b.label, days: b.days })),
+      /**
+       * The vocabularies the client used to hold copies of.
+       *
+       * Serving them makes the server the single authority: a state or a direction added,
+       * renamed or withdrawn reaches the screen on the next load instead of on the next time
+       * somebody remembers there is a second list to edit.
+       */
+      suitableStates: AUTHORABLE_SUITABLE_STATES,
+      directions: CAREER_DIRECTIONS
+        .slice()
+        .sort((a, b) => a.displayOrder - b.displayOrder)
+        .map(d => ({ key: d.key, name: d.name })),
     });
   } catch (e: any) {
     console.error('[learning-units] options:', e?.message || e);
@@ -446,6 +524,92 @@ export const saveUnit = async (req: Request, res: Response) => {
       return res.status(400).json({ message: `${category} is not a category.` });
     }
 
+    /**
+     * Authored suitability, when the type-derived default is not right for this unit.
+     *
+     * Absent and empty are DIFFERENT and both are meaningful: absent means "derive from unitType",
+     * which is what 329 of 337 units do, while an explicit list is a claim that this particular
+     * unit serves states its type does not. Sending an empty array clears an override and returns
+     * the unit to derivation, which is why it is unset rather than stored as [].
+     *
+     * Until now this could not be edited at all: the eight P7A.2 overrides were invisible in
+     * Admin and only a seed could set them, so an author could see a unit behaving unlike its
+     * type with nothing on screen explaining why.
+     */
+    /**
+     * NOT SENT, SENT EMPTY, AND SENT WITH VALUES ARE THREE DIFFERENT INSTRUCTIONS.
+     *
+     * Absent means "I am not talking about suitability" and the stored override must survive
+     * untouched. Empty means "remove the override". Collapsing the first into the second is how
+     * renaming a unit would silently revert a suitability decision somebody made deliberately —
+     * the same mistake the Year-1 seed refuses to make with author-controlled fields, and it
+     * would undo through the front door exactly what the seed protects. Eight real units carry
+     * an override today and none of them may be cleared by an edit that never mentioned it.
+     */
+    const statesMentioned = b.suitableStates !== undefined;
+    const suitableStates = cleanList(b.suitableStates, 40, true);
+    const badState = suitableStates.find(x => !(AUTHORABLE_SUITABLE_STATES as string[]).includes(x));
+    if (badState) {
+      /**
+       * LOCKED and NOT_RELEVANT reach this message too, and deliberately so.
+       *
+       * Both are real members of the wider AssignmentState taxonomy, so "not a state" would be
+       * untrue and would send an author looking for a typo they did not make. They are not
+       * AUTHORABLE — see AUTHORABLE_SUITABLE_STATES for why each is excluded — and the message
+       * has to say that rather than deny they exist.
+       */
+      return res.status(400).json({
+        message: `${badState} cannot be authored as a suitable state. `
+          + `Choose from: ${AUTHORABLE_SUITABLE_STATES.join(', ')}.`,
+      });
+    }
+
+    const skillKeys = await requireAuthorableSkills(cleanList(b.skillKeys, 80, true), 'skill');
+    const prerequisiteSkillKeys = await requireAuthorableSkills(
+      cleanList(b.prerequisiteSkillKeys, 80, true), 'prerequisite skill',
+    );
+    const applicableDirections = requireKnownDirections(cleanList(b.applicableDirections, 60, true));
+
+    /**
+     * Prerequisites: real units, not this one, and no loop.
+     *
+     * `cleanList` has already removed duplicates — a code repeated twice is one dependency
+     * stated twice, never an error worth stopping a save for.
+     */
+    const prerequisiteUnitCodes = cleanList(b.prerequisiteUnitCodes, 80, true)
+      .filter(c => c !== unitCode);
+
+    if (prerequisiteUnitCodes.length) {
+      const existing = await CurriculumLearningUnit
+        .find({ tenantId, unitCode: { $in: prerequisiteUnitCodes } }).select('unitCode').lean() as any[];
+      const have = new Set(existing.map(u => String(u.unitCode).toUpperCase()));
+      const missing = prerequisiteUnitCodes.filter(c => !have.has(c));
+      if (missing.length) {
+        return res.status(400).json({
+          message: `${missing.join(', ')} ${missing.length === 1 ? 'is not a unit' : 'are not units'} `
+            + 'in this curriculum. A prerequisite that names nothing can never be satisfied, so the '
+            + 'unit would never be schedulable.',
+        });
+      }
+    }
+
+    /**
+     * A cycle is checked against the WHOLE curriculum with this edit applied on top.
+     *
+     * The loop an edit creates usually runs through units nobody touched, so only the full graph
+     * can see it — and only cycles running through THIS unit are reported, because a pre-existing
+     * loop elsewhere is not this author's to fix and naming it would make the unit uneditable.
+     */
+    const everyUnit = await CurriculumLearningUnit
+      .find({ tenantId }).select('unitCode prerequisiteUnitCodes').lean() as any[];
+    const cycles = cyclesIntroducedBy(everyUnit, { unitCode, prerequisiteUnitCodes });
+    if (cycles.length) {
+      return res.status(400).json({
+        message: `That prerequisite closes a loop: ${cycles[0]}. Nothing in a loop is ever `
+          + 'schedulable, so every unit in it would silently vanish from every plan.',
+      });
+    }
+
     const fields = {
       stageKey: clean(b.stageKey, 60) || 'foundation',
       moduleCode: clean(b.moduleCode, 80).toUpperCase(),
@@ -453,12 +617,12 @@ export const saveUnit = async (req: Request, res: Response) => {
       title,
       description: clean(b.description, 2000),
       displayOrder: Number.isFinite(Number(b.displayOrder)) ? Number(b.displayOrder) : 100,
-      skillKeys: cleanList(b.skillKeys, 80, true),
-      prerequisiteSkillKeys: cleanList(b.prerequisiteSkillKeys, 80, true),
-      prerequisiteUnitCodes: cleanList(b.prerequisiteUnitCodes, 80, true),
+      skillKeys,
+      prerequisiteSkillKeys,
+      prerequisiteUnitCodes,
       learningOutcomes: cleanList(b.learningOutcomes, 300),
       category: category as any,
-      applicableDirections: cleanList(b.applicableDirections, 60, true),
+      applicableDirections,
       audience: {
         languages: cleanList(b.audience?.languages, 40),
         years:     cleanList(b.audience?.years, 20),
@@ -471,20 +635,22 @@ export const saveUnit = async (req: Request, res: Response) => {
       ...(band ? { band: band as any } : {}),
     };
 
-    /**
-     * A unit cannot name itself as its own prerequisite.
-     *
-     * Cheap to type by accident when duplicating a unit, and it would lock the unit permanently
-     * with a reason nobody could read off the screen.
-     */
-    fields.prerequisiteUnitCodes = fields.prerequisiteUnitCodes.filter(c => c !== unitCode);
+    // Self-reference, duplicates, unknown codes and cycles were all settled above, before any
+    // of this was assembled — a save is refused while the problem is still hypothetical.
 
     const existing = await CurriculumLearningUnit.findOne({ tenantId, unitCode }).select('status').lean() as any;
 
     const doc = await CurriculumLearningUnit.findOneAndUpdate(
       { tenantId, unitCode },
       {
-        $set: { ...fields, updatedBy: actorOf(req) },
+        $set: {
+          ...fields,
+          updatedBy: actorOf(req),
+          ...(statesMentioned && suitableStates.length ? { suitableStates } : {}),
+        },
+        // Cleared only when the caller actually said so. An empty list is "no override", which
+        // is absence rather than a stored empty array.
+        ...(statesMentioned && !suitableStates.length ? { $unset: { suitableStates: '' } } : {}),
         // Status is never set here. Editing a live unit must not silently pull it out of every
         // plan mid-week; publishing and archiving have their own routes.
         $setOnInsert: { tenantId, unitCode, status: 'DRAFT', createdBy: actorOf(req) },
@@ -501,6 +667,8 @@ export const saveUnit = async (req: Request, res: Response) => {
     if (e?.code === 11000) {
       return res.status(409).json({ message: 'A unit with that code already exists in this tenant.' });
     }
+    // A named unknown skill is the author's to fix, not a server fault.
+    if (e?.status === 400) return res.status(400).json({ message: e.message });
     console.error('[learning-units] save:', e?.message || e);
     res.status(500).json({ message: e?.message || 'Could not save this unit.' });
   }
@@ -520,10 +688,68 @@ export const publishUnit = async (req: Request, res: Response) => {
     const doc = await CurriculumLearningUnit.findOne({ tenantId, unitCode });
     if (!doc) return res.status(404).json({ message: 'No such unit.' });
 
-    const fault = await teachingFault(tenantId, {
+    /**
+     * The content check applies only to types whose rule actually asks for teaching.
+     *
+     * It used to apply to all seven, which contradicted the readiness table for three of them.
+     * A CHECKPOINT was refused publication for having no lesson, though its rule is `assessment`
+     * at every rung and a checkpoint IS the measurement — so no binding an author could make
+     * would ever have let one go live. See typeRequiresTeaching for the full argument; the bar
+     * below still applies to every type regardless.
+     */
+    if (typeRequiresTeaching(doc.unitType)) {
+      const fault = await teachingFault(tenantId, {
+        unitCode, topicCode: doc.topicCode, skillKeys: doc.skillKeys || [],
+      });
+      if (fault) return res.status(400).json({ published: false, message: fault });
+    }
+
+    /**
+     * THE PUBLISH BAR, WHICH WAS WRITTEN AND NEVER ENFORCED.
+     *
+     * `MINIMUM_TO_PUBLISH` and `meetsPublishBar` have existed since the readiness policy landed,
+     * with tests, and nothing in production ever called them. Publishing was gated only on
+     * `teachingFault` — does ANY content resolve, and does some of it teach — which inherited
+     * content satisfies. So a unit with nothing of its own could be published on the strength of
+     * material shared with eleven siblings, showing PARTIAL on the very screen that published it.
+     *
+     * That never endangered a student: composer eligibility is PUBLISHED **and** READY, and
+     * PARTIAL is not READY. What it endangered was the author's ability to trust the screen —
+     * publishing looked like progress and moved nothing.
+     *
+     * Inheritance caps readiness at PARTIAL by frozen policy, so this says, exactly: a unit must
+     * have teaching material OF ITS OWN before it can be published.
+     */
+    const { rows: resolved } = await resolveBundle(tenantId, {
       unitCode, topicCode: doc.topicCode, skillKeys: doc.skillKeys || [],
     });
-    if (fault) return res.status(400).json({ published: false, message: fault });
+    const own = resolved.filter((r: any) => String(r.unitCode || '') === unitCode);
+    const inherited = resolved.filter((r: any) => String(r.unitCode || '') !== unitCode);
+
+    const [boundQuizzes, boundAssignments] = await Promise.all([
+      Quiz.countDocuments({ tenantId, unitCode }),
+      mongoose.Types.ObjectId.isValid(tenantId)
+        ? Assignment.countDocuments({ tenant: new mongoose.Types.ObjectId(tenantId), unitCode })
+        : Promise.resolve(0),
+    ]);
+
+    const { readiness, missing } = evaluateReadiness({
+      unitType: doc.unitType,
+      ownContent: own,
+      inheritedContent: inherited,
+      boundAssessments: boundQuizzes + boundAssignments,
+      boundAssignments,
+    });
+
+    if (!meetsPublishBar(readiness)) {
+      return res.status(400).json({
+        published: false,
+        readiness,
+        message: `${unitCode} is ${readiness} and publishing needs at least ${MINIMUM_TO_PUBLISH}. `
+          + (missing?.length ? `Still missing: ${missing.join(', ')}.` : '')
+          + (own.length ? '' : ' Everything it resolves is inherited from its topic or skills.'),
+      });
+    }
 
     /**
      * The authored estimate stands unless the content disagrees and the author never set one.
@@ -737,6 +963,109 @@ export const detachContent = async (req: Request, res: Response) => {
   }
 };
 
+/* ------------------------------------------------------------------ *
+ * Assessment binding — the quiz or assignment a unit measures with
+ * ------------------------------------------------------------------ */
+
+/**
+ * These four routes are thin on purpose; the rules live in unitAssessmentService.
+ *
+ * They exist because a CHECKPOINT unit could not be authored at all before them. Its readiness
+ * rule is `assessment` for every rung — teachable, assessable and ready — so a checkpoint with
+ * no bound quiz could not even be PUBLISHED, and nothing on the authoring screen said so. The
+ * rule was never the problem and is not weakened here; the missing half was any way to satisfy
+ * it without writing to Mongo by hand.
+ */
+const assessmentError = (res: Response, e: any, fallback: string) => {
+  if (e?.status) return res.status(e.status).json({ message: e.message });
+  console.error('[learning-units] assessments:', e?.message || e);
+  return res.status(500).json({ message: fallback });
+};
+
+/** GET /curriculum-units/:unitCode/assessments */
+export const unitAssessments = async (req: Request, res: Response) => {
+  try {
+    res.json(await assessments.listUnitAssessments(
+      tenantOf(req), clean(req.params.unitCode, 80).toUpperCase(),
+    ));
+  } catch (e: any) {
+    assessmentError(res, e, 'Could not read this unit\'s assessments.');
+  }
+};
+
+/** POST /curriculum-units/:unitCode/quiz/:quizId — bind an existing quiz. */
+export const bindUnitQuiz = async (req: Request, res: Response) => {
+  try {
+    res.json(await assessments.bindQuiz(
+      tenantOf(req), clean(req.params.unitCode, 80).toUpperCase(), clean(req.params.quizId, 60),
+    ));
+  } catch (e: any) {
+    assessmentError(res, e, 'Could not bind this quiz.');
+  }
+};
+
+/** DELETE /curriculum-units/:unitCode/quiz/:quizId */
+export const unbindUnitQuiz = async (req: Request, res: Response) => {
+  try {
+    res.json(await assessments.unbindQuiz(
+      tenantOf(req), clean(req.params.unitCode, 80).toUpperCase(), clean(req.params.quizId, 60),
+    ));
+  } catch (e: any) {
+    assessmentError(res, e, 'Could not unbind this quiz.');
+  }
+};
+
+/** POST /curriculum-units/:unitCode/assignment/:assignmentId */
+export const bindUnitAssignment = async (req: Request, res: Response) => {
+  try {
+    res.json(await assessments.bindAssignment(
+      tenantOf(req), clean(req.params.unitCode, 80).toUpperCase(),
+      clean(req.params.assignmentId, 60),
+    ));
+  } catch (e: any) {
+    assessmentError(res, e, 'Could not bind this assignment.');
+  }
+};
+
+/** DELETE /curriculum-units/:unitCode/assignment/:assignmentId */
+export const unbindUnitAssignment = async (req: Request, res: Response) => {
+  try {
+    res.json(await assessments.unbindAssignment(
+      tenantOf(req), clean(req.params.unitCode, 80).toUpperCase(),
+      clean(req.params.assignmentId, 60),
+    ));
+  } catch (e: any) {
+    assessmentError(res, e, 'Could not unbind this assignment.');
+  }
+};
+
+/**
+ * POST /curriculum-units/:unitCode/assessments — create a shell and bind it in one step.
+ *
+ * `kind` says which engine. Neither shell is usable by a student until an author finishes it in
+ * the screens that own questions and briefs — creating it here only answers "which unit needs
+ * one", which is the question the quiz and assignment builders cannot see.
+ */
+export const createUnitAssessment = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const unitCode = clean(req.params.unitCode, 80).toUpperCase();
+    const kind = clean(req.body?.kind, 20).toUpperCase();
+    const title = clean(req.body?.title, 200);
+
+    if (kind === 'QUIZ') {
+      return res.json(await assessments.createQuizForUnit(tenantId, unitCode, actorOf(req), title));
+    }
+    if (kind === 'ASSIGNMENT') {
+      const createdBy = String((req as any).user?.id || (req as any).user?._id || '');
+      return res.json(await assessments.createAssignmentForUnit(tenantId, unitCode, createdBy, title));
+    }
+    return res.status(400).json({ message: 'kind must be QUIZ or ASSIGNMENT.' });
+  } catch (e: any) {
+    assessmentError(res, e, 'Could not create this assessment.');
+  }
+};
+
 /**
  * DELETE /curriculum-units/:unitCode """ + D + u""" remove a unit entirely.
  *
@@ -769,8 +1098,21 @@ export const deleteUnit = async (req: Request, res: Response) => {
       { tenantId, unitCode }, { $unset: { unitCode: '' } },
     );
 
+    /**
+     * Bound quizzes and assignments are released too, for the same reason and one stronger.
+     *
+     * A quiz may hold student attempts. Deleting it would destroy results; leaving it pointing
+     * at a unit that no longer exists would strand it, measuring nothing and never offered to
+     * any other unit because a bound assessment is filtered out of every candidate list.
+     */
+    const assessmentsReleased = await assessments.releaseUnitAssessments(tenantId, unitCode);
+
     await CurriculumLearningUnit.deleteOne({ tenantId, unitCode });
-    res.json({ deleted: true, contentReleased: released.modifiedCount ?? 0 });
+    res.json({
+      deleted: true,
+      contentReleased: released.modifiedCount ?? 0,
+      assessmentsReleased,
+    });
   } catch (e: any) {
     console.error('[learning-units] delete:', e?.message || e);
     res.status(500).json({ message: 'Could not delete this unit.' });

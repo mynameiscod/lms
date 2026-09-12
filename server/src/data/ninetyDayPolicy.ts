@@ -40,6 +40,22 @@ export const NINETY_DAY_VERSION = 'NINETY_DAY_SPINE_V1';
 /** The length of a first year, in day-units. Every student gets exactly this many. */
 export const SPINE_DAYS = 90;
 
+/**
+ * The length of the Foundation programme, in learning days. INVARIANT.
+ *
+ * Ninety for every Year-1 student, and the number is not a target, a budget or a maximum — it
+ * is a property of the programme. A strong learner does not finish in sixty and a struggling
+ * one does not run to a hundred and twenty; personalisation changes WHAT the ninety days
+ * contain — content, sequence, depth, practice, difficulty, projects, revision, verification,
+ * direction, enrichment — and never how many there are.
+ *
+ * Stated as its own constant rather than reusing SPINE_DAYS because the two are the same number
+ * for different reasons: the spine is a shape made of bands, and this is a promise made to a
+ * student. If the spine were ever re-cut into a different number of bands, this must not follow
+ * it silently.
+ */
+export const FOUNDATION_PROGRAM_DAYS = 90;
+
 export type BandKey =
   | 'ORIENTATION'
   | 'PROGRAMMING'

@@ -107,6 +107,17 @@ export interface ILearningCurriculum extends Document {
   audienceLevel?: 'fresher' | 'professional';
   pace?: ITrackPace;
   personalizedFor?: mongoose.Types.ObjectId; // set on a candidate-specific clone (the student/user id)
+  /**
+   * Marks this clone as a Foundation UNIT-engine journey, rather than a track personalisation.
+   *
+   * Both are `personalizedFor` clones and they are built by different services under different
+   * rules — the older one resizes topics by assessment score, which is exactly the
+   * plan-shortening Foundation forbids. Without a discriminator a journey and a personalised
+   * track are indistinguishable, and the wrong service would eventually load the wrong one.
+   */
+  journeyKind?: string;
+  /** Which candidate source built it. PRODUCTION for anything a real student may be served. */
+  journeySource?: string;
 
   /**
    * The academic stage this curriculum is THE curriculum for.
@@ -178,6 +189,8 @@ const LearningCurriculumSchema = new Schema<ILearningCurriculum>(
     audienceLevel:   { type: String, enum: ['fresher', 'professional'] },
     pace:            { type: { hoursPerDay: Number, weekends: Boolean, targetWeeks: Number }, default: undefined },
     personalizedFor: { type: Schema.Types.ObjectId, ref: 'User' },
+    journeyKind:     { type: String, trim: true, index: true },
+    journeySource:   { type: String, trim: true },
     adaptiveStage:   { type: String, trim: true, index: true },
   },
   { timestamps: true }

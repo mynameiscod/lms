@@ -37,6 +37,17 @@ export interface IDayPlan extends Document {
   tenantId: string;
   curriculumId: mongoose.Types.ObjectId;
   topicId: string;
+  /**
+   * The one Learning Unit this day exists to teach. Foundation UNIT-engine plans only.
+   *
+   * A day has ONE objective and its activities all serve that objective — notes, worked
+   * example, practice, then whatever measures it. Without this field a day is a bag of
+   * activities and nothing records what it was for, so neither a student nor a recomposition
+   * could say which unit a completed day actually covered.
+   *
+   * Optional and sparse: TOPIC-engine plans predate Learning Units entirely and carry none.
+   */
+  primaryUnitCode?: string;
   dayNumber: number;
   title?: string;
   notes?: string;
@@ -77,6 +88,7 @@ const DayPlanSchema = new Schema<IDayPlan>(
     tenantId:     { type: String, required: true, index: true },
     curriculumId: { type: Schema.Types.ObjectId, ref: 'LearningCurriculum', required: true },
     topicId:      { type: String, default: '' },
+    primaryUnitCode: { type: String, trim: true, uppercase: true },
     dayNumber:    { type: Number, required: true, min: 1 },
     title:        { type: String },
     notes:        { type: String },

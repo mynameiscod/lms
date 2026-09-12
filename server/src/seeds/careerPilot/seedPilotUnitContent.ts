@@ -34,6 +34,7 @@ import { YEAR1_BUNDLES } from './year1UnitContent';
 import { PROGRAMMING_SPINE_BUNDLES } from './year1ContentProgramming';
 import { VERIFICATION_BUNDLES } from './year1ContentVerification';
 import { FUNCTIONS_BUNDLES } from './year1ContentFunctions';
+import { STATS_BUNDLES } from './year1ContentStats';
 import { SQL_BUNDLES } from './year1ContentSql';
 import { SHELL_BUNDLES } from './year1ContentShell';
 import { CSS_BUNDLES } from './year1ContentCss';
@@ -77,7 +78,7 @@ const readingMinutes = (text: string): number =>
    */
   const ALL_BUNDLES = [
     ...YEAR1_BUNDLES, ...PROGRAMMING_SPINE_BUNDLES, ...VERIFICATION_BUNDLES,
-    ...FUNCTIONS_BUNDLES, ...SQL_BUNDLES, ...SHELL_BUNDLES, ...CSS_BUNDLES, ...ARRAYS_BUNDLES, ...CAREER_MAP_BUNDLES,
+    ...FUNCTIONS_BUNDLES, ...STATS_BUNDLES, ...SQL_BUNDLES, ...SHELL_BUNDLES, ...CSS_BUNDLES, ...ARRAYS_BUNDLES, ...CAREER_MAP_BUNDLES,
   ];
 
   const units = await CurriculumLearningUnit

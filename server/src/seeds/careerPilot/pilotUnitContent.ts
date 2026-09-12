@@ -38,6 +38,22 @@ export interface PilotCoding {
   tests: { input: string; expectedOutput: string; isHidden?: boolean }[];
 }
 
+/**
+ * A project brief, submitted against the existing Assignment engine.
+ *
+ * A PROJECT unit reaches READY only with something to submit to, and that is Assignment's job
+ * — it already has submissions, grading, rubrics and deadlines. A Quiz cannot stand in: a
+ * checkpoint measures recall, and a project is judged on what was built.
+ */
+export interface PilotAssignment {
+  title: string;
+  description: string;
+  instructions: string;
+  /** What "done" means, checked by a human or a rubric. */
+  rubric: { criterion: string; description: string; maxPoints: number }[];
+  totalPoints: number;
+}
+
 export interface PilotBundle {
   unitCode: string;
   /** Substance, not a summary. Rendered as the unit's notes. */
@@ -50,6 +66,8 @@ export interface PilotBundle {
   coding?: PilotCoding[];
   /** Questions for the bound checkpoint quiz. */
   checkpoint?: PilotMcq[];
+  /** For PROJECT units: the brief, bound as an Assignment. */
+  assignment?: PilotAssignment;
 }
 
 const mcq = (question: string, options: [string, boolean][], explanation: string): PilotMcq =>

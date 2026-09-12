@@ -27,7 +27,11 @@ import mongoose from 'mongoose';
 import LearningContentLibrary from '../../models/LearningContentLibrary';
 import CurriculumLearningUnit from '../../models/CurriculumLearningUnit';
 import Quiz from '../../models/Quiz';
-import { PILOT_BUNDLES, PilotBundle, PILOT_TOPICS } from './pilotUnitContent';
+import Assignment, { AssignmentType } from '../../models/Assignment';
+import User from '../../models/User';
+import { PILOT_TOPICS } from './pilotUnitContent';
+import { YEAR1_BUNDLES } from './year1UnitContent';
+import { findDuplication, identifyingWordsFor } from '../../services/contentDuplicationService';
 
 dotenv.config();
 
@@ -47,8 +51,18 @@ const readingMinutes = (text: string): number =>
 
   await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI || '');
 
+  /**
+   * Assignment requires a createdBy user, so seeded briefs are attributed to a real admin.
+   *
+   * Not invented: an ObjectId pointing at no user would leave every seeded assignment unable to
+   * populate its author, and the admin screens that show "created by" would render blank rows
+   * with no explanation.
+   */
+  const author = await User.findOne({ tenantId, role: { $in: ['TENANT_ADMIN', 'SUPER_ADMIN'] } })
+    .select('_id').lean() as any;
+
   const units = await CurriculumLearningUnit
-    .find({ tenantId, unitCode: { $in: PILOT_BUNDLES.map(b => b.unitCode) } })
+    .find({ tenantId, unitCode: { $in: YEAR1_BUNDLES.map(b => b.unitCode) } })
     .select('unitCode title skillKeys topicCode defaultDepth').lean() as any[];
   const unitByCode = new Map<string, any>(units.map(u => [String(u.unitCode), u]));
 
@@ -58,7 +72,9 @@ const readingMinutes = (text: string): number =>
 
   let rows = 0;
   let quizzes = 0;
+  let assignments = 0;
   const missingUnits: string[] = [];
+  const skippedAssignments: string[] = [];
 
   /** One library row per (unit, type). The compound key is what makes a re-run safe. */
   const upsert = async (unit: any, type: string, title: string, fields: Record<string, any>) => {
@@ -85,7 +101,7 @@ const readingMinutes = (text: string): number =>
     );
   };
 
-  for (const bundle of PILOT_BUNDLES) {
+  for (const bundle of YEAR1_BUNDLES) {
     const unit = unitByCode.get(bundle.unitCode);
     if (!unit) { missingUnits.push(bundle.unitCode); continue; }
 
@@ -186,10 +202,59 @@ const readingMinutes = (text: string): number =>
       parts.push(`checkpoint(${bundle.checkpoint.length})`);
     }
 
+    /**
+     * A PROJECT unit's brief, bound as an Assignment.
+     *
+     * Assignment already owns submissions, rubrics, grading and deadlines. A Quiz cannot stand in
+     * — a checkpoint measures recall, and a project is judged on what was built. ProjectPlan
+     * stays what it has always been: the student's own instance, created when they start.
+     *
+     * NOTE the tenant field. Assignment scopes by `tenant` (ObjectId) while Quiz and every
+     * CareerPilot model use a String `tenantId`; querying it with the String matches nothing and
+     * reports no error.
+     */
+    if (bundle.assignment) {
+      if (!author) {
+        skippedAssignments.push(`${bundle.unitCode} (no admin user to attribute it to)`);
+      } else {
+        assignments++;
+        if (apply) {
+          await Assignment.updateOne(
+            { tenant: new mongoose.Types.ObjectId(tenantId), unitCode: unit.unitCode },
+            {
+              $set: {
+                title: bundle.assignment.title,
+                description: bundle.assignment.description,
+                instructions: bundle.assignment.instructions,
+                type: AssignmentType.PROJECT,
+                unitCode: unit.unitCode,
+                totalPoints: bundle.assignment.totalPoints,
+                rubric: bundle.assignment.rubric.map((r, i) => ({
+                  criterion: r.criterion, description: r.description,
+                  maxPoints: r.maxPoints, order: i,
+                })),
+              },
+              $setOnInsert: {
+                tenant: new mongoose.Types.ObjectId(tenantId),
+                createdBy: author._id,
+              },
+            },
+            { upsert: true },
+          );
+        }
+        parts.push('assignment');
+      }
+    }
+
     console.log(`  ${bundle.unitCode.padEnd(34)}${parts.join(' · ')}`);
   }
 
   console.log('');
+  if (skippedAssignments.length) {
+    console.log(`  ${skippedAssignments.length} project assignment(s) skipped:`);
+    for (const m of skippedAssignments) console.log(`    ${m}`);
+    console.log('');
+  }
   if (missingUnits.length) {
     console.log(`  ${missingUnits.length} bundle(s) name a unit that does not exist:`);
     for (const m of missingUnits) console.log(`    ${m}`);
@@ -197,12 +262,12 @@ const readingMinutes = (text: string): number =>
   }
 
   if (!apply) {
-    console.log(`${rows} library rows and ${quizzes} checkpoint quizzes would be written.`);
+    console.log(`${rows} library rows, ${quizzes} checkpoint quizzes and ${assignments} project assignments would be written.`);
     console.log('Re-run with --apply.');
   } else {
     const bound = await LearningContentLibrary.countDocuments({ tenantId, unitCode: { $exists: true, $ne: '' } });
     const boundQuiz = await Quiz.countDocuments({ tenantId, unitCode: { $exists: true, $ne: '' } });
-    console.log(`${rows} library rows written, ${quizzes} checkpoint quizzes bound.`);
+    console.log(`${rows} library rows written, ${quizzes} checkpoint quizzes and ${assignments} project assignments bound.`);
     console.log(`Library rows carrying a unitCode: ${bound}.  Quizzes: ${boundQuiz}.`);
     console.log('Units remain DRAFT; the UNIT engine is untouched.');
   }
@@ -213,7 +278,38 @@ const readingMinutes = (text: string): number =>
    * A video row pointing at a URL nobody has filmed would raise a readiness number while
    * teaching nobody — precisely the filler this pilot exists to avoid.
    */
-  console.log(`\n  AUTHORING GAP: ${PILOT_BUNDLES.length} pilot units have no video.`);
+  /**
+   * The guard that stops READY meaning "somebody ran a template".
+   *
+   * Run here rather than as an occasional audit, because the incentive it defends against is
+   * created by this very script: copy one lesson across twelve siblings with the name swapped
+   * and every one of them reports READY while the student meets one page twelve times.
+   */
+  if (apply) {
+    const authored = await LearningContentLibrary
+      .find({ tenantId, createdBy: CREATED_BY })
+      .select('_id unitCode title type notesContent practiceQuestions').lean() as any;
+
+    const findings = findDuplication({
+      rows: authored as any,
+      identifyingWords: identifyingWordsFor(
+        units.map(u => ({ unitCode: String(u.unitCode), title: String(u.title) })),
+      ),
+    });
+
+    console.log(`\n  DUPLICATION GUARD over ${(authored as any[]).length} authored rows`);
+    if (!findings.length) {
+      console.log('    no duplicate or near-duplicate assets found.');
+    } else {
+      console.log(`    ${findings.length} finding(s) \u2014 each needs a human decision:`);
+      for (const f of findings.slice(0, 12)) {
+        console.log(`      ${f.kind.padEnd(30)}${String(f.similarity).padStart(5)}  ${f.unitCodes.join(' / ')}`);
+        console.log(`        ${f.sample}`);
+      }
+    }
+  }
+
+  console.log(`\n  AUTHORING GAP: ${YEAR1_BUNDLES.length} authored units have no video.`);
   console.log('  Video needs recording, and a row pointing at nothing is filler that reads as coverage.\n');
 
   await mongoose.disconnect();

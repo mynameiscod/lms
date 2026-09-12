@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import CurriculumLearningUnit, {
   LEARNING_UNIT_TYPES, LEARNING_UNIT_CATEGORIES,
 } from '../models/CurriculumLearningUnit';
@@ -185,7 +186,18 @@ export const listUnits = async (req: Request, res: Response) => {
       LearningContentLibrary.find({ tenantId, isPublished: true })
         .select('type topicCode skillKeys unitCode').lean() as any,
       Quiz.find({ tenantId, unitCode: { $exists: true, $ne: '' } }).select('unitCode').lean() as any,
-      Assignment.find({ tenantId, unitCode: { $exists: true, $ne: '' } }).select('unitCode').lean() as any,
+      /**
+        * Assignment scopes by `tenant` (ObjectId), not `tenantId` (String).
+        *
+        * Quiz uses the String; Assignment uses the ref. Querying it with the String returns
+        * nothing and reports no error, so a bound assignment would never have counted towards
+        * readiness and a PROJECT unit could never have reached READY.
+        */
+      mongoose.Types.ObjectId.isValid(tenantId)
+        ? Assignment.find({
+          tenant: new mongoose.Types.ObjectId(tenantId), unitCode: { $exists: true, $ne: '' },
+        }).select('unitCode').lean() as any
+        : Promise.resolve([] as any),
     ]);
 
     /**
@@ -216,6 +228,13 @@ export const listUnits = async (req: Request, res: Response) => {
       assessmentsByUnit.set(k, (assessmentsByUnit.get(k) || 0) + 1);
     }
 
+    /** Assignments alone, because only they can receive submitted work. See the readiness policy. */
+    const assignmentsByUnit = new Map<string, number>();
+    for (const row of boundAssignments as any[]) {
+      const k = String(row.unitCode);
+      assignmentsByUnit.set(k, (assignmentsByUnit.get(k) || 0) + 1);
+    }
+
     const byUnitCode = new Map<string, any[]>();
     const byTopicCode = new Map<string, any[]>();
     const bySkillKey = new Map<string, any[]>();
@@ -243,6 +262,7 @@ export const listUnits = async (req: Request, res: Response) => {
         inheritedContent: inherited,
         // Quiz and Assignment binding exists but nothing is bound yet; counted when it is.
         boundAssessments: assessmentsByUnit.get(String(unit.unitCode)) || 0,
+        boundAssignments: assignmentsByUnit.get(String(unit.unitCode)) || 0,
       });
       const { readiness, missing, inheritedOnly } = evaluated;
       /**

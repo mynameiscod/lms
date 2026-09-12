@@ -223,8 +223,16 @@ describe('unit readiness', () => {
     });
     expect(briefOnly.readiness).toBe('TEACHABLE');
 
-    const withAssignment = evaluateReadiness({
+    // A quiz is not enough: it measures recall, and a project is judged on what was built.
+    const quizOnly = evaluateReadiness({
       unitType: 'PROJECT', ownContent: [teach], inheritedContent: [], boundAssessments: 1,
+    });
+    expect(quizOnly.readiness).toBe('ASSESSABLE');
+    expect(quizOnly.missing.join(' ')).toMatch(/assignment/);
+
+    const withAssignment = evaluateReadiness({
+      unitType: 'PROJECT', ownContent: [teach], inheritedContent: [],
+      boundAssessments: 1, boundAssignments: 1,
     });
     // Submission and evaluation stay with the existing Assignment engine, bound by unitCode.
     expect(withAssignment.readiness).toBe('READY');
@@ -233,7 +241,14 @@ describe('unit readiness', () => {
   it('does not require a PROJECT to carry separate practice', () => {
     // The project IS the practice. Demanding an exercise beside it is a box authors tick with
     // something meaningless.
-    expect(TYPE_RULES.PROJECT.ready({ teaching: true, practice: false, assessment: true })).toBe(true);
+    // `submission` is an Assignment specifically: a checkpoint quiz measures recall, and a
+    // project is judged on what was built.
+    expect(TYPE_RULES.PROJECT.ready({
+      teaching: true, practice: false, assessment: true, submission: true,
+    })).toBe(true);
+    expect(TYPE_RULES.PROJECT.ready({
+      teaching: true, practice: false, assessment: true, submission: false,
+    })).toBe(false);
   });
 
   it('requires a CHECKPOINT to own something that measures', () => {

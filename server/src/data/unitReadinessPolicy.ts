@@ -44,11 +44,20 @@ export type UnitReadiness = 'EMPTY' | 'PARTIAL' | 'TEACHABLE' | 'ASSESSABLE' | '
 export const READINESS_ORDER: UnitReadiness[] =
   ['EMPTY', 'PARTIAL', 'TEACHABLE', 'ASSESSABLE', 'READY'];
 
-/** The three things a unit can own. Each is counted from UNIT-SPECIFIC content only. */
+/** The four things a unit can own. Each is counted from UNIT-SPECIFIC content only. */
 export interface OwnCapability {
   teaching: boolean;
   practice: boolean;
+  /** A quiz or an assignment bound to this unit — anything that measures. */
   assessment: boolean;
+  /**
+   * An ASSIGNMENT specifically, which is the only thing a student submits work to.
+   *
+   * Separate from `assessment` because a project is not judged by recall. A checkpoint quiz
+   * measures whether somebody remembers the brief; only an assignment can receive the thing
+   * they built. Collapsing the two would let a five-question quiz satisfy a ten-day project.
+   */
+  submission: boolean;
 }
 
 export interface TypeRule {
@@ -104,8 +113,9 @@ export const TYPE_RULES: Record<LearningUnitType, TypeRule> = {
   PROJECT: {
     teachable: o => o.teaching,
     assessable: o => o.teaching && o.assessment,
-    ready: o => o.teaching && o.assessment,
-    describe: 'needs its own brief and a bound assignment to submit against',
+    // An Assignment, not a quiz. See OwnCapability.submission.
+    ready: o => o.teaching && o.submission,
+    describe: 'needs its own brief and a bound ASSIGNMENT to submit against',
   },
   CHECKPOINT: {
     teachable: o => o.assessment,
@@ -129,6 +139,13 @@ export interface ReadinessInput {
   inheritedContent: { type: ContentLibraryType | string }[];
   /** Quizzes and assignments carrying this unit's code. */
   boundAssessments: number;
+  /**
+   * Of those, how many are ASSIGNMENTS.
+   *
+   * Optional so every existing caller keeps compiling; absent means none, which is the correct
+   * reading for a unit nobody has bound one to.
+   */
+  boundAssignments?: number;
 }
 
 export interface ReadinessResult {
@@ -137,7 +154,10 @@ export interface ReadinessResult {
   missing: string[];
   /** True when the unit owns nothing and everything it shows is its topic's. */
   inheritedOnly: boolean;
-  own: OwnCapability & { teachingCount: number; practiceCount: number; assessmentCount: number };
+  own: OwnCapability & {
+    teachingCount: number; practiceCount: number;
+    assessmentCount: number; assignmentCount: number;
+  };
   inheritedCount: number;
 }
 
@@ -154,6 +174,7 @@ export function evaluateReadiness(input: ReadinessInput): ReadinessResult {
     teaching: teachingCount > 0,
     practice: practiceCount > 0,
     assessment: assessments > 0,
+    submission: (input.boundAssignments || 0) > 0,
   };
 
   const ownAnything = ownRows.length > 0 || assessments > 0;
@@ -162,6 +183,7 @@ export function evaluateReadiness(input: ReadinessInput): ReadinessResult {
     teachingCount,
     practiceCount,
     assessmentCount: assessments,
+    assignmentCount: input.boundAssignments || 0,
   };
 
   if (!ownAnything && !inherited.length) {
@@ -200,7 +222,11 @@ export function evaluateReadiness(input: ReadinessInput): ReadinessResult {
 
   if (readiness === 'TEACHABLE' || readiness === 'ASSESSABLE') {
     if (!own.practice && rule.ready.toString().includes('practice')) missing.push('nothing to practise');
-    if (!own.assessment) missing.push('no checkpoint bound to it');
+    if (!own.submission && rule.ready.toString().includes('submission')) {
+      missing.push('no assignment bound to submit against');
+    } else if (!own.assessment) {
+      missing.push('no checkpoint bound to it');
+    }
   }
 
   return {

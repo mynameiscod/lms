@@ -55,8 +55,31 @@ describe.each(['Quiz.ts', 'Assignment.ts'])('%s', (file) => {
     expect(decl).not.toMatch(/default/);
   });
 
-  it('indexes it sparsely, because most rows will never carry one', () => {
-    expect(src).toMatch(/index\(\{\s*tenantId: 1,\s*unitCode: 1\s*\},\s*\{\s*sparse: true\s*\}\)/);
+  /** The line that indexes unitCode, whichever model this is. */
+  const indexLine = src.split('\n').find(l => /\.index\(\{[^}]*unitCode: 1/.test(l)) || '';
+
+  it('indexes it sparsely', () => {
+    expect(indexLine).toMatch(/sparse: true/);
+  });
+
+  /**
+   * THE GUARD FOR THE BUG THIS FILE ALREADY SHIPPED ONCE.
+   *
+   * Quiz scopes by `tenantId` (String); Assignment scopes by `tenant` (ObjectId). The first
+   * version of this index used `tenantId` for both, so the one on Assignment was built over a
+   * field the model does not have. Nothing errored: the query simply matched nothing, every
+   * time — so a bound assignment never counted towards readiness, and a PROJECT unit could
+   * never reach READY.
+   *
+   * An index over a non-existent field is silent in exactly the way that makes it survive.
+   */
+  it('scopes that index by a tenant field the schema actually declares', () => {
+    const field = (/\{\s*(\w+): 1,\s*unitCode/.exec(indexLine) || [])[1];
+    expect(field).toBeDefined();
+
+    // Declared in the schema body, not merely named in the index.
+    const declared = new RegExp(`^\\s*${field}:\\s*\\{\\s*type:`, 'm');
+    expect(src).toMatch(declared);
   });
 
   it('leaves the legacy hooks alone', () => {

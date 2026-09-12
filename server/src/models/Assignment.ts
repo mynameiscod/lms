@@ -334,7 +334,15 @@ AssignmentSchema.index({ tenant: 1, type: 1, difficulty: 1 });
 AssignmentSchema.index({ tenant: 1, isInBank: 1, bankCategory: 1 });
 AssignmentSchema.index({ topics: 1 });
 AssignmentSchema.index({ tags: 1 });
-/** "Which assignments belong to this learning unit" — the only query the binding serves. */
-AssignmentSchema.index({ tenantId: 1, unitCode: 1 }, { sparse: true });
+/**
+ * "Which assignments belong to this learning unit" — the only query the binding serves.
+ *
+ * ON `tenant`, NOT `tenantId`. Assignment scopes by an ObjectId ref while Quiz and every
+ * CareerPilot model use a String `tenantId`, and the first version of this index used the
+ * String — indexing a field Assignment does not have. Nothing errored: the query simply
+ * matched nothing, every time, which is precisely the failure CurriculumDayUnit warned about
+ * when it chose its own tenant type.
+ */
+AssignmentSchema.index({ tenant: 1, unitCode: 1 }, { sparse: true });
 
 export default mongoose.model<IAssignment>('Assignment', AssignmentSchema);

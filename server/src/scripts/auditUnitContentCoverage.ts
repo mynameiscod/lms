@@ -79,7 +79,11 @@ type Classification = MappingClass;
     LearningContentLibrary.find({ tenantId }).lean() as any,
     LearningCurriculum.findOne({ tenantId, adaptiveStage: STAGE }).select('title topics modules').lean() as any,
     Quiz.find({ tenantId }).select('title primaryTech unitCode').lean() as any,
-    Assignment.find({ tenantId }).select('title primaryTech unitCode').lean() as any,
+    // See the controller: Assignment scopes by `tenant` (ObjectId), not `tenantId`.
+    mongoose.Types.ObjectId.isValid(tenantId)
+      ? Assignment.find({ tenant: new mongoose.Types.ObjectId(tenantId) })
+        .select('title primaryTech unitCode').lean() as any
+      : Promise.resolve([] as any),
   ]);
 
   const topics = ((curriculum?.topics || []) as any[]).filter(t => t.topicCode);

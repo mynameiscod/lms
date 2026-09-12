@@ -188,7 +188,24 @@ const roleOfUnit = (u: ComposableUnit): Role => {
   const content = await loadCandidates(tenantId, 'PROTOTYPE_UNPUBLISHED');
   const production = await loadCandidates(tenantId, 'PRODUCTION');
 
-  const all: ComposableUnit[] = design.units;
+  /**
+   * Which inventory the profiles are composed against.
+   *
+   * DESIGN (the default) answers a question about the CURRICULUM: could the units as designed
+   * support ninety days, if every one of them were written. That is the question the expansion
+   * work needed and it ignores readiness entirely.
+   *
+   * `--source=content` answers the question Phase 19 needs instead: can the units that are
+   * ACTUALLY AUTHORED support ninety days. It composes against READY units regardless of
+   * publication, which is the honest gate while nothing is published yet — publishing to find
+   * out would be publishing to satisfy a metric, which is the one thing the phase forbids.
+   *
+   * Neither is production. `assertProductionEligible` still refuses both, so no path here can
+   * put a synthetic or unpublished plan in front of a student.
+   */
+  const sourceArg = (process.argv.find(a => a.startsWith('--source=')) || '').split('=')[1];
+  const useContent = sourceArg === 'content';
+  const all: ComposableUnit[] = useContent ? content.units : design.units;
   const allSkills = [...new Set(all.flatMap(u => u.skillKeys))].sort();
   const universalSkills = [...new Set(
     all.filter(u => u.category === 'UNIVERSAL').flatMap(u => u.skillKeys),

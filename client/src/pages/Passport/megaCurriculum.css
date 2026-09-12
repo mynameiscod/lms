@@ -265,3 +265,21 @@
 .mgc-cbtn:disabled { opacity: .4; cursor: default; }
 
 .mgc-unpub { color: var(--mgc-warn); font-weight: 800; }
+
+/* ---- Coverage indicators on a unit row ---- */
+.mgc-cov { display: flex; align-items: center; gap: 5px; font-size: 9px; }
+.mgc-cov em {
+  font-style: normal; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  color: #b3bdcb; background: #f3f5f9; border-radius: 4px; padding: 2px 5px;
+}
+.mgc-cov em.on { color: var(--mgc-ok); background: #e7f6ef; }
+.mgc-cov b {
+  font-size: 9px; font-weight: 800; letter-spacing: .03em;
+  border-radius: 4px; padding: 2px 6px; white-space: nowrap;
+}
+.mgc-cov b.r-empty     { background: #fbeceb; color: var(--mgc-bad); }
+.mgc-cov b.r-partial   { background: #fff8ec; color: var(--mgc-warn); }
+.mgc-cov b.r-teachable { background: #eef4fb; color: #3f6392; }
+.mgc-cov b.r-assessable{ background: #e7f6ef; color: var(--mgc-ok); }
+.mgc-cov b.r-ready     { background: var(--mgc-ok); color: #fff; }
+@media (max-width: 900px) { .mgc-cov { display: none; } }

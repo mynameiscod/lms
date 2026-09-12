@@ -7,6 +7,7 @@ import LearningCurriculum from '../models/LearningCurriculum';
 import CareerSkill from '../models/CareerSkill';
 import { SPINE_BANDS } from '../data/ninetyDayPolicy';
 import { inTeachingOrder, roleOf, teaches, TEACHING_ORDER } from '../data/contentBundlePolicy';
+import { evaluateReadiness } from '../data/unitReadinessPolicy';
 
 /**
  * Authoring the mega curriculum's Learning Units.
@@ -171,9 +172,59 @@ export const listUnits = async (req: Request, res: Response) => {
       byTopic.set(k, [...(byTopic.get(k) || []), u]);
     }
 
+    /**
+     * Coverage, computed once for the whole stage rather than per unit.
+     *
+     * A per-unit resolve would be three queries times three hundred units on a screen an author
+     * opens constantly. The library is small enough to hold and bucket in memory, and the answer
+     * is identical.
+     */
+    const published = ((await LearningContentLibrary.find({ tenantId, isPublished: true })
+      .select('type topicCode skillKeys unitCode').lean()) as any[]);
+
+    const byUnitCode = new Map<string, any[]>();
+    const byTopicCode = new Map<string, any[]>();
+    const bySkillKey = new Map<string, any[]>();
+    for (const r of published) {
+      if (r.unitCode) byUnitCode.set(String(r.unitCode), [...(byUnitCode.get(String(r.unitCode)) || []), r]);
+      if (r.topicCode) byTopicCode.set(String(r.topicCode), [...(byTopicCode.get(String(r.topicCode)) || []), r]);
+      for (const k of r.skillKeys || []) {
+        bySkillKey.set(String(k), [...(bySkillKey.get(String(k)) || []), r]);
+      }
+    }
+
+    const coverageOfUnit = (unit: any) => {
+      const own = byUnitCode.get(String(unit.unitCode)) || [];
+      let inherited = own.length ? [] : (byTopicCode.get(String(unit.topicCode)) || []);
+      if (!own.length && !inherited.length) {
+        const seen = new Set<string>();
+        inherited = (unit.skillKeys || []).flatMap((k: string) => bySkillKey.get(String(k)) || [])
+          .filter((r: any) => { const id = String(r._id); if (seen.has(id)) return false; seen.add(id); return true; });
+      }
+      const pool = own.length ? own : inherited;
+      const types = [...new Set(pool.map((r: any) => String(r.type)))];
+      const { readiness, missing, inheritedOnly } = evaluateReadiness({
+        unitType: unit.unitType,
+        ownContent: own,
+        inheritedContent: inherited,
+        // Quiz and Assignment binding exists but nothing is bound yet; counted when it is.
+        boundAssessments: 0,
+      });
+      return {
+        readiness,
+        missing,
+        inheritedOnly,
+        items: pool.length,
+        types,
+        hasTeaching: pool.some((r: any) => teaches(String(r.type))),
+        hasPractice: pool.some((r: any) => roleOf(String(r.type)) === 'PRACTISE'),
+      };
+    };
+
     const rows = topics.map(t => {
       const mine = (byTopic.get(String(t.topicCode)) || [])
-        .sort((a, b) => (a.displayOrder - b.displayOrder) || String(a.unitCode).localeCompare(String(b.unitCode)));
+        .sort((a, b) => (a.displayOrder - b.displayOrder) || String(a.unitCode).localeCompare(String(b.unitCode)))
+        .map(unit => ({ ...unit, coverage: coverageOfUnit(unit) }));
       return {
         moduleCode: String(t.moduleCode || 'UNGROUPED'),
         moduleName: moduleName.get(String(t.moduleCode)) || String(t.moduleCode || 'Ungrouped'),
@@ -204,6 +255,16 @@ export const listUnits = async (req: Request, res: Response) => {
       summary: {
         topics: topics.length,
         topicsWithUnits: rows.filter(r => r.units.length > 0).length,
+        /**
+         * Readiness across the stage, so an author sees the real backlog rather than a
+         * published/draft count. PARTIAL is the important number: it means the unit inherits
+         * its topic's material and has nothing of its own.
+         */
+        readiness: rows.flatMap(r => r.units).reduce((acc: Record<string, number>, u: any) => {
+          const k = u.coverage?.readiness || 'EMPTY';
+          acc[k] = (acc[k] || 0) + 1;
+          return acc;
+        }, {}),
         totalUnits: (units as any[]).length,
         published: (units as any[]).filter(u => u.status === 'PUBLISHED').length,
         drafts: (units as any[]).filter(u => u.status === 'DRAFT').length,

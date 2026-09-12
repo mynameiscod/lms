@@ -1944,6 +1944,22 @@ export interface CurriculumLearningUnit {
   /** A region of the ninety-day shape. NOT a day number — days belong to a student’s plan. */
   band?: string;
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  /** Set by the list endpoint. Absent when a unit is fetched on its own. */
+  coverage?: UnitCoverage;
+}
+
+export type CurriculumUnitReadiness = 'EMPTY' | 'PARTIAL' | 'TEACHABLE' | 'ASSESSABLE' | 'READY';
+
+export interface UnitCoverage {
+  readiness: CurriculumUnitReadiness;
+  /** What is still missing, in words an author can act on. */
+  missing: string[];
+  /** Everything it has is its topic's — nothing was written for this unit. */
+  inheritedOnly: boolean;
+  items: number;
+  types: string[];
+  hasTeaching: boolean;
+  hasPractice: boolean;
 }
 
 export interface MegaCurriculumTopicRow {
@@ -1965,6 +1981,8 @@ export interface MegaCurriculumSummary {
   published: number;
   drafts: number;
   orphaned: number;
+  /** How many units sit at each readiness rung. PARTIAL is the real backlog. */
+  readiness?: Record<string, number>;
 }
 
 export interface BundleItem {

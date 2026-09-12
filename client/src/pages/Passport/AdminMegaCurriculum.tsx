@@ -45,6 +45,21 @@ const TYPE_LABEL: Record<string, string> = {
   practice_theory: 'Theory practice', practice_coding: 'Coding practice', aptitude: 'Aptitude',
 };
 
+/**
+ * Readiness, in the author's words rather than as a state name.
+ *
+ * PARTIAL is the one that matters and the one that is easiest to mis-read as "nearly there": it
+ * means the unit inherits its topic's material and has nothing written for it, so twelve sibling
+ * units would each open the same lesson.
+ */
+const READINESS_LABEL: Record<string, string> = {
+  EMPTY: 'Nothing yet',
+  PARTIAL: 'Topic content only',
+  TEACHABLE: 'Teachable',
+  ASSESSABLE: 'Teachable + practice',
+  READY: 'Ready',
+};
+
 /** What a row is for, shown as a rail rather than restated on every line. */
 const ROLE_LABEL: Record<string, string> = {
   TEACH: 'Teach', REINFORCE: 'Reinforce', PRACTISE: 'Practise', OTHER: 'Other',
@@ -239,8 +254,9 @@ const AdminMegaCurriculum: React.FC = () => {
             <small>across the whole stage</small></div>
           <div className="mgc-kpi good"><span>Live</span><b>{summary.published}</b>
             <small>publishable to a plan</small></div>
-          <div className={`mgc-kpi ${summary.drafts ? 'warn' : ''}`}><span>Drafts</span><b>{summary.drafts}</b>
-            <small>not yet teachable</small></div>
+          <div className={`mgc-kpi ${(summary.readiness?.PARTIAL || 0) ? 'warn' : ''}`}>
+            <span>Topic content only</span><b>{summary.readiness?.PARTIAL || 0}</b>
+            <small>inherit their topic — nothing written for them</small></div>
         </div>
       )}
 
@@ -302,6 +318,17 @@ const AdminMegaCurriculum: React.FC = () => {
                                   {u.skillKeys.length > 0 && <> · {u.skillKeys.join(', ')}</>}
                                   {u.band && <> · {u.band}</>}
                                 </small>
+                              </span>
+                              <span className="mgc-cov" title={(u.coverage?.missing || []).join('; ') || 'Everything this unit type needs'}>
+                                {u.coverage && (
+                                  <>
+                                    <em className={u.coverage.hasTeaching ? 'on' : ''}>Teach</em>
+                                    <em className={u.coverage.hasPractice ? 'on' : ''}>Practise</em>
+                                    <b className={`r-${u.coverage.readiness.toLowerCase()}`}>
+                                      {READINESS_LABEL[u.coverage.readiness]}
+                                    </b>
+                                  </>
+                                )}
                               </span>
                               <span className="mgc-mins">
                                 {u.estimatedMinutes > 0 ? `${u.estimatedMinutes} min` : '—'}

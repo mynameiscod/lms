@@ -34,6 +34,8 @@ import { YEAR1_BUNDLES } from './year1UnitContent';
 import { PROGRAMMING_SPINE_BUNDLES } from './year1ContentProgramming';
 import { VERIFICATION_BUNDLES } from './year1ContentVerification';
 import { FUNCTIONS_BUNDLES } from './year1ContentFunctions';
+import { ARRAYS_BUNDLES } from './year1ContentArrays';
+import { CAREER_MAP_BUNDLES } from './year1ContentCareerMap';
 import { findDuplication, identifyingWordsFor } from '../../services/contentDuplicationService';
 
 dotenv.config();
@@ -72,7 +74,7 @@ const readingMinutes = (text: string): number =>
    */
   const ALL_BUNDLES = [
     ...YEAR1_BUNDLES, ...PROGRAMMING_SPINE_BUNDLES, ...VERIFICATION_BUNDLES,
-    ...FUNCTIONS_BUNDLES,
+    ...FUNCTIONS_BUNDLES, ...ARRAYS_BUNDLES, ...CAREER_MAP_BUNDLES,
   ];
 
   const units = await CurriculumLearningUnit

@@ -137,10 +137,24 @@ export interface ComposerResult {
    *
    * A production composition must never schedule under this condition, so they are excluded and
    * named rather than quietly included.
+   *
+   * ── TWO CAUSES, AND THEY GO TO DIFFERENT PEOPLE ─────────────────────────────────────────
+   *
+   * `absent` names a prerequisite that does not exist in the curriculum at all. That is an
+   * AUTHORING gap and an author fixes it by writing the unit.
+   *
+   * `unsuitable` names one that exists and is written, but was filtered out for THIS student —
+   * almost always a DEBUG or PROJECT unit in front of a learner who has not reached the state it
+   * serves. Nobody can fix that by writing anything; it is a sequencing property of the design,
+   * and it is the number that says a beginner cannot reach the far end of a topic in one pass.
+   *
+   * They were one list until the audit made the difference matter: "two missing prerequisites"
+   * reads as a small authoring backlog, and the true finding was that no beginner can reach any
+   * unit sitting behind a debugging exercise.
    */
-  blocked: { unitCode: string; missing: string[] }[];
+  blocked: { unitCode: string; absent: string[]; unsuitable: string[] }[];
 
-  /** Kept for callers written against the prototype. Derived from `blocked`. */
+  /** Kept for callers written against the prototype. Both causes, flattened. */
   unmetPrerequisites: { unitCode: string; missing: string[] }[];
   totalMinutes: number;
 }
@@ -500,21 +514,41 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   }
 
   /**
-   * Units left out because something they build on is unavailable and unproven.
+   * Units left out because something they build on is UNAVAILABLE and unproven.
    *
    * Named rather than silently dropped: this is an authoring gap with a student-visible
    * consequence, and it is the number that tells an author which missing unit is costing the
    * most plan.
+   *
+   * ── WHY THIS IS NOT SIMPLY `resolveOne` OVER THE LEFTOVERS ──────────────────────────────
+   *
+   * Selection stops the moment the plan is full, so most unchosen units were never considered at
+   * all — a ninety-day plan drawn from a pool of 193 leaves 103 untouched. `resolveOne` reports
+   * an in-pool prerequisite as BLOCKED whenever it is not `chosen`, which is the right answer
+   * DURING selection (it cannot be taken yet) and the wrong one afterwards (it could have been,
+   * had there been room). Reporting those would have said a healthy beginner curriculum had 83
+   * blocked units and 78 missing prerequisites, when the true figure was zero and the only thing
+   * wrong was that ninety days is ninety days.
+   *
+   * So a prerequisite counts as blocking only when it is ABSENT FROM THE POOL ENTIRELY and the
+   * student has not demonstrated it another way. That is the condition an author can act on;
+   * "did not fit" is a fact about the plan length and belongs nowhere near a deficit count.
    */
-  const blockedMap = new Map<string, string[]>();
+  const blocked: ComposerResult['blocked'] = [];
   for (const u of eligible) {
     if (chosen.has(u.unitCode)) continue;
-    const missing = u.prerequisiteUnitCodes
-      .filter(c => resolveOne(u, c) === 'BLOCKED_MISSING_PREREQUISITE');
-    if (missing.length) blockedMap.set(u.unitCode, missing);
+    const unavailable = u.prerequisiteUnitCodes.filter(c => !byCode.has(c) && !masteredBy(c, u));
+    if (!unavailable.length) continue;
+
+    blocked.push({
+      unitCode: u.unitCode,
+      // Present in the candidate set but filtered for this student, versus never written at all.
+      absent: unavailable.filter(c => !allByCode.has(c)),
+      unsuitable: unavailable.filter(c => allByCode.has(c)),
+    });
   }
-  const blocked = [...blockedMap.entries()].map(([unitCode, missing]) => ({ unitCode, missing }));
-  const unmetPrerequisites = blocked;
+  const unmetPrerequisites = blocked
+    .map(b => ({ unitCode: b.unitCode, missing: [...b.absent, ...b.unsuitable] }));
 
   /**
    * An insufficient plan is a STRUCTURED REFUSAL, never a short plan.

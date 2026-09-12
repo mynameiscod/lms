@@ -153,7 +153,11 @@ describe('prerequisite ordering', () => {
     const r = compose(orphan, 1, BEGINNER);
 
     expect(r.units).toHaveLength(0);
-    expect(r.blocked).toEqual([{ unitCode: 'T_A_9', missing: ['T_A_NOT_AUTHORED'] }]);
+    // Never written at all, so it is an authoring gap rather than a unit filtered out for
+    // this student. The audit needs those two apart to size a deficit honestly.
+    expect(r.blocked).toEqual([
+      { unitCode: 'T_A_9', absent: ['T_A_NOT_AUTHORED'], unsuitable: [] },
+    ]);
   });
 
   it('schedules it anyway when the student has already demonstrated the capability', () => {

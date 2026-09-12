@@ -43,7 +43,17 @@ export type CandidateSource =
    *
    * Named so it cannot be mistaken for an option at a call site.
    */
-  | 'PROTOTYPE_UNPUBLISHED';
+  | 'PROTOTYPE_UNPUBLISHED'
+  /**
+   * EVERY designed unit, ignoring readiness and publication entirely. FOR AUDITING ONLY.
+   *
+   * It answers a question about the CURRICULUM rather than about a student: could the 310 units
+   * as designed support a ninety-day plan, if every one of them were written? Mixing that with
+   * planning would mean composing from units that have no content at all, so this source is
+   * never production eligible and `assertProductionEligible` refuses it exactly as it refuses
+   * the prototype one.
+   */
+  | 'CURRICULUM_CAPACITY_AUDIT';
 
 export interface CandidateSet {
   source: CandidateSource;
@@ -123,9 +133,19 @@ export async function loadCandidates(
 
     const publishedEnough = source === 'PRODUCTION'
       ? unit.status === 'PUBLISHED'
-      : unit.status !== 'ARCHIVED';   // prototype: anything not retired
+      : unit.status !== 'ARCHIVED';   // prototype and audit: anything not retired
 
-    if (readiness !== 'READY' || !publishedEnough) {
+    /**
+     * The audit source ignores readiness on purpose.
+     *
+     * Its question is whether the curriculum's DESIGN can carry ninety days, which is answered
+     * by the units that exist rather than by the ones somebody has finished writing. Applying
+     * the readiness filter here would conflate a design deficit with an authoring backlog, and
+     * those need different decisions from different people.
+     */
+    const readyEnough = source === 'CURRICULUM_CAPACITY_AUDIT' || readiness === 'READY';
+
+    if (!readyEnough || !publishedEnough) {
       rejected.push({ unitCode: String(unit.unitCode), status: String(unit.status), readiness });
       continue;
     }
@@ -145,6 +165,8 @@ export async function loadCandidates(
       defaultDepth: String(unit.defaultDepth || 'STANDARD'),
       mandatory: unit.mandatory !== false,
       estimatedMinutes: Number(unit.estimatedMinutes) || 0,
+      // Absent on every unit today; derived from unitType when missing.
+      ...(unit.suitableStates?.length ? { suitableStates: unit.suitableStates } : {}),
     });
   }
 

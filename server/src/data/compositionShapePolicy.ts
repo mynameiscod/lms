@@ -273,7 +273,23 @@ export function allocationFor(
   stance: DirectionStance,
   programDays: number,
 ): RoleAllocation[] {
-  const base = directionAdjusted(BASE[shape], stance);
+  return allocationFrom(BASE[shape], stance, programDays);
+}
+
+/**
+ * The same derivation, over any base table.
+ *
+ * Exported so a PROPOSED shape can be evaluated through exactly the same stance adjustment,
+ * scaling and normalisation as the shipped one. A curriculum study that reimplemented those
+ * steps would be comparing its own arithmetic against the policy rather than the two shapes
+ * against each other — which is what the first expansion simulation accidentally did.
+ */
+export function allocationFrom(
+  table: RoleAllocation[],
+  stance: DirectionStance,
+  programDays: number,
+): RoleAllocation[] {
+  const base = directionAdjusted(table, stance);
 
   /**
    * Floors scale with the programme length, targets and minimums together.

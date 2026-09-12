@@ -63,6 +63,30 @@ export const CAREER_DIRECTIONS: CareerDirection[] = [
     roleKeys: ['FRONTEND_ENGINEER', 'FULLSTACK_ENGINEER'],
     displayOrder: 10,
   },
+  /**
+   * SOFTWARE_BACKEND HAS NO DIRECTION-SCOPED UNITS IN YEAR 1, AND THAT IS THE DECISION.
+   *
+   * The P8A capacity work found zero units scoped to software, and it reads like a gap until you
+   * look at what the Foundation curriculum is made of: Programming (40 units), C (10), DSA (11),
+   * Databases (12) and Developer Tools (16) are all scoped UNIVERSAL, because they are the
+   * foundation everybody needs — and they are also, between them, exactly the software track.
+   * Scoping them to a direction would withhold the core of computing from the students who
+   * happen to have said "web" or "AI" in week one.
+   *
+   * So for Year 1: software is served by shared advanced and core units, and zero
+   * SOFTWARE_BACKEND-scoped inventory is not a deficit to be filled. Duplicating universal units
+   * to manufacture direction inventory is explicitly rejected — it would double the authoring
+   * cost, split every future content fix across two copies, and teach nobody anything new.
+   *
+   * What may change later is PREFERENCE, not scope: direction-aware composition could give a
+   * software-leaning student affinity towards the shared core units that serve them most (DSA,
+   * databases, C) without those units ceasing to be universal. That is a ranking question and is
+   * deliberately left for a later phase.
+   *
+   * Note for anyone reading an old audit: the capacity profiles named this direction
+   * 'SOFTWARE_DEVELOPMENT', which is not a DirectionKey and matched nothing. The finding above
+   * holds either way — no unit carries SOFTWARE_BACKEND either — but the profile was also wrong.
+   */
   {
     key: 'SOFTWARE_BACKEND',
     name: 'Software & Backend',

@@ -107,7 +107,7 @@ const PROFILES: ProfileSpec[] = [
     build: (s) => ({
       skills: new Map(s.filter(k => /PROGRAMMING|PYTHON|LOOPS|FUNCTIONS|CONDITIONALS|DSA|C_/.test(k))
         .map(k => [k, belief(66)])),
-      primaryDirection: 'SOFTWARE_DEVELOPMENT',
+      primaryDirection: 'SOFTWARE_BACKEND',
       directionStatus: 'SELECTED',
     }),
   },

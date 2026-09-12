@@ -87,11 +87,48 @@ export interface StudentProfile {
   explorationDirections?: string[];
 }
 
+/**
+ * Resolves the shape a plan should have. The shipped implementation is `allocationFor`.
+ *
+ * Same signature, so the default IS the policy rather than a special case of it.
+ */
+export type CompositionPolicy = (
+  shape: LearnerShape,
+  stance: DirectionStatus,
+  programDays: number,
+) => RoleAllocation[];
+
 export interface ComposerInput {
   candidates: ComposableUnit[];
   /** How many units to select. P7B will fix this at FOUNDATION_PROGRAM_DAYS; here it is free. */
   targetUnits: number;
   student: StudentProfile;
+  /**
+   * How the plan's shape is decided. Defaults to the shipped composition-shape policy.
+   *
+   * ── WHY THE COMPOSER TAKES ITS POLICY AS AN INPUT ───────────────────────────────────────
+   *
+   * This is not a hook added for one script. The composer is a pure function, and an allocation
+   * is policy DATA rather than part of the algorithm: given the same student, candidates and
+   * shape, the selection, suitability, prerequisite, breadth and duplication rules are identical
+   * whichever allocation is in force. Naming the seam makes that separation explicit and gives
+   * both the shipped policy and any policy under evaluation exactly the same code path.
+   *
+   * It also has to exist for curriculum work to be answerable at all. A curriculum expansion is
+   * half new units and half a revised shape — proposing eight checkpoint units while every
+   * learner shape allocates VERIFICATION a target of zero produces eight units nobody is ever
+   * given, and a before/after comparison showing no change whatsoever. Measuring the proposal
+   * requires composing against a shape that is not yet policy.
+   *
+   * IT CANNOT LOOSEN A RULE. An allocation only says how many of each role are wanted; every
+   * safety property — suitability, prerequisites, breadth, no duplicates, determinism — is
+   * enforced downstream and identically. A wrong policy here yields a badly shaped plan, never an
+   * unsafe one.
+   *
+   * OMITTED IN PRODUCTION, which is how the default stays the only shape a student's plan is
+   * built from.
+   */
+  compositionPolicy?: CompositionPolicy;
 }
 
 /* ------------------------------------------------------------------ *
@@ -499,7 +536,9 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    */
   const designSkills = [...new Set(candidates.flatMap(u => u.skillKeys))].sort();
   const shape = learnerShapeOf({ designSkills, skills: student.skills });
-  const allocation = allocationFor(shape, student.directionStatus as any, targetUnits);
+  const allocation = (input.compositionPolicy ?? allocationFor)(
+    shape, student.directionStatus as any, targetUnits,
+  );
 
   const budget = new Map<CompositionRole, number>(allocation.map(a => [a.role, a.target]));
   const reallocations: Reallocation[] = [];
@@ -611,7 +650,20 @@ export function composeUnits(input: ComposerInput): ComposerResult {
       if (fam) familyCount.set(fam, (familyCount.get(fam) || 0) + 1);
     }
     if (spendBudget) {
-      const role = roleOf.get(u.unitCode)!;
+      /**
+       * A pull whose bucket is empty is taken anyway, and does NOT rob another bucket.
+       *
+       * Borrowing from the bucket with the most left was tried and was clearly worse: early in a
+       * plan the large budgets are direction and advanced material, so every prerequisite pull
+       * drained them and both had nothing left by the time the walk reached them — an exploring
+       * learner's career units went from five to none and a software learner's plan got WORSE.
+       *
+       * The honest reason is structural, not arithmetic. Prerequisite pulls are overwhelmingly
+       * instruction, because reaching one practice unit means teaching its topic first, and each
+       * topic is five to eight concept units deep. A plan cannot spend less on instruction than
+       * its own prerequisite chains cost, whatever an allocation asks for, so making the pull
+       * charge somebody is not a saving — it just moves the shortfall somewhere less visible.
+       */
       budget.set(role, Math.max(0, (budget.get(role) || 0) - 1));
     }
   };

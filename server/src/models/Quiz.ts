@@ -14,6 +14,22 @@ export interface IQuiz extends Document {
   subjectId?: mongoose.Types.ObjectId; // Optional subject reference
   chapterId?: mongoose.Types.ObjectId; // Optional chapter reference
   topicId?: mongoose.Types.ObjectId;   // Optional topic reference (for mastery tracking)
+
+  /**
+   * The CareerPilot Learning Unit this belongs to, if any.
+   *
+   * WHY A FIELD AND NOT A JOIN. A quiz belongs to at most one unit, so a join collection would
+   * add a second place for that fact to live and a second thing to keep in step. It also mirrors
+   * exactly how LearningContentLibrary binds, which means one rule for an author to learn rather
+   * than two.
+   *
+   * OPTIONAL, AND EVERY EXISTING ROW IS VALID WITHOUT IT. Nothing reads it unless a unit asks,
+   * and no existing screen, query or index changes behaviour because it is absent. The legacy
+   * courseId / subjectId / chapterId / topicId hooks above are untouched and keep working
+   * — this sits beside them for the curriculum CareerPilot actually teaches.
+   */
+  unitCode?: string;
+
   startDate: Date;
   endDate: Date;
   startTime: string; // HH:mm format
@@ -67,6 +83,9 @@ const quizSchema = new Schema<IQuiz>(
     subjectId: { type: Schema.Types.ObjectId, ref: 'Subject' },
     chapterId: { type: Schema.Types.ObjectId, ref: 'Chapter' },
     topicId:   { type: Schema.Types.ObjectId, ref: 'Topic' },
+    /** See ICurriculum note above. Sparse: only a minority of rows will ever carry one. */
+    unitCode: { type: String, trim: true, uppercase: true },
+
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     startTime: { type: String, required: true },
@@ -109,5 +128,7 @@ const quizSchema = new Schema<IQuiz>(
 );
 
 quizSchema.index({ tenantId: 1, archivedAt: 1, endDate: 1 });
+/** "Which quizzes belong to this learning unit" — the only query the binding exists to serve. */
+quizSchema.index({ tenantId: 1, unitCode: 1 }, { sparse: true });
 
 export default mongoose.model<IQuiz>('Quiz', quizSchema);

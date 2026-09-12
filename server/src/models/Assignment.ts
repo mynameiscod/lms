@@ -108,6 +108,21 @@ export interface IAssignment extends Document {
   // Classification
   difficulty: DifficultyLevel;
   primaryTech?: TechCategory;  // language/tech category for organizing & reuse
+
+  /**
+   * The CareerPilot Learning Unit this belongs to, if any.
+   *
+   * WHY A FIELD AND NOT A JOIN. An assignment belongs to at most one unit, so a join collection would
+   * add a second place for that fact to live and a second thing to keep in step. It also mirrors
+   * exactly how LearningContentLibrary binds, which means one rule for an author to learn rather
+   * than two.
+   *
+   * OPTIONAL, AND EVERY EXISTING ROW IS VALID WITHOUT IT. Nothing reads it unless a unit asks,
+   * and no existing screen, query or index changes behaviour because it is absent. The legacy
+   * courseId / subjectId / chapterId / topicId hooks above are untouched and keep working
+   * — this sits beside them for the curriculum CareerPilot actually teaches.
+   */
+  unitCode?: string;
   topics: string[];
   tags: string[];
 
@@ -232,6 +247,8 @@ const AssignmentSchema = new Schema<IAssignment>({
   // Classification
   difficulty: { type: String, enum: Object.values(DifficultyLevel), default: DifficultyLevel.MEDIUM },
   primaryTech: { type: String, enum: Object.values(TechCategory), index: true },
+    /** See IAssignment note above. Sparse: only a minority of rows will ever carry one. */
+    unitCode: { type: String, trim: true, uppercase: true },
   topics: [{ type: String, trim: true }],
   tags: [{ type: String, trim: true }],
   
@@ -317,5 +334,7 @@ AssignmentSchema.index({ tenant: 1, type: 1, difficulty: 1 });
 AssignmentSchema.index({ tenant: 1, isInBank: 1, bankCategory: 1 });
 AssignmentSchema.index({ topics: 1 });
 AssignmentSchema.index({ tags: 1 });
+/** "Which assignments belong to this learning unit" — the only query the binding serves. */
+AssignmentSchema.index({ tenantId: 1, unitCode: 1 }, { sparse: true });
 
 export default mongoose.model<IAssignment>('Assignment', AssignmentSchema);

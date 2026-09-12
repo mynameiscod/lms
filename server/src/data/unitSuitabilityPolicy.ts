@@ -58,10 +58,29 @@ export const SUITABILITY_BY_TYPE: Record<LearningUnitType, AssignmentState[]> = 
   PRACTICE: ['GUIDED', 'STANDARD', 'REVISION'],
 
   /**
-   * Diagnosing broken work. Requires enough command to know what correct looks like, and stays
-   * valuable for the strong — reading somebody else's fault is a different skill from writing.
+   * Diagnosing broken work. Valuable as soon as somebody has met the idea, and still valuable
+   * when they are fluent — reading somebody else's fault is a different skill from writing.
+   *
+   * ── WHY GUIDED IS IN THIS LIST ──────────────────────────────────────────────────────────
+   *
+   * It began at STANDARD, on the reasoning that you must know what correct looks like before you
+   * can find a fault. That is true of expert diagnosis and false of how these units are actually
+   * written. Every one of the eighteen is authored as consolidation immediately after
+   * instruction — "finding the cause rather than guessing", "diagnose a broken example without
+   * changing it at random" — and the pseudocode one is taught before the student has written any
+   * code at all. Those are beginner behaviours being corrected, not expert skills being extended.
+   *
+   * The curriculum said so structurally too: all fifteen affected topics place DEBUGGING BEFORE
+   * PRACTICE, and fifteen PRACTICE units name a DEBUG unit as their prerequisite. With DEBUG
+   * starting at STANDARD that is a deadlock, and a silent one — DEBUG needed a state only
+   * practice could produce, and practice could not be scheduled until DEBUG had been. Neither was
+   * ever schedulable, which is part of why no PRACTICE unit was selected for any of the nine
+   * audit profiles.
+   *
+   * Widened, never narrowed: it still serves STANDARD, REVISION and VERIFIED, so the rule that a
+   * strong learner gets application instead of re-instruction is untouched.
    */
-  DEBUG: ['STANDARD', 'REVISION', 'VERIFIED'],
+  DEBUG: ['GUIDED', 'STANDARD', 'REVISION', 'VERIFIED'],
 
   /** Building something. The application a strong student should get INSTEAD of re-instruction. */
   PROJECT: ['STANDARD', 'REVISION', 'VERIFIED', 'ENRICHMENT'],

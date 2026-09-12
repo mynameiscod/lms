@@ -37,10 +37,15 @@ import {
 import { SkillConfidence } from '../models/StudentSkillProfile';
 import { appliesToDirection, DirectionStatus } from '../data/careerDirectionPolicy';
 import {
-  isSuitableFor, isInstructional, suitableStatesFor,
+  isSuitableFor, isInstructional,
   PrerequisiteOutcome, PrerequisiteResolution,
 } from '../data/unitSuitabilityPolicy';
 import { LearningUnitType, LearningUnitCategory } from '../models/CurriculumLearningUnit';
+import {
+  CompositionRole, COMPOSITION_ROLES, compositionRoleOf, isInstructionalRole,
+  LearnerShape, learnerShapeOf, RoleAllocation, allocationFor,
+  REALLOCATION_ORDER, PlanProgress, SchedulingReadiness, schedulingReadiness,
+} from '../data/compositionShapePolicy';
 
 /* ------------------------------------------------------------------ *
  * Inputs
@@ -100,15 +105,39 @@ export interface SelectedUnit {
   position: number;
   /** Why this unit, from the existing taxonomy. */
   reason: AssignmentReason;
-  /** The skill state that produced the reason, for auditing the decision. */
+  /**
+   * The MEASURED state, from Skill DNA. Evidence about the student.
+   *
+   * Never the within-plan projection — see `scheduledAt`. This is the one a student is told.
+   */
   state: AssignmentState;
+  /**
+   * The readiness this unit was SCHEDULED at, which may have come from the plan's own teaching.
+   *
+   * Reported so a plan can be audited, and named so it cannot be mistaken for the line above.
+   * `scheduledOnProjection` says which of the two it was. Nothing may write this into a skill
+   * profile, an assessment record, or anything shown to a student as their level.
+   */
+  scheduledAt: AssignmentState;
+  /** True when `scheduledAt` came from the plan rather than from measurement. */
+  scheduledOnProjection: boolean;
   /** The skill the reason is about, where one governs. */
   governingSkill: string | null;
   score: number | null;
   moduleCode: string;
   topicCode: string;
   unitType: LearningUnitType;
+  /** The job this unit does in the journey. Derived, never stored. */
+  role: CompositionRole;
   estimatedMinutes: number;
+}
+
+/** One bucket's capacity handed to another, because the first could not be filled. */
+export interface Reallocation {
+  from: CompositionRole;
+  to: CompositionRole;
+  units: number;
+  reason: 'NO_SUITABLE_INVENTORY';
 }
 
 export type ComposerFailure = 'INSUFFICIENT_COMPOSER_READY_INVENTORY';
@@ -157,6 +186,29 @@ export interface ComposerResult {
   /** Kept for callers written against the prototype. Both causes, flattened. */
   unmetPrerequisites: { unitCode: string; missing: string[] }[];
   totalMinutes: number;
+
+  /* ---- composition shape ---- */
+
+  /** How much of the design this student has proven. Derived, never a profile name. */
+  shape: LearnerShape;
+  /** What the plan was asked to contain. */
+  allocation: RoleAllocation[];
+  /** What it actually contains. */
+  composition: Record<CompositionRole, number>;
+  /**
+   * Capacity moved between buckets, and why.
+   *
+   * Reported rather than absorbed: "we could not give you anything to build, so you got more
+   * debugging" is a decision a student and an author should both be able to see.
+   */
+  reallocations: Reallocation[];
+  /**
+   * Roles that finished below the floor the allocation set for them.
+   *
+   * A plan can be ninety units long and still not be the product that was promised. This is the
+   * number that says so.
+   */
+  shapeViolations: { role: CompositionRole; min: number; actual: number }[];
 }
 
 /* ------------------------------------------------------------------ *
@@ -211,11 +263,23 @@ function reasonFor(
   if (state === 'NOT_EXPOSED') {
     // Never measured. Not a gap, and saying so would be inventing a score.
     if (unit.category === 'EXPLORATION') return 'CAREER_EXPLORATION';
-    if (unit.category === 'DIRECTION' && student.primaryDirection) return 'STUDENT_DIRECTION';
+    if (unit.category === 'DIRECTION') {
+      /**
+       * Sampled, not committed to.
+       *
+       * A student who has chosen web is told a CSS unit serves their direction. A student who has
+       * chosen nothing is told it is there to help them choose — which is true, and which avoids
+       * the plan implying a decision they never made. The alternative was NOT_YET_EXPOSED, which
+       * says nothing about why this particular unit is in front of them.
+       */
+      return student.primaryDirection ? 'STUDENT_DIRECTION' : 'CAREER_EXPLORATION';
+    }
     if (unit.mandatory || unit.category === 'UNIVERSAL') return 'STANDARD_FOUNDATION';
     return 'NOT_YET_EXPOSED';
   }
-  if (unit.category === 'DIRECTION' && student.primaryDirection) return 'STUDENT_DIRECTION';
+  if (unit.category === 'DIRECTION') {
+    return student.primaryDirection ? 'STUDENT_DIRECTION' : 'CAREER_EXPLORATION';
+  }
   if (unit.category === 'EXPLORATION') return 'CAREER_EXPLORATION';
   return 'STANDARD_FOUNDATION';
 }
@@ -280,6 +344,25 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     (student.explorationDirections || []).map(d => String(d).toUpperCase()),
   );
 
+  /**
+   * UNDECIDED IS A VALID PLACE TO BE, AND IT STAYS ONE.
+   *
+   * A learner who has not chosen a direction used to receive no direction material at all: every
+   * scoped non-mandatory unit was filtered out. For a beginner that barely showed, because the
+   * universal foundation is enormous. For somebody who has proven that foundation it was fatal —
+   * everything left that was new to them was direction-scoped, and their plan ran dry at 56 units.
+   *
+   * The wrong fix is to make them choose, or to quietly set a direction on their behalf. Neither
+   * is true to what the product knows about them, and one of them writes a decision into a
+   * student's profile that the student never made.
+   *
+   * So a learner with no chosen direction SAMPLES ACROSS ALL of them. Nothing is written to
+   * `primaryDirection`, the units are explained as CAREER_EXPLORATION rather than as serving a
+   * direction they never picked, and the breadth rule below stops the sampling from collapsing
+   * into one area.
+   */
+  const samplingBreadth = !student.primaryDirection;
+
   const excluded: ComposerResult['excluded'] = [];
   const relevant: ComposableUnit[] = [];
 
@@ -288,53 +371,54 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     if (!scoped || unit.mandatory) { relevant.push(unit); continue; }
 
     const serves = appliesToDirection(unit.applicableDirections, student.primaryDirection)
-      || unit.applicableDirections.some(d => exploring.has(String(d).toUpperCase()));
+      || unit.applicableDirections.some(d => exploring.has(String(d).toUpperCase()))
+      // No direction chosen: every direction is on the table, subject to the breadth rule.
+      || (samplingBreadth && exploring.size === 0);
 
     if (serves) relevant.push(unit);
     else excluded.push({ unitCode: unit.unitCode, reason: 'OUTSIDE_DIRECTION' });
   }
-
-  /* ---- 1b. suitability --------------------------------------------- */
+  /* ---- 2. rank ------------------------------------------------------ */
 
   /**
-   * A unit the student's state has no use for is dropped, and instruction is where that bites.
+   * Every candidate by code, INCLUDING the ones the direction filter removed.
    *
-   * THE PRODUCT DECISION. A VERIFIED learner does not get every foundation unit again at a lower
-   * depth: the CONCEPT units stop being suitable, and the capacity goes on debugging, projects
-   * and checkpoints instead. Re-teaching somebody what they have demonstrated is the most
-   * expensive way to waste a day of a ninety-day programme.
+   * A prerequisite dropped upstream is still a real unit whose skills can answer "has this
+   * student already shown it". Looking only at the surviving set would report a mastered
+   * prerequisite as an authoring gap.
+   */
+  const allByCode = new Map(candidates.map(u => [u.unitCode, u]));
+  const byCode = new Map(relevant.map(u => [u.unitCode, u]));
+
+  /**
+   * The measured state of every relevant unit. Computed once, and it does NOT move.
    *
-   * VERIFIED IS STILL NOT REMOVED. The skill keeps units in the plan, they are still labelled
-   * MASTERY_VERIFIED, and a student can still see the area was covered. What changes is that the
-   * units are the ones worth their time.
+   * Ranking asks how urgent a unit is for this student, which is a fact about their diagnostic
+   * and should not drift as the plan is built. Suitability asks whether they can do it YET, and
+   * that does move — see the projection below. Keeping the two apart is what lets the order stay
+   * stable while the gate opens.
    */
   const stateOf = new Map<string, ReturnType<typeof governingState>>();
   for (const u of relevant) stateOf.set(u.unitCode, governingState(u, student.skills));
 
-  const eligible: ComposableUnit[] = [];
-  for (const unit of relevant) {
-    const { state } = stateOf.get(unit.unitCode)!;
-    if (isSuitableFor(unit, state)) { eligible.push(unit); continue; }
-
-    excluded.push({
-      unitCode: unit.unitCode,
-      // Suitability failure on instruction is exactly "you have shown this already".
-      reason: state === 'VERIFIED' && isInstructional(unit) ? 'MASTERY_VERIFIED' : 'OUTSIDE_DIRECTION',
-    });
-  }
-
-  /* ---- 2. rank ------------------------------------------------------ */
+  const roleOf = new Map<string, CompositionRole>();
+  for (const u of relevant) roleOf.set(u.unitCode, compositionRoleOf(u));
 
   /**
-   * Every candidate by code, INCLUDING the ones filtered out.
+   * Which area a direction unit counts towards when sampling.
    *
-   * A prerequisite dropped for suitability is still a real unit whose skills can answer "has
-   * this student already shown it". Looking only at the eligible set would report a mastered
-   * prerequisite as an authoring gap.
+   * The inventory scopes units to overlapping sets — AI_ML and DATA name the same 21 units,
+   * CLOUD_DEVOPS and CYBERSECURITY the same 8 — so counting per direction label would say five
+   * areas exist where there are three distinct bodies of material. Taking the first label in
+   * sorted order collapses each set to one stable name, which is what makes the breadth counts
+   * mean something and keeps them identical between runs.
    */
-  const allByCode = new Map(candidates.map(u => [u.unitCode, u]));
-
-  const byCode = new Map(eligible.map(u => [u.unitCode, u]));
+  const familyOf = (u: ComposableUnit): string | null => {
+    const dirs = (u.applicableDirections || []).map(d => String(d).toUpperCase()).sort();
+    if (!dirs.length) return null;
+    if (exploring.size) return dirs.find(d => exploring.has(d)) || dirs[0];
+    return dirs[0];
+  };
 
   /**
    * The total order. Every tie is broken, so two runs cannot disagree.
@@ -343,7 +427,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    * tie-break, two units identical on every other axis would order by whatever the array
    * happened to contain, and the plan would change between runs for no reason a student could see.
    */
-  const ranked = [...eligible].sort((a, b) => {
+  const ranked = [...relevant].sort((a, b) => {
     const byPriority = compareArrays(
       priorityOf(a, stateOf.get(a.unitCode)!.state, student),
       priorityOf(b, stateOf.get(b.unitCode)!.state, student),
@@ -354,8 +438,73 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     if (a.displayOrder !== b.displayOrder) return a.displayOrder - b.displayOrder;
     return a.unitCode.localeCompare(b.unitCode);
   });
+  const rankIndex = new Map(ranked.map((u, i) => [u.unitCode, i]));
 
-  /* ---- 3. select, respecting prerequisites -------------------------- */
+  /* ---- 2b. what the plan itself teaches ----------------------------- */
+
+  /**
+   * The student as the plan will have left them, not as they arrived.
+   *
+   * PRACTICE serves GUIDED and later; PROJECT serves STANDARD and later. A learner with nothing
+   * measured is NOT_EXPOSED everywhere, so both were filtered as unsuitable before any allocation
+   * could ask for them — which is why the audit found 37 practice units designed and 0 ever
+   * selected. The composer was judging the student on day one and never noticing that the plan it
+   * was building would teach them something.
+   *
+   * So teaching counts as it is scheduled. The ladder stops at STANDARD on purpose: REVISION and
+   * VERIFIED assert that somebody has DEMONSTRATED a skill, and only measurement can establish
+   * that. Projecting into them would let a plan claim mastery it had merely scheduled.
+   */
+  const progress = new Map<string, Set<PlanProgress>>();
+
+  const noteTaught = (u: ComposableUnit) => {
+    const role = roleOf.get(u.unitCode)!;
+    const mark: PlanProgress | null =
+      isInstructionalRole(role) ? 'TAUGHT'
+        : role === 'PRACTICE' ? 'PRACTISED'
+          : null;
+    if (!mark) return;
+    for (const key of u.skillKeys) {
+      const set = progress.get(key) || new Set<PlanProgress>();
+      set.add(mark);
+      // Practising something the plan never taught still implies exposure to it.
+      if (mark === 'PRACTISED') set.add('TAUGHT');
+      progress.set(key, set);
+    }
+  };
+
+  /**
+   * How ready the plan has made the student for this unit.
+   *
+   * A SCHEDULING fact, not an assessment result. It never reaches `student.skills` — which is
+   * read and never written for the whole of composition — and it is reported on the result under
+   * its own name so nothing downstream can mistake it for a measurement.
+   */
+  const readinessOf = (u: ComposableUnit): SchedulingReadiness => {
+    const governing = stateOf.get(u.unitCode)!;
+    const key = governing.skill;
+    return schedulingReadiness(governing.state, (key && progress.get(key)) || new Set<PlanProgress>());
+  };
+
+  const suitableNow = (u: ComposableUnit): boolean =>
+    isSuitableFor(u, readinessOf(u).equivalentState);
+
+  /* ---- 3. allocate --------------------------------------------------- */
+
+  /**
+   * The shape this student's journey should have, before a single unit is chosen.
+   *
+   * Derived from what they have proven against the whole design, never from a label — the audit's
+   * nine profiles are fixtures and a real student arrives with a diagnostic.
+   */
+  const designSkills = [...new Set(candidates.flatMap(u => u.skillKeys))].sort();
+  const shape = learnerShapeOf({ designSkills, skills: student.skills });
+  const allocation = allocationFor(shape, student.directionStatus as any, targetUnits);
+
+  const budget = new Map<CompositionRole, number>(allocation.map(a => [a.role, a.target]));
+  const reallocations: Reallocation[] = [];
+
+  /* ---- 4. select ----------------------------------------------------- */
 
   /**
    * A unit is only taken once everything it builds on has been taken.
@@ -363,10 +512,6 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    * Walked repeatedly rather than topologically sorted up front, because the ranking decides
    * WHICH units are wanted and the prerequisites only decide WHEN. Sorting first would let a
    * low-priority prerequisite drag its whole chain into a plan that did not want it.
-   *
-   * A prerequisite outside the candidate pool does not block. The pool is filtered by readiness,
-   * so a missing prerequisite usually means nobody has authored it yet — refusing to schedule
-   * would turn an authoring gap into an empty plan. It is reported instead.
    */
   const selected: ComposableUnit[] = [];
   const chosen = new Set<string>();
@@ -404,9 +549,24 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    * nobody authored it, and the student has not shown the capability. Scheduling the dependent
    * unit then teaches somebody something they are not ready for, silently.
    */
+  /**
+   * MASTERY SATISFIES A PREREQUISITE WHEREVER THE UNIT SITS.
+   *
+   * This used to ask about pool membership first: a prerequisite inside the pool was satisfied
+   * only by being scheduled, and mastery was consulted only for units outside it. That made the
+   * answer depend on where the prerequisite lived rather than on what the student could do, and
+   * it produced a genuinely absurd result — a learner VERIFIED across the foundation could never
+   * be given a project, because every project names a practice unit as its prerequisite and
+   * practice is not suitable for somebody already fluent. The prerequisite was unschedulable and
+   * unsatisfiable at once, so the project was simply unreachable by the people most ready for it.
+   *
+   * Asking about the student first is both correct and the P7A.1 semantics as written: in the
+   * plan, or already demonstrated, or genuinely blocked.
+   */
   const resolveOne = (u: ComposableUnit, code: string): PrerequisiteResolution => {
-    if (byCode.has(code)) return chosen.has(code) ? 'SATISFIED_BY_PLAN' : 'BLOCKED_MISSING_PREREQUISITE';
-    return masteredBy(code, u) ? 'SATISFIED_BY_MASTERY' : 'BLOCKED_MISSING_PREREQUISITE';
+    if (chosen.has(code)) return 'SATISFIED_BY_PLAN';
+    if (masteredBy(code, u)) return 'SATISFIED_BY_MASTERY';
+    return 'BLOCKED_MISSING_PREREQUISITE';
   };
 
   const readyToTake = (u: ComposableUnit): boolean =>
@@ -431,8 +591,222 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     return seen;
   };
 
+  /** Readiness as it stood the moment each unit was taken, before its own teaching counted. */
+  const readinessAtSelection = new Map<string, SchedulingReadiness>();
+
+  /** How many direction units each sampled area has contributed so far. */
+  const familyCount = new Map<string, number>();
+  /** Running count per role, so phase 4a can see which floors are still unmet. */
+  const roleCount = new Map<CompositionRole, number>();
+
+  const take = (u: ComposableUnit, spendBudget: boolean) => {
+    readinessAtSelection.set(u.unitCode, readinessOf(u));
+    selected.push(u);
+    chosen.add(u.unitCode);
+    noteTaught(u);
+    const role = roleOf.get(u.unitCode)!;
+    roleCount.set(role, (roleCount.get(role) || 0) + 1);
+    if (role === 'DIRECTION_LEARNING') {
+      const fam = familyOf(u);
+      if (fam) familyCount.set(fam, (familyCount.get(fam) || 0) + 1);
+    }
+    if (spendBudget) {
+      const role = roleOf.get(u.unitCode)!;
+      budget.set(role, Math.max(0, (budget.get(role) || 0) - 1));
+    }
+  };
+
+  /**
+   * Hand an unfillable bucket's capacity to the next pedagogically valid one.
+   *
+   * NOT A FALLBACK — a pedagogical choice, and it is why REALLOCATION_ORDER is a table of
+   * preferences rather than a loop over whatever has room. A plan that cannot find projects gives
+   * that capacity to debugging and practice, because all three are applying what was taught;
+   * answering "nothing to build" with "more reading" is the failure this whole layer exists to
+   * prevent.
+   *
+   * Returns false when nothing anywhere can absorb it, which is the genuine inventory failure.
+   */
+  const reallocate = (): boolean => {
+    const stuck = COMPOSITION_ROLES.filter(r => (budget.get(r) || 0) > 0);
+    if (!stuck.length) return false;
+
+    const canAbsorb = (to: CompositionRole) => ranked.some(u =>
+      !chosen.has(u.unitCode) && roleOf.get(u.unitCode) === to
+      && suitableNow(u) && readyToTake(u));
+
+    const move = (from: CompositionRole, to: CompositionRole) => {
+      const amount = budget.get(from) || 0;
+      budget.set(from, 0);
+      budget.set(to, (budget.get(to) || 0) + amount);
+      const prior = reallocations.find(r => r.from === from && r.to === to);
+      if (prior) prior.units += amount;
+      else reallocations.push({ from, to, units: amount, reason: 'NO_SUITABLE_INVENTORY' });
+    };
+
+    // First choice: the pedagogically preferred destinations, in their stated order.
+    for (const from of stuck) {
+      for (const to of REALLOCATION_ORDER[from]) {
+        if (canAbsorb(to)) { move(from, to); return true; }
+      }
+    }
+
+    /**
+     * Last resort: any role that can absorb it.
+     *
+     * REALLOCATION_ORDER lists four preferred destinations per role, not all eight, because the
+     * point is to name the pedagogically sensible ones. But a preference list that does not
+     * mention a role means capacity can strand beside inventory that could have used it — a plan
+     * came back an exploration unit short with that unit sitting unselected and eligible. Falling
+     * back to any absorbing role keeps the length promise; it is still recorded as a
+     * reallocation, so a shape that only held because of a last-resort move is visible rather
+     * than silently fine.
+     */
+    for (const from of stuck) {
+      for (const to of COMPOSITION_ROLES) {
+        if (to !== from && canAbsorb(to)) { move(from, to); return true; }
+      }
+    }
+    return false;
+  };
+
+  /**
+   * The breadth rule: sample areas evenly rather than exhausting whichever ranks first.
+   *
+   * Without it an undecided learner's whole direction allocation goes to web development, because
+   * the inventory holds 38 web units against 21 for AI/data and 8 for cloud/cyber and M05 sorts
+   * early. That is not exploration, it is a default chosen by module code — and it would be
+   * indistinguishable, in the finished plan, from the student having picked web.
+   *
+   * So a direction unit may only be taken while its area is not ahead of the others. The minimum
+   * is taken over areas that STILL HAVE something available, which is what makes the rule
+   * self-healing: when cloud/cyber runs out of its eight units it stops holding the others back,
+   * rather than stalling the plan. Recomputed once per selection, never per candidate, because
+   * doing it inside the scan turned a linear search into a cubic one.
+   */
+  const breadthFloor = (): number | null => {
+    if (!samplingBreadth) return null;
+    const available = new Map<string, number>();
+    for (const c of ranked) {
+      if (chosen.has(c.unitCode) || roleOf.get(c.unitCode) !== 'DIRECTION_LEARNING') continue;
+      const fam = familyOf(c);
+      if (!fam || !suitableNow(c) || !readyToTake(c)) continue;
+      available.set(fam, (available.get(fam) || 0) + 1);
+    }
+    if (!available.size) return null;
+    return Math.min(...[...available.keys()].map(f => familyCount.get(f) || 0));
+  };
+
+  const withinBreadthOf = (u: ComposableUnit, floor: number | null): boolean => {
+    if (floor === null || roleOf.get(u.unitCode) !== 'DIRECTION_LEARNING') return true;
+    const fam = familyOf(u);
+    return !fam || (familyCount.get(fam) || 0) <= floor;
+  };
+
+  /**
+   * The nearest thing in a unit's prerequisite chain that CAN be taught right now.
+   *
+   * Transitive, so a chain resolves one link per pass: with A -> B -> C and the gap at A, this
+   * returns A, then B, then C. Nothing unsuitable is ever returned, so a pull can never schedule
+   * something the student is not ready for.
+   */
+  const pullTargetFor = (
+    u: ComposableUnit, floor: number | null,
+  ): ComposableUnit | undefined =>
+    [...closureOf(u.unitCode)]
+      .map(c => byCode.get(c)!)
+      .filter(x => x && !chosen.has(x.unitCode) && suitableNow(x) && readyToTake(x)
+        /**
+         * THE BREADTH RULE BINDS PULLS TOO.
+         *
+         * Prerequisites are same-topic, so a practice unit in a direction topic drags that
+         * direction's instruction in with it — and practice is chosen by rank, which favours the
+         * largest direction. Exempting pulls from breadth let web development take 65% of an
+         * undecided learner's direction capacity through the back door, with the breadth rule
+         * looking like it was working on the units it did govern.
+         *
+         * A blocked pull is not a dead end: it means another area is behind, so the next pass
+         * reaches for that one instead.
+         */
+        && withinBreadthOf(x, floor))
+      .sort((a, b) => a.displayOrder - b.displayOrder || a.unitCode.localeCompare(b.unitCode))[0];
+
+  /* ---- 4a. keep the promises first ---------------------------------- */
+
+  /**
+   * SATISFY EVERY FLOOR BEFORE OPTIMISING ANYTHING.
+   *
+   * `min` is a promise about what a plan contains; `target` is what a good plan looks like. Fill
+   * greedily by rank and the promises lose, every time, to whatever ranks higher — and the role
+   * that loses is always the one ranked last, which is INTEGRATION. A mixed learner reached day
+   * ninety having built nothing while all nine mini-projects were reachable.
+   *
+   * Reserving slots for unmet floors was tried first and is not enough on its own: a project
+   * needs its practice unit pulled in first, so the single reserved slot was consumed by the
+   * prerequisite and the project still missed the plan. The promise needs the whole chain, which
+   * means it has to be made early, while there is room for it.
+   *
+   * ROLES ARE WALKED IN PEDAGOGICAL ORDER — instruction, then practice, then application, then
+   * integration — because that is the order in which the plan's own teaching makes the later ones
+   * possible. A project cannot be scheduled until something has taught and practised its skill,
+   * and COMPOSITION_ROLES is already in that order.
+   */
+  for (const a of allocation) {
+    let guard = 0;
+    while ((roleCount.get(a.role) || 0) < a.min
+      && selected.length < targetUnits
+      && guard++ <= targetUnits * 2) {
+      const floor = breadthFloor();
+
+      const direct = ranked.find(u =>
+        !chosen.has(u.unitCode)
+        && roleOf.get(u.unitCode) === a.role
+        && withinBreadthOf(u, floor)
+        && suitableNow(u)
+        && readyToTake(u));
+
+      if (direct) { take(direct, true); continue; }
+
+      /**
+       * Not teachable yet, so teach towards it.
+       *
+       * This is the chicken-and-egg the mini-projects fell into. A project needs STANDARD, which
+       * the plan only reaches by teaching and then practising the skill; until that happens the
+       * project is unsuitable, so nothing ever pulled the practice unit that would have made it
+       * suitable. Reaching for a unit the plan cannot teach YET is exactly how the promise gets
+       * kept — and only the takeable link is taken, so nothing unsuitable is scheduled.
+       */
+      const aspirant = ranked.find(u =>
+        !chosen.has(u.unitCode)
+        && roleOf.get(u.unitCode) === a.role
+        && withinBreadthOf(u, floor)
+        && pullTargetFor(u, floor));
+
+      const pulled = aspirant && pullTargetFor(aspirant, floor);
+      if (!pulled) break;   // the floor is genuinely unreachable from this inventory
+
+      asPrerequisite.add(pulled.unitCode);
+      take(pulled, true);
+    }
+  }
+
+  /* ---- 4b. fill the rest by rank, within the allocation -------------- */
+
   while (selected.length < targetUnits) {
-    const next = ranked.find(u => !chosen.has(u.unitCode) && readyToTake(u));
+    const floor = breadthFloor();
+    const affordable = (u: ComposableUnit) =>
+      !chosen.has(u.unitCode)
+      && (budget.get(roleOf.get(u.unitCode)!) || 0) > 0
+      && withinBreadthOf(u, floor);
+
+    /**
+     * The best-ranked unit whose bucket still has room and which can be taught now.
+     *
+     * Ranking still decides WHICH unit — it is simply consulted within the allocation rather than
+     * across the whole pool. That is the entire difference between this and the P7A composer, and
+     * it is why the ordering rule could be kept intact.
+     */
+    const next = ranked.find(u => affordable(u) && suitableNow(u) && readyToTake(u));
 
     if (next) {
       /**
@@ -446,61 +820,49 @@ export function composeUnits(input: ComposerInput): ComposerResult {
       const pulledForward = ranked.some(higher =>
         higher.unitCode !== next.unitCode
         && !chosen.has(higher.unitCode)
-        && ranked.indexOf(higher) < ranked.indexOf(next)
+        && rankIndex.get(higher.unitCode)! < rankIndex.get(next.unitCode)!
         && closureOf(higher.unitCode).has(next.unitCode));
 
       if (pulledForward) asPrerequisite.add(next.unitCode);
-
-      selected.push(next);
-      chosen.add(next.unitCode);
+      take(next, true);
       continue;
     }
 
     /**
-     * Nothing is takeable, so pull in the missing prerequisite of the best blocked unit.
+     * Nothing takeable has budget, so try to unblock something the allocation still wants.
      *
-     * This is what makes a prerequisite appear in a plan it would not otherwise have earned: it
-     * is there because something the student DOES need depends on it, and it is labelled
-     * PREREQUISITE rather than pretending it was chosen on its own merits.
+     * A unit whose bucket has room but whose prerequisite is not yet in the plan is not an
+     * inventory failure — it is an ordering problem, and pulling the prerequisite solves it. The
+     * second form reaches for units the plan cannot teach yet, for the same reason as in 4a.
+     *
+     * A pull SPENDS its bucket where that bucket has room. It was briefly free, on the reasoning
+     * that it serves something else; the effect was that free units consumed plan length without
+     * consuming allocation, so the plan filled up while buckets still held unspent budget. It is
+     * never refused for want of budget — it simply stops being invisible.
      */
-    const blocked = ranked.find(u => !chosen.has(u.unitCode));
-    if (!blocked) break;
+    const wanted = ranked.find(u => affordable(u) && suitableNow(u));
+    let pulled = wanted && pullTargetFor(wanted, floor);
 
-    const pulled = blocked.prerequisiteUnitCodes
-      .filter(c => byCode.has(c) && !chosen.has(c))
-      .map(c => byCode.get(c)!)
-      .sort((a, b) => a.displayOrder - b.displayOrder)[0];
+    if (!pulled) {
+      const aspirant = ranked.find(u => affordable(u) && !suitableNow(u) && pullTargetFor(u, floor));
+      pulled = aspirant && pullTargetFor(aspirant, floor);
+    }
 
-    if (!pulled) break;   // cycle, or nothing left that can be satisfied
+    if (pulled) {
+      asPrerequisite.add(pulled.unitCode);
+      take(pulled, true);
+      continue;
+    }
 
-    asPrerequisite.add(pulled.unitCode);
-    selected.push(pulled);
-    chosen.add(pulled.unitCode);
+    if (!reallocate()) break;
   }
 
-  /* ---- 4. shape the result ------------------------------------------ */
-
-  const units: SelectedUnit[] = selected.map((u, i) => {
-    const s = stateOf.get(u.unitCode)!;
-    return {
-      unitCode: u.unitCode,
-      title: u.title,
-      position: i + 1,
-      reason: reasonFor(u, s.state, asPrerequisite.has(u.unitCode), student),
-      state: s.state,
-      governingSkill: s.skill,
-      score: s.score,
-      moduleCode: u.moduleCode,
-      topicCode: u.topicCode,
-      unitType: u.unitType,
-      estimatedMinutes: u.estimatedMinutes,
-    };
-  });
+  /* ---- 5. reconcile -------------------------------------------------- */
 
   /** Every prerequisite of every selected unit, resolved against the finished plan. */
   for (const u of selected) {
     for (const code of u.prerequisiteUnitCodes) {
-      const resolution = byCode.has(code) && chosen.has(code)
+      const resolution = chosen.has(code)
         ? 'SATISFIED_BY_PLAN' as const
         : (masteredBy(code, u) ? 'SATISFIED_BY_MASTERY' as const : 'BLOCKED_MISSING_PREREQUISITE' as const);
       const mastery = resolution === 'SATISFIED_BY_MASTERY' ? masteredBy(code, u) : null;
@@ -514,41 +876,128 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   }
 
   /**
-   * Units left out because something they build on is UNAVAILABLE and unproven.
+   * How many units this student could be taught AT ALL.
    *
-   * Named rather than silently dropped: this is an authoring gap with a student-visible
-   * consequence, and it is the number that tells an author which missing unit is costing the
-   * most plan.
+   * Computed once at the end rather than accumulated during the walk. Scheduling readiness only
+   * ever advances, so a unit teachable at any point is teachable at the end — which makes the
+   * end-state answer both cheaper and correct, and independent of which phase of selection
+   * happened to look at it. Accumulating inside the fill loop undercounted badly once floors were
+   * satisfied in their own pass, because that pass never went through the loop.
+   */
+  const everSuitable = new Set<string>(
+    relevant.filter(u => chosen.has(u.unitCode) || suitableNow(u)).map(u => u.unitCode),
+  );
+
+  /**
+   * Units the direction filter kept but the student's state never had a use for.
+   *
+   * Judged at the END of the walk, against everything the plan taught. A unit reported here was
+   * unsuitable even after three months of instruction, which is a real statement; reporting it
+   * from the day-one state would have called a beginner's entire practice inventory unusable.
+   */
+  for (const u of relevant) {
+    if (chosen.has(u.unitCode) || everSuitable.has(u.unitCode)) continue;
+    const { equivalentState } = readinessOf(u);
+    excluded.push({
+      unitCode: u.unitCode,
+      reason: equivalentState === 'VERIFIED' && isInstructional(u)
+        ? 'MASTERY_VERIFIED' : 'NOT_YET_EXPOSED',
+    });
+  }
+
+  /**
+   * Units left out because something they build on is UNAVAILABLE and unproven.
    *
    * ── WHY THIS IS NOT SIMPLY `resolveOne` OVER THE LEFTOVERS ──────────────────────────────
    *
    * Selection stops the moment the plan is full, so most unchosen units were never considered at
-   * all — a ninety-day plan drawn from a pool of 193 leaves 103 untouched. `resolveOne` reports
-   * an in-pool prerequisite as BLOCKED whenever it is not `chosen`, which is the right answer
-   * DURING selection (it cannot be taken yet) and the wrong one afterwards (it could have been,
-   * had there been room). Reporting those would have said a healthy beginner curriculum had 83
-   * blocked units and 78 missing prerequisites, when the true figure was zero and the only thing
-   * wrong was that ninety days is ninety days.
+   * all. `resolveOne` reports an in-pool prerequisite as BLOCKED whenever it is not `chosen`,
+   * which is the right answer DURING selection (it cannot be taken yet) and the wrong one
+   * afterwards (it could have been, had there been room). Reporting those said a healthy beginner
+   * curriculum had 83 blocked units and 78 missing prerequisites, when the true figure was zero.
    *
-   * So a prerequisite counts as blocking only when it is ABSENT FROM THE POOL ENTIRELY and the
-   * student has not demonstrated it another way. That is the condition an author can act on;
-   * "did not fit" is a fact about the plan length and belongs nowhere near a deficit count.
+   * ── TWO CAUSES, BECAUSE THEY GO TO DIFFERENT PEOPLE ─────────────────────────────────────
+   *
+   * `absent` is a prerequisite nobody ever wrote, and an author fixes it. `unsuitable` is one
+   * that exists but this student could never reach, which no amount of authoring changes.
    */
   const blocked: ComposerResult['blocked'] = [];
-  for (const u of eligible) {
+  for (const u of relevant) {
     if (chosen.has(u.unitCode)) continue;
     const unavailable = u.prerequisiteUnitCodes.filter(c => !byCode.has(c) && !masteredBy(c, u));
     if (!unavailable.length) continue;
-
     blocked.push({
       unitCode: u.unitCode,
-      // Present in the candidate set but filtered for this student, versus never written at all.
       absent: unavailable.filter(c => !allByCode.has(c)),
       unsuitable: unavailable.filter(c => allByCode.has(c)),
     });
   }
   const unmetPrerequisites = blocked
     .map(b => ({ unitCode: b.unitCode, missing: [...b.absent, ...b.unsuitable] }));
+
+  /* ---- 6. did the shape survive? ------------------------------------- */
+
+  const composition = Object.fromEntries(
+    COMPOSITION_ROLES.map(r => [r, selected.filter(u => roleOf.get(u.unitCode) === r).length]),
+  ) as Record<CompositionRole, number>;
+
+  /**
+   * A ninety-unit plan can still not be the product that was promised.
+   *
+   * `min` is the floor that makes a plan defensible, so a role finishing below it is reported
+   * even when the plan is otherwise full. Without this the rebalancer could satisfy the length
+   * and quietly hollow out the journey, which is the exact failure the shape layer was added to
+   * catch — just one level subtler than ninety CONCEPT units.
+   */
+  const shapeViolations = allocation
+    .filter(a => composition[a.role] < a.min)
+    .map(a => ({ role: a.role, min: a.min, actual: composition[a.role] }));
+
+  /* ---- 7. shape the result ------------------------------------------ */
+
+  /**
+   * Reported in SELECTION order, which is the teaching order.
+   *
+   * Instruction for a skill is what makes practice on it suitable, so the projection guarantees
+   * the concept unit was taken first. The sequence therefore reads as a journey — teach, debug,
+   * practise, build — rather than as ninety units sorted by urgency.
+   */
+  const units: SelectedUnit[] = selected.map((u, i) => {
+    const s = stateOf.get(u.unitCode)!;
+    const readiness = readinessAtSelection.get(u.unitCode)
+      ?? { equivalentState: s.state, projected: false };
+    return {
+      unitCode: u.unitCode,
+      title: u.title,
+      position: i + 1,
+      /**
+       * The reason and the state both come from MEASUREMENT, never from the projection.
+       *
+       * This is the line that keeps a scheduling convenience out of what a student is told. A
+       * plan that taught somebody loops on day three must not, on day nine, describe them as
+       * having reached STANDARD in loops — they have attended, not demonstrated.
+       */
+      reason: reasonFor(u, s.state, asPrerequisite.has(u.unitCode), student),
+      state: s.state,
+      scheduledAt: readiness.equivalentState,
+      scheduledOnProjection: readiness.projected,
+      governingSkill: s.skill,
+      score: s.score,
+      moduleCode: u.moduleCode,
+      topicCode: u.topicCode,
+      unitType: u.unitType,
+      role: roleOf.get(u.unitCode)!,
+      estimatedMinutes: u.estimatedMinutes,
+    };
+  });
+
+  const shapeFields = {
+    shape,
+    allocation,
+    composition,
+    reallocations,
+    shapeViolations,
+  };
 
   /**
    * An insufficient plan is a STRUCTURED REFUSAL, never a short plan.
@@ -562,25 +1011,27 @@ export function composeUnits(input: ComposerInput): ComposerResult {
       ok: false,
       code: 'INSUFFICIENT_COMPOSER_READY_INVENTORY',
       requestedDays: targetUnits,
-      eligibleUnits: eligible.length,
+      eligibleUnits: everSuitable.size,
       units,
       excluded,
       prerequisites,
       blocked,
       unmetPrerequisites,
       totalMinutes: units.reduce((n, u) => n + u.estimatedMinutes, 0),
+      ...shapeFields,
     };
   }
 
   return {
     ok: true,
     requestedDays: targetUnits,
-    eligibleUnits: eligible.length,
+    eligibleUnits: everSuitable.size,
     units,
     excluded,
     prerequisites,
     blocked,
     unmetPrerequisites,
     totalMinutes: units.reduce((n, u) => n + u.estimatedMinutes, 0),
+    ...shapeFields,
   };
 }

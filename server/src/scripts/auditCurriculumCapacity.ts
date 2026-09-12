@@ -25,6 +25,7 @@ import {
   composeUnits, ComposableUnit, StudentProfile, SkillBelief, ComposerResult,
 } from '../services/curriculumComposerService';
 import { suitableStatesFor, isInstructional, SUITABILITY_BY_TYPE } from '../data/unitSuitabilityPolicy';
+import { compositionRoleOf } from '../data/compositionShapePolicy';
 import { AssignmentState, stateForScore } from '../data/adaptiveCurriculumPolicy';
 
 dotenv.config();
@@ -43,7 +44,7 @@ const belief = (score: number | null): SkillBelief => ({ score, confidence: 'HIG
 interface ProfileSpec {
   name: string;
   note: string;
-  build: (allSkills: string[]) => StudentProfile;
+  build: (allSkills: string[], universalSkills: string[]) => StudentProfile;
 }
 
 const PROFILES: ProfileSpec[] = [
@@ -63,12 +64,32 @@ const PROFILES: ProfileSpec[] = [
     },
   },
   {
+    /**
+     * Verified across the UNIVERSAL foundation only, which is what the name always claimed.
+     *
+     * It used to verify all 55 skills, contradicting its own description and making itself
+     * indistinguishable from the all-verified stress test below. That mattered: with every skill
+     * proven there is nothing in the curriculum a learner has not met, so the profile could not
+     * show the thing it exists to show — that a strong student still has direction material ahead
+     * of them and should be taught it rather than promoted past it.
+     */
     name: 'strong-universal',
-    note: 'verified across the universal foundation, no direction chosen',
-    build: (s) => ({
-      skills: new Map(s.map(k => [k, belief(91)])),
+    note: 'verified across the universal foundation, has not engaged with direction',
+    build: (s, universal) => ({
+      skills: new Map(universal.map(k => [k, belief(91)])),
       primaryDirection: null,
       directionStatus: 'UNDECIDED',
+    }),
+  },
+  {
+    /** The same learner, sampling. The only difference is the direction stance. */
+    name: 'strong-exploring',
+    note: 'the same strong learner, sampling directions rather than undecided',
+    build: (s, universal) => ({
+      skills: new Map(universal.map(k => [k, belief(91)])),
+      primaryDirection: null,
+      directionStatus: 'EXPLORING',
+      explorationDirections: ['WEB_DEVELOPMENT', 'AI_ML', 'DATA', 'CLOUD_DEVOPS'],
     }),
   },
   {
@@ -169,6 +190,9 @@ const roleOfUnit = (u: ComposableUnit): Role => {
 
   const all: ComposableUnit[] = design.units;
   const allSkills = [...new Set(all.flatMap(u => u.skillKeys))].sort();
+  const universalSkills = [...new Set(
+    all.filter(u => u.category === 'UNIVERSAL').flatMap(u => u.skillKeys),
+  )].sort();
 
   const line = (n = 92) => console.log('-'.repeat(n));
   const pad = (s: any, n: number) => String(s).padEnd(n);
@@ -214,7 +238,7 @@ const roleOfUnit = (u: ComposableUnit): Role => {
 
   for (const spec of PROFILES) {
     if (only && spec.name !== only) continue;
-    const student = spec.build(allSkills);
+    const student = spec.build(allSkills, universalSkills);
     const r = composeUnits({ candidates: all, targetUnits: FOUNDATION_PROGRAM_DAYS, student });
     results.push({ spec, r });
 
@@ -267,6 +291,28 @@ const roleOfUnit = (u: ComposableUnit): Role => {
       'advanced/application', 'project/integration'] as Role[])
       .map(k => `${k}=${ro.get(k) || 0}`).join('  '));
 
+    /**
+     * The composition shape: what was asked for, and what arrived.
+     *
+     * Printed as asked/got per role because the interesting number is the DIFFERENCE. A plan can
+     * be ninety units long and still have hollowed out a role the student was promised, and the
+     * two columns side by side are the only way that shows.
+     */
+    console.log('');
+    console.log(`      shape ${r.shape}`);
+    for (const a of r.allocation) {
+      if (a.target === 0 && (r.composition[a.role] || 0) === 0) continue;
+      const got = r.composition[a.role] || 0;
+      const flag = got < a.min ? `  BELOW FLOOR OF ${a.min}` : '';
+      console.log(`        ${pad(a.role, 24)}asked ${num(a.target, 3)}   got ${num(got, 3)}${flag}`);
+    }
+    if (r.reallocations.length) {
+      console.log('      capacity moved:');
+      for (const m of r.reallocations) {
+        console.log(`        ${pad(m.from, 24)}-> ${pad(m.to, 24)}${m.units} units  (${m.reason})`);
+      }
+    }
+
     if (!r.ok) {
       const deficit = FOUNDATION_PROGRAM_DAYS - r.units.length;
       console.log('');
@@ -313,11 +359,24 @@ const roleOfUnit = (u: ComposableUnit): Role => {
 
   line();
   console.log('  SUMMARY');
-  console.log(`    ${pad('profile', 22)}${pad('90-day', 8)}${pad('eligible', 10)}${pad('selected', 10)}deficit`);
+  console.log(`    ${pad('profile', 21)}${pad('90-day', 7)}${pad('sel', 5)}${pad('deficit', 9)}`
+    + `${pad('concept', 9)}${pad('practice', 10)}${pad('debug', 7)}project`);
   for (const { spec, r } of results) {
-    console.log(`    ${pad(spec.name, 22)}${pad(r.ok ? 'PASS' : 'FAIL', 8)}`
-      + `${num(r.eligibleUnits, 8)}  ${num(r.units.length, 8)}  `
-      + `${num(Math.max(0, FOUNDATION_PROGRAM_DAYS - r.units.length), 7)}`);
+    const n = (t: string) => r.units.filter(u => u.unitType === t).length;
+    console.log(`    ${pad(spec.name, 21)}${pad(r.ok ? 'PASS' : 'FAIL', 7)}`
+      + `${num(r.units.length, 3)}  ${num(Math.max(0, FOUNDATION_PROGRAM_DAYS - r.units.length), 7)}  `
+      + `${num(n('CONCEPT'), 7)}  ${num(n('PRACTICE'), 8)}  ${num(n('DEBUG'), 5)}  ${num(n('PROJECT'), 7)}`);
+  }
+
+  const hollow = results.filter(x => x.r.shapeViolations.length);
+  if (hollow.length) {
+    console.log('');
+    console.log('    Roles that finished below their floor — a plan can be full and still not be');
+    console.log('    the product that was promised:');
+    for (const { spec, r } of hollow) {
+      console.log(`      ${pad(spec.name, 21)}`
+        + r.shapeViolations.map(v => `${v.role} ${v.actual}/${v.min}`).join('  '));
+    }
   }
 
   /* ---- what the plans are actually made of -------------------------- */
@@ -386,11 +445,41 @@ const roleOfUnit = (u: ComposableUnit): Role => {
       console.log(`      ${pad(state, 22)}+${short} units, of type ${kinds.join(' / ') || '(none serve it)'}`);
     }
     console.log('');
-    console.log('    NOTE. These counts assume every student must be servable at their measured');
-    console.log('    state from the Foundation stage alone. A student verified across the whole');
-    console.log('    universal foundation arguably should not be in Foundation — promoting them');
-    console.log('    to the next stage closes the same gap without writing a single unit, and is');
-    console.log('    the cheaper answer if the stage model is meant to carry it.');
+    console.log('');
+    console.log('    NOTE ON WHO ACTUALLY NEEDS THESE.');
+    console.log('    Since the composition-shape policy landed, eight of ten profiles reach a full');
+    console.log('    ninety days with a balanced mix, so these shortfalls are NOT what stops them.');
+    console.log('    They bind only on a learner who has proven most of the design, and for the two');
+    console.log('    profiles that still fail the causes are different and only one is curriculum:');
+    console.log('');
+    console.log('      strong-universal     NOT a curriculum deficit. Verified across the universal');
+    console.log('                           foundation, direction stance UNDECIDED, so every scoped');
+    console.log('                           unit is filtered out and the plan runs dry at 56. The');
+    console.log('                           same learner sampling directions gets a full ninety —');
+    console.log('                           see the strong-exploring row. The fix is to require a');
+    console.log('                           direction stance once a learner is ESTABLISHED, and no');
+    console.log('                           amount of authoring substitutes for it.');
+    console.log('');
+    console.log('      all-verified-stress  A REAL deficit. With every skill proven, only DEBUG,');
+    console.log('                           PROJECT and the eight judgement units remain suitable,');
+    console.log('                           and there are 32 of them. This is the profile the');
+    console.log('                           expansion counts above are for.');
+    console.log('');
+    console.log('    Foundation stays ninety days for everybody, so promotion out of the stage is');
+    console.log('    not on the table as an answer to this; the capacity has to exist inside it.');
+    console.log('    The scarcest roles are the ones worth writing first:');
+    console.log('');
+    for (const role of ['INTEGRATION', 'VERIFICATION', 'APPLICATION', 'PRACTICE'] as const) {
+      const have = all.filter(u => compositionRoleOf(u) === role).length;
+      console.log(`      ${pad(role, 22)}${num(have, 4)} designed across 39 topics`);
+    }
+    console.log('');
+    console.log('    CHECKPOINT and REVIEW are designed ZERO, and CHECKPOINT is the only type that');
+    console.log('    serves all seven states — it is the highest-leverage thing to add. But a');
+    console.log('    checkpoint Learning Unit is only worth creating where a genuine day of');
+    console.log('    reassessment exists; a quiz already bound inside a unit is not one, and');
+    console.log('    manufacturing CHECKPOINT days to satisfy a quota would buy the number and');
+    console.log('    not the product.');
   }
 
   line();

@@ -385,8 +385,16 @@ describe('hitting the target, or refusing', () => {
     expect(r.code).toBe('INSUFFICIENT_COMPOSER_READY_INVENTORY');
     expect(r.requestedDays).toBe(90);
     expect(r.eligibleUnits).toBeLessThan(90);
-    // What it COULD build is still returned, so a caller can show the gap rather than nothing.
-    expect(r.units.length).toBe(r.eligibleUnits);
+    /**
+     * What it COULD build is still returned, so a caller can show the gap rather than nothing.
+     *
+     * Not an identity with `eligibleUnits` any more. Since P7A.3 that counts every unit the
+     * student could be taught at some point in the walk, and a unit can be teachable and still
+     * not make the plan — its prerequisite may sit outside the pool. The plan is bounded by
+     * eligibility, not equal to it.
+     */
+    expect(r.units.length).toBeGreaterThan(0);
+    expect(r.units.length).toBeLessThanOrEqual(r.eligibleUnits);
   });
 
   it('reports eligibility after direction filtering, not before', () => {
@@ -471,7 +479,14 @@ describe('P7A.1 — the strong learner', () => {
     const strong = compose(VARIED, 18, STRONG_ALL);
 
     expect(instructional(strong).length).toBeLessThan(instructional(beginner).length);
-    expect(application(strong).length).toBeGreaterThan(application(beginner).length);
+    /**
+     * Since P7A.3 a beginner reaches application too, so the two counts can tie on a fixture
+     * with only three skills. What must still hold is the SHARE: a strong learner's plan is
+     * mostly application, a beginner's is mostly instruction. That is the product decision —
+     * same ninety days, different shape — and it does not depend on fixture size.
+     */
+    const share = (r: ReturnType<typeof compose>) => application(r).length / r.units.length;
+    expect(share(strong)).toBeGreaterThan(share(beginner));
   });
 
   it('keeps every verified capability represented and explainable', () => {
@@ -515,13 +530,41 @@ describe('P7A.1 — the beginner', () => {
 
   it('does not jump straight to challenge work', () => {
     /**
-     * A project is application, and application before exposure is somebody staring at a brief
-     * for a language they have not met. DEBUG and PROJECT are unsuitable for NOT_EXPOSED, so
-     * they are excluded rather than ranked low.
+     * REWRITTEN FOR P7A.3, AND THE CHANGE IS THE POINT.
+     *
+     * The old assertion was that a beginner receives NO application at all, which was true and
+     * terrible: it is why the capacity audit found seven profiles getting ninety CONCEPT units
+     * and not one of the 37 practice units ever selected. A student would read for three months
+     * and never write anything.
+     *
+     * What was actually wrong was never "application is bad for beginners" — it was that the
+     * composer judged them on day one and never noticed that the plan it was building would
+     * teach them something. So the rule is not "no application"; it is "no application BEFORE
+     * the instruction that earns it".
      */
     const r = compose(VARIED, 12, BEGINNER);
-    expect(application(r)).toHaveLength(0);
-    expect(r.excluded.map(e => e.unitCode)).toContain('T_L_PROJECT');
+    const at = (code: string) => r.units.findIndex(u => u.unitCode === code);
+
+    // It does now reach application — that is the fix.
+    expect(application(r).length).toBeGreaterThan(0);
+
+    // And never before the skill has been taught, and practised where a project is concerned.
+    for (const topic of ['T_L', 'T_F', 'T_S']) {
+      const debug = at(`${topic}_DEBUG`);
+      const project = at(`${topic}_PROJECT`);
+      const intro = at(`${topic}_INTRO`);
+      const practice = at(`${topic}_PRACTICE`);
+
+      if (debug >= 0) {
+        expect(intro).toBeGreaterThanOrEqual(0);
+        expect(intro).toBeLessThan(debug);
+      }
+      if (project >= 0) {
+        // A project asserts STANDARD, which the plan only reaches by teaching AND practising.
+        expect(practice).toBeGreaterThanOrEqual(0);
+        expect(practice).toBeLessThan(project);
+      }
+    }
   });
 });
 

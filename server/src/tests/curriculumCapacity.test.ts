@@ -14,7 +14,8 @@ import {
 } from '../services/curriculumComposerService';
 import { SUITABILITY_OVERRIDES } from '../seeds/careerPilot/seedUnitSuitabilityOverrides';
 import { YEAR1, UnitSeed } from '../seeds/careerPilot/year1MegaCurriculum';
-import { SUITABILITY_BY_TYPE, suitableStatesFor } from '../data/unitSuitabilityPolicy';
+import { SUITABILITY_BY_TYPE } from '../data/unitSuitabilityPolicy';
+import YEAR1_METADATA from './fixtures/year1UnitMetadata.json';
 
 const unit = (over: Partial<ComposableUnit> & { unitCode: string }): ComposableUnit => ({
   title: over.unitCode,
@@ -95,44 +96,58 @@ describe('a full plan does not manufacture blockers', () => {
 describe('the two causes of a blocked unit are told apart', () => {
   /**
    * They go to different people. An absent prerequisite is an authoring backlog somebody clears
-   * by writing a unit; an unsuitable one is a sequencing property of the design that no amount of
-   * authoring will change. Merged, the second hides inside the first — which is exactly what made
-   * "2 missing prerequisites" read as a small backlog when the real finding was that no beginner
-   * can reach anything sitting behind a debugging exercise.
+   * by writing a unit; an unsuitable one is a property of this student's plan that no amount of
+   * authoring will change. Merged, the second hides inside the first.
+   *
+   * WHAT COUNTS AS "UNSUITABLE" NARROWED IN P7A.3. It used to include anything the suitability
+   * filter removed, which was most of a beginner's application inventory. Suitability is now
+   * evaluated against the state the PLAN reaches, so a DEBUG unit in front of a beginner is no
+   * longer permanently out of reach — it simply comes after the teaching. What remains genuinely
+   * unreachable is what the direction filter removed, and that is what this now tests.
    */
+  const WEB_ONLY: StudentProfile = {
+    skills: new Map(), primaryDirection: 'WEB_DEVELOPMENT', directionStatus: 'SELECTED',
+  };
+
   it('calls a written-but-filtered prerequisite unsuitable, not absent', () => {
     const pool = [
-      // DEBUG serves STANDARD and later, so a NOT_EXPOSED beginner is never offered it.
-      unit({ unitCode: 'T_A_DEBUG', unitType: 'DEBUG', skillKeys: ['A'], displayOrder: 10 }),
+      // Scoped to a direction this student is not heading towards, so it is filtered out for them.
+      unit({
+        unitCode: 'T_AI_ONLY', skillKeys: ['AI'], displayOrder: 10,
+        category: 'DIRECTION', mandatory: false, applicableDirections: ['AI_ML'],
+      }),
       unit({
         unitCode: 'T_A_AFTER',
         skillKeys: ['A'],
         displayOrder: 20,
-        prerequisiteUnitCodes: ['T_A_DEBUG'],
+        prerequisiteUnitCodes: ['T_AI_ONLY'],
       }),
     ];
-    const r = compose(pool, 5, BEGINNER);
+    const r = compose(pool, 5, WEB_ONLY);
 
     const after = r.blocked.find(b => b.unitCode === 'T_A_AFTER');
     expect(after).toBeDefined();
-    expect(after!.unsuitable).toEqual(['T_A_DEBUG']);
+    expect(after!.unsuitable).toEqual(['T_AI_ONLY']);
     expect(after!.absent).toEqual([]);
   });
 
   it('keeps the flattened legacy list carrying both', () => {
     const pool = [
-      unit({ unitCode: 'T_A_DEBUG', unitType: 'DEBUG', skillKeys: ['A'], displayOrder: 10 }),
+      unit({
+        unitCode: 'T_AI_ONLY', skillKeys: ['AI'], displayOrder: 10,
+        category: 'DIRECTION', mandatory: false, applicableDirections: ['AI_ML'],
+      }),
       unit({
         unitCode: 'T_A_AFTER',
         skillKeys: ['A'],
         displayOrder: 20,
-        prerequisiteUnitCodes: ['T_A_DEBUG', 'T_A_NEVER_AUTHORED'],
+        prerequisiteUnitCodes: ['T_AI_ONLY', 'T_A_NEVER_AUTHORED'],
       }),
     ];
-    const r = compose(pool, 5, BEGINNER);
+    const r = compose(pool, 5, WEB_ONLY);
 
     const legacy = r.unmetPrerequisites.find(b => b.unitCode === 'T_A_AFTER')!;
-    expect(legacy.missing.sort()).toEqual(['T_A_DEBUG', 'T_A_NEVER_AUTHORED']);
+    expect(legacy.missing.sort()).toEqual(['T_AI_ONLY', 'T_A_NEVER_AUTHORED']);
   });
 });
 
@@ -241,42 +256,570 @@ describe('what the Year-1 design can and cannot serve', () => {
   });
 });
 
-/* ------------------------------------------------------------------ *
- * The mix a student actually receives
- * ------------------------------------------------------------------ */
 
-describe('state-first ranking starves practice', () => {
-  /**
-   * THE FINDING THE AUDIT WAS FOR, held so it cannot be fixed by accident and go unnoticed.
-   *
-   * Ranking is state-first and NOT_EXPOSED outranks everything, so concept units are exhausted
-   * before a single GUIDED-or-later unit is reached. Across all nine audit profiles, not one of
-   * the 37 PRACTICE units was ever selected — a student would read for three months and never
-   * write anything.
-   *
-   * This test asserts the CURRENT behaviour, which is wrong on purpose: it is P7B's job to
-   * introduce a composition mix, and when that lands this test should fail loudly and be
-   * rewritten to assert the quota instead of the starvation.
-   */
-  it('fills the plan with instruction while practice units sit unchosen', () => {
-    const pool = [
-      ...Array.from({ length: 12 }, (_, i) => unit({
-        unitCode: `T_A_C${i}`, skillKeys: [`S${i}`], displayOrder: i * 10, unitType: 'CONCEPT',
-      })),
-      unit({ unitCode: 'T_A_PRACTICE', skillKeys: ['KNOWN'], displayOrder: 500, unitType: 'PRACTICE' }),
-    ];
-    // One skill is measured mid-range so the practice unit is genuinely suitable; the rest are
-    // unmeasured, so instruction outranks it every time.
-    const student: StudentProfile = {
-      skills: beliefs([['KNOWN', 60]]),
-      primaryDirection: null,
-      directionStatus: 'UNDECIDED',
+/* ══════════════════════════════════════════════════════════════════════════════════════════ *
+ * P7A.3 — the composition shape, against the real 310-unit inventory
+ *
+ * Held against a snapshot of the actual Year-1 metadata rather than a hand-built fixture, because
+ * the failure this phase exists to fix was invisible in fixtures. Small pools cannot express it:
+ * ninety CONCEPT units only happens when there are 246 of them to exhaust, and every synthetic
+ * pool the composer had been tested against was too small and too balanced to show it.
+ *
+ * Metadata only — titles, types, depths, skills, prerequisites. No content, no readiness, no
+ * database.
+ * ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+describe('P7A.3 — composition shape against the real curriculum', () => {
+  const INVENTORY = YEAR1_METADATA as unknown as ComposableUnit[];
+  const DAYS = 90;
+
+  const ALL_SKILLS = [...new Set(INVENTORY.flatMap(u => u.skillKeys))].sort();
+
+  const profile = (over: Partial<StudentProfile>): StudentProfile => ({
+    skills: new Map(), primaryDirection: null, directionStatus: 'UNDECIDED', ...over,
+  });
+
+  const scored = (keys: string[], score: number) =>
+    new Map(keys.map(k => [k, { score, confidence: 'HIGH' as const }]));
+
+  const BEGINNER_P = profile({});
+
+  const MIXED_P = profile({
+    skills: scored(ALL_SKILLS.slice(0, Math.ceil(ALL_SKILLS.length / 3)), 45),
+  });
+
+  /** Verified across the universal foundation. Direction and academic skills never measured. */
+  const UNIVERSAL_SKILLS = [...new Set(
+    INVENTORY.filter(u => u.category === 'UNIVERSAL').flatMap(u => u.skillKeys),
+  )].sort();
+  /** Verified across the universal foundation, and has not engaged with direction at all. */
+  const STRONG_P = profile({ skills: scored(UNIVERSAL_SKILLS, 91) });
+
+  /** The same learner, sampling directions. The only difference is the direction stance. */
+  const STRONG_EXPLORING_P = profile({
+    skills: scored(UNIVERSAL_SKILLS, 91),
+    directionStatus: 'EXPLORING',
+    explorationDirections: ['WEB_DEVELOPMENT', 'AI_ML', 'DATA', 'CLOUD_DEVOPS'],
+  });
+
+  const WEB_P = profile({
+    skills: scored(ALL_SKILLS.filter(k => /HTML|CSS|JS|WEB|HTTP/.test(k)), 32),
+    primaryDirection: 'WEB_DEVELOPMENT',
+    directionStatus: 'SELECTED',
+  });
+
+  const AI_P = profile({
+    skills: scored(ALL_SKILLS.filter(k => /MATRIC|PROBABILITY|STATISTIC|LOGIC/.test(k)), 88),
+    primaryDirection: 'AI_ML',
+    directionStatus: 'SELECTED',
+  });
+
+  const UNDECIDED_P = profile({
+    skills: scored(ALL_SKILLS.slice(0, 4), 55),
+    directionStatus: 'EXPLORING',
+    explorationDirections: ['WEB_DEVELOPMENT', 'AI_ML', 'DATA', 'CLOUD_DEVOPS'],
+  });
+
+  const PASSING: [string, StudentProfile][] = [
+    ['beginner', BEGINNER_P], ['mixed', MIXED_P], ['strong-exploring', STRONG_EXPLORING_P],
+    ['strong-universal', STRONG_P],
+    ['web-focused', WEB_P], ['ai-data-focused', AI_P], ['undecided', UNDECIDED_P],
+  ];
+
+  /** Shape tests that are about mastery rather than length run against both strong learners. */
+  const STRONG_BOTH: [string, StudentProfile][] = [
+    ['strong-universal', STRONG_P], ['strong-exploring', STRONG_EXPLORING_P],
+  ];
+
+  const plan = (p: StudentProfile) => composeUnits({
+    candidates: INVENTORY, targetUnits: DAYS, student: p,
+  });
+
+  const typeCount = (r: ReturnType<typeof plan>, t: string) =>
+    r.units.filter(u => u.unitType === t).length;
+
+  /* ---- the failure this phase exists to fix ------------------------- */
+
+  it.each(PASSING)('%s does not collapse to 90 CONCEPT units', (_name, p) => {
+    /**
+     * THE HEADLINE. Before P7A.3 every passing profile was exactly this: ninety concept units,
+     * no practice, nothing built, three months of reading.
+     */
+    const r = plan(p);
+    expect(r.units.length).toBeGreaterThan(0);
+    expect(typeCount(r, 'CONCEPT')).toBeLessThan(r.units.length);
+  });
+
+  it.each(PASSING)('%s receives practice, because suitable inventory exists', (_name, p) => {
+    // 37 PRACTICE units were designed and 0 were ever selected, for anybody.
+    const r = plan(p);
+    expect(typeCount(r, 'PRACTICE')).toBeGreaterThan(0);
+  });
+
+  it.each(PASSING)('%s builds or debugs something', (_name, p) => {
+    const r = plan(p);
+    expect(typeCount(r, 'PROJECT') + typeCount(r, 'DEBUG')).toBeGreaterThan(0);
+  });
+
+  /* ---- length ------------------------------------------------------- */
+
+  it.each(PASSING)('%s gets exactly 90 units', (_name, p) => {
+    const r = plan(p);
+    expect(r.ok).toBe(true);
+    expect(r.units).toHaveLength(DAYS);
+  });
+
+  /* ---- the beginner is still taught --------------------------------- */
+
+  it('a beginner still receives substantial foundation teaching', () => {
+    /**
+     * The opposite failure to the one being fixed, and just as bad: a shape policy that gives a
+     * beginner a balanced-looking plan they cannot follow because nothing was ever taught.
+     */
+    const r = plan(BEGINNER_P);
+    const teaching = r.units.filter(u =>
+      u.role === 'FOUNDATION_INSTRUCTION' || u.role === 'GUIDED_INSTRUCTION').length;
+    expect(teaching).toBeGreaterThan(DAYS * 0.3);
+  });
+
+  it('never schedules application before the skill was taught', () => {
+    // The projection's entire claim. If this fails, the plan is asserting readiness it invented.
+    const r = plan(BEGINNER_P);
+    const taught = new Set<string>();
+
+    for (const u of r.units) {
+      const full = INVENTORY.find(x => x.unitCode === u.unitCode)!;
+      if (u.unitType === 'PRACTICE' || u.unitType === 'DEBUG' || u.unitType === 'PROJECT') {
+        expect(full.skillKeys.some(k => taught.has(k))).toBe(true);
+      }
+      if (u.unitType === 'CONCEPT' || u.unitType === 'PRACTICE') {
+        for (const k of full.skillKeys) taught.add(k);
+      }
+    }
+  });
+
+  /* ---- the strong learner ------------------------------------------- */
+
+  it('a strong learner gets substantially less elementary instruction', () => {
+    const beginner = plan(BEGINNER_P);
+    const strong = plan(STRONG_P);
+
+    const elementary = (r: ReturnType<typeof plan>) =>
+      r.units.filter(u => u.role === 'FOUNDATION_INSTRUCTION').length;
+
+    expect(elementary(strong)).toBeLessThan(elementary(beginner));
+  });
+
+  it.each(STRONG_BOTH)('%s does not collapse to concept units either', (_n, p) => {
+    const r = plan(p);
+    expect(typeCount(r, 'CONCEPT')).toBeLessThan(r.units.length);
+    expect(typeCount(r, 'PRACTICE') + typeCount(r, 'DEBUG') + typeCount(r, 'PROJECT'))
+      .toBeGreaterThan(0);
+  });
+
+  it('a strong learner with no direction stance still fills ninety days', () => {
+    /**
+     * THIS TEST USED TO ASSERT THE OPPOSITE, AND THE CHANGE IS THE PRODUCT DECISION.
+     *
+     * A learner verified across the universal foundation has exhausted the universal material by
+     * definition; everything left that is new to them is direction-scoped. While an undecided
+     * student was shown no direction units at all, this learner's plan ran dry at 56 — and the
+     * only remedies on offer were to make them pick a direction or to promote them out of
+     * Foundation. Both were rejected: undecided is a legitimate place to be, and Foundation is
+     * ninety days for everybody.
+     *
+     * So they sample across every direction instead. Nothing is written to `primaryDirection` —
+     * see the exploration suite below, which holds that and the breadth rule.
+     */
+    const stuck = plan(STRONG_P);
+    const sampling = plan(STRONG_EXPLORING_P);
+
+    expect(stuck.ok).toBe(true);
+    expect(stuck.units).toHaveLength(DAYS);
+    expect(stuck.composition.DIRECTION_LEARNING).toBeGreaterThan(0);
+    expect(stuck.shapeViolations).toEqual([]);
+
+    // And an explicit sampling list is still honoured rather than overridden by breadth.
+    expect(sampling.ok).toBe(true);
+    expect(sampling.units).toHaveLength(DAYS);
+  });
+
+  it('a strong learner still meets material they have not encountered', () => {
+    /**
+     * VERIFIED does not mean "exit Foundation early" and does not mean "repeat all basics". A
+     * learner verified across the universal foundation has still never met the direction
+     * material, and instruction on it is legitimate new learning, not re-teaching.
+     */
+    const r = plan(STRONG_EXPLORING_P);
+    expect(r.shape).toBe('ESTABLISHED');
+    expect(typeCount(r, 'CONCEPT')).toBeGreaterThan(0);
+    // Specifically direction material, which universal mastery says nothing about.
+    expect(r.composition.DIRECTION_LEARNING).toBeGreaterThan(0);
+  });
+
+  it('a strong learner spends more of the plan applying than a beginner does', () => {
+    const share = (r: ReturnType<typeof plan>) =>
+      r.units.filter(u => ['PRACTICE', 'APPLICATION', 'INTEGRATION'].includes(u.role)).length
+      / r.units.length;
+
+    expect(share(plan(STRONG_EXPLORING_P))).toBeGreaterThan(share(plan(BEGINNER_P)));
+  });
+
+  /* ---- direction ---------------------------------------------------- */
+
+  it('direction changes what the plan contains', () => {
+    const web = plan(WEB_P);
+    const ai = plan(AI_P);
+
+    const codes = (r: ReturnType<typeof plan>) => new Set(r.units.map(u => u.unitCode));
+    const w = codes(web);
+    const a = codes(ai);
+    const shared = [...w].filter(c => a.has(c)).length;
+
+    // Substantially different plans, not the same plan with a different label on it.
+    expect(shared).toBeLessThan(DAYS * 0.9);
+  });
+
+  it('never schedules a unit outside the chosen direction', () => {
+    const r = plan(WEB_P);
+    for (const u of r.units) {
+      const full = INVENTORY.find(x => x.unitCode === u.unitCode)!;
+      if (!full.mandatory && full.applicableDirections.length) {
+        expect(full.applicableDirections.map(String)).toContain('WEB_DEVELOPMENT');
+      }
+    }
+  });
+
+  /* ---- the invariants that must survive ----------------------------- */
+
+  it.each(PASSING)('%s has no duplicate units', (_name, p) => {
+    const codes = plan(p).units.map(u => u.unitCode);
+    expect(new Set(codes).size).toBe(codes.length);
+  });
+
+  it.each(PASSING)('%s has every prerequisite satisfied', (_name, p) => {
+    const r = plan(p);
+    const before = new Set<string>();
+    for (const u of r.units) {
+      const full = INVENTORY.find(x => x.unitCode === u.unitCode)!;
+      for (const c of full.prerequisiteUnitCodes) {
+        // Either already in the plan above it, or resolved another way and reported as such.
+        if (before.has(c)) continue;
+        const outcome = r.prerequisites.find(o => o.unitCode === u.unitCode && o.prerequisite === c);
+        expect(outcome?.resolution).not.toBe('BLOCKED_MISSING_PREREQUISITE');
+      }
+      before.add(u.unitCode);
+    }
+  });
+
+  it.each(PASSING)('%s is deterministic', (_name, p) => {
+    const a = plan(p).units.map(u => u.unitCode);
+    const b = plan(p).units.map(u => u.unitCode);
+    expect(a).toEqual(b);
+  });
+
+  it('does not depend on the order the inventory arrives in', () => {
+    const forwards = composeUnits({ candidates: INVENTORY, targetUnits: DAYS, student: MIXED_P });
+    const backwards = composeUnits({
+      candidates: [...INVENTORY].reverse(), targetUnits: DAYS, student: MIXED_P,
+    });
+    expect(backwards.units.map(u => u.unitCode)).toEqual(forwards.units.map(u => u.unitCode));
+  });
+
+  /* ---- reallocation ------------------------------------------------- */
+
+  it('reports every reallocation rather than absorbing it', () => {
+    /**
+     * A bucket that could not be filled is a decision about somebody's three months. "We could
+     * not give you anything to build, so you got more debugging" has to be visible.
+     */
+    for (const [, p] of PASSING) {
+      const r = plan(p);
+      for (const move of r.reallocations) {
+        expect(move.units).toBeGreaterThan(0);
+        expect(move.from).not.toBe(move.to);
+        expect(move.reason).toBe('NO_SUITABLE_INVENTORY');
+      }
+    }
+  });
+
+  it('allocates to exactly the programme length before anything is selected', () => {
+    const r = plan(MIXED_P);
+    const total = r.allocation.reduce((n, a) => n + a.target, 0);
+    expect(total).toBe(DAYS);
+    // And no floor can exceed the target it sits under.
+    for (const a of r.allocation) expect(a.min).toBeLessThanOrEqual(a.target);
+  });
+});
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════ *
+ * Safeguard 1 — the plan's own progression must never become Skill DNA
+ *
+ * Composition advances a student through the plan for SEQUENCING: once loops have been taught,
+ * a loops practice unit becomes schedulable. That is a fact about the plan, not about the person.
+ *
+ * Skill DNA is evidence. It is what the product shows a student as their level, what future
+ * planning trusts, and what the whole adaptive system rests on. If a scheduling convenience ever
+ * leaked into it, a student who had merely ATTENDED a lesson would be recorded as having
+ * DEMONSTRATED the skill — and nothing downstream could tell the difference afterwards.
+ * ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+describe('scheduling readiness is not evidence', () => {
+  const INVENTORY = YEAR1_METADATA as unknown as ComposableUnit[];
+
+  const snapshot = (m: Map<string, any>) =>
+    JSON.stringify([...m.entries()].sort((a, b) => a[0].localeCompare(b[0])));
+
+  it('leaves the input skill map byte-for-byte unchanged', () => {
+    const skills = new Map([
+      ['PROGRAMMING', { score: 30, confidence: 'HIGH' as const }],
+      ['HTML', { score: null, confidence: null }],
+      ['SQL', { score: 92, confidence: 'HIGH' as const }],
+    ]);
+    const before = snapshot(skills);
+    const sizeBefore = skills.size;
+
+    composeUnits({
+      candidates: INVENTORY,
+      targetUnits: 90,
+      student: { skills, primaryDirection: null, directionStatus: 'UNDECIDED' },
+    });
+
+    expect(snapshot(skills)).toBe(before);
+    expect(skills.size).toBe(sizeBefore);
+  });
+
+  it('does not add skills the plan merely taught', () => {
+    // The specific leak to fear: the plan teaches forty skills, and forty entries appear.
+    const skills = new Map<string, any>();
+    composeUnits({
+      candidates: INVENTORY,
+      targetUnits: 90,
+      student: { skills, primaryDirection: null, directionStatus: 'UNDECIDED' },
+    });
+    expect(skills.size).toBe(0);
+  });
+
+  it('reports the MEASURED state on every selected unit, never the projected one', () => {
+    /**
+     * A beginner has measured nothing, so every `state` must still read NOT_EXPOSED at the end of
+     * a ninety-unit plan — even for the practice and project units that were only schedulable
+     * because the plan had taught the skill first.
+     */
+    const r = composeUnits({
+      candidates: INVENTORY,
+      targetUnits: 90,
+      student: { skills: new Map(), primaryDirection: null, directionStatus: 'UNDECIDED' },
+    });
+
+    for (const u of r.units) expect(u.state).toBe('NOT_EXPOSED');
+  });
+
+  it('never explains a projected unit as mastery', () => {
+    // MASTERY_VERIFIED is a claim about demonstrated ability. Nothing projected may carry it.
+    const r = composeUnits({
+      candidates: INVENTORY,
+      targetUnits: 90,
+      student: { skills: new Map(), primaryDirection: null, directionStatus: 'UNDECIDED' },
+    });
+
+    for (const u of r.units) {
+      if (u.scheduledOnProjection) expect(u.reason).not.toBe('MASTERY_VERIFIED');
+    }
+    expect(r.units.some(u => u.reason === 'MASTERY_VERIFIED')).toBe(false);
+  });
+
+  it('exposes the projection only as separately named metadata', () => {
+    /**
+     * It IS reported — a plan that cannot be audited is worse than one that can — but under its
+     * own name, beside the measured state rather than instead of it.
+     */
+    const r = composeUnits({
+      candidates: INVENTORY,
+      targetUnits: 90,
+      student: { skills: new Map(), primaryDirection: null, directionStatus: 'UNDECIDED' },
+    });
+
+    const projected = r.units.filter(u => u.scheduledOnProjection);
+    expect(projected.length).toBeGreaterThan(0);
+
+    for (const u of projected) {
+      // Scheduled above what was measured, and both values visible.
+      expect(u.scheduledAt).not.toBe(u.state);
+      expect(['GUIDED', 'STANDARD']).toContain(u.scheduledAt);
+    }
+  });
+
+  it('never projects into a state that asserts demonstrated ability', () => {
+    // The ladder stops at STANDARD. REVISION and VERIFIED can only come from measurement.
+    const r = composeUnits({
+      candidates: INVENTORY,
+      targetUnits: 90,
+      student: { skills: new Map(), primaryDirection: null, directionStatus: 'UNDECIDED' },
+    });
+
+    for (const u of r.units) {
+      if (!u.scheduledOnProjection) continue;
+      expect(['REVISION', 'VERIFIED', 'ENRICHMENT']).not.toContain(u.scheduledAt);
+    }
+  });
+
+  it('marks a measured state as measured, not as projected', () => {
+    const skills = new Map([['SQL', { score: 95, confidence: 'HIGH' as const }]]);
+    const r = composeUnits({
+      candidates: INVENTORY,
+      targetUnits: 90,
+      student: { skills, primaryDirection: null, directionStatus: 'UNDECIDED' },
+    });
+
+    for (const u of r.units) {
+      if (u.state === 'VERIFIED') {
+        expect(u.scheduledOnProjection).toBe(false);
+        expect(u.scheduledAt).toBe('VERIFIED');
+      }
+    }
+  });
+});
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════ *
+ * Safeguard 2 — undecided stays a valid answer
+ *
+ * A learner who has not chosen a direction is not a learner to be corrected. They sample across
+ * every direction, nothing is written to `primaryDirection`, and the breadth rule stops the
+ * sampling collapsing into whichever area happens to have the most units and the earliest module
+ * code — which would be a direction chosen by sort order and indistinguishable, in the finished
+ * plan, from the student having picked it.
+ * ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+describe('undecided learners explore across directions', () => {
+  const INVENTORY = YEAR1_METADATA as unknown as ComposableUnit[];
+  const DAYS = 90;
+
+  const UNIVERSAL_SKILLS = [...new Set(
+    INVENTORY.filter(u => u.category === 'UNIVERSAL').flatMap(u => u.skillKeys),
+  )].sort();
+
+  const undecided = (skills: Map<string, any>): StudentProfile =>
+    ({ skills, primaryDirection: null, directionStatus: 'UNDECIDED' });
+
+  const STRONG_UNDECIDED = undecided(new Map(
+    UNIVERSAL_SKILLS.map(k => [k, { score: 91, confidence: 'HIGH' as const }]),
+  ));
+
+  /** The three distinct bodies of direction material: web, AI/data, cloud/cyber. */
+  const familyOf = (code: string): string | null => {
+    const u = INVENTORY.find(x => x.unitCode === code)!;
+    const dirs = (u.applicableDirections || []).map(String).sort();
+    return dirs[0] || null;
+  };
+
+  const familyMix = (r: ReturnType<typeof composeUnits>) => {
+    const out = new Map<string, number>();
+    for (const u of r.units) {
+      if (u.role !== 'DIRECTION_LEARNING') continue;
+      const f = familyOf(u.unitCode);
+      if (f) out.set(f, (out.get(f) || 0) + 1);
+    }
+    return out;
+  };
+
+  it('gives a strong undecided learner a full ninety days', () => {
+    /**
+     * THE REGRESSION THIS SAFEGUARD EXISTS FOR. Before it, this learner got 56 units: they had
+     * proven the universal foundation, everything new to them was direction-scoped, and having
+     * chosen no direction they were shown none of it.
+     */
+    const r = composeUnits({ candidates: INVENTORY, targetUnits: DAYS, student: STRONG_UNDECIDED });
+
+    expect(r.ok).toBe(true);
+    expect(r.units).toHaveLength(DAYS);
+    expect(r.shapeViolations).toEqual([]);
+  });
+
+  it('samples several areas rather than filling up from one', () => {
+    const mix = familyMix(composeUnits({
+      candidates: INVENTORY, targetUnits: DAYS, student: STRONG_UNDECIDED,
+    }));
+
+    // All three bodies of material represented, none of them taking the lot.
+    expect(mix.size).toBeGreaterThanOrEqual(3);
+    const total = [...mix.values()].reduce((a, b) => a + b, 0);
+    for (const n of mix.values()) expect(n).toBeLessThan(total * 0.7);
+  });
+
+  it('does not let the largest area run away with the allocation', () => {
+    /**
+     * Web has 38 units against AI/data's 21 and cloud/cyber's 8, and M05 sorts early. Ranking
+     * alone would spend the whole direction budget there.
+     */
+    const mix = familyMix(composeUnits({
+      candidates: INVENTORY, targetUnits: DAYS, student: STRONG_UNDECIDED,
+    }));
+    const total = [...mix.values()].reduce((a, b) => a + b, 0);
+    const web = mix.get('WEB_DEVELOPMENT') || 0;
+    const rest = total - web;
+
+    /**
+     * The claim is that the largest area does not take the majority, not that it ties exactly.
+     * An even split is the right answer and must not read as a failure — but 65%, which is what
+     * happened while prerequisite pulls were exempt from the breadth rule, must.
+     */
+    expect(web).toBeLessThanOrEqual(total / 2);
+    expect(rest).toBeGreaterThanOrEqual(web);
+  });
+
+  it('stops holding the others back once a small area is exhausted', () => {
+    /**
+     * Cloud/cyber has only eight units. A strict round-robin would stall the whole direction
+     * bucket the moment it ran dry; the floor is taken over areas that still have inventory, so
+     * the plan keeps going.
+     */
+    const r = composeUnits({ candidates: INVENTORY, targetUnits: DAYS, student: STRONG_UNDECIDED });
+    const mix = familyMix(r);
+    const cloud = mix.get('CLOUD_DEVOPS') || 0;
+
+    expect(cloud).toBeGreaterThan(0);
+    // Others went further than the small area could, rather than being capped at its ceiling.
+    expect(mix.get('WEB_DEVELOPMENT') || 0).toBeGreaterThan(cloud);
+  });
+
+  it('never writes a direction onto the student', () => {
+    // Exploration, not a decision made on their behalf.
+    const student = STRONG_UNDECIDED;
+    composeUnits({ candidates: INVENTORY, targetUnits: DAYS, student });
+
+    expect(student.primaryDirection).toBeNull();
+    expect(student.directionStatus).toBe('UNDECIDED');
+  });
+
+  it('explains sampled direction units as exploration, not as serving a chosen direction', () => {
+    const r = composeUnits({ candidates: INVENTORY, targetUnits: DAYS, student: STRONG_UNDECIDED });
+    const sampled = r.units.filter(u => u.role === 'DIRECTION_LEARNING');
+
+    expect(sampled.length).toBeGreaterThan(0);
+    for (const u of sampled) expect(u.reason).not.toBe('STUDENT_DIRECTION');
+  });
+
+  it('is deterministic, breadth rule included', () => {
+    const once = composeUnits({ candidates: INVENTORY, targetUnits: DAYS, student: STRONG_UNDECIDED });
+    const twice = composeUnits({
+      candidates: [...INVENTORY].reverse(), targetUnits: DAYS, student: STRONG_UNDECIDED,
+    });
+    expect(twice.units.map(u => u.unitCode)).toEqual(once.units.map(u => u.unitCode));
+  });
+
+  it('still confines a learner who HAS chosen to their own direction', () => {
+    // Breadth applies to the undecided. It must not loosen the filter for everybody else.
+    const web: StudentProfile = {
+      skills: new Map(), primaryDirection: 'WEB_DEVELOPMENT', directionStatus: 'SELECTED',
     };
+    const r = composeUnits({ candidates: INVENTORY, targetUnits: DAYS, student: web });
 
-    const r = compose(pool, 10, student);
-
-    expect(suitableStatesFor(pool[pool.length - 1])).toContain('STANDARD');
-    expect(r.units.map(u => u.unitCode)).not.toContain('T_A_PRACTICE');
-    expect(r.units.every(u => u.unitCode.startsWith('T_A_C'))).toBe(true);
+    for (const u of r.units) {
+      const full = INVENTORY.find(x => x.unitCode === u.unitCode)!;
+      if (!full.mandatory && full.applicableDirections.length) {
+        expect(full.applicableDirections.map(String)).toContain('WEB_DEVELOPMENT');
+      }
+    }
   });
 });

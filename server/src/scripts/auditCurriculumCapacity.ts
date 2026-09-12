@@ -209,7 +209,7 @@ const roleOfUnit = (u: ComposableUnit): Role => {
   /* ---- what the design is made of ---------------------------------- */
 
   line();
-  console.log('  WHAT THE 310 UNITS ARE MADE OF');
+  console.log(`  WHAT THE ${all.length} UNITS ARE MADE OF`);
   const byType = new Map<string, number>();
   const byCategory = new Map<string, number>();
   const byRole = new Map<Role, number>();

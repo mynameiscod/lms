@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import CurriculumDayUnit from '../models/CurriculumDayUnit';
+import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
 import StudentSkillProfile from '../models/StudentSkillProfile';
 import User from '../models/User';
 import { getCareerContext } from './careerContextService';
@@ -63,21 +63,38 @@ function stateFromScore(score: number | null | undefined): string | null {
   return 'FOUNDATION_REQUIRED';
 }
 
+/**
+ * A Learning Unit as the selector sees it.
+ *
+ * The selector's own shape is unchanged — it still fills bands with day-units — but the rows
+ * now come from the canonical L4 model. Two fields are mapped rather than renamed:
+ *
+ *   skillKey   a day teaches one thing, so the unit's FIRST skill is what it is about. The rest
+ *              are what it also touches, and they are carried by the unit for content resolution
+ *              rather than by the selector, which only needs one to choose depth.
+ *   audience   directions sit at the top level on a unit, matching every other CareerPilot model,
+ *              and are folded back in here so audienceServes keeps its four axes intact.
+ */
 const toSelectable = (u: any): SelectableDayUnit => ({
-  dayUnitId: u.dayUnitId,
+  dayUnitId: u.unitCode,
   band: u.band,
   displayOrder: u.displayOrder ?? 100,
   title: u.title,
-  skillKey: u.skillKey,
-  journeyTopic: u.journeyTopic || '',
-  subtopics: u.subtopics || [],
-  audience: u.audience,
+  skillKey: (u.skillKeys || [])[0] || '',
+  journeyTopic: u.topicCode || '',
+  subtopics: [],
+  audience: {
+    languages:  u.audience?.languages || [],
+    directions: u.applicableDirections || [],
+    years:      u.audience?.years || [],
+    branches:   u.audience?.branches || [],
+  },
   estimatedMinutes: u.estimatedMinutes ?? 0,
 });
 
 /** Everything published for this tenant. The pool the spine is drawn from. */
 export async function publishedDayUnits(tenantId: string): Promise<SelectableDayUnit[]> {
-  const rows = await CurriculumDayUnit
+  const rows = await CurriculumLearningUnit
     .find({ tenantId, status: 'PUBLISHED' })
     .sort({ displayOrder: 1 })
     .lean() as any[];

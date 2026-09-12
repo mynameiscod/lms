@@ -35,6 +35,23 @@ export interface IPassportConfig extends Document {
    * if something is wrong with the content rather than the code.
    */
   conceptLearningEnabled: boolean;
+
+  /* ---- Mega Curriculum cutover (CURRICULUM_ENGINE_V1) ---- */
+
+  /**
+   * Plan from Learning Units rather than from curriculum topics.
+   *
+   * OFF by default, and off is not a degraded mode — with it off the planner behaves exactly as
+   * it did before Learning Units existed. See data/curriculumEnginePolicy.ts for why the switch
+   * exists at all: two engines can answer "what should this student learn next", and only one
+   * may, or a student is shown a plan that disagrees with the plan the system believes they are
+   * on. That has happened here twice.
+   */
+  megaCurriculumEnabled?: boolean;
+  /** Named accounts on the unit engine regardless of the tenant switch. Read first. */
+  megaCurriculumStudentIds?: string[];
+  /** Stages on the unit engine regardless of the tenant switch, e.g. ['foundation']. */
+  megaCurriculumStages?: string[];
   assessmentMode: 'deterministic' | 'ai';
   onboardingFields: IOnboardingField[];
   entitlements: IEntitlement[];
@@ -108,6 +125,9 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
     tenantId:         { type: String, required: true, unique: true, index: true },
     enabled:          { type: Boolean, default: false },
     conceptLearningEnabled: { type: Boolean, default: false },
+    megaCurriculumEnabled:    { type: Boolean, default: false },
+    megaCurriculumStudentIds: { type: [String], default: [] },
+    megaCurriculumStages:     { type: [String], default: [] },
     assessmentMode:   { type: String, enum: ['deterministic', 'ai'], default: 'deterministic' },
     onboardingFields: [OnboardingFieldSchema],
     entitlements:     [EntitlementSchema],

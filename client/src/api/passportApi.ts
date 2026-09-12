@@ -4,6 +4,12 @@ import { loadRazorpay } from './paymentApi';
 import { visitorId, sessionId } from '../pages/Passport/activityBeacon';
 
 const BASE = (process.env.REACT_APP_API_URL || '/api/v1') + '/passport';
+/**
+ * The canonical mount. `/passport` is kept as a legacy alias server-side, and the two
+ * serve the same router — new calls use this one rather than replacing a substring at
+ * every call site, which is what the older methods below still do.
+ */
+const CP = (process.env.REACT_APP_API_URL || '/api/v1') + '/careerpilot';
 const auth = () => {
   const token = localStorage.getItem('token');
   const tenantId = localStorage.getItem('tenantId');
@@ -203,6 +209,45 @@ export const passportApi = {
     const r = await axios.get(
       `${BASE.replace('/passport', '/careerpilot')}/admin/activity/timeline/${encodeURIComponent(visitorId)}`,
       { headers: auth() });
+    return r.data;
+  },
+  // ── Mega curriculum: Learning Units ───────────────────────────────
+  megaCurriculum: async (stage = 'foundation'): Promise<{
+    stageKey: string; curriculumTitle: string | null;
+    rows: MegaCurriculumTopicRow[]; orphaned: CurriculumLearningUnit[];
+    summary: MegaCurriculumSummary;
+  }> => {
+    const r = await axios.get(`${CP}/curriculum-units`, { headers: auth(), params: { stage } });
+    return r.data;
+  },
+  megaCurriculumOptions: async (stage = 'foundation'): Promise<MegaCurriculumOptions> => {
+    const r = await axios.get(`${CP}/curriculum-units/options`, { headers: auth(), params: { stage } });
+    return r.data;
+  },
+  getCurriculumUnit: async (unitCode: string): Promise<{ unit: CurriculumLearningUnit; bundle: UnitBundle }> => {
+    const r = await axios.get(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}`, { headers: auth() });
+    return r.data;
+  },
+  saveCurriculumUnit: async (unitCode: string, body: Partial<CurriculumLearningUnit>): Promise<{
+    unit: CurriculumLearningUnit; created: boolean; warning: string | null;
+  }> => {
+    const r = await axios.put(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}`, body, { headers: auth() });
+    return r.data;
+  },
+  publishCurriculumUnit: async (unitCode: string): Promise<{ published: boolean; unit?: CurriculumLearningUnit; message?: string }> => {
+    const r = await axios.post(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/publish`, {}, { headers: auth() });
+    return r.data;
+  },
+  setCurriculumUnitStatus: async (unitCode: string, status: 'DRAFT' | 'ARCHIVED'): Promise<{ unit: CurriculumLearningUnit }> => {
+    const r = await axios.post(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/status`, { status }, { headers: auth() });
+    return r.data;
+  },
+  reorderCurriculumUnits: async (order: { unitCode: string; displayOrder: number }[]): Promise<{ reordered: number }> => {
+    const r = await axios.post(`${CP}/curriculum-units/reorder`, { order }, { headers: auth() });
+    return r.data;
+  },
+  deleteCurriculumUnit: async (unitCode: string): Promise<{ deleted: boolean }> => {
+    const r = await axios.delete(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}`, { headers: auth() });
     return r.data;
   },
   // ── Learning Studio ─────────────────────────────────────────────────────────
@@ -1850,6 +1895,85 @@ export interface ActivitySummary {
 }
 
 /** One concept as the Learning Studio lists it. */
+/* ── The mega curriculum, as an author edits it ────────────────────── */
+
+export type LearningUnitType =
+  'CONCEPT' | 'WORKED_EXAMPLE' | 'PRACTICE' | 'DEBUG' | 'PROJECT' | 'CHECKPOINT' | 'REVIEW';
+
+export type LearningUnitCategory =
+  'UNIVERSAL' | 'DIRECTION' | 'ACADEMIC' | 'EXPLORATION' | 'ENRICHMENT';
+
+export interface CurriculumLearningUnit {
+  _id?: string;
+  tenantId?: string;
+  stageKey: string;
+  moduleCode: string;
+  topicCode: string;
+  /** Stable identity. Never changes — a student’s completed work is keyed on it. */
+  unitCode: string;
+  title: string;
+  description: string;
+  displayOrder: number;
+  skillKeys: string[];
+  prerequisiteSkillKeys: string[];
+  prerequisiteUnitCodes: string[];
+  learningOutcomes: string[];
+  category: LearningUnitCategory;
+  applicableDirections: string[];
+  audience: { languages: string[]; years: string[]; branches: string[] };
+  defaultDepth: 'FOUNDATION' | 'GUIDED' | 'STANDARD' | 'REVISION' | 'CHALLENGE';
+  estimatedMinutes: number;
+  unitType: LearningUnitType;
+  mandatory: boolean;
+  /** A region of the ninety-day shape. NOT a day number — days belong to a student’s plan. */
+  band?: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+}
+
+export interface MegaCurriculumTopicRow {
+  moduleCode: string;
+  moduleName: string;
+  moduleOrder: number;
+  topicCode: string;
+  topicTitle: string;
+  topicSkillKeys: string[];
+  units: CurriculumLearningUnit[];
+  published: number;
+  drafts: number;
+}
+
+export interface MegaCurriculumSummary {
+  topics: number;
+  topicsWithUnits: number;
+  totalUnits: number;
+  published: number;
+  drafts: number;
+  orphaned: number;
+}
+
+export interface UnitBundle {
+  /** Which hook resolved this content: the narrowest that matched. */
+  via: 'unitCode' | 'topicCode' | 'skillKeys' | 'none';
+  items: { _id: string; type: string; title: string; estimatedDuration: number }[];
+  hasTeaching: boolean;
+  hasPractice: boolean;
+  types: string[];
+  resolvedMinutes: number;
+}
+
+export interface MegaCurriculumOptions {
+  stageKey: string;
+  modules: { moduleCode: string; moduleName: string; displayOrder: number }[];
+  topics: {
+    moduleCode: string; topicCode: string; title: string; skillKeys: string[];
+    defaultDepth: string | null; applicableDirections: string[];
+  }[];
+  skills: { key: string; name: string }[];
+  unitTypes: LearningUnitType[];
+  categories: LearningUnitCategory[];
+  bands: { key: string; label: string; days: number }[];
+}
+
 export interface StudioConcept {
   skillKey: string; skillName: string; category: string; difficulty: string;
   unitId: string | null; unitTitle: string; unitStatus: string | null;

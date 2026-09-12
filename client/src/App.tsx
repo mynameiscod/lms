@@ -98,6 +98,7 @@ import PassportCareerSetup from './pages/Passport/CareerSetup';
 import PassportAdminActivity from './pages/Passport/AdminActivity';
 import PassportLearningStudio from './pages/Passport/AdminLearningStudio';
 import PassportLearningUnit from './pages/Passport/AdminLearningUnit';
+import PassportMegaCurriculum from './pages/Passport/AdminMegaCurriculum';
 import PassportRoadmap from './pages/Passport/Roadmap';
 import PassportSkillDna from './pages/Passport/SkillDna';
 import PassportRoleReadiness from './pages/Passport/RoleReadiness';
@@ -560,6 +561,12 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/passport/learning-studio/:skillKey" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportLearningUnit /></Layout></ProtectedRoute>
+      } />
+      {/* The mega curriculum: Learning Units, the smallest schedulable node. Sits after the
+          Learning Studio in the sidebar and in the workflow, because a unit resolves its bundle
+          from published content rather than holding any. */}
+      <Route path="/admin/passport/mega-curriculum" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportMegaCurriculum /></Layout></ProtectedRoute>
       } />
       {/* What people actually did, in order, including the visits that never became an
           account. Separate from /admin/logs, which answers "what went wrong for this

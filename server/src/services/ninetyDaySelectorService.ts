@@ -229,18 +229,41 @@ export interface CoverageRow {
   band: BandKey;
   label: string;
   needed: number;
+  /** What the band can supply. For a computed band this is its full length; see spineCoverage. */
   available: number;
+  /** How many day-units a human actually wrote for it. Differs from `available` only when computed. */
+  authored: number;
+  /** True when the selector assembles this band rather than reading authored units. */
+  selfFilling: boolean;
   complete: boolean;
 }
 
 export function spineCoverage(input: SelectorInput): { rows: CoverageRow[]; filled: number; total: number } {
   const rows = SPINE_BANDS.map(band => {
-    const available = candidatesFor(band.key, input).length;
+    const authored = candidatesFor(band.key, input).length;
+
+    /**
+     * A COMPUTED BAND IS NEVER A GAP, AND REPORTING IT AS ONE INFLATES THE BACKLOG.
+     *
+     * This counted authored candidates for every band alike, so the checkpoint band showed as
+     * five days short — five rows on an authoring list that nothing will ever select.
+     * checkpointDays assembles that band from days already in the student's own plan and is
+     * documented to never be short while a plan exists.
+     *
+     * Authored checkpoint days still count: a re-measurement paper is the one thing a curriculum
+     * can contribute here. They are simply never REQUIRED, so the band reads as complete whether
+     * or not anybody writes one.
+     */
+    const selfFilling = band.variance === 'COMPUTED';
+    const available = selfFilling ? Math.max(authored, band.days) : authored;
+
     return {
       band: band.key,
       label: band.label,
       needed: band.days,
       available,
+      authored,
+      selfFilling,
       complete: available >= band.days,
     };
   });

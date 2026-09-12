@@ -40,6 +40,7 @@ import * as skillDna from '../controllers/skillDnaController';
 import * as readiness from '../controllers/roleReadinessController';
 import * as careerRoadmap from '../controllers/careerRoadmapController';
 import * as spine from '../controllers/spineController';
+import * as learningUnits2 from '../controllers/curriculumLearningUnitController';
 import * as dailyPlan from '../controllers/careerDailyPlanController';
 import * as skillResources from '../controllers/careerSkillResourceController';
 import * as gamification from '../controllers/gamificationController';
@@ -404,6 +405,25 @@ router.get('/students/:studentId/placement-readiness', MANAGE, placement.getStud
 router.get('/me/spine',                         MEMBER, spine.getMySpine);
 /** For the people authoring the curriculum, not for a student. */
 router.get('/spine/coverage',                   MANAGE, spine.getSpineCoverage);
+
+/**
+ * Authoring the mega curriculum's Learning Units. MANAGE throughout — these routes decide what
+ * every student is eventually taught.
+ *
+ * Static segments before the parameterised one, so 'options' and 'reorder' can never be captured
+ * as a unitCode. The same ordering rule the adaptive routes above already keep.
+ *
+ * NOTHING HERE SCHEDULES. There is no route that sets a day number, because a Learning Unit
+ * belongs to the master curriculum and a day belongs to one student's plan.
+ */
+router.get('/curriculum-units',                     MANAGE, learningUnits2.listUnits);
+router.get('/curriculum-units/options',             MANAGE, learningUnits2.unitOptions);
+router.post('/curriculum-units/reorder',            MANAGE, express.json(), learningUnits2.reorderUnits);
+router.get('/curriculum-units/:unitCode',           MANAGE, learningUnits2.getUnit);
+router.put('/curriculum-units/:unitCode',           MANAGE, express.json(), learningUnits2.saveUnit);
+router.post('/curriculum-units/:unitCode/publish',  MANAGE, learningUnits2.publishUnit);
+router.post('/curriculum-units/:unitCode/status',   MANAGE, express.json(), learningUnits2.setUnitStatus);
+router.delete('/curriculum-units/:unitCode',        MANAGE, learningUnits2.deleteUnit);
 
 router.get('/me/roadmap',                       MEMBER, careerRoadmap.getMyRoadmap);
 router.post('/me/roadmap/generate',             MEMBER, careerRoadmap.generateMyRoadmap);

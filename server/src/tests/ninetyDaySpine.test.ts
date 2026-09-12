@@ -19,9 +19,17 @@ import {
  * plan that is ninety until somebody counts.
  */
 
-const unit = (over: Partial<SelectableDayUnit> & { band: any }): SelectableDayUnit => ({
+/**
+ * `band` is Omit-ted from the Partial before being re-added as a plain string.
+ *
+ * Intersecting `Partial<SelectableDayUnit>` with `{ band: any }` does NOT widen the optional
+ * `band?: BandKey` it already carries, so every call site passing a string literal failed to
+ * compile while the suite itself still ran. Removing the property first is what makes the
+ * override actually override.
+ */
+const unit = (over: Omit<Partial<SelectableDayUnit>, 'band'> & { band: string }): SelectableDayUnit => ({
   dayUnitId: over.dayUnitId || `du_${Math.random().toString(36).slice(2, 9)}`,
-  band: over.band,
+  band: over.band as any,
   displayOrder: over.displayOrder ?? 100,
   title: over.title || 'A day',
   skillKey: over.skillKey || 'SKILL',

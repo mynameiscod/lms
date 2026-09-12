@@ -10,14 +10,14 @@
  * and this says so on every run. Seeding placeholders for the other two thirds would put a plan
  * in front of a student with sixty empty days in it.
  *
- *   npx ts-node src/seeds/careerPilot/seedCurriculumDayUnits.ts <tenantId>
- *   npx ts-node src/seeds/careerPilot/seedCurriculumDayUnits.ts <tenantId> --apply
- *   npx ts-node src/seeds/careerPilot/seedCurriculumDayUnits.ts <tenantId> --apply --publish
+ *   npx ts-node src/seeds/careerPilot/seedCurriculumLearningUnits.ts <tenantId>
+ *   npx ts-node src/seeds/careerPilot/seedCurriculumLearningUnits.ts <tenantId> --apply
+ *   npx ts-node src/seeds/careerPilot/seedCurriculumLearningUnits.ts <tenantId> --apply --publish
  */
 
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import CurriculumDayUnit from '../../models/CurriculumDayUnit';
+import CurriculumLearningUnit from '../../models/CurriculumLearningUnit';
 import CareerSkill from '../../models/CareerSkill';
 import { SPINE_BANDS, SPINE_DAYS } from '../../data/ninetyDayPolicy';
 import { spineCoverage } from '../../services/ninetyDaySelectorService';
@@ -35,7 +35,7 @@ export interface DayUnitSeedReport {
   filled: number;
 }
 
-export async function seedCurriculumDayUnits(opts: {
+export async function seedCurriculumLearningUnits(opts: {
   tenantId: string;
   apply?: boolean;
   publish?: boolean;
@@ -63,14 +63,14 @@ export async function seedCurriculumDayUnits(opts: {
   const status = opts.publish ? 'PUBLISHED' : 'DRAFT';
 
   for (const u of units) {
-    const existing: any = await CurriculumDayUnit.findOne({
+    const existing: any = await CurriculumLearningUnit.findOne({
       tenantId: opts.tenantId, dayUnitId: u.dayUnitId,
     }).lean();
 
     if (!existing) {
       report.created++;
       if (opts.apply) {
-        await CurriculumDayUnit.create({
+        await CurriculumLearningUnit.create({
           tenantId: opts.tenantId, ...u, status, createdBy: opts.actor || 'day-unit-seed',
         });
         if (opts.publish) report.published++;
@@ -85,7 +85,7 @@ export async function seedCurriculumDayUnits(opts: {
 
     report.updated++;
     if (opts.apply) {
-      await CurriculumDayUnit.updateOne(
+      await CurriculumLearningUnit.updateOne(
         { tenantId: opts.tenantId, dayUnitId: u.dayUnitId },
         { $set: { band: u.band, displayOrder: u.displayOrder, updatedBy: opts.actor || 'day-unit-seed' } },
       );
@@ -117,12 +117,12 @@ if (require.main === module) {
     const apply = process.argv.includes('--apply');
     const publish = process.argv.includes('--publish');
     if (!tenantId) {
-      console.error('Usage: seedCurriculumDayUnits.ts <tenantId> [--apply] [--publish]');
+      console.error('Usage: seedCurriculumLearningUnits.ts <tenantId> [--apply] [--publish]');
       process.exit(1);
     }
 
     await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI || '');
-    const r = await seedCurriculumDayUnits({ tenantId, apply, publish });
+    const r = await seedCurriculumLearningUnits({ tenantId, apply, publish });
 
     if (r.unknownSkillKeys.length) {
       console.error('\nREFUSED — these skill keys do not exist in the taxonomy:');

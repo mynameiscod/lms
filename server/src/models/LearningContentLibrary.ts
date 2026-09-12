@@ -9,7 +9,8 @@ export type ContentLibraryType =
   | 'practice_theory'
   | 'aptitude'
   | 'interactive_lesson'
-  | 'interactive_activity';
+  | 'interactive_activity'
+  | 'worked_example';
 
 export type VideoSource = 'upload' | 'youtube' | 'vimeo' | 'bunny';
 export type NotesSource = 'upload' | 'richtext';
@@ -88,6 +89,20 @@ export interface ILearningContentLibrary extends Document {
    * absent — which is what keeps one authored video usable across a whole spiral.
    */
   topicCode?: string;
+
+  /**
+   * The ONE Learning Unit this material was written for.
+   *
+   * THE NARROWEST HOOK OF THREE, and the precedence is unitCode — topicCode — skillKeys, each
+   * falling back rather than filtering out. A topic like OOP breaks into fourteen units, and
+   * "Inheritance" needs its own video while the topic's overview notes still serve all fourteen.
+   * Without this level, either every unit shares one video or the same material is copied
+   * fourteen times and fixed fourteen times.
+   *
+   * Optional, and every one of the 368 existing rows is valid without it — a row with no unit
+   * still serves by topic or by skill exactly as it does today. Nothing is migrated.
+   */
+  unitCode?: string;
 
   /**
    * WHO this version of the material is pitched at, which is not the same as how hard it is.
@@ -222,7 +237,7 @@ const LearningContentLibrarySchema = new Schema<ILearningContentLibrary>(
     description: { type: String, trim: true },
     type: {
       type: String,
-      enum: ['video', 'notes', 'tech_qa', 'behavioral_qa', 'practice_coding', 'practice_theory', 'aptitude', 'interactive_lesson', 'interactive_activity'],
+      enum: ['video', 'notes', 'tech_qa', 'behavioral_qa', 'practice_coding', 'practice_theory', 'aptitude', 'interactive_lesson', 'interactive_activity', 'worked_example'],
       required: true,
     },
 
@@ -235,6 +250,7 @@ const LearningContentLibrarySchema = new Schema<ILearningContentLibrary>(
     // continue to be found by the topicTags queries every current screen uses.
     skillKeys:            { type: [String], default: undefined },
     topicCode:            { type: String, trim: true },
+    unitCode:             { type: String, trim: true, uppercase: true },
     learningDepth:        { type: String, enum: ['FOUNDATION', 'GUIDED', 'STANDARD', 'REVISION', 'CHALLENGE'] },
     difficultyLevel:      { type: Number, min: 1, max: 4 },
     applicableDirections: { type: [String], default: undefined },
@@ -285,6 +301,14 @@ LearningContentLibrarySchema.index({ tenantId: 1, topicTags: 1 });
  * A multikey index on skillKeys; without it every plan generation scans the library.
  */
 LearningContentLibrarySchema.index({ tenantId: 1, skillKeys: 1, learningDepth: 1, isPublished: 1 });
+/**
+ * The unit resolver's first read: "content written for THIS unit, that is published".
+ *
+ * Sparse, because only a minority of rows will ever carry a unitCode — the rest serve whole
+ * topics or whole skills, which is the behaviour this level was added to preserve rather than
+ * replace.
+ */
+LearningContentLibrarySchema.index({ tenantId: 1, unitCode: 1, isPublished: 1 }, { sparse: true });
 
 export default mongoose.model<ILearningContentLibrary>(
   'LearningContentLibrary',

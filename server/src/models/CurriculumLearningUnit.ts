@@ -167,6 +167,24 @@ export interface ICurriculumLearningUnit extends Document {
   mandatory: boolean;
 
   /**
+   * The skill states this unit is worth giving somebody.
+   *
+   * OPTIONAL, AND ABSENT ON EVERY EXISTING UNIT. When unset, suitability is derived from
+   * `unitType` — see unitSuitabilityPolicy, which is where the table lives. An author sets it
+   * only where the derivation is too blunt.
+   *
+   * The audit that produced it: across all 310 authored units, `unitType` is the ONLY field that
+   * varies between siblings of a topic. Depth, category, mandatory, skills and directions are all
+   * inherited from the topic and identical. So the type tells a debugging exercise from a
+   * project, and nothing tells one CONCEPT unit from another — yet "Why Repetition Needs a
+   * Structure" and "Loops Inside Loops" serve different students.
+   *
+   * A required field would have meant writing a guess into 310 rows, and a guess written down is
+   * indistinguishable from a decision.
+   */
+  suitableStates?: string[];
+
+  /**
    * Which region of the ninety-day shape this unit belongs to.
    *
    * NOT A DAY NUMBER. A band spans a range of days for every student alike; which unit lands on
@@ -227,6 +245,9 @@ const CurriculumLearningUnitSchema = new Schema<ICurriculumLearningUnit>(
     estimatedMinutes: { type: Number, default: 0, min: 0 },
     unitType:         { type: String, enum: LEARNING_UNIT_TYPES, default: 'CONCEPT' },
     mandatory:        { type: Boolean, default: true },
+
+    // Absent by default; see the interface. Derived from unitType when unset.
+    suitableStates: { type: [String], default: undefined },
 
     band: { type: String },
 

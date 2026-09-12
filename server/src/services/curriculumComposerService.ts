@@ -36,6 +36,10 @@ import {
 // Imported from the model that owns it, which is where adaptiveCurriculumPolicy takes it from.
 import { SkillConfidence } from '../models/StudentSkillProfile';
 import { appliesToDirection, DirectionStatus } from '../data/careerDirectionPolicy';
+import {
+  isSuitableFor, isInstructional, suitableStatesFor,
+  PrerequisiteOutcome, PrerequisiteResolution,
+} from '../data/unitSuitabilityPolicy';
 import { LearningUnitType, LearningUnitCategory } from '../models/CurriculumLearningUnit';
 
 /* ------------------------------------------------------------------ *
@@ -59,6 +63,8 @@ export interface ComposableUnit {
   defaultDepth: string;
   mandatory: boolean;
   estimatedMinutes: number;
+  /** Authored suitability. Absent means derived from unitType — see unitSuitabilityPolicy. */
+  suitableStates?: AssignmentState[];
 }
 
 /** What is known about one skill. Absent from the map entirely means never measured. */
@@ -116,12 +122,25 @@ export interface ComposerResult {
   /** Units filtered out before ranking, and why. Reported, never silent. */
   excluded: { unitCode: string; reason: AssignmentReason }[];
   /**
-   * Prerequisites naming a unit that is not in the candidate pool.
+   * How every prerequisite of every selected unit was resolved.
    *
-   * Not a failure: the pool is filtered by READINESS, not by curriculum, so a prerequisite can
-   * be missing simply because nobody has authored it yet. Reported so an author can see which
-   * gap is distorting the sequence.
+   * Three outcomes rather than one "unmet" list, because they need different actions and
+   * different audiences: an author writes a missing unit, a student finishes a blocking one, and
+   * a mastery resolution needs neither. Collapsing them is what made the prototype's report
+   * unusable for either reader.
    */
+  prerequisites: PrerequisiteOutcome[];
+
+  /**
+   * Units that could NOT be scheduled because something they build on is unavailable and the
+   * student has not demonstrated it another way.
+   *
+   * A production composition must never schedule under this condition, so they are excluded and
+   * named rather than quietly included.
+   */
+  blocked: { unitCode: string; missing: string[] }[];
+
+  /** Kept for callers written against the prototype. Derived from `blocked`. */
   unmetPrerequisites: { unitCode: string; missing: string[] }[];
   totalMinutes: number;
 }
@@ -248,24 +267,60 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   );
 
   const excluded: ComposerResult['excluded'] = [];
-  const eligible: ComposableUnit[] = [];
+  const relevant: ComposableUnit[] = [];
 
   for (const unit of candidates) {
     const scoped = (unit.applicableDirections || []).length > 0;
-    if (!scoped || unit.mandatory) { eligible.push(unit); continue; }
+    if (!scoped || unit.mandatory) { relevant.push(unit); continue; }
 
     const serves = appliesToDirection(unit.applicableDirections, student.primaryDirection)
       || unit.applicableDirections.some(d => exploring.has(String(d).toUpperCase()));
 
-    if (serves) eligible.push(unit);
+    if (serves) relevant.push(unit);
     else excluded.push({ unitCode: unit.unitCode, reason: 'OUTSIDE_DIRECTION' });
+  }
+
+  /* ---- 1b. suitability --------------------------------------------- */
+
+  /**
+   * A unit the student's state has no use for is dropped, and instruction is where that bites.
+   *
+   * THE PRODUCT DECISION. A VERIFIED learner does not get every foundation unit again at a lower
+   * depth: the CONCEPT units stop being suitable, and the capacity goes on debugging, projects
+   * and checkpoints instead. Re-teaching somebody what they have demonstrated is the most
+   * expensive way to waste a day of a ninety-day programme.
+   *
+   * VERIFIED IS STILL NOT REMOVED. The skill keeps units in the plan, they are still labelled
+   * MASTERY_VERIFIED, and a student can still see the area was covered. What changes is that the
+   * units are the ones worth their time.
+   */
+  const stateOf = new Map<string, ReturnType<typeof governingState>>();
+  for (const u of relevant) stateOf.set(u.unitCode, governingState(u, student.skills));
+
+  const eligible: ComposableUnit[] = [];
+  for (const unit of relevant) {
+    const { state } = stateOf.get(unit.unitCode)!;
+    if (isSuitableFor(unit, state)) { eligible.push(unit); continue; }
+
+    excluded.push({
+      unitCode: unit.unitCode,
+      // Suitability failure on instruction is exactly "you have shown this already".
+      reason: state === 'VERIFIED' && isInstructional(unit) ? 'MASTERY_VERIFIED' : 'OUTSIDE_DIRECTION',
+    });
   }
 
   /* ---- 2. rank ------------------------------------------------------ */
 
+  /**
+   * Every candidate by code, INCLUDING the ones filtered out.
+   *
+   * A prerequisite dropped for suitability is still a real unit whose skills can answer "has
+   * this student already shown it". Looking only at the eligible set would report a mastered
+   * prerequisite as an authoring gap.
+   */
+  const allByCode = new Map(candidates.map(u => [u.unitCode, u]));
+
   const byCode = new Map(eligible.map(u => [u.unitCode, u]));
-  const stateOf = new Map<string, ReturnType<typeof governingState>>();
-  for (const u of eligible) stateOf.set(u.unitCode, governingState(u, student.skills));
 
   /**
    * The total order. Every tie is broken, so two runs cannot disagree.
@@ -302,15 +357,46 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   const selected: ComposableUnit[] = [];
   const chosen = new Set<string>();
   const asPrerequisite = new Set<string>();
-  const unmet = new Map<string, string[]>();
+  const prerequisites: PrerequisiteOutcome[] = [];
 
-  for (const u of eligible) {
-    const missing = u.prerequisiteUnitCodes.filter(c => !byCode.has(c));
-    if (missing.length) unmet.set(u.unitCode, missing);
-  }
+  /**
+   * Has the student already demonstrated what a missing prerequisite teaches?
+   *
+   * Checked against the prerequisite UNIT's skills where the unit is known, and against the
+   * dependent unit's declared prerequisite skills otherwise. Either way the bar is VERIFIED:
+   * anything less means the capability is assumed rather than shown, and assuming is what the
+   * whole readiness programme exists to stop.
+   */
+  const masteredBy = (code: string, dependent: ComposableUnit): { skill: string; score: number } | null => {
+    const prereqUnit = allByCode.get(code);
+    const keys = prereqUnit?.skillKeys?.length
+      ? prereqUnit.skillKeys
+      : dependent.prerequisiteSkillKeys;
+
+    for (const key of keys || []) {
+      const belief = student.skills.get(key);
+      if (!belief || belief.score === null || belief.score === undefined) continue;
+      const state = stateForScore({ score: belief.score, confidence: belief.confidence });
+      if (state === 'VERIFIED') return { skill: key, score: belief.score };
+    }
+    return null;
+  };
+
+  /**
+   * Resolve one prerequisite into one of three outcomes.
+   *
+   * A MISSING PREREQUISITE IS NOT SATISFIED BY DEFAULT. The prototype treated anything outside
+   * the pool as fine, which is wrong in the one case that matters: the unit is genuinely needed,
+   * nobody authored it, and the student has not shown the capability. Scheduling the dependent
+   * unit then teaches somebody something they are not ready for, silently.
+   */
+  const resolveOne = (u: ComposableUnit, code: string): PrerequisiteResolution => {
+    if (byCode.has(code)) return chosen.has(code) ? 'SATISFIED_BY_PLAN' : 'BLOCKED_MISSING_PREREQUISITE';
+    return masteredBy(code, u) ? 'SATISFIED_BY_MASTERY' : 'BLOCKED_MISSING_PREREQUISITE';
+  };
 
   const readyToTake = (u: ComposableUnit): boolean =>
-    u.prerequisiteUnitCodes.every(c => !byCode.has(c) || chosen.has(c));
+    u.prerequisiteUnitCodes.every(c => resolveOne(u, c) !== 'BLOCKED_MISSING_PREREQUISITE');
 
   /**
    * Everything a unit depends on, however deep.
@@ -397,9 +483,38 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     };
   });
 
-  const unmetPrerequisites = [...unmet.entries()]
-    .filter(([code]) => chosen.has(code))
-    .map(([unitCode, missing]) => ({ unitCode, missing }));
+  /** Every prerequisite of every selected unit, resolved against the finished plan. */
+  for (const u of selected) {
+    for (const code of u.prerequisiteUnitCodes) {
+      const resolution = byCode.has(code) && chosen.has(code)
+        ? 'SATISFIED_BY_PLAN' as const
+        : (masteredBy(code, u) ? 'SATISFIED_BY_MASTERY' as const : 'BLOCKED_MISSING_PREREQUISITE' as const);
+      const mastery = resolution === 'SATISFIED_BY_MASTERY' ? masteredBy(code, u) : null;
+      prerequisites.push({
+        unitCode: u.unitCode,
+        prerequisite: code,
+        resolution,
+        ...(mastery ? { viaSkill: mastery.skill, score: mastery.score } : {}),
+      });
+    }
+  }
+
+  /**
+   * Units left out because something they build on is unavailable and unproven.
+   *
+   * Named rather than silently dropped: this is an authoring gap with a student-visible
+   * consequence, and it is the number that tells an author which missing unit is costing the
+   * most plan.
+   */
+  const blockedMap = new Map<string, string[]>();
+  for (const u of eligible) {
+    if (chosen.has(u.unitCode)) continue;
+    const missing = u.prerequisiteUnitCodes
+      .filter(c => resolveOne(u, c) === 'BLOCKED_MISSING_PREREQUISITE');
+    if (missing.length) blockedMap.set(u.unitCode, missing);
+  }
+  const blocked = [...blockedMap.entries()].map(([unitCode, missing]) => ({ unitCode, missing }));
+  const unmetPrerequisites = blocked;
 
   /**
    * An insufficient plan is a STRUCTURED REFUSAL, never a short plan.
@@ -416,6 +531,8 @@ export function composeUnits(input: ComposerInput): ComposerResult {
       eligibleUnits: eligible.length,
       units,
       excluded,
+      prerequisites,
+      blocked,
       unmetPrerequisites,
       totalMinutes: units.reduce((n, u) => n + u.estimatedMinutes, 0),
     };
@@ -427,6 +544,8 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     eligibleUnits: eligible.length,
     units,
     excluded,
+    prerequisites,
+    blocked,
     unmetPrerequisites,
     totalMinutes: units.reduce((n, u) => n + u.estimatedMinutes, 0),
   };

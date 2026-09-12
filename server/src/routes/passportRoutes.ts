@@ -423,6 +423,9 @@ router.get('/curriculum-units/:unitCode',           MANAGE, learningUnits2.getUn
 router.put('/curriculum-units/:unitCode',           MANAGE, express.json(), learningUnits2.saveUnit);
 router.post('/curriculum-units/:unitCode/publish',  MANAGE, learningUnits2.publishUnit);
 router.post('/curriculum-units/:unitCode/status',   MANAGE, express.json(), learningUnits2.setUnitStatus);
+router.get('/curriculum-units/:unitCode/content',    MANAGE, learningUnits2.unitContent);
+router.post('/curriculum-units/:unitCode/content/:contentId',   MANAGE, learningUnits2.attachContent);
+router.delete('/curriculum-units/:unitCode/content/:contentId', MANAGE, learningUnits2.detachContent);
 router.delete('/curriculum-units/:unitCode',        MANAGE, learningUnits2.deleteUnit);
 
 router.get('/me/roadmap',                       MEMBER, careerRoadmap.getMyRoadmap);

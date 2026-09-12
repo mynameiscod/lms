@@ -246,6 +246,22 @@ export const passportApi = {
     const r = await axios.post(`${CP}/curriculum-units/reorder`, { order }, { headers: auth() });
     return r.data;
   },
+  unitContent: async (unitCode: string): Promise<UnitContent> => {
+    const r = await axios.get(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/content`, { headers: auth() });
+    return r.data;
+  },
+  attachUnitContent: async (unitCode: string, contentId: string): Promise<{ attached: boolean }> => {
+    const r = await axios.post(
+      `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/content/${encodeURIComponent(contentId)}`,
+      {}, { headers: auth() });
+    return r.data;
+  },
+  detachUnitContent: async (unitCode: string, contentId: string): Promise<{ detached: boolean }> => {
+    const r = await axios.delete(
+      `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/content/${encodeURIComponent(contentId)}`,
+      { headers: auth() });
+    return r.data;
+  },
   deleteCurriculumUnit: async (unitCode: string): Promise<{ deleted: boolean }> => {
     const r = await axios.delete(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}`, { headers: auth() });
     return r.data;
@@ -1951,14 +1967,42 @@ export interface MegaCurriculumSummary {
   orphaned: number;
 }
 
+export interface BundleItem {
+  _id: string;
+  type: string;
+  title: string;
+  estimatedDuration: number;
+  learningDepth: string | null;
+  role: 'TEACH' | 'REINFORCE' | 'PRACTISE' | 'OTHER';
+  /** Attached to this unit, rather than inherited from its topic or skills. */
+  attached: boolean;
+  /** Unpublished content resolves for nothing, however firmly it is attached. */
+  isPublished: boolean;
+}
+
 export interface UnitBundle {
   /** Which hook resolved this content: the narrowest that matched. */
   via: 'unitCode' | 'topicCode' | 'skillKeys' | 'none';
-  items: { _id: string; type: string; title: string; estimatedDuration: number }[];
+  /** In teaching order — watch, read, see it done, practise, prove. */
+  items: BundleItem[];
   hasTeaching: boolean;
   hasPractice: boolean;
   types: string[];
   resolvedMinutes: number;
+}
+
+export interface UnitContent {
+  unitCode: string;
+  title: string;
+  /** Rows explicitly bound to this unit. */
+  attached: BundleItem[];
+  /** Unclaimed rows that already serve this unit's topic or skills. */
+  candidates: BundleItem[];
+  /** What the unit teaches from right now, attached or inherited. */
+  resolved: UnitBundle;
+  /** Attached rows that teach nothing because they were never published. */
+  attachedButUnpublished: string[];
+  teachingOrder: string[];
 }
 
 export interface MegaCurriculumOptions {

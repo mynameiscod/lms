@@ -30,6 +30,20 @@ const matches = (doc: any, q: any): boolean =>
     return String(got) === String(v);
   });
 
+/** The candidate query uses $or / $and / $exists, which the plain matcher does not model. */
+const matchesLibrary = (doc: any, q: any): boolean =>
+  Object.entries(q).every(([k, v]: [string, any]) => {
+    if (k === '$or') return (v as any[]).some(cond => matchesLibrary(doc, cond));
+    if (k === '$and') return (v as any[]).every(cond => matchesLibrary(doc, cond));
+    if (v && typeof v === 'object' && '$exists' in v) return (doc[k] !== undefined) === v.$exists;
+    if (v && typeof v === 'object' && '$in' in v) {
+      const want = v.$in as any[];
+      return Array.isArray(doc[k]) ? doc[k].some((g: any) => want.includes(g)) : want.includes(doc[k]);
+    }
+    if (v === null) return doc[k] === null || doc[k] === undefined;
+    return String(doc[k]) === String(v);
+  });
+
 jest.mock('../models/CurriculumLearningUnit', () => {
   const TYPES = ['CONCEPT', 'WORKED_EXAMPLE', 'PRACTICE', 'DEBUG', 'PROJECT', 'CHECKPOINT', 'REVIEW'];
   const CATS = ['UNIVERSAL', 'DIRECTION', 'ACADEMIC', 'EXPLORATION', 'ENRICHMENT'];
@@ -75,7 +89,24 @@ jest.mock('../models/CurriculumLearningUnit', () => {
 
 jest.mock('../models/LearningContentLibrary', () => ({
   __esModule: true,
-  default: { find: (q: any) => chain(library.filter(d => matches(d, q))) },
+  default: {
+    find: (q: any) => chain(library.filter(d => matchesLibrary(d, q))),
+    findOne: (q: any) => chain(library.find(d => matchesLibrary(d, q)) || null),
+    updateOne: async (q: any, up: any) => {
+      const row = library.find(d => matchesLibrary(d, q));
+      if (!row) return { matchedCount: 0, modifiedCount: 0 };
+      if (up.$set) Object.assign(row, up.$set);
+      if (up.$unset) for (const k of Object.keys(up.$unset)) delete row[k];
+      return { matchedCount: 1, modifiedCount: 1 };
+    },
+    updateMany: async (q: any, up: any) => {
+      const rows = library.filter(d => matchesLibrary(d, q));
+      for (const row of rows) {
+        if (up.$unset) for (const k of Object.keys(up.$unset)) delete row[k];
+      }
+      return { matchedCount: rows.length, modifiedCount: rows.length };
+    },
+  },
 }));
 
 jest.mock('../models/LearningCurriculum', () => ({
@@ -390,5 +421,115 @@ describe('what cannot be undone', () => {
     // Editing a live unit must not pull it out of every plan mid-week.
     expect(units[0].status).toBe('PUBLISHED');
     expect(units[0].title).toBe('Renamed');
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * P2 — content binding
+ * ------------------------------------------------------------------ */
+
+describe('attaching content to a unit', () => {
+  const note = (over: any = {}) => ({
+    _id: 'c_note', tenantId: TENANT, isPublished: true, type: 'notes',
+    title: 'OOP notes', estimatedDuration: 20, skillKeys: ['JAVA_OOP'],
+    createdAt: new Date('2026-01-02T00:00:00Z'), ...over,
+  });
+
+  beforeEach(async () => {
+    library = [skillTaggedVideo(), note()];
+    await save('T_OOP_INHERIT');
+  });
+
+  it('offers rows that serve this topic or skill, and never one another unit owns', async () => {
+    library.push(note({ _id: 'c_taken', title: 'Taken', unitCode: 'SOME_OTHER_UNIT' }));
+
+    const { res, out } = resOf();
+    await ctrl.unitContent(reqOf({ params: { unitCode: 'T_OOP_INHERIT' } }), res);
+
+    const ids = out.body.candidates.map((c: any) => c._id);
+    // A row another unit owns is that unit's. Offering it would let one click silently remove
+    // content from a lesson nobody was looking at.
+    expect(ids).not.toContain('c_taken');
+    expect(ids).toContain('c_note');
+  });
+
+  it('makes an attachment win over content inherited from the topic', async () => {
+    library.push(note({ _id: 'c_topic', title: 'Topic notes', topicCode: 'T_OOP' }));
+
+    let probe = resOf();
+    await ctrl.unitContent(reqOf({ params: { unitCode: 'T_OOP_INHERIT' } }), probe.res);
+    expect(probe.out.body.resolved.via).toBe('topicCode');
+
+    const a = resOf();
+    await ctrl.attachContent(reqOf({ params: { unitCode: 'T_OOP_INHERIT', contentId: 'c_note' } }), a.res);
+
+    probe = resOf();
+    await ctrl.unitContent(reqOf({ params: { unitCode: 'T_OOP_INHERIT' } }), probe.res);
+    expect(probe.out.body.resolved.via).toBe('unitCode');
+    expect(probe.out.body.resolved.items.map((i: any) => i._id)).toEqual(['c_note']);
+  });
+
+  it('refuses a row another unit already owns', async () => {
+    library.push(note({ _id: 'c_taken', title: 'Taken', unitCode: 'SOME_OTHER_UNIT' }));
+
+    const { res, out } = resOf();
+    await ctrl.attachContent(reqOf({ params: { unitCode: 'T_OOP_INHERIT', contentId: 'c_taken' } }), res);
+
+    expect(out.status).toBe(409);
+    expect(library.find(r => r._id === 'c_taken').unitCode).toBe('SOME_OTHER_UNIT');
+  });
+
+  it('detaches by releasing the row, never by deleting it', async () => {
+    const a = resOf();
+    await ctrl.attachContent(reqOf({ params: { unitCode: 'T_OOP_INHERIT', contentId: 'c_note' } }), a.res);
+
+    const d = resOf();
+    await ctrl.detachContent(reqOf({ params: { unitCode: 'T_OOP_INHERIT', contentId: 'c_note' } }), d.res);
+
+    // Detaching is a demotion, not a removal: the row goes back to serving its topic and skills.
+    expect(d.out.body.detached).toBe(true);
+    expect(library.find(r => r._id === 'c_note').unitCode).toBeUndefined();
+    expect(library).toHaveLength(2);
+  });
+
+  it('says when attached content is unpublished and therefore teaches nobody', async () => {
+    library.push(note({ _id: 'c_draft', title: 'Draft notes', isPublished: false }));
+
+    const a = resOf();
+    await ctrl.attachContent(reqOf({ params: { unitCode: 'T_OOP_INHERIT', contentId: 'c_draft' } }), a.res);
+
+    const { res, out } = resOf();
+    await ctrl.unitContent(reqOf({ params: { unitCode: 'T_OOP_INHERIT' } }), res);
+
+    // Attaching an unpublished row looks like it worked and then does nothing, because the
+    // resolver filters on isPublished. Reported rather than left to be noticed.
+    expect(out.body.attachedButUnpublished).toEqual(['Draft notes']);
+  });
+
+  it('releases attached content when the unit is deleted', async () => {
+    const a = resOf();
+    await ctrl.attachContent(reqOf({ params: { unitCode: 'T_OOP_INHERIT', contentId: 'c_note' } }), a.res);
+
+    const { res, out } = resOf();
+    await ctrl.deleteUnit(reqOf({ params: { unitCode: 'T_OOP_INHERIT' } }), res);
+
+    // Left pointing at a unit that no longer exists, the row would serve nothing AND be filtered
+    // out of every other unit's candidate list. Invisible content is worse than orphaned content.
+    expect(out.body.contentReleased).toBe(1);
+    expect(library.find(r => r._id === 'c_note').unitCode).toBeUndefined();
+  });
+
+  it('returns the bundle in teaching order, with roles', async () => {
+    library = [
+      note({ _id: 'p', type: 'practice_coding', title: 'Practice' }),
+      note({ _id: 'n', type: 'notes', title: 'Notes' }),
+      note({ _id: 'v', type: 'video', title: 'Video' }),
+    ];
+
+    const { res, out } = resOf();
+    await ctrl.unitContent(reqOf({ params: { unitCode: 'T_OOP_INHERIT' } }), res);
+
+    expect(out.body.resolved.items.map((i: any) => i._id)).toEqual(['v', 'n', 'p']);
+    expect(out.body.resolved.items.map((i: any) => i.role)).toEqual(['TEACH', 'TEACH', 'PRACTISE']);
   });
 });

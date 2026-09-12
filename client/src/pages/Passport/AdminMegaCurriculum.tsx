@@ -17,7 +17,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import passportApi, {
   CurriculumLearningUnit, MegaCurriculumTopicRow, MegaCurriculumSummary,
-  MegaCurriculumOptions, UnitBundle,
+  MegaCurriculumOptions, UnitContent,
 } from '../../api/passportApi';
 import './megaCurriculum.css';
 
@@ -32,10 +32,22 @@ const UNIT_TYPE_LABEL: Record<string, string> = {
 
 /** Where a bundle came from, said plainly. The narrowest hook that matched wins. */
 const VIA_NOTE: Record<string, string> = {
-  unitCode: 'written for this unit',
-  topicCode: 'shared across this topic',
-  skillKeys: 'found by skill',
+  unitCode: 'attached to this unit',
+  topicCode: 'inherited from the topic',
+  skillKeys: 'inherited by skill',
   none: 'nothing resolves yet',
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  video: 'Video', notes: 'Notes', worked_example: 'Worked example',
+  interactive_lesson: 'Interactive lesson', interactive_activity: 'Activity',
+  tech_qa: 'Q&A', behavioral_qa: 'Q&A',
+  practice_theory: 'Theory practice', practice_coding: 'Coding practice', aptitude: 'Aptitude',
+};
+
+/** What a row is for, shown as a rail rather than restated on every line. */
+const ROLE_LABEL: Record<string, string> = {
+  TEACH: 'Teach', REINFORCE: 'Reinforce', PRACTISE: 'Practise', OTHER: 'Other',
 };
 
 const blankUnit = (
@@ -66,7 +78,8 @@ const AdminMegaCurriculum: React.FC = () => {
   const [editing, setEditing] = useState<CurriculumLearningUnit | null>(null);
   /** Set when editing an existing unit: the code is identity and must not move. */
   const [editingCode, setEditingCode] = useState<string>('');
-  const [bundle, setBundle] = useState<UnitBundle | null>(null);
+  const [content, setContent] = useState<UnitContent | null>(null);
+  const [contentBusy, setContentBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
@@ -111,18 +124,43 @@ const AdminMegaCurriculum: React.FC = () => {
   }, [rows]);
 
   const startNew = (row: MegaCurriculumTopicRow) => {
-    setEditingCode(''); setBundle(null); setNote('');
+    setEditingCode(''); setContent(null); setNote('');
     setEditing(blankUnit(
       opts?.stageKey || 'foundation', row.moduleCode, row.topicCode, (row.units.length + 1) * 10,
     ));
   };
 
+  /** The unit's content, reloaded on its own so attaching does not redraw the whole page. */
+  const loadContent = useCallback(async (unitCode: string) => {
+    try { setContent(await passportApi.unitContent(unitCode)); }
+    catch { setContent(null); }
+  }, []);
+
   const startEdit = async (u: CurriculumLearningUnit) => {
-    setEditingCode(u.unitCode); setEditing({ ...u }); setNote(''); setBundle(null);
+    setEditingCode(u.unitCode); setEditing({ ...u }); setNote(''); setContent(null);
+    await loadContent(u.unitCode);
+  };
+
+  const attach = async (contentId: string) => {
+    if (!editingCode) return;
+    setContentBusy(true); setErr('');
     try {
-      const r = await passportApi.getCurriculumUnit(u.unitCode);
-      setBundle(r.bundle);
-    } catch { /* the unit still edits without its bundle */ }
+      await passportApi.attachUnitContent(editingCode, contentId);
+      await loadContent(editingCode);
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || 'Could not attach this content.');
+    } finally { setContentBusy(false); }
+  };
+
+  const detach = async (contentId: string) => {
+    if (!editingCode) return;
+    setContentBusy(true); setErr('');
+    try {
+      await passportApi.detachUnitContent(editingCode, contentId);
+      await loadContent(editingCode);
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || 'Could not detach this content.');
+    } finally { setContentBusy(false); }
   };
 
   const save = async () => {
@@ -136,7 +174,7 @@ const AdminMegaCurriculum: React.FC = () => {
       setNote(r.warning || (r.created ? 'Unit created.' : 'Saved.'));
       setEditingCode(code);
       setEditing({ ...r.unit });
-      await load();
+      await Promise.all([load(), loadContent(code)]);
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Could not save this unit.');
     } finally { setSaving(false); }
@@ -313,7 +351,7 @@ const AdminMegaCurriculum: React.FC = () => {
               <h3>{editingCode ? 'Edit unit' : 'New unit'}</h3>
               <small>{editing.topicCode}{editingCode && <> · {editingCode}</>}</small>
             </div>
-            <button className="mgc-x" onClick={() => { setEditing(null); setEditingCode(''); setBundle(null); }}>
+            <button className="mgc-x" onClick={() => { setEditing(null); setEditingCode(''); setContent(null); }}>
               <i className="bi bi-x-lg" />
             </button>
           </div>
@@ -419,15 +457,88 @@ const AdminMegaCurriculum: React.FC = () => {
               <span>Mandatory — never filtered away by direction</span>
             </label>
 
-            {bundle && (
-              <div className={`mgc-bundle ${bundle.hasTeaching ? '' : 'thin'}`}>
-                <span>Content that resolves</span>
-                <b>{bundle.items.length} item{bundle.items.length === 1 ? '' : 's'} · {bundle.resolvedMinutes} min</b>
-                <small>
-                  {VIA_NOTE[bundle.via]}
-                  {bundle.types.length > 0 && <> — {bundle.types.join(', ')}</>}
-                  {!bundle.hasTeaching && <> · nothing here teaches, so it cannot be published</>}
-                </small>
+            {editingCode && content && (
+              <div className="mgc-content">
+                <div className={`mgc-bundle ${content.resolved.hasTeaching ? '' : 'thin'}`}>
+                  <span>What this unit teaches from</span>
+                  <b>
+                    {content.resolved.items.length} item
+                    {content.resolved.items.length === 1 ? '' : 's'} · {content.resolved.resolvedMinutes} min
+                  </b>
+                  <small>
+                    {VIA_NOTE[content.resolved.via]}
+                    {!content.resolved.hasTeaching && <> · nothing here teaches, so it cannot be published</>}
+                  </small>
+                </div>
+
+                {content.attachedButUnpublished.length > 0 && (
+                  <div className="mgc-msg warn" style={{ margin: 0 }}>
+                    <b>Attached but not published:</b> {content.attachedButUnpublished.join(', ')}.
+                    Unpublished content resolves for nothing, so these teach no one until they are
+                    published in the Content Library.
+                  </div>
+                )}
+
+                {/* In teaching order: watch, read, see it done, practise. The order comes from the
+                    server so the screen and the student's day agree about sequence. */}
+                {content.resolved.items.length > 0 && (
+                  <ol className="mgc-clist">
+                    {content.resolved.items.map(it => (
+                      <li key={it._id} className={it.attached ? 'bound' : ''}>
+                        <span className="mgc-crole">{ROLE_LABEL[it.role]}</span>
+                        <span className="mgc-cbody">
+                          <b>{it.title}</b>
+                          <small>
+                            {TYPE_LABEL[it.type] || it.type}
+                            {it.learningDepth && <> · {it.learningDepth}</>}
+                            {it.estimatedDuration > 0 && <> · {it.estimatedDuration} min</>}
+                            {!it.attached && <> · inherited</>}
+                          </small>
+                        </span>
+                        {it.attached && (
+                          <button className="mgc-cbtn" disabled={contentBusy}
+                                  onClick={() => detach(it._id)} title="Detach — it goes back to serving the topic">
+                            <i className="bi bi-x-lg" />
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+
+                {content.candidates.length > 0 && (
+                  <>
+                    <span className="mgc-lbl">
+                      Attach to this unit <em>already serves this topic or skill</em>
+                    </span>
+                    <ol className="mgc-clist cand">
+                      {content.candidates.map(it => (
+                        <li key={it._id}>
+                          <span className="mgc-crole">{ROLE_LABEL[it.role]}</span>
+                          <span className="mgc-cbody">
+                            <b>{it.title}</b>
+                            <small>
+                              {TYPE_LABEL[it.type] || it.type}
+                              {it.learningDepth && <> · {it.learningDepth}</>}
+                              {!it.isPublished && <> · <b className="mgc-unpub">not published</b></>}
+                            </small>
+                          </span>
+                          <button className="mgc-cbtn add" disabled={contentBusy}
+                                  onClick={() => attach(it._id)} title="Attach to this unit">
+                            <i className="bi bi-plus-lg" />
+                          </button>
+                        </li>
+                      ))}
+                    </ol>
+                  </>
+                )}
+
+                {!content.candidates.length && !content.attached.length && (
+                  <p className="mgc-hint">
+                    No unclaimed content matches this unit yet. Author it in the Content Library
+                    and tag it with this topic or skill — it will appear here to attach.
+                  </p>
+                )}
               </div>
             )}
 
@@ -439,7 +550,7 @@ const AdminMegaCurriculum: React.FC = () => {
                 <button className="mgc-btn" onClick={() => publish(editingCode)}>Publish</button>
               )}
               <button className="mgc-btn ghost"
-                      onClick={() => { setEditing(null); setEditingCode(''); setBundle(null); }}>
+                      onClick={() => { setEditing(null); setEditingCode(''); setContent(null); }}>
                 Close
               </button>
             </div>

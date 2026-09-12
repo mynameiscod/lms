@@ -6,6 +6,7 @@ import LearningContentLibrary from '../models/LearningContentLibrary';
 import LearningCurriculum from '../models/LearningCurriculum';
 import CareerSkill from '../models/CareerSkill';
 import { SPINE_BANDS } from '../data/ninetyDayPolicy';
+import { inTeachingOrder, roleOf, teaches, TEACHING_ORDER } from '../data/contentBundlePolicy';
 
 /**
  * Authoring the mega curriculum's Learning Units.
@@ -50,7 +51,7 @@ const BAND_KEYS = new Set<string>(SPINE_BANDS.map(b => b.key));
 async function resolveBundle(tenantId: string, unit: {
   unitCode: string; topicCode: string; skillKeys: string[];
 }): Promise<{ rows: any[]; via: 'unitCode' | 'topicCode' | 'skillKeys' | 'none' }> {
-  const sel = '_id type title estimatedDuration learningDepth isPublished';
+  const sel = '_id type title estimatedDuration learningDepth isPublished canonical createdAt unitCode topicCode skillKeys';
 
   const byUnit = await LearningContentLibrary
     .find({ tenantId, isPublished: true, unitCode: unit.unitCode }).select(sel).lean() as any[];
@@ -72,15 +73,41 @@ async function resolveBundle(tenantId: string, unit: {
   return { rows: [], via: 'none' };
 }
 
-const TEACHING_TYPES = new Set(['video', 'notes', 'interactive_lesson', 'interactive_activity', 'worked_example']);
-const PRACTICE_TYPES = new Set(['practice_coding', 'practice_theory', 'aptitude', 'tech_qa', 'behavioral_qa']);
-
-const coverageOf = (rows: any[]) => ({
-  hasTeaching: rows.some(r => TEACHING_TYPES.has(r.type)),
-  hasPractice: rows.some(r => PRACTICE_TYPES.has(r.type)),
-  types: [...new Set(rows.map(r => String(r.type)))],
-  resolvedMinutes: rows.reduce((n, r) => n + (Number(r.estimatedDuration) || 0), 0),
-});
+/**
+ * What a resolved bundle amounts to, in teaching order.
+ *
+ * Order comes from contentBundlePolicy rather than from the rows, because a content row has no
+ * sequence of its own — see that file for why one was not added. The order is deterministic:
+ * type, then canonical, then age, then id.
+ */
+const bundleOf = (rows: any[]) => {
+  const ordered = inTeachingOrder(rows);
+  return {
+    items: ordered.map(r => ({
+      _id: String(r._id),
+      type: r.type,
+      title: r.title,
+      estimatedDuration: Number(r.estimatedDuration) || 0,
+      learningDepth: r.learningDepth || null,
+      role: roleOf(r.type),
+      /** True when this row was attached to the unit rather than inherited from topic or skill. */
+      attached: !!r.unitCode,
+      /**
+       * Whether it is published, and therefore whether it resolves AT ALL.
+       *
+       * Reported because attaching an unpublished row looks like it worked and then does nothing:
+       * the resolver filters on isPublished, so the unit shows one fewer item than the author
+       * just attached and nothing says why. Surfacing the state is the difference between a
+       * visible next step and a silent hole in a lesson.
+       */
+      isPublished: r.isPublished !== false,
+    })),
+    hasTeaching: ordered.some(r => teaches(r.type)),
+    hasPractice: ordered.some(r => roleOf(r.type) === 'PRACTISE'),
+    types: [...new Set(ordered.map(r => String(r.type)))],
+    resolvedMinutes: ordered.reduce((n, r) => n + (Number(r.estimatedDuration) || 0), 0),
+  };
+};
 
 /**
  * Why this unit cannot go live, or null.
@@ -97,7 +124,7 @@ async function teachingFault(tenantId: string, unit: {
     return `Nothing in the Content Library resolves for ${unit.unitCode}. Tag content with this `
       + 'unit code, its topic code, or one of its skills, and publish it first.';
   }
-  if (!coverageOf(rows).hasTeaching) {
+  if (!bundleOf(rows).hasTeaching) {
     return `${unit.unitCode} resolves ${rows.length} item(s) via ${via}, but none of them teach `
       + '— there is practice with no lesson behind it.';
   }
@@ -201,7 +228,7 @@ export const getUnit = async (req: Request, res: Response) => {
       unitCode, topicCode: unit.topicCode, skillKeys: unit.skillKeys || [],
     });
 
-    res.json({ unit, bundle: { via, items: rows, ...coverageOf(rows) } });
+    res.json({ unit, bundle: { via, ...bundleOf(rows) } });
   } catch (e: any) {
     console.error('[learning-units] get:', e?.message || e);
     res.status(500).json({ message: 'Could not load this unit.' });
@@ -381,7 +408,7 @@ export const publishUnit = async (req: Request, res: Response) => {
       const { rows } = await resolveBundle(tenantId, {
         unitCode, topicCode: doc.topicCode, skillKeys: doc.skillKeys || [],
       });
-      doc.estimatedMinutes = coverageOf(rows).resolvedMinutes;
+      doc.estimatedMinutes = bundleOf(rows).resolvedMinutes;
     }
 
     doc.status = 'PUBLISHED';
@@ -452,8 +479,138 @@ export const reorderUnits = async (req: Request, res: Response) => {
   }
 };
 
+/* ------------------------------------------------------------------ *
+ * Content binding
+ * ------------------------------------------------------------------ */
+
 /**
- * DELETE /curriculum-units/:unitCode — remove a unit entirely.
+ * GET /curriculum-units/:unitCode/content """ + D + u""" what is attached, and what could be.
+ *
+ * Candidates are drawn from the same three hooks the resolver uses, so an author is offered
+ * exactly the rows that already serve this unit's topic or skills. Offering the whole library
+ * would make attaching a search problem; offering only exact matches would hide the row they
+ * actually want to promote.
+ */
+export const unitContent = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const unitCode = clean(req.params.unitCode, 80).toUpperCase();
+    const unit = await CurriculumLearningUnit.findOne({ tenantId, unitCode })
+      .select('topicCode skillKeys title').lean() as any;
+    if (!unit) return res.status(404).json({ message: 'No such unit.' });
+
+    const sel = '_id type title estimatedDuration learningDepth isPublished canonical createdAt unitCode topicCode skillKeys';
+
+    const [attached, candidates] = await Promise.all([
+      LearningContentLibrary.find({ tenantId, unitCode }).select(sel).lean() as any,
+      LearningContentLibrary.find({
+        tenantId,
+        // Not already claimed by another unit. A row attached elsewhere is that unit's, and
+        // offering it here would let one click silently move it out of another lesson.
+        $or: [{ unitCode: { $exists: false } }, { unitCode: null }, { unitCode: '' }],
+        $and: [{
+          $or: [
+            ...(unit.topicCode ? [{ topicCode: unit.topicCode }] : []),
+            ...((unit.skillKeys || []).length ? [{ skillKeys: { $in: unit.skillKeys } }] : []),
+          ],
+        }],
+      }).select(sel).lean() as any,
+    ]);
+
+    const resolved = await resolveBundle(tenantId, {
+      unitCode, topicCode: unit.topicCode, skillKeys: unit.skillKeys || [],
+    });
+
+    const attachedItems = bundleOf(attached).items;
+
+    res.json({
+      unitCode,
+      title: unit.title,
+      attached: attachedItems,
+      candidates: bundleOf(candidates).items,
+      /**
+       * Attached, but not teaching anything, because it was never published.
+       *
+       * Called out separately rather than left for somebody to spot by comparing two lists.
+       */
+      attachedButUnpublished: attachedItems.filter(i => !i.isPublished).map(i => i.title),
+      /** What the unit teaches from RIGHT NOW, attached or inherited. */
+      resolved: { via: resolved.via, ...bundleOf(resolved.rows) },
+      teachingOrder: TEACHING_ORDER,
+    });
+  } catch (e: any) {
+    console.error('[learning-units] content:', e?.message || e);
+    res.status(500).json({ message: 'Could not read this unit\'s content.' });
+  }
+};
+
+/**
+ * POST /curriculum-units/:unitCode/content/:contentId """ + D + u""" attach one library row.
+ *
+ * Attaching sets `unitCode` on the ROW, which is the same hook the resolver reads first. There is
+ * no join table: a row belongs to at most one unit, and the alternative """ + D + u""" many-to-many """ + D + u""" would
+ * mean a row could be first in one unit's order and last in another's, with nothing to say which.
+ *
+ * REFUSES A ROW ANOTHER UNIT ALREADY OWNS. Silently reassigning it would remove content from a
+ * lesson nobody was looking at, and the author who lost it would have no way to find out why.
+ */
+export const attachContent = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const unitCode = clean(req.params.unitCode, 80).toUpperCase();
+    const contentId = clean(req.params.contentId, 60);
+
+    const unit = await CurriculumLearningUnit.findOne({ tenantId, unitCode }).select('_id').lean() as any;
+    if (!unit) return res.status(404).json({ message: 'No such unit.' });
+
+    const row = await LearningContentLibrary.findOne({ tenantId, _id: contentId })
+      .select('unitCode title').lean() as any;
+    if (!row) return res.status(404).json({ message: 'No such content.' });
+
+    if (row.unitCode && row.unitCode !== unitCode) {
+      return res.status(409).json({
+        message: `"${row.title}" is already attached to ${row.unitCode}. Detach it there first.`,
+      });
+    }
+
+    await LearningContentLibrary.updateOne({ tenantId, _id: contentId }, { $set: { unitCode } });
+    res.json({ attached: true, unitCode, contentId });
+  } catch (e: any) {
+    console.error('[learning-units] attach:', e?.message || e);
+    res.status(500).json({ message: 'Could not attach this content.' });
+  }
+};
+
+/**
+ * DELETE /curriculum-units/:unitCode/content/:contentId """ + D + u""" detach one library row.
+ *
+ * UNSETS the hook rather than deleting anything. The row goes back to serving its topic and its
+ * skills, which is where it came from """ + D + u""" detaching is a demotion, not a removal, and an author who
+ * expected the second would notice immediately while one who expected the first would not.
+ */
+export const detachContent = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const unitCode = clean(req.params.unitCode, 80).toUpperCase();
+    const contentId = clean(req.params.contentId, 60);
+
+    const r = await LearningContentLibrary.updateOne(
+      { tenantId, _id: contentId, unitCode },
+      { $unset: { unitCode: '' } },
+    );
+    if (!r.matchedCount) {
+      return res.status(404).json({ message: 'That content is not attached to this unit.' });
+    }
+
+    res.json({ detached: true, unitCode, contentId });
+  } catch (e: any) {
+    console.error('[learning-units] detach:', e?.message || e);
+    res.status(500).json({ message: 'Could not detach this content.' });
+  }
+};
+
+/**
+ * DELETE /curriculum-units/:unitCode """ + D + u""" remove a unit entirely.
  *
  * Only one that was never published. A published unit may already sit in a student's completed
  * record keyed on its code, and deleting it would make that record point at nothing. Those are
@@ -472,8 +629,20 @@ export const deleteUnit = async (req: Request, res: Response) => {
       });
     }
 
+    /**
+     * Content attached to it is released, never deleted.
+     *
+     * Leaving `unitCode` pointing at a unit that no longer exists would make those rows resolve
+     * for nothing: they would stop serving the unit that is gone AND stop being offered as
+     * candidates elsewhere, because a claimed row is filtered out of every other unit's list.
+     * Invisible content is worse than orphaned content.
+     */
+    const released = await LearningContentLibrary.updateMany(
+      { tenantId, unitCode }, { $unset: { unitCode: '' } },
+    );
+
     await CurriculumLearningUnit.deleteOne({ tenantId, unitCode });
-    res.json({ deleted: true });
+    res.json({ deleted: true, contentReleased: released.modifiedCount ?? 0 });
   } catch (e: any) {
     console.error('[learning-units] delete:', e?.message || e);
     res.status(500).json({ message: 'Could not delete this unit.' });

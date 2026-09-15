@@ -25,7 +25,7 @@ import Assignment from '../models/Assignment';
 import { evaluateReadiness, UnitReadiness, READINESS_ORDER } from '../data/unitReadinessPolicy';
 import { findDuplication, identifyingWordsFor } from '../services/contentDuplicationService';
 import { teaches, roleOf } from '../data/contentBundlePolicy';
-import { engineActivationState } from '../data/curriculumEnginePolicy';
+import { foundationReadiness } from '../services/foundationReadinessService';
 
 dotenv.config();
 
@@ -263,13 +263,11 @@ const STAGE = 'foundation';
 
   line();
   console.log(`  Units a composer could schedule today: ${composerReady.length} of ${rows.length}.`);
-  const configs = await mongoose.connection.db!.collection('passportconfigs')
-    .find({ tenantId: { $in: [tenantId, tenantOid].filter(Boolean) } }).toArray();
-  const activation = engineActivationState(configs as any[]);
-  console.log(activation === 'OFF'
-    ? '  Production engine: TOPIC. Nothing here changes what a student sees.\n'
-    : `  Production engine: ${activation === 'FOUNDATION_UNIT' ? 'UNIT for Foundation, TOPIC for every other stage' : 'switched on OUTSIDE the authorised Foundation activation'}. `
-      + 'Foundation journeys compose from the PUBLISHED and READY units above.\n');
+  // Foundation is always planned by units; whether this tenant can serve it is provisioning's question.
+  const readiness = await foundationReadiness(tenantId);
+  console.log(`  Production engine: UNIT for Foundation, TOPIC for every other stage. Foundation product: ${readiness.configured
+    ? 'CONFIGURED — journeys compose from the PUBLISHED and READY units above.'
+    : `NOT CONFIGURED (${readiness.reason}) — run provisionCareerPilotFoundation.ts for this tenant.`}\n`);
 
   await mongoose.disconnect();
 })().catch(e => { console.error(e); process.exit(1); });

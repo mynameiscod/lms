@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import passportApi, { PassportConfig, CurriculumEngineSummary } from '../../api/passportApi';
+import passportApi, { PassportConfig, CurriculumEngineSummary, FoundationReadiness } from '../../api/passportApi';
 import AdminInterviewPlans from './AdminInterviewPlans';
 
 const card: React.CSSProperties = { background: '#fff', border: '1px solid #eef1f6', borderRadius: 14, padding: '18px 20px', marginBottom: 16, boxShadow: '0 1px 3px rgba(16,24,40,.04)' };
@@ -18,9 +18,8 @@ const PassportAdminConfig: React.FC = () => {
    * checkboxes below currently read, so the badge never claims a change that has not been saved.
    */
   const [engine, setEngine] = useState<CurriculumEngineSummary | null>(null);
-  /** Pilot student ids, edited as text and sent as a list. */
-  const [pilotIds, setPilotIds] = useState('');
-  const pilotIdList = () => pilotIds.split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
+  /** Whether this tenant has been provisioned with the Foundation curriculum. */
+  const [foundation, setFoundation] = useState<FoundationReadiness | null>(null);
   /**
    * Journey length and missions-per-day live on PassportContent, not PassportConfig — a
    * different collection with a different endpoint. They are edited HERE anyway: which
@@ -50,7 +49,7 @@ const PassportAdminConfig: React.FC = () => {
       ]);
       setCfg(r.config); setPlatformEnabled(r.platformEnabled);
       setEngine(r.engine || null);
-      setPilotIds((r.config.megaCurriculumStudentIds || []).join('\n'));
+      setFoundation(r.foundation || null);
       if (content?.content) {
         setJourneyDays(content.content.journeyDays || 90);
         setMissionsPerDay(content.content.missionsPerDay ?? 3);
@@ -77,14 +76,10 @@ const PassportAdminConfig: React.FC = () => {
         // reads, which is what the note above the field explains.
         roadmapDays: journeyDays,
         entitlements: cfg.entitlements, onboardingFields: cfg.onboardingFields,
-        megaCurriculumEnabled: !!cfg.megaCurriculumEnabled,
-        megaCurriculumStages: cfg.megaCurriculumStages || [],
-        megaCurriculumStudentIds: pilotIdList(),
       });
       setCfg(saved);
-      // Re-read so the engine badges show what the server now resolves, not what was sent.
       const fresh = await passportApi.getConfig().catch(() => null);
-      if (fresh) setEngine(fresh.engine || null);
+      if (fresh) { setEngine(fresh.engine || null); setFoundation(fresh.foundation || null); }
       setMsg('✅ Saved.');
     } catch (e: any) {
       const errors: string[] = e?.response?.data?.errors || [];
@@ -213,10 +208,20 @@ const PassportAdminConfig: React.FC = () => {
       <div style={card}>
         <div style={h}>Curriculum engine</div>
         <p style={{ fontSize: 12.5, color: '#94a3b8', margin: '0 0 12px' }}>
-          Which engine plans a student's learning. <b>TOPIC</b> is the established topic plan. <b>UNIT</b> gives
-          each student a ninety-day journey built from published, ready Learning Units. A change applies from a
-          student's next assessment or direction change; no existing plan is rewritten when you save.
+          Every Foundation (first-year) learner is planned by <b>UNIT</b> — a ninety-day journey built from the
+          published Year-1 Learning Units. This is the product, not a setting. Later stages have no Learning Unit
+          curriculum and are planned by <b>TOPIC</b>.
         </p>
+        {foundation && (
+          <div style={{
+            fontSize: 13, padding: '10px 12px', borderRadius: 10, marginBottom: 12,
+            background: foundation.configured ? '#ecfdf5' : '#fef2f2', color: foundation.configured ? '#047857' : '#b91c1c',
+          }}>
+            <b>Foundation curriculum: {foundation.configured ? 'provisioned' : 'NOT CONFIGURED'}</b>
+            {' · '}{foundation.publishedUnits} published units · {foundation.skillCheckMappings} skill-check mappings
+            {!foundation.configured && foundation.message && <div style={{ marginTop: 4 }}>{foundation.message}</div>}
+          </div>
+        )}
         {engine && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             {engine.stages.map(s => (
@@ -229,19 +234,6 @@ const PassportAdminConfig: React.FC = () => {
             ))}
           </div>
         )}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-          <input type="checkbox" checked={(cfg.megaCurriculumStages || []).includes('foundation')}
-                 onChange={e => setCfg({ ...cfg, megaCurriculumStages: e.target.checked ? ['foundation'] : [] })} />
-          Plan the Foundation stage with Learning Units
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
-          <input type="checkbox" checked={!!cfg.megaCurriculumEnabled}
-                 onChange={e => setCfg({ ...cfg, megaCurriculumEnabled: e.target.checked })} />
-          Every stage that has a Learning Unit curriculum{engine ? ` (today: ${engine.unitCapableStages.join(', ')})` : ''}
-        </label>
-        <span style={label}>Pilot students on Learning Units — account ids, one per line</span>
-        <textarea style={{ ...input, width: '100%', maxWidth: 520, minHeight: 64, fontFamily: 'monospace', boxSizing: 'border-box' }}
-                  value={pilotIds} onChange={e => setPilotIds(e.target.value)} />
       </div>
 
       <div style={card}>

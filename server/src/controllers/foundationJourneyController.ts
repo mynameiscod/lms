@@ -33,6 +33,7 @@ import User from '../models/User';
 import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
 import { FOUNDATION_JOURNEY_KIND } from '../services/foundationJourneyService';
 import { resolveCurriculumEngine } from '../services/curriculumEngineService';
+import { foundationReadiness, FOUNDATION_NOT_CONFIGURED_FOR_STUDENT } from '../services/foundationReadinessService';
 
 /**
  * Which engine plans this student, for the screens that must show exactly one plan.
@@ -100,6 +101,21 @@ export const getMyJourney = async (req: Request, res: Response) => {
        * before the assessment, or before an admin enrols them — and the screen says so rather
        * than showing a failure.
        */
+      /**
+       * A Foundation learner whose tenant cannot serve the journey is told so. Never a fallback:
+       * the topic roadmap is not a smaller version of this, it is a different plan.
+       */
+      const readiness = engine === 'UNIT' ? await foundationReadiness(tenantId) : null;
+      if (readiness && !readiness.configured) {
+        return res.json({
+          available: false,
+          reason: 'NOT_CONFIGURED',
+          message: FOUNDATION_NOT_CONFIGURED_FOR_STUDENT,
+          totalDays: FOUNDATION_PROGRAM_DAYS,
+          engine,
+          enrollmentId: null,
+        });
+      }
       return res.json({
         available: false,
         reason: 'NO_JOURNEY',
@@ -256,14 +272,19 @@ export const getStudentJourney = async (req: Request, res: Response) => {
     };
 
     if (!curriculum) {
+      const readiness = engine === 'UNIT' ? await foundationReadiness(tenantId) : null;
       return res.json({
         available: false,
+        reason: readiness && !readiness.configured ? 'NOT_CONFIGURED' : 'NO_JOURNEY',
+        readiness,
         engine,
         student,
         totalDays: FOUNDATION_PROGRAM_DAYS,
-        message: engine === 'UNIT'
-          ? 'No journey yet. It is created when this member completes a skill check — or by the backfill, for members assessed before the unit engine was switched on.'
-          : 'This member is planned by the topic engine, so they have no Foundation journey.',
+        message: readiness && !readiness.configured
+          ? `Foundation is not configured for this tenant: ${readiness.message}`
+          : engine === 'UNIT'
+            ? 'No journey yet. It is created when this member completes a skill check — or by the backfill, for members assessed before this tenant was provisioned.'
+            : 'This member is planned by the topic engine, so they have no Foundation journey.',
       });
     }
 

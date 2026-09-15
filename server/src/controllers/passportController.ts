@@ -18,6 +18,7 @@ import { memberAxes } from '../services/careerStageService';
 import PassportInterview from '../models/PassportInterview';
 import { normalizePhone, mobileError } from '../utils/phone';
 import { validateEngineConfigPatch, describeEngineConfig } from '../services/curriculumEngineService';
+import { foundationReadiness } from '../services/foundationReadinessService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -50,6 +51,8 @@ export const getConfig = async (req: Request, res: Response) => {
       config: cfg,
       // The engine a student is actually on, per stage — the switches after capability.
       engine: describeEngineConfig(cfg as any),
+      // Whether this tenant can actually serve the Foundation journey — provisioning, not a switch.
+      foundation: await foundationReadiness(tenantId),
       platformEnabled: settings.getStr('PASSPORT_ENABLED', 'true', tenantId) !== 'false',
     });
   } catch (e: any) {
@@ -88,7 +91,7 @@ export const updateConfig = async (req: Request, res: Response) => {
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
     Object.assign($set, engine.set);
     const cfg = await PassportConfig.findOneAndUpdate({ tenantId }, { $set }, { new: true });
-    res.json({ config: cfg, engine: describeEngineConfig(cfg as any) });
+    res.json({ config: cfg, engine: describeEngineConfig(cfg as any), foundation: await foundationReadiness(tenantId) });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Failed to update config' });
   }

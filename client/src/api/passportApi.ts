@@ -106,7 +106,7 @@ export interface DraftBatchReport {
 }
 
 export const passportApi = {
-  getConfig: async (): Promise<{ config: PassportConfig; platformEnabled: boolean; engine?: CurriculumEngineSummary }> => {
+  getConfig: async (): Promise<{ config: PassportConfig; platformEnabled: boolean; engine?: CurriculumEngineSummary; foundation?: FoundationReadiness }> => {
     const { data } = await axios.get(`${BASE}/config`, { headers: auth() });
     return data;
   },
@@ -2276,6 +2276,17 @@ export interface AdminFoundationJourney {
   percentComplete?: number;
   startedAt?: string | null;
   days?: AdminFoundationJourneyDay[];
+  /** NO_JOURNEY, or NOT_CONFIGURED when this tenant cannot serve the Foundation journey. */
+  reason?: string;
+}
+
+/** Whether a tenant can serve the Foundation journey. Decided by provisioning, not by a switch. */
+export interface FoundationReadiness {
+  configured: boolean;
+  reason: 'NO_PRODUCTION_CURRICULUM' | 'NO_SKILL_CHECK' | null;
+  publishedUnits: number;
+  skillCheckMappings: number;
+  message: string | null;
 }
 
 export interface StudioConcept {

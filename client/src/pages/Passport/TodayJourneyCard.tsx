@@ -41,6 +41,15 @@ const TodayJourneyCard: React.FC = () => {
 
   if (!journey || journey.engine !== 'UNIT') return null;
 
+  if (!journey.available && journey.reason === 'NOT_CONFIGURED') {
+    return (
+      <div className="gd-card" style={{ marginTop: 14 }}>
+        <div className="gd-card-hd"><h2><i className="bi bi-map" /> Your 90-day Foundation journey</h2></div>
+        <p style={{ margin: 0 }}>{journey.message}</p>
+      </div>
+    );
+  }
+
   if (!journey.available) {
     return (
       <div className="gd-card" style={{ marginTop: 14 }}>

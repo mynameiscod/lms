@@ -11,6 +11,8 @@ import { curriculumFor } from '../services/curriculumService';
 import { getOrCreateProgress } from '../services/passportXpService';
 import { buildRoadmap, toPreview } from '../services/passportRoadmapService';
 import { buildCurriculumJourney } from '../services/curriculumJourneyService';
+import { resolveCurriculumEngine } from '../services/curriculumEngineService';
+import { foundationReadiness } from '../services/foundationReadinessService';
 import { ensureCurriculumRoadmap } from '../services/careerRoadmapService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
@@ -27,6 +29,26 @@ export const getRoadmap = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);
     const studentId = userIdOf(req);
+
+    /**
+     * A FOUNDATION LEARNER NEVER RECEIVES THIS ROADMAP.
+     *
+     * Everything below builds a topic plan sized to the work assigned so far — 21 days, 28 days,
+     * whatever the projection reaches — and it used to be served to first-years on any tenant that
+     * had not been activated by hand. A Foundation learner is planned by the unit engine, always;
+     * their ninety days come from /careerpilot/me/foundation-journey. This answers with that fact,
+     * and with whether the tenant can serve the journey, before any topic plan is built or stored.
+     */
+    const engine = await resolveCurriculumEngine({ tenantId, studentId });
+    if (engine.engine === 'UNIT') {
+      return res.json({
+        engine: 'UNIT',
+        source: 'unit',
+        roadmap: null,
+        foundation: await foundationReadiness(tenantId),
+        message: 'Foundation learners are planned by the ninety-day Foundation journey.',
+      });
+    }
 
     const [user, cfg, content] = await Promise.all([
       User.findById(studentId).select('passport').lean() as any,

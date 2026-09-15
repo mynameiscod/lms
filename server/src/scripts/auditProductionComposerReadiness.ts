@@ -58,7 +58,7 @@ import { suitableStatesFor } from '../data/unitSuitabilityPolicy';
 import { isCoreModuleFor } from '../data/careerDirectionPolicy';
 import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
 import { teaches } from '../data/contentBundlePolicy';
-import { curriculumEngineFor, engineActivationState } from '../data/curriculumEnginePolicy';
+import { effectiveCurriculumEngine } from '../data/curriculumEnginePolicy';
 
 dotenv.config();
 
@@ -783,7 +783,7 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   const beginner: StudentProfile = students[0].student;
   const prodJourney = await composeFoundationJourney(tenantId, beginner);
   const configs = await db.collection('passportconfigs').find({ tenantId: TID }).toArray();
-  const engine = configs.map(c => curriculumEngineFor({ config: c as any, stageKey: 'foundation' })).includes('UNIT') ? 'UNIT' : 'TOPIC';
+  const engine = effectiveCurriculumEngine({ config: configs[0] as any, stageKey: 'foundation' }).engine;
   console.log(`    PUBLISHED units                    ${before.published}`);
   console.log(`    COMPOSER_ELIGIBLE (PRODUCTION)     ${production.units.length}`);
   console.log(`    composeFoundationJourney(PRODUCTION, beginner): ok=${prodJourney.composition.ok} `
@@ -869,12 +869,9 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   const publishedIsCertified = publishedCodes.length === 0
     || JSON.stringify(publishedCodes) === JSON.stringify([...recommended].sort());
   console.log(`    published units are ${publishedCodes.length ? (publishedIsCertified ? 'exactly the certified set' : 'NOT the certified set') : 'none'}`);
-  // Engine OFF, or the one authorised activation (Foundation on UNIT) — never any other switch.
-  const activation = engineActivationState(configs as any[]);
-  console.log(`    engine activation ${activation}`);
-  // Before activation nobody may have a journey; after the authorised activation they are members' plans.
-  if (!publishedIsCertified || (activation === 'OFF' && after.journeys !== 0) || activation === 'UNAUTHORIZED') {
-    defects.push('exit state is not PUBLISHED = 0 or the certified set / engine OFF with no journeys, or the authorised Foundation-only UNIT activation');
+  // Foundation is UNIT by product policy; a tenant's journeys are its members' plans.
+  if (!publishedIsCertified || engine !== 'UNIT') {
+    defects.push('exit state is not PUBLISHED = 0 or the certified set, or Foundation is not on UNIT');
   }
 
   const blocked = defects.length + setFailures.length + capacity.length > 0;

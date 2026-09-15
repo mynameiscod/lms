@@ -1,30 +1,31 @@
-# CareerPilot Foundation — setting up a tenant on another machine
+# CareerPilot Foundation — setting up a tenant
 
-Git carries code only. The curriculum, the question bank, publication and the engine switch live in
-each machine's MongoDB, so every machine (and every tenant) is set up once with the steps below.
+**Every Foundation (first-year) CareerPilot learner is planned by the unit engine and receives exactly
+90 days.** That is product policy in code: there is no switch to turn on, and no tenant or database
+falls back to the old topic roadmap.
 
-Every step that writes has a check-only form. Run that first; it explains any refusal before it
-writes anything. All commands run from `server/`, against the database in `server/.env`
-(`MONGODB_URI`). PowerShell syntax is shown; in Git Bash use `VAR=value command`.
+What a tenant does need is its **Foundation curriculum**. Git carries code only; the curriculum,
+question bank and publication live in each database, and every Year-1 record except the skill
+taxonomy belongs to one tenant (its ids are derived from the tenant's id — never copy them between
+tenants). A tenant without it is **NOT CONFIGURED**: its Foundation learners are told so plainly, and
+are never shown a shorter plan.
+
+One command provisions a tenant. It is deterministic, idempotent, retry-safe, and records every run.
 
 ## 0. Back up the database
-
-This database may hold real students.
 
 ```powershell
 mongodump --uri "mongodb://localhost:27017/lms-saas" --out "D:\backups\lms-saas-before-foundation"
 ```
 
-## 1. Get the code
+## 1. Get the code and restart
 
 ```powershell
-git fetch origin
-git checkout new_cp_concept
-git pull
-npm install            # in the repo root, server/ and client/ — as this machine normally installs
+git fetch origin; git checkout new_cp_concept; git pull
+npm install            # repo root, server/ and client/, as this machine normally installs
 ```
 
-Restart the server and the client afterwards. The server does not reload by itself.
+Restart the server and the client. The server does not reload by itself.
 
 ## 2. Find the tenant
 
@@ -33,89 +34,68 @@ cd server
 npx ts-node src/scripts/listCareerPilotTenants.ts
 ```
 
-Copy the `tenant id` of the tenant you are setting up. Below it is written `<TENANT>`.
+Each tenant shows its `tenant id`, whether the **Foundation product** is `CONFIGURED`, and its last
+provisioning run. The tenant needs a TENANT_ADMIN user (seeded project briefs are attributed to one).
 
-## 3. Load the curriculum and the question bank
-
-Each command is idempotent — running it twice updates rather than duplicates. Run each without
-`--apply` first if you want to see what it will do.
+## 3. Provision
 
 ```powershell
-npx ts-node src/scripts/seedCareerSkills.ts --apply
-npx ts-node src/scripts/importGoldenBank.ts <TENANT>
-npx ts-node src/scripts/importGoldenBank.ts <TENANT> --apply
-npx ts-node src/seeds/careerPilot/createFoundationCurriculum.ts <TENANT> --apply
-npx ts-node src/scripts/validateMegaCurriculum.ts <TENANT>
-npx ts-node src/seeds/careerPilot/seedYear1MegaCurriculum.ts <TENANT> --apply
-npx ts-node src/seeds/careerPilot/seedYear1Expansion.ts <TENANT> --apply
-npx ts-node src/seeds/careerPilot/seedFoundationContent.ts <TENANT> --apply
-npx ts-node src/seeds/careerPilot/seedUnitSuitabilityOverrides.ts <TENANT> --apply
-npx ts-node src/seeds/careerPilot/seedPilotUnitContent.ts <TENANT> --apply
+npx ts-node src/scripts/provisionCareerPilotFoundation.ts <TENANT>            # plan only — shows the state and the steps
+npx ts-node src/scripts/provisionCareerPilotFoundation.ts <TENANT> --apply    # expect: FOUNDATION PROVISIONING: COMPLETE
 ```
 
-Check:
+From a compiled build: `node dist/scripts/provisionCareerPilotFoundation.js <TENANT> --apply`.
 
-```powershell
-npx ts-node src/scripts/reportUnitReadiness.ts <TENANT>        # expect 355 units, READY 341
-npx ts-node src/scripts/auditContentQuality.ts <TENANT>        # expect BLOCKER 0
-```
+It runs, in order, stopping at the first failure:
 
-## 4. Publish the certified 338 units
+1. the skill taxonomy (global), the Foundation question bank, the curriculum hierarchy and its validation gate
+2. the Year-1 Learning Units, expansion units, content, suitability overrides, and unit content —
+   checkpoint quizzes with every question linked to its quiz, and project assignments
+3. publication of **exactly the certified 338 units**, through the product's publish handler and its
+   gates, refused if the tenant's READY inventory is not identical to the certified one
+4. verification: 355 units, 341 READY, PRODUCTION = the certified 338, quiz linkage, Foundation CONFIGURED
+5. the production gate (`certifyProductionComposer`) — 9/9, 40/40, 72/72
 
-Publishing goes through the real admin route, so it needs a CareerPilot admin **of this tenant**.
+Running it again changes nothing: seeds update in place on deterministic keys, published units are
+skipped. A failed run is resumed by running it again. Each run is recorded in
+`careerpilotprovisioningruns`.
 
-```powershell
-$env:PUBLISH_ADMIN_EMAIL="<admin email>"; $env:PUBLISH_ADMIN_PASSWORD="<admin password>"
-npx ts-node src/scripts/publishCertifiedPublishSet.ts <TENANT>            # check only
-npx ts-node src/scripts/publishCertifiedPublishSet.ts <TENANT> --apply    # expect PUBLICATION COMPLETE
-npx ts-node src/scripts/certifyProductionComposer.ts <TENANT>             # expect ACTUAL PRODUCTION GATE: PASS
-```
+## 4. Give existing Foundation students their journey
 
-## 5. Switch the Foundation stage to the unit engine
-
-In the browser, signed in as that admin, open **`/admin/passport/config`**. In the **Curriculum
-engine** card tick **"Plan the Foundation stage with Learning Units"** only (leave "Every stage…" and
-the pilot-students box empty), then **Save**. The badges should read Foundation: UNIT and every other
-stage TOPIC.
-
-Check: `npx ts-node src/scripts/listCareerPilotTenants.ts` shows `unit engine FOUNDATION_UNIT`.
-
-## 6. Run the acceptance test
-
-Creates its own test students, drives the real routes, and removes everything it created. Real
-students are never touched.
-
-```powershell
-npx ts-node src/scripts/phase27ActivationE2E.ts <TENANT>                  # expect PHASE 27 E2E: PASS
-```
-
-If a run is interrupted: `npx ts-node src/scripts/phase27ActivationE2E.ts <TENANT> --cleanup-only`.
-
-## 7. Give existing students their journey
-
-Students assessed before step 5 have Skill DNA but no journey yet.
+Students who took their skill check before the tenant was provisioned have Skill DNA but no journey.
 
 ```powershell
 npx ts-node src/scripts/backfillFoundationJourneys.ts <TENANT>            # dry run: who would get one
 npx ts-node src/scripts/backfillFoundationJourneys.ts <TENANT> --apply
 ```
 
-## 8. Test in the browser
+New students get theirs automatically when they complete the skill check.
 
-- **New student:** join as a 1st-year (`/careerpilot/join?tenant=<slug>`), finish setup, take the
-  skill check. **My Roadmap** and **My 90 Days** show *Foundation Journey — Day 1 of 90*.
-- **Start today's work** opens the day: lessons, the checkpoint quiz, the project. Finishing the
-  checkpoint updates the future days of the plan.
-- **Existing student** (after step 7): the same 90-day journey.
-- **Home** leads with *Today in your Foundation journey* for that student, with the same Start button.
-- **A student in a later year** still sees the topic roadmap — only Foundation is on the unit engine.
-- **Admin — engine:** the Config screen shows Foundation on the unit engine.
-- **Admin — a student's journey:** *Members → a student → Roadmap* (`/admin/passport/students/<id>/roadmap`)
-  shows their 90 days at the top, with the unit behind each day and whether it is still published.
-- **Admin — editing the curriculum** (`/admin/passport/mega-curriculum`): edit a unit, attach or detach
-  content, bind a checkpoint quiz or a project, publish. Moving a published unit to Draft or Archived
-  asks for confirmation when students' journeys use it, with how many; deleting a unit that is on any
-  journey is refused (archive it instead).
+## 5. Acceptance
 
-After any curriculum edit, re-run `certifyProductionComposer.ts <TENANT>`: an edited unit is no longer
-the certified inventory, and the publish tool will refuse to run until it is re-certified.
+```powershell
+$env:PUBLISH_ADMIN_EMAIL="<tenant admin email>"; $env:PUBLISH_ADMIN_PASSWORD="<password>"
+npx ts-node src/scripts/phase27ActivationE2E.ts <TENANT> --activate        # expect: PHASE 27 E2E: PASS
+```
+
+Creates its own test students, drives the real routes, removes everything it created; real students
+are never touched. Interrupted: `... phase27ActivationE2E.ts <TENANT> --cleanup-only`.
+
+## 6. In the browser
+
+- **New first-year:** join (`/careerpilot/join?tenant=<slug>`), finish setup, take the skill check.
+  **My Roadmap**, **My 90 Days** and **Home** show *Foundation Journey — Day 1 of 90*;
+  **Start today's work** opens the day's lessons, checkpoint and project.
+- **Existing first-year** (after step 4): the same 90-day journey.
+- **Later-year student:** still the topic roadmap — only Foundation has a Learning Unit curriculum.
+- **Admin — Config** (`/admin/passport/config`): *Foundation curriculum: provisioned*, with its unit and
+  skill-check counts.
+- **Admin — a student's journey:** Members → Roadmap (`/admin/passport/students/<id>/roadmap`).
+- **Admin — curriculum** (`/admin/passport/mega-curriculum`): editing, content, checkpoints, projects,
+  publishing. Unpublishing a unit that journeys use asks for confirmation; deleting one is refused.
+  After a curriculum edit, re-run `certifyProductionComposer.ts <TENANT>`: an edited unit is no longer
+  the certified inventory, and provisioning's publication step will refuse until it is re-certified.
+
+## If a tenant says NOT CONFIGURED
+
+Run step 3 for it. Nothing else — no configuration switch, no manual database change — is involved.

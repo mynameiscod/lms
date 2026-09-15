@@ -67,7 +67,7 @@ const mins = (n: number) =>
  * For a student the unit engine plans, the skill check is what creates the journey, so the one
  * thing to press is offered here rather than leaving them on a message with nothing to do.
  */
-const NotReady: React.FC<{ totalDays: number; message?: string; onAssess?: () => void }> = ({ totalDays, message, onAssess }) => (
+const NotReady: React.FC<{ totalDays: number; message?: string; onAssess?: () => void; notConfigured?: boolean }> = ({ totalDays, message, onAssess, notConfigured }) => (
   <div className="fj-page">
     <header className="fj-head">
       <div>
@@ -76,11 +76,13 @@ const NotReady: React.FC<{ totalDays: number; message?: string; onAssess?: () =>
         <p className="fj-sub">{totalDays} learning days</p>
       </div>
     </header>
-    <div className="fj-msg info">
+    {/* Not configured is said as it is: no shorter plan is shown in its place. */}
+    <div className={`fj-msg ${notConfigured ? 'err' : 'info'}`}>
       <b>{message || 'Your journey has not been created yet.'}</b>
       <p>
-        Your Foundation programme is {totalDays} learning days, personalised to what you
-        already know. It appears here once your skill check is complete.
+        {notConfigured
+          ? `Your Foundation programme is ${totalDays} learning days. It will appear here as soon as it has been set up.`
+          : `Your Foundation programme is ${totalDays} learning days, personalised to what you already know. It appears here once your skill check is complete.`}
       </p>
       {onAssess && (
         <button type="button" className="fj-start" onClick={onAssess}>Take your skill check</button>
@@ -151,7 +153,8 @@ const FoundationJourneyPage: React.FC = () => {
       <NotReady
         totalDays={journey.totalDays}
         message={journey.message}
-        onAssess={journey.engine === 'UNIT' ? () => nav('/careerpilot/skill-assessment') : undefined}
+        notConfigured={journey.reason === 'NOT_CONFIGURED'}
+        onAssess={journey.engine === 'UNIT' && journey.reason !== 'NOT_CONFIGURED' ? () => nav('/careerpilot/skill-assessment') : undefined}
       />
     );
   }

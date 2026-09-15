@@ -118,19 +118,27 @@ describe('saving the engine switches through the Admin handler', () => {
   });
 });
 
-describe('the resolver reads what the Admin saved', () => {
-  it('moves the enabled stage onto UNIT and leaves everyone else on TOPIC', async () => {
+describe('what the resolver decides, against a real database', () => {
+  it('puts Foundation on UNIT on every tenant before anything is saved, and no save moves another stage', async () => {
     const foundation = await student(TENANT, 'foundation');
     const build = await student(TENANT, 'build');
     const elsewhere = await student(OTHER, 'foundation');
 
-    expect((await resolveCurriculumEngine({ tenantId: TENANT, studentId: String(foundation._id) })).engine).toBe('TOPIC');
+    // No PassportConfig exists on either tenant: Foundation is still the unit engine.
+    expect((await resolveCurriculumEngine({ tenantId: TENANT, studentId: String(foundation._id) })).engine).toBe('UNIT');
+    expect((await resolveCurriculumEngine({ tenantId: OTHER, studentId: String(elsewhere._id) })).engine).toBe('UNIT');
+    expect((await resolveCurriculumEngine({ tenantId: TENANT, studentId: String(build._id) })).engine).toBe('TOPIC');
 
-    await passport.updateConfig(asAdmin({ megaCurriculumStages: ['foundation'] }), capture());
+    await passport.updateConfig(asAdmin({ megaCurriculumStages: [], megaCurriculumEnabled: true }), capture());
 
     expect((await resolveCurriculumEngine({ tenantId: TENANT, studentId: String(foundation._id) })).engine).toBe('UNIT');
     expect((await resolveCurriculumEngine({ tenantId: TENANT, studentId: String(build._id) })).engine).toBe('TOPIC');
-    expect((await resolveCurriculumEngine({ tenantId: OTHER, studentId: String(elsewhere._id) })).engine).toBe('TOPIC');
+  });
+
+  it('reports on the Admin config whether this tenant can serve the Foundation journey', async () => {
+    const res = capture();
+    await passport.getConfig(asAdmin(), res);
+    expect(res.body.foundation).toMatchObject({ configured: false, reason: 'NO_PRODUCTION_CURRICULUM', publishedUnits: 0 });
   });
 });
 

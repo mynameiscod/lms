@@ -116,25 +116,6 @@ export const megaCurriculumInUse = (cfg?: CurriculumEngineConfig | null): boolea
     || (cfg.megaCurriculumStages || []).length > 0
   );
 
-/**
- * Which of the two authorised states a tenant's switches are in — for gates, not for planning.
- *
- * OFF is the state before activation. FOUNDATION_UNIT is the one activation that was certified:
- * the Foundation stage on units, nothing switched tenant-wide and no named accounts. Anything else
- * — a tenant switch, an allow-list, another stage listed — is UNAUTHORIZED, so a gate that accepts
- * the activation still refuses every other way of turning the engine on.
- */
-export type EngineActivationState = 'OFF' | 'FOUNDATION_UNIT' | 'UNAUTHORIZED';
-
-export function engineActivationState(configs: (CurriculumEngineConfig | null | undefined)[]): EngineActivationState {
-  const inUse = configs.filter(c => megaCurriculumInUse(c)) as CurriculumEngineConfig[];
-  if (!inUse.length) return 'OFF';
-  const authorised = inUse.every(c => !c.megaCurriculumEnabled
-    && !(c.megaCurriculumStudentIds || []).length
-    && JSON.stringify((c.megaCurriculumStages || []).map(s => String(s).toLowerCase().trim())) === JSON.stringify([...UNIT_ENGINE_STAGES]));
-  return authorised ? 'FOUNDATION_UNIT' : 'UNAUTHORIZED';
-}
-
 /* ------------------------------------------------------------------ *
  * Capability — what the unit engine can actually plan
  * ------------------------------------------------------------------ */
@@ -157,23 +138,38 @@ export interface EffectiveEngine {
   engine: CurriculumEngine;
   /** What the switches alone selected, before capability. */
   requested: CurriculumEngine;
-  basis: EngineBasis | 'NO_UNIT_CURRICULUM_FOR_STAGE';
+  basis: EngineBasis | 'NO_UNIT_CURRICULUM_FOR_STAGE' | 'FOUNDATION_PRODUCT';
   stageKey: string | null;
 }
 
 /**
- * The engine that serves this student — the switches, then capability.
+ * The engine that serves this student.
  *
- * The one resolver production planning paths use (through curriculumEngineService, which only
- * loads the config). TOPIC stays the answer whenever UNIT is not both selected and possible.
+ * The one resolver production planning paths use (through curriculumEngineService).
+ *
+ * ── FOUNDATION IS THE UNIT ENGINE. ALWAYS. ────────────────────────────────────────────────
+ *
+ * A Foundation learner is planned by Learning Units whatever any tenant switch says. That is the
+ * product: every first-year receives exactly ninety days. It used to be a per-tenant switch that
+ * defaulted to TOPIC, so any tenant or database nobody had activated by hand gave its first-years
+ * the topic roadmap — a 21- or 28-day plan presented as theirs. A tenant that cannot serve the
+ * journey is now NOT_CONFIGURED, said out loud (see foundationReadinessService); it is never
+ * quietly moved to the other engine.
+ *
+ * Every other stage has no Learning Unit curriculum, so the unit engine cannot plan it: those stay
+ * TOPIC however the switches are set. The switches are still read for them, and still validated,
+ * but today they cannot move anybody — capability decides first.
  */
 export function effectiveCurriculumEngine(input: {
   config?: CurriculumEngineConfig | null;
   studentId?: string | null;
   stageKey?: string | null;
 }): EffectiveEngine {
-  const decision = curriculumEngineDecision(input);
   const stageKey = input.stageKey ? String(input.stageKey).toLowerCase().trim() : null;
+  if (unitEngineServesStage(stageKey)) {
+    return { engine: 'UNIT', requested: 'UNIT', basis: 'FOUNDATION_PRODUCT', stageKey };
+  }
+  const decision = curriculumEngineDecision(input);
   if (decision.engine === 'UNIT' && !unitEngineServesStage(stageKey)) {
     return { engine: DEFAULT_CURRICULUM_ENGINE, requested: 'UNIT', basis: 'NO_UNIT_CURRICULUM_FOR_STAGE', stageKey };
   }

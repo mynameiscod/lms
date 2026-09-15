@@ -66,6 +66,11 @@ const mockResolveEngine = jest.fn();
 jest.mock('../services/curriculumEngineService', () => ({
   resolveCurriculumEngine: (...a: any[]) => mockResolveEngine(...a),
 }));
+const mockReadiness = jest.fn();
+jest.mock('../services/foundationReadinessService', () => ({
+  foundationReadiness: (...a: any[]) => mockReadiness(...a),
+  FOUNDATION_NOT_CONFIGURED_FOR_STUDENT: 'Your Foundation curriculum has not been set up for your institute yet.',
+}));
 
 import * as ctrl from '../controllers/foundationJourneyController';
 
@@ -119,6 +124,7 @@ const seed = () => {
 beforeEach(() => {
   dayPlans.length = 0; curricula.length = 0; enrollments.length = 0; units.length = 0; members.length = 0;
   mockResolveEngine.mockReset().mockResolvedValue({ engine: 'UNIT' });
+  mockReadiness.mockReset().mockResolvedValue({ configured: true, reason: null, publishedUnits: 338, skillCheckMappings: 700, message: null });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -210,6 +216,27 @@ describe('which plan the student screens show', () => {
 
     expect(out.status).toBe(200);
     expect(out.body.engine).toBe('TOPIC');
+  });
+
+  it('tells a Foundation learner on an unprovisioned tenant it is NOT_CONFIGURED — never a shorter plan', async () => {
+    mockReadiness.mockResolvedValue({ configured: false, reason: 'NO_PRODUCTION_CURRICULUM', publishedUnits: 0, skillCheckMappings: 0, message: 'Run provisioning.' });
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+
+    expect(out.status).toBe(200);
+    expect(out.body).toMatchObject({ available: false, reason: 'NOT_CONFIGURED', engine: 'UNIT', totalDays: 90 });
+    expect(out.body.days).toBeUndefined();
+    // The operator detail stays with the admin; the learner is told what it means for them.
+    expect(JSON.stringify(out.body)).not.toContain('provisioning');
+  });
+
+  it('does not ask about provisioning for a learner who already has a journey', async () => {
+    seed();
+    mockReadiness.mockResolvedValue({ configured: false, reason: 'NO_PRODUCTION_CURRICULUM', publishedUnits: 0, skillCheckMappings: 0, message: 'x' });
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+    expect(out.body.available).toBe(true);
+    expect(mockReadiness).not.toHaveBeenCalled();
   });
 });
 

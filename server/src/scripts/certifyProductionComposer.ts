@@ -37,7 +37,7 @@ import {
 import { buildPrerequisiteGraph, findPrerequisiteCycles } from '../data/unitPrerequisiteGraph';
 import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
 import { roleOf, teaches } from '../data/contentBundlePolicy';
-import { curriculumEngineFor, effectiveCurriculumEngine, engineActivationState } from '../data/curriculumEnginePolicy';
+import { effectiveCurriculumEngine } from '../data/curriculumEnginePolicy';
 import { CAREER_STAGES } from '../services/careerStageService';
 import { findDuplication, identifyingWordsFor } from '../services/contentDuplicationService';
 import { checkCurriculumQuizLinkage } from '../services/quizLinkageService';
@@ -326,7 +326,8 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
   title('6. DATABASE SAFETY');
   const after = await fingerprint();
   const configs = await db.collection('passportconfigs').find({ tenantId: TID }).toArray();
-  const engine = configs.map(c => curriculumEngineFor({ config: c as any, stageKey: 'foundation' })).includes('UNIT') ? 'UNIT' : 'TOPIC';
+  // Foundation's engine is product policy; the switches cannot move any stage (see curriculumEnginePolicy).
+  const engine = effectiveCurriculumEngine({ config: configs[0] as any, stageKey: 'foundation' }).engine;
   // Journeys are members' plans and may be created while the gate runs; only the curriculum must not move.
   const unchanged = before.hash === after.hash
     && JSON.stringify(before.published) === JSON.stringify(after.published)
@@ -338,15 +339,17 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
   console.log(`    unit status fingerprint ${after.hash}; this tenant's curriculum unchanged during this run: ${unchanged ? 'yes' : 'NO'}`);
   if (!publishedIsCertified) failures.push('published units are not exactly the certified set');
   /**
-   * The engine must be OFF, or on exactly as authorised: Foundation on UNIT, every other stage on
-   * TOPIC, no tenant switch and no named accounts. Any other way of turning it on still fails.
+   * Foundation on UNIT and every other stage on TOPIC, whatever this tenant's switches say — the
+   * product invariant, checked against the tenant's own configuration so a switch can never move it.
    */
-  const activation = engineActivationState(configs as any[]);
-  const perStage = CAREER_STAGES.map(s => `${s.key}=${configs.map(c => effectiveCurriculumEngine({ config: c as any, stageKey: s.key }).engine).includes('UNIT') ? 'UNIT' : 'TOPIC'}`);
-  console.log(`    engine activation ${activation}  (${perStage.join(' ')})`);
-  if (activation === 'UNAUTHORIZED') failures.push('the curriculum engine is switched on in a way that was not authorised');
-  // Before activation nobody may have a journey; after the authorised activation they are members' plans.
-  if (activation === 'OFF' && after.journeys) failures.push(`${after.journeys} Foundation journey(s) exist while the unit engine is off`);
+  const perStage = CAREER_STAGES.map(s => ({
+    key: s.key,
+    engine: effectiveCurriculumEngine({ config: configs[0] as any, stageKey: s.key }).engine,
+  }));
+  console.log(`    engine per stage  (${perStage.map(s => `${s.key}=${s.engine}`).join(' ')})`);
+  if (perStage.some(s => s.engine !== (s.key === 'foundation' ? 'UNIT' : 'TOPIC'))) {
+    failures.push('Foundation is not on UNIT, or another stage is not on TOPIC');
+  }
   if (!unchanged) failures.push("this tenant's curriculum changed during a read-only gate");
 
   title(`ACTUAL PRODUCTION GATE: ${failures.length ? 'FAIL' : 'PASS'}`);

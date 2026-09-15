@@ -54,6 +54,8 @@ import { ComposableUnit } from '../services/curriculumComposerService';
 import { loadAssets, activitiesFor, UnitAssets, FOUNDATION_JOURNEY_KIND, deleteFoundationJourney } from '../services/foundationJourneyService';
 import { backfillFoundationJourneys } from '../services/foundationJourneyBackfillService';
 import { resolveCurriculumEngine } from '../services/curriculumEngineService';
+import { foundationReadiness } from '../services/foundationReadinessService';
+import { effectiveCurriculumEngine } from '../data/curriculumEnginePolicy';
 import { checkCurriculumQuizLinkage } from '../services/quizLinkageService';
 import { diagnosticSkills, masteredBy } from '../services/composerCertificationService';
 import { getSkillDna } from '../services/skillDnaService';
@@ -337,7 +339,11 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
   check('config', 'a request naming another tenant acts only on the signed-in tenant',
     foreign.status === 200 && !(await db.collection('passportconfigs').countDocuments({ tenantId: OTHER })), `HTTP ${foreign.status}`);
   const before = await as(adminToken, request(api).get('/api/v1/careerpilot/config'));
-  rawLog(`  engine before activation: Foundation ${before.body?.engine?.foundationMode}`);
+  // Product policy: no configuration is needed for Foundation to be planned by units.
+  check('config', 'Foundation is on UNIT before any engine setting is saved', before.body?.engine?.foundationMode === 'UNIT',
+    `Foundation ${before.body?.engine?.foundationMode}`);
+  check('config', 'the tenant can serve the Foundation journey (provisioned)', before.body?.foundation?.configured === true,
+    JSON.stringify(before.body?.foundation || null));
 
   if (!activate) {
     section('STOPPING BEFORE ACTIVATION (run with --activate to continue)');
@@ -553,6 +559,11 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
       `HTTP ${adminView.status}, day 1 ${adminDay1?.unitCode} ${adminDay1?.unitStatus}`);
     const studentPeek = await as(s.token, request(api).get(`/api/v1/careerpilot/students/${s.id}/foundation-journey`));
     check('admin', 'a student cannot open the admin view, even of their own journey', studentPeek.status === 403, `HTTP ${studentPeek.status}`);
+    // The topic roadmap API behind My Roadmap refuses a Foundation learner outright — no 21/28-day plan.
+    const legacy = await as(s.token, request(api).get('/api/v1/passport/roadmap'));
+    check('ux', 'the topic roadmap API answers a Foundation learner with the unit engine, and no topic plan',
+      legacy.status === 200 && legacy.body?.engine === 'UNIT' && legacy.body?.roadmap === null && legacy.body?.foundation?.configured === true,
+      `HTTP ${legacy.status}, engine ${legacy.body?.engine}, roadmap ${legacy.body?.roadmap === null ? 'null' : 'PRESENT'}`);
     const checkpointDay = j.days.find((d: any) => (d.items || []).some((i: any) => i.kind === 'quiz'))?.dayNumber;
     const projectDay = j.days.find((d: any) => (d.items || []).some((i: any) => i.kind === 'assignment'))?.dayNumber;
     const bodies: any[] = [overview.body];
@@ -756,6 +767,9 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
       && !logSince(m2, new RegExp(`\\[(curriculum-engine|adaptive)\\].*${s.id}`))
       && !(await LearningCurriculum.countDocuments({ personalizedFor: new mongoose.Types.ObjectId(s.id), journeyKind: FOUNDATION_JOURNEY_KIND })),
       `HTTP ${put.status}`);
+    const legacy = await as(s.token, request(api).get('/api/v1/passport/roadmap'));
+    check('topic', 'TOPIC control: a later-stage learner is still served by the topic roadmap API, not the unit engine',
+      legacy.status === 200 && legacy.body?.engine !== 'UNIT', `HTTP ${legacy.status}, engine ${legacy.body?.engine || 'topic'}`);
   }
 
   /* ══ 9. FAILURE PATHS ═════════════════════════════════════════════════════════════════════ */
@@ -832,8 +846,8 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
   check('final', 'PUBLISHED 338 and PRODUCTION inventory exactly the certified set', fpAfter.published === 338 && JSON.stringify(prodFinal) === JSON.stringify(certified));
   const membersJourneysAfter = await db.collection('learningcurriculums').countDocuments({ tenantId: TID, journeyKind: { $exists: true, $ne: null } });
   rawLog(`  this tenant's members hold ${membersJourneysAfter} Foundation journey(s) (${membersJourneys} at the start; real members may be working)`);
-  const cfg = await db.collection('passportconfigs').findOne({ tenantId });
-  check('final', 'UNIT activation retained through the saved configuration', (cfg?.megaCurriculumStages || []).includes('foundation'));
+  check('final', 'Foundation still resolves to UNIT and the tenant is still provisioned',
+    effectiveCurriculumEngine({ stageKey: 'foundation' }).engine === 'UNIT' && (await foundationReadiness(tenantId)).configured);
   check('final', 'quiz linkage still intact', (await checkCurriculumQuizLinkage(tenantId)).ok);
 
   rawLog(`\nAREAS: ${Object.entries(results).map(([k, v]) => `${k}=${v ? 'PASS' : 'FAIL'}`).join('  ')}`);

@@ -42,7 +42,7 @@ const AdminStudentJourney: React.FC<{ studentId: string }> = ({ studentId }) => 
   if (!data.available) {
     return (
       <div className="sr-note">
-        <b>Foundation journey — {data.engine === 'UNIT' ? 'not created yet' : 'not on the unit engine'}</b>
+        <b>Foundation journey — {data.reason === 'NOT_CONFIGURED' ? 'NOT CONFIGURED for this tenant' : data.engine === 'UNIT' ? 'not created yet' : 'not on the unit engine'}</b>
         <span>{data.message}</span>
       </div>
     );

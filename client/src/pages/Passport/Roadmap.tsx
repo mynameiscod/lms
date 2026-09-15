@@ -68,7 +68,13 @@ const Roadmap: React.FC = () => {
      */
     const journey = await passportApi.myFoundationJourney().catch(() => null);
     if (journey?.engine === 'UNIT') { setUnitEngine(true); setLoading(false); return; }
-    try { setData(await passportApi.getRoadmap()); } catch { /* ignore */ }
+    try {
+      const r: any = await passportApi.getRoadmap();
+      // The server refuses the topic roadmap to a Foundation learner as well; honour that even if
+      // the journey call above failed, so this page can never render the topic plan for them.
+      if (r?.engine === 'UNIT') { setUnitEngine(true); setLoading(false); return; }
+      setData(r);
+    } catch { /* ignore */ }
     setLoading(false);
   }, []);
 

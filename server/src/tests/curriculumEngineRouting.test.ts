@@ -1,11 +1,11 @@
 /**
- * Phase 27 — which engine plans a student, and where each trigger goes.
+ * Which engine plans a student, and where each trigger goes.
  *
- * The engine policy existed and nothing in production asked it. These tests hold the three
- * things the activation depends on: the precedence is the policy's own (allow-lists that can
- * only move somebody onto UNIT, then TOPIC), the unit engine is never chosen for a stage it
- * cannot plan, and every adaptive trigger reaches exactly one engine — TOPIC learners the
- * replanner they always reached, UNIT learners their Foundation journey.
+ * The invariant these tests hold: a Foundation learner is planned by the unit engine whatever any
+ * tenant switch says — that is the product, so a tenant nobody activated by hand can never hand a
+ * first-year the topic roadmap — and every other stage stays on TOPIC however it is switched,
+ * because the unit engine has no curriculum to plan it from. Every adaptive trigger reaches exactly
+ * one engine: TOPIC learners the replanner they always reached, Foundation learners their journey.
  */
 
 const leanChain = (value: any): any => ({ select: () => leanChain(value), lean: async () => value });
@@ -61,90 +61,75 @@ beforeEach(() => {
   passports = {
     [FOUNDATION_STUDENT]: { stage: 'foundation' },
     [BUILD_STUDENT]: { stage: 'build' },
-    [PILOT]: { stage: 'foundation' },
+    [PILOT]: { stage: 'build' },
   };
   replanForTrigger.mockClear();
   applyFoundationTrigger.mockClear();
 });
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════ *
- * The policy — precedence stated once
+ * The policy
  * ══════════════════════════════════════════════════════════════════════════════════════════ */
 
-describe('the engine a student is on', () => {
-  it('is TOPIC when the tenant has no PassportConfig', () => {
-    expect(effectiveCurriculumEngine({ config: null, stageKey: 'foundation' })).toMatchObject({ engine: 'TOPIC', basis: 'NO_CONFIG' });
+describe('the engine a Foundation learner is on', () => {
+  it.each([
+    ['no PassportConfig at all', null],
+    ['an empty configuration', {}],
+    ['every switch off', { megaCurriculumEnabled: false, megaCurriculumStages: [], megaCurriculumStudentIds: [] }],
+    ['a pilot list that does not name them', { megaCurriculumStudentIds: [PILOT] }],
+    ['the stage listed', { megaCurriculumStages: ['foundation'] }],
+    ['the tenant switch on', { megaCurriculumEnabled: true }],
+  ])('is UNIT with %s — the product, not a setting', (_label, cfg) => {
+    expect(effectiveCurriculumEngine({ config: cfg as any, stageKey: 'foundation', studentId: FOUNDATION_STUDENT }))
+      .toMatchObject({ engine: 'UNIT', requested: 'UNIT', basis: 'FOUNDATION_PRODUCT', stageKey: 'foundation' });
   });
 
-  it('is TOPIC when the tenant switch is off and nothing is listed', () => {
-    const cfg = { megaCurriculumEnabled: false, megaCurriculumStages: [], megaCurriculumStudentIds: [] };
-    expect(effectiveCurriculumEngine({ config: cfg, stageKey: 'foundation', studentId: FOUNDATION_STUDENT }))
+  it('reads the stage case-insensitively', () => {
+    expect(effectiveCurriculumEngine({ stageKey: ' Foundation ' }).engine).toBe('UNIT');
+  });
+});
+
+describe('the engine every other learner is on', () => {
+  it('is TOPIC for a later stage however the switches are set', () => {
+    expect(effectiveCurriculumEngine({ config: null, stageKey: 'build' })).toMatchObject({ engine: 'TOPIC', basis: 'NO_CONFIG' });
+    expect(effectiveCurriculumEngine({ config: { megaCurriculumStages: ['foundation'] }, stageKey: 'build' }))
       .toMatchObject({ engine: 'TOPIC', basis: 'NOT_ENABLED' });
+    expect(effectiveCurriculumEngine({ config: { megaCurriculumEnabled: true }, stageKey: 'build' }))
+      .toMatchObject({ engine: 'TOPIC', requested: 'UNIT', basis: 'NO_UNIT_CURRICULUM_FOR_STAGE' });
+    expect(effectiveCurriculumEngine({ config: { megaCurriculumStudentIds: [PILOT] }, stageKey: 'build', studentId: PILOT }).engine)
+      .toBe('TOPIC');
   });
 
-  it('is TOPIC for a stage that is not enabled', () => {
-    const cfg = { megaCurriculumStages: ['foundation'] };
-    expect(effectiveCurriculumEngine({ config: cfg, stageKey: 'build' })).toMatchObject({ engine: 'TOPIC', basis: 'NOT_ENABLED' });
+  it('is TOPIC for a learner whose stage is unknown', () => {
+    expect(effectiveCurriculumEngine({ config: { megaCurriculumEnabled: true }, stageKey: null }).engine).toBe('TOPIC');
   });
 
-  /**
-   * The allow-lists only ever ADD. The repository has no deny-list: "not in the student list"
-   * means the next rule decides, which is TOPIC unless a stage or the tenant switch says UNIT.
-   */
-  it('is TOPIC for a student not on the pilot list, when only the pilot list is in use', () => {
-    const cfg = { megaCurriculumStudentIds: [PILOT] };
-    expect(effectiveCurriculumEngine({ config: cfg, stageKey: 'foundation', studentId: FOUNDATION_STUDENT }))
-      .toMatchObject({ engine: 'TOPIC', basis: 'NOT_ENABLED' });
-  });
-
-  it('is UNIT for an enabled learner — by pilot list, by stage, or by the tenant switch', () => {
-    expect(effectiveCurriculumEngine({ config: { megaCurriculumStudentIds: [PILOT] }, stageKey: 'foundation', studentId: PILOT }))
-      .toMatchObject({ engine: 'UNIT', basis: 'STUDENT_ALLOWLIST' });
-    expect(effectiveCurriculumEngine({ config: { megaCurriculumStages: ['Foundation'] }, stageKey: 'foundation' }))
-      .toMatchObject({ engine: 'UNIT', basis: 'STAGE_LIST' });
-    expect(effectiveCurriculumEngine({ config: { megaCurriculumEnabled: true }, stageKey: 'foundation' }))
-      .toMatchObject({ engine: 'UNIT', basis: 'TENANT_SWITCH' });
-  });
-
-  it('checks the pilot list before the stage list before the tenant switch', () => {
+  it('keeps the switch precedence itself unchanged, for the stages it may one day govern', () => {
     const cfg = { megaCurriculumEnabled: true, megaCurriculumStages: ['foundation'], megaCurriculumStudentIds: [PILOT] };
     expect(curriculumEngineDecision({ config: cfg, stageKey: 'foundation', studentId: PILOT }).basis).toBe('STUDENT_ALLOWLIST');
     expect(curriculumEngineDecision({ config: cfg, stageKey: 'foundation', studentId: FOUNDATION_STUDENT }).basis).toBe('STAGE_LIST');
     expect(curriculumEngineDecision({ config: { megaCurriculumEnabled: true }, stageKey: 'foundation' }).basis).toBe('TENANT_SWITCH');
-  });
-
-  /** A stage with no Learning Unit curriculum stays on TOPIC however it is switched. */
-  it('never chooses UNIT for a stage the unit engine cannot plan', () => {
-    const tenantWide = { megaCurriculumEnabled: true };
-    expect(effectiveCurriculumEngine({ config: tenantWide, stageKey: 'build' }))
-      .toMatchObject({ engine: 'TOPIC', requested: 'UNIT', basis: 'NO_UNIT_CURRICULUM_FOR_STAGE' });
-    expect(effectiveCurriculumEngine({ config: { megaCurriculumStudentIds: [PILOT] }, stageKey: 'build', studentId: PILOT }).engine)
-      .toBe('TOPIC');
-    expect(effectiveCurriculumEngine({ config: tenantWide, stageKey: null }).engine).toBe('TOPIC');
-  });
-
-  it('keeps curriculumEngineFor as the switches alone, exactly as before', () => {
     expect(curriculumEngineFor({ config: { megaCurriculumEnabled: true }, stageKey: 'build' })).toBe('UNIT');
     expect(curriculumEngineFor({ config: null })).toBe('TOPIC');
   });
 
   it('describes the effective mode per stage for the Admin screen', () => {
-    const summary = describeEngineConfig({ megaCurriculumStages: ['foundation'] });
-    expect(summary.foundationMode).toBe('UNIT');
-    expect(summary.stages.find(s => s.stage === 'build')!.mode).toBe('TOPIC');
-    expect(summary.unitCapableStages).toEqual(['foundation']);
-    expect(describeEngineConfig(null).foundationMode).toBe('TOPIC');
+    for (const cfg of [null, { megaCurriculumStages: ['foundation'] }, { megaCurriculumEnabled: true }]) {
+      const summary = describeEngineConfig(cfg as any);
+      expect(summary.foundationMode).toBe('UNIT');
+      expect(summary.stages.filter(s => s.stage !== 'foundation').every(s => s.mode === 'TOPIC')).toBe(true);
+      expect(summary.unitCapableStages).toEqual(['foundation']);
+    }
   });
 });
 
 describe('resolving the engine for a real student', () => {
-  it('is TOPIC, and says so, when no configuration exists', async () => {
+  it('is UNIT for a Foundation learner on a tenant with no configuration, and says there is none', async () => {
     expect(await resolveCurriculumEngine({ tenantId: TENANT, studentId: FOUNDATION_STUDENT }))
-      .toMatchObject({ engine: 'TOPIC', configured: false });
+      .toMatchObject({ engine: 'UNIT', basis: 'FOUNDATION_PRODUCT', configured: false });
   });
 
   it('reads the stage from the student when the caller does not know it', async () => {
-    config = { megaCurriculumStages: ['foundation'] };
     expect((await resolveCurriculumEngine({ tenantId: TENANT, studentId: FOUNDATION_STUDENT })).engine).toBe('UNIT');
     expect((await resolveCurriculumEngine({ tenantId: TENANT, studentId: BUILD_STUDENT })).engine).toBe('TOPIC');
   });
@@ -161,8 +146,8 @@ describe('resolving the engine for a real student', () => {
  * ══════════════════════════════════════════════════════════════════════════════════════════ */
 
 describe('a curriculum trigger', () => {
-  it('reaches the TOPIC replanner, with its original input, for a TOPIC learner', async () => {
-    const input = { tenantId: TENANT, studentId: FOUNDATION_STUDENT, trigger: 'DIAGNOSTIC_COMPLETED' as const, assessmentId: 'a1' };
+  it('reaches the TOPIC replanner, with its original input, for a later-stage learner', async () => {
+    const input = { tenantId: TENANT, studentId: BUILD_STUDENT, trigger: 'DIAGNOSTIC_COMPLETED' as const, assessmentId: 'a1' };
     const out = await handleCurriculumTrigger(input);
     expect(out.engine).toBe('TOPIC');
     expect(replanForTrigger).toHaveBeenCalledTimes(1);
@@ -170,8 +155,7 @@ describe('a curriculum trigger', () => {
     expect(applyFoundationTrigger).not.toHaveBeenCalled();
   });
 
-  it('reaches the Foundation journey, and never the TOPIC replanner, for a UNIT learner', async () => {
-    config = { megaCurriculumStages: ['foundation'] };
+  it('reaches the Foundation journey, and never the TOPIC replanner, for a Foundation learner — with no configuration', async () => {
     const out = await handleCurriculumTrigger({ tenantId: TENANT, studentId: FOUNDATION_STUDENT, trigger: 'MODULE_ASSESSMENT_COMPLETED' });
     expect(out.engine).toBe('UNIT');
     expect(applyFoundationTrigger).toHaveBeenCalledWith({
@@ -180,7 +164,7 @@ describe('a curriculum trigger', () => {
     expect(replanForTrigger).not.toHaveBeenCalled();
   });
 
-  it('keeps a TOPIC learner in a later stage on TOPIC even when the tenant switch is on', async () => {
+  it('keeps a later-stage learner on TOPIC even when the tenant switch is on', async () => {
     config = { megaCurriculumEnabled: true };
     await handleCurriculumTrigger({ tenantId: TENANT, studentId: BUILD_STUDENT, trigger: 'DIAGNOSTIC_COMPLETED' });
     expect(replanForTrigger).toHaveBeenCalledTimes(1);
@@ -188,21 +172,20 @@ describe('a curriculum trigger', () => {
   });
 
   /**
-   * Career-context saves never announced a direction change before Phase 27. Delivering one to
-   * the TOPIC replanner now would rebuild TOPIC plans on every role edit — a new behaviour for
-   * TOPIC learners, which the activation must not introduce.
+   * Career-context saves never announced a direction change before Phase 27. Delivering one to the
+   * TOPIC replanner now would rebuild TOPIC plans on every role edit — a new behaviour for TOPIC
+   * learners, which must not be introduced.
    */
   it('does not replan a TOPIC learner for a career-context direction change, exactly as before', async () => {
     const out = await handleCurriculumTrigger({
-      tenantId: TENANT, studentId: FOUNDATION_STUDENT, trigger: 'DIRECTION_CHANGED', origin: 'CAREER_CONTEXT',
+      tenantId: TENANT, studentId: BUILD_STUDENT, trigger: 'DIRECTION_CHANGED', origin: 'CAREER_CONTEXT',
     });
     expect(out).toMatchObject({ engine: 'TOPIC', topic: null });
     expect(replanForTrigger).not.toHaveBeenCalled();
     expect(applyFoundationTrigger).not.toHaveBeenCalled();
   });
 
-  it('recomposes a UNIT learner for a career-context direction change', async () => {
-    config = { megaCurriculumStages: ['foundation'] };
+  it('recomposes a Foundation learner for a career-context direction change', async () => {
     await handleCurriculumTrigger({ tenantId: TENANT, studentId: FOUNDATION_STUDENT, trigger: 'DIRECTION_CHANGED', origin: 'CAREER_CONTEXT' });
     expect(applyFoundationTrigger).toHaveBeenCalledWith(expect.objectContaining({ trigger: 'DIRECTION_CHANGED' }));
   });
@@ -216,7 +199,6 @@ describe('a curriculum trigger', () => {
   });
 
   it('runs triggers for one student one at a time', async () => {
-    config = { megaCurriculumStages: ['foundation'] };
     const log: string[] = [];
     applyFoundationTrigger.mockImplementation(async (input: any) => {
       log.push(`start ${input.trigger}`);
@@ -237,14 +219,13 @@ describe('the production event seam', () => {
   beforeEach(() => { __resetHandlers(); registerAdaptiveHandlers(); });
   afterAll(() => __resetHandlers());
 
-  it('routes a diagnostic to the TOPIC replanner for a TOPIC learner', async () => {
-    await publish({ name: 'DIAGNOSTIC_COMPLETED', tenantId: TENANT, studentId: FOUNDATION_STUDENT, assessmentId: 'p1' });
+  it('routes a diagnostic to the TOPIC replanner for a later-stage learner', async () => {
+    await publish({ name: 'DIAGNOSTIC_COMPLETED', tenantId: TENANT, studentId: BUILD_STUDENT, assessmentId: 'p1' });
     expect(replanForTrigger).toHaveBeenCalledWith(expect.objectContaining({ trigger: 'DIAGNOSTIC_COMPLETED', assessmentId: 'p1' }));
     expect(applyFoundationTrigger).not.toHaveBeenCalled();
   });
 
-  it('routes a diagnostic, a checkpoint, a mastery change and a direction change to UNIT for a UNIT learner', async () => {
-    config = { megaCurriculumStages: ['foundation'] };
+  it('routes a diagnostic, a checkpoint, a mastery change and a direction change to UNIT for a Foundation learner', async () => {
     await publish({ name: 'DIAGNOSTIC_COMPLETED', tenantId: TENANT, studentId: FOUNDATION_STUDENT });
     await publish({ name: 'MODULE_ASSESSMENT_COMPLETED', tenantId: TENANT, studentId: FOUNDATION_STUDENT });
     await publish({ name: 'SKILL_MASTERY_CHANGED', tenantId: TENANT, studentId: FOUNDATION_STUDENT });
@@ -256,7 +237,6 @@ describe('the production event seam', () => {
   });
 
   it('delivers nothing for an event with no trigger', async () => {
-    config = { megaCurriculumStages: ['foundation'] };
     await publish({ name: 'PRACTICE_COMPLETED', tenantId: TENANT, studentId: FOUNDATION_STUDENT });
     expect(applyFoundationTrigger).not.toHaveBeenCalled();
     expect(replanForTrigger).not.toHaveBeenCalled();

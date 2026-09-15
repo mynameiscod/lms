@@ -52,7 +52,6 @@ import { loadCandidates } from '../services/composerCandidateService';
 import { ComposableUnit } from '../services/curriculumComposerService';
 import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
 import { teaches } from '../data/contentBundlePolicy';
-import { engineActivationState } from '../data/curriculumEnginePolicy';
 
 /**
  * The commit the certified sources are compared against.
@@ -277,11 +276,6 @@ const CERTIFIED_SOURCES = [
   const countChanges = [...new Set([...Object.keys(countsBefore), ...Object.keys(countsAfter)])]
     .filter(c => countsBefore[c] !== countsAfter[c])
     .map(c => `${c} ${countsBefore[c] ?? 0} -> ${countsAfter[c] ?? 0}`);
-  const configs = await db.collection('passportconfigs').find({ tenantId: TID }).toArray();
-  const activation = engineActivationState(configs as any[]);
-  // Members' Foundation journeys, this tenant only. DayPlans and enrolments of other LMS curricula
-  // are not publication's business.
-  const journeys = await db.collection('learningcurriculums').countDocuments({ tenantId: TID, journeyKind: { $exists: true, $ne: null } });
 
   const checks: [string, boolean, string][] = [
     ['total units', docsAfter.length === EXPECT.total, String(docsAfter.length)],
@@ -293,9 +287,6 @@ const CERTIFIED_SOURCES = [
     ['READY but not PUBLISHED = certified withheld', JSON.stringify(readyNotPublished) === JSON.stringify(withheld), readyNotPublished.join(', ')],
     ['PARTIAL and not PUBLISHED', partialNotPublished.length === EXPECT.partial && partialAfter.length === EXPECT.partial, String(partialNotPublished.length)],
     ['no unit changed beyond status', unexpectedUnitChanges.length === 0, unexpectedUnitChanges.slice(0, 5).join(', ')],
-    // Before activation no member can have a journey; after it, journeys are members' plans.
-    ['no Foundation journeys before activation', journeys === 0 || activation === 'FOUNDATION_UNIT', `${journeys} (engine ${activation})`],
-    ['engine OFF or the authorised Foundation activation', activation !== 'UNAUTHORIZED', activation],
   ];
 
   say('\nVERIFICATION');

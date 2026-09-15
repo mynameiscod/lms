@@ -49,6 +49,11 @@ jest.mock('../services/foundationRecompositionService', () => ({
   __esModule: true,
   recomposeFutureDays: (...a: any[]) => recomposeFutureDays(...a),
 }));
+const foundationReadiness = jest.fn();
+jest.mock('../services/foundationReadinessService', () => ({
+  __esModule: true,
+  foundationReadiness: (...a: any[]) => foundationReadiness(...a),
+}));
 
 import { applyFoundationTrigger, directionChoiceFor } from '../services/foundationJourneyTriggerService';
 
@@ -68,6 +73,23 @@ beforeEach(() => {
   persistFoundationJourney.mockReset().mockResolvedValue({ ok: true, curriculumId: JOURNEY, days: 90, created: true });
   checkJourneyIntegrity.mockReset().mockResolvedValue({ ok: true, days: 90, expected: 90, missing: [], duplicates: [] });
   recomposeFutureDays.mockReset().mockResolvedValue({ ok: true, frozenDays: [1, 2, 3], rewrittenDays: [4, 5], unchangedFutureDays: [], totalDays: 90 });
+  foundationReadiness.mockReset().mockResolvedValue({ configured: true, reason: null, publishedUnits: 338, skillCheckMappings: 700, message: null });
+});
+
+describe('a Foundation learner on a tenant that was never provisioned', () => {
+  it('is refused as NOT_CONFIGURED, and nothing is composed or written', async () => {
+    foundationReadiness.mockResolvedValue({ configured: false, reason: 'NO_PRODUCTION_CURRICULUM', publishedUnits: 0, skillCheckMappings: 0, message: 'x' });
+    const out = await trigger();
+    expect(out).toMatchObject({ action: 'REFUSED', reason: 'NOT_CONFIGURED: NO_PRODUCTION_CURRICULUM', measuredSkills: 6 });
+    expect(persistFoundationJourney).not.toHaveBeenCalled();
+    expect(enrollmentCreate).not.toHaveBeenCalled();
+  });
+
+  it('is still NOT_READY first when nothing is measured', async () => {
+    foundationReadiness.mockResolvedValue({ configured: false, reason: 'NO_PRODUCTION_CURRICULUM', publishedUnits: 0, skillCheckMappings: 0, message: 'x' });
+    buildFoundationProfile.mockResolvedValue({ profile, summary: { measured: 0, verified: 0 } });
+    expect((await trigger()).action).toBe('NOT_READY');
+  });
 });
 
 describe('a UNIT learner with no journey', () => {

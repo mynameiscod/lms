@@ -36,6 +36,7 @@ import {
   persistFoundationJourney, checkJourneyIntegrity, FOUNDATION_JOURNEY_KIND,
 } from './foundationJourneyService';
 import { recomposeFutureDays } from './foundationRecompositionService';
+import { foundationReadiness } from './foundationReadinessService';
 
 export type FoundationTriggerAction =
   | 'CREATED'      // a ninety-day journey was written
@@ -158,6 +159,11 @@ export async function applyFoundationTrigger(input: {
     if (!journey) {
       if (!summary.measured) {
         return { action: 'NOT_READY', reason: 'NO_SKILL_EVIDENCE', measuredSkills: 0 };
+      }
+      // A tenant that was never provisioned is named as such, rather than reported as a composer shortfall.
+      const readiness = await foundationReadiness(tenantId);
+      if (!readiness.configured) {
+        return { action: 'REFUSED', reason: `NOT_CONFIGURED: ${readiness.reason}`, measuredSkills: summary.measured };
       }
       // PRODUCTION: PUBLISHED && READY. Exactly ninety is checked inside, before the first write.
       const built = await persistFoundationJourney(tenantId, sid, profile, { source: 'PRODUCTION', stageKey });

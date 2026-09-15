@@ -44,6 +44,8 @@ import battleRoutes from './battleRoutes';
 import hackathonRoutes from './hackathonRoutes';
 import publicBattleRoutes from './publicBattleRoutes';
 import publicHackathonRoutes from './publicHackathonRoutes';
+import publicHackathonExamRoutes from './publicHackathonExamRoutes';
+import hackathonExamRoutes from './hackathonExamRoutes';
 import metaLeadAdsRoutes from './metaLeadAdsRoutes';
 import googleSheetRoutes from './googleSheetRoutes';
 import leadScoringRoutes from './leadScoringRoutes';
@@ -131,6 +133,7 @@ router.get('/public/unsubscribe', unsubscribe);
 router.post('/public/ses-events', express.json({ type: '*/*', limit: '1mb', verify: (req, _res, buf) => { (req as any).rawBody = buf; } }), sesEvents);
 // Public hackathon funnel — no auth, called from the marketing site. Specific paths, so
 // mounted before the generic /public router.
+router.use('/public', publicHackathonExamRoutes);
 router.use('/public', publicHackathonRoutes);
 router.use('/public', publicBattleRoutes); // Tech Battle public funnel (specific battle paths, before generic /public)
 router.use('/public', publicLeadRoutes);
@@ -155,6 +158,7 @@ router.use('/batches', batchRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/quizzes', quizRoutes);
 router.use('/assessment-items', assessmentItemRoutes);
+router.use('/hackathon-exams', hackathonExamRoutes);
 router.use('/assessment-candidates', assessmentCandidatesRoutes);
 router.use('/concerns', concernRoutes);
 router.use('/questions', questionRoutes);

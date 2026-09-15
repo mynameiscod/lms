@@ -669,7 +669,8 @@ Print four lines: the flaw number for claim 1, then 2, then 3, then 4.`,
 `,
         language: 'python',
         tests: [
-          { input: '', expectedOutput: '2\n3\n4\n1' },
+          // Hidden deliberately: the task takes no input, so a visible case would print the key.
+          { input: '', expectedOutput: '2\n3\n4\n1', isHidden: true },
         ],
       },
     ],

@@ -370,7 +370,7 @@ A button's breathing room is padding; the gap to the next button is margin.`,
 Three cards at 300px each should be exactly 900. They overflow.
 
 Do the arithmetic per card: 300 content + 16 + 16 padding + 1 + 1 border = **334px**. Three cards
-是 1002px against a 900px row.
+is 1002px against a 900px row.
 
 Two ways to fix it, and they say different things.
 
@@ -960,7 +960,8 @@ Print four lines: the diagnosis number for scenario 1, then 2, then 3, then 4.`,
 `,
         language: 'python',
         tests: [
-          { input: '', expectedOutput: '2\n1\n3\n4' },
+          // Hidden deliberately: the task takes no input, so a visible case would print the key.
+          { input: '', expectedOutput: '2\n1\n3\n4', isHidden: true },
         ],
       },
     ],

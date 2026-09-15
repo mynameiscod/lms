@@ -528,7 +528,8 @@ Print four lines: the error number for plan 1, then 2, then 3, then 4.`,
 `,
         language: 'python',
         tests: [
-          { input: '', expectedOutput: '4\n1\n2\n3' },
+          // Hidden deliberately: the task takes no input, so a visible case would print the key.
+          { input: '', expectedOutput: '4\n1\n2\n3', isHidden: true },
         ],
       },
     ],
@@ -1235,7 +1236,8 @@ Print four lines: the fallacy number for argument 1, then 2, then 3, then 4.`,
 `,
         language: 'python',
         tests: [
-          { input: '', expectedOutput: '2\n1\n4\n3' },
+          // Hidden deliberately: the task takes no input, so a visible case would print the key.
+          { input: '', expectedOutput: '2\n1\n4\n3', isHidden: true },
         ],
       },
     ],

@@ -22,34 +22,33 @@
  * rather than adding a second copy of every lesson.
  */
 
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import LearningContentLibrary from '../../models/LearningContentLibrary';
 import CurriculumLearningUnit from '../../models/CurriculumLearningUnit';
 import Quiz from '../../models/Quiz';
+import Question from '../../models/Question';
 import Assignment, { AssignmentType } from '../../models/Assignment';
 import User from '../../models/User';
 import { PILOT_TOPICS } from './pilotUnitContent';
-import { YEAR1_BUNDLES } from './year1UnitContent';
-import { PROGRAMMING_SPINE_BUNDLES } from './year1ContentProgramming';
-import { VERIFICATION_BUNDLES } from './year1ContentVerification';
-import { FUNCTIONS_BUNDLES } from './year1ContentFunctions';
-import { PSEUDOCODE_BOOLEAN_BUNDLES } from './year1ContentPseudocodeBoolean';
-import { ACCESSIBILITY_FORMS_BUNDLES } from './year1ContentAccessibilityForms';
-import { JS_DOM_BUNDLES } from './year1ContentJsDom';
-import { ML_INTRO_BUNDLES } from './year1ContentMlIntro';
-import { NETWORKING_BUNDLES } from './year1ContentNetworking';
-import { STATS_BUNDLES } from './year1ContentStats';
-import { SQL_BUNDLES } from './year1ContentSql';
-import { SHELL_BUNDLES } from './year1ContentShell';
-import { CSS_BUNDLES } from './year1ContentCss';
-import { ARRAYS_BUNDLES } from './year1ContentArrays';
-import { CAREER_MAP_BUNDLES } from './year1ContentCareerMap';
+import { ALL_BUNDLES } from './allBundles';
 import { findDuplication, identifyingWordsFor } from '../../services/contentDuplicationService';
 
 dotenv.config();
 
 const CREATED_BY = 'pilot-unit-content';
+
+/**
+ * A deterministic ObjectId for a seeded row, from a key that describes it.
+ *
+ * Checkpoint questions have no natural unique key of their own, so a re-run would otherwise
+ * insert a second copy of every question and leave the first set orphaned. Hashing the key
+ * gives the row a stable identity across runs, which is what makes the seed idempotent and
+ * what lets an existing quiz keep pointing at the same questions after an edit.
+ */
+const stableId = (key: string): mongoose.Types.ObjectId =>
+  new mongoose.Types.ObjectId(crypto.createHash('md5').update(key).digest('hex').slice(0, 24));
 
 /** Minutes a reader needs, from the text itself rather than from a guess. */
 const readingMinutes = (text: string): number =>
@@ -75,16 +74,6 @@ const readingMinutes = (text: string): number =>
   const author = await User.findOne({ tenantId, role: { $in: ['TENANT_ADMIN', 'SUPER_ADMIN'] } })
     .select('_id').lean() as any;
 
-  /**
-   * Every authored bundle, from whichever file it lives in.
-   *
-   * Split across files because one module of thirty thousand lines is unreviewable, not because
-   * they are different kinds of thing — the seed treats them identically.
-   */
-  const ALL_BUNDLES = [
-    ...YEAR1_BUNDLES, ...PROGRAMMING_SPINE_BUNDLES, ...VERIFICATION_BUNDLES,
-    ...FUNCTIONS_BUNDLES, ...PSEUDOCODE_BOOLEAN_BUNDLES, ...ACCESSIBILITY_FORMS_BUNDLES, ...JS_DOM_BUNDLES, ...ML_INTRO_BUNDLES, ...NETWORKING_BUNDLES, ...STATS_BUNDLES, ...SQL_BUNDLES, ...SHELL_BUNDLES, ...CSS_BUNDLES, ...ARRAYS_BUNDLES, ...CAREER_MAP_BUNDLES,
-  ];
 
   const units = await CurriculumLearningUnit
     .find({ tenantId, unitCode: { $in: ALL_BUNDLES.map(b => b.unitCode) } })
@@ -97,6 +86,7 @@ const readingMinutes = (text: string): number =>
 
   let rows = 0;
   let quizzes = 0;
+  let checkpointQuestions = 0;
   let assignments = 0;
   const missingUnits: string[] = [];
   const skippedAssignments: string[] = [];
@@ -192,12 +182,57 @@ const readingMinutes = (text: string): number =>
      *
      * Quiz already has attempts, scoring, timing and a results screen. A "checkpoint" content
      * type would reimplement all of it, and the two would drift.
+     *
+     * ── THE QUESTIONS ARE Question ROWS, NOT AN EMBEDDED ARRAY ───────────────────────────
+     *
+     * An earlier version of this seed wrote `questions: [...]` inside the Quiz. Quiz has no
+     * such path — it holds `questionIds` into the Question collection — so Mongoose dropped
+     * the array silently on every write. A hundred and sixty-one checkpoints were created,
+     * bound, counted as assessments by the readiness ladder, and held nothing. Nothing failed,
+     * nothing warned, and each affected unit reported READY.
+     *
+     * Two things follow, and both are deliberate here. Write the shape the platform reads —
+     * Question rows plus `questionIds`, which is what the quiz builder, the delivery service
+     * and the grader all use. And derive each question's _id from (tenant, unit, index) so a
+     * re-run UPDATES the same row instead of appending a duplicate set: the ids are the only
+     * natural key these questions have, and without one, idempotence is impossible.
      */
     if (bundle.checkpoint?.length) {
       quizzes++;
       if (apply) {
         const now = new Date();
         const endDate = new Date(now.getTime() + 365 * 86400000);
+        const questionIds: string[] = [];
+
+        for (const [i, q] of bundle.checkpoint.entries()) {
+          const _id = stableId(`${tenantId}:${unit.unitCode}:checkpoint:${i}`);
+          const correct = q.options.filter(o => o.isCorrect).map(o => o.text);
+          await Question.updateOne(
+            { _id },
+            {
+              $set: {
+                tenantId,
+                type: 'mcq_single',
+                question: q.question,
+                options: q.options.map(o => ({ text: o.text, isCorrect: !!o.isCorrect })),
+                // Written alongside the flags because the grader falls back to it for imports.
+                correctAnswers: correct,
+                explanation: q.explanation,
+                marks: 1,
+                difficultyLevel: 'medium',
+                source: 'manual',
+                subject: unit.topicCode,
+                topic: unit.unitCode,
+                tags: ['careerpilot', 'checkpoint', unit.unitCode],
+              },
+              $setOnInsert: { createdBy: CREATED_BY, usageCount: 1 },
+            },
+            { upsert: true },
+          );
+          questionIds.push(String(_id));
+          checkpointQuestions++;
+        }
+
         await Quiz.updateOne(
           { tenantId, unitCode: unit.unitCode },
           {
@@ -205,19 +240,18 @@ const readingMinutes = (text: string): number =>
               title: `${unit.title} — checkpoint`,
               description: `Checks the outcomes of ${unit.unitCode}.`,
               unitCode: unit.unitCode,
-              questions: bundle.checkpoint.map((q, i) => ({
-                questionText: q.question,
-                options: q.options.map(o => o.text),
-                correctAnswer: Math.max(0, q.options.findIndex(o => o.isCorrect)),
-                explanation: q.explanation,
-                marks: 1,
-                order: i,
-              })),
-              totalMarks: bundle.checkpoint.length,
-              passingMarks: Math.ceil(bundle.checkpoint.length * 0.6),
-              duration: Math.max(5, bundle.checkpoint.length * 2),
+              questionIds,
+              totalQuestions: questionIds.length,
+              questionCount: questionIds.length,
+              totalMarks: questionIds.length,
+              passingMarks: Math.ceil(questionIds.length * 0.6),
+              // `totalTime`, in minutes. The field is not called `duration`; an earlier version
+              // wrote that name and it was dropped in the same silence as the questions.
+              totalTime: Math.max(5, questionIds.length * 2),
               startDate: now,
               endDate,
+              startTime: '00:00',
+              endTime: '23:59',
             },
             $setOnInsert: { tenantId, createdBy: CREATED_BY },
           },
@@ -292,7 +326,7 @@ const readingMinutes = (text: string): number =>
   } else {
     const bound = await LearningContentLibrary.countDocuments({ tenantId, unitCode: { $exists: true, $ne: '' } });
     const boundQuiz = await Quiz.countDocuments({ tenantId, unitCode: { $exists: true, $ne: '' } });
-    console.log(`${rows} library rows written, ${quizzes} checkpoint quizzes and ${assignments} project assignments bound.`);
+    console.log(`${rows} library rows written, ${quizzes} checkpoint quizzes (${checkpointQuestions} questions) and ${assignments} project assignments bound.`);
     console.log(`Library rows carrying a unitCode: ${bound}.  Quizzes: ${boundQuiz}.`);
     console.log('Units remain DRAFT; the UNIT engine is untouched.');
   }
@@ -334,7 +368,7 @@ const readingMinutes = (text: string): number =>
     }
   }
 
-  console.log(`\n  AUTHORING GAP: ${YEAR1_BUNDLES.length} authored units have no video.`);
+  console.log(`\n  AUTHORING GAP: ${ALL_BUNDLES.length} authored units have no video.`);
   console.log('  Video needs recording, and a row pointing at nothing is filler that reads as coverage.\n');
 
   await mongoose.disconnect();

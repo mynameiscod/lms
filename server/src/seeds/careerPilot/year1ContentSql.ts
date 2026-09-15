@@ -1075,7 +1075,8 @@ Print four lines: the check to do first, then second, then third, then fourth.`,
 `,
         language: 'python',
         tests: [
-          { input: '', expectedOutput: '2\n3\n1\n4' },
+          // Hidden deliberately: the task takes no input, so a visible case would print the key.
+          { input: '', expectedOutput: '2\n3\n1\n4', isHidden: true },
         ],
       },
     ],

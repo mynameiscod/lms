@@ -602,7 +602,8 @@ Print four lines: the link number for symptom 1, then 2, then 3, then 4.`,
 `,
         language: 'python',
         tests: [
-          { input: '', expectedOutput: '1\n2\n3\n4' },
+          // Hidden deliberately: the task takes no input, so a visible case would print the key.
+          { input: '', expectedOutput: '1\n2\n3\n4', isHidden: true },
         ],
       },
     ],

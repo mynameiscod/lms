@@ -1,8 +1,58 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import { RichText, plainText } from '../../utils/richText';
 import { assessmentAdminApi, AdminAssessmentItem, ValidationReport, DIMENSIONS, ITEM_TYPES } from '../../api/assessmentAdminApi';
 import './AssessmentAdmin.css';
 
 const labelOf = (arr: { value: string; label: string }[], v: string) => arr.find((x) => x.value === v)?.label || v;
+
+/**
+ * The toolbar a question actually needs.
+ *
+ * Same editor the assignment and lesson screens use, so an author moving between them does not
+ * meet a third way of writing. Link and image are deliberately absent: a question that sends a
+ * candidate to another page during a proctored exam is a hole, and an image needs hosting that
+ * survives the event.
+ *
+ * `code` and `code-block` are the point of this — "return `n`" and "return n" are different
+ * instructions, and a question that cannot say which is a worse question.
+ */
+const QUILL_MODULES = {
+  toolbar: [
+    ['bold', 'italic', 'underline'],
+    ['code', 'code-block'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    ['blockquote'],
+    ['clean'],
+  ],
+};
+const QUILL_FORMATS = ['bold', 'italic', 'underline', 'code', 'code-block', 'list', 'bullet', 'blockquote'];
+
+/**
+ * Switching the type clears the other type's fields.
+ *
+ * The other half of a real bug: a new item starts as an MCQ with two blank options, and
+ * switching to a coding problem left them in the payload — Mongoose counts '' as missing for
+ * a required String, so the save failed with "Failed to create item" and nothing else. The
+ * server now strips them too; this stops the form carrying a draft nobody can see.
+ */
+const forType = (type: AdminAssessmentItem['type']): Partial<AdminAssessmentItem> => {
+  const cleared: Partial<AdminAssessmentItem> = {
+    type,
+    options: undefined, correctOptionIds: undefined, expectedOutput: undefined,
+    buggyLineNumber: undefined, bugExplanation: undefined, blanks: undefined,
+    starterCode: undefined, functionSignature: undefined, testCases: undefined,
+  };
+  if (type === 'mcq') {
+    cleared.options = [{ id: 'a', text: '' }, { id: 'b', text: '' }];
+    cleared.correctOptionIds = [];
+  }
+  if (type === 'live_code' || type === 'sql') {
+    cleared.testCases = [{ input: '', expectedOutput: '', hidden: true, weight: 1 }];
+  }
+  return cleared;
+};
 
 const blank = (): AdminAssessmentItem => ({
   type: 'mcq', dimension: 'fundamentals', difficulty: 2, prompt: '', points: 1, active: true,
@@ -173,7 +223,7 @@ const AssessmentAdmin: React.FC = () => {
                   <td><span className="aa-tag">{labelOf(ITEM_TYPES, it.type)}</span></td>
                   <td>{labelOf(DIMENSIONS, it.dimension)}</td>
                   <td>{it.difficulty}</td>
-                  <td className="prompt">{it.prompt}</td>
+                  <td className="prompt">{plainText(it.prompt, 160)}</td>
                   <td className="aa-tags">{(it.tags || []).map((t) => <span key={t}>{t}</span>)}</td>
                   <td>{it.points ?? 1}</td>
                   <td><span className={`aa-dot ${it.active ? 'on' : 'off'}`} />{it.active ? 'Active' : 'Off'}</td>
@@ -339,7 +389,7 @@ const Editor: React.FC<{ item: AdminAssessmentItem; up: (p: Partial<AdminAssessm
         <div className="aa-modal-body">
           <div className="aa-row3">
             <label>Type
-              <select value={item.type} onChange={(e) => up({ type: e.target.value as any })}>{ITEM_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select>
+              <select value={item.type} onChange={(e) => up(forType(e.target.value as any))}>{ITEM_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select>
             </label>
             <label>Dimension
               <select value={item.dimension} onChange={(e) => up({ dimension: e.target.value as any })}>{DIMENSIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}</select>
@@ -349,9 +399,29 @@ const Editor: React.FC<{ item: AdminAssessmentItem; up: (p: Partial<AdminAssessm
             </label>
           </div>
 
-          <label className="full">Prompt
-            <textarea rows={2} value={item.prompt} onChange={(e) => up({ prompt: e.target.value })} placeholder="The question / task statement" />
-          </label>
+          <div className="full aa-prompt">
+            <label>Question</label>
+            <ReactQuill
+              theme="snow"
+              value={item.prompt || ''}
+              onChange={(v) => up({ prompt: v })}
+              modules={QUILL_MODULES}
+              formats={QUILL_FORMATS}
+              placeholder="The question or task, as the candidate will read it…"
+            />
+            <div className="aa-prompt-hint">
+              <b>Code</b> formats a name inline, like <code>arr[i]</code>. <b>Code block</b> is for
+              several lines. Both survive to the candidate's screen exactly as you see them here.
+            </div>
+            {/* What the candidate will see, rendered the same way their exam renders it —
+                so an author never has to guess whether the markup came out right. */}
+            {!!(item.prompt || '').trim() && (
+              <details className="aa-preview">
+                <summary>Preview as the candidate sees it</summary>
+                <RichText html={item.prompt} className="aa-preview-body" />
+              </details>
+            )}
+          </div>
 
           {isCode && (
             <div className="aa-row2">

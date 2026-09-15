@@ -74,34 +74,73 @@ const FIELDS = [
 ];
 const pick = (body: any) => FIELDS.reduce((o: any, k) => { if (body[k] !== undefined) o[k] = body[k]; return o; }, {});
 
+/**
+ * Drop the fields that belong to a different item type.
+ *
+ * WHY THE SERVER DOES THIS RATHER THAN TRUSTING THE FORM. A new item starts life as an MCQ
+ * with two blank options, and switching the type to a coding problem left them in the payload.
+ * Mongoose treats `required: true` on a String as failing for '', so the save died with a
+ * validation error and the admin was told only "Failed to create item".
+ *
+ * Fixing the form alone would leave the same trap for the next caller — the AI generator, an
+ * import script, a future screen. The type decides which fields are meaningful, so the type
+ * decides which fields are kept.
+ */
+const BY_TYPE: Record<string, string[]> = {
+  mcq:             ['options', 'correctOptionIds', 'codeSnippet'],
+  predict_output:  ['codeSnippet', 'expectedOutput'],
+  debug:           ['codeSnippet', 'buggyLineNumber', 'bugExplanation'],
+  complete_code:   ['codeSnippet', 'blanks'],
+  live_code:       ['starterCode', 'functionSignature', 'testCases', 'language'],
+  sql:             ['starterCode', 'functionSignature', 'testCases'],
+};
+const TYPE_SPECIFIC = [...new Set(Object.values(BY_TYPE).flat())];
+
+function forType(body: any): any {
+  const keep = new Set(BY_TYPE[body.type] || []);
+  const out = { ...body };
+  for (const f of TYPE_SPECIFIC) if (!keep.has(f)) delete out[f];
+
+  /* An option with no text is a half-finished row, not a choice. Same for a blank test case. */
+  if (Array.isArray(out.options)) {
+    out.options = out.options.filter((o: any) => String(o?.text || '').trim());
+  }
+  if (Array.isArray(out.testCases)) {
+    out.testCases = out.testCases.filter((tc: any) => String(tc?.expectedOutput ?? '').length);
+  }
+  return out;
+}
+
 export const createAssessmentItem = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const err = validate(req.body || {});
+    const body = forType(req.body || {});
+    const err = validate(body);
     if (err) return res.status(400).json({ success: false, message: err });
     const item = await AssessmentItem.create({
-      ...pick(req.body),
+      ...pick(body),
       tenantId: String(req.tenantId),
       createdBy: String(req.user?.id || 'admin'),
     });
     res.json({ success: true, message: 'Item created', data: item });
   } catch (e: any) {
-    res.status(500).json({ success: false, message: 'Failed to create item', error: e.message });
+    res.status(500).json({ success: false, message: `Could not save the question: ${e.message}`, error: e.message });
   }
 };
 
 export const updateAssessmentItem = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const err = validate({ ...req.body });
+    const body = forType(req.body || {});
+    const err = validate(body);
     if (err) return res.status(400).json({ success: false, message: err });
     const item = await AssessmentItem.findOneAndUpdate(
       { _id: req.params.id, tenantId: String(req.tenantId) },
-      { $set: pick(req.body) },
+      { $set: pick(body) },
       { new: true }
     );
     if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
     res.json({ success: true, message: 'Item updated', data: item });
   } catch (e: any) {
-    res.status(500).json({ success: false, message: 'Failed to update item', error: e.message });
+    res.status(500).json({ success: false, message: `Could not save the question: ${e.message}`, error: e.message });
   }
 };
 

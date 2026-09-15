@@ -4,6 +4,7 @@ import Editor from '@monaco-editor/react';
 import {
   hackathonExamApi as api, ExamOverview, ExamQuestion, RunResult,
 } from '../../api/hackathonExamApi';
+import { RichText } from '../../utils/richText';
 import './hackathonExam.css';
 
 /**
@@ -438,7 +439,7 @@ const HackathonExam: React.FC = () => {
             {e.instructions && (
               <>
                 <h3 className="hx-h3">From the organisers</h3>
-                <div className="hx-rich" dangerouslySetInnerHTML={{ __html: e.instructions }} />
+                <RichText html={e.instructions} className="hx-rich" />
               </>
             )}
 
@@ -543,7 +544,7 @@ const HackathonExam: React.FC = () => {
                 <span>Question {idx + 1} of {inSection.length}</span>
                 <span className="hx-marks">{q.marks} mark{q.marks === 1 ? '' : 's'}</span>
               </div>
-              <div className="hx-prompt">{q.prompt}</div>
+              <RichText html={q.prompt} className="hx-prompt" />
               {q.codeSnippet && <pre className="hx-snippet">{q.codeSnippet}</pre>}
 
               {q.type === 'mcq' && (

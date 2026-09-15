@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { assessmentApi, AssessmentItemView, ItemResponse, DIMENSION_LABELS } from '../../api/assessmentApi';
+import { RichText } from '../../utils/richText';
 import './assessment.css';
 
 // Code block with line numbers; lines are clickable in debug mode.
@@ -24,10 +25,14 @@ const CodeBlock: React.FC<{ code: string; onPick?: (line: number) => void; picke
   );
 };
 
-// Renders a question prompt: plain text, but any ```fenced code``` (or a stray
-// markdown fence the AI left in) is pulled out and shown as a real code block.
+// Renders a question prompt. Two formats reach this, because the bank predates the editor:
+// items authored in the admin rich-text editor arrive as HTML and go through RichText, which
+// keeps the formatting without ever handing markup to the DOM; everything written before that
+// is plain text, where any ```fenced code``` (or a stray markdown fence the AI left in) is
+// pulled out and shown as a real code block.
 const QuestionPrompt: React.FC<{ text?: string }> = ({ text }) => {
   if (!text) return null;
+  if (/<[a-z/][^>]*>/i.test(text)) return <RichText html={text} className="as-qprompt as-qrich" />;
   const parts: React.ReactNode[] = [];
   const re = /```(?:[a-zA-Z0-9]+)?[ \t]*\n?([\s\S]*?)```/g;
   let last = 0; let m: RegExpExecArray | null; let key = 0;

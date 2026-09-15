@@ -33,7 +33,7 @@ import { backfillFoundationJourneys, BackfillDecision } from '../services/founda
 
   const count = (d: BackfillDecision) => result.rows.filter(r => r.decision === d).length;
   console.log(`\n  students ${result.rows.length}  ·  would create ${count('WOULD_CREATE')}  ·  already have one ${count('HAS_JOURNEY')}`
-    + `  ·  nothing measured yet ${count('NOT_READY')}  ·  on the topic engine ${count('TOPIC_ENGINE')}`);
+    + `  ·  nothing measured yet ${count('NOT_READY')}  ·  not members ${count('NOT_MEMBER')}  ·  on the topic engine ${count('TOPIC_ENGINE')}`);
   if (apply) console.log(`  created ${result.created}  ·  not created ${result.notCreated}`);
   else if (count('WOULD_CREATE')) console.log('\n  Dry run. Re-run with --apply to create them.');
 

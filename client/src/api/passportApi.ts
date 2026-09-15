@@ -32,6 +32,8 @@ export interface PassportConfig {
   membershipMonths: number;
   /** How many days of work a plan covers. Capped at 90 by the planner. */
   roadmapDays?: number;
+  /** Days of their own roadmap a learner sees before membership (1–30, default 7). */
+  roadmapPreviewDays?: number;
   /**
    * Whether daily missions follow authored Concept Learning Units.
    *
@@ -2208,6 +2210,13 @@ export interface FoundationJourney {
   engine?: 'UNIT' | 'TOPIC';
   /** The enrolment whose day player works a day through. Null until the journey exists. */
   enrollmentId?: string | null;
+  /** FULL for a member; PREVIEW shows only the first `previewDays` days; LOCKED shows nothing. */
+  access?: 'FULL' | 'PREVIEW' | 'LOCKED';
+  previewDays?: number;
+  /** How many of the ninety are locked in a preview. */
+  lockedDays?: number;
+  /** The preview days in full — topics and what each contains, nothing to open. */
+  preview?: FoundationPreviewDay[];
 
   /** Present only when `available` is false. */
   reason?: string;
@@ -2248,6 +2257,16 @@ export interface FoundationJourneyDay {
   activities: FoundationJourneyActivity[];
 }
 
+/** One day of a non-member's preview: what it teaches, and what it contains. Nothing to open. */
+export interface FoundationPreviewDay {
+  day: number;
+  title: string;
+  objective: string | null;
+  outcomes: string[];
+  minutes: number;
+  activities: { title: string; type: string; minutes: number; gating: boolean }[];
+}
+
 /** Admin view of one member's journey. Unlike the member's own, it names the unit behind each day. */
 export interface AdminFoundationJourneyDay {
   day: number;
@@ -2278,6 +2297,8 @@ export interface AdminFoundationJourney {
   days?: AdminFoundationJourneyDay[];
   /** NO_JOURNEY, or NOT_CONFIGURED when this tenant cannot serve the Foundation journey. */
   reason?: string;
+  /** Whether this member sees all ninety days or only the preview. */
+  access?: { level: 'FULL' | 'PREVIEW' | 'LOCKED'; previewDays: number } | null;
 }
 
 /** Whether a tenant can serve the Foundation journey. Decided by provisioning, not by a switch. */

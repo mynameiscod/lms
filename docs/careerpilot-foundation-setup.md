@@ -83,9 +83,14 @@ are never touched. Interrupted: `... phase27ActivationE2E.ts <TENANT> --cleanup-
 
 ## 6. In the browser
 
-- **New first-year:** join (`/careerpilot/join?tenant=<slug>`), finish setup, take the skill check.
-  **My Roadmap**, **My 90 Days** and **Home** show *Foundation Journey — Day 1 of 90*;
-  **Start today's work** opens the day's lessons, checkpoint and project.
+- **New first-year, before membership:** join (`/careerpilot/join?tenant=<slug>`), finish setup,
+  take the skill check. **My Roadmap** shows only the first days of *their own* plan (the admin's
+  *Roadmap preview (days)* setting, default 7) and *🔒 Unlock to see your full 90-day roadmap*.
+  Nothing beyond the preview opens.
+- **After membership** (payment, or an admin conversion/grant): the full 90-day roadmap is generated
+  automatically from the same skill check. **My Roadmap**, **My 90 Days** and **Home** show
+  *Foundation Journey — Day 1 of 90*; **Start today's work** opens the day's lessons, checkpoint and project.
+- **Admin — preview length:** CareerPilot Config → *Roadmap preview (days)*, 1–30.
 - **Existing first-year** (after step 4): the same 90-day journey.
 - **Later-year student:** still the topic roadmap — only Foundation has a Learning Unit curriculum.
 - **Admin — Config** (`/admin/passport/config`): *Foundation curriculum: provisioned*, with its unit and

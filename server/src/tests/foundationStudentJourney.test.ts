@@ -71,6 +71,29 @@ jest.mock('../services/foundationReadinessService', () => ({
   foundationReadiness: (...a: any[]) => mockReadiness(...a),
   FOUNDATION_NOT_CONFIGURED_FOR_STUDENT: 'Your Foundation curriculum has not been set up for your institute yet.',
 }));
+const mockAccess = jest.fn();
+jest.mock('../services/foundationAccessService', () => ({
+  foundationAccess: (...a: any[]) => mockAccess(...a),
+}));
+const mockProfile = jest.fn();
+jest.mock('../services/foundationProfileService', () => ({
+  buildFoundationProfile: (...a: any[]) => mockProfile(...a),
+}));
+const mockCompose = jest.fn();
+jest.mock('../services/foundationJourneyService', () => ({
+  FOUNDATION_JOURNEY_KIND: 'FOUNDATION_UNIT_JOURNEY_V1',
+  composeFoundationJourney: (...a: any[]) => mockCompose(...a),
+  loadAssets: async () => new Map(),
+  activitiesFor: (u: any) => [
+    { contentTitle: `${u.title} lesson`, contentType: 'notes', estimatedDuration: 15, order: 0 },
+    { contentTitle: `${u.title} check`, contentType: 'quiz', estimatedDuration: 10, order: 1, isGating: true },
+  ],
+}));
+const mockApplyTrigger = jest.fn();
+jest.mock('../services/foundationJourneyTriggerService', () => ({
+  applyFoundationTrigger: (...a: any[]) => mockApplyTrigger(...a),
+  directionChoiceFor: () => ({}),
+}));
 
 import * as ctrl from '../controllers/foundationJourneyController';
 
@@ -125,6 +148,10 @@ beforeEach(() => {
   dayPlans.length = 0; curricula.length = 0; enrollments.length = 0; units.length = 0; members.length = 0;
   mockResolveEngine.mockReset().mockResolvedValue({ engine: 'UNIT' });
   mockReadiness.mockReset().mockResolvedValue({ configured: true, reason: null, publishedUnits: 338, skillCheckMappings: 700, message: null });
+  mockAccess.mockReset().mockResolvedValue({ level: 'FULL', previewDays: 7 });
+  mockProfile.mockReset().mockResolvedValue({ profile: {}, summary: { measured: 0 } });
+  mockCompose.mockReset();
+  mockApplyTrigger.mockReset().mockResolvedValue({ action: 'NOT_READY', reason: 'NO_SKILL_EVIDENCE' });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -270,6 +297,100 @@ describe('a journey that is still being written', () => {
     const { res, out } = resOf();
     await ctrl.getMyJourney(reqOf(), res);
     expect(out.body).toMatchObject({ available: false, reason: 'JOURNEY_INCOMPLETE' });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('membership decides how much of the ninety a learner sees', () => {
+  const units90 = Array.from({ length: 90 }, (_, i) => ({ unitCode: `U_${i + 1}`, title: `Unit ${i + 1}` }));
+  beforeEach(() => {
+    mockCompose.mockResolvedValue({ candidates: 338, composition: { ok: true, units: units90 } });
+  });
+
+  it('shows a non-member only the first N days of their own plan, composed from their Skill DNA, storing nothing', async () => {
+    mockAccess.mockResolvedValue({ level: 'PREVIEW', previewDays: 7 });
+    mockProfile.mockResolvedValue({ profile: { skills: new Map() }, summary: { measured: 6 } });
+    units.push({ tenantId: TENANT, unitCode: 'U_1', title: 'Unit 1', description: 'How a computer runs a program.', learningOutcomes: ['Name the parts'] });
+
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+
+    expect(out.body).toMatchObject({ available: true, access: 'PREVIEW', totalDays: 90, previewDays: 7, lockedDays: 83, enrollmentId: null });
+    expect(out.body.days).toHaveLength(7);
+    expect(out.body.preview).toHaveLength(7);
+    expect(out.body.preview[0]).toMatchObject({ day: 1, title: 'Unit 1', objective: 'How a computer runs a program.', outcomes: ['Name the parts'] });
+    expect(out.body.preview[0].activities[1]).toMatchObject({ type: 'quiz', gating: true });
+    const wire = JSON.stringify(out.body);
+    expect(wire).not.toContain('Unit 8');
+    expect(wire).not.toContain('unitCode');
+    expect(mockApplyTrigger).not.toHaveBeenCalled();
+  });
+
+  it('follows the preview length the admin set', async () => {
+    mockAccess.mockResolvedValue({ level: 'PREVIEW', previewDays: 3 });
+    mockProfile.mockResolvedValue({ profile: {}, summary: { measured: 6 } });
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+    expect(out.body).toMatchObject({ access: 'PREVIEW', previewDays: 3, lockedDays: 87 });
+    expect(out.body.days).toHaveLength(3);
+  });
+
+  it('asks a learner with no preview entitlement to take membership', async () => {
+    mockAccess.mockResolvedValue({ level: 'LOCKED', previewDays: 7 });
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+    expect(out.body).toMatchObject({ available: false, reason: 'MEMBERSHIP_REQUIRED', access: 'LOCKED' });
+    expect(out.body.days).toBeUndefined();
+  });
+
+  it('asks a non-member who has not taken the skill check to take it', async () => {
+    mockAccess.mockResolvedValue({ level: 'PREVIEW', previewDays: 7 });
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+    expect(out.body).toMatchObject({ available: false, reason: 'NO_JOURNEY', access: 'PREVIEW' });
+    expect(mockCompose).not.toHaveBeenCalled();
+  });
+
+  it('generates the ninety days for a member with Skill DNA and no journey, through the production trigger', async () => {
+    mockProfile.mockResolvedValue({ profile: {}, summary: { measured: 6 } });
+    mockApplyTrigger.mockImplementation(async () => { seed(); return { action: 'CREATED', reason: 'SIGNIFICANT_MASTERY_CHANGE' }; });
+
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+
+    expect(mockApplyTrigger).toHaveBeenCalledWith({ tenantId: TENANT, studentId: STUDENT, trigger: 'SIGNIFICANT_MASTERY_CHANGE', stageKey: 'foundation' });
+    expect(out.body).toMatchObject({ available: true, access: 'FULL', totalDays: 90, enrollmentId: 'enr1' });
+    expect(out.body.days).toHaveLength(90);
+  });
+
+  it('says so when a member’s journey could not be generated', async () => {
+    mockProfile.mockResolvedValue({ profile: {}, summary: { measured: 6 } });
+    mockApplyTrigger.mockResolvedValue({ action: 'REFUSED', reason: 'composer' });
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+    expect(out.body).toMatchObject({ available: false, reason: 'JOURNEY_NOT_CREATED' });
+  });
+
+  it('shows only the preview of a stored journey once membership has lapsed', async () => {
+    seed();
+    mockAccess.mockResolvedValue({ level: 'PREVIEW', previewDays: 7 });
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+    expect(out.body).toMatchObject({ available: true, access: 'PREVIEW', enrollmentId: null, lockedDays: 83 });
+    expect(out.body.days).toHaveLength(7);
+    expect(mockCompose).not.toHaveBeenCalled();
+  });
+
+  it('refuses a day beyond the preview on the server, and serves one inside it', async () => {
+    seed();
+    mockAccess.mockResolvedValue({ level: 'PREVIEW', previewDays: 7 });
+    const beyond = resOf();
+    await ctrl.getMyJourneyDay(reqOf({ params: { dayNumber: '8' } }), beyond.res);
+    expect(beyond.out.status).toBe(403);
+    expect(beyond.out.body.reason).toBe('MEMBERSHIP_REQUIRED');
+    const inside = resOf();
+    await ctrl.getMyJourneyDay(reqOf({ params: { dayNumber: '3' } }), inside.res);
+    expect(inside.out.status).toBe(200);
   });
 });
 

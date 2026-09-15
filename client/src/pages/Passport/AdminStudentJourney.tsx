@@ -70,6 +70,10 @@ const AdminStudentJourney: React.FC<{ studentId: string }> = ({ studentId }) => 
           <div><small>Done</small><b>{data.completedCount ?? 0} days</b></div>
           <div><small>Progress</small><b>{data.percentComplete ?? 0}%</b></div>
           <div><small>Started</small><b>{data.startedAt ? new Date(data.startedAt).toLocaleDateString() : '—'}</b></div>
+          <div>
+            <small>Membership</small>
+            <b>{data.access?.level === 'FULL' ? 'Member — all 90 days' : data.access ? `Not a member — sees first ${data.access.previewDays} days` : '—'}</b>
+          </div>
         </div>
       </header>
 

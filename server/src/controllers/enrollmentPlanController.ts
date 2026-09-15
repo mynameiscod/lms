@@ -22,6 +22,14 @@ import { effectiveItemsForDay, holidaySet } from './batchOfferingController';
 import { workingDateForDay, planDayForDate, workingDayCount, asLocalDate, istToday } from '../utils/planSchedule';
 import { resolveCurriculumPolicy } from '../services/deadlinePolicyService';
 import * as razorpay from '../services/razorpayService';
+import { foundationAccess } from '../services/foundationAccessService';
+
+/**
+ * A Foundation journey is the member's ninety days. Without membership its days cannot be opened or
+ * completed — a learner who has not taken it sees the preview on their roadmap instead.
+ */
+const foundationJourneyLocked = async (enrollment: any, tId: string, sId: string): Promise<boolean> =>
+  enrollment?.enrolledBy === 'foundation-journey' && (await foundationAccess(String(tId), String(sId))).level !== 'FULL';
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
 const userId   = (req: Request): string => (req as any).user?.id || '';
@@ -531,6 +539,9 @@ export const markContentComplete = async (req: Request, res: Response) => {
       _id: req.params.id, tenantId: tId, studentId: sId,
     });
     if (!enrollment) return res.status(404).json({ message: 'Enrollment not found' });
+    if (await foundationJourneyLocked(enrollment, tId, sId)) {
+      return res.status(403).json({ reason: 'MEMBERSHIP_REQUIRED', message: 'Take membership to work through your roadmap.' });
+    }
 
     // Add completed item if not already recorded
     const alreadyDone = enrollment.completedItems.some(
@@ -761,6 +772,9 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
 
     const enrollment = await CurriculumEnrollment.findOne({ _id: enrollmentId, tenantId: tId, studentId: sId }).lean();
     if (!enrollment) return res.status(404).json({ message: 'Enrollment not found' });
+    if (await foundationJourneyLocked(enrollment, tId, sId)) {
+      return res.status(403).json({ reason: 'MEMBERSHIP_REQUIRED', message: 'Take membership to open the days of your roadmap.' });
+    }
 
     const curriculum = await LearningCurriculum.findById(enrollment.curriculumId).lean();
     if (!curriculum) return res.status(404).json({ message: 'Curriculum not found' });

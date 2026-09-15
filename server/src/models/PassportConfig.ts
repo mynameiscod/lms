@@ -87,6 +87,11 @@ export interface IPassportConfig extends Document {
    */
   roadmapDays: number;
   /**
+   * How many days of their roadmap a learner sees before membership (the preview). The rest is
+   * locked until they take membership. Clamped to 1–30 by foundationAccessPolicy; default 7.
+   */
+  roadmapPreviewDays: number;
+  /**
    * Skill check-in policy (Module 13).
    *
    * Lives here rather than in a new collection because it is ordinary CareerPilot tenant
@@ -151,6 +156,7 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
     // the evidence a plan was built from is months stale and the personalisation is a claim
     // rather than a fact.
     roadmapDays: { type: Number, default: 90 },
+    roadmapPreviewDays: { type: Number, default: 7 },
     // Skill check-in policy. Optional throughout — an existing tenant document without this
     // subtree resolves to the shipped defaults, so nothing has to be backfilled.
     reassessment: {

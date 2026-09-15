@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import User from '../models/User';
 import PassportConfig from '../models/PassportConfig';
 import PassportProgress from '../models/PassportProgress';
+import { generateJourneyOnMembership } from './foundationMembershipService';
 
 /**
  * Activate a student's CareerPilot membership. Shared by the admin manual path
@@ -46,6 +47,9 @@ export async function activateMembership(tenantId: string, studentId: string): P
     { $setOnInsert: { tenantId, studentId: new mongoose.Types.ObjectId(studentId), startDate: user?.passport?.activatedAt || now } },
     { upsert: true }
   );
+
+  // A Foundation learner's ninety days are generated now, from the Skill DNA their preview showed.
+  await generateJourneyOnMembership(tenantId, studentId);
 
   return { activated: true, expiresAt };
 }

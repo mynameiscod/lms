@@ -30,6 +30,7 @@ import mongoose from 'mongoose';
 import User from '../models/User';
 import LearningCurriculum from '../models/LearningCurriculum';
 import { resolveCurriculumEngine } from './curriculumEngineService';
+import { foundationAccess } from './foundationAccessService';
 import { buildFoundationProfile } from './foundationProfileService';
 import { FOUNDATION_JOURNEY_KIND } from './foundationJourneyService';
 import { applyFoundationTrigger, directionChoiceFor, FoundationTriggerAction } from './foundationJourneyTriggerService';
@@ -38,6 +39,7 @@ export type BackfillDecision =
   | 'TOPIC_ENGINE'   // the resolver keeps this member on TOPIC; untouched
   | 'HAS_JOURNEY'    // already has a Foundation journey; untouched
   | 'NOT_READY'      // UNIT, but nothing measured to plan from; untouched
+  | 'NOT_MEMBER'     // UNIT and measured, but the ninety days are generated at membership; untouched
   | 'WOULD_CREATE';  // UNIT, measured, no journey — the one case that is acted on
 
 export interface BackfillRow {
@@ -99,6 +101,9 @@ export async function backfillFoundationJourneys(input: {
       tenantId, personalizedFor: u._id, adaptiveStage: stageKey, journeyKind: FOUNDATION_JOURNEY_KIND,
     });
     if (journey) { row.decision = 'HAS_JOURNEY'; continue; }
+
+    // Journeys belong to members; a non-member sees a preview composed when they look.
+    if ((await foundationAccess(tenantId, studentId)).level !== 'FULL') { row.decision = 'NOT_MEMBER'; continue; }
 
     const { summary } = await buildFoundationProfile(tenantId, studentId, directionChoiceFor(u.passport));
     row.measuredSkills = summary.measured;

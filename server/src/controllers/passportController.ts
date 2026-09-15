@@ -19,6 +19,7 @@ import PassportInterview from '../models/PassportInterview';
 import { normalizePhone, mobileError } from '../utils/phone';
 import { validateEngineConfigPatch, describeEngineConfig } from '../services/curriculumEngineService';
 import { foundationReadiness } from '../services/foundationReadinessService';
+import { clampPreviewDays } from '../data/foundationAccessPolicy';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -86,9 +87,11 @@ export const updateConfig = async (req: Request, res: Response) => {
     await ensureConfig(tenantId);
     // The allow-list is the whole security model for this endpoint, so a field absent from it
     // is silently discarded — a toggle that appears to save and changes nothing.
-    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'conceptLearningEnabled'];
+    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'roadmapPreviewDays', 'conceptLearningEnabled'];
     const $set: any = {};
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
+    // How many roadmap days a learner sees before membership — stored within its bounds.
+    if ($set.roadmapPreviewDays !== undefined) $set.roadmapPreviewDays = clampPreviewDays($set.roadmapPreviewDays);
     Object.assign($set, engine.set);
     const cfg = await PassportConfig.findOneAndUpdate({ tenantId }, { $set }, { new: true });
     res.json({ config: cfg, engine: describeEngineConfig(cfg as any), foundation: await foundationReadiness(tenantId) });
@@ -840,6 +843,10 @@ export const grantMembership = async (req: Request, res: Response) => {
       } },
       { upsert: true },
     );
+
+    // Same as a paid activation: a Foundation learner's ninety days are generated now.
+    const { generateJourneyOnMembership } = await import('../services/foundationMembershipService');
+    await generateJourneyOnMembership(tenantId, String(req.params.userId));
 
     res.json({ success: true, granted: true, expiresAt, days, reason });
   } catch (e: any) {

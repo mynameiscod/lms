@@ -34,6 +34,10 @@ import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
 import { FOUNDATION_JOURNEY_KIND } from '../services/foundationJourneyService';
 import { resolveCurriculumEngine } from '../services/curriculumEngineService';
 import { foundationReadiness, FOUNDATION_NOT_CONFIGURED_FOR_STUDENT } from '../services/foundationReadinessService';
+import { foundationAccess, FoundationAccess } from '../services/foundationAccessService';
+import { buildFoundationProfile } from '../services/foundationProfileService';
+import { composeFoundationJourney, loadAssets, activitiesFor } from '../services/foundationJourneyService';
+import { applyFoundationTrigger, directionChoiceFor } from '../services/foundationJourneyTriggerService';
 
 /**
  * Which engine plans this student, for the screens that must show exactly one plan.
@@ -92,6 +96,63 @@ const activityFor = (item: any) => ({
   sourceId: item.sourceId ? String(item.sourceId) : null,
 });
 
+const EMPTY_ASSETS: any = { content: [], quizzes: [], assignments: [] };
+
+/**
+ * The first days of a learner's own plan, as someone who has not taken membership may see them.
+ *
+ * Topics, objectives and what each day contains — enough to see the plan is theirs — and nothing to
+ * open: no enrollment and no activity ids. The rest of the ninety is counted, not shown.
+ */
+async function previewOf(
+  tenantId: string,
+  engine: string,
+  access: FoundationAccess,
+  days: { day: number; unitCode: string | null; title: string; items: any[] }[],
+) {
+  const codes = [...new Set(days.map(d => d.unitCode).filter(Boolean))] as string[];
+  const units = codes.length
+    ? await CurriculumLearningUnit.find({ tenantId, unitCode: { $in: codes } })
+      .select('unitCode title description learningOutcomes').lean() as any[]
+    : [];
+  const byCode = new Map(units.map(u => [String(u.unitCode), u]));
+  const minutesOf = (items: any[]) => items.reduce((n: number, i: any) => n + (Number(i.estimatedDuration) || 0), 0);
+
+  return {
+    available: true,
+    access: 'PREVIEW',
+    engine,
+    title: 'CareerPilot Foundation Journey',
+    totalDays: FOUNDATION_PROGRAM_DAYS,
+    previewDays: access.previewDays,
+    lockedDays: FOUNDATION_PROGRAM_DAYS - days.length,
+    currentDay: 1,
+    completedCount: 0,
+    percentComplete: 0,
+    startedAt: null,
+    enrollmentId: null,
+    message: `These are the first ${days.length} days of your personalised ${FOUNDATION_PROGRAM_DAYS}-day roadmap. `
+      + `Take membership to unlock all ${FOUNDATION_PROGRAM_DAYS} days.`,
+    days: days.map((d, i) => ({
+      day: d.day, title: d.title, activities: d.items.length, minutes: minutesOf(d.items),
+      status: i === 0 ? 'CURRENT' : 'UPCOMING',
+    })),
+    preview: days.map(d => {
+      const unit = d.unitCode ? byCode.get(String(d.unitCode)) : null;
+      return {
+        day: d.day,
+        title: d.title || unit?.title || `Day ${d.day}`,
+        objective: unit?.description || null,
+        outcomes: unit?.learningOutcomes || [],
+        minutes: minutesOf(d.items),
+        activities: d.items.slice().sort((a: any, b: any) => (a.order || 0) - (b.order || 0)).map((i: any) => ({
+          title: i.contentTitle, type: i.contentType, minutes: Number(i.estimatedDuration) || 0, gating: !!i.isGating,
+        })),
+      };
+    }),
+  };
+}
+
 /**
  * GET /passport/me/foundation-journey
  *
@@ -103,7 +164,38 @@ export const getMyJourney = async (req: Request, res: Response) => {
     const studentId = userIdOf(req);
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
 
-    const [curriculum, engine] = await Promise.all([journeyOf(tenantId, studentId), engineOf(tenantId, studentId)]);
+    let curriculum: any;
+    let engine: string;
+    [curriculum, engine] = await Promise.all([journeyOf(tenantId, studentId), engineOf(tenantId, studentId)]);
+
+    /**
+     * How much of the ninety this learner may see — membership decides: the whole journey, a preview
+     * of its first days (the admin sets how many), or nothing until they take membership.
+     */
+    const access: FoundationAccess = engine === 'UNIT'
+      ? await foundationAccess(tenantId, studentId)
+      : { level: 'FULL', previewDays: 0 };
+    const membershipRequired = () => res.json({
+      available: false,
+      reason: 'MEMBERSHIP_REQUIRED',
+      access: 'LOCKED',
+      message: `Take membership to see your ${FOUNDATION_PROGRAM_DAYS}-day Foundation roadmap.`,
+      totalDays: FOUNDATION_PROGRAM_DAYS,
+      engine,
+      enrollmentId: null,
+    });
+    const notCreated = (why: string) => {
+      console.error(`[foundation-journey] ${why}`);
+      return res.json({
+        available: false,
+        reason: 'JOURNEY_NOT_CREATED',
+        message: 'Your 90-day roadmap could not be prepared just now. Please try again in a little while.',
+        totalDays: FOUNDATION_PROGRAM_DAYS,
+        engine,
+        enrollmentId: null,
+      });
+    };
+
     if (!curriculum) {
       /**
        * Not an error. A student who has not been given a journey yet is an ordinary state —
@@ -125,14 +217,56 @@ export const getMyJourney = async (req: Request, res: Response) => {
           enrollmentId: null,
         });
       }
-      return res.json({
-        available: false,
-        reason: 'NO_JOURNEY',
-        message: 'Your Foundation journey has not been created yet.',
-        totalDays: FOUNDATION_PROGRAM_DAYS,
-        engine,
-        enrollmentId: null,
-      });
+      if (engine === 'UNIT' && access.level === 'LOCKED') return membershipRequired();
+
+      if (engine === 'UNIT') {
+        const member = await User.findOne({ _id: studentId, tenantId }).select('passport').lean() as any;
+        const { profile, summary } = await buildFoundationProfile(tenantId, studentId, directionChoiceFor(member?.passport));
+
+        if (summary.measured && access.level === 'PREVIEW') {
+          /**
+           * THE PREVIEW IS THEIR OWN PLAN. Composed on read from their Skill DNA — exactly what
+           * membership will generate — and nothing is stored, so there is nothing to keep in step.
+           */
+          const { composition } = await composeFoundationJourney(tenantId, profile, { source: 'PRODUCTION', stageKey: 'foundation' });
+          if (!composition.ok || composition.units.length !== FOUNDATION_PROGRAM_DAYS) {
+            return notCreated(`preview for ${studentId}: ${composition.units.length} of ${FOUNDATION_PROGRAM_DAYS} days composed`);
+          }
+          const first = composition.units.slice(0, access.previewDays);
+          const assets = await loadAssets(tenantId, first.map(u => u.unitCode));
+          return res.json(await previewOf(tenantId, engine, access, first.map((u, i) => ({
+            day: i + 1,
+            unitCode: u.unitCode,
+            title: u.title,
+            items: activitiesFor(u, assets.get(u.unitCode.toUpperCase()) || EMPTY_ASSETS),
+          }))));
+        }
+
+        if (summary.measured && access.level === 'FULL') {
+          /**
+           * A MEMBER WITH SKILL DNA AND NO JOURNEY GETS ONE NOW.
+           *
+           * Membership normally generates it. This covers every member it could not reach — assessed
+           * before this existed, a tenant that made the roadmap free, a generation that failed — through
+           * the same production trigger, so the result is the journey membership would have made.
+           */
+          const built = await applyFoundationTrigger({ tenantId, studentId, trigger: 'SIGNIFICANT_MASTERY_CHANGE', stageKey: 'foundation' });
+          curriculum = await journeyOf(tenantId, studentId);
+          if (!curriculum) return notCreated(`generation on read for ${studentId}: ${built.action} ${built.reason || ''}`);
+        }
+      }
+
+      if (!curriculum) {
+        return res.json({
+          available: false,
+          reason: 'NO_JOURNEY',
+          message: 'Your Foundation journey has not been created yet.',
+          totalDays: FOUNDATION_PROGRAM_DAYS,
+          engine,
+          access: access.level,
+          enrollmentId: null,
+        });
+      }
     }
 
     const [days, enrollment] = await Promise.all([
@@ -169,6 +303,14 @@ export const getMyJourney = async (req: Request, res: Response) => {
       });
     }
 
+    // A stored journey whose learner is not (or no longer) a member shows only its preview.
+    if (engine === 'UNIT' && access.level === 'LOCKED') return membershipRequired();
+    if (engine === 'UNIT' && access.level === 'PREVIEW') {
+      return res.json(await previewOf(tenantId, engine, access, (days as any[]).slice(0, access.previewDays).map(d => ({
+        day: d.dayNumber, unitCode: d.primaryUnitCode || null, title: d.title, items: d.items || [],
+      }))));
+    }
+
     const completed = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
     const currentDay = Math.min(
       Math.max(Number(enrollment?.currentDay || 1), 1), FOUNDATION_PROGRAM_DAYS,
@@ -201,6 +343,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
       percentComplete: Math.round((completed.size / FOUNDATION_PROGRAM_DAYS) * 100),
       startedAt: enrollment?.startDate || null,
       engine,
+      access: 'FULL',
       /** Where a day is actually worked through: the learning-plan day player. */
       enrollmentId: enrollment?._id ? String(enrollment._id) : null,
       days: strip,
@@ -225,6 +368,12 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
     const dayNumber = Number(req.params.dayNumber);
     if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > FOUNDATION_PROGRAM_DAYS) {
       return res.status(400).json({ message: `A journey day is between 1 and ${FOUNDATION_PROGRAM_DAYS}.` });
+    }
+
+    // Beyond the preview, a day is refused on the server — not merely hidden on the screen.
+    const access = await foundationAccess(tenantId, studentId);
+    if (access.level === 'LOCKED' || (access.level === 'PREVIEW' && dayNumber > access.previewDays)) {
+      return res.status(403).json({ reason: 'MEMBERSHIP_REQUIRED', message: `Take membership to open day ${dayNumber} of your roadmap.` });
     }
 
     const curriculum = await journeyOf(tenantId, studentId);
@@ -299,6 +448,8 @@ export const getStudentJourney = async (req: Request, res: Response) => {
     if (!member) return res.status(404).json({ message: 'No such member in this tenant.' });
 
     const [curriculum, engine] = await Promise.all([journeyOf(tenantId, studentId), engineOf(tenantId, studentId)]);
+    // Whether this member sees all ninety days or only the preview — what the admin is asked about.
+    const access = engine === 'UNIT' ? await foundationAccess(tenantId, studentId) : null;
     const student = {
       name: [member.firstName, member.lastName].filter(Boolean).join(' ') || member.email || 'Member',
       email: member.email || null,
@@ -311,6 +462,7 @@ export const getStudentJourney = async (req: Request, res: Response) => {
         available: false,
         reason: readiness && !readiness.configured ? 'NOT_CONFIGURED' : 'NO_JOURNEY',
         readiness,
+        access,
         engine,
         student,
         totalDays: FOUNDATION_PROGRAM_DAYS,
@@ -345,6 +497,7 @@ export const getStudentJourney = async (req: Request, res: Response) => {
       available: true,
       engine,
       student,
+      access,
       curriculumId: String(curriculum._id),
       enrollmentId: enrollment?._id ? String(enrollment._id) : null,
       totalDays: FOUNDATION_PROGRAM_DAYS,

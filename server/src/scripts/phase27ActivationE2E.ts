@@ -56,6 +56,7 @@ import { backfillFoundationJourneys } from '../services/foundationJourneyBackfil
 import { resolveCurriculumEngine } from '../services/curriculumEngineService';
 import { foundationReadiness } from '../services/foundationReadinessService';
 import { effectiveCurriculumEngine } from '../data/curriculumEnginePolicy';
+import { clampPreviewDays } from '../data/foundationAccessPolicy';
 import { checkCurriculumQuizLinkage } from '../services/quizLinkageService';
 import { diagnosticSkills, masteredBy } from '../services/composerCertificationService';
 import { getSkillDna } from '../services/skillDnaService';
@@ -822,6 +823,47 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
 
     const again = await backfillFoundationJourneys({ tenantId, apply: true, studentIds: scope });
     check('backfill', 'a second run creates nothing', again.created === 0 && decisionOf(again, 'strong') === 'HAS_JOURNEY');
+  }
+
+  /* ══ 9c. MEMBERSHIP — PREVIEW, THEN THE NINETY DAYS ═══════════════════════════════════════ */
+
+  section('9c. MEMBERSHIP — a non-member sees only the preview; membership generates the ninety days');
+  {
+    const s = await createStudent('preview', 'foundation', 'NOT_SURE');
+    const sOid = new mongoose.Types.ObjectId(s.id);
+    await User.updateOne({ _id: sOid }, { $set: { 'passport.active': false } });
+    const cfgDoc = await db.collection('passportconfigs').findOne({ tenantId });
+    const previewDays = clampPreviewDays(cfgDoc?.roadmapPreviewDays);
+
+    const { res, mark } = await sitDiagnostic('preview', (_k, n) => n % 2 === 0);
+    const routed = await awaitRouting(s.id, 'DIAGNOSTIC_COMPLETED', mark, 'UNIT');
+    check('membership', 'a non-member’s skill check measures them but stores no journey',
+      res.status === 200 && routed.action === 'NOT_READY' && /MEMBERSHIP_REQUIRED/.test(String(routed.line))
+        && !(await LearningCurriculum.countDocuments({ personalizedFor: sOid, journeyKind: FOUNDATION_JOURNEY_KIND })),
+      routed.line || '');
+
+    const preview = await as(s.token, request(api).get('/api/v1/careerpilot/me/foundation-journey'));
+    check('membership', `their roadmap shows only the first ${previewDays} days of their own plan, the rest locked`,
+      preview.status === 200 && preview.body?.access === 'PREVIEW' && (preview.body?.days || []).length === previewDays
+        && (preview.body?.preview || []).length === previewDays && preview.body?.lockedDays === 90 - previewDays
+        && preview.body?.totalDays === 90 && !preview.body?.enrollmentId && !!preview.body?.preview?.[0]?.title,
+      `access ${preview.body?.access}, ${(preview.body?.days || []).length} day(s), locked ${preview.body?.lockedDays}`);
+    const beyond = await as(s.token, request(api).get(`/api/v1/careerpilot/me/foundation-journey/day/${previewDays + 1}`));
+    check('membership', 'a day beyond the preview is refused on the server', beyond.status === 403, `HTTP ${beyond.status}`);
+    const legacy = await as(s.token, request(api).get('/api/v1/passport/roadmap'));
+    check('membership', 'and they are never given the topic roadmap instead', legacy.body?.engine === 'UNIT' && legacy.body?.roadmap === null);
+
+    const grant = await as(adminToken, request(api).post(`/api/v1/careerpilot/members/${s.id}/grant`)).send({ days: 30, reason: 'p27-e2e membership acceptance' });
+    const full = await as(s.token, request(api).get('/api/v1/careerpilot/me/foundation-journey'));
+    const journeyDoc = await LearningCurriculum.findOne({ personalizedFor: sOid, journeyKind: FOUNDATION_JOURNEY_KIND }).lean() as any;
+    const stored = journeyDoc ? await DayPlan.countDocuments({ curriculumId: journeyDoc._id }) : 0;
+    check('membership', 'membership generates their full ninety days, unlocked',
+      grant.status === 200 && full.body?.access === 'FULL' && full.body?.available === true && (full.body?.days || []).length === 90
+        && !!full.body?.enrollmentId && stored === 90 && journeyDoc?.journeySource === 'PRODUCTION',
+      `grant HTTP ${grant.status}, access ${full.body?.access}, ${(full.body?.days || []).length} day(s), ${stored} DayPlans`);
+    check('membership', 'the ninety days begin with the days the preview showed — the same Skill DNA, the same plan',
+      (preview.body?.preview || []).every((d: any, i: number) => full.body?.days?.[i]?.title === d.title),
+      `${(preview.body?.preview || []).map((d: any) => d.title).slice(0, 3).join(' | ')}`);
   }
 
   } // journeysReady

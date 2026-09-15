@@ -13,6 +13,7 @@ import { buildRoadmap, toPreview } from '../services/passportRoadmapService';
 import { buildCurriculumJourney } from '../services/curriculumJourneyService';
 import { resolveCurriculumEngine } from '../services/curriculumEngineService';
 import { foundationReadiness } from '../services/foundationReadinessService';
+import { clampPreviewDays } from '../data/foundationAccessPolicy';
 import { ensureCurriculumRoadmap } from '../services/careerRoadmapService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
@@ -154,7 +155,7 @@ export const getRoadmap = async (req: Request, res: Response) => {
       return res.json({
         roadmap: entitled
           ? curriculum.roadmap
-          : canPreview ? toPreview(curriculum.roadmap, 7) : null,
+          : canPreview ? toPreview(curriculum.roadmap, clampPreviewDays((cfg as any)?.roadmapPreviewDays)) : null,
         entitled,
         canPreview,
         priceInr: cfg?.priceInr ?? 499,
@@ -190,7 +191,7 @@ export const getRoadmap = async (req: Request, res: Response) => {
     });
 
     res.json({
-      roadmap: entitled ? full : canPreview ? toPreview(full, 7) : null,
+      roadmap: entitled ? full : canPreview ? toPreview(full, clampPreviewDays((cfg as any)?.roadmapPreviewDays)) : null,
       entitled,
       /** False when even the preview is closed, so the screen offers membership, not an empty plan. */
       canPreview,

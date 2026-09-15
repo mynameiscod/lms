@@ -30,7 +30,7 @@ const TodayJourneyCard: React.FC = () => {
         const j = await passportApi.myFoundationJourney();
         if (cancelled) return;
         setJourney(j);
-        if (j.engine === 'UNIT' && j.available && j.currentDay) {
+        if (j.engine === 'UNIT' && j.available && j.access !== 'PREVIEW' && j.currentDay) {
           const d = await passportApi.myFoundationJourneyDay(j.currentDay);
           if (!cancelled) setDay(d);
         }
@@ -60,6 +60,29 @@ const TodayJourneyCard: React.FC = () => {
           you already know. Take it and your journey appears here and on My Roadmap.
         </p>
         <button className="gd-btn primary" onClick={() => nav('/careerpilot/skill-assessment')}>Take your skill check</button>
+      </div>
+    );
+  }
+
+  // Before membership: the first day of their own plan, and the offer to unlock the rest.
+  if (journey.access === 'PREVIEW') {
+    const first = journey.preview?.[0];
+    const total = journey.totalDays ?? 90;
+    return (
+      <div className="gd-card" style={{ marginTop: 14 }}>
+        <div className="gd-card-hd">
+          <h2><i className="bi bi-map" /> Your {total}-day Foundation journey</h2>
+          <span className="gd-timer">First {journey.preview?.length ?? 0} days open</span>
+        </div>
+        {first && (
+          <p style={{ margin: '0 0 10px' }}>
+            Day 1 · <b>{first.title}</b>{first.objective ? ` — ${first.objective}` : ''}
+          </p>
+        )}
+        <p style={{ margin: '0 0 12px', color: '#475569' }}>
+          🔒 Take membership to unlock and start all {total} days of your roadmap.
+        </p>
+        <button className="gd-btn primary" onClick={() => nav('/careerpilot/roadmap')}>See my roadmap</button>
       </div>
     );
   }

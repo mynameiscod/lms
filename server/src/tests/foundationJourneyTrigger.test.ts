@@ -54,6 +54,11 @@ jest.mock('../services/foundationReadinessService', () => ({
   __esModule: true,
   foundationReadiness: (...a: any[]) => foundationReadiness(...a),
 }));
+const foundationAccess = jest.fn();
+jest.mock('../services/foundationAccessService', () => ({
+  __esModule: true,
+  foundationAccess: (...a: any[]) => foundationAccess(...a),
+}));
 
 import { applyFoundationTrigger, directionChoiceFor } from '../services/foundationJourneyTriggerService';
 
@@ -74,6 +79,26 @@ beforeEach(() => {
   checkJourneyIntegrity.mockReset().mockResolvedValue({ ok: true, days: 90, expected: 90, missing: [], duplicates: [] });
   recomposeFutureDays.mockReset().mockResolvedValue({ ok: true, frozenDays: [1, 2, 3], rewrittenDays: [4, 5], unchangedFutureDays: [], totalDays: 90 });
   foundationReadiness.mockReset().mockResolvedValue({ configured: true, reason: null, publishedUnits: 338, skillCheckMappings: 700, message: null });
+  foundationAccess.mockReset().mockResolvedValue({ level: 'FULL', previewDays: 7 });
+});
+
+describe('a Foundation learner who has not taken membership', () => {
+  it.each(['PREVIEW', 'LOCKED'])('is measured but given no journey while access is %s — membership generates it', async (level) => {
+    foundationAccess.mockResolvedValue({ level, previewDays: 7 });
+    const out = await trigger();
+    expect(out).toMatchObject({ action: 'NOT_READY', reason: 'MEMBERSHIP_REQUIRED', measuredSkills: 6 });
+    expect(persistFoundationJourney).not.toHaveBeenCalled();
+    expect(enrollmentCreate).not.toHaveBeenCalled();
+  });
+
+  it('keeps an existing journey up to date whatever their access', async () => {
+    foundationAccess.mockResolvedValue({ level: 'PREVIEW', previewDays: 7 });
+    journey = { _id: JOURNEY };
+    enrollment = { _id: 'e1' };
+    const out = await trigger('MODULE_ASSESSMENT_COMPLETED');
+    expect(out.action).toBe('RECOMPOSED');
+    expect(recomposeFutureDays).toHaveBeenCalled();
+  });
 });
 
 describe('a Foundation learner on a tenant that was never provisioned', () => {

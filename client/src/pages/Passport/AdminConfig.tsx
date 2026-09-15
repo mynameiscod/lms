@@ -75,6 +75,7 @@ const PassportAdminConfig: React.FC = () => {
         // Same number in both places. The planner still clamps it to its own ceiling when it
         // reads, which is what the note above the field explains.
         roadmapDays: journeyDays,
+        roadmapPreviewDays: cfg.roadmapPreviewDays ?? 7,
         entitlements: cfg.entitlements, onboardingFields: cfg.onboardingFields,
       });
       setCfg(saved);
@@ -171,6 +172,15 @@ const PassportAdminConfig: React.FC = () => {
                   first <b>90</b> and is rebuilt at the next assessment.
                 </>
               )}
+            </span>
+          </div>
+          <div>
+            <span style={label}>Roadmap preview (days)</span>
+            <input style={{ ...input, width: 110 }} type="number" min={1} max={30}
+              value={cfg.roadmapPreviewDays ?? 7}
+              onChange={e => setCfg({ ...cfg, roadmapPreviewDays: Number(e.target.value) || 7 })} />
+            <span style={{ display: 'block', fontSize: 11, color: '#8494a8', marginTop: 4, maxWidth: 240 }}>
+              Days of their own roadmap a student sees before membership (1–30). Membership unlocks all of it.
             </span>
           </div>
           <div>

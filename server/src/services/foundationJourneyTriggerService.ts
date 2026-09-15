@@ -37,6 +37,7 @@ import {
 } from './foundationJourneyService';
 import { recomposeFutureDays } from './foundationRecompositionService';
 import { foundationReadiness } from './foundationReadinessService';
+import { foundationAccess } from './foundationAccessService';
 
 export type FoundationTriggerAction =
   | 'CREATED'      // a ninety-day journey was written
@@ -164,6 +165,14 @@ export async function applyFoundationTrigger(input: {
       const readiness = await foundationReadiness(tenantId);
       if (!readiness.configured) {
         return { action: 'REFUSED', reason: `NOT_CONFIGURED: ${readiness.reason}`, measuredSkills: summary.measured };
+      }
+      /**
+       * The ninety days are generated at membership. Before it, a learner sees a preview composed on
+       * read from the same Skill DNA; nothing is stored for them, so there is nothing to keep in step.
+       */
+      const access = await foundationAccess(tenantId, studentId);
+      if (access.level !== 'FULL') {
+        return { action: 'NOT_READY', reason: 'MEMBERSHIP_REQUIRED', measuredSkills: summary.measured };
       }
       // PRODUCTION: PUBLISHED && READY. Exactly ninety is checked inside, before the first write.
       const built = await persistFoundationJourney(tenantId, sid, profile, { source: 'PRODUCTION', stageKey });

@@ -99,9 +99,9 @@ describe('the answer-length tell', () => {
    * the threshold is ten characters AND a sixth of the correct option's own length, which is
    * the point at which one option looks like the essay answer.
    *
-   * The practice bank is allowed a higher ceiling because it has not been through the rewrite
-   * pass yet and does not feed evidence. Both ceilings are deliberately just above where the
-   * bank sits, so an added question that reintroduces the tell fails here rather than shipping.
+   * Every ceiling is set just above where that bank now sits, so a question added later that
+   * reintroduces the tell fails here rather than shipping. The checkpoint bank is held tighter
+   * than the practice bank because only it feeds evidence.
    */
   const visiblyTells = (q: PilotMcq): boolean => {
     const opts = q.options || [];
@@ -118,12 +118,17 @@ describe('the answer-length tell', () => {
     return rows.filter(r => visiblyTells(r.q)).length / rows.length;
   };
 
-  it('is at chance in the graded checkpoint bank', () => {
-    expect(share('checkpoint')).toBeLessThanOrEqual(0.30);
+  it('is gone from the graded checkpoint bank', () => {
+    expect(share('checkpoint')).toBeLessThanOrEqual(0.10);
   });
 
-  it('does not get worse in the practice bank', () => {
-    expect(share('practice')).toBeLessThanOrEqual(0.85);
+  it('is at or below chance in the practice bank', () => {
+    expect(share('practice')).toBeLessThanOrEqual(0.35);
+  });
+
+  it('is at or below chance across the whole bank', () => {
+    const all = allQuestions.filter(r => visiblyTells(r.q)).length / allQuestions.length;
+    expect(all).toBeLessThanOrEqual(0.25);
   });
 });
 

@@ -707,6 +707,7 @@ function auditQuestion(unitCode: string, where: string, q: AuditableQuestion): v
    */
   let judged = 0;
   let longestWins = 0;
+  let visibleTell = 0;
   for (const c of dupRows) {
     for (const q of ((c.practiceQuestions || []) as any[])) {
       const opts = (q.options || []) as any[];
@@ -716,14 +717,25 @@ function auditQuestion(unitCode: string, where: string, q: AuditableQuestion): v
       judged++;
       const lens = opts.map(o => String(o.text).length);
       const max = Math.max(...lens);
-      if (String(correct.text).length === max) longestWins += 1 / lens.filter(l => l === max).length;
+      const correctLen = String(correct.text).length;
+      if (correctLen === max) longestWins += 1 / lens.filter(l => l === max).length;
+      /*
+       * A margin a reader can actually see, matching reportQuestionQuality.ts. Longest by one
+       * character is not a tell anybody can use; ten characters AND a sixth of the option's
+       * own length is the point at which one answer starts to look like the essay.
+       */
+      const gap = correctLen - Math.max(...opts.filter(o => !o.isCorrect).map(o => String(o.text).length));
+      if (gap >= 10 && gap >= correctLen / 6) visibleTell++;
     }
   }
   if (judged) {
     console.log('\n');
     line();
-    console.log(`  ANSWER-LENGTH TELL  ·  "always pick the longest option" scores ` +
-      `${((longestWins / judged) * 100).toFixed(1)}% across ${judged} stored MCQs (chance is about 25%)`);
+    console.log(`  ANSWER-LENGTH TELL over ${judged} stored practice MCQs (chance is about 25%)`);
+    console.log(`    correct option is the longest           ${((longestWins / judged) * 100).toFixed(1).padStart(5)}%`);
+    console.log(`    correct option is VISIBLY the longest   ${((visibleTell / judged) * 100).toFixed(1).padStart(5)}%   <- the exploitable one`);
+    console.log(`    reportQuestionQuality.ts breaks this down per unit and also covers the`);
+    console.log(`    checkpoint bank, which lives in Question rows rather than in the library.`);
   }
 
   const count = (s: Severity) => findings.filter(f => f.severity === s).length;

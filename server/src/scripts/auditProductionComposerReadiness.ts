@@ -789,7 +789,9 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   console.log(`    composeFoundationJourney(PRODUCTION, beginner): ok=${prodJourney.composition.ok} `
     + `candidates=${prodJourney.candidates} selected=${prodJourney.composition.units.length} code=${prodJourney.composition.code || '-'}`);
   console.log(`    curriculum engine                  ${engine}  (${configs.length} PassportConfig document(s))`);
-  console.log('    Production composition refuses by design while nothing is published.');
+  console.log(before.published
+    ? '    Production composes from what is published — PUBLISHED and READY, nothing else.'
+    : '    Production composition refuses by design while nothing is published.');
 
   /* ══ PUBLICATION REQUIRED ════════════════════════════════════════════════════════════════ */
 
@@ -798,7 +800,8 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
     .find({ tenantId: TID, unitCode: { $in: [...recommended] } }).project({ unitCode: 1, status: 1, unitType: 1 }).toArray();
   const gateProblems: string[] = [];
   for (const d of unitDocs) {
-    if (d.status !== 'DRAFT') gateProblems.push(`${d.unitCode} is ${d.status}`);
+    // PUBLISHED is the state the authorised publication leaves a certified unit in, not a problem.
+    if (d.status !== 'DRAFT' && d.status !== 'PUBLISHED') gateProblems.push(`${d.unitCode} is ${d.status}`);
     if (typeRequiresTeaching(d.unitType) && !(ownByUnit.get(d.unitCode) || []).some(r => r.isPublished && teaches(String(r.type)))) {
       gateProblems.push(`${d.unitCode} has no own teaching row; the publish route would refuse it`);
     }
@@ -813,6 +816,23 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   if (gateProblems.length) setFailures.push(`${gateProblems.length} recommended units would be refused by the publish route`);
 
   /* ══ ARTIFACTS ═══════════════════════════════════════════════════════════════════════════ */
+
+  /**
+   * CERTIFIED-SET DRIFT. Once a publish set has been certified and committed, publication is
+   * authorised for THAT set. A later read-only run must reproduce it exactly from the database, or
+   * the database, the curriculum or the composer has moved since certification.
+   */
+  const certifiedPath = path.join(ARTIFACT_DIR, 'publish-sets.json');
+  if (!writeArtifacts && fs.existsSync(certifiedPath)) {
+    const certified = JSON.parse(fs.readFileSync(certifiedPath, 'utf8'));
+    const sameCodes = (a: string[], b: string[]) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
+    const drift: string[] = [];
+    if (certified.readyCount !== universe.length) drift.push(`READY ${universe.length} vs certified ${certified.readyCount}`);
+    if (!sameCodes(certified.recommended, [...recommended])) drift.push('recommended set differs');
+    if (!sameCodes(certified.absoluteMinimum, [...minimum])) drift.push('absolute minimum differs');
+    console.log(`\n  committed certified publish sets reproduced from the database: ${drift.length ? `NO — ${drift.join('; ')}` : 'yes'}`);
+    if (drift.length) defects.push(`certified publish sets drifted: ${drift.join('; ')}`);
+  }
 
   if (writeArtifacts) {
     fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
@@ -838,8 +858,18 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   console.log(`    unit status fingerprint ${after.unitStatusHash}  unchanged: ${before.unitStatusHash === after.unitStatusHash ? 'yes' : 'NO'}`);
   console.log(`    every audited collection count unchanged: ${same ? 'yes' : 'NO'}`);
   if (!same) defects.push('the database changed during a read-only audit');
-  if (after.published !== 0 || after.journeys !== 0 || after.counts.dayplans !== 0 || engine !== 'TOPIC') {
-    defects.push('exit state is not PUBLISHED=0 / journeys=0 / DayPlans=0 / engine OFF');
+  /**
+   * PUBLISHED is 0 before the authorised Phase-21 publication and EXACTLY the certified recommended
+   * set after it. A unit published outside the set, or a publication left half done, is a defect.
+   */
+  const publishedCodes = (await db.collection('curriculumlearningunits')
+    .find({ tenantId: TID, status: 'PUBLISHED' }).project({ unitCode: 1 }).toArray())
+    .map(u => String(u.unitCode)).sort();
+  const publishedIsCertified = publishedCodes.length === 0
+    || JSON.stringify(publishedCodes) === JSON.stringify([...recommended].sort());
+  console.log(`    published units are ${publishedCodes.length ? (publishedIsCertified ? 'exactly the certified set' : 'NOT the certified set') : 'none'}`);
+  if (!publishedIsCertified || after.journeys !== 0 || after.counts.dayplans !== 0 || engine !== 'TOPIC') {
+    defects.push('exit state is not PUBLISHED = 0 or the certified set / journeys=0 / DayPlans=0 / engine OFF');
   }
 
   const blocked = defects.length + setFailures.length + capacity.length > 0;

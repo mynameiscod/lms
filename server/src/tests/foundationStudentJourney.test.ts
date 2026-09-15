@@ -241,6 +241,39 @@ describe('which plan the student screens show', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+describe('a journey that is still being written', () => {
+  it('is not shown while its days are still being written — no partial strip', async () => {
+    seed();
+    curricula[0].createdAt = new Date();
+    dayPlans.splice(51); // days 1..51 written, 52..90 not yet
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+
+    expect(out.status).toBe(200);
+    expect(out.body).toMatchObject({ available: false, reason: 'BEING_PREPARED', totalDays: 90, engine: 'UNIT', enrollmentId: null });
+    expect(out.body.days).toBeUndefined();
+  });
+
+  it('is not shown before its enrollment exists, so the Start button never opens nothing', async () => {
+    seed();
+    curricula[0].createdAt = new Date();
+    enrollments.length = 0;
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+    expect(out.body).toMatchObject({ available: false, reason: 'BEING_PREPARED', enrollmentId: null });
+  });
+
+  it('is reported as incomplete, not as preparing, when it never finished', async () => {
+    seed();
+    curricula[0].createdAt = new Date(Date.now() - 10 * 60_000);
+    dayPlans.splice(89);
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+    expect(out.body).toMatchObject({ available: false, reason: 'JOURNEY_INCOMPLETE' });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 describe('the journey overview', () => {
   beforeEach(seed);
 

@@ -59,8 +59,17 @@ async function journeyOf(tenantId: string, studentId: string) {
     personalizedFor: new mongoose.Types.ObjectId(studentId),
     adaptiveStage: 'foundation',
     journeyKind: FOUNDATION_JOURNEY_KIND,
-  }).select('_id title').lean() as any;
+  }).select('_id title createdAt').lean() as any;
 }
+
+/**
+ * How long a journey that is not yet whole is reported as being prepared.
+ *
+ * Creation writes the journey, then its ninety days, then the enrollment — well under a second. A
+ * journey still missing days or its enrollment after this long did not finish, and is reported as
+ * such instead of asking the student to wait for something that is not coming.
+ */
+const JOURNEY_PREPARATION_WINDOW_MS = 2 * 60_000;
 
 /**
  * An activity, stripped to what a student needs to act on it.
@@ -134,6 +143,31 @@ export const getMyJourney = async (req: Request, res: Response) => {
         studentId: new mongoose.Types.ObjectId(studentId),
       }).select('completedDays currentDay startDate').lean() as any,
     ]);
+
+    /**
+     * A JOURNEY IS SHOWN ONLY ONCE IT IS WHOLE.
+     *
+     * The journey record is written first, then its ninety days, then the enrollment. A read that
+     * lands in between — which is exactly when a student arrives, straight from submitting the skill
+     * check — used to be answered `available` with a partial strip ("Day 1 of 90" over fifty-one
+     * days) and no enrollment, so the Start button had nothing to open. Ninety days and an
+     * enrollment, or it is not ready yet.
+     */
+    const whole = new Set((days as any[]).map(d => Number(d.dayNumber))).size === FOUNDATION_PROGRAM_DAYS && !!enrollment;
+    if (!whole) {
+      const ageMs = curriculum.createdAt ? Date.now() - new Date(curriculum.createdAt).getTime() : Number.POSITIVE_INFINITY;
+      const preparing = ageMs < JOURNEY_PREPARATION_WINDOW_MS;
+      return res.json({
+        available: false,
+        reason: preparing ? 'BEING_PREPARED' : 'JOURNEY_INCOMPLETE',
+        message: preparing
+          ? 'Your 90-day Foundation journey is being prepared. This takes a few seconds.'
+          : 'Your 90-day Foundation journey could not be finished. Please contact your CareerPilot admin.',
+        totalDays: FOUNDATION_PROGRAM_DAYS,
+        engine,
+        enrollmentId: null,
+      });
+    }
 
     const completed = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
     const currentDay = Math.min(

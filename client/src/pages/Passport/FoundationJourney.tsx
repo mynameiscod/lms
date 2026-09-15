@@ -67,7 +67,7 @@ const mins = (n: number) =>
  * For a student the unit engine plans, the skill check is what creates the journey, so the one
  * thing to press is offered here rather than leaving them on a message with nothing to do.
  */
-const NotReady: React.FC<{ totalDays: number; message?: string; onAssess?: () => void; notConfigured?: boolean }> = ({ totalDays, message, onAssess, notConfigured }) => (
+const NotReady: React.FC<{ totalDays: number; message?: string; onAssess?: () => void; notConfigured?: boolean; preparing?: boolean }> = ({ totalDays, message, onAssess, notConfigured, preparing }) => (
   <div className="fj-page">
     <header className="fj-head">
       <div>
@@ -82,7 +82,9 @@ const NotReady: React.FC<{ totalDays: number; message?: string; onAssess?: () =>
       <p>
         {notConfigured
           ? `Your Foundation programme is ${totalDays} learning days. It will appear here as soon as it has been set up.`
-          : `Your Foundation programme is ${totalDays} learning days, personalised to what you already know. It appears here once your skill check is complete.`}
+          : preparing
+            ? `Your Foundation programme is ${totalDays} learning days, personalised to what you already know. This page updates by itself.`
+            : `Your Foundation programme is ${totalDays} learning days, personalised to what you already know. It appears here once your skill check is complete.`}
       </p>
       {onAssess && (
         <button type="button" className="fj-start" onClick={onAssess}>Take your skill check</button>
@@ -112,6 +114,13 @@ const FoundationJourneyPage: React.FC = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // A journey written seconds ago is re-checked until it is whole, so the student lands on it.
+  useEffect(() => {
+    if (!journey || journey.available || journey.reason !== 'BEING_PREPARED') return undefined;
+    const t = setTimeout(() => { load(); }, 3000);
+    return () => clearTimeout(t);
+  }, [journey, load]);
 
   /**
    * The open day is fetched on its own.
@@ -153,8 +162,9 @@ const FoundationJourneyPage: React.FC = () => {
       <NotReady
         totalDays={journey.totalDays}
         message={journey.message}
-        notConfigured={journey.reason === 'NOT_CONFIGURED'}
-        onAssess={journey.engine === 'UNIT' && journey.reason !== 'NOT_CONFIGURED' ? () => nav('/careerpilot/skill-assessment') : undefined}
+        notConfigured={journey.reason === 'NOT_CONFIGURED' || journey.reason === 'JOURNEY_INCOMPLETE'}
+        preparing={journey.reason === 'BEING_PREPARED'}
+        onAssess={journey.engine === 'UNIT' && journey.reason === 'NO_JOURNEY' ? () => nav('/careerpilot/skill-assessment') : undefined}
       />
     );
   }

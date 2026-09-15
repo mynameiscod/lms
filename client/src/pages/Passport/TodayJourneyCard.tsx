@@ -41,7 +41,8 @@ const TodayJourneyCard: React.FC = () => {
 
   if (!journey || journey.engine !== 'UNIT') return null;
 
-  if (!journey.available && journey.reason === 'NOT_CONFIGURED') {
+  // Not configured, being prepared, or incomplete: said as it is, with nothing to press.
+  if (!journey.available && journey.reason !== 'NO_JOURNEY') {
     return (
       <div className="gd-card" style={{ marginTop: 14 }}>
         <div className="gd-card-hd"><h2><i className="bi bi-map" /> Your 90-day Foundation journey</h2></div>

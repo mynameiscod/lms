@@ -3,6 +3,7 @@ import AssessmentItem from '../models/AssessmentItem';
 import { AuthenticatedRequest } from '../types';
 import { ASSESSMENT_DIMENSIONS, ASSESSMENT_ITEM_TYPES } from '../constants/assessment';
 import { generateItems } from '../services/assessmentQuestionGeneratorService';
+import { validateItemSolution } from '../services/assessmentItemValidationService';
 
 /**
  * Admin CRUD for the skill-assessment question bank (AssessmentItem).
@@ -143,5 +144,45 @@ export const toggleAssessmentItem = async (req: AuthenticatedRequest, res: Respo
     res.json({ success: true, message: 'Item toggled', data: item });
   } catch (e: any) {
     res.status(500).json({ success: false, message: 'Failed to toggle item', error: e.message });
+  }
+};
+
+/**
+ * POST /assessment-items/validate — run a reference solution against an item's test cases.
+ *
+ * Takes the item INLINE rather than by id, so a question can be validated before it is saved.
+ * That ordering is the point: an author writes the statement and the cases, proves a correct
+ * program passes them, and only then commits a question that cannot fail everybody over a
+ * trailing newline.
+ *
+ * An id is accepted too, for re-validating something already in the bank.
+ */
+export const validateAssessmentItem = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { itemId, item: inlineItem, code, language } = req.body || {};
+    if (!code || !String(code).trim()) {
+      return res.status(400).json({ success: false, message: 'A reference solution is required.' });
+    }
+
+    let item: any = null;
+    if (itemId) {
+      item = await AssessmentItem.findOne({ _id: itemId, tenantId: String(req.tenantId) }).lean();
+      if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
+    } else if (inlineItem) {
+      // Only the fields validation reads. Nothing here is persisted.
+      item = {
+        type: inlineItem.type,
+        language: inlineItem.language,
+        testCases: Array.isArray(inlineItem.testCases) ? inlineItem.testCases : [],
+        points: Number(inlineItem.points) || 1,
+      };
+    } else {
+      return res.status(400).json({ success: false, message: 'Provide either itemId or item.' });
+    }
+
+    const report = await validateItemSolution(item, String(code), language ? String(language) : undefined);
+    res.json({ success: true, message: 'Validation complete', data: report });
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: 'Validation failed', error: e.message });
   }
 };

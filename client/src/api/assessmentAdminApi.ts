@@ -27,6 +27,19 @@ export interface AdminAssessmentItem {
   updatedAt?: string;
 }
 
+export interface ValidationCase {
+  index: number; hidden: boolean; weight: number;
+  input: string; expectedOutput: string; actualOutput: string;
+  passed: boolean; error?: string; executionTimeMs: number;
+}
+
+export interface ValidationReport {
+  runnable: boolean; reason?: string; language: string;
+  totalCases: number; passedCases: number;
+  score: number; maxScore: number; allPassed: boolean;
+  cases: ValidationCase[];
+}
+
 export const assessmentAdminApi = {
   list: async (params: { dimension?: string; type?: string; difficulty?: number; active?: string; search?: string } = {}) => {
     const q = new URLSearchParams();
@@ -52,6 +65,17 @@ export const assessmentAdminApi = {
   },
   remove: async (id: string) => {
     return authenticatedFetch(`${BASE}/${id}`, { method: 'DELETE' });
+  },
+  /**
+   * Run a reference solution against the item's test cases before it reaches a candidate.
+   *
+   * Sends the item INLINE so an unsaved question can be proved first — which is the order
+   * that matters, because the failure being caught here (a trailing newline in an expected
+   * output) fails every candidate rather than one.
+   */
+  validate: async (body: { item?: AdminAssessmentItem; itemId?: string; code: string; language?: string }) => {
+    const res: any = await authenticatedFetch(`${BASE}/validate`, { method: 'POST', body: JSON.stringify(body) });
+    return (res?.data || res) as ValidationReport;
   },
   generate: async (spec: { type: string; dimension: string; difficulty: number; language?: string; count: number; context?: string }) => {
     const res: any = await authenticatedFetch(`${BASE}/generate`, { method: 'POST', body: JSON.stringify(spec) });

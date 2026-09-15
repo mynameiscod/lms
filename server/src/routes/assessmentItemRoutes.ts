@@ -11,6 +11,8 @@ router.use(authMiddleware, tenantMiddleware);
 router.get('/', ctrl.listAssessmentItems);
 router.get('/coverage', ctrl.getAssessmentCoverage);
 router.post('/generate', ctrl.generateAssessmentItems);
+/** Prove a reference solution passes the cases BEFORE the question reaches a candidate. */
+router.post('/validate', ctrl.validateAssessmentItem);
 router.post('/', ctrl.createAssessmentItem);
 router.put('/:id', ctrl.updateAssessmentItem);
 router.patch('/:id/toggle', ctrl.toggleAssessmentItem);

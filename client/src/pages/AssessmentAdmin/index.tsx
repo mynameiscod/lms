@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { assessmentAdminApi, AdminAssessmentItem, DIMENSIONS, ITEM_TYPES } from '../../api/assessmentAdminApi';
+import { assessmentAdminApi, AdminAssessmentItem, ValidationReport, DIMENSIONS, ITEM_TYPES } from '../../api/assessmentAdminApi';
 import './AssessmentAdmin.css';
 
 const labelOf = (arr: { value: string; label: string }[], v: string) => arr.find((x) => x.value === v)?.label || v;
@@ -182,6 +182,87 @@ const AssessmentAdmin: React.FC = () => {
   );
 };
 
+/**
+ * Prove a coding question works before a candidate ever sees it.
+ *
+ * WHAT THIS CATCHES, and why it belongs next to the test cases rather than on a separate
+ * screen: the expected output of a case is typed by hand, and a trailing newline, a space
+ * before a comma, or `4.0` where the program prints `4` makes a perfectly good question fail
+ * EVERY candidate. There is no other moment where that is cheap to find.
+ *
+ * The item is sent as it currently stands in the editor, unsaved — so the author proves the
+ * question first and commits it second.
+ */
+const SolutionCheck: React.FC<{ item: AdminAssessmentItem }> = ({ item }) => {
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [report, setReport] = useState<ValidationReport | null>(null);
+
+  const run = async () => {
+    setBusy(true); setErr(''); setReport(null);
+    try {
+      setReport(await assessmentAdminApi.validate({ item, code }));
+    } catch (e: any) {
+      setErr(e?.message || 'Could not run the solution.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cases = (item.testCases || []).length;
+
+  return (
+    <div className="aa-check-box">
+      <div className="aa-block-head">Check this question</div>
+      <p className="aa-check-hint">
+        Paste a solution you know is correct and run it against all {cases || 'the'} case
+        {cases === 1 ? '' : 's'}, hidden ones included. Every case must pass before this question
+        is safe to use.
+      </p>
+      <textarea
+        className="mono"
+        rows={7}
+        value={code}
+        placeholder={item.starterCode || '// reference solution'}
+        onChange={(e) => setCode(e.target.value)}
+      />
+      <button className="aa-btn small" disabled={busy || !code.trim() || !cases} onClick={run}>
+        {busy ? 'Running…' : 'Run against test cases'}
+      </button>
+      {!cases && <div className="aa-check-hint">Add at least one test case first.</div>}
+      {err && <div className="aa-err">{err}</div>}
+
+      {report && !report.runnable && <div className="aa-err">{report.reason}</div>}
+      {report && report.runnable && (
+        <>
+          <div className={`aa-check-verdict ${report.allPassed ? 'ok' : 'bad'}`}>
+            {report.allPassed
+              ? `All ${report.totalCases} cases passed — a candidate submitting this scores ${report.score}/${report.maxScore}.`
+              : `${report.passedCases} of ${report.totalCases} passed. A candidate submitting this scores ${report.score}/${report.maxScore}. Fix the question or the expected output before using it.`}
+          </div>
+          <table className="aa-check-tbl">
+            <thead>
+              <tr><th>#</th><th>Input</th><th>Expected</th><th>Got</th><th></th></tr>
+            </thead>
+            <tbody>
+              {report.cases.map((c) => (
+                <tr key={c.index} className={c.passed ? '' : 'bad'}>
+                  <td>{c.index + 1}{c.hidden ? ' 🔒' : ''}</td>
+                  <td><pre>{c.input || '—'}</pre></td>
+                  <td><pre>{c.expectedOutput}</pre></td>
+                  <td><pre>{c.error ? c.error : c.actualOutput || '—'}</pre></td>
+                  <td>{c.passed ? '✅' : '❌'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </div>
+  );
+};
+
 // ─── Editor modal ────────────────────────────────────────────────────────────
 const Editor: React.FC<{ item: AdminAssessmentItem; up: (p: Partial<AdminAssessmentItem>) => void; onSave: () => void; onCancel: () => void; saving: boolean; err: string }> = ({ item, up, onSave, onCancel, saving, err }) => {
   const isCode = ['predict_output', 'debug', 'complete_code', 'live_code', 'sql'].includes(item.type);
@@ -297,6 +378,7 @@ const Editor: React.FC<{ item: AdminAssessmentItem; up: (p: Partial<AdminAssessm
                 </div>
               ))}
               <button className="aa-btn small" onClick={addTc}>+ Test case</button>
+              <SolutionCheck item={item} />
             </div>
           )}
 

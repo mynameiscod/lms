@@ -28,6 +28,15 @@ export interface PilotMcq {
   question: string;
   options: { text: string; isCorrect: boolean }[];
   explanation: string;
+  /**
+   * The ONE skill this question measures, stated by the author. Checkpoint questions only.
+   *
+   * A unit declaring several skills gives the seed nothing to derive a mapping from, and guessing
+   * skillKeys[0] is the invented attribution the evidence bridge refuses. An author who wrote the
+   * question knows which skill it tests, and saying so here is what lets a multi-skill checkpoint
+   * produce evidence at all. Must be one of the unit's own skillKeys; the seed refuses otherwise.
+   */
+  skillKey?: string;
 }
 
 export interface PilotCoding {

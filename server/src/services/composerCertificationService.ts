@@ -28,7 +28,7 @@ import {
   composeUnits, ComposableUnit, ComposerResult, StudentProfile, SkillBelief,
 } from './curriculumComposerService';
 import { AssignmentState, STATE_ORDER, stateForScore } from '../data/adaptiveCurriculumPolicy';
-import { isSuitableFor } from '../data/unitSuitabilityPolicy';
+import { isSuitableFor, suitableStatesFor } from '../data/unitSuitabilityPolicy';
 import {
   compositionRoleOf, CompositionRole, isInstructionalRole,
 } from '../data/compositionShapePolicy';
@@ -218,16 +218,38 @@ export function isRelevant(u: ComposableUnit, student: StudentProfile): boolean 
     || (!student.primaryDirection && exploring.size === 0);
 }
 
+const TEACHING_LADDER: AssignmentState[] =
+  ['NOT_EXPOSED', 'FOUNDATION_REQUIRED', 'GUIDED', 'STANDARD', 'REVISION', 'VERIFIED', 'ENRICHMENT'];
+
+/**
+ * Measured past everything the prerequisite unit teaches. Mirrors the composer's outgrownBy:
+ * every skill measured, weakest at an evidence-only state above the highest state the unit serves.
+ */
+export const outgrownBy = (unit: ComposableUnit | undefined, student: StudentProfile): boolean => {
+  if (!unit || !unit.skillKeys.length) return false;
+  let weakest = -1;
+  for (const k of unit.skillKeys) {
+    const b = student.skills.get(k);
+    if (!b || b.score === null || b.score === undefined) return false;
+    const idx = TEACHING_LADDER.indexOf(stateForScore({ score: b.score, confidence: b.confidence }));
+    if (weakest < 0 || idx < weakest) weakest = idx;
+  }
+  const highestServed = Math.max(...suitableStatesFor(unit).map(s => TEACHING_LADDER.indexOf(s)));
+  return weakest >= TEACHING_LADDER.indexOf('REVISION') && weakest > highestServed;
+};
+
+/** Satisfied without being scheduled: verified mastery, or measured past the unit. */
 const masteredBy = (
   prereqCode: string, dependent: ComposableUnit, byCode: Map<string, ComposableUnit>, student: StudentProfile,
 ): boolean => {
   const p = byCode.get(prereqCode);
   const keys = p?.skillKeys?.length ? p.skillKeys : dependent.prerequisiteSkillKeys;
-  return (keys || []).some(k => {
+  const verified = (keys || []).some(k => {
     const b = student.skills.get(k);
     return !!b && b.score !== null && b.score !== undefined
       && stateForScore({ score: b.score, confidence: b.confidence }) === 'VERIFIED';
   });
+  return verified || outgrownBy(p, student);
 };
 
 /** Every prerequisite, however deep, that exists in the universe. */
@@ -571,6 +593,8 @@ export interface RecompositionReport {
   freshSelected: number;
   rewrittenDays: number;
   freshCodes: string[];
+  /** The ninety unit codes of the journey after recomposition, frozen days first. */
+  stitched: string[];
 }
 
 /**
@@ -642,7 +666,63 @@ export function simulateRecomposition(args: {
     freshSelected: fresh.units.length,
     rewrittenDays: stitched.filter((c, i) => i >= freezeDay && originalCodes[i] !== c).length,
     freshCodes: fresh.units.map(u => u.unitCode),
+    stitched,
   };
+}
+
+/* ------------------------------------------------------------------ *
+ * State boundaries
+ * ------------------------------------------------------------------ */
+
+export interface BoundaryProfile { key: string; note: string; student: StudentProfile }
+
+/**
+ * Learners sitting on the state boundaries, where a threshold decides what may be scheduled.
+ *
+ * 74/75 is STANDARD/REVISION — the edge past which concept units stop being suitable, and the one
+ * that exposed the prerequisite deadlock. 84/85 is REVISION/VERIFIED, where mastery begins. A high
+ * score at LOW confidence must behave as STANDARD, never as mastery. Each is taken across the
+ * direction stances, because the direction filter changes which prerequisites are even present.
+ *
+ * Coverage is the universal foundation: that is what the Foundation stage skill set switches on and
+ * therefore what a real diagnostic measures. A learner measured on every direction and academic skill
+ * as well is the post-mastery stress case, reported separately and not certified as a learner.
+ */
+export function stateBoundaryProfiles(allSkills: string[], universalSkills: string[]): BoundaryProfile[] {
+  const at = (keys: string[], score: number | ((i: number) => number), confidence: 'HIGH' | 'LOW' = 'HIGH') =>
+    new Map(keys.map((k, i) => [k, { score: typeof score === 'number' ? score : score(i), confidence }] as [string, SkillBelief]));
+  const stances: [string, Partial<StudentProfile>][] = [
+    ['undecided', { primaryDirection: null, directionStatus: 'UNDECIDED' }],
+    ['exploring', { primaryDirection: null, directionStatus: 'EXPLORING', explorationDirections: [...EXPLORATION_SET] }],
+    ['web', { primaryDirection: 'WEB_DEVELOPMENT', directionStatus: 'SELECTED' }],
+    ['ai_ml', { primaryDirection: 'AI_ML', directionStatus: 'SELECTED' }],
+    ['cloud', { primaryDirection: 'CLOUD_DEVOPS', directionStatus: 'SELECTED' }],
+    ['software_backend', { primaryDirection: 'SOFTWARE_BACKEND', directionStatus: 'SELECTED' }],
+  ];
+  const mk = (key: string, note: string, skills: Map<string, SkillBelief>, stance: Partial<StudentProfile>): BoundaryProfile => ({
+    key, note, student: { skills, primaryDirection: null, directionStatus: 'UNDECIDED', ...stance } as StudentProfile,
+  });
+
+  const out: BoundaryProfile[] = [];
+  for (const score of [74, 75, 80, 84, 85]) {
+    for (const [s, stance] of stances) {
+      out.push(mk(`universal@${score}/${s}`, `every universal skill at ${score}`, at(universalSkills, score), stance));
+    }
+  }
+  const programming = allSkills.filter(k => /PROGRAMMING|PYTHON|LOOPS|FUNCTIONS|CONDITIONALS|DSA|C_/.test(k));
+  for (const score of [74, 75, 84, 85]) {
+    out.push(mk(`programming@${score}/software_backend`, `programming skills at ${score}`, at(programming, score), stances[5][1]));
+  }
+  for (const [lo, hi] of [[74, 75], [84, 85]]) {
+    for (const [s, stance] of [stances[0], stances[2]]) {
+      out.push(mk(`universal@${lo}|${hi}/${s}`, `universal skills alternating ${lo} and ${hi}`,
+        at(universalSkills, i => (i % 2 ? hi : lo)), stance));
+    }
+  }
+  for (const [s, stance] of [stances[0], stances[2]]) {
+    out.push(mk(`universal@92-LOW/${s}`, 'high scores on thin evidence', at(universalSkills, 92, 'LOW'), stance));
+  }
+  return out;
 }
 
 /* ------------------------------------------------------------------ *

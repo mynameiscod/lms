@@ -73,7 +73,7 @@ export interface JourneyResult {
  * One day's activities
  * ------------------------------------------------------------------ */
 
-interface UnitAssets {
+export interface UnitAssets {
   content: any[];
   quizzes: any[];
   assignments: any[];
@@ -91,7 +91,12 @@ interface UnitAssets {
  * That is also why inheritance cannot lift a unit past PARTIAL, and why a unit reaching a
  * student's plan at all means it owns what it needs.
  */
-function activitiesFor(unit: SelectedUnit, assets: UnitAssets) {
+/*
+ * EXPORTED FOR RECOMPOSITION, which must build a rewritten day exactly as this file builds a new
+ * one. A second resolver would be a second answer to "what is on day 40", and the two would
+ * disagree the first time either changed.
+ */
+export function activitiesFor(unit: Pick<SelectedUnit, 'title'>, assets: UnitAssets) {
   const items: any[] = [];
   let order = 0;
 
@@ -149,8 +154,8 @@ function activitiesFor(unit: SelectedUnit, assets: UnitAssets) {
   return items;
 }
 
-/** Every asset belonging to the chosen units, fetched once rather than per day. */
-async function loadAssets(tenantId: string, unitCodes: string[]) {
+/** Every asset belonging to the chosen units, fetched once rather than per day. Shared with recomposition. */
+export async function loadAssets(tenantId: string, unitCodes: string[]): Promise<Map<string, UnitAssets>> {
   const tenantOid = mongoose.Types.ObjectId.isValid(tenantId)
     ? new mongoose.Types.ObjectId(tenantId) : null;
 

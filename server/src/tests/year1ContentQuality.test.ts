@@ -15,6 +15,60 @@
 
 import { ALL_BUNDLES } from '../seeds/careerPilot/allBundles';
 import { PilotBundle, PilotMcq } from '../seeds/careerPilot/pilotUnitContent';
+import { PROPOSED_UNITS } from '../seeds/careerPilot/year1ExpansionSpec';
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════ *
+ * Phase 21 — milestones measure what they declare, and are gated on what teaches it
+ * ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+describe('milestone checkpoints', () => {
+  const milestones = PROPOSED_UNITS.filter(u => u.unitCode.startsWith('T_MILESTONE_'));
+  const bundleOf = (code: string) => ALL_BUNDLES.find(b => b.unitCode === code);
+
+  it('are all present, eight of them', () => {
+    expect(milestones).toHaveLength(8);
+    for (const m of milestones) expect(bundleOf(m.unitCode)).toBeDefined();
+  });
+
+  /**
+   * The midpoint declared none, so suitability alone placed it and it landed on day 14 for a
+   * learner who had not written a line of code. A reassessment with no gate measures nothing.
+   */
+  it('each declare a prerequisite, so none can be scheduled before there is something to measure', () => {
+    expect(milestones.filter(m => !m.prerequisiteUnitCodes.length).map(m => m.unitCode)).toEqual([]);
+  });
+
+  it('attribute every checkpoint question to one skill the unit itself declares', () => {
+    const bad: string[] = [];
+    for (const m of milestones) {
+      for (const [i, q] of (bundleOf(m.unitCode)?.checkpoint || []).entries()) {
+        if (!q.skillKey) bad.push(`${m.unitCode}[${i}] has no skillKey`);
+        else if (!m.skillKeys.includes(q.skillKey)) bad.push(`${m.unitCode}[${i}] names ${q.skillKey}, not one of its skills`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  /** A declared skill no question measures is a claim the checkpoint cannot back. */
+  it('measure every skill they declare with at least one question', () => {
+    const bad: string[] = [];
+    for (const m of milestones) {
+      const qs = bundleOf(m.unitCode)?.checkpoint || [];
+      if (!qs.length) continue;   // the review is taught, not quizzed
+      const measured = new Set(qs.map(q => q.skillKey));
+      for (const k of m.skillKeys) if (!measured.has(k)) bad.push(`${m.unitCode} declares ${k} and never measures it`);
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it('never attribute a question on a bundle outside the expansion to a skill it does not declare', () => {
+    const declared = new Map(PROPOSED_UNITS.map(u => [u.unitCode, u.skillKeys]));
+    const bad = ALL_BUNDLES.flatMap(b => (b.checkpoint || [])
+      .filter(q => q.skillKey && !(declared.get(b.unitCode) || []).includes(q.skillKey))
+      .map(q => `${b.unitCode}: ${q.skillKey}`));
+    expect(bad).toEqual([]);
+  });
+});
 
 const allQuestions: { unitCode: string; kind: string; q: PilotMcq }[] = [];
 for (const b of ALL_BUNDLES) {

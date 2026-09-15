@@ -107,8 +107,11 @@ const readingMinutes = (text: string): number =>
   let quizzes = 0;
   let checkpointQuestions = 0;
   let mapped = 0;
+  let mappedByAuthor = 0;
   const unmappedMultiSkill = new Set<string>();
   const unmappableSkill = new Set<string>();
+  /** An authored skillKey that is not one of the unit's own skills. Refused, never guessed at. */
+  const misattributed = new Set<string>();
   let assignments = 0;
   const missingUnits: string[] = [];
   const skippedAssignments: string[] = [];
@@ -269,8 +272,35 @@ const readingMinutes = (text: string): number =>
            * exists for making it, and guessing skillKeys[0] would be the invented attribution
            * the bridge is deliberately built to avoid. Those are left unmapped and reported.
            */
-          const only = (unit.skillKeys || []).length === 1 ? upper(unit.skillKeys[0]) : '';
-          if (only && mappableSkills.has(only)) {
+          /*
+           * AN AUTHOR'S ATTRIBUTION FIRST, THEN DERIVATION, NEVER A GUESS.
+           *
+           * A question carrying `skillKey` was attributed by whoever wrote it, and that is the
+           * only way a multi-skill checkpoint produces evidence. It must name one of the unit's
+           * own skills — anything else is refused and reported rather than mapped somewhere
+           * plausible. Without one, a single-skill unit derives as before.
+           *
+           * A mapping this seed wrote earlier that no longer matches is removed first, so
+           * changing a question's attribution moves its evidence rather than adding a second
+           * PRIMARY skill beside the first. Only this seed's own rows are touched: a mapping an
+           * admin made on the Skill Evidence screen is theirs.
+           */
+          const declared = (unit.skillKeys || []).map(upper);
+          const authored = q.skillKey ? upper(q.skillKey) : '';
+          if (authored && !declared.includes(authored)) misattributed.add(`${unit.unitCode} (${authored})`);
+          const only = authored
+            ? (declared.includes(authored) ? authored : '')
+            : (declared.length === 1 ? declared[0] : '');
+
+          await SkillEvidence.deleteMany({
+            tenantId, sourceType: 'question', sourceId: String(_id), createdBy: CREATED_BY,
+            ...(only ? { skillKey: { $ne: only } } : {}),
+          });
+
+          if (authored && !only) {
+            // refused above; nothing mapped
+          } else if (only && mappableSkills.has(only)) {
+            if (authored) mappedByAuthor++;
             await SkillEvidence.updateOne(
               { tenantId, sourceType: 'question', sourceId: String(_id), skillKey: only },
               {
@@ -388,7 +418,11 @@ const readingMinutes = (text: string): number =>
 
   console.log(`
   SKILL EVIDENCE MAPPING`);
-  console.log(`    ${mapped} checkpoint question(s) mapped to the one skill their unit declares.`);
+  console.log(`    ${mapped} checkpoint question(s) mapped: ${mappedByAuthor} to the skill their author named, ${mapped - mappedByAuthor} to the one skill their unit declares.`);
+    if (misattributed.size) {
+      console.log(`    ${misattributed.size} authored attribution(s) REFUSED — not one of the unit's skills: `
+        + [...misattributed].join(', '));
+    }
   if (unmappedMultiSkill.size) {
     console.log(`    ${unmappedMultiSkill.size} unit(s) declare several skills, so which skill each`);
     console.log(`    question chiefly measures is a judgement. Map them in CareerPilot -> Skill`);

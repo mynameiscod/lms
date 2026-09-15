@@ -138,6 +138,16 @@ export type PrerequisiteResolution =
   | 'SATISFIED_BY_PLAN'
   /** Not in the plan, but the student's Skill DNA verifies the capability it teaches. */
   | 'SATISFIED_BY_MASTERY'
+  /**
+   * Not in the plan and not mastered, but MEASURED past everything the unit teaches.
+   *
+   * Every skill of the prerequisite unit has a measured state, and the weakest is an evidence-only
+   * state above the highest state that unit serves — a REVISION learner in front of a concept
+   * unit, typically. The unit has nothing left to give them, so scheduling it would be re-teaching
+   * and refusing its dependants would strand them. Deliberately not SATISFIED_BY_MASTERY: REVISION
+   * is demonstrated, not verified, and the two must stay distinguishable in every report.
+   */
+  | 'SATISFIED_BY_EVIDENCE'
   /** Not available and not verified. A production composition must never schedule under this. */
   | 'BLOCKED_MISSING_PREREQUISITE';
 

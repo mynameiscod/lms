@@ -37,7 +37,7 @@ import {
 import { SkillConfidence } from '../models/StudentSkillProfile';
 import { isCoreModuleFor, appliesToDirection, DirectionStatus } from '../data/careerDirectionPolicy';
 import {
-  isSuitableFor, isInstructional,
+  isSuitableFor, isInstructional, suitableStatesFor,
   PrerequisiteOutcome, PrerequisiteResolution,
 } from '../data/unitSuitabilityPolicy';
 import { LearningUnitType, LearningUnitCategory } from '../models/CurriculumLearningUnit';
@@ -619,6 +619,55 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   };
 
   /**
+   * Has MEASUREMENT already carried the student past everything a prerequisite unit teaches?
+   *
+   * ── THE DEADLOCK THIS CLOSES ────────────────────────────────────────────────────────────
+   *
+   * A learner measured at REVISION (75–84) on a skill cannot be scheduled that skill's concept
+   * units — instruction serves up to STANDARD, and re-teaching somebody who has demonstrated a
+   * skill is exactly what suitability exists to prevent. Nor does mastery satisfy the concept as
+   * a prerequisite, because mastery means VERIFIED. So every practice, debugging exercise and
+   * project behind a concept unit was unschedulable AND unsatisfiable at once, and a learner
+   * scoring 75–84 across the design was left twelve units in total.
+   *
+   * ── WHY THIS IS NOT A LOWER MASTERY THRESHOLD ───────────────────────────────────────────
+   *
+   * Nothing here says REVISION is VERIFIED, and it is reported under its own resolution so it
+   * cannot be read as mastery. It asks a narrower question of the prerequisite UNIT: is every
+   * skill it teaches measured, and is the weakest of them at an evidence-only state past the
+   * highest state that unit serves? Then the unit has nothing left to teach this student, and
+   * the reason it is not in the plan is evidence rather than absence.
+   *
+   * What that leaves untouched, by construction: STANDARD is never beyond a concept unit, so a
+   * STANDARD learner is still taught; low confidence caps a score at STANDARD, so a thin result
+   * satisfies nothing; an unmeasured skill anywhere in the unit refuses outright; and a practice
+   * unit still serves REVISION, so a REVISION learner is scheduled the practice rather than
+   * excused it. Only measured state is read — never the plan's own projection.
+   */
+  const TEACHING_LADDER: AssignmentState[] =
+    ['NOT_EXPOSED', 'FOUNDATION_REQUIRED', 'GUIDED', 'STANDARD', 'REVISION', 'VERIFIED', 'ENRICHMENT'];
+  const EVIDENCE_BEYOND_TEACHING: AssignmentState[] = ['REVISION', 'VERIFIED', 'ENRICHMENT'];
+
+  const outgrownBy = (code: string): { skill: string; score: number; state: AssignmentState } | null => {
+    const prereqUnit = allByCode.get(code);
+    if (!prereqUnit || !prereqUnit.skillKeys.length) return null;
+
+    let weakest: { skill: string; score: number; state: AssignmentState } | null = null;
+    for (const key of prereqUnit.skillKeys) {
+      const belief = student.skills.get(key);
+      if (!belief || belief.score === null || belief.score === undefined) return null;
+      const state = stateForScore({ score: belief.score, confidence: belief.confidence });
+      if (!weakest || TEACHING_LADDER.indexOf(state) < TEACHING_LADDER.indexOf(weakest.state)) {
+        weakest = { skill: key, score: belief.score, state };
+      }
+    }
+    if (!weakest || !EVIDENCE_BEYOND_TEACHING.includes(weakest.state)) return null;
+
+    const highestServed = Math.max(...suitableStatesFor(prereqUnit).map(s => TEACHING_LADDER.indexOf(s)));
+    return TEACHING_LADDER.indexOf(weakest.state) > highestServed ? weakest : null;
+  };
+
+  /**
    * Resolve one prerequisite into one of three outcomes.
    *
    * A MISSING PREREQUISITE IS NOT SATISFIED BY DEFAULT. The prototype treated anything outside
@@ -643,6 +692,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   const resolveOne = (u: ComposableUnit, code: string): PrerequisiteResolution => {
     if (chosen.has(code)) return 'SATISFIED_BY_PLAN';
     if (masteredBy(code, u)) return 'SATISFIED_BY_MASTERY';
+    if (outgrownBy(code)) return 'SATISFIED_BY_EVIDENCE';
     return 'BLOCKED_MISSING_PREREQUISITE';
   };
 
@@ -858,6 +908,9 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    * a role needing sixteen and a role needing two advance together rather than the larger one
    * monopolising the early plan. Ties break on allocation order, so two runs cannot disagree.
    */
+  /** Pulls made on each role's behalf during the floor pass. Ordering only; see turnShortfall. */
+  const pullTurns = new Map<CompositionRole, number>();
+
   let guard = 0;
   while (guard++ <= targetUnits * 4 && selected.length < targetUnits) {
     const floor = breadthFloor();
@@ -867,9 +920,27 @@ export function composeUnits(input: ComposerInput): ComposerResult {
       return a.min > 0 && have < a.min ? (a.min - have) / a.min : 0;
     };
 
+    /**
+     * A PULL IS A TURN.
+     *
+     * A pull takes a unit of SOME OTHER role — instruction, usually — on behalf of the role that
+     * wanted it. Counted only by what was taken, the pulling role's own shortfall never moves, so
+     * it stays furthest behind and wins every pass; and because the loop stops at the first role
+     * that takes or pulls, every role after it in allocation order never gets a turn. That is how
+     * an established learner spent fifteen days on direction instruction pulled for PRACTICE
+     * while fourteen debugging exercises and projects were schedulable from day one.
+     *
+     * So ordering counts the pulls a role has made as turns it has had. `min` and `behind` are
+     * untouched — a pull still does not satisfy a floor, and the role keeps its place in the
+     * rotation until its own units are actually in the plan. It simply waits its turn behind a
+     * role that has had fewer.
+     */
+    const turnShortfall = (a: RoleAllocation) =>
+      (a.min - (roleCount.get(a.role) || 0) - (pullTurns.get(a.role) || 0)) / a.min;
+
     const behind = allocation
       .filter(a => shortfall(a) > 0)
-      .sort((x, y) => shortfall(y) - shortfall(x)
+      .sort((x, y) => turnShortfall(y) - turnShortfall(x)
         || allocation.indexOf(x) - allocation.indexOf(y));
 
     if (!behind.length) break;
@@ -904,6 +975,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
       if (pulled) {
         asPrerequisite.add(pulled.unitCode);
         take(pulled, true);
+        pullTurns.set(a.role, (pullTurns.get(a.role) || 0) + 1);
         took = true;
         break;
       }
@@ -1013,15 +1085,18 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   /** Every prerequisite of every selected unit, resolved against the finished plan. */
   for (const u of selected) {
     for (const code of u.prerequisiteUnitCodes) {
-      const resolution = chosen.has(code)
-        ? 'SATISFIED_BY_PLAN' as const
-        : (masteredBy(code, u) ? 'SATISFIED_BY_MASTERY' as const : 'BLOCKED_MISSING_PREREQUISITE' as const);
-      const mastery = resolution === 'SATISFIED_BY_MASTERY' ? masteredBy(code, u) : null;
+      const mastery = chosen.has(code) ? null : masteredBy(code, u);
+      const evidence = chosen.has(code) || mastery ? null : outgrownBy(code);
+      const resolution: PrerequisiteResolution = chosen.has(code) ? 'SATISFIED_BY_PLAN'
+        : mastery ? 'SATISFIED_BY_MASTERY'
+          : evidence ? 'SATISFIED_BY_EVIDENCE'
+            : 'BLOCKED_MISSING_PREREQUISITE';
+      const via = mastery || evidence;
       prerequisites.push({
         unitCode: u.unitCode,
         prerequisite: code,
         resolution,
-        ...(mastery ? { viaSkill: mastery.skill, score: mastery.score } : {}),
+        ...(via ? { viaSkill: via.skill, score: via.score } : {}),
       });
     }
   }
@@ -1075,7 +1150,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   const blocked: ComposerResult['blocked'] = [];
   for (const u of relevant) {
     if (chosen.has(u.unitCode)) continue;
-    const unavailable = u.prerequisiteUnitCodes.filter(c => !byCode.has(c) && !masteredBy(c, u));
+    const unavailable = u.prerequisiteUnitCodes.filter(c => !byCode.has(c) && !masteredBy(c, u) && !outgrownBy(c));
     if (!unavailable.length) continue;
     blocked.push({
       unitCode: u.unitCode,

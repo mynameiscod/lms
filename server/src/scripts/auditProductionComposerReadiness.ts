@@ -49,8 +49,10 @@ import {
   REALISTIC_PROFILES, PROGRAM_DAYS, EVOLUTIONS, compose, validatePlan, isDeterministic,
   skillUniverse, prerequisiteClosure, simulateRecomposition, robustnessGrid,
   directionFamilyMix, withoutCoreAffinity, coreModuleUse, measuredStateOf, isRelevant,
-  permanentlyUnsuitable, PlanReport, RecompositionReport, Issue,
+  permanentlyUnsuitable, PlanReport, RecompositionReport, Issue, stateBoundaryProfiles,
 } from '../services/composerCertificationService';
+import { loadAssets, activitiesFor, UnitAssets } from '../services/foundationJourneyService';
+import { roleOf } from '../data/contentBundlePolicy';
 import { compositionRoleOf } from '../data/compositionShapePolicy';
 import { suitableStatesFor } from '../data/unitSuitabilityPolicy';
 import { isCoreModuleFor } from '../data/careerDirectionPolicy';
@@ -93,6 +95,12 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   const defects: string[] = [];
   /** A publish set that would make things worse than READY. Blocks. */
   const setFailures: string[] = [];
+  /**
+   * A legitimate learner the READY inventory cannot give ninety days, while every suitable READY
+   * unit is already in their plan. Not a composer fault and not a publish-set fault: an authoring
+   * requirement. Blocks, because a learner in that state would be refused a journey.
+   */
+  const capacity: string[] = [];
   const notes: string[] = [];
 
   /* ══ DATABASE FINGERPRINT (before) ═══════════════════════════════════════════════════════ */
@@ -344,6 +352,94 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
     if (!ok) defects.push(`breadth: ${key} ${JSON.stringify(mix)}`);
   }
 
+  /* ══ 5b. STATE BOUNDARIES ════════════════════════════════════════════════════════════════ */
+
+  title('5b. STATE-BOUNDARY CERTIFICATION on READY — 74|75 STANDARD/REVISION, 84|85 REVISION/VERIFIED, low confidence');
+  const boundaries = stateBoundaryProfiles(allSkills, universalSkills);
+  const certifyBoundaries = (pool: ComposableUnit[]) => boundaries.map(b => {
+    const r = compose(pool, b.student);
+    return { key: b.key, student: b.student, r, rep: validatePlan({ result: r, universe, student: b.student }) };
+  });
+  const boundaryReady = certifyBoundaries(universe);
+  const byResolution = (r: { prerequisites: { resolution: string; score?: number | null }[] }, res: string) =>
+    r.prerequisites.filter(o => o.resolution === res);
+
+  console.log(`    ${pad('profile', 34)}${pad('sel', 5)}${pad('elig', 6)}${pad('det', 5)}${pad('plan', 6)}${pad('mastery', 9)}${pad('evidence', 10)}result`);
+  for (const x of boundaryReady) {
+    const det = isDeterministic(universe, x.student);
+    if (!det) x.rep.issues.push({ code: 'NONDETERMINISTIC', detail: x.key });
+    const mastery = byResolution(x.r, 'SATISFIED_BY_MASTERY');
+    const evidence = byResolution(x.r, 'SATISFIED_BY_EVIDENCE');
+    // No fake mastery: nothing below 85, and no evidence resolution from STANDARD or thin evidence.
+    if (mastery.some(o => (o.score ?? 0) < 85)) x.rep.issues.push({ code: 'FAKE_MASTERY', detail: `${x.key} mastery below 85` });
+    if (evidence.length && (/@74\/|LOW/.test(x.key))) x.rep.issues.push({ code: 'FAKE_EVIDENCE', detail: `${x.key} resolved by evidence below REVISION` });
+    x.rep.ok = x.rep.issues.length === 0;
+    console.log(`    ${pad(x.key, 34)}${pad(x.r.units.length, 5)}${pad(x.r.eligibleUnits, 6)}${pad(det ? 'yes' : 'NO', 5)}`
+      + `${pad(byResolution(x.r, 'SATISFIED_BY_PLAN').length, 6)}${pad(mastery.length, 9)}${pad(evidence.length, 10)}`
+      + `${x.rep.ok ? 'PASS' : 'FAIL ' + x.rep.issues.map(i => `${i.code}:${i.detail}`).slice(0, 2).join(' | ')}`);
+    const everSuitable = universe.filter(u => isRelevant(u, x.student) && !permanentlyUnsuitable(u, x.student)).length;
+    const ceiling = x.rep.issues.every(i => i.code === 'LENGTH') && x.r.units.length === everSuitable;
+    if (ceiling && x.rep.issues.length) {
+      capacity.push(`${x.key}: ${x.r.units.length} of ${PROGRAM_DAYS} — all ${everSuitable} suitable READY units are scheduled`);
+    } else {
+      for (const i of x.rep.issues) defects.push(`READY boundary ${x.key}: ${i.code} — ${i.detail}`);
+    }
+  }
+
+  /**
+   * WHAT WOULD CLOSE EACH CAPACITY SHORTFALL, computed rather than guessed.
+   *
+   * The same learner composed against the whole designed curriculum — every unit, authored or not —
+   * shows whether writing units could help at all, and which ones. Collected across every short
+   * learner, closed under prerequisites within the design, and then checked: READY plus exactly those
+   * units must give every one of them ninety days. Proposed only; nothing is authored here.
+   */
+  const shortBoundaries = boundaryReady.filter(x => x.r.units.length < PROGRAM_DAYS);
+  let authoring = new Set<string>();
+  if (shortBoundaries.length) {
+    const design = (await loadCandidates(tenantId, 'CURRICULUM_CAPACITY_AUDIT')).units;
+    for (const x of shortBoundaries) {
+      for (const u of compose(design, x.student).units) if (!byCode.has(u.unitCode)) authoring.add(u.unitCode);
+    }
+    authoring = new Set([...prerequisiteClosure(authoring, design)].filter(c => !byCode.has(c)));
+    const withAuthoring = [...universe, ...design.filter(u => authoring.has(u.unitCode))];
+    const stillShort = shortBoundaries.filter(x => compose(withAuthoring, x.student).units.length < PROGRAM_DAYS).map(x => x.key);
+    const designShort = shortBoundaries.filter(x => compose(design, x.student).units.length < PROGRAM_DAYS).map(x => x.key);
+
+    console.log(`\n    capacity shortfalls: ${shortBoundaries.length} boundary learner(s); the full design serves ${shortBoundaries.length - designShort.length} of them`);
+    console.log(`    PARTIAL units that would have to be authored to serve all of them: ${authoring.size}`
+      + `   (READY + those: ${stillShort.length ? `still short for ${stillShort.join(', ')}` : 'every one reaches 90'})`);
+    const byTopic = new Map<string, string[]>();
+    for (const c of [...authoring].sort()) {
+      const u = design.find(d => d.unitCode === c)!;
+      byTopic.set(u.topicCode, [...(byTopic.get(u.topicCode) || []), `${u.unitType[0]}:${c.replace(`${u.topicCode}_`, '')}`]);
+    }
+    for (const [t, list] of [...byTopic].sort()) console.log(`      ${pad(t, 24)}${num(list.length, 3)}  ${list.join(' ')}`);
+    if (writeArtifacts) {
+      fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
+      fs.writeFileSync(path.join(ARTIFACT_DIR, 'capacity-requirement.json'), `${JSON.stringify({
+        description: 'Phase 21: PARTIAL units that would have to be authored for every certified state-boundary learner to reach ninety days. Proposed only — nothing authored.',
+        shortBoundaryLearners: shortBoundaries.map(x => ({ key: x.key, units: x.r.units.length })),
+        servedByFullDesign: shortBoundaries.length - designShort.length,
+        unitsToAuthor: [...authoring].sort(),
+        stillShortAfterAuthoring: stillShort,
+      }, null, 2)}\n`);
+    }
+  }
+
+  console.log('\n    post-mastery stress (every skill in the design measured, including direction and academic —');
+  console.log('    beyond what the Foundation stage set measures; reported, not certified as a learner):');
+  for (const score of [80, 92]) {
+    const s: StudentProfile = {
+      skills: new Map(allSkills.map(k => [k, { score, confidence: 'HIGH' as const }])),
+      primaryDirection: null, directionStatus: 'UNDECIDED',
+    };
+    const r = compose(universe, s);
+    const everSuitable = universe.filter(u => !permanentlyUnsuitable(u, s)).length;
+    console.log(`      all@${score}: composer selects ${r.units.length}; units that could ever suit this learner: ${everSuitable}`);
+    notes.push(`post-mastery stress all@${score}: ${r.units.length} units (at most ${everSuitable} suitable in READY) — an inventory ceiling, not a deadlock`);
+  }
+
   /* ══ scenarios on READY (used by 7, 8 and 9) ═════════════════════════════════════════════ */
 
   const recompositions = (pool: ComposableUnit[]) => students.flatMap(s => FREEZE_DAYS.flatMap(freezeDay =>
@@ -401,8 +497,9 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
     return { problems, mapped, total, count: qs.length };
   };
 
+  // DEBUG units teach through their own worked faults — T_BOOLEAN_DEBUGGING is where implication is taught.
   const taughtBy = (skill: string, self: string) => universe.some(x => x.unitCode !== self
-    && ['CONCEPT', 'WORKED_EXAMPLE', 'PRACTICE'].includes(x.unitType) && x.skillKeys.includes(skill));
+    && ['CONCEPT', 'WORKED_EXAMPLE', 'PRACTICE', 'DEBUG'].includes(x.unitType) && x.skillKeys.includes(skill));
 
   let certFailures = 0;
   console.log(`    ${pad('unit', 36)}${pad('type', 11)}${pad('bound', 24)}${pad('evidence', 13)}${pad('gate', 30)}reached`);
@@ -458,8 +555,8 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   console.log(`    VERIFICATION inventory ${verifyUnits.length}; the most any realistic profile uses ${maxVerification} (ESTABLISHED target 8)`);
   console.log('    delivery: a quiz or assignment inside an active journey DayPlan resolves as source "curriculum",');
   console.log('    which bypasses the Assignment DRAFT status and the quiz\'s own date window by design.');
-  console.log('    caveat: recomposeFutureDays writes items:[] on rewritten days and nothing refills them, so a');
-  console.log('    recomposed project day would lose that curriculum link. Not reachable today (no route calls it).');
+  console.log('    recomposition rebuilds every rewritten day with the same resolver (checked in 9c), so a recomposed');
+  console.log('    project or checkpoint day keeps its activity — and with it that curriculum delivery link.');
 
   /* ══ 8. PUBLISH SETS ═════════════════════════════════════════════════════════════════════ */
 
@@ -507,6 +604,7 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   onReady.forEach(x => x.r.units.forEach(u => union.add(u.unitCode)));
   recompReady.filter(x => x.rep.ok).forEach(x => x.rep.freshCodes.forEach(c => union.add(c)));
   sweepReady.filter(x => x.hardOk).forEach(x => x.r.units.forEach(u => union.add(u.unitCode)));
+  boundaryReady.filter(x => !x.rep.issues.some(i => HARD.has(i.code))).forEach(x => x.r.units.forEach(u => union.add(u.unitCode)));
   for (const u of [...verifyUnits, ...projectUnits]) union.add(u.unitCode);
   const recommended = prerequisiteClosure(union, universe);
   const excluded = readyCodes.filter(c => !recommended.has(c));
@@ -530,6 +628,21 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   printProfiles(`9b. ABSOLUTE MINIMUM (${minimum.size}) — nine realistic profiles as an isolated pool`, onMin, minPool);
   if (!noWorse(onRec)) setFailures.push('RECOMMENDED gives at least one profile a worse plan than READY');
   for (const x of onRec) if (x.r.units.length !== PROGRAM_DAYS) setFailures.push(`RECOMMENDED ${x.key}: ${x.r.units.length} units`);
+
+  // Worse means fewer units than READY gives the same learner, or an issue READY does not have.
+  // A learner READY itself cannot serve is a capacity finding, reported once, not a set failure.
+  const worseThanReady = (subset: ReturnType<typeof certifyBoundaries>) => subset.filter((x, i) =>
+    x.r.units.length < boundaryReady[i].r.units.length
+    || x.rep.issues.some(iss => !boundaryReady[i].rep.issues.map(issueKey).includes(issueKey(iss)))).map(x => x.key);
+  const boundaryRec = certifyBoundaries(recPool);
+  const boundaryMin = certifyBoundaries(minPool);
+  const boundaryRecLost = worseThanReady(boundaryRec);
+  const boundaryMinLost = worseThanReady(boundaryMin);
+  title('9a2. STATE-BOUNDARY PROFILES on the publish sets');
+  console.log(`    RECOMMENDED  ${boundaryRec.filter(x => x.rep.ok).length}/${boundaryRec.length} clean at exactly 90   worse than READY: ${boundaryRecLost.length}`);
+  console.log(`    MINIMUM      ${boundaryMin.filter(x => x.rep.ok && x.r.units.length === PROGRAM_DAYS).length}/${boundaryMin.length} clean at exactly 90   worse than READY: ${boundaryMinLost.length}`
+    + `${boundaryMinLost.length ? `  e.g. ${boundaryMinLost.slice(0, 4).join(', ')}` : ''}`);
+  if (boundaryRecLost.length) setFailures.push(`RECOMMENDED is worse than READY for boundary profiles: ${boundaryRecLost.join(', ')}`);
 
   const recompRec = recompositions(recPool);
   const recompMin = recompositions(minPool);
@@ -557,6 +670,51 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
     if (!recompReady[i].rep.ok) defects.push(`READY recomposition ${recompReady[i].key}: ${recompReady[i].rep.issues.map(x => x.code).join(', ')}`);
     else if (!recompRec[i].rep.ok) setFailures.push(`RECOMMENDED recomposition ${recompRec[i].key}: ${recompRec[i].rep.issues.map(x => x.code).join(', ')}`);
   }
+  /**
+   * A recomposed day must be a whole day, not a unit code.
+   *
+   * Every future day of every recomposition on the recommended set is built with the journey
+   * service's own resolver (loadAssets + activitiesFor — the functions recomposition itself now
+   * calls) and checked: its own teaching where the type needs it, its own practice for PRACTICE and
+   * DEBUG, a gating quiz on a checkpoint, a gating assignment on a project, gating last, and no
+   * inherited topic content. Read-only: nothing is persisted to find this out.
+   */
+  const assetsByUnit = await loadAssets(tenantId, readyCodes);
+  const NO_ASSETS: UnitAssets = { content: [], quizzes: [], assignments: [] };
+  const dayActivityProblems = (u: ComposableUnit, items: any[], a: UnitAssets): string[] => {
+    if (!items.length) return ['no activities'];
+    const problems: string[] = [];
+    const content = items.filter(i => i.kind === 'content');
+    if (typeRequiresTeaching(u.unitType) && !content.some(i => teaches(String(i.contentType)))) problems.push('no teaching of its own');
+    if (['PRACTICE', 'DEBUG'].includes(u.unitType) && !content.some(i => roleOf(String(i.contentType)) === 'PRACTISE')) problems.push('no practice of its own');
+    if (u.unitType === 'CHECKPOINT' && !items.some(i => i.kind === 'quiz' && i.isGating)) problems.push('no gating quiz');
+    if (u.unitType === 'PROJECT' && !items.some(i => i.kind === 'assignment' && i.isGating)) problems.push('no gating assignment');
+    const firstGate = items.findIndex(i => i.isGating);
+    const lastOpen = items.map(i => !i.isGating).lastIndexOf(true);
+    if (firstGate >= 0 && lastOpen > firstGate) problems.push('gating activity is not last');
+    const own = new Set(a.content.filter(r => String(r.unitCode).toUpperCase() === u.unitCode.toUpperCase()).map(r => String(r._id)));
+    if (content.some(i => !own.has(String(i.contentId)))) problems.push('inherited content present');
+    return problems;
+  };
+  let daysChecked = 0;
+  const activityKinds = { quiz: 0, assignment: 0, content: 0 };
+  const activityProblems: string[] = [];
+  for (const x of recompRec) {
+    x.rep.stitched.slice(x.rep.freezeDay).forEach((code, j) => {
+      const u = byCode.get(code)!;
+      const a = assetsByUnit.get(code.toUpperCase()) || NO_ASSETS;
+      const items = activitiesFor({ title: u.title }, a);
+      daysChecked++;
+      for (const it of items) activityKinds[it.kind as keyof typeof activityKinds]++;
+      for (const p of dayActivityProblems(u, items, a)) activityProblems.push(`${x.key} day ${x.rep.freezeDay + j + 1} ${code}: ${p}`);
+    });
+  }
+  console.log(`\n    activities on every future day, built with the journey resolver: ${daysChecked} days across `
+    + `${recompRec.length} recompositions — ${activityKinds.content} content, ${activityKinds.quiz} gating quizzes, `
+    + `${activityKinds.assignment} gating assignments; problems: ${activityProblems.length}`);
+  for (const p of activityProblems.slice(0, 8)) console.log(`      ! ${p}`);
+  if (activityProblems.length) defects.push(`${activityProblems.length} recomposed day(s) without a valid activity bundle`);
+
   const minRecompLost = recompReady.filter((x, i) => x.rep.ok && !recompMin[i].rep.ok).map(x => x.key);
 
   title('9d. LEARNER-STATE SWEEP — 288 cells, coverage x score x direction stance');
@@ -661,10 +819,11 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
     defects.push('exit state is not PUBLISHED=0 / journeys=0 / DayPlans=0 / engine OFF');
   }
 
-  const blocked = defects.length + setFailures.length > 0;
+  const blocked = defects.length + setFailures.length + capacity.length > 0;
   title(`PHASE 21 READ-ONLY AUDIT: ${blocked ? 'BLOCKED' : 'PASS'}`);
   for (const d of defects) console.log(`    DEFECT      ${d}`);
   for (const f of setFailures) console.log(`    SET         ${f}`);
+  for (const c of capacity) console.log(`    CAPACITY    ${c}`);
   for (const n of notes) console.log(`    note        ${n}`);
   console.log('');
 

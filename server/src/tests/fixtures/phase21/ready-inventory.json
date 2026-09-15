@@ -2520,13 +2520,11 @@
     "topicCode": "T_MILESTONE_EARLY",
     "displayOrder": 10,
     "skillKeys": [
-      "HOW_COMPUTERS_WORK",
-      "COMPUTER_ARCHITECTURE",
-      "FILE_SYSTEMS_PERMISSIONS",
-      "PROBLEM_SOLVING",
       "PSEUDOCODE_FLOWCHARTS"
     ],
-    "prerequisiteSkillKeys": [],
+    "prerequisiteSkillKeys": [
+      "PSEUDOCODE_FLOWCHARTS"
+    ],
     "prerequisiteUnitCodes": [
       "T_PSEUDOCODE_PRACTICE"
     ],
@@ -2544,15 +2542,23 @@
     "topicCode": "T_MILESTONE_FOUNDATION",
     "displayOrder": 10,
     "skillKeys": [
-      "PROBLEM_SOLVING",
-      "DEBUGGING",
-      "SELF_LEARNING",
-      "PROGRAMMING_FUNDAMENTALS"
+      "PSEUDOCODE_FLOWCHARTS",
+      "CONDITIONALS_BASICS",
+      "LOOPS_BASICS",
+      "FUNCTIONS_BASICS"
     ],
     "prerequisiteSkillKeys": [
-      "PROGRAMMING_FUNDAMENTALS"
+      "PSEUDOCODE_FLOWCHARTS",
+      "CONDITIONALS_BASICS",
+      "LOOPS_BASICS",
+      "FUNCTIONS_BASICS"
     ],
-    "prerequisiteUnitCodes": [],
+    "prerequisiteUnitCodes": [
+      "T_PSEUDOCODE_PRACTICE",
+      "T_CONDITIONS_PRACTICE",
+      "T_LOOPS_PRACTICE",
+      "T_FUNCTIONS_PRACTICE"
+    ],
     "category": "UNIVERSAL",
     "applicableDirections": [],
     "unitType": "CHECKPOINT",
@@ -2567,16 +2573,22 @@
     "topicCode": "T_MILESTONE_FOUNDATION",
     "displayOrder": 20,
     "skillKeys": [
-      "PROBLEM_SOLVING",
-      "DEBUGGING",
-      "SELF_LEARNING",
-      "TECHNICAL_COMMUNICATION"
+      "DSA_ARRAYS",
+      "SQL_BASICS",
+      "DB_FUNDAMENTALS",
+      "GIT_FUNDAMENTALS",
+      "GIT_BRANCHING"
     ],
     "prerequisiteSkillKeys": [
-      "PROGRAMMING_FUNDAMENTALS"
+      "DSA_ARRAYS",
+      "SQL_BASICS",
+      "GIT_FUNDAMENTALS"
     ],
     "prerequisiteUnitCodes": [
-      "T_MILESTONE_FOUNDATION_MIDPOINT"
+      "T_MILESTONE_FOUNDATION_MIDPOINT",
+      "T_ARRAYS_PRACTICE",
+      "T_SQL_PRACTICE",
+      "T_GIT_PRACTICE"
     ],
     "category": "UNIVERSAL",
     "applicableDirections": [],
@@ -2592,16 +2604,18 @@
     "topicCode": "T_MILESTONE_PROGRAMMING",
     "displayOrder": 10,
     "skillKeys": [
-      "PROGRAMMING_FUNDAMENTALS",
-      "PYTHON_BASICS",
       "CONDITIONALS_BASICS",
       "LOOPS_BASICS",
       "FUNCTIONS_BASICS"
     ],
     "prerequisiteSkillKeys": [
-      "PROGRAMMING_FUNDAMENTALS"
+      "CONDITIONALS_BASICS",
+      "LOOPS_BASICS",
+      "FUNCTIONS_BASICS"
     ],
     "prerequisiteUnitCodes": [
+      "T_CONDITIONS_PRACTICE",
+      "T_LOOPS_PRACTICE",
       "T_FUNCTIONS_PRACTICE"
     ],
     "category": "UNIVERSAL",
@@ -2618,13 +2632,14 @@
     "topicCode": "T_MILESTONE_PROGRAMMING",
     "displayOrder": 20,
     "skillKeys": [
-      "PROGRAMMING_FUNDAMENTALS",
       "CONDITIONALS_BASICS",
       "LOOPS_BASICS",
       "FUNCTIONS_BASICS"
     ],
     "prerequisiteSkillKeys": [
-      "PROGRAMMING_FUNDAMENTALS"
+      "CONDITIONALS_BASICS",
+      "LOOPS_BASICS",
+      "FUNCTIONS_BASICS"
     ],
     "prerequisiteUnitCodes": [
       "T_MILESTONE_PROGRAMMING_CHECKPOINT"
@@ -2643,14 +2658,12 @@
     "topicCode": "T_MILESTONE_QUANT",
     "displayOrder": 10,
     "skillKeys": [
-      "NUMBER_SYSTEMS_BINARY",
-      "PROPOSITIONAL_LOGIC",
-      "SET_THEORY",
       "BOOLEAN_ALGEBRA",
-      "RELATIONS_FUNCTIONS",
-      "APTITUDE_REASONING_LOGIC"
+      "PROPOSITIONAL_LOGIC"
     ],
-    "prerequisiteSkillKeys": [],
+    "prerequisiteSkillKeys": [
+      "BOOLEAN_ALGEBRA"
+    ],
     "prerequisiteUnitCodes": [
       "T_BOOLEAN_PRACTICE"
     ],
@@ -2668,14 +2681,10 @@
     "topicCode": "T_MILESTONE_SYSTEMS",
     "displayOrder": 10,
     "skillKeys": [
-      "OPERATING_SYSTEMS",
-      "OS_PROCESSES",
-      "OS_MEMORY",
-      "SHELL_PIPELINES",
-      "SHELL_COMMANDS"
+      "SHELL_PIPELINES"
     ],
     "prerequisiteSkillKeys": [
-      "SHELL_COMMANDS"
+      "SHELL_PIPELINES"
     ],
     "prerequisiteUnitCodes": [
       "T_SHELL_PIPELINES_PRACTICE"
@@ -2696,16 +2705,20 @@
     "skillKeys": [
       "HTML",
       "CSS",
-      "JS_BASICS",
       "JS_DOM",
       "HTML_FORMS",
       "WEB_ACCESSIBILITY"
     ],
     "prerequisiteSkillKeys": [
-      "HTML"
+      "HTML",
+      "CSS"
     ],
     "prerequisiteUnitCodes": [
-      "T_CSS_PRACTICE"
+      "T_HTML_PRACTICE",
+      "T_CSS_PRACTICE",
+      "T_JS_DOM_PRACTICE",
+      "T_FORMS_PRACTICE",
+      "T_ACCESSIBILITY_PRACTICE"
     ],
     "category": "DIRECTION",
     "applicableDirections": [

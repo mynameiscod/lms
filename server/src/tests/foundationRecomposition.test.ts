@@ -82,13 +82,42 @@ jest.mock('../models/CurriculumEnrollment', () => ({
   default: { findOne: (q: any) => chain(enrollments.find(d => matches(d, q)) || null) },
 }));
 
-/** The composition the "new evidence" produces. Swapped per test. */
-let nextComposition: any = null;
-jest.mock('../services/foundationJourneyService', () => ({
+/**
+ * The unit content the journey resolver reads. Real rows in memory, so the activity bundle a
+ * recomposed day receives is built by the actual resolver rather than asserted against a stub.
+ */
+const library: any[] = [];
+const quizzes: any[] = [];
+const assignments: any[] = [];
+
+jest.mock('../models/LearningContentLibrary', () => ({
   __esModule: true,
-  FOUNDATION_JOURNEY_KIND: 'FOUNDATION_UNIT_JOURNEY_V1',
-  composeFoundationJourney: async () => ({ candidates: 300, composition: nextComposition }),
+  default: { find: (q: any) => chain(library.filter(d => matches(d, q))) },
 }));
+jest.mock('../models/Quiz', () => ({
+  __esModule: true,
+  default: { find: (q: any) => chain(quizzes.filter(d => matches(d, q))) },
+}));
+jest.mock('../models/Assignment', () => ({
+  __esModule: true,
+  default: { find: (q: any) => chain(assignments.filter(d => matches(d, q))) },
+}));
+
+/**
+ * The composition the "new evidence" produces. Swapped per test.
+ *
+ * ONLY composition is replaced. loadAssets and activitiesFor are the journey service's own, which
+ * is the point: a recomposed day must be built exactly as a freshly persisted one is.
+ */
+let nextComposition: any = null;
+jest.mock('../services/foundationJourneyService', () => {
+  const actual = jest.requireActual('../services/foundationJourneyService');
+  return {
+    __esModule: true,
+    ...actual,
+    composeFoundationJourney: async () => ({ candidates: 300, composition: nextComposition }),
+  };
+});
 
 import {
   recomposeFutureDays, previewRecomposition, frozenDayNumbers,
@@ -136,7 +165,108 @@ beforeEach(() => {
   dayPlans.length = 0;
   curricula.length = 0;
   enrollments.length = 0;
+  library.length = 0;
+  quizzes.length = 0;
+  assignments.length = 0;
   nextComposition = compositionOf('NEW');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('a rewritten day is a whole day', () => {
+  /**
+   * Phase 21 found recomposition changing a day's unit and writing `items: []`, with nothing ever
+   * rebuilding them. A recomposed project day then offered nothing to submit — and because an
+   * Assignment is delivered through its journey day, a DRAFT assignment with no day item is one the
+   * delivery rules no longer open at all.
+   */
+  const composed = (over: any) => ({ title: over.unitCode, topicCode: 'T_NEW', role: 'INTEGRATION', ...over });
+
+  beforeEach(() => {
+    seedJourney('OLD');
+    enroll([1, 2, 3], 4);
+    library.push(
+      { _id: 'proj-notes', tenantId: TENANT, isPublished: true, unitCode: 'NEW_PROJECT', type: 'notes', title: 'The brief' },
+      { _id: 'check-notes', tenantId: TENANT, isPublished: true, unitCode: 'NEW_CHECK', type: 'notes', title: 'What it measures' },
+      { _id: 'prac-notes', tenantId: TENANT, isPublished: true, unitCode: 'NEW_PRACTICE', type: 'practice_theory', title: 'Practice' },
+      // Topic-level material with no unitCode. Shared by every sibling; must never reach a day.
+      { _id: 'topic-video', tenantId: TENANT, isPublished: true, topicCode: 'T_NEW', type: 'video', title: 'Inherited video' },
+      // Unpublished own content resolves for nothing.
+      { _id: 'draft-notes', tenantId: TENANT, isPublished: false, unitCode: 'NEW_PROJECT', type: 'worked_example', title: 'Draft' },
+    );
+    assignments.push({ _id: 'assign-1', tenant: TENANT, unitCode: 'NEW_PROJECT', title: 'Build it' });
+    quizzes.push({ _id: 'quiz-1', tenantId: TENANT, unitCode: 'NEW_CHECK', title: 'Checkpoint', totalTime: 20 });
+    nextComposition = {
+      ok: true,
+      units: [
+        composed({ unitCode: 'NEW_PROJECT', unitType: 'PROJECT' }),
+        composed({ unitCode: 'NEW_CHECK', unitType: 'CHECKPOINT', role: 'VERIFICATION' }),
+        composed({ unitCode: 'NEW_PRACTICE', unitType: 'PRACTICE', role: 'PRACTICE' }),
+        ...compositionOf('NEW').units,
+      ],
+    };
+  });
+
+  const day = (n: number) => dayPlans.find(d => d.dayNumber === n);
+
+  it('a recomposed PROJECT keeps its Assignment, gating and last', async () => {
+    const r = await recomposeFutureDays(TENANT, STUDENT, profile);
+    expect(r.ok).toBe(true);
+
+    const d = day(5);
+    expect(d.primaryUnitCode).toBe('NEW_PROJECT');
+    const last = d.items[d.items.length - 1];
+    expect(last).toMatchObject({ kind: 'assignment', sourceModel: 'Assignment', sourceId: 'assign-1', isGating: true, required: true });
+    expect(d.items.filter((i: any) => i.kind === 'content').map((i: any) => i.contentId)).toEqual(['proj-notes']);
+  });
+
+  it('a recomposed CHECKPOINT keeps its Quiz, gating and last', async () => {
+    await recomposeFutureDays(TENANT, STUDENT, profile);
+
+    const d = day(6);
+    expect(d.primaryUnitCode).toBe('NEW_CHECK');
+    const last = d.items[d.items.length - 1];
+    expect(last).toMatchObject({ kind: 'quiz', sourceModel: 'Quiz', sourceId: 'quiz-1', isGating: true });
+    expect(d.items.slice(0, -1).every((i: any) => !i.isGating)).toBe(true);
+  });
+
+  it('a recomposed PRACTICE day carries its own practice', async () => {
+    await recomposeFutureDays(TENANT, STUDENT, profile);
+    expect(day(7).items.map((i: any) => i.contentId)).toEqual(['prac-notes']);
+  });
+
+  it('never includes inherited topic content or unpublished rows', async () => {
+    await recomposeFutureDays(TENANT, STUDENT, profile);
+    const all = dayPlans.flatMap(d => d.items || []).map((i: any) => i.contentId);
+    expect(all).not.toContain('topic-video');
+    expect(all).not.toContain('draft-notes');
+  });
+
+  it('builds the same activities on a retry', async () => {
+    await recomposeFutureDays(TENANT, STUDENT, profile);
+    const first = JSON.stringify(dayPlans.filter(d => d.dayNumber > 4).map(d => [d.dayNumber, d.primaryUnitCode, d.items]));
+    await recomposeFutureDays(TENANT, STUDENT, profile);
+    const second = JSON.stringify(dayPlans.filter(d => d.dayNumber > 4).map(d => [d.dayNumber, d.primaryUnitCode, d.items]));
+    expect(second).toBe(first);
+    expect(dayPlans).toHaveLength(FOUNDATION_PROGRAM_DAYS);
+  });
+
+  it('repairs an unchanged future day that was left with no activities', async () => {
+    Object.assign(day(5), { primaryUnitCode: 'NEW_PROJECT', items: [] });
+
+    const r = await recomposeFutureDays(TENANT, STUDENT, profile);
+
+    expect(r.unchangedFutureDays).toContain(5);
+    expect(r.rewrittenDays).not.toContain(5);
+    expect(day(5).items.some((i: any) => i.kind === 'assignment' && i.isGating)).toBe(true);
+  });
+
+  it('leaves frozen days, and their activities, exactly as they were', async () => {
+    await recomposeFutureDays(TENANT, STUDENT, profile);
+    for (const n of [1, 2, 3, 4]) {
+      expect(day(n).primaryUnitCode).toBe(`OLD_${String(n).padStart(3, '0')}`);
+      expect(day(n).items).toEqual([{ contentTitle: 'existing' }]);
+    }
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

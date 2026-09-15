@@ -189,19 +189,20 @@ const VERIFICATION_UNITS: ProposedUnit[] = [
     moduleCode: 'M02_COMPUTATIONAL_THINKING',
     topicCode: 'T_MILESTONE_EARLY',
     title: 'Checkpoint: From Problem to Plan',
-    description: 'A problem you have not seen, planned and traced on paper, plus an account of what '
-      + 'the machine will do with it. Covers hardware, files, decomposition and pseudocode together.',
+    description: 'A problem you have not seen: understood, planned in pseudocode, drawn where it '
+      + 'branches and traced on paper. The pseudocode topic\'s work, together.',
     unitType: 'CHECKPOINT',
     category: UNIVERSAL,
     defaultDepth: 'FOUNDATION',
     applicableDirections: [],
-    skillKeys: ['HOW_COMPUTERS_WORK', 'COMPUTER_ARCHITECTURE', 'FILE_SYSTEMS_PERMISSIONS',
-      'PROBLEM_SOLVING', 'PSEUDOCODE_FLOWCHARTS'],
-    prerequisiteSkillKeys: [],
+    // Phase 21: only what the READY inventory teaches before it. Hardware and files are taught by
+    // no published unit, so a checkpoint question about them measured prior knowledge, not the plan.
+    skillKeys: ['PSEUDOCODE_FLOWCHARTS'],
+    prerequisiteSkillKeys: ['PSEUDOCODE_FLOWCHARTS'],
     prerequisiteUnitCodes: ['T_PSEUDOCODE_PRACTICE'],
     learningOutcomes: [
       'Plan and trace an unfamiliar problem without writing code',
-      'Say what the machine does with the plan, in the right order',
+      'Find the logic error in a plan by dry-running it',
     ],
     estimatedMinutes: 90,
     mandatory: true,
@@ -217,16 +218,16 @@ const VERIFICATION_UNITS: ProposedUnit[] = [
     moduleCode: 'M03_PROGRAMMING',
     topicCode: 'T_MILESTONE_PROGRAMMING',
     title: 'Checkpoint: Write a Program Unaided',
-    description: 'One program, from a plain-language brief, using variables, conditions, loops and '
-      + 'functions, with no worked example in front of you.',
+    description: 'One program, from a plain-language brief, using conditions, loops and functions, '
+      + 'with no worked example in front of you.',
     unitType: 'CHECKPOINT',
     category: UNIVERSAL,
     defaultDepth: 'STANDARD',
     applicableDirections: [],
-    skillKeys: ['PROGRAMMING_FUNDAMENTALS', 'PYTHON_BASICS', 'CONDITIONALS_BASICS',
-      'LOOPS_BASICS', 'FUNCTIONS_BASICS'],
-    prerequisiteSkillKeys: ['PROGRAMMING_FUNDAMENTALS'],
-    prerequisiteUnitCodes: ['T_FUNCTIONS_PRACTICE'],
+    // Phase 21: gated on all three topics it measures, not on functions alone.
+    skillKeys: ['CONDITIONALS_BASICS', 'LOOPS_BASICS', 'FUNCTIONS_BASICS'],
+    prerequisiteSkillKeys: ['CONDITIONALS_BASICS', 'LOOPS_BASICS', 'FUNCTIONS_BASICS'],
+    prerequisiteUnitCodes: ['T_CONDITIONS_PRACTICE', 'T_LOOPS_PRACTICE', 'T_FUNCTIONS_PRACTICE'],
     learningOutcomes: [
       'Write a working program from a brief, unaided',
       'Explain why each construct was the right choice',
@@ -251,8 +252,8 @@ const VERIFICATION_UNITS: ProposedUnit[] = [
     category: UNIVERSAL,
     defaultDepth: 'STANDARD',
     applicableDirections: [],
-    skillKeys: ['PROGRAMMING_FUNDAMENTALS', 'CONDITIONALS_BASICS', 'LOOPS_BASICS', 'FUNCTIONS_BASICS'],
-    prerequisiteSkillKeys: ['PROGRAMMING_FUNDAMENTALS'],
+    skillKeys: ['CONDITIONALS_BASICS', 'LOOPS_BASICS', 'FUNCTIONS_BASICS'],
+    prerequisiteSkillKeys: ['CONDITIONALS_BASICS', 'LOOPS_BASICS', 'FUNCTIONS_BASICS'],
     prerequisiteUnitCodes: ['T_MILESTONE_PROGRAMMING_CHECKPOINT'],
     learningOutcomes: ['Close the specific gap the checkpoint identified'],
     estimatedMinutes: 60,
@@ -275,9 +276,12 @@ const VERIFICATION_UNITS: ProposedUnit[] = [
     category: DIRECTION,
     defaultDepth: 'STANDARD',
     applicableDirections: ['WEB_DEVELOPMENT'],
-    skillKeys: ['HTML', 'CSS', 'JS_BASICS', 'JS_DOM', 'HTML_FORMS', 'WEB_ACCESSIBILITY'],
-    prerequisiteSkillKeys: ['HTML'],
-    prerequisiteUnitCodes: ['T_CSS_PRACTICE'],
+    // Phase 21: its questions measure structure, style, the DOM, forms and accessibility, so its
+    // gate is the practice for each of those rather than CSS alone.
+    skillKeys: ['HTML', 'CSS', 'JS_DOM', 'HTML_FORMS', 'WEB_ACCESSIBILITY'],
+    prerequisiteSkillKeys: ['HTML', 'CSS'],
+    prerequisiteUnitCodes: ['T_HTML_PRACTICE', 'T_CSS_PRACTICE', 'T_JS_DOM_PRACTICE',
+      'T_FORMS_PRACTICE', 'T_ACCESSIBILITY_PRACTICE'],
     learningOutcomes: [
       'Build a page to a brief using structure, style and behaviour together',
       'Defend each choice, including the accessibility ones',
@@ -296,18 +300,21 @@ const VERIFICATION_UNITS: ProposedUnit[] = [
     moduleCode: 'M09_LINUX',
     topicCode: 'T_MILESTONE_SYSTEMS',
     title: 'Checkpoint: Working on a Real Machine',
-    description: 'A set of tasks on an unfamiliar machine: find something, fix a permission, watch '
-      + 'a process, explain where the memory went.',
+    description: 'Real work at a shell without step-by-step instructions: selecting lines, counting '
+      + 'and ranking them, redirecting output and errors, and a script that stops safely on failure.',
     unitType: 'CHECKPOINT',
     category: UNIVERSAL,
     defaultDepth: 'STANDARD',
     applicableDirections: [],
-    skillKeys: ['OPERATING_SYSTEMS', 'OS_PROCESSES', 'OS_MEMORY', 'SHELL_PIPELINES', 'SHELL_COMMANDS'],
-    prerequisiteSkillKeys: ['SHELL_COMMANDS'],
+    // Phase 21: processes, memory and permissions are taught by no READY unit. Networking is, but it
+    // is scoped to a direction, and a universal checkpoint gated on it would be unreachable for
+    // everybody else — so this measures the shell work every learner is taught.
+    skillKeys: ['SHELL_PIPELINES'],
+    prerequisiteSkillKeys: ['SHELL_PIPELINES'],
     prerequisiteUnitCodes: ['T_SHELL_PIPELINES_PRACTICE'],
     learningOutcomes: [
-      'Complete unfamiliar tasks on a real machine without step-by-step instructions',
-      'Explain what the operating system was doing during each one',
+      'Compose pipes, redirection and text tools to answer an unfamiliar question',
+      'Explain what each stage of a pipeline does to the stream passing through it',
     ],
     estimatedMinutes: 75,
     mandatory: true,
@@ -323,18 +330,18 @@ const VERIFICATION_UNITS: ProposedUnit[] = [
     moduleCode: 'M10_MATHS',
     topicCode: 'T_MILESTONE_QUANT',
     title: 'Checkpoint: Reasoning You Can Show',
-    description: 'Problems that need logic, sets, boolean algebra and number systems together, with '
-      + 'the working shown rather than the answer alone.',
+    description: 'Problems that need boolean algebra and propositional logic together — truth '
+      + 'tables, gates, simplification and implication — with the working shown, not the answer alone.',
     unitType: 'CHECKPOINT',
     category: ACADEMIC,
     defaultDepth: 'STANDARD',
     applicableDirections: [],
-    skillKeys: ['NUMBER_SYSTEMS_BINARY', 'PROPOSITIONAL_LOGIC', 'SET_THEORY', 'BOOLEAN_ALGEBRA',
-      'RELATIONS_FUNCTIONS', 'APTITUDE_REASONING_LOGIC'],
-    prerequisiteSkillKeys: [],
+    // Phase 21: sets, relations, number systems and aptitude are taught by no READY unit.
+    skillKeys: ['BOOLEAN_ALGEBRA', 'PROPOSITIONAL_LOGIC'],
+    prerequisiteSkillKeys: ['BOOLEAN_ALGEBRA'],
     prerequisiteUnitCodes: ['T_BOOLEAN_PRACTICE'],
     learningOutcomes: [
-      'Solve problems that need more than one branch of the quantitative foundation',
+      'Translate a rule into boolean logic, simplify it and say what the result means',
       'Show working that somebody else can check',
     ],
     estimatedMinutes: 75,
@@ -351,17 +358,21 @@ const VERIFICATION_UNITS: ProposedUnit[] = [
     moduleCode: 'M14_CAPSTONE',
     topicCode: 'T_MILESTONE_FOUNDATION',
     title: 'Midpoint Reassessment',
-    description: 'Halfway through the programme: what has actually stuck, across every module met '
-      + 'so far, so the rest of the plan can be built on evidence rather than on attendance.',
+    description: 'Halfway: what has actually stuck from planning in pseudocode, conditions, loops and '
+      + 'functions, so the second half of the plan is built on evidence rather than on attendance.',
     unitType: 'CHECKPOINT',
     category: UNIVERSAL,
     defaultDepth: 'STANDARD',
     applicableDirections: [],
-    skillKeys: ['PROBLEM_SOLVING', 'DEBUGGING', 'SELF_LEARNING', 'PROGRAMMING_FUNDAMENTALS'],
-    prerequisiteSkillKeys: ['PROGRAMMING_FUNDAMENTALS'],
-    prerequisiteUnitCodes: [],
+    // Phase 21: it declared no prerequisite and measured skills no READY unit teaches, so suitability
+    // alone decided its placement and it could land on day 14. It now re-measures the first half,
+    // and cannot be scheduled until that half has been practised or demonstrated.
+    skillKeys: ['PSEUDOCODE_FLOWCHARTS', 'CONDITIONALS_BASICS', 'LOOPS_BASICS', 'FUNCTIONS_BASICS'],
+    prerequisiteSkillKeys: ['PSEUDOCODE_FLOWCHARTS', 'CONDITIONALS_BASICS', 'LOOPS_BASICS', 'FUNCTIONS_BASICS'],
+    prerequisiteUnitCodes: ['T_PSEUDOCODE_PRACTICE', 'T_CONDITIONS_PRACTICE', 'T_LOOPS_PRACTICE',
+      'T_FUNCTIONS_PRACTICE'],
     learningOutcomes: [
-      'Demonstrate current capability across the modules covered so far',
+      'Demonstrate current capability across planning and the core of programming',
       'Leave with a measured state rather than an assumed one',
     ],
     estimatedMinutes: 90,
@@ -379,18 +390,21 @@ const VERIFICATION_UNITS: ProposedUnit[] = [
     moduleCode: 'M14_CAPSTONE',
     topicCode: 'T_MILESTONE_FOUNDATION',
     title: 'Foundation Readiness Review',
-    description: 'The exit measurement: what the learner can do unaided, what they can explain, '
-      + 'and what the next stage should assume.',
+    description: 'The exit measurement: what the learner can do unaided with arrays, databases and '
+      + 'version control, what they can explain, and what the next stage should assume.',
     unitType: 'CHECKPOINT',
     category: UNIVERSAL,
     defaultDepth: 'STANDARD',
     applicableDirections: [],
-    skillKeys: ['PROBLEM_SOLVING', 'DEBUGGING', 'SELF_LEARNING', 'TECHNICAL_COMMUNICATION'],
-    prerequisiteSkillKeys: ['PROGRAMMING_FUNDAMENTALS'],
-    prerequisiteUnitCodes: ['T_MILESTONE_FOUNDATION_MIDPOINT'],
+    // Phase 21: it depended on the midpoint alone and measured skills no READY unit teaches. It now
+    // measures the universal core that follows the midpoint, and waits for that core to be practised.
+    skillKeys: ['DSA_ARRAYS', 'SQL_BASICS', 'DB_FUNDAMENTALS', 'GIT_FUNDAMENTALS', 'GIT_BRANCHING'],
+    prerequisiteSkillKeys: ['DSA_ARRAYS', 'SQL_BASICS', 'GIT_FUNDAMENTALS'],
+    prerequisiteUnitCodes: ['T_MILESTONE_FOUNDATION_MIDPOINT', 'T_ARRAYS_PRACTICE', 'T_SQL_PRACTICE',
+      'T_GIT_PRACTICE'],
     learningOutcomes: [
-      'Demonstrate Foundation-level capability unaided',
-      'State what you can do, with evidence, in terms somebody hiring would recognise',
+      'Demonstrate Foundation-level capability with data and version control, unaided',
+      'Explain each choice well enough to repeat it on a different problem',
     ],
     estimatedMinutes: 90,
     mandatory: true,

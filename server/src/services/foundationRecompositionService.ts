@@ -24,6 +24,15 @@
  * written and the existing plan stands — a partially rewritten journey with a hole in it is
  * worse than a slightly stale one.
  *
+ * ── A REWRITTEN DAY IS A WHOLE DAY ────────────────────────────────────────────────────────
+ *
+ * Changing a day's unit without rebuilding its activities leaves a day that names a project and
+ * offers nothing to submit. Worse than empty: the Assignment is delivered through the journey
+ * day, so a project day with no activity item is also a project whose DRAFT assignment the
+ * delivery rules no longer open. Every rewritten day is therefore rebuilt with the journey
+ * service's own resolver — the same teaching, practice, checkpoint and submission bundle, in the
+ * same order, gating activity last — so a recomposed day and a freshly built one cannot differ.
+ *
  * ── EVIDENCE IS READ, NEVER WRITTEN ───────────────────────────────────────────────────────
  *
  * Nothing here writes SkillEvidence, a score, or a skill profile. Recomposition is downstream
@@ -38,9 +47,10 @@ import DayPlan from '../models/DayPlan';
 import LearningCurriculum from '../models/LearningCurriculum';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
-import { StudentProfile } from './curriculumComposerService';
+import { SelectedUnit, StudentProfile } from './curriculumComposerService';
 import {
   composeFoundationJourney, FOUNDATION_JOURNEY_KIND, JourneyBuildOptions,
+  loadAssets, activitiesFor, UnitAssets,
 } from './foundationJourneyService';
 
 export interface RecompositionResult {
@@ -54,6 +64,8 @@ export interface RecompositionResult {
   unchangedFutureDays: number[];
   totalDays: number;
 }
+
+const NO_ASSETS: UnitAssets = { content: [], quizzes: [], assignments: [] };
 
 /**
  * Which days may not be touched.
@@ -100,7 +112,7 @@ export async function recomposeFutureDays(
 
   const [existing, enrollment] = await Promise.all([
     DayPlan.find({ curriculumId: curriculum._id })
-      .select('dayNumber primaryUnitCode').sort({ dayNumber: 1 }).lean() as any,
+      .select('dayNumber primaryUnitCode items').sort({ dayNumber: 1 }).lean() as any,
     CurriculumEnrollment.findOne({ tenantId, curriculumId: curriculum._id, studentId: sid })
       .select('completedDays currentDay').lean() as any,
   ]);
@@ -176,43 +188,57 @@ export async function recomposeFutureDays(
     };
   }
 
+  const planned = futureSlots.map((dayNumber, i) => ({ dayNumber, unit: available[i] as SelectedUnit }));
+  const sameUnit = (dayNumber: number, unit: SelectedUnit) =>
+    String(byDay.get(dayNumber)?.primaryUnitCode || '').toUpperCase() === unit.unitCode.toUpperCase();
+
+  /**
+   * Activities for every day that needs them, resolved once, by the journey service itself.
+   *
+   * A day needs them when its unit changes, and also when its unit is unchanged but it holds no
+   * activities — the state an earlier recomposition left days in before it rebuilt them. The
+   * second case is a repair, which is what makes a retry converge on complete days rather than
+   * preserving empty ones.
+   */
+  const needing = planned.filter(p => !sameUnit(p.dayNumber, p.unit) || !(byDay.get(p.dayNumber)?.items || []).length);
+  const assets = needing.length
+    ? await loadAssets(tenantId, needing.map(p => p.unit.unitCode))
+    : new Map<string, UnitAssets>();
+  const itemsFor = (unit: SelectedUnit) => activitiesFor(unit, assets.get(unit.unitCode.toUpperCase()) || NO_ASSETS);
+
   const rewritten: number[] = [];
   const unchanged: number[] = [];
   const ops: any[] = [];
 
-  futureSlots.forEach((dayNumber, i) => {
-    const unit = available[i];
-    const before = String(byDay.get(dayNumber)?.primaryUnitCode || '').toUpperCase();
+  for (const { dayNumber, unit } of planned) {
+    const filter = { curriculumId: curriculum._id, dayNumber };
 
-    if (before === unit.unitCode.toUpperCase()) {
+    if (sameUnit(dayNumber, unit)) {
       // The plan agreeing with itself. Reported apart from a rewrite so "nothing changed" is
       // legible as a real outcome rather than looking like the recomposition did not run.
       unchanged.push(dayNumber);
-      return;
+      if (!(byDay.get(dayNumber)?.items || []).length) {
+        ops.push({ updateOne: { filter, update: { $set: { items: itemsFor(unit) } } } });
+      }
+      continue;
     }
 
     rewritten.push(dayNumber);
     ops.push({
       updateOne: {
-        filter: { curriculumId: curriculum._id, dayNumber },
+        filter,
         update: {
           $set: {
             tenantId,
             topicId: unit.topicCode,
             primaryUnitCode: unit.unitCode,
             title: unit.title,
-            /**
-             * Activities are cleared and refilled lazily by the journey builder on next
-             * persist, rather than resolved here. Recomposition decides WHICH unit a day
-             * teaches; assembling a day's bundle is the journey service's job and duplicating
-             * it here would give two places to fix an ordering bug.
-             */
-            items: [],
+            items: itemsFor(unit),
           },
         },
       },
     });
-  });
+  }
 
   if (ops.length) await DayPlan.bulkWrite(ops, { ordered: false });
 

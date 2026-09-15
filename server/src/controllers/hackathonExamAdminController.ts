@@ -9,6 +9,7 @@ import { checkDrawCoverage, clearDrawPoolCache } from '../services/hackathonExam
 import * as exams from '../services/hackathonExamService';
 import { computeLeaderboard, computeTeamResult, drainGradingQueue } from '../services/hackathonExamGradingService';
 import { logger } from '../utils/logger';
+import { sendInvitations, sendResults } from '../services/hackathonExamNotifyService';
 
 /**
  * Running the hackathon exam: configure it, prove it can be drawn, invite the teams, watch it
@@ -356,4 +357,37 @@ export const getExamReadiness = async (req: AuthenticatedRequest, res: Response)
       },
     });
   } catch (e) { fail(res, e, 'Failed to check readiness'); }
+};
+
+/* ── telling people ────────────────────────────────────────────────────────── */
+
+/**
+ * Send the exam link to everyone who has not had it.
+ *
+ * Safe to press twice, and meant to be: teams keep registering after the first send, and the
+ * people already invited are skipped rather than messaged again.
+ */
+export const sendExamInvitations = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const counts = await sendInvitations(exam);
+    res.json({
+      success: true,
+      message: `Invitations sent — ${counts.email} email, ${counts.whatsapp} WhatsApp.`,
+      data: counts,
+    });
+  } catch (e) { fail(res, e, 'Failed to send invitations'); }
+};
+
+/** Send results. Refuses on an unpublished exam — a score sent early cannot be recalled. */
+export const sendExamResults = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const counts = await sendResults(exam);
+    res.json({
+      success: true,
+      message: `Results sent — ${counts.email} email, ${counts.whatsapp} WhatsApp.`,
+      data: counts,
+    });
+  } catch (e) { fail(res, e, 'Failed to send results'); }
 };

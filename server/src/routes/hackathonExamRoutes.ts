@@ -21,6 +21,7 @@ router.post('/by-hackathon/:hackathonId', ctrl.upsertExam);
 router.get('/:id/coverage', ctrl.getExamCoverage);
 router.get('/:id/readiness', ctrl.getExamReadiness);
 router.post('/:id/provision', ctrl.provisionExamAttempts);
+router.post('/:id/invite', ctrl.sendExamInvitations);
 
 /* Watch it happen */
 router.get('/:id/dashboard', ctrl.getExamDashboard);
@@ -33,5 +34,6 @@ router.post('/:id/attempts/:attemptId/score', ctrl.overrideAttemptScore);
 router.get('/:id/leaderboard', ctrl.getExamLeaderboard);
 router.post('/:id/close', ctrl.closeExam);
 router.post('/:id/publish', ctrl.publishExamResults);
+router.post('/:id/send-results', ctrl.sendExamResults);
 
 export default router;

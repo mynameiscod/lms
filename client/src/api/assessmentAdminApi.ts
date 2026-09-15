@@ -47,6 +47,11 @@ export const assessmentAdminApi = {
     const res: any = await authenticatedFetch(`${BASE}${q.toString() ? `?${q}` : ''}`);
     return (res?.data || res) as AdminAssessmentItem[];
   },
+  /** What the bank actually holds, by tag — the list the exam setup screen picks from. */
+  tags: async () => {
+    const res: any = await authenticatedFetch(`${BASE}/tags`);
+    return (res?.data || res) as { tag: string; total: number; byType: Record<string, number> }[];
+  },
   coverage: async () => {
     const res: any = await authenticatedFetch(`${BASE}/coverage`);
     return (res?.data || res) as { total: number; activeTotal: number; byCell: any[]; byDifficulty: any[] };
@@ -135,11 +140,17 @@ export const DIMENSIONS = [
   { value: 'system_design', label: 'System Design' },
 ];
 
+/**
+ * Labels an author reads, not the stored keys.
+ *
+ * "Live Code" told nobody that it was the coding-problem type — an admin looking to add a
+ * coding question to a hackathon had no way to tell it apart from "Complete Code".
+ */
 export const ITEM_TYPES = [
-  { value: 'mcq', label: 'MCQ' },
-  { value: 'predict_output', label: 'Predict Output' },
-  { value: 'debug', label: 'Find the Bug' },
-  { value: 'complete_code', label: 'Complete Code' },
-  { value: 'live_code', label: 'Live Code' },
-  { value: 'sql', label: 'SQL' },
+  { value: 'mcq', label: 'Multiple choice' },
+  { value: 'live_code', label: 'Coding problem (runs code)' },
+  { value: 'sql', label: 'SQL query (runs query)' },
+  { value: 'predict_output', label: 'Predict the output' },
+  { value: 'debug', label: 'Find the bug' },
+  { value: 'complete_code', label: 'Fill in the blanks' },
 ];

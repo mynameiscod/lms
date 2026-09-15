@@ -186,3 +186,37 @@ export const validateAssessmentItem = async (req: AuthenticatedRequest, res: Res
     res.status(500).json({ success: false, message: 'Validation failed', error: e.message });
   }
 };
+
+/**
+ * GET /assessment-items/tags — what the bank actually holds, by tag and type.
+ *
+ * Exists because the exam setup screen used to ask an admin to type a tag from memory. If they
+ * typed one that does not exist, the section simply reported "no items match" and gave them
+ * nothing to correct it with. This is the list they should have been choosing from.
+ */
+export const getAssessmentTags = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const rows = await AssessmentItem.aggregate([
+      { $match: { tenantId: String(req.tenantId), active: true } },
+      { $unwind: '$tags' },
+      { $group: { _id: { tag: '$tags', type: '$type' }, n: { $sum: 1 } } },
+      { $group: {
+        _id: '$_id.tag',
+        total: { $sum: '$n' },
+        byType: { $push: { type: '$_id.type', n: '$n' } },
+      } },
+      { $sort: { _id: 1 } },
+    ]);
+
+    res.json({
+      success: true,
+      data: rows.map((r: any) => ({
+        tag: r._id,
+        total: r.total,
+        byType: Object.fromEntries(r.byType.map((t: any) => [t.type, t.n])),
+      })),
+    });
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: 'Failed to load tags', error: e.message });
+  }
+};

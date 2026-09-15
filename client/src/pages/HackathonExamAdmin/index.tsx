@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { hackathonExamAdminApi as api } from '../../api/hackathonExamApi';
+import { assessmentAdminApi } from '../../api/assessmentAdminApi';
 import './hackathonExamAdmin.css';
 
 /**
@@ -43,6 +44,78 @@ const emptySection = (key: string) => ({
   minDifficulty: 1, maxDifficulty: 5, marksPerItem: 0,
 });
 
+/**
+ * Choose topics from what the bank actually holds, with counts.
+ *
+ * This replaced a free-text box asking for comma-separated tags. An admin typing one from
+ * memory — or a tag that only has MCQs in it when the section wants coding — got "no items
+ * match this section" and nothing to work out why from. Here the wrong choice is visible
+ * before it is made: a tag with no items OF THIS TYPE is shown greyed with a zero.
+ *
+ * Choosing nothing means "no topic constraint", which is usually what a 30-question MCQ
+ * section wants, so that is stated rather than left as an empty box.
+ */
+const TagPicker: React.FC<{
+  all: { tag: string; total: number; byType: Record<string, number> }[];
+  type: string;
+  chosen: string[];
+  onChange: (tags: string[]) => void;
+}> = ({ all, type, chosen, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+
+  const withCounts = all
+    .map((t) => ({ ...t, n: t.byType[type] || 0 }))
+    .filter((t) => !q || t.tag.toLowerCase().includes(q.toLowerCase()))
+    .sort((a, b) => b.n - a.n || a.tag.localeCompare(b.tag));
+
+  const toggle = (tag: string) =>
+    onChange(chosen.includes(tag) ? chosen.filter((x) => x !== tag) : [...chosen, tag]);
+
+  const available = chosen.reduce(
+    (n, tag) => n + (all.find((t) => t.tag === tag)?.byType[type] || 0), 0,
+  );
+
+  return (
+    <div className="hxa-tagpick">
+      <button type="button" className="hxa-tagbtn" onClick={() => setOpen((o) => !o)}>
+        {chosen.length
+          ? `${chosen.length} topic(s) · ${available} question(s) available`
+          : 'Any topic (whole bank)'}
+        <span>{open ? '▴' : '▾'}</span>
+      </button>
+
+      {!!chosen.length && (
+        <div className="hxa-tagsel">
+          {chosen.map((tag) => (
+            <button type="button" key={tag} onClick={() => toggle(tag)}>{tag} ×</button>
+          ))}
+        </div>
+      )}
+
+      {open && (
+        <div className="hxa-tagmenu">
+          <input placeholder="Search topics…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+          <div className="hxa-taglist">
+            {withCounts.map((t) => (
+              <button
+                type="button"
+                key={t.tag}
+                className={`${chosen.includes(t.tag) ? 'on' : ''} ${t.n === 0 ? 'none' : ''}`}
+                onClick={() => toggle(t.tag)}
+                title={t.n === 0 ? `No ${type} questions carry this topic` : ''}
+              >
+                <span>{t.tag}</span><b>{t.n}</b>
+              </button>
+            ))}
+            {!withCounts.length && <div className="hxa-msg">Nothing matches.</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const HackathonExamAdmin: React.FC = () => {
   const { hackathonId = '' } = useParams();
   const [tab, setTab] = useState<Tab>('setup');
@@ -58,6 +131,13 @@ const HackathonExamAdmin: React.FC = () => {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState('');
   const [lastAt, setLastAt] = useState<Date | null>(null);
+  const [bankTags, setBankTags] = useState<{ tag: string; total: number; byType: Record<string, number> }[]>([]);
+
+  /** Totals shown before the admin is asked for a single tag. */
+  const bankTotals = {
+    mcq: bankTags.reduce((n, t) => n + (t.byType.mcq || 0), 0),
+    coding: bankTags.reduce((n, t) => n + (t.byType.live_code || 0) + (t.byType.sql || 0), 0),
+  };
 
   const examId = exam?._id;
   const say = (m: string) => { setMsg(m); setErr(''); setTimeout(() => setMsg(''), 6000); };
@@ -97,6 +177,7 @@ const HackathonExamAdmin: React.FC = () => {
   }, [hackathonId]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { assessmentAdminApi.tags().then(setBankTags).catch(() => {}); }, []);
 
   /* Live view polls; a stale number on a dashboard is worse than no number. */
   const pollRef = useRef<any>(null);
@@ -160,6 +241,31 @@ const HackathonExamAdmin: React.FC = () => {
 
       {/* ───────────────────────────── SETUP ───────────────────────────── */}
       {tab === 'setup' && (
+        <>
+        {/*
+          Where the questions come from, said before anything asks for a tag.
+          Without this an admin is asked to type a tag from memory, and a tag that does not
+          exist simply reports "no items match" with nothing to correct it with.
+        */}
+        <div className="hxa-explain">
+          <div>
+            <b>Questions are not written here.</b>
+            <p>
+              They live in the <b>question bank</b>, shared by every exam. Below you choose
+              <i> which</i> of them each candidate draws — by topic tag, type and difficulty.
+              Everyone gets their own draw, so teammates never see the same paper.
+            </p>
+            <p className="hxa-explain-sub">
+              Need coding problems? The bank has <b>{bankTotals.mcq} multiple-choice</b> and{' '}
+              <b className={bankTotals.coding ? '' : 'hxa-zero'}>{bankTotals.coding} coding</b> question(s).
+              {!bankTotals.coding && ' You will need to author some before the coding section can be filled.'}
+            </p>
+          </div>
+          <a className="hxa-btn primary" href="/assessment-admin" target="_blank" rel="noreferrer">
+            Open the question bank ↗
+          </a>
+        </div>
+
         <div className="hxa-grid">
           <div className="hxa-card">
             <h3>The exam</h3>
@@ -208,8 +314,13 @@ const HackathonExamAdmin: React.FC = () => {
                     </label>
                   </div>
                   <div className="hxa-row">
-                    <label>Tags (comma separated)
-                      <input value={(s.tags || []).join(', ')} onChange={(e) => upSection(i, { tags: e.target.value.split(',').map((x) => x.trim()).filter(Boolean) })} placeholder="DSA_ARRAYS, SQL_BASICS" />
+                    <label>Topics
+                      <TagPicker
+                        all={bankTags}
+                        type={s.types[0]}
+                        chosen={s.tags || []}
+                        onChange={(tags) => upSection(i, { tags })}
+                      />
                     </label>
                     <label>Difficulty
                       <span className="hxa-band">
@@ -336,6 +447,7 @@ const HackathonExamAdmin: React.FC = () => {
             )}
           </div>
         </div>
+        </>
       )}
 
       {/* ───────────────────────────── LIVE ───────────────────────────── */}

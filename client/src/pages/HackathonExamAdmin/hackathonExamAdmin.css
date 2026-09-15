@@ -104,3 +104,27 @@
   .hxa-row { grid-template-columns: 1fr; }
   .hxa-publish { flex-direction: column; align-items: stretch; }
 }
+
+/* ── "questions are not written here" ──────────────────────────────────────── */
+.hxa-explain { background: #eff4ff; border: 1px solid #c7d8ff; border-radius: 14px; padding: 16px 18px; display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 16px; }
+.hxa-explain b { font-size: 14px; color: #1e3a8a; }
+.hxa-explain p { margin: 5px 0 0; font-size: 13px; color: #334155; line-height: 1.65; max-width: 640px; }
+.hxa-explain-sub { color: #475569 !important; }
+.hxa-explain .hxa-zero { color: #b91c1c; }
+.hxa-explain a { white-space: nowrap; text-decoration: none; }
+
+/* ── topic picker ──────────────────────────────────────────────────────────── */
+.hxa-tagpick { position: relative; margin-top: 4px; }
+.hxa-tagbtn { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 9px 11px; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer; text-align: left; }
+.hxa-tagbtn:hover { border-color: #c7d2fe; }
+.hxa-tagsel { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.hxa-tagsel button { background: #1d4ed8; border: none; color: #fff; border-radius: 7px; padding: 3px 9px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.hxa-tagmenu { position: absolute; z-index: 30; top: calc(100% + 5px); left: 0; right: 0; background: #fff; border: 1px solid #e2e8f0; border-radius: 11px; box-shadow: 0 14px 34px rgba(15,23,42,.14); padding: 9px; }
+.hxa-tagmenu input { width: 100%; margin: 0 0 7px !important; }
+.hxa-taglist { max-height: 230px; overflow: auto; display: grid; gap: 3px; }
+.hxa-taglist button { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: none; border: none; border-radius: 7px; padding: 6px 9px; font-size: 12.5px; color: #334155; cursor: pointer; text-align: left; }
+.hxa-taglist button:hover { background: #f1f5f9; }
+.hxa-taglist button.on { background: #eff4ff; color: #1d4ed8; font-weight: 700; }
+.hxa-taglist button.none { color: #cbd5e1; }
+.hxa-taglist button b { font-variant-numeric: tabular-nums; font-size: 11.5px; color: #94a3b8; }
+.hxa-taglist button.on b { color: #1d4ed8; }

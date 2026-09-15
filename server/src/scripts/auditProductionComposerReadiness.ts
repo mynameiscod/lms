@@ -117,17 +117,17 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
     const hash = crypto.createHash('md5')
       .update(JSON.stringify(units.map(u => [u.unitCode, u.status, u.suitableStates || null, String(u.updatedAt || '')])))
       .digest('hex');
+    // THIS tenant's curriculum content only: on a live database members' attempts, DayPlans and
+    // journeys change while the audit runs, and are not the audit's to hold still.
     const counts: Record<string, number> = {};
-    for (const c of ['curriculumlearningunits', 'learningcurriculums', 'dayplans', 'curriculumenrollments',
-      'studentcurriculumassignments', 'passportconfigs', 'quizzes', 'questions', 'assignments',
-      'skillevidences', 'learningcontentlibraries', 'quizattempts', 'submissions', 'users']) {
-      counts[c] = await db.collection(c).countDocuments({});
+    for (const c of ['curriculumlearningunits', 'learningcontentlibraries', 'quizzes', 'questions', 'assignments', 'skillevidences']) {
+      counts[c] = await db.collection(c).countDocuments({ $or: [{ tenantId: TID }, { tenant: tenantOid }] });
     }
     return {
       units: units.length,
       published: units.filter(u => u.status === 'PUBLISHED').length,
       archived: units.filter(u => u.status === 'ARCHIVED').length,
-      journeys: await db.collection('learningcurriculums').countDocuments({ journeyKind: { $exists: true, $ne: null } }),
+      journeys: await db.collection('learningcurriculums').countDocuments({ tenantId: TID, journeyKind: { $exists: true, $ne: null } }),
       unitStatusHash: hash,
       counts,
     };
@@ -782,7 +782,7 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   title('10. CURRENT ACTUAL PRODUCTION SOURCE');
   const beginner: StudentProfile = students[0].student;
   const prodJourney = await composeFoundationJourney(tenantId, beginner);
-  const configs = await db.collection('passportconfigs').find({}).toArray();
+  const configs = await db.collection('passportconfigs').find({ tenantId: TID }).toArray();
   const engine = configs.map(c => curriculumEngineFor({ config: c as any, stageKey: 'foundation' })).includes('UNIT') ? 'UNIT' : 'TOPIC';
   console.log(`    PUBLISHED units                    ${before.published}`);
   console.log(`    COMPOSER_ELIGIBLE (PRODUCTION)     ${production.units.length}`);
@@ -852,12 +852,13 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
 
   const after = await fingerprint();
   title('11. DATABASE SAFETY');
-  const same = JSON.stringify(before) === JSON.stringify(after);
-  console.log(`    units ${after.units}  PUBLISHED ${after.published}  journeys ${after.journeys}  DayPlans ${after.counts.dayplans}`
-    + `  enrolments ${after.counts.curriculumenrollments}  engine ${engine}`);
+  // Journeys may be created by members while the audit runs; only the curriculum must hold still.
+  const same = before.unitStatusHash === after.unitStatusHash && before.published === after.published
+    && before.archived === after.archived && JSON.stringify(before.counts) === JSON.stringify(after.counts);
+  console.log(`    units ${after.units}  PUBLISHED ${after.published}  Foundation journeys ${after.journeys}  engine ${engine}`);
   console.log(`    unit status fingerprint ${after.unitStatusHash}  unchanged: ${before.unitStatusHash === after.unitStatusHash ? 'yes' : 'NO'}`);
-  console.log(`    every audited collection count unchanged: ${same ? 'yes' : 'NO'}`);
-  if (!same) defects.push('the database changed during a read-only audit');
+  console.log(`    this tenant's curriculum content unchanged: ${same ? 'yes' : 'NO'}`);
+  if (!same) defects.push('the curriculum changed during a read-only audit');
   /**
    * PUBLISHED is 0 before the authorised Phase-21 publication and EXACTLY the certified recommended
    * set after it. A unit published outside the set, or a publication left half done, is a defect.
@@ -871,8 +872,9 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   // Engine OFF, or the one authorised activation (Foundation on UNIT) — never any other switch.
   const activation = engineActivationState(configs as any[]);
   console.log(`    engine activation ${activation}`);
-  if (!publishedIsCertified || after.journeys !== 0 || after.counts.dayplans !== 0 || activation === 'UNAUTHORIZED') {
-    defects.push('exit state is not PUBLISHED = 0 or the certified set / journeys=0 / DayPlans=0 / engine OFF or Foundation-only UNIT');
+  // Before activation nobody may have a journey; after the authorised activation they are members' plans.
+  if (!publishedIsCertified || (activation === 'OFF' && after.journeys !== 0) || activation === 'UNAUTHORIZED') {
+    defects.push('exit state is not PUBLISHED = 0 or the certified set / engine OFF with no journeys, or the authorised Foundation-only UNIT activation');
   }
 
   const blocked = defects.length + setFailures.length + capacity.length > 0;

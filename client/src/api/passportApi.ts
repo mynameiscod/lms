@@ -2195,6 +2195,10 @@ export interface FoundationJourney {
   available: boolean;
   /** Always 90, available or not. A student is told how long it will be before it exists. */
   totalDays: number;
+  /** The engine that plans this student. UNIT means this journey is their one roadmap. */
+  engine?: 'UNIT' | 'TOPIC';
+  /** The enrolment whose day player works a day through. Null until the journey exists. */
+  enrollmentId?: string | null;
 
   /** Present only when `available` is false. */
   reason?: string;

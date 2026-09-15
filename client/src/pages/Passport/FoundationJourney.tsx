@@ -25,6 +25,7 @@
  * the screen actually shows.
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import passportApi, {
   FoundationJourney as Journey, FoundationJourneyDay, FoundationJourneyActivity,
 } from '../../api/passportApi';
@@ -60,18 +61,30 @@ const mins = (n: number) =>
   (n >= 60 ? `${Math.floor(n / 60)}h${n % 60 ? ` ${n % 60}m` : ''}` : `${n} min`);
 
 /** Shown before a journey exists. Still states the length, because ninety is the promise. */
-const NotReady: React.FC<{ totalDays: number; message?: string }> = ({ totalDays, message }) => (
+/**
+ * Shown before a journey exists. Still states the length, because ninety is the promise.
+ *
+ * For a student the unit engine plans, the skill check is what creates the journey, so the one
+ * thing to press is offered here rather than leaving them on a message with nothing to do.
+ */
+const NotReady: React.FC<{ totalDays: number; message?: string; onAssess?: () => void }> = ({ totalDays, message, onAssess }) => (
   <div className="fj-page">
     <header className="fj-head">
-      <span className="fj-kicker">CAREERPILOT</span>
-      <h1>Foundation Journey</h1>
+      <div>
+        <span className="fj-kicker">CAREERPILOT</span>
+        <h1>Foundation Journey</h1>
+        <p className="fj-sub">{totalDays} learning days</p>
+      </div>
     </header>
     <div className="fj-msg info">
       <b>{message || 'Your journey has not been created yet.'}</b>
       <p>
         Your Foundation programme is {totalDays} learning days, personalised to what you
-        already know. It appears here once your assessment is complete.
+        already know. It appears here once your skill check is complete.
       </p>
+      {onAssess && (
+        <button type="button" className="fj-start" onClick={onAssess}>Take your skill check</button>
+      )}
     </div>
   </div>
 );
@@ -83,6 +96,7 @@ const FoundationJourneyPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [dayLoading, setDayLoading] = useState(false);
   const [err, setErr] = useState('');
+  const nav = useNavigate();
 
   const load = useCallback(async () => {
     setLoading(true); setErr('');
@@ -133,8 +147,15 @@ const FoundationJourneyPage: React.FC = () => {
    */
   if (!journey) return <NotReady totalDays={90} />;
   if (!journey.available) {
-    return <NotReady totalDays={journey.totalDays} message={journey.message} />;
+    return (
+      <NotReady
+        totalDays={journey.totalDays}
+        message={journey.message}
+        onAssess={journey.engine === 'UNIT' ? () => nav('/careerpilot/skill-assessment') : undefined}
+      />
+    );
   }
+  const enrollmentId = journey.enrollmentId || null;
 
   /**
    * Defaulted at the point of use, because the interface marks the available-state fields
@@ -202,7 +223,22 @@ const FoundationJourneyPage: React.FC = () => {
                 {/* The one piece of planning a student sees, in the unit's own words. */}
                 {day.objective && <p className="fj-objective">{day.objective}</p>}
               </div>
-              {day.minutes > 0 && <span className="fj-mins">{mins(day.minutes)}</span>}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+                {day.minutes > 0 && <span className="fj-mins">{mins(day.minutes)}</span>}
+                {/* The day is worked through in the learning-plan day player, which opens each
+                    lesson, checkpoint and project and records completion. Locking is the
+                    server's: a day not yet reachable says so there. */}
+                {enrollmentId && (
+                  <button
+                    type="button"
+                    className={`fj-start${day.status === 'CURRENT' ? '' : ' ghost'}`}
+                    onClick={() => nav(`/my-learning/${enrollmentId}/day/${day.day}`)}
+                  >
+                    {day.status === 'CURRENT' ? "Start today's work"
+                      : day.status === 'COMPLETED' ? 'Review this day' : 'Open this day'}
+                  </button>
+                )}
+              </div>
             </div>
 
             {day.outcomes.length > 0 && (

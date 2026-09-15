@@ -4,6 +4,7 @@ import passportApi, { Roadmap as RoadmapT, RoadmapWeek, RoadmapPhase } from '../
 import { useMember } from './MemberLayout';
 import SkillPlan, { SkillPlanState } from './SkillPlan';
 import SectionLock from './SectionLock';
+import FoundationJourneyPage from './FoundationJourney';
 import './roadmap.css';
 
 /**
@@ -54,8 +55,19 @@ const Roadmap: React.FC = () => {
   const [paying, setPaying] = useState(false);
   const [payMsg, setPayMsg] = useState('');
   const [copied, setCopied] = useState(false);
+  const [unitEngine, setUnitEngine] = useState(false);
 
   const load = useCallback(async () => {
+    /**
+     * ONE PLAN PER STUDENT.
+     *
+     * When the unit engine plans this student, their Foundation journey IS the roadmap. The topic
+     * planners this page otherwise stacks — a topic projection sized to the work assigned so far,
+     * a separate skill plan with its own phases, a rebuild banner — would only contradict it.
+     * Asked first, so the topic roadmap is not even built for somebody it does not serve.
+     */
+    const journey = await passportApi.myFoundationJourney().catch(() => null);
+    if (journey?.engine === 'UNIT') { setUnitEngine(true); setLoading(false); return; }
     try { setData(await passportApi.getRoadmap()); } catch { /* ignore */ }
     setLoading(false);
   }, []);
@@ -140,6 +152,8 @@ const Roadmap: React.FC = () => {
   }, [data]);
 
   if (loading) return <div className="pm-loading">Loading your roadmap…</div>;
+
+  if (unitEngine) return <FoundationJourneyPage />;
 
   if (data?.needsAssessment) {
     return (

@@ -50,6 +50,11 @@ jest.mock('../models/CurriculumLearningUnit', () => ({
   default: { findOne: (q: any) => chain(units.find(d => matches(d, q)) || null) },
 }));
 
+const mockResolveEngine = jest.fn();
+jest.mock('../services/curriculumEngineService', () => ({
+  resolveCurriculumEngine: (...a: any[]) => mockResolveEngine(...a),
+}));
+
 import * as ctrl from '../controllers/foundationJourneyController';
 
 const TENANT = '5f9d1b2c3a4b5c6d7e8f9012';
@@ -94,13 +99,45 @@ const seed = () => {
     learningOutcomes: ['Define a class and create an instance'],
   });
   enrollments.push({
-    tenantId: TENANT, curriculumId: CURRICULUM, studentId: STUDENT,
+    _id: 'enr1', tenantId: TENANT, curriculumId: CURRICULUM, studentId: STUDENT,
     completedDays: [1, 2, 3, 4, 5], currentDay: 6, startDate: new Date('2026-01-06'),
   });
 };
 
 beforeEach(() => {
   dayPlans.length = 0; curricula.length = 0; enrollments.length = 0; units.length = 0;
+  mockResolveEngine.mockReset().mockResolvedValue({ engine: 'UNIT' });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('which plan the student screens show', () => {
+  it('names the engine and the enrolment whose day player works a day through', async () => {
+    seed();
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+
+    expect(mockResolveEngine).toHaveBeenCalledWith({ tenantId: TENANT, studentId: STUDENT });
+    expect(out.body.engine).toBe('UNIT');
+    expect(out.body.enrollmentId).toBe('enr1');
+  });
+
+  it('still names the engine before a journey exists, so a UNIT student is offered the skill check', async () => {
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+
+    expect(out.body.available).toBe(false);
+    expect(out.body.engine).toBe('UNIT');
+    expect(out.body.enrollmentId).toBeNull();
+  });
+
+  it('answers TOPIC when the engine cannot be resolved, so the screens keep what they showed', async () => {
+    mockResolveEngine.mockRejectedValue(new Error('config unreadable'));
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+
+    expect(out.status).toBe(200);
+    expect(out.body.engine).toBe('TOPIC');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -61,22 +61,30 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
   const failures: string[] = [];
   const title = (t: string) => console.log(`\n${'-'.repeat(100)}\n  ${t}\n${'-'.repeat(100)}`);
 
+  /**
+   * What a read-only gate must leave exactly as it found it: THIS tenant's curriculum content.
+   *
+   * Scoped on purpose. On a live database members keep working while the gate runs — their
+   * attempts, DayPlans, enrolments and journeys change on their own — so counting those would fail
+   * the gate for somebody else's homework. This tenant's journeys are reported, not compared.
+   */
+  const CONTENT = ['curriculumlearningunits', 'learningcontentlibraries', 'quizzes', 'questions', 'assignments', 'skillevidences'];
   const fingerprint = async () => {
     const units = await db.collection('curriculumlearningunits').find({ tenantId: TID })
       .project({ unitCode: 1, status: 1, suitableStates: 1, updatedAt: 1 }).sort({ unitCode: 1 }).toArray();
     const counts: Record<string, number> = {};
-    for (const c of ['curriculumlearningunits', 'learningcurriculums', 'dayplans', 'curriculumenrollments',
-      'studentcurriculumassignments', 'passportconfigs', 'quizzes', 'questions', 'assignments',
-      'skillevidences', 'learningcontentlibraries', 'quizattempts', 'submissions', 'users']) {
-      counts[c] = await db.collection(c).countDocuments({});
-    }
+    for (const c of CONTENT) counts[c] = await db.collection(c).countDocuments({ $or: [{ tenantId: TID }, { tenant: tenantOid }] });
+    const journeyIds = (await db.collection('learningcurriculums')
+      .find({ tenantId: TID, journeyKind: { $exists: true, $ne: null } }).project({ _id: 1 }).toArray()).map(j => j._id);
     return {
       hash: crypto.createHash('md5').update(JSON.stringify(units.map(u =>
         [u.unitCode, u.status, u.suitableStates || null, String(u.updatedAt || '')]))).digest('hex'),
       units: units.length,
       published: units.filter(u => u.status === 'PUBLISHED').map(u => String(u.unitCode)).sort(),
-      journeys: await db.collection('learningcurriculums').countDocuments({ journeyKind: { $exists: true, $ne: null } }),
       counts,
+      journeys: journeyIds.length,
+      journeyDayPlans: journeyIds.length ? await db.collection('dayplans').countDocuments({ curriculumId: { $in: journeyIds } }) : 0,
+      journeyEnrolments: journeyIds.length ? await db.collection('curriculumenrollments').countDocuments({ curriculumId: { $in: journeyIds } }) : 0,
     };
   };
   const before = await fingerprint();
@@ -317,16 +325,18 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
 
   title('6. DATABASE SAFETY');
   const after = await fingerprint();
-  const configs = await db.collection('passportconfigs').find({}).toArray();
+  const configs = await db.collection('passportconfigs').find({ tenantId: TID }).toArray();
   const engine = configs.map(c => curriculumEngineFor({ config: c as any, stageKey: 'foundation' })).includes('UNIT') ? 'UNIT' : 'TOPIC';
-  const unchanged = JSON.stringify(before) === JSON.stringify(after);
+  // Journeys are members' plans and may be created while the gate runs; only the curriculum must not move.
+  const unchanged = before.hash === after.hash
+    && JSON.stringify(before.published) === JSON.stringify(after.published)
+    && JSON.stringify(before.counts) === JSON.stringify(after.counts);
   const publishedIsCertified = JSON.stringify(after.published) === JSON.stringify(certifiedCodes);
   console.log(`    units ${after.units}  PUBLISHED ${after.published.length}  COMPOSER_ELIGIBLE ${universe.length}`
-    + `  journeys ${after.journeys}  DayPlans ${after.counts.dayplans}  enrolments ${after.counts.curriculumenrollments}  engine ${engine}`);
+    + `  Foundation journeys ${after.journeys} (DayPlans ${after.journeyDayPlans}, enrolments ${after.journeyEnrolments})  engine ${engine}`);
   console.log(`    published units are exactly the certified set: ${publishedIsCertified ? 'yes' : 'NO'}`);
-  console.log(`    unit status fingerprint ${after.hash}; database unchanged during this run: ${unchanged ? 'yes' : 'NO'}`);
+  console.log(`    unit status fingerprint ${after.hash}; this tenant's curriculum unchanged during this run: ${unchanged ? 'yes' : 'NO'}`);
   if (!publishedIsCertified) failures.push('published units are not exactly the certified set');
-  if (after.journeys || after.counts.dayplans || after.counts.curriculumenrollments) failures.push('journeys, DayPlans or enrolments exist');
   /**
    * The engine must be OFF, or on exactly as authorised: Foundation on UNIT, every other stage on
    * TOPIC, no tenant switch and no named accounts. Any other way of turning it on still fails.
@@ -335,7 +345,9 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
   const perStage = CAREER_STAGES.map(s => `${s.key}=${configs.map(c => effectiveCurriculumEngine({ config: c as any, stageKey: s.key }).engine).includes('UNIT') ? 'UNIT' : 'TOPIC'}`);
   console.log(`    engine activation ${activation}  (${perStage.join(' ')})`);
   if (activation === 'UNAUTHORIZED') failures.push('the curriculum engine is switched on in a way that was not authorised');
-  if (!unchanged) failures.push('the database changed during a read-only gate');
+  // Before activation nobody may have a journey; after the authorised activation they are members' plans.
+  if (activation === 'OFF' && after.journeys) failures.push(`${after.journeys} Foundation journey(s) exist while the unit engine is off`);
+  if (!unchanged) failures.push("this tenant's curriculum changed during a read-only gate");
 
   title(`ACTUAL PRODUCTION GATE: ${failures.length ? 'FAIL' : 'PASS'}`);
   for (const f of failures.slice(0, 40)) console.log(`    FAIL  ${f}`);

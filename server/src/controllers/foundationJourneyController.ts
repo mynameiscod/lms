@@ -31,6 +31,18 @@ import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
 import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
 import { FOUNDATION_JOURNEY_KIND } from '../services/foundationJourneyService';
+import { resolveCurriculumEngine } from '../services/curriculumEngineService';
+
+/**
+ * Which engine plans this student, for the screens that must show exactly one plan.
+ *
+ * My Roadmap and My 90 Days render this journey instead of the topic planners when the answer is
+ * UNIT. Resolved by the single production resolver, so a screen can never disagree with the
+ * planner about which plan is the student's. An unreadable config answers TOPIC — the screens
+ * then show what they always showed.
+ */
+const engineOf = (tenantId: string, studentId: string) =>
+  resolveCurriculumEngine({ tenantId, studentId }).then(r => r.engine).catch(() => 'TOPIC' as const);
 
 const tenantOf = (req: Request): string =>
   String((req as any).user?.tenantId || (req as any).tenantId || '');
@@ -80,7 +92,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
     const studentId = userIdOf(req);
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
 
-    const curriculum = await journeyOf(tenantId, studentId);
+    const [curriculum, engine] = await Promise.all([journeyOf(tenantId, studentId), engineOf(tenantId, studentId)]);
     if (!curriculum) {
       /**
        * Not an error. A student who has not been given a journey yet is an ordinary state —
@@ -92,6 +104,8 @@ export const getMyJourney = async (req: Request, res: Response) => {
         reason: 'NO_JOURNEY',
         message: 'Your Foundation journey has not been created yet.',
         totalDays: FOUNDATION_PROGRAM_DAYS,
+        engine,
+        enrollmentId: null,
       });
     }
 
@@ -135,6 +149,9 @@ export const getMyJourney = async (req: Request, res: Response) => {
       /** Whole-percent, so the bar and the number never disagree by a rounding step. */
       percentComplete: Math.round((completed.size / FOUNDATION_PROGRAM_DAYS) * 100),
       startedAt: enrollment?.startDate || null,
+      engine,
+      /** Where a day is actually worked through: the learning-plan day player. */
+      enrollmentId: enrollment?._id ? String(enrollment._id) : null,
       days: strip,
     });
   } catch (e: any) {

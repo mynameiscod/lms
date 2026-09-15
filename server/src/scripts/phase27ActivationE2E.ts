@@ -51,7 +51,8 @@ import StudentSkillEvidence from '../models/StudentSkillEvidence';
 import { registerAdaptiveHandlers, publish } from '../services/adaptiveCurriculumEvents';
 import { loadCandidates } from '../services/composerCandidateService';
 import { ComposableUnit } from '../services/curriculumComposerService';
-import { loadAssets, activitiesFor, UnitAssets, FOUNDATION_JOURNEY_KIND } from '../services/foundationJourneyService';
+import { loadAssets, activitiesFor, UnitAssets, FOUNDATION_JOURNEY_KIND, deleteFoundationJourney } from '../services/foundationJourneyService';
+import { backfillFoundationJourneys } from '../services/foundationJourneyBackfillService';
 import { resolveCurriculumEngine } from '../services/curriculumEngineService';
 import { checkCurriculumQuizLinkage } from '../services/quizLinkageService';
 import { diagnosticSkills, masteredBy } from '../services/composerCertificationService';
@@ -61,7 +62,17 @@ import { roleOf, teaches } from '../data/contentBundlePolicy';
 import { stateForScore } from '../data/adaptiveCurriculumPolicy';
 import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
 
-const CERTIFIED_FINGERPRINT = 'f13395d09497b4fefecb457aa17ab2a4';
+/**
+ * Runs against any tenant's database, including a live one.
+ *
+ * Nothing machine-specific is assumed: the unit fingerprint (which carries timestamps) is compared
+ * with this run's own starting value, and residue and drift are judged over this run's fixtures and
+ * this tenant's curriculum — never over collections real members are writing to while it runs.
+ */
+/** Fields a document names a person by. Used both to clean fixtures up and to prove they are gone. */
+const REF_FIELDS = ['studentId', 'userId', 'student', 'user', 'memberId', 'recipientId', 'recipient', 'owner', 'personalizedFor'];
+/** This tenant's curriculum and assessment content, which the run must leave exactly as found. */
+const CONTENT = ['curriculumlearningunits', 'learningcontentlibraries', 'quizzes', 'questions', 'assignments', 'skillevidences', 'assessmentitems', 'careerroles'];
 const E2E_DOMAIN = 'p27-e2e.careerpilot.invalid';
 const ITEM_TAG = 'p27-e2e';
 const STUDENT_PASSWORD = 'P27-e2e-Fixture!';
@@ -116,10 +127,27 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
   const TID = { $in: [tenantId, tenantOid] };
   const startedAt = new Date();
 
-  const allCounts = async () => {
+  const contentCounts = async () => {
     const out: Record<string, number> = {};
-    for (const c of (await db.listCollections().toArray()).map(x => x.name).sort()) out[c] = await db.collection(c).countDocuments({});
+    for (const c of CONTENT) out[c] = await db.collection(c).countDocuments({ $or: [{ tenantId: TID }, { tenant: tenantOid }] });
     return out;
+  };
+  /** Anything of this run's fixtures still in the database — what cleanup removes, counted instead. */
+  const syntheticResidue = async (ids: string[], journeyIds: any[]) => {
+    const oids = ids.map(id => new mongoose.Types.ObjectId(id));
+    const any = [...oids, ...ids];
+    const left: string[] = [];
+    const note = (label: string, n: number) => { if (n) left.push(`${label} ${n}`); };
+    for (const { name } of await db.listCollections().toArray()) {
+      if (name === 'users') continue;
+      if (ids.length) note(name, await db.collection(name).countDocuments({ $or: REF_FIELDS.map(f => ({ [f]: { $in: any } })) }));
+    }
+    note('users', await db.collection('users').countDocuments({ $or: [{ _id: { $in: oids } }, { email: { $regex: `@${E2E_DOMAIN.replace(/\./g, '\\.')}$` } }] }));
+    if (journeyIds.length) note('dayplans of fixture journeys', await db.collection('dayplans').countDocuments({ curriculumId: { $in: journeyIds } }));
+    note('fixture diagnostic items', await db.collection('assessmentitems').countDocuments({ tenantId, tags: ITEM_TAG }));
+    note('fixture papers', await db.collection('personalizedassessments').countDocuments({ tenantId, policyKey: 'P27_E2E_FIXTURE' }));
+    note('fixture activity rows', await db.collection('careerpilotactivities').countDocuments({ visitorId: { $in: ids.map(i => `u:${i}`) } }));
+    return left;
   };
   const unitFingerprint = async () => {
     const units = await db.collection('curriculumlearningunits').find({ tenantId: TID })
@@ -204,7 +232,7 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
 
   section('1. PRECONDITIONS — the certified production state');
   roleBaseline = await db.collection('careerroles').countDocuments({ tenantId });
-  const baselineCounts = await allCounts();
+  const contentBaseline = await contentCounts();
   const certified: string[] = [...JSON.parse(fs.readFileSync(path.join(FIXTURES, 'publish-sets.json'), 'utf8')).recommended].sort();
   const certifiedSet = new Set(certified);
   const fpBefore = await unitFingerprint();
@@ -212,12 +240,13 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
   const prodCodes = production.units.map(u => u.unitCode).sort();
   const ready = await loadCandidates(tenantId, 'PROTOTYPE_UNPUBLISHED');
   const linkage = await checkCurriculumQuizLinkage(tenantId);
-  check('pre', 'unit fingerprint is the certified one', fpBefore.hash === CERTIFIED_FINGERPRINT, fpBefore.hash);
+  rawLog(`  unit fingerprint at the start of this run: ${fpBefore.hash} — every later check compares against it`);
   check('pre', 'units 355, READY 341, PUBLISHED 338', fpBefore.total === 355 && ready.units.length === 341 && fpBefore.published === 338,
     `${fpBefore.total} / ${ready.units.length} / ${fpBefore.published}`);
   check('pre', 'PRODUCTION inventory is exactly the certified 338', JSON.stringify(prodCodes) === JSON.stringify(certified), `${prodCodes.length}`);
-  check('pre', 'no journeys, DayPlans or enrolments', !(await db.collection('learningcurriculums').countDocuments({ journeyKind: { $exists: true, $ne: null } }))
-    && !(await db.collection('dayplans').countDocuments({})) && !(await db.collection('curriculumenrollments').countDocuments({})));
+  const membersJourneys = await db.collection('learningcurriculums').countDocuments({ tenantId: TID, journeyKind: { $exists: true, $ne: null } });
+  check('pre', 'no fixture left over from an earlier run', !(await syntheticResidue([], [])).length,
+    `this tenant's members already hold ${membersJourneys} Foundation journey(s); they are never touched`);
   check('linkage', 'every curriculum quiz is linked both ways', linkage.ok,
     `${linkage.quizzes} quizzes, ${linkage.questions} questions; missing ${linkage.missingQuizId.length}, wrong ${linkage.wrongQuizId.length}, orphaned ${linkage.orphanedQuestions.length}, unresolved ${linkage.unresolvedQuestionIds.length}`);
 
@@ -332,7 +361,7 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
     (await resolveCurriculumEngine({ tenantId, studentId: probe.id })).engine === 'UNIT');
   const fpActivated = await unitFingerprint();
   const prodAfter = (await loadCandidates(tenantId, 'PRODUCTION')).units.map(u => u.unitCode).sort();
-  check('activation', 'certified unit fingerprint unchanged by activation', fpActivated.hash === CERTIFIED_FINGERPRINT);
+  check('activation', 'unit fingerprint unchanged by activation', fpActivated.hash === fpBefore.hash);
   check('activation', 'PRODUCTION inventory is still exactly the certified 338', JSON.stringify(prodAfter) === JSON.stringify(certified));
 
   /* ── fixtures: diagnostic items ─────────────────────────────────────────────────────── */
@@ -508,6 +537,13 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
     const overview = await as(s.token, request(api).get('/api/v1/careerpilot/me/foundation-journey'));
     check('ux', 'overview: available, Day 1 of 90, progress 0%, a 90-day strip', overview.status === 200 && overview.body?.available === true
       && overview.body?.totalDays === 90 && overview.body?.currentDay === 1 && overview.body?.percentComplete === 0 && (overview.body?.days || []).length === 90);
+    // What My Roadmap and My 90 Days decide on, and where their "Start today's work" button goes.
+    check('ux', 'overview names the unit engine and the enrolment the Start button opens',
+      overview.body?.engine === 'UNIT' && !!j.enrollment && overview.body?.enrollmentId === String(j.enrollment._id),
+      `${overview.body?.engine} ${overview.body?.enrollmentId}`);
+    const player = await as(s.token, request(api).get(`/api/v1/enrollment-plans/${overview.body?.enrollmentId}/day/1`));
+    check('ux', 'the day player behind the Start button serves day 1 of the journey',
+      player.status === 200 && (player.body?.items || []).length > 0, `HTTP ${player.status}, ${(player.body?.items || []).length} item(s)`);
     const checkpointDay = j.days.find((d: any) => (d.items || []).some((i: any) => i.kind === 'quiz'))?.dayNumber;
     const projectDay = j.days.find((d: any) => (d.items || []).some((i: any) => i.kind === 'assignment'))?.dayNumber;
     const bodies: any[] = [overview.body];
@@ -736,28 +772,57 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
       routed.action === 'REFUSED' && after.length === 89 && snapshotDays(after, Array.from({ length: 89 }, (_, i) => i + 1)) === survivors, routed.line || '');
   }
 
+  /* ══ 9b. EXISTING MEMBERS — BACKFILL ══════════════════════════════════════════════════════ */
+
+  section('9b. EXISTING MEMBERS — a member assessed before activation is given their journey by the backfill');
+  {
+    // Scoped to this run's own fixtures, so the backfill can never plan a real member here.
+    const scope = ['strong', 'topic-control', 'no-evidence'].map(k => students[k].id);
+    const decisionOf = (r: any, key: string) => r.rows.find((x: any) => x.studentId === students[key].id)?.decision;
+    const strongOid = new mongoose.Types.ObjectId(students.strong.id);
+    // As somebody assessed before the engine was switched on: Skill DNA, but no journey and no enrolment.
+    const original = await inspectJourney('strong');
+    await CurriculumEnrollment.deleteMany({ curriculumId: original.curriculum._id });
+    await deleteFoundationJourney(tenantId, students.strong.id);
+
+    const dry = await backfillFoundationJourneys({ tenantId, apply: false, studentIds: scope });
+    check('backfill', 'dry run: only the measured UNIT member without a journey would be given one, and nothing is written',
+      decisionOf(dry, 'strong') === 'WOULD_CREATE' && decisionOf(dry, 'topic-control') === 'TOPIC_ENGINE' && decisionOf(dry, 'no-evidence') === 'NOT_READY'
+      && !(await LearningCurriculum.countDocuments({ personalizedFor: strongOid, journeyKind: FOUNDATION_JOURNEY_KIND })),
+      dry.rows.map(r => `${r.email.split('@')[0]} ${r.decision}`).join(', '));
+
+    const applied = await backfillFoundationJourneys({ tenantId, apply: true, studentIds: scope });
+    const rebuilt = await inspectJourney('strong');
+    check('backfill', 'apply: that member has exactly one ninety-day journey and one enrolment, written by the production trigger',
+      applied.created === 1 && applied.notCreated === 0 && !rebuilt.problems.length,
+      rebuilt.problems.slice(0, 3).join(' | ') || `created ${applied.created}`);
+
+    const again = await backfillFoundationJourneys({ tenantId, apply: true, studentIds: scope });
+    check('backfill', 'a second run creates nothing', again.created === 0 && decisionOf(again, 'strong') === 'HAS_JOURNEY');
+  }
+
   } // journeysReady
 
   /* ══ 10. CLEANUP AND FINAL STATE ══════════════════════════════════════════════════════════ */
 
   section('10. CLEANUP AND FINAL STATE');
   await sleep(2000);
+  const syntheticIds = Object.values(students).map(s => s.id);
+  const syntheticJourneys = (await db.collection('learningcurriculums')
+    .find({ personalizedFor: { $in: syntheticIds.map(id => new mongoose.Types.ObjectId(id)) } }).project({ _id: 1 }).toArray()).map(j => j._id);
   await cleanup('after');
-  const finalCounts = await allCounts();
-  const allowed = new Set(['passportconfigs', 'careerpilotactivities']);
-  const drift = Object.keys({ ...baselineCounts, ...finalCounts })
-    .filter(c => (baselineCounts[c] || 0) !== (finalCounts[c] || 0))
-    .map(c => `${c} ${baselineCounts[c] || 0} → ${finalCounts[c] || 0}`);
-  const unexpected = drift.filter(d => !allowed.has(d.split(' ')[0]));
-  const adminActivity = (finalCounts.careerpilotactivities || 0) - (baselineCounts.careerpilotactivities || 0);
+  const residue = await syntheticResidue(syntheticIds, syntheticJourneys);
   check('cleanup', 'every synthetic student, item, paper, evidence row, journey, DayPlan, enrolment and role fixture is gone',
-    !unexpected.length, unexpected.join('; ') || `retained: passportconfigs ${finalCounts.passportconfigs || 0}, admin activity rows +${adminActivity}`);
+    !residue.length, residue.join('; ') || `${syntheticIds.length} fixture students and ${syntheticJourneys.length} fixture journeys removed`);
+  const contentFinal = await contentCounts();
+  const contentDrift = CONTENT.filter(c => contentBaseline[c] !== contentFinal[c]).map(c => `${c} ${contentBaseline[c]} → ${contentFinal[c]}`);
+  check('final', "this tenant's curriculum and assessment content is exactly as the run found it", !contentDrift.length, contentDrift.join('; '));
   const fpAfter = await unitFingerprint();
   const prodFinal = (await loadCandidates(tenantId, 'PRODUCTION')).units.map(u => u.unitCode).sort();
-  check('final', 'certified unit fingerprint unchanged', fpAfter.hash === CERTIFIED_FINGERPRINT, fpAfter.hash);
+  check('final', 'unit fingerprint unchanged by the run', fpAfter.hash === fpBefore.hash, fpAfter.hash);
   check('final', 'PUBLISHED 338 and PRODUCTION inventory exactly the certified set', fpAfter.published === 338 && JSON.stringify(prodFinal) === JSON.stringify(certified));
-  check('final', 'journeys 0, DayPlans 0, enrolments 0', !(await db.collection('learningcurriculums').countDocuments({ journeyKind: { $exists: true, $ne: null } }))
-    && !(await db.collection('dayplans').countDocuments({})) && !(await db.collection('curriculumenrollments').countDocuments({})));
+  const membersJourneysAfter = await db.collection('learningcurriculums').countDocuments({ tenantId: TID, journeyKind: { $exists: true, $ne: null } });
+  rawLog(`  this tenant's members hold ${membersJourneysAfter} Foundation journey(s) (${membersJourneys} at the start; real members may be working)`);
   const cfg = await db.collection('passportconfigs').findOne({ tenantId });
   check('final', 'UNIT activation retained through the saved configuration', (cfg?.megaCurriculumStages || []).includes('foundation'));
   check('final', 'quiz linkage still intact', (await checkCurriculumQuizLinkage(tenantId)).ok);

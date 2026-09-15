@@ -4,7 +4,7 @@
  * ── WHAT IT PUBLISHES ─────────────────────────────────────────────────────────────────────
  *
  * The 338 codes in tests/fixtures/phase21/publish-sets.json `recommended`, certified at commit
- * ed2f29c7. Not "all READY": the three READY units certification withheld stay DRAFT, and so do the
+ * ed2f29c7 and re-certified at 382a39ee. Not "all READY": the three READY units certification withheld stay DRAFT, and so do the
  * fourteen PARTIAL ones.
  *
  * ── HOW ───────────────────────────────────────────────────────────────────────────────────
@@ -52,9 +52,18 @@ import { loadCandidates } from '../services/composerCandidateService';
 import { ComposableUnit } from '../services/curriculumComposerService';
 import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
 import { teaches } from '../data/contentBundlePolicy';
-import { curriculumEngineFor } from '../data/curriculumEnginePolicy';
+import { engineActivationState } from '../data/curriculumEnginePolicy';
 
-const CERTIFIED_COMMIT = 'ed2f29c7';
+/**
+ * The commit the certified sources are compared against.
+ *
+ * Moved from ed2f29c7 to 382a39ee, where the actual production gate was re-run and passed (nine 9/9,
+ * boundaries 40/40, recomposition 72/72, content gates 0). The two changes between them alter no
+ * unit, readiness or selection: the content seed also writes each checkpoint question's quizId, and
+ * composerCertificationService exports the prerequisite rule it already applied. Any change to a
+ * certified source after this commit still stops publication until it is re-certified.
+ */
+const CERTIFIED_COMMIT = '382a39ee';
 const EXPECT = { total: 355, ready: 341, target: 338, withheld: 3, partial: 14 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');
@@ -117,9 +126,17 @@ const CERTIFIED_SOURCES = [
 
   const unitDocs = async () => db.collection('curriculumlearningunits')
     .find({ tenantId: TID, stageKey: 'foundation' }).sort({ unitCode: 1 }).toArray();
+  /**
+   * What publication may change, counted for THIS tenant's curriculum content only.
+   *
+   * A live database has members working while this runs — attempts, DayPlans and activity rows move
+   * on their own and say nothing about publication — so a database-wide count would report their
+   * work as drift.
+   */
+  const CONTENT = ['curriculumlearningunits', 'learningcontentlibraries', 'quizzes', 'questions', 'assignments', 'skillevidences', 'passportconfigs'];
   const allCounts = async () => {
     const out: Record<string, number> = {};
-    for (const c of (await db.listCollections().toArray()).map(x => x.name).sort()) out[c] = await db.collection(c).countDocuments({});
+    for (const c of CONTENT) out[c] = await db.collection(c).countDocuments({ $or: [{ tenantId: TID }, { tenant: tenantOid }] });
     return out;
   };
 
@@ -260,9 +277,11 @@ const CERTIFIED_SOURCES = [
   const countChanges = [...new Set([...Object.keys(countsBefore), ...Object.keys(countsAfter)])]
     .filter(c => countsBefore[c] !== countsAfter[c])
     .map(c => `${c} ${countsBefore[c] ?? 0} -> ${countsAfter[c] ?? 0}`);
-  const configs = await db.collection('passportconfigs').find({}).toArray();
-  const engine = configs.map(c => curriculumEngineFor({ config: c as any, stageKey: 'foundation' })).includes('UNIT') ? 'UNIT' : 'TOPIC';
-  const journeys = await db.collection('learningcurriculums').countDocuments({ journeyKind: { $exists: true, $ne: null } });
+  const configs = await db.collection('passportconfigs').find({ tenantId: TID }).toArray();
+  const activation = engineActivationState(configs as any[]);
+  // Members' Foundation journeys, this tenant only. DayPlans and enrolments of other LMS curricula
+  // are not publication's business.
+  const journeys = await db.collection('learningcurriculums').countDocuments({ tenantId: TID, journeyKind: { $exists: true, $ne: null } });
 
   const checks: [string, boolean, string][] = [
     ['total units', docsAfter.length === EXPECT.total, String(docsAfter.length)],
@@ -274,10 +293,9 @@ const CERTIFIED_SOURCES = [
     ['READY but not PUBLISHED = certified withheld', JSON.stringify(readyNotPublished) === JSON.stringify(withheld), readyNotPublished.join(', ')],
     ['PARTIAL and not PUBLISHED', partialNotPublished.length === EXPECT.partial && partialAfter.length === EXPECT.partial, String(partialNotPublished.length)],
     ['no unit changed beyond status', unexpectedUnitChanges.length === 0, unexpectedUnitChanges.slice(0, 5).join(', ')],
-    ['journeys', journeys === 0, String(journeys)],
-    ['DayPlans', (countsAfter.dayplans || 0) === 0, String(countsAfter.dayplans || 0)],
-    ['enrolments', (countsAfter.curriculumenrollments || 0) === 0, String(countsAfter.curriculumenrollments || 0)],
-    ['UNIT engine OFF', engine === 'TOPIC', engine],
+    // Before activation no member can have a journey; after it, journeys are members' plans.
+    ['no Foundation journeys before activation', journeys === 0 || activation === 'FOUNDATION_UNIT', `${journeys} (engine ${activation})`],
+    ['engine OFF or the authorised Foundation activation', activation !== 'UNAUTHORIZED', activation],
   ];
 
   say('\nVERIFICATION');

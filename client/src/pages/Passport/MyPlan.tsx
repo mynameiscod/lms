@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { SpineOutcome, SpineDay } from '../../api/passportApi';
+import FoundationJourneyPage from './FoundationJourney';
 import './myPlan.css';
 
 /**
@@ -34,9 +35,13 @@ const MyPlan: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [openBand, setOpenBand] = useState<string | null>(null);
+  const [unitEngine, setUnitEngine] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setErr('');
+    // A student the unit engine plans has one ninety days: their Foundation journey. See Roadmap.
+    const journey = await passportApi.myFoundationJourney().catch(() => null);
+    if (journey?.engine === 'UNIT') { setUnitEngine(true); setLoading(false); return; }
     try { setSpine(await passportApi.getMySpine()); }
     catch (e: any) { setErr(e?.response?.data?.message || 'Could not load your plan.'); }
     finally { setLoading(false); }
@@ -61,6 +66,8 @@ const MyPlan: React.FC = () => {
   }, [byBand, openBand]);
 
   if (loading) return <div className="mpl"><div className="mpl-state">Loading your plan…</div></div>;
+
+  if (unitEngine) return <FoundationJourneyPage />;
 
   if (err) return (
     <div className="mpl">

@@ -203,6 +203,13 @@ jest.mock('../models/CareerSkill', () => ({
   },
 }));
 
+/** How many live journeys schedule the unit under test. Real counting is covered against a database. */
+let mockUsage = { students: 0, upcomingDays: 0, reachedDays: 0 };
+jest.mock('../services/unitJourneyUsageService', () => ({
+  liveJourneyUsage: async () => mockUsage,
+}));
+beforeEach(() => { mockUsage = { students: 0, upcomingDays: 0, reachedDays: 0 }; });
+
 import * as ctrl from '../controllers/curriculumLearningUnitController';
 
 /**
@@ -551,6 +558,80 @@ describe('what cannot be undone', () => {
     // Editing a live unit must not pull it out of every plan mid-week.
     expect(units[0].status).toBe('PUBLISHED');
     expect(units[0].title).toBe('Renamed');
+  });
+});
+
+describe('a unit that sits on students’ journeys', () => {
+  const publishOwn = async () => {
+    library = [ownVideo()];
+    await save('T_OOP_INHERIT');
+    const { res } = resOf();
+    await ctrl.publishUnit(reqOf({ params: { unitCode: 'T_OOP_INHERIT' } }), res);
+    expect(units[0].status).toBe('PUBLISHED');
+  };
+  const setStatus = async (body: any) => {
+    const { res, out } = resOf();
+    await ctrl.setUnitStatus(reqOf({ params: { unitCode: 'T_OOP_INHERIT' }, body }), res);
+    return out;
+  };
+
+  it('is not unpublished or archived until the admin has seen how many students it touches', async () => {
+    await publishOwn();
+    mockUsage = { students: 3, upcomingDays: 4, reachedDays: 1 };
+
+    for (const status of ['DRAFT', 'ARCHIVED']) {
+      const out = await setStatus({ status });
+      expect(out.status).toBe(409);
+      expect(out.body.code).toBe('UNIT_IN_LIVE_JOURNEYS');
+      expect(out.body.usage).toEqual({ students: 3, upcomingDays: 4, reachedDays: 1 });
+      expect(out.body.message).toMatch(/3 students/);
+      expect(out.body.message).toMatch(/4 upcoming days/);
+    }
+    expect(units[0].status).toBe('PUBLISHED');
+  });
+
+  it('goes through once the admin confirms', async () => {
+    await publishOwn();
+    mockUsage = { students: 3, upcomingDays: 4, reachedDays: 1 };
+
+    const out = await setStatus({ status: 'ARCHIVED', confirmLiveJourneys: true });
+    expect(out.status).toBe(200);
+    expect(units[0].status).toBe('ARCHIVED');
+  });
+
+  it('asks nothing when no journey uses it', async () => {
+    await publishOwn();
+    const out = await setStatus({ status: 'DRAFT' });
+    expect(out.status).toBe(200);
+    expect(units[0].status).toBe('DRAFT');
+  });
+
+  it('a confirmation that is not exactly true does not count', async () => {
+    await publishOwn();
+    mockUsage = { students: 1, upcomingDays: 1, reachedDays: 0 };
+    const out = await setStatus({ status: 'DRAFT', confirmLiveJourneys: 'yes' });
+    expect(out.status).toBe(409);
+    expect(units[0].status).toBe('PUBLISHED');
+  });
+
+  it('is never deleted while a journey uses it, even after it was unpublished', async () => {
+    await publishOwn();
+    mockUsage = { students: 2, upcomingDays: 0, reachedDays: 2 };
+    await setStatus({ status: 'ARCHIVED', confirmLiveJourneys: true });
+
+    const { res, out } = resOf();
+    await ctrl.deleteUnit(reqOf({ params: { unitCode: 'T_OOP_INHERIT' } }), res);
+    expect(out.status).toBe(409);
+    expect(out.body.code).toBe('UNIT_IN_LIVE_JOURNEYS');
+    expect(out.body.message).toMatch(/archive it instead/);
+    expect(units).toHaveLength(1);
+  });
+
+  it('reports a missing unit before asking about journeys', async () => {
+    mockUsage = { students: 5, upcomingDays: 5, reachedDays: 0 };
+    const { res, out } = resOf();
+    await ctrl.setUnitStatus(reqOf({ params: { unitCode: 'T_NOPE' }, body: { status: 'DRAFT' } }), res);
+    expect(out.status).toBe(404);
   });
 });
 

@@ -405,10 +405,18 @@ const AdminMegaCurriculum: React.FC = () => {
     }
   };
 
-  const setStatus = async (unitCode: string, status: 'DRAFT' | 'ARCHIVED') => {
+  const setStatus = async (unitCode: string, status: 'DRAFT' | 'ARCHIVED', confirmLiveJourneys = false): Promise<void> => {
     setErr(''); setNote('');
-    try { await passportApi.setCurriculumUnitStatus(unitCode, status); await load(); }
-    catch (e: any) { setErr(e?.response?.data?.message || 'Could not change this unit.'); }
+    try { await passportApi.setCurriculumUnitStatus(unitCode, status, confirmLiveJourneys); await load(); }
+    catch (e: any) {
+      const body = e?.response?.data;
+      // A unit on students' journeys is confirmed with the number it touches, never changed silently.
+      if (e?.response?.status === 409 && body?.code === 'UNIT_IN_LIVE_JOURNEYS' && !confirmLiveJourneys) {
+        if (window.confirm(`${body.message}\n\nGo ahead?`)) return setStatus(unitCode, status, true);
+        return;
+      }
+      setErr(body?.message || 'Could not change this unit.');
+    }
   };
 
   const remove = async (unitCode: string) => {

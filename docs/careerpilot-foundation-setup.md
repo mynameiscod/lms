@@ -107,5 +107,15 @@ npx ts-node src/scripts/backfillFoundationJourneys.ts <TENANT> --apply
 - **Start today's work** opens the day: lessons, the checkpoint quiz, the project. Finishing the
   checkpoint updates the future days of the plan.
 - **Existing student** (after step 7): the same 90-day journey.
+- **Home** leads with *Today in your Foundation journey* for that student, with the same Start button.
 - **A student in a later year** still sees the topic roadmap — only Foundation is on the unit engine.
-- **Admin:** the Config screen shows Foundation on the unit engine.
+- **Admin — engine:** the Config screen shows Foundation on the unit engine.
+- **Admin — a student's journey:** *Members → a student → Roadmap* (`/admin/passport/students/<id>/roadmap`)
+  shows their 90 days at the top, with the unit behind each day and whether it is still published.
+- **Admin — editing the curriculum** (`/admin/passport/mega-curriculum`): edit a unit, attach or detach
+  content, bind a checkpoint quiz or a project, publish. Moving a published unit to Draft or Archived
+  asks for confirmation when students' journeys use it, with how many; deleting a unit that is on any
+  journey is refused (archive it instead).
+
+After any curriculum edit, re-run `certifyProductionComposer.ts <TENANT>`: an edited unit is no longer
+the certified inventory, and the publish tool will refuse to run until it is re-certified.

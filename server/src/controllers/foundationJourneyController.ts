@@ -29,6 +29,7 @@ import LearningCurriculum from '../models/LearningCurriculum';
 import DayPlan from '../models/DayPlan';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
+import User from '../models/User';
 import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
 import { FOUNDATION_JOURNEY_KIND } from '../services/foundationJourneyService';
 import { resolveCurriculumEngine } from '../services/curriculumEngineService';
@@ -222,5 +223,102 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error('[foundation-journey] day:', e?.message || e);
     res.status(500).json({ message: 'Could not load this day.' });
+  }
+};
+
+/**
+ * GET /passport/students/:studentId/foundation-journey — ADMIN
+ *
+ * One member's ninety days as the planner wrote them. Unlike the member's own view, this names the
+ * unit behind each day, its type and whether it is still published: an admin asking "why is this on
+ * day 34" needs the unit, and one about to unpublish a unit needs to see it on somebody's plan.
+ *
+ * READ-ONLY on purpose. A hand-edited day would be overwritten by the next recomposition, so the
+ * place to change a plan is the curriculum it is composed from.
+ */
+export const getStudentJourney = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const studentId = String(req.params.studentId || '');
+    if (!tenantId) return res.status(401).json({ message: 'Not authenticated' });
+    if (!mongoose.Types.ObjectId.isValid(studentId)) return res.status(400).json({ message: 'That is not a member id.' });
+
+    // The tenant comes from the admin's verified identity, so another tenant's member is simply not found.
+    const member = await User.findOne({ _id: studentId, tenantId })
+      .select('firstName lastName email passport.stage').lean() as any;
+    if (!member) return res.status(404).json({ message: 'No such member in this tenant.' });
+
+    const [curriculum, engine] = await Promise.all([journeyOf(tenantId, studentId), engineOf(tenantId, studentId)]);
+    const student = {
+      name: [member.firstName, member.lastName].filter(Boolean).join(' ') || member.email || 'Member',
+      email: member.email || null,
+      stage: member.passport?.stage || null,
+    };
+
+    if (!curriculum) {
+      return res.json({
+        available: false,
+        engine,
+        student,
+        totalDays: FOUNDATION_PROGRAM_DAYS,
+        message: engine === 'UNIT'
+          ? 'No journey yet. It is created when this member completes a skill check — or by the backfill, for members assessed before the unit engine was switched on.'
+          : 'This member is planned by the topic engine, so they have no Foundation journey.',
+      });
+    }
+
+    const [days, enrollment] = await Promise.all([
+      DayPlan.find({ curriculumId: curriculum._id })
+        .select('dayNumber title primaryUnitCode items').sort({ dayNumber: 1 }).lean() as any,
+      CurriculumEnrollment.findOne({
+        tenantId, curriculumId: curriculum._id,
+        studentId: new mongoose.Types.ObjectId(studentId),
+      }).select('completedDays currentDay startDate').lean() as any,
+    ]);
+
+    const codes = [...new Set((days as any[]).map(d => d.primaryUnitCode).filter(Boolean))];
+    const units = codes.length
+      ? await CurriculumLearningUnit.find({ tenantId, unitCode: { $in: codes } })
+        .select('unitCode title unitType status').lean() as any[]
+      : [];
+    const byCode = new Map(units.map(u => [String(u.unitCode), u]));
+
+    const completed = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
+    const currentDay = Math.min(Math.max(Number(enrollment?.currentDay || 1), 1), FOUNDATION_PROGRAM_DAYS);
+
+    res.json({
+      available: true,
+      engine,
+      student,
+      curriculumId: String(curriculum._id),
+      enrollmentId: enrollment?._id ? String(enrollment._id) : null,
+      totalDays: FOUNDATION_PROGRAM_DAYS,
+      currentDay,
+      completedCount: completed.size,
+      percentComplete: Math.round((completed.size / FOUNDATION_PROGRAM_DAYS) * 100),
+      startedAt: enrollment?.startDate || null,
+      days: (days as any[]).map(d => {
+        const unit = d.primaryUnitCode ? byCode.get(String(d.primaryUnitCode)) : null;
+        const items = (d.items || []) as any[];
+        return {
+          day: d.dayNumber,
+          title: d.title || unit?.title || `Day ${d.dayNumber}`,
+          unitCode: d.primaryUnitCode || null,
+          unitType: unit?.unitType || null,
+          /** MISSING when the unit has since been deleted — a day naming nothing an admin can open. */
+          unitStatus: unit ? unit.status : 'MISSING',
+          activities: items.length,
+          checkpoint: items.some(i => i.kind === 'quiz'),
+          project: items.some(i => i.kind === 'assignment'),
+          minutes: items.reduce((n, i) => n + (Number(i.estimatedDuration) || 0), 0),
+          status: completed.has(d.dayNumber) ? 'COMPLETED'
+            : d.dayNumber === currentDay ? 'CURRENT'
+              : d.dayNumber < currentDay ? 'SKIPPED' : 'UPCOMING',
+        };
+      }),
+    });
+  } catch (e: any) {
+    console.error('[foundation-journey] admin student:', e?.message || e);
+    res.status(500).json({ message: 'Could not load this member’s journey.' });
   }
 };

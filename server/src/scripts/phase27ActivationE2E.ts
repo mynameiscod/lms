@@ -544,6 +544,15 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
     const player = await as(s.token, request(api).get(`/api/v1/enrollment-plans/${overview.body?.enrollmentId}/day/1`));
     check('ux', 'the day player behind the Start button serves day 1 of the journey',
       player.status === 200 && (player.body?.items || []).length > 0, `HTTP ${player.status}, ${(player.body?.items || []).length} item(s)`);
+    // The admin's view of the same journey, through the real admin route and its MANAGE guard. Read-only.
+    const adminView = await as(adminToken, request(api).get(`/api/v1/careerpilot/students/${s.id}/foundation-journey`));
+    const adminDay1 = (adminView.body?.days || [])[0];
+    check('admin', 'an admin sees this member’s ninety days with the unit behind each day',
+      adminView.status === 200 && adminView.body?.available === true && (adminView.body?.days || []).length === 90
+      && adminDay1?.unitCode === j.days[0]?.primaryUnitCode && adminDay1?.unitStatus === 'PUBLISHED',
+      `HTTP ${adminView.status}, day 1 ${adminDay1?.unitCode} ${adminDay1?.unitStatus}`);
+    const studentPeek = await as(s.token, request(api).get(`/api/v1/careerpilot/students/${s.id}/foundation-journey`));
+    check('admin', 'a student cannot open the admin view, even of their own journey', studentPeek.status === 403, `HTTP ${studentPeek.status}`);
     const checkpointDay = j.days.find((d: any) => (d.items || []).some((i: any) => i.kind === 'quiz'))?.dayNumber;
     const projectDay = j.days.find((d: any) => (d.items || []).some((i: any) => i.kind === 'assignment'))?.dayNumber;
     const bodies: any[] = [overview.body];

@@ -234,6 +234,11 @@ export const passportApi = {
     const r = await axios.get(`${CP}/me/foundation-journey/day/${day}`, { headers: auth() });
     return r.data;
   },
+  /** Admin: one member's ninety-day Foundation journey, with the unit behind each day. Read-only. */
+  getStudentFoundationJourney: async (studentId: string): Promise<AdminFoundationJourney> => {
+    const r = await axios.get(`${CP}/students/${encodeURIComponent(studentId)}/foundation-journey`, { headers: auth() });
+    return r.data;
+  },
   // ── Mega curriculum: Learning Units ───────────────────────────────
   megaCurriculum: async (stage = 'foundation'): Promise<{
     stageKey: string; curriculumTitle: string | null;
@@ -261,8 +266,12 @@ export const passportApi = {
     const r = await axios.post(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/publish`, {}, { headers: auth() });
     return r.data;
   },
-  setCurriculumUnitStatus: async (unitCode: string, status: 'DRAFT' | 'ARCHIVED'): Promise<{ unit: CurriculumLearningUnit }> => {
-    const r = await axios.post(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/status`, { status }, { headers: auth() });
+  /**
+   * A PUBLISHED unit on students' journeys is refused with 409 `UNIT_IN_LIVE_JOURNEYS` and the number
+   * of students it touches; send `confirmLiveJourneys` only after the admin has seen that number.
+   */
+  setCurriculumUnitStatus: async (unitCode: string, status: 'DRAFT' | 'ARCHIVED', confirmLiveJourneys = false): Promise<{ unit: CurriculumLearningUnit }> => {
+    const r = await axios.post(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/status`, { status, confirmLiveJourneys }, { headers: auth() });
     return r.data;
   },
   reorderCurriculumUnits: async (order: { unitCode: string; displayOrder: number }[]): Promise<{ reordered: number }> => {
@@ -2237,6 +2246,36 @@ export interface FoundationJourneyDay {
   status: JourneyDayStatus;
   minutes: number;
   activities: FoundationJourneyActivity[];
+}
+
+/** Admin view of one member's journey. Unlike the member's own, it names the unit behind each day. */
+export interface AdminFoundationJourneyDay {
+  day: number;
+  title: string;
+  unitCode: string | null;
+  unitType: string | null;
+  /** PUBLISHED, DRAFT, ARCHIVED — or MISSING when the unit no longer exists. */
+  unitStatus: string;
+  activities: number;
+  checkpoint: boolean;
+  project: boolean;
+  minutes: number;
+  status: JourneyDayStatus;
+}
+
+export interface AdminFoundationJourney {
+  available: boolean;
+  engine: 'UNIT' | 'TOPIC';
+  student: { name: string; email: string | null; stage: string | null };
+  totalDays: number;
+  message?: string;
+  curriculumId?: string;
+  enrollmentId?: string | null;
+  currentDay?: number;
+  completedCount?: number;
+  percentComplete?: number;
+  startedAt?: string | null;
+  days?: AdminFoundationJourneyDay[];
 }
 
 export interface StudioConcept {

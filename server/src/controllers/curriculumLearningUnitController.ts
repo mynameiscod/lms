@@ -17,6 +17,13 @@ import { DIRECTION_KEYS, CAREER_DIRECTIONS } from '../data/careerDirectionPolicy
 import { cyclesIntroducedBy } from '../data/unitPrerequisiteGraph';
 import { requireAuthorableSkills, listAuthorableSkills } from '../services/skillRegistryService';
 import * as assessments from '../services/unitAssessmentService';
+import { liveJourneyUsage, LiveJourneyUsage } from '../services/unitJourneyUsageService';
+
+/** What an admin is told before a unit on students' journeys leaves the published curriculum. */
+const liveJourneyMessage = (u: LiveJourneyUsage, action: string): string =>
+  `${u.students} student${u.students === 1 ? '’s' : 's’'} Foundation journey${u.students === 1 ? '' : 's'} schedule this unit `
+  + `(${u.upcomingDays} upcoming day${u.upcomingDays === 1 ? '' : 's'}, ${u.reachedDays} already reached). `
+  + `${action} Days already reached keep it; upcoming days can no longer be planned with it when those journeys next update.`;
 
 /**
  * Authoring the mega curriculum's Learning Units.
@@ -788,6 +795,27 @@ export const setUnitStatus = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Use the publish route to make a unit live.' });
     }
 
+    const current = await CurriculumLearningUnit.findOne({ tenantId, unitCode }).select('status').lean() as any;
+    if (!current) return res.status(404).json({ message: 'No such unit.' });
+
+    /**
+     * TAKING A LIVE UNIT OUT OF THE PUBLISHED CURRICULUM IS CONFIRMED, NOT JUST DONE.
+     *
+     * Unpublishing or archiving stops the composer planning a unit. For a unit already on students'
+     * journeys that is a decision about those students, so the first request is refused with how
+     * many it touches, and only a request that says it has seen that number goes through.
+     */
+    if (current.status === 'PUBLISHED') {
+      const usage = await liveJourneyUsage(tenantId, unitCode);
+      if (usage.students && req.body?.confirmLiveJourneys !== true) {
+        return res.status(409).json({
+          code: 'UNIT_IN_LIVE_JOURNEYS',
+          usage,
+          message: liveJourneyMessage(usage, `Moving it to ${status} takes it out of the published curriculum.`),
+        });
+      }
+    }
+
     const doc = await CurriculumLearningUnit.findOneAndUpdate(
       { tenantId, unitCode },
       { $set: { status, updatedBy: actorOf(req) } },
@@ -1083,6 +1111,20 @@ export const deleteUnit = async (req: Request, res: Response) => {
     if (doc.status === 'PUBLISHED') {
       return res.status(409).json({
         message: 'This unit has been published and may be in a student\'s record. Archive it instead.',
+      });
+    }
+
+    /**
+     * A unit that was published and has since been unpublished or archived can still be on a
+     * student's days. Deleting it would leave those days naming a unit that no longer exists, so it
+     * is refused outright — there is no confirmation that makes that safe.
+     */
+    const usage = await liveJourneyUsage(tenantId, unitCode);
+    if (usage.students) {
+      return res.status(409).json({
+        code: 'UNIT_IN_LIVE_JOURNEYS',
+        usage,
+        message: liveJourneyMessage(usage, 'It cannot be deleted while it is on a journey — archive it instead.'),
       });
     }
 

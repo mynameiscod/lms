@@ -478,6 +478,7 @@ router.get('/me/roadmap',                       MEMBER, careerRoadmap.getMyRoadm
 router.post('/me/roadmap/generate',             MEMBER, careerRoadmap.generateMyRoadmap);
 router.post('/me/roadmap/replan',               MEMBER, careerRoadmap.replanMyRoadmap);
 router.get('/students/:studentId/roadmap',      MANAGE, careerRoadmap.getStudentRoadmap);
+router.get('/students/:studentId/foundation-journey', MANAGE, foundationJourney.getStudentJourney);
 
 // ── Student skill evidence and Skill DNA (Module 7). Submitting grades the paper and
 //    projects it into canonical skill evidence; the projection is derived state and never

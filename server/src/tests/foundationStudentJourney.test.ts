@@ -30,8 +30,17 @@ const chain = (value: any): any => {
   return p;
 };
 
+const members: any[] = [];
+
 const matches = (doc: any, q: any): boolean =>
-  Object.entries(q).every(([k, v]: [string, any]) => String(doc[k]) === String(v));
+  Object.entries(q).every(([k, v]: [string, any]) => (v && typeof v === 'object' && '$in' in v)
+    ? (v.$in as any[]).map(String).includes(String(doc[k]))
+    : String(doc[k]) === String(v));
+
+jest.mock('../models/User', () => ({
+  __esModule: true,
+  default: { findOne: (q: any) => chain(members.find(d => matches(d, q)) || null) },
+}));
 
 jest.mock('../models/DayPlan', () => ({
   __esModule: true,
@@ -47,7 +56,10 @@ jest.mock('../models/CurriculumEnrollment', () => ({
 }));
 jest.mock('../models/CurriculumLearningUnit', () => ({
   __esModule: true,
-  default: { findOne: (q: any) => chain(units.find(d => matches(d, q)) || null) },
+  default: {
+    findOne: (q: any) => chain(units.find(d => matches(d, q)) || null),
+    find: (q: any) => chain(units.filter(d => matches(d, q))),
+  },
 }));
 
 const mockResolveEngine = jest.fn();
@@ -105,8 +117,69 @@ const seed = () => {
 };
 
 beforeEach(() => {
-  dayPlans.length = 0; curricula.length = 0; enrollments.length = 0; units.length = 0;
+  dayPlans.length = 0; curricula.length = 0; enrollments.length = 0; units.length = 0; members.length = 0;
   mockResolveEngine.mockReset().mockResolvedValue({ engine: 'UNIT' });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('an admin reading one member’s journey', () => {
+  const adminReq = (studentId = STUDENT) =>
+    reqOf({ params: { studentId }, user: { id: 'admin1', tenantId: TENANT, role: 'TENANT_ADMIN' } });
+  const member = (over: any = {}) => members.push({
+    _id: STUDENT, tenantId: TENANT, firstName: 'Asha', lastName: 'K', email: 'asha@example.com',
+    passport: { stage: 'foundation' }, ...over,
+  });
+
+  it('names the unit behind each day, its type, and whether it is still published', async () => {
+    seed();
+    member();
+    units.push({ tenantId: TENANT, unitCode: 'U_6', title: 'Loops practice', unitType: 'PRACTICE', status: 'ARCHIVED' });
+    units.push({ tenantId: TENANT, unitCode: 'U_7', title: 'Loops check', unitType: 'CHECKPOINT', status: 'PUBLISHED' });
+
+    const { res, out } = resOf();
+    await ctrl.getStudentJourney(adminReq(), res);
+
+    expect(out.status).toBe(200);
+    expect(out.body.available).toBe(true);
+    expect(out.body.student).toEqual({ name: 'Asha K', email: 'asha@example.com', stage: 'foundation' });
+    expect(out.body.enrollmentId).toBe('enr1');
+    expect(out.body.currentDay).toBe(6);
+    expect(out.body.days).toHaveLength(90);
+    expect(out.body.days[5]).toMatchObject({
+      day: 6, unitCode: 'U_6', unitType: 'PRACTICE', unitStatus: 'ARCHIVED', status: 'CURRENT', checkpoint: true, activities: 3, minutes: 45,
+    });
+    expect(out.body.days[6]).toMatchObject({ unitCode: 'U_7', unitStatus: 'PUBLISHED', status: 'UPCOMING' });
+    // A day whose unit no longer exists is shown as such, not silently titled.
+    expect(out.body.days[39]).toMatchObject({ unitCode: 'U_40', unitStatus: 'MISSING' });
+  });
+
+  it('explains a member with no journey, in terms of the engine that plans them', async () => {
+    member();
+    const unit = resOf();
+    await ctrl.getStudentJourney(adminReq(), unit.res);
+    expect(unit.out.body).toMatchObject({ available: false, engine: 'UNIT', totalDays: 90 });
+    expect(unit.out.body.message).toMatch(/skill check/);
+
+    mockResolveEngine.mockResolvedValue({ engine: 'TOPIC' });
+    const topic = resOf();
+    await ctrl.getStudentJourney(adminReq(), topic.res);
+    expect(topic.out.body).toMatchObject({ available: false, engine: 'TOPIC' });
+    expect(topic.out.body.message).toMatch(/topic engine/);
+  });
+
+  it('does not find a member of another tenant', async () => {
+    seed();
+    member({ tenantId: '5f9d1b2c3a4b5c6d7e8f9abc' });
+    const { res, out } = resOf();
+    await ctrl.getStudentJourney(adminReq(), res);
+    expect(out.status).toBe(404);
+  });
+
+  it('refuses something that is not a member id', async () => {
+    const { res, out } = resOf();
+    await ctrl.getStudentJourney(adminReq('not-an-id'), res);
+    expect(out.status).toBe(400);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

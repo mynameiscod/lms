@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { DashboardData, Badge, TodayMissions } from '../../api/passportApi';
+import TodayJourneyCard from './TodayJourneyCard';
 import './dashboard.css';
 import './dashboard-redesign.css';
 
@@ -273,6 +274,9 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
         <div className="gd-tile"><span className="ic cp-icon-violet"><Bi name="mic-fill" /></span><div><div className="lbl">Mock Interviews</div><div className="val">{st.interviews}</div><div className="sub">{st.bestInterview !== null ? `Best ${st.bestInterview}%` : 'Not attempted yet'}</div></div></div>
         <div className="gd-tile"><span className="ic cp-icon-amber"><Bi name="trophy-fill" /></span><div><div className="lbl">Best Streak</div><div className="val">{st.longestStreak} {st.longestStreak === 1 ? 'Day' : 'Days'}</div><div className="sub">{st.streak >= st.longestStreak && st.streak > 0 ? 'Personal best — keep it up!' : 'Beat your record'}</div></div></div>
       </div>
+
+      {/* A student the unit engine plans sees their journey day first; renders nothing otherwise. */}
+      <TodayJourneyCard />
 
       <div className="gd-grid gd-2b" style={{ marginTop: 14 }}>
         <div className="gd-card">

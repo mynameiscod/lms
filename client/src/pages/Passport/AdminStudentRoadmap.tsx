@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import passportApi from '../../api/passportApi';
+import AdminStudentJourney from './AdminStudentJourney';
 import './studentRoadmap.css';
 
 /**
@@ -85,8 +86,10 @@ const AdminStudentRoadmap: React.FC = () => {
     return (
       <div className="sr">
         <button className="sr-back" onClick={() => nav('/admin/passport/students')}>← Back to members</button>
+        {/* The ninety-day journey, when the unit engine plans this member. */}
+        <AdminStudentJourney studentId={studentId} />
         <div className="sr-state">
-          <b>This member has no active roadmap.</b>
+          <b>This member has no active skill-plan roadmap.</b>
           <p>
             Daily missions come from the roadmap, so this member has none either. A plan is
             built when they press “Generate my 90-day plan”, which needs a target role, a
@@ -106,6 +109,9 @@ const AdminStudentRoadmap: React.FC = () => {
   return (
     <div className="sr">
       <button className="sr-back" onClick={() => nav('/admin/passport/students')}>← Back to members</button>
+
+      {/* The ninety-day journey, when the unit engine plans this member. */}
+      <AdminStudentJourney studentId={studentId} />
 
       <header className="sr-hd">
         <div>

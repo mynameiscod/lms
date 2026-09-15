@@ -102,5 +102,8 @@ const DayPlanSchema = new Schema<IDayPlan>(
 
 DayPlanSchema.index({ curriculumId: 1, dayNumber: 1 }, { unique: true });
 DayPlanSchema.index({ tenantId: 1, curriculumId: 1 });
+// Which journeys schedule a unit — asked before an admin takes a unit out of the curriculum.
+// Partial: only Foundation journey days carry a primary unit, so other DayPlans cost nothing.
+DayPlanSchema.index({ primaryUnitCode: 1 }, { partialFilterExpression: { primaryUnitCode: { $type: 'string' } } });
 
 export default mongoose.model<IDayPlan>('DayPlan', DayPlanSchema);

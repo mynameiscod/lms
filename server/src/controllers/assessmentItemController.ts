@@ -220,3 +220,36 @@ export const getAssessmentTags = async (req: AuthenticatedRequest, res: Response
     res.status(500).json({ success: false, message: 'Failed to load tags', error: e.message });
   }
 };
+
+/**
+ * POST /assessment-items/bulk-tag — add or remove a tag across many items at once.
+ *
+ * WITHOUT THIS, "draw 30 from these 100" IS NOT REACHABLE. A section selects its pool by tag,
+ * so marking a hundred questions as belonging to one event meant opening a hundred editors.
+ * Nobody does that; they widen the filter instead and the exam draws from the whole bank.
+ *
+ * $addToSet rather than $push, so running it twice does not put the tag on twice.
+ */
+export const bulkTagAssessmentItems = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { ids, tag, mode } = req.body || {};
+    const clean = String(tag || '').trim().toUpperCase().replace(/\s+/g, '_');
+
+    if (!Array.isArray(ids) || !ids.length) {
+      return res.status(400).json({ success: false, message: 'Select at least one question.' });
+    }
+    if (!clean) return res.status(400).json({ success: false, message: 'A tag is required.' });
+
+    const filter = { _id: { $in: ids }, tenantId: String(req.tenantId) };
+    const update = mode === 'remove' ? { $pull: { tags: clean } } : { $addToSet: { tags: clean } };
+    const r = await AssessmentItem.updateMany(filter, update as any);
+
+    res.json({
+      success: true,
+      message: `${mode === 'remove' ? 'Removed' : 'Added'} "${clean}" ${mode === 'remove' ? 'from' : 'to'} ${r.modifiedCount} question(s).`,
+      data: { tag: clean, modified: r.modifiedCount, matched: r.matchedCount },
+    });
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: 'Bulk tag failed', error: e.message });
+  }
+};

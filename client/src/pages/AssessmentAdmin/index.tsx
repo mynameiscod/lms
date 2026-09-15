@@ -21,12 +21,18 @@ const AssessmentAdmin: React.FC = () => {
   const [gen, setGen] = useState({ type: 'mcq', dimension: 'fundamentals', difficulty: 2, language: 'Java', count: 3 });
   const [genBusy, setGenBusy] = useState(false);
   const [genMsg, setGenMsg] = useState('');
+  /* Bulk tagging. Selection is keyed by id and cleared on reload, because a tick against a
+     row that has since been filtered away would apply a tag nobody could see they had chosen. */
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulkTag, setBulkTag] = useState('');
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [list, cov] = await Promise.all([assessmentAdminApi.list(filters), assessmentAdminApi.coverage()]);
       setItems(list || []);
+      setPicked(new Set());
       setCoverage(cov);
     } catch (e: any) { setErr(e.message); } finally { setLoading(false); }
   }, [filters]);
@@ -54,6 +60,23 @@ const AssessmentAdmin: React.FC = () => {
   const remove = async (it: AdminAssessmentItem) => { if (it._id && window.confirm('Delete this item?')) { await assessmentAdminApi.remove(it._id); await load(); } };
 
   const up = (patch: Partial<AdminAssessmentItem>) => setEditing((e) => (e ? { ...e, ...patch } : e));
+
+  const togglePick = (id?: string) => {
+    if (!id) return;
+    setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  };
+  const pickAll = () => setPicked((p) =>
+    p.size === items.length ? new Set() : new Set(items.map((i) => i._id!).filter(Boolean)));
+
+  const applyBulk = async (mode: 'add' | 'remove') => {
+    setBulkBusy(true); setErr('');
+    try {
+      const r = await assessmentAdminApi.bulkTag([...picked], bulkTag, mode);
+      setBulkTag('');
+      await load();
+      window.alert(`${mode === 'remove' ? 'Removed' : 'Added'} "${r.tag}" on ${r.modified} question(s).`);
+    } catch (e: any) { setErr(e.message || 'Bulk tag failed'); } finally { setBulkBusy(false); }
+  };
 
   const runGenerate = async () => {
     setGenBusy(true); setGenMsg('');
@@ -113,18 +136,45 @@ const AssessmentAdmin: React.FC = () => {
 
       {err && <div className="aa-err">{err}</div>}
 
+      {/* Bulk tagging — how "draw 30 from these 100" is actually set up. */}
+      {picked.size > 0 && (
+        <div className="aa-bulk">
+          <b>{picked.size} selected</b>
+          <input
+            placeholder="Tag to apply, e.g. HACKATHON_2026"
+            value={bulkTag}
+            onChange={(e) => setBulkTag(e.target.value)}
+          />
+          <button className="aa-btn primary" disabled={bulkBusy || !bulkTag.trim()} onClick={() => applyBulk('add')}>
+            {bulkBusy ? 'Tagging…' : 'Add tag'}
+          </button>
+          <button className="aa-btn" disabled={bulkBusy || !bulkTag.trim()} onClick={() => applyBulk('remove')}>
+            Remove tag
+          </button>
+          <button className="aa-btn" onClick={() => setPicked(new Set())}>Clear</button>
+          <span className="aa-bulk-hint">
+            A tag is how an exam section picks its pool — tag these, then point the section at that tag.
+          </span>
+        </div>
+      )}
+
       {/* List */}
       <div className="aa-table-wrap">
         {loading ? <div className="aa-msg">Loading…</div> : items.length === 0 ? <div className="aa-msg">No items. Create one to get started.</div> : (
           <table className="aa-table">
-            <thead><tr><th>Type</th><th>Dimension</th><th>Diff</th><th>Prompt</th><th>Pts</th><th>Status</th><th></th></tr></thead>
+            <thead><tr>
+              <th className="aa-pick"><input type="checkbox" checked={picked.size > 0 && picked.size === items.length} onChange={pickAll} title="Select all shown" /></th>
+              <th>Type</th><th>Dimension</th><th>Diff</th><th>Prompt</th><th>Tags</th><th>Pts</th><th>Status</th><th></th>
+            </tr></thead>
             <tbody>
               {items.map((it) => (
-                <tr key={it._id} className={it.active ? '' : 'inactive'}>
+                <tr key={it._id} className={`${it.active ? '' : 'inactive'} ${picked.has(it._id!) ? 'picked' : ''}`}>
+                  <td className="aa-pick"><input type="checkbox" checked={picked.has(it._id!)} onChange={() => togglePick(it._id)} /></td>
                   <td><span className="aa-tag">{labelOf(ITEM_TYPES, it.type)}</span></td>
                   <td>{labelOf(DIMENSIONS, it.dimension)}</td>
                   <td>{it.difficulty}</td>
                   <td className="prompt">{it.prompt}</td>
+                  <td className="aa-tags">{(it.tags || []).map((t) => <span key={t}>{t}</span>)}</td>
                   <td>{it.points ?? 1}</td>
                   <td><span className={`aa-dot ${it.active ? 'on' : 'off'}`} />{it.active ? 'Active' : 'Off'}</td>
                   <td className="actions">

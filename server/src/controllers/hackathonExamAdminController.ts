@@ -5,7 +5,8 @@ import HackathonExamAttempt from '../models/HackathonExamAttempt';
 import HackathonRegistration from '../models/HackathonRegistration';
 import Hackathon from '../models/Hackathon';
 import { AuthenticatedRequest } from '../types';
-import { checkDrawCoverage, clearDrawPoolCache } from '../services/hackathonExamDrawService';
+import { checkDrawCoverage, clearDrawPoolCache, sectionFilter } from '../services/hackathonExamDrawService';
+import AssessmentItem from '../models/AssessmentItem';
 import * as exams from '../services/hackathonExamService';
 import { computeLeaderboard, computeTeamResult, drainGradingQueue } from '../services/hackathonExamGradingService';
 import { logger } from '../utils/logger';
@@ -390,4 +391,47 @@ export const sendExamResults = async (req: AuthenticatedRequest, res: Response) 
       data: counts,
     });
   } catch (e) { fail(res, e, 'Failed to send results'); }
+};
+
+/**
+ * GET /:id/sections/:key/pool — the questions one section will actually draw from.
+ *
+ * Coverage says "142 items match". This says WHICH — because "142" is only reassuring until
+ * you notice the section was meant to be this event's hundred and is quietly pulling in
+ * everything else tagged the same way. An admin should be able to look before 800 people do.
+ *
+ * The answer key is not included. This screen is behind admin auth, but the shape that leaves
+ * the server for a question list is the same shape a candidate's paper uses, and keeping one
+ * of them safe by remembering to is how the other one leaks.
+ */
+export const getSectionPool = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const section = (exam.sections || []).find((s: any) => s.key === req.params.key);
+    if (!section) return res.status(404).json({ success: false, message: 'Section not found.' });
+
+    const items = await AssessmentItem
+      .find(sectionFilter(String(exam.tenantId), section))
+      .select('_id type difficulty language points tags prompt')
+      .sort({ difficulty: 1, _id: 1 })
+      .limit(500)
+      .lean() as any[];
+
+    res.json({
+      success: true,
+      data: {
+        section: { key: section.key, label: section.label, drawCount: section.drawCount },
+        available: items.length,
+        items: items.map((i) => ({
+          id: String(i._id),
+          type: i.type,
+          difficulty: i.difficulty,
+          language: i.language,
+          marks: section.marksPerItem > 0 ? section.marksPerItem : i.points,
+          tags: i.tags,
+          prompt: String(i.prompt || '').slice(0, 160),
+        })),
+      },
+    });
+  } catch (e) { fail(res, e, 'Failed to load the pool'); }
 };

@@ -20,6 +20,8 @@ router.post('/by-hackathon/:hackathonId', ctrl.upsertExam);
 /* Prove it can be drawn, then draw it */
 router.get('/:id/coverage', ctrl.getExamCoverage);
 router.get('/:id/readiness', ctrl.getExamReadiness);
+/** Which questions a section draws from — 'how many' is not the same as 'which'. */
+router.get('/:id/sections/:key/pool', ctrl.getSectionPool);
 router.post('/:id/provision', ctrl.provisionExamAttempts);
 router.post('/:id/invite', ctrl.sendExamInvitations);
 

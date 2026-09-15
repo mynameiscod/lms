@@ -52,6 +52,18 @@ export const assessmentAdminApi = {
     const res: any = await authenticatedFetch(`${BASE}/tags`);
     return (res?.data || res) as { tag: string; total: number; byType: Record<string, number> }[];
   },
+  /**
+   * Tag many questions at once — how a set becomes one exam's pool.
+   *
+   * Without it, "draw 30 from these 100" means opening a hundred editors, which nobody does;
+   * they widen the filter instead and the exam quietly draws from the whole bank.
+   */
+  bulkTag: async (ids: string[], tag: string, mode: 'add' | 'remove' = 'add') => {
+    const res: any = await authenticatedFetch(`${BASE}/bulk-tag`, {
+      method: 'POST', body: JSON.stringify({ ids, tag, mode }),
+    });
+    return (res?.data || res) as { tag: string; modified: number; matched: number };
+  },
   coverage: async () => {
     const res: any = await authenticatedFetch(`${BASE}/coverage`);
     return (res?.data || res) as { total: number; activeTotal: number; byCell: any[]; byDifficulty: any[] };

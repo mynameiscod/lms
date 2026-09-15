@@ -118,6 +118,7 @@ import PassportAdminAssessment from './pages/Passport/AdminAssessment';
 import PassportCard from './pages/Passport/Card';
 import PassportJoin from './pages/Passport/Join';
 import PassportLogin from './pages/Passport/Login';
+import HackathonExam from './pages/HackathonExam';
 import BattleList from './pages/Battles/PublicList';
 import BattleLanding from './pages/Battles/Landing';
 import BattleExam from './pages/Battles/Exam';
@@ -406,6 +407,11 @@ const AppRoutes: React.FC = () => {
       <Route path="/careerpilot/card/:slug" element={<PassportCard />} />
       {/* Card links live in recruiters' inboxes; this redirect can never be removed. */}
       <Route path="/passport/card/:slug" element={<LegacyRedirect to="/careerpilot/card/:slug" />} />
+      {/* ── Hackathon exam (no auth — a team was given a code, not an account) ── */}
+      <Route path="/hackathon-exam/:token" element={<HackathonExam />} />
+      <Route path="/hackathon-exam/enter/:slug" element={<HackathonExam />} />
+      <Route path="/hackathon-exam" element={<HackathonExam />} />
+
       {/* ── Public Tech Battles (no auth) ── */}
       <Route path="/battles" element={<BattleList />} />
       <Route path="/battles/exam/:token" element={<BattleExam />} />

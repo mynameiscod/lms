@@ -387,6 +387,21 @@ export class QuizService {
     const quiz = await Quiz.findById(attempt.quizId);
     if (!quiz) throw new Error('Quiz not found');
 
+    /**
+     * A curriculum checkpoint with no questions fails CLOSED.
+     *
+     * A journey day is unlocked by its gating quiz being attempted, and an attempt becomes
+     * "submitted" here whatever it contained. A checkpoint whose questions the player cannot
+     * resolve would therefore open empty and unlock the day on an empty submission — measuring
+     * nothing and recording nothing. Refused instead, so the attempt stays unsubmitted and the
+     * day stays gated until the checkpoint can actually be sat. Scoped to curriculum quizzes
+     * (those bound to a unit); every other quiz behaves exactly as before.
+     */
+    if ((quiz as any).unitCode) {
+      const resolvable = await Question.countDocuments({ quizId: String(quiz._id) });
+      if (!resolvable) throw new Error('This checkpoint has no questions yet, so it cannot be submitted.');
+    }
+
     // Batch-load every question in one query (was one findById per answer → slow, and a
     // slow submit widens the window for the client connection to drop = "Failed to fetch").
     const qIds = [...new Set(answers.map((a: any) => a.questionId).filter(Boolean))];

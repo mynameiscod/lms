@@ -25,6 +25,7 @@ import Assignment from '../models/Assignment';
 import { evaluateReadiness, UnitReadiness, READINESS_ORDER } from '../data/unitReadinessPolicy';
 import { findDuplication, identifyingWordsFor } from '../services/contentDuplicationService';
 import { teaches, roleOf } from '../data/contentBundlePolicy';
+import { engineActivationState } from '../data/curriculumEnginePolicy';
 
 dotenv.config();
 
@@ -262,7 +263,13 @@ const STAGE = 'foundation';
 
   line();
   console.log(`  Units a composer could schedule today: ${composerReady.length} of ${rows.length}.`);
-  console.log('  Production engine: TOPIC. Nothing here changes what a student sees.\n');
+  const configs = await mongoose.connection.db!.collection('passportconfigs')
+    .find({ tenantId: { $in: [tenantId, tenantOid].filter(Boolean) } }).toArray();
+  const activation = engineActivationState(configs as any[]);
+  console.log(activation === 'OFF'
+    ? '  Production engine: TOPIC. Nothing here changes what a student sees.\n'
+    : `  Production engine: ${activation === 'FOUNDATION_UNIT' ? 'UNIT for Foundation, TOPIC for every other stage' : 'switched on OUTSIDE the authorised Foundation activation'}. `
+      + 'Foundation journeys compose from the PUBLISHED and READY units above.\n');
 
   await mongoose.disconnect();
 })().catch(e => { console.error(e); process.exit(1); });

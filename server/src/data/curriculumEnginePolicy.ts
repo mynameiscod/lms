@@ -116,6 +116,25 @@ export const megaCurriculumInUse = (cfg?: CurriculumEngineConfig | null): boolea
     || (cfg.megaCurriculumStages || []).length > 0
   );
 
+/**
+ * Which of the two authorised states a tenant's switches are in — for gates, not for planning.
+ *
+ * OFF is the state before activation. FOUNDATION_UNIT is the one activation that was certified:
+ * the Foundation stage on units, nothing switched tenant-wide and no named accounts. Anything else
+ * — a tenant switch, an allow-list, another stage listed — is UNAUTHORIZED, so a gate that accepts
+ * the activation still refuses every other way of turning the engine on.
+ */
+export type EngineActivationState = 'OFF' | 'FOUNDATION_UNIT' | 'UNAUTHORIZED';
+
+export function engineActivationState(configs: (CurriculumEngineConfig | null | undefined)[]): EngineActivationState {
+  const inUse = configs.filter(c => megaCurriculumInUse(c)) as CurriculumEngineConfig[];
+  if (!inUse.length) return 'OFF';
+  const authorised = inUse.every(c => !c.megaCurriculumEnabled
+    && !(c.megaCurriculumStudentIds || []).length
+    && JSON.stringify((c.megaCurriculumStages || []).map(s => String(s).toLowerCase().trim())) === JSON.stringify([...UNIT_ENGINE_STAGES]));
+  return authorised ? 'FOUNDATION_UNIT' : 'UNAUTHORIZED';
+}
+
 /* ------------------------------------------------------------------ *
  * Capability — what the unit engine can actually plan
  * ------------------------------------------------------------------ */

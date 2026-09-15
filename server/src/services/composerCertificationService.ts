@@ -253,7 +253,7 @@ export const outgrownBy = (unit: ComposableUnit | undefined, student: StudentPro
 };
 
 /** Satisfied without being scheduled: verified mastery, or measured past the unit. */
-const masteredBy = (
+export const masteredBy = (
   prereqCode: string, dependent: ComposableUnit, byCode: Map<string, ComposableUnit>, student: StudentProfile,
 ): boolean => {
   const p = byCode.get(prereqCode);

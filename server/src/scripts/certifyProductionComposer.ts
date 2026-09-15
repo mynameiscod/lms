@@ -37,8 +37,10 @@ import {
 import { buildPrerequisiteGraph, findPrerequisiteCycles } from '../data/unitPrerequisiteGraph';
 import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
 import { roleOf, teaches } from '../data/contentBundlePolicy';
-import { curriculumEngineFor } from '../data/curriculumEnginePolicy';
+import { curriculumEngineFor, effectiveCurriculumEngine, engineActivationState } from '../data/curriculumEnginePolicy';
+import { CAREER_STAGES } from '../services/careerStageService';
 import { findDuplication, identifyingWordsFor } from '../services/contentDuplicationService';
+import { checkCurriculumQuizLinkage } from '../services/quizLinkageService';
 
 dotenv.config();
 
@@ -269,6 +271,15 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
     const n = (quizzesByUnit.get(u.unitCode) || []).length;
     if (n !== 1) assessmentProblems.push(`${u.unitCode}: ${n} bound quizzes`);
   }
+  // Both directions of the Quiz ↔ Question link — the student player reads Question.quizId.
+  const linkage = await checkCurriculumQuizLinkage(tenantId, prodCodes);
+  for (const [label, list] of [
+    ['unresolved questionIds', linkage.unresolvedQuestionIds], ['question without quizId', linkage.missingQuizId],
+    ['question naming the wrong quiz', linkage.wrongQuizId], ['duplicate membership', linkage.duplicateMembership],
+    ['orphaned question', linkage.orphanedQuestions], ['quiz with no questions', linkage.emptyQuizzes],
+  ] as [string, string[]][]) {
+    if (list.length) assessmentProblems.push(`quiz linkage: ${list.length} ${label} (e.g. ${list.slice(0, 2).join(', ')})`);
+  }
 
   const assignments = await db.collection('assignments').find({ tenant: tenantOid, unitCode: { $in: prodCodes } }).toArray();
   const projectProblems: string[] = [];
@@ -316,7 +327,14 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
   console.log(`    unit status fingerprint ${after.hash}; database unchanged during this run: ${unchanged ? 'yes' : 'NO'}`);
   if (!publishedIsCertified) failures.push('published units are not exactly the certified set');
   if (after.journeys || after.counts.dayplans || after.counts.curriculumenrollments) failures.push('journeys, DayPlans or enrolments exist');
-  if (engine !== 'TOPIC') failures.push('UNIT engine is on');
+  /**
+   * The engine must be OFF, or on exactly as authorised: Foundation on UNIT, every other stage on
+   * TOPIC, no tenant switch and no named accounts. Any other way of turning it on still fails.
+   */
+  const activation = engineActivationState(configs as any[]);
+  const perStage = CAREER_STAGES.map(s => `${s.key}=${configs.map(c => effectiveCurriculumEngine({ config: c as any, stageKey: s.key }).engine).includes('UNIT') ? 'UNIT' : 'TOPIC'}`);
+  console.log(`    engine activation ${activation}  (${perStage.join(' ')})`);
+  if (activation === 'UNAUTHORIZED') failures.push('the curriculum engine is switched on in a way that was not authorised');
   if (!unchanged) failures.push('the database changed during a read-only gate');
 
   title(`ACTUAL PRODUCTION GATE: ${failures.length ? 'FAIL' : 'PASS'}`);

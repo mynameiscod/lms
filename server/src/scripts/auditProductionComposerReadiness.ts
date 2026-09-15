@@ -58,7 +58,7 @@ import { suitableStatesFor } from '../data/unitSuitabilityPolicy';
 import { isCoreModuleFor } from '../data/careerDirectionPolicy';
 import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
 import { teaches } from '../data/contentBundlePolicy';
-import { curriculumEngineFor } from '../data/curriculumEnginePolicy';
+import { curriculumEngineFor, engineActivationState } from '../data/curriculumEnginePolicy';
 
 dotenv.config();
 
@@ -868,8 +868,11 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   const publishedIsCertified = publishedCodes.length === 0
     || JSON.stringify(publishedCodes) === JSON.stringify([...recommended].sort());
   console.log(`    published units are ${publishedCodes.length ? (publishedIsCertified ? 'exactly the certified set' : 'NOT the certified set') : 'none'}`);
-  if (!publishedIsCertified || after.journeys !== 0 || after.counts.dayplans !== 0 || engine !== 'TOPIC') {
-    defects.push('exit state is not PUBLISHED = 0 or the certified set / journeys=0 / DayPlans=0 / engine OFF');
+  // Engine OFF, or the one authorised activation (Foundation on UNIT) — never any other switch.
+  const activation = engineActivationState(configs as any[]);
+  console.log(`    engine activation ${activation}`);
+  if (!publishedIsCertified || after.journeys !== 0 || after.counts.dayplans !== 0 || activation === 'UNAUTHORIZED') {
+    defects.push('exit state is not PUBLISHED = 0 or the certified set / journeys=0 / DayPlans=0 / engine OFF or Foundation-only UNIT');
   }
 
   const blocked = defects.length + setFailures.length + capacity.length > 0;

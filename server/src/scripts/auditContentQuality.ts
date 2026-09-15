@@ -43,6 +43,7 @@ import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
 import LearningContentLibrary from '../models/LearningContentLibrary';
 import LearningCurriculum from '../models/LearningCurriculum';
 import Quiz from '../models/Quiz';
+import Question from '../models/Question';
 import Assignment from '../models/Assignment';
 import SkillEvidence from '../models/SkillEvidence';
 import { evaluateReadiness, UnitReadiness, READINESS_ORDER } from '../data/unitReadinessPolicy';
@@ -556,6 +557,27 @@ function auditQuestion(unitCode: string, where: string, q: AuditableQuestion): v
         add('QUIZ_PARTLY_UNMAPPED', 'WARN', code, `quiz "${q.title}": ${unmapped.length} of ${linked.length} questions are unmapped`);
       }
       if ((q.totalQuestions || 0) !== n) add('QUIZ_COUNT_MISMATCH', 'DEFECT', code, `quiz "${q.title}": totalQuestions=${q.totalQuestions} but ${n} question(s)`);
+
+      /*
+       * WHAT THE STUDENT PLAYER ACTUALLY SEES.
+       *
+       * Everything above reads `questionIds`. The player does not: it asks for
+       * Question.find({ quizId }). Every curriculum checkpoint once listed its questions and was
+       * reported complete while each question named no quiz, so every student opened an empty
+       * checkpoint. Both directions are required, and the count the player resolves must be
+       * exactly the count the quiz lists.
+       */
+      if (linked.length) {
+        const [visible, elsewhere] = await Promise.all([
+          Question.countDocuments({ quizId: String(q._id) }),
+          Question.countDocuments({ _id: { $in: linked }, quizId: { $ne: String(q._id) } }),
+        ]);
+        if (elsewhere) {
+          add('QUIZ_LINKAGE', 'BLOCKER', code, `quiz "${q.title}": ${elsewhere} of ${linked.length} listed question(s) do not name this quiz; the student player shows ${visible}`);
+        } else if (visible !== linked.length) {
+          add('QUIZ_LINKAGE', 'BLOCKER', code, `quiz "${q.title}": the student player resolves ${visible} question(s) but the quiz lists ${linked.length}`);
+        }
+      }
     }
 
     for (const a of as) {

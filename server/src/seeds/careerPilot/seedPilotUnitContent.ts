@@ -106,6 +106,8 @@ const readingMinutes = (text: string): number =>
   let rows = 0;
   let quizzes = 0;
   let checkpointQuestions = 0;
+  /** Questions whose `quizId` was (re)written from the persisted owning Quiz. */
+  let questionsLinked = 0;
   let mapped = 0;
   let mappedByAuthor = 0;
   const unmappedMultiSkill = new Set<string>();
@@ -345,6 +347,27 @@ const readingMinutes = (text: string): number =>
           },
           { upsert: true },
         );
+
+        /**
+         * THE OTHER HALF OF THE LINK — each Question names the Quiz that owns it.
+         *
+         * The Quiz held `questionIds`, but no Question carried `quizId`, and the student player
+         * reads questions by `quizId` (GET /quizzes/:quizId/questions → Question.find({quizId})).
+         * So every checkpoint opened empty for a student while every audit that read
+         * `questionIds` called it complete. The link is written from the Quiz actually
+         * persisted above — read back, never derived — and keyed on the questions'
+         * deterministic ids, so a re-run updates the same rows. `questionNo` fixes the order the
+         * player sorts by to the authored order.
+         */
+        const owner = await Quiz.findOne({ tenantId, unitCode: unit.unitCode }).select('_id').lean() as any;
+        if (!owner) throw new Error(`Checkpoint quiz for ${unit.unitCode} was not persisted.`);
+        const linked = await Question.bulkWrite(questionIds.map((qid, i) => ({
+          updateOne: {
+            filter: { _id: qid },
+            update: { $set: { quizId: String(owner._id), questionNo: i + 1 } },
+          },
+        })), { ordered: true });
+        questionsLinked += linked.matchedCount || 0;
       }
       parts.push(`checkpoint(${bundle.checkpoint.length})`);
     }
@@ -415,6 +438,7 @@ const readingMinutes = (text: string): number =>
     const bound = await LearningContentLibrary.countDocuments({ tenantId, unitCode: { $exists: true, $ne: '' } });
     const boundQuiz = await Quiz.countDocuments({ tenantId, unitCode: { $exists: true, $ne: '' } });
     console.log(`${rows} library rows written, ${quizzes} checkpoint quizzes (${checkpointQuestions} questions) and ${assignments} project assignments bound.`);
+    console.log(`  QUIZ LINKAGE: ${questionsLinked} of ${checkpointQuestions} checkpoint question(s) linked to their persisted quiz by quizId.`);
 
   console.log(`
   SKILL EVIDENCE MAPPING`);

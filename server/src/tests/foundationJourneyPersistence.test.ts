@@ -454,3 +454,43 @@ describe('a journey records where its inventory came from', () => {
     expect(curricula[0].journeySource).toBe('PROTOTYPE_UNPUBLISHED');
   });
 });
+
+describe('two triggers racing to create one journey', () => {
+  /**
+   * Phase 27 made journey creation a production trigger, so two can arrive together. The
+   * database's unique index lets one create win; the loser must adopt that journey — not fail,
+   * and not make a second.
+   */
+  it('adopts the journey that won the race instead of failing or creating another', async () => {
+    const LearningCurriculum = require('../models/LearningCurriculum').default;
+    const original = LearningCurriculum.create;
+    LearningCurriculum.create = async (doc: any) => {
+      curricula.push({ _id: 'curWinner', ...doc });
+      const e: any = new Error('E11000 duplicate key error');
+      e.code = 11000;
+      throw e;
+    };
+    try {
+      const r = await persistFoundationJourney(TENANT, STUDENT, profile);
+      expect(r.ok).toBe(true);
+      expect(r.created).toBe(false);
+      expect(String(r.curriculumId)).toBe('curWinner');
+      expect(curricula).toHaveLength(1);
+      expect(dayNumbers()).toHaveLength(FOUNDATION_PROGRAM_DAYS);
+    } finally {
+      LearningCurriculum.create = original;
+    }
+  });
+
+  it('still surfaces an error that is not a collision', async () => {
+    const LearningCurriculum = require('../models/LearningCurriculum').default;
+    const original = LearningCurriculum.create;
+    LearningCurriculum.create = async () => { throw new Error('disk full'); };
+    try {
+      await expect(persistFoundationJourney(TENANT, STUDENT, profile)).rejects.toThrow('disk full');
+      expect(dayPlans).toHaveLength(0);
+    } finally {
+      LearningCurriculum.create = original;
+    }
+  });
+});

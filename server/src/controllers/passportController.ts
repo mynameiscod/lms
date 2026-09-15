@@ -17,6 +17,7 @@ import { ensureContent, poolMapOf, missionsForDay, clampSlots } from '../service
 import { memberAxes } from '../services/careerStageService';
 import PassportInterview from '../models/PassportInterview';
 import { normalizePhone, mobileError } from '../utils/phone';
+import { validateEngineConfigPatch, describeEngineConfig } from '../services/curriculumEngineService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -45,7 +46,12 @@ export const getConfig = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);
     const cfg = await ensureConfig(tenantId);
-    res.json({ config: cfg, platformEnabled: settings.getStr('PASSPORT_ENABLED', 'true', tenantId) !== 'false' });
+    res.json({
+      config: cfg,
+      // The engine a student is actually on, per stage — the switches after capability.
+      engine: describeEngineConfig(cfg as any),
+      platformEnabled: settings.getStr('PASSPORT_ENABLED', 'true', tenantId) !== 'false',
+    });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Failed to load config' });
   }
@@ -54,15 +60,35 @@ export const getConfig = async (req: Request, res: Response) => {
 /** Admin: update the Passport config. */
 export const updateConfig = async (req: Request, res: Response) => {
   try {
+    // The tenant comes from the verified token (tenantOf prefers it); nothing in the body or a
+    // header can point this at another tenant's configuration.
     const tenantId = tenantOf(req);
+    if (!tenantId) return res.status(401).json({ message: 'Not authenticated' });
+
+    /**
+     * The curriculum engine switches, validated before anything is written.
+     *
+     * They sat on PassportConfig without ever being in the allow-list below, so saving them was
+     * silently discarded. They are not simply added to it: a stage the unit engine cannot plan,
+     * or a pilot id that is not this tenant's student, is refused with the reason, and the whole
+     * save is refused with it — a partly applied engine change is the one nobody can reason about.
+     */
+    const engine = await validateEngineConfigPatch(tenantId, req.body || {});
+    if (!engine.ok) {
+      // strictNullChecks is off in this project, so the union does not narrow on `ok`.
+      const { errors } = engine as { ok: false; errors: string[] };
+      return res.status(400).json({ message: 'The curriculum engine settings were not saved.', errors });
+    }
+
     await ensureConfig(tenantId);
     // The allow-list is the whole security model for this endpoint, so a field absent from it
     // is silently discarded — a toggle that appears to save and changes nothing.
     const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'conceptLearningEnabled'];
     const $set: any = {};
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
+    Object.assign($set, engine.set);
     const cfg = await PassportConfig.findOneAndUpdate({ tenantId }, { $set }, { new: true });
-    res.json({ config: cfg });
+    res.json({ config: cfg, engine: describeEngineConfig(cfg as any) });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Failed to update config' });
   }

@@ -199,4 +199,20 @@ const LearningCurriculumSchema = new Schema<ILearningCurriculum>(
 LearningCurriculumSchema.index({ tenantId: 1, isPublished: 1 });
 LearningCurriculumSchema.index({ tenantId: 1, isMasterTrack: 1, role: 1, audienceLevel: 1 });
 
+/**
+ * One journey per student, per stage, per journey kind — enforced by the database.
+ *
+ * Journeys are found-or-created, and find-then-create is not atomic: two triggers for the same
+ * student in two requests or two processes would otherwise both create one. Partial on a string
+ * `journeyKind`, so the many personalised clones that carry no journey kind are unaffected.
+ */
+LearningCurriculumSchema.index(
+  { tenantId: 1, personalizedFor: 1, adaptiveStage: 1, journeyKind: 1 },
+  {
+    unique: true,
+    name: 'one_journey_per_student_stage_kind',
+    partialFilterExpression: { journeyKind: { $type: 'string' } },
+  },
+);
+
 export default mongoose.model<ILearningCurriculum>('LearningCurriculum', LearningCurriculumSchema);

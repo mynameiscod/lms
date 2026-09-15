@@ -4,6 +4,9 @@ import { CAREER_DOMAINS, AVAILABILITY_OPTIONS, SUPPORTED_PROGRAMS, domainOf, nor
 import { CAREER_STAGES } from '../services/careerStageService';
 import { getSelectableCareerRoles } from '../services/careerRoleService';
 import PassportConfig from '../models/PassportConfig';
+import User from '../models/User';
+import { resolveDirection } from '../services/careerDirectionService';
+import { publish } from '../services/adaptiveCurriculumEvents';
 
 /**
  * A member's own career context.
@@ -21,6 +24,25 @@ import PassportConfig from '../models/PassportConfig';
 const tenantOf = (req: Request): string =>
   String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || (req as any).user?._id || '');
+
+/**
+ * The direction a student is heading in, as the planners resolve it — or null for no account.
+ *
+ * Compared before and after a save so DIRECTION_CHANGED is announced only when the RESOLVED
+ * direction moved. Editing minutes per day, or re-saving the same role, changes nothing a plan
+ * is built from and must not rebuild one.
+ */
+async function resolvedDirectionOf(tenantId: string, studentId: string): Promise<string | null> {
+  const user = await User.findOne({ _id: studentId, tenantId })
+    .select('passport.selectedDirection passport.primaryRole passport.preferredTechnologies').lean() as any;
+  if (!user) return null;
+  const r = resolveDirection({
+    selectedDirection: user.passport?.selectedDirection,
+    primaryRole: user.passport?.primaryRole,
+    preferredTechnologies: user.passport?.preferredTechnologies,
+  });
+  return JSON.stringify([r.direction?.key || null, r.status, r.explorationDirections]);
+}
 
 /** GET /passport/me/context */
 export const getMyCareerContext = async (req: Request, res: Response) => {
@@ -47,6 +69,7 @@ export const updateMyCareerContext = async (req: Request, res: Response) => {
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
 
     const b = req.body || {};
+    const directionBefore = await resolvedDirectionOf(tenantId, studentId);
     const { context, missing, invalid } = await updateCareerContext(tenantId, studentId, {
       domain: b.domain,
       primaryRole: b.primaryRole,
@@ -62,6 +85,24 @@ export const updateMyCareerContext = async (req: Request, res: Response) => {
       complete: b.complete === true,
     });
     if (!context) return res.status(404).json({ message: 'Account not found' });
+
+    /**
+     * Tell the planner the student changed direction — only if they did.
+     *
+     * Checked whatever the response below says: a save that is refused for completeness has
+     * still stored the role. An invalid role is rejected before anything is written, so it
+     * resolves to the same direction and announces nothing. Not awaited: the student has saved
+     * their answer, and replanning is not something they wait for.
+     */
+    const directionAfter = await resolvedDirectionOf(tenantId, studentId);
+    if (directionBefore !== null && directionAfter !== null && directionAfter !== directionBefore) {
+      publish({
+        name: 'DIRECTION_CHANGED',
+        tenantId,
+        studentId,
+        meta: { origin: 'CAREER_CONTEXT', from: directionBefore, to: directionAfter },
+      }).catch(e => console.error('[adaptive] direction event failed:', e?.message || e));
+    }
 
     // A role the configuration does not offer. Refused by the service before anything was
     // written, which is why frontend validation alone was never sufficient.

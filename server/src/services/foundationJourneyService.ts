@@ -252,7 +252,23 @@ async function findOrCreateJourney(
      */
     journeySource: source,
     createdBy: 'foundation-journey',
-  } as any);
+  } as any).catch((e: any) => {
+    /**
+     * Two triggers for one student can race here — a checkpoint landing as a diagnostic does,
+     * or two server processes. The partial unique index on LearningCurriculum lets exactly one
+     * create win; the loser adopts the winner's journey rather than failing or making a second.
+     */
+    if (e?.code !== 11000) throw e;
+    return null;
+  });
+
+  if (!doc) {
+    const winner = await LearningCurriculum.findOne({
+      tenantId, personalizedFor: studentId, adaptiveStage: stageKey, journeyKind: FOUNDATION_JOURNEY_KIND,
+    });
+    if (!winner) throw new Error('A concurrent journey create collided, but no journey was found.');
+    return { doc: winner, created: false };
+  }
 
   return { doc, created: true };
 }

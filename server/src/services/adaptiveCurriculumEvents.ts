@@ -17,7 +17,7 @@
  */
 
 import { ReplanTrigger } from '../data/adaptiveCurriculumPolicy';
-import { replanForTrigger } from './curriculumReplanningService';
+import { handleCurriculumTrigger } from './curriculumOrchestrationService';
 
 export type AdaptiveEventName =
   | 'DIAGNOSTIC_COMPLETED'
@@ -95,13 +95,16 @@ export function registerAdaptiveHandlers(): void {
   wired = true;
 
   for (const [name, trigger] of Object.entries(TRIGGER_FOR) as [AdaptiveEventName, ReplanTrigger][]) {
+    // Routed by engine: TOPIC learners reach replanForTrigger with the same input as before;
+    // UNIT learners reach their Foundation journey. See curriculumOrchestrationService.
     on(name, async (e) => {
-      await replanForTrigger({
+      await handleCurriculumTrigger({
         tenantId: e.tenantId,
         studentId: e.studentId,
         curriculumId: e.curriculumId,
         trigger,
         assessmentId: e.assessmentId,
+        origin: e.meta?.origin,
       });
     });
   }

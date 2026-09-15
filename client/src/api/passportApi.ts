@@ -39,6 +39,20 @@ export interface PassportConfig {
    * before the layer existed, resolving the first mapped resource for a skill.
    */
   conceptLearningEnabled?: boolean;
+  /** Curriculum engine switches. Allow-lists: they can only move a stage or student onto UNIT. */
+  megaCurriculumEnabled?: boolean;
+  megaCurriculumStages?: string[];
+  megaCurriculumStudentIds?: string[];
+}
+
+/** Which engine plans students' learning, as the server resolves it. */
+export interface CurriculumEngineSummary {
+  foundationMode: 'TOPIC' | 'UNIT';
+  megaCurriculumEnabled: boolean;
+  megaCurriculumStages: string[];
+  megaCurriculumStudentIds: string[];
+  unitCapableStages: string[];
+  stages: { stage: string; label: string; mode: 'TOPIC' | 'UNIT' }[];
 }
 
 /** One skill's share of the assessable pool. */
@@ -92,7 +106,7 @@ export interface DraftBatchReport {
 }
 
 export const passportApi = {
-  getConfig: async (): Promise<{ config: PassportConfig; platformEnabled: boolean }> => {
+  getConfig: async (): Promise<{ config: PassportConfig; platformEnabled: boolean; engine?: CurriculumEngineSummary }> => {
     const { data } = await axios.get(`${BASE}/config`, { headers: auth() });
     return data;
   },

@@ -65,18 +65,42 @@ export function curriculumEngineFor(input: {
   studentId?: string | null;
   stageKey?: string | null;
 }): CurriculumEngine {
+  return curriculumEngineDecision(input).engine;
+}
+
+/** Which switch decided the engine. The precedence below is the only statement of it. */
+export type EngineBasis = 'NO_CONFIG' | 'STUDENT_ALLOWLIST' | 'STAGE_LIST' | 'TENANT_SWITCH' | 'NOT_ENABLED';
+
+/**
+ * The engine the switches select, and which switch selected it.
+ *
+ * PRECEDENCE, STATED ONCE: a named student, then a named stage, then the tenant switch, then
+ * TOPIC. The lists are ALLOW-lists — they can only move somebody onto UNIT, never hold
+ * somebody back — so "not in the list" means "decided by the next rule down", which is TOPIC
+ * unless something below it says otherwise. `curriculumEngineFor` is this with the reason
+ * dropped; nothing else may restate the order.
+ */
+export function curriculumEngineDecision(input: {
+  config?: CurriculumEngineConfig | null;
+  studentId?: string | null;
+  stageKey?: string | null;
+}): { engine: CurriculumEngine; basis: EngineBasis } {
   const cfg = input.config;
-  if (!cfg) return DEFAULT_CURRICULUM_ENGINE;
+  if (!cfg) return { engine: DEFAULT_CURRICULUM_ENGINE, basis: 'NO_CONFIG' };
 
   const sid = input.studentId ? String(input.studentId) : '';
-  if (sid && (cfg.megaCurriculumStudentIds || []).some(id => String(id) === sid)) return 'UNIT';
+  if (sid && (cfg.megaCurriculumStudentIds || []).some(id => String(id) === sid)) {
+    return { engine: 'UNIT', basis: 'STUDENT_ALLOWLIST' };
+  }
 
   const stage = input.stageKey ? String(input.stageKey).toLowerCase() : '';
   if (stage && (cfg.megaCurriculumStages || []).some(s => String(s).toLowerCase() === stage)) {
-    return 'UNIT';
+    return { engine: 'UNIT', basis: 'STAGE_LIST' };
   }
 
-  return cfg.megaCurriculumEnabled ? 'UNIT' : DEFAULT_CURRICULUM_ENGINE;
+  return cfg.megaCurriculumEnabled
+    ? { engine: 'UNIT', basis: 'TENANT_SWITCH' }
+    : { engine: DEFAULT_CURRICULUM_ENGINE, basis: 'NOT_ENABLED' };
 }
 
 /**
@@ -91,3 +115,48 @@ export const megaCurriculumInUse = (cfg?: CurriculumEngineConfig | null): boolea
     || (cfg.megaCurriculumStudentIds || []).length > 0
     || (cfg.megaCurriculumStages || []).length > 0
   );
+
+/* ------------------------------------------------------------------ *
+ * Capability — what the unit engine can actually plan
+ * ------------------------------------------------------------------ */
+
+/**
+ * Stages the UNIT engine can plan.
+ *
+ * Only Foundation has a Learning Unit curriculum, a composer and a ninety-day journey. A later
+ * stage switched onto UNIT would have nothing to plan from, so it stays on TOPIC however the
+ * switches are set. The capability is part of the answer rather than a check each caller has to
+ * remember — a student routed to an engine that cannot serve them is a student with no plan.
+ */
+export const UNIT_ENGINE_STAGES: readonly string[] = ['foundation'];
+
+export const unitEngineServesStage = (stageKey?: string | null): boolean =>
+  !!stageKey && UNIT_ENGINE_STAGES.includes(String(stageKey).toLowerCase().trim());
+
+export interface EffectiveEngine {
+  /** The engine that will actually plan this student. */
+  engine: CurriculumEngine;
+  /** What the switches alone selected, before capability. */
+  requested: CurriculumEngine;
+  basis: EngineBasis | 'NO_UNIT_CURRICULUM_FOR_STAGE';
+  stageKey: string | null;
+}
+
+/**
+ * The engine that serves this student — the switches, then capability.
+ *
+ * The one resolver production planning paths use (through curriculumEngineService, which only
+ * loads the config). TOPIC stays the answer whenever UNIT is not both selected and possible.
+ */
+export function effectiveCurriculumEngine(input: {
+  config?: CurriculumEngineConfig | null;
+  studentId?: string | null;
+  stageKey?: string | null;
+}): EffectiveEngine {
+  const decision = curriculumEngineDecision(input);
+  const stageKey = input.stageKey ? String(input.stageKey).toLowerCase().trim() : null;
+  if (decision.engine === 'UNIT' && !unitEngineServesStage(stageKey)) {
+    return { engine: DEFAULT_CURRICULUM_ENGINE, requested: 'UNIT', basis: 'NO_UNIT_CURRICULUM_FOR_STAGE', stageKey };
+  }
+  return { engine: decision.engine, requested: decision.engine, basis: decision.basis, stageKey };
+}

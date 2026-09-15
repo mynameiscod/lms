@@ -26,9 +26,12 @@ export const sessionId = (): string => {
  * machine. Deliberately crude and never treated as proof — a college lab looks identical.
  */
 export const fingerprint = (): string => {
+  /* `window.screen`, not the bare global: CRA's lint restricts it because testing-library
+     exports a `screen` of its own, and the two read identically at a glance. */
+  const s = window.screen;
   const bits = [
-    navigator.userAgent, navigator.language, String(screen.width), String(screen.height),
-    String(screen.colorDepth), String(new Date().getTimezoneOffset()),
+    navigator.userAgent, navigator.language, String(s.width), String(s.height),
+    String(s.colorDepth), String(new Date().getTimezoneOffset()),
     String((navigator as any).hardwareConcurrency || ''),
   ].join('|');
   let h = 0;

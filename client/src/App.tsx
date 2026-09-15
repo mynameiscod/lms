@@ -119,6 +119,7 @@ import PassportCard from './pages/Passport/Card';
 import PassportJoin from './pages/Passport/Join';
 import PassportLogin from './pages/Passport/Login';
 import HackathonExam from './pages/HackathonExam';
+import HackathonExamAdmin from './pages/HackathonExamAdmin';
 import BattleList from './pages/Battles/PublicList';
 import BattleLanding from './pages/Battles/Landing';
 import BattleExam from './pages/Battles/Exam';
@@ -462,6 +463,11 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* ── Hackathon exam (admin) ── */}
+      <Route path="/hackathons/:hackathonId/exam" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'STAFF']}><Layout><HackathonExamAdmin /></Layout></ProtectedRoute>
+      } />
 
       {/* ── Tech Battles (admin) ── */}
       <Route path="/admin/battles" element={

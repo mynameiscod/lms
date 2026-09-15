@@ -297,6 +297,7 @@ const HackathonsAdmin: React.FC = () => {
             </div>
             <div className="hk-acts">
               <button className="hk-btn sm" onClick={() => nav(`/admin/hackathons/${h._id}`)}>Registrations</button>
+              <button className="hk-btn sm" onClick={() => nav(`/hackathons/${h._id}/exam`)}>Exam</button>
               <button className="hk-btn sm" onClick={() => startEdit(h)}>Edit</button>
               <button className="hk-btn sm danger" onClick={() => remove(h)}>Delete</button>
             </div>

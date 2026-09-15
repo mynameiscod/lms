@@ -295,25 +295,67 @@ Three habits worth building:
    will silently repair both.
 3. **Read it without CSS.** Disable styles. A well-structured page is still perfectly usable —
    headings, lists and links all still do their jobs. If it becomes an unreadable wall, the
-   structure was doing nothing and the styling was doing everything.`,
+   structure was doing nothing and the styling was doing everything.
+
+**The exercises worth doing, in order.** Each takes ten minutes and each tests one habit.
+
+- **Mark up a recipe.** Ingredients are a list; method steps are an ordered list; the title is
+  the \`<h1>\`. The interesting decision is what the cooking time and serving count are — they
+  are a small data table, not a paragraph, and noticing that is the whole exercise.
+- **Mark up a news article you did not write.** You will want a \`<div>\` several times. Each
+  time, ask what the thing IS before reaching for one: a byline, a pull quote, a caption, a
+  section. Three of the four have an element already.
+- **Take a page you built and delete every closing tag.** Load it. It probably still renders.
+  Then validate it, and read the error list — that gap between "renders" and "valid" is the
+  reason the validator exists.
+- **Rewrite a page's headings without touching anything else** so the outline reads as a table
+  of contents. If you cannot, the page has a structure problem the styling was hiding.
+
+**How to tell you are finished.** Not "it looks right" — it looks right almost immediately.
+Finished is: the validator is silent, the outline reads as a contents page, and with CSS off
+it is plain and still completely usable.`,
     mcqs: [
       mcq('You disable CSS and the page becomes an unreadable wall of text. What does that tell you?',
         [['The structure was carrying no meaning — styling was doing all the work', true],
-          ['The CSS is badly written', false],
-          ['Nothing, pages need CSS', false],
-          ['The browser is at fault', false]],
+          ['The CSS has specificity conflicts that a rewrite would resolve', false],
+          ['Nothing useful, because no real page is ever read without its CSS', false],
+          ['The browser failed to apply the default user-agent stylesheet', false]],
         'This is the fastest structural test there is. Good markup degrades to a plain but usable document.'),
-      mcq('A browser renders your page correctly despite an unclosed <div>. Is the markup fine?',
+      mcq('A browser renders your page correctly despite an unclosed `<div>`. Is the markup fine?',
         [['No — the browser repaired it, and another tool may repair it differently', true],
-          ['Yes, rendering is the test', false],
-          ['Yes, browsers follow the spec', false],
-          ['Only if it validates visually', false]],
+          ['Yes, because rendering correctly is what the markup is judged on', false],
+          ['Yes, because every browser implements the same recovery rules', false],
+          ['Only if the page also renders identically with scripting off', false]],
         'Error recovery is per-implementation. Relying on it means relying on every consumer guessing the same way.'),
+      mcq('Marking up a recipe, where do the cooking time and serving count belong?',
+        [['A small table, because each is a labelled value rather than prose', true],
+          ['A paragraph, because two facts are too few to justify a table', false],
+          ['A definition list, because the labels are being defined by the values', false],
+          ['A heading each, so that they stand out at the top of the page', false]],
+        'Labelled values in rows are tabular data, and a table with a caption says so to a screen reader. Two rows is still a table; size is not the test.'),
+      mcq('You reach for a `<div>` while marking up an article. What is the useful question?',
+        [['What is this thing — a byline, a caption and a section each have an element', true],
+          ['Whether the div needs a class name that describes what it contains', false],
+          ['Whether a `<span>` would be the more appropriate wrapper to use here', false],
+          ['Whether the surrounding element is already providing enough structure', false]],
+        'A div says "no meaning here". That is occasionally true and usually means you have not yet asked what the thing is.'),
     ],
     checkpoint: [
       mcq('What is the first thing to produce when marking up an article?',
-        [['The heading outline', true], ['The CSS', false], ['The images', false], ['The doctype', false]],
+        [['The heading outline', true], ['The stylesheet', false], ['The images', false], ['The doctype', false]],
         'Structure first. Everything else hangs off a correct outline.'),
+      mcq('The validator reports zero errors. What has that established?',
+        [['That the syntax is well formed, and nothing at all about the meaning', true],
+          ['That the page is accessible to a screen reader and to a keyboard', false],
+          ['That every element on the page has been used for its intended purpose', false],
+          ['That the page will render identically in every current browser', false]],
+        'A perfectly valid page can have unlabelled inputs, empty alt on a meaningful image and headings chosen by size. Validity is syntax.'),
+      mcq('Why practise on a page somebody else wrote rather than your own?',
+        [['You have to read the content before you can decide what each part is', true],
+          ['Other people write cleaner markup, which is easier to learn from', false],
+          ['Your own pages are already familiar, so they take much less time', false],
+          ['It avoids the temptation to fix the styling instead of the markup', false]],
+        'On your own page you remember your intent and mark up the memory. On somebody else’s you have to work out what the thing IS, which is the actual skill.'),
     ],
   },
 

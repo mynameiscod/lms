@@ -44,6 +44,7 @@ import LearningContentLibrary from '../models/LearningContentLibrary';
 import LearningCurriculum from '../models/LearningCurriculum';
 import Quiz from '../models/Quiz';
 import Assignment from '../models/Assignment';
+import SkillEvidence from '../models/SkillEvidence';
 import { evaluateReadiness, UnitReadiness, READINESS_ORDER } from '../data/unitReadinessPolicy';
 import { compositionRoleOf } from '../data/compositionShapePolicy';
 import { DIRECTION_KEYS, DIRECTION_ALL } from '../data/careerDirectionPolicy';
@@ -130,7 +131,7 @@ const inlineTickUnbalanced = (text: string): string | null => {
 };
 
 /** Scripts this curriculum is not written in. Their presence is corruption, never content. */
-const FOREIGN_SCRIPT = /[Ѐ-ӿ؀-ۿऀ-ॿ぀-ヿ一-鿿가-힯]/;
+const FOREIGN_SCRIPT = /[\u0400-\u04FF\u0600-\u06FF\u0900-\u097F\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/;
 
 /**
  * Text that stops mid-thought.
@@ -289,7 +290,7 @@ function auditQuestion(unitCode: string, where: string, q: AuditableQuestion): v
   const tenantOid = mongoose.Types.ObjectId.isValid(tenantId)
     ? new mongoose.Types.ObjectId(tenantId) : null;
 
-  const [units, curriculum, library, quizzes, assignments] = await Promise.all([
+  const [units, curriculum, library, quizzes, assignments, mappings] = await Promise.all([
     CurriculumLearningUnit.find({ tenantId, stageKey: STAGE }).lean() as any,
     LearningCurriculum.findOne({ tenantId, adaptiveStage: STAGE }).select('title modules topics').lean() as any,
     LearningContentLibrary.find({ tenantId }).lean() as any,
@@ -298,7 +299,12 @@ function auditQuestion(unitCode: string, where: string, q: AuditableQuestion): v
     tenantOid
       ? Assignment.find({ tenant: tenantOid, unitCode: { $exists: true, $ne: '' } }).lean() as any
       : Promise.resolve([] as any),
+    SkillEvidence.find({ tenantId, sourceType: 'question', contribution: 'PRIMARY', active: true })
+      .select('sourceId').lean() as any,
   ]);
+
+  /** Questions that can carry evidence. Anything outside this set reaches no skill. */
+  const mappedQuestionIds = new Set<string>((mappings as any[]).map(m => String(m.sourceId)));
 
   const published = (library as any[]).filter(r => r.isPublished);
 
@@ -533,6 +539,22 @@ function auditQuestion(unitCode: string, where: string, q: AuditableQuestion): v
         add('QUIZ_TOO_FEW', 'DEFECT', code, `quiz "${q.title}" has ${n} question(s)`);
       }
       if (!q.totalTime) add('QUIZ_NO_DURATION', 'DEFECT', code, `quiz "${q.title}" has no totalTime`);
+
+      /*
+       * A bound, gradeable quiz that reaches no skill.
+       *
+       * quizSkillBridge projects an attempt into SkillEvidence only for questions carrying a
+       * PRIMARY mapping, and records nothing at all otherwise. So an unmapped checkpoint is
+       * not half-wired: the student takes it, sees a score, and Skill DNA never hears. All
+       * 161 were in that state, which no existing check could see because every individual
+       * piece — quiz, binding, readiness — was correct.
+       */
+      const unmapped = linked.filter(id => !mappedQuestionIds.has(id));
+      if (linked.length && unmapped.length === linked.length) {
+        add('QUIZ_UNMAPPED', 'DEFECT', code, `quiz "${q.title}": no question carries a PRIMARY skill mapping, so it produces no evidence`);
+      } else if (unmapped.length) {
+        add('QUIZ_PARTLY_UNMAPPED', 'WARN', code, `quiz "${q.title}": ${unmapped.length} of ${linked.length} questions are unmapped`);
+      }
       if ((q.totalQuestions || 0) !== n) add('QUIZ_COUNT_MISMATCH', 'DEFECT', code, `quiz "${q.title}": totalQuestions=${q.totalQuestions} but ${n} question(s)`);
     }
 

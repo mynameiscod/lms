@@ -29,6 +29,9 @@ import LearningContentLibrary from '../../models/LearningContentLibrary';
 import CurriculumLearningUnit from '../../models/CurriculumLearningUnit';
 import Quiz from '../../models/Quiz';
 import Question from '../../models/Question';
+import SkillEvidence from '../../models/SkillEvidence';
+import CareerSkill from '../../models/CareerSkill';
+import { DEFAULT_DOMAIN } from '../../services/careerDomainService';
 import Assignment, { AssignmentType } from '../../models/Assignment';
 import User from '../../models/User';
 import { PILOT_TOPICS } from './pilotUnitContent';
@@ -38,6 +41,8 @@ import { findDuplication, identifyingWordsFor } from '../../services/contentDupl
 dotenv.config();
 
 const CREATED_BY = 'pilot-unit-content';
+
+const upper = (s: string) => String(s || '').trim().toUpperCase();
 
 /**
  * A deterministic ObjectId for a seeded row, from a key that describes it.
@@ -75,6 +80,20 @@ const readingMinutes = (text: string): number =>
     .select('_id').lean() as any;
 
 
+  /**
+   * The skills a checkpoint question may legitimately be mapped to.
+   *
+   * Exactly the set skillEvidenceService.validateEvidenceMapping would accept: in the default
+   * career domain, an actual SKILL rather than a GROUP, assessable, and active. Loaded once —
+   * CareerSkill is GLOBAL and carries no tenantId, so it is queried with no tenant filter.
+   */
+  const mappableSkills = new Set<string>(
+    ((await CareerSkill.find({ domainKey: DEFAULT_DOMAIN, nodeType: 'SKILL', active: true })
+      .select('key assessable').lean()) as any[])
+      .filter(s => s.assessable !== false)
+      .map(s => String(s.key).toUpperCase()),
+  );
+
   const units = await CurriculumLearningUnit
     .find({ tenantId, unitCode: { $in: ALL_BUNDLES.map(b => b.unitCode) } })
     .select('unitCode title skillKeys topicCode defaultDepth').lean() as any[];
@@ -87,6 +106,9 @@ const readingMinutes = (text: string): number =>
   let rows = 0;
   let quizzes = 0;
   let checkpointQuestions = 0;
+  let mapped = 0;
+  const unmappedMultiSkill = new Set<string>();
+  const unmappableSkill = new Set<string>();
   let assignments = 0;
   const missingUnits: string[] = [];
   const skippedAssignments: string[] = [];
@@ -231,6 +253,42 @@ const readingMinutes = (text: string): number =>
           );
           questionIds.push(String(_id));
           checkpointQuestions++;
+
+          /*
+           * The item → skill mapping, WITHOUT WHICH THE CHECKPOINT MEASURES NOTHING.
+           *
+           * quizSkillBridge projects a finished attempt into SkillEvidence only for questions
+           * that carry a PRIMARY mapping, and returns "no skill mappings" otherwise — silently
+           * and correctly, because an unclassified item says nothing about any named skill.
+           * Every checkpoint question written by this seed was unmapped, so all 161 quizzes
+           * were bound, gradeable, and invisible to Skill DNA.
+           *
+           * ONLY WHERE THERE IS NOTHING TO DECIDE. A unit declaring exactly one skill has one
+           * possible answer, and writing it is derivation. A unit declaring several does not:
+           * which of them a given question chiefly measures is a judgement, the admin screen
+           * exists for making it, and guessing skillKeys[0] would be the invented attribution
+           * the bridge is deliberately built to avoid. Those are left unmapped and reported.
+           */
+          const only = (unit.skillKeys || []).length === 1 ? upper(unit.skillKeys[0]) : '';
+          if (only && mappableSkills.has(only)) {
+            await SkillEvidence.updateOne(
+              { tenantId, sourceType: 'question', sourceId: String(_id), skillKey: only },
+              {
+                $set: { contribution: 'PRIMARY', active: true, updatedBy: CREATED_BY },
+                $setOnInsert: {
+                  tenantId, sourceType: 'question', sourceId: String(_id), skillKey: only,
+                  audienceRoles: [], audienceYears: [], audienceCourses: [], audienceBranches: [],
+                  createdBy: CREATED_BY,
+                },
+              },
+              { upsert: true },
+            );
+            mapped++;
+          } else if (!only) {
+            unmappedMultiSkill.add(unit.unitCode);
+          } else {
+            unmappableSkill.add(`${unit.unitCode} (${only})`);
+          }
         }
 
         await Quiz.updateOne(
@@ -327,6 +385,19 @@ const readingMinutes = (text: string): number =>
     const bound = await LearningContentLibrary.countDocuments({ tenantId, unitCode: { $exists: true, $ne: '' } });
     const boundQuiz = await Quiz.countDocuments({ tenantId, unitCode: { $exists: true, $ne: '' } });
     console.log(`${rows} library rows written, ${quizzes} checkpoint quizzes (${checkpointQuestions} questions) and ${assignments} project assignments bound.`);
+
+  console.log(`
+  SKILL EVIDENCE MAPPING`);
+  console.log(`    ${mapped} checkpoint question(s) mapped to the one skill their unit declares.`);
+  if (unmappedMultiSkill.size) {
+    console.log(`    ${unmappedMultiSkill.size} unit(s) declare several skills, so which skill each`);
+    console.log(`    question chiefly measures is a judgement. Map them in CareerPilot -> Skill`);
+    console.log(`    Evidence; until then those checkpoints produce no evidence, by design.`);
+  }
+  if (unmappableSkill.size) {
+    console.log(`    ${unmappableSkill.size} unit(s) name a skill that cannot carry evidence`);
+    console.log(`    (a group, retired, or outside the career domain): ${[...unmappableSkill].slice(0, 6).join(', ')}`);
+  }
     console.log(`Library rows carrying a unitCode: ${bound}.  Quizzes: ${boundQuiz}.`);
     console.log('Units remain DRAFT; the UNIT engine is untouched.');
   }

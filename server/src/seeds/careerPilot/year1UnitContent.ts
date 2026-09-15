@@ -561,12 +561,41 @@ made and why.`,
     assignment: {
       title: 'HTML Mini Project — a page of your own',
       description: 'One complete, semantic, accessible HTML page built from a specification.',
-      instructions: `Build a single HTML page meeting every requirement in the unit brief.
+      /*
+       * The requirements are restated here rather than referred to.
+       *
+       * A student opens the assignment workspace, not the unit's notes, and "meeting every
+       * requirement in the unit brief" pointed at a brief that is not on the screen. Every
+       * other project in this curriculum states its own specification; this one did not.
+       */
+      instructions: `Build one complete, semantic, accessible HTML page.
 
-No CSS framework and no JavaScript — HTML only. With nothing to hide behind, the structure is
-the work.
+No CSS framework and no JavaScript — HTML only. That constraint is deliberate: with nothing to
+hide behind, the structure is the work.
 
-Submit the .html file and a short README naming three element choices and why you made them.`,
+**Requirements**
+
+1. A valid document: doctype, \`lang\`, \`charset\`, and a \`<title>\` that names the page.
+2. Semantic regions: \`<header>\`, \`<nav>\`, \`<main>\` and \`<footer>\`, used where they belong.
+3. A correct heading outline — one \`<h1>\`, no skipped levels.
+4. At least one list, chosen for the right reason.
+5. At least one image with considered alt text.
+6. At least one data table with \`<caption>\`, \`<th>\` and \`scope\`.
+7. A form with at least three inputs, every one labelled, using appropriate \`type\`s.
+8. Internal links between sections, and at least one external link.
+
+**Before you submit**
+
+- It passes the W3C validator with zero errors.
+- It reads sensibly with CSS disabled — that is the test of whether the structure carries the
+  meaning, and it takes ten seconds.
+- Every control is reachable by keyboard alone, with visible focus.
+- You can justify each semantic element choice in one sentence.
+
+**Deliverable**
+
+The \`.html\` file, plus a short README stating what the page is for and three element choices
+you made and why you made them.`,
       rubric: [
         { criterion: 'Valid document', description: 'Doctype, lang, charset and a title that names the page. Zero W3C errors.', maxPoints: 15 },
         { criterion: 'Semantic regions', description: 'header, nav, main and footer used where they belong; divs only as styling hooks.', maxPoints: 25 },
@@ -1016,22 +1045,40 @@ That last point is worth stating plainly: once a change is committed, essentiall
 "disaster" is recoverable. Uncommitted work is the fragile kind.`,
     mcqs: [
       mcq('Which problem does a folder of numbered copies NOT solve?',
-        [['Seeing exactly what changed between two versions', true],
-          ['Keeping old versions', false],
-          ['Having a backup', false],
-          ['Working alone', false]],
+        [['Seeing what actually changed between two of the versions', true],
+          ['Keeping a copy of the document as it was last Tuesday', false],
+          ['Having something to fall back on if the disk fails', false],
+          ['Working on the document on your own over many weeks', false]],
         'Copies preserve states but record nothing about the transitions, which is where the information actually is.'),
       mcq('What is true of committed work that is not true of uncommitted work?',
-        [['It is essentially always recoverable', true],
-          ['It is on a server', false],
-          ['It cannot be edited', false],
-          ['It is published', false]],
-        'Almost every Git "I lost everything" story is about changes that were never committed.'),
+        [['It can essentially always be recovered, whatever you do next', true],
+          ['It has been copied to a server somewhere outside your machine', false],
+          ['It is fixed, in the sense that Git will not let you edit it again', false],
+          ['It is visible to the other people working on the same project', false]],
+        'Almost every Git "I lost everything" story is about changes that were never committed. Committing is local; none of the other three follow from it.'),
+      mcq('Two people each keep their own chain of numbered copies. What is the real cost?',
+        [['Combining the two chains is manual, and nothing checks the result', true],
+          ['Twice the disk space is used, and it grows with every edit made', false],
+          ['Neither person can tell which of the two chains is the newer one', false],
+          ['The files must be renamed before either person can open them', false]],
+        'Merging by hand means a human decides every overlap with no record of the decision. Git makes the overlaps explicit and refuses to guess.'),
     ],
     checkpoint: [
       mcq('What does Git record that a copy of a file cannot?',
         [['Why the change was made', true], ['The file contents', false], ['The date', false], ['The file size', false]],
         'The diff records what; only a human-written message records why, and that is the part no tool can reconstruct.'),
+      mcq('"Nothing committed is lost" is a claim about which kind of work?',
+        [['Work you have already committed, however badly you break things after', true],
+          ['All work in the project folder, from the moment the repository exists', false],
+          ['Work that has been pushed, because the server holds a second copy', false],
+          ['Work Git has seen, including files you have edited but not committed', false]],
+        'The guarantee starts at the commit and not before. Edits Git has never been told to keep are exactly the ones a bad command destroys.'),
+      mcq('A colleague asks why a line of code exists. Which part of Git answers that?',
+        [['The commit message attached to the change that introduced the line', true],
+          ['The diff for the commit, which shows the line being added', false],
+          ['The file history, which shows how often the line has changed', false],
+          ['The branch name, which records what the work was called', false]],
+        'The diff shows the line appearing. Only the message says what problem it was solving, which is the question actually being asked.'),
     ],
   },
   {

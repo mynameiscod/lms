@@ -677,10 +677,238 @@ const APPLICATION_UNITS: ProposedUnit[] = [
     + 'debugging unit.'),
 ];
 
+/* ---- Phase 21 capacity: 10 practical units, for topics that teach and never apply ---- */
+
+/**
+ * WHY THESE EXIST. Phase 21 certified learners at the state boundaries on the Foundation stage
+ * skill set. With every PARTIAL unit in the design authored, a learner at 85 across the universal
+ * skills with a software/backend direction still received 85 days: every instruction unit they
+ * had not outgrown was scheduled, and what ran out was something to DO with the universal skills
+ * they were still revising.
+ *
+ * The allocation was not touched to hide that. Each unit below closes a gap that is real on its
+ * own terms — a topic that teaches and practises but never asks for a debugging judgement or a
+ * finished artefact — and each was measured to contribute before it was written. None duplicates
+ * an existing unit; `whyNotExisting` names the nearest one and the difference.
+ */
+const CAPACITY_UNITS: ProposedUnit[] = [
+  project('T_FUNCTIONS_REFACTORING', 'M03_PROGRAMMING', 'T_FUNCTIONS',
+    'Project — Untangle a Working Script',
+    'A long script that works and that nobody wants to change. Restructure it into functions '
+    + 'without changing a single thing it prints.',
+    ['FUNCTIONS_BASICS'], ['T_FUNCTIONS_PRACTICE'],
+    ['Restructure working code into functions while proving its behaviour did not change'], 120, {},
+    'T_FUNCTIONS_MINI_PROJECT builds a new program from functions. Restructuring code that already '
+    + 'works — where the constraint is preserving behaviour, and the risk is breaking it — is the '
+    + 'form functions are actually met in, and nothing asks for it.',
+    'software-focused learners revising programming, who had no functions work left beyond the '
+    + 'first project.'),
+
+  debug('T_ARRAYS_STRING_DEBUGGING', 'M07_DSA', 'T_ARRAYS',
+    'When the String Answer Is Almost Right',
+    'String solutions that pass the example and fail the judge — off-by-one slices, case, '
+    + 'whitespace, and the empty string.',
+    ['DSA_STRINGS'],
+    ['Find why a string solution fails on inputs the example did not show'], 50,
+    { prerequisiteUnitCodes: ['T_ARRAYS_STRING_PROBLEMS'] },
+    'T_ARRAYS_DEBUGGING is about index and bounds faults in array traversal. String problems fail '
+    + 'differently — normalisation, slicing and empty input — and those are the faults interview '
+    + 'judges are built to catch.',
+    'software-focused and every interview-facing learner; M07 had one debugging unit for eleven.'),
+
+  debug('T_GIT_HISTORY_DEBUGGING', 'M04_DEVELOPER_TOOLS', 'T_GIT',
+    'Which Commit Broke It?',
+    'It worked last week. Use the history — log, diff, show and bisect — to find the commit that '
+    + 'broke it, instead of reading the whole codebase.',
+    ['GIT_FUNDAMENTALS'],
+    ['Locate the commit that introduced a fault using the repository history'], 50,
+    { prerequisiteUnitCodes: ['T_GIT_UNDOING'] },
+    'T_GIT_CONFLICTS debugs a merge. Nothing uses history as a diagnostic tool, which is the main '
+    + 'reason to keep a clean history at all; git bisect is taught nowhere.',
+    'every universal learner past the Git concepts; M04 is mandatory.'),
+
+  project('T_SQL_REPORT_PROJECT', 'M08_DATABASES', 'T_SQL',
+    'Project — The Report Somebody Asked For',
+    'An existing database and a set of vague business questions. Turn each into a precise query, '
+    + 'and report what the data says, including where it cannot answer.',
+    ['SQL_BASICS'], ['T_SQL_PRACTICE'],
+    ['Turn vague questions into precise queries and report the answers honestly'], 120,
+    { displayOrder: 910 },
+    'T_SQL_MINI_PROJECT is schema design: the learner owns the tables. Analysis against a schema '
+    + 'somebody else designed, from questions that are not yet precise, is the everyday use of SQL '
+    + 'and a different skill.',
+    'software-focused and data-leaning learners revising SQL.'),
+
+  debug('T_SHELL_PIPELINES_DEBUGGING', 'M09_LINUX', 'T_SHELL_PIPELINES',
+    'Why Is the Pipeline Empty?',
+    'A pipeline that prints nothing, or the wrong count. Take it apart stage by stage until the '
+    + 'stage that lies is found.',
+    ['SHELL_PIPELINES'],
+    ['Isolate the failing stage of a pipeline or script'], 45,
+    { prerequisiteUnitCodes: ['T_SHELL_PIPELINES_TRANSFORMING'] },
+    'The T_SHELL_PIPELINES practice and project build pipelines. None teaches the method for one '
+    + 'that silently produces nothing — quoting, a filter that matched no lines, stderr that went '
+    + 'to the screen instead of the pipe.',
+    'cloud-cyber and software-focused learners; M09 had no debugging for its pipelines topic.'),
+
+  project('T_PROCESSES_MINI_PROJECT', 'M09_LINUX', 'T_PROCESSES',
+    'Mini Project — A Process Report You Can Defend',
+    'Investigate what a machine is actually running, find the process responsible for a problem, '
+    + 'and deal with it without killing the wrong thing.',
+    ['OS_PROCESSES'], ['T_PROCESSES_PRACTICE'],
+    ['Investigate running processes and justify every action taken on them'], 90, {},
+    'T_PROCESSES is six units of instruction and practice with nothing to investigate end to end. '
+    + 'Knowing the signals is different from deciding which one to send to which process.',
+    'cloud-cyber and software-focused learners revising operating systems.'),
+
+  project('T_PSEUDOCODE_MINI_PROJECT', 'M02_COMPUTATIONAL_THINKING', 'T_PSEUDOCODE',
+    'Mini Project — An Algorithm Somebody Else Can Follow',
+    'Design an algorithm for a real process in pseudocode and a flowchart, then prove it with '
+    + 'dry runs, including the case that breaks the first draft.',
+    ['PSEUDOCODE_FLOWCHARTS'], ['T_PSEUDOCODE_PRACTICE'],
+    ['Specify an algorithm precisely enough that another person can execute it'], 90, {},
+    'T_PSEUDOCODE practises writing and dry-running short fragments and debugs logic errors. '
+    + 'Nothing asks for a complete design handed to somebody else, which is what pseudocode is for.',
+    'beginners and mixed learners, and every learner revising computational thinking.'),
+
+  debug('T_NUMBER_SYSTEMS_DEBUGGING', 'M10_MATHS', 'T_NUMBER_SYSTEMS',
+    'The Number That Came Out Wrong',
+    'A counter that went negative, a colour that came out wrong, a total that is off by a tiny '
+    + 'fraction — each traced to how the number was stored.',
+    ['NUMBER_SYSTEMS_BINARY'],
+    ['Explain a wrong numeric result from its binary representation'], 45,
+    { prerequisiteUnitCodes: ['T_NUMBER_SYSTEMS_NEGATIVE_AND_OVERFLOW'] },
+    'T_NUMBER_SYSTEMS converts and calculates. Nothing connects representation to the bugs it '
+    + 'actually causes, which is the reason a programmer needs binary at all.',
+    'every universal learner past number systems; M10 had almost no application.'),
+
+  project('T_BOOLEAN_MINI_PROJECT', 'M10_MATHS', 'T_BOOLEAN',
+    'Mini Project — From a Rule to a Circuit',
+    'A real control rule in words becomes a truth table, a simplified expression, a gate diagram '
+    + 'and a tested function — with each step checked against the last.',
+    ['BOOLEAN_ALGEBRA'], ['T_BOOLEAN_PRACTICE'],
+    ['Carry a rule from words to a verified simplified expression'], 90, {},
+    'T_BOOLEAN teaches each representation and debugs arguments. Nothing carries one problem through '
+    + 'every representation, which is where the equivalences stop being exercises.',
+    'every universal learner revising Boolean algebra; M10 had no integration for it.'),
+
+  project('T_DECOMPOSITION_MINI_PROJECT', 'M02_COMPUTATIONAL_THINKING', 'T_DECOMPOSITION',
+    'Mini Project — Plan It Before You Build It',
+    'A problem too big to start coding. Break it down, find the patterns, name the edge cases, '
+    + 'and produce a plan another learner could build from.',
+    ['PROBLEM_SOLVING'], ['T_DECOMPOSITION_PRACTICE'],
+    ['Decompose a real problem into a plan that survives its edge cases'], 90, {},
+    'T_DECOMPOSITION practises the steps on small problems. The capstone assumes decomposition '
+    + 'rather than teaching it, so nothing between them applies it to a problem large enough to '
+    + 'need it.',
+    'beginners, mixed learners and every learner revising problem solving.'),
+
+  /*
+   * The software core, applied. SOFTWARE_BACKEND is served by the universal Programming, C, DSA,
+   * Databases and Developer Tools modules by frozen decision (careerDirectionPolicy), so a
+   * software learner who has demonstrated that core is left with its practical work and nothing
+   * else. Measured on the stage skill set, that ran out seven days short. Each unit below is a
+   * distinct fault class or artefact in one of those five modules — not a copy of a unit in them.
+   */
+  debug('T_LOOPS_ALMOST_RIGHT_DEBUGGING', 'M03_PROGRAMMING', 'T_LOOPS',
+    'Loops That Are Almost Right',
+    'The loop ends, and the answer is off by one, counted twice, or reset every time round. '
+    + 'Find which, from what the loop actually did.',
+    ['LOOPS_BASICS'],
+    ['Diagnose a terminating loop that produces a wrong result'], 45,
+    { prerequisiteUnitCodes: ['T_LOOPS_ACCUMULATORS'] },
+    'T_LOOPS_INFINITE_LOOPS debugs loops that never end. A loop that ends with the wrong answer — '
+    + 'a range one short, an accumulator initialised inside the loop, a list changed while being '
+    + 'iterated — fails silently, and is by far the commoner fault.',
+    'software-focused learners revising programming; M03 had one debugging unit for loops.'),
+
+  debug('T_SQL_JOIN_DEBUGGING', 'M08_DATABASES', 'T_SQL',
+    'Why the Totals Are Too Big',
+    'The query returns rows and the numbers are wrong: a join that multiplied rows, a COUNT that '
+    + 'counted the NULLs, an average that silently skipped them.',
+    ['SQL_BASICS'],
+    ['Find why a join or aggregate returns plausible but wrong numbers'], 50,
+    { prerequisiteUnitCodes: ['T_SQL_JOINS', 'T_SQL_GROUP_BY'] },
+    'T_SQL_DEBUGGING is about a query that returns nothing. A query that returns confident, wrong '
+    + 'totals is the more dangerous failure, has different causes, and is not covered anywhere.',
+    'software-focused and data-leaning learners past joins and grouping.'),
+
+  debug('T_ARRAYS_COMPLEXITY_DEBUGGING', 'M07_DSA', 'T_ARRAYS',
+    'It Works, and It Times Out',
+    'A correct solution that fails the time limit. Find the hidden quadratic — the lookup in a '
+    + 'list, the copy in a loop — and remove it without breaking the answer.',
+    ['DSA_ARRAYS'],
+    ['Locate and remove the avoidable cost in a correct but slow solution'], 50,
+    { displayOrder: 810, prerequisiteUnitCodes: ['T_ARRAYS_COMPLEXITY'] },
+    'T_ARRAYS_COMPLEXITY teaches how to talk about cost and the mini project asks for a justification. '
+    + 'Neither asks a learner to find the cost in code that is already correct, which is how a time '
+    + 'limit is actually met.',
+    'software-focused and every interview-facing learner.'),
+
+  debug('T_GIT_REMOTE_DEBUGGING', 'M04_DEVELOPER_TOOLS', 'T_GIT',
+    'Push Rejected, and Other Remote Trouble',
+    'A rejected push, a branch that has diverged, a detached HEAD, a commit made on the wrong '
+    + 'branch — each read from what Git says, and fixed without losing work.',
+    ['GIT_BRANCHING'],
+    ['Recover from a remote or branch mishap without losing anybody\'s work'], 45,
+    { displayOrder: 810, prerequisiteUnitCodes: ['T_GIT_REMOTES'] },
+    'T_GIT_CONFLICTS resolves a merge conflict and T_GIT_HISTORY_DEBUGGING searches history. '
+    + 'Remote and branch-state mishaps are a separate family, and the one where a panicked fix '
+    + 'most often destroys work.',
+    'every universal learner past Git remotes; M04 is mandatory.'),
+
+  project('T_FUNCTIONS_TESTING_PROJECT', 'M03_PROGRAMMING', 'T_FUNCTIONS',
+    'Project — Prove Your Functions Work',
+    'A set of functions with a specification and a bug or two. Write the tests that would have '
+    + 'caught them, then make the tests pass.',
+    ['FUNCTIONS_BASICS'], ['T_FUNCTIONS_PRACTICE'],
+    ['Write tests that pin a function to its specification, edge cases included'], 90,
+    { displayOrder: 910 },
+    'T_FUNCTIONS_MINI_PROJECT builds and T_FUNCTIONS_REFACTORING restructures. Nothing in the '
+    + 'programming module asks a learner to decide what "works" means and check it with tests; '
+    + 'T_AI_CODING_TESTING_IT tests generated code and assumes this skill.',
+    'software-focused learners revising programming.'),
+
+  debug('T_C_BASICS_STRING_DEBUGGING', 'M06_C_PROGRAMMING', 'T_C_BASICS',
+    'C Strings That Misbehave',
+    'A missing terminator, a copy that overran, two strings compared with == — the faults that '
+    + 'make C text handling notorious, each traced to its cause.',
+    ['C_BASICS'],
+    ['Diagnose string-handling faults in C from their symptoms'], 45,
+    { category: ACADEMIC, mandatory: false, prerequisiteUnitCodes: ['T_C_BASICS_ARRAYS'] },
+    'T_C_BASICS_DEBUGGING teaches the method — warnings, backtraces, sanitisers. Strings are the '
+    + 'fault class where C differs most from Python, and they are only mentioned in passing.',
+    'software-focused learners taking C.'),
+
+  project('T_EDITOR_WORKSPACE_PROJECT', 'M04_DEVELOPER_TOOLS', 'T_EDITOR',
+    'Project — A Workspace Anyone Can Open',
+    'Set up a small project so that somebody else can clone it, open it, run it, debug it and '
+    + 'format it the same way you do — and prove it on a clean machine.',
+    ['IDE_PROFICIENCY'], ['T_EDITOR_RUNNING_AND_DEBUGGING'],
+    ['Produce a reproducible project workspace another person can use unaided'], 90, {},
+    'T_EDITOR teaches an editor in six instruction and debugging units. Nothing asks for a '
+    + 'workspace that works for somebody other than its author, which is where environments '
+    + 'actually break.',
+    'every universal learner; M04 is mandatory.'),
+
+  debug('T_SQL_SCHEMA_DEBUGGING', 'M08_DATABASES', 'T_SQL',
+    'A Schema That Fights You',
+    'Updates that leave data contradicting itself, deletes that lose facts nobody meant to lose. '
+    + 'Trace each anomaly to the design decision behind it.',
+    ['DB_FUNDAMENTALS'],
+    ['Trace a data anomaly to the schema decision that allows it'], 50,
+    { displayOrder: 810, prerequisiteUnitCodes: ['T_SQL_KEYS', 'T_SQL_INSERT_UPDATE_DELETE'] },
+    'T_SQL_MINI_PROJECT designs a schema from scratch. Diagnosing an existing schema from the '
+    + 'anomalies it produces — repeated data, update and delete anomalies — is the other half of '
+    + 'design and is not taught.',
+    'software-focused and data-leaning learners.'),
+];
+
 export const PROPOSED_UNITS: ProposedUnit[] = [
   ...VERIFICATION_UNITS,
   ...INTEGRATION_UNITS,
   ...APPLICATION_UNITS,
+  ...CAPACITY_UNITS,
 ];
 
 /* ------------------------------------------------------------------ *

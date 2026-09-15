@@ -34,8 +34,22 @@ import {
 } from '../data/compositionShapePolicy';
 import { appliesToDirection, isCoreModuleFor } from '../data/careerDirectionPolicy';
 import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
+import { foundationStageRequirements } from '../seeds/careerPilot/foundationStageSkillSet';
 
 export const PROGRAM_DAYS = FOUNDATION_PROGRAM_DAYS;
+
+/**
+ * The skills a Foundation diagnostic actually measures: the stage skill set's switched-on rows.
+ *
+ * STATE-BOUNDARY LEARNERS ARE DEFINED ON THIS, NOT ON THE INVENTORY. Deriving "every universal
+ * skill" from whatever units happen to be READY made the learner a moving target — authoring a
+ * hardware topic added hardware to the skills the learner was measured on, and the units written
+ * to serve them became unsuitable for them in the same stroke. A real first-year is planned
+ * against the stage set, whatever has been authored, so that is what certification measures.
+ */
+export const diagnosticSkills = (): string[] => [...new Set(
+  foundationStageRequirements().requirements.filter(r => r.active).map(r => String(r.skillKey).toUpperCase()),
+)].sort();
 
 /** The directions an exploring learner samples in every realistic profile. */
 export const EXPLORATION_SET = ['WEB_DEVELOPMENT', 'AI_ML', 'DATA', 'CLOUD_DEVOPS'];
@@ -397,10 +411,16 @@ export function validatePlan(args: {
     verify: count(list, VERIFY_TYPES),
   }));
 
+  /** Thirds that carry practical work but no PRACTICE unit — judged once the plan's inventory is known. */
+  const drillGaps: string[] = [];
   if (codes.length === target) {
     segs.forEach(([label, list]) => {
-      if (!count(list, PRACTICAL_TYPES)) add('NO_PRACTICAL_IN_SEGMENT', label);
-      if (!count(list, ['PRACTICE'])) add('NO_PRACTICE_IN_SEGMENT', label);
+      if (!count(list, PRACTICAL_TYPES)) {
+        add('NO_PRACTICAL_IN_SEGMENT', label);
+        add('NO_PRACTICE_IN_SEGMENT', label);
+      } else if (!count(list, ['PRACTICE'])) {
+        drillGaps.push(label);
+      }
     });
     const total = count(codes, PRACTICAL_TYPES);
     const last = count(segs[2][1], PRACTICAL_TYPES);
@@ -447,6 +467,32 @@ export function validatePlan(args: {
         role: v.role, min: v.min, actual: v.actual, candidatesInRole: inRole.length,
         reason: 'every remaining unit in this role is unsuitable at a state only evidence can set',
       });
+    }
+  }
+
+  /*
+   * A THIRD WITH DEBUGGING AND PROJECTS BUT NO DRILL IS A DEFECT ONLY WHILE DRILL IS LEFT TO GIVE.
+   *
+   * The same test the floors use. PRACTICE is suitable from GUIDED to REVISION, so a learner
+   * whose measured skills are all VERIFIED can only be drilled on topics the plan itself teaches,
+   * and each of those drills follows its own teaching chain. Once every such unit is already in
+   * the plan, a final third of debugging, projects and checkpoints is the plan applying what the
+   * learner has demonstrated — not a plan that forgot to practise. A third with no practical work
+   * at all is never excused, and any usable drill left unscheduled keeps the defect.
+   */
+  if (drillGaps.length) {
+    const drill = universe.filter(u => u.unitType === 'PRACTICE' && isRelevant(u, student));
+    const usable = drill.filter(u => !chosen.has(u.unitCode) && !permanentlyUnsuitable(u, student));
+    for (const label of drillGaps) {
+      if (usable.length) {
+        add('NO_PRACTICE_IN_SEGMENT', `${label}; usable but unselected: `
+          + usable.slice(0, 5).map(u => `${u.unitCode}(${measuredStateOf(u, student)})`).join(', '));
+      } else {
+        explainedShape.push({
+          role: 'PRACTICE', min: 1, actual: 0, candidatesInRole: drill.length,
+          reason: `${label} has practical work and no drill: every PRACTICE unit this learner can take is already scheduled`,
+        });
+      }
     }
   }
 

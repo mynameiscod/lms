@@ -167,6 +167,662 @@
     "estimatedMinutes": 30
   },
   {
+    "unitCode": "T_AI_CODING_COMMON_FAULTS",
+    "title": "How Generated Code Goes Wrong",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_CODING",
+    "displayOrder": 40,
+    "skillKeys": [
+      "AI_ASSISTED_CODING"
+    ],
+    "prerequisiteSkillKeys": [
+      "PROGRAMMING_FUNDAMENTALS"
+    ],
+    "prerequisiteUnitCodes": [
+      "T_AI_CODING_TESTING_IT"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_AI_CODING_MINI_PROJECT",
+    "title": "Mini Project — built with AI, explained without it",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_CODING",
+    "displayOrder": 900,
+    "skillKeys": [
+      "AI_ASSISTED_CODING"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_AI_CODING_PRACTICE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 120
+  },
+  {
+    "unitCode": "T_AI_CODING_OWNERSHIP",
+    "title": "You Are Responsible For It",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_CODING",
+    "displayOrder": 50,
+    "skillKeys": [
+      "AI_ASSISTED_CODING"
+    ],
+    "prerequisiteSkillKeys": [
+      "PROGRAMMING_FUNDAMENTALS"
+    ],
+    "prerequisiteUnitCodes": [
+      "T_AI_CODING_COMMON_FAULTS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 40,
+    "suitableStates": [
+      "NOT_EXPOSED",
+      "FOUNDATION_REQUIRED",
+      "GUIDED",
+      "STANDARD",
+      "REVISION",
+      "VERIFIED"
+    ]
+  },
+  {
+    "unitCode": "T_AI_CODING_PRACTICE",
+    "title": "AI-Assisted Coding Practice",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_CODING",
+    "displayOrder": 60,
+    "skillKeys": [
+      "AI_ASSISTED_CODING"
+    ],
+    "prerequisiteSkillKeys": [
+      "PROGRAMMING_FUNDAMENTALS"
+    ],
+    "prerequisiteUnitCodes": [
+      "T_AI_CODING_OWNERSHIP"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 60
+  },
+  {
+    "unitCode": "T_AI_CODING_READING_IT",
+    "title": "Reading Code You Did Not Write",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_CODING",
+    "displayOrder": 20,
+    "skillKeys": [
+      "AI_ASSISTED_CODING"
+    ],
+    "prerequisiteSkillKeys": [
+      "PROGRAMMING_FUNDAMENTALS"
+    ],
+    "prerequisiteUnitCodes": [
+      "T_AI_CODING_WHAT_IT_IS_GOOD_AT"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 55
+  },
+  {
+    "unitCode": "T_AI_CODING_TESTING_IT",
+    "title": "Testing Generated Code",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_CODING",
+    "displayOrder": 30,
+    "skillKeys": [
+      "AI_ASSISTED_CODING"
+    ],
+    "prerequisiteSkillKeys": [
+      "PROGRAMMING_FUNDAMENTALS"
+    ],
+    "prerequisiteUnitCodes": [
+      "T_AI_CODING_READING_IT"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 55
+  },
+  {
+    "unitCode": "T_AI_CODING_WHAT_IT_IS_GOOD_AT",
+    "title": "Where Generated Code Helps",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_CODING",
+    "displayOrder": 10,
+    "skillKeys": [
+      "AI_ASSISTED_CODING"
+    ],
+    "prerequisiteSkillKeys": [
+      "PROGRAMMING_FUNDAMENTALS"
+    ],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_AI_LITERACY_CLEAR_INSTRUCTIONS",
+    "title": "Asking Clearly",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_LITERACY",
+    "displayOrder": 10,
+    "skillKeys": [
+      "PROMPT_ENGINEERING",
+      "AI_RESPONSIBLE_USE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_AI_LITERACY_CONTEXT",
+    "title": "Giving Context",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_LITERACY",
+    "displayOrder": 20,
+    "skillKeys": [
+      "PROMPT_ENGINEERING",
+      "AI_RESPONSIBLE_USE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_AI_LITERACY_CLEAR_INSTRUCTIONS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_AI_LITERACY_EXAMPLES",
+    "title": "Showing Examples",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_LITERACY",
+    "displayOrder": 30,
+    "skillKeys": [
+      "PROMPT_ENGINEERING",
+      "AI_RESPONSIBLE_USE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_AI_LITERACY_CONTEXT"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_AI_LITERACY_HONESTY",
+    "title": "Using AI Honestly",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_LITERACY",
+    "displayOrder": 70,
+    "skillKeys": [
+      "PROMPT_ENGINEERING",
+      "AI_RESPONSIBLE_USE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_AI_LITERACY_VERIFYING",
+      "T_AI_LITERACY_PRIVACY"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_AI_LITERACY_ITERATING",
+    "title": "Refining an Answer",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_LITERACY",
+    "displayOrder": 40,
+    "skillKeys": [
+      "PROMPT_ENGINEERING",
+      "AI_RESPONSIBLE_USE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_AI_LITERACY_EXAMPLES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_AI_LITERACY_PRACTICE",
+    "title": "AI Use Practice",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_LITERACY",
+    "displayOrder": 80,
+    "skillKeys": [
+      "PROMPT_ENGINEERING",
+      "AI_RESPONSIBLE_USE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_AI_LITERACY_HONESTY"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 55
+  },
+  {
+    "unitCode": "T_AI_LITERACY_PRIVACY",
+    "title": "What Not to Paste In",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_LITERACY",
+    "displayOrder": 60,
+    "skillKeys": [
+      "PROMPT_ENGINEERING",
+      "AI_RESPONSIBLE_USE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_AI_LITERACY_CONTEXT"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_AI_LITERACY_VERIFYING",
+    "title": "Checking What You Are Told",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_AI_LITERACY",
+    "displayOrder": 50,
+    "skillKeys": [
+      "PROMPT_ENGINEERING",
+      "AI_RESPONSIBLE_USE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_AI_LITERACY_ITERATING"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_APTITUDE_DATA_AVERAGES",
+    "title": "Averages in Data Sets",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_DATA",
+    "displayOrder": 50,
+    "skillKeys": [
+      "APTITUDE_DATA_INTERPRETATION",
+      "PATTERN_RECOGNITION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_APTITUDE_DATA_RATIOS"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_APTITUDE_DATA_CHARTS",
+    "title": "Bar, Line and Pie Charts",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_DATA",
+    "displayOrder": 20,
+    "skillKeys": [
+      "APTITUDE_DATA_INTERPRETATION",
+      "PATTERN_RECOGNITION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_APTITUDE_DATA_READING_TABLES"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_APTITUDE_DATA_PERCENTAGES",
+    "title": "Percentages and Change",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_DATA",
+    "displayOrder": 30,
+    "skillKeys": [
+      "APTITUDE_DATA_INTERPRETATION",
+      "PATTERN_RECOGNITION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_APTITUDE_DATA_READING_TABLES"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_APTITUDE_DATA_PRACTICE",
+    "title": "Data Interpretation Practice",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_DATA",
+    "displayOrder": 70,
+    "skillKeys": [
+      "APTITUDE_DATA_INTERPRETATION",
+      "PATTERN_RECOGNITION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_APTITUDE_DATA_SPEED_TECHNIQUES"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 60
+  },
+  {
+    "unitCode": "T_APTITUDE_DATA_RATIOS",
+    "title": "Ratios and Proportions",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_DATA",
+    "displayOrder": 40,
+    "skillKeys": [
+      "APTITUDE_DATA_INTERPRETATION",
+      "PATTERN_RECOGNITION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_APTITUDE_DATA_PERCENTAGES"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_APTITUDE_DATA_READING_TABLES",
+    "title": "Reading a Table",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_DATA",
+    "displayOrder": 10,
+    "skillKeys": [
+      "APTITUDE_DATA_INTERPRETATION",
+      "PATTERN_RECOGNITION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_APTITUDE_DATA_SPEED_TECHNIQUES",
+    "title": "Answering Under Time Pressure",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_DATA",
+    "displayOrder": 60,
+    "skillKeys": [
+      "APTITUDE_DATA_INTERPRETATION",
+      "PATTERN_RECOGNITION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_APTITUDE_DATA_AVERAGES",
+      "T_APTITUDE_DATA_CHARTS"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_APTITUDE_REASONING_ANALOGIES",
+    "title": "Analogies",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_REASONING",
+    "displayOrder": 30,
+    "skillKeys": [
+      "APTITUDE_REASONING_LOGIC",
+      "APTITUDE_REASONING_SERIES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_APTITUDE_REASONING_LETTER_SERIES"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_APTITUDE_REASONING_BLOOD_RELATIONS",
+    "title": "Blood Relations",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_REASONING",
+    "displayOrder": 40,
+    "skillKeys": [
+      "APTITUDE_REASONING_LOGIC",
+      "APTITUDE_REASONING_SERIES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_APTITUDE_REASONING_ANALOGIES"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_APTITUDE_REASONING_DEBUGGING",
+    "title": "Why the Obvious Answer Is Wrong",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_REASONING",
+    "displayOrder": 800,
+    "skillKeys": [
+      "APTITUDE_REASONING_LOGIC",
+      "APTITUDE_REASONING_SERIES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_APTITUDE_REASONING_DIRECTIONS",
+    "title": "Direction Sense",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_REASONING",
+    "displayOrder": 50,
+    "skillKeys": [
+      "APTITUDE_REASONING_LOGIC",
+      "APTITUDE_REASONING_SERIES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_APTITUDE_REASONING_BLOOD_RELATIONS"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_APTITUDE_REASONING_LETTER_SERIES",
+    "title": "Letter and Symbol Series",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_REASONING",
+    "displayOrder": 20,
+    "skillKeys": [
+      "APTITUDE_REASONING_LOGIC",
+      "APTITUDE_REASONING_SERIES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_APTITUDE_REASONING_NUMBER_SERIES"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_APTITUDE_REASONING_NUMBER_SERIES",
+    "title": "Number Series",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_REASONING",
+    "displayOrder": 10,
+    "skillKeys": [
+      "APTITUDE_REASONING_LOGIC",
+      "APTITUDE_REASONING_SERIES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_APTITUDE_REASONING_PRACTICE",
+    "title": "Reasoning Practice",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_REASONING",
+    "displayOrder": 80,
+    "skillKeys": [
+      "APTITUDE_REASONING_LOGIC",
+      "APTITUDE_REASONING_SERIES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_APTITUDE_REASONING_SYLLOGISMS"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 60
+  },
+  {
+    "unitCode": "T_APTITUDE_REASONING_SEATING",
+    "title": "Seating and Arrangement",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_REASONING",
+    "displayOrder": 60,
+    "skillKeys": [
+      "APTITUDE_REASONING_LOGIC",
+      "APTITUDE_REASONING_SERIES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_APTITUDE_REASONING_DIRECTIONS"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 55
+  },
+  {
+    "unitCode": "T_APTITUDE_REASONING_SYLLOGISMS",
+    "title": "Syllogisms",
+    "moduleCode": "M15_APTITUDE",
+    "topicCode": "T_APTITUDE_REASONING",
+    "displayOrder": 70,
+    "skillKeys": [
+      "APTITUDE_REASONING_LOGIC",
+      "APTITUDE_REASONING_SERIES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_APTITUDE_REASONING_SEATING"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
     "unitCode": "T_ARRAYS_BINARY_SEARCH",
     "title": "Binary Search",
     "moduleCode": "M07_DSA",
@@ -220,6 +876,26 @@
       "VERIFIED",
       "ENRICHMENT"
     ]
+  },
+  {
+    "unitCode": "T_ARRAYS_COMPLEXITY_DEBUGGING",
+    "title": "It Works, and It Times Out",
+    "moduleCode": "M07_DSA",
+    "topicCode": "T_ARRAYS",
+    "displayOrder": 810,
+    "skillKeys": [
+      "DSA_ARRAYS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_ARRAYS_COMPLEXITY"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
   },
   {
     "unitCode": "T_ARRAYS_DEBUGGING",
@@ -358,6 +1034,26 @@
     "defaultDepth": "GUIDED",
     "mandatory": true,
     "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_ARRAYS_STRING_DEBUGGING",
+    "title": "When the String Answer Is Almost Right",
+    "moduleCode": "M07_DSA",
+    "topicCode": "T_ARRAYS",
+    "displayOrder": 800,
+    "skillKeys": [
+      "DSA_STRINGS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_ARRAYS_STRING_PROBLEMS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
   },
   {
     "unitCode": "T_ARRAYS_STRING_PROBLEMS",
@@ -534,6 +1230,26 @@
     "estimatedMinutes": 45
   },
   {
+    "unitCode": "T_BOOLEAN_MINI_PROJECT",
+    "title": "Mini Project — From a Rule to a Circuit",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_BOOLEAN",
+    "displayOrder": 900,
+    "skillKeys": [
+      "BOOLEAN_ALGEBRA"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_BOOLEAN_PRACTICE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 90
+  },
+  {
     "unitCode": "T_BOOLEAN_PRACTICE",
     "title": "Boolean Practice",
     "moduleCode": "M10_MATHS",
@@ -598,6 +1314,378 @@
     "defaultDepth": "STANDARD",
     "mandatory": true,
     "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_C_BASICS_ARRAYS",
+    "title": "Arrays in C",
+    "moduleCode": "M06_C_PROGRAMMING",
+    "topicCode": "T_C_BASICS",
+    "displayOrder": 70,
+    "skillKeys": [
+      "C_BASICS",
+      "C_CONTROL_FLOW"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_C_BASICS_FUNCTIONS"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_C_BASICS_COMPILE_AND_RUN",
+    "title": "Compiling and Running",
+    "moduleCode": "M06_C_PROGRAMMING",
+    "topicCode": "T_C_BASICS",
+    "displayOrder": 20,
+    "skillKeys": [
+      "C_BASICS",
+      "C_CONTROL_FLOW"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_C_BASICS_WHY_C"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_C_BASICS_CONTROL_FLOW",
+    "title": "Conditions and Loops in C",
+    "moduleCode": "M06_C_PROGRAMMING",
+    "topicCode": "T_C_BASICS",
+    "displayOrder": 50,
+    "skillKeys": [
+      "C_BASICS",
+      "C_CONTROL_FLOW"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_C_BASICS_IO"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_C_BASICS_DEBUGGING",
+    "title": "Debugging C",
+    "moduleCode": "M06_C_PROGRAMMING",
+    "topicCode": "T_C_BASICS",
+    "displayOrder": 90,
+    "skillKeys": [
+      "C_BASICS",
+      "C_CONTROL_FLOW"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_C_BASICS_POINTERS"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 55
+  },
+  {
+    "unitCode": "T_C_BASICS_FUNCTIONS",
+    "title": "Functions and Prototypes",
+    "moduleCode": "M06_C_PROGRAMMING",
+    "topicCode": "T_C_BASICS",
+    "displayOrder": 60,
+    "skillKeys": [
+      "C_BASICS",
+      "C_CONTROL_FLOW"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_C_BASICS_CONTROL_FLOW"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_C_BASICS_IO",
+    "title": "printf and scanf",
+    "moduleCode": "M06_C_PROGRAMMING",
+    "topicCode": "T_C_BASICS",
+    "displayOrder": 40,
+    "skillKeys": [
+      "C_BASICS",
+      "C_CONTROL_FLOW"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_C_BASICS_TYPES_AND_VARIABLES"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_C_BASICS_MINI_PROJECT",
+    "title": "Mini Project — a C program end to end",
+    "moduleCode": "M06_C_PROGRAMMING",
+    "topicCode": "T_C_BASICS",
+    "displayOrder": 900,
+    "skillKeys": [
+      "C_BASICS",
+      "C_CONTROL_FLOW"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_C_BASICS_PRACTICE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "STANDARD",
+    "mandatory": false,
+    "estimatedMinutes": 120
+  },
+  {
+    "unitCode": "T_C_BASICS_POINTERS",
+    "title": "Pointers",
+    "moduleCode": "M06_C_PROGRAMMING",
+    "topicCode": "T_C_BASICS",
+    "displayOrder": 80,
+    "skillKeys": [
+      "C_BASICS",
+      "C_CONTROL_FLOW"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_C_BASICS_ARRAYS"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 60
+  },
+  {
+    "unitCode": "T_C_BASICS_PRACTICE",
+    "title": "C Practice",
+    "moduleCode": "M06_C_PROGRAMMING",
+    "topicCode": "T_C_BASICS",
+    "displayOrder": 100,
+    "skillKeys": [
+      "C_BASICS",
+      "C_CONTROL_FLOW"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_C_BASICS_DEBUGGING"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 60
+  },
+  {
+    "unitCode": "T_C_BASICS_STRING_DEBUGGING",
+    "title": "C Strings That Misbehave",
+    "moduleCode": "M06_C_PROGRAMMING",
+    "topicCode": "T_C_BASICS",
+    "displayOrder": 800,
+    "skillKeys": [
+      "C_BASICS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_C_BASICS_ARRAYS"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
+    "mandatory": false,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_C_BASICS_TYPES_AND_VARIABLES",
+    "title": "Types and Declarations",
+    "moduleCode": "M06_C_PROGRAMMING",
+    "topicCode": "T_C_BASICS",
+    "displayOrder": 30,
+    "skillKeys": [
+      "C_BASICS",
+      "C_CONTROL_FLOW"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_C_BASICS_COMPILE_AND_RUN"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_C_BASICS_WHY_C",
+    "title": "Why C Is Still Taught",
+    "moduleCode": "M06_C_PROGRAMMING",
+    "topicCode": "T_C_BASICS",
+    "displayOrder": 10,
+    "skillKeys": [
+      "C_BASICS",
+      "C_CONTROL_FLOW"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 30
+  },
+  {
+    "unitCode": "T_CAPSTONE_BUILDING",
+    "title": "Building It",
+    "moduleCode": "M14_CAPSTONE",
+    "topicCode": "T_CAPSTONE",
+    "displayOrder": 30,
+    "skillKeys": [
+      "PROBLEM_SOLVING",
+      "DEBUGGING",
+      "SELF_LEARNING"
+    ],
+    "prerequisiteSkillKeys": [
+      "PROGRAMMING_FUNDAMENTALS"
+    ],
+    "prerequisiteUnitCodes": [
+      "T_CAPSTONE_PLANNING"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 180
+  },
+  {
+    "unitCode": "T_CAPSTONE_CHOOSING_A_PROJECT",
+    "title": "Choosing Something Worth Building",
+    "moduleCode": "M14_CAPSTONE",
+    "topicCode": "T_CAPSTONE",
+    "displayOrder": 10,
+    "skillKeys": [
+      "PROBLEM_SOLVING",
+      "DEBUGGING",
+      "SELF_LEARNING"
+    ],
+    "prerequisiteSkillKeys": [
+      "PROGRAMMING_FUNDAMENTALS"
+    ],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50,
+    "suitableStates": [
+      "NOT_EXPOSED",
+      "FOUNDATION_REQUIRED",
+      "GUIDED",
+      "STANDARD",
+      "REVISION",
+      "VERIFIED",
+      "ENRICHMENT"
+    ]
+  },
+  {
+    "unitCode": "T_CAPSTONE_DEBUGGING",
+    "title": "Getting It Working",
+    "moduleCode": "M14_CAPSTONE",
+    "topicCode": "T_CAPSTONE",
+    "displayOrder": 40,
+    "skillKeys": [
+      "PROBLEM_SOLVING",
+      "DEBUGGING",
+      "SELF_LEARNING"
+    ],
+    "prerequisiteSkillKeys": [
+      "PROGRAMMING_FUNDAMENTALS"
+    ],
+    "prerequisiteUnitCodes": [
+      "T_CAPSTONE_BUILDING"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 90
+  },
+  {
+    "unitCode": "T_CAPSTONE_PLANNING",
+    "title": "Planning Before Building",
+    "moduleCode": "M14_CAPSTONE",
+    "topicCode": "T_CAPSTONE",
+    "displayOrder": 20,
+    "skillKeys": [
+      "PROBLEM_SOLVING",
+      "DEBUGGING",
+      "SELF_LEARNING"
+    ],
+    "prerequisiteSkillKeys": [
+      "PROGRAMMING_FUNDAMENTALS"
+    ],
+    "prerequisiteUnitCodes": [
+      "T_CAPSTONE_CHOOSING_A_PROJECT"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 55
+  },
+  {
+    "unitCode": "T_CAPSTONE_READING_SOMEBODY_ELSES",
+    "title": "A Stranger Bug, and Nobody to Ask",
+    "moduleCode": "M14_CAPSTONE",
+    "topicCode": "T_CAPSTONE",
+    "displayOrder": 800,
+    "skillKeys": [
+      "PROBLEM_SOLVING",
+      "DEBUGGING",
+      "SELF_LEARNING"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 60
   },
   {
     "unitCode": "T_CAREER_MAP_CHOOSING",
@@ -1182,6 +2270,456 @@
     "estimatedMinutes": 35
   },
   {
+    "unitCode": "T_DECOMPOSITION_ABSTRACTION",
+    "title": "Ignoring What Does Not Matter",
+    "moduleCode": "M02_COMPUTATIONAL_THINKING",
+    "topicCode": "T_DECOMPOSITION",
+    "displayOrder": 40,
+    "skillKeys": [
+      "PROBLEM_SOLVING"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_DECOMPOSITION_PATTERNS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_DECOMPOSITION_ALGORITHM_IDEA",
+    "title": "What an Algorithm Is",
+    "moduleCode": "M02_COMPUTATIONAL_THINKING",
+    "topicCode": "T_DECOMPOSITION",
+    "displayOrder": 50,
+    "skillKeys": [
+      "PROBLEM_SOLVING"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_DECOMPOSITION_ABSTRACTION"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_DECOMPOSITION_BREAKING_DOWN",
+    "title": "Breaking a Problem Into Parts",
+    "moduleCode": "M02_COMPUTATIONAL_THINKING",
+    "topicCode": "T_DECOMPOSITION",
+    "displayOrder": 20,
+    "skillKeys": [
+      "PROBLEM_SOLVING"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_DECOMPOSITION_WHAT_IS_A_PROBLEM"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_DECOMPOSITION_EDGE_CASES",
+    "title": "Thinking About What Could Go Wrong",
+    "moduleCode": "M02_COMPUTATIONAL_THINKING",
+    "topicCode": "T_DECOMPOSITION",
+    "displayOrder": 60,
+    "skillKeys": [
+      "PROBLEM_SOLVING"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_DECOMPOSITION_ALGORITHM_IDEA"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45,
+    "suitableStates": [
+      "NOT_EXPOSED",
+      "FOUNDATION_REQUIRED",
+      "GUIDED",
+      "STANDARD",
+      "REVISION",
+      "VERIFIED"
+    ]
+  },
+  {
+    "unitCode": "T_DECOMPOSITION_MINI_PROJECT",
+    "title": "Mini Project — Plan It Before You Build It",
+    "moduleCode": "M02_COMPUTATIONAL_THINKING",
+    "topicCode": "T_DECOMPOSITION",
+    "displayOrder": 900,
+    "skillKeys": [
+      "PROBLEM_SOLVING"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_DECOMPOSITION_PRACTICE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 90
+  },
+  {
+    "unitCode": "T_DECOMPOSITION_PATTERNS",
+    "title": "Noticing What Repeats",
+    "moduleCode": "M02_COMPUTATIONAL_THINKING",
+    "topicCode": "T_DECOMPOSITION",
+    "displayOrder": 30,
+    "skillKeys": [
+      "PROBLEM_SOLVING"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_DECOMPOSITION_BREAKING_DOWN"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_DECOMPOSITION_PRACTICE",
+    "title": "Problem Solving Practice",
+    "moduleCode": "M02_COMPUTATIONAL_THINKING",
+    "topicCode": "T_DECOMPOSITION",
+    "displayOrder": 70,
+    "skillKeys": [
+      "PROBLEM_SOLVING"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_DECOMPOSITION_EDGE_CASES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 60
+  },
+  {
+    "unitCode": "T_DECOMPOSITION_WHAT_IS_A_PROBLEM",
+    "title": "Understanding the Problem First",
+    "moduleCode": "M02_COMPUTATIONAL_THINKING",
+    "topicCode": "T_DECOMPOSITION",
+    "displayOrder": 10,
+    "skillKeys": [
+      "PROBLEM_SOLVING"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 35
+  },
+  {
+    "unitCode": "T_EDITOR_CHOOSING_EDITOR",
+    "title": "Setting Up an Editor",
+    "moduleCode": "M04_DEVELOPER_TOOLS",
+    "topicCode": "T_EDITOR",
+    "displayOrder": 10,
+    "skillKeys": [
+      "IDE_PROFICIENCY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 30
+  },
+  {
+    "unitCode": "T_EDITOR_NAVIGATION",
+    "title": "Moving Around a Codebase",
+    "moduleCode": "M04_DEVELOPER_TOOLS",
+    "topicCode": "T_EDITOR",
+    "displayOrder": 20,
+    "skillKeys": [
+      "IDE_PROFICIENCY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_EDITOR_CHOOSING_EDITOR"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_EDITOR_RUNNING_AND_DEBUGGING",
+    "title": "Running and Stepping Through Code",
+    "moduleCode": "M04_DEVELOPER_TOOLS",
+    "topicCode": "T_EDITOR",
+    "displayOrder": 40,
+    "skillKeys": [
+      "IDE_PROFICIENCY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_EDITOR_SEARCH"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 55
+  },
+  {
+    "unitCode": "T_EDITOR_SEARCH",
+    "title": "Finding Things",
+    "moduleCode": "M04_DEVELOPER_TOOLS",
+    "topicCode": "T_EDITOR",
+    "displayOrder": 30,
+    "skillKeys": [
+      "IDE_PROFICIENCY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_EDITOR_NAVIGATION"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 35
+  },
+  {
+    "unitCode": "T_EDITOR_WORKSPACE_PROJECT",
+    "title": "Project — A Workspace Anyone Can Open",
+    "moduleCode": "M04_DEVELOPER_TOOLS",
+    "topicCode": "T_EDITOR",
+    "displayOrder": 900,
+    "skillKeys": [
+      "IDE_PROFICIENCY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_EDITOR_RUNNING_AND_DEBUGGING"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 90
+  },
+  {
+    "unitCode": "T_FILES_DEBUGGING",
+    "title": "When the Path Is Wrong",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_FILES",
+    "displayOrder": 800,
+    "skillKeys": [
+      "FILE_SYSTEMS_PERMISSIONS",
+      "SHELL_COMMANDS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_FILES_FILE_OPERATIONS",
+    "title": "Creating, Copying, Moving, Deleting",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_FILES",
+    "displayOrder": 40,
+    "skillKeys": [
+      "FILE_SYSTEMS_PERMISSIONS",
+      "SHELL_COMMANDS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_FILES_NAVIGATION"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_FILES_FILESYSTEM_SHAPE",
+    "title": "How Files Are Organised",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_FILES",
+    "displayOrder": 10,
+    "skillKeys": [
+      "FILE_SYSTEMS_PERMISSIONS",
+      "SHELL_COMMANDS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 35
+  },
+  {
+    "unitCode": "T_FILES_HIDDEN_AND_CONFIG",
+    "title": "Hidden Files and Configuration",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_FILES",
+    "displayOrder": 70,
+    "skillKeys": [
+      "FILE_SYSTEMS_PERMISSIONS",
+      "SHELL_COMMANDS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_FILES_VIEWING_FILES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 30
+  },
+  {
+    "unitCode": "T_FILES_NAVIGATION",
+    "title": "Moving Around from the Command Line",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_FILES",
+    "displayOrder": 30,
+    "skillKeys": [
+      "FILE_SYSTEMS_PERMISSIONS",
+      "SHELL_COMMANDS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_FILES_PATHS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_FILES_PATHS",
+    "title": "Absolute and Relative Paths",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_FILES",
+    "displayOrder": 20,
+    "skillKeys": [
+      "FILE_SYSTEMS_PERMISSIONS",
+      "SHELL_COMMANDS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_FILES_FILESYSTEM_SHAPE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_FILES_PERMISSIONS",
+    "title": "Permissions and Ownership",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_FILES",
+    "displayOrder": 60,
+    "skillKeys": [
+      "FILE_SYSTEMS_PERMISSIONS",
+      "SHELL_COMMANDS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_FILES_FILE_OPERATIONS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_FILES_PRACTICE",
+    "title": "Command Line Practice",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_FILES",
+    "displayOrder": 80,
+    "skillKeys": [
+      "FILE_SYSTEMS_PERMISSIONS",
+      "SHELL_COMMANDS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_FILES_PERMISSIONS",
+      "T_FILES_HIDDEN_AND_CONFIG"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 60
+  },
+  {
+    "unitCode": "T_FILES_VIEWING_FILES",
+    "title": "Reading a File Without Opening It",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_FILES",
+    "displayOrder": 50,
+    "skillKeys": [
+      "FILE_SYSTEMS_PERMISSIONS",
+      "SHELL_COMMANDS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_FILES_FILE_OPERATIONS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 35
+  },
+  {
     "unitCode": "T_FORMS_ERRORS",
     "title": "Telling Somebody What Went Wrong",
     "moduleCode": "M05_WEB_FUNDAMENTALS",
@@ -1506,6 +3044,26 @@
     "estimatedMinutes": 60
   },
   {
+    "unitCode": "T_FUNCTIONS_REFACTORING",
+    "title": "Project — Untangle a Working Script",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_FUNCTIONS",
+    "displayOrder": 900,
+    "skillKeys": [
+      "FUNCTIONS_BASICS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_FUNCTIONS_PRACTICE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 120
+  },
+  {
     "unitCode": "T_FUNCTIONS_RETURN",
     "title": "Returning a Value",
     "moduleCode": "M03_PROGRAMMING",
@@ -1546,6 +3104,26 @@
     "estimatedMinutes": 50
   },
   {
+    "unitCode": "T_FUNCTIONS_TESTING_PROJECT",
+    "title": "Project — Prove Your Functions Work",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_FUNCTIONS",
+    "displayOrder": 910,
+    "skillKeys": [
+      "FUNCTIONS_BASICS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_FUNCTIONS_PRACTICE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 90
+  },
+  {
     "unitCode": "T_FUNCTIONS_WHY_FUNCTIONS",
     "title": "Why Functions Exist",
     "moduleCode": "M03_PROGRAMMING",
@@ -1562,6 +3140,132 @@
     "defaultDepth": "FOUNDATION",
     "mandatory": true,
     "estimatedMinutes": 35
+  },
+  {
+    "unitCode": "T_GENAI_HALLUCINATION",
+    "title": "Confident and Wrong",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_GENAI",
+    "displayOrder": 40,
+    "skillKeys": [
+      "GENERATIVE_AI_LLM"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_GENAI_WHY_IT_VARIES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 50,
+    "suitableStates": [
+      "NOT_EXPOSED",
+      "FOUNDATION_REQUIRED",
+      "GUIDED",
+      "STANDARD",
+      "REVISION",
+      "VERIFIED"
+    ]
+  },
+  {
+    "unitCode": "T_GENAI_LIMITS",
+    "title": "What These Models Cannot Do",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_GENAI",
+    "displayOrder": 50,
+    "skillKeys": [
+      "GENERATIVE_AI_LLM"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_GENAI_HALLUCINATION"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_GENAI_PRACTICE",
+    "title": "Generative AI Practice",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_GENAI",
+    "displayOrder": 60,
+    "skillKeys": [
+      "GENERATIVE_AI_LLM"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_GENAI_LIMITS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_GENAI_TOKENS",
+    "title": "Tokens and Prediction",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_GENAI",
+    "displayOrder": 20,
+    "skillKeys": [
+      "GENERATIVE_AI_LLM"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_GENAI_WHAT_IS_GENAI"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_GENAI_WHAT_IS_GENAI",
+    "title": "What Generative AI Is",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_GENAI",
+    "displayOrder": 10,
+    "skillKeys": [
+      "GENERATIVE_AI_LLM"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 35
+  },
+  {
+    "unitCode": "T_GENAI_WHY_IT_VARIES",
+    "title": "Why the Same Question Gives Two Answers",
+    "moduleCode": "M11_AI_LITERACY",
+    "topicCode": "T_GENAI",
+    "displayOrder": 30,
+    "skillKeys": [
+      "GENERATIVE_AI_LLM"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_GENAI_TOKENS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": true,
+    "estimatedMinutes": 45
   },
   {
     "unitCode": "T_GIT_BRANCHES",
@@ -1627,6 +3331,26 @@
     "estimatedMinutes": 50
   },
   {
+    "unitCode": "T_GIT_HISTORY_DEBUGGING",
+    "title": "Which Commit Broke It?",
+    "moduleCode": "M04_DEVELOPER_TOOLS",
+    "topicCode": "T_GIT",
+    "displayOrder": 800,
+    "skillKeys": [
+      "GIT_FUNDAMENTALS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_GIT_UNDOING"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
     "unitCode": "T_GIT_MERGING",
     "title": "Merging",
     "moduleCode": "M04_DEVELOPER_TOOLS",
@@ -1646,6 +3370,27 @@
     "defaultDepth": "STANDARD",
     "mandatory": true,
     "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_GIT_MINI_PROJECT",
+    "title": "Mini Project — a repository somebody else can follow",
+    "moduleCode": "M04_DEVELOPER_TOOLS",
+    "topicCode": "T_GIT",
+    "displayOrder": 900,
+    "skillKeys": [
+      "GIT_FUNDAMENTALS",
+      "GIT_BRANCHING"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_GIT_PRACTICE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 120
   },
   {
     "unitCode": "T_GIT_PRACTICE",
@@ -1668,6 +3413,26 @@
     "defaultDepth": "STANDARD",
     "mandatory": true,
     "estimatedMinutes": 60
+  },
+  {
+    "unitCode": "T_GIT_REMOTE_DEBUGGING",
+    "title": "Push Rejected, and Other Remote Trouble",
+    "moduleCode": "M04_DEVELOPER_TOOLS",
+    "topicCode": "T_GIT",
+    "displayOrder": 810,
+    "skillKeys": [
+      "GIT_BRANCHING"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_GIT_REMOTES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
   },
   {
     "unitCode": "T_GIT_REMOTES",
@@ -1769,6 +3534,192 @@
     "applicableDirections": [],
     "unitType": "CONCEPT",
     "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 30
+  },
+  {
+    "unitCode": "T_HARDWARE_BINARY_REPRESENTATION",
+    "title": "How a Machine Stores Anything At All",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_HARDWARE",
+    "displayOrder": 60,
+    "skillKeys": [
+      "HOW_COMPUTERS_WORK",
+      "COMPUTER_ARCHITECTURE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_HARDWARE_WHAT_IS_A_COMPUTER"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_HARDWARE_COMPILE_VS_RUN",
+    "title": "From Source Code to a Running Program",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_HARDWARE",
+    "displayOrder": 70,
+    "skillKeys": [
+      "HOW_COMPUTERS_WORK",
+      "COMPUTER_ARCHITECTURE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_HARDWARE_OS_ROLE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_HARDWARE_CPU",
+    "title": "The CPU and the Fetch-Execute Cycle",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_HARDWARE",
+    "displayOrder": 20,
+    "skillKeys": [
+      "HOW_COMPUTERS_WORK",
+      "COMPUTER_ARCHITECTURE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_HARDWARE_WHAT_IS_A_COMPUTER"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_HARDWARE_DEBUGGING",
+    "title": "Why Is It Slow?",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_HARDWARE",
+    "displayOrder": 800,
+    "skillKeys": [
+      "HOW_COMPUTERS_WORK",
+      "COMPUTER_ARCHITECTURE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_HARDWARE_MEMORY_HIERARCHY",
+    "title": "Memory, and Why There Are Several Kinds",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_HARDWARE",
+    "displayOrder": 30,
+    "skillKeys": [
+      "HOW_COMPUTERS_WORK",
+      "COMPUTER_ARCHITECTURE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_HARDWARE_CPU"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_HARDWARE_OS_ROLE",
+    "title": "What the Operating System Is For",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_HARDWARE",
+    "displayOrder": 50,
+    "skillKeys": [
+      "HOW_COMPUTERS_WORK",
+      "COMPUTER_ARCHITECTURE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_HARDWARE_STORAGE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 35
+  },
+  {
+    "unitCode": "T_HARDWARE_PRACTICE",
+    "title": "Hardware Practice",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_HARDWARE",
+    "displayOrder": 80,
+    "skillKeys": [
+      "HOW_COMPUTERS_WORK",
+      "COMPUTER_ARCHITECTURE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_HARDWARE_COMPILE_VS_RUN",
+      "T_HARDWARE_BINARY_REPRESENTATION"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_HARDWARE_STORAGE",
+    "title": "Storage and Persistence",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_HARDWARE",
+    "displayOrder": 40,
+    "skillKeys": [
+      "HOW_COMPUTERS_WORK",
+      "COMPUTER_ARCHITECTURE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_HARDWARE_MEMORY_HIERARCHY"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 35
+  },
+  {
+    "unitCode": "T_HARDWARE_WHAT_IS_A_COMPUTER",
+    "title": "What a Computer Actually Is",
+    "moduleCode": "M01_CS_FUNDAMENTALS",
+    "topicCode": "T_HARDWARE",
+    "displayOrder": 10,
+    "skillKeys": [
+      "HOW_COMPUTERS_WORK",
+      "COMPUTER_ARCHITECTURE"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
     "mandatory": true,
     "estimatedMinutes": 30
   },
@@ -2034,6 +3985,152 @@
     "defaultDepth": "STANDARD",
     "mandatory": false,
     "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_HTTP_BROWSER_TOOLS",
+    "title": "Watching Traffic in the Browser",
+    "moduleCode": "M05_WEB_FUNDAMENTALS",
+    "topicCode": "T_HTTP",
+    "displayOrder": 60,
+    "skillKeys": [
+      "HTTP",
+      "BROWSER_FUNDAMENTALS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_HTTP_STATUS_CODES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_HTTP_CLIENT_SERVER",
+    "title": "Clients and Servers",
+    "moduleCode": "M05_WEB_FUNDAMENTALS",
+    "topicCode": "T_HTTP",
+    "displayOrder": 10,
+    "skillKeys": [
+      "HTTP",
+      "BROWSER_FUNDAMENTALS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_HTTP_METHODS",
+    "title": "GET, POST and the Others",
+    "moduleCode": "M05_WEB_FUNDAMENTALS",
+    "topicCode": "T_HTTP",
+    "displayOrder": 30,
+    "skillKeys": [
+      "HTTP",
+      "BROWSER_FUNDAMENTALS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_HTTP_REQUEST_RESPONSE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_HTTP_PRACTICE",
+    "title": "Web Protocol Practice",
+    "moduleCode": "M05_WEB_FUNDAMENTALS",
+    "topicCode": "T_HTTP",
+    "displayOrder": 70,
+    "skillKeys": [
+      "HTTP",
+      "BROWSER_FUNDAMENTALS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_HTTP_BROWSER_TOOLS",
+      "T_HTTP_URLS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_HTTP_REQUEST_RESPONSE",
+    "title": "Requests and Responses",
+    "moduleCode": "M05_WEB_FUNDAMENTALS",
+    "topicCode": "T_HTTP",
+    "displayOrder": 20,
+    "skillKeys": [
+      "HTTP",
+      "BROWSER_FUNDAMENTALS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_HTTP_CLIENT_SERVER"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_HTTP_STATUS_CODES",
+    "title": "Status Codes",
+    "moduleCode": "M05_WEB_FUNDAMENTALS",
+    "topicCode": "T_HTTP",
+    "displayOrder": 40,
+    "skillKeys": [
+      "HTTP",
+      "BROWSER_FUNDAMENTALS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_HTTP_METHODS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_HTTP_URLS",
+    "title": "What a URL Is Made Of",
+    "moduleCode": "M05_WEB_FUNDAMENTALS",
+    "topicCode": "T_HTTP",
+    "displayOrder": 50,
+    "skillKeys": [
+      "HTTP",
+      "BROWSER_FUNDAMENTALS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_HTTP_CLIENT_SERVER"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 35
   },
   {
     "unitCode": "T_JS_DOM_ARRAYS_AND_OBJECTS",
@@ -2335,6 +4432,312 @@
     "estimatedMinutes": 45
   },
   {
+    "unitCode": "T_LINUX_ENVIRONMENT",
+    "title": "Environment Variables and PATH",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_LINUX",
+    "displayOrder": 50,
+    "skillKeys": [
+      "OPERATING_SYSTEMS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_LINUX_PACKAGES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_LINUX_LOGS",
+    "title": "Where a Machine Writes Down What Happened",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_LINUX",
+    "displayOrder": 60,
+    "skillKeys": [
+      "OPERATING_SYSTEMS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_LINUX_ENVIRONMENT"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_LINUX_PACKAGES",
+    "title": "Installing Software",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_LINUX",
+    "displayOrder": 40,
+    "skillKeys": [
+      "OPERATING_SYSTEMS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_LINUX_USERS_AND_GROUPS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_LINUX_PRACTICE",
+    "title": "Operating System Practice",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_LINUX",
+    "displayOrder": 70,
+    "skillKeys": [
+      "OPERATING_SYSTEMS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_LINUX_LOGS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 60
+  },
+  {
+    "unitCode": "T_LINUX_USERS_AND_GROUPS",
+    "title": "Users, Groups and root",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_LINUX",
+    "displayOrder": 30,
+    "skillKeys": [
+      "OPERATING_SYSTEMS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_LINUX_WHAT_AN_OS_DOES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_LINUX_WHAT_AN_OS_DOES",
+    "title": "What an Operating System Does",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_LINUX",
+    "displayOrder": 10,
+    "skillKeys": [
+      "OPERATING_SYSTEMS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_LOGIC_MATH_CONNECTIVES",
+    "title": "Logical Connectives: AND, OR, NOT",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_LOGIC_MATH",
+    "displayOrder": 20,
+    "skillKeys": [
+      "PROPOSITIONAL_LOGIC",
+      "SET_THEORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_LOGIC_MATH_PROPOSITIONS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_LOGIC_MATH_EQUIVALENCE",
+    "title": "Equivalence and De Morgan",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_LOGIC_MATH",
+    "displayOrder": 40,
+    "skillKeys": [
+      "PROPOSITIONAL_LOGIC",
+      "SET_THEORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_LOGIC_MATH_IMPLICATION"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_LOGIC_MATH_IMPLICATION",
+    "title": "If-Then",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_LOGIC_MATH",
+    "displayOrder": 30,
+    "skillKeys": [
+      "PROPOSITIONAL_LOGIC",
+      "SET_THEORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_LOGIC_MATH_CONNECTIVES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_LOGIC_MATH_MINI_PROJECT",
+    "title": "Mini Project — model a real problem in logic and sets",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_LOGIC_MATH",
+    "displayOrder": 900,
+    "skillKeys": [
+      "PROPOSITIONAL_LOGIC",
+      "SET_THEORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_LOGIC_MATH_PRACTICE"
+    ],
+    "category": "ACADEMIC",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 120
+  },
+  {
+    "unitCode": "T_LOGIC_MATH_PRACTICE",
+    "title": "Logic and Sets Practice",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_LOGIC_MATH",
+    "displayOrder": 80,
+    "skillKeys": [
+      "PROPOSITIONAL_LOGIC",
+      "SET_THEORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_LOGIC_MATH_EQUIVALENCE",
+      "T_LOGIC_MATH_SETS_IN_CODE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 55
+  },
+  {
+    "unitCode": "T_LOGIC_MATH_PROPOSITIONS",
+    "title": "Propositions",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_LOGIC_MATH",
+    "displayOrder": 10,
+    "skillKeys": [
+      "PROPOSITIONAL_LOGIC",
+      "SET_THEORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 35
+  },
+  {
+    "unitCode": "T_LOGIC_MATH_SET_OPERATIONS",
+    "title": "Union, Intersection, Difference",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_LOGIC_MATH",
+    "displayOrder": 60,
+    "skillKeys": [
+      "PROPOSITIONAL_LOGIC",
+      "SET_THEORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_LOGIC_MATH_SETS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_LOGIC_MATH_SETS",
+    "title": "Sets",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_LOGIC_MATH",
+    "displayOrder": 50,
+    "skillKeys": [
+      "PROPOSITIONAL_LOGIC",
+      "SET_THEORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_LOGIC_MATH_PROPOSITIONS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_LOGIC_MATH_SETS_IN_CODE",
+    "title": "Sets in a Program",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_LOGIC_MATH",
+    "displayOrder": 70,
+    "skillKeys": [
+      "PROPOSITIONAL_LOGIC",
+      "SET_THEORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_LOGIC_MATH_SET_OPERATIONS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
     "unitCode": "T_LOOPS_ACCUMULATORS",
     "title": "Building a Result as You Go",
     "moduleCode": "M03_PROGRAMMING",
@@ -2351,6 +4754,26 @@
     "applicableDirections": [],
     "unitType": "CONCEPT",
     "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_LOOPS_ALMOST_RIGHT_DEBUGGING",
+    "title": "Loops That Are Almost Right",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_LOOPS",
+    "displayOrder": 800,
+    "skillKeys": [
+      "LOOPS_BASICS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_LOOPS_ACCUMULATORS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
     "mandatory": true,
     "estimatedMinutes": 45
   },
@@ -2512,6 +4935,142 @@
     "defaultDepth": "FOUNDATION",
     "mandatory": true,
     "estimatedMinutes": 30
+  },
+  {
+    "unitCode": "T_MATRICES_ADDITION",
+    "title": "Adding and Scaling",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_MATRICES",
+    "displayOrder": 20,
+    "skillKeys": [
+      "MATRICES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_MATRICES_WHAT_IS_A_MATRIX"
+    ],
+    "category": "DIRECTION",
+    "applicableDirections": [
+      "AI_ML",
+      "DATA"
+    ],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_MATRICES_IN_CODE",
+    "title": "Matrices as Nested Arrays",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_MATRICES",
+    "displayOrder": 50,
+    "skillKeys": [
+      "MATRICES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_MATRICES_TRANSPOSE_IDENTITY"
+    ],
+    "category": "DIRECTION",
+    "applicableDirections": [
+      "AI_ML",
+      "DATA"
+    ],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_MATRICES_MULTIPLICATION",
+    "title": "Matrix Multiplication",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_MATRICES",
+    "displayOrder": 30,
+    "skillKeys": [
+      "MATRICES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_MATRICES_ADDITION"
+    ],
+    "category": "DIRECTION",
+    "applicableDirections": [
+      "AI_ML",
+      "DATA"
+    ],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 60
+  },
+  {
+    "unitCode": "T_MATRICES_PRACTICE",
+    "title": "Matrix Practice",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_MATRICES",
+    "displayOrder": 60,
+    "skillKeys": [
+      "MATRICES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_MATRICES_IN_CODE"
+    ],
+    "category": "DIRECTION",
+    "applicableDirections": [
+      "AI_ML",
+      "DATA"
+    ],
+    "unitType": "PRACTICE",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_MATRICES_TRANSPOSE_IDENTITY",
+    "title": "Transpose and Identity",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_MATRICES",
+    "displayOrder": 40,
+    "skillKeys": [
+      "MATRICES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_MATRICES_MULTIPLICATION"
+    ],
+    "category": "DIRECTION",
+    "applicableDirections": [
+      "AI_ML",
+      "DATA"
+    ],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_MATRICES_WHAT_IS_A_MATRIX",
+    "title": "What a Matrix Is",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_MATRICES",
+    "displayOrder": 10,
+    "skillKeys": [
+      "MATRICES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "DIRECTION",
+    "applicableDirections": [
+      "AI_ML",
+      "DATA"
+    ],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 40
   },
   {
     "unitCode": "T_MILESTONE_EARLY_CHECKPOINT",
@@ -3142,6 +5701,401 @@
     "estimatedMinutes": 40
   },
   {
+    "unitCode": "T_NUMBER_SYSTEMS_BINARY_DECIMAL",
+    "title": "Converting Binary and Decimal",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_NUMBER_SYSTEMS",
+    "displayOrder": 20,
+    "skillKeys": [
+      "NUMBER_SYSTEMS_BINARY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_NUMBER_SYSTEMS_WHY_BINARY"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_NUMBER_SYSTEMS_BITS_AND_BYTES",
+    "title": "Bits, Bytes and Sizes",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_NUMBER_SYSTEMS",
+    "displayOrder": 40,
+    "skillKeys": [
+      "NUMBER_SYSTEMS_BINARY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_NUMBER_SYSTEMS_BINARY_DECIMAL"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_NUMBER_SYSTEMS_DEBUGGING",
+    "title": "The Number That Came Out Wrong",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_NUMBER_SYSTEMS",
+    "displayOrder": 800,
+    "skillKeys": [
+      "NUMBER_SYSTEMS_BINARY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_NUMBER_SYSTEMS_NEGATIVE_AND_OVERFLOW"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_NUMBER_SYSTEMS_HEX",
+    "title": "Hexadecimal",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_NUMBER_SYSTEMS",
+    "displayOrder": 30,
+    "skillKeys": [
+      "NUMBER_SYSTEMS_BINARY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_NUMBER_SYSTEMS_BINARY_DECIMAL"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_NUMBER_SYSTEMS_NEGATIVE_AND_OVERFLOW",
+    "title": "Negative Numbers and Overflow",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_NUMBER_SYSTEMS",
+    "displayOrder": 50,
+    "skillKeys": [
+      "NUMBER_SYSTEMS_BINARY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_NUMBER_SYSTEMS_BITS_AND_BYTES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_NUMBER_SYSTEMS_PRACTICE",
+    "title": "Number Systems Practice",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_NUMBER_SYSTEMS",
+    "displayOrder": 60,
+    "skillKeys": [
+      "NUMBER_SYSTEMS_BINARY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_NUMBER_SYSTEMS_HEX",
+      "T_NUMBER_SYSTEMS_NEGATIVE_AND_OVERFLOW"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_NUMBER_SYSTEMS_WHY_BINARY",
+    "title": "Why Machines Count in Twos",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_NUMBER_SYSTEMS",
+    "displayOrder": 10,
+    "skillKeys": [
+      "NUMBER_SYSTEMS_BINARY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 35
+  },
+  {
+    "unitCode": "T_OS_MEMORY_ALLOCATION",
+    "title": "Allocating and Releasing",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_OS_MEMORY",
+    "displayOrder": 30,
+    "skillKeys": [
+      "OS_MEMORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_OS_MEMORY_VIRTUAL_MEMORY"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_OS_MEMORY_MEASURING",
+    "title": "Measuring Memory Use",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_OS_MEMORY",
+    "displayOrder": 50,
+    "skillKeys": [
+      "OS_MEMORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_OS_MEMORY_SWAPPING"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_OS_MEMORY_MEMORY_LAYOUT",
+    "title": "How a Program Uses Memory",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_OS_MEMORY",
+    "displayOrder": 10,
+    "skillKeys": [
+      "OS_MEMORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_OS_MEMORY_PRACTICE",
+    "title": "Memory Practice",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_OS_MEMORY",
+    "displayOrder": 60,
+    "skillKeys": [
+      "OS_MEMORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_OS_MEMORY_MEASURING"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_OS_MEMORY_SWAPPING",
+    "title": "When Memory Runs Out",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_OS_MEMORY",
+    "displayOrder": 40,
+    "skillKeys": [
+      "OS_MEMORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_OS_MEMORY_ALLOCATION"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_OS_MEMORY_VIRTUAL_MEMORY",
+    "title": "Virtual Memory",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_OS_MEMORY",
+    "displayOrder": 20,
+    "skillKeys": [
+      "OS_MEMORY"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_OS_MEMORY_MEMORY_LAYOUT"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "GUIDED",
+    "mandatory": false,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_PROCESSES_BACKGROUND",
+    "title": "Foreground and Background Jobs",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_PROCESSES",
+    "displayOrder": 50,
+    "skillKeys": [
+      "OS_PROCESSES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_PROCESSES_SIGNALS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_PROCESSES_LIFECYCLE",
+    "title": "How a Process Starts and Ends",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_PROCESSES",
+    "displayOrder": 30,
+    "skillKeys": [
+      "OS_PROCESSES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_PROCESSES_LISTING"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_PROCESSES_LISTING",
+    "title": "Seeing What Is Running",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_PROCESSES",
+    "displayOrder": 20,
+    "skillKeys": [
+      "OS_PROCESSES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_PROCESSES_WHAT_IS_A_PROCESS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_PROCESSES_MINI_PROJECT",
+    "title": "Mini Project — A Process Report You Can Defend",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_PROCESSES",
+    "displayOrder": 900,
+    "skillKeys": [
+      "OS_PROCESSES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_PROCESSES_PRACTICE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 90
+  },
+  {
+    "unitCode": "T_PROCESSES_PRACTICE",
+    "title": "Process Practice",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_PROCESSES",
+    "displayOrder": 60,
+    "skillKeys": [
+      "OS_PROCESSES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_PROCESSES_BACKGROUND"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_PROCESSES_SIGNALS",
+    "title": "Stopping Things",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_PROCESSES",
+    "displayOrder": 40,
+    "skillKeys": [
+      "OS_PROCESSES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_PROCESSES_LIFECYCLE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_PROCESSES_WHAT_IS_A_PROCESS",
+    "title": "Program, Process, Thread",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_PROCESSES",
+    "displayOrder": 10,
+    "skillKeys": [
+      "OS_PROCESSES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
     "unitCode": "T_PSEUDOCODE_DRY_RUNNING",
     "title": "Dry Running by Hand",
     "moduleCode": "M02_COMPUTATIONAL_THINKING",
@@ -3202,6 +6156,26 @@
     "estimatedMinutes": 40
   },
   {
+    "unitCode": "T_PSEUDOCODE_MINI_PROJECT",
+    "title": "Mini Project — An Algorithm Somebody Else Can Follow",
+    "moduleCode": "M02_COMPUTATIONAL_THINKING",
+    "topicCode": "T_PSEUDOCODE",
+    "displayOrder": 900,
+    "skillKeys": [
+      "PSEUDOCODE_FLOWCHARTS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_PSEUDOCODE_PRACTICE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 90
+  },
+  {
     "unitCode": "T_PSEUDOCODE_PRACTICE",
     "title": "Pseudocode Practice",
     "moduleCode": "M02_COMPUTATIONAL_THINKING",
@@ -3256,6 +6230,156 @@
     "applicableDirections": [],
     "unitType": "CONCEPT",
     "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_RELATIONS_FUNCTIONS",
+    "title": "Functions as Relations",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_RELATIONS",
+    "displayOrder": 40,
+    "skillKeys": [
+      "RELATIONS_FUNCTIONS"
+    ],
+    "prerequisiteSkillKeys": [
+      "SET_THEORY"
+    ],
+    "prerequisiteUnitCodes": [
+      "T_RELATIONS_PROPERTIES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_RELATIONS_MAPPINGS",
+    "title": "One-to-One, Onto",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_RELATIONS",
+    "displayOrder": 50,
+    "skillKeys": [
+      "RELATIONS_FUNCTIONS"
+    ],
+    "prerequisiteSkillKeys": [
+      "SET_THEORY"
+    ],
+    "prerequisiteUnitCodes": [
+      "T_RELATIONS_FUNCTIONS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_RELATIONS_ORDERED_PAIRS",
+    "title": "Ordered Pairs and Products",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_RELATIONS",
+    "displayOrder": 10,
+    "skillKeys": [
+      "RELATIONS_FUNCTIONS"
+    ],
+    "prerequisiteSkillKeys": [
+      "SET_THEORY"
+    ],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
+    "unitCode": "T_RELATIONS_PRACTICE",
+    "title": "Relations Practice",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_RELATIONS",
+    "displayOrder": 60,
+    "skillKeys": [
+      "RELATIONS_FUNCTIONS"
+    ],
+    "prerequisiteSkillKeys": [
+      "SET_THEORY"
+    ],
+    "prerequisiteUnitCodes": [
+      "T_RELATIONS_MAPPINGS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_RELATIONS_PROPERTIES",
+    "title": "Reflexive, Symmetric, Transitive",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_RELATIONS",
+    "displayOrder": 30,
+    "skillKeys": [
+      "RELATIONS_FUNCTIONS"
+    ],
+    "prerequisiteSkillKeys": [
+      "SET_THEORY"
+    ],
+    "prerequisiteUnitCodes": [
+      "T_RELATIONS_RELATIONS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_RELATIONS_RELATIONS",
+    "title": "Relations",
+    "moduleCode": "M10_MATHS",
+    "topicCode": "T_RELATIONS",
+    "displayOrder": 20,
+    "skillKeys": [
+      "RELATIONS_FUNCTIONS"
+    ],
+    "prerequisiteSkillKeys": [
+      "SET_THEORY"
+    ],
+    "prerequisiteUnitCodes": [
+      "T_RELATIONS_ORDERED_PAIRS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_SHELL_PIPELINES_DEBUGGING",
+    "title": "Why Is the Pipeline Empty?",
+    "moduleCode": "M09_LINUX",
+    "topicCode": "T_SHELL_PIPELINES",
+    "displayOrder": 800,
+    "skillKeys": [
+      "SHELL_PIPELINES"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_SHELL_PIPELINES_TRANSFORMING"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
     "mandatory": true,
     "estimatedMinutes": 45
   },
@@ -3517,6 +6641,27 @@
     "estimatedMinutes": 50
   },
   {
+    "unitCode": "T_SQL_JOIN_DEBUGGING",
+    "title": "Why the Totals Are Too Big",
+    "moduleCode": "M08_DATABASES",
+    "topicCode": "T_SQL",
+    "displayOrder": 800,
+    "skillKeys": [
+      "SQL_BASICS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_SQL_JOINS",
+      "T_SQL_GROUP_BY"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
     "unitCode": "T_SQL_JOINS",
     "title": "Joins",
     "moduleCode": "M08_DATABASES",
@@ -3622,6 +6767,47 @@
     "defaultDepth": "STANDARD",
     "mandatory": true,
     "estimatedMinutes": 60
+  },
+  {
+    "unitCode": "T_SQL_REPORT_PROJECT",
+    "title": "Project — The Report Somebody Asked For",
+    "moduleCode": "M08_DATABASES",
+    "topicCode": "T_SQL",
+    "displayOrder": 910,
+    "skillKeys": [
+      "SQL_BASICS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_SQL_PRACTICE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 120
+  },
+  {
+    "unitCode": "T_SQL_SCHEMA_DEBUGGING",
+    "title": "A Schema That Fights You",
+    "moduleCode": "M08_DATABASES",
+    "topicCode": "T_SQL",
+    "displayOrder": 810,
+    "skillKeys": [
+      "DB_FUNDAMENTALS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_SQL_KEYS",
+      "T_SQL_INSERT_UPDATE_DELETE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
   },
   {
     "unitCode": "T_SQL_SELECT",
@@ -3939,5 +7125,255 @@
     "defaultDepth": "STANDARD",
     "mandatory": false,
     "estimatedMinutes": 35
+  },
+  {
+    "unitCode": "T_TECH_COMM_ASKING_QUESTIONS",
+    "title": "Asking a Good Question",
+    "moduleCode": "M12_COMMUNICATION",
+    "topicCode": "T_TECH_COMM",
+    "displayOrder": 30,
+    "skillKeys": [
+      "TECHNICAL_COMMUNICATION",
+      "TECHNICAL_EXPLANATION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_TECH_COMM_STRUCTURE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_TECH_COMM_DEBUGGING",
+    "title": "Fixing an Explanation That Failed",
+    "moduleCode": "M12_COMMUNICATION",
+    "topicCode": "T_TECH_COMM",
+    "displayOrder": 800,
+    "skillKeys": [
+      "TECHNICAL_COMMUNICATION",
+      "TECHNICAL_EXPLANATION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_TECH_COMM_FEEDBACK",
+    "title": "Giving and Taking Feedback",
+    "moduleCode": "M12_COMMUNICATION",
+    "topicCode": "T_TECH_COMM",
+    "displayOrder": 60,
+    "skillKeys": [
+      "TECHNICAL_COMMUNICATION",
+      "TECHNICAL_EXPLANATION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_TECH_COMM_PRESENTING"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_TECH_COMM_KNOW_YOUR_AUDIENCE",
+    "title": "Who You Are Explaining To",
+    "moduleCode": "M12_COMMUNICATION",
+    "topicCode": "T_TECH_COMM",
+    "displayOrder": 10,
+    "skillKeys": [
+      "TECHNICAL_COMMUNICATION",
+      "TECHNICAL_EXPLANATION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_TECH_COMM_MINI_PROJECT",
+    "title": "Mini Project — documentation somebody else can act on",
+    "moduleCode": "M12_COMMUNICATION",
+    "topicCode": "T_TECH_COMM",
+    "displayOrder": 900,
+    "skillKeys": [
+      "TECHNICAL_COMMUNICATION",
+      "TECHNICAL_EXPLANATION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_TECH_COMM_PRACTICE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 90
+  },
+  {
+    "unitCode": "T_TECH_COMM_PRACTICE",
+    "title": "Communication Practice",
+    "moduleCode": "M12_COMMUNICATION",
+    "topicCode": "T_TECH_COMM",
+    "displayOrder": 70,
+    "skillKeys": [
+      "TECHNICAL_COMMUNICATION",
+      "TECHNICAL_EXPLANATION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_TECH_COMM_FEEDBACK",
+      "T_TECH_COMM_ASKING_QUESTIONS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 60
+  },
+  {
+    "unitCode": "T_TECH_COMM_PRESENTING",
+    "title": "Presenting Work",
+    "moduleCode": "M12_COMMUNICATION",
+    "topicCode": "T_TECH_COMM",
+    "displayOrder": 50,
+    "skillKeys": [
+      "TECHNICAL_COMMUNICATION",
+      "TECHNICAL_EXPLANATION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_TECH_COMM_WRITING_IT_DOWN"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 55
+  },
+  {
+    "unitCode": "T_TECH_COMM_STRUCTURE",
+    "title": "Structuring an Explanation",
+    "moduleCode": "M12_COMMUNICATION",
+    "topicCode": "T_TECH_COMM",
+    "displayOrder": 20,
+    "skillKeys": [
+      "TECHNICAL_COMMUNICATION",
+      "TECHNICAL_EXPLANATION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_TECH_COMM_KNOW_YOUR_AUDIENCE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_TECH_COMM_WRITING_IT_DOWN",
+    "title": "Writing About Your Work",
+    "moduleCode": "M12_COMMUNICATION",
+    "topicCode": "T_TECH_COMM",
+    "displayOrder": 40,
+    "skillKeys": [
+      "TECHNICAL_COMMUNICATION",
+      "TECHNICAL_EXPLANATION"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_TECH_COMM_STRUCTURE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "STANDARD",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_VARIABLES_DEBUGGING",
+    "title": "Debugging Variables",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_VARIABLES",
+    "displayOrder": 100,
+    "skillKeys": [
+      "PROGRAMMING_FUNDAMENTALS",
+      "PYTHON_BASICS",
+      "PYTHON_STRINGS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "DEBUG",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_VARIABLES_MINI_PROJECT",
+    "title": "Mini Project — Variables",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_VARIABLES",
+    "displayOrder": 120,
+    "skillKeys": [
+      "PROGRAMMING_FUNDAMENTALS",
+      "PYTHON_BASICS",
+      "PYTHON_STRINGS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_VARIABLES_PRACTICE"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PROJECT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 90
+  },
+  {
+    "unitCode": "T_VARIABLES_PRACTICE",
+    "title": "Variables Practice",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_VARIABLES",
+    "displayOrder": 110,
+    "skillKeys": [
+      "PROGRAMMING_FUNDAMENTALS",
+      "PYTHON_BASICS",
+      "PYTHON_STRINGS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_VARIABLES_DEBUGGING"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "PRACTICE",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 60
   }
 ]

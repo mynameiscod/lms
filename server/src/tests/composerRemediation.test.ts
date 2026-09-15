@@ -8,6 +8,7 @@
  */
 
 import { composeUnits, ComposableUnit, StudentProfile, SkillBelief } from '../services/curriculumComposerService';
+import { validatePlan } from '../services/composerCertificationService';
 
 const unit = (over: Partial<ComposableUnit> & { unitCode: string }): ComposableUnit => ({
   title: over.unitCode,
@@ -28,6 +29,68 @@ const unit = (over: Partial<ComposableUnit> & { unitCode: string }): ComposableU
 
 const scored = (entries: [string, number, ('HIGH' | 'LOW')?][]): Map<string, SkillBelief> =>
   new Map(entries.map(([k, score, confidence]) => [k, { score, confidence: confidence || 'HIGH' }]));
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════ *
+ * Certification — a third of applied work with no drill is excused only when no drill is left
+ * ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+describe('a plan third with practical work but no PRACTICE unit', () => {
+  /**
+   * A learner verified in four skills can only be drilled on what the plan itself teaches: PRACTICE
+   * is unsuitable at VERIFIED. With one taught topic, one drill exists, so two of three thirds are
+   * debugging and projects. That is certified only while no usable drill has been left out.
+   */
+  const VERIFIED = ['S1', 'S2', 'S3', 'S4'];
+  const pool: ComposableUnit[] = [
+    ...VERIFIED.flatMap((s, i) => [
+      unit({ unitCode: `${s}_DEBUG`, topicCode: `T_${s}`, moduleCode: `M0${i + 1}`, skillKeys: [s], displayOrder: 20, unitType: 'DEBUG' }),
+      unit({
+        unitCode: `${s}_PROJECT`, topicCode: `T_${s}`, moduleCode: `M0${i + 1}`, skillKeys: [s], displayOrder: 30,
+        unitType: 'PROJECT', prerequisiteUnitCodes: [`${s}_DEBUG`],
+      }),
+    ]),
+    unit({ unitCode: 'NEW_CONCEPT', topicCode: 'T_NEW', moduleCode: 'M09', skillKeys: ['NEW'] }),
+    unit({
+      unitCode: 'NEW_PRACTICE', topicCode: 'T_NEW', moduleCode: 'M09', skillKeys: ['NEW'], displayOrder: 20,
+      unitType: 'PRACTICE', prerequisiteUnitCodes: ['NEW_CONCEPT'],
+    }),
+  ];
+  const learner: StudentProfile = {
+    skills: scored([...VERIFIED.map(s => [s, 92] as [string, number]), ['REV', 80]]),
+    primaryDirection: null,
+    directionStatus: 'UNDECIDED',
+  };
+  const TARGET = pool.length;
+  const plan = composeUnits({ candidates: pool, targetUnits: TARGET, student: learner });
+  const codesOf = (issues: { code: string }[]) => issues.map(i => i.code);
+
+  it('is explained when every drill the learner can take is already scheduled', () => {
+    expect(plan.units).toHaveLength(TARGET);
+    const rep = validatePlan({ result: plan, universe: pool, student: learner, target: TARGET });
+    expect(codesOf(rep.issues)).not.toContain('NO_PRACTICE_IN_SEGMENT');
+    expect(codesOf(rep.issues)).not.toContain('NO_PRACTICAL_IN_SEGMENT');
+    expect(rep.explainedShape.filter(e => e.role === 'PRACTICE' && e.actual === 0).length).toBeGreaterThan(0);
+  });
+
+  it('stays a defect when a usable drill was left out of the plan', () => {
+    const universe = [...pool, unit({ unitCode: 'REV_PRACTICE', topicCode: 'T_REV', moduleCode: 'M08', skillKeys: ['REV'], unitType: 'PRACTICE' })];
+    const rep = validatePlan({ result: plan, universe, student: learner, target: TARGET });
+    const gap = rep.issues.filter(i => i.code === 'NO_PRACTICE_IN_SEGMENT');
+    expect(gap.length).toBeGreaterThan(0);
+    expect(gap[0].detail).toContain('REV_PRACTICE');
+  });
+
+  it('never excuses a third with no practical work at all', () => {
+    const reading = [1, 2, 3].map(n => unit({
+      unitCode: `READ_${n}`, topicCode: 'T_READ', moduleCode: 'M09', skillKeys: ['FRESH'], displayOrder: n * 10,
+      ...(n > 1 ? { prerequisiteUnitCodes: [`READ_${n - 1}`] } : {}),
+    }));
+    const fresh: StudentProfile = { skills: new Map(), primaryDirection: null, directionStatus: 'UNDECIDED' };
+    const r = composeUnits({ candidates: reading, targetUnits: 3, student: fresh });
+    const rep = validatePlan({ result: r, universe: reading, student: fresh, target: 3 });
+    expect(codesOf(rep.issues)).toEqual(expect.arrayContaining(['NO_PRACTICAL_IN_SEGMENT', 'NO_PRACTICE_IN_SEGMENT']));
+  });
+});
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════ *
  * A — schedulable application must not wait behind repeated prerequisite pulls

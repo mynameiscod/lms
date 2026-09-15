@@ -17,6 +17,9 @@ import { ALL_BUNDLES } from '../seeds/careerPilot/allBundles';
 import { PilotBundle, PilotMcq } from '../seeds/careerPilot/pilotUnitContent';
 import { PROPOSED_UNITS } from '../seeds/careerPilot/year1ExpansionSpec';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const DESIGN = require('./fixtures/year1UnitMetadata.json');
+
 /* ══════════════════════════════════════════════════════════════════════════════════════════ *
  * Phase 21 — milestones measure what they declare, and are gated on what teaches it
  * ══════════════════════════════════════════════════════════════════════════════════════════ */
@@ -61,8 +64,13 @@ describe('milestone checkpoints', () => {
     expect(bad).toEqual([]);
   });
 
-  it('never attribute a question on a bundle outside the expansion to a skill it does not declare', () => {
-    const declared = new Map(PROPOSED_UNITS.map(u => [u.unitCode, u.skillKeys]));
+  it('never attribute a question on any bundle to a skill its unit does not declare', () => {
+    // Declarations come from the design (every curriculum unit) and the expansion (units added
+    // since), so a topic authored later is held to the same rule as the milestones.
+    const declared = new Map<string, string[]>([
+      ...(DESIGN as { unitCode: string; skillKeys: string[] }[]).map(u => [u.unitCode, u.skillKeys] as [string, string[]]),
+      ...PROPOSED_UNITS.map(u => [u.unitCode, u.skillKeys] as [string, string[]]),
+    ]);
     const bad = ALL_BUNDLES.flatMap(b => (b.checkpoint || [])
       .filter(q => q.skillKey && !(declared.get(b.unitCode) || []).includes(q.skillKey))
       .map(q => `${b.unitCode}: ${q.skillKey}`));

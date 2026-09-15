@@ -24,7 +24,7 @@ import { ComposableUnit, StudentProfile } from '../services/curriculumComposerSe
 import {
   REALISTIC_PROFILES, EVOLUTIONS, PROGRAM_DAYS, compose, validatePlan, isDeterministic,
   skillUniverse, simulateRecomposition, directionFamilyMix, withoutCoreAffinity, coreModuleUse,
-  stateBoundaryProfiles, isRelevant, permanentlyUnsuitable,
+  stateBoundaryProfiles, isRelevant, permanentlyUnsuitable, diagnosticSkills,
 } from '../services/composerCertificationService';
 
 const READY = READY_JSON as unknown as ComposableUnit[];
@@ -34,7 +34,12 @@ const poolOf = (codes: string[]) => READY.filter(u => codes.includes(u.unitCode)
 const { allSkills, universalSkills } = skillUniverse(READY);
 /** Built against READY, never against the subset, so every pool is judged on the same learners. */
 const STUDENTS: [string, StudentProfile][] = REALISTIC_PROFILES.map(p => [p.key, p.build(allSkills, universalSkills)]);
-const BOUNDARIES: [string, StudentProfile][] = stateBoundaryProfiles(allSkills, universalSkills).map(b => [b.key, b.student]);
+/**
+ * Boundary learners are measured on the Foundation stage skill set — what a diagnostic measures —
+ * never on whatever skills the inventory happens to contain, so authoring cannot move the learner.
+ */
+const DIAGNOSTIC = diagnosticSkills();
+const BOUNDARIES: [string, StudentProfile][] = stateBoundaryProfiles(DIAGNOSTIC, DIAGNOSTIC).map(b => [b.key, b.student]);
 
 const RECOMMENDED = poolOf(SETS.recommended);
 const MINIMUM = poolOf(SETS.absoluteMinimum);
@@ -97,22 +102,19 @@ describe.each([
 });
 
 /**
- * STATE-BOUNDARY LEARNERS THE READY INVENTORY CANNOT YET SERVE. AN OPEN PHASE-21 CAPACITY FINDING.
+ * STATE-BOUNDARY LEARNERS NOBODY MAY BE SHORT FOR. THE PHASE-21 CAPACITY FINDING, CLOSED.
  *
- * Universal skills measured at 75 or above with a direction CHOSEN, and programming at 75 or above
- * for software/backend. Concept units are rightly unsuitable for them, the direction filter removes
- * other directions' material, and what is left in READY is fewer than ninety units — every one of
- * which the composer schedules. The full designed curriculum serves all of them; the shortfall is
- * unauthored units, quantified by the audit in fixtures/phase21/capacity-requirement.json.
+ * Universal skills at 75 or above with a direction chosen, and programming at 75 or above for
+ * software/backend, were short: concept units are rightly unsuitable for them, the direction filter
+ * removes other directions' material, and READY held fewer than ninety units they could take.
+ * Phase 21 closed it by authoring the designed PARTIAL units they needed and the practical units in
+ * CAPACITY_UNITS — SOFTWARE_BACKEND by frozen decision has no direction-scoped units, so a learner
+ * who has demonstrated the shared software core needs practical work inside it.
  *
- * Named rather than filtered, so the list can only shrink deliberately: authoring the requirement
- * should empty it, and a composer change that made anybody ELSE short fails here.
+ * Kept as a named, empty list rather than deleted, so a later change that makes anybody short again
+ * fails here with their key.
  */
-const OPEN_CAPACITY_SHORTFALL = [
-  ...[75, 80, 84, 85].flatMap(s => ['web', 'ai_ml', 'cloud', 'software_backend'].map(d => `universal@${s}/${d}`)),
-  'programming@75/software_backend', 'programming@84/software_backend', 'programming@85/software_backend',
-  'universal@84|85/web',
-];
+const OPEN_CAPACITY_SHORTFALL: string[] = [];
 
 describe('recommended set — state-boundary learners', () => {
   /**

@@ -26,10 +26,28 @@ import { SHELL_BUNDLES } from './year1ContentShell';
 import { CSS_BUNDLES } from './year1ContentCss';
 import { ARRAYS_BUNDLES } from './year1ContentArrays';
 import { CAREER_MAP_BUNDLES } from './year1ContentCareerMap';
+import { C_BASICS_BUNDLES } from './year1ContentCBasics';
+import { FILES_EDITOR_BUNDLES } from './year1ContentFilesEditor';
+import { HARDWARE_NUMBERS_BUNDLES } from './year1ContentHardwareNumbers';
+import { HTTP_BUNDLES } from './year1ContentHttp';
+import { DECOMPOSITION_BUNDLES } from './year1ContentDecomposition';
+import { OPERATING_SYSTEMS_BUNDLES } from './year1ContentOperatingSystems';
+import { COMMUNICATION_CAPSTONE_BUNDLES } from './year1ContentCommunicationCapstone';
+import { AI_BUNDLES } from './year1ContentAi';
+import { VARIABLES_GIT_BUNDLES } from './year1ContentVariablesGit';
+import { CAPACITY_BUNDLES } from './year1ContentCapacityUnits';
+import { SOFTWARE_CORE_BUNDLES } from './year1ContentSoftwareCore';
+import { APTITUDE_BUNDLES } from './year1ContentAptitude';
+import { LOGIC_MATH_BUNDLES } from './year1ContentLogicMath';
 
 export const ALL_BUNDLES: PilotBundle[] = [
   ...YEAR1_BUNDLES, ...PROGRAMMING_SPINE_BUNDLES, ...VERIFICATION_BUNDLES,
   ...FUNCTIONS_BUNDLES, ...PSEUDOCODE_BOOLEAN_BUNDLES, ...ACCESSIBILITY_FORMS_BUNDLES,
   ...JS_DOM_BUNDLES, ...ML_INTRO_BUNDLES, ...NETWORKING_BUNDLES, ...STATS_BUNDLES,
   ...SQL_BUNDLES, ...SHELL_BUNDLES, ...CSS_BUNDLES, ...ARRAYS_BUNDLES, ...CAREER_MAP_BUNDLES,
+  ...C_BASICS_BUNDLES, ...FILES_EDITOR_BUNDLES, ...HARDWARE_NUMBERS_BUNDLES,
+  ...HTTP_BUNDLES, ...DECOMPOSITION_BUNDLES, ...OPERATING_SYSTEMS_BUNDLES,
+  ...COMMUNICATION_CAPSTONE_BUNDLES, ...AI_BUNDLES,
+  ...VARIABLES_GIT_BUNDLES, ...CAPACITY_BUNDLES, ...SOFTWARE_CORE_BUNDLES,
+  ...APTITUDE_BUNDLES, ...LOGIC_MATH_BUNDLES,
 ];

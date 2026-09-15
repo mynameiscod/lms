@@ -880,7 +880,7 @@ export const YEAR1: Record<string, TopicSeed> = {
       u('PROPOSITIONS', 'Propositions',
         'Statements that are true or false, and nothing in between.',
         ['Tell a proposition from a sentence that is not one'], 35),
-      u('CONNECTIVES', 'AND, OR, NOT',
+      u('CONNECTIVES', 'Logical Connectives: AND, OR, NOT',
         'Combining propositions, with truth tables to settle arguments.',
         ['Build a truth table for a compound statement'], 45, { after: ['PROPOSITIONS'] }),
       u('IMPLICATION', 'If-Then',

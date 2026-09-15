@@ -4435,7 +4435,7 @@
  },
  {
   "unitCode": "T_LOGIC_MATH_CONNECTIVES",
-  "title": "AND, OR, NOT",
+  "title": "Logical Connectives: AND, OR, NOT",
   "moduleCode": "M10_MATHS",
   "topicCode": "T_LOGIC_MATH",
   "displayOrder": 20,
@@ -7294,5 +7294,367 @@
   "defaultDepth": "FOUNDATION",
   "mandatory": true,
   "estimatedMinutes": 40
+ },
+ {
+  "unitCode": "T_FUNCTIONS_REFACTORING",
+  "title": "Project — Untangle a Working Script",
+  "moduleCode": "M03_PROGRAMMING",
+  "topicCode": "T_FUNCTIONS",
+  "displayOrder": 900,
+  "skillKeys": [
+   "FUNCTIONS_BASICS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_FUNCTIONS_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 120
+ },
+ {
+  "unitCode": "T_ARRAYS_STRING_DEBUGGING",
+  "title": "When the String Answer Is Almost Right",
+  "moduleCode": "M07_DSA",
+  "topicCode": "T_ARRAYS",
+  "displayOrder": 800,
+  "skillKeys": [
+   "DSA_STRINGS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_ARRAYS_STRING_PROBLEMS"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 50
+ },
+ {
+  "unitCode": "T_GIT_HISTORY_DEBUGGING",
+  "title": "Which Commit Broke It?",
+  "moduleCode": "M04_DEVELOPER_TOOLS",
+  "topicCode": "T_GIT",
+  "displayOrder": 800,
+  "skillKeys": [
+   "GIT_FUNDAMENTALS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_GIT_UNDOING"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 50
+ },
+ {
+  "unitCode": "T_SQL_REPORT_PROJECT",
+  "title": "Project — The Report Somebody Asked For",
+  "moduleCode": "M08_DATABASES",
+  "topicCode": "T_SQL",
+  "displayOrder": 910,
+  "skillKeys": [
+   "SQL_BASICS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_SQL_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 120
+ },
+ {
+  "unitCode": "T_SHELL_PIPELINES_DEBUGGING",
+  "title": "Why Is the Pipeline Empty?",
+  "moduleCode": "M09_LINUX",
+  "topicCode": "T_SHELL_PIPELINES",
+  "displayOrder": 800,
+  "skillKeys": [
+   "SHELL_PIPELINES"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_SHELL_PIPELINES_TRANSFORMING"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 45
+ },
+ {
+  "unitCode": "T_PROCESSES_MINI_PROJECT",
+  "title": "Mini Project — A Process Report You Can Defend",
+  "moduleCode": "M09_LINUX",
+  "topicCode": "T_PROCESSES",
+  "displayOrder": 900,
+  "skillKeys": [
+   "OS_PROCESSES"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_PROCESSES_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 90
+ },
+ {
+  "unitCode": "T_PSEUDOCODE_MINI_PROJECT",
+  "title": "Mini Project — An Algorithm Somebody Else Can Follow",
+  "moduleCode": "M02_COMPUTATIONAL_THINKING",
+  "topicCode": "T_PSEUDOCODE",
+  "displayOrder": 900,
+  "skillKeys": [
+   "PSEUDOCODE_FLOWCHARTS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_PSEUDOCODE_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 90
+ },
+ {
+  "unitCode": "T_NUMBER_SYSTEMS_DEBUGGING",
+  "title": "The Number That Came Out Wrong",
+  "moduleCode": "M10_MATHS",
+  "topicCode": "T_NUMBER_SYSTEMS",
+  "displayOrder": 800,
+  "skillKeys": [
+   "NUMBER_SYSTEMS_BINARY"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_NUMBER_SYSTEMS_NEGATIVE_AND_OVERFLOW"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 45
+ },
+ {
+  "unitCode": "T_BOOLEAN_MINI_PROJECT",
+  "title": "Mini Project — From a Rule to a Circuit",
+  "moduleCode": "M10_MATHS",
+  "topicCode": "T_BOOLEAN",
+  "displayOrder": 900,
+  "skillKeys": [
+   "BOOLEAN_ALGEBRA"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_BOOLEAN_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 90
+ },
+ {
+  "unitCode": "T_DECOMPOSITION_MINI_PROJECT",
+  "title": "Mini Project — Plan It Before You Build It",
+  "moduleCode": "M02_COMPUTATIONAL_THINKING",
+  "topicCode": "T_DECOMPOSITION",
+  "displayOrder": 900,
+  "skillKeys": [
+   "PROBLEM_SOLVING"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_DECOMPOSITION_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 90
+ },
+ {
+  "unitCode": "T_LOOPS_ALMOST_RIGHT_DEBUGGING",
+  "title": "Loops That Are Almost Right",
+  "moduleCode": "M03_PROGRAMMING",
+  "topicCode": "T_LOOPS",
+  "displayOrder": 800,
+  "skillKeys": [
+   "LOOPS_BASICS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_LOOPS_ACCUMULATORS"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 45
+ },
+ {
+  "unitCode": "T_SQL_JOIN_DEBUGGING",
+  "title": "Why the Totals Are Too Big",
+  "moduleCode": "M08_DATABASES",
+  "topicCode": "T_SQL",
+  "displayOrder": 800,
+  "skillKeys": [
+   "SQL_BASICS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_SQL_JOINS",
+   "T_SQL_GROUP_BY"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 50
+ },
+ {
+  "unitCode": "T_ARRAYS_COMPLEXITY_DEBUGGING",
+  "title": "It Works, and It Times Out",
+  "moduleCode": "M07_DSA",
+  "topicCode": "T_ARRAYS",
+  "displayOrder": 810,
+  "skillKeys": [
+   "DSA_ARRAYS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_ARRAYS_COMPLEXITY"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 50
+ },
+ {
+  "unitCode": "T_GIT_REMOTE_DEBUGGING",
+  "title": "Push Rejected, and Other Remote Trouble",
+  "moduleCode": "M04_DEVELOPER_TOOLS",
+  "topicCode": "T_GIT",
+  "displayOrder": 810,
+  "skillKeys": [
+   "GIT_BRANCHING"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_GIT_REMOTES"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 45
+ },
+ {
+  "unitCode": "T_FUNCTIONS_TESTING_PROJECT",
+  "title": "Project — Prove Your Functions Work",
+  "moduleCode": "M03_PROGRAMMING",
+  "topicCode": "T_FUNCTIONS",
+  "displayOrder": 910,
+  "skillKeys": [
+   "FUNCTIONS_BASICS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_FUNCTIONS_PRACTICE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 90
+ },
+ {
+  "unitCode": "T_C_BASICS_STRING_DEBUGGING",
+  "title": "C Strings That Misbehave",
+  "moduleCode": "M06_C_PROGRAMMING",
+  "topicCode": "T_C_BASICS",
+  "displayOrder": 800,
+  "skillKeys": [
+   "C_BASICS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_C_BASICS_ARRAYS"
+  ],
+  "category": "ACADEMIC",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": false,
+  "estimatedMinutes": 45
+ },
+ {
+  "unitCode": "T_EDITOR_WORKSPACE_PROJECT",
+  "title": "Project — A Workspace Anyone Can Open",
+  "moduleCode": "M04_DEVELOPER_TOOLS",
+  "topicCode": "T_EDITOR",
+  "displayOrder": 900,
+  "skillKeys": [
+   "IDE_PROFICIENCY"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_EDITOR_RUNNING_AND_DEBUGGING"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PROJECT",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 90
+ },
+ {
+  "unitCode": "T_SQL_SCHEMA_DEBUGGING",
+  "title": "A Schema That Fights You",
+  "moduleCode": "M08_DATABASES",
+  "topicCode": "T_SQL",
+  "displayOrder": 810,
+  "skillKeys": [
+   "DB_FUNDAMENTALS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_SQL_KEYS",
+   "T_SQL_INSERT_UPDATE_DELETE"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "DEBUG",
+  "defaultDepth": "STANDARD",
+  "mandatory": true,
+  "estimatedMinutes": 50
  }
 ]

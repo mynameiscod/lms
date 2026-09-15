@@ -49,7 +49,7 @@ import {
   REALISTIC_PROFILES, PROGRAM_DAYS, EVOLUTIONS, compose, validatePlan, isDeterministic,
   skillUniverse, prerequisiteClosure, simulateRecomposition, robustnessGrid,
   directionFamilyMix, withoutCoreAffinity, coreModuleUse, measuredStateOf, isRelevant,
-  permanentlyUnsuitable, PlanReport, RecompositionReport, Issue, stateBoundaryProfiles,
+  permanentlyUnsuitable, PlanReport, RecompositionReport, Issue, stateBoundaryProfiles, diagnosticSkills,
 } from '../services/composerCertificationService';
 import { loadAssets, activitiesFor, UnitAssets } from '../services/foundationJourneyService';
 import { roleOf } from '../data/contentBundlePolicy';
@@ -63,7 +63,12 @@ import { curriculumEngineFor } from '../data/curriculumEnginePolicy';
 dotenv.config();
 
 const FREEZE_DAYS = [30, 60];
-const EXPECTED_READY = 176;
+/**
+ * 176 at the Phase-21 audit; 341 after capacity remediation authored the 147 PARTIAL units the
+ * state-boundary learners needed and the 18 practical units in CAPACITY_UNITS. The 14 still PARTIAL
+ * were measured to contribute nothing to any certified learner and are deliberately left unauthored.
+ */
+const EXPECTED_READY = 341;
 const ARTIFACT_DIR = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');
 
 /** Failures that make a plan unusable, as opposed to ones that make it badly sequenced. */
@@ -354,8 +359,11 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
 
   /* ══ 5b. STATE BOUNDARIES ════════════════════════════════════════════════════════════════ */
 
-  title('5b. STATE-BOUNDARY CERTIFICATION on READY — 74|75 STANDARD/REVISION, 84|85 REVISION/VERIFIED, low confidence');
-  const boundaries = stateBoundaryProfiles(allSkills, universalSkills);
+  title('5b. STATE-BOUNDARY CERTIFICATION on READY — measured on the Foundation stage skill set');
+  // Learners are measured on what a diagnostic measures, not on what happens to be authored.
+  const diagnostic = diagnosticSkills();
+  const boundaries = stateBoundaryProfiles(diagnostic, diagnostic);
+  console.log(`    ${diagnostic.length} diagnostic skills; 74|75 STANDARD/REVISION, 84|85 REVISION/VERIFIED, low confidence`);
   const certifyBoundaries = (pool: ComposableUnit[]) => boundaries.map(b => {
     const r = compose(pool, b.student);
     return { key: b.key, student: b.student, r, rep: validatePlan({ result: r, universe, student: b.student }) };
@@ -425,6 +433,19 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
         stillShortAfterAuthoring: stillShort,
       }, null, 2)}\n`);
     }
+  } else {
+    console.log('\n    capacity shortfalls: none — every certified boundary learner receives ninety days from READY');
+    // Written as closed rather than left behind, so a stale requirement cannot outlive its authoring.
+    if (writeArtifacts) {
+      fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
+      fs.writeFileSync(path.join(ARTIFACT_DIR, 'capacity-requirement.json'), `${JSON.stringify({
+        description: 'Phase 21: PARTIAL units that would have to be authored for every certified state-boundary learner to reach ninety days. Closed — no boundary learner is short on READY.',
+        shortBoundaryLearners: [],
+        servedByFullDesign: 0,
+        unitsToAuthor: [],
+        stillShortAfterAuthoring: [],
+      }, null, 2)}\n`);
+    }
   }
 
   console.log('\n    post-mastery stress (every skill in the design measured, including direction and academic —');
@@ -463,6 +484,8 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   onReady.forEach(x => noteSel(x.r.units.map(u => u.unitCode)));
   recompReady.forEach(x => noteSel(x.rep.freshCodes));
   sweepReady.filter(x => x.hardOk).forEach(x => noteSel(x.r.units.map(u => u.unitCode)));
+  // Certified state-boundary learners are served scenarios too, exactly as the recommended set counts them.
+  boundaryReady.filter(x => !x.rep.issues.some(i => HARD.has(i.code))).forEach(x => noteSel(x.r.units.map(u => u.unitCode)));
 
   const verifyUnits = universe.filter(u => u.unitType === 'CHECKPOINT' || u.unitType === 'REVIEW');
   const projectUnits = universe.filter(u => u.unitType === 'PROJECT');

@@ -30,6 +30,7 @@ const pageKeyFor = (pathname: string) => {
   if (pathname.startsWith('/careerpilot/companies')) return 'companies';
   if (pathname.startsWith('/careerpilot/resume')) return 'resume';
   if (pathname.startsWith('/careerpilot/profile')) return 'profile';
+  if (pathname.startsWith('/careerpilot/mentor')) return 'mentor';
   if (pathname.startsWith('/careerpilot/readiness')) return 'readiness';
   if (pathname.startsWith('/careerpilot/news')) return 'news';
   return 'other';

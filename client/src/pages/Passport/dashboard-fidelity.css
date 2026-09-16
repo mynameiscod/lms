@@ -31,6 +31,29 @@
   color: var(--cb-navy) !important;
 }
 
+/*
+ * ...except where that bold text is sitting ON the navy.
+ *
+ * The rule above exists to stop black leaking out of legacy CSS, and it does that by painting
+ * every b and strong in the shell navy, with !important. It cannot tell the difference between
+ * a heading on a white card and the label inside a filled button, so on any dark surface it
+ * renders the text navy-on-navy — invisible. The Import Resume button lost its label to this:
+ * the button's own `color:#fff` lost to an !important with a shorter selector.
+ *
+ * These restore it for the filled surfaces. They need both the higher specificity AND the
+ * !important to win, which is what makes this worth a comment rather than a one-liner: anyone
+ * adding another dark-background component with bold text inside it will hit the same trap and
+ * should add it here.
+ */
+.gd .rc-action.primary b, .gd .rc-action.primary small, .gd .rc-action.primary i,
+.gd .rc-btn.primary b, .gd .rc-btn.primary strong,
+.gd .rc-btn.teal b, .gd .rc-btn.teal strong,
+.gd .cp-btn.primary b, .gd .cp-btn-run b,
+.gd .aim-row.me .aim-bubble b, .gd .aim-row.me .aim-bubble strong {
+  color: #fff !important;
+}
+.gd .rc-action.primary small { color: #c6d6ec !important; }
+
 .gd p, .gd small, .gd .sub, .gd .lbl, .gd .t,
 .gd .gd-score-side p, .gd .gd-part .t, .gd .gd-parts-hd,
 .gd .gd-mission .txt span, .gd .gd-feed-row .ago,

@@ -80,8 +80,15 @@ import { teaches } from '../data/contentBundlePolicy';
  * same five PARTIAL. Phase-21 fixtures regenerated from the live inventory; EXPECT moved with them.
  * certifyProductionComposer: realistic 9/9, boundary 40/40, recompositions 72/72, content gates 0,
  * published = certified. ACTUAL PRODUCTION GATE: PASS.
+ *
+ * MOVED AGAIN, TO 3e674d50 — NOT A NO-OP. STANDARD-known instruction compression changed selection
+ * (the composer no longer re-teaches lessons whose every skill is reliably measured at or above their
+ * level, and resolves same-topic lesson prerequisites on reliable STANDARD evidence), and the three
+ * intentionally withheld JS/DOM units became a named policy (productionPublicationPolicy, now a certified
+ * source). The recommended set is unchanged at 351 and withheld the same three; the diagnostic absolute
+ * minimum was recomputed 160 to 181. ACTUAL PRODUCTION GATE: PASS; Phase-21 audit PASS.
  */
-const CERTIFIED_COMMIT = 'f9bed3c4';
+const CERTIFIED_COMMIT = '3e674d50';
 const EXPECT = { total: 359, ready: 354, target: 351, withheld: 3, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

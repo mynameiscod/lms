@@ -616,6 +616,10 @@ const AppRoutes: React.FC = () => {
           /ai-mentor stays exactly as it was, for everybody who reaches it from the LMS sidebar.
         */}
         <Route path="/careerpilot/mentor" element={<AIMentor />} />
+        {/* Code Playground, mounted in the shell for the same reason as the mentor above:
+            /playground wraps it in the LMS Layout, which would drop a CareerPilot member into a
+            different application. The component is unchanged; only the chrome differs. */}
+        <Route path="/careerpilot/playground" element={<CodePlayground />} />
         <Route path="/careerpilot/progress" element={<PassportGamification />} />
         {/* Coins buy rewards; XP never does. */}
         <Route path="/careerpilot/rewards" element={<PassportRewards />} />

@@ -3,6 +3,7 @@ import Editor from '@monaco-editor/react';
 import { playgroundApi } from '../../api/playgroundApi';
 import { studentProfileAPI } from '../../api/studentProfileAPI';
 import { runSql, SqlResult } from '../../utils/sqlRunner';
+import { useFillViewport } from '../../hooks/useFillViewport';
 import './CodePlayground.css';
 
 interface Lang { key: string; label: string; icon: string; monaco: string; file: string; starter: string; }
@@ -89,7 +90,13 @@ const CodePlayground: React.FC = () => {
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
   const decoRef = useRef<string[]>([]);
-  const rootRef = useRef<HTMLDivElement>(null);
+  /**
+   * The stylesheet sizes this page through `.main-content:has(> .cp-root)`, which exists only
+   * under the LMS Layout. Mounted in the CareerPilot member shell there is no .main-content, so
+   * height:100% had nothing to resolve against and the editor collapsed. Measuring works in
+   * both, and rootRef was already here and unread.
+   */
+  const { ref: rootRef, height: fitH } = useFillViewport<HTMLDivElement>(20, 520);
 
   // Sizing is now pure CSS (see CodePlayground.css). The playground fills the
   // content area via the .main-content:has(> .cp-root) rule — no JS measurement,
@@ -325,7 +332,7 @@ const CodePlayground: React.FC = () => {
   const langIcon = isFramework ? (fwByKey(language)?.icon || '📦') : byKey(language).icon;
 
   return (
-    <div className={`cp-root ${full ? 'cp-full' : ''}`} ref={rootRef}>
+    <div className={`cp-root ${full ? 'cp-full' : ''}`} ref={rootRef} style={full || !fitH ? undefined : { height: fitH }}>
       {/* Tabs */}
       <div className="cp-tabbar">
         {tabs.map(t => (

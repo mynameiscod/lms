@@ -104,3 +104,21 @@
    wrapper, and no min-height fighting the measured value. */
 .gd .cb-member-mentor { height: auto; }
 .gd .cb-member-mentor .aim { min-height: 0; }
+
+/* Code Playground inside the member shell.
+   Its own stylesheet reaches the page through `.main-content:has(> .cp-root)` and
+   `.main-content > .cp-root`, selectors that only match under the LMS Layout. In here there is
+   no .main-content, so none of it applied: the page measures its own height instead (see
+   useFillViewport), and these give it the frame the LMS container was providing — a border and
+   a radius so it reads as part of the shell rather than a panel pasted onto it.
+   Fullscreen has to be restated for the same reason: the original rule is scoped to
+   `.main-content >` and would otherwise do nothing here, leaving the button dead. */
+.gd .cb-member-playground { height: auto; }
+.gd .cb-member-playground .cp-root {
+  border: 1px solid var(--cb-border); border-radius: 14px; overflow: hidden;
+  box-shadow: 0 3px 14px rgba(15, 46, 77, .055);
+}
+.gd .cb-member-playground .cp-root.cp-full {
+  position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 2000;
+  border: none; border-radius: 0; box-shadow: none;
+}

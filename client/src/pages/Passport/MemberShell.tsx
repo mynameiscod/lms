@@ -191,6 +191,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Home', 'home', '/careerpilot')}
           {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap')}
           {navBtn('Practice', 'code', '/careerpilot/practice')}
+          {navBtn('Playground', 'terminal', '/careerpilot/playground')}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab')}
           {navBtn('Communication Lab', 'speech', '/careerpilot/communication')}
           {navBtn('AI Mentor', 'robot', '/careerpilot/mentor')}

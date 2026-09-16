@@ -44,7 +44,7 @@ const RoleReadiness: React.FC = () => {
   }
 
   const ready = data as RoleReadinessAvailable;
-  const { readiness, coverage, confidence, summary, role } = ready;
+  const { readiness, coverage, confidence, summary } = ready;
   const skills = ready.skills || [];
   const strengths = skills.filter(s => s.status === 'STRONG' || s.status === 'ON_TRACK').slice(0, 5);
   const gaps = skills.filter(s => s.status === 'PRIORITY_GAP' || s.status === 'NEEDS_WORK').sort((a, b) => (b.gapPoints || 0) - (a.gapPoints || 0)).slice(0, 5);
@@ -53,7 +53,7 @@ const RoleReadiness: React.FC = () => {
   const readinessLabel = readiness === null ? 'Still measuring' : readiness >= 80 ? 'Strong alignment' : readiness >= 60 ? 'Getting close' : readiness >= 40 ? 'Building momentum' : 'Early stage';
 
   return <div className="rdy-shell">
-    <section className="rdy-hero"><div><div className="rdy-kicker">ROLE READINESS</div><h1>How ready are you for your target role?</h1><p>CareerPilot compares your demonstrated skills with the requirements configured for your target role.</p><div className="rdy-role-card"><div className="rdy-role-icon"><i className="bi bi-bullseye" /></div><div><span>Your Target Role</span><strong>{role.name}</strong></div><button onClick={() => nav('/careerpilot/setup?step=direction')}>Change role <i className="bi bi-pencil" /></button></div></div>
+    <section className="rdy-hero"><div><div className="rdy-kicker">ROLE READINESS</div><h1>How ready are you for your target role?</h1><p>CareerPilot compares your demonstrated skills with the requirements configured for your target role.</p></div>
       <div className="rdy-score-card"><div className="rdy-score-copy"><span>Overall Role Readiness</span><h2>{readinessLabel}</h2><p>Readiness is based only on skills we have measured. Coverage and confidence show how complete that picture is.</p></div><div className="rdy-gauge" style={{ '--rdy': `${readiness ?? 0}%` } as React.CSSProperties}><div><strong>{readiness === null ? '—' : `${readiness}%`}</strong><span>Ready</span></div></div><div className="rdy-score-meta"><div><i className="bi bi-grid-3x3-gap" /><span>Coverage</span><strong>{coverage}%</strong></div><div><i className="bi bi-shield-check" /><span>Confidence</span><strong>{CONFIDENCE_LABEL[confidence] || confidence}</strong></div><div><i className="bi bi-clipboard-data" /><span>Measured skills</span><strong>{summary.assessedSkills}/{summary.requiredSkills}</strong></div></div></div>
     </section>
     {readiness === null ? <div className="rdy-info warn"><i className="bi bi-info-circle" /> We have not measured enough of this role to give a readiness score yet. Complete more assessment activity to strengthen the picture.</div> : coverage < 50 ? <div className="rdy-info"><i className="bi bi-info-circle" /> Your current readiness is based on {summary.assessedSkills} of {summary.requiredSkills} required skills. More evidence will make this more representative.</div> : null}

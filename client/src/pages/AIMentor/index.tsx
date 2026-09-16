@@ -78,6 +78,8 @@ const AIMentor: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState<number>();
 
   useEffect(() => {
     aiMentorApi.getChat()
@@ -89,6 +91,32 @@ const AIMentor: React.FC = () => {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, sending]);
+
+  /**
+   * Fill the space that is actually there, measured, rather than calculated from 100vh.
+   *
+   * A viewport calculation needs to know the height of everything above this page, and that is
+   * different in the two places it mounts and changes whenever either chrome does. It was also
+   * simply wrong inside the member shell: the sidebar carries the daily-goal panel, so the shell
+   * is TALLER than the viewport and the page scrolls — the thread was sized against one height
+   * while sitting in another, which clipped a message at the bottom and left dead space under
+   * the composer at the same time.
+   *
+   * The element's own distance from the top of the viewport answers both, wherever it is mounted.
+   */
+  useEffect(() => {
+    const measure = () => {
+      const el = rootRef.current;
+      if (!el) return;
+      // getBoundingClientRect().top is already relative to the viewport, which is exactly the
+      // question being asked: how much room is left below this element on screen.
+      const top = el.getBoundingClientRect().top;
+      setFit(Math.max(430, Math.round(window.innerHeight - top - 26)));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
 
   /** Grow with the question. A one-line input made anybody with a real problem write blind. */
   useEffect(() => {
@@ -127,7 +155,7 @@ const AIMentor: React.FC = () => {
   const quick = useMemo(() => suggestions.slice(0, 4), [suggestions]);
 
   return (
-    <div className="aim">
+    <div className="aim" ref={rootRef} style={fit ? { height: fit } : undefined}>
       <header className="aim-head">
         <span className="aim-mark"><i className="bi bi-compass" /></span>
         <div className="aim-head-t">

@@ -10,7 +10,7 @@
  *
  * What it keeps is everything that protects the certification: the certified set and READY
  * inventory come from the committed fixtures; the tenant's READY inventory must be IDENTICAL to the
- * certified one, unit for unit; exactly the 338 are published, the withheld and PARTIAL units stay
+ * certified one, unit for unit; exactly the certified set is published, the withheld and PARTIAL units stay
  * draft, nothing outside the set may already be published, the set is prerequisite-closed. And each
  * unit is published by `publishUnit` — the handler the Admin route calls — so every publish gate the
  * product applies (own teaching, the readiness bar, the duration rule) applies here unchanged.
@@ -30,7 +30,7 @@ import { ComposableUnit } from './curriculumComposerService';
 import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
 import { teaches } from '../data/contentBundlePolicy';
 import { INTENTIONALLY_WITHHELD_READY } from '../data/productionPublicationPolicy';
-import { publishUnit } from '../controllers/curriculumLearningUnitController';
+import { publishUnit, setUnitStatus } from '../controllers/curriculumLearningUnitController';
 
 /**
  * Re-certified after the nine T_VARIABLES concept units were authored.
@@ -45,19 +45,36 @@ import { publishUnit } from '../controllers/curriculumLearningUnitController';
  * became the deeper practice — and the practice paths of the nine foundation progression topics were
  * re-authored. Total 355 → 359, READY 350 → 354, recommended 347 → 351: exactly the previous set plus
  * the four new units. Withheld is still the same three JS/DOM drafts and PARTIAL the same five.
+ *
+ * Re-certified again after the composer began teaching topics as bounded blocks along course strands, with
+ * the programming spine keeping its place. The derivation now reaches 350 of the 354 READY units: the same
+ * three JS/DOM lessons withheld by name, and T_FUNCTIONS_DOCSTRINGS, which no supported composition, sweep
+ * or recomposition selects any more (it is off the path to both functions practices). That unit is not
+ * withheld by decision: it is READY, not recommended, and so not published. `notRecommended` counts it.
  */
-export const CERTIFIED_FOUNDATION = { total: 359, ready: 354, target: 351, withheld: 3, partial: 5 } as const;
+export const CERTIFIED_FOUNDATION = { total: 359, ready: 354, target: 350, withheld: 3, notRecommended: 1, partial: 5 } as const;
 
 /** Committed with the code, so every deployment certifies against the same set. */
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');
 
-export function loadCertifiedSet(): { target: string[]; withheld: string[]; readyCount: number; readyFixture: ComposableUnit[] } {
+/**
+ * The certified set and what it leaves out, as the audit derived them.
+ *
+ * `withheld` is every READY unit outside the set. It has exactly two derived parts, and they mean different
+ * things: `named`, withheld by decision in productionPublicationPolicy, and `notRecommended`, READY units no
+ * certification scenario selects. Neither is published; only the named ones are a standing decision.
+ */
+export function loadCertifiedSet(): {
+  target: string[]; withheld: string[]; named: string[]; notRecommended: string[]; readyCount: number; readyFixture: ComposableUnit[];
+} {
   const certified = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'publish-sets.json'), 'utf8'));
   const readyFixture = (JSON.parse(fs.readFileSync(path.join(FIXTURES, 'ready-inventory.json'), 'utf8')) as ComposableUnit[])
     .sort((a, b) => a.unitCode.localeCompare(b.unitCode));
   return {
     target: [...certified.recommended].sort(),
     withheld: [...certified.withheldFromRecommended].sort(),
+    named: [...(certified.intentionallyWithheld || [])].sort(),
+    notRecommended: [...(certified.notRecommended || [])].sort(),
     readyCount: Number(certified.readyCount),
     readyFixture,
   };
@@ -72,17 +89,28 @@ export interface CertifiedPublicationPlan {
   todo: string[];
   /** Certified units already PUBLISHED. */
   already: string[];
+  /**
+   * Units PUBLISHED that the certified derivation marks READY and not recommended: a publication the certified set
+   * no longer includes. Reconciled to DRAFT through the product's status handler. Anything else published outside the
+   * set is a problem, not something to reconcile.
+   */
+  toUnpublish: string[];
 }
 
 /** Everything that must be true before a single unit is published. Reads only. */
 export async function planCertifiedPublication(tenantId: string): Promise<CertifiedPublicationPlan> {
   const E = CERTIFIED_FOUNDATION;
   const problems: string[] = [];
-  const { target, withheld, readyCount, readyFixture } = loadCertifiedSet();
+  const { target, withheld, named: namedFixture, notRecommended, readyCount, readyFixture } = loadCertifiedSet();
   const targetSet = new Set(target);
 
   if (target.length !== E.target || targetSet.size !== target.length) problems.push(`certified set has ${target.length} codes, expected ${E.target}`);
-  if (withheld.length !== E.withheld) problems.push(`certified set withholds ${withheld.length}, expected ${E.withheld}`);
+  if (namedFixture.length !== E.withheld) problems.push(`certified set withholds ${namedFixture.length} by decision, expected ${E.withheld}`);
+  if (notRecommended.length !== E.notRecommended) problems.push(`certified set leaves ${notRecommended.length} READY unit(s) not recommended, expected ${E.notRecommended}`);
+  // The two derived parts, and nothing else, are what the set leaves out.
+  if (JSON.stringify([...namedFixture, ...notRecommended].sort()) !== JSON.stringify(withheld)) {
+    problems.push(`certified withheld ${withheld.join(', ')} is not the named withheld plus the not-recommended units`);
+  }
   if (readyCount !== E.ready || readyFixture.length !== E.ready) problems.push(`certified READY ${readyCount}/${readyFixture.length}, expected ${E.ready}`);
 
   const docs = await CurriculumLearningUnit.find({ tenantId, stageKey: 'foundation' }).sort({ unitCode: 1 }).lean() as any[];
@@ -112,8 +140,11 @@ export async function planCertifiedPublication(tenantId: string): Promise<Certif
     if (d.status !== 'DRAFT' && d.status !== 'PUBLISHED') problems.push(`${code}: status ${d.status}`);
     if (!(Number(d.estimatedMinutes) > 0)) problems.push(`${code}: no estimatedMinutes`);
   }
+  const notRecommendedSet = new Set(notRecommended);
   const publishedOutside = docs.filter(d => d.status === 'PUBLISHED' && !targetSet.has(String(d.unitCode))).map(d => String(d.unitCode));
-  if (publishedOutside.length) problems.push(`published outside the certified set: ${publishedOutside.join(', ')}`);
+  const toUnpublish = publishedOutside.filter(c => notRecommendedSet.has(c) && readyCodes.has(c));
+  const unexplained = publishedOutside.filter(c => !toUnpublish.includes(c));
+  if (unexplained.length) problems.push(`published outside the certified set: ${unexplained.join(', ')}`);
   const readyNotTarget = readyUnits.map(u => u.unitCode).filter(c => !targetSet.has(c)).sort();
   if (JSON.stringify(readyNotTarget) !== JSON.stringify(withheld)) problems.push(`READY outside the set is ${readyNotTarget.join(', ')}, certified withheld ${withheld.join(', ')}`);
   /**
@@ -122,8 +153,12 @@ export async function planCertifiedPublication(tenantId: string): Promise<Certif
    * them is in the set or published. Anything else is a certified set nobody decided on.
    */
   const named = [...INTENTIONALLY_WITHHELD_READY].sort();
-  if (JSON.stringify(withheld) !== JSON.stringify(named)) {
-    problems.push(`certified withheld ${withheld.join(', ') || '(none)'} is not the named withheld list ${named.join(', ')}`);
+  if (JSON.stringify(namedFixture) !== JSON.stringify(named)) {
+    problems.push(`certified withheld-by-decision ${namedFixture.join(', ') || '(none)'} is not the named withheld list ${named.join(', ')}`);
+  }
+  for (const code of notRecommended) {
+    if (named.includes(code)) problems.push(`${code}: both named withheld and not recommended`);
+    if (!readyCodes.has(code)) problems.push(`${code}: certified as READY and not recommended, but not READY`);
   }
   for (const code of named) {
     if (targetSet.has(code)) problems.push(`${code}: withheld by decision but in the certified set`);
@@ -149,13 +184,16 @@ export async function planCertifiedPublication(tenantId: string): Promise<Certif
     partial: partial.length,
     todo: target.filter(c => byCode.get(c)?.status === 'DRAFT'),
     already: target.filter(c => byCode.get(c)?.status === 'PUBLISHED'),
+    toUnpublish,
   };
 }
 
 export interface CertifiedPublicationResult {
   plan: CertifiedPublicationPlan;
   published: string[];
-  /** The first refusal from the publish handler, if any; nothing after it was attempted. */
+  /** Units moved back to DRAFT because the certified set no longer recommends them. */
+  unpublished: string[];
+  /** The first refusal from the status or publish handler, if any; nothing after it was attempted. */
   refused: string | null;
 }
 
@@ -167,7 +205,26 @@ export interface CertifiedPublicationResult {
  */
 export async function publishCertifiedFoundation(tenantId: string, actor: string): Promise<CertifiedPublicationResult> {
   const plan = await planCertifiedPublication(tenantId);
-  if (plan.problems.length) return { plan, published: [], refused: null };
+  if (plan.problems.length) return { plan, published: [], unpublished: [], refused: null };
+
+  /**
+   * RECONCILE FIRST: a unit the certified set no longer recommends goes back to DRAFT, through the handler the Admin
+   * status route calls. Its gate applies unchanged: a unit on students' live journeys is refused unless somebody
+   * confirmed that, and provisioning never confirms on anyone's behalf. The unit stays READY and editable.
+   */
+  const unpublished: string[] = [];
+  for (const unitCode of plan.toUnpublish) {
+    const out: any = { status: 200, body: null };
+    const res: any = {
+      status: (c: number) => { out.status = c; return res; },
+      json: (b: any) => { out.body = b; return res; },
+    };
+    await setUnitStatus({ user: { tenantId, email: actor }, tenantId, params: { unitCode }, body: { status: 'DRAFT' }, query: {}, headers: {} } as any, res);
+    if (out.status !== 200 || out.body?.unit?.status !== 'DRAFT') {
+      return { plan, published: [], unpublished, refused: `${unitCode}: ${out.status} ${JSON.stringify(out.body).slice(0, 240)}` };
+    }
+    unpublished.push(unitCode);
+  }
 
   const published: string[] = [];
   for (const unitCode of plan.todo) {
@@ -178,9 +235,9 @@ export async function publishCertifiedFoundation(tenantId: string, actor: string
     };
     await publishUnit({ user: { tenantId, email: actor }, tenantId, params: { unitCode }, body: {}, query: {}, headers: {} } as any, res);
     if (out.status !== 200 || out.body?.published !== true) {
-      return { plan, published, refused: `${unitCode}: ${out.status} ${JSON.stringify(out.body).slice(0, 240)}` };
+      return { plan, published, unpublished, refused: `${unitCode}: ${out.status} ${JSON.stringify(out.body).slice(0, 240)}` };
     }
     published.push(unitCode);
   }
-  return { plan, published, refused: null };
+  return { plan, published, unpublished, refused: null };
 }

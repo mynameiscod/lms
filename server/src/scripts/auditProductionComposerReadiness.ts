@@ -883,6 +883,7 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
       recommended: [...recommended].sort(),
       withheldFromRecommended: excluded,
       intentionallyWithheld: derivation.withheldReady,
+      notRecommended: derivation.notRecommended,
     }, null, 2)}\n`);
     console.log(`\n  artifacts written to ${path.relative(process.cwd(), ARTIFACT_DIR)}`);
   }

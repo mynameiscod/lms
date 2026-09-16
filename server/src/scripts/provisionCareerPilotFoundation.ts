@@ -133,7 +133,7 @@ function runScript(script: string, args: string[]): { exitCode: number; ms: numb
   if (!apply) {
     say('\n  Steps an --apply run takes, each idempotent:');
     SEED_STEPS.forEach((s, i) => say(`    ${i + 1}. ${s.name}`));
-    say(`    ${SEED_STEPS.length + 1}. publish the certified ${CERTIFIED_FOUNDATION.target} through the publish handler`);
+    say(`    ${SEED_STEPS.length + 1}. publish the certified ${CERTIFIED_FOUNDATION.target} through the publish handler (and return to DRAFT any unit it no longer recommends)`);
     say(`    ${SEED_STEPS.length + 2}. verify inventory, linkage and Foundation readiness`);
     say(`    ${SEED_STEPS.length + 3}. production gate (certifyProductionComposer)`);
     await mongoose.disconnect();
@@ -152,17 +152,18 @@ function runScript(script: string, args: string[]): { exitCode: number; ms: numb
     if (r.exitCode !== 0) { failed = `${step.name} exited ${r.exitCode}`; break; }
   }
 
-  let publication: { published: number; already: number; problems: string[]; refused: string | null } | null = null;
+  let publication: { published: number; already: number; unpublished: number; problems: string[]; refused: string | null } | null = null;
   if (!failed) {
     line();
     say(`STEP ${steps.length + 1} — certified publication`);
     const t0 = Date.now();
     const result = await publishCertifiedFoundation(tenantId, ACTOR);
     publication = {
-      published: result.published.length, already: result.plan.already.length,
+      published: result.published.length, already: result.plan.already.length, unpublished: result.unpublished.length,
       problems: result.plan.problems, refused: result.refused,
     };
-    say(`  already published ${result.plan.already.length} · published now ${result.published.length} · still DRAFT before this run ${result.plan.todo.length}`);
+    say(`  already published ${result.plan.already.length} · published now ${result.published.length} · still DRAFT before this run ${result.plan.todo.length}`
+      + ` · returned to DRAFT (no longer recommended) ${result.unpublished.length}${result.unpublished.length ? ` (${result.unpublished.join(', ')})` : ''}`);
     for (const p of result.plan.problems) say(`  ! ${p}`);
     if (result.refused) say(`  ! refused ${result.refused}`);
     const ok = !result.plan.problems.length && !result.refused;
@@ -182,7 +183,7 @@ function runScript(script: string, args: string[]): { exitCode: number; ms: numb
     const checks: [string, boolean][] = [
       [`units ${CERTIFIED_FOUNDATION.total}, READY ${CERTIFIED_FOUNDATION.ready}`, after.units === CERTIFIED_FOUNDATION.total && after.ready === CERTIFIED_FOUNDATION.ready],
       [`PRODUCTION inventory is exactly the certified ${CERTIFIED_FOUNDATION.target}`, JSON.stringify(after.production) === JSON.stringify(certified)],
-      ['no certified unit left DRAFT, nothing published outside the set', !plan.todo.length && !plan.problems.length],
+      ['no certified unit left DRAFT, nothing published outside the set', !plan.todo.length && !plan.toUnpublish.length && !plan.problems.length],
       ['every checkpoint question linked to its quiz, both ways', after.linkage.ok],
       ['Foundation readiness: CONFIGURED', after.readiness.configured],
       // Off or absent and an undecided first-year is asked to choose a role instead of being shown their path.

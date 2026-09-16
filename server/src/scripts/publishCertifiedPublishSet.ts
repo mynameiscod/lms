@@ -87,9 +87,15 @@ import { teaches } from '../data/contentBundlePolicy';
  * intentionally withheld JS/DOM units became a named policy (productionPublicationPolicy, now a certified
  * source). The recommended set is unchanged at 351 and withheld the same three; the diagnostic absolute
  * minimum was recomputed 160 to 181. ACTUAL PRODUCTION GATE: PASS; Phase-21 audit PASS.
+ *
+ * MOVED AGAIN — NOT A NO-OP. The composer teaches topics as bounded blocks along course strands, with the
+ * programming spine keeping its place in the queue (courseSequencePolicy, now a certified source). The
+ * derivation reaches 350 READY units: T_FUNCTIONS_DOCSTRINGS is no longer selected by any certification scenario
+ * and leaves the set as READY-not-recommended — not withheld by decision, which is still the same three. It is
+ * reconciled to DRAFT through the status route. The diagnostic absolute minimum was recomputed 181 to 193.
  */
 const CERTIFIED_COMMIT = '3e674d50';
-const EXPECT = { total: 359, ready: 354, target: 351, withheld: 3, partial: 5 };
+const EXPECT = { total: 359, ready: 354, target: 350, withheld: 3, notRecommended: 1, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');
 /** What the certification was computed from. A change to any of these since certification is drift. */
@@ -104,6 +110,7 @@ const CERTIFIED_SOURCES = [
   'server/src/data/unitSuitabilityPolicy.ts',
   'server/src/data/compositionShapePolicy.ts',
   'server/src/data/productionPublicationPolicy.ts',
+  'server/src/data/courseSequencePolicy.ts',
 ];
 
 (async () => {
@@ -137,11 +144,15 @@ const CERTIFIED_SOURCES = [
     .sort((a, b) => a.unitCode.localeCompare(b.unitCode));
   const target: string[] = [...certified.recommended].sort();
   const withheld: string[] = [...certified.withheldFromRecommended].sort();
+  const named: string[] = [...(certified.intentionallyWithheld || [])].sort();
+  const notRecommended: string[] = [...(certified.notRecommended || [])].sort();
   const targetSet = new Set(target);
   if (target.length !== EXPECT.target || targetSet.size !== target.length) problems.push(`certified set has ${target.length} codes (${targetSet.size} distinct), expected ${EXPECT.target}`);
-  if (withheld.length !== EXPECT.withheld) problems.push(`certified set withholds ${withheld.length}, expected ${EXPECT.withheld}`);
+  if (named.length !== EXPECT.withheld) problems.push(`certified set withholds ${named.length} by decision, expected ${EXPECT.withheld}`);
+  if (notRecommended.length !== EXPECT.notRecommended) problems.push(`certified set leaves ${notRecommended.length} READY unit(s) not recommended, expected ${EXPECT.notRecommended}`);
+  if (JSON.stringify([...named, ...notRecommended].sort()) !== JSON.stringify(withheld)) problems.push('certified withheld is not the named withheld plus the not-recommended units');
   if (certified.readyCount !== EXPECT.ready || readyFixture.length !== EXPECT.ready) problems.push(`certified READY ${certified.readyCount}/${readyFixture.length}, expected ${EXPECT.ready}`);
-  say(`  certified recommended ${target.length}, withheld ${withheld.length} (${withheld.join(', ')})`);
+  say(`  certified recommended ${target.length}, withheld by decision ${named.length} (${named.join(', ')}), READY not recommended ${notRecommended.length} (${notRecommended.join(', ') || '-'})`);
 
   /* ══ 2. THE DATABASE, AS CERTIFIED ═══════════════════════════════════════════════════════ */
 
@@ -194,7 +205,10 @@ const CERTIFIED_SOURCES = [
     if (!(Number(d.estimatedMinutes) > 0)) problems.push(`${code}: no estimatedMinutes — publishing would also rewrite its duration`);
   }
   const publishedOutside = docsBefore.filter(d => d.status === 'PUBLISHED' && !targetSet.has(String(d.unitCode))).map(d => String(d.unitCode));
-  if (publishedOutside.length) problems.push(`published outside the certified set: ${publishedOutside.join(', ')}`);
+  // A publication the certified set no longer recommends is reconciled to DRAFT; anything else outside the set stops.
+  const toUnpublish = publishedOutside.filter(c => notRecommended.includes(c) && readyCodes.has(c));
+  const unexplained = publishedOutside.filter(c => !toUnpublish.includes(c));
+  if (unexplained.length) problems.push(`published outside the certified set: ${unexplained.join(', ')}`);
   const readyNotTarget = readyUnits.map(u => u.unitCode).filter(c => !targetSet.has(c)).sort();
   if (JSON.stringify(readyNotTarget) !== JSON.stringify(withheld)) problems.push(`READY outside the set is ${readyNotTarget.join(', ')}, certified withheld ${withheld.join(', ')}`);
   if (partial.some(c => targetSet.has(c))) problems.push('a PARTIAL unit is in the certified set');
@@ -213,7 +227,7 @@ const CERTIFIED_SOURCES = [
 
   const todo = target.filter(c => byCode.get(c)?.status === 'DRAFT');
   const already = target.filter(c => byCode.get(c)?.status === 'PUBLISHED');
-  say(`  certified codes still DRAFT ${todo.length}, already PUBLISHED ${already.length}`);
+  say(`  certified codes still DRAFT ${todo.length}, already PUBLISHED ${already.length}, published but no longer recommended ${toUnpublish.length}${toUnpublish.length ? ` (${toUnpublish.join(', ')})` : ''}`);
 
   if (problems.length) {
     say(`\nSTOP — ${problems.length} problem(s); nothing published:`);
@@ -222,7 +236,7 @@ const CERTIFIED_SOURCES = [
     process.exit(1);
   }
   if (!apply) {
-    say(`\nVALID. ${todo.length} certified unit(s) would be published. Re-run with --apply.`);
+    say(`\nVALID. ${toUnpublish.length} unit(s) would return to DRAFT and ${todo.length} certified unit(s) would be published. Re-run with --apply.`);
     await mongoose.disconnect();
     process.exit(0);
   }
@@ -260,8 +274,27 @@ const CERTIFIED_SOURCES = [
   say(`\n  signed in as ${who?.email} (${who?.role}); manage_passport: ${(who?.permissions || []).includes('manage_passport') ? 'yes' : 'NO'}`);
 
   const refused: string[] = [];
+  /**
+   * RECONCILE FIRST, THROUGH THE STATUS ROUTE: POST .../curriculum-units/:unitCode/status { status: DRAFT }. Its live-journey
+   * gate applies unchanged; this tool never confirms on students' behalf, so a unit on live journeys is refused and
+   * publication stops.
+   */
+  const unpublished: string[] = [];
+  for (const code of toUnpublish) {
+    const res = await request(api)
+      .post(`/api/v1/careerpilot/curriculum-units/${encodeURIComponent(code)}/status`)
+      .set('Authorization', `Bearer ${token}`)
+      .set('x-tenant-id', tenantId)
+      .send({ status: 'DRAFT' });
+    if (res.status !== 200 || res.body?.unit?.status !== 'DRAFT') {
+      refused.push(`${code}: HTTP ${res.status} ${JSON.stringify(res.body).slice(0, 200)}`);
+      break;
+    }
+    unpublished.push(code);
+    say(`  returned to DRAFT ${code}`);
+  }
   let done = 0;
-  for (const code of todo) {
+  for (const code of refused.length ? [] : todo) {
     const res = await request(api)
       .post(`/api/v1/careerpilot/curriculum-units/${encodeURIComponent(code)}/publish`)
       .set('Authorization', `Bearer ${token}`)
@@ -296,7 +329,8 @@ const CERTIFIED_SOURCES = [
     const a = afterByCode.get(String(d.unitCode));
     if (!a) return true;
     if (strip(d) !== strip(a)) return true;
-    return !targetSet.has(String(d.unitCode)) && (d.status !== a.status || String(d.updatedAt) !== String(a.updatedAt));
+    return !targetSet.has(String(d.unitCode)) && !unpublished.includes(String(d.unitCode))
+      && (d.status !== a.status || String(d.updatedAt) !== String(a.updatedAt));
   }).map(d => String(d.unitCode));
 
   const countsAfter = await allCounts();
@@ -312,6 +346,7 @@ const CERTIFIED_SOURCES = [
     ['COMPOSER_ELIGIBLE', eligible.length === EXPECT.target, String(eligible.length)],
     ['COMPOSER_ELIGIBLE is exactly the certified set', JSON.stringify(eligible) === JSON.stringify(target), ''],
     ['READY but not PUBLISHED = certified withheld', JSON.stringify(readyNotPublished) === JSON.stringify(withheld), readyNotPublished.join(', ')],
+    ['every reconciled unit DRAFT and still READY', unpublished.every(c => afterByCode.get(c)?.status === 'DRAFT' && readyAfterCodes.includes(c)), unpublished.join(', ')],
     ['PARTIAL and not PUBLISHED', partialNotPublished.length === EXPECT.partial && partialAfter.length === EXPECT.partial, String(partialNotPublished.length)],
     ['no unit changed beyond status', unexpectedUnitChanges.length === 0, unexpectedUnitChanges.slice(0, 5).join(', ')],
   ];
@@ -322,7 +357,7 @@ const CERTIFIED_SOURCES = [
   for (const r of refused) say(`  ! refused ${r}`);
 
   const ok = !refused.length && checks.every(([, pass]) => pass);
-  say(`\n${ok ? 'PUBLICATION COMPLETE' : 'PUBLICATION NOT COMPLETE'} — requested ${todo.length}, published ${done}${refused.length ? ', stopped on a refusal' : ''}.`);
+  say(`\n${ok ? 'PUBLICATION COMPLETE' : 'PUBLICATION NOT COMPLETE'} — returned to DRAFT ${unpublished.length}, requested ${todo.length}, published ${done}${refused.length ? ', stopped on a refusal' : ''}.`);
   await mongoose.disconnect();
   process.exit(ok ? 0 : 1);
 })().catch(async e => { console.error(e); try { await mongoose.disconnect(); } catch { /* closing */ } process.exit(1); });

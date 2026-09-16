@@ -47,6 +47,10 @@ import {
   LearnerShape, learnerShapeOf, RoleAllocation, allocationFor,
   REALLOCATION_ORDER, PlanProgress, SchedulingReadiness, schedulingReadiness,
 } from '../data/compositionShapePolicy';
+import {
+  CourseStrand, SPINE_STRAND, COURSE_STRANDS, strandOf, strandIndex, sequenceIndexOf,
+  sequencePredecessorOf, practicalBoundaries,
+} from '../data/courseSequencePolicy';
 
 /* ------------------------------------------------------------------ *
  * Inputs
@@ -256,6 +260,42 @@ export interface ComposerResult {
    * would have had to call these "not yet exposed", which is the opposite of the truth.
    */
   knownInstruction?: { unitCode: string; viaSkill: string; score: number; state: AssignmentState }[];
+  /**
+   * Every topic block the plan opened: where it began, the practical boundary it was heading for,
+   * whether it got there, and each time it had to stop short and why. A sequencing record only.
+   */
+  topicBlocks?: TopicBlockReport[];
+}
+
+/**
+ * Why an ACTIVE block stopped. PAUSED_FOR_ROLE_CAPACITY: a continuation exists, but its role has no room left
+ * in the allocation. NOT_READY: nothing on the path can be taken yet. INTERRUPTED: something else in the plan
+ * opened another topic first.
+ */
+export type BlockStopReason = 'PAUSED_FOR_ROLE_CAPACITY' | 'NOT_READY' | 'INTERRUPTED';
+
+/**
+ * How a block ended. BOUNDARY_REACHED: its practical boundary was taken. ACTIVE_AT_END: the plan ended while it
+ * was still being taught. PAUSED_AT_END: it paused for capacity and never resumed. ABANDONED: it stopped
+ * because nothing on its path could be taken, and never resumed.
+ */
+export type BlockOutcome = 'BOUNDARY_REACHED' | 'ACTIVE_AT_END' | 'PAUSED_AT_END' | 'ABANDONED';
+
+export interface TopicBlockReport {
+  topicCode: string;
+  strand: CourseStrand;
+  /** The practical unit the block was teaching towards. */
+  target: string;
+  openedAt: number;
+  /** Position at which the target was taken, or null when it never was. */
+  reachedAt: number | null;
+  /** Each stop, and the position at which the block next made progress (null: it never did). */
+  stops: { at: number; reason: BlockStopReason; resumedAt: number | null }[];
+  outcome?: BlockOutcome;
+  /** The floor role a pull opened this block to keep, if any. */
+  promisedFor?: CompositionRole;
+  /** Whether the path to the boundary fitted the role capacity left when the block was opened. */
+  fittedWhenOpened?: boolean;
 }
 
 /* ------------------------------------------------------------------ *
@@ -765,15 +805,120 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    * direct-only check would label B as a prerequisite and leave A explained as ordinary
    * foundation — the same unit described two different ways depending on chain depth.
    */
-  const closureOf = (code: string, seen = new Set<string>()): Set<string> => {
+  const walkClosure = (code: string, seen = new Set<string>()): Set<string> => {
     const u = byCode.get(code);
     if (!u) return seen;
     for (const dep of u.prerequisiteUnitCodes) {
       if (seen.has(dep) || !byCode.has(dep)) continue;
       seen.add(dep);
-      closureOf(dep, seen);
+      walkClosure(dep, seen);
     }
     return seen;
+  };
+  // The prerequisite graph cannot change during composition, so each closure is walked once. Read-only.
+  const closureMemo = new Map<string, Set<string>>();
+  const closureOf = (code: string): Set<string> => {
+    let c = closureMemo.get(code);
+    if (!c) { c = walkClosure(code); closureMemo.set(code, c); }
+    return c;
+  };
+
+  /* ---- 3b. topic blocks and course strands --------------------------- */
+
+  /**
+   * A TOPIC IS TAUGHT AS A BLOCK, UP TO THE POINT WHERE THE LEARNER DOES SOMETHING WITH IT.
+   *
+   * The floor rotation hands each pass to a different role, and each role's best-ranked unit sits in a
+   * different topic, so a beginner's first month read files, arrays, Git, career, files, decomposition —
+   * forty-six topic switches in ninety days, thirty single-day visits, and a forty-two-day wait between
+   * a pseudocode lesson and its practice. Every count was right and the course was incoherent.
+   *
+   * So once a lesson opens a topic, the plan keeps teaching that topic towards its next practical
+   * boundary (see courseSequencePolicy) before starting another. Nothing is forced: each step must be
+   * within its role's budget, suitable now, ready on prerequisites and within the breadth rule, exactly
+   * as any other take. When a step is not, the block stops, the reason is recorded, and the block is
+   * resumed as soon as it can be — before anything new is opened. Reaching the boundary ends the block,
+   * so a block is a stretch of teaching, never a topic's monopoly of the plan.
+   */
+  const topicUnits = new Map<string, ComposableUnit[]>();
+  for (const u of relevant) {
+    if (!topicUnits.has(u.topicCode)) topicUnits.set(u.topicCode, []);
+    topicUnits.get(u.topicCode)!.push(u);
+  }
+  const topicOrder = [...topicUnits.keys()].sort();
+  const boundariesOf = new Map<string, ComposableUnit[]>(
+    topicOrder.map(t => [t, practicalBoundaries(topicUnits.get(t)!)]),
+  );
+  // A boundary this learner could ever be scheduled — judged at the most the plan can project. A learner
+  // who has demonstrated beyond practice has no boundary to be taught towards, so no block is opened.
+  const FULLY_TAUGHT = new Set<PlanProgress>(['TAUGHT', 'PRACTISED']);
+  const attainable = new Set<string>(
+    [...boundariesOf.values()].flat()
+      .filter(a => isSuitableFor(a, schedulingReadiness(stateOf.get(a.unitCode)!.state, FULLY_TAUGHT).equivalentState))
+      .map(a => a.unitCode),
+  );
+  const nextBoundary = (topic: string): ComposableUnit | undefined =>
+    boundariesOf.get(topic)!.find(a => !chosen.has(a.unitCode) && attainable.has(a.unitCode));
+  const firstBoundary = (topic: string): ComposableUnit | undefined => boundariesOf.get(topic)?.[0];
+
+  const dependentsOf = new Map<string, ComposableUnit[]>();
+  for (const u of relevant) {
+    for (const p of u.prerequisiteUnitCodes) {
+      if (!dependentsOf.has(p)) dependentsOf.set(p, []);
+      dependentsOf.get(p)!.push(u);
+    }
+  }
+
+  const spineSequence = (COURSE_STRANDS.find(x => x.strand === SPINE_STRAND)?.sequence || [])
+    .filter(t => topicUnits.has(t));
+
+  const moduleOfTopic = new Map(topicOrder.map(t => [t, topicUnits.get(t)![0].moduleCode]));
+  const strandOfTopic = (topic: string): CourseStrand => strandOf(topic, moduleOfTopic.get(topic) || '');
+
+  const blocks: TopicBlockReport[] = [];
+  /** Unfinished blocks by topic, in the order they were opened. */
+  const openBlocks = new Map<string, TopicBlockReport>();
+  let activeTopic: string | null = null;
+  const openedInStrand = new Map<CourseStrand, number>();
+  let lastOpenedStrand: CourseStrand | null = null;
+  const everOpened = new Set<string>();
+
+  const stopBlock = (topic: string, reason: BlockStopReason) => {
+    const b = openBlocks.get(topic);
+    const last = b?.stops[b.stops.length - 1];
+    // A block that stopped and has not made progress since is still in the same stop, not a new one.
+    if (b && !(last && last.resumedAt === null)) b.stops.push({ at: selected.length, reason, resumedAt: null });
+    if (activeTopic === topic) activeTopic = null;
+  };
+
+  /** Called for every unit taken, in every phase. Opens, continues, or completes a block. */
+  const noteBlock = (u: ComposableUnit) => {
+    const topic = u.topicCode;
+    const open = openBlocks.get(topic);
+    const pending = open?.stops[open.stops.length - 1];
+    if (pending && pending.resumedAt === null) pending.resumedAt = selected.length;
+    if (open && open.target === u.unitCode) {
+      open.reachedAt = selected.length;
+      openBlocks.delete(topic);
+      if (activeTopic === topic) activeTopic = null;
+      return;
+    }
+    if (!isInstructionalRole(roleOf.get(u.unitCode)!)) return;
+    if (activeTopic && activeTopic !== topic) stopBlock(activeTopic, 'INTERRUPTED');
+    if (open) { activeTopic = topic; return; }
+    const target = nextBoundary(topic);
+    if (!target) return;
+    const strand = strandOfTopic(topic);
+    const block: TopicBlockReport = {
+      topicCode: topic, strand, target: target.unitCode, openedAt: selected.length, reachedAt: null, stops: [],
+      fittedWhenOpened: pathFits(target),
+    };
+    blocks.push(block);
+    openBlocks.set(topic, block);
+    activeTopic = topic;
+    everOpened.add(topic);
+    openedInStrand.set(strand, (openedInStrand.get(strand) || 0) + 1);
+    lastOpenedStrand = strand;
   };
 
   /** Readiness as it stood the moment each unit was taken, before its own teaching counted. */
@@ -789,6 +934,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     selected.push(u);
     chosen.add(u.unitCode);
     noteTaught(u);
+    noteBlock(u);
     const role = roleOf.get(u.unitCode)!;
     roleCount.set(role, (roleCount.get(role) || 0) + 1);
     if (role === 'DIRECTION_LEARNING') {
@@ -929,6 +1075,240 @@ export function composeUnits(input: ComposerInput): ComposerResult {
         && withinBreadthOf(x, floor))
       .sort((a, b) => a.displayOrder - b.displayOrder || a.unitCode.localeCompare(b.unitCode))[0];
 
+  const priorityFor = (u: ComposableUnit) => priorityOf(u, stateOf.get(u.unitCode)!.state, student);
+
+  /**
+   * RESUME BEFORE REACHING FOR SOMETHING NEW — PULLS INCLUDED.
+   *
+   * A pull is how the plan teaches past an empty bucket. When the unit rank would pull towards can no longer be
+   * reached before the plan ends, the first thing to pull towards instead is a block already paused: one whose
+   * boundary's role has room, is suitable, and is finishable. The step is an ordinary pull; the breadth rule was
+   * applied when the block opened. Without this a strong exploring learner's last ten days scattered one lesson each
+   * across five direction topics and practised none of them.
+   */
+  const resumeByPull = (floor: number | null, wants: (target: ComposableUnit) => boolean): ComposableUnit | undefined => {
+    for (const block of openBlocks.values()) {
+      const target = byCode.get(block.target)!;
+      if (!wants(target) || !suitableNow(target) || !finishable(target)) continue;
+      const step = stepTowards(target, floor, false, true);
+      // Exploration is sampling within its own allocation; a resumed pull never spends past it.
+      if (step && (roleOf.get(step.unitCode) !== 'EXPLORATION' || (budget.get('EXPLORATION') || 0) > 0)) return step;
+    }
+    return undefined;
+  };
+
+  /** Record that the block a floor pull just advanced is being taught to keep that role's floor. */
+  const promise = (pulled: ComposableUnit, role: CompositionRole) => {
+    const block = openBlocks.get(pulled.topicCode);
+    if (block && !block.promisedFor) block.promisedFor = role;
+  };
+
+  /**
+   * Does what is left of the path to this boundary fit the capacity each role still has?
+   *
+   * Counts, per role, the untaken units on the path this learner would actually be scheduled — not lessons they
+   * already know, not units their evidence has outgrown, not units they can never be given. A topic whose path
+   * fits is opened before one whose path does not, so a block starts where it can finish rather than leaving a
+   * lesson fragment behind. A preference, never a gate. Closures are precomputed; this is a count.
+   */
+  const pathNeeds = (target: ComposableUnit): Map<CompositionRole, number> => {
+    const need = new Map<CompositionRole, number>();
+    for (const code of [target.unitCode, ...closureOf(target.unitCode)]) {
+      const x = byCode.get(code);
+      if (!x || chosen.has(code) || isKnownLesson(x) || outgrownBy(code)) continue;
+      if (!isSuitableFor(x, schedulingReadiness(stateOf.get(code)!.state, FULLY_TAUGHT).equivalentState)) continue;
+      const role = roleOf.get(code)!;
+      need.set(role, (need.get(role) || 0) + 1);
+    }
+    return need;
+  };
+  /**
+   * THE PROGRAMMING SPINE KEEPS ITS PLACE IN THE QUEUE.
+   *
+   * A beginner's foundation-instruction target is 24. Reaching the first practice of variables, conditions, loops
+   * and functions costs 17 of it, hardware 7, decomposition 6 and pseudocode 4. Opened in strand order with no
+   * regard for what the spine still needs, orientation and thinking blocks spent that capacity first: conditions
+   * reached practice on day 28, and loops and functions never did.
+   *
+   * So when a topic is judged for fit, the capacity still needed to bring each unresolved spine topic to its first
+   * practice — its lessons and the debugging on that path — is treated as spoken for: all of it for a topic outside
+   * the spine, and only the earlier spine topics' share for a topic on it. This is a
+   * ranking preference only — a topic that does not fit is still opened when nothing that fits can be — and it
+   * never touches a budget, a floor or a prerequisite. A topic whose path this learner no longer needs teaching
+   * for (evidence has resolved it) reserves nothing, so no elementary instruction is pushed onto a measured learner.
+   */
+  let reserveAt = -1;
+
+  const spineNeeds = new Map<string, Map<CompositionRole, number>>();
+  const spineReserve = (): void => {
+    if (reserveAt !== selected.length) {
+      reserveAt = selected.length;
+      spineNeeds.clear();
+      for (const topic of spineSequence) {
+        const first = firstBoundary(topic);
+        if (!first || chosen.has(first.unitCode) || !attainable.has(first.unitCode)) continue;
+        const need = pathNeeds(first);
+        // Resolved by evidence: nothing on the path still needs teaching, so nothing is held for it.
+        if (![...need.keys()].some(role => isInstructionalRole(role))) continue;
+        spineNeeds.set(topic, need);
+      }
+    }
+  };
+  /**
+   * Taking this practical unit leaves the unresolved spine's share of its role untouched. A unit that is itself on a
+   * spine topic's first-practice path always may; so may anything when the spine is resolved or not owed that role.
+   */
+  const leavesSpineRoom = (u: ComposableUnit): boolean => {
+    spineReserve();
+    const role = roleOf.get(u.unitCode)!;
+    let held = 0;
+    for (const [topic, needs] of spineNeeds) {
+      const first = firstBoundary(topic)!;
+      if (first.unitCode === u.unitCode || closureOf(first.unitCode).has(u.unitCode)) return true;
+      held += needs.get(role) || 0;
+    }
+    return (budget.get(role) || 0) - held >= 1;
+  };
+  const pathFits = (target: ComposableUnit): boolean => {
+    const need = pathNeeds(target);
+    spineReserve();
+    // Outside the spine, everything the unresolved spine still needs is held. On the spine, only what the topics
+    // BEFORE this one still need: an earlier topic is never made to wait for a later one's share.
+    const position = spineSequence.indexOf(target.topicCode);
+    const held = new Map<CompositionRole, number>();
+    for (const [topic, needs] of spineNeeds) {
+      if (position >= 0 && spineSequence.indexOf(topic) >= position) continue;
+      for (const [role, n] of needs) held.set(role, (held.get(role) || 0) + n);
+    }
+    return [...need].every(([role, n]) => (budget.get(role) || 0) - (held.get(role) || 0) >= n)
+      && [...need.values()].reduce((a, b) => a + b, 0) <= targetUnits - selected.length;
+  };
+  /** Whether what is left of the path to this unit can still be taught before the plan ends. */
+  const finishable = (target: ComposableUnit): boolean =>
+    [...pathNeeds(target).values()].reduce((a, b) => a + b, 0) <= targetUnits - selected.length;
+
+  /**
+   * The next step towards a boundary: the boundary itself when it can be taken, otherwise its earliest
+   * takeable prerequisite. The same rules as any take.
+   *
+   * COHERENCE CONTROLS ORDER; IT DOES NOT OVERRIDE THE MIX. A step is taken only while its OWN role has room in
+   * the allocation. A block never spends another role's capacity because its practice is still several
+   * lessons away — letting it do so took an undecided learner's direction from eleven units to none, and a
+   * @70 learner's practice from twenty-seven to eighteen. With no room the block PAUSES, the plan serves the
+   * roles that do have room, and the block resumes before anything new is opened once its role has capacity.
+   *
+   * BREADTH: an OPEN block is sampled as a block. The breadth rule decides whether a direction topic may be
+   * opened; once it is, its steps are not refused one lesson at a time for the family being ahead, which is
+   * what turned sampling into a lesson from web, a lesson from AI, a lesson from cloud, and none of them
+   * practised. The next opening still has to wait until the other families have caught up.
+   */
+  const stepTowards = (
+    target: ComposableUnit, floor: number | null, needBudget: boolean, openBlock = false,
+  ): ComposableUnit | undefined => {
+    const ok = (x: ComposableUnit) => !chosen.has(x.unitCode) && suitableNow(x) && readyToTake(x)
+      && (openBlock || withinBreadthOf(x, floor))
+      && (!needBudget || (budget.get(roleOf.get(x.unitCode)!) || 0) > 0);
+    if (ok(target)) return target;
+    let best: ComposableUnit | undefined;
+    for (const code of closureOf(target.unitCode)) {
+      const x = byCode.get(code);
+      if (!x || !ok(x)) continue;
+      if (!best || x.displayOrder < best.displayOrder
+        || (x.displayOrder === best.displayOrder && x.unitCode < best.unitCode)) best = x;
+    }
+    return best;
+  };
+
+  /** Continue the active block, or resume the earliest-opened stopped one. */
+  const blockContinuation = (floor: number | null): ComposableUnit | undefined => {
+    const order = activeTopic
+      ? [activeTopic, ...[...openBlocks.keys()].filter(t => t !== activeTopic)]
+      : [...openBlocks.keys()];
+    for (const topic of order) {
+      const block = openBlocks.get(topic)!;
+      const target = byCode.get(block.target)!;
+      // A block a floor pull opened continues as that pull — the standing rule, under which a pull is taken
+      // whatever its bucket holds — but only while that floor is still unmet. Nothing else may spend past a role.
+      const promise = block.promisedFor
+        && (roleCount.get(block.promisedFor) || 0) < (allocation.find(x => x.role === block.promisedFor)?.min ?? 0);
+      const step = stepTowards(target, floor, !promise, true);
+      if (step) return step;
+      if (topic === activeTopic) {
+        stopBlock(topic, stepTowards(target, floor, false, true) ? 'PAUSED_FOR_ROLE_CAPACITY' : 'NOT_READY');
+      }
+    }
+    return undefined;
+  };
+
+  /**
+   * THE COURSE HAS STRANDS, AND PROGRAMMING IS ITS SPINE.
+   *
+   * When a new topic has to be opened, measured priority still decides first — state, mandatory,
+   * direction, category — so a learner's weakest area is never pushed behind the course's default order.
+   * Among topics that priority cannot separate, the strand policy does: a topic whose authored predecessor
+   * has not reached its first boundary waits; a topic being opened for the first time goes before a
+   * return to a deeper boundary; programming alternates with the other strands so neither all the
+   * pre-programming nor all the programming comes first; and the other strands take turns, the
+   * foundation strands while they still have authored topics to teach.
+   */
+  /**
+   * Is an EARLIER topic in this topic's authored sequence still unresolved for this learner — its first practice not
+   * yet taken, attainable, and still needing teaching? Arrays is not opened ahead of loops and functions a beginner
+   * has not reached; a learner whose evidence resolves loops is not held back by it.
+   */
+  const predecessorPending = (topic: string): boolean => {
+    for (let prior = sequencePredecessorOf(topic); prior; prior = sequencePredecessorOf(prior)) {
+      if (!topicUnits.has(prior)) continue;
+      const first = firstBoundary(prior);
+      if (!first || chosen.has(first.unitCode) || !attainable.has(first.unitCode)) continue;
+      if ([...pathNeeds(first).keys()].some(role => isInstructionalRole(role))) return true;
+    }
+    return false;
+  };
+  /** Taking this unit would OPEN a topic ahead of an unresolved earlier topic in its sequence. */
+  const opensOutOfOrder = (u: ComposableUnit): boolean =>
+    isInstructionalRole(roleOf.get(u.unitCode)!) && !openBlocks.has(u.topicCode) && predecessorPending(u.topicCode);
+  const strandHasSequenceLeft = (strand: CourseStrand): boolean => {
+    const s = COURSE_STRANDS.find(x => x.strand === strand)!;
+    return s.sequence.some(t => {
+      const first = firstBoundary(t);
+      return !!first && !chosen.has(first.unitCode) && attainable.has(first.unitCode);
+    });
+  };
+  const openingKey = (topic: string, step: ComposableUnit, target: ComposableUnit): number[] => {
+    const strand = strandOfTopic(topic);
+    const spineTurn = lastOpenedStrand !== null && lastOpenedStrand !== SPINE_STRAND;
+    return [
+      ...priorityFor(step),
+      predecessorPending(topic) ? 1 : 0,
+      pathFits(target) ? 0 : 1,
+      everOpened.has(topic) ? 1 : 0,
+      (strand === SPINE_STRAND) === spineTurn ? 0 : 1,
+      strand === SPINE_STRAND || strandHasSequenceLeft(strand) ? 0 : 1,
+      openedInStrand.get(strand) || 0,
+      strandIndex(strand),
+      sequenceIndexOf(topic) ?? COURSE_STRANDS.length * 10,
+      rankIndex.get(step.unitCode)!,
+    ];
+  };
+
+  /** The best topic to open now, as the first instructional step towards its next boundary. */
+  const openingFor = (
+    floor: number | null, accept: (step: ComposableUnit, target: ComposableUnit) => boolean,
+  ): { step: ComposableUnit; target: ComposableUnit } | undefined => {
+    let best: { step: ComposableUnit; target: ComposableUnit; key: number[] } | undefined;
+    for (const topic of topicOrder) {
+      if (openBlocks.has(topic)) continue;
+      const target = nextBoundary(topic);
+      if (!target) continue;
+      const step = stepTowards(target, floor, true, false);
+      if (!step || !isInstructionalRole(roleOf.get(step.unitCode)!) || !accept(step, target)) continue;
+      const key = openingKey(topic, step, target);
+      if (!best || compareArrays(key, best.key) < 0) best = { step, target, key };
+    }
+    return best;
+  };
+
   /* ---- 4a. keep the promises first ---------------------------------- */
 
   /**
@@ -1003,16 +1383,115 @@ export function composeUnits(input: ComposerInput): ComposerResult {
 
     if (!behind.length) break;
 
+    /**
+     * PRACTICAL PROMISES BEFORE MORE SAMPLING, WHEN THEY CAN BE KEPT NOW.
+     *
+     * Continuing a block comes before the rotation — except a direction or exploration block whose role's floor is
+     * already met, while an owed practical role has a unit this learner can take right now. Then the practical
+     * promise is kept first. A learner measured past instruction is ready for debugging, projects and checkpoints from day one;
+     * letting nine-lesson direction blocks run on after direction's floor was met put 29 of their 48 practical units
+     * in the last month. Foundation and universal blocks are untouched, so a beginner's course reads as before.
+     */
+    const owedRoles = new Set(behind.map(b => b.role));
+    const practicalNow = behind.some(b => !isInstructionalRole(b.role) && ranked.some(u => !chosen.has(u.unitCode)
+      && roleOf.get(u.unitCode) === b.role && withinBreadthOf(u, floor) && suitableNow(u) && readyToTake(u)));
+    const continued = blockContinuation(floor);
+    const sampling = continued && ['DIRECTION_LEARNING', 'EXPLORATION'].includes(roleOf.get(continued.unitCode)!);
+    if (continued && (!sampling || owedRoles.has(roleOf.get(continued.unitCode)!) || !practicalNow)) { take(continued, true); continue; }
+
+    /**
+     * TEACH, PRACTISE, THEN USE IT — BEFORE MOVING ON.
+     *
+     * A block ends at its practical boundary. If a practical role is still owed its floor and the topic just
+     * taught has something of that role — its debugging exercise, its project, or the lesson that project
+     * still needs — that comes next, while the topic is fresh. Without this, ties in the rotation always went
+     * to opening more instruction, and every project and checkpoint slid to the last month.
+     */
+    if (selected.length) {
+      const last = selected[selected.length - 1];
+      const here = last.topicCode;
+      const owedPractical = new Set(behind.map(b => b.role).filter(r => !isInstructionalRole(r)));
+      let local: ComposableUnit | undefined;
+      // What the topic just taught offers, and anything that was waiting on exactly the unit just taken — the
+      // checkpoint a pull was teaching towards is usually in another topic.
+      const candidates = [...(topicUnits.get(here) || []), ...(dependentsOf.get(last.unitCode) || [])];
+      for (const u of candidates) {
+        if (chosen.has(u.unitCode) || !owedPractical.has(roleOf.get(u.unitCode)!)) continue;
+        if (u.topicCode !== here && !(suitableNow(u) && readyToTake(u) && withinBreadthOf(u, floor))) continue;
+        const step = stepTowards(u, floor, true);
+        // Only what the plan has already taught can be USED now: the unit itself must be takeable. Anything that still
+        // needs a lesson first is new teaching, and the strand policy decides when that opens.
+        if (step !== u || !leavesSpineRoom(u)) continue;
+        if (step && (!local || rankIndex.get(step.unitCode)! < rankIndex.get(local.unitCode)!)) local = step;
+      }
+      if (local) {
+        if (isInstructionalRole(roleOf.get(local.unitCode)!)) asPrerequisite.add(local.unitCode);
+        take(local, true);
+        continue;
+      }
+    }
+
     let took = false;
     for (const a of behind) {
-      const direct = ranked.find(u =>
+      const servesTurn = (u: ComposableUnit) =>
         !chosen.has(u.unitCode)
         && roleOf.get(u.unitCode) === a.role
         && withinBreadthOf(u, floor)
         && suitableNow(u)
-        && readyToTake(u));
+        && readyToTake(u);
+      // Rank never opens a topic ahead of an unresolved earlier topic in its sequence while anything else serves.
+      const byRank = ranked.find(u => servesTurn(u) && !opensOutOfOrder(u)) ?? ranked.find(servesTurn);
+
+      // Which unit serves this role's turn: a new topic chosen by the strand policy when it is instruction,
+      // and otherwise the topic just taught when it has something of this role. Never a lower priority.
+      let direct = byRank;
+      if (byRank && isInstructionalRole(a.role)) {
+        // The strand policy chooses across every instruction role still owed its floor, not within this one:
+        // choosing per role opened a whole block of whichever topic that role ranked first, which put Git, AI
+        // and career ahead of the first programming lesson for no reason but the rotation's turn order.
+        // The one exception is the spine: when it is programming's turn, programming may open on any
+        // instruction role's turn, so filling other floors never stalls the course's spine for a month.
+        const owed = new Set(behind.map(b => b.role));
+        const spineTurn = lastOpenedStrand !== null && lastOpenedStrand !== SPINE_STRAND;
+        // And on the other strands' turn, a foundation strand with authored topics still to teach may open
+        // while its role has allocation room, so orientation and thinking are not deferred behind every floor.
+        // A role lends a turn only while it has one to lend: once its lent turns cover its floor it stops lending, so a
+        // role owed a single unit (exploration, say) lends at most once and is never talked out of that unit for good.
+        const spare = a.min - (roleCount.get(a.role) || 0) - (pullTurns.get(a.role) || 0) >= 1;
+        const opening = openingFor(floor, step => {
+          const role = roleOf.get(step.unitCode)!;
+          const strand = strandOfTopic(step.topicCode);
+          if (role === a.role) return true;
+          if (!spare) return false;
+          if (owed.has(role)) return true;
+          if (spineTurn) return strand === SPINE_STRAND;
+          return strand !== SPINE_STRAND && strandHasSequenceLeft(strand) && (budget.get(role) || 0) > 0;
+        });
+        if (opening && compareArrays(priorityFor(opening.step), priorityFor(byRank)) <= 0) {
+          direct = opening.step;
+          // Another role's topic opened on this role's turn: like a pull, that is a turn this role has had, or it
+          // would stay furthest behind and keep lending its turn while the roles after it never got one.
+          if (roleOf.get(direct.unitCode) !== a.role) pullTurns.set(a.role, (pullTurns.get(a.role) || 0) + 1);
+        }
+      } else if (byRank && selected.length) {
+        const here = selected[selected.length - 1].topicCode;
+        const local = ranked.find(u => u.topicCode === here && !chosen.has(u.unitCode)
+          && roleOf.get(u.unitCode) === a.role && withinBreadthOf(u, floor) && suitableNow(u) && readyToTake(u));
+        if (local && compareArrays(priorityFor(local), priorityFor(byRank)) <= 0) direct = local;
+      }
 
       if (direct) { take(direct, true); took = true; break; }
+
+      // A practical role with nothing takeable teaches towards a boundary of its own role, in strand order.
+      const towards = openingFor(floor, (_step, target) => roleOf.get(target.unitCode) === a.role);
+      if (towards) {
+        asPrerequisite.add(towards.step.unitCode);
+        take(towards.step, true);
+        promise(towards.step, a.role);
+        pullTurns.set(a.role, (pullTurns.get(a.role) || 0) + 1);
+        took = true;
+        break;
+      }
 
       /**
        * Not teachable yet, so teach towards it.
@@ -1023,17 +1502,37 @@ export function composeUnits(input: ComposerInput): ComposerResult {
        * how the promise gets kept — and only the takeable link is taken, so nothing unsuitable is
        * ever scheduled.
        */
-      const aspirant = ranked.find(u =>
+      const aspires = (u: ComposableUnit) =>
         !chosen.has(u.unitCode)
         && roleOf.get(u.unitCode) === a.role
         && !isKnownLesson(u)            // never teach towards a lesson this learner already knows
         && withinBreadthOf(u, floor)
-        && pullTargetFor(u, floor));
+        && !!pullTargetFor(u, floor);
+      // The same rule as the fill: when the unit rank would teach towards cannot be reached before the plan ends, reach
+      // for the best-ranked one that can. A promise chased past day ninety keeps no promise at all.
+      const rankAspirant = ranked.find(aspires);
+      /**
+       * A floor is owed ONE unit, so the pull reaches first for a promise whose next step fits the capacity left once
+       * the unresolved programming spine's share is held, and does not open a topic out of its sequence. A beginner's
+       * verification floor otherwise paid for its checkpoint with the four foundation lessons functions needed.
+       */
+      const pullFits = (u: ComposableUnit) => {
+        const step = pullTargetFor(u, floor)!;
+        if (!isInstructionalRole(roleOf.get(step.unitCode)!)) return true;
+        const boundary = nextBoundary(step.topicCode);
+        return !opensOutOfOrder(step) && (!boundary || pathFits(boundary));
+      };
+      spineReserve();
+      const aspirant = (spineNeeds.size ? ranked.find(u => aspires(u) && finishable(u) && pullFits(u)) : undefined)
+        ?? (rankAspirant && !finishable(rankAspirant)
+          ? ranked.find(u => aspires(u) && finishable(u)) ?? rankAspirant
+          : rankAspirant);
 
       const pulled = aspirant && pullTargetFor(aspirant, floor);
       if (pulled) {
         asPrerequisite.add(pulled.unitCode);
         take(pulled, true);
+        promise(pulled, a.role);
         pullTurns.set(a.role, (pullTurns.get(a.role) || 0) + 1);
         took = true;
         break;
@@ -1082,13 +1581,24 @@ export function composeUnits(input: ComposerInput): ComposerResult {
      */
     const takeable = (u: ComposableUnit) => affordable(u) && suitableNow(u) && readyToTake(u);
     const openTopics = new Set(selected.map(u => u.topicCode));
+    const here = selected.length ? selected[selected.length - 1].topicCode : null;
 
-    const followUp = ranked.find(u =>
-      openTopics.has(u.topicCode)
-      && !isInstructionalRole(roleOf.get(u.unitCode)!)
-      && takeable(u));
+    const continued = blockContinuation(floor);
+    const followUp = continued ? undefined
+      : (here && ranked.find(u => u.topicCode === here && !isInstructionalRole(roleOf.get(u.unitCode)!) && takeable(u)
+        && leavesSpineRoom(u)))
+        || ranked.find(u =>
+          openTopics.has(u.topicCode)
+          && !isInstructionalRole(roleOf.get(u.unitCode)!)
+          && takeable(u)
+          && leavesSpineRoom(u));
 
-    const next = followUp ?? ranked.find(takeable);
+    let next = continued ?? followUp
+      ?? ranked.find(u => takeable(u) && !opensOutOfOrder(u)) ?? ranked.find(takeable);
+    if (next && !continued && !followUp) {
+      const opening = openingFor(floor, () => true);
+      if (opening && compareArrays(priorityFor(opening.step), priorityFor(next)) <= 0) next = opening.step;
+    }
 
     if (next) {
       /**
@@ -1122,8 +1632,19 @@ export function composeUnits(input: ComposerInput): ComposerResult {
      * consuming allocation, so the plan filled up while buckets still held unspent budget. It is
      * never refused for want of budget — it simply stops being invisible.
      */
-    const wanted = ranked.find(u => affordable(u) && suitableNow(u));
-    let pulled = wanted && pullTargetFor(wanted, floor);
+    /**
+     * Teach towards something the plan can still reach. A pull chain that the ninety days end in the middle of is a
+     * lesson fragment — a strong learner's last nine days went to a CSS chain ten units long while an equally valid
+     * seven-unit one sat unselected. Only when the unit rank would reach for cannot be finished is another chosen:
+     * the best-ranked finishable one, and when nothing is finishable the choice is exactly what it was.
+     */
+    const rankWanted = ranked.find(u => affordable(u) && suitableNow(u));
+    const wanted = rankWanted && !finishable(rankWanted)
+      ? ranked.find(u => affordable(u) && suitableNow(u) && finishable(u)) ?? rankWanted
+      : rankWanted;
+    let pulled = (rankWanted && !finishable(rankWanted)
+      ? resumeByPull(floor, target => (budget.get(roleOf.get(target.unitCode)!) || 0) > 0)
+      : undefined) ?? (wanted && pullTargetFor(wanted, floor));
 
     if (!pulled) {
       // A known lesson is "not suitable now" only because it is suppressed; it is not something to
@@ -1299,6 +1820,13 @@ export function composeUnits(input: ComposerInput): ComposerResult {
       .filter(([code]) => !chosen.has(code) && suitableByPolicy(byCode.get(code)!))
       .map(([unitCode, via]) => ({ unitCode, viaSkill: via.skill, score: via.score, state: via.state }))
       .sort((a, b) => a.unitCode.localeCompare(b.unitCode)),
+    topicBlocks: blocks.map(b => {
+      const last = b.stops[b.stops.length - 1];
+      const outcome: BlockOutcome = b.reachedAt !== null ? 'BOUNDARY_REACHED'
+        : !last || last.resumedAt !== null ? 'ACTIVE_AT_END'
+          : last.reason === 'NOT_READY' ? 'ABANDONED' : 'PAUSED_AT_END';
+      return { ...b, outcome };
+    }),
   };
 
   /**

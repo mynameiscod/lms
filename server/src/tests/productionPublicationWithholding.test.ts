@@ -23,6 +23,8 @@ const READY_CODES = READY.map(u => u.unitCode);
 const NAMED = ['T_JS_DOM_ARRAYS_AND_OBJECTS', 'T_JS_DOM_FUNCTIONS', 'T_JS_DOM_VALUES_AND_VARIABLES'];
 /** The certified set is what production publishes, so it stands in for PUBLISHED here. */
 const PUBLISHED = [...SETS.recommended];
+/** READY units no certification scenario reaches: left out of the set by derivation, not by decision. */
+const NOT_RECOMMENDED = [...SETS.notRecommended].sort();
 
 describe('the named withheld list', () => {
   it('is exactly the three decided units, by code', () => {
@@ -33,7 +35,8 @@ describe('the named withheld list', () => {
   it('1. keeps exactly those three out of the recommended set, even when every READY unit is reached', () => {
     const d = deriveRecommendedPublishSet({ reached: READY_CODES, universe: READY });
     expect(READY_CODES.filter(c => !d.recommended.has(c)).sort()).toEqual(NAMED);
-    expect([...d.recommended].sort()).toEqual([...SETS.recommended].sort());
+    // Reaching everything recommends the certified set plus exactly the units certification no longer reaches.
+    expect([...d.recommended].sort()).toEqual([...SETS.recommended, ...NOT_RECOMMENDED].sort());
     expect(d.withheldReady).toEqual(NAMED);
     expect(d.notRecommended).toEqual([]);
     expect(d.withheldRequired).toEqual([]);
@@ -46,7 +49,8 @@ describe('the named withheld list', () => {
 
   it('3. leaves them unpublished — outside the certified set production publishes', () => {
     expect(NAMED.filter(c => PUBLISHED.includes(c))).toEqual([]);
-    expect([...SETS.withheldFromRecommended].sort()).toEqual(NAMED);
+    // Everything READY outside the set is the named three plus the derived not-recommended units, and nothing else.
+    expect([...SETS.withheldFromRecommended].sort()).toEqual([...NAMED, ...NOT_RECOMMENDED].sort());
     expect(publicationDrift({ published: PUBLISHED, certified: SETS.recommended, ready: READY_CODES }).ok).toBe(true);
   });
 
@@ -61,6 +65,23 @@ describe('the named withheld list', () => {
     ];
     for (const s of learners) {
       expect(compose(production, s).units.filter(u => NAMED.includes(u.unitCode))).toEqual([]);
+    }
+  });
+});
+
+describe('READY units the certified set leaves out without a decision', () => {
+  it('are derived as not recommended from the committed inventory, never named, never in the set', () => {
+    const reached = SETS.recommended;
+    const d = deriveRecommendedPublishSet({ reached, universe: READY });
+    expect(d.notRecommended).toEqual(NOT_RECOMMENDED);
+    expect(NOT_RECOMMENDED.filter(c => NAMED.includes(c))).toEqual([]);
+    expect(NOT_RECOMMENDED.filter(c => PUBLISHED.includes(c))).toEqual([]);
+    expect(NOT_RECOMMENDED.every(c => READY_CODES.includes(c))).toBe(true);
+    // Publishing one of them is drift like any other extra publication.
+    for (const code of NOT_RECOMMENDED) {
+      const drift = publicationDrift({ published: [...PUBLISHED, code], certified: SETS.recommended, ready: READY_CODES });
+      expect(drift.ok).toBe(false);
+      expect(drift.extra).toEqual([code]);
     }
   });
 });
@@ -81,7 +102,8 @@ describe('the list cannot hide anything it does not name', () => {
 
   it('reports a READY unit nobody reached and nobody named as not recommended, rather than as withheld', () => {
     const d = deriveRecommendedPublishSet({ reached: PUBLISHED, universe: [...READY, EXTRA] });
-    expect(d.notRecommended).toEqual([EXTRA.unitCode]);
+    // Alongside the committed inventory's own not-recommended units, and never as withheld.
+    expect(d.notRecommended).toEqual([...NOT_RECOMMENDED, EXTRA.unitCode].sort());
     expect(d.withheldReady).toEqual(NAMED);
   });
 
@@ -90,7 +112,8 @@ describe('the list cannot hide anything it does not name', () => {
     const d = deriveRecommendedPublishSet({ reached: READY_CODES, universe: READY, withheld: shortened });
     expect(d.recommended.has('T_JS_DOM_VALUES_AND_VARIABLES')).toBe(true);
     const drift = publicationDrift({ published: PUBLISHED, certified: [...d.recommended], ready: READY_CODES, withheld: shortened });
-    expect(drift.missing).toEqual(['T_JS_DOM_VALUES_AND_VARIABLES']);
+    // Reaching every READY unit also recommends the not-recommended ones; the removed name is missing among them.
+    expect(drift.missing).toEqual([...NOT_RECOMMENDED, 'T_JS_DOM_VALUES_AND_VARIABLES'].sort());
     expect(drift.ok).toBe(false);
   });
 

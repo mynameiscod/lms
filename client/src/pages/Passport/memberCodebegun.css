@@ -98,10 +98,10 @@
 }
 
 /* AI Mentor inside the member shell.
-   The page sizes itself with an inline height:calc(100vh - 120px), which is correct under the
-   LMS Layout it was written for. This shell is taller - gd-main adds 26px of top padding, the
-   topbar and its 24px margin, then 48px at the bottom - so that value overflows and the member
-   gets two scrollbars, one inside the other. Corrected here rather than in the page, because
-   the page is shared and its own layout under /ai-mentor is right as it stands. !important is
-   required: the value it overrides is an inline style. */
-.gd .cb-member-mentor > div { height: calc(100vh - 215px) !important; min-height: 430px !important; }
+   The page carries its own height for /ai-mentor under the LMS Layout. This shell is taller -
+   gd-main adds 26px of top padding, the topbar and its 24px margin, then 48px at the bottom -
+   so that value overflows and the member gets two scrollbars, one inside the other. Corrected
+   here rather than in the page, because the page is shared and its standalone layout is right
+   as it stands. */
+.gd .cb-member-mentor { height: calc(100vh - 215px); min-height: 430px; }
+.gd .cb-member-mentor .aim { height: 100%; min-height: 0; }

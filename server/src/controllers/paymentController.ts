@@ -280,7 +280,21 @@ export const paymentReturn = async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error('[payment] return settle failed:', e?.message); // still redirect; webhook covers activation
   }
-  return res.redirect(302, to);
+  /**
+   * Send them back to the APP, which is not always this origin.
+   *
+   * A bare path assumes the browser should stay on whatever host served this endpoint. In
+   * production that is true — the API and the app share one origin — but in development the
+   * app is on :3000 and this is :5000, so a relative redirect left a paying member on the API
+   * host, where the SPA fallback has no build to serve. The return leg is the last step of a
+   * payment; it has to land somewhere real.
+   *
+   * The origin comes from the server's own configuration and the path has already been
+   * restricted to a same-site path above, so this cannot be pointed at another site by
+   * anything a caller sends.
+   */
+  const appOrigin = String(process.env.CLIENT_URL || process.env.FRONTEND_URL || '').replace(/\/+$/, '');
+  return res.redirect(302, appOrigin ? `${appOrigin}${to}` : to);
 };
 
 const isAdmin = (req: AuthenticatedRequest) => ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'].includes(String((req.user as any)?.role));

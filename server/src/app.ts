@@ -100,7 +100,26 @@ app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP to avoid blocking static assets
 }));
 app.use(morgan('combined'));
-app.use(cors(corsOptions));
+/**
+ * THE PAYMENT CALLBACKS ARE NOT BROWSER XHR, AND CORS MUST NOT JUDGE THEM.
+ *
+ * Razorpay's redirect-mode return arrives as a CROSS-SITE POST from api.razorpay.com, so it
+ * carries an Origin this allowlist has never heard of. The dev callback answered that with an
+ * Error, the error handler turned it into a 500, and a member who had just paid was shown
+ * "Not allowed by CORS" — while their payment sat unsettled, because the settlement runs in
+ * the handler the rejection had just skipped.
+ *
+ * Neither callback is a script reading a cross-origin response: one is a top-level navigation
+ * that ends in a redirect, the other a server-to-server webhook (which only escaped this by
+ * sending no Origin at all). What protects them is Razorpay's signature, checked before
+ * anything is settled — so the origin check here buys nothing and costs a paid member their
+ * product.
+ */
+const PAYMENT_CALLBACKS = /^\/api\/v1\/payments\/(return|webhook)\/?$/;
+const appCors = cors(corsOptions);
+const callbackCors = cors({ origin: true });
+app.use((req: Request, res: Response, next: NextFunction) =>
+  (PAYMENT_CALLBACKS.test(req.path) ? callbackCors : appCors)(req, res, next));
 app.use(apiErrorLogger); // log all 4xx/5xx responses to file + stdout
 // Stash the raw body so signature-verified webhooks (e.g. Razorpay) can HMAC the
 // exact bytes Razorpay signed, while routes still receive parsed JSON in req.body.

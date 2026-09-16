@@ -88,13 +88,14 @@ import { teaches } from '../data/contentBundlePolicy';
  * source). The recommended set is unchanged at 351 and withheld the same three; the diagnostic absolute
  * minimum was recomputed 160 to 181. ACTUAL PRODUCTION GATE: PASS; Phase-21 audit PASS.
  *
- * MOVED AGAIN — NOT A NO-OP. The composer teaches topics as bounded blocks along course strands, with the
+ * MOVED AGAIN, TO 150b9223 — NOT A NO-OP. The composer teaches topics as bounded blocks along course strands, with the
  * programming spine keeping its place in the queue (courseSequencePolicy, now a certified source). The
  * derivation reaches 350 READY units: T_FUNCTIONS_DOCSTRINGS is no longer selected by any certification scenario
  * and leaves the set as READY-not-recommended — not withheld by decision, which is still the same three. It is
  * reconciled to DRAFT through the status route. The diagnostic absolute minimum was recomputed 181 to 193.
+ * ACTUAL PRODUCTION GATE: PASS (9/9, 40/40, 72/72, content gates 0, published = certified 350); Phase-21 audit PASS.
  */
-const CERTIFIED_COMMIT = '3e674d50';
+const CERTIFIED_COMMIT = '150b9223';
 const EXPECT = { total: 359, ready: 354, target: 350, withheld: 3, notRecommended: 1, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

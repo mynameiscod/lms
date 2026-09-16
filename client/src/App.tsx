@@ -93,6 +93,7 @@ import PassportTopic from './pages/Passport/Topic';
 import { captureCareerPilotAttribution } from './utils/careerPilotAttribution';
 import PassportConceptJourney from './pages/Passport/ConceptJourney';
 import PassportFoundationJourney from './pages/Passport/FoundationJourney';
+import PassportJourneyDay from './pages/Passport/JourneyDay';
 import PassportMyPlan from './pages/Passport/MyPlan';
 import PassportMemberLayout from './pages/Passport/MemberLayout';
 import PassportCareerSetup from './pages/Passport/CareerSetup';
@@ -626,6 +627,11 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/assessment" element={<Navigate to="/careerpilot/skill-assessment" replace />} />
         <Route path="/passport/assessment" element={<LegacyRedirect to="/careerpilot/assessment" />} />
         <Route path="/careerpilot/roadmap" element={<PassportRoadmap />} />
+        {/* One day of the ninety, worked through HERE rather than in the LMS day player.
+            Registered inside this layout block deliberately: a member who presses "Start
+            today's work" must keep the CareerPilot rail — members and LMS students are
+            different audiences, and the day belongs to the roadmap that sent them to it. */}
+        <Route path="/careerpilot/journey/day/:day" element={<PassportJourneyDay />} />
         <Route path="/careerpilot/skills" element={<PassportSkillDna />} />
         <Route path="/careerpilot/readiness" element={<PassportRoleReadiness />} />
         {/* Resume readiness and interview readiness, beside the skill figure and never

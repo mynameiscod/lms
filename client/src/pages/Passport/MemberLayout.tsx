@@ -33,6 +33,9 @@ const FOCUSED_ROUTES = [
 
 const pageKeyFor = (pathname: string) => {
   if (pathname === '/careerpilot') return 'dashboard';
+  // A journey day belongs to the roadmap: same product surface, same frame, and the member
+  // should not feel they left the roadmap to do the day it sent them to.
+  if (pathname.startsWith('/careerpilot/journey/day')) return 'roadmap';
   if (pathname.startsWith('/careerpilot/roadmap')) return 'roadmap';
   if (pathname.startsWith('/careerpilot/thinking-lab')) return 'thinking';
   if (pathname.startsWith('/careerpilot/practice')) return 'practice';

@@ -354,14 +354,14 @@ const FoundationJourneyPage: React.FC = () => {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
                 {day.minutes > 0 && <span className="fj-mins">{mins(day.minutes)}</span>}
-                {/* The day is worked through in the learning-plan day player, which opens each
-                    lesson, checkpoint and project and records completion. Locking is the
+                {/* The day opens inside CareerPilot, where each lesson, checkpoint and project
+                    is worked through without leaving the member rail. Locking stays the
                     server's: a day not yet reachable says so there. */}
                 {enrollmentId && (
                   <button
                     type="button"
                     className={`fj-start${day.status === 'CURRENT' ? '' : ' ghost'}`}
-                    onClick={() => nav(`/my-learning/${enrollmentId}/day/${day.day}`)}
+                    onClick={() => nav(`/careerpilot/journey/day/${day.day}`)}
                   >
                     {day.status === 'CURRENT' ? "Start today's work"
                       : day.status === 'COMPLETED' ? 'Review this day' : 'Open this day'}

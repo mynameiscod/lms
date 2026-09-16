@@ -121,7 +121,7 @@ const TodayJourneyCard: React.FC = () => {
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
         {journey.enrollmentId && (
-          <button className="gd-btn primary" onClick={() => nav(`/my-learning/${journey.enrollmentId}/day/${current}`)}>
+          <button className="gd-btn primary" onClick={() => nav(`/careerpilot/journey/day/${current}`)}>
             Start today&apos;s work
           </button>
         )}

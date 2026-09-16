@@ -72,8 +72,16 @@ import { teaches } from '../data/contentBundlePolicy';
  * matrix, recompositions 72/72, broken project assignments 0, published set identical to the
  * certified set, curriculum unchanged during the run, foundation on UNIT. ACTUAL PRODUCTION GATE:
  * PASS.
+ *
+ * MOVED AGAIN, TO f9bed3c4 — NOT A NO-OP EITHER. Four first-pass PRACTICE units were authored (files,
+ * variables, functions, arrays) and the practice paths of the nine foundation progression topics were
+ * re-authored in the prerequisite graph. Total 355 to 359, READY 350 to 354, recommended 347 to 351 —
+ * exactly the previous set plus the four new units — with the same three JS/DOM drafts withheld and the
+ * same five PARTIAL. Phase-21 fixtures regenerated from the live inventory; EXPECT moved with them.
+ * certifyProductionComposer: realistic 9/9, boundary 40/40, recompositions 72/72, content gates 0,
+ * published = certified. ACTUAL PRODUCTION GATE: PASS.
  */
-const CERTIFIED_COMMIT = '4db217cd';
+const CERTIFIED_COMMIT = 'f9bed3c4';
 const EXPECT = { total: 359, ready: 354, target: 351, withheld: 3, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

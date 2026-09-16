@@ -392,6 +392,24 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
     if (!plan) return res.status(404).json({ message: 'That day is not part of your journey.' });
 
     /**
+     * The ninety days are a ladder, and this endpoint has to say so too.
+     *
+     * The enrollment day endpoint refuses a day whose predecessor is unfinished; if this one
+     * answered in full, the same day would be closed in the player and open on Home. Day one is
+     * always available, and a day already completed stays available — what is locked is ahead,
+     * not behind.
+     */
+    const doneDays = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
+    if (plan.dayNumber > 1 && !doneDays.has(plan.dayNumber - 1) && !doneDays.has(plan.dayNumber)) {
+      return res.status(403).json({
+        reason: 'DAY_LOCKED',
+        day: plan.dayNumber,
+        title: plan.title || `Day ${plan.dayNumber}`,
+        message: `Finish day ${plan.dayNumber - 1} before starting day ${plan.dayNumber}.`,
+      });
+    }
+
+    /**
      * The objective, in the UNIT's own words.
      *
      * Read from the curriculum unit rather than restated on the day, so a corrected description

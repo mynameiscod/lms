@@ -139,11 +139,18 @@ const JourneyDay: React.FC = () => {
   const [loading, setLoading] = useState(true);
   /** Membership, not a fault: the server refuses days beyond the preview and this says why. */
   const [locked, setLocked] = useState(false);
+  /**
+   * Locked by the ladder rather than by membership, and they are different refusals.
+   *
+   * A membership lock is answered by paying; this one is answered by finishing yesterday. Showing
+   * the membership panel here would ask somebody to buy something they already own.
+   */
+  const [dayLock, setDayLock] = useState<string>('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
-    setLoading(true); setError(''); setLocked(false);
+    setLoading(true); setError(''); setLocked(false); setDayLock('');
     try {
       const j = await passportApi.myFoundationJourney();
       setJourney(j);
@@ -156,10 +163,21 @@ const JourneyDay: React.FC = () => {
       }
 
       const plan = await enrollmentPlanApi.getDayPlan(j.enrollmentId, dayNumber);
+
+      // The server withholds a locked day's items; it also says which kind of lock it is.
+      if (plan?.isLocked && plan?.lockReason === 'sequential') {
+        setDayLock(`Finish day ${dayNumber - 1} before starting day ${dayNumber}.`);
+        setItems([]);
+        return;
+      }
+      if (plan?.isLocked) { setLocked(true); setItems([]); return; }
+
       setItems(Array.isArray(plan?.items) ? plan.items : []);
       setSelIdx(0);
     } catch (e: any) {
-      if (e?.response?.status === 403) setLocked(true);
+      const reason = e?.response?.data?.reason;
+      if (reason === 'DAY_LOCKED') setDayLock(e?.response?.data?.message || `Finish day ${dayNumber - 1} first.`);
+      else if (e?.response?.status === 403) setLocked(true);
       else setError(e?.response?.data?.message || 'This day could not be opened.');
     } finally {
       setLoading(false);
@@ -201,6 +219,37 @@ const JourneyDay: React.FC = () => {
         title="This day is part of membership"
         blurb={`Your first days are open to read. Day ${dayNumber} and the rest of your ${totalDays} unlock with membership.`}
       />
+    );
+  }
+
+  /**
+   * Locked by the ladder. Nothing to buy, so nothing is sold — the way out is the previous day,
+   * and that is the only button offered.
+   */
+  if (dayLock) {
+    return (
+      <div className="jd-page">
+        <nav className="jd-crumb">
+          <button type="button" onClick={() => nav('/careerpilot/roadmap')}>
+            <i className="bi bi-arrow-left" aria-hidden /> My Roadmap
+          </button>
+        </nav>
+        <div className="jd-launch">
+          <div className="jd-launch-icon" aria-hidden><i className="bi bi-lock-fill" /></div>
+          <h2 style={{ margin: '0 0 6px', fontSize: 18 }}>Day {dayNumber} is not open yet</h2>
+          <p>{dayLock}</p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {dayNumber > 1 && (
+              <button type="button" className="jd-btn primary" onClick={() => nav(`/careerpilot/journey/day/${dayNumber - 1}`)}>
+                Go to day {dayNumber - 1}
+              </button>
+            )}
+            <button type="button" className="jd-btn" onClick={() => nav('/careerpilot/roadmap')}>
+              Back to my roadmap
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 

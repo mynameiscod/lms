@@ -543,6 +543,25 @@ export const markContentComplete = async (req: Request, res: Response) => {
       return res.status(403).json({ reason: 'MEMBERSHIP_REQUIRED', message: 'Take membership to work through your roadmap.' });
     }
 
+    /**
+     * THE SEQUENTIAL LOCK HAS TO BE ENFORCED HERE OR IT IS DECORATION.
+     *
+     * getStudentDayPlan reports `isLocked`, but a lock the client merely honours is one a client
+     * can decline to honour — and completion is exactly what the lock is made of. Without this,
+     * marking day three's items done unlocks day four without day two ever being opened, and the
+     * ladder undoes itself from the top.
+     */
+    const dayNo = Number(dayNumber);
+    if ((enrollment as any).enrolledBy === 'foundation-journey' && dayNo > 1) {
+      const doneDays = new Set<number>(((enrollment.completedDays || []) as number[]).map(Number));
+      if (!doneDays.has(dayNo - 1) && !doneDays.has(dayNo)) {
+        return res.status(403).json({
+          reason: 'DAY_LOCKED',
+          message: `Finish day ${dayNo - 1} before starting day ${dayNo}.`,
+        });
+      }
+    }
+
     // Add completed item if not already recorded
     const alreadyDone = enrollment.completedItems.some(
       i => i.contentId === contentId && i.dayNumber === dayNumber
@@ -800,6 +819,29 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     let isLocked = false;
     let lockReason: 'sequential' | 'preview' | 'schedule' | null = null;
 
+    /**
+     * A FOUNDATION JOURNEY IS SEQUENTIAL. A BATCH IS NOT.
+     *
+     * The ninety days are a ladder: each day is composed on the assumption that the ones before it
+     * were done, so opening day forty on day one is not freedom, it is arriving at a lesson whose
+     * prerequisites the plan believed were met. A batch student is in a different situation —
+     * their cohort sets the pace and they revisit and skip around it — which is why this is keyed
+     * on `enrolledBy` and not turned back on globally. Re-enabling it for every batch would change
+     * what every LMS student can open.
+     *
+     * Day one is always open, and so is any day already completed: this locks what is AHEAD, not
+     * what is behind. `completedDays` is maintained by this endpoint's own completion derivation,
+     * so the rule needs no new state.
+     */
+    const isFoundationJourney = (enrollment as any).enrolledBy === 'foundation-journey';
+    if (isFoundationJourney && dayNumber > 1) {
+      const doneDays = new Set<number>(((enrollment.completedDays || []) as number[]).map(Number));
+      if (!doneDays.has(dayNumber - 1) && !doneDays.has(dayNumber)) {
+        isLocked = true;
+        lockReason = 'sequential';
+      }
+    }
+
     // Assessment-funnel preview gating: free taste, then locked behind the paywall.
     if ((enrollment as any).previewOnly && dayNumber > ((enrollment as any).previewDays || 2)) {
       isLocked = true;
@@ -849,7 +891,20 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     // on demand and carry a launchPath to their own student UI.
     let populatedItems: any[] = [];
     let dayJustCompleted = false;
-    if (dayItems.length > 0) {
+
+    /**
+     * A LOCKED DAY IS NOT SERVED, AND IS NOT COMPLETED BY BEING LOOKED AT.
+     *
+     * `isLocked` used to be advisory: the lesson content still went over the wire and only the
+     * screen declined to show it, which is a lock a client can simply choose not to honour.
+     *
+     * Guarding here rather than emptying `dayItems` is deliberate. The completion derivation
+     * below asks `dayItems.every(...)`, and `every` over an empty array is TRUE — so clearing the
+     * items would mark the locked day complete, advance currentDay, and unlock the entire ladder
+     * from the top. The items must stay knowable to that check while staying unreadable to the
+     * student, so the population is skipped and `dayItems` is left exactly as it was.
+     */
+    if (dayItems.length > 0 && !isLocked) {
       const contentItems = dayItems.filter((it: any) => (!it.kind || it.kind === 'content') && it.contentId);
       const contentIds = contentItems.map((i: any) => i.contentId);
       const contents = await LearningContentLibrary.find({ _id: { $in: contentIds } }).lean();

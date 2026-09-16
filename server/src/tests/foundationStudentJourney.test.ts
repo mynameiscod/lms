@@ -462,7 +462,29 @@ describe('the journey overview', () => {
 });
 
 describe('one day in full', () => {
-  beforeEach(seed);
+  beforeEach(() => {
+    seed();
+
+    /**
+     * Day 31 opens because day 30 is finished, and that has to be said out loud now.
+     *
+     * The ninety days are a ladder: a day is refused until its predecessor is complete. These
+     * tests are about what a day's PAYLOAD contains — the objective in the unit's words, teaching
+     * order, which activity gates, the total — and day 31 is simply where the fixture's rich day
+     * lives. Left on the shared enrolment's five completed days, every one of them would assert
+     * against a 403 body instead.
+     *
+     * It is corrected here rather than in seed(), because other tests in this file read that
+     * enrolment's five days and sixth current day for progress and day-status assertions, and
+     * editing a shared fixture to make one block pass is how another block breaks quietly.
+     *
+     * Worth noting what this also repairs: the leak test below asserts the wire does NOT contain
+     * the unit code or authoring state, and a 403 body contains none of them either — so it was
+     * passing without ever inspecting a day.
+     */
+    enrollments[0].completedDays = Array.from({ length: 30 }, (_, i) => i + 1);
+    enrollments[0].currentDay = 31;
+  });
 
   it('returns the objective in the unit\'s own words', async () => {
     const { res, out } = resOf();

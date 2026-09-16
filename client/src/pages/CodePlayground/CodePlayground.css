@@ -152,3 +152,114 @@ body:has(.cp-root) { overflow: hidden; }
 .cp-bp-glyph { background: radial-gradient(circle, #ef4444 42%, transparent 46%); cursor: pointer; }
 .cp-curline { background: rgba(37,99,235,.10); }
 .cp-curline-glyph { background: linear-gradient(90deg,#f59e0b,#f59e0b) no-repeat center / 10px 10px; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CodeBegun re-skin.
+   
+   Kept as a layer over the rules above rather than rewritten through them: the debugger, the
+   SQL table and the modals are correct and well tested, and the complaint was that the page
+   did not look like the product and hid its own features. What changes here is the palette
+   (the generic slate/#2563eb became the shell's navy, #005897 and teal), the weight of the
+   toolbar, and the visibility of the actions.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.cp-root {
+  --cp-navy: #051D64; --cp-primary: #005897; --cp-teal: #359AAD;
+  --cp-ink: #102A4F; --cp-muted: #64748B; --cp-border: #E2EAF2; --cp-border-2: #C9D8E5;
+  background: #EEF3F8;
+}
+.cp-root * { box-sizing: border-box; }
+
+/* ── tabs ─────────────────────────────────────────────────────────────────── */
+.cp-tabbar { background: #E7EEF5; border-bottom-color: var(--cp-border); padding: 7px 12px 0; gap: 5px; }
+.cp-tab { border-color: transparent; background: #DCE7F0; color: #53677D; font-weight: 700; padding: 8px 13px; border-radius: 9px 9px 0 0; cursor: pointer; }
+.cp-tab:hover { background: #EDF3F8; }
+.cp-tab.active { background: #fff; color: var(--cp-primary); border-color: var(--cp-border); box-shadow: 0 -2px 0 var(--cp-primary) inset; }
+.cp-tab-i { font-size: 13px; }
+.cp-tab .cp-tab-x { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 5px; color: #8CA0B5; font-size: 14px; }
+.cp-tab .cp-tab-x:hover { background: #D2DFEA; color: #C93737; }
+.cp-tab-add { border-color: var(--cp-border-2); color: var(--cp-primary); border-radius: 8px; font-weight: 700; }
+.cp-tab-add:hover { background: #E8F2F8; border-style: solid; }
+
+/* ── toolbar: one row, every action named ─────────────────────────────────── */
+.cp-toolbar { gap: 7px; padding: 10px 14px; border-bottom-color: var(--cp-border); }
+.cp-btn {
+  gap: 7px; border-color: var(--cp-border-2); color: #3F566F; border-radius: 9px;
+  padding: 8px 14px; font-weight: 700; font-size: 13px; line-height: 1;
+}
+.cp-btn i { font-size: 14px; line-height: 1; }
+.cp-btn:hover:not(:disabled) { background: #EFF5F9; border-color: #A9C4D8; color: var(--cp-navy); }
+.cp-btn.on { background: #E8F2F8; border-color: #A9C4D8; color: var(--cp-primary); }
+.cp-btn-run { background: #16A34A; border-color: #16A34A; color: #fff; padding: 8px 18px; }
+.cp-btn-run:hover:not(:disabled) { background: #12833C; border-color: #12833C; color: #fff; }
+.cp-btn.primary { background: var(--cp-primary); border-color: var(--cp-primary); color: #fff; }
+.cp-btn.primary:hover:not(:disabled) { background: #004B81; border-color: #004B81; color: #fff; }
+.cp-btn.danger { background: #FFF0F0; border-color: #F3C9C9; color: #C93737; }
+.cp-count { background: #DCE9F3; color: var(--cp-primary); border-radius: 20px; padding: 1px 7px; font-size: 11px; margin-left: 2px; }
+.cp-icon-btn { border-color: var(--cp-border-2); color: #53677D; border-radius: 9px; }
+.cp-icon-btn:hover { background: #EFF5F9; color: var(--cp-navy); }
+
+.cp-lang { min-width: 210px; border-color: var(--cp-border-2); border-radius: 9px; padding: 8px 13px; color: var(--cp-ink); }
+.cp-lang:hover { border-color: #A9C4D8; }
+.cp-lang.open { border-color: var(--cp-primary); box-shadow: 0 0 0 3px rgba(0, 88, 151, .12); }
+.cp-lang-panel { border-color: var(--cp-border); border-radius: 13px; box-shadow: 0 18px 44px rgba(15, 46, 77, .16); }
+.cp-lang-item.sel { color: var(--cp-primary); }
+.cp-lang-item:hover { background: #EFF5F9; }
+.cp-lang-group { color: #8CA0B5; letter-spacing: .07em; }
+
+/* ── panels ───────────────────────────────────────────────────────────────── */
+.cp-right { border-left-color: var(--cp-border); }
+.cp-right-head { border-bottom-color: var(--cp-border); padding: 11px 16px; }
+.cp-rtab { color: #8CA0B5; font-weight: 700; }
+.cp-rtab.active { color: var(--cp-navy); border-bottom-color: var(--cp-primary); }
+.cp-run-input {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px; background: #16A34A;
+  border: none; color: #fff; border-radius: 8px; padding: 7px 14px; font-size: 12.5px;
+  font-weight: 800; cursor: pointer;
+}
+.cp-run-input:hover:not(:disabled) { background: #12833C; }
+.cp-run-input:disabled { opacity: .5; cursor: default; }
+.cp-sec-label { color: #53677D; text-transform: uppercase; letter-spacing: .05em; font-size: 11px; }
+.cp-stdin { border-color: var(--cp-border-2); border-radius: 9px; }
+.cp-stdin:focus { outline: none; border-color: #78AFC4; box-shadow: 0 0 0 3px rgba(0, 88, 151, .08); }
+
+/* Output reads as a console, because that is what it is. */
+.cp-output { background: #0B1B3F; color: #E3ECF7; border: none; border-radius: 10px; padding: 13px 15px; }
+.cp-output .muted { color: #7C90AE; }
+.cp-output .err { color: #FF8A8A; }
+.cp-output-box { min-height: 190px; }
+
+/* ── quick actions: buttons, not mystery cards ────────────────────────────── */
+.cp-quick { grid-template-columns: 1fr 1fr; gap: 9px; padding: 0 16px 18px; }
+.cp-qcard {
+  flex-direction: row; justify-content: flex-start; gap: 10px; text-align: left;
+  border-color: var(--cp-border-2); border-radius: 10px; padding: 11px 13px; font-family: inherit;
+}
+.cp-qcard:hover:not(:disabled) { border-color: var(--cp-teal); background: #F2F9FB; }
+.cp-qcard:disabled { opacity: .55; cursor: default; }
+.cp-qcard i { font-size: 15px; color: var(--cp-primary); }
+.cp-qcard .lbl { font-size: 12.5px; font-weight: 700; color: #3F566F; }
+.cp-quick-head { border-top-color: var(--cp-border); }
+
+/* ── saved programs ───────────────────────────────────────────────────────── */
+.cp-progs { border-color: var(--cp-border); border-radius: 13px; box-shadow: 0 18px 44px rgba(15, 46, 77, .16); }
+.cp-prog:hover { background: #EFF5F9; }
+.cp-prog-del { border: none; background: none; cursor: pointer; color: #B8C6D4; font-size: 14px; padding: 4px 6px; border-radius: 6px; }
+.cp-prog-del:hover { background: #FFF0F0; color: #C93737; }
+
+/* ── one status bar, not a status bar and a tip bar ───────────────────────── */
+.cp-status {
+  gap: 16px; padding: 7px 16px; background: var(--cp-navy); border-top: none;
+  color: #A9BEDA; font-size: 11.5px; font-weight: 600;
+}
+.cp-status span { display: inline-flex; align-items: center; gap: 6px; }
+.cp-status i { font-size: 7px; }
+.cp-status .ok { color: #6FE0A6; }
+.cp-status .run { color: #FFD166; }
+.cp-kbd { color: #8CA3C4; }
+.cp-status-r { margin-left: auto; color: #fff; font-weight: 700; }
+
+@media (max-width: 1100px) {
+  .cp-quick { grid-template-columns: 1fr; }
+  .cp-kbd { display: none; }
+}

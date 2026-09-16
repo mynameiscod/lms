@@ -331,6 +331,20 @@ const CodePlayground: React.FC = () => {
   const langLabel = isFramework ? (fwByKey(language)?.label || 'Framework') : byKey(language).label;
   const langIcon = isFramework ? (fwByKey(language)?.icon || '📦') : byKey(language).icon;
 
+  /**
+   * The four side actions. Written once: this was duplicated verbatim in the output panel and
+   * the debug panel, which is how the two came to disagree about whether the GitHub card shows
+   * its pushing state.
+   */
+  const QuickActions = () => (
+    <div className="cp-quick">
+      <button className="cp-qcard" onClick={resetCode}><i className="bi bi-code-slash" /><span className="lbl">Starter code</span></button>
+      <button className="cp-qcard" onClick={handleSave} disabled={saving}><i className="bi bi-bookmark-plus" /><span className="lbl">{saving ? 'Saving…' : 'Save program'}</span></button>
+      <button className="cp-qcard" onClick={downloadCode}><i className="bi bi-download" /><span className="lbl">Download</span></button>
+      <button className="cp-qcard" onClick={handlePushGithub} disabled={pushing}><i className="bi bi-github" /><span className="lbl">{pushing ? 'Pushing…' : 'Push to GitHub'}</span></button>
+    </div>
+  );
+
   return (
     <div className={`cp-root ${full ? 'cp-full' : ''}`} ref={rootRef} style={full || !fitH ? undefined : { height: fitH }}>
       {/* Tabs */}
@@ -342,8 +356,9 @@ const CodePlayground: React.FC = () => {
             onClick={() => switchTab(t.id)}
             title={t.title || 'Untitled'}
           >
+            <span className="cp-tab-i">{byKey(t.language).icon}</span>
             <span>{(t.title && t.title.trim()) || 'Untitled'}</span>
-            <span className="cp-tab-x" onClick={(e) => closeTab(t.id, e)} title="Close tab">✕</span>
+            <span className="cp-tab-x" onClick={(e) => closeTab(t.id, e)} title="Close tab"><i className="bi bi-x" /></span>
           </div>
         ))}
         <button className="cp-tab-add" onClick={addTab} title="New tab">+</button>
@@ -374,18 +389,22 @@ const CodePlayground: React.FC = () => {
           </div>
         )}
 
-        {!isFramework && <button className="cp-btn cp-btn-run" onClick={handleRun} disabled={running}>▶ {running ? 'Running…' : 'Run'}</button>}
+        {!isFramework && <button className="cp-btn cp-btn-run" onClick={handleRun} disabled={running} title="Run (Ctrl + Enter)"><i className="bi bi-play-fill" />{running ? 'Running…' : 'Run'}</button>}
         {!isFramework && canDebug && (debugMode
-          ? <button className="cp-btn" onClick={stopDebug}>■ Stop Debug</button>
-          : <button className="cp-btn" onClick={startDebug} disabled={dbgLoading}>⚙ {dbgLoading ? 'Starting…' : 'Debug'}</button>)}
-        {!isFramework && <button className="cp-btn" onClick={resetCode}>↺ Reset</button>}
-        {!isFramework && <button className="cp-btn" onClick={formatCode}>≣ Format</button>}
+          ? <button className="cp-btn danger" onClick={stopDebug}><i className="bi bi-stop-fill" />Stop debug</button>
+          : <button className="cp-btn" onClick={startDebug} disabled={dbgLoading} title="Step through your code"><i className="bi bi-bug" />{dbgLoading ? 'Starting…' : 'Debug'}</button>)}
+        {!isFramework && <button className="cp-btn" onClick={resetCode} title="Back to the starter code"><i className="bi bi-arrow-counterclockwise" />Reset</button>}
+        {!isFramework && <button className="cp-btn" onClick={formatCode} title="Tidy the indentation"><i className="bi bi-text-indent-left" />Format</button>}
 
         <div className="cp-toolbar-right">
-          {!isFramework && <button className="cp-btn" onClick={share}>↗ Share</button>}
-          {!isFramework && <button className="cp-btn cp-btn-run" onClick={handleSave} disabled={saving}>💾 {saving ? 'Saving…' : 'Save'}</button>}
-          <button className="cp-icon-btn" onClick={() => setProgsOpen(o => !o)} title="My Programs">⋮</button>
-          <button className="cp-icon-btn" onClick={() => setFull(f => !f)} title="Fullscreen">⛶</button>
+          {!isFramework && <button className="cp-btn" onClick={share} title="Copy a link to this code"><i className="bi bi-link-45deg" />Share</button>}
+          {!isFramework && <button className="cp-btn primary" onClick={handleSave} disabled={saving} title="Save (Ctrl + S)"><i className="bi bi-bookmark-fill" />{saving ? 'Saving…' : 'Save'}</button>}
+          <button className={`cp-btn ${progsOpen ? 'on' : ''}`} onClick={() => setProgsOpen(o => !o)} title="Programs you have saved">
+            <i className="bi bi-folder2-open" />My programs{programs.length > 0 && <b className="cp-count">{programs.length}</b>}
+          </button>
+          <button className="cp-icon-btn" onClick={() => setFull(f => !f)} title={full ? 'Exit fullscreen' : 'Fullscreen'}>
+            <i className={`bi ${full ? 'bi-fullscreen-exit' : 'bi-arrows-fullscreen'}`} />
+          </button>
         </div>
 
         {progsOpen && (
@@ -395,7 +414,7 @@ const CodePlayground: React.FC = () => {
               programs.map(p => (
                 <div key={p._id} className="cp-prog" onClick={() => loadProgram(p._id)}>
                   <div><div className="t">{p.title}</div><div className="s">{byKey(p.language).label}</div></div>
-                  <button onClick={(e) => del(p._id, e)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444' }}>🗑</button>
+                  <button className="cp-prog-del" onClick={(e) => del(p._id, e)} title="Delete"><i className="bi bi-trash3" /></button>
                 </div>
               ))}
           </div>
@@ -434,14 +453,14 @@ const CodePlayground: React.FC = () => {
             <div className="cp-right-head">
               <span className={`cp-rtab ${rightTab === 'input' ? 'active' : ''}`} onClick={() => setRightTab('input')}>Input</span>
               <span className={`cp-rtab ${rightTab === 'output' ? 'active' : ''}`} onClick={() => setRightTab('output')}>Output</span>
-              <span className="cp-run-input" onClick={handleRun}>▶ Run{isWeb || isSql ? '' : ' with Input'}</span>
+              <button className="cp-run-input" onClick={handleRun} disabled={running}><i className="bi bi-play-fill" />{running ? 'Running…' : (isWeb || isSql ? 'Run' : 'Run with input')}</button>
             </div>
 
             {isWeb ? (
               <div className="cp-sec" style={{ flex: 1 }}>
                 <div className="cp-sec-label">LIVE PREVIEW</div>
                 {preview ? <iframe title="preview" srcDoc={preview} sandbox="allow-scripts allow-modals" style={{ width: '100%', height: 380, border: '1px solid #e2e8f0', borderRadius: 8 }} />
-                  : <div className="cp-output muted">Click ▶ Run to render your page.</div>}
+                  : <div className="cp-output muted">Press Run to render your page.</div>}
               </div>
             ) : isSql ? (
               <div className="cp-sec" style={{ flex: 1 }}>
@@ -475,12 +494,7 @@ const CodePlayground: React.FC = () => {
             )}
 
             <div className="cp-sec-label cp-quick-head">Quick Actions</div>
-            <div className="cp-quick">
-              <div className="cp-qcard" onClick={resetCode}><span className="ic">{'</>'}</span><span className="lbl">Generate Boilerplate</span></div>
-              <div className="cp-qcard" onClick={handleSave}><span className="ic">🔖</span><span className="lbl">Add to My Programs</span></div>
-              <div className="cp-qcard" onClick={downloadCode}><span className="ic">⬇</span><span className="lbl">Download Code</span></div>
-              <div className="cp-qcard" onClick={handlePushGithub}><span className="ic">⬆</span><span className="lbl">{pushing ? 'Pushing…' : 'Push to GitHub'}</span></div>
-            </div>
+            <QuickActions />
           </div>
         )}
 
@@ -494,11 +508,11 @@ const CodePlayground: React.FC = () => {
             <div className="cp-right" style={{ width: rightW }}>
               <div className="cp-dbg-bar">
                 <span className="ttl">Debug</span>
-                <button className="cp-dbg-act resume" onClick={resume} disabled={step >= lastIdx}>▶ Resume</button>
-                <button className="cp-dbg-act" onClick={stepOver} disabled={step >= lastIdx}>⤼ Step Over</button>
-                <button className="cp-dbg-act" onClick={stepInto} disabled={step >= lastIdx}>⤓ Step Into</button>
-                <button className="cp-dbg-act" onClick={stepOut} disabled={step >= lastIdx}>⤴ Step Out</button>
-                <button className="cp-dbg-act stop" onClick={stopDebug}>■ Stop</button>
+                <button className="cp-dbg-act resume" onClick={resume} disabled={step >= lastIdx}><i className="bi bi-play-fill" /> Resume</button>
+                <button className="cp-dbg-act" onClick={stepOver} disabled={step >= lastIdx}><i className="bi bi-arrow-return-right" /> Step over</button>
+                <button className="cp-dbg-act" onClick={stepInto} disabled={step >= lastIdx}><i className="bi bi-box-arrow-in-down-right" /> Step into</button>
+                <button className="cp-dbg-act" onClick={stepOut} disabled={step >= lastIdx}><i className="bi bi-box-arrow-up-right" /> Step out</button>
+                <button className="cp-dbg-act stop" onClick={stopDebug}><i className="bi bi-stop-fill" /> Stop</button>
               </div>
               <div className="cp-dbg-cols">
                 <div className="cp-dbg-col">
@@ -529,12 +543,7 @@ const CodePlayground: React.FC = () => {
                 </div>
               </div>
               <div className="cp-sec-label" style={{ padding: '12px 16px 0' }}>QUICK ACTIONS</div>
-              <div className="cp-quick">
-                <div className="cp-qcard" onClick={resetCode}><span className="ic">{'</>'}</span><span className="lbl">Generate Boilerplate</span></div>
-                <div className="cp-qcard" onClick={handleSave}><span className="ic">🔖</span><span className="lbl">Add to My Programs</span></div>
-                <div className="cp-qcard" onClick={downloadCode}><span className="ic">⬇</span><span className="lbl">Download Code</span></div>
-                <div className="cp-qcard" onClick={handlePushGithub}><span className="ic">⬆</span><span className="lbl">Push to GitHub</span></div>
-              </div>
+              <QuickActions />
             </div>
           </>);
         })()}
@@ -561,21 +570,14 @@ const CodePlayground: React.FC = () => {
 
       {/* Status bar */}
       <div className="cp-status">
+        <span className={running ? 'run' : 'ok'}><i className="bi bi-circle-fill" />{running ? 'Running' : 'Ready'}</span>
         <span>Ln {pos.ln}, Col {pos.col}</span>
-        <span>Spaces: 4</span>
         <span>UTF-8</span>
-        <span className="ok">● {running ? 'Running' : 'Ready'}</span>
-        <span style={{ marginLeft: 'auto' }}>{isFramework ? 'StackBlitz sandbox' : langLabel}</span>
+        <span className="cp-kbd">Ctrl + Enter to run · Ctrl + S to save</span>
+        <span className="cp-status-r">{isFramework ? 'StackBlitz sandbox' : langLabel}</span>
       </div>
 
-      {/* Tip bar */}
-      <div className="cp-tip">
-        💡 <span>Tip: Use <b>Ctrl + Enter</b> to run, <b>Ctrl + S</b> to save.</span>
-        <span className="right">
-          <span onClick={share}>🔗 Share Code</span>
-          <span onClick={() => window.open('mailto:support@codebegun.com?subject=Playground%20Feedback')}>💬 Feedback</span>
-        </span>
-      </div>
+
 
       {/* Debugger modal */}
       {debugUrl && (

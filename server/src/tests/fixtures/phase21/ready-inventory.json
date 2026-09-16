@@ -7313,6 +7313,28 @@
     "estimatedMinutes": 50
   },
   {
+    "unitCode": "T_VARIABLES_BOOLEANS",
+    "title": "True, False, and Comparison",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_VARIABLES",
+    "displayOrder": 60,
+    "skillKeys": [
+      "PROGRAMMING_FUNDAMENTALS",
+      "PYTHON_BASICS",
+      "PYTHON_STRINGS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_VARIABLES_NUMBERS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 35
+  },
+  {
     "unitCode": "T_VARIABLES_DEBUGGING",
     "title": "Debugging Variables",
     "moduleCode": "M03_PROGRAMMING",
@@ -7331,6 +7353,48 @@
     "defaultDepth": "FOUNDATION",
     "mandatory": true,
     "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_VARIABLES_FIRST_PROGRAM",
+    "title": "Your First Program",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_VARIABLES",
+    "displayOrder": 10,
+    "skillKeys": [
+      "PROGRAMMING_FUNDAMENTALS",
+      "PYTHON_BASICS",
+      "PYTHON_STRINGS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 35
+  },
+  {
+    "unitCode": "T_VARIABLES_INPUT_OUTPUT",
+    "title": "Input and Output",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_VARIABLES",
+    "displayOrder": 80,
+    "skillKeys": [
+      "PROGRAMMING_FUNDAMENTALS",
+      "PYTHON_BASICS",
+      "PYTHON_STRINGS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_VARIABLES_TYPES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 40
   },
   {
     "unitCode": "T_VARIABLES_MINI_PROJECT",
@@ -7355,6 +7419,50 @@
     "estimatedMinutes": 90
   },
   {
+    "unitCode": "T_VARIABLES_NAMING",
+    "title": "Naming Things Well",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_VARIABLES",
+    "displayOrder": 90,
+    "skillKeys": [
+      "PROGRAMMING_FUNDAMENTALS",
+      "PYTHON_BASICS",
+      "PYTHON_STRINGS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_VARIABLES_VARIABLES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 30
+  },
+  {
+    "unitCode": "T_VARIABLES_NUMBERS",
+    "title": "Numbers and Arithmetic",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_VARIABLES",
+    "displayOrder": 30,
+    "skillKeys": [
+      "PROGRAMMING_FUNDAMENTALS",
+      "PYTHON_BASICS",
+      "PYTHON_STRINGS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_VARIABLES_VARIABLES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 40
+  },
+  {
     "unitCode": "T_VARIABLES_PRACTICE",
     "title": "Variables Practice",
     "moduleCode": "M03_PROGRAMMING",
@@ -7375,5 +7483,94 @@
     "defaultDepth": "FOUNDATION",
     "mandatory": true,
     "estimatedMinutes": 60
+  },
+  {
+    "unitCode": "T_VARIABLES_STRING_METHODS",
+    "title": "Working With Text",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_VARIABLES",
+    "displayOrder": 50,
+    "skillKeys": [
+      "PROGRAMMING_FUNDAMENTALS",
+      "PYTHON_BASICS",
+      "PYTHON_STRINGS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_VARIABLES_STRINGS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 50
+  },
+  {
+    "unitCode": "T_VARIABLES_STRINGS",
+    "title": "Strings",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_VARIABLES",
+    "displayOrder": 40,
+    "skillKeys": [
+      "PROGRAMMING_FUNDAMENTALS",
+      "PYTHON_BASICS",
+      "PYTHON_STRINGS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_VARIABLES_VARIABLES"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_VARIABLES_TYPES",
+    "title": "Types, and Why They Matter",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_VARIABLES",
+    "displayOrder": 70,
+    "skillKeys": [
+      "PROGRAMMING_FUNDAMENTALS",
+      "PYTHON_BASICS",
+      "PYTHON_STRINGS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_VARIABLES_BOOLEANS",
+      "T_VARIABLES_STRING_METHODS"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 45
+  },
+  {
+    "unitCode": "T_VARIABLES_VARIABLES",
+    "title": "Variables and Assignment",
+    "moduleCode": "M03_PROGRAMMING",
+    "topicCode": "T_VARIABLES",
+    "displayOrder": 20,
+    "skillKeys": [
+      "PROGRAMMING_FUNDAMENTALS",
+      "PYTHON_BASICS",
+      "PYTHON_STRINGS"
+    ],
+    "prerequisiteSkillKeys": [],
+    "prerequisiteUnitCodes": [
+      "T_VARIABLES_FIRST_PROGRAM"
+    ],
+    "category": "UNIVERSAL",
+    "applicableDirections": [],
+    "unitType": "CONCEPT",
+    "defaultDepth": "FOUNDATION",
+    "mandatory": true,
+    "estimatedMinutes": 40
   }
 ]

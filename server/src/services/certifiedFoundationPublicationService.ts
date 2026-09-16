@@ -31,7 +31,15 @@ import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
 import { teaches } from '../data/contentBundlePolicy';
 import { publishUnit } from '../controllers/curriculumLearningUnitController';
 
-export const CERTIFIED_FOUNDATION = { total: 355, ready: 341, target: 338, withheld: 3, partial: 14 } as const;
+/**
+ * Re-certified after the nine T_VARIABLES concept units were authored.
+ *
+ * They existed as unit rows with no lesson, practice or checkpoint, which left them PARTIAL and
+ * unpublishable — and PROGRAMMING_FUNDAMENTALS with no instructional unit the composer could
+ * schedule at all. Authoring them moved READY 341 → 350 and PARTIAL 14 → 5; the audit's proposed
+ * recommended set grew 338 → 347 and withholds the same three JS/DOM drafts as before.
+ */
+export const CERTIFIED_FOUNDATION = { total: 355, ready: 350, target: 347, withheld: 3, partial: 5 } as const;
 
 /** Committed with the code, so every deployment certifies against the same set. */
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

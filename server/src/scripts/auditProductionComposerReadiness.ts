@@ -65,10 +65,20 @@ dotenv.config();
 const FREEZE_DAYS = [30, 60];
 /**
  * 176 at the Phase-21 audit; 341 after capacity remediation authored the 147 PARTIAL units the
- * state-boundary learners needed and the 18 practical units in CAPACITY_UNITS. The 14 still PARTIAL
- * were measured to contribute nothing to any certified learner and are deliberately left unauthored.
+ * state-boundary learners needed and the 18 practical units in CAPACITY_UNITS; 350 once the nine
+ * T_VARIABLES concept units were written.
+ *
+ * THOSE NINE WERE THE EXCEPTION TO "CONTRIBUTES NOTHING", AND THE MEASUREMENT MISSED IT. They are
+ * the only units that TEACH PROGRAMMING_FUNDAMENTALS — the topic's debug, practice and project
+ * units declare the skill but none of them instructs — so leaving them PARTIAL left that skill with
+ * no instructional unit the composer could ever schedule. A first-year could be handed "debug your
+ * variables" while every unit saying what a variable is sat unpublished, and the capacity measure
+ * did not catch it because capacity asks who is short of days, not who is short of a concept.
+ *
+ * The 5 still PARTIAL were measured to contribute nothing to any certified learner and are
+ * deliberately left unauthored.
  */
-const EXPECTED_READY = 341;
+const EXPECTED_READY = 350;
 const ARTIFACT_DIR = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');
 
 /** Failures that make a plan unusable, as opposed to ones that make it badly sequenced. */

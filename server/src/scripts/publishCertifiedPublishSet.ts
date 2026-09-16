@@ -63,7 +63,7 @@ import { teaches } from '../data/contentBundlePolicy';
  * certified source after this commit still stops publication until it is re-certified.
  */
 const CERTIFIED_COMMIT = '382a39ee';
-const EXPECT = { total: 355, ready: 341, target: 338, withheld: 3, partial: 14 };
+const EXPECT = { total: 355, ready: 350, target: 347, withheld: 3, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');
 /** What the certification was computed from. A change to any of these since certification is drift. */

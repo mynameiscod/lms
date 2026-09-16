@@ -244,9 +244,9 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
   const ready = await loadCandidates(tenantId, 'PROTOTYPE_UNPUBLISHED');
   const linkage = await checkCurriculumQuizLinkage(tenantId);
   rawLog(`  unit fingerprint at the start of this run: ${fpBefore.hash} — every later check compares against it`);
-  check('pre', 'units 355, READY 341, PUBLISHED 338', fpBefore.total === 355 && ready.units.length === 341 && fpBefore.published === 338,
+  check('pre', 'units 355, READY 350, PUBLISHED 347', fpBefore.total === 355 && ready.units.length === 350 && fpBefore.published === 347,
     `${fpBefore.total} / ${ready.units.length} / ${fpBefore.published}`);
-  check('pre', 'PRODUCTION inventory is exactly the certified 338', JSON.stringify(prodCodes) === JSON.stringify(certified), `${prodCodes.length}`);
+  check('pre', 'PRODUCTION inventory is exactly the certified 347', JSON.stringify(prodCodes) === JSON.stringify(certified), `${prodCodes.length}`);
   const membersJourneys = await db.collection('learningcurriculums').countDocuments({ tenantId: TID, journeyKind: { $exists: true, $ne: null } });
   check('pre', 'no fixture left over from an earlier run', !(await syntheticResidue([], [])).length,
     `this tenant's members already hold ${membersJourneys} Foundation journey(s); they are never touched`);

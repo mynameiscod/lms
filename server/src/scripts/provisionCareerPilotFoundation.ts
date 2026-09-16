@@ -45,6 +45,7 @@ import {
 } from '../services/certifiedFoundationPublicationService';
 import { effectiveCurriculumEngine } from '../data/curriculumEnginePolicy';
 import { CAREER_STAGES } from '../services/careerStageService';
+import { getStageSkillSet } from '../services/stageSkillSetService';
 
 const ACTOR = 'careerpilot-foundation-provisioning';
 const SERVER_ROOT = path.join(__dirname, '..', '..');
@@ -53,6 +54,15 @@ const RUNNING_TS = __filename.endsWith('.ts');
 /** The audited seeds, in the order they depend on each other. `{T}` is the tenant id. */
 const SEED_STEPS: { name: string; script: string; args: string[] }[] = [
   { name: 'skill taxonomy (global)', script: 'scripts/seedCareerSkills', args: ['--apply'] },
+  /**
+   * What a first-year is MEASURED on, and it is not optional.
+   *
+   * Without this set `getStageBlueprint` has nothing to resolve, so a student who honestly
+   * answered "not sure" is told to choose a target role before they can see anything — the
+   * one cohort least able to name a job title. It is seeded enabled here for the same reason
+   * Foundation is UNIT by policy: a provisioned tenant must not fall back.
+   */
+  { name: 'Foundation stage skill set (what a first-year is measured on)', script: 'seeds/careerPilot/seedFoundationStageSkillSet', args: ['{T}', '--apply', '--enable'] },
   { name: 'Foundation question bank', script: 'scripts/importGoldenBank', args: ['{T}', '--apply'] },
   { name: 'Foundation curriculum hierarchy', script: 'seeds/careerPilot/createFoundationCurriculum', args: ['{T}', '--apply'] },
   { name: 'curriculum validation gate', script: 'scripts/validateMegaCurriculum', args: ['{T}'] },
@@ -93,18 +103,20 @@ function runScript(script: string, args: string[]): { exitCode: number; ms: numb
 
   const state = async () => {
     const readiness = await foundationReadiness(tenantId);
-    const [units, ready, production, linkage, bank] = await Promise.all([
+    const [units, ready, production, linkage, bank, stageSet] = await Promise.all([
       db.collection('curriculumlearningunits').countDocuments({ tenantId, stageKey: 'foundation' }),
       loadCandidates(tenantId, 'PROTOTYPE_UNPUBLISHED').then(s => s.units.length),
       loadCandidates(tenantId, 'PRODUCTION').then(s => s.units.map(u => u.unitCode).sort()),
       checkCurriculumQuizLinkage(tenantId),
       db.collection('assessmentitems').countDocuments({ tenantId }),
+      getStageSkillSet(tenantId, 'foundation'),
     ]);
-    return { readiness, units, ready, production, linkage, bank };
+    return { readiness, units, ready, production, linkage, bank, stageSet };
   };
   const report = (label: string, s: Awaited<ReturnType<typeof state>>) => {
     say(`  ${label}: units ${s.units} · READY ${s.ready} · PRODUCTION ${s.production.length} · skill-check questions ${s.bank}`
       + ` · quizzes ${s.linkage.quizzes}/questions ${s.linkage.questions} linkage ${s.linkage.ok ? 'ok' : 'BROKEN'}`
+      + ` · stage skill set ${s.stageSet ? `${(s.stageSet.requirements || []).length} skills ${s.stageSet.enabled ? 'enabled' : 'OFF'}` : 'missing'}`
       + ` · Foundation ${s.readiness.configured ? 'CONFIGURED' : `NOT CONFIGURED (${s.readiness.reason})`}`);
   };
 
@@ -173,6 +185,8 @@ function runScript(script: string, args: string[]): { exitCode: number; ms: numb
       ['no certified unit left DRAFT, nothing published outside the set', !plan.todo.length && !plan.problems.length],
       ['every checkpoint question linked to its quiz, both ways', after.linkage.ok],
       ['Foundation readiness: CONFIGURED', after.readiness.configured],
+      // Off or absent and an undecided first-year is asked to choose a role instead of being shown their path.
+      ['Foundation stage skill set present and enabled', !!after.stageSet?.enabled && (after.stageSet.requirements || []).length > 0],
       ['Foundation → UNIT, every other stage → TOPIC', CAREER_STAGES.every(s => effectiveCurriculumEngine({ stageKey: s.key }).engine === (s.key === 'foundation' ? 'UNIT' : 'TOPIC'))],
     ];
     for (const [label, ok] of checks) say(`  ${ok ? 'ok  ' : 'FAIL'}  ${label}`);

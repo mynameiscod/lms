@@ -48,12 +48,16 @@ From a compiled build: `node dist/scripts/provisionCareerPilotFoundation.js <TEN
 
 It runs, in order, stopping at the first failure:
 
-1. the skill taxonomy (global), the Foundation question bank, the curriculum hierarchy and its validation gate
+1. the skill taxonomy (global); the **Foundation stage skill set** — what a first-year is measured
+   on, written switched on, because without it a student who answered "I'm not sure yet" is asked to
+   choose a target role before anything will open; the Foundation question bank; the curriculum
+   hierarchy and its validation gate
 2. the Year-1 Learning Units, expansion units, content, suitability overrides, and unit content —
    checkpoint quizzes with every question linked to its quiz, and project assignments
 3. publication of **exactly the certified 338 units**, through the product's publish handler and its
    gates, refused if the tenant's READY inventory is not identical to the certified one
-4. verification: 355 units, 341 READY, PRODUCTION = the certified 338, quiz linkage, Foundation CONFIGURED
+4. verification: 355 units, 341 READY, PRODUCTION = the certified 338, quiz linkage, the stage skill
+   set present and enabled, Foundation CONFIGURED
 5. the production gate (`certifyProductionComposer`) — 9/9, 40/40, 72/72
 
 Running it again changes nothing: seeds update in place on deterministic keys, published units are
@@ -86,7 +90,9 @@ are never touched. Interrupted: `... phase27ActivationE2E.ts <TENANT> --cleanup-
 - **New first-year, before membership:** join (`/careerpilot/join?tenant=<slug>`), finish setup,
   take the skill check. **My Roadmap** shows only the first days of *their own* plan (the admin's
   *Roadmap preview (days)* setting, default 7) and *🔒 Unlock to see your full 90-day roadmap*.
-  Nothing beyond the preview opens.
+  Nothing beyond the preview opens. A student who answered **"not sure"** about their target role is
+  measured against the Foundation stage skill set, so **Readiness** shows their foundation path — it
+  must never ask them to choose a role first.
 - **After membership** (payment, or an admin conversion/grant): the full 90-day roadmap is generated
   automatically from the same skill check. **My Roadmap**, **My 90 Days** and **Home** show
   *Foundation Journey — Day 1 of 90*; **Start today's work** opens the day's lessons, checkpoint and project.

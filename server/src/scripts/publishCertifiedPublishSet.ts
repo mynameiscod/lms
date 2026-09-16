@@ -61,8 +61,19 @@ import { teaches } from '../data/contentBundlePolicy';
  * unit, readiness or selection: the content seed also writes each checkpoint question's quizId, and
  * composerCertificationService exports the prerequisite rule it already applied. Any change to a
  * certified source after this commit still stops publication until it is re-certified.
+ *
+ * MOVED AGAIN, TO 4db217cd — AND THIS ONE IS NOT A NO-OP. Unlike the move above, it changes units,
+ * readiness and selection: the nine T_VARIABLES concept units were authored, so READY went 341 to
+ * 350, PARTIAL 14 to 5, and the recommended set 338 to 347. Both phase21 fixtures were regenerated
+ * from the live inventory rather than edited, and EXPECT below moved with them.
+ *
+ * Re-certified rather than merely renumbered. certifyProductionComposer on the live tenant:
+ * realistic profiles 9/9 at exactly ninety, state-boundary learners 40/40 across the 39-skill
+ * matrix, recompositions 72/72, broken project assignments 0, published set identical to the
+ * certified set, curriculum unchanged during the run, foundation on UNIT. ACTUAL PRODUCTION GATE:
+ * PASS.
  */
-const CERTIFIED_COMMIT = '382a39ee';
+const CERTIFIED_COMMIT = '4db217cd';
 const EXPECT = { total: 355, ready: 350, target: 347, withheld: 3, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

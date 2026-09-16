@@ -11,7 +11,7 @@
  * Every consequence is produced by the application: requests go through routes/index with a
  * signed-in token, adaptive handlers are registered exactly as server start-up registers them,
  * and journeys, recompositions and evidence are written only by the services those routes call.
- * The certified 338 units, their content and quizzes are read and never edited.
+ * The certified 347 units, their content and quizzes are read and never edited.
  *
  * Fixtures exist only where this reconstructed database has nothing to act on, and are named so
  * they cannot be confused with anything real: students on `@p27-e2e.careerpilot.invalid`,
@@ -369,7 +369,7 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
   const fpActivated = await unitFingerprint();
   const prodAfter = (await loadCandidates(tenantId, 'PRODUCTION')).units.map(u => u.unitCode).sort();
   check('activation', 'unit fingerprint unchanged by activation', fpActivated.hash === fpBefore.hash);
-  check('activation', 'PRODUCTION inventory is still exactly the certified 338', JSON.stringify(prodAfter) === JSON.stringify(certified));
+  check('activation', 'PRODUCTION inventory is still exactly the certified 347', JSON.stringify(prodAfter) === JSON.stringify(certified));
 
   /* ── fixtures: diagnostic items ─────────────────────────────────────────────────────── */
 
@@ -885,7 +885,7 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
   const fpAfter = await unitFingerprint();
   const prodFinal = (await loadCandidates(tenantId, 'PRODUCTION')).units.map(u => u.unitCode).sort();
   check('final', 'unit fingerprint unchanged by the run', fpAfter.hash === fpBefore.hash, fpAfter.hash);
-  check('final', 'PUBLISHED 338 and PRODUCTION inventory exactly the certified set', fpAfter.published === 338 && JSON.stringify(prodFinal) === JSON.stringify(certified));
+  check('final', 'PUBLISHED 347 and PRODUCTION inventory exactly the certified set', fpAfter.published === 347 && JSON.stringify(prodFinal) === JSON.stringify(certified));
   const membersJourneysAfter = await db.collection('learningcurriculums').countDocuments({ tenantId: TID, journeyKind: { $exists: true, $ne: null } });
   rawLog(`  this tenant's members hold ${membersJourneysAfter} Foundation journey(s) (${membersJourneys} at the start; real members may be working)`);
   check('final', 'Foundation still resolves to UNIT and the tenant is still provisioned',

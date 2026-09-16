@@ -56,7 +56,12 @@
 #root .gd :is(.rq-stat,.rq-card,.rc-stat,.rc-panel,.cp-iv-panel,.cp-iv-card,.gam-card,.gam-metric,.opp-metric,.opp-card,.opp-side-card,.rwd-card,.rwd-panel,.cpw-stat,.cpw-card){border-color:#e0e7ef!important;box-shadow:0 8px 24px rgba(5,29,100,.045)!important}
 #root .gd :is(.rq-primary,.rc-btn.primary,.gam-tabs button.on,.opp-btn.primary,.cpw-rewards-btn){background:#051d64!important;border-color:#051d64!important;color:#fff!important}
 #root .gd :is(.rq-mini i,.rq-timeline .line i,.rc-break-bar i,.cp-iv-progress i,.gam-mile-bar span,.rwd-progress span){background:linear-gradient(90deg,#051d64,#359aad)!important}
-#root .gd :is(.rq-days,.rq-phase-row .pc,.rc-editor-head>span,.gam-periods button.on,.opp-tabs button.on,.rwd-kicker,.cpw-kicker){color:#237f91!important}
+/* .gam-periods button.on was in this list and is not a teal accent: the rule three lines up
+   fills the selected period pill navy and sets its text white. Both are !important and both
+   land on the same element — the tab strip carries gam-tabs AND gam-periods — and :is() takes
+   the specificity of its most specific argument, so the two tied and the later one won. The
+   result was teal text on a navy pill. The others here are genuinely text accents on white. */
+#root .gd :is(.rq-days,.rq-phase-row .pc,.rc-editor-head>span,.opp-tabs button.on,.rwd-kicker,.cpw-kicker){color:#237f91!important}
 
 /* Practice Lab was the last member module still carrying the old violet system. */
 #root .gd .pl-back{color:#051d64!important}

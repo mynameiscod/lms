@@ -1021,6 +1021,117 @@ print(" ".join(str(x) for x in drop_negatives(list(nums))))`,
     ],
   },
   {
+    unitCode: 'T_ARRAYS_TRAVERSAL_PRACTICE',
+    notes: `No new ideas. Every problem here uses what an array is, traversal forwards and backwards,
+inserting and removing, and the index-fault checks from debugging — and nothing beyond them. No
+searching strategies, no sorting, no cost analysis: those come next. The goal is that walking a list
+and changing it stop needing thought.
+
+**The shapes that cover almost every problem here:**
+
+1. **Visit every element** — \`for value in values:\` when the position does not matter.
+2. **Total or count** — a name set to 0 before the loop, updated inside it.
+3. **Best so far** — start from the first element, replace it whenever a better one appears.
+4. **Keep some** — build a new list: \`kept = [v for v in values if v >= 0]\`.
+5. **Change in place** — by index, and backwards whenever elements are being removed.
+
+**The method, for every problem:**
+
+1. **Say which shape it is** before writing anything.
+2. **Decide what the empty list should produce**, and the one-element list. Both are usually one
+   line, and both are usually where the bug is.
+3. **Write the loop, then trace it by hand on three elements.**
+4. **Check the bounds against one sentence:** a list of n elements has indices 0 to n-1.
+
+**The checklist before you run it:**
+
+- Is the starting value of a total or best right for an empty list?
+- Does every index stay between 0 and \`len(values) - 1\`?
+- Am I removing while walking forwards? Go backwards, or build a new list.
+- \`b = a\` does not copy a list — both names are the same list.
+- \`append\` at the end is cheap; \`insert(0, x)\` shifts every element.`,
+    mcqs: [
+      mcq('Find the two largest values in an unsorted array. Best approach?',
+        [['One pass tracking the top two', true],
+          ['Nested loops comparing every pair', false],
+          ['Two passes, removing the max', false],
+          ['Copying the list, then scanning the copy', false]],
+        'One walk that updates the largest and second-largest as it goes does all the work needed. Pairs, removals and copies only add effort.'),
+      mcq('`marks = [72, 45, 90, 38]`. Which line builds a new list of only the marks that are 40 or more?',
+        [['`passed = [m for m in marks if m >= 40]`', true],
+          ['`passed = [m >= 40 for m in marks]`', false],
+          ['`passed = [marks[m] for m in marks if m >= 40]`', false],
+          ['`passed = marks.remove(38)`', false]],
+        'The condition filters and m is the value kept. The second keeps True/False, the third uses marks as indices and fails, and remove changes marks and returns None.'),
+      mcq('A list has 6 elements. Which loop visits every index from the last down to the first?',
+        [['`for i in range(5, -1, -1):`', true],
+          ['`for i in range(6, 0, -1):`', false],
+          ['`for i in range(5, 0, -1):`', false],
+          ['`for i in range(6, -1, -1):`', false]],
+        'The last valid index is 5, and a stop of -1 means down to and including 0. Starting at 6 is out of range, and stopping at 0 leaves index 0 unvisited.'),
+      mcq('`nums = [4, 8, 15]`. What is `nums` after `nums.insert(1, 6)` and then `nums.pop()`?',
+        [['`[4, 6, 8]`', true], ['`[4, 6, 8, 15]`', false], ['`[6, 8, 15]`', false], ['`[4, 8, 15]`', false]],
+        'insert(1, 6) places 6 at index 1, giving [4, 6, 8, 15]. pop() with no index removes the last element, 15.'),
+      mcq('`best = values[0]`, then `for v in values: if v < best: best = v`. For `[7, 3, 9, 3]`, what is `best` at the end?',
+        [['3', true], ['7', false], ['9', false], ['The repeated 3 raises an error', false]],
+        'best starts at 7 and is replaced only by something smaller. It becomes 3, and the second 3 is not smaller, so it stays.'),
+    ],
+    coding: [
+      {
+        title: 'Count and total the passing marks',
+        description: `Read one line of whole-number marks separated by spaces. A mark of 40 or more is a pass.
+
+Print exactly two lines: how many marks passed, and the total of the passing marks. An empty line has no marks, so both are 0.`,
+        starter: `line = input().strip()
+marks = [int(x) for x in line.split()] if line else []
+# your code here`,
+        language: 'python',
+        tests: [
+          { input: '72 45 90 38', expectedOutput: 'Passed: 3\nTotal: 207' },
+          { input: '10 20 39', expectedOutput: 'Passed: 0\nTotal: 0' },
+          { input: '40', expectedOutput: 'Passed: 1\nTotal: 40', isHidden: true },
+          { input: '', expectedOutput: 'Passed: 0\nTotal: 0', isHidden: true },
+        ],
+      },
+      {
+        title: 'The largest value and where it first appears',
+        description: `Read one line of whole numbers separated by spaces. Print the largest value and the index where it FIRST appears, separated by a space.
+
+If the line is empty, print \`empty\` instead. Do not use \`max\` or \`index\` — walk the list yourself.`,
+        starter: `line = input().strip()
+values = [int(x) for x in line.split()] if line else []
+# your code here`,
+        language: 'python',
+        tests: [
+          { input: '4 9 2 9', expectedOutput: '9 1' },
+          { input: '-5 -2 -8', expectedOutput: '-2 1' },
+          { input: '7', expectedOutput: '7 0', isHidden: true },
+          { input: '', expectedOutput: 'empty', isHidden: true },
+        ],
+      },
+    ],
+    checkpoint: [
+      {
+        ...mcq('`scores = [12, 7, 30, 7]`. What does `for i in range(len(scores)): if scores[i] == 7: print(i)` print?',
+          [['1, then 3', true], ['1 only', false], ['7, then 7', false], ['2, then 4', false]],
+          'It prints positions, not values, and positions count from zero: the two 7s sit at indices 1 and 3.'),
+        skillKey: 'DSA_ARRAYS',
+      },
+      {
+        ...mcq('Which expression gives the last element of a non-empty list `items`?',
+          [['`items[len(items) - 1]`', true], ['`items[len(items)]`', false], ['`items[len(items) + 1]`', false], ['`items[1]`', false]],
+          'A list of n elements has indices 0 to n-1, so the last one is at len(items) - 1. len(items) itself is one past the end.'),
+        skillKey: 'DSA_ARRAYS',
+      },
+      {
+        ...mcq('`queue = [10, 20, 30]`. Which operation has to shift every existing element?',
+          [['`queue.insert(0, 5)`', true], ['`queue.append(40)`', false], ['`queue.pop()`', false], ['`queue[1] = 25`', false]],
+          'Inserting at the front makes room by moving every element one place right. The end is cheap, and replacing an element moves nothing.'),
+        skillKey: 'DSA_ARRAYS',
+      },
+    ],
+  },
+  {
     unitCode: 'T_ARRAYS_PRACTICE',
     notes: `No new ideas. Every problem here uses traversal, searching, binary search, two
 pointers, insertion cost, string handling or complexity reasoning — each pattern appears at
@@ -1050,12 +1161,6 @@ habit now is what makes complexity a tool rather than an exam topic.`,
           ['Sort then scan — O(n log n)', false],
           ['Binary search for each element', false]],
         'Sorting works and is slower. The set version is one pass and reads as exactly what the problem asks.'),
-      mcq('Find the two largest values in an unsorted array. Best approach?',
-        [['One pass tracking the top two — O(n)', true],
-          ['Sort and take the last two — O(n log n)', false],
-          ['Two passes, removing the max', false],
-          ['Binary search', false]],
-        'Sorting does far more work than the question requires. Recognising that is the skill being practised.'),
       mcq('An array is sorted and you need the first element greater than x. Best approach?',
         [['A binary search variant — O(log n)', true],
           ['A linear scan from the start until one is found', false],

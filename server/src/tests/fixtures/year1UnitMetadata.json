@@ -827,7 +827,7 @@
   "title": "Binary Search",
   "moduleCode": "M07_DSA",
   "topicCode": "T_ARRAYS",
-  "displayOrder": 40,
+  "displayOrder": 70,
   "skillKeys": [
    "DSA_ARRAYS",
    "DSA_STRINGS"
@@ -850,7 +850,7 @@
   "title": "Talking About Cost",
   "moduleCode": "M07_DSA",
   "topicCode": "T_ARRAYS",
-  "displayOrder": 90,
+  "displayOrder": 110,
   "skillKeys": [
    "DSA_ARRAYS",
    "DSA_STRINGS"
@@ -882,7 +882,7 @@
   "title": "Debugging Index Errors",
   "moduleCode": "M07_DSA",
   "topicCode": "T_ARRAYS",
-  "displayOrder": 100,
+  "displayOrder": 40,
   "skillKeys": [
    "DSA_ARRAYS",
    "DSA_STRINGS"
@@ -905,7 +905,7 @@
   "title": "Inserting and Removing",
   "moduleCode": "M07_DSA",
   "topicCode": "T_ARRAYS",
-  "displayOrder": 50,
+  "displayOrder": 30,
   "skillKeys": [
    "DSA_ARRAYS",
    "DSA_STRINGS"
@@ -949,7 +949,7 @@
   "title": "Array and String Practice",
   "moduleCode": "M07_DSA",
   "topicCode": "T_ARRAYS",
-  "displayOrder": 110,
+  "displayOrder": 120,
   "skillKeys": [
    "DSA_ARRAYS",
    "DSA_STRINGS"
@@ -959,8 +959,9 @@
   ],
   "prerequisiteUnitCodes": [
    "T_ARRAYS_COMPLEXITY",
-   "T_ARRAYS_STRING_PROBLEMS",
-   "T_ARRAYS_DEBUGGING"
+   "T_ARRAYS_STRING_BASICS",
+   "T_ARRAYS_TWO_POINTERS",
+   "T_ARRAYS_TRAVERSAL_PRACTICE"
   ],
   "category": "UNIVERSAL",
   "applicableDirections": [],
@@ -974,7 +975,7 @@
   "title": "Searching",
   "moduleCode": "M07_DSA",
   "topicCode": "T_ARRAYS",
-  "displayOrder": 30,
+  "displayOrder": 60,
   "skillKeys": [
    "DSA_ARRAYS",
    "DSA_STRINGS"
@@ -997,7 +998,7 @@
   "title": "Strings as Arrays of Characters",
   "moduleCode": "M07_DSA",
   "topicCode": "T_ARRAYS",
-  "displayOrder": 70,
+  "displayOrder": 90,
   "skillKeys": [
    "DSA_ARRAYS",
    "DSA_STRINGS"
@@ -1020,7 +1021,7 @@
   "title": "Common String Problems",
   "moduleCode": "M07_DSA",
   "topicCode": "T_ARRAYS",
-  "displayOrder": 80,
+  "displayOrder": 100,
   "skillKeys": [
    "DSA_ARRAYS",
    "DSA_STRINGS"
@@ -1063,11 +1064,34 @@
   "estimatedMinutes": 40
  },
  {
+  "unitCode": "T_ARRAYS_TRAVERSAL_PRACTICE",
+  "title": "Traversing and Changing Lists Practice",
+  "moduleCode": "M07_DSA",
+  "topicCode": "T_ARRAYS",
+  "displayOrder": 50,
+  "skillKeys": [
+   "DSA_ARRAYS",
+   "DSA_STRINGS"
+  ],
+  "prerequisiteSkillKeys": [
+   "PROGRAMMING_FUNDAMENTALS"
+  ],
+  "prerequisiteUnitCodes": [
+   "T_ARRAYS_DEBUGGING"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PRACTICE",
+  "defaultDepth": "GUIDED",
+  "mandatory": true,
+  "estimatedMinutes": 50
+ },
+ {
   "unitCode": "T_ARRAYS_TWO_POINTERS",
   "title": "The Two-Pointer Pattern",
   "moduleCode": "M07_DSA",
   "topicCode": "T_ARRAYS",
-  "displayOrder": 60,
+  "displayOrder": 80,
   "skillKeys": [
    "DSA_ARRAYS",
    "DSA_STRINGS"
@@ -1607,7 +1631,9 @@
   "prerequisiteSkillKeys": [
    "PROGRAMMING_FUNDAMENTALS"
   ],
-  "prerequisiteUnitCodes": [],
+  "prerequisiteUnitCodes": [
+   "T_CONDITIONS_TRUTHINESS"
+  ],
   "category": "UNIVERSAL",
   "applicableDirections": [],
   "unitType": "DEBUG",
@@ -1670,7 +1696,8 @@
    "PROGRAMMING_FUNDAMENTALS"
   ],
   "prerequisiteUnitCodes": [
-   "T_CONDITIONS_PRACTICE"
+   "T_CONDITIONS_PRACTICE",
+   "T_CONDITIONS_NESTING"
   ],
   "category": "UNIVERSAL",
   "applicableDirections": [],
@@ -2512,7 +2539,9 @@
    "SHELL_COMMANDS"
   ],
   "prerequisiteSkillKeys": [],
-  "prerequisiteUnitCodes": [],
+  "prerequisiteUnitCodes": [
+   "T_FILES_PRACTICE"
+  ],
   "category": "UNIVERSAL",
   "applicableDirections": [],
   "unitType": "DEBUG",
@@ -2565,7 +2594,7 @@
   "title": "Hidden Files and Configuration",
   "moduleCode": "M01_CS_FUNDAMENTALS",
   "topicCode": "T_FILES",
-  "displayOrder": 70,
+  "displayOrder": 80,
   "skillKeys": [
    "FILE_SYSTEMS_PERMISSIONS",
    "SHELL_COMMANDS"
@@ -2603,6 +2632,27 @@
   "estimatedMinutes": 40
  },
  {
+  "unitCode": "T_FILES_ORGANISING_PRACTICE",
+  "title": "Organising Files from the Command Line",
+  "moduleCode": "M01_CS_FUNDAMENTALS",
+  "topicCode": "T_FILES",
+  "displayOrder": 50,
+  "skillKeys": [
+   "FILE_SYSTEMS_PERMISSIONS",
+   "SHELL_COMMANDS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_FILES_FILE_OPERATIONS"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PRACTICE",
+  "defaultDepth": "FOUNDATION",
+  "mandatory": true,
+  "estimatedMinutes": 45
+ },
+ {
   "unitCode": "T_FILES_PATHS",
   "title": "Absolute and Relative Paths",
   "moduleCode": "M01_CS_FUNDAMENTALS",
@@ -2628,7 +2678,7 @@
   "title": "Permissions and Ownership",
   "moduleCode": "M01_CS_FUNDAMENTALS",
   "topicCode": "T_FILES",
-  "displayOrder": 60,
+  "displayOrder": 70,
   "skillKeys": [
    "FILE_SYSTEMS_PERMISSIONS",
    "SHELL_COMMANDS"
@@ -2649,7 +2699,7 @@
   "title": "Command Line Practice",
   "moduleCode": "M01_CS_FUNDAMENTALS",
   "topicCode": "T_FILES",
-  "displayOrder": 80,
+  "displayOrder": 90,
   "skillKeys": [
    "FILE_SYSTEMS_PERMISSIONS",
    "SHELL_COMMANDS"
@@ -2657,7 +2707,8 @@
   "prerequisiteSkillKeys": [],
   "prerequisiteUnitCodes": [
    "T_FILES_PERMISSIONS",
-   "T_FILES_HIDDEN_AND_CONFIG"
+   "T_FILES_HIDDEN_AND_CONFIG",
+   "T_FILES_ORGANISING_PRACTICE"
   ],
   "category": "UNIVERSAL",
   "applicableDirections": [],
@@ -2671,7 +2722,7 @@
   "title": "Reading a File Without Opening It",
   "moduleCode": "M01_CS_FUNDAMENTALS",
   "topicCode": "T_FILES",
-  "displayOrder": 50,
+  "displayOrder": 60,
   "skillKeys": [
    "FILE_SYSTEMS_PERMISSIONS",
    "SHELL_COMMANDS"
@@ -2854,11 +2905,31 @@
   "estimatedMinutes": 45
  },
  {
+  "unitCode": "T_FUNCTIONS_CALL_RETURN_PRACTICE",
+  "title": "Define, Call and Return Practice",
+  "moduleCode": "M03_PROGRAMMING",
+  "topicCode": "T_FUNCTIONS",
+  "displayOrder": 50,
+  "skillKeys": [
+   "FUNCTIONS_BASICS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_FUNCTIONS_RETURN"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PRACTICE",
+  "defaultDepth": "FOUNDATION",
+  "mandatory": true,
+  "estimatedMinutes": 45
+ },
+ {
   "unitCode": "T_FUNCTIONS_COMPOSITION",
   "title": "Functions Calling Functions",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_FUNCTIONS",
-  "displayOrder": 70,
+  "displayOrder": 80,
   "skillKeys": [
    "FUNCTIONS_BASICS"
   ],
@@ -2878,12 +2949,15 @@
   "title": "Debugging Functions",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_FUNCTIONS",
-  "displayOrder": 90,
+  "displayOrder": 100,
   "skillKeys": [
    "FUNCTIONS_BASICS"
   ],
   "prerequisiteSkillKeys": [],
-  "prerequisiteUnitCodes": [],
+  "prerequisiteUnitCodes": [
+   "T_FUNCTIONS_COMPOSITION",
+   "T_FUNCTIONS_DEFAULTS"
+  ],
   "category": "UNIVERSAL",
   "applicableDirections": [],
   "unitType": "DEBUG",
@@ -2896,7 +2970,7 @@
   "title": "Default and Named Arguments",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_FUNCTIONS",
-  "displayOrder": 50,
+  "displayOrder": 60,
   "skillKeys": [
    "FUNCTIONS_BASICS"
   ],
@@ -2936,7 +3010,7 @@
   "title": "Saying What a Function Does",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_FUNCTIONS",
-  "displayOrder": 80,
+  "displayOrder": 90,
   "skillKeys": [
    "FUNCTIONS_BASICS"
   ],
@@ -2956,7 +3030,7 @@
   "title": "Mini Project — Functions",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_FUNCTIONS",
-  "displayOrder": 110,
+  "displayOrder": 120,
   "skillKeys": [
    "FUNCTIONS_BASICS"
   ],
@@ -2996,13 +3070,14 @@
   "title": "Functions Practice",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_FUNCTIONS",
-  "displayOrder": 100,
+  "displayOrder": 110,
   "skillKeys": [
    "FUNCTIONS_BASICS"
   ],
   "prerequisiteSkillKeys": [],
   "prerequisiteUnitCodes": [
-   "T_FUNCTIONS_DEBUGGING"
+   "T_FUNCTIONS_DEBUGGING",
+   "T_FUNCTIONS_CALL_RETURN_PRACTICE"
   ],
   "category": "UNIVERSAL",
   "applicableDirections": [],
@@ -3036,7 +3111,7 @@
   "title": "Scope — Where a Name Lives",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_FUNCTIONS",
-  "displayOrder": 60,
+  "displayOrder": 70,
   "skillKeys": [
    "FUNCTIONS_BASICS"
   ],
@@ -3499,7 +3574,9 @@
    "COMPUTER_ARCHITECTURE"
   ],
   "prerequisiteSkillKeys": [],
-  "prerequisiteUnitCodes": [],
+  "prerequisiteUnitCodes": [
+   "T_HARDWARE_PRACTICE"
+  ],
   "category": "UNIVERSAL",
   "applicableDirections": [],
   "unitType": "DEBUG",
@@ -4752,7 +4829,7 @@
   ],
   "prerequisiteSkillKeys": [],
   "prerequisiteUnitCodes": [
-   "T_LOOPS_NESTED_LOOPS",
+   "T_LOOPS_ACCUMULATORS",
    "T_LOOPS_INFINITE_LOOPS"
   ],
   "category": "UNIVERSAL",
@@ -7039,7 +7116,7 @@
   "title": "True, False, and Comparison",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_VARIABLES",
-  "displayOrder": 60,
+  "displayOrder": 70,
   "skillKeys": [
    "PROGRAMMING_FUNDAMENTALS",
    "PYTHON_BASICS",
@@ -7057,18 +7134,43 @@
   "estimatedMinutes": 35
  },
  {
-  "unitCode": "T_VARIABLES_DEBUGGING",
-  "title": "Debugging Variables",
+  "unitCode": "T_VARIABLES_COMPUTE_PRACTICE",
+  "title": "Computing and Printing Practice",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_VARIABLES",
-  "displayOrder": 100,
+  "displayOrder": 50,
   "skillKeys": [
    "PROGRAMMING_FUNDAMENTALS",
    "PYTHON_BASICS",
    "PYTHON_STRINGS"
   ],
   "prerequisiteSkillKeys": [],
-  "prerequisiteUnitCodes": [],
+  "prerequisiteUnitCodes": [
+   "T_VARIABLES_NUMBERS",
+   "T_VARIABLES_STRINGS"
+  ],
+  "category": "UNIVERSAL",
+  "applicableDirections": [],
+  "unitType": "PRACTICE",
+  "defaultDepth": "FOUNDATION",
+  "mandatory": true,
+  "estimatedMinutes": 45
+ },
+ {
+  "unitCode": "T_VARIABLES_DEBUGGING",
+  "title": "Debugging Variables",
+  "moduleCode": "M03_PROGRAMMING",
+  "topicCode": "T_VARIABLES",
+  "displayOrder": 110,
+  "skillKeys": [
+   "PROGRAMMING_FUNDAMENTALS",
+   "PYTHON_BASICS",
+   "PYTHON_STRINGS"
+  ],
+  "prerequisiteSkillKeys": [],
+  "prerequisiteUnitCodes": [
+   "T_VARIABLES_INPUT_OUTPUT"
+  ],
   "category": "UNIVERSAL",
   "applicableDirections": [],
   "unitType": "DEBUG",
@@ -7101,7 +7203,7 @@
   "title": "Input and Output",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_VARIABLES",
-  "displayOrder": 80,
+  "displayOrder": 90,
   "skillKeys": [
    "PROGRAMMING_FUNDAMENTALS",
    "PYTHON_BASICS",
@@ -7123,7 +7225,7 @@
   "title": "Mini Project — Variables",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_VARIABLES",
-  "displayOrder": 120,
+  "displayOrder": 130,
   "skillKeys": [
    "PROGRAMMING_FUNDAMENTALS",
    "PYTHON_BASICS",
@@ -7145,7 +7247,7 @@
   "title": "Naming Things Well",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_VARIABLES",
-  "displayOrder": 90,
+  "displayOrder": 100,
   "skillKeys": [
    "PROGRAMMING_FUNDAMENTALS",
    "PYTHON_BASICS",
@@ -7189,7 +7291,7 @@
   "title": "Variables Practice",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_VARIABLES",
-  "displayOrder": 110,
+  "displayOrder": 120,
   "skillKeys": [
    "PROGRAMMING_FUNDAMENTALS",
    "PYTHON_BASICS",
@@ -7197,7 +7299,8 @@
   ],
   "prerequisiteSkillKeys": [],
   "prerequisiteUnitCodes": [
-   "T_VARIABLES_DEBUGGING"
+   "T_VARIABLES_DEBUGGING",
+   "T_VARIABLES_COMPUTE_PRACTICE"
   ],
   "category": "UNIVERSAL",
   "applicableDirections": [],
@@ -7233,7 +7336,7 @@
   "title": "Working With Text",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_VARIABLES",
-  "displayOrder": 50,
+  "displayOrder": 60,
   "skillKeys": [
    "PROGRAMMING_FUNDAMENTALS",
    "PYTHON_BASICS",
@@ -7255,7 +7358,7 @@
   "title": "Types, and Why They Matter",
   "moduleCode": "M03_PROGRAMMING",
   "topicCode": "T_VARIABLES",
-  "displayOrder": 70,
+  "displayOrder": 80,
   "skillKeys": [
    "PROGRAMMING_FUNDAMENTALS",
    "PYTHON_BASICS",
@@ -7506,7 +7609,7 @@
   ],
   "prerequisiteSkillKeys": [],
   "prerequisiteUnitCodes": [
-   "T_LOOPS_ACCUMULATORS"
+   "T_LOOPS_PRACTICE"
   ],
   "category": "UNIVERSAL",
   "applicableDirections": [],

@@ -698,11 +698,89 @@ the difference.`,
     ],
   },
   {
-    unitCode: 'T_FILES_PRACTICE',
+    unitCode: 'T_FILES_ORGANISING_PRACTICE',
     notes: `No new commands. Everything here uses the tree, absolute and relative paths, \`pwd\`, \`ls\`,
-\`cd\`, creating, copying, moving and deleting, reading files, permissions and hidden files —
-applied to tasks the way they actually arrive: "tidy this folder", "share this with a teammate",
-"back this up before you break it".
+\`cd\`, and creating, copying, moving and deleting — nothing about reading files, permissions or
+hidden files yet. The tasks are the ones that arrive first: "tidy this folder", "put these where
+they belong", "clear out what you no longer need".
+
+**The method, for every task:**
+
+1. **Where am I?** Run \`pwd\`. Every relative path you are about to type starts from here.
+2. **What is here?** Run \`ls\`, or \`ls -l\` when sizes and dates help you decide.
+3. **Say the target as a path** before choosing a command. Work out the climb with \`..\` first,
+   then the descent. If you are unsure, write the absolute path; it cannot be misread.
+4. **Create what is missing.** \`mkdir -p\` builds a directory and any missing parents in one go.
+5. **Preview anything destructive.** Run \`ls\` with the same pattern before \`rm\` or \`mv\`, so you
+   see exactly which names the shell will hand over.
+6. **Check the result.** \`ls\` afterwards shows whether each file arrived, and under what name.
+
+**The checklist that catches most mistakes:**
+
+- Names containing spaces are quoted: \`"week 1"\`, not \`week 1\`.
+- Directories need \`-r\` for \`cp\` and \`rm\`; \`rmdir\` only removes empty ones.
+- \`mv\` and \`cp\` never create a destination directory for you.
+- Does the destination already exist? If it is a directory the file goes inside; if it is a file,
+  it is replaced without a warning. Add \`-i\` when that matters.
+- \`rm\` has no Recycle Bin. Once it has run, the file is gone.
+- If Tab will not complete a name, the name is wrong — stop and look.
+
+**Predict, then run.** Before pressing Enter, say which files will move and where they will end up.
+When the result matches, you understand the command; when it does not, you have found the exact
+thing to learn before it cost you a file.`,
+    mcqs: [
+      mcq('In `~/downloads` you want every PDF moved into `~/college/sem1`, which does not exist yet. Which works?',
+        [['mkdir -p ~/college/sem1, then mv *.pdf ~/college/sem1/', true],
+          ['mv *.pdf ~/college/sem1 on its own, which creates the folder', false],
+          ['cd ~/college/sem1, then mv ~/downloads/*.pdf into the folder', false],
+          ['cp *.pdf ~/college/sem1/ on its own, then rm *.pdf afterwards', false]],
+        'mv and cp never create a destination directory, and cd cannot enter one that does not exist. Create it first, then move.'),
+      mcq('You are in `/home/sana/college/sem2/dsa`. Which command reaches `/home/sana/college/sem1/maths`?',
+        [['cd ../../sem1/maths', true], ['cd ../sem1/maths', false], ['cd ../../../sem1/maths', false], ['cd /sem1/maths', false]],
+        'One .. reaches sem2 and a second reaches college, which contains sem1. One climb too few looks for sem2/sem1.'),
+      mcq('A directory called `old stuff` in the current directory must be deleted with everything inside. Which command?',
+        [['rm -r "old stuff"', true], ['rm -r old stuff', false], ['rmdir "old stuff"', false], ['rm "old stuff"', false]],
+        'The quotes keep the name as one argument and -r removes the contents. rmdir fails on a non-empty directory and plain rm refuses a directory.'),
+      mcq('In `~/college`, `sem1` is an existing directory. Where does `cp timetable.pdf sem1` put the copy?',
+        [['Inside sem1, still named timetable.pdf', true],
+          ['Over a file called sem1, which it replaces', false],
+          ['Nowhere, because cp needs -r to reach sem1', false],
+          ['Beside sem1, under the new name sem1.pdf', false]],
+        'When the destination is an existing directory the copy goes inside it and keeps its name. Only a destination that does not exist becomes a new file name.'),
+      mcq('From `~/downloads` you run `mv report.csv ~/results/`, and `~/results` already holds a `report.csv`. What happens?',
+        [['The older copy in results is replaced, with no warning', true],
+          ['mv refuses, because that name is already taken there', false],
+          ['The moved file is renamed report(1).csv automatically', false],
+          ['mv stops and asks whether the old file may be replaced', false]],
+        'mv and cp overwrite silently. The -i option is what makes them ask first, and it is worth using whenever the destination may already hold that name.'),
+    ],
+    checkpoint: [
+      mcq('Starting in `/home/anu`, which single command creates `/home/anu/college/sem2/labs` when neither `college` nor `sem2` exists?',
+        [['mkdir -p college/sem2/labs', true],
+          ['mkdir college/sem2/labs', false],
+          ['touch college/sem2/labs', false],
+          ['cd college/sem2/labs', false]],
+        'Only -p creates the missing parents. Without it mkdir fails, touch makes a file rather than a directory, and cd cannot enter what does not exist.', SH),
+      mcq('You are in `/home/anu/college/sem2`. Which relative path names `/home/anu/downloads/timetable.pdf`?',
+        [['../../downloads/timetable.pdf', true],
+          ['../downloads/timetable.pdf', false],
+          ['../../../downloads/timetable.pdf', false],
+          ['/downloads/timetable.pdf', false]],
+        'Two climbs reach /home/anu, which holds downloads. One climb stops at college, three go past anu, and a leading slash starts at the root.', FS),
+      mcq('Which command moves every `.jpg` in the current directory into the existing directory `photos`?',
+        [['mv *.jpg photos/', true],
+          ['mv photos/ *.jpg', false],
+          ['cp *.jpg photos/', false],
+          ['rm *.jpg photos/', false]],
+        'The sources come first and the destination last. Reversing them names the wrong destination, cp leaves the originals behind, and rm deletes instead of moving.', SH),
+    ],
+  },
+  {
+    unitCode: 'T_FILES_PRACTICE',
+    notes: `No new commands. This builds on Organising Files from the Command Line: the same tree,
+paths, \`pwd\`, \`ls\`, \`cd\`, creating, copying, moving and deleting — now with reading files,
+permissions and hidden files added, applied to tasks the way they actually arrive: "share this with
+a teammate", "back this up before you break it", "find out why this will not run".
 
 **The method, for every task:**
 
@@ -732,12 +810,6 @@ applied to tasks the way they actually arrive: "tidy this folder", "share this w
 result matches, you have evidence you understand it; when it does not, you have found exactly the
 thing to learn, before it cost you a file.`,
     mcqs: [
-      mcq('In `~/downloads` you want every PDF moved into `~/college/sem1`, which does not exist yet. Which works?',
-        [['mkdir -p ~/college/sem1, then mv *.pdf ~/college/sem1/', true],
-          ['mv *.pdf ~/college/sem1 on its own, which creates the folder', false],
-          ['cd ~/college/sem1, then mv ~/downloads/*.pdf into the folder', false],
-          ['cp *.pdf ~/college/sem1/ on its own, then rm *.pdf afterwards', false]],
-        'mv and cp never create a destination directory, and cd cannot enter one that does not exist. Create it first, then move.'),
       mcq('Your teammate is in the `team` group and must edit `report.md`, which is `-rw-r--r--` with owner you and group `team`. Which command?',
         [['chmod g+w report.md', true], ['chmod o+w report.md', false], ['chmod 777 report.md', false], ['chmod u+w report.md', false]],
         'Only the group needs write. o+w would let every user change it, and 777 also adds execute for everybody.'),
@@ -747,12 +819,18 @@ thing to learn, before it cost you a file.`,
           ['mv ~/project ~/backup/project-sep', false],
           ['cp ~/project ~/backup/project-sep', false]],
         'Copying the directory itself includes its dotfiles. The * version skips them, mv removes the original, and cp without -r refuses a directory.'),
-      mcq('You are in `/home/sana/college/sem2/dsa`. Which command reaches `/home/sana/college/sem1/maths`?',
-        [['cd ../../sem1/maths', true], ['cd ../sem1/maths', false], ['cd ../../../sem1/maths', false], ['cd /sem1/maths', false]],
-        'One .. reaches sem2 and a second reaches college, which contains sem1. One climb too few looks for sem2/sem1.'),
-      mcq('A directory called `old stuff` in the current directory must be deleted with everything inside. Which command?',
-        [['rm -r "old stuff"', true], ['rm -r old stuff', false], ['rmdir "old stuff"', false], ['rm "old stuff"', false]],
-        'The quotes keep the name as one argument and -r removes the contents. rmdir fails on a non-empty directory and plain rm refuses a directory.'),
+      mcq('`app.log` has 40,000 lines and you need only the 20 most recent. Which command?',
+        [['tail -n 20 app.log', true], ['head -n 20 app.log', false], ['cat -n 20 app.log', false], ['ls -n 20 app.log', false]],
+        'New lines are appended to the end of a log, so the latest twenty are its last twenty. head shows the oldest, and cat and ls do not select lines.'),
+      mcq('`run.sh` is `-rw-r--r--` and `./run.sh` says "Permission denied". Which change lets only you run it?',
+        [['chmod u+x run.sh', true], ['chmod a+x run.sh', false], ['chmod u+w run.sh', false], ['chmod 777 run.sh', false]],
+        'Running needs the execute bit, and u limits it to the owner. a+x and 777 give it to everybody, and w is not what running checks.'),
+      mcq('`ls` in your home directory does not list `.bashrc`, yet the shell reads it every time it starts. Why is it missing?',
+        [['ls skips names that begin with a dot unless given -a', true],
+          ['Configuration files live on a separate hidden disk', false],
+          ['The file is only created when the shell next exits', false],
+          ['ls shows a file only after it has been opened once', false]],
+        'A leading dot is a naming convention that ls honours by default. The file is ordinary and sits in the home directory; ls -a shows it.'),
     ],
     checkpoint: [
       mcq('Before running `rm -r build*`, which command shows exactly what will be removed?',

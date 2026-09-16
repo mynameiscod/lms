@@ -74,7 +74,7 @@ import { teaches } from '../data/contentBundlePolicy';
  * PASS.
  */
 const CERTIFIED_COMMIT = '4db217cd';
-const EXPECT = { total: 355, ready: 350, target: 347, withheld: 3, partial: 5 };
+const EXPECT = { total: 359, ready: 354, target: 351, withheld: 3, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');
 /** What the certification was computed from. A change to any of these since certification is drift. */

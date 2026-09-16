@@ -54,9 +54,9 @@ It runs, in order, stopping at the first failure:
    hierarchy and its validation gate
 2. the Year-1 Learning Units, expansion units, content, suitability overrides, and unit content —
    checkpoint quizzes with every question linked to its quiz, and project assignments
-3. publication of **exactly the certified 338 units**, through the product's publish handler and its
+3. publication of **exactly the certified 351 units**, through the product's publish handler and its
    gates, refused if the tenant's READY inventory is not identical to the certified one
-4. verification: 355 units, 341 READY, PRODUCTION = the certified 338, quiz linkage, the stage skill
+4. verification: 359 units, 354 READY, PRODUCTION = the certified 351, quiz linkage, the stage skill
    set present and enabled, Foundation CONFIGURED
 5. the production gate (`certifyProductionComposer`) — 9/9, 40/40, 72/72
 

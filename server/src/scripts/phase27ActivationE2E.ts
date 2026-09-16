@@ -11,7 +11,7 @@
  * Every consequence is produced by the application: requests go through routes/index with a
  * signed-in token, adaptive handlers are registered exactly as server start-up registers them,
  * and journeys, recompositions and evidence are written only by the services those routes call.
- * The certified 347 units, their content and quizzes are read and never edited.
+ * The certified 351 units, their content and quizzes are read and never edited.
  *
  * Fixtures exist only where this reconstructed database has nothing to act on, and are named so
  * they cannot be confused with anything real: students on `@p27-e2e.careerpilot.invalid`,
@@ -244,9 +244,9 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
   const ready = await loadCandidates(tenantId, 'PROTOTYPE_UNPUBLISHED');
   const linkage = await checkCurriculumQuizLinkage(tenantId);
   rawLog(`  unit fingerprint at the start of this run: ${fpBefore.hash} — every later check compares against it`);
-  check('pre', 'units 355, READY 350, PUBLISHED 347', fpBefore.total === 355 && ready.units.length === 350 && fpBefore.published === 347,
+  check('pre', 'units 359, READY 354, PUBLISHED 351', fpBefore.total === 359 && ready.units.length === 354 && fpBefore.published === 351,
     `${fpBefore.total} / ${ready.units.length} / ${fpBefore.published}`);
-  check('pre', 'PRODUCTION inventory is exactly the certified 347', JSON.stringify(prodCodes) === JSON.stringify(certified), `${prodCodes.length}`);
+  check('pre', 'PRODUCTION inventory is exactly the certified 351', JSON.stringify(prodCodes) === JSON.stringify(certified), `${prodCodes.length}`);
   const membersJourneys = await db.collection('learningcurriculums').countDocuments({ tenantId: TID, journeyKind: { $exists: true, $ne: null } });
   check('pre', 'no fixture left over from an earlier run', !(await syntheticResidue([], [])).length,
     `this tenant's members already hold ${membersJourneys} Foundation journey(s); they are never touched`);
@@ -369,7 +369,7 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
   const fpActivated = await unitFingerprint();
   const prodAfter = (await loadCandidates(tenantId, 'PRODUCTION')).units.map(u => u.unitCode).sort();
   check('activation', 'unit fingerprint unchanged by activation', fpActivated.hash === fpBefore.hash);
-  check('activation', 'PRODUCTION inventory is still exactly the certified 347', JSON.stringify(prodAfter) === JSON.stringify(certified));
+  check('activation', 'PRODUCTION inventory is still exactly the certified 351', JSON.stringify(prodAfter) === JSON.stringify(certified));
 
   /* ── fixtures: diagnostic items ─────────────────────────────────────────────────────── */
 
@@ -885,7 +885,7 @@ const logSince = (mark: number, re: RegExp) => logLines.slice(mark).find(l => re
   const fpAfter = await unitFingerprint();
   const prodFinal = (await loadCandidates(tenantId, 'PRODUCTION')).units.map(u => u.unitCode).sort();
   check('final', 'unit fingerprint unchanged by the run', fpAfter.hash === fpBefore.hash, fpAfter.hash);
-  check('final', 'PUBLISHED 347 and PRODUCTION inventory exactly the certified set', fpAfter.published === 347 && JSON.stringify(prodFinal) === JSON.stringify(certified));
+  check('final', 'PUBLISHED 351 and PRODUCTION inventory exactly the certified set', fpAfter.published === 351 && JSON.stringify(prodFinal) === JSON.stringify(certified));
   const membersJourneysAfter = await db.collection('learningcurriculums').countDocuments({ tenantId: TID, journeyKind: { $exists: true, $ne: null } });
   rawLog(`  this tenant's members hold ${membersJourneysAfter} Foundation journey(s) (${membersJourneys} at the start; real members may be working)`);
   check('final', 'Foundation still resolves to UNIT and the tenant is still provisioned',

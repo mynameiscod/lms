@@ -978,6 +978,111 @@ print(report(a, b, c))`,
     ],
   },
   {
+    unitCode: 'T_FUNCTIONS_CALL_RETURN_PRACTICE',
+    notes: `No new ideas. Everything here uses defining a function, calling it, parameters and
+arguments, and returning a value — nothing about defaults, scope or composition yet. The goal is
+that the shape of a function stops needing thought: a name, what goes in, what comes back.
+
+**The method, for every function:**
+
+1. **Name it** with a verb phrase that says what it gives back: \`total_price\`, \`minutes_to_text\`.
+2. **List what it needs.** Those are the parameters, in an order a caller would expect.
+3. **Write one call first**, with real arguments, and write down the value it should return.
+4. **Write the body** so that it computes that value and \`return\`s it.
+5. **Call it and print the result** — the printing happens outside, at the call, not inside.
+
+**The checklist before you run it:**
+
+1. Does it \`return\`, or did I \`print\` inside by accident? A function that prints hands back \`None\`.
+2. Is the \`def\` above the first line that calls it?
+3. Is every parameter actually used in the body?
+4. Do the arguments at the call arrive in the same order as the parameters?
+5. Did I write the parentheses? \`total_price\` is the function; \`total_price(120, 3)\` is a call.
+
+**Trace one call by hand.** Write the argument values beside the parameter names, work the body
+line by line, and write down what is returned. When that disagrees with what the program prints,
+you have found either a bug or a gap in your model — and both are worth finding now.`,
+    mcqs: [
+      mcq('Which correctly returns the larger of two numbers without using max?',
+        [['`def bigger(a, b): return a if a > b else b`', true],
+          ['`def bigger(a, b): print(a if a > b else b)`', false],
+          ['`def bigger(a, b): a if a > b else b`', false],
+          ['`def bigger(a, b): if a > b: a; else: b`', false]],
+        'The second prints; the third computes and discards; the fourth is not valid Python. Only the first hands a value back.'),
+      mcq('A function takes four parameters and uses two. What does that suggest?',
+        [['The signature is wrong — it is asking callers for things it does not need', true],
+          ['Nothing; unused parameters are harmless and cost nothing', false],
+          ['The unused parameters need defaults so callers may omit them', false],
+          ['It should be split into two functions, one for each pair', false]],
+        'Every parameter is a demand on the caller. Unused ones are a maintenance cost and often a leftover from a refactor.'),
+      mcq('`def area(length, width): return length * width` is called as `area(5)`. What happens?',
+        [['TypeError, because the argument for width is missing', true],
+          ['It returns 0, because width is treated as zero', false],
+          ['It returns 5, because width is ignored when absent', false],
+          ['It returns None, because the call was incomplete', false]],
+        'Every parameter without a default must receive an argument. Python refuses the call and names the missing parameter rather than guessing a value.'),
+      mcq('`def half(n): return n / 2`. What does `print(half(9) + 1)` show?',
+        [['5.5', true], ['4.5', false], ['5', false], ['TypeError', false]],
+        'half(9) returns 4.5, a number the caller can keep using, so adding 1 gives 5.5. Returning is what makes that possible.'),
+      mcq('`def fees(amount, discount):` — which call passes 500 as the discount?',
+        [['`fees(2000, 500)`', true], ['`fees(500, 2000)`', false], ['`fees(500)`', false], ['`fees(discount, 500)`', false]],
+        'Arguments match parameters by position: the first is amount and the second is discount.'),
+    ],
+    coding: [
+      {
+        title: 'A function that returns a total',
+        description: `Write \`total_price(price, quantity)\` which RETURNS the price multiplied by the quantity. It must not print anything itself.
+
+The program reads a price and a quantity, both whole numbers, calls your function once, and prints what it returns.`,
+        starter: `# define total_price here
+
+price = int(input())
+quantity = int(input())
+print(total_price(price, quantity))`,
+        language: 'python',
+        tests: [
+          { input: '120\n3', expectedOutput: '360' },
+          { input: '45\n0', expectedOutput: '0' },
+          { input: '999\n2', expectedOutput: '1998', isHidden: true },
+        ],
+      },
+      {
+        title: 'Minutes as hours and minutes',
+        description: `Write \`minutes_to_text(total)\` which RETURNS a string such as "2 h 15 min" for 135.
+
+The program reads a whole number of minutes, calls your function, and prints the result. Use the function's return value — do not print inside it.`,
+        starter: `# define minutes_to_text here
+
+total = int(input())
+print(minutes_to_text(total))`,
+        language: 'python',
+        tests: [
+          { input: '135', expectedOutput: '2 h 15 min' },
+          { input: '60', expectedOutput: '1 h 0 min' },
+          { input: '59', expectedOutput: '0 h 59 min', isHidden: true },
+          { input: '0', expectedOutput: '0 h 0 min', isHidden: true },
+        ],
+      },
+    ],
+    checkpoint: [
+      mcq('`def square(n): return n * n`. What does `print(square(square(2)))` show?',
+        [['16', true], ['8', false], ['4', false], ['64', false]],
+        'The inner call returns 4, and that value becomes the argument of the outer call, which returns 16.'),
+      mcq('`def add(a, b): print(a + b)`. Which change makes `total = add(2, 3)` store 5 in total?',
+        [['Replace print(a + b) with return a + b', true],
+          ['Write the call as total = print(add(2, 3))', false],
+          ['Add a third parameter called total to add', false],
+          ['Move the line total = add(2, 3) above the def', false]],
+        'Only return hands the value back to the caller. Printing shows it and returns None, and moving the call above the def raises NameError.'),
+      mcq('`def greet(name): return "Hi " + name` is called as `greet()`. What happens?',
+        [['TypeError: the argument for name is missing', true],
+          ['It returns "Hi " with nothing after it', false],
+          ['It returns None, as no name was passed', false],
+          ['NameError, because name is not defined', false]],
+        'A parameter with no default must be given an argument, and Python refuses the call instead of inventing a value.'),
+    ],
+  },
+  {
     unitCode: 'T_FUNCTIONS_PRACTICE',
     notes: `No new ideas. Everything here uses definition, parameters, return, defaults, scope,
 composition and the debugging method — and nothing else.
@@ -1007,18 +1112,6 @@ have only learned what it does.`,
           ['That it has a docstring describing what it returns', false],
           ['Nothing; the function is short enough to be obviously correct', false]],
         'Empty gives 0.0 here rather than an error, which may or may not be what you want — and `/` versus `//` is a decision, not a detail.'),
-      mcq('A function takes four parameters and uses two. What does that suggest?',
-        [['The signature is wrong — it is asking callers for things it does not need', true],
-          ['Nothing; unused parameters are harmless and cost nothing', false],
-          ['The unused parameters need defaults so callers may omit them', false],
-          ['It should be split into two functions, one for each pair', false]],
-        'Every parameter is a demand on the caller. Unused ones are a maintenance cost and often a leftover from a refactor.'),
-      mcq('Which correctly returns the larger of two numbers without using max?',
-        [['`def bigger(a, b): return a if a > b else b`', true],
-          ['`def bigger(a, b): print(a if a > b else b)`', false],
-          ['`def bigger(a, b): a if a > b else b`', false],
-          ['`def bigger(a, b): if a > b: a; else: b`', false]],
-        'The second prints; the third computes and discards; the fourth is not valid Python. Only the first hands a value back.'),
       mcq('`def tax(amount, rate=0.18)` called as `tax(100, 18)` returns 1800. The bug is:',
         [['The caller used a percentage where the default implies a fraction', true],
           ['The default value of 0.18 is wrong and should be 18', false],

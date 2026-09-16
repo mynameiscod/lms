@@ -38,8 +38,14 @@ import { publishUnit } from '../controllers/curriculumLearningUnitController';
  * unpublishable — and PROGRAMMING_FUNDAMENTALS with no instructional unit the composer could
  * schedule at all. Authoring them moved READY 341 → 350 and PARTIAL 14 → 5; the audit's proposed
  * recommended set grew 338 → 347 and withholds the same three JS/DOM drafts as before.
+ *
+ * Re-certified again after four first-pass PRACTICE units were authored — files, variables, functions
+ * and arrays each gained a practice at an earlier natural boundary than their existing one, which
+ * became the deeper practice — and the practice paths of the nine foundation progression topics were
+ * re-authored. Total 355 → 359, READY 350 → 354, recommended 347 → 351: exactly the previous set plus
+ * the four new units. Withheld is still the same three JS/DOM drafts and PARTIAL the same five.
  */
-export const CERTIFIED_FOUNDATION = { total: 355, ready: 350, target: 347, withheld: 3, partial: 5 } as const;
+export const CERTIFIED_FOUNDATION = { total: 359, ready: 354, target: 351, withheld: 3, partial: 5 } as const;
 
 /** Committed with the code, so every deployment certifies against the same set. */
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

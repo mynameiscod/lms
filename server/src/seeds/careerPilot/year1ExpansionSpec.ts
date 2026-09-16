@@ -603,7 +603,9 @@ const APPLICATION_UNITS: ProposedUnit[] = [
     + 'things at random.',
     ['HOW_COMPUTERS_WORK', 'COMPUTER_ARCHITECTURE'],
     ['Diagnose a slow or failing machine from what it is actually doing'], 45,
-    { defaultDepth: 'FOUNDATION' },
+    // Diagnosing a slow machine uses every hardware layer, so it follows the topic's practice
+    // rather than being schedulable straight after the first hardware lesson.
+    { defaultDepth: 'FOUNDATION', prerequisiteUnitCodes: ['T_HARDWARE_PRACTICE'] },
     'M01 is sixteen units with no application at all — the first module a beginner meets teaches '
     + 'how a computer works and never asks them to use that to explain a real symptom.',
     'beginner and mixed; adds the earliest APPLICATION unit in the programme, which matters '
@@ -615,7 +617,9 @@ const APPLICATION_UNITS: ProposedUnit[] = [
     + 'read properly rather than worked around.',
     ['FILE_SYSTEMS_PERMISSIONS', 'SHELL_COMMANDS'],
     ['Read a path or permission error and fix the actual cause'], 45,
-    { defaultDepth: 'FOUNDATION' },
+    // Path and permission errors need paths, navigation and permissions: it follows the deeper
+    // Command Line Practice, not the first file lesson.
+    { defaultDepth: 'FOUNDATION', prerequisiteUnitCodes: ['T_FILES_PRACTICE'] },
     'T_FILES has eight units and only practice. Path and permission faults are the single '
     + 'commonest early blocker and nothing in the curriculum treats them as a skill.',
     'beginner; also feeds the systems checkpoint and the shell project, both of which assume '
@@ -816,7 +820,9 @@ const CAPACITY_UNITS: ProposedUnit[] = [
     + 'Find which, from what the loop actually did.',
     ['LOOPS_BASICS'],
     ['Diagnose a terminating loop that produces a wrong result'], 45,
-    { prerequisiteUnitCodes: ['T_LOOPS_ACCUMULATORS'] },
+    // A later return to loops: it follows the topic's practice, whose path already includes
+    // accumulators, instead of interrupting the first pass.
+    { prerequisiteUnitCodes: ['T_LOOPS_PRACTICE'] },
     'T_LOOPS_INFINITE_LOOPS debugs loops that never end. A loop that ends with the wrong answer — '
     + 'a range one short, an accumulator initialised inside the loop, a list changed while being '
     + 'iterated — fails silently, and is by far the commoner fault.',

@@ -999,6 +999,118 @@ print(mesage)
     ],
   },
   {
+    unitCode: 'T_VARIABLES_COMPUTE_PRACTICE',
+    notes: `No new ideas. Every problem here uses \`print\`, variables, numbers and strings — and
+nothing else. There is no input yet: every value you need is already written in the program. That
+keeps the attention on the two things this stage is really about, which are getting the arithmetic
+right and printing the result exactly.
+
+**The method, for every problem:**
+
+1. **Work the answer out by hand first**, for the values in the file. Write the exact line you
+   expect to see, spaces and all.
+2. **Give each value a name** that says what it is: \`parcels\`, \`per_van\`, not \`a\` and \`b\`.
+3. **Compute into a new name**, one step per line, so each step can be printed on its own if the
+   answer is wrong.
+4. **Build the output with an f-string**: \`f"Full vans: {full_vans}"\`. It accepts numbers and
+   text alike and keeps the spacing visible in one place.
+5. **Run it and compare character by character** with what you wrote down in step 1.
+
+**The checklist before you run:**
+
+- \`/\` always gives a float. When you want whole units, use \`//\`, and \`%\` for what is left over.
+- Brackets say what you mean: \`(a + b) * c\` is not \`a + b * c\`.
+- \`+\` joins text to text only. \`"Total: " + 360\` is a TypeError; the f-string is the fix.
+- Positions count from zero. The last character of \`name\` is \`name[-1]\`, or
+  \`name[len(name) - 1]\`.
+- A name must be assigned on a line above the one that reads it.
+
+**When the output is wrong**, print each intermediate name on its own line before changing anything.
+The wrong step is almost always the first one whose printed value surprises you.`,
+    mcqs: [
+      mcq('`items = 23` and a box holds 5. Which line prints `4 boxes, 3 left over`?',
+        [['`print(f"{items // 5} boxes, {items % 5} left over")`', true],
+          ['`print(f"{items / 5} boxes, {items % 5} left over")`', false],
+          ['`print(f"{items % 5} boxes, {items // 5} left over")`', false],
+          ['`print(items // 5 + " boxes, " + items % 5 + " left over")`', false]],
+        '// counts whole boxes and % gives the leftover. / gives 4.6, the swapped version prints 3 boxes, and + cannot join a number to text.'),
+      mcq('After `count = 3`, then `count = count * 2`, then `count = count + 1`, what does `print(count)` show?',
+        [['7', true], ['6', false], ['8', false], ['9', false]],
+        'Each line uses the value the name holds at that moment: 3, then 6, then 7.'),
+      mcq('`city = "Chennai"`. What does `print(city[0] + city[-1])` show?',
+        [['Ci', true], ['Cn', false], ['Ch', false], ['ai', false]],
+        'Position 0 is the first character and position -1 is the last, so the two joined are C and i.'),
+      mcq('What does `print(2 + 3 * 4 ** 2)` show?',
+        [['50', true], ['80', false], ['146', false], ['400', false]],
+        'Power first (16), then multiplication (48), then addition (50). 80 and 400 come from adding first; 146 from squaring 12.'),
+      mcq('`price = 120` and `qty = 3`. Which line prints `Total: 360`?',
+        [['`print(f"Total: {price * qty}")`', true],
+          ['`print("Total: " + price * qty)`', false],
+          ['`print(f"Total: {price} * {qty}")`', false],
+          ['`print("Total: {price * qty}")`', false]],
+        'Inside the braces the expression is worked out. Without the f the braces print literally, + cannot join text and a number, and two separate braces print both values.'),
+    ],
+    coding: [
+      {
+        title: 'Print a delivery summary',
+        description: `A warehouse sends parcels out in vans. The program already sets three values: how many parcels there are, how many fit in one van, and how far each van trip is in kilometres.
+
+Print exactly three lines: how many vans can be completely filled, how many parcels are left over after filling them, and the total distance driven by the full vans.
+
+For example, if there were 30 parcels, 10 per van and 18 km per trip, it would print:
+
+    Full vans: 3
+    Parcels left over: 0
+    Distance for full vans: 54 km
+
+Do not type the answers in — calculate them from the three names, so the program stays right when the values change.`,
+        starter: `parcels = 47
+per_van = 12
+km_per_trip = 18
+
+# calculate and print the three lines
+`,
+        language: 'python',
+        tests: [
+          { input: '', expectedOutput: 'Full vans: 3\nParcels left over: 11\nDistance for full vans: 54 km', isHidden: true },
+        ],
+      },
+      {
+        title: 'Print a name badge',
+        description: `The program already sets a first name, a last name and a roll number. Print exactly three lines: the full name followed by the roll number in brackets, the initials each followed by a full stop, and the number of characters in the full name including the space.
+
+For example, for Asha, Rao and 7 it would print:
+
+    Asha Rao (Roll 7)
+    Initials: A.R.
+    Name length: 8
+
+Build every line from the three names rather than typing the text in.`,
+        starter: `first = "Priya"
+last = "Sharma"
+roll = 42
+
+# build and print the three lines
+`,
+        language: 'python',
+        tests: [
+          { input: '', expectedOutput: 'Priya Sharma (Roll 42)\nInitials: P.S.\nName length: 12', isHidden: true },
+        ],
+      },
+    ],
+    checkpoint: [
+      mcq('These lines run in order: `total = 250`, `total = total + 140`, `total = total + 60`, `print(total)`. What is shown?',
+        [['450', true], ['390', false], ['310', false], ['200', false]],
+        'Each assignment works out the right-hand side with the current value, then stores the result: 250, then 390, then 450.', PF),
+      mcq('Which expression gives the number of complete weeks in 50 days?',
+        [['50 // 7', true], ['50 / 7', false], ['50 % 7', false], ['7 // 50', false]],
+        '// keeps only the whole number of sevens, which is 7. / gives a float with a fraction, and % gives the 1 day left over.', PB),
+      mcq('`code = "CB2026"`. What does `print(len(code), code[2])` show?',
+        [['6 2', true], ['6 B', false], ['5 2', false], ['6 0', false]],
+        'There are six characters, and position 2 is the third one, because positions count from zero: C, B, then 2.', PS),
+    ],
+  },
+  {
     unitCode: 'T_VARIABLES_PRACTICE',
     notes: `No new ideas. Every problem here uses printing, variables, numbers, strings and their
 methods, booleans, types and input — the whole of this topic, and nothing from later ones.

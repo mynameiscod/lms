@@ -79,6 +79,17 @@ const debugPractiseBuild = (
     projectMin, { unitType: 'PROJECT', after: ['PRACTICE'] }),
 ];
 
+/**
+ * Re-point the prerequisites of chosen units in a generated tail, by slug.
+ *
+ * `debugPractiseBuild` gives every topic the same shape — debugging after nothing, practice after
+ * debugging — and that shape is wrong wherever a topic's debugging exercise uses what its lessons
+ * taught. Stated per topic here rather than by changing the helper's defaults, so one topic's
+ * authoring decision cannot silently move another's.
+ */
+const afterFor = (units: UnitSeed[], after: Record<string, string[]>): UnitSeed[] =>
+  units.map(x => (after[x.slug] ? { ...x, after: after[x.slug] } : x));
+
 export const YEAR1: Record<string, TopicSeed> = {
 
   /* ── M01 · Computer Science Fundamentals ──────────────────────────────────────────── */
@@ -128,6 +139,17 @@ export const YEAR1: Record<string, TopicSeed> = {
       u('FILE_OPERATIONS', 'Creating, Copying, Moving, Deleting',
         'The four operations, and which of them cannot be undone.',
         ['Perform each safely, and say which one has no undo'], 45, { after: ['NAVIGATION'] }),
+      /**
+       * The FIRST practice, not a second copy of the last one.
+       *
+       * After creating, copying, moving and deleting, a learner can already do real work: tidy a
+       * folder from the shell. Viewing, permissions and hidden files are a second layer, and the
+       * deeper Command Line Practice below builds on this one rather than replacing it.
+       */
+      u('ORGANISING_PRACTICE', 'Organising Files from the Command Line',
+        'Tidying, moving and removing real folders using only paths and the commands so far.',
+        ['Organise a folder of mixed files without a graphical tool'], 45,
+        { unitType: 'PRACTICE', after: ['FILE_OPERATIONS'] }),
       u('VIEWING_FILES', 'Reading a File Without Opening It',
         'cat, head, tail and less — and when each is the right one.',
         ['Read the last twenty lines of a large log'], 35, { after: ['FILE_OPERATIONS'] }),
@@ -140,7 +162,7 @@ export const YEAR1: Record<string, TopicSeed> = {
       u('PRACTICE', 'Command Line Practice',
         'Real tasks done only from the shell, until the window stops being missed.',
         ['Complete a file-organising task without a graphical tool'], 60,
-        { unitType: 'PRACTICE', after: ['PERMISSIONS', 'HIDDEN_AND_CONFIG'] }),
+        { unitType: 'PRACTICE', after: ['PERMISSIONS', 'HIDDEN_AND_CONFIG', 'ORGANISING_PRACTICE'] }),
     ],
   },
 
@@ -214,6 +236,18 @@ export const YEAR1: Record<string, TopicSeed> = {
       u('STRINGS', 'Strings',
         'Text as data: creating, joining and reading characters out of it.',
         ['Build a message from several pieces'], 45, { after: ['VARIABLES'] }),
+      /**
+       * Code on day five rather than day ten.
+       *
+       * With printing, variables, numbers and strings a learner can already write a program that
+       * computes something and prints it exactly. Waiting until string methods, booleans, types
+       * and input have all been taught put eight lessons between a non-coder and their first
+       * exercise. No input here: reading and converting it is what the later lessons are for.
+       */
+      u('COMPUTE_PRACTICE', 'Computing and Printing Practice',
+        'Short programs that calculate with numbers and build text from values already in the file.',
+        ['Write a program that computes a result and prints it exactly'], 45,
+        { unitType: 'PRACTICE', after: ['NUMBERS', 'STRINGS'] }),
       u('STRING_METHODS', 'Working With Text',
         'Slicing, searching, splitting, changing case — the operations you will use daily.',
         ['Extract a part of a string by position and by search'], 50, { after: ['STRINGS'] }),
@@ -229,7 +263,15 @@ export const YEAR1: Record<string, TopicSeed> = {
       u('NAMING', 'Naming Things Well',
         'Why a good name is the cheapest documentation you will ever write.',
         ['Rename a badly named program so it explains itself'], 30, { after: ['VARIABLES'] }),
-      ...debugPractiseBuild('Variables', 45, 60, 90),
+      /**
+       * The debugging exercise and the integrating practice use the whole topic — input, types and
+       * string methods included — so they name that. They used to declare nothing, which let a
+       * beginner be handed "debug your variables" before being taught what a variable was.
+       */
+      ...afterFor(debugPractiseBuild('Variables', 45, 60, 90), {
+        DEBUGGING: ['INPUT_OUTPUT'],
+        PRACTICE: ['DEBUGGING', 'COMPUTE_PRACTICE'],
+      }),
     ],
   },
 
@@ -251,7 +293,15 @@ export const YEAR1: Record<string, TopicSeed> = {
       u('TRUTHINESS', 'What Counts as True',
         'Empty strings, zero, and empty collections — the values that are false without being False.',
         ['Predict whether a non-boolean value passes a condition'], 35, { after: ['BOOLEAN_OPERATORS'] }),
-      ...debugPractiseBuild('Conditions', 45, 60, 90),
+      /**
+       * Debugging and practice need if, elif, boolean operators and truthiness — not nesting, which
+       * is a refinement. The project's rubric asks for guards instead of deep nesting, so the
+       * project is what waits for that lesson.
+       */
+      ...afterFor(debugPractiseBuild('Conditions', 45, 60, 90), {
+        DEBUGGING: ['TRUTHINESS'],
+        MINI_PROJECT: ['PRACTICE', 'NESTING'],
+      }),
     ],
   },
 
@@ -281,7 +331,9 @@ export const YEAR1: Record<string, TopicSeed> = {
         ['Fix a loop that never ends'], 40, { unitType: 'DEBUG', after: ['LOOP_CONTROL'] }),
       u('PRACTICE', 'Loops Practice',
         'Enough loop problems that the pattern stops needing thought.',
-        ['Solve loop problems without a template'], 60, { unitType: 'PRACTICE', after: ['NESTED_LOOPS', 'INFINITE_LOOPS'] }),
+        // Visit, build, search and repeat-until need accumulators and loop control, not nesting:
+        // no practice task iterates over pairs or grids. Nested loops stay available afterwards.
+        ['Solve loop problems without a template'], 60, { unitType: 'PRACTICE', after: ['ACCUMULATORS', 'INFINITE_LOOPS'] }),
       u('MINI_PROJECT', 'Mini Project — something that repeats',
         'A small program whose whole job is repetition done well.',
         ['Build and explain a program driven by a loop'], 90, { unitType: 'PROJECT', after: ['PRACTICE'] }),
@@ -303,6 +355,14 @@ export const YEAR1: Record<string, TopicSeed> = {
       u('RETURN', 'Returning a Value',
         'Sending an answer back, and why printing is not returning.',
         ['Explain the difference between print and return'], 45, { after: ['PARAMETERS'] }),
+      /**
+       * Define, pass arguments, return: the core a learner can practise before defaults, scope
+       * and composition. The integrating Functions Practice below requires this one.
+       */
+      u('CALL_RETURN_PRACTICE', 'Define, Call and Return Practice',
+        'Writing small functions that take arguments and hand back a value, until the shape is automatic.',
+        ['Write and call functions that return what they compute'], 45,
+        { unitType: 'PRACTICE', after: ['RETURN'] }),
       u('DEFAULTS', 'Default and Named Arguments',
         'Sensible defaults, and calling by name when the order stops being obvious.',
         ['Give a parameter a default and override it'], 40, { after: ['RETURN'] }),
@@ -315,7 +375,15 @@ export const YEAR1: Record<string, TopicSeed> = {
       u('DOCSTRINGS', 'Saying What a Function Does',
         'A sentence at the top that saves the next reader from reading the body.',
         ['Document a function so its body need not be read'], 30, { after: ['COMPOSITION'] }),
-      ...debugPractiseBuild('Functions', 45, 60, 120),
+      /**
+       * The debugging exercise diagnoses missing returns and scope errors, and the integrating
+       * practice composes functions and uses defaults — so both wait for those lessons. Docstrings
+       * are not required by either and stay available afterwards.
+       */
+      ...afterFor(debugPractiseBuild('Functions', 45, 60, 120), {
+        DEBUGGING: ['COMPOSITION', 'DEFAULTS'],
+        PRACTICE: ['DEBUGGING', 'CALL_RETURN_PRACTICE'],
+      }),
     ],
   },
 
@@ -640,15 +708,28 @@ export const YEAR1: Record<string, TopicSeed> = {
       u('TRAVERSAL', 'Traversing an Array',
         'Visiting every element, forwards, backwards and in steps.',
         ['Traverse an array three ways'], 40, { after: ['WHAT_IS_AN_ARRAY'] }),
+      /**
+       * THE FIRST PASS: an array, walking it, changing it, fixing index faults, then practising
+       * exactly that. Ordered here as it is taught — the debugging exercise already only needed
+       * insertion and removal, so it moves up beside them instead of sitting after complexity.
+       */
+      u('INSERT_DELETE', 'Inserting and Removing',
+        'Why the middle is expensive and the end is cheap.',
+        ['Say what inserting at the front costs'], 45, { after: ['TRAVERSAL'] }),
+      u('DEBUGGING', 'Debugging Index Errors',
+        'Off-by-one, out of bounds, and the loop that runs once too often.',
+        ['Fix three index faults'], 45, { unitType: 'DEBUG', after: ['INSERT_DELETE'] }),
+      u('TRAVERSAL_PRACTICE', 'Traversing and Changing Lists Practice',
+        'Counting, totalling, finding the best and changing a list in place — with nothing beyond a loop and an index.',
+        ['Solve traversal and basic list-change problems unaided'], 50,
+        { unitType: 'PRACTICE', after: ['DEBUGGING'] }),
+      /** THE DEEPER STRAND: searching, pairs, strings and cost, practised by Array and String Practice. */
       u('SEARCHING', 'Searching',
         'Linear search, and why sorted data allows something much better.',
         ['Implement linear search and say what it costs'], 50, { after: ['TRAVERSAL'] }),
       u('BINARY_SEARCH', 'Binary Search',
         'Halving the problem each step, and the off-by-one that everybody writes once.',
         ['Implement binary search correctly'], 60, { after: ['SEARCHING'] }),
-      u('INSERT_DELETE', 'Inserting and Removing',
-        'Why the middle is expensive and the end is cheap.',
-        ['Say what inserting at the front costs'], 45, { after: ['TRAVERSAL'] }),
       u('TWO_POINTERS', 'The Two-Pointer Pattern',
         'One pass, two positions — the pattern behind a surprising number of problems.',
         ['Solve a pair-sum problem in one pass'], 55, { after: ['BINARY_SEARCH'] }),
@@ -661,12 +742,15 @@ export const YEAR1: Record<string, TopicSeed> = {
       u('COMPLEXITY', 'Talking About Cost',
         'Big-O as a way of comparing approaches rather than as an exam topic.',
         ['Compare two solutions by cost, not by feel'], 50, { after: ['BINARY_SEARCH'] }),
-      u('DEBUGGING', 'Debugging Index Errors',
-        'Off-by-one, out of bounds, and the loop that runs once too often.',
-        ['Fix three index faults'], 45, { unitType: 'DEBUG', after: ['INSERT_DELETE'] }),
+      /**
+       * Requires the first practice directly, so the depth order holds for a learner whose lessons
+       * were satisfied by evidence. Classic string problems are not exercised here — the string item
+       * is the cost of building text, which is String Basics — so they stay an extension.
+       */
       u('PRACTICE', 'Array and String Practice',
         'A set of problems that covers each pattern at least twice.',
-        ['Solve unfamiliar array problems unaided'], 60, { unitType: 'PRACTICE', after: ['COMPLEXITY', 'STRING_PROBLEMS', 'DEBUGGING'] }),
+        ['Solve unfamiliar array problems unaided'], 60,
+        { unitType: 'PRACTICE', after: ['COMPLEXITY', 'STRING_BASICS', 'TWO_POINTERS', 'TRAVERSAL_PRACTICE'] }),
     ],
   },
 

@@ -77,8 +77,11 @@ const FREEZE_DAYS = [30, 60];
  *
  * The 5 still PARTIAL were measured to contribute nothing to any certified learner and are
  * deliberately left unauthored.
+ *
+ * 350 -> 354: four first-pass PRACTICE units were authored (files, variables, functions, arrays), each
+ * the practice a learner can do at an earlier boundary of its topic than the topic's existing practice.
  */
-const EXPECTED_READY = 350;
+const EXPECTED_READY = 354;
 const ARTIFACT_DIR = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');
 
 /** Failures that make a plan unusable, as opposed to ones that make it badly sequenced. */

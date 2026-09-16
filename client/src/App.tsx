@@ -615,6 +615,23 @@ const AppRoutes: React.FC = () => {
             /careerpilot/assessment, which is the free career-readiness questionnaire. */}
         <Route path="/careerpilot/skill-assessment" element={<PassportSkillAssessment />} />
         {/* Progress, badges and leaderboards. Engagement only — never a capability signal. */}
+        {/*
+          AI Mentor, mounted INSIDE the member shell rather than linked out to /ai-mentor.
+          
+          The page itself is the same component either way - it depends on nothing but its own
+          api module. What differs is the chrome: /ai-mentor wraps it in the main LMS Layout, so
+          a CareerPilot member who opened it from the rail would land in a different application
+          with a different sidebar and no way back to CareerPilot. Mounting it here keeps the
+          rail, the streak and the level on screen, which is what makes it feel like part of
+          CareerPilot instead of a link out of it.
+          
+          /ai-mentor stays exactly as it was, for everybody who reaches it from the LMS sidebar.
+        */}
+        <Route path="/careerpilot/mentor" element={<AIMentor />} />
+        {/* Code Playground, mounted in the shell for the same reason as the mentor above:
+            /playground wraps it in the LMS Layout, which would drop a CareerPilot member into a
+            different application. The component is unchanged; only the chrome differs. */}
+        <Route path="/careerpilot/playground" element={<CodePlayground />} />
         <Route path="/careerpilot/progress" element={<PassportGamification />} />
         {/* Coins buy rewards; XP never does. */}
         <Route path="/careerpilot/rewards" element={<PassportRewards />} />

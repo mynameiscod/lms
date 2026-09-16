@@ -190,12 +190,15 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         <nav className="gd-nav">
           {navBtn('Home', 'home', '/careerpilot')}
           {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap')}
-          {navBtn('Practice', 'code', '/careerpilot/practice')}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab')}
           {navBtn('Communication Lab', 'speech', '/careerpilot/communication')}
-          {navBtn('Mock Interview', 'interview', '/careerpilot/interview')}
           {navBtn('Opportunities', 'building', '/careerpilot/companies')}
           {navBtn('Resume', 'resume', '/careerpilot/resume')}
+          {navBtn('Mock Interview', 'interview', '/careerpilot/interview')}
+          {navBtn('AI Mentor', 'robot', '/careerpilot/mentor')}
+          {navBtn('Practice', 'code', '/careerpilot/practice')}
+          {navBtn('Playground', 'terminal', '/careerpilot/playground')}
+          {navBtn('Tech News', 'news', '/careerpilot/news')}
           {navBtn('My Progress', 'trophy', '/careerpilot/progress')}
         </nav>
 
@@ -206,7 +209,6 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           </div>
           <button className="gd-nav-btn" onClick={() => nav('/careerpilot/profile')}><span className="ic"><Icon name="user" /></span><span className="lbl">My profile</span></button>
           <button className="gd-nav-btn" onClick={() => nav('/careerpilot/readiness')}><span className="ic"><Icon name="chart" /></span><span className="lbl">My result</span></button>
-          <button className="gd-nav-btn" onClick={() => nav('/careerpilot/news')}><span className="ic"><Icon name="news" /></span><span className="lbl">Tech news</span></button>
           <button className="gd-nav-btn" onClick={share} disabled={!d?.shareSlug}><span className="ic"><Icon name="share" /></span><span className="lbl">{copied ? 'Link copied!' : 'Share my card'}</span></button>
           <button className="gd-nav-btn out" onClick={() => logout()}><span className="ic"><Icon name="logout" /></span><span className="lbl">Log out</span></button>
         </div>

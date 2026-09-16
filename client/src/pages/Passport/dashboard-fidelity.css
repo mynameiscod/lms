@@ -20,9 +20,20 @@
   line-height: 1.45;
 }
 
-/* Eliminate black/default text leaking from legacy CSS. */
+/* Eliminate black/default text leaking from legacy CSS.
+ *
+ * `b` and `strong` used to be in this list and have been removed, because they were never the
+ * leak: .gd above already sets `color: var(--cb-text) !important` on the whole shell, so bold
+ * text inherits that and can never arrive black. What the entry actually did was override every
+ * component that had deliberately coloured its own bold text — and on a dark surface that means
+ * navy on navy, invisible. It cost the Import Resume button its label and the level hexagon its
+ * number, and it would have cost every dark component built after it the same way.
+ *
+ * Bold text now inherits from whatever it sits in, which is the behaviour each component was
+ * already written for. The visible trade: a <b> inside a muted paragraph is now muted-and-bold
+ * rather than navy-and-bold. That is a weaker emphasis, not a broken one.
+ */
 .gd h1, .gd h2, .gd h3, .gd h4, .gd h5, .gd h6,
-.gd strong, .gd b,
 .gd .val, .gd .v, .gd .nm, .gd .lv,
 .gd .gd-card-hd h2, .gd .gd-mission .txt b,
 .gd .gd-lb .nm, .gd .gd-lb .sc .xp,
@@ -30,6 +41,10 @@
 .gd .gd-badge b, .gd .gd-contest .info b {
   color: var(--cb-navy) !important;
 }
+
+/* The sub-label on the filled Import button: a lighter blue rather than plain white, so the two
+   lines read as a label and its caption instead of two equal ones. */
+.gd .rc-action.primary small { color: #c6d6ec !important; }
 
 .gd p, .gd small, .gd .sub, .gd .lbl, .gd .t,
 .gd .gd-score-side p, .gd .gd-part .t, .gd .gd-parts-hd,

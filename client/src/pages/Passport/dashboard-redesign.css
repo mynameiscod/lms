@@ -135,7 +135,22 @@
 .gd-day-nav button.today, .gd-mission-cta, .gd-btn.primary {
   background: linear-gradient(90deg, var(--cb-navy), #0b397f);
   color: #fff;
+  /* A background and a colour are not a button. Without these the browser keeps its own
+     defaults for everything else — most visibly `border: 2px outset`, which drew a bevelled
+     grey frame around the filled navy and made it look broken rather than styled. */
+  border: none;
+  padding: 11px 20px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 800;
+  font-family: inherit;
+  line-height: 1.2;
+  cursor: pointer;
 }
+.gd-day-nav button.today:hover, .gd-mission-cta:hover, .gd-btn.primary:hover {
+  background: linear-gradient(90deg, #0a2a78, #0d449b);
+}
+.gd-btn.primary:disabled, .gd-mission-cta:disabled { opacity: .55; cursor: default; }
 .gd-mission-cta { border-radius: 9px; }
 .gd-streak-num { color: var(--cb-navy); }
 .gd-streak-num small { color: var(--cb-muted); }

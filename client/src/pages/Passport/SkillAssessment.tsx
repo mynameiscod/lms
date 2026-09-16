@@ -193,8 +193,17 @@ const SkillAssessment: React.FC = () => {
             <div className="ska-complete-copy">
               <span className="ska-eyebrow">ASSESSMENT COMPLETE</span>
               <h1>Well done!</h1>
-              <p>You’ve completed your CareerPilot skill assessment. We’re turning your answers into your personalized Skill DNA and role-readiness insights.</p>
-              <div className="ska-analysis-note"><i className="bi bi-lightbulb" /><span>We’re analyzing your responses to prepare your personalized insights and roadmap.</span></div>
+              <p>
+                {done.skillDnaPending
+                  ? 'You’ve completed your CareerPilot skill assessment. We’re turning your answers into your personalized Skill DNA and role-readiness insights.'
+                  : 'You’ve completed your CareerPilot skill assessment. Your answers have been turned into your personalized Skill DNA, and your plan is built around what it measured.'}
+              </p>
+              {/* Only while something really is still running. The figures below say "Complete",
+                  so a permanent "we are analyzing" line told the member to sit and wait for a
+                  screen that was never coming. skillDnaPending is the flag that knows. */}
+              {done.skillDnaPending && (
+                <div className="ska-analysis-note"><i className="bi bi-lightbulb" /><span>We’re analyzing your responses to prepare your personalized insights and roadmap.</span></div>
+              )}
             </div>
             <div className="ska-complete-art">
               <img src="/assets/careerpilot/careerpilot-hero-student.png" alt="CareerPilot assessment completed" />
@@ -206,11 +215,29 @@ const SkillAssessment: React.FC = () => {
               <div><i className="bi bi-shield-check" /><span><small>Assessment</small><b>Complete</b></span></div>
             </div>
             {done.skillDnaPending && <div className="ska-note">Your answers are safely recorded. Your skills profile is still updating and will appear shortly.</div>}
-            {/* No navigation buttons here. The member is signed in and the shell's rail is
-                already on screen with Home, My Roadmap and Skill DNA on it — offering the
-                same two destinations again as full-width buttons is the page telling somebody
-                how to get somewhere they can already see. What belongs on a completion screen
-                is what just happened, which is the three figures above. */}
+            {/*
+              A WAY OUT - which this screen did not have for the people who most needed one.
+
+              The buttons were left off on the reasoning that the shell's rail is already on
+              screen with Home, My Roadmap and Skill DNA on it. That holds for a member. It does
+              NOT hold for anybody else: MemberLayout deliberately renders non-members without
+              the rail, because every destination on it is locked to them. So the one person who
+              has just finished their assessment and has not paid - the exact moment the product
+              asks them to - landed on a page with no rail and no buttons, under a line saying
+              their results were still being analyzed. There was no way forward at all, and
+              nothing was coming.
+
+              A member keeps the rail and gets these as a shortcut; a non-member gets their only
+              exit, and it points at the preview of the plan they have just earned.
+            */}
+            <div className="ska-complete-actions">
+              <button className="ska-btn primary lg wide" onClick={() => nav('/careerpilot/roadmap')}>
+                See your roadmap <i className="bi bi-arrow-right" />
+              </button>
+              <button className="ska-btn ghost wide" onClick={() => nav('/careerpilot/skills')}>
+                View your Skill DNA
+              </button>
+            </div>
             {done.roadmapReplanned && (
               <div className="ska-note">Your 90-day plan has been rebuilt around what this paper measured.</div>
             )}

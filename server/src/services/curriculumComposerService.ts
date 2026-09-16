@@ -39,6 +39,7 @@ import { isCoreModuleFor, appliesToDirection, DirectionStatus } from '../data/ca
 import {
   isSuitableFor, isInstructional, suitableStatesFor,
   PrerequisiteOutcome, PrerequisiteResolution,
+  knownInstruction, standardEvidenceSatisfies,
 } from '../data/unitSuitabilityPolicy';
 import { LearningUnitType, LearningUnitCategory } from '../models/CurriculumLearningUnit';
 import {
@@ -246,6 +247,15 @@ export interface ComposerResult {
    * number that says so.
    */
   shapeViolations: { role: CompositionRole; min: number; actual: number }[];
+
+  /**
+   * Lessons left out because this learner reliably knows everything they teach, below the level the
+   * learner is at — each with the weakest skill and score that established it.
+   *
+   * Reported rather than folded into `excluded`, whose reasons are persisted with assignments and
+   * would have had to call these "not yet exposed", which is the opposite of the truth.
+   */
+  knownInstruction?: { unitCode: string; viaSkill: string; score: number; state: AssignmentState }[];
 }
 
 /* ------------------------------------------------------------------ *
@@ -561,8 +571,34 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     return schedulingReadiness(governing.state, (key && progress.get(key)) || new Set<PlanProgress>());
   };
 
+  /**
+   * Lessons this learner reliably knows, below the level they are at. Decided ONCE, from measurement.
+   *
+   * A universal STANDARD learner sits in the beginner-type allocation, so its foundation and guided
+   * instruction budgets were spent on first-exposure lessons for skills they had already shown. Those
+   * lessons are not scheduled as ordinary instruction; their budget is left to reallocate to practice,
+   * debugging, projects, direction and deeper instruction exactly as any unfillable bucket does.
+   *
+   * The rule lives in unitSuitabilityPolicy so the certifier judges plans by the same one. It reads
+   * measured Skill DNA only — never the plan's projection — so teaching a topic can never talk the
+   * composer into treating the learner as having arrived knowing it, and it is computed here rather
+   * than per candidate, because it cannot change during composition.
+   */
+  const knownLessons = new Map<string, NonNullable<ReturnType<typeof knownInstruction>>>();
+  for (const u of relevant) {
+    const known = knownInstruction(u, student.skills);
+    if (known) knownLessons.set(u.unitCode, known);
+  }
+  const isKnownLesson = (u: ComposableUnit): boolean => knownLessons.has(u.unitCode);
+
+  /**
+   * Whether this unit may be SELECTED now: suitable at the readiness the plan has reached, and not a
+   * lesson this learner already knows. Suitability itself is untouched — `isSuitableFor` and every
+   * authored `suitableStates` mean exactly what they meant — and a known lesson is still reported,
+   * under `knownInstruction` on the result, rather than silently dropped.
+   */
   const suitableNow = (u: ComposableUnit): boolean =>
-    isSuitableFor(u, readinessOf(u).equivalentState);
+    !isKnownLesson(u) && isSuitableFor(u, readinessOf(u).equivalentState);
 
   /* ---- 3. allocate --------------------------------------------------- */
 
@@ -689,10 +725,32 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    * Asking about the student first is both correct and the P7A.1 semantics as written: in the
    * plan, or already demonstrated, or genuinely blocked.
    */
+  /**
+   * A same-topic lesson whose every skill is reliably measured STANDARD or above.
+   *
+   * Asked LAST, after the plan, mastery and REVISION evidence, so a stronger resolution is never
+   * reported as this weaker one. See `standardEvidenceSatisfies` for what it will and will not accept.
+   */
+  // Precomputed once for every prerequisite edge of every relevant unit: it reads only measured evidence,
+  // which cannot change during composition, and `readyToTake` asks it from inside the ranking scans. A
+  // learner with no reliable STANDARD evidence leaves the map empty and pays a single failed lookup.
+  const standardEvidenceByDependent = new Map<string, Map<string, NonNullable<ReturnType<typeof standardEvidenceSatisfies>>>>();
+  for (const u of relevant) {
+    for (const code of u.prerequisiteUnitCodes) {
+      const via = standardEvidenceSatisfies(allByCode.get(code), u, student.skills);
+      if (!via) continue;
+      if (!standardEvidenceByDependent.has(u.unitCode)) standardEvidenceByDependent.set(u.unitCode, new Map());
+      standardEvidenceByDependent.get(u.unitCode)!.set(code, via);
+    }
+  }
+  const standardEvidenceFor = (code: string, dependent: ComposableUnit) =>
+    standardEvidenceByDependent.get(dependent.unitCode)?.get(code) ?? null;
+
   const resolveOne = (u: ComposableUnit, code: string): PrerequisiteResolution => {
     if (chosen.has(code)) return 'SATISFIED_BY_PLAN';
     if (masteredBy(code, u)) return 'SATISFIED_BY_MASTERY';
     if (outgrownBy(code)) return 'SATISFIED_BY_EVIDENCE';
+    if (standardEvidenceFor(code, u)) return 'SATISFIED_BY_STANDARD_EVIDENCE';
     return 'BLOCKED_MISSING_PREREQUISITE';
   };
 
@@ -968,6 +1026,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
       const aspirant = ranked.find(u =>
         !chosen.has(u.unitCode)
         && roleOf.get(u.unitCode) === a.role
+        && !isKnownLesson(u)            // never teach towards a lesson this learner already knows
         && withinBreadthOf(u, floor)
         && pullTargetFor(u, floor));
 
@@ -1067,7 +1126,9 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     let pulled = wanted && pullTargetFor(wanted, floor);
 
     if (!pulled) {
-      const aspirant = ranked.find(u => affordable(u) && !suitableNow(u) && pullTargetFor(u, floor));
+      // A known lesson is "not suitable now" only because it is suppressed; it is not something to
+      // teach towards, so it is excluded here explicitly rather than mistaken for a future unit.
+      const aspirant = ranked.find(u => affordable(u) && !isKnownLesson(u) && !suitableNow(u) && pullTargetFor(u, floor));
       pulled = aspirant && pullTargetFor(aspirant, floor);
     }
 
@@ -1087,11 +1148,13 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     for (const code of u.prerequisiteUnitCodes) {
       const mastery = chosen.has(code) ? null : masteredBy(code, u);
       const evidence = chosen.has(code) || mastery ? null : outgrownBy(code);
+      const standard = chosen.has(code) || mastery || evidence ? null : standardEvidenceFor(code, u);
       const resolution: PrerequisiteResolution = chosen.has(code) ? 'SATISFIED_BY_PLAN'
         : mastery ? 'SATISFIED_BY_MASTERY'
           : evidence ? 'SATISFIED_BY_EVIDENCE'
-            : 'BLOCKED_MISSING_PREREQUISITE';
-      const via = mastery || evidence;
+            : standard ? 'SATISFIED_BY_STANDARD_EVIDENCE'
+              : 'BLOCKED_MISSING_PREREQUISITE';
+      const via = mastery || evidence || standard;
       prerequisites.push({
         unitCode: u.unitCode,
         prerequisite: code,
@@ -1110,8 +1173,11 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    * happened to look at it. Accumulating inside the fill loop undercounted badly once floors were
    * satisfied in their own pass, because that pass never went through the loop.
    */
+  // Suitability as policy defines it — a known lesson is still suitable, only not selected — so this
+  // count, and the exclusions reported from it, mean exactly what they meant before that rule existed.
+  const suitableByPolicy = (u: ComposableUnit): boolean => isSuitableFor(u, readinessOf(u).equivalentState);
   const everSuitable = new Set<string>(
-    relevant.filter(u => chosen.has(u.unitCode) || suitableNow(u)).map(u => u.unitCode),
+    relevant.filter(u => chosen.has(u.unitCode) || suitableByPolicy(u)).map(u => u.unitCode),
   );
 
   /**
@@ -1122,6 +1188,9 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    * from the day-one state would have called a beginner's entire practice inventory unusable.
    */
   for (const u of relevant) {
+    // A suppressed known lesson is suitable by policy, so it never reaches here: it is reported under
+    // `knownInstruction` instead. A lesson a VERIFIED learner has outgrown is unsuitable and is still
+    // reported here as MASTERY_VERIFIED, exactly as before.
     if (chosen.has(u.unitCode) || everSuitable.has(u.unitCode)) continue;
     const { equivalentState } = readinessOf(u);
     excluded.push({
@@ -1150,7 +1219,8 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   const blocked: ComposerResult['blocked'] = [];
   for (const u of relevant) {
     if (chosen.has(u.unitCode)) continue;
-    const unavailable = u.prerequisiteUnitCodes.filter(c => !byCode.has(c) && !masteredBy(c, u) && !outgrownBy(c));
+    const unavailable = u.prerequisiteUnitCodes.filter(c => !byCode.has(c) && !masteredBy(c, u) && !outgrownBy(c)
+      && !standardEvidenceFor(c, u));
     if (!unavailable.length) continue;
     blocked.push({
       unitCode: u.unitCode,
@@ -1223,6 +1293,12 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     composition,
     reallocations,
     shapeViolations,
+    // Only lessons the rule actually held back: suitable by policy, not chosen. One a REVISION or
+    // VERIFIED learner has outgrown was never going to be scheduled and keeps its existing report.
+    knownInstruction: [...knownLessons.entries()]
+      .filter(([code]) => !chosen.has(code) && suitableByPolicy(byCode.get(code)!))
+      .map(([unitCode, via]) => ({ unitCode, viaSkill: via.skill, score: via.score, state: via.state }))
+      .sort((a, b) => a.unitCode.localeCompare(b.unitCode)),
   };
 
   /**

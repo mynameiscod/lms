@@ -49,7 +49,7 @@ import {
   REALISTIC_PROFILES, PROGRAM_DAYS, EVOLUTIONS, compose, validatePlan, isDeterministic,
   skillUniverse, prerequisiteClosure, simulateRecomposition, robustnessGrid,
   directionFamilyMix, withoutCoreAffinity, coreModuleUse, measuredStateOf, isRelevant,
-  permanentlyUnsuitable, PlanReport, RecompositionReport, Issue, stateBoundaryProfiles, diagnosticSkills,
+  permanentlyUnsuitable, unusableFor, PlanReport, RecompositionReport, Issue, stateBoundaryProfiles, diagnosticSkills,
 } from '../services/composerCertificationService';
 import { loadAssets, activitiesFor, UnitAssets } from '../services/foundationJourneyService';
 import { roleOf } from '../data/contentBundlePolicy';
@@ -59,6 +59,9 @@ import { isCoreModuleFor } from '../data/careerDirectionPolicy';
 import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
 import { teaches } from '../data/contentBundlePolicy';
 import { effectiveCurriculumEngine } from '../data/curriculumEnginePolicy';
+import {
+  INTENTIONALLY_WITHHELD_READY, deriveRecommendedPublishSet, publicationDrift,
+} from '../data/productionPublicationPolicy';
 
 dotenv.config();
 
@@ -391,14 +394,18 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
     if (!det) x.rep.issues.push({ code: 'NONDETERMINISTIC', detail: x.key });
     const mastery = byResolution(x.r, 'SATISFIED_BY_MASTERY');
     const evidence = byResolution(x.r, 'SATISFIED_BY_EVIDENCE');
+    const standard = byResolution(x.r, 'SATISFIED_BY_STANDARD_EVIDENCE');
     // No fake mastery: nothing below 85, and no evidence resolution from STANDARD or thin evidence.
     if (mastery.some(o => (o.score ?? 0) < 85)) x.rep.issues.push({ code: 'FAKE_MASTERY', detail: `${x.key} mastery below 85` });
     if (evidence.length && (/@74\/|LOW/.test(x.key))) x.rep.issues.push({ code: 'FAKE_EVIDENCE', detail: `${x.key} resolved by evidence below REVISION` });
+    // STANDARD evidence is legitimate on confident STANDARD scores and never on thin or sub-STANDARD ones.
+    if (standard.length && /LOW/.test(x.key)) x.rep.issues.push({ code: 'FAKE_EVIDENCE', detail: `${x.key} resolved by STANDARD evidence on low confidence` });
+    if (standard.some(o => (o.score ?? 0) < 60)) x.rep.issues.push({ code: 'FAKE_EVIDENCE', detail: `${x.key} STANDARD evidence below 60` });
     x.rep.ok = x.rep.issues.length === 0;
     console.log(`    ${pad(x.key, 34)}${pad(x.r.units.length, 5)}${pad(x.r.eligibleUnits, 6)}${pad(det ? 'yes' : 'NO', 5)}`
       + `${pad(byResolution(x.r, 'SATISFIED_BY_PLAN').length, 6)}${pad(mastery.length, 9)}${pad(evidence.length, 10)}`
       + `${x.rep.ok ? 'PASS' : 'FAIL ' + x.rep.issues.map(i => `${i.code}:${i.detail}`).slice(0, 2).join(' | ')}`);
-    const everSuitable = universe.filter(u => isRelevant(u, x.student) && !permanentlyUnsuitable(u, x.student)).length;
+    const everSuitable = universe.filter(u => isRelevant(u, x.student) && !unusableFor(u, x.student)).length;
     const ceiling = x.rep.issues.every(i => i.code === 'LENGTH') && x.r.units.length === everSuitable;
     if (ceiling && x.rep.issues.length) {
       capacity.push(`${x.key}: ${x.r.units.length} of ${PROGRAM_DAYS} — all ${everSuitable} suitable READY units are scheduled`);
@@ -469,7 +476,7 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
       primaryDirection: null, directionStatus: 'UNDECIDED',
     };
     const r = compose(universe, s);
-    const everSuitable = universe.filter(u => !permanentlyUnsuitable(u, s)).length;
+    const everSuitable = universe.filter(u => !unusableFor(u, s)).length;
     console.log(`      all@${score}: composer selects ${r.units.length}; units that could ever suit this learner: ${everSuitable}`);
     notes.push(`post-mastery stress all@${score}: ${r.units.length} units (at most ${everSuitable} suitable in READY) — an inventory ceiling, not a deadlock`);
   }
@@ -610,14 +617,22 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   onReady.forEach(x => x.r.units.forEach(u => usage.set(u.unitCode, (usage.get(u.unitCode) || 0) + 1)));
 
   title('8. PUBLISH SETS');
+  /**
+   * Every publish set honours the named withheld list — see productionPublicationPolicy. A READY unit
+   * withheld by decision is never promoted into a proposal because some scenario happened to reach it;
+   * any other READY unit is proposed exactly as before.
+   */
+  const closeHonouringWithholding = (reached: Iterable<string>) =>
+    deriveRecommendedPublishSet({ reached, universe }).recommended;
+
   const tSearch = Date.now();
-  let minimum = prerequisiteClosure(usage.keys(), universe);
+  let minimum = closeHonouringWithholding(usage.keys());
   const unionPasses = allNoWorse(minimum);
   console.log(`    union of the nine READY compositions, prerequisite-closed: ${minimum.size}  (no worse than READY: ${unionPasses ? 'yes' : 'no'})`);
-  if (!unionPasses) minimum = new Set(readyCodes);
+  if (!unionPasses) minimum = closeHonouringWithholding(readyCodes);
 
   for (let i = 0; i < 5; i++) {
-    const shrunk = prerequisiteClosure(certifyPool(poolOf(minimum)).flatMap(x => x.r.units.map(u => u.unitCode)), universe);
+    const shrunk = closeHonouringWithholding(certifyPool(poolOf(minimum)).flatMap(x => x.r.units.map(u => u.unitCode)));
     if (shrunk.size < minimum.size && allNoWorse(shrunk)) minimum = shrunk; else break;
   }
   let changed = true;
@@ -642,13 +657,23 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   sweepReady.filter(x => x.hardOk).forEach(x => x.r.units.forEach(u => union.add(u.unitCode)));
   boundaryReady.filter(x => !x.rep.issues.some(i => HARD.has(i.code))).forEach(x => x.r.units.forEach(u => union.add(u.unitCode)));
   for (const u of [...verifyUnits, ...projectUnits]) union.add(u.unitCode);
-  const recommended = prerequisiteClosure(union, universe);
+  const derivation = deriveRecommendedPublishSet({ reached: union, universe });
+  const recommended = derivation.recommended;
   const excluded = readyCodes.filter(c => !recommended.has(c));
 
   console.log(`    RECOMMENDED SAFE SET: ${recommended.size}   prerequisite-closed ${isClosed(recommended) ? 'yes' : 'NO'}`);
   console.log(`      ${typeTally(poolOf(recommended))}`);
-  console.log(`      withheld from READY: ${excluded.length}${excluded.length ? ' — never selected by any profile, recomposition or sweep cell READY serves' : ''}`);
-  for (const c of excluded) {
+  console.log(`      INTENTIONALLY_WITHHELD_READY: ${derivation.withheldReady.length} — named in productionPublicationPolicy, never promoted`);
+  for (const c of derivation.withheldReady) {
+    console.log(`        ${pad(c, 36)}${union.has(c) ? 'reached by a certification scenario, withheld by decision' : 'not reached'}`);
+  }
+  const namedMissing = INTENTIONALLY_WITHHELD_READY.filter(c => !readyCodes.includes(c));
+  if (namedMissing.length) defects.push(`named withheld unit(s) not READY: ${namedMissing.join(', ')} — the withheld list needs a decision`);
+  if (derivation.withheldRequired.length) {
+    defects.push(`recommended unit(s) require a withheld unit: ${derivation.withheldRequired.map(x => `${x.unitCode} -> ${x.requires}`).join(', ')}`);
+  }
+  console.log(`      READY not recommended and not named: ${derivation.notRecommended.length}${derivation.notRecommended.length ? ' — never selected by any profile, recomposition or sweep cell READY serves' : ''}`);
+  for (const c of derivation.notRecommended) {
     const u = byCode.get(c)!;
     console.log(`        ${pad(c, 36)}${pad(u.unitType, 11)}${pad(compositionRoleOf(u), 24)}${u.category}`
       + `${u.applicableDirections.length ? ' [' + u.applicableDirections.join(',') + ']' : ''}`);
@@ -857,6 +882,7 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
       absoluteMinimum: [...minimum].sort(),
       recommended: [...recommended].sort(),
       withheldFromRecommended: excluded,
+      intentionallyWithheld: derivation.withheldReady,
     }, null, 2)}\n`);
     console.log(`\n  artifacts written to ${path.relative(process.cwd(), ARTIFACT_DIR)}`);
   }
@@ -879,9 +905,16 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
   const publishedCodes = (await db.collection('curriculumlearningunits')
     .find({ tenantId: TID, status: 'PUBLISHED' }).project({ unitCode: 1 }).toArray())
     .map(u => String(u.unitCode)).sort();
-  const publishedIsCertified = publishedCodes.length === 0
-    || JSON.stringify(publishedCodes) === JSON.stringify([...recommended].sort());
+  const drift = publicationDrift({ published: publishedCodes, certified: [...recommended], ready: readyCodes });
+  const publishedIsCertified = publishedCodes.length === 0 || drift.ok;
+  const composerEligible = publishedCodes.filter(c => readyCodes.includes(c)).length;
+  console.log(`    READY ${readyCodes.length}  PUBLISHED ${publishedCodes.length}  COMPOSER_ELIGIBLE ${composerEligible}`
+    + `  INTENTIONALLY_WITHHELD_READY ${derivation.withheldReady.length} (${derivation.withheldReady.join(', ')})`);
   console.log(`    published units are ${publishedCodes.length ? (publishedIsCertified ? 'exactly the certified set' : 'NOT the certified set') : 'none'}`);
+  if (publishedCodes.length && !drift.ok) {
+    console.log(`      extra ${drift.extra.join(', ') || '-'} · missing ${drift.missing.join(', ') || '-'}`
+      + ` · withheld published ${drift.withheldPublished.join(', ') || '-'} · withheld not READY ${drift.withheldNotReady.join(', ') || '-'}`);
+  }
   // Foundation is UNIT by product policy; a tenant's journeys are its members' plans.
   if (!publishedIsCertified || engine !== 'UNIT') {
     defects.push('exit state is not PUBLISHED = 0 or the certified set, or Foundation is not on UNIT');

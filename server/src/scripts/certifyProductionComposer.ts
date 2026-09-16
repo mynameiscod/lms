@@ -38,6 +38,7 @@ import { buildPrerequisiteGraph, findPrerequisiteCycles } from '../data/unitPrer
 import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
 import { roleOf, teaches } from '../data/contentBundlePolicy';
 import { effectiveCurriculumEngine } from '../data/curriculumEnginePolicy';
+import { INTENTIONALLY_WITHHELD_READY, publicationDrift } from '../data/productionPublicationPolicy';
 import { CAREER_STAGES } from '../services/careerStageService';
 import { findDuplication, identifyingWordsFor } from '../services/contentDuplicationService';
 import { checkCurriculumQuizLinkage } from '../services/quizLinkageService';
@@ -187,6 +188,9 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
       const by = (res: string) => (r.prerequisites as any[]).filter(o => o.resolution === res);
       if (by('SATISFIED_BY_MASTERY').some(o => (o.score ?? 0) < 85)) out.push('FAKE_MASTERY');
       if (by('SATISFIED_BY_EVIDENCE').length && /@74\/|LOW/.test(b.key)) out.push('FAKE_EVIDENCE');
+      // STANDARD evidence is legitimate on a confident STANDARD score (@74 HIGH) and never on a thin one.
+      if (by('SATISFIED_BY_STANDARD_EVIDENCE').length && /LOW/.test(b.key)) out.push('FAKE_STANDARD_EVIDENCE');
+      if (by('SATISFIED_BY_STANDARD_EVIDENCE').some(o => (o.score ?? 0) < 60)) out.push('FAKE_STANDARD_EVIDENCE');
       return out;
     });
     console.log(row.line);
@@ -332,10 +336,24 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
   const unchanged = before.hash === after.hash
     && JSON.stringify(before.published) === JSON.stringify(after.published)
     && JSON.stringify(before.counts) === JSON.stringify(after.counts);
-  const publishedIsCertified = JSON.stringify(after.published) === JSON.stringify(certifiedCodes);
-  console.log(`    units ${after.units}  PUBLISHED ${after.published.length}  COMPOSER_ELIGIBLE ${universe.length}`
-    + `  Foundation journeys ${after.journeys} (DayPlans ${after.journeyDayPlans}, enrolments ${after.journeyEnrolments})  engine ${engine}`);
+  /**
+   * Published must be EXACTLY the certified set. Units withheld by decision are not drift for being
+   * unpublished; one of them published, or no longer READY, fails — and so does any other extra or
+   * missing publication, as it always has.
+   */
+  const readyCodes = (await loadCandidates(tenantId, 'PROTOTYPE_UNPUBLISHED')).units.map(u => u.unitCode);
+  const drift = publicationDrift({ published: after.published, certified: certifiedCodes, ready: readyCodes });
+  const publishedIsCertified = drift.ok && JSON.stringify(after.published) === JSON.stringify(certifiedCodes);
+  const withheldReady = INTENTIONALLY_WITHHELD_READY.filter(c => readyCodes.includes(c));
+  console.log(`    units ${after.units}  READY ${readyCodes.length}  PUBLISHED ${after.published.length}  COMPOSER_ELIGIBLE ${universe.length}`
+    + `  INTENTIONALLY_WITHHELD_READY ${withheldReady.length} (${withheldReady.join(', ')})`);
+  console.log(`    Foundation journeys ${after.journeys} (DayPlans ${after.journeyDayPlans}, enrolments ${after.journeyEnrolments})  engine ${engine}`);
   console.log(`    published units are exactly the certified set: ${publishedIsCertified ? 'yes' : 'NO'}`);
+  if (!drift.ok) {
+    console.log(`      extra ${drift.extra.join(', ') || '-'} · missing ${drift.missing.join(', ') || '-'}`
+      + ` · withheld published ${drift.withheldPublished.join(', ') || '-'} · withheld not READY ${drift.withheldNotReady.join(', ') || '-'}`);
+  }
+  if (certifiedCodes.some(c => INTENTIONALLY_WITHHELD_READY.includes(c))) failures.push('a unit withheld by decision is in the certified set');
   console.log(`    unit status fingerprint ${after.hash}; this tenant's curriculum unchanged during this run: ${unchanged ? 'yes' : 'NO'}`);
   if (!publishedIsCertified) failures.push('published units are not exactly the certified set');
   /**

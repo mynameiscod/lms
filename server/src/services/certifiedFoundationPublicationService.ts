@@ -29,6 +29,7 @@ import { loadCandidates } from './composerCandidateService';
 import { ComposableUnit } from './curriculumComposerService';
 import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
 import { teaches } from '../data/contentBundlePolicy';
+import { INTENTIONALLY_WITHHELD_READY } from '../data/productionPublicationPolicy';
 import { publishUnit } from '../controllers/curriculumLearningUnitController';
 
 /**
@@ -115,6 +116,20 @@ export async function planCertifiedPublication(tenantId: string): Promise<Certif
   if (publishedOutside.length) problems.push(`published outside the certified set: ${publishedOutside.join(', ')}`);
   const readyNotTarget = readyUnits.map(u => u.unitCode).filter(c => !targetSet.has(c)).sort();
   if (JSON.stringify(readyNotTarget) !== JSON.stringify(withheld)) problems.push(`READY outside the set is ${readyNotTarget.join(', ')}, certified withheld ${withheld.join(', ')}`);
+  /**
+   * The certified withholding must be the DECISION, not an accident of reachability: every READY unit left
+   * out of the set is named in productionPublicationPolicy, every named unit is still READY, and none of
+   * them is in the set or published. Anything else is a certified set nobody decided on.
+   */
+  const named = [...INTENTIONALLY_WITHHELD_READY].sort();
+  if (JSON.stringify(withheld) !== JSON.stringify(named)) {
+    problems.push(`certified withheld ${withheld.join(', ') || '(none)'} is not the named withheld list ${named.join(', ')}`);
+  }
+  for (const code of named) {
+    if (targetSet.has(code)) problems.push(`${code}: withheld by decision but in the certified set`);
+    if (!readyCodes.has(code)) problems.push(`${code}: withheld by decision but no longer READY — the list needs a decision`);
+    if (byCode.get(code)?.status === 'PUBLISHED') problems.push(`${code}: withheld by decision but PUBLISHED`);
+  }
   if (partial.some(c => targetSet.has(c))) problems.push('a PARTIAL unit is in the certified set');
 
   const unclosed = target.flatMap(c => ((byCode.get(c)?.prerequisiteUnitCodes || []) as string[])

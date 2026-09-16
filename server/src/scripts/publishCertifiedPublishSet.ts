@@ -96,6 +96,7 @@ const CERTIFIED_SOURCES = [
   'server/src/data/unitReadinessPolicy.ts',
   'server/src/data/unitSuitabilityPolicy.ts',
   'server/src/data/compositionShapePolicy.ts',
+  'server/src/data/productionPublicationPolicy.ts',
 ];
 
 (async () => {

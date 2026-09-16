@@ -24,7 +24,7 @@ import { ComposableUnit, StudentProfile } from '../services/curriculumComposerSe
 import {
   REALISTIC_PROFILES, EVOLUTIONS, PROGRAM_DAYS, compose, validatePlan, isDeterministic,
   skillUniverse, simulateRecomposition, directionFamilyMix, withoutCoreAffinity, coreModuleUse,
-  stateBoundaryProfiles, isRelevant, permanentlyUnsuitable, diagnosticSkills,
+  stateBoundaryProfiles, isRelevant, unusableFor, diagnosticSkills,
 } from '../services/composerCertificationService';
 
 const READY = READY_JSON as unknown as ComposableUnit[];
@@ -136,7 +136,7 @@ describe('recommended set — state-boundary learners', () => {
     }
     // A ceiling, never a deadlock: nothing suitable is left behind, and nothing else is wrong.
     expect(rep.issues.map(i => i.code)).toEqual(['LENGTH']);
-    const suitable = RECOMMENDED.filter(u => isRelevant(u, student) && !permanentlyUnsuitable(u, student)).length;
+    const suitable = RECOMMENDED.filter(u => isRelevant(u, student) && !unusableFor(u, student)).length;
     expect(r.units.length).toBe(suitable);
   });
 
@@ -144,6 +144,12 @@ describe('recommended set — state-boundary learners', () => {
     const r = compose(RECOMMENDED, student);
     expect(r.prerequisites.filter(o => o.resolution === 'SATISFIED_BY_EVIDENCE')).toEqual([]);
     expect(r.prerequisites.filter(o => o.resolution === 'SATISFIED_BY_MASTERY')).toEqual([]);
+  });
+
+  it.each(BOUNDARIES.filter(([k]) => /LOW/.test(k)))('%s is never resolved by STANDARD evidence on thin evidence', (_key, student) => {
+    const r = compose(RECOMMENDED, student);
+    expect(r.prerequisites.filter(o => o.resolution === 'SATISFIED_BY_STANDARD_EVIDENCE')).toEqual([]);
+    expect(r.knownInstruction || []).toEqual([]);
   });
 });
 

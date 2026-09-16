@@ -28,7 +28,9 @@ import {
   composeUnits, ComposableUnit, ComposerResult, StudentProfile, SkillBelief,
 } from './curriculumComposerService';
 import { AssignmentState, STATE_ORDER, stateForScore } from '../data/adaptiveCurriculumPolicy';
-import { isSuitableFor, suitableStatesFor } from '../data/unitSuitabilityPolicy';
+import {
+  isSuitableFor, suitableStatesFor, standardEvidenceSatisfies, knownInstruction,
+} from '../data/unitSuitabilityPolicy';
 import {
   compositionRoleOf, CompositionRole, isInstructionalRole,
 } from '../data/compositionShapePolicy';
@@ -222,6 +224,17 @@ export function reachableSchedulingStates(measured: AssignmentState): Assignment
 export const permanentlyUnsuitable = (u: ComposableUnit, student: StudentProfile): boolean =>
   !reachableSchedulingStates(measuredStateOf(u, student)).some(s => isSuitableFor(u, s));
 
+/**
+ * True when the composer will never select this unit for this student.
+ *
+ * Either no scheduling could make it suitable, or it is a lesson the learner reliably knows below
+ * their level — the composer's own `knownInstruction` rule, read from the same policy. A floor or a
+ * ceiling judged without the second half would call a deliberately skipped lesson "usable but
+ * unselected" and certify the policy working as a defect.
+ */
+export const unusableFor = (u: ComposableUnit, student: StudentProfile): boolean =>
+  permanentlyUnsuitable(u, student) || !!knownInstruction(u, student.skills);
+
 /** Whether the composer's direction filter keeps this unit for this student. Mirrors composeUnits. */
 export function isRelevant(u: ComposableUnit, student: StudentProfile): boolean {
   const scoped = (u.applicableDirections || []).length > 0;
@@ -252,7 +265,11 @@ export const outgrownBy = (unit: ComposableUnit | undefined, student: StudentPro
   return weakest >= TEACHING_LADDER.indexOf('REVISION') && weakest > highestServed;
 };
 
-/** Satisfied without being scheduled: verified mastery, or measured past the unit. */
+/**
+ * Satisfied without being scheduled: verified mastery, measured past the unit, or — for a same-topic
+ * lesson only — reliable STANDARD evidence on every skill it teaches. The composer's own three
+ * resolutions, in the composer's order, from the same policy.
+ */
 export const masteredBy = (
   prereqCode: string, dependent: ComposableUnit, byCode: Map<string, ComposableUnit>, student: StudentProfile,
 ): boolean => {
@@ -263,7 +280,7 @@ export const masteredBy = (
     return !!b && b.score !== null && b.score !== undefined
       && stateForScore({ score: b.score, confidence: b.confidence }) === 'VERIFIED';
   });
-  return verified || outgrownBy(p, student);
+  return verified || outgrownBy(p, student) || !!standardEvidenceSatisfies(p, dependent, student.skills);
 };
 
 /** Every prerequisite, however deep, that exists in the universe. */
@@ -376,6 +393,10 @@ export function validatePlan(args: {
       && ['REVISION', 'VERIFIED', 'ENRICHMENT'].includes(measured) && !isSuitableFor(u, measured)) {
       add('VERIFIED_REINSTRUCTED', `${u.unitCode} teaches a skill measured ${measured}`);
     }
+    const known = knownInstruction(u, student.skills);
+    if (known) {
+      add('KNOWN_REINSTRUCTED', `${u.unitCode} (${u.defaultDepth}) re-teaches ${known.skill}, reliably measured ${known.state}`);
+    }
     if (APPLY_TYPES.includes(u.unitType) && !GUIDED_OR_BETTER.has(measured)
       && !u.skillKeys.some(k => taught.has(k))) {
       add('APPLIED_BEFORE_TAUGHT', `${u.unitType} ${u.unitCode} on day ${i + 1}`);
@@ -458,14 +479,18 @@ export function validatePlan(args: {
   const explainedShape: ExplainedShape[] = [];
   for (const v of result.shapeViolations) {
     const inRole = universe.filter(u => compositionRoleOf(u) === v.role && isRelevant(u, student));
-    const usable = inRole.filter(u => !chosen.has(u.unitCode) && !permanentlyUnsuitable(u, student));
+    const usable = inRole.filter(u => !chosen.has(u.unitCode) && !unusableFor(u, student));
     if (usable.length) {
       add('SHAPE_UNEXPLAINED', `${v.role} ${v.actual}/${v.min}; usable but unselected: `
         + usable.slice(0, 5).map(u => `${u.unitCode}(${measuredStateOf(u, student)})`).join(', '));
     } else {
+      const known = inRole.filter(u => !chosen.has(u.unitCode) && knownInstruction(u, student.skills)).length;
       explainedShape.push({
         role: v.role, min: v.min, actual: v.actual, candidatesInRole: inRole.length,
-        reason: 'every remaining unit in this role is unsuitable at a state only evidence can set',
+        reason: known
+          ? `every remaining unit in this role is unsuitable at a state only evidence can set, or one of ${known} `
+            + 'lesson(s) whose every skill is reliably measured above the level it teaches'
+          : 'every remaining unit in this role is unsuitable at a state only evidence can set',
       });
     }
   }
@@ -482,7 +507,7 @@ export function validatePlan(args: {
    */
   if (drillGaps.length) {
     const drill = universe.filter(u => u.unitType === 'PRACTICE' && isRelevant(u, student));
-    const usable = drill.filter(u => !chosen.has(u.unitCode) && !permanentlyUnsuitable(u, student));
+    const usable = drill.filter(u => !chosen.has(u.unitCode) && !unusableFor(u, student));
     for (const label of drillGaps) {
       if (usable.length) {
         add('NO_PRACTICE_IN_SEGMENT', `${label}; usable but unselected: `

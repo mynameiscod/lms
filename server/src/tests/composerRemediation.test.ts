@@ -233,10 +233,22 @@ describe('a prerequisite the learner has measurably outgrown', () => {
     expect(outcome(r, 'L_PROJECT')).toBe('SATISFIED_BY_PLAN');
   });
 
-  it('keeps teaching a STANDARD learner — STANDARD is not beyond instruction', () => {
-    const r = plan(learner(74));
-    expect(codes(r)).toContain('L_CONCEPT');
+  /**
+   * STANDARD is not beyond instruction — but it IS beyond a first-exposure lesson.
+   *
+   * This test used to assert that a confident 74 was still given the FOUNDATION-depth concept, which is
+   * the re-teaching the known-instruction rule now removes. What it protects is unchanged: STANDARD is
+   * never reported as outgrown evidence, a lesson that teaches BEYOND the learner's evidence is still
+   * taught, and a thinly evidenced score still is (see the next test and standardKnownInstruction.test.ts).
+   */
+  it('keeps STANDARD apart from outgrown evidence, and still teaches beyond the STANDARD level', () => {
+    const r = composeUnits({ candidates: topic, targetUnits: 3, student: learner(74) });
+    expect(codes(r)).not.toContain('L_CONCEPT');
+    expect(outcome(r, 'L_DEBUG')).toBe('SATISFIED_BY_STANDARD_EVIDENCE');
     expect(r.prerequisites.some(o => o.resolution === 'SATISFIED_BY_EVIDENCE')).toBe(false);
+
+    const deeper = [unit({ unitCode: 'L_CONCEPT', topicCode: 'T_L', skillKeys: ['LOOPS'], displayOrder: 10, defaultDepth: 'REVISION' }), ...topic.slice(1)];
+    expect(composeUnits({ candidates: deeper, targetUnits: 4, student: learner(74) }).units.map(u => u.unitCode)).toContain('L_CONCEPT');
   });
 
   it('treats a high score on thin evidence as STANDARD, not as evidence of anything more', () => {

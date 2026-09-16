@@ -36,7 +36,7 @@
  * to "what does this student need", and the existing one is what every other adaptive path reads.
  */
 
-import { AssignmentState } from './adaptiveCurriculumPolicy';
+import { AssignmentState, stateForScore, isConfidentEnough } from './adaptiveCurriculumPolicy';
 import { LearningUnitType } from '../models/CurriculumLearningUnit';
 
 /**
@@ -148,6 +148,17 @@ export type PrerequisiteResolution =
    * is demonstrated, not verified, and the two must stay distinguishable in every report.
    */
   | 'SATISFIED_BY_EVIDENCE'
+  /**
+   * Not in the plan, but a SAME-TOPIC LESSON whose every skill is reliably measured STANDARD or above.
+   *
+   * Narrower and weaker than both resolutions above, and named apart so no report can mistake it for
+   * either. STANDARD is "can do it with ordinary support" — not demonstrated past the lesson, and never
+   * mastery. What it does establish is that the learner does not need that lesson to START practising
+   * the topic, so a practice or debugging unit behind it is not refused. Only a lesson, only inside its
+   * own topic, and only on confident evidence: a practical prerequisite, a cross-topic one, or a thinly
+   * evidenced score never resolves this way. See `standardEvidenceSatisfies`.
+   */
+  | 'SATISFIED_BY_STANDARD_EVIDENCE'
   /** Not available and not verified. A production composition must never schedule under this. */
   | 'BLOCKED_MISSING_PREREQUISITE';
 
@@ -169,3 +180,134 @@ export interface PrerequisiteOutcome {
  */
 export const isAuthoringGap = (o: PrerequisiteOutcome): boolean =>
   o.resolution === 'BLOCKED_MISSING_PREREQUISITE';
+
+/* ------------------------------------------------------------------ *
+ * Reliable STANDARD evidence — shared by the composer and certification
+ * ------------------------------------------------------------------ */
+
+/** A measured belief as both the composer and the certifier hold it. */
+export interface MeasuredBelief {
+  score: number | null | undefined;
+  confidence: any;
+}
+
+const EVIDENCE_LADDER: AssignmentState[] =
+  ['NOT_EXPOSED', 'FOUNDATION_REQUIRED', 'GUIDED', 'STANDARD', 'REVISION', 'VERIFIED', 'ENRICHMENT'];
+const STANDARD_OR_ABOVE: AssignmentState[] = ['STANDARD', 'REVISION', 'VERIFIED', 'ENRICHMENT'];
+
+/**
+ * Every skill measured, every one STANDARD or above, every one confident enough — or null.
+ *
+ * Returns the WEAKEST such skill, because that is the one a report should name. One unmeasured skill,
+ * one below STANDARD, or one resting on thin evidence refuses outright: absence is not knowledge, and
+ * `stateForScore` caps a low-confidence score AT STANDARD — which is exactly why confidence is checked
+ * here in its own right rather than read back out of the state.
+ *
+ * Reads Skill DNA and writes nothing. It projects no state and grants no mastery.
+ */
+export function reliableStandardEvidence(
+  skillKeys: string[],
+  skills: Map<string, MeasuredBelief>,
+): { skill: string; score: number; state: AssignmentState } | null {
+  if (!skillKeys.length) return null;
+  let weakest: { skill: string; score: number; state: AssignmentState } | null = null;
+  for (const key of skillKeys) {
+    const belief = skills.get(key);
+    if (!belief || belief.score === null || belief.score === undefined) return null;
+    if (!isConfidentEnough(belief.confidence)) return null;
+    const state = stateForScore({ score: belief.score, confidence: belief.confidence });
+    if (!STANDARD_OR_ABOVE.includes(state)) return null;
+    if (!weakest || EVIDENCE_LADDER.indexOf(state) < EVIDENCE_LADDER.indexOf(weakest.state)) {
+      weakest = { skill: key, score: belief.score, state };
+    }
+  }
+  return weakest;
+}
+
+/** Just enough of a unit to judge evidence against it. Structural, so any unit shape fits. */
+export interface EvidenceBearingUnit extends SuitableUnit {
+  topicCode: string;
+  skillKeys: string[];
+  defaultDepth?: string;
+}
+
+/**
+ * Does reliable STANDARD evidence satisfy this prerequisite for this dependent unit?
+ *
+ * All of: the prerequisite is a LESSON (CONCEPT or WORKED_EXAMPLE); it sits in the SAME topic as the
+ * unit that needs it; it teaches at least one skill; and every one of those skills carries reliable
+ * STANDARD+ evidence. A practice, debugging or project prerequisite is never satisfied this way —
+ * compression removes lessons a learner does not need, never the work that makes learning stick — and
+ * neither is a lesson in another topic, which may teach something this topic's evidence says nothing
+ * about.
+ */
+export function standardEvidenceSatisfies(
+  prerequisite: EvidenceBearingUnit | undefined,
+  dependent: { topicCode: string },
+  skills: Map<string, MeasuredBelief>,
+): { skill: string; score: number; state: AssignmentState } | null {
+  if (!prerequisite || !isInstructional(prerequisite)) return null;
+  if (prerequisite.topicCode !== dependent.topicCode) return null;
+  return reliableStandardEvidence(prerequisite.skillKeys, skills);
+}
+
+/**
+ * The state a lesson's authored depth teaches to, when nobody authored its suitability.
+ *
+ * FOUNDATION depth is a first exposure: it teaches as far as a learner with a measured gap needs.
+ * GUIDED is the second pass, STANDARD the ordinary working level. An unknown depth answers nothing,
+ * and nothing is suppressed on a guess.
+ */
+const DEPTH_TEACHES_TO: Record<string, AssignmentState> = {
+  FOUNDATION: 'FOUNDATION_REQUIRED',
+  GUIDED: 'GUIDED',
+  STANDARD: 'STANDARD',
+  REVISION: 'REVISION',
+  CHALLENGE: 'VERIFIED',
+};
+
+/**
+ * A lesson that would only re-teach what this learner reliably knows, at or below the level they are at.
+ *
+ * ── THE DEFECT ────────────────────────────────────────────────────────────────────────────
+ *
+ * CONCEPT is suitable through STANDARD, and a learner measured STANDARD everywhere still lands in the
+ * beginner-type allocation. So the composer spent that allocation's foundation and guided instruction
+ * budgets on first-exposure lessons for skills the learner had already shown — 33 such days for a
+ * universal STANDARD learner — while practice, debugging and direction work waited.
+ *
+ * ── THE RULE ──────────────────────────────────────────────────────────────────────────────
+ *
+ * Suppressed only when ALL of:
+ *   1. it is a lesson (CONCEPT or WORKED_EXAMPLE);
+ *   2. nobody authored its suitability — an author who wrote `suitableStates` decided who it serves,
+ *      and that decision stands;
+ *   3. every skill it teaches carries reliable STANDARD+ evidence (`reliableStandardEvidence`);
+ *   4. the learner's weakest such skill is AT OR ABOVE the level the lesson's depth teaches to.
+ *
+ * Rule 4 is what keeps genuinely deeper instruction: a lesson whose depth teaches beyond what the
+ * learner has shown — REVISION or CHALLENGE depth in front of a STANDARD learner — is kept. A lesson
+ * at their level or below it (FOUNDATION, GUIDED or STANDARD depth for a reliable STANDARD learner)
+ * only re-teaches what their evidence already establishes, and is not routinely scheduled. Lessons on
+ * any skill they have NOT reliably shown are untouched. For REVISION and VERIFIED learners lessons are
+ * already unsuitable, so this changes nothing for them — except where suitability was authored, which
+ * rule 2 leaves alone.
+ *
+ * ── WHAT IT IS NOT ────────────────────────────────────────────────────────────────────────
+ *
+ * Not suitability: `SUITABILITY_BY_TYPE` and `suitableStates` are untouched and the unit stays suitable
+ * by policy. Not a state, not evidence, not mastery, not a learner classification. It is a selection
+ * rule the composer applies to its own candidates — and the certifier applies the same one.
+ */
+export function knownInstruction(
+  unit: EvidenceBearingUnit,
+  skills: Map<string, MeasuredBelief>,
+): { skill: string; score: number; state: AssignmentState } | null {
+  if (!isInstructional(unit)) return null;
+  if (unit.suitableStates && unit.suitableStates.length) return null;
+  const teachesTo = unit.defaultDepth ? DEPTH_TEACHES_TO[unit.defaultDepth] : undefined;
+  if (!teachesTo) return null;
+  const evidence = reliableStandardEvidence(unit.skillKeys, skills);
+  if (!evidence) return null;
+  return EVIDENCE_LADDER.indexOf(evidence.state) >= EVIDENCE_LADDER.indexOf(teachesTo) ? evidence : null;
+}

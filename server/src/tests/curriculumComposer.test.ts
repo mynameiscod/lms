@@ -272,12 +272,29 @@ describe('direction-aware ranking', () => {
 });
 
 describe('skill-state-aware ranking', () => {
-  it('puts a measured gap before unmeasured material', () => {
-    const r = compose(MIXED, 9, MIXEDP);
+  /**
+   * A gap ranks ahead of material the learner is merely STANDARD in — and a confident STANDARD no longer
+   * re-teaches that material's first-exposure lessons at all.
+   *
+   * This used to compare T_A_1 and T_B_1 in one plan. With B reliably measured at 62, T_B_1 (a
+   * FOUNDATION-depth lesson) is now held back by the known-instruction rule, so the ranking claim is
+   * checked on the same curriculum with B on thin evidence, where the lesson is still taught.
+   */
+  it('puts a measured gap before merely-standard material', () => {
+    const thinB: StudentProfile = { ...MIXEDP, skills: beliefs([['A', 25], ['B', 62, 'LOW'], ['HTML', null]]) };
+    const r = compose(MIXED, 9, thinB);
     const gap = r.units.findIndex(u => u.unitCode === 'T_A_1');
-    const unexposed = r.units.findIndex(u => u.unitCode === 'T_B_1');
+    const standard = r.units.findIndex(u => u.unitCode === 'T_B_1');
     // A scored 25 — a real gap. B scored 62 and is merely standard.
-    expect(gap).toBeLessThan(unexposed);
+    expect(standard).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThan(standard);
+  });
+
+  it('does not re-teach a first-exposure lesson on a skill reliably measured STANDARD', () => {
+    const r = compose(MIXED, 9, MIXEDP);
+    expect(r.units.findIndex(u => u.unitCode === 'T_A_1')).toBe(0);
+    expect(codes(r)).not.toContain('T_B_1');
+    expect((r.knownInstruction || []).map(k => k.unitCode)).toEqual(expect.arrayContaining(['T_B_1', 'T_B_2']));
   });
 
   it('calls a measured gap DIAGNOSTIC_GAP and carries the score that produced it', () => {

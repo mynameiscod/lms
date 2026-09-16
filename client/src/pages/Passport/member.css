@@ -399,18 +399,18 @@
 
 /* ── Leaderboard page ── */
 .lb-me { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px;
-  background: linear-gradient(135deg, #4c1d95, #6650d8 60%, #8b5cf6); color: #fff;
+  background: linear-gradient(135deg, #051D64, #0A3970 58%, #237F91); color: #fff;
   border-radius: 16px; padding: 18px 20px; margin-bottom: 16px; }
 .lb-me div { text-align: center; }
 .lb-me b { display: block; font-size: 22px; font-weight: 900; line-height: 1.15; }
-.lb-me span { font-size: 11px; font-weight: 700; color: #ddd6fe; }
+.lb-me span { font-size: 11px; font-weight: 700; color: #A9C4E4; }
 .lb-table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 460px; }
 .lb-table th { text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 800; color: #64748b;
   text-transform: uppercase; letter-spacing: .4px; border-bottom: 1px solid #eef1f6; background: #fbfcfe; }
 .lb-table td { padding: 11px 14px; border-bottom: 1px solid #f4f6fa; color: #29313f; }
-.lb-table tr.me td { background: #f5f3ff; font-weight: 800; color: #0f172a; }
-.lb-table tr.me.pinned td { border-bottom: 2px solid #ddd6fe; }
-.lb-table em { font-style: normal; color: #7c3aed; font-weight: 800; font-size: 11.5px; }
+.lb-table tr.me td { background: #EAF3FD; font-weight: 800; color: #102A4F; }
+.lb-table tr.me.pinned td { border-bottom: 2px solid #BBD7EA; }
+.lb-table em { font-style: normal; color: #005897; font-weight: 800; font-size: 11.5px; }
 
 /* ── Achievements page ── */
 .ac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }

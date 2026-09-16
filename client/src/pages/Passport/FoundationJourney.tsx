@@ -24,12 +24,13 @@
  * must never see a longer one. What differs is the content of the days, which is the thing
  * the screen actually shows.
  */
-import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, {
   FoundationJourney as Journey, FoundationJourneyDay, FoundationJourneyActivity,
 } from '../../api/passportApi';
 import SectionLock from './SectionLock';
+import { dayState, dayRanges, initialDay, STATE_LABEL } from './foundationRoadmapPresenter';
 import './foundationJourney.css';
 
 /** Content types, in words a first-year recognises. */
@@ -205,14 +206,38 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
   );
 };
 
+/**
+ * A day the student cannot open yet, said as such — never an empty panel.
+ *
+ * Shows only what the roadmap already knows about the day (its number, title and topic). The day's
+ * content is not fetched for it, and the server would refuse it if it were.
+ */
+const LockedDay: React.FC<{ day: number; title?: string | null; topic?: string | null; currentDay: number; onBack: () => void }> =
+  ({ day, title, topic, currentDay, onBack }) => (
+    <div className="fj-locked" role="status">
+      <span className="fj-locked-icon" aria-hidden><i className="bi bi-lock-fill" /></span>
+      <span className="fj-status s-locked">Locked</span>
+      <h2>Day {day}{title ? ` · ${title}` : ''}</h2>
+      {topic && <p className="fj-locked-topic">{topic}</p>}
+      <p className="fj-locked-title">This learning day is locked</p>
+      <p className="fj-locked-text">Complete your current learning day to continue your journey.</p>
+      <button type="button" className="fj-start" onClick={onBack}>Back to current day (Day {currentDay})</button>
+    </div>
+  );
+
 const FoundationJourneyPage: React.FC = () => {
   const [journey, setJourney] = useState<Journey | null>(null);
   const [day, setDay] = useState<FoundationJourneyDay | null>(null);
   const [openDay, setOpenDay] = useState<number | null>(null);
+  const [lockedDay, setLockedDay] = useState<{ day: number; title?: string | null; topic?: string | null } | null>(null);
+  const [dayError, setDayError] = useState('');
+  const [dayRetry, setDayRetry] = useState(0);
   const [loading, setLoading] = useState(true);
   const [dayLoading, setDayLoading] = useState(false);
   const [err, setErr] = useState('');
   const nav = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const stripRef = useRef<HTMLOListElement | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true); setErr('');
@@ -220,11 +245,24 @@ const FoundationJourneyPage: React.FC = () => {
       const j = await passportApi.myFoundationJourney();
       setJourney(j);
       // A preview carries its days in full; only a member's journey fetches a day on its own.
-      if (j.available && j.access !== 'PREVIEW') setOpenDay(j.currentDay);
+      // `?day=` opens the day a roadmap link pointed at; the journey's current day otherwise.
+      if (j.available && j.access !== 'PREVIEW') {
+        setOpenDay(prev => prev ?? initialDay(params.get('day'), j.currentDay ?? 1, j.totalDays ?? 90));
+      }
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Could not load your journey.');
     } finally { setLoading(false); }
+    // Read once on arrival; later selections update the URL, they do not reload the journey.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /** Select a day, and keep it in the URL so a refresh lands on the same day. */
+  const selectDay = useCallback((n: number) => {
+    setOpenDay(n);
+    const next = new URLSearchParams(params);
+    next.set('day', String(n));
+    setParams(next, { replace: true });
+  }, [params, setParams]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -242,15 +280,53 @@ const FoundationJourneyPage: React.FC = () => {
    * the overview carries a summary per day and only the day being read is fetched in full.
    */
   useEffect(() => {
-    if (openDay === null) return;
+    if (openDay === null) return undefined;
     let cancelled = false;
+    setDay(null); setLockedDay(null); setDayError('');
+
+    /**
+     * A day the overview reports locked is not requested at all: the locked card is shown from what the
+     * roadmap already knows. The server remains the authority — if it refuses a day the overview thought
+     * open, that refusal is shown as the same locked card rather than as an empty panel.
+     */
+    const summary = (journey?.days || []).find(d => d.day === openDay);
+    if (summary && dayState(summary) === 'LOCKED') {
+      setLockedDay({ day: summary.day, title: summary.title, topic: summary.topic });
+      setDayLoading(false);
+      return undefined;
+    }
+
     setDayLoading(true);
     passportApi.myFoundationJourneyDay(openDay)
       .then(d => { if (!cancelled) setDay(d); })
-      .catch(() => { if (!cancelled) setDay(null); })
+      .catch((e: any) => {
+        if (cancelled) return;
+        const body = e?.response?.data;
+        if (e?.response?.status === 403 && body?.reason === 'DAY_LOCKED') {
+          setLockedDay({ day: openDay, title: body?.title || summary?.title, topic: summary?.topic });
+        } else {
+          setDayError(body?.message || 'This day could not be loaded.');
+        }
+      })
       .finally(() => { if (!cancelled) setDayLoading(false); });
     return () => { cancelled = true; };
-  }, [openDay]);
+  }, [openDay, journey, dayRetry]);
+
+  /** The selected day stays in view on the strip — Day 90 included. */
+  useEffect(() => {
+    if (openDay === null) return;
+    const chip = document.getElementById(`fj-chip-${openDay}`);
+    if (chip && typeof chip.scrollIntoView === 'function') chip.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  }, [openDay, loading]);
+
+  const scrollStrip = (dir: 1 | -1) => {
+    const el = stripRef.current?.parentElement;
+    if (el) el.scrollBy({ left: dir * Math.max(200, el.clientWidth * 0.8), behavior: 'smooth' });
+  };
+  const jumpTo = (from: number) => {
+    const chip = document.getElementById(`fj-chip-${from}`);
+    if (chip && typeof chip.scrollIntoView === 'function') chip.scrollIntoView({ block: 'nearest', inline: 'start', behavior: 'smooth' });
+  };
 
   if (loading) {
     return <div className="fj-page"><div className="fj-skeleton">Loading your journey…</div></div>;
@@ -317,28 +393,62 @@ const FoundationJourneyPage: React.FC = () => {
       </div>
 
       {/* The ninety, as a strip. Scrolls horizontally on a phone rather than reflowing into
-          a grid nobody can read. */}
-      <section className="fj-strip-wrap" aria-label="All ninety days">
-        <ol className="fj-strip">
-          {days.map(d => (
-            <li key={d.day}>
-              <button
-                type="button"
-                className={`fj-chip s-${d.status.toLowerCase()}${openDay === d.day ? ' open' : ''}`}
-                onClick={() => setOpenDay(d.day)}
-                aria-current={d.day === currentDay ? 'step' : undefined}
-                title={`Day ${d.day} — ${d.title}`}
-              >
-                <span className="fj-chip-n">{d.day}</span>
-                {d.status === 'COMPLETED' && <i className="bi bi-check-lg" aria-hidden />}
-              </button>
-            </li>
+          a grid nobody can read — with jumps and arrows, so the days beyond the edge are never a
+          guess, and a lock on every day that cannot be opened yet. */}
+      <nav className="fj-range" aria-label="Jump to days">
+        <button type="button" className="fj-arrow" onClick={() => scrollStrip(-1)} aria-label="Earlier days">
+          <i className="bi bi-chevron-left" aria-hidden />
+        </button>
+        <div className="fj-range-jumps">
+          {dayRanges(totalDays).map(r => (
+            <button type="button" key={r.from} className="fj-range-btn" onClick={() => jumpTo(r.from)}>{r.label}</button>
           ))}
+        </div>
+        <button type="button" className="fj-arrow" onClick={() => scrollStrip(1)} aria-label="Later days">
+          <i className="bi bi-chevron-right" aria-hidden />
+        </button>
+      </nav>
+      <section className="fj-strip-wrap" aria-label={`All ${totalDays} days`}>
+        <ol className="fj-strip" ref={stripRef}>
+          {days.map(d => {
+            const state = dayState(d);
+            return (
+              <li key={d.day}>
+                <button
+                  type="button"
+                  id={`fj-chip-${d.day}`}
+                  className={`fj-chip s-${d.status.toLowerCase()}${state === 'LOCKED' ? ' s-locked' : ''}${openDay === d.day ? ' open' : ''}`}
+                  onClick={() => selectDay(d.day)}
+                  aria-current={d.day === currentDay ? 'step' : undefined}
+                  aria-label={`Day ${d.day}, ${STATE_LABEL[state]}: ${d.title}`}
+                  title={`Day ${d.day} — ${d.title} (${STATE_LABEL[state]})`}
+                >
+                  <span className="fj-chip-n">{d.day}</span>
+                  {state === 'COMPLETED' && <i className="bi bi-check-lg" aria-hidden />}
+                  {state === 'LOCKED' && <i className="bi bi-lock-fill fj-chip-lock" aria-hidden />}
+                </button>
+              </li>
+            );
+          })}
         </ol>
       </section>
 
       <section className="fj-day" aria-live="polite">
         {dayLoading && <div className="fj-skeleton">Loading day…</div>}
+
+        {!dayLoading && lockedDay && (
+          <LockedDay
+            day={lockedDay.day} title={lockedDay.title} topic={lockedDay.topic}
+            currentDay={currentDay} onBack={() => selectDay(currentDay)}
+          />
+        )}
+
+        {!dayLoading && dayError && (
+          <div className="fj-msg err">
+            <b>{dayError}</b>
+            <button type="button" className="fj-start" onClick={() => setDayRetry(n => n + 1)}>Try again</button>
+          </div>
+        )}
 
         {!dayLoading && day && (
           <>

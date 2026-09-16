@@ -2191,6 +2191,16 @@ export interface FoundationJourneyDaySummary {
   activities: number;
   minutes: number;
   status: JourneyDayStatus;
+  /**
+   * Roadmap metadata — overview only, never content. The topic and module a day belongs to, what kind of
+   * day it is, and its objective in the unit's own words. Null when the curriculum cannot name them.
+   */
+  topic?: string | null;
+  module?: string | null;
+  kind?: 'LESSON' | 'PRACTICE' | 'DEBUGGING' | 'PROJECT' | 'CHECKPOINT' | null;
+  objective?: string | null;
+  /** The server's ladder: true while the day before is unfinished. The day endpoint refuses a locked day. */
+  locked?: boolean;
 }
 
 /**

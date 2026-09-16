@@ -25,7 +25,12 @@ const units: any[] = [];
 const chain = (value: any): any => {
   const p: any = Promise.resolve(value);
   p.select = () => chain(value);
-  p.sort = () => chain(value);
+  // Sorts for real, so a controller that relied on the database order would be caught by a shuffled fixture.
+  p.sort = (spec?: Record<string, number>) => {
+    if (!Array.isArray(value) || !spec) return chain(value);
+    const [[key, dir]] = Object.entries(spec);
+    return chain([...value].sort((a, b) => (Number(a[key]) - Number(b[key])) * (dir < 0 ? -1 : 1)));
+  };
   p.lean = async () => value;
   return p;
 };
@@ -33,9 +38,12 @@ const chain = (value: any): any => {
 const members: any[] = [];
 
 const matches = (doc: any, q: any): boolean =>
-  Object.entries(q).every(([k, v]: [string, any]) => (v && typeof v === 'object' && '$in' in v)
-    ? (v.$in as any[]).map(String).includes(String(doc[k]))
-    : String(doc[k]) === String(v));
+  Object.entries(q).every(([k, v]: [string, any]) => (v === null
+    // As in MongoDB: a null condition matches a missing field or a null one.
+    ? doc[k] === undefined || doc[k] === null
+    : (v && typeof v === 'object' && '$in' in v)
+      ? (v.$in as any[]).map(String).includes(String(doc[k]))
+      : String(doc[k]) === String(v)));
 
 jest.mock('../models/User', () => ({
   __esModule: true,
@@ -559,5 +567,170 @@ describe('the promise is identical for every student', () => {
       expect(out.body.totalDays).toBe(90);
       expect(out.body.days).toHaveLength(90);
     }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// My Roadmap: the persisted ninety as an overview — visibility is not content access.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('the roadmap overview of a persisted journey', () => {
+  /** Topics and modules as the tenant's master curriculum names them; units say which topic each day is. */
+  const seedRoadmap = () => {
+    seed();
+    curricula.push({
+      _id: 'master', tenantId: TENANT, adaptiveStage: 'foundation', title: 'CareerPilot Year 1 — Foundation',
+      topics: [
+        { topicCode: 'T_HARDWARE', title: 'Hardware and How a Computer Runs', moduleCode: 'M01' },
+        { topicCode: 'T_VARIABLES', title: 'Variables and Types', moduleCode: 'M03' },
+        { topicCode: 'T_LATER', title: 'Everything Later', moduleCode: 'M03' },
+      ],
+      modules: [
+        { moduleCode: 'M01', moduleName: 'Computer Science Fundamentals', displayOrder: 10 },
+        { moduleCode: 'M03', moduleName: 'Programming', displayOrder: 30 },
+      ],
+    });
+    units.length = 0;
+    for (let d = 1; d <= FOUNDATION_PROGRAM_DAYS; d++) {
+      units.push({
+        tenantId: TENANT, unitCode: `U_${d}`, title: `Unit ${d}`,
+        topicCode: d <= 9 ? 'T_HARDWARE' : d <= 14 ? 'T_VARIABLES' : 'T_LATER',
+        moduleCode: d <= 9 ? 'M01' : 'M03',
+        unitType: d === 14 ? 'PRACTICE' : d === 20 ? 'PROJECT' : d === 21 ? 'CHECKPOINT' : 'CONCEPT',
+        description: `Objective of unit ${d}.`,
+        learningOutcomes: [`Outcome ${d}`],
+      });
+    }
+    // Stored out of order, so the overview's order is proven to be the plan's, not the storage's.
+    dayPlans.reverse();
+  };
+  beforeEach(seedRoadmap);
+
+  const overview = async () => {
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+    return out.body;
+  };
+  const dayCall = async (n: number) => {
+    const { res, out } = resOf();
+    await ctrl.getMyJourneyDay(reqOf({ params: { dayNumber: String(n) } }), res);
+    return out;
+  };
+
+  it('1-2. returns exactly the ninety persisted days, Day 1 to Day 90 in order', async () => {
+    const body = await overview();
+    expect(body.days).toHaveLength(90);
+    expect(body.days.map((d: any) => d.day)).toEqual(Array.from({ length: 90 }, (_, i) => i + 1));
+    expect(body.days[89].day).toBe(90);
+  });
+
+  it('3. reads the stored plan and never composes or regenerates one', async () => {
+    const body = await overview();
+    expect(mockCompose).not.toHaveBeenCalled();
+    expect(mockApplyTrigger).not.toHaveBeenCalled();
+    expect(body.days[0].title).toBe('Unit 1');
+    expect(body.days[46].title).toBe('Unit 47');
+  });
+
+  it('names each day’s topic, module, kind and objective for the roadmap', async () => {
+    const days = (await overview()).days;
+    expect(days[0]).toMatchObject({ topic: 'Hardware and How a Computer Runs', module: 'Computer Science Fundamentals', kind: 'LESSON', objective: 'Objective of unit 1.' });
+    expect(days[13]).toMatchObject({ topic: 'Variables and Types', module: 'Programming', kind: 'PRACTICE' });
+    expect(days[19].kind).toBe('PROJECT');
+    expect(days[20].kind).toBe('CHECKPOINT');
+  });
+
+  it('never takes topic names from a personalised journey, only from the master curriculum', async () => {
+    curricula.splice(curricula.findIndex(c => c._id === 'master'), 1);
+    const days = (await overview()).days;
+    // No master: no topic is invented, and the days still come back whole.
+    expect(days).toHaveLength(90);
+    expect(days.every((d: any) => d.topic === null && d.module === null)).toBe(true);
+  });
+
+  it('4. differs for a different personalised journey', async () => {
+    const mine = (await overview()).days.map((d: any) => `${d.title}|${d.topic}`);
+    for (const plan of dayPlans) plan.title = `Other ${plan.dayNumber}`;
+    for (const u of units) u.topicCode = 'T_VARIABLES';
+    const theirs = (await overview()).days.map((d: any) => `${d.title}|${d.topic}`);
+    expect(theirs).not.toEqual(mine);
+  });
+
+  it('5-7. carries no lesson content, questions or assignment detail for any day — locked ones included', async () => {
+    const body = await overview();
+    const allowed = ['day', 'title', 'topic', 'module', 'kind', 'objective', 'activities', 'minutes', 'status', 'locked'];
+    for (const d of body.days) expect(Object.keys(d).sort()).toEqual([...allowed].sort());
+
+    const locked = body.days.find((d: any) => d.day === 40);
+    expect(locked.locked).toBe(true);
+    const wire = JSON.stringify(body);
+    // Activity titles, ids, quiz source ids and item arrays exist in every stored day and none may leave.
+    for (const forbidden of ['"items"', 'contentTitle', '"Drill"', '"Lesson"', '"Checkpoint"', 'sourceId', 'contentId', 'i40a', 'q1', 'questions', 'assignment', 'unitCode', 'topicCode', 'learningOutcomes', 'Outcome 40']) {
+      expect(wire).not.toContain(forbidden);
+    }
+  });
+
+  it('8. still refuses a locked day’s content on the server, with nothing of the day in the refusal', async () => {
+    const out = await dayCall(40);
+    expect(out.status).toBe(403);
+    expect(out.body.reason).toBe('DAY_LOCKED');
+    const wire = JSON.stringify(out.body);
+    expect(out.body.activities).toBeUndefined();
+    for (const forbidden of ['Drill', 'Lesson', 'Checkpoint', 'sourceId', 'contentId', 'objective', 'Objective of unit 40']) {
+      expect(wire).not.toContain(forbidden);
+    }
+  });
+
+  it('marks a day locked exactly when the day endpoint refuses it — for all ninety days', async () => {
+    enrollments[0].completedDays = [1, 2, 3, 4, 5, 9];
+    const days = (await overview()).days;
+    for (const d of days) {
+      const out = await dayCall(d.day);
+      expect({ day: d.day, refused: out.status === 403 }).toEqual({ day: d.day, refused: d.locked });
+    }
+    // Completed days, today, and the day after a completed day are open; the rest are not.
+    expect(days.filter((d: any) => !d.locked).map((d: any) => d.day)).toEqual([1, 2, 3, 4, 5, 6, 9, 10]);
+  });
+
+  it('9. serves the current day in full', async () => {
+    const out = await dayCall(6);
+    expect(out.status).toBe(200);
+    expect(out.body.status).toBe('CURRENT');
+    expect(out.body.activities.map((a: any) => a.title)).toEqual(['Drill', 'Lesson', 'Checkpoint']);
+  });
+
+  it('10. keeps a completed day open for review', async () => {
+    const out = await dayCall(3);
+    expect(out.status).toBe(200);
+    expect(out.body.status).toBe('COMPLETED');
+    expect((await overview()).days[2]).toMatchObject({ status: 'COMPLETED', locked: false });
+  });
+
+  it('11. reports progress from completed days, whatever day is selected or requested', async () => {
+    await dayCall(40);
+    const body = await overview();
+    expect(body.completedCount).toBe(5);
+    expect(body.percentComplete).toBe(6);
+    expect(body.currentDay).toBe(6);
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf({ query: { day: '40' } }), res);
+    expect(out.body.completedCount).toBe(5);
+    expect(out.body.currentDay).toBe(6);
+  });
+
+  it('12. reads the same roadmap on every refresh', async () => {
+    const first = await overview();
+    const second = await overview();
+    expect(second).toEqual(first);
+  });
+
+  it('13. still tells an unprovisioned Foundation learner NOT_CONFIGURED, with no roadmap of any other kind', async () => {
+    curricula.length = 0;
+    mockReadiness.mockResolvedValue({ configured: false, reason: 'NO_PRODUCTION_CURRICULUM', message: 'not set up' });
+    const body = await overview();
+    expect(body).toMatchObject({ available: false, reason: 'NOT_CONFIGURED', totalDays: 90 });
+    expect(body.days).toBeUndefined();
+    expect(JSON.stringify(body)).not.toMatch(/phases|weeks/);
+    expect(mockCompose).not.toHaveBeenCalled();
   });
 });

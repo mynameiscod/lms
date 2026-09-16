@@ -254,3 +254,63 @@
   /* Smaller chips so a usable number of days is reachable without scrolling forever. */
   .fj-chip { width: 34px; height: 34px; }
 }
+
+/* ── Getting around the ninety ──────────────────────────────────────── */
+
+.fj-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.fj-range-jumps { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+.fj-range-btn, .fj-arrow {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.fj-range-btn:hover, .fj-arrow:hover { border-color: #c7d2fe; color: #4338ca; }
+.fj-arrow { width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+.fj-chip.s-locked { background: #f8fafc; color: #94a3b8; }
+.fj-chip-lock { position: absolute; top: 2px; right: 3px; font-size: 7px; line-height: 1; color: #94a3b8; }
+/* The current day is never only a colour: it is also marked with a bar underneath. */
+.fj-strip-wrap { padding-bottom: 10px; scroll-padding-inline: 12px; }
+.fj-chip.s-current::after {
+  content: '';
+  position: absolute;
+  left: 8px; right: 8px; bottom: -6px;
+  height: 3px; border-radius: 2px;
+  background: #6366f1;
+}
+
+/* ── A locked day ───────────────────────────────────────────────────── */
+
+.fj-locked {
+  text-align: center;
+  padding: 28px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.fj-locked h2 { font-size: 18px; font-weight: 700; margin: 4px 0 0; }
+.fj-locked-icon {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: #f1f5f9; color: #64748b;
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+}
+.fj-status.s-locked { background: #f1f5f9; color: #475569; }
+.fj-locked-topic { margin: 0; color: #64748b; font-size: 13px; }
+.fj-locked-title { margin: 8px 0 0; font-weight: 700; color: #1e293b; }
+.fj-locked-text { margin: 0 0 10px; color: #475569; font-size: 14px; }
+
+@media (max-width: 560px) {
+  .fj-range-btn { padding: 5px 8px; font-size: 11px; }
+  .fj-locked { padding: 20px 8px; }
+}

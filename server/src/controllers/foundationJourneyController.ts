@@ -99,6 +99,69 @@ const activityFor = (item: any) => ({
 const EMPTY_ASSETS: any = { content: [], quizzes: [], assignments: [] };
 
 /**
+ * THE LADDER, IN ONE PLACE.
+ *
+ * Day one is always open, a day already completed stays open, and any other day opens once the day
+ * before it is complete. The day endpoint refuses by this rule and the overview reports it, so the
+ * roadmap can never call a day open that the server would then refuse, or the reverse.
+ */
+export const isJourneyDayOpen = (dayNumber: number, completed: Set<number>): boolean =>
+  dayNumber === 1 || completed.has(dayNumber) || completed.has(dayNumber - 1);
+
+/**
+ * What kind of day it is, in a student's words — a summary of the unit's type, never the type itself.
+ *
+ * Enough for a roadmap to show "practice" or "project" beside a title. Nothing that describes how the
+ * plan was composed.
+ */
+const DAY_KIND: Record<string, 'LESSON' | 'PRACTICE' | 'DEBUGGING' | 'PROJECT' | 'CHECKPOINT'> = {
+  CONCEPT: 'LESSON',
+  WORKED_EXAMPLE: 'LESSON',
+  PRACTICE: 'PRACTICE',
+  DEBUG: 'DEBUGGING',
+  PROJECT: 'PROJECT',
+  CHECKPOINT: 'CHECKPOINT',
+  REVIEW: 'CHECKPOINT',
+};
+
+/**
+ * Overview metadata for each day of a persisted journey: the topic and module it belongs to, what kind of
+ * day it is, and its objective in the unit's own words.
+ *
+ * Read from the curriculum as it is authored — the unit for its topic, type and description, and the
+ * tenant's Foundation master curriculum for the topic and module NAMES — so a renamed topic reaches every
+ * roadmap without touching a plan. Titles only: no codes, no activities, no content. A day whose unit or
+ * topic cannot be found simply has no topic, and the roadmap shows it on its own rather than guessing.
+ */
+async function overviewOf(tenantId: string, days: any[]) {
+  const codes = [...new Set(days.map(d => d.primaryUnitCode).filter(Boolean).map(String))];
+  const [units, master] = await Promise.all([
+    codes.length
+      ? CurriculumLearningUnit.find({ tenantId, unitCode: { $in: codes } })
+        .select('unitCode topicCode moduleCode unitType description').lean() as Promise<any[]>
+      : Promise.resolve([] as any[]),
+    // The master curriculum, never a personalised journey: those share the stage and carry no topics.
+    LearningCurriculum.findOne({ tenantId, adaptiveStage: 'foundation', personalizedFor: null, journeyKind: null })
+      .select('topics modules').lean() as any,
+  ]);
+  const unitByCode = new Map((units || []).map((u: any) => [String(u.unitCode), u]));
+  const topicTitle = new Map<string, string>(((master?.topics || []) as any[])
+    .filter(t => t.topicCode).map(t => [String(t.topicCode), String(t.title || '')]));
+  const moduleName = new Map<string, string>(((master?.modules || []) as any[])
+    .map(m => [String(m.moduleCode), String(m.moduleName || '')]));
+
+  return (dayNumber: number, unitCode: string | null) => {
+    const unit = unitCode ? unitByCode.get(String(unitCode)) : null;
+    return {
+      topic: unit ? (topicTitle.get(String(unit.topicCode)) || null) : null,
+      module: unit ? (moduleName.get(String(unit.moduleCode)) || null) : null,
+      kind: unit ? (DAY_KIND[String(unit.unitType)] || 'LESSON') : null,
+      objective: unit?.description || null,
+    };
+  };
+}
+
+/**
  * The first days of a learner's own plan, as someone who has not taken membership may see them.
  *
  * Topics, objectives and what each day contains — enough to see the plan is theirs — and nothing to
@@ -315,21 +378,29 @@ export const getMyJourney = async (req: Request, res: Response) => {
     const currentDay = Math.min(
       Math.max(Number(enrollment?.currentDay || 1), 1), FOUNDATION_PROGRAM_DAYS,
     );
+    const overview = await overviewOf(tenantId, days as any[]);
 
     /**
      * A short summary per day rather than the full activity list.
      *
      * Ninety days of complete bundles is a large response for a screen that renders a strip of
      * numbers. The day the student opens is fetched on its own.
+     *
+     * ROADMAP VISIBILITY IS NOT CONTENT ACCESS. Each day carries what a roadmap needs — its title, topic,
+     * module, kind, objective, status, and whether it is open — and nothing a day holds: no activity
+     * titles, ids, questions or assignment detail. Those come only from the day endpoint, which refuses a
+     * locked day on the server.
      */
     const strip = (days as any[]).map(d => ({
       day: d.dayNumber,
       title: d.title,
+      ...overview(d.dayNumber, d.primaryUnitCode || null),
       activities: (d.items || []).length,
       minutes: (d.items || []).reduce((n: number, i: any) => n + (Number(i.estimatedDuration) || 0), 0),
       status: completed.has(d.dayNumber) ? 'COMPLETED'
         : d.dayNumber === currentDay ? 'CURRENT'
           : d.dayNumber < currentDay ? 'SKIPPED' : 'UPCOMING',
+      locked: !isJourneyDayOpen(d.dayNumber, completed),
     }));
 
     res.json({
@@ -400,7 +471,7 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
      * not behind.
      */
     const doneDays = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
-    if (plan.dayNumber > 1 && !doneDays.has(plan.dayNumber - 1) && !doneDays.has(plan.dayNumber)) {
+    if (!isJourneyDayOpen(plan.dayNumber, doneDays)) {
       return res.status(403).json({
         reason: 'DAY_LOCKED',
         day: plan.dayNumber,

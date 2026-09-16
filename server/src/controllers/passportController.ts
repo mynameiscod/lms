@@ -57,9 +57,23 @@ export const updateConfig = async (req: Request, res: Response) => {
     await ensureConfig(tenantId);
     // The allow-list is the whole security model for this endpoint, so a field absent from it
     // is silently discarded — a toggle that appears to save and changes nothing.
-    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'conceptLearningEnabled'];
+    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'conceptLearningEnabled', 'paymentMode'];
     const $set: any = {};
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
+
+    /**
+     * paymentMode decides whether CareerPilot takes real money, so anything that is not exactly
+     * 'test' is treated as 'live'. A typo must fail CLOSED — towards charging — because the
+     * opposite default would mean one bad character silently stopped a tenant earning.
+     */
+    if ($set.paymentMode !== undefined) {
+      const wanted = $set.paymentMode === 'test' ? 'test' : 'live';
+      if (wanted === 'test') {
+        console.warn(`[passport] TEST PAYMENT MODE ENABLED for tenant ${tenantId} by ${(req as any).user?.id || 'unknown'}. `
+          + 'CareerPilot membership will activate without taking money until this is set back to live.');
+      }
+      $set.paymentMode = wanted;
+    }
     const cfg = await PassportConfig.findOneAndUpdate({ tenantId }, { $set }, { new: true });
     res.json({ config: cfg });
   } catch (e: any) {
@@ -427,7 +441,9 @@ export const createMembershipOrder = async (req: Request, res: Response) => {
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Unauthorized' });
     const cfg = await ensureConfig(tenantId);
     if (!passportEnabled(tenantId, cfg)) return res.status(403).json({ message: 'CareerPilot is not available.' });
-    if (!razorpay.isConfigured(tenantId)) {
+
+    const testMode = cfg.paymentMode === 'test';
+    if (!testMode && !razorpay.isConfigured(tenantId)) {
       return res.status(503).json({ message: 'Online payment is not available yet. Please contact your mentor.' });
     }
 
@@ -435,6 +451,37 @@ export const createMembershipOrder = async (req: Request, res: Response) => {
     if (membershipActive(user?.passport)) return res.status(409).json({ message: 'Your membership is already active.', alreadyActive: true });
 
     const priceInr = cfg.priceInr ?? 499;
+
+    /**
+     * TEST MODE — no Razorpay order, no money, and nothing that can settle by accident.
+     *
+     * The row is written with provider 'test' and an orderId that cannot collide with a real
+     * one, so it is distinguishable in the payments list for ever rather than looking like a
+     * ₹499 sale that never reconciles. Razorpay is not called at all: a test order placed
+     * against a live key would appear in their dashboard and in settlement reports.
+     *
+     * Only the matching test endpoint can complete it, and only while this tenant is still in
+     * test mode. Turning the switch back to live strands any outstanding test row as 'created',
+     * which is the safe direction for it to fail.
+     */
+    if (testMode) {
+      const orderId = `test_${studentId.slice(-8)}_${Date.now()}`;
+      await Payment.create({
+        tenantId, studentId, purpose: 'passport_membership', provider: 'test',
+        target: { refModel: 'User', refId: studentId },
+        orderId, amount: priceInr * 100, currency: 'INR', status: 'created',
+        notes: { priceInr, product: 'career_passport', testMode: true },
+      });
+      console.warn(`[passport] TEST PAYMENT MODE — membership order ${orderId} for ${studentId} takes no money. `
+        + 'Set CareerPilot config paymentMode back to "live" before real students buy.');
+      return res.json({
+        testMode: true, orderId, priceInr,
+        amount: priceInr * 100, currency: 'INR',
+        name: 'CodeBegun CareerPilot',
+        description: 'Test payment — no money is taken',
+      });
+    }
+
     const order = await razorpay.createOrder(tenantId, priceInr, `pass_${studentId.slice(-8)}_${Date.now().toString().slice(-8)}`, {
       purpose: 'passport_membership', studentId,
     });
@@ -460,6 +507,61 @@ export const createMembershipOrder = async (req: Request, res: Response) => {
     res.status(500).json({ message: e.message || 'Failed to start payment' });
   }
 };
+
+/**
+ * Student: complete a TEST membership. Takes no money and exists only for testing checkout.
+ *
+ * ── THE FOUR REFUSALS ─────────────────────────────────────────────────────────────────────
+ *
+ * Each one closes a way this could activate a membership it should not, and each is checked
+ * against the database rather than the request:
+ *
+ *   1. the tenant must be in test mode RIGHT NOW — not when the order was made, so flipping
+ *      back to live immediately stops anything outstanding from completing;
+ *   2. the payment row must have provider 'test' — a real Razorpay row can never be settled
+ *      through this path, whatever id is posted;
+ *   3. it must belong to the caller — the studentId comes from the session, never the body;
+ *   4. it must still be 'created' — the same one-way claim the real settlement uses, so a
+ *      replayed request returns the existing result instead of extending a membership.
+ *
+ * Deliberately NOT routed through settlePayment: that function verifies a capture with
+ * Razorpay, and teaching it to skip verification for some payments would put the bypass
+ * inside the code path every real payment takes.
+ */
+export const completeTestMembership = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const studentId = userIdOf(req);
+    if (!tenantId || !studentId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const cfg = await ensureConfig(tenantId);
+    if (cfg.paymentMode !== 'test') {
+      return res.status(403).json({ message: 'Test payments are not enabled for this institute.' });
+    }
+
+    const orderId = String(req.body?.orderId || '');
+    if (!orderId.startsWith('test_')) return res.status(400).json({ message: 'Not a test order.' });
+
+    const claimed = await Payment.findOneAndUpdate(
+      { tenantId, studentId, orderId, provider: 'test', purpose: 'passport_membership', status: 'created' },
+      { $set: { status: 'paid', paidAt: new Date() } },
+      { new: true },
+    );
+    if (!claimed) {
+      const existing = await Payment.findOne({ tenantId, studentId, orderId, provider: 'test' }).lean() as any;
+      if (existing?.status === 'paid') return res.json({ success: true, alreadyPaid: true });
+      return res.status(404).json({ message: 'No open test order found.' });
+    }
+
+    const { expiresAt } = await activateMembership(tenantId, studentId);
+    console.warn(`[passport] TEST PAYMENT completed ${orderId} for ${studentId} — membership activated without payment.`);
+    res.json({ success: true, testMode: true, expiresAt });
+  } catch (e: any) {
+    console.error('[passport] completeTestMembership:', e);
+    res.status(500).json({ message: e.message || 'Could not complete the test payment' });
+  }
+};
+
 
 /** Student: verify the checkout signature and activate the membership. */
 export const verifyMembership = async (req: Request, res: Response) => {

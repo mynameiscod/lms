@@ -61,6 +61,7 @@ const PassportAdminConfig: React.FC = () => {
       await passportApi.saveContent({ journeyDays, missionsPerDay });
       const saved = await passportApi.updateConfig({
         enabled: cfg.enabled, assessmentMode: cfg.assessmentMode, priceInr: cfg.priceInr,
+        paymentMode: cfg.paymentMode || 'live',
         conceptLearningEnabled: cfg.conceptLearningEnabled,
         membershipMonths: cfg.membershipMonths,
         // Same number in both places. The planner still clamps it to its own ceiling when it
@@ -114,6 +115,32 @@ const PassportAdminConfig: React.FC = () => {
             <input type="checkbox" checked={cfg.enabled} onChange={e => setCfg({ ...cfg, enabled: e.target.checked })} /> Enable Passport for this tenant
           </label>
           <div><span style={label}>Price (₹)</span><input style={{ ...input, width: 110 }} type="number" value={cfg.priceInr} onChange={e => setCfg({ ...cfg, priceInr: Number(e.target.value) })} /></div>
+          {/*
+            Payment mode sits next to the price because it decides whether that price is charged.
+            Worded as what happens rather than as a mode name: "Test" alone does not tell an admin
+            that memberships will activate for nothing.
+          */}
+          <div>
+            <span style={label}>Membership payments</span>
+            <select
+              style={{ ...input, width: 230 }}
+              value={cfg.paymentMode || 'live'}
+              onChange={e => setCfg({ ...cfg, paymentMode: e.target.value as 'live' | 'test' })}
+            >
+              <option value="live">Live — take real money</option>
+              <option value="test">Test — activate without paying</option>
+            </select>
+            {(cfg.paymentMode || 'live') === 'test' && (
+              <div style={{
+                marginTop: 8, background: '#FFF7E8', border: '1px solid #F2D9A8', color: '#8A5A00',
+                borderRadius: 10, padding: '10px 12px', fontSize: 12.5, lineHeight: 1.6, maxWidth: 560,
+              }}>
+                <b>Test payments are on.</b> Anyone who clicks Unlock gets a full membership and pays
+                nothing. This affects CareerPilot membership only — hackathon registration still takes
+                real money. Set this back to Live before students buy.
+              </div>
+            )}
+          </div>
           {/*
             Two different questions, side by side and labelled as such — they were being
             confused because only one of them was visible anywhere. ACCESS is how long they

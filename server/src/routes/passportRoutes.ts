@@ -602,6 +602,9 @@ router.post('/set-password', MEMBER, ctrl.setPassword);
 
 // Membership activation (₹499, reuses the Razorpay rail)
 router.post('/membership/order',  MEMBER, rateLimit('payment'), ctrl.createMembershipOrder);
+/* Test-mode checkout. Refuses unless this tenant's CareerPilot config is in test mode, and
+   only ever settles a provider:'test' row of its own — see completeTestMembership. */
+router.post('/membership/test-complete', MEMBER, rateLimit('payment'), ctrl.completeTestMembership);
 router.post('/membership/verify', MEMBER, ctrl.verifyMembership);
 
 // Gamified member dashboard — one call for the whole home screen

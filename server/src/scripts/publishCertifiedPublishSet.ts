@@ -137,7 +137,14 @@ import { teaches } from '../data/contentBundlePolicy';
  * is identical (READY 354, target 346, the named three and the absolute minimum unchanged), and the production gate
  * gains the evidence-kind recomposition section.
  */
-const CERTIFIED_COMMIT = '96b410eb';
+/*
+ * MOVED AGAIN, TO 0ff99b26 — A NO-OP FOR THE DERIVATION. Final evidence calibration: the composer's belief comment
+ * describes the understanding flag's widened meaning (practical work below its pass line no longer lifts it), and 50
+ * checkpoint questions on two-skill units name the declared skill they measure. Neither reaches a certification
+ * profile or the readiness derivation: READY 354, target 346, the named three and the absolute minimum unchanged;
+ * both tenants' production gates pass with identical results.
+ */
+const CERTIFIED_COMMIT = '0ff99b26';
 const EXPECT = { total: 359, ready: 354, target: 346, withheld: 3, notRecommended: 5, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

@@ -240,3 +240,175 @@ production certification gate `4d` runs these checks against the published inven
    effect when a grader reviews it, which may be after later days are recomposed.
 5. **Carried over from sections 8–9:** the diagnostic anchor (41 answers), per-skill question supply (SQL_BASICS 4,
    DSA_ARRAYS 8) and the 76 unmapped checkpoint questions.
+
+## 11. Final calibration: failed practical work, the anchor, supply, unmapped questions, interviews
+
+Commits:
+- 56c96343: qualifying applied evidence
+- 2c8dffd5: measurement
+- 03a4615d: mock interview
+- 0ff99b26: question mappings
+- then the late-grade gate and the release test procedure
+
+Weights, bands, confidence thresholds, the composer's rules, the backbone and the ninety days are unchanged.
+
+### Failed applied evidence — fixed
+
+Reproduced: 18 right checkpoint answers (weight 9) and one coding grade of 20% (weight 1) score 92, HIGH. Under a0cc9f2c
+any APPLIED row lifted the understanding cap, so the skill was VERIFIED on a failed attempt.
+
+**Rule.** A row *demonstrates* a skill when it is DIAGNOSTIC, or when it is APPLIED and its grade met the assignment's
+own pass line. Every row still counts in the score at its performance. A skill with no demonstrating row is planned at
+STANDARD at most (`skillDnaPolicy.demonstratesSkill`, `evidenceBasis.understandingOnly`).
+
+**Pass line.** The pass line is `Assignment.passingPoints / totalPoints`, the same line `Submission.isPassing` draws
+(`finalScore >= passingPoints`).
+- It is recorded on each APPLIED row as `passStandard` and `meetsPassStandard`.
+- It is compared with the grade before any late penalty, like the performance itself.
+- On both tenants the 5 coding assignments set it explicitly at 60 of 100. The 29 project assignments inherit the
+  Assignment model default of 40 of 100; it is not set per project.
+- An APPLIED row with no recorded verdict does not qualify.
+
+| # | Evidence on CONDITIONALS_BASICS | Score | Qualifying applied | a0cc9f2c | Now | Conditions units (from scratch) a0cc9f2c → now |
+|---|---|---|---|---|---|---|
+| 1 | understanding only, 18 right | 100 HIGH | — | STANDARD | STANDARD | DEBUGGING → DEBUGGING |
+| 2 | understanding only, 12 of 18 | 67 HIGH | — | STANDARD | STANDARD | DEBUGGING → DEBUGGING |
+| 3 | 18 right + applied 20% | 92 HIGH | NO | VERIFIED | **STANDARD** | DEBUGGING, MINI_PROJECT → DEBUGGING |
+| 4 | 18 right + applied 59% | 96 HIGH | NO | VERIFIED | **STANDARD** | DEBUGGING, MINI_PROJECT → DEBUGGING |
+| 5 | 18 right + applied 60% (the pass line) | 96 HIGH | YES | VERIFIED | VERIFIED | unchanged |
+| 6 | 18 right + applied 95% | 99 HIGH | YES | VERIFIED | VERIFIED | unchanged |
+| 7 | 18 right + 20%, then a later attempt at 90% | 92 HIGH | YES | VERIFIED | VERIFIED | unchanged |
+| 8 | 18 right + 90%, then a later attempt at 20% | 92 HIGH | YES | VERIFIED | VERIFIED | unchanged |
+| 9 | diagnostic 8 of 8 + applied 20% | 91 HIGH | NO | VERIFIED | VERIFIED | unchanged |
+| 10 | diagnostic 0 of 8 + applied 90% | 10 HIGH | YES | FOUNDATION_REQUIRED | FOUNDATION_REQUIRED | full chain |
+| 11 | diagnostic 0 of 8 + five attempts at 90% | 35 HIGH | YES | FOUNDATION_REQUIRED | FOUNDATION_REQUIRED | full chain |
+| 12 | reassessment 0 of 8 → 8 of 8 | 50 HIGH | — | GUIDED | GUIDED | full chain |
+| 13 | reassessment 8 of 8 → 0 of 8 | 50 HIGH | — | GUIDED | GUIDED | full chain |
+
+**Reattempts.** No behaviour changed:
+- A retry is idempotent.
+- A regrade replaces its row and its verdict; a regrade across the pass line flips the verdict.
+- A new attempt is a new observation.
+
+Failed-then-passed and passed-then-failed give identical Skill DNA: both attempts count, order does not, and the pass
+demonstrates the skill. "Latest attempt wins" is not the model, and was not introduced.
+
+**Strong diagnostic + failed applied (case 9).** Normal aggregation applies, with no override:
+- Eight right diagnostic items and one 20% practical stay VERIFIED at 91.
+- With four items, the same failure drops to REVISION at 84.
+- Eight items and two failed practicals give 84 REVISION.
+
+A strong learner is never made to do an assignment first, and repeated failure pulls them down through the normal arithmetic.
+
+**Journeys.** Learner M answers every checkpoint right but fails every practical. Under a0cc9f2c they are VERIFIED on
+conditions (87) and functions (85); now they are STANDARD on both. No coding assignment is removed either way. Every
+other learner's ninety days are identical under both rules. Strong learners are unchanged, and the backbone is never
+missing.
+
+### STANDARD practical treatment — no composer or content change
+
+What a learner measured STANDARD on the topic (7 of 10 diagnostic, beginner elsewhere) is given:
+
+| Topic | Treatment | Practical application | Sufficient |
+|---|---|---|---|
+| Variables | T_VARIABLES_COMPUTE_PRACTICE (coding assignment, pass 60; 2 coding exercises) | writes programs | YES |
+| Conditions | T_CONDITIONS_DEBUGGING: worked example, 4 theory questions, 1 coding exercise (diagnose and repair an if/elif grading chain with the smallest fix) | edits and runs conditional code (ordering, boundaries) | YES |
+| Loops | T_LOOPS_INFINITE_LOOPS (coding exercise: make a loop terminate and total correctly), then T_LOOPS_PRACTICE (coding assignment) | writes and repairs loops | YES |
+| Functions | T_FUNCTIONS_CALL_RETURN_PRACTICE (coding assignment; 2 coding exercises) | writes functions | YES |
+| Arrays | T_ARRAYS_DEBUGGING: 1 coding exercise (diagnose and fix three index faults) | edits traversal code | YES |
+
+The Conditions and Arrays debugging units are genuine application, not recall labelled DEBUG. They carry no graded
+assignment, so they produce no APPLIED evidence. A learner capped at STANDARD therefore stays capped until graded work
+passes. That follows from the rule; it is not a content gap.
+
+### Diagnostic anchor — material, deferred
+
+Later observations needed before each state is first reached (current model, no recency):
+
+| Case | Start | First reached |
+|---|---|---|
+| A1 diagnostic 0 of 8, then checkpoints all right | 0 FOUNDATION_REQUIRED | GUIDED 11, STANDARD 24, REVISION 47 |
+| A2 diagnostic 0 of 8, then coursework all right (a practical every third observation) | 0 FOUNDATION_REQUIRED | GUIDED 9, STANDARD 18, REVISION 36, VERIFIED 66 |
+| B1 diagnostic 8 of 8, then checkpoints all wrong | 100 VERIFIED | REVISION 3, STANDARD 6, GUIDED 11, FOUNDATION_REQUIRED 25 |
+| B2 diagnostic 8 of 8, then coursework all failed | 100 VERIFIED | REVISION 3, STANDARD 6, GUIDED 10, FOUNDATION_REQUIRED 25 |
+| C diagnostic 4 of 8, then improving coursework | 50 GUIDED | STANDARD 3, REVISION 12, VERIFIED 27 |
+| D diagnostic 4 of 8, then declining coursework | 50 GUIDED | FOUNDATION_REQUIRED 4 |
+| E diagnostic 0 of 8, then reassessments of 8 of 8 | 0 FOUNDATION_REQUIRED | GUIDED after 1 sitting, STANDARD 2, REVISION 3, VERIFIED 6 |
+| F diagnostic 8 of 8, then reassessments of 0 of 8 | 100 VERIFIED | GUIDED after 1 sitting, FOUNDATION_REQUIRED 2 |
+
+**Material: yes.** When the prior is a diagnostic, Skill DNA cannot reflect substantial new evidence within the journey:
+- A beginner who then does all Programming Fundamentals coursework perfectly reaches 64 STANDARD at most.
+- One perfect reassessment after a failed Skill Check gives 50 GUIDED.
+
+**Recommendation: change later, not blocking.** The error is conservative: it means more teaching, never false
+compression, and the backbone guarantees fundamentals regardless. The smallest future change would be for a reassessment
+to supersede the earlier sitting of the same assessment, rather than adding time decay. No recency decay is implemented.
+
+### Question supply — no material gap
+
+The test assumes every checkpoint answered right and every graded practical passed.
+
+| Skill | Checkpoint questions | Graded practicals | From unmeasured | From a Skill Check of 0 |
+|---|---|---|---|---|
+| PROGRAMMING_FUNDAMENTALS | 9 | 2 | VERIFIED | 64 STANDARD |
+| SHELL_COMMANDS | 14 | 1 | VERIFIED | 68 STANDARD |
+| DSA_ARRAYS | 16 (after mapping) | 2 | VERIFIED | — |
+| SQL_BASICS | 16 (after mapping) | 2 | VERIFIED | — |
+
+The STANDARD ceiling from a Skill Check of 0 comes from the diagnostic anchor, not from supply.
+
+### The 76 unmapped checkpoint questions
+
+`src/tests/fixtures/evidence/unmapped-checkpoint-audit.json` lists each question with its class and the reason. All 76
+were on units declaring two skills, which the seed leaves unmapped unless the author names one. A question may only map to
+a skill its unit declares.
+
+| Class | Count | Detail |
+|---|---|---|
+| A — should produce no evidence | 1 | "JavaScript and Java are related how?" |
+| B — clearly one declared skill | 50 | **Applied** (0ff99b26): DSA_ARRAYS 8, DSA_STRINGS 4, PROPOSITIONAL_LOGIC 2, GIT_FUNDAMENTALS 8, GIT_BRANCHING 2, JS_DOM 9, SQL_BASICS 12, DB_FUNDAMENTALS 5 |
+| C — several declared skills | 2 | Git workflow order; UPDATE inside a transaction |
+| D — ambiguous | 23 | The natural skill is not declared on the unit (searching, complexity, hashing, JS async, joins, debugging practice), or either declared skill is defensible |
+
+Each B mapping names a skill whose taxonomy description covers the question's subject.
+- **Provisioned on both tenants:** 795 checkpoint questions are now mapped (was 745). On the certified units, 786 of 812 are mapped and 26 remain unmapped.
+- **Measured before applying:** every learner kept ninety distinct days, all coding assignments and the backbone, and strong learners were unchanged. Git, SQL and database fundamentals become measurable for beginners.
+
+### Mock interview — reclassified UNDERSTANDING
+
+**How interviews produce evidence.**
+- A role-mode mock interview writes one row per skill area in the member's role blueprint.
+- Each row is scored 0–100 by a model reading the transcript, at weight 0.6.
+- The item identity is the area, so repeated interviews rarely reach HIGH confidence.
+
+**The defect.** As DIAGNOSTIC, five interviews at 85%+ on one skill made it VERIFIED (MEDIUM), with no controlled
+measurement and no working code behind it. That is the defect the understanding cap exists for, and it also meant a model
+deciding mastery.
+
+**The change.** As UNDERSTANDING:
+- The weight and score contribution are unchanged.
+- A skill resting on interviews alone stops at STANDARD.
+- Beside a diagnostic or passed work, interview evidence counts as before.
+
+No interview evidence exists in either provisioned tenant.
+
+**No trigger issue.** Interview rows cannot lift a state past STANDARD on their own, and the next checkpoint recomposes.
+
+### Project timing
+
+A project grade arrives when a grader reviews it, and it recomposes only the future: recomposition freezes every
+completed day and today. The evidence gate replays two learners with every project graded ten days after the work:
+learner D, whose late grades pass, and learner M, whose late grades fail. In both runs:
+- no day already worked changes;
+- the journey stays at ninety distinct days;
+- the backbone is never missing;
+- no coding assignment is removed.
+
+### Testing procedure
+
+The default `npm test` runs every suite in parallel on half the cores. On an 8-core, 8 GB machine, the fourteen
+`*.int.test.ts` suites time out starting in-memory MongoDB, and a worker can run out of memory.
+
+The release procedure is `npm run test:release`:
+1. Unit suites run on three workers with a per-worker memory ceiling.
+2. The integration suites then run in band.

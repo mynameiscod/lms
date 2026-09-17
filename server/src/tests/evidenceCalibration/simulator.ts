@@ -252,6 +252,8 @@ export interface SimulationResult {
   finalBeliefs: Record<string, Belief | null>;
   firstDay: Record<string, Partial<Record<AssignmentState, number>>>;
   totals: {
+    /** Days whose unit, as worked, differs from the final plan. A frozen day never changes: always 0. */
+    completedDaysChanged: number;
     recompositions: number; lessonsRemoved: number; practiceRemoved: number; codingAssignmentsRemoved: string[]; debuggingAdded: number;
     backboneModeChanges: number; backboneMissingEver: string[];
     /** Coding assignments the learner actually worked, and their grades. */
@@ -302,8 +304,15 @@ export const isGradedPractical = (u: ComposableUnit): Source | null =>
  * Ninety days of one learner. `pool` defaults to the audited fixture of the certified set; the production gate passes
  * the inventory it read from the database, so the same replay certifies what is actually published.
  */
-export function simulate(learner: SimLearner, model: Model = 'AFTER', days = FOUNDATION_PROGRAM_DAYS, pool: ComposableUnit[] = PRODUCTION): SimulationResult {
+export function simulate(
+  learner: SimLearner, model: Model = 'AFTER', days = FOUNDATION_PROGRAM_DAYS, pool: ComposableUnit[] = PRODUCTION,
+  /** A grader reviews project work this many days after the day it is worked (coding auto-grades still land that day). */
+  options: { projectGradeDelayDays?: number } = {},
+): SimulationResult {
   const poolByCode = pool === PRODUCTION ? byCode : new Map(pool.map(u => [u.unitCode, u]));
+  const delay = Math.max(0, options.projectGradeDelayDays || 0);
+  const pendingGrades: { dueDay: number; unit: ComposableUnit; source: Source; performance: number; meetsPassStandard?: boolean }[] = [];
+  const workedPlan: string[] = [];
   const rows: EvidenceRow[] = learner.prior();
   let student = profileOf(rows, model);
   let plan = compose(student, undefined, pool).units.map(u => u.unitCode);
@@ -328,6 +337,7 @@ export function simulate(learner: SimLearner, model: Model = 'AFTER', days = FOU
 
   for (let day = 1; day <= days; day++) {
     const unit = poolByCode.get(plan[day - 1])!;
+    workedPlan.push(unit.unitCode);
     const quiz: any = checkpointsByUnit.get(unit.unitCode);
     const questions: any[] = quiz ? quiz.questions : [];
     const bySkill = new Map<string, { answered: number; right: number }>();
@@ -352,8 +362,12 @@ export function simulate(learner: SimLearner, model: Model = 'AFTER', days = FOU
       const standard = passStandardOf(unit.unitCode);
       const meetsPassStandard = standard === null ? undefined : performance + 1e-9 >= standard;
       applied = { source, performance, meetsPassStandard };
-      for (const skill of unit.skillKeys) {
-        rows.push({ skillKey: skill, performance, weight: APPLIED_WEIGHT(source), itemKey: `assignment:${unit.unitCode}`, source, day, meetsPassStandard });
+      pendingGrades.push({ dueDay: source === 'PROJECT_EVALUATION' ? day + delay : day, unit, source, performance, meetsPassStandard });
+    }
+    // Grades that arrive today — today's auto-grade, and any project a grader has now reviewed.
+    for (const g of pendingGrades.filter(x => x.dueDay === day)) {
+      for (const skill of g.unit.skillKeys) {
+        rows.push({ skillKey: skill, performance: g.performance, weight: APPLIED_WEIGHT(g.source), itemKey: `assignment:${g.unit.unitCode}`, source: g.source, day, meetsPassStandard: g.meetsPassStandard });
         const t = bySkill.get(skill) || { answered: 0, right: 0 };
         bySkill.set(skill, t);
       }
@@ -395,6 +409,7 @@ export function simulate(learner: SimLearner, model: Model = 'AFTER', days = FOU
     finalBeliefs: Object.fromEntries(FOCUS_SKILLS.map(k => [k, beliefOf(rows.filter(r => r.skillKey === k), model)])),
     firstDay,
     totals: {
+      completedDaysChanged: workedPlan.filter((c, i) => plan[i] !== c).length,
       recompositions: recomposed.length,
       lessonsRemoved: recomposed.reduce((n, e) => n + e.consequence!.lessonsRemoved.length, 0),
       practiceRemoved: recomposed.reduce((n, e) => n + e.consequence!.practiceRemoved.length, 0),
@@ -493,6 +508,7 @@ export const CRITICAL_CASES: [string, string][] = [
 export interface EvidenceKindGate {
   learners: { key: string; before: SimulationResult['totals']; kinds: SimulationResult['totals']; after: SimulationResult['totals']; finalDays: number; unique: number }[];
   critical: CriticalCase[];
+  lateGrades: { key: string; recompositions: number; completedDaysChanged: number; codingAssignmentsRemoved: string[] }[];
   problems: string[];
 }
 
@@ -509,6 +525,7 @@ export interface EvidenceKindGate {
 export function evidenceKindGate(pool: ComposableUnit[] = PRODUCTION): EvidenceKindGate {
   const problems: string[] = [];
   const learners: EvidenceKindGate['learners'] = [];
+  const lateGrades: EvidenceKindGate['lateGrades'] = [];
   for (const l of SIM_LEARNERS) {
     const before = simulate(l, 'BEFORE', FOUNDATION_PROGRAM_DAYS, pool);
     const kinds = simulate(l, 'KINDS', FOUNDATION_PROGRAM_DAYS, pool);
@@ -542,12 +559,26 @@ export function evidenceKindGate(pool: ComposableUnit[] = PRODUCTION): EvidenceK
       problems.push(`${l.key}: worked ${after.totals.codingAssignmentsWorked.length} of ${CODING_ASSIGNMENT_UNITS.length} coding assignments`);
     }
   }
+  /**
+   * Project grades that arrive ten days after the work: a late grade recomposes only the future. No day already worked
+   * changes, ninety distinct days remain, and backbone coverage stays whole — for a learner whose late grades pass and
+   * one whose late grades fail.
+   */
+  for (const key of ['D_BEGINNER_ALL_RIGHT', 'M_RECALL_RIGHT_PRACTICAL_FAILED']) {
+    const late = simulate(SIM_LEARNERS.find(l => l.key === key)!, 'AFTER', FOUNDATION_PROGRAM_DAYS, pool, { projectGradeDelayDays: 10 });
+    if (late.totals.completedDaysChanged) problems.push(`${key} with late project grades: ${late.totals.completedDaysChanged} worked days changed`);
+    if (late.finalPlan.length !== FOUNDATION_PROGRAM_DAYS || new Set(late.finalPlan).size !== FOUNDATION_PROGRAM_DAYS) problems.push(`${key} with late project grades: not ninety distinct days`);
+    if (late.totals.backboneMissingEver.length) problems.push(`${key} with late project grades: backbone missing ${late.totals.backboneMissingEver.join(', ')}`);
+    lateGrades.push({ key, recompositions: late.totals.recompositions, completedDaysChanged: late.totals.completedDaysChanged, codingAssignmentsRemoved: late.totals.codingAssignmentsRemoved });
+  }
+  for (const l of learners) if ((l.after as any).completedDaysChanged) problems.push(`${l.key}: worked days changed`);
+
   const critical = CRITICAL_CASES.map(([skill, unit]) => criticalCase(skill, unit, pool));
   for (const c of critical) {
     if (c.day !== null && (!c.capped || c.effectiveState !== 'STANDARD')) problems.push(`${c.skill}: not capped on day ${c.day}`);
     if (!c.codingAssignmentAfter) problems.push(`${c.skill}: ${c.codingUnit} not worked`);
   }
-  return { learners, critical, problems };
+  return { learners, critical, lateGrades, problems };
 }
 
 /* ------------------------------------------------------------------ *

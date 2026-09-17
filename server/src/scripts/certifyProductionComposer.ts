@@ -417,6 +417,9 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
     console.log(`    critical ${pad(c.skill, 20)} ${c.day === null ? 'never VERIFIED from checkpoints alone' : `day ${c.day}: ${c.score}/${c.confidence} raw ${c.rawState} → ${c.effectiveState} cap ${c.capped ? 'YES' : 'NO'}`}`
       + ` · ${shortCode(c.codingUnit)} BEFORE ${c.codingAssignmentBefore ? 'kept' : 'removed'} AFTER ${c.codingAssignmentAfter ? `worked day ${c.codingAssignmentDayAfter}` : 'REMOVED'}`);
   }
+  for (const g of kindGate.lateGrades) {
+    console.log(`    late project grades (+10 days) ${pad(g.key, 34)} recompositions ${g.recompositions} · worked days changed ${g.completedDaysChanged} · coding assignments removed ${g.codingAssignmentsRemoved.map(shortCode).join(',') || 'none'}`);
+  }
   console.log(`    evidence-kind recomposition problems: ${kindGate.problems.length}`);
   for (const p of kindGate.problems.slice(0, 8)) console.log(`      ! ${p}`);
   if (kindGate.problems.length) failures.push(`${kindGate.problems.length} evidence-kind recomposition problem(s)`);

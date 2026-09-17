@@ -107,8 +107,15 @@ import { teaches } from '../data/contentBundlePolicy';
  * T_FUNCTIONS_DOCSTRINGS not recommended; ready-inventory is unchanged. The diagnostic absolute minimum was recomputed
  * 193 to 182. ACTUAL PRODUCTION GATE: PASS (9/9, 40/40, 72/72, content gates 0, published = certified 350) on Savas and
  * Test Tenant; Phase-21 audit PASS.
+ *
+ * MOVED AGAIN, TO c3452c1b — NOT A NO-OP. The spine reservation holds capacity, so a learner exactly as the Skill Check
+ * produces them keeps conditions, loops and functions; certification composes REAL_SKILL_CHECK_BEGINNER and
+ * REAL_SKILL_CHECK_PARTIAL and requires the spine in order. The derivation reaches 348: T_LOOPS_NESTED_LOOPS and
+ * T_VARIABLES_NAMING join T_FUNCTIONS_DOCSTRINGS as READY-not-recommended and are reconciled to DRAFT through the status
+ * route; the named three are unchanged; ready-inventory is unchanged; the diagnostic absolute minimum was recomputed
+ * 182 to 177.
  */
-const CERTIFIED_COMMIT = '79c9f92f';
+const CERTIFIED_COMMIT = 'c3452c1b';
 const EXPECT = { total: 359, ready: 354, target: 348, withheld: 3, notRecommended: 3, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

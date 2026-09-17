@@ -59,9 +59,15 @@ import { publishUnit, setUnitStatus } from '../controllers/curriculumLearningUni
  *
  * Re-certified again after recomposition began continuing from the frozen days instead of stitching a fresh day
  * one. T_HTML_IMAGES was reached only by those stitched fresh plans; no composition, continuation, sweep or chain
- * reaches it now, and no journey schedules it. It joins the READY-not-recommended units: the certified set is 347.
+ * reaches it now, and no journey schedules it. It joins the READY-not-recommended units: the certified set was 347.
+ *
+ * Re-certified again for the mandatory Foundation backbone: every learner now covers the eleven backbone topics at the
+ * depth their evidence earns, and a beginner's fundamentals take the capacity a web learner's second CSS lesson used to
+ * reach. T_CSS_COLOUR_AND_TEXT is selected by no certified learner state, composition, recomposition or sweep, and is
+ * scheduled on no journey. With the product owner's approval it joins the READY-not-recommended units, returned to
+ * DRAFT with its content untouched: the certified set is 346.
  */
-export const CERTIFIED_FOUNDATION = { total: 359, ready: 354, target: 347, withheld: 3, notRecommended: 4, partial: 5 } as const;
+export const CERTIFIED_FOUNDATION = { total: 359, ready: 354, target: 346, withheld: 3, notRecommended: 5, partial: 5 } as const;
 
 /** Committed with the code, so every deployment certifies against the same set. */
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

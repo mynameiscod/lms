@@ -42,8 +42,8 @@ const everyUniversal = (score: number): StudentProfile => ({
 });
 
 describe('the diagnostic profiles', () => {
-  it('A. a learner with no programming evidence keeps the accepted spine, day for day', () => {
-    expect(spineDays(profile('beginner'))).toEqual([14, 32, 47, 61, 75]);
+  it('A. a learner with no programming evidence keeps the certified spine, day for day', () => {
+    expect(spineDays(profile('beginner'))).toEqual([33, 39, 46, 52, 57]);
   });
 
   it('B. PROGRAMMING_FUNDAMENTALS 30 MEDIUM (FOUNDATION_REQUIRED) reaches every spine practice', () => {
@@ -129,18 +129,19 @@ describe('the accepted profiles are untouched', () => {
   const mix = (student: StudentProfile) => compose(student).composition;
 
   it('@70 keeps its practice-heavy, direction-led shape', () => {
-    expect(mix(everyUniversal(70))).toMatchObject({ DIRECTION_LEARNING: 25, PRACTICE: 28, APPLICATION: 11, INTEGRATION: 4, VERIFICATION: 2 });
+    expect(mix(everyUniversal(70))).toMatchObject({ DIRECTION_LEARNING: 25, PRACTICE: 30, APPLICATION: 9, INTEGRATION: 4, VERIFICATION: 2 });
   });
 
   it('@78 keeps its shape', () => {
-    expect(mix(everyUniversal(78))).toMatchObject({ DIRECTION_LEARNING: 13, PRACTICE: 24, APPLICATION: 15, INTEGRATION: 11, VERIFICATION: 7 });
+    expect(mix(everyUniversal(78))).toMatchObject({ DIRECTION_LEARNING: 27, PRACTICE: 15, APPLICATION: 13, INTEGRATION: 11, VERIFICATION: 5 });
   });
 
   it('a strong learner keeps its shape', () => {
     expect(mix(profile('strong-universal'))).toMatchObject({ DIRECTION_LEARNING: 29, APPLICATION: 13, INTEGRATION: 11, VERIFICATION: 7 });
   });
 
-  it('an undecided learner keeps meaningful direction', () => {
-    expect(mix(profile('undecided')).DIRECTION_LEARNING).toBe(10);
+  it('an exploring learner keeps meaningful exploration beside the backbone', () => {
+    const m = mix(profile('undecided'));
+    expect(m.DIRECTION_LEARNING + m.EXPLORATION).toBeGreaterThanOrEqual(5);
   });
 });

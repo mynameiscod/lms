@@ -35,6 +35,8 @@ import {
   PROGRAM_DAYS, EVOLUTIONS, validatePlan, isDeterministic, skillUniverse,
   simulateRecomposition, stateBoundaryProfiles, diagnosticSkills, directionFamilyMix,
   CONTINUITY_EVOLUTIONS, CONTINUITY_FREEZE_DAYS, CONTINUITY_CHAINS, continuityLearners, simulateReassessmentChain,
+  BACKBONE_PROFILES, auditBackbone, backboneIssues, backboneEndLoading, backboneTopicsOf, compressionLadder,
+  BACKBONE_EVOLUTIONS, simulateBackboneRecomposition,
 } from '../services/composerCertificationService';
 import { buildPrerequisiteGraph, findPrerequisiteCycles } from '../data/unitPrerequisiteGraph';
 import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
@@ -195,6 +197,43 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
   }
   console.log(`    real Skill Check learners at exactly ninety with the spine in order: ${realPass}/${REAL_SKILL_CHECK_PROFILES.length}`);
 
+  /* ══ 2c. THE MANDATORY FOUNDATION BACKBONE ═══════════════════════════════════════════════ */
+
+  /**
+   * Every certified learner covers every mandatory fundamental, at the depth their evidence earns, in exactly ninety
+   * days. Built by the production builder, audited independently: coverage, mode, days, the role mix, and the order the
+   * fundamentals are met in.
+   */
+  title('2c. MANDATORY FOUNDATION BACKBONE on ACTUAL PRODUCTION — coverage and compression');
+  const backbone = backboneTopicsOf(universe);
+  console.log(`    backbone requirements (${backbone.length}): ${backbone.join(' ')}`);
+  let backbonePass = 0;
+  for (const p of BACKBONE_PROFILES) {
+    const student = p.build(allSkills, universalSkills);
+    const row = await certify(p.key, student, r => {
+      const a = auditBackbone(r.units.map((u: any) => u.unitCode), universe, student);
+      return backboneIssues(a).map(i => `${i.code}(${i.detail})`);
+    });
+    const r = composeUnits({ candidates: universe, targetUnits: PROGRAM_DAYS, student });
+    const a = auditBackbone(r.units.map(u => u.unitCode), universe, student);
+    const rl = a.roles;
+    console.log(`${row.line}`);
+    console.log(`      EXACT90 ${r.units.length === PROGRAM_DAYS ? 'yes' : 'NO'} · BACKBONE ${a.missing.length ? `missing ${a.missing.join(',')}` : 'covered'}`
+      + ` · FUNDAMENTAL DAYS ${a.fundamentalDays} (all days on backbone topics ${a.backboneTopicDays}) · backbone days ${a.firstBackboneDay}-${a.lastBackboneDay}`
+      + ` · ELEMENTARY ${rl.FOUNDATION_INSTRUCTION} GUIDED ${rl.GUIDED_INSTRUCTION} ADVANCED ${rl.ADVANCED_UNIVERSAL} PRACTICE ${rl.PRACTICE}`
+      + ` APPLICATION ${rl.APPLICATION} PROJECT ${rl.INTEGRATION} DIRECTION ${rl.DIRECTION_LEARNING} EXPLORATION ${rl.EXPLORATION} VERIFICATION ${rl.VERIFICATION}`);
+    console.log(`      ${a.requirements.map(q => `${q.requirement.replace('T_', '')} ${q.mode || 'MISSING'} ${q.firstDay ?? '—'}-${q.lastDay ?? '—'}`).join(' · ')}`);
+    const ends = backboneEndLoading(a);
+    if (ends.length) console.log(`      end-loaded: ${ends.join('; ')}`);
+    if (row.ok) backbonePass++; else failures.push(`backbone: ${p.key}`);
+  }
+  console.log(`    backbone profiles at exactly ninety, every fundamental covered in order: ${backbonePass}/${BACKBONE_PROFILES.length}`);
+
+  const ladder = compressionLadder(universe);
+  console.log(`    compression ladder (39 diagnostic skills, evidence rising): ${ladder.steps.map(s => `${s.key}: fundamentals ${s.audit.fundamentalDays}, elementary ${s.audit.elementaryInstruction}, advanced/applied ${s.audit.advancedAndApplied}`).join(' | ')}`);
+  console.log(`    MONOTONIC COMPRESSION: ${ladder.exceptions.length ? `FAIL — ${ladder.exceptions.join('; ')}` : 'PASS'}`);
+  if (ladder.exceptions.length) failures.push(`compression ladder: ${ladder.exceptions.join('; ')}`);
+
   /* ══ 3. STATE BOUNDARIES ═════════════════════════════════════════════════════════════════ */
 
   title('3. STATE-BOUNDARY MATRIX on ACTUAL PRODUCTION — 39 Foundation stage skills');
@@ -310,6 +349,51 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
   console.log(`    structurally continuous recompositions: ${continuityPass}/${continuityTotal}`);
   for (const p of continuityProblems.slice(0, 8)) console.log(`      ! ${p}`);
   if (continuityProblems.length) failures.push(`${continuityProblems.length} recomposition(s) break structural continuity`);
+
+  /* ══ 4c. THE BACKBONE THROUGH REASSESSMENT ═══════════════════════════════════════════════ */
+
+  /**
+   * Reassessment at freeze points across the journey, for learners from beginner to very strong, with every kind of
+   * evidence change: frozen coverage stays covered, uncovered requirements survive into the future, the future is met
+   * in course order, exactly ninety days, deterministically. Stronger evidence should not add elementary lessons to the
+   * future and weaker evidence should not take backbone work away; exceptions to those two trends are reported.
+   */
+  title('4c. MANDATORY BACKBONE THROUGH REASSESSMENT on ACTUAL PRODUCTION');
+  let backboneRecompPass = 0;
+  let backboneRecompTotal = 0;
+  const backboneRecompProblems: string[] = [];
+  const endLoaded: string[] = [];
+  const trendExceptions: string[] = [];
+  for (const key of ['REAL_SKILL_CHECK_BEGINNER', 'REAL_SKILL_CHECK_PARTIAL', 'GOOD_AT_70', 'GOOD_AT_78', 'VERY_STRONG']) {
+    const base = BACKBONE_PROFILES.find(p => p.key === key)!.build(allSkills, universalSkills);
+    for (const freezeDay of CONTINUITY_FREEZE_DAYS) {
+      const cells: Record<string, ReturnType<typeof simulateBackboneRecomposition>> = {};
+      for (const kind of BACKBONE_EVOLUTIONS) {
+        backboneRecompTotal++;
+        const rep = simulateBackboneRecomposition({ pool: universe, universe, base, kind, freezeDay });
+        const again = simulateBackboneRecomposition({ pool: universe, universe, base, kind, freezeDay });
+        cells[kind] = rep;
+        const problems = [...rep.issues.map(i => `${i.code} ${i.detail}`), ...(rep.stitched.join('|') === again.stitched.join('|') ? [] : ['NONDETERMINISTIC'])];
+        if (!problems.length) backboneRecompPass++;
+        else backboneRecompProblems.push(`${key} freeze ${freezeDay} ${kind}: ${problems.slice(0, 2).join('; ')}`);
+        rep.endLoading.forEach(e => endLoaded.push(`${key} freeze ${freezeDay} ${kind}: ${e}`));
+      }
+      if (cells.VERIFIED.futureElementary > cells.NONE.futureElementary) {
+        trendExceptions.push(`${key} freeze ${freezeDay}: VERIFIED adds elementary lessons (${cells.VERIFIED.futureElementary} > ${cells.NONE.futureElementary})`);
+      }
+      if (cells.STRUGGLE.futureBackboneDays < cells.VERIFIED.futureBackboneDays) {
+        trendExceptions.push(`${key} freeze ${freezeDay}: STRUGGLE ${cells.STRUGGLE.futureBackboneDays} future backbone days < VERIFIED ${cells.VERIFIED.futureBackboneDays}`);
+      }
+    }
+  }
+  console.log(`    freeze days ${CONTINUITY_FREEZE_DAYS.join(', ')} · evidence ${BACKBONE_EVOLUTIONS.join(', ')}`);
+  console.log(`    backbone-continuous recompositions: ${backboneRecompPass}/${backboneRecompTotal}`);
+  for (const p of backboneRecompProblems.slice(0, 8)) console.log(`      ! ${p}`);
+  if (backboneRecompProblems.length) failures.push(`${backboneRecompProblems.length} recomposition(s) break the backbone`);
+  console.log(`    late cramming (a requirement other than the last in the course, wholly in the final sixth): ${endLoaded.length ? endLoaded.length : 'none'}`);
+  for (const e of endLoaded.slice(0, 8)) console.log(`      · ${e}`);
+  console.log(`    evidence trend exceptions (reported, not failed): ${trendExceptions.length ? trendExceptions.length : 'none'}`);
+  for (const e of trendExceptions.slice(0, 8)) console.log(`      · ${e}`);
 
   /* ══ 5. CONTENT GATES ON THE 338 ═════════════════════════════════════════════════════════ */
 

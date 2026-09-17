@@ -65,8 +65,10 @@ describe('the composition history', () => {
 });
 
 describe('where each structural requirement stands', () => {
-  it('reports every spine topic still owed for a new beginner', () => {
-    expect(Object.values(coverageOf(compose(beginner)))).toEqual(PROGRAMMING_SPINE_TOPICS.map(() => 'REQUIRES_FUTURE_COVERAGE'));
+  it('reports every backbone topic still owed for a new beginner, the spine among them', () => {
+    const cov = coverageOf(compose(beginner));
+    expect(PROGRAMMING_SPINE_TOPICS.map(t => cov[t])).toEqual(PROGRAMMING_SPINE_TOPICS.map(() => 'REQUIRES_FUTURE_COVERAGE'));
+    expect(Object.values(cov).every(c => c === 'REQUIRES_FUTURE_COVERAGE')).toBe(true);
   });
 
   it('reports a topic whose practice is in the frozen days as covered, and does not reserve it again', () => {
@@ -77,16 +79,25 @@ describe('where each structural requirement stands', () => {
     expect(cov.T_CONDITIONS).toBe('REQUIRES_FUTURE_COVERAGE');
   });
 
-  it('reports a topic the evidence has resolved as resolved — today\'s treatment, not a removal from the course', () => {
+  it('reports a topic the evidence has carried past teaching as owed a compressed treatment — never removed from the course', () => {
     const plan = initial(beginner);
-    const r = simulateRecomposition({ pool: PRODUCTION, universe: PRODUCTION, base: beginner, kind: 'VERIFIED', freezeDay: 30 });
+    const [variablesPractice, conditionsPractice] = days(plan) as number[];
+    const at = (freeze: number, kind: 'VERIFIED') => {
+      const frozen = plan.slice(0, freeze);
+      const evolved = evolveProfile(beginner, kind, frozen.map(c => PRODUCTION.find(u => u.unitCode === c)!));
+      return coverageOf(composeUnits({ candidates: PRODUCTION, targetUnits: 90, student: evolved, history: frozen }));
+    };
+    // Frozen through the conditions practice, then VERIFIED on what was taught: both stay covered, loops is still owed.
+    const afterConditions = at(conditionsPractice, 'VERIFIED');
+    expect(afterConditions.T_VARIABLES).toBe('COVERED_BY_FROZEN_PLAN');
+    expect(afterConditions.T_CONDITIONS).toBe('COVERED_BY_FROZEN_PLAN');
+    expect(afterConditions.T_LOOPS).toBe('REQUIRES_FUTURE_COVERAGE');
+    // Frozen in the middle of the variables lessons, then VERIFIED: the practice is not dropped, it is compressed.
+    const midVariables = at(variablesPractice - 2, 'VERIFIED');
+    expect(midVariables.T_VARIABLES).toBe('REQUIRES_COMPRESSED_COVERAGE');
+    const r = simulateRecomposition({ pool: PRODUCTION, universe: PRODUCTION, base: beginner, kind: 'VERIFIED', freezeDay: variablesPractice - 2 });
     expect(r.ok).toBe(true);
-    // Days 1–30 taught conditions; VERIFIED evidence on it resolves its practice under today's rules.
-    const evolved = evolveProfile(beginner, 'VERIFIED', plan.slice(0, 30).map(c => PRODUCTION.find(u => u.unitCode === c)!));
-    const cov = coverageOf(composeUnits({ candidates: PRODUCTION, targetUnits: 90, student: evolved, history: plan.slice(0, 30) }));
-    expect(cov.T_VARIABLES).toBe('COVERED_BY_FROZEN_PLAN');
-    expect(cov.T_CONDITIONS).toBe('RESOLVED_BY_EVIDENCE');
-    expect(cov.T_LOOPS).toBe('REQUIRES_FUTURE_COVERAGE');
+    expect(r.stitched.slice(variablesPractice - 2).some(c => /^T_VARIABLES_/.test(c))).toBe(true);
   });
 
   it('flags a structure the future never reaches, and one met out of order', () => {

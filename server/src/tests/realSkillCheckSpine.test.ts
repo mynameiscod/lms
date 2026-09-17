@@ -18,6 +18,7 @@ import { ComposableUnit, StudentProfile, composeUnits } from '../services/curric
 import {
   REALISTIC_PROFILES, REAL_SKILL_CHECK_PROFILES, REAL_SKILL_CHECK_PAPER, skillCheckLearner, skillUniverse,
   spineFirstPractices, spineContinuityIssues, validatePlan, isDeterministic, PROGRAMMING_SPINE_TOPICS,
+  auditBackbone, backboneEndLoading,
 } from '../services/composerCertificationService';
 import { stateForScore } from '../data/adaptiveCurriculumPolicy';
 import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
@@ -58,11 +59,15 @@ describe('the real Skill Check learners', () => {
     expect(inOrder(days)).toBe(true);
   });
 
-  it('keeps the spine teachable: spread across the course, not crammed into its last weeks', () => {
+  it('keeps the spine teachable: after the computing and thinking backbone, not crammed into the last weeks', () => {
     for (const p of REAL_SKILL_CHECK_PROFILES) {
-      const days = spineFirstPractices(compose(p.build()), PRODUCTION) as number[];
-      expect({ key: p.key, variablesByDay30: days[0] <= 30, functionsByDay75: days[3] <= 75, arraysBy85: days[4] <= 85 })
-        .toEqual({ key: p.key, variablesByDay30: true, functionsByDay75: true, arraysBy85: true });
+      const student = p.build();
+      const r = compose(student);
+      const days = spineFirstPractices(r, PRODUCTION) as number[];
+      expect({ key: p.key, variablesByDay40: days[0] <= 40, arraysBy75: days[4] <= 75 })
+        .toEqual({ key: p.key, variablesByDay40: true, arraysBy75: true });
+      expect({ key: p.key, endLoaded: backboneEndLoading(auditBackbone(r.units.map(u => u.unitCode), PRODUCTION, student)) })
+        .toEqual({ key: p.key, endLoaded: [] });
     }
   });
 
@@ -91,12 +96,12 @@ describe('the real Skill Check learners', () => {
     }
   });
 
-  it('14. reserves within the existing capacity: the spine never pushes an instruction role past its target', () => {
+  it('14. the backbone may take an instruction role past its target, never a plan past a floor or past ninety days', () => {
+    // A beginner's foundation target is 24 and the backbone's first-exposure lessons are 38: the allocation is a target
+    // for the shape, not a ration of the backbone. Every floor still holds, and the plan is still ninety days.
     for (const p of REAL_SKILL_CHECK_PROFILES) {
       const r = compose(p.build());
-      const target = (role: string) => r.allocation.find(a => a.role === role)!.target;
-      expect({ key: p.key, foundation: r.composition.FOUNDATION_INSTRUCTION <= target('FOUNDATION_INSTRUCTION') })
-        .toEqual({ key: p.key, foundation: true });
+      expect({ key: p.key, violations: r.shapeViolations }).toEqual({ key: p.key, violations: [] });
       expect(Object.values(r.composition).reduce((a, b) => a + b, 0)).toBe(90);
     }
   });
@@ -107,7 +112,8 @@ describe('the real Skill Check learners', () => {
       const spine = units.filter(u => PROGRAMMING_SPINE_TOPICS.includes(u.topicCode)).length;
       const modules = new Set(units.map(u => u.moduleCode));
       expect({ key: p.key, spineShare: spine <= 45 }).toEqual({ key: p.key, spineShare: true });
-      for (const m of ['M01_CS_FUNDAMENTALS', 'M04_DEVELOPER_TOOLS', 'M09_LINUX', 'M11_AI_LITERACY', 'M13_CAREER']) {
+      // Computing, thinking, tools and data are backbone; career exploration is a floor every plan holds.
+      for (const m of ['M01_CS_FUNDAMENTALS', 'M02_COMPUTATIONAL_THINKING', 'M04_DEVELOPER_TOOLS', 'M08_DATABASES', 'M13_CAREER']) {
         expect({ key: p.key, module: m, present: modules.has(m) }).toEqual({ key: p.key, module: m, present: true });
       }
       expect(units.some(u => u.unitType === 'PROJECT')).toBe(true);
@@ -117,15 +123,15 @@ describe('the real Skill Check learners', () => {
 });
 
 describe('every profile the accepted sequencing protects', () => {
-  it('5. the no-evidence beginner keeps days 14, 32, 47, 61 and 75', () => {
-    expect(spineFirstPractices(compose(realistic('beginner')), PRODUCTION)).toEqual([14, 32, 47, 61, 75]);
+  it('5. the no-evidence beginner reaches the spine practices on days 33, 39, 46, 52 and 57, after the computing and thinking backbone', () => {
+    expect(spineFirstPractices(compose(realistic('beginner')), PRODUCTION)).toEqual([33, 39, 46, 52, 57]);
   });
 
   it('keeps the single-score partial profiles', () => {
     const pf = (score: number): StudentProfile => ({ ...realistic('beginner'), skills: new Map([['PROGRAMMING_FUNDAMENTALS', { score, confidence: 'MEDIUM' as const }]]) });
-    expect(spineFirstPractices(compose(pf(30)), PRODUCTION)).toEqual([5, 22, 37, 49, 67]);
-    expect(spineFirstPractices(compose(pf(46)), PRODUCTION)).toEqual([14, 32, 47, 61, 75]);
-    expect(spineFirstPractices(compose(pf(62)), PRODUCTION)).toEqual([14, 32, 47, 61, 75]);
+    expect(spineFirstPractices(compose(pf(30)), PRODUCTION)).toEqual([18, 39, 46, 52, 57]);
+    expect(spineFirstPractices(compose(pf(46)), PRODUCTION)).toEqual([33, 39, 46, 52, 57]);
+    expect(spineFirstPractices(compose(pf(62)), PRODUCTION)).toEqual([33, 39, 46, 52, 57]);
   });
 
   it('6. still compresses a reliably known spine: its lessons are not taught back', () => {
@@ -136,12 +142,13 @@ describe('every profile the accepted sequencing protects', () => {
     expect(lessons(known)).toBeLessThan(lessons(realistic('beginner')) / 2);
   });
 
+  // The good and strong learners keep their direction-led, practice-heavy shapes with the backbone compressed into them.
   it('7. @70 keeps its shape', () => {
-    expect(compose(everyUniversal(70)).composition).toMatchObject({ DIRECTION_LEARNING: 25, PRACTICE: 28, APPLICATION: 11, INTEGRATION: 4, VERIFICATION: 2 });
+    expect(compose(everyUniversal(70)).composition).toMatchObject({ DIRECTION_LEARNING: 25, PRACTICE: 30, APPLICATION: 9, INTEGRATION: 4, VERIFICATION: 2 });
   });
 
   it('8. @78 keeps its shape', () => {
-    expect(compose(everyUniversal(78)).composition).toMatchObject({ DIRECTION_LEARNING: 13, PRACTICE: 24, APPLICATION: 15, INTEGRATION: 11, VERIFICATION: 7 });
+    expect(compose(everyUniversal(78)).composition).toMatchObject({ DIRECTION_LEARNING: 27, PRACTICE: 15, APPLICATION: 13, INTEGRATION: 11, VERIFICATION: 5 });
   });
 
   it('9. a strong learner keeps its shape', () => {
@@ -153,15 +160,18 @@ describe('every profile the accepted sequencing protects', () => {
     const r = compose(student);
     expect(spineFirstPractices(r, PRODUCTION).every(d => d !== null)).toBe(true);
     expect(r.composition).toEqual({
-      FOUNDATION_INSTRUCTION: 24, GUIDED_INSTRUCTION: 21, ADVANCED_UNIVERSAL: 16, DIRECTION_LEARNING: 1,
-      EXPLORATION: 2, PRACTICE: 12, APPLICATION: 9, INTEGRATION: 4, VERIFICATION: 1,
+      FOUNDATION_INSTRUCTION: 38, GUIDED_INSTRUCTION: 12, ADVANCED_UNIVERSAL: 17, DIRECTION_LEARNING: 0,
+      EXPLORATION: 1, PRACTICE: 12, APPLICATION: 7, INTEGRATION: 2, VERIFICATION: 1,
     });
     for (const a of r.allocation) expect({ role: a.role, meetsFloor: r.composition[a.role] >= a.min }).toEqual({ role: a.role, meetsFloor: true });
   });
 
-  it('keeps undecided direction and software_backend', () => {
-    expect(compose(realistic('undecided')).composition.DIRECTION_LEARNING).toBe(10);
-    expect(spineFirstPractices(compose(realistic('software_backend')), PRODUCTION)).toEqual([71, null, null, 56, null]);
+  it('keeps exploration for the exploring learner, and software_backend compresses the spine it has shown', () => {
+    // A lightly measured exploring learner spends most of ninety days on the backbone; career exploration stays.
+    const exploring = compose(realistic('undecided')).composition;
+    expect(exploring.DIRECTION_LEARNING + exploring.EXPLORATION).toBeGreaterThanOrEqual(5);
+    // Programming at 66: variables and functions practice at once, conditions, loops and arrays by their first practical unit.
+    expect(spineFirstPractices(compose(realistic('software_backend')), PRODUCTION)).toEqual([1, 21, 32, 4, 38]);
   });
 
   it('11-13. every realistic and real learner is exactly ninety, valid and byte-stable', () => {

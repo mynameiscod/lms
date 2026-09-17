@@ -39,7 +39,9 @@ import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
 import { foundationStageRequirements } from '../seeds/careerPilot/foundationStageSkillSet';
 import { aggregate, evidenceWeightFor } from '../data/skillDnaPolicy';
 import { resolveStance } from './foundationProfileService';
-import { practicalBoundaries } from '../data/courseSequencePolicy';
+import {
+  practicalBoundaries, COURSE_STRANDS, strandOf, strandIndex, sequenceIndexOf,
+} from '../data/courseSequencePolicy';
 
 export const PROGRAM_DAYS = FOUNDATION_PROGRAM_DAYS;
 
@@ -255,31 +257,45 @@ export const REAL_SKILL_CHECK_PROFILES: { key: string; note: string; build: () =
  * the evidence has resolved is not required; if it is scheduled anyway it is not held to the order.
  */
 export function recompositionContinuityIssues(
-  fresh: Pick<ComposerResult, 'structure'>, stitched: string[], freezeDay: number,
+  fresh: Pick<ComposerResult, 'structure'>, stitched: string[], freezeDay: number, universe?: ComposableUnit[],
 ): Issue[] {
   const issues: Issue[] = [];
   const at = new Map(stitched.map((c, i) => [c, i]));
-  const walked: { topicCode: string; day: number; rank: number }[] = [];
+  const byCode = new Map((universe || []).map(u => [u.unitCode, u]));
+  const PRACTICAL = ['PRACTICE', 'DEBUG', 'PROJECT', 'CHECKPOINT', 'REVIEW'];
+  const walked: { topicCode: string; strand: string; day: number; rank: number }[] = [];
   for (const req of fresh.structure || []) {
+    if (req.coverage === 'NO_SUITABLE_TREATMENT') {
+      issues.push({ code: 'BACKBONE_UNTREATABLE', detail: `${req.topicCode} has no unit this learner could be given` });
+      continue;
+    }
     if (req.coverage === 'RESOLVED_BY_EVIDENCE' || !req.boundary) continue;
-    const i = at.get(req.boundary);
+    let i = at.get(req.boundary);
+    // A compressed requirement is met by the topic's first practical unit, whichever the plan reached first.
+    if (req.coverage === 'REQUIRES_COMPRESSED_COVERAGE' && universe) {
+      const days = stitched.map((c, d) => ({ u: byCode.get(c), d }))
+        .filter(x => x.d >= freezeDay && x.u?.topicCode === req.topicCode && PRACTICAL.includes(x.u.unitType)).map(x => x.d);
+      if (days.length) i = Math.min(...days);
+    }
     if (i === undefined) {
       issues.push({ code: 'STRUCTURE_CUT', detail: `${req.topicCode} still needed ${req.boundary} and the future never reaches it` });
       continue;
     }
-    if (req.coverage === 'REQUIRES_FUTURE_COVERAGE' && i < freezeDay) {
+    if (req.coverage !== 'COVERED_BY_FROZEN_PLAN' && i < freezeDay) {
       issues.push({ code: 'STRUCTURE_REPORT', detail: `${req.topicCode} reported uncovered but ${req.boundary} is frozen on day ${i + 1}` });
     }
-    // Out of authored order only counts when measurement did not rank the later requirement strictly ahead: a weak
-    // measured area opening first is the composer's rule, a scrambled continuation is not.
-    // History is judged by the evidence it was scheduled on: only a boundary the future reaches is held to the order.
+    // Out of authored order only counts WITHIN a strand — strands interleave by design — and only when measurement did
+    // not rank the later requirement strictly ahead: a weak measured area opening first is the composer's rule, a
+    // scrambled continuation is not. History is judged by the evidence it was scheduled on: only a requirement the
+    // future reaches is held to the order.
     for (const earlier of walked) {
+      if (earlier.strand !== req.strand) continue;
       if (i >= freezeDay && i <= earlier.day && (req.sequencingRank ?? 1) >= earlier.rank) {
         issues.push({ code: 'STRUCTURE_ORDER', detail: `${req.topicCode} reaches practice on day ${i + 1}, not after ${earlier.topicCode} on day ${earlier.day + 1}` });
         break;
       }
     }
-    walked.push({ topicCode: req.topicCode, day: i, rank: req.sequencingRank ?? 1 });
+    walked.push({ topicCode: req.topicCode, strand: req.strand, day: i, rank: req.sequencingRank ?? 1 });
   }
   return issues;
 }
@@ -898,7 +914,7 @@ export function simulateRecomposition(args: {
     if (i >= freezeDay && !isRelevant(u, next)) add('OUTSIDE_DIRECTION', `${c} on day ${i + 1}`);
   });
 
-  for (const issue of recompositionContinuityIssues(fresh, stitched, freezeDay)) add(issue.code, issue.detail);
+  for (const issue of recompositionContinuityIssues(fresh, stitched, freezeDay, universe)) add(issue.code, issue.detail);
 
   const originalCodes = original.units.map(u => u.unitCode);
   return {
@@ -945,7 +961,7 @@ export function simulateReassessmentChain(args: {
     if (next.length !== PROGRAM_DAYS) issues.push({ code: 'LENGTH', detail: `${at}: ${next.length}` });
     if (new Set(next).size !== next.length) issues.push({ code: 'DUPLICATE', detail: at });
     if (next.slice(0, freezeDay).join('|') !== frozen.join('|')) issues.push({ code: 'FROZEN_CHANGED', detail: at });
-    for (const i of recompositionContinuityIssues(fresh, next, freezeDay)) issues.push({ code: i.code, detail: `${at}: ${i.detail}` });
+    for (const i of recompositionContinuityIssues(fresh, next, freezeDay, universe)) issues.push({ code: i.code, detail: `${at}: ${i.detail}` });
     const index = new Map(next.map((c, i) => [c, i]));
     next.forEach((c, i) => {
       if (i < freezeDay) return;
@@ -1064,4 +1080,316 @@ export function robustnessGrid(allSkills: string[], universalSkills: string[]): 
     }
   }
   return out;
+}
+
+/* ------------------------------------------------------------------ *
+ * The mandatory Foundation backbone
+ * ------------------------------------------------------------------ */
+
+/**
+ * THE BACKBONE AUDIT: EVERY MANDATORY FUNDAMENTAL, HOW THIS JOURNEY COVERS IT, AND FROM WHAT EVIDENCE.
+ *
+ * Re-derived from the finished plan, never read back from the composer's report, so a certification is evidence that
+ * the fundamentals are there rather than the composer agreeing with itself. A requirement is covered by units of its
+ * own topic only — a loose skill relationship elsewhere claims nothing:
+ *
+ *   FULL          taught to its first practice, with first-exposure lessons on the way
+ *   GUIDED        taught to its first practice with guided or deeper lessons only
+ *   COMPRESSED    its first practice, the lessons being known — no teaching at all
+ *   CHALLENGE     a debugging exercise in the topic, instead of lessons and practice
+ *   APPLICATION   a project in the topic
+ *   VERIFICATION  a checkpoint or review in the topic
+ *
+ * Lessons of the topic scheduled without any practical unit do NOT cover it: being read to is not coverage.
+ */
+export type BackboneCoverageMode = 'FULL' | 'GUIDED' | 'COMPRESSED' | 'CHALLENGE' | 'APPLICATION' | 'VERIFICATION';
+
+export interface BackboneRequirementCoverage {
+  requirement: string;
+  covered: boolean;
+  mode: BackboneCoverageMode | null;
+  coveredBy: string[];
+  firstDay: number | null;
+  lastDay: number | null;
+  /** Further days on the topic beyond its coverage — deeper practice, projects, a second boundary. */
+  furtherDays: number;
+  /** The weakest measured state across the topic's skills, with score and confidence: what compression rests on. */
+  evidence: string;
+  /** Sequencing rank: 0 for a measured gap (FOUNDATION_REQUIRED), 1 otherwise. */
+  rank: number;
+}
+
+export interface BackboneAudit {
+  requirements: BackboneRequirementCoverage[];
+  missing: string[];
+  /** Days spent covering the fundamentals: the union of every requirement's coverage. */
+  fundamentalDays: number;
+  /** Every day on a backbone topic, coverage and further work together. */
+  backboneTopicDays: number;
+  firstBackboneDay: number | null;
+  lastBackboneDay: number | null;
+  roles: Record<CompositionRole, number>;
+  /** First-exposure lessons across the whole plan. */
+  elementaryInstruction: number;
+  /** Everything that is not first-exposure or guided instruction: advanced, direction, practice, debugging, projects, checkpoints. */
+  advancedAndApplied: number;
+}
+
+const COMPOSITION_ROLE_LIST: CompositionRole[] = ['FOUNDATION_INSTRUCTION', 'GUIDED_INSTRUCTION', 'ADVANCED_UNIVERSAL',
+  'DIRECTION_LEARNING', 'EXPLORATION', 'PRACTICE', 'APPLICATION', 'INTEGRATION', 'VERIFICATION'];
+
+/** The backbone requirements an inventory defines, in course order: flagged topics and the programming spine. */
+export function backboneTopicsOf(universe: ComposableUnit[]): string[] {
+  const topics = new Map<string, string>();
+  for (const u of universe) if (u.backbone || PROGRAMMING_SPINE_TOPICS.includes(u.topicCode)) topics.set(u.topicCode, u.moduleCode);
+  return [...topics.keys()].sort((a, b) => strandIndex(strandOf(a, topics.get(a)!)) - strandIndex(strandOf(b, topics.get(b)!))
+    || (sequenceIndexOf(a) ?? 99) - (sequenceIndexOf(b) ?? 99)
+    || topics.get(a)!.localeCompare(topics.get(b)!) || a.localeCompare(b));
+}
+
+const COVERAGE_BY_TYPE: Record<string, BackboneCoverageMode> = {
+  PRACTICE: 'COMPRESSED', DEBUG: 'CHALLENGE', PROJECT: 'APPLICATION', CHECKPOINT: 'VERIFICATION', REVIEW: 'VERIFICATION',
+};
+
+export function auditBackbone(codes: string[], universe: ComposableUnit[], student: StudentProfile): BackboneAudit {
+  const byCode = new Map(universe.map(u => [u.unitCode, u]));
+  const dayOf = new Map(codes.map((c, i) => [c, i + 1]));
+  const requirementsList = backboneTopicsOf(universe);
+  const coverageDays = new Set<number>();
+  const requirements = requirementsList.map((topic): BackboneRequirementCoverage => {
+    const topicUnits = universe.filter(u => u.topicCode === topic);
+    const inPlan = topicUnits.filter(u => dayOf.has(u.unitCode)).sort((a, b) => dayOf.get(a.unitCode)! - dayOf.get(b.unitCode)!);
+    const first = practicalBoundaries(topicUnits)[0];
+    let coveredBy: ComposableUnit[] = [];
+    let mode: BackboneCoverageMode | null = null;
+    const teachingPath = first && dayOf.has(first.unitCode)
+      ? inPlan.filter(u => u.unitCode === first.unitCode
+        || (prerequisiteClosure([first.unitCode], universe).has(u.unitCode) && dayOf.get(u.unitCode)! <= dayOf.get(first.unitCode)!))
+      : [];
+    // Given compactly — a practical unit of the topic before any lesson of it — that unit is the coverage, and lessons
+    // scheduled after it (remediation after weaker evidence) do not move it. Taught: the lessons on the way to the first
+    // practice, and that practice. Otherwise the first practical unit of the topic, whatever its type.
+    const firstPractical = inPlan.find(u => COVERAGE_BY_TYPE[u.unitType]);
+    const compactFirst = !!firstPractical && !inPlan.some(u => isInstructionalRole(compositionRoleOf(u))
+      && dayOf.get(u.unitCode)! < dayOf.get(firstPractical.unitCode)!);
+    if (compactFirst) {
+      coveredBy = [firstPractical!];
+      mode = firstPractical!.unitCode === first?.unitCode ? 'COMPRESSED' : COVERAGE_BY_TYPE[firstPractical!.unitType];
+    } else if (teachingPath.some(u => isInstructionalRole(compositionRoleOf(u)))) {
+      coveredBy = teachingPath;
+      mode = teachingPath.some(u => compositionRoleOf(u) === 'FOUNDATION_INSTRUCTION') ? 'FULL' : 'GUIDED';
+    } else {
+      const practical = inPlan.find(u => COVERAGE_BY_TYPE[u.unitType]);
+      if (practical) {
+        const path = prerequisiteClosure([practical.unitCode], universe);
+        coveredBy = inPlan.filter(u => u === practical
+          || (path.has(u.unitCode) && dayOf.get(u.unitCode)! < dayOf.get(practical.unitCode)!));
+        mode = COVERAGE_BY_TYPE[practical.unitType];
+      }
+    }
+    const days = coveredBy.map(u => dayOf.get(u.unitCode)!);
+    days.forEach(d => coverageDays.add(d));
+    let weakest: { state: AssignmentState; score: number; confidence: any } | null = null;
+    for (const k of [...new Set(topicUnits.flatMap(u => u.skillKeys))]) {
+      const b = student.skills.get(k);
+      if (!b || b.score === null || b.score === undefined) continue;
+      const state = stateForScore({ score: b.score, confidence: b.confidence });
+      if (!weakest || STATE_ORDER[state] < STATE_ORDER[weakest.state]) weakest = { state, score: b.score, confidence: b.confidence };
+    }
+    return {
+      requirement: topic,
+      covered: coveredBy.length > 0,
+      mode,
+      coveredBy: coveredBy.map(u => u.unitCode),
+      firstDay: days.length ? Math.min(...days) : null,
+      lastDay: days.length ? Math.max(...days) : null,
+      furtherDays: inPlan.length - coveredBy.length,
+      evidence: weakest ? `${weakest.state} ${weakest.score} ${weakest.confidence}` : 'NOT_EXPOSED',
+      rank: weakest?.state === 'FOUNDATION_REQUIRED' ? 0 : 1,
+    };
+  });
+  const roles = Object.fromEntries(COMPOSITION_ROLE_LIST.map(r => [r, 0])) as Record<CompositionRole, number>;
+  for (const c of codes) { const u = byCode.get(c); if (u) roles[compositionRoleOf(u)]++; }
+  const backboneSet = new Set(requirementsList);
+  const all = [...coverageDays];
+  return {
+    requirements,
+    missing: requirements.filter(r => !r.covered).map(r => r.requirement),
+    fundamentalDays: coverageDays.size,
+    backboneTopicDays: codes.filter(c => backboneSet.has(byCode.get(c)?.topicCode || '')).length,
+    firstBackboneDay: all.length ? Math.min(...all) : null,
+    lastBackboneDay: all.length ? Math.max(...all) : null,
+    roles,
+    elementaryInstruction: roles.FOUNDATION_INSTRUCTION,
+    advancedAndApplied: codes.length - roles.FOUNDATION_INSTRUCTION - roles.GUIDED_INSTRUCTION,
+  };
+}
+
+/**
+ * What a backbone audit fails on: a requirement not covered, or the fundamentals met out of course order within a
+ * strand — conditions before variables, files before hardware — unless measurement ranked the later one strictly
+ * ahead. `fromDay` limits the order check to requirements completed after it: frozen days keep the order they had.
+ */
+export function backboneIssues(audit: BackboneAudit, fromDay = 0): Issue[] {
+  const issues: Issue[] = audit.missing.map(r => ({ code: 'BACKBONE_MISSING', detail: `${r} has no meaningful coverage` }));
+  const byTopic = new Map(audit.requirements.map(r => [r.requirement, r]));
+  for (const strand of COURSE_STRANDS) {
+    const walked = strand.sequence.map(t => byTopic.get(t)).filter((r): r is BackboneRequirementCoverage => !!r && r.covered);
+    for (let i = 1; i < walked.length; i++) {
+      if (walked[i].lastDay! <= fromDay) continue;
+      for (let j = 0; j < i; j++) {
+        if (walked[i].lastDay! < walked[j].lastDay! && walked[i].rank >= walked[j].rank) {
+          issues.push({ code: 'BACKBONE_ORDER', detail: `${walked[i].requirement} covered by day ${walked[i].lastDay}, before ${walked[j].requirement} on day ${walked[j].lastDay}` });
+          break;
+        }
+      }
+    }
+  }
+  return issues;
+}
+
+/**
+ * Pathological end-loading: a requirement other than the course's last whose whole coverage falls in the final sixth of
+ * the journey. Reported, not failed — a requirement landing late is not a defect by itself, and no day number is a rule.
+ */
+export function backboneEndLoading(audit: BackboneAudit, programDays = PROGRAM_DAYS): string[] {
+  const covered = audit.requirements.filter(r => r.covered);
+  const lastInCourse = covered[covered.length - 1]?.requirement;
+  const threshold = Math.floor(programDays * 5 / 6);
+  return covered
+    .filter(r => r.requirement !== lastInCourse && r.firstDay! > threshold)
+    .map(r => `${r.requirement} ${r.mode} days ${r.firstDay}-${r.lastDay}`);
+}
+
+/**
+ * A learner as Skill DNA would hold them after answering real items: each skill's rows weighed by the policy's own
+ * evidenceWeightFor and aggregated by its own aggregate, so score and confidence are what the product computes.
+ */
+export function evidenceLearner(
+  skills: string[],
+  answersFor: (skill: string, index: number) => number[],
+  stance: Partial<StudentProfile> = { primaryDirection: null, directionStatus: 'UNDECIDED' },
+): StudentProfile {
+  const DIFFICULTY = ['EASY', 'MEDIUM', 'MEDIUM', 'HARD'];
+  return {
+    skills: new Map(skills.map((k, i) => {
+      const rows = answersFor(k, i).map((performance, j) => ({
+        performance,
+        evidenceWeight: evidenceWeightFor({ relationship: 'PRIMARY', difficulty: DIFFICULTY[j % 4], sourceType: 'PERSONALIZED_ASSESSMENT' }),
+        itemKey: `${k}:${j}`,
+      }));
+      const r = aggregate(rows);
+      return [k, { score: r.score, confidence: r.confidence }] as [string, SkillBelief];
+    })),
+    primaryDirection: null,
+    directionStatus: 'UNDECIDED',
+    ...stance,
+  } as StudentProfile;
+}
+
+/**
+ * THE BACKBONE CERTIFICATION PROFILES.
+ *
+ * The two real Skill Check learners; a developing learner and a very strong one hydrated from answered items across
+ * the Foundation diagnostic skills — four items a skill is MEDIUM confidence, eight is HIGH; the good learners at 70
+ * and 78; and the undecided, exploring, software/backend and mixed learners of the realistic set.
+ */
+export const BACKBONE_PROFILES: { key: string; note: string; build: (allSkills: string[], universalSkills: string[]) => StudentProfile }[] = [
+  { key: 'REAL_SKILL_CHECK_BEGINNER', note: REAL_SKILL_CHECK_PROFILES[0].note, build: () => REAL_SKILL_CHECK_PROFILES[0].build() },
+  { key: 'REAL_SKILL_CHECK_PARTIAL', note: REAL_SKILL_CHECK_PROFILES[1].note, build: () => REAL_SKILL_CHECK_PROFILES[1].build() },
+  {
+    key: 'DEVELOPING',
+    note: 'the 39 Foundation diagnostic skills, four answered items each: alternately 2 of 4 (46, GUIDED) and 3 of 4 (71, STANDARD), MEDIUM',
+    build: () => evidenceLearner(diagnosticSkills(), (_k, i) => (i % 2 ? [1, 1, 1, 0] : [1, 0, 1, 0])),
+  },
+  {
+    key: 'GOOD_AT_70',
+    note: 'every universal skill at 70 HIGH (STANDARD)',
+    build: (_s, universal) => ({ skills: new Map(universal.map(k => [k, belief(70)] as [string, SkillBelief])), primaryDirection: null, directionStatus: 'UNDECIDED' }),
+  },
+  {
+    key: 'GOOD_AT_78',
+    note: 'every universal skill at 78 HIGH (REVISION)',
+    build: (_s, universal) => ({ skills: new Map(universal.map(k => [k, belief(78)] as [string, SkillBelief])), primaryDirection: null, directionStatus: 'UNDECIDED' }),
+  },
+  {
+    key: 'VERY_STRONG',
+    note: 'the 39 Foundation diagnostic skills, eight answered items each: every third skill one easy item wrong (89), the rest all right (100), HIGH: VERIFIED',
+    build: () => evidenceLearner(diagnosticSkills(), (_k, i) => (i % 3 === 0 ? [0, 1, 1, 1, 1, 1, 1, 1] : [1, 1, 1, 1, 1, 1, 1, 1])),
+  },
+  { key: 'UNDECIDED', note: 'nothing measured, no direction chosen', build: (s, u) => REALISTIC_PROFILES.find(p => p.key === 'beginner')!.build(s, u) },
+  { key: 'EXPLORING', note: 'sampling four directions, lightly measured', build: (s, u) => REALISTIC_PROFILES.find(p => p.key === 'undecided')!.build(s, u) },
+  { key: 'SOFTWARE_BACKEND', note: 'chosen software/backend, competent at programming', build: (s, u) => REALISTIC_PROFILES.find(p => p.key === 'software_backend')!.build(s, u) },
+  { key: 'MIXED', note: 'a real diagnostic: some gaps, some adequate, most untouched', build: (s, u) => REALISTIC_PROFILES.find(p => p.key === 'mixed')!.build(s, u) },
+];
+
+/**
+ * THE COMPRESSION LADDER: one learner, the same 39 diagnostic skills, evidence rising step by step — nothing right,
+ * one in four, two in four, three in four, all eight right. Elementary instruction and fundamental days should not
+ * rise as evidence does, and coverage stays complete at every step.
+ */
+export const COMPRESSION_LADDER: { key: string; answers: number[] }[] = [
+  { key: 'none right', answers: [0, 0, 0, 0] },
+  { key: 'one in four', answers: [1, 0, 0, 0] },
+  { key: 'two in four', answers: [1, 0, 1, 0] },
+  { key: 'three in four', answers: [1, 1, 1, 0] },
+  { key: 'all right', answers: [1, 1, 1, 1, 1, 1, 1, 1] },
+];
+
+export function compressionLadder(pool: ComposableUnit[]): {
+  steps: { key: string; audit: BackboneAudit; ok: boolean }[];
+  exceptions: string[];
+} {
+  const steps = COMPRESSION_LADDER.map(step => {
+    const student = evidenceLearner(diagnosticSkills(), () => step.answers);
+    const r = compose(pool, student);
+    const audit = auditBackbone(r.units.map(u => u.unitCode), pool, student);
+    return { key: step.key, audit, ok: r.ok && r.units.length === PROGRAM_DAYS && !audit.missing.length };
+  });
+  const exceptions: string[] = [];
+  steps.forEach((s, i) => {
+    if (!s.ok) exceptions.push(`${s.key}: not ninety days with every requirement covered (missing ${s.audit.missing.join(', ') || '-'})`);
+    if (i === 0) return;
+    const prev = steps[i - 1];
+    if (s.audit.elementaryInstruction > prev.audit.elementaryInstruction) {
+      exceptions.push(`${s.key}: elementary instruction rose ${prev.audit.elementaryInstruction} -> ${s.audit.elementaryInstruction}`);
+    }
+    if (s.audit.fundamentalDays > prev.audit.fundamentalDays) {
+      exceptions.push(`${s.key}: fundamental days rose ${prev.audit.fundamentalDays} -> ${s.audit.fundamentalDays}`);
+    }
+  });
+  return { steps, exceptions };
+}
+
+/** Evidence changes the backbone recomposition matrix applies, on what the frozen days engaged. */
+export const BACKBONE_EVOLUTIONS: EvolutionKind[] = ['NONE', 'WEAK', 'STANDARD', 'REVISION', 'VERIFIED', 'MIXED', 'STRUGGLE'];
+
+/**
+ * One recomposition, held to the backbone as well as to structural continuity: every requirement covered across the
+ * frozen days and the future together, the future in course order, exactly ninety days.
+ */
+export function simulateBackboneRecomposition(args: {
+  pool: ComposableUnit[]; universe: ComposableUnit[]; base: StudentProfile; kind: EvolutionKind; freezeDay: number;
+}): RecompositionReport & {
+  backbone: BackboneAudit; futureElementary: number; futureFundamentalDays: number; futureBackboneDays: number; endLoading: string[];
+} {
+  const rep = simulateRecomposition(args);
+  const byCode = new Map(args.universe.map(u => [u.unitCode, u]));
+  const original = compose(args.pool, args.base).units.slice(0, args.freezeDay).map(u => byCode.get(u.unitCode)!).filter(Boolean);
+  const next = evolveProfile(args.base, args.kind, original);
+  const backbone = auditBackbone(rep.stitched, args.universe, next);
+  const issues = [...rep.issues, ...backboneIssues(backbone, args.freezeDay)];
+  const future = rep.stitched.slice(args.freezeDay).map(c => byCode.get(c)).filter(Boolean) as ComposableUnit[];
+  const coverage = new Set(backbone.requirements.flatMap(r => r.coveredBy));
+  return {
+    ...rep,
+    ok: issues.length === 0,
+    issues,
+    backbone,
+    futureElementary: future.filter(u => compositionRoleOf(u) === 'FOUNDATION_INSTRUCTION').length,
+    futureFundamentalDays: future.filter(u => coverage.has(u.unitCode)).length,
+    // Every future day on a backbone topic — coverage still owed and remediation or deeper work on covered topics.
+    futureBackboneDays: future.filter(u => backboneTopicsOf(args.universe).includes(u.topicCode)).length,
+    endLoading: backboneEndLoading(backbone),
+  };
 }

@@ -55,9 +55,9 @@ It runs, in order, stopping at the first failure:
 2. the Year-1 Learning Units, expansion units, content, suitability overrides, and unit content —
    checkpoint quizzes with every question linked to its quiz, project assignments, and a runnable
    Python coding assignment on the first practice day of Variables, Conditions, Loops, Functions and Arrays
-3. publication of **exactly the certified 347 units**, through the product's publish handler and its
+3. publication of **exactly the certified 346 units**, through the product's publish handler and its
    gates, refused if the tenant's READY inventory is not identical to the certified one
-4. verification: 359 units, 354 READY, PRODUCTION = the certified 347, quiz linkage, the stage skill
+4. verification: 359 units, 354 READY, PRODUCTION = the certified 346, quiz linkage, the stage skill
    set present and enabled, Foundation CONFIGURED
 5. the production gate (`certifyProductionComposer`) — 9/9, 40/40, 72/72
 

@@ -123,7 +123,7 @@ import { teaches } from '../data/contentBundlePolicy';
  * absolute minimum was recomputed 177 to 180.
  */
 const CERTIFIED_COMMIT = '402ea37c';
-const EXPECT = { total: 359, ready: 354, target: 347, withheld: 3, notRecommended: 4, partial: 5 };
+const EXPECT = { total: 359, ready: 354, target: 346, withheld: 3, notRecommended: 5, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');
 /** What the certification was computed from. A change to any of these since certification is drift. */

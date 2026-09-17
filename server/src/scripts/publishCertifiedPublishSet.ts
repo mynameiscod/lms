@@ -122,7 +122,15 @@ import { teaches } from '../data/contentBundlePolicy';
  * units and is reconciled to DRAFT through provisioning. READY 354 and the named three are unchanged; the diagnostic
  * absolute minimum was recomputed 177 to 180.
  */
-const CERTIFIED_COMMIT = '402ea37c';
+/*
+ * MOVED AGAIN, TO f206236c — NOT A NO-OP. The mandatory Foundation backbone: every learner covers the eleven backbone
+ * topics at the depth their evidence earns, classified on the stage curriculum and carried onto units (ready-inventory
+ * gains the backbone field on all 354), and certification gains the backbone profiles, compression ladder and 210
+ * backbone reassessments. The derivation reaches 346: T_CSS_COLOUR_AND_TEXT, reached by no certified learner state and
+ * scheduled on no journey, joins the READY-not-recommended units with the product owner's approval and is reconciled
+ * to DRAFT through provisioning. READY 354 and the named three are unchanged; the absolute minimum was recomputed.
+ */
+const CERTIFIED_COMMIT = 'f206236c';
 const EXPECT = { total: 359, ready: 354, target: 346, withheld: 3, notRecommended: 5, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

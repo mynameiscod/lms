@@ -115,7 +115,14 @@ import { teaches } from '../data/contentBundlePolicy';
  * route; the named three are unchanged; ready-inventory is unchanged; the diagnostic absolute minimum was recomputed
  * 182 to 177.
  */
-const CERTIFIED_COMMIT = 'c3452c1b';
+/*
+ * MOVED AGAIN, TO 402ea37c — NOT A NO-OP. Recomposition continues from the frozen days (they are the composition's
+ * history) and certification gains a structural continuity gate over 180 reassessments. The derivation reaches 347:
+ * T_HTML_IMAGES, reached only by stitched fresh plans and scheduled on no journey, joins the READY-not-recommended
+ * units and is reconciled to DRAFT through provisioning. READY 354 and the named three are unchanged; the diagnostic
+ * absolute minimum was recomputed 177 to 180.
+ */
+const CERTIFIED_COMMIT = '402ea37c';
 const EXPECT = { total: 359, ready: 354, target: 347, withheld: 3, notRecommended: 4, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

@@ -20,10 +20,15 @@ const paper = (i: number, performance = 1, difficulty = 'MEDIUM') => ({
   sourceType: 'PERSONALIZED_ASSESSMENT', performance, itemKey: `paper:${i}`,
   evidenceWeight: evidenceWeightFor({ relationship: 'PRIMARY', difficulty, sourceType: 'PERSONALIZED_ASSESSMENT' }),
 });
-const applied = (i: number, performance: number, sourceType = 'CODING_ASSIGNMENT') => ({
-  sourceType, evidenceKind: 'APPLIED', performance, itemKey: `assignment:${i}`,
-  evidenceWeight: evidenceWeightFor({ relationship: 'PRIMARY', difficulty: 'MEDIUM', sourceType }),
-});
+/** Graded work, with the verdict appliedEvidenceService records: coding assignments pass at 60 of 100, projects at 40. */
+const applied = (i: number, performance: number, sourceType = 'CODING_ASSIGNMENT') => {
+  const passStandard = sourceType === 'CODING_ASSIGNMENT' ? 0.6 : 0.4;
+  return {
+    sourceType, evidenceKind: 'APPLIED', performance, itemKey: `assignment:${i}`, passStandard,
+    meetsPassStandard: performance + 1e-9 >= passStandard,
+    evidenceWeight: evidenceWeightFor({ relationship: 'PRIMARY', difficulty: 'MEDIUM', sourceType }),
+  };
+};
 
 /** Everything the plan reads about one skill, raw and effective. */
 function judge(rows: any[]) {
@@ -73,13 +78,16 @@ describe('kind, recorded or derived', () => {
 });
 
 describe('the evidence mixes', () => {
-  it('understanding only: six right checkpoint answers are 100, MEDIUM, VERIFIED by score — and planned at STANDARD', () => {
-    const j = judge([1, 2, 3, 4, 5, 6].map(i => checkpoint(i)));
+  const right = (n: number) => Array.from({ length: n }, (_, i) => checkpoint(i));
+
+  it('understanding only, all correct: 100 by score, planned at STANDARD', () => {
+    const j = judge(right(6));
     expect(j).toMatchObject({ score: 100, confidence: 'MEDIUM', raw: 'VERIFIED', effective: 'STANDARD', capped: true });
-    expect(j.basis).toEqual({ weights: { DIAGNOSTIC: 0, UNDERSTANDING: 3, APPLIED: 0 }, rows: { DIAGNOSTIC: 0, UNDERSTANDING: 6, APPLIED: 0 }, understandingOnly: true });
+    expect(j.basis).toMatchObject({ weights: { DIAGNOSTIC: 0, UNDERSTANDING: 3, APPLIED: 0 }, qualifyingApplied: { rows: 0, weight: 0 }, understandingOnly: true });
+    expect(judge(right(18))).toMatchObject({ score: 100, confidence: 'HIGH', raw: 'VERIFIED', effective: 'STANDARD', capped: true });
   });
 
-  it('understanding only never lowers a state: a weak or middling result is exactly what it was', () => {
+  it('understanding only, mixed: the cap never lowers a state', () => {
     expect(judge([1, 2, 3, 4, 5, 6].map(i => checkpoint(i, i <= 3 ? 1 : 0)))).toMatchObject({ score: 50, raw: 'GUIDED', effective: 'GUIDED', capped: false });
     expect(judge([1, 2, 3, 4, 5, 6, 7, 8].map(i => checkpoint(i, i <= 6 ? 1 : 0)))).toMatchObject({ score: 75, raw: 'REVISION', effective: 'STANDARD', capped: true });
   });
@@ -88,38 +96,76 @@ describe('the evidence mixes', () => {
     expect(judge([checkpoint(1)])).toMatchObject({ score: 100, confidence: 'LOW', raw: 'STANDARD', effective: 'STANDARD', capped: false });
   });
 
-  it('diagnostic only: a strong Skill Check keeps its high state', () => {
-    expect(judge([1, 2, 3, 4].map(i => paper(i)))).toMatchObject({ score: 100, confidence: 'MEDIUM', raw: 'VERIFIED', effective: 'VERIFIED', capped: false });
+  it('understanding + a failed practical (20%): the grade counts in the score, and the cap stays', () => {
+    // 18 × 0.5 × 100% + 1 × 20% over a weight of 10 → 92: VERIFIED by score, which a failed attempt must not unlock.
+    const j = judge([...right(18), applied(1, 0.2)]);
+    expect(j).toMatchObject({ score: 92, confidence: 'HIGH', raw: 'VERIFIED', effective: 'STANDARD', capped: true });
+    expect(j.basis).toMatchObject({ weights: { UNDERSTANDING: 9, APPLIED: 1 }, qualifyingApplied: { rows: 0 }, understandingOnly: true });
+    expect(judge([...right(6), applied(1, 0.2)])).toMatchObject({ score: 80, raw: 'REVISION', effective: 'STANDARD', capped: true });
   });
 
-  it('applied only: graded work is not capped', () => {
+  it('understanding + a practical just below its pass line: still capped', () => {
+    expect(judge([...right(18), applied(1, 0.59)])).toMatchObject({ score: 96, raw: 'VERIFIED', effective: 'STANDARD', capped: true });
+    expect(judge([...right(18), applied(1, 0.39, 'PROJECT_EVALUATION')])).toMatchObject({ effective: 'STANDARD', capped: true });
+  });
+
+  it('understanding + a practical exactly at its pass line: demonstrated, normal thresholds apply', () => {
+    const j = judge([...right(18), applied(1, 0.6)]);
+    expect(j).toMatchObject({ score: 96, raw: 'VERIFIED', effective: 'VERIFIED', capped: false });
+    expect(j.basis.qualifyingApplied).toEqual({ rows: 1, weight: 1 });
+    expect(judge([...right(18), applied(1, 0.4, 'PROJECT_EVALUATION')])).toMatchObject({ effective: 'VERIFIED', capped: false });
+  });
+
+  it('understanding + a high practical: VERIFIED', () => {
+    expect(judge([...right(6), applied(1, 1)])).toMatchObject({ score: 100, confidence: 'MEDIUM', effective: 'VERIFIED', capped: false });
+  });
+
+  it('a qualifying practical does not rescue a low score: states still follow score and confidence', () => {
+    expect(judge([...[1, 2, 3, 4, 5, 6].map(i => checkpoint(i, 0)), applied(1, 0.6)])).toMatchObject({ score: 15, effective: 'FOUNDATION_REQUIRED' });
+  });
+
+  it('applied only: passing work is not capped; failing work scores below the pass line anyway', () => {
     expect(judge([applied(1, 0.9), applied(2, 0.95), applied(3, 1)])).toMatchObject({ score: 95, confidence: 'MEDIUM', effective: 'VERIFIED', capped: false });
+    expect(judge([applied(1, 0.5), applied(2, 0.55), applied(3, 0.5)])).toMatchObject({ score: 52, effective: 'GUIDED', capped: false });
   });
 
-  it('diagnostic and understanding: a diagnostic present lifts the cap', () => {
+  it('an APPLIED row with no recorded verdict does not unlock anything', () => {
+    const unknown = { ...applied(1, 1), meetsPassStandard: undefined };
+    expect(judge([...right(18), unknown])).toMatchObject({ effective: 'STANDARD', capped: true });
+  });
+
+  it('failed then passed, and passed then failed, give the same Skill DNA: both attempts count, order does not', () => {
+    const failedThenPassed = judge([...right(18), applied(1, 0.2), { ...applied(1, 0.9), itemKey: 'assignment:1' }]);
+    const passedThenFailed = judge([...right(18), applied(1, 0.9), { ...applied(1, 0.2), itemKey: 'assignment:1' }]);
+    expect(failedThenPassed).toMatchObject({ score: 92, effective: 'VERIFIED', capped: false });
+    expect(passedThenFailed).toEqual(failedThenPassed);
+  });
+
+  it('diagnostic present: the cap does not apply, and a failed practical pulls the score down at full weight', () => {
+    expect(judge([1, 2, 3, 4].map(i => paper(i)))).toMatchObject({ score: 100, confidence: 'MEDIUM', effective: 'VERIFIED', capped: false });
     expect(judge([...[1, 2, 3, 4].map(i => paper(i)), ...[1, 2, 3, 4].map(i => checkpoint(i))])).toMatchObject({ score: 100, effective: 'VERIFIED', capped: false });
-  });
-
-  it('understanding and successful applied work: VERIFIED', () => {
-    const j = judge([...[1, 2, 3, 4, 5, 6].map(i => checkpoint(i)), applied(1, 1)]);
-    expect(j).toMatchObject({ score: 100, confidence: 'MEDIUM', effective: 'VERIFIED', capped: false });
-    expect(j.basis.weights).toEqual({ DIAGNOSTIC: 0, UNDERSTANDING: 3, APPLIED: 1 });
-  });
-
-  it('understanding and failed applied work: the failure enters the weighted score at full weight', () => {
-    // 6 × 0.5 × 100% + 1 × 20% over a weight of 4 → 80.
-    expect(judge([...[1, 2, 3, 4, 5, 6].map(i => checkpoint(i)), applied(1, 0.2)])).toMatchObject({ score: 80, raw: 'REVISION', effective: 'REVISION', capped: false });
-  });
-
-  it('diagnostic and failed applied work: the failure pulls a measured skill down', () => {
+    // Four items: one failed practical drops VERIFIED to REVISION. Eight items: it does not, by the normal arithmetic.
     expect(judge([...[1, 2, 3, 4].map(i => paper(i)), applied(1, 0.2)])).toMatchObject({ score: 84, effective: 'REVISION' });
+    const eight = [1, 2, 3, 4, 5, 6, 7, 8].map(i => paper(i, 1, ['EASY', 'MEDIUM', 'MEDIUM', 'HARD'][i % 4]));
+    expect(judge([...eight, applied(1, 0.2)])).toMatchObject({ score: 91, effective: 'VERIFIED' });
+    expect(judge([...eight, applied(1, 0.2), applied(2, 0.2)])).toMatchObject({ score: 84, effective: 'REVISION' });
   });
 
-  it('repeated applied work is two observations; a regrade of one is not a third', () => {
-    const first = applied(1, 0.2);
-    const reattempt = { ...applied(1, 0.9), itemKey: 'assignment:1' };
-    expect(aggregate([first, reattempt])).toMatchObject({ score: 55, evidenceCount: 2, distinctItems: 1 });
-    // A regrade replaces its row (same identity) — the aggregate sees one row at the new grade.
-    expect(aggregate([{ ...first, performance: 0.7 }])).toMatchObject({ score: 70, evidenceCount: 1 });
+  it('weak diagnostic + successful practicals: each pass moves the score; twelve lift a zero diagnostic to REVISION', () => {
+    const zero = [1, 2, 3, 4].map(i => paper(i, 0));
+    expect(judge([...zero, applied(1, 1)])).toMatchObject({ score: 20, effective: 'FOUNDATION_REQUIRED' });
+    const reached = (state: string) => {
+      for (let n = 1; n <= 60; n++) if (judge([...zero, ...Array.from({ length: n }, (_, i) => applied(i, 1))]).effective === state) return n;
+      return null;
+    };
+    expect({ GUIDED: reached('GUIDED'), STANDARD: reached('STANDARD'), REVISION: reached('REVISION'), VERIFIED: reached('VERIFIED') })
+      .toEqual({ GUIDED: 3, STANDARD: 6, REVISION: 12, VERIFIED: 22 });
+  });
+
+  it('a reassessment is averaged with the sitting before it, in either direction', () => {
+    const initial = (p: number) => [1, 2, 3, 4].map(i => paper(i, p));
+    const reassess = (p: number) => [5, 6, 7, 8].map(i => paper(i, p));
+    expect(judge([...initial(0), ...reassess(1)])).toMatchObject({ score: 50, confidence: 'HIGH', effective: 'GUIDED' });
+    expect(judge([...initial(1), ...reassess(0)])).toMatchObject({ score: 50, confidence: 'HIGH', effective: 'GUIDED' });
   });
 });

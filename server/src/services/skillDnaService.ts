@@ -307,7 +307,7 @@ export async function getSkillDna(tenantId: string, studentId: string): Promise<
  */
 export async function getEvidenceBases(tenantId: string, studentId: string): Promise<Map<string, EvidenceBasis>> {
   const rows = await StudentSkillEvidence.find({ tenantId, studentId })
-    .select('skillKey sourceType evidenceKind evidenceWeight').lean() as any[];
+    .select('skillKey sourceType evidenceKind evidenceWeight meetsPassStandard').lean() as any[];
   const bySkill = new Map<string, any[]>();
   for (const r of rows) bySkill.set(r.skillKey, [...(bySkill.get(r.skillKey) || []), r]);
   return new Map([...bySkill].map(([k, rs]) => [k, evidenceBasis(rs)]));
@@ -347,7 +347,10 @@ export async function explainSkill(tenantId: string, studentId: string, skillKey
     basis: evidenceBasis(evidence || []),
     evidence: (evidence || []).map((e: any) => ({
       sourceType: e.sourceType, evidenceKind: evidenceKindOf(e),
-      ...(e.submissionId ? { submissionId: e.submissionId, assignmentId: e.assignmentId, unitCode: e.unitCode, evaluation: e.evaluation } : {}),
+      ...(e.submissionId ? {
+        submissionId: e.submissionId, assignmentId: e.assignmentId, unitCode: e.unitCode, evaluation: e.evaluation,
+        passStandard: e.passStandard, meetsPassStandard: e.meetsPassStandard,
+      } : {}),
       itemSourceType: e.itemSourceType, itemSourceId: e.itemSourceId,
       relationship: e.relationship, difficulty: e.difficulty,
       earnedPoints: e.earnedPoints, maxPoints: e.maxPoints,

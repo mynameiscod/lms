@@ -137,6 +137,7 @@ describe('a coding assignment, auto-graded on a real runner', () => {
     expect(rows[0]).toMatchObject({
       tenantId: TENANT, skillKey: 'CONDITIONALS_BASICS', sourceType: 'CODING_ASSIGNMENT', evidenceKind: 'APPLIED',
       performance: 1, evidenceWeight: 1, evaluation: 'AUTO_GRADED', attemptNumber: 1, unitCode: 'T_CONDITIONS_PRACTICE',
+      passStandard: 0.6, meetsPassStandard: true,
       itemSourceType: 'assignment', itemSourceId: String(a._id), relationship: 'PRIMARY',
     });
     expect(String(rows[0].studentId)).toBe(String(student._id));
@@ -151,7 +152,7 @@ describe('a coding assignment, auto-graded on a real runner', () => {
       .toMatchObject({ score: 100, confidence: 'LOW', evidenceCount: 1 });
   });
 
-  it('records a failed grade as it is, and it pulls a checkpoint-perfect score down at full weight', async () => {
+  it('records a failed grade as it is: it pulls a checkpoint-perfect score down at full weight and leaves the cap in place', async () => {
     await projectModuleAssessment({
       tenantId: TENANT, studentId: String(student._id), assessmentRef: 'checkpoint-attempt-1',
       answers: [1, 2, 3, 4, 5, 6].map(i => ({ itemId: `q${i}`, itemSourceType: 'quiz_question', skillKey: 'CONDITIONALS_BASICS', earnedPoints: 1, maxPoints: 1 })),
@@ -167,10 +168,11 @@ describe('a coding assignment, auto-graded on a real runner', () => {
     await settleAppliedEvidence();
 
     expect(graded.autoScore).toBe(20);
-    expect((await evidenceFor(s._id))[0]).toMatchObject({ performance: 0.2, evaluation: 'AUTO_GRADED' });
+    expect((await evidenceFor(s._id))[0]).toMatchObject({ performance: 0.2, evaluation: 'AUTO_GRADED', passStandard: 0.6, meetsPassStandard: false });
     expect(await StudentSkillProfile.findOne({ studentId: student._id, skillKey: 'CONDITIONALS_BASICS' }).lean()).toMatchObject({ score: 80, confidence: 'MEDIUM', evidenceCount: 7 });
     const after = await explainSkill(TENANT, String(student._id), 'CONDITIONALS_BASICS');
-    expect(after.basis).toMatchObject({ understandingOnly: false, weights: { DIAGNOSTIC: 0, UNDERSTANDING: 3, APPLIED: 1 } });
+    // A failed practical is evidence, not a demonstration: the score falls and the skill stays capped at STANDARD.
+    expect(after.basis).toMatchObject({ understandingOnly: true, qualifyingApplied: { rows: 0 }, weights: { DIAGNOSTIC: 0, UNDERSTANDING: 3, APPLIED: 1 } });
   });
 
   it('writes nothing, and sends no trigger, when the program was only simulated', async () => {
@@ -225,7 +227,7 @@ describe('a coding assignment, auto-graded on a real runner', () => {
     await settleAppliedEvidence();
     let rows = await evidenceFor(s._id);
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ performance: 0.45, evaluation: 'REVIEWED', attemptNumber: 1 });
+    expect(rows[0]).toMatchObject({ performance: 0.45, evaluation: 'REVIEWED', attemptNumber: 1, meetsPassStandard: false });
     expect(String(rows[0].evaluatedBy)).toBe(String(grader._id));
     expect(published).toHaveLength(2);
 
@@ -236,7 +238,7 @@ describe('a coding assignment, auto-graded on a real runner', () => {
     await settleAppliedEvidence();
     rows = await evidenceFor(s._id);
     expect(rows).toHaveLength(1);
-    expect(rows[0].performance).toBe(0.9);
+    expect(rows[0]).toMatchObject({ performance: 0.9, meetsPassStandard: true });
     expect(await StudentSkillProfile.findOne({ studentId: student._id, skillKey: 'CONDITIONALS_BASICS' }).lean()).toMatchObject({ score: 90, evidenceCount: 1 });
 
     // Reattempt: new work, new evidence beside the old.
@@ -247,7 +249,7 @@ describe('a coding assignment, auto-graded on a real runner', () => {
     await submissionService.submitCoding(s._id, student._id, a.tenant as any);
     await settleAppliedEvidence();
     rows = await evidenceFor(s._id);
-    expect(rows.map(r => [r.attemptNumber, r.performance]).sort()).toEqual([[1, 0.9], [2, 0.8]]);
+    expect(rows.map(r => [r.attemptNumber, r.performance, r.meetsPassStandard]).sort()).toEqual([[1, 0.9, true], [2, 0.8, true]]);
     expect(await StudentSkillProfile.findOne({ studentId: student._id, skillKey: 'CONDITIONALS_BASICS' }).lean()).toMatchObject({ score: 85, evidenceCount: 2 });
   });
 
@@ -267,6 +269,62 @@ describe('a coding assignment, auto-graded on a real runner', () => {
     ] });
     await settleAppliedEvidence();
     expect((await evidenceFor(s._id))[0]).toMatchObject({ performance: 0.7, evaluation: 'REVIEWED' });
+  });
+});
+
+describe('attempts that fail and pass', () => {
+  const rubric = (pct: number) => [
+    { criterionIndex: 0, pointsAwarded: Math.round(60 * pct) }, { criterionIndex: 1, pointsAwarded: Math.round(30 * pct) }, { criterionIndex: 2, pointsAwarded: Math.round(10 * pct) },
+  ];
+  const attempt = async (a: any, s: any, pct: number, first: boolean) => {
+    if (!first) await submissionService.allowReattempt(s._id, a.tenant as any, grader._id);
+    passing = () => false; caseIndex = 0;
+    await Submission.updateOne({ _id: s._id }, { $set: { code: 'print(1)', language: 'python' } });
+    await submissionService.submitCoding(s._id, student._id, a.tenant as any);
+    await submissionService.grade(s._id, a.tenant as any, { gradedBy: grader._id, rubricScores: rubric(pct) });
+    await settleAppliedEvidence();
+  };
+  const checkpoints = () => projectModuleAssessment({
+    tenantId: TENANT, studentId: String(student._id), assessmentRef: 'checkpoint-attempts',
+    answers: [1, 2, 3, 4, 5, 6].map(i => ({ itemId: `q${i}`, itemSourceType: 'quiz_question', skillKey: 'CONDITIONALS_BASICS', earnedPoints: 1, maxPoints: 1 })),
+  });
+
+  it('a failed attempt and a later pass both count; the pass lifts the cap', async () => {
+    await checkpoints();
+    const a = await codingAssignment(grader._id);
+    const s = await inProgress(a, student);
+    await attempt(a, s, 0.2, true);
+    expect((await explainSkill(TENANT, String(student._id), 'CONDITIONALS_BASICS')).basis).toMatchObject({ understandingOnly: true });
+    await attempt(a, s, 0.9, false);
+    const rows = await evidenceFor(s._id);
+    expect(rows.map(r => [r.attemptNumber, r.performance, r.meetsPassStandard]).sort()).toEqual([[1, 0.2, false], [2, 0.9, true]]);
+    expect((await explainSkill(TENANT, String(student._id), 'CONDITIONALS_BASICS')).basis).toMatchObject({ understandingOnly: false, qualifyingApplied: { rows: 1 } });
+    // 6 × 0.5 × 1 + 0.2 + 0.9 over 5 → 82.
+    expect(await StudentSkillProfile.findOne({ studentId: student._id, skillKey: 'CONDITIONALS_BASICS' }).lean()).toMatchObject({ score: 82, evidenceCount: 8 });
+  });
+
+  it('a pass and a later failed attempt give the same Skill DNA: the later failure lowers the score, the earlier pass still counts', async () => {
+    await checkpoints();
+    const a = await codingAssignment(grader._id);
+    const s = await inProgress(a, student);
+    await attempt(a, s, 0.9, true);
+    await attempt(a, s, 0.2, false);
+    expect((await explainSkill(TENANT, String(student._id), 'CONDITIONALS_BASICS')).basis).toMatchObject({ understandingOnly: false, qualifyingApplied: { rows: 1 } });
+    expect(await StudentSkillProfile.findOne({ studentId: student._id, skillKey: 'CONDITIONALS_BASICS' }).lean()).toMatchObject({ score: 82, evidenceCount: 8 });
+  });
+
+  it('a regrade across the pass line flips the verdict on the same row', async () => {
+    const a = await codingAssignment(grader._id);
+    const s = await inProgress(a, student);
+    await attempt(a, s, 0.55, true);
+    expect((await evidenceFor(s._id))[0]).toMatchObject({ performance: 0.56, meetsPassStandard: false });
+    await submissionService.grade(s._id, a.tenant as any, { gradedBy: grader._id, rubricScores: rubric(0.6) });
+    await settleAppliedEvidence();
+    const rows = await evidenceFor(s._id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ performance: 0.6, meetsPassStandard: true });
+    // The auto-grade, the review, and the regrade each changed the evidence.
+    expect(published).toHaveLength(3);
   });
 });
 
@@ -290,7 +348,8 @@ describe('a project', () => {
     const rows = await evidenceFor(s._id);
     // Unit skills: PROGRAMMING_FUNDAMENTALS, PYTHON_BASICS (PYTHON_STRINGS retired, PROGRAMMING_GROUP a group).
     expect(rows.map(r => r.skillKey).sort()).toEqual(['PROGRAMMING_FUNDAMENTALS', 'PYTHON_BASICS']);
-    expect(rows.every(r => r.sourceType === 'PROJECT_EVALUATION' && r.evidenceKind === 'APPLIED' && r.performance === 0.7 && r.evidenceWeight === 1 && r.evaluation === 'REVIEWED')).toBe(true);
+    expect(rows.every(r => r.sourceType === 'PROJECT_EVALUATION' && r.evidenceKind === 'APPLIED' && r.performance === 0.7 && r.evidenceWeight === 1 && r.evaluation === 'REVIEWED'
+      && r.passStandard === 0.4 && r.meetsPassStandard === true)).toBe(true);
     expect(published).toHaveLength(1);
     expect(published[0]).toMatchObject({ name: 'PROJECT_EVALUATED', skillKeys: ['PROGRAMMING_FUNDAMENTALS', 'PYTHON_BASICS'] });
 

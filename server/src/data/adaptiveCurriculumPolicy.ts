@@ -136,8 +136,9 @@ export function stateForScore(input: {
   score: number | null;
   confidence: SkillConfidence | null;
   /**
-   * Every observation behind the score is a checkpoint answer (evidenceBasis). Absent means false, so
-   * a caller that does not know the basis gets exactly the state it always did.
+   * Nothing behind the score demonstrates the skill — only checkpoint answers and practical attempts below their pass
+   * standard (evidenceBasis). Absent means false, so a caller that does not know the basis gets exactly the state it
+   * always did.
    */
   understandingOnly?: boolean;
 }): AssignmentState {
@@ -162,7 +163,8 @@ export function stateForScore(input: {
    * honestly — nothing here changes the score or the confidence. What it cannot show is that they can
    * write the code, so on its own it may not buy the shortcut REVISION and VERIFIED stand for: dropping
    * the practice, the debugging, the coding assignment that would have been the first real test. A
-   * diagnostic or a graded piece of work beside it lifts the cap; so does nothing else.
+   * diagnostic, or graded work that met its pass standard, lifts the cap; nothing else does. A failed
+   * practical attempt is not a way past it — it lowers the score and leaves the cap in place.
    */
   if (input.understandingOnly) {
     return raw === 'REVISION' || raw === 'VERIFIED' ? 'STANDARD' : raw;

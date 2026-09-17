@@ -127,6 +127,12 @@ export interface IStudentSkillEvidence extends Document {
   unitCode?: string;
   /** AUTO_GRADED by the runner against every test case, or REVIEWED by an authorised grader. */
   evaluation?: 'AUTO_GRADED' | 'REVIEWED';
+  /**
+   * The assignment's own pass line as a fraction (passingPoints / totalPoints) and whether this grade met it —
+   * the line Submission.isPassing draws, without the late penalty. Only work that met it demonstrates the skill.
+   */
+  passStandard?: number;
+  meetsPassStandard?: boolean;
   evaluatedBy?: mongoose.Types.ObjectId;
 
   observedAt: Date;
@@ -164,6 +170,8 @@ const StudentSkillEvidenceSchema = new Schema<IStudentSkillEvidence>(
     assignmentId: { type: Schema.Types.ObjectId, ref: 'Assignment' },
     unitCode:     { type: String, uppercase: true, trim: true },
     evaluation:   { type: String, enum: ['AUTO_GRADED', 'REVIEWED'] },
+    passStandard:      { type: Number, min: 0, max: 1 },
+    meetsPassStandard: { type: Boolean },
     evaluatedBy:  { type: Schema.Types.ObjectId, ref: 'User' },
 
     observedAt: { type: Date, default: Date.now },

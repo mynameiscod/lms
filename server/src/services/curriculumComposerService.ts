@@ -88,7 +88,7 @@ export interface SkillBelief {
   score: number | null;
   confidence: SkillConfidence | null;
   /**
-   * Every observation behind the score is a checkpoint answer. The score and confidence stay as
+   * Nothing behind the score demonstrates the skill (evidenceBasis). The score and confidence stay as
    * measured; stateForScore caps the state it buys at STANDARD. Absent means false.
    */
   understandingOnly?: boolean;

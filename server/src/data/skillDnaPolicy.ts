@@ -119,31 +119,63 @@ export function evidenceKindOf(row: { evidenceKind?: string | null; sourceType?:
   return EVIDENCE_KIND_FOR_SOURCE[String(row.sourceType || 'PERSONALIZED_ASSESSMENT')] || 'DIAGNOSTIC';
 }
 
+/**
+ * Does this row demonstrate the skill, as opposed to merely being about it?
+ *
+ *   DIAGNOSTIC     yes — a measurement of what the student can do.
+ *   UNDERSTANDING  no — recognising the right answer is not doing it.
+ *   APPLIED        only when the graded work met its assignment's own pass standard (`meetsPassStandard`,
+ *                  recorded with the grade from Assignment.passingPoints — the line Submission.isPassing draws).
+ *                  A practical attempt that failed is real evidence and counts in the score at its grade; it does
+ *                  not show the skill was applied successfully. An APPLIED row with no recorded verdict is treated
+ *                  as not meeting it: nothing unlocks on an unknown.
+ */
+export function demonstratesSkill(row: { evidenceKind?: string | null; sourceType?: string | null; meetsPassStandard?: boolean | null }): boolean {
+  const kind = evidenceKindOf(row);
+  if (kind === 'DIAGNOSTIC') return true;
+  if (kind === 'APPLIED') return row.meetsPassStandard === true;
+  return false;
+}
+
 export interface EvidenceBasis {
   /** Effective weight contributed by each kind, rounded to hundredths. */
   weights: Record<EvidenceKind, number>;
   rows: Record<EvidenceKind, number>;
+  /** APPLIED rows whose graded work met its pass standard, and their weight. */
+  qualifyingApplied: { rows: number; weight: number };
   /**
-   * True when every observation is a checkpoint answer. Such a skill may be understood, but nothing it
-   * holds shows the student can apply it — see stateForScore.
+   * True when nothing behind the score demonstrates the skill: every row is a checkpoint answer or a practical
+   * attempt below its pass standard. Such a skill may be understood — and a failed attempt still pulls its score
+   * down — but nothing it holds shows the student can apply it, so its state stops at STANDARD (stateForScore).
+   *
+   * The name is kept from when checkpoint answers were the only such rows; the composer reads it unchanged.
    */
   understandingOnly: boolean;
 }
 
-/** Which kinds of evidence a skill's rows are, by count and by weight. */
-export function evidenceBasis(rows: { evidenceKind?: string | null; sourceType?: string | null; evidenceWeight: number }[]): EvidenceBasis {
+/** Which kinds of evidence a skill's rows are, by count and by weight, and whether any of it demonstrates the skill. */
+export function evidenceBasis(rows: {
+  evidenceKind?: string | null; sourceType?: string | null; evidenceWeight: number; meetsPassStandard?: boolean | null;
+}[]): EvidenceBasis {
   const weights: Record<EvidenceKind, number> = { DIAGNOSTIC: 0, UNDERSTANDING: 0, APPLIED: 0 };
   const counts: Record<EvidenceKind, number> = { DIAGNOSTIC: 0, UNDERSTANDING: 0, APPLIED: 0 };
+  const qualifyingApplied = { rows: 0, weight: 0 };
+  let demonstrated = false;
   for (const r of rows) {
     const k = evidenceKindOf(r);
+    const w = Number.isFinite(r.evidenceWeight) && r.evidenceWeight > 0 ? r.evidenceWeight : 0;
     counts[k]++;
-    weights[k] += Number.isFinite(r.evidenceWeight) && r.evidenceWeight > 0 ? r.evidenceWeight : 0;
+    weights[k] += w;
+    if (k === 'APPLIED' && r.meetsPassStandard === true) { qualifyingApplied.rows++; qualifyingApplied.weight += w; }
+    if (demonstratesSkill(r)) demonstrated = true;
   }
   for (const k of Object.keys(weights) as EvidenceKind[]) weights[k] = Math.round(weights[k] * 100) / 100;
+  qualifyingApplied.weight = Math.round(qualifyingApplied.weight * 100) / 100;
   return {
     weights,
     rows: counts,
-    understandingOnly: counts.UNDERSTANDING > 0 && counts.DIAGNOSTIC === 0 && counts.APPLIED === 0,
+    qualifyingApplied,
+    understandingOnly: rows.length > 0 && !demonstrated,
   };
 }
 

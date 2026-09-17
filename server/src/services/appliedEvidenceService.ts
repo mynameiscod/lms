@@ -30,6 +30,11 @@
  *                Without: (auto + manual) ÷ totalPoints — for a coding submission only when its auto-grade
  *                was itself really executed, because otherwise part of that total came from a simulation.
  *
+ * QUALIFYING. Each row records the assignment's pass line (passingPoints / totalPoints: 60 for the Foundation coding
+ * assignments as authored, 40 for projects, the Assignment default they carry) and whether the grade met it. Every
+ * grade counts in the score; only a grade that met the line demonstrates the skill and can lift the
+ * understanding-only cap (skillDnaPolicy.demonstratesSkill).
+ *
  * A late penalty is NOT applied. It is a deadline rule on the grade, not a measurement of the skill; the
  * same program handed in a day late shows the same ability. A failed grade is recorded as it is: 20% is
  * evidence, and it enters the weighted average at full weight.
@@ -82,6 +87,8 @@ export interface AppliedEvidenceResult {
   unitCode?: string;
   skillKeys: string[];
   performance?: number;
+  /** Whether the grade met the assignment's pass standard; only such work demonstrates the skill. */
+  meetsPassStandard?: boolean;
   triggered: boolean;
 }
 
@@ -177,6 +184,17 @@ export async function recordAppliedEvaluation(input: {
     return { ...withAttempt, outcome: 'UNMAPPED', reason: unit ? 'NO_ASSESSABLE_SKILL' : 'NO_SUCH_UNIT', performance };
   }
 
+  /**
+   * The assignment's own pass line — Assignment.passingPoints, the line Submission.isPassing draws — as a fraction of
+   * its total. Compared with the grade before any late penalty, like the performance itself. An assignment without a
+   * usable pass line records no verdict, and its work cannot lift the understanding-only cap.
+   */
+  const passing = Number(assignment.passingPoints);
+  const passStandard = totalPoints > 0 && Number.isFinite(passing) && passing >= 0 && passing <= totalPoints
+    ? Math.round((passing / totalPoints) * 10000) / 10000
+    : undefined;
+  const meetsPassStandard = passStandard === undefined ? undefined : performance + 1e-9 >= passStandard;
+
   const maxPoints = 100;
   const earnedPoints = Math.round(performance * 10000) / 100;
   const evaluatedBy = evaluation === 'REVIEWED' ? submission.gradedBy : undefined;
@@ -185,7 +203,8 @@ export async function recordAppliedEvaluation(input: {
   // A retry: the same evaluation of the same attempt, already recorded exactly.
   const same = existing.length === skillKeys.length
     && existing.every(e => skillKeys.includes(e.skillKey) && e.performance === performance
-      && e.evaluation === evaluation && e.sourceType === sourceType && String(e.tenantId) === String(tenantId));
+      && e.evaluation === evaluation && e.sourceType === sourceType && String(e.tenantId) === String(tenantId)
+      && e.passStandard === passStandard && e.meetsPassStandard === meetsPassStandard);
   if (same) return { ...withAttempt, outcome: 'UNCHANGED', skillKeys, performance };
 
   // Identity is global, so a row under it belonging to another tenant or student means something is wrong.
@@ -205,8 +224,11 @@ export async function recordAppliedEvaluation(input: {
           earnedPoints, maxPoints, performance, evidenceWeight: weight, policyVersion: SKILL_DNA_VERSION,
           evaluation, observedAt,
           ...(evaluatedBy ? { evaluatedBy } : {}),
+          ...(passStandard === undefined ? {} : { passStandard, meetsPassStandard }),
         },
-        ...(evaluatedBy ? {} : { $unset: { evaluatedBy: '' } }),
+        ...((evaluatedBy && passStandard !== undefined) ? {} : {
+          $unset: { ...(evaluatedBy ? {} : { evaluatedBy: '' }), ...(passStandard === undefined ? { passStandard: '', meetsPassStandard: '' } : {}) },
+        }),
         $setOnInsert: {
           tenantId: String(tenantId), studentId: submission.student, skillKey,
           assessmentId: identity, attemptNumber,
@@ -242,7 +264,7 @@ export async function recordAppliedEvaluation(input: {
     meta: { submissionId, attemptNumber, unitCode: assignment.unitCode, evaluation, outcome },
   });
 
-  return { ...withAttempt, outcome, skillKeys, performance, triggered: true };
+  return { ...withAttempt, outcome, skillKeys, performance, meetsPassStandard, triggered: true };
 }
 
 /**

@@ -61,6 +61,23 @@ export interface PilotAssignment {
   /** What "done" means, checked by a human or a rubric. */
   rubric: { criterion: string; description: string; maxPoints: number }[];
   totalPoints: number;
+  /**
+   * Present only on a PRACTICE unit's coding assignment; a PROJECT brief never carries it.
+   *
+   * The Assignment engine already runs a CODING submission against its test cases, so a small
+   * program is graded by running it, not by anyone reading a file. No solution travels with it:
+   * the starter is the scaffold a student would be handed, nothing more.
+   */
+  coding?: PilotAssignmentCoding;
+}
+
+export interface PilotAssignmentCoding {
+  language: 'python';
+  starter: string;
+  /** Visible cases are worked examples on the page; hidden ones check the program generalises. */
+  tests: { input: string; expectedOutput: string; isHidden?: boolean }[];
+  difficulty: 'beginner' | 'easy';
+  passingPoints: number;
 }
 
 export interface PilotBundle {
@@ -75,7 +92,10 @@ export interface PilotBundle {
   coding?: PilotCoding[];
   /** Questions for the bound checkpoint quiz. */
   checkpoint?: PilotMcq[];
-  /** For PROJECT units: the brief, bound as an Assignment. */
+  /**
+   * Bound as the unit's one Assignment: a PROJECT unit's brief, or a PRACTICE unit's coding
+   * assignment (with `coding`).
+   */
   assignment?: PilotAssignment;
 }
 

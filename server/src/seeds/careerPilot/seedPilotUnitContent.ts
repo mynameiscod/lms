@@ -96,7 +96,7 @@ const readingMinutes = (text: string): number =>
 
   const units = await CurriculumLearningUnit
     .find({ tenantId, unitCode: { $in: ALL_BUNDLES.map(b => b.unitCode) } })
-    .select('unitCode title skillKeys topicCode defaultDepth').lean() as any[];
+    .select('unitCode title unitType skillKeys topicCode defaultDepth').lean() as any[];
   const unitByCode = new Map<string, any>(units.map(u => [String(u.unitCode), u]));
 
   console.log(`\nPILOT UNIT CONTENT  ·  tenant ${tenantId}`);
@@ -373,19 +373,29 @@ const readingMinutes = (text: string): number =>
     }
 
     /**
-     * A PROJECT unit's brief, bound as an Assignment.
+     * The unit's one Assignment: a PROJECT unit's brief, or a PRACTICE unit's coding assignment.
      *
      * Assignment already owns submissions, rubrics, grading and deadlines. A Quiz cannot stand in
      * — a checkpoint measures recall, and a project is judged on what was built. ProjectPlan
      * stays what it has always been: the student's own instance, created when they start.
+     *
+     * A coding assignment is the same row with its type set to CODING and the fields the engine
+     * already reads for one: the language, a starter, and test cases it runs on submission. A
+     * PROJECT brief is written exactly as before. The two never cross: certification requires a
+     * PROJECT unit's assignment to be a project, and a runnable task belongs on the unit that
+     * practises the skill, so a mismatch is refused rather than stored.
      *
      * NOTE the tenant field. Assignment scopes by `tenant` (ObjectId) while Quiz and every
      * CareerPilot model use a String `tenantId`; querying it with the String matches nothing and
      * reports no error.
      */
     if (bundle.assignment) {
+      const coding = bundle.assignment.coding;
+      const isProjectUnit = unit.unitType === 'PROJECT';
       if (!author) {
         skippedAssignments.push(`${bundle.unitCode} (no admin user to attribute it to)`);
+      } else if (isProjectUnit === !!coding) {
+        skippedAssignments.push(`${bundle.unitCode} (${coding ? 'a coding assignment on a PROJECT unit' : `a project brief on a ${unit.unitType} unit`})`);
       } else {
         assignments++;
         if (apply) {
@@ -396,13 +406,27 @@ const readingMinutes = (text: string): number =>
                 title: bundle.assignment.title,
                 description: bundle.assignment.description,
                 instructions: bundle.assignment.instructions,
-                type: AssignmentType.PROJECT,
+                type: coding ? AssignmentType.CODING : AssignmentType.PROJECT,
                 unitCode: unit.unitCode,
                 totalPoints: bundle.assignment.totalPoints,
                 rubric: bundle.assignment.rubric.map((r, i) => ({
                   criterion: r.criterion, description: r.description,
                   maxPoints: r.maxPoints, order: i,
                 })),
+                ...(coding ? {
+                  difficulty: coding.difficulty,
+                  primaryTech: coding.language,
+                  tags: unit.skillKeys || [],
+                  passingPoints: coding.passingPoints,
+                  allowedLanguages: [coding.language],
+                  starterCode: [{ language: coding.language, code: coding.starter }],
+                  testCases: coding.tests.map(t => ({
+                    input: t.input, expectedOutput: t.expectedOutput, isHidden: !!t.isHidden, weight: 1,
+                  })),
+                  comparisonMode: 'lenient',
+                  showTestCaseResults: true,
+                  showExpectedOutput: true,
+                } : {}),
               },
               $setOnInsert: {
                 tenant: new mongoose.Types.ObjectId(tenantId),
@@ -412,7 +436,7 @@ const readingMinutes = (text: string): number =>
             { upsert: true },
           );
         }
-        parts.push('assignment');
+        parts.push(coding ? 'coding assignment' : 'assignment');
       }
     }
 
@@ -421,7 +445,7 @@ const readingMinutes = (text: string): number =>
 
   console.log('');
   if (skippedAssignments.length) {
-    console.log(`  ${skippedAssignments.length} project assignment(s) skipped:`);
+    console.log(`  ${skippedAssignments.length} assignment(s) skipped:`);
     for (const m of skippedAssignments) console.log(`    ${m}`);
     console.log('');
   }
@@ -432,12 +456,12 @@ const readingMinutes = (text: string): number =>
   }
 
   if (!apply) {
-    console.log(`${rows} library rows, ${quizzes} checkpoint quizzes and ${assignments} project assignments would be written.`);
+    console.log(`${rows} library rows, ${quizzes} checkpoint quizzes and ${assignments} assignments would be written.`);
     console.log('Re-run with --apply.');
   } else {
     const bound = await LearningContentLibrary.countDocuments({ tenantId, unitCode: { $exists: true, $ne: '' } });
     const boundQuiz = await Quiz.countDocuments({ tenantId, unitCode: { $exists: true, $ne: '' } });
-    console.log(`${rows} library rows written, ${quizzes} checkpoint quizzes (${checkpointQuestions} questions) and ${assignments} project assignments bound.`);
+    console.log(`${rows} library rows written, ${quizzes} checkpoint quizzes (${checkpointQuestions} questions) and ${assignments} assignments bound.`);
     console.log(`  QUIZ LINKAGE: ${questionsLinked} of ${checkpointQuestions} checkpoint question(s) linked to their persisted quiz by quizId.`);
 
   console.log(`

@@ -307,6 +307,27 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
       if (a.status === 'archived') projectProblems.push(`${u.unitCode}: archived`);
     }
   }
+  /**
+   * Any other unit's assignment is a runnable coding task, graded by the engine's own test runner.
+   * One per unit, something to run and to run against, no solution stored beside the starter.
+   */
+  const codingProblems: string[] = [];
+  for (const u of universe.filter(x => x.unitType !== 'PROJECT')) {
+    const as = assignments.filter(a => a.unitCode === u.unitCode);
+    if (as.length > 1) codingProblems.push(`${u.unitCode}: ${as.length} assignments`);
+    for (const a of as) {
+      const rubric = (a.rubric || []) as any[];
+      const sum = rubric.reduce((n, r) => n + (r.maxPoints || 0), 0);
+      if (String(a.type).toLowerCase() !== 'coding') codingProblems.push(`${u.unitCode}: type ${a.type}`);
+      if (!(a.allowedLanguages || []).length || !(a.starterCode || []).length) codingProblems.push(`${u.unitCode}: no language or starter`);
+      if (!(a.testCases || []).length) codingProblems.push(`${u.unitCode}: no test cases`);
+      if ((a.starterCode || []).some((s: any) => s.solutionCode)) codingProblems.push(`${u.unitCode}: stores a solution`);
+      if (!rubric.length || sum !== a.totalPoints) codingProblems.push(`${u.unitCode}: rubric ${sum} vs ${a.totalPoints}`);
+      if (!(a.passingPoints > 0 && a.passingPoints <= a.totalPoints)) codingProblems.push(`${u.unitCode}: passing ${a.passingPoints} of ${a.totalPoints}`);
+      if (String(a.instructions || '').length < 400) codingProblems.push(`${u.unitCode}: thin brief`);
+      if (a.status === 'archived') codingProblems.push(`${u.unitCode}: archived`);
+    }
+  }
 
   const libraryRows = await db.collection('learningcontentlibraries').find({ tenantId: TID, unitCode: { $in: prodCodes } }).toArray();
   const duplication = findDuplication({
@@ -322,8 +343,9 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
   gate('prerequisite cycles', cycles.length, cycles.map(String));
   gate('malformed assessments', assessmentProblems.length, assessmentProblems);
   gate('broken project assignments', projectProblems.length, projectProblems);
+  gate('broken coding assignments', codingProblems.length, codingProblems);
   gate('duplicated assets (any kind)', duplication.length, duplication.map(d => `${d.kind} ${[...new Set(d.unitCodes)].join(',')}`));
-  console.log(`    bound quizzes ${quizzes.length}, questions ${questionIds.length}, project assignments ${assignments.length}, library rows ${libraryRows.length}`);
+  console.log(`    bound quizzes ${quizzes.length}, questions ${questionIds.length}, unit assignments ${assignments.length} (coding ${assignments.filter(a => String(a.type).toLowerCase() === 'coding').length}), library rows ${libraryRows.length}`);
 
   /* ══ 6. DATABASE SAFETY ══════════════════════════════════════════════════════════════════ */
 

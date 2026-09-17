@@ -1109,6 +1109,71 @@ roll = 42
         [['6 2', true], ['6 B', false], ['5 2', false], ['6 0', false]],
         'There are six characters, and position 2 is the third one, because positions count from zero: C, B, then 2.', PS),
     ],
+    assignment: {
+      title: 'Coding Assignment — A Student Report Card',
+      description: `Store a student's details in variables, calculate from them, and print a four-line report card in an exact format.`,
+      instructions: `**Objective**
+
+Practise the whole of this stage in one small program: values stored under good names, arithmetic
+done on those names, and output built exactly with an f-string.
+
+**What the program must do**
+
+The starter already stores four values: a student's \`name\`, their \`age\`, the \`score\` they got
+and the \`max_score\` the test was out of. Print exactly four lines:
+
+1. \`Name: \` followed by the name
+2. \`Age next year: \` followed by the age one year from now
+3. \`Score: \` followed by the score, the word \`out of\`, and the maximum
+4. \`Percentage: \` followed by the score divided by the maximum, multiplied by 100
+
+For a student called Ravi, aged 17, who scored 30 out of 40, the program would print:
+
+    Name: Ravi
+    Age next year: 18
+    Score: 30 out of 40
+    Percentage: 75.0
+
+The percentage is a float, so it prints with \`.0\`. That is expected — do not round it away.
+
+**Rules**
+
+- Calculate every number from the variables. A number you worked out yourself and typed into a
+  print is not the task, and it breaks the moment a value changes.
+- Do not change the four values the starter gives you.
+- Work the answer out by hand for the starter's values before you run anything.
+
+**What to submit**
+
+One Python program, written in the editor, that prints the four lines for the values in the starter.
+
+**How it is graded**
+
+When you submit, your program is run against a test you cannot see, using the values in the starter,
+and scored on whether it passes. Output is compared line by line: spelling and capital letters matter,
+extra spaces do not. A reviewer grading by hand uses the rubric attached to this assignment.`,
+      rubric: [
+        { criterion: 'Correct output', description: 'All four lines match exactly for the values in the starter, as checked by the test.', maxPoints: 60 },
+        { criterion: 'Calculated from variables', description: 'Age next year and the percentage are computed from the stored names, not typed in as literals.', maxPoints: 30 },
+        { criterion: 'Readable', description: 'Any new names say what they hold; one calculation per line where it helps.', maxPoints: 10 },
+      ],
+      totalPoints: 100,
+      coding: {
+        language: 'python',
+        starter: `name = "Meera"
+age = 19
+score = 42
+max_score = 50
+
+# calculate and print the four lines
+`,
+        tests: [
+          { input: '', expectedOutput: 'Name: Meera\nAge next year: 20\nScore: 42 out of 50\nPercentage: 84.0', isHidden: true },
+        ],
+        difficulty: 'beginner',
+        passingPoints: 60,
+      },
+    },
   },
   {
     unitCode: 'T_VARIABLES_PRACTICE',

@@ -734,3 +734,48 @@ describe('the roadmap overview of a persisted journey', () => {
     expect(mockCompose).not.toHaveBeenCalled();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('a coding assignment on a journey day', () => {
+  const TITLE = 'Coding Assignment — Count Up and Add Up';
+  const withAssignment = (day: number, id: string) => {
+    const plan = dayPlans.find(p => p.dayNumber === day);
+    plan.items.push({ _id: `i${day}d`, kind: 'assignment', sourceModel: 'Assignment', sourceId: id, contentTitle: TITLE, contentType: 'assignment', order: 3, estimatedDuration: 60, required: true, isGating: true });
+  };
+  beforeEach(() => {
+    seed();
+    withAssignment(6, 'asg-current');
+    withAssignment(7, 'asg-next');
+    withAssignment(40, 'asg-future');
+  });
+
+  const dayCall = async (n: number) => {
+    const { res, out } = resOf();
+    await ctrl.getMyJourneyDay(reqOf({ params: { dayNumber: String(n) } }), res);
+    return out;
+  };
+
+  it('is served on the current day as a required activity that holds the day open, with the id to open it', async () => {
+    const out = await dayCall(6);
+    expect(out.status).toBe(200);
+    const assignment = out.body.activities.find((a: any) => a.kind === 'assignment');
+    expect(assignment).toMatchObject({ title: TITLE, required: true, gating: true, sourceId: 'asg-current' });
+  });
+
+  it('stays behind the lock on the next day and on a far future day — no title, no id, nothing to open', async () => {
+    for (const [day, id] of [[7, 'asg-next'], [40, 'asg-future']] as [number, string][]) {
+      const out = await dayCall(day);
+      expect(out.status).toBe(403);
+      expect(out.body.reason).toBe('DAY_LOCKED');
+      const wire = JSON.stringify(out.body);
+      for (const forbidden of [id, TITLE, 'Coding Assignment', 'sourceId', 'assignment']) expect(wire).not.toContain(forbidden);
+    }
+  });
+
+  it('never appears in the overview, for any day', async () => {
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+    const wire = JSON.stringify(out.body);
+    for (const forbidden of ['asg-current', 'asg-next', 'asg-future', TITLE, 'Coding Assignment']) expect(wire).not.toContain(forbidden);
+  });
+});

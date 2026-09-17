@@ -1130,6 +1130,76 @@ values = [int(x) for x in line.split()] if line else []
         skillKey: 'DSA_ARRAYS',
       },
     ],
+    assignment: {
+      title: 'Coding Assignment — Walk Through Five Numbers',
+      description: `Traverse a list of five numbers once: print each one, total them, and find the largest — without the built-ins that would do it for you.`,
+      instructions: `**Objective**
+
+Practise a single traversal that does three jobs at once: visiting every element, accumulating a
+total, and tracking the best value seen so far.
+
+**What the program must do**
+
+The starter reads one line of exactly five whole numbers, separated by spaces, into the list
+\`numbers\`. Print:
+
+1. each number on its own line, in the order given
+2. \`Total: \` followed by the sum of the five numbers
+3. \`Largest: \` followed by the largest of them
+
+**Examples**
+
+For input \`4 9 2 7 5\` the program prints:
+
+    4
+    9
+    2
+    7
+    5
+    Total: 27
+    Largest: 9
+
+For input \`-3 -8 -1 -6 -2\` the last two lines are \`Total: -20\` and \`Largest: -1\`.
+
+**Rules**
+
+- Do not use \`sum()\`, \`max()\` or \`sorted()\`. Walk the list yourself.
+- Think about where "largest so far" starts. Starting it at 0 gives the wrong answer when every
+  number is negative — the second example exists to catch that.
+- Trace your loop by hand on the second example before you run it.
+
+**What to submit**
+
+One Python program, written in the editor, that reads the list and prints the seven lines.
+
+**How it is graded**
+
+When you submit, your program is run against every test case — the examples above and a few more you
+cannot see — and scored on how many it passes. Output is compared line by line: spelling and capital
+letters matter, extra spaces do not. A reviewer grading by hand uses the rubric attached to this
+assignment.`,
+      rubric: [
+        { criterion: 'Correct output', description: 'Every number, the total and the largest are right for every test case, including all-negative and repeated values.', maxPoints: 60 },
+        { criterion: 'Traversal without built-ins', description: 'The list is walked with a loop that accumulates the total and tracks the largest; no sum(), max() or sorted().', maxPoints: 30 },
+        { criterion: 'Readable', description: 'The accumulator and the largest-so-far have names that say what they hold, and each starts from a correct value.', maxPoints: 10 },
+      ],
+      totalPoints: 100,
+      coding: {
+        language: 'python',
+        starter: `numbers = [int(x) for x in input().split()]
+
+# print each number, then the total and the largest
+`,
+        tests: [
+          { input: '4 9 2 7 5', expectedOutput: '4\n9\n2\n7\n5\nTotal: 27\nLargest: 9' },
+          { input: '-3 -8 -1 -6 -2', expectedOutput: '-3\n-8\n-1\n-6\n-2\nTotal: -20\nLargest: -1' },
+          { input: '5 5 5 5 5', expectedOutput: '5\n5\n5\n5\n5\nTotal: 25\nLargest: 5', isHidden: true },
+          { input: '10 0 -10 20 -20', expectedOutput: '10\n0\n-10\n20\n-20\nTotal: 0\nLargest: 20', isHidden: true },
+        ],
+        difficulty: 'easy',
+        passingPoints: 60,
+      },
+    },
   },
   {
     unitCode: 'T_ARRAYS_PRACTICE',

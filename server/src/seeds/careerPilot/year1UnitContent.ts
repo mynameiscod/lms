@@ -939,6 +939,73 @@ This is the search shape with an accumulator: you are tracking the best seen so 
           ['How the result should be printed once the loop ends', false]],
         'The shape decides the mechanism. Choosing for-versus-while first is answering the second question before the first.'),
     ],
+    assignment: {
+      title: 'Coding Assignment — Count Up and Add Up',
+      description: `Read a number n, print every whole number from 1 to n, and keep a running total with an accumulator.`,
+      instructions: `**Objective**
+
+Practise two loop shapes working together in one loop: visiting every value, and building a result
+with an accumulator declared before the loop starts.
+
+**What the program must do**
+
+The starter reads a whole number \`n\` (it is always 1 or more). Print:
+
+1. every whole number from 1 up to and including \`n\`, one per line
+2. then one final line: \`Sum: \` followed by the total of all those numbers
+
+**Examples**
+
+For input \`10\` the program prints the numbers 1 to 10, each on its own line, and then
+\`Sum: 55\`.
+
+For input \`3\` it prints:
+
+    1
+    2
+    3
+    Sum: 6
+
+**Rules**
+
+- Use a loop for both jobs. Do not use \`sum()\` or a formula such as \`n * (n + 1) // 2\` — the point
+  is the accumulator.
+- Name the accumulator for what it holds, and give it its starting value before the loop.
+- Check the end of your range: the number \`n\` itself must be printed and counted.
+- Trace your loop by hand for \`n = 3\` before running it.
+
+**What to submit**
+
+One Python program, written in the editor, that reads \`n\` and prints the numbers and the sum.
+
+**How it is graded**
+
+When you submit, your program is run against every test case — the examples above and a few more you
+cannot see — and scored on how many it passes. Output is compared line by line: spelling and capital
+letters matter, extra spaces do not. A reviewer grading by hand uses the rubric attached to this
+assignment.`,
+      rubric: [
+        { criterion: 'Correct output', description: 'Every number from 1 to n and the final Sum line are right for every test case, including n = 1.', maxPoints: 60 },
+        { criterion: 'Loop and accumulator', description: 'One loop prints each number and adds it to an accumulator declared before the loop; no sum() or formula.', maxPoints: 30 },
+        { criterion: 'Readable', description: 'The loop variable and the accumulator have names that say what they hold.', maxPoints: 10 },
+      ],
+      totalPoints: 100,
+      coding: {
+        language: 'python',
+        starter: `n = int(input())
+
+# print 1 to n, keeping a running total, then print the sum
+`,
+        tests: [
+          { input: '10', expectedOutput: '1\n2\n3\n4\n5\n6\n7\n8\n9\n10\nSum: 55' },
+          { input: '3', expectedOutput: '1\n2\n3\nSum: 6' },
+          { input: '1', expectedOutput: '1\nSum: 1', isHidden: true },
+          { input: '6', expectedOutput: '1\n2\n3\n4\n5\n6\nSum: 21', isHidden: true },
+        ],
+        difficulty: 'beginner',
+        passingPoints: 60,
+      },
+    },
   },
   {
     unitCode: 'T_LOOPS_MINI_PROJECT',

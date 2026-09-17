@@ -53,7 +53,8 @@ It runs, in order, stopping at the first failure:
    choose a target role before anything will open; the Foundation question bank; the curriculum
    hierarchy and its validation gate
 2. the Year-1 Learning Units, expansion units, content, suitability overrides, and unit content —
-   checkpoint quizzes with every question linked to its quiz, and project assignments
+   checkpoint quizzes with every question linked to its quiz, project assignments, and a runnable
+   Python coding assignment on the first practice day of Variables, Conditions, Loops, Functions and Arrays
 3. publication of **exactly the certified 350 units**, through the product's publish handler and its
    gates, refused if the tenant's READY inventory is not identical to the certified one
 4. verification: 359 units, 354 READY, PRODUCTION = the certified 350, quiz linkage, the stage skill

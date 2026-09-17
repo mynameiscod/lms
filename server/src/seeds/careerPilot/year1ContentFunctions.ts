@@ -1081,6 +1081,77 @@ print(minutes_to_text(total))`,
           ['NameError, because name is not defined', false]],
         'A parameter with no default must be given an argument, and Python refuses the call instead of inventing a value.'),
     ],
+    assignment: {
+      title: 'Coding Assignment — One Function, Many Calls',
+      description: `Write add(a, b) once, make it return its answer, and call it three times — once with the result of another call.`,
+      instructions: `**Objective**
+
+Practise the difference between a function that returns a value and one that prints. A returned value
+can be printed, stored, or handed straight to another call; a printed one cannot.
+
+**What the program must do**
+
+1. Define a function \`add(a, b)\` that **returns** \`a + b\`. It must not print anything itself.
+2. The starter reads two whole numbers, \`a\` and \`b\`, one per line.
+3. Print exactly three lines, each one the value returned by a call to \`add\`:
+   - \`add(a, b)\`
+   - \`add(b, 100)\`
+   - \`add(add(a, b), a)\` — the first call's result, added to \`a\`
+
+**Examples**
+
+    input 3 and 4     prints   7
+                               104
+                               10
+
+    input 0 and 0     prints   0
+                               100
+                               0
+
+**Rules**
+
+- Each of the three lines must come from calling \`add\`. Writing \`a + b\` in a print is not
+  the task.
+- If \`add\` prints, the output will have extra lines and the tests will fail. Return, then print
+  at the call.
+- Before running, work out by hand what the three calls give for \`a = -5\` and \`b = 12\`.
+
+**What to submit**
+
+One Python program, written in the editor, containing \`add\` and the three printed calls.
+
+**How it is graded**
+
+When you submit, your program is run against every test case — the examples above and a few more you
+cannot see — and scored on how many it passes. Output is compared line by line: spelling and capital
+letters matter, extra spaces do not. A reviewer grading by hand uses the rubric attached to this
+assignment.`,
+      rubric: [
+        { criterion: 'Correct output', description: 'All three lines are right for every test case, including negative numbers.', maxPoints: 60 },
+        { criterion: 'Returns, and is called', description: 'add returns its result without printing, and every printed line is the value of a call — including one call whose argument is another call.', maxPoints: 30 },
+        { criterion: 'Readable', description: 'The function is defined once, before it is used, with clear parameter names.', maxPoints: 10 },
+      ],
+      totalPoints: 100,
+      coding: {
+        language: 'python',
+        starter: `# define add(a, b) here
+
+
+a = int(input())
+b = int(input())
+
+# print the three calls
+`,
+        tests: [
+          { input: '3\n4', expectedOutput: '7\n104\n10' },
+          { input: '0\n0', expectedOutput: '0\n100\n0' },
+          { input: '-5\n12', expectedOutput: '7\n112\n2', isHidden: true },
+          { input: '250\n250', expectedOutput: '500\n350\n750', isHidden: true },
+        ],
+        difficulty: 'easy',
+        passingPoints: 60,
+      },
+    },
   },
   {
     unitCode: 'T_FUNCTIONS_PRACTICE',

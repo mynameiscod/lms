@@ -890,6 +890,75 @@ The obvious mistakes here are a mis-ordered chain and a boundary that excludes 1
           ['Wrap it in a try/except so a wrong branch cannot crash anything', false]],
         'Running first tells you what the program does. Predicting first tells you whether your model of it is right, which is the thing being trained.'),
     ],
+    assignment: {
+      title: 'Coding Assignment — Positive, Negative or Zero',
+      description: `Read a whole number and make two separate decisions about it: its sign, and whether it is even or odd.`,
+      instructions: `**Objective**
+
+Practise choosing the right shape of decision. One question here has three answers that exclude each
+other, which is an \`if / elif / else\` chain. The other is a separate question with two answers,
+which is its own \`if / else\` — not another branch of the first chain.
+
+**What the program must do**
+
+The starter reads one whole number into \`n\`. Print exactly two lines:
+
+1. \`positive\` if the number is greater than zero, \`negative\` if it is less than zero, or
+   \`zero\` if it is zero
+2. \`even\` if the number divides by 2 with nothing left over, otherwise \`odd\`
+
+**Examples**
+
+    input 7     prints   positive
+                         odd
+
+    input -4    prints   negative
+                         even
+
+    input 0     prints   zero
+                         even
+
+Zero is even. Negative numbers are even or odd in exactly the same way positive ones are.
+
+**Rules**
+
+- Every input must print exactly two lines, never one and never three.
+- Use \`%\` for the even/odd test.
+- Before running, trace 0, -1 and 12 through your code by hand and write down what each should print.
+
+**What to submit**
+
+One Python program, written in the editor, that reads the number and prints the two lines.
+
+**How it is graded**
+
+When you submit, your program is run against every test case — the examples above and a few more you
+cannot see — and scored on how many it passes. Output is compared line by line: spelling and capital
+letters matter, extra spaces do not. A reviewer grading by hand uses the rubric attached to this
+assignment.`,
+      rubric: [
+        { criterion: 'Correct output', description: 'Both lines are right for every test case, including zero and negative numbers.', maxPoints: 60 },
+        { criterion: 'Right decision shapes', description: 'The sign uses one if / elif / else chain; even or odd is a separate if / else, so exactly one line comes from each.', maxPoints: 30 },
+        { criterion: 'Readable', description: 'Conditions are written plainly and the code is laid out so each branch is easy to find.', maxPoints: 10 },
+      ],
+      totalPoints: 100,
+      coding: {
+        language: 'python',
+        starter: `n = int(input())
+
+# decide the sign, then decide even or odd
+`,
+        tests: [
+          { input: '7', expectedOutput: 'positive\nodd' },
+          { input: '-4', expectedOutput: 'negative\neven' },
+          { input: '0', expectedOutput: 'zero\neven' },
+          { input: '-1', expectedOutput: 'negative\nodd', isHidden: true },
+          { input: '12', expectedOutput: 'positive\neven', isHidden: true },
+        ],
+        difficulty: 'beginner',
+        passingPoints: 60,
+      },
+    },
   },
   {
     unitCode: 'T_CONDITIONS_MINI_PROJECT',

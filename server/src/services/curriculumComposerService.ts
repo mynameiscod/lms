@@ -75,6 +75,12 @@ export interface ComposableUnit {
   estimatedMinutes: number;
   /** Authored suitability. Absent means derived from unitType — see unitSuitabilityPolicy. */
   suitableStates?: AssignmentState[];
+  /**
+   * Whether this unit's TOPIC belongs to the mandatory Foundation backbone: a concept every Foundation learner is given
+   * meaningful coverage of, whatever their evidence says. Classified on the stage curriculum's topic by an admin and
+   * carried onto its units. Evidence decides how much of the topic a learner is given, never whether it is there.
+   */
+  backbone?: boolean;
 }
 
 /** What is known about one skill. Absent from the map entirely means never measured. */
@@ -286,8 +292,8 @@ export interface ComposerResult {
    */
   topicBlocks?: TopicBlockReport[];
   /**
-   * The course's structural requirements as they stood once history was accounted for, before the future was chosen.
-   * Today the programming spine; each topic's requirement is reaching its first practical boundary.
+   * The course's structural requirements as they stood once history was accounted for, before the future was chosen:
+   * every mandatory Foundation backbone topic, the programming spine among them, in course order.
    */
   structure?: StructuralRequirementReport[];
 }
@@ -295,17 +301,25 @@ export interface ComposerResult {
 /**
  * Where one structural requirement stands for this learner at the start of the future.
  *
- * COVERED_BY_FROZEN_PLAN: the learner was already given its boundary. RESOLVED_BY_EVIDENCE: under the composer's
- * current evidence semantics nothing on the path to it still needs scheduling for this learner — a statement about
- * TODAY's treatment, not a promise that the requirement never appears again. REQUIRES_FUTURE_COVERAGE: the future
- * must reach it.
+ * COVERED_BY_FROZEN_PLAN: what the learner has already been given meets it — its first practice, or, where evidence
+ * has carried them past teaching the topic, practical work in it. REQUIRES_FUTURE_COVERAGE: the future must teach it,
+ * up to its first practice. REQUIRES_COMPRESSED_COVERAGE: evidence has carried the learner past teaching it, and the
+ * future owes it one compact practical treatment — practice, a debugging exercise, a project, a review — rather than
+ * nothing. NO_SUITABLE_TREATMENT: no authored unit of the topic can be given to this learner at all; a content gap,
+ * reported, never silently resolved. RESOLVED_BY_EVIDENCE is how a requirement outside the backbone was once reported
+ * when evidence removed it; a backbone requirement is never resolved that way.
  */
-export type StructuralCoverage = 'COVERED_BY_FROZEN_PLAN' | 'RESOLVED_BY_EVIDENCE' | 'REQUIRES_FUTURE_COVERAGE';
+export type StructuralCoverage = 'COVERED_BY_FROZEN_PLAN' | 'RESOLVED_BY_EVIDENCE' | 'REQUIRES_FUTURE_COVERAGE'
+  | 'REQUIRES_COMPRESSED_COVERAGE' | 'NO_SUITABLE_TREATMENT';
 
 export interface StructuralRequirementReport {
   strand: CourseStrand;
   topicCode: string;
-  /** The practical unit that meets the requirement, or null when the topic has none this learner could be given. */
+  /**
+   * The unit that meets the requirement for this learner: the first practice for a learner still being taught, the
+   * compact treatment for one evidence has carried past teaching, the first practice when already covered. Null when
+   * the topic has nothing this learner could be given.
+   */
   boundary: string | null;
   coverage: StructuralCoverage;
   /**
@@ -931,6 +945,25 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   const moduleOfTopic = new Map(topicOrder.map(t => [t, topicUnits.get(t)![0].moduleCode]));
   const strandOfTopic = (topic: string): CourseStrand => strandOf(topic, moduleOfTopic.get(topic) || '');
 
+  /**
+   * THE MANDATORY FOUNDATION BACKBONE: THE REQUIREMENTS EVERY LEARNER'S NINETY DAYS MUST MEET.
+   *
+   * The programming spine was the course's only structural requirement, and evidence could resolve it: a beginner
+   * lost files, decomposition and pseudocode to capacity, and a learner who answered a few checkpoints right lost
+   * conditions, loops and functions altogether. Mandatory coverage is now universal and its depth is personal.
+   *
+   * Every backbone topic — classified by an admin on the stage curriculum — is a requirement, and so is every spine
+   * topic, in course order: strand by strand, each strand in its authored sequence. What a requirement asks of the
+   * plan is decided per learner below (`requirementFor`); that it is asked is not.
+   */
+  const requirementSequence = [...new Set([
+    ...spineSequence,
+    ...topicOrder.filter(t => topicUnits.get(t)!.some(u => u.backbone)),
+  ])].sort((a, b) => strandIndex(strandOfTopic(a)) - strandIndex(strandOfTopic(b))
+    || (sequenceIndexOf(a) ?? COURSE_STRANDS.length * 10) - (sequenceIndexOf(b) ?? COURSE_STRANDS.length * 10)
+    || (moduleOfTopic.get(a) || '').localeCompare(moduleOfTopic.get(b) || '')
+    || a.localeCompare(b));
+
   const blocks: TopicBlockReport[] = [];
   /** Unfinished blocks by topic, in the order they were opened. */
   const openBlocks = new Map<string, TopicBlockReport>();
@@ -988,7 +1021,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   /** True while history is replayed: what was given is taken exactly as it was, never substituted. */
   let replayingHistory = false;
   const take = (wanted: ComposableUnit, spendBudget: boolean) => {
-    const u = replayingHistory ? wanted : structuralOrder(wanted);
+    const u = replayingHistory ? wanted : structuralOrder(backboneOrder(wanted));
     readinessAtSelection.set(u.unitCode, readinessOf(u));
     selected.push(u);
     chosen.add(u.unitCode);
@@ -1147,14 +1180,20 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    * untouched the partial evidence puts it. Its role, depth, suitability and budget are its own: a GUIDED learner
    * still gets GUIDED instruction and less of it. A topic evidence has resolved is not on the reservation and is
    * ranked as before, and nothing is ever raised above FOUNDATION_REQUIRED or untouched material.
+   *
+   * THE SAME FOR A REQUIREMENT EVIDENCE HAS COMPRESSED. A learner measured REVISION or VERIFIED on a backbone topic
+   * still owes it one compact treatment, and that unit ranked with mastery — behind everything — reached the plan only
+   * when the deadline forced it, so a strong learner's fundamentals landed in the last fortnight. The unit that meets
+   * the requirement, and whatever its path still needs, competes as untouched material does; nothing else of the
+   * topic moves.
    */
   const priorityFor = (u: ComposableUnit): number[] => {
     const priority = priorityOf(u, stateOf.get(u.unitCode)!.state, student);
-    if (priority[0] <= STATE_ORDER.NOT_EXPOSED || priority[0] >= STATE_ORDER.LOCKED) return priority;
+    if (priority[0] <= STATE_ORDER.NOT_EXPOSED || priority[0] === STATE_ORDER.LOCKED || priority[0] >= STATE_ORDER.NOT_RELEVANT) return priority;
     spineReserve();
-    if (!spineNeeds.has(u.topicCode)) return priority;
-    const first = firstBoundary(u.topicCode)!;
-    if (first.unitCode !== u.unitCode && !closureOf(first.unitCode).has(u.unitCode)) return priority;
+    const target = requirementTarget.get(u.topicCode);
+    if (!target || !spineNeeds.has(u.topicCode)) return priority;
+    if (target.unitCode !== u.unitCode && !closureOf(target.unitCode).has(u.unitCode)) return priority;
     return [STATE_ORDER.NOT_EXPOSED, ...priority.slice(1)];
   };
 
@@ -1220,32 +1259,109 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    */
   let reserveAt = -1;
 
+  /**
+   * WHAT EACH BACKBONE REQUIREMENT ASKS OF THIS LEARNER'S PLAN — ITS DEPTH, NEVER ITS PRESENCE.
+   *
+   *   TEACHING     the path to the topic's first practice still holds lessons this learner needs: the requirement is
+   *                reaching that practice, and the lessons on the way are theirs at the depth their state earns — a
+   *                beginner every one, a GUIDED learner the guided ones.
+   *   COMPRESSED   evidence has carried them past every lesson on that path — known at STANDARD, outgrown at REVISION
+   *                and beyond. The requirement is ONE compact practical treatment of the topic this learner can be
+   *                given: its first practice where that still serves them, otherwise a debugging exercise, a project,
+   *                a review or a checkpoint, the earliest authored. Its own prerequisites still resolve as always.
+   *   covered      the first practice is already in the plan, or — for a learner past teaching the topic — practical
+   *                work in it is. Nothing is repeated.
+   *
+   * A topic with nothing at all this learner could be given is recorded as untreatable: a content gap, reported.
+   * Only measured Skill DNA decides which case applies, and it is never changed to make one apply.
+   */
+  const TREATMENT_ORDER: Partial<Record<LearningUnitType, number>> = { PRACTICE: 0, DEBUG: 1, PROJECT: 2, REVIEW: 3, CHECKPOINT: 4 };
+  const requirementTarget = new Map<string, ComposableUnit>();
+  const requirementCompressed = new Set<string>();
+  const requirementUntreatable = new Set<string>();
+  const requirementFor = (topic: string):
+    { unit: ComposableUnit; need: Map<CompositionRole, number>; compressed: boolean } | 'COVERED' | 'UNTREATABLE' => {
+    const first = firstBoundary(topic);
+    if (first && chosen.has(first.unitCode)) return 'COVERED';
+    const units = topicUnits.get(topic)!;
+    const practical = (u: ComposableUnit) => !isInstructionalRole(roleOf.get(u.unitCode)!);
+    // Already given compactly — practical work in the topic with no lessons — in the frozen days: covered, whatever
+    // the evidence says now. Weaker evidence since may earn more of the topic where the plan has room; it does not
+    // un-cover what was completed.
+    if (units.some(u => historySet.has(u.unitCode) && practical(u)) && !units.some(u => historySet.has(u.unitCode) && !practical(u))) {
+      return 'COVERED';
+    }
+    // Whether EVIDENCE leaves this learner lessons to be taught on the way to the first practice — asked of measured
+    // Skill DNA alone, not of what the plan has since taught, so a learner who was taught the lessons still owes the
+    // practice they lead to, and is not excused it by a debugging exercise on the way.
+    if (first && attainable.has(first.unitCode) && teachingOwed(first)) return { unit: first, need: pathNeeds(first), compressed: false };
+    if (units.some(u => chosen.has(u.unitCode) && practical(u))) return 'COVERED';
+    const options = units
+      .filter(u => TREATMENT_ORDER[u.unitType] !== undefined && !chosen.has(u.unitCode) && !isKnownLesson(u)
+        && isSuitableFor(u, schedulingReadiness(stateOf.get(u.unitCode)!.state, FULLY_TAUGHT).equivalentState))
+      .sort((a, b) => (a === first ? -1 : b === first ? 1 : 0)
+        || TREATMENT_ORDER[a.unitType]! - TREATMENT_ORDER[b.unitType]!
+        || a.displayOrder - b.displayOrder || a.unitCode.localeCompare(b.unitCode));
+    for (const u of options) {
+      const need = pathNeeds(u);
+      if (need.size && !elementaryOnPath(u)) return { unit: u, need, compressed: true };
+    }
+    return 'UNTREATABLE';
+  };
+  const teachingOwed = (target: ComposableUnit): boolean => [target.unitCode, ...closureOf(target.unitCode)].some(code => {
+    const x = byCode.get(code);
+    return !!x && isInstructionalRole(roleOf.get(code)!) && !isKnownLesson(x) && !outgrownBy(code)
+      && isSuitableFor(x, schedulingReadiness(stateOf.get(code)!.state, FULLY_TAUGHT).equivalentState);
+  });
+  /**
+   * Does the path to this unit still hold a lesson that only teaches the basics? A lesson whose author wrote that it
+   * serves this learner's measured state — an edge-cases lesson written for the VERIFIED as much as the new — is not
+   * elementary, and may sit on a compressed path; one that suits them only by its type's default is.
+   */
+  const elementaryOnPath = (u: ComposableUnit): boolean => {
+    for (const code of [u.unitCode, ...closureOf(u.unitCode)]) {
+      const x = byCode.get(code);
+      if (!x || chosen.has(code) || isKnownLesson(x) || outgrownBy(code) || !isInstructionalRole(roleOf.get(code)!)) continue;
+      const state = stateOf.get(code)!.state;
+      if (!isSuitableFor(x, schedulingReadiness(state, FULLY_TAUGHT).equivalentState)) continue;
+      if (!(x.suitableStates || []).includes(state) || !EVIDENCE_BEYOND_TEACHING.includes(state)) return true;
+    }
+    return false;
+  };
+
   const spineNeeds = new Map<string, Map<CompositionRole, number>>();
   const spineReserve = (): void => {
     if (reserveAt !== selected.length) {
       reserveAt = selected.length;
       spineNeeds.clear();
-      for (const topic of spineSequence) {
-        const first = firstBoundary(topic);
-        if (!first || chosen.has(first.unitCode) || !attainable.has(first.unitCode)) continue;
-        const need = pathNeeds(first);
-        // Resolved by evidence: nothing on the path still needs teaching, so nothing is held for it.
-        if (![...need.keys()].some(role => isInstructionalRole(role))) continue;
-        spineNeeds.set(topic, need);
+      requirementTarget.clear();
+      requirementCompressed.clear();
+      requirementUntreatable.clear();
+      for (const topic of requirementSequence) {
+        const req = requirementFor(topic);
+        if (req === 'COVERED') continue;
+        if (req === 'UNTREATABLE') { requirementUntreatable.add(topic); continue; }
+        requirementTarget.set(topic, req.unit);
+        if (req.compressed) requirementCompressed.add(topic);
+        spineNeeds.set(topic, req.need);
       }
     }
   };
+  /** Is this unit the one that meets a requirement still owed, or on the path to it? */
+  const onRequirementPath = (u: ComposableUnit, topic: string): boolean => {
+    const target = requirementTarget.get(topic);
+    return !!target && (target.unitCode === u.unitCode || closureOf(target.unitCode).has(u.unitCode));
+  };
   /**
-   * Taking this practical unit leaves the unresolved spine's share of its role untouched. A unit that is itself on a
-   * spine topic's first-practice path always may; so may anything when the spine is resolved or not owed that role.
+   * Taking this practical unit leaves the owed requirements' share of its role untouched. A unit that is itself on a
+   * requirement's path always may; so may anything when nothing is owed that role.
    */
   const leavesSpineRoom = (u: ComposableUnit): boolean => {
     spineReserve();
     const role = roleOf.get(u.unitCode)!;
     let held = 0;
     for (const [topic, needs] of spineNeeds) {
-      const first = firstBoundary(topic)!;
-      if (first.unitCode === u.unitCode || closureOf(first.unitCode).has(u.unitCode)) return true;
+      if (onRequirementPath(u, topic)) return true;
       held += needs.get(role) || 0;
     }
     return (budget.get(role) || 0) - held >= 1;
@@ -1268,11 +1384,19 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   const onSpinePath = (u: ComposableUnit): boolean => {
     spineReserve();
     for (const topic of spineNeeds.keys()) {
-      const first = firstBoundary(topic)!;
-      if (first.unitCode === u.unitCode || closureOf(first.unitCode).has(u.unitCode)) return true;
+      if (onRequirementPath(u, topic)) return true;
     }
     return false;
   };
+  /**
+   * A step on the path to a requirement still owed may go past its role's allocation, as a pull always could.
+   *
+   * An allocation is a target for the shape of a plan, not a ration of the backbone. A beginner's foundation target is
+   * 24 and the backbone's foundation lessons are 38, so with every backbone step waiting on that budget the remaining
+   * topics reached the plan only when the deadline forced them — decomposition and pseudocode on days 78 to 90. The
+   * backbone now proceeds in course order; the allocation still shapes everything else, and every other rule binds.
+   */
+  const owedRequirementStep = (u: ComposableUnit): boolean => onSpinePath(u);
   const spineHeld = (role: CompositionRole): number => {
     spineReserve();
     let held = 0;
@@ -1297,11 +1421,11 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     // its first practice, only what the topics BEFORE it still need: an earlier topic is never made to wait for a later
     // one's share. A spine topic's LATER boundary is not that path — it holds the unresolved spine like anything else,
     // or variables' second practice spends what conditions, loops and functions were promised.
-    const position = spineNeeds.has(target.topicCode) && firstBoundary(target.topicCode)?.unitCode === target.unitCode
-      ? spineSequence.indexOf(target.topicCode) : -1;
+    const position = spineNeeds.has(target.topicCode) && requirementTarget.get(target.topicCode)?.unitCode === target.unitCode
+      ? requirementSequence.indexOf(target.topicCode) : -1;
     const held = new Map<CompositionRole, number>();
     for (const [topic, needs] of spineNeeds) {
-      if (!holdSpine || (position >= 0 && spineSequence.indexOf(topic) >= position)) continue;
+      if (!holdSpine || (position >= 0 && requirementSequence.indexOf(topic) >= position)) continue;
       for (const [role, n] of needs) held.set(role, (held.get(role) || 0) + n);
     }
     return [...need].every(([role, n]) => (budget.get(role) || 0) - (held.get(role) || 0) >= n)
@@ -1331,7 +1455,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   ): ComposableUnit | undefined => {
     const ok = (x: ComposableUnit) => !chosen.has(x.unitCode) && suitableNow(x) && readyToTake(x)
       && (openBlock || withinBreadthOf(x, floor))
-      && (!needBudget || (budget.get(roleOf.get(x.unitCode)!) || 0) > 0);
+      && (!needBudget || (budget.get(roleOf.get(x.unitCode)!) || 0) > 0 || owedRequirementStep(x));
     if (ok(target)) return target;
     let best: ComposableUnit | undefined;
     for (const code of closureOf(target.unitCode)) {
@@ -1432,7 +1556,10 @@ export function composeUnits(input: ComposerInput): ComposerResult {
         if (!step || !isInstructionalRole(roleOf.get(step.unitCode)!) || !accept(step, target)) continue;
         // A block is opened to be finished: off the spine's path, its whole path must fit beside the reservation.
         if (reserving && (spendsSpineReserve(step)
-          || (!onSpinePath(step) && !pathFits(target) && pathFits(target, false)))) continue;
+          || (!onSpinePath(step) && !pathFits(target) && pathFits(target, false))
+          // Nor may it open a block its whole path could not finish beside the backbone and the floors still owed:
+          // six web lessons opened on day nine and never practised cost a thin-evidence learner a guided floor.
+          || (!onSpinePath(step) && !fitsBesideOwed(target, roleOf.get(target.unitCode)!)))) continue;
         const key = openingKey(topic, step, target);
         if (!found || compareArrays(key, found.key) < 0) found = { step, target, key };
       }
@@ -1461,16 +1588,18 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    * composer holds capacity by, so the report and the behaviour cannot disagree.
    */
   spineReserve();
-  const structure: StructuralRequirementReport[] = spineSequence.map(topic => {
-    const boundary = firstBoundary(topic);
-    // Still owed teaching (the reservation holds it), or begun in history and not yet brought to its boundary.
-    const begun = !!boundary && [...closureOf(boundary.unitCode)].some(c => chosen.has(c));
-    const coverage: StructuralCoverage = boundary && chosen.has(boundary.unitCode) ? 'COVERED_BY_FROZEN_PLAN'
-      : spineNeeds.has(topic) || (begun && attainable.has(boundary!.unitCode)) ? 'REQUIRES_FUTURE_COVERAGE'
-        : 'RESOLVED_BY_EVIDENCE';
-    const measured = boundary ? STATE_ORDER[stateOf.get(boundary.unitCode)!.state] : STATE_ORDER.NOT_EXPOSED;
-    const sequencingRank = measured > STATE_ORDER.NOT_EXPOSED && measured < STATE_ORDER.LOCKED ? STATE_ORDER.NOT_EXPOSED : measured;
-    return { strand: SPINE_STRAND, topicCode: topic, boundary: boundary?.unitCode ?? null, coverage, sequencingRank };
+  const structure: StructuralRequirementReport[] = requirementSequence.map(topic => {
+    const target = requirementTarget.get(topic);
+    // Covered: the unit that covered it — the first practice, or the practical work evidence made enough.
+    const first = firstBoundary(topic);
+    const covering = first && chosen.has(first.unitCode) ? first
+      : selected.find(u => u.topicCode === topic && !isInstructionalRole(roleOf.get(u.unitCode)!));
+    const boundary = target ?? (requirementUntreatable.has(topic) ? undefined : covering ?? first);
+    const coverage: StructuralCoverage = requirementUntreatable.has(topic) ? 'NO_SUITABLE_TREATMENT'
+      : !target ? 'COVERED_BY_FROZEN_PLAN'
+        : requirementCompressed.has(topic) ? 'REQUIRES_COMPRESSED_COVERAGE'
+          : 'REQUIRES_FUTURE_COVERAGE';
+    return { strand: strandOfTopic(topic), topicCode: topic, boundary: boundary?.unitCode ?? null, coverage, sequencingRank: structuralRank(topic) };
   });
 
   /**
@@ -1496,25 +1625,57 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    * still decides: a later requirement the learner's evidence ranks strictly ahead (a weak area measured
    * FOUNDATION_REQUIRED) keeps its place, as it does when topics are opened.
    */
-  const structuralRank = (topic: string): number => {
+  function structuralRank(topic: string): number {
     const b = firstBoundary(topic);
     const measured = b ? STATE_ORDER[stateOf.get(b.unitCode)!.state] : STATE_ORDER.NOT_EXPOSED;
-    return measured > STATE_ORDER.NOT_EXPOSED && measured < STATE_ORDER.LOCKED ? STATE_ORDER.NOT_EXPOSED : measured;
-  };
+    // Measurement ranks a requirement ahead only when it is a measured gap; partial or strong evidence walks the
+    // course in its authored order like untouched material, so a compressed topic keeps its place in the sequence.
+    return measured > STATE_ORDER.NOT_EXPOSED && measured !== STATE_ORDER.LOCKED ? STATE_ORDER.NOT_EXPOSED : measured;
+  }
   const structurallyOwed = (topic: string): ComposableUnit | undefined => {
-    const b = firstBoundary(topic);
-    if (!b || chosen.has(b.unitCode) || !attainable.has(b.unitCode)) return undefined;
-    return spineNeeds.has(topic) || [...closureOf(b.unitCode)].some(c => chosen.has(c)) ? b : undefined;
+    spineReserve();
+    return requirementTarget.get(topic);
+  };
+  /**
+   * The requirements authored BEFORE this topic in its own strand's sequence — variables before conditions, hardware
+   * before files. Strands interleave freely; within one, a compressed or taught requirement keeps its order.
+   */
+  const earlierInStrand = (topic: string): string[] => {
+    const sequence = COURSE_STRANDS.find(s => s.sequence.includes(topic))?.sequence || [];
+    return sequence.slice(0, sequence.indexOf(topic)).filter(t => requirementSequence.includes(t));
   };
   const structuralOrder = (u: ComposableUnit): ComposableUnit => {
-    const position = spineSequence.indexOf(u.topicCode);
-    if (position <= 0) return u;
-    const own = firstBoundary(u.topicCode);
-    if (!own || chosen.has(own.unitCode) || (own.unitCode !== u.unitCode && !closureOf(own.unitCode).has(u.unitCode))) return u;
+    const earlier = earlierInStrand(u.topicCode);
+    if (!earlier.length) return u;
     spineReserve();
-    for (const earlier of spineSequence.slice(0, position)) {
-      const boundary = structurallyOwed(earlier);
-      if (!boundary || structuralRank(u.topicCode) < structuralRank(earlier)) continue;
+    // A unit of a later topic — its lessons, its practice, a project built on it — waits for an earlier requirement
+    // still owed. A later topic already covered or with nothing owed is not held back once its own requirement is met
+    // unless something earlier is still missing.
+    for (const prior of earlier) {
+      const boundary = structurallyOwed(prior);
+      if (!boundary || structuralRank(u.topicCode) < structuralRank(prior)) continue;
+      const step = stepTowards(boundary, null, false, true);
+      if (step) return step;
+    }
+    return u;
+  };
+  /**
+   * A BACKBONE TOPIC IS NOT OPENED AHEAD OF AN EARLIER ONE STILL TO BE TAUGHT.
+   *
+   * Strands interleave, but the backbone is one course: computing, then thinking, then programming, then tools, then
+   * data. A developing learner's plan opened Git and SQL while files, decomposition and pseudocode were still owed
+   * their lessons, and the deadline then crammed those three into days 73 to 90. So the lesson that would open a later
+   * requirement is exchanged for the next step of the earliest requirement still owed teaching — unless measurement
+   * ranks the later one strictly ahead, a gap measured FOUNDATION_REQUIRED opening first as it always has.
+   */
+  const backboneOrder = (u: ComposableUnit): ComposableUnit => {
+    const position = requirementSequence.indexOf(u.topicCode);
+    if (position <= 0 || !isInstructionalRole(roleOf.get(u.unitCode)!)) return u;
+    if (topicUnits.get(u.topicCode)!.some(x => chosen.has(x.unitCode))) return u;
+    spineReserve();
+    for (const prior of requirementSequence.slice(0, position)) {
+      const boundary = requirementTarget.get(prior);
+      if (!boundary || requirementCompressed.has(prior) || structuralRank(u.topicCode) < structuralRank(prior)) continue;
       const step = stepTowards(boundary, null, false, true);
       if (step) return step;
     }
@@ -1522,7 +1683,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   };
   const structuralDue = (floor: number | null): ComposableUnit | undefined => {
     spineReserve();
-    const owed = spineSequence
+    const owed = requirementSequence
       .map(topic => ({ topic, boundary: structurallyOwed(topic) }))
       .filter(({ boundary }) => boundary);
     if (!owed.length) return undefined;
@@ -1533,6 +1694,71 @@ export function composeUnits(input: ComposerInput): ComposerResult {
       if (step) return step;
     }
     return undefined;
+  };
+
+  /**
+   * A COMPRESSED REQUIREMENT IS A DAY, AND IT COMES FIRST.
+   *
+   * A learner evidence has carried past teaching a backbone topic owes it one compact treatment. Left to the rotation,
+   * those treatments competed with direction blocks for their role's turn, and a strong learner met hardware and files
+   * on days 78 and 79 of a journey that had already spent two months on advanced work. The compressed backbone is
+   * short by construction, so it is given in course order as soon as each unit can be taken — the fundamentals in a
+   * compact opening, and every day after it for what the evidence has earned. Taught requirements keep their blocks.
+   */
+  const compressedDue = (floor: number | null): ComposableUnit | undefined => {
+    spineReserve();
+    for (const topic of requirementSequence) {
+      if (!requirementCompressed.has(topic)) continue;
+      // Never ahead of an earlier requirement in its own strand still owed: loops practice does not come before the
+      // conditions lessons a reassessment left owed, however well loops was measured.
+      if (earlierInStrand(topic).some(prior => requirementTarget.has(prior) && structuralRank(topic) >= structuralRank(prior))) continue;
+      const step = stepTowards(requirementTarget.get(topic)!, floor, false, true);
+      if (step) return step;
+    }
+    return undefined;
+  };
+
+  /**
+   * CAPACITY IS TIGHT WHEN THE DAYS LEFT ONLY JUST COVER WHAT IS OWED.
+   *
+   * What is owed is the backbone still to come and every floor it will not meet itself. Once the days left are no
+   * more than that, a block serving neither — six AI-literacy lessons for a beginner whose guided floor was already
+   * met — is not continued, or the exploration floor is the one that never gets a turn.
+   */
+  const capacityTight = (): { tight: boolean; gapRoles: Set<CompositionRole> } => {
+    spineReserve();
+    let owed = 0;
+    for (const needs of spineNeeds.values()) for (const n of needs.values()) owed += n;
+    const gapRoles = new Set<CompositionRole>();
+    for (const a of allocation) {
+      const gap = a.min - (roleCount.get(a.role) || 0) - spineHeld(a.role);
+      if (gap > 0) { owed += gap; gapRoles.add(a.role); }
+    }
+    return { tight: targetUnits - selected.length <= owed, gapRoles };
+  };
+
+  /**
+   * Can a promise for this role be kept beside everything else still owed? Its chain costs only the units no owed
+   * requirement's path would teach anyway; what else is owed is the backbone to come and every other floor it will not
+   * meet. A web learner's project floor otherwise pulled a seven-unit forms chain on day eight, and the deadline then
+   * took every remaining day for the backbone — no project, no checkpoint, and six forms lessons never practised.
+   */
+  const fitsBesideOwed = (u: ComposableUnit, role: CompositionRole): boolean => {
+    spineReserve();
+    let owed = 0;
+    for (const needs of spineNeeds.values()) for (const n of needs.values()) owed += n;
+    for (const a of allocation) {
+      // This promise keeps one unit of its own floor; the rest of that floor is still owed beside it.
+      owed += Math.max(0, a.min - (roleCount.get(a.role) || 0) - spineHeld(a.role) - (a.role === role ? 1 : 0));
+    }
+    let chain = 0;
+    for (const code of [u.unitCode, ...closureOf(u.unitCode)]) {
+      const x = byCode.get(code);
+      if (!x || chosen.has(code) || isKnownLesson(x) || outgrownBy(code) || onSpinePath(x)) continue;
+      if (!isSuitableFor(x, schedulingReadiness(stateOf.get(code)!.state, FULLY_TAUGHT).equivalentState)) continue;
+      chain++;
+    }
+    return chain + owed <= targetUnits - selected.length;
   };
 
   /* ---- 4a. keep the promises first ---------------------------------- */
@@ -1578,11 +1804,15 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   let guard = 0;
   while (guard++ <= targetUnits * 4 && selected.length < targetUnits) {
     const floor = breadthFloor();
-    const due = structuralDue(floor);
+    const due = structuralDue(floor) ?? compressedDue(floor);
     if (due) { asPrerequisite.add(due.unitCode); take(due, true); continue; }
 
+    /**
+     * A floor the owed backbone will meet is not chased. A beginner's practice, debugging and guided floors are met by
+     * the backbone's own path, and chasing them first spent the days the exploration and verification floors needed.
+     */
     const shortfall = (a: RoleAllocation) => {
-      const have = roleCount.get(a.role) || 0;
+      const have = (roleCount.get(a.role) || 0) + spineHeld(a.role);
       return a.min > 0 && have < a.min ? (a.min - have) / a.min : 0;
     };
 
@@ -1602,7 +1832,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
      * role that has had fewer.
      */
     const turnShortfall = (a: RoleAllocation) =>
-      (a.min - (roleCount.get(a.role) || 0) - (pullTurns.get(a.role) || 0)) / a.min;
+      (a.min - (roleCount.get(a.role) || 0) - spineHeld(a.role) - (pullTurns.get(a.role) || 0)) / a.min;
 
     const behind = allocation
       .filter(a => shortfall(a) > 0)
@@ -1625,7 +1855,13 @@ export function composeUnits(input: ComposerInput): ComposerResult {
       && roleOf.get(u.unitCode) === b.role && withinBreadthOf(u, floor) && suitableNow(u) && readyToTake(u)));
     const continued = blockContinuation(floor);
     const sampling = continued && ['DIRECTION_LEARNING', 'EXPLORATION'].includes(roleOf.get(continued.unitCode)!);
-    if (continued && (!sampling || owedRoles.has(roleOf.get(continued.unitCode)!) || !practicalNow)) { take(continued, true); continue; }
+    const capacity = capacityTight();
+    // A block taught to keep a floor promise serves that floor while it is still owed, whatever its own lessons' role.
+    const promisedFor = continued ? openBlocks.get(continued.topicCode)?.promisedFor : undefined;
+    const servesWhatIsOwed = !!continued
+      && (!capacity.tight || onSpinePath(continued) || capacity.gapRoles.has(roleOf.get(continued.unitCode)!)
+        || (!!promisedFor && capacity.gapRoles.has(promisedFor)));
+    if (continued && servesWhatIsOwed && (!sampling || owedRoles.has(roleOf.get(continued.unitCode)!) || !practicalNow)) { take(continued, true); continue; }
 
     /**
      * TEACH, PRACTISE, THEN USE IT — BEFORE MOVING ON.
@@ -1752,8 +1988,12 @@ export function composeUnits(input: ComposerInput): ComposerResult {
         return !opensOutOfOrder(step) && (!boundary || pathFits(boundary));
       };
       spineReserve();
-      const aspirant = (spineNeeds.size ? ranked.find(u => aspires(u) && finishable(u) && pullFits(u)) : undefined)
-        ?? (rankAspirant && !finishable(rankAspirant)
+      // While backbone is owed, a floor is only pulled for through a chain that fits beside everything else owed. When
+      // none fits yet the floor waits: a one-day project on a topic the backbone is teaching becomes takeable later,
+      // and a chain pulled regardless is a block of lessons the plan cannot finish.
+      const aspirant = spineNeeds.size
+        ? ranked.find(u => aspires(u) && finishable(u) && pullFits(u) && fitsBesideOwed(u, a.role))
+        : (rankAspirant && !finishable(rankAspirant)
           ? ranked.find(u => aspires(u) && finishable(u)) ?? rankAspirant
           : rankAspirant);
 
@@ -1776,11 +2016,11 @@ export function composeUnits(input: ComposerInput): ComposerResult {
 
   while (selected.length < targetUnits) {
     const floor = breadthFloor();
-    const due = structuralDue(floor);
+    const due = structuralDue(floor) ?? compressedDue(floor);
     if (due) { asPrerequisite.add(due.unitCode); take(due, true); continue; }
     const affordable = (u: ComposableUnit) =>
       !chosen.has(u.unitCode)
-      && (budget.get(roleOf.get(u.unitCode)!) || 0) > 0
+      && ((budget.get(roleOf.get(u.unitCode)!) || 0) > 0 || owedRequirementStep(u))
       && withinBreadthOf(u, floor);
 
     /**

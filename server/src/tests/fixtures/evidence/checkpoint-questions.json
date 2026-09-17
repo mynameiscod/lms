@@ -1,0 +1,7587 @@
+{
+ "description": "Checkpoint questions on the certified Foundation units, as the quiz→Skill DNA bridge projects them: the question id, its PRIMARY skill mapping (null when unmapped), difficulty, marks and option count. No answer or option text. Read-only export for the evidence calibration audit.",
+ "source": "tenant 6aa9390649fae12e6a01264e",
+ "secondaryMappings": 0,
+ "units": [
+  {
+   "unitCode": "T_ACCESSIBILITY_CONTRAST_AND_TEXT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "cdaa74fa29fe82ba29c17a15",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "319d8fb5091325d16173dc92",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ACCESSIBILITY_KEYBOARD",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "4f47b963c0ade63e280aad5d",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "0afeb4788530098635b27734",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ACCESSIBILITY_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "a5997b030c5c7e28bb74491b",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "9a20dd72062cee88672b607d",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ACCESSIBILITY_SCREEN_READERS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "3e275c070fa2df20c521152f",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "5228397e1ac495428415bf62",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ACCESSIBILITY_SEMANTICS_FIRST",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0568bfcd1aac7f247bb094ca",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "40d74dae5c323b3cbe7816f4",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ACCESSIBILITY_TESTING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d77f258f11276491ffda0cf1",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "64e84fe4a31120070460c165",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ACCESSIBILITY_WHO_IT_IS_FOR",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "a76eecc2db7307a3487d9c7b",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "db60961aad812e16e24c8953",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_AI_CODING_COMMON_FAULTS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c9418402166184ae44df3b65",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d34ab998f6e0662ec56d7abc",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d879dab22822a41ed27cc98c",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_AI_CODING_OWNERSHIP",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d1e0bbb32dc16bda2ef504be",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "085531f835846664af7cce27",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "666b228d978c10acf2aec860",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_AI_CODING_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "6f9e1c60cd4d37046d788162",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "598b50391a7f0f401d8b6987",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d71a2d48c73fcc6a37a8fd19",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_AI_CODING_READING_IT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "ff1ad1e7d0ded3c8f2ee7b2b",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "485b5cecd99b23cdaae22b6c",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "16cb06e03acfb493740a03ae",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_AI_CODING_TESTING_IT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "f2f3a57168b149542e230118",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d6f590dd2cd69916b3df4fbf",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "37fa19075b09998365e2379a",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_AI_CODING_WHAT_IT_IS_GOOD_AT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "848007125a1e5090fbe1a142",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "23182b7f7160c6b738b78ad2",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "2ec2ce10dc93bb90022cc8d1",
+     "skillKey": "AI_ASSISTED_CODING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_AI_LITERACY_CLEAR_INSTRUCTIONS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "7f6217f64ee4ca5f59fe0066",
+     "skillKey": "PROMPT_ENGINEERING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e14f5e7b74d85f34a99fb585",
+     "skillKey": "PROMPT_ENGINEERING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a89d2fcf3c82b55bcdbef7b4",
+     "skillKey": "AI_RESPONSIBLE_USE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_AI_LITERACY_CONTEXT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "2f7413d75a4759bd3d69380a",
+     "skillKey": "PROMPT_ENGINEERING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d2b0397a7ce8af324ac647fa",
+     "skillKey": "AI_RESPONSIBLE_USE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e9bf91c43a912e8f55c4c935",
+     "skillKey": "AI_RESPONSIBLE_USE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_AI_LITERACY_EXAMPLES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "46d981412244044f9453f139",
+     "skillKey": "PROMPT_ENGINEERING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f29f12151eae366a172e78ab",
+     "skillKey": "PROMPT_ENGINEERING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "cfe984e28546314152e7de88",
+     "skillKey": "AI_RESPONSIBLE_USE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_AI_LITERACY_HONESTY",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "1c199fd00261ac79ca024906",
+     "skillKey": "AI_RESPONSIBLE_USE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c7e84d16dd889bba1979febc",
+     "skillKey": "PROMPT_ENGINEERING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b50aa7500bab018460ac59cb",
+     "skillKey": "AI_RESPONSIBLE_USE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_AI_LITERACY_ITERATING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "46d7744ea4af095e26e22991",
+     "skillKey": "PROMPT_ENGINEERING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c56d493ea65cdb0b873adce5",
+     "skillKey": "PROMPT_ENGINEERING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ced878e55ef5caa6d762d94b",
+     "skillKey": "AI_RESPONSIBLE_USE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_AI_LITERACY_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "af2e82c2af4e4f9760a200e3",
+     "skillKey": "PROMPT_ENGINEERING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7754237b4c44751e0d9274fc",
+     "skillKey": "AI_RESPONSIBLE_USE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1a33af93e7c0ee674b449c42",
+     "skillKey": "AI_RESPONSIBLE_USE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_AI_LITERACY_PRIVACY",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0addeadceaed92cfd3e71af8",
+     "skillKey": "AI_RESPONSIBLE_USE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a194a62ef456905d2207f130",
+     "skillKey": "PROMPT_ENGINEERING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d0336b5ee8a423a48bf83bd6",
+     "skillKey": "AI_RESPONSIBLE_USE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_AI_LITERACY_VERIFYING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "b08c07f8c45f0a9c4ad4a509",
+     "skillKey": "AI_RESPONSIBLE_USE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "0f25e0bab467b74adb5a1690",
+     "skillKey": "PROMPT_ENGINEERING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ce234791681e71d90bd6c90a",
+     "skillKey": "AI_RESPONSIBLE_USE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_DATA_AVERAGES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "1932d2d4c47f8985128f3fe2",
+     "skillKey": "APTITUDE_DATA_INTERPRETATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "02cb8a8ce31ebb98e8380c61",
+     "skillKey": "APTITUDE_DATA_INTERPRETATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ea0891f3c2de6614b6a43c7a",
+     "skillKey": "PATTERN_RECOGNITION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_DATA_CHARTS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "058d4d4ba224b79ee4e2f26a",
+     "skillKey": "APTITUDE_DATA_INTERPRETATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ac09726b7630dd7a4c00119e",
+     "skillKey": "APTITUDE_DATA_INTERPRETATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e4d6c7d880cd3f0c3326e9cf",
+     "skillKey": "PATTERN_RECOGNITION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_DATA_PERCENTAGES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "50587ad52022a820ca3a7809",
+     "skillKey": "APTITUDE_DATA_INTERPRETATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "82bcf4a33c5cdd5f32cc9452",
+     "skillKey": "APTITUDE_DATA_INTERPRETATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f6b9505d31d94502804bae9f",
+     "skillKey": "PATTERN_RECOGNITION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_DATA_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0ce162241344ae0eebaa3391",
+     "skillKey": "APTITUDE_DATA_INTERPRETATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "00d394591c5d3d11f8448122",
+     "skillKey": "PATTERN_RECOGNITION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "676971211d1c5e1a371e5e24",
+     "skillKey": "APTITUDE_DATA_INTERPRETATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_DATA_RATIOS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "b90647eceb96ffd9d964e738",
+     "skillKey": "APTITUDE_DATA_INTERPRETATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "692f1f7923795078b9b9456b",
+     "skillKey": "APTITUDE_DATA_INTERPRETATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "385ad2a6303c35cc5619a089",
+     "skillKey": "PATTERN_RECOGNITION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_DATA_READING_TABLES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "2f5fd1630cc80a8788e9da8b",
+     "skillKey": "APTITUDE_DATA_INTERPRETATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "07fa1a11fa77a4c6d202f08f",
+     "skillKey": "PATTERN_RECOGNITION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "2e5894292c313c836443f6e7",
+     "skillKey": "APTITUDE_DATA_INTERPRETATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_DATA_SPEED_TECHNIQUES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "1b9fcd5a94f89e41679df729",
+     "skillKey": "PATTERN_RECOGNITION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "03c30341f649bf8d6d80f281",
+     "skillKey": "APTITUDE_DATA_INTERPRETATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a081139d3ea5bc1adcdee235",
+     "skillKey": "PATTERN_RECOGNITION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_REASONING_ANALOGIES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "be43568269f40fc1b7115707",
+     "skillKey": "APTITUDE_REASONING_SERIES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1d594b36e375e7a7f2f52bfa",
+     "skillKey": "APTITUDE_REASONING_SERIES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "180f4f6698416d29b3fc0500",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_REASONING_BLOOD_RELATIONS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "146f5430e72f25474b8b30aa",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "6af31afc26ef26448eed5540",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "5d1491c8b171ceafed8337f8",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_REASONING_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "500a944f14e1e3aa532df4c0",
+     "skillKey": "APTITUDE_REASONING_SERIES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f5d4774b39429d1e6d23b6d3",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "138d35348481e60bf03c4463",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_REASONING_DIRECTIONS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d178e526180c0eb6a09f4fe7",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4dff21cc0a0679b74cb70327",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1d4e97c1776e9a0042821afe",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_REASONING_LETTER_SERIES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "49ff7561b1a88a13c7a8a80d",
+     "skillKey": "APTITUDE_REASONING_SERIES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e14972e04cadaf5d4ed5bd46",
+     "skillKey": "APTITUDE_REASONING_SERIES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a8b1ba91c6af7725d6f7a459",
+     "skillKey": "APTITUDE_REASONING_SERIES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_REASONING_NUMBER_SERIES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c9117948be7758fd1807f7dd",
+     "skillKey": "APTITUDE_REASONING_SERIES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "725928ec34a5b4f1db5d1a74",
+     "skillKey": "APTITUDE_REASONING_SERIES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c311257ea00cf90991ae3284",
+     "skillKey": "APTITUDE_REASONING_SERIES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_REASONING_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "16d87ab3238c4a23221ae6ec",
+     "skillKey": "APTITUDE_REASONING_SERIES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "053a3b7332ef140d9608f6be",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8bc2f21ddd15736477a83644",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_REASONING_SEATING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "f2db0f3271917e7384170eaf",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a052ae7bc453af4e11635d69",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f9da2fd2b3ec7e04087c32f0",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_APTITUDE_REASONING_SYLLOGISMS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "21975f9c6cfcca082605ee60",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "0f0df95217c74d531bb2a293",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "93578619cfe9f3bc90f24388",
+     "skillKey": "APTITUDE_REASONING_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ARRAYS_BINARY_SEARCH",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "82f0d5db9b2e6909d52b3e22",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "dde70a60cbd3e81631de65e3",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ARRAYS_COMPLEXITY",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "344f2b9ffd1ac036609bf87f",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f294084ee208383170dfba6b",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ARRAYS_COMPLEXITY_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "868d4c1cdb1079545c5ad2fd",
+     "skillKey": "DSA_ARRAYS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "549f75c195749e944fac0f60",
+     "skillKey": "DSA_ARRAYS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4dfb237efa682b137be9daf7",
+     "skillKey": "DSA_ARRAYS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ARRAYS_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "6fc73565ab7cc96f29cc0d7a",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "538e577e48475e83fdee70a8",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ARRAYS_INSERT_DELETE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d81f8966dcdce7aae50d4187",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "65ba02b6ec791c1258d2d6f8",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ARRAYS_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "bcd68ea4b4a74aa9f6e2e2c6",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "468bce7203cdb8912bfae425",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ARRAYS_SEARCHING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "fdec004623155c2c22cfd9c9",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "45ae918435bd7fa0653f5d10",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ARRAYS_STRING_BASICS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "312bb0b5888f3cc6affe6575",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1c6859a8d82fcecbc1129b6c",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ARRAYS_STRING_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "31675a05e367522a41328f5b",
+     "skillKey": "DSA_STRINGS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ec88ee1303efa11aedb12961",
+     "skillKey": "DSA_STRINGS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8ded699b970d9e9984296553",
+     "skillKey": "DSA_STRINGS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ARRAYS_STRING_PROBLEMS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "7dd7e54ee9ddcfcac3be49bf",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "aa39b2730d6e3e3545a9b8d7",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ARRAYS_TRAVERSAL",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e24fa5aa83efa4630dc15cce",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "0e6631f776398e606997469e",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ARRAYS_TRAVERSAL_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "67981e74991552419efea98b",
+     "skillKey": "DSA_ARRAYS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a65217674f734e7a29016e06",
+     "skillKey": "DSA_ARRAYS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "975b9b43107491db42febf27",
+     "skillKey": "DSA_ARRAYS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ARRAYS_TWO_POINTERS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c8cfdaa836c8355af70e32ca",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "39339fc0b0e46f40a4fdc1e9",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ARRAYS_WHAT_IS_AN_ARRAY",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "570e7a6a0eef2e12ebf005b1",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b2886e4e51bbc438ba8f9757",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_BOOLEAN_ADDER",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d9e5844aec4669f314565ff8",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "11cca237993169047865c58e",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_BOOLEAN_BOOLEAN_VALUES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "749aa4adae3ce83ae4bf4eb8",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "440318de47a2a35467f0d07a",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_BOOLEAN_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "fe56d7ef55da4803f33bdcf9",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f0af1a208a059199d623dbdc",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_BOOLEAN_GATES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "3b147edf6658d2fe48adc4a2",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "23796f802cefcb71cd9d40da",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_BOOLEAN_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "593a2bffab90f70c5137500e",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7c3b5efbc54a58de9ec431c5",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_BOOLEAN_SIMPLIFICATION",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "5d20e75d89e818005ce67500",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d17d752f9ef5e84279a23ecb",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_BOOLEAN_TRUTH_TABLES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "987ae74267982272b8e9145b",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "3920dc284b6c3d2b88c168c5",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_C_BASICS_ARRAYS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "1eb6d91d355dbaaa6c4e6978",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "565efc2d0210c589afc87747",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f5cdc833ac9ce31e6de8c087",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_C_BASICS_COMPILE_AND_RUN",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e0a2324dbf119a8751df1838",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ddeeb03824390ebda137413b",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "021b5820e940129f99c86f64",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_C_BASICS_CONTROL_FLOW",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "fa61a0192015d61df26e39a5",
+     "skillKey": "C_CONTROL_FLOW",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "56f8f3fb1a3a34e51f16df71",
+     "skillKey": "C_CONTROL_FLOW",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b6b8fb967873d7f8cfc7d922",
+     "skillKey": "C_CONTROL_FLOW",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_C_BASICS_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "ad0a59db6feb89f1d76389d2",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "9fc6c253102014f95a66b34a",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4220cc7b8fb699443239cf59",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_C_BASICS_FUNCTIONS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "093b98f0164edaa7488eaa2f",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a1b65323ee6acf52316169e4",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a2412bbbb1d09d6bb06d5f96",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_C_BASICS_IO",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d06f70e3da5c28b45e519062",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a5b84c6d1f2f197daceaa2be",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ae21e79eb012e74deb894fdc",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_C_BASICS_POINTERS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c94f5741d5846c4d56a74119",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a735100f84ff17f711bf5e03",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1067b76e63ad7a3787b1b54f",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_C_BASICS_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "094e872e32c8b49c5325d1a0",
+     "skillKey": "C_CONTROL_FLOW",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d31c205ce429893bf6dc4fcc",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8938a4453aee5370cd8e871e",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_C_BASICS_STRING_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "1b7243492bfda20190878ef2",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "721d0a599d29f8de251cd1db",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "542bae211feb39beca5e3f5d",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_C_BASICS_TYPES_AND_VARIABLES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "77e6c7213cb81660ac98ea8d",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a80d2e9d5006521493175d0e",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "41e7364389b3ed64a6e1626e",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_C_BASICS_WHY_C",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0d2344d2d84fa7323ac4c593",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e927d163b3617f9afd9683c1",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "156a70840480d28a636ed87d",
+     "skillKey": "C_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CAPSTONE_CHOOSING_A_PROJECT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0ebb9bfd1ed39ee7106f07cc",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "177693d25813988def0620b5",
+     "skillKey": "DEBUGGING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "5b3902887a81212d6dba41a8",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CAPSTONE_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "7f8e6018a8ed8b640dfaed05",
+     "skillKey": "DEBUGGING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f221a9b5af209fedca689244",
+     "skillKey": "DEBUGGING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f6aa2ee21638f61b1e1d318e",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CAPSTONE_PLANNING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "349d8e7830aa31cc85afb0af",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c9c69b9af83e81ec99f3134a",
+     "skillKey": "DEBUGGING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "76a592c024710ea40e319156",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CAPSTONE_READING_SOMEBODY_ELSES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "9e1733fd646bed79388f265c",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "af75998cea7c8d40a60cb3ac",
+     "skillKey": "DEBUGGING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b1c45bca6482ef6688d25d2f",
+     "skillKey": "DEBUGGING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CAREER_MAP_CHOOSING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "da9edbaf5b752d71a967c90e",
+     "skillKey": "TECH_CAREER_AWARENESS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "15e7ee74ba2cc8caca02d857",
+     "skillKey": "TECH_CAREER_AWARENESS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CAREER_MAP_EARLY_CAREER",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "f737399181364db44d9e2800",
+     "skillKey": "TECH_CAREER_AWARENESS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b7dab6b16b1c03e3ebc10b90",
+     "skillKey": "TECH_CAREER_AWARENESS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CAREER_MAP_HOW_TEAMS_WORK",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "662ec578944013c99690004b",
+     "skillKey": "TECH_CAREER_AWARENESS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "52e691bd7bfe684416d190c8",
+     "skillKey": "TECH_CAREER_AWARENESS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CAREER_MAP_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "70ce4dd22cf3835cb81ab881",
+     "skillKey": "TECH_CAREER_AWARENESS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8582f1c7043dca9b73ef481e",
+     "skillKey": "TECH_CAREER_AWARENESS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CAREER_MAP_ROLE_LANDSCAPE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d3f6664c590c64a4c4c2b4d4",
+     "skillKey": "TECH_CAREER_AWARENESS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a927f19712d6893aabd374b8",
+     "skillKey": "TECH_CAREER_AWARENESS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CAREER_MAP_SKILLS_PER_ROLE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "20489093fcb852e73d7b002e",
+     "skillKey": "TECH_CAREER_AWARENESS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b0e7a0b0346e03f3b09f2550",
+     "skillKey": "TECH_CAREER_AWARENESS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CONDITIONS_BOOLEAN_OPERATORS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0742819bc5d89a92efe6275c",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "62f202e23bdc19691a3d56ec",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CONDITIONS_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "05a134a3e8927e18a0333630",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7d7aac16ed6296de6f518167",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CONDITIONS_ELSE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "5a35e102e070147d449a073d",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "59ce6befae9ed2fce3b0015f",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CONDITIONS_IF",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "57ffc20d9d08c086b4b2058a",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "683ef4093cd13260947eeb20",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CONDITIONS_NESTING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "29d9760e774ea824f7aa1812",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "be0380dc08ca31eceed17998",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CONDITIONS_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e2c819b0c9cfdab670e25181",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f31fdc8051a0eda090f7f005",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CONDITIONS_TRUTHINESS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d51aa0063fd5be9edb8771e8",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "67f1b37c2161817a02bb1afe",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CSS_BOX_MODEL",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "6d7beb54738fb8df8256d940",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ae5b4031f7ca24075ca1f926",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CSS_CASCADE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "3fb051ac266405dbdc818809",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "bdb600b0c84bd3391e4ad8dc",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CSS_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "9927c32f95f86366c37890b2",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a576bd190ca760b3cadce1f6",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CSS_FLEXBOX",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "496123218bf4e7e86d1e1697",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "663f202e7232d287f04ec08f",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CSS_GRID",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "7127dc95505dd09f624a4342",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "57a3b7ebb86fd75b6d02243c",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CSS_POSITIONING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "75b8e8a28a77f946def8815f",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "10a9f16f6411ded0902d57a2",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CSS_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c720874005863e3bccde7207",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7a1f2a28d76decde6ec10c92",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CSS_RESPONSIVE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "75e6e36f278b02fc86f05129",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c31bcd052abea04c344a6446",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CSS_SELECTORS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "3f0d90d2c2900d5353fb1645",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ec9f4ebdabc0f1945468d779",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_CSS_WHAT_CSS_DOES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "b01d60c52152247fa97836aa",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "5216b4d3a0ff4dd51bc4fb11",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_DECOMPOSITION_ABSTRACTION",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "107cff89689bf8b483158c39",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ecf3e9bf8c370bcb67a7af16",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "97f51fd4bbd25d0a29e6944d",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_DECOMPOSITION_ALGORITHM_IDEA",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "1e270cdd9a32c65a42a6b131",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ed50555b7a599c9127270128",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b3b28cf26b65293d88ef399c",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_DECOMPOSITION_BREAKING_DOWN",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e7cee95360f8e2c803aa4dad",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "aa41a0ce8cd96d5fb71d1d4d",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c9d2da9fa90f203fbcf4158a",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_DECOMPOSITION_EDGE_CASES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "46732d4137584385801e3e41",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d46b700f6c31bc94baca0212",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8830c64461625a26920a273b",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_DECOMPOSITION_PATTERNS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c20230e510f24a8c7877a237",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "01420d75a28c533e3a12c68c",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "fc91691555f5195dedad1166",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_DECOMPOSITION_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "938eca5d4c7aab573ccec4cf",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "83fbb04e6d5f3bffcc7ec770",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c836614ecdc2d0fd25bda645",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_DECOMPOSITION_WHAT_IS_A_PROBLEM",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "838ff0a62a3f515ac6c5b608",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e9476f5fc1a93c4f3fc0bcee",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d7584866fe0fcc19c7ee7b4a",
+     "skillKey": "PROBLEM_SOLVING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_EDITOR_CHOOSING_EDITOR",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "f9e4f1f64225087f4f9d83fc",
+     "skillKey": "IDE_PROFICIENCY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "cd1380a6821370e21472a0c6",
+     "skillKey": "IDE_PROFICIENCY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b987b470b827467a792c0ba2",
+     "skillKey": "IDE_PROFICIENCY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_EDITOR_NAVIGATION",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "24c6dd29481245584051c600",
+     "skillKey": "IDE_PROFICIENCY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "67fca37974c7e0f1691f12b6",
+     "skillKey": "IDE_PROFICIENCY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c7b911f6f8a927bbe7a7fec2",
+     "skillKey": "IDE_PROFICIENCY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_EDITOR_RUNNING_AND_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "7144360c939a358ea5a5b494",
+     "skillKey": "IDE_PROFICIENCY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "96f3d50bc92547f222da2d23",
+     "skillKey": "IDE_PROFICIENCY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "694b06540daeb00cf7b58a36",
+     "skillKey": "IDE_PROFICIENCY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_EDITOR_SEARCH",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "2cba9f1c32f7981b699b338d",
+     "skillKey": "IDE_PROFICIENCY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "5af0ad23e48b52693a3aecf0",
+     "skillKey": "IDE_PROFICIENCY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ef0b2c2a14599049f7a7a508",
+     "skillKey": "IDE_PROFICIENCY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FILES_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "630a8d8506a0299158dffda8",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "270ea1bda93f47b857728bc2",
+     "skillKey": "SHELL_COMMANDS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "da07bfe3ff5d565b07ca9158",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FILES_FILE_OPERATIONS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "6dff9ecbeecacbc038dde706",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "aa6330a41c6fa6ea08cb9a30",
+     "skillKey": "SHELL_COMMANDS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "9f8eaecaa4682c5ab49e277d",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FILES_FILESYSTEM_SHAPE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "be861202c889a4e65f443914",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "28a541cd43563386bcc80a63",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "3ee04d764135e6b7abed161d",
+     "skillKey": "SHELL_COMMANDS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FILES_HIDDEN_AND_CONFIG",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "ec0f0282ddde14d12f182fa8",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "52c02fe465e01a7bcfe996e8",
+     "skillKey": "SHELL_COMMANDS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4b7c443dfb430e4b8f372cc2",
+     "skillKey": "SHELL_COMMANDS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FILES_NAVIGATION",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c0da7ea88dc3da503e3a929e",
+     "skillKey": "SHELL_COMMANDS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "edb3861f38384c9c5b0578b9",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c14c28d054100376530fefc7",
+     "skillKey": "SHELL_COMMANDS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FILES_ORGANISING_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "57525a39473be11084a90d6e",
+     "skillKey": "SHELL_COMMANDS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7b01a451fd249773ca5d171d",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d8c2eda89095ddc4d0d0d8c7",
+     "skillKey": "SHELL_COMMANDS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FILES_PATHS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "25e17f1a17392de80ec07e82",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "0108fd26f188bd7359025189",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8bc9f341765eda3e4b8fdb4f",
+     "skillKey": "SHELL_COMMANDS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FILES_PERMISSIONS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "8c8332b4e262749afe8eba88",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f547af0b19b90b35be9ab964",
+     "skillKey": "SHELL_COMMANDS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "756ab999ff7b5dcfb1acb5d8",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FILES_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "2cdc6983a4a68663a2fa4602",
+     "skillKey": "SHELL_COMMANDS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f2618141b665f92855d78665",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f8939c6a3fef14264130be3c",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FILES_VIEWING_FILES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "5e2281bbc6f9b3c85d1e6309",
+     "skillKey": "SHELL_COMMANDS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "22d4ce2286e4e92469c36223",
+     "skillKey": "FILE_SYSTEMS_PERMISSIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "35ad36947d31bbad70c8da10",
+     "skillKey": "SHELL_COMMANDS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FORMS_ERRORS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d4604c156a99544ca080dc49",
+     "skillKey": "HTML_FORMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "5f7b0bccbb202d1fe40024e7",
+     "skillKey": "HTML_FORMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FORMS_FORM_ELEMENTS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "efe520b91ed340f130097a9e",
+     "skillKey": "HTML_FORMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "02af90b6888f2ee493f2f9d4",
+     "skillKey": "HTML_FORMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FORMS_LABELS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "acaa8979daf26dec67adf916",
+     "skillKey": "HTML_FORMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "279bb6cbbf86965d5c753f4c",
+     "skillKey": "HTML_FORMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FORMS_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "157274ff8245cd2e2076a294",
+     "skillKey": "HTML_FORMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "0d0e0bcdcbdf75aed81977ab",
+     "skillKey": "HTML_FORMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FORMS_SUBMISSION",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "7a8007266bf6ae85ebb0be85",
+     "skillKey": "HTML_FORMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "6bc6b20be1fdebada778c1e6",
+     "skillKey": "HTML_FORMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FORMS_VALIDATION",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c77573298a64181429edff7c",
+     "skillKey": "HTML_FORMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d0d07447c69fe4588aa4a319",
+     "skillKey": "HTML_FORMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FUNCTIONS_CALL_RETURN_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "193fe00b3343de7f1ca2532e",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ed1db0c18836d20fd298c957",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "9fe8d563b740a4d7b97d5a5d",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FUNCTIONS_COMPOSITION",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "9df4959c62342a0625e956d1",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "02dee7a3e8b60daaa1ee987c",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FUNCTIONS_DEFAULTS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "84baf053aed145115b5bc545",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "3d15db2b9bb8b274b17530b0",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FUNCTIONS_DEFINING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d752e077392805a1b28dcdfa",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "6ebd75fb50d988c32f03f915",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FUNCTIONS_PARAMETERS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "99f4f172f6209fb7ff360756",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7f36d50548015e12189d6af0",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FUNCTIONS_RETURN",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "caa03ffaf34f1a83aae78221",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4283cc5b635d80cedb83f54f",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FUNCTIONS_SCOPE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "58948802af8e88751d2ca0fd",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8cf9a6e08b9f90e17360fc1e",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_FUNCTIONS_WHY_FUNCTIONS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "4730ad24178c04b5f1254f11",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "55699c36dc7d3117997d146e",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GENAI_HALLUCINATION",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "2fee625c729ce567de8176fb",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b4476ff6243a86b39caec71d",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f7008afcfb9925c6cd7c3100",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GENAI_LIMITS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "9a3240b5a171e5772b295bd7",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "9ec5d724c5ff048234a4f121",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "cf865da70153500c37500845",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GENAI_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "1ea61eecb3063a8e5674239e",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4af8f4aadb50c94bf47fcbfd",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1a05bfe5a78e84e87c5323f8",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GENAI_TOKENS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "22e19b7458a86b9b5f1111a1",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4479e7cb6bd92e9859b59c0a",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "dc7bb49f2a260a20e4b92b34",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GENAI_WHAT_IS_GENAI",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "b3b79816f4a34e4e0af67cb7",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "07723648579cb2ebde2f8b93",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "24ec6c7752729c24e54e8d39",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GENAI_WHY_IT_VARIES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d689a8b2b0cc14660c960cc5",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "87c147afb441a63b415b5e05",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "94fa7718fc64afd3bfd9ebcc",
+     "skillKey": "GENERATIVE_AI_LLM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GIT_BRANCHES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "28677a68c680f973d820a081",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GIT_COMMIT_MESSAGES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "1c086398968e384ba49212ba",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GIT_CONFLICTS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e33595f34307c5043415b93b",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GIT_HISTORY_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "76697007b543ec1117902929",
+     "skillKey": "GIT_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a7ada9ef2699a256a7193bb0",
+     "skillKey": "GIT_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "45ec143be8206ca87e3f4223",
+     "skillKey": "GIT_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GIT_MERGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d06c5096866cb982d5d1b1f1",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GIT_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "70220ba25b26d3c46841827e",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GIT_REMOTE_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "5b4b14bcbfba7a477922b6a1",
+     "skillKey": "GIT_BRANCHING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d964ae3274adb091ff666ac6",
+     "skillKey": "GIT_BRANCHING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7a6fd5ba2f95c2f11738211e",
+     "skillKey": "GIT_BRANCHING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GIT_REMOTES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "51f0b9461256d83b64082f50",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GIT_REPO_AND_COMMIT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "a613e1f429026d49f1a9a28a",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GIT_STATUS_AND_DIFF",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c7369042f5bd6f749553cbef",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GIT_UNDOING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d2c0cceea65fb4b85a9c54b3",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_GIT_WHY_VERSION_CONTROL",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e012b1ae086fd87bd7f0474c",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e902806c9db838529f5a969b",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c6745d783cc7bfd6049a2f41",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HARDWARE_BINARY_REPRESENTATION",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "ff7db48afe84991f3048db8e",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "3a3a1bea9115f9c8ea0e7075",
+     "skillKey": "HOW_COMPUTERS_WORK",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "78ab9c4939d3c1030c86cd70",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HARDWARE_COMPILE_VS_RUN",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "f0b1827c54476777eed07c7f",
+     "skillKey": "HOW_COMPUTERS_WORK",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c95b9c6efa25a19f262f78a5",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4f44ec97fa61e695c269e132",
+     "skillKey": "HOW_COMPUTERS_WORK",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HARDWARE_CPU",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "a1e5a344d3369d23fb3a3b6f",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "2cf2a29720f99fc5d0987c10",
+     "skillKey": "HOW_COMPUTERS_WORK",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "94bb5ff59f6c21dda201ce1a",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HARDWARE_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0da810cbe3a804f2b01a5639",
+     "skillKey": "HOW_COMPUTERS_WORK",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f4aa39889f057980c0e92d0c",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ade5e331ac7a902a7a06735b",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HARDWARE_MEMORY_HIERARCHY",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "798f435656ec390ce4a655d0",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "31b9a896e5ee4354e232356f",
+     "skillKey": "HOW_COMPUTERS_WORK",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "45cfe9e5a01b71866e716aa7",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HARDWARE_OS_ROLE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "a4ee81a569f7f662d050e17b",
+     "skillKey": "HOW_COMPUTERS_WORK",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ab3a6738da50a25d08813f22",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d10e19d267a306aee72a1c7d",
+     "skillKey": "HOW_COMPUTERS_WORK",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HARDWARE_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "f1c44f90678bade1f498feb0",
+     "skillKey": "HOW_COMPUTERS_WORK",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1791e95cd9c4136b65c24b0d",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b37ae8ea2dbdaf28a217a4c9",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HARDWARE_STORAGE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e2fc90906ac86fb80611e1d2",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e56029a91a1bc34d998a5b15",
+     "skillKey": "HOW_COMPUTERS_WORK",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c35d96bfede1cf56ccde1cdd",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HARDWARE_WHAT_IS_A_COMPUTER",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d999b1c512f5bd6de57b8d6f",
+     "skillKey": "HOW_COMPUTERS_WORK",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "142e77fde634281bbf4ce96c",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "75ff002a58be780f9cdb4aa9",
+     "skillKey": "COMPUTER_ARCHITECTURE",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTML_ACCESSIBILITY",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "36ebc34dc813deb9d42e1390",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTML_DOCUMENT_STRUCTURE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "eb45199e36a79a68ee592122",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "95549e24e9e627c8093b8557",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTML_FORMS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "1164f7ba0ac317e3c6099764",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTML_INTRO",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "34c88b871f5d94e7b6198866",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTML_LINKS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e7799e792b27ccddc7cdcc46",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTML_LISTS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "f9128a45b73f49dfde5b7d3f",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTML_MINI_PROJECT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "f3b0dd53375151f5bead8e33",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "137e42ba46e27a58d6000eb7",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTML_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "4cf4c4b9abcdfe6f4cc4731f",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "6087afcb3cf59d4ebfd38555",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "138a0043f823f505f74482ed",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTML_SEMANTIC_HTML",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e0886b6726d74b2a402e056c",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTML_TABLES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "68e0d7b0c5cb5ac7570b5a4d",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTML_TEXT_AND_HEADINGS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "76420448d327236d05bcbfe5",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTTP_BROWSER_TOOLS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "150b74b5b343b009ed6af3f3",
+     "skillKey": "BROWSER_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d5feda4059a545b9c6580c03",
+     "skillKey": "HTTP",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "61f36b7ed48f1226a5b6ca8b",
+     "skillKey": "HTTP",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTTP_CLIENT_SERVER",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e597e4c4747ff74213909371",
+     "skillKey": "HTTP",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4d54e0e707cbadea9dce03bf",
+     "skillKey": "BROWSER_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "459b850d9d576533492cff79",
+     "skillKey": "HTTP",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTTP_METHODS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e295118c2bfaadd851398cec",
+     "skillKey": "HTTP",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "42d026567fbb11b5eeea79f6",
+     "skillKey": "BROWSER_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "012f49573d76476fa90ff062",
+     "skillKey": "HTTP",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTTP_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0143c0347ac6dc03d46d3359",
+     "skillKey": "HTTP",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4d5f9d89223a69364590a12e",
+     "skillKey": "BROWSER_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "88a670336d52ea3e700e1d2d",
+     "skillKey": "HTTP",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTTP_REQUEST_RESPONSE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e8888000ecc6dda83bf17d2a",
+     "skillKey": "HTTP",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4ee7f0c9c09d0f0445027d48",
+     "skillKey": "BROWSER_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "02ca1e21b8da7e982c48d81e",
+     "skillKey": "HTTP",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTTP_STATUS_CODES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "2420bf64a2ffe4a4259706a1",
+     "skillKey": "HTTP",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e1f89932ac516320057b1dc4",
+     "skillKey": "HTTP",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d1b5c1183364d9a4b7d5aa70",
+     "skillKey": "BROWSER_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_HTTP_URLS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "ee9cf4dbd10fea8521c1c0b5",
+     "skillKey": "BROWSER_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e97c5cde5861048302437f0a",
+     "skillKey": "BROWSER_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "dac9cbfa8d02cdaaedfb07c9",
+     "skillKey": "HTTP",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_JS_DOM_ASYNC_BASICS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "1f0e09e956fce00d7b2013bc",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8df57797f6ab47c91275719e",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_JS_DOM_CHANGING_THE_DOM",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "86975ec2d9e816a70b73d9d2",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "3f37db644921cfcaba677204",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_JS_DOM_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "366ac51e6b1dbe36601b00fa",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "09cebc838a5df1f9113db373",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_JS_DOM_EVENTS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "4f6f73d05547e81ff476d590",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "941e4f23ab04255b046f2d5e",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_JS_DOM_FORM_HANDLING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "1548caa4fc0cdb13aaafa389",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "93945d95bb02a670847f42e1",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_JS_DOM_JS_IN_A_PAGE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "f1a6b7aa9ac613891da5cefa",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "44a7201a3325e93f4b7a82b6",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_JS_DOM_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "3909cbfd37e5246f34b1e259",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d96c940772edf2c5054cc4cd",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_JS_DOM_SELECTING_ELEMENTS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "3290703dc72ba1341ddd2d34",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "3037d04fd80a0b97c294bf4f",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LINUX_ENVIRONMENT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "f9f506d0d68217fdb9f36045",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "340e7c492404aa3e732db1e2",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c047d7984a94393cb02e31fb",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LINUX_LOGS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "181c70342245b7a72aa8eb6a",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7cfe39ce628ed488a6e96bae",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "324045fd5b9971d999a884d5",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LINUX_PACKAGES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "64c4ddc2acc646bb9e8e64a9",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "2aed8bc3aca7cd87d1731368",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "cc6abd3a910d4c82df16da23",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LINUX_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "4d5ec79cc9b9e82e1be6195c",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1313575a628843c172e1e11b",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "01512ab3e42331272a32b020",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LINUX_USERS_AND_GROUPS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "b2928936a6f8ad3a55eb797a",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "13a73cd1c05826bbe217dcdf",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c18e84f68a1e8a6bba1f0d0b",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LINUX_WHAT_AN_OS_DOES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "8ad5750f4a7e3de055d64eb1",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ac6be34b33cb23cfbe21a346",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "38c0657f02e048addb17ecd3",
+     "skillKey": "OPERATING_SYSTEMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOGIC_MATH_CONNECTIVES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c945bc999c745210d2ca70ef",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "26516b2667281f3bb8c45fb6",
+     "skillKey": "SET_THEORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "57ef3db33560727185925dd2",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOGIC_MATH_EQUIVALENCE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "1198c8b769ceb3fec43e2456",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "6fddbda9fc2780292fcfff56",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b194da132f586acd96120e8e",
+     "skillKey": "SET_THEORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOGIC_MATH_IMPLICATION",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c2b1fda2d503a7c3fc92dca3",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "33301b44183de6f475683da5",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4b4334e230c98cc0807e7fa9",
+     "skillKey": "SET_THEORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOGIC_MATH_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "48ebb4b4629a118c399d9719",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d992eddc2310a299a1d62be2",
+     "skillKey": "SET_THEORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "0bb1bc0e33eccdc0fb2f330b",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOGIC_MATH_PROPOSITIONS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "50ee566c6307de3ee961f7d6",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8b8b932b27aab9472bc6be2c",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "48b2ec7631648cded040dc13",
+     "skillKey": "SET_THEORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOGIC_MATH_SET_OPERATIONS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "52cb5e8913f9d218a8227800",
+     "skillKey": "SET_THEORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7ea7a3510f25205996039483",
+     "skillKey": "SET_THEORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "81f9d6701a095e7f90e602f0",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOGIC_MATH_SETS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "88bda51f8b141a886da16b38",
+     "skillKey": "SET_THEORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7e22537376b3e5377fd1cb0a",
+     "skillKey": "SET_THEORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "5b7adc892b85a093446e9d6f",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOGIC_MATH_SETS_IN_CODE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "94e4931ca839b923c1c21d4c",
+     "skillKey": "SET_THEORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "0bfa9e86c6a1b48db3916d82",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ae21535c890fec60b2bdfc11",
+     "skillKey": "SET_THEORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOOPS_ACCUMULATORS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "cfcf49559ceba3196927aa7b",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOOPS_ALMOST_RIGHT_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "35e88381fda15dd7f54eecf7",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8b5070523c6accb27fd9d37a",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "eac112a01dff19234bb781ea",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOOPS_FOR_LOOPS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "a2c56312f72ce908ef56ce71",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOOPS_INFINITE_LOOPS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "fcd71d87b7fa582c0222cca1",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOOPS_LOOP_CONTROL",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "75a4d2b70ddd7fce0bbca018",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOOPS_MINI_PROJECT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0e0dd589f41acd19dc202bd4",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c4ebf6e32a60e8580475260d",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOOPS_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "b68db3662ec80068cf04c429",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOOPS_WHILE_LOOPS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d9ee8e5ee10836cb34d1da75",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_LOOPS_WHY_LOOPS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c0cf9860b7b8adbcbfe99949",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_MATRICES_ADDITION",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "9e35ab103925b23e2b1cf6c0",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "81f9c998ba201613ea3f8a48",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "720ccb81cdaa635f2a2bfe45",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_MATRICES_IN_CODE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "2188621b4a9140b9e222f3a0",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ba563f976283df97e33d03ed",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "20eeba172584ec3a621ae6d5",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_MATRICES_MULTIPLICATION",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "bd65a6cff25e2a648a96dfa6",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "923df66a79ed5ff027822d87",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7db15a35c30d6c3c2f845f31",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_MATRICES_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c100062a0976f17abf4872c0",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4764fda61b2db9be1c687508",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1fbb436d148891b7112782a8",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_MATRICES_TRANSPOSE_IDENTITY",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "5bdc8e3068e3e957dcb96dc3",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "9042d8e34b1b83e30768c0d8",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e78c5f712895d01ce30fff15",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_MATRICES_WHAT_IS_A_MATRIX",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "aa35fb07d30bf6bc4c7f1c1a",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "cc5d2966668518240c8c4d6e",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "49da85a2705580cb30659e0f",
+     "skillKey": "MATRICES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_MILESTONE_EARLY_CHECKPOINT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "a725518afb643a764c000ae0",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "781a1fd5e88cc32e848a8a1c",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "9265b83f59d1d5e0f13c2d9c",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "34534fa40305c3351f0026db",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ad3ce31eff9a0277fcb6251e",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "fbf067916c3e1b30eb1b42e6",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a71cb100e7d232cb47271c09",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c75fc010aff8e959e829a1af",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_MILESTONE_FOUNDATION_MIDPOINT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "da44e508f36e71ad191ebc5d",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "86e11e8353988243dd9db48d",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d03a2b62cf5a9556e7054287",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7da5eb458de370a68dfc7804",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "be447c6e10f3f63dfd4703e7",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "26ed6deb8089cb60038ed5c7",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "9173dd40b48c13e34141ab28",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_MILESTONE_FOUNDATION_READINESS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "fd8a19054464c04b01982379",
+     "skillKey": "DSA_ARRAYS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "68e6c0d77ca7e1298cf46c09",
+     "skillKey": "DSA_ARRAYS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c414c32ee4a705050d1f3e49",
+     "skillKey": "SQL_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "3106c0ccf7e9844846478e8d",
+     "skillKey": "DB_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d660f246c211a1cc11d980ca",
+     "skillKey": "GIT_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "120c7cafb0ee70f5845c954a",
+     "skillKey": "GIT_BRANCHING",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_MILESTONE_PROGRAMMING_CHECKPOINT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "8db9cd159aef4cfc92cadc43",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "96a5c13c2342f0b501c1b344",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b00e781035fa5627cfad9f29",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b62ac5e953e1f9b0577e9ba4",
+     "skillKey": "LOOPS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d0dc87aa9e0da5baf2a36bef",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e07591b333716454bdd37766",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ca1d87d0eeed3b1a4389275f",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f9b9149f469c630caa578d57",
+     "skillKey": "CONDITIONALS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "2db7463a53f157d8ff3f3327",
+     "skillKey": "FUNCTIONS_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_MILESTONE_QUANT_CHECKPOINT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "f2bf018ee6d96de063b6b25a",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "093e3588a9092655a6d256c8",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b65189b92d12684065e5494c",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "419c8820c824216fcedcd4bf",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "bb33d40b290e5d87a7fafb93",
+     "skillKey": "PROPOSITIONAL_LOGIC",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d83ed0f603995e13abcaa57e",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "393921446603fd3c9c6e4139",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "3f8ce01c0749154c54fe19f9",
+     "skillKey": "BOOLEAN_ALGEBRA",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_MILESTONE_SYSTEMS_CHECKPOINT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "61039c4710502c0f1ce74660",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a1f77c95d100c545c8c714ff",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1a91e14e0c91d5044174a458",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "74d60c2e1780c0e4a5a1a96e",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "fac656da6da9876c0168a863",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "50fc7213f34e8f8b89d24578",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "61d4aae62658427cefe7d431",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "bf50851b05cc946f9683c3c0",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_MILESTONE_WEB_CHECKPOINT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "87fe383ce95f5c1a1a0f34c4",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "fe1562b77ed8bc28631d2496",
+     "skillKey": "HTML_FORMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "2a84b4fa7d06e2a62cd87546",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7d016488fc2d196ca8cec851",
+     "skillKey": "CSS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a7aae108d8ef7f87eb59a4c3",
+     "skillKey": "JS_DOM",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "6ad66e0f96f8652da44ac80f",
+     "skillKey": "HTML_FORMS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "2dd68d9f75508a9442a3852f",
+     "skillKey": "HTML",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "dad8c05f1fb695bba53bc817",
+     "skillKey": "WEB_ACCESSIBILITY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ML_INTRO_AI_ML_DL",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "41174c700f33ed3a93ccaa4e",
+     "skillKey": "AI_ML_CONCEPTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7eb82df6d14b7997d046d051",
+     "skillKey": "AI_ML_CONCEPTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ML_INTRO_LEARNING_FROM_DATA",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "91b4f4ef510229e0bed087a8",
+     "skillKey": "AI_ML_CONCEPTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7bc68b7355a9df808df2fef0",
+     "skillKey": "AI_ML_CONCEPTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ML_INTRO_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "a53e4a3a614066a8b171c84d",
+     "skillKey": "AI_ML_CONCEPTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "40f404c11c01a113e26e2657",
+     "skillKey": "AI_ML_CONCEPTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ML_INTRO_SUPERVISED",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "bc1dbb614bf3f73da560be98",
+     "skillKey": "AI_ML_CONCEPTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b6701a9b1864e818c583623b",
+     "skillKey": "AI_ML_CONCEPTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ML_INTRO_TRAINING_AND_TESTING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "962f313bd781278217a61132",
+     "skillKey": "AI_ML_CONCEPTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b7bbd750ff2c0f6ed5ac3fd0",
+     "skillKey": "AI_ML_CONCEPTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ML_INTRO_UNSUPERVISED",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "6b0eb4734e96fad6ed71da3c",
+     "skillKey": "AI_ML_CONCEPTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b459d866002562ddf3ee23f3",
+     "skillKey": "AI_ML_CONCEPTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_ML_INTRO_WHERE_IT_FAILS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "cc0c8c31647e534f74da05e0",
+     "skillKey": "AI_ML_CONCEPTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "6e0115600ae28f148f0b8c41",
+     "skillKey": "AI_ML_CONCEPTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NETWORKING_DNS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "2ae6669af5e4108544f6a5e4",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "2dc042a0d3b02d7d6ea4571b",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NETWORKING_IP_ADDRESSES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0341e46ae4df804cf74495eb",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "919ba6309af74d0c0ce0e47e",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NETWORKING_PORTS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d10f9ce298cf923ef47fb920",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "cb0e7b088b5b52f587763596",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NETWORKING_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "10b15f6cdddb34c1b2aa254a",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "6a374a51f24e93b23d6755da",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NETWORKING_SECURITY_BASICS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "847c1d367f3f3ab07f400a57",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "fdce0ffe8889eb22ffd739b7",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NETWORKING_TCP_UDP",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "22a5cba69706fb9bd0f7fb5b",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "522f61c0a8f9c1ce38c55b7d",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NETWORKING_TOOLS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "ac41d5737c65770b0f0ff7c0",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8144c0e2fb59cb4836a1dca9",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NETWORKING_WHAT_IS_A_NETWORK",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "60f801cb9d3c52f80c04e243",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "0a64cc6efd81dbb764503993",
+     "skillKey": "COMPUTER_NETWORKS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NUMBER_SYSTEMS_BINARY_DECIMAL",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c8d36c015f4bfbfed22bd062",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "030d536fcf2bb6e00275eb19",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ec859fae6e56715c7ad636bf",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NUMBER_SYSTEMS_BITS_AND_BYTES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "aa5de098c8add433bd662f33",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "cb7e2fd16bedb651b76da9ca",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "2734d54fa55653fbec740b3d",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NUMBER_SYSTEMS_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "78cb116382c4628fc541ffc1",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b940ef277b5e89c3b70eb0d5",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "2773f1e37fa76dc97fa17a9e",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NUMBER_SYSTEMS_HEX",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "45936cbf80ff7402bea9a7b5",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "60eb02cd08a233cbf0e6525e",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "290aa302d5d00a1fadb51160",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NUMBER_SYSTEMS_NEGATIVE_AND_OVERFLOW",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "ffabe8f89c871f700f3712dd",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "0661ec448bda7203c6beeef9",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "9a0206dacd32e0d6c80c339e",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NUMBER_SYSTEMS_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "3ab4ddc4bbf12a8aa0be37fb",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "355403dd311aa931042aebc4",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "3ec96a9c05e1c540a1637cd6",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_NUMBER_SYSTEMS_WHY_BINARY",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "247afcd22254c000fb132c7b",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "150468ae2ba85ae0e549a3ad",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d04c68189ca5036d00e09c65",
+     "skillKey": "NUMBER_SYSTEMS_BINARY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_OS_MEMORY_ALLOCATION",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "06a41deb8e30f04e0914b292",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "200e7117b94d17c92d7ad47a",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f181dc9e9b88886aa52ac6e5",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_OS_MEMORY_MEASURING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "cb23a538155b101323ecd072",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f1730722c331c5778776022e",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "caf00c58e95372369a9d316f",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_OS_MEMORY_MEMORY_LAYOUT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "b8fc5237246da5b7d47c1b37",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "918a97544331ac9da819af5e",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "30f3db2d927b14bf4763dc65",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_OS_MEMORY_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d4fe87610be2640a87eb2976",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "02212a18d40908c3c1f27527",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c506f8f280fa7c03671ee74f",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_OS_MEMORY_SWAPPING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "9dfc51f2cdd8e35d2abf7344",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "14e6a55013c81a75e8fb8b90",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "0d7d9fa94877e3c0daabfdca",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_OS_MEMORY_VIRTUAL_MEMORY",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "eadb9df07f2d68a7a8811c35",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "228b22210c754aa84f30e81e",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a4abe83846412e572866d4ad",
+     "skillKey": "OS_MEMORY",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_PROCESSES_BACKGROUND",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d6d39ecf1e1267e82447f227",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "81c5432365ae084c35307eeb",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "eb4498ff3329d8a9b4d1d99c",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_PROCESSES_LIFECYCLE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c8e0443107ee644c565611ac",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "717d6123a4943e13dab3aba4",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "428673497986294860b80b5b",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_PROCESSES_LISTING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0687eb81b0994555eab11318",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "5cc1a3eac50e0dd086c13001",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "624c18c770252673e173fb91",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_PROCESSES_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0ca4cd2c94ea4ee65f9b79f3",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c38559e6853a55b234a5face",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "eb7623792d248d2cca1370b5",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_PROCESSES_SIGNALS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "3a4b3fce1eacd36b503536e5",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8ca1a0a974b9e637623682c2",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ec6f3a334a8cb692281bf9e2",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_PROCESSES_WHAT_IS_A_PROCESS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0f3ea2ae6ac5f08c0de35417",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ec30a1cefdf2f4ed3f632914",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ccaceaac3d3159267ede891e",
+     "skillKey": "OS_PROCESSES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_PSEUDOCODE_DRY_RUNNING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e4f0f25923e1892f10a565a8",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4157a698b98cf5b6c47169d7",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_PSEUDOCODE_FINDING_LOGIC_ERRORS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "4ada3f411fd897b288eed6dd",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8beebc9e0a7713a5306e8919",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_PSEUDOCODE_FLOWCHARTS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "4a44eb1c4b2ab30e618c3160",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "66310445d1b798265ce53d0c",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_PSEUDOCODE_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "4e4bcbe51930161d1da32b66",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "98112df5f99f4b4d892c2900",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_PSEUDOCODE_WHY_PSEUDOCODE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "11ecd6b9eb0f8c781224f9a8",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8dc728730ba9c2c8b669017a",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_PSEUDOCODE_WRITING_PSEUDOCODE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "41dc3741f6b9389a4451610b",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f4171381286e54edb7f9c681",
+     "skillKey": "PSEUDOCODE_FLOWCHARTS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_RELATIONS_FUNCTIONS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "707c5cf0dc2b21e15c7fa833",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e8ab2fe4dca8a8da64c2bdf5",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c41c3be57c21a323e193ff63",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_RELATIONS_MAPPINGS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "6ae492e7348fd3d99d01e193",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1bb09b414df10e157681dc66",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "04e9c2a13de95a0a7d86280e",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_RELATIONS_ORDERED_PAIRS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "10801377d9c3da3eaa573682",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a914afb5e60752888709c7cb",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "77fa5d61d9410366d30936de",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_RELATIONS_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "f820c03236e0e306d4a7b8c4",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8ba6389a0adf9ca710b21283",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "722b39ff9bf8bda5b0a5d8ea",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_RELATIONS_PROPERTIES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "d05777753b4bdaf5ca495bb4",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4e51db80ccaf111f3ba3ad1e",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "51f72c842f30d57b199ce900",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_RELATIONS_RELATIONS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "7d134d7f6b8fa156f50e7e8a",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "06f38ff38c45ac4da8b742d0",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e144891a3f1b3d23e0e82d6c",
+     "skillKey": "RELATIONS_FUNCTIONS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SHELL_PIPELINES_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "b762477877900c05215a66d7",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1c8de639c1f1ad7502ac3e2a",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4c90afb8aa459ac66cdd60ed",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SHELL_PIPELINES_GREP",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c70b4b3ecea3728948cb9884",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a86b840b0b78cd1d2d10f7c4",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SHELL_PIPELINES_PIPES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "f1fed3fb837669f5c35893a0",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b12f63bd87d1883293781108",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SHELL_PIPELINES_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "5072da27bd3d97f0f52a97fa",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b257adc0dce71e0ef58a72ad",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SHELL_PIPELINES_REDIRECTION",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "1c260a6c85fb9f1be115d443",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "000be83ff16f6546bc0d7d3f",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SHELL_PIPELINES_SCRIPTS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "4726d84d9b4337ff1a652bd2",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "408a22545e3d1a07af9ae097",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SHELL_PIPELINES_STREAMS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "8307ed66eca2aae31aa1872f",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1bd7c6f0370a06641b11918d",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SHELL_PIPELINES_TRANSFORMING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "17b6183b47964af0568dcfda",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "36e5879ee88dedaac40ea9e3",
+     "skillKey": "SHELL_PIPELINES",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SQL_AGGREGATES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "4f3e0ed483dacfda6548a6d4",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b8605583c7785d3e8fbe923c",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SQL_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e5ff930cc8c7d7a8028f62dc",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c6db6c6155c34882bc4b868f",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SQL_GROUP_BY",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "c1afde46e7142281552ff788",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "a8ccc4cd3e236e10935e1544",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SQL_INSERT_UPDATE_DELETE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "affb10e533a7a938a2765665",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "66a601fc62899f2fbe3b2e57",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SQL_JOIN_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "8cc8eabc4af33dda54f0487d",
+     "skillKey": "SQL_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "bcc4ba03b4e961af24909625",
+     "skillKey": "SQL_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "11c52462b7ceead11248f61e",
+     "skillKey": "SQL_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SQL_JOINS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "29b7d244d20fbdebd22f59d2",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b325299f8b14500cdf9a28cf",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SQL_KEYS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "74aae5c8d3bbbf05643bfd4f",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ecf5c6471650a0bacbbdc600",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SQL_ORDER_AND_LIMIT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "9a136298683d07eb90d2fe60",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "316756ec86e777503b2e241f",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SQL_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0c8185d1e6fc825eceea6d82",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "092f4a991f48390974125316",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SQL_SCHEMA_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "bc280dcf8b285657f56ea247",
+     "skillKey": "DB_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "75d1a9c59665a1ea722df5d7",
+     "skillKey": "DB_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "7dd9b5bb6a394fb29742760c",
+     "skillKey": "DB_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SQL_SELECT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "201e6889a0286258d0428250",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e0661af22ef298a7ac3cb8d0",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SQL_TABLES_ROWS_COLUMNS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "42cb891a274c2a5f720e86a3",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "80b904b9345b76a08d448a35",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SQL_WHERE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "3d81cac562c1ad7d879a2f34",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "50464022ef46c11738dae328",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_SQL_WHY_DATABASES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "01f6b5de58b4473ed113a81d",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c739e10305458e3f68dfd68b",
+     "skillKey": null,
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_STATS_CENTRE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "b0ac9c367edbbd2be5778c8a",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8c7e09cb540b824710d1f740",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_STATS_CONDITIONAL",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "92528b608e211c4ee5c5a550",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "4c4237ddcea72a7e8de57f08",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_STATS_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "9893d360c37ea3228bb48d13",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1411f6f6ea39eb9ea870279f",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_STATS_DISTRIBUTIONS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "7a1367d521bb79e4832e2eb9",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "62e4542a85f0d8e922e77d24",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_STATS_MISLEADING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "2b2e1868ce3da7913d273a47",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "2b13ad9a5bb468db3df0ab15",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_STATS_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "de5a1e8a2f9f91aa2a47ea97",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d737ca9875ac6970559e72e8",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_STATS_PROBABILITY",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e1a49ea4ebc815732e675019",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8821ee673d43eb8db26ca9f7",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_STATS_SPREAD",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "fe6285a84aea88050bb23ac4",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "dec39401deeedb2a646d491a",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_STATS_WHY_STATS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "53d19895890ebbdb44ba939b",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "eea6f918991f0b4a261fe712",
+     "skillKey": "PROBABILITY_STATISTICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_TECH_COMM_ASKING_QUESTIONS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "42ea0ded026b82c50e949a47",
+     "skillKey": "TECHNICAL_COMMUNICATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e0b75edbbb8e0a2eec20435f",
+     "skillKey": "TECHNICAL_EXPLANATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "cc8d83eee183efcf759ae356",
+     "skillKey": "TECHNICAL_COMMUNICATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_TECH_COMM_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "8299dccad6300e6386d0e3eb",
+     "skillKey": "TECHNICAL_EXPLANATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "64460ccd5289ae8c651fa26d",
+     "skillKey": "TECHNICAL_COMMUNICATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f6363cddf799cd9727e5daac",
+     "skillKey": "TECHNICAL_EXPLANATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_TECH_COMM_FEEDBACK",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "83f7b0416c523fe525b9e6e8",
+     "skillKey": "TECHNICAL_COMMUNICATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "375a41d9c6c853bee49e4335",
+     "skillKey": "TECHNICAL_EXPLANATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "1b03b789274a9c3e59b6dd69",
+     "skillKey": "TECHNICAL_COMMUNICATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_TECH_COMM_KNOW_YOUR_AUDIENCE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "0b41fd0be34d0f409ff7cd6d",
+     "skillKey": "TECHNICAL_EXPLANATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "d49eb0ce9aa5d4d389ec5d6d",
+     "skillKey": "TECHNICAL_COMMUNICATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e2204ae4bac090b84812c2e5",
+     "skillKey": "TECHNICAL_EXPLANATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_TECH_COMM_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "afb257bcb41b42c6b2916981",
+     "skillKey": "TECHNICAL_EXPLANATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e988e8bb2032fe1722ca5665",
+     "skillKey": "TECHNICAL_COMMUNICATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "190c720a8529cad0bf1c09d7",
+     "skillKey": "TECHNICAL_EXPLANATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_TECH_COMM_PRESENTING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "2c03d7c3f6624667977e3802",
+     "skillKey": "TECHNICAL_COMMUNICATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "63ee9c7371fbe86891bce380",
+     "skillKey": "TECHNICAL_EXPLANATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8b32160485401a0abe8ff1a1",
+     "skillKey": "TECHNICAL_COMMUNICATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_TECH_COMM_STRUCTURE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "567603e12f2b507c4be82125",
+     "skillKey": "TECHNICAL_EXPLANATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "773780b9409353b1e56ea105",
+     "skillKey": "TECHNICAL_COMMUNICATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "ac4f6987be591c064740eb66",
+     "skillKey": "TECHNICAL_EXPLANATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_TECH_COMM_WRITING_IT_DOWN",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "db81778fba31b90bb0d1c771",
+     "skillKey": "TECHNICAL_COMMUNICATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "49eb107ea206e0a8220a5f80",
+     "skillKey": "TECHNICAL_EXPLANATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e535d3238c209d5cd5e36b13",
+     "skillKey": "TECHNICAL_EXPLANATION",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_VARIABLES_BOOLEANS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "2979ff84d0085908434961e2",
+     "skillKey": "PYTHON_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f60fab491309f2bdb4b353af",
+     "skillKey": "PYTHON_STRINGS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "0da77ca3173500141eb6738c",
+     "skillKey": "PROGRAMMING_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_VARIABLES_COMPUTE_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "f84481a1c5c12e798c227947",
+     "skillKey": "PROGRAMMING_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e2e216bd99ef4b984a822015",
+     "skillKey": "PYTHON_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "2e8e4ed23f56a23eacdcfc14",
+     "skillKey": "PYTHON_STRINGS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_VARIABLES_DEBUGGING",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "514557cf2cf78c6ff7005331",
+     "skillKey": "PROGRAMMING_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c152c30dfac6231129c3e93d",
+     "skillKey": "PYTHON_STRINGS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "f047b7cb06385bf531f7bbec",
+     "skillKey": "PYTHON_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_VARIABLES_FIRST_PROGRAM",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "4aa6b25a92540ecf025ffd19",
+     "skillKey": "PROGRAMMING_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "6357266984eedc775100489b",
+     "skillKey": "PYTHON_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "88ead401a9551a95937eb120",
+     "skillKey": "PYTHON_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_VARIABLES_INPUT_OUTPUT",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "e211e4afd228fd8cd3fdb101",
+     "skillKey": "PYTHON_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "b5863b294c3cf2937b3e219c",
+     "skillKey": "PYTHON_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "0a0b694e7495b524e374bc23",
+     "skillKey": "PYTHON_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_VARIABLES_NUMBERS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "a3bd087600df0170ad64175a",
+     "skillKey": "PROGRAMMING_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "76aff76f88ff1cbbcc625014",
+     "skillKey": "PYTHON_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "0bc5510af0c0667045d6bf28",
+     "skillKey": "PROGRAMMING_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_VARIABLES_PRACTICE",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "840dcfc1e656a90f17854578",
+     "skillKey": "PROGRAMMING_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "56684cd6ec5779f58e714a5b",
+     "skillKey": "PYTHON_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "dfef0437cfb63cc2259e7004",
+     "skillKey": "PYTHON_STRINGS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_VARIABLES_STRING_METHODS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "578b3fbad7756d094e94462d",
+     "skillKey": "PYTHON_STRINGS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "af3bbcd08f9f73f2d552f1ab",
+     "skillKey": "PYTHON_STRINGS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "e68ef08af9124699b9b216a6",
+     "skillKey": "PYTHON_STRINGS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_VARIABLES_STRINGS",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "ec4789d60e4e5388a70049a1",
+     "skillKey": "PYTHON_STRINGS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "6976d32675e4c9887f75f9b5",
+     "skillKey": "PYTHON_STRINGS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "c88cb01db95acf8efbf52d92",
+     "skillKey": "PYTHON_STRINGS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_VARIABLES_TYPES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "da5bfa961a0eeb25d5c933c3",
+     "skillKey": "PROGRAMMING_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "8be5d15178cdadf3788bcee3",
+     "skillKey": "PYTHON_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "5b044af8384ca2a027e1a9e3",
+     "skillKey": "PYTHON_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  },
+  {
+   "unitCode": "T_VARIABLES_VARIABLES",
+   "retakeable": false,
+   "questions": [
+    {
+     "id": "47b90060bb69281699a5f050",
+     "skillKey": "PROGRAMMING_FUNDAMENTALS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "5c7101c33121fc1bad3b44e6",
+     "skillKey": "PYTHON_BASICS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    },
+    {
+     "id": "93c575b779762d5207967564",
+     "skillKey": "PYTHON_STRINGS",
+     "difficulty": "MEDIUM",
+     "marks": 1,
+     "optionCount": 4
+    }
+   ]
+  }
+ ]
+}

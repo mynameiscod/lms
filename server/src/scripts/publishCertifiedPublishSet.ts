@@ -94,8 +94,14 @@ import { teaches } from '../data/contentBundlePolicy';
  * and leaves the set as READY-not-recommended — not withheld by decision, which is still the same three. It is
  * reconciled to DRAFT through the status route. The diagnostic absolute minimum was recomputed 181 to 193.
  * ACTUAL PRODUCTION GATE: PASS (9/9, 40/40, 72/72, content gates 0, published = certified 350); Phase-21 audit PASS.
+ *
+ * MOVED AGAIN, TO 22ccfbfb — CONTENT ONLY. seeds/careerPilot gained a CODING Assignment on the first practice unit
+ * of Variables, Conditions, Loops, Functions and Arrays. No composer, policy or fixture changed: selection, the
+ * READY inventory, the recommended 350 and the named three are identical, and seven reference journeys match
+ * 150b9223 day for day. ACTUAL PRODUCTION GATE: PASS (9/9, 40/40, 72/72, broken project and coding assignments 0,
+ * published = certified 350); Phase-21 audit PASS.
  */
-const CERTIFIED_COMMIT = '150b9223';
+const CERTIFIED_COMMIT = '22ccfbfb';
 const EXPECT = { total: 359, ready: 354, target: 350, withheld: 3, notRecommended: 1, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

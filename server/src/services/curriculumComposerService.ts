@@ -1191,15 +1191,58 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     }
     return (budget.get(role) || 0) - held >= 1;
   };
-  const pathFits = (target: ComposableUnit): boolean => {
+  /**
+   * THE RESERVATION HOLDS CAPACITY, NOT ONLY A PLACE IN THE QUEUE.
+   *
+   * State ranks first, so a topic measured FOUNDATION_REQUIRED opens ahead of an untouched one. The Skill Check
+   * measures six Foundation skills; a beginner who answers it wrongly has hardware, files, decomposition and
+   * pseudocode all at FOUNDATION_REQUIRED, and those blocks spent the foundation-instruction capacity that the
+   * reservation above only ranked for — variables reached practice, and conditions, loops and functions never
+   * entered. Scoring badly on more foundation skills gave a learner less of the programming course.
+   *
+   * So instruction off an unresolved spine topic's path to its first practice does not spend what that path is
+   * still owed — whenever a choice that does not is available. It binds only where the spine's hold is the reason:
+   * a role with no hold on it, and a learner whose spine is resolved, are exactly as before. The spine's own units
+   * still need their turn, suitability, prerequisites and budget; nothing is forced, and when no reserving choice
+   * exists the choice is exactly what it was.
+   */
+  const onSpinePath = (u: ComposableUnit): boolean => {
+    spineReserve();
+    for (const topic of spineNeeds.keys()) {
+      const first = firstBoundary(topic)!;
+      if (first.unitCode === u.unitCode || closureOf(first.unitCode).has(u.unitCode)) return true;
+    }
+    return false;
+  };
+  const spineHeld = (role: CompositionRole): number => {
+    spineReserve();
+    let held = 0;
+    for (const needs of spineNeeds.values()) held += needs.get(role) || 0;
+    return held;
+  };
+  /**
+   * Taking this unit would spend capacity its role holds for the unresolved spine. Practical roles too: a path to
+   * first practice runs through its debugging exercise, and an unrelated debugging exercise that takes the last
+   * application slot leaves arrays three lessons in and never practised.
+   */
+  const spendsSpineReserve = (u: ComposableUnit): boolean => {
+    const role = roleOf.get(u.unitCode)!;
+    if (onSpinePath(u)) return false;
+    const held = spineHeld(role);
+    return held > 0 && (budget.get(role) || 0) - held < 1;
+  };
+  const pathFits = (target: ComposableUnit, holdSpine = true): boolean => {
     const need = pathNeeds(target);
     spineReserve();
-    // Outside the spine, everything the unresolved spine still needs is held. On the spine, only what the topics
-    // BEFORE this one still need: an earlier topic is never made to wait for a later one's share.
-    const position = spineSequence.indexOf(target.topicCode);
+    // Outside the spine, everything the unresolved spine still needs is held. On an unresolved spine topic's path to
+    // its first practice, only what the topics BEFORE it still need: an earlier topic is never made to wait for a later
+    // one's share. A spine topic's LATER boundary is not that path — it holds the unresolved spine like anything else,
+    // or variables' second practice spends what conditions, loops and functions were promised.
+    const position = spineNeeds.has(target.topicCode) && firstBoundary(target.topicCode)?.unitCode === target.unitCode
+      ? spineSequence.indexOf(target.topicCode) : -1;
     const held = new Map<CompositionRole, number>();
     for (const [topic, needs] of spineNeeds) {
-      if (position >= 0 && spineSequence.indexOf(topic) >= position) continue;
+      if (!holdSpine || (position >= 0 && spineSequence.indexOf(topic) >= position)) continue;
       for (const [role, n] of needs) held.set(role, (held.get(role) || 0) + n);
     }
     return [...need].every(([role, n]) => (budget.get(role) || 0) - (held.get(role) || 0) >= n)
@@ -1254,6 +1297,8 @@ export function composeUnits(input: ComposerInput): ComposerResult {
       const promise = block.promisedFor
         && (roleCount.get(block.promisedFor) || 0) < (allocation.find(x => x.role === block.promisedFor)?.min ?? 0);
       const step = stepTowards(target, floor, !promise, true);
+      // An open block off the spine's path waits rather than spend what the unresolved spine is owed.
+      if (step && spendsSpineReserve(step)) continue;
       if (step) return step;
       if (topic === activeTopic) {
         stopBlock(topic, stepTowards(target, floor, false, true) ? 'PAUSED_FOR_ROLE_CAPACITY' : 'NOT_READY');
@@ -1318,17 +1363,24 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   const openingFor = (
     floor: number | null, accept: (step: ComposableUnit, target: ComposableUnit) => boolean,
   ): { step: ComposableUnit; target: ComposableUnit } | undefined => {
-    let best: { step: ComposableUnit; target: ComposableUnit; key: number[] } | undefined;
-    for (const topic of topicOrder) {
-      if (openBlocks.has(topic)) continue;
-      const target = nextBoundary(topic);
-      if (!target) continue;
-      const step = stepTowards(target, floor, true, false);
-      if (!step || !isInstructionalRole(roleOf.get(step.unitCode)!) || !accept(step, target)) continue;
-      const key = openingKey(topic, step, target);
-      if (!best || compareArrays(key, best.key) < 0) best = { step, target, key };
-    }
-    return best;
+    const best = (reserving: boolean) => {
+      let found: { step: ComposableUnit; target: ComposableUnit; key: number[] } | undefined;
+      for (const topic of topicOrder) {
+        if (openBlocks.has(topic)) continue;
+        const target = nextBoundary(topic);
+        if (!target) continue;
+        const step = stepTowards(target, floor, true, false);
+        if (!step || !isInstructionalRole(roleOf.get(step.unitCode)!) || !accept(step, target)) continue;
+        // A block is opened to be finished: off the spine's path, its whole path must fit beside the reservation.
+        if (reserving && (spendsSpineReserve(step)
+          || (!onSpinePath(step) && !pathFits(target) && pathFits(target, false)))) continue;
+        const key = openingKey(topic, step, target);
+        if (!found || compareArrays(key, found.key) < 0) found = { step, target, key };
+      }
+      return found;
+    };
+    // A topic that would spend the unresolved spine's capacity opens only when no topic that leaves it can.
+    return best(true) ?? best(false);
   };
 
   /* ---- 4a. keep the promises first ---------------------------------- */
@@ -1462,7 +1514,8 @@ export function composeUnits(input: ComposerInput): ComposerResult {
         && suitableNow(u)
         && readyToTake(u);
       // Rank never opens a topic ahead of an unresolved earlier topic in its sequence while anything else serves.
-      const byRank = ranked.find(u => servesTurn(u) && !opensOutOfOrder(u)) ?? ranked.find(servesTurn);
+      const byRank = ranked.find(u => servesTurn(u) && !opensOutOfOrder(u) && !spendsSpineReserve(u))
+        ?? ranked.find(u => servesTurn(u) && !opensOutOfOrder(u)) ?? ranked.find(servesTurn);
 
       // Which unit serves this role's turn: a new topic chosen by the strand policy when it is instruction,
       // and otherwise the topic just taught when it has something of this role. Never a lower priority.
@@ -1616,6 +1669,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
           && leavesSpineRoom(u));
 
     let next = continued ?? followUp
+      ?? ranked.find(u => takeable(u) && !opensOutOfOrder(u) && !spendsSpineReserve(u))
       ?? ranked.find(u => takeable(u) && !opensOutOfOrder(u)) ?? ranked.find(takeable);
     if (next && !continued && !followUp) {
       const opening = openingFor(floor, () => true);

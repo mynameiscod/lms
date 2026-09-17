@@ -51,8 +51,13 @@ import { publishUnit, setUnitStatus } from '../controllers/curriculumLearningUni
  * three JS/DOM lessons withheld by name, and T_FUNCTIONS_DOCSTRINGS, which no supported composition, sweep
  * or recomposition selects any more (it is off the path to both functions practices). That unit is not
  * withheld by decision: it is READY, not recommended, and so not published. `notRecommended` counts it.
+ *
+ * Re-certified again after the spine reservation began holding capacity, so a learner exactly as the Skill Check
+ * produces them keeps conditions, loops and functions. The derivation now reaches 348: T_LOOPS_NESTED_LOOPS and
+ * T_VARIABLES_NAMING — tail lessons past their topics' first practice, off every path to a practice the plans
+ * reach — join T_FUNCTIONS_DOCSTRINGS as READY and not recommended, and are reconciled to DRAFT the same way.
  */
-export const CERTIFIED_FOUNDATION = { total: 359, ready: 354, target: 350, withheld: 3, notRecommended: 1, partial: 5 } as const;
+export const CERTIFIED_FOUNDATION = { total: 359, ready: 354, target: 348, withheld: 3, notRecommended: 3, partial: 5 } as const;
 
 /** Committed with the code, so every deployment certifies against the same set. */
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

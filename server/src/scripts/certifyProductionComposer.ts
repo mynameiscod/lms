@@ -31,7 +31,8 @@ import { loadCandidates } from '../services/composerCandidateService';
 import { composeFoundationJourney, loadAssets, activitiesFor, UnitAssets } from '../services/foundationJourneyService';
 import { ComposableUnit, StudentProfile, composeUnits } from '../services/curriculumComposerService';
 import {
-  REALISTIC_PROFILES, PROGRAM_DAYS, EVOLUTIONS, validatePlan, isDeterministic, skillUniverse,
+  REALISTIC_PROFILES, REAL_SKILL_CHECK_PROFILES, spineContinuityIssues, spineFirstPractices,
+  PROGRAM_DAYS, EVOLUTIONS, validatePlan, isDeterministic, skillUniverse,
   simulateRecomposition, stateBoundaryProfiles, diagnosticSkills, directionFamilyMix,
 } from '../services/composerCertificationService';
 import { buildPrerequisiteGraph, findPrerequisiteCycles } from '../data/unitPrerequisiteGraph';
@@ -173,6 +174,25 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
     if (row.ok) ninePass++; else failures.push(`original nine: ${s.key}`);
   }
   console.log(`    original nine at exactly ninety: ${ninePass}/9`);
+
+  /* ══ 2b. REAL SKILL CHECK LEARNERS ═══════════════════════════════════════════════════════ */
+
+  /**
+   * Learners exactly as the Foundation Skill Check produces them. The nine above passed while a beginner who
+   * answered the check wrongly lost conditions, loops and functions; these hold that, and hold the spine: every
+   * topic's first practice in the plan, in the authored order.
+   */
+  title('2b. REAL SKILL CHECK LEARNERS on ACTUAL PRODUCTION — spine present and in order');
+  console.log(header);
+  let realPass = 0;
+  for (const p of REAL_SKILL_CHECK_PROFILES) {
+    const student = p.build();
+    const row = await certify(p.key, student, r => spineContinuityIssues(r, universe));
+    const days = spineFirstPractices(composeUnits({ candidates: universe, targetUnits: PROGRAM_DAYS, student }), universe);
+    console.log(`${row.line}   spine practice days ${days.map(d => d ?? '—').join('/')}`);
+    if (row.ok) realPass++; else failures.push(`real skill check: ${p.key}`);
+  }
+  console.log(`    real Skill Check learners at exactly ninety with the spine in order: ${realPass}/${REAL_SKILL_CHECK_PROFILES.length}`);
 
   /* ══ 3. STATE BOUNDARIES ═════════════════════════════════════════════════════════════════ */
 

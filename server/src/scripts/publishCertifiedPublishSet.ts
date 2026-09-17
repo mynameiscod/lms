@@ -109,7 +109,7 @@ import { teaches } from '../data/contentBundlePolicy';
  * Test Tenant; Phase-21 audit PASS.
  */
 const CERTIFIED_COMMIT = '79c9f92f';
-const EXPECT = { total: 359, ready: 354, target: 350, withheld: 3, notRecommended: 1, partial: 5 };
+const EXPECT = { total: 359, ready: 354, target: 348, withheld: 3, notRecommended: 3, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');
 /** What the certification was computed from. A change to any of these since certification is drift. */

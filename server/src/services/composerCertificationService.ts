@@ -37,6 +37,9 @@ import {
 import { appliesToDirection, isCoreModuleFor } from '../data/careerDirectionPolicy';
 import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
 import { foundationStageRequirements } from '../seeds/careerPilot/foundationStageSkillSet';
+import { aggregate, evidenceWeightFor } from '../data/skillDnaPolicy';
+import { resolveStance } from './foundationProfileService';
+import { practicalBoundaries } from '../data/courseSequencePolicy';
 
 export const PROGRAM_DAYS = FOUNDATION_PROGRAM_DAYS;
 
@@ -172,6 +175,98 @@ export const REALISTIC_PROFILES: RealisticProfile[] = [
     }),
   },
 ];
+
+/* ------------------------------------------------------------------ *
+ * Learners as the actual Skill Check produces them
+ * ------------------------------------------------------------------ */
+
+/**
+ * THE FOUNDATION SKILL CHECK, AS A STUDENT SITS IT.
+ *
+ * Every realistic profile above measures a hand-picked set of skills at a hand-picked score. None of them
+ * is what the product's own Skill Check hands the composer: six Foundation skills, four questions each,
+ * at the difficulties the paper was filled at, scored MEDIUM because four questions is what the paper
+ * asks. That gap let a beginner who answered the whole check wrongly lose conditions, loops and functions
+ * with every certification green — five low foundation scores outranked the untouched programming spine.
+ *
+ * These two learners are built from a paper, not from beliefs: each answer is weighed by the Skill DNA
+ * policy's own evidenceWeightFor, aggregated by its own aggregate, and the direction stance resolved as a
+ * student who has not chosen one is resolved. The items and difficulties are those of a real sitting.
+ */
+export const REAL_SKILL_CHECK_PAPER: { skillKey: string; difficulty: 'EASY' | 'MEDIUM' | 'HARD' }[] = [
+  { skillKey: 'HOW_COMPUTERS_WORK', difficulty: 'EASY' }, { skillKey: 'FILE_SYSTEMS_PERMISSIONS', difficulty: 'EASY' },
+  { skillKey: 'PSEUDOCODE_FLOWCHARTS', difficulty: 'MEDIUM' }, { skillKey: 'PROGRAMMING_FUNDAMENTALS', difficulty: 'EASY' },
+  { skillKey: 'HOW_COMPUTERS_WORK', difficulty: 'MEDIUM' }, { skillKey: 'FILE_SYSTEMS_PERMISSIONS', difficulty: 'EASY' },
+  { skillKey: 'SHELL_COMMANDS', difficulty: 'MEDIUM' }, { skillKey: 'PROBLEM_SOLVING', difficulty: 'EASY' },
+  { skillKey: 'PSEUDOCODE_FLOWCHARTS', difficulty: 'MEDIUM' }, { skillKey: 'PROGRAMMING_FUNDAMENTALS', difficulty: 'EASY' },
+  { skillKey: 'HOW_COMPUTERS_WORK', difficulty: 'MEDIUM' }, { skillKey: 'FILE_SYSTEMS_PERMISSIONS', difficulty: 'EASY' },
+  { skillKey: 'SHELL_COMMANDS', difficulty: 'EASY' }, { skillKey: 'SHELL_COMMANDS', difficulty: 'MEDIUM' },
+  { skillKey: 'PROBLEM_SOLVING', difficulty: 'EASY' }, { skillKey: 'PSEUDOCODE_FLOWCHARTS', difficulty: 'MEDIUM' },
+  { skillKey: 'PROGRAMMING_FUNDAMENTALS', difficulty: 'HARD' }, { skillKey: 'PROBLEM_SOLVING', difficulty: 'EASY' },
+  { skillKey: 'PSEUDOCODE_FLOWCHARTS', difficulty: 'EASY' }, { skillKey: 'PROGRAMMING_FUNDAMENTALS', difficulty: 'EASY' },
+  { skillKey: 'HOW_COMPUTERS_WORK', difficulty: 'EASY' }, { skillKey: 'FILE_SYSTEMS_PERMISSIONS', difficulty: 'EASY' },
+  { skillKey: 'SHELL_COMMANDS', difficulty: 'MEDIUM' }, { skillKey: 'PROBLEM_SOLVING', difficulty: 'EASY' },
+];
+
+/** A learner exactly as Skill DNA and profile hydration would hand them to the composer after this paper. */
+export function skillCheckLearner(answers: number[]): StudentProfile {
+  if (answers.length !== REAL_SKILL_CHECK_PAPER.length) throw new Error('one answer per Skill Check item');
+  const bySkill = new Map<string, { performance: number; evidenceWeight: number; itemKey: string }[]>();
+  REAL_SKILL_CHECK_PAPER.forEach((item, i) => {
+    const rows = bySkill.get(item.skillKey) || [];
+    rows.push({
+      performance: answers[i],
+      evidenceWeight: evidenceWeightFor({ relationship: 'PRIMARY', difficulty: item.difficulty, sourceType: 'PERSONALIZED_ASSESSMENT' }),
+      itemKey: `question:${i}`,
+    });
+    bySkill.set(item.skillKey, rows);
+  });
+  const stance = resolveStance({});
+  return {
+    skills: new Map([...bySkill].map(([k, rows]) => {
+      const r = aggregate(rows);
+      return [k, { score: r.score, confidence: r.confidence }] as [string, SkillBelief];
+    })),
+    primaryDirection: stance.primaryDirection,
+    directionStatus: stance.directionStatus,
+    explorationDirections: stance.exploring,
+  };
+}
+
+export const REAL_SKILL_CHECK_PROFILES: { key: string; note: string; build: () => StudentProfile }[] = [
+  {
+    key: 'REAL_SKILL_CHECK_BEGINNER',
+    note: 'answered the whole Skill Check wrongly: six Foundation skills at 0, MEDIUM',
+    build: () => skillCheckLearner(REAL_SKILL_CHECK_PAPER.map(() => 0)),
+  },
+  {
+    key: 'REAL_SKILL_CHECK_PARTIAL',
+    note: 'some programming right: PROGRAMMING_FUNDAMENTALS 46, shell 26, problem solving 25, the rest 0, all MEDIUM',
+    build: () => skillCheckLearner([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0]),
+  },
+];
+
+/** The programming spine, in its authored order: every topic's first practice must be in the plan, in this order. */
+export const PROGRAMMING_SPINE_TOPICS = ['T_VARIABLES', 'T_CONDITIONS', 'T_LOOPS', 'T_FUNCTIONS', 'T_ARRAYS'];
+
+/** The day each spine topic first reaches practice in a plan, by the course sequence's own boundary; null when never. */
+export function spineFirstPractices(result: Pick<ComposerResult, 'units'>, universe: ComposableUnit[]): (number | null)[] {
+  const codes = result.units.map(u => u.unitCode);
+  return PROGRAMMING_SPINE_TOPICS.map(t => {
+    const first = practicalBoundaries(universe.filter(u => u.topicCode === t))[0];
+    const i = first ? codes.indexOf(first.unitCode) : -1;
+    return i < 0 ? null : i + 1;
+  });
+}
+
+/** For a learner the spine is unresolved for: every topic reaches practice, and in the authored order. */
+export function spineContinuityIssues(result: Pick<ComposerResult, 'units'>, universe: ComposableUnit[]): string[] {
+  const days = spineFirstPractices(result, universe);
+  const issues = PROGRAMMING_SPINE_TOPICS.filter((_t, i) => days[i] === null).map(t => `SPINE_MISSING_${t.slice(2)}`);
+  const present = days.filter((d): d is number => d !== null);
+  if (present.some((d, i) => i > 0 && d <= present[i - 1])) issues.push('SPINE_OUT_OF_ORDER');
+  return issues;
+}
 
 export function skillUniverse(pool: ComposableUnit[]): { allSkills: string[]; universalSkills: string[] } {
   return {

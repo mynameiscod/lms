@@ -142,6 +142,8 @@ export interface Assignment {
   isExternalAssignment?: boolean;
   allowedLanguages: ProgrammingLanguage[];
   testCases: TestCase[];
+  /** Sent to students in place of the hidden tests themselves. */
+  hiddenTestCaseCount?: number;
   starterCode: StarterCode[];
   timeLimit?: number;
   memoryLimit?: number;

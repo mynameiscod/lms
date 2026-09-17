@@ -3,10 +3,13 @@ import { Types } from 'mongoose';
 import assignmentService from '../services/assignmentService';
 import { AssignmentType, AssignmentStatus, DifficultyLevel } from '../models/Assignment';
 import { generateCodingAssignmentWithAI } from '../services/aiService';
+import Submission from '../models/Submission';
+import { isAssignmentAuthor, refuseLockedAssignment } from './assignmentAccessGuard';
+import { toStudentAssignment, isSubmittedStatus } from '../services/studentAssignmentView';
 
 // Extended Request interface with user and tenant
 interface AuthRequest extends Request {
-  user?: { id: string; role?: string };
+  user?: { id: string; role?: string; customRoleId?: string | null };
   tenantId?: string;
 }
 
@@ -57,7 +60,20 @@ class AssignmentController {
         return res.status(404).json({ success: false, message: 'Assignment not found' });
       }
 
-      res.json({ success: true, data: assignment });
+      // Authors and graders edit and review the whole document.
+      if (await isAssignmentAuthor(req.user)) return res.json({ success: true, data: assignment });
+
+      /**
+       * Everyone else is a student: the assignment opens with its Foundation day, and what is sent is the student
+       * view — never a hidden test, a stored solution, or an answer key before their own attempt is handed in.
+       */
+      const studentId = String(req.user?.id || '');
+      if (await refuseLockedAssignment(String(tenantId), studentId, id, res)) return;
+      const attempt = Types.ObjectId.isValid(studentId)
+        ? await Submission.findOne({ assignment: assignment._id, student: studentId, tenant: tenantId })
+          .sort({ attemptNumber: -1 }).select('status').lean() as any
+        : null;
+      res.json({ success: true, data: toStudentAssignment(assignment, { revealAnswers: isSubmittedStatus(attempt?.status) }) });
     } catch (error) {
       console.error('Get assignment error:', error);
       res.status(500).json({

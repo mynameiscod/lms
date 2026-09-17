@@ -14,6 +14,10 @@ import {
 import ShareOnLinkedIn from '../../components/common/ShareOnLinkedIn';
 import './assignments.css';
 
+/** The server sends a student only the count of hidden tests, never the tests; an author's full document still carries them. */
+const hiddenTestCount = (a: Assignment): number =>
+  a.hiddenTestCaseCount ?? a.testCases.filter(tc => tc.isHidden).length;
+
 const AssignmentWorkspace: React.FC = () => {
   const navigate = useNavigate();
   const { assignmentId } = useParams<{ assignmentId: string }>();
@@ -942,7 +946,7 @@ const AssignmentWorkspace: React.FC = () => {
                         </div>
                       </div>
                     ))}
-                    {assignment.testCases.some(tc => tc.isHidden) && (
+                    {hiddenTestCount(assignment) > 0 && (
                       <div style={{ 
                         padding: '12px', 
                         background: '#fef3c7', 
@@ -950,7 +954,7 @@ const AssignmentWorkspace: React.FC = () => {
                         color: '#92400e',
                         fontSize: '14px'
                       }}>
-                        🔒 {assignment.testCases.filter(tc => tc.isHidden).length} hidden test case(s) will be run on submission
+                        🔒 {hiddenTestCount(assignment)} hidden test case(s) will be run on submission
                       </div>
                     )}
                   </div>

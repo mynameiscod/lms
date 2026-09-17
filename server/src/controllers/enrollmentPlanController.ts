@@ -23,6 +23,7 @@ import { workingDateForDay, planDayForDate, workingDayCount, asLocalDate, istTod
 import { resolveCurriculumPolicy } from '../services/deadlinePolicyService';
 import * as razorpay from '../services/razorpayService';
 import { foundationAccess } from '../services/foundationAccessService';
+import { isJourneyDayOpen } from '../data/journeyDayLadder';
 
 /**
  * A Foundation journey is the member's ninety days. Without membership its days cannot be opened or
@@ -552,9 +553,9 @@ export const markContentComplete = async (req: Request, res: Response) => {
      * ladder undoes itself from the top.
      */
     const dayNo = Number(dayNumber);
-    if ((enrollment as any).enrolledBy === 'foundation-journey' && dayNo > 1) {
+    if ((enrollment as any).enrolledBy === 'foundation-journey') {
       const doneDays = new Set<number>(((enrollment.completedDays || []) as number[]).map(Number));
-      if (!doneDays.has(dayNo - 1) && !doneDays.has(dayNo)) {
+      if (!isJourneyDayOpen(dayNo, doneDays)) {
         return res.status(403).json({
           reason: 'DAY_LOCKED',
           message: `Finish day ${dayNo - 1} before starting day ${dayNo}.`,

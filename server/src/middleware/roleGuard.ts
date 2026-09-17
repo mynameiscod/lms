@@ -399,6 +399,30 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   GUEST: ['view_public_courses'],
 };
 
+/**
+ * The permissions a signed-in user actually holds — the one answer roleGuard enforces.
+ *
+ * A custom role REPLACES the base role's permissions — it is the authoritative
+ * list for that user. This used to merge base + custom, which meant a custom role
+ * could only ever ADD access: ticking "1 / 4" in Roles & Permissions still left
+ * the user with everything their base role had. It also disagreed with
+ * getMyPermissions(), which already replaced — so the UI showed one set of
+ * permissions while the API enforced a larger one.
+ *
+ * Exported so a handler serving two audiences (an author and a student) decides by the same rule.
+ */
+export const permissionsOf = async (user: { role: string; customRoleId?: any }): Promise<string[]> => {
+  if (user.customRoleId) {
+    try {
+      const customRole = await Role.findById(user.customRoleId);
+      return customRole ? customRole.permissions : (ROLE_PERMISSIONS[user.role] || []);
+    } catch {
+      return ROLE_PERMISSIONS[user.role] || [];
+    }
+  }
+  return ROLE_PERMISSIONS[user.role] || [];
+};
+
 export const roleGuard = (requiredPermissions: string[]) => {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
@@ -408,25 +432,7 @@ export const roleGuard = (requiredPermissions: string[]) => {
       });
     }
 
-    const userRole = req.user.role;
-    let userPermissions: string[];
-
-    // A custom role REPLACES the base role's permissions — it is the authoritative
-    // list for that user. This used to merge base + custom, which meant a custom role
-    // could only ever ADD access: ticking "1 / 4" in Roles & Permissions still left
-    // the user with everything their base role had. It also disagreed with
-    // getMyPermissions(), which already replaced — so the UI showed one set of
-    // permissions while the API enforced a larger one.
-    if (req.user.customRoleId) {
-      try {
-        const customRole = await Role.findById(req.user.customRoleId);
-        userPermissions = customRole ? customRole.permissions : (ROLE_PERMISSIONS[userRole] || []);
-      } catch {
-        userPermissions = ROLE_PERMISSIONS[userRole] || [];
-      }
-    } else {
-      userPermissions = ROLE_PERMISSIONS[userRole] || [];
-    }
+    const userPermissions = await permissionsOf(req.user);
 
     const hasPermission = requiredPermissions.some(perm => 
       userPermissions.includes(perm)

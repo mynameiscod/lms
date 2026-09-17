@@ -31,6 +31,7 @@ import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
 import User from '../models/User';
 import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
+import { isJourneyDayOpen, membershipRefusesDay } from '../data/journeyDayLadder';
 import { FOUNDATION_JOURNEY_KIND } from '../services/foundationJourneyService';
 import { resolveCurriculumEngine } from '../services/curriculumEngineService';
 import { foundationReadiness, FOUNDATION_NOT_CONFIGURED_FOR_STUDENT } from '../services/foundationReadinessService';
@@ -99,14 +100,11 @@ const activityFor = (item: any) => ({
 const EMPTY_ASSETS: any = { content: [], quizzes: [], assignments: [] };
 
 /**
- * THE LADDER, IN ONE PLACE.
- *
- * Day one is always open, a day already completed stays open, and any other day opens once the day
- * before it is complete. The day endpoint refuses by this rule and the overview reports it, so the
- * roadmap can never call a day open that the server would then refuse, or the reverse.
+ * THE LADDER lives in data/journeyDayLadder. The day endpoint refuses by it and the overview reports it, so the
+ * roadmap can never call a day open that the server would then refuse, or the reverse — and an assignment on a
+ * journey day is opened by the same rule.
  */
-export const isJourneyDayOpen = (dayNumber: number, completed: Set<number>): boolean =>
-  dayNumber === 1 || completed.has(dayNumber) || completed.has(dayNumber - 1);
+export { isJourneyDayOpen };
 
 /**
  * What kind of day it is, in a student's words — a summary of the unit's type, never the type itself.
@@ -443,7 +441,7 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
 
     // Beyond the preview, a day is refused on the server — not merely hidden on the screen.
     const access = await foundationAccess(tenantId, studentId);
-    if (access.level === 'LOCKED' || (access.level === 'PREVIEW' && dayNumber > access.previewDays)) {
+    if (membershipRefusesDay(dayNumber, access)) {
       return res.status(403).json({ reason: 'MEMBERSHIP_REQUIRED', message: `Take membership to open day ${dayNumber} of your roadmap.` });
     }
 

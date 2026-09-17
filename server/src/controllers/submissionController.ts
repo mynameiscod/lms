@@ -3,10 +3,12 @@ import submissionService from '../services/submissionService';
 import assignmentHintService from '../services/assignmentHintService';
 import { SubmissionStatus } from '../models/Submission';
 import { checkDeadlineGate } from '../services/assessmentDeliveryService';
+import { isAssignmentAuthor, refuseLockedAssignment, refuseLockedSubmission } from './assignmentAccessGuard';
+import { toStudentSubmission } from '../services/studentAssignmentView';
 
 // Extended Request interface with user and tenant
 interface AuthRequest extends Request {
-  user?: { id: string; role?: string };
+  user?: { id: string; role?: string; customRoleId?: string | null };
   tenantId?: string;
 }
 
@@ -21,6 +23,8 @@ class SubmissionController {
       if (!tenantId || !userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
+      // A Foundation journey's assignment opens with its day, whoever holds the id.
+      if (await refuseLockedAssignment(tenantId, userId, assignmentId, res)) return;
 
       // Per-batch deadline/late-policy gate (schedule row, else the assignment's baked dates).
       const gate = await checkDeadlineGate(tenantId, userId, 'assignment', assignmentId);
@@ -60,6 +64,8 @@ class SubmissionController {
       if (!tenantId || !userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
+      // A Foundation journey's assignment opens with its day, whoever holds the id.
+      if (await refuseLockedAssignment(tenantId, userId, assignmentId, res)) return;
 
       const submission = await submissionService.getSubmissionForAssignment(
         assignmentId,
@@ -88,6 +94,7 @@ class SubmissionController {
       if (!tenantId || !userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
+      if (await refuseLockedSubmission(tenantId, userId, submissionId, res)) return;
 
       const submission = await submissionService.saveCode(
         submissionId,
@@ -117,6 +124,7 @@ class SubmissionController {
       if (!tenantId || !userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
+      if (await refuseLockedSubmission(tenantId, userId, submissionId, res)) return;
 
       const results = await submissionService.runCode(
         submissionId,
@@ -147,6 +155,7 @@ class SubmissionController {
       if (!tenantId || !userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
+      if (await refuseLockedSubmission(tenantId, userId, submissionId, res)) return;
       if (!fail || typeof fail.expected !== 'string' || typeof fail.actual !== 'string') {
         return res.status(400).json({ success: false, message: 'Missing failing test case details' });
       }
@@ -183,6 +192,7 @@ class SubmissionController {
       if (!tenantId || !userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
+      if (await refuseLockedSubmission(tenantId, userId, submissionId, res)) return;
 
       const result = await assignmentHintService.requestConceptHint({
         submissionId,
@@ -211,6 +221,7 @@ class SubmissionController {
       if (!tenantId || !userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
+      if (await refuseLockedSubmission(tenantId, userId, submissionId, res)) return;
 
       const submission = await submissionService.submitCoding(
         submissionId,
@@ -243,6 +254,7 @@ class SubmissionController {
       if (!tenantId || !userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
+      if (await refuseLockedSubmission(tenantId, userId, submissionId, res)) return;
 
       const submission = await submissionService.submitMCQ(
         submissionId,
@@ -253,7 +265,7 @@ class SubmissionController {
 
       res.json({
         success: true,
-        data: submission,
+        data: toStudentSubmission(submission),
         message: 'Quiz submitted successfully'
       });
     } catch (error) {
@@ -276,6 +288,7 @@ class SubmissionController {
       if (!tenantId || !userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
+      if (await refuseLockedSubmission(tenantId, userId, submissionId, res)) return;
 
       const submission = await submissionService.submitTheory(
         submissionId,
@@ -286,7 +299,7 @@ class SubmissionController {
 
       res.json({
         success: true,
-        data: submission,
+        data: toStudentSubmission(submission),
         message: 'Answer submitted successfully'
       });
     } catch (error) {
@@ -433,7 +446,10 @@ class SubmissionController {
         return res.status(404).json({ success: false, message: 'Submission not found' });
       }
 
-      res.json({ success: true, data: submission });
+      // Authors and graders review the whole assignment; a student gets their submission with the student view of it.
+      if (await isAssignmentAuthor(req.user)) return res.json({ success: true, data: submission });
+      if (await refuseLockedSubmission(tenantId, userId, submissionId, res)) return;
+      res.json({ success: true, data: toStudentSubmission(submission) });
     } catch (error) {
       console.error('Get submission error:', error);
       res.status(500).json({

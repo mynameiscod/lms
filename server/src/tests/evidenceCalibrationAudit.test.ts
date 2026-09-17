@@ -20,7 +20,7 @@ const results = new Map(SIM_LEARNERS.map(l => [l.key, simulate(l)]));
 const primaryQuestions = (skill: string) => (CHECKPOINTS as any).units.flatMap((u: any) => u.questions).filter((q: any) => q.skillKey === skill).length;
 
 describe('the evidence pipeline today', () => {
-  it('only three services write Skill DNA evidence: the Skill Check, module/checkpoint assessments, and mock interviews', () => {
+  it('only four services write Skill DNA evidence: the Skill Check, checkpoints, mock interviews, and graded assignment work', () => {
     const root = path.join(__dirname, '..');
     const writers: string[] = [];
     const walk = (dir: string) => {
@@ -33,15 +33,19 @@ describe('the evidence pipeline today', () => {
     };
     walk(root);
     expect(writers.sort()).toEqual([
-      'services/interviewIntelligenceService.ts', 'services/moduleAssessmentEvidenceService.ts', 'services/skillDnaService.ts',
+      'services/appliedEvidenceService.ts', 'services/interviewIntelligenceService.ts', 'services/moduleAssessmentEvidenceService.ts',
+      'services/skillDnaService.ts',
     ]);
   });
 
-  it('assignment and project submissions write no evidence', () => {
+  it('assignment work reaches Skill DNA only through the applied evidence service, after a final grade', () => {
     const src = (p: string) => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
     for (const f of ['services/submissionService.ts', 'controllers/submissionController.ts']) {
-      expect({ f, evidence: /StudentSkillEvidence|recomputeStudentSkills|projectModuleAssessment|SkillEvidence/.test(src(f)) }).toEqual({ f, evidence: false });
+      expect({ f, direct: /StudentSkillEvidence|recomputeStudentSkills|projectModuleAssessment/.test(src(f)) }).toEqual({ f, direct: false });
     }
+    // Two calls: the final auto-grade in submitCoding, and the authorised grade.
+    expect(src('services/submissionService.ts').match(/scheduleAppliedEvidence\(/g)).toHaveLength(2);
+    expect(src('controllers/submissionController.ts')).not.toMatch(/AppliedEvidence|recordAppliedEvaluation/);
   });
 
   it('weighs a checkpoint answer at half a Skill Check item, and every checkpoint question is MEDIUM, single-answer, not retakeable', () => {

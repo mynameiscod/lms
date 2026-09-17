@@ -12,6 +12,7 @@ import Assignment, {
 import assignmentService from './assignmentService';
 import codeRunnerService from './codeRunnerService';
 import { resolveForStudent } from './assessmentDeliveryService';
+import { scheduleAppliedEvidence } from './appliedEvidenceService';
 import { Types } from 'mongoose';
 import crypto from 'crypto';
 
@@ -348,6 +349,8 @@ class SubmissionService {
     const results: ITestCaseResult[] = [];
     let totalWeight = 0;
     let earnedWeight = 0;
+    // A grade is evidence of skill only if every case was really executed and judged.
+    let autoGradeTrusted = assignment.testCases.length > 0 && codeRunnerService.executesForReal(submission.language!);
 
     for (let i = 0; i < assignment.testCases.length; i++) {
       const tc = assignment.testCases[i];
@@ -369,6 +372,7 @@ class SubmissionService {
       if (result.passed) {
         earnedWeight += tc.weight;
       }
+      if (result.graderUnavailable) autoGradeTrusted = false;
 
       results.push({
         testCaseIndex: i,
@@ -413,6 +417,7 @@ class SubmissionService {
         $set: {
           testCaseResults: results,
           autoScore,
+          autoGradeTrusted,
           penaltyApplied: penalty,
           totalScore: autoScore,
           finalScore,
@@ -436,6 +441,10 @@ class SubmissionService {
 
     // Update assignment stats
     await assignmentService.updateStats(assignment._id, tenant);
+
+    // The final auto-grade is the evaluation. Only a really-executed one becomes evidence; that is
+    // decided from what was stored above, not here.
+    scheduleAppliedEvidence({ tenantId: String(tenant), submissionId: String(updated._id), evaluation: 'AUTO_GRADED' });
 
     return updated;
   }
@@ -613,6 +622,10 @@ class SubmissionService {
     await submission.save();
     await assignmentService.updateStats(assignment._id, tenant);
 
+    // An authorised grade is the evaluation of a project, and a review of a coding submission. A
+    // regrade of the same attempt replaces its evidence rather than adding to it.
+    scheduleAppliedEvidence({ tenantId: String(tenant), submissionId: String(submission._id), evaluation: 'REVIEWED' });
+
     return submission;
   }
 
@@ -714,6 +727,7 @@ class SubmissionService {
     submission.gradedAt = undefined;
     submission.gradedBy = undefined;
     submission.autoScore = 0;
+    submission.autoGradeTrusted = undefined;
     submission.manualScore = 0;
     submission.totalScore = 0;
     submission.finalScore = 0;

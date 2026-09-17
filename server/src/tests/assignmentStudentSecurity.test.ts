@@ -76,12 +76,15 @@ const executed: { input: string; expectedOutput: string }[] = [];
 jest.mock('../services/codeRunnerService', () => ({
   __esModule: true,
   default: {
+    executesForReal: () => false,
     execute: async (x: any) => {
       executed.push({ input: x.input, expectedOutput: x.expectedOutput });
       return { passed: true, output: x.expectedOutput, executionTime: 1, memoryUsed: 1 };
     },
   },
 }));
+// Skill DNA evidence from a grade has its own suite (integration/appliedEvidence); not this one's concern.
+jest.mock('../services/appliedEvidenceService', () => ({ scheduleAppliedEvidence: () => undefined }));
 const mockHint = jest.fn();
 jest.mock('../services/assignmentHintService', () => ({
   __esModule: true, default: { requestTestCaseHint: (...a: any[]) => mockHint(...a), requestConceptHint: (...a: any[]) => mockHint(...a) },

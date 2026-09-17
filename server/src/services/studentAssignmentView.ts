@@ -75,6 +75,8 @@ export function toStudentAssignment(doc: any, options: StudentAssignmentOptions 
 export function toStudentSubmission(doc: any): any {
   if (!doc) return doc;
   const s = typeof doc.toObject === 'function' ? doc.toObject() : { ...doc };
+  // How the grade was produced is grading provenance for Skill DNA, not something the student acts on.
+  delete s.autoGradeTrusted;
   const assignment = s.assignment;
   if (assignment && typeof assignment === 'object' && !(assignment._bsontype === 'ObjectId' || assignment._bsontype === 'ObjectID')
     && ('testCases' in assignment || 'mcqQuestions' in assignment || 'starterCode' in assignment || 'title' in assignment)) {

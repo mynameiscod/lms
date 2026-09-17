@@ -98,6 +98,12 @@ export interface ISubmission extends Document {
   
   // Scoring
   autoScore: number;
+  /**
+   * True only when autoScore came from really executing the program against every test case (Piston),
+   * with no run the grader failed to complete. A simulated grade is feedback, not evidence of skill; see
+   * appliedEvidenceService. Server-set with the grade, never from a request.
+   */
+  autoGradeTrusted?: boolean;
   manualScore: number;
   totalScore: number;
   penaltyApplied: number;
@@ -214,6 +220,7 @@ const SubmissionSchema = new Schema<ISubmission>({
   
   // Scoring
   autoScore: { type: Number, default: 0 },
+  autoGradeTrusted: { type: Boolean },
   manualScore: { type: Number, default: 0 },
   totalScore: { type: Number, default: 0 },
   penaltyApplied: { type: Number, default: 0 },

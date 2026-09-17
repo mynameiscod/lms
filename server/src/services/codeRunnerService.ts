@@ -29,6 +29,11 @@ interface ExecutionResult {
   executionTime: number; // in ms
   memoryUsed: number; // in MB
   compilationError?: string;
+  /**
+   * The runner could not judge the program — busy, unreachable, or refused — so `passed: false` says
+   * nothing about the student's code. A grade containing one is not evidence of skill.
+   */
+  graderUnavailable?: boolean;
 }
 
 /**
@@ -83,6 +88,18 @@ class CodeRunnerService {
     } else {
       console.log('⚠️ [CODE RUNNER] Using simulation mode. Set PISTON_URL for real execution.');
     }
+  }
+
+  /**
+   * Whether a result for this language comes from really running the program.
+   *
+   * Only Piston is. Without it every program is SIMULATED — pattern-matched against the expected output —
+   * and HTML/CSS are compared token by token; both are fine for feedback while practising and neither is
+   * a grade Skill DNA may learn from.
+   */
+  executesForReal(language: ProgrammingLanguage | string): boolean {
+    if (language === ProgrammingLanguage.HTML || language === ProgrammingLanguage.CSS) return false;
+    return this.useRealExecution && !!this.pistonUrl;
   }
 
   async execute(input: ExecutionInput): Promise<ExecutionResult> {
@@ -580,7 +597,7 @@ class CodeRunnerService {
         return {
           passed: false, output: '',
           error: 'The server is busy right now — too many programs running at once. Wait a few seconds and press Run again. Your code has not been changed.',
-          executionTime: 0, memoryUsed: 0,
+          executionTime: 0, memoryUsed: 0, graderUnavailable: true,
         };
       }
       throw e;
@@ -659,7 +676,7 @@ class CodeRunnerService {
           return {
             passed: false, output: '',
             error: 'The server is busy right now — too many programs running at once. Wait a few seconds and press Run again.',
-            executionTime: Date.now() - startedAt, memoryUsed: 0,
+            executionTime: Date.now() - startedAt, memoryUsed: 0, graderUnavailable: true,
           };
         }
         console.error('[PISTON] Error response:', response.status, errorBody);
@@ -754,7 +771,8 @@ class CodeRunnerService {
         output: '',
         error: error instanceof Error ? error.message : 'Execution failed',
         executionTime: 0,
-        memoryUsed: 0
+        memoryUsed: 0,
+        graderUnavailable: true,
       };
     }
   }

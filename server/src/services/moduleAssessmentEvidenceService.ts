@@ -24,7 +24,7 @@ import StudentSkillEvidence from '../models/StudentSkillEvidence';
 import CareerSkill from '../models/CareerSkill';
 import SkillEvidence from '../models/SkillEvidence';
 import { recomputeStudentSkills } from './skillDnaService';
-import { evidenceWeightFor } from '../data/skillDnaPolicy';
+import { evidenceWeightFor, EVIDENCE_KIND_FOR_SOURCE } from '../data/skillDnaPolicy';
 
 /** One graded answer from a module assessment. */
 export interface GradedModuleAnswer {
@@ -199,6 +199,7 @@ function evidenceOp(a: {
           studentId: new mongoose.Types.ObjectId(a.studentId),
           skillKey: a.skillKey,
           sourceType: 'MODULE_ASSESSMENT',
+          evidenceKind: EVIDENCE_KIND_FOR_SOURCE.MODULE_ASSESSMENT,
           assessmentId: deterministicId(a.assessmentRef),
           attemptNumber: 1,
           itemSourceType: a.itemSourceType,
@@ -225,7 +226,7 @@ function evidenceOp(a: {
  * identified by an enrollment-and-day string, so it is hashed to a fixed id — the same input
  * always producing the same id is what keeps the unique index doing its job.
  */
-function deterministicId(ref: string): mongoose.Types.ObjectId {
+export function deterministicId(ref: string): mongoose.Types.ObjectId {
   if (mongoose.Types.ObjectId.isValid(ref) && String(new mongoose.Types.ObjectId(ref)) === ref) {
     return new mongoose.Types.ObjectId(ref);
   }

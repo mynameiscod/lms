@@ -37,7 +37,24 @@ export type EvidenceRelationship = 'PRIMARY' | 'SECONDARY';
  * not a demonstration, and letting a keyword move a score would make Skill DNA a measure of
  * what students write about themselves.
  */
-export type EvidenceSource = 'PERSONALIZED_ASSESSMENT' | 'MOCK_INTERVIEW' | 'MODULE_ASSESSMENT';
+export type EvidenceSource =
+  | 'PERSONALIZED_ASSESSMENT' | 'MOCK_INTERVIEW' | 'MODULE_ASSESSMENT'
+  | 'CODING_ASSIGNMENT' | 'PROJECT_EVALUATION';
+
+/**
+ * What an observation can demonstrate — a different question from how much it counts.
+ *
+ *   DIAGNOSTIC     a measurement of what the student already has: the Skill Check and a reassessment
+ *                  (and a mock interview; see EVIDENCE_KIND_FOR_SOURCE for why).
+ *   UNDERSTANDING  a checkpoint question inside the coursework: the student recognised the right answer.
+ *   APPLIED        work the student produced and that was genuinely graded: a coding assignment run
+ *                  against its tests on a real runner, or a project reviewed by an authorised grader.
+ *
+ * Recognising the right answer to a question about loops is real evidence, and it is not the same as
+ * writing a loop that works. The kind is what lets the plan tell those apart; the weight is unchanged.
+ */
+export type EvidenceKind = 'DIAGNOSTIC' | 'UNDERSTANDING' | 'APPLIED';
+export const EVIDENCE_KINDS: EvidenceKind[] = ['DIAGNOSTIC', 'UNDERSTANDING', 'APPLIED'];
 
 export const EVIDENCE_RELATIONSHIPS: EvidenceRelationship[] = ['PRIMARY', 'SECONDARY'];
 /**
@@ -53,7 +70,15 @@ export const EVIDENCE_RELATIONSHIPS: EvidenceRelationship[] = ['PRIMARY', 'SECON
  * it is unproctored and retakeable, so a student may attempt it until they pass, and evidence
  * that can be repeated until it is favourable is weaker evidence. See SOURCE_WEIGHT.
  */
-export const EVIDENCE_SOURCES: EvidenceSource[] = ['PERSONALIZED_ASSESSMENT', 'MOCK_INTERVIEW', 'MODULE_ASSESSMENT'];
+export const EVIDENCE_SOURCES: EvidenceSource[] = [
+  'PERSONALIZED_ASSESSMENT', 'MOCK_INTERVIEW', 'MODULE_ASSESSMENT',
+  /**
+   * Graded practical work, admitted once it could be tied to canonical skills: a Foundation assignment
+   * carries its unit's code, and the unit carries the skills it assesses. Only a trustworthy final grade
+   * is admitted — see appliedEvidenceService.
+   */
+  'CODING_ASSIGNMENT', 'PROJECT_EVALUATION',
+];
 
 export interface IStudentSkillEvidence extends Document {
   tenantId: string;
@@ -63,12 +88,18 @@ export interface IStudentSkillEvidence extends Document {
 
   sourceType: EvidenceSource;
   /**
+   * Written on every row recorded since kinds existed. Rows recorded before carry none, and their kind
+   * is derived from sourceType (evidenceKindOf) — nothing is rewritten.
+   */
+  evidenceKind?: EvidenceKind;
+  /**
    * The sitting this observation came from. Part of the idempotency key.
    *
    * WHICH COLLECTION IT POINTS AT DEPENDS ON sourceType: a PersonalizedAssessment for
-   * PERSONALIZED_ASSESSMENT, a PassportInterview for MOCK_INTERVIEW. The declared `ref`
-   * below covers the first and only the first — so do not add a blind .populate() on this
-   * field, which would silently return null for every interview row.
+   * PERSONALIZED_ASSESSMENT, a PassportInterview for MOCK_INTERVIEW, and for graded assignment work a
+   * stable id derived from the submission and its attempt. The declared `ref` below covers the first
+   * and only the first — so do not add a blind .populate() on this field, which would silently return
+   * null for every other row.
    */
   assessmentId: mongoose.Types.ObjectId;
   attemptNumber: number;
@@ -90,6 +121,14 @@ export interface IStudentSkillEvidence extends Document {
   evidenceWeight: number;
   policyVersion: string;
 
+  /** Graded assignment work only: what was evaluated, and how. */
+  submissionId?: mongoose.Types.ObjectId;
+  assignmentId?: mongoose.Types.ObjectId;
+  unitCode?: string;
+  /** AUTO_GRADED by the runner against every test case, or REVIEWED by an authorised grader. */
+  evaluation?: 'AUTO_GRADED' | 'REVIEWED';
+  evaluatedBy?: mongoose.Types.ObjectId;
+
   observedAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -102,6 +141,8 @@ const StudentSkillEvidenceSchema = new Schema<IStudentSkillEvidence>(
     skillKey:  { type: String, required: true, uppercase: true, trim: true },
 
     sourceType:    { type: String, enum: EVIDENCE_SOURCES, default: 'PERSONALIZED_ASSESSMENT' },
+    // No default: an absent kind is a row recorded before kinds, derived from sourceType.
+    evidenceKind:  { type: String, enum: EVIDENCE_KINDS },
     // See the interface above: MOCK_INTERVIEW rows point at a PassportInterview instead.
     assessmentId:  { type: Schema.Types.ObjectId, ref: 'PersonalizedAssessment', required: true },
     attemptNumber: { type: Number, default: 1 },
@@ -118,6 +159,12 @@ const StudentSkillEvidenceSchema = new Schema<IStudentSkillEvidence>(
 
     evidenceWeight: { type: Number, default: 1 },
     policyVersion:  { type: String, default: 'SKILL_DNA_V1' },
+
+    submissionId: { type: Schema.Types.ObjectId, ref: 'Submission' },
+    assignmentId: { type: Schema.Types.ObjectId, ref: 'Assignment' },
+    unitCode:     { type: String, uppercase: true, trim: true },
+    evaluation:   { type: String, enum: ['AUTO_GRADED', 'REVIEWED'] },
+    evaluatedBy:  { type: Schema.Types.ObjectId, ref: 'User' },
 
     observedAt: { type: Date, default: Date.now },
   },

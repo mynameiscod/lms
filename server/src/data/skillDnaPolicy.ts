@@ -75,7 +75,77 @@ export const SOURCE_WEIGHT: Record<string, number> = {
    * change.
    */
   MODULE_ASSESSMENT: 0.5,
+  /**
+   * Graded practical work: a coding assignment run against every test case on a real runner, or a
+   * project reviewed against its rubric by an authorised grader.
+   *
+   * Full strength, like a marked paper. The student produced the work rather than recognised an answer,
+   * it was graded once against the author's own tests or rubric, and a failed attempt is recorded at
+   * the grade it earned — a pass does not replace it, a reattempt is a second observation beside it.
+   */
+  CODING_ASSIGNMENT: 1.0,
+  PROJECT_EVALUATION: 1.0,
 };
+
+export type EvidenceKind = 'DIAGNOSTIC' | 'UNDERSTANDING' | 'APPLIED';
+
+/**
+ * The kind every source records, and the kind a row recorded before kinds existed is read as.
+ *
+ * A MOCK INTERVIEW IS DIAGNOSTIC. It is a measured assessment of what the student can already do,
+ * taken outside the coursework, and it has always counted toward every state a Skill Check can reach.
+ * Reading it as UNDERSTANDING would newly cap an interviewed skill, which is a behaviour change nobody
+ * decided; reading it as APPLIED would claim the student built something. So it keeps its behaviour:
+ * no cap, weight 0.6, no trigger. The ambiguity — a spoken explanation is not working code — is
+ * recorded here rather than resolved silently.
+ */
+export const EVIDENCE_KIND_FOR_SOURCE: Record<string, EvidenceKind> = {
+  PERSONALIZED_ASSESSMENT: 'DIAGNOSTIC',
+  MOCK_INTERVIEW: 'DIAGNOSTIC',
+  MODULE_ASSESSMENT: 'UNDERSTANDING',
+  CODING_ASSIGNMENT: 'APPLIED',
+  PROJECT_EVALUATION: 'APPLIED',
+};
+
+/**
+ * A row's kind: as recorded, or derived from its source for rows recorded before kinds existed.
+ *
+ * An unknown source is DIAGNOSTIC — the reading that changes nothing about how it has been treated.
+ */
+export function evidenceKindOf(row: { evidenceKind?: string | null; sourceType?: string | null }): EvidenceKind {
+  if (row.evidenceKind === 'DIAGNOSTIC' || row.evidenceKind === 'UNDERSTANDING' || row.evidenceKind === 'APPLIED') {
+    return row.evidenceKind;
+  }
+  return EVIDENCE_KIND_FOR_SOURCE[String(row.sourceType || 'PERSONALIZED_ASSESSMENT')] || 'DIAGNOSTIC';
+}
+
+export interface EvidenceBasis {
+  /** Effective weight contributed by each kind, rounded to hundredths. */
+  weights: Record<EvidenceKind, number>;
+  rows: Record<EvidenceKind, number>;
+  /**
+   * True when every observation is a checkpoint answer. Such a skill may be understood, but nothing it
+   * holds shows the student can apply it — see stateForScore.
+   */
+  understandingOnly: boolean;
+}
+
+/** Which kinds of evidence a skill's rows are, by count and by weight. */
+export function evidenceBasis(rows: { evidenceKind?: string | null; sourceType?: string | null; evidenceWeight: number }[]): EvidenceBasis {
+  const weights: Record<EvidenceKind, number> = { DIAGNOSTIC: 0, UNDERSTANDING: 0, APPLIED: 0 };
+  const counts: Record<EvidenceKind, number> = { DIAGNOSTIC: 0, UNDERSTANDING: 0, APPLIED: 0 };
+  for (const r of rows) {
+    const k = evidenceKindOf(r);
+    counts[k]++;
+    weights[k] += Number.isFinite(r.evidenceWeight) && r.evidenceWeight > 0 ? r.evidenceWeight : 0;
+  }
+  for (const k of Object.keys(weights) as EvidenceKind[]) weights[k] = Math.round(weights[k] * 100) / 100;
+  return {
+    weights,
+    rows: counts,
+    understandingOnly: counts.UNDERSTANDING > 0 && counts.DIAGNOSTIC === 0 && counts.APPLIED === 0,
+  };
+}
 
 /**
  * Confidence thresholds, on EFFECTIVE weight rather than raw count.

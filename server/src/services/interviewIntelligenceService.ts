@@ -3,7 +3,7 @@ import StudentSkillEvidence from '../models/StudentSkillEvidence';
 import CareerSkill from '../models/CareerSkill';
 import { recomputeStudentSkills } from './skillDnaService';
 import { calculateStudentRoleReadiness, RoleReadinessResult } from './roleReadinessService';
-import { evidenceWeightFor, performanceFor, SKILL_DNA_VERSION } from '../data/skillDnaPolicy';
+import { evidenceWeightFor, performanceFor, SKILL_DNA_VERSION, EVIDENCE_KIND_FOR_SOURCE } from '../data/skillDnaPolicy';
 import {
   PLACEMENT_READINESS_VERSION, INTERVIEW_WEIGHTS, InterviewDimension,
   INTERVIEW_MIX, isEvidenceWorthy, weightedScore, clamp100,
@@ -191,6 +191,7 @@ export async function projectInterviewToEvidence(input: {
               skillKey: q.skillKey,
               // The source is what makes this weigh less than a marked paper.
               sourceType: 'MOCK_INTERVIEW',
+              evidenceKind: EVIDENCE_KIND_FOR_SOURCE.MOCK_INTERVIEW,
               assessmentId: new mongoose.Types.ObjectId(input.interviewId),
               attemptNumber: input.attemptNumber || 1,
               itemSourceType: 'interview_question',

@@ -5,6 +5,7 @@ import CareerSkill from '../models/CareerSkill';
 import SkillEvidence from '../models/SkillEvidence';
 import {
   SKILL_DNA_VERSION, evidenceWeightFor, performanceFor, aggregate, explain,
+  EVIDENCE_KIND_FOR_SOURCE, evidenceBasis, evidenceKindOf, EvidenceBasis,
 } from '../data/skillDnaPolicy';
 import { GradedAnswer } from './assessmentAnswerGradingService';
 
@@ -140,6 +141,7 @@ export async function projectAssessmentToSkillDna(
             $setOnInsert: {
               tenantId, studentId: assessment.studentId, skillKey: c.skillKey,
               sourceType: 'PERSONALIZED_ASSESSMENT',
+              evidenceKind: EVIDENCE_KIND_FOR_SOURCE.PERSONALIZED_ASSESSMENT,
               assessmentId: assessment._id, attemptNumber: assessment.attemptNumber,
               itemSourceType: g.sourceType, itemSourceId: g.sourceId,
               relationship: c.relationship, difficulty: item.difficulty,
@@ -294,6 +296,24 @@ export async function getSkillDna(tenantId: string, studentId: string): Promise<
 }
 
 /**
+ * What kinds of evidence each of a student's skills rests on, read from the rows themselves.
+ *
+ * Derived on read, never stored on the profile: a row recorded before kinds existed carries none and
+ * is read by its source, so no history is rewritten and no profile can disagree with its rows. One
+ * query for the student, grouped in memory.
+ *
+ * NOT FOR STUDENTS. The kinds steer what the plan may skip; a student sees their score and confidence
+ * exactly as before.
+ */
+export async function getEvidenceBases(tenantId: string, studentId: string): Promise<Map<string, EvidenceBasis>> {
+  const rows = await StudentSkillEvidence.find({ tenantId, studentId })
+    .select('skillKey sourceType evidenceKind evidenceWeight').lean() as any[];
+  const bySkill = new Map<string, any[]>();
+  for (const r of rows) bySkill.set(r.skillKey, [...(bySkill.get(r.skillKey) || []), r]);
+  return new Map([...bySkill].map(([k, rs]) => [k, evidenceBasis(rs)]));
+}
+
+/**
  * The observations behind one score, and the arithmetic applied to them.
  *
  * A student who disputes a result deserves better than "the system calculated it", and an
@@ -302,6 +322,8 @@ export async function getSkillDna(tenantId: string, studentId: string): Promise<
 export async function explainSkill(tenantId: string, studentId: string, skillKey: string): Promise<{
   skillKey: string;
   profile: any | null;
+  /** Which kinds of evidence the score rests on, and whether understanding alone caps what it can skip. */
+  basis: EvidenceBasis;
   evidence: any[];
   workings: string[];
 }> {
@@ -322,7 +344,10 @@ export async function explainSkill(tenantId: string, studentId: string, skillKey
   return {
     skillKey: sk,
     profile: profile || null,
+    basis: evidenceBasis(evidence || []),
     evidence: (evidence || []).map((e: any) => ({
+      sourceType: e.sourceType, evidenceKind: evidenceKindOf(e),
+      ...(e.submissionId ? { submissionId: e.submissionId, assignmentId: e.assignmentId, unitCode: e.unitCode, evaluation: e.evaluation } : {}),
       itemSourceType: e.itemSourceType, itemSourceId: e.itemSourceId,
       relationship: e.relationship, difficulty: e.difficulty,
       earnedPoints: e.earnedPoints, maxPoints: e.maxPoints,

@@ -1,25 +1,33 @@
 /**
  * Skill DNA evidence calibration — CHARACTERIZATION, not a specification.
  *
- * These tests pin how evidence behaves TODAY, as measured by the calibration audit (docs/audit/skill-dna-evidence-
+ * These tests pin how evidence behaves, as measured by the calibration audit (docs/audit/skill-dna-evidence-
  * calibration.md), so any future change to weights, thresholds or evidence sources is made knowingly and shows up
- * here. A failing assertion after a deliberate calibration change is expected: update it with the decision.
+ * here. Two models are pinned side by side: BEFORE (58b248b6 — no evidence kinds, no applied evidence) and AFTER
+ * (production now — kinds, the understanding-only cap, graded coding assignments and projects as APPLIED evidence).
+ * A failing assertion after a deliberate calibration change is expected: update it with the decision.
  */
 
 import fs from 'fs';
 import path from 'path';
 import {
   answerLadder, firstReached, skillCheckRows, SIM_LEARNERS, simulate, CODING_ASSIGNMENT_UNITS, EvidenceRow,
+  SimulationResult, Model, criticalCase,
 } from './evidenceCalibration/simulator';
 import { REAL_SKILL_CHECK_PAPER } from '../services/composerCertificationService';
 import { aggregate, evidenceWeightFor } from '../data/skillDnaPolicy';
 import CHECKPOINTS from './fixtures/evidence/checkpoint-questions.json';
 
-const learner = (key: string) => SIM_LEARNERS.find(l => l.key === key)!;
-const results = new Map(SIM_LEARNERS.map(l => [l.key, simulate(l)]));
+const cache = new Map<string, SimulationResult>();
+const run = (key: string, model: Model) => {
+  const k = `${key}:${model}`;
+  if (!cache.has(k)) cache.set(k, simulate(SIM_LEARNERS.find(l => l.key === key)!, model));
+  return cache.get(k)!;
+};
 const primaryQuestions = (skill: string) => (CHECKPOINTS as any).units.flatMap((u: any) => u.questions).filter((q: any) => q.skillKey === skill).length;
+const SPINE = ['CONDITIONALS_BASICS', 'LOOPS_BASICS', 'FUNCTIONS_BASICS'];
 
-describe('the evidence pipeline today', () => {
+describe('the evidence pipeline', () => {
   it('only four services write Skill DNA evidence: the Skill Check, checkpoints, mock interviews, and graded assignment work', () => {
     const root = path.join(__dirname, '..');
     const writers: string[] = [];
@@ -63,58 +71,106 @@ describe('the evidence pipeline today', () => {
 });
 
 describe('answers needed to move a state', () => {
-  it('an unmeasured skill is STANDARD after one right checkpoint answer (capped by LOW) and VERIFIED after six (MEDIUM)', () => {
-    const f = firstReached(answerLadder([], true));
+  it('BEFORE: an unmeasured skill is STANDARD after one right checkpoint answer (capped by LOW) and VERIFIED after six (MEDIUM)', () => {
+    const f = firstReached(answerLadder([], true, 80, 'MEDIUM', 'BEFORE'));
     expect(f.states).toMatchObject({ STANDARD: 1, VERIFIED: 6 });
     expect(f.states.REVISION).toBeUndefined();
     expect(f.confidence).toMatchObject({ LOW: 1, MEDIUM: 6, HIGH: 14 });
-    expect(firstReached(answerLadder([], false)).states).toMatchObject({ FOUNDATION_REQUIRED: 1 });
+    expect(firstReached(answerLadder([], false, 80, 'MEDIUM', 'BEFORE')).states).toMatchObject({ FOUNDATION_REQUIRED: 1 });
   });
 
-  it('a skill the Skill Check measured at 0 needs 41 right answers to be VERIFIED — more than the curriculum asks for it', () => {
+  it('AFTER: checkpoint answers alone never take an unmeasured skill past STANDARD; confidence moves exactly as before', () => {
+    const f = firstReached(answerLadder([], true));
+    expect(f.states).toEqual({ NOT_EXPOSED: 0, STANDARD: 1 });
+    expect(f.confidence).toMatchObject({ LOW: 1, MEDIUM: 6, HIGH: 14 });
+  });
+
+  it('a skill the Skill Check measured at 0 needs 41 right answers to be VERIFIED under both models — the diagnostic lifts the cap', () => {
     const prior: EvidenceRow[] = skillCheckRows(REAL_SKILL_CHECK_PAPER.map(() => 0), 'PROGRAMMING_FUNDAMENTALS');
-    expect(firstReached(answerLadder(prior, true)).states).toMatchObject({ GUIDED: 5, STANDARD: 11, REVISION: 22, VERIFIED: 41 });
+    for (const model of ['BEFORE', 'AFTER'] as Model[]) {
+      expect(firstReached(answerLadder(prior, true, 80, 'MEDIUM', model)).states).toMatchObject({ GUIDED: 5, STANDARD: 11, REVISION: 22, VERIFIED: 41 });
+    }
     expect(primaryQuestions('PROGRAMMING_FUNDAMENTALS')).toBe(9);
     expect(primaryQuestions('SQL_BASICS')).toBe(4);
   });
 });
 
 describe('what realistic learners experience', () => {
-  it('never loses a mandatory backbone requirement, whatever the evidence', () => {
-    for (const [key, r] of results) expect({ key, missing: r.totals.backboneMissingEver }).toEqual({ key, missing: [] });
+  it('never loses a mandatory backbone requirement, whatever the evidence, under either model', () => {
+    for (const l of SIM_LEARNERS) {
+      for (const model of ['BEFORE', 'AFTER'] as Model[]) {
+        expect({ key: l.key, model, missing: run(l.key, model).totals.backboneMissingEver }).toEqual({ key: l.key, model, missing: [] });
+      }
+    }
   });
 
-  it('a beginner who answers every checkpoint right is VERIFIED on conditions, loops and functions from lesson checkpoints alone, and loses those coding assignments', () => {
-    const r = results.get('D_BEGINNER_ALL_RIGHT')!;
-    for (const k of ['CONDITIONALS_BASICS', 'LOOPS_BASICS', 'FUNCTIONS_BASICS']) expect({ k, state: r.finalBeliefs[k]!.state, confidence: r.finalBeliefs[k]!.confidence }).toEqual({ k, state: 'VERIFIED', confidence: 'MEDIUM' });
+  it('BEFORE: a beginner who answers every checkpoint right is VERIFIED on conditions, loops and functions from checkpoints alone, and loses those coding assignments', () => {
+    const r = run('D_BEGINNER_ALL_RIGHT', 'BEFORE');
+    for (const k of SPINE) expect({ k, state: r.finalBeliefs[k]!.state, confidence: r.finalBeliefs[k]!.confidence }).toEqual({ k, state: 'VERIFIED', confidence: 'MEDIUM' });
     expect(r.totals.codingAssignmentsRemoved.sort()).toEqual(['T_CONDITIONS_PRACTICE', 'T_FUNCTIONS_CALL_RETURN_PRACTICE', 'T_LOOPS_PRACTICE']);
-    // The skills the Skill Check measured wrong stay low however well the coursework goes: nine checkpoint questions exist.
     expect(r.finalBeliefs.PROGRAMMING_FUNDAMENTALS!.state).toBe('GUIDED');
   });
 
-  it('a learner right on lessons and wrong on practical work is still VERIFIED on functions, without demonstrating it', () => {
-    const r = results.get('C_BEGINNER_LESSONS_ONLY')!;
+  it('AFTER: the same beginner keeps and works every coding assignment, and is VERIFIED once the work is graded', () => {
+    const r = run('D_BEGINNER_ALL_RIGHT', 'AFTER');
+    expect(r.totals.codingAssignmentsRemoved).toEqual([]);
+    expect(r.totals.codingAssignmentsWorked.sort()).toEqual([...CODING_ASSIGNMENT_UNITS].sort());
+    for (const k of SPINE) {
+      const b = r.finalBeliefs[k]!;
+      expect({ k, state: b.state, capped: b.capped, applied: b.kinds.APPLIED > 0 }).toEqual({ k, state: 'VERIFIED', capped: false, applied: true });
+    }
+  });
+
+  it('the critical case: six right checkpoint answers are 100, MEDIUM, VERIFIED by score, planned at STANDARD — and the coding assignment remains', () => {
+    for (const [skill, unit] of [['CONDITIONALS_BASICS', 'T_CONDITIONS_PRACTICE'], ['LOOPS_BASICS', 'T_LOOPS_PRACTICE'], ['FUNCTIONS_BASICS', 'T_FUNCTIONS_CALL_RETURN_PRACTICE']]) {
+      const c = criticalCase(skill, unit);
+      expect({ skill, answers: c.answers, score: c.score, confidence: c.confidence, raw: c.rawState, effective: c.effectiveState, capped: c.capped, before: c.codingAssignmentBefore, after: c.codingAssignmentAfter })
+        .toEqual({ skill, answers: 6, score: 100, confidence: 'MEDIUM', raw: 'VERIFIED', effective: 'STANDARD', capped: true, before: false, after: true });
+      expect(c.codingAssignmentDayAfter!).toBeGreaterThan(c.day!);
+    }
+    // Arrays has too few mapped checkpoint questions before its assignment to reach MEDIUM: never at risk in the journey.
+    const arrays = criticalCase('DSA_ARRAYS', 'T_ARRAYS_TRAVERSAL_PRACTICE');
+    expect({ day: arrays.day, before: arrays.codingAssignmentBefore, after: arrays.codingAssignmentAfter }).toEqual({ day: null, before: true, after: true });
+    expect(arrays.sixAnswersFromScratch).toEqual({ rawState: 'VERIFIED', effectiveState: 'STANDARD', before: false, after: true });
+  });
+
+  it('BEFORE: a learner right on lessons and wrong on practical work is VERIFIED on functions without demonstrating it', () => {
+    const r = run('C_BEGINNER_LESSONS_ONLY', 'BEFORE');
     expect(r.finalBeliefs.FUNCTIONS_BASICS!.state).toBe('VERIFIED');
     expect(r.totals.codingAssignmentsRemoved).toContain('T_FUNCTIONS_CALL_RETURN_PRACTICE');
   });
 
+  it('AFTER: the same learner keeps the practical work, and failed grades pull the skills down at full weight', () => {
+    const before = run('C_BEGINNER_LESSONS_ONLY', 'BEFORE');
+    const r = run('C_BEGINNER_LESSONS_ONLY', 'AFTER');
+    expect(r.totals.codingAssignmentsRemoved).toEqual([]);
+    expect(r.totals.failedApplied).toBeGreaterThan(0);
+    expect(r.finalBeliefs.FUNCTIONS_BASICS!.state).toBe('GUIDED');
+    for (const k of SPINE) expect({ k, lower: r.finalBeliefs[k]!.score < before.finalBeliefs[k]!.score }).toEqual({ k, lower: true });
+  });
+
   it('guessing the first option shown never makes a focus skill better than GUIDED', () => {
-    const r = results.get('I_ALWAYS_OPTION_A')!;
-    for (const [k, b] of Object.entries(r.finalBeliefs)) {
-      if (b) expect({ k, ok: ['FOUNDATION_REQUIRED', 'GUIDED'].includes(b.state) }).toEqual({ k, ok: true });
+    for (const model of ['BEFORE', 'AFTER'] as Model[]) {
+      for (const [k, b] of Object.entries(run('I_ALWAYS_OPTION_A', model).finalBeliefs)) {
+        if (b) expect({ model, k, ok: ['FOUNDATION_REQUIRED', 'GUIDED'].includes(b.state) }).toEqual({ model, k, ok: true });
+      }
     }
   });
 
-  it('strong learners are anchored by their diagnostic: checkpoint evidence barely moves them', () => {
-    const f = results.get('F_AT_70')!;
-    expect(Object.values(f.finalBeliefs).filter(b => b && b.state === 'VERIFIED')).toHaveLength(0);
-    const h = results.get('H_VERY_STRONG')!;
-    expect(Object.values(h.finalBeliefs).every(b => b && b.state === 'VERIFIED')).toBe(true);
-    expect(CODING_ASSIGNMENT_UNITS.filter(c => h.initialPlan.includes(c))).toEqual([]);
+  it('strong learners are anchored by their diagnostic: no cap, no regression, compressed exactly as before', () => {
+    for (const model of ['BEFORE', 'AFTER'] as Model[]) {
+      expect(Object.values(run('F_AT_70', model).finalBeliefs).filter(b => b && b.state === 'VERIFIED')).toHaveLength(0);
+      const g = run('G_AT_78', model);
+      expect(Object.values(g.finalBeliefs).every(b => b && b.state === 'REVISION')).toBe(true);
+      const h = run('H_VERY_STRONG', model);
+      expect(Object.values(h.finalBeliefs).every(b => b && b.state === 'VERIFIED' && !b.capped)).toBe(true);
+      expect(CODING_ASSIGNMENT_UNITS.filter(c => h.initialPlan.includes(c))).toEqual([]);
+    }
+    expect(run('H_VERY_STRONG', 'AFTER').initialPlan).toEqual(run('H_VERY_STRONG', 'BEFORE').initialPlan);
   });
 
   it('is deterministic', () => {
-    const again = simulate(learner('E_PARTIAL'));
-    expect(again.finalPlan).toEqual(results.get('E_PARTIAL')!.finalPlan);
+    const again = simulate(SIM_LEARNERS.find(l => l.key === 'E_PARTIAL')!, 'AFTER');
+    expect(again.finalPlan).toEqual(run('E_PARTIAL', 'AFTER').finalPlan);
   });
 });

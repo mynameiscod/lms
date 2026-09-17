@@ -142,7 +142,7 @@ assignment from the journey.
 is missing), with a B-grade coverage imbalance (per-skill question supply versus the diagnostic anchor).
 **Not A:** the current calibration lets six recall answers remove practical work.
 
-Smallest proposed model (not implemented):
+Smallest proposed model (implemented afterwards; see section 10):
 
 1. **Evidence kind on each row**, set at projection:
    - `DIAGNOSTIC`: Skill Check and reassessment.
@@ -158,3 +158,85 @@ Smallest proposed model (not implemented):
 
 Security was not touched: answer keys, stable unbiased option order, tenant isolation, attempt ownership and hidden
 tests are as certified.
+
+## 10. Implemented: evidence source strength and applied mastery
+
+Commits f2250373 (kinds), 96b410eb (cap), 1d4b1556 (token tenant on submissions), b8bf7b4e (applied evidence), then
+the simulation, audit and certification gate. Weights, bands, confidence thresholds, recency, the diagnostic anchor,
+question supply, the composer, the backbone and the ninety days are unchanged.
+
+**Kinds.** Every row is DIAGNOSTIC (Skill Check, reassessment, mock interview), UNDERSTANDING (every checkpoint
+question) or APPLIED (a coding assignment auto-graded on a real runner; a coding or project submission graded through
+the authorised grading endpoint). New rows record `evidenceKind`; older rows are read by `sourceType`
+(`evidenceKindOf`), so nothing is rewritten and no migration was needed. Two source types were added at weight 1.0:
+`CODING_ASSIGNMENT`, `PROJECT_EVALUATION`.
+
+A mock interview is read as DIAGNOSTIC, not as a fourth kind. It is a measured assessment outside the coursework and it
+has always counted toward every state, so it keeps that behaviour: no cap, weight 0.6, no trigger. The open question is
+that a spoken explanation is not working code.
+
+**The cap.** If every row behind a skill is UNDERSTANDING, `stateForScore` stops at STANDARD. The stored score and
+confidence stay as measured. `buildFoundationProfile` flags the skill (`understandingOnly`), and the composer's state
+reads pass the flag through. A diagnostic or applied row lifts the cap. The cap never lowers GUIDED or
+FOUNDATION_REQUIRED, and it applies in addition to the LOW-confidence cap.
+
+**Applied evidence** (`appliedEvidenceService`):
+- **Trust.** An auto-grade counts only when every test case was executed by Piston (`Submission.autoGradeTrusted`,
+  set with the grade). A simulated run, a run the grader could not finish, and HTML/CSS token matching write nothing.
+- **Grades.** A project submission is not evaluated; its authorised grade is. Performance is the rubric fraction when
+  the rubric was scored, otherwise (auto + manual) ÷ totalPoints. The late penalty is not applied, and failed grades
+  are recorded as given.
+- **Identity.** One row per unit skill per submission attempt. A retry changes nothing, a regrade replaces, and a
+  reattempt adds new evidence. Hidden tests, code and solutions are never stored.
+- **Skills.** The assignment's `unitCode` names its unit. The unit's active, assessable, non-group skills each receive
+  the unit-level grade. An unmapped unit records nothing and reports `UNMAPPED`.
+- **Trigger.** An evaluation that changed evidence publishes `PROJECT_EVALUATED`; recomposition freezes completed days
+  and today.
+- **Security.** Tenant comes from the caller's token. Grading requires `grade_submissions`, a self-grade is refused,
+  and no request field can claim a grade.
+
+### Critical case (learner D, beginner, every checkpoint right)
+
+| Skill | First day checkpoints alone are VERIFIED by score | Raw / confidence | Effective | Cap | Coding assignment BEFORE | AFTER |
+|---|---|---|---|---|---|---|
+| CONDITIONALS_BASICS | 41 (6 answers) | 100 / MEDIUM, VERIFIED | STANDARD | YES | removed | kept, worked day 43 |
+| LOOPS_BASICS | 49 (6 answers) | 100 / MEDIUM, VERIFIED | STANDARD | YES | removed | kept, worked day 50 |
+| FUNCTIONS_BASICS | 53 (6 answers) | 100 / MEDIUM, VERIFIED | STANDARD | YES | removed | kept, worked day 54 |
+| DSA_ARRAYS | never (8 mapped questions stay LOW) | — | — | — | kept | kept, worked day 59 |
+
+### Twelve learners, BEFORE → AFTER (final focus-skill states; coding assignments removed)
+
+| Learner | Coding assignments removed | Notable state changes |
+|---|---|---|
+| A beginner weak | none → none | all FOUNDATION_REQUIRED, unchanged |
+| B learns | none → none | CONDITIONALS GUIDED 58 → STANDARD 64 (graded work at 40–95%) |
+| C lessons only, practical 20% | FUNCTIONS → none | FUNCTIONS VERIFIED 100 → GUIDED 58; CONDITIONALS STANDARD → GUIDED; DSA_ARRAYS GUIDED → FOUNDATION_REQUIRED |
+| D all right, practical 100% | CONDITIONS, LOOPS, FUNCTIONS → none | spine VERIFIED either way, AFTER only once the work is graded |
+| E partial | CONDITIONS, LOOPS → none | CONDITIONALS VERIFIED 88 → REVISION 84 |
+| F @70 | none → none | unchanged (STANDARD; PROBLEM_SOLVING REVISION) |
+| G @78 | none → none | unchanged (all REVISION) |
+| H very strong | 0 on plan either way | unchanged (all VERIFIED, initial plan identical) |
+| I always option A | none → none | all ≤ GUIDED |
+| J alternating | none → none | DSA_ARRAYS FOUNDATION_REQUIRED → GUIDED |
+| K wrong then right | CONDITIONS, LOOPS, FUNCTIONS → none | spine VERIFIED ~98 after graded work |
+| L right then wrong | none → none | PROGRAMMING_FUNDAMENTALS GUIDED → FOUNDATION_REQUIRED (failed later work) |
+
+The backbone was never missing, every plan was exactly ninety distinct days, and every run was deterministic. The
+production certification gate `4d` runs these checks against the published inventory.
+
+### Remaining calibration questions (measured, not changed)
+
+1. **Compact treatment at STANDARD differs by topic.** A learner who is already STANDARD on conditions before the
+   conditions lessons, from any source (a 7/10 diagnostic as well as capped checkpoints), gets
+   `T_CONDITIONS_DEBUGGING` as the one compact treatment, not `T_CONDITIONS_PRACTICE`. The authored chain puts
+   debugging before practice. Loops, functions and arrays keep their practice. In the real journey, the lessons come
+   first, so learner D keeps the assignment.
+2. **One failed applied grade can be outweighed.** Understanding plus a 20% coding grade lifts the cap. Six right
+   answers plus 20% score 80 (REVISION), and eighteen right answers plus 20% score 92 (VERIFIED). Whether a failed
+   applied grade should keep the cap, or carry more weight, is open.
+3. **Live coding evidence needs Piston.** Without `PISTON_URL`, every auto-grade is simulated and records nothing; only
+   reviewed grades produce applied evidence.
+4. **Project grade timing.** The simulator assumes a project is graded the day it is worked. In production, it takes
+   effect when a grader reviews it, which may be after later days are recomposed.
+5. **Carried over from sections 8–9:** the diagnostic anchor (41 answers), per-skill question supply (SQL_BASICS 4,
+   DSA_ARRAYS 8) and the 76 unmapped checkpoint questions.

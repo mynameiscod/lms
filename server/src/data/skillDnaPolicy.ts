@@ -92,16 +92,17 @@ export type EvidenceKind = 'DIAGNOSTIC' | 'UNDERSTANDING' | 'APPLIED';
 /**
  * The kind every source records, and the kind a row recorded before kinds existed is read as.
  *
- * A MOCK INTERVIEW IS DIAGNOSTIC. It is a measured assessment of what the student can already do,
- * taken outside the coursework, and it has always counted toward every state a Skill Check can reach.
- * Reading it as UNDERSTANDING would newly cap an interviewed skill, which is a behaviour change nobody
- * decided; reading it as APPLIED would claim the student built something. So it keeps its behaviour:
- * no cap, weight 0.6, no trigger. The ambiguity — a spoken explanation is not working code — is
- * recorded here rather than resolved silently.
+ * A MOCK INTERVIEW IS UNDERSTANDING. One interview writes one row per skill area, scored by a model reading the
+ * transcript. That is real evidence — the student explained the idea, unprompted — and it counts in the score at 0.6.
+ * It is not a controlled measurement like the Skill Check, and it is not working code: read as DIAGNOSTIC it let five
+ * well-scored conversations make a skill VERIFIED and skip the practical work planned for it, which is exactly what
+ * the understanding cap exists to prevent (and a model deciding mastery, which this policy rules out). So an
+ * interviewed skill with nothing else behind it stops at STANDARD; beside a diagnostic or passed work it counts as
+ * before. Its weight is unchanged, and it still sends no journey trigger: the next checkpoint recomposes.
  */
 export const EVIDENCE_KIND_FOR_SOURCE: Record<string, EvidenceKind> = {
   PERSONALIZED_ASSESSMENT: 'DIAGNOSTIC',
-  MOCK_INTERVIEW: 'DIAGNOSTIC',
+  MOCK_INTERVIEW: 'UNDERSTANDING',
   MODULE_ASSESSMENT: 'UNDERSTANDING',
   CODING_ASSIGNMENT: 'APPLIED',
   PROJECT_EVALUATION: 'APPLIED',
@@ -123,7 +124,7 @@ export function evidenceKindOf(row: { evidenceKind?: string | null; sourceType?:
  * Does this row demonstrate the skill, as opposed to merely being about it?
  *
  *   DIAGNOSTIC     yes — a measurement of what the student can do.
- *   UNDERSTANDING  no — recognising the right answer is not doing it.
+ *   UNDERSTANDING  no — recognising or explaining the right answer is not doing it.
  *   APPLIED        only when the graded work met its assignment's own pass standard (`meetsPassStandard`,
  *                  recorded with the grade from Assignment.passingPoints — the line Submission.isPassing draws).
  *                  A practical attempt that failed is real evidence and counts in the score at its grade; it does

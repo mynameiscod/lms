@@ -65,10 +65,12 @@ describe('kind, recorded or derived', () => {
     expect(evidenceKindOf({})).toBe('DIAGNOSTIC');
   });
 
-  it('keeps a mock interview at its existing semantics: never capped', () => {
-    expect(EVIDENCE_KIND_FOR_SOURCE.MOCK_INTERVIEW).toBe('DIAGNOSTIC');
-    const rows = [1, 2, 3, 4, 5, 6].map(i => ({ sourceType: 'MOCK_INTERVIEW', performance: 1, itemKey: `interview_question:${i}`, evidenceWeight: 0.6 }));
-    expect(judge(rows)).toMatchObject({ raw: 'VERIFIED', effective: 'VERIFIED', capped: false });
+  it('reads a mock interview as understanding: counted at 0.6, but a conversation alone does not verify a skill', () => {
+    expect(EVIDENCE_KIND_FOR_SOURCE.MOCK_INTERVIEW).toBe('UNDERSTANDING');
+    const interviews = [1, 2, 3, 4, 5].map(i => ({ sourceType: 'MOCK_INTERVIEW', performance: 0.9, itemKey: `interview_question:area:0:${i}`, evidenceWeight: 0.6 }));
+    expect(judge(interviews)).toMatchObject({ score: 90, confidence: 'MEDIUM', raw: 'VERIFIED', effective: 'STANDARD', capped: true });
+    // Beside a diagnostic it counts exactly as before.
+    expect(judge([...[1, 2, 3, 4].map(i => paper(i)), ...interviews])).toMatchObject({ effective: 'VERIFIED', capped: false });
   });
 
   it('prefers the recorded kind to the derived one', () => {

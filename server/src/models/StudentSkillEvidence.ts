@@ -44,9 +44,9 @@ export type EvidenceSource =
 /**
  * What an observation can demonstrate — a different question from how much it counts.
  *
- *   DIAGNOSTIC     a measurement of what the student already has: the Skill Check and a reassessment
- *                  (and a mock interview; see EVIDENCE_KIND_FOR_SOURCE for why).
- *   UNDERSTANDING  a checkpoint question inside the coursework: the student recognised the right answer.
+ *   DIAGNOSTIC     a measurement of what the student already has: the Skill Check and a reassessment.
+ *   UNDERSTANDING  a checkpoint question inside the coursework — the student recognised the right answer — or a
+ *                  mock interview answer, where they explained it (see EVIDENCE_KIND_FOR_SOURCE for why).
  *   APPLIED        work the student produced and that was genuinely graded: a coding assignment run
  *                  against its tests on a real runner, or a project reviewed by an authorised grader.
  *

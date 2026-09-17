@@ -130,7 +130,14 @@ import { teaches } from '../data/contentBundlePolicy';
  * scheduled on no journey, joins the READY-not-recommended units with the product owner's approval and is reconciled
  * to DRAFT through provisioning. READY 354 and the named three are unchanged; the absolute minimum was recomputed.
  */
-const CERTIFIED_COMMIT = 'f206236c';
+/*
+ * MOVED AGAIN, TO 96b410eb — A NO-OP FOR THE DERIVATION. Evidence kinds: a skill whose every observation is a checkpoint
+ * answer is planned at STANDARD at most. The certified sources change only to carry that flag from a belief into
+ * stateForScore; no certification profile carries it, so every derivation, profile, recomposition and backbone result
+ * is identical (READY 354, target 346, the named three and the absolute minimum unchanged), and the production gate
+ * gains the evidence-kind recomposition section.
+ */
+const CERTIFIED_COMMIT = '96b410eb';
 const EXPECT = { total: 359, ready: 354, target: 346, withheld: 3, notRecommended: 5, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

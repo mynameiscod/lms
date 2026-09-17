@@ -12,6 +12,7 @@ import {
   TestResult
 } from '../../api/assignmentApi';
 import ShareOnLinkedIn from '../../components/common/ShareOnLinkedIn';
+import { submissionKindFor, projectSubmissionProblem } from './submissionKind';
 import './assignments.css';
 
 /** The server sends a student only the count of hidden tests, never the tests; an author's full document still carries them. */
@@ -376,6 +377,12 @@ const AssignmentWorkspace: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!submission || !assignment) return;
+
+    const kind = submissionKindFor(assignment.type);
+    if (assignment.type === AssignmentType.PROJECT) {
+      const problem = projectSubmissionProblem(theoryAnswer);
+      if (problem) { setError(problem); return; }
+    }
     
     if (!window.confirm('Are you sure you want to submit? You may not be able to modify your answer after submission.')) {
       return;
@@ -384,18 +391,18 @@ const AssignmentWorkspace: React.FC = () => {
     try {
       setSubmitting(true);
       
-      if (assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL || assignment.type === AssignmentType.WEB) {
+      if (kind === 'code') {
         await submissionApi.submitCoding(submission._id, {
           code,
           language: selectedLanguage
         });
-      } else if (assignment.type === AssignmentType.MCQ) {
+      } else if (kind === 'mcq') {
         const answers = Object.entries(mcqAnswers).map(([qi, si]) => ({
           questionIndex: Number(qi),
           selectedOption: si
         }));
         await submissionApi.submitMCQ(submission._id, answers);
-      } else if (assignment.type === AssignmentType.THEORY) {
+      } else if (kind === 'written') {
         await submissionApi.submitTheory(submission._id, theoryAnswer);
       }
       
@@ -1530,8 +1537,27 @@ const AssignmentWorkspace: React.FC = () => {
             </div>
           )}
 
-          {/* Project/File Upload Assignment */}
-          {(assignment.type === AssignmentType.PROJECT || assignment.type === AssignmentType.FILE_UPLOAD) && (
+          {/* Project: handed in as a written submission — where the work is, and what was built */}
+          {assignment.type === AssignmentType.PROJECT && (
+            <div className="theory-editor">
+              <h3 style={{ marginBottom: '8px', color: '#1a1a2e' }}>📁 Your Project Submission</h3>
+              <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>
+                Link to your work (a repository, document or shared folder) and describe what you built against the brief's
+                deliverables. A reviewer grades it using the rubric.
+              </p>
+              <textarea
+                value={theoryAnswer}
+                onChange={(e) => setTheoryAnswer(e.target.value)}
+                placeholder={'Link: https://…\n\nWhat I built, how it meets each deliverable, and anything I could not finish.'}
+              />
+              <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end', color: '#6b7280', fontSize: '13px' }}>
+                <span>{theoryAnswer.length} characters</span>
+              </div>
+            </div>
+          )}
+
+          {/* File Upload Assignment */}
+          {assignment.type === AssignmentType.FILE_UPLOAD && (
             <div style={{ padding: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#f9fafb' }}>
               <div style={{ textAlign: 'center', maxWidth: '400px' }}>
                 <div style={{ fontSize: '64px', marginBottom: '20px' }}>📁</div>

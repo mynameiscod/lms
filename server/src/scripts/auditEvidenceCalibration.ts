@@ -2,9 +2,10 @@
  * Skill DNA evidence calibration audit — report.
  *
  * SIMULATION (default) — READ ONLY, NO DATABASE. Prints how many checkpoint answers move a skill between states from
- * realistic priors, and replays twelve learners through ninety days under both evidence models: BEFORE (58b248b6, no
- * kinds, no applied evidence) and AFTER (production now: kinds, the understanding-only cap, graded coding assignments
- * and projects as APPLIED evidence). For every focus skill it shows the raw score, confidence, the state the score
+ * realistic priors, and replays the learners through ninety days under the evidence models: BEFORE (58b248b6, no
+ * kinds, no applied evidence), KINDS (a0cc9f2c: any applied row lifted the understanding-only cap) and AFTER
+ * (production now: only a diagnostic or graded work that met its pass line lifts it). Then the evidence matrix on one
+ * skill, the diagnostic anchor, and question supply. For every focus skill it shows the raw score, confidence, the state the score
  * alone buys, the state the plan uses, the kind mix by weight and whether the cap applied. All rules are
  * production's; see tests/evidenceCalibration/simulator.
  *
@@ -20,7 +21,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import {
   answerLadder, firstReached, skillCheckRows, SIM_LEARNERS, simulate, FOCUS_SKILLS, EvidenceRow, CODING_ASSIGNMENT_UNITS,
-  criticalCase, CRITICAL_CASES, Belief, Model,
+  criticalCase, CRITICAL_CASES, Belief, Model, evidenceMatrix, anchorAudit, supplyAudit,
 } from '../tests/evidenceCalibration/simulator';
 import { REAL_SKILL_CHECK_PAPER } from '../services/composerCertificationService';
 import {
@@ -63,7 +64,7 @@ function auditSimulation(timeline: boolean): void {
   say(`  Skill Check item weight: EASY ${evidenceWeightFor({ relationship: 'PRIMARY', difficulty: 'EASY', sourceType: 'PERSONALIZED_ASSESSMENT' })}, MEDIUM 1, HARD 1.15`);
   say(`  applied evidence weight: coding assignment ${evidenceWeightFor({ relationship: 'PRIMARY', difficulty: 'MEDIUM', sourceType: 'CODING_ASSIGNMENT' })}, project ${evidenceWeightFor({ relationship: 'PRIMARY', difficulty: 'MEDIUM', sourceType: 'PROJECT_EVALUATION' })}`);
   say(`  confidence: MEDIUM at effective weight ${CONFIDENCE_THRESHOLDS.MEDIUM}; HIGH at ${CONFIDENCE_THRESHOLDS.HIGH} with ${HIGH_CONFIDENCE_MIN_DISTINCT_ITEMS}+ distinct items; LOW caps the state at STANDARD`);
-  say('  AFTER only: a skill whose every row is a checkpoint answer (UNDERSTANDING) is planned at STANDARD at most; score and confidence unchanged');
+  say('  AFTER: a skill with no DIAGNOSTIC row and no APPLIED row that met its pass line is planned at STANDARD at most; score and confidence unchanged');
 
   say('\nQUESTION LEVEL — consecutive checkpoint answers (MEDIUM) needed to first reach each state (BEFORE → AFTER)');
   const priors: [string, (k: string) => EvidenceRow[]][] = [
@@ -93,10 +94,30 @@ function auditSimulation(timeline: boolean): void {
       + ` · STANDARD by diagnostic keeps it ${c.standardFromScratchKeepsCoding}`);
   }
 
+  say('\nEVIDENCE MATRIX — CONDITIONALS_BASICS; a beginner otherwise; conditions units in the ninety days (a0cc9f2c → now)');
+  for (const m of evidenceMatrix()) {
+    say(`  ${m.key.padStart(2)}. ${m.label.padEnd(88)} ${m.score}/${m.confidence} · D ${m.mix.DIAGNOSTIC} U ${m.mix.UNDERSTANDING} A ${m.mix.APPLIED}`
+      + ` · qualifying applied ${m.qualifyingApplied ? 'YES' : 'NO'} · raw ${m.rawState} · a0cc9f2c ${m.kindsState} · now ${m.effectiveState}`
+      + ` · conditions [${m.kindsConditions.join(', ')}] → [${m.conditions.join(', ')}]`);
+  }
+
+  say('\nDIAGNOSTIC ANCHOR — later observations until each state is first planned (no recency)');
+  for (const a of anchorAudit()) {
+    say(`  ${a.key.padEnd(3)} ${a.label.padEnd(100)} start ${a.start.score} ${a.start.state} · first ${Object.entries(a.firstAt).map(([s, n]) => `${s} ${n}`).join(', ') || 'no change'}`
+      + ` · ${a.trajectory.map(t => `@${t.n} ${t.score}`).join(' ')}`);
+  }
+
+  say('\nQUESTION SUPPLY — every checkpoint right and every graded practical passed');
+  for (const s of supplyAudit()) {
+    say(`  ${s.skill.padEnd(26)} checkpoint questions ${String(s.checkpointQuestions).padStart(2)} · graded practicals ${s.gradedPracticals.join(', ')}`
+      + ` · from unmeasured ${s.fromUnmeasured.score}/${s.fromUnmeasured.confidence} ${s.fromUnmeasured.state}`
+      + `${s.fromZeroDiagnostic ? ` · from a Skill Check of 0 ${s.fromZeroDiagnostic.score}/${s.fromZeroDiagnostic.confidence} ${s.fromZeroDiagnostic.state}` : ''}`);
+  }
+
   for (const learner of SIM_LEARNERS) {
-    const results = { BEFORE: simulate(learner, 'BEFORE'), AFTER: simulate(learner, 'AFTER') };
+    const results = { BEFORE: simulate(learner, 'BEFORE'), KINDS: simulate(learner, 'KINDS'), AFTER: simulate(learner, 'AFTER') };
     say(`\n${'='.repeat(110)}\n${learner.key} — ${learner.note}`);
-    for (const model of ['BEFORE', 'AFTER'] as Model[]) {
+    for (const model of ['BEFORE', 'KINDS', 'AFTER'] as Model[]) {
       const r = results[model];
       say(`  ${model.padEnd(6)} recompositions ${r.totals.recompositions} · lessons removed ${r.totals.lessonsRemoved} · practice removed ${r.totals.practiceRemoved}`
         + ` · debugging added ${r.totals.debuggingAdded} · coding assignments ${CODING_ASSIGNMENT_UNITS.filter(c => r.initialPlan.includes(c)).length}/5 → ${CODING_ASSIGNMENT_UNITS.filter(c => r.finalPlan.includes(c)).length}/5`
@@ -107,7 +128,8 @@ function auditSimulation(timeline: boolean): void {
     for (const k of FOCUS_SKILLS) {
       const b = results.BEFORE.finalBeliefs[k];
       const a = results.AFTER.finalBeliefs[k];
-      say(`    ${k.padEnd(26)} BEFORE ${fmt(b).padEnd(34)} AFTER ${fmt(a).padEnd(34)} ${a ? `kinds ${kindMix(a.kinds).padEnd(20)} cap ${a.capped ? 'YES' : 'NO'}` : ''}`);
+      const kd = results.KINDS.finalBeliefs[k];
+      say(`    ${k.padEnd(26)} BEFORE ${fmt(b).padEnd(30)} KINDS ${fmt(kd).padEnd(30)} AFTER ${fmt(a).padEnd(30)} ${a ? `kinds ${kindMix(a.kinds).padEnd(20)} qualifying applied ${a.qualifyingApplied} cap ${a.capped ? 'YES' : 'NO'}` : ''}`);
     }
     if (timeline) {
       for (const e of results.AFTER.events) {

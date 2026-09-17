@@ -3,8 +3,9 @@
  *
  * These tests pin how evidence behaves, as measured by the calibration audit (docs/audit/skill-dna-evidence-
  * calibration.md), so any future change to weights, thresholds or evidence sources is made knowingly and shows up
- * here. Two models are pinned side by side: BEFORE (58b248b6 — no evidence kinds, no applied evidence) and AFTER
- * (production now — kinds, the understanding-only cap, graded coding assignments and projects as APPLIED evidence).
+ * here. Models are pinned side by side: BEFORE (58b248b6 — no evidence kinds, no applied evidence), KINDS (a0cc9f2c —
+ * any applied row lifted the understanding-only cap) and AFTER (production now — only a diagnostic or graded work that
+ * met its assignment's pass line lifts it).
  * A failing assertion after a deliberate calibration change is expected: update it with the decision.
  */
 
@@ -12,7 +13,7 @@ import fs from 'fs';
 import path from 'path';
 import {
   answerLadder, firstReached, skillCheckRows, SIM_LEARNERS, simulate, CODING_ASSIGNMENT_UNITS, EvidenceRow,
-  SimulationResult, Model, criticalCase,
+  SimulationResult, Model, criticalCase, evidenceMatrix, anchorAudit,
 } from './evidenceCalibration/simulator';
 import { REAL_SKILL_CHECK_PAPER } from '../services/composerCertificationService';
 import { aggregate, evidenceWeightFor } from '../data/skillDnaPolicy';
@@ -172,5 +173,60 @@ describe('what realistic learners experience', () => {
   it('is deterministic', () => {
     const again = simulate(SIM_LEARNERS.find(l => l.key === 'E_PARTIAL')!, 'AFTER');
     expect(again.finalPlan).toEqual(run('E_PARTIAL', 'AFTER').finalPlan);
+  });
+});
+
+describe('failed practical work is evidence, not a demonstration', () => {
+  it('a learner right on every checkpoint whose practicals all fail: a0cc9f2c let the failure lift the cap; now it does not', () => {
+    const kinds = run('M_RECALL_RIGHT_PRACTICAL_FAILED', 'KINDS');
+    const after = run('M_RECALL_RIGHT_PRACTICAL_FAILED', 'AFTER');
+    expect(['CONDITIONALS_BASICS', 'FUNCTIONS_BASICS'].map(k => kinds.finalBeliefs[k]!.state)).toEqual(['VERIFIED', 'VERIFIED']);
+    for (const k of SPINE) {
+      expect({ k, state: after.finalBeliefs[k]!.state, capped: after.finalBeliefs[k]!.capped, score: after.finalBeliefs[k]!.score })
+        .toEqual({ k, state: 'STANDARD', capped: true, score: kinds.finalBeliefs[k]!.score });
+    }
+    expect(after.totals.codingAssignmentsRemoved).toEqual([]);
+    expect(after.totals.failedApplied).toBeGreaterThan(0);
+  });
+
+  it('a learner whose practicals meet the pass lines keeps what the evidence supports', () => {
+    const r = run('N_RECALL_RIGHT_PRACTICAL_AT_PASS', 'AFTER');
+    for (const k of SPINE) expect({ k, capped: r.finalBeliefs[k]!.capped, qualifying: r.finalBeliefs[k]!.qualifyingApplied > 0 }).toEqual({ k, capped: false, qualifying: true });
+    expect(r.totals.backboneMissingEver).toEqual([]);
+  });
+
+  it('the evidence matrix on one skill', () => {
+    const m = new Map(evidenceMatrix().map(c => [c.key, c]));
+    const row = (k: string) => { const c = m.get(k)!; return [c.score, c.confidence, c.qualifyingApplied, c.rawState, c.kindsState, c.effectiveState]; };
+    expect(row('1')).toEqual([100, 'HIGH', false, 'VERIFIED', 'STANDARD', 'STANDARD']);
+    expect(row('2')).toEqual([67, 'HIGH', false, 'STANDARD', 'STANDARD', 'STANDARD']);
+    expect(row('3')).toEqual([92, 'HIGH', false, 'VERIFIED', 'VERIFIED', 'STANDARD']);
+    expect(row('4')).toEqual([96, 'HIGH', false, 'VERIFIED', 'VERIFIED', 'STANDARD']);
+    expect(row('5')).toEqual([96, 'HIGH', true, 'VERIFIED', 'VERIFIED', 'VERIFIED']);
+    expect(row('6')).toEqual([99, 'HIGH', true, 'VERIFIED', 'VERIFIED', 'VERIFIED']);
+    expect(row('7')).toEqual([92, 'HIGH', true, 'VERIFIED', 'VERIFIED', 'VERIFIED']);
+    expect(row('8')).toEqual(row('7'));
+    expect(row('9')).toEqual([91, 'HIGH', false, 'VERIFIED', 'VERIFIED', 'VERIFIED']);
+    expect(row('10')).toEqual([10, 'HIGH', true, 'FOUNDATION_REQUIRED', 'FOUNDATION_REQUIRED', 'FOUNDATION_REQUIRED']);
+    expect(row('11')).toEqual([35, 'HIGH', true, 'FOUNDATION_REQUIRED', 'FOUNDATION_REQUIRED', 'FOUNDATION_REQUIRED']);
+    expect(row('12')).toEqual([50, 'HIGH', false, 'GUIDED', 'GUIDED', 'GUIDED']);
+    expect(row('13')).toEqual(row('12'));
+    // Curriculum: a failed practical no longer buys the VERIFIED treatment (debugging plus the mini project).
+    expect(m.get('3')!.kindsConditions).toEqual(['DEBUGGING', 'MINI_PROJECT']);
+    expect(m.get('3')!.conditions).toEqual(['DEBUGGING']);
+    expect(m.get('5')!.conditions).toEqual(['DEBUGGING', 'MINI_PROJECT']);
+  });
+});
+
+describe('the diagnostic anchor, measured (no recency is implemented)', () => {
+  it('observations needed to move a measured skill', () => {
+    const a = new Map(anchorAudit().map(c => [c.key, c.firstAt]));
+    expect(a.get('A1')).toEqual({ GUIDED: 11, STANDARD: 24, REVISION: 47 });
+    expect(a.get('A2')).toEqual({ GUIDED: 9, STANDARD: 18, REVISION: 36, VERIFIED: 66 });
+    expect(a.get('B1')).toEqual({ REVISION: 3, STANDARD: 6, GUIDED: 11, FOUNDATION_REQUIRED: 25 });
+    expect(a.get('C')).toEqual({ STANDARD: 3, REVISION: 12, VERIFIED: 27 });
+    expect(a.get('D')).toEqual({ FOUNDATION_REQUIRED: 4 });
+    expect(a.get('E')).toEqual({ GUIDED: 1, STANDARD: 2, REVISION: 3, VERIFIED: 6 });
+    expect(a.get('F')).toEqual({ GUIDED: 1, FOUNDATION_REQUIRED: 2 });
   });
 });

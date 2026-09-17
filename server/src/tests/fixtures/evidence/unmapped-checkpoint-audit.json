@@ -1,0 +1,999 @@
+{
+ "note": "The 76 checkpoint questions that produced no Skill DNA evidence, classified against the skill taxonomy and each unit's declared skills (a question may only map to a skill its unit declares). A = should produce none; B = one declared skill, clearly; C = several declared skills; D = ambiguous, left for an academic decision.",
+ "questions": [
+  {
+   "n": 1,
+   "id": "82f0d5db9b2e6909d52b3e22",
+   "unit": "T_ARRAYS_BINARY_SEARCH",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "Which six inputs should you test on any binary search?",
+   "class": "D",
+   "skill": null,
+   "reason": "binary-search testing — the natural skill DSA_SEARCHING is not declared on the unit"
+  },
+  {
+   "n": 2,
+   "id": "dde70a60cbd3e81631de65e3",
+   "unit": "T_ARRAYS_BINARY_SEARCH",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "`low + (high - low) // 2` is preferred over `(low + high) // 2` because:",
+   "class": "D",
+   "skill": null,
+   "reason": "binary-search midpoint overflow — DSA_SEARCHING not declared"
+  },
+  {
+   "n": 3,
+   "id": "344f2b9ffd1ac036609bf87f",
+   "unit": "T_ARRAYS_COMPLEXITY",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "At n = 1,000,000, the practical difference between O(n) and O(n squared) is:",
+   "class": "D",
+   "skill": null,
+   "reason": "asymptotic complexity — no complexity skill declared"
+  },
+  {
+   "n": 4,
+   "id": "f294084ee208383170dfba6b",
+   "unit": "T_ARRAYS_COMPLEXITY",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "When is an O(n squared) solution perfectly acceptable?",
+   "class": "D",
+   "skill": null,
+   "reason": "asymptotic complexity — no complexity skill declared"
+  },
+  {
+   "n": 5,
+   "id": "6fc73565ab7cc96f29cc0d7a",
+   "unit": "T_ARRAYS_DEBUGGING",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "`b = a` where a is a list, then `b.append(4)`. What is `a`?",
+   "class": "D",
+   "skill": null,
+   "reason": "Python name aliasing — language references as much as arrays"
+  },
+  {
+   "n": 6,
+   "id": "538e577e48475e83fdee70a8",
+   "unit": "T_ARRAYS_DEBUGGING",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "The fastest way to confirm two names refer to the same list is:",
+   "class": "D",
+   "skill": null,
+   "reason": "Python object identity — language references as much as arrays"
+  },
+  {
+   "n": 7,
+   "id": "d81f8966dcdce7aae50d4187",
+   "unit": "T_ARRAYS_INSERT_DELETE",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "Deleting the element at index 0 of a 1,000,000-element array costs:",
+   "class": "B",
+   "skill": "DSA_ARRAYS",
+   "reason": "the question is about DSA_ARRAYS as the skill taxonomy describes it, and DSA_ARRAYS is declared on the unit"
+  },
+  {
+   "n": 8,
+   "id": "65ba02b6ec791c1258d2d6f8",
+   "unit": "T_ARRAYS_INSERT_DELETE",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "Which access pattern makes an array the right structure?",
+   "class": "B",
+   "skill": "DSA_ARRAYS",
+   "reason": "the question is about DSA_ARRAYS as the skill taxonomy describes it, and DSA_ARRAYS is declared on the unit"
+  },
+  {
+   "n": 9,
+   "id": "bcd68ea4b4a74aa9f6e2e2c6",
+   "unit": "T_ARRAYS_PRACTICE",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "Before writing any array solution, the first question is:",
+   "class": "D",
+   "skill": null,
+   "reason": "problem-solving heuristic (is it sorted?) — PROBLEM_SOLVING / searching as much as arrays"
+  },
+  {
+   "n": 10,
+   "id": "468bce7203cdb8912bfae425",
+   "unit": "T_ARRAYS_PRACTICE",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "Rotating by k using repeated `insert(0, ...)` costs:",
+   "class": "B",
+   "skill": "DSA_ARRAYS",
+   "reason": "the question is about DSA_ARRAYS as the skill taxonomy describes it, and DSA_ARRAYS is declared on the unit"
+  },
+  {
+   "n": 11,
+   "id": "fdec004623155c2c22cfd9c9",
+   "unit": "T_ARRAYS_SEARCHING",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "You will search the same unsorted array 10,000 times. What should you do?",
+   "class": "D",
+   "skill": null,
+   "reason": "search vs sort-once trade-off — DSA_SEARCHING/DSA_SORTING not declared"
+  },
+  {
+   "n": 12,
+   "id": "45ae918435bd7fa0653f5d10",
+   "unit": "T_ARRAYS_SEARCHING",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "Linear search finds the target at position 1 of 1,000,000. What does that tell you about the algorithm?",
+   "class": "D",
+   "skill": null,
+   "reason": "best-case vs cost reasoning — complexity, not declared"
+  },
+  {
+   "n": 13,
+   "id": "312bb0b5888f3cc6affe6575",
+   "unit": "T_ARRAYS_STRING_BASICS",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "`s[2:8]` on a long string costs:",
+   "class": "B",
+   "skill": "DSA_STRINGS",
+   "reason": "the question is about DSA_STRINGS as the skill taxonomy describes it, and DSA_STRINGS is declared on the unit"
+  },
+  {
+   "n": 14,
+   "id": "1c6859a8d82fcecbc1129b6c",
+   "unit": "T_ARRAYS_STRING_BASICS",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "Which operation on a Python string raises an error?",
+   "class": "B",
+   "skill": "DSA_STRINGS",
+   "reason": "the question is about DSA_STRINGS as the skill taxonomy describes it, and DSA_STRINGS is declared on the unit"
+  },
+  {
+   "n": 15,
+   "id": "7dd7e54ee9ddcfcac3be49bf",
+   "unit": "T_ARRAYS_STRING_PROBLEMS",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "Two strings have identical character counts. What follows?",
+   "class": "B",
+   "skill": "DSA_STRINGS",
+   "reason": "the question is about DSA_STRINGS as the skill taxonomy describes it, and DSA_STRINGS is declared on the unit"
+  },
+  {
+   "n": 16,
+   "id": "aa39b2730d6e3e3545a9b8d7",
+   "unit": "T_ARRAYS_STRING_PROBLEMS",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "`\"Apple\" == \"apple\"` is False. The habit that prevents this class of bug is:",
+   "class": "B",
+   "skill": "DSA_STRINGS",
+   "reason": "the question is about DSA_STRINGS as the skill taxonomy describes it, and DSA_STRINGS is declared on the unit"
+  },
+  {
+   "n": 17,
+   "id": "e24fa5aa83efa4630dc15cce",
+   "unit": "T_ARRAYS_TRAVERSAL",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "You need to filter a list and the array is small. What is usually the better approach?",
+   "class": "B",
+   "skill": "DSA_ARRAYS",
+   "reason": "the question is about DSA_ARRAYS as the skill taxonomy describes it, and DSA_ARRAYS is declared on the unit"
+  },
+  {
+   "n": 18,
+   "id": "0e6631f776398e606997469e",
+   "unit": "T_ARRAYS_TRAVERSAL",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "When is backwards traversal genuinely required rather than preferred?",
+   "class": "B",
+   "skill": "DSA_ARRAYS",
+   "reason": "the question is about DSA_ARRAYS as the skill taxonomy describes it, and DSA_ARRAYS is declared on the unit"
+  },
+  {
+   "n": 19,
+   "id": "c8cfdaa836c8355af70e32ca",
+   "unit": "T_ARRAYS_TWO_POINTERS",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "Two-pointer pair-sum on 1000 sorted elements does at most how many iterations?",
+   "class": "B",
+   "skill": "DSA_ARRAYS",
+   "reason": "the question is about DSA_ARRAYS as the skill taxonomy describes it, and DSA_ARRAYS is declared on the unit"
+  },
+  {
+   "n": 20,
+   "id": "39339fc0b0e46f40a4fdc1e9",
+   "unit": "T_ARRAYS_TWO_POINTERS",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "The array is unsorted and you need pair-sum in O(n). What should you use?",
+   "class": "D",
+   "skill": null,
+   "reason": "hashing for pair-sum — hashing skill not declared"
+  },
+  {
+   "n": 21,
+   "id": "570e7a6a0eef2e12ebf005b1",
+   "unit": "T_ARRAYS_WHAT_IS_AN_ARRAY",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "An array of 8-byte elements starts at address 1000. Where is index 3?",
+   "class": "B",
+   "skill": "DSA_ARRAYS",
+   "reason": "the question is about DSA_ARRAYS as the skill taxonomy describes it, and DSA_ARRAYS is declared on the unit"
+  },
+  {
+   "n": 22,
+   "id": "b2886e4e51bbc438ba8f9757",
+   "unit": "T_ARRAYS_WHAT_IS_AN_ARRAY",
+   "unitSkills": [
+    "DSA_ARRAYS",
+    "DSA_STRINGS"
+   ],
+   "question": "Which property makes the address calculation possible?",
+   "class": "B",
+   "skill": "DSA_ARRAYS",
+   "reason": "the question is about DSA_ARRAYS as the skill taxonomy describes it, and DSA_ARRAYS is declared on the unit"
+  },
+  {
+   "n": 23,
+   "id": "fe56d7ef55da4803f33bdcf9",
+   "unit": "T_BOOLEAN_DEBUGGING",
+   "unitSkills": [
+    "BOOLEAN_ALGEBRA",
+    "PROPOSITIONAL_LOGIC"
+   ],
+   "question": "`A → B` and `NOT A` allows you to conclude:",
+   "class": "B",
+   "skill": "PROPOSITIONAL_LOGIC",
+   "reason": "the question is about PROPOSITIONAL_LOGIC as the skill taxonomy describes it, and PROPOSITIONAL_LOGIC is declared on the unit"
+  },
+  {
+   "n": 24,
+   "id": "f0af1a208a059199d623dbdc",
+   "unit": "T_BOOLEAN_DEBUGGING",
+   "unitSkills": [
+    "BOOLEAN_ALGEBRA",
+    "PROPOSITIONAL_LOGIC"
+   ],
+   "question": "The first step in checking an argument is:",
+   "class": "B",
+   "skill": "PROPOSITIONAL_LOGIC",
+   "reason": "the question is about PROPOSITIONAL_LOGIC as the skill taxonomy describes it, and PROPOSITIONAL_LOGIC is declared on the unit"
+  },
+  {
+   "n": 25,
+   "id": "28677a68c680f973d820a081",
+   "unit": "T_GIT_BRANCHES",
+   "unitSkills": [
+    "GIT_FUNDAMENTALS",
+    "GIT_BRANCHING"
+   ],
+   "question": "What does HEAD refer to?",
+   "class": "D",
+   "skill": null,
+   "reason": "HEAD — spans commits/history and branch checkout"
+  },
+  {
+   "n": 26,
+   "id": "1c086398968e384ba49212ba",
+   "unit": "T_GIT_COMMIT_MESSAGES",
+   "unitSkills": [
+    "GIT_FUNDAMENTALS",
+    "GIT_BRANCHING"
+   ],
+   "question": "Which is the better message?",
+   "class": "B",
+   "skill": "GIT_FUNDAMENTALS",
+   "reason": "the question is about GIT_FUNDAMENTALS as the skill taxonomy describes it, and GIT_FUNDAMENTALS is declared on the unit"
+  },
+  {
+   "n": 27,
+   "id": "e33595f34307c5043415b93b",
+   "unit": "T_GIT_CONFLICTS",
+   "unitSkills": [
+    "GIT_FUNDAMENTALS",
+    "GIT_BRANCHING"
+   ],
+   "question": "What causes a merge conflict?",
+   "class": "B",
+   "skill": "GIT_BRANCHING",
+   "reason": "the question is about GIT_BRANCHING as the skill taxonomy describes it, and GIT_BRANCHING is declared on the unit"
+  },
+  {
+   "n": 28,
+   "id": "d06c5096866cb982d5d1b1f1",
+   "unit": "T_GIT_MERGING",
+   "unitSkills": [
+    "GIT_FUNDAMENTALS",
+    "GIT_BRANCHING"
+   ],
+   "question": "Why delete a branch after merging it?",
+   "class": "B",
+   "skill": "GIT_BRANCHING",
+   "reason": "the question is about GIT_BRANCHING as the skill taxonomy describes it, and GIT_BRANCHING is declared on the unit"
+  },
+  {
+   "n": 29,
+   "id": "70220ba25b26d3c46841827e",
+   "unit": "T_GIT_PRACTICE",
+   "unitSkills": [
+    "GIT_FUNDAMENTALS",
+    "GIT_BRANCHING"
+   ],
+   "question": "What is the correct order?",
+   "class": "C",
+   "skill": [
+    "GIT_BRANCHING",
+    "GIT_FUNDAMENTALS"
+   ],
+   "reason": "a full workflow: branch and merge, and add/commit/push"
+  },
+  {
+   "n": 30,
+   "id": "51f0b9461256d83b64082f50",
+   "unit": "T_GIT_REMOTES",
+   "unitSkills": [
+    "GIT_FUNDAMENTALS",
+    "GIT_BRANCHING"
+   ],
+   "question": "Which Git operations need a network?",
+   "class": "B",
+   "skill": "GIT_FUNDAMENTALS",
+   "reason": "the question is about GIT_FUNDAMENTALS as the skill taxonomy describes it, and GIT_FUNDAMENTALS is declared on the unit"
+  },
+  {
+   "n": 31,
+   "id": "a613e1f429026d49f1a9a28a",
+   "unit": "T_GIT_REPO_AND_COMMIT",
+   "unitSkills": [
+    "GIT_FUNDAMENTALS",
+    "GIT_BRANCHING"
+   ],
+   "question": "Which command shows which of the three states each file is in?",
+   "class": "B",
+   "skill": "GIT_FUNDAMENTALS",
+   "reason": "the question is about GIT_FUNDAMENTALS as the skill taxonomy describes it, and GIT_FUNDAMENTALS is declared on the unit"
+  },
+  {
+   "n": 32,
+   "id": "c7369042f5bd6f749553cbef",
+   "unit": "T_GIT_STATUS_AND_DIFF",
+   "unitSkills": [
+    "GIT_FUNDAMENTALS",
+    "GIT_BRANCHING"
+   ],
+   "question": "What is the single most useful Git command to run after any other?",
+   "class": "B",
+   "skill": "GIT_FUNDAMENTALS",
+   "reason": "the question is about GIT_FUNDAMENTALS as the skill taxonomy describes it, and GIT_FUNDAMENTALS is declared on the unit"
+  },
+  {
+   "n": 33,
+   "id": "d2c0cceea65fb4b85a9c54b3",
+   "unit": "T_GIT_UNDOING",
+   "unitSkills": [
+    "GIT_FUNDAMENTALS",
+    "GIT_BRANCHING"
+   ],
+   "question": "What makes committing early a safety measure?",
+   "class": "B",
+   "skill": "GIT_FUNDAMENTALS",
+   "reason": "the question is about GIT_FUNDAMENTALS as the skill taxonomy describes it, and GIT_FUNDAMENTALS is declared on the unit"
+  },
+  {
+   "n": 34,
+   "id": "e012b1ae086fd87bd7f0474c",
+   "unit": "T_GIT_WHY_VERSION_CONTROL",
+   "unitSkills": [
+    "GIT_FUNDAMENTALS",
+    "GIT_BRANCHING"
+   ],
+   "question": "What does Git record that a copy of a file cannot?",
+   "class": "B",
+   "skill": "GIT_FUNDAMENTALS",
+   "reason": "the question is about GIT_FUNDAMENTALS as the skill taxonomy describes it, and GIT_FUNDAMENTALS is declared on the unit"
+  },
+  {
+   "n": 35,
+   "id": "e902806c9db838529f5a969b",
+   "unit": "T_GIT_WHY_VERSION_CONTROL",
+   "unitSkills": [
+    "GIT_FUNDAMENTALS",
+    "GIT_BRANCHING"
+   ],
+   "question": "\"Nothing committed is lost\" is a claim about which kind of work?",
+   "class": "B",
+   "skill": "GIT_FUNDAMENTALS",
+   "reason": "the question is about GIT_FUNDAMENTALS as the skill taxonomy describes it, and GIT_FUNDAMENTALS is declared on the unit"
+  },
+  {
+   "n": 36,
+   "id": "c6745d783cc7bfd6049a2f41",
+   "unit": "T_GIT_WHY_VERSION_CONTROL",
+   "unitSkills": [
+    "GIT_FUNDAMENTALS",
+    "GIT_BRANCHING"
+   ],
+   "question": "A colleague asks why a line of code exists. Which part of Git answers that?",
+   "class": "B",
+   "skill": "GIT_FUNDAMENTALS",
+   "reason": "the question is about GIT_FUNDAMENTALS as the skill taxonomy describes it, and GIT_FUNDAMENTALS is declared on the unit"
+  },
+  {
+   "n": 37,
+   "id": "1f0e09e956fce00d7b2013bc",
+   "unit": "T_JS_DOM_ASYNC_BASICS",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "Why does `await` not freeze the page?",
+   "class": "D",
+   "skill": null,
+   "reason": "await/event loop — JS_ASYNC not declared"
+  },
+  {
+   "n": 38,
+   "id": "8df57797f6ab47c91275719e",
+   "unit": "T_JS_DOM_ASYNC_BASICS",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "An async function returns:",
+   "class": "D",
+   "skill": null,
+   "reason": "async return type — JS_ASYNC not declared"
+  },
+  {
+   "n": 39,
+   "id": "86975ec2d9e816a70b73d9d2",
+   "unit": "T_JS_DOM_CHANGING_THE_DOM",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "A comment from a user is displayed with `innerHTML`. What is the risk?",
+   "class": "B",
+   "skill": "JS_DOM",
+   "reason": "the question is about JS_DOM as the skill taxonomy describes it, and JS_DOM is declared on the unit"
+  },
+  {
+   "n": 40,
+   "id": "3f37db644921cfcaba677204",
+   "unit": "T_JS_DOM_CHANGING_THE_DOM",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "`el.value` versus `el.getAttribute(\"value\")` on an input:",
+   "class": "B",
+   "skill": "JS_DOM",
+   "reason": "the question is about JS_DOM as the skill taxonomy describes it, and JS_DOM is declared on the unit"
+  },
+  {
+   "n": 41,
+   "id": "366ac51e6b1dbe36601b00fa",
+   "unit": "T_JS_DOM_DEBUGGING",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "When should you use a breakpoint rather than console.log?",
+   "class": "D",
+   "skill": null,
+   "reason": "breakpoints vs logging — DEBUGGING not declared"
+  },
+  {
+   "n": 42,
+   "id": "09cebc838a5df1f9113db373",
+   "unit": "T_JS_DOM_DEBUGGING",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "You log a value and see `Promise { <pending> }`. What is wrong?",
+   "class": "D",
+   "skill": null,
+   "reason": "pending promise — JS_ASYNC not declared"
+  },
+  {
+   "n": 43,
+   "id": "4f6f73d05547e81ff476d590",
+   "unit": "T_JS_DOM_EVENTS",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "Rows added after page load do not respond to clicks. The likely cause:",
+   "class": "B",
+   "skill": "JS_DOM",
+   "reason": "the question is about JS_DOM as the skill taxonomy describes it, and JS_DOM is declared on the unit"
+  },
+  {
+   "n": 44,
+   "id": "941e4f23ab04255b046f2d5e",
+   "unit": "T_JS_DOM_EVENTS",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "`input` versus `change` on a text field:",
+   "class": "B",
+   "skill": "JS_DOM",
+   "reason": "the question is about JS_DOM as the skill taxonomy describes it, and JS_DOM is declared on the unit"
+  },
+  {
+   "n": 45,
+   "id": "1548caa4fc0cdb13aaafa389",
+   "unit": "T_JS_DOM_FORM_HANDLING",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "A submit handler that reads the values but never calls `preventDefault()` will:",
+   "class": "B",
+   "skill": "JS_DOM",
+   "reason": "the question is about JS_DOM as the skill taxonomy describes it, and JS_DOM is declared on the unit"
+  },
+  {
+   "n": 46,
+   "id": "93945d95bb02a670847f42e1",
+   "unit": "T_JS_DOM_FORM_HANDLING",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "The right order to validate one field is:",
+   "class": "D",
+   "skill": null,
+   "reason": "validation rule ordering — design judgement, not DOM API or JS basics"
+  },
+  {
+   "n": 47,
+   "id": "f1a6b7aa9ac613891da5cefa",
+   "unit": "T_JS_DOM_JS_IN_A_PAGE",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "Placing a script at the end of the body works because:",
+   "class": "B",
+   "skill": "JS_DOM",
+   "reason": "the question is about JS_DOM as the skill taxonomy describes it, and JS_DOM is declared on the unit"
+  },
+  {
+   "n": 48,
+   "id": "44a7201a3325e93f4b7a82b6",
+   "unit": "T_JS_DOM_JS_IN_A_PAGE",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "JavaScript and Java are related how?",
+   "class": "A",
+   "skill": null,
+   "reason": "trivia about naming history; tests neither JS syntax/types nor the DOM"
+  },
+  {
+   "n": 49,
+   "id": "3909cbfd37e5246f34b1e259",
+   "unit": "T_JS_DOM_PRACTICE",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "Where should the state of an interactive component live?",
+   "class": "D",
+   "skill": null,
+   "reason": "where component state lives — architecture judgement"
+  },
+  {
+   "n": 50,
+   "id": "d96c940772edf2c5054cc4cd",
+   "unit": "T_JS_DOM_PRACTICE",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "A user-supplied comment is rendered into the page. Which method?",
+   "class": "B",
+   "skill": "JS_DOM",
+   "reason": "the question is about JS_DOM as the skill taxonomy describes it, and JS_DOM is declared on the unit"
+  },
+  {
+   "n": 51,
+   "id": "3290703dc72ba1341ddd2d34",
+   "unit": "T_JS_DOM_SELECTING_ELEMENTS",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "A selector returns null and you are certain the element exists. Check:",
+   "class": "B",
+   "skill": "JS_DOM",
+   "reason": "the question is about JS_DOM as the skill taxonomy describes it, and JS_DOM is declared on the unit"
+  },
+  {
+   "n": 52,
+   "id": "3037d04fd80a0b97c294bf4f",
+   "unit": "T_JS_DOM_SELECTING_ELEMENTS",
+   "unitSkills": [
+    "JS_BASICS",
+    "JS_DOM"
+   ],
+   "question": "Why cache a selector result outside a loop?",
+   "class": "B",
+   "skill": "JS_DOM",
+   "reason": "the question is about JS_DOM as the skill taxonomy describes it, and JS_DOM is declared on the unit"
+  },
+  {
+   "n": 53,
+   "id": "4f3e0ed483dacfda6548a6d4",
+   "unit": "T_SQL_AGGREGATES",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "Why can an aggregate not appear in WHERE?",
+   "class": "B",
+   "skill": "SQL_BASICS",
+   "reason": "the question is about SQL_BASICS as the skill taxonomy describes it, and SQL_BASICS is declared on the unit"
+  },
+  {
+   "n": 54,
+   "id": "b8605583c7785d3e8fbe923c",
+   "unit": "T_SQL_AGGREGATES",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "An average is higher than expected on data with missing values. Likely cause?",
+   "class": "B",
+   "skill": "SQL_BASICS",
+   "reason": "the question is about SQL_BASICS as the skill taxonomy describes it, and SQL_BASICS is declared on the unit"
+  },
+  {
+   "n": 55,
+   "id": "e5ff930cc8c7d7a8028f62dc",
+   "unit": "T_SQL_DEBUGGING",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "A join returns far more rows than either table contains. Check first:",
+   "class": "D",
+   "skill": null,
+   "reason": "join fan-out — SQL_JOINS not declared"
+  },
+  {
+   "n": 56,
+   "id": "c6db6c6155c34882bc4b868f",
+   "unit": "T_SQL_DEBUGGING",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "The general debugging method for SQL is:",
+   "class": "D",
+   "skill": null,
+   "reason": "general SQL debugging method — DEBUGGING not declared"
+  },
+  {
+   "n": 57,
+   "id": "c1afde46e7142281552ff788",
+   "unit": "T_SQL_GROUP_BY",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "\"Students who have taken more than 3 subjects\" needs which clause?",
+   "class": "B",
+   "skill": "SQL_BASICS",
+   "reason": "the question is about SQL_BASICS as the skill taxonomy describes it, and SQL_BASICS is declared on the unit"
+  },
+  {
+   "n": 58,
+   "id": "a8ccc4cd3e236e10935e1544",
+   "unit": "T_SQL_GROUP_BY",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "A subject nobody has taken does not appear in a GROUP BY over marks. Why?",
+   "class": "B",
+   "skill": "SQL_BASICS",
+   "reason": "the question is about SQL_BASICS as the skill taxonomy describes it, and SQL_BASICS is declared on the unit"
+  },
+  {
+   "n": 59,
+   "id": "affb10e533a7a938a2765665",
+   "unit": "T_SQL_INSERT_UPDATE_DELETE",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "You must change one row and are not certain of the WHERE. Safest sequence?",
+   "class": "C",
+   "skill": [
+    "SQL_BASICS",
+    "DB_FUNDAMENTALS"
+   ],
+   "reason": "an UPDATE inside a transaction: the statement and the transactional guarantee"
+  },
+  {
+   "n": 60,
+   "id": "66a601fc62899f2fbe3b2e57",
+   "unit": "T_SQL_INSERT_UPDATE_DELETE",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "An UPDATE reports \"42 rows affected\" when you expected 1. What has happened?",
+   "class": "B",
+   "skill": "SQL_BASICS",
+   "reason": "the question is about SQL_BASICS as the skill taxonomy describes it, and SQL_BASICS is declared on the unit"
+  },
+  {
+   "n": 61,
+   "id": "29b7d244d20fbdebd22f59d2",
+   "unit": "T_SQL_JOINS",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "\"All students and their marks if any\" needs:",
+   "class": "D",
+   "skill": null,
+   "reason": "LEFT JOIN — SQL_JOINS not declared"
+  },
+  {
+   "n": 62,
+   "id": "b325299f8b14500cdf9a28cf",
+   "unit": "T_SQL_JOINS",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "For an INNER JOIN, does a condition in ON or WHERE differ?",
+   "class": "D",
+   "skill": null,
+   "reason": "ON vs WHERE in joins — SQL_JOINS not declared"
+  },
+  {
+   "n": 63,
+   "id": "74aae5c8d3bbbf05643bfd4f",
+   "unit": "T_SQL_KEYS",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "Which is the better primary key for a students table?",
+   "class": "B",
+   "skill": "DB_FUNDAMENTALS",
+   "reason": "the question is about DB_FUNDAMENTALS as the skill taxonomy describes it, and DB_FUNDAMENTALS is declared on the unit"
+  },
+  {
+   "n": 64,
+   "id": "ecf5c6471650a0bacbbdc600",
+   "unit": "T_SQL_KEYS",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "A deletion is refused because child rows exist. What is happening?",
+   "class": "B",
+   "skill": "DB_FUNDAMENTALS",
+   "reason": "the question is about DB_FUNDAMENTALS as the skill taxonomy describes it, and DB_FUNDAMENTALS is declared on the unit"
+  },
+  {
+   "n": 65,
+   "id": "9a136298683d07eb90d2fe60",
+   "unit": "T_SQL_ORDER_AND_LIMIT",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "A query has always returned rows in a useful order and suddenly does not. Likely cause?",
+   "class": "B",
+   "skill": "SQL_BASICS",
+   "reason": "the question is about SQL_BASICS as the skill taxonomy describes it, and SQL_BASICS is declared on the unit"
+  },
+  {
+   "n": 66,
+   "id": "316756ec86e777503b2e241f",
+   "unit": "T_SQL_ORDER_AND_LIMIT",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "Which gives the top 5 marks reliably?",
+   "class": "B",
+   "skill": "SQL_BASICS",
+   "reason": "the question is about SQL_BASICS as the skill taxonomy describes it, and SQL_BASICS is declared on the unit"
+  },
+  {
+   "n": 67,
+   "id": "0c8185d1e6fc825eceea6d82",
+   "unit": "T_SQL_PRACTICE",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "The condition \"the student has more than three marks\" belongs in:",
+   "class": "B",
+   "skill": "SQL_BASICS",
+   "reason": "the question is about SQL_BASICS as the skill taxonomy describes it, and SQL_BASICS is declared on the unit"
+  },
+  {
+   "n": 68,
+   "id": "092f4a991f48390974125316",
+   "unit": "T_SQL_PRACTICE",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "A LEFT JOIN result is missing the unmatched rows. What should you look for?",
+   "class": "D",
+   "skill": null,
+   "reason": "LEFT JOIN filter placement — SQL_JOINS not declared"
+  },
+  {
+   "n": 69,
+   "id": "201e6889a0286258d0428250",
+   "unit": "T_SQL_SELECT",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "You add a column to a table and application code breaks. Likely cause?",
+   "class": "B",
+   "skill": "SQL_BASICS",
+   "reason": "the question is about SQL_BASICS as the skill taxonomy describes it, and SQL_BASICS is declared on the unit"
+  },
+  {
+   "n": 70,
+   "id": "e0661af22ef298a7ac3cb8d0",
+   "unit": "T_SQL_SELECT",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "Which clause executes FIRST?",
+   "class": "B",
+   "skill": "SQL_BASICS",
+   "reason": "the question is about SQL_BASICS as the skill taxonomy describes it, and SQL_BASICS is declared on the unit"
+  },
+  {
+   "n": 71,
+   "id": "42cb891a274c2a5f720e86a3",
+   "unit": "T_SQL_TABLES_ROWS_COLUMNS",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "A student may have many marks. How should this be modelled?",
+   "class": "B",
+   "skill": "DB_FUNDAMENTALS",
+   "reason": "the question is about DB_FUNDAMENTALS as the skill taxonomy describes it, and DB_FUNDAMENTALS is declared on the unit"
+  },
+  {
+   "n": 72,
+   "id": "80b904b9345b76a08d448a35",
+   "unit": "T_SQL_TABLES_ROWS_COLUMNS",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "NULL in an email column means:",
+   "class": "D",
+   "skill": null,
+   "reason": "NULL semantics — relational concept or query semantics; either declared skill is defensible"
+  },
+  {
+   "n": 73,
+   "id": "3d81cac562c1ad7d879a2f34",
+   "unit": "T_SQL_WHERE",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "A report of \"all students except the top scorer\" has a total that does not add up. Likely cause?",
+   "class": "B",
+   "skill": "SQL_BASICS",
+   "reason": "the question is about SQL_BASICS as the skill taxonomy describes it, and SQL_BASICS is declared on the unit"
+  },
+  {
+   "n": 74,
+   "id": "50464022ef46c11738dae328",
+   "unit": "T_SQL_WHERE",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "The habit that prevents NULL filtering bugs is:",
+   "class": "B",
+   "skill": "SQL_BASICS",
+   "reason": "the question is about SQL_BASICS as the skill taxonomy describes it, and SQL_BASICS is declared on the unit"
+  },
+  {
+   "n": 75,
+   "id": "01f6b5de58b4473ed113a81d",
+   "unit": "T_SQL_WHY_DATABASES",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "Two people edit the same spreadsheet simultaneously. What happens, and how does a database differ?",
+   "class": "B",
+   "skill": "DB_FUNDAMENTALS",
+   "reason": "the question is about DB_FUNDAMENTALS as the skill taxonomy describes it, and DB_FUNDAMENTALS is declared on the unit"
+  },
+  {
+   "n": 76,
+   "id": "c739e10305458e3f68dfd68b",
+   "unit": "T_SQL_WHY_DATABASES",
+   "unitSkills": [
+    "DB_FUNDAMENTALS",
+    "SQL_BASICS"
+   ],
+   "question": "What does a transaction guarantee?",
+   "class": "B",
+   "skill": "DB_FUNDAMENTALS",
+   "reason": "the question is about DB_FUNDAMENTALS as the skill taxonomy describes it, and DB_FUNDAMENTALS is declared on the unit"
+  }
+ ]
+}

@@ -17,20 +17,24 @@
  * production recomposes after every checkpoint, and a composition whose inputs have not changed is identical, so this
  * is exact.
  *
- * TWO MODELS, so a change can be measured against what it replaced:
+ * THREE MODELS, so each change can be measured against what it replaced:
  *
  *   BEFORE  as at 58b248b6: kinds did not exist; practice, debugging, projects and coding assignments wrote nothing.
- *   AFTER   production now: every row has a kind (evidenceKindOf); a skill resting on checkpoint answers alone is
- *           planned at STANDARD at most (stateForScore's understandingOnly); a coding assignment's grade writes one
- *           CODING_ASSIGNMENT row per unit skill, and a project day's grade one PROJECT_EVALUATION row per unit skill,
- *           at the learner's applied performance, on the day the unit is worked. That day is an ASSUMPTION: an
- *           auto-grade lands that day, while a project grade lands whenever a grader reviews it.
+ *   KINDS   as at a0cc9f2c: every row has a kind; a skill with no DIAGNOSTIC and no APPLIED row is planned at STANDARD
+ *           at most; a coding assignment's grade writes one CODING_ASSIGNMENT row per unit skill, and a project day's
+ *           grade one PROJECT_EVALUATION row per unit skill, at the learner's applied performance, on the day the unit
+ *           is worked. ANY applied row lifts the cap, failed or not.
+ *   AFTER   production now: as KINDS, but only a DIAGNOSTIC row or an APPLIED row that met its assignment's pass line
+ *           (fixtures/evidence/applied-pass-standards.json: coding 60, projects 40) lifts the cap. A failed grade still
+ *           counts in the score. The grading day is an ASSUMPTION: an auto-grade lands that day, while a project grade
+ *           lands whenever a grader reviews it.
  */
 
 import crypto from 'crypto';
 import READY_JSON from '../fixtures/phase21/ready-inventory.json';
 import SETS from '../fixtures/phase21/publish-sets.json';
 import CHECKPOINTS from '../fixtures/evidence/checkpoint-questions.json';
+import PASS_STANDARDS from '../fixtures/evidence/applied-pass-standards.json';
 import { aggregate, evidenceWeightFor, evidenceBasis, EvidenceKind } from '../../data/skillDnaPolicy';
 import { AssignmentState, stateForScore, isConfidentEnough } from '../../data/adaptiveCurriculumPolicy';
 import { ComposableUnit, StudentProfile, SkillBelief, composeUnits } from '../../services/curriculumComposerService';
@@ -50,9 +54,13 @@ export const FOCUS_SKILLS = ['PROGRAMMING_FUNDAMENTALS', 'CONDITIONALS_BASICS', 
 export const CODING_ASSIGNMENT_UNITS = ['T_VARIABLES_COMPUTE_PRACTICE', 'T_CONDITIONS_PRACTICE', 'T_LOOPS_PRACTICE',
   'T_FUNCTIONS_CALL_RETURN_PRACTICE', 'T_ARRAYS_TRAVERSAL_PRACTICE'];
 
-export type Model = 'BEFORE' | 'AFTER';
+export type Model = 'BEFORE' | 'KINDS' | 'AFTER';
 export type Source = 'PERSONALIZED_ASSESSMENT' | 'MODULE_ASSESSMENT' | 'CODING_ASSIGNMENT' | 'PROJECT_EVALUATION';
-export interface EvidenceRow { skillKey: string; performance: number; weight: number; itemKey: string; source: Source; day: number }
+export interface EvidenceRow {
+  skillKey: string; performance: number; weight: number; itemKey: string; source: Source; day: number;
+  /** APPLIED rows: did the grade meet the assignment's pass line? */
+  meetsPassStandard?: boolean;
+}
 export interface Belief {
   score: number;
   confidence: 'LOW' | 'MEDIUM' | 'HIGH';
@@ -60,9 +68,11 @@ export interface Belief {
   state: AssignmentState;
   /** The state score and confidence alone buy (the low-confidence cap only). */
   rawState: AssignmentState;
-  /** AFTER only: every row is a checkpoint answer, and that lowered the state. */
+  /** KINDS/AFTER: nothing behind the score demonstrates the skill, and that lowered the state. */
   capped: boolean;
   kinds: Record<EvidenceKind, number>;
+  /** Weight of APPLIED rows that met their pass line. */
+  qualifyingApplied: number;
   weight: number;
   items: number;
 }
@@ -71,15 +81,25 @@ const CHECKPOINT_WEIGHT = (difficulty = 'MEDIUM') => evidenceWeightFor({ relatio
 const PAPER_WEIGHT = (difficulty: string) => evidenceWeightFor({ relationship: 'PRIMARY', difficulty, sourceType: 'PERSONALIZED_ASSESSMENT' });
 const APPLIED_WEIGHT = (source: Source) => evidenceWeightFor({ relationship: 'PRIMARY', difficulty: 'MEDIUM', sourceType: source });
 
-const basisOf = (rows: EvidenceRow[]) => evidenceBasis(rows.map(x => ({ sourceType: x.source, evidenceWeight: x.weight })));
+/** The pass line of a graded practical unit, as a fraction: Assignment.passingPoints / totalPoints. */
+export const passStandardOf = (unitCode: string): number | null => (PASS_STANDARDS as any).units[unitCode]?.passStandard ?? null;
+
+/** KINDS reproduces a0cc9f2c, where any APPLIED row lifted the cap; AFTER uses the recorded verdict. */
+const basisOf = (rows: EvidenceRow[], model: Model = 'AFTER') => evidenceBasis(rows.map(x => ({
+  sourceType: x.source, evidenceWeight: x.weight,
+  meetsPassStandard: model === 'KINDS' ? true : x.meetsPassStandard,
+})));
 
 export function beliefOf(rows: EvidenceRow[], model: Model = 'AFTER'): Belief | null {
   if (!rows.length) return null;
   const r = aggregate(rows.map(x => ({ performance: x.performance, evidenceWeight: x.weight, itemKey: x.itemKey })));
-  const basis = basisOf(rows);
+  const basis = basisOf(rows, model);
   const rawState = stateForScore({ score: r.score, confidence: r.confidence });
-  const state = model === 'AFTER' ? stateForScore({ score: r.score, confidence: r.confidence, understandingOnly: basis.understandingOnly }) : rawState;
-  return { score: r.score, confidence: r.confidence, state, rawState, capped: state !== rawState, kinds: basis.weights, weight: r.effectiveEvidenceWeight, items: r.distinctItems };
+  const state = model !== 'BEFORE' ? stateForScore({ score: r.score, confidence: r.confidence, understandingOnly: basis.understandingOnly }) : rawState;
+  return {
+    score: r.score, confidence: r.confidence, state, rawState, capped: state !== rawState, kinds: basis.weights,
+    qualifyingApplied: model === 'BEFORE' ? 0 : basis.qualifyingApplied.weight, weight: r.effectiveEvidenceWeight, items: r.distinctItems,
+  };
 }
 
 export function profileOf(rows: EvidenceRow[], model: Model = 'AFTER'): StudentProfile {
@@ -88,7 +108,7 @@ export function profileOf(rows: EvidenceRow[], model: Model = 'AFTER'): StudentP
   const skills = new Map<string, SkillBelief>();
   for (const [k, rs] of bySkill) {
     const b = beliefOf(rs, model)!;
-    const understandingOnly = model === 'AFTER' && basisOf(rs).understandingOnly;
+    const understandingOnly = model !== 'BEFORE' && basisOf(rs, model).understandingOnly;
     skills.set(k, { score: b.score, confidence: b.confidence, ...(understandingOnly ? { understandingOnly: true } : {}) });
   }
   return { skills, primaryDirection: null, directionStatus: 'UNDECIDED' };
@@ -198,6 +218,12 @@ export const SIM_LEARNERS: SimLearner[] = [
   { key: 'L_RIGHT_THEN_WRONG', note: 'real Skill Check all wrong; every checkpoint right until day 30, every one wrong after', prior: beginnerPrior,
     applied: c => (c.day <= 30 ? 0.9 : 0.2),
     answers: c => c.day <= 30 },
+  { key: 'M_RECALL_RIGHT_PRACTICAL_FAILED', note: 'real Skill Check all wrong; every checkpoint right; every coding assignment and project graded 20%', prior: beginnerPrior,
+    applied: () => 0.2,
+    answers: () => true },
+  { key: 'N_RECALL_RIGHT_PRACTICAL_AT_PASS', note: 'real Skill Check all wrong; every checkpoint right; every coding assignment graded exactly 60 and every project exactly 40 — the pass lines', prior: beginnerPrior,
+    applied: c => passStandardOf(c.unit.unitCode) ?? 0.6,
+    answers: () => true },
 ];
 
 /* ------------------------------------------------------------------ *
@@ -216,7 +242,7 @@ export interface CurriculumConsequence {
   backboneModeChanges: string[];
   backboneMissing: string[];
 }
-export interface DayEvent { day: number; unit: string; unitType: string; unmappedQuestions: number; applied: { source: Source; performance: number } | null; moves: SkillMove[]; consequence: CurriculumConsequence | null }
+export interface DayEvent { day: number; unit: string; unitType: string; unmappedQuestions: number; applied: { source: Source; performance: number; meetsPassStandard?: boolean } | null; moves: SkillMove[]; consequence: CurriculumConsequence | null }
 export interface SimulationResult {
   learner: SimLearner;
   model: Model;
@@ -319,13 +345,15 @@ export function simulate(learner: SimLearner, model: Model = 'AFTER', days = FOU
       bySkill.set(q.skillKey, t);
     }
     // The day's graded work, after its checkpoint. Production records it when the grade is final.
-    const source = model === 'AFTER' ? isGradedPractical(unit) : null;
+    const source = model !== 'BEFORE' ? isGradedPractical(unit) : null;
     let applied: DayEvent['applied'] = null;
     if (source) {
       const performance = learner.applied({ learner: learner.key, day, unit });
-      applied = { source, performance };
+      const standard = passStandardOf(unit.unitCode);
+      const meetsPassStandard = standard === null ? undefined : performance + 1e-9 >= standard;
+      applied = { source, performance, meetsPassStandard };
       for (const skill of unit.skillKeys) {
-        rows.push({ skillKey: skill, performance, weight: APPLIED_WEIGHT(source), itemKey: `assignment:${unit.unitCode}`, source, day });
+        rows.push({ skillKey: skill, performance, weight: APPLIED_WEIGHT(source), itemKey: `assignment:${unit.unitCode}`, source, day, meetsPassStandard });
         const t = bySkill.get(skill) || { answered: 0, right: 0 };
         bySkill.set(skill, t);
       }
@@ -463,7 +491,7 @@ export const CRITICAL_CASES: [string, string][] = [
  * ------------------------------------------------------------------ */
 
 export interface EvidenceKindGate {
-  learners: { key: string; before: SimulationResult['totals']; after: SimulationResult['totals']; finalDays: number; unique: number }[];
+  learners: { key: string; before: SimulationResult['totals']; kinds: SimulationResult['totals']; after: SimulationResult['totals']; finalDays: number; unique: number }[];
   critical: CriticalCase[];
   problems: string[];
 }
@@ -471,7 +499,9 @@ export interface EvidenceKindGate {
 /**
  * What must hold for every learner once evidence has kinds, on the given inventory:
  *   - exactly ninety distinct days after every recomposition, deterministically, backbone never missing;
- *   - no skill resting on checkpoint answers alone is ever planned beyond STANDARD;
+ *   - no skill resting on checkpoint answers and failed practicals alone is ever planned beyond STANDARD;
+ *   - a learner right on every checkpoint whose practical work fails keeps every coding assignment, and is never
+ *     VERIFIED on the spine; one whose work meets the pass lines is allowed what the evidence supports;
  *   - the conditions, loops and functions coding assignments survive the day checkpoints alone first make them VERIFIED;
  *   - a learner who answers everything right works all five coding assignments;
  *   - strong learners (at 70, at 78, very strong) start from the same plan and end in the same states as before kinds.
@@ -481,17 +511,18 @@ export function evidenceKindGate(pool: ComposableUnit[] = PRODUCTION): EvidenceK
   const learners: EvidenceKindGate['learners'] = [];
   for (const l of SIM_LEARNERS) {
     const before = simulate(l, 'BEFORE', FOUNDATION_PROGRAM_DAYS, pool);
+    const kinds = simulate(l, 'KINDS', FOUNDATION_PROGRAM_DAYS, pool);
     const after = simulate(l, 'AFTER', FOUNDATION_PROGRAM_DAYS, pool);
     const again = simulate(l, 'AFTER', FOUNDATION_PROGRAM_DAYS, pool);
     const unique = new Set(after.finalPlan).size;
-    learners.push({ key: l.key, before: before.totals, after: after.totals, finalDays: after.finalPlan.length, unique });
+    learners.push({ key: l.key, before: before.totals, kinds: kinds.totals, after: after.totals, finalDays: after.finalPlan.length, unique });
     if (after.finalPlan.length !== FOUNDATION_PROGRAM_DAYS || unique !== FOUNDATION_PROGRAM_DAYS) problems.push(`${l.key}: ${after.finalPlan.length} days, ${unique} distinct`);
     if (again.finalPlan.join('|') !== after.finalPlan.join('|')) problems.push(`${l.key}: nondeterministic`);
     if (after.totals.backboneMissingEver.length) problems.push(`${l.key}: backbone missing ${after.totals.backboneMissingEver.join(', ')}`);
     for (const e of after.events) {
       for (const m of e.moves) {
-        if (m.after.kinds.DIAGNOSTIC === 0 && m.after.kinds.APPLIED === 0 && ['REVISION', 'VERIFIED'].includes(m.after.state)) {
-          problems.push(`${l.key} day ${e.day}: ${m.skill} planned ${m.after.state} on checkpoint answers alone`);
+        if (m.after.kinds.DIAGNOSTIC === 0 && m.after.qualifyingApplied === 0 && ['REVISION', 'VERIFIED'].includes(m.after.state)) {
+          problems.push(`${l.key} day ${e.day}: ${m.skill} planned ${m.after.state} with nothing demonstrating it (checkpoints and failed practicals only)`);
         }
       }
     }
@@ -499,6 +530,12 @@ export function evidenceKindGate(pool: ComposableUnit[] = PRODUCTION): EvidenceK
       if (after.initialPlan.join('|') !== before.initialPlan.join('|')) problems.push(`${l.key}: initial plan changed`);
       for (const k of FOCUS_SKILLS) {
         if (before.finalBeliefs[k]?.state !== after.finalBeliefs[k]?.state) problems.push(`${l.key}: ${k} ${before.finalBeliefs[k]?.state} → ${after.finalBeliefs[k]?.state}`);
+      }
+    }
+    if (l.key === 'M_RECALL_RIGHT_PRACTICAL_FAILED') {
+      if (after.totals.codingAssignmentsRemoved.length) problems.push(`${l.key}: coding assignments removed ${after.totals.codingAssignmentsRemoved.join(', ')}`);
+      for (const k of ['CONDITIONALS_BASICS', 'LOOPS_BASICS', 'FUNCTIONS_BASICS']) {
+        if (['REVISION', 'VERIFIED'].includes(after.finalBeliefs[k]?.state || '')) problems.push(`${l.key}: ${k} ${after.finalBeliefs[k]?.state} after failed practical work`);
       }
     }
     if (l.key === 'D_BEGINNER_ALL_RIGHT' && after.totals.codingAssignmentsWorked.length !== CODING_ASSIGNMENT_UNITS.length) {
@@ -511,4 +548,156 @@ export function evidenceKindGate(pool: ComposableUnit[] = PRODUCTION): EvidenceK
     if (!c.codingAssignmentAfter) problems.push(`${c.skill}: ${c.codingUnit} not worked`);
   }
   return { learners, critical, problems };
+}
+
+/* ------------------------------------------------------------------ *
+ * The evidence matrix — one skill, every mix
+ * ------------------------------------------------------------------ */
+
+export interface MatrixCase {
+  key: string;
+  label: string;
+  score: number;
+  confidence: string;
+  mix: Record<EvidenceKind, number>;
+  qualifyingApplied: boolean;
+  rawState: AssignmentState;
+  /** The state the plan uses, a0cc9f2c (any applied row lifted the cap) and now. */
+  kindsState: AssignmentState;
+  effectiveState: AssignmentState;
+  /** The conditions units a beginner's ninety days hold, composed from this evidence, a0cc9f2c and now. */
+  kindsConditions: string[];
+  conditions: string[];
+}
+
+const MATRIX_SKILL = 'CONDITIONALS_BASICS';
+const MATRIX_CODING_UNIT = 'T_CONDITIONS_PRACTICE';
+
+/** Rows on CONDITIONALS_BASICS, the skill the critical case is about. Graded work is its coding assignment (pass line 60). */
+const cp = (n: number, right = n): EvidenceRow[] => Array.from({ length: n }, (_, i) => ({
+  skillKey: MATRIX_SKILL, performance: i < right ? 1 : 0, weight: CHECKPOINT_WEIGHT(), itemKey: `question:m${i}`, source: 'MODULE_ASSESSMENT' as Source, day: 1,
+}));
+const graded = (performance: number, attempt = 1): EvidenceRow => {
+  const standard = passStandardOf(MATRIX_CODING_UNIT)!;
+  return {
+    skillKey: MATRIX_SKILL, performance, weight: APPLIED_WEIGHT('CODING_ASSIGNMENT'), itemKey: `assignment:${MATRIX_CODING_UNIT}`,
+    source: 'CODING_ASSIGNMENT', day: 1 + attempt, meetsPassStandard: performance + 1e-9 >= standard,
+  };
+};
+const sitting = (n: number, right: number, tag: string): EvidenceRow[] => Array.from({ length: n }, (_, i) => ({
+  skillKey: MATRIX_SKILL, performance: i < right ? 1 : 0, weight: PAPER_WEIGHT(['EASY', 'MEDIUM', 'MEDIUM', 'HARD'][i % 4]), itemKey: `paper:${tag}:${i}`,
+  source: 'PERSONALIZED_ASSESSMENT' as Source, day: 0,
+}));
+
+export const MATRIX: { key: string; label: string; rows: () => EvidenceRow[] }[] = [
+  { key: '1', label: 'understanding only, all correct (18 answers)', rows: () => cp(18) },
+  { key: '2', label: 'understanding only, mixed (12 of 18)', rows: () => cp(18, 12) },
+  { key: '3', label: 'understanding (18 right) + applied 20%', rows: () => [...cp(18), graded(0.2)] },
+  { key: '4', label: 'understanding (18 right) + applied 59% (just below the pass line of 60)', rows: () => [...cp(18), graded(0.59)] },
+  { key: '5', label: 'understanding (18 right) + applied 60% (exactly the pass line)', rows: () => [...cp(18), graded(0.6)] },
+  { key: '6', label: 'understanding (18 right) + applied 95%', rows: () => [...cp(18), graded(0.95)] },
+  { key: '7', label: 'understanding (18 right) + applied 20%, then a later attempt at 90%', rows: () => [...cp(18), graded(0.2, 1), graded(0.9, 2)] },
+  { key: '8', label: 'understanding (18 right) + applied 90%, then a later attempt at 20%', rows: () => [...cp(18), graded(0.9, 1), graded(0.2, 2)] },
+  { key: '9', label: 'diagnostic strong (8 of 8) + applied 20%', rows: () => [...sitting(8, 8, 'd'), graded(0.2)] },
+  { key: '10', label: 'diagnostic weak (0 of 8) + applied 90%', rows: () => [...sitting(8, 0, 'd'), graded(0.9)] },
+  { key: '11', label: 'diagnostic weak (0 of 8) + applied 90% on five attempts', rows: () => [...sitting(8, 0, 'd'), ...[1, 2, 3, 4, 5].map(a => graded(0.9, a))] },
+  { key: '12', label: 'reassessment improvement (0 of 8, then 8 of 8)', rows: () => [...sitting(8, 0, 'd'), ...sitting(8, 8, 'r')] },
+  { key: '13', label: 'reassessment decline (8 of 8, then 0 of 8)', rows: () => [...sitting(8, 8, 'd'), ...sitting(8, 0, 'r')] },
+];
+
+export function evidenceMatrix(pool: ComposableUnit[] = PRODUCTION): MatrixCase[] {
+  return MATRIX.map(m => {
+    const rows = m.rows();
+    const kinds = beliefOf(rows, 'KINDS')!;
+    const after = beliefOf(rows, 'AFTER')!;
+    const conditionsOf = (model: Model) => {
+      const all = [...beginnerPrior().filter(r => r.skillKey !== MATRIX_SKILL), ...rows];
+      return compose(profileOf(all, model), undefined, pool).units.map(u => u.unitCode).filter(c => c.startsWith('T_CONDITIONS_'))
+        .map(c => c.replace('T_CONDITIONS_', ''));
+    };
+    return {
+      key: m.key, label: m.label, score: after.score, confidence: after.confidence, mix: after.kinds,
+      qualifyingApplied: after.qualifyingApplied > 0, rawState: after.rawState, kindsState: kinds.state, effectiveState: after.state,
+      kindsConditions: conditionsOf('KINDS'), conditions: conditionsOf('AFTER'),
+    };
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * The diagnostic anchor — how many later observations move a measured skill
+ * ------------------------------------------------------------------ */
+
+export interface AnchorCase {
+  key: string; label: string; start: { score: number; state: AssignmentState };
+  /** Observations at which each state is first planned. */
+  firstAt: Partial<Record<AssignmentState, number>>;
+  /** Score and state after 1, 3, 6, 12, 20 and 40 observations (where the stream runs that long). */
+  trajectory: { n: number; score: number; state: AssignmentState }[];
+}
+
+/**
+ * A prior, then a stream of later observations one at a time; the number of observations at which each state is first
+ * planned (AFTER). Streams: checkpoint answers (0.5), graded coding work (1.0), a whole Skill Check sitting (8 items).
+ */
+export function anchorAudit(): AnchorCase[] {
+  const run = (key: string, label: string, prior: EvidenceRow[], next: (i: number) => EvidenceRow[], max = 80): AnchorCase => {
+    const rows = [...prior];
+    const b0 = beliefOf(rows, 'AFTER')!;
+    const firstAt: Partial<Record<AssignmentState, number>> = {};
+    const trajectory: AnchorCase['trajectory'] = [];
+    for (let n = 1; n <= max; n++) {
+      rows.push(...next(n));
+      const b = beliefOf(rows, 'AFTER')!;
+      if (b.state !== b0.state && firstAt[b.state] === undefined) firstAt[b.state] = n;
+      if ([1, 3, 6, 12, 20, 40].includes(n)) trajectory.push({ n, score: b.score, state: b.state });
+    }
+    return { key, label, start: { score: b0.score, state: b0.state }, firstAt, trajectory };
+  };
+  const checkpoint = (perf: number) => (i: number): EvidenceRow[] => [{ skillKey: MATRIX_SKILL, performance: perf, weight: CHECKPOINT_WEIGHT(), itemKey: `question:a${i}`, source: 'MODULE_ASSESSMENT', day: i }];
+  const work = (perf: number) => (i: number): EvidenceRow[] => [{ ...graded(perf, i), itemKey: `assignment:a${i}` }];
+  const alternating = (perf: number) => (i: number): EvidenceRow[] => (i % 3 === 0 ? work(perf)(i) : checkpoint(perf)(i));
+  return [
+    run('A1', 'diagnostic 0 of 8 → checkpoints all right', sitting(8, 0, 'd'), checkpoint(1)),
+    run('A2', 'diagnostic 0 of 8 → coursework all right (two checkpoints, then a passed practical at 100%)', sitting(8, 0, 'd'), alternating(1)),
+    run('B1', 'diagnostic 8 of 8 → checkpoints all wrong', sitting(8, 8, 'd'), checkpoint(0)),
+    run('B2', 'diagnostic 8 of 8 → coursework all failed (two wrong checkpoints, then a practical at 20%)', sitting(8, 8, 'd'), i => (i % 3 === 0 ? work(0.2)(i) : checkpoint(0)(i))),
+    run('C', 'diagnostic 4 of 8 → improving coursework (all right)', sitting(8, 4, 'd'), alternating(1)),
+    run('D', 'diagnostic 4 of 8 → declining coursework (all wrong, practicals 0%)', sitting(8, 4, 'd'), alternating(0)),
+    run('E', 'diagnostic 0 of 8 → reassessments of 8 of 8 (observations counted in sittings)', sitting(8, 0, 'd'), i => sitting(8, 8, `r${i}`), 12),
+    run('F', 'diagnostic 8 of 8 → reassessments of 0 of 8 (observations counted in sittings)', sitting(8, 8, 'd'), i => sitting(8, 0, `r${i}`), 12),
+  ];
+}
+
+/* ------------------------------------------------------------------ *
+ * Question supply — can coursework legitimately move each skill?
+ * ------------------------------------------------------------------ */
+
+export interface SupplyCase {
+  skill: string;
+  checkpointQuestions: number;
+  gradedPracticals: string[];
+  /** Every checkpoint right and every practical passed at 100%, from a Skill Check of 0 on the skill (if the paper measures it) and from nothing. */
+  fromZeroDiagnostic: { score: number; confidence: string; state: AssignmentState } | null;
+  fromUnmeasured: { score: number; confidence: string; state: AssignmentState };
+}
+
+export function supplyAudit(skills = ['PROGRAMMING_FUNDAMENTALS', 'SHELL_COMMANDS', 'DSA_ARRAYS', 'SQL_BASICS'], pool: ComposableUnit[] = PRODUCTION): SupplyCase[] {
+  const questions = (CHECKPOINTS as any).units.flatMap((u: any) => u.questions);
+  return skills.map(skill => {
+    const cps: EvidenceRow[] = questions.filter((q: any) => q.skillKey === skill).map((q: any) => ({
+      skillKey: skill, performance: 1, weight: CHECKPOINT_WEIGHT(q.difficulty), itemKey: `question:${q.id}`, source: 'MODULE_ASSESSMENT' as Source, day: 1,
+    }));
+    const practicals = pool.filter(u => isGradedPractical(u) && u.skillKeys.includes(skill)).map(u => u.unitCode);
+    const work: EvidenceRow[] = practicals.map(c => ({
+      skillKey: skill, performance: 1, weight: APPLIED_WEIGHT(isGradedPractical(pool.find(u => u.unitCode === c)!)!), itemKey: `assignment:${c}`,
+      source: isGradedPractical(pool.find(u => u.unitCode === c)!)!, day: 2, meetsPassStandard: true,
+    }));
+    const paper = skillCheckRows(REAL_SKILL_CHECK_PAPER.map(() => 0), skill);
+    const pick = (b: Belief | null) => (b ? { score: b.score, confidence: b.confidence, state: b.state } : null);
+    return {
+      skill, checkpointQuestions: cps.length, gradedPracticals: practicals,
+      fromZeroDiagnostic: paper.length ? pick(beliefOf([...paper, ...cps, ...work], 'AFTER')) : null,
+      fromUnmeasured: pick(beliefOf([...cps, ...work], 'AFTER'))!,
+    };
+  });
 }

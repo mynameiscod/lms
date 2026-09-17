@@ -1,0 +1,209 @@
+{
+ "note": "Exported from the provisioned tenants (identical on both): each Foundation unit assignment, its type, and its pass line (Assignment.passingPoints / totalPoints) — the line Submission.isPassing draws. Coding assignments author 60; project assignments carry the Assignment model default of 40.",
+ "units": {
+  "T_AI_CODING_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_ARRAYS_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_ARRAYS_TRAVERSAL_PRACTICE": {
+   "type": "coding",
+   "passingPoints": 60,
+   "totalPoints": 100,
+   "passStandard": 0.6
+  },
+  "T_BOOLEAN_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_CAPSTONE_BUILDING": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_CAREER_MAP_DIRECTION_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_CONDITIONS_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_CONDITIONS_PRACTICE": {
+   "type": "coding",
+   "passingPoints": 60,
+   "totalPoints": 100,
+   "passStandard": 0.6
+  },
+  "T_CSS_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_C_BASICS_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_DECOMPOSITION_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_EDITOR_WORKSPACE_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_FORMS_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_FUNCTIONS_CALL_RETURN_PRACTICE": {
+   "type": "coding",
+   "passingPoints": 60,
+   "totalPoints": 100,
+   "passStandard": 0.6
+  },
+  "T_FUNCTIONS_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_FUNCTIONS_REFACTORING": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_FUNCTIONS_TESTING_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_GIT_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_HTML_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_JS_DOM_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_LOGIC_MATH_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_LOOPS_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_LOOPS_PRACTICE": {
+   "type": "coding",
+   "passingPoints": 60,
+   "totalPoints": 100,
+   "passStandard": 0.6
+  },
+  "T_ML_INTRO_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_NETWORKING_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_PROCESSES_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_PSEUDOCODE_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_SHELL_PIPELINES_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_SQL_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_SQL_REPORT_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_STATS_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_TECH_COMM_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  },
+  "T_VARIABLES_COMPUTE_PRACTICE": {
+   "type": "coding",
+   "passingPoints": 60,
+   "totalPoints": 100,
+   "passStandard": 0.6
+  },
+  "T_VARIABLES_MINI_PROJECT": {
+   "type": "project",
+   "passingPoints": 40,
+   "totalPoints": 100,
+   "passStandard": 0.4
+  }
+ }
+}

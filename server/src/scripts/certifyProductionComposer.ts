@@ -14,9 +14,9 @@
  *     unit outside the learner's direction;
  *   - the 72 recomposition scenarios hold ninety valid days, and every rewritten future day keeps a
  *     complete activity bundle built by the journey service's own resolver;
- *   - with evidence kinds, twelve learners replayed through ninety days keep ninety distinct days and the backbone,
- *     never plan a checkpoint-only skill beyond STANDARD, keep the spine's coding assignments, and leave strong
- *     learners exactly as compressed as before;
+ *   - with evidence kinds, the calibration learners replayed through ninety days keep ninety distinct days and the
+ *     backbone, never plan a skill beyond STANDARD on checkpoint answers and failed practicals alone, keep the spine's
+ *     coding assignments, and leave strong learners exactly as compressed as before;
  *   - the 338 units have no broken prerequisite, no cycle, no malformed assessment, no broken
  *     project assignment and no duplicated asset;
  *   - the database is in the authorised state: certified set published, no journeys, no DayPlans,
@@ -406,12 +406,12 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
    * assignment and project graded, recomposing whenever what the composer reads changes — under the evidence model
    * before kinds and the production model now. See evidenceKindGate for what must hold.
    */
-  title('4d. EVIDENCE KINDS THROUGH RECOMPOSITION on ACTUAL PRODUCTION — understanding capped, applied work kept');
+  title('4d. EVIDENCE KINDS THROUGH RECOMPOSITION on ACTUAL PRODUCTION — understanding capped, failed work no key, passed work counts');
   const kindGate = evidenceKindGate(universe);
   const shortCode = (c: string) => c.replace(/^T_|_PRACTICE$|_CALL_RETURN|_TRAVERSAL|_COMPUTE/g, '');
   for (const l of kindGate.learners) {
     console.log(`    ${pad(l.key, 26)} days ${l.finalDays}/${l.unique} distinct · coding assignments removed BEFORE ${pad(l.before.codingAssignmentsRemoved.map(shortCode).join(',') || 'none', 26)}`
-      + ` AFTER ${pad(l.after.codingAssignmentsRemoved.map(shortCode).join(',') || 'none', 16)} worked ${l.after.codingAssignmentsWorked.length} · applied rows ${l.after.appliedRows} · recompositions ${l.before.recompositions}→${l.after.recompositions}`);
+      + ` KINDS ${pad(l.kinds.codingAssignmentsRemoved.map(shortCode).join(',') || 'none', 12)} AFTER ${pad(l.after.codingAssignmentsRemoved.map(shortCode).join(',') || 'none', 12)} worked ${l.after.codingAssignmentsWorked.length} · applied rows ${l.after.appliedRows} · recompositions ${l.before.recompositions}→${l.after.recompositions}`);
   }
   for (const c of kindGate.critical) {
     console.log(`    critical ${pad(c.skill, 20)} ${c.day === null ? 'never VERIFIED from checkpoints alone' : `day ${c.day}: ${c.score}/${c.confidence} raw ${c.rawState} → ${c.effectiveState} cap ${c.capped ? 'YES' : 'NO'}`}`

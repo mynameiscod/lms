@@ -13,6 +13,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { adaptiveApi, AdaptivePlan, PlanTopic, AssignedContent, STATE_LABEL, STATE_TONE } from '../../api/adaptiveApi';
 import './journey.css';
+import { NotesContent } from '../../components/content/NotesContent';
 
 interface Props {
   studentId: string;
@@ -241,7 +242,7 @@ const TopicRow: React.FC<{ topic: PlanTopic; open: boolean; onToggle: () => void
                   </button>
                   {reading?.id === it.id && (
                     <div className="fj-reader">
-                      {it.notesContent && <div dangerouslySetInnerHTML={{ __html: it.notesContent }} />}
+                      {it.notesContent && <NotesContent text={it.notesContent} />}
                       {it.practiceQuestions.length > 0 && (
                         <ol className="fj-practice">
                           {it.practiceQuestions.map((q, i) => (

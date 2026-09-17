@@ -5,6 +5,7 @@ import { CONTENT_TYPE_ICONS, CONTENT_TYPE_COLORS } from '../../api/learningConte
 import { interactiveLessonApi } from '../../api/interactiveLessonApi';
 import InteractiveActivityViewer from './InteractiveActivityViewer';
 import { VideoPlayer } from './VideoPlayer';
+import { NotesContent, InlineNotes } from '../../components/content/NotesContent';
 
 // ─── Video Player ─────────────────────────────────────────────────────────────
 // Moved to its own module when it grew seek controls and a Bunny Player.js bridge.
@@ -14,15 +15,11 @@ export { VideoPlayer };
 
 // ─── Notes Viewer ─────────────────────────────────────────────────────────────
 
+// Written notes are Markdown (the curriculum) or editor HTML (the Content Library); NotesContent formats both
+// and sanitises both. A worked example is notes too, so it renders here.
 export function NotesViewer({ content }: { content: any }) {
-  if (content.notesSource === 'richtext' && content.notesContent) {
-    return (
-      <div
-        className="ql-editor"
-        dangerouslySetInnerHTML={{ __html: content.notesContent }}
-        style={{ fontSize: '15px', lineHeight: 1.8, color: '#1e293b', padding: '4px 0' }}
-      />
-    );
+  if (content.notesSource !== 'upload' && content.notesContent) {
+    return <NotesContent text={content.notesContent} />;
   }
   if (content.notesSource === 'upload' && content.notesFilePath) {
     const fileName = content.notesFilePath.split('/').pop();
@@ -77,13 +74,13 @@ export function QAViewer({ content }: { content: any }) {
               fontSize: '14px', fontWeight: 600, color: '#0f172a',
             }}
           >
-            <span>{qa.question}</span>
+            <span><InlineNotes text={qa.question} /></span>
             <span style={{ color: '#64748b', fontSize: '18px', flexShrink: 0, marginLeft: '8px' }}>{openIdx === i ? '▲' : '▼'}</span>
           </button>
           {openIdx === i && (
             <div style={{ padding: '14px 16px', borderTop: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '14px', lineHeight: 1.7, color: '#374151', marginBottom: qa.tips ? '12px' : 0 }}>
-                {qa.answer}
+              <div style={{ marginBottom: qa.tips ? '12px' : 0 }}>
+                <NotesContent text={qa.answer} compact />
               </div>
               {qa.tips && (
                 <div style={{ background: '#fef3c7', borderRadius: '7px', padding: '10px 12px', fontSize: '13px', color: '#92400e' }}>
@@ -113,7 +110,7 @@ export function PracticeViewer({ content }: { content: any }) {
         <div key={qi} style={{ border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', gap: '8px' }}>
             <div style={{ fontWeight: 700, fontSize: '14px', color: '#0f172a', flex: 1 }}>
-              Q{qi + 1}. {q.title}
+              Q{qi + 1}. <InlineNotes text={q.title} />
             </div>
             <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
               <span style={{
@@ -130,8 +127,8 @@ export function PracticeViewer({ content }: { content: any }) {
           </div>
 
           {q.description && (
-            <div style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6, marginBottom: '12px', whiteSpace: 'pre-wrap' }}>
-              {q.description}
+            <div style={{ marginBottom: '12px' }}>
+              <NotesContent text={q.description} compact />
             </div>
           )}
 
@@ -158,7 +155,7 @@ export function PracticeViewer({ content }: { content: any }) {
                     }}
                   >
                     <span style={{ fontWeight: 700, fontSize: '12px', minWidth: '20px' }}>{String.fromCharCode(65 + oi)}.</span>
-                    <span>{opt.text}</span>
+                    <span><InlineNotes text={opt.text} /></span>
                     {showResult && isCorrect && <span style={{ marginLeft: 'auto' }}>✓</span>}
                     {showResult && selected && !isCorrect && <span style={{ marginLeft: 'auto' }}>✗</span>}
                   </div>
@@ -174,7 +171,7 @@ export function PracticeViewer({ content }: { content: any }) {
               )}
               {revealed[qi] && q.explanation && (
                 <div style={{ background: '#f0fdf4', borderRadius: '7px', padding: '10px 12px', fontSize: '13px', color: '#15803d', marginTop: '4px' }}>
-                  💡 {q.explanation}
+                  💡 <InlineNotes text={q.explanation} />
                 </div>
               )}
             </div>
@@ -201,8 +198,8 @@ export function PracticeViewer({ content }: { content: any }) {
                 </button>
               </div>
               {revealed[qi] && q.explanation && (
-                <div style={{ background: '#f8fafc', borderRadius: '7px', padding: '12px', marginTop: '8px', fontSize: '13px', color: '#374151', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                  {q.explanation}
+                <div style={{ background: '#f8fafc', borderRadius: '7px', padding: '12px', marginTop: '8px' }}>
+                  <NotesContent text={q.explanation} compact />
                 </div>
               )}
             </div>
@@ -434,7 +431,7 @@ function ContentItemCard({ item, enrollmentId, dayNumber, isLocked, onComplete }
             {(content.type === 'video') && (
               <VideoPlayer content={content} onWatchEnough={handleMarkComplete} />
             )}
-            {(content.type === 'notes') && (
+            {(content.type === 'notes' || content.type === 'worked_example') && (
               <NotesViewer content={content} />
             )}
             {(content.type === 'tech_qa' || content.type === 'behavioral_qa') && (

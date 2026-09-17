@@ -32,6 +32,7 @@ const ContentPreviewModal: React.FC<{ contentId: string; onClose: () => void }> 
       case 'video':
         return <VideoPlayer content={c} onWatchEnough={() => {}} />;
       case 'notes':
+      case 'worked_example':
         return <NotesViewer content={c} />;
       case 'tech_qa':
       case 'behavioral_qa':

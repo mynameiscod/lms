@@ -517,7 +517,8 @@ const ContentBody: React.FC<{ item: any }> = ({ item }) => {
   }
   switch (c.type) {
     case 'video': return <VideoPlayer content={c} onWatchEnough={() => {}} />;
-    case 'notes': return <NotesViewer content={c} />;
+    case 'notes':
+    case 'worked_example': return <NotesViewer content={c} />;
     case 'tech_qa': case 'behavioral_qa': return <QAViewer content={c} />;
     case 'practice_coding': case 'practice_theory': case 'aptitude': return <PracticeViewer content={c} />;
     case 'interactive_activity': return c.htmlContent ? <InteractiveActivityViewer htmlContent={c.htmlContent} completed={false} onComplete={() => {}} /> : <div style={{ color: '#94a3b8' }}>No activity content.</div>;

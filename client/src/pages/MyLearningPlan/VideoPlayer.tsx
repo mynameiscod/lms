@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
+import { youtubeIdOf, vimeoIdOf } from '../../components/content/videoUrl';
 
 /**
  * Lesson video playback for students.
@@ -337,11 +338,19 @@ function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; t
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
+/** A saved link the player cannot read — said plainly rather than shown as an empty frame. */
+const UnplayableLink: React.FC = () => (
+  <div style={{ borderRadius: 10, border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', padding: '20px 18px', fontSize: 13, lineHeight: 1.55 }}>
+    This video's link could not be read, so there is nothing to play yet. Please let your trainer know.
+  </div>
+);
+
 export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchEnough: () => void }) {
   const threshold = content.completionThreshold || 0;
 
   if (content.videoSource === 'youtube' && content.videoUrl) {
-    const ytId = content.videoUrl.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)?.[1];
+    const ytId = youtubeIdOf(content.videoUrl);
+    if (!ytId) return <UnplayableLink />;
     return (
       <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '10px', overflow: 'hidden' }}>
         <iframe
@@ -398,7 +407,8 @@ export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchE
   }
 
   if (content.videoSource === 'vimeo' && content.videoUrl) {
-    const vimeoId = content.videoUrl.match(/vimeo\.com\/(\d+)/)?.[1];
+    const vimeoId = vimeoIdOf(content.videoUrl);
+    if (!vimeoId) return <UnplayableLink />;
     return (
       <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '10px', overflow: 'hidden' }}>
         <iframe

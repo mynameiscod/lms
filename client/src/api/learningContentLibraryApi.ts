@@ -68,7 +68,8 @@ export type ContentLibraryType =
   | 'practice_theory'
   | 'aptitude'
   | 'interactive_lesson'
-  | 'interactive_activity';
+  | 'interactive_activity'
+  | 'worked_example';
 
 export interface QAItem {
   question: string;
@@ -236,6 +237,7 @@ export const CONTENT_TYPE_LABELS: Record<ContentLibraryType, string> = {
   aptitude:            'Aptitude',
   interactive_lesson:  'Interactive Lesson',
   interactive_activity:'Interactive Activity',
+  worked_example:      'Worked Example',
 };
 
 export const CONTENT_TYPE_ICONS: Record<ContentLibraryType, string> = {
@@ -248,6 +250,7 @@ export const CONTENT_TYPE_ICONS: Record<ContentLibraryType, string> = {
   aptitude:            '🧠',
   interactive_lesson:  '🎮',
   interactive_activity:'🧩',
+  worked_example:      '💡',
 };
 
 export const CONTENT_TYPE_COLORS: Record<ContentLibraryType, string> = {
@@ -260,4 +263,5 @@ export const CONTENT_TYPE_COLORS: Record<ContentLibraryType, string> = {
   aptitude:            '#f97316',
   interactive_lesson:  '#ec4899',
   interactive_activity:'#14a89c',
+  worked_example:      '#ca8a04',
 };

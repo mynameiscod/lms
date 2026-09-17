@@ -9,6 +9,9 @@
     "start": "node dist/server.js",
     "seed": "ts-node src/seed.ts",
     "test": "jest",
+    "test:unit": "jest --testPathIgnorePatterns=/node_modules/ --testPathIgnorePatterns=/dist/ --testPathIgnorePatterns=\\.int\\.test\\.ts$ --maxWorkers=3 --workerIdleMemoryLimit=1024MB",
+    "test:integration": "jest --runInBand \\.int\\.test\\.ts$",
+    "test:release": "npm run test:unit && npm run test:integration",
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {

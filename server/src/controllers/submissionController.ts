@@ -5,6 +5,12 @@ import { SubmissionStatus } from '../models/Submission';
 import { checkDeadlineGate } from '../services/assessmentDeliveryService';
 import { isAssignmentAuthor, refuseLockedAssignment, refuseLockedSubmission } from './assignmentAccessGuard';
 import { toStudentSubmission } from '../services/studentAssignmentView';
+/**
+ * The tenant is the one the caller authenticated into. The X-Tenant-Id header is only a fallback for a
+ * caller whose token carries none; it can never move a signed-in user into another tenant — which matters
+ * most here, where a grade becomes Skill DNA evidence.
+ */
+import { callerTenant } from '../services/quizAnswerAccess';
 
 // Extended Request interface with user and tenant
 interface AuthRequest extends Request {
@@ -16,7 +22,7 @@ class SubmissionController {
   // Start a new submission
   async start(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const userId = req.user?.id;
       const { assignmentId } = req.params;
 
@@ -57,7 +63,7 @@ class SubmissionController {
   // Get student's current submission for an assignment
   async getMySubmission(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const userId = req.user?.id;
       const { assignmentId } = req.params;
 
@@ -86,7 +92,7 @@ class SubmissionController {
   // Save code (auto-save)
   async saveCode(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const userId = req.user?.id;
       const { submissionId } = req.params;
       const { code, language } = req.body;
@@ -116,7 +122,7 @@ class SubmissionController {
   // Run code against test cases
   async runCode(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const userId = req.user?.id;
       const { submissionId } = req.params;
       const { code, language } = req.body;
@@ -147,7 +153,7 @@ class SubmissionController {
   // Request an AI hint for a failing test case (quota-limited by assignment.maxAiHints)
   async getHint(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const userId = req.user?.id;
       const { submissionId } = req.params;
       const { code, testCaseIndex, fail, hintLanguage } = req.body;
@@ -184,7 +190,7 @@ class SubmissionController {
   // the student has run anything, from the Instructions view.
   async getConceptHint(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const userId = req.user?.id;
       const { submissionId } = req.params;
       const { hintLanguage } = req.body;
@@ -214,7 +220,7 @@ class SubmissionController {
   // Submit coding assignment
   async submitCoding(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const userId = req.user?.id;
       const { submissionId } = req.params;
 
@@ -246,7 +252,7 @@ class SubmissionController {
   // Submit MCQ answers
   async submitMCQ(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const userId = req.user?.id;
       const { submissionId } = req.params;
       const { answers } = req.body;
@@ -280,7 +286,7 @@ class SubmissionController {
   // Submit theory answer
   async submitTheory(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const userId = req.user?.id;
       const { submissionId } = req.params;
       const { theoryAnswer } = req.body;
@@ -314,7 +320,7 @@ class SubmissionController {
   // Grade submission (instructor)
   async grade(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const userId = req.user?.id;
       const { submissionId } = req.params;
       const { rubricScores, manualScore, score, overallFeedback, feedback, privateFeedback } = req.body;
@@ -362,7 +368,7 @@ class SubmissionController {
   // Get all submissions for an assignment (instructor)
   async getAssignmentSubmissions(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const { assignmentId } = req.params;
       const { status, page = 1, limit = 50 } = req.query;
 
@@ -401,7 +407,7 @@ class SubmissionController {
   // Get student's all submissions
   async getStudentSubmissions(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const userId = req.user?.id;
 
       if (!tenantId || !userId) {
@@ -426,7 +432,7 @@ class SubmissionController {
   // Get submission by ID (for viewing)
   async getSubmission(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const userId = req.user?.id;
       const userRole = req.user?.role;
       const { submissionId } = req.params;
@@ -462,7 +468,7 @@ class SubmissionController {
   // Get submission statistics
   async getStats(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const { assignmentId } = req.params;
 
       if (!tenantId) {
@@ -484,7 +490,7 @@ class SubmissionController {
   // Allow student to reattempt assignment (instructor)
   async allowReattempt(req: AuthRequest, res: Response) {
     try {
-      const tenantId = req.tenantId;
+      const tenantId = callerTenant(req);
       const userId = req.user?.id;
       const { submissionId } = req.params;
 

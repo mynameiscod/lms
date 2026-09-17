@@ -177,7 +177,7 @@ describe('composition is untouched', () => {
     expect(new Set(codes).size).toBe(PROGRAM_DAYS);
   });
 
-  it('still reaches Variables, Conditions, Loops, Functions and Arrays practice on days 14, 32, 47, 61 and 75', () => {
-    expect(CORE.map(t => codes.indexOf(FIRST_PRACTICE[t]) + 1)).toEqual([14, 32, 47, 61, 75]);
+  it('still reaches Variables, Conditions, Loops, Functions and Arrays practice, on the certified backbone days 33, 39, 46, 52 and 57', () => {
+    expect(CORE.map(t => codes.indexOf(FIRST_PRACTICE[t]) + 1)).toEqual([33, 39, 46, 52, 57]);
   });
 });

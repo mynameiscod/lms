@@ -20,6 +20,7 @@
 import LearningCurriculum from '../models/LearningCurriculum';
 import { requireAuthorableSkills } from './skillRegistryService';
 import { DIRECTION_KEYS } from '../data/careerDirectionPolicy';
+import { backboneClassificationProblems } from '../data/foundationBackbonePolicy';
 
 export interface TopicInput {
   title?: string;
@@ -30,6 +31,8 @@ export interface TopicInput {
   prerequisiteSkillKeys?: string[];
   defaultDepth?: string;
   mandatory?: boolean;
+  /** Part of the mandatory Foundation backbone. See data/foundationBackbonePolicy. */
+  backbone?: boolean;
   applicableDirections?: string[];
   learningOutcomes?: string[];
   /** Where in its module the topic sits. Days follow from it. */
@@ -110,6 +113,16 @@ function validateDirections(keys: string[] | undefined): string[] | undefined {
       + `The directions are: ${(DIRECTION_KEYS as string[]).join(', ')}`);
   }
   return wanted;
+}
+
+/**
+ * A backbone topic must be one every student learns and no direction scopes — the backbone is what every Foundation
+ * learner covers. Refused with the reason rather than saved into a classification the composer would then apply.
+ */
+function requireValidBackbone(topic: any) {
+  if (topic?.backbone !== true) return;
+  const problems = backboneClassificationProblems(topic);
+  if (problems.length) throw new Error(problems.join(' '));
 }
 
 /* ── modules ─────────────────────────────────────────────────────────────── */
@@ -202,9 +215,11 @@ export async function createTopic(tenantId: string, stage: string, input: TopicI
     prerequisiteSkillKeys: prereqs && prereqs.length ? prereqs : undefined,
     defaultDepth: DEPTHS.includes(upper(input.defaultDepth)) ? upper(input.defaultDepth) : 'FOUNDATION',
     mandatory: input.mandatory !== false,
+    backbone: input.backbone === true,
     applicableDirections: validateDirections(input.applicableDirections) || [],
     learningOutcomes: (input.learningOutcomes || []).map(clean).filter(Boolean),
   });
+  requireValidBackbone(doc.topics[doc.topics.length - 1]);
 
   relayDays(doc);
   await doc.save();
@@ -226,6 +241,7 @@ export async function updateTopic(tenantId: string, stage: string, topicId: stri
   if (input.moduleCode !== undefined) topic.moduleCode = clean(input.moduleCode) || 'UNGROUPED';
   if (input.order !== undefined) topic.order = Number(input.order) || 0;
   if (input.mandatory !== undefined) topic.mandatory = !!input.mandatory;
+  if (input.backbone !== undefined) topic.backbone = !!input.backbone;
   if (input.applicableDirections !== undefined) {
     topic.applicableDirections = validateDirections(input.applicableDirections);
   }
@@ -245,6 +261,9 @@ export async function updateTopic(tenantId: string, stage: string, topicId: stri
 
   // topicCode is deliberately not editable: durable references point at it, and renaming it
   // would orphan every plan item and completion record that names it.
+
+  // Checked on the topic as it will be saved, so un-marking mandatory on a backbone topic is refused too.
+  requireValidBackbone(topic);
 
   relayDays(doc);
   await doc.save();

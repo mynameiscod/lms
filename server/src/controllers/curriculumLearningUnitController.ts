@@ -357,6 +357,7 @@ export const listUnits = async (req: Request, res: Response) => {
         topicCode: String(t.topicCode),
         topicTitle: String(t.title || t.topicCode),
         topicSkillKeys: (t.skillKeys || []).map((k: string) => String(k).toUpperCase()),
+        topicBackbone: t.backbone === true,
         units: mine,
         published: mine.filter(u => u.status === 'PUBLISHED').length,
         drafts: mine.filter(u => u.status === 'DRAFT').length,

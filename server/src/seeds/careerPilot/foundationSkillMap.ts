@@ -35,6 +35,12 @@ export interface FoundationTopicSeed {
   learningOutcomes: string[];
   /** Skills needed first, when the graph does not already say so. */
   prerequisiteSkillKeys?: string[];
+  /**
+   * Part of the MANDATORY FOUNDATION BACKBONE: every Foundation learner is given meaningful coverage of this topic,
+   * whatever their evidence. Evidence decides the depth — the full lessons to first practice, or one compact practical
+   * treatment — never whether it is there. See data/foundationBackbonePolicy for which topics and why.
+   */
+  backbone?: boolean;
 }
 
 export interface FoundationModuleSeed {
@@ -62,12 +68,14 @@ export const FOUNDATION_MODULES: FoundationModuleSeed[] = [
     topics: [
       {
         topicCode: 'T_HARDWARE', title: 'Hardware and How a Computer Runs',
+        backbone: true,
         skillKeys: ['HOW_COMPUTERS_WORK', 'COMPUTER_ARCHITECTURE'], category: 'UNIVERSAL', applicableDirections: [],
         defaultDepth: 'FOUNDATION',
         learningOutcomes: ['Describe what happens between pressing run and seeing output.'],
       },
       {
         topicCode: 'T_FILES', title: 'Files, Folders and the Command Line',
+        backbone: true,
         // The first look. Operating-system concepts proper live in M09, and the shell is met
         // again there for composition; this is where a student learns that a path and a
         // permission exist at all.
@@ -85,12 +93,14 @@ export const FOUNDATION_MODULES: FoundationModuleSeed[] = [
     topics: [
       {
         topicCode: 'T_DECOMPOSITION', title: 'Breaking Problems Down',
+        backbone: true,
         skillKeys: ['PROBLEM_SOLVING'], category: 'UNIVERSAL', applicableDirections: [],
         defaultDepth: 'FOUNDATION',
         learningOutcomes: ['Split a problem into steps small enough to solve one at a time.'],
       },
       {
         topicCode: 'T_PSEUDOCODE', title: 'Pseudocode and Dry Running',
+        backbone: true,
         skillKeys: ['PSEUDOCODE_FLOWCHARTS'], category: 'UNIVERSAL', applicableDirections: [],
         defaultDepth: 'FOUNDATION',
         learningOutcomes: ['Trace a piece of logic by hand and predict its output.'],
@@ -105,6 +115,7 @@ export const FOUNDATION_MODULES: FoundationModuleSeed[] = [
     topics: [
       {
         topicCode: 'T_VARIABLES', title: 'Variables and Types',
+        backbone: true,
         skillKeys: ['PROGRAMMING_FUNDAMENTALS', 'PYTHON_BASICS', 'PYTHON_STRINGS'], category: 'UNIVERSAL', applicableDirections: [],
         defaultDepth: 'FOUNDATION',
         learningOutcomes: ['Store, read and change values of different types.',
@@ -112,6 +123,7 @@ export const FOUNDATION_MODULES: FoundationModuleSeed[] = [
       },
       {
         topicCode: 'T_CONDITIONS', title: 'Conditions and Branching',
+        backbone: true,
         skillKeys: ['CONDITIONALS_BASICS'], category: 'UNIVERSAL', applicableDirections: [],
         defaultDepth: 'FOUNDATION',
         learningOutcomes: ['Make a program take different paths based on data.'],
@@ -119,12 +131,14 @@ export const FOUNDATION_MODULES: FoundationModuleSeed[] = [
       },
       {
         topicCode: 'T_LOOPS', title: 'Loops and Iteration',
+        backbone: true,
         skillKeys: ['LOOPS_BASICS'], category: 'UNIVERSAL', applicableDirections: [],
         defaultDepth: 'FOUNDATION',
         learningOutcomes: ['Repeat work over a collection and stop at the right moment.'],
       },
       {
         topicCode: 'T_FUNCTIONS', title: 'Functions',
+        backbone: true,
         skillKeys: ['FUNCTIONS_BASICS'], category: 'UNIVERSAL', applicableDirections: [],
         defaultDepth: 'FOUNDATION',
         learningOutcomes: ['Name a piece of logic and reuse it.'],
@@ -139,6 +153,7 @@ export const FOUNDATION_MODULES: FoundationModuleSeed[] = [
     topics: [
       {
         topicCode: 'T_GIT', title: 'Git and GitHub',
+        backbone: true,
         // Universal on purpose: Git does not stop mattering because a student chose AI.
         skillKeys: ['GIT_FUNDAMENTALS', 'GIT_BRANCHING'], category: 'UNIVERSAL', applicableDirections: [],
         defaultDepth: 'STANDARD',
@@ -223,6 +238,7 @@ export const FOUNDATION_MODULES: FoundationModuleSeed[] = [
     topics: [
       {
         topicCode: 'T_ARRAYS', title: 'Arrays and Strings',
+        backbone: true,
         skillKeys: ['DSA_ARRAYS', 'DSA_STRINGS'], category: 'UNIVERSAL', applicableDirections: [],
         defaultDepth: 'GUIDED',
         learningOutcomes: ['Work through a collection and reason about what it costs.'],
@@ -238,6 +254,7 @@ export const FOUNDATION_MODULES: FoundationModuleSeed[] = [
     topics: [
       {
         topicCode: 'T_SQL', title: 'SQL Basics',
+        backbone: true,
         skillKeys: ['DB_FUNDAMENTALS', 'SQL_BASICS'], category: 'UNIVERSAL', applicableDirections: [],
         defaultDepth: 'STANDARD',
         learningOutcomes: ['Ask a database a question and understand the answer.'],
@@ -463,3 +480,7 @@ export const referencedSkillKeys = (): string[] => Array.from(new Set(
  * the student having room for it.
  */
 export const isMandatoryCategory = (c: FoundationCategory): boolean => c === 'UNIVERSAL';
+
+/** The topics the seed classifies as the mandatory Foundation backbone, in authored module order. */
+export const seededBackboneTopicCodes = (): string[] =>
+  FOUNDATION_MODULES.flatMap(m => m.topics.filter(t => t.backbone).map(t => t.topicCode));

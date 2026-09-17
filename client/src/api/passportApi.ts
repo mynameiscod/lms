@@ -2075,6 +2075,8 @@ export interface MegaCurriculumTopicRow {
   topicCode: string;
   topicTitle: string;
   topicSkillKeys: string[];
+  /** The topic is part of the mandatory Foundation backbone, so every unit of it is. Set on the stage curriculum. */
+  topicBackbone?: boolean;
   units: CurriculumLearningUnit[];
   published: number;
   drafts: number;
@@ -3756,6 +3758,8 @@ export interface StageTopicNode {
   endDay: number;
   defaultDepth: string | null;
   mandatory: boolean;
+  /** Part of the mandatory Foundation backbone: every student covers it, at the depth their evidence earns. */
+  backbone: boolean;
   applicableDirections: string[];
   learningOutcomes: string[];
   prerequisiteSkillKeys: string[];
@@ -3795,6 +3799,7 @@ export interface StageTopicInput {
   prerequisiteSkillKeys?: string[];
   defaultDepth?: string;
   mandatory?: boolean;
+  backbone?: boolean;
   applicableDirections?: string[];
   learningOutcomes?: string[];
   order?: number;

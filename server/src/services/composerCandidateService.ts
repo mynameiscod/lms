@@ -31,6 +31,7 @@ import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
 import LearningContentLibrary from '../models/LearningContentLibrary';
 import Quiz from '../models/Quiz';
 import Assignment from '../models/Assignment';
+import LearningCurriculum from '../models/LearningCurriculum';
 import mongoose from 'mongoose';
 import { evaluateReadiness, UnitReadiness } from '../data/unitReadinessPolicy';
 import { ComposableUnit } from './curriculumComposerService';
@@ -79,7 +80,7 @@ export async function loadCandidates(
   const tenantOid = mongoose.Types.ObjectId.isValid(tenantId)
     ? new mongoose.Types.ObjectId(tenantId) : null;
 
-  const [units, published, quizzes, assignments] = await Promise.all([
+  const [units, published, quizzes, assignments, stageCurriculum] = await Promise.all([
     CurriculumLearningUnit.find({ tenantId, stageKey }).lean() as any,
     LearningContentLibrary.find({ tenantId, isPublished: true })
       .select('type topicCode skillKeys unitCode').lean() as any,
@@ -89,7 +90,12 @@ export async function loadCandidates(
       ? Assignment.find({ tenant: tenantOid, unitCode: { $exists: true, $ne: '' } })
         .select('unitCode').lean() as any
       : Promise.resolve([] as any),
+    // The stage curriculum's topics carry the backbone classification an admin sets; units inherit it by topic.
+    LearningCurriculum.findOne({ tenantId, adaptiveStage: stageKey, personalizedFor: null })
+      .select('topics.topicCode topics.backbone').lean() as any,
   ]);
+  const backboneTopics = new Set<string>(((stageCurriculum?.topics || []) as any[])
+    .filter(t => t.backbone === true && t.topicCode).map(t => String(t.topicCode)));
 
   const byUnitCode = new Map<string, any[]>();
   const byTopicCode = new Map<string, any[]>();
@@ -164,6 +170,7 @@ export async function loadCandidates(
       unitType: unit.unitType,
       defaultDepth: String(unit.defaultDepth || 'STANDARD'),
       mandatory: unit.mandatory !== false,
+      backbone: backboneTopics.has(String(unit.topicCode || '')),
       estimatedMinutes: Number(unit.estimatedMinutes) || 0,
       // Absent on every unit today; derived from unitType when missing.
       ...(unit.suitableStates?.length ? { suitableStates: unit.suitableStates } : {}),

@@ -245,3 +245,27 @@ describe('the frozen vocabularies these screens author against', () => {
     expect(DIRECTION_KEYS).not.toContain('SOFTWARE_DEVELOPMENT');
   });
 });
+
+describe('the Foundation backbone classification on a topic', () => {
+  it('an admin can mark a mandatory, direction-independent topic as backbone, and unmark it', async () => {
+    await updateTopic(TENANT, STAGE, 't4', { backbone: true });
+    expect(stored.topics.find((t: any) => t._id === 't4').backbone).toBe(true);
+    await updateTopic(TENANT, STAGE, 't4', { backbone: false });
+    expect(stored.topics.find((t: any) => t._id === 't4').backbone).toBe(false);
+  });
+
+  it('refuses backbone on a topic that is not mandatory, or that a direction scopes', async () => {
+    await expect(updateTopic(TENANT, STAGE, 't4', { backbone: true, mandatory: false })).rejects.toThrow(/mandatory/);
+    stored = curriculumDoc();
+    await expect(updateTopic(TENANT, STAGE, 't4', { backbone: true, applicableDirections: ['WEB_DEVELOPMENT'] }))
+      .rejects.toThrow(/directions/);
+  });
+
+  it('refuses making a backbone topic optional, and creating a direction-scoped backbone topic', async () => {
+    await updateTopic(TENANT, STAGE, 't4', { backbone: true });
+    await expect(updateTopic(TENANT, STAGE, 't4', { mandatory: false })).rejects.toThrow(/mandatory/);
+    stored = curriculumDoc();
+    await expect(createTopic(TENANT, STAGE, { title: 'Web backbone', moduleCode: 'M03_PROG', backbone: true, applicableDirections: ['WEB_DEVELOPMENT'] }))
+      .rejects.toThrow(/directions/);
+  });
+});

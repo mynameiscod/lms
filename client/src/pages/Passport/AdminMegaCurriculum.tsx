@@ -573,7 +573,10 @@ const AdminMegaCurriculum: React.FC = () => {
                 <button className="mgc-topichead" onClick={() => setOpen(isOpen ? '' : row.topicCode)}>
                   <span className="mgc-tname">
                     <b>{row.topicTitle}</b>
-                    <small>{row.topicCode}{row.topicSkillKeys.length > 0 && <> · {row.topicSkillKeys.join(', ')}</>}</small>
+                    <small>
+                      {row.topicCode}{row.topicSkillKeys.length > 0 && <> · {row.topicSkillKeys.join(', ')}</>}
+                      {row.topicBackbone && <> · <span title="Every student covers this topic; its units decide how deeply. Set on the Stage Curriculum.">Foundation backbone</span></>}
+                    </small>
                   </span>
                   <span className={`mgc-count ${row.units.length ? '' : 'empty'}`}>
                     {row.units.length

@@ -55,6 +55,12 @@ export interface ICurriculumTopic {
    */
   mandatory?: boolean;
 
+  /**
+   * Part of the mandatory Foundation backbone: every learner of the stage is given meaningful coverage of this topic,
+   * at the depth their evidence earns. Only a mandatory, direction-independent topic may be. Absent means not.
+   */
+  backbone?: boolean;
+
   /** Directions this topic serves. Empty means everyone — see careerDirectionPolicy. */
   applicableDirections?: string[];
 
@@ -164,6 +170,7 @@ const CurriculumTopicSchema = new Schema<ICurriculumTopic>(
     prerequisiteSkillKeys: { type: [String], default: undefined },
     defaultDepth:          { type: String, enum: ['FOUNDATION', 'GUIDED', 'STANDARD', 'REVISION', 'CHALLENGE'] },
     mandatory:             { type: Boolean },
+    backbone:              { type: Boolean },
     applicableDirections:  { type: [String], default: undefined },
     learningOutcomes:      { type: [String], default: undefined },
   },

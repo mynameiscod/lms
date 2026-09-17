@@ -54,6 +54,8 @@ export interface TopicNode {
   endDay: number;
   defaultDepth: string | null;
   mandatory: boolean;
+  /** Part of the mandatory Foundation backbone: every learner covers it, at the depth their evidence earns. */
+  backbone: boolean;
   applicableDirections: string[];
   learningOutcomes: string[];
   prerequisiteSkillKeys: string[];
@@ -276,6 +278,7 @@ export async function getStageCurriculum(tenantId: string, stage: string): Promi
       endDay: t.endDay ?? 0,
       defaultDepth: t.defaultDepth || null,
       mandatory: t.mandatory !== false,
+      backbone: t.backbone === true,
       applicableDirections: t.applicableDirections || [],
       learningOutcomes: t.learningOutcomes || [],
       prerequisiteSkillKeys: t.prerequisiteSkillKeys || [],

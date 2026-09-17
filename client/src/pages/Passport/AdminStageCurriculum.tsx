@@ -107,6 +107,7 @@ const AdminStageCurriculum: React.FC = () => {
       prerequisiteSkillKeys: t.prerequisiteSkillKeys,
       defaultDepth: t.defaultDepth || 'FOUNDATION',
       mandatory: t.mandatory,
+      backbone: t.backbone,
       learningOutcomes: t.learningOutcomes,
     });
   };
@@ -239,6 +240,7 @@ const AdminStageCurriculum: React.FC = () => {
                       <code>{tp.topicCode}</code>
                       <span className="asc-days">days {tp.startDay}–{tp.endDay}</span>
                       {!tp.mandatory && <i className="asc-tag">optional</i>}
+                      {tp.backbone && <i className="asc-tag" title="Every student covers this topic; how deeply depends on their Skill DNA.">Foundation backbone</i>}
                       {tp.defaultDepth && <i className="asc-tag">{tp.defaultDepth.toLowerCase()}</i>}
                     </div>
                     <div>
@@ -310,6 +312,12 @@ const AdminStageCurriculum: React.FC = () => {
                         <input type="checkbox" checked={draft.mandatory !== false}
                           onChange={e => setDraft({ ...draft, mandatory: e.target.checked })} />
                         Mandatory — never removed when a student picks a direction
+                      </label>
+                      <label className="asc-check">
+                        <input type="checkbox" checked={draft.backbone === true}
+                          onChange={e => setDraft({ ...draft, backbone: e.target.checked })} />
+                        Foundation backbone — every student covers this topic; a beginner is taught it in full, a
+                        student who has shown it gets a compact practical treatment instead
                       </label>
                       <div className="asc-edit-actions">
                         <button className="pm-btn primary" disabled={busy}

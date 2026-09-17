@@ -113,6 +113,8 @@ export async function createFoundationCurriculum(opts: {
         prerequisiteSkillKeys: t.prerequisiteSkillKeys || [],
         defaultDepth: t.defaultDepth,
         mandatory,
+        // The seeded backbone classification. Re-provisioning writes it back, as it writes every field of the topic.
+        backbone: !!t.backbone,
         applicableDirections: t.applicableDirections,
         learningOutcomes: t.learningOutcomes,
       });

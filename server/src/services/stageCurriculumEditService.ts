@@ -122,7 +122,12 @@ function validateDirections(keys: string[] | undefined): string[] | undefined {
 function requireValidBackbone(topic: any) {
   if (topic?.backbone !== true) return;
   const problems = backboneClassificationProblems(topic);
-  if (problems.length) throw new Error(problems.join(' '));
+  if (problems.length) {
+    // An author error: typed 400 so the reason reaches the screen verbatim, not as a failed save.
+    const refusal: any = new Error(problems.join(' '));
+    refusal.status = 400;
+    throw refusal;
+  }
 }
 
 /* ── modules ─────────────────────────────────────────────────────────────── */

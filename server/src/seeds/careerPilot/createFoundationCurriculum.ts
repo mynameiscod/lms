@@ -140,6 +140,13 @@ export async function createFoundationCurriculum(opts: {
   }
 
   if (existing) {
+    /**
+     * Each topic keeps the id it already has. Rewriting the array minted new subdocument ids on
+     * every run, so a re-run was never a no-op and any open Admin screen, which edits a topic by
+     * its id, would have been pointing at a topic that no longer existed.
+     */
+    const idByCode = new Map((existing.topics || []).map((t: any) => [String(t.topicCode), t._id]));
+    for (const t of topics) if (idByCode.has(t.topicCode)) t._id = idByCode.get(t.topicCode);
     existing.set({ topics, modules, totalDays: report.totalDays, isPublished: true, adaptiveStage: 'foundation' });
     await existing.save();
     report.updated = true;

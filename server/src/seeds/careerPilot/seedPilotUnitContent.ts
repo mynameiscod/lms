@@ -55,6 +55,9 @@ const upper = (s: string) => String(s || '').trim().toUpperCase();
 const stableId = (key: string): mongoose.Types.ObjectId =>
   new mongoose.Types.ObjectId(crypto.createHash('md5').update(key).digest('hex').slice(0, 24));
 
+/** Checkpoints do not close on a date: the learner's day gates them. */
+const CHECKPOINT_OPEN_UNTIL = new Date('2099-12-31T00:00:00.000Z');
+
 /** Minutes a reader needs, from the text itself rather than from a guess. */
 const readingMinutes = (text: string): number =>
   Math.max(5, Math.round(text.split(/\s+/).length / 180) * 5 || 5);
@@ -170,7 +173,9 @@ const readingMinutes = (text: string): number =>
     if (bundle.mcqs?.length) {
       await upsert(unit, 'practice_theory', `${unit.title} — practice`, {
         estimatedDuration: bundle.mcqs.length * 3,
-        practiceQuestions: bundle.mcqs.map(q => ({
+        practiceQuestions: bundle.mcqs.map((q, i) => ({
+          // A stable id, so a re-run rewrites the same question rather than minting a new one.
+          _id: stableId(`${tenantId}:${unit.unitCode}:practice_theory:${i}`),
           type: 'mcq',
           title: q.question,
           description: q.question,
@@ -187,7 +192,8 @@ const readingMinutes = (text: string): number =>
     if (bundle.coding?.length) {
       await upsert(unit, 'practice_coding', `${unit.title} — coding practice`, {
         estimatedDuration: bundle.coding.length * 20,
-        practiceQuestions: bundle.coding.map(c => ({
+        practiceQuestions: bundle.coding.map((c, i) => ({
+          _id: stableId(`${tenantId}:${unit.unitCode}:practice_coding:${i}`),
           type: 'coding',
           title: c.title,
           description: c.description,
@@ -227,8 +233,6 @@ const readingMinutes = (text: string): number =>
     if (bundle.checkpoint?.length) {
       quizzes++;
       if (apply) {
-        const now = new Date();
-        const endDate = new Date(now.getTime() + 365 * 86400000);
         const questionIds: string[] = [];
 
         for (const [i, q] of bundle.checkpoint.entries()) {
@@ -338,12 +342,18 @@ const readingMinutes = (text: string): number =>
               // `totalTime`, in minutes. The field is not called `duration`; an earlier version
               // wrote that name and it was dropped in the same silence as the questions.
               totalTime: Math.max(5, questionIds.length * 2),
-              startDate: now,
-              endDate,
+              /**
+               * A curriculum checkpoint is gated by the learner's DAY, never by the calendar. The
+               * window used to be "now until a year from now", restamped on every run — so a
+               * re-run was never a no-op, and a tenant provisioned once would find every
+               * checkpoint closed a year later, in the middle of a learner's ninety days. It is
+               * open from the first provisioning and does not expire.
+               */
+              endDate: CHECKPOINT_OPEN_UNTIL,
               startTime: '00:00',
               endTime: '23:59',
             },
-            $setOnInsert: { tenantId, createdBy: CREATED_BY },
+            $setOnInsert: { tenantId, createdBy: CREATED_BY, startDate: new Date() },
           },
           { upsert: true },
         );

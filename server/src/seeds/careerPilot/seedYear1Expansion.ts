@@ -26,6 +26,7 @@
  * six new entries appended to the curriculum's topics array.
  */
 
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import CurriculumLearningUnit from '../../models/CurriculumLearningUnit';
@@ -334,6 +335,12 @@ async function validate(tenantId: string): Promise<Problem[]> {
     order += 1;
     day += 1;
     curriculum.topics.push({
+      /**
+       * A stable id. The Foundation curriculum step rewrites the topic list from its own modules, so
+       * these six are re-appended on every provisioning run; a fresh id each time made a re-run a
+       * change, and left any open Admin screen editing a topic id that no longer existed.
+       */
+      _id: new mongoose.Types.ObjectId(crypto.createHash('md5').update(`${tenantId}:stage-topic:${t.topicCode}`).digest('hex').slice(0, 24)),
       title: t.title,
       description: t.description,
       order,

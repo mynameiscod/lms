@@ -92,7 +92,8 @@ describe('answers needed to move a state', () => {
       expect(firstReached(answerLadder(prior, true, 80, 'MEDIUM', model)).states).toMatchObject({ GUIDED: 5, STANDARD: 11, REVISION: 22, VERIFIED: 41 });
     }
     expect(primaryQuestions('PROGRAMMING_FUNDAMENTALS')).toBe(9);
-    expect(primaryQuestions('SQL_BASICS')).toBe(4);
+    // 4 until the unmapped-question audit attributed twelve SQL checkpoint questions to the skill their unit declares.
+    expect(primaryQuestions('SQL_BASICS')).toBe(16);
   });
 });
 
@@ -129,9 +130,11 @@ describe('what realistic learners experience', () => {
         .toEqual({ skill, answers: 6, score: 100, confidence: 'MEDIUM', raw: 'VERIFIED', effective: 'STANDARD', capped: true, before: false, after: true });
       expect(c.codingAssignmentDayAfter!).toBeGreaterThan(c.day!);
     }
-    // Arrays has too few mapped checkpoint questions before its assignment to reach MEDIUM: never at risk in the journey.
+    // Arrays reaches MEDIUM from checkpoints once its questions are mapped: capped the same way, and its assignment stays.
     const arrays = criticalCase('DSA_ARRAYS', 'T_ARRAYS_TRAVERSAL_PRACTICE');
-    expect({ day: arrays.day, before: arrays.codingAssignmentBefore, after: arrays.codingAssignmentAfter }).toEqual({ day: null, before: true, after: true });
+    expect({ answers: arrays.answers, raw: arrays.rawState, effective: arrays.effectiveState, capped: arrays.capped, after: arrays.codingAssignmentAfter })
+      .toEqual({ answers: 6, raw: 'VERIFIED', effective: 'STANDARD', capped: true, after: true });
+    expect(arrays.codingAssignmentDayAfter!).toBeGreaterThan(arrays.day!);
     expect(arrays.sixAnswersFromScratch).toEqual({ rawState: 'VERIFIED', effectiveState: 'STANDARD', before: false, after: true });
   });
 

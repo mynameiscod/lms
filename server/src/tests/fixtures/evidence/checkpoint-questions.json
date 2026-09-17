@@ -1046,14 +1046,14 @@
    "questions": [
     {
      "id": "d81f8966dcdce7aae50d4187",
-     "skillKey": null,
+     "skillKey": "DSA_ARRAYS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "65ba02b6ec791c1258d2d6f8",
-     "skillKey": null,
+     "skillKey": "DSA_ARRAYS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -1073,7 +1073,7 @@
     },
     {
      "id": "468bce7203cdb8912bfae425",
-     "skillKey": null,
+     "skillKey": "DSA_ARRAYS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -1106,14 +1106,14 @@
    "questions": [
     {
      "id": "312bb0b5888f3cc6affe6575",
-     "skillKey": null,
+     "skillKey": "DSA_STRINGS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "1c6859a8d82fcecbc1129b6c",
-     "skillKey": null,
+     "skillKey": "DSA_STRINGS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -1153,14 +1153,14 @@
    "questions": [
     {
      "id": "7dd7e54ee9ddcfcac3be49bf",
-     "skillKey": null,
+     "skillKey": "DSA_STRINGS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "aa39b2730d6e3e3545a9b8d7",
-     "skillKey": null,
+     "skillKey": "DSA_STRINGS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -1173,14 +1173,14 @@
    "questions": [
     {
      "id": "e24fa5aa83efa4630dc15cce",
-     "skillKey": null,
+     "skillKey": "DSA_ARRAYS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "0e6631f776398e606997469e",
-     "skillKey": null,
+     "skillKey": "DSA_ARRAYS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -1220,7 +1220,7 @@
    "questions": [
     {
      "id": "c8cfdaa836c8355af70e32ca",
-     "skillKey": null,
+     "skillKey": "DSA_ARRAYS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -1240,14 +1240,14 @@
    "questions": [
     {
      "id": "570e7a6a0eef2e12ebf005b1",
-     "skillKey": null,
+     "skillKey": "DSA_ARRAYS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "b2886e4e51bbc438ba8f9757",
-     "skillKey": null,
+     "skillKey": "DSA_ARRAYS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -1300,14 +1300,14 @@
    "questions": [
     {
      "id": "fe56d7ef55da4803f33bdcf9",
-     "skillKey": null,
+     "skillKey": "PROPOSITIONAL_LOGIC",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "f0af1a208a059199d623dbdc",
-     "skillKey": null,
+     "skillKey": "PROPOSITIONAL_LOGIC",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -3294,7 +3294,7 @@
    "questions": [
     {
      "id": "1c086398968e384ba49212ba",
-     "skillKey": null,
+     "skillKey": "GIT_FUNDAMENTALS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -3307,7 +3307,7 @@
    "questions": [
     {
      "id": "e33595f34307c5043415b93b",
-     "skillKey": null,
+     "skillKey": "GIT_BRANCHING",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -3347,7 +3347,7 @@
    "questions": [
     {
      "id": "d06c5096866cb982d5d1b1f1",
-     "skillKey": null,
+     "skillKey": "GIT_BRANCHING",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -3400,7 +3400,7 @@
    "questions": [
     {
      "id": "51f0b9461256d83b64082f50",
-     "skillKey": null,
+     "skillKey": "GIT_FUNDAMENTALS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -3413,7 +3413,7 @@
    "questions": [
     {
      "id": "a613e1f429026d49f1a9a28a",
-     "skillKey": null,
+     "skillKey": "GIT_FUNDAMENTALS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -3426,7 +3426,7 @@
    "questions": [
     {
      "id": "c7369042f5bd6f749553cbef",
-     "skillKey": null,
+     "skillKey": "GIT_FUNDAMENTALS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -3439,7 +3439,7 @@
    "questions": [
     {
      "id": "d2c0cceea65fb4b85a9c54b3",
-     "skillKey": null,
+     "skillKey": "GIT_FUNDAMENTALS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -3452,21 +3452,21 @@
    "questions": [
     {
      "id": "e012b1ae086fd87bd7f0474c",
-     "skillKey": null,
+     "skillKey": "GIT_FUNDAMENTALS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "e902806c9db838529f5a969b",
-     "skillKey": null,
+     "skillKey": "GIT_FUNDAMENTALS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "c6745d783cc7bfd6049a2f41",
-     "skillKey": null,
+     "skillKey": "GIT_FUNDAMENTALS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -4102,14 +4102,14 @@
    "questions": [
     {
      "id": "86975ec2d9e816a70b73d9d2",
-     "skillKey": null,
+     "skillKey": "JS_DOM",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "3f37db644921cfcaba677204",
-     "skillKey": null,
+     "skillKey": "JS_DOM",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -4142,14 +4142,14 @@
    "questions": [
     {
      "id": "4f6f73d05547e81ff476d590",
-     "skillKey": null,
+     "skillKey": "JS_DOM",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "941e4f23ab04255b046f2d5e",
-     "skillKey": null,
+     "skillKey": "JS_DOM",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -4162,7 +4162,7 @@
    "questions": [
     {
      "id": "1548caa4fc0cdb13aaafa389",
-     "skillKey": null,
+     "skillKey": "JS_DOM",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -4182,7 +4182,7 @@
    "questions": [
     {
      "id": "f1a6b7aa9ac613891da5cefa",
-     "skillKey": null,
+     "skillKey": "JS_DOM",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -4209,7 +4209,7 @@
     },
     {
      "id": "d96c940772edf2c5054cc4cd",
-     "skillKey": null,
+     "skillKey": "JS_DOM",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -4222,14 +4222,14 @@
    "questions": [
     {
      "id": "3290703dc72ba1341ddd2d34",
-     "skillKey": null,
+     "skillKey": "JS_DOM",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "3037d04fd80a0b97c294bf4f",
-     "skillKey": null,
+     "skillKey": "JS_DOM",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -6602,14 +6602,14 @@
    "questions": [
     {
      "id": "4f3e0ed483dacfda6548a6d4",
-     "skillKey": null,
+     "skillKey": "SQL_BASICS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "b8605583c7785d3e8fbe923c",
-     "skillKey": null,
+     "skillKey": "SQL_BASICS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -6642,14 +6642,14 @@
    "questions": [
     {
      "id": "c1afde46e7142281552ff788",
-     "skillKey": null,
+     "skillKey": "SQL_BASICS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "a8ccc4cd3e236e10935e1544",
-     "skillKey": null,
+     "skillKey": "SQL_BASICS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -6669,7 +6669,7 @@
     },
     {
      "id": "66a601fc62899f2fbe3b2e57",
-     "skillKey": null,
+     "skillKey": "SQL_BASICS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -6729,14 +6729,14 @@
    "questions": [
     {
      "id": "74aae5c8d3bbbf05643bfd4f",
-     "skillKey": null,
+     "skillKey": "DB_FUNDAMENTALS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "ecf5c6471650a0bacbbdc600",
-     "skillKey": null,
+     "skillKey": "DB_FUNDAMENTALS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -6749,14 +6749,14 @@
    "questions": [
     {
      "id": "9a136298683d07eb90d2fe60",
-     "skillKey": null,
+     "skillKey": "SQL_BASICS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "316756ec86e777503b2e241f",
-     "skillKey": null,
+     "skillKey": "SQL_BASICS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -6769,7 +6769,7 @@
    "questions": [
     {
      "id": "0c8185d1e6fc825eceea6d82",
-     "skillKey": null,
+     "skillKey": "SQL_BASICS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -6816,14 +6816,14 @@
    "questions": [
     {
      "id": "201e6889a0286258d0428250",
-     "skillKey": null,
+     "skillKey": "SQL_BASICS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "e0661af22ef298a7ac3cb8d0",
-     "skillKey": null,
+     "skillKey": "SQL_BASICS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -6836,7 +6836,7 @@
    "questions": [
     {
      "id": "42cb891a274c2a5f720e86a3",
-     "skillKey": null,
+     "skillKey": "DB_FUNDAMENTALS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -6856,14 +6856,14 @@
    "questions": [
     {
      "id": "3d81cac562c1ad7d879a2f34",
-     "skillKey": null,
+     "skillKey": "SQL_BASICS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "50464022ef46c11738dae328",
-     "skillKey": null,
+     "skillKey": "SQL_BASICS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
@@ -6876,14 +6876,14 @@
    "questions": [
     {
      "id": "01f6b5de58b4473ed113a81d",
-     "skillKey": null,
+     "skillKey": "DB_FUNDAMENTALS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4
     },
     {
      "id": "c739e10305458e3f68dfd68b",
-     "skillKey": null,
+     "skillKey": "DB_FUNDAMENTALS",
      "difficulty": "MEDIUM",
      "marks": 1,
      "optionCount": 4

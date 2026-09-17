@@ -246,6 +246,44 @@ export const REAL_SKILL_CHECK_PROFILES: { key: string; note: string; build: () =
   },
 ];
 
+/**
+ * Is the recomposed journey still one coherent course along its structural requirements?
+ *
+ * Judged against the composer's own report of where each requirement stood once the frozen days were accounted
+ * for: one still needing coverage must reach its boundary in the future, and the requirements the learner is
+ * actually walking — covered in history or still ahead — must meet their boundaries in their authored order. One
+ * the evidence has resolved is not required; if it is scheduled anyway it is not held to the order.
+ */
+export function recompositionContinuityIssues(
+  fresh: Pick<ComposerResult, 'structure'>, stitched: string[], freezeDay: number,
+): Issue[] {
+  const issues: Issue[] = [];
+  const at = new Map(stitched.map((c, i) => [c, i]));
+  const walked: { topicCode: string; day: number; rank: number }[] = [];
+  for (const req of fresh.structure || []) {
+    if (req.coverage === 'RESOLVED_BY_EVIDENCE' || !req.boundary) continue;
+    const i = at.get(req.boundary);
+    if (i === undefined) {
+      issues.push({ code: 'STRUCTURE_CUT', detail: `${req.topicCode} still needed ${req.boundary} and the future never reaches it` });
+      continue;
+    }
+    if (req.coverage === 'REQUIRES_FUTURE_COVERAGE' && i < freezeDay) {
+      issues.push({ code: 'STRUCTURE_REPORT', detail: `${req.topicCode} reported uncovered but ${req.boundary} is frozen on day ${i + 1}` });
+    }
+    // Out of authored order only counts when measurement did not rank the later requirement strictly ahead: a weak
+    // measured area opening first is the composer's rule, a scrambled continuation is not.
+    // History is judged by the evidence it was scheduled on: only a boundary the future reaches is held to the order.
+    for (const earlier of walked) {
+      if (i >= freezeDay && i <= earlier.day && (req.sequencingRank ?? 1) >= earlier.rank) {
+        issues.push({ code: 'STRUCTURE_ORDER', detail: `${req.topicCode} reaches practice on day ${i + 1}, not after ${earlier.topicCode} on day ${earlier.day + 1}` });
+        break;
+      }
+    }
+    walked.push({ topicCode: req.topicCode, day: i, rank: req.sequencingRank ?? 1 });
+  }
+  return issues;
+}
+
 /** The programming spine, in its authored order: every topic's first practice must be in the plan, in this order. */
 export const PROGRAMMING_SPINE_TOPICS = ['T_VARIABLES', 'T_CONDITIONS', 'T_LOOPS', 'T_FUNCTIONS', 'T_ARRAYS'];
 
@@ -699,8 +737,29 @@ export function coreModuleUse(result: ComposerResult, universe: ComposableUnit[]
  * Future recomposition
  * ------------------------------------------------------------------ */
 
-export type EvolutionKind = 'IMPROVEMENT' | 'STRUGGLE' | 'NEWLY_VERIFIED' | 'DIRECTION_REFINEMENT';
+export type EvolutionKind = 'IMPROVEMENT' | 'STRUGGLE' | 'NEWLY_VERIFIED' | 'DIRECTION_REFINEMENT'
+  | 'NONE' | 'WEAK' | 'STANDARD' | 'REVISION' | 'VERIFIED' | 'MIXED';
 export const EVOLUTIONS: EvolutionKind[] = ['IMPROVEMENT', 'STRUGGLE', 'NEWLY_VERIFIED', 'DIRECTION_REFINEMENT'];
+
+/**
+ * THE STRUCTURAL CONTINUITY MATRIX. Every evidence change a reassessment can bring — none, weak, STANDARD, REVISION,
+ * VERIFIED on what the frozen days engaged, a direction refinement alone, and a mixture — at freeze points across the
+ * whole ninety days, for the learners whose programming spine is still being walked.
+ */
+export const CONTINUITY_EVOLUTIONS: EvolutionKind[] = ['NONE', 'WEAK', 'STANDARD', 'REVISION', 'VERIFIED', 'DIRECTION_REFINEMENT', 'MIXED'];
+export const CONTINUITY_FREEZE_DAYS = [1, 14, 30, 45, 60, 75];
+export type ReassessmentChain = 'IMPROVING_DAILY' | 'STRUGGLING_DAILY' | 'REPEATED_MIXED';
+export const CONTINUITY_CHAINS: ReassessmentChain[] = ['IMPROVING_DAILY', 'STRUGGLING_DAILY', 'REPEATED_MIXED'];
+
+/** The learners the continuity gate follows: the real Skill Check pair, the no-evidence beginner, and mixed. */
+export function continuityLearners(allSkills: string[], universalSkills: string[]): { key: string; student: StudentProfile }[] {
+  const realistic = (key: string) => REALISTIC_PROFILES.find(p => p.key === key)!.build(allSkills, universalSkills);
+  return [
+    ...REAL_SKILL_CHECK_PROFILES.map(p => ({ key: p.key, student: p.build() })),
+    { key: 'beginner', student: realistic('beginner') },
+    { key: 'mixed', student: realistic('mixed') },
+  ];
+}
 
 /** A narrower or adjacent direction, the kind of change a student actually makes after a month. */
 const REFINED_DIRECTION: Record<string, string> = {
@@ -732,6 +791,23 @@ export function evolveProfile(base: StudentProfile, kind: EvolutionKind, frozen:
       if (top) skills.set(top[0], belief(92));
       return { ...base, skills };
     }
+    case 'NONE':
+      return base;
+    case 'WEAK':
+      for (const k of keys) skills.set(k, { score: 46, confidence: 'MEDIUM' });
+      return { ...base, skills };
+    case 'STANDARD':
+      for (const k of keys) skills.set(k, belief(70));
+      return { ...base, skills };
+    case 'REVISION':
+      for (const k of keys) skills.set(k, belief(80));
+      return { ...base, skills };
+    case 'VERIFIED':
+      for (const k of keys) skills.set(k, belief(92));
+      return { ...base, skills };
+    case 'MIXED':
+      keys.forEach((k, i) => skills.set(k, i % 2 ? { score: 30, confidence: 'MEDIUM' } : belief(80)));
+      return { ...base, skills };
     case 'DIRECTION_REFINEMENT':
       if (!base.primaryDirection) {
         return {
@@ -787,7 +863,8 @@ export function simulateRecomposition(args: {
 
   const frozenSel = original.units.slice(0, freezeDay);
   const next = evolveProfile(base, kind, frozenSel.map(s => byCode.get(s.unitCode)!).filter(Boolean));
-  const fresh = compose(pool, next);
+  // The frozen days are the composition's history, exactly as recomposeFutureDays passes them.
+  const fresh = composeUnits({ candidates: pool, targetUnits: PROGRAM_DAYS, student: next, history: frozenSel.map(s => s.unitCode) });
 
   const frozenCodes = new Set(frozenSel.map(s => s.unitCode));
   const available = fresh.units.filter(u => !frozenCodes.has(u.unitCode));
@@ -821,6 +898,8 @@ export function simulateRecomposition(args: {
     if (i >= freezeDay && !isRelevant(u, next)) add('OUTSIDE_DIRECTION', `${c} on day ${i + 1}`);
   });
 
+  for (const issue of recompositionContinuityIssues(fresh, stitched, freezeDay)) add(issue.code, issue.detail);
+
   const originalCodes = original.units.map(u => u.unitCode);
   return {
     ok: issues.length === 0,
@@ -834,6 +913,52 @@ export function simulateRecomposition(args: {
     freshCodes: fresh.units.map(u => u.unitCode),
     stitched,
   };
+}
+
+/**
+ * A reassessment after reassessment, each one a recomposition of the journey the last one left.
+ *
+ * IMPROVING_DAILY and STRUGGLING_DAILY recompose after every day with STANDARD or struggling evidence on what that day
+ * engaged — the day-by-day stress that used to scramble the spine into 65/88/90/53/35. REPEATED_MIXED reassesses at
+ * days 14, 30, 45, 60 and 75 with mixed evidence. Every step is audited as a stitched journey, and the frozen days of
+ * each step must be exactly the days the step before left.
+ */
+export function simulateReassessmentChain(args: {
+  pool: ComposableUnit[]; universe: ComposableUnit[]; base: StudentProfile; chain: ReassessmentChain;
+}): { ok: boolean; issues: Issue[]; stitched: string[]; steps: number } {
+  const { pool, universe, base, chain } = args;
+  const byCode = new Map(universe.map(u => [u.unitCode, u]));
+  const issues: Issue[] = [];
+  let stitched = compose(pool, base).units.map(u => u.unitCode);
+  let student = base;
+  const freezes = chain === 'REPEATED_MIXED' ? [14, 30, 45, 60, 75] : Array.from({ length: 88 }, (_, i) => i + 1);
+  for (const freezeDay of freezes) {
+    const kind: EvolutionKind = chain === 'IMPROVING_DAILY' ? 'STANDARD' : chain === 'STRUGGLING_DAILY' ? 'STRUGGLE' : 'MIXED';
+    const engaged = (chain === 'REPEATED_MIXED' ? stitched.slice(0, freezeDay) : stitched.slice(freezeDay - 1, freezeDay))
+      .map(c => byCode.get(c)!).filter(Boolean);
+    student = evolveProfile(student, kind, engaged);
+    const frozen = stitched.slice(0, freezeDay);
+    const fresh = composeUnits({ candidates: pool, targetUnits: PROGRAM_DAYS, student, history: frozen });
+    const taken = new Set(frozen);
+    const next = [...frozen, ...fresh.units.map(u => u.unitCode).filter(c => !taken.has(c)).slice(0, PROGRAM_DAYS - freezeDay)];
+    const at = `${chain} day ${freezeDay}`;
+    if (next.length !== PROGRAM_DAYS) issues.push({ code: 'LENGTH', detail: `${at}: ${next.length}` });
+    if (new Set(next).size !== next.length) issues.push({ code: 'DUPLICATE', detail: at });
+    if (next.slice(0, freezeDay).join('|') !== frozen.join('|')) issues.push({ code: 'FROZEN_CHANGED', detail: at });
+    for (const i of recompositionContinuityIssues(fresh, next, freezeDay)) issues.push({ code: i.code, detail: `${at}: ${i.detail}` });
+    const index = new Map(next.map((c, i) => [c, i]));
+    next.forEach((c, i) => {
+      if (i < freezeDay) return;
+      const u = byCode.get(c);
+      for (const p of u?.prerequisiteUnitCodes || []) {
+        const pi = index.get(p);
+        if ((pi !== undefined && pi < i) || masteredBy(p, u!, byCode, student)) continue;
+        issues.push({ code: 'PREREQ', detail: `${at}: ${c} on day ${i + 1} needs ${p}` });
+      }
+    });
+    stitched = next;
+  }
+  return { ok: issues.length === 0, issues, stitched, steps: freezes.length };
 }
 
 /* ------------------------------------------------------------------ *

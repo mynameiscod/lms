@@ -35,7 +35,7 @@ import { foundationReadiness } from '../services/foundationReadinessService';
     console.log(`    tenant id              ${id}`);
     console.log(`    CareerPilot sign-up    ${configs.some(c => c.enabled) ? 'on' : 'off'}`);
     console.log(`    Foundation product     ${readiness.configured ? 'CONFIGURED' : `NOT CONFIGURED — ${readiness.reason}`}`);
-    console.log(`    curriculum units       ${units} (published ${readiness.publishedUnits}; certified: 359, published 348)`);
+    console.log(`    curriculum units       ${units} (published ${readiness.publishedUnits}; certified: 359, published 347)`);
     console.log(`    skill-check questions  ${bank} (skill mappings ${readiness.skillCheckMappings})`);
     console.log(`    last provisioning      ${lastRun ? `${lastRun.result} at ${new Date(lastRun.finishedAt).toISOString()}` : 'never'}`);
     console.log(`    students               ${students}  ·  Foundation journeys ${journeys}\n`);

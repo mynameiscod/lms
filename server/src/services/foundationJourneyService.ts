@@ -58,6 +58,8 @@ export interface JourneyBuildOptions {
    */
   source?: CandidateSource;
   stageKey?: string;
+  /** Units already given, in day order — the frozen days of a journey being recomposed. See ComposerInput.history. */
+  history?: string[];
 }
 
 export interface JourneyResult {
@@ -211,6 +213,7 @@ export async function composeFoundationJourney(
     candidates: set.units,
     targetUnits: FOUNDATION_PROGRAM_DAYS,
     student: profile,
+    history: opts.history,
   });
 
   return { candidates: set.units.length, composition };

@@ -134,6 +134,26 @@ export interface ComposerInput {
    * built from.
    */
   compositionPolicy?: CompositionPolicy;
+  /**
+   * What this learner has ALREADY been given, in the order they were given it: the frozen days of a journey being
+   * recomposed. Empty for a new journey.
+   *
+   * ── A RECOMPOSITION IS A CONTINUATION, NOT A NEW DAY ONE ────────────────────────────────
+   *
+   * Recomposition used to compose a fresh ninety days for the updated learner, drop what was already taught, and
+   * fill the future from what was left in the fresh plan's order. The fresh plan knew nothing of the frozen days:
+   * it spent capacity as if none had been used, reserved spine topics the learner had already practised, and put
+   * whatever a day-one plan puts late — functions, arrays — past the end of the future the stitch could fill.
+   * Structural units were cut or scrambled while every count stayed correct.
+   *
+   * So the history is replayed before anything is chosen, exactly as if the plan had taken it: its units are
+   * chosen, their teaching counts, their roles spend their budgets and count toward their floors, their topic blocks
+   * are open where they were left. What remains to compose is the real future — the capacity this learner has left,
+   * the structure they have not yet covered, for the learner the evidence now describes. History is never re-judged
+   * and never moved. A history unit that is no longer a candidate (unpublished since, say) still occupies its day
+   * and still satisfies what builds on it.
+   */
+  history?: string[];
 }
 
 /* ------------------------------------------------------------------ *
@@ -265,6 +285,35 @@ export interface ComposerResult {
    * whether it got there, and each time it had to stop short and why. A sequencing record only.
    */
   topicBlocks?: TopicBlockReport[];
+  /**
+   * The course's structural requirements as they stood once history was accounted for, before the future was chosen.
+   * Today the programming spine; each topic's requirement is reaching its first practical boundary.
+   */
+  structure?: StructuralRequirementReport[];
+}
+
+/**
+ * Where one structural requirement stands for this learner at the start of the future.
+ *
+ * COVERED_BY_FROZEN_PLAN: the learner was already given its boundary. RESOLVED_BY_EVIDENCE: under the composer's
+ * current evidence semantics nothing on the path to it still needs scheduling for this learner — a statement about
+ * TODAY's treatment, not a promise that the requirement never appears again. REQUIRES_FUTURE_COVERAGE: the future
+ * must reach it.
+ */
+export type StructuralCoverage = 'COVERED_BY_FROZEN_PLAN' | 'RESOLVED_BY_EVIDENCE' | 'REQUIRES_FUTURE_COVERAGE';
+
+export interface StructuralRequirementReport {
+  strand: CourseStrand;
+  topicCode: string;
+  /** The practical unit that meets the requirement, or null when the topic has none this learner could be given. */
+  boundary: string | null;
+  coverage: StructuralCoverage;
+  /**
+   * How measurement ranks the requirement for sequencing: the state-order index the composer opens it by (a partial
+   * GUIDED or STANDARD reading on an unresolved requirement counts as untouched, as it does when topics are opened).
+   * A later requirement may reach its boundary before an earlier one only when this ranks it strictly ahead.
+   */
+  sequencingRank: number;
 }
 
 /**
@@ -454,7 +503,13 @@ const compareArrays = (a: number[], b: number[]): number => {
  * ------------------------------------------------------------------ */
 
 export function composeUnits(input: ComposerInput): ComposerResult {
-  const { candidates, targetUnits, student } = input;
+  const { candidates, student } = input;
+  const candidateCodes = new Set(candidates.map(u => u.unitCode));
+  const history = [...new Set((input.history || []).map(c => String(c).toUpperCase()))];
+  const historySet = new Set(history);
+  /** History the pool no longer holds: it keeps its day and satisfies what builds on it, but is not composed. */
+  const outsideHistory = history.filter(c => !candidateCodes.has(c));
+  const targetUnits = input.targetUnits - outsideHistory.length;
 
   /* ---- 1. relevance ------------------------------------------------ */
 
@@ -493,7 +548,8 @@ export function composeUnits(input: ComposerInput): ComposerResult {
 
   for (const unit of candidates) {
     const scoped = (unit.applicableDirections || []).length > 0;
-    if (!scoped || unit.mandatory) { relevant.push(unit); continue; }
+    // What the learner has already been given is part of their curriculum, whatever their direction says now.
+    if (!scoped || unit.mandatory || historySet.has(unit.unitCode)) { relevant.push(unit); continue; }
 
     const serves = appliesToDirection(unit.applicableDirections, student.primaryDirection)
       || unit.applicableDirections.some(d => exploring.has(String(d).toUpperCase()))
@@ -667,7 +723,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    * low-priority prerequisite drag its whole chain into a plan that did not want it.
    */
   const selected: ComposableUnit[] = [];
-  const chosen = new Set<string>();
+  const chosen = new Set<string>(outsideHistory);
   const asPrerequisite = new Set<string>();
   const prerequisites: PrerequisiteOutcome[] = [];
 
@@ -929,7 +985,10 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   /** Running count per role, so phase 4a can see which floors are still unmet. */
   const roleCount = new Map<CompositionRole, number>();
 
-  const take = (u: ComposableUnit, spendBudget: boolean) => {
+  /** True while history is replayed: what was given is taken exactly as it was, never substituted. */
+  let replayingHistory = false;
+  const take = (wanted: ComposableUnit, spendBudget: boolean) => {
+    const u = replayingHistory ? wanted : structuralOrder(wanted);
     readinessAtSelection.set(u.unitCode, readinessOf(u));
     selected.push(u);
     chosen.add(u.unitCode);
@@ -1383,6 +1442,99 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     return best(true) ?? best(false);
   };
 
+  /* ---- 3c. history ---------------------------------------------------- */
+
+  /**
+   * Replay what the learner has already been given, in order, as taken. See `ComposerInput.history`. Outside
+   * history is already `chosen`; everything else is taken exactly as selection would take it, so budgets, floors,
+   * teaching and open blocks all start from where the learner really is.
+   */
+  replayingHistory = true;
+  for (const code of history) {
+    const u = byCode.get(code);
+    if (u && !chosen.has(code)) take(u, true);
+  }
+  replayingHistory = false;
+
+  /**
+   * Each structural requirement as it stands now, before the future is chosen. Read from the same reservation the
+   * composer holds capacity by, so the report and the behaviour cannot disagree.
+   */
+  spineReserve();
+  const structure: StructuralRequirementReport[] = spineSequence.map(topic => {
+    const boundary = firstBoundary(topic);
+    // Still owed teaching (the reservation holds it), or begun in history and not yet brought to its boundary.
+    const begun = !!boundary && [...closureOf(boundary.unitCode)].some(c => chosen.has(c));
+    const coverage: StructuralCoverage = boundary && chosen.has(boundary.unitCode) ? 'COVERED_BY_FROZEN_PLAN'
+      : spineNeeds.has(topic) || (begun && attainable.has(boundary!.unitCode)) ? 'REQUIRES_FUTURE_COVERAGE'
+        : 'RESOLVED_BY_EVIDENCE';
+    const measured = boundary ? STATE_ORDER[stateOf.get(boundary.unitCode)!.state] : STATE_ORDER.NOT_EXPOSED;
+    const sequencingRank = measured > STATE_ORDER.NOT_EXPOSED && measured < STATE_ORDER.LOCKED ? STATE_ORDER.NOT_EXPOSED : measured;
+    return { strand: SPINE_STRAND, topicCode: topic, boundary: boundary?.unitCode ?? null, coverage, sequencingRank };
+  });
+
+  /**
+   * THE STRUCTURE MUST FIT BEFORE THE PLAN ENDS.
+   *
+   * The reservation keeps capacity for the unresolved spine whenever there is a choice. But capacity can already be
+   * spent before the future begins — a recomposition after a direction change hands a learner a smaller instruction
+   * allocation than the one their frozen days were planned under — and a floor promise can still pull what the spine
+   * was owed. Then conditions, loops or functions simply never fit, and the stitch cuts them.
+   *
+   * So once the days left are no more than what the unresolved requirements still need, the next step towards the
+   * earliest of them is taken first, as a pull: whatever its bucket holds, on its own prerequisites and suitability.
+   * It never adds a day and never moves one that is already planned; it decides what the remaining days are spent
+   * on. Requirements evidence has resolved, or history has covered, are not owed anything.
+   */
+  /**
+   * NO LATER REQUIREMENT AHEAD OF AN EARLIER ONE IT DEPENDS ON BY SEQUENCE.
+   *
+   * Opening a topic out of sequence is already refused while anything else can serve. But a pull taken for a floor,
+   * or a step that continues a block, can still land on arrays while functions is owed and merely waiting for its
+   * budget — and the deadline then brings functions in at the very end. So a unit on a later requirement's path is
+   * exchanged for the next step towards an earlier requirement still owed, when there is one to take. Measurement
+   * still decides: a later requirement the learner's evidence ranks strictly ahead (a weak area measured
+   * FOUNDATION_REQUIRED) keeps its place, as it does when topics are opened.
+   */
+  const structuralRank = (topic: string): number => {
+    const b = firstBoundary(topic);
+    const measured = b ? STATE_ORDER[stateOf.get(b.unitCode)!.state] : STATE_ORDER.NOT_EXPOSED;
+    return measured > STATE_ORDER.NOT_EXPOSED && measured < STATE_ORDER.LOCKED ? STATE_ORDER.NOT_EXPOSED : measured;
+  };
+  const structurallyOwed = (topic: string): ComposableUnit | undefined => {
+    const b = firstBoundary(topic);
+    if (!b || chosen.has(b.unitCode) || !attainable.has(b.unitCode)) return undefined;
+    return spineNeeds.has(topic) || [...closureOf(b.unitCode)].some(c => chosen.has(c)) ? b : undefined;
+  };
+  const structuralOrder = (u: ComposableUnit): ComposableUnit => {
+    const position = spineSequence.indexOf(u.topicCode);
+    if (position <= 0) return u;
+    const own = firstBoundary(u.topicCode);
+    if (!own || chosen.has(own.unitCode) || (own.unitCode !== u.unitCode && !closureOf(own.unitCode).has(u.unitCode))) return u;
+    spineReserve();
+    for (const earlier of spineSequence.slice(0, position)) {
+      const boundary = structurallyOwed(earlier);
+      if (!boundary || structuralRank(u.topicCode) < structuralRank(earlier)) continue;
+      const step = stepTowards(boundary, null, false, true);
+      if (step) return step;
+    }
+    return u;
+  };
+  const structuralDue = (floor: number | null): ComposableUnit | undefined => {
+    spineReserve();
+    const owed = spineSequence
+      .map(topic => ({ topic, boundary: structurallyOwed(topic) }))
+      .filter(({ boundary }) => boundary);
+    if (!owed.length) return undefined;
+    const need = owed.reduce((n, o) => n + [...pathNeeds(o.boundary!).values()].reduce((a, b) => a + b, 0), 0);
+    if (targetUnits - selected.length > need) return undefined;
+    for (const { boundary } of owed) {
+      const step = stepTowards(boundary!, floor, false, true);
+      if (step) return step;
+    }
+    return undefined;
+  };
+
   /* ---- 4a. keep the promises first ---------------------------------- */
 
   /**
@@ -1426,6 +1578,8 @@ export function composeUnits(input: ComposerInput): ComposerResult {
   let guard = 0;
   while (guard++ <= targetUnits * 4 && selected.length < targetUnits) {
     const floor = breadthFloor();
+    const due = structuralDue(floor);
+    if (due) { asPrerequisite.add(due.unitCode); take(due, true); continue; }
 
     const shortfall = (a: RoleAllocation) => {
       const have = roleCount.get(a.role) || 0;
@@ -1622,6 +1776,8 @@ export function composeUnits(input: ComposerInput): ComposerResult {
 
   while (selected.length < targetUnits) {
     const floor = breadthFloor();
+    const due = structuralDue(floor);
+    if (due) { asPrerequisite.add(due.unitCode); take(due, true); continue; }
     const affordable = (u: ComposableUnit) =>
       !chosen.has(u.unitCode)
       && (budget.get(roleOf.get(u.unitCode)!) || 0) > 0
@@ -1896,6 +2052,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
       .filter(([code]) => !chosen.has(code) && suitableByPolicy(byCode.get(code)!))
       .map(([unitCode, via]) => ({ unitCode, viaSkill: via.skill, score: via.score, state: via.state }))
       .sort((a, b) => a.unitCode.localeCompare(b.unitCode)),
+    structure,
     topicBlocks: blocks.map(b => {
       const last = b.stops[b.stops.length - 1];
       const outcome: BlockOutcome = b.reachedAt !== null ? 'BOUNDARY_REACHED'

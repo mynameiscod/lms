@@ -110,12 +110,17 @@ jest.mock('../models/Assignment', () => ({
  * is the point: a recomposed day must be built exactly as a freshly persisted one is.
  */
 let nextComposition: any = null;
+/** Every set of build options recomposition composed with, so the history it passes can be held. */
+const composedWith: any[] = [];
 jest.mock('../services/foundationJourneyService', () => {
   const actual = jest.requireActual('../services/foundationJourneyService');
   return {
     __esModule: true,
     ...actual,
-    composeFoundationJourney: async () => ({ candidates: 300, composition: nextComposition }),
+    composeFoundationJourney: async (_t: string, _p: any, opts: any) => {
+      composedWith.push(opts);
+      return { candidates: 300, composition: nextComposition };
+    },
   };
 });
 
@@ -498,5 +503,27 @@ describe('recomposition reads evidence and never writes it', () => {
     expect(source).not.toMatch(/from '\.\.\/models\/SkillEvidence'/);
     expect(source).not.toMatch(/from '\.\.\/models\/StudentSkillProfile'/);
     expect(source).not.toMatch(/recordEvidence|projectAssessmentToSkillDna|recomputeStudentSkills/);
+  });
+});
+
+describe('the frozen days are the composition’s history', () => {
+  beforeEach(() => { composedWith.length = 0; seedJourney('OLD'); });
+
+  it('composes the future with every frozen day’s unit as history, in day order', async () => {
+    enroll([1, 2, 3], 4);
+    await recomposeFutureDays(TENANT, STUDENT, profile);
+    expect(composedWith).toHaveLength(1);
+    expect(composedWith[0].history).toEqual(['OLD_001', 'OLD_002', 'OLD_003', 'OLD_004']);
+  });
+
+  it('passes no history for a student who has not started', async () => {
+    await recomposeFutureDays(TENANT, STUDENT, profile);
+    expect(composedWith[0].history).toEqual([]);
+  });
+
+  it('previews with the same history it would write with', async () => {
+    enroll([1, 2], 3);
+    await previewRecomposition(TENANT, STUDENT, profile);
+    expect(composedWith[0].history).toEqual(['OLD_001', 'OLD_002', 'OLD_003']);
   });
 });

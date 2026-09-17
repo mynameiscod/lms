@@ -34,6 +34,7 @@ import {
   REALISTIC_PROFILES, REAL_SKILL_CHECK_PROFILES, spineContinuityIssues, spineFirstPractices,
   PROGRAM_DAYS, EVOLUTIONS, validatePlan, isDeterministic, skillUniverse,
   simulateRecomposition, stateBoundaryProfiles, diagnosticSkills, directionFamilyMix,
+  CONTINUITY_EVOLUTIONS, CONTINUITY_FREEZE_DAYS, CONTINUITY_CHAINS, continuityLearners, simulateReassessmentChain,
 } from '../services/composerCertificationService';
 import { buildPrerequisiteGraph, findPrerequisiteCycles } from '../data/unitPrerequisiteGraph';
 import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
@@ -270,6 +271,45 @@ const pad = (s: unknown, n: number) => String(s).padEnd(n);
   console.log(`    rewritten future days checked with the journey resolver: ${daysChecked}; activity problems: ${activityProblems.length}`);
   for (const p of activityProblems.slice(0, 8)) console.log(`      ! ${p}`);
   if (activityProblems.length) failures.push(`${activityProblems.length} recomposed day(s) without a complete activity bundle`);
+
+  /* ══ 4b. STRUCTURAL CONTINUITY THROUGH REASSESSMENT ═════════════════════════════════════ */
+
+  /**
+   * The seventy-two above prove a recomposed journey is ninety valid days; they passed while a reassessed beginner
+   * lost functions and arrays, or met them in reverse. This gate holds the structure: every requirement still owed
+   * when the future began is reached, in order, frozen days untouched, deterministically — at every freeze point,
+   * for every kind of evidence change, and through reassessment after reassessment.
+   */
+  title('4b. STRUCTURAL CONTINUITY THROUGH REASSESSMENT on ACTUAL PRODUCTION');
+  const continuity = continuityLearners(allSkills, universalSkills);
+  let continuityPass = 0;
+  let continuityTotal = 0;
+  const continuityProblems: string[] = [];
+  for (const learner of continuity) {
+    const cells: string[] = [];
+    for (const freezeDay of CONTINUITY_FREEZE_DAYS) {
+      for (const kind of CONTINUITY_EVOLUTIONS) {
+        continuityTotal++;
+        const rep = simulateRecomposition({ pool: universe, universe, base: learner.student, kind, freezeDay });
+        const again = simulateRecomposition({ pool: universe, universe, base: learner.student, kind, freezeDay });
+        const problems = [...rep.issues.map(i => `${i.code} ${i.detail}`), ...(rep.stitched.join('|') === again.stitched.join('|') ? [] : ['NONDETERMINISTIC'])];
+        if (!problems.length) continuityPass++;
+        else continuityProblems.push(`${learner.key} freeze ${freezeDay} ${kind}: ${problems.slice(0, 2).join('; ')}`);
+      }
+    }
+    for (const chain of CONTINUITY_CHAINS) {
+      continuityTotal++;
+      const rep = simulateReassessmentChain({ pool: universe, universe, base: learner.student, chain });
+      if (rep.ok) continuityPass++;
+      else continuityProblems.push(`${learner.key} ${chain}: ${rep.issues.slice(0, 2).map(i => `${i.code} ${i.detail}`).join('; ')}`);
+      cells.push(`${chain} spine ${spineFirstPractices({ units: rep.stitched.map(unitCode => ({ unitCode })) } as any, universe).map(d => d ?? '—').join('/')}`);
+    }
+    console.log(`    ${pad(learner.key, 28)}${cells.join('   ')}`);
+  }
+  console.log(`    freeze days ${CONTINUITY_FREEZE_DAYS.join(', ')} · evidence ${CONTINUITY_EVOLUTIONS.join(', ')} · chains ${CONTINUITY_CHAINS.join(', ')}`);
+  console.log(`    structurally continuous recompositions: ${continuityPass}/${continuityTotal}`);
+  for (const p of continuityProblems.slice(0, 8)) console.log(`      ! ${p}`);
+  if (continuityProblems.length) failures.push(`${continuityProblems.length} recomposition(s) break structural continuity`);
 
   /* ══ 5. CONTENT GATES ON THE 338 ═════════════════════════════════════════════════════════ */
 

@@ -56,8 +56,12 @@ import { publishUnit, setUnitStatus } from '../controllers/curriculumLearningUni
  * produces them keeps conditions, loops and functions. The derivation now reaches 348: T_LOOPS_NESTED_LOOPS and
  * T_VARIABLES_NAMING — tail lessons past their topics' first practice, off every path to a practice the plans
  * reach — join T_FUNCTIONS_DOCSTRINGS as READY and not recommended, and are reconciled to DRAFT the same way.
+ *
+ * Re-certified again after recomposition began continuing from the frozen days instead of stitching a fresh day
+ * one. T_HTML_IMAGES was reached only by those stitched fresh plans; no composition, continuation, sweep or chain
+ * reaches it now, and no journey schedules it. It joins the READY-not-recommended units: the certified set is 347.
  */
-export const CERTIFIED_FOUNDATION = { total: 359, ready: 354, target: 348, withheld: 3, notRecommended: 3, partial: 5 } as const;
+export const CERTIFIED_FOUNDATION = { total: 359, ready: 354, target: 347, withheld: 3, notRecommended: 4, partial: 5 } as const;
 
 /** Committed with the code, so every deployment certifies against the same set. */
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

@@ -158,15 +158,22 @@ export async function recomposeFutureDays(
     frozen.map(d => String(byDay.get(d)?.primaryUnitCode || '').toUpperCase()).filter(Boolean),
   );
 
-  const { composition } = await composeFoundationJourney(tenantId, profile, opts);
+  /**
+   * THE FROZEN DAYS ARE THE COMPOSITION'S HISTORY.
+   *
+   * The composer replays them as already given — their teaching, their capacity, their open topics, the structure
+   * they covered — and composes only the future that follows them. It used to compose a fresh day one and have the
+   * stitch below cut whatever a new plan puts late, which is how a learner lost functions and arrays, or met them
+   * in reverse, after a reassessment.
+   */
+  const history = frozen.map(d => String(byDay.get(d)?.primaryUnitCode || '').toUpperCase()).filter(Boolean);
+  const { composition } = await composeFoundationJourney(tenantId, profile, { ...opts, history });
 
   /**
    * RELATIVE ORDER IS PRESERVED, which is what keeps prerequisites satisfied.
    *
-   * The composer emits a sequence in which every unit's prerequisites appear earlier. Removing
-   * the ones already taught and keeping the remainder in order cannot move a unit ahead of a
-   * prerequisite: anything filtered out was taught in a frozen day, and anything kept stays
-   * behind whatever preceded it.
+   * The composer emits the history first and then the future, every unit's prerequisites earlier than it. Removing
+   * what was already taught leaves exactly the future, in order.
    */
   const available = composition.units
     .filter(u => !alreadyTaught.has(u.unitCode.toUpperCase()));
@@ -288,7 +295,9 @@ export async function previewRecomposition(
     frozen.map(d => String(byDay.get(d)?.primaryUnitCode || '').toUpperCase()).filter(Boolean),
   );
 
-  const { composition } = await composeFoundationJourney(tenantId, profile, opts);
+  // The same continuation recomposeFutureDays writes, so a preview can never promise a different future.
+  const history = frozen.map(d => String(byDay.get(d)?.primaryUnitCode || '').toUpperCase()).filter(Boolean);
+  const { composition } = await composeFoundationJourney(tenantId, profile, { ...opts, history });
   const available = composition.units.filter(u => !alreadyTaught.has(u.unitCode.toUpperCase()));
 
   const wouldChange: number[] = [];

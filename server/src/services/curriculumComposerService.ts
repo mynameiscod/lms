@@ -1075,7 +1075,29 @@ export function composeUnits(input: ComposerInput): ComposerResult {
         && withinBreadthOf(x, floor))
       .sort((a, b) => a.displayOrder - b.displayOrder || a.unitCode.localeCompare(b.unitCode))[0];
 
-  const priorityFor = (u: ComposableUnit) => priorityOf(u, stateOf.get(u.unitCode)!.state, student);
+  /**
+   * PARTIAL EVIDENCE COMPRESSES THE SPINE; IT NEVER REMOVES IT.
+   *
+   * State ranks first, and GUIDED and STANDARD rank after NOT_EXPOSED — right for unrelated material, wrong for the
+   * programming spine. A learner whose one programming score put variables at GUIDED had every variables lesson
+   * ranked behind every untouched topic, so variables never opened; conditions, loops, functions and arrays wait on
+   * variables by sequence, and the unrelated topics took the capacity. A score of 30 kept the spine and 46 lost it.
+   *
+   * So a unit on the path to an UNRESOLVED spine topic's first practice — a topic the plan still owes teaching to,
+   * exactly as the spine reservation counts it — competes for a turn as untouched material does, however far past
+   * untouched the partial evidence puts it. Its role, depth, suitability and budget are its own: a GUIDED learner
+   * still gets GUIDED instruction and less of it. A topic evidence has resolved is not on the reservation and is
+   * ranked as before, and nothing is ever raised above FOUNDATION_REQUIRED or untouched material.
+   */
+  const priorityFor = (u: ComposableUnit): number[] => {
+    const priority = priorityOf(u, stateOf.get(u.unitCode)!.state, student);
+    if (priority[0] <= STATE_ORDER.NOT_EXPOSED || priority[0] >= STATE_ORDER.LOCKED) return priority;
+    spineReserve();
+    if (!spineNeeds.has(u.topicCode)) return priority;
+    const first = firstBoundary(u.topicCode)!;
+    if (first.unitCode !== u.unitCode && !closureOf(first.unitCode).has(u.unitCode)) return priority;
+    return [STATE_ORDER.NOT_EXPOSED, ...priority.slice(1)];
+  };
 
   /**
    * RESUME BEFORE REACHING FOR SOMETHING NEW — PULLS INCLUDED.

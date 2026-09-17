@@ -144,7 +144,13 @@ import { teaches } from '../data/contentBundlePolicy';
  * profile or the readiness derivation: READY 354, target 346, the named three and the absolute minimum unchanged;
  * both tenants' production gates pass with identical results.
  */
-const CERTIFIED_COMMIT = '0ff99b26';
+/*
+ * MOVED AGAIN, TO 0a1dbdc5 — A NO-OP FOR THE DERIVATION. Release certification made provisioning a true no-op on a second
+ * run: stage topics and practice questions keep stable subdocument ids, and checkpoints are open from their first
+ * provisioning with no expiry. No unit, readiness input, publication or composition changed: READY 354, target 346, the
+ * named three and the absolute minimum unchanged; both tenants and a fresh tenant certify with identical results.
+ */
+const CERTIFIED_COMMIT = '0a1dbdc5';
 const EXPECT = { total: 359, ready: 354, target: 346, withheld: 3, notRecommended: 5, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

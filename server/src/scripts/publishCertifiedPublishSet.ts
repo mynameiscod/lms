@@ -100,8 +100,15 @@ import { teaches } from '../data/contentBundlePolicy';
  * READY inventory, the recommended 350 and the named three are identical, and seven reference journeys match
  * 150b9223 day for day. ACTUAL PRODUCTION GATE: PASS (9/9, 40/40, 72/72, broken project and coding assignments 0,
  * published = certified 350); Phase-21 audit PASS.
+ *
+ * MOVED AGAIN, TO 79c9f92f — NOT A NO-OP. A unit on the path to an unresolved programming-spine topic's first practice
+ * now competes for a turn as untouched material does, so partial (GUIDED or unreliable STANDARD) programming evidence
+ * no longer removes the spine. The recommended set is unchanged at 350 with the same three withheld and
+ * T_FUNCTIONS_DOCSTRINGS not recommended; ready-inventory is unchanged. The diagnostic absolute minimum was recomputed
+ * 193 to 182. ACTUAL PRODUCTION GATE: PASS (9/9, 40/40, 72/72, content gates 0, published = certified 350) on Savas and
+ * Test Tenant; Phase-21 audit PASS.
  */
-const CERTIFIED_COMMIT = '22ccfbfb';
+const CERTIFIED_COMMIT = '79c9f92f';
 const EXPECT = { total: 359, ready: 354, target: 350, withheld: 3, notRecommended: 1, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');

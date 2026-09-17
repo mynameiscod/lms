@@ -15,11 +15,37 @@
  * and are resolved by unit code, then topic code, then skill. Nothing here edits a resource.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import passportApi, {
   CurriculumLearningUnit, MegaCurriculumTopicRow, MegaCurriculumSummary,
   MegaCurriculumOptions, UnitContent, UnitAssessments,
 } from '../../api/passportApi';
+import UnitStudentPreview from './UnitStudentPreview';
 import './megaCurriculum.css';
+
+/**
+ * Where the content and assessment editors send an author back to: this screen, with the unit reopened.
+ * The editors are separate pages, so without this every edit ended on the library list.
+ */
+const unitReturnPath = (unitCode: string) => `/admin/passport/mega-curriculum?unit=${encodeURIComponent(unitCode)}`;
+
+const editContentHref = (id: string, unitCode: string) =>
+  `/learning-library/edit/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(unitReturnPath(unitCode))}`;
+
+/** A new Content Library row for this unit: topic and skills filled in, attached on save. */
+const newContentHref = (type: string, unit: { unitCode: string; topicCode?: string; skillKeys?: string[] }) => {
+  const q = new URLSearchParams({ type, unitCode: unit.unitCode, returnTo: unitReturnPath(unit.unitCode) });
+  if (unit.topicCode) q.set('topicCode', unit.topicCode);
+  if (unit.skillKeys?.length) q.set('skills', unit.skillKeys.join(','));
+  return `/learning-library/create?${q.toString()}`;
+};
+
+const NEW_CONTENT: { type: string; label: string; icon: string }[] = [
+  { type: 'video', label: 'Video', icon: 'bi-play-circle' },
+  { type: 'notes', label: 'Notes', icon: 'bi-file-text' },
+  { type: 'worked_example', label: 'Worked example', icon: 'bi-lightbulb' },
+  { type: 'practice_theory', label: 'Practice', icon: 'bi-pencil-square' },
+];
 
 const STATUS_LABEL: Record<string, string> = {
   DRAFT: 'Draft', PUBLISHED: 'Live', ARCHIVED: 'Archived',
@@ -258,6 +284,8 @@ const AdminMegaCurriculum: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const [note, setNote] = useState('');
+  const [previewCode, setPreviewCode] = useState('');
+  const [params, setParams] = useSearchParams();
 
   const load = useCallback(async () => {
     setLoading(true); setErr('');
@@ -335,6 +363,22 @@ const AdminMegaCurriculum: React.FC = () => {
     setContent(null); setExams(null);
     await Promise.all([loadContent(u.unitCode), loadExams(u.unitCode)]);
   };
+
+  /** Back from a content or assessment editor (?unit=CODE): reopen that unit, with its topic expanded. */
+  useEffect(() => {
+    const code = (params.get('unit') || '').toUpperCase();
+    if (!code || !rows.length) return;
+    const row = rows.find(r => r.units.some(u => u.unitCode === code));
+    const unit = row?.units.find(u => u.unitCode === code) || orphaned.find(u => u.unitCode === code);
+    if (unit) {
+      if (row) setOpen(row.topicCode);
+      startEdit(unit);
+    }
+    const next = new URLSearchParams(params);
+    next.delete('unit');
+    setParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows]);
 
   /**
    * Bind, unbind or create an assessment, then reload the stage.
@@ -687,6 +731,8 @@ const AdminMegaCurriculum: React.FC = () => {
         </section>
       ))}
 
+      {previewCode && <UnitStudentPreview unitCode={previewCode} onClose={() => setPreviewCode('')} />}
+
       {editing && (
         <div className="mgc-drawer">
           <div className="mgc-drawerhead">
@@ -858,12 +904,18 @@ const AdminMegaCurriculum: React.FC = () => {
                             {!it.attached && <> · inherited</>}
                           </small>
                         </span>
-                        {it.attached && (
-                          <button className="mgc-cbtn" disabled={contentBusy}
-                                  onClick={() => detach(it._id)} title="Detach — it goes back to serving the topic">
-                            <i className="bi bi-x-lg" />
-                          </button>
-                        )}
+                        <span className="mgc-cacts">
+                          <a className="mgc-cbtn edit" href={editContentHref(it._id, editingCode)}
+                             title="Edit this content" aria-label={`Edit ${it.title}`}>
+                            <i className="bi bi-pencil" />
+                          </a>
+                          {it.attached && (
+                            <button className="mgc-cbtn" disabled={contentBusy}
+                                    onClick={() => detach(it._id)} title="Detach — it goes back to serving the topic">
+                              <i className="bi bi-x-lg" />
+                            </button>
+                          )}
+                        </span>
                       </li>
                     ))}
                   </ol>
@@ -886,10 +938,16 @@ const AdminMegaCurriculum: React.FC = () => {
                               {!it.isPublished && <> · <b className="mgc-unpub">not published</b></>}
                             </small>
                           </span>
-                          <button className="mgc-cbtn add" disabled={contentBusy}
-                                  onClick={() => attach(it._id)} title="Attach to this unit">
-                            <i className="bi bi-plus-lg" />
-                          </button>
+                          <span className="mgc-cacts">
+                            <a className="mgc-cbtn edit" href={editContentHref(it._id, editingCode)}
+                               title="Edit this content" aria-label={`Edit ${it.title}`}>
+                              <i className="bi bi-pencil" />
+                            </a>
+                            <button className="mgc-cbtn add" disabled={contentBusy}
+                                    onClick={() => attach(it._id)} title="Attach to this unit">
+                              <i className="bi bi-plus-lg" />
+                            </button>
+                          </span>
                         </li>
                       ))}
                     </ol>
@@ -898,10 +956,25 @@ const AdminMegaCurriculum: React.FC = () => {
 
                 {!content.candidates.length && !content.attached.length && (
                   <p className="mgc-hint">
-                    No unclaimed content matches this unit yet. Author it in the Content Library
-                    and tag it with this topic or skill — it will appear here to attach.
+                    No unclaimed content matches this unit yet. Add it below, or author it in the
+                    Content Library and tag it with this topic or skill — it will appear here to attach.
                   </p>
                 )}
+
+                {/* Written for this unit from here: the editor opens with the unit's topic and skills filled in,
+                    the new row is attached on save, and Save comes back to this drawer. */}
+                <span className="mgc-lbl">Add new content to this unit</span>
+                <div className="mgc-newcontent">
+                  {NEW_CONTENT.map(n => (
+                    <a key={n.type} className="mgc-btn" href={newContentHref(n.type, { ...editing, unitCode: editingCode })}>
+                      <i className={`bi ${n.icon}`} /> {n.label}
+                    </a>
+                  ))}
+                </div>
+                <p className="mgc-hint">
+                  Editing content already on this unit changes it for every student straight away, including days they
+                  have finished. Content newly attached here reaches journeys created or recomposed after it is published.
+                </p>
               </div>
             )}
 
@@ -937,13 +1010,22 @@ const AdminMegaCurriculum: React.FC = () => {
                             {a.countsAsSubmission && <> · counts as submission</>}
                           </small>
                         </span>
-                        <button className="mgc-cbtn" disabled={contentBusy}
-                                title="Unbind — the quiz or assignment itself is kept"
-                                onClick={() => withExams(
-                                  () => passportApi.unbindUnitAssessment(editingCode, a.kind, a._id),
-                                  'Could not unbind this assessment.')}>
-                          <i className="bi bi-x-lg" />
-                        </button>
+                        <span className="mgc-cacts">
+                          <a className="mgc-cbtn edit"
+                             href={a.kind === 'QUIZ' ? `/quiz/${a._id}/questions` : `/admin/assignments/${a._id}/edit`}
+                             target="_blank" rel="noopener noreferrer"
+                             title={a.kind === 'QUIZ' ? 'Edit the questions' : 'Edit the brief, rubric, points and tests'}
+                             aria-label={`Edit ${a.title}`}>
+                            <i className="bi bi-pencil" />
+                          </a>
+                          <button className="mgc-cbtn" disabled={contentBusy}
+                                  title="Unbind — the quiz or assignment itself is kept"
+                                  onClick={() => withExams(
+                                    () => passportApi.unbindUnitAssessment(editingCode, a.kind, a._id),
+                                    'Could not unbind this assessment.')}>
+                            <i className="bi bi-x-lg" />
+                          </button>
+                        </span>
                       </li>
                     ))}
                   </ol>
@@ -1004,6 +1086,11 @@ const AdminMegaCurriculum: React.FC = () => {
               </button>
               {editingCode && editing.status !== 'PUBLISHED' && (
                 <button className="mgc-btn" onClick={() => publish(editingCode)}>Publish</button>
+              )}
+              {editingCode && (
+                <button className="mgc-btn" onClick={() => setPreviewCode(editingCode)}>
+                  <i className="bi bi-eye" /> Preview as student
+                </button>
               )}
               <button className="mgc-btn ghost"
                       onClick={() => {

@@ -284,6 +284,11 @@ export const passportApi = {
     const r = await axios.get(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/content`, { headers: auth() });
     return r.data;
   },
+  /** Read-only: the day this unit gives a student, built as a journey day is built. */
+  unitStudentPreview: async (unitCode: string): Promise<UnitStudentPreview> => {
+    const r = await axios.get(`${CP}/curriculum-units/${encodeURIComponent(unitCode)}/student-preview`, { headers: auth() });
+    return r.data;
+  },
   attachUnitContent: async (unitCode: string, contentId: string): Promise<{ attached: boolean }> => {
     const r = await axios.post(
       `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/content/${encodeURIComponent(contentId)}`,
@@ -2117,6 +2122,14 @@ export interface UnitBundle {
   hasPractice: boolean;
   types: string[];
   resolvedMinutes: number;
+}
+
+export interface UnitStudentPreview {
+  preview: true;
+  unit: { unitCode: string; title: string; description: string; learningOutcomes: string[]; unitType: string; status: string };
+  /** DayPlan-shaped items; content items carry `content`, quiz/assignment items carry `live` and `editPath`. */
+  items: any[];
+  notShown: { _id: string; title: string; type: string }[];
 }
 
 export interface UnitContent {

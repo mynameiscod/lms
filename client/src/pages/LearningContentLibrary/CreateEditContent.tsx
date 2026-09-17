@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import SlideBuilder from '../../components/SlideBuilder';
 import 'react-quill/dist/quill.snow.css';
@@ -13,10 +13,16 @@ import {
   CONTENT_TYPE_LABELS,
   CONTENT_TYPE_ICONS,
 } from '../../api/learningContentLibraryApi';
+import { passportApi } from '../../api/passportApi';
+import { NotesContent } from '../../components/content/NotesContent';
+import { looksLikeHtml, notesHtml } from '../../components/content/notesHtml';
+import { videoUrlProblem } from '../../components/content/videoUrl';
+import { VideoPlayer } from '../MyLearningPlan/VideoPlayer';
 
 const TYPE_OPTIONS: { value: ContentLibraryType; label: string; icon: string; desc: string }[] = [
   { value: 'video',            icon: '🎬', label: 'Video',            desc: 'Upload a video file or paste a YouTube/Vimeo link' },
   { value: 'notes',            icon: '📄', label: 'Notes',            desc: 'Upload a PDF or write rich-text notes' },
+  { value: 'worked_example',   icon: '💡', label: 'Worked Example',   desc: 'A problem solved step by step, written like notes' },
   { value: 'tech_qa',          icon: '💻', label: 'Tech Q&A',         desc: 'Technical interview questions with answers' },
   { value: 'behavioral_qa',    icon: '🤝', label: 'Behavioral Q&A',   desc: 'HR/behavioral questions with sample answers' },
   { value: 'practice_coding',  icon: '⌨️', label: 'Practice Coding',  desc: 'Coding problems with test cases (auto-graded)' },
@@ -24,6 +30,17 @@ const TYPE_OPTIONS: { value: ContentLibraryType; label: string; icon: string; de
   { value: 'aptitude',         icon: '🧠', label: 'Aptitude',         desc: 'MCQ aptitude questions with timer support' },
   { value: 'interactive_activity', icon: '🧩', label: 'Interactive Activity', desc: 'A self-contained step-by-step HTML activity (e.g. "Build your LinkedIn") — reusable on any day' },
 ];
+
+const MARKDOWN_PLACEHOLDER = [
+  '## Heading',
+  '',
+  'A paragraph with **bold**, *italic* and `code`.',
+  '',
+  '- a bullet',
+  '1. a numbered step',
+  '',
+  '    code indented by four spaces',
+].join('\n');
 
 const LANGUAGES = ['javascript', 'typescript', 'java', 'python', 'cpp', 'c', 'sql', 'html', 'css'];
 
@@ -60,8 +77,21 @@ export default function CreateEditContent() {
   const navigate   = useNavigate();
   const { id }     = useParams<{ id?: string }>();
   const isEdit     = !!id;
+  /**
+   * Opened from a learning unit ("Add content to this unit" / "Edit"): the unit's topic and skills are filled in,
+   * a new row is attached to the unit as it is created, and Save returns to the unit.
+   */
+  const [params]   = useSearchParams();
+  const unitCode   = (params.get('unitCode') || '').trim().toUpperCase();
+  const rawReturn  = params.get('returnTo') || '';
+  const returnTo   = rawReturn.startsWith('/') && !rawReturn.startsWith('//') ? rawReturn : '/learning-library';
+  const presetType = params.get('type') as ContentLibraryType | null;
+  const presetOk   = !!presetType && TYPE_OPTIONS.some(o => o.value === presetType);
 
-  const [step,        setStep]        = useState<'type' | 'form'>(isEdit ? 'form' : 'type');
+  const [step,        setStep]        = useState<'type' | 'form'>(isEdit || presetOk ? 'form' : 'type');
+  /** How written notes are edited. Stored notes stay `richtext`; the renderer tells Markdown from HTML by content. */
+  const [notesFormat, setNotesFormat] = useState<'richtext' | 'markdown'>('richtext');
+  const [videoCheck,  setVideoCheck]  = useState('');
   const [activeTab,   setActiveTab]   = useState<'content' | 'lesson'>('content');
   const [saving,      setSaving]      = useState(false);
   const [loading,     setLoading]     = useState(isEdit);
@@ -77,7 +107,7 @@ export default function CreateEditContent() {
   const thumbRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<FormState>({
-    type:              'video',
+    type:              presetOk ? presetType! : 'video',
     title:             '',
     description:       '',
     topicTags:         [],
@@ -93,8 +123,10 @@ export default function CreateEditContent() {
     videoSource:       'upload',
     videoUrl:          '',
     completionThreshold: 80,
-    notesSource:       'upload',
+    notesSource:       presetType === 'worked_example' ? 'richtext' : 'upload',
     notesContent:      '',
+    topicCode:         params.get('topicCode') || undefined,
+    ...(params.get('skills') ? { skillKeys: (params.get('skills') || '').split(',').map(k => k.trim()).filter(Boolean) } : {}),
     qaItems:           [blankQA()],
     practiceQuestions: [blankPQ()],
   });
@@ -104,6 +136,9 @@ export default function CreateEditContent() {
     if (!isEdit || !id) return;
     learningContentLibraryApi.getById(id)
       .then(item => {
+        // Curriculum notes are Markdown. Loading them into the rich-text box would turn the code examples into
+        // real tags and join every line, so they open in the Markdown editor and are saved back as Markdown.
+        if (item.notesContent && !looksLikeHtml(item.notesContent)) setNotesFormat('markdown');
         setForm({
           ...item,
           topicTagsInput:  '',
@@ -226,6 +261,11 @@ export default function CreateEditContent() {
   const handleSave = async () => {
     if (!form.title?.trim()) { alert('Title is required'); return; }
     if (!form.type)           { alert('Type is required'); return; }
+    if (form.type === 'video') {
+      const problem = videoUrlProblem(form.videoSource, form.videoUrl);
+      setVideoCheck(problem || '');
+      if (problem) { alert(problem); return; }
+    }
     setSaving(true);
     setUploadPct(0);
     try {
@@ -308,10 +348,15 @@ export default function CreateEditContent() {
 
         result = isEdit
           ? await learningContentLibraryApi.updateJson(id!, { ...body, ...adaptive })
-          : await learningContentLibraryApi.createJson({ ...body, ...adaptive });
+          : await learningContentLibraryApi.createJson({ ...body, ...adaptive, ...(unitCode ? { unitCode } : {}) } as any);
       }
 
-      navigate('/learning-library');
+      // A file upload travels as multipart, which does not carry the unit; attach it the way the unit screen does.
+      if (!isEdit && unitCode && result?._id && (result as any).unitCode !== unitCode) {
+        await passportApi.attachUnitContent(unitCode, result._id);
+      }
+
+      navigate(returnTo);
     } catch (e: any) {
       alert(e?.response?.data?.message || 'Save failed');
     } finally {
@@ -362,9 +407,14 @@ export default function CreateEditContent() {
 
   return (
     <div style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
-      <button onClick={() => isEdit ? navigate('/learning-library') : setStep('type')} style={backBtnStyle}>
-        ← {isEdit ? 'Back to Library' : 'Change Type'}
+      <button onClick={() => (isEdit || unitCode) ? navigate(returnTo) : setStep('type')} style={backBtnStyle}>
+        ← {unitCode ? `Back to unit ${unitCode}` : isEdit ? 'Back to Library' : 'Change Type'}
       </button>
+      {unitCode && !isEdit && (
+        <div style={{ margin: '12px 0 0', padding: '10px 14px', borderRadius: 8, background: '#eff6ff', color: '#1e3a8a', fontSize: 13 }}>
+          This content will be attached to learning unit <b>{unitCode}</b> when you save.
+        </div>
+      )}
 
       {/* Tab header (edit mode only) */}
       {isEdit && (
@@ -699,10 +749,19 @@ export default function CreateEditContent() {
             <Field label={`${form.videoSource === 'youtube' ? 'YouTube' : 'Vimeo'} URL`}>
               <input
                 value={form.videoUrl || ''}
-                onChange={e => set('videoUrl', e.target.value)}
+                onChange={e => { set('videoUrl', e.target.value); setVideoCheck(''); }}
+                onBlur={() => setVideoCheck(form.videoUrl ? (videoUrlProblem(form.videoSource, form.videoUrl) || '') : '')}
                 placeholder={form.videoSource === 'youtube' ? 'https://www.youtube.com/watch?v=...' : 'https://vimeo.com/...'}
                 style={inputStyle}
+                aria-invalid={!!videoCheck}
               />
+              {videoCheck && <div role="alert" style={{ color: '#b91c1c', fontSize: 13, marginTop: 6 }}>{videoCheck}</div>}
+              {!videoCheck && form.videoUrl && !videoUrlProblem(form.videoSource, form.videoUrl) && (
+                <div style={{ marginTop: 12, maxWidth: 480 }} data-testid="video-link-preview">
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>What students will see:</div>
+                  <VideoPlayer content={{ ...form, title: form.title || 'Video preview' }} onWatchEnough={() => {}} />
+                </div>
+              )}
             </Field>
           )}
 
@@ -776,8 +835,9 @@ parent.postMessage({ type:'cb-activity-height', height }, '*');`}
         </Section>
       )}
 
-      {type === 'notes' && (
-        <Section title="Notes Content">
+      {(type === 'notes' || type === 'worked_example') && (
+        <Section title={type === 'worked_example' ? 'Worked Example' : 'Notes Content'}>
+          {type === 'notes' && (
           <Field label="Source">
             <div style={{ display: 'flex', gap: '12px' }}>
               {(['upload', 'richtext'] as const).map(src => (
@@ -788,8 +848,9 @@ parent.postMessage({ type:'cb-activity-height', height }, '*');`}
               ))}
             </div>
           </Field>
+          )}
 
-          {form.notesSource === 'upload' ? (
+          {type === 'notes' && form.notesSource === 'upload' ? (
             <Field label="PDF / PPTX File (max 50 MB)">
               <input ref={notesRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx" onChange={e => setNotesFile(e.target.files?.[0] || null)} style={{ display: 'none' }} />
               <div
@@ -820,6 +881,62 @@ parent.postMessage({ type:'cb-activity-height', height }, '*');`}
               </div>
             </Field>
           ) : (
+            <>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }} role="group" aria-label="Editor">
+              {(['richtext', 'markdown'] as const).map(f => {
+                const hasText = !!(form.notesContent || '').replace(/<[^>]*>/g, '').trim();
+                // Formatted text cannot be turned back into Markdown; Markdown can be converted forward.
+                const blocked = f === 'markdown' && notesFormat === 'richtext' && hasText;
+                return (
+                  <button
+                    key={f}
+                    type="button"
+                    disabled={blocked}
+                    title={blocked ? 'Clear the text first — formatted text cannot be converted to Markdown' : undefined}
+                    onClick={() => {
+                      if (f === notesFormat) return;
+                      if (f === 'richtext' && hasText) {
+                        if (!window.confirm('Convert these Markdown notes to formatted text? You will edit them in the formatted editor from now on.')) return;
+                        set('notesContent', notesHtml(form.notesContent));
+                      }
+                      setNotesFormat(f);
+                    }}
+                    style={{
+                      padding: '6px 12px', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: blocked ? 'not-allowed' : 'pointer',
+                      border: `1.5px solid ${notesFormat === f ? '#0f172a' : '#e2e8f0'}`,
+                      background: notesFormat === f ? '#0f172a' : '#fff', color: notesFormat === f ? '#fff' : '#374151', opacity: blocked ? 0.5 : 1,
+                    }}
+                  >
+                    {f === 'richtext' ? 'Formatted editor' : 'Markdown'}
+                  </button>
+                );
+              })}
+            </div>
+            {notesFormat === 'markdown' ? (
+              <Field label="Content (Markdown)">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+                  <div>
+                    <textarea
+                      aria-label="Notes Markdown"
+                      value={form.notesContent || ''}
+                      onChange={e => set('notesContent', e.target.value)}
+                      rows={22}
+                      style={{ ...inputStyle, fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: 13, lineHeight: 1.55, resize: 'vertical' }}
+                      placeholder={MARKDOWN_PLACEHOLDER}
+                    />
+                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 6, lineHeight: 1.5 }}>
+                      <code>## Heading</code> · <code>**bold**</code> · <code>*italic*</code> · <code>{'`code`'}</code> · <code>- bullet</code> · <code>1. step</code> · four-space indent or <code>{'```'}</code> for a code block · <code>| a | b |</code> tables
+                    </div>
+                  </div>
+                  <div data-testid="notes-preview" style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '12px 14px', background: '#fff', maxHeight: 560, overflow: 'auto' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Student view</div>
+                    {(form.notesContent || '').trim()
+                      ? <NotesContent text={form.notesContent} />
+                      : <div style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: 13 }}>Nothing written yet.</div>}
+                  </div>
+                </div>
+              </Field>
+            ) : (
             <Field label="Content">
               <div style={{ border: '1.5px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
                 <ReactQuill
@@ -841,6 +958,8 @@ parent.postMessage({ type:'cb-activity-height', height }, '*');`}
                 />
               </div>
             </Field>
+            )}
+            </>
           )}
         </Section>
       )}

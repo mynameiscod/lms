@@ -18,6 +18,8 @@ import { cyclesIntroducedBy } from '../data/unitPrerequisiteGraph';
 import { requireAuthorableSkills, listAuthorableSkills } from '../services/skillRegistryService';
 import * as assessments from '../services/unitAssessmentService';
 import { liveJourneyUsage, LiveJourneyUsage } from '../services/unitJourneyUsageService';
+import { activitiesFor, loadAssets } from '../services/foundationJourneyService';
+import { studentContentRow } from '../services/studentContentView';
 
 /** What an admin is told before a unit on students' journeys leaves the published curriculum. */
 const liveJourneyMessage = (u: LiveJourneyUsage, action: string): string =>
@@ -989,6 +991,71 @@ export const detachContent = async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error('[learning-units] detach:', e?.message || e);
     res.status(500).json({ message: 'Could not detach this content.' });
+  }
+};
+
+/**
+ * GET /curriculum-units/:unitCode/student-preview — the day this unit gives a student, as they would see it.
+ *
+ * BUILT THE WAY A JOURNEY DAY IS BUILT: `loadAssets` + `activitiesFor`, the same two calls composition and
+ * recomposition make, so the preview cannot disagree with a real day about what is on it or in what order.
+ * Only the unit's own PUBLISHED content appears — inherited topic material and unpublished drafts are not on a
+ * student's day, and a preview that showed them would promise content nobody receives.
+ *
+ * Content rows are sent through `studentContentRow`, the same filter the student day endpoint uses, so a
+ * hidden test case cannot appear here either.
+ *
+ * READ ONLY. It writes nothing: no enrollment, no completion, no evidence, no DayPlan. It reads no student at
+ * all, so there is nothing for it to mutate.
+ */
+export const unitStudentPreview = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const unitCode = clean(req.params.unitCode, 80).toUpperCase();
+    const unit = await CurriculumLearningUnit.findOne({ tenantId, unitCode })
+      .select('unitCode title description learningOutcomes unitType status estimatedMinutes').lean() as any;
+    if (!unit) return res.status(404).json({ message: 'No such unit.' });
+
+    const assets = (await loadAssets(tenantId, [unitCode])).get(unitCode) || { content: [], quizzes: [], assignments: [] };
+    const items = activitiesFor(unit, assets);
+
+    const contentIds = items.filter(i => i.kind === 'content').map(i => i.contentId);
+    const quizIds = items.filter(i => i.kind === 'quiz').map(i => i.sourceId);
+    const assignmentIds = items.filter(i => i.kind === 'assignment').map(i => i.sourceId);
+    const [rows, quizzes, assignmentRows, unpublished] = await Promise.all([
+      contentIds.length ? LearningContentLibrary.find({ tenantId, _id: { $in: contentIds } }).lean() as any : [],
+      quizIds.length ? Quiz.find({ tenantId, _id: { $in: quizIds } }).select('_id isActive').lean() as any : [],
+      assignmentIds.length ? Assignment.find({ _id: { $in: assignmentIds } }).select('_id status').lean() as any : [],
+      LearningContentLibrary.find({ tenantId, unitCode, isPublished: { $ne: true } }).select('title type').lean() as any,
+    ]);
+    const byId = new Map<string, any>((rows as any[]).map(r => [String(r._id), studentContentRow(r)]));
+    const quizLive = new Map<string, boolean>((quizzes as any[]).map(q => [String(q._id), q.isActive !== false]));
+    const assignmentStatus = new Map<string, string>((assignmentRows as any[]).map(a => [String(a._id), String(a.status || '')]));
+
+    res.json({
+      preview: true,
+      unit: {
+        unitCode: unit.unitCode,
+        title: unit.title,
+        description: unit.description || '',
+        learningOutcomes: unit.learningOutcomes || [],
+        unitType: unit.unitType,
+        status: unit.status,
+      },
+      items: items.map(i => (i.kind === 'content'
+        ? { ...i, content: byId.get(String(i.contentId)) || null, isCompleted: false }
+        : {
+          ...i,
+          isCompleted: false,
+          live: i.kind === 'quiz' ? quizLive.get(String(i.sourceId)) !== false : assignmentStatus.get(String(i.sourceId)) === 'published',
+          editPath: i.kind === 'quiz' ? `/quiz/${i.sourceId}/questions` : `/admin/assignments/${i.sourceId}/edit`,
+        })),
+      /** Attached to the unit but not on any student's day, because they are not published. */
+      notShown: (unpublished as any[]).map(r => ({ _id: String(r._id), title: r.title, type: r.type })),
+    });
+  } catch (e: any) {
+    console.error('[learning-units] student preview:', e?.message || e);
+    res.status(500).json({ message: 'Could not build the student preview for this unit.' });
   }
 };
 

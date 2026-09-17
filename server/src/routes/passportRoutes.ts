@@ -451,6 +451,8 @@ router.put('/curriculum-units/:unitCode',           MANAGE, express.json(), lear
 router.post('/curriculum-units/:unitCode/publish',  MANAGE, learningUnits2.publishUnit);
 router.post('/curriculum-units/:unitCode/status',   MANAGE, express.json(), learningUnits2.setUnitStatus);
 router.get('/curriculum-units/:unitCode/content',    MANAGE, learningUnits2.unitContent);
+// Read-only: the day this unit gives a student, built as a journey day is built. Writes nothing.
+router.get('/curriculum-units/:unitCode/student-preview', MANAGE, learningUnits2.unitStudentPreview);
 router.post('/curriculum-units/:unitCode/content/:contentId',   MANAGE, learningUnits2.attachContent);
 router.delete('/curriculum-units/:unitCode/content/:contentId', MANAGE, learningUnits2.detachContent);
 

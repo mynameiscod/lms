@@ -37,7 +37,7 @@ import SectionLock from './SectionLock';
 import './journeyDay.css';
 
 /** Content types, in words a first-year recognises. Mirrors the roadmap screen. */
-const TYPE_LABEL: Record<string, string> = {
+export const TYPE_LABEL: Record<string, string> = {
   video: 'Watch',
   notes: 'Read',
   worked_example: 'Worked example',
@@ -52,7 +52,7 @@ const TYPE_LABEL: Record<string, string> = {
   assignment: 'Project',
 };
 
-const ICON: Record<string, string> = {
+export const ICON: Record<string, string> = {
   video: 'bi-play-circle',
   notes: 'bi-file-text',
   worked_example: 'bi-lightbulb',
@@ -66,14 +66,14 @@ const ICON: Record<string, string> = {
   assignment: 'bi-upload',
 };
 
-const mins = (n: number) =>
+export const mins = (n: number) =>
   (n >= 60 ? `${Math.floor(n / 60)}h${n % 60 ? ` ${n % 60}m` : ''}` : `${n} min`);
 
 /** The label an item carries, whichever shape the day plan used. */
-const titleOf = (item: any): string =>
+export const titleOf = (item: any): string =>
   item?.content?.title || item?.contentTitle || item?.title || 'Untitled';
 
-const typeOf = (item: any): string =>
+export const typeOf = (item: any): string =>
   item?.contentType || item?.content?.type || item?.kind || 'notes';
 
 /**
@@ -83,7 +83,7 @@ const typeOf = (item: any): string =>
  * gets the launch panel instead of a viewer. Anything whose content failed to resolve says so
  * plainly rather than rendering an empty white box the member will read as a broken page.
  */
-const ItemBody: React.FC<{ item: any; onLaunch: (path: string) => void }> = ({ item, onLaunch }) => {
+export const ItemBody: React.FC<{ item: any; onLaunch: (path: string) => void }> = ({ item, onLaunch }) => {
   const c = item?.content;
 
   if (!c) {
@@ -113,7 +113,8 @@ const ItemBody: React.FC<{ item: any; onLaunch: (path: string) => void }> = ({ i
 
   switch (c.type) {
     case 'video': return <VideoPlayer content={c} onWatchEnough={() => { /* completion is explicit here */ }} />;
-    case 'notes': return <NotesViewer content={c} />;
+    case 'notes':
+    case 'worked_example': return <NotesViewer content={c} />;
     case 'tech_qa':
     case 'behavioral_qa': return <QAViewer content={c} />;
     case 'practice_coding':

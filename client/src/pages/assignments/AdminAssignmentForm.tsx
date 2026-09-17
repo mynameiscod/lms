@@ -37,6 +37,8 @@ const AdminAssignmentForm: React.FC = () => {
   const [difficulty, setDifficulty] = useState<DifficultyLevel>(DifficultyLevel.MEDIUM);
   const [primaryTech, setPrimaryTech] = useState<string>('');
   const [totalPoints, setTotalPoints] = useState(100);
+  // The pass line a submission is judged against (Submission.isPassing). The model's default is 40.
+  const [passingPoints, setPassingPoints] = useState(40);
   const [topics, setTopics] = useState<string[]>([]);
   const [topicInput, setTopicInput] = useState('');
 
@@ -277,6 +279,7 @@ const AdminAssignmentForm: React.FC = () => {
       setDifficulty(a.difficulty);
       setPrimaryTech((a as any).primaryTech || '');
       setTotalPoints(a.totalPoints);
+      setPassingPoints(typeof (a as any).passingPoints === 'number' ? (a as any).passingPoints : 40);
       setTopics(a.topics);
 
       // Course structure linking
@@ -350,6 +353,10 @@ const AdminAssignmentForm: React.FC = () => {
       setError('Please enter a title');
       return;
     }
+    if (!(passingPoints >= 0 && passingPoints <= totalPoints)) {
+      setError(`The pass mark must be between 0 and the total points (${totalPoints}).`);
+      return;
+    }
 
     try {
       setSaving(true);
@@ -363,6 +370,7 @@ const AdminAssignmentForm: React.FC = () => {
         difficulty,
         primaryTech: primaryTech || undefined,
         totalPoints,
+        passingPoints,
         topics,
         // Course structure linking
         course: selectedCourse || undefined,
@@ -863,6 +871,20 @@ const AdminAssignmentForm: React.FC = () => {
                   onChange={(e) => setTotalPoints(Number(e.target.value))}
                   min={1}
                 />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="assignment-passing-points">Pass Mark</label>
+                <input
+                  id="assignment-passing-points"
+                  type="number"
+                  className="form-control"
+                  value={passingPoints}
+                  onChange={(e) => setPassingPoints(Number(e.target.value))}
+                  min={0}
+                  max={totalPoints}
+                />
+                <small style={{ color: '#64748b' }}>A submission scoring at least this many points passes.</small>
               </div>
             </div>
 

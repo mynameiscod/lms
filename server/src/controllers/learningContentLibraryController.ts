@@ -5,6 +5,8 @@ import LearningContentLibrary from '../models/LearningContentLibrary';
 import CareerSkill from '../models/CareerSkill';
 import { getAllSkills } from '../services/careerSkillService';
 import { CAREER_DIRECTIONS, DIRECTION_ALL, isDirectionKey } from '../data/careerDirectionPolicy';
+import { videoUrlProblem } from '../data/videoUrlPolicy';
+import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
 
 /* ------------------------------------------------------------------ *
  * Adaptive fields (ADAPTIVE_CURRICULUM_V1)
@@ -245,6 +247,18 @@ export const createContent = async (req: Request, res: Response) => {
     // Refused before anything is written, so a bad skill key cannot produce a half-saved row.
     const adaptive = await readAdaptiveFields(body);
 
+    /**
+     * Created FROM a learning unit ("Add content to this unit"), the row is attached as it is born — the same
+     * `unitCode` hook the unit screen's attach button sets. Only at creation: moving an existing row between
+     * units stays with attach/detach, which refuse to take a row another unit owns.
+     */
+    let unitCode: string | undefined;
+    if (body.unitCode !== undefined && String(body.unitCode).trim()) {
+      unitCode = String(body.unitCode).trim().toUpperCase();
+      const unit = await CurriculumLearningUnit.findOne({ tenantId: String(tenantId), unitCode }).select('_id').lean();
+      if (!unit) return res.status(400).json({ message: `No learning unit ${unitCode} exists to attach this content to.` });
+    }
+
     const item = new LearningContentLibrary({
       tenantId,
       createdBy:         userId,
@@ -284,7 +298,11 @@ export const createContent = async (req: Request, res: Response) => {
 
       // Adaptive curriculum — what makes this row reachable from a measured skill gap.
       ...adaptive,
+      ...(unitCode ? { unitCode } : {}),
     });
+
+    const badVideo = item.type === 'video' ? videoUrlProblem(item.videoSource, item.videoUrl) : null;
+    if (badVideo) return res.status(400).json({ message: badVideo });
 
     await item.save();
     res.status(201).json(item);
@@ -356,6 +374,13 @@ export const updateContent = async (req: Request, res: Response) => {
         fs.unlink(item.notesFilePath, () => {});
       }
       item.notesFilePath = (req as any).notesFilePath;
+    }
+
+    // Judged on the row as it will be saved, and only when the edit touched the video: an unrelated edit to an
+    // older row is not refused for a link nobody changed.
+    if (item.type === 'video' && (body.videoSource !== undefined || body.videoUrl !== undefined)) {
+      const badVideo = videoUrlProblem(item.videoSource, item.videoUrl);
+      if (badVideo) return res.status(400).json({ message: badVideo });
     }
 
     await item.save();

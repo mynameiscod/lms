@@ -406,7 +406,17 @@ export class QuizService {
     // slow submit widens the window for the client connection to drop = "Failed to fetch").
     const qIds = [...new Set(answers.map((a: any) => a.questionId).filter(Boolean))];
     const questionDocs = await Question.find({ _id: { $in: qIds } });
-    const qById = new Map<string, any>(questionDocs.map((q: any) => [String(q._id), q]));
+    /**
+     * ONLY THIS QUIZ'S QUESTIONS ARE GRADED, EACH ONCE.
+     *
+     * The answers are the client's; which questions they may score against is not. An answer naming a question from
+     * another quiz — one whose answer the student already knows — or naming the same question twice added marks
+     * this paper never awarded, and those marks become Skill DNA evidence.
+     */
+    const ownQuestionIds = new Set((quiz.questionIds || []).map(String));
+    const belongs = (q: any) => String(q.quizId || '') === String(quiz._id) || ownQuestionIds.has(String(q._id));
+    const qById = new Map<string, any>(questionDocs.filter(belongs).map((q: any) => [String(q._id), q]));
+    const graded = new Set<string>();
 
     // Save submissions and calculate marks
     let obtainedMarks = 0;
@@ -415,7 +425,8 @@ export class QuizService {
 
     for (const answer of answers) {
       const question = qById.get(String(answer.questionId));
-      if (!question) continue;
+      if (!question || graded.has(String(question._id))) continue;
+      graded.add(String(question._id));
 
       let isCorrect = false;
       let marksAwarded = 0;

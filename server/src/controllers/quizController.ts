@@ -12,6 +12,7 @@ import { EmailService } from '../services/emailService';
 import { checkDeadlineGate, studentSchedulesMap, policyFromRow } from '../services/assessmentDeliveryService';
 import { computeStatus, mergePolicy, DEFAULT_POLICY } from '../services/deadlinePolicyService';
 import { resolveAssignedQuizzes } from '../services/studentWorkService';
+import { isQuizAuthor, orderOptionsForStudent } from '../services/quizAnswerAccess';
 
 export const createQuiz = async (req: Request, res: Response) => {
   try {
@@ -255,9 +256,16 @@ export const getQuizQuestions = async (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;
     const quiz = await Quiz.findById(quizId);
+    const tenantId = (req as any).tenantId;
+    if (!quiz || (tenantId && quiz.tenantId && String(quiz.tenantId) !== String(tenantId))) {
+      return res.status(404).json({ message: 'Quiz not found' });
+    }
     const shuffle = quiz?.shuffleQuestions || false;
     const questions = await quizService.getQuizQuestions(quizId, shuffle);
-    res.json(questions);
+    // Each student sees options in their own stable order, so no position gives the answer away. Authors see stored order.
+    if (await isQuizAuthor((req as any).user)) return res.json(questions);
+    const studentId = String((req as any).userId || '');
+    res.json(questions.map((q: any) => orderOptionsForStudent(q, studentId)));
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -270,6 +278,16 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
 
     if (!Array.isArray(answers)) {
       return res.status(400).json({ message: 'Answers must be an array' });
+    }
+
+    // Only the student whose attempt it is may hand it in: a submission sets their marks and their Skill DNA.
+    const owned = await QuizAttempt.findById(attemptId).select('studentId tenantId quizId').lean() as any;
+    const tenantId = (req as any).tenantId;
+    if (!owned || (tenantId && String(owned.tenantId) !== String(tenantId)) || String(owned.quizId) !== String(req.params.quizId)) {
+      return res.status(404).json({ message: 'Attempt not found' });
+    }
+    if (String(owned.studentId) !== String((req as any).userId || '')) {
+      return res.status(403).json({ message: 'Unauthorized' });
     }
 
     const result = await quizService.submitQuizAttempt(attemptId, answers);
@@ -294,6 +312,21 @@ export const getQuizResults = async (req: Request, res: Response) => {
   try {
     const { attemptId } = req.params;
     const results = await quizService.getQuizResults(attemptId);
+
+    /**
+     * A student reads their OWN attempt, once it is handed in. Anyone holding an attempt id could read any student's
+     * results — correct answers included — before; authors and graders still read any attempt in their tenant.
+     */
+    const tenantId = (req as any).tenantId;
+    const author = await isQuizAuthor((req as any).user);
+    const attemptTenant = (results.attempt as any)?.tenantId;
+    if (tenantId && attemptTenant && String(attemptTenant) !== String(tenantId)) return res.status(404).json({ message: 'Attempt not found' });
+    if (!author && String((results.attempt as any)?.studentId) !== String((req as any).userId || '')) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+    if (!author && !['submitted', 'grading'].includes(String((results.attempt as any)?.status))) {
+      results.submissions = [];
+    }
     
     // Respect quiz settings
     const quiz = results.quiz;

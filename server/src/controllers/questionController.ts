@@ -4,6 +4,15 @@ import quizService from '../services/quizService';
 import Quiz from '../models/Quiz';
 import { generateQuestionsWithAI, normalizeQuestion } from '../services/aiService';
 import Question from '../models/Question';
+import { answersAllowed, isQuizAuthor, orderOptionsForStudent, withoutAnswers } from '../services/quizAnswerAccess';
+
+/** The quiz, if it belongs to the caller's tenant. A quiz of another tenant is answered as not found. */
+const quizInTenant = async (req: Request, quizId: string) => {
+  const quiz = await Quiz.findById(quizId);
+  const tenantId = (req as any).tenantId;
+  if (!quiz || (tenantId && quiz.tenantId && String(quiz.tenantId) !== String(tenantId))) return null;
+  return quiz;
+};
 
 export const createQuestion = async (req: Request, res: Response) => {
   try {
@@ -30,13 +39,19 @@ export const createQuestion = async (req: Request, res: Response) => {
 export const getQuestionsForQuiz = async (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;
-    const includeAnswers = req.query.includeAnswers === 'true';
+    const quiz = await quizInTenant(req, quizId);
+    if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
+
+    // `includeAnswers` is a request; whether it is honoured is decided here. See quizAnswerAccess.
+    const userId = String((req as any).userId || (req as any).user?.id || '');
+    const includeAnswers = req.query.includeAnswers === 'true' && await answersAllowed((req as any).user, userId, quiz);
 
     // Use quizService to properly handle linked questions from Question Bank
-    const questions = await quizService.getQuestionsForQuiz(quizId, includeAnswers);
+    let questions = await quizService.getQuestionsForQuiz(quizId, includeAnswers);
+    if (!includeAnswers) questions = questions.map(withoutAnswers);
+    if (!(await isQuizAuthor((req as any).user))) questions = questions.map(q => orderOptionsForStudent(q, userId));
     
     // Shuffle if quiz setting requires it
-    const quiz = await Quiz.findById(quizId);
     if (quiz?.shuffleQuestions) {
       for (let i = questions.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -52,16 +67,22 @@ export const getQuestionsForQuiz = async (req: Request, res: Response) => {
 
 export const getQuestionById = async (req: Request, res: Response) => {
   try {
-    const { questionId } = req.params;
-    const includeAnswers = req.query.includeAnswers === 'true';
+    const { quizId, questionId } = req.params;
+    const quiz = await quizInTenant(req, quizId);
+    if (!quiz) return res.status(404).json({ message: 'Question not found' });
 
-    const question = await questionService.getQuestionById(questionId, includeAnswers);
+    const userId = String((req as any).userId || (req as any).user?.id || '');
+    const includeAnswers = req.query.includeAnswers === 'true' && await answersAllowed((req as any).user, userId, quiz);
 
-    if (!question) {
+    const question: any = await questionService.getQuestionById(questionId, includeAnswers);
+
+    const tenantId = (req as any).tenantId;
+    if (!question || (tenantId && question.tenantId && String(question.tenantId) !== String(tenantId))) {
       return res.status(404).json({ message: 'Question not found' });
     }
 
-    res.json(question);
+    const view = includeAnswers ? question : withoutAnswers(question);
+    res.json(await isQuizAuthor((req as any).user) ? view : orderOptionsForStudent(view, userId));
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -116,8 +137,18 @@ export const bulkCreateQuestions = async (req: Request, res: Response) => {
 
 export const validateAnswer = async (req: Request, res: Response) => {
   try {
-    const { questionId } = req.params;
+    const { quizId, questionId } = req.params;
     const { answer } = req.body;
+
+    // Telling a caller whether an answer is right is the answer key, one option at a time: the same rule applies.
+    const quiz = await quizInTenant(req, quizId);
+    const question = quiz ? await Question.findById(questionId).select('quizId') : null;
+    if (!quiz || !question || String((question as any).quizId || '') !== String(quiz._id)) {
+      return res.status(404).json({ message: 'Question not found' });
+    }
+    if (!(await answersAllowed((req as any).user, (req as any).userId, quiz))) {
+      return res.status(403).json({ message: 'Answers are available after you submit this quiz' });
+    }
 
     const result = await questionService.validateAnswer(questionId, answer);
     res.json(result);

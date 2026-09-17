@@ -13,6 +13,7 @@ import {
 } from '../../api/assignmentApi';
 import ShareOnLinkedIn from '../../components/common/ShareOnLinkedIn';
 import { submissionKindFor, projectSubmissionProblem } from './submissionKind';
+import { briefHtml } from './briefHtml';
 import './assignments.css';
 
 /** The server sends a student only the count of hidden tests, never the tests; an author's full document still carries them. */
@@ -594,7 +595,7 @@ const AssignmentWorkspace: React.FC = () => {
                   <h3 className="asgn-h3">📖 Instructions</h3>
                   <div
                     className="rich-content asgn-rich"
-                    dangerouslySetInnerHTML={{ __html: assignment.instructions }}
+                    dangerouslySetInnerHTML={{ __html: briefHtml(assignment.instructions) }}
                   />
                 </div>
               )}
@@ -908,7 +909,7 @@ const AssignmentWorkspace: React.FC = () => {
                         lineHeight: 1.6
                       }}
                       className="rich-content"
-                      dangerouslySetInnerHTML={{ __html: assignment.instructions }}
+                      dangerouslySetInnerHTML={{ __html: briefHtml(assignment.instructions) }}
                     />
                   </div>
                 )}

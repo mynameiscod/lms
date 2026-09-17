@@ -87,6 +87,11 @@ export interface ComposableUnit {
 export interface SkillBelief {
   score: number | null;
   confidence: SkillConfidence | null;
+  /**
+   * Every observation behind the score is a checkpoint answer. The score and confidence stay as
+   * measured; stateForScore caps the state it buys at STANDARD. Absent means false.
+   */
+  understandingOnly?: boolean;
 }
 
 export interface StudentProfile {
@@ -383,7 +388,7 @@ function governingState(unit: ComposableUnit, skills: Map<string, SkillBelief>):
   for (const key of unit.skillKeys) {
     const belief = skills.get(key);
     if (!belief || belief.score === null || belief.score === undefined) continue;
-    const state = stateForScore({ score: belief.score, confidence: belief.confidence });
+    const state = stateForScore({ score: belief.score, confidence: belief.confidence, understandingOnly: belief.understandingOnly });
     if (!worst || STATE_ORDER[state] < STATE_ORDER[worst.state]) {
       worst = { state, skill: key, score: belief.score };
     }
@@ -758,7 +763,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     for (const key of keys || []) {
       const belief = student.skills.get(key);
       if (!belief || belief.score === null || belief.score === undefined) continue;
-      const state = stateForScore({ score: belief.score, confidence: belief.confidence });
+      const state = stateForScore({ score: belief.score, confidence: belief.confidence, understandingOnly: belief.understandingOnly });
       if (state === 'VERIFIED') return { skill: key, score: belief.score };
     }
     return null;
@@ -802,7 +807,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     for (const key of prereqUnit.skillKeys) {
       const belief = student.skills.get(key);
       if (!belief || belief.score === null || belief.score === undefined) return null;
-      const state = stateForScore({ score: belief.score, confidence: belief.confidence });
+      const state = stateForScore({ score: belief.score, confidence: belief.confidence, understandingOnly: belief.understandingOnly });
       if (!weakest || TEACHING_LADDER.indexOf(state) < TEACHING_LADDER.indexOf(weakest.state)) {
         weakest = { skill: key, score: belief.score, state };
       }

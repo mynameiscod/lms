@@ -189,6 +189,7 @@ export const isAuthoringGap = (o: PrerequisiteOutcome): boolean =>
 export interface MeasuredBelief {
   score: number | null | undefined;
   confidence: any;
+  understandingOnly?: boolean;
 }
 
 const EVIDENCE_LADDER: AssignmentState[] =
@@ -215,7 +216,7 @@ export function reliableStandardEvidence(
     const belief = skills.get(key);
     if (!belief || belief.score === null || belief.score === undefined) return null;
     if (!isConfidentEnough(belief.confidence)) return null;
-    const state = stateForScore({ score: belief.score, confidence: belief.confidence });
+    const state = stateForScore({ score: belief.score, confidence: belief.confidence, understandingOnly: belief.understandingOnly });
     if (!STANDARD_OR_ABOVE.includes(state)) return null;
     if (!weakest || EVIDENCE_LADDER.indexOf(state) < EVIDENCE_LADDER.indexOf(weakest.state)) {
       weakest = { skill: key, score: belief.score, state };

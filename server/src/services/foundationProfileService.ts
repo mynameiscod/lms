@@ -29,7 +29,7 @@
  * guarantee that is for the path to not exist.
  */
 
-import { getSkillDna } from './skillDnaService';
+import { getSkillDna, getEvidenceBases } from './skillDnaService';
 import { stateForScore } from '../data/adaptiveCurriculumPolicy';
 import { StudentProfile, SkillBelief } from './curriculumComposerService';
 import {
@@ -50,6 +50,11 @@ export interface ProfileSummary {
   measured: number;
   /** Skills at VERIFIED. Kept in the profile, never dropped. */
   verified: number;
+  /**
+   * Skills whose measured score would buy REVISION or VERIFIED but rest on checkpoint answers alone, so
+   * they are planned at STANDARD. Their score and confidence are unchanged.
+   */
+  understandingCapped: string[];
   primaryDirection: string | null;
   directionStatus: DirectionStatus;
   exploring: string[];
@@ -114,11 +119,12 @@ export async function buildFoundationProfile(
   studentId: string,
   choice: DirectionChoice = {},
 ): Promise<{ profile: StudentProfile; summary: ProfileSummary }> {
-  const dna = await getSkillDna(tenantId, studentId);
+  const [dna, bases] = await Promise.all([getSkillDna(tenantId, studentId), getEvidenceBases(tenantId, studentId)]);
   const stance = resolveStance(choice);
 
   const skills = new Map<string, SkillBelief>();
   let verified = 0;
+  const understandingCapped: string[] = [];
 
   for (const row of dna) {
     /**
@@ -130,10 +136,24 @@ export async function buildFoundationProfile(
      */
     if (!row.skillActive) continue;
 
-    skills.set(row.skillKey, {
+    /**
+     * The measured score and confidence, untouched, plus what kind of evidence they rest on.
+     *
+     * A skill known only from checkpoint answers keeps its real score — a student who answered every
+     * question right has a score of 100 and is shown 100 — and is flagged, so the state the composer
+     * derives from it stops at STANDARD. Nothing here writes a number the evidence did not produce.
+     */
+    const understandingOnly = !!bases.get(row.skillKey)?.understandingOnly;
+    const belief: SkillBelief = {
       score: typeof row.score === 'number' ? row.score : null,
       confidence: (row.confidence as any) || null,
-    });
+      ...(understandingOnly ? { understandingOnly: true } : {}),
+    };
+    skills.set(row.skillKey, belief);
+    if (understandingOnly && stateForScore({ score: belief.score, confidence: belief.confidence })
+      !== stateForScore(belief)) {
+      understandingCapped.push(row.skillKey);
+    }
 
     /**
      * Counted through the canonical band function, never a restated threshold.
@@ -145,7 +165,7 @@ export async function buildFoundationProfile(
      *
      * Reporting only. VERIFIED skills stay in the map exactly like any other.
      */
-    if (stateForScore({ score: row.score, confidence: (row.confidence as any) || null }) === 'VERIFIED') {
+    if (stateForScore(belief) === 'VERIFIED') {
       verified++;
     }
   }
@@ -162,6 +182,7 @@ export async function buildFoundationProfile(
     summary: {
       measured: skills.size,
       verified,
+      understandingCapped,
       primaryDirection: stance.primaryDirection,
       directionStatus: stance.directionStatus,
       exploring: stance.exploring,

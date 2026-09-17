@@ -135,6 +135,11 @@ export const isConfidentEnough = (c?: SkillConfidence | null): boolean =>
 export function stateForScore(input: {
   score: number | null;
   confidence: SkillConfidence | null;
+  /**
+   * Every observation behind the score is a checkpoint answer (evidenceBasis). Absent means false, so
+   * a caller that does not know the basis gets exactly the state it always did.
+   */
+  understandingOnly?: boolean;
 }): AssignmentState {
   if (input.score === null || input.score === undefined) return 'NOT_EXPOSED';
 
@@ -147,6 +152,19 @@ export function stateForScore(input: {
 
   // Thin evidence may not buy a shortcut, but it must not manufacture a weakness either.
   if (!isConfidentEnough(input.confidence)) {
+    return raw === 'REVISION' || raw === 'VERIFIED' ? 'STANDARD' : raw;
+  }
+
+  /**
+   * Understanding is not applied mastery.
+   *
+   * Answering checkpoint questions right shows the student recognises the idea, and it moves the score
+   * honestly — nothing here changes the score or the confidence. What it cannot show is that they can
+   * write the code, so on its own it may not buy the shortcut REVISION and VERIFIED stand for: dropping
+   * the practice, the debugging, the coding assignment that would have been the first real test. A
+   * diagnostic or a graded piece of work beside it lifts the cap; so does nothing else.
+   */
+  if (input.understandingOnly) {
     return raw === 'REVISION' || raw === 'VERIFIED' ? 'STANDARD' : raw;
   }
   return raw;

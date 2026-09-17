@@ -127,7 +127,7 @@ export type LearnerShape = 'EMERGING' | 'DEVELOPING' | 'ESTABLISHED';
 export interface ShapeInput {
   /** Every skill the curriculum teaches, so "proven" is a fraction of the design not of the test. */
   designSkills: string[];
-  skills: Map<string, { score: number | null; confidence: any }>;
+  skills: Map<string, { score: number | null; confidence: any; understandingOnly?: boolean }>;
 }
 
 /**
@@ -143,7 +143,7 @@ export function learnerShapeOf(input: ShapeInput): LearnerShape {
   for (const key of input.designSkills) {
     const belief = input.skills.get(key);
     if (!belief || belief.score === null || belief.score === undefined) continue;
-    const state = stateForScore({ score: belief.score, confidence: belief.confidence });
+    const state = stateForScore({ score: belief.score, confidence: belief.confidence, understandingOnly: belief.understandingOnly });
     if (state === 'REVISION' || state === 'VERIFIED') proven++;
   }
 

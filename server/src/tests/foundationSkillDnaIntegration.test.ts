@@ -18,9 +18,11 @@ import { AUTHORABLE_SUITABLE_STATES } from '../data/adaptiveCurriculumPolicy';
 import { DIRECTION_CORE_MODULES, isCoreModuleFor } from '../data/careerDirectionPolicy';
 
 let dnaRows: any[] = [];
+let evidenceBases = new Map<string, any>();
 jest.mock('../services/skillDnaService', () => ({
   __esModule: true,
   getSkillDna: async () => dnaRows,
+  getEvidenceBases: async () => evidenceBases,
 }));
 
 import {
@@ -43,7 +45,7 @@ const row = (skillKey: string, score: number, over: any = {}) => ({
   evidenceCount: 3, distinctItems: 3, lastEvidenceAt: new Date(), skillActive: true, ...over,
 });
 
-beforeEach(() => { dnaRows = []; });
+beforeEach(() => { dnaRows = []; evidenceBases = new Map(); });
 
 // ─────────────────────────────────────────────────────────────────────────────
 describe('a skill nobody asked about stays unmeasured', () => {
@@ -392,5 +394,28 @@ describe('different learners get different plans, all of them ninety long', () =
 
     const modules = new Set(r.units.map(u => u.moduleCode));
     expect(modules.size).toBeGreaterThan(3);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('understanding alone does not buy a shortcut', () => {
+  const basis = (understandingOnly: boolean) => ({ understandingOnly, weights: {}, rows: {} });
+
+  it('keeps the measured score and confidence, flags the skill, and plans it at STANDARD', async () => {
+    dnaRows = [row('CONDITIONALS_BASICS', 100, { confidence: 'MEDIUM' }), row('LOOPS_BASICS', 100, { confidence: 'MEDIUM' })];
+    evidenceBases = new Map([['CONDITIONALS_BASICS', basis(true)], ['LOOPS_BASICS', basis(false)]]);
+    const { profile, summary } = await buildFoundationProfile(TENANT, STUDENT);
+
+    expect(profile.skills.get('CONDITIONALS_BASICS')).toEqual({ score: 100, confidence: 'MEDIUM', understandingOnly: true });
+    expect(profile.skills.get('LOOPS_BASICS')).toEqual({ score: 100, confidence: 'MEDIUM' });
+    expect(summary.understandingCapped).toEqual(['CONDITIONALS_BASICS']);
+    expect(summary.verified).toBe(1);
+  });
+
+  it('does not report a cap on a skill the cap does not change', async () => {
+    dnaRows = [row('CONDITIONALS_BASICS', 55, { confidence: 'MEDIUM' })];
+    evidenceBases = new Map([['CONDITIONALS_BASICS', basis(true)]]);
+    const { summary } = await buildFoundationProfile(TENANT, STUDENT);
+    expect(summary.understandingCapped).toEqual([]);
   });
 });

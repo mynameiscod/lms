@@ -342,7 +342,7 @@ export function measuredStateOf(unit: ComposableUnit, student: StudentProfile): 
   for (const k of unit.skillKeys) {
     const b = student.skills.get(k);
     if (!b || b.score === null || b.score === undefined) continue;
-    const s = stateForScore({ score: b.score, confidence: b.confidence });
+    const s = stateForScore({ score: b.score, confidence: b.confidence, understandingOnly: b.understandingOnly });
     if (!worst || STATE_ORDER[s] < STATE_ORDER[worst]) worst = s;
   }
   return worst || 'NOT_EXPOSED';
@@ -407,7 +407,7 @@ export const outgrownBy = (unit: ComposableUnit | undefined, student: StudentPro
   for (const k of unit.skillKeys) {
     const b = student.skills.get(k);
     if (!b || b.score === null || b.score === undefined) return false;
-    const idx = TEACHING_LADDER.indexOf(stateForScore({ score: b.score, confidence: b.confidence }));
+    const idx = TEACHING_LADDER.indexOf(stateForScore({ score: b.score, confidence: b.confidence, understandingOnly: b.understandingOnly }));
     if (weakest < 0 || idx < weakest) weakest = idx;
   }
   const highestServed = Math.max(...suitableStatesFor(unit).map(s => TEACHING_LADDER.indexOf(s)));
@@ -427,7 +427,7 @@ export const masteredBy = (
   const verified = (keys || []).some(k => {
     const b = student.skills.get(k);
     return !!b && b.score !== null && b.score !== undefined
-      && stateForScore({ score: b.score, confidence: b.confidence }) === 'VERIFIED';
+      && stateForScore({ score: b.score, confidence: b.confidence, understandingOnly: b.understandingOnly }) === 'VERIFIED';
   });
   return verified || outgrownBy(p, student) || !!standardEvidenceSatisfies(p, dependent, student.skills);
 };
@@ -1193,7 +1193,7 @@ export function auditBackbone(codes: string[], universe: ComposableUnit[], stude
     for (const k of [...new Set(topicUnits.flatMap(u => u.skillKeys))]) {
       const b = student.skills.get(k);
       if (!b || b.score === null || b.score === undefined) continue;
-      const state = stateForScore({ score: b.score, confidence: b.confidence });
+      const state = stateForScore({ score: b.score, confidence: b.confidence, understandingOnly: b.understandingOnly });
       if (!weakest || STATE_ORDER[state] < STATE_ORDER[weakest.state]) weakest = { state, score: b.score, confidence: b.confidence };
     }
     return {

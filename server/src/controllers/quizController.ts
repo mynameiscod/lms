@@ -12,7 +12,7 @@ import { EmailService } from '../services/emailService';
 import { checkDeadlineGate, studentSchedulesMap, policyFromRow } from '../services/assessmentDeliveryService';
 import { computeStatus, mergePolicy, DEFAULT_POLICY } from '../services/deadlinePolicyService';
 import { resolveAssignedQuizzes } from '../services/studentWorkService';
-import { isQuizAuthor, orderOptionsForStudent } from '../services/quizAnswerAccess';
+import { callerTenant, isQuizAuthor, orderOptionsForStudent } from '../services/quizAnswerAccess';
 
 export const createQuiz = async (req: Request, res: Response) => {
   try {
@@ -256,7 +256,7 @@ export const getQuizQuestions = async (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;
     const quiz = await Quiz.findById(quizId);
-    const tenantId = (req as any).tenantId;
+    const tenantId = callerTenant(req);
     if (!quiz || (tenantId && quiz.tenantId && String(quiz.tenantId) !== String(tenantId))) {
       return res.status(404).json({ message: 'Quiz not found' });
     }
@@ -282,7 +282,7 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
 
     // Only the student whose attempt it is may hand it in: a submission sets their marks and their Skill DNA.
     const owned = await QuizAttempt.findById(attemptId).select('studentId tenantId quizId').lean() as any;
-    const tenantId = (req as any).tenantId;
+    const tenantId = callerTenant(req);
     if (!owned || (tenantId && String(owned.tenantId) !== String(tenantId)) || String(owned.quizId) !== String(req.params.quizId)) {
       return res.status(404).json({ message: 'Attempt not found' });
     }
@@ -317,7 +317,7 @@ export const getQuizResults = async (req: Request, res: Response) => {
      * A student reads their OWN attempt, once it is handed in. Anyone holding an attempt id could read any student's
      * results — correct answers included — before; authors and graders still read any attempt in their tenant.
      */
-    const tenantId = (req as any).tenantId;
+    const tenantId = callerTenant(req);
     const author = await isQuizAuthor((req as any).user);
     const attemptTenant = (results.attempt as any)?.tenantId;
     if (tenantId && attemptTenant && String(attemptTenant) !== String(tenantId)) return res.status(404).json({ message: 'Attempt not found' });
@@ -455,7 +455,7 @@ export const getStudentAttemptResults = async (req: Request, res: Response) => {
 export const getAttemptResultsForAdmin = async (req: Request, res: Response) => {
   try {
     const { attemptId } = req.params;
-    const tenantId = (req as any).tenantId;
+    const tenantId = callerTenant(req);
 
     const attempt = await QuizAttempt.findById(attemptId);
     if (!attempt) return res.status(404).json({ message: 'Attempt not found' });

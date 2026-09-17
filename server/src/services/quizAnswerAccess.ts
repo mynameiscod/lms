@@ -35,6 +35,15 @@ export async function isQuizAuthor(user: { role?: string; customRoleId?: any } |
   return AUTHORING.some(p => held.includes(p));
 }
 
+/**
+ * The tenant a caller belongs to. The X-Tenant-Id header is chosen by the client, so a check against it alone lets a
+ * user of one tenant read another's quiz by sending that tenant's id; the signed token's tenant is used where it has
+ * one, and the header only for a token without one.
+ */
+export function callerTenant(req: any): string {
+  return String(req?.user?.tenantId || req?.tenantId || '');
+}
+
 /** Has this student handed in an attempt at this quiz? */
 export async function hasSubmittedAttempt(studentId: string, quizId: string): Promise<boolean> {
   if (!studentId) return false;

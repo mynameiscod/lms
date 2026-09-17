@@ -238,4 +238,13 @@ describe('tenant isolation', () => {
     expect((await call(questionController.getQuestionById, { params: { quizId: QUIZ, questionId: questions[0]._id }, ...asAdmin })).status).toBe(404);
     expect((await call(quizController.getQuizQuestions)).status).toBe(404);
   });
+
+  it('11b. the tenant comes from the signed token, so naming the other tenant in the header does not open its quiz', async () => {
+    quizzes[0].tenantId = OTHER_TENANT;
+    const spoof = { tenantId: OTHER_TENANT, userId: ADMIN, user: { id: ADMIN, role: 'TENANT_ADMIN', tenantId: TENANT } };
+    expect((await call(questionController.getQuestionsForQuiz, { query: { includeAnswers: 'true' }, ...spoof })).status).toBe(404);
+    expect((await call(quizController.getQuizQuestions, spoof)).status).toBe(404);
+    attempts.push({ _id: 'att-x', quizId: QUIZ, studentId: OTHER_STUDENT, tenantId: OTHER_TENANT, status: 'submitted' });
+    expect((await call(quizController.getQuizResults, { params: { attemptId: 'att-x' }, ...spoof })).status).toBe(404);
+  });
 });

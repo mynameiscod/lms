@@ -4,12 +4,12 @@ import quizService from '../services/quizService';
 import Quiz from '../models/Quiz';
 import { generateQuestionsWithAI, normalizeQuestion } from '../services/aiService';
 import Question from '../models/Question';
-import { answersAllowed, isQuizAuthor, orderOptionsForStudent, withoutAnswers } from '../services/quizAnswerAccess';
+import { answersAllowed, callerTenant, isQuizAuthor, orderOptionsForStudent, withoutAnswers } from '../services/quizAnswerAccess';
 
 /** The quiz, if it belongs to the caller's tenant. A quiz of another tenant is answered as not found. */
 const quizInTenant = async (req: Request, quizId: string) => {
   const quiz = await Quiz.findById(quizId);
-  const tenantId = (req as any).tenantId;
+  const tenantId = callerTenant(req);
   if (!quiz || (tenantId && quiz.tenantId && String(quiz.tenantId) !== String(tenantId))) return null;
   return quiz;
 };
@@ -76,7 +76,7 @@ export const getQuestionById = async (req: Request, res: Response) => {
 
     const question: any = await questionService.getQuestionById(questionId, includeAnswers);
 
-    const tenantId = (req as any).tenantId;
+    const tenantId = callerTenant(req);
     if (!question || (tenantId && question.tenantId && String(question.tenantId) !== String(tenantId))) {
       return res.status(404).json({ message: 'Question not found' });
     }

@@ -72,7 +72,8 @@ export const createBunnyVideo = async (req: Request, res: Response) => {
  */
 export const refreshBunnyStatus = async (req: any, res: any) => {
   try {
-    const tenantId = String(req.tenantId || req.user?.tenantId || '');
+    // The token's tenant, never the X-Tenant-Id header: a header is whatever the caller chose to send.
+    const tenantId = String(req.user?.tenantId || '');
     if (!tenantId) return res.status(401).json({ message: 'Not authenticated' });
     const { refreshBunnyVideoStatuses } = await import('../services/bunnyVideoStatusService');
     const report = await refreshBunnyVideoStatuses(tenantId);

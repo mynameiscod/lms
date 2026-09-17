@@ -24,6 +24,7 @@ import { resolveCurriculumPolicy } from '../services/deadlinePolicyService';
 import * as razorpay from '../services/razorpayService';
 import { foundationAccess } from '../services/foundationAccessService';
 import { isJourneyDayOpen } from '../data/journeyDayLadder';
+import { studentContentRow } from '../services/studentContentView';
 
 /**
  * A Foundation journey is the member's ninety days. Without membership its days cannot be opened or
@@ -910,7 +911,8 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       const contentIds = contentItems.map((i: any) => i.contentId);
       const contents = await LearningContentLibrary.find({ _id: { $in: contentIds } }).lean();
       const contentMap: Record<string, any> = {};
-      contents.forEach(c => { contentMap[c._id.toString()] = c; });
+      // Hidden grader tests are stripped here; see studentContentView.
+      contents.forEach((c: any) => { contentMap[c._id.toString()] = studentContentRow(c); });
 
       const moduleStatus = await resolveModuleStatuses(sId, dayItems);
 

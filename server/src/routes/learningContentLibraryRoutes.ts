@@ -5,6 +5,7 @@ import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
+import { roleGuard } from '../middleware/roleGuard';
 import * as ctrl from '../controllers/learningContentLibraryController';
 import * as bunny from '../controllers/bunnyController';
 import { jwtSecret } from '../config/secrets';
@@ -88,16 +89,18 @@ const uploadMw = (req: any, res: any, next: any) => {
 };
 
 // ─── Stream route (no auth header — uses query token) ─────────────────────────
+// The tenant is the verified token's, never the query's: a token from one tenant must not stream another tenant's video.
 router.get('/:id/stream', (req, res) => {
-  const token    = req.query.token as string;
-  const tenantId = req.query.tenantId as string;
-  if (!token || !tenantId) return res.status(401).json({ message: 'token and tenantId required' });
+  const token = req.query.token as string;
+  if (!token) return res.status(401).json({ message: 'token required' });
+  let claims: any;
   try {
-    jwt.verify(token, jwtSecret());
+    claims = jwt.verify(token, jwtSecret());
   } catch {
     return res.status(401).json({ message: 'Invalid token' });
   }
-  (req as any).tenantId = tenantId;
+  if (!claims?.tenantId) return res.status(401).json({ message: 'Invalid token' });
+  (req as any).tenantId = String(claims.tenantId);
   return ctrl.streamVideo(req, res);
 });
 
@@ -105,33 +108,38 @@ router.get('/:id/stream', (req, res) => {
 router.use(authMiddleware);
 router.use(tenantMiddleware);
 
+// The library is staff authoring: rows carry hidden grader tests and drafts, so students neither read nor write it here.
+// Learners receive content only through their day plans, which strip grading material. Recording an interview answer
+// (a student flow) still needs a Bunny upload slot, so that route stays open to any authenticated member.
+const AUTHOR = roleGuard(['create_courses', 'edit_courses', 'manage_own_courses']);
+
 // Tags (for filter dropdowns)
-router.get('/tags/topics',  ctrl.getTopicTags);
-router.get('/tags/courses', ctrl.getCourseTags);
+router.get('/tags/topics',  AUTHOR, ctrl.getTopicTags);
+router.get('/tags/courses', AUTHOR, ctrl.getCourseTags);
 
 // Canonical skills, depths and directions for the adaptive section of the editor.
 // Declared before '/:id' — an id route placed above it would swallow this path.
-router.get('/skill-options', ctrl.getSkillOptions);
+router.get('/skill-options', AUTHOR, ctrl.getSkillOptions);
 
 // Bunny Stream — create video + resumable upload authorization
 router.get('/bunny/config',  bunny.bunnyConfigured);
 router.post('/bunny/videos', bunny.createBunnyVideo);
 // Mirrors Bunny's encode status onto our records — surfaces failed uploads.
-router.post('/bunny/refresh-status', bunny.refreshBunnyStatus);
+router.post('/bunny/refresh-status', AUTHOR, bunny.refreshBunnyStatus);
 // Bunny content item — pure JSON (no multer), so the body reaches the controller intact
-router.post('/bunny/content', ctrl.createContent);
+router.post('/bunny/content', AUTHOR, ctrl.createContent);
 
 // CRUD
-router.get('/',     ctrl.listContent);
-router.get('/:id',  ctrl.getContent);
+router.get('/',     AUTHOR, ctrl.listContent);
+router.get('/:id',  AUTHOR, ctrl.getContent);
 
 // Create — optionally includes a video file and/or a thumbnail (or a notes file)
-router.post('/', uploadMw, ctrl.createContent);
+router.post('/', AUTHOR, uploadMw, ctrl.createContent);
 
 // Update — same dynamic upload logic
-router.put('/:id', uploadMw, ctrl.updateContent);
+router.put('/:id', AUTHOR, uploadMw, ctrl.updateContent);
 
-router.delete('/:id',          ctrl.deleteContent);
-router.patch('/:id/publish',   ctrl.togglePublish);
+router.delete('/:id',          AUTHOR, ctrl.deleteContent);
+router.patch('/:id/publish',   AUTHOR, ctrl.togglePublish);
 
 export default router;

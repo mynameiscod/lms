@@ -305,6 +305,9 @@ const PassportJoin: React.FC = () => {
               </div>
             </div>
 
+            {/* The illustration and the signup card share one stage, the card overlapping the picture — no empty
+                gutters between three separate columns, and room for the form to be a comfortable size. */}
+            <div className="cpx-stage">
             <div className="cpx-hero-visual" aria-hidden="true">
               {/* The floating card and caption are anchored to the picture, not to the column's height. */}
               <div className="cpx-visual-in">
@@ -327,14 +330,16 @@ const PassportJoin: React.FC = () => {
                 <>
                   {msg && <div className="cpx-msg err">{msg}</div>}
 
-                  <div className="cpx-field">
+                  {/* Two columns on a wide card — the same fields in about half the height. */}
+                  <div className="cpx-fields">
+                  <div className="cpx-field full">
                     <label htmlFor="jn-name">Full Name <em>*</em></label>
                     <div className={`cpx-input${errFor('name') ? ' bad' : ''}`}><i className={`bi ${ICON.name}`} /><input id="jn-name" value={form.name || ''} autoComplete="name" aria-invalid={!!errFor('name')} aria-describedby={errFor('name') ? 'jn-name-err' : undefined} onBlur={() => blur('name')} onChange={e => set('name', e.target.value)} placeholder="Enter your full name" /></div>
                     {errFor('name') && <div className="cpx-fe" id="jn-name-err">{errFor('name')}</div>}
                   </div>
                   <div className="cpx-field">
                     <label htmlFor="jn-mob">Mobile Number <em>*</em></label>
-                    <div className={`cpx-input${errFor('mobile') ? ' bad' : ''}`}><i className={`bi ${ICON.mobile}`} /><input id="jn-mob" value={form.mobile || ''} inputMode="numeric" autoComplete="tel" maxLength={10} aria-invalid={!!errFor('mobile')} aria-describedby={errFor('mobile') ? 'jn-mob-err' : undefined} onBlur={() => blur('mobile')} onChange={e => set('mobile', toMobile(e.target.value))} placeholder="10-digit mobile number" /></div>
+                    <div className={`cpx-input${errFor('mobile') ? ' bad' : ''}`}><i className={`bi ${ICON.mobile}`} /><input id="jn-mob" value={form.mobile || ''} inputMode="numeric" autoComplete="tel" maxLength={10} aria-invalid={!!errFor('mobile')} aria-describedby={errFor('mobile') ? 'jn-mob-err' : undefined} onBlur={() => blur('mobile')} onChange={e => set('mobile', toMobile(e.target.value))} placeholder="10-digit number" /></div>
                     {errFor('mobile') && <div className="cpx-fe" id="jn-mob-err">{errFor('mobile')}</div>}
                   </div>
                   <div className="cpx-field">
@@ -343,8 +348,8 @@ const PassportJoin: React.FC = () => {
                     {errFor('email') && <div className="cpx-fe" id="jn-mail-err">{errFor('email')}</div>}
                   </div>
 
-                  {extra.map(f => (
-                    <div className="cpx-field" key={f.key}>
+                  {extra.map((f, i) => (
+                    <div className={`cpx-field${extra.length % 2 === 1 && i === extra.length - 1 ? ' full' : ''}`} key={f.key}>
                       <label htmlFor={`jn-${f.key}`}>{f.label}{f.required ? <em> *</em> : null}</label>
                       <div className={`cpx-input plain${errFor(f.key) ? ' bad' : ''}`}>
                         {f.type === 'select' ? (
@@ -359,6 +364,7 @@ const PassportJoin: React.FC = () => {
                       {errFor(f.key) && <div className="cpx-fe">{errFor(f.key)}</div>}
                     </div>
                   ))}
+                  </div>
 
                   <button className="cpx-btn cpx-btn-navy cpx-submit" disabled={busy} onClick={submit}>
                     {busy ? 'Please wait…' : <>Start My Career Journey <i className="bi bi-arrow-right" /></>}
@@ -369,6 +375,7 @@ const PassportJoin: React.FC = () => {
                 </>
               )}
             </section>
+            </div>
           </div>
         </section>
 

@@ -185,8 +185,9 @@
 .cps-footer-brand img { height: 36px; width: auto; display: block; }
 .cps-footer-made { text-align: right; }
 
-/* The footer in the guide's primary blue, with the logo in white so it reads clearly on it. */
-.cps-footer { background: var(--primary); border-top: 0; color: rgba(255, 255, 255, .86); }
+/* The footer in the logo's own navy (#051D64 — the "Career" wordmark and the C mark; also the guide's navy), with
+   the logo in white so it reads clearly on it. */
+.cps-footer { background: var(--navy); border-top: 0; color: rgba(255, 255, 255, .86); }
 .cps-footer-brand img { filter: brightness(0) invert(1); }
 .cps-footer-made { color: rgba(255, 255, 255, .86); }
 

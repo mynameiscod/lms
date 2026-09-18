@@ -4,42 +4,11 @@ import passportApi, { DashboardData, Badge, TodayMissions } from '../../api/pass
 import TodayJourneyCard from './TodayJourneyCard';
 import './dashboard.css';
 import './dashboard-redesign.css';
+import './memberDashboard.css';
 
 const Bi: React.FC<{ name: string; className?: string }> = ({ name, className = '' }) => (
   <i className={`bi bi-${name}${className ? ` ${className}` : ''}`} aria-hidden="true" />
 );
-
-const Ring: React.FC<{ value: number; max: number; size?: number }> = ({ value, max, size = 190 }) => {
-  const stroke = 16;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const pct = max > 0 ? Math.min(1, value / max) : 0;
-  return (
-    <div className="gd-ring" style={{ width: size, height: size }}>
-      <svg width={size} height={size}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e7eef5" strokeWidth={stroke} />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke="url(#ringGrad)"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={`${c * pct} ${c}`}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-        <defs>
-          <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#359AAD" />
-            <stop offset="100%" stopColor="#051D64" />
-          </linearGradient>
-        </defs>
-      </svg>
-      <div className="mid"><div><b>{value}</b><span>/{max}</span></div></div>
-    </div>
-  );
-};
 
 const Radar: React.FC<{ skills: { label: string; score: number }[] }> = ({ skills }) => {
   const size = 290, cx = size / 2, cy = size / 2 + 6, R = 92;
@@ -88,7 +57,7 @@ const AreaChart: React.FC<{ points: { label: string; xp: number }[] }> = ({ poin
   const xs = points.map((_, i) => padL + i * stepX);
   const line = points.map((p, i) => `${xs[i]},${y(p.xp)}`).join(' ');
   return (
-    <svg className="gd-chart" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" height={h}>
+    <svg className="gd-chart md-chart" viewBox={`0 0 ${w} ${h}`}>
       {[0, 0.5, 1].map(f => (
         <g key={f}>
           <line x1={padL} x2={w - 6} y1={y(max * f)} y2={y(max * f)} stroke="#edf2f6" strokeWidth={1} />
@@ -209,163 +178,193 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
     requestAnimationFrame(() => document.getElementById(`mission-${nextMission.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
   };
 
+  const score = d.coderScore!.score;
+  const scoreTag = score >= 750 ? 'Excellent' : score >= 500 ? 'On track' : 'Just getting started';
+  const goalPct = Math.min(100, Math.round(goal.target ? (goal.earned / goal.target) * 100 : 0));
+  const streakTarget = st.streak < 7 ? 7 : st.streak < 21 ? 21 : st.streak < 30 ? 30 : 100;
+  const missionXp = shownMissions.reduce((s, m) => s + m.xp, 0);
+  const missionsDone = shownMissions.filter(m => m.done).length;
+
+  /**
+   * THE MEMBER HOME, IN THE ORDER A STUDENT USES IT.
+   *
+   * What to do now leads (today's goal, the journey day, the missions); how they are doing follows (scores,
+   * activity, the board); the long view closes (badges, contests, the career path). Every figure is the one
+   * this screen always showed — the redesign moves and groups them, it does not invent any.
+   */
   return (
-    <>
-      <div className="gd-grid gd-3">
-        <div className="gd-card">
-          <div className="gd-card-hd">
-            <h2><Bi name="person-workspace" /> Coder Score <span className="gd-help" title="A 0–1000 composite of your assessment, practice, missions, interviews and resume.">?</span></h2>
+    <div className="md">
+      <section className="md-hero">
+        <div className="md-hero-copy">
+          <span className="md-eyebrow">Day {st.day} of {st.totalDays}{d.pathwayLabel ? ` · ${d.pathwayLabel}` : ''}</span>
+          <h1>Today’s <span>focus</span></h1>
+          <p>{goal.met
+            ? 'Today’s goal is reached — anything else you do today is bonus.'
+            : `${Math.max(0, goal.target - goal.earned)} XP to today’s goal. Finish your missions to get there.`}</p>
+          <div className="md-goal">
+            <div className="md-goal-top"><b>Today’s goal</b><span>{goal.earned} / {goal.target} XP · {goalPct}%</span></div>
+            <div className="md-goal-bar"><i style={{ width: `${goalPct}%` }} /></div>
           </div>
-          <div className="gd-score">
-            <Ring value={d.coderScore!.score} max={1000} size={168} />
-            <div className="gd-score-side">
-              <span className="gd-tag">
-                {d.coderScore!.score >= 750 ? 'Excellent' : d.coderScore!.score >= 500 ? 'On track' : 'Just getting started'}
-              </span>
-              <p>{d.percentileAhead !== null && d.percentileAhead !== undefined
-                ? <>You are ahead of <b>{d.percentileAhead}%</b> of CareerPilot members.</>
-                : <>Rankings appear once more members join your cohort.</>}
-              </p>
-              <div className="gd-parts-hd">Where your score comes from</div>
-              <div className="gd-parts">
-                {d.coderScore!.parts.map(p => {
-                  const pct = Math.round((p.earned / p.max) * 100);
-                  return <div className="gd-part" key={p.label}>
-                    <span className="t">{p.label}</span><span className="b"><i style={{ width: `${pct}%` }} /></span><span className="v">{pct}%</span>
-                  </div>;
-                })}
-              </div>
-              <div className="gd-rank"><Bi name="lightning-charge-fill" /> Earn {lv.xpToNextLevel.toLocaleString()} XP to reach Level {lv.nextLevel}</div>
-            </div>
+          <div className="md-hero-actions">
+            <button className="md-btn light" onClick={startNext}>
+              {nextMission ? (nextMission.link ? 'Start next mission' : 'Write your answer') : 'Practice anyway'} <Bi name="arrow-right" />
+            </button>
+            <button className="md-btn ghost" onClick={() => nav('/careerpilot/roadmap')}><Bi name="map" /> My roadmap</button>
           </div>
         </div>
-
-        <div className="gd-card">
-          <div className="gd-card-hd">
-            <h2><Bi name="stars" /> Skill Meter <span className="gd-help" title="Your six Career Readiness Assessment categories.">?</span></h2>
-            <button className="lnk" onClick={() => nav('/careerpilot/readiness')}>View full report <Bi name="arrow-right" /></button>
+        <div className="md-hero-score">
+          <div className="md-score-ring" style={{ ['--md-deg' as any]: `${Math.min(1000, score) * 0.36}deg` }}>
+            <div><strong>{score}</strong><span>/ 1000</span></div>
           </div>
-          <div className="gd-skill-wrap"><Radar skills={d.skills || []} /></div>
-        </div>
-
-        <div className="gd-card">
-          <div className="gd-card-hd"><h2><Bi name="bar-chart-fill" /> Your Coding Stats</h2></div>
-          <div className="gd-statlist">
-            {[
-              ['code-slash', 'cp-icon-blue', 'Problems Solved', <>{st.solved}<small> / {st.totalProblems}</small></>],
-              ['arrow-repeat', 'cp-icon-blue', 'Total Attempts', d.weekly?.totalAttempts ?? 0],
-              ['bullseye', 'cp-icon-soft', 'Accuracy', st.accuracy ? `${st.accuracy.pct}%` : '—'],
-              ['check-circle-fill', 'cp-icon-soft', 'Missions Done', <>{st.completedDays}<small> / {st.totalDays}</small></>],
-              ['people-fill', 'cp-icon-soft', 'Cohort Rank', <>{st.cohortRank ? `#${st.cohortRank}` : '—'}<small>{st.cohortSize > 1 ? ` of ${st.cohortSize}` : ''}</small></>],
-              ['calendar3', 'cp-icon-blue', 'Journey Day', <>{st.day}<small> / {st.totalDays}</small></>],
-            ].map(([icon, tone, label, value], idx) => (
-              <div className="gd-statrow" key={idx}>
-                <span className={`ic ${tone}`}><Bi name={icon as string} /></span>
-                <span className="t">{label}</span><span className="v">{value}</span>
-              </div>
-            ))}
+          <div className="md-hero-score-copy">
+            <small>Coder score <span className="md-help" title="A 0–1000 composite of your assessment, practice, missions, interviews and resume.">?</span></small>
+            <b>{scoreTag}</b>
+            <span>{d.percentileAhead !== null && d.percentileAhead !== undefined
+              ? <>Ahead of <em>{d.percentileAhead}%</em> of CareerPilot members.</>
+              : 'Rankings appear once more members join your cohort.'}</span>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="gd-tiles" style={{ marginTop: 14 }}>
-        <div className="gd-tile"><span className="ic cp-icon-rose"><Bi name="bullseye" /></span><div><div className="lbl">Today's Goal</div><div className="val">{goal.earned}<span> / {goal.target} XP</span></div><div className="gd-tile-bar"><span className="tr"><i style={{ width: `${Math.min(100, goal.target ? (goal.earned / goal.target) * 100 : 0)}%` }} /></span><em>{Math.min(100, Math.round(goal.target ? (goal.earned / goal.target) * 100 : 0))}%</em></div><div className="sub">{goal.met ? 'Goal reached!' : `${Math.max(0, goal.target - goal.earned)} XP to go`}</div></div></div>
-        <div className="gd-tile"><span className="ic cp-icon-blue"><Bi name="bar-chart-fill" /></span><div><div className="lbl">Weekly Submissions</div><div className="val">{d.weekly?.submissions ?? 0}</div><div className="sub">{(d.weekly?.solved ?? 0) > 0 ? `${d.weekly!.solved} solved this week` : 'No submissions this week'}</div></div></div>
-        <div className="gd-tile"><span className="ic cp-icon-violet"><Bi name="mic-fill" /></span><div><div className="lbl">Mock Interviews</div><div className="val">{st.interviews}</div><div className="sub">{st.bestInterview !== null ? `Best ${st.bestInterview}%` : 'Not attempted yet'}</div></div></div>
-        <div className="gd-tile"><span className="ic cp-icon-amber"><Bi name="trophy-fill" /></span><div><div className="lbl">Best Streak</div><div className="val">{st.longestStreak} {st.longestStreak === 1 ? 'Day' : 'Days'}</div><div className="sub">{st.streak >= st.longestStreak && st.streak > 0 ? 'Personal best — keep it up!' : 'Beat your record'}</div></div></div>
-      </div>
+      <section className="md-kpis">
+        <div><span className="ic amber"><Bi name="fire" /></span><div><small>Streak</small><b>{st.streak}<em> {st.streak === 1 ? 'day' : 'days'}</em></b><span>Best {st.longestStreak} {st.longestStreak === 1 ? 'day' : 'days'}</span></div></div>
+        <div><span className="ic blue"><Bi name="award-fill" /></span><div><small>Level {lv.level}</small><b className="sm">{lv.title}</b><span className="md-mini-bar"><i style={{ width: `${lv.progressPct}%` }} /></span><span>{lv.xpToNextLevel.toLocaleString()} XP to level {lv.nextLevel}</span></div></div>
+        <div><span className="ic teal"><Bi name="code-slash" /></span><div><small>Problems solved</small><b>{st.solved}<em> / {st.totalProblems}</em></b><span>{st.accuracy ? `${st.accuracy.pct}% accuracy` : 'No attempts yet'}</span></div></div>
+        <div><span className="ic violet"><Bi name="mic-fill" /></span><div><small>Mock interviews</small><b>{st.interviews}</b><span>{st.bestInterview !== null ? `Best ${st.bestInterview}%` : 'Not attempted yet'}</span></div></div>
+      </section>
 
       {/* A student the unit engine plans sees their journey day first; renders nothing otherwise. */}
       <TodayJourneyCard />
 
-      <div className="gd-grid gd-2b" style={{ marginTop: 14 }}>
-        <div className="gd-card">
-          <div className="gd-card-hd">
-            <h2><Bi name="list-task" /> {pastDay ? `Day ${pastDay.day}` : "Today's Mission"}</h2>
-            <div className="gd-day-nav">
-              <button onClick={() => stepDay(-1)} disabled={(pastDay?.day ?? d.day ?? 1) <= 1 || dayBusy} title="Previous day"><Bi name="chevron-left" /></button>
-              {pastDay ? <button className="today" onClick={() => setPastDay(null)}>Back to today</button> : <span className="gd-timer"><Bi name="clock" /> {hoursLeft}</span>}
-              <button onClick={() => stepDay(1)} disabled={!pastDay || dayBusy} title="Next day"><Bi name="chevron-right" /></button>
+      <section className="md-grid wide">
+        <article className="md-card">
+          <header className="md-card-head">
+            <div>
+              <h2><Bi name="list-task" /> {pastDay ? `Day ${pastDay.day} missions` : 'Today’s missions'}</h2>
+              <p>{totalMissions ? `${missionsDone} of ${totalMissions} done · +${missionXp} XP for all of them` : 'Your daily missions appear here.'}</p>
             </div>
-          </div>
-          <div className="gd-reward">Complete all missions to stay on track <span className="chip">+{shownMissions.reduce((s, m) => s + m.xp, 0)} XP</span></div>
+            <div className="md-day-nav">
+              <button onClick={() => stepDay(-1)} disabled={(pastDay?.day ?? d.day ?? 1) <= 1 || dayBusy} title="Previous day" aria-label="Previous day"><Bi name="chevron-left" /></button>
+              {pastDay ? <button className="today" onClick={() => setPastDay(null)}>Back to today</button> : <span className="md-timer"><Bi name="clock" /> {hoursLeft}</span>}
+              <button onClick={() => stepDay(1)} disabled={!pastDay || dayBusy} title="Next day" aria-label="Next day"><Bi name="chevron-right" /></button>
+            </div>
+          </header>
           {!totalMissions ? (
-            <div className="gd-chart-empty">
+            <div className="md-empty">
               {data.dailyPlan && !data.dailyPlan.available ? <>
-                <p style={{ margin: '0 0 10px' }}>{data.dailyPlan.message}</p>
-                {data.dailyPlan.reason === 'ROADMAP_REQUIRED' && <button className="gd-btn primary" onClick={() => nav('/careerpilot/roadmap')}>Build my 90-day plan</button>}
+                <p>{data.dailyPlan.message}</p>
+                {data.dailyPlan.reason === 'ROADMAP_REQUIRED' && <button className="md-btn primary" onClick={() => nav('/careerpilot/roadmap')}>Build my 90-day plan</button>}
               </> : 'No missions generated for today.'}
             </div>
           ) : <>
-            {shownMissions.map(m => (
-              <React.Fragment key={m.key}>
-                <div className={`gd-mission${m.done ? ' done' : ''}`} id={`mission-${m.key}`}>
-                  <span className="badge"><Bi name={MISSION_ICON[m.category] || 'circle'} /></span>
-                  <div className="txt"><b>{m.title}</b><span>{m.detail}</span></div>
-                  {m.link && !m.done && <button className="lnk" onClick={() => openMissionLink(m.link!, nav)}>Open <Bi name="arrow-right" /></button>}
-                  {m.needsAnswer && !m.done && <button className="lnk" onClick={() => { setAnswerFor(answerFor === m.key ? null : m.key); setAnswerText(''); setAnswerMsg(''); }}>{answerFor === m.key ? 'Close' : 'Write answer'} <Bi name="arrow-right" /></button>}
-                  <span className="cnt">+{m.xp} XP</span>
-                  <button className={`gd-check${m.done ? ' on' : ''}`} disabled={m.done || (m.verify === 'interview' && !m.done) || (m.needsAnswer && !m.done)} onClick={() => toggleMission(m.key)}>{m.done && <Bi name="check-lg" />}</button>
-                </div>
-                {m.needsAnswer && !m.done && answerFor === m.key && <div className="gd-answer">
-                  <textarea value={answerText} autoFocus rows={3} placeholder="Type your answer here…" onChange={e => setAnswerText(e.target.value)} onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()} />
-                  <div className="hint"><Bi name="pencil-square" /> Write it in your own words — pasting is turned off for this one.</div>
-                  <div className="row"><button className="save" onClick={() => saveAnswer(m.key)} disabled={answerBusy}>{answerBusy ? 'Saving…' : `Save & complete +${m.xp} XP`}</button><button className="cancel" onClick={() => { setAnswerFor(null); setAnswerMsg(''); }}>Cancel</button>{answerMsg && <span className="msg">{answerMsg}</span>}</div>
-                </div>}
-                {m.done && m.answer && <div className="gd-answer saved"><b>Your answer</b><p>{m.answer}</p></div>}
-                {(m.feedback || (justCoached?.key === m.key && justCoached.feedback)) && <div className="gd-coach"><b><Bi name="chat-dots" /> Coach</b><p>{m.feedback || justCoached?.feedback}</p></div>}
-              </React.Fragment>
-            ))}
-            {missionMsg && <div className="gd-mission-error">{missionMsg}</div>}
-            <button className="gd-mission-cta" onClick={startNext}>{nextMission ? (nextMission.link ? 'Start Now' : 'Write your answer') : 'All done today — practice anyway'} <Bi name="arrow-right" /></button>
+            <div className="md-missions">
+              {shownMissions.map(m => (
+                <React.Fragment key={m.key}>
+                  <div className={`md-mission${m.done ? ' done' : ''}`} id={`mission-${m.key}`}>
+                    <span className="md-mission-ic"><Bi name={MISSION_ICON[m.category] || 'circle'} /></span>
+                    <div className="txt"><b>{m.title}</b><span>{m.detail}</span></div>
+                    {m.link && !m.done && <button className="lnk" onClick={() => openMissionLink(m.link!, nav)}>Open <Bi name="arrow-right" /></button>}
+                    {m.needsAnswer && !m.done && <button className="lnk" onClick={() => { setAnswerFor(answerFor === m.key ? null : m.key); setAnswerText(''); setAnswerMsg(''); }}>{answerFor === m.key ? 'Close' : 'Write answer'} <Bi name="arrow-right" /></button>}
+                    <span className="xp">+{m.xp} XP</span>
+                    <button className={`md-check${m.done ? ' on' : ''}`} aria-label={m.done ? 'Done' : 'Mark done'} disabled={m.done || (m.verify === 'interview' && !m.done) || (m.needsAnswer && !m.done)} onClick={() => toggleMission(m.key)}>{m.done && <Bi name="check-lg" />}</button>
+                  </div>
+                  {m.needsAnswer && !m.done && answerFor === m.key && <div className="md-answer">
+                    <textarea value={answerText} autoFocus rows={3} placeholder="Type your answer here…" onChange={e => setAnswerText(e.target.value)} onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()} />
+                    <div className="hint"><Bi name="pencil-square" /> Write it in your own words — pasting is turned off for this one.</div>
+                    <div className="md-answer-row"><button className="md-btn primary sm" onClick={() => saveAnswer(m.key)} disabled={answerBusy}>{answerBusy ? 'Saving…' : `Save & complete +${m.xp} XP`}</button><button className="md-btn sm" onClick={() => { setAnswerFor(null); setAnswerMsg(''); }}>Cancel</button>{answerMsg && <span className="msg">{answerMsg}</span>}</div>
+                  </div>}
+                  {m.done && m.answer && <div className="md-answer saved"><b>Your answer</b><p>{m.answer}</p></div>}
+                  {(m.feedback || (justCoached?.key === m.key && justCoached.feedback)) && <div className="md-coach"><b><Bi name="chat-dots" /> Coach</b><p>{m.feedback || justCoached?.feedback}</p></div>}
+                </React.Fragment>
+              ))}
+            </div>
+            {missionMsg && <div className="md-error">{missionMsg}</div>}
+            <button className="md-btn primary block" onClick={startNext}>{nextMission ? (nextMission.link ? 'Start now' : 'Write your answer') : 'All done today — practice anyway'} <Bi name="arrow-right" /></button>
           </>}
-        </div>
+        </article>
 
-        <div>
-          <div className="gd-card">
-            <div className="gd-card-hd"><h2><Bi name="fire" /> Streak</h2></div>
-            <div className="gd-streak-num">{st.streak}<small>{st.streak === 1 ? 'day in a row' : 'days in a row'}</small></div>
-            <div className="gd-week">{(d.streakWeek || []).map(w => <div key={w.date}><div className={`dot${w.active ? ' on' : ''}`}>{w.active && <Bi name="check-lg" />}</div><div className={`l${w.isToday ? ' today' : ''}`}>{w.letter}</div></div>)}</div>
-            <div className="gd-milestone"><div className="t"><b>{st.streak < 7 ? '7' : st.streak < 21 ? '21' : st.streak < 30 ? '30' : '100'} day streak</b><span>{(() => { const target = st.streak < 7 ? 7 : st.streak < 21 ? 21 : st.streak < 30 ? 30 : 100; const togo = target - st.streak; return `Keep it up! ${togo} ${togo === 1 ? 'day' : 'days'} to go`; })()}</span></div><span className="cp-bi"><Bi name="gift-fill" /></span></div>
+        <div className="md-col">
+          <article className="md-card">
+            <header className="md-card-head"><div><h2><Bi name="fire" /> Streak</h2><p>{st.streak} {st.streak === 1 ? 'day' : 'days'} in a row</p></div></header>
+            <div className="md-week">{(d.streakWeek || []).map(w => <div key={w.date}><div className={`dot${w.active ? ' on' : ''}${w.isToday ? ' today' : ''}`}>{w.active && <Bi name="check-lg" />}</div><div className="l">{w.letter}</div></div>)}</div>
+            <div className="md-milestone"><span className="ic"><Bi name="gift-fill" /></span><div><b>{streakTarget}-day streak</b><span>{streakTarget - st.streak} {streakTarget - st.streak === 1 ? 'day' : 'days'} to go — keep it up</span></div></div>
+          </article>
+
+          <article className="md-card">
+            <header className="md-card-head"><div><h2><Bi name="gift" /> Next level</h2><p>Level {lv.nextLevel} · {lv.xpIntoLevel} / {lv.xpForThisLevel} XP</p></div></header>
+            <div className="md-level-bar"><i style={{ width: `${lv.progressPct}%` }} /></div>
+            <div className="md-unlock"><span className="ic"><Bi name="award-fill" /></span><div><small>You will unlock</small><b>{lv.nextTitle}</b></div></div>
+          </article>
+        </div>
+      </section>
+
+      <section className="md-grid">
+        <article className="md-card">
+          <header className="md-card-head"><div><h2><Bi name="person-workspace" /> Where your score comes from</h2><p>Your coder score of {score}, part by part.</p></div></header>
+          <div className="md-parts">
+            {d.coderScore!.parts.map(p => {
+              const pct = Math.round((p.earned / p.max) * 100);
+              return <div className="md-part" key={p.label}>
+                <div className="top"><span>{p.label}</span><b>{pct}%</b></div>
+                <div className="bar"><i style={{ width: `${Math.max(2, pct)}%` }} /></div>
+              </div>;
+            })}
           </div>
+          <div className="md-hint"><Bi name="lightning-charge-fill" /> Earn {lv.xpToNextLevel.toLocaleString()} XP to reach Level {lv.nextLevel}</div>
+        </article>
 
-          <div className="gd-card" style={{ marginTop: 14 }}>
-            <div className="gd-card-hd"><h2><Bi name="gift" /> Next Level Reward</h2></div>
-            <div className="gd-next"><div className="info"><div className="lv">Level {lv.nextLevel}<span>{lv.xpIntoLevel} / {lv.xpForThisLevel} XP</span></div><div className="bar"><i style={{ width: `${lv.progressPct}%` }} /></div><div className="unlock">You will unlock <b><Bi name="award-fill" /> {lv.nextTitle}</b></div></div><span className="medal cp-bi"><Bi name="award-fill" /></span></div>
-          </div>
-        </div>
-      </div>
+        <article className="md-card">
+          <header className="md-card-head">
+            <div><h2><Bi name="stars" /> Skill meter</h2><p>Your six career readiness categories.</p></div>
+            <button className="md-link" onClick={() => nav('/careerpilot/readiness')}>Full report <Bi name="arrow-right" /></button>
+          </header>
+          <div className="md-radar"><Radar skills={d.skills || []} /></div>
+        </article>
+      </section>
 
-      <div className="gd-grid gd-2b" style={{ marginTop: 14 }}>
-        <div className="gd-card">
-          <div className="gd-card-hd"><h2><Bi name="clock-history" /> Recent Activity</h2><span className="gd-timer">{d.weekly && d.weekly.xpLastWeek > 0 && <b style={{ marginRight: 8 }}>{d.weekly.xpDelta >= 0 ? '+' : ''}{d.weekly.xpDelta} XP vs last week</b>}Last 7 days</span></div>
-          {!d.recentActivity?.length ? <div className="gd-chart-empty">Nothing yet.<br />Complete a mission or solve a problem and it appears here.</div> : <><div className="gd-feed">{d.recentActivity.map((a, i) => <div className="gd-feed-row" key={i}><span className="ic cp-icon-soft"><Bi name="activity" /></span><span className="t">{a.label}</span><span className="xp">+{a.xp} XP</span><span className="ago">{a.ago}</span></div>)}</div>{hasActivity && <div className="gd-feed-chart"><AreaChart points={d.activity || []} /></div>}</>}
-        </div>
+      <section className="md-grid wide">
+        <article className="md-card">
+          <header className="md-card-head">
+            <div><h2><Bi name="clock-history" /> Recent activity</h2><p>Last 7 days{d.weekly && d.weekly.xpLastWeek > 0 ? ` · ${d.weekly.xpDelta >= 0 ? '+' : ''}${d.weekly.xpDelta} XP vs last week` : ''}</p></div>
+            <div className="md-chips">
+              <span><b>{d.weekly?.submissions ?? 0}</b> submissions</span>
+              <span><b>{d.weekly?.totalAttempts ?? 0}</b> attempts</span>
+            </div>
+          </header>
+          {!d.recentActivity?.length ? <div className="md-empty">Nothing yet. Complete a mission or solve a problem and it appears here.</div> : <>
+            {hasActivity && <div className="md-chart-wrap"><AreaChart points={d.activity || []} /></div>}
+            <div className="md-feed">{d.recentActivity.map((a, i) => <div className="md-feed-row" key={i}><span className="ic"><Bi name="activity" /></span><span className="t">{a.label}</span><span className="xp">+{a.xp} XP</span><span className="ago">{a.ago}</span></div>)}</div>
+          </>}
+        </article>
 
-        <div className="gd-card">
-          <div className="gd-card-hd" id="badges"><h2><Bi name="award" /> Badge Collection</h2><button className="lnk" onClick={() => nav('/careerpilot/roadmap')}>View all <Bi name="arrow-right" /></button></div>
-          <div className="gd-badges">{(d.badges || []).slice(0, 5).map((b: Badge) => <div className={`gd-badge${b.earned ? '' : ' locked'}`} key={b.key} title={b.hint}><div className="hex">{b.earned ? <Bi name="star-fill" /> : <Bi name="lock-fill" />}</div><b>{b.label}</b>{b.earned ? <span>Earned</span> : <><span>{Math.round(b.progress * 100)}%</span><div className="pbar"><i style={{ width: `${Math.round(b.progress * 100)}%` }} /></div></>}</div>)}</div>
-        </div>
-      </div>
+        <article className="md-card">
+          <header className="md-card-head" id="leaderboard">
+            <div><h2><Bi name="bar-chart-steps" /> Leaderboard</h2><p>{st.cohortRank ? `You are #${st.cohortRank}` : 'Your cohort'}{st.cohortSize > 1 ? ` of ${st.cohortSize} members` : ''}</p></div>
+          </header>
+          {!d.leaderboard?.length ? <div className="md-empty">You're the first member here — the board fills as others join.</div> : <div className="md-lb">{d.leaderboard.map((r, i, arr) => <React.Fragment key={`${r.rank}-${r.name}`}>{i > 0 && r.rank > arr[i - 1].rank + 1 && <div className="md-lb-gap" aria-hidden="true">⋯</div>}<div className={`md-lb-row${r.me ? ' me' : ''}`}><span className={`rk${r.rank <= 3 ? ` g${r.rank}` : ''}`}>{r.rank}</span><span className="av">{(r.name[0] || '?').toUpperCase()}</span><span className="nm">{r.name}{r.me ? ' (You)' : ''}</span><b className="xp">{r.xp.toLocaleString()} XP</b></div></React.Fragment>)}</div>}
+        </article>
+      </section>
 
-      <div className="gd-grid gd-2b" style={{ marginTop: 14 }}>
-        <div className="gd-card">
-          <div className="gd-card-hd"><h2><Bi name="trophy" /> Upcoming Contests</h2>{!!d.contests?.length && <button className="lnk" onClick={() => nav('/battles')}>View All <Bi name="arrow-right" /></button>}</div>
-          {!d.contests?.length ? <div className="gd-empty-state"><span className="em cp-bi"><Bi name="calendar-event" /></span><b>No contests scheduled right now.</b><span>You'll see upcoming contests here.</span><button onClick={() => nav('/battles')}>Explore Contests</button></div> : <div className="gd-contest-grid">{d.contests.slice(0, 2).map((c, i) => <div className="gd-contest" key={c.id}><span className="tr cp-bi"><Bi name="trophy-fill" /></span><div className="info"><b>{c.title}{i === 0 && <em className="feat">FEATURED</em>}</b><span><Bi name="calendar3" /> {new Date(c.startAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</span>{c.prize && <><span className="pp">Prize Pool</span><b className="prize">{c.prize}</b></>}</div><button className="go" onClick={() => nav(c.slug ? `/battles/${c.slug}` : '/battles')}>Register Now</button></div>)}</div>}
-        </div>
+      <section className="md-grid wide">
+        <article className="md-card">
+          <header className="md-card-head" id="badges"><div><h2><Bi name="award" /> Badge collection</h2><p>{(d.badges || []).filter(b => b.earned).length} earned</p></div><button className="md-link" onClick={() => nav('/careerpilot/achievements')}>View all <Bi name="arrow-right" /></button></header>
+          <div className="md-badges">{(d.badges || []).slice(0, 5).map((b: Badge) => <div className={`md-badge${b.earned ? ' earned' : ''}`} key={b.key} title={b.hint}><div className="hex">{b.earned ? <Bi name="star-fill" /> : <Bi name="lock-fill" />}</div><b>{b.label}</b>{b.earned ? <span>Earned</span> : <><span>{Math.round(b.progress * 100)}%</span><div className="pbar"><i style={{ width: `${Math.round(b.progress * 100)}%` }} /></div></>}</div>)}</div>
+        </article>
 
-        <div className="gd-card">
-          <div className="gd-card-hd" id="leaderboard"><h2><Bi name="bar-chart-steps" /> Leaderboard</h2>{(d.leaderboard?.length ?? 0) > 0 && <span className="gd-timer">{st.cohortSize} members</span>}</div>
-          {!d.leaderboard?.length ? <div className="gd-chart-empty">You're the first member here — the board fills as others join.</div> : d.leaderboard.map((r, i, arr) => <React.Fragment key={`${r.rank}-${r.name}`}>{i > 0 && r.rank > arr[i - 1].rank + 1 && <div className="gd-lb-gap" aria-hidden="true">⋯</div>}<div className={`gd-lb${r.me ? ' me' : ''}`}><span className={`rk${r.rank <= 3 ? ` g${r.rank}` : ''}`}>{r.rank}</span><span className="av">{(r.name[0] || '?').toUpperCase()}</span><span className="nm">{r.name}{r.me ? ' (You)' : ''}</span><span className="sc"><b className="xp">{r.xp.toLocaleString()} XP</b><small className="rnk">Rank {r.rank}{st.cohortSize ? ` of ${st.cohortSize}` : ''}</small></span></div></React.Fragment>)}
-        </div>
-      </div>
+        <article className="md-card">
+          <header className="md-card-head"><div><h2><Bi name="trophy" /> Upcoming contests</h2><p>Compete, learn and win.</p></div>{!!d.contests?.length && <button className="md-link" onClick={() => nav('/battles')}>View all <Bi name="arrow-right" /></button>}</header>
+          {!d.contests?.length
+            ? <div className="md-empty"><span className="big"><Bi name="calendar-event" /></span><b>No contests scheduled right now.</b><span>You'll see upcoming contests here.</span><button className="md-btn sm" onClick={() => nav('/battles')}>Explore contests</button></div>
+            : <div className="md-contests">{d.contests.slice(0, 2).map((c, i) => <div className="md-contest" key={c.id}><span className="ic"><Bi name="trophy-fill" /></span><div className="info"><b>{c.title}{i === 0 && <em>Featured</em>}</b><span><Bi name="calendar3" /> {new Date(c.startAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}{c.prize ? ` · Prize ${c.prize}` : ''}</span></div><button className="md-btn primary sm" onClick={() => nav(c.slug ? `/battles/${c.slug}` : '/battles')}>Register</button></div>)}</div>}
+        </article>
+      </section>
 
-      <div className="gd-path">
-        <div className="gd-path-lead"><span className="ic cp-bi"><Bi name="compass" /></span><div><small>Your Career Path</small><b>{d.pathwayLabel}</b></div></div>
-        <div className="gd-steps">{(d.journey || []).map((p, i) => <div className={`gd-step${p.done ? ' done' : p.current ? ' current' : ' locked'}`} key={p.key}><div className="dot">{p.done ? <Bi name="check-lg" /> : p.current ? i + 1 : <Bi name="lock-fill" />}</div><div className="cap">{p.label.replace(/^Phase \d+ · /, '')}<span className="st">{p.done ? 'Completed' : p.current ? 'In Progress' : 'Locked'}</span></div></div>)}</div>
-        <div className="gd-path-end"><div className="em cp-bi"><Bi name={st.completedDays >= st.totalDays ? 'check-circle-fill' : 'flag-fill'} /></div><small>Placement<br />Ready!</small></div>
-      </div>
-    </>
+      <section className="md-path">
+        <div className="md-path-lead"><span className="ic"><Bi name="compass" /></span><div><small>Your career path</small><b>{d.pathwayLabel}</b></div></div>
+        <div className="md-steps">{(d.journey || []).map((p, i) => <div className={`md-step${p.done ? ' done' : p.current ? ' current' : ' locked'}`} key={p.key}><div className="dot">{p.done ? <Bi name="check-lg" /> : p.current ? i + 1 : <Bi name="lock-fill" />}</div><div className="cap">{p.label.replace(/^Phase \d+ · /, '')}<span>{p.done ? 'Completed' : p.current ? 'In progress' : 'Locked'}</span></div></div>)}</div>
+        <div className="md-path-end"><span className="ic"><Bi name={st.completedDays >= st.totalDays ? 'check-circle-fill' : 'flag-fill'} /></span><small>Placement ready</small></div>
+      </section>
+    </div>
   );
 };
 

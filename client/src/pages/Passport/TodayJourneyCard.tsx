@@ -44,23 +44,20 @@ const TodayJourneyCard: React.FC = () => {
   // Not configured, being prepared, or incomplete: said as it is, with nothing to press.
   if (!journey.available && journey.reason !== 'NO_JOURNEY') {
     return (
-      <div className="gd-card" style={{ marginTop: 14 }}>
-        <div className="gd-card-hd"><h2><i className="bi bi-map" /> Your 90-day Foundation journey</h2></div>
-        <p style={{ margin: 0 }}>{journey.message}</p>
-      </div>
+      <section className="md-card md-journey">
+        <header className="md-card-head"><div><h2><i className="bi bi-map" /> Your 90-day Foundation journey</h2><p>{journey.message}</p></div></header>
+      </section>
     );
   }
 
   if (!journey.available) {
     return (
-      <div className="gd-card" style={{ marginTop: 14 }}>
-        <div className="gd-card-hd"><h2><i className="bi bi-map" /> Your 90-day Foundation journey</h2></div>
-        <p style={{ margin: '0 0 12px' }}>
-          Your {journey.totalDays} learning days are built from your skill check, so they start from what
-          you already know. Take it and your journey appears here and on My Roadmap.
-        </p>
-        <button className="gd-btn primary" onClick={() => nav('/careerpilot/skill-assessment')}>Take your skill check</button>
-      </div>
+      <section className="md-card md-journey">
+        <header className="md-card-head"><div><h2><i className="bi bi-map" /> Your 90-day Foundation journey</h2>
+          <p>Your {journey.totalDays} learning days are built from your skill check, so they start from what
+          you already know. Take it and your journey appears here and on My Roadmap.</p></div></header>
+        <div className="md-journey-actions"><button className="md-btn primary" onClick={() => nav('/careerpilot/skill-assessment')}>Take your skill check</button></div>
+      </section>
     );
   }
 
@@ -69,21 +66,15 @@ const TodayJourneyCard: React.FC = () => {
     const first = journey.preview?.[0];
     const total = journey.totalDays ?? 90;
     return (
-      <div className="gd-card" style={{ marginTop: 14 }}>
-        <div className="gd-card-hd">
-          <h2><i className="bi bi-map" /> Your {total}-day Foundation journey</h2>
-          <span className="gd-timer">First {journey.preview?.length ?? 0} days open</span>
-        </div>
-        {first && (
-          <p style={{ margin: '0 0 10px' }}>
-            Day 1 · <b>{first.title}</b>{first.objective ? ` — ${first.objective}` : ''}
-          </p>
-        )}
-        <p style={{ margin: '0 0 12px', color: '#475569' }}>
-          🔒 Take membership to unlock and start all {total} days of your roadmap.
-        </p>
-        <button className="gd-btn primary" onClick={() => nav('/careerpilot/roadmap')}>See my roadmap</button>
-      </div>
+      <section className="md-card md-journey">
+        <header className="md-card-head">
+          <div><h2><i className="bi bi-map" /> Your {total}-day Foundation journey</h2>
+            {first && <p>Day 1 · <b>{first.title}</b>{first.objective ? ` — ${first.objective}` : ''}</p>}</div>
+          <span className="md-pill">First {journey.preview?.length ?? 0} days open</span>
+        </header>
+        <p className="md-journey-note"><i className="bi bi-lock-fill" /> Take membership to unlock and start all {total} days of your roadmap.</p>
+        <div className="md-journey-actions"><button className="md-btn primary" onClick={() => nav('/careerpilot/roadmap')}>See my roadmap</button></div>
+      </section>
     );
   }
 
@@ -91,43 +82,43 @@ const TodayJourneyCard: React.FC = () => {
   const total = journey.totalDays ?? 90;
   const pct = journey.percentComplete ?? 0;
 
-  return (
-    <div className="gd-card" style={{ marginTop: 14 }}>
-      <div className="gd-card-hd">
-        <h2><i className="bi bi-map" /> Today in your Foundation journey</h2>
-        <span className="gd-timer">Day {current} of {total} · {pct}% done</span>
-      </div>
+  const ICON: Record<string, string> = { video: 'bi-play-circle', notes: 'bi-file-text', worked_example: 'bi-lightbulb', practice_theory: 'bi-pencil-square', practice_coding: 'bi-code-slash', quiz: 'bi-patch-question', assignment: 'bi-upload' };
 
-      <div style={{ height: 6, background: '#e2e8f0', borderRadius: 999, overflow: 'hidden', margin: '0 0 12px' }}
-           role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Journey progress">
-        <span style={{ display: 'block', height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, #6366f1, #22c55e)' }} />
+  return (
+    <section className="md-card md-journey">
+      <header className="md-card-head">
+        <div>
+          <span className="md-kicker">Today in your Foundation journey</span>
+          <h2 className="md-journey-title">{day ? day.title : `Day ${current}`}</h2>
+          {day?.objective && <p>{day.objective}</p>}
+        </div>
+        <span className="md-pill">Day {current} of {total} · {pct}% done</span>
+      </header>
+
+      <div className="md-journey-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Journey progress">
+        <i style={{ width: `${Math.max(1, pct)}%` }} />
       </div>
 
       {day && (
-        <>
-          <b style={{ display: 'block', fontSize: 16 }}>{day.title}</b>
-          {day.objective && <p style={{ margin: '4px 0 10px', color: '#475569' }}>{day.objective}</p>}
+        <ol className="md-journey-acts">
           {day.activities.map(a => (
-            <div className="gd-mission" key={a.id || a.order}>
-              <span className="badge"><i className={`bi ${a.kind === 'quiz' ? 'bi-patch-question' : a.kind === 'assignment' ? 'bi-upload' : 'bi-journal-text'}`} /></span>
-              <div className="txt">
-                <b>{a.title}</b>
-                <span>{TYPE_LABEL[a.type] || a.type}{a.minutes ? ` · ${mins(a.minutes)}` : ''}{a.gating ? ' · must be completed' : ''}</span>
-              </div>
-            </div>
+            <li key={a.id || a.order} className={a.gating ? 'gating' : ''}>
+              <span className={`ic t-${a.type}`}><i className={`bi ${ICON[a.type] || 'bi-journal-text'}`} /></span>
+              <div><b>{a.title}</b><span>{TYPE_LABEL[a.type] || a.type}{a.minutes ? ` · ${mins(a.minutes)}` : ''}{a.gating ? ' · must be completed' : ''}</span></div>
+            </li>
           ))}
-        </>
+        </ol>
       )}
 
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+      <div className="md-journey-actions">
         {journey.enrollmentId && (
-          <button className="gd-btn primary" onClick={() => nav(`/careerpilot/journey/day/${current}`)}>
-            Start today&apos;s work
+          <button className="md-btn primary" onClick={() => nav(`/careerpilot/journey/day/${current}`)}>
+            Start today&apos;s work <i className="bi bi-arrow-right" />
           </button>
         )}
-        <button className="gd-btn" onClick={() => nav('/careerpilot/roadmap')}>See all {total} days</button>
+        <button className="md-btn" onClick={() => nav('/careerpilot/roadmap')}>See all {total} days</button>
       </div>
-    </div>
+    </section>
   );
 };
 

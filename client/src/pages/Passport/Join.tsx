@@ -5,21 +5,13 @@ import type { OnboardingField } from '../../api/passportApi';
 import OtpVerify from './OtpVerify';
 import './careerpilotJoin.css';
 
-const FEATURES = [
-  { icon: 'bi-compass', title: 'Career Direction', desc: 'Understand which roles align with your skills, interests and ambitions.', label: 'Role fit' },
-  { icon: 'bi-fingerprint', title: 'Skill DNA', desc: 'See your strengths and gaps across technical, aptitude and career skills.', label: 'Strength map' },
-  { icon: 'bi-speedometer2', title: 'Career Readiness Score', desc: 'Know how close you are to your target role with measurable readiness.', label: 'Readiness meter' },
-  { icon: 'bi-signpost-split', title: 'Personalized Roadmap', desc: 'Follow a structured path instead of randomly choosing what to learn next.', label: 'Next steps' },
-  { icon: 'bi-pencil-square', title: 'Practice & Assessment', desc: 'Improve continuously through missions, assessments and focused practice.', label: 'Evidence building' },
-  { icon: 'bi-briefcase', title: 'Job Readiness', desc: 'Connect your preparation to relevant internships and career opportunities.', label: 'Opportunity match' },
-];
+const LOGO = '/assets/careerpilot/careerpilot-logo.png';
 
-const STEPS = [
-  { n: '01', title: 'Tell Us About You', desc: 'Share your education, experience and career ambition.' },
-  { n: '02', title: 'Assess Your Skills', desc: 'Discover your current strengths and the gaps that matter.' },
-  { n: '03', title: 'Get Your Plan', desc: 'Receive a personalized roadmap for your target role.' },
-  { n: '04', title: 'Improve Every Day', desc: 'Complete missions, practice and build evidence of progress.' },
-  { n: '05', title: 'Become Job Ready', desc: 'Track readiness and discover relevant opportunities.' },
+const HERO_CHECKS = [
+  'Discover the right career direction',
+  'Know your actual skill readiness',
+  'Get a personalised 90-day roadmap',
+  'Find relevant jobs & internships',
 ];
 
 /**
@@ -27,11 +19,35 @@ const STEPS = [
  * when CodeBegun has a real relationship/engagement that can be represented publicly.
  */
 const NETWORK_ITEMS = [
-  { icon: 'bi-mortarboard', title: 'Narasaraopeta Engineering College', sub: 'Tech Battle campus engagement' },
-  { icon: 'bi-buildings', title: 'CodeBegun College Network', sub: 'Career readiness outreach' },
-  { icon: 'bi-trophy', title: 'Tech Battle Network', sub: 'Campus skill competitions' },
-  { icon: 'bi-diagram-3', title: 'CareerPilot Campus Network', sub: 'Growing college engagement' },
-  { icon: 'bi-plus-circle', title: 'More Colleges Joining', sub: 'Bring CareerPilot to your campus' },
+  { icon: 'bi-people-fill', title: 'CareerPilot Campus Network', sub: 'Connect, explore, grow' },
+  { icon: 'bi-mortarboard-fill', title: 'Narasaraopeta Engineering College', sub: 'Tech Battle campus engagement' },
+  { icon: 'bi-trophy-fill', title: 'Tech Battle Network', sub: 'Campus skill competitions' },
+  { icon: 'bi-bank2', title: 'CodeBegun College Network', sub: 'Career readiness outreach' },
+  { icon: 'bi-plus-circle-fill', title: 'More Colleges Joining', sub: 'Bring CareerPilot to your campus' },
+];
+
+const FEATURES = [
+  { icon: 'bi-compass', title: 'Career Direction', desc: 'Understand which roles align with your skills, interests and ambitions.' },
+  { icon: 'bi-fingerprint', title: 'Skill DNA', desc: 'See your strengths and gaps across technical, aptitude and career skills.' },
+  { icon: 'bi-speedometer2', title: 'Career Readiness Score', desc: 'Know how close you are to your target role with measurable readiness.' },
+  { icon: 'bi-signpost-split', title: 'Personalised Roadmap', desc: 'Follow a structured path instead of randomly choosing what to learn next.' },
+  { icon: 'bi-pencil-square', title: 'Practice & Assessment', desc: 'Improve continuously through missions, assessments and focused practice.' },
+  { icon: 'bi-briefcase', title: 'Job Readiness', desc: 'Connect your preparation to relevant internships and career opportunities.' },
+];
+
+const GROWTH = [
+  { icon: 'bi-calendar2-check-fill', tone: 'blue', title: 'Daily Missions', desc: 'One small step every day' },
+  { icon: 'bi-fire', tone: 'orange', title: 'Career Streaks', desc: 'Build habits that last' },
+  { icon: 'bi-bar-chart-fill', tone: 'teal', title: 'XP & Levels', desc: 'Track your progress' },
+  { icon: 'bi-star-fill', tone: 'gold', title: 'Coins & Rewards', desc: 'Earn while learning' },
+];
+
+const STEPS = [
+  { n: '01', icon: 'bi-person-lines-fill', title: 'Tell Us About You', desc: 'Share your education, experience and career ambition.' },
+  { n: '02', icon: 'bi-clipboard2-check', title: 'Assess Your Skills', desc: 'Discover your current strengths and the gaps that matter.' },
+  { n: '03', icon: 'bi-map', title: 'Get Your Plan', desc: 'Receive a personalised roadmap for your target role.' },
+  { n: '04', icon: 'bi-graph-up-arrow', title: 'Improve Every Day', desc: 'Complete missions, practice and build evidence of progress.' },
+  { n: '05', icon: 'bi-rocket-takeoff', title: 'Become Job Ready', desc: 'Track readiness and discover relevant opportunities.' },
 ];
 
 /** Product-preview cards — intentionally no company names or live-job claims. */
@@ -41,8 +57,18 @@ const OPPORTUNITY_PREVIEW = [
   { icon: 'bi-bar-chart', match: '74%', title: 'Data Analyst Intern', meta: 'Remote · Internship', tags: ['SQL', 'Excel', 'Power BI'] },
 ];
 
-const FAQS = [
-  ['What exactly is CareerPilot?', 'CareerPilot is a career guidance and readiness platform that helps you define a target role, assess your current skills, follow a personalized roadmap and track your progress.'],
+/**
+ * Outcomes are published only once verified — so these describe what will appear here, and never
+ * show an invented student, quote or photo.
+ */
+const STORIES = [
+  { icon: 'bi-briefcase-fill', title: 'Verified Recent Hires', desc: 'Role, company and placement outcome, highlighted from verified CodeBegun placement records.' },
+  { icon: 'bi-chat-quote-fill', title: 'Student Testimonials', desc: 'Short student stories on how their career direction, preparation and confidence improved.' },
+  { icon: 'bi-buildings-fill', title: 'Campus Success Stories', desc: 'College initiatives and CareerPilot outcomes, published when the institution approves the story.' },
+];
+
+const BASE_FAQS: [string, string][] = [
+  ['What exactly is CareerPilot?', 'CareerPilot is a career guidance and readiness platform that helps you define a target role, assess your current skills, follow a personalised roadmap and track your progress.'],
   ['Is CareerPilot only for freshers?', 'No. The experience can support students, freshers and working professionals depending on the onboarding options enabled for your CareerPilot program.'],
   ['How is my Career Readiness Score calculated?', 'Your score is built from the assessments and readiness signals available in CareerPilot. As you complete more evidence and activities, the product can update your readiness view.'],
   ['Does CareerPilot guarantee a job?', 'No. CareerPilot supports preparation and can surface relevant opportunities, but hiring decisions remain with employers.'],
@@ -88,12 +114,14 @@ const PassportJoin: React.FC = () => {
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [fieldsDef, setFieldsDef] = useState<OnboardingField[]>([]);
   const [enabled, setEnabled] = useState(true);
+  const [price, setPrice] = useState<number | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
   const [token, setToken] = useState('');
   const [devCode, setDevCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [resendIn, setResendIn] = useState(25);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const sentMsg = (m: string) => m.startsWith('We sent') || m.startsWith('New code');
   const extra = useMemo(() => fieldsDef.filter(f => !['name', 'mobile', 'email'].includes(f.key)), [fieldsDef]);
@@ -102,7 +130,13 @@ const PassportJoin: React.FC = () => {
   const errors = useMemo(() => validateJoin(form, extra), [form, extra]);
   const errFor = (k: string) => ((touched[k] || tried) ? errors[k] : '');
   const blur = (k: string) => setTouched(p => ({ ...p, [k]: true }));
-  const networkRail = useMemo(() => [...NETWORK_ITEMS, ...NETWORK_ITEMS], []);
+
+  /** The price comes from this tenant's own config, so the answer is never a number somebody typed into the page. */
+  const faqs = useMemo<[string, string][]>(() => (price == null ? BASE_FAQS : [
+    ...BASE_FAQS,
+    ['How much does CareerPilot cost?', `Creating your account, taking the skill assessment and seeing your Skill DNA are free. Membership, which unlocks your full personalised roadmap, is ₹${price.toLocaleString('en-IN')}. You can preview the start of your roadmap before you decide.`],
+  ]), [price]);
+  const faqCols = useMemo(() => [faqs.filter((_, i) => i % 2 === 0), faqs.filter((_, i) => i % 2 === 1)], [faqs]);
 
   useEffect(() => {
     (async () => {
@@ -110,6 +144,7 @@ const PassportJoin: React.FC = () => {
         const c = await passportPublicApi.getConfig(tenant);
         setFieldsDef(c.onboardingFields || []);
         setEnabled(c.enabled);
+        if (typeof c.priceInr === 'number' && c.priceInr > 0) setPrice(c.priceInr);
       } catch {
         setEnabled(false);
         setMsg('CareerPilot is not available right now.');
@@ -126,7 +161,15 @@ const PassportJoin: React.FC = () => {
 
   const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
   const goLogin = () => { window.location.href = `/careerpilot/login?tenant=${tenant}`; };
-  const scrollToSignup = () => document.getElementById('careerpilot-signup')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const scrollToSignup = () => {
+    setMenuOpen(false);
+    document.getElementById('careerpilot-signup')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    window.setTimeout(() => document.getElementById('jn-name')?.focus({ preventScroll: true }), 450);
+  };
+  const scrollTo = (id: string) => {
+    setMenuOpen(false);
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const submit = async () => {
     setTried(true);
@@ -201,107 +244,109 @@ const PassportJoin: React.FC = () => {
     );
   }
 
+  const NAV: [string, string][] = [
+    ['How It Works', 'how-it-works'],
+    ['Career Tools', 'career-tools'],
+    ['Opportunities', 'opportunities'],
+    ['Success Stories', 'success-stories'],
+    ['FAQs', 'faqs'],
+  ];
+
   return (
-    <div className="cpj-page">
-      <header className="cpj-nav">
-        <div className="cpj-wrap cpj-nav-in">
-          <a className="cpj-brand" href="/careerpilot/join" aria-label="CodeBegun CareerPilot">
-            <img src="/assets/logo.png" alt="CodeBegun" />
-            <span className="cpj-brand-divider" />
-            <span className="cpj-brand-product">Career<span>Pilot</span></span>
+    <div className="cpx">
+      {/* ── Navigation ─────────────────────────────────────────────── */}
+      <header className="cpx-nav">
+        <div className="cpx-wrap cpx-nav-in">
+          <a className="cpx-logo" href={`/careerpilot/join?tenant=${tenant}`} aria-label="CareerPilot by CodeBegun — home">
+            <img src={LOGO} alt="CareerPilot by CodeBegun" />
           </a>
-          <nav className="cpj-nav-links" aria-label="CareerPilot public navigation">
-            <a href="#how-it-works">How It Works</a>
-            <a href="#career-tools">Career Tools</a>
-            <a href="#opportunities">Opportunities</a>
-            <button className="cpj-btn cpj-btn-outline" type="button" onClick={goLogin}>Login</button>
-            <button className="cpj-btn cpj-btn-primary" type="button" onClick={scrollToSignup}>Start CareerPilot</button>
+          <nav className={`cpx-links${menuOpen ? ' open' : ''}`} aria-label="CareerPilot">
+            {NAV.map(([label, id]) => (
+              <a key={id} href={`#${id}`} onClick={e => { e.preventDefault(); scrollTo(id); }}>{label}</a>
+            ))}
           </nav>
+          <div className="cpx-nav-cta">
+            <button className="cpx-btn cpx-btn-ghost" type="button" onClick={goLogin}>Log In</button>
+            <button className="cpx-btn cpx-btn-primary cpx-hide-sm" type="button" onClick={scrollToSignup}>Start My Career Journey</button>
+            <button className="cpx-menu" type="button" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} onClick={() => setMenuOpen(o => !o)}>
+              <i className={`bi ${menuOpen ? 'bi-x-lg' : 'bi-list'}`} />
+            </button>
+          </div>
         </div>
       </header>
 
       <main>
-        <section className="cpj-hero">
-          <div className="cpj-wrap cpj-hero-grid">
-            <div>
-              <div className="cpj-kicker"><i /> Your career. Decoded.</div>
+        {/* ── Hero ─────────────────────────────────────────────────── */}
+        <section className="cpx-hero">
+          <div className="cpx-wrap cpx-hero-grid">
+            <div className="cpx-hero-copy">
+              <div className="cpx-eyebrow">Your future starts here</div>
               <h1>Stop Guessing Your Career.<br /><span>Build the Right One.</span></h1>
-              <p className="cpj-hero-lead">CareerPilot understands your goals, measures your real skills and builds a personalized path from where you are today to where you want to go.</p>
-              <div className="cpj-checks">
-                <div className="cpj-check"><i className="bi bi-check-circle" />Discover the right career direction</div>
-                <div className="cpj-check"><i className="bi bi-check-circle" />Know your actual skill readiness</div>
-                <div className="cpj-check"><i className="bi bi-check-circle" />Get a personalized career roadmap</div>
-                <div className="cpj-check"><i className="bi bi-check-circle" />Find relevant jobs & internships</div>
+              <p className="cpx-lead">
+                CareerPilot helps you understand your goals, measure your real skills and create a
+                personalised plan from where you are today to where you want to go.
+              </p>
+              <ul className="cpx-checks">
+                {HERO_CHECKS.map(c => <li key={c}><i className="bi bi-check-circle-fill" />{c}</li>)}
+              </ul>
+              <div className="cpx-hero-ctas">
+                <button className="cpx-btn cpx-btn-primary cpx-btn-lg" type="button" onClick={scrollToSignup}>
+                  Start My Career Journey <i className="bi bi-arrow-right" />
+                </button>
+                <button className="cpx-btn cpx-btn-outline cpx-btn-lg" type="button" onClick={() => scrollTo('how-it-works')}>
+                  <i className="bi bi-play-circle-fill" /> See How It Works
+                </button>
               </div>
-
-              <div
-                className="cpj-hero-visual"
-                style={{ marginTop: 24, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-              >
-                <img
-                  src="/assets/careerpilot/careerpilot-hero-student.png"
-                  alt="CareerPilot student career readiness preview"
-                  style={{ width: '100%', maxWidth: 620, height: 'auto', display: 'block', objectFit: 'contain' }}
-                />
-              </div>
-
-              <div className="cpj-intel" aria-label="CareerPilot product preview">
-                <div className="cpj-intel-main">
-                  <div className="cpj-intel-label">Career Intelligence</div>
-                  <div className="cpj-intel-title">See your strengths, gaps and next best move.</div>
-                  <div className="cpj-intel-body">
-                    <div className="cpj-ring"><strong>72%</strong></div>
-                    <div className="cpj-intel-copy">
-                      <small>Top Strength</small><b>Problem Solving</b>
-                      <div className="cpj-mini-bar"><span /></div>
-                      <small>Next step</small><b>Practice DSA Patterns</b>
-                    </div>
-                  </div>
-                </div>
-                <div className="cpj-intel-side">
-                  <div className="cpj-micro-card">
-                    <small>Skill Progress</small>
-                    <div className="cpj-bars"><span style={{ height: '34%' }} /><span /><span /><span /><span /></div>
-                  </div>
-                  <div className="cpj-micro-card">
-                    <small>Career Roadmap</small>
-                    <div className="cpj-road-mini"><span>1</span><b /><span>2</span><b /><span>3</span></div>
-                  </div>
-                </div>
+              <div className="cpx-trust">
+                <span className="cpx-trust-dots" aria-hidden="true">
+                  <i className="bi bi-mortarboard-fill" /><i className="bi bi-person-workspace" /><i className="bi bi-briefcase-fill" />
+                </span>
+                Built for students, freshers and career changers
               </div>
             </div>
 
-            <section className="cpj-signup" id="careerpilot-signup" aria-labelledby="cpj-signup-title">
-              <div className="cpj-signup-mark" aria-hidden="true"><i className="bi bi-compass" /></div>
-              <h2 id="cpj-signup-title">Build Your CareerPilot</h2>
-              <div className="cpj-signup-sub">Get started in less than 2 minutes.</div>
+            <div className="cpx-hero-visual" aria-hidden="true">
+              {/* The floating card and caption are anchored to the picture, not to the column's height. */}
+              <div className="cpx-visual-in">
+                <img src="/assets/careerpilot/careerpilot-hero-student.png" alt="" />
+                <div className="cpx-float cpx-float-fit">
+                  <span className="cpx-float-ic"><i className="bi bi-star-fill" /></span>
+                  <div><b>Career Fit</b><small>High Match</small></div>
+                </div>
+                <div className="cpx-script">A clearer, <br />brighter future</div>
+              </div>
+            </div>
+
+            <section className="cpx-card cpx-signup" id="careerpilot-signup" aria-labelledby="cpx-signup-title">
+              <h2 id="cpx-signup-title">Create Your Account</h2>
+              <p className="cpx-card-sub">Start your CareerPilot in under 2 minutes.</p>
 
               {!enabled ? (
-                <div className="cpj-msg err">{msg || 'CareerPilot is not available right now.'}</div>
+                <div className="cpx-msg err">{msg || 'CareerPilot is not available right now.'}</div>
               ) : (
                 <>
-                  {msg && <div className="cpj-msg err">{msg}</div>}
+                  {msg && <div className="cpx-msg err">{msg}</div>}
 
-                  <div className="cpj-field">
+                  <div className="cpx-field">
                     <label htmlFor="jn-name">Full Name <em>*</em></label>
-                    <div className={`cpj-input-wrap${errFor('name') ? ' bad' : ''}`}><i className={`bi ${ICON.name}`} /><input id="jn-name" value={form.name || ''} autoComplete="name" aria-invalid={!!errFor('name')} aria-describedby={errFor('name') ? 'jn-name-err' : undefined} onBlur={() => blur('name')} onChange={e => set('name', e.target.value)} placeholder="Enter your full name" /></div>
-                    {errFor('name') && <div className="cpj-fe" id="jn-name-err">{errFor('name')}</div>}
+                    <div className={`cpx-input${errFor('name') ? ' bad' : ''}`}><i className={`bi ${ICON.name}`} /><input id="jn-name" value={form.name || ''} autoComplete="name" aria-invalid={!!errFor('name')} aria-describedby={errFor('name') ? 'jn-name-err' : undefined} onBlur={() => blur('name')} onChange={e => set('name', e.target.value)} placeholder="Enter your full name" /></div>
+                    {errFor('name') && <div className="cpx-fe" id="jn-name-err">{errFor('name')}</div>}
                   </div>
-                  <div className="cpj-field">
+                  <div className="cpx-field">
                     <label htmlFor="jn-mob">Mobile Number <em>*</em></label>
-                    <div className={`cpj-input-wrap${errFor('mobile') ? ' bad' : ''}`}><i className={`bi ${ICON.mobile}`} /><input id="jn-mob" value={form.mobile || ''} inputMode="numeric" autoComplete="tel" maxLength={10} aria-invalid={!!errFor('mobile')} aria-describedby={errFor('mobile') ? 'jn-mob-err' : undefined} onBlur={() => blur('mobile')} onChange={e => set('mobile', toMobile(e.target.value))} placeholder="Enter 10-digit mobile number" /></div>
-                    {errFor('mobile') && <div className="cpj-fe" id="jn-mob-err">{errFor('mobile')}</div>}
+                    <div className={`cpx-input${errFor('mobile') ? ' bad' : ''}`}><i className={`bi ${ICON.mobile}`} /><input id="jn-mob" value={form.mobile || ''} inputMode="numeric" autoComplete="tel" maxLength={10} aria-invalid={!!errFor('mobile')} aria-describedby={errFor('mobile') ? 'jn-mob-err' : undefined} onBlur={() => blur('mobile')} onChange={e => set('mobile', toMobile(e.target.value))} placeholder="10-digit mobile number" /></div>
+                    {errFor('mobile') && <div className="cpx-fe" id="jn-mob-err">{errFor('mobile')}</div>}
                   </div>
-                  <div className="cpj-field">
+                  <div className="cpx-field">
                     <label htmlFor="jn-mail">Email Address <em>*</em></label>
-                    <div className={`cpj-input-wrap${errFor('email') ? ' bad' : ''}`}><i className={`bi ${ICON.email}`} /><input id="jn-mail" type="email" value={form.email || ''} autoComplete="email" aria-invalid={!!errFor('email')} aria-describedby={errFor('email') ? 'jn-mail-err' : undefined} onBlur={() => blur('email')} onChange={e => set('email', e.target.value)} placeholder="Enter your email address" /></div>
-                    {errFor('email') && <div className="cpj-fe" id="jn-mail-err">{errFor('email')}</div>}
+                    <div className={`cpx-input${errFor('email') ? ' bad' : ''}`}><i className={`bi ${ICON.email}`} /><input id="jn-mail" type="email" value={form.email || ''} autoComplete="email" aria-invalid={!!errFor('email')} aria-describedby={errFor('email') ? 'jn-mail-err' : undefined} onBlur={() => blur('email')} onChange={e => set('email', e.target.value)} placeholder="you@example.com" /></div>
+                    {errFor('email') && <div className="cpx-fe" id="jn-mail-err">{errFor('email')}</div>}
                   </div>
 
                   {extra.map(f => (
-                    <div className="cpj-field" key={f.key}>
+                    <div className="cpx-field" key={f.key}>
                       <label htmlFor={`jn-${f.key}`}>{f.label}{f.required ? <em> *</em> : null}</label>
-                      <div className={`cpj-input-wrap plain${errFor(f.key) ? ' bad' : ''}`}>
+                      <div className={`cpx-input plain${errFor(f.key) ? ' bad' : ''}`}>
                         {f.type === 'select' ? (
                           <select id={`jn-${f.key}`} value={form[f.key] || ''} aria-invalid={!!errFor(f.key)} onBlur={() => blur(f.key)} onChange={e => set(f.key, e.target.value)}>
                             <option value="">Select…</option>
@@ -311,100 +356,268 @@ const PassportJoin: React.FC = () => {
                           <input id={`jn-${f.key}`} value={form[f.key] || ''} aria-invalid={!!errFor(f.key)} onBlur={() => blur(f.key)} onChange={e => set(f.key, f.type === 'phone' ? toMobile(e.target.value) : e.target.value)} maxLength={f.type === 'phone' ? 10 : undefined} inputMode={f.type === 'phone' ? 'numeric' : undefined} type={f.type === 'number' ? 'number' : 'text'} placeholder={`Enter ${f.label.toLowerCase()}`} />
                         )}
                       </div>
-                      {errFor(f.key) && <div className="cpj-fe">{errFor(f.key)}</div>}
+                      {errFor(f.key) && <div className="cpx-fe">{errFor(f.key)}</div>}
                     </div>
                   ))}
 
-                  <button className="cpj-btn cpj-btn-primary cpj-submit" disabled={busy} onClick={submit}>
+                  <button className="cpx-btn cpx-btn-navy cpx-submit" disabled={busy} onClick={submit}>
                     {busy ? 'Please wait…' : <>Start My Career Journey <i className="bi bi-arrow-right" /></>}
                   </button>
-                  <div className="cpj-login">Already have an account? <button type="button" onClick={goLogin}>Login</button></div>
-                  <div className="cpj-secure"><i className="bi bi-shield-check" /> We use a one-time WhatsApp code to verify your account.</div>
+                  <div className="cpx-or"><span>Already on CareerPilot?</span></div>
+                  <button className="cpx-btn cpx-btn-soft cpx-login" type="button" onClick={goLogin}>Log In to Your Account</button>
+                  <div className="cpx-secure"><i className="bi bi-shield-check" /> We verify your account with a one-time WhatsApp code.</div>
                 </>
               )}
             </section>
           </div>
         </section>
 
-        <section className="cpj-network" aria-label="CodeBegun campus network">
-          <div className="cpj-wrap"><div className="cpj-network-title">Growing through our college & campus network</div></div>
-          <div className="cpj-network-track">
-            <div className="cpj-network-rail">
-              {networkRail.map((item, index) => (
-                <div className="cpj-college" key={`${item.title}-${index}`}>
-                  <div className="cpj-college-ic"><i className={`bi ${item.icon}`} /></div>
-                  <div><b>{item.title}</b><span>{item.sub}</span></div>
+        {/* ── Campus network ───────────────────────────────────────── */}
+        <section className="cpx-network" aria-label="CodeBegun campus network">
+          <div className="cpx-wrap cpx-network-grid">
+            {NETWORK_ITEMS.map(item => (
+              <div className="cpx-network-card" key={item.title}>
+                <span className="cpx-network-ic"><i className={`bi ${item.icon}`} /></span>
+                <div><b>{item.title}</b><small>{item.sub}</small></div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Product preview ──────────────────────────────────────── */}
+        <section className="cpx-section cpx-dash-section">
+          <div className="cpx-wrap">
+            <div className="cpx-head">
+              <div className="cpx-eyebrow">See the bigger picture</div>
+              <h2>Your Entire Career, In One Dashboard</h2>
+              <p>Know where you stand, what to improve and exactly what you should do next.</p>
+            </div>
+            <div className="cpx-dash" aria-label="CareerPilot dashboard preview">
+              <aside className="cpx-dash-side">
+                <div className="cpx-dash-brand">CareerPilot</div>
+                {[['bi-grid-1x2-fill', 'Dashboard'], ['bi-signpost-split-fill', 'My Roadmap'], ['bi-fingerprint', 'Skill DNA'], ['bi-flag-fill', 'Missions'], ['bi-clipboard2-check-fill', 'Assessments'], ['bi-briefcase-fill', 'Opportunities'], ['bi-gift-fill', 'Rewards']].map(([ic, label], i) => (
+                  <div key={label} className={`cpx-dash-item${i === 0 ? ' active' : ''}`}><i className={`bi ${ic}`} />{label}</div>
+                ))}
+              </aside>
+              <div className="cpx-dash-main">
+                <div className="cpx-dash-top">
+                  <div><h3>Good morning, Arjun <span aria-hidden="true">👋</span></h3><p>Keep going. You’re building something great.</p></div>
+                  <span className="cpx-pill">Career Ready: 64%</span>
+                </div>
+                <div className="cpx-dash-row">
+                  <div className="cpx-panel">
+                    <h4>Career Readiness</h4>
+                    <div className="cpx-ready">
+                      <div className="cpx-ring" style={{ ['--p' as any]: 64 }}><strong>64</strong></div>
+                      <div className="cpx-bars">
+                        {[['Problem Solving', 78], ['Technical Skills', 64], ['Communication', 58], ['Learning Agility', 72]].map(([n, v]) => (
+                          <div className="cpx-bar" key={String(n)}>
+                            <div className="cpx-bar-top"><span>{n}</span><b>{v}%</b></div>
+                            <div className="cpx-bar-track"><i style={{ width: `${v}%` }} /></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="cpx-panel cpx-focus">
+                    <small>Today’s Focus</small>
+                    <strong>Master Java Collections</strong>
+                    <p>Complete this guided module and assessment to improve your backend readiness.</p>
+                    <span className="cpx-focus-btn">Continue Learning <i className="bi bi-arrow-right" /></span>
+                  </div>
+                </div>
+                <div className="cpx-panel">
+                  <h4>Your Career Roadmap</h4>
+                  <div className="cpx-road">
+                    {[['Foundation', 'Build core skills', 'done'], ['Direction', 'Choose your path', 'current'], ['Practice', 'Build real skills', ''], ['Opportunities', 'Apply and grow', '']].map(([t, s, state], i, all) => (
+                      <React.Fragment key={t}>
+                        <div className={`cpx-road-step ${state}`}>
+                          <span className="cpx-road-n">{i + 1}</span>
+                          <div><b>{t}</b><small>{s}</small></div>
+                        </div>
+                        {i < all.length - 1 && <i className="bi bi-arrow-right cpx-road-arrow" aria-hidden="true" />}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Growth / gamification ────────────────────────────────── */}
+        <section className="cpx-section cpx-growth">
+          <div className="cpx-wrap cpx-growth-grid">
+            <div className="cpx-growth-copy">
+              <div className="cpx-eyebrow">Career growth, made simple</div>
+              <h2>Build Your Career.<br />Level Up Every Day.</h2>
+              <p>CareerPilot turns meaningful progress into missions, XP, coins, streaks and achievements that keep students moving forward.</p>
+              <button className="cpx-btn cpx-btn-navy" type="button" onClick={() => scrollTo('career-tools')}>
+                Explore the Features <i className="bi bi-arrow-right" />
+              </button>
+            </div>
+            <div className="cpx-growth-tiles">
+              {GROWTH.map(g => (
+                <div className="cpx-tile" key={g.title}>
+                  <span className={`cpx-tile-ic ${g.tone}`}><i className={`bi ${g.icon}`} /></span>
+                  <div><b>{g.title}</b><small>{g.desc}</small></div>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="cpj-section white" id="career-tools">
-          <div className="cpj-wrap">
-            <div className="cpj-center"><div className="cpj-section-tag">Know yourself better</div><h2 className="cpj-title">Everything You Need to Navigate Your Career</h2><p className="cpj-desc">CareerPilot turns career confusion into measurable insights and a clear action plan.</p></div>
-            <div className="cpj-feature-stage">
-              <div className="cpj-feature-visual">
-                <div className="cpj-section-tag">CareerPilot intelligence layer</div>
-                <div className="cpj-fv-title">From “I’m not sure” to a clear career direction.</div>
-                <div className="cpj-map">
-                  <div className="cpj-map-avatar"><i className="bi bi-compass" /></div>
-                  <div className="cpj-map-flow">
-                    <div className="cpj-map-node"><b>Career Fit</b><span>Compare your profile against role pathways</span></div>
-                    <div className="cpj-map-node"><b>Skill Evidence</b><span>See what you already demonstrate — and what is missing</span></div>
-                    <div className="cpj-map-node"><b>Next Best Action</b><span>Turn gaps into a prioritized learning and practice plan</span></div>
-                  </div>
-                </div>
-                <div className="cpj-visual-panels"><div className="cpj-visual-panel"><small>Role Readiness</small><strong>64%</strong></div><div className="cpj-visual-panel"><small>Top Strength</small><strong>Problem Solving</strong></div></div>
-              </div>
-              <div className="cpj-feature-grid">
-                {FEATURES.map(f => <article className="cpj-feature" key={f.title}><div className="cpj-feature-ic"><i className={`bi ${f.icon}`} /></div><h3>{f.title}</h3><p>{f.desc}</p><div className="cpj-mini-label">{f.label}</div></article>)}
-              </div>
+        {/* ── Career tools ─────────────────────────────────────────── */}
+        <section className="cpx-section cpx-white" id="career-tools">
+          <div className="cpx-wrap">
+            <div className="cpx-head">
+              <div className="cpx-eyebrow">Career tools</div>
+              <h2>Everything You Need to Navigate Your Career</h2>
+              <p>CareerPilot turns career confusion into measurable insights and a clear action plan.</p>
+            </div>
+            <div className="cpx-features">
+              {FEATURES.map(f => (
+                <article className="cpx-feature" key={f.title}>
+                  <span className="cpx-feature-ic"><i className={`bi ${f.icon}`} /></span>
+                  <h3>{f.title}</h3>
+                  <p>{f.desc}</p>
+                </article>
+              ))}
             </div>
           </div>
         </section>
 
-        <section className="cpj-section cpj-product">
-          <div className="cpj-wrap">
-            <div className="cpj-center"><div className="cpj-section-tag">See the product</div><h2 className="cpj-title">Your Entire Career, In One Dashboard</h2><p className="cpj-desc">Know where you stand, what to improve and exactly what you should do today.</p></div>
-            <div className="cpj-browser" aria-label="CareerPilot student dashboard preview">
-              <div className="cpj-browserbar"><i /><i /><i /></div>
-              <div className="cpj-dash">
-                <aside className="cpj-side"><div className="cpj-side-brand">CareerPilot</div>{['Career Dashboard','My Roadmap','Skill Meter','Missions','Assessments','Opportunities','Rewards'].map((x,i)=><div key={x} className={`cpj-side-item ${i===0?'active':''}`}>{x}</div>)}</aside>
-                <div className="cpj-dash-main">
-                  <div className="cpj-dash-head"><div><h3>Good morning, Arjun</h3><p>Target Role · Backend Engineer</p></div><div className="cpj-score-pill">Career Ready · 64%</div></div>
-                  <div className="cpj-dash-grid">
-                    <div className="cpj-panel"><h4>Career Readiness</h4><div className="cpj-readiness"><div className="cpj-score-ring"><strong>64</strong></div><div style={{flex:1}}>{[['Java',78],['Spring Boot',66],['DSA',54],['System Design',46]].map(([name,val])=><div className="cpj-skill" key={String(name)}><div className="cpj-skill-top"><span>{name}</span><b>{val}</b></div><div className="cpj-skill-bar"><b style={{width:`${val}%`}} /></div></div>)}</div></div></div>
-                    <div className="cpj-panel cpj-mission"><h4>Today's Mission</h4><strong>Master Java Collections</strong><p>Complete a focused mission and assessment to improve your backend readiness.</p><div className="cpj-chips"><span className="cpj-chip">+120 XP</span><span className="cpj-chip">25 min</span><span className="cpj-chip">Intermediate</span></div></div>
-                    <div className="cpj-panel cpj-road"><h4>Your Career Roadmap</h4><div className="cpj-roadline"><div className="cpj-stage done">Foundation</div><div className="cpj-stage current">Backend Engineering</div><div className="cpj-stage">System Design</div><div className="cpj-stage">Interview Ready</div><div className="cpj-stage">Job Ready</div></div></div>
+        {/* ── How it works ─────────────────────────────────────────── */}
+        <section className="cpx-section" id="how-it-works">
+          <div className="cpx-wrap">
+            <div className="cpx-head">
+              <div className="cpx-eyebrow">How it works</div>
+              <h2>From Confusion to Career Ready</h2>
+            </div>
+            <ol className="cpx-steps">
+              {STEPS.map(s => (
+                <li className="cpx-step" key={s.n}>
+                  <span className="cpx-step-ic"><i className={`bi ${s.icon}`} /></span>
+                  <span className="cpx-step-n">{s.n}</span>
+                  <h3>{s.title}</h3>
+                  <p>{s.desc}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* ── Opportunities ────────────────────────────────────────── */}
+        <section className="cpx-section cpx-white" id="opportunities">
+          <div className="cpx-wrap">
+            <div className="cpx-head">
+              <div className="cpx-eyebrow">Opportunity preview</div>
+              <h2>Internships &amp; Jobs That Match Your Journey</h2>
+              <p>A preview of how CareerPilot presents relevant opportunities. Live company openings are shown only when they exist in the platform.</p>
+            </div>
+            <div className="cpx-opps">
+              {OPPORTUNITY_PREVIEW.map(job => (
+                <article className="cpx-job" key={job.title}>
+                  <div className="cpx-job-top">
+                    <span className="cpx-job-ic"><i className={`bi ${job.icon}`} /></span>
+                    <span className="cpx-match">{job.match} Match</span>
                   </div>
-                </div>
-              </div>
+                  <h3>{job.title}</h3>
+                  <p>{job.meta} · Product preview</p>
+                  <div className="cpx-tags">{job.tags.map(t => <span key={t}>{t}</span>)}</div>
+                </article>
+              ))}
             </div>
           </div>
         </section>
 
-        <section className="cpj-section">
-          <div className="cpj-wrap cpj-game-grid">
-            <div className="cpj-game-copy"><div className="cpj-section-tag">Career gamification</div><h3>Build Your Career.<br />Level Up Every Day.</h3><p>CareerPilot turns meaningful progress into missions, XP, coins, streaks and achievements that keep students moving forward.</p><div className="cpj-game-stats"><div className="cpj-game-stat"><strong>Daily Missions</strong><small>Clear actions every day</small></div><div className="cpj-game-stat"><strong>Career Streaks</strong><small>Build consistency</small></div><div className="cpj-game-stat"><strong>XP & Levels</strong><small>See progress happen</small></div><div className="cpj-game-stat"><strong>Coins & Rewards</strong><small>Earn while improving</small></div></div></div>
-            <div className="cpj-game-card"><div className="cpj-level-top"><span className="cpj-level">LEVEL 12 · CAREER BUILDER</span><span className="cpj-xp">2,450 / 3,400 XP</span></div><div className="cpj-big-xp">2,450 XP</div><div className="cpj-game-bar"><span /></div><div className="cpj-game-metrics"><div className="cpj-gm"><b>7 days</b><small>Current streak</small></div><div className="cpj-gm"><b>840</b><small>CareerPilot Coins</small></div><div className="cpj-gm"><b>18</b><small>Missions completed</small></div></div></div>
+        {/* ── Stories ──────────────────────────────────────────────── */}
+        <section className="cpx-section" id="success-stories">
+          <div className="cpx-wrap">
+            <div className="cpx-head">
+              <div className="cpx-eyebrow">Real outcomes</div>
+              <h2>Recent Hires &amp; Career Stories</h2>
+              <p>CareerPilot will publish student outcomes here only after the placement details and public-use consent are verified.</p>
+            </div>
+            <div className="cpx-stories">
+              {STORIES.map(s => (
+                <article className="cpx-story" key={s.title}>
+                  <span className="cpx-story-ic"><i className={`bi ${s.icon}`} /></span>
+                  <div><h3>{s.title}</h3><p>{s.desc}</p><small>Coming soon · verified stories only</small></div>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
 
-        <section className="cpj-section white" id="how-it-works"><div className="cpj-wrap"><div className="cpj-center"><div className="cpj-section-tag">How it works</div><h2 className="cpj-title">From Confusion to Career Ready</h2></div><div className="cpj-steps">{STEPS.map(s=><article className="cpj-step" key={s.n}><div className="cpj-step-num">{s.n}</div><h3>{s.title}</h3><p>{s.desc}</p></article>)}</div></div></section>
+        {/* ── FAQ ──────────────────────────────────────────────────── */}
+        <section className="cpx-section cpx-white" id="faqs">
+          <div className="cpx-wrap">
+            <div className="cpx-head">
+              <div className="cpx-eyebrow">Questions</div>
+              <h2>Frequently Asked Questions</h2>
+            </div>
+            <div className="cpx-faq">
+              {faqCols.map((col, ci) => (
+                <div className="cpx-faq-col" key={ci}>
+                  {col.map(([q, a]) => (
+                    <details key={q}>
+                      <summary><i className="bi bi-chevron-right cpx-faq-caret" aria-hidden="true" />{q}<i className="bi bi-chevron-down cpx-faq-chev" aria-hidden="true" /></summary>
+                      <p>{a}</p>
+                    </details>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
-        <section className="cpj-section" id="opportunities"><div className="cpj-wrap"><div className="cpj-center"><div className="cpj-section-tag">Opportunity preview</div><h2 className="cpj-title">Internships & Jobs That Match Your Journey</h2><p className="cpj-desc">A product preview of how CareerPilot can present relevant opportunities. Live company openings are shown only when they exist in the platform.</p></div><div className="cpj-opps">{OPPORTUNITY_PREVIEW.map(job=><article className="cpj-job" key={job.title}><div className="cpj-job-top"><div className="cpj-company"><i className={`bi ${job.icon}`} /></div><span className="cpj-match">{job.match} Match</span></div><h3>{job.title}</h3><p>{job.meta} · Product preview</p><div className="cpj-tags">{job.tags.map(t=><span key={t}>{t}</span>)}</div></article>)}</div></div></section>
-
-        <section className="cpj-section white"><div className="cpj-wrap"><div className="cpj-center"><div className="cpj-section-tag">Student outcomes</div><h2 className="cpj-title">Recent Hires & Career Stories</h2><p className="cpj-desc">CareerPilot will publish student outcomes here only after the placement details and public-use consent are verified.</p></div><div className="cpj-outcomes"><article className="cpj-outcome"><div className="cpj-avatar"><i className="bi bi-briefcase" /></div><h3>Verified Recent Hires</h3><p>Role, company and placement outcome can be highlighted from verified CodeBegun placement records.</p></article><article className="cpj-outcome"><div className="cpj-avatar"><i className="bi bi-chat-quote" /></div><h3>Student Testimonials</h3><p>Short student stories can explain how career direction, preparation and confidence improved.</p></article><article className="cpj-outcome"><div className="cpj-avatar"><i className="bi bi-buildings" /></div><h3>Campus Success Stories</h3><p>College initiatives and CareerPilot outcomes can be published when the institution approves the public story.</p></article></div></div></section>
-
-        <section className="cpj-section"><div className="cpj-wrap"><div className="cpj-center"><div className="cpj-section-tag">The transformation</div><h2 className="cpj-title">Your Career Shouldn't Be Guesswork</h2></div><div className="cpj-journey"><div className="cpj-before"><h3>Before CareerPilot</h3><ul><li>Unclear which role to choose</li><li>Don't know your actual skill level</li><li>Learning random topics</li><li>Hard to stay consistent</li><li>No idea if you're job ready</li></ul></div><div className="cpj-arrow"><i className="bi bi-arrow-right" /></div><div className="cpj-after"><h3>With CareerPilot</h3><ul><li>Clear target career direction</li><li>Measured Skill DNA</li><li>Personalized roadmap</li><li>Missions, XP and streaks</li><li>Visible Career Readiness Score</li></ul></div></div></div></section>
-
-        <section className="cpj-section white"><div className="cpj-wrap"><div className="cpj-center"><div className="cpj-section-tag">Questions</div><h2 className="cpj-title">Frequently Asked Questions</h2></div><div className="cpj-faq">{FAQS.map(([q,a])=><details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div></div></section>
-
-        <section className="cpj-final"><div className="cpj-wrap"><h2>Your Career Deserves a Clear Plan.</h2><p>Discover where you stand. Know what to improve. Build toward the career you want.</p><button className="cpj-btn" type="button" onClick={scrollToSignup}>Start My CareerPilot <i className="bi bi-arrow-right" /></button></div></section>
+        {/* ── Final call to action ─────────────────────────────────── */}
+        <section className="cpx-cta">
+          <div className="cpx-wrap cpx-cta-in">
+            <div className="cpx-cta-copy">
+              <h2>Your Career Deserves a Clear Plan.</h2>
+              <p>Discover where you stand. Know what to improve. Build toward the career you want.</p>
+              <button className="cpx-btn cpx-btn-white" type="button" onClick={scrollToSignup}>
+                Start My Career Journey <i className="bi bi-arrow-right" />
+              </button>
+            </div>
+            <div className="cpx-cta-art" aria-hidden="true">
+              <i className="bi bi-send-fill" />
+              <span className="cpx-script light">Skills today. <br />A brighter tomorrow.</span>
+            </div>
+          </div>
+        </section>
       </main>
 
-      <footer className="cpj-footer"><div className="cpj-wrap"><div className="cpj-footer-grid"><div><a className="cpj-brand" href="/careerpilot/join"><img src="/assets/logo.png" alt="CodeBegun" /><span className="cpj-brand-divider" /><span className="cpj-brand-product" style={{color:'#fff'}}>Career<span>Pilot</span></span></a><p>Career clarity, skill readiness and personalized progress — built for the next generation of careers.</p></div><div><h4>CareerPilot</h4><a href="#how-it-works">How It Works</a><a href="#career-tools">Career Tools</a><a href="#opportunities">Opportunities</a></div><div><h4>CodeBegun</h4><a href="https://codebegun.com">About CodeBegun</a><a href="https://codebegun.com">Programs</a><a href="https://codebegun.com">For Colleges</a></div><div><h4>Account</h4><button className="cpj-btn cpj-btn-outline" type="button" onClick={goLogin}>CareerPilot Login</button></div></div><div className="cpj-copy">© {new Date().getFullYear()} CodeBegun · CareerPilot. All rights reserved.</div></div></footer>
+      {/* ── Footer ─────────────────────────────────────────────────── */}
+      <footer className="cpx-footer">
+        <div className="cpx-wrap cpx-footer-grid">
+          <div className="cpx-footer-brand">
+            <img src={LOGO} alt="CareerPilot by CodeBegun" />
+            <p>Career clarity, skill development and personalised progress — built for the next generation of careers.</p>
+          </div>
+          <div>
+            <h4>Product</h4>
+            <a href="#how-it-works" onClick={e => { e.preventDefault(); scrollTo('how-it-works'); }}>How It Works</a>
+            <a href="#career-tools" onClick={e => { e.preventDefault(); scrollTo('career-tools'); }}>Career Tools</a>
+            <a href="#opportunities" onClick={e => { e.preventDefault(); scrollTo('opportunities'); }}>Opportunities</a>
+            <a href="#faqs" onClick={e => { e.preventDefault(); scrollTo('faqs'); }}>FAQs</a>
+          </div>
+          <div>
+            <h4>Company</h4>
+            <a href="https://codebegun.com" target="_blank" rel="noopener noreferrer">About CodeBegun</a>
+            <a href="https://codebegun.com" target="_blank" rel="noopener noreferrer">Programs</a>
+            <a href="https://codebegun.com" target="_blank" rel="noopener noreferrer">For Colleges</a>
+          </div>
+          <div>
+            <h4>Account</h4>
+            <button type="button" className="cpx-footer-link" onClick={goLogin}>CareerPilot Login</button>
+            <button type="button" className="cpx-footer-link" onClick={scrollToSignup}>Create an Account</button>
+          </div>
+        </div>
+        <div className="cpx-wrap cpx-copy">© {new Date().getFullYear()} CodeBegun · CareerPilot. All rights reserved.</div>
+      </footer>
     </div>
   );
 };

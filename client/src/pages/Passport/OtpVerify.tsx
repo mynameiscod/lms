@@ -59,10 +59,8 @@ const OtpVerify: React.FC<OtpVerifyProps> = ({
           below still carries an Edit control, which is the one place a correction belongs —
           next to the number it corrects, rather than in the chrome. */}
       <header className="otpv-top">
-        <a className="otpv-brand" href="/careerpilot/join" aria-label="CodeBegun CareerPilot">
-          <img src="/assets/logo.png" alt="CodeBegun" />
-          <span className="otpv-brand-divider" />
-          <span className="otpv-product">Career<span>Pilot</span></span>
+        <a className="otpv-brand" href="/careerpilot/join" aria-label="CareerPilot by CodeBegun">
+          <img className="otpv-logo" src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" />
         </a>
       </header>
 

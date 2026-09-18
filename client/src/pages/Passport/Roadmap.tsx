@@ -309,7 +309,6 @@ const Roadmap: React.FC = () => {
         <div className="rq-bar">
           <button className="rq-back" onClick={() => setFull(false)}>← Back to Learning Path</button>
           <div className="rq-bar-actions">
-            <button className="rq-ghost" onClick={() => window.print()}>⭳ Export Roadmap</button>
             <button className="rq-primary" onClick={share}>{copied ? '✓ Link copied' : '↗ Share Roadmap'}</button>
           </div>
         </div>
@@ -337,7 +336,11 @@ const Roadmap: React.FC = () => {
           <div className="track">
             <div className="line"><i style={{ width: `${pct}%` }} /></div>
             {rm.phases.map((p, i) => (
-              <div className="node" key={p.key} style={{ left: `${((p.fromDay - 1) / rm.totalDays) * 100}%` }}>
+              <div
+                className="node"
+                key={p.key}
+                style={{ left: `calc(16px + ${(p.fromDay - 1) / rm.totalDays} * (100% - 32px))` }}
+              >
                 <span className="n" style={{ background: PHASE_TINT[p.key] || '#6d4bd8' }}>{i + 1}</span>
                 <div className="tx"><b>{p.label.replace(/^Phase \d+ · /, `Phase ${i + 1} - `)}</b><span>Days {p.fromDay}–{p.toDay}</span></div>
               </div>

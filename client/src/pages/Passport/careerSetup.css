@@ -21,3 +21,34 @@
 .cps-benefit > span,
 .cps-cap > span,
 .cps-role .cps-role-icon { background: var(--soft); color: var(--teal); }
+
+/* ── role picker: search and the collapsed grid ────────────────────────────── */
+
+.cps-role-search { position: relative; display: flex; align-items: center; margin: 4px 0 12px; }
+.cps-role-search > i.bi-search { position: absolute; left: 14px; color: #8CA0B5; font-size: 14px; pointer-events: none; }
+.cps-role-search input {
+  width: 100%; border: 1.5px solid #D5E0EA; border-radius: 11px;
+  padding: 12px 40px 12px 39px; font-size: 14px; font-family: inherit; color: #102A4F; background: #fff;
+}
+.cps-role-search input::placeholder { color: #9AAABB; }
+.cps-role-search input:focus { outline: none; border-color: #78AFC4; box-shadow: 0 0 0 3px rgba(0, 88, 151, .09); }
+.cps-role-search > button {
+  position: absolute; right: 8px; display: grid; place-items: center; width: 28px; height: 28px;
+  border: none; background: none; border-radius: 7px; color: #8CA0B5; cursor: pointer; font-size: 12px;
+}
+.cps-role-search > button:hover { background: #EFF5F9; color: #102A4F; }
+
+.cps-role-more {
+  width: 100%; margin-top: 10px; background: #fff; border: 1.5px dashed #C9D8E5; border-radius: 11px;
+  padding: 11px; font-family: inherit; font-size: 13px; font-weight: 700; color: #005897; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.cps-role-more:hover { border-color: #78AFC4; background: #F4FAFD; }
+.cps-role-more i { font-size: 12px; }
+
+.cps-role-none {
+  margin: 12px 0 0; padding: 14px 16px; border: 1px solid #E2EAF2; border-radius: 12px;
+  background: #F8FBFD; color: #53677D; font-size: 13.5px; line-height: 1.6;
+}
+.cps-role-none i { color: #8CA0B5; margin-right: 7px; }
+.cps-role-none b { color: #102A4F; }

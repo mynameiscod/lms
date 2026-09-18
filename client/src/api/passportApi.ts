@@ -28,6 +28,11 @@ export interface PassportConfig {
   _id?: string; enabled: boolean; assessmentMode: 'deterministic' | 'ai';
   onboardingFields: OnboardingField[]; entitlements: Entitlement[];
   priceInr: number;
+  /**
+   * Whether membership checkout takes real money. Absent on older configs, which means live.
+   * CareerPilot membership only — hackathon registration is a different purpose and unaffected.
+   */
+  paymentMode?: 'live' | 'test';
   /** How long access lasts after paying. */
   membershipMonths: number;
   /** How many days of work a plan covers. Capped at 90 by the planner. */
@@ -1485,9 +1490,12 @@ export const passportApi = {
   },
 
   // Membership checkout (₹499). Opens Razorpay and resolves true on successful activation.
-  membershipCheckout: async (): Promise<{ ok: boolean; message?: string }> => {
-    const ready = await loadRazorpay();
-    if (!ready) return { ok: false, message: 'Could not load the payment window. Check your connection.' };
+  membershipCheckout: async (): Promise<{ ok: boolean; message?: string; testMode?: boolean }> => {
+    /**
+     * The order is requested BEFORE Razorpay's script is loaded, because in test mode there is
+     * no Razorpay: loading it first would fail the whole checkout on a connection that is only
+     * needed for the live path.
+     */
     let order: any;
     try {
       /**
@@ -1504,6 +1512,20 @@ export const passportApi = {
     } catch (e: any) {
       return { ok: false, message: e?.response?.data?.message || 'Could not start payment.' };
     }
+
+    /* Test mode — the server took no money and created no Razorpay order, so there is nothing
+       to open. Completing is a single call, and it refuses if the tenant has since gone live. */
+    if (order?.testMode) {
+      try {
+        await axios.post(`${BASE}/membership/test-complete`, { orderId: order.orderId }, { headers: auth() });
+        return { ok: true, testMode: true };
+      } catch (e: any) {
+        return { ok: false, message: e?.response?.data?.message || 'Could not complete the test payment.' };
+      }
+    }
+
+    const ready = await loadRazorpay();
+    if (!ready) return { ok: false, message: 'Could not load the payment window. Check your connection.' };
     // Absolute return URL for redirect-mode checkout (mobile / incognito / popup-blocked,
     // where the in-page handler can't fire). Razorpay redirects here after payment; our
     // server settles and bounces back to /passport.

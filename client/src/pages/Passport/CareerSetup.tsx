@@ -64,6 +64,27 @@ const languageMeta = (name: string): LangMeta => {
 const educationMissing = (missing: string[]) =>
   missing.includes('education.degree') || missing.includes('education.currentAcademicYear');
 
+/**
+ * How many roles the picker shows before asking to be expanded.
+ *
+ * The list was every role in one column-pair, so it ran off the screen at nineteen and would
+ * have grown a row for each one added after. A dropdown was ruled out, and grouping by category
+ * is not possible honestly: a role option carries only a key, a label and a blurb, so any
+ * grouping would be guessed from the label and would file every future role wrongly — which is
+ * the exact failure being designed against.
+ *
+ * Search plus a cap needs no taxonomy and does not grow: whatever is added is findable by typing,
+ * and the default view stays this many rows for ever.
+ */
+const ROLE_VISIBLE = 8;
+
+/** Stable per-role tint, so a colour does not jump to a different card while filtering. */
+const roleTone = (key: string): number => {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return (h % 6) + 1;
+};
+
 const CareerSetup: React.FC = () => {
   const nav = useNavigate();
   /** `?step=direction` — which part of setup the member came back to change. */
@@ -77,6 +98,9 @@ const CareerSetup: React.FC = () => {
   const [err, setErr] = useState('');
   const [done, setDone] = useState(false);
   const [avail, setAvail] = useState<AssessmentAvailability | null>(null);
+  /** Role search and the collapsed/expanded state of the role grid. See ROLE_VISIBLE below. */
+  const [roleQuery, setRoleQuery] = useState('');
+  const [rolesExpanded, setRolesExpanded] = useState(false);
 
   useEffect(() => {
     passportApi.getCareerContext()
@@ -325,13 +349,68 @@ const CareerSetup: React.FC = () => {
                 <div className="cps-question-head"><div className="cps-qicon"><i className="bi bi-compass" /></div><div><h2>What role would you like to work toward?</h2><p>Pick what appeals to you now. You can change it later.</p></div></div>
                 {!!knownContext && <p className="cps-known cps-ctxbadge"><i className="bi bi-mortarboard" /> <b>{knownContext}</b>{!steps.includes('education') && <button type="button" className="cps-link" onClick={() => { setEditEducation(true); setStepIx(0); }}>Change academic details</button>}</p>}
                 {opts.roles.filter(r => r.key === 'NOT_SURE').map(r => <button key={r.key} className={`cps-unsure${a.primaryRole === r.key ? ' on' : ''}`} onClick={() => setA(s => ({ ...s, primaryRole: r.key }))}><i className="bi bi-compass" /><span><b>{r.label}</b><em>{r.blurb}</em></span></button>)}
-                <div className="cps-roles">
-                  {opts.roles.filter(r => r.key !== 'NOT_SURE').map((r, index) => (
-                    <button key={r.key} className={`cps-role tone-${(index % 6) + 1}${a.primaryRole === r.key ? ' on' : ''}`} onClick={() => setA(s => ({ ...s, primaryRole: r.key }))}>
-                      <span className="cps-role-icon"><i className={`bi ${r.iconKey || 'bi-briefcase'}`} /></span><b>{r.label}</b><span>{r.blurb}</span>
-                    </button>
-                  ))}
-                </div>
+                {(() => {
+                  const all = opts.roles.filter(r => r.key !== 'NOT_SURE');
+                  const q = roleQuery.trim().toLowerCase();
+                  const matches = q
+                    ? all.filter(r => `${r.label} ${r.blurb || ''}`.toLowerCase().includes(q))
+                    : all;
+                  /* A search shows everything it found; otherwise the first ROLE_VISIBLE, plus the
+                     chosen role wherever it sits in the list — collapsing the grid must never hide
+                     the answer the member has already given. */
+                  const shown = (q || rolesExpanded)
+                    ? matches
+                    : matches.slice(0, ROLE_VISIBLE).concat(
+                        matches.slice(ROLE_VISIBLE).filter(r => r.key === a.primaryRole));
+                  const hidden = matches.length - shown.length;
+
+                  return (
+                    <>
+                      {all.length > ROLE_VISIBLE && (
+                        <div className="cps-role-search">
+                          <i className="bi bi-search" />
+                          <input
+                            value={roleQuery}
+                            onChange={e => setRoleQuery(e.target.value)}
+                            placeholder={`Search ${all.length} roles — try "data", "AI", "cloud"`}
+                            aria-label="Search roles"
+                          />
+                          {!!roleQuery && (
+                            <button type="button" onClick={() => setRoleQuery('')} aria-label="Clear search">
+                              <i className="bi bi-x-lg" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="cps-roles">
+                        {shown.map(r => (
+                          <button key={r.key} className={`cps-role tone-${roleTone(r.key)}${a.primaryRole === r.key ? ' on' : ''}`} onClick={() => setA(st => ({ ...st, primaryRole: r.key }))}>
+                            <span className="cps-role-icon"><i className={`bi ${r.iconKey || 'bi-briefcase'}`} /></span><b>{r.label}</b><span>{r.blurb}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      {q && !matches.length && (
+                        <p className="cps-role-none">
+                          <i className="bi bi-search" /> No role matches <b>{roleQuery}</b>. Clear the search to see all {all.length},
+                          or pick <b>Not sure yet</b> above and decide later.
+                        </p>
+                      )}
+
+                      {!q && hidden > 0 && (
+                        <button type="button" className="cps-role-more" onClick={() => setRolesExpanded(true)}>
+                          Show {hidden} more {hidden === 1 ? 'role' : 'roles'} <i className="bi bi-chevron-down" />
+                        </button>
+                      )}
+                      {!q && rolesExpanded && all.length > ROLE_VISIBLE && (
+                        <button type="button" className="cps-role-more" onClick={() => setRolesExpanded(false)}>
+                          Show fewer <i className="bi bi-chevron-up" />
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
                 {opts.roles.length === 1 && <p className="cps-known"><i className="bi bi-info-circle" /> No specific careers are on offer just yet. You can continue and set a direction later.</p>}
               </>
             )}

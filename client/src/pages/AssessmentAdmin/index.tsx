@@ -1,8 +1,58 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { assessmentAdminApi, AdminAssessmentItem, DIMENSIONS, ITEM_TYPES } from '../../api/assessmentAdminApi';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import { RichText, plainText } from '../../utils/richText';
+import { assessmentAdminApi, AdminAssessmentItem, ValidationReport, DIMENSIONS, ITEM_TYPES } from '../../api/assessmentAdminApi';
 import './AssessmentAdmin.css';
 
 const labelOf = (arr: { value: string; label: string }[], v: string) => arr.find((x) => x.value === v)?.label || v;
+
+/**
+ * The toolbar a question actually needs.
+ *
+ * Same editor the assignment and lesson screens use, so an author moving between them does not
+ * meet a third way of writing. Link and image are deliberately absent: a question that sends a
+ * candidate to another page during a proctored exam is a hole, and an image needs hosting that
+ * survives the event.
+ *
+ * `code` and `code-block` are the point of this — "return `n`" and "return n" are different
+ * instructions, and a question that cannot say which is a worse question.
+ */
+const QUILL_MODULES = {
+  toolbar: [
+    ['bold', 'italic', 'underline'],
+    ['code', 'code-block'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    ['blockquote'],
+    ['clean'],
+  ],
+};
+const QUILL_FORMATS = ['bold', 'italic', 'underline', 'code', 'code-block', 'list', 'bullet', 'blockquote'];
+
+/**
+ * Switching the type clears the other type's fields.
+ *
+ * The other half of a real bug: a new item starts as an MCQ with two blank options, and
+ * switching to a coding problem left them in the payload — Mongoose counts '' as missing for
+ * a required String, so the save failed with "Failed to create item" and nothing else. The
+ * server now strips them too; this stops the form carrying a draft nobody can see.
+ */
+const forType = (type: AdminAssessmentItem['type']): Partial<AdminAssessmentItem> => {
+  const cleared: Partial<AdminAssessmentItem> = {
+    type,
+    options: undefined, correctOptionIds: undefined, expectedOutput: undefined,
+    buggyLineNumber: undefined, bugExplanation: undefined, blanks: undefined,
+    starterCode: undefined, functionSignature: undefined, testCases: undefined,
+  };
+  if (type === 'mcq') {
+    cleared.options = [{ id: 'a', text: '' }, { id: 'b', text: '' }];
+    cleared.correctOptionIds = [];
+  }
+  if (type === 'live_code' || type === 'sql') {
+    cleared.testCases = [{ input: '', expectedOutput: '', hidden: true, weight: 1 }];
+  }
+  return cleared;
+};
 
 const blank = (): AdminAssessmentItem => ({
   type: 'mcq', dimension: 'fundamentals', difficulty: 2, prompt: '', points: 1, active: true,
@@ -21,12 +71,18 @@ const AssessmentAdmin: React.FC = () => {
   const [gen, setGen] = useState({ type: 'mcq', dimension: 'fundamentals', difficulty: 2, language: 'Java', count: 3 });
   const [genBusy, setGenBusy] = useState(false);
   const [genMsg, setGenMsg] = useState('');
+  /* Bulk tagging. Selection is keyed by id and cleared on reload, because a tick against a
+     row that has since been filtered away would apply a tag nobody could see they had chosen. */
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulkTag, setBulkTag] = useState('');
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [list, cov] = await Promise.all([assessmentAdminApi.list(filters), assessmentAdminApi.coverage()]);
       setItems(list || []);
+      setPicked(new Set());
       setCoverage(cov);
     } catch (e: any) { setErr(e.message); } finally { setLoading(false); }
   }, [filters]);
@@ -54,6 +110,23 @@ const AssessmentAdmin: React.FC = () => {
   const remove = async (it: AdminAssessmentItem) => { if (it._id && window.confirm('Delete this item?')) { await assessmentAdminApi.remove(it._id); await load(); } };
 
   const up = (patch: Partial<AdminAssessmentItem>) => setEditing((e) => (e ? { ...e, ...patch } : e));
+
+  const togglePick = (id?: string) => {
+    if (!id) return;
+    setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  };
+  const pickAll = () => setPicked((p) =>
+    p.size === items.length ? new Set() : new Set(items.map((i) => i._id!).filter(Boolean)));
+
+  const applyBulk = async (mode: 'add' | 'remove') => {
+    setBulkBusy(true); setErr('');
+    try {
+      const r = await assessmentAdminApi.bulkTag([...picked], bulkTag, mode);
+      setBulkTag('');
+      await load();
+      window.alert(`${mode === 'remove' ? 'Removed' : 'Added'} "${r.tag}" on ${r.modified} question(s).`);
+    } catch (e: any) { setErr(e.message || 'Bulk tag failed'); } finally { setBulkBusy(false); }
+  };
 
   const runGenerate = async () => {
     setGenBusy(true); setGenMsg('');
@@ -113,18 +186,45 @@ const AssessmentAdmin: React.FC = () => {
 
       {err && <div className="aa-err">{err}</div>}
 
+      {/* Bulk tagging — how "draw 30 from these 100" is actually set up. */}
+      {picked.size > 0 && (
+        <div className="aa-bulk">
+          <b>{picked.size} selected</b>
+          <input
+            placeholder="Tag to apply, e.g. HACKATHON_2026"
+            value={bulkTag}
+            onChange={(e) => setBulkTag(e.target.value)}
+          />
+          <button className="aa-btn primary" disabled={bulkBusy || !bulkTag.trim()} onClick={() => applyBulk('add')}>
+            {bulkBusy ? 'Tagging…' : 'Add tag'}
+          </button>
+          <button className="aa-btn" disabled={bulkBusy || !bulkTag.trim()} onClick={() => applyBulk('remove')}>
+            Remove tag
+          </button>
+          <button className="aa-btn" onClick={() => setPicked(new Set())}>Clear</button>
+          <span className="aa-bulk-hint">
+            A tag is how an exam section picks its pool — tag these, then point the section at that tag.
+          </span>
+        </div>
+      )}
+
       {/* List */}
       <div className="aa-table-wrap">
         {loading ? <div className="aa-msg">Loading…</div> : items.length === 0 ? <div className="aa-msg">No items. Create one to get started.</div> : (
           <table className="aa-table">
-            <thead><tr><th>Type</th><th>Dimension</th><th>Diff</th><th>Prompt</th><th>Pts</th><th>Status</th><th></th></tr></thead>
+            <thead><tr>
+              <th className="aa-pick"><input type="checkbox" checked={picked.size > 0 && picked.size === items.length} onChange={pickAll} title="Select all shown" /></th>
+              <th>Type</th><th>Dimension</th><th>Diff</th><th>Prompt</th><th>Tags</th><th>Pts</th><th>Status</th><th></th>
+            </tr></thead>
             <tbody>
               {items.map((it) => (
-                <tr key={it._id} className={it.active ? '' : 'inactive'}>
+                <tr key={it._id} className={`${it.active ? '' : 'inactive'} ${picked.has(it._id!) ? 'picked' : ''}`}>
+                  <td className="aa-pick"><input type="checkbox" checked={picked.has(it._id!)} onChange={() => togglePick(it._id)} /></td>
                   <td><span className="aa-tag">{labelOf(ITEM_TYPES, it.type)}</span></td>
                   <td>{labelOf(DIMENSIONS, it.dimension)}</td>
                   <td>{it.difficulty}</td>
-                  <td className="prompt">{it.prompt}</td>
+                  <td className="prompt">{plainText(it.prompt, 160)}</td>
+                  <td className="aa-tags">{(it.tags || []).map((t) => <span key={t}>{t}</span>)}</td>
                   <td>{it.points ?? 1}</td>
                   <td><span className={`aa-dot ${it.active ? 'on' : 'off'}`} />{it.active ? 'Active' : 'Off'}</td>
                   <td className="actions">
@@ -182,6 +282,87 @@ const AssessmentAdmin: React.FC = () => {
   );
 };
 
+/**
+ * Prove a coding question works before a candidate ever sees it.
+ *
+ * WHAT THIS CATCHES, and why it belongs next to the test cases rather than on a separate
+ * screen: the expected output of a case is typed by hand, and a trailing newline, a space
+ * before a comma, or `4.0` where the program prints `4` makes a perfectly good question fail
+ * EVERY candidate. There is no other moment where that is cheap to find.
+ *
+ * The item is sent as it currently stands in the editor, unsaved — so the author proves the
+ * question first and commits it second.
+ */
+const SolutionCheck: React.FC<{ item: AdminAssessmentItem }> = ({ item }) => {
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [report, setReport] = useState<ValidationReport | null>(null);
+
+  const run = async () => {
+    setBusy(true); setErr(''); setReport(null);
+    try {
+      setReport(await assessmentAdminApi.validate({ item, code }));
+    } catch (e: any) {
+      setErr(e?.message || 'Could not run the solution.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cases = (item.testCases || []).length;
+
+  return (
+    <div className="aa-check-box">
+      <div className="aa-block-head">Check this question</div>
+      <p className="aa-check-hint">
+        Paste a solution you know is correct and run it against all {cases || 'the'} case
+        {cases === 1 ? '' : 's'}, hidden ones included. Every case must pass before this question
+        is safe to use.
+      </p>
+      <textarea
+        className="mono"
+        rows={7}
+        value={code}
+        placeholder={item.starterCode || '// reference solution'}
+        onChange={(e) => setCode(e.target.value)}
+      />
+      <button className="aa-btn small" disabled={busy || !code.trim() || !cases} onClick={run}>
+        {busy ? 'Running…' : 'Run against test cases'}
+      </button>
+      {!cases && <div className="aa-check-hint">Add at least one test case first.</div>}
+      {err && <div className="aa-err">{err}</div>}
+
+      {report && !report.runnable && <div className="aa-err">{report.reason}</div>}
+      {report && report.runnable && (
+        <>
+          <div className={`aa-check-verdict ${report.allPassed ? 'ok' : 'bad'}`}>
+            {report.allPassed
+              ? `All ${report.totalCases} cases passed — a candidate submitting this scores ${report.score}/${report.maxScore}.`
+              : `${report.passedCases} of ${report.totalCases} passed. A candidate submitting this scores ${report.score}/${report.maxScore}. Fix the question or the expected output before using it.`}
+          </div>
+          <table className="aa-check-tbl">
+            <thead>
+              <tr><th>#</th><th>Input</th><th>Expected</th><th>Got</th><th></th></tr>
+            </thead>
+            <tbody>
+              {report.cases.map((c) => (
+                <tr key={c.index} className={c.passed ? '' : 'bad'}>
+                  <td>{c.index + 1}{c.hidden ? ' 🔒' : ''}</td>
+                  <td><pre>{c.input || '—'}</pre></td>
+                  <td><pre>{c.expectedOutput}</pre></td>
+                  <td><pre>{c.error ? c.error : c.actualOutput || '—'}</pre></td>
+                  <td>{c.passed ? '✅' : '❌'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </div>
+  );
+};
+
 // ─── Editor modal ────────────────────────────────────────────────────────────
 const Editor: React.FC<{ item: AdminAssessmentItem; up: (p: Partial<AdminAssessmentItem>) => void; onSave: () => void; onCancel: () => void; saving: boolean; err: string }> = ({ item, up, onSave, onCancel, saving, err }) => {
   const isCode = ['predict_output', 'debug', 'complete_code', 'live_code', 'sql'].includes(item.type);
@@ -208,7 +389,7 @@ const Editor: React.FC<{ item: AdminAssessmentItem; up: (p: Partial<AdminAssessm
         <div className="aa-modal-body">
           <div className="aa-row3">
             <label>Type
-              <select value={item.type} onChange={(e) => up({ type: e.target.value as any })}>{ITEM_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select>
+              <select value={item.type} onChange={(e) => up(forType(e.target.value as any))}>{ITEM_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select>
             </label>
             <label>Dimension
               <select value={item.dimension} onChange={(e) => up({ dimension: e.target.value as any })}>{DIMENSIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}</select>
@@ -218,9 +399,29 @@ const Editor: React.FC<{ item: AdminAssessmentItem; up: (p: Partial<AdminAssessm
             </label>
           </div>
 
-          <label className="full">Prompt
-            <textarea rows={2} value={item.prompt} onChange={(e) => up({ prompt: e.target.value })} placeholder="The question / task statement" />
-          </label>
+          <div className="full aa-prompt">
+            <label>Question</label>
+            <ReactQuill
+              theme="snow"
+              value={item.prompt || ''}
+              onChange={(v) => up({ prompt: v })}
+              modules={QUILL_MODULES}
+              formats={QUILL_FORMATS}
+              placeholder="The question or task, as the candidate will read it…"
+            />
+            <div className="aa-prompt-hint">
+              <b>Code</b> formats a name inline, like <code>arr[i]</code>. <b>Code block</b> is for
+              several lines. Both survive to the candidate's screen exactly as you see them here.
+            </div>
+            {/* What the candidate will see, rendered the same way their exam renders it —
+                so an author never has to guess whether the markup came out right. */}
+            {!!(item.prompt || '').trim() && (
+              <details className="aa-preview">
+                <summary>Preview as the candidate sees it</summary>
+                <RichText html={item.prompt} className="aa-preview-body" />
+              </details>
+            )}
+          </div>
 
           {isCode && (
             <div className="aa-row2">
@@ -297,6 +498,7 @@ const Editor: React.FC<{ item: AdminAssessmentItem; up: (p: Partial<AdminAssessm
                 </div>
               ))}
               <button className="aa-btn small" onClick={addTc}>+ Test case</button>
+              <SolutionCheck item={item} />
             </div>
           )}
 

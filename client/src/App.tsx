@@ -126,6 +126,8 @@ import PassportAdminAssessment from './pages/Passport/AdminAssessment';
 import PassportCard from './pages/Passport/Card';
 import PassportJoin from './pages/Passport/Join';
 import PassportLogin from './pages/Passport/Login';
+import HackathonExam from './pages/HackathonExam';
+import HackathonExamAdmin from './pages/HackathonExamAdmin';
 import BattleList from './pages/Battles/PublicList';
 import BattleLanding from './pages/Battles/Landing';
 import BattleExam from './pages/Battles/Exam';
@@ -428,6 +430,11 @@ const AppRoutes: React.FC = () => {
       <Route path="/careerpilot/card/:slug" element={<PassportCard />} />
       {/* Card links live in recruiters' inboxes; this redirect can never be removed. */}
       <Route path="/passport/card/:slug" element={<LegacyRedirect to="/careerpilot/card/:slug" />} />
+      {/* ── Hackathon exam (no auth — a team was given a code, not an account) ── */}
+      <Route path="/hackathon-exam/:token" element={<HackathonExam />} />
+      <Route path="/hackathon-exam/enter/:slug" element={<HackathonExam />} />
+      <Route path="/hackathon-exam" element={<HackathonExam />} />
+
       {/* ── Public Tech Battles (no auth) ── */}
       <Route path="/battles" element={<BattleList />} />
       <Route path="/battles/exam/:token" element={<BattleExam />} />
@@ -478,6 +485,11 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* ── Hackathon exam (admin) ── */}
+      <Route path="/hackathons/:hackathonId/exam" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'STAFF']}><Layout><HackathonExamAdmin /></Layout></ProtectedRoute>
+      } />
 
       {/* ── Tech Battles (admin) ── */}
       <Route path="/admin/battles" element={
@@ -641,6 +653,23 @@ const AppRoutes: React.FC = () => {
             /careerpilot/assessment, which is the free career-readiness questionnaire. */}
         <Route path="/careerpilot/skill-assessment" element={<PassportSkillAssessment />} />
         {/* Progress, badges and leaderboards. Engagement only — never a capability signal. */}
+        {/*
+          AI Mentor, mounted INSIDE the member shell rather than linked out to /ai-mentor.
+          
+          The page itself is the same component either way - it depends on nothing but its own
+          api module. What differs is the chrome: /ai-mentor wraps it in the main LMS Layout, so
+          a CareerPilot member who opened it from the rail would land in a different application
+          with a different sidebar and no way back to CareerPilot. Mounting it here keeps the
+          rail, the streak and the level on screen, which is what makes it feel like part of
+          CareerPilot instead of a link out of it.
+          
+          /ai-mentor stays exactly as it was, for everybody who reaches it from the LMS sidebar.
+        */}
+        <Route path="/careerpilot/mentor" element={<AIMentor />} />
+        {/* Code Playground, mounted in the shell for the same reason as the mentor above:
+            /playground wraps it in the LMS Layout, which would drop a CareerPilot member into a
+            different application. The component is unchanged; only the chrome differs. */}
+        <Route path="/careerpilot/playground" element={<CodePlayground />} />
         <Route path="/careerpilot/progress" element={<PassportGamification />} />
         {/* Coins buy rewards; XP never does. */}
         <Route path="/careerpilot/rewards" element={<PassportRewards />} />

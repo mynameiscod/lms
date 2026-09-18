@@ -204,7 +204,11 @@ const SkillAssessment: React.FC = () => {
             <div className="ska-complete-copy">
               <span className="ska-eyebrow">ASSESSMENT COMPLETE</span>
               <h1>Well done!</h1>
-              <p>You’ve completed your CareerPilot skill assessment. We’re turning your answers into your personalized Skill DNA and role-readiness insights.</p>
+              <p>
+                {done.skillDnaPending
+                  ? 'You’ve completed your CareerPilot skill assessment. We’re turning your answers into your personalized Skill DNA and role-readiness insights.'
+                  : 'You’ve completed your CareerPilot skill assessment. Your answers have been turned into your personalized Skill DNA, and your plan is built around what it measured.'}
+              </p>
               {/*
                 * WHAT HAPPENS NEXT, TRUTHFULLY.
                 *
@@ -215,13 +219,13 @@ const SkillAssessment: React.FC = () => {
                 * than a locked feature, at the exact moment they most want to know what they
                 * got. Each outcome now says its own true thing.
                 */}
-              {done.roadmapStatus === 'READY' && (
+              {!done.skillDnaPending && done.roadmapStatus === 'READY' && (
                 <div className="ska-analysis-note ska-note-ready">
                   <i className="bi bi-check-circle-fill" />
                   <span>Your roadmap has been rebuilt around what this paper measured.</span>
                 </div>
               )}
-              {done.roadmapStatus === 'MEMBERSHIP_REQUIRED' && (
+              {!done.skillDnaPending && done.roadmapStatus === 'MEMBERSHIP_REQUIRED' && (
                 <div className="ska-analysis-note ska-note-locked">
                   <i className="bi bi-stars" />
                   <span>
@@ -230,7 +234,7 @@ const SkillAssessment: React.FC = () => {
                   </span>
                 </div>
               )}
-              {done.roadmapStatus === 'NOT_ENOUGH_EVIDENCE' && (
+              {!done.skillDnaPending && done.roadmapStatus === 'NOT_ENOUGH_EVIDENCE' && (
                 <div className="ska-analysis-note">
                   <i className="bi bi-lightbulb" />
                   <span>
@@ -239,7 +243,7 @@ const SkillAssessment: React.FC = () => {
                   </span>
                 </div>
               )}
-              {done.roadmapStatus === 'NOT_GENERATED' && (
+              {!done.skillDnaPending && done.roadmapStatus === 'NOT_GENERATED' && (
                 /* They have never built a plan, and submitting a paper no longer builds one for
                    them. Not a failure and not a paywall — an invitation, which is what this
                    moment actually is. */
@@ -251,11 +255,17 @@ const SkillAssessment: React.FC = () => {
                   </span>
                 </div>
               )}
-              {(done.roadmapStatus === 'UNAVAILABLE' || done.roadmapStatus === 'NOT_ATTEMPTED' || !done.roadmapStatus) && (
+              {!done.skillDnaPending && (done.roadmapStatus === 'UNAVAILABLE' || done.roadmapStatus === 'NOT_ATTEMPTED' || !done.roadmapStatus) && (
                 <div className="ska-analysis-note">
                   <i className="bi bi-lightbulb" />
                   <span>Your Skill DNA is ready to view.</span>
                 </div>
+              )}
+              {/* Only while something really is still running. The figures below say "Complete",
+                  so a permanent "we are analyzing" line told the member to sit and wait for a
+                  screen that was never coming. skillDnaPending is the flag that knows. */}
+              {done.skillDnaPending && (
+                <div className="ska-analysis-note"><i className="bi bi-lightbulb" /><span>We’re analyzing your responses to prepare your personalized insights and roadmap.</span></div>
               )}
             </div>
             <div className="ska-complete-art">
@@ -268,11 +278,21 @@ const SkillAssessment: React.FC = () => {
               <div><i className="bi bi-shield-check" /><span><small>Assessment</small><b>Complete</b></span></div>
             </div>
             {done.skillDnaPending && <div className="ska-note">Your answers are safely recorded. Your skills profile is still updating and will appear shortly.</div>}
-            {/* No navigation buttons here. The member is signed in and the shell's rail is
-                already on screen with Home, My Roadmap and Skill DNA on it — offering the
-                same two destinations again as full-width buttons is the page telling somebody
-                how to get somewhere they can already see. What belongs on a completion screen
-                is what just happened, which is the three figures above. */}
+            {/*
+              A WAY OUT - which this screen did not have for the people who most needed one.
+
+              The buttons were left off on the reasoning that the shell's rail is already on
+              screen with Home, My Roadmap and Skill DNA on it. That holds for a member. It does
+              NOT hold for anybody else: MemberLayout deliberately renders non-members without
+              the rail, because every destination on it is locked to them. So the one person who
+              has just finished their assessment and has not paid - the exact moment the product
+              asks them to - landed on a page with no rail and no buttons, under a line saying
+              their results were still being analyzed. There was no way forward at all, and
+              nothing was coming.
+
+              A member keeps the rail and gets these as a shortcut; a non-member gets their only
+              exit, and it points at the preview of the plan they have just earned.
+            */}
             {/*
               * A way onward, always. The rail does carry these destinations, but a member who
               * has just finished a paper is looking at this card, not at the navigation — and
@@ -301,6 +321,13 @@ const SkillAssessment: React.FC = () => {
                 // this screen a different upgrade path from the rest of the product.
                 <button className="ska-cta-ghost" onClick={unlockMembership} disabled={paying}>
                   {paying ? 'Opening…' : 'Unlock my roadmap'}
+                </button>
+              )}
+              {/* Master's always-there exit to the roadmap (its preview, for a non-member), for every
+                  outcome that has no roadmap button of its own above. */}
+              {done.roadmapStatus !== 'READY' && done.roadmapStatus !== 'NOT_GENERATED' && (
+                <button className="ska-cta-ghost" onClick={() => nav('/careerpilot/roadmap')}>
+                  See your roadmap
                 </button>
               )}
             </div>

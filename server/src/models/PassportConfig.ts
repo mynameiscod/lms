@@ -69,6 +69,18 @@ export interface IPassportConfig extends Document {
   assessmentPolicyOverrides?: IAssessmentPolicyOverride[];
   priceInr: number;
   /**
+   * Whether CareerPilot membership takes real money or simulates it. 'live' unless changed.
+   *
+   * SCOPED HERE ON PURPOSE. This is CareerPilot's own config, and the only payment it governs
+   * is purpose 'passport_membership'. Hackathon registration is purpose 'hackathon' in a
+   * different controller and never reads this, so a tenant taking real hackathon money while
+   * testing CareerPilot checkout is the normal case rather than a risk to be managed.
+   *
+   * A global "test payments" switch would not have that property: it would silently cover
+   * every purpose, and the one flow you forgot is the one taking real money.
+   */
+  paymentMode: 'live' | 'test';
+  /**
    * How long a member's ACCESS lasts, in months. What they bought.
    *
    * Distinct from the roadmap length below, and the two were being confused because only
@@ -151,6 +163,7 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
       default: undefined,
     },
     priceInr:         { type: Number, default: 499 },
+    paymentMode:      { type: String, enum: ['live', 'test'], default: 'live' },
     membershipMonths: { type: Number, default: 12 },
     // 90 is the shipped default, and the horizon the planner was designed around: beyond it
     // the evidence a plan was built from is months stale and the personalisation is a claim

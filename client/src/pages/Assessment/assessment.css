@@ -235,3 +235,15 @@
 .as-loading { display: flex; align-items: center; justify-content: center; min-height: 60vh; color: var(--muted); }
 .as-spinner { width: 34px; height: 34px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: as-spin .8s linear infinite; }
 @keyframes as-spin { to { transform: rotate(360deg); } }
+
+/* A prompt authored in the rich-text editor. Same weight as a plain-text one, plus the block
+   elements the editor can produce, so the two formats read alike in the same paper. */
+.as-qrich p { margin: 0 0 10px; }
+.as-qrich p:last-child { margin-bottom: 0; }
+.as-qrich code { background: #eef2f7; color: #b91c1c; border-radius: 4px; padding: 1px 6px; font-family: 'Fira Code', Consolas, monospace; font-size: 14px; font-weight: 500; }
+.as-qrich pre { background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 13px 15px; overflow-x: auto; font-family: 'Fira Code', Consolas, monospace; font-size: 13px; font-weight: 400; white-space: pre; }
+.as-qrich pre code { background: none; color: inherit; padding: 0; }
+.as-qrich ul, .as-qrich ol { margin: 0 0 10px; padding-left: 22px; font-weight: 500; }
+.as-qrich li { margin-bottom: 4px; }
+.as-qrich blockquote { border-left: 3px solid #c7d2fe; margin: 0 0 10px; padding-left: 13px; color: #475569; }
+.as-qrich h4 { font-size: 16px; font-weight: 800; margin: 12px 0 6px; }

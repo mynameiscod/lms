@@ -218,9 +218,12 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('My 90 Days', 'grid', '/careerpilot/plan', 'roadmap')}
           {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap')}
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice')}
+          {/* From master. No section, so they stay open to everyone, as master had them. */}
+          {navBtn('Playground', 'terminal', '/careerpilot/playground')}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'practice')}
           {navBtn('Communication Lab', 'speech', '/careerpilot/communication')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview')}
+          {navBtn('AI Mentor', 'robot', '/careerpilot/mentor')}
           {navBtn('Opportunities', 'building', '/careerpilot/companies', 'companies')}
           {navBtn('Resume', 'resume', '/careerpilot/resume', 'resume')}
           {navBtn('My Progress', 'trophy', '/careerpilot/progress', 'progress')}

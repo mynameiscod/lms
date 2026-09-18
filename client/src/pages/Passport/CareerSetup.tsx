@@ -199,7 +199,7 @@ const CareerSetup: React.FC = () => {
 
   const header = (
     <header className="cps-topbar">
-      <div className="cps-brand"><img src="/assets/logo.png" alt="CodeBegun" /><span className="cps-brand-divider" /><b>Career<span>Pilot</span></b></div>
+      <a className="cps-brand" href="/careerpilot" aria-label="CareerPilot by CodeBegun"><img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" /></a>
       <div className="cps-safe"><i className="bi bi-shield-check" /> Your data is safe & secure</div>
     </header>
   );
@@ -306,7 +306,7 @@ const CareerSetup: React.FC = () => {
               <div className={`cps-benefit tone-${index + 1}`} key={item.title}><span><i className={`bi ${item.icon}`} /></span><div><b>{item.title}</b><small>{item.text}</small></div></div>
             ))}
           </div>
-          <div className="cps-art"><div className="cps-flight-path" /><img src="/assets/careerpilot/careerpilot-hero-student.png" alt="CareerPilot student planning a career path" /></div>
+          <div className="cps-art" aria-hidden="true"><img src="/assets/careerpilot/careerpilot-hero-student.png" alt="" /></div>
         </aside>
 
         <section className="cps-panel">
@@ -455,7 +455,7 @@ const CareerSetup: React.FC = () => {
       </main>
 
       <section className="cps-capabilities"><div className="cps-cap-title">With <b>Career<span>Pilot</span></b>, you can</div><div className="cps-cap-grid">{CAPABILITIES.map((item, index) => <div className={`cps-cap tone-${(index % 5) + 1}`} key={item.title}><span><i className={`bi ${item.icon}`} /></span><b>{item.title}</b></div>)}</div></section>
-      <footer className="cps-footer"><div className="cps-footer-brand"><img src="/assets/logo.png" alt="CodeBegun" /></div><span>© {new Date().getFullYear()} CodeBegun. All rights reserved.</span><span className="cps-footer-made">Made for ambitious careers in India</span></footer>
+      <footer className="cps-footer"><div className="cps-footer-brand"><img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" /></div><span>© {new Date().getFullYear()} CodeBegun · CareerPilot. All rights reserved.</span><span className="cps-footer-made">Made for ambitious careers in India</span></footer>
     </div>
   );
 };

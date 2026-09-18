@@ -239,7 +239,7 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
             <li><i className="bi bi-check2" /> 90 days, paced to the time you have</li>
             {alsoIncluded.length > 0 && <li><i className="bi bi-check2" /> {alsoIncluded.length} more tool{alsoIncluded.length === 1 ? '' : 's'} — {alsoIncluded.slice(0, 2).map(l => l.title).join(', ')}{alsoIncluded.length > 2 ? ' and more' : ''}</li>}
           </ul>
-          <button className="dl2-btn light" onClick={unlock} disabled={busy}>{label}</button>
+          <button className="dl2-btn light" onClick={() => unlock()} disabled={busy}>{label}</button>
           {!!msg && <p className="dl2-msg">{msg}</p>}
           <span className="dl2-buy-foot">Everything your assessment measured stays yours either way.</span>
         </aside>

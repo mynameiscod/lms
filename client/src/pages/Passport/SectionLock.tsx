@@ -49,13 +49,14 @@ export const useUnlock = () => {
   const [msg, setMsg] = useState('');
   const priceInr = data?.priceInr;
 
-  const unlock = async () => {
+  /** `after` runs once payment succeeds, for a screen with its own data to refresh (the journey preview). */
+  const unlock = async (after?: () => void) => {
     setBusy(true); setMsg('');
     try {
       const r = await passportApi.membershipCheckout();
       // Every locked surface reloads the same way, so unlocking on one opens all of them
       // without a refresh — the old screens each decided this differently and two forgot.
-      if (r?.ok) reload();
+      if (r?.ok) { reload(); after?.(); }
       else if (r?.message) setMsg(r.message);
     } catch {
       setMsg('The payment window could not open. Check your connection and try again.');
@@ -91,7 +92,7 @@ const SectionLock: React.FC<Props> = ({ section, title, blurb, facts, children, 
 
         {children && <div className="slk-preview">{children}</div>}
 
-        <button className="slk-btn" onClick={unlock} disabled={busy}>
+        <button className="slk-btn" onClick={() => unlock()} disabled={busy}>
           {label}
         </button>
         {!!msg && <p className="slk-msg">{msg}</p>}

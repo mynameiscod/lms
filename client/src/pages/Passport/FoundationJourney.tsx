@@ -29,9 +29,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, {
   FoundationJourney as Journey, FoundationJourneyDay, FoundationJourneyActivity,
 } from '../../api/passportApi';
-import SectionLock from './SectionLock';
+import SectionLock, { useUnlock } from './SectionLock';
 import { dayState, dayRanges, initialDay, STATE_LABEL } from './foundationRoadmapPresenter';
 import './foundationJourney.css';
+import './foundationPreview.css';
 
 /** Content types, in words a first-year recognises. */
 const TYPE_LABEL: Record<string, string> = {
@@ -100,108 +101,104 @@ const NotReady: React.FC<{ totalDays: number; message?: string; onAssess?: () =>
  *
  * Topics and what each day contains, so the plan is visibly theirs — nothing to open. Membership
  * generates all ninety days from the same skill check and this page becomes the full journey.
+ *
+ * Laid out as the member journey will be: the ninety at a glance (the preview days lit, the rest
+ * locked), the week they can read down the side, and the chosen day in full. One unlock, through
+ * the checkout every lock shares (SectionLock's useUnlock); the journey reloads once it succeeds.
  */
 const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = ({ journey, onUnlocked }) => {
   const days = journey.preview || [];
   const [open, setOpen] = useState<number>(days[0]?.day ?? 1);
-  const [paying, setPaying] = useState(false);
-  const [msg, setMsg] = useState('');
+  const { unlock, busy, msg, priceInr } = useUnlock();
   const total = journey.totalDays ?? 90;
   const locked = journey.lockedDays ?? Math.max(0, total - days.length);
   const day = days.find(d => d.day === open) || days[0];
-
-  const unlock = async () => {
-    setPaying(true); setMsg('');
-    try {
-      const r: any = await passportApi.membershipCheckout();
-      if (r?.ok) onUnlocked();
-      else setMsg(r?.message || 'Payment did not complete.');
-    } catch (e: any) {
-      setMsg(e?.message || 'Payment did not complete.');
-    }
-    setPaying(false);
-  };
+  const avgMins = days.length ? Math.round(days.reduce((t, d) => t + (d.minutes || 0), 0) / days.length) : 0;
+  const unlockLabel = busy ? 'Opening payment…' : `Unlock all ${total} days${priceInr ? ` — ₹${priceInr}` : ''}`;
+  const previewSet = new Set(days.map(d => d.day));
 
   return (
-    <div className="fj-page">
-      <header className="fj-head">
-        <div>
-          <span className="fj-kicker">CAREERPILOT</span>
-          <h1>Foundation Journey</h1>
-          <p className="fj-sub">Your {total}-day roadmap · first {days.length} days</p>
+    <div className="fjp">
+      <section className="fjp-hero">
+        <div className="fjp-hero-copy">
+          <span className="fjp-eyebrow">Your {total}-day roadmap</span>
+          <h1>Foundation <span>Journey</span></h1>
+          <p>Your personalised plan, built from your skill check. The first {days.length} days are open to preview — membership generates and unlocks all {total}.</p>
+          <div className="fjp-chips">
+            <span><i className="bi bi-calendar3" /> {total} learning days</span>
+            <span><i className="bi bi-eye" /> {days.length} days to preview</span>
+            {avgMins > 0 && <span><i className="bi bi-clock" /> About {mins(avgMins)} a day</span>}
+          </div>
         </div>
-      </header>
-
-      <div className="fj-msg info" style={{ marginBottom: 18 }}>
-        <b>🔒 Unlock to see your full {total}-day roadmap</b>
-        <p>
-          These are the first {days.length} days of your personalised plan, built from your skill check.
-          Take membership and all {total} days are generated for you and unlocked.
-        </p>
-        <button type="button" className="fj-start" onClick={unlock} disabled={paying}>
-          {paying ? 'Opening payment…' : `Unlock all ${total} days`}
-        </button>
-        {msg && <p>{msg}</p>}
-      </div>
-
-      <section className="fj-strip-wrap" aria-label="Preview days">
-        <ol className="fj-strip">
-          {days.map(d => (
-            <li key={d.day}>
-              <button
-                type="button"
-                className={`fj-chip${d.day === 1 ? ' s-current' : ''}${open === d.day ? ' open' : ''}`}
-                onClick={() => setOpen(d.day)}
-                title={`Day ${d.day} — ${d.title}`}
-              >
-                <span className="fj-chip-n">{d.day}</span>
-              </button>
-            </li>
-          ))}
-          {locked > 0 && (
-            <li>
-              <span className="fj-chip" style={{ width: 'auto', padding: '0 12px', cursor: 'default' }}
-                    title={`Days ${days.length + 1}–${total} unlock with membership`}>
-                <i className="bi bi-lock-fill" aria-hidden />&nbsp;{days.length + 1}–{total}
-              </span>
-            </li>
-          )}
-        </ol>
+        <div className="fjp-map" aria-label={`${days.length} of ${total} days open to preview`}>
+          <div className="fjp-map-head"><b>Your {total} days</b><span>{days.length} open · {locked} locked</span></div>
+          <ol className="fjp-dots">
+            {Array.from({ length: total }, (_, i) => i + 1).map(n => (
+              <li key={n} className={previewSet.has(n) ? (n === open ? 'on open' : 'on') : ''} title={previewSet.has(n) ? `Day ${n}` : `Day ${n} — unlocks with membership`} />
+            ))}
+          </ol>
+          <button type="button" className="fjp-btn light" onClick={() => unlock(onUnlocked)} disabled={busy}>{unlockLabel}</button>
+          {msg && <p className="fjp-msg">{msg}</p>}
+        </div>
       </section>
 
-      {day && (
-        <section className="fj-day">
-          <div className="fj-day-head">
-            <div>
-              <span className="fj-status">Preview</span>
-              <h2>Day {day.day} · {day.title}</h2>
-              {day.objective && <p className="fj-objective">{day.objective}</p>}
-            </div>
-            {day.minutes > 0 && <span className="fj-mins">{mins(day.minutes)}</span>}
-          </div>
-          {day.outcomes.length > 0 && (
-            <div className="fj-outcomes">
-              <span>By the end of this day you can</span>
-              <ul>{day.outcomes.map((o, i) => <li key={i}>{o}</li>)}</ul>
-            </div>
-          )}
-          <ol className="fj-acts">
-            {day.activities.map((a, i) => (
-              <li key={i} className={a.gating ? 'gating' : ''}>
-                <span className="fj-act-icon"><i className={`bi ${ICON[a.type] || 'bi-journal-text'}`} aria-hidden /></span>
-                <span className="fj-act-body">
-                  <b>{a.title}</b>
-                  <small>
-                    {TYPE_LABEL[a.type] || a.type}
-                    {a.minutes > 0 && <> · {mins(a.minutes)}</>}
-                    {' · opens with membership'}
-                  </small>
-                </span>
+      <div className="fjp-grid">
+        <aside className="fjp-week" aria-label="Preview days">
+          <h2>Your first week</h2>
+          <ol>
+            {days.map(d => (
+              <li key={d.day}>
+                <button type="button" className={open === d.day ? 'on' : ''} onClick={() => setOpen(d.day)} aria-current={open === d.day ? 'true' : undefined}>
+                  <span className="n">{d.day}</span>
+                  <span className="t"><b>{d.title}</b>{d.minutes > 0 && <small>{mins(d.minutes)}</small>}</span>
+                </button>
               </li>
             ))}
           </ol>
-        </section>
-      )}
+          {locked > 0 && (
+            <div className="fjp-rest">
+              <i className="bi bi-lock-fill" aria-hidden />
+              <div><b>Days {days.length + 1}–{total}</b><span>Generated for you and unlocked with membership.</span></div>
+            </div>
+          )}
+        </aside>
+
+        {day && (
+          <section className="fjp-day">
+            <header className="fjp-day-head">
+              <div>
+                <span className="fjp-tag"><i className="bi bi-eye" /> Preview · Day {day.day} of {total}</span>
+                <h2>{day.title}</h2>
+                {day.objective && <p>{day.objective}</p>}
+              </div>
+              {day.minutes > 0 && <span className="fjp-mins"><i className="bi bi-clock" /> {mins(day.minutes)}</span>}
+            </header>
+            {day.outcomes.length > 0 && (
+              <div className="fjp-outcomes">
+                <span>By the end of this day you can</span>
+                <ul>{day.outcomes.map((o, i) => <li key={i}><i className="bi bi-check2-circle" /> {o}</li>)}</ul>
+              </div>
+            )}
+            <h3 className="fjp-acts-title">What this day contains</h3>
+            <ol className="fjp-acts">
+              {day.activities.map((a, i) => (
+                <li key={i} className={a.gating ? 'gating' : ''}>
+                  <span className={`ic t-${a.type}`}><i className={`bi ${ICON[a.type] || 'bi-journal-text'}`} aria-hidden /></span>
+                  <span className="body">
+                    <b>{a.title}</b>
+                    <small>{TYPE_LABEL[a.type] || a.type}{a.minutes > 0 && <> · {mins(a.minutes)}</>}</small>
+                  </span>
+                  <span className="lk"><i className="bi bi-lock-fill" aria-hidden /> Membership</span>
+                </li>
+              ))}
+            </ol>
+            <div className="fjp-day-cta">
+              <div><b>Ready to start Day {day.day}?</b><span>Membership opens every lesson, checkpoint and project — all {total} days.</span></div>
+              <button type="button" className="fjp-btn primary" onClick={() => unlock(onUnlocked)} disabled={busy}>{unlockLabel}</button>
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 };

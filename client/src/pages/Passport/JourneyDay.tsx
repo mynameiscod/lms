@@ -34,6 +34,7 @@ import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
 import { VideoPlayer, NotesViewer, QAViewer, PracticeViewer } from '../MyLearningPlan/DayView';
 import InteractiveActivityViewer from '../MyLearningPlan/InteractiveActivityViewer';
 import SectionLock from './SectionLock';
+import { withReturn } from '../../utils/careerpilotReturn';
 import './journeyDay.css';
 
 /** Content types, in words a first-year recognises. Mirrors the roadmap screen. */
@@ -331,7 +332,8 @@ const JourneyDay: React.FC = () => {
                 </div>
 
                 <div className="jd-body">
-                  <ItemBody item={selected} onLaunch={(p) => nav(p)} />
+                  {/* A checkpoint comes back to this day when it is done, instead of the LMS quiz list. */}
+                  <ItemBody item={selected} onLaunch={(p) => nav(selected?.kind === 'quiz' ? withReturn(p, `/careerpilot/journey/day/${dayNumber}`) : p)} />
                 </div>
 
                 <div className="jd-actions">

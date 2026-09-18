@@ -644,6 +644,9 @@ const AppRoutes: React.FC = () => {
             today's work" must keep the CareerPilot rail — members and LMS students are
             different audiences, and the day belongs to the roadmap that sent them to it. */}
         <Route path="/careerpilot/journey/day/:day" element={<PassportJourneyDay />} />
+        {/* A checkpoint's results, shown in the CareerPilot shell so a member finishing a quiz from
+            their day is not dropped into the LMS. The same page as /quiz/:quizId/results/:attemptId. */}
+        <Route path="/careerpilot/quiz/:quizId/results/:attemptId" element={<QuizResultsPage />} />
         <Route path="/careerpilot/skills" element={<PassportSkillDna />} />
         <Route path="/careerpilot/readiness" element={<PassportRoleReadiness />} />
         {/* Resume readiness and interview readiness, beside the skill figure and never

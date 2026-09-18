@@ -3,10 +3,13 @@ import { useParams } from 'react-router-dom';
 import { quizApi } from '../../api';
 import { Alert, Spinner, Button } from '../../components/common';
 import { QuizResult, Question } from '../../types';
+import { careerpilotReturn, withReturn, returnLabel } from '../../utils/careerpilotReturn';
 import './QuizResultsPage.css';
 
 const QuizResultsPage: React.FC = () => {
   const { quizId, attemptId } = useParams<{ quizId: string; attemptId: string }>();
+  // Opened from a CareerPilot journey day: the exits lead back to that day, not to the LMS quiz list.
+  const backTo = careerpilotReturn(window.location.search);
   const [result, setResult] = useState<QuizResult | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,11 +155,11 @@ const QuizResultsPage: React.FC = () => {
                 </div>
 
                 <div className="action-buttons">
-                  <Button onClick={() => window.location.href = `/quizzes`} className="btn-primary">
-                    📚 Back to Quizzes
+                  <Button onClick={() => window.location.href = backTo || `/quizzes`} className="btn-primary">
+                    {backTo ? `← ${returnLabel(backTo)}` : '📚 Back to Quizzes'}
                   </Button>
                   {result.quiz.multipleAttempts && result.quiz.maxAttempts && result.quiz.maxAttempts - (result.attempt.attemptNo || 1) > 0 && (
-                    <Button onClick={() => window.location.href = `/quiz/${quizId}/take`} className="btn-secondary">
+                    <Button onClick={() => window.location.href = withReturn(`/quiz/${quizId}/take`, backTo)} className="btn-secondary">
                       🔄 Retry Quiz
                     </Button>
                   )}
@@ -168,11 +171,11 @@ const QuizResultsPage: React.FC = () => {
               <h2>✅ Quiz Submitted Successfully</h2>
               <p className="status">Your responses have been recorded.</p>
               <div className="action-buttons">
-                <Button onClick={() => window.location.href = `/quizzes`} className="btn-primary">
-                  📚 Back to Quizzes
+                <Button onClick={() => window.location.href = backTo || `/quizzes`} className="btn-primary">
+                  {backTo ? `← ${returnLabel(backTo)}` : '📚 Back to Quizzes'}
                 </Button>
                 {result.quiz.multipleAttempts && result.quiz.maxAttempts && result.quiz.maxAttempts - (result.attempt.attemptNo || 1) > 0 && (
-                  <Button onClick={() => window.location.href = `/quiz/${quizId}/take`} className="btn-secondary">
+                  <Button onClick={() => window.location.href = withReturn(`/quiz/${quizId}/take`, backTo)} className="btn-secondary">
                     🔄 Retry Quiz
                   </Button>
                 )}

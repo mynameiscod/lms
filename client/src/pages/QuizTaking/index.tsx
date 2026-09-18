@@ -7,6 +7,7 @@ import './QuizTakingPage.css';
 import './QuizRunner.css';
 import QuestionText from '../../components/QuestionText';
 import useExamGuards from '../../hooks/useExamGuards';
+import { careerpilotReturn, withReturn } from '../../utils/careerpilotReturn';
 
 const QuizTakingPage: React.FC = () => {
   // Same guards as the Tech Battle exam — the two must not drift apart, or candidates
@@ -371,8 +372,11 @@ const QuizTakingPage: React.FC = () => {
         mediaStreamRef.current = null;
       }
 
-      // Redirect to results
-      window.location.href = `/quiz/${quizId}/results/${attempt._id}`;
+      // Redirect to results — inside CareerPilot when the quiz was opened from a journey day.
+      const back = careerpilotReturn(window.location.search);
+      window.location.href = back
+        ? withReturn(`/careerpilot/quiz/${quizId}/results/${attempt._id}`, back)
+        : `/quiz/${quizId}/results/${attempt._id}`;
     } catch (err: any) {
       const msg = String(err?.message || '');
       const isNetwork = msg.includes('Failed to fetch') || msg.includes('NetworkError') || err?.name === 'TypeError';
@@ -421,7 +425,7 @@ const QuizTakingPage: React.FC = () => {
             <Button onClick={() => window.history.back()} className="btn-secondary">
               ← Go Back
             </Button>
-            <Button onClick={() => window.location.href = '/quizzes'} className="btn-primary">
+            <Button onClick={() => window.location.href = careerpilotReturn(window.location.search) || '/quizzes'} className="btn-primary">
               View My Quizzes
             </Button>
           </div>

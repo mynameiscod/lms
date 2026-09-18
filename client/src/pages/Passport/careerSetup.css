@@ -185,6 +185,11 @@
 .cps-footer-brand img { height: 36px; width: auto; display: block; }
 .cps-footer-made { text-align: right; }
 
+/* The footer in the guide's primary blue, with the logo in white so it reads clearly on it. */
+.cps-footer { background: var(--primary); border-top: 0; color: rgba(255, 255, 255, .86); }
+.cps-footer-brand img { filter: brightness(0) invert(1); }
+.cps-footer-made { color: rgba(255, 255, 255, .86); }
+
 /* ── "Your CareerPilot is ready" ─────────────────────────────────── */
 .cps-done-wrap { flex: 1; display: grid; place-items: center; padding: 36px 16px; }
 .cps-done-layout { width: min(1320px, 100%); display: grid; grid-template-columns: .85fr 1.15fr; gap: 24px; align-items: stretch; }

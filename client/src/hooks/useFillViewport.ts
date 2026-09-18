@@ -34,8 +34,17 @@ export function useFillViewport<T extends HTMLElement = HTMLDivElement>(gap = 26
     if (!el) return;
     // getBoundingClientRect().top is relative to the viewport, which is exactly the question:
     // how much room is left below this element on screen right now.
-    const top = el.getBoundingClientRect().top;
-    setHeight(Math.max(floor, Math.round(window.innerHeight - top - gap)));
+    const rect = el.getBoundingClientRect();
+    /**
+     * The room is measured in SCREEN pixels, but the height we set is in the element's own CSS pixels — and
+     * #root renders the app at zoom .75 (index.css), so a height of H draws only .75·H tall. Setting the screen
+     * figure directly left a quarter of the space empty under the Playground and the AI Mentor. Divide by the
+     * element's effective zoom: currentCSSZoom where the browser has it, otherwise the drawn-to-laid-out ratio.
+     */
+    const zoom = (el as any).currentCSSZoom
+      || (el.offsetHeight > 0 && rect.height > 0 ? rect.height / el.offsetHeight : 1)
+      || 1;
+    setHeight(Math.max(floor, Math.round((window.innerHeight - rect.top - gap) / zoom)));
   }, [gap, floor]);
 
   useEffect(() => {

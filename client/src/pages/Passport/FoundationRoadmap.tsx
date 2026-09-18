@@ -28,6 +28,7 @@ import {
 } from './foundationRoadmapPresenter';
 import './foundationJourney.css';
 import './foundationRoadmap.css';
+import './foundationMember.css';
 
 const GROUP_LABEL: Record<RoadmapGroup['state'], string> = {
   COMPLETED: 'Completed',
@@ -100,33 +101,29 @@ const FoundationRoadmap: React.FC = () => {
   });
 
   return (
-    <div className="fj-page fr-page">
-      <header className="fj-head">
-        <div>
-          <span className="fj-kicker">CAREERPILOT</span>
-          <h1>Foundation Journey</h1>
-          <p className="fj-sub">Your personalised {totalDays}-day roadmap</p>
+    <div className="fj-page fr-page frm">
+      <section className="fjm-hero">
+        <div className="fjm-hero-copy">
+          <span className="fjm-eyebrow">Your personalised {totalDays}-day roadmap</span>
+          <h1>Foundation <span>Journey</span></h1>
+          <p>Every day of your plan, grouped by topic. Learning happens in My 90 Days — this is where you see the whole road.</p>
+          <div className="fjm-chips">
+            <span><i className="bi bi-check2-circle" /> {completedCount} of {totalDays} days done</span>
+            <span><i className="bi bi-graph-up-arrow" /> {percentComplete}% complete</span>
+          </div>
+          <div className="fjm-hero-bar" role="progressbar" aria-valuenow={percentComplete}
+               aria-valuemin={0} aria-valuemax={100} aria-label="Journey progress">
+            <i style={{ width: `${Math.max(1, percentComplete)}%` }} />
+          </div>
         </div>
-        <div className="fj-progress-card">
-          <b>{percentComplete}%</b>
-          <span>{completedCount} of {totalDays} days done</span>
+        <div className="fjm-today">
+          <small>{allDone ? 'Journey complete' : `Today · Day ${currentDay} of ${totalDays}`}</small>
+          <b>{allDone ? 'You have completed every day' : today?.title || `Day ${currentDay}`}</b>
+          {!allDone && today?.topic && <span>{today.topic}</span>}
+          <button type="button" className="fjm-btn light" onClick={() => nav(planLinkFor(allDone ? totalDays : currentDay))}>
+            {allDone ? 'Review your journey' : `Continue Day ${currentDay}`} <i className="bi bi-arrow-right" />
+          </button>
         </div>
-      </header>
-
-      <div className="fj-bar" role="progressbar" aria-valuenow={percentComplete}
-           aria-valuemin={0} aria-valuemax={100} aria-label="Journey progress">
-        <span style={{ width: `${percentComplete}%` }} />
-      </div>
-
-      <section className="fr-continue">
-        <div>
-          <span className="fj-status s-current">{allDone ? 'Journey complete' : `Day ${currentDay} of ${totalDays}`}</span>
-          <h2>{allDone ? 'You have completed every day' : today?.title || `Day ${currentDay}`}</h2>
-          {!allDone && today?.topic && <p className="fr-continue-topic">{today.topic}</p>}
-        </div>
-        <button type="button" className="fj-start" onClick={() => nav(planLinkFor(allDone ? totalDays : currentDay))}>
-          {allDone ? 'Review your journey' : `Continue Day ${currentDay}`}
-        </button>
       </section>
 
       <div className="fr-tools">

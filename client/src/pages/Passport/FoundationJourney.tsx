@@ -33,6 +33,7 @@ import SectionLock, { useUnlock } from './SectionLock';
 import { dayState, dayRanges, initialDay, STATE_LABEL } from './foundationRoadmapPresenter';
 import './foundationJourney.css';
 import './foundationPreview.css';
+import './foundationMember.css';
 
 /** Content types, in words a first-year recognises. */
 const TYPE_LABEL: Record<string, string> = {
@@ -370,28 +371,28 @@ const FoundationJourneyPage: React.FC = () => {
   const days = journey.days ?? [];
 
   return (
-    <div className="fj-page">
-      <header className="fj-head">
-        <div>
-          <span className="fj-kicker">CAREERPILOT</span>
-          <h1>Foundation Journey</h1>
+    <div className="fj-page fjm">
+      <section className="fjm-hero">
+        <div className="fjm-hero-copy">
           {/* Identical for every student. The count is the promise, not a score. */}
-          <p className="fj-sub">Day {currentDay} of {totalDays}</p>
+          <span className="fjm-eyebrow">Day {currentDay} of {totalDays}</span>
+          <h1>Foundation <span>Journey</span></h1>
+          <p>One learning day at a time. Finish today’s tasks and the next day opens.</p>
+          <div className="fjm-chips">
+            <span><i className="bi bi-check2-circle" /> {completedCount} of {totalDays} days done</span>
+            <span><i className="bi bi-flag" /> {Math.max(0, totalDays - completedCount)} to go</span>
+          </div>
         </div>
-        <div className="fj-progress-card">
-          <b>{percentComplete}%</b>
-          <span>{completedCount} of {totalDays} days done</span>
+        <div className="fjm-ring" role="progressbar" aria-valuenow={percentComplete} aria-valuemin={0} aria-valuemax={100}
+             aria-label="Journey progress" style={{ ['--fjm-deg' as any]: `${percentComplete * 3.6}deg` }}>
+          <div><strong>{percentComplete}%</strong><span>complete</span></div>
         </div>
-      </header>
-
-      <div className="fj-bar" role="progressbar" aria-valuenow={percentComplete}
-           aria-valuemin={0} aria-valuemax={100} aria-label="Journey progress">
-        <span style={{ width: `${percentComplete}%` }} />
-      </div>
+      </section>
 
       {/* The ninety, as a strip. Scrolls horizontally on a phone rather than reflowing into
           a grid nobody can read — with jumps and arrows, so the days beyond the edge are never a
           guess, and a lock on every day that cannot be opened yet. */}
+      <div className="fjm-strip-card">
       <nav className="fj-range" aria-label="Jump to days">
         <button type="button" className="fj-arrow" onClick={() => scrollStrip(-1)} aria-label="Earlier days">
           <i className="bi bi-chevron-left" aria-hidden />
@@ -429,6 +430,7 @@ const FoundationJourneyPage: React.FC = () => {
           })}
         </ol>
       </section>
+      </div>
 
       <section className="fj-day" aria-live="polite">
         {dayLoading && <div className="fj-skeleton">Loading day…</div>}
@@ -491,8 +493,8 @@ const FoundationJourneyPage: React.FC = () => {
             ) : (
               <ol className="fj-acts">
                 {day.activities.map((a: FoundationJourneyActivity) => (
-                  <li key={a.id || `${a.order}`} className={a.gating ? 'gating' : ''}>
-                    <span className="fj-act-icon">
+                  <li key={a.id || `${a.order}`} className={`${a.gating ? 'gating' : ''}${a.done ? ' done' : ''}`}>
+                    <span className={`fj-act-icon t-${a.type}`}>
                       <i className={`bi ${ICON[a.type] || 'bi-journal-text'}`} aria-hidden />
                     </span>
                     <span className="fj-act-body">
@@ -503,9 +505,16 @@ const FoundationJourneyPage: React.FC = () => {
                         {a.gating && <> · must be completed</>}
                       </small>
                     </span>
+                    {(a.xp ?? 0) > 0 && <span className="fjm-xp">+{a.xp} XP</span>}
+                    <span className={`fjm-check${a.done ? ' on' : ''}`} aria-label={a.done ? 'Done' : 'Not done yet'}>{a.done && <i className="bi bi-check-lg" />}</span>
                   </li>
                 ))}
               </ol>
+            )}
+            {(day.dayBonusXp ?? 0) > 0 && day.activities.length > 0 && (
+              <p className={`fjm-bonus${day.status === 'COMPLETED' ? ' done' : ''}`}>
+                <i className="bi bi-gift-fill" /> {day.status === 'COMPLETED' ? 'Day complete —' : 'Finish every task for a'} <b>+{day.dayBonusXp} XP</b> day bonus
+              </p>
             )}
           </>
         )}

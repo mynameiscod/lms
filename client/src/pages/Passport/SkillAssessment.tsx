@@ -205,142 +205,104 @@ const SkillAssessment: React.FC = () => {
   if (loading) return <div className="ska-page"><Header /><div className="ska-state"><div className="ska-load">Loading your assessment…</div></div><Footer /></div>;
 
   if (done) {
+    const measured = done.result?.graded ?? 0;
+    const skills = done.skillDna?.skillsAffected ?? 0;
     return (
       <div className="ska-page">
         <Header />
-        <main className="ska-complete-wrap">
-          <section className="ska-complete-card">
-            <div className="ska-complete-copy">
-              <span className="ska-eyebrow">ASSESSMENT COMPLETE</span>
-              <h1>Well done!</h1>
-              <p>
-                {done.skillDnaPending
-                  ? 'You’ve completed your CareerPilot skill assessment. We’re turning your answers into your personalized Skill DNA and role-readiness insights.'
-                  : 'You’ve completed your CareerPilot skill assessment. Your answers have been turned into your personalized Skill DNA, and your plan is built around what it measured.'}
-              </p>
-              {/*
-                * WHAT HAPPENS NEXT, TRUTHFULLY.
-                *
-                * This used to say "we're analyzing your responses to prepare your roadmap"
-                * unconditionally — and for a member without the paid entitlement it then did
-                * nothing, forever. They had answered sixteen questions and were left on a
-                * promise that would never be kept, which reads as a broken product rather
-                * than a locked feature, at the exact moment they most want to know what they
-                * got. Each outcome now says its own true thing.
-                */}
-              {!done.skillDnaPending && done.roadmapStatus === 'READY' && (
-                <div className="ska-analysis-note ska-note-ready">
-                  <i className="bi bi-check-circle-fill" />
-                  <span>Your roadmap has been rebuilt around what this paper measured.</span>
+        <main className="skc">
+          {/* A celebration band in the logo's navy (as on the setup "ready" screen), then the result and the one next step. */}
+          <section className="skc-band">
+            <div className="ska-wrap skc-band-grid">
+              <div>
+                <div className="skc-badge"><i className="bi bi-check-lg" /></div>
+                <div className="skc-eyebrow">Assessment complete</div>
+                <h1>Well done!</h1>
+                <p>
+                  {done.skillDnaPending
+                    ? 'You’ve completed your CareerPilot skill assessment. We’re turning your answers into your personalized Skill DNA and role-readiness insights.'
+                    : 'You’ve completed your CareerPilot skill assessment. Your answers have been turned into your personalized Skill DNA — see where you stand, skill by skill.'}
+                </p>
+                <div className="skc-pills">
+                  <span>{measured} questions measured</span>
+                  <span>{skills} skills updated</span>
                 </div>
-              )}
-              {!done.skillDnaPending && done.roadmapStatus === 'MEMBERSHIP_REQUIRED' && (
-                <div className="ska-analysis-note ska-note-locked">
-                  <i className="bi bi-stars" />
-                  <span>
-                    Your Skill DNA is ready and free to view. The full 90-day roadmap is part of
-                    membership.
-                  </span>
-                </div>
-              )}
-              {!done.skillDnaPending && done.roadmapStatus === 'NOT_ENOUGH_EVIDENCE' && (
-                <div className="ska-analysis-note">
-                  <i className="bi bi-lightbulb" />
-                  <span>
-                    Your Skill DNA is ready. We need a target role and a little more evidence
-                    before we can build a full roadmap.
-                  </span>
-                </div>
-              )}
-              {!done.skillDnaPending && done.roadmapStatus === 'NOT_GENERATED' && (
-                /* They have never built a plan, and submitting a paper no longer builds one for
-                   them. Not a failure and not a paywall — an invitation, which is what this
-                   moment actually is. */
-                <div className="ska-analysis-note ska-note-ready">
-                  <i className="bi bi-compass" />
-                  <span>
-                    Your Skill DNA is ready. Build your 90-day plan whenever you are — it starts
-                    from exactly what this paper measured.
-                  </span>
-                </div>
-              )}
-              {!done.skillDnaPending && (done.roadmapStatus === 'UNAVAILABLE' || done.roadmapStatus === 'NOT_ATTEMPTED' || !done.roadmapStatus) && (
-                <div className="ska-analysis-note">
-                  <i className="bi bi-lightbulb" />
-                  <span>Your Skill DNA is ready to view.</span>
-                </div>
-              )}
-              {/* Only while something really is still running. The figures below say "Complete",
-                  so a permanent "we are analyzing" line told the member to sit and wait for a
-                  screen that was never coming. skillDnaPending is the flag that knows. */}
-              {done.skillDnaPending && (
-                <div className="ska-analysis-note"><i className="bi bi-lightbulb" /><span>We’re analyzing your responses to prepare your personalized insights and roadmap.</span></div>
-              )}
+              </div>
+              <div className="skc-band-art" aria-hidden="true">
+                <div className="skc-art-frame"><img src="/assets/careerpilot/careerpilot-hero-student.png" alt="" /></div>
+              </div>
             </div>
-            <div className="ska-complete-art">
-              <img src="/assets/careerpilot/careerpilot-hero-student.png" alt="CareerPilot assessment completed" />
-              <span className="ska-check-badge"><i className="bi bi-check-lg" /></span>
-            </div>
-            <div className="ska-figs">
-              <div><i className="bi bi-check-circle-fill" /><span><small>Questions measured</small><b>{done.result?.graded ?? 0}</b></span></div>
-              <div><i className="bi bi-stars" /><span><small>Skills updated</small><b>{done.skillDna?.skillsAffected ?? 0}</b></span></div>
-              <div><i className="bi bi-shield-check" /><span><small>Assessment</small><b>Complete</b></span></div>
-            </div>
-            {done.skillDnaPending && <div className="ska-note">Your answers are safely recorded. Your skills profile is still updating and will appear shortly.</div>}
-            {/*
-              A WAY OUT - which this screen did not have for the people who most needed one.
+          </section>
 
-              The buttons were left off on the reasoning that the shell's rail is already on
-              screen with Home, My Roadmap and Skill DNA on it. That holds for a member. It does
-              NOT hold for anybody else: MemberLayout deliberately renders non-members without
-              the rail, because every destination on it is locked to them. So the one person who
-              has just finished their assessment and has not paid - the exact moment the product
-              asks them to - landed on a page with no rail and no buttons, under a line saying
-              their results were still being analyzed. There was no way forward at all, and
-              nothing was coming.
+          <section className="ska-wrap skc-body">
+            <div className="skc-card">
+              <div className="skc-col">
+                <h2>Your result</h2>
+                <div className="skc-facts">
+                  <div className="skc-fact"><span className="skc-fact-ic ok"><i className="bi bi-check-circle" /></span><div><small>Questions measured</small><b>{measured}</b></div></div>
+                  <div className="skc-fact"><span className="skc-fact-ic"><i className="bi bi-stars" /></span><div><small>Skills updated</small><b>{skills}</b></div></div>
+                  <div className="skc-fact"><span className="skc-fact-ic teal"><i className="bi bi-shield-check" /></span><div><small>Assessment</small><b>Complete</b></div></div>
+                </div>
+                {/*
+                  * WHAT HAPPENS NEXT, TRUTHFULLY.
+                  *
+                  * This used to say "we're analyzing your responses to prepare your roadmap"
+                  * unconditionally — and for a member without the paid entitlement it then did
+                  * nothing, forever. Each outcome now says its own true thing.
+                  */}
+                {!done.skillDnaPending && done.roadmapStatus === 'READY' && (
+                  <div className="skc-note ok"><i className="bi bi-check-circle-fill" /><span>Your roadmap has been rebuilt around what this paper measured.</span></div>
+                )}
+                {!done.skillDnaPending && done.roadmapStatus === 'MEMBERSHIP_REQUIRED' && (
+                  <div className="skc-note"><i className="bi bi-stars" /><span>Your Skill DNA is ready and free to view. The full 90-day roadmap is part of membership.</span></div>
+                )}
+                {!done.skillDnaPending && done.roadmapStatus === 'NOT_ENOUGH_EVIDENCE' && (
+                  <div className="skc-note"><i className="bi bi-lightbulb" /><span>Your Skill DNA is ready. We need a target role and a little more evidence before we can build a full roadmap.</span></div>
+                )}
+                {/* NOT_GENERATED: no plan yet. The next step is the score, not the plan — the Skill DNA page leads on to it. */}
+                {!done.skillDnaPending && done.roadmapStatus === 'NOT_GENERATED' && (
+                  <div className="skc-note ok"><i className="bi bi-check-circle-fill" /><span>Your Skill DNA is ready. Open it to see your skill scores, strengths and gaps.</span></div>
+                )}
+                {!done.skillDnaPending && (done.roadmapStatus === 'UNAVAILABLE' || done.roadmapStatus === 'NOT_ATTEMPTED' || !done.roadmapStatus) && (
+                  <div className="skc-note"><i className="bi bi-lightbulb" /><span>Your Skill DNA is ready to view.</span></div>
+                )}
+                {/* Only while something really is still running; skillDnaPending is the flag that knows. */}
+                {done.skillDnaPending && (
+                  <div className="skc-note"><i className="bi bi-hourglass-split" /><span>Your answers are safely recorded. Your skills profile is still updating and will appear shortly.</span></div>
+                )}
+              </div>
 
-              A member keeps the rail and gets these as a shortcut; a non-member gets their only
-              exit, and it points at the preview of the plan they have just earned.
-            */}
-            {/*
-              * A way onward, always. The rail does carry these destinations, but a member who
-              * has just finished a paper is looking at this card, not at the navigation — and
-              * "your Skill DNA is ready" with nothing to press is a dead end dressed as good
-              * news. The link goes to the thing they can actually see: their own results.
-              */}
-            <div className="ska-complete-actions">
-              <button className="ska-cta" onClick={() => nav('/careerpilot/skills')}>
-                See your Skill DNA <i className="bi bi-arrow-right" />
-              </button>
-              {done.roadmapStatus === 'READY' && (
-                <button className="ska-cta-ghost" onClick={() => nav('/careerpilot/roadmap')}>
-                  View my roadmap
+              <div className="skc-col skc-next">
+                <h2>What happens next</h2>
+                <ol className="skc-steps">
+                  <li className="done"><span><i className="bi bi-check-lg" /></span><div><b>Answer the questions</b><small>Done — {measured} questions measured.</small></div></li>
+                  <li className="now"><span>2</span><div><b>See your Skill DNA</b><small>Your skill scores, strengths and gaps.</small></div></li>
+                  <li><span>3</span><div><b>Follow your roadmap</b><small>A day-by-day plan built from your Skill DNA.</small></div></li>
+                </ol>
+                {/*
+                  * ONE WAY ONWARD: the score. A member who has just finished a paper is looking at this card, not at
+                  * the navigation, and a non-member has no rail at all (MemberLayout), so this button is their exit.
+                  * "Build my 90-day plan" was removed on purpose — the plan comes after the member has seen their
+                  * score. The roadmap links below stay only where they carry news (a rebuilt plan, a locked one).
+                  */}
+                <button className="skc-cta" onClick={() => nav('/careerpilot/skills')}>
+                  See your Skill DNA <i className="bi bi-arrow-right" />
                 </button>
-              )}
-              {done.roadmapStatus === 'NOT_GENERATED' && (
-                // Straight to the one screen with the Build button on it. The plan is still
-                // their press; this only removes the hunt for where to press it.
-                <button className="ska-cta-ghost" onClick={() => nav('/careerpilot/roadmap')}>
-                  Build my 90-day plan
-                </button>
-              )}
-              {done.roadmapStatus === 'MEMBERSHIP_REQUIRED' && (
-                // The same checkout every other locked surface uses, rather than a page of
-                // its own — there is no membership route, and inventing one here would give
-                // this screen a different upgrade path from the rest of the product.
-                <button className="ska-cta-ghost" onClick={unlockMembership} disabled={paying}>
-                  {paying ? 'Opening…' : 'Unlock my roadmap'}
-                </button>
-              )}
-              {/* Master's always-there exit to the roadmap (its preview, for a non-member), for every
-                  outcome that has no roadmap button of its own above. */}
-              {done.roadmapStatus !== 'READY' && done.roadmapStatus !== 'NOT_GENERATED' && (
-                <button className="ska-cta-ghost" onClick={() => nav('/careerpilot/roadmap')}>
-                  See your roadmap
-                </button>
-              )}
+                {done.roadmapStatus === 'READY' && (
+                  <button className="skc-ghost" onClick={() => nav('/careerpilot/roadmap')}>View my roadmap</button>
+                )}
+                {done.roadmapStatus === 'MEMBERSHIP_REQUIRED' && (
+                  // The same checkout every other locked surface uses.
+                  <button className="skc-ghost" onClick={unlockMembership} disabled={paying}>{paying ? 'Opening…' : 'Unlock my roadmap'}</button>
+                )}
+                {/* Master's always-there exit to the roadmap (its preview, for a non-member), for the outcomes with no
+                    roadmap button of their own. NOT_GENERATED is excluded: its next step is the Skill DNA. */}
+                {done.roadmapStatus !== 'READY' && done.roadmapStatus !== 'NOT_GENERATED' && (
+                  <button className="skc-ghost" onClick={() => nav('/careerpilot/roadmap')}>See your roadmap</button>
+                )}
+                {payMsg && <div className="skc-note">{payMsg}</div>}
+              </div>
             </div>
-            {payMsg && <div className="ska-note">{payMsg}</div>}
           </section>
         </main>
         <Footer />

@@ -4,6 +4,7 @@ import { playgroundApi } from '../../api/playgroundApi';
 import { studentProfileAPI } from '../../api/studentProfileAPI';
 import { runSql, SqlResult } from '../../utils/sqlRunner';
 import { useFillViewport } from '../../hooks/useFillViewport';
+import { useLocation } from 'react-router-dom';
 import './CodePlayground.css';
 
 interface Lang { key: string; label: string; icon: string; monaco: string; file: string; starter: string; }
@@ -97,6 +98,11 @@ const CodePlayground: React.FC = () => {
    * both, and rootRef was already here and unread.
    */
   const { ref: rootRef, height: fitH } = useFillViewport<HTMLDivElement>(20, 520);
+  /**
+   * Mounted twice: the LMS at /playground and CareerPilot at /careerpilot/playground. The CareerPilot one wears the
+   * member dashboard's look (a slim navy header, the editor as one card); the LMS one is left exactly as it was.
+   */
+  const inCareerPilot = useLocation().pathname.startsWith('/careerpilot');
 
   // Sizing is now pure CSS (see CodePlayground.css). The playground fills the
   // content area via the .main-content:has(> .cp-root) rule — no JS measurement,
@@ -346,7 +352,20 @@ const CodePlayground: React.FC = () => {
   );
 
   return (
-    <div className={`cp-root ${full ? 'cp-full' : ''}`} ref={rootRef} style={full || !fitH ? undefined : { height: fitH }}>
+    <div className={`cp-root ${full ? 'cp-full' : ''}${inCareerPilot ? ' cpg' : ''}`} ref={rootRef} style={full || !fitH ? undefined : { height: fitH }}>
+      {inCareerPilot && !full && (
+        <div className="cpg-head">
+          <span className="cpg-head-ic"><i className="bi bi-terminal" aria-hidden /></span>
+          <div className="cpg-head-t">
+            <b>Code Playground</b>
+            <span>Write, run and debug code in {LANGS.length} languages and {FRAMEWORKS.length} frameworks — and save what you build.</span>
+          </div>
+          <div className="cpg-head-tags">
+            <span><i className="bi bi-lightning-charge-fill" aria-hidden /> Runs in the cloud</span>
+            <span><i className="bi bi-folder2-open" aria-hidden /> {programs.length} saved</span>
+          </div>
+        </div>
+      )}
       {/* Tabs */}
       <div className="cp-tabbar">
         {tabs.map(t => (

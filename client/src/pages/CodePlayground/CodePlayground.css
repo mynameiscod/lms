@@ -263,3 +263,77 @@ body:has(.cp-root) { overflow: hidden; }
   .cp-quick { grid-template-columns: 1fr; }
   .cp-kbd { display: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   COLLISION GUARD (both routes). Two unrelated stylesheets use these bare names and, once loaded, leak in:
+   careerpilot.css (.cp-sec: centred, 1560px max, 54px top padding; .cp-right: 34px padding) squeezed the
+   input/output panel into the middle, and CareerProfile.css (.cp-status: an inline-block pill) ran the status
+   bar's items together. Two classes of specificity win without renaming anything.
+   ════════════════════════════════════════════════════════════════════════════ */
+.cp-root .cp-sec { max-width: none; margin: 0; padding: 12px 16px; text-align: left; }
+.cp-root .cp-right { padding: 0; }
+.cp-root .cp-status { display: flex; border-radius: 0; text-transform: none; }
+/* A notes stylesheet's .cp-tab.active (purple, white text) painted the editor's own tab. */
+.cp-root .cp-tab { color: #53677D; }
+.cp-root .cp-tab.active { background: #fff; color: var(--cp-primary); border-color: var(--cp-border); }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CAREERPILOT (/careerpilot/playground, root .cpg): the member dashboard's look — one white card with a slim
+   logo-navy header, clearer input and output, and a status bar with room between its items.
+   ════════════════════════════════════════════════════════════════════════════ */
+.cp-root.cpg { background: #fff; border: 1px solid var(--cp-border); border-radius: 20px; box-shadow: 0 10px 30px rgba(15, 46, 77, .08); }
+.cpg-head {
+  flex: none; display: flex; align-items: center; gap: 14px; padding: 14px 20px; color: #fff;
+  background: radial-gradient(circle at 92% 0%, rgba(53, 154, 173, .45), transparent 45%), linear-gradient(120deg, var(--cp-navy) 0%, #0B2D72 55%, var(--cp-primary) 100%);
+}
+.cpg-head-ic { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; background: rgba(255, 255, 255, .14); color: #fff; }
+.cpg-head-t { flex: 1; min-width: 0; }
+.cpg-head-t b { display: block; font-size: 18px; font-weight: 800; color: #fff; }
+.cpg-head-t span { display: block; margin-top: 2px; font-size: 13.5px; color: #C4D5EE; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cpg-head-tags { display: flex; gap: 8px; flex: none; }
+.cpg-head-tags span { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #fff; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .22); border-radius: 999px; padding: 5px 11px; white-space: nowrap; }
+.cpg-head-tags i.bi-lightning-charge-fill { color: #FFD166; }
+
+.cpg .cp-tabbar { background: #F4F8FC; padding: 8px 14px 0; }
+.cpg .cp-tab { background: transparent; border-radius: 10px 10px 0 0; }
+.cpg .cp-tab:hover { background: #EAF1F7; }
+.cpg .cp-tab.active { background: #fff; box-shadow: 0 -3px 0 var(--cp-primary) inset; }
+.cpg .cp-toolbar { padding: 10px 16px; background: #fff; }
+.cpg .cp-btn-run { background: #17885D; border-color: #17885D; box-shadow: 0 6px 14px rgba(23, 136, 93, .22); }
+.cpg .cp-btn-run:hover:not(:disabled) { background: #11704C; border-color: #11704C; }
+.cpg .cp-btn.primary { box-shadow: 0 6px 14px rgba(0, 88, 151, .2); }
+.cpg .cp-editor-wrap { background: #FBFDFF; }
+
+.cpg .cp-right { background: #FBFDFF; }
+.cpg .cp-right-head { background: #fff; padding: 12px 16px; }
+.cpg .cp-rtab { font-size: 14px; padding-bottom: 4px; border-bottom: 2px solid transparent; }
+.cpg .cp-rtab.active { color: var(--cp-navy); border-bottom-color: var(--cp-primary); }
+.cpg .cp-run-input { background: #17885D; border-radius: 10px; padding: 8px 14px; font-size: 13px; }
+.cpg .cp-run-input:hover:not(:disabled) { background: #11704C; }
+.cpg .cp-sec { padding: 14px 16px 6px; }
+.cpg .cp-sec-label { font-size: 11.5px; font-weight: 800; letter-spacing: .08em; color: #53677D; }
+.cpg .cp-stdin { background: #fff; min-height: 110px; font-size: 13.5px; }
+.cpg .cp-output { background: #0B1B3F; border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .04); font-size: 13.5px; line-height: 1.55; }
+.cpg .cp-output-box { min-height: 220px; max-height: 420px; }
+.cpg .cp-quick-head { padding: 14px 16px 8px !important; }
+.cpg .cp-qcard { background: #fff; border-color: var(--cp-border); border-radius: 12px; padding: 12px 13px; }
+.cpg .cp-qcard:hover:not(:disabled) { border-color: var(--cp-teal); background: #F2F9FB; box-shadow: 0 6px 14px rgba(15, 46, 77, .06); }
+
+.cpg .cp-status { gap: 20px; padding: 8px 18px; font-size: 12px; }
+.cpg .cp-status span + span:not(.cp-status-r)::before { content: ""; display: inline-block; width: 1px; height: 12px; background: rgba(255, 255, 255, .18); margin-right: 14px; }
+
+@media (max-width: 1100px) {
+  .cpg-head-tags { display: none; }
+}
+@media (max-width: 760px) {
+  /* A phone stacks the editor above input and output instead of squeezing it beside them. */
+  .cpg .cp-body { flex-direction: column; overflow-y: auto; }
+  .cpg .cp-editor-wrap { flex: none; height: 340px; }
+  .cpg .cp-vdiv { display: none; }
+  .cpg .cp-right { width: 100% !important; border-left: 0; border-top: 1px solid var(--cp-border); overflow: visible; }
+  .cpg .cp-status span:nth-child(3), .cpg .cp-status .cp-kbd { display: none; }
+}
+@media (max-width: 640px) {
+  .cpg-head { padding: 12px 14px; }
+  .cpg-head-t span { display: none; }
+}

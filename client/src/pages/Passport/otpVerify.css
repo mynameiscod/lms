@@ -1,4 +1,139 @@
-/* CareerPilot OTP verification — public product experience shared by signup and login. */
-.otpv{--navy:#051d64;--navy-2:#0b3377;--teal:#359aad;--ink:#0b1834;--muted:#6b7890;min-height:100vh;min-height:100dvh;background:linear-gradient(135deg,#f7fbff 0%,#fff 48%,#edf9fb 100%);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.otpv *{box-sizing:border-box}.otpv-top{height:76px;background:#fff;border-bottom:1px solid #e3e8ef;display:flex;align-items:center;padding:0 clamp(20px,4vw,68px);position:relative;z-index:3}.otpv-brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--navy);font-weight:900}.otpv-brand img{height:40px;width:auto;display:block}.otpv-brand-divider{width:1px;height:30px;background:#dce2ea}.otpv-product{font-size:20px}.otpv-product span{color:var(--teal)}.otpv-main{width:min(1540px,calc(100% - 48px));margin:0 auto;min-height:calc(100vh - 76px);display:grid;grid-template-columns:minmax(0,1.12fr) minmax(420px,.88fr);gap:clamp(34px,5vw,90px);align-items:center;padding:42px 0 54px}.otpv-visual{position:relative;padding:12px 0}.otpv-kicker{display:inline-flex;align-items:center;gap:8px;color:#237f91;font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.otpv-kicker i{width:8px;height:8px;background:var(--teal);border-radius:50%}.otpv-visual h1{font-size:clamp(42px,4.5vw,66px);line-height:1.02;letter-spacing:-.045em;margin:16px 0 18px;color:#061a50;max-width:760px}.otpv-visual h1 span{color:var(--teal)}.otpv-lead{font-size:17px;line-height:1.7;color:#5f6f86;max-width:680px;margin:0}.otpv-hero-art{position:relative;margin-top:28px;max-width:720px}.otpv-hero-art>img{display:block;width:100%;max-height:430px;object-fit:contain;object-position:left center}.otpv-float{position:absolute;background:rgba(255,255,255,.96);border:1px solid #dfe7ee;border-radius:15px;box-shadow:0 15px 35px rgba(14,40,85,.12);padding:12px 14px;min-width:145px}.otpv-float small{display:block;font-size:9px;color:#7a879a;font-weight:800}.otpv-float strong{display:block;color:#071d5d;font-size:17px;margin:3px 0}.otpv-float span{font-size:9px;font-weight:800;color:var(--teal)}.otpv-float-a{left:3%;top:16%}.otpv-float-b{right:2%;bottom:14%}.otpv-benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px;max-width:760px}.otpv-benefit{display:flex;gap:11px;align-items:flex-start;background:#fff;border:1px solid #e1e7ee;border-radius:15px;padding:14px;box-shadow:0 8px 24px rgba(9,35,82,.04)}.otpv-benefit>span{width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#eef8f9,#edf1ff);display:grid;place-items:center;color:#287f90;flex:none}.otpv-benefit b{display:block;font-size:12px;color:#0a225d}.otpv-benefit small{display:block;font-size:10px;line-height:1.5;color:#78869a;margin-top:3px}.otpv-card{background:#fff;border:1px solid #dfe5ed;border-radius:24px;padding:clamp(28px,3vw,40px);box-shadow:0 24px 60px rgba(5,29,100,.12);width:100%;max-width:540px;justify-self:end}.otpv-card-mark{width:58px;height:58px;border-radius:17px;background:linear-gradient(145deg,#e8f5f7,#edf1ff);display:grid;place-items:center;color:var(--navy);font-size:24px;margin-bottom:18px}.otpv-eyebrow{font-size:10px;color:var(--teal);font-weight:900;text-transform:uppercase;letter-spacing:.12em}.otpv-card h2{font-size:31px;line-height:1.12;letter-spacing:-.035em;color:#071d5d;margin:7px 0 8px}.otpv-sub{font-size:13px;color:#748197;line-height:1.55;margin:0 0 20px}.otpv-number{display:flex;align-items:center;gap:11px;background:#effaf6;border:1px solid #c9ebdf;border-radius:13px;padding:12px 13px;margin-bottom:21px}.otpv-number>span{width:38px;height:38px;border-radius:11px;background:#fff;color:#169c6e;display:grid;place-items:center;font-size:17px}.otpv-number div{flex:1}.otpv-number small{display:block;font-size:9px;color:#748197}.otpv-number b{display:block;font-size:14px;color:#17243b;margin-top:2px}.otpv-number button{border:0;background:none;color:#138c68;font-weight:800;font-size:11px;cursor:pointer}.otpv-hint{display:block;font-size:11px;font-weight:800;color:#45536a;margin-bottom:9px}.otpv-boxes{display:flex;gap:9px;justify-content:space-between;margin-bottom:14px}.otpv-box{width:calc((100% - 45px)/6);min-width:46px;height:60px;border:1.5px solid #dce3ec;border-radius:12px;background:#fbfcfe;text-align:center;font-size:24px;font-weight:900;color:#071d5d;outline:none;transition:.18s ease}.otpv-box:focus{border-color:var(--teal);box-shadow:0 0 0 4px rgba(53,154,173,.12);background:#fff}.otpv-box.filled{border-color:#a8d5dd;background:#f8fdfd}.otpv-resend{text-align:center;font-size:11px;color:#758398;margin-top:2px}.otpv-resend b{color:var(--navy);font-variant-numeric:tabular-nums}.otpv-resend button{border:0;background:none;color:var(--teal);font-weight:900;cursor:pointer;padding:0}.otpv-dev{text-align:center;font-size:11px;color:#7c3aed;margin-top:11px}.otpv-msg{display:flex;align-items:flex-start;gap:7px;border-radius:10px;padding:10px 12px;font-size:11px;line-height:1.5;margin-top:12px}.otpv-msg.err{background:#fff2f2;color:#b42318;border:1px solid #fecaca}.otpv-msg.ok{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}.otpv-go{width:100%;height:50px;border:0;border-radius:12px;margin-top:20px;background:linear-gradient(90deg,var(--navy),var(--teal));color:#fff;font-size:14px;font-weight:900;cursor:pointer;box-shadow:0 12px 28px rgba(5,29,100,.18)}.otpv-go:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}.otpv-secure-note{text-align:center;color:#78869a;font-size:10px;line-height:1.5;margin-top:13px}.otpv-secure-note i{color:var(--teal);margin-right:4px}.otpv :focus-visible{outline:2px solid #5bc0cd;outline-offset:2px}@media(max-width:1050px){.otpv-main{grid-template-columns:1fr;max-width:760px}.otpv-card{order:1;justify-self:center;max-width:560px}.otpv-visual{order:2;text-align:center}.otpv-lead,.otpv-hero-art,.otpv-benefits{margin-left:auto;margin-right:auto}.otpv-hero-art>img{object-position:center}.otpv-float-a{left:6%}.otpv-float-b{right:6%}}@media(max-width:680px){.otpv-top{height:68px;padding:0 14px}.otpv-brand img{height:34px}.otpv-brand-divider{height:24px}.otpv-product{font-size:17px}.otpv-main{width:min(100% - 24px,620px);padding:22px 0 34px;min-height:calc(100vh - 68px)}.otpv-card{padding:24px 17px;border-radius:20px}.otpv-card h2{font-size:26px}.otpv-boxes{gap:6px}.otpv-box{min-width:0;height:52px;border-radius:10px;font-size:21px}.otpv-benefits{grid-template-columns:1fr}.otpv-visual h1{font-size:38px}.otpv-lead{font-size:14px}.otpv-float{transform:scale(.86)}.otpv-float-a{left:0;top:10%}.otpv-float-b{right:0;bottom:8%}}
-/* The CareerPilot logo already carries "By CodeBegun"; it needs a little more height than the old wordmark. */
-.otpv-brand img.otpv-logo{height:48px}@media(max-width:680px){.otpv-brand img.otpv-logo{height:38px}}
+/* CareerPilot WhatsApp-code step (signup and login). Same brand, widths and stage as the landing page (careerpilotJoin.css). */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+.cpv {
+  --navy: #0b1a66;
+  --navy-2: #13287f;
+  --teal: #3598ad;
+  --teal-2: #2bb3a3;
+  --ink: #0e1b3d;
+  --text: #3d4a63;
+  --muted: #6b7890;
+  --line: #e2e8f2;
+  /* #root is a full-height flex column (index.css, which also compensates its zoom); filling it is what takes the
+     background to the bottom of the screen at any zoom. The same approach as the LMS login page. */
+  flex: 1 0 auto;
+  display: flex; flex-direction: column;
+  background:
+    radial-gradient(circle at 70% 20%, rgba(53, 152, 173, .10), transparent 34%),
+    linear-gradient(180deg, #f5f9ff 0%, #eef5fd 100%);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.cpv *, .cpv *::before, .cpv *::after { box-sizing: border-box; }
+.cpv h1, .cpv h2, .cpv p { margin: 0; }
+.cpv-wrap { width: min(2400px, calc(100% - clamp(32px, 7vw, 200px))); margin: 0 auto; }
+
+/* ── Header ──────────────────────────────────────────────────────── */
+.cpv-nav { background: rgba(255, 255, 255, .94); border-bottom: 1px solid var(--line); }
+.cpv-nav-in { height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.cpv-logo img { height: 48px; width: auto; display: block; }
+.cpv-steps { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 10px; }
+.cpv-steps li { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--muted); }
+.cpv-steps li + li::before { content: ""; width: 34px; height: 2px; border-radius: 2px; background: #d5deea; margin-right: 2px; }
+.cpv-steps span { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 800; background: #e6ecf5; color: #7c8aa2; }
+.cpv-steps li.done { color: #11776b; }
+.cpv-steps li.done span { background: var(--teal-2); color: #fff; }
+.cpv-steps li.current { color: var(--navy); }
+.cpv-steps li.current span { background: var(--navy); color: #fff; box-shadow: 0 0 0 4px rgba(11, 26, 102, .12); }
+
+/* ── Hero: copy | stage (illustration + code card) ─────────────────── */
+.cpv-hero { flex: 1; display: flex; align-items: center; padding: 44px 0 56px; }
+.cpv-grid { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.3fr); gap: clamp(32px, 3.2vw, 64px); align-items: center; }
+.cpv-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--teal); font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 14px; }
+.cpv-copy h1 { font-size: clamp(28px, 2.5vw, 42px); line-height: 1.1; font-weight: 800; letter-spacing: -.025em; color: var(--navy); }
+.cpv-copy h1 span { background: linear-gradient(90deg, var(--teal-2), var(--teal)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.cpv .cpv-lead { margin-top: 16px; font-size: 16.5px; line-height: 1.65; color: var(--text); max-width: 560px; text-wrap: pretty; }
+.cpv-benefits { list-style: none; padding: 0; margin: 26px 0 0; display: flex; flex-direction: column; gap: 12px; max-width: 520px; }
+.cpv-benefits li { display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; box-shadow: 0 3px 12px rgba(14, 27, 61, .05); }
+.cpv-benefit-ic { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: linear-gradient(135deg, #e7f0ff, #e3f5f2); color: var(--navy); font-size: 19px; }
+.cpv-benefits b { display: block; font-size: 15px; color: var(--navy); }
+.cpv-benefits small { display: block; margin-top: 2px; font-size: 13.5px; color: var(--muted); line-height: 1.45; }
+
+.cpv-stage {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, 470px); align-items: center;
+  padding: 28px 28px 28px 12px; border-radius: 32px;
+  background:
+    radial-gradient(circle at 28% 32%, rgba(53, 152, 173, .16), transparent 46%),
+    radial-gradient(circle at 18% 88%, rgba(31, 111, 235, .10), transparent 42%),
+    linear-gradient(145deg, #ffffff 0%, #f0f6fe 55%, #e7f1fc 100%);
+  border: 1px solid #e1eaf6; box-shadow: 0 30px 70px rgba(14, 27, 61, .08);
+}
+.cpv-visual { margin-right: -28px; display: flex; justify-content: center; }
+.cpv-visual img {
+  width: 100%; max-width: 600px; height: auto; display: block;
+  -webkit-mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 62%, transparent 100%);
+  mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 62%, transparent 100%);
+}
+
+/* ── Code card ───────────────────────────────────────────────────── */
+.cpv-card { position: relative; z-index: 1; background: #fff; border: 1px solid var(--line); border-radius: 24px; padding: 30px 30px 24px; box-shadow: 0 24px 60px rgba(14, 27, 61, .14); }
+.cpv-card-head { display: flex; align-items: center; gap: 14px; }
+.cpv-card-mark { flex: none; width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: #e7f8ef; color: #16a061; font-size: 25px; }
+.cpv-card-eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--teal); }
+.cpv-card h2 { margin-top: 3px; font-size: 25px; font-weight: 800; letter-spacing: -.015em; color: var(--navy); }
+.cpv-number { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; padding: 12px 14px; border-radius: 12px; background: #f3f8fd; border: 1px solid #dce7f4; }
+.cpv-number small { display: block; font-size: 12.5px; color: var(--muted); }
+.cpv-number b { display: block; font-size: 16px; color: var(--ink); margin-top: 2px; letter-spacing: .02em; }
+.cpv-number button { border: 0; background: #fff; color: var(--navy); font: inherit; font-size: 13.5px; font-weight: 700; padding: 7px 12px; border-radius: 9px; cursor: pointer; box-shadow: 0 1px 3px rgba(14, 27, 61, .08); }
+.cpv-label { display: block; margin-top: 20px; font-size: 14px; font-weight: 700; color: #2b3852; }
+.cpv-boxes { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-top: 9px; }
+.cpv-box { width: 100%; height: 58px; border: 1.5px solid #d4dcea; border-radius: 12px; background: #fbfcfe; text-align: center; font: inherit; font-size: 24px; font-weight: 800; color: var(--navy); outline: none; transition: border-color .15s ease, box-shadow .15s ease, background .15s ease; }
+.cpv-box:focus { border-color: var(--teal); background: #fff; box-shadow: 0 0 0 4px rgba(53, 152, 173, .15); }
+.cpv-box.filled { border-color: #9fd0da; background: #f7fcfd; }
+.cpv-resend { margin-top: 14px; text-align: center; font-size: 13.5px; color: var(--muted); }
+.cpv-resend b { color: var(--navy); font-variant-numeric: tabular-nums; }
+.cpv-resend button { border: 0; background: none; padding: 0; font: inherit; font-weight: 800; color: var(--teal); cursor: pointer; }
+.cpv-dev { margin-top: 12px; text-align: center; font-size: 13px; color: #6d28d9; background: #f5f0ff; border: 1px dashed #d9c8fb; border-radius: 10px; padding: 8px 10px; }
+.cpv-msg { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; line-height: 1.45; }
+.cpv-msg.err { background: #fff1f2; color: #b4233a; border: 1px solid #fbd0d6; }
+.cpv-msg.ok { background: #effaf4; color: #15803d; border: 1px solid #c4ecd4; }
+.cpv-go { width: 100%; margin-top: 20px; height: 54px; border: 0; border-radius: 12px; background: var(--navy); color: #fff; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 12px 26px rgba(11, 26, 102, .2); transition: background .15s ease; }
+.cpv-go:hover:not(:disabled) { background: var(--navy-2); }
+.cpv-go:disabled { background: #b9c3d8; box-shadow: none; cursor: not-allowed; }
+.cpv-note { margin-top: 14px; text-align: center; font-size: 12.5px; color: var(--muted); }
+.cpv-note i { color: var(--teal); margin-right: 4px; }
+.cpv :focus-visible { outline: 3px solid rgba(53, 152, 173, .45); outline-offset: 2px; }
+
+/* ── Responsive (same breakpoints and zoom handling as the landing page) ── */
+@media (max-width: 1200px) {
+  .cpv-grid { grid-template-columns: 1fr; gap: 32px; }
+  .cpv-copy { max-width: 820px; }
+  .cpv-benefits { flex-direction: row; max-width: none; }
+  .cpv-benefits li { flex: 1; }
+}
+@media (max-width: 980px) {
+  .cpv-stage { grid-template-columns: 1fr; padding: 20px; }
+  .cpv-card { order: 1; max-width: 560px; width: 100%; justify-self: center; }
+  .cpv-visual { order: 2; margin-right: 0; max-width: 460px; justify-self: center; width: 100%; }
+  .cpv-benefits { flex-direction: column; }
+}
+@media (max-width: 640px) {
+  .cpv-nav-in { height: 64px; }
+  .cpv-logo img { height: 38px; }
+  .cpv-steps li { font-size: 0; gap: 0; }
+  .cpv-steps li + li::before { width: 16px; margin-right: 6px; }
+  .cpv-hero { padding: 24px 0 36px; align-items: flex-start; }
+  /* The code is the task here: card first, straight under the heading; the picture is decoration. */
+  .cpv-grid { gap: 20px; }
+  .cpv-lead { font-size: 15px; }
+  .cpv-benefits { display: none; }
+  .cpv-stage { padding: 0; background: none; border: 0; box-shadow: none; }
+  .cpv-visual { display: none; }
+  .cpv-card { padding: 22px 16px 18px; border-radius: 20px; }
+  .cpv-card h2 { font-size: 21px; }
+  .cpv-boxes { gap: 7px; }
+  .cpv-box { height: 50px; font-size: 21px; border-radius: 10px; }
+}
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .cpv { zoom: 1.12; }
+  .cpv-wrap { width: calc(100% - 150px); }
+}
+@media (min-width: 1600px) {
+  .cpv { zoom: 1.2; }
+  .cpv-wrap { width: min(2040px, calc(100% - 240px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cpv-box, .cpv-go { transition: none; }
+}

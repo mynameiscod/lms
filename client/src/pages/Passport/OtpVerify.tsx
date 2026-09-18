@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import './otpVerify.css';
 
 const LEN = 6;
+const LOGO = '/assets/careerpilot/careerpilot-logo.png';
 
 export interface OtpVerifyProps {
   mobile: string;
@@ -15,8 +16,15 @@ export interface OtpVerifyProps {
   devCode?: string;
 }
 
+/**
+ * Messages the signup and login screens pass along that are information, not failures: a code was sent, a new
+ * one was sent, or — in development — the code itself. Anything else is an error. The dev code has its own line
+ * on the card, so it was being shown twice, once in red as though something had gone wrong.
+ */
+export const isOtpInfo = (m: string) => /^(We sent|New code|Code resent|Enter the code|Dev code)/.test(m);
+
 const BENEFITS = [
-  { icon: 'bi-compass', title: 'Career Direction', desc: 'Continue into your personalized CareerPilot journey.' },
+  { icon: 'bi-compass', title: 'Career Direction', desc: 'Continue into your personalised CareerPilot journey.' },
   { icon: 'bi-speedometer2', title: 'Readiness Insights', desc: 'See your skill level, gaps and next best actions.' },
   { icon: 'bi-stars', title: 'Progress That Feels Real', desc: 'Build momentum through missions, XP and milestones.' },
 ];
@@ -54,86 +62,96 @@ const OtpVerify: React.FC<OtpVerifyProps> = ({
   };
 
   return (
-    <div className="otpv">
-      {/* Brand only. The header's "Change Number" button was removed; the number card
-          below still carries an Edit control, which is the one place a correction belongs —
-          next to the number it corrects, rather than in the chrome. */}
-      <header className="otpv-top">
-        <a className="otpv-brand" href="/careerpilot/join" aria-label="CareerPilot by CodeBegun">
-          <img className="otpv-logo" src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" />
-        </a>
+    <div className="cpv">
+      <header className="cpv-nav">
+        <div className="cpv-wrap cpv-nav-in">
+          <a className="cpv-logo" href="/careerpilot/join" aria-label="CareerPilot by CodeBegun — home">
+            <img src={LOGO} alt="CareerPilot by CodeBegun" />
+          </a>
+          {/* Where they are in joining: details done, this step, then their plan. */}
+          <ol className="cpv-steps" aria-label="Joining CareerPilot">
+            <li className="done"><span><i className="bi bi-check-lg" /></span>Your details</li>
+            <li className="current" aria-current="step"><span>2</span>Verify</li>
+            <li><span>3</span>Your plan</li>
+          </ol>
+        </div>
       </header>
 
-      <main className="otpv-main">
-        <section className="otpv-visual" aria-label="CareerPilot verification experience">
-          <div className="otpv-kicker"><i /> Secure verification</div>
-          <h1>One quick step.<br /><span>Then your career journey continues.</span></h1>
-          <p className="otpv-lead">We use a 6-digit WhatsApp code to confirm your number before opening your CareerPilot experience.</p>
+      <main className="cpv-hero">
+        <div className="cpv-wrap cpv-grid">
+          <section className="cpv-copy" aria-label="Why we verify">
+            <div className="cpv-eyebrow"><i className="bi bi-shield-lock-fill" /> Secure verification</div>
+            <h1>One quick step.<br /><span>Then your career journey begins.</span></h1>
+            <p className="cpv-lead">
+              We use a 6-digit WhatsApp code to confirm your number before opening your CareerPilot experience.
+            </p>
+            <ul className="cpv-benefits">
+              {BENEFITS.map(item => (
+                <li key={item.title}>
+                  <span className="cpv-benefit-ic"><i className={`bi ${item.icon}`} /></span>
+                  <div><b>{item.title}</b><small>{item.desc}</small></div>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-          <div className="otpv-hero-art">
-            <img src="/assets/careerpilot/careerpilot-hero-student.png" alt="CareerPilot student progress preview" />
-            <div className="otpv-float otpv-float-a"><small>Career Readiness</small><strong>72%</strong><span>Ready</span></div>
-            <div className="otpv-float otpv-float-b"><small>Next Move</small><strong>Practice DSA</strong><span>+120 XP</span></div>
-          </div>
+          <div className="cpv-stage">
+            <div className="cpv-visual" aria-hidden="true">
+              <img src="/assets/careerpilot/careerpilot-hero-student.png" alt="" />
+            </div>
 
-          <div className="otpv-benefits">
-            {BENEFITS.map(item => (
-              <div className="otpv-benefit" key={item.title}>
-                <span><i className={`bi ${item.icon}`} /></span>
-                <div><b>{item.title}</b><small>{item.desc}</small></div>
+            <section className="cpv-card" aria-labelledby="cpv-title">
+              <div className="cpv-card-head">
+                <span className="cpv-card-mark"><i className="bi bi-whatsapp" /></span>
+                <div>
+                  <div className="cpv-card-eyebrow">WhatsApp verification</div>
+                  <h2 id="cpv-title">Enter your 6-digit code</h2>
+                </div>
               </div>
-            ))}
+
+              <div className="cpv-number">
+                <div><small>Code sent to</small><b>+91 {mobile || '—'}</b></div>
+                <button type="button" onClick={onBack}><i className="bi bi-pencil" /> Edit</button>
+              </div>
+
+              <label className="cpv-label" htmlFor="otp-0">Verification code</label>
+              <div className="cpv-boxes" onPaste={onPaste}>
+                {Array.from({ length: LEN }, (_, i) => (
+                  <input
+                    key={i}
+                    id={`otp-${i}`}
+                    ref={el => { refs.current[i] = el; }}
+                    className={`cpv-box${digits[i] ? ' filled' : ''}`}
+                    value={digits[i]}
+                    inputMode="numeric"
+                    autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                    maxLength={1}
+                    aria-label={`Digit ${i + 1} of ${LEN}`}
+                    onChange={e => put(i, e.target.value)}
+                    onKeyDown={e => onKey(i, e)}
+                    onFocus={e => e.currentTarget.select()}
+                  />
+                ))}
+              </div>
+
+              <div className="cpv-resend">
+                {resendIn > 0
+                  ? <>Didn’t receive it? Resend in <b>00:{String(resendIn).padStart(2, '0')}</b></>
+                  : <>Didn’t receive it? <button type="button" onClick={onResend}>Resend code</button></>}
+              </div>
+
+              {devCode && <div className="cpv-dev"><i className="bi bi-code-slash" /> Development code: <b>{devCode}</b></div>}
+              {error && <div className="cpv-msg err" role="alert"><i className="bi bi-exclamation-circle" /> {error}</div>}
+              {message && !error && !message.startsWith('Dev code') && <div className="cpv-msg ok" role="status"><i className="bi bi-check-circle" /> {message}</div>}
+
+              <button className="cpv-go" disabled={busy || code.length < LEN} onClick={() => onVerify(code)}>
+                {busy ? 'Verifying…' : <>Verify &amp; Continue <i className="bi bi-arrow-right" /></>}
+              </button>
+
+              <div className="cpv-note"><i className="bi bi-lock" /> Your number is used only to verify and protect your CareerPilot account.</div>
+            </section>
           </div>
-        </section>
-
-        <section className="otpv-card" role="region" aria-label="Verify your number">
-          <div className="otpv-card-mark"><i className="bi bi-shield-check" /></div>
-          <div className="otpv-eyebrow">WhatsApp verification</div>
-          <h2>Enter your 6-digit code</h2>
-          <p className="otpv-sub">We sent a verification code to your WhatsApp number.</p>
-
-          <div className="otpv-number">
-            <span><i className="bi bi-whatsapp" /></span>
-            <div><small>Code sent to</small><b>+91 {mobile || '—'}</b></div>
-            <button type="button" onClick={onBack}><i className="bi bi-pencil" /> Edit</button>
-          </div>
-
-          <label className="otpv-hint" htmlFor="otp-0">Verification code</label>
-          <div className="otpv-boxes" onPaste={onPaste}>
-            {Array.from({ length: LEN }, (_, i) => (
-              <input
-                key={i}
-                id={`otp-${i}`}
-                ref={el => { refs.current[i] = el; }}
-                className={`otpv-box${digits[i] ? ' filled' : ''}`}
-                value={digits[i]}
-                inputMode="numeric"
-                autoComplete={i === 0 ? 'one-time-code' : 'off'}
-                maxLength={1}
-                aria-label={`Digit ${i + 1} of ${LEN}`}
-                onChange={e => put(i, e.target.value)}
-                onKeyDown={e => onKey(i, e)}
-                onFocus={e => e.currentTarget.select()}
-              />
-            ))}
-          </div>
-
-          <div className="otpv-resend">
-            {resendIn > 0
-              ? <>Didn't receive it? Resend in <b>00:{String(resendIn).padStart(2, '0')}</b></>
-              : <>Didn't receive it? <button type="button" onClick={onResend}>Resend code</button></>}
-          </div>
-
-          {devCode && <div className="otpv-dev">Dev code: <b>{devCode}</b></div>}
-          {error && <div className="otpv-msg err"><i className="bi bi-exclamation-circle" /> {error}</div>}
-          {message && !error && <div className="otpv-msg ok"><i className="bi bi-check-circle" /> {message}</div>}
-
-          <button className="otpv-go" disabled={busy || code.length < LEN} onClick={() => onVerify(code)}>
-            {busy ? 'Verifying…' : <>Verify &amp; Continue <i className="bi bi-arrow-right" /></>}
-          </button>
-
-          <div className="otpv-secure-note"><i className="bi bi-lock" /> Your number is used only to verify and protect your CareerPilot account.</div>
-        </section>
+        </div>
       </main>
     </div>
   );

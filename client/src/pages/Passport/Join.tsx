@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
 import type { OnboardingField } from '../../api/passportApi';
-import OtpVerify from './OtpVerify';
+import OtpVerify, { isOtpInfo } from './OtpVerify';
 import './careerpilotJoin.css';
 
 const LOGO = '/assets/careerpilot/careerpilot-logo.png';
@@ -123,7 +123,6 @@ const PassportJoin: React.FC = () => {
   const [resendIn, setResendIn] = useState(25);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const sentMsg = (m: string) => m.startsWith('We sent') || m.startsWith('New code');
   const extra = useMemo(() => fieldsDef.filter(f => !['name', 'mobile', 'email'].includes(f.key)), [fieldsDef]);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [tried, setTried] = useState(false);
@@ -235,8 +234,8 @@ const PassportJoin: React.FC = () => {
         busy={busy}
         resendIn={resendIn}
         devCode={devCode}
-        error={msg && !sentMsg(msg) ? msg : ''}
-        message={sentMsg(msg) ? msg : ''}
+        error={msg && !isOtpInfo(msg) ? msg : ''}
+        message={isOtpInfo(msg) ? msg : ''}
         onVerify={verify}
         onResend={resend}
         onBack={() => { setStep('form'); setMsg(''); }}

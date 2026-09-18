@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
-import OtpVerify from './OtpVerify';
+import OtpVerify, { isOtpInfo } from './OtpVerify';
 import './careerpilot.css';
 import './careerpilotLogin.css';
 
@@ -28,7 +28,6 @@ const PassportLogin: React.FC = () => {
   const [devCode, setDevCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
-  const sentMsg = (m: string) => m.startsWith('We sent') || m.startsWith('New code');
   const [resendIn, setResendIn] = useState(25);
 
   useEffect(() => {
@@ -109,8 +108,8 @@ const PassportLogin: React.FC = () => {
       busy={busy}
       resendIn={resendIn}
       devCode={devCode}
-      error={msg && !sentMsg(msg) ? msg : ''}
-      message={sentMsg(msg) ? msg : ''}
+      error={msg && !isOtpInfo(msg) ? msg : ''}
+      message={isOtpInfo(msg) ? msg : ''}
       onVerify={verifyOtp}
       onResend={resend}
       onBack={() => { setOtpStep(false); setMsg(''); }}

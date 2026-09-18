@@ -24,7 +24,12 @@
 }
 .cpx *, .cpx *::before, .cpx *::after { box-sizing: border-box; }
 .cpx h1, .cpx h2, .cpx h3, .cpx h4, .cpx p { margin: 0; }
-.cpx-wrap { width: min(1320px, calc(100% - 32px)); margin: 0 auto; }
+/*
+ * Fluid: uses most of a wide screen instead of a fixed column with empty sides; the side margin grows with the screen.
+ * Sizes here are in page pixels, and #root renders the whole app at zoom .75 (index.css) — so 2400px is about 1800
+ * real pixels, and a 2158px-wide monitor is 2877 page pixels wide.
+ */
+.cpx-wrap { width: min(2400px, calc(100% - clamp(32px, 7vw, 200px))); margin: 0 auto; }
 
 /* ── Buttons ─────────────────────────────────────────────────────── */
 .cpx-btn {
@@ -65,11 +70,11 @@
     radial-gradient(circle at 8% 90%, rgba(31, 111, 235, .06), transparent 30%),
     linear-gradient(180deg, #f5f9ff 0%, #eef5fd 100%);
 }
-.cpx-hero-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, .85fr) 350px; gap: 28px; align-items: center; }
+.cpx-hero-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, .95fr) clamp(350px, 22vw, 440px); gap: clamp(28px, 3vw, 64px); align-items: center; }
 .cpx-eyebrow { color: var(--teal); font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 12px; }
-.cpx-hero h1 { font-size: clamp(30px, 2.65vw, 42px); line-height: 1.08; font-weight: 800; letter-spacing: -.025em; color: var(--navy); }
+.cpx-hero h1 { font-size: clamp(30px, 2.65vw, 56px); line-height: 1.08; font-weight: 800; letter-spacing: -.025em; color: var(--navy); }
 .cpx-hero h1 span { color: var(--teal-2); background: linear-gradient(90deg, var(--teal-2), var(--teal)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-.cpx .cpx-lead { margin-top: 18px; font-size: 16.5px; line-height: 1.65; color: var(--text); max-width: 540px; }
+.cpx .cpx-lead { margin-top: 18px; font-size: clamp(16px, 1vw, 19px); line-height: 1.65; color: var(--text); max-width: 640px; }
 .cpx-checks { list-style: none; padding: 0; margin: 22px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, max-content)); gap: 12px 26px; }
 .cpx-checks li { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 600; color: #26334d; }
 .cpx-checks i { color: var(--teal-2); font-size: 17px; }
@@ -82,7 +87,7 @@
 .cpx-trust-dots i:nth-child(3) { background: var(--blue); }
 
 .cpx-hero-visual { display: flex; align-items: center; justify-content: center; }
-.cpx-visual-in { position: relative; width: 100%; max-width: 480px; padding-bottom: 54px; }
+.cpx-visual-in { position: relative; width: 100%; max-width: 620px; padding-bottom: 54px; }
 .cpx-visual-in img {
   width: 100%; height: auto; display: block;
   -webkit-mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 62%, transparent 100%);
@@ -140,7 +145,7 @@
 
 /* ── Dashboard preview ───────────────────────────────────────────── */
 .cpx-dash-section { background: linear-gradient(180deg, #fff 0%, var(--soft) 100%); }
-.cpx-dash { display: grid; grid-template-columns: 220px minmax(0, 1fr); max-width: 1060px; margin: 0 auto; border-radius: 20px; overflow: hidden; background: #fff; border: 1px solid var(--line); box-shadow: 0 24px 60px rgba(14, 27, 61, .12); }
+.cpx-dash { display: grid; grid-template-columns: 220px minmax(0, 1fr); max-width: 1240px; margin: 0 auto; border-radius: 20px; overflow: hidden; background: #fff; border: 1px solid var(--line); box-shadow: 0 24px 60px rgba(14, 27, 61, .12); }
 .cpx-dash-side { background: var(--navy); padding: 22px 14px; }
 .cpx-dash-brand { color: #fff; font-weight: 800; font-size: 17px; padding: 0 10px 18px; }
 .cpx-dash-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; color: #c9d3f0; font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
@@ -229,7 +234,7 @@
 .cpx-story small { display: inline-block; margin-top: 10px; font-size: 12px; font-weight: 700; color: var(--teal); }
 
 /* ── FAQ ─────────────────────────────────────────────────────────── */
-.cpx-faq { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; max-width: 1060px; margin: 0 auto; }
+.cpx-faq { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; max-width: 1240px; margin: 0 auto; }
 .cpx-faq-col { display: flex; flex-direction: column; gap: 12px; }
 .cpx-faq details { background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-sm); }
 .cpx-faq summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 16px 18px; cursor: pointer; font-size: 15px; font-weight: 700; color: var(--navy); }
@@ -263,7 +268,7 @@
 /* ── Responsive ──────────────────────────────────────────────────── */
 @media (max-width: 1200px) {
   .cpx-links { gap: 20px; }
-  .cpx-hero-grid { grid-template-columns: minmax(0, 1fr) 370px; }
+  .cpx-hero-grid { grid-template-columns: minmax(0, 1fr) 370px; gap: 28px; }
   .cpx-hero h1 { font-size: clamp(30px, 3.4vw, 42px); }
   .cpx-hero-visual { grid-column: 1; grid-row: 2; min-height: 0; }
   .cpx-signup { grid-column: 2; grid-row: 1 / span 2; align-self: start; }
@@ -315,6 +320,21 @@
   .cpx-tile { padding: 18px; }
   .cpx-footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cpx-cta-art > i { font-size: 54px; }
+}
+/*
+ * Large monitors. #root renders the app at zoom .75, which on a wide screen leaves this page's type and cards small in
+ * a lot of space. Media queries read the REAL screen width (they ignore zoom), so from 1600 real pixels up the page is
+ * scaled back to about 90% (1.2 × .75) and its column is set in those scaled pixels: about 1830 real pixels of content
+ * on a 2158px screen, with a ~160px margin each side.
+ */
+/* Laptop widths: a steady ~60 real-pixel margin (160 page pixels at the app's .75 zoom). */
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .cpx-wrap { width: calc(100% - 160px); }
+}
+@media (min-width: 1600px) {
+  .cpx { zoom: 1.2; }
+  .cpx-wrap { width: min(2040px, calc(100% - 240px)); }
+  .cpx-dash, .cpx-faq { max-width: 1400px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cpx-btn, .cpx-feature, .cpx-faq-caret, .cpx-faq-chev { transition: none; }

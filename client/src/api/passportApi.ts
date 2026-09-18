@@ -2290,6 +2290,10 @@ export interface FoundationJourneyActivity {
   order: number;
   contentId: string | null;
   sourceId: string | null;
+  /** Finished by this student (a lesson marked done; a checkpoint, project or code task submitted). */
+  done?: boolean;
+  /** CareerPilot XP this task pays when finished — once. 0 for tasks paid by their own event. */
+  xp?: number;
 }
 
 export interface FoundationJourneyDay {
@@ -2302,6 +2306,8 @@ export interface FoundationJourneyDay {
   status: JourneyDayStatus;
   minutes: number;
   activities: FoundationJourneyActivity[];
+  /** Extra XP for finishing every required task of the day. */
+  dayBonusXp?: number;
 }
 
 /** One day of a non-member's preview: what it teaches, and what it contains. Nothing to open. */

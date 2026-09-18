@@ -39,6 +39,8 @@ import { foundationAccess, FoundationAccess } from '../services/foundationAccess
 import { buildFoundationProfile } from '../services/foundationProfileService';
 import { composeFoundationJourney, loadAssets, activitiesFor } from '../services/foundationJourneyService';
 import { applyFoundationTrigger, directionChoiceFor } from '../services/foundationJourneyTriggerService';
+import { resolveModuleStatuses, itemDone } from './enrollmentPlanController';
+import { reconcileJourneyDayXp, xpForJourneyItem, journeyItemFinished, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
 
 /**
  * Which engine plans this student, for the screens that must show exactly one plan.
@@ -454,7 +456,7 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
       CurriculumEnrollment.findOne({
         tenantId, curriculumId: curriculum._id,
         studentId: new mongoose.Types.ObjectId(studentId),
-      }).select('completedDays currentDay').lean() as any,
+      }).select('completedDays currentDay completedItems enrolledBy').lean() as any,
     ]);
 
     const plan = (day as any[])[0];
@@ -492,6 +494,31 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
 
     const completed = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
 
+    /**
+     * Each task's state and worth, so Home can show today's journey as today's missions.
+     *
+     * The same completion rule the day player uses (a lesson marked done; a checkpoint, project or
+     * code task submitted), and the same once-only XP it pays — reading the day here also settles
+     * anything the student earned in another module since the last read.
+     */
+    const items: any[] = plan.items || [];
+    const completedItems = (enrollment?.completedItems || []) as Array<{ contentId: string; dayNumber: number }>;
+    // Decoration on the day, never a reason to refuse it: if the status lookup fails the day is still served,
+    // its tasks simply show as not yet done, and the next read settles the XP.
+    let moduleStatus: Record<string, { attempted: boolean; status: string; score: number | null }> = {};
+    try {
+      moduleStatus = enrollment ? await resolveModuleStatuses(studentId, items) : {};
+      const dayComplete = items.length > 0 && items.every((it: any) => itemDone(it, plan.dayNumber, completedItems, moduleStatus));
+      if (enrollment && enrollment.enrolledBy === 'foundation-journey') {
+        await reconcileJourneyDayXp({
+          tenantId, studentId, enrollmentId: String(enrollment._id), dayNumber: plan.dayNumber,
+          items, completedItems, moduleStatus, dayComplete,
+        });
+      }
+    } catch (e: any) {
+      console.error('[foundation-journey] day status:', e?.message || e);
+    }
+
     res.json({
       day: plan.dayNumber,
       totalDays: FOUNDATION_PROGRAM_DAYS,
@@ -501,10 +528,15 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
       status: completed.has(plan.dayNumber) ? 'COMPLETED'
         : plan.dayNumber === Number(enrollment?.currentDay || 1) ? 'CURRENT' : 'UPCOMING',
       minutes: (plan.items || []).reduce((n: number, i: any) => n + (Number(i.estimatedDuration) || 0), 0),
-      activities: (plan.items || [])
+      activities: items
         .slice()
         .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-        .map(activityFor),
+        .map((it: any) => ({
+          ...activityFor(it),
+          done: journeyItemFinished(it, plan.dayNumber, completedItems, moduleStatus),
+          xp: xpForJourneyItem(it),
+        })),
+      dayBonusXp: FOUNDATION_DAY_BONUS_XP,
     });
   } catch (e: any) {
     console.error('[foundation-journey] day:', e?.message || e);

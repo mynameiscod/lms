@@ -95,6 +95,29 @@ export const XP_EVENTS: XpEventDefinition[] = [
     uniqueSource: true,
     streakQualifying: true,
   },
+  {
+    key: 'FOUNDATION_ACTIVITY_COMPLETED',
+    name: 'Foundation journey task completed',
+    description: 'One task of the day\'s Foundation journey, finished — a lesson marked done, a checkpoint or project submitted.',
+    // A fallback only: the journey pays each task by effort (foundationJourneyXpService — watch/read 5,
+    // practice 10, code practice 15, checkpoint 20, project 30) through xpOverride. The rule still decides
+    // whether the event pays at all and caps the day.
+    defaultXp: 10,
+    // Several days' worth. A student catching up on a backlog is paid over following days rather than
+    // refused: a capped award is not written to the ledger, so the next read of that day pays it.
+    defaultDailyLimit: 400,
+    uniqueSource: true,
+    streakQualifying: true,
+  },
+  {
+    key: 'FOUNDATION_DAY_COMPLETED',
+    name: 'Foundation journey day completed',
+    description: 'Every required task of a Foundation journey day finished. Paid once per day of the ninety.',
+    defaultXp: 25,
+    defaultDailyLimit: 0,
+    uniqueSource: true,
+    streakQualifying: true,
+  },
   // There is deliberately NO separate company mock-interview event. A company-flavoured mock
   // is the same Module 14 sitting with a company brief on the prompt — same engine, same
   // grading, same effort — and it already pays MOCK_INTERVIEW_COMPLETED. A second event would

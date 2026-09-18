@@ -25,6 +25,7 @@ import * as razorpay from '../services/razorpayService';
 import { foundationAccess } from '../services/foundationAccessService';
 import { isJourneyDayOpen } from '../data/journeyDayLadder';
 import { studentContentRow } from '../services/studentContentView';
+import { reconcileJourneyDayXp } from '../services/foundationJourneyXpService';
 
 /**
  * A Foundation journey is the member's ninety days. Without membership its days cannot be opened or
@@ -579,6 +580,7 @@ export const markContentComplete = async (req: Request, res: Response) => {
     }
 
     // Check if all items in this day are done
+    let journeyXp: { items: any[]; moduleStatus: any; dayComplete: boolean } | null = null;
     const dayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber }).lean();
     if (dayPlan) {
       // A day is complete when every (override-applied) item is done — content
@@ -589,6 +591,9 @@ export const markContentComplete = async (req: Request, res: Response) => {
       const dayItems = effectiveItemsForDay(dayPlan.items, offering, dayNumber);
       const moduleStatus = await resolveModuleStatuses(sId, dayItems);
       const allDone = dayItems.every((item: any) => itemDone(item, dayNumber, enrollment.completedItems, moduleStatus));
+      if ((enrollment as any).enrolledBy === 'foundation-journey') {
+        journeyXp = { items: dayItems, moduleStatus, dayComplete: allDone };
+      }
       if (allDone && !enrollment.completedDays.includes(dayNumber)) {
         enrollment.completedDays.push(dayNumber);
         // Advance currentDay
@@ -599,6 +604,13 @@ export const markContentComplete = async (req: Request, res: Response) => {
 
     enrollment.lastActivityAt = new Date();
     await enrollment.save();
+    // Paid after the save, so the ledger never runs ahead of what the enrollment records.
+    if (journeyXp) {
+      await reconcileJourneyDayXp({
+        tenantId: String(tId), studentId: String(sId), enrollmentId: String(enrollment._id), dayNumber: dayNo,
+        items: journeyXp.items, completedItems: enrollment.completedItems as any, moduleStatus: journeyXp.moduleStatus, dayComplete: journeyXp.dayComplete,
+      });
+    }
 
     res.json({
       completedItems: enrollment.completedItems.length,
@@ -946,6 +958,13 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       // Derive day completion (must-attempt): when every item is done, mark the
       // day complete and advance currentDay. Persisted idempotently.
       const allDone = dayItems.every((it: any) => itemDone(it, dayNumber, enrollment.completedItems, moduleStatus));
+      // CareerPilot XP for the journey: each finished task and the finished day, paid once (see the service).
+      if ((enrollment as any).enrolledBy === 'foundation-journey') {
+        await reconcileJourneyDayXp({
+          tenantId: String(tId), studentId: String(sId), enrollmentId: String(enrollment._id), dayNumber,
+          items: dayItems, completedItems: enrollment.completedItems, moduleStatus, dayComplete: allDone,
+        });
+      }
       if (allDone && !enrollment.completedDays.includes(dayNumber)) {
         await CurriculumEnrollment.updateOne(
           { _id: enrollmentId },

@@ -98,6 +98,15 @@ jest.mock('../services/foundationJourneyService', () => ({
   ],
 }));
 const mockApplyTrigger = jest.fn();
+// The day endpoint also reports each task's done state and settles journey XP; neither is under test here.
+jest.mock('../controllers/enrollmentPlanController', () => ({
+  resolveModuleStatuses: jest.fn(async () => ({})),
+  itemDone: jest.fn(() => false),
+}));
+jest.mock('../services/foundationJourneyXpService', () => ({
+  ...jest.requireActual('../services/foundationJourneyXpService'),
+  reconcileJourneyDayXp: jest.fn(async () => 0),
+}));
 jest.mock('../services/foundationJourneyTriggerService', () => ({
   applyFoundationTrigger: (...a: any[]) => mockApplyTrigger(...a),
   directionChoiceFor: () => ({}),

@@ -259,3 +259,16 @@
 }
 @media (min-width: 1200px) and (max-width: 1599px) { .md { zoom: 1.05; } }
 @media (min-width: 1600px) { .md { zoom: 1.12; } }
+
+/* Today's missions from the Foundation journey (Dashboard journeyMode): each task opens the day player. */
+.md-jm { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
+button.md-jm:hover { border-color: #9DBBD0; box-shadow: 0 6px 16px rgba(15, 46, 77, .06); }
+.md-jm .md-check { cursor: default; }
+.md-jm.bonus { background: var(--amber-bg); border-color: #F5DDB5; cursor: default; }
+.md-jm.bonus .md-mission-ic { background: #fff; color: var(--amber); }
+.md-mission .md-mission-ic.t-video { background: var(--red-bg); color: var(--red); }
+.md-mission .md-mission-ic.t-notes { background: #EAF7F8; color: #287F91; }
+.md-mission .md-mission-ic.t-practice_theory, .md-mission .md-mission-ic.t-practice_coding { background: var(--amber-bg); color: var(--amber); }
+.md-mission .md-mission-ic.t-quiz { background: var(--violet-bg); color: var(--violet); }
+.md-mission .md-mission-ic.t-assignment { background: var(--green-bg); color: var(--green); }
+.md-jm-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }

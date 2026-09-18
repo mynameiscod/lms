@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import passportApi, { DashboardData, Badge, TodayMissions } from '../../api/passportApi';
-import TodayJourneyCard from './TodayJourneyCard';
+import passportApi, { DashboardData, Badge, TodayMissions, FoundationJourney, FoundationJourneyDay } from '../../api/passportApi';
 import './dashboard.css';
 import './dashboard-redesign.css';
 import './memberDashboard.css';
@@ -81,6 +80,17 @@ const MISSION_ICON: Record<string, string> = {
   employability: 'briefcase',
 };
 
+/* A journey task's type, in words and an icon a first-year recognises (same as the journey pages). */
+const JOURNEY_TYPE: Record<string, string> = {
+  video: 'Watch', notes: 'Read', worked_example: 'Worked example', interactive_lesson: 'Interactive', interactive_activity: 'Activity',
+  tech_qa: 'Q&A', behavioral_qa: 'Q&A', practice_theory: 'Practice', practice_coding: 'Code practice', aptitude: 'Aptitude',
+  quiz: 'Checkpoint', assignment: 'Project',
+};
+const JOURNEY_ICON: Record<string, string> = {
+  video: 'play-circle', notes: 'file-text', worked_example: 'lightbulb', practice_theory: 'pencil-square',
+  practice_coding: 'code-slash', quiz: 'patch-question', assignment: 'upload',
+};
+
 interface Props {
   data: DashboardData;
   reload: () => void;
@@ -111,6 +121,28 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const [missionMsg, setMissionMsg] = useState('');
 
   useEffect(() => { setD(data); }, [data]);
+  /**
+   * The Foundation journey, when the unit engine plans this student: its current day IS today's missions.
+   * Re-read whenever the member payload reloads (a return to the tab, a finished mission), so the ticks and
+   * XP follow work done in the day player.
+   */
+  const [journey, setJourney] = useState<FoundationJourney | null>(null);
+  const [jDay, setJDay] = useState<FoundationJourneyDay | null>(null);
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const j = await passportApi.myFoundationJourney();
+        if (!live) return;
+        setJourney(j);
+        if (j.engine === 'UNIT' && j.available && j.access !== 'PREVIEW' && j.currentDay) {
+          const day = await passportApi.myFoundationJourneyDay(j.currentDay);
+          if (live) setJDay(day);
+        }
+      } catch { /* Home still renders; the topic missions stand in */ }
+    })();
+    return () => { live = false; };
+  }, [data]);
   useEffect(() => {
     const onFocus = () => reload();
     window.addEventListener('focus', onFocus);
@@ -178,6 +210,12 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
     requestAnimationFrame(() => document.getElementById(`mission-${nextMission.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
   };
 
+  const journeyMode = journey?.engine === 'UNIT';
+  const jActs = jDay?.activities || [];
+  const jDone = jActs.filter(a => a.done).length;
+  const jTotalXp = jActs.reduce((t, a) => t + (a.xp || 0), 0) + (jDay?.dayBonusXp || 0);
+  const jEarned = jActs.reduce((t, a) => t + (a.done ? a.xp || 0 : 0), 0) + (jDay?.status === 'COMPLETED' ? jDay?.dayBonusXp || 0 : 0);
+  const dayHref = `/careerpilot/journey/day/${journey?.currentDay ?? 1}`;
   const score = d.coderScore!.score;
   const scoreTag = score >= 750 ? 'Excellent' : score >= 500 ? 'On track' : 'Just getting started';
   const goalPct = Math.min(100, Math.round(goal.target ? (goal.earned / goal.target) * 100 : 0));
@@ -206,9 +244,11 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             <div className="md-goal-bar"><i style={{ width: `${goalPct}%` }} /></div>
           </div>
           <div className="md-hero-actions">
-            <button className="md-btn light" onClick={startNext}>
-              {nextMission ? (nextMission.link ? 'Start next mission' : 'Write your answer') : 'Practice anyway'} <Bi name="arrow-right" />
-            </button>
+            {journeyMode && journey?.available && journey.enrollmentId
+              ? <button className="md-btn light" onClick={() => nav(dayHref)}>{jDone ? 'Continue today’s work' : 'Start today’s work'} <Bi name="arrow-right" /></button>
+              : <button className="md-btn light" onClick={startNext}>
+                  {nextMission ? (nextMission.link ? 'Start next mission' : 'Write your answer') : 'Practice anyway'} <Bi name="arrow-right" />
+                </button>}
             <button className="md-btn ghost" onClick={() => nav('/careerpilot/roadmap')}><Bi name="map" /> My roadmap</button>
           </div>
         </div>
@@ -233,10 +273,58 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
         <div><span className="ic violet"><Bi name="mic-fill" /></span><div><small>Mock interviews</small><b>{st.interviews}</b><span>{st.bestInterview !== null ? `Best ${st.bestInterview}%` : 'Not attempted yet'}</span></div></div>
       </section>
 
-      {/* A student the unit engine plans sees their journey day first; renders nothing otherwise. */}
-      <TodayJourneyCard />
 
       <section className="md-grid wide">
+        {journeyMode ? (
+          /**
+           * TODAY'S MISSIONS ARE TODAY'S JOURNEY DAY.
+           *
+           * A student the unit engine plans has one plan, and the topic planner's daily missions are not part
+           * of it — which is why this card used to offer a member "Build my 90-day plan". Their missions are
+           * the tasks of the day their journey is on, each with the XP it pays (foundationJourneyXpService),
+           * worked through in the day player.
+           */
+          <article className="md-card">
+            <header className="md-card-head">
+              <div>
+                <h2><Bi name="list-task" /> Today’s missions</h2>
+                <p>{jDay ? `Day ${jDay.day} of ${jDay.totalDays} · ${jDay.title}` : journey?.available ? `Day ${journey.currentDay ?? 1} of ${journey.totalDays ?? 90}` : 'Your Foundation journey'}</p>
+              </div>
+              {jDay && <span className="md-pill">{jDone} of {jActs.length} done · +{jEarned} / {jTotalXp} XP</span>}
+            </header>
+            {!journey?.available ? (
+              <div className="md-empty">
+                <p>{journey?.message || 'Your journey appears here once your skill check is complete.'}</p>
+                {journey?.reason === 'NO_JOURNEY' && <button className="md-btn primary" onClick={() => nav('/careerpilot/skill-assessment')}>Take your skill check</button>}
+              </div>
+            ) : !jDay ? (
+              <div className="md-empty">Loading today’s tasks…</div>
+            ) : <>
+              <div className="md-missions">
+                {jActs.map(a => (
+                  <button type="button" key={a.id || a.order} className={`md-mission md-jm${a.done ? ' done' : ''}`} onClick={() => nav(dayHref)}>
+                    <span className={`md-mission-ic t-${a.type}`}><Bi name={JOURNEY_ICON[a.type] || 'journal-text'} /></span>
+                    <span className="txt"><b>{a.title}</b><span>{JOURNEY_TYPE[a.type] || a.type}{a.minutes ? ` · ${a.minutes} min` : ''}{a.gating ? ' · must be completed' : ''}</span></span>
+                    {(a.xp ?? 0) > 0 && <span className="xp">+{a.xp} XP</span>}
+                    <span className={`md-check${a.done ? ' on' : ''}`} aria-label={a.done ? 'Done' : 'Not done yet'}>{a.done && <Bi name="check-lg" />}</span>
+                  </button>
+                ))}
+                {(jDay.dayBonusXp ?? 0) > 0 && (
+                  <div className={`md-mission md-jm bonus${jDay.status === 'COMPLETED' ? ' done' : ''}`}>
+                    <span className="md-mission-ic"><Bi name="gift-fill" /></span>
+                    <span className="txt"><b>Finish every task today</b><span>Day bonus, on top of each task’s XP</span></span>
+                    <span className="xp">+{jDay.dayBonusXp} XP</span>
+                    <span className={`md-check${jDay.status === 'COMPLETED' ? ' on' : ''}`} aria-hidden="true">{jDay.status === 'COMPLETED' && <Bi name="check-lg" />}</span>
+                  </div>
+                )}
+              </div>
+              <div className="md-jm-actions">
+                {journey.enrollmentId && <button className="md-btn primary" onClick={() => nav(dayHref)}>{jDone ? 'Continue today’s work' : 'Start today’s work'} <Bi name="arrow-right" /></button>}
+                <button className="md-btn" onClick={() => nav('/careerpilot/roadmap')}>See all {journey.totalDays ?? 90} days</button>
+              </div>
+            </>}
+          </article>
+        ) : (
         <article className="md-card">
           <header className="md-card-head">
             <div>
@@ -282,6 +370,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             <button className="md-btn primary block" onClick={startNext}>{nextMission ? (nextMission.link ? 'Start now' : 'Write your answer') : 'All done today — practice anyway'} <Bi name="arrow-right" /></button>
           </>}
         </article>
+        )}
 
         <div className="md-col">
           <article className="md-card">

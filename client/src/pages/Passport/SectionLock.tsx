@@ -39,12 +39,14 @@ interface Props {
   variant?: 'page' | 'panel';
 }
 
-const SectionLock: React.FC<Props> = ({ section, title, blurb, facts, children, variant = 'page' }) => {
+/**
+ * The one checkout. Exported so a screen that needs its own layout (the locked dashboard's membership panel) still
+ * pays through exactly this path rather than growing a seventh copy of it.
+ */
+export const useUnlock = () => {
   const { data, reload } = useMember();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
-
-  const lock: LockedSection | undefined = (data?.locked || []).find(l => l.section === section);
   const priceInr = data?.priceInr;
 
   const unlock = async () => {
@@ -59,6 +61,16 @@ const SectionLock: React.FC<Props> = ({ section, title, blurb, facts, children, 
       setMsg('The payment window could not open. Check your connection and try again.');
     } finally { setBusy(false); }
   };
+
+  const label = busy ? 'Opening payment…' : priceInr ? `Unlock CareerPilot — ₹${priceInr}` : 'Unlock CareerPilot';
+  return { unlock, busy, msg, label, priceInr };
+};
+
+const SectionLock: React.FC<Props> = ({ section, title, blurb, facts, children, variant = 'page' }) => {
+  const { data } = useMember();
+  const { unlock, busy, msg, label } = useUnlock();
+
+  const lock: LockedSection | undefined = (data?.locked || []).find(l => l.section === section);
 
   return (
     <div className={`slk slk-${variant}`}>
@@ -80,8 +92,7 @@ const SectionLock: React.FC<Props> = ({ section, title, blurb, facts, children, 
         {children && <div className="slk-preview">{children}</div>}
 
         <button className="slk-btn" onClick={unlock} disabled={busy}>
-          {busy ? 'Opening payment…'
-            : priceInr ? `Unlock CareerPilot — ₹${priceInr}` : 'Unlock CareerPilot'}
+          {label}
         </button>
         {!!msg && <p className="slk-msg">{msg}</p>}
         <p className="slk-foot">

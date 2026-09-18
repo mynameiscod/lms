@@ -1,6 +1,7 @@
 import React, { CSSProperties, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { AssessmentAvailability, CareerContext, CareerContextOptions } from '../../api/passportApi';
+import { useMember } from './MemberLayout';
 import './careerSetup.css';
 
 type Answers = {
@@ -86,6 +87,7 @@ const roleTone = (key: string): number => {
 };
 
 const CareerSetup: React.FC = () => {
+  const { reload: reloadMember } = useMember();
   const nav = useNavigate();
   /** `?step=direction` — which part of setup the member came back to change. */
   const [params] = useSearchParams();
@@ -162,7 +164,7 @@ const CareerSetup: React.FC = () => {
     try {
       const r = await passportApi.updateCareerContext({ ...patchFor(stepIx), ...(complete ? { complete: true } : {}) });
       setCtx(r.context);
-      if (complete) setDone(true); else setStepIx(next);
+      if (complete) { setDone(true); reloadMember(); } else setStepIx(next);   // home must see setupCompleted
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Could not save that. Please try again.');
     }

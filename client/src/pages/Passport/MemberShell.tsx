@@ -252,7 +252,8 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
       <main className="gd-main">
         <div className="gd-topbar">
           <div className="gd-topbar-l">
-            {path === '/careerpilot' && <div className="gd-hello"><h1>Hey {firstName}!</h1><p>Let’s code, solve problems and level up your skills.</p></div>}
+            {/* Only over the working dashboard: the locked one (PassportHome's other branch) greets in its own hero. */}
+            {path === '/careerpilot' && d?.active && d?.hasAssessment && <div className="gd-hello"><h1>Hey {firstName}!</h1><p>Let’s code, solve problems and level up your skills.</p></div>}
           </div>
           <div className="gd-topbar-r">
             {st && lv && <>

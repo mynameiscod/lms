@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import passportApi, { DashboardData, RoleReadinessAvailable } from '../../api/passportApi';
-import SectionLock from './SectionLock';
-import './dashboard.css';
+import passportApi, { DashboardData, RoleReadinessAvailable, SkillDnaRow, MemberSection } from '../../api/passportApi';
+import { useUnlock } from './SectionLock';
 import './dashboardLocked.css';
 
 /**
@@ -12,164 +11,239 @@ import './dashboardLocked.css';
  * `stats`, `level`, `coderScore` and `dailyGoal` on almost every line and asserts all four are
  * present, because for a paying member they always are. Threading "or locked" through three
  * hundred lines of that would put a conditional in front of every number on the busiest screen
- * in the product, for a state none of those numbers exist in. This renders the same layout out
- * of the same stylesheet, and simply never touches the fields it does not have.
+ * in the product, for a state none of those numbers exist in.
  *
- * IT IS THE PRODUCT, NOT AN ADVERT FOR IT. The panels sit where they sit on the real dashboard,
- * in the same order, so a student who pays recognises the screen they were looking at. What
- * they already earned — their score, their skill meter — is really there and really theirs.
- * What membership buys has a lock on it that says what it is and what it would hold FOR THEM.
+ * WHAT THEY EARNED LEADS; WHAT MEMBERSHIP BUYS IS ONE PANEL. Their Skill DNA and role readiness
+ * are free and really theirs, so they come first. Everything membership opens is gathered into
+ * one panel with one button — it used to be three identical lock boxes, each with its own
+ * "Unlock" button, which read as a wall of adverts rather than a product with a door in it.
+ * The panel still names each part and shows this student's own figures beside it.
  *
- * THE FIGURES ARE REAL. Readiness is not a paid endpoint, so the number of gaps in their own
- * profile costs nothing to fetch, and "12 priority gaps" is an argument in a way that "unlock
- * premium" can never be. It is the summary, not the content: the locks still hold.
+ * THE FIGURES ARE REAL. Readiness and Skill DNA are not paid endpoints, so the number of gaps in
+ * their own profile costs nothing to fetch, and "12 priority gaps" is an argument in a way that
+ * "unlock premium" can never be. It is the summary, not the content: the server still holds the
+ * locks. Payment goes through SectionLock's useUnlock, the one checkout every lock shares.
  */
 
 interface Props {
   data: DashboardData;
 }
 
+const SECTION_ICON: Record<string, string> = {
+  roadmap: 'bi-map', missions: 'bi-check2-square', progress: 'bi-graph-up-arrow', practice: 'bi-code-square',
+  interview: 'bi-mic', resume: 'bi-file-earmark-person', companies: 'bi-buildings', news: 'bi-newspaper', score: 'bi-speedometer2',
+};
+/* The three parts of the member dashboard itself, previewed as tiles in the order they sit on it. */
+const PREVIEW: { section: MemberSection; title: string; blurb: string }[] = [
+  { section: 'roadmap', title: 'Your 90-day plan', blurb: 'Your gaps, in the order they are worth closing, sized to the time you can give it.' },
+  { section: 'missions', title: 'Today’s work', blurb: 'A short, finishable list every day, drawn from your plan.' },
+  { section: 'progress', title: 'Your progress', blurb: 'XP, streaks and badges — earned by finishing the work in your plan.' },
+];
+
+const band = (score: number) => (score >= 70 ? 'strong' : score >= 40 ? 'mid' : 'low');
+
 const DashboardLocked: React.FC<Props> = ({ data }) => {
   const nav = useNavigate();
+  const { unlock, busy, msg, label } = useUnlock();
   const [readiness, setReadiness] = useState<RoleReadinessAvailable | null>(null);
+  const [dna, setDna] = useState<SkillDnaRow[] | null>(null);
 
   useEffect(() => {
     if (!data.hasAssessment) return;   // nothing measured, so nothing to report
     let live = true;
-    // Allowed to fail quietly: a student with no target role yet has no gap figures, and the
-    // locks read perfectly well without them.
-    passportApi.getMyReadiness()
-      .then(r => { if (live && r.available) setReadiness(r); })
-      .catch(() => {});
+    // Both allowed to fail quietly: a student with no target role has no readiness, and the
+    // page reads perfectly well without either.
+    passportApi.getMyReadiness().then(r => { if (live && r.available) setReadiness(r); }).catch(() => {});
+    passportApi.getMySkillDna().then(r => { if (live && r.assessed) setDna(r.skills.filter(s => s.skillActive !== false)); }).catch(() => {});
     return () => { live = false; };
   }, [data.hasAssessment]);
 
-  const skills = data.skills || [];
-  /**
-   * Not measured yet. THE HOME SCREEN STILL RENDERS — it just leads with the one thing worth
-   * doing instead of a skill meter of zeroes.
-   *
-   * This is why Mission Control stopped being the home screen. A student who had not sat the
-   * paper was sent to a full-page sales pitch with its own chrome and no navigation, and a
-   * student who had sat it saw the dashboard: the same click produced two completely different
-   * products depending on state they could not see. The assessment is the argument at this
-   * stage anyway, so it leads here and everything else stays where it will be found later.
-   */
   const measured = !!data.hasAssessment;
-  const assessmentHref = data.setupCompleted === false
-    ? '/careerpilot/setup'
-    : '/careerpilot/skill-assessment';
+  const assessmentHref = data.setupCompleted === false ? '/careerpilot/setup' : '/careerpilot/skill-assessment';
+  const firstName = data.firstName || '';
+
+  /* Skill DNA when we have it (the scores the assessment actually produced); the dashboard's meter otherwise. */
+  const skillRows = useMemo(() => {
+    if (dna?.length) return [...dna].sort((a, b) => b.score - a.score).slice(0, 6).map(s => ({ key: s.skillKey, label: s.skillName, score: s.score }));
+    return (data.skills || []).slice(0, 6);
+  }, [dna, data.skills]);
+  const avg = dna?.length ? Math.round(dna.reduce((t, s) => t + (s.score || 0), 0) / dna.length) : null;
 
   const gaps = readiness?.summary.priorityGaps ?? null;
   const needsWork = readiness?.summary.needsWork ?? null;
-  const measuredCount = readiness?.summary.assessedSkills ?? (skills.length || null);
+  const measuredCount = readiness?.summary.assessedSkills ?? (dna?.length || data.skills?.length || null);
+  const ready = readiness?.readiness ?? null;
+  const readyLabel = ready === null ? 'Still measuring' : ready >= 80 ? 'Strong alignment' : ready >= 60 ? 'Getting close' : ready >= 40 ? 'Building momentum' : 'Early stage';
 
-  const roadmapFacts = [
-    gaps !== null ? { value: gaps, label: 'priority gaps in your profile' } : null,
-    needsWork !== null ? { value: needsWork, label: 'more skills needing work' } : null,
-    { value: '90', label: 'days, paced to the time you have' },
-  ].filter(Boolean) as { value: React.ReactNode; label: string }[];
+  const locked = data.locked || [];
+  const lockOf = (s: MemberSection) => locked.find(l => l.section === s);
+  const previewFacts: Record<string, string | null> = {
+    roadmap: gaps !== null ? `${gaps} priority gap${gaps === 1 ? '' : 's'} to close` : '90 days, paced to your time',
+    missions: measuredCount ? `Planned from ${measuredCount} measured skills` : null,
+    progress: null,
+  };
+  const alsoIncluded = locked.filter(l => !PREVIEW.some(p => p.section === l.section));
 
   return (
-    <div className="gd-main dlk">
-      <header className="dlk-hd">
-        <div>
-          <h1>{data.firstName ? `Welcome back, ${data.firstName}` : 'Welcome back'}</h1>
+    <div className="dl2">
+      {/* Hero: who this is for and where they are, in the logo navy. */}
+      <section className="dl2-hero">
+        <div className="dl2-hero-copy">
+          <span className="dl2-eyebrow">Your CareerPilot</span>
+          <h1>{firstName ? <>Welcome back, <span>{firstName}</span></> : 'Welcome back'}</h1>
           <p>
             {measured
-              ? <>Your assessment is done and your results are below. The rest of CareerPilot — your
-                  plan, your daily work and everything that runs off it — opens with membership.</>
-              : <>Start with the free skill assessment. It measures where you actually are, and
-                  everything else here is built from what it finds.</>}
+              ? 'Your assessment is done and your results are below. Your plan, your daily work and everything that runs off it open with membership.'
+              : 'Start with the free skill assessment. It measures where you actually are, and everything else here is built from what it finds.'}
           </p>
+          <div className="dl2-chips">
+            {measured
+              ? <>
+                  <span><i className="bi bi-patch-check" /> Assessment complete</span>
+                  {measuredCount ? <span><i className="bi bi-clipboard-data" /> {measuredCount} skills measured</span> : null}
+                  {gaps !== null && <span><i className="bi bi-bullseye" /> {gaps} priority gap{gaps === 1 ? '' : 's'}</span>}
+                </>
+              : <>
+                  <span><i className="bi bi-clock" /> About 20 minutes</span>
+                  <span><i className="bi bi-gift" /> Free — no membership needed</span>
+                </>}
+          </div>
         </div>
-        {data.careerScore !== null && data.careerScore !== undefined && (
-          <div className="dlk-score">
-            <b>{data.careerScore}</b>
-            <span>Career score{data.careerLevel ? ` · ${data.careerLevel}` : ''}</span>
+
+        {measured ? (
+          <div className="dl2-hero-score">
+            <div className="dl2-ring" style={{ ['--dl2-deg' as any]: `${(ready ?? avg ?? 0) * 3.6}deg` }}>
+              <div><strong>{ready ?? avg ?? '—'}</strong><em>{ready !== null ? '%' : avg !== null ? '/100' : ''}</em></div>
+            </div>
+            <div className="dl2-hero-score-copy">
+              <small>{ready !== null ? 'Role readiness' : 'Average skill score'}</small>
+              <b>{ready !== null ? readyLabel : 'From your assessment'}</b>
+              <button onClick={() => nav(ready !== null ? '/careerpilot/readiness' : '/careerpilot/skills')}>
+                See details <i className="bi bi-arrow-right" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="dl2-hero-start">
+            <b>Know where you stand</b>
+            <span>Skill by skill, against the role you are aiming at — nothing guessed.</span>
+            <button className="dl2-btn primary" onClick={() => nav(assessmentHref)}>
+              {data.setupCompleted === false ? 'Finish setup to start' : 'Start the free assessment'} <i className="bi bi-arrow-right" />
+            </button>
           </div>
         )}
-      </header>
+      </section>
 
-      {/* Free, and the reason the rest is worth having. Sits first for exactly that reason. */}
-      <div className="gd-grid gd-2b">
-        <div className="gd-card">
-          <div className="gd-card-hd"><h2>{measured ? 'Your skill meter' : 'Start here'}</h2></div>
-          {!measured ? (
-            /* The one free thing, and the one thing worth doing. It gets the whole panel. */
-            <div className="dlk-start">
-              <p>
-                Twenty minutes of questions, and you will know where you stand against the role
-                you are aiming at — skill by skill, with nothing guessed.
-              </p>
-              <button className="dlk-cta" onClick={() => nav(assessmentHref)}>
-                {data.setupCompleted === false ? 'Finish setup to start' : 'Start the free assessment'} →
-              </button>
-              <span className="dlk-free">Free. No membership needed.</span>
-            </div>
-          ) : skills.length ? (
-            <ul className="dlk-skills">
-              {skills.map(s => (
-                <li key={s.key}>
-                  <span className="nm">{s.label}</span>
-                  <span className="br"><i style={{ width: `${Math.max(2, Math.min(100, s.score))}%` }} /></span>
-                  <span className="vl">{s.score}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="dlk-empty">Your assessment results will appear here shortly.</p>
-          )}
-          {measured && (
-            <button className="dlk-link" onClick={() => nav('/careerpilot/skills')}>
-              See your full Skill DNA →
-            </button>
-          )}
-        </div>
+      {/* What they already earned. Free, and the reason the rest is worth having. */}
+      {measured && (
+        <section className="dl2-grid">
+          <article className="dl2-card">
+            <header className="dl2-card-head">
+              <div><h2>Your Skill DNA</h2><p>Your strongest measured skills first.</p></div>
+              <button className="dl2-link" onClick={() => nav('/careerpilot/skills')}>Full Skill DNA <i className="bi bi-arrow-right" /></button>
+            </header>
+            {skillRows.length ? (
+              <ul className="dl2-skills">
+                {skillRows.map(s => (
+                  <li key={s.key}>
+                    <span className="nm">{s.label}</span>
+                    <span className={`br ${band(s.score)}`}><i style={{ width: `${Math.max(2, Math.min(100, s.score))}%` }} /></span>
+                    <span className={`vl ${band(s.score)}`}>{s.score}<em>/100</em></span>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="dl2-empty">Your assessment results will appear here shortly.</p>}
+          </article>
 
-        <div className="gd-card dlk-locked">
-          <div className="gd-card-hd"><h2>Your 90-day plan</h2></div>
-          <SectionLock
-            section="roadmap"
-            variant="panel"
-            blurb={gaps !== null
-              ? 'Your gaps, in the order they are worth closing, sized to the time you can give it.'
-              : undefined}
-            facts={roadmapFacts}
-          />
-        </div>
-      </div>
-
-      <div className="gd-grid gd-2b" style={{ marginTop: 14 }}>
-        <div className="gd-card dlk-locked">
-          <div className="gd-card-hd"><h2>Today’s work</h2></div>
-          <SectionLock
-            section="missions"
-            variant="panel"
-            facts={measuredCount ? [{ value: measuredCount, label: 'skills measured to plan from' }] : undefined}
-          />
-        </div>
-
-        <div className="gd-card dlk-locked">
-          <div className="gd-card-hd"><h2>Your progress</h2></div>
-          <SectionLock section="progress" variant="panel" />
-        </div>
-      </div>
-
-      {/* Named, not counted. A list of what opens is a reason; "premium features" is not. */}
-      {(data.locked || []).length > 0 && (
-        <div className="gd-card dlk-all" style={{ marginTop: 14 }}>
-          <div className="gd-card-hd"><h2>What membership opens</h2></div>
-          <ul className="dlk-list">
-            {(data.locked || []).map(l => (
-              <li key={l.section}>
-                <i className="bi bi-unlock" />
-                <span><b>{l.title}</b>{l.blurb}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+          <article className="dl2-card">
+            <header className="dl2-card-head">
+              <div><h2>Role readiness</h2><p>{readiness?.role?.name ? `Against ${readiness.role.name}.` : 'Against your target role.'}</p></div>
+              <button className="dl2-link" onClick={() => nav('/careerpilot/readiness')}>Details <i className="bi bi-arrow-right" /></button>
+            </header>
+            {readiness ? (
+              <div className="dl2-ready">
+                <div className="dl2-ready-top">
+                  <strong>{ready === null ? '—' : `${ready}%`}</strong>
+                  <div><b>{readyLabel}</b><span>{readiness.coverage}% of the role measured · {readiness.summary.assessedSkills}/{readiness.summary.requiredSkills} skills</span></div>
+                </div>
+                <div className="dl2-ready-bar"><i style={{ width: `${Math.max(2, ready ?? 0)}%` }} /></div>
+                <div className="dl2-ready-facts">
+                  <div className="danger"><b>{readiness.summary.priorityGaps}</b><span>Priority gaps</span></div>
+                  <div className="warn"><b>{readiness.summary.needsWork}</b><span>Need work</span></div>
+                  <div className="good"><b>{readiness.summary.onTrack + readiness.summary.strong}</b><span>On track</span></div>
+                </div>
+              </div>
+            ) : (
+              <div className="dl2-empty">
+                Readiness appears once a target role is set.
+                <button className="dl2-link" onClick={() => nav('/careerpilot/setup?step=direction')}>Choose my role <i className="bi bi-arrow-right" /></button>
+              </div>
+            )}
+          </article>
+        </section>
       )}
+
+      {!measured && (
+        <section className="dl2-card dl2-steps-card">
+          <header className="dl2-card-head"><div><h2>How CareerPilot works</h2><p>Three steps from here to a plan built around you.</p></div></header>
+          <ol className="dl2-steps">
+            <li className="now"><span>1</span><div><b>Take the free assessment</b><small>Questions chosen for your stage and target role.</small></div></li>
+            <li><span>2</span><div><b>See your Skill DNA</b><small>Your strengths and gaps, measured — free to view.</small></div></li>
+            <li><span>3</span><div><b>Follow your 90-day plan</b><small>Daily work built from what the assessment found.</small></div></li>
+          </ol>
+        </section>
+      )}
+
+      {/* Everything membership opens, in one place, with one button. */}
+      <section className="dl2-member">
+        <div className="dl2-member-main">
+          <header className="dl2-member-head">
+            <span className="dl2-badge"><i className="bi bi-lock-fill" /> Membership</span>
+            <h2>Unlock your full CareerPilot</h2>
+            <p>The parts of your dashboard that do the work — built from what your assessment measured.</p>
+          </header>
+          <div className="dl2-previews">
+            {PREVIEW.map(p => (
+              <div className="dl2-preview" key={p.section}>
+                <div className="dl2-preview-top">
+                  <span className="ic"><i className={`bi ${SECTION_ICON[p.section]}`} /></span>
+                  <i className="bi bi-lock-fill lk" aria-label="Membership" />
+                </div>
+                <b>{lockOf(p.section)?.title || p.title}</b>
+                <span>{lockOf(p.section)?.blurb || p.blurb}</span>
+                {previewFacts[p.section] && <em>{previewFacts[p.section]}</em>}
+              </div>
+            ))}
+          </div>
+          {alsoIncluded.length > 0 && (
+            <div className="dl2-also">
+              <h3>Also included</h3>
+              <ul>
+                {alsoIncluded.map(l => (
+                  <li key={l.section}>
+                    <span className="ic"><i className={`bi ${SECTION_ICON[l.section] || 'bi-unlock'}`} /></span>
+                    <div><b>{l.title}</b><span>{l.blurb}</span></div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        <aside className="dl2-buy">
+          <small>One membership</small>
+          <b>Everything above, built for you</b>
+          <ul>
+            {gaps !== null && <li><i className="bi bi-check2" /> A plan for your {gaps} priority gap{gaps === 1 ? '' : 's'}</li>}
+            {needsWork !== null && <li><i className="bi bi-check2" /> {needsWork} more skill{needsWork === 1 ? '' : 's'} worked on</li>}
+            <li><i className="bi bi-check2" /> 90 days, paced to the time you have</li>
+            {alsoIncluded.length > 0 && <li><i className="bi bi-check2" /> {alsoIncluded.length} more tool{alsoIncluded.length === 1 ? '' : 's'} — {alsoIncluded.slice(0, 2).map(l => l.title).join(', ')}{alsoIncluded.length > 2 ? ' and more' : ''}</li>}
+          </ul>
+          <button className="dl2-btn light" onClick={unlock} disabled={busy}>{label}</button>
+          {!!msg && <p className="dl2-msg">{msg}</p>}
+          <span className="dl2-buy-foot">Everything your assessment measured stays yours either way.</span>
+        </aside>
+      </section>
     </div>
   );
 };

@@ -2,12 +2,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { SkillAssessment as Paper, SkillAssessmentItem, AssessmentAvailability } from '../../api/passportApi';
 import { AnswerQueue, enqueueAnswer, drainQueue, requeueFailed, hasPending } from './answerQueue';
+import { useMember } from './MemberLayout';
 import './skillAssessment.css';
 
 const AUTOSAVE_MS = 900;
 const RETRY_MS = 4000;
 
 const SkillAssessment: React.FC = () => {
+  const { reload: reloadMember } = useMember();
   const nav = useNavigate();
   const [params] = useSearchParams();
   /**
@@ -153,6 +155,9 @@ const SkillAssessment: React.FC = () => {
         response: answers[keyOf(i)],
       }));
       setDone(await passportApi.submitPersonalizedAssessment(payload));
+      // The member payload was loaded before this paper existed; without a refresh the home screen goes on saying
+      // "start the free assessment" until a full page reload.
+      reloadMember();
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Could not submit. Your answers are saved — try again.');
     }

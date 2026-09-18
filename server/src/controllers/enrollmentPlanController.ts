@@ -25,7 +25,7 @@ import * as razorpay from '../services/razorpayService';
 import { foundationAccess } from '../services/foundationAccessService';
 import { isJourneyDayOpen } from '../data/journeyDayLadder';
 import { studentContentRow } from '../services/studentContentView';
-import { reconcileJourneyDayXp } from '../services/foundationJourneyXpService';
+import { reconcileJourneyDayXp, xpForJourneyItem, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
 
 /**
  * A Foundation journey is the member's ninety days. Without membership its days cannot be opened or
@@ -928,6 +928,8 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
 
       const moduleStatus = await resolveModuleStatuses(sId, dayItems);
 
+      // What each task pays in CareerPilot XP — Foundation journey only; other enrollments have no such rule.
+      const journeyXpFor = (it: any) => ((enrollment as any).enrolledBy === 'foundation-journey' ? xpForJourneyItem(it) : undefined);
       populatedItems = dayItems.map((item: any) => {
         const kind = item.kind || 'content';
         if (kind === 'content') {
@@ -937,6 +939,7 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
             content: contentMap[cid] || null,
             dueAt: dueAtForItem(item),
             isCompleted: enrollment.completedItems.some(ci => ci.contentId === cid && ci.dayNumber === dayNumber),
+            xp: journeyXpFor(item),
           };
         }
         const sid = item.sourceId ? item.sourceId.toString() : '';
@@ -952,6 +955,7 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
           launchPath: isPhysical ? '/my-interviews' : launchPath(kind, sid),
           dueAt: dueAtForItem(item),
           isCompleted: isPhysical ? false : st.attempted,
+          xp: journeyXpFor(item),
         };
       });
 
@@ -995,6 +999,7 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       topic: topic || null,
       items: populatedItems,
       isDayCompleted,
+      dayBonusXp: (enrollment as any).enrolledBy === 'foundation-journey' ? FOUNDATION_DAY_BONUS_XP : undefined,
       isLocked,
       lockReason,
       todayPlanDay,

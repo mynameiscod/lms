@@ -1,0 +1,112 @@
+/* The Foundation day player (JourneyDay.tsx, root .jdm) in the dashboard system: a logo-navy hero with the day's
+   progress and XP, a task rail card, and the lesson stage as a white card. Restyles the existing jd- markup under
+   .jdm. The shell forces .gd-main h1/p colours with !important, so text on navy carries !important to stay light. */
+.jd-page.jdm {
+  --navy: #051D64; --navy2: #0B2D72; --primary: #005897; --primary-hover: #004B81; --teal: #359AAD;
+  --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
+  --green: #17885D; --green-bg: #EAF8F1; --amber: #B86B00; --amber-bg: #FFF7E8; --red: #C93737; --red-bg: #FFF0F0; --violet: #6246C9; --violet-bg: #F1EDFF;
+  max-width: 1760px; width: 100%; margin: 0 auto; padding: 0 0 40px; color: var(--ink); display: flex; flex-direction: column; gap: 18px;
+}
+.jdm * { box-sizing: border-box; }
+:where(.jdm) button { font: inherit; }
+
+/* Hero */
+.jdm-hero {
+  position: relative; overflow: hidden; border-radius: 24px; padding: 24px 32px 28px; color: #fff;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
+    radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
+    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, var(--primary) 100%);
+  box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
+}
+.jdm-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
+.jdm-hero > * { position: relative; z-index: 1; }
+.jdm-crumb { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; margin-bottom: 14px; color: #C4D5EE; font-size: 14px; font-weight: 700; cursor: pointer; }
+.jdm-crumb:hover { color: #fff; }
+.jdm-eyebrow { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
+.jdm-hero h1 { margin: 6px 0 0; font-size: clamp(26px, 2.4vw, 38px); line-height: 1.12; font-weight: 800; letter-spacing: -.02em; color: #fff !important; }
+.jdm-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.jdm-chips span { display: inline-flex; align-items: center; gap: 7px; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .22); color: #fff; font-size: 13.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px; }
+.jdm-chips span i.bi-lightning-charge-fill { color: #FFD166; }
+.jdm-bar { margin-top: 14px; max-width: 520px; height: 8px; border-radius: 999px; background: rgba(255, 255, 255, .16); overflow: hidden; }
+.jdm-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7FD3E0, #fff); transition: width .4s ease; }
+.jdm-daynav { display: flex; gap: 8px; }
+.jdm-daynav button { display: inline-flex; align-items: center; gap: 6px; min-height: 42px; padding: 0 16px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .35); background: rgba(255, 255, 255, .10); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
+.jdm-daynav button:hover:not(:disabled) { background: rgba(255, 255, 255, .2); }
+.jdm-daynav button:disabled { opacity: .45; cursor: default; }
+
+/* Moments */
+.jdm-flash { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; color: var(--green); background: var(--green-bg); border: 1px solid #CCE9DC; border-radius: 999px; padding: 8px 16px; box-shadow: 0 8px 20px rgba(23, 136, 93, .15); animation: jdm-pop .35s ease; }
+@keyframes jdm-pop { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+.jdm-complete { display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-radius: 18px; background: linear-gradient(135deg, #F2FBF6, #EAF8F1); border: 1px solid #CCE9DC; }
+.jdm-complete .ic { flex: none; width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; background: var(--green); color: #fff; }
+.jdm-complete > div { flex: 1; min-width: 0; }
+.jdm-complete b { display: block; font-size: 17px; color: #155E43; }
+.jdm-complete span { display: block; margin-top: 2px; font-size: 14px; color: var(--text); }
+
+/* Layout */
+.jdm .jd-grid { grid-template-columns: 1fr; gap: 18px; }
+@media (min-width: 900px) { .jdm .jd-grid { grid-template-columns: 340px minmax(0, 1fr); align-items: start; } }
+
+/* Task rail */
+.jdm-rail-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 16px 14px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); position: sticky; top: 104px; }
+.jdm-rail-head { display: flex; justify-content: space-between; align-items: center; padding: 2px 6px 12px; }
+.jdm-rail-head b { font-size: 16px; color: var(--navy); }
+.jdm-rail-head span { font-size: 13px; font-weight: 800; color: var(--primary); background: var(--tint); border-radius: 999px; padding: 3px 10px; }
+.jdm .jd-rail { gap: 6px; }
+.jdm .jd-item { align-items: center; gap: 12px; padding: 12px; border-radius: 14px; border: 1px solid transparent; background: none; text-align: left; }
+.jdm .jd-item:hover { background: var(--soft); }
+.jdm .jd-item.sel { border-color: #9DBBD0; background: var(--tint); box-shadow: 0 6px 16px rgba(0, 88, 151, .08); }
+.jdm .jd-item-icon { flex: none; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; font-size: 17px; margin: 0; background: var(--tint); color: var(--primary); }
+.jdm .jd-item-icon.t-video { background: var(--red-bg); color: var(--red); }
+.jdm .jd-item-icon.t-notes, .jdm .jd-item-icon.t-worked_example { background: #EAF7F8; color: #287F91; }
+.jdm .jd-item-icon.t-practice_theory, .jdm .jd-item-icon.t-practice_coding { background: var(--amber-bg); color: var(--amber); }
+.jdm .jd-item-icon.t-quiz { background: var(--violet-bg); color: var(--violet); }
+.jdm .jd-item-icon.t-assignment { background: var(--green-bg); color: var(--green); }
+.jdm .jd-item.done .jd-item-icon { background: var(--green); color: #fff; }
+.jdm .jd-item-body { flex: 1; }
+.jdm .jd-item-body b { font-size: 14.5px; font-weight: 700; color: var(--ink); line-height: 1.35; }
+.jdm .jd-item.done .jd-item-body b { color: var(--muted); }
+.jdm .jd-item-body small { font-size: 12.5px; color: var(--muted); }
+.jdm-xp { flex: none; font-size: 12.5px; font-weight: 800; color: var(--green); background: var(--green-bg); border-radius: 999px; padding: 3px 9px; }
+.jdm-xp.big { font-size: 13.5px; padding: 5px 12px; }
+.jdm-bonus { margin: 10px 4px 0; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; font-size: 13.5px; color: var(--amber); background: var(--amber-bg); border: 1px solid #F5DDB5; }
+.jdm-bonus span { flex: 1; font-weight: 600; }
+.jdm-bonus.done { color: var(--green); background: var(--green-bg); border-color: #CCE9DC; }
+
+/* Stage */
+.jdm .jd-stage { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 22px 24px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); }
+.jdm .jd-stage-head { align-items: flex-start; margin-bottom: 16px; }
+.jdm .jd-type { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--primary); background: var(--tint); border-radius: 999px; padding: 5px 11px; }
+.jdm .jd-type.t-video { color: var(--red); background: var(--red-bg); }
+.jdm .jd-type.t-notes, .jdm .jd-type.t-worked_example { color: #287F91; background: #EAF7F8; }
+.jdm .jd-type.t-practice_theory, .jdm .jd-type.t-practice_coding { color: var(--amber); background: var(--amber-bg); }
+.jdm .jd-type.t-quiz { color: var(--violet); background: var(--violet-bg); }
+.jdm .jd-stage-head h2 { margin-top: 10px; font-size: 22px; font-weight: 800; color: var(--navy); }
+.jdm-stage-tags { display: flex; align-items: center; gap: 8px; flex: none; }
+.jdm .jd-done-badge { background: var(--green-bg); color: var(--green); border-radius: 999px; font-weight: 800; }
+.jdm .jd-body { border-radius: 14px; overflow: hidden; }
+.jdm .jd-launch { border: 1px dashed var(--border-strong); border-radius: 16px; background: var(--soft); padding: 36px 20px; }
+.jdm .jd-launch-icon { color: var(--primary); }
+.jdm .jd-actions { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); align-items: center; gap: 10px; }
+.jdm-step { margin-right: auto; font-size: 13px; font-weight: 700; color: var(--muted); }
+.jdm .jd-btn { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--border-strong); background: #fff; color: var(--primary); font-size: 14.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.jdm .jd-btn:hover:not(:disabled) { border-color: var(--primary); }
+.jdm .jd-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 10px 22px rgba(0, 88, 151, .2); }
+.jdm .jd-btn.primary:hover:not(:disabled) { background: var(--primary-hover); }
+.jdm .jd-skeleton, .jdm .jd-empty { background: #fff; border-radius: 16px; }
+
+@media (max-width: 900px) {
+  .jdm-hero { grid-template-columns: 1fr; padding: 20px; }
+  .jdm-rail-card { position: static; }
+  .jdm-complete { flex-wrap: wrap; }
+}
+@media (max-width: 560px) {
+  .jdm .jd-stage { padding: 18px 14px; }
+  .jdm-step { width: 100%; }
+  .jdm .jd-actions .jd-btn { flex: 1; justify-content: center; }
+  .jdm-daynav button { flex: 1; justify-content: center; }
+}
+@media (min-width: 1200px) and (max-width: 1599px) { .jd-page.jdm { zoom: 1.05; } }
+@media (min-width: 1600px) { .jd-page.jdm { zoom: 1.12; } }

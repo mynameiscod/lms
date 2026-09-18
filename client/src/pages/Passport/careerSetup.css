@@ -97,9 +97,10 @@
 .cps-chip.on { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
 
 /* Context and notices */
-.cps-known { display: flex; align-items: center; gap: 8px; margin: 16px 0 0; background: #EEF7FB; border: 1px solid #D5E8F0; color: #33566E; border-radius: 12px; padding: 11px 14px; font-size: 14px; line-height: 1.5; }
+/* These are <p> elements: the `.cps p { margin: 0 }` reset outranks a bare class, so their spacing is scoped. */
+.cps .cps-known { display: flex; align-items: center; gap: 8px; margin: 16px 0 0; background: #EEF7FB; border: 1px solid #D5E8F0; color: #33566E; border-radius: 12px; padding: 11px 14px; font-size: 14px; line-height: 1.5; }
 .cps-known i { color: var(--primary); }
-.cps-ctxbadge { margin: 0 0 14px; }
+.cps .cps-ctxbadge { margin: 0 0 16px; }
 .cps-link { margin-left: auto; border: 0; background: none; color: var(--primary); font-size: 13.5px; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .cps-notready { background: var(--amber-bg); border-color: #F0D9B0; color: #8D5B14; text-align: left; }
 .cps-notready i { color: var(--amber); }
@@ -130,7 +131,7 @@
 .cps-role-search > button:hover { background: #EFF5F9; color: var(--ink); }
 .cps-role-more { width: 100%; margin-top: 10px; background: #fff; border: 1.5px dashed var(--border-strong); border-radius: 11px; padding: 12px; font-size: 14px; font-weight: 700; color: var(--primary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .cps-role-more:hover { border-color: #78AFC4; background: #F4FAFD; }
-.cps-role-none { margin: 12px 0 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: #F8FBFD; color: #53677D; font-size: 14px; line-height: 1.6; }
+.cps .cps-role-none { margin: 12px 0 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: #F8FBFD; color: #53677D; font-size: 14px; line-height: 1.6; }
 .cps-role-none i { color: #8CA0B5; margin-right: 7px; }
 .cps-role-none b { color: var(--ink); }
 
@@ -258,7 +259,7 @@
   .cps-done { padding: 24px 16px; }
   .cps-sum .r { flex-direction: column; gap: 4px; }
   .cps-sum .r span { flex: auto; }
-  .cps-ctxbadge { flex-wrap: wrap; }
+  .cps .cps-ctxbadge { flex-wrap: wrap; }
   .cps-link { margin-left: 0; }
 }
 @media (max-width: 460px) {

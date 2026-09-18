@@ -207,88 +207,98 @@ const CareerSetup: React.FC = () => {
   if (done) {
     const stage = opts.stages.find(s => s.key === ctx.derived.stage);
     const role = opts.roles.find(r => r.key === ctx.career.primaryRole);
+    const studying = [ctx.education.degree, ctx.education.branch].filter(Boolean).join(' · ');
+    const langs = ctx.career.preferredProgrammingLanguages;
+    const minutes = ctx.availability.minutesPerDay;
+    const days = ctx.availability.daysPerWeek;
+    const facts: { icon: string; label: string; value: string }[] = [
+      { icon: 'bi-mortarboard', label: 'Studying', value: studying || '—' },
+      { icon: 'bi-calendar3', label: 'Year', value: ctx.education.currentAcademicYear || '—' },
+      ...(ctx.career.careerGoal ? [{ icon: 'bi-bullseye', label: 'Broad goal', value: ctx.career.careerGoal }] : []),
+      { icon: 'bi-compass', label: 'Aiming for', value: role?.label || 'Not sure yet' },
+      { icon: 'bi-code-slash', label: 'Interested in', value: langs.join(', ') || 'Open to anything' },
+      { icon: 'bi-clock', label: 'Time each day', value: minutes ? `${minutes} minutes` : '—' },
+      { icon: 'bi-calendar-week', label: 'Days a week', value: days ? `${days} days` : '—' },
+    ];
+    const pills = [role?.label && role.key !== 'NOT_SURE' ? role.label : 'Exploring directions', studying, minutes && days ? `${minutes} min × ${days} days` : ''].filter(Boolean) as string[];
+    const reroutable = avail && !avail.assessmentAvailable
+      && (avail.reasonCode === 'ROLE_NOT_CONFIGURED' || avail.reasonCode === 'BLUEPRINT_UNPUBLISHED' || avail.reasonCode === 'BLUEPRINT_EMPTY');
     return (
       <div className="cps">
         {header}
-        <main className="cps-done-wrap">
-          <div className="cps-done-layout">
-            <aside className="cps-done-visual">
-              <div className="cps-confetti" aria-hidden="true"><i /><i /><i /><i /><i /></div>
-              <div className="cps-done-visual-copy">
-                <div className="cps-eyebrow">YOUR NEXT CHAPTER STARTS HERE</div>
-                <h2>Ready to turn your profile into a real career plan?</h2>
-                <p>CareerPilot will use these choices to personalize your assessment, roadmap and daily missions.</p>
+        <main className="cpr">
+          {/* A celebration band in the logo's navy, then the plan's inputs and the one next step. */}
+          <section className="cpr-band">
+            <div className="cpr-wrap cpr-band-grid">
+              <div className="cpr-band-copy">
+                <div className="cpr-badge"><i className="bi bi-check-lg" /></div>
+                <div className="cpr-eyebrow">Profile ready</div>
+                <h1>Your CareerPilot is ready!</h1>
+                <p>CareerPilot will use these choices to personalise your assessment, roadmap and daily missions. You can change any of it later.</p>
+                <div className="cpr-pills">{pills.map(t => <span key={t}>{t}</span>)}</div>
               </div>
-              <img src="/assets/careerpilot/careerpilot-hero-student.png" alt="CareerPilot student ready to begin" />
-              <div className="cps-ready-pills"><span><i className="bi bi-bullseye" /> Direction set</span><span><i className="bi bi-clock-history" /> Routine set</span></div>
-            </aside>
+              <div className="cpr-band-art" aria-hidden="true">
+                <div className="cpr-art-frame"><img src="/assets/careerpilot/careerpilot-hero-student.png" alt="" /></div>
+              </div>
+            </div>
+          </section>
 
-            <section className="cps-done">
-              <div className="cps-done-icon"><i className="bi bi-check-lg" /></div>
-              <div className="cps-eyebrow">PROFILE READY</div>
-              <h1>Your CareerPilot is ready!</h1>
-              <p>This is what CareerPilot will plan around. You can change any of it later.</p>
-
-              <div className="cps-sum">
-                <div className="r"><span><i className="bi bi-mortarboard" /> Studying</span><b>{[ctx.education.degree, ctx.education.branch].filter(Boolean).join(' · ') || '—'}</b></div>
-                <div className="r"><span><i className="bi bi-calendar3" /> Year</span><b>{ctx.education.currentAcademicYear || '—'}</b></div>
-                {!!ctx.career.careerGoal && <div className="r"><span><i className="bi bi-bullseye" /> Broad goal</span><b>{ctx.career.careerGoal}</b></div>}
-                <div className="r"><span><i className="bi bi-compass" /> Aiming for</span><b>{role?.label || 'Not sure yet'}</b></div>
-                <div className="r"><span><i className="bi bi-code-slash" /> Interested in</span><b>{ctx.career.preferredProgrammingLanguages.join(', ') || '—'}</b></div>
-                <div className="r"><span><i className="bi bi-clock" /> Time each day</span><b>{ctx.availability.minutesPerDay ? `${ctx.availability.minutesPerDay} minutes` : '—'}</b></div>
-                <div className="r"><span><i className="bi bi-calendar-week" /> Days a week</span><b>{ctx.availability.daysPerWeek || '—'}</b></div>
+          <section className="cpr-wrap cpr-body">
+            <div className="cpr-card">
+              <div className="cpr-col">
+                <h2>Your plan is built around</h2>
+                <div className="cpr-facts">
+                  {facts.map(f => (
+                    <div className="cpr-fact" key={f.label}>
+                      <span className="cpr-fact-ic"><i className={`bi ${f.icon}`} /></span>
+                      <div><small>{f.label}</small><b>{f.value}</b></div>
+                    </div>
+                  ))}
+                </div>
+                {stage && (
+                  <div className="cpr-stage">
+                    <i className="bi bi-flag-fill" />
+                    <div><small>Your career stage</small><b>{stage.label}</b><span>{stage.blurb}</span></div>
+                  </div>
+                )}
               </div>
 
-              {stage && <div className="cps-stage"><span>Your career stage</span><b>{stage.label}</b><em>{stage.blurb}</em><i className="bi bi-flag-fill" /></div>}
-              {avail === null && <div className="cps-load">Checking your assessment…</div>}
-              {avail?.assessmentAvailable && (
-                <button className="cps-btn primary" onClick={() => nav('/careerpilot/skill-assessment')}>
-                  {avail.inProgress ? 'Continue my assessment' : 'Start my personalized assessment'} <i className="bi bi-arrow-right" />
-                </button>
-              )}
-              {/*
-                ONE ACTION ON THIS SCREEN: start the assessment. "Change my choices" and
-                "Go to my dashboard" were removed deliberately — the summary exists to send
-                a member into the assessment, and two ghost buttons under the primary one
-                gave equal weight to leaving.
+              <div className="cpr-col cpr-next">
+                <h2>What happens next</h2>
+                <ol className="cpr-steps">
+                  <li className="now"><span>1</span><div><b>Take your skill assessment</b><small>Questions chosen for your stage and direction.</small></div></li>
+                  <li><span>2</span><div><b>See your Skill DNA</b><small>Your strengths and gaps, measured — not guessed.</small></div></li>
+                  <li><span>3</span><div><b>Get your personalised roadmap</b><small>A day-by-day plan built from what the assessment measured.</small></div></li>
+                </ol>
 
-                Changing choices is unaffected: Role Readiness, Resume Center and Placement
-                Readiness all link to `setup?step=direction`, which is honoured on load and
-                lands on that step directly, so nothing depends on a button here.
-
-                THE EXCEPTION BELOW IS NOT DECORATION. When the assessment is unavailable
-                the primary button does not render at all, so removing these two would
-                leave a screen with no action whatsoever — and this state is reachable: a
-                role whose blueprint is unpublished lands here. The way out stays only in
-                the case where there is otherwise nothing to press.
-              */}
-              {avail && !avail.assessmentAvailable && (
-                <>
-                  <div className="cps-known cps-notready"><i className="bi bi-info-circle" /><span><b>{avail.message || 'This career path is not ready for assessment yet.'}</b><em>{avail.reasonCode === 'ROLE_NOT_CONFIGURED' || avail.reasonCode === 'BLUEPRINT_UNPUBLISHED' || avail.reasonCode === 'BLUEPRINT_EMPTY' ? 'Choose another role, or pick “Not sure yet” — everything else in your plan still works.' : 'Nothing is wrong with your profile — we are still writing the questions for your stage. There is nothing for you to do; we will let you know the moment it is ready.'}</em></span></div>
-                  {/*
-                    OFFER AN ACTION ONLY WHEN ONE WOULD HELP.
-
-                    Two very different situations produce the same sentence. A role whose
-                    blueprint is missing or unpublished IS fixed by choosing another one. An
-                    empty question pool is not — it is our content gap, no role has questions
-                    either, and inviting a student to pick again sends them round a loop that
-                    ends where it started.
-
-                    "Go to my dashboard" is gone entirely: without an assessment the dashboard
-                    has nothing to show, so it was an exit to an empty room.
-                  */}
-                  {(avail.reasonCode === 'ROLE_NOT_CONFIGURED'
-                    || avail.reasonCode === 'BLUEPRINT_UNPUBLISHED'
-                    || avail.reasonCode === 'BLUEPRINT_EMPTY') && (
-                    <button className="cps-btn ghost" onClick={() => { setDone(false); setStepIx(steps.indexOf('direction')); }}>
-                      <i className="bi bi-pencil" /> Choose a different role
-                    </button>
-                  )}
-                </>
-              )}
-            </section>
-          </div>
+                {avail === null && <div className="cps-load">Checking your assessment…</div>}
+                {avail?.assessmentAvailable && (
+                  <button className="cpr-cta" onClick={() => nav('/careerpilot/skill-assessment')}>
+                    {avail.inProgress ? 'Continue my assessment' : 'Start my personalized assessment'} <i className="bi bi-arrow-right" />
+                  </button>
+                )}
+                {/*
+                  ONE ACTION ON THIS SCREEN: start the assessment. "Change my choices" and "Go to my dashboard" were
+                  removed deliberately — two ghost buttons under the primary one gave equal weight to leaving. Changing
+                  choices stays reachable from Role Readiness, Resume Center and Placement Readiness (setup?step=direction).
+                  When the assessment is unavailable the primary button does not render, so the way out below remains —
+                  but only where choosing another role would actually help.
+                */}
+                {avail && !avail.assessmentAvailable && (
+                  <>
+                    <div className="cps-known cps-notready"><i className="bi bi-info-circle" /><span><b>{avail.message || 'This career path is not ready for assessment yet.'}</b><em>{reroutable ? 'Choose another role, or pick “Not sure yet” — everything else in your plan still works.' : 'Nothing is wrong with your profile — we are still writing the questions for your stage. There is nothing for you to do; we will let you know the moment it is ready.'}</em></span></div>
+                    {reroutable && (
+                      <button className="cps-btn ghost cpr-alt" onClick={() => { setDone(false); setStepIx(steps.indexOf('direction')); }}>
+                        <i className="bi bi-pencil" /> Choose a different role
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </section>
         </main>
+        <footer className="cps-footer"><div className="cps-footer-brand"><img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" /></div><span>© {new Date().getFullYear()} CodeBegun · CareerPilot. All rights reserved.</span><span className="cps-footer-made">Made for ambitious careers in India</span></footer>
       </div>
     );
   }

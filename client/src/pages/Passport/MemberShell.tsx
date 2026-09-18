@@ -206,11 +206,10 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         <button className="gd-side-close" onClick={() => setMobileOpen(false)} aria-label="Close menu">
           <Icon name="close" />
         </button>
-        <button className="gd-logo" onClick={() => nav('/careerpilot')}>
-          <span className="mk"><b className="mono">CB</b>
-            <img src="/assets/logo.png" alt="CodeBegun" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-          </span>
-          <div><b>Codebegun</b><small>Begin Your Code. Build Your Future.</small></div>
+        {/* The product's own mark, filling the white card at the top of the rail (the CodeBegun image sat small and
+            off-centre inside a second bordered box). Styles: styles/careerpilot-member-shell.css, .gd-logo-cp. */}
+        <button className="gd-logo gd-logo-cp" onClick={() => nav('/careerpilot')} aria-label="CareerPilot home">
+          <img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" />
         </button>
 
         <nav className="gd-nav">

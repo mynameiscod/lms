@@ -75,3 +75,8 @@
 #root .gd .gd-main{margin-left:0!important;padding:72px 16px 36px!important}
 #root .gd .gd-burger{background:#061e66!important;color:#fff!important;border:0!important;box-shadow:0 8px 22px rgba(5,29,100,.22)!important}
 }
+
+/* Rail logo: the CareerPilot mark, centred in one white card (MemberShell .gd-logo-cp). */
+#root .gd .gd-logo.gd-logo-cp{display:flex!important;align-items:center!important;justify-content:center!important;background:#fff!important;border:0!important;border-radius:14px!important;margin:6px 4px 16px!important;padding:12px 14px!important;min-height:76px!important;width:auto!important;box-shadow:0 6px 18px rgba(0,0,0,.18)!important}
+#root .gd .gd-logo.gd-logo-cp img{display:block!important;width:100%!important;max-width:190px!important;height:auto!important;max-height:56px!important;object-fit:contain!important;margin:0 auto!important}
+@media(max-width:980px){#root .gd .gd-logo.gd-logo-cp{margin-right:52px!important}}

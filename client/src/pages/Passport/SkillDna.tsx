@@ -142,68 +142,71 @@ const SkillDna: React.FC = () => {
         <div><span className="ic amber"><i className="bi bi-hourglass-split" /></span><div><small>Need more evidence</small><b>{lowEvidence}</b></div></div>
       </section>
 
+      {/* Two columns that stack on their own, so a short card never leaves a gap beside a tall one. */}
       <section className="sdn-grid">
-        <article className="sdn-card">
-          <header className="sdn-card-head">
-            <div><h2>Skill shape</h2><p>Each point is one measured skill, 0 at the centre to 100 at the edge.</p></div>
-          </header>
-          {radarSkills.length >= 3
-            ? <Radar skills={radarSkills} />
-            : <div className="sdn-placeholder">The shape appears once three or more skills are measured.</div>}
-        </article>
+        <div className="sdn-col">
+          <article className="sdn-card">
+            <header className="sdn-card-head">
+              <div><h2>Skill shape</h2><p>Each point is one measured skill, 0 at the centre to 100 at the edge.</p></div>
+            </header>
+            {radarSkills.length >= 3
+              ? <Radar skills={radarSkills} />
+              : <div className="sdn-placeholder">The shape appears once three or more skills are measured.</div>}
+          </article>
 
-        <article className="sdn-card">
-          <header className="sdn-card-head">
-            <div><h2>All measured skills</h2><p>Highest score first, with the evidence behind each.</p></div>
-          </header>
-          <ul className="sdn-list">
-            {ranked.map(s => (
-              <li key={s.skillKey}>
-                <span className={`sdn-skill-ic ${band(s.score)}`}><i className={`bi ${SKILL_ICON(s.skillName)}`} /></span>
-                <div className="sdn-list-main">
-                  <div className="sdn-list-top"><b>{s.skillName}</b><strong className={band(s.score)}>{s.score}<em>/100</em></strong></div>
-                  <div className={`sdn-bar ${band(s.score)}`}><i style={{ width: `${Math.max(2, s.score)}%` }} /></div>
-                  <div className="sdn-list-meta">
-                    <span className={`sdn-conf ${String(s.confidence).toLowerCase()}`}>{CONFIDENCE_COPY[s.confidence] || s.confidence}</span>
-                    <em>{s.evidenceCount} evidence · {s.distinctItems} question{s.distinctItems === 1 ? '' : 's'}</em>
+          <article className="sdn-card">
+            <header className="sdn-card-head">
+              <div><h2>Where to focus first</h2><p>Your lowest-scoring skills. These are where practice moves your profile most.</p></div>
+            </header>
+            <div className="sdn-focus">
+              {focus.map((s, i) => (
+                <div className="sdn-focus-item" key={s.skillKey}>
+                  <span className="sdn-focus-n">{i + 1}</span>
+                  <div>
+                    <b>{s.skillName}</b>
+                    <span>{s.score}/100 · {CONFIDENCE_COPY[s.confidence] || s.confidence}</span>
                   </div>
+                  <i className={`bi ${SKILL_ICON(s.skillName)}`} />
                 </div>
-              </li>
-            ))}
-          </ul>
-        </article>
-      </section>
+              ))}
+            </div>
+          </article>
+        </div>
 
-      <section className="sdn-grid lower">
-        <article className="sdn-card">
-          <header className="sdn-card-head">
-            <div><h2>Where to focus first</h2><p>Your lowest-scoring skills. These are where practice moves your profile most.</p></div>
-          </header>
-          <div className="sdn-focus">
-            {focus.map((s, i) => (
-              <div className="sdn-focus-item" key={s.skillKey}>
-                <span className="sdn-focus-n">{i + 1}</span>
-                <div>
-                  <b>{s.skillName}</b>
-                  <span>{s.score}/100 · {CONFIDENCE_COPY[s.confidence] || s.confidence}</span>
-                </div>
-                <i className={`bi ${SKILL_ICON(s.skillName)}`} />
-              </div>
-            ))}
-          </div>
-        </article>
+        <div className="sdn-col">
+          <article className="sdn-card">
+            <header className="sdn-card-head">
+              <div><h2>All measured skills</h2><p>Highest score first, with the evidence behind each.</p></div>
+            </header>
+            <ul className="sdn-list">
+              {ranked.map(s => (
+                <li key={s.skillKey}>
+                  <span className={`sdn-skill-ic ${band(s.score)}`}><i className={`bi ${SKILL_ICON(s.skillName)}`} /></span>
+                  <div className="sdn-list-main">
+                    <div className="sdn-list-top"><b>{s.skillName}</b><strong className={band(s.score)}>{s.score}<em>/100</em></strong></div>
+                    <div className={`sdn-bar ${band(s.score)}`}><i style={{ width: `${Math.max(2, s.score)}%` }} /></div>
+                    <div className="sdn-list-meta">
+                      <span className={`sdn-conf ${String(s.confidence).toLowerCase()}`}>{CONFIDENCE_COPY[s.confidence] || s.confidence}</span>
+                      <em>{s.evidenceCount} evidence · {s.distinctItems} question{s.distinctItems === 1 ? '' : 's'}</em>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </article>
 
-        <article className="sdn-card">
-          <header className="sdn-card-head">
-            <div><h2>How sure is this picture?</h2><p>Confidence is set per skill by the evidence behind it.</p></div>
-          </header>
-          <div className="sdn-evidence">
-            <div><b>{evidenceTotal}</b><span>Total evidence</span></div>
-            <div><b>{highEvidence}</b><span>Well evidenced</span></div>
-            <div><b>{lowEvidence}</b><span>Limited evidence</span></div>
-          </div>
-          <p className="sdn-explain"><i className="bi bi-info-circle" /><span>A low confidence does not mean a low skill — it means we have seen only a few answers. More practice and check-ins make each score more reliable.</span></p>
-        </article>
+          <article className="sdn-card">
+            <header className="sdn-card-head">
+              <div><h2>How sure is this picture?</h2><p>Confidence is set per skill by the evidence behind it.</p></div>
+            </header>
+            <div className="sdn-evidence">
+              <div><b>{evidenceTotal}</b><span>Total evidence</span></div>
+              <div><b>{highEvidence}</b><span>Well evidenced</span></div>
+              <div><b>{lowEvidence}</b><span>Limited evidence</span></div>
+            </div>
+            <p className="sdn-explain"><i className="bi bi-info-circle" /><span>A low confidence does not mean a low skill — it means we have seen only a few answers. More practice and check-ins make each score more reliable.</span></p>
+          </article>
+        </div>
       </section>
 
       <section className="sdn-next">

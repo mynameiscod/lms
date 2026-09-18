@@ -171,34 +171,43 @@ const SkillAssessment: React.FC = () => {
   const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 
   /**
-   * NO SECOND BRAND BAR.
+   * THE PAGE CARRIES ITS OWN HEADER.
    *
-   * The member shell already carries the CodeBegun logo, the CareerPilot wordmark and the
-   * member's own header. This page drew its own copy of all three, so a member who opened a
-   * mission met the branding twice, one bar stacked under the other — two logos on one
-   * screen, which reads as a page that has been pasted inside another page.
-   *
-   * It was never dead weight in the logged-out funnel, because there is no logged-out case:
-   * the route sits under ProtectedRoute and PassportMemberLayout, so it only ever renders
-   * inside the shell.
-   *
-   * What did earn its place is the way out of a half-finished paper, so that is all that is
-   * left, and only while a paper is open. Answers are saved as they are given, so leaving
-   * costs the member nothing.
+   * This used to draw no brand at all, on the reasoning that it only ever rendered inside the member shell,
+   * which carries the logo. That stopped being true when the assessment became a focused route (see
+   * MemberLayout FOCUSED_ROUTES): it now owns the whole window, for members and non-members alike, so without
+   * this the screen had no CareerPilot mark anywhere. The header is the logo; while a paper is open it also
+   * holds the way out — answers are saved as they are given, so leaving costs nothing.
    */
-  const ExitBar = () => (
-    <div className="ska-topbar ska-topbar-exit">
-      <button className="ska-exit" onClick={() => nav('/careerpilot')}>
-        <i className="bi bi-box-arrow-left" /> Save & exit
-      </button>
-    </div>
+  const Header = ({ exit }: { exit?: boolean }) => (
+    <header className="ska-head">
+      <div className="ska-wrap ska-head-in">
+        <a className="ska-logo" href="/careerpilot" aria-label="CareerPilot by CodeBegun">
+          <img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" />
+        </a>
+        {exit
+          ? <button className="ska-exit-btn" onClick={() => nav('/careerpilot')}><i className="bi bi-box-arrow-left" /> Save &amp; exit</button>
+          : <span className="ska-safe-pill"><i className="bi bi-shield-check" /> Your answers are private</span>}
+      </div>
+    </header>
   );
 
-  if (loading) return <div className="ska-page"><div className="ska-state"><div className="ska-load">Loading your assessment…</div></div></div>;
+  const Footer = () => (
+    <footer className="ska-foot">
+      <div className="ska-wrap ska-foot-in">
+        <img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" />
+        <span>© {new Date().getFullYear()} CodeBegun · CareerPilot. All rights reserved.</span>
+        <span className="ska-foot-made">Made for ambitious careers in India</span>
+      </div>
+    </footer>
+  );
+
+  if (loading) return <div className="ska-page"><Header /><div className="ska-state"><div className="ska-load">Loading your assessment…</div></div><Footer /></div>;
 
   if (done) {
     return (
       <div className="ska-page">
+        <Header />
         <main className="ska-complete-wrap">
           <section className="ska-complete-card">
             <div className="ska-complete-copy">
@@ -334,97 +343,98 @@ const SkillAssessment: React.FC = () => {
             {payMsg && <div className="ska-note">{payMsg}</div>}
           </section>
         </main>
+        <Footer />
       </div>
     );
   }
 
   if (!paper) {
+    const canStart = !fixHref && (!!skillKey || !(avail?.alreadyCompleted && !avail?.inProgress));
     return (
       <div className="ska-page">
-        <main className="ska-intro-shell">
-          <section className="ska-intro-copy">
-            <span className="ska-eyebrow">KNOW YOUR STRENGTHS</span>
-            <h1>CareerPilot<br /><span>Skill Assessment</span></h1>
-            <p>A short diagnostic built around your target role. It measures where you stand so your roadmap can focus on what you actually need — there is no pass mark, and skipping a question is fine.</p>
-            <div className="ska-intro-points">
-              <div><span className="tone-teal"><i className="bi bi-check-circle-fill" /></span><p><b>Your answers save as you go</b><small>You can stop and come back anytime.</small></p></div>
-              <div><span className="tone-blue"><i className="bi bi-eye-slash" /></span><p><b>No scores while you work</b><small>Stay focused without performance pressure.</small></p></div>
-              <div><span className="tone-amber"><i className="bi bi-bullseye" /></span><p><b>Built for your target role</b><small>Your result feeds directly into your roadmap.</small></p></div>
-            </div>
-            <div className="ska-estimate"><i className="bi bi-clock" /> Short, focused assessment</div>
-            {err && (
-              <div className="ska-err">
-                <p>{err}</p>
-                {fixHref && (
-                  <button className="ska-btn primary" onClick={() => nav(fixHref)}>
-                    Finish my setup <i className="bi bi-arrow-right" />
+        <Header />
+        <main className="ska-v2">
+          <div className="ska-wrap ska-v2-grid">
+            <section className="ska-v2-copy">
+              <span className="ska-eyebrow">KNOW YOUR STRENGTHS</span>
+              <h1>CareerPilot<br /><span>Skill Assessment</span></h1>
+              <p className="ska-v2-lead">A short diagnostic built around your target role. It measures where you stand so your roadmap can focus on what you actually need — there is no pass mark, and skipping a question is fine.</p>
+              <ol className="ska-v2-flow" aria-label="How it works">
+                <li className="now"><span>1</span><div><b>Answer the questions</b><small>Picked for your stage and target role.</small></div></li>
+                <li><span>2</span><div><b>Get your Skill DNA</b><small>Your strengths and gaps, measured.</small></div></li>
+                <li><span>3</span><div><b>Follow your roadmap</b><small>Built from what the assessment found.</small></div></li>
+              </ol>
+            </section>
+
+            {/* The illustration and the start card share one stage, as on the landing and code pages. */}
+            <div className="ska-v2-stage">
+              <div className="ska-v2-visual" aria-hidden="true">
+                <img src="/assets/careerpilot/careerpilot-hero-student.png" alt="" />
+              </div>
+              <section className="ska-v2-card" aria-labelledby="ska-v2-card-title">
+                <div className="ska-v2-card-head">
+                  <span className="ska-v2-card-ic"><i className="bi bi-clipboard2-check" /></span>
+                  <div>
+                    <small>{skillKey ? 'Skill check' : 'Your assessment'}</small>
+                    <h2 id="ska-v2-card-title">{skillKey ? `Check ${skillLabel}` : 'Ready when you are'}</h2>
+                  </div>
+                </div>
+                <ul className="ska-v2-points">
+                  <li><span className="tone-teal"><i className="bi bi-cloud-check" /></span><div><b>Your answers save as you go</b><small>You can stop and come back anytime.</small></div></li>
+                  <li><span className="tone-blue"><i className="bi bi-eye-slash" /></span><div><b>No scores while you work</b><small>Stay focused without performance pressure.</small></div></li>
+                  <li><span className="tone-amber"><i className="bi bi-bullseye" /></span><div><b>Built for your target role</b><small>Your result feeds directly into your roadmap.</small></div></li>
+                </ul>
+                <div className="ska-estimate"><i className="bi bi-clock" /> Short, focused assessment</div>
+                {err && (
+                  <div className="ska-err">
+                    <p>{err}</p>
+                    {fixHref && (
+                      <button className="ska-btn primary" onClick={() => nav(fixHref)}>
+                        Finish my setup <i className="bi bi-arrow-right" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                {/*
+                  ALREADY DONE IS THE DEFAULT ANSWER, NOT "START AGAIN". A member who has just submitted must not create
+                  a phantom second paper with one stray click; a retake is a deliberate Skill check-in. The wall is for
+                  the FULL assessment only (`!skillKey`): a named single-skill check from the daily plan is not a stray
+                  click, and blocking it dead-ended every ASSESS mission.
+                */}
+                {!fixHref && !skillKey && avail?.alreadyCompleted && !avail?.inProgress && (
+                  <div className="ska-done">
+                    <p><i className="bi bi-check-circle-fill" /> You have already completed your skill assessment.</p>
+                    <div className="ska-done-actions">
+                      <button className="ska-btn primary" onClick={() => nav('/careerpilot/readiness')}>
+                        See my results <i className="bi bi-arrow-right" />
+                      </button>
+                      <button className="ska-btn ghost" onClick={() => nav('/careerpilot/skills')}>View my Skill DNA</button>
+                    </div>
+                    <small>Want to be re-measured? That happens through a Skill check-in, so your
+                      progress is compared rather than overwritten.</small>
+                  </div>
+                )}
+                {canStart && (
+                  <button className="ska-v2-start" disabled={starting} onClick={start}>
+                    {starting ? 'Preparing your paper…' : (avail?.inProgress ? <>Continue my assessment <i className="bi bi-arrow-right" /></> : skillKey ? <>Check {skillLabel} <i className="bi bi-arrow-right" /></> : <>Start assessment <i className="bi bi-arrow-right" /></>)}
                   </button>
                 )}
-              </div>
-            )}
-            {/**
-              * ALREADY DONE IS THE DEFAULT ANSWER, NOT "START AGAIN".
-              *
-              * This offered "Start assessment" to everyone, including a member who had
-              * submitted one minutes earlier — with nothing on screen saying they had. One
-              * stray click created a second, untouched paper, which then told them
-              * "You already have an assessment open. Finish it first." about a paper they
-              * had never begun. Seen in production: submitted 20/20 at 08:26, phantom
-              * attempt at 08:27.
-              *
-              * A retake is a real feature — Skill check-in — but it is a deliberate,
-              * cooldown-gated act, not the button that happens to be under the cursor.
-              */}
-            {/*
-              THE WALL IS FOR THE FULL ASSESSMENT ONLY — note the `!skillKey`.
-              Without it this blocked the single-skill check too, and every ASSESS mission in
-              the daily plan is exactly that: "Programming Fundamentals — Check" opened this
-              page and was told "you have already completed your skill assessment", with two
-              buttons that both lead away. Since every objective in these roadmaps is an
-              ASSESS, the entire daily plan dead-ended here.
+              </section>
+            </div>
+          </div>
 
-              The guard below still does its real job: stopping a member who has just
-              submitted from creating a phantom second full paper with one stray click. A
-              named single-skill check is the opposite of a stray click, and the server has
-              supported it all along — it takes skillKey, builds a SKILL_CHECK paper and
-              resumes the right one.
-            */}
-            {!fixHref && !skillKey && avail?.alreadyCompleted && !avail?.inProgress && (
-              <div className="ska-done">
-                <p><i className="bi bi-check-circle-fill" /> You have already completed your skill assessment.</p>
-                <div className="ska-done-actions">
-                  <button className="ska-btn primary" onClick={() => nav('/careerpilot/readiness')}>
-                    See my results <i className="bi bi-arrow-right" />
-                  </button>
-                  <button className="ska-btn ghost" onClick={() => nav('/careerpilot/skills')}>View my Skill DNA</button>
-                </div>
-                <small>Want to be re-measured? That happens through a Skill check-in, so your
-                  progress is compared rather than overwritten.</small>
-              </div>
-            )}
-            {!fixHref && (!!skillKey || !(avail?.alreadyCompleted && !avail?.inProgress)) && (
-              <button className="ska-btn primary lg" disabled={starting} onClick={start}>{starting ? 'Preparing your paper…' : (avail?.inProgress ? <>Continue my assessment <i className="bi bi-arrow-right" /></> : skillKey ? <>Check {skillLabel} <i className="bi bi-arrow-right" /></> : <>Start assessment <i className="bi bi-arrow-right" /></>)}</button>
-            )}
-          </section>
-
-          <section className="ska-intro-art">
-            <div className="ska-art-orb" />
-            <img src="/assets/careerpilot/careerpilot-hero-student.png" alt="Student taking CareerPilot skill assessment" />
-            <div className="ska-floating ska-float-a"><i className="bi bi-bar-chart-line" /><span><small>Skill Readiness</small><b>Discover your level</b></span></div>
-            <div className="ska-floating ska-float-b"><i className="bi bi-bullseye" /><span><small>Career Focus</small><b>Targeted assessment</b></span></div>
+          <section className="ska-wrap ska-v2-why">
+            <h2>Why take the CareerPilot assessment?</h2>
+            <div className="ska-v2-why-grid">
+              <div><span><i className="bi bi-person-check" /></span><b>Understand your level</b><small>Identify strengths and areas to improve.</small></div>
+              <div><span><i className="bi bi-map" /></span><b>Personalised roadmap</b><small>Get a plan that fits your career goals.</small></div>
+              <div><span><i className="bi bi-lightning-charge" /></span><b>Focused learning</b><small>Spend time on what truly matters.</small></div>
+              <div><span><i className="bi bi-graph-up-arrow" /></span><b>Track progress</b><small>See your growth over time.</small></div>
+              <div><span><i className="bi bi-briefcase" /></span><b>Better opportunities</b><small>Build skills that open real doors.</small></div>
+            </div>
           </section>
         </main>
-
-        <section className="ska-why">
-          <h2>Why take the CareerPilot assessment?</h2>
-          <div className="ska-why-grid">
-            <div><span><i className="bi bi-person-check" /></span><b>Understand Your Current Level</b><small>Identify strengths and areas to improve.</small></div>
-            <div><span><i className="bi bi-map" /></span><b>Personalized Roadmap</b><small>Get a plan that fits your career goals.</small></div>
-            <div><span><i className="bi bi-lightning-charge" /></span><b>Focused Learning</b><small>Spend time on what truly matters.</small></div>
-            <div><span><i className="bi bi-graph-up-arrow" /></span><b>Track Progress</b><small>See your growth over time.</small></div>
-            <div><span><i className="bi bi-briefcase" /></span><b>Better Opportunities</b><small>Build skills that open real doors.</small></div>
-          </div>
-        </section>
+        <Footer />
       </div>
     );
   }
@@ -435,7 +445,7 @@ const SkillAssessment: React.FC = () => {
 
   return (
     <div className="ska-page">
-      <ExitBar />
+      <Header exit />
       <main className="ska-assessment-shell">
         <aside className="ska-progress-panel">
           <span className="ska-progress-label">ASSESSMENT PROGRESS</span>
@@ -508,6 +518,8 @@ const SkillAssessment: React.FC = () => {
       </main>
 
       <div className="ska-bottom-tip"><i className="bi bi-lightbulb" /><span><b>No pass mark, no pressure.</b> Answer honestly so CareerPilot can build the right plan for you.</span></div>
+
+      <Footer />
 
       {confirming && (
         <div className="ska-modal" role="dialog" aria-modal="true">

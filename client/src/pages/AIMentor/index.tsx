@@ -109,8 +109,14 @@ const AIMentor: React.FC = () => {
     try {
       const d = await aiMentorApi.send(msg);
       setMessages(d.messages || []);
-    } catch {
-      setMessages(m => [...m, { role: 'assistant', content: '⚠️ Sorry, I could not reply just now. Please try again.' }]);
+    } catch (e: any) {
+      // Say what is actually wrong. "Try again" is the wrong advice when retrying cannot help — an AI provider that has
+      // not been set up fails every time, and only an admin can fix that.
+      const why = String(e?.response?.data?.message || '');
+      const content = /no ai provider|not configured|api key/i.test(why)
+        ? '⚠️ The AI mentor is not switched on yet — no AI provider has been set up for your institute. Please ask your admin to add an Anthropic or OpenAI key in Platform Settings.'
+        : '⚠️ Sorry, I could not reply just now. Please try again in a moment.';
+      setMessages(m => [...m, { role: 'assistant', content }]);
     } finally { setSending(false); }
   };
 

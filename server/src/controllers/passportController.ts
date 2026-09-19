@@ -19,6 +19,7 @@ import PassportInterview from '../models/PassportInterview';
 import { normalizePhone, mobileError } from '../utils/phone';
 import { validateEngineConfigPatch, describeEngineConfig } from '../services/curriculumEngineService';
 import { foundationReadiness } from '../services/foundationReadinessService';
+import { passwordProblem } from '../utils/passwordPolicy';
 import { clampPreviewDays } from '../data/foundationAccessPolicy';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
@@ -203,7 +204,8 @@ export const getMyStatus = async (req: Request, res: Response) => {
 export const setPassword = async (req: Request, res: Response) => {
   try {
     const password = String((req.body || {}).password || '');
-    if (password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+    const problem = passwordProblem(password);
+    if (problem) return res.status(400).json({ message: problem });
     const user: any = await User.findById(userIdOf(req));
     if (!user) return res.status(404).json({ message: 'Account not found' });
     user.password = password; // hashed by the pre-save hook

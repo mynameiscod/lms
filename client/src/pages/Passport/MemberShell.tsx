@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import passportApi, { DashboardData, MemberSection } from '../../api/passportApi';
+import { DashboardData, MemberSection } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
 import './dashboard.css';
 import './member.css';
+import SetPasswordDialog from './SetPasswordDialog';
 import { startActivityBeacon, trackPage } from './activityBeacon';
 
 const ICONS: Record<string, string> = {
@@ -127,22 +128,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   }, [mobileOpen]);
 
   const [pwdOpen, setPwdOpen] = useState(false);
-  const [pwd, setPwd] = useState('');
-  const [pwdBusy, setPwdBusy] = useState(false);
-  const [pwdMsg, setPwdMsg] = useState('');
   const [pwdDone, setPwdDone] = useState(false);
-
-  const savePassword = async () => {
-    if (pwd.length < 6) { setPwdMsg('Use at least 6 characters.'); return; }
-    setPwdBusy(true); setPwdMsg('');
-    try {
-      await passportApi.setPassword(pwd);
-      setPwdDone(true); setPwdOpen(false); setPwd('');
-    } catch (e: any) {
-      setPwdMsg(e?.response?.data?.message || 'Could not save password.');
-    }
-    setPwdBusy(false);
-  };
 
   const d = data ?? null;
 
@@ -285,16 +271,12 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           </div>
         </div>
 
-        {d && d.passwordSet === false && !pwdDone && <div className="gd-pwd-nudge">
-          <span className="ic"><Icon name="lock-fill" /></span>
+        {d && d.passwordSet === false && !pwdDone && <div className="gd-pwd-nudge pwd2">
+          <span className="ic"><Icon name="shield-lock-fill" /></span>
           <div className="txt"><b>Secure your account — set a password</b><span>So you can log in next time without waiting for a WhatsApp code.</span></div>
-          {!pwdOpen ? <button className="go" onClick={() => setPwdOpen(true)}>Set password</button> : <div className="row">
-            <input type="password" value={pwd} autoFocus placeholder="New password (min 6)" onChange={e => setPwd(e.target.value)} onKeyDown={e => e.key === 'Enter' && savePassword()} />
-            <button className="save" onClick={savePassword} disabled={pwdBusy}>{pwdBusy ? 'Saving…' : 'Save'}</button>
-            <button className="cancel" onClick={() => { setPwdOpen(false); setPwdMsg(''); }}>Cancel</button>
-          </div>}
-          {pwdMsg && <div className="msg">{pwdMsg}</div>}
+          <button className="go" onClick={() => setPwdOpen(true)}><Icon name="key-fill" /> Set password</button>
         </div>}
+        {pwdOpen && <SetPasswordDialog onClose={() => setPwdOpen(false)} onDone={() => { setPwdOpen(false); setPwdDone(true); }} />}
 
         {children}
       </main>

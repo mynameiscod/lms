@@ -178,7 +178,7 @@ export function parseResumeTextByRules(rawText: string): IResumeSections {
   }) as any;
   out.experience = (buckets.experience || []).map(l => ({ company: '', role: l, from: '', to: '', current: false, bullets: [] })) as any;
   out.projects = (buckets.projects || []).map(l => {
-    const [name, ...rest] = l.split(/\s[–-]\s|:\s/);
+    const [name, ...rest] = l.split(/\s[–—-]\s|:\s/);
     return { name: name.trim(), tech: [], description: rest.join(' - ').trim(), link: '' };
   }) as any;
   out.certifications = (buckets.certifications || []).map(l => ({ name: l, issuer: '', year: yearIn(l) })) as any;

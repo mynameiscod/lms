@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { ResumeSections, ResumeScore } from '../../api/passportApi';
 import PassportShell from './PassportShell';
 import SectionLock from './SectionLock';
 import './resumeCenter.css';
 import './resumeCenterRedesign.css';
+import { ResumeDocument, TEMPLATES } from '../ResumeBuilder/templates';
+import type { ResumeTemplate } from '../../api/resumeApi';
 
 /** ?focus= on a mission link → the section it should land on. 'title' is the target title
  *  field, which lives inside Contact Information. */
@@ -84,6 +86,15 @@ const ResumeCenter: React.FC = () => {
   const [preview, setPreview] = useState<ResumeSections | null>(null);
   /** Set when the server says scoring/rewriting have no AI provider: said once, plainly, instead of a failure per click. */
   const [aiOff, setAiOff] = useState(false);
+  /** Build (the editor) or Preview & download (templates + the page as it will print). */
+  const [view, setView] = useState<'build' | 'preview'>('build');
+  /** The chosen look — the LMS Resume Builder's templates, remembered on this device. */
+  const [template, setTemplate] = useState<ResumeTemplate>(() => {
+    try { return (localStorage.getItem('cp.resumeTemplate') as ResumeTemplate) || 'classic'; } catch { return 'classic'; }
+  });
+  /** An always-mounted copy of the page as it prints, so Download works from either tab. */
+  const printRef = useRef<HTMLDivElement>(null);
+  const chooseTemplate = (t: ResumeTemplate) => { setTemplate(t); try { localStorage.setItem('cp.resumeTemplate', t); } catch { /* private mode */ } };
 
   const load = useCallback(async () => {
     try {
@@ -139,6 +150,34 @@ const ResumeCenter: React.FC = () => {
     try { await passportApi.saveResume(sections); setMsg({ kind: 'ok', text: 'Saved.' }); }
     catch (e: any) { setMsg({ kind: 'err', text: e?.response?.data?.message || 'Could not save.' }); }
     setSaving(false);
+  };
+
+  /**
+   * Download = the browser's "Save as PDF" of the resume ALONE.
+   *
+   * Printed from a hidden frame holding only the resume and the app's stylesheets, rather than by hiding the rest of
+   * this page: the member shell (rail, sticky bars, #root's .75 zoom) otherwise shrinks the page or adds blank sheets.
+   * The PDF keeps real text, so ATS tools can read it; the frame's title is the file name the dialog suggests.
+   */
+  const download = () => {
+    const src = printRef.current;
+    if (!src) return;
+    const clean = (x?: string) => (x || '').trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+    const name = [clean(sections.contact.name) || 'Resume', clean(sections.contact.title), 'Resume'].filter(Boolean).join('_');
+    const styles = Array.from(document.head.querySelectorAll('style, link[rel="stylesheet"]')).map(n => n.outerHTML).join('');
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(frame);
+    const doc = frame.contentDocument!;
+    doc.open();
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>${name}</title>${styles}<style>@page{size:A4;margin:0}html,body{margin:0!important;padding:0!important;background:#fff!important;zoom:1!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>${src.innerHTML}</body></html>`);
+    doc.close();
+    const win = frame.contentWindow!;
+    const cleanup = () => setTimeout(() => frame.remove(), 500);
+    win.addEventListener('afterprint', cleanup);
+    // Give the stylesheets and fonts a moment to apply before the dialog snapshots the page.
+    setTimeout(() => { win.focus(); win.print(); if (!('onafterprint' in win)) cleanup(); }, 400);
   };
 
   const runScore = async () => {
@@ -217,6 +256,7 @@ const ResumeCenter: React.FC = () => {
                 <input type="file" accept=".pdf,.doc,.docx" hidden disabled={importing} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) runImport(f); }} />
               </label>
               <button className="rc-action" onClick={runScore} disabled={scoring}><i className="bi bi-bar-chart-fill" /><span><b>{scoring ? 'Scoring…' : 'Score resume'}</b><small>{aiOff ? 'Needs an AI key' : 'ATS score + fix list'}</small></span></button>
+              <button className="rc-action" onClick={download}><i className="bi bi-download" /><span><b>Download PDF</b><small>Pick a template first</small></span></button>
               <button className="rc-action" onClick={runImprove} disabled={improving}><i className="bi bi-stars" /><span><b>{improving ? 'Rewriting…' : 'Improve with AI'}</b><small>{aiOff ? 'Needs an AI key' : 'Sharper wording, same facts'}</small></span></button>
             </div>
           </div>
@@ -255,7 +295,42 @@ const ResumeCenter: React.FC = () => {
 
         <div className="rc-workspace">
           <main className="rc-editor">
-            <div className="rc-editor-head"><div><h2>Resume Builder</h2><p>Complete each section to build a strong, evidence-backed resume.</p></div><span>{completedCount}/7 complete</span></div>
+            <div className="rc-editor-head">
+              <div><h2>Resume Builder</h2><p>{view === 'build' ? 'Complete each section to build a strong, evidence-backed resume.' : 'Pick a template, check the page, then download it as a PDF.'}</p></div>
+              <div className="rc2-tabs" role="tablist" aria-label="Resume builder view">
+                <button role="tab" aria-selected={view === 'build'} className={view === 'build' ? 'on' : ''} onClick={() => setView('build')}><i className="bi bi-pencil-square" /> Build <em>{completedCount}/7</em></button>
+                <button role="tab" aria-selected={view === 'preview'} className={view === 'preview' ? 'on' : ''} onClick={() => setView('preview')}><i className="bi bi-eye" /> Preview &amp; download</button>
+              </div>
+            </div>
+
+            {view === 'preview' && (
+              <section className="rc2-preview">
+                <div className="rc2-preview-bar">
+                  <div><b>Template</b><span>{TEMPLATES.find(t => t.id === template)?.name} — {TEMPLATES.find(t => t.id === template)?.blurb}</span></div>
+                  <button className="rc-btn primary" onClick={download}><i className="bi bi-download" /> Download PDF</button>
+                </div>
+                <div className="rc2-templates" role="radiogroup" aria-label="Resume templates">
+                  {TEMPLATES.map(t => (
+                    <button key={t.id} role="radio" aria-checked={template === t.id} className={`rc2-tpl${template === t.id ? ' on' : ''}`} onClick={() => chooseTemplate(t.id)}>
+                      <span className="rc2-tpl-thumb" style={{ ['--acc' as any]: t.accent }} aria-hidden="true"><i /><i /><i /><i /></span>
+                      <b>{t.name}</b><small>{t.blurb}</small>
+                      {template === t.id && <em><i className="bi bi-check-circle-fill" /></em>}
+                    </button>
+                  ))}
+                </div>
+                <div className="rc2-paper-wrap">
+                  <div className="rc2-paper">
+                    <ResumeDocument sections={sections as any} template={template} />
+                  </div>
+                </div>
+                <p className="rc2-print-tip"><i className="bi bi-info-circle" /> In the print window choose <b>Save as PDF</b> as the destination. The PDF keeps real text, so ATS tools can read it.</p>
+              </section>
+            )}
+
+            {/* The printable page, always mounted (off-screen) so Download works from the Build tab too. */}
+            <div className="rc2-print-src" ref={printRef} aria-hidden="true"><ResumeDocument sections={sections as any} template={template} /></div>
+
+            {view === 'build' && (<>
 
             <section className="rs-section rc-section-card" id="rc-contact">
               <SectionTitle icon="bi-person" title="Contact Information" subtitle="Name, email, phone, location, links" done={completed.contact} />
@@ -273,6 +348,7 @@ const ResumeCenter: React.FC = () => {
             <section className="rs-section rc-section-card" id="rc-projects"><SectionTitle icon="bi-folder2-open" title="Projects" subtitle="Key projects and achievements" done={completed.projects} /><div className="rc-fields">{sections.projects.map((p, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.projects.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Name" value={p.name} onChange={v => patch(s => { s.projects[i].name = v; })} /><ListField label="Tech (comma separated)" items={p.tech} onChange={v => patch(s => { s.projects[i].tech = v; })} /></div><Field label="What it does & what you built" area value={p.description} onChange={v => patch(s => { s.projects[i].description = v; })} /><Field label="Link" value={p.link || ''} onChange={v => patch(s => { s.projects[i].link = v; })} placeholder="https://github.com/…" /></div>)}<button className="rs-add" onClick={() => patch(s => { s.projects.push({ name: '', tech: [], description: '', link: '' }); })}>+ Add project</button></div></section>
 
             <section className="rs-section rc-section-card"><SectionTitle icon="bi-award" title="Certifications" subtitle="Certifications and achievements" done={completed.certifications} /><div className="rc-fields">{sections.certifications.map((c, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.certifications.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Name" value={c.name} onChange={v => patch(s => { s.certifications[i].name = v; })} /><Field label="Issuer" value={c.issuer} onChange={v => patch(s => { s.certifications[i].issuer = v; })} /></div><Field label="Year" value={c.year || ''} onChange={v => patch(s => { s.certifications[i].year = v; })} /></div>)}<button className="rs-add" onClick={() => patch(s => { s.certifications.push({ name: '', issuer: '', year: '' }); })}>+ Add certification</button></div></section>
+            </>)}
           </main>
 
           <aside className="rc-intelligence">
@@ -292,7 +368,7 @@ const ResumeCenter: React.FC = () => {
           </aside>
         </div>
 
-        <div className="rc-sticky-actions"><div><span className="rc-trophy"><i className="bi bi-trophy-fill" /></span><div><b>Keep improving!</b><small>A better resume creates better opportunities.</small></div></div><div><button className="rc-btn primary" onClick={save} disabled={saving}><i className="bi bi-briefcase" /> {saving ? 'Saving…' : 'Save Resume'}</button><button className="rc-btn" onClick={runScore} disabled={scoring}><i className="bi bi-bar-chart-fill" /> {scoring ? 'Scoring…' : 'Score My Resume'}</button><button className="rc-btn teal" onClick={runImprove} disabled={improving}><i className="bi bi-stars" /> {improving ? 'Rewriting…' : 'Improve with AI'}</button></div></div>
+        <div className="rc-sticky-actions"><div><span className="rc-trophy"><i className="bi bi-trophy-fill" /></span><div><b>Keep improving!</b><small>A better resume creates better opportunities.</small></div></div><div><button className="rc-btn primary" onClick={save} disabled={saving}><i className="bi bi-briefcase" /> {saving ? 'Saving…' : 'Save Resume'}</button><button className="rc-btn" onClick={download}><i className="bi bi-download" /> Download PDF</button><button className="rc-btn" onClick={runScore} disabled={scoring}><i className="bi bi-bar-chart-fill" /> {scoring ? 'Scoring…' : 'Score My Resume'}</button><button className="rc-btn teal" onClick={runImprove} disabled={improving}><i className="bi bi-stars" /> {improving ? 'Rewriting…' : 'Improve with AI'}</button></div></div>
       </div>
     </PassportShell>
   );

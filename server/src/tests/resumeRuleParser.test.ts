@@ -30,6 +30,11 @@ describe('rule-based resume parsing', () => {
     expect((r.certifications[0] as any).year).toBe('2025');
   });
 
+  it('splits a project at an em dash too', () => {
+    const r = parseResumeTextByRules('Projects\nLibrary System — Java, MySQL CRUD app');
+    expect(r.projects[0]).toMatchObject({ name: 'Library System', description: 'Java, MySQL CRUD app' });
+  });
+
   it('is what import uses when no AI provider is configured', async () => {
     const r = await parseResumeText(TEXT);
     expect(r.contact.email).toBe('test@example.com');

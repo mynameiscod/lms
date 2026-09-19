@@ -88,3 +88,42 @@
 #root .gd .rc2 .rc2-hero .rc-action:not(.primary) small { color: #C4D5EE !important; }
 #root .gd .rc2 .rc2-hero .rc-hero-copy > p { color: #D5E2F5 !important; }
 #root .gd .rc2 .rc2-hero .rc-score-card p { color: #C4D5EE !important; }
+
+/* ── Build / Preview & download ─────────────────────────────────────────────── */
+.rc2 .rc-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.rc2-tabs { display: inline-flex; gap: 4px; padding: 4px; background: #F4F8FC; border: 1px solid #E2EAF2; border-radius: 14px; }
+.rc2-tabs button { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 16px; border: 0; border-radius: 10px; background: none; color: #33475B; font-size: 14.5px; font-weight: 800; cursor: pointer; }
+.rc2-tabs button em { font-style: normal; font-size: 12px; font-weight: 800; color: #287F91; background: #EAF7F8; border-radius: 999px; padding: 2px 8px; }
+.rc2-tabs button.on { background: #005897; color: #fff; box-shadow: 0 6px 14px rgba(0, 88, 151, .2); }
+.rc2-tabs button.on em { background: rgba(255, 255, 255, .2); color: #fff; }
+
+/* Off-screen copy used by Download. Real layout (not display:none) so its HTML is complete. */
+.rc2-print-src { position: absolute; left: -10000px; top: 0; width: 794px; pointer-events: none; }
+
+.rc2-preview { display: flex; flex-direction: column; gap: 16px; background: #fff; border: 1px solid #E2EAF2; border-radius: 18px; padding: 18px 20px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); }
+.rc2-preview-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.rc2-preview-bar b { display: block; font-size: 15px; color: #051D64; }
+.rc2-preview-bar span { display: block; margin-top: 2px; font-size: 13.5px; color: #64748B; }
+.rc2-templates { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.rc2-tpl { position: relative; display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 10px; border-radius: 14px; border: 1px solid #E2EAF2; background: #fff; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.rc2-tpl:hover { border-color: #9DBBD0; transform: translateY(-1px); }
+.rc2-tpl.on { border-color: #005897; box-shadow: 0 0 0 3px rgba(0, 88, 151, .15); }
+.rc2-tpl-thumb { display: flex; flex-direction: column; gap: 5px; height: 74px; padding: 10px; border-radius: 10px; background: #F7FAFD; border: 1px solid #EEF3F8; margin-bottom: 4px; }
+.rc2-tpl-thumb i { display: block; height: 6px; border-radius: 3px; background: #D8E2EC; }
+.rc2-tpl-thumb i:first-child { height: 10px; width: 60%; background: var(--acc); }
+.rc2-tpl-thumb i:nth-child(2) { width: 90%; }
+.rc2-tpl-thumb i:nth-child(3) { width: 75%; background: color-mix(in srgb, var(--acc) 35%, #fff); }
+.rc2-tpl-thumb i:nth-child(4) { width: 85%; }
+.rc2-tpl b { font-size: 14px; color: #102A4F; }
+.rc2-tpl small { font-size: 12px; line-height: 1.35; color: #64748B; }
+.rc2-tpl em { position: absolute; top: 8px; right: 8px; color: #005897; font-size: 16px; }
+.rc2-paper-wrap { background: #EEF3F8; border-radius: 16px; padding: 22px; display: flex; justify-content: center; overflow: auto; }
+.rc2-paper { width: 794px; max-width: 100%; min-height: 1123px; background: #fff; box-shadow: 0 16px 40px rgba(15, 46, 77, .18); border-radius: 4px; }
+.rc2-print-tip { margin: 0; display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; color: #64748B; }
+.rc2-print-tip i { color: #005897; margin-top: 1px; }
+@media (max-width: 640px) {
+  .rc2-paper-wrap { padding: 10px; }
+  .rc2-paper { min-height: 0; }
+  .rc2-tabs { width: 100%; }
+  .rc2-tabs button { flex: 1; justify-content: center; padding: 0 10px; }
+}

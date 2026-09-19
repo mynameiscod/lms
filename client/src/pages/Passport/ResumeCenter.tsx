@@ -192,7 +192,8 @@ const ResumeCenter: React.FC = () => {
     const [key] = rows.sort((a, b) => (Number(b[1]) / (SECTION_MAX[b[0]] || 20)) - (Number(a[1]) / (SECTION_MAX[a[0]] || 20)))[0];
     return SECTION_META[key]?.label || key;
   }, [score]);
-  const targetRole = sections.contact.title?.trim() || 'Set your target title';
+  const hasTargetTitle = !!sections.contact.title?.trim();
+  const targetRole = sections.contact.title?.trim() || '';
   const atsLabel = !score ? 'Not scored yet' : score.total >= 75 ? 'ATS Ready' : score.total >= 60 ? 'Getting stronger' : 'Needs improvement';
 
   if (loading) return <PassportShell><div className="pm-loading">Loading your resume…</div></PassportShell>;
@@ -210,7 +211,6 @@ const ResumeCenter: React.FC = () => {
             <div className="rc-kicker">Resume readiness</div>
             <h1>Resume <span>Center</span></h1>
             <p>Build a one-page resume that reflects your real skills — import the one you have, score it, and sharpen the wording.</p>
-            <div className="rc-target">Target role: <b>{targetRole}</b> <button onClick={() => nav('/careerpilot/setup?step=direction')}><i className="bi bi-pencil" /> Change</button></div>
             <div className="rc-hero-actions">
               <label className={`rc-action primary ${importing ? 'disabled' : ''}`}>
                 <i className="bi bi-upload" /> <span><b>{importing ? 'Reading your file…' : 'Import resume'}</b><small>PDF or Word (.docx)</small></span>
@@ -285,7 +285,8 @@ const ResumeCenter: React.FC = () => {
 
             {!!score?.atsWarnings?.length && <section className="rc-panel"><div className="rc-panel-head"><h3>ATS Warnings</h3></div><ul className="rc-warning-list">{score.atsWarnings.map((w, i) => <li key={i}><i className="bi bi-shield-exclamation" /> {w}</li>)}</ul></section>}
 
-            <section className="rc-panel rc-role-panel"><div className="rc-panel-head"><h3>Target Role Alignment</h3></div><div className="rc-role"><span><i className="bi bi-briefcase-fill" /></span><div><b>{targetRole}</b><small>CareerPilot target title</small></div></div><p>See how your resume evidence reads against the role you are aiming for.</p><button onClick={() => nav('/careerpilot/placement')}>View role readiness <i className="bi bi-arrow-right" /></button></section>
+            {/* Only when a target title has been typed (Contact Information) — no "set your title" placeholder. */}
+            {hasTargetTitle && <section className="rc-panel rc-role-panel"><div className="rc-panel-head"><h3>Target Role Alignment</h3></div><div className="rc-role"><span><i className="bi bi-briefcase-fill" /></span><div><b>{targetRole}</b><small>CareerPilot target title</small></div></div><p>See how your resume evidence reads against the role you are aiming for.</p><button onClick={() => nav('/careerpilot/placement')}>View role readiness <i className="bi bi-arrow-right" /></button></section>}
 
             {!!score?.keywordsMissing?.length && <section className="rc-panel"><div className="rc-panel-head"><h3>Top Missing Keywords</h3></div><div className="rs-kw">{score.keywordsMissing.slice(0, 8).map(k => <span className="missing" key={k}>{k}</span>)}</div></section>}
           </aside>

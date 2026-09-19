@@ -1,4 +1,7 @@
 import { processGamificationEvent } from './gamificationEngine';
+import mongoose from 'mongoose';
+import CurriculumEnrollment from '../models/CurriculumEnrollment';
+import DayPlan from '../models/DayPlan';
 
 /**
  * XP for the Foundation journey — each finished task, and the day as a whole.
@@ -104,4 +107,28 @@ export async function reconcileJourneyDayXp(input: JourneyDayXpInput): Promise<n
     console.error('[foundation-journey-xp]', e?.message || e);
   }
   return paid;
+}
+
+/**
+ * Today's XP target for a Foundation member: every task of the day their journey is on, plus the day bonus.
+ *
+ * The dashboard's "Today's goal" was the sum of the TOPIC planner's missions, floored at 1. A Foundation member
+ * has none — their missions are the journey day's tasks — so the goal read "0 / 1 XP" and was "smashed" by the
+ * first point earned. Null when the student has no Foundation journey, or it is finished: the caller keeps the
+ * topic figure then.
+ */
+export async function journeyDayTargetXp(tenantId: string, studentId: string): Promise<number | null> {
+  try {
+    const enrollment: any = await CurriculumEnrollment.findOne({
+      tenantId, studentId: new mongoose.Types.ObjectId(studentId), enrolledBy: 'foundation-journey',
+    }).sort({ createdAt: -1 }).select('curriculumId currentDay').lean();
+    if (!enrollment?.curriculumId) return null;
+    const plan: any = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber: Number(enrollment.currentDay) || 1 })
+      .select('items').lean();
+    if (!plan?.items?.length) return null;
+    return plan.items.reduce((t: number, it: any) => t + xpForJourneyItem(it), 0) + FOUNDATION_DAY_BONUS_XP;
+  } catch (e: any) {
+    console.error('[foundation-journey-xp] target:', e?.message || e);
+    return null;
+  }
 }

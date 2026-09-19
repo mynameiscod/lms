@@ -1,0 +1,90 @@
+/* Mock Interview dashboard (Interview.tsx, .cp-iv-page.iv2) in the member dashboard system: a logo-navy hero with the
+   start button and the readiness ring, then the round cards and panels in the CodeBegun guide colours, at a readable
+   size. The shell forces .gd-main h1/p colours with !important, so text on navy carries !important to stay light. */
+.gd .cb-member-interview .cp-iv-page.iv2, .cp-iv-page.iv2 {
+  --navy: #051D64; --navy2: #0B2D72; --primary: #005897; --primary-hover: #004B81; --teal: #359AAD;
+  --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
+  max-width: 1760px !important; width: 100%; display: flex; flex-direction: column; gap: 18px; padding-bottom: 40px;
+}
+.iv2 > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+:where(.iv2) button { font: inherit; }
+
+/* Hero */
+.iv2-hero {
+  position: relative; overflow: hidden; border-radius: 24px; padding: 28px 34px; color: #fff;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: center;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
+    radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
+    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, var(--primary) 100%);
+  box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
+}
+.iv2-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
+.iv2-hero > * { position: relative; z-index: 1; }
+.iv2-eyebrow { font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
+.iv2 .iv2-hero h1 { margin: 8px 0 0; font-size: clamp(28px, 2.6vw, 40px); line-height: 1.1; font-weight: 800; letter-spacing: -.02em; color: #fff !important; }
+.iv2 .iv2-hero h1 span { color: #7FD3E0 !important; }
+.iv2 .iv2-hero-copy > p { margin: 10px 0 0; max-width: 640px; font-size: 16px; line-height: 1.6; color: #D5E2F5 !important; }
+.iv2-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.iv2-chips span { display: inline-flex; align-items: center; gap: 7px; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .22); color: #fff; font-size: 13.5px; font-weight: 600; padding: 7px 13px; border-radius: 999px; }
+.iv2-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.iv2-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 22px; border-radius: 12px; border: 1px solid transparent; font-size: 15.5px; font-weight: 800; cursor: pointer; }
+.iv2-btn.light { background: #fff; color: var(--navy); box-shadow: 0 10px 24px rgba(0, 0, 0, .18); }
+.iv2-btn.light:hover:not(:disabled) { background: #EAF3FD; }
+.iv2-btn.ghost { background: rgba(255, 255, 255, .10); border-color: rgba(255, 255, 255, .35); color: #fff; }
+.iv2-btn:disabled { opacity: .6; cursor: default; }
+.iv2-score { display: flex; align-items: center; gap: 20px; background: rgba(255, 255, 255, .10); border: 1px solid rgba(255, 255, 255, .20); border-radius: 20px; padding: 18px 24px 18px 18px; backdrop-filter: blur(4px); }
+.iv2-ring { --iv2-deg: 0deg; flex: none; width: 136px; height: 136px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#7FD3E0 var(--iv2-deg), rgba(255, 255, 255, .16) 0); }
+.iv2-ring > div { width: 108px; height: 108px; border-radius: 50%; background: var(--navy); display: flex; flex-wrap: wrap; align-content: center; align-items: baseline; justify-content: center; }
+.iv2-ring strong { font-size: 38px; line-height: 1; font-weight: 800; color: #fff; }
+.iv2-ring span { font-size: 14px; font-weight: 700; color: #9FB6D8; margin-left: 2px; }
+.iv2 .iv2-score-copy small { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9FDCE6 !important; }
+.iv2 .iv2-score-copy b { display: block; margin-top: 4px; font-size: 21px; color: #fff !important; }
+.iv2 .iv2-score-copy span { display: block; margin-top: 4px; font-size: 13.5px; color: #C4D5EE !important; }
+
+/* Notice */
+.iv2 > .pm-msg { border-radius: 14px; font-size: 14px; }
+
+/* Round cards */
+.iv2 .cp-iv-assigned { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 22px 24px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); }
+.iv2 .cp-iv-assigned-head h2 { font-size: 19px; font-weight: 800; color: var(--navy); }
+.iv2 .cp-iv-assigned-head p { font-size: 14px; color: var(--muted); }
+.iv2 .cp-iv-round-cards { gap: 16px; }
+.iv2 .cp-iv-round-card { border-radius: 18px; padding: 20px; border: 1px solid var(--line); border-top-width: 4px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); transition: transform .15s ease, box-shadow .15s ease; }
+.iv2 .cp-iv-round-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(15, 46, 77, .10); }
+.iv2 .cp-iv-round-card h3 { font-size: 18px; font-weight: 800; color: var(--navy); }
+.iv2 .cp-iv-round-blurb { font-size: 14px; line-height: 1.55; color: var(--text); }
+.iv2 .cp-iv-round-meta span { font-size: 13px; }
+.iv2 .cp-iv-round-used { font-size: 13px; }
+.iv2 .cp-iv-round-go { min-height: 40px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 800; }
+
+/* Panels */
+.iv2 .cp-iv-panel { border-radius: 20px; border-color: var(--line); box-shadow: 0 3px 14px rgba(15, 46, 77, .05); padding: 20px 22px; }
+.iv2 .cp-iv-panel h3 { font-size: 16.5px; font-weight: 800; color: var(--navy); }
+.iv2 .cp-iv-panel p, .iv2 .cp-iv-muted, .iv2 .cp-iv-empty { font-size: 14px; }
+.iv2 .cp-iv-metric-row { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important; }
+.iv2 .cp-iv-metric { border-radius: 16px; padding: 16px; }
+.iv2 .cp-iv-metric span { font-size: 13px; }
+.iv2 .cp-iv-metric b { font-size: 22px; color: var(--navy); }
+.iv2 .cp-iv-practice-strip { border-radius: 18px; padding: 16px 18px; }
+.iv2 .cp-iv-practice-strip b { font-size: 14.5px; }
+.iv2 .cp-iv-practice-strip small { font-size: 13px; }
+.iv2 .cp-iv-tips b { font-size: 14.5px; }
+.iv2 .cp-iv-tips small { font-size: 13px; }
+.iv2 .cp-iv-history-list button b { font-size: 14.5px; }
+.iv2 .pm-btn.primary { background: var(--primary); border-color: var(--primary); border-radius: 12px; }
+.iv2 .cp-iv-readiness { display: none; } /* the readiness ring now lives in the hero */
+
+@media (max-width: 1000px) {
+  .iv2-hero { grid-template-columns: 1fr; padding: 22px 20px; }
+  .iv2-score { justify-self: start; }
+}
+@media (max-width: 560px) {
+  .iv2-score { width: 100%; padding: 14px; gap: 14px; }
+  .iv2-ring { width: 104px; height: 104px; }
+  .iv2-ring > div { width: 82px; height: 82px; }
+  .iv2-ring strong { font-size: 28px; }
+  .iv2-actions .iv2-btn { flex: 1; }
+}
+@media (min-width: 1200px) and (max-width: 1599px) { .cp-iv-page.iv2 { zoom: 1.05; } }
+@media (min-width: 1600px) { .cp-iv-page.iv2 { zoom: 1.12; } }

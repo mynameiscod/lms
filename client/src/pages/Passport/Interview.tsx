@@ -7,6 +7,7 @@ import { useSessionRecorder } from './useSessionRecorder';
 import { useInterviewVoice, speechInSupported, speechOutSupported } from './useInterviewVoice';
 import { INTERVIEWER_FACE_ENABLED } from './interviewFace';
 import './interviewRedesign.css';
+import './interviewDashboard.css';
 
 const InterviewAvatar = React.lazy(() => import('./InterviewAvatar'));
 
@@ -488,18 +489,36 @@ const Interview: React.FC = () => {
 
   return (
     <PassportShell meta={latestScore !== null ? <span className="pm-pill"><i className="bi bi-mic" /> Interview <b>{latestScore}%</b></span> : undefined}>
-      <div className="cp-iv-page cp-iv-dashboard">
-        <div className="cp-iv-title-row">
-          <div><span className="cp-iv-kicker">Interview practice</span><h1>Mock Interview</h1><p>Practice. Improve. Perform. Get interview ready with AI.</p></div>
-          <button
-            className="pm-btn primary cp-iv-start-top"
-            onClick={() => start(nextRound?.key)}
-            disabled={busy || !canStartRound}
-          >
-            <i className="bi bi-play-fill" />
-            {busy ? 'Setting up…' : nextRound ? `Start ${nextRound.title}` : 'Start AI Mock Interview'}
-          </button>
-        </div>
+      <div className="cp-iv-page cp-iv-dashboard iv2">
+        {/* A logo-navy hero, as on every redesigned CareerPilot page: the one action, and where the member stands. */}
+        <section className="iv2-hero">
+          <div className="iv2-hero-copy">
+            <span className="iv2-eyebrow">Interview practice</span>
+            <h1>Mock <span>Interview</span></h1>
+            <p>Practice. Improve. Perform. Run a realistic round with an AI interviewer and get specific feedback on every answer.</p>
+            <div className="iv2-chips">
+              <span><i className="bi bi-robot" /> Adaptive follow-ups</span>
+              <span><i className="bi bi-mic" /> Speak or type</span>
+              <span><i className="bi bi-clipboard2-check" /> Detailed feedback</span>
+            </div>
+            <div className="iv2-actions">
+              <button className="iv2-btn light" onClick={() => start(nextRound?.key)} disabled={busy || !canStartRound}>
+                <i className="bi bi-play-fill" /> {busy ? 'Setting up…' : nextRound ? `Start ${nextRound.title}` : 'Start AI Mock Interview'}
+              </button>
+              {latest && <button className="iv2-btn ghost" onClick={() => openPast(latest)}><i className="bi bi-file-earmark-bar-graph" /> Latest report</button>}
+            </div>
+          </div>
+          <div className="iv2-score">
+            <div className="iv2-ring" style={{ ['--iv2-deg' as any]: `${(latestScore ?? 0) * 3.6}deg` }}>
+              <div><strong>{latestScore ?? '—'}</strong>{latestScore !== null && <span>/100</span>}</div>
+            </div>
+            <div className="iv2-score-copy">
+              <small>Interview readiness</small>
+              <b>{readiness}</b>
+              <span>{completed.length} completed round{completed.length === 1 ? '' : 's'} · {totalAnswers} answer{totalAnswers === 1 ? '' : 's'}</span>
+            </div>
+          </div>
+        </section>
 
         {!aiAvailable && <div className="pm-msg info">AI isn't configured on this tenant yet, so interviews will run on scripted questions and won't be scored.</div>}
 
@@ -576,18 +595,6 @@ const Interview: React.FC = () => {
 
         <div className="cp-iv-main-grid">
           <div className="cp-iv-main-column">
-            <section className="cp-iv-hero">
-              <div className="cp-iv-hero-art"><img src="/assets/careerpilot/careerpilot-hero-student.png" alt="CareerPilot student preparing for an interview" /></div>
-              <div className="cp-iv-hero-copy">
-                <span className="cp-iv-kicker">AI interview coach</span>
-                <h2>{latestScore === null ? 'Ready for your first round?' : 'Interview Ready?'}</h2>
-                <p>{latestScore === null ? 'Run a realistic mock interview and get specific feedback on every answer.' : 'Consistent practice is the fastest way to turn feedback into confident interview performance.'}</p>
-                <div className="cp-iv-role"><span>Target role</span><b>{latest?.role || 'Your CareerPilot role'}</b></div>
-                <div className="cp-iv-tags">{latestAreas.slice(0, 4).map(a => <span key={a.title}>{a.title}</span>)}{!latestAreas.length && <><span>Role based</span><span>Follow-ups</span><span>Voice enabled</span></>}</div>
-              </div>
-              <div className="cp-iv-practice-card"><i className="bi bi-calendar2-check" /><div><b>Practice regularly</b><p>Each round adapts to your pathway and ends with actionable feedback.</p><button onClick={() => start(nextRound?.key)} disabled={busy || !canStartRound}>Start a round <i className="bi bi-arrow-right" /></button></div></div>
-            </section>
-
             <div className="cp-iv-metric-row">
               {(latestAreas.length ? latestAreas : [
                 { title: 'Mock rounds', percentage: Math.min(100, completed.length * 20) },
@@ -643,7 +650,6 @@ const Interview: React.FC = () => {
           </aside>
         </div>
 
-        <div className="cp-iv-bottom-cta"><i className="bi bi-stars" /><div><b>Consistent practice builds interview confidence.</b><span>Your feedback becomes more useful as you complete more rounds.</span></div><button className="pm-btn" onClick={() => start(nextRound?.key)} disabled={busy || !canStartRound}>Practice again <i className="bi bi-arrow-right" /></button></div>
         {err && <div className="pm-msg err">{err}</div>}
       </div>
     </PassportShell>

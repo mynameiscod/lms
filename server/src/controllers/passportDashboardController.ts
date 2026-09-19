@@ -17,7 +17,7 @@ import { getTodaysPlan, toMemberMissions } from '../services/dailyMissionOrchest
 import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
 import { resolveAssessedState } from '../services/memberAssessmentStateService';
 import * as g from '../services/passportGamificationService';
-import { journeyDayTargetXp } from '../services/foundationJourneyXpService';
+import { journeyDayGoal } from '../services/foundationJourneyXpService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -201,10 +201,9 @@ export const getDashboard = async (req: Request, res: Response) => {
     // through two copies of this block; a field added to one was missing from the other, and
     // the two views of a single day could disagree with nothing to explain why.
     const missions = toMemberMissions(dailyPlan);
-    // A Foundation member's day is their journey day, so that is what today's goal is measured against; the topic
-    // missions (none, for them) would otherwise leave a target of "1 XP".
-    const journeyTarget = await journeyDayTargetXp(tenantId, studentId);
-    const targetXp = journeyTarget ?? missions.reduce((s, m) => s + (m.xp || 0), 0);
+    const targetXp = missions.reduce((s, m) => s + (m.xp || 0), 0);
+    // A Foundation member's goal is their journey day — its tasks and bonus, and the XP paid for those (see the service).
+    const journeyGoal = await journeyDayGoal(tenantId, studentId);
 
     // Legacy journey remains visual-only during Phase 1. It no longer supplies daily work.
     const completedKeys = new Set(progress.completed.map(c => c.key));
@@ -294,7 +293,13 @@ export const getDashboard = async (req: Request, res: Response) => {
       missions,
       dailyPlan,
       allDone: missions.length > 0 && missions.every(m => m.done),
-      dailyGoal: g.dailyGoal(progress, targetXp, now),
+      dailyGoal: journeyGoal
+        ? {
+          earned: journeyGoal.earned, target: journeyGoal.target,
+          pct: Math.min(100, Math.round((journeyGoal.earned / Math.max(1, journeyGoal.target)) * 100)),
+          met: journeyGoal.earned >= journeyGoal.target,
+        }
+        : g.dailyGoal(progress, targetXp, now),
       streakWeek: g.streakWeek(progress, now),
       activity: g.activitySeries(progress, 7, now),
 

@@ -2,6 +2,7 @@ import { processGamificationEvent } from './gamificationEngine';
 import mongoose from 'mongoose';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import DayPlan from '../models/DayPlan';
+import { XpLedger } from '../models/GamificationModels';
 
 /**
  * XP for the Foundation journey — each finished task, and the day as a whole.
@@ -109,26 +110,47 @@ export async function reconcileJourneyDayXp(input: JourneyDayXpInput): Promise<n
   return paid;
 }
 
+export interface JourneyDayGoal { day: number; target: number; earned: number }
+
 /**
- * Today's XP target for a Foundation member: every task of the day their journey is on, plus the day bonus.
+ * Today's goal for a Foundation member: the journey day they are working on, not whatever XP happened to land today.
  *
- * The dashboard's "Today's goal" was the sum of the TOPIC planner's missions, floored at 1. A Foundation member
- * has none — their missions are the journey day's tasks — so the goal read "0 / 1 XP" and was "smashed" by the
- * first point earned. Null when the student has no Foundation journey, or it is finished: the caller keeps the
- * topic figure then.
+ * TARGET: that day's tasks plus the day bonus — the figures the missions card shows. (The topic planner's missions,
+ * which a Foundation member does not have, left it at "1 XP".)
+ *
+ * EARNED: only XP paid for THAT day's tasks and bonus, read from the ledger by the award's own key
+ * (enrollment:day:task). Counting every XP point earned since midnight made a finished Day 1, credited this morning,
+ * read as "today's goal reached" on a Day 2 not yet started.
+ *
+ * WHICH DAY: always the day the journey is on — the one the missions card shows. Finishing a day moves both to the
+ * next day (at 0), as the student expects: the goal is the work in front of them, not the work behind.
+ *
+ * Null when the student has no Foundation journey or its day has no tasks — the caller keeps the topic goal.
  */
-export async function journeyDayTargetXp(tenantId: string, studentId: string): Promise<number | null> {
+export async function journeyDayGoal(tenantId: string, studentId: string): Promise<JourneyDayGoal | null> {
   try {
-    const enrollment: any = await CurriculumEnrollment.findOne({
-      tenantId, studentId: new mongoose.Types.ObjectId(studentId), enrolledBy: 'foundation-journey',
-    }).sort({ createdAt: -1 }).select('curriculumId currentDay').lean();
+    const sid = new mongoose.Types.ObjectId(studentId);
+    const enrollment: any = await CurriculumEnrollment.findOne({ tenantId, studentId: sid, enrolledBy: 'foundation-journey' })
+      .sort({ createdAt: -1 }).select('_id curriculumId currentDay').lean();
     if (!enrollment?.curriculumId) return null;
-    const plan: any = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber: Number(enrollment.currentDay) || 1 })
-      .select('items').lean();
+
+    // Always the day the journey is on — the same day the missions card shows, so the two never disagree.
+    const day = Number(enrollment.currentDay) || 1;
+
+    const plan: any = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber: day }).select('items').lean();
     if (!plan?.items?.length) return null;
-    return plan.items.reduce((t: number, it: any) => t + xpForJourneyItem(it), 0) + FOUNDATION_DAY_BONUS_XP;
+    const target = plan.items.reduce((t: number, it: any) => t + xpForJourneyItem(it), 0) + FOUNDATION_DAY_BONUS_XP;
+
+    const prefix = `${String(enrollment._id)}:${day}`;
+    // The day's awards: its bonus ("enrollment:day") and its tasks ("enrollment:day:task").
+    const paid: any[] = await XpLedger.find({
+      tenantId, studentId: sid, sourceType: 'foundation_journey',
+      sourceId: { $regex: `^${prefix}(:|$)` },
+    }).select('amount').lean() as any;
+    const earned = paid.reduce((t, l) => t + (Number(l.amount) || 0), 0);
+    return { day, target, earned };
   } catch (e: any) {
-    console.error('[foundation-journey-xp] target:', e?.message || e);
+    console.error('[foundation-journey-xp] goal:', e?.message || e);
     return null;
   }
 }

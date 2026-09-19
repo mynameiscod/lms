@@ -1,0 +1,101 @@
+/* My Progress (Gamification.tsx, .gam.gam2) in the member dashboard system: a logo-navy hero with the level badge, the
+   XP bar to the next level and the coins, then the tiles and cards in the CodeBegun colours at a readable size.
+   Shell rules recolour this page's headings with #root-level !important, so text on navy is pinned with #root .gd. */
+.gam.gam2 {
+  --navy: #051D64; --primary: #005897; --teal: #359AAD; --ink: #102A4F; --muted: #64748B; --line: #E2EAF2; --tint: #EAF3FD;
+  max-width: 1760px; margin: 0 auto; padding: 0 0 40px; background: none; min-height: 0; display: flex; flex-direction: column; gap: 18px;
+}
+.gam2 > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+:where(.gam2) button { font: inherit; }
+
+/* Hero */
+.gam2-hero {
+  position: relative; overflow: hidden; border-radius: 24px; padding: 28px 32px; color: #fff;
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; align-items: center;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
+    radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
+    linear-gradient(120deg, #051D64 0%, #0B2D72 48%, #005897 100%);
+  box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
+}
+.gam2-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
+.gam2-hero > * { position: relative; z-index: 1; }
+.gam2-level { display: flex; align-items: center; gap: 26px; min-width: 0; }
+.gam2-hex {
+  flex: none; width: 124px; height: 138px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  background: linear-gradient(160deg, #7FD3E0 0%, #359AAD 45%, #1976D2 100%); color: #fff; box-shadow: 0 12px 30px rgba(0, 0, 0, .25);
+}
+.gam2-hex i { font-size: 18px; color: #FFD166; }
+.gam2-hex strong { font-size: 44px; line-height: 1; font-weight: 800; }
+.gam2-hex span { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.gam2-level-copy { min-width: 0; flex: 1; }
+.gam2-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
+#root .gd .gam2 .gam2-hero h1, .gam2 .gam2-hero h1 { margin: 6px 0 0; font-size: clamp(28px, 2.6vw, 40px); line-height: 1.1; font-weight: 800; letter-spacing: -.02em !important; color: #fff !important; }
+.gam2 .gam2-hero h1 i { font-size: .6em; color: #7FD3E0; vertical-align: middle; }
+.gam2 .gam2-level-copy p { margin: 8px 0 0; font-size: 16px; line-height: 1.55; color: #D5E2F5; }
+.gam2-xp { margin-top: 16px; max-width: 620px; }
+.gam2-xp-top { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+.gam2-xp-top b { color: #fff; }
+.gam2-xp-top span { color: #C4D5EE; font-weight: 700; }
+.gam2-xp-bar { margin-top: 8px; height: 10px; border-radius: 999px; background: rgba(255, 255, 255, .16); overflow: hidden; }
+.gam2-xp-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7FD3E0, #fff); }
+.gam2-wallet { display: flex; flex-direction: column; gap: 10px; }
+.gam2-coin { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: rgba(255, 255, 255, .10); border: 1px solid rgba(255, 255, 255, .20); backdrop-filter: blur(4px); }
+.gam2-coin > span { flex: none; width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 20px; background: rgba(255, 209, 102, .18); color: #FFD166; }
+.gam2-coin.xp > span { background: rgba(127, 211, 224, .18); color: #7FD3E0; }
+.gam2-coin small { display: block; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #9FDCE6; }
+.gam2-coin b { display: block; margin-top: 2px; font-size: 24px; color: #fff; }
+.gam2-wallet button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; border-radius: 12px; border: 0; background: #fff; color: #051D64; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 10px 24px rgba(0, 0, 0, .18); }
+.gam2-wallet button:hover { background: #EAF3FD; }
+
+/* Tiles and cards at a readable size */
+.gam2 .gam-five-metrics { gap: 14px; }
+.gam2 .gam-metric { min-height: 0; border-radius: 18px; padding: 18px; border-color: var(--line); box-shadow: 0 3px 14px rgba(15, 46, 77, .05); }
+.gam2 .gam-metric small { font-size: 12.5px; letter-spacing: .04em; margin-top: 10px; }
+.gam2 .gam-metric b { font-size: 28px; }
+.gam2 .gam-metric em { font-size: 13px; }
+.gam2 .gam-split { gap: 18px; }
+.gam2 .gam-card { border-radius: 20px; padding: 20px 22px; border-color: var(--line); }
+.gam2 .gam-card h3, .gam2 .gam-board-top h3, .gam2 .gam-earn h3 { font-size: 17px; font-weight: 800; color: var(--navy); }
+.gam2 .gam-card-hd button, .gam2 .gam-link { font-size: 13.5px; }
+.gam2 .gam-next-orb { width: 64px; height: 64px; font-size: 28px; }
+.gam2 .gam-next-body b { font-size: 16px; }
+.gam2 .gam-next-body p, .gam2 .gam-mile-label, .gam2 .gam-coming, .gam2 .gam-verified { font-size: 13.5px; }
+.gam2 .gam-scope-strip button, .gam2 .gam-tabs button { font-size: 14px; min-height: 38px; }
+.gam2 .gam-scope-strip button.on, .gam2 .gam-tabs button.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.gam2 .gam-ach b, .gam2 .gam-who b { font-size: 15px; }
+.gam2 .gam-ach small, .gam2 .gam-ach em, .gam2 .gam-who em { font-size: 13px; }
+.gam2 .gam-board-top span, .gam2 .gam-note, .gam2 .gam-mine { font-size: 13.5px; }
+.gam2 .gam-row-xp { font-size: 14px; }
+.gam2 .gam-earn-grid button { border-radius: 16px; padding: 16px; }
+.gam2 .gam-earn-grid b { font-size: 14.5px; }
+.gam2 .gam-earn-grid span { font-size: 13px; }
+.gam2 .gam-earn-grid i { font-size: 20px; }
+.gam2 .gam-reminder { border-radius: 18px; padding: 16px 20px; }
+.gam2 .gam-reminder b { font-size: 15px; }
+.gam2 .gam-reminder small { font-size: 13px; }
+.gam2 .gam-reminder button { font-size: 14px; min-height: 42px; border-radius: 12px; background: var(--primary); }
+
+@media (max-width: 1100px) {
+  .gam2-hero { grid-template-columns: 1fr; }
+  .gam2-wallet { flex-direction: row; flex-wrap: wrap; }
+  .gam2-coin { flex: 1 1 200px; }
+  .gam2-wallet button { flex: 1 1 100%; }
+  .gam2 .gam-five-metrics { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 640px) {
+  .gam2-hero { padding: 22px 18px; }
+  .gam2-level { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .gam2-hex { width: 96px; height: 108px; }
+  .gam2-hex strong { font-size: 34px; }
+  .gam2 .gam-five-metrics { grid-template-columns: repeat(2, 1fr); }
+  .gam2 .gam-split { grid-template-columns: 1fr; }
+}
+@media (min-width: 1200px) and (max-width: 1599px) { .gam.gam2 { zoom: 1.05; } }
+@media (min-width: 1600px) { .gam.gam2 { zoom: 1.12; } }
+/* Shell rules dim small labels and paragraphs; on the navy hero they must stay light. */
+#root .gd .gam2 .gam2-coin small { color: #9FDCE6 !important; opacity: 1 !important; }
+#root .gd .gam2 .gam2-coin b { color: #fff !important; }
+#root .gd .gam2 .gam2-level-copy p { color: #D5E2F5 !important; }
+#root .gd .gam2 .gam2-eyebrow { color: #9FDCE6 !important; }

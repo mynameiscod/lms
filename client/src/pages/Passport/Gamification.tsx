@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { GamificationSummary, ScopedLeaderboardResponse, ScopedLeaderboardRow } from '../../api/passportApi';
 import './gamification.css';
+import './gamificationRedesign.css';
 
 const PERIODS = [{ key: 'ALL_TIME', label: 'All time' }, { key: 'MONTHLY', label: 'This month' }, { key: 'WEEKLY', label: 'This week' }];
 const SCOPES = [{ key: 'COLLEGE', label: 'College' }, { key: 'GLOBAL', label: 'Global' }];
@@ -20,7 +21,11 @@ const Gamification: React.FC = () => {
 
   useEffect(() => {
     Promise.allSettled([passportApi.getMyGamification(), passportApi.getRewards()]).then(([g, r]) => {
-      if (g.status === 'fulfilled') setSummary(g.value);
+      if (g.status === 'fulfilled') {
+        setSummary(g.value);
+        // Open on a board this member is actually on: no college means the college board is only an empty note.
+        if (!g.value?.ranks?.college?.available && g.value?.ranks?.global?.available) setScope('GLOBAL');
+      }
       if (r.status === 'fulfilled') setRewards(r.value);
     }).finally(() => setLoading(false));
   }, []);
@@ -50,13 +55,26 @@ const Gamification: React.FC = () => {
   if (loading) return <div className="gam"><div className="gam-load">Loading your progress…</div></div>;
   if (!summary) return <div className="gam"><div className="gam-empty">Your progress is not available right now.</div></div>;
 
-  return <div className="gam">
-    <header className="gam-hd"><div><span className="gam-eyebrow"><i className="bi bi-stars" /> Coins & Rewards</span><h1>Progress that keeps you moving.</h1><p>Track your XP, coins, streaks, achievements and verified CareerPilot rankings.</p></div></header>
-
-    <section className="gam-hero-new">
-      <div className="gam-level-badge"><i className="bi bi-star-fill"/><strong>{summary.level?.level ?? 1}</strong><span>Level</span></div>
-      <div className="gam-level-main"><h2>Level {summary.level?.level ?? 1}</h2><h3>{summary.level?.title || 'Career Builder'} <i className="bi bi-patch-check-fill"/></h3><p>Keep completing meaningful career activities to reach your next level.</p><div className="gam-xp-line"><b>{summary.xp.toLocaleString()} XP</b><span>{levelProgress}%</span></div><div className="gam-level-progress"><span style={{width:`${levelProgress}%`}}/></div><small>Next: Level {summary.level?.nextLevel ?? ((summary.level?.level ?? 1)+1)} · {summary.level?.nextTitle || 'Next level'}</small></div>
-      <div className="gam-hero-wallet"><div><span className="coin-ico"><i className="bi bi-coin"/></span><small>CareerPilot Coins</small><b>{Number(coins).toLocaleString()}</b></div><button onClick={()=>nav('/careerpilot/rewards')}>View Rewards Store</button><div className="gam-lifetime"><i className="bi bi-award"/><span><small>Lifetime XP</small><b>{summary.xp.toLocaleString()}</b></span></div></div>
+  return <div className="gam gam2">
+    {/* A logo-navy hero, as on every redesigned CareerPilot page: level and XP to the next one, coins beside it. */}
+    <section className="gam2-hero">
+      <div className="gam2-level">
+        <div className="gam2-hex"><i className="bi bi-star-fill" /><strong>{summary.level?.level ?? 1}</strong><span>Level</span></div>
+        <div className="gam2-level-copy">
+          <span className="gam2-eyebrow"><i className="bi bi-stars" /> My progress</span>
+          <h1>{summary.level?.title || 'Career Builder'} <i className="bi bi-patch-check-fill" /></h1>
+          <p>Level {summary.level?.level ?? 1} · {summary.xp.toLocaleString()} XP. Keep completing real career work to reach the next level.</p>
+          <div className="gam2-xp">
+            <div className="gam2-xp-top"><b>Next: Level {summary.level?.nextLevel ?? ((summary.level?.level ?? 1) + 1)} · {summary.level?.nextTitle || 'Next level'}</b><span>{levelProgress}%</span></div>
+            <div className="gam2-xp-bar"><i style={{ width: `${Math.max(2, levelProgress)}%` }} /></div>
+          </div>
+        </div>
+      </div>
+      <div className="gam2-wallet">
+        <div className="gam2-coin"><span><i className="bi bi-coin" /></span><div><small>CareerPilot coins</small><b>{Number(coins).toLocaleString()}</b></div></div>
+        <div className="gam2-coin xp"><span><i className="bi bi-lightning-charge-fill" /></span><div><small>Lifetime XP</small><b>{summary.xp.toLocaleString()}</b></div></div>
+        <button onClick={() => nav('/careerpilot/rewards')}><i className="bi bi-gift" /> Rewards store</button>
+      </div>
     </section>
 
     <div className="gam-five-metrics">
@@ -68,7 +86,7 @@ const Gamification: React.FC = () => {
     </div>
 
     <div className="gam-split">
-      <section className="gam-card gam-next"><div className="gam-card-hd"><div><h3><i className="bi bi-flag"/> Next Milestone</h3></div></div>{nextMilestone?<><div className="gam-next-body"><div className="gam-next-orb">{nextMilestone}</div><div><b>{nextMilestone}-Day Consistency</b><p>{nextMilestone-summary.streak} more day{nextMilestone-summary.streak===1?'':'s'} to unlock your next streak milestone.</p></div></div><div className="gam-mile-bar"><span style={{width:`${milestonePct}%`}}/></div><div className="gam-mile-label"><span>{summary.streak} days</span><span>{nextMilestone} days</span></div></>:<div className="gam-empty">You have reached every current streak milestone.</div>}</section>
+      <section className="gam-card gam-next"><div className="gam-card-hd"><div><h3><i className="bi bi-flag"/> Next Milestone</h3></div></div>{nextMilestone?<><div className="gam-next-body"><div className="gam-next-orb">{nextMilestone}</div><div><b>{nextMilestone}-Day Consistency</b><p>{nextMilestone-summary.streak} more day{nextMilestone-summary.streak===1?'':'s'} to unlock your next streak milestone.</p></div></div><div className="gam-mile-bar"><span style={{width:`${milestonePct}%`}}/></div><div className="gam-mile-label"><span>{summary.streak} day{summary.streak === 1 ? '' : 's'}</span><span>{nextMilestone} days</span></div></>:<div className="gam-empty">You have reached every current streak milestone.</div>}</section>
       <section className="gam-card"><div className="gam-card-hd"><div><h3><i className="bi bi-shield-check"/> Ranking Scope (Verified)</h3></div></div><div className="gam-scope-strip"><button className={scope==='COLLEGE'?'on':''} onClick={()=>setScope('COLLEGE')}>College</button><button className={scope==='GLOBAL'?'on':''} onClick={()=>setScope('GLOBAL')}>Global</button><button disabled>District</button><button disabled>State</button></div><div className="gam-verified"><i className="bi bi-check-circle"/> Rankings use verified CareerPilot activity and real XP.</div><small className="gam-coming">District and State rankings are not available yet.</small></section>
     </div>
 
@@ -77,8 +95,8 @@ const Gamification: React.FC = () => {
       <section className="gam-card"><div className="gam-board-top"><div><h3>Leaderboard</h3><span>Based only on CareerPilot XP activity</span></div><button className="gam-link" onClick={()=>nav('/careerpilot/leaderboard')}>View full leaderboard →</button></div><div className="gam-tabs gam-periods">{PERIODS.map(p=><button key={p.key} className={period===p.key?'on':''} onClick={()=>setPeriod(p.key)}>{p.label}</button>)}</div>{boardLoading?<div className="gam-load">Loading leaderboard…</div>:!board?<div className="gam-empty">Could not load leaderboard.</div>:!board.available?<div className="gam-note warn">{(board as any).reason}</div>:<><div className="gam-mine"><span>{board.myRank?<>You are <b>#{board.myRank}</b> of {board.participantCount.toLocaleString()}</>:<>Earn XP to join this leaderboard</>}</span><b>{board.myXp.toLocaleString()} XP</b></div><div className="gam-rows">{board.entries.slice(0,5).map((r:ScopedLeaderboardRow)=><div className={`gam-row${r.me?' me':''}`} key={r.studentId}><span className="gam-rn">#{r.rank}</span><span className="gam-avatar">{(r.name?.[0]||'?').toUpperCase()}</span><div className="gam-who"><b>{r.name}{r.me?' (You)':''}</b>{r.college&&<em>{r.college}</em>}</div><span className="gam-row-xp">{r.xp.toLocaleString()} XP</span></div>)}</div></>}</section>
     </div>
 
-    <section className="gam-card gam-earn"><h3>Ways to Earn XP</h3><div className="gam-earn-grid"><button onClick={()=>nav('/careerpilot/practice')}><i className="bi bi-code-square"/><b>Practice Questions</b><span>Build skill evidence</span></button><button onClick={()=>nav('/careerpilot/mock-interview')}><i className="bi bi-mic"/><b>Mock Interviews</b><span>Practice interview skills</span></button><button onClick={()=>nav('/careerpilot/missions')}><i className="bi bi-bullseye"/><b>Daily Missions</b><span>Complete career actions</span></button><button onClick={()=>nav('/careerpilot/roadmap')}><i className="bi bi-map"/><b>Learn & Improve</b><span>Follow your roadmap</span></button><button onClick={()=>nav('/careerpilot/skill-assessment')}><i className="bi bi-clipboard-check"/><b>Assessments</b><span>Measure your progress</span></button></div></section>
-    <footer className="gam-reminder"><div><i className="bi bi-lightbulb"/><span><b>Remember: XP shows your activity, not your skill readiness.</b><small>Keep learning consistently and build real skills with CareerPilot.</small></span></div><button onClick={()=>nav('/careerpilot/missions')}><i className="bi bi-rocket-takeoff"/> Start a Mission</button></footer>
+    <section className="gam-card gam-earn"><h3>Ways to Earn XP</h3><div className="gam-earn-grid"><button onClick={()=>nav('/careerpilot/practice')}><i className="bi bi-code-square"/><b>Practice Questions</b><span>Build skill evidence</span></button><button onClick={()=>nav('/careerpilot/interview')}><i className="bi bi-mic"/><b>Mock Interviews</b><span>Practice interview skills</span></button><button onClick={()=>nav('/careerpilot')}><i className="bi bi-bullseye"/><b>Daily Missions</b><span>Complete career actions</span></button><button onClick={()=>nav('/careerpilot/roadmap')}><i className="bi bi-map"/><b>Learn & Improve</b><span>Follow your roadmap</span></button><button onClick={()=>nav('/careerpilot/skill-assessment')}><i className="bi bi-clipboard-check"/><b>Assessments</b><span>Measure your progress</span></button></div></section>
+    <footer className="gam-reminder"><div><i className="bi bi-lightbulb"/><span><b>Remember: XP shows your activity, not your skill readiness.</b><small>Keep learning consistently and build real skills with CareerPilot.</small></span></div><button onClick={()=>nav('/careerpilot')}><i className="bi bi-rocket-takeoff"/> Start a Mission</button></footer>
   </div>;
 };
 export default Gamification;

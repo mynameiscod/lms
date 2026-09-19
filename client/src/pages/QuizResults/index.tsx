@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { quizApi } from '../../api';
-import { Alert, Spinner, Button } from '../../components/common';
+import { Alert, Spinner } from '../../components/common';
 import { QuizResult, Question } from '../../types';
 import { careerpilotReturn, withReturn, returnLabel } from '../../utils/careerpilotReturn';
-import './QuizResultsPage.css';
+import './quizResults.css';
 
 const QuizResultsPage: React.FC = () => {
   const { quizId, attemptId } = useParams<{ quizId: string; attemptId: string }>();
@@ -50,6 +50,8 @@ const QuizResultsPage: React.FC = () => {
 
       setResult(resultData);
       setQuestions(questionsRes.data || questionsRes || []);
+      // Open the review on the first question rather than an empty panel.
+      setSelectedQuestionIndex(prev => (prev === null && (questionsRes.data || questionsRes || []).length ? 0 : prev));
     } catch (err: any) {
       setError(err.message || 'Failed to load results');
     } finally {
@@ -79,259 +81,143 @@ const QuizResultsPage: React.FC = () => {
   const selectedQuestion = selectedQuestionIndex !== null ? questions[selectedQuestionIndex] : null;
   const selectedSubmission = selectedQuestion && result.submissions?.find(s => s.questionId === selectedQuestion._id);
 
+  const pct = Math.round(percentage);
+  const tone = getPercentageColor(percentage);
+  const showScore = result.quiz.showScoreAfterSubmit !== false;
+  const attemptsLeft = result.quiz.multipleAttempts && result.quiz.maxAttempts
+    ? result.quiz.maxAttempts - (result.attempt.attemptNo || 1) : null;
+  const canRetry = attemptsLeft !== null && attemptsLeft > 0;
+  const goBack = () => { window.location.href = backTo || '/quizzes'; };
+  const retry = () => { window.location.href = withReturn(`/quiz/${quizId}/take`, backTo); };
+  const correctCount = questions.filter(q => result.submissions?.find(s => s.questionId === q._id)?.marksAwarded === q.marks).length;
+  /**
+   * One line per chosen option. Only a MULTI-select answer stored as text is split on commas: a single option's own
+   * text often contains a comma ("The SSD, where the installed program files are kept"), and splitting it showed one
+   * answer as two.
+   */
+  const answerLines = (ans: any, multi: boolean): string[] =>
+    (Array.isArray(ans) ? ans : ans ? (multi ? String(ans).split(',') : [String(ans)]) : []).map((a: any) => String(a).trim()).filter(Boolean);
+
+  /**
+   * THIS PAGE'S STYLES WERE MISSING. It imported QuizResultsPage.css, which a redesign rewrote for a different
+   * component (QuizResultsPage.tsx, never routed) — so the page every quiz lands on rendered unstyled: a giant
+   * logo, a black disc for the score ring, a bare list for the review. It now has its own stylesheet (qr2-),
+   * in the CodeBegun guide colours, for the LMS and for CareerPilot (where the shell already carries the brand,
+   * so no logo is repeated).
+   */
   return (
-    <div className="quiz-results-page">
+    <div className={`qr2${backTo ? ' in-cp' : ''}`}>
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-      {/* Results Header */}
-      <div className="results-header">
-        <div className="gradient-bg"></div>
-        <div className="results-content">
-          <div className="results-brand-row">
-            <img
-              src="/assets/logo.png"
-              alt="CodeBegun"
-              className="results-logo-img"
-              onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
-            />
-            <span className="results-brand-name">CodeBegun</span>
+      <section className={`qr2-hero ${showScore ? (isPassed ? 'pass' : 'fail') : 'sent'}`}>
+        <div className="qr2-hero-copy">
+          {!backTo && <img src="/assets/logo.png" alt="CodeBegun" className="qr2-logo" onError={(e: any) => { e.currentTarget.style.display = 'none'; }} />}
+          {backTo && <button type="button" className="qr2-crumb" onClick={goBack}><i className="bi bi-arrow-left" /> {returnLabel(backTo)}</button>}
+          <span className="qr2-eyebrow">{backTo ? 'Checkpoint result' : 'Quiz result'}</span>
+          <h1>{result.quiz.title}</h1>
+          <div className="qr2-verdict">
+            {showScore
+              ? (isPassed
+                ? <span className="pass"><i className="bi bi-patch-check-fill" /> Passed — well done!</span>
+                : <span className="fail"><i className="bi bi-arrow-repeat" /> Not passed yet — review your answers and try again</span>)
+              : <span className="sent"><i className="bi bi-check2-circle" /> Submitted — your responses are recorded</span>}
           </div>
-          <h1>Quiz Results</h1>
-          <p className="quiz-name">{result.quiz.title}</p>
+          <div className="qr2-actions">
+            <button type="button" className="qr2-btn light" onClick={goBack}>
+              {backTo ? <>Continue {returnLabel(backTo).replace(/^Back to /, '')} <i className="bi bi-arrow-right" /></> : <><i className="bi bi-journal-text" /> Back to Quizzes</>}
+            </button>
+            {canRetry && <button type="button" className="qr2-btn ghost" onClick={retry}><i className="bi bi-arrow-counterclockwise" /> Retry ({attemptsLeft} left)</button>}
+          </div>
         </div>
-      </div>
-
-      <div className="results-container">
-        {/* Score Card */}
-        <div className={`score-card ${isPassed ? 'passed' : 'failed'}`}>
-          {result.quiz.showScoreAfterSubmit !== false ? (
-            <>
-              <div className="score-circle">
-                <svg viewBox="0 0 120 120" className="progress-ring">
-                  <defs>
-                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style={{ stopColor: getPercentageColor(percentage) === 'green' ? '#4caf50' : getPercentageColor(percentage) === 'orange' ? '#ff9800' : '#f44336', stopOpacity: 1 }} />
-                    </linearGradient>
-                  </defs>
-                  <circle cx="60" cy="60" r="55" className="progress-ring-bg" />
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="55"
-                    className={`progress-ring-circle ${getPercentageColor(percentage)}`}
-                    style={{
-                      strokeDasharray: `${(percentage / 100) * 345.575} 345.575`
-                    }}
-                  />
-                </svg>
-                <div className={`score-value ${getPercentageColor(percentage)}`}>
-                  {Math.round(percentage)}%
-                </div>
-              </div>
-
-              <div className="score-stats">
-                <h2>{isPassed ? '🎉 Congratulations!' : '😔 Try Again'}</h2>
-                <p className="status">{isPassed ? 'Quiz Passed' : 'Quiz Not Passed'}</p>
-
-                <div className="stats-grid">
-                  <div className="stat-item">
-                    <span className="label">Score Obtained</span>
-                    <span className="value">{result.attempt.obtainedMarks}/{result.quiz.totalMarks}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="label">Passing Marks</span>
-                    <span className="value">{result.quiz.passingMarks || 0}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="label">Time Taken</span>
-                    <span className="value">{formatTime(result.attempt.timeSpent || 0)}</span>
-                  </div>
-                  {result.quiz.multipleAttempts && result.quiz.maxAttempts && (
-                    <div className="stat-item">
-                      <span className="label">Attempts Left</span>
-                      <span className="value">{result.quiz.maxAttempts - (result.attempt.attemptNo || 1)}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="action-buttons">
-                  <Button onClick={() => window.location.href = backTo || `/quizzes`} className="btn-primary">
-                    {backTo ? `← ${returnLabel(backTo)}` : '📚 Back to Quizzes'}
-                  </Button>
-                  {result.quiz.multipleAttempts && result.quiz.maxAttempts && result.quiz.maxAttempts - (result.attempt.attemptNo || 1) > 0 && (
-                    <Button onClick={() => window.location.href = withReturn(`/quiz/${quizId}/take`, backTo)} className="btn-secondary">
-                      🔄 Retry Quiz
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="score-stats">
-              <h2>✅ Quiz Submitted Successfully</h2>
-              <p className="status">Your responses have been recorded.</p>
-              <div className="action-buttons">
-                <Button onClick={() => window.location.href = backTo || `/quizzes`} className="btn-primary">
-                  {backTo ? `← ${returnLabel(backTo)}` : '📚 Back to Quizzes'}
-                </Button>
-                {result.quiz.multipleAttempts && result.quiz.maxAttempts && result.quiz.maxAttempts - (result.attempt.attemptNo || 1) > 0 && (
-                  <Button onClick={() => window.location.href = withReturn(`/quiz/${quizId}/take`, backTo)} className="btn-secondary">
-                    🔄 Retry Quiz
-                  </Button>
-                )}
-              </div>
+        {showScore && (
+          <div className="qr2-score">
+            <div className={`qr2-ring ${tone}`} style={{ ['--qr2-deg' as any]: `${Math.min(100, pct) * 3.6}deg` }}>
+              <div><strong>{pct}%</strong><span>{result.attempt.obtainedMarks}/{result.quiz.totalMarks} marks</span></div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </section>
 
-        {/* Detailed Results */}
-        {result.quiz.allowReview !== false && (
-        <div className="detailed-results">
-          <h3>📋 Detailed Review</h3>
+      {showScore && (
+        <section className="qr2-stats">
+          <div><span className="ic blue"><i className="bi bi-bullseye" /></span><div><small>Score</small><b>{result.attempt.obtainedMarks}<em>/{result.quiz.totalMarks}</em></b></div></div>
+          <div><span className="ic green"><i className="bi bi-check2-circle" /></span><div><small>Correct</small><b>{correctCount}<em>/{questions.length}</em></b></div></div>
+          <div><span className="ic amber"><i className="bi bi-flag" /></span><div><small>Pass mark</small><b>{result.quiz.passingMarks || 0}</b></div></div>
+          <div><span className="ic teal"><i className="bi bi-stopwatch" /></span><div><small>Time taken</small><b>{formatTime(result.attempt.timeSpent || 0)}</b></div></div>
+        </section>
+      )}
 
-          <div className="results-layout">
-            {/* Questions List */}
-            <div className="questions-review-list">
+      {result.quiz.allowReview !== false && questions.length > 0 && (
+        <section className="qr2-review">
+          <header><h2><i className="bi bi-list-check" /> Review your answers</h2><p>Pick a question to see your answer{result.quiz.showAnswersAfterSubmit ? ', the correct one and why' : ''}.</p></header>
+          <div className="qr2-review-grid">
+            <ol className="qr2-qlist">
               {questions.map((question, index) => {
                 const submission = result.submissions?.find(s => s.questionId === question._id);
                 const isCorrect = submission?.marksAwarded === question.marks;
-                const isAttempted = submission && submission.studentAnswer;
-
+                const isAttempted = !!(submission && submission.studentAnswer);
+                const state = isCorrect ? 'correct' : isAttempted ? 'incorrect' : 'unattempted';
                 return (
-                  <div
-                    key={index}
-                    className={`review-item ${selectedQuestionIndex === index ? 'active' : ''} ${
-                      isCorrect ? 'correct' : isAttempted ? 'incorrect' : 'unattempted'
-                    }`}
-                    onClick={() => setSelectedQuestionIndex(index)}
-                  >
-                    <div className="review-item-header">
-                      <span className="question-number">Q{index + 1}</span>
-                      <span className={`status-icon ${isCorrect ? '✓' : isAttempted ? '✗' : '○'}`}>
-                        {isCorrect ? '✓' : isAttempted ? '✗' : '○'}
-                      </span>
-                    </div>
-                    <div className="review-item-title" title={question.questionText}>
-                      {question.questionText}
-                    </div>
-                    {submission && (
-                      <div className="review-item-marks">
-                        {submission.marksAwarded}/{question.marks} marks
-                      </div>
-                    )}
-                  </div>
+                  <li key={index}>
+                    <button type="button" className={`qr2-q ${state}${selectedQuestionIndex === index ? ' on' : ''}`} onClick={() => setSelectedQuestionIndex(index)}>
+                      <span className="st"><i className={`bi ${isCorrect ? 'bi-check-lg' : isAttempted ? 'bi-x-lg' : 'bi-dash-lg'}`} /></span>
+                      <span className="tx"><small>Question {index + 1}</small><b title={question.questionText}>{question.questionText}</b></span>
+                      <span className="mk">{submission ? submission.marksAwarded : 0}/{question.marks}</span>
+                    </button>
+                  </li>
                 );
               })}
-            </div>
+            </ol>
 
-            {/* Question Detail */}
-            <div className="question-review-detail">
+            <div className="qr2-detail">
               {selectedQuestion ? (
-                <div className="detail-content">
-                  <div className="detail-header">
-                    <h4>{selectedQuestion.questionText}</h4>
-                    <span className={`detail-type ${selectedQuestion.type}`}>
-                      {selectedQuestion.type.replace('_', ' ').toUpperCase()}
-                    </span>
+                <>
+                  <div className="qr2-detail-head">
+                    <span className="qr2-type">{selectedQuestion.type.replace('_', ' ')}</span>
+                    {selectedSubmission && <span className={`qr2-marks ${selectedSubmission.marksAwarded === selectedQuestion.marks ? 'correct' : 'incorrect'}`}>{selectedSubmission.marksAwarded}/{selectedQuestion.marks} marks</span>}
                   </div>
+                  <h3>{selectedQuestion.questionText}</h3>
 
                   {selectedSubmission ? (
-                    <div className="submission-detail">
-                      <div className={`marks-info ${selectedSubmission.marksAwarded === selectedQuestion.marks ? 'correct' : 'incorrect'}`}>
-                        <strong>
-                          {selectedSubmission.marksAwarded}/{selectedQuestion.marks} marks
-                        </strong>
-                        {selectedSubmission.marksAwarded === selectedQuestion.marks ? '✓' : '✗'}
+                    <>
+                      <div className="qr2-block">
+                        <h4>Your answer</h4>
+                        {selectedQuestion.type === 'mcq_single' || selectedQuestion.type === 'mcq_multiple' ? (
+                          answerLines(selectedSubmission.studentAnswer, selectedQuestion.type === 'mcq_multiple').length
+                            ? answerLines(selectedSubmission.studentAnswer, selectedQuestion.type === 'mcq_multiple').map((a, i) => <div key={i} className={`qr2-ans ${selectedSubmission.marksAwarded === selectedQuestion.marks ? 'correct' : 'incorrect'}`}>{a}</div>)
+                            : <div className="qr2-ans none">No answer given</div>
+                        ) : selectedQuestion.type === 'coding'
+                          ? <pre className="qr2-code">{selectedSubmission.studentAnswer || 'No code submitted'}</pre>
+                          : <div className="qr2-ans">{selectedSubmission.studentAnswer || 'No answer given'}</div>}
                       </div>
-
-                      <div className="answer-section">
-                        <h5>Your Answer:</h5>
-                        <div className="answer-box">
-                          {selectedQuestion.type === 'mcq_single' || selectedQuestion.type === 'mcq_multiple' ? (
-                            <div className="mcq-review">
-                              {Array.isArray(selectedSubmission.studentAnswer) ? (
-                                selectedSubmission.studentAnswer.map((ans, i) => (
-                                  <div key={i} className="answer-item">
-                                    ✓ {ans}
-                                  </div>
-                                ))
-                              ) : selectedSubmission.studentAnswer ? (
-                                // For string answers, split by comma if contains multiple answers
-                                selectedSubmission.studentAnswer.split(',').map((ans, i) => (
-                                  <div key={i} className="answer-item">
-                                    ✓ {ans.trim()}
-                                  </div>
-                                ))
-                              ) : (
-                                <div className="answer-item">No answer provided</div>
-                              )}
-                            </div>
-                          ) : selectedQuestion.type === 'short_answer' ? (
-                            <p className="short-answer-review">{selectedSubmission.studentAnswer || 'No answer provided'}</p>
-                          ) : selectedQuestion.type === 'coding' ? (
-                            <pre className="code-review">{selectedSubmission.studentAnswer || 'No code submitted'}</pre>
-                          ) : null}
+                      {result.quiz.showAnswersAfterSubmit && (selectedQuestion.type === 'mcq_single' || selectedQuestion.type === 'mcq_multiple') && (
+                        <div className="qr2-block">
+                          <h4>Correct answer</h4>
+                          {(selectedQuestion.options || [])
+                            .map((opt: any, optIndex: number) => {
+                              const optText = getOptionText(opt);
+                              const ok = opt?.isCorrect === true || (selectedQuestion.correctAnswers && (selectedQuestion.correctAnswers.includes(optText) || selectedQuestion.correctAnswers.includes(String(optIndex))));
+                              return { optText, ok };
+                            })
+                            .filter((o: any) => o.ok)
+                            .map((o: any, i: number) => <div key={i} className="qr2-ans correct"><i className="bi bi-check-circle-fill" /> {o.optText}</div>)}
                         </div>
-                      </div>
-
-                      {result.quiz.showAnswersAfterSubmit && (
-                        <>
-                          <div className="correct-answer-section">
-                            <h5>Correct Answer:</h5>
-                            <div className="correct-box">
-                              {selectedQuestion.type === 'mcq_single' || selectedQuestion.type === 'mcq_multiple' ? (
-                                <div className="mcq-review">
-                                  {selectedQuestion.options && selectedQuestion.options.length > 0 ? (
-                                    selectedQuestion.options
-                                      .map((opt: any, optIndex: number) => {
-                                        const optText = getOptionText(opt);
-                                        // Check if this option is marked as correct
-                                        const isCorrect = opt?.isCorrect === true ||
-                                          (selectedQuestion.correctAnswers && (
-                                            selectedQuestion.correctAnswers.includes(optText) ||
-                                            selectedQuestion.correctAnswers.includes(String(optIndex))
-                                          ));
-                                        return { option: opt, text: optText, isCorrect, index: optIndex };
-                                      })
-                                      .filter((item: any) => item.isCorrect)
-                                      .map((item: any, idx: number) => (
-                                        <div key={idx} className="answer-item correct">
-                                          ✓ {item.text}
-                                        </div>
-                                      ))
-                                  ) : (
-                                    <div className="answer-item">No correct answer available</div>
-                                  )}
-                                </div>
-                              ) : null}
-                            </div>
-                          </div>
-
-                          {selectedQuestion.explanation && (
-                            <div className="explanation-section">
-                              <h5>💡 Explanation:</h5>
-                              <p>{selectedQuestion.explanation}</p>
-                            </div>
-                          )}
-                        </>
                       )}
-                    </div>
+                      {result.quiz.showAnswersAfterSubmit && selectedQuestion.explanation && (
+                        <div className="qr2-explain"><i className="bi bi-lightbulb" /><div><b>Why</b><p>{selectedQuestion.explanation}</p></div></div>
+                      )}
+                    </>
                   ) : (
-                    <div className="unattempted-message">
-                      ⭕ You didn't attempt this question
-                    </div>
+                    <div className="qr2-ans none"><i className="bi bi-dash-circle" /> You did not answer this question.</div>
                   )}
-                </div>
+                </>
               ) : (
-                <div className="empty-detail">
-                  <p>👆 Select a question to view details</p>
-                </div>
+                <div className="qr2-empty">Select a question to see the details.</div>
               )}
             </div>
           </div>
-        </div>
-        )}
-      </div>
+        </section>
+      )}
     </div>
   );
 };

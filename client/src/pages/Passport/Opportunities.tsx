@@ -4,6 +4,7 @@ import { collegeMembershipApi, placementDriveApi } from '../../api';
 import passportApi, { CompanyRow } from '../../api/passportApi';
 import { useMember } from './MemberLayout';
 import './opportunities.css';
+import './opportunitiesRedesign.css';
 
 type AppStatus = 'applied' | 'shortlisted' | 'selected' | 'rejected' | 'placed';
 
@@ -211,30 +212,28 @@ const Opportunities: React.FC = () => {
   if (loading) return <div className="opp-state">Loading opportunities…</div>;
 
   return (
-    <div className="opp-shell">
-      <header className="opp-head">
-        <div>
-          <div className="opp-kicker">CAREER OPPORTUNITIES</div>
-          <h1>Opportunities</h1>
-          <p>Discover jobs and internships available through your college and CodeBegun network.</p>
+    <div className="opp-shell opp2">
+      {/* A logo-navy hero, as on every redesigned CareerPilot page: what this is, the two actions, and the four figures. */}
+      <header className="opp-head opp2-hero">
+        <div className="opp2-hero-copy">
+          <div className="opp-kicker">Career opportunities</div>
+          <h1>Your <span>Opportunities</span></h1>
+          <p>Jobs and internships open to you through your college and the CodeBegun network — matched to your profile.</p>
+          <div className="opp-head-actions">
+            <button className="opp2-btn light" onClick={() => document.getElementById('application-status')?.scrollIntoView({ behavior: 'smooth' })}><i className="bi bi-briefcase" /> Track applications</button>
+            <button className="opp2-btn ghost" onClick={shareProfile} disabled={!member?.shareSlug}><i className="bi bi-share" /> Share my profile</button>
+          </div>
         </div>
-        <div className="opp-head-actions">
-          <button className="opp-btn secondary" onClick={shareProfile} disabled={!member?.shareSlug}><i className="bi bi-share" /> Share My Profile</button>
-          <button className="opp-btn primary" onClick={() => document.getElementById('application-status')?.scrollIntoView({ behavior: 'smooth' })}><i className="bi bi-briefcase" /> Track Applications</button>
+        <div className="opp-metrics opp2-metrics">
+          <Metric icon="bi-briefcase-fill" value={recommended.length} label="Open & eligible" tone="teal" />
+          <Metric icon="bi-bookmark-fill" value={saved.size} label="Saved" tone="violet" />
+          <Metric icon="bi-send-fill" value={applications.length} label="Applications" tone="blue" />
+          <Metric icon="bi-calendar-check-fill" value={interviewCount} label="Interviews" tone="green" />
         </div>
       </header>
 
       {message && <div className="opp-alert success">{message}<button onClick={() => setMessage('')}>×</button></div>}
       {error && <div className="opp-alert error">{error}<button onClick={() => setError('')}>×</button></div>}
-
-      <section className="opp-overview">
-        <div className="opp-metrics">
-          <Metric icon="bi-briefcase-fill" value={recommended.length} label="Open & eligible" tone="teal" />
-          <Metric icon="bi-bookmark-fill" value={saved.size} label="Saved opportunities" tone="violet" />
-          <Metric icon="bi-send-fill" value={applications.length} label="Applications" tone="blue" />
-          <Metric icon="bi-calendar-check-fill" value={interviewCount} label="Interviews scheduled" tone="green" />
-        </div>
-      </section>
 
       <div className="opp-layout">
         <main className="opp-main">
@@ -378,7 +377,7 @@ const Opportunities: React.FC = () => {
           <section className="opp-side-card">
             <div className="opp-side-hd"><h3>Priority Skills</h3><button onClick={() => nav('/careerpilot/skills')}>View Skill DNA</button></div>
             {!gaps.length ? <p className="opp-side-empty">Complete your skill assessment to unlock gap-based guidance.</p> : gaps.map((g: any) => (
-              <div className="opp-skill-row" key={g.skillKey || g.skillLabel}><span>{g.skillLabel || g.skillKey}</span><b>{g.studentScore == null ? '—' : `${g.studentScore}%`}</b></div>
+              <div className="opp-skill-row" key={g.skillKey || g.skillLabel}><span>{g.skillName || g.skillLabel || prettySkill(g.skillKey)}</span><b>{g.studentScore == null ? '—' : `${g.studentScore}%`}</b><i className="opp2-skill-bar"><em style={{ width: `${Math.max(3, g.studentScore || 0)}%` }} /></i></div>
             ))}
           </section>
 
@@ -397,6 +396,12 @@ const Opportunities: React.FC = () => {
       </div>
     </div>
   );
+};
+
+/** "PSEUDOCODE_FLOWCHARTS" → "Pseudocode flowcharts", for a key that arrives without its display name. */
+const prettySkill = (key?: string) => {
+  const t = String(key || '').replace(/[_-]+/g, ' ').trim().toLowerCase();
+  return t ? t[0].toUpperCase() + t.slice(1) : '—';
 };
 
 const Metric: React.FC<{ icon: string; value: number; label: string; tone: string }> = ({ icon, value, label, tone }) => (

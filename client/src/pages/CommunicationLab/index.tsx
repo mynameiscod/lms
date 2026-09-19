@@ -195,7 +195,20 @@ const CommunicationLab: React.FC = () => {
   const weekdays = ['M','T','W','T','F','S','S'];
 
   return <div className="clx">
-    <header className="clx-head"><div className="clx-title"><span className="clx-title-icon"><i className="bi bi-person-video3" /></span><div><h1>AI Communication Lab</h1><p>Practise your communication every day. Record, get AI feedback, and build a streak.</p></div></div><div className="clx-kpis"><Metric icon="bi-fire" value={streak} label="Day Streak"/><Metric icon="bi-graph-up-arrow" value={totalSessions} label="Sessions" tone="teal"/><Metric icon="bi-star" value={bestScore || '—'} label="Best Score" tone="amber"/></div></header>
+    {/* A logo-navy hero, as on every redesigned CareerPilot page: what this lab is, and the three numbers that matter. */}
+    <header className="clx-head clx-hero2">
+      <div className="clx-hero2-copy">
+        <span className="clx-eyebrow">Speak with confidence</span>
+        <h1>AI Communication <span>Lab</span></h1>
+        <p>Practise your communication every day. Record a short answer, get AI feedback on clarity, fluency and confidence, and build a streak.</p>
+        <div className="clx-hero2-chips">
+          <span><i className="bi bi-mic" /> Video or audio</span>
+          <span><i className="bi bi-stars" /> Instant AI feedback</span>
+          <span><i className="bi bi-calendar-check" /> One challenge a day</span>
+        </div>
+      </div>
+      <div className="clx-kpis"><Metric icon="bi-fire" value={streak} label="Day streak"/><Metric icon="bi-graph-up-arrow" value={totalSessions} label="Sessions" tone="teal"/><Metric icon="bi-star" value={bestScore || '—'} label="Best score" tone="amber"/></div>
+    </header>
     <nav className="clx-tabs">{TABS.map(([k,l]) => <button key={k} className={`clx-tab ${tab===k?'on':''}`} onClick={()=>{setTab(k);setResult(null);}}>{l}</button>)}</nav>
 
     {tab === 'daily' && (result ? <ResultView a={result} onClose={()=>setResult(null)} /> : <>

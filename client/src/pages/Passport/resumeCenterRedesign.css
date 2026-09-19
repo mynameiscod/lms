@@ -1,0 +1,90 @@
+/* Resume Center (ResumeCenter.tsx, .rc-page.rc2) in the member dashboard system: a logo-navy hero with the three
+   actions and the ATS ring, the AI-off notice, then the builder and intelligence panels in the CodeBegun colours at a
+   readable size. Shell rules colour .rc-hero h1 navy with #root-level !important, so the hero text is pinned with
+   #root .gd selectors that outrank them. */
+#root .gd .cb-member-resume .rc-page.rc2, .rc-page.rc2 { max-width: 1760px !important; width: 100%; }
+.rc2 { display: flex; flex-direction: column; gap: 18px; }
+.rc2 > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+:where(.rc2) button, :where(.rc2) input, :where(.rc2) textarea { font: inherit; }
+
+/* Hero */
+.rc2 .rc2-hero {
+  position: relative; overflow: hidden; border: 0; border-radius: 24px; padding: 28px 32px; color: #fff;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 400px); gap: 28px;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
+    radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
+    linear-gradient(120deg, #051D64 0%, #0B2D72 48%, #005897 100%);
+  box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
+}
+.rc2 .rc2-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
+.rc2 .rc2-hero > * { position: relative; z-index: 1; }
+.rc2 .rc2-hero .rc-kicker { font-size: 12.5px; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
+#root .gd .rc2 .rc2-hero h1, .rc2 .rc2-hero h1 { font-size: clamp(28px, 2.6vw, 40px); line-height: 1.1; font-weight: 800; letter-spacing: -.02em !important; color: #fff !important; }
+#root .gd .rc2 .rc2-hero h1 span, .rc2 .rc2-hero h1 span { color: #7FD3E0 !important; }
+.rc2 .rc2-hero .rc-hero-copy > p { margin: 10px 0 14px; max-width: 620px; font-size: 16px; line-height: 1.6; color: #D5E2F5; }
+.rc2 .rc2-hero .rc-target { font-size: 14.5px; color: #C4D5EE; }
+.rc2 .rc2-hero .rc-target b { color: #7FD3E0; }
+.rc2 .rc2-hero .rc-target button { color: #fff; }
+.rc2 .rc2-hero .rc-hero-actions { gap: 10px; margin-top: 20px; }
+.rc2 .rc2-hero .rc-action { min-width: 190px; min-height: 60px; padding: 10px 16px; border-radius: 14px; background: rgba(255, 255, 255, .10); border: 1px solid rgba(255, 255, 255, .28); color: #fff; }
+.rc2 .rc2-hero .rc-action:hover:not(:disabled) { background: rgba(255, 255, 255, .2); }
+.rc2 .rc2-hero .rc-action.primary { background: #fff; border-color: #fff; color: #051D64; box-shadow: 0 10px 24px rgba(0, 0, 0, .18); }
+.rc2 .rc2-hero .rc-action.primary:hover { background: #EAF3FD; }
+.rc2 .rc2-hero .rc-action b { font-size: 15px; }
+.rc2 .rc2-hero .rc-action small { font-size: 12.5px; color: #C4D5EE; }
+.rc2 .rc2-hero .rc-action.primary small { color: #53677D; }
+.rc2 .rc2-hero .rc-action.disabled { opacity: .7; pointer-events: none; }
+.rc2 .rc2-hero .rc-score-card { background: rgba(255, 255, 255, .10); border: 1px solid rgba(255, 255, 255, .20); box-shadow: none; border-radius: 20px; backdrop-filter: blur(4px); color: #fff; }
+.rc2 .rc2-hero .rc-score-card span { color: #9FDCE6; font-size: 12.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+#root .gd .rc2 .rc2-hero .rc-score-card h3 { color: #fff !important; font-size: 21px; }
+.rc2 .rc2-hero .rc-score-card p { color: #C4D5EE; font-size: 13.5px; }
+.rc2 .rc2-hero .rc-score-ring { background: conic-gradient(#7FD3E0 var(--score), rgba(255, 255, 255, .16) 0) !important; }
+.rc2 .rc2-hero .rc-score-ring strong { color: #fff !important; }
+.rc2 .rc2-hero .rc-score-ring span { color: #9FB6D8 !important; text-transform: none; letter-spacing: 0; }
+
+/* Notices */
+.rc2 .rc-message { border-radius: 14px; font-size: 14.5px; }
+.rc2-aioff { display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; border-radius: 16px; background: #FFF7E8; border: 1px solid #F5DDB5; }
+.rc2-aioff > i { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 19px; background: #fff; color: #B86B00; }
+.rc2-aioff b { display: block; font-size: 15px; color: #7A4A00; }
+.rc2-aioff span { display: block; margin-top: 3px; font-size: 14px; line-height: 1.5; color: #33475B; }
+
+/* Readable body */
+.rc2 .rc-stat small { font-size: 12.5px; }
+.rc2 .rc-stat strong { font-size: 20px; }
+.rc2 .rc-stat span { font-size: 13px; }
+.rc2 .rc-editor-head h2 { font-size: 20px; }
+.rc2 .rc-editor-head p { font-size: 14px; }
+.rc2 .rc-section-title h3 { font-size: 16.5px; }
+.rc2 .rc-section-title p { font-size: 13.5px; }
+.rc2 .rc-fields label { font-size: 12.5px; }
+.rc2 .rc-fields input, .rc2 .rc-fields textarea { font-size: 15px; }
+.rc2 .rc-panel-head h3 { font-size: 16px; }
+.rc2 .rc-score-empty h4 { font-size: 17px; }
+.rc2 .rc-score-empty p, .rc2 .rc-role-panel p, .rc2 .rc-fix-item p { font-size: 13.5px; }
+.rc2 .rc-sticky-actions b { font-size: 15px; }
+.rc2 .rc-sticky-actions small { font-size: 13px; }
+.rc2 .rc-btn { font-size: 14px; min-height: 42px; border-radius: 12px; }
+.rc2 .rc-btn.primary { background: #005897; border-color: #005897; }
+
+@media (max-width: 1100px) {
+  .rc2 .rc2-hero { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .rc2 .rc2-hero { padding: 22px 18px; }
+  .rc2 .rc2-hero .rc-action { min-width: 0; flex: 1 1 100%; }
+}
+@media (min-width: 1200px) and (max-width: 1599px) { .rc-page.rc2 { zoom: 1.05; } }
+@media (min-width: 1600px) { .rc-page.rc2 { zoom: 1.12; } }
+
+/* Pinned against the shell's #root/.gd rules that recolour this page's ring, buttons and copy. */
+#root .gd .rc2 .rc2-hero .rc-score-ring { background: conic-gradient(#7FD3E0 var(--score), rgba(255, 255, 255, .16) 0) !important; }
+#root .gd .rc2 .rc2-hero .rc-score-ring::before, #root .gd .rc2 .rc2-hero .rc-score-ring::after { background: #051D64 !important; }
+#root .gd .rc2 .rc2-hero .rc-score-ring strong { color: #fff !important; font-size: 30px; }
+#root .gd .rc2 .rc2-hero .rc-action.primary, #root .gd .rc2 .rc2-hero .rc-action.primary b, #root .gd .rc2 .rc2-hero .rc-action.primary i { color: #051D64 !important; }
+#root .gd .rc2 .rc2-hero .rc-action.primary small { color: #53677D !important; }
+#root .gd .rc2 .rc2-hero .rc-action:not(.primary), #root .gd .rc2 .rc2-hero .rc-action:not(.primary) b, #root .gd .rc2 .rc2-hero .rc-action:not(.primary) i { color: #fff !important; }
+#root .gd .rc2 .rc2-hero .rc-action:not(.primary) small { color: #C4D5EE !important; }
+#root .gd .rc2 .rc2-hero .rc-hero-copy > p { color: #D5E2F5 !important; }
+#root .gd .rc2 .rc2-hero .rc-score-card p { color: #C4D5EE !important; }

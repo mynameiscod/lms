@@ -4,6 +4,7 @@ import passportApi, { ResumeSections, ResumeScore } from '../../api/passportApi'
 import PassportShell from './PassportShell';
 import SectionLock from './SectionLock';
 import './resumeCenter.css';
+import './resumeCenterRedesign.css';
 
 /** ?focus= on a mission link → the section it should land on. 'title' is the target title
  *  field, which lives inside Contact Information. */
@@ -81,6 +82,8 @@ const ResumeCenter: React.FC = () => {
   const [improving, setImproving] = useState(false);
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err' | 'info'; text: string } | null>(null);
   const [preview, setPreview] = useState<ResumeSections | null>(null);
+  /** Set when the server says scoring/rewriting have no AI provider: said once, plainly, instead of a failure per click. */
+  const [aiOff, setAiOff] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -124,7 +127,7 @@ const ResumeCenter: React.FC = () => {
     try {
       const r = await passportApi.importResume(file);
       setSections({ ...BLANK, ...r.sections });
-      setMsg({ kind: 'ok', text: 'Imported. Check each section, then Save — anything you had already typed was kept.' });
+      setMsg({ kind: 'ok', text: `Imported from ${file.name}. Check each section below — anything you had already typed was kept.` });
     } catch (e: any) {
       setMsg({ kind: 'err', text: e?.response?.data?.message || 'Could not read that file.' });
     }
@@ -150,7 +153,7 @@ const ResumeCenter: React.FC = () => {
           ? `ATS-ready — you scored ${r.score.total}/100.${r.xpAwarded ? ` +${r.xpAwarded} XP!` : ''}`
           : `Scored ${r.score.total}/100. Your roadmap targets ${r.goodScore}+ — work the fixes below.${r.xpAwarded ? ` +${r.xpAwarded} XP!` : ''}`,
       });
-    } catch (e: any) { setMsg({ kind: 'err', text: e?.response?.data?.message || 'Could not score the resume.' }); }
+    } catch (e: any) { if (e?.response?.data?.aiMissing) setAiOff(true); else setMsg({ kind: 'err', text: e?.response?.data?.message || 'Could not score the resume.' }); }
     setScoring(false);
   };
 
@@ -160,7 +163,7 @@ const ResumeCenter: React.FC = () => {
       await passportApi.saveResume(sections);
       const r = await passportApi.improveResume();
       setPreview(r.sections);
-    } catch (e: any) { setMsg({ kind: 'err', text: e?.response?.data?.message || 'Could not improve the resume.' }); }
+    } catch (e: any) { if (e?.response?.data?.aiMissing) setAiOff(true); else setMsg({ kind: 'err', text: e?.response?.data?.message || 'Could not improve the resume.' }); }
     setImproving(false);
   };
 
@@ -200,30 +203,36 @@ const ResumeCenter: React.FC = () => {
 
   return (
     <PassportShell meta={score ? <span className="pm-pill"><i>📄</i>ATS <b>{score.total}</b>/100</span> : undefined}>
-      <div className="rc-page">
-        <section className="rc-hero">
+      <div className="rc-page rc2">
+        {/* A logo-navy hero, as on every redesigned CareerPilot page: the three actions and the ATS score. */}
+        <section className="rc-hero rc2-hero">
           <div className="rc-hero-copy">
-            <div className="rc-kicker">RESUME READINESS</div>
-            <h1>Resume Center</h1>
-            <p>Build a resume that reflects your real skills and gets you interview-ready.</p>
-            <div className="rc-target">Target Role: <b>{targetRole}</b> <button onClick={() => nav('/careerpilot/setup?step=direction')}><i className="bi bi-pencil" /> Change</button></div>
+            <div className="rc-kicker">Resume readiness</div>
+            <h1>Resume <span>Center</span></h1>
+            <p>Build a one-page resume that reflects your real skills — import the one you have, score it, and sharpen the wording.</p>
+            <div className="rc-target">Target role: <b>{targetRole}</b> <button onClick={() => nav('/careerpilot/setup?step=direction')}><i className="bi bi-pencil" /> Change</button></div>
             <div className="rc-hero-actions">
               <label className={`rc-action primary ${importing ? 'disabled' : ''}`}>
-                <i className="bi bi-upload" /> <span><b>{importing ? 'Reading…' : 'Import Resume'}</b><small>Upload PDF/DOCX</small></span>
+                <i className="bi bi-upload" /> <span><b>{importing ? 'Reading your file…' : 'Import resume'}</b><small>PDF or Word (.docx)</small></span>
                 <input type="file" accept=".pdf,.doc,.docx" hidden disabled={importing} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) runImport(f); }} />
               </label>
-              <button className="rc-action" onClick={runScore} disabled={scoring}><i className="bi bi-bar-chart-fill" /><span><b>{scoring ? 'Scoring…' : 'Score Resume'}</b><small>Analyze ATS score</small></span></button>
-              <button className="rc-action" onClick={runImprove} disabled={improving}><i className="bi bi-stars" /><span><b>{improving ? 'Rewriting…' : 'Improve with AI'}</b><small>Get AI suggestions</small></span></button>
+              <button className="rc-action" onClick={runScore} disabled={scoring}><i className="bi bi-bar-chart-fill" /><span><b>{scoring ? 'Scoring…' : 'Score resume'}</b><small>{aiOff ? 'Needs an AI key' : 'ATS score + fix list'}</small></span></button>
+              <button className="rc-action" onClick={runImprove} disabled={improving}><i className="bi bi-stars" /><span><b>{improving ? 'Rewriting…' : 'Improve with AI'}</b><small>{aiOff ? 'Needs an AI key' : 'Sharper wording, same facts'}</small></span></button>
             </div>
           </div>
-          <div className="rc-hero-art"><img src="/assets/careerpilot/careerpilot-hero-student.png" alt="CareerPilot student" onError={e => { e.currentTarget.style.display = 'none'; }} /></div>
           <div className="rc-score-card">
-            <div className="rc-score-ring" style={{ '--score': `${score?.total || 0}%` } as React.CSSProperties}><div><strong>{score?.total ?? '—'}</strong><span>/100</span></div></div>
-            <div><span>ATS Score</span><h3>{atsLabel}</h3><p>{score ? 'Use the intelligence panel below to improve the sections holding you back.' : 'Score your resume to get section-level feedback and an ATS fix list.'}</p></div>
+            <div className="rc-score-ring" style={{ '--score': `${score?.total || 0}%` } as React.CSSProperties}><div><strong>{score?.total ?? '—'}</strong>{score && <span>/100</span>}</div></div>
+            <div><span>ATS score</span><h3>{atsLabel}</h3><p>{score ? 'Work the fix list on the right to raise it.' : 'Score your resume for section-level feedback and an ATS fix list.'}</p></div>
           </div>
         </section>
 
         {msg && <div className={`pm-msg ${msg.kind} rc-message`}>{msg.text}</div>}
+        {aiOff && (
+          <div className="rc2-aioff">
+            <i className="bi bi-plug" />
+            <div><b>AI scoring and rewriting are not switched on yet</b><span>No AI provider is set up for your institute — ask your admin to add an Anthropic or OpenAI key in Platform Settings. Importing, editing and saving your resume all work.</span></div>
+          </div>
+        )}
 
         <section className="rc-stats">
           <div className="rc-stat"><span className="rc-stat-icon teal"><i className="bi bi-patch-check-fill" /></span><div><small>ATS Score</small><strong>{score ? `${score.total}/100` : '—'}</strong><span>{atsLabel}</span></div></div>

@@ -84,8 +84,10 @@ Group skills logically (Languages, Frameworks, Tools, Databases, Cloud, etc.).
 Resume text:
 ${rawText.slice(0, 6000)}`;
 
+  // Without an AI key the text is still worth having: a rule-based read fills what it can, and the member edits the
+  // rest, instead of being told the file could not be read.
   const openai = getOpenAI();
-  if (!openai) throw new Error('OPENAI_API_KEY is not configured on the server.');
+  if (!openai) return parseResumeTextByRules(rawText);
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],
@@ -115,4 +117,70 @@ export function getEmptySections(): IResumeSections {
     projects: [],
     certifications: [],
   };
+}
+
+
+/**
+ * A rule-based read of a resume's text — used when no AI provider is configured.
+ *
+ * Contact details come from their shapes (email, phone, LinkedIn/GitHub URLs; the name is the first short line).
+ * The rest is split by the usual section headings, and each section is filled simply: the summary as a paragraph,
+ * skills as one comma-separated list, and one entry per line for education, experience, projects and certifications.
+ * It never invents anything; what it cannot place is left for the member to type.
+ */
+const HEADINGS: Array<{ key: string; re: RegExp }> = [
+  { key: 'summary', re: /^(professional\s+)?(summary|profile|objective|about(\s+me)?|career\s+objective)\b/i },
+  { key: 'skills', re: /^(technical\s+)?skills?\b|^core\s+competenc|^technologies\b/i },
+  { key: 'experience', re: /^(work\s+|professional\s+)?experience\b|^internships?\b|^employment\b/i },
+  { key: 'projects', re: /^(academic\s+|personal\s+)?projects?\b/i },
+  { key: 'education', re: /^education\b|^academic(s|\s+details|\s+background)?\b|^qualifications?\b/i },
+  { key: 'certifications', re: /^certifications?\b|^certificates?\b|^courses?\b|^achievements?\b/i },
+];
+
+const yearIn = (s: string) => (s.match(/\b(19|20)\d{2}\b/) || [''])[0];
+
+export function parseResumeTextByRules(rawText: string): IResumeSections {
+  const out = getEmptySections();
+  const text = String(rawText || '').replace(/\r/g, '');
+  const lines = text.split('\n').map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+
+  out.contact.email = (text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i) || [''])[0];
+  out.contact.phone = ((text.match(/\+?\d[\d\s-]{8,}\d/) || [''])[0]).trim();
+  out.contact.linkedin = (text.match(/(https?:\/\/)?(www\.)?linkedin\.com\/[^\s,|]+/i) || [''])[0];
+  out.contact.github = (text.match(/(https?:\/\/)?(www\.)?github\.com\/[^\s,|]+/i) || [''])[0];
+  const nameLine = lines.find(l => l.length <= 40 && /^[A-Za-z][A-Za-z .'-]+$/.test(l) && !HEADINGS.some(h => h.re.test(l)));
+  out.contact.name = nameLine || '';
+
+  const buckets: Record<string, string[]> = {};
+  let current = '';
+  for (const line of lines) {
+    const head = line.length <= 40 ? HEADINGS.find(h => h.re.test(line)) : undefined;
+    if (head) {
+      current = head.key;
+      buckets[current] = buckets[current] || [];
+      const rest = line.replace(head.re, '').replace(/^[\s:–-]+/, '');
+      if (rest) buckets[current].push(rest);
+      continue;
+    }
+    if (current) buckets[current].push(line);
+  }
+
+  out.summary = (buckets.summary || []).join(' ');
+  const skills = (buckets.skills || []).join(', ').split(/[,|•·;]/)
+    .map(x => x.replace(/^[^:]*:\s*/, '').trim()).filter(x => x && x.length <= 40);
+  if (skills.length) out.skills = [{ category: 'Skills', items: Array.from(new Set(skills)) }] as any;
+  // "B.Tech CSE, ABC College, 2027, CGPA 8.1" → degree, college, year and CGPA, each where it belongs.
+  out.education = (buckets.education || []).map(l => {
+    const parts = l.split(/\s*[,|]\s*/).filter(Boolean);
+    const cgpa = (l.match(/(?:cgpa|gpa|percentage)\s*[:-]?\s*([\d.]+%?)/i) || [])[1] || '';
+    const rest = parts.filter(x => !/^(19|20)\d{2}$/.test(x) && !/(cgpa|gpa|percentage)/i.test(x));
+    return { degree: rest[0] || l, college: rest.slice(1).join(', '), university: '', year: yearIn(l), cgpa };
+  }) as any;
+  out.experience = (buckets.experience || []).map(l => ({ company: '', role: l, from: '', to: '', current: false, bullets: [] })) as any;
+  out.projects = (buckets.projects || []).map(l => {
+    const [name, ...rest] = l.split(/\s[–-]\s|:\s/);
+    return { name: name.trim(), tech: [], description: rest.join(' - ').trim(), link: '' };
+  }) as any;
+  out.certifications = (buckets.certifications || []).map(l => ({ name: l, issuer: '', year: yearIn(l) })) as any;
+  return out;
 }

@@ -81,6 +81,10 @@ export const save = async (req: Request, res: Response) => {
 };
 
 /** POST /passport/resume/score — ATS score + fix list. Awards XP the first time. */
+/** Scoring and rewriting need an AI model; when none is configured, say so plainly — retrying cannot help. */
+const AI_MISSING_MESSAGE = 'AI scoring and rewriting are not switched on yet — no AI provider is set up. Ask your admin to add an Anthropic or OpenAI key in Platform Settings. Everything else on this page works.';
+const aiMissing = (e: any) => /no ai provider|api_key|api key|not configured/i.test(String(e?.message || ''));
+
 export const score = async (req: Request, res: Response) => {
   try {
     const { tenantId, studentId, cfg, entitled } = await gate(req);
@@ -107,7 +111,7 @@ export const score = async (req: Request, res: Response) => {
     res.json({ score: result, xpAwarded, atsReady: (result?.total || 0) >= GOOD_SCORE, goodScore: GOOD_SCORE });
   } catch (e: any) {
     console.error('[passport] resume score:', e);
-    res.status(500).json({ message: e.message || 'Could not score the resume. AI may not be configured yet.' });
+    res.status(500).json({ message: aiMissing(e) ? AI_MISSING_MESSAGE : (e.message || 'Could not score the resume.'), aiMissing: aiMissing(e) });
   }
 };
 
@@ -127,7 +131,7 @@ export const improve = async (req: Request, res: Response) => {
     res.json({ sections: improved });
   } catch (e: any) {
     console.error('[passport] resume improve:', e);
-    res.status(500).json({ message: e.message || 'Could not improve the resume. AI may not be configured yet.' });
+    res.status(500).json({ message: aiMissing(e) ? AI_MISSING_MESSAGE : (e.message || 'Could not improve the resume.'), aiMissing: aiMissing(e) });
   }
 };
 

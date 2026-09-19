@@ -184,6 +184,8 @@ const JourneyDay: React.FC = () => {
       setItems(Array.isArray(plan?.items) ? plan.items : []);
       setDayDone(!!plan?.isDayCompleted);
       setDayBonusXp(Number(plan?.dayBonusXp) || 0);
+      // Opening the day settled XP for work finished elsewhere (e.g. the checkpoint just taken): refresh the top bar.
+      if ((Number(plan?.xpJustPaid) || 0) > 0) reloadMember();
       // Land on the first unfinished task rather than always the first.
       const list: any[] = Array.isArray(plan?.items) ? plan.items : [];
       const firstOpen = list.findIndex(it => !it.isCompleted);
@@ -196,7 +198,7 @@ const JourneyDay: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [dayNumber]);
+  }, [dayNumber, reloadMember]);
 
   useEffect(() => { load(); }, [load]);
 

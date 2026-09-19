@@ -2308,6 +2308,8 @@ export interface FoundationJourneyDay {
   activities: FoundationJourneyActivity[];
   /** Extra XP for finishing every required task of the day. */
   dayBonusXp?: number;
+  /** XP this read settled — work finished elsewhere since the last read. The page refreshes XP and the goal on it. */
+  xpJustPaid?: number;
 }
 
 /** One day of a non-member's preview: what it teaches, and what it contains. Nothing to open. */

@@ -506,11 +506,12 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
     // Decoration on the day, never a reason to refuse it: if the status lookup fails the day is still served,
     // its tasks simply show as not yet done, and the next read settles the XP.
     let moduleStatus: Record<string, { attempted: boolean; status: string; score: number | null }> = {};
+    let xpJustPaid = 0;
     try {
       moduleStatus = enrollment ? await resolveModuleStatuses(studentId, items) : {};
       const dayComplete = items.length > 0 && items.every((it: any) => itemDone(it, plan.dayNumber, completedItems, moduleStatus));
       if (enrollment && enrollment.enrolledBy === 'foundation-journey') {
-        await reconcileJourneyDayXp({
+        xpJustPaid = await reconcileJourneyDayXp({
           tenantId, studentId, enrollmentId: String(enrollment._id), dayNumber: plan.dayNumber,
           items, completedItems, moduleStatus, dayComplete,
         });
@@ -537,6 +538,8 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
           xp: xpForJourneyItem(it),
         })),
       dayBonusXp: FOUNDATION_DAY_BONUS_XP,
+      /** XP this read settled (work finished elsewhere since the last read) — the page refreshes XP and goal on it. */
+      xpJustPaid,
     });
   } catch (e: any) {
     console.error('[foundation-journey] day:', e?.message || e);

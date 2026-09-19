@@ -48,7 +48,10 @@
 .md .md-goal-top b { color: #fff !important; }
 .md .md-goal-top span { color: #C4D5EE !important; font-weight: 600; }
 .md-goal-bar { margin-top: 8px; height: 10px; border-radius: 999px; background: rgba(255, 255, 255, .16); overflow: hidden; }
-.md-goal-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7FD3E0, #fff); }
+.md-goal-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7FD3E0, #fff); transition: width .5s ease; }
+.md .md-goal-top b { display: inline-flex; align-items: center; gap: 6px; }
+.md-goal.met .md-goal-bar i { background: linear-gradient(90deg, #2FB27F, #6FE0A6); box-shadow: 0 0 12px rgba(111, 224, 166, .55); }
+.md .md-goal.met .md-goal-top b { color: #B8F2D6 !important; }
 .md-hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
 .md-hero-score { display: flex; align-items: center; gap: 20px; background: rgba(255, 255, 255, .10); border: 1px solid rgba(255, 255, 255, .20); border-radius: 20px; padding: 18px 24px 18px 18px; backdrop-filter: blur(4px); max-width: 440px; }
 .md-score-ring { --md-deg: 0deg; flex: none; width: 140px; height: 140px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#7FD3E0 var(--md-deg), rgba(255, 255, 255, .16) 0); }

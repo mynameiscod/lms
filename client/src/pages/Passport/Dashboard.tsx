@@ -137,12 +137,17 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
         setJourney(j);
         if (j.engine === 'UNIT' && j.available && j.access !== 'PREVIEW' && j.currentDay) {
           const day = await passportApi.myFoundationJourneyDay(j.currentDay);
-          if (live) setJDay(day);
+          if (!live) return;
+          setJDay(day);
+          // Reading the day just paid XP for work finished elsewhere (a checkpoint, a lesson): the member payload —
+          // the XP pill, today's goal bar, the rail's Daily Goal — was loaded before that, so reload it. The next read
+          // pays nothing, so this cannot loop.
+          if ((day.xpJustPaid || 0) > 0) reload();
         }
       } catch { /* Home still renders; the topic missions stand in */ }
     })();
     return () => { live = false; };
-  }, [data]);
+  }, [data, reload]);
   useEffect(() => {
     const onFocus = () => reload();
     window.addEventListener('focus', onFocus);
@@ -239,9 +244,9 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
           <p>{goal.met
             ? 'Today’s goal is reached — anything else you do today is bonus.'
             : `${Math.max(0, goal.target - goal.earned)} XP to today’s goal. Finish your missions to get there.`}</p>
-          <div className="md-goal">
-            <div className="md-goal-top"><b>Today’s goal</b><span>{goal.earned} / {goal.target} XP · {goalPct}%</span></div>
-            <div className="md-goal-bar"><i style={{ width: `${goalPct}%` }} /></div>
+          <div className={`md-goal${goal.met ? ' met' : ''}`}>
+            <div className="md-goal-top"><b>{goal.met ? <><i className="bi bi-check-circle-fill" /> Today’s goal reached</> : 'Today’s goal'}</b><span>{goal.earned} / {goal.target} XP · {goalPct}%</span></div>
+            <div className="md-goal-bar" role="progressbar" aria-valuenow={goalPct} aria-valuemin={0} aria-valuemax={100} aria-label="Today's goal"><i style={{ width: `${Math.max(goal.earned > 0 ? 3 : 0, goalPct)}%` }} /></div>
           </div>
           <div className="md-hero-actions">
             {journeyMode && journey?.available && journey.enrollmentId

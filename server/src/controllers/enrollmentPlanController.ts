@@ -905,6 +905,7 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     // on demand and carry a launchPath to their own student UI.
     let populatedItems: any[] = [];
     let dayJustCompleted = false;
+    let xpJustPaid = 0;
 
     /**
      * A LOCKED DAY IS NOT SERVED, AND IS NOT COMPLETED BY BEING LOOKED AT.
@@ -964,7 +965,7 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       const allDone = dayItems.every((it: any) => itemDone(it, dayNumber, enrollment.completedItems, moduleStatus));
       // CareerPilot XP for the journey: each finished task and the finished day, paid once (see the service).
       if ((enrollment as any).enrolledBy === 'foundation-journey') {
-        await reconcileJourneyDayXp({
+        xpJustPaid = await reconcileJourneyDayXp({
           tenantId: String(tId), studentId: String(sId), enrollmentId: String(enrollment._id), dayNumber,
           items: dayItems, completedItems: enrollment.completedItems, moduleStatus, dayComplete: allDone,
         });
@@ -1000,6 +1001,7 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       items: populatedItems,
       isDayCompleted,
       dayBonusXp: (enrollment as any).enrolledBy === 'foundation-journey' ? FOUNDATION_DAY_BONUS_XP : undefined,
+      xpJustPaid,
       isLocked,
       lockReason,
       todayPlanDay,

@@ -128,85 +128,116 @@ const AIMentor: React.FC = () => {
   const started = messages.length > 0;
   const quick = useMemo(() => suggestions.slice(0, 4), [suggestions]);
 
-  return (
-    <div className="aim" ref={rootRef} style={fit ? { height: fit } : undefined}>
-      <header className="aim-head">
-        <span className="aim-mark"><i className="bi bi-compass" /></span>
-        <div className="aim-head-t">
-          <h1>AI Career Mentor</h1>
-          <p>Coaches your coding and problem-solving with hints rather than answers, and your career — it knows your program, your goals and your weak areas.</p>
-        </div>
-        {started && (
-          <button className="aim-clear" onClick={clear}><i className="bi bi-arrow-counterclockwise" /> Clear</button>
-        )}
-      </header>
+  /* Starter topics carry an icon so the grid reads at a glance; the text is the server's own suggestion. */
+  const STARTER_ICON = ['bi-bug', 'bi-signpost-split', 'bi-puzzle', 'bi-bullseye', 'bi-briefcase', 'bi-lightbulb'];
 
-      <div className="aim-thread" ref={scrollRef}>
-        {loading ? (
-          <div className="aim-load">Loading your conversation…</div>
-        ) : !started ? (
-          <div className="aim-empty">
-            <span className="aim-empty-mark"><i className="bi bi-compass" /></span>
-            <h2>Your personal coding and career coach</h2>
-            <p>
-              Stuck on a problem? I will coach you to think it through — hints and questions, never
-              the answer — plus interview preparation, projects and career guidance.
-            </p>
-            <div className="aim-chips">
-              {suggestions.map((s, i) => (
-                <button key={i} className="aim-chip" onClick={() => send(s)}>
-                  <i className="bi bi-stars" />{s}
-                </button>
+  /**
+   * A chat app, not a page with a chat on it: the mentor lives in a navy side panel (who it is, what it does, where to
+   * start), and the conversation owns the rest of the space with the composer docked under it.
+   */
+  return (
+    <div className="aim aim2" ref={rootRef} style={fit ? { height: fit } : undefined}>
+      <aside className="aim2-side">
+        <div className="aim2-me">
+          <span className="aim2-avatar"><i className="bi bi-compass" /><em aria-hidden="true" /></span>
+          <div><b>AI Career Mentor</b><span><i className="bi bi-circle-fill" /> Online · replies in seconds</span></div>
+        </div>
+        <p className="aim2-intro">Coaches your coding and problem-solving with hints, not answers — and your career. It knows your program, your goals and your weak areas.</p>
+        <ul className="aim2-can">
+          <li><i className="bi bi-lightbulb" /> Hints when you are stuck</li>
+          <li><i className="bi bi-signpost-split" /> Plan before you code</li>
+          <li><i className="bi bi-mic" /> Interview preparation</li>
+          <li><i className="bi bi-briefcase" /> Projects and career advice</li>
+        </ul>
+        {/* Before the first message the same starters fill the conversation as a grid; here they would repeat it. */}
+        {started && !!suggestions.length && (
+          <div className="aim2-starters">
+            <small>Try asking</small>
+            {suggestions.slice(0, 4).map((s, i) => (
+              <button key={i} type="button" onClick={() => send(s)} disabled={sending}>
+                <i className={`bi ${STARTER_ICON[i % STARTER_ICON.length]}`} /> <span>{s}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {started && (
+          <button className="aim2-clear" onClick={clear}><i className="bi bi-arrow-counterclockwise" /> New conversation</button>
+        )}
+      </aside>
+
+      <section className="aim2-chat">
+        <header className="aim2-chat-head">
+          <div><b>{started ? 'Your conversation' : 'Start a conversation'}</b><span>Hints and questions — never just the answer</span></div>
+          {started && <span className="aim2-count">{messages.length} message{messages.length === 1 ? '' : 's'}</span>}
+        </header>
+
+        <div className="aim-thread aim2-thread" ref={scrollRef}>
+          {loading ? (
+            <div className="aim-load">Loading your conversation…</div>
+          ) : !started ? (
+            <div className="aim2-empty">
+              <span className="aim2-empty-mark"><i className="bi bi-chat-square-heart" /></span>
+              <h2>What shall we work on today?</h2>
+              <p>Stuck on a problem? I will coach you to think it through — plus interview preparation, projects and career guidance.</p>
+              <div className="aim2-grid">
+                {suggestions.map((s, i) => (
+                  <button key={i} className="aim2-topic" onClick={() => send(s)}>
+                    <span className="ic"><i className={`bi ${STARTER_ICON[i % STARTER_ICON.length]}`} /></span>
+                    <span className="tx">{s}</span>
+                    <i className="bi bi-arrow-up-right go" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              {messages.map((m, i) => (
+                <div key={i} className={`aim-row ${m.role === 'user' ? 'me' : 'bot'}`}>
+                  <span className={`aim-av ${m.role === 'user' ? 'me' : 'bot'}`}>
+                    {m.role === 'user' ? <i className="bi bi-person-fill" /> : <i className="bi bi-compass" />}
+                  </span>
+                  <div className="aim-bubble">
+                    {m.role === 'user' ? m.content : renderContent(m.content)}
+                  </div>
+                </div>
+              ))}
+              {sending && (
+                <div className="aim-row bot">
+                  <span className="aim-av bot"><i className="bi bi-compass" /></span>
+                  <div className="aim-bubble">
+                    <span className="aim-typing"><i /><i /><i /></span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="aim2-dock">
+          {started && !!quick.length && (
+            <div className="aim-quick">
+              {quick.map((s, i) => (
+                <button key={i} className="aim-chip" onClick={() => send(s)} disabled={sending}>{s}</button>
               ))}
             </div>
-          </div>
-        ) : (
-          <>
-            {messages.map((m, i) => (
-              <div key={i} className={`aim-row ${m.role === 'user' ? 'me' : 'bot'}`}>
-                <span className={`aim-av ${m.role === 'user' ? 'me' : 'bot'}`}>
-                  {m.role === 'user' ? <i className="bi bi-person-fill" /> : <i className="bi bi-compass" />}
-                </span>
-                <div className="aim-bubble">
-                  {m.role === 'user' ? m.content : renderContent(m.content)}
-                </div>
-              </div>
-            ))}
-            {sending && (
-              <div className="aim-row bot">
-                <span className="aim-av bot"><i className="bi bi-compass" /></span>
-                <div className="aim-bubble">
-                  <span className="aim-typing"><i /><i /><i /></span>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {started && !!quick.length && (
-        <div className="aim-quick">
-          {quick.map((s, i) => (
-            <button key={i} className="aim-chip" onClick={() => send(s)} disabled={sending}>{s}</button>
-          ))}
+          )}
+          <form className="aim-composer" onSubmit={e => { e.preventDefault(); send(input); }}>
+            <textarea
+              ref={boxRef}
+              rows={1}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={onKey}
+              placeholder="Ask your mentor anything…"
+              disabled={sending}
+            />
+            <button className="aim-send" type="submit" disabled={sending || !input.trim()} aria-label="Send">
+              <i className="bi bi-send-fill" />
+            </button>
+          </form>
+          <p className="aim-hint">Enter to send · Shift + Enter for a new line</p>
         </div>
-      )}
-
-      <form className="aim-composer" onSubmit={e => { e.preventDefault(); send(input); }}>
-        <textarea
-          ref={boxRef}
-          rows={1}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={onKey}
-          placeholder="Ask your mentor anything…"
-          disabled={sending}
-        />
-        <button className="aim-send" type="submit" disabled={sending || !input.trim()} aria-label="Send">
-          <i className="bi bi-send-fill" />
-        </button>
-      </form>
-      <p className="aim-hint">Enter to send · Shift + Enter for a new line</p>
+      </section>
     </div>
   );
 };

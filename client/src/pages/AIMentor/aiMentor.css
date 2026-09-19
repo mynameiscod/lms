@@ -166,3 +166,90 @@
   .aim-empty h2 { font-size: 18px; }
   .aim-composer { padding: 8px 8px 8px 13px; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   2026 redesign — a chat app (.aim2): a logo-navy mentor panel on the left and the conversation filling the rest,
+   with the composer docked under it. Height still comes from useFillViewport, so it fills the screen.
+   ════════════════════════════════════════════════════════════════════════════ */
+.aim.aim2 {
+  max-width: 1760px; flex-direction: row; gap: 0; border-radius: 24px; overflow: hidden;
+  border: 1px solid var(--aim-border); background: #fff; box-shadow: 0 16px 40px rgba(15, 46, 77, .08);
+}
+.aim2 * { box-sizing: border-box; }
+:where(.aim2) button, :where(.aim2) textarea { font: inherit; }
+
+/* Mentor panel */
+.aim2-side {
+  flex: none; width: 340px; display: flex; flex-direction: column; gap: 18px; padding: 24px 22px; overflow-y: auto; color: #fff;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(53, 154, 173, .45), transparent 45%),
+    radial-gradient(circle at 0% 100%, rgba(25, 118, 210, .30), transparent 45%),
+    linear-gradient(170deg, #051D64 0%, #0B2D72 60%, #005897 100%);
+}
+.aim2-me { display: flex; align-items: center; gap: 14px; }
+.aim2-avatar { position: relative; flex: none; width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; font-size: 26px; color: #fff; background: linear-gradient(135deg, #359AAD, #1976D2); box-shadow: 0 10px 24px rgba(0, 0, 0, .25); }
+.aim2 .aim2-avatar i { font-size: 26px !important; width: auto; height: auto; line-height: 1; }
+.aim2-avatar em { position: absolute; right: -3px; bottom: -3px; width: 16px; height: 16px; border-radius: 50%; background: #2FB27F; border: 3px solid #0B2D72; }
+.aim2-me b { display: block; font-size: 18px; font-weight: 800; color: #fff; }
+.aim2-me span { display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 13px; color: #B8F2D6; }
+.aim2-me span i { font-size: 7px; color: #6FE0A6; }
+.aim2 .aim2-intro { margin: 0; font-size: 14.5px; line-height: 1.6; color: #D5E2F5 !important; }
+.aim2-can { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.aim2-can li { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 14px; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .14); font-size: 13px; font-weight: 600; line-height: 1.35; color: #fff; }
+.aim2-can li i { font-size: 17px; color: #7FD3E0; }
+.aim2-starters { display: flex; flex-direction: column; gap: 8px; }
+.aim2-starters small { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #9FDCE6; }
+.aim2-starters button { display: flex; align-items: flex-start; gap: 10px; text-align: left; padding: 11px 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .18); background: rgba(255, 255, 255, .06); color: #fff; font-size: 13.5px; line-height: 1.4; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+.aim2-starters button:hover:not(:disabled) { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .32); }
+.aim2-starters button i { color: #FFD166; margin-top: 2px; }
+.aim2-clear { margin-top: auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .35); background: rgba(255, 255, 255, .10); color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; }
+.aim2-clear:hover { background: rgba(255, 255, 255, .2); }
+
+/* Conversation */
+.aim2-chat { flex: 1; min-width: 0; display: flex; flex-direction: column; background: linear-gradient(180deg, #F7FAFD 0%, #fff 100%); }
+.aim2-chat-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 24px; border-bottom: 1px solid var(--aim-border); background: #fff; }
+.aim2-chat-head b { display: block; font-size: 16px; font-weight: 800; color: var(--aim-navy); }
+.aim2-chat-head span { display: block; margin-top: 2px; font-size: 13px; color: var(--aim-muted); }
+.aim2-count { font-size: 12.5px !important; font-weight: 700; color: var(--aim-primary) !important; background: #EAF3FD; border-radius: 999px; padding: 4px 11px; }
+.aim2 .aim2-thread { padding: 22px 24px 10px; border: 0 !important; background: none !important; border-radius: 0 !important; box-shadow: none !important; }
+.aim2 .aim-bubble { max-width: min(78%, 760px); font-size: 15px; }
+.aim2 .aim-row.bot .aim-bubble { background: #fff; border: 1px solid var(--aim-border); box-shadow: 0 4px 14px rgba(15, 46, 77, .05); border-top-left-radius: 5px; }
+.aim2 .aim-av { width: 36px; height: 36px; border-radius: 12px; }
+
+.aim2-empty { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px 10px; }
+.aim2-empty-mark { width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; font-size: 28px; color: var(--aim-primary); background: #EAF3FD; box-shadow: 0 10px 24px rgba(0, 88, 151, .12); }
+.aim2-empty h2 { margin: 16px 0 0; font-size: 24px; font-weight: 800; color: var(--aim-navy); }
+.aim2 .aim2-empty p { margin: 8px 0 0; max-width: 560px; font-size: 15px; line-height: 1.6; color: var(--aim-muted); }
+.aim2-grid { margin-top: 22px; width: 100%; max-width: 820px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.aim2-topic { display: flex; align-items: flex-start; gap: 12px; text-align: left; padding: 16px; border-radius: 16px; border: 1px solid var(--aim-border); background: #fff; color: var(--aim-ink); cursor: pointer; box-shadow: 0 3px 12px rgba(15, 46, 77, .05); transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
+.aim2-topic:hover { transform: translateY(-2px); border-color: #9DBBD0; box-shadow: 0 12px 26px rgba(15, 46, 77, .10); }
+.aim2-topic .ic { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; background: #EAF3FD; color: var(--aim-primary); }
+.aim2-topic:nth-child(2) .ic { background: #EAF7F8; color: #287F91; }
+.aim2-topic:nth-child(3) .ic { background: #FFF7E8; color: #B86B00; }
+.aim2-topic:nth-child(4) .ic { background: #F1EDFF; color: #6246C9; }
+.aim2-topic .tx { flex: 1; font-size: 14.5px; font-weight: 600; line-height: 1.45; }
+.aim2-topic .go { color: #9AAEC2; }
+.aim2-topic:hover .go { color: var(--aim-primary); }
+
+.aim2-dock { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 12px 24px 14px; border-top: 1px solid var(--aim-border); background: #fff; }
+.aim2 .aim-composer { box-shadow: none; background: #F4F8FC; border-color: var(--aim-border-strong); border-radius: 16px; }
+.aim2 .aim-composer:focus-within { border-color: var(--aim-primary); background: #fff; box-shadow: 0 0 0 3px rgba(0, 88, 151, .12); }
+.aim2 .aim-send { width: 44px; height: 44px; border-radius: 12px; }
+.aim2 .aim-hint { margin: 0; text-align: center; }
+
+@media (max-width: 1100px) {
+  .aim2-side { width: 280px; }
+  .aim2-can { grid-template-columns: 1fr; }
+}
+@media (max-width: 820px) {
+  .aim.aim2 { flex-direction: column; height: auto !important; min-height: 0; }
+  .aim2-side { width: 100%; gap: 14px; padding: 18px; }
+  .aim2-can, .aim2-starters, .aim2 .aim2-intro { display: none; }
+  .aim2-clear { margin-top: 0; }
+  .aim2-chat { min-height: 70vh; }
+  .aim2-grid { grid-template-columns: 1fr; }
+  .aim2-chat-head, .aim2 .aim2-thread, .aim2-dock { padding-left: 14px; padding-right: 14px; }
+}
+/* A shell-wide rule dashes anything whose class contains "empty"; this empty state is open space, not a placeholder box. */
+.aim2 .aim2-empty { border: 0 !important; background: none !important; box-shadow: none !important; }
+.aim2 .aim2-empty-mark { border: 0 !important; width: 64px !important; height: 64px !important; }

@@ -17,6 +17,9 @@ router.post('/hackathon-exams/otp/verify', ctrl.verifyExamOtp);
 
 /* The paper. `:token` is the exam token issued at verification. */
 router.get('/hackathon-exams/attempt/:token', ctrl.getExamOverview);
+/* Proving who you are when you arrived on your own link, and never saw a team code. */
+router.post('/hackathon-exams/attempt/:token/otp/request', ctrl.requestExamOtpByToken);
+router.post('/hackathon-exams/attempt/:token/otp/verify', ctrl.verifyExamOtpByToken);
 router.post('/hackathon-exams/attempt/:token/start', ctrl.startExam);
 router.post('/hackathon-exams/attempt/:token/heartbeat', ctrl.examHeartbeat);
 router.post('/hackathon-exams/attempt/:token/answer', ctrl.saveExamAnswer);

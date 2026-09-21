@@ -256,8 +256,11 @@
 .hxi * { box-sizing: border-box; }
 
 /* ── header ──────────────────────────────────────────────────────────────── */
-.hxi-top { background: linear-gradient(115deg,#0a1a4f,#12276e 52%,#1a3fa0);
-  color: #fff; padding: 20px 26px; display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
+.hxi-top { background: linear-gradient(115deg,#0a1a4f,#12276e 52%,#1a3fa0); color: #fff;
+  padding: 20px 26px; }
+.hxi-top, .hxi-strip { --hxi-w: 1100px; }
+.hxi-top-in, .hxi-strip-in { max-width: var(--hxi-w); margin: 0 auto;
+  display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
 .hxi-brand { display: flex; align-items: center; gap: 16px; flex: none; }
 .hxi-brand img { height: 46px; width: auto; max-width: 190px; object-fit: contain; }
 .hxi-rule { width: 1px; height: 38px; background: rgba(255,255,255,.28); }
@@ -277,7 +280,6 @@
 
 /* ── the facts strip ─────────────────────────────────────────────────────── */
 .hxi-strip { background: #0c2160; color: #fff; padding: 14px 26px;
-  display: flex; align-items: center; gap: 26px; flex-wrap: wrap;
   border-top: 1px solid rgba(255,255,255,.08); }
 .hxi-motto { margin: 0; flex: none; font-size: 13px; font-weight: 700; line-height: 1.45; color: #bfdbfe; }
 .hxi-facts { flex: 1 1 420px; display: flex; flex-wrap: wrap; gap: 10px 30px; }
@@ -321,6 +323,16 @@
 .hxi-rules li::marker { color: #3b82f6; }
 .hxi-rich { font-size: 13.5px; color: #334155; line-height: 1.7; }
 
+.hxi-verify { border: 1px solid #dbeafe; background: #f5f9ff; border-radius: 14px; padding: 18px; }
+.hxi-verify p { margin: 0 0 13px; font-size: 13.5px; color: #3f5878; line-height: 1.6; }
+.hxi-verify .hxi-start { margin-top: 0; }
+.hxi-otp { width: 100%; border: 1.5px solid #cfe0f5; border-radius: 11px; padding: 13px;
+  letter-spacing: 9px; text-align: center; font-size: 22px; font-weight: 800; color: #0f172a;
+  margin-bottom: 12px; font-family: inherit; background: #fff; }
+.hxi-otp:focus { outline: none; border-color: #1d4ed8; box-shadow: 0 0 0 3px rgba(29,78,216,.1); }
+.hxi-resend { display: block; width: 100%; margin-top: 10px; background: none; border: none;
+  color: #64748b; font-size: 13px; cursor: pointer; text-decoration: underline; font-family: inherit; }
+
 .hxi-err { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
   border-radius: 11px; padding: 11px 13px; font-size: 13.5px; margin-bottom: 14px; }
 
@@ -343,10 +355,12 @@
    of scrolling between a candidate and the Start button. */
 
 @media (max-width: 860px) {
-  .hxi-top { flex-direction: column; gap: 16px; text-align: center; padding: 18px 20px; }
+  .hxi-top { padding: 18px 20px; }
+  .hxi-top-in { flex-direction: column; gap: 16px; text-align: center; }
   .hxi-title { text-align: center; }
   .hxi-values { text-align: center; }
-  .hxi-strip { flex-direction: column; align-items: flex-start; gap: 14px; padding: 14px 20px; }
+  .hxi-strip { padding: 14px 20px; }
+  .hxi-strip-in { flex-direction: column; align-items: flex-start; gap: 14px; }
   .hxi-motto { text-align: left; }
 }
 @media (max-width: 560px) {

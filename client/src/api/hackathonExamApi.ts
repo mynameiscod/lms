@@ -86,6 +86,7 @@ export interface ExamOverview {
     proctoring: any;
   };
   attempt: {
+    otpVerified: boolean;
     status: string; startedAt: string | null; submittedAt: string | null;
     endsAt: string | null; violations: number;
   };
@@ -116,6 +117,15 @@ export const hackathonExamApi = {
   verifyOtp: (slug: string, teamCode: string, mobile: string, code: string) =>
     call<{ examToken: string; memberName: string; teamName: string }>(`${PUBLIC}/otp/verify`, {
       method: 'POST', body: JSON.stringify({ slug, teamCode, mobile, code }),
+    }),
+
+  /* Verifying from a personal link, where the candidate has never seen a team code. */
+  requestOtpByToken: (token: string) =>
+    call<{ sent: boolean; channel: string; maskedMobile: string }>(`${PUBLIC}/attempt/${token}/otp/request`, { method: 'POST' }),
+
+  verifyOtpByToken: (token: string, code: string) =>
+    call<{ examToken: string; memberName: string; teamName: string }>(`${PUBLIC}/attempt/${token}/otp/verify`, {
+      method: 'POST', body: JSON.stringify({ code }),
     }),
 
   overview: (token: string) => call<ExamOverview>(`${PUBLIC}/attempt/${token}`),

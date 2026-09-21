@@ -227,6 +227,38 @@ const HackathonExam: React.FC = () => {
 
   /* ── the paper ─────────────────────────────────────────────────────────── */
 
+  /*
+   * Proving who you are when you arrived on your own link.
+   *
+   * The link is enough to read the instructions and not enough to start — it can be
+   * forwarded. Before this, the only way to give that proof was the entry form, which asks
+   * for an event slug and a team code that someone who followed their own link has never
+   * seen. They pressed Start and were told to verify a mobile number, with nothing on the
+   * page to verify it with. The code goes to the number already on the attempt; nothing is
+   * asked for and nothing can be supplied.
+   */
+  const [vSent, setVSent] = useState('');
+  const [vCode, setVCode] = useState('');
+
+  const askLinkOtp = async () => {
+    setBusy(true); setErr('');
+    try {
+      const r = await api.requestOtpByToken(token);
+      setVSent(r.maskedMobile);
+    } catch (e: any) { setErr(e.message || 'Could not send the code.'); }
+    setBusy(false);
+  };
+
+  const verifyLinkOtp = async () => {
+    setBusy(true); setErr('');
+    try {
+      await api.verifyOtpByToken(token, vCode);
+      setVSent(''); setVCode('');
+      await loadOverview(token);
+    } catch (e: any) { setErr(e.message || 'Could not verify that code.'); }
+    setBusy(false);
+  };
+
   const begin = async () => {
     setBusy(true); setErr('');
     try {
@@ -602,6 +634,7 @@ const HackathonExam: React.FC = () => {
     return (
       <div className="hxi">
         <header className="hxi-top">
+         <div className="hxi-top-in">
           <div className="hxi-brand">
             {hk.collegeLogoUrl && <img src={hk.collegeLogoUrl} alt="" onError={hideImg} />}
             {hk.collegeLogoUrl && <span className="hxi-rule" />}
@@ -619,9 +652,11 @@ const HackathonExam: React.FC = () => {
             <span>People · Technology · Society</span>
             <span>A Brighter Tomorrow</span>
           </div>
+         </div>
         </header>
 
         <div className="hxi-strip">
+         <div className="hxi-strip-in">
           <p className="hxi-motto">Real Problems.<br />Brighter Minds.<br />Bigger Possibilities.</p>
           <div className="hxi-facts">
             <div><b>{overview.candidate.name}</b><span>Participant</span></div>
@@ -631,6 +666,7 @@ const HackathonExam: React.FC = () => {
             <div><b>{e.totalQuestions} questions</b><span>Total questions</span></div>
             <div><b>{e.totalMarks} marks</b><span>Total marks</span></div>
           </div>
+         </div>
         </div>
 
         <div className="hxi-body">
@@ -686,10 +722,35 @@ const HackathonExam: React.FC = () => {
 
             {err && <div className="hxi-err">{err}</div>}
 
-            <button className="hxi-start" disabled={busy} onClick={begin}>
-              {I.play}{busy ? 'Opening…' : started ? 'Resume my exam' : 'Start my exam'}
-              <span className="hxi-arrow">›</span>
-            </button>
+            {!overview.attempt.otpVerified ? (
+              <div className="hxi-verify">
+                {!vSent ? (
+                  <>
+                    <p>Before you start, we need to check it is you. We will send a code to the
+                      mobile number your team registered with.</p>
+                    <button className="hxi-start" disabled={busy} onClick={askLinkOtp}>
+                      {busy ? 'Sending…' : 'Send me a code'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p>We sent a code to <b>{vSent}</b>.</p>
+                    <input className="hxi-otp" value={vCode} inputMode="numeric" autoFocus
+                      placeholder="······"
+                      onChange={(e) => setVCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                    <button className="hxi-start" disabled={busy || vCode.length < 4} onClick={verifyLinkOtp}>
+                      {busy ? 'Checking…' : 'Verify and continue'}
+                    </button>
+                    <button className="hxi-resend" disabled={busy} onClick={askLinkOtp}>Send another code</button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <button className="hxi-start" disabled={busy} onClick={begin}>
+                {I.play}{busy ? 'Opening…' : started ? 'Resume my exam' : 'Start my exam'}
+                <span className="hxi-arrow">›</span>
+              </button>
+            )}
             {started && <p className="hxi-note">You already started — your original time still applies.</p>}
             <p className="hxi-foot">Think · Solve · Create &nbsp;|&nbsp; Ideas Today. A Better Tomorrow.</p>
           </main>

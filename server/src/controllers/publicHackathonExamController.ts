@@ -137,6 +137,63 @@ export const verifyExamOtp = async (req: Request, res: Response) => {
 };
 
 /**
+ * Verifying by exam token, for somebody who arrived on their own link.
+ *
+ * ── WHY THESE EXIST ALONGSIDE THE SLUG/TEAM-CODE PAIR ─────────────────────────────────────
+ *
+ * The invite sends a personal link, and that link is enough to READ the instructions but not
+ * to start: a WhatsApp message can be forwarded, so the exam still wants the OTP as proof of
+ * who is sitting down. Until now the only way to give that proof was the entry form, which
+ * asks for the event slug and the team code — two things a candidate who followed their own
+ * link has never seen and has no reason to know. They reached the instructions, pressed
+ * Start, and were told to verify a mobile number with nothing on the page to verify it with.
+ *
+ * Nothing about the check is new or weaker. The OTP was always keyed on the attempt's own
+ * token — sendOtp and verifyOtp take it directly — and the slug and team code were only ever
+ * a way to FIND the attempt. The token identifies it already, so these two hand the same
+ * machinery the same key by a shorter route. The code still goes to the registered mobile on
+ * the attempt, never to a number supplied by the caller.
+ */
+export const requestExamOtpByToken = async (req: Request, res: Response) => {
+  try {
+    const attempt = await exams.attemptByToken(req.params.token);
+    const r = await sendOtp(String(attempt.tenantId), attempt.examToken, attempt.memberMobile);
+    res.json({
+      success: true,
+      data: {
+        sent: true,
+        channel: r?.channel || 'whatsapp',
+        maskedMobile: attempt.memberMobile.replace(/\d(?=\d{4})/g, '•'),
+      },
+    });
+  } catch (e) { fail(res, e); }
+};
+
+export const verifyExamOtpByToken = async (req: Request, res: Response) => {
+  try {
+    const attempt = await exams.attemptByToken(req.params.token);
+    const result = await verifyOtp(attempt.examToken, String(req.body?.code || ''));
+    if (result !== 'ok') {
+      const messages: Record<string, string> = {
+        invalid: 'That code is not right. Check it and try again.',
+        expired: 'That code has expired. Ask for a new one.',
+        too_many_attempts: 'Too many tries. Ask for a new code.',
+        not_found: 'Ask for a code first.',
+      };
+      throw new ExamError(result.toUpperCase(), messages[result] || 'Verification failed.', 400);
+    }
+
+    if (!attempt.otpVerifiedAt) {
+      attempt.otpVerifiedAt = new Date();
+      if (attempt.status === 'invited') attempt.status = 'verified';
+      await attempt.save();
+    }
+
+    res.json({ success: true, data: { examToken: attempt.examToken, memberName: attempt.memberName, teamName: attempt.teamName } });
+  } catch (e) { fail(res, e); }
+};
+
+/**
  * The instructions page, and everything needed to decide what to show.
  *
  * Returned whether or not the window is open: a candidate arriving early needs the countdown
@@ -153,7 +210,7 @@ export const getExamOverview = async (req: Request, res: Response) => {
       success: true,
       data: {
         candidate: { name: attempt.memberName, teamName: attempt.teamName, teamCode: attempt.registrationCode },
-        hackathon: { title: h?.title, bannerUrl: h?.bannerUrl },
+        hackathon: { title: h?.title, bannerUrl: h?.bannerUrl, collegeLogoUrl: h?.collegeLogoUrl },
         exam: {
           title: exam.title, instructions: exam.instructions,
           startAt: exam.startAt, endAt: exam.endAt,
@@ -165,6 +222,7 @@ export const getExamOverview = async (req: Request, res: Response) => {
           proctoring: exam.proctoring,
         },
         attempt: {
+          otpVerified: !!attempt.otpVerifiedAt,
           status: attempt.status,
           startedAt: attempt.startedAt,
           submittedAt: attempt.submittedAt,

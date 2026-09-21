@@ -254,6 +254,10 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'DB_TRANSACTIONS', name: 'Transactions', parentKey: 'DATABASES', difficulty: 'ADVANCED', displayOrder: 80,
     description: 'ACID properties, isolation levels and concurrent access.',
     prerequisiteKeys: ['DB_FUNDAMENTALS'] },
+  // Year-1 Data direction. Its own key so a draft topic's questions stay out of live papers until published.
+  { key: 'DATA_WRANGLING', name: 'Working With Data', parentKey: 'DATABASES', difficulty: 'FOUNDATION', displayOrder: 90,
+    description: 'Loading a table of data, cleaning it, summarising it and choosing the chart that answers a question.',
+    prerequisiteKeys: ['PYTHON_BASICS'] },
 
   // ── Computer Science Fundamentals ─────────────────────────────────────────────
   GROUP('CS_FUNDAMENTALS', 'Computer Science Fundamentals', 40, 'The concepts interviews probe and every language sits on top of.'),
@@ -304,6 +308,10 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
     aliases: ['Networking'] },
   { key: 'COMPUTER_ARCHITECTURE', name: 'Computer Architecture Basics', parentKey: 'CS_FUNDAMENTALS', difficulty: 'INTERMEDIATE', displayOrder: 50,
     description: 'Memory hierarchy, CPU basics and what makes code fast or slow.' },
+  // Year-1 Cybersecurity direction: the attacker's view of systems a first-year already uses.
+  { key: 'SECURITY_FUNDAMENTALS', name: 'Security Thinking', parentKey: 'CS_FUNDAMENTALS', difficulty: 'FOUNDATION', displayOrder: 60,
+    description: 'Confidentiality, integrity and availability; passwords and hashing; phishing; untrusted input; least privilege.',
+    prerequisiteKeys: ['COMPUTER_NETWORKS'] },
 
   // ── Web Fundamentals ──────────────────────────────────────────────────────────
   GROUP('WEB_FUNDAMENTALS', 'Web Fundamentals', 50, 'How the web works, below any framework.'),
@@ -330,6 +338,14 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'BROWSER_FUNDAMENTALS', name: 'Browser Fundamentals', parentKey: 'WEB_FUNDAMENTALS', difficulty: 'INTERMEDIATE', displayOrder: 50,
     description: 'Rendering, developer tools, storage and the same-origin policy.',
     prerequisiteKeys: ['HTML'] },
+  // Year-1 Software & Backend direction: a first server, before REST design.
+  { key: 'SERVER_SIDE_BASICS', name: 'Server-Side Programming', parentKey: 'WEB_FUNDAMENTALS', difficulty: 'FOUNDATION', displayOrder: 35,
+    description: 'Routes and handlers, JSON responses, reading input, honest status codes and keeping data between requests.',
+    prerequisiteKeys: ['HTTP', 'PYTHON_BASICS'] },
+  // Year-1 Mobile direction: how an app is structured, before any one platform in depth.
+  { key: 'MOBILE_APP_BASICS', name: 'Mobile App Structure', parentKey: 'WEB_FUNDAMENTALS', difficulty: 'FOUNDATION', displayOrder: 60,
+    description: 'Screens and navigation, layout for a small screen, state, the app lifecycle and fetching data from a server.',
+    prerequisiteKeys: ['PROGRAMMING_FUNDAMENTALS'] },
 
   // ── Software Engineering Practices ────────────────────────────────────────────
   GROUP('SE_PRACTICES', 'Software Engineering Practices', 60, 'How working engineers build and keep software running.'),

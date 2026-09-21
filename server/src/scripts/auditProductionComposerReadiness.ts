@@ -60,7 +60,7 @@ import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
 import { teaches } from '../data/contentBundlePolicy';
 import { effectiveCurriculumEngine } from '../data/curriculumEnginePolicy';
 import {
-  INTENTIONALLY_WITHHELD_READY, deriveRecommendedPublishSet, publicationDrift,
+  INTENTIONALLY_WITHHELD_READY, deriveRecommendedPublishSet, publicationDrift, isPendingReview,
 } from '../data/productionPublicationPolicy';
 
 dotenv.config();
@@ -154,7 +154,13 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
 
   const readySet = await loadCandidates(tenantId, 'PROTOTYPE_UNPUBLISHED');
   const production = await loadCandidates(tenantId, 'PRODUCTION');
-  const universe: ComposableUnit[] = [...readySet.units].sort((a, b) => a.unitCode.localeCompare(b.unitCode));
+  /*
+   * Units awaiting review are outside certification (PENDING_REVIEW_UNITS): composing scenarios over unapproved
+   * drafts would let them displace published units and propose returning live lessons to DRAFT.
+   */
+  const pendingReview = readySet.units.filter(u => isPendingReview(u.unitCode)).length;
+  const universe: ComposableUnit[] = [...readySet.units].filter(u => !isPendingReview(u.unitCode))
+    .sort((a, b) => a.unitCode.localeCompare(b.unitCode));
   const byCode = new Map(universe.map(u => [u.unitCode, u]));
   const readyCodes = universe.map(u => u.unitCode);
 
@@ -179,6 +185,7 @@ const title = (s: string) => { console.log(''); line(); console.log(`  ${s}`); l
 
   title('1. PRODUCTION CANDIDATES — readiness recomputed from the database');
   console.log(`    READY (evaluated now, any status but ARCHIVED)   ${universe.length}`);
+  console.log(`    pending review, outside certification             ${pendingReview}`);
   console.log(`    PARTIAL                                           ${rejectedBy(r => r.readiness === 'PARTIAL')}`);
   console.log(`    EMPTY / TEACHABLE / ASSESSABLE                    ${rejectedBy(r => r.readiness === 'EMPTY')}`
     + ` / ${rejectedBy(r => r.readiness === 'TEACHABLE')} / ${rejectedBy(r => r.readiness === 'ASSESSABLE')}`);

@@ -39,6 +39,11 @@ import { CAPACITY_BUNDLES } from './year1ContentCapacityUnits';
 import { SOFTWARE_CORE_BUNDLES } from './year1ContentSoftwareCore';
 import { APTITUDE_BUNDLES } from './year1ContentAptitude';
 import { LOGIC_MATH_BUNDLES } from './year1ContentLogicMath';
+/* Direction topics that had no units of their own. Seeded as DRAFT units; an admin publishes. */
+import { FIRST_BACKEND_BUNDLES } from './year1ContentFirstBackend';
+import { MOBILE_APPS_BUNDLES } from './year1ContentMobileApps';
+import { DATA_WRANGLING_BUNDLES } from './year1ContentDataWrangling';
+import { SECURITY_THINKING_BUNDLES } from './year1ContentSecurityThinking';
 
 export const ALL_BUNDLES: PilotBundle[] = [
   ...YEAR1_BUNDLES, ...PROGRAMMING_SPINE_BUNDLES, ...VERIFICATION_BUNDLES,
@@ -50,4 +55,5 @@ export const ALL_BUNDLES: PilotBundle[] = [
   ...COMMUNICATION_CAPSTONE_BUNDLES, ...AI_BUNDLES,
   ...VARIABLES_GIT_BUNDLES, ...CAPACITY_BUNDLES, ...SOFTWARE_CORE_BUNDLES,
   ...APTITUDE_BUNDLES, ...LOGIC_MATH_BUNDLES,
+  ...FIRST_BACKEND_BUNDLES, ...MOBILE_APPS_BUNDLES, ...DATA_WRANGLING_BUNDLES, ...SECURITY_THINKING_BUNDLES,
 ];

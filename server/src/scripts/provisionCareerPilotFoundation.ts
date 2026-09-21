@@ -46,6 +46,7 @@ import {
 import { effectiveCurriculumEngine } from '../data/curriculumEnginePolicy';
 import { CAREER_STAGES } from '../services/careerStageService';
 import { getStageSkillSet } from '../services/stageSkillSetService';
+import { PENDING_REVIEW_UNITS, isPendingReview } from '../data/productionPublicationPolicy';
 
 const ACTOR = 'careerpilot-foundation-provisioning';
 const SERVER_ROOT = path.join(__dirname, '..', '..');
@@ -104,8 +105,9 @@ function runScript(script: string, args: string[]): { exitCode: number; ms: numb
   const state = async () => {
     const readiness = await foundationReadiness(tenantId);
     const [units, ready, production, linkage, bank, stageSet] = await Promise.all([
-      db.collection('curriculumlearningunits').countDocuments({ tenantId, stageKey: 'foundation' }),
-      loadCandidates(tenantId, 'PROTOTYPE_UNPUBLISHED').then(s => s.units.length),
+      // The certified inventory only: units awaiting review are outside it (PENDING_REVIEW_UNITS).
+      db.collection('curriculumlearningunits').countDocuments({ tenantId, stageKey: 'foundation', unitCode: { $nin: [...PENDING_REVIEW_UNITS] } }),
+      loadCandidates(tenantId, 'PROTOTYPE_UNPUBLISHED').then(s => s.units.filter(u => !isPendingReview(u.unitCode)).length),
       loadCandidates(tenantId, 'PRODUCTION').then(s => s.units.map(u => u.unitCode).sort()),
       checkCurriculumQuizLinkage(tenantId),
       db.collection('assessmentitems').countDocuments({ tenantId }),

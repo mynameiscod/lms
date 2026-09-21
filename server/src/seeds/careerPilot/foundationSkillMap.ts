@@ -213,6 +213,25 @@ export const FOUNDATION_MODULES: FoundationModuleSeed[] = [
         defaultDepth: 'GUIDED',
         learningOutcomes: ['Explain what happens between a click and a page appearing.'],
       },
+      /*
+       * The two direction topics that had nothing of their own. Before these, a student choosing
+       * Software & Backend or Mobile got the universal curriculum only — the same plan as anybody
+       * else who chose an empty direction. Seeded as DRAFT; an admin reviews and publishes.
+       */
+      {
+        topicCode: 'T_FIRST_BACKEND', title: 'Your First Backend',
+        skillKeys: ['SERVER_SIDE_BASICS'], category: 'DIRECTION', applicableDirections: ['SOFTWARE_BACKEND'],
+        defaultDepth: 'FOUNDATION',
+        learningOutcomes: ['Build a small server that answers requests in JSON, and says honestly when something is wrong.'],
+        prerequisiteSkillKeys: ['HTTP', 'PYTHON_BASICS'],
+      },
+      {
+        topicCode: 'T_MOBILE_APPS', title: 'How a Mobile App Is Built',
+        skillKeys: ['MOBILE_APP_BASICS'], category: 'DIRECTION', applicableDirections: ['MOBILE'],
+        defaultDepth: 'FOUNDATION',
+        learningOutcomes: ['Explain how an app is put together, and build a small screen that shows data from a server.'],
+        prerequisiteSkillKeys: ['PROGRAMMING_FUNDAMENTALS'],
+      },
     ],
   },
   {
@@ -259,6 +278,14 @@ export const FOUNDATION_MODULES: FoundationModuleSeed[] = [
         defaultDepth: 'STANDARD',
         learningOutcomes: ['Ask a database a question and understand the answer.'],
       },
+      /* Data's own topic. Until now Data and AI/ML shared exactly the same units, so the two plans were identical. */
+      {
+        topicCode: 'T_DATA_WRANGLING', title: 'Working With Real Data',
+        skillKeys: ['DATA_WRANGLING'], category: 'DIRECTION', applicableDirections: ['DATA'],
+        defaultDepth: 'FOUNDATION',
+        learningOutcomes: ['Load a messy table, clean it, summarise it and choose the chart that answers a question.'],
+        prerequisiteSkillKeys: ['PYTHON_BASICS'],
+      },
     ],
   },
   {
@@ -301,6 +328,14 @@ export const FOUNDATION_MODULES: FoundationModuleSeed[] = [
         applicableDirections: ['CLOUD_DEVOPS', 'CYBERSECURITY'],
         defaultDepth: 'GUIDED',
         learningOutcomes: ['Explain how two machines find and talk to each other.'],
+      },
+      /* Cybersecurity's own topic. Until now it and Cloud & DevOps shared only Networking, so the two plans were identical. */
+      {
+        topicCode: 'T_SECURITY_THINKING', title: 'Thinking Like an Attacker',
+        skillKeys: ['SECURITY_FUNDAMENTALS'], category: 'DIRECTION', applicableDirections: ['CYBERSECURITY'],
+        defaultDepth: 'FOUNDATION',
+        learningOutcomes: ['Look at a system the way an attacker would, and name the simple defences that stop most attacks.'],
+        prerequisiteSkillKeys: ['COMPUTER_NETWORKS'],
       },
     ],
   },

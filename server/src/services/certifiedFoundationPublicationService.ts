@@ -31,6 +31,7 @@ import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
 import { teaches } from '../data/contentBundlePolicy';
 import { INTENTIONALLY_WITHHELD_READY } from '../data/productionPublicationPolicy';
 import { publishUnit, setUnitStatus } from '../controllers/curriculumLearningUnitController';
+import { isPendingReview } from '../data/productionPublicationPolicy';
 
 /**
  * Re-certified after the nine T_VARIABLES concept units were authored.
@@ -67,7 +68,17 @@ import { publishUnit, setUnitStatus } from '../controllers/curriculumLearningUni
  * scheduled on no journey. With the product owner's approval it joins the READY-not-recommended units, returned to
  * DRAFT with its content untouched: the certified set is 346.
  */
-export const CERTIFIED_FOUNDATION = { total: 359, ready: 354, target: 346, withheld: 3, notRecommended: 5, partial: 5 } as const;
+/*
+ * Re-certified after chosen directions were given a larger share of the programme (SELECTED stance, 80ff93cb): a web
+ * learner now reaches T_HTML_IMAGES, READY and authored since the backbone certification and left unrecommended only
+ * because no scenario reached it. With the product owner's approval it is published: the certified set is 347. READY
+ * 354, the named three, the partial five and the absolute minimum are unchanged.
+ *
+ * Thirty-six direction units (Backend, Mobile, Data, Security) were authored and seeded as DRAFT in the same change.
+ * They are PENDING_REVIEW_UNITS — outside the certified inventory, not counted here, and never published by
+ * provisioning — until an admin approves them.
+ */
+export const CERTIFIED_FOUNDATION = { total: 359, ready: 354, target: 347, withheld: 3, notRecommended: 4, partial: 5 } as const;
 
 /** Committed with the code, so every deployment certifies against the same set. */
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');
@@ -128,13 +139,15 @@ export async function planCertifiedPublication(tenantId: string): Promise<Certif
   }
   if (readyCount !== E.ready || readyFixture.length !== E.ready) problems.push(`certified READY ${readyCount}/${readyFixture.length}, expected ${E.ready}`);
 
-  const docs = await CurriculumLearningUnit.find({ tenantId, stageKey: 'foundation' }).sort({ unitCode: 1 }).lean() as any[];
+  // Units awaiting review are outside the certified inventory; see PENDING_REVIEW_UNITS.
+  const docs = (await CurriculumLearningUnit.find({ tenantId, stageKey: 'foundation' }).sort({ unitCode: 1 }).lean() as any[])
+    .filter(d => !isPendingReview(d.unitCode));
   const byCode = new Map(docs.map(d => [String(d.unitCode), d]));
   const readyBefore = await loadCandidates(tenantId, 'PROTOTYPE_UNPUBLISHED');
-  const readyUnits = [...readyBefore.units].sort((a, b) => a.unitCode.localeCompare(b.unitCode));
+  const readyUnits = [...readyBefore.units].filter(u => !isPendingReview(u.unitCode)).sort((a, b) => a.unitCode.localeCompare(b.unitCode));
   const readyCodes = new Set(readyUnits.map(u => u.unitCode));
-  const partial = readyBefore.rejected.filter(r => r.readiness === 'PARTIAL').map(r => r.unitCode).sort();
-  const otherRejected = readyBefore.rejected.filter(r => r.readiness !== 'PARTIAL');
+  const partial = readyBefore.rejected.filter(r => r.readiness === 'PARTIAL' && !isPendingReview(r.unitCode)).map(r => r.unitCode).sort();
+  const otherRejected = readyBefore.rejected.filter(r => r.readiness !== 'PARTIAL' && !isPendingReview(r.unitCode));
 
   if (docs.length !== E.total) problems.push(`total units ${docs.length}, expected ${E.total}`);
   if (readyUnits.length !== E.ready) problems.push(`READY ${readyUnits.length}, expected ${E.ready}`);

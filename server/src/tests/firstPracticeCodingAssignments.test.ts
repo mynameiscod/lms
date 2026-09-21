@@ -13,6 +13,7 @@ import READY_JSON from './fixtures/phase21/ready-inventory.json';
 import SETS from './fixtures/phase21/publish-sets.json';
 import METADATA from './fixtures/year1UnitMetadata.json';
 import { ALL_BUNDLES } from '../seeds/careerPilot/allBundles';
+import { isPendingReview } from '../data/productionPublicationPolicy';
 import { PilotAssignmentCoding, PilotBundle } from '../seeds/careerPilot/pilotUnitContent';
 import { ComposableUnit } from '../services/curriculumComposerService';
 import { REALISTIC_PROFILES, compose, skillUniverse } from '../services/composerCertificationService';
@@ -24,7 +25,9 @@ const READY = READY_JSON as unknown as ComposableUnit[];
 const PRODUCTION = READY.filter(u => new Set(SETS.recommended).has(u.unitCode));
 const UNITS = METADATA as unknown as { unitCode: string; topicCode: string; unitType: string; skillKeys: string[] }[];
 const unitOf = new Map(UNITS.map(u => [u.unitCode, u]));
-const bundles = ALL_BUNDLES as PilotBundle[];
+/* The certified inventory's bundles. Units awaiting review are outside it, and outside the metadata snapshot;
+   the content-quality suite still checks everything they contain. */
+const bundles = (ALL_BUNDLES as PilotBundle[]).filter(b => !isPendingReview(b.unitCode));
 const bundleOf = new Map(bundles.map(b => [b.unitCode, b]));
 
 const FIRST_PRACTICE: Record<string, string> = {

@@ -52,6 +52,7 @@ import { loadCandidates } from '../services/composerCandidateService';
 import { ComposableUnit } from '../services/curriculumComposerService';
 import { typeRequiresTeaching } from '../data/unitReadinessPolicy';
 import { teaches } from '../data/contentBundlePolicy';
+import { isPendingReview } from '../data/productionPublicationPolicy';
 
 /**
  * The commit the certified sources are compared against.
@@ -151,7 +152,11 @@ import { teaches } from '../data/contentBundlePolicy';
  * named three and the absolute minimum unchanged; both tenants and a fresh tenant certify with identical results.
  */
 const CERTIFIED_COMMIT = '0a1dbdc5';
-const EXPECT = { total: 359, ready: 354, target: 346, withheld: 3, notRecommended: 5, partial: 5 };
+/*
+ * MOVED AGAIN — 347. T_HTML_IMAGES joins the certified set with the product owner's approval (see CERTIFIED_FOUNDATION);
+ * thirty-six direction units awaiting review are outside the certified inventory (PENDING_REVIEW_UNITS).
+ */
+const EXPECT = { total: 359, ready: 354, target: 347, withheld: 3, notRecommended: 4, partial: 5 };
 const REPO = path.join(__dirname, '..', '..', '..');
 const FIXTURES = path.join(__dirname, '..', 'tests', 'fixtures', 'phase21');
 /** What the certification was computed from. A change to any of these since certification is drift. */
@@ -217,8 +222,10 @@ const CERTIFIED_SOURCES = [
   const tenantOid = new mongoose.Types.ObjectId(tenantId);
   const TID = { $in: [tenantId, tenantOid] };
 
-  const unitDocs = async () => db.collection('curriculumlearningunits')
-    .find({ tenantId: TID, stageKey: 'foundation' }).sort({ unitCode: 1 }).toArray();
+  // The certified inventory only: units awaiting review are outside it (PENDING_REVIEW_UNITS).
+  const unitDocs = async () => (await db.collection('curriculumlearningunits')
+    .find({ tenantId: TID, stageKey: 'foundation' }).sort({ unitCode: 1 }).toArray())
+    .filter((d: any) => !isPendingReview(String(d.unitCode)));
   /**
    * What publication may change, counted for THIS tenant's curriculum content only.
    *
@@ -236,7 +243,7 @@ const CERTIFIED_SOURCES = [
   const docsBefore = await unitDocs();
   const byCode = new Map(docsBefore.map(d => [String(d.unitCode), d]));
   const readyBefore = await loadCandidates(tenantId, 'PROTOTYPE_UNPUBLISHED');
-  const readyUnits = [...readyBefore.units].sort((a, b) => a.unitCode.localeCompare(b.unitCode));
+  const readyUnits = [...readyBefore.units].filter(u => !isPendingReview(u.unitCode)).sort((a, b) => a.unitCode.localeCompare(b.unitCode));
   const readyCodes = new Set(readyUnits.map(u => u.unitCode));
   const partial = readyBefore.rejected.filter(r => r.readiness === 'PARTIAL').map(r => r.unitCode).sort();
   const otherRejected = readyBefore.rejected.filter(r => r.readiness !== 'PARTIAL');
@@ -373,7 +380,7 @@ const CERTIFIED_SOURCES = [
   const production = await loadCandidates(tenantId, 'PRODUCTION');
   const published = docsAfter.filter(d => d.status === 'PUBLISHED').map(d => String(d.unitCode)).sort();
   const eligible = production.units.map(u => u.unitCode).sort();
-  const readyAfterCodes = readyAfter.units.map(u => u.unitCode);
+  const readyAfterCodes = readyAfter.units.map(u => u.unitCode).filter(c => !isPendingReview(c));
   const readyNotPublished = readyAfterCodes.filter(c => afterByCode.get(c)?.status !== 'PUBLISHED').sort();
   const partialAfter = readyAfter.rejected.filter(r => r.readiness === 'PARTIAL').map(r => r.unitCode);
   const partialNotPublished = partialAfter.filter(c => afterByCode.get(c)?.status !== 'PUBLISHED');

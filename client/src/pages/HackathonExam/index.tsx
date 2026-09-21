@@ -123,7 +123,15 @@ const HackathonExam: React.FC = () => {
   /* timing + proctoring */
   const [endsAt, setEndsAt] = useState<Date | null>(null);
   const [skewMs, setSkewMs] = useState(0);
-  const [left, setLeft] = useState(0);
+  /*
+   * null until the countdown has actually measured something.
+   *
+   * It cannot start at 0. The effect below submits the paper when it sees 0, and on the
+   * first render after the exam opens the countdown has not run yet — so a 0 here means
+   * `no time left` at the one moment it should mean `not known yet`, and every candidate
+   * has their paper submitted, unanswered, the instant they press Start.
+   */
+  const [left, setLeft] = useState<number | null>(null);
   const [warn, setWarn] = useState<string>('');
   const [done, setDone] = useState<{ answered: number; total: number; timeSpentSec: number } | null>(null);
 
@@ -221,7 +229,7 @@ const HackathonExam: React.FC = () => {
 
   /* Local countdown reaching zero ends the paper; the heartbeat is the backstop. */
   useEffect(() => {
-    if (phase === 'exam' && endsAt && left === 0) submitRef.current();
+    if (phase === 'exam' && endsAt && left === 0) submitRef.current();   // left: null = not measured
   }, [left, phase, endsAt]);
 
   useEffect(() => {
@@ -561,7 +569,7 @@ const HackathonExam: React.FC = () => {
 
   /* ── the exam ──────────────────────────────────────────────────────────── */
 
-  const low = left <= 300;
+  const low = left !== null && left <= 300;
 
   return (
     <div className="hx-exam">
@@ -588,7 +596,7 @@ const HackathonExam: React.FC = () => {
             );
           })}
         </div>
-        <div className={`hx-clock ${low ? 'low' : ''}`}>{mmss(left)}</div>
+        <div className={`hx-clock ${low ? 'low' : ''}`}>{mmss(left ?? 0)}</div>
       </div>
 
       {warn && <div className="hx-warn">⚠️ {warn}</div>}

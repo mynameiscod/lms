@@ -75,6 +75,23 @@ const FEATURES = [
   { tone: 'amb', icon: I.trophy, title: 'Real World Questions',blurb: 'Think. Solve. Apply.' },
 ];
 
+/**
+ * Strip a leading {{n}} left over from a mis-set WhatsApp template.
+ *
+ * A dynamic URL button whose URL was saved with the placeholder percent-encoded does not
+ * substitute: Meta cannot see a variable, treats the whole URL as static, and APPENDS the
+ * parameter. The link then arrives as /hackathon-exam/{{1}}<token>.
+ *
+ * This is cleaned here, and not only in the template, because those links are already in
+ * candidates' phones and cannot be recalled — an invite is marked sent per channel, so
+ * pressing send again skips exactly the people holding the broken one. Fixing the template
+ * alone would help nobody who was already invited.
+ *
+ * Anchored and narrow on purpose: it removes a leading placeholder, not anything that merely
+ * looks wrong. A token that is genuinely invalid must still be rejected as invalid.
+ */
+const cleanToken = (t?: string): string => (t || '').replace(/^\{\{\d+\}\}/, '').trim();
+
 const TOKEN_KEY = 'hx-exam-token';
 
 const HackathonExam: React.FC = () => {
@@ -93,7 +110,7 @@ const HackathonExam: React.FC = () => {
   const [masked, setMasked] = useState('');
 
   /* the paper */
-  const [token, setToken] = useState(routeToken || sessionStorage.getItem(TOKEN_KEY) || '');
+  const [token, setToken] = useState(cleanToken(routeToken) || sessionStorage.getItem(TOKEN_KEY) || '');
   const [overview, setOverview] = useState<ExamOverview | null>(null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [activeSection, setActiveSection] = useState('');

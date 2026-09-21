@@ -46,7 +46,7 @@ import mongoose from 'mongoose';
 import DayPlan from '../models/DayPlan';
 import LearningCurriculum from '../models/LearningCurriculum';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
-import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
+import { foundationProgramDaysFor, journeyDaysOf, DEFAULT_PROGRAM_DAYS } from './foundationProgramLengthService';
 import { SelectedUnit, StudentProfile } from './curriculumComposerService';
 import {
   composeFoundationJourney, FOUNDATION_JOURNEY_KIND, JourneyBuildOptions,
@@ -76,11 +76,12 @@ const NO_ASSETS: UnitAssets = { content: [], quizzes: [], assignments: [] };
  */
 export function frozenDayNumbers(enrollment: {
   completedDays?: number[]; currentDay?: number;
-}): number[] {
+}, programDays: number = DEFAULT_PROGRAM_DAYS): number[] {
   const frozen = new Set<number>((enrollment.completedDays || []).map(Number));
   const current = Number(enrollment.currentDay || 0);
   if (current >= 1) frozen.add(current);
-  return [...frozen].filter(d => d >= 1 && d <= FOUNDATION_PROGRAM_DAYS).sort((a, b) => a - b);
+  // A day outside this journey cannot be frozen: it is a stale number, not a day somebody sat.
+  return [...frozen].filter(d => d >= 1 && d <= programDays).sort((a, b) => a - b);
 }
 
 /**
@@ -101,7 +102,7 @@ export async function recomposeFutureDays(
 
   const curriculum = await LearningCurriculum.findOne({
     tenantId, personalizedFor: sid, adaptiveStage: stageKey, journeyKind: FOUNDATION_JOURNEY_KIND,
-  }).select('_id').lean() as any;
+  }).select('_id totalDays').lean() as any;
 
   if (!curriculum) {
     return {
@@ -117,34 +118,36 @@ export async function recomposeFutureDays(
       .select('completedDays currentDay').lean() as any,
   ]);
 
-  if ((existing as any[]).length !== FOUNDATION_PROGRAM_DAYS) {
+  const programDays = journeyDaysOf(curriculum, await foundationProgramDaysFor(tenantId));
+
+  if ((existing as any[]).length !== programDays) {
     /**
      * Refused rather than repaired.
      *
-     * A journey that is not ninety days is already broken, and recomposition is not the tool
+     * A journey that is not its own length is already broken, and recomposition is not the tool
      * for that — checkJourneyIntegrity says what is wrong and persistFoundationJourney rebuilds.
      * Quietly patching here would hide a fault whose cause nobody had looked at.
      */
     return {
       ok: false,
       reason: `The stored journey has ${(existing as any[]).length} days, not `
-        + `${FOUNDATION_PROGRAM_DAYS}. Repair it before recomposing.`,
+        + `${programDays}. Repair it before recomposing.`,
       frozenDays: [], rewrittenDays: [], unchangedFutureDays: [],
       totalDays: (existing as any[]).length,
     };
   }
 
-  const frozen = frozenDayNumbers(enrollment || {});
+  const frozen = frozenDayNumbers(enrollment || {}, programDays);
   const frozenSet = new Set(frozen);
 
   const byDay = new Map<number, any>((existing as any[]).map(d => [d.dayNumber, d]));
-  const futureSlots = Array.from({ length: FOUNDATION_PROGRAM_DAYS }, (_, i) => i + 1)
+  const futureSlots = Array.from({ length: programDays }, (_, i) => i + 1)
     .filter(d => !frozenSet.has(d));
 
   if (!futureSlots.length) {
     return {
       ok: true, frozenDays: frozen, rewrittenDays: [], unchangedFutureDays: [],
-      totalDays: FOUNDATION_PROGRAM_DAYS,
+      totalDays: programDays,
     };
   }
 
@@ -191,7 +194,7 @@ export async function recomposeFutureDays(
         + `${futureSlots.length} remaining days, so the existing plan was left unchanged. `
         + 'The journey is still ninety days.',
       frozenDays: frozen, rewrittenDays: [], unchangedFutureDays: [],
-      totalDays: FOUNDATION_PROGRAM_DAYS,
+      totalDays: programDays,
     };
   }
 
@@ -254,7 +257,7 @@ export async function recomposeFutureDays(
     frozenDays: frozen,
     rewrittenDays: rewritten,
     unchangedFutureDays: unchanged,
-    totalDays: FOUNDATION_PROGRAM_DAYS,
+    totalDays: programDays,
   };
 }
 
@@ -275,8 +278,10 @@ export async function previewRecomposition(
 
   const curriculum = await LearningCurriculum.findOne({
     tenantId, personalizedFor: sid, adaptiveStage: stageKey, journeyKind: FOUNDATION_JOURNEY_KIND,
-  }).select('_id').lean() as any;
+  }).select('_id totalDays').lean() as any;
   if (!curriculum) return { wouldChange: [], frozenDays: [] };
+  /* The preview covers the journey this student has, at the length it was composed. */
+  const programDays = journeyDaysOf(curriculum, await foundationProgramDaysFor(tenantId));
 
   const [existing, enrollment] = await Promise.all([
     DayPlan.find({ curriculumId: curriculum._id })
@@ -285,10 +290,10 @@ export async function previewRecomposition(
       .select('completedDays currentDay').lean() as any,
   ]);
 
-  const frozen = frozenDayNumbers(enrollment || {});
+  const frozen = frozenDayNumbers(enrollment || {}, programDays);
   const frozenSet = new Set(frozen);
   const byDay = new Map<number, any>((existing as any[]).map(d => [d.dayNumber, d]));
-  const futureSlots = Array.from({ length: FOUNDATION_PROGRAM_DAYS }, (_, i) => i + 1)
+  const futureSlots = Array.from({ length: programDays }, (_, i) => i + 1)
     .filter(d => !frozenSet.has(d));
 
   const alreadyTaught = new Set(

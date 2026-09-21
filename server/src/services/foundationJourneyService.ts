@@ -42,6 +42,7 @@ import LearningContentLibrary from '../models/LearningContentLibrary';
 import Quiz from '../models/Quiz';
 import Assignment from '../models/Assignment';
 import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
+import { foundationProgramDaysFor, journeyDaysOf } from './foundationProgramLengthService';
 import { inTeachingOrder } from '../data/contentBundlePolicy';
 import { composeUnits, ComposerResult, SelectedUnit, StudentProfile } from './curriculumComposerService';
 import { loadCandidates, assertProductionEligible, CandidateSource } from './composerCandidateService';
@@ -60,6 +61,14 @@ export interface JourneyBuildOptions {
   stageKey?: string;
   /** Units already given, in day order — the frozen days of a journey being recomposed. See ComposerInput.history. */
   history?: string[];
+  /**
+   * How many days this journey is. The tenant's setting when absent.
+   *
+   * Passed rather than read here so one request composes, checks and writes the same number even
+   * if an admin changes the setting mid-flight — half a journey at each length is the one outcome
+   * nobody could read.
+   */
+  programDays?: number;
 }
 
 export interface JourneyResult {
@@ -203,6 +212,7 @@ export async function composeFoundationJourney(
   opts: JourneyBuildOptions = {},
 ): Promise<{ candidates: number; composition: ComposerResult }> {
   const source = opts.source || 'PRODUCTION';
+  const programDays = opts.programDays ?? await foundationProgramDaysFor(tenantId);
   const set = await loadCandidates(tenantId, source, opts.stageKey || 'foundation');
 
   // Refuses anything but PRODUCTION for a real build. The check is here rather than at the
@@ -211,7 +221,7 @@ export async function composeFoundationJourney(
 
   const composition = composeUnits({
     candidates: set.units,
-    targetUnits: FOUNDATION_PROGRAM_DAYS,
+    targetUnits: programDays,
     student: profile,
     history: opts.history,
   });
@@ -229,6 +239,7 @@ async function findOrCreateJourney(
   studentId: mongoose.Types.ObjectId,
   stageKey: string,
   source: CandidateSource,
+  programDays: number,
 ): Promise<{ doc: any; created: boolean }> {
   const existing = await LearningCurriculum.findOne({
     tenantId, personalizedFor: studentId, adaptiveStage: stageKey, journeyKind: FOUNDATION_JOURNEY_KIND,
@@ -238,8 +249,8 @@ async function findOrCreateJourney(
   const doc = await LearningCurriculum.create({
     tenantId,
     title: 'CareerPilot Foundation Journey',
-    description: 'Ninety learning days, composed for this student from the Year-1 curriculum.',
-    totalDays: FOUNDATION_PROGRAM_DAYS,
+    description: `${programDays} learning days, composed for this student from the Year-1 curriculum.`,
+    totalDays: programDays,
     topics: [],
     isPublished: true,
     isMasterTrack: false,
@@ -292,8 +303,10 @@ export async function persistFoundationJourney(
   const sid = typeof studentId === 'string' ? new mongoose.Types.ObjectId(studentId) : studentId;
   const stageKey = opts.stageKey || 'foundation';
   const source = opts.source || 'PRODUCTION';
+  /* Resolved once and passed on, so composing, checking and writing all use the same number. */
+  const programDays = opts.programDays ?? await foundationProgramDaysFor(tenantId);
 
-  const { composition } = await composeFoundationJourney(tenantId, profile, opts);
+  const { composition } = await composeFoundationJourney(tenantId, profile, { ...opts, programDays });
 
   /**
    * THE INVARIANT, CHECKED BEFORE THE FIRST WRITE.
@@ -302,12 +315,12 @@ export async function persistFoundationJourney(
    * student that quietly breaks the one promise the programme makes, and nothing downstream
    * would ever flag it — the days would be contiguous, numbered from one, and wrong.
    */
-  if (!composition.ok || composition.units.length !== FOUNDATION_PROGRAM_DAYS) {
+  if (!composition.ok || composition.units.length !== programDays) {
     return {
       ok: false,
       reason: `The curriculum can only fill ${composition.units.length} of `
-        + `${FOUNDATION_PROGRAM_DAYS} days for this student. A Foundation journey is exactly `
-        + `${FOUNDATION_PROGRAM_DAYS} days, so nothing was written. `
+        + `${programDays} days for this student. A Foundation journey is exactly `
+        + `${programDays} days, so nothing was written. `
         + (composition.code ? `Composer: ${composition.code}.` : ''),
       days: composition.units.length,
       created: false,
@@ -315,7 +328,7 @@ export async function persistFoundationJourney(
     };
   }
 
-  const { doc, created } = await findOrCreateJourney(tenantId, sid, stageKey, source);
+  const { doc, created } = await findOrCreateJourney(tenantId, sid, stageKey, source, programDays);
   const assets = await loadAssets(tenantId, composition.units.map(u => u.unitCode));
 
   /**
@@ -351,22 +364,22 @@ export async function persistFoundationJourney(
   await DayPlan.bulkWrite(ops, { ordered: false });
 
   /**
-   * Days beyond ninety are removed, which matters only on recomposition.
+   * Days beyond the programme's length are removed, which matters only on recomposition.
    *
    * Nothing here creates them, but a future policy change that shortened the programme would
    * otherwise leave orphans numbered 91 and up, and they would be served to the student as
    * part of the journey.
    */
   await DayPlan.deleteMany({
-    curriculumId: doc._id, dayNumber: { $gt: FOUNDATION_PROGRAM_DAYS },
+    curriculumId: doc._id, dayNumber: { $gt: programDays },
   });
 
-  if (doc.totalDays !== FOUNDATION_PROGRAM_DAYS) {
-    doc.totalDays = FOUNDATION_PROGRAM_DAYS;
+  if (doc.totalDays !== programDays) {
+    doc.totalDays = programDays;
     await doc.save();
   }
 
-  return { ok: true, curriculumId: doc._id, days: FOUNDATION_PROGRAM_DAYS, created, composition };
+  return { ok: true, curriculumId: doc._id, days: programDays, created, composition };
 }
 
 /* ------------------------------------------------------------------ *
@@ -399,10 +412,14 @@ export async function checkJourneyIntegrity(
   const sid = typeof studentId === 'string' ? new mongoose.Types.ObjectId(studentId) : studentId;
   const curriculum = await LearningCurriculum.findOne({
     tenantId, personalizedFor: sid, adaptiveStage: stageKey, journeyKind: FOUNDATION_JOURNEY_KIND,
-  }).select('_id').lean() as any;
+  }).select('_id totalDays').lean() as any;
+
+  /* A journey is judged against its own length, not against whatever the tenant now sets. */
+  const tenantDays = await foundationProgramDaysFor(tenantId);
+  const expected = curriculum ? journeyDaysOf(curriculum, tenantDays) : tenantDays;
 
   const empty: JourneyIntegrity = {
-    exists: false, days: 0, expected: FOUNDATION_PROGRAM_DAYS,
+    exists: false, days: 0, expected,
     missing: [], duplicates: [], daysWithoutUnit: [], daysWithoutActivities: [], ok: false,
   };
   if (!curriculum) return empty;
@@ -414,7 +431,7 @@ export async function checkJourneyIntegrity(
   for (const d of days) seen.set(d.dayNumber, (seen.get(d.dayNumber) || 0) + 1);
 
   const missing: number[] = [];
-  for (let n = 1; n <= FOUNDATION_PROGRAM_DAYS; n++) if (!seen.has(n)) missing.push(n);
+  for (let n = 1; n <= expected; n++) if (!seen.has(n)) missing.push(n);
 
   const duplicates = [...seen.entries()].filter(([, n]) => n > 1).map(([d]) => d);
   const daysWithoutUnit = days.filter(d => !d.primaryUnitCode).map(d => d.dayNumber);
@@ -423,12 +440,12 @@ export async function checkJourneyIntegrity(
   return {
     exists: true,
     days: days.length,
-    expected: FOUNDATION_PROGRAM_DAYS,
+    expected,
     missing,
     duplicates,
     daysWithoutUnit,
     daysWithoutActivities,
-    ok: days.length === FOUNDATION_PROGRAM_DAYS
+    ok: days.length === expected
       && !missing.length && !duplicates.length && !daysWithoutUnit.length,
   };
 }

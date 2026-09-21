@@ -39,6 +39,8 @@ export interface PassportConfig {
   roadmapDays?: number;
   /** Days of their own roadmap a learner sees before membership (1–30, default 7). */
   roadmapPreviewDays?: number;
+  /** The length of a Foundation journey composed from now on. Ninety when unset. */
+  foundationProgramDays?: number;
   /**
    * Whether daily missions follow authored Concept Learning Units.
    *

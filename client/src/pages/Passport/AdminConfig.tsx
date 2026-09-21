@@ -77,6 +77,9 @@ const PassportAdminConfig: React.FC = () => {
         // reads, which is what the note above the field explains.
         roadmapDays: journeyDays,
         roadmapPreviewDays: cfg.roadmapPreviewDays ?? 7,
+        // The Foundation programme's length. Journeys already composed keep the length they
+        // were written with, so this only decides how long the next student's journey is.
+        foundationProgramDays: cfg.foundationProgramDays ?? 90,
         entitlements: cfg.entitlements, onboardingFields: cfg.onboardingFields,
       });
       setCfg(saved);
@@ -199,6 +202,17 @@ const PassportAdminConfig: React.FC = () => {
                   first <b>90</b> and is rebuilt at the next assessment.
                 </>
               )}
+            </span>
+          </div>
+          <div>
+            <span style={label}>Foundation programme (days)</span>
+            <input style={{ ...input, width: 110 }} type="number" min={30} max={180}
+              value={cfg.foundationProgramDays ?? 90}
+              onChange={e => setCfg({ ...cfg, foundationProgramDays: Number(e.target.value) || 90 })} />
+            <span style={{ display: 'block', fontSize: 11, color: '#8494a8', marginTop: 4, maxWidth: 260 }}>
+              How many learning days a Foundation journey is (30–180). Ninety by default. A member
+              already part-way through keeps the length they started on — this decides the next
+              journey composed. The curriculum needs at least this many published Foundation days.
             </span>
           </div>
           <div>

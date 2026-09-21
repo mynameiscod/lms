@@ -50,6 +50,15 @@ export interface IPassportConfig extends Document {
   megaCurriculumEnabled?: boolean;
   /** Named accounts on the unit engine regardless of the tenant switch. Read first. */
   megaCurriculumStudentIds?: string[];
+
+  /**
+   * How many learning days a Foundation journey is, for journeys composed from now on.
+   *
+   * Ninety when unset. A journey records its own length when it is written, and an existing one
+   * keeps it: changing this must never re-cut the plan of somebody already part-way through it,
+   * which would move the finish line under them and rewrite days they had already been shown.
+   */
+  foundationProgramDays?: number;
   /** Stages on the unit engine regardless of the tenant switch, e.g. ['foundation']. */
   megaCurriculumStages?: string[];
   assessmentMode: 'deterministic' | 'ai';
@@ -144,6 +153,7 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
     conceptLearningEnabled: { type: Boolean, default: false },
     megaCurriculumEnabled:    { type: Boolean, default: false },
     megaCurriculumStudentIds: { type: [String], default: [] },
+    foundationProgramDays: { type: Number },
     megaCurriculumStages:     { type: [String], default: [] },
     assessmentMode:   { type: String, enum: ['deterministic', 'ai'], default: 'deterministic' },
     onboardingFields: [OnboardingFieldSchema],

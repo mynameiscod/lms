@@ -20,6 +20,7 @@ import { normalizePhone, mobileError } from '../utils/phone';
 import { validateEngineConfigPatch, describeEngineConfig } from '../services/curriculumEngineService';
 import { foundationReadiness } from '../services/foundationReadinessService';
 import { passwordProblem } from '../utils/passwordPolicy';
+import { validateProgramDays } from '../services/foundationProgramLengthService';
 import { clampPreviewDays } from '../data/foundationAccessPolicy';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
@@ -88,9 +89,20 @@ export const updateConfig = async (req: Request, res: Response) => {
     await ensureConfig(tenantId);
     // The allow-list is the whole security model for this endpoint, so a field absent from it
     // is silently discarded — a toggle that appears to save and changes nothing.
-    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'roadmapPreviewDays', 'conceptLearningEnabled', 'paymentMode'];
+    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'roadmapPreviewDays', 'conceptLearningEnabled', 'paymentMode', 'foundationProgramDays'];
     const $set: any = {};
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
+    /**
+     * The length of the Foundation programme. Refused rather than clamped: a tenant typing 1200
+     * meant something, and silently storing 180 would have them believe a plan they never chose.
+     * Journeys already composed keep the length they were written with.
+     */
+    if ($set.foundationProgramDays !== undefined) {
+      const checked = validateProgramDays($set.foundationProgramDays);
+      // strictNullChecks is off here, so the union does not narrow on `ok` — same as the engine patch above.
+      if (!checked.ok) return res.status(400).json({ message: (checked as { ok: false; error: string }).error });
+      $set.foundationProgramDays = (checked as { ok: true; days: number }).days;
+    }
     // How many roadmap days a learner sees before membership — stored within its bounds.
     if ($set.roadmapPreviewDays !== undefined) $set.roadmapPreviewDays = clampPreviewDays($set.roadmapPreviewDays);
     Object.assign($set, engine.set);

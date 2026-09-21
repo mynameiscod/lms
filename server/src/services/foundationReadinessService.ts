@@ -25,7 +25,7 @@
 
 import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
 import SkillEvidence from '../models/SkillEvidence';
-import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
+import { foundationProgramDaysFor } from './foundationProgramLengthService';
 
 export type FoundationNotConfiguredReason = 'NO_PRODUCTION_CURRICULUM' | 'NO_SKILL_CHECK';
 
@@ -41,16 +41,18 @@ export interface FoundationReadiness {
 }
 
 export async function foundationReadiness(tenantId: string): Promise<FoundationReadiness> {
+  /* A tenant on a longer programme needs more published units before it can compose one. */
+  const programDays = await foundationProgramDaysFor(tenantId);
   const [publishedUnits, skillCheckMappings] = await Promise.all([
     CurriculumLearningUnit.countDocuments({ tenantId, stageKey: 'foundation', status: 'PUBLISHED' }),
     SkillEvidence.countDocuments({ tenantId, active: true, contribution: 'PRIMARY' }),
   ]);
 
-  if (publishedUnits < FOUNDATION_PROGRAM_DAYS) {
+  if (publishedUnits < programDays) {
     return {
       configured: false, reason: 'NO_PRODUCTION_CURRICULUM', publishedUnits, skillCheckMappings,
-      message: `This tenant has ${publishedUnits} published Foundation unit(s); a ninety-day journey needs the `
-        + 'certified Year-1 curriculum. Run the Foundation provisioning for this tenant.',
+      message: `This tenant has ${publishedUnits} published Foundation unit(s); a ${programDays}-day journey needs `
+        + `at least ${programDays}. Run the Foundation provisioning for this tenant, or author the missing days.`,
     };
   }
   if (!skillCheckMappings) {

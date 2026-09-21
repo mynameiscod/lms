@@ -40,6 +40,9 @@ const ICON_FOR: Record<string, string> = {
   interactive_lesson: 'bi-easel', quiz: 'bi-question-circle', assignment: 'bi-clipboard-check',
 };
 
+/** The two link hosts the player can embed; anything else belongs to an upload. */
+const VIDEO_LINK = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be|vimeo\.com)\//i;
+
 const prettyType = (t: string) => (t || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 const AdminContentBuilder: React.FC = () => {
@@ -54,6 +57,8 @@ const AdminContentBuilder: React.FC = () => {
   const [preview, setPreview] = useState<UnitStudentPreview | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
   const [drawer, setDrawer] = useState<DrawerKind>(null);
+  const [editUnit, setEditUnit] = useState(false);
+  const [editItem, setEditItem] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -121,6 +126,41 @@ const AdminContentBuilder: React.FC = () => {
       await load();
       say('Added to this day.');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not add that.'); }
+    setSaving(false);
+  };
+
+  /**
+   * Saving a day sends the whole unit back, not the edited fields.
+   *
+   * The endpoint reads a unit as one document: `mandatory` defaults to true when it is missing, and
+   * `suitableStates` means three different things absent, empty or filled. A partial body would
+   * quietly rewrite settings nobody touched, so the drawer edits a copy of what it was given.
+   */
+  const saveUnit = async (patch: Partial<CurriculumLearningUnit>) => {
+    if (!unit) return;
+    setSaving(true); setErr('');
+    try {
+      const { unit: fresh } = await passportApi.getCurriculumUnit(unit.unitCode);
+      const body: any = { ...fresh, ...patch };
+      delete body._id; delete body.status; delete body.coverage;
+      await passportApi.saveCurriculumUnit(unit.unitCode, body);
+      setEditUnit(false);
+      await load(); await loadPreview(unit.unitCode);
+      say('Day saved.');
+    } catch (e: any) { setErr(e?.response?.data?.message || 'Could not save this day.'); }
+    setSaving(false);
+  };
+
+  /** A content row edits by name and length here; its body stays where that type is authored. */
+  const saveItem = async (patch: any) => {
+    if (!editItem || !unit) return;
+    setSaving(true); setErr('');
+    try {
+      await learningContentLibraryApi.updateJson(String(editItem.contentId), patch);
+      setEditItem(null);
+      await loadPreview(unit.unitCode);
+      say('Saved.');
+    } catch (e: any) { setErr(e?.response?.data?.message || 'Could not save that.'); }
     setSaving(false);
   };
 
@@ -219,7 +259,7 @@ const AdminContentBuilder: React.FC = () => {
             </div>
             <div className="acb-unit-actions">
               {unit.status !== 'PUBLISHED' && <button className="acb-btn primary" onClick={publishUnit} disabled={saving}><i className="bi bi-send-check" /> Publish this day</button>}
-              <a className="acb-btn ghost" href={`/admin/passport/mega-curriculum?unit=${encodeURIComponent(unit.unitCode)}`}><i className="bi bi-pencil" /> Edit day details</a>
+              <button className="acb-btn ghost" onClick={() => setEditUnit(true)}><i className="bi bi-pencil" /> Edit day details</button>
             </div>
           </div>
 
@@ -252,7 +292,7 @@ const AdminContentBuilder: React.FC = () => {
                     <span className="acb-i-xp">+{xp} XP</span>
                     {it.editPath
                       ? <a className="acb-i-act" href={it.editPath} title="Open the editor"><i className="bi bi-box-arrow-up-right" /></a>
-                      : <a className="acb-i-act" href={`/learning-library/edit/${it.contentId}?returnTo=${encodeURIComponent(`/admin/passport/content-builder?unit=${unit.unitCode}`)}`} title="Edit"><i className="bi bi-pencil" /></a>}
+                      : <button className="acb-i-act" onClick={() => setEditItem(it)} title="Edit"><i className="bi bi-pencil" /></button>}
                     <button className="acb-i-act danger" onClick={() => removeItem(it)} title="Take off this day"><i className="bi bi-x-lg" /></button>
                   </li>;
                 })}
@@ -272,6 +312,8 @@ const AdminContentBuilder: React.FC = () => {
 
     {drawer && unit && <ContentDrawer kind={drawer} unitTitle={unit.title} saving={saving}
       onClose={() => setDrawer(null)} onSave={addContent} />}
+    {editUnit && unit && <UnitDrawer unit={unit} saving={saving} onClose={() => setEditUnit(false)} onSave={saveUnit} />}
+    {editItem && <ItemDrawer item={editItem} saving={saving} onClose={() => setEditItem(null)} onSave={saveItem} />}
     {toast && <div className="acb-toast"><i className="bi bi-check-circle-fill" /> {toast}</div>}
   </div>;
 };
@@ -300,7 +342,7 @@ const ContentDrawer: React.FC<{
     if (!title.trim()) { setProblem('Give it a title.'); return; }
     const base: any = { title: title.trim(), type: kind, estimatedDuration: Number(minutes) || 0, isPublished: true };
     if (kind === 'video') {
-      if (!/^https?:\/\/(www\.)?(youtube\.com|youtu\.be|vimeo\.com)\//i.test(url.trim())) {
+      if (!VIDEO_LINK.test(url.trim())) {
         setProblem('Paste a YouTube or Vimeo link. For a file, use "Upload a file".'); return;
       }
       base.videoSource = /vimeo/i.test(url) ? 'vimeo' : 'youtube';
@@ -382,6 +424,144 @@ const ContentDrawer: React.FC<{
       <footer>
         <button type="button" className="acb-btn ghost" onClick={onClose} disabled={saving}>Cancel</button>
         <button type="submit" className="acb-btn primary" disabled={saving}>{saving ? 'Adding…' : 'Add to this day'}</button>
+      </footer>
+    </form>
+  </div>;
+};
+
+/** The day itself: what a member reads at the top of it, and how long it should take. */
+const UnitDrawer: React.FC<{
+  unit: CurriculumLearningUnit; saving: boolean;
+  onClose: () => void; onSave: (patch: Partial<CurriculumLearningUnit>) => void;
+}> = ({ unit, saving, onClose, onSave }) => {
+  const [title, setTitle] = useState(unit.title || '');
+  const [description, setDescription] = useState(unit.description || '');
+  const [outcomes, setOutcomes] = useState((unit.learningOutcomes || []).join('\n'));
+  const [minutes, setMinutes] = useState(Number(unit.estimatedMinutes) || 0);
+  const [problem, setProblem] = useState('');
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !saving) onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose, saving]);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) { setProblem('A day needs a title.'); return; }
+    onSave({
+      title: title.trim(),
+      description: description.trim(),
+      learningOutcomes: outcomes.split('\n').map(l => l.trim()).filter(Boolean),
+      estimatedMinutes: Number(minutes) || 0,
+    });
+  };
+
+  return <div className="acb-drawer-back" onMouseDown={e => { if (e.target === e.currentTarget && !saving) onClose(); }}>
+    <form className="acb-drawer" onSubmit={submit}>
+      <header>
+        <span className="acb-drawer-ic"><i className="bi bi-calendar2-week" /></span>
+        <div><b>Edit day details</b><small>{unit.unitCode}</small></div>
+        <button type="button" className="acb-drawer-x" onClick={onClose} aria-label="Close" disabled={saving}><i className="bi bi-x-lg" /></button>
+      </header>
+      <div className="acb-drawer-body">
+        <label className="acb-field"><span>Title</span>
+          <input value={title} autoFocus onChange={e => setTitle(e.target.value)} />
+        </label>
+        <label className="acb-field"><span>What this day is about</span>
+          <textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} placeholder="One or two lines the member reads before they start." />
+        </label>
+        <label className="acb-field"><span>By the end of today they can… (one per line)</span>
+          <textarea rows={4} value={outcomes} onChange={e => setOutcomes(e.target.value)} />
+        </label>
+        <label className="acb-field short"><span>Minutes</span>
+          <input type="number" min={0} max={600} value={minutes} onChange={e => setMinutes(Number(e.target.value))} />
+        </label>
+        <p className="acb-drawer-to"><i className="bi bi-info-circle" /> Skills, prerequisites and where this day sits stay in <a href={`/admin/passport/mega-curriculum?unit=${encodeURIComponent(unit.unitCode)}`}>curriculum settings</a>.</p>
+        {problem && <div className="acb-err"><i className="bi bi-exclamation-circle" /> {problem}</div>}
+      </div>
+      <footer>
+        <button type="button" className="acb-btn ghost" onClick={onClose} disabled={saving}>Cancel</button>
+        <button type="submit" className="acb-btn primary" disabled={saving}>{saving ? 'Saving…' : 'Save day'}</button>
+      </footer>
+    </form>
+  </div>;
+};
+
+/** One task on the day: its name, its length, and the link or notes it carries. */
+const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; onSave: (patch: any) => void }> = ({ item, saving, onClose, onSave }) => {
+  const [row, setRow] = useState<any>(null);
+  const [loadErr, setLoadErr] = useState('');
+  const [title, setTitle] = useState(item.contentTitle || '');
+  const [minutes, setMinutes] = useState(Number(item.estimatedDuration) || 0);
+  const [url, setUrl] = useState('');
+  const [body, setBody] = useState('');
+  const [problem, setProblem] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r: any = await learningContentLibraryApi.getById(String(item.contentId));
+        setRow(r); setTitle(r.title || ''); setMinutes(Number(r.estimatedDuration) || 0);
+        setUrl(r.videoUrl || ''); setBody(r.notesContent || '');
+      } catch (e: any) { setLoadErr(e?.response?.data?.message || 'Could not open this item.'); }
+    })();
+  }, [item.contentId]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !saving) onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose, saving]);
+
+  const type = String(row?.type || item.contentType || '');
+  const isVideoLink = type === 'video' && ['youtube', 'vimeo'].includes(String(row?.videoSource || ''));
+  const isRichNotes = ['notes', 'worked_example'].includes(type) && String(row?.notesSource || '') !== 'upload';
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) { setProblem('Give it a title.'); return; }
+    const patch: any = { title: title.trim(), estimatedDuration: Number(minutes) || 0 };
+    if (isVideoLink) {
+      if (!VIDEO_LINK.test(url.trim())) { setProblem('Paste a YouTube or Vimeo link.'); return; }
+      patch.videoSource = /vimeo/i.test(url) ? 'vimeo' : 'youtube';
+      patch.videoUrl = url.trim();
+    }
+    if (isRichNotes) { patch.notesSource = 'richtext'; patch.notesContent = body; }
+    setProblem('');
+    onSave(patch);
+  };
+
+  return <div className="acb-drawer-back" onMouseDown={e => { if (e.target === e.currentTarget && !saving) onClose(); }}>
+    <form className="acb-drawer" onSubmit={submit}>
+      <header>
+        <span className="acb-drawer-ic"><i className={`bi ${ICON_FOR[type] || 'bi-pencil'}`} /></span>
+        <div><b>Edit {prettyType(type).toLowerCase()}</b><small>On this day</small></div>
+        <button type="button" className="acb-drawer-x" onClick={onClose} aria-label="Close" disabled={saving}><i className="bi bi-x-lg" /></button>
+      </header>
+      <div className="acb-drawer-body">
+        {loadErr && <div className="acb-err"><i className="bi bi-exclamation-circle" /> {loadErr}</div>}
+        <label className="acb-field"><span>Title</span>
+          <input value={title} autoFocus onChange={e => setTitle(e.target.value)} />
+        </label>
+        {isVideoLink && <label className="acb-field"><span>YouTube or Vimeo link</span>
+          <input value={url} onChange={e => setUrl(e.target.value)} />
+        </label>}
+        {isRichNotes && <label className="acb-field"><span>Notes</span>
+          <textarea rows={10} value={body} onChange={e => setBody(e.target.value)} />
+        </label>}
+        <label className="acb-field short"><span>Minutes</span>
+          <input type="number" min={0} max={180} value={minutes} onChange={e => setMinutes(Number(e.target.value))} />
+        </label>
+        {row && !isVideoLink && !isRichNotes && <p className="acb-drawer-to">
+          <i className="bi bi-box-arrow-up-right" />
+          <a href={`/learning-library/edit/${item.contentId}`}>Open the full editor</a> for this item&rsquo;s questions or file.
+        </p>}
+        {problem && <div className="acb-err"><i className="bi bi-exclamation-circle" /> {problem}</div>}
+      </div>
+      <footer>
+        <button type="button" className="acb-btn ghost" onClick={onClose} disabled={saving}>Cancel</button>
+        <button type="submit" className="acb-btn primary" disabled={saving || !row}>{saving ? 'Saving…' : 'Save'}</button>
       </footer>
     </form>
   </div>;

@@ -91,7 +91,7 @@ export const CAREER_DIRECTIONS: CareerDirection[] = [
     key: 'SOFTWARE_BACKEND',
     name: 'Software & Backend',
     blurb: 'Build the services, APIs and databases behind an application.',
-    roleKeys: ['BACKEND_ENGINEER', 'SOFTWARE_ENGINEER', 'FULLSTACK_ENGINEER'],
+    roleKeys: ['BACKEND_ENGINEER', 'SOFTWARE_ENGINEER', 'FULLSTACK_ENGINEER', 'QA_SDET'],
     displayOrder: 20,
   },
   {
@@ -119,7 +119,7 @@ export const CAREER_DIRECTIONS: CareerDirection[] = [
     key: 'CLOUD_DEVOPS',
     name: 'Cloud & DevOps',
     blurb: 'Run, deploy and scale software reliably.',
-    roleKeys: ['DEVOPS_ENGINEER', 'CLOUD_ENGINEER', 'SRE'],
+    roleKeys: ['CLOUD_DEVOPS', 'DEVOPS_ENGINEER', 'CLOUD_ENGINEER', 'SRE'],
     displayOrder: 60,
   },
   {

@@ -415,6 +415,30 @@ const HackathonExam: React.FC = () => {
     [questions, activeSection],
   );
   const q = inSection[idx];
+  /*
+   * What is still blank, section by section.
+   *
+   * "24 of 31" does not tell somebody the thing that actually costs them marks. A candidate
+   * who has answered every multiple-choice question reads 30 of 31 as finished and submits
+   * with the coding problem — worth 20 of the 50 marks here — untouched. The warning has to
+   * name the section and what it is worth, because that is the number they are deciding on.
+   */
+  const unfinished = useMemo(() => {
+    const isDone = (x: ExamQuestion) => {
+      const a = answers[x.itemId];
+      return !!(a?.selectedOptionIds?.length || a?.code?.trim() || a?.text?.trim());
+    };
+    const by = new Map<string, { label: string; left: number; marks: number }>();
+    for (const x of questions) {
+      if (isDone(x)) continue;
+      const label = overview?.exam.sections.find((sec) => sec.key === x.sectionKey)?.label || x.sectionKey;
+      const e = by.get(x.sectionKey) || { label, left: 0, marks: 0 };
+      e.left += 1; e.marks += x.marks || 0;
+      by.set(x.sectionKey, e);
+    }
+    return [...by.values()];
+  }, [questions, answers, overview]);
+
   const answeredCount = useMemo(
     () => questions.filter((x) => {
       const a = answers[x.itemId];
@@ -838,7 +862,22 @@ const HackathonExam: React.FC = () => {
             })}
           </div>
           <button className="hx-btn hx-submit" disabled={busy} onClick={() => {
-            if (window.confirm(`Submit now? You have answered ${answeredCount} of ${questions.length}.`)) submit();
+            const lines = unfinished.map((u) => `  • ${u.label}: ${u.left} unanswered (${u.marks} marks)`);
+            const msg = lines.length
+              ? [
+                  `You have answered ${answeredCount} of ${questions.length}.`,
+                  '',
+                  'Still blank:',
+                  ...lines,
+                  '',
+                  'Those marks are lost if you submit now. Submit anyway?',
+                ].join('\n')
+              : [
+                  `You have answered all ${questions.length} questions.`,
+                  '',
+                  'Submit now? You cannot reopen the paper.',
+                ].join('\n');
+            if (window.confirm(msg)) submit();
           }}>
             {busy ? 'Submitting…' : 'Submit exam'}
           </button>

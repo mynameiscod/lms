@@ -101,6 +101,7 @@ import PassportAdminActivity from './pages/Passport/AdminActivity';
 import PassportLearningStudio from './pages/Passport/AdminLearningStudio';
 import PassportLearningUnit from './pages/Passport/AdminLearningUnit';
 import PassportMegaCurriculum from './pages/Passport/AdminMegaCurriculum';
+import PassportContentBuilder from './pages/Passport/AdminContentBuilder';
 import PassportRoadmap from './pages/Passport/Roadmap';
 import PassportSkillDna from './pages/Passport/SkillDna';
 import PassportRoleReadiness from './pages/Passport/RoleReadiness';
@@ -741,6 +742,10 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/resume" element={<PassportResumeCenter />} />
         <Route path="/passport/resume" element={<LegacyRedirect to="/careerpilot/resume" />} />
       </Route>
+      {/* The day-by-day authoring screen: curriculum on the left, the member's day on the right. */}
+      <Route path="/admin/passport/content-builder" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportContentBuilder /></Layout></ProtectedRoute>
+      } />
 
       <Route
         path="/interview-questions/:chapterId"

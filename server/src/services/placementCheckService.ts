@@ -36,7 +36,8 @@ import CareerSkill from '../models/CareerSkill';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import LearningCurriculum from '../models/LearningCurriculum';
 import DayPlan from '../models/DayPlan';
-import { buildPersonalizedAssessment, seenFactKeysFor } from './personalizedAssessmentService';
+import { buildPersonalizedAssessment, seenFactKeysFor, distinctPrimaryCount } from './personalizedAssessmentService';
+import { findEvidenceCandidates } from './skillEvidenceService';
 import { resolveAssessmentPolicy } from './assessmentPolicyService';
 import { gradeSubmittedAnswers } from './assessmentAnswerGradingService';
 import { loadItems } from './skillEvidenceSourceRegistry';
@@ -120,18 +121,62 @@ export async function topicCodeForDay(tenantId: string, studentId: string, day: 
   return plan?.topicId ? String(plan.topicId) : null;
 }
 
-/** The skills those days teach, narrowed to what a paper can honestly ask about. */
-async function measurableSkills(tenantId: string, unitCodes: string[]): Promise<string[]> {
-  if (!unitCodes.length) return [];
-  const units = await CurriculumLearningUnit.find({ tenantId, unitCode: { $in: unitCodes } })
-    .select('skillKeys').lean() as any[];
-  const keys = [...new Set(units.flatMap(u => (u.skillKeys || []).map((k: string) => String(k).toUpperCase())))];
-  if (!keys.length) return [];
+/** Lesson depths a placement check can lift a student past. Its evidence never rises above STANDARD. */
+const LIFTABLE_DEPTHS = new Set(['FOUNDATION', 'GUIDED', 'STANDARD']);
+const LESSON_TYPES = new Set(['CONCEPT', 'WORKED_EXAMPLE']);
 
-  const assessable = await CareerSkill.find({
-    key: { $in: keys }, assessable: { $ne: false }, active: { $ne: false }, nodeType: { $ne: 'GROUP' },
-  }).select('key').lean() as any[];
-  return assessable.map(s => String(s.key).toUpperCase()).slice(0, MAX_SKILLS);
+/**
+ * What a placement check on these days can honestly ask about, and whether passing it could change anything.
+ *
+ * A lesson leaves the plan only when EVERY skill it teaches is reliably shown (knownInstruction). So a
+ * skill with no questions of its own is not a smaller check — it is a lesson that can never be taken
+ * out, however well the student answers. The scope is therefore built from the lessons ahead whose
+ * every skill has enough PRIMARY questions of its own, and a topic with no such lesson is not offered:
+ * a student who scores 100% and keeps every day has been handed a test that could not pay out.
+ *
+ * Questions are counted the way the paper builder counts them — distinct PRIMARY questions for that
+ * exact skill — so what is promised here is what the builder can fill.
+ */
+async function placementScope(tenantId: string, unitCodes: string[]): Promise<{ skills: string[]; liftable: number }> {
+  if (!unitCodes.length) return { skills: [], liftable: 0 };
+  const units = await CurriculumLearningUnit.find({ tenantId, unitCode: { $in: unitCodes } })
+    .select('unitCode unitType skillKeys defaultDepth suitableStates').lean() as any[];
+  const order = new Map(unitCodes.map((c, i) => [String(c).toUpperCase(), i]));
+  const lessons = units
+    .filter(u => LESSON_TYPES.has(String(u.unitType))
+      && !(u.suitableStates || []).length
+      && LIFTABLE_DEPTHS.has(String(u.defaultDepth || 'STANDARD'))
+      && (u.skillKeys || []).length)
+    .sort((a, b) => (order.get(String(a.unitCode).toUpperCase()) ?? 0) - (order.get(String(b.unitCode).toUpperCase()) ?? 0));
+  const keys = [...new Set(lessons.flatMap(u => (u.skillKeys || []).map((k: string) => String(k).toUpperCase())))];
+  if (!keys.length) return { skills: [], liftable: 0 };
+
+  const [assessable, pools] = await Promise.all([
+    CareerSkill.find({ key: { $in: keys }, assessable: { $ne: false }, active: { $ne: false }, nodeType: { $ne: 'GROUP' } })
+      .select('key').lean() as Promise<any[]>,
+    findEvidenceCandidates(tenantId, { skillKeys: keys, contribution: 'PRIMARY', audience: { roleKey: 'FOUNDATION' } }),
+  ]);
+  const real = new Set(assessable.map(r => String(r.key).toUpperCase()));
+  const measurable = new Set(pools
+    .filter(p => real.has(String(p.skillKey).toUpperCase())
+      && distinctPrimaryCount(p.items.map((i: any) => ({
+        sourceType: i.sourceType, sourceId: i.sourceId, difficulty: i.difficulty,
+        contribution: i.contribution, factKeys: i.factKeys,
+      })) as any) >= ITEMS_PER_SKILL)
+    .map(p => String(p.skillKey).toUpperCase()));
+
+  /* Lessons in plan order, while their skills fit in one paper. */
+  const scope = new Set<string>();
+  let liftable = 0;
+  for (const u of lessons) {
+    const need = (u.skillKeys || []).map((k: string) => String(k).toUpperCase());
+    if (!need.every((k: string) => measurable.has(k))) continue;
+    const next = new Set([...scope, ...need]);
+    if (next.size > MAX_SKILLS) continue;
+    need.forEach((k: string) => scope.add(k));
+    liftable++;
+  }
+  return { skills: [...scope], liftable };
 }
 
 /** The last placement check this student finished, for the cooldown. */
@@ -162,11 +207,11 @@ export async function placementCheckAvailability(
     return { ...base, refused: 'TOPIC_STARTED', message: 'You are already working through this topic, so there is nothing left to test out of.' };
   }
 
-  const skills = await measurableSkills(tenantId, topic.unitCodes);
+  const { skills } = await placementScope(tenantId, topic.unitCodes);
   base.skillKeys = skills;
   base.questions = skills.length * ITEMS_PER_SKILL;
   if (!skills.length) {
-    return { ...base, refused: 'NOTHING_MEASURABLE', message: 'Nothing in this topic can be measured by a paper.' };
+    return { ...base, refused: 'NOTHING_MEASURABLE', message: 'No lesson in this topic can be tested out of yet.' };
   }
 
   const open = await PersonalizedAssessment.countDocuments({ tenantId, studentId, status: 'IN_PROGRESS' });
@@ -230,6 +275,11 @@ export async function startPlacementCheck(input: {
       ...policy,
       skillSlots: scope.length * ITEMS_PER_SKILL,
       maxSkills: scope.length,
+      /* Only the topic's own skills. With expansion on, a skill short of questions was quietly
+         replaced by its prerequisite, and the student's answers were recorded against a skill
+         the check was never about — so the topic's lessons could not leave however well they did. */
+      prerequisiteDepth: 0,
+      preferFoundationalSkills: false,
       minItemsPerSkill: ITEMS_PER_SKILL,
       maxItemsPerSkill: ITEMS_PER_SKILL,
       /* Harder than the entry paper: a sixty-per-cent-easy mix is the wrong instrument for
@@ -243,6 +293,24 @@ export async function startPlacementCheck(input: {
       ok: false, refused: 'NOT_ENOUGH_FRESH_QUESTIONS',
       message: built.message
         || 'There are not enough unseen questions left to build a fair check on this topic yet.',
+    };
+  }
+
+  /**
+   * THE PAPER IS CHECKED, NOT TRUSTED. Every question must be about one of the skills in scope, and
+   * every skill must have its full four. A paper that fell short — unseen questions ran out, or the
+   * builder filled a slot some other way — cannot prove what it was built to, so it is not offered.
+   */
+  const perSkill = new Map<string, number>();
+  const offTopic = (built.items || []).filter((i: any) => !scope.includes(String(i.skillKey || '').toUpperCase()));
+  for (const i of built.items || []) {
+    const k = String((i as any).skillKey || '').toUpperCase();
+    perSkill.set(k, (perSkill.get(k) || 0) + 1);
+  }
+  if (offTopic.length || scope.some(k => (perSkill.get(k) || 0) < ITEMS_PER_SKILL)) {
+    return {
+      ok: false, refused: 'NOT_ENOUGH_FRESH_QUESTIONS',
+      message: 'There are not enough unseen questions left to build a fair check on this topic yet.',
     };
   }
 

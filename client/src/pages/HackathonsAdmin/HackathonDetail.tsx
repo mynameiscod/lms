@@ -112,6 +112,39 @@ const HackathonDetail: React.FC = () => {
     setBusyId('');
   };
 
+  /*
+   * Nudge a team that never paid.
+   *
+   * It sends the same notice the public flow sends on registration — the one carrying a
+   * resume link back to THIS registration — so a team that pays from a nudge lands in the
+   * same place as one that pays from their own confirmation.
+   *
+   * Confirmed first, and the time is shown on the row afterwards, because each of these
+   * costs money and arrives on somebody's phone. Two admins working the same list should
+   * not nudge the same team twice.
+   */
+  const remindPayment = async (r: HackathonRegistration) => {
+    const last = r.paymentRemindedAt ? `
+
+Last reminded: ${fmt(r.paymentRemindedAt)}` : '';
+    if (!window.confirm(
+      `Send the payment link to ${r.teamName} (${r.registrationCode})?
+
+`
+      + `It goes to the team lead by email and WhatsApp.${last}`,
+    )) return;
+    setBusyId(r._id);
+    try {
+      const sent = await hackathonApi.sendPaymentReminder(id, r._id);
+      await load();
+      const via = [sent?.email && 'email', sent?.whatsapp && 'WhatsApp'].filter(Boolean).join(' and ');
+      flash(`Payment link sent to ${r.teamName}${via ? ` by ${via}` : ''}.`);
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || 'Could not send that reminder.');
+    }
+    setBusyId('');
+  };
+
   const downloadTemplate = async () => {
     try { await hackathonApi.downloadTeamsTemplate(); }
     catch { setErr('Could not download the template.'); }
@@ -324,6 +357,16 @@ const HackathonDetail: React.FC = () => {
                       <button className="hk-btn sm" onClick={() => markRefunded(r)} disabled={busyId === r._id}>
                         {busyId === r._id ? 'Saving…' : 'Mark refunded'}
                       </button>
+                    )}
+                    {r.status === 'pending_payment' && (
+                      <>
+                        <button className="hk-btn sm" onClick={() => remindPayment(r)} disabled={busyId === r._id}>
+                          {busyId === r._id ? 'Sending…' : 'Send payment link'}
+                        </button>
+                        {r.paymentRemindedAt && (
+                          <div><small style={{ color: '#94a3b8' }}>reminded {fmt(r.paymentRemindedAt)}</small></div>
+                        )}
+                      </>
                     )}
                   </td>
                 </tr>

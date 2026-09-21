@@ -47,6 +47,7 @@ router.get('/:id/registrations.csv', EXPORT, ctrl.exportRegistrations);
 router.post('/:id/import-teams', MANAGE, sheetUpload.single('file'), ctrl.importTeams);
 router.get('/:id/registrations', VIEW, ctrl.listRegistrations);
 router.post('/:id/registrations/:regId/refunded', MANAGE, ctrl.markRefunded);
+router.post('/:id/registrations/:regId/payment-reminder', MANAGE, ctrl.sendPaymentReminder);
 router.get('/:id', VIEW, ctrl.getOne);
 router.put('/:id', MANAGE, ctrl.update);
 router.delete('/:id', MANAGE, ctrl.remove);

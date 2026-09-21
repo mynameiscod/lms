@@ -63,6 +63,7 @@ export interface HackathonRegistration {
   payment?: { orderId: string; paymentId?: string; status: string; paidAt?: string | null } | null;
   cancelReason?: string;
   confirmedAt?: string | null;
+  paymentRemindedAt?: string | null;
   createdAt: string;
 }
 
@@ -130,6 +131,12 @@ export const hackathonApi = {
 
   markRefunded: async (id: string, regId: string): Promise<void> => {
     await axios.post(`${API}/hackathons/${id}/registrations/${regId}/refunded`, {}, { headers: auth() });
+  },
+
+  /** Nudge a team that registered and never paid. Returns which channels actually went. */
+  sendPaymentReminder: async (id: string, regId: string): Promise<{ email: boolean; whatsapp: boolean }> => {
+    const r = await axios.post(`${API}/hackathons/${id}/registrations/${regId}/payment-reminder`, {}, { headers: auth() });
+    return r.data?.data;
   },
 
   /**

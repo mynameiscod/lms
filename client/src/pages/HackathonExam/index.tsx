@@ -42,6 +42,39 @@ const mmss = (sec: number): string => {
     : `${m}:${String(r).padStart(2, '0')}`;
 };
 
+/**
+ * The entry screen's furniture.
+ *
+ * Icons are inline SVG rather than an icon package or emoji: this is the first screen a
+ * candidate sees on an exam they may be nervous about, and it renders identically on the
+ * college lab machines that will not have a modern emoji font.
+ */
+const ExamLogo: React.FC = () => {
+  const [ok, setOk] = useState(true);
+  return ok
+    ? <img className="hxe-logo" src="/assets/logo.png" alt="CodeBegun" onError={() => setOk(false)} />
+    : <span className="hxe-logo-txt">CODEBEGUN</span>;
+};
+
+const I = {
+  team: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  shield: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>,
+  clock: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>,
+  trophy: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h8M12 17v4M6 4h12v5a6 6 0 0 1-12 0z"/><path d="M6 6H4a2 2 0 0 0 2 4M18 6h2a2 2 0 0 1-2 4"/></svg>,
+  cal: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>,
+  people: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>,
+  phone: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>,
+  lock: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>,
+  send: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>,
+};
+
+const FEATURES = [
+  { tone: 'ind', icon: I.team,   title: 'Team Based',          blurb: 'Compete. Collaborate. Build Together.' },
+  { tone: 'grn', icon: I.shield, title: 'Secure & Fair',       blurb: 'Proctored exam environment' },
+  { tone: 'vio', icon: I.clock,  title: 'Timed Exam',          blurb: 'Solve within the given time' },
+  { tone: 'amb', icon: I.trophy, title: 'Real World Questions',blurb: 'Think. Solve. Apply.' },
+];
+
 const TOKEN_KEY = 'hx-exam-token';
 
 const HackathonExam: React.FC = () => {
@@ -306,70 +339,100 @@ const HackathonExam: React.FC = () => {
 
   if (phase === 'entry' || phase === 'otp') {
     return (
-      <div className="hx-page">
-        <div className="hx-hero">
-          <div className="hx-hero-in">
-            <span className="hx-eyebrow">HACKATHON</span>
-            <h1>Enter your exam</h1>
-            <p>Use the team code from your registration confirmation and your own mobile number.</p>
-          </div>
-        </div>
-        <div className="hx-mid">
-          <div className="hx-card">
+      <div className="hxe">
+        <div className="hxe-bg" aria-hidden="true"><i className="hxe-o1" /><i className="hxe-o2" /></div>
+
+        <header className="hxe-top">
+          <ExamLogo />
+          <span className="hxe-pill">HACKATHON</span>
+          <h1>Enter your <em>Exam</em></h1>
+          <p>Use the team code from your registration confirmation<br />and your mobile number to start the exam.</p>
+        </header>
+
+        <div className="hxe-grid">
+          <aside className="hxe-feats">
+            {FEATURES.map((f) => (
+              <div className="hxe-feat" key={f.title}>
+                <span className={`hxe-ico ${f.tone}`}>{f.icon}</span>
+                <div><b>{f.title}</b><span>{f.blurb}</span></div>
+              </div>
+            ))}
+          </aside>
+
+          <main className="hxe-card">
             {phase === 'entry' ? (
               <>
                 {!routeSlug && (
                   <>
-                    <label className="hx-label">Event</label>
-                    <input className="hx-input" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="event-slug" />
+                    <label className="hxe-label" htmlFor="hxe-slug">Event</label>
+                    <div className="hxe-field">
+                      {I.cal}
+                      <input id="hxe-slug" value={slug} onChange={(e) => setSlug(e.target.value)}
+                        placeholder="Enter event slug (e.g. offline-hackathon-2026-nec)" />
+                    </div>
                   </>
                 )}
-                <label className="hx-label">Team code</label>
-                <input
-                  className="hx-input hx-code"
-                  value={teamCode}
-                  onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
-                  placeholder="HK-XXXX-XXXX"
-                  autoFocus
-                />
-                <label className="hx-label">Your mobile number</label>
-                <input
-                  className="hx-input"
-                  value={mobile}
-                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="10-digit mobile"
-                  inputMode="numeric"
-                />
-                <p className="hx-hint">
-                  It must be the number you gave when your team registered — the code to start is sent there,
-                  and it is how we know the paper is yours.
-                </p>
-                <button className="hx-btn" disabled={busy || !teamCode || mobile.length !== 10} onClick={askOtp}>
-                  {busy ? 'Sending…' : 'Send me a code'}
+
+                <label className="hxe-label" htmlFor="hxe-code">Team code</label>
+                <div className="hxe-field">
+                  {I.people}
+                  <input id="hxe-code" className="hxe-mono" value={teamCode}
+                    onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
+                    placeholder="HK-XXXX-XXXX" autoFocus />
+                </div>
+
+                <label className="hxe-label" htmlFor="hxe-mob">Your mobile number</label>
+                <div className="hxe-field">
+                  {I.phone}
+                  <input id="hxe-mob" value={mobile} inputMode="numeric"
+                    onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="10-digit mobile number" />
+                </div>
+
+                <div className="hxe-note">
+                  <b>i</b>
+                  <span>Use the team code you received when your team registered. It must be the number you
+                  gave then — that is how we know the paper is yours.</span>
+                </div>
+
+                <button className="hxe-go" disabled={busy || !teamCode || mobile.length !== 10} onClick={askOtp}>
+                  {I.send}{busy ? 'Sending…' : 'Send me a code'}
                 </button>
+                <p className="hxe-safe">{I.lock} We'll send a verification code to your mobile to start the exam.</p>
               </>
             ) : (
               <>
-                <div className="hx-ok">We sent a code to {masked}.</div>
-                <label className="hx-label">Enter the code</label>
-                <input
-                  className="hx-input hx-otp"
-                  value={otp}
+                <div className="hxe-sent">We sent a code to {masked}.</div>
+                <label className="hxe-label" htmlFor="hxe-otp">Enter the code</label>
+                <input id="hxe-otp" className="hxe-otp" value={otp} inputMode="numeric"
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="······"
-                  inputMode="numeric"
-                  autoFocus
-                />
-                <button className="hx-btn" disabled={busy || otp.length < 4} onClick={confirmOtp}>
+                  placeholder="······" autoFocus />
+                <button className="hxe-go" disabled={busy || otp.length < 4} onClick={confirmOtp}>
                   {busy ? 'Checking…' : 'Verify'}
                 </button>
-                <button className="hx-link" onClick={() => { setPhase('entry'); setOtp(''); setErr(''); }}>
+                <button className="hxe-back" onClick={() => { setPhase('entry'); setOtp(''); setErr(''); }}>
                   Use a different number
                 </button>
               </>
             )}
-            {err && <div className="hx-err">{err}</div>}
-          </div>
+            {err && <div className="hxe-err">{err}</div>}
+          </main>
+
+          <aside className="hxe-art">
+            <div className="hxe-scene" aria-hidden="true">
+              <span className="hxe-chip a">Ideas<br />to Impact</span>
+              <span className="hxe-chip b">Code<br />Collaborate</span>
+              <svg className="hxe-lap" viewBox="0 0 200 140" fill="none">
+                <rect x="30" y="18" width="140" height="92" rx="9" fill="#1e3a8a" />
+                <rect x="38" y="26" width="124" height="76" rx="5" fill="#eaf0ff" />
+                <path d="M78 52 66 64l12 12M122 52l12 12-12 12M106 46 94 82" stroke="#1d4ed8"
+                  strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+                <rect x="14" y="110" width="172" height="11" rx="5.5" fill="#c7d2fe" />
+              </svg>
+            </div>
+            <p className="hxe-tag">More than an exam,<br /><b>a step towards your future.</b></p>
+            <span className="hxe-luck">Good Luck!</span>
+          </aside>
         </div>
       </div>
     );

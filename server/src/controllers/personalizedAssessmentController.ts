@@ -68,6 +68,8 @@ const studentShape = (a: any, texts: Map<string, any>) => {
     id: String(a._id),
     attemptNumber: a.attemptNumber,
     status: a.status,
+    /** What the paper is for, so one screen can take every kind and say which it is. */
+    purpose: a.purpose,
     startedAt: a.startedAt,
     totalQuestions: a.items.length,
     /**

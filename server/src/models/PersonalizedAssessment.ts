@@ -84,6 +84,8 @@ export interface IPersonalizedAssessment extends Document {
   purpose: AssessmentPurpose;
   /** REASSESSMENT only: the skills this check-in deliberately focused on. */
   targetSkillKeys: string[];
+  /** For a placement check: the topic the student asked to be tested out of. */
+  placementTopicCode?: string;
   /** Why the student was eligible, recorded so a check-in can explain itself later. */
   triggerReasons: string[];
 
@@ -183,6 +185,7 @@ const PersonalizedAssessmentSchema = new Schema<IPersonalizedAssessment>(
     // loading exactly as they always did.
     purpose:         { type: String, enum: ASSESSMENT_PURPOSES, default: 'INITIAL' },
     targetSkillKeys: { type: [String], default: [] },
+    placementTopicCode: { type: String },
     triggerReasons:  { type: [String], default: [] },
 
     beforeSnapshot: { type: SnapshotSchema, default: undefined },

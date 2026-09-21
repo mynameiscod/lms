@@ -27,7 +27,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, {
-  FoundationJourney as Journey, FoundationJourneyDay, FoundationJourneyActivity,
+  FoundationJourney as Journey, FoundationJourneyDay, FoundationJourneyActivity, PlacementAvailability,
 } from '../../api/passportApi';
 import SectionLock, { useUnlock } from './SectionLock';
 import { dayState, dayRanges, initialDay, STATE_LABEL } from './foundationRoadmapPresenter';
@@ -223,6 +223,85 @@ const LockedDay: React.FC<{ day: number; title?: string | null; topic?: string |
     </div>
   );
 
+/**
+ * "Already know this? Test out of it."
+ *
+ * Offered on a day still ahead, for that day's topic. Whether it is offered at all, how many
+ * questions it asks and how many days it could save are the server's answers from the student's
+ * own plan — this card only shows them. A refusal the student cannot act on is not shown; one they
+ * can (a paper already open, a cooldown) says so.
+ */
+const PlacementOffer: React.FC<{ topic: string | null; day: number }> = ({ topic, day }) => {
+  const nav = useNavigate();
+  const [avail, setAvail] = useState<PlacementAvailability | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    setAvail(null); setMsg('');
+    passportApi.placementCheckAvailability(day)
+      .then(a => { if (!cancelled) setAvail(a); })
+      .catch(() => { /* no offer is the right answer to a failed question */ });
+    return () => { cancelled = true; };
+  }, [day]);
+
+  if (!avail) return null;
+  const name = topic || avail.topicTitle || 'this topic';
+
+  if (!avail.available) {
+    if (avail.refused === 'ASSESSMENT_IN_PROGRESS') {
+      return (
+        <div className="fj-place wait">
+          <span className="fj-place-ic"><i className="bi bi-hourglass-split" aria-hidden /></span>
+          <div className="fj-place-tx"><b>You have a paper open</b><span>Finish it first, then you can test out of {name}.</span></div>
+          <button type="button" className="fj-place-btn ghost" onClick={() => nav('/careerpilot/skill-assessment')}>Continue it</button>
+        </div>
+      );
+    }
+    if (avail.refused === 'COOLDOWN_ACTIVE' && avail.availableAt) {
+      const when = new Date(avail.availableAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+      return (
+        <div className="fj-place wait">
+          <span className="fj-place-ic"><i className="bi bi-calendar-event" aria-hidden /></span>
+          <div className="fj-place-tx"><b>Test out of {name} again from {when}</b><span>A gap between attempts keeps the check measuring what you know, not what you remember of the last paper.</span></div>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  const start = async () => {
+    setBusy(true); setMsg('');
+    try {
+      const r = await passportApi.startPlacementCheck(day);
+      if (!r.ok) { setMsg(r.message || 'The check could not be started.'); setBusy(false); return; }
+      const back = `/careerpilot/plan?day=${day}`;
+      nav(`/careerpilot/skill-assessment?return=${encodeURIComponent(back)}&topic=${encodeURIComponent(name)}`);
+    } catch (e: any) {
+      setMsg(e?.response?.data?.message || 'The check could not be started.');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="fj-place">
+      <span className="fj-place-ic"><i className="bi bi-lightning-charge-fill" aria-hidden /></span>
+      <div className="fj-place-tx">
+        <b>Already know {name}?</b>
+        <span>
+          {avail.questions ?? 0} questions. Show you know it and the lessons you have proven come out of your plan —
+          {' '}{avail.daysAhead ?? 0} {avail.daysAhead === 1 ? 'day' : 'days'} of it are still ahead of you. Practice and projects stay.
+        </span>
+        {msg && <em>{msg}</em>}
+      </div>
+      <button type="button" className="fj-place-btn" onClick={start} disabled={busy}>
+        {busy ? 'Preparing…' : 'Test out'}
+      </button>
+    </div>
+  );
+};
+
 const FoundationJourneyPage: React.FC = () => {
   const [journey, setJourney] = useState<Journey | null>(null);
   const [day, setDay] = useState<FoundationJourneyDay | null>(null);
@@ -376,6 +455,7 @@ const FoundationJourneyPage: React.FC = () => {
    * it, and a figure the page was never given is left out rather than guessed.
    */
   const daysLeft = Math.max(0, totalDays - completedCount);
+  const openSummary = openDay !== null ? days.find(d => d.day === openDay) || null : null;
   const todaySummary = days.find(d => d.day === currentDay) || null;
   const todayActs = day && day.day === currentDay ? (day.activities || []) : [];
   const todayLeft = todayActs.filter(a => !a.done).length;
@@ -494,6 +574,10 @@ const FoundationJourneyPage: React.FC = () => {
 
       <section className="fj-day" aria-live="polite">
         {dayLoading && <div className="fj-skeleton">Loading day…</div>}
+
+        {!dayLoading && openSummary && openDay !== null && openDay > currentDay && openSummary.status !== 'COMPLETED' && (
+          <PlacementOffer key={openDay} topic={openSummary.topic ?? null} day={openDay} />
+        )}
 
         {!dayLoading && lockedDay && (
           <LockedDay

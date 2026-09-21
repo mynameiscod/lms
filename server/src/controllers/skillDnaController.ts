@@ -9,6 +9,8 @@ import { refreshCareerScoreFromReadiness } from '../services/careerScoreService'
 import { processGamificationEvent } from '../services/gamificationEngine';
 import { captureAfterSnapshot } from '../services/reassessmentService';
 import { generateRoadmap } from '../services/careerRoadmapService';
+import { submitPlacementCheck } from '../services/placementCheckService';
+import { placementOutward } from './placementCheckController';
 
 /**
  * Submitting a personalised assessment, and reading the Skill DNA it produces.
@@ -41,6 +43,21 @@ export const submitPersonalizedAssessment = async (req: Request, res: Response) 
 
     const open: any = await PersonalizedAssessment.findOne({ tenantId, studentId, status: 'IN_PROGRESS' });
     if (!open) return res.status(404).json({ message: 'You have no assessment in progress.' });
+
+    /**
+     * A placement check is graded as a placement check, whichever screen submits it.
+     *
+     * There is one open paper per member, so the skill-check screen can be holding a placement
+     * paper. Grading it here would record recognition answers as a full-weight diagnostic — the
+     * one thing the placement check is built never to claim.
+     */
+    if (open.purpose === 'PLACEMENT_CHECK') {
+      const r = await submitPlacementCheck({
+        tenantId, studentId, assessmentId: String(open._id),
+        answers: Array.isArray(req.body?.answers) ? req.body.answers : [],
+      });
+      return res.status(r.ok ? 200 : 400).json({ ...placementOutward(r), placementCheck: true });
+    }
 
     // Answers are matched against the FROZEN paper. Anything the student sends that was not
     // on their paper is discarded — a client cannot introduce questions it prefers.

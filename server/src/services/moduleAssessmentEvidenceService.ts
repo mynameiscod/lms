@@ -61,8 +61,15 @@ export async function projectModuleAssessment(input: {
   studentId: string;
   assessmentRef: string;
   answers: GradedModuleAnswer[];
+  /**
+   * Which kind of paper this was. MODULE_ASSESSMENT unless told otherwise, so every existing
+   * caller is unchanged; a placement check passes its own source so its rows carry their own
+   * weight and kind rather than borrowing a checkpoint's.
+   */
+  sourceType?: 'MODULE_ASSESSMENT' | 'PLACEMENT_CHECK';
 }): Promise<ProjectModuleResult> {
   const { tenantId, studentId, assessmentRef } = input;
+  const sourceType = input.sourceType || 'MODULE_ASSESSMENT';
 
   const totals = input.answers.reduce(
     (acc, a) => ({ earned: acc.earned + (a.earnedPoints || 0), max: acc.max + (a.maxPoints || 0) }),
@@ -114,6 +121,7 @@ export async function projectModuleAssessment(input: {
     perSkill.set(primary, agg);
 
     ops.push(evidenceOp({
+      sourceType,
       tenantId, studentId, skillKey: primary, assessmentRef,
       itemSourceType: a.itemSourceType, itemSourceId: a.itemId,
       relationship: 'PRIMARY', difficulty, earned, maxPoints, performance,
@@ -134,6 +142,7 @@ export async function projectModuleAssessment(input: {
       const key = String(sec.skillKey).toUpperCase();
       if (key === primary || !valid.has(key)) continue;
       ops.push(evidenceOp({
+      sourceType,
         tenantId, studentId, skillKey: key, assessmentRef,
         itemSourceType: a.itemSourceType, itemSourceId: a.itemId,
         relationship: 'SECONDARY', difficulty, earned, maxPoints, performance,
@@ -178,11 +187,12 @@ function evidenceOp(a: {
   itemSourceType: string; itemSourceId: string;
   relationship: 'PRIMARY' | 'SECONDARY'; difficulty: string;
   earned: number; maxPoints: number; performance: number;
+  sourceType: 'MODULE_ASSESSMENT' | 'PLACEMENT_CHECK';
 }) {
   const weight = evidenceWeightFor({
     relationship: a.relationship,
     difficulty: a.difficulty,
-    sourceType: 'MODULE_ASSESSMENT',
+    sourceType: a.sourceType,
   });
 
   return {
@@ -198,8 +208,8 @@ function evidenceOp(a: {
           tenantId: a.tenantId,
           studentId: new mongoose.Types.ObjectId(a.studentId),
           skillKey: a.skillKey,
-          sourceType: 'MODULE_ASSESSMENT',
-          evidenceKind: EVIDENCE_KIND_FOR_SOURCE.MODULE_ASSESSMENT,
+          sourceType: a.sourceType,
+          evidenceKind: EVIDENCE_KIND_FOR_SOURCE[a.sourceType],
           assessmentId: deterministicId(a.assessmentRef),
           attemptNumber: 1,
           itemSourceType: a.itemSourceType,

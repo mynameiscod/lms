@@ -314,3 +314,32 @@
   .fj-range-btn { padding: 5px 8px; font-size: 11px; }
   .fj-locked { padding: 20px 8px; }
 }
+
+/* ── Test out of a topic: an offer on a day still ahead ── */
+.fj-place {
+  display: flex; align-items: center; gap: 14px;
+  margin: 0 0 16px; padding: 14px 16px;
+  background: #fff; border: 1px solid #E2EAF2; border-left: 4px solid #359AAD; border-radius: 12px;
+}
+.fj-place.wait { border-left-color: #94A3B8; }
+.fj-place-ic {
+  flex: none; width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: #E8F5F8; color: #1B7D91; font-size: 18px;
+}
+.fj-place.wait .fj-place-ic { background: #F1F5F9; color: #5D6E88; }
+.fj-place-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.fj-place-tx b { color: #051D64; font-size: 15px; }
+.fj-place-tx span { color: #5D6E88; font-size: 13px; line-height: 1.45; }
+.fj-place-tx em { color: #B42318; font-size: 13px; font-style: normal; }
+.fj-place-btn {
+  flex: none; border: 0; border-radius: 9px; padding: 9px 18px;
+  background: #051D64; color: #fff; font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.fj-place-btn:hover:not(:disabled) { background: #0A2A7A; }
+.fj-place-btn:disabled { opacity: .6; cursor: default; }
+.fj-place-btn.ghost { background: #fff; color: #051D64; border: 1px solid #C9D6E6; }
+@media (max-width: 560px) {
+  .fj-place { flex-wrap: wrap; }
+  .fj-place-btn { width: 100%; }
+}

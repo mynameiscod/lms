@@ -1,12 +1,84 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import passportApi, { SkillAssessment as Paper, SkillAssessmentItem, AssessmentAvailability } from '../../api/passportApi';
+import passportApi, { SkillAssessment as Paper, SkillAssessmentItem, AssessmentAvailability, PlacementResult } from '../../api/passportApi';
 import { AnswerQueue, enqueueAnswer, drainQueue, requeueFailed, hasPending } from './answerQueue';
 import { useMember } from './MemberLayout';
 import './skillAssessment.css';
 
 const AUTOSAVE_MS = 900;
 const RETRY_MS = 4000;
+
+/**
+ * The result of a placement check, in days.
+ *
+ * The count is read from the plan after it was rebuilt, never predicted from the score: "you saved
+ * nine days" has to be nine days that actually left it. A check that moved nothing says so plainly,
+ * because that is also true and the student can do something with it.
+ */
+const PlacementDone: React.FC<{ result: PlacementResult; topic: string; onBack: () => void }> = ({ result, topic, onBack }) => {
+  const before = result.daysBefore ?? 0;
+  const after = result.daysAfter ?? before;
+  const saved = Math.max(0, before - after);
+  const name = topic || 'this topic';
+  const skills = result.skillScores || [];
+  const ACRONYM = new Set(['sql', 'db', 'api', 'html', 'css', 'js', 'oop', 'http', 'dsa', 'os', 'ui', 'ai', 'ml']);
+  const label = (k: string) => k.toLowerCase().split('_').filter(Boolean)
+    .map(w => (ACRONYM.has(w) ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1))).join(' ');
+
+  if (!result.ok) {
+    return (
+      <main className="ska-wrap skp">
+        <section className="skp-card">
+          <h1>That check could not be recorded</h1>
+          <p>{result.message || 'Please try again from your plan.'}</p>
+          <button className="skc-cta" onClick={onBack}>Back to my plan <i className="bi bi-arrow-right" /></button>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="ska-wrap skp">
+      <section className="skp-card">
+        <span className={`skp-badge${saved ? ' ok' : ''}`}><i className={`bi ${saved ? 'bi-lightning-charge-fill' : 'bi-check-lg'}`} /></span>
+        <span className="skp-eyebrow">Placement check · {name}</span>
+        {saved > 0 ? <>
+          <h1>{saved} {saved === 1 ? 'day' : 'days'} came out of your plan</h1>
+          <p>
+            {name} had {before} {before === 1 ? 'day' : 'days'} ahead of you; it now has {after}. The lessons you
+            proved are gone.{after > 0 ? ' What is left is the practice and building — knowing the answer is not yet the same as having written it.' : ''}
+          </p>
+        </> : <>
+          <h1>Your plan stays as it is</h1>
+          <p>
+            You scored {result.score ?? 0}%. That is not yet enough to take lessons out, so {name} keeps
+            its {before} {before === 1 ? 'day' : 'days'} — and you will meet it knowing where to look.
+          </p>
+        </>}
+
+        <div className="skp-figs">
+          <div><b>{result.score ?? 0}%</b><small>Score</small></div>
+          <div><b>{before}<i className="bi bi-arrow-right" />{after}</b><small>Days of {name}</small></div>
+          <div><b>{saved}</b><small>Days saved</small></div>
+        </div>
+
+        {skills.length > 0 && (
+          <ul className="skp-skills">
+            {skills.map(k => (
+              <li key={k.skillKey}>
+                <span>{label(k.skillKey)}</span>
+                <i><em style={{ width: `${Math.max(3, k.percentage)}%` }} /></i>
+                <b>{k.earned}/{k.max}</b>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <button className="skc-cta" onClick={onBack}>Back to my plan <i className="bi bi-arrow-right" /></button>
+      </section>
+    </main>
+  );
+};
 
 const SkillAssessment: React.FC = () => {
   const { reload: reloadMember } = useMember();
@@ -25,6 +97,13 @@ const SkillAssessment: React.FC = () => {
   const skillLabel = skillKey
     ? skillKey.toLowerCase().split('_').filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ')
     : '';
+  /**
+   * Where a placement check returns to — the day it was offered on. Only a path inside CareerPilot
+   * is accepted, so a crafted link cannot send somebody off-site after they submit.
+   */
+  const rawReturn = params.get('return') || '';
+  const returnTo = rawReturn.startsWith('/careerpilot') ? rawReturn : '';
+  const topicName = params.get('topic') || '';
   const [scopeNotice, setScopeNotice] = useState('');
   const [paper, setPaper] = useState<Paper | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
@@ -191,7 +270,7 @@ const SkillAssessment: React.FC = () => {
           <img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" />
         </a>
         {exit
-          ? <button className="ska-exit-btn" onClick={() => nav('/careerpilot')}><i className="bi bi-box-arrow-left" /> Save &amp; exit</button>
+          ? <button className="ska-exit-btn" onClick={() => nav(returnTo || '/careerpilot')}><i className="bi bi-box-arrow-left" /> Save &amp; exit</button>
           : <span className="ska-safe-pill"><i className="bi bi-shield-check" /> Your answers are private</span>}
       </div>
     </header>
@@ -208,6 +287,10 @@ const SkillAssessment: React.FC = () => {
   );
 
   if (loading) return <div className="ska-page"><Header /><div className="ska-state"><div className="ska-load">Loading your assessment…</div></div><Footer /></div>;
+
+  if (done?.placementCheck) {
+    return <div className="ska-page"><Header /><PlacementDone result={done} topic={topicName} onBack={() => nav(returnTo || '/careerpilot/plan')} /><Footer /></div>;
+  }
 
   if (done) {
     const measured = done.result?.graded ?? 0;
@@ -406,6 +489,7 @@ const SkillAssessment: React.FC = () => {
     );
   }
 
+  const placing = paper.purpose === 'PLACEMENT_CHECK';
   const item = paper.items[at];
   const given = answers[keyOf(item)];
   const pct = Math.round(((at + 1) / paper.items.length) * 100);
@@ -415,14 +499,19 @@ const SkillAssessment: React.FC = () => {
       <Header exit />
       <main className="ska-assessment-shell">
         <aside className="ska-progress-panel">
-          <span className="ska-progress-label">ASSESSMENT PROGRESS</span>
+          <span className="ska-progress-label">{placing ? 'PLACEMENT CHECK' : 'ASSESSMENT PROGRESS'}</span>
           <div className="ska-progress-copy"><b>Question {at + 1} of {paper.items.length}</b><small>{answeredCount} answered</small></div>
           <div className="ska-ring" style={{ '--pct': `${pct}%` } as React.CSSProperties}><div><b>{pct}%</b><small>Complete</small></div></div>
           <div className="ska-side-line" />
           <div className="ska-status-list">
-            <div className="active"><span>1</span><p><b>Skill Assessment</b><small>{answeredCount} / {paper.items.length}</small></p></div>
-            <div><span><i className="bi bi-stars" /></span><p><b>Skill DNA</b><small>After submission</small></p></div>
-            <div><span><i className="bi bi-map" /></span><p><b>Roadmap</b><small>Personalized next steps</small></p></div>
+            {placing ? <>
+              <div className="active"><span>1</span><p><b>{topicName ? `Test out of ${topicName}` : 'Test out of a topic'}</b><small>{answeredCount} / {paper.items.length}</small></p></div>
+              <div><span><i className="bi bi-map" /></span><p><b>Your plan</b><small>Rebuilt from what you prove</small></p></div>
+            </> : <>
+              <div className="active"><span>1</span><p><b>Skill Assessment</b><small>{answeredCount} / {paper.items.length}</small></p></div>
+              <div><span><i className="bi bi-stars" /></span><p><b>Skill DNA</b><small>After submission</small></p></div>
+              <div><span><i className="bi bi-map" /></span><p><b>Roadmap</b><small>Personalized next steps</small></p></div>
+            </>}
           </div>
           {left !== null && <div className={`ska-side-time${left <= 60 ? ' low' : ''}`}><i className="bi bi-stopwatch" /><span><b>{clock(left)}</b><small>Time remaining</small></span></div>}
         </aside>
@@ -484,7 +573,9 @@ const SkillAssessment: React.FC = () => {
         </section>
       </main>
 
-      <div className="ska-bottom-tip"><i className="bi bi-lightbulb" /><span><b>No pass mark, no pressure.</b> Answer honestly so CareerPilot can build the right plan for you.</span></div>
+      <div className="ska-bottom-tip"><i className="bi bi-lightbulb" />{placing
+        ? <span><b>Nothing to lose.</b> What you prove comes out of your plan; anything you miss simply stays in it.</span>
+        : <span><b>No pass mark, no pressure.</b> Answer honestly so CareerPilot can build the right plan for you.</span>}</div>
 
       <Footer />
 
@@ -492,11 +583,11 @@ const SkillAssessment: React.FC = () => {
         <div className="ska-modal" role="dialog" aria-modal="true">
           <div className="bx">
             <span className="ska-modal-icon"><i className="bi bi-send-check" /></span>
-            <b>Submit your assessment?</b>
+            <b>{placing ? 'Submit your check?' : 'Submit your assessment?'}</b>
             <p>{answeredCount} of {paper.items.length} answered{answeredCount < paper.items.length && ` · ${paper.items.length - answeredCount} left blank`}. You cannot change your answers afterwards.</p>
             <div className="ska-actions">
               <button className="ska-btn ghost" onClick={() => setConfirming(false)}>Keep working</button>
-              <button className="ska-btn primary" disabled={submitting} onClick={submit}>{submitting ? 'Submitting…' : 'Submit assessment'}</button>
+              <button className="ska-btn primary" disabled={submitting} onClick={submit}>{submitting ? (placing ? 'Rebuilding your plan…' : 'Submitting…') : (placing ? 'Submit check' : 'Submit assessment')}</button>
             </div>
           </div>
         </div>

@@ -62,6 +62,16 @@ export const SOURCE_WEIGHT: Record<string, number> = {
    */
   MOCK_INTERVIEW: 0.6,
   /**
+   * A placement check: the paper a student asks for when they believe a topic is already theirs.
+   *
+   * A real marked paper on fresh facts, so it counts — but it is unproctored, self-initiated and
+   * its reward is skipping instruction, which makes it the highest-stakes evidence in the product
+   * to over-trust. 0.8 says "count it, nearly in full, and make four questions buy confidence
+   * rather than three": at this weight a four-item skill reaches MEDIUM and a paper would need
+   * nine items on one skill to reach HIGH, which no placement check offers.
+   */
+  PLACEMENT_CHECK: 0.8,
+  /**
    * An in-course module assessment.
    *
    * Objectively graded and canonically mapped, so it qualifies — but taken unsupervised, at a
@@ -103,6 +113,16 @@ export type EvidenceKind = 'DIAGNOSTIC' | 'UNDERSTANDING' | 'APPLIED';
 export const EVIDENCE_KIND_FOR_SOURCE: Record<string, EvidenceKind> = {
   PERSONALIZED_ASSESSMENT: 'DIAGNOSTIC',
   MOCK_INTERVIEW: 'UNDERSTANDING',
+  /**
+   * UNDERSTANDING, deliberately, and this is the whole safety argument for the feature.
+   *
+   * Recognising the right answer among four is not writing the code. On its own a placement check
+   * therefore stops at STANDARD — which is exactly what suppressing a foundation, guided or
+   * standard-depth lesson requires, and no more. It can never manufacture REVISION or VERIFIED
+   * out of nothing, so it cannot skip the practice and projects those states stand for. Beside a
+   * diagnostic the student actually sat, or work they actually passed, it counts as normal.
+   */
+  PLACEMENT_CHECK: 'UNDERSTANDING',
   MODULE_ASSESSMENT: 'UNDERSTANDING',
   CODING_ASSIGNMENT: 'APPLIED',
   PROJECT_EVALUATION: 'APPLIED',

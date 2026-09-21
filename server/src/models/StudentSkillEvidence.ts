@@ -39,6 +39,8 @@ export type EvidenceRelationship = 'PRIMARY' | 'SECONDARY';
  */
 export type EvidenceSource =
   | 'PERSONALIZED_ASSESSMENT' | 'MOCK_INTERVIEW' | 'MODULE_ASSESSMENT'
+  /** A paper a student asked for, on a topic they believe they already know. */
+  | 'PLACEMENT_CHECK'
   | 'CODING_ASSIGNMENT' | 'PROJECT_EVALUATION';
 
 /**
@@ -71,7 +73,7 @@ export const EVIDENCE_RELATIONSHIPS: EvidenceRelationship[] = ['PRIMARY', 'SECON
  * that can be repeated until it is favourable is weaker evidence. See SOURCE_WEIGHT.
  */
 export const EVIDENCE_SOURCES: EvidenceSource[] = [
-  'PERSONALIZED_ASSESSMENT', 'MOCK_INTERVIEW', 'MODULE_ASSESSMENT',
+  'PERSONALIZED_ASSESSMENT', 'MOCK_INTERVIEW', 'MODULE_ASSESSMENT', 'PLACEMENT_CHECK',
   /**
    * Graded practical work, admitted once it could be tied to canonical skills: a Foundation assignment
    * carries its unit's code, and the unit carries the skills it assesses. Only a trustworthy final grade

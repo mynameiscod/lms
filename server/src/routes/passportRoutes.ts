@@ -56,6 +56,7 @@ import * as mt from '../controllers/mockTestController';
 import * as prep from '../controllers/companyPreparationController';
 import * as cprofile from '../controllers/companyProfileAdminController';
 import * as cphealth from '../controllers/careerPilotHealthController';
+import * as placementCheck from '../controllers/placementCheckController';
 import * as cpanalytics from '../controllers/careerPilotAnalyticsController';
 
 const router = express.Router();
@@ -499,6 +500,10 @@ router.post('/assessments/:assessmentId/reproject',          MANAGE, skillDna.re
 //    working exam. Role, stage and questions are all resolved server-side. ──
 // Preflight for the onboarding CTA — read-only, no generation, so no aiGenerate limit.
 router.get('/me/assessment/personalized/availability', MEMBER, personalized.checkPersonalizedAssessmentAvailability);
+/* The placement check: a paper a member asks for on a topic they believe they already know. */
+router.get('/me/placement-check/day/:day',  MEMBER, placementCheck.checkPlacementAvailability);
+router.post('/me/placement-check/start',     MEMBER, placementCheck.startPlacement);
+router.post('/me/placement-check/submit',    MEMBER, placementCheck.submitPlacement);
 router.post('/me/assessment/personalized/start', MEMBER, rateLimit('aiGenerate'), personalized.startPersonalizedAssessment);
 // Saving is not submitting: status is untouched and nothing is graded. It exists so a
 // refresh, a dead battery or a shared machine cannot cost somebody a half-finished paper.

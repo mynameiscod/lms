@@ -814,6 +814,19 @@ export const passportApi = {
    * (blueprint published, skills configured, question pool) stay on the server — this is
    * a transport, not a second copy of the policy.
    */
+  /** May I test out of this topic? Every rule is the server's — this only asks. */
+  placementCheckAvailability: async (day: number): Promise<PlacementAvailability> => {
+    const { data } = await axios.get(`${BASE}/me/placement-check/day/${day}`, { headers: auth() });
+    return data;
+  },
+  /**
+   * Builds the paper and opens it. The taking screen then resumes it like any open paper, and its
+   * submit is graded as a placement check on the server whichever screen sends it.
+   */
+  startPlacementCheck: async (day: number): Promise<{ ok: boolean; assessmentId?: string; questions?: number; message?: string }> => {
+    const { data } = await axios.post(`${BASE}/me/placement-check/start`, { day }, { headers: auth() });
+    return data;
+  },
   getAssessmentAvailability: async (): Promise<AssessmentAvailability> => {
     const { data } = await axios.get(`${BASE}/me/assessment/personalized/availability`, { headers: auth() });
     return data;
@@ -3387,6 +3400,28 @@ export interface SkillAssessmentItem {
   response?: any;
 }
 
+export interface PlacementAvailability {
+  available: boolean;
+  topicTitle?: string | null;
+  /** Days of this topic still ahead — what passing could save. */
+  daysAhead?: number;
+  questions?: number;
+  refused?: 'TOPIC_NOT_IN_PLAN' | 'TOPIC_STARTED' | 'NOTHING_MEASURABLE' | 'ASSESSMENT_IN_PROGRESS' | 'COOLDOWN_ACTIVE';
+  message?: string;
+  availableAt?: string | null;
+}
+
+/** What a submitted placement check returns, from either submit route. */
+export interface PlacementResult {
+  ok: boolean;
+  placementCheck?: boolean;
+  message?: string;
+  score?: number;
+  skillScores?: { skillKey: string; earned: number; max: number; percentage: number }[];
+  daysBefore?: number;
+  daysAfter?: number;
+}
+
 export interface SkillAssessment {
   id: string;
   attemptNumber: number;
@@ -3395,6 +3430,8 @@ export interface SkillAssessment {
   /** Server-computed, so a reload resumes with the time actually left. */
   secondsRemaining?: number | null;
   status: 'IN_PROGRESS' | 'SUBMITTED' | 'ABANDONED';
+  /** INITIAL, REASSESSMENT, SKILL_CHECK, MODULE_ASSESSMENT or PLACEMENT_CHECK. */
+  purpose?: string;
   startedAt: string;
   totalQuestions: number;
   items: SkillAssessmentItem[];

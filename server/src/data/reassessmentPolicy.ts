@@ -34,7 +34,7 @@ export const REASSESSMENT_VERSION = 'REASSESSMENT_V1';
  * not they passed it. Recording it as a REASSESSMENT would start a cooldown nobody asked for;
  * recording it as a SKILL_CHECK would claim it measured one skill.
  */
-export const ASSESSMENT_PURPOSES = ['INITIAL', 'REASSESSMENT', 'SKILL_CHECK', 'MODULE_ASSESSMENT'] as const;
+export const ASSESSMENT_PURPOSES = ['INITIAL', 'REASSESSMENT', 'SKILL_CHECK', 'MODULE_ASSESSMENT', 'PLACEMENT_CHECK'] as const;
 export type AssessmentPurpose = typeof ASSESSMENT_PURPOSES[number];
 
 /**

@@ -118,7 +118,10 @@
   border: 1px solid var(--cb-border); border-radius: 14px; overflow: hidden;
   box-shadow: 0 3px 14px rgba(15, 46, 77, .055);
 }
+/* Fullscreen inside the member shell. vw/vh are not scaled by #root's zoom, so 100vw/100vh left the IDE
+   covering only part of the window; dividing by the zoom makes it cover all of it. */
 .gd .cb-member-playground .cp-root.cp-full {
-  position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 2000;
+  position: fixed; top: 0; left: 0; right: 0; bottom: auto; z-index: 2000;
+  width: calc(100vw / var(--app-zoom, .75)); height: calc(100vh / var(--app-zoom, .75));
   border: none; border-radius: 0; box-shadow: none;
 }

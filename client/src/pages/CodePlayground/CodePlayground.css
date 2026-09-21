@@ -14,7 +14,16 @@ body:has(.cp-root) { overflow: hidden; }
    IDE always fills the full width — no JS measurement needed. */
 .main-content > .cp-root { width: 100% !important; height: 100%; }
 .cp-root { display: flex; flex-direction: column; height: 100%; min-height: 0; background: #f1f5f9; color: #0f172a; overflow: hidden; }
-.main-content > .cp-root.cp-full { position: fixed; inset: 0; width: 100vw !important; height: 100vh; z-index: 2000; }
+/* Fullscreen. `inset: 0` pins the IDE to the viewport in the page's own coordinates, so it fills the
+   screen under #root's zoom; 100vw/100vh are scaled down by that zoom and leave a strip of page showing.
+   The selector covers both shells — the LMS layout and the CareerPilot member layout. */
+.cp-root.cp-full, .main-content > .cp-root.cp-full {
+  position: fixed; top: 0; left: 0; right: 0; bottom: auto; width: auto !important; max-width: none; z-index: 2000;
+  /* #root renders at zoom .75 (index.css) and vh is not scaled by that zoom, so a plain 100vh comes out a
+     quarter short. Dividing by the zoom makes the IDE cover the real window. */
+  height: calc(100vh / var(--app-zoom, .75));
+  border-radius: 0; border: 0;
+}
 .cp-body { min-height: 0; }
 .cp-editor-wrap { min-height: 0; }
 

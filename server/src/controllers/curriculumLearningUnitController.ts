@@ -19,6 +19,7 @@ import { requireAuthorableSkills, listAuthorableSkills } from '../services/skill
 import * as assessments from '../services/unitAssessmentService';
 import { liveJourneyUsage, LiveJourneyUsage } from '../services/unitJourneyUsageService';
 import { activitiesFor, loadAssets } from '../services/foundationJourneyService';
+import { directionCoverage } from '../services/directionCoverageService';
 import { studentContentRow } from '../services/studentContentView';
 
 /** What an admin is told before a unit on students' journeys leaves the published curriculum. */
@@ -432,6 +433,25 @@ export const getUnit = async (req: Request, res: Response) => {
 };
 
 /** GET /curriculum-units/options — the vocabularies an author picks from. */
+/**
+ * How much of a plan each direction actually reaches — the answer to "is this personalised yet?".
+ *
+ * Read-only, and it composes rather than counts: a unit nobody is ever given is not a day a
+ * student receives. An admin authoring direction content needs to see the gap where they work,
+ * not discover it from a student whose plan looks like everybody else's.
+ */
+export const directionCoverageReport = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    if (!tenantId) return res.status(401).json({ message: 'Not authenticated' });
+    const stageKey = String(req.query.stage || 'foundation').toLowerCase();
+    res.json(await directionCoverage(tenantId, stageKey));
+  } catch (e: any) {
+    console.error('[curriculum-units] direction coverage:', e?.message || e);
+    res.status(500).json({ message: 'Could not measure direction coverage.' });
+  }
+};
+
 export const unitOptions = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);

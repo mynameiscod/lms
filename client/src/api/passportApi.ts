@@ -257,6 +257,11 @@ export const passportApi = {
     const r = await axios.get(`${CP}/curriculum-units`, { headers: auth(), params: { stage } });
     return r.data;
   },
+  /** What a student of each direction actually receives — the personalisation gap, measured. */
+  directionCoverage: async (stage = 'foundation'): Promise<DirectionCoverageReport> => {
+    const r = await axios.get(`${CP}/curriculum-units/direction-coverage`, { params: { stage }, headers: auth() });
+    return r.data;
+  },
   megaCurriculumOptions: async (stage = 'foundation'): Promise<MegaCurriculumOptions> => {
     const r = await axios.get(`${CP}/curriculum-units/options`, { headers: auth(), params: { stage } });
     return r.data;
@@ -2095,6 +2100,24 @@ export interface UnitCoverage {
   publishable: boolean;
   /** PUBLISHED **and** READY. The only state a student's plan may be built from. */
   composerReady: boolean;
+}
+
+export interface DirectionCoverageRow {
+  key: string; name: string;
+  /** Units carrying this direction, and how many of those are published. */
+  authored: number; published: number;
+  /** Days of this direction a beginner who chose it actually receives. */
+  daysInPlan: number;
+  composed: boolean;
+}
+
+export interface DirectionCoverageReport {
+  stageKey: string;
+  programDays: number;
+  directions: DirectionCoverageRow[];
+  /** Directions a student can choose that give them no days of their own. */
+  empty: string[];
+  identicalPairs: { a: string; b: string }[];
 }
 
 export interface MegaCurriculumTopicRow {

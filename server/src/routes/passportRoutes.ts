@@ -445,6 +445,8 @@ router.get('/spine/coverage',                   MANAGE, spine.getSpineCoverage);
  */
 router.get('/curriculum-units',                     MANAGE, learningUnits2.listUnits);
 router.get('/curriculum-units/options',             MANAGE, learningUnits2.unitOptions);
+// What a student of each direction actually receives — the personalisation gap, measured.
+router.get('/curriculum-units/direction-coverage', MANAGE, learningUnits2.directionCoverageReport);
 router.post('/curriculum-units/reorder',            MANAGE, express.json(), learningUnits2.reorderUnits);
 router.get('/curriculum-units/:unitCode',           MANAGE, learningUnits2.getUnit);
 router.put('/curriculum-units/:unitCode',           MANAGE, express.json(), learningUnits2.saveUnit);

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import passportApi, { CurriculumLearningUnit, MegaCurriculumTopicRow, UnitStudentPreview } from '../../api/passportApi';
+import passportApi, { CurriculumLearningUnit, DirectionCoverageReport, MegaCurriculumTopicRow, UnitStudentPreview } from '../../api/passportApi';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 import './adminContentBuilder.css';
 
@@ -212,6 +212,8 @@ const AdminContentBuilder: React.FC = () => {
     </header>
 
     {err && <div className="acb-err"><i className="bi bi-exclamation-circle" /> {err}</div>}
+
+    <CoveragePanel />
 
     <div className="acb-body">
       <aside className="acb-rail">
@@ -427,6 +429,69 @@ const ContentDrawer: React.FC<{
       </footer>
     </form>
   </div>;
+};
+
+/**
+ * What a student of each direction actually receives.
+ *
+ * A direction with no units of its own does not fail: the student simply gets the universal
+ * curriculum and a plan identical to somebody who chose a different empty direction. That is the
+ * gap between "personalised" and personalised, and it belongs where the content is authored.
+ */
+const CoveragePanel: React.FC = () => {
+  const [report, setReport] = useState<DirectionCoverageReport | null>(null);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const load = async () => {
+    setBusy(true);
+    try { setReport(await passportApi.directionCoverage('foundation')); }
+    catch { /* the panel simply stays closed; the builder is not blocked by a report */ }
+    setBusy(false);
+  };
+
+  const show = () => { setOpen(o => !o); if (!report) load(); };
+  const worst = report?.empty?.length || 0;
+
+  return <section className="acb-cover">
+    <button type="button" className="acb-cover-hd" onClick={show}>
+      <i className={`bi ${open ? 'bi-chevron-down' : 'bi-chevron-right'}`} />
+      <b>Direction coverage</b>
+      <span>{report ? `${report.directions.length - worst} of ${report.directions.length} directions have days of their own` : 'How personalised a plan actually is'}</span>
+      {!!worst && <em className="acb-cover-warn">{worst} empty</em>}
+    </button>
+    {open && <div className="acb-cover-body">
+      {busy && !report && <p className="acb-cover-note">Measuring…</p>}
+      {report && <>
+        <table className="acb-cover-table">
+          <thead><tr><th>Direction</th><th>Authored</th><th>Published</th><th>Days in a plan</th></tr></thead>
+          <tbody>
+            {report.directions.map(d => (
+              <tr key={d.key} className={d.daysInPlan === 0 ? 'none' : ''}>
+                <td>{d.name}</td>
+                <td>{d.authored}</td>
+                <td>{d.published}</td>
+                <td><b>{d.daysInPlan}</b> of {report.programDays}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!!report.empty.length && <p className="acb-cover-note warn">
+          <i className="bi bi-exclamation-triangle-fill" /> No days of their own:{' '}
+          <b>{report.empty.join(', ')}</b>. A student who chooses one of these gets the universal
+          curriculum only — the same plan as anybody else who chose an empty direction.
+        </p>}
+        {!!report.identicalPairs.length && <p className="acb-cover-note warn">
+          <i className="bi bi-files" /> Identical plans:{' '}
+          {report.identicalPairs.map(p => `${p.a} = ${p.b}`).join(', ')} — two names over one body of content.
+        </p>}
+        <p className="acb-cover-note">
+          Measured by composing a plan for a beginner of each direction against this tenant's
+          curriculum, so it counts days a student is actually given, not units sitting in the library.
+        </p>
+      </>}
+    </div>}
+  </section>;
 };
 
 /** The day itself: what a member reads at the top of it, and how long it should take. */

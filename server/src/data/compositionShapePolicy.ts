@@ -286,8 +286,23 @@ export type DirectionStance = 'SELECTED' | 'EXPLORING' | 'UNDECIDED';
  * not something a preference gets to move.
  */
 function directionAdjusted(base: RoleAllocation[], stance: DirectionStance): RoleAllocation[] {
+  /**
+   * SELECTED buys a quarter of the programme, not a sixth.
+   *
+   * It used to be +6, which on a ninety-day plan meant about sixteen direction days for a student
+   * who had chosen a role — and a curriculum audit of the shipped Year-1 content showed those
+   * sixteen were all the plan ever used, though fifty-one web units were sitting there unread.
+   * Two students who chose different roles then shared about eighty of their ninety days, which
+   * is not what either of them was promised.
+   *
+   * The capacity comes from advanced universal material and orientation, in that order: somebody
+   * who has decided does not need more of the breadth that exists to help people decide. The
+   * foundation and guided instruction floors are untouched, so the first half of the year is
+   * still the same fundamentals for everyone — the direction days land after them, which is
+   * where they belong.
+   */
   const delta: Partial<Record<CompositionRole, number>> =
-    stance === 'SELECTED' ? { DIRECTION_LEARNING: +6, EXPLORATION: -2, ADVANCED_UNIVERSAL: -4 }
+    stance === 'SELECTED' ? { DIRECTION_LEARNING: +12, EXPLORATION: -4, ADVANCED_UNIVERSAL: -8 }
       : stance === 'EXPLORING' ? { EXPLORATION: +3, DIRECTION_LEARNING: +2, FOUNDATION_INSTRUCTION: -5 }
         : { DIRECTION_LEARNING: -8, ADVANCED_UNIVERSAL: +5, GUIDED_INSTRUCTION: +3 };
 

@@ -67,13 +67,6 @@ export const SETTING_DEFS: SettingDef[] = [
     help: '⚠️ Mobiles listed here are shown their OTP on screen instead of receiving it — phone ownership is NOT verified for them. Use only for testing the signup funnel, and CLEAR IT when finished. Empty = normal OTP for everyone.', perTenant: true },
 
   // ── Amazon SES ───────────────────────────────────────────────────────────── (platform default provider)
-  /* Proctoring recordings. Separate credentials from SES on purpose: a key that can write
-     video can delete it, and mailing rights have no business being the same credential. */
-  { key: 'PROCTOR_S3_BUCKET', label: 'Proctoring bucket', group: 'storage', type: 'text', placeholder: 'codebegun-proctoring', help: 'Bucket that holds exam recordings. Leave blank to disable recording entirely — the exam will refuse to offer it rather than pretend to record.', perTenant: true },
-  { key: 'PROCTOR_S3_REGION', label: 'Proctoring bucket region', group: 'storage', type: 'text', placeholder: 'ap-south-1', help: 'Region the bucket lives in, e.g. ap-south-1 (Mumbai). Required alongside the bucket.', perTenant: true },
-  { key: 'PROCTOR_S3_ACCESS_KEY_ID', label: 'Proctoring access key ID', group: 'storage', type: 'text', placeholder: 'AKIA...', help: 'IAM key with s3:PutObject, s3:GetObject and s3:ListBucket on that bucket only. Do NOT reuse the SES key. Leave blank to use the ambient AWS credentials on the machine.', perTenant: true },
-  { key: 'PROCTOR_S3_SECRET_ACCESS_KEY', label: 'Proctoring secret key', group: 'storage', isSecret: true, type: 'password', placeholder: 'secret key', perTenant: true },
-  { key: 'PROCTOR_S3_ENDPOINT', label: 'Proctoring S3 endpoint', group: 'storage', type: 'text', placeholder: 'https://… (only for R2/Wasabi/MinIO)', help: 'Leave blank for AWS S3. Set it to point at Cloudflare R2, Wasabi, MinIO or anything else that speaks S3.', perTenant: true },
 
   { key: 'SES_REGION', label: 'SES Region', group: 'email', type: 'text', placeholder: 'ap-south-1', help: 'AWS region where the sending domain is verified, e.g. ap-south-1 (Mumbai) or eu-west-1. Must match the region the domain identity lives in — SES identities are per-region.', perTenant: true },
   { key: 'SES_ACCESS_KEY_ID', label: 'SES Access Key ID', group: 'email', type: 'text', placeholder: 'AKIA...', help: 'IAM key with ses:SendEmail. Leave blank to use the machine\'s ambient AWS credentials (instance role).', perTenant: true },

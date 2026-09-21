@@ -31,13 +31,9 @@
 .md-hero {
   position: relative; overflow: hidden; border-radius: 24px; padding: 30px 34px; color: #fff;
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: center;
-  background:
-    radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
-    radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
-    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, #123A8C 100%);
+  background: #051D64;
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
-.md-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
 .md-hero > * { position: relative; z-index: 1; }
 .md-eyebrow { font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
 .md .md-hero h1 { margin-top: 8px; font-size: clamp(28px, 2.6vw, 40px); line-height: 1.1; font-weight: 800; letter-spacing: -.02em; color: #fff !important; }
@@ -219,7 +215,7 @@
 .md-contest .info span { display: block; margin-top: 3px; font-size: 13px; color: var(--muted); }
 
 /* Career path */
-.md-path { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 24px; align-items: center; border-radius: 22px; padding: 22px 26px; color: #fff; background: linear-gradient(120deg, var(--navy) 0%, var(--navy2) 55%, #123A8C 100%); box-shadow: 0 16px 36px rgba(5, 29, 100, .16); }
+.md-path { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 24px; align-items: center; border-radius: 22px; padding: 22px 26px; color: #fff; background: #051D64; box-shadow: 0 16px 36px rgba(5, 29, 100, .16); }
 .md-path-lead { display: flex; align-items: center; gap: 12px; }
 .md-path .ic { background: rgba(255, 255, 255, .14); color: #fff; }
 .md .md-path small { display: block; font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #9FDCE6 !important; }

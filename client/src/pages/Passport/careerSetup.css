@@ -196,12 +196,8 @@
 .cpr-wrap { width: min(2400px, calc(100% - clamp(32px, 7vw, 200px))); margin: 0 auto; }
 .cpr-band {
   position: relative; overflow: hidden; color: #fff; padding: 44px 0 116px;
-  background:
-    radial-gradient(circle at 85% 20%, rgba(53, 154, 173, .38), transparent 38%),
-    radial-gradient(circle at 12% 110%, rgba(25, 118, 210, .30), transparent 40%),
-    linear-gradient(120deg, var(--navy) 0%, var(--navy-2) 45%, #123A8C 100%);
+  background: #051D64;
 }
-.cpr-band::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
 .cpr-band-grid { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: 40px; align-items: center; }
 .cpr-badge { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; color: #fff; background: #1FA971; box-shadow: 0 0 0 8px rgba(31, 169, 113, .22), 0 10px 26px rgba(0, 0, 0, .18); margin-bottom: 18px; }
 .cpr-eyebrow { font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #9FDCE6; }

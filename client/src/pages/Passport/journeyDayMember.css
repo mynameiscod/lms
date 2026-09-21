@@ -14,13 +14,9 @@
 .jdm-hero {
   position: relative; overflow: hidden; border-radius: 24px; padding: 24px 32px 28px; color: #fff;
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end;
-  background:
-    radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
-    radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
-    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, #123A8C 100%);
+  background: #051D64;
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
-.jdm-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
 .jdm-hero > * { position: relative; z-index: 1; }
 .jdm-crumb { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; margin-bottom: 14px; color: #C4D5EE; font-size: 14px; font-weight: 700; cursor: pointer; }
 .jdm-crumb:hover { color: #fff; }

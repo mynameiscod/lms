@@ -399,7 +399,7 @@
 
 /* ── Leaderboard page ── */
 .lb-me { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px;
-  background: linear-gradient(135deg, #051D64, #0A3970 58%, #237F91); color: #fff;
+  background: #051D64; color: #fff;
   border-radius: 16px; padding: 18px 20px; margin-bottom: 16px; }
 .lb-me div { text-align: center; }
 .lb-me b { display: block; font-size: 22px; font-weight: 900; line-height: 1.15; }

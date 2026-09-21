@@ -11,13 +11,9 @@
 .rc2 .rc2-hero {
   position: relative; overflow: hidden; border: 0; border-radius: 24px; padding: 28px 32px; color: #fff;
   grid-template-columns: minmax(0, 1fr) minmax(0, 400px); gap: 28px;
-  background:
-    radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
-    radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
-    linear-gradient(120deg, #051D64 0%, #0B2D72 48%, #123A8C 100%);
+  background: #051D64;
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
-.rc2 .rc2-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
 .rc2 .rc2-hero > * { position: relative; z-index: 1; }
 .rc2 .rc2-hero .rc-kicker { font-size: 12.5px; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
 #root .gd .rc2 .rc2-hero h1, .rc2 .rc2-hero h1 { font-size: clamp(28px, 2.6vw, 40px); line-height: 1.1; font-weight: 800; letter-spacing: -.02em !important; color: #fff !important; }

@@ -284,7 +284,7 @@ body:has(.cp-root) { overflow: hidden; }
 .cp-root.cpg { background: #fff; border: 1px solid var(--cp-border); border-radius: 20px; box-shadow: 0 10px 30px rgba(15, 46, 77, .08); }
 .cpg-head {
   flex: none; display: flex; align-items: center; gap: 14px; padding: 14px 20px; color: #fff;
-  background: radial-gradient(circle at 92% 0%, rgba(53, 154, 173, .45), transparent 45%), linear-gradient(120deg, var(--cp-navy) 0%, #0B2D72 55%, #123A8C 100%);
+  background: #051D64;
 }
 .cpg-head-ic { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; background: rgba(255, 255, 255, .14); color: #fff; }
 .cpg-head-t { flex: 1; min-width: 0; }

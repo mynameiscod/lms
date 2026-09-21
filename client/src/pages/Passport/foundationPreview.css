@@ -24,13 +24,9 @@
 .fjp-hero {
   position: relative; overflow: hidden; border-radius: 24px; padding: 32px 36px; color: #fff;
   display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 32px; align-items: center;
-  background:
-    radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
-    radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
-    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, #123A8C 100%);
+  background: #051D64;
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
-.fjp-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
 .fjp-hero > * { position: relative; z-index: 1; }
 .fjp-eyebrow { font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
 .fjp .fjp-hero h1 { margin-top: 8px; font-size: clamp(30px, 2.8vw, 44px); line-height: 1.08; font-weight: 800; letter-spacing: -.02em; color: #fff !important; }

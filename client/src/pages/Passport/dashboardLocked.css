@@ -25,13 +25,9 @@
 .dl2-hero {
   position: relative; overflow: hidden; border-radius: 24px; padding: 32px 36px; color: #fff;
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: center;
-  background:
-    radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
-    radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
-    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, #123A8C 100%);
+  background: #051D64;
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
-.dl2-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
 .dl2-hero > * { position: relative; z-index: 1; }
 .dl2-eyebrow { font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #9FDCE6; }
 .dl2 .dl2-hero h1 { margin-top: 8px; font-size: clamp(30px, 2.8vw, 44px); line-height: 1.08; font-weight: 800; letter-spacing: -.02em; color: #fff !important; }
@@ -117,7 +113,7 @@
 
 .dl2-buy {
   position: relative; padding: 28px 26px; color: #fff; display: flex; flex-direction: column; gap: 8px;
-  background: radial-gradient(circle at 90% 0%, rgba(53, 154, 173, .45), transparent 45%), linear-gradient(160deg, var(--navy) 0%, var(--navy2) 55%, #123A8C 100%);
+  background: #051D64;
 }
 .dl2 .dl2-buy small { font-size: 12.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #9FDCE6 !important; }
 .dl2 .dl2-buy > b { font-size: 21px; line-height: 1.25; color: #fff !important; }

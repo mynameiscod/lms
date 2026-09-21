@@ -158,3 +158,41 @@
 /* Wide screens: #root's .75 zoom leaves dashboard type small; lift this page like the landing and setup pages. */
 @media (min-width: 1200px) and (max-width: 1599px) { .sdn { zoom: 1.08; } }
 @media (min-width: 1600px) { .sdn { zoom: 1.15; } }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LIGHT BANNER (matches the memberDashboard .md-hero card): the Skill DNA hero
+   stops being a navy block and becomes a white card like the KPI tiles under
+   it — navy headings, a tinted eyebrow pill, soft tinted chips and score panel
+   and a teal score ring on a light track. Appended last so it wins by order;
+   the #root .gd copies cover the shell rules that pin text with !important.
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .sdn .sdn-hero, .sdn .sdn-hero {
+  background: #fff !important; color: var(--ink);
+  border: 1px solid var(--line); box-shadow: 0 6px 22px rgba(15, 46, 77, .07);
+}
+/* Eyebrow becomes a tinted pill instead of pale teal text. */
+#root .gd .sdn .sdn-hero .sdn-eyebrow.light, .sdn .sdn-hero .sdn-eyebrow.light {
+  display: inline-flex; padding: 6px 12px; border-radius: 999px;
+  background: #EAF1FB; color: #1B3C77 !important;
+}
+/* Headline, accent word and lead copy. */
+#root .gd .sdn .sdn-hero h1, .sdn .sdn-hero h1 { color: #051D64 !important; }
+#root .gd .sdn .sdn-hero h1 span, .sdn .sdn-hero h1 span { color: #17869B !important; }
+#root .gd .sdn .sdn-hero p, .sdn .sdn-hero p { color: #5D6E88 !important; }
+/* Chips: the glass pills become soft tinted pills. */
+#root .gd .sdn .sdn-hero-chips span, .sdn .sdn-hero-chips span {
+  background: linear-gradient(135deg, #F5F9FE, #EDF4FC);
+  border-color: #DFE8F4; backdrop-filter: none; color: #1B3C77 !important;
+}
+.sdn .sdn-hero-chips span i { color: #1B7D91; }
+/* Score panel: soft tinted panel, teal ring on a light track, white ring core. */
+.sdn .sdn-hero .sdn-hero-score {
+  background: linear-gradient(135deg, #F5F9FE, #EDF4FC);
+  border-color: #DFE8F4; backdrop-filter: none;
+}
+.sdn .sdn-hero .sdn-ring { background: conic-gradient(#1E9AA8 var(--sdn-deg), #E0E8F2 0); }
+.sdn .sdn-hero .sdn-ring > div { background: #fff; box-shadow: inset 0 0 0 1px #EDF2F8; }
+#root .gd .sdn .sdn-ring strong, .sdn .sdn-ring strong { color: #051D64 !important; }
+#root .gd .sdn .sdn-ring span, .sdn .sdn-ring span { color: #7C8DA5 !important; }
+#root .gd .sdn .sdn-hero-score-copy b, .sdn .sdn-hero-score-copy b { color: #051D64 !important; }
+#root .gd .sdn .sdn-hero-score-copy span, .sdn .sdn-hero-score-copy span { color: #6B7C96 !important; }

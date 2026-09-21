@@ -141,3 +141,28 @@
 }
 @media (min-width: 1200px) and (max-width: 1599px) { .fj-page.fjm, .fj-page.frm { zoom: 1.05; } }
 @media (min-width: 1600px) { .fj-page.fjm, .fj-page.frm { zoom: 1.12; } }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LIGHT BANNER (matches memberDashboard.css .md-hero): the My 90 Days hero is a
+   white card like the cards under it — navy headings, a tinted eyebrow pill,
+   soft tinted panels and a teal-to-green progress bar. It replaces the navy
+   fill the hero had above; nothing is deleted, this block just wins by order.
+   ──────────────────────────────────────────────────────────────────────────── */
+.fjm-hero { background: #fff !important; color: var(--ink); border: 1px solid var(--line); box-shadow: 0 6px 22px rgba(15, 46, 77, .07); }
+.fjm-hero .fjm-eyebrow { display: inline-block; padding: 6px 12px; border-radius: 999px; background: #EAF1FB; color: #1B3C77 !important; }
+.fjm-hero h1 { color: var(--navy) !important; }
+.fjm-hero h1 span { color: #17869B !important; }
+.fjm-hero .fjm-hero-copy > p { color: #5D6E88 !important; }
+.fjm-hero .fjm-chips span { background: #EEF4FB; border-color: #DFE8F4; color: #1B3C77; }
+.fjm-hero .fjm-hero-bar { background: #E4EBF4; }
+.fjm-hero .fjm-hero-bar i { background: linear-gradient(90deg, #1E9AA8, #2FB27F); }
+.fjm-hero .fjm-ring { background: conic-gradient(#1E9AA8 var(--fjm-deg), #E4EBF4 0); }
+.fjm-hero .fjm-ring > div { background: #fff; box-shadow: inset 0 0 0 1px #EDF2F8; }
+.fjm-hero .fjm-ring strong { color: var(--navy); }
+.fjm-hero .fjm-ring span { color: #6B7C96; }
+.fjm-hero .fjm-today { background: linear-gradient(135deg, #F5F9FE, #EDF4FC); border-color: #DFE8F4; backdrop-filter: none; }
+.fjm-hero .fjm-today small { color: #1B7D91 !important; }
+.fjm-hero .fjm-today b { color: var(--navy) !important; }
+.fjm-hero .fjm-today > span { color: #6B7C96 !important; }
+.fjm-hero .fjm-btn.light { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 10px 22px rgba(5, 29, 100, .18); }
+.fjm-hero .fjm-btn.light:hover { background: var(--primary-hover); border-color: var(--primary-hover); }

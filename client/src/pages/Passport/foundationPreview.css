@@ -112,3 +112,25 @@
 }
 @media (min-width: 1200px) and (max-width: 1599px) { .fjp { zoom: 1.08; } }
 @media (min-width: 1600px) { .fjp { zoom: 1.15; } }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LIGHT BANNER (matches memberDashboard.css .md-hero): the preview hero is a
+   white card like the week and day cards — navy heading, a tinted eyebrow pill,
+   a soft tinted "ninety at a glance" panel and teal dots. It replaces the navy
+   fill the hero had above; nothing is deleted, this block just wins by order.
+   ──────────────────────────────────────────────────────────────────────────── */
+.fjp-hero { background: #fff !important; color: var(--ink); border: 1px solid var(--line); box-shadow: 0 6px 22px rgba(15, 46, 77, .07); }
+.fjp .fjp-hero .fjp-eyebrow { display: inline-block; padding: 6px 12px; border-radius: 999px; background: #EAF1FB; color: #1B3C77 !important; }
+.fjp .fjp-hero h1 { color: var(--navy) !important; }
+.fjp .fjp-hero h1 span { color: #17869B !important; }
+.fjp .fjp-hero .fjp-hero-copy p { color: #5D6E88 !important; }
+.fjp .fjp-hero .fjp-chips span { background: #EEF4FB; border-color: #DFE8F4; color: #1B3C77; }
+.fjp .fjp-hero .fjp-map { background: linear-gradient(135deg, #F5F9FE, #EDF4FC); border-color: #DFE8F4; backdrop-filter: none; }
+.fjp .fjp-hero .fjp-map-head b { color: var(--navy) !important; }
+.fjp .fjp-hero .fjp-map-head span { color: #6B7C96 !important; }
+.fjp .fjp-hero .fjp-dots li { background: #E4EBF4; }
+.fjp .fjp-hero .fjp-dots li.on { background: #1E9AA8; }
+.fjp .fjp-hero .fjp-dots li.open { background: #fff; box-shadow: 0 0 0 2px #1E9AA8; }
+.fjp .fjp-hero .fjp-msg { color: #C93737 !important; }
+.fjp .fjp-hero .fjp-btn.light { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 10px 22px rgba(5, 29, 100, .18); }
+.fjp .fjp-hero .fjp-btn.light:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }

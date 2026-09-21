@@ -164,3 +164,49 @@
 }
 @media (min-width: 1200px) and (max-width: 1599px) { .rr { zoom: 1.08; } }
 @media (min-width: 1600px) { .rr { zoom: 1.15; } }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LIGHT BANNER (matches the memberDashboard .md-hero card): the Role readiness
+   hero stops being a navy block and becomes a white card like the KPI tiles
+   under it — navy headings, a tinted eyebrow pill, soft tinted chips and gauge
+   panel, a teal gauge on a light track and a navy-filled "Change role" button.
+   Appended last so it wins by order; the #root .gd copies cover the shell
+   rules that pin text with !important.
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .rr .rr-hero, .rr .rr-hero {
+  background: #fff !important; color: var(--ink);
+  border: 1px solid var(--line); box-shadow: 0 6px 22px rgba(15, 46, 77, .07);
+}
+/* Eyebrow becomes a tinted pill instead of pale teal text. */
+#root .gd .rr .rr-hero .rr-eyebrow.light, .rr .rr-hero .rr-eyebrow.light {
+  display: inline-flex; padding: 6px 12px; border-radius: 999px;
+  background: #EAF1FB; color: #1B3C77 !important;
+}
+/* Headline, accent role name and lead copy. */
+#root .gd .rr .rr-hero h1, .rr .rr-hero h1 { color: #051D64 !important; }
+#root .gd .rr .rr-hero h1 span, .rr .rr-hero h1 span { color: #17869B !important; }
+#root .gd .rr .rr-hero p, .rr .rr-hero p { color: #5D6E88 !important; }
+/* Chips: the glass pills become soft tinted pills. */
+#root .gd .rr .rr-hero-chips span, .rr .rr-hero-chips span {
+  background: linear-gradient(135deg, #F5F9FE, #EDF4FC);
+  border-color: #DFE8F4; backdrop-filter: none; color: #1B3C77 !important;
+}
+.rr .rr-hero-chips span i { color: #1B7D91; }
+/* "Change role" was a white button on navy; on the white card it is navy filled. */
+#root .gd .rr .rr-hero-chips button, .rr .rr-hero-chips button {
+  background: #051D64; border-color: #051D64; color: #fff;
+}
+#root .gd .rr .rr-hero-chips button:hover, .rr .rr-hero-chips button:hover { background: #0A2A7A; border-color: #0A2A7A; }
+/* Gauge panel: soft tinted panel, teal gauge on a light track, white gauge core. */
+.rr .rr-hero .rr-hero-score {
+  background: linear-gradient(135deg, #F5F9FE, #EDF4FC);
+  border-color: #DFE8F4; backdrop-filter: none;
+}
+.rr .rr-hero .rr-gauge { background: conic-gradient(#1E9AA8 var(--rr-deg), #E0E8F2 0); }
+.rr .rr-hero .rr-gauge > div { background: #fff; box-shadow: inset 0 0 0 1px #EDF2F8; }
+#root .gd .rr .rr-gauge strong, .rr .rr-gauge strong { color: #051D64 !important; }
+#root .gd .rr .rr-gauge strong em, .rr .rr-gauge strong em { color: #7C8DA5 !important; }
+#root .gd .rr .rr-gauge span, .rr .rr-gauge span { color: #1B7D91 !important; }
+#root .gd .rr .rr-hero-score-copy small, .rr .rr-hero-score-copy small { color: #1B7D91 !important; }
+#root .gd .rr .rr-hero-score-copy b, .rr .rr-hero-score-copy b { color: #051D64 !important; }
+#root .gd .rr .rr-hero-score-copy span, .rr .rr-hero-score-copy span { color: #6B7C96 !important; }

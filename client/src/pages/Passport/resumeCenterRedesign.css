@@ -123,3 +123,64 @@
   .rc2-tabs { width: 100%; }
   .rc2-tabs button { flex: 1; justify-content: center; padding: 0 10px; }
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LIGHT BANNER (matches the LIGHT BANNER block in memberDashboard.css): the
+   hero stops being a navy block and becomes a white card like the panels under
+   it — navy heading, a tinted kicker pill, the Import action as the navy
+   primary, the other actions outlined, and the ATS tile soft-tinted with a
+   teal ring. Appended last so it wins by order over the pinned block above,
+   and every rule keeps the #root .gd prefix (with !important where the shell
+   or that block uses one). Layout, spacing, radii and the responsive rules
+   above are left alone.
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .rc2 .rc2-hero, .rc2 .rc2-hero {
+  background: #fff !important; color: #102A4F;
+  border: 1px solid #E2EAF2; box-shadow: 0 6px 22px rgba(15, 46, 77, .07);
+}
+#root .gd .rc2 .rc2-hero .rc-kicker, .rc2 .rc2-hero .rc-kicker {
+  display: inline-block; padding: 6px 12px; border-radius: 999px;
+  background: #EAF1FB; color: #1B3C77 !important;
+}
+#root .gd .rc2 .rc2-hero h1, .rc2 .rc2-hero h1 { color: #051D64 !important; }
+#root .gd .rc2 .rc2-hero h1 span, .rc2 .rc2-hero h1 span { color: #17869B !important; }
+#root .gd .rc2 .rc2-hero .rc-hero-copy > p, .rc2 .rc2-hero .rc-hero-copy > p { color: #5D6E88 !important; }
+#root .gd .rc2 .rc2-hero .rc-target, .rc2 .rc2-hero .rc-target { color: #6B7C96 !important; }
+#root .gd .rc2 .rc2-hero .rc-target b, .rc2 .rc2-hero .rc-target b { color: #17869B !important; }
+#root .gd .rc2 .rc2-hero .rc-target button, .rc2 .rc2-hero .rc-target button { color: #051D64 !important; }
+
+/* Import stays the primary — navy filled; the other three become outlines. */
+#root .gd .rc2 .rc2-hero .rc-action.primary, .rc2 .rc2-hero .rc-action.primary {
+  background: #051D64 !important; border-color: #051D64 !important; color: #fff !important;
+  box-shadow: 0 10px 22px rgba(5, 29, 100, .18);
+}
+#root .gd .rc2 .rc2-hero .rc-action.primary b, #root .gd .rc2 .rc2-hero .rc-action.primary i,
+.rc2 .rc2-hero .rc-action.primary b, .rc2 .rc2-hero .rc-action.primary i { color: #fff !important; }
+#root .gd .rc2 .rc2-hero .rc-action.primary small, .rc2 .rc2-hero .rc-action.primary small { color: #C6D6EC !important; }
+#root .gd .rc2 .rc2-hero .rc-action.primary:hover, .rc2 .rc2-hero .rc-action.primary:hover {
+  background: #0A2A7A !important; border-color: #0A2A7A !important;
+}
+#root .gd .rc2 .rc2-hero .rc-action:not(.primary), .rc2 .rc2-hero .rc-action:not(.primary) {
+  background: #fff !important; border-color: #C9D8E5 !important; color: #051D64 !important;
+}
+#root .gd .rc2 .rc2-hero .rc-action:not(.primary) b, #root .gd .rc2 .rc2-hero .rc-action:not(.primary) i,
+.rc2 .rc2-hero .rc-action:not(.primary) b, .rc2 .rc2-hero .rc-action:not(.primary) i { color: #051D64 !important; }
+#root .gd .rc2 .rc2-hero .rc-action:not(.primary) small, .rc2 .rc2-hero .rc-action:not(.primary) small { color: #6B7C96 !important; }
+#root .gd .rc2 .rc2-hero .rc-action:not(.primary):hover:not(:disabled),
+.rc2 .rc2-hero .rc-action:not(.primary):hover:not(:disabled) { background: #F4F8FD !important; border-color: #051D64 !important; }
+
+/* The ATS card is a soft tinted tile; the ring keeps its figures navy on white. */
+#root .gd .rc2 .rc2-hero .rc-score-card, .rc2 .rc2-hero .rc-score-card {
+  background: linear-gradient(135deg, #F5F9FE, #EDF4FC); border-color: #DFE8F4;
+  backdrop-filter: none; color: #102A4F;
+}
+#root .gd .rc2 .rc2-hero .rc-score-card span, .rc2 .rc2-hero .rc-score-card span { color: #1B7D91 !important; }
+#root .gd .rc2 .rc2-hero .rc-score-card h3, .rc2 .rc2-hero .rc-score-card h3 { color: #051D64 !important; }
+#root .gd .rc2 .rc2-hero .rc-score-card p, .rc2 .rc2-hero .rc-score-card p { color: #6B7C96 !important; }
+#root .gd .rc2 .rc2-hero .rc-score-ring, .rc2 .rc2-hero .rc-score-ring {
+  background: conic-gradient(#1E9AA8 var(--score), #E0E8F2 0) !important;
+}
+#root .gd .rc2 .rc2-hero .rc-score-ring::before, #root .gd .rc2 .rc2-hero .rc-score-ring::after,
+.rc2 .rc2-hero .rc-score-ring::before, .rc2 .rc2-hero .rc-score-ring::after { background: #fff !important; }
+#root .gd .rc2 .rc2-hero .rc-score-ring strong, .rc2 .rc2-hero .rc-score-ring strong { color: #051D64 !important; }
+#root .gd .rc2 .rc2-hero .rc-score-ring span, .rc2 .rc2-hero .rc-score-ring span { color: #6B7C96 !important; }

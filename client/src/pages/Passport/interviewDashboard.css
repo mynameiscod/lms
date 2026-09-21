@@ -84,3 +84,55 @@
 }
 @media (min-width: 1200px) and (max-width: 1599px) { .cp-iv-page.iv2 { zoom: 1.05; } }
 @media (min-width: 1600px) { .cp-iv-page.iv2 { zoom: 1.12; } }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LIGHT BANNER (matches the LIGHT BANNER block in memberDashboard.css): the
+   hero stops being a navy block and becomes a white card like the panels under
+   it — navy heading, a tinted eyebrow pill, tinted chips, a navy primary button
+   and a soft readiness tile. Appended last so it wins by order; each rule also
+   carries the #root .gd prefix so it outranks the shell's pinned colours.
+   Layout, spacing, radii and the responsive rules above are left alone.
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .iv2 .iv2-hero, .iv2 .iv2-hero {
+  background: #fff !important; color: var(--ink);
+  border: 1px solid var(--line); box-shadow: 0 6px 22px rgba(15, 46, 77, .07);
+}
+#root .gd .iv2 .iv2-hero .iv2-eyebrow, .iv2 .iv2-hero .iv2-eyebrow {
+  display: inline-block; padding: 6px 12px; border-radius: 999px;
+  background: #EAF1FB; color: #1B3C77 !important;
+}
+#root .gd .iv2 .iv2-hero h1, .iv2 .iv2-hero h1 { color: var(--navy) !important; }
+#root .gd .iv2 .iv2-hero h1 span, .iv2 .iv2-hero h1 span { color: #17869B !important; }
+#root .gd .iv2 .iv2-hero-copy > p, .iv2 .iv2-hero-copy > p { color: #5D6E88 !important; }
+#root .gd .iv2 .iv2-hero .iv2-chips span, .iv2 .iv2-hero .iv2-chips span {
+  background: #EEF4FB; border-color: #DFE8F4; color: #1B3C77 !important;
+}
+
+/* The white hero button becomes the navy primary; the ghost becomes an outline. */
+#root .gd .iv2 .iv2-hero .iv2-btn.light, .iv2 .iv2-hero .iv2-btn.light {
+  background: var(--primary); border-color: var(--primary); color: #fff;
+  box-shadow: 0 10px 22px rgba(5, 29, 100, .18);
+}
+#root .gd .iv2 .iv2-hero .iv2-btn.light:hover:not(:disabled),
+.iv2 .iv2-hero .iv2-btn.light:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
+#root .gd .iv2 .iv2-hero .iv2-btn.ghost, .iv2 .iv2-hero .iv2-btn.ghost {
+  background: #fff; border-color: var(--border-strong); color: var(--navy);
+}
+#root .gd .iv2 .iv2-hero .iv2-btn.ghost:hover:not(:disabled),
+.iv2 .iv2-hero .iv2-btn.ghost:hover:not(:disabled) { background: #F4F8FD; border-color: var(--primary); }
+
+/* Readiness tile and ring on white. */
+#root .gd .iv2 .iv2-hero .iv2-score, .iv2 .iv2-hero .iv2-score {
+  background: linear-gradient(135deg, #F5F9FE, #EDF4FC); border-color: #DFE8F4; backdrop-filter: none;
+}
+#root .gd .iv2 .iv2-hero .iv2-ring, .iv2 .iv2-hero .iv2-ring {
+  background: conic-gradient(#1E9AA8 var(--iv2-deg), #E0E8F2 0);
+}
+#root .gd .iv2 .iv2-hero .iv2-ring > div, .iv2 .iv2-hero .iv2-ring > div {
+  background: #fff; box-shadow: inset 0 0 0 1px #EDF2F8;
+}
+#root .gd .iv2 .iv2-hero .iv2-ring strong, .iv2 .iv2-hero .iv2-ring strong { color: var(--navy) !important; }
+#root .gd .iv2 .iv2-hero .iv2-ring span, .iv2 .iv2-hero .iv2-ring span { color: #6B7C96 !important; }
+#root .gd .iv2 .iv2-score-copy small, .iv2 .iv2-score-copy small { color: #1B7D91 !important; }
+#root .gd .iv2 .iv2-score-copy b, .iv2 .iv2-score-copy b { color: var(--navy) !important; }
+#root .gd .iv2 .iv2-score-copy span, .iv2 .iv2-score-copy span { color: #6B7C96 !important; }

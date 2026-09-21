@@ -106,3 +106,21 @@
 }
 @media (min-width: 1200px) and (max-width: 1599px) { .jd-page.jdm { zoom: 1.05; } }
 @media (min-width: 1600px) { .jd-page.jdm { zoom: 1.12; } }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LIGHT BANNER (matches memberDashboard.css .md-hero): the day-player hero is a
+   white card like the rail and stage cards — navy heading, a tinted eyebrow
+   pill, tinted chips and a teal-to-green progress bar. It replaces the navy
+   fill the hero had above; nothing is deleted, this block just wins by order.
+   ──────────────────────────────────────────────────────────────────────────── */
+.jdm-hero { background: #fff !important; color: var(--ink); border: 1px solid var(--line); box-shadow: 0 6px 22px rgba(15, 46, 77, .07); }
+.jdm-hero .jdm-crumb { color: #1B3C77; }
+.jdm-hero .jdm-crumb:hover { color: var(--navy); }
+.jdm .jdm-hero .jdm-eyebrow { display: inline-block; padding: 6px 12px; border-radius: 999px; background: #EAF1FB; color: #1B3C77 !important; }
+.jdm-hero h1 { color: var(--navy) !important; }
+.jdm-hero .jdm-chips span { background: #EEF4FB; border-color: #DFE8F4; color: #1B3C77; }
+.jdm-hero .jdm-chips span i.bi-lightning-charge-fill { color: var(--amber); }
+.jdm-hero .jdm-bar { background: #E4EBF4; }
+.jdm-hero .jdm-bar i { background: linear-gradient(90deg, #1E9AA8, #2FB27F); }
+.jdm-hero .jdm-daynav button { background: #fff; border-color: var(--border-strong); color: var(--navy); }
+.jdm-hero .jdm-daynav button:hover:not(:disabled) { background: #F4F8FD; border-color: var(--primary); }

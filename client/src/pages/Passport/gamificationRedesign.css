@@ -95,3 +95,48 @@
 #root .gd .gam2 .gam2-coin b { color: #fff !important; }
 #root .gd .gam2 .gam2-level-copy p { color: #D5E2F5 !important; }
 #root .gd .gam2 .gam2-eyebrow { color: #9FDCE6 !important; }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LIGHT BANNER (matches the memberDashboard .md-hero card): the My Progress
+   hero stops being a navy block and becomes a white card like the tiles under
+   it — navy headings, a tinted eyebrow pill, soft tinted wallet panels and a
+   teal-to-green XP bar. The hexagon keeps its coloured fill (it is the accent)
+   and just gets a softer shadow so it sits on white. Shell rules pin this
+   page's text with #root .gd, so every text override repeats that prefix and
+   comes last, which is how it wins.
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .gam2 .gam2-hero, .gam.gam2 .gam2-hero {
+  background: #fff !important; color: var(--ink);
+  border: 1px solid var(--line); box-shadow: 0 6px 22px rgba(15, 46, 77, .07);
+}
+/* Eyebrow becomes a tinted pill instead of pale teal text. */
+#root .gd .gam2 .gam2-eyebrow, .gam2 .gam2-hero .gam2-eyebrow {
+  display: inline-flex; padding: 6px 12px; border-radius: 999px;
+  background: #EAF1FB; color: #1B3C77 !important;
+}
+/* Headline, accent tick and lead copy. */
+#root .gd .gam2 .gam2-hero h1, .gam2 .gam2-hero h1 { color: #051D64 !important; }
+#root .gd .gam2 .gam2-hero h1 i, .gam2 .gam2-hero h1 i { color: #17869B !important; }
+#root .gd .gam2 .gam2-level-copy p, .gam2 .gam2-level-copy p { color: #5D6E88 !important; }
+/* Level hexagon keeps its accent fill; only the shadow changes for the white card. */
+.gam2 .gam2-hero .gam2-hex { box-shadow: 0 10px 24px rgba(5, 29, 100, .18); }
+/* XP bar: navy label, muted percentage, light track, teal-to-green fill. */
+#root .gd .gam2 .gam2-xp-top b, .gam2 .gam2-xp-top b { color: #051D64 !important; }
+#root .gd .gam2 .gam2-xp-top span, .gam2 .gam2-xp-top span { color: #6B7C96 !important; }
+.gam2 .gam2-hero .gam2-xp-bar { background: #E4EBF4; }
+.gam2 .gam2-hero .gam2-xp-bar i { background: linear-gradient(90deg, #1E9AA8, #2FB27F); }
+/* Wallet tiles: the glass panels become soft tinted panels. */
+.gam2 .gam2-hero .gam2-coin {
+  background: linear-gradient(135deg, #F5F9FE, #EDF4FC);
+  border-color: #DFE8F4; backdrop-filter: none;
+}
+.gam2 .gam2-hero .gam2-coin > span { background: #FDF1D4; color: #B86B00; }
+.gam2 .gam2-hero .gam2-coin.xp > span { background: #E4F3F6; color: #1B7D91; }
+#root .gd .gam2 .gam2-coin small, .gam2 .gam2-coin small { color: #1B7D91 !important; opacity: 1 !important; }
+#root .gd .gam2 .gam2-coin b, .gam2 .gam2-coin b { color: #051D64 !important; }
+/* "Rewards store" was a white button on navy; on the white card it is navy filled. */
+#root .gd .gam2 .gam2-wallet button, .gam2 .gam2-wallet button {
+  background: #051D64; border: 1px solid #051D64; color: #fff;
+  box-shadow: 0 10px 22px rgba(5, 29, 100, .18);
+}
+#root .gd .gam2 .gam2-wallet button:hover, .gam2 .gam2-wallet button:hover { background: #0A2A7A; border-color: #0A2A7A; }

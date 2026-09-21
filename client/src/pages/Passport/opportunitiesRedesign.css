@@ -80,3 +80,55 @@
 #root .gd .opp2 .opp2-metrics .opp-metric { background: rgba(255, 255, 255, .10) !important; border: 1px solid rgba(255, 255, 255, .20) !important; box-shadow: none !important; }
 #root .gd .opp2 .opp2-hero .opp-kicker { color: #9FDCE6 !important; opacity: 1 !important; }
 #root .gd .opp2 .opp2-hero .opp2-btn.ghost:disabled { opacity: .7; }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LIGHT BANNER (matches the LIGHT BANNER block in memberDashboard.css): the
+   hero stops being a navy block and becomes a white card like the cards under
+   it — navy heading, a tinted kicker pill, a navy primary button, an outlined
+   secondary, and the four figures in soft tinted tiles. Appended last so it
+   wins by order over the pinned block above, and every rule keeps the
+   #root .gd prefix (with !important where the shell uses one) so it outranks
+   the shell. Layout, spacing, radii and the responsive rules are left alone.
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .opp2 .opp2-hero, .opp2 .opp2-hero {
+  background: #fff !important; color: var(--ink);
+  border: 1px solid var(--line); box-shadow: 0 6px 22px rgba(15, 46, 77, .07);
+}
+#root .gd .opp2 .opp2-hero .opp-kicker, .opp2 .opp2-hero .opp-kicker {
+  display: inline-block; padding: 6px 12px; border-radius: 999px;
+  background: #EAF1FB; color: #1B3C77 !important; opacity: 1 !important;
+}
+#root .gd .opp2 .opp2-hero h1, .opp2 .opp2-hero h1 { color: #051D64 !important; }
+#root .gd .opp2 .opp2-hero h1 span, .opp2 .opp2-hero h1 span { color: #17869B !important; }
+#root .gd .opp2 .opp2-hero p, .opp2 .opp2-hero p { color: #5D6E88 !important; }
+
+/* The white hero button becomes the navy primary; the ghost becomes an outline. */
+#root .gd .opp2 .opp2-hero .opp2-btn.light, .opp2 .opp2-hero .opp2-btn.light {
+  background: #051D64 !important; border: 1px solid #051D64 !important; color: #fff !important;
+  box-shadow: 0 10px 22px rgba(5, 29, 100, .18);
+}
+#root .gd .opp2 .opp2-hero .opp2-btn.light:hover:not(:disabled),
+.opp2 .opp2-hero .opp2-btn.light:hover:not(:disabled) {
+  background: #0A2A7A !important; border-color: #0A2A7A !important;
+}
+#root .gd .opp2 .opp2-hero .opp2-btn.ghost, .opp2 .opp2-hero .opp2-btn.ghost {
+  background: #fff !important; border: 1px solid #C9D8E5 !important; color: #051D64 !important;
+}
+#root .gd .opp2 .opp2-hero .opp2-btn.ghost:hover:not(:disabled),
+.opp2 .opp2-hero .opp2-btn.ghost:hover:not(:disabled) {
+  background: #F4F8FD !important; border-color: #051D64 !important;
+}
+
+/* The four figures: soft tinted tiles with navy values and tinted icon chips. */
+#root .gd .opp2 .opp2-metrics .opp-metric, .opp2 .opp2-metrics .opp-metric {
+  background: linear-gradient(135deg, #F5F9FE, #EDF4FC) !important;
+  border: 1px solid #DFE8F4 !important; box-shadow: none !important; backdrop-filter: none;
+}
+#root .gd .opp2 .opp2-metrics .opp-metric .icon, .opp2 .opp2-metrics .opp-metric .icon {
+  background: #EAF1FB !important; color: #1B7D91 !important;
+}
+#root .gd .opp2 .opp2-metrics .opp-metric .icon.violet, .opp2 .opp2-metrics .opp-metric .icon.violet { color: #6246C9 !important; }
+#root .gd .opp2 .opp2-metrics .opp-metric .icon.green, .opp2 .opp2-metrics .opp-metric .icon.green { color: #17885D !important; }
+#root .gd .opp2 .opp2-metrics .opp-metric .icon.blue, .opp2 .opp2-metrics .opp-metric .icon.blue { color: #1B3C77 !important; }
+#root .gd .opp2 .opp2-metrics .opp-metric b, .opp2 .opp2-metrics .opp-metric b { color: #051D64 !important; }
+#root .gd .opp2 .opp2-metrics .opp-metric span, .opp2 .opp2-metrics .opp-metric span { color: #1B7D91 !important; }

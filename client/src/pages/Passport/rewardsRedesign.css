@@ -108,3 +108,47 @@
 #root .gd .rwd2 .rwd2-way:hover { background: #F3F7FC !important; border-color: #CFE0EF !important; }
 #root .gd .rwd2 .rwd2-way b { color: var(--ink) !important; }
 #root .gd .rwd2 .rwd2-way small { color: var(--muted) !important; }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LIGHT BANNER (matches the memberDashboard .md-hero card): the Rewards hero
+   stops being a navy block and becomes a white card — navy headings, a tinted
+   eyebrow pill, soft tinted wallet panels and a teal-to-green unlock bar. The
+   coin circle keeps its gold fill (it is the accent). Shell rules pin this
+   page's text with #root .gd, so every text override repeats that prefix and
+   comes last, which is how it wins.
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .rwd2 .rwd2-hero, .rwd.rwd2 .rwd2-hero {
+  background: #fff !important; color: var(--ink);
+  border: 1px solid var(--line); box-shadow: 0 6px 22px rgba(15, 46, 77, .07);
+}
+/* Eyebrow becomes a tinted pill instead of pale teal text. */
+#root .gd .rwd2 .rwd2-eyebrow, .rwd2 .rwd2-hero .rwd2-eyebrow {
+  display: inline-flex; padding: 6px 12px; border-radius: 999px;
+  background: #EAF1FB; color: #1B3C77 !important;
+}
+/* Headline, accent words and lead copy. */
+#root .gd .rwd2 .rwd2-hero h1, .rwd2 .rwd2-hero h1 { color: #051D64 !important; }
+#root .gd .rwd2 .rwd2-hero h1 span, .rwd2 .rwd2-hero h1 span { color: #17869B !important; }
+#root .gd .rwd2 .rwd2-hero-copy p, .rwd2 .rwd2-hero-copy p { color: #5D6E88 !important; }
+/* Unlock panel: soft tinted panel, navy label, muted figure, teal-to-green bar. */
+.rwd2 .rwd2-hero .rwd2-unlock {
+  background: linear-gradient(135deg, #F5F9FE, #EDF4FC);
+  border-color: #DFE8F4; backdrop-filter: none;
+}
+#root .gd .rwd2 .rwd2-unlock b, .rwd2 .rwd2-unlock b { color: #051D64 !important; }
+#root .gd .rwd2 .rwd2-unlock .top span, .rwd2 .rwd2-unlock .top span { color: #6B7C96 !important; }
+.rwd2 .rwd2-hero .rwd2-unlock .bar { background: #E4EBF4; }
+.rwd2 .rwd2-hero .rwd2-unlock .bar i { background: linear-gradient(90deg, #1E9AA8, #2FB27F); }
+/* Wallet: the glass panels become soft tinted panels; the coin keeps its gold. */
+.rwd2 .rwd2-hero .rwd2-coinbig, .rwd2 .rwd2-hero .rwd2-pair > div {
+  background: linear-gradient(135deg, #F5F9FE, #EDF4FC);
+  border-color: #DFE8F4; backdrop-filter: none;
+}
+#root .gd .rwd2 .rwd2-coinbig small, .rwd2 .rwd2-coinbig small { color: #1B7D91 !important; }
+#root .gd .rwd2 .rwd2-coinbig b, .rwd2 .rwd2-coinbig b { color: #051D64 !important; }
+.rwd2 .rwd2-hero .rwd2-pair i { color: #1B7D91; }
+#root .gd .rwd2 .rwd2-pair b, .rwd2 .rwd2-pair b { color: #051D64 !important; }
+#root .gd .rwd2 .rwd2-pair small, .rwd2 .rwd2-pair small { color: #6B7C96 !important; }
+/* "Every redemption is verified" footnote. */
+#root .gd .rwd2 .rwd2-secure, .rwd2 .rwd2-secure { color: #6B7C96 !important; }
+.rwd2 .rwd2-hero .rwd2-secure i { color: #1B7D91; }

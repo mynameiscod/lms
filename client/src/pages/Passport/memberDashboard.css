@@ -271,3 +271,46 @@ button.md-jm:hover { border-color: #9DBBD0; box-shadow: 0 6px 16px rgba(15, 46, 
 .md-mission .md-mission-ic.t-quiz { background: var(--violet-bg); color: var(--violet); }
 .md-mission .md-mission-ic.t-assignment { background: var(--green-bg); color: var(--green); }
 .md-jm-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LIGHT BANNER (the supplied card style): the banner is a white card like the
+   tiles under it — navy headings, a tinted eyebrow pill, soft tinted panels and
+   a teal-to-green goal bar. It replaces the navy fill the banner had before.
+   ──────────────────────────────────────────────────────────────────────────── */
+.md-hero { background: #fff !important; color: var(--ink); border: 1px solid var(--line); box-shadow: 0 6px 22px rgba(15, 46, 77, .07); }
+.md .md-eyebrow { display: inline-block; padding: 6px 12px; border-radius: 999px; background: #EAF1FB; color: #1B3C77 !important; font-size: 11.5px; letter-spacing: .1em; }
+.md .md-hero h1 { color: var(--navy) !important; }
+.md .md-hero h1 span { color: #17869B !important; }
+.md .md-hero-copy > p { color: #5D6E88 !important; }
+.md .md-goal-top b { color: var(--navy) !important; }
+.md .md-goal-top span { color: #6B7C96 !important; }
+.md-goal-bar { background: #E4EBF4; }
+.md-goal-bar i { background: linear-gradient(90deg, #1E9AA8, #2FB27F); }
+.md-goal.met .md-goal-bar i { background: linear-gradient(90deg, #17885D, #4ECB99); box-shadow: none; }
+.md .md-goal.met .md-goal-top b { color: #17885D !important; }
+.md-hero .md-btn.light { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 10px 22px rgba(5, 29, 100, .18); }
+.md-hero .md-btn.light:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
+.md-hero .md-btn.ghost { background: #fff; border-color: var(--border-strong); color: var(--navy); }
+.md-hero .md-btn.ghost:hover { background: #F4F8FD; border-color: var(--primary); }
+.md-hero-score { background: linear-gradient(135deg, #F5F9FE, #EDF4FC); border-color: #DFE8F4; backdrop-filter: none; }
+.md-score-ring { background: conic-gradient(#1E9AA8 var(--md-deg), #E0E8F2 0); }
+.md-score-ring > div { background: #fff; box-shadow: inset 0 0 0 1px #EDF2F8; }
+.md-score-ring strong { color: var(--navy); }
+.md-score-ring span { color: #7C8DA5; }
+.md .md-hero-score-copy small { color: #1B7D91 !important; }
+.md .md-hero-score-copy b { color: var(--navy) !important; }
+.md .md-hero-score-copy > span { color: #6B7C96 !important; }
+.md-hero-score-copy em { color: var(--navy); }
+.md-help { border-color: #B9C8DB; color: #6B7C96; }
+
+/* The career-path strip is a light card too, with the step dots in the guide colours. */
+.md-path { background: #fff !important; color: var(--ink); border: 1px solid var(--line); box-shadow: 0 6px 22px rgba(15, 46, 77, .07); }
+.md-path .ic { background: var(--tint); color: var(--primary); }
+.md .md-path small { color: #1B7D91 !important; }
+.md .md-path-lead b { color: var(--navy) !important; }
+.md-steps::before { background: #DFE7F1; }
+.md-steps .dot { background: #EEF3F9; color: #7C8DA5; border-color: #DFE7F1; }
+.md-steps .md-step.done .dot { background: #1E9AA8; color: #fff; border-color: #1E9AA8; }
+.md-steps .md-step.current .dot { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 0 0 5px rgba(5, 29, 100, .12); }
+.md .md-steps .cap { color: var(--navy) !important; }
+.md .md-steps .cap span { color: #7C8DA5 !important; }

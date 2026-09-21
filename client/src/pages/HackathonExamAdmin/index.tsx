@@ -134,12 +134,55 @@ const TagPicker: React.FC<{
   );
 };
 
+/**
+ * Watching one candidate's recording.
+ *
+ * Clips load one at a time and the previous object URL is revoked before the next is made.
+ * An hour of fifteen-second slices is 240 clips; holding them all would put an entire
+ * recording in the reviewer's memory to watch one minute of it.
+ */
+const RecordingViewer: React.FC<{ examId: string; attempt: any; onClose: () => void }> = ({ examId, attempt, onClose }) => {
+  const total = attempt?.recording?.chunks || 0;
+  const [seq, setSeq] = useState(1);
+  const [src, setSrc] = useState('');
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    let dead = false;
+    let made = '';
+    setErr('');
+    api.recordingChunkBlob(examId, attempt._id, seq)
+      .then((u) => { if (dead) { URL.revokeObjectURL(u); return; } made = u; setSrc(u); })
+      .catch((e) => !dead && setErr(e.message));
+    return () => { dead = true; if (made) URL.revokeObjectURL(made); };
+  }, [examId, attempt._id, seq]);
+
+  return (
+    <div className="hxa-rec-wrap">
+      <div className="hxa-rec-head">
+        <b>{attempt.memberName}</b>
+        <span>{total} clip(s) · about {Math.round((total * 15) / 60)} min · {Math.round((attempt.recording?.bytes || 0) / 1048576)} MB</span>
+        <button className="hxa-btn small" onClick={onClose}>Close</button>
+      </div>
+      {err ? <div className="hxa-msg">{err}</div>
+        : <video className="hxa-rec-video" src={src} controls autoPlay
+            onEnded={() => seq < total && setSeq(seq + 1)} />}
+      <div className="hxa-rec-nav">
+        <button className="hxa-btn small" disabled={seq <= 1} onClick={() => setSeq(seq - 1)}>Previous</button>
+        <span>clip {seq} of {total}</span>
+        <button className="hxa-btn small" disabled={seq >= total} onClick={() => setSeq(seq + 1)}>Next</button>
+      </div>
+    </div>
+  );
+};
+
 const HackathonExamAdmin: React.FC = () => {
   const { hackathonId = '' } = useParams();
   const [tab, setTab] = useState<Tab>('setup');
   const [exam, setExam] = useState<any>(null);
   const [form, setForm] = useState<any>(null);
   const [coverage, setCoverage] = useState<any>(null);
+  const [watching, setWatching] = useState<any>(null);
   const [readiness, setReadiness] = useState<any>(null);
   const [dash, setDash] = useState<any>(null);
   const [rows, setRows] = useState<any[]>([]);
@@ -519,9 +562,11 @@ const HackathonExamAdmin: React.FC = () => {
             <span className="hxa-fresh">{lastAt ? `Updated ${lastAt.toLocaleTimeString('en-IN')}` : 'Loading…'}</span>
           </div>
 
+          {watching && <RecordingViewer examId={examId} attempt={watching} onClose={() => setWatching(null)} />}
+
           <div className="hxa-tablewrap">
             <table className="hxa-table">
-              <thead><tr><th>Candidate</th><th>Team</th><th>Status</th><th>Started</th><th>Time</th><th>Score</th><th>Flags</th><th>Grading</th><th>Invite</th></tr></thead>
+              <thead><tr><th>Candidate</th><th>Team</th><th>Status</th><th>Started</th><th>Time</th><th>Score</th><th>Flags</th><th>Grading</th><th>Recording</th><th>Invite</th></tr></thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r._id} className={r.violationCount ? 'flagged' : ''}>
@@ -533,6 +578,19 @@ const HackathonExamAdmin: React.FC = () => {
                     <td>{r.score != null ? `${r.score}/${r.totalMarks ?? '?'}` : '—'}</td>
                     <td>{r.violationCount ? <span className="hxa-flag">{r.violationCount}</span> : '—'}</td>
                     <td><span className={`hxa-pill ${r.grading?.status}`}>{r.grading?.status}</span></td>
+                    <td>
+                      {r.recording?.chunks > 0 ? (
+                        <button className="hxa-btn small" onClick={() => setWatching(r)}>
+                          Watch ({r.recording.chunks})
+                        </button>
+                      ) : (
+                        <span className={`hxa-pill ${r.recording?.state || 'off'}`}>
+                          {r.recording?.state === 'denied' ? 'refused'
+                            : r.recording?.state === 'unavailable' ? 'no camera'
+                            : r.recording?.state === 'recording' ? 'recording' : 'none'}
+                        </span>
+                      )}
+                    </td>
                     <td>
                       <button className="hxa-btn small" disabled={busy === `re${r._id}`}
                         onClick={() => act(`re${r._id}`, () => api.resendInvite(examId, r._id),
@@ -547,7 +605,7 @@ const HackathonExamAdmin: React.FC = () => {
                     </td>
                   </tr>
                 ))}
-                {!rows.length && <tr><td colSpan={9} className="hxa-msg">Nobody matches that filter.</td></tr>}
+                {!rows.length && <tr><td colSpan={10} className="hxa-msg">Nobody matches that filter.</td></tr>}
               </tbody>
             </table>
           </div>

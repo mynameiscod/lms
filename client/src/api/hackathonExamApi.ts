@@ -198,6 +198,28 @@ export const hackathonExamAdminApi = {
     return (await authenticatedFetch(`${ADMIN}/${id}/attempts${q ? `?${q}` : ''}`) as any)?.data || [];
   },
 
+  /*
+   * Playback goes through the app, not a storage URL: this is video of somebody's face and
+   * every view should pass the same admin check as the rest of the screen.
+   *
+   * Fetched as a blob rather than handed to <video src>, because a plain src sends no
+   * Authorization header and would play a 401 — the same trap the template download fell
+   * into. The caller revokes the object URL when it is finished with it.
+   */
+  recordingChunkBlob: async (id: string, attemptId: string, seq: number): Promise<string> => {
+    const r = await fetch(`${ADMIN}/${id}/attempts/${attemptId}/recording/${seq}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        'X-Tenant-Id': localStorage.getItem('tenantId') || '',
+      },
+    });
+    if (!r.ok) throw new Error(`Could not load that clip (${r.status}).`);
+    return URL.createObjectURL(await r.blob());
+  },
+
+  deleteRecording: async (id: string, attemptId: string) =>
+    (await authenticatedFetch(`${ADMIN}/${id}/attempts/${attemptId}/recording`, { method: 'DELETE' }) as any)?.data,
+
   /** One candidate's invitation again — the bulk send skips anyone already invited. */
   resendInvite: async (id: string, attemptId: string) =>
     (await authenticatedFetch(`${ADMIN}/${id}/attempts/${attemptId}/resend-invite`, { method: 'POST' }) as any)?.data,

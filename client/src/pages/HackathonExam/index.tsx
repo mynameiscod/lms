@@ -65,7 +65,7 @@ const I = {
   people: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>,
   phone: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>,
   lock: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>,
-  glass: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2h12M6 22h12M8 2v4a4 4 0 0 0 4 4 4 4 0 0 0 4-4V2M8 22v-4a4 4 0 0 1 4-4 4 4 0 0 1 4 4v4"/></svg>,
+  glass: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2h12M6 22h12"/><path d="M8 2v4.2c0 .6.27 1.17.73 1.55L12 10.5l3.27-2.75c.46-.38.73-.95.73-1.55V2"/><path d="M8 22v-4.2c0-.6.27-1.17.73-1.55L12 13.5l3.27 2.75c.46.38.73.95.73 1.55V22"/></svg>,
   rocket: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>,
   paper: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>,
   gear: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H7a1.7 1.7 0 0 0 1-1.5V1a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V7a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>,
@@ -568,12 +568,11 @@ const HackathonExam: React.FC = () => {
             </button>
           </main>
 
-          <aside className="hxg-art">
-            {hk.bannerUrl
-              ? <img src={hk.bannerUrl} alt="" onError={hideImg} />
-              : <div className="hxg-art-blank"><b>Innovate together</b><span>Better solutions, brighter futures.</span></div>}
-          </aside>
         </div>
+
+        {hk.bannerUrl && (
+          <div className="hxg-band"><img src={hk.bannerUrl} alt="" onError={hideImg} /></div>
+        )}
 
         <div className="hxg-feats">
           {[
@@ -695,17 +694,11 @@ const HackathonExam: React.FC = () => {
             <p className="hxi-foot">Think · Solve · Create &nbsp;|&nbsp; Ideas Today. A Better Tomorrow.</p>
           </main>
 
-          <aside className="hxi-art">
-            {hk.bannerUrl
-              ? <img src={hk.bannerUrl} alt="" onError={hideImg} />
-              : (
-                <div className="hxi-art-blank">
-                  <b>Build · Solve · Collaborate · Grow</b>
-                  <span>Good developers, brighter tomorrows.</span>
-                </div>
-              )}
-          </aside>
         </div>
+
+        {hk.bannerUrl && (
+          <div className="hxi-band"><img src={hk.bannerUrl} alt="" onError={hideImg} /></div>
+        )}
       </div>
     );
   }

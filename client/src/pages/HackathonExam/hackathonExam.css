@@ -287,8 +287,14 @@
 .hxi-code { letter-spacing: 1.2px; color: #7dd3fc; }
 
 /* ── body ────────────────────────────────────────────────────────────────── */
-.hxi-body { max-width: 1240px; margin: 22px auto 0; padding: 0 20px;
-  display: grid; grid-template-columns: minmax(0,1fr) minmax(0,560px); gap: 22px; align-items: start; }
+.hxi-body { max-width: 900px; margin: 22px auto 0; padding: 0 20px; }
+
+/* The event artwork is a wide banner, so it gets the full width and is legible.
+   In a side column it rendered about 400px across, which made the poster unreadable
+   and left the column mostly empty — decoration that decorated nothing. */
+.hxi-band { max-width: 900px; margin: 22px auto 0; padding: 0 20px; }
+.hxi-band img { width: 100%; height: auto; display: block; border-radius: 14px;
+  border: 1px solid #e9edf4; box-shadow: 0 10px 28px rgba(15,23,42,.08); }
 
 .hxi-card { background: #fff; border: 1px solid #e9edf4; border-radius: 16px;
   box-shadow: 0 12px 34px rgba(15,23,42,.08); padding: 26px; }
@@ -329,22 +335,13 @@
 .hxi-foot { margin: 14px 0 0; text-align: center; font-size: 11.5px; color: #aab4c2; letter-spacing: .3px; }
 
 /* ── the event artwork ───────────────────────────────────────────────────── */
-.hxi-art { border-radius: 16px; overflow: hidden; }
-.hxi-art img { width: 100%; height: auto; display: block; border-radius: 16px;
-  border: 1px solid #e9edf4; box-shadow: 0 12px 34px rgba(15,23,42,.08); }
-.hxi-art-blank { border-radius: 16px; border: 1px dashed #cbd5e1; background: #f8fafc;
-  padding: 44px 26px; text-align: center; }
-.hxi-art-blank b { display: block; font-size: 15px; font-weight: 800; color: #0f2557; letter-spacing: .6px; }
-.hxi-art-blank span { display: block; margin-top: 7px; font-size: 13px; color: #94a3b8; font-style: italic; }
+
 
 /* ── narrower ────────────────────────────────────────────────────────────────
    The artwork is decoration; the instructions are the job. So the art drops
    below the card, and then out entirely on a phone where it would be a screen
    of scrolling between a candidate and the Start button. */
-@media (max-width: 1080px) {
-  .hxi-body { grid-template-columns: minmax(0,1fr); max-width: 760px; }
-  .hxi-art { order: 2; }
-}
+
 @media (max-width: 860px) {
   .hxi-top { flex-direction: column; gap: 16px; text-align: center; padding: 18px 20px; }
   .hxi-title { text-align: center; }
@@ -358,7 +355,7 @@
   .hxi-card { padding: 20px; }
   .hxi-sec { flex-direction: column; gap: 11px; }
   .hxi-facts { gap: 10px 20px; }
-  .hxi-art { display: none; }
+  .hxi-band { padding: 0 16px; }
   .hxi-motto br { display: none; }
 }
 
@@ -376,7 +373,7 @@
 .hxg-nav span { font-size: 12.5px; color: #7b8795; font-weight: 600; }
 
 .hxg-grid { max-width: 1280px; margin: 0 auto; padding: 8px 22px 0;
-  display: grid; grid-template-columns: minmax(0,1fr) minmax(0,460px) minmax(0,1fr);
+  display: grid; grid-template-columns: minmax(0,1fr) minmax(0,460px);
   gap: 26px; align-items: center; }
 
 /* ── the words on the left ───────────────────────────────────────────────── */
@@ -427,12 +424,9 @@
 .hxg-again:disabled { opacity: .6; cursor: default; }
 
 /* ── the artwork ─────────────────────────────────────────────────────────── */
-.hxg-art img { width: 100%; height: auto; display: block; border-radius: 18px;
+.hxg-band { max-width: 1120px; margin: 30px auto 0; padding: 0 22px; }
+.hxg-band img { width: 100%; height: auto; display: block; border-radius: 16px;
   border: 1px solid #e3ebf6; box-shadow: 0 16px 40px rgba(15,37,87,.1); }
-.hxg-art-blank { border-radius: 18px; border: 1px dashed #c3d2e6; background: rgba(255,255,255,.6);
-  padding: 46px 24px; text-align: center; }
-.hxg-art-blank b { display: block; font-size: 16px; font-weight: 800; color: #0f2557; }
-.hxg-art-blank span { display: block; margin-top: 6px; font-size: 13px; color: #8b97a8; font-style: italic; }
 
 /* ── the three points ────────────────────────────────────────────────────── */
 .hxg-feats { max-width: 1120px; margin: 30px auto 0; padding: 0 22px;
@@ -453,10 +447,7 @@
 .hxg-foot span { font-size: 12.5px; color: #8b97a8; }
 
 /* ── narrower ────────────────────────────────────────────────────────────── */
-@media (max-width: 1140px) {
-  .hxg-grid { grid-template-columns: minmax(0,1fr) minmax(0,460px); }
-  .hxg-art { display: none; }
-}
+
 @media (max-width: 900px) {
   .hxg-grid { grid-template-columns: minmax(0,1fr); max-width: 520px; }
   .hxg-card { order: 1; }

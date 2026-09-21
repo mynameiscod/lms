@@ -65,6 +65,8 @@ const I = {
   people: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>,
   phone: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>,
   lock: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>,
+  glass: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2h12M6 22h12M8 2v4a4 4 0 0 0 4 4 4 4 0 0 0 4-4V2M8 22v-4a4 4 0 0 1 4-4 4 4 0 0 1 4 4v4"/></svg>,
+  rocket: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>,
   paper: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>,
   gear: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H7a1.7 1.7 0 0 0 1-1.5V1a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V7a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>,
   play: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>,
@@ -155,6 +157,37 @@ const HackathonExam: React.FC = () => {
     if (o.gate && !o.attempt.startedAt) { setPhase('gate'); setErr(o.gate.message); return; }
     setPhase('instructions');
   }, []);
+
+  /* ── the gate's countdown ───────────────────────────────────────────────
+     null until measured, for the same reason the exam clock is: a 0 that means
+     "not worked out yet" is indistinguishable from one that means "now". */
+  const [waitSecs, setWaitSecs] = useState<number | null>(null);
+  const rechecked = useRef(false);
+
+  const recheck = useCallback(async () => {
+    if (!token) return;
+    setBusy(true);
+    try { await loadOverview(token); } catch { /* still shut: the gate simply stays */ }
+    finally { setBusy(false); }
+  }, [token, loadOverview]);
+
+  useEffect(() => {
+    if (phase !== 'gate' || !overview) { setWaitSecs(null); return; }
+    const startMs = new Date(overview.exam.startAt).getTime();
+    const first = Math.max(0, Math.round((startMs - Date.now()) / 1000));
+    setWaitSecs(first);
+    /* Already past — a draft exam, or one that has closed. Nothing to count, and nothing
+       would come of asking the server again on a timer. */
+    if (first === 0) return;
+    const id = setInterval(() => {
+      const left = Math.max(0, Math.round((startMs - Date.now()) / 1000));
+      setWaitSecs(left);
+      /* Open it for them rather than making them refresh — once, because an exam the
+         organiser has not opened yet re-gates, and retrying every second would hammer it. */
+      if (left === 0 && !rechecked.current) { rechecked.current = true; recheck(); }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [phase, overview, recheck]);
 
   useEffect(() => {
     (async () => {
@@ -469,20 +502,96 @@ const HackathonExam: React.FC = () => {
     );
   }
 
-  if (phase === 'gate') {
+  if (phase === 'gate' && overview) {
+    const hk = overview.hackathon;
+    const startAt = new Date(overview.exam.startAt);
+    /*
+     * A countdown only belongs on a gate that will actually open. NOT_YET is also returned for
+     * an exam still in draft — whose start time can already be in the past — and ENDED and
+     * JOIN_CLOSED are not waits at all. Counting down to a moment that has been and gone, or to
+     * one that changes nothing, is worse than saying plainly that it is shut.
+     */
+    const counting = waitSecs !== null && waitSecs > 0;
+
     return (
-      <div className="hx-page">
-        <div className="hx-mid">
-          <div className="hx-card hx-centre">
-            <div className="hx-big">⏳</div>
-            <h2>{err}</h2>
-            {overview && (
-              <p className="hx-hint">
-                {overview.exam.title} · starts {new Date(overview.exam.startAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
-              </p>
+      <div className="hxg">
+        <header className="hxg-nav">
+          <img src="/assets/logo.png" alt="CodeBegun" onError={hideImg} />
+          <span>Build Today. A Better Tomorrow.</span>
+        </header>
+
+        <div className="hxg-grid">
+          <section className="hxg-intro">
+            {hk.title && <span className="hxg-pill">{I.cal}{hk.title}</span>}
+            <h1>{overview.exam.title}</h1>
+            <p className="hxg-kicker">Code · Collaborate · Create Impact</p>
+            <p className="hxg-blurb">
+              A platform for curious minds to solve real-world problems, build innovative
+              solutions, and make a difference.
+            </p>
+            <p className="hxg-script">Good ideas build<br />brighter tomorrows</p>
+          </section>
+
+          <main className="hxg-card">
+            <div className={`hxg-glyph ${counting ? '' : 'shut'}`}>{counting ? I.glass : I.lock}</div>
+            <h2>{err || 'The exam has not started yet.'}</h2>
+            <p className="hxg-when">
+              {overview.exam.title} starts {startAt.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+            </p>
+
+            {counting && (
+              <div className="hxg-clock">
+                {[
+                  { n: Math.floor(waitSecs! / 3600), t: 'Hours' },
+                  { n: Math.floor((waitSecs! % 3600) / 60), t: 'Minutes' },
+                  { n: waitSecs! % 60, t: 'Seconds' },
+                ].map((u, i) => (
+                  <React.Fragment key={u.t}>
+                    {i > 0 && <span className="hxg-sep">:</span>}
+                    <div><b>{String(u.n).padStart(2, '0')}</b><span>{u.t}</span></div>
+                  </React.Fragment>
+                ))}
+              </div>
             )}
-          </div>
+
+            <div className="hxg-note">
+              <b>i</b>
+              <div>
+                <b>{counting ? 'Please come back when the exam window opens.' : 'Nothing to do here just now.'}</b>
+                <span>Keep your device, internet and registered mobile number ready.</span>
+              </div>
+            </div>
+
+            <button className="hxg-locked" disabled>{I.lock} Exam locked until the start time</button>
+            <button className="hxg-again" onClick={recheck} disabled={busy}>
+              {busy ? 'Checking…' : 'Check again'}
+            </button>
+          </main>
+
+          <aside className="hxg-art">
+            {hk.bannerUrl
+              ? <img src={hk.bannerUrl} alt="" onError={hideImg} />
+              : <div className="hxg-art-blank"><b>Innovate together</b><span>Better solutions, brighter futures.</span></div>}
+          </aside>
         </div>
+
+        <div className="hxg-feats">
+          {[
+            { i: I.rocket, tone: 'blue', t: 'Real-world challenges', d: 'Work on meaningful problem statements from industry and society.' },
+            { i: I.team, tone: 'ind', t: 'Team-based participation', d: 'Collaborate, learn and build together with your peers.' },
+            { i: I.clock, tone: 'teal', t: 'Starts at the scheduled time', d: 'The exam is accessible only at the announced time.' },
+          ].map((f) => (
+            <div className="hxg-feat" key={f.t}>
+              <span className={`hxg-ico ${f.tone}`}>{f.i}</span>
+              <div><b>{f.t}</b><span>{f.d}</span></div>
+            </div>
+          ))}
+        </div>
+
+        <footer className="hxg-foot">
+          <img src="/assets/logo.png" alt="CodeBegun" onError={hideImg} />
+          <span>Same students. A brighter tomorrow.</span>
+        </footer>
       </div>
     );
   }

@@ -4,7 +4,7 @@
    The shell forces .gd-main h1/p colours with !important, so text on navy carries !important to stay light.
    Media queries read real pixels; #root renders the app at zoom .75, so wide screens lift the page a little. */
 .fjp {
-  --navy: #051D64; --navy2: #0B2D72; --primary: #005897; --primary-hover: #004B81; --teal: #359AAD;
+  --navy: #051D64; --navy2: #0B2D72; --primary: #051D64; --primary-hover: #0A2A7A; --teal: #359AAD;
   --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
   --green: #17885D; --green-bg: #EAF8F1; --amber: #B86B00; --amber-bg: #FFF7E8;
   width: 100%; max-width: 1760px; margin: 0 auto; color: var(--ink); display: flex; flex-direction: column; gap: 18px;
@@ -14,7 +14,7 @@
 .fjp h1, .fjp h2, .fjp h3, .fjp p { margin: 0; }
 
 .fjp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 50px; padding: 0 24px; border-radius: 12px; border: 1px solid transparent; font-size: 15.5px; font-weight: 800; cursor: pointer; white-space: nowrap; }
-.fjp-btn.primary { background: var(--primary); color: #fff; box-shadow: 0 10px 22px rgba(0, 88, 151, .22); }
+.fjp-btn.primary { background: var(--primary); color: #fff; box-shadow: 0 10px 22px rgba(5, 29, 100, .22); }
 .fjp-btn.primary:hover:not(:disabled) { background: var(--primary-hover); }
 .fjp-btn.light { width: 100%; background: #fff; color: var(--navy); box-shadow: 0 10px 24px rgba(0, 0, 0, .18); }
 .fjp-btn.light:hover:not(:disabled) { background: #EAF3FD; }
@@ -27,7 +27,7 @@
   background:
     radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
     radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
-    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, var(--primary) 100%);
+    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, #123A8C 100%);
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
 .fjp-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }

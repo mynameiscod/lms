@@ -2,7 +2,7 @@
    Same system as Skill DNA (skillDna.css): CodeBegun guide colours, a logo-navy hero, KPI tiles, white cards.
    Media queries read real pixels; #root renders the app at zoom .75, so wide screens lift the page a little. */
 .rr {
-  --navy: #051D64; --navy2: #0B2D72; --primary: #005897; --primary-hover: #004B81; --teal: #359AAD;
+  --navy: #051D64; --navy2: #0B2D72; --primary: #051D64; --primary-hover: #0A2A7A; --teal: #359AAD;
   --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
   --green: #17885D; --green-bg: #EAF8F1; --amber: #B86B00; --amber-bg: #FFF7E8; --red: #C93737; --red-bg: #FFF0F0;
   width: 100%; max-width: 1760px; margin: 0 auto; color: var(--ink); display: flex; flex-direction: column; gap: 18px;
@@ -14,7 +14,7 @@
 .rr-eyebrow { font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--teal); }
 .rr-eyebrow.light { color: #9FDCE6; }
 .rr-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; padding: 0 22px; border-radius: 12px; border: 1px solid var(--border-strong); background: #fff; color: var(--primary); font-size: 15px; font-weight: 800; cursor: pointer; }
-.rr-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 10px 22px rgba(0, 88, 151, .22); }
+.rr-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 10px 22px rgba(5, 29, 100, .22); }
 .rr-btn.primary:hover { background: var(--primary-hover); }
 
 /* States */
@@ -33,7 +33,7 @@
   background:
     radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
     radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
-    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, var(--primary) 100%);
+    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, #123A8C 100%);
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
 .rr-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
@@ -135,7 +135,7 @@
 .rr-explain i { color: var(--primary); font-size: 16px; margin-top: 1px; }
 
 .rr-next { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; background: linear-gradient(145deg, #fff 0%, #F0F6FE 60%, #E7F1FC 100%); }
-.rr-next-ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--primary); color: #fff; font-size: 24px; box-shadow: 0 10px 22px rgba(0, 88, 151, .22); }
+.rr-next-ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--primary); color: #fff; font-size: 24px; box-shadow: 0 10px 22px rgba(5, 29, 100, .22); }
 .rr-next h2 { margin-top: 6px; font-size: 20px; font-weight: 800; color: var(--navy); }
 .rr .rr-next p { font-size: 14.5px; line-height: 1.6; color: var(--text); }
 .rr-next .rr-btn { margin-top: auto; width: 100%; }

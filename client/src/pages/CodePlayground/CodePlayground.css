@@ -159,12 +159,12 @@ body:has(.cp-root) { overflow: hidden; }
    Kept as a layer over the rules above rather than rewritten through them: the debugger, the
    SQL table and the modals are correct and well tested, and the complaint was that the page
    did not look like the product and hid its own features. What changes here is the palette
-   (the generic slate/#2563eb became the shell's navy, #005897 and teal), the weight of the
+   (the generic slate/#2563eb became the shell's navy, #051D64 and teal), the weight of the
    toolbar, and the visibility of the actions.
    ════════════════════════════════════════════════════════════════════════════ */
 
 .cp-root {
-  --cp-navy: #051D64; --cp-primary: #005897; --cp-teal: #359AAD;
+  --cp-navy: #051D64; --cp-primary: #051D64; --cp-teal: #359AAD;
   --cp-ink: #102A4F; --cp-muted: #64748B; --cp-border: #E2EAF2; --cp-border-2: #C9D8E5;
   background: #EEF3F8;
 }
@@ -193,7 +193,7 @@ body:has(.cp-root) { overflow: hidden; }
 .cp-btn-run { background: #16A34A; border-color: #16A34A; color: #fff; padding: 8px 18px; }
 .cp-btn-run:hover:not(:disabled) { background: #12833C; border-color: #12833C; color: #fff; }
 .cp-btn.primary { background: var(--cp-primary); border-color: var(--cp-primary); color: #fff; }
-.cp-btn.primary:hover:not(:disabled) { background: #004B81; border-color: #004B81; color: #fff; }
+.cp-btn.primary:hover:not(:disabled) { background: #0A2A7A; border-color: #0A2A7A; color: #fff; }
 .cp-btn.danger { background: #FFF0F0; border-color: #F3C9C9; color: #C93737; }
 .cp-count { background: #DCE9F3; color: var(--cp-primary); border-radius: 20px; padding: 1px 7px; font-size: 11px; margin-left: 2px; }
 .cp-icon-btn { border-color: var(--cp-border-2); color: #53677D; border-radius: 9px; }
@@ -201,7 +201,7 @@ body:has(.cp-root) { overflow: hidden; }
 
 .cp-lang { min-width: 210px; border-color: var(--cp-border-2); border-radius: 9px; padding: 8px 13px; color: var(--cp-ink); }
 .cp-lang:hover { border-color: #A9C4D8; }
-.cp-lang.open { border-color: var(--cp-primary); box-shadow: 0 0 0 3px rgba(0, 88, 151, .12); }
+.cp-lang.open { border-color: var(--cp-primary); box-shadow: 0 0 0 3px rgba(5, 29, 100, .12); }
 .cp-lang-panel { border-color: var(--cp-border); border-radius: 13px; box-shadow: 0 18px 44px rgba(15, 46, 77, .16); }
 .cp-lang-item.sel { color: var(--cp-primary); }
 .cp-lang-item:hover { background: #EFF5F9; }
@@ -221,7 +221,7 @@ body:has(.cp-root) { overflow: hidden; }
 .cp-run-input:disabled { opacity: .5; cursor: default; }
 .cp-sec-label { color: #53677D; text-transform: uppercase; letter-spacing: .05em; font-size: 11px; }
 .cp-stdin { border-color: var(--cp-border-2); border-radius: 9px; }
-.cp-stdin:focus { outline: none; border-color: #78AFC4; box-shadow: 0 0 0 3px rgba(0, 88, 151, .08); }
+.cp-stdin:focus { outline: none; border-color: #78AFC4; box-shadow: 0 0 0 3px rgba(5, 29, 100, .08); }
 
 /* Output reads as a console, because that is what it is. */
 .cp-output { background: #0B1B3F; color: #E3ECF7; border: none; border-radius: 10px; padding: 13px 15px; }
@@ -284,7 +284,7 @@ body:has(.cp-root) { overflow: hidden; }
 .cp-root.cpg { background: #fff; border: 1px solid var(--cp-border); border-radius: 20px; box-shadow: 0 10px 30px rgba(15, 46, 77, .08); }
 .cpg-head {
   flex: none; display: flex; align-items: center; gap: 14px; padding: 14px 20px; color: #fff;
-  background: radial-gradient(circle at 92% 0%, rgba(53, 154, 173, .45), transparent 45%), linear-gradient(120deg, var(--cp-navy) 0%, #0B2D72 55%, var(--cp-primary) 100%);
+  background: radial-gradient(circle at 92% 0%, rgba(53, 154, 173, .45), transparent 45%), linear-gradient(120deg, var(--cp-navy) 0%, #0B2D72 55%, #123A8C 100%);
 }
 .cpg-head-ic { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; background: rgba(255, 255, 255, .14); color: #fff; }
 .cpg-head-t { flex: 1; min-width: 0; }
@@ -301,7 +301,7 @@ body:has(.cp-root) { overflow: hidden; }
 .cpg .cp-toolbar { padding: 10px 16px; background: #fff; }
 .cpg .cp-btn-run { background: #17885D; border-color: #17885D; box-shadow: 0 6px 14px rgba(23, 136, 93, .22); }
 .cpg .cp-btn-run:hover:not(:disabled) { background: #11704C; border-color: #11704C; }
-.cpg .cp-btn.primary { box-shadow: 0 6px 14px rgba(0, 88, 151, .2); }
+.cpg .cp-btn.primary { box-shadow: 0 6px 14px rgba(5, 29, 100, .2); }
 .cpg .cp-editor-wrap { background: #FBFDFF; }
 
 .cpg .cp-right { background: #FBFDFF; }

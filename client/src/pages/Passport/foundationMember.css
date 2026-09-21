@@ -3,7 +3,7 @@
    guide colours, a logo-navy hero, white cards — without renaming it, so the presenter and its tests are untouched.
    The shell forces .gd-main h1/p colours with !important, so text on navy carries !important to stay light. */
 .fj-page.fjm, .fj-page.frm {
-  --navy: #051D64; --navy2: #0B2D72; --primary: #005897; --primary-hover: #004B81; --teal: #359AAD;
+  --navy: #051D64; --navy2: #0B2D72; --primary: #051D64; --primary-hover: #0A2A7A; --teal: #359AAD;
   --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
   --green: #17885D; --green-bg: #EAF8F1; --amber: #B86B00; --amber-bg: #FFF7E8; --red: #C93737; --red-bg: #FFF0F0; --violet: #6246C9; --violet-bg: #F1EDFF;
   max-width: 1760px; width: 100%; margin: 0 auto; padding: 0 0 40px; color: var(--ink); display: flex; flex-direction: column; gap: 18px;
@@ -18,7 +18,7 @@
   background:
     radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
     radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
-    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, var(--primary) 100%);
+    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, #123A8C 100%);
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
 .fjm-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
@@ -44,7 +44,7 @@
 .fjm-btn.light:hover { background: #EAF3FD; }
 
 /* Shared buttons and messages */
-.fjm .fj-start, .frm .fj-start { background: var(--primary); border-color: var(--primary); color: #fff; border-radius: 12px; font-weight: 800; min-height: 44px; padding: 0 20px; box-shadow: 0 10px 22px rgba(0, 88, 151, .2); }
+.fjm .fj-start, .frm .fj-start { background: var(--primary); border-color: var(--primary); color: #fff; border-radius: 12px; font-weight: 800; min-height: 44px; padding: 0 20px; box-shadow: 0 10px 22px rgba(5, 29, 100, .2); }
 .fjm .fj-start:hover, .frm .fj-start:hover { background: var(--primary-hover); }
 .fjm .fj-start.ghost { background: #fff; color: var(--primary); border: 1px solid var(--border-strong); box-shadow: none; }
 
@@ -61,7 +61,7 @@
 .fjm .fj-chip.s-completed { background: var(--green-bg); border-color: #CCE9DC; color: var(--green); }
 .fjm .fj-chip.s-current { background: var(--primary); border-color: var(--primary); color: #fff; }
 .fjm .fj-chip.s-current::after { background: var(--teal); }
-.fjm .fj-chip.open { box-shadow: 0 0 0 3px rgba(0, 88, 151, .25); }
+.fjm .fj-chip.open { box-shadow: 0 0 0 3px rgba(5, 29, 100, .25); }
 
 /* My 90 Days — the day */
 .fjm .fj-day, .fjm .fj-locked { margin: 0; background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 24px 26px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); }
@@ -105,12 +105,12 @@
 .frm .fr-toggle:hover, .frm .fr-ranges button:hover:not(.on) { border-color: var(--primary); color: var(--primary); }
 .frm .fr-legend li { color: var(--muted); font-weight: 600; }
 .frm .fr-dot.st-completed { background: var(--green); border-color: var(--green); color: #fff; }
-.frm .fr-dot.st-current { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 0 0 4px rgba(0, 88, 151, .15); }
+.frm .fr-dot.st-current { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 0 0 4px rgba(5, 29, 100, .15); }
 .frm .fr-dot.st-available { background: #fff; border-color: var(--primary); color: var(--primary); }
 .frm .fr-dot.st-locked { background: var(--soft); border-color: var(--line); color: #9AAEC2; }
 .frm .fr-timeline::before { background: var(--line); }
 .frm .fr-card { background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 3px 14px rgba(15, 46, 77, .05); overflow: hidden; }
-.frm .fr-group.gs-current .fr-card, .frm .fr-group.gs-in_progress .fr-card { border-color: #9DBBD0; box-shadow: 0 10px 26px rgba(0, 88, 151, .10); }
+.frm .fr-group.gs-current .fr-card, .frm .fr-group.gs-in_progress .fr-card { border-color: #9DBBD0; box-shadow: 0 10px 26px rgba(5, 29, 100, .10); }
 .frm .fr-card-head { padding: 16px 18px; }
 .frm .fr-span { color: var(--primary); font-weight: 800; }
 .frm .fr-title b { font-size: 16px; color: var(--navy); }

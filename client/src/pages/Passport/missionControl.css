@@ -3,7 +3,7 @@
   --cb-navy:#051D64;
   --cb-navy-2:#0B2D72;
   --cb-teal:#359AAD;
-  --cb-primary:#005897;
+  --cb-primary:#051D64;
   --cb-blue:#1976D2;
   --cb-bg:#F4F8FC;
   --cb-card:#FFFFFF;
@@ -32,7 +32,7 @@
   box-shadow:0 2px 12px rgba(15,46,77,.04);
 }
 .mc-brand{display:flex;align-items:center;gap:12px}
-.mc-brand .mark{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--cb-primary),var(--cb-teal));display:grid;place-items:center;color:#fff;font-size:20px;box-shadow:0 6px 18px rgba(0,88,151,.18)}
+.mc-brand .mark{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--cb-primary),var(--cb-teal));display:grid;place-items:center;color:#fff;font-size:20px;box-shadow:0 6px 18px rgba(5, 29, 100,.18)}
 .mc-brand .bt b{font-size:21px;font-weight:850;color:var(--cb-navy);letter-spacing:-.2px}
 .mc-brand .bt b .p{color:var(--cb-teal)}
 .mc-brand .bt small{display:block;font-size:11px;color:#8A98AA;margin-top:1px}

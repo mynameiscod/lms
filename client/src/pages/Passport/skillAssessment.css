@@ -76,11 +76,11 @@
    real pixels; #root renders at zoom .75).
    ════════════════════════════════════════════════════════════════════════════════════════════════ */
 .ska-page {
-  --navy: #051D64; --navy2: #0B2D72; --primary: #005897; --primary-hover: #004B81; --teal: #359AAD; --blue: #1976D2;
+  --navy: #051D64; --navy2: #0B2D72; --primary: #051D64; --primary-hover: #0A2A7A; --teal: #359AAD; --blue: #1976D2;
   --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC;
   --tint: #EAF3FD; --green: #17885D; --green-bg: #EAF8F1;
   min-height: 0; flex: 1 0 auto; display: flex; flex-direction: column;
-  background: radial-gradient(circle at 80% 12%, rgba(53, 154, 173, .09), transparent 32%), radial-gradient(circle at 6% 85%, rgba(0, 88, 151, .05), transparent 30%), var(--soft);
+  background: radial-gradient(circle at 80% 12%, rgba(53, 154, 173, .09), transparent 32%), radial-gradient(circle at 6% 85%, rgba(5, 29, 100, .05), transparent 30%), var(--soft);
 }
 .ska-wrap { width: min(2400px, calc(100% - clamp(32px, 7vw, 200px))); margin: 0 auto; }
 .ska-page > .ska-state, .ska-page > .ska-complete-wrap, .ska-page > .ska-assessment-shell { flex: 1 0 auto; }
@@ -112,7 +112,7 @@
 .ska-v2-flow li { position: relative; display: flex; gap: 14px; padding-bottom: 16px; }
 .ska-v2-flow li:not(:last-child)::before { content: ""; position: absolute; left: 17px; top: 38px; bottom: 2px; width: 2px; background: var(--line); }
 .ska-v2-flow li > span { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 800; background: #fff; color: #7B8DA1; border: 1px solid var(--line); }
-.ska-v2-flow li.now > span { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 0 0 5px rgba(0, 88, 151, .12); }
+.ska-v2-flow li.now > span { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 0 0 5px rgba(5, 29, 100, .12); }
 .ska-v2-flow b { display: block; margin-top: 6px; font-size: 15.5px; color: var(--navy); }
 .ska-v2-flow small { display: block; margin-top: 2px; font-size: 13.5px; color: var(--muted); }
 
@@ -138,7 +138,7 @@
 .ska-v2-points small { display: block; margin-top: 2px; font-size: 13.5px; color: var(--muted); }
 .ska-v2-card .ska-estimate { margin-top: 18px; display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: #287F91; background: #EAF7F8; border: 1px solid #CDE6EA; border-radius: 999px; padding: 7px 13px; }
 .ska-v2-card .ska-err, .ska-v2-card .ska-done { margin-top: 16px; }
-.ska-v2-start { width: 100%; margin-top: 18px; min-height: 56px; border: 0; border-radius: 12px; background: var(--primary); color: #fff; font: inherit; font-size: 16.5px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 12px 26px rgba(0, 88, 151, .25); transition: background .15s ease, transform .15s ease; }
+.ska-v2-start { width: 100%; margin-top: 18px; min-height: 56px; border: 0; border-radius: 12px; background: var(--primary); color: #fff; font: inherit; font-size: 16.5px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 12px 26px rgba(5, 29, 100, .25); transition: background .15s ease, transform .15s ease; }
 .ska-v2-start:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); }
 .ska-v2-start:disabled { opacity: .7; cursor: default; }
 
@@ -206,7 +206,7 @@
   background:
     radial-gradient(circle at 85% 20%, rgba(53, 154, 173, .38), transparent 38%),
     radial-gradient(circle at 12% 110%, rgba(25, 118, 210, .30), transparent 40%),
-    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 45%, var(--primary) 100%);
+    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 45%, #123A8C 100%);
 }
 .skc-band::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
 .skc-band-grid { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: 40px; align-items: center; }
@@ -243,10 +243,10 @@
 .skc-steps li.done::before { background: #9FD7BF; }
 .skc-steps li > span { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 800; background: #EEF3F7; color: #7B8DA1; border: 1px solid var(--line); }
 .skc-steps li.done > span { background: var(--green); border-color: var(--green); color: #fff; font-size: 17px; }
-.skc-steps li.now > span { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 0 0 5px rgba(0, 88, 151, .12); }
+.skc-steps li.now > span { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 0 0 5px rgba(5, 29, 100, .12); }
 .skc-steps b { display: block; margin-top: 6px; font-size: 15.5px; color: var(--navy); }
 .skc-steps small { display: block; margin-top: 3px; font-size: 13.5px; color: var(--muted); line-height: 1.45; }
-.skc-cta { width: 100%; margin-top: 6px; min-height: 56px; border: 0; border-radius: 12px; background: var(--primary); color: #fff; font: inherit; font-size: 16.5px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 12px 26px rgba(0, 88, 151, .25); transition: background .15s ease, transform .15s ease; }
+.skc-cta { width: 100%; margin-top: 6px; min-height: 56px; border: 0; border-radius: 12px; background: var(--primary); color: #fff; font: inherit; font-size: 16.5px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 12px 26px rgba(5, 29, 100, .25); transition: background .15s ease, transform .15s ease; }
 .skc-cta:hover { background: var(--primary-hover); transform: translateY(-1px); }
 .skc-ghost { width: 100%; margin-top: 10px; min-height: 48px; border: 1px solid var(--border-strong); border-radius: 12px; background: #fff; color: var(--primary); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
 .skc-ghost:hover:not(:disabled) { border-color: var(--primary); background: #F7FAFE; }

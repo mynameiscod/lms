@@ -3,7 +3,7 @@
    Several shell rules colour .opp-head h1/p and card headings with #root-level !important, so the text on navy is
    pinned with #root .gd selectors that outrank them. */
 #root .gd .cb-member-companies .opp-shell.opp2, .opp-shell.opp2 {
-  --primary: #005897; --primary-hover: #004B81; --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --tint: #EAF3FD;
+  --primary: #051D64; --primary-hover: #0A2A7A; --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --tint: #EAF3FD;
   max-width: 1760px !important; width: 100%; background: none; padding: 0 0 40px; display: flex; flex-direction: column; gap: 18px;
 }
 .opp2 > * { margin-top: 0 !important; margin-bottom: 0 !important; }
@@ -16,7 +16,7 @@
   background:
     radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
     radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
-    linear-gradient(120deg, #051D64 0%, #0B2D72 48%, #005897 100%);
+    linear-gradient(120deg, #051D64 0%, #0B2D72 48%, #123A8C 100%);
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
 .opp2 .opp2-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }

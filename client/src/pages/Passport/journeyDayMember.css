@@ -2,7 +2,7 @@
    progress and XP, a task rail card, and the lesson stage as a white card. Restyles the existing jd- markup under
    .jdm. The shell forces .gd-main h1/p colours with !important, so text on navy carries !important to stay light. */
 .jd-page.jdm {
-  --navy: #051D64; --navy2: #0B2D72; --primary: #005897; --primary-hover: #004B81; --teal: #359AAD;
+  --navy: #051D64; --navy2: #0B2D72; --primary: #051D64; --primary-hover: #0A2A7A; --teal: #359AAD;
   --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
   --green: #17885D; --green-bg: #EAF8F1; --amber: #B86B00; --amber-bg: #FFF7E8; --red: #C93737; --red-bg: #FFF0F0; --violet: #6246C9; --violet-bg: #F1EDFF;
   max-width: 1760px; width: 100%; margin: 0 auto; padding: 0 0 40px; color: var(--ink); display: flex; flex-direction: column; gap: 18px;
@@ -17,7 +17,7 @@
   background:
     radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
     radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
-    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, var(--primary) 100%);
+    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, #123A8C 100%);
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
 .jdm-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
@@ -57,7 +57,7 @@
 .jdm .jd-rail { gap: 6px; }
 .jdm .jd-item { align-items: center; gap: 12px; padding: 12px; border-radius: 14px; border: 1px solid transparent; background: none; text-align: left; }
 .jdm .jd-item:hover { background: var(--soft); }
-.jdm .jd-item.sel { border-color: #9DBBD0; background: var(--tint); box-shadow: 0 6px 16px rgba(0, 88, 151, .08); }
+.jdm .jd-item.sel { border-color: #9DBBD0; background: var(--tint); box-shadow: 0 6px 16px rgba(5, 29, 100, .08); }
 .jdm .jd-item-icon { flex: none; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; font-size: 17px; margin: 0; background: var(--tint); color: var(--primary); }
 .jdm .jd-item-icon.t-video { background: var(--red-bg); color: var(--red); }
 .jdm .jd-item-icon.t-notes, .jdm .jd-item-icon.t-worked_example { background: #EAF7F8; color: #287F91; }
@@ -93,7 +93,7 @@
 .jdm-step { margin-right: auto; font-size: 13px; font-weight: 700; color: var(--muted); }
 .jdm .jd-btn { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--border-strong); background: #fff; color: var(--primary); font-size: 14.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .jdm .jd-btn:hover:not(:disabled) { border-color: var(--primary); }
-.jdm .jd-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 10px 22px rgba(0, 88, 151, .2); }
+.jdm .jd-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 10px 22px rgba(5, 29, 100, .2); }
 .jdm .jd-btn.primary:hover:not(:disabled) { background: var(--primary-hover); }
 .jdm .jd-skeleton, .jdm .jd-empty { background: #fff; border-radius: 16px; }
 

@@ -3,7 +3,7 @@
    The shell forces .gd-main h1/p colours with !important, so text on navy carries !important to stay light.
    Media queries read real pixels; #root renders the app at zoom .75, so wide screens lift the page a little. */
 .dl2 {
-  --navy: #051D64; --navy2: #0B2D72; --primary: #005897; --primary-hover: #004B81; --teal: #359AAD;
+  --navy: #051D64; --navy2: #0B2D72; --primary: #051D64; --primary-hover: #0A2A7A; --teal: #359AAD;
   --ink: #102A4F; --text: #33475B; --muted: #64748B; --line: #E2EAF2; --border-strong: #C9D8E5; --soft: #F4F8FC; --tint: #EAF3FD;
   --green: #17885D; --green-bg: #EAF8F1; --amber: #B86B00; --amber-bg: #FFF7E8; --red: #C93737; --red-bg: #FFF0F0;
   width: 100%; max-width: 1760px; margin: 0 auto; color: var(--ink); display: flex; flex-direction: column; gap: 18px;
@@ -13,7 +13,7 @@
 .dl2 h1, .dl2 h2, .dl2 h3, .dl2 p { margin: 0; }
 
 .dl2-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 50px; padding: 0 24px; border-radius: 12px; border: 1px solid transparent; font-size: 15.5px; font-weight: 800; cursor: pointer; }
-.dl2-btn.primary { background: var(--primary); color: #fff; box-shadow: 0 10px 22px rgba(0, 88, 151, .22); }
+.dl2-btn.primary { background: var(--primary); color: #fff; box-shadow: 0 10px 22px rgba(5, 29, 100, .22); }
 .dl2-btn.primary:hover { background: var(--primary-hover); }
 .dl2-btn.light { width: 100%; background: #fff; color: var(--navy); box-shadow: 0 10px 24px rgba(0, 0, 0, .18); }
 .dl2-btn.light:hover:not(:disabled) { background: #EAF3FD; }
@@ -28,7 +28,7 @@
   background:
     radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
     radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
-    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, var(--primary) 100%);
+    linear-gradient(120deg, var(--navy) 0%, var(--navy2) 48%, #123A8C 100%);
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
 .dl2-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
@@ -89,7 +89,7 @@
 .dl2-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .dl2-steps li { display: flex; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--soft); }
 .dl2-steps li > span { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: #fff; color: #7B8DA1; border: 1px solid var(--line); }
-.dl2-steps li.now > span { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 0 0 5px rgba(0, 88, 151, .12); }
+.dl2-steps li.now > span { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 0 0 5px rgba(5, 29, 100, .12); }
 .dl2-steps b { display: block; margin-top: 6px; font-size: 15px; color: var(--navy); }
 .dl2-steps small { display: block; margin-top: 3px; font-size: 13.5px; color: var(--muted); line-height: 1.45; }
 
@@ -117,7 +117,7 @@
 
 .dl2-buy {
   position: relative; padding: 28px 26px; color: #fff; display: flex; flex-direction: column; gap: 8px;
-  background: radial-gradient(circle at 90% 0%, rgba(53, 154, 173, .45), transparent 45%), linear-gradient(160deg, var(--navy) 0%, var(--navy2) 55%, var(--primary) 100%);
+  background: radial-gradient(circle at 90% 0%, rgba(53, 154, 173, .45), transparent 45%), linear-gradient(160deg, var(--navy) 0%, var(--navy2) 55%, #123A8C 100%);
 }
 .dl2 .dl2-buy small { font-size: 12.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #9FDCE6 !important; }
 .dl2 .dl2-buy > b { font-size: 21px; line-height: 1.25; color: #fff !important; }

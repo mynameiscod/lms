@@ -122,10 +122,10 @@ const PassportLogin: React.FC = () => {
     <main className="cpl-page">
       <section className="cpl-marketing" aria-label="CareerPilot overview">
         <div className="cpl-brand">
-          <div className="cpl-brand-mark">CP</div>
-          <div>
-            <div className="cpl-brand-name">Career<span>Pilot</span></div>
-            <div className="cpl-by">by <strong>CodeBegun</strong></div>
+          <div className="cpl-brand-mark">
+            <img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun"
+              onError={e => { const el = e.currentTarget as HTMLImageElement; el.style.display = 'none'; el.parentElement?.classList.add('fallback'); }} />
+            <span className="cpl-brand-name">Career<span>Pilot</span></span>
           </div>
         </div>
 

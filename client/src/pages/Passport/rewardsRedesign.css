@@ -2,7 +2,7 @@
    progress to the redeem threshold, the store, and a side column whose "how to earn" rows open the real pages.
    Shell rules recolour headings and dash any class containing "empty", so text on navy is pinned with #root .gd. */
 .rwd.rwd2 {
-  --navy: #051D64; --primary: #005897; --teal: #359AAD; --ink: #102A4F; --muted: #64748B; --line: #E2EAF2;
+  --navy: #051D64; --primary: #051D64; --teal: #359AAD; --ink: #102A4F; --muted: #64748B; --line: #E2EAF2;
   max-width: 1760px; padding: 0 0 40px; display: flex; flex-direction: column; gap: 18px; color: var(--ink);
 }
 :where(.rwd2) button { font: inherit; }
@@ -14,7 +14,7 @@
   background:
     radial-gradient(circle at 88% 10%, rgba(53, 154, 173, .40), transparent 40%),
     radial-gradient(circle at 10% 120%, rgba(25, 118, 210, .30), transparent 42%),
-    linear-gradient(120deg, #051D64 0%, #0B2D72 48%, #005897 100%);
+    linear-gradient(120deg, #051D64 0%, #0B2D72 48%, #123A8C 100%);
   box-shadow: 0 20px 44px rgba(5, 29, 100, .18);
 }
 .rwd2-hero::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 22px 22px; pointer-events: none; }
@@ -57,13 +57,13 @@
 
 .rwd2-soon { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 40px 24px; border-radius: 20px; background: linear-gradient(180deg, #fff, #F5F9FD); border: 1px solid var(--line); box-shadow: 0 3px 14px rgba(15, 46, 77, .05); }
 .rwd2-soon .gifts { display: flex; gap: 12px; margin-bottom: 8px; }
-.rwd2-soon .gifts i { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font-size: 26px; color: #fff; background: linear-gradient(135deg, #051D64, #005897); box-shadow: 0 10px 22px rgba(5, 29, 100, .18); }
+.rwd2-soon .gifts i { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font-size: 26px; color: #fff; background: linear-gradient(135deg, #051D64, #051D64); box-shadow: 0 10px 22px rgba(5, 29, 100, .18); }
 .rwd2-soon .gifts i:nth-child(2) { background: linear-gradient(135deg, #E09A00, #FFC53D); transform: translateY(-8px); }
 .rwd2-soon .gifts i:nth-child(3) { background: linear-gradient(135deg, #1F7D8F, #359AAD); }
 .rwd2-soon > b { font-size: 19px; color: var(--navy); }
 .rwd2-soon > span { max-width: 460px; font-size: 14.5px; line-height: 1.55; color: var(--muted); }
 .rwd2-soon > button { margin-top: 8px; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 20px; border-radius: 12px; border: 0; background: var(--primary); color: #fff; font-weight: 800; font-size: 14.5px; cursor: pointer; }
-.rwd2-soon > button:hover { background: #004A80; }
+.rwd2-soon > button:hover { background: #0A2A7A; }
 
 .rwd2-trust { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .rwd2-trust > div { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: #fff; border: 1px solid var(--line); }
@@ -86,11 +86,11 @@
 .rwd2-way .go { color: #A9B7C8; }
 .rwd2-way:hover .go { color: var(--primary); }
 .rwd2-panel .closest { display: flex; gap: 12px; align-items: center; }
-.rwd2-panel .closest > span { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 20px; color: #fff; background: linear-gradient(135deg, #051D64, #005897); }
+.rwd2-panel .closest > span { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 20px; color: #fff; background: linear-gradient(135deg, #051D64, #051D64); }
 .rwd2-panel .closest b { display: block; font-size: 15px; color: var(--ink); }
 .rwd2-panel .closest small { font-size: 13px; color: var(--muted); }
 .rwd2-panel .bar { background: #E2EAF2; }
-.rwd2-panel .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #359AAD, #005897); }
+.rwd2-panel .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #359AAD, #051D64); }
 .rwd2-panel .row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
 .rwd2-panel .row b { color: var(--ink); }
 .rwd2-panel > button { margin-top: 6px; min-height: 40px; border-radius: 12px; border: 0; background: var(--primary); color: #fff; font-weight: 800; cursor: pointer; }

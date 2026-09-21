@@ -223,6 +223,45 @@
 
 /* My Roadmap reuses this banner but has no momentum column, so it stays two columns and the
    "today" card sits against the right edge instead of leaving a gap where the third column would be. */
-.frm .fjm-hero { grid-template-columns: minmax(0, 1fr) auto; }
-.frm .fjm-hero .fjm-today { justify-self: end; }
+.frm .fjm-hero { grid-template-columns: minmax(0, 1fr) auto; padding: 26px 0; }
+/* The card is a panel inside the banner, so it keeps the banner's own inset rather than
+   running into its edge, where the two white surfaces read as one. */
+.frm .fjm-hero .fjm-today { justify-self: end; margin-right: 28px; }
 @media (max-width: 980px) { .frm .fjm-hero { grid-template-columns: 1fr; } }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   THE NINETY, AS A STRIP — ninety small squares with a native scrollbar under
+   them read as a spreadsheet. The chips are bigger and spaced, a locked day is
+   quiet rather than busy with a padlock, and the scrollbar is a slim rail in
+   the house colours so it belongs to the card.
+   ──────────────────────────────────────────────────────────────────────────── */
+.fjm .fj-strip-wrap {
+  margin: 0; padding: 4px 2px 12px;
+  scrollbar-width: thin; scrollbar-color: #C9D8E5 transparent;
+}
+.fjm .fj-strip-wrap::-webkit-scrollbar { height: 8px; }
+.fjm .fj-strip-wrap::-webkit-scrollbar-track { background: #EEF3F9; border-radius: 999px; }
+.fjm .fj-strip-wrap::-webkit-scrollbar-thumb { background: #C2D3E3; border-radius: 999px; }
+.fjm .fj-strip-wrap::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+.fjm .fj-strip { gap: 8px; }
+.fjm .fj-chip {
+  width: 42px; height: 42px; border-radius: 14px; font-size: 13.5px; font-weight: 800;
+  border: 1px solid var(--line); background: #fff; color: #5D6E88;
+  transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+}
+.fjm .fj-chip:hover { transform: translateY(-1px); border-color: var(--border-strong); box-shadow: 0 4px 12px rgba(15, 46, 77, .08); }
+/* A locked day is simply not available yet: flat, quiet, no padlock badge shouting on every square. */
+.fjm .fj-chip.s-locked { background: #F5F8FB; border-color: #E8EEF5; color: #A9B7C8; }
+.fjm .fj-chip.s-locked:hover { transform: none; box-shadow: none; border-color: #DCE5EF; }
+.fjm .fj-chip-lock { display: none; }
+.fjm .fj-chip.s-completed { background: var(--green-bg); border-color: #CCE9DC; color: var(--green); }
+.fjm .fj-chip.s-current { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 6px 14px rgba(5, 29, 100, .22); }
+.fjm .fj-chip.s-current::after { display: none; }
+.fjm .fj-chip.open { box-shadow: 0 0 0 3px rgba(53, 154, 173, .35); border-color: var(--teal); }
+.fjm .fj-range { margin: 0 0 14px; gap: 10px; }
+.fjm .fj-range-jumps { gap: 8px; }
+.fjm .fj-range-btn { min-height: 36px; padding: 0 16px; font-size: 13.5px; font-weight: 700; }
+.fjm .fj-arrow { width: 36px; height: 36px; display: grid; place-items: center; }
+@media (max-width: 640px) {
+  .fjm .fj-chip { width: 38px; height: 38px; border-radius: 12px; }
+}

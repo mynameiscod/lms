@@ -36,7 +36,7 @@
 
   /* The shell's main element already pads the page and paints the background;
      the wizard's own padding, gradient and viewport height would double it. */
-  max-width: 1240px !important;
+  max-width: 1760px !important;
   margin: 0 auto !important;
   padding: 0 !important;
   background: transparent !important;

@@ -319,7 +319,6 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                 {st && <div className="stats"><div><b>{st.xp.toLocaleString()}</b><span>XP</span></div><div><b>{st.streak}</b><span>Streak</span></div><div><b>{myRank ? `#${myRank}` : '—'}</b><span>Rank</span></div></div>}
                 <button onClick={() => { setUserOpen(false); nav('/careerpilot/profile'); }}>My profile</button>
                 <button onClick={() => { setUserOpen(false); nav('/careerpilot/readiness'); }}>My result</button>
-                <button onClick={() => { setUserOpen(false); nav('/careerpilot/news'); }}>Tech news</button>
                 <button onClick={share} disabled={!d?.shareSlug}>Share my CareerPilot card</button>
                 <button className="out" onClick={() => logout()}>Log out</button>
               </div>}

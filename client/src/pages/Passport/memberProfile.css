@@ -1,0 +1,554 @@
+/* CareerPilot member profile (/careerpilot/profile) — CodeBegun house style.
+   ────────────────────────────────────────────────────────────────────────────
+   The page is the shared LMS student profile wizard (pages/StudentProfile),
+   rendered a second time inside the member shell. Other parts of the LMS still
+   use StudentProfile.css exactly as it is, so nothing here edits that sheet:
+   this file only re-dresses the wizard WHEN it is inside the member shell.
+
+   Every selector is therefore prefixed `#root .gd .cb-member-profile` —
+   `.cb-member-profile` is the per-page frame MemberLayout puts around the
+   outlet, so these rules can never reach the LMS copy of the page. The `#root`
+   id is not decoration either: memberCodebegun.css already has a "9 Profile"
+   block whose selectors are the same three classes deep and full of
+   !important, and CSS bundling order between the two sheets is not something
+   this file can rely on. One id up front settles the cascade whichever way the
+   bundler happens to emit them, which is the same trick rewardsRedesign.css
+   uses against the shell rules.
+
+   Palette: navy #051D64 (hover #0A2A7A), teal #359AAD/#1B7D91, muted #5D6E88,
+   lines #E2EAF2, field borders #D5E0EC, cards white, page #F4F8FC.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+#root .gd .cb-member-profile .student-profile-page {
+  --mp-navy: #051D64;
+  --mp-navy-hover: #0A2A7A;
+  --mp-teal: #359AAD;
+  --mp-teal-deep: #1B7D91;
+  --mp-ink: #102A4F;
+  --mp-muted: #5D6E88;
+  --mp-line: #E2EAF2;
+  --mp-field: #D5E0EC;
+  --mp-tint: #EAF1FB;
+  --mp-green: #17885D;
+  --mp-green-bg: #EAF8F1;
+  --mp-green-line: #C3E7D4;
+  --mp-red: #C93737;
+
+  /* The shell's main element already pads the page and paints the background;
+     the wizard's own padding, gradient and viewport height would double it. */
+  max-width: 1240px !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  background: transparent !important;
+  min-height: 0 !important;
+  /* One rhythm between the banner, the steps, any alert and the form card,
+     instead of four different margin-bottom values further up the sheet. */
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+}
+#root .gd .cb-member-profile .student-profile-page > * { margin-bottom: 0 !important; }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   COMPLETION BANNER — a white card in the house style, like .md-hero on the
+   dashboard and the light Rewards hero: tinted eyebrow pill, navy heading, a
+   teal ring with the figure in navy, chips for the checklist, and the recruiter
+   note as a readable line rather than a pale pill nobody can read.
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .cb-member-profile .score-banner {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) minmax(230px, 280px);
+  align-items: center;
+  gap: 28px !important;
+  padding: 26px 28px !important;
+  background: #fff !important;
+  border: 1px solid var(--mp-line) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 6px 22px rgba(15, 46, 77, .07) !important;
+}
+
+/* Ring: the arc is teal whatever the score, because the state is already said
+   in words twice below it (the level caption and the recruiter line). Four
+   different arc colours only added a traffic light the rest of the shell has
+   nowhere else. The stroke colours are presentation attributes on the SVG, so
+   plain declarations beat them; the percentage carries an inline style, which
+   is why that one needs !important. */
+#root .gd .cb-member-profile .score-ring-wrap svg circle:first-of-type { stroke: #E4EBF4; }
+#root .gd .cb-member-profile .score-ring-wrap svg circle:nth-of-type(2) { stroke: #1E9AA8; }
+#root .gd .cb-member-profile .score-pct {
+  font-size: 30px !important; font-weight: 850 !important;
+  letter-spacing: -.02em; color: var(--mp-navy) !important;
+}
+#root .gd .cb-member-profile .score-level {
+  margin-top: 3px !important; font-size: 11px !important; font-weight: 800 !important;
+  letter-spacing: .09em; color: var(--mp-teal-deep) !important;
+}
+
+#root .gd .cb-member-profile .score-details {
+  display: flex; flex-direction: column; align-items: flex-start; min-width: 0;
+}
+/* The banner had no eyebrow of its own. Every other member banner opens with a
+   tinted pill, so the page gets one here rather than by editing the shared
+   wizard's markup, which the LMS also renders. */
+#root .gd .cb-member-profile .score-details::before {
+  content: "Your profile";
+  display: inline-flex; padding: 6px 12px; margin-bottom: 10px;
+  border-radius: 999px; background: var(--mp-tint); color: #1B3C77;
+  font-size: 11.5px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase;
+}
+#root .gd .cb-member-profile .score-title {
+  margin: 0 !important; font-size: 22px !important; font-weight: 850 !important;
+  letter-spacing: -.35px; color: var(--mp-navy) !important;
+}
+#root .gd .cb-member-profile .score-subtitle {
+  margin: 6px 0 0 !important; font-size: 14.5px !important; line-height: 1.55;
+  color: var(--mp-muted) !important;
+}
+
+#root .gd .cb-member-profile .score-checklist {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;
+}
+#root .gd .cb-member-profile .score-check {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 32px; padding: 0 12px !important;
+  border-radius: 999px !important; background: #fff !important;
+  border: 1px solid var(--mp-line) !important;
+  font-size: 13px !important; font-weight: 700 !important; color: #53677D !important;
+}
+#root .gd .cb-member-profile .score-check.done {
+  background: var(--mp-green-bg) !important;
+  border-color: var(--mp-green-line) !important;
+  color: var(--mp-green) !important;
+}
+
+/* Recruiter visibility: a badge and a sentence, divided off by a rule rather
+   than floated in the middle of nothing. */
+#root .gd .cb-member-profile .score-recruiter-status {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 9px;
+  min-width: 0; padding-left: 26px; border-left: 1px solid var(--mp-line);
+}
+#root .gd .cb-member-profile .recruiter-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 14px !important; border-radius: 999px !important;
+  font-size: 13px !important; font-weight: 800 !important;
+  line-height: 1.3; white-space: normal !important;
+}
+#root .gd .cb-member-profile .recruiter-badge.visible {
+  background: var(--mp-green-bg) !important; color: var(--mp-green) !important;
+  border: 1px solid var(--mp-green-line) !important;
+}
+#root .gd .cb-member-profile .recruiter-badge.hidden {
+  background: var(--mp-tint) !important; color: #1B3C77 !important;
+  border: 1px solid #D6E2F3 !important;
+}
+/* This line is the whole point of the block — it says what is still missing —
+   so it is body copy, not 12px of pale grey. */
+#root .gd .cb-member-profile .recruiter-hint {
+  margin: 0 !important; text-align: left !important;
+  font-size: 13.5px !important; line-height: 1.55; color: var(--mp-muted) !important;
+}
+
+/* "Finish these to reach 100%" — the server's precise checklist. It is written
+   inline in the shared wizard with no class of its own, so it is reached as the
+   one unclassed direct child; only the frame is restated, the copy inside is
+   left as the component wrote it. */
+#root .gd .cb-member-profile .student-profile-page > div:not([class]) {
+  padding: 18px 20px !important; margin: 0 !important;
+  background: #fff !important; border: 1px solid var(--mp-line) !important;
+  border-radius: 18px !important; box-shadow: 0 3px 14px rgba(15, 46, 77, .05) !important;
+}
+#root .gd .cb-member-profile .student-profile-page > div:not([class]) > div:last-child > div {
+  background: #F7FAFE !important; border: 1px solid #E5EDF6 !important;
+  border-radius: 12px !important; padding: 12px 14px !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   STEP INDICATORS — numbered steps on a connecting rail: done steps teal and
+   ticked, the current step navy with a halo, the rest quiet. The tinted panels
+   behind active/completed steps are dropped; the numbers carry the state.
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .cb-member-profile .step-indicators {
+  display: flex !important; align-items: flex-start !important;
+  justify-content: space-between !important; gap: 4px !important;
+  padding: 16px 10px !important;
+  background: #fff !important; border: 1px solid var(--mp-line) !important;
+  border-radius: 18px !important; box-shadow: 0 3px 14px rgba(15, 46, 77, .05) !important;
+  overflow-x: auto;
+}
+#root .gd .cb-member-profile .step-indicator {
+  position: relative; flex: 1 1 0; min-width: 112px !important;
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  padding: 8px 6px !important; border-radius: 14px !important;
+  background: transparent !important;
+}
+#root .gd .cb-member-profile .step-indicator:hover { background: #F4F8FD !important; }
+/* The rail sits behind the numbers: from the centre of this step to the centre
+   of the next, clear of both circles. Drawn per step rather than as one line
+   under the row, so a completed step can colour its own segment. */
+#root .gd .cb-member-profile .step-indicator::after {
+  content: ""; position: absolute; top: 27px; height: 2px; background: #DFE7F1;
+  left: calc(50% + 26px); right: calc(-50% + 26px);
+}
+#root .gd .cb-member-profile .step-indicator:last-child::after { display: none; }
+#root .gd .cb-member-profile .step-indicator.completed::after { background: #1E9AA8; }
+
+#root .gd .cb-member-profile .step-number {
+  width: 40px !important; height: 40px !important; margin: 0 !important;
+  display: grid !important; place-items: center !important;
+  border-radius: 50% !important; border: 2px solid #DFE7F1 !important;
+  background: #EEF3F9 !important; color: #7C8DA5 !important;
+  font-size: 15px !important; font-weight: 850 !important; line-height: 1 !important;
+  position: relative; z-index: 1;
+}
+#root .gd .cb-member-profile .step-indicator.completed .step-number {
+  background: #1E9AA8 !important; border-color: #1E9AA8 !important; color: #fff !important;
+}
+#root .gd .cb-member-profile .step-indicator.active .step-number {
+  background: var(--mp-navy) !important; border-color: var(--mp-navy) !important;
+  color: #fff !important; box-shadow: 0 0 0 5px rgba(5, 29, 100, .12) !important;
+}
+#root .gd .cb-member-profile .step-label {
+  font-size: 12.5px !important; font-weight: 750 !important;
+  color: #7C8DA5 !important; text-align: center; line-height: 1.3;
+}
+#root .gd .cb-member-profile .step-indicator.completed .step-label,
+#root .gd .cb-member-profile .step-indicator.active .step-label {
+  color: var(--mp-navy) !important;
+}
+#root .gd .cb-member-profile .step-indicator.active .step-label { font-weight: 850 !important; }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   ALERTS
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .cb-member-profile .alert {
+  margin: 0 !important; padding: 13px 16px !important;
+  border-radius: 14px !important; border: 1px solid transparent !important;
+  font-size: 14px !important; font-weight: 700 !important;
+}
+#root .gd .cb-member-profile .alert-success {
+  background: var(--mp-green-bg) !important; color: var(--mp-green) !important;
+  border-color: var(--mp-green-line) !important;
+}
+#root .gd .cb-member-profile .alert-error {
+  background: #FFF0F0 !important; color: var(--mp-red) !important;
+  border-color: #F2CCCC !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   FORM CARD
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .cb-member-profile .profile-form-container {
+  padding: 26px 28px 24px !important;
+  background: #fff !important; border: 1px solid var(--mp-line) !important;
+  border-radius: 20px !important; box-shadow: 0 3px 14px rgba(15, 46, 77, .05) !important;
+}
+#root .gd .cb-member-profile .form-step > h2 {
+  margin: 0 0 6px !important; font-size: 21px !important; font-weight: 850 !important;
+  letter-spacing: -.3px !important; color: var(--mp-navy) !important;
+}
+#root .gd .cb-member-profile .step-description {
+  margin: 0 0 22px !important; font-size: 14.5px !important; line-height: 1.6;
+  color: var(--mp-muted) !important;
+}
+#root .gd .cb-member-profile .form-section { margin-bottom: 24px !important; }
+#root .gd .cb-member-profile .form-section > h3,
+#root .gd .cb-member-profile .education-section > h3,
+#root .gd .cb-member-profile .oauth-section > h3 {
+  margin: 0 0 6px !important; font-size: 15.5px !important; font-weight: 800 !important;
+  color: var(--mp-navy) !important;
+}
+#root .gd .cb-member-profile .section-hint,
+#root .gd .cb-member-profile .oauth-section .section-description {
+  margin: 0 0 14px !important; font-size: 13.5px !important; color: var(--mp-muted) !important;
+}
+#root .gd .cb-member-profile .form-row,
+#root .gd .cb-member-profile .form-grid { gap: 18px !important; }
+#root .gd .cb-member-profile .form-row { margin-bottom: 18px !important; }
+#root .gd .cb-member-profile .form-group { gap: 7px !important; }
+
+/* Labels. `.file-upload-btn` and `.checkbox-item` are labels too but they are
+   controls, not captions, and are styled further down. */
+#root .gd .cb-member-profile .form-group > label:not(.file-upload-btn):not(.checkbox-item),
+#root .gd .cb-member-profile .form-section > label {
+  font-size: 13px !important; font-weight: 800 !important;
+  letter-spacing: .01em; color: var(--mp-navy) !important;
+}
+#root .gd .cb-member-profile .required { color: var(--mp-red) !important; }
+
+#root .gd .cb-member-profile .form-group input,
+#root .gd .cb-member-profile .form-group select,
+#root .gd .cb-member-profile .form-group textarea {
+  min-height: 48px !important; padding: 11px 14px !important;
+  border: 1px solid var(--mp-field) !important; border-radius: 10px !important;
+  background: #fff !important; color: var(--mp-ink) !important;
+  font-family: inherit !important; font-size: 14.5px !important;
+  transition: border-color .15s ease, box-shadow .15s ease !important;
+}
+#root .gd .cb-member-profile .form-group textarea {
+  min-height: 112px !important; padding: 12px 14px !important; line-height: 1.55;
+}
+#root .gd .cb-member-profile .form-group input:focus,
+#root .gd .cb-member-profile .form-group select:focus,
+#root .gd .cb-member-profile .form-group textarea:focus {
+  outline: none !important; background: #fff !important;
+  border-color: var(--mp-navy) !important;
+  box-shadow: 0 0 0 3px rgba(5, 29, 100, .14) !important;
+}
+#root .gd .cb-member-profile .form-group input:disabled,
+#root .gd .cb-member-profile .form-group input.input-disabled {
+  background: #F4F8FC !important; color: #78889D !important;
+  border-color: var(--mp-line) !important;
+}
+#root .gd .cb-member-profile .form-group input::placeholder,
+#root .gd .cb-member-profile .form-group textarea::placeholder { color: #9AAABE !important; }
+
+#root .gd .cb-member-profile .field-hint,
+#root .gd .cb-member-profile .char-count {
+  font-size: 12.5px !important; color: #6B7C96 !important;
+}
+
+/* Validation. The label turns red because a navy caption over a red field reads
+   as two unrelated states. */
+#root .gd .cb-member-profile .has-error input,
+#root .gd .cb-member-profile .has-error select,
+#root .gd .cb-member-profile .has-error textarea {
+  border-color: var(--mp-red) !important; background-color: #FFF7F7 !important;
+}
+#root .gd .cb-member-profile .has-error > label { color: var(--mp-red) !important; }
+#root .gd .cb-member-profile .error-text {
+  font-size: 12.5px !important; font-weight: 700 !important; color: var(--mp-red) !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   CHOICE CARDS (status / experience / learning mode / batch time / course) and
+   the language and technology checkboxes. One treatment for all of them: a
+   white pill with a field border, navy tint plus a navy rim when chosen.
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .cb-member-profile .status-card,
+#root .gd .cb-member-profile .experience-card,
+#root .gd .cb-member-profile .mode-card,
+#root .gd .cb-member-profile .time-card,
+#root .gd .cb-member-profile .course-card,
+#root .gd .cb-member-profile .checkbox-item {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; min-height: 44px; padding: 10px 16px !important;
+  background: #fff !important; border: 1px solid var(--mp-field) !important;
+  border-radius: 12px !important; box-shadow: none !important;
+  color: #33475B !important; font-size: 14px !important; font-weight: 700 !important;
+  transition: border-color .15s ease, background .15s ease, color .15s ease !important;
+}
+#root .gd .cb-member-profile .status-card:hover,
+#root .gd .cb-member-profile .experience-card:hover,
+#root .gd .cb-member-profile .mode-card:hover,
+#root .gd .cb-member-profile .time-card:hover,
+#root .gd .cb-member-profile .course-card:hover,
+#root .gd .cb-member-profile .checkbox-item:hover {
+  background: #F7FAFE !important; border-color: #9FBBD6 !important;
+}
+#root .gd .cb-member-profile .status-card.selected,
+#root .gd .cb-member-profile .experience-card.selected,
+#root .gd .cb-member-profile .mode-card.selected,
+#root .gd .cb-member-profile .time-card.selected,
+#root .gd .cb-member-profile .course-card.selected,
+#root .gd .cb-member-profile .checkbox-item.checked {
+  background: var(--mp-tint) !important; border-color: var(--mp-navy) !important;
+  color: var(--mp-navy) !important;
+  box-shadow: inset 0 0 0 1px var(--mp-navy) !important;
+}
+/* The large cards (the ones with an icon and a description) stay stacked. */
+#root .gd .cb-member-profile .status-cards:not(.small) .status-card,
+#root .gd .cb-member-profile .experience-cards:not(.small) .experience-card {
+  flex-direction: column; text-align: center; padding: 18px 16px !important;
+}
+#root .gd .cb-member-profile .status-label,
+#root .gd .cb-member-profile .exp-label,
+#root .gd .cb-member-profile .mode-label,
+#root .gd .cb-member-profile .time-label,
+#root .gd .cb-member-profile .course-name { color: var(--mp-navy) !important; font-weight: 800 !important; }
+#root .gd .cb-member-profile .status-desc,
+#root .gd .cb-member-profile .exp-desc,
+#root .gd .cb-member-profile .mode-desc,
+#root .gd .cb-member-profile .time-range { color: var(--mp-muted) !important; font-size: 12.5px !important; }
+#root .gd .cb-member-profile .checkbox-item input { accent-color: var(--mp-navy) !important; }
+#root .gd .cb-member-profile .checkbox-grid { gap: 9px !important; }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   PHOTO AND FILE UPLOADS
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .cb-member-profile .photo-preview {
+  border: 1px dashed var(--mp-field) !important; background: #F4F8FC !important;
+}
+#root .gd .cb-member-profile .photo-placeholder span,
+#root .gd .cb-member-profile .photo-placeholder small { color: #8497AE !important; }
+#root .gd .cb-member-profile .file-upload-area {
+  border: 1px dashed var(--mp-field) !important; border-radius: 14px !important;
+  background: #F7FAFE !important;
+}
+#root .gd .cb-member-profile .file-upload-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 18px !important;
+  background: var(--mp-navy) !important; border: 1px solid var(--mp-navy) !important;
+  border-radius: 10px !important; color: #fff !important;
+  font-size: 14px !important; font-weight: 800 !important; box-shadow: none !important;
+}
+#root .gd .cb-member-profile .file-upload-btn:hover {
+  background: var(--mp-navy-hover) !important; border-color: var(--mp-navy-hover) !important;
+}
+#root .gd .cb-member-profile .view-resume-link { color: var(--mp-teal-deep) !important; font-weight: 750 !important; }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LINKED ACCOUNTS
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .cb-member-profile .oauth-section {
+  padding-top: 20px !important; border-top: 1px solid var(--mp-line) !important;
+}
+#root .gd .cb-member-profile .oauth-card {
+  background: #fff !important; border: 1px solid var(--mp-line) !important;
+  border-radius: 16px !important; box-shadow: none !important;
+}
+#root .gd .cb-member-profile .oauth-card.connected {
+  border-color: var(--mp-green-line) !important; background: #FAFDFB !important;
+}
+#root .gd .cb-member-profile .oauth-info h4 { color: var(--mp-navy) !important; }
+#root .gd .cb-member-profile .oauth-info .connected-text { color: var(--mp-green) !important; }
+#root .gd .cb-member-profile .oauth-info .not-connected-text { color: var(--mp-muted) !important; }
+#root .gd .cb-member-profile .oauth-info .profile-link { color: var(--mp-teal-deep) !important; }
+#root .gd .cb-member-profile .oauth-btn {
+  min-height: 40px !important; padding: 0 16px !important;
+  border-radius: 10px !important; font-size: 13.5px !important; font-weight: 800 !important;
+  box-shadow: none !important;
+}
+#root .gd .cb-member-profile .oauth-btn.connect {
+  background: var(--mp-navy) !important; border: 1px solid var(--mp-navy) !important; color: #fff !important;
+}
+#root .gd .cb-member-profile .oauth-btn.connect:hover {
+  background: var(--mp-navy-hover) !important; border-color: var(--mp-navy-hover) !important;
+}
+#root .gd .cb-member-profile .oauth-btn.disconnect {
+  background: #fff !important; border: 1px solid var(--mp-field) !important; color: #53677D !important;
+}
+#root .gd .cb-member-profile .oauth-btn.disconnect:hover {
+  background: #FFF0F0 !important; border-color: #F2CCCC !important; color: var(--mp-red) !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   REVIEW SUMMARY (last step)
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .cb-member-profile .profile-summary {
+  margin-top: 24px !important; padding: 20px !important;
+  background: linear-gradient(135deg, #F5F9FE, #EDF4FC) !important;
+  border: 1px solid #DFE8F4 !important; border-radius: 16px !important;
+}
+#root .gd .cb-member-profile .profile-summary h3 {
+  margin: 0 0 14px !important; font-size: 16px !important; font-weight: 850 !important;
+  color: var(--mp-navy) !important;
+}
+#root .gd .cb-member-profile .summary-label {
+  font-size: 11.5px !important; font-weight: 800 !important; letter-spacing: .08em;
+  color: var(--mp-teal-deep) !important;
+}
+#root .gd .cb-member-profile .summary-value {
+  font-size: 15px !important; font-weight: 750 !important; color: var(--mp-navy) !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   NAVIGATION BUTTONS — the app's two button styles and nothing else: primary
+   navy filled, secondary white with a border. "Complete Profile" is the same
+   primary as "Next" rather than a green gradient of its own; it is the last
+   step of one flow, not a different kind of action. Lifts and coloured drop
+   shadows on hover are dropped to match the rest of the member area.
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .cb-member-profile .form-navigation {
+  margin-top: 26px !important; padding-top: 20px !important;
+  border-top: 1px solid var(--mp-line) !important; gap: 12px !important;
+}
+#root .gd .cb-member-profile .btn {
+  min-height: 46px !important; padding: 0 20px !important;
+  border-radius: 12px !important; font-size: 14.5px !important; font-weight: 800 !important;
+  justify-content: center;
+  transition: background .15s ease, border-color .15s ease, color .15s ease !important;
+}
+#root .gd .cb-member-profile .btn:hover { transform: none !important; box-shadow: none !important; }
+#root .gd .cb-member-profile .btn-primary,
+#root .gd .cb-member-profile .btn-success {
+  background: var(--mp-navy) !important; border: 1px solid var(--mp-navy) !important;
+  color: #fff !important;
+}
+#root .gd .cb-member-profile .btn-primary:hover:not(:disabled),
+#root .gd .cb-member-profile .btn-success:hover:not(:disabled) {
+  background: var(--mp-navy-hover) !important; border-color: var(--mp-navy-hover) !important;
+}
+#root .gd .cb-member-profile .btn-secondary,
+#root .gd .cb-member-profile .btn-outline {
+  background: #fff !important; border: 1px solid var(--mp-field) !important;
+  color: var(--mp-navy) !important;
+}
+#root .gd .cb-member-profile .btn-secondary:hover:not(:disabled),
+#root .gd .cb-member-profile .btn-outline:hover:not(:disabled) {
+  background: #F4F8FD !important; border-color: var(--mp-navy) !important;
+}
+#root .gd .cb-member-profile .btn:disabled { opacity: .55 !important; cursor: not-allowed !important; }
+
+/* Loading state */
+#root .gd .cb-member-profile .loading-container .spinner {
+  border-color: #E4EBF4 !important; border-top-color: var(--mp-navy) !important;
+}
+#root .gd .cb-member-profile .loading-container p { color: var(--mp-muted) !important; }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   TABLET AND PHONE
+   The banner is three columns of which two will not shrink, so it loses the
+   recruiter column onto its own row first, then stacks completely. The step
+   rail scrolls sideways rather than dropping its labels: six unlabelled
+   circles say nothing about where you are.
+   ──────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  #root .gd .cb-member-profile .score-banner {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 22px !important;
+  }
+  #root .gd .cb-member-profile .score-recruiter-status {
+    grid-column: 1 / -1; padding: 16px 0 0; border-left: 0;
+    border-top: 1px solid var(--mp-line);
+  }
+}
+
+@media (max-width: 760px) {
+  #root .gd .cb-member-profile .score-banner {
+    grid-template-columns: 1fr; justify-items: center;
+    padding: 22px 18px !important; gap: 16px !important;
+  }
+  #root .gd .cb-member-profile .score-details { align-items: center; text-align: center; }
+  #root .gd .cb-member-profile .score-title { font-size: 20px !important; }
+  #root .gd .cb-member-profile .score-checklist { justify-content: center; }
+  #root .gd .cb-member-profile .score-recruiter-status { align-items: center; text-align: center; }
+  #root .gd .cb-member-profile .recruiter-hint { text-align: center !important; }
+
+  #root .gd .cb-member-profile .step-indicators {
+    justify-content: flex-start !important; flex-wrap: nowrap !important;
+    padding: 14px 10px !important;
+  }
+  #root .gd .cb-member-profile .step-indicator { flex: 0 0 auto; min-width: 104px !important; }
+  /* StudentProfile.css hides the labels below 768px; inside the shell the row
+     scrolls instead, so the labels stay. */
+  #root .gd .cb-member-profile .step-label { display: block !important; font-size: 12px !important; }
+  #root .gd .cb-member-profile .step-number { width: 36px !important; height: 36px !important; font-size: 14px !important; }
+  #root .gd .cb-member-profile .step-indicator::after {
+    top: 25px; left: calc(50% + 24px); right: calc(-50% + 24px);
+  }
+
+  #root .gd .cb-member-profile .profile-form-container { padding: 20px 18px !important; }
+  #root .gd .cb-member-profile .form-step > h2 { font-size: 19px !important; }
+  #root .gd .cb-member-profile .form-navigation > div { width: 100%; }
+  #root .gd .cb-member-profile .form-navigation .btn { width: 100% !important; }
+  #root .gd .cb-member-profile .save-btn { margin: 0 !important; }
+}
+
+@media (max-width: 420px) {
+  #root .gd .cb-member-profile .score-check { width: 100%; justify-content: flex-start; }
+  #root .gd .cb-member-profile .status-card,
+  #root .gd .cb-member-profile .experience-card,
+  #root .gd .cb-member-profile .mode-card,
+  #root .gd .cb-member-profile .time-card,
+  #root .gd .cb-member-profile .course-card { width: 100%; }
+}

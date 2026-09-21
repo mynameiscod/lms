@@ -20,11 +20,11 @@
 /* States */
 .rr-state { padding: 16px 18px; border-radius: 14px; background: #fff; border: 1px solid var(--line); color: var(--muted); font-size: 14px; }
 .rr-state.error { background: var(--red-bg); border-color: #F5C2C2; color: var(--red); }
-.rr-empty-wrap { min-height: 60vh; display: grid; place-items: center; }
-.rr-empty { max-width: 560px; text-align: center; background: #fff; border: 1px solid var(--line); border-radius: 24px; padding: 40px 32px; box-shadow: 0 18px 44px rgba(15, 46, 77, .08); display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.rr-empty-ic { width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; background: var(--tint); color: var(--primary); font-size: 30px; }
-.rr-empty h1 { font-size: 24px; color: var(--navy); }
-.rr-empty p { font-size: 15px; line-height: 1.6; color: var(--text); }
+.rr-blank-wrap { min-height: 60vh; display: grid; place-items: center; }
+.rr-blank { max-width: 560px; text-align: center; background: #fff; border: 1px solid var(--line); border-radius: 24px; padding: 40px 32px; box-shadow: 0 18px 44px rgba(15, 46, 77, .08); display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.rr-blank-ic { width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; background: var(--tint); color: var(--primary); font-size: 30px; }
+.rr-blank h1 { font-size: 24px; color: var(--navy); }
+.rr-blank p { font-size: 15px; line-height: 1.6; color: var(--text); }
 
 /* Hero */
 .rr-hero {
@@ -210,3 +210,113 @@
 #root .gd .rr .rr-hero-score-copy small, .rr .rr-hero-score-copy small { color: #1B7D91 !important; }
 #root .gd .rr .rr-hero-score-copy b, .rr .rr-hero-score-copy b { color: #051D64 !important; }
 #root .gd .rr .rr-hero-score-copy span, .rr .rr-hero-score-copy span { color: #6B7C96 !important; }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   WHAT TO IMPROVE NEXT — the banner's middle column, built like the dashboard's
+   daily momentum panel (memberDashboard.css). The banner becomes three columns
+   divided by hairlines instead of two: what the role is, what to improve next,
+   and the readiness gauge. Column padding replaces the card's own padding so
+   the dividers run the full height of the banner.
+
+   Appended last on purpose: the base rules and the LIGHT BANNER block above set
+   the two-column banner, so anything that changes it has to come after them —
+   which is also why this block carries its own media queries, since the earlier
+   ones would otherwise be beaten by these at the same specificity.
+   ──────────────────────────────────────────────────────────────────────────── */
+.rr .rr-hero {
+  grid-template-columns: minmax(0, 1fr) minmax(290px, .92fr) minmax(250px, .72fr);
+  gap: 0; padding: 26px 0; align-items: stretch;
+}
+.rr .rr-hero-copy { padding: 0 28px; align-self: center; }
+.rr-momentum { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 0 26px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+
+/* Strong against still-weak, from the member's own summary counts. */
+.rr-split { padding: 14px 16px; border-radius: 16px; background: linear-gradient(120deg, #EAF7F1, #E6F4EE); border: 1px solid #CFE8DD; }
+.rr-split-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.rr .rr-split-top b { font-size: 17px; font-weight: 800; color: var(--navy) !important; display: inline-flex; align-items: center; gap: 7px; }
+.rr .rr-split-top b i { font-size: 15px; color: #17885D; }
+.rr .rr-split-top > span { font-size: 13.5px; font-weight: 700; color: #B86B00 !important; }
+.rr-split-bar { margin-top: 10px; height: 10px; border-radius: 999px; background: #DCE9E3; overflow: hidden; }
+.rr-split-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1E9AA8, #2FB27F); }
+.rr .rr-split-foot { display: block; margin-top: 9px; font-size: 13px; line-height: 1.45; color: #5D6E88 !important; }
+
+/* The one row that leaves this page: the widest gap opens that skill's learning page. */
+.rr-focus { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; padding: 13px 14px; border-radius: 16px; border: 1px solid var(--line); background: #fff; cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
+.rr-focus:hover { border-color: #C9D8E5; background: #F7FAFE; box-shadow: 0 4px 14px rgba(15, 46, 77, .06); }
+.rr-focus .ic { flex: none; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; font-size: 19px; background: var(--tint); color: var(--primary); }
+.rr-focus > div { flex: 1; min-width: 0; }
+.rr .rr-focus b { display: block; font-size: 15px; font-weight: 800; color: var(--navy) !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rr .rr-focus > div span { display: block; margin-top: 2px; font-size: 13.5px; color: #5D6E88 !important; }
+.rr .rr-focus em { display: block; margin-top: 3px; font-style: normal; font-size: 13px; font-weight: 700; color: #B86B00 !important; }
+.rr-focus > i { color: #A9B7C8; }
+.rr-focus:hover > i { color: var(--primary); }
+/* Nothing left to close: a statement, not a button, so it cannot be clicked into nowhere. */
+.rr-allclear { display: flex; align-items: center; gap: 9px; padding: 13px 14px; border-radius: 16px; background: var(--green-bg); border: 1px solid #CCE9DC; font-size: 13.5px; line-height: 1.45; color: #136B4A; }
+.rr-allclear i { font-size: 16px; color: var(--green); }
+
+/* In three columns the gauge panel drops its tinted box; the hairline already separates it. */
+.rr .rr-hero .rr-hero-score { background: none; border: 0; padding: 0 26px; margin: 0; align-self: center; gap: 18px; }
+.rr .rr-hero .rr-gauge { width: 124px; height: 124px; }
+.rr .rr-hero .rr-gauge > div { width: 100px; height: 100px; }
+.rr .rr-hero .rr-hero-score-copy span { max-width: 190px; }
+
+/* ── Sections below the banner: one white-card system, 16–20px radii ─────────
+   Softer bars (teal into green, as on the dashboard), readable figures, and
+   panels tinted rather than outlined so the page reads as one surface. */
+.rr-card { border-radius: 20px; box-shadow: 0 4px 16px rgba(15, 46, 77, .05); }
+.rr-kpis > div { border-radius: 18px; box-shadow: 0 4px 16px rgba(15, 46, 77, .05); }
+.rr-kpis > div:hover { border-color: #CFE0EF; }
+.rr-track { background: #E9EFF4; }
+.rr-track i { background: linear-gradient(90deg, #1E9AA8, #2FB27F); }
+.rr-track.good i { background: linear-gradient(90deg, #17885D, #4ECB99); }
+.rr-track.warn i { background: linear-gradient(90deg, #E7A43A, #B86B00); }
+.rr-track.danger i { background: linear-gradient(90deg, #E26B6B, #C93737); }
+/* The skill rows get room to breathe and a hover tint, so a long list stays scannable. */
+.rr-skills > li { padding: 10px 12px; margin: 0 -12px; border-radius: 14px; }
+.rr-skills > li:hover { background: #F7FAFE; }
+/* Placeholder copy sits in a tinted panel rather than a bare line — the shell dashes
+   anything whose class contains "empty", so these keep neutral names. */
+.rr-placeholder { padding: 24px 20px; border-radius: 16px; background: var(--soft); border: 1px solid var(--line); color: #5D6E88; }
+.rr-unmeasured { border-radius: 16px; border-style: solid; border-color: var(--line); background: var(--soft); }
+.rr-summary > div { border-radius: 16px; background: var(--soft); border-color: var(--line); }
+.rr-summary > div.good { background: var(--green-bg); border-color: #CCE9DC; }
+.rr-summary > div.warn { background: var(--amber-bg); border-color: #F5DDB5; }
+.rr-summary > div.danger { background: var(--red-bg); border-color: #F5C2C2; }
+.rr .rr-summary > div.good b { color: #136B4A !important; }
+.rr .rr-summary > div.warn b { color: #8A5100 !important; }
+.rr .rr-summary > div.danger b { color: var(--red) !important; }
+.rr .rr-summary span { color: #5D6E88 !important; }
+.rr-next { border-radius: 20px; }
+.rr-disclaimer { padding: 2px 6px 6px; }
+
+@media (max-width: 1280px) {
+  /* Two columns first: the gauge drops to a full-width strip under the other two. */
+  .rr .rr-hero { grid-template-columns: minmax(0, 1fr) minmax(280px, .95fr); }
+  .rr .rr-hero .rr-hero-score { grid-column: 1 / -1; margin: 0 28px; padding: 20px 0 0; border-top: 1px solid var(--line); justify-self: start; }
+  .rr-momentum { border-right: 0; }
+}
+@media (max-width: 980px) {
+  .rr .rr-hero { grid-template-columns: 1fr; padding: 24px 0; }
+  .rr-momentum { margin: 0 20px; padding: 18px 0 0; border-left: 0; border-top: 1px solid var(--line); }
+  .rr .rr-hero-copy { padding: 0 20px; }
+  .rr .rr-hero .rr-hero-score { margin: 0 20px; }
+}
+@media (max-width: 560px) {
+  .rr .rr-hero .rr-hero-score { gap: 14px; flex-wrap: wrap; }
+  .rr .rr-hero .rr-gauge { width: 104px; height: 104px; }
+  .rr .rr-hero .rr-gauge > div { width: 84px; height: 84px; }
+  .rr .rr-hero .rr-hero-score-copy span { max-width: none; }
+  .rr-focus { padding: 12px; gap: 11px; }
+  .rr-focus .ic { width: 38px; height: 38px; font-size: 17px; }
+  .rr-skills > li { padding: 10px 8px; margin: 0 -8px; }
+}
+
+/* Two details the rules above would otherwise swallow: the momentum eyebrow is a pill, so it must not
+   stretch to the column width, and the summary tiles keep their coloured top edge over the new tints. */
+.rr .rr-momentum .rr-eyebrow.light { align-self: flex-start; }
+.rr .rr-summary > div.good { border-top-color: var(--green); }
+.rr .rr-summary > div.warn { border-top-color: #B86B00; }
+.rr .rr-summary > div.danger { border-top-color: var(--red); }
+.rr .rr-summary > div.muted { border-top-color: var(--border-strong); }
+/* "0 need work" in warning amber would read as a problem; with nothing below target the figure turns green. */
+.rr .rr-split-top > span.ok { color: #136B4A !important; }

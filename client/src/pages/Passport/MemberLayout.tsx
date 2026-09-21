@@ -5,6 +5,10 @@ import passportApi, { DashboardData } from '../../api/passportApi';
 import MemberShell from './MemberShell';
 import './memberLayoutFix.css';
 import './memberCodebegun.css';
+// The member profile page re-dresses the shared LMS profile wizard. It is loaded here, after
+// the shell's own sheet, because it has to win against the "9 Profile" block inside it — and
+// every rule in it is scoped to .cb-member-profile, so the LMS copy of the wizard is untouched.
+import './memberProfile.css';
 
 interface MemberCtx {
   data: DashboardData | null;

@@ -46,10 +46,12 @@ const RoleReadiness: React.FC = () => {
   if (!data.available) {
     const un = data as RoleReadinessUnavailable;
     const roleMissing = un.reason === 'ROLE_NOT_SELECTED';
+    /* Class names avoid the word "empty": a member-shell rule dashes every [class*="empty"] inside .gd-main,
+       which turned this full-height welcome card into a dashed grey box. */
     return (
-      <div className="rr rr-empty-wrap">
-        <div className="rr-empty">
-          <div className="rr-empty-ic"><i className={`bi bi-${roleMissing ? 'compass' : 'hourglass-split'}`} /></div>
+      <div className="rr rr-blank-wrap">
+        <div className="rr-blank">
+          <div className="rr-blank-ic"><i className={`bi bi-${roleMissing ? 'compass' : 'hourglass-split'}`} /></div>
           <h1>{roleMissing ? 'Choose your target role first' : 'Role readiness is not available yet'}</h1>
           <p>{un.message}</p>
           {roleMissing && <button className="rr-btn primary" onClick={() => nav('/careerpilot/setup?step=direction')}>Set my target role <i className="bi bi-arrow-right" /></button>}
@@ -69,6 +71,16 @@ const RoleReadiness: React.FC = () => {
   const roleName = ready.role?.name;
   const confLabel = CONFIDENCE_LABEL[confidence] || confidence;
 
+  /* Banner headline figures. Every one is read off the summary this page already fetched — strong is the count
+     at or near target, weak the count the role still expects more from, and the share is strong out of the two.
+     Skills we never measured are excluded on purpose: they are not failures, so they cannot dilute the split. */
+  const strongCount = summary.strong + summary.onTrack;
+  const weakCount = summary.priorityGaps + summary.needsWork;
+  const gradedCount = strongCount + weakCount;
+  const strongShare = gradedCount ? Math.round((strongCount / gradedCount) * 100) : 0;
+  /* What to improve next is the widest gap — the same row the gaps card leads with, so the two never disagree. */
+  const focus = gaps[0] || null;
+
   return (
     <div className="rr">
       <section className="rr-hero">
@@ -82,6 +94,61 @@ const RoleReadiness: React.FC = () => {
             {roleName && <button onClick={() => nav('/careerpilot/setup?step=direction')}><i className="bi bi-pencil" /> Change role</button>}
           </div>
         </div>
+
+        {/**
+          * WHAT TO IMPROVE NEXT — the middle column, built like the dashboard's daily momentum panel.
+          *
+          * A readiness figure on its own leaves a member with nowhere to go. This says how the measured skills
+          * split between strong and still-weak, then names the single widest gap and opens that skill's learning
+          * page. Every figure is the member's own; nothing here is a second readiness calculation.
+          */}
+        <div className="rr-momentum">
+          <span className="rr-eyebrow light">What to improve next</span>
+          {gradedCount > 0 ? (
+            <div className="rr-split">
+              <div className="rr-split-top">
+                <b><i className="bi bi-check-circle-fill" /> {strongCount} strong</b>
+                <span className={weakCount ? 'warn' : 'ok'}>{weakCount ? `${weakCount} need${weakCount === 1 ? 's' : ''} work` : 'none below target'}</span>
+              </div>
+              <div className="rr-split-bar" role="progressbar" aria-valuenow={strongShare} aria-valuemin={0} aria-valuemax={100} aria-label="Measured skills at or near target">
+                <i style={{ width: `${Math.max(strongCount > 0 ? 4 : 0, strongShare)}%` }} />
+              </div>
+              <span className="rr-split-foot">
+                {strongShare}% of your {gradedCount} measured skill{gradedCount === 1 ? '' : 's'} are at or near target
+                {summary.essentialTotal > 0 && <> · {summary.essentialAssessed} of {summary.essentialTotal} essential measured</>}
+              </span>
+            </div>
+          ) : (
+            <div className="rr-split">
+              <div className="rr-split-top"><b>Nothing measured yet</b></div>
+              <span className="rr-split-foot">Your first skill check fills this panel in.</span>
+            </div>
+          )}
+
+          {focus ? (
+            <button className="rr-focus" onClick={() => nav(`/careerpilot/learn/${focus.skillKey}`)}>
+              <span className="ic"><i className="bi bi-bullseye" /></span>
+              <div>
+                <b>{focus.skillName}</b>
+                <span>{focus.studentScore ?? 0}% now · target {focus.targetScore}%</span>
+                {focus.gapPoints ? <em>{focus.gapPoints} points to close</em> : null}
+              </div>
+              <i className="bi bi-chevron-right" />
+            </button>
+          ) : unmeasured.length ? (
+            <button className="rr-focus" onClick={() => nav('/careerpilot/skills')}>
+              <span className="ic"><i className="bi bi-clipboard-data" /></span>
+              <div>
+                <b>{unmeasured.length} skill{unmeasured.length === 1 ? '' : 's'} still to measure</b>
+                <span>Nothing is short of target yet</span>
+              </div>
+              <i className="bi bi-chevron-right" />
+            </button>
+          ) : (
+            <div className="rr-allclear"><i className="bi bi-stars" /> Every measured skill is at or above its target.</div>
+          )}
+        </div>
+
         <div className="rr-hero-score">
           <div className="rr-gauge" style={{ ['--rr-deg' as any]: `${(readiness ?? 0) * 3.6}deg` }}>
             <div><strong>{readiness === null ? '—' : readiness}{readiness !== null && <em>%</em>}</strong><span>Ready</span></div>
@@ -110,7 +177,7 @@ const RoleReadiness: React.FC = () => {
       <section className="rr-grid">
         <article className="rr-card">
           <header className="rr-card-head">
-            <div><h2>Readiness by skill</h2><p>Your score against the role’s target. The marker is the target.</p></div>
+            <div><h2>Readiness by skill</h2><p>{measuredRows.length} of {summary.requiredSkills} required skills measured, what needs attention first. The marker is the target.</p></div>
             <div className="rr-legend"><span><i className="you" /> You</span><span><i className="tgt" /> Target</span></div>
           </header>
           {measuredRows.length ? (
@@ -150,12 +217,12 @@ const RoleReadiness: React.FC = () => {
 
         <div className="rr-side">
           <article className="rr-card">
-            <header className="rr-card-head"><div><h2><i className="bi bi-check2-circle good" /> Strengths</h2><p>Your best-aligned skills.</p></div></header>
+            <header className="rr-card-head"><div><h2><i className="bi bi-check2-circle good" /> Strengths</h2><p>{strengths.length ? `Your best-aligned skills of the ${strongCount} at or near target.` : 'Your best-aligned skills.'}</p></div></header>
             {strengths.length ? (
               <ul className="rr-mini">
                 {strengths.map(s => (
                   <li key={s.skillKey}>
-                    <div><b>{s.skillName}</b><span>{s.studentScore ?? '—'}% demonstrated</span></div>
+                    <div><b>{s.skillName}</b><span>{s.studentScore ?? '—'}% demonstrated · target {s.targetScore}%</span></div>
                     <em className="rr-pill good">{CONFIDENCE_LABEL[s.skillConfidence || 'LOW']} confidence</em>
                   </li>
                 ))}
@@ -164,7 +231,7 @@ const RoleReadiness: React.FC = () => {
           </article>
 
           <article className="rr-card">
-            <header className="rr-card-head"><div><h2><i className="bi bi-exclamation-diamond danger" /> Gaps to close first</h2><p>Biggest distance to the target first.</p></div></header>
+            <header className="rr-card-head"><div><h2><i className="bi bi-exclamation-diamond danger" /> Gaps to close first</h2><p>{weakCount ? `${weakCount} skill${weakCount === 1 ? '' : 's'} below target, widest distance first.` : 'Biggest distance to the target first.'}</p></div></header>
             {gaps.length ? (
               <ul className="rr-mini">
                 {gaps.map(s => (

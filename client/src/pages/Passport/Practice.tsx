@@ -160,15 +160,17 @@ const Practice: React.FC<PracticeProps> = ({ source = 'all', heading, blurb }) =
           </div>
         </section>
 
-        <section className="pl2-tools">
-          <div className="pl2-tabs" role="tablist" aria-label="Practice type">
+        {/* The Thinking Lab is one bank of mentor-set problems — it has no coding/SQL/MCQ split, so it
+            shows the search on the left and the two filters on the right instead of category tabs. */}
+        <section className={`pl2-tools${isThinkingLab ? ' solo' : ''}`}>
+          {!isThinkingLab && <div className="pl2-tabs" role="tablist" aria-label="Practice type">
             {KINDS.map(k => (
               <button key={k.key} role="tab" aria-selected={kind === k.key} className={kind === k.key ? 'on' : ''}
                       onClick={() => { if (k.key) setParams({ kind: k.key }); else setParams({}); }}>
                 <i className={`bi ${k.icon}`} aria-hidden="true" /> {k.label}
               </button>
             ))}
-          </div>
+          </div>}
           <div className="pl2-filters">
             <label className="pl2-search"><i className="bi bi-search" aria-hidden="true" />
               <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search problems" aria-label="Search problems" />

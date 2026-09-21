@@ -220,3 +220,9 @@
   .fjm-hero-copy { padding-left: 20px; padding-right: 20px; }
   .fjm-hero .fjm-ring { margin: 0 20px; padding-top: 4px; }
 }
+
+/* My Roadmap reuses this banner but has no momentum column, so it stays two columns and the
+   "today" card sits against the right edge instead of leaving a gap where the third column would be. */
+.frm .fjm-hero { grid-template-columns: minmax(0, 1fr) auto; }
+.frm .fjm-hero .fjm-today { justify-self: end; }
+@media (max-width: 980px) { .frm .fjm-hero { grid-template-columns: 1fr; } }

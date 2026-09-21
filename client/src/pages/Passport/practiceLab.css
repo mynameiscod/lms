@@ -193,3 +193,12 @@
    rather than leaving a hole where the middle one would be. Browsers without :has ignore this
    rule entirely and simply keep the three-column track. */
 .pl2 .pl2-hero:not(:has(.pl2-momentum)) { grid-template-columns: minmax(0, 1fr) auto; }
+
+/* Thinking Lab: no category tabs, so the row is the search on the left and the two filters on the right. */
+.pl2-tools.solo .pl2-filters { flex: 1; width: 100%; justify-content: flex-end; }
+.pl2-tools.solo .pl2-search { margin-right: auto; min-width: 260px; }
+.pl2-tools.solo .pl2-search input { width: 100%; }
+@media (max-width: 720px) {
+  .pl2-tools.solo .pl2-filters { flex-wrap: wrap; }
+  .pl2-tools.solo .pl2-search { width: 100%; margin-right: 0; }
+}

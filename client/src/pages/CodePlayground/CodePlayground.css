@@ -291,9 +291,10 @@ body:has(.cp-root) { overflow: hidden; }
    logo-navy header, clearer input and output, and a status bar with room between its items.
    ════════════════════════════════════════════════════════════════════════════ */
 .cp-root.cpg { background: #fff; border: 1px solid var(--cp-border); border-radius: 20px; box-shadow: 0 10px 30px rgba(15, 46, 77, .08); }
+/* The page header is a light card like every other CareerPilot page; only the IDE chrome below it is navy. */
 .cpg-head {
-  flex: none; display: flex; align-items: center; gap: 14px; padding: 14px 20px; color: #fff;
-  background: #051D64;
+  flex: none; display: flex; align-items: center; gap: 14px; padding: 16px 20px; color: var(--cp-ink);
+  background: #fff; border-bottom: 1px solid var(--cp-border);
 }
 .cpg-head-ic { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; background: rgba(255, 255, 255, .14); color: #fff; }
 .cpg-head-t { flex: 1; min-width: 0; }
@@ -366,3 +367,10 @@ body:has(.cp-root) { overflow: hidden; }
   .cpg-head { padding: 12px 14px; }
   .cpg-head-t span { display: none; }
 }
+
+/* Header in the light card style: navy title, tinted icon tile, readable tags. */
+.cpg-head-ic { background: #EAF3FD; color: var(--cp-primary); }
+.cpg-head-t b { color: var(--cp-navy); }
+.cpg-head-t span { color: #5D6E88; }
+.cpg-head-tags span { color: #1B3C77; background: #EEF4FB; border-color: #DFE8F4; }
+.cpg-head-tags i.bi-lightning-charge-fill { color: #B86B00; }

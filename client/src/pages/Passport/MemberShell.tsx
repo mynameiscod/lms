@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import './dashboard.css';
 import './member.css';
 import SetPasswordDialog from './SetPasswordDialog';
+import ShareCardDialog from './ShareCardDialog';
 import { startActivityBeacon, trackPage } from './activityBeacon';
 
 const ICONS: Record<string, string> = {
@@ -63,13 +64,57 @@ const SCREEN_NAMES: Record<string, string> = {
   '/careerpilot/communication': 'Communication Lab',
   '/careerpilot/resume': 'Resume',
   '/careerpilot/practice': 'Practice',
+  '/careerpilot/news': 'Tech News',
+};
+
+/**
+ * Routes that belong to a rail section but do not sit under its path.
+ *
+ * A checkpoint's results belong to My 90 Days, which is where the checkpoint was opened and where
+ * it returns to. Topics, courses and materials are roadmap work. A mock test is only opened from a company
+ * profile. Coins, rewards, badges and the leaderboard are the My Progress story under four
+ * other names. Without this table each of those screens leaves the rail blank, which is the
+ * one moment navigation exists to answer: where am I?
+ */
+const NAV_ALIASES: Array<[string, string]> = [
+  ['/careerpilot/journey', '/careerpilot/plan'],
+  ['/careerpilot/topic', '/careerpilot/roadmap'],
+  ['/careerpilot/learn', '/careerpilot/roadmap'],
+  ['/careerpilot/material', '/careerpilot/roadmap'],
+  ['/careerpilot/quiz', '/careerpilot/plan'],
+  ['/careerpilot/mock-test', '/careerpilot/companies'],
+  ['/careerpilot/rewards', '/careerpilot/progress'],
+  ['/careerpilot/coins', '/careerpilot/progress'],
+  ['/careerpilot/achievements', '/careerpilot/progress'],
+  ['/careerpilot/leaderboard', '/careerpilot/progress'],
+];
+
+/**
+ * The rail section a route belongs to.
+ *
+ * The rail used to light an item on `path === to` alone, so every nested route — a practice
+ * problem, a company profile, a playground sub-route, day 34 of the journey — left nothing
+ * highlighted. Resolving the route to its section first, then matching that section by prefix,
+ * keeps the owning item lit however deep the route goes.
+ *
+ * No nav destination is a prefix of another (plan, roadmap, practice, playground,
+ * thinking-lab, communication, interview, mentor, companies, news, resume, progress), so a
+ * prefix match is unambiguous. `/careerpilot` is the single exception, since it prefixes all
+ * of them, and is matched exactly by the caller instead.
+ *
+ * A route in neither the table nor a section — My profile, for one — resolves to itself and so
+ * lights nothing, which is correct: better an honest blank than the wrong item claiming you.
+ */
+const sectionFor = (pathname: string): string => {
+  const p = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  const alias = NAV_ALIASES.find(([from]) => p === from || p.startsWith(`${from}/`));
+  return alias ? alias[1] : p;
 };
 
 const MemberShell: React.FC<Props> = ({ children, data }) => {
   const nav = useNavigate();
   const loc = useLocation();
   const { user, logout } = useAuth();
-  const [copied, setCopied] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const userRef = useRef<HTMLDivElement>(null);
@@ -127,6 +172,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
     };
   }, [mobileOpen]);
 
+  const [shareOpen, setShareOpen] = useState(false);
   const [pwdOpen, setPwdOpen] = useState(false);
   const [pwdDone, setPwdDone] = useState(false);
 
@@ -134,14 +180,11 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
 
   useEffect(() => { setMobileOpen(false); setUserOpen(false); }, [loc.pathname, loc.search]);
 
-  const share = async () => {
-    if (!d?.shareSlug) return;
-    const url = `${window.location.origin}/careerpilot/card/${d.shareSlug}`;
-    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-    catch { window.prompt('Copy your CareerPilot link:', url); }
-  };
+  /* Sharing shows the card before it shares it — see ShareCardDialog for why. */
+  const share = () => { if (d?.shareSlug) { setUserOpen(false); setShareOpen(true); } };
 
   const path = loc.pathname;
+  const navSection = sectionFor(path);
   const firstName = d?.firstName || user?.firstName || 'there';
   const initial = (firstName[0] || 'C').toUpperCase();
   const st = d?.stats;
@@ -167,9 +210,16 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
    */
   const navBtn = (label: string, icon: string, to: string, section?: MemberSection) => {
     const locked = !!section && lockedSet.has(section);
+    /**
+     * Home prefixes every other destination, so it alone must match exactly; everything else
+     * owns the routes nested beneath it (see `sectionFor`).
+     */
+    const on = to === '/careerpilot'
+      ? navSection === to
+      : navSection === to || navSection.startsWith(`${to}/`);
     return (
       <button
-        className={`gd-nav-btn${path === to ? ' on' : ''}${locked ? ' locked' : ''}`}
+        className={`gd-nav-btn${on ? ' on' : ''}${locked ? ' locked' : ''}`}
         onClick={() => nav(to)}
         key={to}
         title={locked ? 'Part of membership' : undefined}
@@ -210,6 +260,10 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview')}
           {navBtn('AI Mentor', 'robot', '/careerpilot/mentor')}
           {navBtn('Opportunities', 'building', '/careerpilot/companies', 'companies')}
+          {/* Sits with Opportunities because it answers the same question — what is happening in
+              the industry I am applying to. It was reachable only from the user menu, which is
+              where people look for their account, not for a daily read. */}
+          {navBtn('Tech News', 'news', '/careerpilot/news', 'news')}
           {navBtn('Resume', 'resume', '/careerpilot/resume', 'resume')}
           {navBtn('My Progress', 'trophy', '/careerpilot/progress', 'progress')}
         </nav>
@@ -221,8 +275,10 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           </div>
           <button className="gd-nav-btn" onClick={() => nav('/careerpilot/profile')}><span className="ic"><Icon name="user" /></span><span className="lbl">My profile</span></button>
           <button className="gd-nav-btn" onClick={() => nav('/careerpilot/readiness')}><span className="ic"><Icon name="chart" /></span><span className="lbl">My result</span></button>
-          {navBtn('Tech news', 'news', '/careerpilot/news', 'news')}
-          <button className="gd-nav-btn" onClick={share} disabled={!d?.shareSlug}><span className="ic"><Icon name="share" /></span><span className="lbl">{copied ? 'Link copied!' : 'Share my card'}</span></button>
+          {/* Tech News used to be repeated here. This block is the mobile drawer's account
+              footer and sits directly under the nav list it now appears in, so the second copy
+              was the same destination twice on one screen. */}
+          <button className="gd-nav-btn" onClick={share} disabled={!d?.shareSlug}><span className="ic"><Icon name="share" /></span><span className="lbl">Share my card</span></button>
           <button className="gd-nav-btn out" onClick={() => logout()}><span className="ic"><Icon name="logout" /></span><span className="lbl">Log out</span></button>
         </div>
 
@@ -264,7 +320,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                 <button onClick={() => { setUserOpen(false); nav('/careerpilot/profile'); }}>My profile</button>
                 <button onClick={() => { setUserOpen(false); nav('/careerpilot/readiness'); }}>My result</button>
                 <button onClick={() => { setUserOpen(false); nav('/careerpilot/news'); }}>Tech news</button>
-                <button onClick={share} disabled={!d?.shareSlug}>{copied ? 'Link copied!' : 'Share my CareerPilot card'}</button>
+                <button onClick={share} disabled={!d?.shareSlug}>Share my CareerPilot card</button>
                 <button className="out" onClick={() => logout()}>Log out</button>
               </div>}
             </div>
@@ -276,6 +332,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           <div className="txt"><b>Secure your account — set a password</b><span>So you can log in next time without waiting for a WhatsApp code.</span></div>
           <button className="go" onClick={() => setPwdOpen(true)}><Icon name="key-fill" /> Set password</button>
         </div>}
+        {shareOpen && d && <ShareCardDialog data={d} onClose={() => setShareOpen(false)} />}
         {pwdOpen && <SetPasswordDialog onClose={() => setPwdOpen(false)} onDone={() => { setPwdOpen(false); setPwdDone(true); }} />}
 
         {children}

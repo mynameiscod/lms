@@ -28,7 +28,7 @@
  * is an invitation to wander off mid-question. It returns here when it is done.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import passportApi, { FoundationJourney as Journey } from '../../api/passportApi';
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
 import { VideoPlayer, NotesViewer, QAViewer, PracticeViewer } from '../MyLearningPlan/DayView';
@@ -139,6 +139,7 @@ const JourneyDay: React.FC = () => {
 
   const [journey, setJourney] = useState<Journey | null>(null);
   const [items, setItems] = useState<any[]>([]);
+  const [params] = useSearchParams();
   const [selIdx, setSelIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   /** Membership, not a fault: the server refuses days beyond the preview and this says why. */
@@ -186,10 +187,15 @@ const JourneyDay: React.FC = () => {
       setDayBonusXp(Number(plan?.dayBonusXp) || 0);
       // Opening the day settled XP for work finished elsewhere (e.g. the checkpoint just taken): refresh the top bar.
       if ((Number(plan?.xpJustPaid) || 0) > 0) reloadMember();
-      // Land on the first unfinished task rather than always the first.
+      // Coming back from a checkpoint lands on the task it was opened from (?task=), so the member
+      // returns to where they were rather than to whatever is unfinished now. Otherwise open the
+      // first unfinished task rather than always the first.
       const list: any[] = Array.isArray(plan?.items) ? plan.items : [];
+      const raw = params.get('task');
+      const asked = raw === null ? NaN : Number(raw);
       const firstOpen = list.findIndex(it => !it.isCompleted);
-      setSelIdx(firstOpen >= 0 ? firstOpen : 0);
+      if (Number.isInteger(asked) && asked >= 0 && asked < list.length) setSelIdx(asked);
+      else setSelIdx(firstOpen >= 0 ? firstOpen : 0);
     } catch (e: any) {
       const reason = e?.response?.data?.reason;
       if (reason === 'DAY_LOCKED') setDayLock(e?.response?.data?.message || `Finish day ${dayNumber - 1} first.`);
@@ -198,7 +204,7 @@ const JourneyDay: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [dayNumber, reloadMember]);
+  }, [dayNumber, reloadMember, params]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -438,7 +444,7 @@ const JourneyDay: React.FC = () => {
 
                 <div className="jd-body">
                   {/* A checkpoint comes back to this day when it is done, instead of the LMS quiz list. */}
-                  <ItemBody item={selected} onLaunch={(p) => nav(selected?.kind === 'quiz' ? withReturn(p, `/careerpilot/journey/day/${dayNumber}`) : p)} />
+                  <ItemBody item={selected} onLaunch={(p) => nav(selected?.kind === 'quiz' ? withReturn(p, `/careerpilot/journey/day/${dayNumber}?task=${selIdx}`) : p)} />
                 </div>
 
                 <div className="jd-actions">

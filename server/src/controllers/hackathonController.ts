@@ -1,3 +1,4 @@
+import { readTeamSheet, writeTeams, templateWorkbook } from '../services/hackathonTeamImportService';
 import { Request, Response } from 'express';
 import Hackathon, { TEAM_SIZE_BOUNDS, DEFAULT_TEAM_SIZE } from '../models/Hackathon';
 import HackathonRegistration from '../models/HackathonRegistration';
@@ -242,5 +243,59 @@ export const markRefunded = async (req: Request, res: Response) => {
     res.json({ success: true, registration: reg });
   } catch (e: any) {
     res.status(500).json({ success: false, message: e.message || 'Could not update registration' });
+  }
+};
+
+/**
+ * GET /hackathons/teams-template.xlsx — the blank sheet for a bulk import.
+ *
+ * Two example rows, not just headers. The commonest mistake is one row per TEAM with the
+ * members crammed into a cell, and a sample showing two rows that share a team name prevents
+ * that better than any instruction next to the upload button.
+ */
+export const teamsImportTemplate = async (_req: Request, res: Response) => {
+  const buf = templateWorkbook();
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="hackathon-teams-template.xlsx"');
+  res.send(buf);
+};
+
+/**
+ * POST /hackathons/:id/import-teams — upload a sheet of offline-registered teams.
+ *
+ * Defaults to a DRY RUN. The screen shows what would happen and the operator confirms, because
+ * the alternative is finding out from the database. `?apply=true` is the same read and the same
+ * verdict, followed by the writes — a preview of a different code path would be a preview of
+ * something else.
+ *
+ * Teams land as `confirmed`, which is what provisionAttempts requires. That is the whole point
+ * of the import: these people paid or were admitted offline, and nothing else is going to
+ * confirm them.
+ */
+export const importTeams = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const h = await Hackathon.findOne({ _id: req.params.id, tenantId }).lean() as any;
+    if (!h) return res.status(404).json({ success: false, message: 'Hackathon not found.' });
+
+    const file = (req as any).file;
+    if (!file?.buffer?.length) return res.status(400).json({ success: false, message: 'No file received. Attach an .xlsx or .csv.' });
+
+    const report = await readTeamSheet(file.buffer, {
+      hackathonId: String(h._id),
+      defaultCollege: String(req.body?.college || '').trim(),
+      sheet: String(req.body?.sheet || '').trim() || undefined,
+    });
+
+    const apply = String(req.query.apply || req.body?.apply || '') === 'true';
+    if (!apply || !report.ok) {
+      return res.json({ success: true, data: { applied: false, ...report } });
+    }
+
+    const result = await writeTeams(tenantId, String(h._id), report);
+    res.json({ success: true, data: { applied: true, ...report, ...result } });
+  } catch (e: any) {
+    console.error('[hackathon] importTeams:', e);
+    res.status(500).json({ success: false, message: e?.message || 'Could not read that file.' });
   }
 };

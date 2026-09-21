@@ -109,3 +109,23 @@
   .hk { padding: 16px; }
   .hk-f.wide { min-width: 100%; }
 }
+
+/* ── bulk import of offline teams ─────────────────────────────────────────── */
+.hk-import { background: #fff; border: 1px solid #e2eaf2; border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; }
+.hk-import h3 { margin: 0 0 6px; font-size: 15px; font-weight: 800; color: #051d64; }
+.hk-import > p { margin: 0 0 14px; font-size: 13px; line-height: 1.65; color: #53677d; max-width: 780px; }
+.hk-import-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.hk-import-row .hk-btn { cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+.hk-import-college { flex: 1; min-width: 260px; border: 1.5px solid #c9d8e5; border-radius: 9px; padding: 9px 12px; font-size: 13px; font-family: inherit; color: #102a4f; }
+.hk-import-college:focus { outline: none; border-color: #78afc4; box-shadow: 0 0 0 3px rgba(0, 88, 151, .08); }
+.hk-import-note { margin: 12px 0 0; font-size: 13px; color: #64748b; }
+
+.hk-preview { margin-top: 16px; border-top: 1px solid #eef2f7; padding-top: 14px; }
+.hk-preview-head { font-size: 13.5px; color: #102a4f; margin-bottom: 8px; }
+.hk-preview-cols { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+.hk-preview-cols span { background: #eff5f9; border: 1px solid #dce7f0; border-radius: 7px; padding: 3px 9px; font-size: 11.5px; color: #53677d; }
+.hk-preview-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 10px 0 14px; }
+.hk-preview-table th { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e2eaf2; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+.hk-preview-table td { padding: 8px 10px; border-bottom: 1px solid #f2f6fa; color: #33475b; vertical-align: top; }
+.hk-tag { background: #fff7e8; border: 1px solid #f2d9a8; color: #8a5a00; border-radius: 20px; padding: 2px 9px; font-size: 11px; white-space: nowrap; }
+.hk-import .hk-msg ul { margin: 6px 0 0; padding-left: 20px; line-height: 1.7; }

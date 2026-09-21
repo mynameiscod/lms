@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { roleGuard } from '../middleware/roleGuard';
@@ -24,10 +25,26 @@ const MANAGE = roleGuard(['manage_hackathons']);
 const VIEW   = roleGuard(['view_hackathons', 'manage_hackathons']);
 const EXPORT = roleGuard(['export_hackathon_data']);
 
+/*
+ * The team sheet is held in MEMORY, never written to disk. It is a list of names, mobiles and
+ * emails belonging to people who are not users here; the import reads it once and keeps only
+ * what becomes a registration. A temp file would outlive that for no benefit.
+ *
+ * 5 MB is far above any real team sheet and well below anything that would trouble the process.
+ */
+const sheetUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+});
+
 router.get('/', VIEW, ctrl.list);
 router.post('/', MANAGE, ctrl.create);
 // Declared before `/:id` so `registrations.csv` is never read as an id.
+// Declared before `/:id` so the template filename is never read as an id.
+router.get('/teams-template.xlsx', VIEW, ctrl.teamsImportTemplate);
 router.get('/:id/registrations.csv', EXPORT, ctrl.exportRegistrations);
+/* MANAGE, not EXPORT: this creates registrations rather than taking data off the platform. */
+router.post('/:id/import-teams', MANAGE, sheetUpload.single('file'), ctrl.importTeams);
 router.get('/:id/registrations', VIEW, ctrl.listRegistrations);
 router.post('/:id/registrations/:regId/refunded', MANAGE, ctrl.markRefunded);
 router.get('/:id', VIEW, ctrl.getOne);

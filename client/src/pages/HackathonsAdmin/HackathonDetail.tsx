@@ -38,6 +38,14 @@ const HackathonDetail: React.FC = () => {
   const [rows, setRows] = useState<HackathonRegistration[]>([]);
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
+
+  /* Bulk import of offline-registered teams. `preview` holds the server's dry run — the same
+     read and the same verdict the apply will use, so what is shown is what will happen. */
+  const [file, setFile] = useState<File | null>(null);
+  const [college, setCollege] = useState('');
+  const [preview, setPreview] = useState<Awaited<ReturnType<typeof hackathonApi.importTeams>> | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
   const [busyId, setBusyId] = useState('');
@@ -104,6 +112,32 @@ const HackathonDetail: React.FC = () => {
     setBusyId('');
   };
 
+  const downloadTemplate = async () => {
+    try { await hackathonApi.downloadTeamsTemplate(); }
+    catch { setErr('Could not download the template.'); }
+  };
+
+  const runPreview = async (f: File) => {
+    setFile(f); setPreview(null); setErr(''); setMsg('');
+    setImporting(true);
+    try { setPreview(await hackathonApi.importTeams(id, f, { college })); }
+    catch (e: any) { setErr(e?.response?.data?.message || 'Could not read that file.'); }
+    finally { setImporting(false); }
+  };
+
+  const confirmImport = async () => {
+    if (!file || !preview?.ok) return;
+    setImporting(true); setErr('');
+    try {
+      const r = await hackathonApi.importTeams(id, file, { college, apply: true });
+      setPreview(r);
+      setMsg(`Imported ${r.created ?? 0} team(s); ${r.skipped ?? 0} already existed.`);
+      setFile(null);
+      await load();
+    } catch (e: any) { setErr(e?.response?.data?.message || 'Import failed.'); }
+    finally { setImporting(false); }
+  };
+
   return (
     <div className="hk">
       <div className="hk-crumb">
@@ -122,9 +156,92 @@ const HackathonDetail: React.FC = () => {
         </div>
         <div className="hk-acts">
           <button className="hk-btn" onClick={load} disabled={loading}>Refresh</button>
+          <button className="hk-btn" onClick={() => setShowImport(v => !v)}>{showImport ? 'Close import' : 'Import teams'}</button>
           <button className="hk-btn primary" onClick={download} disabled={!rows.length}>Export CSV</button>
         </div>
       </div>
+
+      {showImport && (
+        <section className="hk-import">
+          <h3>Import offline-registered teams</h3>
+          <p>
+            One row per <b>member</b>, with team-mates sharing a team name — the same shape as the
+            CSV export, so an exported file can be edited and read back. Imported teams are marked
+            <b> confirmed</b>, which is what the exam needs in order to create their attempts.
+          </p>
+
+          <div className="hk-import-row">
+            <button className="hk-btn" onClick={downloadTemplate}>Download template</button>
+            <label className="hk-btn primary">
+              {file ? 'Choose a different file' : 'Choose .xlsx or .csv'}
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                hidden
+                onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) runPreview(f); }}
+              />
+            </label>
+            <input
+              className="hk-import-college"
+              placeholder="Default college (used where the sheet leaves it blank)"
+              value={college}
+              onChange={e => setCollege(e.target.value)}
+            />
+          </div>
+
+          {importing && <p className="hk-import-note">Reading the sheet…</p>}
+
+          {preview && (
+            <div className="hk-preview">
+              <div className="hk-preview-head">
+                <b>{preview.teams.length}</b> team(s) · <b>{preview.memberCount}</b> member(s)
+                {preview.sheetNames.length > 1 && <> · read sheet “{preview.sheetUsed}” of {preview.sheetNames.length}</>}
+              </div>
+
+              {/* Which header became which field. A sheet can be well formed and still have the
+                  wrong column read as the mobile, and that is invisible until someone cannot sign in. */}
+              <div className="hk-preview-cols">
+                {Object.entries(preview.columns).map(([k, v]) => <span key={k}>{k} ← “{v}”</span>)}
+              </div>
+
+              {!!preview.problems.length && (
+                <div className="hk-msg err">
+                  <b>Nothing was imported — {preview.problems.length} problem(s):</b>
+                  <ul>{preview.problems.slice(0, 25).map((x, i) => <li key={i}>{x}</li>)}</ul>
+                  {preview.problems.length > 25 && <p>… and {preview.problems.length - 25} more.</p>}
+                </div>
+              )}
+
+              <table className="hk-preview-table">
+                <thead><tr><th>Team</th><th>College</th><th>Members</th><th /></tr></thead>
+                <tbody>
+                  {preview.teams.map(t => (
+                    <tr key={t.teamName}>
+                      <td><b>{t.teamName}</b></td>
+                      <td>{t.college || '—'}</td>
+                      <td>{t.members.map(m => `${m.member} (${m.mobile})`).join(', ')}</td>
+                      <td>{t.alreadyImported ? <span className="hk-tag">already imported · {t.registrationCode}</span> : null}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {preview.applied && !!preview.codes?.length && (
+                <div className="hk-msg ok">
+                  <b>Team codes — each member signs in with their team’s code and their own mobile:</b>
+                  <ul>{preview.codes.map(c => <li key={c.team}>{c.team} → <b>{c.code}</b>{c.existing ? ' (already existed)' : ''}</li>)}</ul>
+                </div>
+              )}
+
+              {!preview.applied && preview.ok && (
+                <button className="hk-btn primary" onClick={confirmImport} disabled={importing}>
+                  {importing ? 'Importing…' : `Import ${preview.teams.filter(t => !t.alreadyImported).length} team(s)`}
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       {err && <div className="hk-msg err">{err}</div>}
       {msg && <div className="hk-msg ok">{msg}</div>}

@@ -294,20 +294,40 @@ body:has(.cp-root) { overflow: hidden; }
 .cpg-head-tags span { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #fff; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .22); border-radius: 999px; padding: 5px 11px; white-space: nowrap; }
 .cpg-head-tags i.bi-lightning-charge-fill { color: #FFD166; }
 
-.cpg .cp-tabbar { background: #F4F8FC; padding: 8px 14px 0; }
-.cpg .cp-tab { background: transparent; border-radius: 10px 10px 0 0; }
-.cpg .cp-tab:hover { background: #EAF1F7; }
-.cpg .cp-tab.active { background: #fff; box-shadow: 0 -3px 0 var(--cp-primary) inset; }
-.cpg .cp-toolbar { padding: 10px 16px; background: #fff; }
-.cpg .cp-btn-run { background: #17885D; border-color: #17885D; box-shadow: 0 6px 14px rgba(23, 136, 93, .22); }
-.cpg .cp-btn-run:hover:not(:disabled) { background: #11704C; border-color: #11704C; }
-.cpg .cp-btn.primary { box-shadow: 0 6px 14px rgba(5, 29, 100, .2); }
+/* The chrome — tab strip, toolbar, panel head and status bar — is one navy frame around the light editor,
+   so the whole card reads as a single tool. Only the working surfaces stay light. */
+.cpg .cp-tabbar { background: var(--cp-navy); border-bottom-color: rgba(255, 255, 255, .10); padding: 8px 14px 0; }
+.cpg .cp-tab { background: rgba(255, 255, 255, .06); border: 1px solid transparent; border-radius: 10px 10px 0 0; color: #C4D5EE; }
+.cpg .cp-tab:hover { background: rgba(255, 255, 255, .13); color: #fff; }
+.cpg .cp-tab.active { background: rgba(255, 255, 255, .16); color: #fff; border-color: rgba(255, 255, 255, .18); box-shadow: 0 -3px 0 var(--cp-teal) inset; }
+.cpg .cp-tab .cp-tab-x { color: #9FB6D6; }
+.cpg .cp-tab .cp-tab-x:hover { background: rgba(255, 255, 255, .18); color: #FFB4B4; }
+.cpg .cp-tab-add { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .24); color: #C4D5EE; }
+.cpg .cp-tab-add:hover { background: rgba(255, 255, 255, .18); border-style: solid; color: #fff; }
+
+.cpg .cp-toolbar { padding: 10px 16px; background: var(--cp-navy); border-bottom-color: rgba(255, 255, 255, .10); }
+.cpg .cp-lang { background: rgba(255, 255, 255, .10); border-color: rgba(255, 255, 255, .22); color: #fff; }
+.cpg .cp-lang:hover { background: rgba(255, 255, 255, .16); border-color: rgba(255, 255, 255, .34); }
+.cpg .cp-lang.open { border-color: var(--cp-teal); box-shadow: 0 0 0 3px rgba(53, 154, 173, .28); }
+.cpg .cp-lang .chev { color: #B9CDE8; }
+.cpg .cp-toolbar .cp-btn { background: rgba(255, 255, 255, .10); border-color: rgba(255, 255, 255, .22); color: #E4ECF8; }
+.cpg .cp-toolbar .cp-btn:hover:not(:disabled) { background: rgba(255, 255, 255, .18); border-color: rgba(255, 255, 255, .36); color: #fff; }
+.cpg .cp-toolbar .cp-btn.on { background: rgba(127, 211, 224, .22); border-color: rgba(127, 211, 224, .45); color: #fff; }
+.cpg .cp-toolbar .cp-icon-btn { background: rgba(255, 255, 255, .10); border-color: rgba(255, 255, 255, .22); color: #E4ECF8; }
+.cpg .cp-toolbar .cp-icon-btn:hover { background: rgba(255, 255, 255, .18); color: #fff; }
+.cpg .cp-toolbar .cp-btn.cp-btn-run { background: #17885D; border-color: #17885D; color: #fff; box-shadow: 0 6px 14px rgba(0, 0, 0, .24); }
+.cpg .cp-toolbar .cp-btn.cp-btn-run:hover:not(:disabled) { background: #14A06C; border-color: #14A06C; color: #fff; }
+/* On navy, the save button reads as white-on-navy rather than navy-on-navy. */
+.cpg .cp-toolbar .cp-btn.primary { background: #fff; border-color: #fff; color: var(--cp-navy); box-shadow: 0 6px 14px rgba(0, 0, 0, .22); }
+.cpg .cp-toolbar .cp-btn.primary:hover:not(:disabled) { background: #EAF3FD; border-color: #EAF3FD; color: var(--cp-navy); }
+.cpg .cp-toolbar .cp-btn.danger { background: #FFE2E2; border-color: #FFC9C9; color: #B02A2A; }
 .cpg .cp-editor-wrap { background: #FBFDFF; }
 
 .cpg .cp-right { background: #FBFDFF; }
-.cpg .cp-right-head { background: #fff; padding: 12px 16px; }
-.cpg .cp-rtab { font-size: 14px; padding-bottom: 4px; border-bottom: 2px solid transparent; }
-.cpg .cp-rtab.active { color: var(--cp-navy); border-bottom-color: var(--cp-primary); }
+.cpg .cp-right-head { background: var(--cp-navy); border-bottom-color: rgba(255, 255, 255, .10); padding: 12px 16px; }
+.cpg .cp-rtab { font-size: 14px; padding-bottom: 4px; border-bottom: 2px solid transparent; color: #A9C0DE; }
+.cpg .cp-rtab:hover { color: #fff; }
+.cpg .cp-rtab.active { color: #fff; border-bottom-color: var(--cp-teal); }
 .cpg .cp-run-input { background: #17885D; border-radius: 10px; padding: 8px 14px; font-size: 13px; }
 .cpg .cp-run-input:hover:not(:disabled) { background: #11704C; }
 .cpg .cp-sec { padding: 14px 16px 6px; }

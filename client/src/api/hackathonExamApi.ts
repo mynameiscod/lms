@@ -128,6 +128,12 @@ export const hackathonExamApi = {
       method: 'POST', body: JSON.stringify({ code }),
     }),
 
+  /** Tell the server how the camera went — recorded, refused, or could not. */
+  recordingState: (token: string, state: string, note?: string) =>
+    call<{ state: string }>(`${PUBLIC}/attempt/${token}/recording/state`, {
+      method: 'POST', body: JSON.stringify({ state, note }),
+    }),
+
   overview: (token: string) => call<ExamOverview>(`${PUBLIC}/attempt/${token}`),
 
   start: (token: string) =>

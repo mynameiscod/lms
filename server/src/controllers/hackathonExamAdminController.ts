@@ -11,6 +11,7 @@ import * as exams from '../services/hackathonExamService';
 import { computeLeaderboard, computeTeamResult, drainGradingQueue } from '../services/hackathonExamGradingService';
 import { logger } from '../utils/logger';
 import { sendInvitations, sendResults, resendInvitation } from '../services/hackathonExamNotifyService';
+import { readChunk, purgeAttemptRecording } from '../services/proctorStorageService';
 
 /**
  * Running the hackathon exam: configure it, prove it can be drawn, invite the teams, watch it
@@ -459,4 +460,51 @@ export const getSectionPool = async (req: AuthenticatedRequest, res: Response) =
       },
     });
   } catch (e) { fail(res, e, 'Failed to load the pool'); }
+};
+
+/**
+ * GET /:id/attempts/:attemptId/recording/:seq — one slice of a candidate's recording.
+ *
+ * Streamed through here rather than handed out as a storage URL. This is video of a
+ * student's face: every view should pass the same admin check as the rest of this screen,
+ * and a link that keeps working after it is pasted somewhere is the opposite of that.
+ */
+export const streamAttemptRecording = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const attempt = await HackathonExamAttempt.findOne({ _id: req.params.attemptId, examId: exam._id }).lean() as any;
+    if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found.' });
+
+    const seq = Number(req.params.seq);
+    if (!Number.isInteger(seq) || seq < 1 || seq > (attempt.recording?.chunks || 0)) {
+      return res.status(404).json({ success: false, message: 'No such chunk on this attempt.' });
+    }
+
+    const { stream, size } = await readChunk(String(exam._id), String(attempt._id), seq);
+    res.setHeader('Content-Type', 'video/webm');
+    if (size) res.setHeader('Content-Length', String(size));
+    stream.pipe(res);
+  } catch (e) { fail(res, e, 'Could not read that recording'); }
+};
+
+/**
+ * DELETE /:id/attempts/:attemptId/recording — throw one candidate's footage away.
+ *
+ * Deliberately a button and not a schedule. The footage exists to settle a dispute about one
+ * sitting; once that is settled it is a liability rather than an asset, but deciding it is
+ * settled is a person's judgement on a date they chose, not a cron's.
+ */
+export const deleteAttemptRecording = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const attempt = await HackathonExamAttempt.findOne({ _id: req.params.attemptId, examId: exam._id });
+    if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found.' });
+
+    const removed = await purgeAttemptRecording(String(exam._id), String(attempt._id), attempt.recording?.chunks || 0);
+    attempt.recording.chunks = 0;
+    attempt.recording.bytes = 0;
+    attempt.recording.note = `Deleted by admin on ${new Date().toISOString().slice(0, 10)}.`;
+    await attempt.save();
+    res.json({ success: true, message: `${removed} chunk(s) deleted.`, data: { removed } });
+  } catch (e) { fail(res, e, 'Could not delete that recording'); }
 };

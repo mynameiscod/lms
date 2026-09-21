@@ -142,6 +142,25 @@ export interface IHackathonExamAttempt extends Document {
   activeSessionId?: string;
   lastHeartbeat?: Date | null;
 
+  /**
+   * The webcam recording, and whether there is one.
+   *
+   * `state` is the whole point. A reviewer looking at a suspicious paper has to be able to
+   * tell three things apart: recorded and here, refused by the candidate, and meant to record
+   * but broken. Treating the last two the same is how somebody concludes a candidate hid
+   * from the camera when in fact the camera never worked.
+   *
+   * `chunks` is what the browser said it uploaded. The reviewer compares it with what plays.
+   */
+  recording: {
+    state: 'off' | 'recording' | 'done' | 'denied' | 'unavailable';
+    startedAt?: Date | null;
+    endedAt?: Date | null;
+    chunks: number;
+    bytes: number;
+    note?: string;
+  };
+
   violations: IViolation[];
   violationCount: number;
   /** Set when the server ends the paper itself, so the reason survives into review. */
@@ -242,6 +261,15 @@ const HackathonExamAttemptSchema = new Schema<IHackathonExamAttempt>({
 
   activeSessionId: { type: String },
   lastHeartbeat:   { type: Date, default: null },
+
+  recording: {
+    state:     { type: String, enum: ['off', 'recording', 'done', 'denied', 'unavailable'], default: 'off', index: true },
+    startedAt: { type: Date, default: null },
+    endedAt:   { type: Date, default: null },
+    chunks:    { type: Number, default: 0 },
+    bytes:     { type: Number, default: 0 },
+    note:      { type: String },
+  },
 
   violations:       { type: [ViolationSchema], default: [] },
   violationCount:   { type: Number, default: 0, index: true },

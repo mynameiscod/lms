@@ -488,3 +488,15 @@
   .hxg-clock > div { min-width: 0; flex: 1; }
   .hxg-clock b { font-size: 22px; }
 }
+
+/* The recording indicator, in the exam bar.
+   Visible and permanent while it runs: somebody being filmed should be able to see that they
+   are, without hunting for it, and should be able to see when it has stopped. */
+.hx-rec { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700;
+  padding: 5px 11px; border-radius: 20px; white-space: nowrap; }
+.hx-rec i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.hx-rec.recording { background: rgba(239,68,68,.16); color: #fca5a5; }
+.hx-rec.recording i { animation: hx-pulse 1.6s ease-in-out infinite; }
+.hx-rec.denied, .hx-rec.unavailable { background: rgba(148,163,184,.16); color: #cbd5e1; }
+.hx-rec.idle, .hx-rec.done { background: rgba(148,163,184,.12); color: #94a3b8; }
+@keyframes hx-pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }

@@ -30,6 +30,8 @@ router.get('/:id/dashboard', ctrl.getExamDashboard);
 router.get('/:id/attempts', ctrl.listExamAttempts);
 router.get('/:id/attempts/:attemptId', ctrl.getExamAttempt);
 router.post('/:id/attempts/:attemptId/resend-invite', ctrl.resendAttemptInvite);
+router.get('/:id/attempts/:attemptId/recording/:seq', ctrl.streamAttemptRecording);
+router.delete('/:id/attempts/:attemptId/recording', ctrl.deleteAttemptRecording);
 
 /* Grade, review, publish */
 router.post('/:id/grade', ctrl.runGradingPass);

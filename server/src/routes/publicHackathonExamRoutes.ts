@@ -1,5 +1,11 @@
 import express from 'express';
 import * as ctrl from '../controllers/publicHackathonExamController';
+import multer from 'multer';
+
+/* Video chunks are held in memory and forwarded straight to Bunny — they are never
+   written to this disk, which is the volume the exam itself is running on. 20MB is a
+   generous ceiling for a fifteen-second slice and a firm one against anything else. */
+const chunkUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024, files: 1 } });
 
 /**
  * The candidate's exam, unauthenticated.
@@ -25,6 +31,8 @@ router.post('/hackathon-exams/attempt/:token/heartbeat', ctrl.examHeartbeat);
 router.post('/hackathon-exams/attempt/:token/answer', ctrl.saveExamAnswer);
 router.post('/hackathon-exams/attempt/:token/violation', ctrl.reportExamViolation);
 router.post('/hackathon-exams/attempt/:token/run', ctrl.runExamCode);
+router.post('/hackathon-exams/attempt/:token/recording/state', express.json(), ctrl.setRecordingState);
+router.post('/hackathon-exams/attempt/:token/recording/chunk', chunkUpload.single('chunk'), ctrl.uploadRecordingChunk);
 router.post('/hackathon-exams/attempt/:token/submit', ctrl.submitExam);
 router.get('/hackathon-exams/attempt/:token/result', ctrl.getExamResult);
 

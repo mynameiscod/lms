@@ -5,6 +5,7 @@ import {
   hackathonExamApi as api, ExamOverview, ExamQuestion, RunResult,
 } from '../../api/hackathonExamApi';
 import { RichText } from '../../utils/richText';
+import { useProctorRecorder } from './useProctorRecorder';
 import './hackathonExam.css';
 
 /**
@@ -259,6 +260,22 @@ const HackathonExam: React.FC = () => {
     setBusy(false);
   };
 
+  /*
+   * The camera, when the exam asks for one.
+   *
+   * Started at begin() rather than on the instructions page: permission prompts asked before
+   * somebody has committed to sitting are refused far more often, and a refusal here is
+   * permanent for the attempt. It stops at submit, so the light goes out when the paper does.
+   */
+  const wantsCamera = !!overview?.exam.proctoring?.camera?.enabled;
+  const recorder = useProctorRecorder({
+    enabled: wantsCamera,
+    token,
+    onState: useCallback((st: string, note?: string) => {
+      api.recordingState(token, st, note).catch(() => { /* the paper does not depend on this */ });
+    }, [token]),
+  });
+
   const begin = async () => {
     setBusy(true); setErr('');
     try {
@@ -281,6 +298,7 @@ const HackathonExam: React.FC = () => {
       if (overview?.exam.proctoring?.fullscreen?.required) {
         document.documentElement.requestFullscreen?.().catch(() => {});
       }
+      if (wantsCamera) void recorder.start();
     } catch (e: any) {
       setErr(e.message);
       if (e.code === 'ANOTHER_DEVICE') setPhase('instructions');
@@ -395,6 +413,8 @@ const HackathonExam: React.FC = () => {
     } finally { setRunning(false); }
   };
 
+  const stopRecRef = useRef<() => void>(() => {});
+
   const submit = useCallback(async () => {
     if (phaseRef.current !== 'exam') return;
     setBusy(true);
@@ -402,10 +422,14 @@ const HackathonExam: React.FC = () => {
       const r = await api.submit(token);
       setDone({ answered: r.answered, total: r.totalQuestions, timeSpentSec: r.timeSpentSec });
       setPhase('submitted');
+      /* The light goes out when the paper does. A camera still running after submit is a
+         camera nobody agreed to. */
+      stopRecRef.current();
       document.exitFullscreen?.().catch(() => {});
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   }, [token]);
   submitRef.current = submit;
+  stopRecRef.current = recorder.stop;
 
   /* ── derived ───────────────────────────────────────────────────────────── */
 
@@ -729,6 +753,12 @@ const HackathonExam: React.FC = () => {
                   )}
                   {e.proctoring?.fullscreen?.required && <li>The exam runs in <b>fullscreen</b>. Leaving fullscreen is recorded.</li>}
                   {e.proctoring?.copyPasteBlocked && <li><b>Copy and paste are disabled.</b></li>}
+                  {e.proctoring?.camera?.enabled && (
+                    <li><b>Your camera and microphone are recorded for the whole exam.</b> Your browser
+                      will ask permission when you start. If you decline, or your device has no camera,
+                      you can still sit the paper — it is noted on your attempt and the organisers decide
+                      what it means.</li>
+                  )}
                   <li>Your team's result is the <b>average across all registered members</b>, so every member sitting it matters.</li>
                 </ul>
               </div>
@@ -840,6 +870,15 @@ const HackathonExam: React.FC = () => {
             );
           })}
         </div>
+        {wantsCamera && (
+          <div className={`hx-rec ${recorder.state}`} title={
+            recorder.state === 'recording' ? 'Your camera and microphone are being recorded.'
+              : recorder.state === 'denied' ? 'You declined the camera. This is recorded on your attempt.'
+              : recorder.state === 'unavailable' ? 'No usable camera was found. This is recorded on your attempt.'
+              : 'Not recording.'}>
+            <i />{recorder.state === 'recording' ? 'Recording' : recorder.state === 'denied' ? 'Camera off' : 'No camera'}
+          </div>
+        )}
         <div className={`hx-clock ${low ? 'low' : ''}`}>{mmss(left ?? 0)}</div>
       </div>
 

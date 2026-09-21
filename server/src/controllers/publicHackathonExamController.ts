@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { putChunk, proctorStorageConfigured } from '../services/proctorStorageService';
 import HackathonExam from '../models/HackathonExam';
 import HackathonExamAttempt from '../models/HackathonExamAttempt';
 import Hackathon from '../models/Hackathon';
@@ -391,5 +392,80 @@ export const getExamResult = async (req: Request, res: Response) => {
         },
       },
     });
+  } catch (e) { fail(res, e); }
+};
+
+/* ── proctoring recordings ─────────────────────────────────────────────────── */
+
+/**
+ * POST /hackathon-exams/attempt/:token/recording/state
+ *
+ * The browser saying what happened to the camera. Three outcomes matter and they are not
+ * the same: recording, the candidate refused, or the device could not do it. A refusal is a
+ * decision somebody made and a broken webcam is not, and a reviewer who cannot tell them
+ * apart will eventually read one as the other.
+ *
+ * Refusal never blocks the paper. A denied prompt or a dead camera would otherwise stop a
+ * legitimate candidate sitting an exam that is happening now, and that gets discovered in
+ * the room, with forty people waiting. It is recorded and flagged instead, and what a
+ * no-camera attempt is worth stays a human decision afterwards.
+ */
+export const setRecordingState = async (req: Request, res: Response) => {
+  try {
+    const attempt = await exams.attemptByToken(req.params.token);
+    const state = String(req.body?.state || '');
+    if (!['recording', 'done', 'denied', 'unavailable'].includes(state)) {
+      return res.status(400).json({ success: false, message: 'Unknown recording state.' });
+    }
+
+    attempt.recording.state = state as any;
+    if (state === 'recording' && !attempt.recording.startedAt) attempt.recording.startedAt = new Date();
+    if (state === 'done' || state === 'denied' || state === 'unavailable') attempt.recording.endedAt = new Date();
+    if (req.body?.note) attempt.recording.note = String(req.body.note).slice(0, 300);
+    await attempt.save();
+
+    res.json({ success: true, data: { state: attempt.recording.state } });
+  } catch (e) { fail(res, e); }
+};
+
+/**
+ * POST /hackathon-exams/attempt/:token/recording/chunk
+ *
+ * One slice of video. Uploaded as it is produced rather than held to the end: a paper that
+ * uploads an hour of video on submit loses the lot when the laptop dies, and the laptop
+ * dying is one of the cases the recording exists to explain.
+ *
+ * The sequence number comes from the browser and is trusted only as a filename. It cannot
+ * reach anything but this attempt's own prefix, and a repeat simply overwrites itself — a
+ * flaky connection retrying is the normal case, not an attack.
+ *
+ * Failure here must never interrupt the exam. If the storage is down, or the zone is full,
+ * or the chunk is too big, the candidate keeps writing their paper and the attempt carries
+ * a note saying the footage is incomplete. Losing evidence is bad; losing somebody's exam
+ * to protect the evidence is worse.
+ */
+export const uploadRecordingChunk = async (req: Request, res: Response) => {
+  try {
+    const attempt = await exams.attemptByToken(req.params.token);
+    const file = (req as any).file;
+    if (!file?.buffer?.length) return res.status(400).json({ success: false, message: 'No chunk received.' });
+
+    const seq = Number(req.body?.seq);
+    if (!Number.isInteger(seq) || seq < 1 || seq > 100000) {
+      return res.status(400).json({ success: false, message: 'Bad chunk sequence.' });
+    }
+
+    if (!proctorStorageConfigured()) {
+      return res.status(503).json({ success: false, message: 'Recording storage is not configured.' });
+    }
+
+    const { bytes } = await putChunk(String(attempt.examId), String(attempt._id), seq, file.buffer);
+    attempt.recording.chunks = Math.max(attempt.recording.chunks || 0, seq);
+    attempt.recording.bytes = (attempt.recording.bytes || 0) + bytes;
+    if (attempt.recording.state === 'off') attempt.recording.state = 'recording';
+    if (!attempt.recording.startedAt) attempt.recording.startedAt = new Date();
+    await attempt.save();
+
+    res.json({ success: true, data: { seq, bytes } });
   } catch (e) { fail(res, e); }
 };

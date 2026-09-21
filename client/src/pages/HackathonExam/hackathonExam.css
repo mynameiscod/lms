@@ -243,3 +243,121 @@
   .hxe-top h1 { font-size: 27px; }
   .hxe-top p br { display: none; }
 }
+
+/* ── the instructions screen ───────────────────────────────────────────────────
+   The last thing a candidate reads before the clock starts, so it has two jobs:
+   say plainly what they are about to sit, and look like an event worth sitting.
+
+   The branding is per event and every piece of it is optional — a hackathon with
+   no college logo and no artwork still renders a complete, self-respecting page,
+   because the alternative is a broken layout on somebody's exam morning. */
+
+.hxi { min-height: 100vh; background: #eef2f7; padding-bottom: 40px; }
+.hxi * { box-sizing: border-box; }
+
+/* ── header ──────────────────────────────────────────────────────────────── */
+.hxi-top { background: linear-gradient(115deg,#0a1a4f,#12276e 52%,#1a3fa0);
+  color: #fff; padding: 20px 26px; display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
+.hxi-brand { display: flex; align-items: center; gap: 16px; flex: none; }
+.hxi-brand img { height: 46px; width: auto; max-width: 190px; object-fit: contain; }
+.hxi-rule { width: 1px; height: 38px; background: rgba(255,255,255,.28); }
+
+.hxi-title { flex: 1 1 320px; text-align: center; min-width: 0; }
+.hxi-pill { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.26); border-radius: 20px; padding: 4px 14px;
+  font-size: 12px; font-weight: 700; color: #dbeafe; }
+.hxi-pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.hxi-title h1 { margin: 9px 0 3px; font-size: 29px; font-weight: 800; line-height: 1.15;
+  overflow-wrap: anywhere; }
+.hxi-title p { margin: 0; font-size: 14px; color: #93c5fd; font-weight: 600; }
+
+.hxi-values { flex: none; text-align: right; display: flex; flex-direction: column; gap: 2px; }
+.hxi-values b { font-size: 16px; font-weight: 700; font-style: italic; color: #fde68a; }
+.hxi-values span { font-size: 11.5px; color: #c7d2fe; letter-spacing: .4px; }
+
+/* ── the facts strip ─────────────────────────────────────────────────────── */
+.hxi-strip { background: #0c2160; color: #fff; padding: 14px 26px;
+  display: flex; align-items: center; gap: 26px; flex-wrap: wrap;
+  border-top: 1px solid rgba(255,255,255,.08); }
+.hxi-motto { margin: 0; flex: none; font-size: 13px; font-weight: 700; line-height: 1.45; color: #bfdbfe; }
+.hxi-facts { flex: 1 1 420px; display: flex; flex-wrap: wrap; gap: 10px 30px; }
+.hxi-facts div { display: flex; flex-direction: column; min-width: 0; }
+.hxi-facts b { font-size: 14.5px; font-weight: 800; overflow-wrap: anywhere; }
+.hxi-facts span { font-size: 11px; color: #93a9d8; margin-top: 1px; }
+.hxi-code { letter-spacing: 1.2px; color: #7dd3fc; }
+
+/* ── body ────────────────────────────────────────────────────────────────── */
+.hxi-body { max-width: 1240px; margin: 22px auto 0; padding: 0 20px;
+  display: grid; grid-template-columns: minmax(0,1fr) minmax(0,560px); gap: 22px; align-items: start; }
+
+.hxi-card { background: #fff; border: 1px solid #e9edf4; border-radius: 16px;
+  box-shadow: 0 12px 34px rgba(15,23,42,.08); padding: 26px; }
+.hxi-sec { display: flex; gap: 15px; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid #eef2f7; }
+.hxi-sec > div { min-width: 0; flex: 1; }
+.hxi-ico { flex: none; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; }
+.hxi-ico svg { width: 20px; height: 20px; }
+.hxi-ico.blue { background: #e0e7ff; color: #4f46e5; }
+.hxi-ico.slate { background: #e2e8f0; color: #475569; }
+.hxi-ico.green { background: #d1fae5; color: #059669; }
+.hxi-sec h2 { margin: 0 0 3px; font-size: 17px; font-weight: 800; color: #0f2557; }
+.hxi-sec > div > p { margin: 0 0 13px; font-size: 13px; color: #7b8795; }
+
+.hxi-tiles { display: flex; gap: 12px; flex-wrap: wrap; }
+.hxi-tile { flex: 1 1 150px; display: flex; align-items: baseline; gap: 9px;
+  border-radius: 12px; padding: 13px 16px; }
+.hxi-tile.blue { background: #eef2ff; }
+.hxi-tile.teal { background: #ecfdf5; }
+.hxi-tile b { font-size: 24px; font-weight: 800; color: #0f2557; }
+.hxi-tile span { font-size: 13px; color: #55637a; font-weight: 600; }
+
+.hxi-rules { margin: 0; padding-left: 19px; font-size: 13.5px; color: #334155; line-height: 1.7; }
+.hxi-rules li { margin-bottom: 7px; }
+.hxi-rules li::marker { color: #3b82f6; }
+.hxi-rich { font-size: 13.5px; color: #334155; line-height: 1.7; }
+
+.hxi-err { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+  border-radius: 11px; padding: 11px 13px; font-size: 13.5px; margin-bottom: 14px; }
+
+.hxi-start { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: linear-gradient(90deg,#1d4ed8,#2563eb); color: #fff; border: none; border-radius: 12px;
+  padding: 16px; font-size: 16px; font-weight: 800; cursor: pointer; font-family: inherit;
+  box-shadow: 0 8px 20px rgba(29,78,216,.28); }
+.hxi-start svg { width: 17px; height: 17px; }
+.hxi-start:disabled { opacity: .55; cursor: default; box-shadow: none; }
+.hxi-arrow { margin-left: auto; font-size: 20px; line-height: 1; opacity: .8; }
+.hxi-note { margin: 10px 0 0; font-size: 12.5px; color: #94a3b8; text-align: center; }
+.hxi-foot { margin: 14px 0 0; text-align: center; font-size: 11.5px; color: #aab4c2; letter-spacing: .3px; }
+
+/* ── the event artwork ───────────────────────────────────────────────────── */
+.hxi-art { border-radius: 16px; overflow: hidden; }
+.hxi-art img { width: 100%; height: auto; display: block; border-radius: 16px;
+  border: 1px solid #e9edf4; box-shadow: 0 12px 34px rgba(15,23,42,.08); }
+.hxi-art-blank { border-radius: 16px; border: 1px dashed #cbd5e1; background: #f8fafc;
+  padding: 44px 26px; text-align: center; }
+.hxi-art-blank b { display: block; font-size: 15px; font-weight: 800; color: #0f2557; letter-spacing: .6px; }
+.hxi-art-blank span { display: block; margin-top: 7px; font-size: 13px; color: #94a3b8; font-style: italic; }
+
+/* ── narrower ────────────────────────────────────────────────────────────────
+   The artwork is decoration; the instructions are the job. So the art drops
+   below the card, and then out entirely on a phone where it would be a screen
+   of scrolling between a candidate and the Start button. */
+@media (max-width: 1080px) {
+  .hxi-body { grid-template-columns: minmax(0,1fr); max-width: 760px; }
+  .hxi-art { order: 2; }
+}
+@media (max-width: 860px) {
+  .hxi-top { flex-direction: column; gap: 16px; text-align: center; padding: 18px 20px; }
+  .hxi-title { text-align: center; }
+  .hxi-values { text-align: center; }
+  .hxi-strip { flex-direction: column; align-items: flex-start; gap: 14px; padding: 14px 20px; }
+  .hxi-motto { text-align: left; }
+}
+@media (max-width: 560px) {
+  .hxi-title h1 { font-size: 23px; }
+  .hxi-body { padding: 0 16px; }
+  .hxi-card { padding: 20px; }
+  .hxi-sec { flex-direction: column; gap: 11px; }
+  .hxi-facts { gap: 10px 20px; }
+  .hxi-art { display: none; }
+  .hxi-motto br { display: none; }
+}

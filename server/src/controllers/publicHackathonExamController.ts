@@ -48,7 +48,7 @@ export const getExamBySlug = async (req: Request, res: Response) => {
     res.json({
       success: true,
       data: {
-        hackathon: { title: h.title, slug: h.slug, bannerUrl: h.bannerUrl, venue: h.venue },
+        hackathon: { title: h.title, slug: h.slug, bannerUrl: h.bannerUrl, collegeLogoUrl: h.collegeLogoUrl, venue: h.venue },
         exam: {
           title: exam.title,
           instructions: exam.instructions,

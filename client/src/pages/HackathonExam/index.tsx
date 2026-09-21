@@ -65,6 +65,9 @@ const I = {
   people: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>,
   phone: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>,
   lock: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>,
+  paper: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>,
+  gear: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H7a1.7 1.7 0 0 0 1-1.5V1a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V7a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>,
+  play: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>,
   send: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>,
 };
 
@@ -90,6 +93,9 @@ const FEATURES = [
  * Anchored and narrow on purpose: it removes a leading placeholder, not anything that merely
  * looks wrong. A token that is genuinely invalid must still be rejected as invalid.
  */
+/** Artwork is optional and supplied per event, so a dead URL must leave a gap, not a broken icon. */
+const hideImg = (ev: React.SyntheticEvent<HTMLImageElement>) => { ev.currentTarget.style.display = 'none'; };
+
 const cleanToken = (t?: string): string => (t || '').replace(/^\{\{\d+\}\}/, '').trim();
 
 const TOKEN_KEY = 'hx-exam-token';
@@ -483,62 +489,113 @@ const HackathonExam: React.FC = () => {
 
   if (phase === 'instructions' && overview) {
     const e = overview.exam;
+    const hk = overview.hackathon;
+    const started = !!overview.attempt.startedAt;
     return (
-      <div className="hx-page">
-        <div className="hx-hero">
-          <div className="hx-hero-in">
-            <span className="hx-eyebrow">{overview.hackathon.title || 'HACKATHON'}</span>
+      <div className="hxi">
+        <header className="hxi-top">
+          <div className="hxi-brand">
+            {hk.collegeLogoUrl && <img src={hk.collegeLogoUrl} alt="" onError={hideImg} />}
+            {hk.collegeLogoUrl && <span className="hxi-rule" />}
+            <img src="/assets/logo.png" alt="CodeBegun" onError={hideImg} />
+          </div>
+
+          <div className="hxi-title">
+            {hk.title && <span className="hxi-pill">{hk.title}</span>}
             <h1>{e.title}</h1>
-            <p>{overview.candidate.name} · team <b>{overview.candidate.teamName}</b> ({overview.candidate.teamCode})</p>
-            <div className="hx-meta">
-              <div><b>{e.durationMins}</b> minutes</div>
-              <div><b>{e.totalQuestions}</b> questions</div>
-              <div><b>{e.totalMarks}</b> marks</div>
-            </div>
+            <p>Code Today. Build Tomorrow.</p>
+          </div>
+
+          <div className="hxi-values">
+            <b>Ideas with Purpose</b>
+            <span>People · Technology · Society</span>
+            <span>A Brighter Tomorrow</span>
+          </div>
+        </header>
+
+        <div className="hxi-strip">
+          <p className="hxi-motto">Real Problems.<br />Brighter Minds.<br />Bigger Possibilities.</p>
+          <div className="hxi-facts">
+            <div><b>{overview.candidate.name}</b><span>Participant</span></div>
+            <div><b>{overview.candidate.teamName}</b><span>Team name</span></div>
+            <div><b className="hxi-code">{overview.candidate.teamCode}</b><span>Team code</span></div>
+            <div><b>{e.durationMins} minutes</b><span>Duration</span></div>
+            <div><b>{e.totalQuestions} questions</b><span>Total questions</span></div>
+            <div><b>{e.totalMarks} marks</b><span>Total marks</span></div>
           </div>
         </div>
-        <div className="hx-mid hx-wide">
-          <div className="hx-card">
-            <h3 className="hx-h3">What you will sit</h3>
-            <div className="hx-sections">
-              {e.sections.map((s) => (
-                <div className="hx-sec-chip" key={s.key}><b>{s.count}</b> {s.label}</div>
-              ))}
-            </div>
 
-            <h3 className="hx-h3">How it works</h3>
-            <ul className="hx-rules">
-              <li>You have <b>{e.durationMins} minutes</b> from the moment you begin. The clock does not stop, and it does not restart if you reload.</li>
-              {e.navigation === 'free' && <li>Answer the sections <b>in any order</b> — start with the coding problem or the questions, whichever you prefer, and move between them freely.</li>}
-              <li>Every answer is <b>saved as you make it</b>. If your connection drops, reopen this link and carry on where you left off.</li>
-              {e.runPolicy?.enabled && (
-                <li>You can run your code against the sample cases
-                  {e.runPolicy.maxRunsPerQuestion > 0 ? <> — up to <b>{e.runPolicy.maxRunsPerQuestion} times per question</b></> : ''}.
-                  Your answer is graded against more cases than you can see, so make it work in general, not just for the samples.</li>
-              )}
-              {e.proctoring?.tabSwitch?.enabled && (
-                <li><b>Stay on this tab.</b> Leaving it is recorded, and after {e.proctoring.tabSwitch.maxWarnings} times your exam is submitted automatically.</li>
-              )}
-              {e.proctoring?.fullscreen?.required && <li>The exam runs in fullscreen. Leaving fullscreen is recorded.</li>}
-              {e.proctoring?.copyPasteBlocked && <li>Copy and paste are disabled.</li>}
-              <li>Your team's result is the <b>average across all registered members</b>, so every member sitting it matters.</li>
-            </ul>
+        <div className="hxi-body">
+          <main className="hxi-card">
+            <section className="hxi-sec">
+              <span className="hxi-ico blue">{I.paper}</span>
+              <div>
+                <h2>What you will sit</h2>
+                <p>Your hackathon exam consists of the following sections.</p>
+                <div className="hxi-tiles">
+                  {e.sections.map((s, i) => (
+                    <div className={`hxi-tile ${i % 2 ? 'teal' : 'blue'}`} key={s.key}>
+                      <b>{s.count}</b><span>{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <section className="hxi-sec">
+              <span className="hxi-ico slate">{I.gear}</span>
+              <div>
+                <h2>How it works</h2>
+                <p>Please read the instructions carefully before starting the exam.</p>
+                <ul className="hxi-rules">
+                  <li>You have <b>{e.durationMins} minutes</b> from the moment you begin. The clock does not stop, and it does not restart if you reload.</li>
+                  {e.navigation === 'free' && <li>Answer the sections <b>in any order</b> — start with the coding problem or the questions, whichever you prefer, and move between them freely.</li>}
+                  <li>Every answer is <b>saved as you make it</b>. If your connection drops, reopen this link and carry on where you left off.</li>
+                  {e.runPolicy?.enabled && (
+                    <li>You can run your code against the sample cases
+                      {e.runPolicy.maxRunsPerQuestion > 0 ? <> — up to <b>{e.runPolicy.maxRunsPerQuestion} times per question</b></> : ''}.
+                      Your answer is graded against more cases than you can see, so make it work in general, not just for the samples.</li>
+                  )}
+                  {e.proctoring?.tabSwitch?.enabled && (
+                    <li><b>Stay on this tab.</b> Leaving it is recorded, and after {e.proctoring.tabSwitch.maxWarnings} times your exam is submitted automatically.</li>
+                  )}
+                  {e.proctoring?.fullscreen?.required && <li>The exam runs in <b>fullscreen</b>. Leaving fullscreen is recorded.</li>}
+                  {e.proctoring?.copyPasteBlocked && <li><b>Copy and paste are disabled.</b></li>}
+                  <li>Your team's result is the <b>average across all registered members</b>, so every member sitting it matters.</li>
+                </ul>
+              </div>
+            </section>
 
             {e.instructions && (
-              <>
-                <h3 className="hx-h3">From the organisers</h3>
-                <RichText html={e.instructions} className="hx-rich" />
-              </>
+              <section className="hxi-sec">
+                <span className="hxi-ico green">{I.team}</span>
+                <div>
+                  <h2>From the organisers</h2>
+                  <RichText html={e.instructions} className="hxi-rich" />
+                </div>
+              </section>
             )}
 
-            {err && <div className="hx-err">{err}</div>}
-            <button className="hx-btn" disabled={busy} onClick={begin}>
-              {busy ? 'Opening…' : overview.attempt.startedAt ? 'Resume my exam' : 'Start my exam'}
+            {err && <div className="hxi-err">{err}</div>}
+
+            <button className="hxi-start" disabled={busy} onClick={begin}>
+              {I.play}{busy ? 'Opening…' : started ? 'Resume my exam' : 'Start my exam'}
+              <span className="hxi-arrow">›</span>
             </button>
-            {overview.attempt.startedAt && (
-              <p className="hx-hint">You already started — your original time still applies.</p>
-            )}
-          </div>
+            {started && <p className="hxi-note">You already started — your original time still applies.</p>}
+            <p className="hxi-foot">Think · Solve · Create &nbsp;|&nbsp; Ideas Today. A Better Tomorrow.</p>
+          </main>
+
+          <aside className="hxi-art">
+            {hk.bannerUrl
+              ? <img src={hk.bannerUrl} alt="" onError={hideImg} />
+              : (
+                <div className="hxi-art-blank">
+                  <b>Build · Solve · Collaborate · Grow</b>
+                  <span>Good developers, brighter tomorrows.</span>
+                </div>
+              )}
+          </aside>
         </div>
       </div>
     );

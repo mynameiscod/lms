@@ -43,6 +43,7 @@ function readBody(body: any, existing?: any) {
     process: str(body?.process, 20000),
     venue: str(body?.venue, 300),
     bannerUrl: str(body?.bannerUrl, 600),
+    collegeLogoUrl: str(body?.collegeLogoUrl, 600),
     startAt: dateOrNull(body?.startAt) || existing?.startAt,
     endAt: dateOrNull(body?.endAt),
     prizes: {

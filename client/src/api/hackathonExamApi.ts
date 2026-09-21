@@ -75,7 +75,7 @@ export interface ExamQuestion {
 
 export interface ExamOverview {
   candidate: { name: string; teamName: string; teamCode: string };
-  hackathon: { title?: string; bannerUrl?: string };
+  hackathon: { title?: string; bannerUrl?: string; collegeLogoUrl?: string };
   exam: {
     title: string; instructions: string;
     startAt: string; endAt: string; durationMins: number;

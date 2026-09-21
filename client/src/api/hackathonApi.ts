@@ -23,6 +23,7 @@ export interface Hackathon {
   process?: string;
   venue?: string;
   bannerUrl?: string;
+  collegeLogoUrl?: string;
   /** Date AND time in one value; the form edits it as a datetime-local. */
   startAt: string;
   endAt?: string | null;

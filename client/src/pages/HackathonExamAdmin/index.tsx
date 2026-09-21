@@ -63,6 +63,24 @@ const TagPicker: React.FC<{
 }> = ({ all, type, chosen, onChange }) => {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
+  const box = useRef<HTMLDivElement>(null);
+
+  /*
+   * Close on a click anywhere else, and on Escape.
+   *
+   * Without this the only way out is the button that opened it — which the menu itself covers
+   * once the chosen-topic chips push the layout down. Choosing a topic deliberately does NOT
+   * close it: picking two tags is the normal case here, and a menu that shut after the first
+   * would make the second one a fight.
+   */
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', away);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
+  }, [open]);
 
   const withCounts = all
     .map((t) => ({ ...t, n: t.byType[type] || 0 }))
@@ -77,7 +95,7 @@ const TagPicker: React.FC<{
   );
 
   return (
-    <div className="hxa-tagpick">
+    <div className="hxa-tagpick" ref={box}>
       <button type="button" className="hxa-tagbtn" onClick={() => setOpen((o) => !o)}>
         {chosen.length
           ? `${chosen.length} topic(s) · ${available} question(s) available`

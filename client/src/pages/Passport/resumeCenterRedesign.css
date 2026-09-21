@@ -184,3 +184,67 @@
 .rc2 .rc2-hero .rc-score-ring::before, .rc2 .rc2-hero .rc-score-ring::after { background: #fff !important; }
 #root .gd .rc2 .rc2-hero .rc-score-ring strong, .rc2 .rc2-hero .rc-score-ring strong { color: #051D64 !important; }
 #root .gd .rc2 .rc2-hero .rc-score-ring span, .rc2 .rc2-hero .rc-score-ring span { color: #6B7C96 !important; }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   RESUME PROGRESS — the middle column of the banner, built like the DAILY
+   MOMENTUM block in memberDashboard.css. Every figure is the member's own: the
+   sections that have content, the stage the resume has reached and the next
+   section still empty. Placed last so its hero grid wins over the two-column
+   rule above, and the breakpoints follow the dashboard's (three columns wide,
+   two on a tablet, one on a phone).
+   ──────────────────────────────────────────────────────────────────────────── */
+#root .gd .rc2 .rc2-hero, .rc2 .rc2-hero {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, .9fr) minmax(300px, .82fr);
+  gap: 0; padding: 26px 0;
+}
+.rc2 .rc2-hero .rc-hero-copy { padding: 0 28px; }
+.rc2 .rc2-hero .rc-score-card { margin: 0 26px; }
+.rc2-momentum { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 0 26px; border-left: 1px solid #E2EAF2; border-right: 1px solid #E2EAF2; }
+/* The kicker is the same tinted pill as the hero's, so it must not stretch down this column. */
+.rc2-momentum .rc-kicker { align-self: flex-start; margin-bottom: 0; }
+
+/* Filled sections: the highlighted strip, with the ATS score beside it when there is one. */
+.rc2-filled { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: linear-gradient(120deg, #EAF7F1, #E6F4EE); border: 1px solid #CFE8DD; }
+.rc2-filled > .ic { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; background: #E4F3F6; color: #1B7D91; }
+.rc2-filled > div { flex: 1; min-width: 0; }
+#root .gd .rc2 .rc2-filled b, .rc2 .rc2-filled b { display: block; font-size: 16px; font-weight: 800; color: #051D64 !important; }
+#root .gd .rc2 .rc2-filled > div span, .rc2 .rc2-filled > div span { display: block; margin-top: 2px; font-size: 13px; line-height: 1.45; color: #5D6E88 !important; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.rc2-filled-bar { display: block; margin-top: 9px; height: 8px; border-radius: 999px; background: #DCEBE3; overflow: hidden; }
+.rc2-filled-bar em { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1E9AA8, #2FB27F); }
+.rc2-filled.on > .ic { background: #DFF3E8; color: #17885D; }
+/* Written as b.rc2-filled-score so it outranks the strip's own `b` rule above. */
+#root .gd .rc2 .rc2-filled b.rc2-filled-score, .rc2 .rc2-filled b.rc2-filled-score { display: block; flex: none; align-self: flex-start; font-size: 22px; font-weight: 800; color: #17885D !important; }
+#root .gd .rc2 .rc2-filled b.rc2-filled-score em, .rc2 .rc2-filled b.rc2-filled-score em { font-style: normal; font-size: 12.5px; font-weight: 700; color: #6B7C96 !important; }
+
+/* Stage line: contact → summary → skills → experience/projects → education. */
+.rc2-steps2 { list-style: none; margin: 0; padding: 0 4px; display: flex; justify-content: space-between; position: relative; }
+.rc2-steps2::before { content: ""; position: absolute; left: 14px; right: 14px; top: 11px; height: 2px; background: #DFE7F1; }
+.rc2-steps2 li { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+.rc2-steps2 li i { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid #DFE7F1; }
+#root .gd .rc2 .rc2-steps2 li span, .rc2-steps2 li span { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #8497AE !important; }
+.rc2-steps2 li.done i { background: #051D64; border-color: #051D64; box-shadow: inset 0 0 0 3px #fff; }
+#root .gd .rc2 .rc2-steps2 li.done span, .rc2-steps2 li.done span { color: #051D64 !important; }
+.rc2-steps2 li.current i { background: #2FB27F; border-color: #2FB27F; box-shadow: 0 0 0 4px rgba(47, 178, 127, .18); }
+#root .gd .rc2 .rc2-steps2 li.current span, .rc2-steps2 li.current span { color: #17885D !important; }
+
+/* The one row that moves the member on: it names the first empty section and goes to it. */
+.rc2-next { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; padding: 13px 14px; border-radius: 16px; border: 1px solid #E2EAF2; background: #fff; cursor: pointer; transition: border-color .15s, background .15s; }
+.rc2-next:hover:not(:disabled) { border-color: #C9D8E5; background: #F7FAFE; }
+.rc2-next:disabled { opacity: .7; cursor: not-allowed; }
+.rc2-next > .ic { flex: none; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; font-size: 18px; background: #EAF3FD; color: #051D64; }
+.rc2-next > div { flex: 1; min-width: 0; }
+#root .gd .rc2 .rc2-next b, .rc2 .rc2-next b { display: block; font-size: 14.5px; color: #051D64 !important; }
+#root .gd .rc2 .rc2-next > div span, .rc2 .rc2-next > div span { display: block; margin-top: 2px; font-size: 13px; line-height: 1.45; color: #5D6E88 !important; text-transform: none; letter-spacing: 0; font-weight: 400; }
+#root .gd .rc2 .rc2-next > i, .rc2 .rc2-next > i { flex: none; color: #6B7C96 !important; }
+
+@media (max-width: 1280px) {
+  #root .gd .rc2 .rc2-hero, .rc2 .rc2-hero { grid-template-columns: minmax(0, 1fr) minmax(280px, .9fr); }
+  .rc2 .rc2-hero .rc-score-card { grid-column: 1 / -1; margin: 20px 28px 0; }
+  .rc2-momentum { border-right: 0; }
+}
+@media (max-width: 980px) {
+  #root .gd .rc2 .rc2-hero, .rc2 .rc2-hero { grid-template-columns: 1fr; padding: 24px 0; }
+  .rc2-momentum { margin: 0 20px; padding: 18px 0 0; border-left: 0; border-top: 1px solid #E2EAF2; }
+  .rc2 .rc2-hero .rc-hero-copy { padding-left: 20px; padding-right: 20px; }
+  .rc2 .rc2-hero .rc-score-card { margin: 20px 20px 0; }
+}

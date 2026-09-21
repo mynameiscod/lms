@@ -29,6 +29,31 @@ const SECTION_META: Record<string, { label: string; icon: string }> = {
   ats: { label: 'ATS Check', icon: 'bi-shield-check' },
 };
 
+/**
+ * The stages a resume is read in, for the banner's step line. A stage is ticked from the
+ * member's own sections, never from a guess: "Work" covers experience OR projects, because a
+ * fresher with three projects and no internship has still cleared that stage.
+ */
+const RESUME_STAGES: { label: string; title: string; keys: string[] }[] = [
+  { label: 'Contact', title: 'Contact information', keys: ['contact'] },
+  { label: 'Summary', title: 'Professional summary', keys: ['summary'] },
+  { label: 'Skills', title: 'Skills', keys: ['skills'] },
+  { label: 'Work', title: 'Experience or projects', keys: ['experience', 'projects'] },
+  { label: 'Education', title: 'Education', keys: ['education'] },
+];
+
+/** The seven sections in the order they appear on the page, so "first empty" is the first one
+ *  the member would reach scrolling down, not an order invented for the banner. */
+const RESUME_TODO: { key: string; id: string; label: string; hint: string }[] = [
+  { key: 'contact', id: 'rc-contact', label: 'Contact information', hint: 'Name, email and phone — nobody can call you without them.' },
+  { key: 'summary', id: 'rc-summary', label: 'Professional summary', hint: 'Two or three lines on what you build and what you are aiming for.' },
+  { key: 'education', id: 'rc-education', label: 'Education', hint: 'Your degree, college, year and CGPA.' },
+  { key: 'skills', id: 'rc-skills', label: 'Skills', hint: 'Group the languages and tools you can actually use.' },
+  { key: 'experience', id: 'rc-experience', label: 'Experience / internships', hint: 'Any internship or part-time work, with what you did there.' },
+  { key: 'projects', id: 'rc-projects', label: 'Projects', hint: 'What you built, the tech behind it and a link.' },
+  { key: 'certifications', id: 'rc-certifications', label: 'Certifications', hint: 'Courses and certificates worth naming.' },
+];
+
 const BLANK: ResumeSections = {
   contact: { name: '', title: '', email: '', phone: '', linkedin: '', github: '', portfolio: '', location: '' },
   summary: '', experience: [], education: [], skills: [], projects: [], certifications: [],
@@ -224,6 +249,25 @@ const ResumeCenter: React.FC = () => {
   }), [sections]);
 
   const completedCount = Object.values(completed).filter(Boolean).length;
+  /** Indexed lookup for the banner's stages, which name their sections as plain strings. */
+  const doneBySection = completed as Record<string, boolean>;
+  const totalSections = Object.keys(completed).length;
+  const firstEmpty = RESUME_TODO.find(s => !doneBySection[s.key]) || null;
+  /**
+   * The banner's next-step row lands on the section itself. From Preview the editor is not
+   * mounted, so the view is switched back first and the scroll waits for that render — the
+   * same highlight the mission deep-link uses, so both feel like one behaviour.
+   */
+  const jumpToSection = (id: string) => {
+    setView('build');
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('rc-focused');
+      setTimeout(() => el.classList.remove('rc-focused'), 2600);
+    }, 60);
+  };
   const topStrength = useMemo(() => {
     if (!score?.breakdown) return 'Build your resume';
     const rows = Object.entries(score.breakdown).filter(([k]) => k !== 'ats');
@@ -244,7 +288,8 @@ const ResumeCenter: React.FC = () => {
   return (
     <PassportShell meta={score ? <span className="pm-pill"><i>📄</i>ATS <b>{score.total}</b>/100</span> : undefined}>
       <div className="rc-page rc2">
-        {/* A logo-navy hero, as on every redesigned CareerPilot page: the three actions and the ATS score. */}
+        {/* The banner, as on every redesigned CareerPilot page: the actions, the member's own resume
+            progress in the middle, and the ATS score. */}
         <section className="rc-hero rc2-hero">
           <div className="rc-hero-copy">
             <div className="rc-kicker">Resume readiness</div>
@@ -259,6 +304,40 @@ const ResumeCenter: React.FC = () => {
               <button className="rc-action" onClick={download}><i className="bi bi-download" /><span><b>Download PDF</b><small>Pick a template first</small></span></button>
               <button className="rc-action" onClick={runImprove} disabled={improving}><i className="bi bi-stars" /><span><b>{improving ? 'Rewriting…' : 'Improve with AI'}</b><small>{aiOff ? 'Needs an AI key' : 'Sharper wording, same facts'}</small></span></button>
             </div>
+          </div>
+          {/* Resume progress: how much of the resume is really filled, the stage it has reached and the
+              next section still empty — every figure comes from the sections already loaded. */}
+          <div className="rc2-momentum">
+            <div className="rc-kicker">Resume progress</div>
+            <div className={`rc2-filled${completedCount === totalSections ? ' on' : ''}`}>
+              <span className="ic"><i className="bi bi-file-earmark-text-fill" /></span>
+              <div>
+                <b>{completedCount} of {totalSections} sections filled</b>
+                <span>{completedCount === totalSections ? 'Every section has something in it.' : `${totalSections - completedCount} still empty — each one adds evidence.`}</span>
+                <i className="rc2-filled-bar" aria-hidden="true"><em style={{ width: `${Math.max(completedCount ? 4 : 0, Math.round((completedCount / totalSections) * 100))}%` }} /></i>
+              </div>
+              {score && <b className="rc2-filled-score">{score.total}<em>/100</em></b>}
+            </div>
+            <ol className="rc2-steps2">
+              {(() => {
+                const marks = RESUME_STAGES.map(s => s.keys.some(k => doneBySection[k]));
+                const current = marks.indexOf(false);
+                return RESUME_STAGES.map((s, i) => (
+                  <li key={s.label} className={marks[i] ? 'done' : i === current ? 'current' : ''} title={s.title}><i /><span>{s.label}</span></li>
+                ));
+              })()}
+            </ol>
+            {firstEmpty
+              ? <button type="button" className="rc2-next" onClick={() => jumpToSection(firstEmpty.id)}>
+                  <span className="ic"><i className="bi bi-pencil-square" /></span>
+                  <div><b>Next: {firstEmpty.label}</b><span>{firstEmpty.hint}</span></div>
+                  <i className="bi bi-chevron-right" />
+                </button>
+              : <button type="button" className="rc2-next" onClick={runScore} disabled={scoring}>
+                  <span className="ic"><i className="bi bi-check-circle-fill" /></span>
+                  <div><b>All seven sections are filled</b><span>{scoring ? 'Scoring…' : 'Score it again to see what a recruiter’s ATS makes of it.'}</span></div>
+                  <i className="bi bi-chevron-right" />
+                </button>}
           </div>
           <div className="rc-score-card">
             <div className="rc-score-ring" style={{ '--score': `${score?.total || 0}%` } as React.CSSProperties}><div><strong>{score?.total ?? '—'}</strong>{score && <span>/100</span>}</div></div>
@@ -337,17 +416,17 @@ const ResumeCenter: React.FC = () => {
               <div className="rc-fields"><div className="rs-row"><Field label="Full name" value={sections.contact.name} onChange={v => patch(s => { s.contact.name = v; })} /><Field label="Target title" value={sections.contact.title || ''} onChange={v => patch(s => { s.contact.title = v; })} placeholder="e.g. Backend Engineer" /></div><div className="rs-row"><Field label="Email" value={sections.contact.email} onChange={v => patch(s => { s.contact.email = v; })} /><Field label="Phone" value={sections.contact.phone} onChange={v => patch(s => { s.contact.phone = v; })} /></div><div className="rs-row"><Field label="LinkedIn" value={sections.contact.linkedin || ''} onChange={v => patch(s => { s.contact.linkedin = v; })} /><Field label="GitHub" value={sections.contact.github || ''} onChange={v => patch(s => { s.contact.github = v; })} /></div><Field label="Location" value={sections.contact.location || ''} onChange={v => patch(s => { s.contact.location = v; })} /></div>
             </section>
 
-            <section className="rs-section rc-section-card"><SectionTitle icon="bi-file-text" title="Professional Summary" subtitle="Highlight your experience and key strengths" done={completed.summary} /><div className="rc-fields"><Field label="2–3 lines" area value={sections.summary} onChange={v => patch(s => { s.summary = v; })} placeholder="Final-year CSE student with hands-on Java and SQL experience through 3 projects…" /></div></section>
+            <section className="rs-section rc-section-card" id="rc-summary"><SectionTitle icon="bi-file-text" title="Professional Summary" subtitle="Highlight your experience and key strengths" done={completed.summary} /><div className="rc-fields"><Field label="2–3 lines" area value={sections.summary} onChange={v => patch(s => { s.summary = v; })} placeholder="Final-year CSE student with hands-on Java and SQL experience through 3 projects…" /></div></section>
 
             <section className="rs-section rc-section-card" id="rc-education"><SectionTitle icon="bi-mortarboard" title="Education" subtitle="Your educational background" done={completed.education} /><div className="rc-fields">{sections.education.map((e, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.education.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Degree" value={e.degree} onChange={v => patch(s => { s.education[i].degree = v; })} placeholder="B.Tech CSE" /><Field label="College" value={e.college} onChange={v => patch(s => { s.education[i].college = v; })} /></div><div className="rs-row"><Field label="Year" value={e.year || ''} onChange={v => patch(s => { s.education[i].year = v; })} placeholder="2026" /><Field label="CGPA" value={e.cgpa || ''} onChange={v => patch(s => { s.education[i].cgpa = v; })} /></div></div>)}<button className="rs-add" onClick={() => patch(s => { s.education.push({ degree: '', college: '', year: '', cgpa: '' }); })}>+ Add education</button></div></section>
 
             <section className="rs-section rc-section-card" id="rc-skills"><SectionTitle icon="bi-code-slash" title="Skills" subtitle="Technical and soft skills" done={completed.skills} /><div className="rc-fields">{sections.skills.map((g, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.skills.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Group" value={g.category} onChange={v => patch(s => { s.skills[i].category = v; })} placeholder="Languages" /><ListField label="Items (comma separated)" items={g.items} onChange={v => patch(s => { s.skills[i].items = v; })} placeholder="Java, SQL, Git" /></div></div>)}<button className="rs-add" onClick={() => patch(s => { s.skills.push({ category: '', items: [] }); })}>+ Add skill group</button></div></section>
 
-            <section className="rs-section rc-section-card"><SectionTitle icon="bi-briefcase" title="Experience / Internships" subtitle="Your work experience and responsibilities" done={completed.experience} /><div className="rc-fields">{sections.experience.map((x, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.experience.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Company" value={x.company} onChange={v => patch(s => { s.experience[i].company = v; })} /><Field label="Role" value={x.role} onChange={v => patch(s => { s.experience[i].role = v; })} /></div><div className="rs-row"><Field label="From" value={x.from} onChange={v => patch(s => { s.experience[i].from = v; })} placeholder="Jun 2025" /><Field label="To" value={x.to} onChange={v => patch(s => { s.experience[i].to = v; })} placeholder="Aug 2025" /></div><ListField label="Bullets (one per line)" area sep={'\n'} items={x.bullets} placeholder={'Built the payment screen in React\nCut page load from 4s to 1.2s'} onChange={v => patch(s => { s.experience[i].bullets = v; })} /></div>)}<button className="rs-add" onClick={() => patch(s => { s.experience.push({ company: '', role: '', from: '', to: '', current: false, bullets: [] }); })}>+ Add experience</button></div></section>
+            <section className="rs-section rc-section-card" id="rc-experience"><SectionTitle icon="bi-briefcase" title="Experience / Internships" subtitle="Your work experience and responsibilities" done={completed.experience} /><div className="rc-fields">{sections.experience.map((x, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.experience.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Company" value={x.company} onChange={v => patch(s => { s.experience[i].company = v; })} /><Field label="Role" value={x.role} onChange={v => patch(s => { s.experience[i].role = v; })} /></div><div className="rs-row"><Field label="From" value={x.from} onChange={v => patch(s => { s.experience[i].from = v; })} placeholder="Jun 2025" /><Field label="To" value={x.to} onChange={v => patch(s => { s.experience[i].to = v; })} placeholder="Aug 2025" /></div><ListField label="Bullets (one per line)" area sep={'\n'} items={x.bullets} placeholder={'Built the payment screen in React\nCut page load from 4s to 1.2s'} onChange={v => patch(s => { s.experience[i].bullets = v; })} /></div>)}<button className="rs-add" onClick={() => patch(s => { s.experience.push({ company: '', role: '', from: '', to: '', current: false, bullets: [] }); })}>+ Add experience</button></div></section>
 
             <section className="rs-section rc-section-card" id="rc-projects"><SectionTitle icon="bi-folder2-open" title="Projects" subtitle="Key projects and achievements" done={completed.projects} /><div className="rc-fields">{sections.projects.map((p, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.projects.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Name" value={p.name} onChange={v => patch(s => { s.projects[i].name = v; })} /><ListField label="Tech (comma separated)" items={p.tech} onChange={v => patch(s => { s.projects[i].tech = v; })} /></div><Field label="What it does & what you built" area value={p.description} onChange={v => patch(s => { s.projects[i].description = v; })} /><Field label="Link" value={p.link || ''} onChange={v => patch(s => { s.projects[i].link = v; })} placeholder="https://github.com/…" /></div>)}<button className="rs-add" onClick={() => patch(s => { s.projects.push({ name: '', tech: [], description: '', link: '' }); })}>+ Add project</button></div></section>
 
-            <section className="rs-section rc-section-card"><SectionTitle icon="bi-award" title="Certifications" subtitle="Certifications and achievements" done={completed.certifications} /><div className="rc-fields">{sections.certifications.map((c, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.certifications.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Name" value={c.name} onChange={v => patch(s => { s.certifications[i].name = v; })} /><Field label="Issuer" value={c.issuer} onChange={v => patch(s => { s.certifications[i].issuer = v; })} /></div><Field label="Year" value={c.year || ''} onChange={v => patch(s => { s.certifications[i].year = v; })} /></div>)}<button className="rs-add" onClick={() => patch(s => { s.certifications.push({ name: '', issuer: '', year: '' }); })}>+ Add certification</button></div></section>
+            <section className="rs-section rc-section-card" id="rc-certifications"><SectionTitle icon="bi-award" title="Certifications" subtitle="Certifications and achievements" done={completed.certifications} /><div className="rc-fields">{sections.certifications.map((c, i) => <div className="rs-sub" key={i}><button className="rs-del" onClick={() => patch(s => { s.certifications.splice(i, 1); })}>✕</button><div className="rs-row"><Field label="Name" value={c.name} onChange={v => patch(s => { s.certifications[i].name = v; })} /><Field label="Issuer" value={c.issuer} onChange={v => patch(s => { s.certifications[i].issuer = v; })} /></div><Field label="Year" value={c.year || ''} onChange={v => patch(s => { s.certifications[i].year = v; })} /></div>)}<button className="rs-add" onClick={() => patch(s => { s.certifications.push({ name: '', issuer: '', year: '' }); })}>+ Add certification</button></div></section>
             </>)}
           </main>
 

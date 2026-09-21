@@ -370,6 +370,36 @@ const FoundationJourneyPage: React.FC = () => {
   const percentComplete = journey.percentComplete ?? 0;
   const days = journey.days ?? [];
 
+  /**
+   * The banner's middle column is read from what this page already holds — the overview's day
+   * summaries and, when the day being read IS today, that day's own tasks. Nothing is fetched for
+   * it, and a figure the page was never given is left out rather than guessed.
+   */
+  const daysLeft = Math.max(0, totalDays - completedCount);
+  const todaySummary = days.find(d => d.day === currentDay) || null;
+  const todayActs = day && day.day === currentDay ? (day.activities || []) : [];
+  const todayLeft = todayActs.filter(a => !a.done).length;
+  const todayDone = todayActs.length > 0 && todayLeft === 0;
+  const todayLine = todayActs.length > 0
+    ? (todayDone ? `All ${todayActs.length} tasks finished` : `${todayLeft} of ${todayActs.length} tasks left`)
+    : todaySummary && todaySummary.activities > 0
+      ? `${todaySummary.activities} ${todaySummary.activities === 1 ? 'task' : 'tasks'}${todaySummary.minutes > 0 ? ` · ${mins(todaySummary.minutes)}` : ''}`
+      : '';
+  /* Four marks taken off the real day number: the start, today, the next week boundary, day ninety. */
+  const weekMark = Math.min(totalDays, Math.ceil((currentDay + 1) / 7) * 7);
+  const lastWeek = weekMark >= totalDays;
+  const marks = [
+    { key: 'start', label: 'Day 1', at: 1 },
+    { key: 'today', label: `Day ${currentDay}`, at: currentDay },
+    { key: 'week', label: lastWeek ? 'Final week' : `Day ${weekMark}`, at: lastWeek ? Math.max(currentDay + 1, totalDays - 6) : weekMark },
+    { key: 'end', label: `Day ${totalDays}`, at: totalDays },
+  ];
+  /* Today opens in the player when there is an enrolment to open it with; otherwise the strip selects it. */
+  const openToday = () => {
+    if (enrollmentId) nav(`/careerpilot/journey/day/${currentDay}`);
+    else selectDay(currentDay);
+  };
+
   return (
     <div className="fj-page fjm">
       <section className="fjm-hero">
@@ -382,6 +412,36 @@ const FoundationJourneyPage: React.FC = () => {
             <span><i className="bi bi-check2-circle" /> {completedCount} of {totalDays} days done</span>
             <span><i className="bi bi-flag" /> {Math.max(0, totalDays - completedCount)} to go</span>
           </div>
+        </div>
+        {/* My ninety, in the member's own numbers: the days finished, where today sits between day
+            one and day ninety, and what today still holds — not decoration. */}
+        <div className="fjm-momentum">
+          <span className="fjm-eyebrow">My ninety</span>
+          <div className={`fjm-days${completedCount > 0 ? ' on' : ''}`}>
+            <span className="ic"><i className="bi bi-calendar2-check-fill" aria-hidden /></span>
+            <div>
+              <b>{completedCount} of {totalDays} days done</b>
+              <span>{daysLeft > 0 ? `${daysLeft} learning ${daysLeft === 1 ? 'day' : 'days'} to go` : 'Every day finished — well done'}</span>
+            </div>
+            <i className="fjm-days-art" aria-hidden="true"><em /><em /><em /></i>
+          </div>
+          <ol className="fjm-steps2">
+            {marks.map((m, i) => {
+              const state = currentDay >= m.at && i !== 1 ? 'done' : (i === 1 ? 'current' : '');
+              return <li key={m.key} className={state}><i /><span>{m.label}</span></li>;
+            })}
+          </ol>
+          {todayLine && (
+            <button type="button" className="fjm-challenge" onClick={openToday}>
+              <span className="ic"><i className={`bi ${todayDone ? 'bi-check-circle-fill' : 'bi-play-circle-fill'}`} aria-hidden /></span>
+              <div>
+                <b>{todayDone ? 'Today is finished' : 'Today’s work'}</b>
+                <span>Day {currentDay}{todaySummary?.title ? ` · ${todaySummary.title}` : ''}</span>
+                <em>{todayLine}</em>
+              </div>
+              <i className="bi bi-chevron-right" aria-hidden />
+            </button>
+          )}
         </div>
         <div className="fjm-ring" role="progressbar" aria-valuenow={percentComplete} aria-valuemin={0} aria-valuemax={100}
              aria-label="Journey progress" style={{ ['--fjm-deg' as any]: `${percentComplete * 3.6}deg` }}>

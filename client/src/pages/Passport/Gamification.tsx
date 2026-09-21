@@ -41,7 +41,7 @@ const Gamification: React.FC = () => {
   const locked = summary?.badges.filter(b => !b.earned) || [];
   const shownBadges = showAllBadges ? [...earned, ...locked] : [...earned, ...locked].slice(0, 4);
   const nextMilestone = summary && [7, 21, 30, 100].find(d => d > summary.streak);
-  const levelProgress = Math.max(0, Math.min(100, summary?.level?.pct ?? 0));
+  const levelProgress = Math.max(0, Math.min(100, summary?.level?.progressPct ?? 0));
   const collegeRank = summary?.ranks?.college;
   const globalRank = summary?.ranks?.global;
   const coins = rewards?.student?.coins ?? rewards?.student?.coinBalance ?? 0;
@@ -55,8 +55,22 @@ const Gamification: React.FC = () => {
   if (loading) return <div className="gam"><div className="gam-load">Loading your progress…</div></div>;
   if (!summary) return <div className="gam"><div className="gam-empty">Your progress is not available right now.</div></div>;
 
+  /** The level block is the same curve the dashboard reads (LevelInfo, straight from the server). */
+  const lvl = summary.level;
+  const levelNo = lvl?.level ?? 1;
+  /** Four rungs around where the member stands, so the ladder has a before and an after. */
+  const ladderFrom = Math.max(1, levelNo - 1);
+  const ladder = [0, 1, 2, 3].map(i => ladderFrom + i);
+  /** The nearest thing still to earn: a streak milestone has a real distance, a locked badge does not. */
+  const nextEarn = nextMilestone
+    ? { icon: 'bi-fire', title: `${nextMilestone}-day streak`, text: `${nextMilestone - summary.streak} more day${nextMilestone - summary.streak === 1 ? '' : 's'} of activity unlocks it.`, href: '/careerpilot' }
+    : locked.length
+      ? { icon: 'bi-award-fill', title: locked[0].name, text: locked[0].description, href: '/careerpilot/practice' }
+      : null;
+
   return <div className="gam gam2">
-    {/* A logo-navy hero, as on every redesigned CareerPilot page: level and XP to the next one, coins beside it. */}
+    {/* The banner, as on every redesigned CareerPilot page: the level, the member's own level progress
+        in the middle, and the coins beside it. */}
     <section className="gam2-hero">
       <div className="gam2-level">
         <div className="gam2-hex"><i className="bi bi-star-fill" /><strong>{summary.level?.level ?? 1}</strong><span>Level</span></div>
@@ -69,6 +83,29 @@ const Gamification: React.FC = () => {
             <div className="gam2-xp-bar"><i style={{ width: `${Math.max(2, levelProgress)}%` }} /></div>
           </div>
         </div>
+      </div>
+      {/* Level progress: what is still owed to the next level, where this level sits on the ladder
+          and the nearest thing still to earn — all from the member's own summary. */}
+      <div className="gam2-momentum">
+        <span className="gam2-eyebrow"><i className="bi bi-graph-up-arrow" /> Level progress</span>
+        <div className={`gam2-togo${lvl?.xpToNextLevel === 0 ? ' on' : ''}`}>
+          <span className="ic"><i className="bi bi-lightning-charge-fill" /></span>
+          <div>
+            <b>{lvl?.xpToNextLevel !== undefined ? `${lvl.xpToNextLevel.toLocaleString()} XP to go` : `Level ${levelNo} · ${summary.xp.toLocaleString()} XP`}</b>
+            <span>To Level {lvl?.nextLevel ?? levelNo + 1} · {lvl?.nextTitle || 'the next title'}</span>
+            {lvl?.xpIntoLevel !== undefined && lvl?.xpForThisLevel
+              ? <i className="gam2-togo-bar" aria-hidden="true"><em style={{ width: `${Math.max(3, Math.min(100, Math.round((lvl.xpIntoLevel / lvl.xpForThisLevel) * 100)))}%` }} /></i>
+              : null}
+          </div>
+        </div>
+        <ol className="gam2-steps2">
+          {ladder.map(n => <li key={n} className={n < levelNo ? 'done' : n === levelNo ? 'current' : ''}><i /><span>L{n}</span></li>)}
+        </ol>
+        {nextEarn && <button type="button" className="gam2-next" onClick={() => nav(nextEarn.href)}>
+          <span className="ic"><i className={`bi ${nextEarn.icon}`} /></span>
+          <div><b>Next to earn: {nextEarn.title}</b><span>{nextEarn.text}</span></div>
+          <i className="bi bi-chevron-right" />
+        </button>}
       </div>
       <div className="gam2-wallet">
         <div className="gam2-coin"><span><i className="bi bi-coin" /></span><div><small>CareerPilot coins</small><b>{Number(coins).toLocaleString()}</b></div></div>

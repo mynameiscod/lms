@@ -3479,7 +3479,8 @@ export interface RankView {
 
 export interface GamificationSummary {
   xp: number;
-  level: { level: number; title: string; nextLevel: number; nextTitle: string; pct?: number };
+  /** The server sends the whole LevelInfo (passportGamificationService.levelFromXp), including progressPct. */
+  level: LevelInfo;
   streak: number;
   longestStreak: number;
   badges: GamificationBadgeView[];

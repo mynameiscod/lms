@@ -486,6 +486,8 @@ const Interview: React.FC = () => {
   const readiness = latestScore === null ? 'Start your first mock' : READINESS_LABEL[latest?.evaluation?.readinessLevel || ''] || 'Keep practicing';
   const totalAnswers = completed.reduce((n, s) => n + s.transcript.filter(t => t.role === 'candidate').length, 0);
   const strongest = latestAreas.length ? [...latestAreas].sort((a, b) => b.percentage - a.percentage)[0] : null;
+  /* Best, not latest: one shaky round does not undo what a member has already proved they can do. */
+  const bestScore = completed.length ? Math.max(...completed.map(s => s.evaluation?.overallScore ?? 0)) : null;
 
   return (
     <PassportShell meta={latestScore !== null ? <span className="pm-pill"><i className="bi bi-mic" /> Interview <b>{latestScore}%</b></span> : undefined}>
@@ -507,6 +509,43 @@ const Interview: React.FC = () => {
               </button>
               {latest && <button className="iv2-btn ghost" onClick={() => openPast(latest)}><i className="bi bi-file-earmark-bar-graph" /> Latest report</button>}
             </div>
+          </div>
+          {/* The middle of the banner is this member's own record: what they have sat, how their own
+              rounds stand, and the round to sit next — the same one the hero button starts. */}
+          <div className="iv2-momentum">
+            <span className="iv2-eyebrow">Your practice</span>
+            <div className={`iv2-strip${completed.length ? ' on' : ''}`}>
+              <span className="ic"><i className="bi bi-mic-fill" aria-hidden="true" /></span>
+              <div>
+                <b>{sessions.length} interview{sessions.length === 1 ? '' : 's'} attempted</b>
+                <span>{bestScore !== null
+                  ? `${completed.length} graded · best score ${bestScore}%`
+                  : 'Finish a round and your first score appears here.'}</span>
+                {bestScore !== null && <i className="iv2-strip-bar" aria-hidden="true"><em style={{ width: `${Math.max(4, bestScore)}%` }} /></i>}
+              </div>
+            </div>
+            {rounds.length > 1 && (
+              /* The plan's own rounds, in the admin's order. The trailing word is dropped so four
+                 "… Interview" labels still fit on one line at this width. */
+              <ol className="iv2-steps2">
+                {rounds.map(r => (
+                  <li key={r.key} className={r.used > 0 ? 'done' : nextRound?.key === r.key ? 'current' : ''}>
+                    <i /><span>{r.title.replace(/\s*interview\s*$/i, '') || r.title}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+            {nextRound && (
+              <button type="button" className="iv2-next" onClick={() => start(nextRound.key)} disabled={busy || !canStartRound}>
+                <span className="ic"><i className="bi bi-play-fill" aria-hidden="true" /></span>
+                <div>
+                  <b>{nextRound.used ? 'Practise next' : 'Start next'}</b>
+                  <span>{nextRound.title}</span>
+                  <em>{nextRound.questions} question{nextRound.questions === 1 ? '' : 's'} · {nextRound.minutes} min{nextRound.used ? ` · practised ${nextRound.used}×` : ''}</em>
+                </div>
+                <i className="bi bi-chevron-right" aria-hidden="true" />
+              </button>
+            )}
           </div>
           <div className="iv2-score">
             <div className="iv2-ring" style={{ ['--iv2-deg' as any]: `${(latestScore ?? 0) * 3.6}deg` }}>

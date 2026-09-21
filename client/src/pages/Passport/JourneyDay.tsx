@@ -279,6 +279,18 @@ const JourneyDay: React.FC = () => {
   const pct = items.length ? Math.round((doneCount / items.length) * 100) : 0;
   const totalXp = items.reduce((t, it) => t + (Number(it.xp) || 0), 0) + dayBonusXp;
   const earnedXp = items.reduce((t, it) => t + (it.isCompleted ? Number(it.xp) || 0 : 0), 0) + (dayDone ? dayBonusXp : 0);
+  const tasksLeft = items.length - doneCount;
+
+  /**
+   * The banner's bonus row is the shortest way back into the work: it puts the member on the
+   * first task they have not finished, then brings the stage into view. Nothing is fetched and
+   * nothing navigates — the day player never leaves the day.
+   */
+  const workOnNext = () => {
+    const firstOpen = items.findIndex(it => !it.isCompleted);
+    if (firstOpen >= 0) setSelIdx(firstOpen);
+    requestAnimationFrame(() => document.getElementById('jdm-stage')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
 
   return (
     <div className="jd-page jdm">
@@ -302,6 +314,39 @@ const JourneyDay: React.FC = () => {
             </>
           )}
         </div>
+        {/* Today's momentum: the tasks finished, each task as a mark on the day, and the day bonus
+            still on the table — all from the day this member is actually working. */}
+        {items.length > 0 && (
+          <div className="jdm-momentum">
+            <span className="jdm-eyebrow">Today’s momentum</span>
+            <div className={`jdm-tasks${doneCount > 0 ? ' on' : ''}`}>
+              <span className="ic"><i className="bi bi-check2-circle" aria-hidden /></span>
+              <div>
+                <b>{doneCount} of {items.length} tasks done</b>
+                <span>{tasksLeft > 0 ? `${tasksLeft} still to work through` : 'Every task on this day is finished'}</span>
+              </div>
+              <i className="jdm-tasks-art" aria-hidden="true"><em /><em /><em /></i>
+            </div>
+            <ol className="jdm-steps2" aria-hidden="true">
+              {items.map((it, i) => (
+                <li key={it._id || it.contentId || it.sourceId || i} className={it.isCompleted ? 'done' : i === selIdx ? 'current' : ''}>
+                  <i /><span>{i + 1}</span>
+                </li>
+              ))}
+            </ol>
+            {dayBonusXp > 0 && (
+              <button type="button" className="jdm-challenge" onClick={workOnNext}>
+                <span className="ic"><i className={`bi ${dayDone ? 'bi-check-circle-fill' : 'bi-gift-fill'}`} aria-hidden /></span>
+                <div>
+                  <b>{dayDone ? 'Day bonus earned' : 'Day bonus'}</b>
+                  <span>{dayDone ? `All ${items.length} tasks finished today` : `Finish all ${items.length} tasks today (${tasksLeft} to go)`}</span>
+                  <em>{dayDone ? 'Earned' : 'Reward'}: +{dayBonusXp} bonus XP</em>
+                </div>
+                <i className="bi bi-chevron-right" aria-hidden />
+              </button>
+            )}
+          </div>
+        )}
         <div className="jdm-daynav">
           <button type="button" disabled={dayNumber <= 1} onClick={() => nav(`/careerpilot/journey/day/${dayNumber - 1}`)}>
             <i className="bi bi-chevron-left" aria-hidden /> Previous day
@@ -377,7 +422,7 @@ const JourneyDay: React.FC = () => {
             )}
           </aside>
 
-          <section className="jd-stage" aria-live="polite">
+          <section className="jd-stage" id="jdm-stage" aria-live="polite">
             {selected && (
               <>
                 <div className="jd-stage-head">

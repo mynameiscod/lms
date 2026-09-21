@@ -12,6 +12,10 @@ const KINDS: { key: string; label: string; icon: string }[] = [
   { key: 'mcq', label: 'MCQ Sets', icon: 'bi-ui-checks-grid' },
 ];
 
+/* Easiest first, whatever order the server happened to send the problems in. Anything the admin
+   names outside these three still shows — it simply sits after them. */
+const DIFF_RANK: Record<string, number> = { easy: 1, medium: 2, hard: 3 };
+
 const CAT_LABEL: Record<string, string> = {
   technical: 'Technical', aptitude: 'Aptitude', logical_reasoning: 'Reasoning',
   communication: 'Communication', employability: 'Employability', career_clarity: 'Career Clarity',
@@ -74,6 +78,19 @@ const Practice: React.FC<PracticeProps> = ({ source = 'all', heading, blurb }) =
   const pct = problems.length ? Math.round((solvedHere / problems.length) * 100) : 0;
   const diffs = Array.from(new Set(problems.map(p => String(p.difficulty || '').toLowerCase()).filter(Boolean)));
 
+  /* A level is behind the member once nothing is left in it; the first level with work left is
+     where they stand. Read off the same list the cards below are drawn from, so the two agree. */
+  const levels = diffs
+    .slice()
+    .sort((a, b) => (DIFF_RANK[a] || 9) - (DIFF_RANK[b] || 9))
+    .map(d => {
+      const at = problems.filter(p => String(p.difficulty || '').toLowerCase() === d);
+      return { key: d, label: d[0].toUpperCase() + d.slice(1), done: at.filter(isSolved).length, total: at.length };
+    });
+  const currentLevel = levels.findIndex(l => l.done < l.total);
+  /* One tap, no hunting through the grid: the first problem this member has not solved. */
+  const nextProblem = problems.find(p => !isSolved(p)) || null;
+
   const q = query.trim().toLowerCase();
   const shown = problems.filter(p =>
     (!q || [p.title, CAT_LABEL[p.category] || p.category || '', p.kind, p.difficulty].join(' ').toLowerCase().includes(q))
@@ -94,6 +111,43 @@ const Practice: React.FC<PracticeProps> = ({ source = 'all', heading, blurb }) =
               <span><i className="bi bi-lightning-charge-fill" /> {data?.xp ?? 0} XP total</span>
             </div>
           </div>
+          {/* The middle of the banner is this member's own practice record, not decoration: how far
+              through the list they are, which levels are behind them, and the problem to open next. */}
+          {!!problems.length && (
+            <div className="pl2-momentum">
+              <span className="pl2-eyebrow">Your progress</span>
+              <div className={`pl2-strip${solvedHere > 0 ? ' on' : ''}`}>
+                <span className="ic"><i className="bi bi-check2-circle" aria-hidden="true" /></span>
+                <div>
+                  <b>{solvedHere} of {problems.length} solved</b>
+                  <span>{problems.length - solvedHere > 0
+                    ? `${problems.length - solvedHere} still to go — a first solve pays its XP.`
+                    : 'Every problem here is solved. Well done.'}</span>
+                  <i className="pl2-strip-bar" aria-hidden="true"><em style={{ width: `${Math.max(solvedHere > 0 ? 4 : 0, pct)}%` }} /></i>
+                </div>
+              </div>
+              {levels.length > 1 && (
+                <ol className="pl2-steps2">
+                  {levels.map((l, i) => (
+                    <li key={l.key} className={l.done >= l.total ? 'done' : i === currentLevel ? 'current' : ''}>
+                      <i /><span>{l.label} {l.done}/{l.total}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {nextProblem && (
+                <button type="button" className="pl2-next" onClick={() => nav(`/careerpilot/practice/${nextProblem.id}`)}>
+                  <span className="ic"><i className="bi bi-play-fill" aria-hidden="true" /></span>
+                  <div>
+                    <b>Next up</b>
+                    <span>{nextProblem.title}</span>
+                    <em>{[nextProblem.difficulty, nextProblem.xp ? `+${nextProblem.xp} XP` : ''].filter(Boolean).join(' · ')}</em>
+                  </div>
+                  <i className="bi bi-chevron-right" aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          )}
           <div className="pl2-score">
             <div className="pl2-ring" style={{ ['--pl2-deg' as any]: `${pct * 3.6}deg` }}>
               <div><strong>{solvedHere}<em>/{problems.length}</em></strong><span>solved</span></div>

@@ -73,14 +73,11 @@
 .cpx-hero-grid { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.3fr); gap: clamp(32px, 3.2vw, 64px); align-items: center; }
 
 /* The stage: one rounded panel holding the illustration, with the signup card overlapping it on the right. */
+/* No panel behind the illustration and the form: the picture sits on the page and only the signup card
+   is a card, so the hero does not read as a card inside a card. */
 .cpx-stage {
   position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(430px, 490px); align-items: center;
-  padding: 28px 28px 28px 12px; border-radius: 32px;
-  background:
-    radial-gradient(circle at 28% 32%, rgba(53, 152, 173, .16), transparent 46%),
-    radial-gradient(circle at 18% 88%, rgba(31, 111, 235, .10), transparent 42%),
-    linear-gradient(145deg, #ffffff 0%, #f0f6fe 55%, #e7f1fc 100%);
-  border: 1px solid #e1eaf6; box-shadow: 0 30px 70px rgba(14, 27, 61, .08);
+  padding: 0; border-radius: 0; background: none; border: 0; box-shadow: none;
 }
 .cpx-eyebrow { color: var(--teal); font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 12px; }
 .cpx-hero h1 { font-size: clamp(32px, 3.1vw, 50px); line-height: 1.08; font-weight: 800; letter-spacing: -.025em; color: var(--navy); }
@@ -97,7 +94,7 @@
 .cpx-trust-dots i:nth-child(2) { background: var(--teal); }
 .cpx-trust-dots i:nth-child(3) { background: var(--blue); }
 
-.cpx-hero-visual { display: flex; align-items: center; justify-content: center; margin-right: -28px; position: relative; z-index: 0; }
+.cpx-hero-visual { display: flex; align-items: center; justify-content: center; margin-right: 0; position: relative; z-index: 0; }
 .cpx-visual-in { position: relative; width: 100%; max-width: 600px; padding-bottom: 56px; }
 .cpx-visual-in img {
   width: 100%; height: auto; display: block;
@@ -116,7 +113,7 @@
 
 /* ── Signup card ─────────────────────────────────────────────────── */
 .cpx-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 18px 50px rgba(14, 27, 61, .1); }
-.cpx-signup { position: relative; z-index: 1; padding: 32px 30px 24px; border-radius: 24px; box-shadow: 0 24px 60px rgba(14, 27, 61, .14); }
+.cpx-signup { position: relative; z-index: 1; padding: 32px 30px 24px; border-radius: 24px; border: 1px solid var(--line); box-shadow: 0 24px 60px rgba(14, 27, 61, .14); }
 .cpx-signup h2 { font-size: 27px; font-weight: 800; color: var(--navy); letter-spacing: -.015em; }
 .cpx .cpx-card-sub { margin-top: 6px; margin-bottom: 6px; font-size: 15px; color: var(--muted); }
 .cpx-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }

@@ -136,34 +136,36 @@ const PassportLogin: React.FC = () => {
           <p>Assess. Learn. Practice. Grow. CareerPilot helps you understand your strengths, build the right skills and follow a clearer path toward your career goal.</p>
         </div>
 
-        <div className="cpl-stage" aria-hidden="true">
+        <div className="cpl-showcase" aria-hidden="true">
           <div className="cpl-feature-stack">
-            <div className="cpl-feature"><div className="cpl-feature-ic"><i className="bi bi-diagram-3-fill" /></div><div><b>Skill DNA</b><span>Understand your strengths and technical profile.</span></div></div>
-            <div className="cpl-feature"><div className="cpl-feature-ic"><i className="bi bi-graph-up-arrow" /></div><div><b>Career Readiness</b><span>Track progress toward your target role.</span></div></div>
-            <div className="cpl-feature"><div className="cpl-feature-ic"><i className="bi bi-map-fill" /></div><div><b>Personalized Roadmap</b><span>Know what to learn and practice next.</span></div></div>
+            <div className="cpl-feature"><div className="cpl-feature-ic"><i className="bi bi-diagram-3-fill" /></div><div><b>Skill DNA</b><span>Your strengths and technical profile.</span></div></div>
+            <div className="cpl-feature"><div className="cpl-feature-ic"><i className="bi bi-graph-up-arrow" /></div><div><b>Career Readiness</b><span>Progress toward your target role.</span></div></div>
+            <div className="cpl-feature"><div className="cpl-feature-ic"><i className="bi bi-map-fill" /></div><div><b>Personalized Roadmap</b><span>What to learn and practice next.</span></div></div>
           </div>
 
-          <img
-            className="cpl-student"
-            src="/assets/careerpilot/careerpilot-hero-student.png"
-            alt=""
-            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-          />
-          <div className="cpl-path" />
+          <div className="cpl-stage">
+            <img
+              className="cpl-student"
+              src="/assets/careerpilot/careerpilot-hero-student.png"
+              alt=""
+              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+            />
+            <div className="cpl-cards">
+              <div className="cpl-readiness">
+                <small>CAREER READINESS PREVIEW</small>
+                <div className="cpl-score">
+                  <div className="cpl-ring"><strong>72%</strong></div>
+                  <span>See where you stand and what to improve next.</span>
+                </div>
+              </div>
 
-          <div className="cpl-readiness">
-            <small>CAREER READINESS PREVIEW</small>
-            <div className="cpl-score">
-              <div className="cpl-ring"><strong>72%</strong></div>
-              <span>See where you stand and what to improve next.</span>
+              <div className="cpl-progress">
+                <h4>Your Progress</h4>
+                <div className="cpl-prog"><div className="cpl-prog-top"><span>Assessments</span><b>Progress</b></div><div className="cpl-bar"><span style={{ width: '78%' }} /></div></div>
+                <div className="cpl-prog"><div className="cpl-prog-top"><span>Skills</span><b>Growing</b></div><div className="cpl-bar"><span style={{ width: '66%' }} /></div></div>
+                <div className="cpl-prog"><div className="cpl-prog-top"><span>Practice</span><b>Active</b></div><div className="cpl-bar"><span style={{ width: '58%' }} /></div></div>
+              </div>
             </div>
-          </div>
-
-          <div className="cpl-progress">
-            <h4>Your Progress</h4>
-            <div className="cpl-prog"><div className="cpl-prog-top"><span>Assessments</span><b>Progress</b></div><div className="cpl-bar"><span style={{ width: '78%' }} /></div></div>
-            <div className="cpl-prog"><div className="cpl-prog-top"><span>Skills</span><b>Growing</b></div><div className="cpl-bar"><span style={{ width: '66%' }} /></div></div>
-            <div className="cpl-prog"><div className="cpl-prog-top"><span>Practice</span><b>Active</b></div><div className="cpl-bar"><span style={{ width: '58%' }} /></div></div>
           </div>
         </div>
 

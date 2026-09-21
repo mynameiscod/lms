@@ -224,9 +224,31 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const score = d.coderScore!.score;
   const scoreTag = score >= 750 ? 'Excellent' : score >= 500 ? 'On track' : 'Just getting started';
   const goalPct = Math.min(100, Math.round(goal.target ? (goal.earned / goal.target) * 100 : 0));
+
   const streakTarget = st.streak < 7 ? 7 : st.streak < 21 ? 21 : st.streak < 30 ? 30 : 100;
   const missionXp = shownMissions.reduce((s, m) => s + m.xp, 0);
   const missionsDone = shownMissions.filter(m => m.done).length;
+  /* Today's challenge is the day bonus a member can still earn: finish everything on the day. */
+  const challenge = (() => {
+    if (jDay && jActs.length) {
+      const left = jActs.length - jDone;
+      return {
+        done: left === 0,
+        text: left === 0 ? `All ${jActs.length} tasks finished today` : `Finish all ${jActs.length} tasks today (${left} to go)`,
+        reward: jDay.dayBonusXp || 0,
+        href: dayHref,
+      };
+    }
+    const total = shownMissions.length;
+    if (!total) return null;
+    const left = total - missionsDone;
+    return {
+      done: left === 0,
+      text: left === 0 ? `All ${total} missions finished today` : `Finish all ${total} missions today (${left} to go)`,
+      reward: 0,
+      href: '/careerpilot/plan',
+    };
+  })();
 
   /**
    * THE MEMBER HOME, IN THE ORDER A STUDENT USES IT.
@@ -256,6 +278,31 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
                 </button>}
             <button className="md-btn ghost" onClick={() => nav('/careerpilot/roadmap')}><Bi name="map" /> My roadmap</button>
           </div>
+        </div>
+        {/* Daily momentum: the streak, where today sits on the way to a 7- and 30-day run, and the day bonus
+            still on the table — all from the member's own numbers, not decoration. */}
+        <div className="md-momentum">
+          <span className="md-eyebrow">Daily momentum</span>
+          <div className={`md-streak${st.streak > 0 ? ' on' : ''}`}>
+            <span className="ic"><Bi name="fire" /></span>
+            <div>
+              <b>{st.streak > 0 ? `${st.streak} day streak` : 'Start your streak'}</b>
+              <span>{st.streak > 0 ? 'Show up today. Build consistency.' : 'Finish one task today to begin.'}</span>
+            </div>
+            <i className="md-streak-art" aria-hidden="true"><em /><em /><em /></i>
+          </div>
+          <ol className="md-steps2">
+            {[{ k: 'start', label: 'Start', at: 1 }, { k: 'today', label: 'Today', at: st.streak > 0 ? st.streak : 1 }, { k: 'seven', label: '7 days', at: 7 }, { k: 'thirty', label: '30 days', at: 30 }].map((s2, i) => {
+              const state = st.streak >= s2.at && !(i === 1) ? 'done' : (i === 1 ? 'current' : '');
+              return <li key={s2.k} className={state}><i /><span>{s2.label}</span></li>;
+            })}
+          </ol>
+          {challenge && <button className="md-challenge" onClick={() => nav(challenge.href)}>
+            <span className="ic"><Bi name={challenge.done ? 'check-circle-fill' : 'bullseye'} /></span>
+            <div><b>{challenge.done ? 'Today’s challenge done' : 'Today’s challenge'}</b><span>{challenge.text}</span>{challenge.reward ? <em>{challenge.done ? 'Earned' : 'Reward'}: +{challenge.reward} bonus XP</em> : null}</div>
+            <Bi name="chevron-right" />
+          </button>}
+          <p className="md-quote"><Bi name="quote" /> Small progress every day creates big results.</p>
         </div>
         <div className="md-hero-score">
           <div className="md-score-ring" style={{ ['--md-deg' as any]: `${Math.min(1000, score) * 0.36}deg` }}>

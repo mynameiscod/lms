@@ -141,3 +141,69 @@
 .hxa-rec-nav span { font-size: 12.5px; color: #94a3b8; }
 .hxa-pill.denied { background: #fee2e2; color: #b91c1c; }
 .hxa-pill.unavailable, .hxa-pill.off { background: #e2e8f0; color: #64748b; }
+
+/* ── setup screen, redesigned ──────────────────────────────────────────────────
+   Same controls, read more easily. The panel is long and every control looked
+   equally important, so the eye had nowhere to start.
+
+   Most of this is CSS over the existing markup on purpose: restyling a checkbox
+   into a switch reaches every checkbox on the page at once, and cannot introduce
+   a control that saves to a different field than the one it replaced. */
+
+/* Toggle switches. The input still IS a checkbox — same state, same onChange,
+   same keyboard behaviour — wearing a switch. */
+.hxa-check { gap: 11px; font-size: 13.5px; align-items: center; margin-bottom: 12px; }
+.hxa-check input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  position: relative; flex: none;
+  width: 38px !important; height: 21px; border-radius: 11px;
+  background: #cbd5e1; cursor: pointer; transition: background .16s ease;
+}
+.hxa-check input[type="checkbox"]::after {
+  content: ''; position: absolute; top: 2.5px; left: 2.5px;
+  width: 16px; height: 16px; border-radius: 50%; background: #fff;
+  transition: transform .16s ease; box-shadow: 0 1px 3px rgba(15,23,42,.35);
+}
+.hxa-check input[type="checkbox"]:checked { background: #2563eb; }
+.hxa-check input[type="checkbox"]:checked::after { transform: translateX(17px); }
+.hxa-check input[type="checkbox"]:focus-visible { outline: 2px solid #1d4ed8; outline-offset: 2px; }
+
+/* Card headings get an accent rule instead of shouting in uppercase. */
+.hxa-card { border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(15,23,42,.04); }
+.hxa-card h3 {
+  font-size: 15px; font-weight: 800; color: #0f2557;
+  text-transform: none; letter-spacing: 0;
+  margin: 0 0 4px; padding-left: 11px; position: relative;
+}
+.hxa-card h3::before {
+  content: ''; position: absolute; left: 0; top: 2px; bottom: 2px;
+  width: 3px; border-radius: 2px; background: #2563eb;
+}
+.hxa-card > .hxa-sub:first-of-type { margin-top: 0; margin-bottom: 14px; }
+
+/* Get It Ready: the three steps are a sequence, so they are numbered like one. */
+.hxa-actions { counter-reset: hxa-step; }
+.hxa-actions .hxa-step { position: relative; padding-left: 34px; padding-top: 14px; margin-top: 14px; }
+.hxa-actions .hxa-step::before {
+  counter-increment: hxa-step; content: counter(hxa-step);
+  position: absolute; left: 0; top: 13px;
+  width: 23px; height: 23px; border-radius: 50%;
+  background: #e0e7ff; color: #4338ca;
+  font-size: 12px; font-weight: 800; display: grid; place-items: center;
+}
+.hxa-actions .hxa-step b { font-size: 13.5px; }
+
+/* The one button that commits the whole screen should not look like the others. */
+.hxa-actions > .hxa-btn.primary,
+.hxa-btn.primary {
+  background: linear-gradient(90deg,#1d4ed8,#2563eb); border: none; color: #fff;
+  font-weight: 800; border-radius: 10px; box-shadow: 0 6px 16px rgba(29,78,216,.22);
+}
+
+/* A section is a thing in its own right, not a run of fields. */
+.hxa-sec { border: 1px solid #e9edf4; border-radius: 12px; padding: 14px; background: #fbfcfe; }
+.hxa-sec + .hxa-sec { margin-top: 12px; }
+
+.hxa-page { background: #f4f7fc; }
+.hxa-head h1 { font-size: 24px; color: #0f2557; }
+.hxa-count { display: block; text-align: right; font-size: 11.5px; color: #94a3b8; margin-top: 4px; }

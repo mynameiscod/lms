@@ -347,6 +347,7 @@ const HackathonExamAdmin: React.FC = () => {
             </label>
             <label>Instructions shown before starting
               <textarea rows={5} value={form.instructions} onChange={(e) => up({ instructions: e.target.value })} placeholder="Anything the organisers want candidates to read first. HTML allowed." />
+              <span className="hxa-count">{(form.instructions || '').length} characters</span>
             </label>
           </div>
 
@@ -408,6 +409,7 @@ const HackathonExamAdmin: React.FC = () => {
 
           <div className="hxa-card">
             <h3>Running code</h3>
+            <p className="hxa-sub">Let candidates test their answer before they commit it.</p>
             <label className="hxa-check"><input type="checkbox" checked={form.runPolicy.enabled} onChange={(e) => up({ runPolicy: { ...form.runPolicy, enabled: e.target.checked } })} /> Let candidates run their code</label>
             <div className="hxa-row">
               <label>Runs per question (0 = unlimited)<input type="number" min={0} value={form.runPolicy.maxRunsPerQuestion} onChange={(e) => up({ runPolicy: { ...form.runPolicy, maxRunsPerQuestion: Number(e.target.value) } })} /></label>
@@ -422,6 +424,7 @@ const HackathonExamAdmin: React.FC = () => {
 
           <div className="hxa-card">
             <h3>Proctoring</h3>
+            <p className="hxa-sub">Keep the paper honest without locking anyone out.</p>
             <label className="hxa-check"><input type="checkbox" checked={form.proctoring.tabSwitch.enabled} onChange={(e) => up({ proctoring: { ...form.proctoring, tabSwitch: { ...form.proctoring.tabSwitch, enabled: e.target.checked } } })} /> Record tab switches</label>
             <div className="hxa-row">
               <label>Warnings before auto-submit<input type="number" min={1} value={form.proctoring.tabSwitch.maxWarnings} onChange={(e) => up({ proctoring: { ...form.proctoring, tabSwitch: { ...form.proctoring.tabSwitch, maxWarnings: Number(e.target.value) } } })} /></label>
@@ -430,11 +433,14 @@ const HackathonExamAdmin: React.FC = () => {
             <label className="hxa-check"><input type="checkbox" checked={form.proctoring.fullscreen.required} onChange={(e) => up({ proctoring: { ...form.proctoring, fullscreen: { ...form.proctoring.fullscreen, required: e.target.checked } } })} /> Require fullscreen</label>
             <label className="hxa-check"><input type="checkbox" checked={form.proctoring.copyPasteBlocked} onChange={(e) => up({ proctoring: { ...form.proctoring, copyPasteBlocked: e.target.checked } })} /> Block copy and paste</label>
             <label className="hxa-check"><input type="checkbox" checked={form.proctoring.clusterDetection} onChange={(e) => up({ proctoring: { ...form.proctoring, clusterDetection: e.target.checked } })} /> Flag teams sitting from one device or address</label>
+            <label className="hxa-check"><input type="checkbox" checked={!!form.proctoring.camera?.enabled} onChange={(e) => up({ proctoring: { ...form.proctoring, camera: { ...(form.proctoring.camera || {}), enabled: e.target.checked } } })} /> Record camera and microphone</label>
+            <p className="hxa-sub">Continuous video with audio, about 90MB per candidate per hour, stored in Bunny. A candidate who refuses or has no camera still sits the paper — it is recorded on their attempt and shown in the candidate list.</p>
             <p className="hxa-sub">Clustering is the control that matches the risk here: scores average into a team result, so the cheat worth catching is one member sitting several papers.</p>
           </div>
 
           <div className="hxa-card">
             <h3>Messages</h3>
+            <p className="hxa-sub">Invitations, reminders and results.</p>
             <label>Invitations go by
               <span className="hxa-chips">
                 {(['email', 'whatsapp'] as const).map((c) => (

@@ -29,6 +29,7 @@ router.post('/:id/invite', ctrl.sendExamInvitations);
 router.get('/:id/dashboard', ctrl.getExamDashboard);
 router.get('/:id/attempts', ctrl.listExamAttempts);
 router.get('/:id/attempts/:attemptId', ctrl.getExamAttempt);
+router.post('/:id/attempts/:attemptId/resend-invite', ctrl.resendAttemptInvite);
 
 /* Grade, review, publish */
 router.post('/:id/grade', ctrl.runGradingPass);

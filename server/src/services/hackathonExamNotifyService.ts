@@ -177,6 +177,43 @@ export async function sendInvitations(exam: IHackathonExam): Promise<SendCounts 
 }
 
 /**
+ * Send one candidate's invitation again, whether or not they have already had it.
+ *
+ * sendInvitations deliberately skips anyone already invited — pressing it twice must not
+ * message eight hundred people twice. That is right for the bulk button and useless for the
+ * case this exists for: the first invitation went out and was wrong, or never arrived, and
+ * the one person who needs it is the one the bulk send will now always skip.
+ *
+ * So this takes one attempt and ignores the flag. It goes through the same deliver() as the
+ * bulk send rather than composing its own message — a candidate who lost their link should
+ * get back exactly what everyone else got, not an admin-flavoured variant that drifts.
+ */
+export async function resendInvitation(
+  exam: IHackathonExam,
+  attempt: IHackathonExamAttempt,
+): Promise<SendCounts> {
+  const h = await Hackathon.findById(exam.hackathonId).lean() as any;
+  const eventTitle = h?.title || exam.title;
+  const channels = (exam.inviteChannels || []) as Channel[];
+  const counts: SendCounts = { email: 0, whatsapp: 0, failed: 0 };
+
+  const done = await deliver(
+    attempt, channels,
+    `${eventTitle} — your exam link`,
+    inviteHtml(attempt, exam, eventTitle),
+    [attempt.memberName, eventTitle, istWhen(exam.startAt)],
+    'hackathon_exam_invite',
+    counts,
+  );
+
+  if (done.email) attempt.invitesSent.email = true;
+  if (done.whatsapp) attempt.invitesSent.whatsapp = true;
+  if (done.email || done.whatsapp) await attempt.save();
+
+  return counts;
+}
+
+/**
  * Fire any reminder whose moment has arrived.
  *
  * Each configured offset is its own flag, keyed by the offset itself. Five reminders the day

@@ -10,7 +10,7 @@ import AssessmentItem from '../models/AssessmentItem';
 import * as exams from '../services/hackathonExamService';
 import { computeLeaderboard, computeTeamResult, drainGradingQueue } from '../services/hackathonExamGradingService';
 import { logger } from '../utils/logger';
-import { sendInvitations, sendResults } from '../services/hackathonExamNotifyService';
+import { sendInvitations, sendResults, resendInvitation } from '../services/hackathonExamNotifyService';
 
 /**
  * Running the hackathon exam: configure it, prove it can be drawn, invite the teams, watch it
@@ -228,11 +228,36 @@ export const listExamAttempts = async (req: AuthenticatedRequest, res: Response)
     const rows = await HackathonExamAttempt.find(filter)
       .sort({ submittedAt: -1, memberName: 1 })
       .limit(1000)
-      .select('memberName memberMobile memberEmail teamName registrationCode status startedAt submittedAt timeSpentSec score totalMarks percentage violationCount grading ipAddress')
+      .select('memberName memberMobile memberEmail teamName registrationCode status startedAt submittedAt timeSpentSec score totalMarks percentage violationCount grading ipAddress invitesSent')
       .lean();
 
     res.json({ success: true, data: rows });
   } catch (e) { fail(res, e, 'Failed to list attempts'); }
+};
+
+/**
+ * POST /:id/attempts/:attemptId/resend-invite — one candidate, again.
+ *
+ * The bulk send skips anyone already invited, which is correct for it and leaves no way to
+ * reach the person whose first invitation was wrong or never arrived. One at a time and
+ * never in bulk: each of these costs money, and a mistake here should cost one message.
+ */
+export const resendAttemptInvite = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const attempt = await HackathonExamAttempt.findOne({ _id: req.params.attemptId, examId: exam._id });
+    if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found.' });
+
+    const counts = await resendInvitation(exam, attempt);
+    if (!counts.email && !counts.whatsapp) {
+      return res.status(502).json({
+        success: false,
+        message: 'Neither channel accepted the message. Check the invite channels on this exam.',
+      });
+    }
+    const via = [counts.email && 'email', counts.whatsapp && 'WhatsApp'].filter(Boolean).join(' and ');
+    res.json({ success: true, message: `Invitation re-sent by ${via}.`, data: counts });
+  } catch (e) { fail(res, e, 'Failed to resend the invitation'); }
 };
 
 /** One candidate in full, violations included — what an admin opens when a team is flagged. */

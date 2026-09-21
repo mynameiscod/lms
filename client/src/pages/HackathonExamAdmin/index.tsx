@@ -521,7 +521,7 @@ const HackathonExamAdmin: React.FC = () => {
 
           <div className="hxa-tablewrap">
             <table className="hxa-table">
-              <thead><tr><th>Candidate</th><th>Team</th><th>Status</th><th>Started</th><th>Time</th><th>Score</th><th>Flags</th><th>Grading</th></tr></thead>
+              <thead><tr><th>Candidate</th><th>Team</th><th>Status</th><th>Started</th><th>Time</th><th>Score</th><th>Flags</th><th>Grading</th><th>Invite</th></tr></thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r._id} className={r.violationCount ? 'flagged' : ''}>
@@ -533,9 +533,21 @@ const HackathonExamAdmin: React.FC = () => {
                     <td>{r.score != null ? `${r.score}/${r.totalMarks ?? '?'}` : '—'}</td>
                     <td>{r.violationCount ? <span className="hxa-flag">{r.violationCount}</span> : '—'}</td>
                     <td><span className={`hxa-pill ${r.grading?.status}`}>{r.grading?.status}</span></td>
+                    <td>
+                      <button className="hxa-btn small" disabled={busy === `re${r._id}`}
+                        onClick={() => act(`re${r._id}`, () => api.resendInvite(examId, r._id),
+                          (c) => say(`Re-sent to ${r.memberName} — ${c.email} email, ${c.whatsapp} WhatsApp.`))}>
+                        {busy === `re${r._id}` ? 'Sending…' : 'Resend'}
+                      </button>
+                      <div className="hxa-dim">
+                        {r.invitesSent?.email || r.invitesSent?.whatsapp
+                          ? `sent: ${[r.invitesSent?.email && 'email', r.invitesSent?.whatsapp && 'WA'].filter(Boolean).join(' + ')}`
+                          : 'never sent'}
+                      </div>
+                    </td>
                   </tr>
                 ))}
-                {!rows.length && <tr><td colSpan={8} className="hxa-msg">Nobody matches that filter.</td></tr>}
+                {!rows.length && <tr><td colSpan={9} className="hxa-msg">Nobody matches that filter.</td></tr>}
               </tbody>
             </table>
           </div>

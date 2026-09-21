@@ -192,6 +192,10 @@ export const hackathonExamAdminApi = {
     return (await authenticatedFetch(`${ADMIN}/${id}/attempts${q ? `?${q}` : ''}`) as any)?.data || [];
   },
 
+  /** One candidate's invitation again — the bulk send skips anyone already invited. */
+  resendInvite: async (id: string, attemptId: string) =>
+    (await authenticatedFetch(`${ADMIN}/${id}/attempts/${attemptId}/resend-invite`, { method: 'POST' }) as any)?.data,
+
   attempt: async (id: string, attemptId: string) =>
     (await authenticatedFetch(`${ADMIN}/${id}/attempts/${attemptId}`) as any)?.data,
 

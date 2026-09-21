@@ -56,15 +56,14 @@
 .cps-benefit > span { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; flex: none; background: var(--tint); color: var(--primary); }
 .cps-benefit b { display: block; font-size: 14.5px; color: var(--navy); }
 .cps-benefit small { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+/* The picture's edges are already faded into the page by its mask, so a panel behind it only adds
+   empty bands above and below the figure. It sits on the page instead. */
 .cps-art {
-  margin-top: 18px; max-width: 620px; border-radius: 24px; overflow: hidden; display: flex; justify-content: center;
-  background:
-    radial-gradient(circle at 30% 35%, rgba(53, 154, 173, .16), transparent 50%),
-    linear-gradient(145deg, #ffffff 0%, #EEF5FC 60%, #E6F0FA 100%);
-  border: 1px solid var(--border); box-shadow: var(--shadow);
+  margin-top: 10px; max-width: 620px; display: flex; justify-content: center;
+  border-radius: 0; background: none; border: 0; box-shadow: none;
 }
 .cps-art img {
-  width: 100%; max-width: 440px; height: auto; display: block;
+  width: 100%; max-width: 500px; height: auto; display: block;
   -webkit-mask-image: radial-gradient(ellipse 74% 74% at 50% 50%, #000 62%, transparent 100%);
   mask-image: radial-gradient(ellipse 74% 74% at 50% 50%, #000 62%, transparent 100%);
 }

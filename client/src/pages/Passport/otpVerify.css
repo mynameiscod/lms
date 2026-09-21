@@ -51,16 +51,12 @@
 .cpv-benefits b { display: block; font-size: 15px; color: var(--navy); }
 .cpv-benefits small { display: block; margin-top: 2px; font-size: 13.5px; color: var(--muted); line-height: 1.45; }
 
+/* No panel behind the picture and the code card: two stacked surfaces read as a card inside a card. */
 .cpv-stage {
   position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, 470px); align-items: center;
-  padding: 28px 28px 28px 12px; border-radius: 32px;
-  background:
-    radial-gradient(circle at 28% 32%, rgba(53, 152, 173, .16), transparent 46%),
-    radial-gradient(circle at 18% 88%, rgba(31, 111, 235, .10), transparent 42%),
-    linear-gradient(145deg, #ffffff 0%, #f0f6fe 55%, #e7f1fc 100%);
-  border: 1px solid #e1eaf6; box-shadow: 0 30px 70px rgba(14, 27, 61, .08);
+  padding: 0; border-radius: 0; background: none; border: 0; box-shadow: none;
 }
-.cpv-visual { margin-right: -28px; display: flex; justify-content: center; }
+.cpv-visual { margin-right: 0; display: flex; justify-content: center; }
 .cpv-visual img {
   width: 100%; max-width: 600px; height: auto; display: block;
   -webkit-mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 62%, transparent 100%);

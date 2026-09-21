@@ -116,12 +116,12 @@
 .ska-v2-flow b { display: block; margin-top: 6px; font-size: 15.5px; color: var(--navy); }
 .ska-v2-flow small { display: block; margin-top: 2px; font-size: 13.5px; color: var(--muted); }
 
+/* No panel behind the picture and the start card: two stacked surfaces read as a card inside a card. */
 .ska-v2-stage {
   position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, 480px); align-items: center;
-  padding: 28px 28px 28px 12px; border-radius: 32px; border: 1px solid #E1EAF6; box-shadow: 0 30px 70px rgba(14, 27, 61, .08);
-  background: radial-gradient(circle at 28% 32%, rgba(53, 154, 173, .16), transparent 46%), radial-gradient(circle at 18% 88%, rgba(25, 118, 210, .10), transparent 42%), linear-gradient(145deg, #fff 0%, #F0F6FE 55%, #E7F1FC 100%);
+  padding: 0; border-radius: 0; border: 0; box-shadow: none; background: none;
 }
-.ska-v2-visual { margin-right: -28px; display: flex; justify-content: center; }
+.ska-v2-visual { margin-right: 0; display: flex; justify-content: center; }
 .ska-v2-visual img { width: 100%; max-width: 580px; height: auto; display: block; -webkit-mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 62%, transparent 100%); mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 62%, transparent 100%); }
 .ska-v2-card { position: relative; z-index: 1; background: #fff; border: 1px solid var(--line); border-radius: 24px; padding: 28px 28px 24px; box-shadow: 0 24px 60px rgba(14, 27, 61, .14); }
 .ska-v2-card-head { display: flex; align-items: center; gap: 14px; }

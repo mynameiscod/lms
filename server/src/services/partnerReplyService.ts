@@ -40,10 +40,28 @@ export function imapConfig(tid: string): ImapCfg | null {
 }
 
 function newClient(cfg: ImapCfg): ImapFlow {
-  return new ImapFlow({
+  const client = new ImapFlow({
     host: cfg.host, port: cfg.port, secure: cfg.port === 993,
     auth: { user: cfg.user, pass: cfg.pass }, logger: false,
+    // Fail a dead socket quickly rather than holding it until the TCP stack gives up.
+    socketTimeout: 60_000,
   });
+
+  /*
+   * An ImapFlow client is an EventEmitter, and an EventEmitter that emits 'error' with
+   * nobody listening takes the process down with it. That is not a theory: a socket
+   * timeout on this mailbox killed the whole platform in the middle of a live exam, and
+   * kept killing it, because the poller reconnects and the mailbox stayed unreachable.
+   *
+   * Reading a mailbox is a background convenience. It must never be able to stop people
+   * sitting an exam, so the error is logged and the poll is simply lost — the next tick
+   * tries again.
+   */
+  client.on('error', (e: any) => {
+    console.error('[partner-reply] IMAP error (ignored, poll will retry):', e?.code || '', e?.message || e);
+  });
+
+  return client;
 }
 
 /** Verify the mailbox connects + INBOX opens. Used by the settings "Test IMAP" button. */

@@ -506,7 +506,25 @@ const HackathonExamAdmin: React.FC = () => {
                   <b>3 · Send the links</b>
                   <span>Email and WhatsApp, skipping anyone already invited</span>
                   <button className="hxa-btn small" disabled={busy === 'inv'}
-                    onClick={() => act('inv', () => api.invite(examId), (r) => say(`Sent — ${r.email} email, ${r.whatsapp} WhatsApp${r.failed ? `, ${r.failed} failed` : ''}.`))}>
+                    onClick={() => act('inv', () => api.invite(examId), (r) => {
+                      /*
+                       * Say WHY nothing went.
+                       *
+                       * This skips anyone already invited, which is right — pressing it twice must
+                       * not message eight hundred people twice. But it reported only what it sent,
+                       * so a run that skipped everybody said "Sent — 0 email, 0 WhatsApp" and read
+                       * as a broken button. The skipped count was in the response all along and
+                       * the screen was throwing it away.
+                       */
+                      const sent = (r.email || 0) + (r.whatsapp || 0);
+                      if (!sent && r.skipped) {
+                        say(`Nobody new to invite — all ${r.skipped} already have theirs. To send one again, use Resend on that candidate's row.`);
+                      } else {
+                        say(`Sent — ${r.email} email, ${r.whatsapp} WhatsApp`
+                          + `${r.skipped ? `, ${r.skipped} already had theirs` : ''}`
+                          + `${r.failed ? `, ${r.failed} failed` : ''}.`);
+                      }
+                    })}>
                     {busy === 'inv' ? 'Sending…' : 'Send invitations'}
                   </button>
                 </div>
@@ -636,7 +654,14 @@ const HackathonExamAdmin: React.FC = () => {
                 {busy === 'pub' ? 'Publishing…' : 'Publish results'}
               </button>
               <button className="hxa-btn" disabled={busy === 'send' || !exam?.publishedAt}
-                onClick={() => act('send', () => api.sendResults(examId), (r) => say(`Sent — ${r.email} email, ${r.whatsapp} WhatsApp.`))}>
+                onClick={() => act('send', () => api.sendResults(examId), (r) => {
+                  const sent = (r.email || 0) + (r.whatsapp || 0);
+                  say(!sent && r.skipped
+                    ? `Nobody new — all ${r.skipped} already have their result.`
+                    : `Sent — ${r.email} email, ${r.whatsapp} WhatsApp`
+                      + `${r.skipped ? `, ${r.skipped} already had theirs` : ''}`
+                      + `${r.failed ? `, ${r.failed} failed` : ''}.`);
+                })}>
                 {busy === 'send' ? 'Sending…' : 'Send results'}
               </button>
             </div>

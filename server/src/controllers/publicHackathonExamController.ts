@@ -332,9 +332,25 @@ export const examHeartbeat = async (req: Request, res: Response) => {
       return res.json({ success: true, data: { submitted: true, reason: 'TIME_UP', serverNow: now } });
     }
 
-    attempt.lastHeartbeat = now;
-    attempt.activeSessionId = sessionId || attempt.activeSessionId;
-    await attempt.save();
+    /*
+     * Stamp two fields, do not rewrite the paper.
+     *
+     * attempt.save() writes the WHOLE document — all thirty-one drawn questions and every
+     * answer, including code — to record a timestamp. Every twenty seconds, per candidate.
+     * With sixty-odd people sitting, that alone saturated the server on 22 Sep: the event
+     * loop had no time left to serve the JavaScript bundle, so students got blank screens.
+     *
+     * It also collided with real answer saves. Both wrote the same document, Mongoose's
+     * version check failed the loser, and a candidate's answer came back 500 after a minute
+     * — losing work to a heartbeat.
+     *
+     * A targeted $set touches neither answers nor the version, so it cannot race with an
+     * answer save and cannot lose one.
+     */
+    await HackathonExamAttempt.updateOne(
+      { _id: attempt._id },
+      { $set: { lastHeartbeat: now, ...(sessionId ? { activeSessionId: sessionId } : {}) } },
+    );
     res.json({ success: true, data: { submitted: false, endsAt: attempt.expiresAt, serverNow: now } });
   } catch (e) { fail(res, e); }
 };

@@ -383,22 +383,62 @@ export async function saveAnswer(
   const drawn = attempt.drawnItems.find(d => String(d.itemId) === String(itemId));
   if (!drawn) throw new ExamError('NOT_IN_PAPER', 'That question is not part of your paper.', 400);
 
-  let answer = attempt.answers.find(a => String(a.itemId) === String(itemId));
-  if (!answer) {
-    answer = {
-      itemId: drawn.itemId, sectionKey: drawn.sectionKey, runCount: 0, graded: false,
-    } as IAttemptAnswer;
-    attempt.answers.push(answer);
-    answer = attempt.answers[attempt.answers.length - 1];
+  /*
+   * Write ONE answer, not the whole paper.
+   *
+   * attempt.save() rewrote the entire document on every autosave — thirty-one drawn
+   * questions and every answer, code included — to record a few characters somebody had
+   * just typed. With ninety people writing at once that is what took the platform down on
+   * 22 Sep: not the volume of requests, which was modest, but the size of each write.
+   *
+   * It also raced. Two writes to the same document meant Mongoose's version check failed
+   * the loser, and a candidate's answer came back as a 500 — losing real work to a
+   * concurrent heartbeat.
+   *
+   * A positional $set touches one element of one array and does not carry the version, so
+   * it cannot fail that way and cannot overwrite an answer to a different question.
+   */
+  const now = new Date();
+  const set: Record<string, unknown> = { 'answers.$.answeredAt': now };
+  if (patch.selectedOptionIds !== undefined) set['answers.$.selectedOptionIds'] = patch.selectedOptionIds;
+  if (patch.code !== undefined) set['answers.$.code'] = patch.code;
+  if (patch.language !== undefined) set['answers.$.language'] = patch.language;
+  if (patch.text !== undefined) set['answers.$.text'] = patch.text;
+
+  const hit = await HackathonExamAttempt.updateOne(
+    { _id: attempt._id, 'answers.itemId': drawn.itemId },
+    { $set: set },
+  );
+
+  /*
+   * No element yet — the first time this question is answered. Guarded on the element still
+   * being absent, so two saves arriving together create it once rather than twice.
+   */
+  if (!hit.matchedCount) {
+    await HackathonExamAttempt.updateOne(
+      { _id: attempt._id, 'answers.itemId': { $ne: drawn.itemId } },
+      {
+        $push: {
+          answers: {
+            itemId: drawn.itemId,
+            sectionKey: drawn.sectionKey,
+            runCount: 0,
+            graded: false,
+            answeredAt: now,
+            ...(patch.selectedOptionIds !== undefined ? { selectedOptionIds: patch.selectedOptionIds } : {}),
+            ...(patch.code !== undefined ? { code: patch.code } : {}),
+            ...(patch.language !== undefined ? { language: patch.language } : {}),
+            ...(patch.text !== undefined ? { text: patch.text } : {}),
+          } as any,
+        },
+      },
+    );
+    /* If the guard lost the race the element now exists, so apply the fields to it. */
+    await HackathonExamAttempt.updateOne(
+      { _id: attempt._id, 'answers.itemId': drawn.itemId },
+      { $set: set },
+    );
   }
-
-  if (patch.selectedOptionIds !== undefined) answer.selectedOptionIds = patch.selectedOptionIds;
-  if (patch.code !== undefined) answer.code = patch.code;
-  if (patch.language !== undefined) answer.language = patch.language;
-  if (patch.text !== undefined) answer.text = patch.text;
-  answer.answeredAt = new Date();
-
-  await attempt.save();
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════

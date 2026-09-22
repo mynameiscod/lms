@@ -68,6 +68,7 @@ export function useProctorRecorder(opts: {
   const seqRef = useRef(0);
   const queue = useRef<Blob[]>([]);
   const sending = useRef(false);
+  const stopRef = useRef<() => void>(() => {});
   const stateRef = useRef(onState);
   stateRef.current = onState;
 
@@ -87,6 +88,13 @@ export function useProctorRecorder(opts: {
           method: 'POST', body: fd,
         });
         if (r.ok) setChunks(seqRef.current);
+        /*
+         * 410 means the organisers switched recording off while this paper was running.
+         * Stop immediately and drop anything queued — during an incident the whole point
+         * of that switch is that it reaches tabs already recording, and a client that
+         * keeps uploading regardless makes the switch useless.
+         */
+        if (r.status === 410) { queue.current.length = 0; stopRef.current(); break; }
       } catch { /* the paper carries on; the gap shows in the count a reviewer sees */ }
     }
     sending.current = false;
@@ -160,6 +168,8 @@ export function useProctorRecorder(opts: {
 
   /* Tracks are a device in use. Leaving one running because a component unmounted leaves a
      camera light on somebody's laptop after their exam, which is its own kind of wrong. */
+  stopRef.current = stop;
+
   useEffect(() => () => { stop(); }, [stop]);
 
   return { state, chunks, stream, start, stop };

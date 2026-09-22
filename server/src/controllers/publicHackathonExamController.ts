@@ -506,6 +506,22 @@ export const uploadRecordingChunk = async (req: Request, res: Response) => {
       return res.status(503).json({ success: false, message: 'Recording storage is not configured.' });
     }
 
+    /*
+     * Recording switched off means stop, now, for papers already in flight.
+     *
+     * Turning the camera off only stopped NEW candidates from starting a recorder: every
+     * browser already recording kept uploading, and on 22 Sep that kept the app saturated
+     * through a live exam with no way to stop it short of an nginx rule. The switch has to
+     * reach the tabs that are already running, and this is the only request they make.
+     *
+     * 410 rather than 503: this is not a failure to be retried, it is an instruction to
+     * stop. The client hears it and shuts the camera down.
+     */
+    const exam = await exams.examForAttempt(attempt);
+    if (!exam?.proctoring?.camera?.enabled) {
+      return res.status(410).json({ success: false, code: 'RECORDING_OFF', message: 'Recording is switched off for this exam.' });
+    }
+
     const { bytes } = await putChunk(String(attempt.examId), String(attempt._id), seq, file.buffer);
     attempt.recording.chunks = Math.max(attempt.recording.chunks || 0, seq);
     attempt.recording.bytes = (attempt.recording.bytes || 0) + bytes;

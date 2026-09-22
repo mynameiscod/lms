@@ -37,9 +37,24 @@ export const connectDB = async (): Promise<void> => {
     console.log(`🔗 Connecting to MongoDB: ${redactMongoUri(mongoURI)}`);
 
     const connection = await mongoose.connect(mongoURI, {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 5000,
-      connectTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
+      /*
+       * A five-second socket timeout is a five-second ceiling on every database operation.
+       *
+       * That is generous when writes are small and fatal when they are not: under a live
+       * exam the larger writes ran past five seconds, were killed mid-flight, retried, and
+       * ran past it again. The retries were the load. Requests sat for three minutes behind
+       * that churn while the CPU idled at 200%, because nothing was working — everything was
+       * waiting on an operation that kept being cut.
+       *
+       * Forty-five seconds is long enough that a slow write finishes instead of thrashing,
+       * and short enough that a genuinely dead socket is still noticed.
+       */
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
+      /* Explicit, so the ceiling is a decision rather than whatever the driver defaults to. */
+      maxPoolSize: 50,
+      minPoolSize: 5,
       retryWrites: false
     });
 

@@ -32,7 +32,7 @@ const esc = (s: string): string =>
  * lookup accepts, and it avoids the characters people misread when reading it aloud — which
  * is what makes it safe to put in a URL somebody may retype from a phone screen.
  */
-const publicBase = (tenantId?: string): string =>
+export const publicBase = (tenantId?: string): string =>
   (settings.getStr('PUBLIC_SITE_URL', '', tenantId)
     || settings.getStr('CLIENT_URL', '', tenantId)
     || 'https://platform.codebegun.com').replace(/\/+$/, '');

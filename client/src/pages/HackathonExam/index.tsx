@@ -101,7 +101,24 @@ const hideImg = (ev: React.SyntheticEvent<HTMLImageElement>) => { ev.currentTarg
 
 const cleanToken = (t?: string): string => (t || '').replace(/^\{\{\d+\}\}/, '').trim();
 
+/*
+ * The exam token survives the tab closing, on purpose.
+ *
+ * Most candidates open their link from WhatsApp, which runs its own in-app browser. A
+ * message arriving, or the screen locking, can tear that tab down — and with sessionStorage
+ * the token died with it, dropping somebody mid-exam back to a form asking for an event slug
+ * and a team code they have never seen. Their verification is already recorded server-side,
+ * so nothing is re-proved by making them start again; it was only the tab that forgot.
+ *
+ * It is cleared on submit, so a shared lab machine does not hand the next candidate the last
+ * one's paper.
+ */
 const TOKEN_KEY = 'hx-exam-token';
+const keep = {
+  get: (): string => { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } },
+  set: (v: string) => { try { localStorage.setItem(TOKEN_KEY, v); } catch { /* private mode */ } },
+  clear: () => { try { localStorage.removeItem(TOKEN_KEY); } catch { /* private mode */ } },
+};
 
 const HackathonExam: React.FC = () => {
   const { slug: routeSlug, token: routeToken } = useParams();
@@ -119,7 +136,7 @@ const HackathonExam: React.FC = () => {
   const [masked, setMasked] = useState('');
 
   /* the paper */
-  const [token, setToken] = useState(cleanToken(routeToken) || sessionStorage.getItem(TOKEN_KEY) || '');
+  const [token, setToken] = useState(cleanToken(routeToken) || keep.get());
   const [overview, setOverview] = useState<ExamOverview | null>(null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [activeSection, setActiveSection] = useState('');
@@ -196,7 +213,7 @@ const HackathonExam: React.FC = () => {
         if (token) { await loadOverview(token); return; }
         setPhase('entry');
       } catch (e: any) {
-        sessionStorage.removeItem(TOKEN_KEY);
+        keep.clear();
         setToken('');
         setPhase('entry');
         setErr(e.message || '');
@@ -220,7 +237,7 @@ const HackathonExam: React.FC = () => {
     setBusy(true); setErr('');
     try {
       const r = await api.verifyOtp(slug, teamCode, mobile, otp);
-      sessionStorage.setItem(TOKEN_KEY, r.examToken);
+      keep.set(r.examToken);
       setToken(r.examToken);
       await loadOverview(r.examToken);
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
@@ -292,7 +309,14 @@ const HackathonExam: React.FC = () => {
       setAnswers(seeded);
       setEndsAt(new Date(r.endsAt));
       setSkewMs(new Date(r.serverNow).getTime() - Date.now());
-      setActiveSection(r.questions[0]?.sectionKey || '');
+      /*
+       * Open on the section the exam declares first, not on whichever question happened to be
+       * drawn first. Those are not the same: the draw is shuffled, so candidates were landing
+       * on the coding problem — the hardest thing in the paper and worth 20 of 50 marks — as
+       * the first thing they saw, with no indication the thirty questions existed. They can
+       * still switch whenever they like; this only decides where they start.
+       */
+      setActiveSection(overview?.exam.sections[0]?.key || r.questions[0]?.sectionKey || '');
       setIdx(0);
       setPhase('exam');
       if (overview?.exam.proctoring?.fullscreen?.required) {
@@ -425,6 +449,7 @@ const HackathonExam: React.FC = () => {
       /* The light goes out when the paper does. A camera still running after submit is a
          camera nobody agreed to. */
       stopRecRef.current();
+      keep.clear();
       document.exitFullscreen?.().catch(() => {});
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   }, [token]);

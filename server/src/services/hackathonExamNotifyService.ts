@@ -1,4 +1,5 @@
 import HackathonExam, { IHackathonExam } from '../models/HackathonExam';
+import { publicBase } from './hackathonNoticeService';
 import HackathonExamAttempt, { IHackathonExamAttempt } from '../models/HackathonExamAttempt';
 import Hackathon from '../models/Hackathon';
 import { EmailService } from './emailService';
@@ -28,8 +29,14 @@ import { logger } from '../utils/logger';
 const emailService = new EmailService();
 
 const examUrl = (token: string): string => {
-  const base = settings.getStr('PUBLIC_APP_URL', process.env.PUBLIC_APP_URL || 'https://app.codebegun.com');
-  return `${String(base).replace(/\/+$/, '')}/hackathon-exam/${token}`;
+  /*
+   * The same base every other outbound link uses. This resolved through its own key with its
+   * own fallback — app.codebegun.com — a host that does not exist and never has, so every
+   * exam link ever emailed went to a DNS error while the payment links beside them worked.
+   * One resolver now, because two conventions means one of them is wrong and nobody finds out
+   * until a candidate cannot open their paper.
+   */
+  return `${publicBase()}/hackathon-exam/${token}`;
 };
 
 const istWhen = (d: Date | string): string =>

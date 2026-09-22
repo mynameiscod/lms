@@ -554,3 +554,56 @@
   .hx-grid { grid-template-columns: repeat(6, 1fr); }
   .hx-bar-sub { display: none; }
 }
+
+/* ── countdown + instructions, tightened ───────────────────────────────────────
+   Both pages were laid out for a phone and then left to stretch. On a desktop the
+   content floated in the middle of an empty field with no edge anywhere, which is
+   what made them read as unfinished rather than as a page.
+
+   The fix is a frame, not more content: a navy bar to close the top, a contained
+   column so the eye has a boundary, and less air between blocks that belong
+   together. */
+
+/* The bar across the top, as in the design. */
+.hxg-nav {
+  background: linear-gradient(100deg,#0a1a4f,#12276e 60%,#1a3fa0);
+  padding: 13px 26px; gap: 14px; margin-bottom: 0;
+}
+.hxg-nav img { height: 28px; background: #fff; border-radius: 7px; padding: 4px 8px; }
+.hxg-nav span { color: #b9cdf0; font-size: 12.5px; }
+
+/* One contained column rather than three things drifting apart. */
+.hxg { background: #eef4fb; padding-bottom: 30px; }
+.hxg-grid { padding-top: 26px; gap: 30px; align-items: center; }
+.hxg-intro h1 { font-size: 38px; }
+.hxg-script { margin-top: 20px; font-size: 23px; }
+.hxg-card { padding: 26px 24px; }
+.hxg-glyph { width: 68px; height: 68px; margin-bottom: 13px; }
+.hxg-glyph svg { width: 32px; height: 32px; }
+.hxg-card h2 { font-size: 19px; }
+.hxg-clock > div { min-width: 70px; padding: 9px 6px; }
+.hxg-clock b { font-size: 24px; }
+.hxg-band { margin-top: 26px; }
+.hxg-feats { margin-top: 26px; gap: 16px; }
+
+/* The three points become cards, so the row reads as a band and not as text
+   abandoned under the fold. */
+.hxg-feat {
+  background: #fff; border: 1px solid #e3ebf6; border-radius: 14px;
+  padding: 15px 16px; box-shadow: 0 2px 10px rgba(15,37,87,.05);
+}
+.hxg-foot { margin-top: 24px; padding-top: 16px; }
+
+/* Instructions: the same treatment. A 900px column on a 2560px screen is correct
+   for reading and looked abandoned because nothing framed it. */
+.hxi-body { max-width: 940px; margin-top: 18px; }
+.hxi-band { max-width: 940px; margin-top: 18px; }
+.hxi-card { padding: 24px; }
+.hxi-sec { padding-bottom: 17px; margin-bottom: 17px; }
+.hxi-sec:last-of-type { border-bottom: 0; padding-bottom: 4px; margin-bottom: 4px; }
+.hxi-top { padding: 18px 26px; }
+.hxi-title h1 { font-size: 26px; }
+
+/* Wide screens: hold the header to the same width as the card beneath it, so the
+   page has one column and not a header that spans further than its own content. */
+.hxi-top, .hxi-strip { --hxi-w: 940px; }

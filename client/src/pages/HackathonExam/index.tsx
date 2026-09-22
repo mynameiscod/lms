@@ -171,8 +171,17 @@ const HackathonExam: React.FC = () => {
     const o = await api.overview(t);
     setOverview(o);
     setActiveSection((s) => s || o.exam.sections[0]?.key || '');
-    if (o.attempt.submittedAt) { setPhase('submitted'); return; }
+    /*
+     * Clear the error on every path that is not itself an error.
+     *
+     * The gate writes its reason into `err`, and the instructions screen renders `err` as a
+     * red banner. Nothing cleared it in between, so a candidate who waited out the countdown
+     * arrived at the instructions with "The exam has not started yet." in red above the
+     * button that starts it — contradicting the page it was sitting on.
+     */
+    if (o.attempt.submittedAt) { setErr(''); setPhase('submitted'); return; }
     if (o.gate && !o.attempt.startedAt) { setPhase('gate'); setErr(o.gate.message); return; }
+    setErr('');
     setPhase('instructions');
   }, []);
 

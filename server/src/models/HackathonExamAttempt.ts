@@ -123,6 +123,14 @@ export interface IHackathonExamAttempt extends Document {
   /** Credential for the exam link. Issued at invite, unique across the whole collection. */
   examToken: string;
   otpVerifiedAt?: Date | null;
+  /**
+   * Set when an admin verified this candidate by hand instead of by code.
+   *
+   * This exam is sat remotely, so nobody saw the person. A manual verification is therefore
+   * an assertion that somebody trusted them, not a check that was performed — and it must
+   * be visible as that, on the attempt, next to the score it made possible.
+   */
+  otpVerifiedBy?: string;
 
   status: AttemptStatus;
 
@@ -242,6 +250,7 @@ const HackathonExamAttemptSchema = new Schema<IHackathonExamAttempt>({
 
   examToken:     { type: String, required: true, unique: true, index: true },
   otpVerifiedAt: { type: Date, default: null },
+  otpVerifiedBy: { type: String },
 
   status: {
     type: String,

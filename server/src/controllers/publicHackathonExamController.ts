@@ -96,7 +96,7 @@ export const requestExamOtp = async (req: Request, res: Response) => {
     if (!exam) throw new ExamError('NOT_FOUND', 'We could not match that team code and mobile number.', 404);
 
     const attempt = await exams.findAttemptByTeamCode(String(exam._id), teamCode, mobile);
-    const r = await sendOtp(String(exam.tenantId), attempt.examToken, attempt.memberMobile);
+    const r = await sendOtp(String(exam.tenantId), attempt.examToken, attempt.memberMobile, attempt.memberEmail);
 
     res.json({
       success: true,
@@ -158,7 +158,7 @@ export const verifyExamOtp = async (req: Request, res: Response) => {
 export const requestExamOtpByToken = async (req: Request, res: Response) => {
   try {
     const attempt = await exams.attemptByToken(req.params.token);
-    const r = await sendOtp(String(attempt.tenantId), attempt.examToken, attempt.memberMobile);
+    const r = await sendOtp(String(attempt.tenantId), attempt.examToken, attempt.memberMobile, attempt.memberEmail);
     res.json({
       success: true,
       data: {

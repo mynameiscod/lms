@@ -190,8 +190,8 @@ export const hackathonExamAdminApi = {
   provision: async (id: string) =>
     (await authenticatedFetch(`${ADMIN}/${id}/provision`, { method: 'POST', body: '{}' }) as any)?.data,
 
-  invite: async (id: string) =>
-    (await authenticatedFetch(`${ADMIN}/${id}/invite`, { method: 'POST', body: '{}' }) as any)?.data,
+  invite: async (id: string, resend = false) =>
+    (await authenticatedFetch(`${ADMIN}/${id}/invite?resend=${resend}`, { method: 'POST', body: '{}' }) as any)?.data,
 
   dashboard: async (id: string) => (await authenticatedFetch(`${ADMIN}/${id}/dashboard`) as any)?.data,
 
@@ -221,6 +221,16 @@ export const hackathonExamAdminApi = {
 
   deleteRecording: async (id: string, attemptId: string) =>
     (await authenticatedFetch(`${ADMIN}/${id}/attempts/${attemptId}/recording`, { method: 'DELETE' }) as any)?.data,
+
+  /** Let a candidate start without a code. Records who allowed it. */
+  verifyAttempt: async (id: string, attemptId: string) =>
+    (await authenticatedFetch(`${ADMIN}/${id}/attempts/${attemptId}/verify`, { method: 'POST' }) as any),
+
+  /** Correct a mistyped mobile. Clears any verification against the old number. */
+  setAttemptMobile: async (id: string, attemptId: string, mobile: string) =>
+    (await authenticatedFetch(`${ADMIN}/${id}/attempts/${attemptId}/mobile`, {
+      method: 'PATCH', body: JSON.stringify({ mobile }),
+    }) as any),
 
   /** One candidate's invitation again — the bulk send skips anyone already invited. */
   resendInvite: async (id: string, attemptId: string) =>

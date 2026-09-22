@@ -329,23 +329,39 @@ async function deliver(
  * Skips anyone already invited on that channel, so pressing the button twice — or pressing it
  * again after more teams register — reaches only the people who still need it.
  */
-export async function sendInvitations(exam: IHackathonExam): Promise<SendCounts & { skipped: number }> {
+export async function sendInvitations(
+  exam: IHackathonExam,
+  opts: { resend?: boolean } = {},
+): Promise<SendCounts & { skipped: number }> {
   const h = await Hackathon.findById(exam.hackathonId).lean() as any;
   const eventTitle = h?.title || exam.title;
   const channels = (exam.inviteChannels || []) as Channel[];
   const counts: SendCounts = { email: 0, whatsapp: 0, failed: 0 };
   let skipped = 0;
 
-  const pending = await HackathonExamAttempt.find({
-    examId: exam._id,
-    $or: [
-      ...(channels.includes('email') ? [{ 'invitesSent.email': { $ne: true } }] : []),
-      ...(channels.includes('whatsapp') ? [{ 'invitesSent.whatsapp': { $ne: true } }] : []),
-    ],
-  }).limit(5000);
+  /*
+   * `resend` sends to everyone again, flags and all.
+   *
+   * Skipping the already-invited is the right default — a double click must not message a
+   * cohort twice. It is the wrong behaviour when the first batch was wrong, which has now
+   * happened twice: once with a stray {{1}} in the link and once with a host that did not
+   * exist. The operator decides which of those they are doing; the screen asks them, and
+   * tells them how many people it is about to message.
+   */
+  const pending = await HackathonExamAttempt.find(
+    opts.resend
+      ? { examId: exam._id }
+      : {
+        examId: exam._id,
+        $or: [
+          ...(channels.includes('email') ? [{ 'invitesSent.email': { $ne: true } }] : []),
+          ...(channels.includes('whatsapp') ? [{ 'invitesSent.whatsapp': { $ne: true } }] : []),
+        ],
+      },
+  ).limit(5000);
 
   for (const a of pending) {
-    const need = channels.filter(c => !a.invitesSent?.[c]);
+    const need = opts.resend ? channels : channels.filter(c => !a.invitesSent?.[c]);
     if (!need.length) { skipped++; continue; }
 
     const done = await deliver(

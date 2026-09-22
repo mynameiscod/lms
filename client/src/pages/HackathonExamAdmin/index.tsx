@@ -518,7 +518,7 @@ const HackathonExamAdmin: React.FC = () => {
                        */
                       const sent = (r.email || 0) + (r.whatsapp || 0);
                       if (!sent && r.skipped) {
-                        say(`Nobody new to invite — all ${r.skipped} already have theirs. To send one again, use Resend on that candidate's row.`);
+                        say(`Nobody new to invite — all ${r.skipped} already have theirs. Use "Send to everyone again" to send anyway.`);
                       } else {
                         say(`Sent — ${r.email} email, ${r.whatsapp} WhatsApp`
                           + `${r.skipped ? `, ${r.skipped} already had theirs` : ''}`
@@ -526,6 +526,22 @@ const HackathonExamAdmin: React.FC = () => {
                       }
                     })}>
                     {busy === 'inv' ? 'Sending…' : 'Send invitations'}
+                  </button>
+                  {/* Sends again to everybody, flags ignored. Confirmed with a count, because
+                      the number of people about to be messaged is the thing worth knowing. */}
+                  <button className="hxa-btn small" disabled={busy === 'inv2'}
+                    onClick={() => {
+                      const n = readiness?.provisionedCandidates ?? readiness?.provisionedTeams ?? 0;
+                      if (!window.confirm(
+                        `Send the invitation again to EVERY candidate on this exam${n ? ` (${n})` : ''}?
+
+`
+                        + 'Anyone who already had one gets another. Use this when the first batch was wrong.',
+                      )) return;
+                      act('inv2', () => api.invite(examId, true),
+                        (r) => say(`Sent again — ${r.email} email, ${r.whatsapp} WhatsApp${r.failed ? `, ${r.failed} failed` : ''}.`));
+                    }}>
+                    {busy === 'inv2' ? 'Sending…' : 'Send to everyone again'}
                   </button>
                 </div>
               </>
@@ -625,6 +641,32 @@ const HackathonExamAdmin: React.FC = () => {
                         {r.invitesSent?.email || r.invitesSent?.whatsapp
                           ? `sent: ${[r.invitesSent?.email && 'email', r.invitesSent?.whatsapp && 'WA'].filter(Boolean).join(' + ')}`
                           : 'never sent'}
+                      </div>
+                      <div className="hxa-rescue">
+                        {!r.otpVerifiedAt && !r.submittedAt && (
+                          <button className="hxa-link" disabled={busy === `v${r._id}`}
+                            onClick={() => {
+                              if (!window.confirm(
+                                `Let ${r.memberName} start WITHOUT a code?
+
+`
+                                + 'This exam is sat remotely, so nobody has seen them. You are vouching for '
+                                + 'them, and your name is recorded against it.',
+                              )) return;
+                              act(`v${r._id}`, () => api.verifyAttempt(examId, r._id),
+                                (r) => say(r?.message || 'Verified.'));
+                            }}>Let them in without a code</button>
+                        )}
+                        {r.otpVerifiedBy && <span className="hxa-waived">let in by {r.otpVerifiedBy}</span>}
+                        {!r.submittedAt && (
+                          <button className="hxa-link" disabled={busy === `m${r._id}`}
+                            onClick={() => {
+                              const next = window.prompt(`New mobile for ${r.memberName}`, r.memberMobile || '');
+                              if (!next) return;
+                              act(`m${r._id}`, () => api.setAttemptMobile(examId, r._id, next),
+                                (r) => say(r?.message || 'Number changed.'));
+                            }}>Fix number</button>
+                        )}
                       </div>
                     </td>
                   </tr>

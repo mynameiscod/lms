@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import AssessmentOtp from '../models/AssessmentOtp';
 import LeadSourceConfig from '../models/LeadSourceConfig';
 import * as settings from './settingsService';
+import { EmailService } from './emailService';
 import { getDecryptedTokens } from '../controllers/leadSourceConfigController';
 
 /**
@@ -280,7 +281,7 @@ export async function sendWhatsAppText(
 
 export interface OtpSendResult {
   sent: boolean;
-  channel: 'whatsapp' | 'none';
+  channel: 'whatsapp' | 'email' | 'none';
   devCode?: string;       // present when no channel is configured, or for an allowlisted test number
   throttledSeconds?: number;
   /** True when the code was withheld deliberately because this is a configured test number. */
@@ -304,7 +305,9 @@ function isTestNumber(tenantId: string, phone: string): boolean {
 }
 
 /** Create (or refresh) and send an OTP for a submission token. */
-export async function sendOtp(tenantId: string, token: string, phone: string): Promise<OtpSendResult> {
+const emailService = new EmailService();
+
+export async function sendOtp(tenantId: string, token: string, phone: string, email?: string): Promise<OtpSendResult> {
   const existing = await AssessmentOtp.findOne({ token });
   if (existing && Date.now() - existing.lastSentAt.getTime() < RESEND_THROTTLE_MS) {
     return { sent: false, channel: 'none', throttledSeconds: Math.ceil((RESEND_THROTTLE_MS - (Date.now() - existing.lastSentAt.getTime())) / 1000) };
@@ -344,8 +347,38 @@ export async function sendOtp(tenantId: string, token: string, phone: string): P
     // else try the next credential set (e.g. env fallback when the CRM token is dead)
   }
 
-  // No channel configured / send failed → expose code for dev/testing.
-  console.warn(`[assessment-otp] WhatsApp unavailable for tenant ${tenantId}; OTP for ${phone} = ${code}`);
+  /*
+   * WhatsApp did not take it. Try email before giving up.
+   *
+   * This was the whole delivery path: one channel, and a candidate whose WhatsApp was on a
+   * different number, or absent, or throttled by Meta that morning, simply could not sit the
+   * exam. There was no second channel and no way for anyone to help them. The address is
+   * already on the record and SES already works, so the fallback costs nothing and removes
+   * most of the cases where somebody is stranded.
+   */
+  if (email) {
+    try {
+      const ok = await emailService.sendGenericEmail(
+        email,
+        `Your CodeBegun verification code is ${code}`,
+        `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px;color:#0f172a">
+           <p>Your verification code is:</p>
+           <p style="font-size:30px;font-weight:800;letter-spacing:7px;margin:14px 0">${code}</p>
+           <p style="color:#64748b;font-size:13px">It is valid for 10 minutes. We sent this by email
+              because we could not reach your WhatsApp number. If you did not ask for it, ignore it.</p>
+         </div>`,
+      );
+      if (ok) {
+        console.warn(`[assessment-otp] WhatsApp failed for ${phone}; code sent to ${email} instead.`);
+        return { sent: true, channel: 'email' };
+      }
+    } catch (e: any) {
+      console.error('[assessment-otp] email fallback failed:', e?.message);
+    }
+  }
+
+  // Nothing worked. The code is logged so somebody can still be helped by hand.
+  console.warn(`[assessment-otp] no channel delivered for tenant ${tenantId}; OTP for ${phone} = ${code}`);
   return { sent: false, channel: 'none', devCode: code };
 }
 

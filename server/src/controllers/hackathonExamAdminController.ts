@@ -229,7 +229,7 @@ export const listExamAttempts = async (req: AuthenticatedRequest, res: Response)
     const rows = await HackathonExamAttempt.find(filter)
       .sort({ submittedAt: -1, memberName: 1 })
       .limit(1000)
-      .select('memberName memberMobile memberEmail teamName registrationCode status startedAt submittedAt timeSpentSec score totalMarks percentage violationCount grading ipAddress invitesSent')
+      .select('memberName memberMobile memberEmail teamName registrationCode status startedAt submittedAt timeSpentSec score totalMarks percentage violationCount grading ipAddress invitesSent otpVerifiedAt otpVerifiedBy recording')
       .lean();
 
     res.json({ success: true, data: rows });
@@ -397,7 +397,7 @@ export const getExamReadiness = async (req: AuthenticatedRequest, res: Response)
 export const sendExamInvitations = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const exam = await examOr404(req);
-    const counts = await sendInvitations(exam);
+    const counts = await sendInvitations(exam, { resend: String(req.query.resend || req.body?.resend || '') === 'true' });
     res.json({
       success: true,
       message: `Invitations sent — ${counts.email} email, ${counts.whatsapp} WhatsApp.`,
@@ -507,4 +507,88 @@ export const deleteAttemptRecording = async (req: AuthenticatedRequest, res: Res
     await attempt.save();
     res.json({ success: true, message: `${removed} chunk(s) deleted.`, data: { removed } });
   } catch (e) { fail(res, e, 'Could not delete that recording'); }
+};
+
+/**
+ * POST /:id/attempts/:attemptId/verify — let a candidate in without a code.
+ *
+ * ── WHAT THIS ACTUALLY IS ─────────────────────────────────────────────────────────────────
+ *
+ * The OTP proves the person holds the registered phone. This exam is sat remotely, so an
+ * admin pressing this has not seen anybody: it is not a check performed by other means, it
+ * is that check waived. Worth being plain about, because the button will be pressed under
+ * pressure by somebody who just wants the candidate to get on with it.
+ *
+ * So it records WHO waived it. The name sits on the attempt and shows in the candidate list
+ * beside the score it made possible, which is the only thing that makes it reviewable
+ * afterwards. An unattributed waiver is indistinguishable from a bypass.
+ *
+ * It is deliberately per-candidate. There is no "verify everyone", because the one case
+ * where that gets used is the case where nobody checked anything at all.
+ */
+export const verifyAttemptManually = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const attempt = await HackathonExamAttempt.findOne({ _id: req.params.attemptId, examId: exam._id });
+    if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found.' });
+    if (attempt.otpVerifiedAt) {
+      return res.json({ success: true, message: 'Already verified.', data: { alreadyVerified: true } });
+    }
+
+    const who = String((req as any).user?.email || (req as any).user?.name || 'an admin');
+    attempt.otpVerifiedAt = new Date();
+    attempt.otpVerifiedBy = who;
+    if (attempt.status === 'invited') attempt.status = 'verified';
+    await attempt.save();
+
+    res.json({
+      success: true,
+      message: `${attempt.memberName} can now start without a code. Recorded against ${who}.`,
+      data: { verifiedBy: who, at: attempt.otpVerifiedAt },
+    });
+  } catch (e) { fail(res, e, 'Could not verify that candidate'); }
+};
+
+/**
+ * PATCH /:id/attempts/:attemptId/mobile — correct a wrong number.
+ *
+ * These cohorts are imported from a spreadsheet, so a mistyped digit is the likeliest single
+ * reason a code never arrives — and until now it was unfixable: the number was set at import
+ * and nothing could change it, so that candidate simply could not sit the exam.
+ *
+ * Changing it clears any verification already on the attempt. A candidate verified against
+ * the old number has proved they hold a phone that is no longer the one on record, and
+ * carrying that forward would quietly turn a typo fix into an identity swap.
+ */
+export const updateAttemptMobile = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const attempt = await HackathonExamAttempt.findOne({ _id: req.params.attemptId, examId: exam._id });
+    if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found.' });
+
+    const mobile = String(req.body?.mobile || '').replace(/\D/g, '').slice(-10);
+    if (mobile.length !== 10) {
+      return res.status(400).json({ success: false, message: 'A 10-digit mobile number is required.' });
+    }
+    if (attempt.submittedAt) {
+      return res.status(409).json({ success: false, message: 'This paper is already submitted — changing the number now changes nothing.' });
+    }
+
+    const was = attempt.memberMobile;
+    attempt.memberMobile = mobile;
+    if (attempt.otpVerifiedAt) {
+      attempt.otpVerifiedAt = null;
+      attempt.otpVerifiedBy = undefined;
+      if (attempt.status === 'verified') attempt.status = 'invited';
+    }
+    /* The old invitation went to the old number, so it has not been delivered to this one. */
+    attempt.invitesSent.whatsapp = false;
+    await attempt.save();
+
+    res.json({
+      success: true,
+      message: `Changed from ${was} to ${mobile}. Send them the invitation again.`,
+      data: { mobile },
+    });
+  } catch (e) { fail(res, e, 'Could not change that number'); }
 };

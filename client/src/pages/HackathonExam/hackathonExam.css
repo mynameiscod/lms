@@ -706,3 +706,13 @@
   .hxd-hero h1 { font-size: 25px; }
   .hxd-foot b { margin-left: 0; }
 }
+
+/* Social buttons on the completion screen. Labelled, not icon-only: an unlabelled
+   glyph is a guess, and this is the last screen before somebody closes the tab. */
+.hxd-socials { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 14px; }
+.hxd-social { display: inline-flex; align-items: center; gap: 7px;
+  background: #f1f6fd; border: 1px solid #dbe6f5; border-radius: 10px;
+  padding: 9px 13px; text-decoration: none; color: #1e3a8a;
+  font-size: 12.5px; font-weight: 700; }
+.hxd-social svg { width: 16px; height: 16px; flex: none; }
+.hxd-social:hover { background: #e6effc; }

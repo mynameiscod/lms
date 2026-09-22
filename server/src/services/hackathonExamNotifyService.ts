@@ -276,7 +276,7 @@ const resultHtml = (a: IHackathonExamAttempt, eventTitle: string, teamScore: num
    <p><b>Your score:</b> ${a.score ?? 0} / ${a.totalMarks ?? 0} (${a.percentage ?? 0}%)<br/>
       <b>Time taken:</b> ${Math.round((a.timeSpentSec || 0) / 60)} minutes</p>
    <p><b>Team ${a.teamName}:</b> ${teamScore} — the average across all ${members} registered member(s).</p>
-   ${button(examUrl(a.examToken) + '/result', 'See my result')}
+   ${button(examUrl(a.examToken), 'Open my exam page')}
    <p style="color:#64748b;font-size:12.5px">Thanks for taking part.</p>`,
 );
 

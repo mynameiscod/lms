@@ -77,6 +77,18 @@ const I = {
   send: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>,
 };
 
+/** Taken verbatim from the live site footer — not typed from memory, so they are the real ones. */
+const SOCIALS = [
+  { name: 'LinkedIn', url: 'https://www.linkedin.com/company/codbegun/posts/?feedView=all',
+    icon: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5A2.5 2.5 0 1 1 0 3.5a2.5 2.5 0 0 1 4.98 0zM.2 8.2h4.6V24H.2zM8.3 8.2h4.4v2.2h.06c.61-1.16 2.1-2.38 4.33-2.38 4.63 0 5.49 3.05 5.49 7.02V24h-4.6v-6.96c0-1.66-.03-3.8-2.31-3.8-2.32 0-2.67 1.81-2.67 3.68V24H8.3z"/></svg> },
+  { name: 'YouTube', url: 'https://www.youtube.com/@CodeBegun',
+    icon: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.6 15.6V8.4L15.8 12z"/></svg> },
+  { name: 'Instagram', url: 'https://www.instagram.com/codebegun/',
+    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.2" fill="currentColor" stroke="none"/></svg> },
+  { name: 'Facebook', url: 'https://www.facebook.com/share/1ut7vgqnTQdE82tS/',
+    icon: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c-3.01 0-5.32 1.83-5.32 5.2v2.95h3.33V24C19.61 23.1 24 18.1 24 12.07z"/></svg> },
+];
+
 const FEATURES = [
   { tone: 'ind', icon: I.team,   title: 'Team Based',          blurb: 'Compete. Collaborate. Build Together.' },
   { tone: 'grn', icon: I.shield, title: 'Secure & Fair',       blurb: 'Proctored exam environment' },
@@ -974,6 +986,14 @@ const HackathonExam: React.FC = () => {
             <section className="hxd-card">
               <h2>Stay connected</h2>
               <p className="hxd-cardsub">Jobs · Courses · Industry news · AI news · Hackathons</p>
+              <div className="hxd-socials">
+                {SOCIALS.map((x) => (
+                  <a key={x.name} href={x.url} target="_blank" rel="noopener noreferrer"
+                     aria-label={x.name} title={x.name} className="hxd-social">
+                    {x.icon}<span>{x.name}</span>
+                  </a>
+                ))}
+              </div>
               <a className="hxd-link" href="https://codebegun.com/" target="_blank" rel="noreferrer">
                 {I.globe} codebegun.com
               </a>

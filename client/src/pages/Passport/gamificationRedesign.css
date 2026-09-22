@@ -55,7 +55,7 @@
 .gam2 .gam-card { border-radius: 20px; padding: 20px 22px; border-color: var(--line); }
 .gam2 .gam-card h3, .gam2 .gam-board-top h3, .gam2 .gam-earn h3 { font-size: 17px; font-weight: 800; color: var(--navy); }
 .gam2 .gam-card-hd button, .gam2 .gam-link { font-size: 13.5px; }
-.gam2 .gam-next-orb { width: 64px; height: 64px; font-size: 28px; }
+.gam2 .gam-next-orb { width: 64px; height: 64px; font-size: 28px; background: #051D64; box-shadow: none; }
 .gam2 .gam-next-body b { font-size: 16px; }
 .gam2 .gam-next-body p, .gam2 .gam-mile-label, .gam2 .gam-coming, .gam2 .gam-verified { font-size: 13.5px; }
 .gam2 .gam-scope-strip button, .gam2 .gam-tabs button { font-size: 14px; min-height: 38px; }

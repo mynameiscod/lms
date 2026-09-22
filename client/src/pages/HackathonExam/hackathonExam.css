@@ -607,3 +607,10 @@
 /* Wide screens: hold the header to the same width as the card beneath it, so the
    page has one column and not a header that spans further than its own content. */
 .hxi-top, .hxi-strip { --hxi-w: 940px; }
+
+/* Sub-headings inside How it works. The list grew from six lines to four groups, and
+   an undifferentiated run of twenty bullets is a list nobody finishes reading. */
+.hxi-h3 { font-size: 12px; font-weight: 800; color: #64748b; text-transform: uppercase;
+  letter-spacing: .7px; margin: 16px 0 7px; }
+.hxi-h3:first-of-type { margin-top: 4px; }
+.hxi-sec .hxi-rules { margin-bottom: 0; }

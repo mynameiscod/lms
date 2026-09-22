@@ -772,28 +772,81 @@ const HackathonExam: React.FC = () => {
               <span className="hxi-ico slate">{I.gear}</span>
               <div>
                 <h2>How it works</h2>
-                <p>Please read the instructions carefully before starting the exam.</p>
+                <p>Read this before you start. Every rule below is enforced by the exam itself.</p>
+
+                <h3 className="hxi-h3">Before you begin</h3>
                 <ul className="hxi-rules">
-                  <li>You have <b>{e.durationMins} minutes</b> from the moment you begin. The clock does not stop, and it does not restart if you reload.</li>
-                  {e.navigation === 'free' && <li>Answer the sections <b>in any order</b> — start with the coding problem or the questions, whichever you prefer, and move between them freely.</li>}
-                  <li>Every answer is <b>saved as you make it</b>. If your connection drops, reopen this link and carry on where you left off.</li>
-                  {e.runPolicy?.enabled && (
-                    <li>You can run your code against the sample cases
-                      {e.runPolicy.maxRunsPerQuestion > 0 ? <> — up to <b>{e.runPolicy.maxRunsPerQuestion} times per question</b></> : ''}.
-                      Your answer is graded against more cases than you can see, so make it work in general, not just for the samples.</li>
-                  )}
-                  {e.proctoring?.tabSwitch?.enabled && (
-                    <li><b>Stay on this tab.</b> Leaving it is recorded, and after {e.proctoring.tabSwitch.maxWarnings} times your exam is submitted automatically.</li>
-                  )}
-                  {e.proctoring?.fullscreen?.required && <li>The exam runs in <b>fullscreen</b>. Leaving fullscreen is recorded.</li>}
-                  {e.proctoring?.copyPasteBlocked && <li><b>Copy and paste are disabled.</b></li>}
+                  <li><b>Use a laptop or desktop.</b> A phone will work, but the coding problem
+                    needs a real keyboard and the editor is cramped on a small screen. If a laptop
+                    is available, use it.</li>
+                  <li><b>Check your internet before you start the clock.</b> Answers save as you
+                    make them, so a brief drop costs nothing — but the clock does not stop for it.</li>
                   {e.proctoring?.camera?.enabled && (
-                    <li><b>Your camera and microphone are recorded for the whole exam.</b> Your browser
-                      will ask permission when you start. If you decline, or your device has no camera,
-                      you can still sit the paper — it is noted on your attempt and the organisers decide
-                      what it means.</li>
+                    <li><b>Your camera and microphone must be on.</b> The whole exam is recorded.
+                      Your browser will ask permission the moment you press Start — allow it. If you
+                      decline, or the device has no camera, you can still sit the paper, but it is
+                      recorded on your attempt and the organisers decide what that means.</li>
                   )}
-                  <li>Your team's result is the <b>average across all registered members</b>, so every member sitting it matters.</li>
+                  {e.joinCutoffMins > 0 && (
+                    <li><b>You cannot start late.</b> The door closes {e.joinCutoffMins} minutes
+                      after the exam opens. Arrive after that and you cannot sit it at all.</li>
+                  )}
+                </ul>
+
+                <h3 className="hxi-h3">The paper</h3>
+                <ul className="hxi-rules">
+                  <li><b>{e.totalQuestions} questions, {e.totalMarks} marks, {e.durationMins} minutes.</b>
+                    {' '}The clock starts when you press Start, does not stop, and does not restart
+                    if you reload or close the tab.</li>
+                  {e.sections.map((s) => (
+                    <li key={s.key}>
+                      <b>{s.label}: {s.count} question{s.count === 1 ? '' : 's'}, {s.marks} mark{s.marks === 1 ? '' : 's'}.</b>
+                      {s.count > 0 && s.marks > 0 && ` That is ${Math.round((s.marks / (e.totalMarks || 1)) * 100)}% of the paper, at ${+(s.marks / s.count).toFixed(2)} mark${(s.marks / s.count) === 1 ? '' : 's'} each.`}
+                    </li>
+                  ))}
+                  {e.navigation === 'free' && <li><b>Answer in any order.</b> Move between sections
+                    whenever you like. The coding problem is usually worth the most — do not leave
+                    it until the last five minutes.</li>}
+                  <li><b>Every answer saves as you make it.</b> If your connection drops or the
+                    laptop dies, reopen the same link and carry on where you left off.</li>
+                  {e.runPolicy?.enabled && (
+                    <li><b>You can run your code</b>
+                      {e.runPolicy.maxRunsPerQuestion > 0 ? <> — up to <b>{e.runPolicy.maxRunsPerQuestion} times per question</b></> : ''}.
+                      It is graded against more cases than you can see, so make it work in general,
+                      not just for the samples shown.</li>
+                  )}
+                  <li><b>One submit, for the whole paper.</b> There is a single Submit button and it
+                    ends everything. It will tell you what is still blank and what those marks are
+                    worth before it does.</li>
+                </ul>
+
+                <h3 className="hxi-h3">What is watched</h3>
+                <ul className="hxi-rules">
+                  {e.proctoring?.tabSwitch?.enabled && (
+                    <li><b>Do not leave this tab.</b> Every switch away is counted and shown to the
+                      organisers. After <b>{e.proctoring.tabSwitch.maxWarnings} switches</b>
+                      {e.proctoring.tabSwitch.autoSubmit
+                        ? <> your exam is <b>submitted automatically</b>, finished or not.</>
+                        : <> it is recorded against your attempt.</>}</li>
+                  )}
+                  {e.proctoring?.fullscreen?.required && <li><b>The exam runs in fullscreen.</b> Leaving fullscreen is recorded.</li>}
+                  {e.proctoring?.copyPasteBlocked && <li><b>Copy and paste are disabled</b> for the whole paper.</li>}
+                  {e.proctoring?.clusterDetection && <li><b>Teams sitting from one device or one
+                    network are flagged.</b> Everyone must sit their own paper on their own machine.</li>}
+                </ul>
+
+                <h3 className="hxi-h3">How your team is scored</h3>
+                <ul className="hxi-rules">
+                  <li>You are scored out of <b>{e.totalMarks} marks</b>. Every candidate draws their
+                    own questions from the same bank, so no two papers are identical and there is
+                    nothing to gain from comparing them.</li>
+                  <li><b>Your team's score is the average across
+                    {e.teamScoreDenominator === 'registered' ? ' every registered member' : ' every member who sat it'}.</b>
+                    {e.teamScoreDenominator === 'registered'
+                      ? ' A member who does not turn up counts as a zero in that average, so the whole team needs to sit it.'
+                      : ' Only members who actually sat the paper are counted.'}</li>
+                  <li>Teams are ranked on that team average. Results are published by the organisers
+                    once every paper is in — you will get yours by email and WhatsApp.</li>
                 </ul>
               </div>
             </section>

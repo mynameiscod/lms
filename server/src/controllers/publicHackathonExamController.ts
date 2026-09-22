@@ -216,7 +216,23 @@ export const getExamOverview = async (req: Request, res: Response) => {
           title: exam.title, instructions: exam.instructions,
           startAt: exam.startAt, endAt: exam.endAt,
           durationMins: exam.durationMins, navigation: exam.navigation,
-          sections: (exam.sections || []).map((s: any) => ({ key: s.key, label: s.label, count: s.drawCount })),
+          /*
+           * Marks are counted from THIS candidate's drawn paper, not from the section's
+           * configured marksPerItem. A section can be set to use each item's own marks, in
+           * which case the configured number is 0 and telling a candidate their coding
+           * problem is worth nothing would be worse than telling them nothing.
+           */
+          sections: (exam.sections || []).map((s: any) => {
+            const mine = attempt.drawnItems.filter((d: any) => d.sectionKey === s.key);
+            return {
+              key: s.key,
+              label: s.label,
+              count: mine.length || s.drawCount,
+              marks: mine.reduce((t: number, d: any) => t + (d.marks || 0), 0),
+            };
+          }),
+          joinCutoffMins: exam.joinCutoffMins,
+          teamScoreDenominator: exam.teamScoreDenominator,
           totalQuestions: attempt.drawnItems.length,
           totalMarks: attempt.drawnItems.reduce((s, d) => s + d.marks, 0),
           runPolicy: exam.runPolicy,

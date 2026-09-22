@@ -80,7 +80,9 @@ export interface ExamOverview {
     title: string; instructions: string;
     startAt: string; endAt: string; durationMins: number;
     navigation: 'free' | 'sequential';
-    sections: { key: string; label: string; count: number }[];
+    sections: { key: string; label: string; count: number; marks: number }[];
+    joinCutoffMins: number;
+    teamScoreDenominator: 'registered' | 'attempted';
     totalQuestions: number; totalMarks: number;
     runPolicy: { enabled: boolean; maxRunsPerQuestion: number; cooldownSeconds: number; maxSampleCases: number };
     proctoring: any;

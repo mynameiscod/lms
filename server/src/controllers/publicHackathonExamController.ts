@@ -36,6 +36,37 @@ const fail = (res: Response, e: any) => {
 };
 
 /** The live exam for a hackathon slug, or nothing. Used by the landing page. */
+/**
+ * Find the event from whatever the candidate typed.
+ *
+ * The field wants a slug and people type the name — they have the name, it is on the poster
+ * and in the email subject, and nobody has ever been given "offline-hackathon-2026-nec" to
+ * remember. So the typed value is slugified before the lookup and the title is matched as a
+ * fallback, which makes "Offline Hackathon 2026 NEC" work as well as the slug.
+ *
+ * The failure is reported separately from a bad team code. Both used to say "we could not
+ * match that team code and mobile number", so somebody who mistyped the EVENT went hunting
+ * through their registration email for a team code that was correct all along. The event is
+ * public — its page is on the marketing site — so naming it as the thing that failed leaks
+ * nothing that a visitor could not already see.
+ */
+const findEventByTyped = async (typed: unknown) => {
+  const raw = String(typed || '').trim();
+  if (!raw) return null;
+
+  // "Offline Hackathon 2026 NEC" -> "offline-hackathon-2026-nec"
+  const slugged = raw.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const bySlug = await Hackathon.findOne({ $or: [{ slug: raw.toLowerCase() }, { slug: slugged }] }).lean() as any;
+  if (bySlug) return bySlug;
+
+  /* Fall back to the title, compared in JS rather than as a regex: the typed value is
+     user input, and building a pattern out of it is how a stray bracket becomes either a
+     crash or a scan. There are only ever a handful of events. */
+  const wanted = raw.toLowerCase();
+  const all = await Hackathon.find({}).select('title slug bannerUrl collegeLogoUrl venue').lean() as any[];
+  return all.find((h) => String(h.title || '').trim().toLowerCase() === wanted) || null;
+};
+
 export const getExamBySlug = async (req: Request, res: Response) => {
   try {
     const h = await Hackathon.findOne({ slug: String(req.params.slug).toLowerCase() }).lean() as any;
@@ -89,8 +120,8 @@ export const getExamBySlug = async (req: Request, res: Response) => {
 export const requestExamOtp = async (req: Request, res: Response) => {
   try {
     const { slug, teamCode, mobile } = req.body || {};
-    const h = await Hackathon.findOne({ slug: String(slug || '').toLowerCase() }).lean() as any;
-    if (!h) throw new ExamError('NOT_FOUND', 'We could not match that team code and mobile number.', 404);
+    const h = await findEventByTyped(slug);
+    if (!h) throw new ExamError('NO_EVENT', 'We do not have an event by that name. Check the Event field against your invitation.', 404);
 
     const exam = await HackathonExam.findOne({ hackathonId: h._id });
     if (!exam) throw new ExamError('NOT_FOUND', 'We could not match that team code and mobile number.', 404);
@@ -109,8 +140,8 @@ export const requestExamOtp = async (req: Request, res: Response) => {
 export const verifyExamOtp = async (req: Request, res: Response) => {
   try {
     const { slug, teamCode, mobile, code } = req.body || {};
-    const h = await Hackathon.findOne({ slug: String(slug || '').toLowerCase() }).lean() as any;
-    if (!h) throw new ExamError('NOT_FOUND', 'We could not match that team code and mobile number.', 404);
+    const h = await findEventByTyped(slug);
+    if (!h) throw new ExamError('NO_EVENT', 'We do not have an event by that name. Check the Event field against your invitation.', 404);
     const exam = await HackathonExam.findOne({ hackathonId: h._id });
     if (!exam) throw new ExamError('NOT_FOUND', 'We could not match that team code and mobile number.', 404);
 

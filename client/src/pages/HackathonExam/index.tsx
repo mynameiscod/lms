@@ -437,15 +437,24 @@ const HackathonExam: React.FC = () => {
     document.addEventListener('visibilitychange', onVis);
     window.addEventListener('blur', onBlur);
     document.addEventListener('fullscreenchange', onFs);
-    document.addEventListener('copy', onCopy);
-    document.addEventListener('paste', onPaste);
+    /*
+     * Capture phase, or the code editor wins.
+     *
+     * Monaco handles paste on its own hidden textarea and consumes it there. A listener
+     * bubbling up to document runs after the text is already inserted, so pasting looked
+     * blocked everywhere on the page except the one field worth blocking it in.
+     */
+    document.addEventListener('copy', onCopy, true);
+    document.addEventListener('paste', onPaste, true);
+    document.addEventListener('cut', onCopy, true);
     window.addEventListener('beforeunload', onLeave);
     return () => {
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('blur', onBlur);
       document.removeEventListener('fullscreenchange', onFs);
-      document.removeEventListener('copy', onCopy);
-      document.removeEventListener('paste', onPaste);
+      document.removeEventListener('copy', onCopy, true);
+      document.removeEventListener('paste', onPaste, true);
+      document.removeEventListener('cut', onCopy, true);
       window.removeEventListener('beforeunload', onLeave);
     };
   }, [phase, report, overview]);
@@ -464,6 +473,13 @@ const HackathonExam: React.FC = () => {
   };
 
   const stopRecRef = useRef<() => void>(() => {});
+
+  /* Attach the camera to the on-screen preview whenever it changes. srcObject cannot be
+     set as a JSX prop, so it is wired here. Muted, or the room howls. */
+  const selfView = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    if (selfView.current) selfView.current.srcObject = recorder.stream;
+  }, [recorder.stream]);
 
   const submit = useCallback(async () => {
     if (phaseRef.current !== 'exam') return;
@@ -1038,6 +1054,10 @@ const HackathonExam: React.FC = () => {
             );
           })}
         </div>
+        {wantsCamera && recorder.stream && (
+          <video ref={selfView} className="hx-selfview" autoPlay muted playsInline
+            title="This is what is being recorded." />
+        )}
         {wantsCamera && (
           <div className={`hx-rec ${recorder.state}`} title={
             recorder.state === 'recording' ? 'Your camera and microphone are being recorded.'
@@ -1133,7 +1153,13 @@ const HackathonExam: React.FC = () => {
                     language={q.language === 'sql' || q.type === 'sql' ? 'sql' : (q.language || 'java')}
                     value={answers[q.itemId]?.code ?? ''}
                     onChange={(v) => setAnswer(q, { code: v ?? '' })}
-                    options={{ minimap: { enabled: false }, fontSize: 13.5, scrollBeyondLastLine: false, automaticLayout: true }}
+                    options={{
+                      minimap: { enabled: false }, fontSize: 13.5, scrollBeyondLastLine: false,
+                      automaticLayout: true,
+                      /* The editor's own right-click menu offers Paste, which never reaches a
+                         document listener at all. Off when pasting is off. */
+                      contextmenu: !overview?.exam.proctoring?.copyPasteBlocked,
+                    }}
                   />
                   {overview?.exam.runPolicy?.enabled && (
                     <button className="hx-btn hx-run" disabled={running} onClick={() => runCode(q)}>

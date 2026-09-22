@@ -24,7 +24,10 @@
 .hx-label { display: block; font-size: 12.5px; font-weight: 700; color: #475569; margin: 14px 0 5px; }
 .hx-input { width: 100%; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 11px 13px; font-size: 14.5px; color: #0f172a; }
 .hx-input:focus { outline: none; border-color: #1d4ed8; }
-.hx-code { letter-spacing: 2px; font-weight: 700; text-transform: uppercase; }
+/* `hx-code` used to be the team-code INPUT, which wanted uppercase and letter-spacing.
+   That input is gone and the class now wraps the Monaco editor, so every candidate was
+   writing code in spaced-out capitals. The editor wants none of it. */
+.hx-code { font-weight: 400; letter-spacing: normal; text-transform: none; }
 .hx-otp { letter-spacing: 8px; text-align: center; font-size: 22px; font-weight: 800; }
 .hx-btn { width: 100%; margin-top: 18px; background: linear-gradient(90deg,#1d4ed8,#4f46e5); color: #fff; border: none; border-radius: 11px; padding: 13px; font-size: 15px; font-weight: 800; cursor: pointer; }
 .hx-btn:disabled { opacity: .55; cursor: default; }
@@ -726,3 +729,13 @@
 .hxe-more summary::before { content: '+ '; font-weight: 800; }
 .hxe-more[open] summary::before { content: '2 '; }
 .hxe-more[open] summary { margin-bottom: 8px; }
+
+/* The candidate's own camera, in the exam bar. Small, because it is a confirmation and
+   not a mirror — but visible, because being recorded without being able to check it is
+   working is how somebody sits an hour under a covered lens. */
+.hx-selfview { width: 74px; height: 56px; border-radius: 8px; object-fit: cover;
+  background: #000; border: 1.5px solid rgba(255,255,255,.28); flex: none; transform: scaleX(-1); }
+@media (max-width: 720px) { .hx-selfview { width: 52px; height: 40px; } }
+
+/* Keep the recording column reachable on a narrow admin screen. */
+.hxa-table th:nth-last-child(2), .hxa-table td:nth-last-child(2) { white-space: nowrap; }

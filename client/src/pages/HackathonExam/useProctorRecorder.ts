@@ -53,6 +53,15 @@ export function useProctorRecorder(opts: {
   const { enabled, token, onState } = opts;
   const [state, setState] = useState<RecorderState>('idle');
   const [chunks, setChunks] = useState(0);
+  /*
+   * The candidate's own camera, handed back so they can see it.
+   *
+   * Somebody being recorded should be able to check that the thing recording them is
+   * pointed at them and working. Without a picture, "Recording" is a word they have to
+   * take on trust — and the first they would learn that the lens was covered is when an
+   * organiser reviewed an hour of black.
+   */
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   const streamRef = useRef<MediaStream | null>(null);
   const recRef = useRef<MediaRecorder | null>(null);
@@ -88,6 +97,7 @@ export function useProctorRecorder(opts: {
     streamRef.current?.getTracks().forEach((t) => { try { t.stop(); } catch { /* ignore */ } });
     streamRef.current = null;
     recRef.current = null;
+    setStream(null);
     setState((s) => (s === 'recording' ? 'done' : s));
   }, []);
 
@@ -142,6 +152,7 @@ export function useProctorRecorder(opts: {
 
     streamRef.current = stream;
     recRef.current = rec;
+    setStream(stream);
     rec.start(SLICE_MS);
     setState('recording');
     stateRef.current('recording');
@@ -151,5 +162,5 @@ export function useProctorRecorder(opts: {
      camera light on somebody's laptop after their exam, which is its own kind of wrong. */
   useEffect(() => () => { stop(); }, [stop]);
 
-  return { state, chunks, start, stop };
+  return { state, chunks, stream, start, stop };
 }

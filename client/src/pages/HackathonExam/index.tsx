@@ -68,6 +68,9 @@ const I = {
   lock: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>,
   glass: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2h12M6 22h12"/><path d="M8 2v4.2c0 .6.27 1.17.73 1.55L12 10.5l3.27-2.75c.46-.38.73-.95.73-1.55V2"/><path d="M8 22v-4.2c0-.6.27-1.17.73-1.55L12 13.5l3.27 2.75c.46.38.73.95.73 1.55V22"/></svg>,
   rocket: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>,
+  tick: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="m5 13 4 4L19 7"/></svg>,
+  mail: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>,
+  globe: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/></svg>,
   paper: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>,
   gear: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H7a1.7 1.7 0 0 0 1-1.5V1a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V7a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>,
   play: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>,
@@ -906,23 +909,85 @@ const HackathonExam: React.FC = () => {
   }
 
   if (phase === 'submitted') {
+    /*
+     * `done` only exists for the tab that pressed Submit. Anyone reopening their link later
+     * lands here with nothing, so the stat row degrades to what the server does know rather
+     * than rendering "undefined of undefined minutes" at the end of somebody's exam.
+     */
+    const mins = done ? Math.max(1, Math.round(done.timeSpentSec / 60)) : null;
     return (
-      <div className="hx-page">
-        <div className="hx-mid">
-          <div className="hx-card hx-centre">
-            <div className="hx-big">✅</div>
-            <h2>Your answers are in</h2>
-            {done && (
-              <p className="hx-hint">
-                {done.answered} of {done.total} questions answered · {Math.round(done.timeSpentSec / 60)} minutes
-              </p>
-            )}
-            {warn && <div className="hx-err">{warn}</div>}
-            <p className="hx-hint">
-              Results are published by the organisers. You will get yours by email and WhatsApp
-              when they are ready.
-            </p>
+      <div className="hxd">
+        <header className="hxd-nav">
+          <img src="/assets/logo.png" alt="CodeBegun" onError={hideImg} />
+          <span>Build Today. A Better Tomorrow.</span>
+        </header>
+
+        <div className="hxd-in">
+          <div className="hxd-hero">
+            <span className="hxd-tick">{I.tick}</span>
+            <h1>Congratulations!</h1>
+            <p className="hxd-sub">Exam submitted successfully</p>
+            <p className="hxd-lede">Your answers are in.</p>
           </div>
+
+          {warn && <div className="hxd-warn">{warn}</div>}
+
+          <div className="hxd-note">
+            {I.mail}
+            <span>The CodeBegun team will share the complete details with you by email and WhatsApp.</span>
+          </div>
+
+          <div className="hxd-stats">
+            <div>
+              <span className="hxd-ico blue">{I.paper}</span>
+              <b>{done ? `${done.answered} / ${done.total}` : '—'}</b>
+              <span>Questions answered</span>
+            </div>
+            <div>
+              <span className="hxd-ico vio">{I.clock}</span>
+              <b>{mins != null ? `${mins} minute${mins === 1 ? '' : 's'}` : '—'}</b>
+              <span>Time spent</span>
+            </div>
+            <div>
+              <span className="hxd-ico grn">{I.tick}</span>
+              <b className="ok">Submitted</b>
+              <span>Submission status</span>
+            </div>
+            <div>
+              <span className="hxd-ico amb">{I.team}</span>
+              <b className="soft">Announced by the organisers</b>
+              <span>Results status</span>
+            </div>
+          </div>
+
+          <div className="hxd-cols">
+            <section className="hxd-card">
+              <h2>What happens next?</h2>
+              <ol className="hxd-steps">
+                <li>Results are reviewed and published by the organisers.</li>
+                <li>Your score and your team&rsquo;s result are sent by email and WhatsApp.</li>
+                <li>Keep following CodeBegun and CareerPilot for more opportunities.</li>
+              </ol>
+              <p className="hxd-script">Your effort today<br />builds a brighter tomorrow</p>
+            </section>
+
+            <section className="hxd-card">
+              <h2>Stay connected</h2>
+              <p className="hxd-cardsub">Jobs · Courses · Industry news · AI news · Hackathons</p>
+              <a className="hxd-link" href="https://codebegun.com/" target="_blank" rel="noreferrer">
+                {I.globe} codebegun.com
+              </a>
+              <a className="hxd-link teal" href="https://careerpilot.codebegun.com/" target="_blank" rel="noreferrer">
+                {I.globe} careerpilot.codebegun.com
+              </a>
+            </section>
+          </div>
+
+          <footer className="hxd-foot">
+            <img src="/assets/logo.png" alt="CodeBegun" onError={hideImg} />
+            <span>Learn. Practice. Grow.</span>
+            <b>Better skills, brighter futures</b>
+          </footer>
         </div>
       </div>
     );

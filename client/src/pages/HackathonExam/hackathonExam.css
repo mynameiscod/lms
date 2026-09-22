@@ -614,3 +614,95 @@
   letter-spacing: .7px; margin: 16px 0 7px; }
 .hxi-h3:first-of-type { margin-top: 4px; }
 .hxi-sec .hxi-rules { margin-bottom: 0; }
+
+/* ── after the paper is in ─────────────────────────────────────────────────────
+   The last thing a candidate sees, and the only page here nobody is under time
+   pressure on. It said "Your answers are in" in a small grey box, which read as
+   though something had gone wrong.
+
+   It also has a job beyond reassurance: telling them what happens next, so the
+   organisers are not answering "when do I get my result" forty times. */
+
+.hxd { min-height: 100vh; background: linear-gradient(180deg,#f2f8ff,#eaf2fb 55%,#e8f4f6); padding-bottom: 34px; }
+.hxd * { box-sizing: border-box; }
+
+.hxd-nav { display: flex; align-items: center; gap: 13px; padding: 13px 26px;
+  background: linear-gradient(100deg,#0a1a4f,#12276e 60%,#1a3fa0); flex-wrap: wrap; }
+.hxd-nav img { height: 28px; width: auto; background: #fff; border-radius: 7px; padding: 4px 8px; }
+.hxd-nav span { color: #b9cdf0; font-size: 12.5px; font-weight: 600; }
+
+.hxd-in { max-width: 940px; margin: 0 auto; padding: 0 20px; }
+
+.hxd-hero { text-align: center; padding: 34px 0 22px; }
+.hxd-tick { display: grid; place-items: center; width: 74px; height: 74px; margin: 0 auto 18px;
+  border-radius: 50%; background: #16a34a; color: #fff; box-shadow: 0 0 0 9px rgba(22,163,74,.13); }
+.hxd-tick svg { width: 36px; height: 36px; }
+.hxd-hero h1 { margin: 0; font-size: 36px; font-weight: 800; color: #0f2557; line-height: 1.12; }
+.hxd-sub { margin: 6px 0 0; font-size: 21px; font-weight: 800; color: #0f2557; }
+.hxd-lede { margin: 9px 0 0; font-size: 15.5px; color: #64748b; }
+
+.hxd-warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 12px;
+  padding: 12px 15px; font-size: 13.5px; margin-bottom: 16px; }
+
+.hxd-note { display: flex; align-items: center; gap: 11px; background: #eff6ff;
+  border: 1px solid #dbeafe; border-radius: 13px; padding: 13px 16px; margin-bottom: 18px; }
+.hxd-note svg { width: 19px; height: 19px; flex: none; color: #2563eb; }
+.hxd-note span { font-size: 13.5px; color: #33507d; line-height: 1.5; }
+
+/* The four facts. A candidate who has just submitted wants to see the count they
+   finished on, and wants it confirmed that it went. */
+.hxd-stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; margin-bottom: 18px; }
+.hxd-stats > div { background: #fff; border: 1px solid #e3ebf6; border-radius: 15px;
+  padding: 17px 15px; text-align: center; box-shadow: 0 2px 10px rgba(15,37,87,.05); }
+.hxd-ico { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 11px; margin: 0 auto 10px; }
+.hxd-ico svg { width: 19px; height: 19px; }
+.hxd-ico.blue { background: #dbeafe; color: #2563eb; }
+.hxd-ico.vio  { background: #ede9fe; color: #7c3aed; }
+.hxd-ico.grn  { background: #d1fae5; color: #059669; }
+.hxd-ico.amb  { background: #ffedd5; color: #ea580c; }
+.hxd-stats b { display: block; font-size: 20px; font-weight: 800; color: #0f2557; line-height: 1.2; }
+.hxd-stats b.ok { color: #059669; }
+.hxd-stats b.soft { font-size: 13.5px; font-weight: 700; color: #475569; }
+.hxd-stats > div > span:last-child { display: block; margin-top: 5px; font-size: 11.5px; color: #8b97a8; }
+
+.hxd-cols { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+.hxd-card { background: #fff; border: 1px solid #e3ebf6; border-radius: 16px; padding: 22px;
+  box-shadow: 0 2px 10px rgba(15,37,87,.05); }
+.hxd-card h2 { margin: 0 0 4px; font-size: 18px; font-weight: 800; color: #0f2557; }
+.hxd-cardsub { margin: 0 0 15px; font-size: 12.5px; color: #8b97a8; }
+
+.hxd-steps { margin: 12px 0 0; padding: 0; list-style: none; counter-reset: hxd; }
+.hxd-steps li { position: relative; padding-left: 34px; margin-bottom: 13px;
+  font-size: 13.8px; line-height: 1.55; color: #334155; }
+.hxd-steps li::before { counter-increment: hxd; content: counter(hxd);
+  position: absolute; left: 0; top: -1px; width: 24px; height: 24px; border-radius: 50%;
+  background: #e0e7ff; color: #4338ca; font-size: 12px; font-weight: 800;
+  display: grid; place-items: center; }
+.hxd-script { margin: 16px 0 0; font-size: 19px; line-height: 1.3; color: #8fb3e0;
+  font-family: "Segoe Script", "Bradley Hand", "Brush Script MT", cursive; }
+
+.hxd-link { display: flex; align-items: center; gap: 9px; margin-top: 10px;
+  background: #0b3f9d; color: #fff; border-radius: 26px; padding: 12px 18px;
+  font-size: 13px; font-weight: 700; text-decoration: none; }
+.hxd-link.teal { background: linear-gradient(90deg,#118c9f,#18adba); }
+.hxd-link svg { width: 16px; height: 16px; flex: none; }
+
+.hxd-foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin-top: 24px; padding-top: 17px; border-top: 1px solid #d5e2f0; }
+.hxd-foot img { height: 26px; width: auto; }
+.hxd-foot span { font-size: 12.5px; color: #7b8795; }
+.hxd-foot b { margin-left: auto; font-size: 13px; color: #1899a9; font-style: italic; }
+
+@media (max-width: 820px) {
+  .hxd-stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .hxd-cols { grid-template-columns: minmax(0,1fr); }
+  .hxd-hero h1 { font-size: 29px; }
+  .hxd-sub { font-size: 18px; }
+}
+@media (max-width: 440px) {
+  .hxd-in { padding: 0 16px; }
+  .hxd-stats { grid-template-columns: minmax(0,1fr); gap: 11px; }
+  .hxd-hero { padding: 26px 0 18px; }
+  .hxd-hero h1 { font-size: 25px; }
+  .hxd-foot b { margin-left: 0; }
+}

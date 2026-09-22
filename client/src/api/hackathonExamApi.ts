@@ -111,6 +111,18 @@ export interface ViolationOutcome {
 export const hackathonExamApi = {
   bySlug: (slug: string) => call<any>(`${PUBLIC}/${encodeURIComponent(slug)}`),
 
+  /* Mobile alone. Offline cohorts never receive a slug or a team code, so asking for them
+     made the form unfillable for exactly the people it was built for. */
+  requestOtpByMobile: (mobile: string, event?: string) =>
+    call<{ sent: boolean; channel: string; maskedMobile: string }>(`${PUBLIC}/otp/by-mobile`, {
+      method: 'POST', body: JSON.stringify({ mobile, event }),
+    }),
+
+  verifyOtpByMobile: (mobile: string, code: string, event?: string) =>
+    call<{ examToken: string; memberName: string; teamName: string }>(`${PUBLIC}/otp/by-mobile/verify`, {
+      method: 'POST', body: JSON.stringify({ mobile, code, event }),
+    }),
+
   requestOtp: (slug: string, teamCode: string, mobile: string) =>
     call<{ sent: boolean; channel: string; maskedMobile: string }>(`${PUBLIC}/otp/request`, {
       method: 'POST', body: JSON.stringify({ slug, teamCode, mobile }),

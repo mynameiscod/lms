@@ -516,3 +516,69 @@ export const uploadRecordingChunk = async (req: Request, res: Response) => {
     res.json({ success: true, data: { seq, bytes } });
   } catch (e) { fail(res, e); }
 };
+
+/**
+ * POST /hackathon-exams/otp/by-mobile — start from a mobile number alone.
+ *
+ * The event slug and team code are not asked for, because offline cohorts are never given
+ * either: they are imported from a spreadsheet, with no confirmation email and no code. The
+ * form was demanding two values that had never been sent to them.
+ *
+ * Nothing is weakened by dropping them. A team code is shared by the whole team, so it
+ * identifies a team rather than a person; the code to the registered number is the check,
+ * and it is unchanged. `event` is accepted only to disambiguate somebody sitting two
+ * hackathons at once, never to authorise anything.
+ */
+export const requestExamOtpByMobile = async (req: Request, res: Response) => {
+  try {
+    const { mobile, event } = req.body || {};
+    const found = await exams.findAttemptsByMobile(mobile, event);
+    if (found.length > 1) {
+      return res.status(409).json({
+        success: false, code: 'MANY',
+        message: 'That number is on more than one exam. Type the event name to narrow it down.',
+      });
+    }
+    const attempt = found[0];
+    const r = await sendOtp(String(attempt.tenantId), attempt.examToken, attempt.memberMobile, attempt.memberEmail);
+    res.json({
+      success: true,
+      data: {
+        sent: true,
+        channel: r?.channel || 'whatsapp',
+        maskedMobile: attempt.memberMobile.replace(/\d(?=\d{4})/g, '•'),
+        /* The token is NOT returned. The code proves who they are; handing back the paper's
+           address before that would make the OTP decorative. */
+      },
+    });
+  } catch (e) { fail(res, e); }
+};
+
+/** Step two for the same route: the code, and the paper's address in exchange. */
+export const verifyExamOtpByMobile = async (req: Request, res: Response) => {
+  try {
+    const { mobile, event, code } = req.body || {};
+    const found = await exams.findAttemptsByMobile(mobile, event);
+    if (found.length > 1) {
+      return res.status(409).json({ success: false, code: 'MANY', message: 'Type the event name to narrow it down.' });
+    }
+    const attempt = found[0];
+    const result = await verifyOtp(attempt.examToken, String(code || ''));
+    if (result !== 'ok') {
+      const messages: Record<string, string> = {
+        invalid: 'That code is not right. Check it and try again.',
+        expired: 'That code has expired. Ask for a new one.',
+        too_many_attempts: 'Too many tries. Ask for a new code.',
+        not_found: 'Ask for a code first.',
+      };
+      throw new ExamError(result.toUpperCase(), messages[result] || 'Verification failed.', 400);
+    }
+    if (!attempt.otpVerifiedAt) {
+      attempt.otpVerifiedAt = new Date();
+      if (attempt.status === 'invited') attempt.status = 'verified';
+      await attempt.save();
+    }
+    res.json({ success: true, data: { examToken: attempt.examToken, memberName: attempt.memberName, teamName: attempt.teamName } });
+  } catch (e) { fail(res, e); }
+};
+

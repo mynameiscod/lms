@@ -18,6 +18,9 @@ const router = express.Router();
 
 /* Before the paper: find the exam, prove who you are. */
 router.get('/hackathon-exams/:slug', ctrl.getExamBySlug);
+/* Mobile alone — offline cohorts are never given a slug or a team code. */
+router.post('/hackathon-exams/otp/by-mobile', ctrl.requestExamOtpByMobile);
+router.post('/hackathon-exams/otp/by-mobile/verify', ctrl.verifyExamOtpByMobile);
 router.post('/hackathon-exams/otp/request', ctrl.requestExamOtp);
 router.post('/hackathon-exams/otp/verify', ctrl.verifyExamOtp);
 

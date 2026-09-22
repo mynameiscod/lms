@@ -251,7 +251,9 @@ const HackathonExam: React.FC = () => {
   const askOtp = async () => {
     setBusy(true); setErr('');
     try {
-      const r = await api.requestOtp(slug, teamCode, mobile);
+      /* Mobile alone. `slug` is passed only to separate somebody sitting two events at
+         once, and is empty for almost everybody. */
+      const r = await api.requestOtpByMobile(mobile, slug || undefined);
       setMasked(r.maskedMobile);
       setPhase('otp');
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
@@ -260,7 +262,7 @@ const HackathonExam: React.FC = () => {
   const confirmOtp = async () => {
     setBusy(true); setErr('');
     try {
-      const r = await api.verifyOtp(slug, teamCode, mobile, otp);
+      const r = await api.verifyOtpByMobile(mobile, otp, slug || undefined);
       keep.set(r.examToken);
       setToken(r.examToken);
       await loadOverview(r.examToken);
@@ -555,40 +557,34 @@ const HackathonExam: React.FC = () => {
           <main className="hxe-card">
             {phase === 'entry' ? (
               <>
-                {!routeSlug && (
-                  <>
-                    <label className="hxe-label" htmlFor="hxe-slug">Event</label>
-                    <div className="hxe-field">
-                      {I.cal}
-                      <input id="hxe-slug" value={slug} onChange={(e) => setSlug(e.target.value)}
-                        placeholder="Enter event slug (e.g. offline-hackathon-2026-nec)" />
-                    </div>
-                  </>
-                )}
-
-                <label className="hxe-label" htmlFor="hxe-code">Team code</label>
-                <div className="hxe-field">
-                  {I.people}
-                  <input id="hxe-code" className="hxe-mono" value={teamCode}
-                    onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
-                    placeholder="HK-XXXX-XXXX" autoFocus />
-                </div>
-
                 <label className="hxe-label" htmlFor="hxe-mob">Your mobile number</label>
                 <div className="hxe-field">
                   {I.phone}
-                  <input id="hxe-mob" value={mobile} inputMode="numeric"
+                  <input id="hxe-mob" value={mobile} inputMode="numeric" autoFocus
                     onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     placeholder="10-digit mobile number" />
                 </div>
 
+                {/* Only for somebody sitting two events at once, which is nobody most days. */}
+                {!routeSlug && (
+                  <details className="hxe-more">
+                    <summary>On more than one hackathon?</summary>
+                    <label className="hxe-label" htmlFor="hxe-slug">Event name</label>
+                    <div className="hxe-field">
+                      {I.cal}
+                      <input id="hxe-slug" value={slug} onChange={(e) => setSlug(e.target.value)}
+                        placeholder="e.g. Offline Hackathon 2026 NEC" />
+                    </div>
+                  </details>
+                )}
+
                 <div className="hxe-note">
                   <b>i</b>
-                  <span>Use the team code you received when your team registered. It must be the number you
-                  gave then — that is how we know the paper is yours.</span>
+                  <span>Use the mobile number your team registered with. We send a code to it —
+                  that is how we know the paper is yours.</span>
                 </div>
 
-                <button className="hxe-go" disabled={busy || !teamCode || mobile.length !== 10} onClick={askOtp}>
+                <button className="hxe-go" disabled={busy || mobile.length !== 10} onClick={askOtp}>
                   {I.send}{busy ? 'Sending…' : 'Send me a code'}
                 </button>
                 <p className="hxe-safe">{I.lock} We'll send a verification code to your mobile to start the exam.</p>

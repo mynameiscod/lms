@@ -716,3 +716,13 @@
   font-size: 12.5px; font-weight: 700; }
 .hxd-social svg { width: 16px; height: 16px; flex: none; }
 .hxd-social:hover { background: #e6effc; }
+
+/* The rare case, folded away. Somebody on two hackathons at once needs this; everybody
+   else needs it to be out of the way of the one field they actually have to fill. */
+.hxe-more { margin: -4px 0 14px; }
+.hxe-more summary { cursor: pointer; font-size: 12.5px; font-weight: 700; color: #1d4ed8;
+  list-style: none; padding: 4px 0; }
+.hxe-more summary::-webkit-details-marker { display: none; }
+.hxe-more summary::before { content: '+ '; font-weight: 800; }
+.hxe-more[open] summary::before { content: '2 '; }
+.hxe-more[open] summary { margin-bottom: 8px; }

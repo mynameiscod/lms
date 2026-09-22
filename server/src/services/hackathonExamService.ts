@@ -155,6 +155,50 @@ export async function findAttemptByTeamCode(examId: string, teamCode: string, mo
   return attempt;
 }
 
+/**
+ * Find a candidate's paper from their mobile number alone.
+ *
+ * ── WHY THE TEAM CODE IS NOT REQUIRED ─────────────────────────────────────────────────────
+ *
+ * It was never the thing doing the work. A team code is shared by everybody on the team, so
+ * it identifies a team and not a person; the OTP to the registered number is what proves who
+ * is sitting down. Requiring both meant a candidate needed a shared non-secret in order to
+ * receive the real check.
+ *
+ * And offline cohorts never get one. They are imported from a spreadsheet — no registration
+ * confirmation, no email with a code in it — so the form was asking them for two values that
+ * had never been sent to them. They could not fill it in at all.
+ *
+ * ── WHEN A NUMBER IS ON MORE THAN ONE PAPER ───────────────────────────────────────────────
+ *
+ * Somebody can sit more than one hackathon. Rather than guess, anything already submitted is
+ * dropped — there is nothing to do with a finished paper — and if more than one is still
+ * open the caller is told to name the event. Guessing would occasionally hand a candidate the
+ * wrong exam, and they would not know until they were looking at somebody else's questions.
+ */
+export async function findAttemptsByMobile(mobile: string, eventHint?: string) {
+  const mob = String(mobile || '').replace(/\D/g, '').slice(-10);
+  if (mob.length !== 10) throw new ExamError('BAD_INPUT', 'Enter your 10-digit mobile number.');
+
+  const all = await HackathonExamAttempt.find({ memberMobile: mob, submittedAt: null }).limit(20);
+  if (!all.length) {
+    /*
+     * The same message whether the number is unknown or simply has no paper drawn yet. A
+     * public endpoint that distinguishes them is a way to test whether a number is registered.
+     */
+    throw new ExamError('NOT_FOUND', 'We could not find an exam for that mobile number.', 404);
+  }
+  if (all.length === 1 || !eventHint) return all;
+
+  const hint = String(eventHint).trim().toLowerCase();
+  const exams = await HackathonExam.find({ _id: { $in: all.map((a) => a.examId) } }).select('_id title').lean() as any[];
+  const match = new Set(exams
+    .filter((e) => String(e.title || '').toLowerCase().includes(hint))
+    .map((e) => String(e._id)));
+  const narrowed = all.filter((a) => match.has(String(a.examId)));
+  return narrowed.length ? narrowed : all;
+}
+
 /* ══════════════════════════════════════════════════════════════════════════════════════════
  * THE WINDOW
  * ════════════════════════════════════════════════════════════════════════════════════════ */

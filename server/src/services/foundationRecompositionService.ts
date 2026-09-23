@@ -50,8 +50,9 @@ import { foundationProgramDaysFor, journeyDaysOf, DEFAULT_PROGRAM_DAYS } from '.
 import { SelectedUnit, StudentProfile } from './curriculumComposerService';
 import {
   composeFoundationJourney, FOUNDATION_JOURNEY_KIND, JourneyBuildOptions,
-  loadAssets, activitiesFor, UnitAssets,
+  loadAssets, dayItems, dayTitle, UnitAssets,
 } from './foundationJourneyService';
+import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } from '../data/dayPackingPolicy';
 
 export interface RecompositionResult {
   ok: boolean;
@@ -64,8 +65,6 @@ export interface RecompositionResult {
   unchangedFutureDays: number[];
   totalDays: number;
 }
-
-const NO_ASSETS: UnitAssets = { content: [], quizzes: [], assignments: [] };
 
 /**
  * Which days may not be touched.
@@ -113,7 +112,7 @@ export async function recomposeFutureDays(
 
   const [existing, enrollment] = await Promise.all([
     DayPlan.find({ curriculumId: curriculum._id })
-      .select('dayNumber primaryUnitCode items').sort({ dayNumber: 1 }).lean() as any,
+      .select('dayNumber primaryUnitCode unitCodes items').sort({ dayNumber: 1 }).lean() as any,
     CurriculumEnrollment.findOne({ tenantId, curriculumId: curriculum._id, studentId: sid })
       .select('completedDays currentDay').lean() as any,
   ]);
@@ -157,9 +156,15 @@ export async function recomposeFutureDays(
    * Without this a recomposition would happily re-teach day 12's unit on day 60, because the
    * fresh composition knows nothing about what the old plan already spent.
    */
-  const alreadyTaught = new Set(
-    frozen.map(d => String(byDay.get(d)?.primaryUnitCode || '').toUpperCase()).filter(Boolean),
-  );
+  /** Every unit a day teaches, in order. A day written before packing existed carries its one. */
+  const unitsOf = (day: any): string[] => {
+    const codes = (day?.unitCodes || []).map((c: any) => String(c).toUpperCase()).filter(Boolean);
+    if (codes.length) return codes;
+    const one = String(day?.primaryUnitCode || '').toUpperCase();
+    return one ? [one] : [];
+  };
+
+  const alreadyTaught = new Set(frozen.flatMap(d => unitsOf(byDay.get(d))));
 
   /**
    * THE FROZEN DAYS ARE THE COMPOSITION'S HISTORY.
@@ -169,7 +174,7 @@ export async function recomposeFutureDays(
    * stitch below cut whatever a new plan puts late, which is how a learner lost functions and arrays, or met them
    * in reverse, after a reassessment.
    */
-  const history = frozen.map(d => String(byDay.get(d)?.primaryUnitCode || '').toUpperCase()).filter(Boolean);
+  const history = frozen.flatMap(d => unitsOf(byDay.get(d)));
   const { composition } = await composeFoundationJourney(tenantId, profile, { ...opts, history });
 
   /**
@@ -198,9 +203,32 @@ export async function recomposeFutureDays(
     };
   }
 
-  const planned = futureSlots.map((dayNumber, i) => ({ dayNumber, unit: available[i] as SelectedUnit }));
-  const sameUnit = (dayNumber: number, unit: SelectedUnit) =>
-    String(byDay.get(dayNumber)?.primaryUnitCode || '').toUpperCase() === unit.unitCode.toUpperCase();
+  /**
+   * The future is arranged into the slots it has to fill, by the same rule that wrote the journey —
+   * one unit per day wherever the composer supplied one per day, which is every Foundation plan.
+   */
+  const packed = packIntoDays(available.map(u => ({
+    unitCode: u.unitCode, unitType: u.unitType, estimatedMinutes: u.estimatedMinutes, topicCode: u.topicCode,
+  })), {
+    days: futureSlots.length,
+    budgetMinutes: opts.dayBudgetMinutes ?? DEFAULT_DAY_BUDGET_MINUTES,
+    maxUnitsPerDay: opts.maxUnitsPerDay ?? DEFAULT_MAX_UNITS_PER_DAY,
+  });
+  if (!packed.ok) {
+    return {
+      ok: false,
+      reason: `The new composition could not be arranged into the ${futureSlots.length} remaining `
+        + `days (${packed.reason}), so the existing plan was left unchanged.`,
+      frozenDays: frozen, rewrittenDays: [], unchangedFutureDays: [], totalDays: programDays,
+    };
+  }
+  const byCode = new Map(available.map(u => [u.unitCode, u]));
+  const planned = futureSlots.map((dayNumber, i) => ({
+    dayNumber,
+    units: packed.days[i].map(p => byCode.get(p.unitCode) as SelectedUnit),
+  }));
+  const sameUnit = (dayNumber: number, units: SelectedUnit[]) =>
+    JSON.stringify(unitsOf(byDay.get(dayNumber))) === JSON.stringify(units.map(u => u.unitCode.toUpperCase()));
 
   /**
    * Activities for every day that needs them, resolved once, by the journey service itself.
@@ -210,25 +238,24 @@ export async function recomposeFutureDays(
    * second case is a repair, which is what makes a retry converge on complete days rather than
    * preserving empty ones.
    */
-  const needing = planned.filter(p => !sameUnit(p.dayNumber, p.unit) || !(byDay.get(p.dayNumber)?.items || []).length);
+  const needing = planned.filter(p => !sameUnit(p.dayNumber, p.units) || !(byDay.get(p.dayNumber)?.items || []).length);
   const assets = needing.length
-    ? await loadAssets(tenantId, needing.map(p => p.unit.unitCode))
+    ? await loadAssets(tenantId, needing.flatMap(p => p.units.map(u => u.unitCode)))
     : new Map<string, UnitAssets>();
-  const itemsFor = (unit: SelectedUnit) => activitiesFor(unit, assets.get(unit.unitCode.toUpperCase()) || NO_ASSETS);
 
   const rewritten: number[] = [];
   const unchanged: number[] = [];
   const ops: any[] = [];
 
-  for (const { dayNumber, unit } of planned) {
+  for (const { dayNumber, units } of planned) {
     const filter = { curriculumId: curriculum._id, dayNumber };
 
-    if (sameUnit(dayNumber, unit)) {
+    if (sameUnit(dayNumber, units)) {
       // The plan agreeing with itself. Reported apart from a rewrite so "nothing changed" is
       // legible as a real outcome rather than looking like the recomposition did not run.
       unchanged.push(dayNumber);
       if (!(byDay.get(dayNumber)?.items || []).length) {
-        ops.push({ updateOne: { filter, update: { $set: { items: itemsFor(unit) } } } });
+        ops.push({ updateOne: { filter, update: { $set: { items: dayItems(units, assets) } } } });
       }
       continue;
     }
@@ -240,10 +267,11 @@ export async function recomposeFutureDays(
         update: {
           $set: {
             tenantId,
-            topicId: unit.topicCode,
-            primaryUnitCode: unit.unitCode,
-            title: unit.title,
-            items: itemsFor(unit),
+            topicId: units[0].topicCode,
+            primaryUnitCode: units[0].unitCode,
+            unitCodes: units.map(u => u.unitCode),
+            title: dayTitle(units),
+            items: dayItems(units, assets),
           },
         },
       },
@@ -285,7 +313,7 @@ export async function previewRecomposition(
 
   const [existing, enrollment] = await Promise.all([
     DayPlan.find({ curriculumId: curriculum._id })
-      .select('dayNumber primaryUnitCode').sort({ dayNumber: 1 }).lean() as any,
+      .select('dayNumber primaryUnitCode unitCodes').sort({ dayNumber: 1 }).lean() as any,
     CurriculumEnrollment.findOne({ tenantId, curriculumId: curriculum._id, studentId: sid })
       .select('completedDays currentDay').lean() as any,
   ]);
@@ -296,23 +324,36 @@ export async function previewRecomposition(
   const futureSlots = Array.from({ length: programDays }, (_, i) => i + 1)
     .filter(d => !frozenSet.has(d));
 
-  const alreadyTaught = new Set(
-    frozen.map(d => String(byDay.get(d)?.primaryUnitCode || '').toUpperCase()).filter(Boolean),
-  );
+  const unitsOfDay = (day: any): string[] => {
+    const codes = (day?.unitCodes || []).map((c: any) => String(c).toUpperCase()).filter(Boolean);
+    if (codes.length) return codes;
+    const one = String(day?.primaryUnitCode || '').toUpperCase();
+    return one ? [one] : [];
+  };
+  const alreadyTaught = new Set(frozen.flatMap(d => unitsOfDay(byDay.get(d))));
 
   // The same continuation recomposeFutureDays writes, so a preview can never promise a different future.
-  const history = frozen.map(d => String(byDay.get(d)?.primaryUnitCode || '').toUpperCase()).filter(Boolean);
+  const history = frozen.flatMap(d => unitsOfDay(byDay.get(d)));
   const { composition } = await composeFoundationJourney(tenantId, profile, { ...opts, history });
   const available = composition.units.filter(u => !alreadyTaught.has(u.unitCode.toUpperCase()));
 
-  const wouldChange: number[] = [];
-  futureSlots.forEach((dayNumber, i) => {
-    const unit = available[i];
-    if (!unit) return;
-    if (String(byDay.get(dayNumber)?.primaryUnitCode || '').toUpperCase() !== unit.unitCode.toUpperCase()) {
-      wouldChange.push(dayNumber);
-    }
+  const packedPreview = packIntoDays(available.map(u => ({
+    unitCode: u.unitCode, unitType: u.unitType, estimatedMinutes: u.estimatedMinutes, topicCode: u.topicCode,
+  })), {
+    days: futureSlots.length,
+    budgetMinutes: opts.dayBudgetMinutes ?? DEFAULT_DAY_BUDGET_MINUTES,
+    maxUnitsPerDay: opts.maxUnitsPerDay ?? DEFAULT_MAX_UNITS_PER_DAY,
   });
+
+  const wouldChange: number[] = [];
+  if (packedPreview.ok) {
+    futureSlots.forEach((dayNumber, i) => {
+      const day = packedPreview.days[i];
+      if (!day) return;
+      const next = day.map(p => p.unitCode.toUpperCase());
+      if (JSON.stringify(unitsOfDay(byDay.get(dayNumber))) !== JSON.stringify(next)) wouldChange.push(dayNumber);
+    });
+  }
 
   return { wouldChange, frozenDays: frozen };
 }

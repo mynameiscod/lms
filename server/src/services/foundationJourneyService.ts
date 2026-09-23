@@ -45,6 +45,7 @@ import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
 import { foundationProgramDaysFor, journeyDaysOf } from './foundationProgramLengthService';
 import { inTeachingOrder } from '../data/contentBundlePolicy';
 import { composeUnits, ComposerResult, SelectedUnit, StudentProfile } from './curriculumComposerService';
+import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } from '../data/dayPackingPolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource } from './composerCandidateService';
 
 /** Marks a curriculum as a Foundation UNIT-engine journey. Lets one be found without guessing. */
@@ -69,7 +70,41 @@ export interface JourneyBuildOptions {
    * nobody could read.
    */
   programDays?: number;
+  /**
+   * How much work one day may hold, for a stage whose curriculum is larger than its programme.
+   *
+   * Foundation never reaches it: it composes one unit per day, so a day is that unit whatever this
+   * says. See dayPackingPolicy.
+   */
+  dayBudgetMinutes?: number;
+  maxUnitsPerDay?: number;
 }
+
+/**
+ * What one day of the journey teaches, as the day is written.
+ *
+ * ONE DAY IS ONE OR MORE UNITS. Foundation composes exactly as many units as it has days, so every
+ * day here holds one and the stored day is byte-for-byte what it always was. A stage with a larger
+ * curriculum than its programme fits by packing — see dayPackingPolicy.
+ */
+export interface PackedDay {
+  dayNumber: number;
+  units: SelectedUnit[];
+}
+
+/** The activities of every unit on a day, in order, renumbered so the day reads as one sitting. */
+export function dayItems(units: SelectedUnit[], assets: Map<string, UnitAssets>): any[] {
+  const items: any[] = [];
+  for (const unit of units) {
+    for (const item of activitiesFor(unit, assets.get(unit.unitCode.toUpperCase()) || { content: [], quizzes: [], assignments: [] })) {
+      items.push({ ...item, order: items.length });
+    }
+  }
+  return items;
+}
+
+/** A day's title: the unit it teaches, or the units it joins. */
+export const dayTitle = (units: SelectedUnit[]): string => units.map(u => u.title).join(' · ');
 
 export interface JourneyResult {
   ok: boolean;
@@ -328,6 +363,31 @@ export async function persistFoundationJourney(
     };
   }
 
+  /**
+   * The composed sequence becomes days. With one unit per composed day this is the identity, which is
+   * what keeps every Foundation journey exactly as it was.
+   */
+  const packed = packIntoDays(composition.units.map(u => ({
+    unitCode: u.unitCode, unitType: u.unitType, estimatedMinutes: u.estimatedMinutes, topicCode: u.topicCode,
+  })), {
+    days: programDays,
+    budgetMinutes: opts.dayBudgetMinutes ?? DEFAULT_DAY_BUDGET_MINUTES,
+    maxUnitsPerDay: opts.maxUnitsPerDay ?? DEFAULT_MAX_UNITS_PER_DAY,
+  });
+  if (!packed.ok) {
+    return {
+      ok: false,
+      reason: `The composed curriculum could not be arranged into ${programDays} days `
+        + `(${packed.reason}). Nothing was written.`,
+      days: 0, created: false, composition,
+    };
+  }
+  const byCode = new Map(composition.units.map(u => [u.unitCode, u]));
+  const days: PackedDay[] = packed.days.map((day, i) => ({
+    dayNumber: i + 1,
+    units: day.map(p => byCode.get(p.unitCode)!),
+  }));
+
   const { doc, created } = await findOrCreateJourney(tenantId, sid, stageKey, source, programDays);
   const assets = await loadAssets(tenantId, composition.units.map(u => u.unitCode));
 
@@ -338,28 +398,24 @@ export async function persistFoundationJourney(
    * unique (curriculumId, dayNumber) index and the student would be stuck with half a journey
    * and an error on every retry; an upsert completes it.
    */
-  const ops = composition.units.map((unit, i) => {
-    const dayNumber = i + 1;
-    const unitAssets = assets.get(unit.unitCode.toUpperCase())
-      || { content: [], quizzes: [], assignments: [] };
-
-    return {
-      updateOne: {
-        filter: { curriculumId: doc._id, dayNumber },
-        update: {
-          $set: {
-            tenantId,
-            topicId: unit.topicCode,
-            primaryUnitCode: unit.unitCode,
-            title: unit.title,
-            items: activitiesFor(unit, unitAssets),
-          },
-          $setOnInsert: { curriculumId: doc._id, dayNumber },
+  const ops = days.map(({ dayNumber, units }) => ({
+    updateOne: {
+      filter: { curriculumId: doc._id, dayNumber },
+      update: {
+        $set: {
+          tenantId,
+          /* The day belongs to the topic it opens with; a packed day names the rest in its title. */
+          topicId: units[0].topicCode,
+          primaryUnitCode: units[0].unitCode,
+          unitCodes: units.map(u => u.unitCode),
+          title: dayTitle(units),
+          items: dayItems(units, assets),
         },
-        upsert: true,
+        $setOnInsert: { curriculumId: doc._id, dayNumber },
       },
-    };
-  });
+      upsert: true,
+    },
+  }));
 
   await DayPlan.bulkWrite(ops, { ordered: false });
 

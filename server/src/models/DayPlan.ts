@@ -48,6 +48,14 @@ export interface IDayPlan extends Document {
    * Optional and sparse: TOPIC-engine plans predate Learning Units entirely and carry none.
    */
   primaryUnitCode?: string;
+  /**
+   * Every Learning Unit on this day, in teaching order. `primaryUnitCode` is the first of them.
+   *
+   * Foundation composes one unit per day, so this holds exactly that one. A stage whose curriculum is
+   * larger than its programme — Year 2 — fits by giving a day two or three short units, and this is
+   * what records which. Absent on days written before it existed: read it as [primaryUnitCode].
+   */
+  unitCodes?: string[];
   dayNumber: number;
   title?: string;
   notes?: string;
@@ -89,6 +97,7 @@ const DayPlanSchema = new Schema<IDayPlan>(
     curriculumId: { type: Schema.Types.ObjectId, ref: 'LearningCurriculum', required: true },
     topicId:      { type: String, default: '' },
     primaryUnitCode: { type: String, trim: true, uppercase: true },
+    unitCodes:       [{ type: String, trim: true, uppercase: true }],
     dayNumber:    { type: Number, required: true, min: 1 },
     title:        { type: String },
     notes:        { type: String },

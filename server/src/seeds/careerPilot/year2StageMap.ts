@@ -60,12 +60,25 @@ export const BUILD_MODULES: FoundationModuleSeed[] = [
     displayOrder: 20,
     blurb: 'Modelling a problem as objects with state and behaviour.',
     topics: [
+      /*
+       * Two topics rather than one, so a student can prove half of it. Somebody comfortable with
+       * classes and lost in polymorphism should be able to test out of the first and be taught the
+       * second; one nine-unit topic can only be proven or taught whole.
+       */
       {
-        topicCode: 'T2_OOP', title: 'Objects, Classes and State',
+        topicCode: 'T2_OOP_OBJECTS', title: 'Objects, Classes and State',
         skillKeys: ['OOP_CONCEPTS', 'PYTHON_OOP'], category: 'UNIVERSAL', applicableDirections: [],
         defaultDepth: 'FOUNDATION',
         learningOutcomes: ['Model a problem as objects that hold their own state and behaviour.'],
         prerequisiteSkillKeys: ['FUNCTIONS_BASICS', 'PYTHON_BASICS'],
+        backbone: true,
+      },
+      {
+        topicCode: 'T2_OOP_PRINCIPLES', title: 'Inheritance, Polymorphism and Abstraction',
+        skillKeys: ['OOP_CONCEPTS'], category: 'UNIVERSAL', applicableDirections: [],
+        defaultDepth: 'FOUNDATION',
+        learningOutcomes: ['Reuse and extend behaviour without making a design nobody can follow.'],
+        prerequisiteSkillKeys: ['FUNCTIONS_BASICS'],
         backbone: true,
       },
     ],
@@ -76,12 +89,21 @@ export const BUILD_MODULES: FoundationModuleSeed[] = [
     displayOrder: 30,
     blurb: 'What to store data in, what it costs, and how to solve a problem under time pressure.',
     topics: [
+      /* Split for the same reason as OOP: lists and stacks are proven long before trees are. */
       {
-        topicCode: 'T2_DATA_STRUCTURES', title: 'Structures That Hold Data',
-        skillKeys: ['DSA_ARRAYS', 'DSA_STRINGS', 'DSA_STACK', 'DSA_QUEUE', 'DSA_LINKED_LIST', 'DSA_HASHING', 'DSA_TREES'],
+        topicCode: 'T2_DS_LINEAR', title: 'Lists, Stacks and Queues',
+        skillKeys: ['DSA_ARRAYS', 'DSA_STRINGS', 'DSA_STACK', 'DSA_QUEUE', 'DSA_LINKED_LIST'],
         category: 'UNIVERSAL', applicableDirections: [], defaultDepth: 'FOUNDATION',
-        learningOutcomes: ['Choose the structure a problem calls for, and say what that choice costs.'],
+        learningOutcomes: ['Use the structures that keep things in order, and say what each costs.'],
         prerequisiteSkillKeys: ['DSA_ARRAYS', 'LOOPS_BASICS'],
+        backbone: true,
+      },
+      {
+        topicCode: 'T2_DS_KEYED', title: 'Maps, Sets and Trees',
+        skillKeys: ['DSA_HASHING', 'DSA_TREES'],
+        category: 'UNIVERSAL', applicableDirections: [], defaultDepth: 'FOUNDATION',
+        learningOutcomes: ['Look something up without searching for it, and say when a tree is the right shape.'],
+        prerequisiteSkillKeys: ['LOOPS_BASICS'],
         backbone: true,
       },
       {

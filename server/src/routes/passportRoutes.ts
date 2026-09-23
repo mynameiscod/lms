@@ -58,6 +58,14 @@ import * as cprofile from '../controllers/companyProfileAdminController';
 import * as cphealth from '../controllers/careerPilotHealthController';
 import * as placementCheck from '../controllers/placementCheckController';
 import * as orientation from '../controllers/orientationController';
+/* A member's spoken introduction, held on disk only until it reaches storage. */
+const orientationTmp = path.join(process.cwd(), 'uploads', 'orientation-tmp');
+fs.mkdirSync(orientationTmp, { recursive: true });
+const orientationUpload = multer({
+  dest: orientationTmp,
+  // A minute of video, generously. Anything larger is a mistake rather than an introduction.
+  limits: { fileSize: 60 * 1024 * 1024 },
+});
 import * as cpanalytics from '../controllers/careerPilotAnalyticsController';
 
 const router = express.Router();
@@ -505,6 +513,8 @@ router.get('/me/assessment/personalized/availability', MEMBER, personalized.chec
 // ── Orientation: the welcome days before Day 1. Mandatory for a new member, offered to
 //    anybody already learning; see orientationService. ──
 router.get('/me/orientation',          MEMBER, orientation.getMyOrientation);
+router.post('/me/orientation/recording', MEMBER, orientationUpload.single('recording'), orientation.uploadRecording);
+router.get('/me/orientation/recording/:day/:itemKey', MEMBER, orientation.streamRecording);
 router.post('/me/orientation/item',    MEMBER, orientation.completeItem);
 router.post('/me/orientation/day',     MEMBER, orientation.completeDay);
 router.get('/orientation',             MANAGE, orientation.getProgram);

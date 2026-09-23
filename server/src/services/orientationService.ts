@@ -269,6 +269,18 @@ export async function completeOrientationDay(
   return { ok: true, xpAwarded, complete: !!progress.completedAt };
 }
 
+/** Where a member's recording for one item is stored, if they have made one. */
+export async function recordingKeyFor(
+  tenantId: string, studentId: string, dayNumber: number, itemKey: string,
+): Promise<string | null> {
+  if (!connected()) return null;
+  const progress: any = await OrientationProgress.findOne({
+    tenantId, studentId: new mongoose.Types.ObjectId(studentId),
+  }).select('items').lean();
+  const state = (progress?.items || []).find((s: any) => s.dayNumber === dayNumber && s.itemKey === itemKey);
+  return state?.recordingKey || null;
+}
+
 /** Admin: replace the tenant's orientation. */
 export async function saveOrientationProgram(
   tenantId: string, days: OrientationDay[], enabled: boolean, updatedBy?: string,

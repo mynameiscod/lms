@@ -196,6 +196,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Assessment Coverage', path: '/admin/passport/assessment-coverage', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-table-cells', permissions: ['manage_passport'] },
     { label: 'Learning Studio', path: '/admin/passport/learning-studio', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-diagram-successor', permissions: ['manage_passport'] },
     { label: 'Content Builder', path: '/admin/passport/content-builder', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport'] },
+    { label: 'Orientation', path: '/admin/passport/orientation', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-flag-checkered', permissions: ['manage_passport'] },
     { label: 'Mega Curriculum', path: '/admin/passport/mega-curriculum', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-calendar-days', permissions: ['manage_passport'] },
     { label: 'Concept Bank', path: '/admin/passport/concepts', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-book-open-reader', permissions: ['manage_passport'] },
     { label: 'CareerPilot Coins', path: '/admin/passport/coins', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-coins', permissions: ['manage_passport'] },
@@ -450,7 +451,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       'CareerPilot Assessment Shape',
       // Content
       'CareerPilot Assessment', 'Assessment Coverage', 'Paper Designer', 'CareerPilot Pathways', 'CareerPilot Pathway Rules',
-      'CareerPilot Missions', 'Content Builder', 'Learning Studio', 'Mega Curriculum', 'Concept Bank', 'Company Questions', 'CareerPilot News',
+      'CareerPilot Missions', 'Content Builder', 'Orientation', 'Learning Studio', 'Mega Curriculum', 'Concept Bank', 'Company Questions', 'CareerPilot News',
       // Run and watch
       'CareerPilot Members', 'Career Stage Tagging', 'CareerPilot Coins', 'CareerPilot Drop-off', 'Activity',
     ] },

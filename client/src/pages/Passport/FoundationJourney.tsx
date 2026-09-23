@@ -28,6 +28,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, {
   FoundationJourney as Journey, FoundationJourneyDay, FoundationJourneyActivity, PlacementAvailability,
+  OrientationView,
 } from '../../api/passportApi';
 import SectionLock, { useUnlock } from './SectionLock';
 import { dayState, dayRanges, initialDay, STATE_LABEL } from './foundationRoadmapPresenter';
@@ -302,8 +303,36 @@ const PlacementOffer: React.FC<{ topic: string | null; day: number }> = ({ topic
   );
 };
 
+/**
+ * The welcome, on the plan screen.
+ *
+ * Shown while a member has orientation left: as the way in for somebody who must finish it before
+ * Day 1, and as an invitation for somebody already learning, who is never blocked by it.
+ */
+const OrientationCard: React.FC<{ view: OrientationView }> = ({ view }) => {
+  const nav = useNavigate();
+  const left = view.totalDays - view.completedDays;
+  return (
+    <section className={`fj-orient${view.mandatory ? ' must' : ''}`}>
+      <span className="fj-orient-ic"><i className={`bi ${view.mandatory ? 'bi-signpost-split-fill' : 'bi-stars'}`} aria-hidden /></span>
+      <div className="fj-orient-tx">
+        <b>{view.mandatory ? 'Start with your welcome' : 'A short welcome, whenever you like'}</b>
+        <span>
+          {view.mandatory
+            ? `${left} short ${left === 1 ? 'day' : 'days'} to set you up — your learning days open once they are done.`
+            : `${left} short ${left === 1 ? 'day' : 'days'} we added for new members. Your plan stays open either way.`}
+        </span>
+      </div>
+      <button type="button" className="fj-orient-btn" onClick={() => nav('/careerpilot/orientation')}>
+        {view.completedDays ? 'Continue' : 'Start'} <i className="bi bi-arrow-right" aria-hidden />
+      </button>
+    </section>
+  );
+};
+
 const FoundationJourneyPage: React.FC = () => {
   const [journey, setJourney] = useState<Journey | null>(null);
+  const [orientation, setOrientation] = useState<OrientationView | null>(null);
   const [day, setDay] = useState<FoundationJourneyDay | null>(null);
   const [openDay, setOpenDay] = useState<number | null>(null);
   const [lockedDay, setLockedDay] = useState<{ day: number; title?: string | null; topic?: string | null } | null>(null);
@@ -342,6 +371,13 @@ const FoundationJourneyPage: React.FC = () => {
   }, [params, setParams]);
 
   useEffect(() => { load(); }, [load]);
+
+  /* Asked once, beside the journey: a welcome the member has finished is never mentioned again. */
+  useEffect(() => {
+    passportApi.getMyOrientation()
+      .then(v => setOrientation(v.enabled && !v.complete ? v : null))
+      .catch(() => { /* the plan is not blocked by a welcome that failed to load */ });
+  }, []);
 
   // A journey written seconds ago is re-checked until it is whole, so the student lands on it.
   useEffect(() => {
@@ -528,6 +564,8 @@ const FoundationJourneyPage: React.FC = () => {
           <div><strong>{percentComplete}%</strong><span>complete</span></div>
         </div>
       </section>
+
+      {orientation && <OrientationCard view={orientation} />}
 
       {/* The ninety, as a strip. Scrolls horizontally on a phone rather than reflowing into
           a grid nobody can read — with jumps and arrows, so the days beyond the edge are never a

@@ -95,6 +95,8 @@ import PassportConceptJourney from './pages/Passport/ConceptJourney';
 import PassportFoundationJourney from './pages/Passport/FoundationJourney';
 import PassportJourneyDay from './pages/Passport/JourneyDay';
 import PassportMyPlan from './pages/Passport/MyPlan';
+import PassportOrientation from './pages/Passport/Orientation';
+import PassportAdminOrientation from './pages/Passport/AdminOrientation';
 import PassportMemberLayout from './pages/Passport/MemberLayout';
 import PassportCareerSetup from './pages/Passport/CareerSetup';
 import PassportAdminActivity from './pages/Passport/AdminActivity';
@@ -699,6 +701,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/learn/:skillKey" element={<PassportConceptJourney />} />
         {/* The ninety days, day by day. Separate from /roadmap, which still renders the legacy
             week-grouped journey — the two will merge once the day screen lands. */}
+        <Route path="/careerpilot/orientation" element={<PassportOrientation />} />
         <Route path="/careerpilot/plan" element={<PassportMyPlan />} />
         {/* The UNIT-engine Foundation journey: ninety days, one Learning Unit each. Served
             only to a student who has one, and gated by the engine flag — a member on the
@@ -742,6 +745,11 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/resume" element={<PassportResumeCenter />} />
         <Route path="/passport/resume" element={<LegacyRedirect to="/careerpilot/resume" />} />
       </Route>
+      {/* The welcome every new member meets before Day 1. Outside the programme's length. */}
+      <Route path="/admin/passport/orientation" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminOrientation /></Layout></ProtectedRoute>
+      } />
+
       {/* The day-by-day authoring screen: curriculum on the left, the member's day on the right. */}
       <Route path="/admin/passport/content-builder" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportContentBuilder /></Layout></ProtectedRoute>

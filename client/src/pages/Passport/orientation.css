@@ -1,0 +1,163 @@
+/* The welcome days, before Day 1. Brand navy and teal, the same card language as the rest of CareerPilot. */
+
+.ori {
+  --navy: #051D64;
+  --navy-hover: #0A2A7A;
+  --teal: #359AAD;
+  --teal-deep: #1B7D91;
+  --muted: #5D6E88;
+  --line: #E2EAF2;
+  --page: #F4F8FC;
+  width: 100%;
+  padding: 24px 28px 56px;
+  background: var(--page);
+  min-height: 100vh;
+  color: var(--navy);
+}
+.ori * { box-sizing: border-box; }
+
+.ori-state {
+  padding: 22px; border-radius: 14px; background: #fff; border: 1px solid var(--line);
+  color: var(--muted); font-size: 14px;
+}
+.ori-state.err { color: #B42318; }
+
+/* ── The banner ── */
+.ori-hero {
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 20px;
+  background: #fff; border: 1px solid var(--line); border-radius: 18px;
+  padding: 26px 28px; margin-bottom: 18px;
+}
+.ori-eyebrow {
+  display: inline-block; padding: 4px 10px; border-radius: 99px;
+  background: #E8F5F8; color: var(--teal-deep);
+  font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+}
+.ori-hero h1 { margin: 10px 0 6px; font-size: 30px; letter-spacing: -.02em; }
+.ori-hero p { margin: 0 0 14px; color: var(--muted); font-size: 14px; max-width: 640px; }
+.ori-bar { height: 8px; border-radius: 99px; background: #E8EEF5; overflow: hidden; max-width: 420px; }
+.ori-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #1E9AA8, #2FB27F); }
+.ori-hero small { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }
+
+/* ── The five days, as a strip ── */
+.ori-days { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.ori-day-chip {
+  display: flex; align-items: center; gap: 10px; text-align: left;
+  padding: 12px 14px; border-radius: 13px; cursor: pointer;
+  background: #fff; border: 1px solid var(--line); color: var(--navy);
+}
+.ori-day-chip > span {
+  flex: none; width: 30px; height: 30px; border-radius: 9px;
+  display: grid; place-items: center; font-weight: 800; font-size: 14px;
+  background: #EEF3F9; color: var(--muted);
+}
+.ori-day-chip b { font-size: 13px; font-weight: 700; line-height: 1.3; }
+.ori-day-chip.on { border-color: var(--navy); box-shadow: 0 0 0 1px var(--navy); }
+.ori-day-chip.on > span { background: var(--navy); color: #fff; }
+.ori-day-chip.done > span { background: #E8F5F8; color: var(--teal-deep); }
+.ori-day-chip:disabled { opacity: .55; cursor: default; }
+.ori-chip-lock { margin-left: auto; color: #94A3B8; font-size: 12px; }
+
+/* ── One day ── */
+.ori-day { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 26px 28px; }
+.ori-day-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
+.ori-day-n { font-size: 12px; font-weight: 800; color: var(--teal-deep); text-transform: uppercase; letter-spacing: .06em; }
+.ori-day-head h2 { margin: 6px 0 4px; font-size: 22px; }
+.ori-day-head p { margin: 0; color: var(--muted); font-size: 14px; }
+.ori-day-mins { flex: none; color: var(--muted); font-size: 13px; }
+
+.ori-item { border-top: 1px solid var(--line); padding: 18px 0; }
+.ori-item:first-of-type { border-top: 0; padding-top: 0; }
+.ori-item > header { display: flex; align-items: flex-start; gap: 12px; }
+.ori-item-ic {
+  flex: none; width: 38px; height: 38px; border-radius: 11px;
+  display: grid; place-items: center; background: #EEF3F9; color: var(--navy); font-size: 17px;
+}
+.ori-item.done .ori-item-ic { background: #E8F5F8; color: var(--teal-deep); }
+.ori-item > header > div { flex: 1; min-width: 0; }
+.ori-item > header b { display: block; font-size: 16px; }
+.ori-item > header span { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+.ori-item-meta { flex: none; display: flex; align-items: center; gap: 10px; }
+.ori-item-meta small { color: var(--muted); font-size: 12px; }
+.ori-optional {
+  font-style: normal; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 99px;
+  background: #F1F5F9; color: var(--muted);
+}
+.ori-tick { color: #2FB27F; font-size: 18px; }
+
+.ori-video, .ori-rec-play { width: 100%; max-width: 720px; margin-top: 14px; border-radius: 12px; background: #000; display: block; }
+.ori-image { max-width: 100%; margin-top: 14px; border-radius: 12px; border: 1px solid var(--line); }
+.ori-missing {
+  margin: 14px 0 0; padding: 14px 16px; border-radius: 12px;
+  background: #FFF8E8; color: #8B6500; font-size: 13px; display: flex; align-items: center; gap: 8px;
+}
+.ori-prompt {
+  margin: 14px 0 0; padding: 14px 16px; border-left: 3px solid var(--teal);
+  background: #F6FAFD; color: var(--navy); font-size: 14px; border-radius: 0 10px 10px 0;
+}
+
+/* ── Notes ── */
+.ori-notes { margin-top: 14px; color: #2C3A4F; font-size: 14px; line-height: 1.65; max-width: 760px; }
+.ori-notes p { margin: 0 0 12px; }
+.ori-notes b { color: var(--navy); }
+.ori-notes code { background: #F1F5F9; padding: 1px 6px; border-radius: 5px; font-size: 13px; }
+.ori-notes table { width: 100%; border-collapse: collapse; margin: 6px 0 14px; }
+.ori-notes th, .ori-notes td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; font-size: 13px; }
+.ori-notes th { background: #F6FAFD; color: var(--navy); }
+
+/* ── Checklist ── */
+.ori-check { margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; max-width: 760px; }
+.ori-check-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px; background: #F6FAFD; border-bottom: 1px solid var(--line);
+}
+.ori-check-head b { font-size: 13px; color: var(--navy); }
+.ori-check-head small { color: var(--muted); font-size: 12px; }
+.ori-check ul { list-style: none; margin: 0; padding: 0; }
+.ori-check li { border-bottom: 1px solid #F1F5F9; }
+.ori-check li:last-child { border-bottom: 0; }
+.ori-check label { display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px; cursor: pointer; font-size: 14px; }
+.ori-check input { margin-top: 2px; width: 17px; height: 17px; accent-color: var(--navy); cursor: pointer; }
+.ori-check input:checked + span { color: var(--muted); text-decoration: line-through; }
+
+/* ── Recorder ── */
+.ori-rec { margin-top: 14px; }
+.ori-rec-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.ori-rec-actions small { color: var(--muted); font-size: 12px; }
+.ori-rec-live { display: flex; align-items: center; gap: 8px; color: #B42318; font-weight: 700; font-size: 14px; }
+.ori-rec-live i { width: 10px; height: 10px; border-radius: 50%; background: #B42318; animation: ori-pulse 1.2s infinite; }
+@keyframes ori-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+
+/* ── Buttons, notes, footer ── */
+.ori-btn {
+  margin-top: 14px; border: 1px solid #C9D6E6; border-radius: 10px; padding: 10px 18px;
+  background: #fff; color: var(--navy); font-size: 14px; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.ori-btn:hover:not(:disabled) { border-color: var(--navy); }
+.ori-btn:disabled { opacity: .6; cursor: default; }
+.ori-btn.primary { background: var(--navy); border-color: var(--navy); color: #fff; }
+.ori-btn.primary:hover:not(:disabled) { background: var(--navy-hover); }
+.ori-btn.ghost { margin-top: 0; }
+.ori-err { margin: 12px 0 0; color: #B42318; font-size: 13px; }
+
+.ori-day-foot { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 18px; }
+.ori-done-note { display: inline-flex; align-items: center; gap: 8px; color: var(--teal-deep); font-weight: 700; font-size: 14px; }
+
+.ori-complete {
+  display: flex; align-items: center; gap: 16px; margin-top: 18px;
+  background: #fff; border: 1px solid var(--line); border-left: 4px solid #2FB27F;
+  border-radius: 14px; padding: 18px 22px;
+}
+.ori-complete > i { font-size: 24px; color: #2FB27F; }
+.ori-complete > div { flex: 1; }
+.ori-complete b { display: block; font-size: 16px; }
+.ori-complete span { color: var(--muted); font-size: 13px; }
+
+@media (max-width: 720px) {
+  .ori { padding: 16px 16px 40px; }
+  .ori-hero { flex-direction: column; align-items: flex-start; padding: 20px; }
+  .ori-day { padding: 20px 18px; }
+  .ori-item > header { flex-wrap: wrap; }
+  .ori-complete { flex-direction: column; align-items: flex-start; }
+}

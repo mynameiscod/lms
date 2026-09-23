@@ -814,6 +814,48 @@ export const passportApi = {
    * (blueprint published, skills configured, question pool) stay on the server — this is
    * a transport, not a second copy of the policy.
    */
+  /** The welcome days, and how far this member has come through them. */
+  getMyOrientation: async (): Promise<OrientationView> => {
+    const { data } = await axios.get(`${BASE}/me/orientation`, { headers: auth() });
+    return data;
+  },
+  /** One part of an orientation day, finished. Checklists send which lines are ticked. */
+  completeOrientationItem: async (dayNumber: number, itemKey: string, checked?: number[]): Promise<{ ok: boolean; orientation: OrientationView }> => {
+    const { data } = await axios.post(`${BASE}/me/orientation/item`, { dayNumber, itemKey, checked }, { headers: auth() });
+    return data;
+  },
+  /** A whole orientation day. Refused, with what is outstanding, while a required part is unfinished. */
+  completeOrientationDay: async (dayNumber: number): Promise<{ ok: boolean; message?: string; outstanding?: string[]; xpAwarded?: number; orientation?: OrientationView }> => {
+    const { data } = await axios.post(`${BASE}/me/orientation/day`, { dayNumber }, { headers: auth() });
+    return data;
+  },
+  /** The member's own recording of themselves, for a recording prompt. */
+  uploadOrientationRecording: async (dayNumber: number, itemKey: string, blob: Blob, durationSec: number): Promise<{ ok: boolean; message?: string; orientation?: OrientationView }> => {
+    const form = new FormData();
+    form.append('recording', blob, `${itemKey}.webm`);
+    form.append('dayNumber', String(dayNumber));
+    form.append('itemKey', itemKey);
+    form.append('durationSec', String(Math.round(durationSec)));
+    const { data } = await axios.post(`${BASE}/me/orientation/recording`, form, { headers: auth() });
+    return data;
+  },
+  orientationRecordingUrl: (dayNumber: number, itemKey: string): string =>
+    `${BASE}/me/orientation/recording/${dayNumber}/${encodeURIComponent(itemKey)}`,
+
+  /** Admin: the tenant's welcome, as it stands. */
+  getOrientationProgram: async (): Promise<{ enabled: boolean; days: OrientationDay[] }> => {
+    const { data } = await axios.get(`${BASE}/orientation`, { headers: auth() });
+    return data;
+  },
+  saveOrientationProgram: async (days: OrientationDay[], enabled: boolean): Promise<{ ok: boolean; message?: string; enabled: boolean; days: OrientationDay[] }> => {
+    const { data } = await axios.put(`${BASE}/orientation`, { days, enabled }, { headers: auth() });
+    return data;
+  },
+  resetOrientationProgram: async (): Promise<{ ok: boolean; enabled: boolean; days: OrientationDay[] }> => {
+    const { data } = await axios.post(`${BASE}/orientation/reset`, {}, { headers: auth() });
+    return data;
+  },
+
   /** May I test out of this topic? Every rule is the server's — this only asks. */
   placementCheckAvailability: async (day: number): Promise<PlacementAvailability> => {
     const { data } = await axios.get(`${BASE}/me/placement-check/day/${day}`, { headers: auth() });
@@ -3398,6 +3440,47 @@ export interface SkillAssessmentItem {
   points: number;
   /** What was saved earlier, so a resumed paper comes back filled in. */
   response?: any;
+}
+
+/* ── Orientation: the welcome days before Day 1 ── */
+export type OrientationItemKind = 'video' | 'notes' | 'image' | 'checklist' | 'recording';
+
+export interface OrientationItem {
+  key: string;
+  kind: OrientationItemKind;
+  title: string;
+  blurb?: string;
+  /** Empty on a video means the admin has not added it yet, and the screen says so. */
+  url?: string;
+  body?: string;
+  items?: string[];
+  targetSeconds?: number;
+  required: boolean;
+  estimatedMinutes: number;
+  done?: boolean;
+  checked?: number[];
+  recordingDurationSec?: number | null;
+}
+
+export interface OrientationDay {
+  dayNumber: number;
+  title: string;
+  blurb: string;
+  items: OrientationItem[];
+  done?: boolean;
+  locked?: boolean;
+  minutes?: number;
+}
+
+export interface OrientationView {
+  enabled: boolean;
+  /** True while this member must finish orientation before their first learning day. */
+  mandatory: boolean;
+  complete: boolean;
+  days: OrientationDay[];
+  nextDay: number | null;
+  totalDays: number;
+  completedDays: number;
 }
 
 export interface PlacementAvailability {

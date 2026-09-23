@@ -1,0 +1,128 @@
+/* The orientation editor. One page, edited in place, in the CareerPilot admin's card language. */
+
+.aori {
+  --navy: #051D64;
+  --navy-hover: #0A2A7A;
+  --teal-deep: #1B7D91;
+  --muted: #5D6E88;
+  --line: #E2EAF2;
+  width: 100%;
+  padding: 24px 28px 56px;
+  background: #F4F8FC;
+  min-height: 100vh;
+  color: var(--navy);
+}
+.aori * { box-sizing: border-box; }
+.aori-state { padding: 22px; background: #fff; border: 1px solid var(--line); border-radius: 14px; color: var(--muted); }
+
+.aori-hd {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;
+  background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px; margin-bottom: 16px;
+}
+.aori-eyebrow {
+  display: inline-block; padding: 4px 10px; border-radius: 99px; background: #E8F5F8;
+  color: var(--teal-deep); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+}
+.aori-hd h1 { margin: 10px 0 6px; font-size: 26px; }
+.aori-hd p { margin: 0; color: var(--muted); font-size: 13.5px; max-width: 620px; }
+.aori-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.aori-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.aori-toggle input { width: 17px; height: 17px; accent-color: var(--navy); }
+
+.aori-btn {
+  border: 1px solid #C9D6E6; border-radius: 9px; padding: 9px 16px; background: #fff;
+  color: var(--navy); font-size: 13.5px; font-weight: 700; cursor: pointer;
+}
+.aori-btn:hover:not(:disabled) { border-color: var(--navy); }
+.aori-btn:disabled { opacity: .55; cursor: default; }
+.aori-btn.primary { background: var(--navy); border-color: var(--navy); color: #fff; }
+.aori-btn.primary:hover:not(:disabled) { background: var(--navy-hover); }
+
+.aori-warn, .aori-err, .aori-ok {
+  margin: 0 0 14px; padding: 12px 16px; border-radius: 11px; font-size: 13.5px;
+  display: flex; align-items: center; gap: 8px;
+}
+.aori-warn { background: #FFF8E8; color: #8B6500; }
+.aori-err { background: #FEF3F2; color: #B42318; }
+.aori-ok { background: #ECFDF3; color: #027A48; }
+
+/* ── A day ── */
+.aori-day { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 14px; }
+.aori-day > header { display: flex; align-items: center; gap: 12px; }
+.aori-day-n {
+  flex: none; padding: 5px 11px; border-radius: 99px; background: #E7EDF8;
+  color: var(--navy); font-size: 12px; font-weight: 800;
+}
+.aori-title {
+  flex: 1; border: 0; border-bottom: 1px solid transparent; padding: 6px 2px;
+  font-size: 18px; font-weight: 800; color: var(--navy); background: none;
+}
+.aori-title:focus, .aori-blurb:focus, .aori-item-title:focus, .aori-url:focus, .aori-body:focus {
+  outline: none; border-bottom-color: var(--navy);
+}
+.aori-blurb {
+  width: 100%; border: 0; border-bottom: 1px solid transparent; padding: 6px 2px; margin-top: 4px;
+  font-size: 13.5px; color: var(--muted); background: none;
+}
+
+/* ── An item ── */
+.aori-item { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-top: 12px; background: #FBFDFF; }
+.aori-item-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.aori-item-top select {
+  border: 1px solid #C9D6E6; border-radius: 8px; padding: 7px 10px; font-size: 13px;
+  color: var(--navy); background: #fff;
+}
+.aori-item-title {
+  flex: 1; min-width: 200px; border: 0; border-bottom: 1px solid transparent;
+  padding: 6px 2px; font-size: 15px; font-weight: 700; color: var(--navy); background: none;
+}
+.aori-mins, .aori-req { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.aori-mins input { width: 64px; border: 1px solid #C9D6E6; border-radius: 8px; padding: 6px 8px; font-size: 13px; }
+.aori-mins.wide { margin-top: 10px; }
+.aori-req input { width: 16px; height: 16px; accent-color: var(--navy); }
+
+.aori-url, .aori-body {
+  width: 100%; margin-top: 10px; border: 1px solid #C9D6E6; border-radius: 9px;
+  padding: 9px 11px; font-size: 13.5px; color: var(--navy); background: #fff; font-family: inherit;
+}
+.aori-url.empty { border-style: dashed; background: #FFFCF5; }
+.aori-body { line-height: 1.55; resize: vertical; }
+
+.aori-list { margin-top: 10px; }
+.aori-line { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.aori-line input {
+  flex: 1; border: 1px solid #E2EAF2; border-radius: 8px; padding: 8px 10px; font-size: 13.5px; color: var(--navy);
+}
+
+.aori-key { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.aori-key > span { font-size: 12px; font-weight: 700; color: var(--muted); }
+.aori-key input {
+  width: 180px; border: 1px solid #E2EAF2; border-radius: 8px; padding: 6px 9px;
+  font-size: 12.5px; font-family: ui-monospace, monospace; color: var(--muted);
+}
+.aori-key small { color: #94A3B8; font-size: 11.5px; }
+
+.aori-x {
+  flex: none; border: 0; background: none; color: #94A3B8; cursor: pointer; font-size: 14px; padding: 6px;
+}
+.aori-x:hover { color: #B42318; }
+
+.aori-add {
+  margin-top: 12px; border: 1px dashed #C9D6E6; border-radius: 9px; padding: 9px 16px;
+  background: #fff; color: var(--navy); font-size: 13.5px; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.aori-add:hover { border-color: var(--navy); }
+.aori-add.big { width: 100%; justify-content: center; padding: 14px; }
+
+.aori-foot {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  margin-top: 18px; padding: 16px 20px; background: #fff; border: 1px solid var(--line); border-radius: 14px;
+}
+.aori-foot span { color: var(--muted); font-size: 13px; }
+
+@media (max-width: 720px) {
+  .aori { padding: 16px 16px 40px; }
+  .aori-hd { flex-direction: column; }
+  .aori-item-top { gap: 8px; }
+}

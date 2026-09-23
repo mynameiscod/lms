@@ -169,6 +169,13 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
     // Lists now come first: the full collections node covers tuples, sets and dicts, and a
     // student who cannot index a list has no business being sent to it.
     prerequisiteKeys: ['PYTHON_FUNCTIONS', 'PYTHON_LISTS_BASICS'] },
+  // Year 2: a program that is more than one file, and one that survives bad input.
+  { key: 'PYTHON_MODULES', name: 'Modules, Packages & Environments', parentKey: 'PYTHON', difficulty: 'INTERMEDIATE', displayOrder: 60,
+    description: 'Splitting code across modules and packages, imports, scope, virtual environments and installing dependencies.',
+    prerequisiteKeys: ['PYTHON_BASICS'] },
+  { key: 'PYTHON_ERROR_HANDLING', name: 'Errors, Files & JSON', parentKey: 'PYTHON', difficulty: 'INTERMEDIATE', displayOrder: 65,
+    description: 'Exceptions, reading and writing files, and working with JSON and other structured data.',
+    prerequisiteKeys: ['PYTHON_BASICS'] },
   { key: 'PYTHON_OOP', name: 'Python OOP', parentKey: 'PYTHON', difficulty: 'INTERMEDIATE', displayOrder: 50,
     description: 'Classes, objects and inheritance as expressed in Python.',
     prerequisiteKeys: ['PYTHON_FUNCTIONS', 'OOP_CONCEPTS'] },
@@ -369,12 +376,30 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'API_FUNDAMENTALS', name: 'API Fundamentals', parentKey: 'SE_PRACTICES', difficulty: 'INTERMEDIATE', displayOrder: 60,
     description: 'Consuming and designing APIs, authentication and error handling.',
     prerequisiteKeys: ['REST_APIS'] },
+  // Year 2, Cloud & DevOps direction: putting something online and keeping it there.
+  { key: 'CLOUD_FUNDAMENTALS', name: 'Cloud Fundamentals', parentKey: 'SE_PRACTICES', difficulty: 'INTERMEDIATE', displayOrder: 80,
+    description: 'What a cloud provider rents you: compute, storage, networking, and what each costs.',
+    prerequisiteKeys: ['COMPUTER_NETWORKS'] },
+  { key: 'DEVOPS_FUNDAMENTALS', name: 'Deployment & Operations', parentKey: 'SE_PRACTICES', difficulty: 'INTERMEDIATE', displayOrder: 85,
+    description: 'Deploying an application, automating the steps, and knowing what happens when it breaks.',
+    prerequisiteKeys: ['SHELL_COMMANDS'] },
+  { key: 'CODE_REVIEW', name: 'Code Review', parentKey: 'SE_PRACTICES', difficulty: 'INTERMEDIATE', displayOrder: 55,
+    description: 'Reading another engineer\'s change, saying what matters about it, and taking a review well.',
+    prerequisiteKeys: ['CLEAN_CODE'] },
   { key: 'SYSTEM_DESIGN_BASICS', name: 'Basic System Design', parentKey: 'SE_PRACTICES', difficulty: 'ADVANCED', displayOrder: 70,
     description: 'Splitting a system into parts, and the trade-offs behind the split.',
     prerequisiteKeys: ['API_FUNDAMENTALS', 'DB_DESIGN'] },
 
   // ── Professional Skills ───────────────────────────────────────────────────────
   GROUP('PROFESSIONAL_SKILLS', 'Professional Skills', 70, 'What gets an engineer understood, hired and trusted.'),
+  // Year 2: showing the work, and going after the first internship.
+  { key: 'PORTFOLIO_EVIDENCE', name: 'Portfolio & Evidence', parentKey: 'PROFESSIONAL_SKILLS', difficulty: 'INTERMEDIATE', displayOrder: 5,
+    description: 'A GitHub profile, readable repositories and project write-ups that show ability rather than claim it.' },
+  { key: 'INTERNSHIP_READINESS', name: 'Internship Readiness', parentKey: 'PROFESSIONAL_SKILLS', difficulty: 'INTERMEDIATE', displayOrder: 6,
+    description: 'Reading a job description, matching yourself to it honestly, tailoring a resume and applying.' },
+  { key: 'TECHNICAL_INTERVIEW_PREP', name: 'Technical Interview Preparation', parentKey: 'PROFESSIONAL_SKILLS', difficulty: 'INTERMEDIATE', displayOrder: 7,
+    description: 'Reading a coding problem, reaching a working answer, improving it, and explaining the trade-off aloud.',
+    prerequisiteKeys: ['PROBLEM_SOLVING'] },
   { key: 'COMMUNICATION', name: 'Communication', parentKey: 'PROFESSIONAL_SKILLS', difficulty: 'FOUNDATION', displayOrder: 10,
     description: 'Speaking and writing clearly to a non-specialist.' },
   { key: 'TECHNICAL_COMMUNICATION', name: 'Technical Communication', parentKey: 'PROFESSIONAL_SKILLS', difficulty: 'INTERMEDIATE', displayOrder: 20,

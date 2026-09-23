@@ -13,7 +13,10 @@ import { PilotBundle } from './pilotUnitContent';
 import { OOP_BUNDLES } from './year2ContentOop';
 import { DATA_STRUCTURE_BUNDLES } from './year2ContentDataStructures';
 import { ALGORITHM_BUNDLES } from './year2ContentAlgorithms';
+import { TESTING_BUNDLES } from './year2ContentTesting';
+import { COLLABORATION_BUNDLES } from './year2ContentCollaboration';
 
 export const ALL_YEAR2_BUNDLES: PilotBundle[] = [
-  ...OOP_BUNDLES, ...DATA_STRUCTURE_BUNDLES, ...ALGORITHM_BUNDLES,
+  ...OOP_BUNDLES, ...DATA_STRUCTURE_BUNDLES, ...ALGORITHM_BUNDLES, ...TESTING_BUNDLES,
+  ...COLLABORATION_BUNDLES,
 ];

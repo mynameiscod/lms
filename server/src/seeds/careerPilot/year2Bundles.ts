@@ -15,8 +15,9 @@ import { DATA_STRUCTURE_BUNDLES } from './year2ContentDataStructures';
 import { ALGORITHM_BUNDLES } from './year2ContentAlgorithms';
 import { TESTING_BUNDLES } from './year2ContentTesting';
 import { COLLABORATION_BUNDLES } from './year2ContentCollaboration';
+import { DATABASE_BUNDLES } from './year2ContentDatabases';
 
 export const ALL_YEAR2_BUNDLES: PilotBundle[] = [
   ...OOP_BUNDLES, ...DATA_STRUCTURE_BUNDLES, ...ALGORITHM_BUNDLES, ...TESTING_BUNDLES,
-  ...COLLABORATION_BUNDLES,
+  ...COLLABORATION_BUNDLES, ...DATABASE_BUNDLES,
 ];

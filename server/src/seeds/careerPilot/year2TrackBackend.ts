@@ -1057,7 +1057,7 @@ for the right input. It is finished when it returns the right thing for every wr
           ['Whether the API design is good', false],
           ['Whether the examples are correct', false],
           ['How long onboarding takes', false]],
-        'Watch where they stop.'),
+        'Watch where they stop; that is the step that needs rewriting.'),
     ],
   },
 

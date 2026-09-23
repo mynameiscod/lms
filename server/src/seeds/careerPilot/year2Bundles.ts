@@ -17,8 +17,10 @@ import { TESTING_BUNDLES } from './year2ContentTesting';
 import { COLLABORATION_BUNDLES } from './year2ContentCollaboration';
 import { DATABASE_BUNDLES } from './year2ContentDatabases';
 import { WEB_BUNDLES } from './year2ContentWeb';
+import { SECURITY_BUNDLES } from './year2ContentSecurity';
 
 export const ALL_YEAR2_BUNDLES: PilotBundle[] = [
   ...OOP_BUNDLES, ...DATA_STRUCTURE_BUNDLES, ...ALGORITHM_BUNDLES, ...TESTING_BUNDLES,
   ...COLLABORATION_BUNDLES, ...DATABASE_BUNDLES, ...WEB_BUNDLES,
+  ...SECURITY_BUNDLES,
 ];

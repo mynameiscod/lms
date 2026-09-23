@@ -22,10 +22,11 @@ import { BACKBONE_BUNDLES } from './year2ContentBackbone';
 import { PYTHON_BUNDLES } from './year2ContentPython';
 import { CRAFT_BUNDLES } from './year2ContentCraft';
 import { DIRECTION_BUNDLES } from './year2ContentDirection';
+import { EMPLOYABILITY_BUNDLES } from './year2ContentEmployability';
 
 export const ALL_YEAR2_BUNDLES: PilotBundle[] = [
   ...OOP_BUNDLES, ...DATA_STRUCTURE_BUNDLES, ...ALGORITHM_BUNDLES, ...TESTING_BUNDLES,
   ...COLLABORATION_BUNDLES, ...DATABASE_BUNDLES, ...WEB_BUNDLES,
   ...SECURITY_BUNDLES, ...BACKBONE_BUNDLES, ...PYTHON_BUNDLES,
-  ...CRAFT_BUNDLES, ...DIRECTION_BUNDLES,
+  ...CRAFT_BUNDLES, ...DIRECTION_BUNDLES, ...EMPLOYABILITY_BUNDLES,
 ];

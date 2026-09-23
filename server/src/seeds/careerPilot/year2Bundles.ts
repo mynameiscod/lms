@@ -25,6 +25,7 @@ import { DIRECTION_BUNDLES } from './year2ContentDirection';
 import { EMPLOYABILITY_BUNDLES } from './year2ContentEmployability';
 import { BACKEND_TRACK_BUNDLES } from './year2TrackBackend';
 import { FRONTEND_TRACK_BUNDLES } from './year2TrackFrontend';
+import { DATA_TRACK_BUNDLES } from './year2TrackData';
 
 export const ALL_YEAR2_BUNDLES: PilotBundle[] = [
   ...OOP_BUNDLES, ...DATA_STRUCTURE_BUNDLES, ...ALGORITHM_BUNDLES, ...TESTING_BUNDLES,
@@ -32,4 +33,5 @@ export const ALL_YEAR2_BUNDLES: PilotBundle[] = [
   ...SECURITY_BUNDLES, ...BACKBONE_BUNDLES, ...PYTHON_BUNDLES,
   ...CRAFT_BUNDLES, ...DIRECTION_BUNDLES, ...EMPLOYABILITY_BUNDLES,
   ...BACKEND_TRACK_BUNDLES, ...FRONTEND_TRACK_BUNDLES,
+  ...DATA_TRACK_BUNDLES,
 ];

@@ -32,9 +32,22 @@ const allowedOrigins = [
   process.env.CLIENT_URL, // Production URL from env (e.g., http://187.124.97.56:5000)
 ].filter(Boolean);
 
+/**
+ * A private-network origin, for testing from another machine on the same Wi-Fi.
+ *
+ * Development only. Without this, a colleague opening the app at
+ * http://192.168.0.124:3000 has every request rejected, because the allow-list
+ * below only recognises localhost — which is a different machine to them.
+ *
+ * The ranges are the three reserved private blocks (RFC 1918) plus link-local;
+ * none of them are routable from the internet, so this cannot widen anything
+ * in production, where the branch below is not taken at all.
+ */
+const PRIVATE_LAN_ORIGIN = /^https?:\/\/(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)[\d.]+(:\d+)?$/;
+
 // In production, frontend and backend are on the same origin, so allow any origin
 // In development, be more permissive to avoid CORS issues during testing
-const corsOptions = process.env.NODE_ENV === 'production' 
+const corsOptions = process.env.NODE_ENV === 'production'
   ? { 
       origin: true, 
       credentials: true,
@@ -46,7 +59,12 @@ const corsOptions = process.env.NODE_ENV === 'production'
         // Also allow any localhost/127.0.0.1 origin in development
         if (!origin) {
           callback(null, true);
-        } else if (allowedOrigins.includes(origin) || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        } else if (
+          allowedOrigins.includes(origin)
+          || origin.includes('localhost')
+          || origin.includes('127.0.0.1')
+          || PRIVATE_LAN_ORIGIN.test(origin)
+        ) {
           callback(null, true);
         } else {
           console.warn(`[CORS] Blocked origin: ${origin}`);

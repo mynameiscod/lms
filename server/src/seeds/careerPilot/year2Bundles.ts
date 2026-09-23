@@ -11,7 +11,9 @@
 
 import { PilotBundle } from './pilotUnitContent';
 import { OOP_BUNDLES } from './year2ContentOop';
+import { DATA_STRUCTURE_BUNDLES } from './year2ContentDataStructures';
+import { ALGORITHM_BUNDLES } from './year2ContentAlgorithms';
 
 export const ALL_YEAR2_BUNDLES: PilotBundle[] = [
-  ...OOP_BUNDLES,
+  ...OOP_BUNDLES, ...DATA_STRUCTURE_BUNDLES, ...ALGORITHM_BUNDLES,
 ];

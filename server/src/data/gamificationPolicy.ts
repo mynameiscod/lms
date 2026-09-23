@@ -44,6 +44,21 @@ export interface XpEventDefinition {
 
 export const XP_EVENTS: XpEventDefinition[] = [
   {
+    /**
+     * A day of the welcome that comes before Day 1. It is not a learning day and writes no skill
+     * evidence — it pays for showing up, which is exactly what XP is for. Worth less than a
+     * mission, because watching is not the same as working.
+     */
+    key: 'ORIENTATION_DAY_COMPLETED',
+    name: 'Orientation day completed',
+    description: 'One of the welcome days a member meets before their first learning day.',
+    defaultXp: 15,
+    /* Five days at fifteen. A member cannot earn more from orientation than orientation contains. */
+    defaultDailyLimit: 75,
+    uniqueSource: true,
+    streakQualifying: true,
+  },
+  {
     key: 'CAREER_MISSION_COMPLETED',
     name: 'Daily roadmap mission completed',
     description: 'One slice of the 90-day roadmap, finished.',

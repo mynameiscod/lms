@@ -57,6 +57,7 @@ import * as prep from '../controllers/companyPreparationController';
 import * as cprofile from '../controllers/companyProfileAdminController';
 import * as cphealth from '../controllers/careerPilotHealthController';
 import * as placementCheck from '../controllers/placementCheckController';
+import * as orientation from '../controllers/orientationController';
 import * as cpanalytics from '../controllers/careerPilotAnalyticsController';
 
 const router = express.Router();
@@ -501,6 +502,15 @@ router.post('/assessments/:assessmentId/reproject',          MANAGE, skillDna.re
 // Preflight for the onboarding CTA — read-only, no generation, so no aiGenerate limit.
 router.get('/me/assessment/personalized/availability', MEMBER, personalized.checkPersonalizedAssessmentAvailability);
 /* The placement check: a paper a member asks for on a topic they believe they already know. */
+// ── Orientation: the welcome days before Day 1. Mandatory for a new member, offered to
+//    anybody already learning; see orientationService. ──
+router.get('/me/orientation',          MEMBER, orientation.getMyOrientation);
+router.post('/me/orientation/item',    MEMBER, orientation.completeItem);
+router.post('/me/orientation/day',     MEMBER, orientation.completeDay);
+router.get('/orientation',             MANAGE, orientation.getProgram);
+router.put('/orientation',             MANAGE, orientation.saveProgram);
+router.post('/orientation/reset',      MANAGE, orientation.resetProgram);
+
 router.get('/me/placement-check/day/:day',  MEMBER, placementCheck.checkPlacementAvailability);
 router.post('/me/placement-check/start',     MEMBER, placementCheck.startPlacement);
 router.post('/me/placement-check/submit',    MEMBER, placementCheck.submitPlacement);

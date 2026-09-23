@@ -42,6 +42,7 @@ import { composeFoundationJourney, loadAssets, activitiesFor } from '../services
 import { applyFoundationTrigger, directionChoiceFor } from '../services/foundationJourneyTriggerService';
 import { resolveModuleStatuses, itemDone } from './enrollmentPlanController';
 import { reconcileJourneyDayXp, xpForJourneyItem, journeyItemFinished, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
+import { orientationBlocksLearning } from '../services/orientationService';
 
 /**
  * Which engine plans this student, for the screens that must show exactly one plan.
@@ -483,6 +484,22 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
      * always available, and a day already completed stays available — what is locked is ahead,
      * not behind.
      */
+    /**
+     * Orientation comes first, for a member who has not started learning yet.
+     *
+     * Checked here rather than only on the screen, because a day is opened by its URL as often as
+     * by a click. A member already past Day 1 when orientation arrived is never held by it — see
+     * orientationService.
+     */
+    if (await orientationBlocksLearning(tenantId, String(studentId))) {
+      return res.status(403).json({
+        reason: 'ORIENTATION_REQUIRED',
+        day: plan.dayNumber,
+        title: plan.title || `Day ${plan.dayNumber}`,
+        message: 'Finish your orientation days first — they take about twenty minutes each.',
+      });
+    }
+
     const doneDays = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
     if (!isJourneyDayOpen(plan.dayNumber, doneDays)) {
       return res.status(403).json({

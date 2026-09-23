@@ -29,6 +29,7 @@ import { DATA_TRACK_BUNDLES } from './year2TrackData';
 import { AI_TRACK_BUNDLES } from './year2TrackAi';
 import { MOBILE_TRACK_BUNDLES } from './year2TrackMobile';
 import { CLOUD_TRACK_BUNDLES } from './year2TrackCloud';
+import { SECURITY_TRACK_BUNDLES } from './year2TrackSecurity';
 
 export const ALL_YEAR2_BUNDLES: PilotBundle[] = [
   ...OOP_BUNDLES, ...DATA_STRUCTURE_BUNDLES, ...ALGORITHM_BUNDLES, ...TESTING_BUNDLES,
@@ -38,4 +39,5 @@ export const ALL_YEAR2_BUNDLES: PilotBundle[] = [
   ...BACKEND_TRACK_BUNDLES, ...FRONTEND_TRACK_BUNDLES,
   ...DATA_TRACK_BUNDLES, ...AI_TRACK_BUNDLES,
   ...MOBILE_TRACK_BUNDLES, ...CLOUD_TRACK_BUNDLES,
+  ...SECURITY_TRACK_BUNDLES,
 ];

@@ -257,20 +257,53 @@ const DIMENSION: Record<string, AssessmentDimension> = {
 };
 
 /**
- * A stable ObjectId derived from the Golden questionId.
+ * A stable ObjectId derived from the tenant and the Golden questionId.
  *
  * Idempotency has to survive the row being edited, the script being rerun and the collection
  * being emptied and refilled, so the identity cannot be allocated — it has to be computed. The
- * first 24 hex characters of a sha1 over a namespaced questionId are a valid ObjectId and the
- * same every time. Namespaced so a future bank cannot collide with this one by reusing an id.
+ * first 24 hex characters of a sha1 are a valid ObjectId and the same every time.
  *
- * The dry run checks every row for collisions rather than trusting the hash, so the count is
- * whatever the master file holds rather than a number stated here.
+ * ── WHY THE TENANT IS IN THE HASH ─────────────────────────────────────────────────────────
+ *
+ * It was not, and that made the importer MOVE a bank rather than copy it.
+ *
+ * The upsert filter is the _id alone and the update sets tenantId, so importing the same bank
+ * into a second tenant re-tenanted every row out of the first. Worse, the dry run could not see
+ * it coming: the existence check IS tenant-scoped, so it looked for the ids under the target
+ * tenant, found none, and confidently predicted "creates". It reported 300 creates, then the
+ * apply reported 300 updates and the original tenant was empty.
+ *
+ * That is not a theoretical failure. It happened to the Year-2 bank on 2026-09-24, and it is
+ * the reason the Year-1 bank could not be put on the tenant its students are on.
+ *
+ * With the tenant in the hash, a bank can exist on any number of tenants at once and each
+ * tenant's copy is its own row.
  */
-const stableId = (questionId: string): mongoose.Types.ObjectId =>
+const stableId = (tenantId: string, questionId: string): mongoose.Types.ObjectId =>
   new mongoose.Types.ObjectId(
-    crypto.createHash('sha1').update(`GOLDEN:${questionId}`).digest('hex').slice(0, 24),
+    crypto.createHash('sha1').update(`GOLDEN:${tenantId}:${questionId}`).digest('hex').slice(0, 24),
   );
+
+/**
+ * ── AND WHY THE UPSERT MATCHES ON THE NATURAL KEY, NOT ON THAT ID ─────────────────────────
+ *
+ * Putting the tenant in the hash is necessary and not sufficient. Re-keying rows that already
+ * exist means inserting a second row for the same question, and the collection carries a unique
+ * index on (tenantId, golden.questionId) — which is correct, and which refuses it:
+ *
+ *   E11000 duplicate key ... index: tenantId_1_golden.questionId_1
+ *
+ * That index IS the identity of a row here: one copy of one question per tenant. So the upsert
+ * filters on it. Existing rows are then found whatever id they were given, and updated in
+ * place, so nothing is re-keyed and no frozen paper loses the item it references. A different
+ * tenant simply does not match, and gets its own row — a copy rather than a move.
+ *
+ * stableId is still used, but only as $setOnInsert, so a genuinely new row gets a deterministic
+ * id instead of an allocated one.
+ *
+ * The consequence for SkillEvidence is that the sourceId can no longer be computed: an existing
+ * row keeps its original id. The apply reads the ids back after the upsert and maps from those.
+ */
 
 /** RFC4180, strictly: quoted fields may hold commas, doubled quotes and newlines. */
 function parseCsv(text: string): Record<string, string>[] {
@@ -345,7 +378,7 @@ interface Problem { questionId: string; reason: string }
     if (seenQid.has(qid)) duplicateQid.push(qid);
     seenQid.add(qid);
 
-    const id = String(stableId(qid));
+    const id = String(stableId(tenantId, qid));
     byStableId.set(id, [...(byStableId.get(id) || []), qid]);
 
     if (!r.skillKey?.trim()) note('no skillKey', malformed);
@@ -388,21 +421,29 @@ interface Problem { questionId: string; reason: string }
 
   /* ---- what exists already, so creates and updates are counted rather than guessed ------ */
 
-  const ids = rows.map(r => stableId(r.questionId));
-  const existingItems = await AssessmentItem.find({ tenantId, _id: { $in: ids } })
-    .select('_id').lean() as any[];
-  const existingItemIds = new Set(existingItems.map(i => String(i._id)));
+  /**
+   * Matched on the natural key, which is what the unique index enforces and what the upsert
+   * will use. Counting by computed id would have reported creates for rows that are about to
+   * be updated in place — which is exactly how the move went unnoticed the first time.
+   */
+  const questionIds = rows.map(r => r.questionId.trim());
+  const existingItems = await AssessmentItem.find({
+    tenantId, 'golden.questionId': { $in: questionIds },
+  }).select('_id golden.questionId').lean() as any[];
+  const idByQuestion = new Map<string, string>(
+    existingItems.map(i => [String(i.golden?.questionId), String(i._id)]),
+  );
 
   const existingEvidence = await SkillEvidence.find({
-    tenantId, sourceType: 'assessment_item', sourceId: { $in: ids.map(String) },
+    tenantId, sourceType: 'assessment_item', sourceId: { $in: [...idByQuestion.values()] },
   }).select('sourceId skillKey').lean() as any[];
   const existingEvidenceKeys = new Set(existingEvidence.map(e => `${e.sourceId}:${String(e.skillKey).toUpperCase()}`));
 
   let itemCreates = 0, itemUpdates = 0, evidenceCreates = 0, evidenceUpdates = 0;
   for (const r of rows) {
-    const id = String(stableId(r.questionId));
-    if (existingItemIds.has(id)) itemUpdates++; else itemCreates++;
-    if (existingEvidenceKeys.has(`${id}:${(r.skillKey || '').trim().toUpperCase()}`)) evidenceUpdates++;
+    const id = idByQuestion.get(r.questionId.trim());
+    if (id) itemUpdates++; else itemCreates++;
+    if (id && existingEvidenceKeys.has(`${id}:${(r.skillKey || '').trim().toUpperCase()}`)) evidenceUpdates++;
     else evidenceCreates++;
   }
 
@@ -553,8 +594,9 @@ interface Problem { questionId: string; reason: string }
     const opts = LETTERS.map(L => ({ id: L, text: (r[`option${L}`] || '').trim() }));
     return {
       updateOne: {
-        filter: { _id: stableId(qid) },
+        filter: { tenantId, 'golden.questionId': qid },
         update: {
+          $setOnInsert: { _id: stableId(tenantId, qid) },
           $set: {
             tenantId,
             type: 'mcq',
@@ -588,8 +630,33 @@ interface Problem { questionId: string; reason: string }
     };
   });
 
+  const itemRes = await AssessmentItem.bulkWrite(itemOps as any, { ordered: false });
+
+  /**
+   * Read the ids back rather than recomputing them.
+   *
+   * A row that already existed keeps whatever id it was first given, so the only reliable
+   * source of the sourceId is the collection itself. Computing it would silently map the
+   * evidence at an id no item has, and the mapping would point at nothing — which reads as a
+   * skill with no questions rather than as an error.
+   */
+  const written = await AssessmentItem.find({
+    tenantId, 'golden.questionId': { $in: questionIds },
+  }).select('_id golden.questionId').lean() as any[];
+  const writtenIdByQuestion = new Map<string, string>(
+    written.map(i => [String(i.golden?.questionId), String(i._id)]),
+  );
+
+  const unmapped = rows.filter(r => !writtenIdByQuestion.has(r.questionId.trim()));
+  if (unmapped.length) {
+    console.log(`\nREFUSED AFTER WRITING ITEMS — ${unmapped.length} row(s) could not be read back.`);
+    console.log('  No SkillEvidence was written. Rerun once the cause is understood.');
+    await mongoose.disconnect();
+    process.exit(1);
+  }
+
   const evidenceOps = rows.map(r => {
-    const sourceId = String(stableId(r.questionId.trim()));
+    const sourceId = writtenIdByQuestion.get(r.questionId.trim())!;
     const skillKey = r.skillKey.trim().toUpperCase();
     return {
       updateOne: {
@@ -610,7 +677,6 @@ interface Problem { questionId: string; reason: string }
     };
   });
 
-  const itemRes = await AssessmentItem.bulkWrite(itemOps as any, { ordered: false });
   const evRes = await SkillEvidence.bulkWrite(evidenceOps as any, { ordered: false });
 
   let deactivated = 0;

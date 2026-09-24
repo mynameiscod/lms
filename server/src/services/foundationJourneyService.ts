@@ -42,7 +42,7 @@ import LearningContentLibrary from '../models/LearningContentLibrary';
 import Quiz from '../models/Quiz';
 import Assignment from '../models/Assignment';
 import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
-import { foundationProgramDaysFor, journeyDaysOf } from './foundationProgramLengthService';
+import { foundationProgramDaysFor, programDaysFor, journeyDaysOf } from './foundationProgramLengthService';
 import { inTeachingOrder } from '../data/contentBundlePolicy';
 import { composeUnits, ComposerResult, SelectedUnit, StudentProfile } from './curriculumComposerService';
 import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } from '../data/dayPackingPolicy';
@@ -247,7 +247,7 @@ export async function composeFoundationJourney(
   opts: JourneyBuildOptions = {},
 ): Promise<{ candidates: number; composition: ComposerResult }> {
   const source = opts.source || 'PRODUCTION';
-  const programDays = opts.programDays ?? await foundationProgramDaysFor(tenantId);
+  const programDays = opts.programDays ?? await programDaysFor(tenantId, opts.stageKey);
   const set = await loadCandidates(tenantId, source, opts.stageKey || 'foundation');
 
   // Refuses anything but PRODUCTION for a real build. The check is here rather than at the
@@ -339,7 +339,7 @@ export async function persistFoundationJourney(
   const stageKey = opts.stageKey || 'foundation';
   const source = opts.source || 'PRODUCTION';
   /* Resolved once and passed on, so composing, checking and writing all use the same number. */
-  const programDays = opts.programDays ?? await foundationProgramDaysFor(tenantId);
+  const programDays = opts.programDays ?? await programDaysFor(tenantId, opts.stageKey);
 
   const { composition } = await composeFoundationJourney(tenantId, profile, { ...opts, programDays });
 

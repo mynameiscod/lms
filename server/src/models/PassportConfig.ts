@@ -59,6 +59,8 @@ export interface IPassportConfig extends Document {
    * which would move the finish line under them and rewrite days they had already been shown.
    */
   foundationProgramDays?: number;
+  /** Programme length per stage, e.g. { foundation: 90, build: 110 }. */
+  programDaysByStage?: Record<string, number>;
   /** Stages on the unit engine regardless of the tenant switch, e.g. ['foundation']. */
   megaCurriculumStages?: string[];
   assessmentMode: 'deterministic' | 'ai';
@@ -154,6 +156,12 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
     megaCurriculumEnabled:    { type: Boolean, default: false },
     megaCurriculumStudentIds: { type: [String], default: [] },
     foundationProgramDays: { type: Number },
+    /**
+     * One length per stage, because Year 1 and Year 2 are different programmes.
+     * `foundationProgramDays` is still honoured for foundation, so a tenant that set a length
+     * before this existed needs no migration; this map wins where both are present.
+     */
+    programDaysByStage: { type: Map, of: Number, default: undefined },
     megaCurriculumStages:     { type: [String], default: [] },
     assessmentMode:   { type: String, enum: ['deterministic', 'ai'], default: 'deterministic' },
     onboardingFields: [OnboardingFieldSchema],

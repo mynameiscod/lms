@@ -31,7 +31,7 @@ import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
 import User from '../models/User';
 import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
-import { foundationProgramDaysFor, journeyDaysOf } from '../services/foundationProgramLengthService';
+import { foundationProgramDaysFor, programDaysFor, journeyDaysOf } from '../services/foundationProgramLengthService';
 import { isJourneyDayOpen, membershipRefusesDay } from '../data/journeyDayLadder';
 import { FOUNDATION_JOURNEY_KIND } from '../services/foundationJourneyService';
 import { CAREER_STAGES } from '../services/careerStageService';
@@ -284,7 +284,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
      * composed here will be; `programDays` is how long THIS student's journey is, once they have
      * one. A learner part-way through must be read as the programme they were given.
      */
-    const tenantDays = await foundationProgramDaysFor(tenantId);
+    const tenantDays = await programDaysFor(tenantId, stageKey);
     let programDays = tenantDays;
     const membershipRequired = () => res.json({
       available: false,
@@ -489,7 +489,7 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
     const { stageKey } = await engineOf(tenantId, studentId);
     /* The upper bound is this student's own journey; a tenant on a longer programme has more days. */
     const journeyForBounds = await journeyOf(tenantId, studentId, stageKey);
-    const programDays = journeyDaysOf(journeyForBounds, await foundationProgramDaysFor(tenantId));
+    const programDays = journeyDaysOf(journeyForBounds, await programDaysFor(tenantId, stageKey));
     if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > programDays) {
       return res.status(400).json({ message: `A journey day is between 1 and ${programDays}.` });
     }
@@ -631,8 +631,6 @@ export const getStudentJourney = async (req: Request, res: Response) => {
     const tenantId = tenantOf(req);
     const studentId = String(req.params.studentId || '');
     if (!tenantId) return res.status(401).json({ message: 'Not authenticated' });
-    /* The tenant's setting is only a fallback here: a member's journey is read at its own length. */
-    const tenantDays = await foundationProgramDaysFor(tenantId);
     if (!mongoose.Types.ObjectId.isValid(studentId)) return res.status(400).json({ message: 'That is not a member id.' });
 
     // The tenant comes from the admin's verified identity, so another tenant's member is simply not found.
@@ -643,6 +641,8 @@ export const getStudentJourney = async (req: Request, res: Response) => {
     const { engine, stageKey } = await engineOf(tenantId, studentId);
     const curriculum = await journeyOf(tenantId, studentId, stageKey);
     const stage = stageLabel(stageKey);
+    /* The tenant's setting is only a fallback here: a member's journey is read at its own length. */
+    const tenantDays = await programDaysFor(tenantId, stageKey);
     // Whether this member sees the whole journey or only the preview — what the admin is asked about.
     const access = engine === 'UNIT' ? await foundationAccess(tenantId, studentId) : null;
     const student = {

@@ -46,7 +46,7 @@ import mongoose from 'mongoose';
 import DayPlan from '../models/DayPlan';
 import LearningCurriculum from '../models/LearningCurriculum';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
-import { foundationProgramDaysFor, journeyDaysOf, DEFAULT_PROGRAM_DAYS } from './foundationProgramLengthService';
+import { foundationProgramDaysFor, programDaysFor, journeyDaysOf, DEFAULT_PROGRAM_DAYS } from './foundationProgramLengthService';
 import { SelectedUnit, StudentProfile } from './curriculumComposerService';
 import {
   composeFoundationJourney, FOUNDATION_JOURNEY_KIND, JourneyBuildOptions,
@@ -117,7 +117,7 @@ export async function recomposeFutureDays(
       .select('completedDays currentDay').lean() as any,
   ]);
 
-  const programDays = journeyDaysOf(curriculum, await foundationProgramDaysFor(tenantId));
+  const programDays = journeyDaysOf(curriculum, await programDaysFor(tenantId, stageKey));
 
   if ((existing as any[]).length !== programDays) {
     /**
@@ -309,7 +309,7 @@ export async function previewRecomposition(
   }).select('_id totalDays').lean() as any;
   if (!curriculum) return { wouldChange: [], frozenDays: [] };
   /* The preview covers the journey this student has, at the length it was composed. */
-  const programDays = journeyDaysOf(curriculum, await foundationProgramDaysFor(tenantId));
+  const programDays = journeyDaysOf(curriculum, await programDaysFor(tenantId, stageKey));
 
   const [existing, enrollment] = await Promise.all([
     DayPlan.find({ curriculumId: curriculum._id })

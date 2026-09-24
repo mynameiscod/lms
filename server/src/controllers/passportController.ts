@@ -21,6 +21,7 @@ import { validateEngineConfigPatch, describeEngineConfig } from '../services/cur
 import { foundationReadiness } from '../services/foundationReadinessService';
 import { passwordProblem } from '../utils/passwordPolicy';
 import { validateProgramDays } from '../services/foundationProgramLengthService';
+import { UNIT_ENGINE_STAGES } from '../data/curriculumEnginePolicy';
 import { clampPreviewDays } from '../data/foundationAccessPolicy';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
@@ -89,7 +90,7 @@ export const updateConfig = async (req: Request, res: Response) => {
     await ensureConfig(tenantId);
     // The allow-list is the whole security model for this endpoint, so a field absent from it
     // is silently discarded — a toggle that appears to save and changes nothing.
-    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'roadmapPreviewDays', 'conceptLearningEnabled', 'paymentMode', 'foundationProgramDays'];
+    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'roadmapPreviewDays', 'conceptLearningEnabled', 'paymentMode', 'foundationProgramDays', 'programDaysByStage'];
     const $set: any = {};
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
     /**
@@ -103,6 +104,32 @@ export const updateConfig = async (req: Request, res: Response) => {
       if (!checked.ok) return res.status(400).json({ message: (checked as { ok: false; error: string }).error });
       $set.foundationProgramDays = (checked as { ok: true; days: number }).days;
     }
+    /**
+     * The same rule per stage. Refused rather than clamped, for the reason above, and refused
+     * for a stage the unit engine cannot plan — storing a length for `specialize` would be a
+     * setting that silently governs nothing, which is the failure the engine allow-list exists
+     * to prevent.
+     */
+    if ($set.programDaysByStage !== undefined) {
+      const raw = $set.programDaysByStage;
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+        return res.status(400).json({ message: 'programDaysByStage must be an object of stage keys to day counts.' });
+      }
+      const cleaned: Record<string, number> = {};
+      for (const [stage, value] of Object.entries(raw)) {
+        const key = String(stage).toLowerCase().trim();
+        if (!UNIT_ENGINE_STAGES.includes(key)) {
+          return res.status(400).json({ message: `The ${key} stage has no Learning Unit curriculum, so it has no programme length.` });
+        }
+        const checked = validateProgramDays(value);
+        if (!checked.ok) {
+          return res.status(400).json({ message: `${key}: ${(checked as { ok: false; error: string }).error}` });
+        }
+        cleaned[key] = (checked as { ok: true; days: number }).days;
+      }
+      $set.programDaysByStage = cleaned;
+    }
+
     // How many roadmap days a learner sees before membership — stored within its bounds.
     if ($set.roadmapPreviewDays !== undefined) $set.roadmapPreviewDays = clampPreviewDays($set.roadmapPreviewDays);
     Object.assign($set, engine.set);

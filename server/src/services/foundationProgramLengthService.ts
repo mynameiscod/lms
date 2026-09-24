@@ -32,6 +32,26 @@ export const MAX_PROGRAM_DAYS = 180;
 /** The default, and what an unconfigured tenant keeps getting. */
 export const DEFAULT_PROGRAM_DAYS = FOUNDATION_PROGRAM_DAYS;
 
+/**
+ * What each stage is by default, before any admin has said otherwise.
+ *
+ * One number per stage, for the same reason there is one per tenant: the promise is "every
+ * student on this programme gets the same number of days", and Year 2 is a different programme
+ * from Year 1. A single tenant-wide setting would have made a college that wanted 110 days of
+ * Year 2 re-cut Year 1 to 110 as well.
+ *
+ * 110 for build is a starting figure and not a claim about pedagogy — it is what the Year-2
+ * curriculum was seeded with, and an admin moves it exactly as they move Year 1's 90.
+ */
+export const DEFAULT_PROGRAM_DAYS_BY_STAGE: Record<string, number> = {
+  foundation: FOUNDATION_PROGRAM_DAYS,
+  build: 110,
+};
+
+export const defaultProgramDaysFor = (stageKey?: string | null): number =>
+  DEFAULT_PROGRAM_DAYS_BY_STAGE[String(stageKey || 'foundation').toLowerCase().trim()]
+  ?? DEFAULT_PROGRAM_DAYS;
+
 /** A whole number of days inside the bounds, or a reason it is not. */
 export function validateProgramDays(value: unknown): { ok: true; days: number } | { ok: false; error: string } {
   const n = Number(value);
@@ -52,24 +72,52 @@ export function validateProgramDays(value: unknown): { ok: true; days: number } 
  * rather than throwing. Without the connection check an unconnected process (a unit test, a script)
  * waits for Mongoose's buffering timeout before finding that out.
  */
-export async function foundationProgramDaysFor(tenantId: string): Promise<number> {
-  if (!tenantId) return DEFAULT_PROGRAM_DAYS;
-  if (mongoose.connection?.readyState !== 1) return DEFAULT_PROGRAM_DAYS;
+export async function programDaysFor(tenantId: string, stageKey?: string | null): Promise<number> {
+  const stage = String(stageKey || 'foundation').toLowerCase().trim();
+  const fallback = defaultProgramDaysFor(stage);
+
+  if (!tenantId) return fallback;
+  if (mongoose.connection?.readyState !== 1) return fallback;
 
   let cfg: any = null;
   try {
-    cfg = await PassportConfig.findOne({ tenantId }).select('foundationProgramDays').maxTimeMS(2000).lean() as any;
+    cfg = await PassportConfig.findOne({ tenantId })
+      .select('foundationProgramDays programDaysByStage').maxTimeMS(2000).lean() as any;
   } catch (e: any) {
-    console.warn(`[foundation] could not read the programme length for ${tenantId}: ${e?.message || e}`);
-    return DEFAULT_PROGRAM_DAYS;
+    console.warn(`[programme-length] could not read the length for ${tenantId}/${stage}: ${e?.message || e}`);
+    return fallback;
   }
-  const raw = cfg?.foundationProgramDays;
-  if (raw === undefined || raw === null) return DEFAULT_PROGRAM_DAYS;
+
+  /**
+   * The per-stage map is the authority; `foundationProgramDays` is honoured for foundation so
+   * that a tenant which set 120 before this existed keeps getting 120 without a migration. The
+   * map wins where both are present, because it is the one an admin can now edit.
+   */
+  const fromMap = readStageMap(cfg?.programDaysByStage, stage);
+  const raw = fromMap ?? (stage === 'foundation' ? cfg?.foundationProgramDays : undefined);
+
+  if (raw === undefined || raw === null) return fallback;
   const checked = validateProgramDays(raw);
   // A stored value outside the bounds is a configuration fault, not a reason to refuse a student
   // their plan: fall back to the default rather than composing a journey nobody can finish.
-  return checked.ok ? checked.days : DEFAULT_PROGRAM_DAYS;
+  return checked.ok ? checked.days : fallback;
 }
+
+/** Mongoose gives a Map back as a Map on a document and as a plain object on a lean read. */
+function readStageMap(store: any, stage: string): unknown {
+  if (!store) return undefined;
+  if (typeof store.get === 'function') return store.get(stage);
+  return store[stage];
+}
+
+/**
+ * Kept so the many existing Foundation call sites read exactly as they did.
+ *
+ * It is now one stage of a per-stage question rather than the whole question, and saying that in
+ * a wrapper is cheaper than changing sixty call sites that are all genuinely about Foundation.
+ */
+export const foundationProgramDaysFor = (tenantId: string): Promise<number> =>
+  programDaysFor(tenantId, 'foundation');
 
 /**
  * The length of a journey that already exists, which is the only number its reader may use.

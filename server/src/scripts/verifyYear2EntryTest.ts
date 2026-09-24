@@ -25,9 +25,20 @@ dotenv.config();
 (async () => {
   const tenantId = process.argv[2];
   if (!tenantId) {
-    console.error('Usage: verifyYear2EntryTest.ts <tenantId>');
+    console.error('Usage: verifyYear2EntryTest.ts <tenantId> [studentId] [--papers N]');
     process.exit(1);
   }
+
+  /**
+   * The draw is seeded on the student id, so one id shows one paper and tells you nothing about
+   * the other thirty. The stage set holds 31 skills and a paper asks about 8, which means a
+   * skill can be perfectly well stocked and still be absent from any particular student's test.
+   * --papers walks a run of synthetic ids and reports which skills were reachable across them,
+   * which is the question worth asking after an import.
+   */
+  const argStudent = process.argv[3] && !process.argv[3].startsWith('--') ? process.argv[3] : null;
+  const papersFlag = process.argv.indexOf('--papers');
+  const papers = papersFlag > -1 ? Math.max(1, Number(process.argv[papersFlag + 1]) || 1) : 1;
 
   await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI || '');
 
@@ -54,16 +65,52 @@ dotenv.config();
     .map((r: any) => String(r.skillKey));
   console.log(`  stage set     : ${skillKeys.length} active skill(s) of ${(blueprint.requirements || []).length}`);
 
-  const built = await buildPersonalizedAssessment({
+  /* Student ids that belong to nobody: these only seed the draw, and nothing is written. */
+  const studentIds = argStudent
+    ? [argStudent]
+    : Array.from({ length: papers }, (_, n) => String(n + 1).padStart(24, '0'));
+
+  const buildFor = (studentId: string) => buildPersonalizedAssessment({
     tenantId,
-    /* A student id that belongs to nobody: this only seeds the draw, and nothing is written. */
-    studentId: '000000000000000000000000',
+    studentId,
     stage: BUILD_STAGE,
     roleKey: (blueprint as any).roleKey || BUILD_STAGE,
     roleSkillKeys: skillKeys,
     blueprintVersion: Number((blueprint as any).version || 1),
     attemptNumber: 1,
   } as any);
+
+  /* ---- several papers: report coverage across them rather than one paper in detail ------- */
+  if (studentIds.length > 1) {
+    const reached = new Map<string, number>();
+    const difficulty = new Map<string, number>();
+    let failures = 0;
+    for (const sid of studentIds) {
+      const b = await buildFor(sid);
+      if (!b.ok) { failures++; continue; }
+      for (const i of (b.items || []) as any[]) {
+        reached.set(i.skillKey, (reached.get(i.skillKey) || 0) + 1);
+        const d = String(i.servedDifficulty || i.difficulty || 'UNTAGGED');
+        difficulty.set(d, (difficulty.get(d) || 0) + 1);
+      }
+    }
+    console.log(`\n  ${studentIds.length} papers built${failures ? `, ${failures} refused` : ''}`);
+    console.log(`  difficulty served : ${[...difficulty.entries()].map(([d, n]) => `${d}=${n}`).join('  ')}`);
+    console.log(`\n  skills reached (${reached.size} of ${skillKeys.length}), questions asked across all papers:`);
+    for (const [k, n] of [...reached.entries()].sort((a, b) => b[1] - a[1])) {
+      console.log(`    ${k.padEnd(30)} ${n}`);
+    }
+    const never = skillKeys.filter(k => !reached.has(k)).sort();
+    if (never.length) {
+      console.log(`\n  never reached in ${studentIds.length} papers (${never.length}):`);
+      for (const k of never) console.log(`    ${k}`);
+    }
+    console.log('\n  Nothing was written.\n');
+    await mongoose.disconnect();
+    return;
+  }
+
+  const built = await buildFor(studentIds[0]);
 
   if (!built.ok) {
     console.error(`\nCOULD NOT BUILD: ${built.reasonCode || ''} ${built.adminMessage || built.message || ''}`);

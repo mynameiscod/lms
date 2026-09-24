@@ -98,8 +98,45 @@ import { AssessmentDimension } from '../constants/assessment';
 
 dotenv.config();
 
-const MASTER = path.join(__dirname, '../../../docs/audit/foundation-golden-bank-master.csv');
-const CREATED_BY = 'foundation-golden-bank';
+/**
+ * Which bank is being imported.
+ *
+ * Year 2 reuses this script unchanged in every respect that matters — the validation, the stable
+ * ids, the refusal on any blocking problem, the AssessmentItem and SkillEvidence written
+ * together. What differs is only the four things below, and they are collected here rather than
+ * spread through the file so that adding a third bank is a fifth line, not a second script.
+ *
+ * The stable id is a hash over the questionId, and Year-2 ids all begin GB2_ where Year-1's do
+ * not, so the two banks cannot collide however many times either is reimported.
+ *
+ * Note what does NOT differ: the legacy-collision machinery still runs for Year 2. Every Year-2
+ * item is AUTHORED with no sourceQuestionId, so it cites nothing, finds nothing and deactivates
+ * nothing — the report prints zeros. That is the point of leaving it in: the zero is measured
+ * rather than assumed, and a future Year-2 item that did rewrite a legacy question would be
+ * handled correctly without anybody remembering to re-enable this.
+ */
+interface BankProfile {
+  label: string;
+  master: string;
+  createdBy: string;
+  tag: string;
+}
+
+const BANKS: Record<'foundation' | 'year2', BankProfile> = {
+  foundation: {
+    label: 'FOUNDATION',
+    master: path.join(__dirname, '../../../docs/audit/foundation-golden-bank-master.csv'),
+    createdBy: 'foundation-golden-bank',
+    tag: 'foundation',
+  },
+  year2: {
+    label: 'YEAR 2',
+    master: path.join(__dirname, '../../../docs/audit/year2-golden-bank-master.csv'),
+    createdBy: 'year2-golden-bank',
+    tag: 'year2',
+  },
+};
+
 const LETTERS = ['A', 'B', 'C', 'D'] as const;
 const BANDS = ['D1', 'D2', 'D3', 'D4', 'D5'];
 const PROVENANCE = ['AUTHORED', 'LEGACY_KEEP', 'LEGACY_REWRITE', 'LEGACY_REMAP'];
@@ -183,6 +220,16 @@ const DIMENSION: Record<string, AssessmentDimension> = {
   TECHNICAL_COMMUNICATION: 'fundamentals',
   TECHNICAL_EXPLANATION: 'fundamentals',
   TECH_CAREER_AWARENESS: 'fundamentals',
+
+  // ── Year 2, batch 1 ──────────────────────────────────────────────────────────────────────
+  // The four structures join DSA_ARRAYS and DSA_STRINGS; the two database skills join
+  // DB_FUNDAMENTALS and SQL_BASICS, which is where Year 1 already puts data storage.
+  DSA_STACK: 'dsa',
+  DSA_QUEUE: 'dsa',
+  DSA_LINKED_LIST: 'dsa',
+  DSA_SORTING: 'dsa',
+  DB_NORMALIZATION: 'core_stack',
+  DB_TRANSACTIONS: 'core_stack',
 };
 
 /**
@@ -237,17 +284,20 @@ interface Problem { questionId: string; reason: string }
   const tenantId = process.argv[2];
   const apply = process.argv.includes('--apply');
   const keepLegacy = process.argv.includes('--keep-legacy');
+  const bank = BANKS[process.argv.includes('--year2') ? 'year2' : 'foundation'];
+  const CREATED_BY = bank.createdBy;
 
   if (!tenantId) {
-    console.error('Usage: importGoldenBank.ts <tenantId> [--apply] [--keep-legacy]');
+    console.error('Usage: importGoldenBank.ts <tenantId> [--apply] [--keep-legacy] [--year2]');
     process.exit(1);
   }
-  if (!fs.existsSync(MASTER)) {
-    console.error(`Master bank not found: ${MASTER}`);
+  if (!fs.existsSync(bank.master)) {
+    console.error(`Master bank not found: ${bank.master}`);
+    if (bank.label === 'YEAR 2') console.error('Emit it first: npx ts-node src/scripts/emitYear2GoldenBank.ts');
     process.exit(1);
   }
 
-  const rows = parseCsv(fs.readFileSync(MASTER, 'utf8'));
+  const rows = parseCsv(fs.readFileSync(bank.master, 'utf8'));
   await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI || '');
 
   /* ---- validate every row before anything is decided ------------------------------------ */
@@ -386,7 +436,8 @@ interface Problem { questionId: string; reason: string }
     citedAmbiguous.length;
 
   const pad = (s: string) => s.padEnd(38);
-  console.log(`\nGOLDEN BANK IMPORT — tenant ${tenantId} — ${apply ? 'APPLY' : 'DRY RUN'}`);
+  console.log(`\nGOLDEN BANK IMPORT — ${bank.label} — tenant ${tenantId} — ${apply ? 'APPLY' : 'DRY RUN'}`);
+  console.log(`source: ${bank.master}`);
   console.log(`destination: AssessmentItem, mapped as sourceType "assessment_item"\n`);
   console.log(pad('Golden rows') + rows.length);
   console.log(pad('skills') + skillKeys.length);
@@ -490,7 +541,7 @@ interface Problem { questionId: string; reason: string }
             correctOptionIds: [r.correctOption.trim()],
             explanation: r.explanation || '',
             points: 1,
-            tags: ['foundation', 'golden-bank', skillKey],
+            tags: [bank.tag, 'golden-bank', skillKey],
             // The working copy the selector reads. golden.factId below is the audit trail.
             factKeys: [r.factId.trim()],
             active: true,

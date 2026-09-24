@@ -19,6 +19,7 @@ import { resolveAssessedState } from '../services/memberAssessmentStateService';
 import * as g from '../services/passportGamificationService';
 import { journeyDayGoal } from '../services/foundationJourneyXpService';
 import { programDaysFor } from '../services/foundationProgramLengthService';
+import { membershipPriceFor } from '../services/membershipPricingService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -134,7 +135,20 @@ export const getDashboard = async (req: Request, res: Response) => {
         name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
         firstName: user?.firstName || '',
         skills: [],
-        priceInr: cfg?.priceInr ?? 499,
+        /**
+         * THE PRICE AND THE LENGTH FOLLOW THE LEARNER'S STAGE, ON THIS BRANCH TOO.
+         *
+         * This is the response a NON-MEMBER gets, which makes it the one place the price has
+         * to be right: it is what the unlock button quotes. Reading the tenant's single
+         * `priceInr` offered a second-year their 110-day Build membership at 499 and then
+         * charged them 1999 at checkout, because the checkout already resolved by stage.
+         *
+         * `programDays` and `stage` travel for the same reason: without them the navigation
+         * falls back to "My 90 Days" for a learner whose plan is 110.
+         */
+        priceInr: await membershipPriceFor(tenantId, user?.passport?.stage),
+        programDays: await programDaysFor(tenantId, user?.passport?.stage),
+        stage: user?.passport?.stage || null,
         shareSlug: user?.passport?.shareSlug || null,
         passwordSet: !!user?.passport?.passwordSet,
         entitled,
@@ -181,7 +195,20 @@ export const getDashboard = async (req: Request, res: Response) => {
         badges: [],
         leaderboard: [],
 
-        priceInr: cfg?.priceInr ?? 499,
+        /**
+         * THE PRICE AND THE LENGTH FOLLOW THE LEARNER'S STAGE, ON THIS BRANCH TOO.
+         *
+         * This is the response a NON-MEMBER gets, which makes it the one place the price has
+         * to be right: it is what the unlock button quotes. Reading the tenant's single
+         * `priceInr` offered a second-year their 110-day Build membership at 499 and then
+         * charged them 1999 at checkout, because the checkout already resolved by stage.
+         *
+         * `programDays` and `stage` travel for the same reason: without them the navigation
+         * falls back to "My 90 Days" for a learner whose plan is 110.
+         */
+        priceInr: await membershipPriceFor(tenantId, user?.passport?.stage),
+        programDays: await programDaysFor(tenantId, user?.passport?.stage),
+        stage: user?.passport?.stage || null,
         shareSlug: user?.passport?.shareSlug || null,
         passwordSet: !!user?.passport?.passwordSet,
         entitled,

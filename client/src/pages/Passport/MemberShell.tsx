@@ -251,14 +251,15 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         <nav className="gd-nav">
           {navBtn('Home', 'home', '/careerpilot')}
           {/*
-            Named from the learner's own plan, not from a constant. "My 90 Days" was shown to
-            everybody, which was already wrong for any tenant that had changed the Foundation
-            length and is wrong for every second-year, whose plan is 110. Falls back to a label
-            with no number while the data is still loading, because a wrong number is worse
-            than none — a learner reading "90" when they have 110 has been told something false
-            about their own plan by the navigation.
+            Named from the learner's own plan, not from a constant: "My 90 Days" was shown to
+            everybody, which is wrong for every second-year, whose plan is 110, and was already
+            wrong for any tenant that had changed the Foundation length.
+            THE FALLBACK IS THE OLD LABEL, DELIBERATELY. It reads while the dashboard is still
+            loading and on any response that carries no length, and an unfamiliar "My Plan"
+            appearing in those moments looks like the navigation has been renamed. Ninety is the
+            default programme length, so the fallback is what it always was.
           */}
-          {navBtn(data?.programDays ? `My ${data.programDays} Days` : 'My Plan', 'grid', '/careerpilot/plan', 'roadmap')}
+          {navBtn(`My ${data?.programDays || 90} Days`, 'grid', '/careerpilot/plan', 'roadmap')}
           {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap')}
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice')}
           {/* From master. No section, so they stay open to everyone, as master had them. */}

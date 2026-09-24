@@ -36,6 +36,8 @@ import Assignment, { AssignmentType } from '../../models/Assignment';
 import User from '../../models/User';
 import { PILOT_TOPICS } from './pilotUnitContent';
 import { ALL_BUNDLES } from './allBundles';
+import { ALL_YEAR2_BUNDLES } from './year2Bundles';
+import { primarySkillFor } from './year2SkillAttribution';
 import { findDuplication, identifyingWordsFor } from '../../services/contentDuplicationService';
 
 dotenv.config();
@@ -65,8 +67,19 @@ const readingMinutes = (text: string): number =>
 (async () => {
   const tenantId = process.argv[2];
   const apply = process.argv.includes('--apply');
+  /**
+   * Which year's content to write. Year 1 is the default so every existing invocation, and every
+   * runbook that quotes one, behaves exactly as it did.
+   *
+   * Year 2 differs in one respect only: twenty-one of its topics declare more than one skill, so
+   * its checkpoint questions carry an attribution from year2SkillAttribution rather than relying
+   * on the single-skill derivation below. Everything else — the rows, the quizzes, the stable
+   * ids, the refusal to guess — is shared, because two copies of this logic would drift.
+   */
+  const year2 = process.argv.includes('--year2');
+  const bundles = year2 ? ALL_YEAR2_BUNDLES : ALL_BUNDLES;
   if (!tenantId) {
-    console.error('Usage: seedPilotUnitContent.ts <tenantId> [--apply]');
+    console.error('Usage: seedPilotUnitContent.ts <tenantId> [--apply] [--year2]');
     process.exit(1);
   }
 
@@ -98,12 +111,14 @@ const readingMinutes = (text: string): number =>
   );
 
   const units = await CurriculumLearningUnit
-    .find({ tenantId, unitCode: { $in: ALL_BUNDLES.map(b => b.unitCode) } })
+    .find({ tenantId, unitCode: { $in: bundles.map(b => b.unitCode) } })
     .select('unitCode title unitType skillKeys topicCode defaultDepth').lean() as any[];
   const unitByCode = new Map<string, any>(units.map(u => [String(u.unitCode), u]));
 
-  console.log(`\nPILOT UNIT CONTENT  ·  tenant ${tenantId}`);
-  console.log(`  topics: ${PILOT_TOPICS.join(', ')}`);
+  console.log(`\n${year2 ? 'YEAR-2' : 'PILOT'} UNIT CONTENT  ·  tenant ${tenantId}`);
+  console.log(year2
+    ? `  units: ${bundles.length} authored, attribution from year2SkillAttribution`
+    : `  topics: ${PILOT_TOPICS.join(', ')}`);
   console.log(apply ? '\nAPPLYING\n' : '\nDRY RUN — pass --apply to write\n');
 
   let rows = 0;
@@ -146,7 +161,7 @@ const readingMinutes = (text: string): number =>
     );
   };
 
-  for (const bundle of ALL_BUNDLES) {
+  for (const bundle of bundles) {
     const unit = unitByCode.get(bundle.unitCode);
     if (!unit) { missingUnits.push(bundle.unitCode); continue; }
 
@@ -292,7 +307,9 @@ const readingMinutes = (text: string): number =>
            * admin made on the Skill Evidence screen is theirs.
            */
           const declared = (unit.skillKeys || []).map(upper);
-          const authored = q.skillKey ? upper(q.skillKey) : '';
+          /* An author's attribution: the question's own, else Year 2's table. */
+          const attributed = q.skillKey || (year2 ? primarySkillFor(unit.unitCode, unit.topicCode) : '');
+          const authored = attributed ? upper(attributed) : '';
           if (authored && !declared.includes(authored)) misattributed.add(`${unit.unitCode} (${authored})`);
           const only = authored
             ? (declared.includes(authored) ? authored : '')
@@ -531,7 +548,7 @@ const readingMinutes = (text: string): number =>
     }
   }
 
-  console.log(`\n  AUTHORING GAP: ${ALL_BUNDLES.length} authored units have no video.`);
+  console.log(`\n  AUTHORING GAP: ${bundles.length} authored units have no video.`);
   console.log('  Video needs recording, and a row pointing at nothing is filler that reads as coverage.\n');
 
   await mongoose.disconnect();

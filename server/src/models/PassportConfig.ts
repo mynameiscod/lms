@@ -61,6 +61,8 @@ export interface IPassportConfig extends Document {
   foundationProgramDays?: number;
   /** Programme length per stage, e.g. { foundation: 90, build: 110 }. */
   programDaysByStage?: Record<string, number>;
+  /** Membership price per stage, e.g. { foundation: 499, build: 1999 }. */
+  priceInrByStage?: Record<string, number>;
   /** Stages on the unit engine regardless of the tenant switch, e.g. ['foundation']. */
   megaCurriculumStages?: string[];
   assessmentMode: 'deterministic' | 'ai';
@@ -162,6 +164,12 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
      * before this existed needs no migration; this map wins where both are present.
      */
     programDaysByStage: { type: Map, of: Number, default: undefined },
+    /**
+     * One price per stage. `priceInr` remains the tenant's single price and is what every
+     * stage costs until an admin overrides it here, so an existing tenant is unaffected.
+     * membershipMonths is deliberately NOT per stage -- a year means a year in either year.
+     */
+    priceInrByStage: { type: Map, of: Number, default: undefined },
     megaCurriculumStages:     { type: [String], default: [] },
     assessmentMode:   { type: String, enum: ['deterministic', 'ai'], default: 'deterministic' },
     onboardingFields: [OnboardingFieldSchema],

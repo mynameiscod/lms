@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { sanitiseAttribution, mergeAttribution } from '../models/careerPilotAttribution';
-import { resolveCareerProfile } from '../services/careerStageService';
+import { resolveCareerProfile, CAREER_STAGES } from '../services/careerStageService';
 import PassportConfig, { DEFAULT_ONBOARDING_FIELDS, DEFAULT_ENTITLEMENTS } from '../models/PassportConfig';
 import User from '../models/User';
 import Payment from '../models/Payment';
@@ -22,6 +22,7 @@ import { foundationReadiness } from '../services/foundationReadinessService';
 import { passwordProblem } from '../utils/passwordPolicy';
 import { validateProgramDays } from '../services/foundationProgramLengthService';
 import { UNIT_ENGINE_STAGES } from '../data/curriculumEnginePolicy';
+import { membershipPriceFor, validatePriceInr } from '../services/membershipPricingService';
 import { clampPreviewDays } from '../data/foundationAccessPolicy';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
@@ -90,7 +91,7 @@ export const updateConfig = async (req: Request, res: Response) => {
     await ensureConfig(tenantId);
     // The allow-list is the whole security model for this endpoint, so a field absent from it
     // is silently discarded — a toggle that appears to save and changes nothing.
-    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'roadmapPreviewDays', 'conceptLearningEnabled', 'paymentMode', 'foundationProgramDays', 'programDaysByStage'];
+    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'roadmapPreviewDays', 'conceptLearningEnabled', 'paymentMode', 'foundationProgramDays', 'programDaysByStage', 'priceInrByStage'];
     const $set: any = {};
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
     /**
@@ -128,6 +129,31 @@ export const updateConfig = async (req: Request, res: Response) => {
         cleaned[key] = (checked as { ok: true; days: number }).days;
       }
       $set.programDaysByStage = cleaned;
+    }
+
+    /**
+     * The same shape for price. Not restricted to unit-capable stages: a tenant may sell a
+     * membership for a stage the unit engine does not plan, because membership buys more than
+     * a roadmap. It is still refused rather than clamped, and still refused for a key that is
+     * not a stage at all.
+     */
+    if ($set.priceInrByStage !== undefined) {
+      const raw = $set.priceInrByStage;
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+        return res.status(400).json({ message: 'priceInrByStage must be an object of stage keys to rupee amounts.' });
+      }
+      const known = new Set<string>(CAREER_STAGES.map(s => String(s.key)));
+      const cleaned: Record<string, number> = {};
+      for (const [stage, value] of Object.entries(raw)) {
+        const key = String(stage).toLowerCase().trim();
+        if (!known.has(key)) return res.status(400).json({ message: `"${key}" is not a stage.` });
+        const checked = validatePriceInr(value);
+        if (!checked.ok) {
+          return res.status(400).json({ message: `${key}: ${(checked as { ok: false; error: string }).error}` });
+        }
+        cleaned[key] = (checked as { ok: true; price: number }).price;
+      }
+      $set.priceInrByStage = cleaned;
     }
 
     // How many roadmap days a learner sees before membership — stored within its bounds.
@@ -225,7 +251,8 @@ export const getMyStatus = async (req: Request, res: Response) => {
       passport: user?.passport || null,
       entitlements: cfg?.entitlements || [],
       entitled: entitlementMap(cfg?.entitlements as any, user?.passport),
-      priceInr: cfg?.priceInr ?? 499,
+      /* The quote the student is shown must be the price they will be charged. */
+      priceInr: await membershipPriceFor(tenantId, user?.passport?.stage),
       membershipMonths: cfg?.membershipMonths ?? 12,
       roadmapDays: cfg?.roadmapDays ?? 90,
       paymentAvailable: razorpay.isConfigured(tenantId),
@@ -524,7 +551,12 @@ export const createMembershipOrder = async (req: Request, res: Response) => {
     const user = await User.findById(studentId).select('passport firstName lastName email phone').lean() as any;
     if (membershipActive(user?.passport)) return res.status(409).json({ message: 'Your membership is already active.', alreadyActive: true });
 
-    const priceInr = cfg.priceInr ?? 499;
+    /**
+     * Priced by the student's own stage, so a second-year buying a Year-2 membership is charged
+     * for Year 2. Their stage comes from the passport that was just loaded, not from the request
+     * -- a price a caller could name is a price a caller could choose.
+     */
+    const priceInr = await membershipPriceFor(tenantId, user?.passport?.stage);
 
     /**
      * TEST MODE — no Razorpay order, no money, and nothing that can settle by accident.

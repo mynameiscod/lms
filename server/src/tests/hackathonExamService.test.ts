@@ -34,9 +34,56 @@ jest.mock('../services/codeRunnerService', () => ({
 }));
 
 jest.mock('../models/HackathonExam', () => ({ __esModule: true, default: { findById: jest.fn() } }));
+
+/**
+ * A stand-in for the two array updates saveAnswer actually issues.
+ *
+ * WHY THIS EXISTS. saveAnswer used to mutate the attempt and call save(). On 22 Sep that
+ * was rewritten: a whole-document write was rewriting the entire attempt on every
+ * keystroke, and it raced the heartbeat — Mongoose's version check failed the loser and a
+ * candidate's answer came back as a 500. It now issues a positional $set with a guarded
+ * $push fallback, neither of which carries a version.
+ *
+ * The mock was not updated with it, so every call died on `updateOne is not a function`.
+ * Reproducing the two shapes here — rather than handing back a bare spy — keeps the test
+ * asserting the behaviour it was written for (an answer is OVERWRITTEN, never appended
+ * twice) instead of asserting that a function was called.
+ */
+const mockAttemptDocs = new Map<string, any>();
+const mockAttemptUpdateOne = jest.fn(async (filter: any, update: any) => {
+  const doc = mockAttemptDocs.get(String(filter._id));
+  if (!doc) return { matchedCount: 0, modifiedCount: 0 };
+  const want = filter['answers.itemId'];
+
+  /* Positional $set — only matches when the element already exists, as Mongo's does. */
+  if (update.$set) {
+    const i = doc.answers.findIndex((x: any) => x.itemId === want);
+    if (i < 0) return { matchedCount: 0, modifiedCount: 0 };
+    for (const [path, value] of Object.entries(update.$set)) {
+      doc.answers[i][path.replace('answers.$.', '')] = value;
+    }
+    return { matchedCount: 1, modifiedCount: 1 };
+  }
+
+  /* Guarded $push — the filter is { 'answers.itemId': { $ne: id } }, so a second
+     concurrent save finds the element present and pushes nothing. */
+  if (update.$push) {
+    const absent = want && typeof want === 'object' ? want.$ne : undefined;
+    if (absent !== undefined && doc.answers.some((x: any) => x.itemId === absent)) {
+      return { matchedCount: 0, modifiedCount: 0 };
+    }
+    doc.answers.push(update.$push.answers);
+    return { matchedCount: 1, modifiedCount: 1 };
+  }
+  return { matchedCount: 0, modifiedCount: 0 };
+});
+
 jest.mock('../models/HackathonExamAttempt', () => ({
   __esModule: true,
-  default: { findOne: jest.fn(), find: jest.fn(), create: jest.fn(), updateMany: jest.fn() },
+  default: {
+    findOne: jest.fn(), find: jest.fn(), create: jest.fn(), updateMany: jest.fn(),
+    updateOne: (...a: any[]) => mockAttemptUpdateOne(a[0], a[1]),
+  },
 }));
 jest.mock('../models/HackathonRegistration', () => ({ __esModule: true, default: { find: jest.fn() } }));
 jest.mock('../services/hackathonExamDrawService', () => ({
@@ -80,6 +127,8 @@ const attempt = (over: any = {}): any => {
     ...over,
   };
   a.save = jest.fn(async () => { a.saves++; return a; });
+  /* Visible to the fake updateOne above, which resolves documents by _id. */
+  mockAttemptDocs.set(String(a._id), a);
   return a;
 };
 
@@ -87,6 +136,8 @@ const drawn = (id: string, type = 'mcq', marks = 1) =>
   ({ itemId: id, sectionKey: type === 'mcq' ? 'mcq' : 'code', order: 0, type, marks });
 
 beforeEach(() => {
+  mockAttemptDocs.clear();
+  mockAttemptUpdateOne.mockClear();
   mockItemFind.mockReset();
   mockItemFindById.mockReset();
   mockExecute.mockReset();

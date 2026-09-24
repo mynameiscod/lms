@@ -46,6 +46,7 @@ import { CAREER_STAGES } from './careerStageService';
 import { foundationProgramDaysFor, programDaysFor, journeyDaysOf } from './foundationProgramLengthService';
 import { inTeachingOrder } from '../data/contentBundlePolicy';
 import { composeUnits, ComposerResult, SelectedUnit, StudentProfile } from './curriculumComposerService';
+import { bridgePlanFor, BridgePlan } from '../data/stageBridgePolicy';
 import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } from '../data/dayPackingPolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource } from './composerCandidateService';
 
@@ -237,6 +238,48 @@ export async function loadAssets(tenantId: string, unitCodes: string[]): Promise
  * ------------------------------------------------------------------ */
 
 /**
+ * The bridging days: units from the earlier stage that teach what this learner is missing.
+ *
+ * Composed by the same composer, from the same production pool, under the same rules — it is a
+ * short plan of Year-1 teaching, not a second kind of plan. Candidates are narrowed to units
+ * that teach at least one of the unmet skills, so a bridge cannot wander into web development
+ * because the learner happened to be weak on SQL.
+ *
+ * FAILS TO NOTHING. A bridge that cannot be composed returns no units and the learner gets the
+ * plan they would have got before this existed. Being taught Year 2 too early is a worse
+ * experience than being taught it on time; being given no plan at all is worse than both.
+ */
+async function composeBridge(
+  tenantId: string,
+  source: CandidateSource,
+  profile: StudentProfile,
+  bridge: BridgePlan,
+): Promise<SelectedUnit[]> {
+  try {
+    const set = await loadCandidates(tenantId, source, bridge.sourceStage);
+    if (source === 'PRODUCTION') assertProductionEligible(set);
+
+    const wanted = new Set(bridge.skills);
+    const scoped = set.units.filter(u => (u.skillKeys || []).some(k => wanted.has(String(k))));
+    if (!scoped.length) {
+      console.warn(`[bridge] ${bridge.sourceStage} teaches none of ${[...wanted].join(', ')} — no bridge`);
+      return [];
+    }
+
+    const out = composeUnits({ candidates: scoped, targetUnits: bridge.days, student: profile });
+    if (!out.ok || !out.units.length) {
+      console.warn(`[bridge] could not compose ${bridge.days} days: ${out.code || 'no units'}`);
+      return [];
+    }
+    console.log(`[bridge] ${out.units.length} ${bridge.sourceStage} days for ${[...wanted].join(', ')}`);
+    return out.units;
+  } catch (e: any) {
+    console.error('[bridge] failed, composing without one:', e?.message || e);
+    return [];
+  }
+}
+
+/**
  * Choose the ninety units, without writing anything.
  *
  * Separated from persistence so a plan can be previewed, audited and tested without a student
@@ -255,12 +298,49 @@ export async function composeFoundationJourney(
   // call site so no future caller can forget it.
   if (source === 'PRODUCTION') assertProductionEligible(set);
 
-  const composition = composeUnits({
+  /**
+   * FUNDAMENTALS FIRST, FOR A LEARNER WHO DOES NOT HAVE THEM.
+   *
+   * Year 2 opens on objects, which is right for somebody who finished Year 1 and useless for
+   * somebody who cannot yet write a function. Where the learner's own evidence shows the gap,
+   * the plan opens with Year-1 teaching that closes it and then runs the stage they paid for.
+   *
+   * A returning Year-1 member has evidence on these skills and shows no gap, so they get no
+   * bridge and open on day one of Year 2 exactly as before. That is the same rule, not a
+   * special case — see stageBridgePolicy for why no "returning member" flag is involved.
+   */
+  const bridge = bridgePlanFor(profile, opts.stageKey, programDays);
+  const bridgeUnits = bridge ? await composeBridge(tenantId, source, profile, bridge) : [];
+
+  /**
+   * The bridge days are handed to the stage composition as history — days already given — so it
+   * plans the rest around them rather than teaching the same thing twice.
+   *
+   * `targetUnits` stays the WHOLE programme and is not reduced by the bridge. composeUnits
+   * already subtracts history the candidate pool does not hold, which is every bridge unit,
+   * because they are Year-1 units and this pool is Year 2. Subtracting here as well took the
+   * thirty off twice and produced an eighty-day plan for a hundred-and-ten-day programme —
+   * which the length check would then have refused, leaving the learner with no journey at all.
+   */
+  const rest = composeUnits({
     candidates: set.units,
     targetUnits: programDays,
     student: profile,
-    history: opts.history,
+    history: [...(opts.history || []), ...bridgeUnits.map(u => u.unitCode)],
   });
+
+  if (!bridgeUnits.length) return { candidates: set.units.length, composition: rest };
+
+  /*
+   * `requestedDays` is restated as the whole programme because that is what was asked for; the
+   * two compositions each answered for part of it, and a caller checking `units.length` against
+   * it must see one number for one plan.
+   */
+  const composition: ComposerResult = {
+    ...rest,
+    requestedDays: programDays,
+    units: [...bridgeUnits, ...rest.units],
+  };
 
   return { candidates: set.units.length, composition };
 }

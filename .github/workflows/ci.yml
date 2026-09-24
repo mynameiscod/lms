@@ -226,6 +226,19 @@ jobs:
           [ "$status" -eq 0 ] && echo "No NUL bytes in tracked source files."
           exit "$status"
 
+      # The visualizer's execution-event schema is duplicated: the server emits the
+      # events, the client renders them, and both need the types. It is NOT in the
+      # shared/ workspace because that package does not work — its `main` points at a
+      # file that does not exist, it emits no declarations, neither app depends on it,
+      # and the Dockerfile never copies it, so an import would fail the DEPLOY rather
+      # than the test run. See the header of the file itself.
+      #
+      # Duplication is only safe if the copies cannot drift silently. This is what
+      # makes that true. Drift would show up as the renderer quietly mis-reading an
+      # event, which looks like a bug in the student's code rather than in ours.
+      - name: Repository Safety - Event schema in sync
+        run: node scripts/check-event-schema-sync.js
+
       # Syntax only. Nothing here is executed — these scripts deploy, provision and
       # restore production.
       - name: Repository Safety - Shell syntax

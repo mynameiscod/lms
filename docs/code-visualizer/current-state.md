@@ -336,12 +336,37 @@ operands needs supplementary AST instrumentation (`ast` module, in-sandbox). Pha
 Babel or Acorn AST instrumentation in the API process. **Must account for
 `JS_PROMPT_PRELUDE_LINES`**, which already offsets student line numbers by 1. Phase 2.
 
-### Event schema location
+### Event schema location — **RESOLVED 24 Sep 2026, and not as assumed**
 
-`shared/` exists as a workspace with its own `package.json` and holds `constants/roles.ts`. It is
-thin but real, and is the correct home for the normalized event schema so frontend and backend
-cannot drift. **[assumed:** that the shared package is actually built and consumed by both sides —
-verify, because `shared/dist/index.js` looks minimal.**]**
+The assumption flagged here was checked, and it was wrong. `shared/` is **not a working package**:
+
+| Check | Finding |
+|---|---|
+| `main` field | `"index.ts"` — **no such file**. The real entry is `src/index.ts` / `dist/index.js` |
+| Type declarations | none; `tsconfig.json` has no `declaration: true`, so a TS consumer gets no types |
+| Declared as a dependency | **neither** `client/package.json` nor `server/package.json` lists it |
+| Committed `node_modules` | 138 of 144 tracked files |
+| **Dockerfile** | **never copies `shared/`.** Both stages run a standalone `npm install` from `client/` and `server/`, so `@lms-saas/shared` does not exist in either image |
+
+The last row is decisive: an import of `@lms-saas/shared` would fail the **deploy**, not the test
+run. Using it means changing the Dockerfile — the file that builds what ships — to share one file
+of types, a week after compose drift cost twenty minutes of sandbox downtime.
+
+**Decision: duplicate the schema, enforce equality in CI.**
+
+- `server/src/types/executionEvents.ts` — **the source of truth**, because the server is where
+  events are produced.
+- `client/src/types/executionEvents.ts` — a byte-identical mirror.
+- `scripts/check-event-schema-sync.js` — `--fix` copies server → client; with no argument it
+  fails and prints the differing line. Wired into the Repository Safety job, so the copies
+  cannot drift silently.
+
+The trade is reasonable because TypeScript types evaporate at compile time: the only real runtime
+artefacts in that file are the sentinel string, a few constants, and `parseTraceOutput`. Twenty
+tests cover the parser, including the case that motivates the sentinel — a student program that
+prints JSON must not have its output swallowed into the trace.
+
+`shared/` should be fixed or deleted on its own merits (issue #73), not on Phase 1's schedule.
 
 ### Data
 
@@ -377,7 +402,8 @@ verify, because `shared/dist/index.js` looks minimal.**]**
 3. QA environment available.
 
 **Then:**
-- Normalized event schema in `shared/`, with types consumed by both sides.
+- ~~Normalized event schema in `shared/`~~ — **DONE**, as a CI-enforced duplicate rather than a
+  shared package. See “Event schema location” above for why.
 - Java AST instrumenter in Node, covering: primitives, 1-D arrays, `if`/`else`, `for`, `while`,
   assignment, comparison, method call/return, `System.out`, exceptions.
 - `visualizer-execution` BullMQ queue and worker, using `withExecutionSlot` with its own pool.

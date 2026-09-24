@@ -27,6 +27,7 @@ import { DSA_HASHING } from './dsaHashing';
 import { DSA_TREES } from './dsaTrees';
 import { OOP_CONCEPTS } from './oopConcepts';
 import { PYTHON_OOP } from './pythonOop';
+import { CLEAN_CODE } from './cleanCode';
 
 export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_STACK,
@@ -42,6 +43,7 @@ export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_TREES,
   ...OOP_CONCEPTS,
   ...PYTHON_OOP,
+  ...CLEAN_CODE,
 ];
 
 export { GoldenItem };

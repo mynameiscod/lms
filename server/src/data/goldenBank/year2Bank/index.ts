@@ -24,6 +24,7 @@ import { DSA_COMPLEXITY } from './dsaComplexity';
 import { DSA_SEARCHING } from './dsaSearching';
 import { DSA_RECURSION } from './dsaRecursion';
 import { DSA_HASHING } from './dsaHashing';
+import { DSA_TREES } from './dsaTrees';
 
 export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_STACK,
@@ -36,6 +37,7 @@ export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_SEARCHING,
   ...DSA_RECURSION,
   ...DSA_HASHING,
+  ...DSA_TREES,
 ];
 
 export { GoldenItem };

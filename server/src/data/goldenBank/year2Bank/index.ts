@@ -22,6 +22,7 @@ import { DB_NORMALIZATION } from './dbNormalization';
 import { DB_TRANSACTIONS } from './dbTransactions';
 import { DSA_COMPLEXITY } from './dsaComplexity';
 import { DSA_SEARCHING } from './dsaSearching';
+import { DSA_RECURSION } from './dsaRecursion';
 
 export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_STACK,
@@ -32,6 +33,7 @@ export const YEAR2_BANK: GoldenItem[] = [
   ...DB_TRANSACTIONS,
   ...DSA_COMPLEXITY,
   ...DSA_SEARCHING,
+  ...DSA_RECURSION,
 ];
 
 export { GoldenItem };

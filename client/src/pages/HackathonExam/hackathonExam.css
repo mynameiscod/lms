@@ -739,3 +739,37 @@
 
 /* Keep the recording column reachable on a narrow admin screen. */
 .hxa-table th:nth-last-child(2), .hxa-table td:nth-last-child(2) { white-space: nowrap; }
+
+/* ── the published score ──────────────────────────────────────────────────────
+   Shown on the completion screen once an admin has published, in place of the
+   "your answers are in" line. The number is the thing the candidate came back for,
+   so it is the largest thing on the screen. */
+.hxd-score {
+  margin: 14px 0 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+.hxd-score b {
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 1;
+  color: #0f172a;
+}
+.hxd-score span {
+  font-size: 20px;
+  color: #64748b;
+}
+.hxd-score em {
+  font-style: normal;
+  font-size: 14px;
+  font-weight: 600;
+  color: #15803d;
+  background: #dcfce7;
+  border-radius: 999px;
+  padding: 4px 10px;
+  margin-left: 4px;
+}

@@ -55,10 +55,10 @@ All are non-secret. There are no repository secrets and none are needed.
 | `NODE_OPTIONS=--max-old-space-size=4096` | Client build | Matches the Dockerfile; the build needs the heap |
 | `MONGO_ROOT_USERNAME`, `MONGO_ROOT_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`, `ENCRYPTION_KEY` | Compose validation | Throwaway placeholders so variable interpolation resolves. Not credentials, and never used to connect to anything. |
 
-### The `CI=false` on the client build
+### The `CI=false` on the client build, and the warning ratchet
 
 GitHub Actions sets `CI=true` automatically, and Create React App then **treats eslint warnings
-as errors**. This repository currently has **110** such warnings — unused variables and
+as errors**. This repository has a backlog of such warnings — unused variables and
 `react-hooks/exhaustive-deps` — so `CI=true npm run build` fails with
 *"Treating warnings as errors because process.env.CI = true"*.
 
@@ -66,15 +66,30 @@ The `Dockerfile` does **not** set `CI`, so production builds these as warnings a
 Setting `CI=false` makes CI reproduce the real production build rather than a stricter standard
 the project has never met. A genuine compile error still fails the step.
 
-This is a deliberate, documented choice, not a way to force a green tick. Clearing the warning
-backlog and flipping this to `CI=true` is tracked under *Known gaps* below.
+**But `CI=false` on its own left a hole**: the existing warnings were frozen in *and* a newly
+added one was invisible, so the build could not tell anybody they had made things worse.
+
+So the **count** is the gate instead of the warnings themselves:
+
+- The baseline lives in `.github/client-warning-baseline.txt`, one integer.
+- More warnings than the baseline **fails the build**, printing every warning and the delta.
+- Fewer prints a notice asking you to lower the baseline, so a cleanup is locked in.
+
+The backlog is allowed to stay. It is not allowed to grow. Raising the baseline to make a build
+pass defeats the whole mechanism — it is one line in a diff precisely so somebody has to justify
+it in review.
+
+**Current baseline: 116**, measured on 24 September 2026 from a real `CI=false` production build.
+It came down from 119 when three page modules that were imported but never routed were deleted
+during the code-splitting work.
 
 ## What CI intentionally does NOT do
 
 - No deployment, no CD, no Docker image publishing, no SSH to any host
 - No production database, Redis, Piston or external API access
 - No container is started — compose is validated, never run
-- No linting as a gate (see below)
+- No standalone linter (there is no eslint config for `server/`); the client's warning
+  **count** is gated by the ratchet above
 - No coverage upload, no Dependabot, no SonarQube, no release automation
 - No artifact upload
 
@@ -135,7 +150,7 @@ Recorded locally on 24 September 2026, before the workflow was committed.
 | Server typecheck | pass, exit 0 |
 | Server Jest | **120 suites passed, 2 skipped, 0 failed** · 2,140 tests passed, 42 skipped · ~120 s |
 | Client build (`CI=false`) | pass, exit 0, 34 MB output |
-| Client build (`CI=true`) | **fail** — 110 warnings treated as errors |
+| Client build (`CI=true`) | **fail** — warnings treated as errors (hence the ratchet) |
 | Client tests | 3 suites, 48 tests, all pass |
 | CRLF check | clean |
 | `bash -n` | 13 scripts, all pass |

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import {
-  hackathonExamApi as api, ExamOverview, ExamQuestion, RunResult,
+  hackathonExamApi as api, ExamOverview, ExamQuestion, RunResult, ExamResult,
 } from '../../api/hackathonExamApi';
 import { RichText } from '../../utils/richText';
 import { useProctorRecorder } from './useProctorRecorder';
@@ -175,6 +175,16 @@ const HackathonExam: React.FC = () => {
   const [left, setLeft] = useState<number | null>(null);
   const [warn, setWarn] = useState<string>('');
   const [done, setDone] = useState<{ answered: number; total: number; timeSpentSec: number } | null>(null);
+  /*
+   * The candidate's own result, once an admin has published it.
+   *
+   * The completion screen used to be the end of the road: the results email said "your score
+   * is ready" and the link landed on "Exam submitted successfully" with no number anywhere.
+   * Honest, but not what the email promised. This is fetched whenever somebody is on the
+   * submitted screen, and stays null — leaving that screen exactly as it was — until results
+   * are actually out.
+   */
+  const [result, setResult] = useState<ExamResult | null>(null);
 
   const submitRef = useRef<() => void>(() => {});
   const phaseRef = useRef<Phase>('loading');
@@ -458,6 +468,35 @@ const HackathonExam: React.FC = () => {
       window.removeEventListener('beforeunload', onLeave);
     };
   }, [phase, report, overview]);
+
+  /*
+   * Ask for the result whenever somebody is sitting on the submitted screen.
+   *
+   * Cheap and quiet: the endpoint answers `published: false` until an admin publishes, and
+   * nothing renders until it says otherwise. Polling slowly rather than once means a
+   * candidate who leaves the tab open during the announcement sees their score appear
+   * without reloading — which is exactly when everybody has the tab open.
+   */
+  useEffect(() => {
+    if (phase !== 'submitted' || !token) return;
+
+    let cancelled = false;
+    const fetchResult = async () => {
+      try {
+        const r = await api.result(token);
+        if (!cancelled) setResult(r);
+        /* Stop asking the moment there is something to show. */
+        if (r?.published && timer) { window.clearInterval(timer); timer = 0; }
+      } catch {
+        /* A result that will not load must not replace a successful submission with an
+           error. The screen below simply stays as it was. */
+      }
+    };
+
+    let timer: number = window.setInterval(fetchResult, 60_000);
+    void fetchResult();
+    return () => { cancelled = true; if (timer) window.clearInterval(timer); };
+  }, [phase, token]);
 
   /* ── run + submit ──────────────────────────────────────────────────────── */
 
@@ -938,7 +977,19 @@ const HackathonExam: React.FC = () => {
      * lands here with nothing, so the stat row degrades to what the server does know rather
      * than rendering "undefined of undefined minutes" at the end of somebody's exam.
      */
-    const mins = done ? Math.max(1, Math.round(done.timeSpentSec / 60)) : null;
+    /*
+     * Once results are published, the stats row answers the question the candidate actually
+     * came back for. Before that it stays exactly as it was — no number is better than a
+     * number that moves while grading is still running.
+     */
+    const pub = result?.published ? result : null;
+    const member = pub?.member;
+    const team = pub?.team;
+
+    /* Prefer what the server knows over what this tab happens to remember. */
+    const spentSec = member?.timeSpentSec ?? pub?.timeSpentSec ?? done?.timeSpentSec ?? null;
+    const mins = spentSec != null ? Math.max(1, Math.round(spentSec / 60)) : null;
+
     return (
       <div className="hxd">
         <header className="hxd-nav">
@@ -949,17 +1000,28 @@ const HackathonExam: React.FC = () => {
         <div className="hxd-in">
           <div className="hxd-hero">
             <span className="hxd-tick">{I.tick}</span>
-            <h1>Congratulations!</h1>
-            <p className="hxd-sub">Exam submitted successfully</p>
-            <p className="hxd-lede">Your answers are in.</p>
+            <h1>{member ? 'Your result' : 'Congratulations!'}</h1>
+            <p className="hxd-sub">
+              {member ? `${member.name} — ${team?.name || ''}`.trim() : 'Exam submitted successfully'}
+            </p>
+            {member ? (
+              <p className="hxd-score">
+                <b>{member.score}</b> <span>/ {member.totalMarks}</span>
+                <em>{member.percentage}%</em>
+              </p>
+            ) : (
+              <p className="hxd-lede">Your answers are in.</p>
+            )}
           </div>
 
           {warn && <div className="hxd-warn">{warn}</div>}
 
-          <div className="hxd-note">
-            {I.mail}
-            <span>The CodeBegun team will share the complete details with you by email and WhatsApp.</span>
-          </div>
+          {!member && (
+            <div className="hxd-note">
+              {I.mail}
+              <span>The CodeBegun team will share the complete details with you by email and WhatsApp.</span>
+            </div>
+          )}
 
           <div className="hxd-stats">
             <div>
@@ -979,18 +1041,52 @@ const HackathonExam: React.FC = () => {
             </div>
             <div>
               <span className="hxd-ico amb">{I.team}</span>
-              <b className="soft">Announced by the organisers</b>
-              <span>Results status</span>
+              {team ? (
+                <>
+                  <b>{team.teamScore}</b>
+                  <span>
+                    Team {team.name} — averaged over {team.registeredMembers} registered member
+                    {team.registeredMembers === 1 ? '' : 's'}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <b className="soft">Announced by the organisers</b>
+                  <span>Results status</span>
+                </>
+              )}
             </div>
           </div>
 
           <div className="hxd-cols">
             <section className="hxd-card">
-              <h2>What happens next?</h2>
+              <h2>{member ? 'How this was scored' : 'What happens next?'}</h2>
               <ol className="hxd-steps">
-                <li>Results are reviewed and published by the organisers.</li>
-                <li>Your score and your team&rsquo;s result are sent by email and WhatsApp.</li>
-                <li>Keep following CodeBegun and CareerPilot for more opportunities.</li>
+                {member ? (
+                  <>
+                    <li>
+                      Your score is out of the paper <b>you</b> were drawn, which is why totals
+                      differ between candidates.
+                    </li>
+                    <li>
+                      Coding answers were run against every test case, including the hidden ones
+                      you could not see while writing.
+                    </li>
+                    <li>
+                      The team score is the average across all {team?.registeredMembers ?? 0} registered
+                      member{(team?.registeredMembers ?? 0) === 1 ? '' : 's'}
+                      {team && team.attemptedMembers < team.registeredMembers
+                        ? ` — ${team.registeredMembers - team.attemptedMembers} did not sit the paper, and count as zero.`
+                        : '.'}
+                    </li>
+                  </>
+                ) : (
+                  <>
+                    <li>Results are reviewed and published by the organisers.</li>
+                    <li>Your score and your team&rsquo;s result are sent by email and WhatsApp.</li>
+                    <li>Keep following CodeBegun and CareerPilot for more opportunities.</li>
+                  </>
+                )}
               </ol>
               <p className="hxd-script">Your effort today<br />builds a brighter tomorrow</p>
             </section>

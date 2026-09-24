@@ -108,6 +108,33 @@ export interface ViolationOutcome {
 
 /* ── candidate ─────────────────────────────────────────────────────────────── */
 
+/**
+ * What a candidate is told about their own result, and only once an admin has published.
+ *
+ * Before publication the server deliberately returns nothing but `published: false` — a
+ * leaderboard position that moves while grading is still running is worse than no number.
+ */
+export interface ExamResult {
+  published: boolean;
+  submittedAt?: string;
+  timeSpentSec?: number;
+  message?: string;
+  member?: {
+    name: string;
+    score: number;
+    totalMarks: number;
+    percentage: number;
+    timeSpentSec: number;
+  };
+  team?: {
+    name: string;
+    code: string;
+    teamScore: number;
+    registeredMembers: number;
+    attemptedMembers: number;
+  };
+}
+
 export const hackathonExamApi = {
   bySlug: (slug: string) => call<any>(`${PUBLIC}/${encodeURIComponent(slug)}`),
 
@@ -182,7 +209,7 @@ export const hackathonExamApi = {
       `${PUBLIC}/attempt/${token}/submit`, { method: 'POST', body: '{}' },
     ),
 
-  result: (token: string) => call<any>(`${PUBLIC}/attempt/${token}/result`),
+  result: (token: string) => call<ExamResult>(`${PUBLIC}/attempt/${token}/result`),
 };
 
 /* ── admin ─────────────────────────────────────────────────────────────────── */

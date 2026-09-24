@@ -181,8 +181,9 @@ should extend rather than duplicate.
   "compile_timeout": 20000, "compile_cpu_time": 20000 }
 ```
 
-`files` is an **array** — Piston accepts multiple files, so an instrumentation harness can be
-shipped alongside the student's source in the same request. This is the key enabler for Java.
+`files` is an **array**, and Phase 0 assumed this meant a Java instrumentation harness could
+be shipped as a second file. **That assumption is wrong — corrected 24 September 2026 by
+measurement on the codebox.** See §17.
 
 Piston returns HTTP 429 when `PISTON_MAX_CONCURRENT_JOBS` is reached; the runner already
 translates that into a "busy" result rather than an error.
@@ -386,7 +387,7 @@ verify, because `shared/dist/index.js` looks minimal.**]**
 - Frontend `pages/CodeVisualizer/` with the component split from the brief; Monaco line
   highlighting and inline values via decorations.
 - Generic fallback view — current line, variables, expressions, call stack, console, timeline.
-- Compiler and runtime error panels with the index-out-of-bounds explanation from §17.
+- Compiler and runtime error panels with the index-out-of-bounds explanation from the brief (§17 there).
 - Golden-trace tests for Bubble Sort, plus normalisation and sandbox-limit tests.
 
 **Explicitly out of Phase 1:** Python, JavaScript, recursion, stack/queue/list/tree/graph
@@ -455,3 +456,56 @@ no CPU or memory limits. The blast radius of a container escape is every product
 **Acceptance for closing this item:** a configuration without `privileged: true` that boots,
 passes the §7 output-ceiling regression set, and executes a Java, Python and JavaScript program
 correctly — demonstrated on QA and then deployed with a verified rollback.
+
+
+---
+
+## 17. Correction: Piston compiles only the FIRST Java file **[verified by measurement]**
+
+Phase 0 recorded that Piston's `files[]` array made it possible to ship `CBTrace.java`
+alongside the student's source. Measured against a real Piston instance, that is **false** for
+Java, and the Phase 1 design depended on it.
+
+| Attempt | Result |
+|---|---|
+| `[{name: "Main"}, {name: "CBTrace"}]` | `cannot find symbol: CBTrace` |
+| `[{name: "Main.java"}, {name: "CBTrace.java"}]` | same, and the file is written as `Main.java.java` — **Piston appends `.java` itself** |
+| Harness listed first | `can't find main(String[]) method in class: CBTrace` |
+
+That last line is the proof: Piston treats **`files[0]` as the entry point** and never compiles
+the rest. The second file is written to the job directory and ignored.
+
+### What works instead
+
+Two options, both verified:
+
+**1. Append the harness as a second top-level class in the SAME file — recommended.**
+
+```
+public class Main { ... }       <-- entry class MUST come first
+class CBTrace { ... }           <-- appended by the instrumenter
+```
+
+Order is load-bearing: Java's single-file source launcher runs the first class declared, so
+putting `CBTrace` first fails with `can't find main`. Verified working.
+
+**2. Inject the harness as a nested `static class` inside the student's class.** Also verified,
+but it edits the student's class body, which makes line-number preservation harder.
+
+### Consequences for Phase 1
+
+- The instrumenter emits **one file**: rewritten student source, then the harness appended.
+- Appending after the student's code means **every student line number is unchanged** — which
+  is better for the "trace events must cite original student lines" rule than prepending
+  would have been.
+- The harness must not collide with a student class named `CBTrace`; the instrumenter should
+  pick a name it has verified is unused in the source.
+
+### Also verified on the same run
+
+- **Compile errors for Java arrive in `run.stderr`, not `compile.stderr`** — Piston uses the
+  single-file source launcher, so compilation happens inside the run stage. Error-panel code
+  must read `run.stderr` and must not assume a `compile` block exists.
+- **The `##CBTRACE##` sentinel works.** A run emitting both trace lines and ordinary
+  `System.out.println` output separated cleanly: every trace line carried the prefix, and the
+  program's own output did not.

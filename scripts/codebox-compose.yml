@@ -1,0 +1,38 @@
+# CodeBegun sandbox host. This box runs Piston and NOTHING else — no database,
+# no application, no credentials. That is the whole security argument: a
+# container escape here reaches a machine with nothing worth taking.
+services:
+  piston:
+    image: ghcr.io/engineer-man/piston
+    container_name: codebox-piston
+    # Piston runs `cd /sys/fs/cgroup && mkdir isolate/`. Docker mounts that
+    # read-only for an unprivileged container whatever capabilities it holds, so
+    # cap_add: SYS_ADMIN is NOT sufficient — verified on production 2026-09-24,
+    # where it crash-looped the container. Least-privilege alternatives are to be
+    # tested here, on a box where crash-looping costs nothing.
+    privileged: true
+    security_opt:
+      - apparmor=unconfined
+    tmpfs:
+      - /piston/jobs:exec,size=1g
+    volumes:
+      - piston_data:/piston/packages
+    ports:
+      # Reachable ONLY from the LMS app server — enforced in the DOCKER-USER
+      # iptables chain, because Docker published ports bypass ufw entirely.
+      - "2000:2000"
+    environment:
+      PISTON_RUN_TIMEOUT: "30000"
+      PISTON_COMPILE_TIMEOUT: "20000"
+      PISTON_RUN_CPU_TIME: "30000"
+      PISTON_COMPILE_CPU_TIME: "20000"
+      # Piston defaults this to 1024 BYTES and SIGKILLs the job when exceeded,
+      # returning nothing. 8 MB is the sandbox ceiling; the application enforces
+      # the tighter per-mode limits students actually meet.
+      PISTON_OUTPUT_MAX_SIZE: "8388608"
+      # 4 dedicated cores here, versus 8 shared with 15 containers on the app
+      # box. Raise only with load figures.
+      PISTON_MAX_CONCURRENT_JOBS: "6"
+    restart: unless-stopped
+volumes:
+  piston_data:

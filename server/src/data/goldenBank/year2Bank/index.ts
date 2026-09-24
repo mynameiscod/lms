@@ -15,9 +15,11 @@
 
 import { GoldenItem } from './types';
 import { DSA_STACK } from './dsaStack';
+import { DSA_QUEUE } from './dsaQueue';
 
 export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_STACK,
+  ...DSA_QUEUE,
 ];
 
 export { GoldenItem };

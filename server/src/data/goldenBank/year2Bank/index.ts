@@ -17,11 +17,13 @@ import { GoldenItem } from './types';
 import { DSA_STACK } from './dsaStack';
 import { DSA_QUEUE } from './dsaQueue';
 import { DSA_LINKED_LIST } from './dsaLinkedList';
+import { DSA_SORTING } from './dsaSorting';
 
 export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_STACK,
   ...DSA_QUEUE,
   ...DSA_LINKED_LIST,
+  ...DSA_SORTING,
 ];
 
 export { GoldenItem };

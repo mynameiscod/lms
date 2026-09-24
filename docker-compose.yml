@@ -147,8 +147,21 @@ services:
     # ⚠️ VERIFY code execution after deploying this (runbook step 7). If Piston
     # fails to run jobs, the fallback is `privileged: true` again — but treat that
     # as temporary and keep Piston off any public port either way.
-    cap_add:
-      - SYS_ADMIN
+    # ── 2026-09-24: `cap_add: SYS_ADMIN` does NOT work. Verified on this host. ──
+    # Piston's entrypoint runs `cd /sys/fs/cgroup && mkdir isolate/`. Docker mounts
+    # /sys/fs/cgroup READ-ONLY for an unprivileged container whatever capabilities
+    # it holds, so the container crash-loops before the API starts:
+    #   mkdir: cannot create directory 'isolate/': Read-only file system
+    #
+    # The block above was written on 2026-08-07 and never exercised: the running
+    # container had been created another way and was simply never restarted, so the
+    # drift stayed invisible for seven weeks until a `docker compose up` recreated
+    # it and took code execution down. The note above named this exact fallback.
+    #
+    # ⚠️ This is effective host root for a container running arbitrary student code.
+    # It is Piston's documented requirement, not a shortcut — which is why Piston is
+    # bound to no public port, and why moving execution to its own host matters.
+    privileged: true
     security_opt:
       - apparmor=unconfined
     tmpfs:
@@ -169,6 +182,16 @@ services:
       # means it cheerfully accepts enough concurrent javac runs to starve them all: six
       # at once measured 32s each and every one was SIGKILLed.
       PISTON_MAX_CONCURRENT_JOBS: "6"
+      # Piston's own default is 1024 BYTES per stdio buffer (config option
+      # `output_max_size`, api v3.1.1). Crossing it does not truncate — the job is
+      # SIGKILLed and stdout comes back EMPTY, so a correct program that prints a
+      # kilobyte and one byte looks to the student like a crash or a wrong answer.
+      # Measured on this box: 1024 -> 1024 bytes returned; 1025 -> SIGKILL, 0 bytes.
+      #
+      # This is the SANDBOX ceiling, deliberately generous. The application sets the
+      # limits students actually meet (CODE_OUTPUT_MAX_* in Platform Settings), per
+      # execution mode, so the ceiling never has to be edited to change policy.
+      PISTON_OUTPUT_MAX_SIZE: "8388608"
     networks:
       - lms-network
     restart: unless-stopped

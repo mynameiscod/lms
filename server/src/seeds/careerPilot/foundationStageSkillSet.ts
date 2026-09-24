@@ -108,6 +108,23 @@ export interface FoundationStageSet {
 const shorten = (s: string, n: number) => (s.length <= n ? s : `${s.slice(0, n - 1)}…`);
 
 /**
+ * What a second year changes, and nothing else.
+ *
+ * The merge, the ordering, the provenance and the "only the mandatory spine is switched on"
+ * doctrine are the same for any year: they are statements about how a stage set is built, not
+ * about which stage. Year 2 differs in exactly two inputs — its own modules, and a higher bar —
+ * so those are parameters and everything else is shared. A second copy of this function would
+ * be a second opinion about what a student needs, and two opinions eventually disagree in
+ * front of the student.
+ */
+export interface StageRequirementOptions {
+  /** Defaults to the Year-1 modules, so every existing caller is unaffected. */
+  modules?: typeof FOUNDATION_MODULES;
+  /** Defaults to the Year-1 bar, where being early is the expected state. */
+  targetByDepth?: Record<LearningDepth, SkillTargetLevel>;
+}
+
+/**
  * The Year-1 modules as stage requirements, in module order.
  *
  * ONE ROW PER SKILL, NOT PER TOPIC. A skill taught in two topics is still one thing a student
@@ -116,7 +133,9 @@ const shorten = (s: string, n: number) => (s.length <= n ? s : `${s.slice(0, n -
  * repeats merge, keeping the strongest claim any topic makes: the highest importance, the
  * highest target, and the earliest position.
  */
-export function foundationStageRequirements(): FoundationStageSet {
+export function foundationStageRequirements(opts: StageRequirementOptions = {}): FoundationStageSet {
+  const sourceModules = opts.modules || FOUNDATION_MODULES;
+  const targetMap = opts.targetByDepth || TARGET_BY_DEPTH;
   const byKey = new Map<string, IStageSkillRequirement & { _category: FoundationCategory }>();
   const origins: FoundationRequirementOrigin[] = [];
   const seenIn = new Map<string, number>();
@@ -124,14 +143,14 @@ export function foundationStageRequirements(): FoundationStageSet {
   let topics = 0;
   let order = 0;
 
-  const modules = FOUNDATION_MODULES.slice().sort((a, b) => a.displayOrder - b.displayOrder);
+  const modules = sourceModules.slice().sort((a, b) => a.displayOrder - b.displayOrder);
 
   for (const m of modules) {
     for (const t of m.topics) {
       topics++;
       order++;
       const importance = IMPORTANCE_BY_CATEGORY[t.category];
-      const targetLevel = TARGET_BY_DEPTH[t.defaultDepth] || 'FOUNDATION';
+      const targetLevel = targetMap[t.defaultDepth] || 'FOUNDATION';
       // Only the universal spine is switched on. See the header: the rest is written down so an
       // admin can choose it, not switched on so a seed can choose it for them.
       const active = isMandatoryCategory(t.category);

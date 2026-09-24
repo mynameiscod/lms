@@ -35,6 +35,7 @@ import { getStageSkillSet, saveStageSkillSet } from '../../services/stageSkillSe
 import {
   foundationStageRequirements, FOUNDATION_STAGE, FOUNDATION_SET_LABEL,
 } from './foundationStageSkillSet';
+import { buildStageRequirements, BUILD_STAGE, BUILD_SET_LABEL } from './year2StageSkillSet';
 
 dotenv.config();
 
@@ -60,8 +61,18 @@ export async function seedFoundationStageSkillSet(opts: {
   enable?: boolean;
   replace?: boolean;
   actor?: string;
+  /**
+   * Write the Year-2 set instead. Off by default, so every existing caller stays on Year 1.
+   *
+   * The two years are separate rows on separate stages, never one set covering both: a
+   * second-year is measured against a second-year's bar, and a set that mixed them would plan
+   * one year's student against the other year's expectations.
+   */
+  year2?: boolean;
 }): Promise<SeedStageSetReport> {
-  const built = foundationStageRequirements();
+  const stage = opts.year2 ? BUILD_STAGE : FOUNDATION_STAGE;
+  const label = opts.year2 ? BUILD_SET_LABEL : FOUNDATION_SET_LABEL;
+  const built = opts.year2 ? buildStageRequirements() : foundationStageRequirements();
   const report: SeedStageSetReport = {
     created: false, updated: false, skippedExisting: false, enabled: false,
     skills: built.summary.skills,
@@ -82,7 +93,7 @@ export async function seedFoundationStageSkillSet(opts: {
   report.unknownSkillKeys = wanted.filter(k => !knownSet.has(k));
   if (report.unknownSkillKeys.length) return report;
 
-  const existing = await getStageSkillSet(opts.tenantId, FOUNDATION_STAGE);
+  const existing = await getStageSkillSet(opts.tenantId, stage);
   const existingKeys = new Set((existing?.requirements || []).map(r => String(r.skillKey).toUpperCase()));
   const wantedKeys = new Set(wanted);
 
@@ -105,8 +116,8 @@ export async function seedFoundationStageSkillSet(opts: {
 
   const doc = await saveStageSkillSet({
     tenantId: opts.tenantId,
-    stage: FOUNDATION_STAGE,
-    label: FOUNDATION_SET_LABEL,
+    stage,
+    label,
     // Undefined leaves an existing choice alone; a brand-new set stays off unless asked.
     enabled: opts.enable ? true : (existing ? undefined : false),
     requirements: built.requirements,
@@ -129,14 +140,15 @@ if (require.main === module) {
     const apply = process.argv.includes('--apply');
     const enable = process.argv.includes('--enable');
     const replace = process.argv.includes('--replace');
+    const year2 = process.argv.includes('--year2');
     if (!tenantId) {
-      console.error('Usage: seedFoundationStageSkillSet.ts <tenantId> [--apply] [--enable] [--replace]');
+      console.error('Usage: seedFoundationStageSkillSet.ts <tenantId> [--apply] [--enable] [--replace] [--year2]');
       process.exit(1);
     }
 
     await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI || '');
-    const built = foundationStageRequirements();
-    const r = await seedFoundationStageSkillSet({ tenantId, apply: apply || enable, enable, replace });
+    const built = year2 ? buildStageRequirements() : foundationStageRequirements();
+    const r = await seedFoundationStageSkillSet({ tenantId, apply: apply || enable, enable, replace, year2 });
 
     if (r.unknownSkillKeys.length) {
       console.error('\nREFUSED — these skill keys do not exist in the taxonomy:');
@@ -146,7 +158,7 @@ if (require.main === module) {
       process.exit(1);
     }
 
-    console.log(`\n${FOUNDATION_SET_LABEL} → stage skill set "${FOUNDATION_STAGE}"`);
+    console.log(`\n${year2 ? BUILD_SET_LABEL : FOUNDATION_SET_LABEL} → stage skill set "${year2 ? BUILD_STAGE : FOUNDATION_STAGE}"`);
     console.log(`  modules            : ${built.summary.modules}`);
     console.log(`  topics             : ${built.summary.topics}`);
     console.log(`  skills             : ${r.skills}`);
@@ -161,14 +173,14 @@ if (require.main === module) {
     }
 
     if (r.skippedExisting) {
-      console.log('\nLEFT ALONE — this tenant already has a curated foundation set.');
+      console.log(`\nLEFT ALONE — this tenant already has a curated ${year2 ? BUILD_STAGE : FOUNDATION_STAGE} set.`);
       console.log('Pass --replace to overwrite it with the module-derived one.');
     } else if (apply || enable) {
       console.log(`\n${r.created ? 'CREATED' : 'UPDATED'}  —  enabled = ${r.enabled}`);
       if (!r.enabled) {
         console.log('\nIt is written but OFF, so nothing has changed for any student yet.');
         console.log('Turn it on when the list says what you want it to say:');
-        console.log(`  npx ts-node src/seeds/careerPilot/seedFoundationStageSkillSet.ts ${tenantId} --apply --enable`);
+        console.log(`  npx ts-node src/seeds/careerPilot/seedFoundationStageSkillSet.ts ${tenantId} --apply --enable${year2 ? ' --year2' : ''}`);
       } else {
         console.log('\nFirst-years with no chosen role are now planned against the Year-1 modules.');
         console.log('Author their journeys in the Learning Studio:  /admin/learning-studio');

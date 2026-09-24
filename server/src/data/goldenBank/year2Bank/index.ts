@@ -19,6 +19,7 @@ import { DSA_QUEUE } from './dsaQueue';
 import { DSA_LINKED_LIST } from './dsaLinkedList';
 import { DSA_SORTING } from './dsaSorting';
 import { DB_NORMALIZATION } from './dbNormalization';
+import { DB_TRANSACTIONS } from './dbTransactions';
 
 export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_STACK,
@@ -26,6 +27,7 @@ export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_LINKED_LIST,
   ...DSA_SORTING,
   ...DB_NORMALIZATION,
+  ...DB_TRANSACTIONS,
 ];
 
 export { GoldenItem };

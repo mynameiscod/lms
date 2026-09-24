@@ -20,7 +20,7 @@ import { normalizePhone, mobileError } from '../utils/phone';
 import { validateEngineConfigPatch, describeEngineConfig } from '../services/curriculumEngineService';
 import { foundationReadiness } from '../services/foundationReadinessService';
 import { passwordProblem } from '../utils/passwordPolicy';
-import { validateProgramDays } from '../services/foundationProgramLengthService';
+import { validateProgramDays, programDaysFor } from '../services/foundationProgramLengthService';
 import { UNIT_ENGINE_STAGES } from '../data/curriculumEnginePolicy';
 import { membershipPriceFor, validatePriceInr } from '../services/membershipPricingService';
 import { clampPreviewDays } from '../data/foundationAccessPolicy';
@@ -255,6 +255,15 @@ export const getMyStatus = async (req: Request, res: Response) => {
       priceInr: await membershipPriceFor(tenantId, user?.passport?.stage),
       membershipMonths: cfg?.membershipMonths ?? 12,
       roadmapDays: cfg?.roadmapDays ?? 90,
+      /**
+       * How many days THIS learner's plan runs to, for the screens that name it.
+       * `roadmapDays` above is the topic planner's number and is not this: a unit-engine
+       * learner's length is per stage, so a second-year is 110 where a first-year is 90.
+       * The navigation said "My 90 Days" to everyone, which was already wrong for any
+       * tenant that had changed the Foundation length.
+       */
+      programDays: await programDaysFor(tenantId, user?.passport?.stage),
+      stage: user?.passport?.stage || null,
       paymentAvailable: razorpay.isConfigured(tenantId),
       expiresAt: user?.passport?.expiresAt || null,
       shareSlug: user?.passport?.shareSlug || null,

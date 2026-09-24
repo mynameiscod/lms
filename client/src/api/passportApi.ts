@@ -1781,6 +1781,15 @@ export interface DashboardData {
   coins?: { balance: number; lifetimeEarned: number } | null;
   hasAssessment: boolean;
   priceInr?: number;
+  /**
+   * How many days THIS learner's own plan runs to — 90 for a first-year, 110 for a
+   * second-year, whatever the admin has set for their stage. The navigation named a
+   * constant before this, which was wrong for every second-year and for any tenant that
+   * had changed the Foundation length.
+   */
+  programDays?: number;
+  /** The learner's career stage, for screens that name their year. */
+  stage?: string | null;
   name?: string;
   firstName?: string;
   level?: LevelInfo;

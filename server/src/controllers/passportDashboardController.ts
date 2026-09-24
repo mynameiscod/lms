@@ -18,6 +18,7 @@ import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
 import { resolveAssessedState } from '../services/memberAssessmentStateService';
 import * as g from '../services/passportGamificationService';
 import { journeyDayGoal } from '../services/foundationJourneyXpService';
+import { programDaysFor } from '../services/foundationProgramLengthService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -258,6 +259,15 @@ export const getDashboard = async (req: Request, res: Response) => {
       active: true,
       hasAssessment: true,
       setupCompleted,
+      /**
+       * The learner's own plan length and stage, for the screens that name them.
+       *
+       * The navigation read "My 90 Days" from a constant, which was wrong for every
+       * second-year — whose plan is 110 — and already wrong for any tenant that had changed
+       * the Foundation length. A number in the navigation has to come from the learner.
+       */
+      stage: user?.passport?.stage || null,
+      programDays: await programDaysFor(tenantId, user?.passport?.stage),
       name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
       firstName: user?.firstName || '',
 

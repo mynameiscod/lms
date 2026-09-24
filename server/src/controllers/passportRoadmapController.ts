@@ -13,6 +13,7 @@ import { buildRoadmap, toPreview } from '../services/passportRoadmapService';
 import { buildCurriculumJourney } from '../services/curriculumJourneyService';
 import { resolveCurriculumEngine } from '../services/curriculumEngineService';
 import { foundationReadiness } from '../services/foundationReadinessService';
+import { programDaysFor } from '../services/foundationProgramLengthService';
 import { clampPreviewDays } from '../data/foundationAccessPolicy';
 import { ensureCurriculumRoadmap } from '../services/careerRoadmapService';
 
@@ -42,12 +43,27 @@ export const getRoadmap = async (req: Request, res: Response) => {
      */
     const engine = await resolveCurriculumEngine({ tenantId, studentId });
     if (engine.engine === 'UNIT') {
+      /**
+       * The readiness and the copy both follow the learner's own stage. Telling a second-year
+       * that "Foundation learners are planned by the ninety-day Foundation journey" names the
+       * wrong year AND the wrong length, and this is the response their screen falls back to
+       * when the roadmap does not load — the worst place to assert something untrue about
+       * somebody's own plan.
+       */
+      const days = await programDaysFor(tenantId, engine.stageKey);
       return res.json({
         engine: 'UNIT',
         source: 'unit',
+        stage: engine.stageKey || 'foundation',
+        /**
+         * The length is stated in the message and deliberately NOT returned as `totalDays`.
+         * That is the topic plan's own field name, and a UNIT response carrying it would read
+         * to any client as a topic roadmap of that length — which is the one thing this branch
+         * exists to refuse. foundationInvariant asserts exactly that, and caught it.
+         */
         roadmap: null,
-        foundation: await foundationReadiness(tenantId),
-        message: 'Foundation learners are planned by the ninety-day Foundation journey.',
+        foundation: await foundationReadiness(tenantId, engine.stageKey),
+        message: `This learner is planned by their ${days}-day journey, not by a topic roadmap.`,
       });
     }
 

@@ -30,6 +30,7 @@ import { PYTHON_OOP } from './pythonOop';
 import { CLEAN_CODE } from './cleanCode';
 import { SQL_JOINS } from './sqlJoins';
 import { SQL_FILTERING } from './sqlFiltering';
+import { DB_DESIGN } from './dbDesign';
 
 export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_STACK,
@@ -48,6 +49,7 @@ export const YEAR2_BANK: GoldenItem[] = [
   ...CLEAN_CODE,
   ...SQL_JOINS,
   ...SQL_FILTERING,
+  ...DB_DESIGN,
 ];
 
 export { GoldenItem };

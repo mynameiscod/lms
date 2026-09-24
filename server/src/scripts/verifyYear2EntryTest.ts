@@ -70,12 +70,35 @@ dotenv.config();
     ? [argStudent]
     : Array.from({ length: papers }, (_, n) => String(n + 1).padStart(24, '0'));
 
+  /**
+   * The stage path's own two adjustments, which this script used to omit — and so measured a
+   * paper no student would ever sit.
+   *
+   * resolveBlueprint returns `{ ...policy, prerequisiteDepth: 0 }` and a skillPriority built
+   * from the set's importance, weight and displayOrder. Leaving both out let the default depth
+   * of 1 walk back into prerequisites, and `preferFoundationalSkills` then sorts every
+   * prerequisite ahead of every stage skill — so the paper came out made entirely of skills
+   * that are not in the stage set at all (DB_FUNDAMENTALS, GIT_FUNDAMENTALS, SQL_BASICS),
+   * while the set's own 31 were pushed out of all eight slots.
+   *
+   * A verification script that does not reproduce the path it claims to verify is worse than
+   * no script, because its output looks like evidence.
+   */
+  const stagePolicy = { ...policy, prerequisiteDepth: 0 };
+  const skillPriority = new Map(
+    (blueprint.requirements || []).map((r: any) => [String(r.skillKey), {
+      importance: r.importance, weight: r.weight, order: r.displayOrder,
+    }]),
+  );
+
   const buildFor = (studentId: string) => buildPersonalizedAssessment({
     tenantId,
     studentId,
     stage: BUILD_STAGE,
     roleKey: (blueprint as any).roleKey || BUILD_STAGE,
     roleSkillKeys: skillKeys,
+    skillPriority,
+    policy: stagePolicy,
     blueprintVersion: Number((blueprint as any).version || 1),
     attemptNumber: 1,
   } as any);

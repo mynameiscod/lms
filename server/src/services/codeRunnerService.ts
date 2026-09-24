@@ -23,6 +23,31 @@ interface ExecutionInput {
   enablePromptInput?: boolean;
 }
 
+/**
+ * Where the time actually went.
+ *
+ * `executionTime` alone could not answer the one question that mattered while planning
+ * compile-once: of the ~7s a Java run took, how much was javac, how much was the JVM, how
+ * much was queueing, and how much was the student's own logic. Piston reports the compile and
+ * run stages separately and both were being thrown away, so the 7s was a single opaque number
+ * and every claim about it was a guess.
+ *
+ * Every field is milliseconds, and every field is 0 when this Piston build does not report it
+ * rather than being invented — a fabricated metric is worse than a missing one.
+ */
+export interface ExecutionTiming {
+  /** Waiting for a concurrency slot. Under load this dominates, and it is not the code's fault. */
+  queuedMs: number;
+  /** The compile stage, when the language has one that Piston reports separately. */
+  compileMs: number;
+  /** The run stage. For Java this INCLUDES compilation: the single-file launcher compiles in-process. */
+  runMs: number;
+  /** Wall clock for the run stage, which includes time the process spent descheduled. */
+  wallMs: number;
+  /** Our own round trip to the sandbox, queue wait excluded. Covers network and Piston overhead. */
+  sandboxMs: number;
+}
+
 interface ExecutionResult {
   passed: boolean;
   output: string;
@@ -30,6 +55,10 @@ interface ExecutionResult {
   executionTime: number; // in ms
   memoryUsed: number; // in MB
   compilationError?: string;
+  /** Present for real executions. Absent for the simulator and for markup "execution". */
+  timing?: ExecutionTiming;
+  /** Set by withExecutionSlot. Kept for callers that read it directly. */
+  queuedMs?: number;
 }
 
 /**
@@ -697,6 +726,40 @@ class CodeRunnerService {
 
       const result: any = await response.json();
 
+      /*
+       * Decompose the cost while we still have the stages. Piston reports compile and run
+       * separately with cpu_time and wall_time on each; all of it used to be collapsed into one
+       * `executionTime` and the rest discarded, which is why "a Java run takes 7 seconds" could
+       * not be broken down into javac, JVM start, queue wait and the student's own logic.
+       *
+       * num() returns 0 rather than NaN or a guess when a field is missing, so a caller can
+       * tell "not reported" from "fast".
+       */
+      const num = (v: unknown): number => {
+        const n = Number(v);
+        return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+      };
+      const timing: ExecutionTiming = {
+        queuedMs: 0, // filled in by withExecutionSlot, which is the only place that knows
+        compileMs: num(result.compile?.cpu_time ?? result.compile?.wall_time),
+        runMs: num(result.run?.cpu_time),
+        wallMs: num(result.run?.wall_time),
+        sandboxMs: Date.now() - startedAt,
+      };
+
+      /*
+       * One structured line per execution, so the numbers can be read out of the logs instead
+       * of measured by hand. Deliberately machine-greppable: `grep PISTON-TIMING`.
+       */
+      console.log('[PISTON-TIMING] ' + JSON.stringify({
+        lang: pistonLanguage.language,
+        ver: pistonLanguage.version,
+        bytes: sourceCode?.length ?? 0,
+        ...timing,
+        exit: result.run?.code ?? null,
+        signal: result.run?.signal ?? null,
+      }));
+
       // Compilation errors from the dedicated compile stage
       if (result.compile && result.compile.code !== 0) {
         return {
@@ -704,7 +767,8 @@ class CodeRunnerService {
           output: '',
           compilationError: result.compile.stderr || result.compile.output || 'Compilation failed',
           executionTime: 0,
-          memoryUsed: 0
+          memoryUsed: 0,
+          timing,
         };
       }
 
@@ -723,7 +787,8 @@ class CodeRunnerService {
             output: '',
             compilationError: runStderr,
             executionTime: 0,
-            memoryUsed: 0
+            memoryUsed: 0,
+            timing,
           };
         }
 
@@ -756,7 +821,8 @@ class CodeRunnerService {
           // Real elapsed time. This was hardcoded to 0, which is why every failed test
           // showed "0ms" and made a 32-second starvation look instantaneous.
           executionTime: elapsed,
-          memoryUsed: 0
+          memoryUsed: 0,
+          timing,
         };
       }
 
@@ -774,6 +840,7 @@ class CodeRunnerService {
         output: actualOutput,
         executionTime: Number.isFinite(wall) && wall > 0 ? Math.round(wall) : 0,
         memoryUsed: Number.isFinite(memBytes) && memBytes > 0 ? Math.round((memBytes / (1024 * 1024)) * 10) / 10 : 0,
+        timing,
       };
 
     } catch (error) {
@@ -994,10 +1061,31 @@ class CodeRunnerService {
        JavaScript prompt() opt-in. Dropping it here would silently break every JS
        assignment that reads input the way students were taught — and it would only
        show up as wrong answers, never as an error. */
-    const oneByOne = () => Promise.all(cases.map(tc => this.execute({
-      code, language, input: tc.input, expectedOutput: tc.expectedOutput,
-      timeLimit: tc.timeLimit || 5000, memoryLimit, comparisonMode, enablePromptInput,
-    })));
+    /* At most this many of ONE caller's cases in flight at a time. The global semaphore
+       already caps total concurrency; this caps one submission's share of it, so a
+       seven-case answer cannot hold every slot on the platform while the people behind it
+       time out waiting. Two keeps a little parallelism for the cheap languages. */
+    const PER_CALLER_LIMIT = 2;
+
+    const oneByOne = async (): Promise<ExecutionResult[]> => {
+      const out: ExecutionResult[] = new Array(cases.length);
+      let next = 0;
+      const worker = async () => {
+        for (;;) {
+          const i = next++;
+          if (i >= cases.length) return;
+          const tc = cases[i];
+          out[i] = await this.execute({
+            code, language, input: tc.input, expectedOutput: tc.expectedOutput,
+            timeLimit: tc.timeLimit || 5000, memoryLimit, comparisonMode, enablePromptInput,
+          });
+        }
+      };
+      await Promise.all(
+        Array.from({ length: Math.min(PER_CALLER_LIMIT, cases.length) }, worker),
+      );
+      return out;
+    };
 
     // Java only, three cases or more, and never against the simulator — a
     // simulated batch would be fabricated grading.

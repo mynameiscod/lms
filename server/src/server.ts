@@ -1,6 +1,11 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+// Before any import below can register a listener, open a socket or schedule a timer:
+// an uncaught error from a background job used to kill the whole platform mid-exam.
+import { installCrashGuard, markServing } from './config/crashGuard';
+installCrashGuard();
+
 import app from './app';
 import http from 'http';
 import cluster from 'cluster';
@@ -361,6 +366,9 @@ const startServer = async () => {
     console.log(`⏳ Starting HTTP server on port ${PORT}...`);
     // Start server
     httpServer.listen(PORT, () => {
+      // From here on an uncaught exception must not end the process by default:
+      // candidates are connected and a restart costs them their session.
+      markServing();
       console.log(`✅ Server is running on http://localhost:${PORT}`);
       console.log(`✅ WebSocket is ready`);
       console.log(`📚 Health check: http://localhost:${PORT}/api/health`);

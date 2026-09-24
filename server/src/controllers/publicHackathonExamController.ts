@@ -7,6 +7,7 @@ import * as exams from '../services/hackathonExamService';
 import { ExamError } from '../services/hackathonExamService';
 import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 import { logger } from '../utils/logger';
+import { dedupeAnswers } from '../services/attemptAnswerWriter';
 
 /**
  * The candidate's side of the hackathon exam. UNAUTHENTICATED, by design — a team was given a
@@ -402,7 +403,14 @@ export const submitExam = async (req: Request, res: Response) => {
       data: {
         submittedAt: r.submittedAt,
         timeSpentSec: r.timeSpentSec,
-        answered: attempt.answers.filter(a => a.selectedOptionIds?.length || a.code || a.text).length,
+        /*
+         * DISTINCT questions answered, not answer records. Attempts damaged by the 22 Sep
+         * duplicate-record race have more records than they have questions, which is how the
+         * completion screen came to read "35 / 31 answered" and tell candidates something
+         * arithmetically impossible about their own paper.
+         */
+        answered: dedupeAnswers(attempt.answers)
+          .filter(a => a.selectedOptionIds?.length || a.code || a.text).length,
         totalQuestions: attempt.drawnItems.length,
         message: 'Your answers are in. Results will be published by the organisers.',
       },

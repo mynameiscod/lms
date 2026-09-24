@@ -64,38 +64,40 @@ export async function evaluatePlan(prompt: string, plan: string): Promise<{ ok: 
  * a fresh javac — so a five-test Java problem took the best part of twenty seconds before
  * the student saw anything.
  *
- * Two changes, in order of how much they save:
+ * ONE COMPILATION FOR THE WHOLE SET. executeBatch compiles the source once and forks a
+ * fresh process per test case, so the compile cost is paid once instead of N times and a
+ * compile error is discovered once instead of N times. It is also one execution slot rather
+ * than N, so a five-test Java drill no longer occupies the whole runner.
  *
- *  1. THE FIRST TEST RUNS ALONE. If the code does not compile, every remaining execution
- *     was guaranteed to fail the same way, and the student waited through all of them to
- *     be told about a missing semicolon. Compile errors now cost ONE run instead of N.
- *
- *  2. THE REST RUN CONCURRENTLY. They are independent — same code, different stdin — so
- *     there is nothing to serialise. Wall-clock becomes the slowest single test rather
- *     than the sum, and the results are reassembled in order.
+ * Isolation per case is unchanged: static state does not carry between cases, System.exit
+ * ends only its own case, and a case that loops forever is killed on its own timeout while
+ * the others still run. executeBatch declines when the trade would not pay — not Java, fewer
+ * than three cases, or simulation mode — and falls back to running the cases individually
+ * with a small in-flight cap.
  */
 export async function runAgainstTests(language: string, code: string, testCases: { input: string; expectedOutput: string; hidden: boolean }[]) {
   const lang = RUNNABLE[(language || '').toLowerCase()] || ProgrammingLanguage.JAVASCRIPT;
   if (!testCases.length) return { results: [], allPassed: true, firstFail: null as any, compileError: '' };
 
-  const runOne = (tc: { input: string; expectedOutput: string; hidden: boolean }) =>
-    codeRunner.execute({ code, language: lang, input: tc.input || '', expectedOutput: '', timeLimit: 10000, memoryLimit: 256 });
+  const runs = await codeRunner.executeBatch({
+    code,
+    language: lang,
+    /* expectedOutput is deliberately empty: this function does its own comparison below,
+       with its own normalisation, and must keep doing so. */
+    cases: testCases.map(tc => ({ input: tc.input || '', expectedOutput: '', timeLimit: 10000 })),
+    memoryLimit: 256,
+  });
 
-  const first = await runOne(testCases[0]);
-  if (first.compilationError) {
-    // Nothing else can pass, so do not spend the sandbox time proving it.
+  const firstCompileError = runs.find(r => r.compilationError)?.compilationError;
+  if (firstCompileError) {
+    // Nothing can pass, and the message is the same for every case.
     return {
       results: testCases.map((tc, i) => ({ passed: false, hidden: tc.hidden, index: i })),
       allPassed: false,
-      firstFail: { input: testCases[0].input, expected: testCases[0].expectedOutput, actual: first.compilationError },
-      compileError: first.compilationError,
+      firstFail: { input: testCases[0].input, expected: testCases[0].expectedOutput, actual: firstCompileError },
+      compileError: firstCompileError,
     };
   }
-
-  const rest = testCases.length > 1
-    ? await Promise.all(testCases.slice(1).map(runOne))
-    : [];
-  const runs = [first, ...rest];
 
   const results: { passed: boolean; hidden: boolean; index: number }[] = [];
   let firstFail: { input: string; expected: string; actual: string } | null = null;

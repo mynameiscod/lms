@@ -28,9 +28,17 @@ jest.mock('../models/AssessmentItem', () => ({
 }));
 
 const mockExecute = jest.fn();
+/* executeBatch stands in faithfully: one mockExecute per case, results in order. */
 jest.mock('../services/codeRunnerService', () => ({
   __esModule: true,
-  default: { execute: (...a: any[]) => mockExecute(...a) },
+  default: {
+    execute: (...a: any[]) => mockExecute(...a),
+    executeBatch: async ({ cases }: any) => {
+      const out = [];
+      for (const tc of cases) out.push(await mockExecute({ input: tc.input, expectedOutput: tc.expectedOutput }));
+      return out;
+    },
+  },
 }));
 
 jest.mock('../models/HackathonExam', () => ({ __esModule: true, default: { findById: jest.fn() } }));
@@ -55,12 +63,18 @@ const mockAttemptUpdateOne = jest.fn(async (filter: any, update: any) => {
   if (!doc) return { matchedCount: 0, modifiedCount: 0 };
   const want = filter['answers.itemId'];
 
-  /* Positional $set — only matches when the element already exists, as Mongo's does. */
-  if (update.$set) {
+  /* Positional $set / $inc — only matches when the element already exists, as Mongo's does.
+     $inc matters: runCode now charges a run with $inc rather than reading, adding one and
+     writing the whole document back, which is what let two clicks share one slot. */
+  if (update.$set || update.$inc) {
     const i = doc.answers.findIndex((x: any) => x.itemId === want);
     if (i < 0) return { matchedCount: 0, modifiedCount: 0 };
-    for (const [path, value] of Object.entries(update.$set)) {
+    for (const [path, value] of Object.entries(update.$set || {})) {
       doc.answers[i][path.replace('answers.$.', '')] = value;
+    }
+    for (const [path, value] of Object.entries(update.$inc || {})) {
+      const k = path.replace('answers.$.', '');
+      doc.answers[i][k] = (doc.answers[i][k] || 0) + (value as number);
     }
     return { matchedCount: 1, modifiedCount: 1 };
   }
@@ -78,10 +92,29 @@ const mockAttemptUpdateOne = jest.fn(async (filter: any, update: any) => {
   return { matchedCount: 0, modifiedCount: 0 };
 });
 
+/*
+ * writeAnswer reads the element back after writing it, because callers decide on it — the run
+ * throttle reads runCount, and a value one behind hands out a free run to anyone double-clicking.
+ * So the mock has to honour a projected findOne too, with the same { answers: { $elemMatch } }
+ * shape: it returns ONLY the matching element, exactly as Mongo does.
+ */
+const mockAttemptFindOne = jest.fn((filter: any, projection?: any) => ({
+  lean: async () => {
+    const doc = mockAttemptDocs.get(String(filter._id));
+    if (!doc) return null;
+    const match = projection?.answers?.$elemMatch;
+    if (!match) return doc;
+    const el = doc.answers.find((x: any) => x.itemId === match.itemId);
+    return { ...doc, answers: el ? [el] : [] };
+  },
+  select: () => ({ lean: async () => mockAttemptDocs.get(String(filter._id)) || null }),
+}));
+
 jest.mock('../models/HackathonExamAttempt', () => ({
   __esModule: true,
   default: {
-    findOne: jest.fn(), find: jest.fn(), create: jest.fn(), updateMany: jest.fn(),
+    findOne: (...a: any[]) => mockAttemptFindOne(a[0], a[1]),
+    find: jest.fn(), create: jest.fn(), updateMany: jest.fn(),
     updateOne: (...a: any[]) => mockAttemptUpdateOne(a[0], a[1]),
   },
 }));

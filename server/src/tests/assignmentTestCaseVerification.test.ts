@@ -133,6 +133,20 @@ jest.mock('../services/codeRunnerService', () => ({
       runs.push({ code: o.code, input: o.input, enablePromptInput: o.enablePromptInput });
       return runResult(o.input);
     },
+    /*
+     * Stands in faithfully, and in particular FORWARDS enablePromptInput. The real
+     * executeBatch's fallback has to do the same; dropping it there would silently mark every
+     * JavaScript assignment that reads input with prompt() as a wrong answer, which is the
+     * kind of bug that shows up as complaints rather than as an error.
+     */
+    executeBatch: async (o: any) => {
+      const out = [];
+      for (const tc of o.cases) {
+        runs.push({ code: o.code, input: tc.input, enablePromptInput: o.enablePromptInput });
+        out.push(runResult(tc.input));
+      }
+      return out;
+    },
   },
 }));
 

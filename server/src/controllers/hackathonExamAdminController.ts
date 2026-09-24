@@ -133,7 +133,27 @@ export const provisionExamAttempts = async (req: AuthenticatedRequest, res: Resp
     const result = await exams.provisionAttempts(exam);
     if (exam.status === 'draft') { exam.status = 'ready'; await exam.save(); }
 
-    res.json({ success: true, message: `${result.created} paper(s) drawn.`, data: { ...result, coverage } });
+    /*
+     * Say out loud when it was a PARTIAL success. The old message reported only the count that
+     * worked, so a run that failed on member three of eighty read as "2 paper(s) drawn." and
+     * looked like there had simply been nothing to do.
+     */
+    const parts = [`${result.created} paper(s) drawn.`];
+    if (result.existing) parts.push(`${result.existing} already had one.`);
+    if (result.failedMembers.length) {
+      parts.push(`${result.failedMembers.length} member(s) COULD NOT be provisioned — see failedMembers.`);
+    }
+    if (result.skippedTeams.length) parts.push(`${result.skippedTeams.length} team(s) skipped.`);
+    if (result.membersWithoutEmail.length) {
+      parts.push(`${result.membersWithoutEmail.length} member(s) have no email: WhatsApp OTP only.`);
+    }
+
+    res.json({
+      success: true,
+      partial: result.failedMembers.length > 0,
+      message: parts.join(' '),
+      data: { ...result, coverage },
+    });
   } catch (e) { fail(res, e, 'Failed to provision attempts'); }
 };
 

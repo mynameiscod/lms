@@ -5,6 +5,7 @@ import AssessmentItem from '../models/AssessmentItem';
 import codeRunner from './codeRunnerService';
 import { ProgrammingLanguage } from '../models/Assignment';
 import { languageFor } from './assessmentItemValidationService';
+import { dedupeAnswers, hasDuplicateAnswers } from './attemptAnswerWriter';
 
 /**
  * Grading, off the submit path and onto a queue.
@@ -44,6 +45,28 @@ const normalize = (s: string): string =>
 
 /** Grade every answer on one attempt. Throws if execution fails, so the caller can retry. */
 async function gradeAnswers(attempt: IHackathonExamAttempt): Promise<void> {
+  /*
+   * Collapse duplicates before anything is scored.
+   *
+   * 137 attempts from 22 September carry two records for the same question, 135 of them
+   * contradictory, because two write paths could not see each other (see attemptAnswerWriter).
+   * The write path is fixed, but these attempts still need grading and grading used to take
+   * whichever record happened to be first in the array -- which is how four candidates were
+   * marked wrong on questions they had answered. dedupeAnswers keeps the record a human would
+   * pick: work beats no work, and the later answer beats the earlier one.
+   *
+   * This runs for every attempt, not just the damaged ones, so it is also the backstop if a
+   * future write path reintroduces the race.
+   */
+  if (hasDuplicateAnswers(attempt.answers)) {
+    const before = attempt.answers.length;
+    attempt.answers = dedupeAnswers(attempt.answers) as typeof attempt.answers;
+    console.warn(
+      `[GRADING] attempt ${attempt._id}: collapsed ${before} answer records to ${attempt.answers.length} ` +
+      '(duplicate records from the 22 Sep race)',
+    );
+  }
+
   const ids = attempt.drawnItems.map(d => d.itemId);
   const items = await AssessmentItem.find({ _id: { $in: ids } }).lean() as any[];
   const byId = new Map(items.map(i => [String(i._id), i]));
@@ -112,28 +135,47 @@ async function gradeAnswers(attempt: IHackathonExamAttempt): Promise<void> {
       let passedWeight = 0;
       let totalWeight = 0;
       let passedCount = 0;
-      let failedToRun = false;
 
-      for (const tc of tests) {
-        const weight = tc.weight ?? 1;
-        totalWeight += weight;
-        try {
-          const r: any = await codeRunner.execute({
-            code: answer.code, language, input: tc.input, expectedOutput: tc.expectedOutput,
-            timeLimit: 15000, memoryLimit: 256,
-          });
-          if (r.passed) { passedWeight += weight; passedCount++; }
-        } catch (e: any) {
-          /*
-           * Distinguish "the program was wrong" from "we could not run it". Only the second
-           * is grounds for a retry, and conflating them is how a queue timeout becomes a zero.
-           */
-          failedToRun = true;
-          break;
-        }
+      /*
+       * ONE compilation for the whole question, not one per test case.
+       *
+       * This loop called execute() per case, so a Java answer with eight test cases compiled
+       * identical source eight times — and javac plus JVM start is essentially all of the
+       * ~420ms a Java job costs. executeBatch compiles once and forks a fresh process per
+       * case, so isolation is unchanged (static state, System.exit and exceptions still cannot
+       * cross between cases) while the marginal cost per case drops from ~420ms to ~67ms.
+       *
+       * It also means the question occupies ONE execution slot instead of N. With a global cap
+       * of a handful of concurrent jobs, that is the difference between a queue that drains and
+       * one student's eight-case answer holding the runner for everybody.
+       *
+       * executeBatch declines when it would not pay — not Java, fewer than three cases, or
+       * simulation mode — and falls back to the same per-case path this replaced.
+       */
+      let results: any[];
+      try {
+        results = await codeRunner.executeBatch({
+          code: answer.code,
+          language,
+          cases: tests.map((tc: any) => ({
+            input: tc.input, expectedOutput: tc.expectedOutput, timeLimit: 15000,
+          })),
+          memoryLimit: 256,
+        });
+      } catch (e: any) {
+        /*
+         * Distinguish "the program was wrong" from "we could not run it". Only the second
+         * is grounds for a retry, and conflating them is how a queue timeout becomes a zero.
+         */
+        executionFailed = true;
+        continue;
       }
 
-      if (failedToRun) { executionFailed = true; continue; }
+      for (let i = 0; i < tests.length; i++) {
+        const weight = tests[i].weight ?? 1;
+        totalWeight += weight;
+        if (results[i]?.passed) { passedWeight += weight; passedCount++; }
+      }
 
       answer.testCasesPassed = passedCount;
       answer.correct = passedCount === tests.length;

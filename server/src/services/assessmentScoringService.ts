@@ -151,18 +151,31 @@ export async function gradeSubmission(submission: IAssessmentSubmission): Promis
   const itemDocs = await AssessmentItem.find({ _id: { $in: itemIds } }).lean<IAssessmentItem[]>();
   const byId = new Map(itemDocs.map((d) => [String(d._id), d]));
 
-  const codeGradingTasks: Promise<void>[] = [];
+  /*
+   * Wave A is pure comparison, so it happens inline. Wave B needs the sandbox, and it runs
+   * ONE CODING ITEM AT A TIME.
+   *
+   * This was Promise.all over the coding items, each of which was itself Promise.all over its
+   * test cases — five items of seven cases put thirty-five jobs in flight from a single
+   * candidate, against a platform-wide cap of a handful. The jobs at the back of that queue hit
+   * the 45s wait timeout, and the old catch scored those as wrong answers.
+   *
+   * Sequential here is not slower in wall-clock terms, because the cap was the real limit all
+   * along and each item is now a single compile-once job rather than N. What changes is that
+   * one candidate can no longer hold the whole runner, and nothing times out waiting behind
+   * their own submission.
+   */
+  const codeItems: [IAssessmentItem, ISubmissionItem][] = [];
   for (const resp of submission.items) {
     const item = byId.get(String(resp.itemId));
     if (!item) continue;
     if (WAVE_A_TYPES.includes(item.type)) {
       gradeWaveAItem(item, resp);
     } else if (WAVE_B_TYPES.includes(item.type)) {
-      // Run live-code / SQL against test cases via Piston (concurrently).
-      codeGradingTasks.push(gradeCodeItem(item, resp));
+      codeItems.push([item, resp]);
     }
   }
-  if (codeGradingTasks.length) await Promise.all(codeGradingTasks);
+  for (const [item, resp] of codeItems) await gradeCodeItem(item, resp);
 
   return finalizeScores(submission);
 }
@@ -176,14 +189,15 @@ export async function gradeStage(submission: IAssessmentSubmission, stageOrder: 
   const itemDocs = await AssessmentItem.find({ _id: { $in: stageItems.map((i) => i.itemId) } }).lean<IAssessmentItem[]>();
   const byId = new Map(itemDocs.map((d) => [String(d._id), d]));
 
-  const codeTasks: Promise<void>[] = [];
+  /* One coding item at a time, for the reason given in gradeSubmission above. */
+  const codeItems: [IAssessmentItem, ISubmissionItem][] = [];
   for (const resp of stageItems) {
     const item = byId.get(String(resp.itemId));
     if (!item) continue;
     if (WAVE_A_TYPES.includes(item.type)) gradeWaveAItem(item, resp);
-    else if (WAVE_B_TYPES.includes(item.type)) codeTasks.push(gradeCodeItem(item, resp));
+    else if (WAVE_B_TYPES.includes(item.type)) codeItems.push([item, resp]);
   }
-  if (codeTasks.length) await Promise.all(codeTasks);
+  for (const [item, resp] of codeItems) await gradeCodeItem(item, resp);
 
   let correct = 0, total = 0;
   for (const resp of stageItems) {

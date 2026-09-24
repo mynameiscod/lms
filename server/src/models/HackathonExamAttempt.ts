@@ -245,7 +245,20 @@ const HackathonExamAttemptSchema = new Schema<IHackathonExamAttempt>({
 
   memberName:   { type: String, required: true },
   memberMobile: { type: String, required: true },
-  memberEmail:  { type: String, required: true, lowercase: true, trim: true },
+  /*
+   * NOT required, deliberately.
+   *
+   * The team importer defaults a member's email to '' and never insists on one, while this
+   * field used to be `required: true`. So provisioning threw a ValidationError on the first
+   * member without an email, inside a loop with no try/catch, and every team after that one
+   * silently got no paper. That is the "0 attempts" state seen mid-event on 22 Sep.
+   *
+   * The two models had to agree, and the argument only goes one way: a candidate is identified
+   * by mobile plus OTP, so an exam must not be blocked by a missing email address. Email is
+   * the fallback OTP channel and the results channel -- valuable, not load-bearing. A member
+   * without one is reported to the admin at provisioning instead of failing the event.
+   */
+  memberEmail:  { type: String, default: '', lowercase: true, trim: true },
   isLead:       { type: Boolean, default: false },
 
   examToken:     { type: String, required: true, unique: true, index: true },

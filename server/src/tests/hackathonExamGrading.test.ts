@@ -18,8 +18,22 @@ jest.mock('../models/AssessmentItem', () => ({
 }));
 
 const mockExecute = jest.fn();
+const mockExecuteBatch = jest.fn();
+/*
+ * executeBatch is the real grading path now (compile once, fresh process per case), so the
+ * mock has to offer it. Its default stands in FAITHFULLY rather than returning a canned array:
+ * it runs mockExecute once per case and returns the results in order, which is exactly what
+ * the real implementation's fallback does. That keeps every per-case expectation in this file
+ * meaningful — including the ones that assert a rejection is treated as "we could not run it"
+ * rather than as a wrong answer — while the tests below also assert that grading really does
+ * take the batch path.
+ */
 jest.mock('../services/codeRunnerService', () => ({
-  __esModule: true, default: { execute: (...a: any[]) => mockExecute(...a) },
+  __esModule: true,
+  default: {
+    execute: (...a: any[]) => mockExecute(...a),
+    executeBatch: (...a: any[]) => mockExecuteBatch(...a),
+  },
 }));
 
 const mockFindOneAndUpdate = jest.fn();
@@ -61,6 +75,12 @@ const bank = (items: any[]) => mockItemFind.mockReturnValue({ lean: async () => 
 
 beforeEach(() => {
   mockItemFind.mockReset(); mockExecute.mockReset(); mockFindOneAndUpdate.mockReset();
+  mockExecuteBatch.mockReset();
+  mockExecuteBatch.mockImplementation(async ({ cases }: any) => {
+    const out = [];
+    for (const tc of cases) out.push(await mockExecute({ input: tc.input, expectedOutput: tc.expectedOutput }));
+    return out;
+  });
 });
 
 describe('marking', () => {
@@ -120,8 +140,33 @@ describe('marking', () => {
     });
     claim(a);
     await gradeNextPending();
-    expect(mockExecute).toHaveBeenCalledTimes(3);
     expect(a.answers[0].testCasesTotal).toBe(3);
+    /* Every case is still run — hidden ones included, which is the point of this test. */
+    expect(mockExecute).toHaveBeenCalledTimes(3);
+    /* And they are run as ONE batch: three cases used to mean three javac invocations. */
+    expect(mockExecuteBatch).toHaveBeenCalledTimes(1);
+    expect(mockExecuteBatch.mock.calls[0][0].cases).toHaveLength(3);
+  });
+
+  it('asks the runner once for the whole question, not once per test case', async () => {
+    /*
+     * The regression this guards: grading called execute() per case, so a Java answer with
+     * eight test cases compiled identical source eight times and occupied eight execution
+     * slots. It must be one request carrying all eight.
+     */
+    bank([{ _id: 'c1', type: 'live_code', language: 'java', testCases:
+      Array.from({ length: 8 }, (_, i) => ({ input: String(i), expectedOutput: String(i), hidden: i > 1 })) }]);
+    mockExecute.mockResolvedValue({ passed: true });
+    const a = attempt({
+      drawnItems: [drawn('c1', 'live_code', 16)],
+      answers: [{ itemId: 'c1', sectionKey: 'code', code: 'class Main{}', runCount: 1, graded: false }],
+    });
+    claim(a);
+    await gradeNextPending();
+    expect(mockExecuteBatch).toHaveBeenCalledTimes(1);
+    expect(mockExecuteBatch.mock.calls[0][0].cases).toHaveLength(8);
+    expect(a.answers[0].testCasesPassed).toBe(8);
+    expect(a.answers[0].score).toBe(16);
   });
 
   it('scores an unanswered question zero, with a graded row so the totals add up', async () => {
@@ -144,6 +189,7 @@ describe('marking', () => {
     claim(a);
     await gradeNextPending();
     expect(mockExecute).not.toHaveBeenCalled();
+    expect(mockExecuteBatch).not.toHaveBeenCalled();
     expect(a.answers[0].score).toBe(0);
   });
 

@@ -42,6 +42,7 @@ import LearningContentLibrary from '../models/LearningContentLibrary';
 import Quiz from '../models/Quiz';
 import Assignment from '../models/Assignment';
 import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
+import { CAREER_STAGES } from './careerStageService';
 import { foundationProgramDaysFor, programDaysFor, journeyDaysOf } from './foundationProgramLengthService';
 import { inTeachingOrder } from '../data/contentBundlePolicy';
 import { composeUnits, ComposerResult, SelectedUnit, StudentProfile } from './curriculumComposerService';
@@ -281,10 +282,16 @@ async function findOrCreateJourney(
   });
   if (existing) return { doc: existing, created: false };
 
+  /**
+   * Named for the stage it teaches. Both of these were literals, so a Build journey was stored
+   * as "CareerPilot Foundation Journey ... from the Year-1 curriculum" — wrong in the record an
+   * admin reads when they are trying to work out what a student was given.
+   */
+  const label = CAREER_STAGES.find(s => s.key === String(stageKey))?.label || 'Foundation';
   const doc = await LearningCurriculum.create({
     tenantId,
-    title: 'CareerPilot Foundation Journey',
-    description: `${programDays} learning days, composed for this student from the Year-1 curriculum.`,
+    title: `CareerPilot ${label} Journey`,
+    description: `${programDays} learning days, composed for this student from the ${label} curriculum.`,
     totalDays: programDays,
     topics: [],
     isPublished: true,

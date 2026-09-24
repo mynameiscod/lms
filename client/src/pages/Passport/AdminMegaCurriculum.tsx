@@ -286,13 +286,31 @@ const AdminMegaCurriculum: React.FC = () => {
   const [note, setNote] = useState('');
   const [previewCode, setPreviewCode] = useState('');
   const [params, setParams] = useSearchParams();
+  /**
+   * WHICH STAGE THIS BUILDER IS EDITING.
+   *
+   * The server has always taken `?stage=`; this screen never sent one, so it defaulted to
+   * foundation and the 296 second-year units were unreachable — an admin could not see them,
+   * let alone edit or delete one. Kept in the URL so a link to a unit carries its stage and a
+   * refresh does not throw the admin back to first year.
+   */
+  const stage = (params.get('stage') || 'foundation').toLowerCase();
+  const [stages, setStages] = useState<{ key: string; label: string; who: string }[]>([]);
+  const setStage = (key: string) => {
+    const next = new URLSearchParams(params);
+    next.set('stage', key);
+    /* The open unit belongs to the stage being left, so it goes with it. */
+    next.delete('unit');
+    setParams(next, { replace: true });
+    setOpen(''); setEditing(null); setEditingCode('');
+  };
 
   const load = useCallback(async () => {
     setLoading(true); setErr('');
     try {
       const [list, o] = await Promise.all([
-        passportApi.megaCurriculum(),
-        passportApi.megaCurriculumOptions(),
+        passportApi.megaCurriculum(stage),
+        passportApi.megaCurriculumOptions(stage),
       ]);
       setRows(list.rows);
       setOrphaned(list.orphaned);
@@ -301,9 +319,16 @@ const AdminMegaCurriculum: React.FC = () => {
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Could not load the mega curriculum.');
     } finally { setLoading(false); }
-  }, []);
+  }, [stage]);
 
   useEffect(() => { load(); }, [load]);
+
+  /* The tabs come from the server's own stage list, as the Stage Curriculum screen's do. */
+  useEffect(() => {
+    passportApi.listStageCurriculumStages()
+      .then(d => setStages(d.stages || []))
+      .catch(() => setStages([]));
+  }, []);
 
   /**
    * Open the first topic that has work in it, once.
@@ -342,7 +367,7 @@ const AdminMegaCurriculum: React.FC = () => {
   const startNew = (row: MegaCurriculumTopicRow) => {
     setEditingCode(''); setContent(null); setNote('');
     setEditing(blankUnit(
-      opts?.stageKey || 'foundation', row.moduleCode, row.topicCode, (row.units.length + 1) * 10,
+      opts?.stageKey || stage, row.moduleCode, row.topicCode, (row.units.length + 1) * 10,
     ));
   };
 
@@ -494,7 +519,7 @@ const AdminMegaCurriculum: React.FC = () => {
     [order[i], order[j]] = [order[j], order[i]];
     setErr(''); setNote('');
     try {
-      await passportApi.reorderStageModules(opts?.stageKey || 'foundation', order);
+      await passportApi.reorderStageModules(opts?.stageKey || stage, order);
       await load();
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Could not reorder the modules.');
@@ -511,7 +536,7 @@ const AdminMegaCurriculum: React.FC = () => {
     [order[i], order[j]] = [order[j], order[i]];
     setErr(''); setNote('');
     try {
-      await passportApi.reorderStageTopics(opts?.stageKey || 'foundation', moduleCode, order);
+      await passportApi.reorderStageTopics(opts?.stageKey || stage, moduleCode, order);
       await load();
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'Could not reorder the topics.');
@@ -532,6 +557,16 @@ const AdminMegaCurriculum: React.FC = () => {
           <i className="bi bi-arrow-clockwise" /> {loading ? 'Loading…' : 'Refresh'}
         </button>
       </header>
+
+      {/* Which year's curriculum is being edited. Foundation alone until Build existed. */}
+      <div className="mgc-tabs">
+        {(stages.length ? stages : [{ key: 'foundation', label: 'Foundation', who: '' }]).map(s => (
+          <button key={s.key} className={s.key === stage ? 'on' : ''} onClick={() => setStage(s.key)} disabled={loading}>
+            {s.label}
+            {s.who && <em>{s.who}</em>}
+          </button>
+        ))}
+      </div>
 
       {err && <div className="mgc-msg err">{err}</div>}
       {note && <div className="mgc-msg ok">{note}</div>}

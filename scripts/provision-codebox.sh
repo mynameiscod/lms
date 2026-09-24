@@ -88,22 +88,42 @@ ok "ufw active, SSH allowed"
 
 # THE IMPORTANT PART. Docker inserts its own iptables rules AHEAD of ufw, so a
 # published container port is reachable from the internet no matter what ufw
-# says — "default deny incoming" does NOT protect port 2000. DOCKER-USER is the
-# one chain Docker consults first and never rewrites.
+# says. DOCKER-USER is the one chain Docker consults first and never rewrites,
+# so container access control must live there.
 #
-# Rules are idempotent: deleted first, then re-inserted, so a re-run does not
-# stack duplicates. ACCEPT must precede DROP.
-iptables -D DOCKER-USER -p tcp --dport 2000 -s "$APP_SERVER_IP" -j ACCEPT 2>/dev/null || true
-iptables -D DOCKER-USER -p tcp --dport 2000 -j DROP 2>/dev/null || true
-iptables -I DOCKER-USER 1 -p tcp --dport 2000 -s "$APP_SERVER_IP" -j ACCEPT \
-  -m comment --comment "piston: app server only"
-iptables -I DOCKER-USER 2 -p tcp --dport 2000 -j DROP \
-  -m comment --comment "piston: no auth, deny everyone else"
+# These go in ufw's after.rules and NOT in iptables-persistent. On Ubuntu 24.04,
+# `apt-get install iptables-persistent` (1.0.20) REMOVES ufw as a conflicting
+# package, and under `-y -qq` it does so silently. On 2026-09-24 that left a box
+# with an active ufw *service*, no ufw *binary*, and a firewall surviving only as
+# a frozen iptables snapshot that a reboot would have discarded. Never both.
+#
+# awk, not sed or a string replace: the chain declaration must come BEFORE any -A
+# rule in the same table block, and the anchor must be a COMMIT at the START of a
+# line. Matching the bare word "COMMIT" hits it inside ufw's own
+# "don't delete the 'COMMIT' line" comment and splices the file in half.
+AFTER=/etc/ufw/after.rules
+if grep -q "CodeBegun: sandbox access control" "$AFTER" 2>/dev/null; then
+  ok "sandbox rules already present in after.rules"
+else
+  awk -v ip="$APP_SERVER_IP" '
+    /^\*filter$/ && !d { print; print ":DOCKER-USER - [0:0]"; d=1; next }
+    /^COMMIT$/ && !c {
+      print "# CodeBegun: sandbox access control. Piston has NO authentication --"
+      print "# whoever reaches port 2000 executes code as root on this box."
+      print "-A DOCKER-USER -p tcp --dport 2000 -s " ip " -j ACCEPT"
+      print "-A DOCKER-USER -p tcp --dport 2000 -j DROP"
+      print "-A DOCKER-USER -j RETURN"
+      print; c=1; next
+    }
+    { print }
+  ' "$AFTER" > "$AFTER.new" && mv "$AFTER.new" "$AFTER"
+  ok "sandbox rules written to after.rules"
+fi
 
-echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | debconf-set-selections
-echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | debconf-set-selections
-apt-get install -y -qq iptables-persistent >/dev/null 2>&1
-netfilter-persistent save >/dev/null 2>&1
+ufw --force enable >/dev/null
+# Prove it parses now rather than discovering it at the next reboot.
+ufw reload >/dev/null 2>&1 || die "ufw could not reload - after.rules is invalid"
+iptables -L DOCKER-USER -n | grep -q "dpt:2000" || die "sandbox rules did not apply"
 ok "port 2000 restricted to $APP_SERVER_IP (survives reboot)"
 
 # ── SSH hardening ───────────────────────────────────────────────────────────

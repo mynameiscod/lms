@@ -1,5 +1,6 @@
 import { ProgrammingLanguage } from '../models/Assignment';
 import { withExecutionSlot, isQueueTimeout } from './executionQueue';
+import * as settings from './settingsService';
 
 interface ExecutionInput {
   code: string;
@@ -74,15 +75,43 @@ class CodeRunnerService {
   private useRealExecution: boolean;
 
   constructor() {
-    // Only use real execution if PISTON_URL is explicitly set to a local instance
-    this.pistonUrl = process.env.PISTON_URL || null;
-    this.useRealExecution = !!this.pistonUrl && !this.pistonUrl.includes('emkc.org');
-    
+    // Read once here only so start-up logs say which sandbox is configured. The
+    // VALUE USED AT EXECUTION TIME comes from the getters below, never from this.
+    this.pistonUrl = this.resolveUrl();
+    this.useRealExecution = !!this.pistonUrl;
+
     if (this.useRealExecution) {
       console.log('🚀 [CODE RUNNER] Using Piston API at:', this.pistonUrl);
     } else {
       console.log('⚠️ [CODE RUNNER] Using simulation mode. Set PISTON_URL for real execution.');
     }
+  }
+
+  /**
+   * Where student code runs, resolved on every call.
+   *
+   * WHY NOT CACHE IT. This used to be captured once in the constructor, on a
+   * singleton, so the only way to change sandbox was to recreate the container —
+   * a deploy. That is the wrong rollback story for moving execution to its own
+   * host: if the new sandbox misbehaves at 10am during a class, the fix has to be
+   * a settings change measured in seconds, not a deploy performed under pressure.
+   *
+   * settingsService resolves DB first, then process.env, so an admin can point at
+   * a new host, confirm it, and point back, without touching the deployment.
+   *
+   * emkc.org is Piston's PUBLIC demo instance. Sending student code there means
+   * shipping it to a third party and accepting their rate limits mid-exam, so it
+   * is treated as "not configured" rather than as a sandbox.
+   */
+  private resolveUrl(): string | null {
+    const raw = (settings.getStr('PISTON_URL', '') || process.env.PISTON_URL || '').trim();
+    if (!raw || raw.includes('emkc.org')) return null;
+    return raw.replace(/\/+$/, '');
+  }
+
+  /** True only when a real sandbox is reachable-by-configuration right now. */
+  private get realExecutionEnabled(): boolean {
+    return !!this.resolveUrl();
   }
 
   async execute(input: ExecutionInput): Promise<ExecutionResult> {
@@ -92,7 +121,7 @@ class CodeRunnerService {
     if (input.language === ProgrammingLanguage.HTML || input.language === ProgrammingLanguage.CSS) {
       return this.evaluateMarkup(input);
     }
-    if (this.useRealExecution && this.pistonUrl) {
+    if (this.realExecutionEnabled) {
       return this.executeWithPiston(input);
     }
     return this.simulateExecution(input);
@@ -644,7 +673,7 @@ class CodeRunnerService {
         run_timeout: requestBody.run_timeout
       }));
 
-      const response = await fetch(`${this.pistonUrl}/execute`, {
+      const response = await fetch(`${this.resolveUrl()}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
@@ -901,7 +930,7 @@ class CodeRunnerService {
   // Get available languages
   async getAvailableLanguages(): Promise<string[]> {
     try {
-      const response = await fetch(`${this.pistonUrl}/runtimes`);
+      const response = await fetch(`${this.resolveUrl()}/runtimes`);
       const runtimes = await response.json() as any[];
       return runtimes.map((r: any) => r.language);
     } catch {
@@ -913,7 +942,7 @@ class CodeRunnerService {
   // Check if service is healthy
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.pistonUrl}/runtimes`);
+      const response = await fetch(`${this.resolveUrl()}/runtimes`);
       return response.ok;
     } catch {
       return false;

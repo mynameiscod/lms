@@ -37,6 +37,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
   { id: 'interview',   label: 'AI Interview', icon: '🎙️', description: 'Realistic AI mock interviews — natural voice (ElevenLabs) and a talking-head interviewer (D-ID). Leave blank to use the free browser voice + animated avatar.' },
   { id: 'live-classes',label: 'Live Classes (100ms)', icon: '🎥', description: 'Live online / hybrid classes powered by 100ms. Instructor broadcasts, 500+ students watch via HLS, and any student can be brought on stage. Recordings auto-save to Class Hub.' },
   { id: 'communication-lab', label: 'AI Communication Lab', icon: '🎙️', description: 'Daily self-introduction practice — enable/disable, gamification, and recording retention.' },
+  { id: 'execution',   label: 'Code Execution',   icon: '⚙️', description: 'Where student code runs, and how many programs may run at once. Changing the sandbox URL takes effect on the next execution — no deploy and no restart — which is what makes moving the sandbox to another host reversible in seconds.' },
 ];
 
 export const SETTING_DEFS: SettingDef[] = [
@@ -119,6 +120,14 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'WHATSAPP_TEMPLATE_HACKATHON_EXAM_RESULT', label: 'Exam — Result Template', group: 'messaging', type: 'text', perTenant: true, placeholder: 'hackathon_exam_result', help: 'Sent when an admin publishes results. Body takes THREE variables, but the third is the SCORE as "24/40" rather than a time — the same template shape, different meaning, so word it for a score.' },
   { key: 'WHATSAPP_TEMPLATE_HACKATHON_EXAM_RESULT_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
   { key: 'HACKATHON_DEFAULT_POSTER_URL', label: 'Hackathon — Default Poster URL', group: 'messaging', type: 'text', perTenant: true, placeholder: 'https://platform.codebegun.com/uploads/hackathon-default.jpg', help: 'Used as the WhatsApp confirmation image when an event has no banner of its own. The confirmed template was approved WITH an image header, and Meta rejects that template if no image is supplied — so without this, an event whose banner was never filled in fails every confirmation. Must be a public https JPEG or PNG under 5 MB: Meta fetches it from their own servers, with no login.' },
+  // ── Code execution ────────────────────────────────────────────────────────
+  { key: 'PISTON_URL', label: 'Sandbox URL', group: 'execution', type: 'text', placeholder: 'http://piston:2000/api/v2',
+    help: 'Where student code is executed. `http://piston:2000/api/v2` is the sandbox container on this host; a full URL points at a dedicated execution host. Applied on the next execution, so switching hosts — or switching back — needs no deploy and no restart. LEAVE IT SET: if it is blank the code runner falls back to a simulation that pattern-matches common problems instead of running anything, which is fine for a demo and wrong for grading.' },
+  { key: 'CODE_EXEC_CONCURRENCY', label: 'Max concurrent executions (heavy)', group: 'execution', type: 'number', placeholder: '4',
+    help: 'How many compiled-language programs (Java, C, C++) may run at once. Measured on the current 8-core host: one Java run takes ~7s and saturates a core because every run pays for a fresh javac, and six at once drove load to 7.6 with ALL SIX killed at ~32s. Raise this only after the sandbox has its own host, and only with load figures to back it.' },
+  { key: 'CODE_EXEC_MAX_WAIT_MS', label: 'Max queue wait (ms)', group: 'execution', type: 'number', placeholder: '45000',
+    help: 'How long a student waits for a free execution slot before being told the sandbox is busy. A queue is a slope; a rejection is a cliff — prefer waiting to failing.' },
+
   { key: 'META_APP_SECRET', label: 'Meta App Secret', group: 'messaging', isSecret: true, type: 'password', help: 'Used to verify Meta Lead Ads webhook signatures.' },
   { key: 'META_LEAD_VERIFY_TOKEN', label: 'Meta Lead Webhook Verify Token', group: 'messaging', type: 'text' },
   { key: 'PAGE_ACCESS_TOKEN', label: 'Meta Page Access Token', group: 'messaging', isSecret: true, type: 'password' },

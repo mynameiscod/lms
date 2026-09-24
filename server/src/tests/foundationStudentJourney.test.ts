@@ -77,6 +77,9 @@ jest.mock('../services/curriculumEngineService', () => ({
 const mockReadiness = jest.fn();
 jest.mock('../services/foundationReadinessService', () => ({
   foundationReadiness: (...a: any[]) => mockReadiness(...a),
+  /* Stage-aware now, so the double must be a function or the controller throws a 500. */
+  notConfiguredForStudent: (stageKey?: string | null) =>
+    `Your ${stageKey === 'build' ? 'Build' : 'Foundation'} curriculum has not been set up for your institute yet.`,
   FOUNDATION_NOT_CONFIGURED_FOR_STUDENT: 'Your Foundation curriculum has not been set up for your institute yet.',
 }));
 const mockAccess = jest.fn();

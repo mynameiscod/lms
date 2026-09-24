@@ -40,32 +40,65 @@ export interface FoundationReadiness {
   message: string | null;
 }
 
-export async function foundationReadiness(tenantId: string): Promise<FoundationReadiness> {
+/**
+ * Can this tenant serve a journey for this stage?
+ *
+ * ── WHY THE STAGE IS AN ARGUMENT ──────────────────────────────────────────────────────────
+ *
+ * Both counts below are per-stage questions that used to be asked only of Foundation. Once the
+ * unit engine could serve `build`, asking the Foundation question about a second-year gave the
+ * wrong answer twice over: it counted Foundation's published units, and it compared them against
+ * Foundation's programme length. A tenant with 346 Foundation units and no Year-2 content at all
+ * would have been reported ready to serve Year 2.
+ *
+ * Defaults to foundation, so every existing caller keeps its behaviour unchanged.
+ */
+export async function foundationReadiness(
+  tenantId: string,
+  stageKey: string = 'foundation',
+): Promise<FoundationReadiness> {
+  const stage = String(stageKey || 'foundation').toLowerCase().trim();
+  const label = STAGE_LABEL[stage] || 'Foundation';
+
   /* A tenant on a longer programme needs more published units before it can compose one. */
   const programDays = await foundationProgramDaysFor(tenantId);
   const [publishedUnits, skillCheckMappings] = await Promise.all([
-    CurriculumLearningUnit.countDocuments({ tenantId, stageKey: 'foundation', status: 'PUBLISHED' }),
+    CurriculumLearningUnit.countDocuments({ tenantId, stageKey: stage, status: 'PUBLISHED' }),
     SkillEvidence.countDocuments({ tenantId, active: true, contribution: 'PRIMARY' }),
   ]);
 
   if (publishedUnits < programDays) {
     return {
       configured: false, reason: 'NO_PRODUCTION_CURRICULUM', publishedUnits, skillCheckMappings,
-      message: `This tenant has ${publishedUnits} published Foundation unit(s); a ${programDays}-day journey needs `
-        + `at least ${programDays}. Run the Foundation provisioning for this tenant, or author the missing days.`,
+      message: `This tenant has ${publishedUnits} published ${label} unit(s); a ${programDays}-day journey needs `
+        + `at least ${programDays}. Run the provisioning for this tenant, or author the missing days.`,
     };
   }
   if (!skillCheckMappings) {
     return {
       configured: false, reason: 'NO_SKILL_CHECK', publishedUnits, skillCheckMappings,
-      message: 'This tenant has no skill-check questions mapped to skills, so no Foundation learner can be measured. '
-        + 'Run the Foundation provisioning for this tenant.',
+      message: `This tenant has no skill-check questions mapped to skills, so no ${label} learner can be measured. `
+        + 'Run the provisioning for this tenant.',
     };
   }
   return { configured: true, reason: null, publishedUnits, skillCheckMappings, message: null };
 }
 
-/** What a learner is told when their institute's Foundation curriculum is not set up. */
-export const FOUNDATION_NOT_CONFIGURED_FOR_STUDENT =
-  'Your Foundation curriculum has not been set up for your institute yet, so your 90-day journey cannot start. '
+/** Stage keys to the word a person reads. Kept local: this file reports, it does not route. */
+const STAGE_LABEL: Record<string, string> = { foundation: 'Foundation', build: 'Build' };
+
+/**
+ * What a learner is told when their institute's curriculum for their stage is not set up.
+ *
+ * Says neither "Foundation" nor "90 days" any more, and both omissions are deliberate: a
+ * second-year told their Foundation curriculum was missing would reasonably think they had been
+ * given the wrong year, and the length has been a per-tenant setting since long before this,
+ * so the 90 was capable of being wrong even for a first-year.
+ */
+export const notConfiguredForStudent = (stageKey?: string | null): string =>
+  `Your ${STAGE_LABEL[String(stageKey || 'foundation').toLowerCase().trim()] || 'Foundation'} `
+  + 'curriculum has not been set up for your institute yet, so your journey cannot start. '
   + 'Nothing is wrong with your account — your CareerPilot admin needs to finish setting it up.';
+
+/** Kept for callers that have no stage to hand. */
+export const FOUNDATION_NOT_CONFIGURED_FOR_STUDENT = notConfiguredForStudent('foundation');

@@ -162,7 +162,7 @@ export async function applyFoundationTrigger(input: {
         return { action: 'NOT_READY', reason: 'NO_SKILL_EVIDENCE', measuredSkills: 0 };
       }
       // A tenant that was never provisioned is named as such, rather than reported as a composer shortfall.
-      const readiness = await foundationReadiness(tenantId);
+      const readiness = await foundationReadiness(tenantId, stageKey);
       if (!readiness.configured) {
         return { action: 'REFUSED', reason: `NOT_CONFIGURED: ${readiness.reason}`, measuredSkills: summary.measured };
       }

@@ -34,8 +34,9 @@ import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
 import { foundationProgramDaysFor, journeyDaysOf } from '../services/foundationProgramLengthService';
 import { isJourneyDayOpen, membershipRefusesDay } from '../data/journeyDayLadder';
 import { FOUNDATION_JOURNEY_KIND } from '../services/foundationJourneyService';
+import { CAREER_STAGES } from '../services/careerStageService';
 import { resolveCurriculumEngine } from '../services/curriculumEngineService';
-import { foundationReadiness, FOUNDATION_NOT_CONFIGURED_FOR_STUDENT } from '../services/foundationReadinessService';
+import { foundationReadiness, notConfiguredForStudent } from '../services/foundationReadinessService';
 import { foundationAccess, FoundationAccess } from '../services/foundationAccessService';
 import { buildFoundationProfile } from '../services/foundationProfileService';
 import { composeFoundationJourney, loadAssets, activitiesFor } from '../services/foundationJourneyService';
@@ -52,21 +53,51 @@ import { orientationBlocksLearning } from '../services/orientationService';
  * planner about which plan is the student's. An unreadable config answers TOPIC — the screens
  * then show what they always showed.
  */
+/**
+ * The engine this student is on, AND the stage it is planning them in.
+ *
+ * The stage used to be discarded here and 'foundation' written in at every place that needed
+ * one. That was correct while Foundation was the only stage the unit engine served; it stopped
+ * being correct the moment `build` joined it, and it fails in the worst way — the writer stores
+ * a journey under `adaptiveStage: 'build'` and the reader looks for 'foundation', so the journey
+ * exists, is never found, and the read path composes another one on every request.
+ *
+ * `stageKey` is nullable: a student whose stage cannot be derived has none, and resolves to
+ * TOPIC. Callers that must name a stage fall back to STAGE_FALLBACK below.
+ */
 const engineOf = (tenantId: string, studentId: string) =>
-  resolveCurriculumEngine({ tenantId, studentId }).then(r => r.engine).catch(() => 'TOPIC' as const);
+  resolveCurriculumEngine({ tenantId, studentId })
+    .then(r => ({ engine: r.engine as string, stageKey: r.stageKey || null }))
+    .catch(() => ({ engine: 'TOPIC' as string, stageKey: null as string | null }));
+
+/**
+ * What a stage is called when the student is told about it.
+ *
+ * "Your 90-day Foundation journey" was hardcoded in seven strings. A second-year reading that
+ * about their Year-2 roadmap would reasonably conclude the system had given them the wrong one.
+ */
+const STAGE_FALLBACK = 'foundation';
+const stageLabel = (stageKey?: string | null): string =>
+  CAREER_STAGES.find(s => s.key === String(stageKey || STAGE_FALLBACK))?.label || 'Foundation';
 
 const tenantOf = (req: Request): string =>
   String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string =>
   String((req as any).user?.id || (req as any).user?._id || '');
 
-/** The student's journey curriculum, or null. Never any other personalised clone. */
-async function journeyOf(tenantId: string, studentId: string) {
+/**
+ * The student's journey curriculum for one stage, or null. Never any other personalised clone.
+ *
+ * The stage is part of the identity, not a detail: the unique index is
+ * (tenantId, personalizedFor, adaptiveStage, journeyKind), so one student may hold a Foundation
+ * journey and a Build journey at once and the two must never be confused for each other.
+ */
+async function journeyOf(tenantId: string, studentId: string, stageKey?: string | null) {
   if (!mongoose.Types.ObjectId.isValid(studentId)) return null;
   return LearningCurriculum.findOne({
     tenantId,
     personalizedFor: new mongoose.Types.ObjectId(studentId),
-    adaptiveStage: 'foundation',
+    adaptiveStage: String(stageKey || STAGE_FALLBACK),
     journeyKind: FOUNDATION_JOURNEY_KIND,
   }).select('_id title createdAt totalDays').lean() as any;
 }
@@ -135,7 +166,7 @@ const DAY_KIND: Record<string, 'LESSON' | 'PRACTICE' | 'DEBUGGING' | 'PROJECT' |
  * roadmap without touching a plan. Titles only: no codes, no activities, no content. A day whose unit or
  * topic cannot be found simply has no topic, and the roadmap shows it on its own rather than guessing.
  */
-async function overviewOf(tenantId: string, days: any[]) {
+async function overviewOf(tenantId: string, days: any[], stageKey?: string | null) {
   const codes = [...new Set(days.map(d => d.primaryUnitCode).filter(Boolean).map(String))];
   const [units, master] = await Promise.all([
     codes.length
@@ -143,7 +174,7 @@ async function overviewOf(tenantId: string, days: any[]) {
         .select('unitCode topicCode moduleCode unitType description').lean() as Promise<any[]>
       : Promise.resolve([] as any[]),
     // The master curriculum, never a personalised journey: those share the stage and carry no topics.
-    LearningCurriculum.findOne({ tenantId, adaptiveStage: 'foundation', personalizedFor: null, journeyKind: null })
+    LearningCurriculum.findOne({ tenantId, adaptiveStage: stageKey || STAGE_FALLBACK, personalizedFor: null, journeyKind: null })
       .select('topics modules').lean() as any,
   ]);
   const unitByCode = new Map((units || []).map((u: any) => [String(u.unitCode), u]));
@@ -230,9 +261,16 @@ export const getMyJourney = async (req: Request, res: Response) => {
     const studentId = userIdOf(req);
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
 
-    let curriculum: any;
-    let engine: string;
-    [curriculum, engine] = await Promise.all([journeyOf(tenantId, studentId), engineOf(tenantId, studentId)]);
+    /**
+     * The engine is resolved BEFORE the journey, not alongside it, because the journey is looked
+     * up by stage and the stage comes from the engine. Running the two in parallel is what would
+     * read a Foundation journey for a second-year.
+     */
+    const resolved = await engineOf(tenantId, studentId);
+    const engine = resolved.engine;
+    const stageKey = resolved.stageKey;
+    const stage = stageLabel(stageKey);
+    let curriculum: any = await journeyOf(tenantId, studentId, stageKey);
 
     /**
      * How much of the ninety this learner may see — membership decides: the whole journey, a preview
@@ -252,7 +290,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
       available: false,
       reason: 'MEMBERSHIP_REQUIRED',
       access: 'LOCKED',
-      message: `Take membership to see your ${programDays}-day Foundation roadmap.`,
+      message: `Take membership to see your ${programDays}-day ${stage} roadmap.`,
       totalDays: programDays,
       engine,
       enrollmentId: null,
@@ -279,12 +317,12 @@ export const getMyJourney = async (req: Request, res: Response) => {
        * A Foundation learner whose tenant cannot serve the journey is told so. Never a fallback:
        * the topic roadmap is not a smaller version of this, it is a different plan.
        */
-      const readiness = engine === 'UNIT' ? await foundationReadiness(tenantId) : null;
+      const readiness = engine === 'UNIT' ? await foundationReadiness(tenantId, stageKey) : null;
       if (readiness && !readiness.configured) {
         return res.json({
           available: false,
           reason: 'NOT_CONFIGURED',
-          message: FOUNDATION_NOT_CONFIGURED_FOR_STUDENT,
+          message: notConfiguredForStudent(stageKey),
           totalDays: programDays,
           engine,
           enrollmentId: null,
@@ -301,7 +339,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
            * THE PREVIEW IS THEIR OWN PLAN. Composed on read from their Skill DNA — exactly what
            * membership will generate — and nothing is stored, so there is nothing to keep in step.
            */
-          const { composition } = await composeFoundationJourney(tenantId, profile, { source: 'PRODUCTION', stageKey: 'foundation', programDays });
+          const { composition } = await composeFoundationJourney(tenantId, profile, { source: 'PRODUCTION', stageKey: stageKey || STAGE_FALLBACK, programDays });
           if (!composition.ok || composition.units.length !== programDays) {
             return notCreated(`preview for ${studentId}: ${composition.units.length} of ${programDays} days composed`);
           }
@@ -323,8 +361,8 @@ export const getMyJourney = async (req: Request, res: Response) => {
            * before this existed, a tenant that made the roadmap free, a generation that failed — through
            * the same production trigger, so the result is the journey membership would have made.
            */
-          const built = await applyFoundationTrigger({ tenantId, studentId, trigger: 'SIGNIFICANT_MASTERY_CHANGE', stageKey: 'foundation' });
-          curriculum = await journeyOf(tenantId, studentId);
+          const built = await applyFoundationTrigger({ tenantId, studentId, trigger: 'SIGNIFICANT_MASTERY_CHANGE', stageKey: stageKey || STAGE_FALLBACK });
+          curriculum = await journeyOf(tenantId, studentId, stageKey);
           if (!curriculum) return notCreated(`generation on read for ${studentId}: ${built.action} ${built.reason || ''}`);
         }
       }
@@ -369,8 +407,8 @@ export const getMyJourney = async (req: Request, res: Response) => {
         available: false,
         reason: preparing ? 'BEING_PREPARED' : 'JOURNEY_INCOMPLETE',
         message: preparing
-          ? `Your ${programDays}-day Foundation journey is being prepared. This takes a few seconds.`
-          : `Your ${programDays}-day Foundation journey could not be finished. Please contact your CareerPilot admin.`,
+          ? `Your ${programDays}-day ${stage} journey is being prepared. This takes a few seconds.`
+          : `Your ${programDays}-day ${stage} journey could not be finished. Please contact your CareerPilot admin.`,
         totalDays: programDays,
         engine,
         enrollmentId: null,
@@ -389,7 +427,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
     const currentDay = Math.min(
       Math.max(Number(enrollment?.currentDay || 1), 1), programDays,
     );
-    const overview = await overviewOf(tenantId, days as any[]);
+    const overview = await overviewOf(tenantId, days as any[], stageKey);
 
     /**
      * A short summary per day rather than the full activity list.
@@ -448,8 +486,9 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
 
     const dayNumber = Number(req.params.dayNumber);
+    const { stageKey } = await engineOf(tenantId, studentId);
     /* The upper bound is this student's own journey; a tenant on a longer programme has more days. */
-    const journeyForBounds = await journeyOf(tenantId, studentId);
+    const journeyForBounds = await journeyOf(tenantId, studentId, stageKey);
     const programDays = journeyDaysOf(journeyForBounds, await foundationProgramDaysFor(tenantId));
     if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > programDays) {
       return res.status(400).json({ message: `A journey day is between 1 and ${programDays}.` });
@@ -461,8 +500,8 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
       return res.status(403).json({ reason: 'MEMBERSHIP_REQUIRED', message: `Take membership to open day ${dayNumber} of your roadmap.` });
     }
 
-    const curriculum = await journeyOf(tenantId, studentId);
-    if (!curriculum) return res.status(404).json({ message: 'You do not have a Foundation journey yet.' });
+    const curriculum = await journeyOf(tenantId, studentId, stageKey);
+    if (!curriculum) return res.status(404).json({ message: `You do not have a ${stageLabel(stageKey)} journey yet.` });
 
     const [day, enrollment] = await Promise.all([
       DayPlan.find({ curriculumId: curriculum._id, dayNumber })
@@ -601,7 +640,9 @@ export const getStudentJourney = async (req: Request, res: Response) => {
       .select('firstName lastName email passport.stage').lean() as any;
     if (!member) return res.status(404).json({ message: 'No such member in this tenant.' });
 
-    const [curriculum, engine] = await Promise.all([journeyOf(tenantId, studentId), engineOf(tenantId, studentId)]);
+    const { engine, stageKey } = await engineOf(tenantId, studentId);
+    const curriculum = await journeyOf(tenantId, studentId, stageKey);
+    const stage = stageLabel(stageKey);
     // Whether this member sees the whole journey or only the preview — what the admin is asked about.
     const access = engine === 'UNIT' ? await foundationAccess(tenantId, studentId) : null;
     const student = {
@@ -611,7 +652,7 @@ export const getStudentJourney = async (req: Request, res: Response) => {
     };
 
     if (!curriculum) {
-      const readiness = engine === 'UNIT' ? await foundationReadiness(tenantId) : null;
+      const readiness = engine === 'UNIT' ? await foundationReadiness(tenantId, stageKey) : null;
       return res.json({
         available: false,
         reason: readiness && !readiness.configured ? 'NOT_CONFIGURED' : 'NO_JOURNEY',
@@ -621,10 +662,10 @@ export const getStudentJourney = async (req: Request, res: Response) => {
         student,
         totalDays: tenantDays,
         message: readiness && !readiness.configured
-          ? `Foundation is not configured for this tenant: ${readiness.message}`
+          ? `${stage} is not configured for this tenant: ${readiness.message}`
           : engine === 'UNIT'
             ? 'No journey yet. It is created when this member completes a skill check — or by the backfill, for members assessed before this tenant was provisioned.'
-            : 'This member is planned by the topic engine, so they have no Foundation journey.',
+            : `This member is planned by the topic engine, so they have no ${stage} journey.`,
       });
     }
 

@@ -9,7 +9,6 @@ installCrashGuard();
 import app from './app';
 import http from 'http';
 import cluster from 'cluster';
-import os from 'os';
 import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
 import { assertSecretsPresent } from './config/secrets';
@@ -380,38 +379,79 @@ const startServer = async () => {
 };
 
 /**
- * Optional multi-core mode, for event-scale traffic (Tech Battles).
+ * Multi-core mode. CURRENTLY DISABLED, and the process refuses to start if you ask for it.
  *
- * Node runs one thread, so by default this process uses ONE core no matter how many the
- * machine has. `WEB_CONCURRENCY=8` forks eight workers sharing port 5000, roughly
- * multiplying request throughput by the worker count.
+ * Node runs one thread, so this process uses ONE core no matter how many the machine has.
+ * `WEB_CONCURRENCY=8` would fork eight workers sharing port 5000.
  *
- * Default OFF. Two things must be understood before switching it on:
+ * ── WHY IT IS REFUSED RATHER THAN JUST DEFAULTED OFF ──────────────────────────────────────
  *
- *  1. socket.io has no Redis adapter here, so with multiple workers a message emitted by
- *     one worker will not reach clients connected to another. The battle exam path is
- *     pure HTTP and unaffected, but in-app realtime (live classes, notifications) needs
- *     sticky sessions plus an adapter before clustering is safe for everyday use. Enable
- *     it for a battle; leave it off otherwise until that adapter exists.
- *  2. Only the first worker runs the 14 background schedulers (see IS_JOB_RUNNER above),
- *     so reminders are not sent once per worker.
+ * The comment that used to live here said "enable it for a battle; leave it off otherwise".
+ * That is the most dangerous possible advice, because a battle is exactly when the four
+ * things below do maximum damage, and three of them fail SILENTLY. Somebody following that
+ * instruction an hour before an event would get a platform that looks fine and is not.
+ *
+ * FOUR pieces of per-process state break under clustering. The repo previously recorded only
+ * the first, which understated the problem:
+ *
+ *  1. SOCKET.IO HAS NO REDIS ADAPTER. A message emitted by one worker never reaches clients
+ *     connected to another. Notifications and live classes stop working across workers.
+ *
+ *  2. THE EXECUTION CONCURRENCY CAP IS PER PROCESS (services/executionQueue.ts). The heavy
+ *     pool is capped at CODE_EXEC_CONCURRENCY, default 2 -- per worker. Four workers means
+ *     EIGHT concurrent Java compilations against a four-core sandbox. That cap is not a
+ *     guess: it was measured, and at a cap of 4 twenty concurrent Java runs produced zero
+ *     correct results. Clustering silently doubles or quadruples the one limit that exists
+ *     to stop a compile storm. This is the worst of the four and the least obvious.
+ *
+ *  3. THE SETTINGS CACHE IS PER PROCESS (services/settingsService.ts). set() updates only
+ *     the worker that served the request, and there is no invalidation path. An admin
+ *     changing the sandbox URL updates one worker of four; the rest keep calling the old
+ *     host until restart.
+ *
+ *  4. LIVE-CLASSROOM STATE IS PER PROCESS (`liveSessions` inside startServer). With no
+ *     adapter a viewer on another worker gets a visible "Session not found". WITH an
+ *     adapter it is worse: the join succeeds and the participant list silently shows only
+ *     the people who happen to share that worker.
+ *
+ *     Same shape, added later: bulkSendJobs.ts keeps its progress and its one-send-per-exam
+ *     guard in memory, so two admins on two workers could start overlapping sends.
+ *
+ * ── AND WHETHER IT IS EVEN WORTH BUILDING ─────────────────────────────────────────────────
+ *
+ * Probably not yet. Node was never the constraint on 22 September: the outage was static
+ * files served through Node at 5 KB/s, whole-document Mongo writes, proctoring chunk floods
+ * and Piston compile storms. All four are fixed, and this process now idles at ~0.2% CPU.
+ * Fix the four items above when a load test shows CPU is actually the ceiling -- not before.
  */
 const WEB_CONCURRENCY = Math.max(0, Number(process.env.WEB_CONCURRENCY) || 0);
 
-if (WEB_CONCURRENCY > 1 && cluster.isPrimary) {
-  const cores = os.cpus().length;
-  const count = Math.min(WEB_CONCURRENCY, cores);
-  console.log(`🧵 Cluster mode: forking ${count} workers (machine has ${cores} cores)`);
-
-  for (let i = 0; i < count; i++) cluster.fork();
-
-  cluster.on('exit', (worker, code, signal) => {
-    console.error(`[CLUSTER] worker ${worker.process.pid} died (${signal || code}) — respawning`);
-    cluster.fork();
-  });
-} else {
-  startServer();
+if (WEB_CONCURRENCY > 1) {
+  /*
+   * Refuse, loudly, rather than start a platform that is subtly wrong.
+   *
+   * A failed boot is caught by the deploy's health check while the old slot is still serving
+   * traffic. A successful boot with a split execution cap and a partial participant list is
+   * discovered by candidates, during an event.
+   */
+  console.error([
+    '',
+    `❌ WEB_CONCURRENCY=${WEB_CONCURRENCY} was set, and clustering is NOT SAFE in this build.`,
+    '',
+    '   Four pieces of state are per-process and would break or silently mislead:',
+    '     1. socket.io has no Redis adapter      — cross-worker messages are lost',
+    '     2. executionQueue cap is per worker    — N workers = N × the measured safe limit',
+    '     3. settingsService cache is per worker — a settings change reaches one worker',
+    '     4. liveSessions / bulkSendJobs in memory — partial rosters, duplicate sends',
+    '',
+    '   See the comment above this check in server.ts for the detail and the measurements.',
+    '   Unset WEB_CONCURRENCY (or set it to 1) to start.',
+    '',
+  ].join('\n'));
+  process.exit(1);
 }
+
+startServer();
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {

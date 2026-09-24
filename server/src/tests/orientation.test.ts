@@ -151,6 +151,9 @@ describe('a member who has not started learning', () => {
   });
 
   it('remembers which lines of a checklist are ticked', async () => {
+    /* Day 3 is reached by finishing the two before it, because a locked day serves nothing. */
+    await finishDay(1);
+    await finishDay(2);
     await completeOrientationItem({
       tenantId: TENANT, studentId: STUDENT, dayNumber: 3, itemKey: 'linkedin_todo', checked: [0, 1, 4],
     });
@@ -159,6 +162,62 @@ describe('a member who has not started learning', () => {
     expect(todo).toMatchObject({ done: true, checked: [0, 1, 4] });
   });
 
+  /**
+   * THE GATE THE PRODUCT ASKS FOR, IN THE TERMS IT WAS ASKED IN.
+   *
+   * A member joins, starts day 0.1 and does not finish it. Tomorrow arrives. Day 0.2 must still
+   * be shut — the welcome is opened by finishing the day before it, never by the calendar — and
+   * shut has to mean its content is not served, or the gate is decoration.
+   */
+  it('keeps the next welcome day shut until the one before it is finished', async () => {
+    const before = await orientationFor(TENANT, STUDENT);
+    expect(before.days[0]).toMatchObject({ dayNumber: 1, locked: false });
+    expect(before.days[1]).toMatchObject({ dayNumber: 2, locked: true });
+
+    await finishDay(1);
+
+    const after = await orientationFor(TENANT, STUDENT);
+    expect(after.days[0]).toMatchObject({ dayNumber: 1, done: true });
+    expect(after.days[1]).toMatchObject({ dayNumber: 2, locked: false });
+    expect(after.days[2]).toMatchObject({ dayNumber: 3, locked: true });
+  });
+
+  it('serves no content for a locked day, only its name and length', async () => {
+    const view = await orientationFor(TENANT, STUDENT);
+    const locked = view.days.filter(d => d.locked);
+    expect(locked.length).toBeGreaterThan(0);
+    for (const d of locked) {
+      expect(d.items).toEqual([]);
+      /* Named, so the plan can show what is coming. */
+      expect(d.title).toBeTruthy();
+      expect(d.minutes).toBeGreaterThan(0);
+    }
+    /* The open day is served in full, or there would be nothing to do. */
+    expect(view.days[0].items.length).toBeGreaterThan(0);
+  });
+
+  it('records nothing against a day the member cannot open', async () => {
+    const r = await completeOrientationItem({
+      tenantId: TENANT, studentId: STUDENT, dayNumber: 3, itemKey: 'linkedin_todo', checked: [0],
+    });
+    expect(r.ok).toBe(false);
+    const view = await orientationFor(TENANT, STUDENT);
+    expect(view.days[2].items).toEqual([]);
+  });
+
+  it('refuses to finish a day out of order, whatever has been ticked', async () => {
+    const r = await completeOrientationDay(TENANT, STUDENT, 3);
+    expect(r.ok).toBe(false);
+    expect(r.message).toMatch(/before this one/i);
+  });
+
+  it('lets a finished day be opened again — review is not the same as skipping', async () => {
+    await finishDay(1);
+    await finishDay(2);
+    const view = await orientationFor(TENANT, STUDENT);
+    expect(view.days[0]).toMatchObject({ done: true, locked: false });
+    expect(view.days[0].items.length).toBeGreaterThan(0);
+  });
   it('keeps a recording against the item it answers', async () => {
     await completeOrientationItem({
       tenantId: TENANT, studentId: STUDENT, dayNumber: 1, itemKey: 'self_intro',

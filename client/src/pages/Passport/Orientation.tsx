@@ -219,6 +219,71 @@ const Item: React.FC<{
   );
 };
 
+/**
+ * ONE WELCOME DAY, WHEREVER IT IS BEING SHOWN.
+ *
+ * Exported because the plan screen now shows these days in its own day panel, beside the learning
+ * days, and two renderings of the same day would drift: one would gain a "finish" button the other
+ * lacked, or save an item by a different call. There is one day, so there is one component that
+ * draws it, and `finishDay` — the thing that decides whether the next day opens — lives here with
+ * it rather than at each call site.
+ */
+export const OrientationDayPanel: React.FC<{
+  day: OrientationDay;
+  /** Every save hands back the whole view, so the caller refreshes from the server's answer. */
+  onChanged: (v: OrientationView) => void;
+  /** Called once a day is finished, with the next day to open, or null when none is left. */
+  onFinished?: (nextDay: number | null) => void;
+}> = ({ day, onChanged, onFinished }) => {
+  const [outstanding, setOutstanding] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  const adopt = (v: OrientationView) => { setOutstanding([]); onChanged(v); };
+
+  const finishDay = async () => {
+    setOutstanding([]);
+    setBusy(true);
+    const r = await passportApi.completeOrientationDay(day.dayNumber)
+      .catch((e: any) => e?.response?.data || { ok: false, message: 'That did not save.' });
+    setBusy(false);
+    if (r?.orientation) onChanged(r.orientation);
+    /* Refused while something required is unfinished: the server names what, and so does this. */
+    if (!r?.ok) { setOutstanding(r?.outstanding || []); return; }
+    onFinished?.(r.orientation?.nextDay ?? null);
+  };
+
+  return (
+    <main className="ori-day">
+      <div className="ori-day-head">
+        <div>
+          <span className="ori-day-n">Day {day.dayNumber}</span>
+          <h2>{day.title}</h2>
+          <p>{day.blurb}</p>
+        </div>
+        <span className="ori-day-mins">{mins(day.minutes || 0)}</span>
+      </div>
+
+      {day.items.map(item => (
+        <Item key={item.key} day={day.dayNumber} item={item} onSaved={adopt} />
+      ))}
+
+      {outstanding.length > 0 && (
+        <p className="ori-err">Still to do: {outstanding.join(', ')}.</p>
+      )}
+
+      <footer className="ori-day-foot">
+        {day.done ? (
+          <span className="ori-done-note"><i className="bi bi-check-circle-fill" /> Day {day.dayNumber} finished</span>
+        ) : (
+          <button type="button" className="ori-btn primary" disabled={busy} onClick={finishDay}>
+            {busy ? 'Saving…' : <>Finish day {day.dayNumber} <i className="bi bi-arrow-right" /></>}
+          </button>
+        )}
+      </footer>
+    </main>
+  );
+};
+
 const Orientation: React.FC = () => {
   const nav = useNavigate();
   const [view, setView] = useState<OrientationView | null>(null);
@@ -298,36 +363,11 @@ const Orientation: React.FC = () => {
       </nav>
 
       {day && (
-        <main className="ori-day">
-          <div className="ori-day-head">
-            <div>
-              <span className="ori-day-n">Day {day.dayNumber}</span>
-              <h2>{day.title}</h2>
-              <p>{day.blurb}</p>
-            </div>
-            <span className="ori-day-mins">{mins(day.minutes || 0)}</span>
-          </div>
-
-          {day.items.map(item => (
-            <Item key={item.key} day={day.dayNumber} item={item} onSaved={adopt} />
-          ))}
-
-          {outstanding.length > 0 && (
-            <p className="ori-err">
-              Still to do: {outstanding.join(', ')}.
-            </p>
-          )}
-
-          <footer className="ori-day-foot">
-            {day.done ? (
-              <span className="ori-done-note"><i className="bi bi-check-circle-fill" /> Day {day.dayNumber} finished</span>
-            ) : (
-              <button type="button" className="ori-btn primary" onClick={() => finishDay(day.dayNumber)}>
-                Finish day {day.dayNumber} <i className="bi bi-arrow-right" />
-              </button>
-            )}
-          </footer>
-        </main>
+        <OrientationDayPanel
+          day={day}
+          onChanged={adopt}
+          onFinished={next => { setOpen(next); if (!next) nav('/careerpilot/plan'); }}
+        />
       )}
 
       {view.complete && (

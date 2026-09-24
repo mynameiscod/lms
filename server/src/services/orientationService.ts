@@ -117,14 +117,26 @@ export async function orientationFor(tenantId: string, studentId: string): Promi
 
   const days: OrientationDayView[] = ordered.map((d, i) => {
     const previousDone = i === 0 || doneDays.has(ordered[i - 1].dayNumber);
+    const locked = !previousDone && !doneDays.has(d.dayNumber);
     return {
       dayNumber: d.dayNumber,
       title: d.title,
       blurb: d.blurb,
       minutes: (d.items || []).reduce((n, it) => n + (Number(it.estimatedMinutes) || 0), 0),
       done: doneDays.has(d.dayNumber),
-      locked: !previousDone && !doneDays.has(d.dayNumber),
-      items: (d.items || []).map(it => {
+      locked,
+      /**
+       * A LOCKED DAY IS NAMED, NOT SERVED.
+       *
+       * Its title, blurb and length travel so the plan can show what is coming; its items do not,
+       * because they are the content and the day is not open yet. This is the rule the learning
+       * days have always followed — the roadmap lists day 40 and the day endpoint refuses it —
+       * and the welcome days sit in the same strip now, so they answer the same way.
+       *
+       * Without this the gate was decoration: every locked day arrived with its video, its notes
+       * and its checklist in the same response that called it locked.
+       */
+      items: locked ? [] : (d.items || []).map(it => {
         const state = itemDone(progress.items || [], d.dayNumber, it.key);
         return {
           ...it,
@@ -191,6 +203,20 @@ export async function completeOrientationItem(input: ItemDoneInput): Promise<{ o
   if (!day || !item) return { ok: false, message: 'That orientation item does not exist.' };
 
   const progress = await progressFor(input.tenantId, input.studentId);
+
+  /**
+   * Nothing is recorded against a day the member cannot open.
+   *
+   * completeOrientationDay already refuses out of order, so this was never a way to skip ahead —
+   * but it was a way to bank the work for a day whose content is not being served, which is the
+   * same rule enforced twice over rather than once and hoped for.
+   */
+  const ordered = [...program.days].sort((a, b) => a.dayNumber - b.dayNumber);
+  const index = ordered.findIndex(d => d.dayNumber === day.dayNumber);
+  const doneDays = new Set<number>((progress.completedDays || []).map(Number));
+  if (index > 0 && !doneDays.has(ordered[index - 1].dayNumber) && !doneDays.has(day.dayNumber)) {
+    return { ok: false, message: 'Finish the day before this one first.' };
+  }
   const existing = (progress.items || []).find(s => s.dayNumber === day.dayNumber && s.itemKey === item.key);
   const state: IOrientationItemState = {
     dayNumber: day.dayNumber,

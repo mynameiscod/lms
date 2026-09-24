@@ -31,10 +31,12 @@ import passportApi, {
   OrientationView,
 } from '../../api/passportApi';
 import SectionLock, { useUnlock } from './SectionLock';
+import { OrientationDayPanel } from './Orientation';
 import { dayState, dayRanges, initialDay, STATE_LABEL } from './foundationRoadmapPresenter';
 import './foundationJourney.css';
 import './foundationPreview.css';
 import './foundationMember.css';
+import './orientation.css';
 
 /** Content types, in words a first-year recognises. */
 const TYPE_LABEL: Record<string, string> = {
@@ -315,8 +317,7 @@ const PlacementOffer: React.FC<{ topic: string | null; day: number }> = ({ topic
  * Shown while a member has orientation left: as the way in for somebody who must finish it before
  * Day 1, and as an invitation for somebody already learning, who is never blocked by it.
  */
-const OrientationCard: React.FC<{ view: OrientationView }> = ({ view }) => {
-  const nav = useNavigate();
+const OrientationCard: React.FC<{ view: OrientationView; onOpen: () => void }> = ({ view, onOpen }) => {
   const left = view.totalDays - view.completedDays;
   return (
     <section className={`fj-orient${view.mandatory ? ' must' : ''}`}>
@@ -329,7 +330,7 @@ const OrientationCard: React.FC<{ view: OrientationView }> = ({ view }) => {
             : `${left} short ${left === 1 ? 'day' : 'days'} we added for new members. Your plan stays open either way.`}
         </span>
       </div>
-      <button type="button" className="fj-orient-btn" onClick={() => nav('/careerpilot/orientation')}>
+      <button type="button" className="fj-orient-btn" onClick={onOpen}>
         {view.completedDays ? 'Continue' : 'Start'} <i className="bi bi-arrow-right" aria-hidden />
       </button>
     </section>
@@ -341,6 +342,13 @@ const FoundationJourneyPage: React.FC = () => {
   const [orientation, setOrientation] = useState<OrientationView | null>(null);
   const [day, setDay] = useState<FoundationJourneyDay | null>(null);
   const [openDay, setOpenDay] = useState<number | null>(null);
+  /**
+   * The welcome day being read, or null when a learning day is.
+   *
+   * Exactly one of the two is ever set: they share one panel, because to a member there is one
+   * plan and day 0.2 is simply the day before day 1.
+   */
+  const [openOrientationDay, setOpenOrientationDay] = useState<number | null>(null);
   const [lockedDay, setLockedDay] = useState<{ day: number; title?: string | null; topic?: string | null } | null>(null);
   const [dayError, setDayError] = useState('');
   const [dayRetry, setDayRetry] = useState(0);
@@ -371,8 +379,25 @@ const FoundationJourneyPage: React.FC = () => {
   /** Select a day, and keep it in the URL so a refresh lands on the same day. */
   const selectDay = useCallback((n: number) => {
     setOpenDay(n);
+    setOpenOrientationDay(null);
     const next = new URLSearchParams(params);
     next.set('day', String(n));
+    setParams(next, { replace: true });
+  }, [params, setParams]);
+
+  /**
+   * Open a welcome day in the same panel a learning day uses.
+   *
+   * It used to navigate to the orientation screen, which took the member off their plan to do
+   * something that IS their plan for the next five days. The URL carries it for the same reason
+   * `?day=` does: a refresh, or a link, lands back on the day they were reading.
+   */
+  const selectOrientationDay = useCallback((n: number) => {
+    setOpenOrientationDay(n);
+    setOpenDay(null);
+    const next = new URLSearchParams(params);
+    next.set('welcome', String(n));
+    next.delete('day');
     setParams(next, { replace: true });
   }, [params, setParams]);
 
@@ -381,8 +406,31 @@ const FoundationJourneyPage: React.FC = () => {
   /* Asked once, beside the journey: a welcome the member has finished is never mentioned again. */
   useEffect(() => {
     passportApi.getMyOrientation()
-      .then(v => setOrientation(v.enabled && !v.complete ? v : null))
+      /**
+       * THE WHOLE VIEW IS KEPT, not only an unfinished one.
+       *
+       * The welcome days are shown in the strip beside the learning days now, and a member may
+       * open a finished one to look at it again. Dropping the view once orientation completed
+       * left those chips with nothing to render. The CARD below is still hidden once it is done;
+       * that was the part that should not keep asking.
+       */
+      .then(v => {
+        setOrientation(v.enabled ? v : null);
+        if (!v.enabled) return;
+        /*
+         * `?welcome=` reopens the day a refresh or a link pointed at. Failing that, a member
+         * who must finish the welcome before Day 1 is put straight on the day they owe, rather
+         * than being shown a learning day they cannot open and a message explaining why.
+         */
+        const asked = Number(params.get('welcome'));
+        const open = v.days.some(d => d.dayNumber === asked && !d.locked) ? asked
+          : v.mandatory && !v.complete ? v.nextDay
+            : null;
+        if (open) { setOpenOrientationDay(open); setOpenDay(null); }
+      })
       .catch(() => { /* the plan is not blocked by a welcome that failed to load */ });
+    // Read once on arrival: `?welcome=` is where the member landed, not something to follow.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // A journey written seconds ago is re-checked until it is whole, so the student lands on it.
@@ -487,6 +535,10 @@ const FoundationJourneyPage: React.FC = () => {
    * optional. `totalDays` is the one that must never be guessed low — it is the promise.
    */
   const stage = journey.stageLabel || 'Foundation';
+  /** The welcome day the panel is showing, from the view the page already holds. */
+  const welcomeDay = openOrientationDay === null
+    ? null
+    : (orientation?.days || []).find(d => d.dayNumber === openOrientationDay) || null;
   const totalDays = journey.totalDays ?? 90;
   const currentDay = journey.currentDay ?? 1;
   const completedCount = journey.completedCount ?? 0;
@@ -573,7 +625,10 @@ const FoundationJourneyPage: React.FC = () => {
         </div>
       </section>
 
-      {orientation && <OrientationCard view={orientation} />}
+      {/* The card invites; once the welcome is finished it stops asking. The days stay in the strip. */}
+      {orientation && !orientation.complete && (
+        <OrientationCard view={orientation} onOpen={() => selectOrientationDay(orientation.nextDay ?? orientation.days[0]?.dayNumber ?? 1)} />
+      )}
 
       {/* The ninety, as a strip. Scrolls horizontally on a phone rather than reflowing into
           a grid nobody can read — with jumps and arrows, so the days beyond the edge are never a
@@ -604,8 +659,8 @@ const FoundationJourneyPage: React.FC = () => {
             <li key={`o-${o.day}`}>
               <button
                 type="button"
-                className={`fj-chip fj-chip-welcome s-${o.status.toLowerCase()}${o.locked ? ' s-locked' : ''}`}
-                onClick={() => !o.locked && nav('/careerpilot/orientation')}
+                className={`fj-chip fj-chip-welcome s-${o.status.toLowerCase()}${o.locked ? ' s-locked' : ''}${openOrientationDay === o.dayNumber ? ' open' : ''}`}
+                onClick={() => !o.locked && selectOrientationDay(o.dayNumber)}
                 disabled={o.locked}
                 aria-label={`Welcome day ${o.day}: ${o.title}${o.locked ? ', locked' : ''}`}
                 title={`Day ${o.day} — ${o.title}`}
@@ -641,27 +696,54 @@ const FoundationJourneyPage: React.FC = () => {
       </div>
 
       <section className="fj-day" aria-live="polite">
-        {dayLoading && <div className="fj-skeleton">Loading day…</div>}
+        {/*
+          * A WELCOME DAY, READ WHERE THE LEARNING DAYS ARE READ.
+          *
+          * Same panel, same place on the page, so the plan reads as one sequence: 0.1 through 0.5
+          * and then Day 1. Finishing one opens the next — the gate is the server's, exactly as it
+          * is for a learning day, and a locked chip cannot be clicked to get here.
+          *
+          * Rendered instead of the learning day rather than beside it, because exactly one of the
+          * two is ever open.
+          */}
+        {openOrientationDay !== null && welcomeDay && (
+          <OrientationDayPanel
+            key={welcomeDay.dayNumber}
+            day={welcomeDay}
+            onChanged={setOrientation}
+            onFinished={next => {
+              if (next) { selectOrientationDay(next); return; }
+              /*
+               * The welcome is over. Reload the journey so the strip shows the days as open,
+               * then land the member on the day they have been waiting for.
+               */
+              load();
+              selectDay(currentDay);
+            }}
+          />
+        )}
 
-        {!dayLoading && openSummary && openDay !== null && openDay > currentDay && openSummary.status !== 'COMPLETED' && (
+        {openOrientationDay === null && dayLoading && <div className="fj-skeleton">Loading day…</div>}
+
+        {openOrientationDay === null && !dayLoading && openSummary && openDay !== null && openDay > currentDay && openSummary.status !== 'COMPLETED' && (
           <PlacementOffer key={openDay} topic={openSummary.topic ?? null} day={openDay} />
         )}
 
-        {!dayLoading && lockedDay && (
+        {openOrientationDay === null && !dayLoading && lockedDay && (
           <LockedDay
             day={lockedDay.day} title={lockedDay.title} topic={lockedDay.topic}
             currentDay={currentDay} onBack={() => selectDay(currentDay)}
           />
         )}
 
-        {!dayLoading && dayError && (
+        {openOrientationDay === null && !dayLoading && dayError && (
           <div className="fj-msg err">
             <b>{dayError}</b>
             <button type="button" className="fj-start" onClick={() => setDayRetry(n => n + 1)}>Try again</button>
           </div>
         )}
 
-        {!dayLoading && day && (
+        {openOrientationDay === null && !dayLoading && day && (
           <>
             <div className="fj-day-head">
               <div>

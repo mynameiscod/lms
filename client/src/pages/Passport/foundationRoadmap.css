@@ -177,3 +177,7 @@ button.fr-day-row:hover { background: #f8fafc; }
   .fr-day-n { min-width: 44px; }
   .fr-state { display: none; }
 }
+
+/* The welcome group at the head of the road: same card, marked as not-quite-a-topic. */
+.fr-group-welcome .fr-card { border-style: dashed; }
+.fr-group-welcome .fr-span { letter-spacing: -0.01em; }

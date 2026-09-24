@@ -314,3 +314,81 @@ export async function saveOrientationProgram(
 export async function resetOrientationProgram(tenantId: string, updatedBy?: string) {
   return saveOrientationProgram(tenantId, DEFAULT_ORIENTATION, true, updatedBy);
 }
+
+/**
+ * ── ORIENTATION AS PART OF THE ROADMAP ────────────────────────────────────────────────────
+ *
+ * The welcome is five days of the plan as a student reads it, and until now it lived only on its
+ * own screen — so somebody looking at their roadmap saw Day 1 first and had no idea the five days
+ * they had been asked to do were part of anything.
+ *
+ * They are numbered 0.1 to 0.5 and sit BEFORE Day 1. The number is a label and nothing else: it is
+ * a string, it is never arithmetic, and no DayPlan is written for it.
+ *
+ * ── WHY THEY ARE NOT DAYS OF THE JOURNEY ──────────────────────────────────────────────────
+ *
+ * They are deliberately NOT counted in the programme length. A 90-day programme is ninety learning
+ * days and a 110-day one is a hundred and ten; the welcome is not learning, carries no units, no
+ * skills and no evidence, and a student who was promised ninety must not be handed eighty-five and
+ * five days of induction. journeyDaysOf and the whole-journey check are untouched by this.
+ *
+ * Keeping them out of DayPlan is also what makes this reach EVERY student rather than only the
+ * ones enrolled after today. Nothing is stored and nothing is backfilled: a roadmap composed a
+ * month ago grows its welcome the next time it is read, because the welcome is read, not written.
+ */
+export interface OrientationRoadmapDay {
+  /** The label the student sees: "0.1" through "0.5". A string, never a number to compute with. */
+  day: string;
+  /** The orientation day this opens — what the orientation screen is addressed by. */
+  dayNumber: number;
+  title: string;
+  blurb: string;
+  minutes: number;
+  status: 'COMPLETED' | 'CURRENT' | 'UPCOMING';
+  locked: boolean;
+}
+
+export interface OrientationRoadmap {
+  mandatory: boolean;
+  complete: boolean;
+  /** True while this member must finish the welcome before Day 1 opens. */
+  blocking: boolean;
+  totalDays: number;
+  completedDays: number;
+  days: OrientationRoadmapDay[];
+}
+
+/**
+ * The welcome, shaped for a roadmap. Null when the tenant has it switched off or it cannot be
+ * read — the roadmap then renders exactly as it did before, which is the correct failure.
+ */
+export async function orientationRoadmap(
+  tenantId: string, studentId: string,
+): Promise<OrientationRoadmap | null> {
+  try {
+    const view = await orientationFor(tenantId, studentId);
+    if (!view.enabled || !view.days.length) return null;
+
+    const firstOpen = view.days.find(d => !d.done && !d.locked)?.dayNumber ?? null;
+    return {
+      mandatory: view.mandatory,
+      complete: view.complete,
+      blocking: view.mandatory && !view.complete,
+      totalDays: view.totalDays,
+      completedDays: view.completedDays,
+      days: view.days.map((d, i) => ({
+        day: `0.${i + 1}`,
+        dayNumber: d.dayNumber,
+        title: d.title,
+        blurb: d.blurb,
+        minutes: d.minutes,
+        status: d.done ? 'COMPLETED' : d.dayNumber === firstOpen ? 'CURRENT' : 'UPCOMING',
+        locked: d.locked,
+      })),
+    };
+  } catch (e: any) {
+    /* Same reason orientationBlocksLearning fails open: a welcome must never break a roadmap. */
+    console.error('[orientation] roadmap view failed:', e?.message || e);
+    return null;
+  }
+}

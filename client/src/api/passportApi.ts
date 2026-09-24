@@ -2338,6 +2338,28 @@ export interface FoundationJourneyDaySummary {
  * single interface with the unavailable-state fields optional says the same thing and reads
  * correctly at every call site.
  */
+/** One welcome day as the roadmap shows it. `day` is a label ("0.3"), never a number to compute with. */
+export interface OrientationRoadmapDay {
+  day: string;
+  /** The orientation day this opens, which is how the orientation screen addresses it. */
+  dayNumber: number;
+  title: string;
+  blurb: string;
+  minutes: number;
+  status: 'COMPLETED' | 'CURRENT' | 'UPCOMING';
+  locked: boolean;
+}
+
+export interface OrientationRoadmap {
+  mandatory: boolean;
+  complete: boolean;
+  /** True while the welcome must be finished before Day 1 opens. */
+  blocking: boolean;
+  totalDays: number;
+  completedDays: number;
+  days: OrientationRoadmapDay[];
+}
+
 export interface FoundationJourney {
   available: boolean;
   /** The programme length, available or not. A student is told how long it will be before it exists. */
@@ -2351,6 +2373,13 @@ export interface FoundationJourney {
    */
   stage?: string | null;
   stageLabel?: string | null;
+  /**
+   * The five welcome days, labelled 0.1–0.5 and shown BEFORE Day 1.
+   *
+   * They are not part of `totalDays` and never will be: ninety days means ninety learning days.
+   * Null when the tenant has the welcome switched off, and the roadmap then renders as before.
+   */
+  orientation?: OrientationRoadmap | null;
   /** The engine that plans this student. UNIT means this journey is their one roadmap. */
   engine?: 'UNIT' | 'TOPIC';
   /** The enrolment whose day player works a day through. Null until the journey exists. */

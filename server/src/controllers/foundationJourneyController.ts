@@ -43,7 +43,7 @@ import { composeFoundationJourney, loadAssets, activitiesFor } from '../services
 import { applyFoundationTrigger, directionChoiceFor } from '../services/foundationJourneyTriggerService';
 import { resolveModuleStatuses, itemDone } from './enrollmentPlanController';
 import { reconcileJourneyDayXp, xpForJourneyItem, journeyItemFinished, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
-import { orientationBlocksLearning } from '../services/orientationService';
+import { orientationBlocksLearning, orientationRoadmap } from '../services/orientationService';
 
 /**
  * Which engine plans this student, for the screens that must show exactly one plan.
@@ -207,6 +207,7 @@ async function previewOf(
   days: { day: number; unitCode: string | null; title: string; items: any[] }[],
   programDays: number,
   stageKey?: string | null,
+  orientation?: Awaited<ReturnType<typeof orientationRoadmap>>,
 ) {
   const codes = [...new Set(days.map(d => d.unitCode).filter(Boolean))] as string[];
   const units = codes.length
@@ -232,6 +233,11 @@ async function previewOf(
     stageLabel: stageLabel(stageKey),
     title: `CareerPilot ${stageLabel(stageKey)} Journey`,
     totalDays: programDays,
+    /**
+     * The five welcome days, 0.1 to 0.5, shown before Day 1 and counted in nothing.
+     * `totalDays` above is untouched by them on purpose — see orientationRoadmap.
+     */
+    orientation: orientation || null,
     previewDays: access.previewDays,
     lockedDays: programDays - days.length,
     currentDay: 1,
@@ -361,7 +367,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
             unitCode: u.unitCode,
             title: u.title,
             items: activitiesFor(u, assets.get(u.unitCode.toUpperCase()) || EMPTY_ASSETS),
-          })), programDays, stageKey));
+          })), programDays, stageKey, await orientationRoadmap(tenantId, studentId)));
         }
 
         if (summary.measured && access.level === 'FULL') {
@@ -431,7 +437,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
     if (engine === 'UNIT' && access.level === 'PREVIEW') {
       return res.json(await previewOf(tenantId, engine, access, (days as any[]).slice(0, access.previewDays).map(d => ({
         day: d.dayNumber, unitCode: d.primaryUnitCode || null, title: d.title, items: d.items || [],
-      })), programDays, stageKey));
+      })), programDays, stageKey, await orientationRoadmap(tenantId, studentId)));
     }
 
     const completed = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
@@ -471,6 +477,8 @@ export const getMyJourney = async (req: Request, res: Response) => {
       title: `CareerPilot ${stage} Journey`,
       /** The length of THIS journey, restated on every response — not the tenant's current setting. */
       totalDays: programDays,
+      /** Days 0.1–0.5, before Day 1 and outside the count above. See orientationRoadmap. */
+      orientation: await orientationRoadmap(tenantId, studentId),
       currentDay,
       completedCount: completed.size,
       /** Whole-percent, so the bar and the number never disagree by a rounding step. */

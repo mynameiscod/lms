@@ -66,6 +66,9 @@ const FoundationRoadmap: React.FC = () => {
 
   const groups = useMemo(() => groupJourneyDays(journey?.days || []), [journey]);
   const totalDays = journey?.totalDays ?? 90;
+  /** The welcome days, 0.1–0.5. Open by default while they still have to be done. */
+  const orientation = journey?.orientation || null;
+  const [welcomeOpen, setWelcomeOpen] = useState(true);
   const currentDay = journey?.currentDay ?? 1;
 
   // The group holding today is open on arrival, so the student lands where they are.
@@ -145,6 +148,78 @@ const FoundationRoadmap: React.FC = () => {
       </ul>
 
       <ol className="fr-timeline">
+        {/*
+          * THE WELCOME, AT THE HEAD OF THE ROAD.
+          *
+          * Days 0.1 to 0.5, before Day 1 and outside the count in the hero — the programme is
+          * {totalDays} learning days and these are not learning days. Shown to every member,
+          * whenever they enrolled, because the server reads them rather than storing them.
+          *
+          * Hidden entirely when the tenant has the welcome off, and never shown once it is
+          * finished and was not required: a completed optional welcome is clutter at the top of
+          * somebody's roadmap for the rest of the year.
+          */}
+        {orientation && orientation.days.length > 0 && (!orientation.complete || orientation.mandatory) && (
+          <li className={`fr-group gs-${orientation.complete ? 'done' : 'in_progress'} fr-group-welcome`}>
+            <span className={`fr-dot st-${orientation.complete ? 'completed' : 'current'}`} aria-hidden>
+              <i className={`bi ${orientation.complete ? 'bi-check-lg' : 'bi-stars'}`} />
+            </span>
+            <div className="fr-card">
+              <button
+                type="button" className="fr-card-head" aria-expanded={welcomeOpen}
+                onClick={() => setWelcomeOpen(w => !w)}
+              >
+                <span className="fr-span">Days 0.1–0.{orientation.days.length}</span>
+                <span className="fr-title">
+                  <b>Welcome to CareerPilot</b>
+                  <small>{orientation.blocking
+                    ? 'Finish these before Day 1 opens'
+                    : 'A short welcome — your plan stays open either way'}</small>
+                </span>
+                <span className="fr-meta">
+                  <span className={`fr-chip gs-${orientation.complete ? 'done' : 'in_progress'}`}>
+                    {orientation.complete ? 'Done' : orientation.blocking ? 'Required' : 'Optional'}
+                  </span>
+                  <small>{orientation.completedDays}/{orientation.totalDays} done</small>
+                </span>
+                <i className={`bi ${welcomeOpen ? 'bi-chevron-up' : 'bi-chevron-down'} fr-caret`} aria-hidden />
+              </button>
+
+              {welcomeOpen && (
+                <ol className="fr-days">
+                  {orientation.days.map(d => {
+                    const st = d.status === 'COMPLETED' ? 'COMPLETED' : d.locked ? 'LOCKED' : d.status === 'CURRENT' ? 'CURRENT' : 'AVAILABLE';
+                    const body = (
+                      <>
+                        <span className={`fr-dot small st-${st.toLowerCase()}`} aria-hidden><i className={`bi ${STATE_ICON[st]}`} /></span>
+                        <span className="fr-day-n">Day {d.day}</span>
+                        <span className="fr-day-t">
+                          <b>{d.title}</b>
+                          {d.blurb && <small>{d.blurb}</small>}
+                        </span>
+                        <span className={`fr-state st-${st.toLowerCase()}`}>{STATE_LABEL[st]}</span>
+                      </>
+                    );
+                    return (
+                      <li key={d.day} className={`fr-day st-${st.toLowerCase()}`}>
+                        {d.locked ? (
+                          <div className="fr-day-row" aria-label={`Day ${d.day}: ${d.title}, locked`}>{body}</div>
+                        ) : (
+                          <button type="button" className="fr-day-row" onClick={() => nav('/careerpilot/orientation')}
+                                  aria-label={`Open day ${d.day}: ${d.title}`}>
+                            {body}
+                            <i className="bi bi-chevron-right fr-go" aria-hidden />
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </div>
+          </li>
+        )}
+
         {visible.map(g => {
           const isOpen = !!open[g.key];
           const heading = g.topic || g.days[0].title;

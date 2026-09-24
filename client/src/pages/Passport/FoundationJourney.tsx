@@ -594,6 +594,28 @@ const FoundationJourneyPage: React.FC = () => {
       </nav>
       <section className="fj-strip-wrap" aria-label={`All ${totalDays} days`}>
         <ol className="fj-strip" ref={stripRef}>
+          {/*
+            * The welcome days sit at the head of the strip, numbered 0.1 onward, so the plan
+            * reads in the order it is actually met. They open the welcome screen rather than the
+            * day player, because that is where they are done — and they are not counted in
+            * `totalDays`, which is why the label above still says "All {totalDays} days".
+            */}
+          {(journey.orientation?.days || []).map(o => (
+            <li key={`o-${o.day}`}>
+              <button
+                type="button"
+                className={`fj-chip fj-chip-welcome s-${o.status.toLowerCase()}${o.locked ? ' s-locked' : ''}`}
+                onClick={() => !o.locked && nav('/careerpilot/orientation')}
+                disabled={o.locked}
+                aria-label={`Welcome day ${o.day}: ${o.title}${o.locked ? ', locked' : ''}`}
+                title={`Day ${o.day} — ${o.title}`}
+              >
+                <span className="fj-chip-n">{o.day}</span>
+                {o.status === 'COMPLETED' && <i className="bi bi-check-lg" aria-hidden />}
+                {o.locked && <i className="bi bi-lock-fill fj-chip-lock" aria-hidden />}
+              </button>
+            </li>
+          ))}
           {days.map(d => {
             const state = dayState(d);
             return (

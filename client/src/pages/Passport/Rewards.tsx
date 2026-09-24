@@ -10,7 +10,7 @@ const newIntent = () => `${Date.now().toString(36)}-${Math.random().toString(36)
 /* Where each way of earning actually happens. */
 const EARN = [
   { icon: 'bi-check2-circle', title: "Finish today's missions", sub: 'Every task on your journey day earns XP', to: '/careerpilot' },
-  { icon: 'bi-fire', title: 'Keep your streak going', sub: 'Show up every day on My 90 Days', to: '/careerpilot/journey' },
+  { icon: 'bi-fire', title: 'Keep your streak going', sub: 'Show up every day on your journey', to: '/careerpilot/journey' },
   { icon: 'bi-code-square', title: 'Practise and take assessments', sub: 'Solve problems in the Practice Lab', to: '/careerpilot/practice' },
 ];
 

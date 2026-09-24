@@ -34,8 +34,14 @@ const SECTION_ICON: Record<string, string> = {
   interview: 'bi-mic', resume: 'bi-file-earmark-person', companies: 'bi-buildings', news: 'bi-newspaper', score: 'bi-speedometer2',
 };
 /* The three parts of the member dashboard itself, previewed as tiles in the order they sit on it. */
-const PREVIEW: { section: MemberSection; title: string; blurb: string }[] = [
-  { section: 'roadmap', title: 'Your 90-day plan', blurb: 'Your gaps, in the order they are worth closing, sized to the time you can give it.' },
+/**
+ * Taken as a function of the programme length rather than a constant, because it is not ninety
+ * for everyone: a second-year's Build programme is 110 days, and an admin may set either to
+ * anything between 30 and 180. This page is where a non-member decides whether to buy, so the
+ * number it advertises has to be the number they will be given.
+ */
+const previewTiles = (days: number): { section: MemberSection; title: string; blurb: string }[] => [
+  { section: 'roadmap', title: `Your ${days}-day plan`, blurb: 'Your gaps, in the order they are worth closing, sized to the time you can give it.' },
   { section: 'missions', title: 'Today’s work', blurb: 'A short, finishable list every day, drawn from your plan.' },
   { section: 'progress', title: 'Your progress', blurb: 'XP, streaks and badges — earned by finishing the work in your plan.' },
 ];
@@ -75,10 +81,14 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
   const ready = readiness?.readiness ?? null;
   const readyLabel = ready === null ? 'Still measuring' : ready >= 80 ? 'Strong alignment' : ready >= 60 ? 'Getting close' : ready >= 40 ? 'Building momentum' : 'Early stage';
 
+  /** This learner's own programme length, from the dashboard endpoint. */
+  const days = Number(data.programDays) || 90;
+  const PREVIEW = previewTiles(days);
+
   const locked = data.locked || [];
   const lockOf = (s: MemberSection) => locked.find(l => l.section === s);
   const previewFacts: Record<string, string | null> = {
-    roadmap: gaps !== null ? `${gaps} priority gap${gaps === 1 ? '' : 's'} to close` : '90 days, paced to your time',
+    roadmap: gaps !== null ? `${gaps} priority gap${gaps === 1 ? '' : 's'} to close` : `${days} days, paced to your time`,
     missions: measuredCount ? `Planned from ${measuredCount} measured skills` : null,
     progress: null,
   };
@@ -189,7 +199,7 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
           <ol className="dl2-steps">
             <li className="now"><span>1</span><div><b>Take the free assessment</b><small>Questions chosen for your stage and target role.</small></div></li>
             <li><span>2</span><div><b>See your Skill DNA</b><small>Your strengths and gaps, measured — free to view.</small></div></li>
-            <li><span>3</span><div><b>Follow your 90-day plan</b><small>Daily work built from what the assessment found.</small></div></li>
+            <li><span>3</span><div><b>Follow your {days}-day plan</b><small>Daily work built from what the assessment found.</small></div></li>
           </ol>
         </section>
       )}
@@ -236,7 +246,7 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
           <ul>
             {gaps !== null && <li><i className="bi bi-check2" /> A plan for your {gaps} priority gap{gaps === 1 ? '' : 's'}</li>}
             {needsWork !== null && <li><i className="bi bi-check2" /> {needsWork} more skill{needsWork === 1 ? '' : 's'} worked on</li>}
-            <li><i className="bi bi-check2" /> 90 days, paced to the time you have</li>
+            <li><i className="bi bi-check2" /> {days} days, paced to the time you have</li>
             {alsoIncluded.length > 0 && <li><i className="bi bi-check2" /> {alsoIncluded.length} more tool{alsoIncluded.length === 1 ? '' : 's'} — {alsoIncluded.slice(0, 2).map(l => l.title).join(', ')}{alsoIncluded.length > 2 ? ' and more' : ''}</li>}
           </ul>
           <button className="dl2-btn light" onClick={() => unlock()} disabled={busy}>{label}</button>

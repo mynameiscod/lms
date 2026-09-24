@@ -1,5 +1,5 @@
 /**
- * CareerPilot Foundation Journey — 90 Days.
+ * CareerPilot Journey — the learner's own programme, Foundation or Build.
  *
  * ── WHAT THIS SCREEN IS FOR ───────────────────────────────────────────────────────────────
  *
@@ -72,12 +72,16 @@ const mins = (n: number) =>
  * For a student the unit engine plans, the skill check is what creates the journey, so the one
  * thing to press is offered here rather than leaving them on a message with nothing to do.
  */
-const NotReady: React.FC<{ totalDays: number; message?: string; onAssess?: () => void; notConfigured?: boolean; preparing?: boolean }> = ({ totalDays, message, onAssess, notConfigured, preparing }) => (
+/**
+ * `stage` is the programme's own name — "Foundation" for a first-year, "Build" for a second-year —
+ * and it defaults to Foundation for the one render that happens before the server has answered.
+ */
+const NotReady: React.FC<{ totalDays: number; stage?: string; message?: string; onAssess?: () => void; notConfigured?: boolean; preparing?: boolean }> = ({ totalDays, stage = 'Foundation', message, onAssess, notConfigured, preparing }) => (
   <div className="fj-page">
     <header className="fj-head">
       <div>
         <span className="fj-kicker">CAREERPILOT</span>
-        <h1>Foundation Journey</h1>
+        <h1>{stage} Journey</h1>
         <p className="fj-sub">{totalDays} learning days</p>
       </div>
     </header>
@@ -86,10 +90,10 @@ const NotReady: React.FC<{ totalDays: number; message?: string; onAssess?: () =>
       <b>{message || 'Your journey has not been created yet.'}</b>
       <p>
         {notConfigured
-          ? `Your Foundation programme is ${totalDays} learning days. It will appear here as soon as it has been set up.`
+          ? `Your ${stage} programme is ${totalDays} learning days. It will appear here as soon as it has been set up.`
           : preparing
-            ? `Your Foundation programme is ${totalDays} learning days, personalised to what you already know. This page updates by itself.`
-            : `Your Foundation programme is ${totalDays} learning days, personalised to what you already know. It appears here once your skill check is complete.`}
+            ? `Your ${stage} programme is ${totalDays} learning days, personalised to what you already know. This page updates by itself.`
+            : `Your ${stage} programme is ${totalDays} learning days, personalised to what you already know. It appears here once your skill check is complete.`}
       </p>
       {onAssess && (
         <button type="button" className="fj-start" onClick={onAssess}>Take your skill check</button>
@@ -112,6 +116,8 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
   const days = journey.preview || [];
   const [open, setOpen] = useState<number>(days[0]?.day ?? 1);
   const { unlock, busy, msg, priceInr } = useUnlock();
+  /** The programme's own name, from the server. Falls back to the only name this page ever had. */
+  const stage = journey.stageLabel || 'Foundation';
   const total = journey.totalDays ?? 90;
   const locked = journey.lockedDays ?? Math.max(0, total - days.length);
   const day = days.find(d => d.day === open) || days[0];
@@ -124,7 +130,7 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
       <section className="fjp-hero">
         <div className="fjp-hero-copy">
           <span className="fjp-eyebrow">Your {total}-day roadmap</span>
-          <h1>Foundation <span>Journey</span></h1>
+          <h1>{stage} <span>Journey</span></h1>
           <p>Your personalised plan, built from your skill check. The first {days.length} days are open to preview — membership generates and unlocks all {total}.</p>
           <div className="fjp-chips">
             <span><i className="bi bi-calendar3" /> {total} learning days</span>
@@ -465,6 +471,7 @@ const FoundationJourneyPage: React.FC = () => {
     return (
       <NotReady
         totalDays={journey.totalDays}
+        stage={journey.stageLabel || undefined}
         message={journey.message}
         notConfigured={journey.reason === 'NOT_CONFIGURED' || journey.reason === 'JOURNEY_INCOMPLETE'}
         preparing={journey.reason === 'BEING_PREPARED'}
@@ -479,6 +486,7 @@ const FoundationJourneyPage: React.FC = () => {
    * Defaulted at the point of use, because the interface marks the available-state fields
    * optional. `totalDays` is the one that must never be guessed low — it is the promise.
    */
+  const stage = journey.stageLabel || 'Foundation';
   const totalDays = journey.totalDays ?? 90;
   const currentDay = journey.currentDay ?? 1;
   const completedCount = journey.completedCount ?? 0;
@@ -522,7 +530,7 @@ const FoundationJourneyPage: React.FC = () => {
         <div className="fjm-hero-copy">
           {/* Identical for every student. The count is the promise, not a score. */}
           <span className="fjm-eyebrow">Day {currentDay} of {totalDays}</span>
-          <h1>Foundation <span>Journey</span></h1>
+          <h1>{stage} <span>Journey</span></h1>
           <p>One learning day at a time. Finish today’s tasks and the next day opens.</p>
           <div className="fjm-chips">
             <span><i className="bi bi-check2-circle" /> {completedCount} of {totalDays} days done</span>

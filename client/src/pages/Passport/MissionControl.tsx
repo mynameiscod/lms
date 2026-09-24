@@ -67,6 +67,12 @@ const MissionControl: React.FC = () => {
   const [payMsg, setPayMsg] = useState('');
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  /**
+   * The learner's own programme length, from /passport/me. Ninety was written into fourteen
+   * strings on this page, so a second-year — whose Build programme is 110 days — was sold and
+   * then shown the wrong number everywhere but the roadmap itself.
+   */
+  const days = Number(status?.programDays) || 90;
   const whyRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -307,8 +313,8 @@ const MissionControl: React.FC = () => {
                     )}
                   </React.Fragment>)}{missionMsg && <div className="mc-daily-error">{missionMsg}</div>}</div>}
               </div>
-              <div className="mc-panel"><div className="mc-panel-head"><h3><i className="bi bi-signpost-split" /> Mission Path</h3><span>Your 90-day journey</span></div><div className="mc-journey"><div className="mc-journey-phase current"><small>Phase 1</small><b>Foundation</b><span>Build the basics consistently</span></div><div className="mc-journey-phase"><small>Phase 2</small><b>Build</b><span>Projects, practice and depth</span></div><div className="mc-journey-phase"><small>Phase 3</small><b>Launch</b><span>Interview and placement readiness</span></div></div></div>
-              <div className="mc-panel"><div className="mc-panel-head"><h3>Quick Actions</h3><span>Keep building evidence</span></div><div className="mc-quick-grid"><QuickCard ic="bi-map-fill" title="My 90-day roadmap" onClick={() => nav('/careerpilot/roadmap')} sub="Every week, every day, planned" /><QuickCard ic="bi-code-slash" title="Practice Lab" onClick={() => nav('/careerpilot/practice')} sub="Code that actually runs" /><QuickCard ic="bi-mic-fill" title="Mock interview" onClick={() => nav('/careerpilot/interview')} sub="AI interviewer + scored feedback" /><QuickCard ic="bi-file-earmark-text-fill" title="Resume Center" onClick={() => nav('/careerpilot/resume')} sub="Build it, score it, fix it" /></div></div>
+              <div className="mc-panel"><div className="mc-panel-head"><h3><i className="bi bi-signpost-split" /> Mission Path</h3><span>Your {days}-day journey</span></div><div className="mc-journey"><div className="mc-journey-phase current"><small>Phase 1</small><b>Foundation</b><span>Build the basics consistently</span></div><div className="mc-journey-phase"><small>Phase 2</small><b>Build</b><span>Projects, practice and depth</span></div><div className="mc-journey-phase"><small>Phase 3</small><b>Launch</b><span>Interview and placement readiness</span></div></div></div>
+              <div className="mc-panel"><div className="mc-panel-head"><h3>Quick Actions</h3><span>Keep building evidence</span></div><div className="mc-quick-grid"><QuickCard ic="bi-map-fill" title={`My ${days}-day roadmap`} onClick={() => nav('/careerpilot/roadmap')} sub="Every week, every day, planned" /><QuickCard ic="bi-code-slash" title="Practice Lab" onClick={() => nav('/careerpilot/practice')} sub="Code that actually runs" /><QuickCard ic="bi-mic-fill" title="Mock interview" onClick={() => nav('/careerpilot/interview')} sub="AI interviewer + scored feedback" /><QuickCard ic="bi-file-earmark-text-fill" title="Resume Center" onClick={() => nav('/careerpilot/resume')} sub="Build it, score it, fix it" /></div></div>
             </section>
             <aside className="mc-missions-side">
               <div className="mc-side-card"><div className="mc-side-title"><i className="bi bi-fire" /> Current Streak</div><div className="mc-streak-wrap"><div><strong>{streak} Days</strong><span>Best: {longest} Days</span></div><div className="mc-fire"><i className="bi bi-fire" /></div></div></div>
@@ -346,7 +352,7 @@ const MissionControl: React.FC = () => {
 
           <section className="mc-unlock2-hero">
             <div className="mc-unlock2-copy">
-              <h2>Unlock your full <span className="y">90-day journey</span></h2>
+              <h2>Unlock your full <span className="y">{days}-day journey</span></h2>
               <div className="mc-unlock2-feats">
                 <div className="mc-unlock2-feat"><span className="ck"><i className="bi bi-check-lg" /></span>Daily missions</div>
                 <div className="mc-unlock2-feat"><span className="ck"><i className="bi bi-check-lg" /></span>Shareable CareerPilot</div>
@@ -356,17 +362,17 @@ const MissionControl: React.FC = () => {
               </div>
               {!canPay ? (
                 <>
-                  <p className="mc-unlock2-note">Online payment isn’t enabled yet — please contact your mentor to activate your 90-day journey.</p>
-                  <button className="mc-unlock2-btn" disabled><i className="bi bi-lock-fill" /> Unlock My 90-Day CareerPilot</button>
+                  <p className="mc-unlock2-note">Online payment isn’t enabled yet — please contact your mentor to activate your {days}-day journey.</p>
+                  <button className="mc-unlock2-btn" disabled><i className="bi bi-lock-fill" /> Unlock My {days}-Day CareerPilot</button>
                 </>
               ) : (
                 <>
                   <p className="mc-unlock2-note">Activate your personalized journey and start building consistent career progress.</p>
-                  <button className="mc-unlock2-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : <><i className="bi bi-unlock-fill" /> Unlock My 90-Day CareerPilot — ₹{price}</>}</button>
+                  <button className="mc-unlock2-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : <><i className="bi bi-unlock-fill" /> Unlock My {days}-Day CareerPilot — ₹{price}</>}</button>
                 </>
               )}
               {payMsg && <div className="mc-unlock2-paymsg">{payMsg}</div>}
-              <div className="mc-unlock2-links"><button className="mc-unlock2-link" onClick={() => nav('/careerpilot/roadmap')}>See what’s in the 90 days →</button><button className="mc-unlock2-link" onClick={() => nav(resultHref)}>View my full result →</button></div>
+              <div className="mc-unlock2-links"><button className="mc-unlock2-link" onClick={() => nav('/careerpilot/roadmap')}>See what’s in the {days} days →</button><button className="mc-unlock2-link" onClick={() => nav(resultHref)}>View my full result →</button></div>
             </div>
             <div className="mc-unlock2-visual" aria-hidden="true">
               <div className="mc-unlock2-road" />
@@ -384,10 +390,10 @@ const MissionControl: React.FC = () => {
           <section className="mc-result-preview">
             <div className="mc-preview-art" aria-hidden="true"><div className="mc-preview-sheet"><div className="ring"><b>{hasNumber ? scoreNum : '—'}</b></div><div className="mc-preview-line" /><div className="mc-preview-line w2" /><div className="mc-preview-line w3" /></div></div>
             <div className="mc-result-copy"><h3>Your result preview <i className="bi bi-lock-fill mc-lock-ic" /></h3><p>{hasNumber ? 'Your assessment has already measured where you stand. Activate your journey to connect that result to ongoing missions, practice and progress tracking.' : 'Your assessment is complete. Some readiness measures are still building enough evidence to publish a score.'}</p><div className="mc-result-points"><span><i className="bi bi-lock-fill" />Career Score</span><span><i className="bi bi-lock-fill" />Skill Breakdown</span><span><i className="bi bi-lock-fill" />Strengths & Gaps</span><span><i className="bi bi-lock-fill" />Role Readiness</span></div></div>
-            <div className="mc-preview-lock"><i className="bi bi-lock-fill" /><b>Unlock after activation</b><span>Your ongoing 90-day guidance becomes available when your journey is activated.</span></div>
+            <div className="mc-preview-lock"><i className="bi bi-lock-fill" /><b>Unlock after activation</b><span>Your ongoing {days}-day guidance becomes available when your journey is activated.</span></div>
           </section>
 
-          <section className="mc-unlock-bottom"><div className="mc-unlock-bottom-copy"><span className="rocket"><i className="bi bi-rocket-takeoff-fill" /></span><div><b>You’re one step away from starting your 90-day journey.</b><span>Activate CareerPilot and turn your assessment into a clear daily action plan.</span></div></div><button className="mc-mentor" onClick={() => whyRef.current?.scrollIntoView({ behavior: 'smooth' })}><i className="bi bi-headset" /> Need help? Talk to your mentor</button></section>
+          <section className="mc-unlock-bottom"><div className="mc-unlock-bottom-copy"><span className="rocket"><i className="bi bi-rocket-takeoff-fill" /></span><div><b>You’re one step away from starting your {days}-day journey.</b><span>Activate CareerPilot and turn your assessment into a clear daily action plan.</span></div></div><button className="mc-mentor" onClick={() => whyRef.current?.scrollIntoView({ behavior: 'smooth' })}><i className="bi bi-headset" /> Need help? Talk to your mentor</button></section>
         </div>
       </div>
     );

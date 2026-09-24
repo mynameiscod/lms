@@ -206,6 +206,7 @@ async function previewOf(
   access: FoundationAccess,
   days: { day: number; unitCode: string | null; title: string; items: any[] }[],
   programDays: number,
+  stageKey?: string | null,
 ) {
   const codes = [...new Set(days.map(d => d.unitCode).filter(Boolean))] as string[];
   const units = codes.length
@@ -219,7 +220,17 @@ async function previewOf(
     available: true,
     access: 'PREVIEW',
     engine,
-    title: 'CareerPilot Foundation Journey',
+    /**
+     * THE SCREEN NAMES THE JOURNEY FROM THIS, NOT FROM A CONSTANT.
+     *
+     * The title was the literal "CareerPilot Foundation Journey", so a second-year previewing
+     * their Build roadmap was shown a page headed with the wrong year — the same fault as the
+     * ninety-day copy, in the one line they read first. The key travels beside the label so the
+     * client can branch on the stage without parsing the name a tenant may have renamed.
+     */
+    stage: String(stageKey || STAGE_FALLBACK),
+    stageLabel: stageLabel(stageKey),
+    title: `CareerPilot ${stageLabel(stageKey)} Journey`,
     totalDays: programDays,
     previewDays: access.previewDays,
     lockedDays: programDays - days.length,
@@ -350,7 +361,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
             unitCode: u.unitCode,
             title: u.title,
             items: activitiesFor(u, assets.get(u.unitCode.toUpperCase()) || EMPTY_ASSETS),
-          })), programDays));
+          })), programDays, stageKey));
         }
 
         if (summary.measured && access.level === 'FULL') {
@@ -371,7 +382,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
         return res.json({
           available: false,
           reason: 'NO_JOURNEY',
-          message: 'Your Foundation journey has not been created yet.',
+          message: `Your ${stage} journey has not been created yet.`,
           totalDays: programDays,
           engine,
           access: access.level,
@@ -420,7 +431,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
     if (engine === 'UNIT' && access.level === 'PREVIEW') {
       return res.json(await previewOf(tenantId, engine, access, (days as any[]).slice(0, access.previewDays).map(d => ({
         day: d.dayNumber, unitCode: d.primaryUnitCode || null, title: d.title, items: d.items || [],
-      })), programDays));
+      })), programDays, stageKey));
     }
 
     const completed = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
@@ -454,7 +465,10 @@ export const getMyJourney = async (req: Request, res: Response) => {
 
     res.json({
       available: true,
-      title: 'CareerPilot Foundation Journey',
+      /** See previewOf: the screen names the journey from the stage, never from a constant. */
+      stage: String(stageKey || STAGE_FALLBACK),
+      stageLabel: stage,
+      title: `CareerPilot ${stage} Journey`,
       /** The length of THIS journey, restated on every response — not the tenant's current setting. */
       totalDays: programDays,
       currentDay,

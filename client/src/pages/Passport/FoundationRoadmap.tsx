@@ -1,15 +1,15 @@
 /**
- * CareerPilot Foundation — My Roadmap.
+ * CareerPilot — My Roadmap, for whichever programme the learner is on.
  *
  * ── WHAT THIS SCREEN IS FOR ───────────────────────────────────────────────────────────────
  *
  * "Where am I going over these ninety days?" The whole personalised journey at a glance: every day,
  * the topic it belongs to, what kind of day it is, and where the student is. Learning happens in
- * My 90 Days; this page sends them there.
+ * My N Days; this page sends them there.
  *
  * ── WHAT IT READS ─────────────────────────────────────────────────────────────────────────
  *
- * The journey already persisted for this student — the same overview My 90 Days reads. Nothing is
+ * The journey already persisted for this student — the same overview the day list reads. Nothing is
  * composed or generated here, so a refresh shows the same ninety days, and a reassessment that rewrote
  * future days is simply what the next read returns.
  *
@@ -105,8 +105,8 @@ const FoundationRoadmap: React.FC = () => {
       <section className="fjm-hero">
         <div className="fjm-hero-copy">
           <span className="fjm-eyebrow">Your personalised {totalDays}-day roadmap</span>
-          <h1>Foundation <span>Journey</span></h1>
-          <p>Every day of your plan, grouped by topic. Learning happens in My 90 Days — this is where you see the whole road.</p>
+          <h1>{journey.stageLabel || 'Foundation'} <span>Journey</span></h1>
+          <p>Every day of your plan, grouped by topic. Learning happens in My {totalDays} Days — this is where you see the whole road.</p>
           <div className="fjm-chips">
             <span><i className="bi bi-check2-circle" /> {completedCount} of {totalDays} days done</span>
             <span><i className="bi bi-graph-up-arrow" /> {percentComplete}% complete</span>

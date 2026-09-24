@@ -332,7 +332,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
            * TODAY'S MISSIONS ARE TODAY'S JOURNEY DAY.
            *
            * A student the unit engine plans has one plan, and the topic planner's daily missions are not part
-           * of it — which is why this card used to offer a member "Build my 90-day plan". Their missions are
+           * of it — which is why this card used to offer a member "Build my plan". Their missions are
            * the tasks of the day their journey is on, each with the XP it pays (foundationJourneyXpService),
            * worked through in the day player.
            */
@@ -340,7 +340,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             <header className="md-card-head">
               <div>
                 <h2><Bi name="list-task" /> Today’s missions</h2>
-                <p>{jDay ? `Day ${jDay.day} of ${jDay.totalDays} · ${jDay.title}` : journey?.available ? `Day ${journey.currentDay ?? 1} of ${journey.totalDays ?? 90}` : 'Your Foundation journey'}</p>
+                <p>{jDay ? `Day ${jDay.day} of ${jDay.totalDays} · ${jDay.title}` : journey?.available ? `Day ${journey.currentDay ?? 1} of ${journey.totalDays ?? 90}` : `Your ${journey?.stageLabel || 'CareerPilot'} journey`}</p>
               </div>
               {jDay && <span className="md-pill">{jDone} of {jActs.length} done · +{jEarned} / {jTotalXp} XP</span>}
             </header>

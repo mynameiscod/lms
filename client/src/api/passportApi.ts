@@ -2340,8 +2340,17 @@ export interface FoundationJourneyDaySummary {
  */
 export interface FoundationJourney {
   available: boolean;
-  /** Always 90, available or not. A student is told how long it will be before it exists. */
+  /** The programme length, available or not. A student is told how long it will be before it exists. */
   totalDays: number;
+  /**
+   * Which stage this journey teaches — `foundation` for a first-year, `build` for a second-year.
+   *
+   * The key is for branching, the label for showing. Both are optional because a server that has
+   * not been deployed yet sends neither, and a screen that falls back to its old wording is a
+   * better failure than one that renders "undefined Journey".
+   */
+  stage?: string | null;
+  stageLabel?: string | null;
   /** The engine that plans this student. UNIT means this journey is their one roadmap. */
   engine?: 'UNIT' | 'TOPIC';
   /** The enrolment whose day player works a day through. Null until the journey exists. */
@@ -2359,6 +2368,7 @@ export interface FoundationJourney {
   message?: string;
 
   /** Present only when `available` is true. */
+  /** Already named for the stage by the server: "CareerPilot Build Journey". */
   title?: string;
   currentDay?: number;
   completedCount?: number;

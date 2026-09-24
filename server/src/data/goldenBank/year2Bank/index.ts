@@ -33,6 +33,7 @@ import { SQL_FILTERING } from './sqlFiltering';
 import { DB_DESIGN } from './dbDesign';
 import { API_FUNDAMENTALS } from './apiFundamentals';
 import { REST_APIS } from './restApis';
+import { SECURITY_FUNDAMENTALS } from './securityFundamentals';
 
 export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_STACK,
@@ -54,6 +55,7 @@ export const YEAR2_BANK: GoldenItem[] = [
   ...DB_DESIGN,
   ...API_FUNDAMENTALS,
   ...REST_APIS,
+  ...SECURITY_FUNDAMENTALS,
 ];
 
 export { GoldenItem };

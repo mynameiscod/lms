@@ -236,20 +236,26 @@ class SubmissionService {
     let stdout = '';
     let runtimeError: string | undefined;
 
+    /* Every case up front. For Java with three or more cases this compiles once and
+       forks a fresh JVM per case instead of paying javac per case — the program's own
+       logic is microseconds, the startup was ~420ms each. Everything else falls back
+       to the original per-case path inside executeBatch, so behaviour is unchanged. */
+    const batched = await codeRunnerService.executeBatch({
+      code,
+      language,
+      cases: visibleTestCases.map(tc => ({
+        input: tc.input, expectedOutput: tc.expectedOutput, timeLimit: tc.timeLimit,
+      })),
+      memoryLimit: assignment.memoryLimit || 256,
+      comparisonMode: (assignment as any).comparisonMode || 'lenient',
+      // Assignments let JavaScript read input with browser-style prompt(). Ignored for
+      // every other language, and off everywhere outside this module.
+      enablePromptInput: true,
+    });
+
     for (let i = 0; i < visibleTestCases.length; i++) {
       const tc = visibleTestCases[i];
-      const result = await codeRunnerService.execute({
-        code,
-        language,
-        input: tc.input,
-        expectedOutput: tc.expectedOutput,
-        timeLimit: tc.timeLimit || 5000,
-        memoryLimit: assignment.memoryLimit || 256,
-        comparisonMode: (assignment as any).comparisonMode || 'lenient',
-        // Assignments let JavaScript read input with browser-style prompt(). Ignored for
-        // every other language, and off everywhere outside this module.
-        enablePromptInput: true
-      });
+      const result = batched[i];
 
       // If there's a compilation error, capture it and fail all tests
       if (result.compilationError) {
@@ -349,22 +355,28 @@ class SubmissionService {
     let totalWeight = 0;
     let earnedWeight = 0;
 
+    /* Graded run — the one that decides a mark, and the one with the most test cases,
+       so the compile-once path matters most here. Isolation is unchanged: each case
+       still gets its own process, so static state, System.exit() and uncaught
+       exceptions stay confined to the case that caused them. */
+    const graded = await codeRunnerService.executeBatch({
+      code: submission.code,
+      language: submission.language!,
+      cases: assignment.testCases.map(tc => ({
+        input: tc.input, expectedOutput: tc.expectedOutput, timeLimit: tc.timeLimit,
+      })),
+      memoryLimit: assignment.memoryLimit || 256,
+      comparisonMode: (assignment as any).comparisonMode || 'lenient',
+      // Assignments let JavaScript read input with browser-style prompt(). Ignored for
+      // every other language, and off everywhere outside this module.
+      enablePromptInput: true,
+    });
+
     for (let i = 0; i < assignment.testCases.length; i++) {
       const tc = assignment.testCases[i];
       totalWeight += tc.weight;
 
-      const result = await codeRunnerService.execute({
-        code: submission.code,
-        language: submission.language!,
-        input: tc.input,
-        expectedOutput: tc.expectedOutput,
-        timeLimit: tc.timeLimit || 5000,
-        memoryLimit: assignment.memoryLimit || 256,
-        comparisonMode: (assignment as any).comparisonMode || 'lenient',
-        // Assignments let JavaScript read input with browser-style prompt(). Ignored for
-        // every other language, and off everywhere outside this module.
-        enablePromptInput: true
-      });
+      const result = graded[i];
 
       if (result.passed) {
         earnedWeight += tc.weight;

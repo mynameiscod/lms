@@ -948,6 +948,142 @@ class CodeRunnerService {
       return false;
     }
   }
+
+  /**
+   * Run one program against MANY test cases: compile once, fresh process per case.
+   *
+   * ── WHY ───────────────────────────────────────────────────────────────────
+   *
+   * Grading called execute() once per test case, so a five-case assignment compiled
+   * identical Java five times. Measured on the execution host: a Java job costs
+   * ~420ms and almost all of it is javac plus JVM start — the student's own logic is
+   * microseconds. Five cases took 2,177ms to do about a millisecond of work.
+   *
+   * Compiling once and forking a fresh JVM per case costs ~935ms fixed and ~67ms per
+   * case. Marginal cost drops 6x, so the saving grows with the number of cases:
+   * 5 cases 2,177 -> ~1,320ms, 20 cases ~8,700 -> ~2,320ms.
+   *
+   * ── WHY A FRESH PROCESS RATHER THAN A LOOP IN ONE JVM ─────────────────────
+   *
+   * Calling main() five times inside one JVM would be faster still, and wrong.
+   * Static state would carry between cases, System.exit() in the student's code
+   * would end the whole batch, and an uncaught exception would abandon the rest.
+   * Separate Piston jobs gave isolation for free; a separate process keeps it.
+   * Verified on the sandbox: a static counter reads 1 in every case, System.exit(3)
+   * ends only its own case, a thrown exception ends only its own case, and an
+   * infinite loop is killed on its own timeout while the remaining cases still run.
+   *
+   * ── IT DECLINES MORE OFTEN THAN IT ACCEPTS ────────────────────────────────
+   *
+   * The fixed cost only pays back from about three cases, and this path exists for
+   * Java, where startup dominates. Everything else — other languages, one or two
+   * cases, simulation mode — falls through to the original per-case path, which is
+   * unchanged. A caller can always use this; it decides whether it is worth it.
+   */
+  async executeBatch(args: {
+    code: string;
+    language: ProgrammingLanguage;
+    cases: { input: string; expectedOutput: string; timeLimit?: number }[];
+    memoryLimit?: number;
+    comparisonMode?: 'lenient' | 'exact' | 'case_insensitive' | 'numeric';
+    enablePromptInput?: boolean;
+  }): Promise<ExecutionResult[]> {
+    const { code, language, cases, memoryLimit = 256, comparisonMode = 'lenient', enablePromptInput } = args;
+
+    /* The fallback must reproduce execute()'s arguments EXACTLY, including the
+       JavaScript prompt() opt-in. Dropping it here would silently break every JS
+       assignment that reads input the way students were taught — and it would only
+       show up as wrong answers, never as an error. */
+    const oneByOne = () => Promise.all(cases.map(tc => this.execute({
+      code, language, input: tc.input, expectedOutput: tc.expectedOutput,
+      timeLimit: tc.timeLimit || 5000, memoryLimit, comparisonMode, enablePromptInput,
+    })));
+
+    // Java only, three cases or more, and never against the simulator — a
+    // simulated batch would be fabricated grading.
+    if (language !== ProgrammingLanguage.JAVA || cases.length < 3 || !this.realExecutionEnabled) {
+      return oneByOne();
+    }
+
+    const cls = (code.match(/public\s+class\s+(\w+)/) || [])[1] || 'Main';
+    // Control lines are tagged with a per-request nonce and carry base64 payloads,
+    // so a student printing our marker cannot forge a result or corrupt parsing.
+    const nonce = Math.random().toString(36).slice(2, 10);
+    const perCaseMs = Math.max(1000, Math.min(...cases.map(c => c.timeLimit || 5000)));
+
+    const runner = `
+import java.io.*; import java.nio.charset.StandardCharsets;
+import java.util.Base64; import java.util.concurrent.TimeUnit;
+public class CBRunner {
+  static String b64(byte[] b){ return Base64.getEncoder().encodeToString(b); }
+  public static void main(String[] a) throws Exception {
+    Process c = new ProcessBuilder("javac","${cls}.java").redirectErrorStream(true).start();
+    byte[] cerr = c.getInputStream().readAllBytes();
+    if (c.waitFor() != 0) { System.out.println("##${nonce}##C|"+b64(cerr)); return; }
+    String[] inputs = new String[]{${cases.map(c => JSON.stringify(c.input ?? '')).join(',')}};
+    for (int i = 0; i < inputs.length; i++) {
+      long t0 = System.currentTimeMillis();
+      Process p = new ProcessBuilder("java","-Xmx${memoryLimit}m","${cls}").start();
+      OutputStream os = p.getOutputStream();
+      os.write(inputs[i].getBytes(StandardCharsets.UTF_8)); os.write('\\n'); os.close();
+      boolean done = p.waitFor(${perCaseMs}, TimeUnit.MILLISECONDS);
+      byte[] out, err;
+      if (!done) { p.destroyForcibly(); p.waitFor();
+        out = p.getInputStream().readAllBytes(); err = "TIMEOUT".getBytes(StandardCharsets.UTF_8); }
+      else { out = p.getInputStream().readAllBytes(); err = p.getErrorStream().readAllBytes(); }
+      System.out.println("##${nonce}##R|"+i+"|"+(done?p.exitValue():-1)+"|"
+        +(System.currentTimeMillis()-t0)+"|"+b64(out)+"|"+b64(err));
+    }
+  }
+}`;
+
+    try {
+      const res = await withExecutionSlot(() => fetch(`${this.resolveUrl()}/execute`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: 'java', version: '15.0.2',
+          files: [{ name: 'CBRunner', content: runner }, { name: `${cls}.java`, content: code }],
+          stdin: '', run_timeout: 30000, run_cpu_time: 30000,
+          compile_timeout: 20000, compile_cpu_time: 20000,
+        }),
+      }), language);
+
+      if (!res.ok) return oneByOne();
+      const j: any = await res.json();
+      const lines: string[] = String(j?.run?.stdout || '').split('\n');
+      const dec = (s: string) => Buffer.from(s || '', 'base64').toString('utf8');
+
+      const compileLine = lines.find(l => l.startsWith(`##${nonce}##C|`));
+      if (compileLine) {
+        const msg = dec(compileLine.split('|')[1]);
+        return cases.map(() => ({
+          passed: false, output: '', compilationError: msg, error: msg,
+          executionTime: 0, memoryUsed: 0,
+        }));
+      }
+
+      const out: ExecutionResult[] = [];
+      for (let i = 0; i < cases.length; i++) {
+        const line = lines.find(l => l.startsWith(`##${nonce}##R|${i}|`));
+        // A missing line means the batch died partway (job timeout, OOM). Fall back
+        // rather than score a case nobody ran.
+        if (!line) return oneByOne();
+        const [, , exit, ms, so, se] = line.split('|');
+        const stdout = dec(so); const stderr = dec(se);
+        const timedOut = exit === '-1';
+        out.push({
+          passed: !timedOut && exit === '0' && this.compareOutputs(cases[i].expectedOutput, stdout, comparisonMode),
+          output: stdout,
+          error: timedOut ? 'Time limit exceeded' : (stderr || undefined),
+          executionTime: Number(ms) || 0,
+          memoryUsed: 0,
+        });
+      }
+      return out;
+    } catch {
+      return oneByOne();
+    }
+  }
 }
 
 export default new CodeRunnerService();

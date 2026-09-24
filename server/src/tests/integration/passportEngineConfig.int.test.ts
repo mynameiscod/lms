@@ -84,7 +84,7 @@ describe('saving the engine switches through the Admin handler', () => {
     ['a non-boolean switch', { megaCurriculumEnabled: 'yes' }],
     ['stages that are not a list', { megaCurriculumStages: 'foundation' }],
     ['a stage that does not exist', { megaCurriculumStages: ['year9'] }],
-    ['a stage with no Learning Unit curriculum', { megaCurriculumStages: ['build'] }],
+    ['a stage with no Learning Unit curriculum', { megaCurriculumStages: ['specialize'] }],
     ['a malformed student id', { megaCurriculumStudentIds: ['not-an-id'] }],
     ['student ids that are not a list', { megaCurriculumStudentIds: '507f1f77bcf86cd799439d99' }],
   ])('refuses %s and writes nothing', async (_label, body) => {
@@ -119,7 +119,12 @@ describe('saving the engine switches through the Admin handler', () => {
 });
 
 describe('what the resolver decides, against a real database', () => {
-  it('puts Foundation on UNIT on every tenant before anything is saved, and no save moves another stage', async () => {
+  /**
+   * Foundation is unconditional; build is opt-in. The second half is the part that changed when
+   * build became unit-capable: a tenant that has saved nothing keeps its second-years on TOPIC,
+   * and it is the SAVE that moves them, not the capability.
+   */
+  it('puts Foundation on UNIT on every tenant before anything is saved, and leaves build alone until a save says so', async () => {
     const foundation = await student(TENANT, 'foundation');
     const build = await student(TENANT, 'build');
     const elsewhere = await student(OTHER, 'foundation');
@@ -129,10 +134,15 @@ describe('what the resolver decides, against a real database', () => {
     expect((await resolveCurriculumEngine({ tenantId: OTHER, studentId: String(elsewhere._id) })).engine).toBe('UNIT');
     expect((await resolveCurriculumEngine({ tenantId: TENANT, studentId: String(build._id) })).engine).toBe('TOPIC');
 
-    await passport.updateConfig(asAdmin({ megaCurriculumStages: [], megaCurriculumEnabled: true }), capture());
-
-    expect((await resolveCurriculumEngine({ tenantId: TENANT, studentId: String(foundation._id) })).engine).toBe('UNIT');
+    // Opting a DIFFERENT stage in leaves build where it was.
+    await passport.updateConfig(asAdmin({ megaCurriculumStages: ['foundation'] }), capture());
     expect((await resolveCurriculumEngine({ tenantId: TENANT, studentId: String(build._id) })).engine).toBe('TOPIC');
+
+    // Opting build in moves it, and moves nobody on the other tenant.
+    await passport.updateConfig(asAdmin({ megaCurriculumStages: ['foundation', 'build'] }), capture());
+    expect((await resolveCurriculumEngine({ tenantId: TENANT, studentId: String(foundation._id) })).engine).toBe('UNIT');
+    expect((await resolveCurriculumEngine({ tenantId: TENANT, studentId: String(build._id) })).engine).toBe('UNIT');
+    expect((await resolveCurriculumEngine({ tenantId: OTHER, studentId: String(elsewhere._id) })).engine).toBe('UNIT');
   });
 
   it('reports on the Admin config whether this tenant can serve the Foundation journey', async () => {

@@ -90,14 +90,39 @@ describe('the engine a Foundation learner is on', () => {
 });
 
 describe('the engine every other learner is on', () => {
-  it('is TOPIC for a later stage however the switches are set', () => {
+  /**
+   * Build is CAPABLE of the unit engine and is not moved onto it by capability alone.
+   *
+   * This used to assert that build stayed TOPIC "however the switches are set", because the
+   * capability list and the always-on list were one list and build was in neither. Now build is
+   * in the capability list, so the switches govern it — which is what the allow-lists were
+   * always for. What must not change is that capability alone moves nobody: a tenant that has
+   * saved nothing still gets TOPIC for its second-years.
+   */
+  it('is TOPIC for a later stage until a switch says otherwise', () => {
     expect(effectiveCurriculumEngine({ config: null, stageKey: 'build' })).toMatchObject({ engine: 'TOPIC', basis: 'NO_CONFIG' });
     expect(effectiveCurriculumEngine({ config: { megaCurriculumStages: ['foundation'] }, stageKey: 'build' }))
       .toMatchObject({ engine: 'TOPIC', basis: 'NOT_ENABLED' });
+  });
+
+  it('moves a later stage onto UNIT only where a switch opts it in', () => {
+    expect(effectiveCurriculumEngine({ config: { megaCurriculumStages: ['build'] }, stageKey: 'build' }))
+      .toMatchObject({ engine: 'UNIT', basis: 'STAGE_LIST' });
     expect(effectiveCurriculumEngine({ config: { megaCurriculumEnabled: true }, stageKey: 'build' }))
+      .toMatchObject({ engine: 'UNIT', basis: 'TENANT_SWITCH' });
+    expect(effectiveCurriculumEngine({ config: { megaCurriculumStudentIds: [PILOT] }, stageKey: 'build', studentId: PILOT }))
+      .toMatchObject({ engine: 'UNIT', basis: 'STUDENT_ALLOWLIST' });
+  });
+
+  /**
+   * The capability filter still has to exist, and still has to bite, for a stage the engine
+   * genuinely cannot plan. `specialize` has no Learning Unit curriculum, so a tenant switch
+   * that would otherwise move it must be overridden and SAID — silently planning nothing is
+   * the failure this branch was written to prevent.
+   */
+  it('refuses a stage the engine cannot plan, even with the tenant switch on', () => {
+    expect(effectiveCurriculumEngine({ config: { megaCurriculumEnabled: true }, stageKey: 'specialize' }))
       .toMatchObject({ engine: 'TOPIC', requested: 'UNIT', basis: 'NO_UNIT_CURRICULUM_FOR_STAGE' });
-    expect(effectiveCurriculumEngine({ config: { megaCurriculumStudentIds: [PILOT] }, stageKey: 'build', studentId: PILOT }).engine)
-      .toBe('TOPIC');
   });
 
   it('is TOPIC for a learner whose stage is unknown', () => {
@@ -114,12 +139,19 @@ describe('the engine every other learner is on', () => {
   });
 
   it('describes the effective mode per stage for the Admin screen', () => {
-    for (const cfg of [null, { megaCurriculumStages: ['foundation'] }, { megaCurriculumEnabled: true }]) {
+    for (const cfg of [null, { megaCurriculumStages: ['foundation'] }]) {
       const summary = describeEngineConfig(cfg as any);
       expect(summary.foundationMode).toBe('UNIT');
       expect(summary.stages.filter(s => s.stage !== 'foundation').every(s => s.mode === 'TOPIC')).toBe(true);
-      expect(summary.unitCapableStages).toEqual(['foundation']);
     }
+
+    /* Build is offerable to an admin, so the screen must list it as capable. */
+    expect(describeEngineConfig(null as any).unitCapableStages).toEqual(['foundation', 'build']);
+
+    /* And once the tenant switch is on, the screen must show build as UNIT rather than TOPIC. */
+    const enabled = describeEngineConfig({ megaCurriculumEnabled: true } as any);
+    expect(enabled.stages.find(s => s.stage === 'build')?.mode).toBe('UNIT');
+    expect(enabled.stages.find(s => s.stage === 'specialize')?.mode).toBe('TOPIC');
   });
 });
 
@@ -164,8 +196,23 @@ describe('a curriculum trigger', () => {
     expect(replanForTrigger).not.toHaveBeenCalled();
   });
 
-  it('keeps a later-stage learner on TOPIC even when the tenant switch is on', async () => {
+  /**
+   * The seam routes a second-year to the unit composer once the tenant has opted in, and carries
+   * their OWN stage rather than defaulting to foundation. That second assertion is the one worth
+   * having: the trigger service threads stageKey into every downstream call, so a build student
+   * planned as 'foundation' would compose from the wrong curriculum and never be found again by
+   * the reader, which filters journeys by adaptiveStage.
+   */
+  it('routes a later-stage learner to the unit composer once the tenant switch is on', async () => {
     config = { megaCurriculumEnabled: true };
+    await handleCurriculumTrigger({ tenantId: TENANT, studentId: BUILD_STUDENT, trigger: 'DIAGNOSTIC_COMPLETED' });
+    expect(replanForTrigger).not.toHaveBeenCalled();
+    expect(applyFoundationTrigger).toHaveBeenCalledTimes(1);
+    expect(applyFoundationTrigger).toHaveBeenCalledWith(expect.objectContaining({ stageKey: 'build' }));
+  });
+
+  it('keeps a later-stage learner on TOPIC while the tenant has opted into nothing', async () => {
+    config = { megaCurriculumStages: ['foundation'] };
     await handleCurriculumTrigger({ tenantId: TENANT, studentId: BUILD_STUDENT, trigger: 'DIAGNOSTIC_COMPLETED' });
     expect(replanForTrigger).toHaveBeenCalledTimes(1);
     expect(applyFoundationTrigger).not.toHaveBeenCalled();

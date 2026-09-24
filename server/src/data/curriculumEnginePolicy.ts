@@ -121,17 +121,49 @@ export const megaCurriculumInUse = (cfg?: CurriculumEngineConfig | null): boolea
  * ------------------------------------------------------------------ */
 
 /**
- * Stages the UNIT engine can plan.
+ * Stages the UNIT engine CAN plan.
  *
- * Only Foundation has a Learning Unit curriculum, a composer and a ninety-day journey. A later
- * stage switched onto UNIT would have nothing to plan from, so it stays on TOPIC however the
- * switches are set. The capability is part of the answer rather than a check each caller has to
- * remember — a student routed to an engine that cannot serve them is a student with no plan.
+ * A student routed to an engine that cannot serve them is a student with no plan, so capability
+ * is part of the answer rather than a check each caller has to remember. A stage absent from
+ * this list stays on TOPIC however the switches are set, and the config route refuses to accept
+ * it in `megaCurriculumStages` at all.
+ *
+ * Build joined Foundation once Year 2 had what the engine needs: a Learning Unit curriculum
+ * under `adaptiveStage: 'build'`, 296 published units, and a composer that never asked what
+ * stage it was planning in the first place.
+ *
+ * CAPABLE IS NOT THE SAME AS COMPULSORY — see UNIT_MANDATORY_STAGES immediately below. This
+ * list only makes a stage eligible to be switched on; it does not switch it on.
  */
-export const UNIT_ENGINE_STAGES: readonly string[] = ['foundation'];
+export const UNIT_ENGINE_STAGES: readonly string[] = ['foundation', 'build'];
 
 export const unitEngineServesStage = (stageKey?: string | null): boolean =>
   !!stageKey && UNIT_ENGINE_STAGES.includes(String(stageKey).toLowerCase().trim());
+
+/**
+ * Stages that are on the UNIT engine whatever the switches say.
+ *
+ * ── WHY THIS IS A SECOND LIST AND NOT THE ONE ABOVE ───────────────────────────────────────
+ *
+ * It used to be one list, and the resolver read it as "unconditionally UNIT": the first branch
+ * of effectiveCurriculumEngine returns UNIT on a match before any switch is consulted. That was
+ * right while Foundation was the only member, because Foundation IS unconditional — every
+ * first-year receives exactly ninety days, and a tenant that cannot serve that is told
+ * NOT_CONFIGURED out loud rather than quietly handed the topic roadmap.
+ *
+ * Adding `build` to that same list would have carried the unconditional part with it: every
+ * second-year on every tenant moved to the unit engine at once, and off the topic roadmap,
+ * including tenants with no Year-2 content at all. A one-line change with a full-population
+ * blast radius.
+ *
+ * So the two ideas are separated. Foundation keeps its guarantee. Build is capable, and reaches
+ * the unit engine only where a tenant has opted in — by stage, by student, or by the tenant
+ * switch — which is what the allow-lists in curriculumEngineDecision were always for.
+ */
+export const UNIT_MANDATORY_STAGES: readonly string[] = ['foundation'];
+
+export const unitEngineIsMandatoryFor = (stageKey?: string | null): boolean =>
+  !!stageKey && UNIT_MANDATORY_STAGES.includes(String(stageKey).toLowerCase().trim());
 
 export interface EffectiveEngine {
   /** The engine that will actually plan this student. */
@@ -166,7 +198,7 @@ export function effectiveCurriculumEngine(input: {
   stageKey?: string | null;
 }): EffectiveEngine {
   const stageKey = input.stageKey ? String(input.stageKey).toLowerCase().trim() : null;
-  if (unitEngineServesStage(stageKey)) {
+  if (unitEngineIsMandatoryFor(stageKey)) {
     return { engine: 'UNIT', requested: 'UNIT', basis: 'FOUNDATION_PRODUCT', stageKey };
   }
   const decision = curriculumEngineDecision(input);

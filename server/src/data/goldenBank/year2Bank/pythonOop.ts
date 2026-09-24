@@ -48,7 +48,7 @@ export const PYTHON_OOP: GoldenItem[] = [
     conceptId: 'PYO_C02_SELF', factId: 'PYO_F02_SELF_MEANING',
     familyId: 'PYO_FAM02_WHAT_SELF_IS', reassessmentGroup: 'PYO_RG_SELF',
     difficulty: 'D1', cognitiveLevel: 'REMEMBER',
-    prompt: 'What is self?',
+    prompt: 'What is self in a Python method?',
     options: [
       'The instance the method was called on, passed in as the first argument',
       'A reserved keyword that refers to the class the method has been defined in',

@@ -179,8 +179,42 @@ export const ASSESSMENT_POLICIES: AssessmentPolicy[] = [
     skillSlots: 24, maxSkills: 8, minItemsPerSkill: 3, maxItemsPerSkill: 3,
     difficultyMix: mix(0.25, 0.5, 0.25),
     prerequisiteDepth: 1,
+    /**
+     * ON, and this was measured both ways before it was left alone.
+     *
+     * The obvious complaint is that with it on, rankSkills puts every FOUNDATION skill ahead
+     * of every INTERMEDIATE one, and the set holds more than eight stocked FOUNDATION skills —
+     * so over forty synthetic papers the paper filled before an INTERMEDIATE skill was ever
+     * considered, and twenty-three of the set's thirty-one skills were never reached once.
+     *
+     * Turning it off does not fix that. The difficulty comparison INVERTS rather than
+     * disappearing, so the paper then covered DSA_TREES, DB_TRANSACTIONS, PYTHON_OOP and five
+     * more of the hardest skills in the syllabus — still eight of thirty-one, just the other
+     * end. A second-year arriving at Year 2 has not been taught those yet, so the paper
+     * measured a floor and produced a roadmap that teaches everything, which is what it would
+     * have done with no paper at all.
+     *
+     * The real constraint is maxSkills: eight of thirty-one, and three items each is already
+     * the floor for a confident measurement. Breadth cannot come from the ordering. It comes
+     * from the module checkpoints, which measure each skill once it has been taught — the
+     * same division of labour FOUNDATION_V1 documents above.
+     *
+     * So the entry test's job is placement: can this student do the things Year 2 builds on.
+     * That is the foundational end, and the policy's own difficulty mix already carries the
+     * "they have a year behind them" adjustment — 25/50/25 rather than Year 1's 60/35/5. The
+     * mix is the axis that should be harder here, not the choice of skills.
+     */
     preferFoundationalSkills: true,
-    allowedSkillDifficulty: ['FOUNDATION', 'INTERMEDIATE'],
+    /**
+     * ADVANCED admitted, for the same reason Year 1 admits INTERMEDIATE.
+     *
+     * The taxonomy grades a skill by its inherent depth; what a second-year should be asked is
+     * a property of the stage set, and that set is authored from the Year-2 curriculum. Leaving
+     * ADVANCED out excluded DSA_TREES and DB_TRANSACTIONS from measurement entirely while the
+     * curriculum carried on teaching both, so their scores could never move off "not yet
+     * exposed" — the identical failure the Year-1 comment above describes.
+     */
+    allowedSkillDifficulty: ['FOUNDATION', 'INTERMEDIATE', 'ADVANCED'],
     allowDifficultyFallback: true,
   },
   {

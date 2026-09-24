@@ -1,9 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import CareerPilotStaging from './pages/Passport/AdminStaging';
-import CareerPilotConcepts from './pages/Passport/AdminConcepts';
-import CareerPilotCoverage from './pages/Passport/AdminAssessmentCoverage';
-import CareerPilotPaperDesign from './pages/Passport/AdminPaperDesign';
-import LabTracks from './pages/LabTracks';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { loginPathFor } from './utils/loginPath';
@@ -15,246 +10,237 @@ import { SocketProvider, useSocket } from './contexts/SocketContext';
 import { Layout } from './components/layout';
 import { Spinner } from './components/common';
 
-// Pages
-import LoginPage from './pages/Login';
-import RegisterPage from './pages/Register';
-import CreateOrganizationPage from './pages/CreateOrganization';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import { SetupPassword } from './pages/SetupPassword/SetupPassword';
-import { ProfileCompletion } from './pages/ProfileCompletion/ProfileCompletion';
-import DashboardPage from './pages/Dashboard';
-import UsersPage from './pages/Users';
-import RolesPage from './pages/Roles';
-import BatchesPage from './pages/Batches';
-import AttendancePage from './pages/Attendance';
-import MyAttendancePage from './pages/MyAttendance';
-import AttendanceReportsPage from './pages/AttendanceReports';
-import QuizReportsPage from './pages/QuizReports';
-import QuizManagementPage from './pages/QuizManagement';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import QuestionManagementPage from './pages/QuestionManagement';
-import QuizzesPage from './pages/Quizzes';
-import QuizTakingPage from './pages/QuizTaking';
-import QuizResultsPage from './pages/QuizResults';
-import QuizResultsAdminPage from './pages/QuizResultsAdmin';
-import QuestionBuilder from './pages/QuestionBuilder';
-import StudentProfilePage from './pages/StudentProfile';
-import OAuthCallbackPage from './pages/OAuthCallback';
-import AdminContentPage from './pages/AdminContent';
-import NotFoundPage from './pages/NotFound';
-import StudentReportsPage from './pages/StudentReports';
-import WeeklyReportsPage from './pages/WeeklyReports';
-import AdminStudentProfilesPage from './pages/AdminStudentProfiles';
-import StudentProfileDetail from './pages/AdminStudentProfiles/StudentProfileDetail';
-import DepartmentsPage from './pages/Departments';
-import CollegeSettingsPage from './pages/CollegeSettings';
-import CollegeMembersPage from './pages/CollegeMembers';
-import PlacementDrivesPage from './pages/PlacementDrives';
-import PlacementAnalyticsPage from './pages/PlacementAnalytics';
-import MyApplicationsPage from './pages/MyApplications';
-import AlumniManagementPage from './pages/AlumniManagement';
-import CollegeCurriculumPage from './pages/CollegeCurriculum';
-import CRTManagementPage from './pages/CRTManagement';
-import TenantManagementPage from './pages/TenantManagement';
-import AlumniDirectoryPage from './pages/AlumniDirectory';
-import NotificationCenterPage from './pages/NotificationCenter';
-import StudentCollegePortal from './pages/StudentCollegePortal';
-import StudentFeeDetailsPage from './pages/StudentFeeDetails';
-import DeptReportsPage from './pages/DeptReports';
-import BulkUploadPage from './pages/BulkUpload';
-import RecordingDiagnostics from './pages/RecordingDiagnostics';
-import PlatformSettings from './pages/PlatformSettings';
-import MyLeave from './pages/MyLeave';
-import LeaveRequests from './pages/LeaveRequests';
-import CodePlayground from './pages/CodePlayground';
-import PassportAdminConfig from './pages/Passport/AdminConfig';
-import PassportAdminStudents from './pages/Passport/AdminStudents';
-import PassportAdminStudentRoadmap from './pages/Passport/AdminStudentRoadmap';
-import PassportAdminStageSkills from './pages/Passport/AdminStageSkills';
-import PassportAdminCoins from './pages/Passport/AdminCoins';
-import PassportAdminFunnel from './pages/Passport/AdminFunnel';
-import PassportAdminCurriculum from './pages/Passport/AdminCurriculum';
-import PassportAdminPathwayRules from './pages/Passport/AdminPathwayRules';
-import PassportAdminCareerRoles from './pages/Passport/AdminCareerRoles';
-import PassportAdminSkillGraph from './pages/Passport/AdminSkillGraph';
-import PassportAdminRoleBlueprint from './pages/Passport/AdminRoleBlueprint';
-import PassportAdminSkillEvidence from './pages/Passport/AdminSkillEvidence';
-import PassportAdminAssessmentPreview from './pages/Passport/AdminAssessmentPreview';
-import PassportAdminAssessmentShape from './pages/Passport/AdminAssessmentShape';
-import PassportAdminQuestionDrafts from './pages/Passport/AdminQuestionDrafts';
-import PassportAdminQuestionBank from './pages/Passport/AdminQuestionBank';
-import PassportAdminPathways from './pages/Passport/AdminPathways';
-import PassportAdminMissions from './pages/Passport/AdminMissions';
-import PassportHome from './pages/Passport/PassportHome';
-import PassportMaterialViewer from './pages/Passport/MaterialViewer';
-import PassportMemberLayout from './pages/Passport/MemberLayout';
-import PassportCareerSetup from './pages/Passport/CareerSetup';
-import PassportAdminActivity from './pages/Passport/AdminActivity';
-import PassportLearningStudio from './pages/Passport/AdminLearningStudio';
-import PassportLearningUnit from './pages/Passport/AdminLearningUnit';
-import PassportRoadmap from './pages/Passport/Roadmap';
-import PassportSkillDna from './pages/Passport/SkillDna';
-import PassportRoleReadiness from './pages/Passport/RoleReadiness';
-import PassportPlacementReadiness from './pages/Passport/PlacementReadiness';
-import PassportSkillAssessment from './pages/Passport/SkillAssessment';
-import PassportGamification from './pages/Passport/Gamification';
-import PassportRewards from './pages/Passport/Rewards';
-import PassportPractice from './pages/Passport/Practice';
-import PassportPracticeItem from './pages/Passport/PracticeItem';
-import PassportInterview from './pages/Passport/Interview';
-import PassportResumeCenter from './pages/Passport/ResumeCenter';
-import PassportCoins from './pages/Passport/Coins';
-import PassportLeaderboard from './pages/Passport/Leaderboard';
-import PassportAchievements from './pages/Passport/Achievements';
-import PassportNews from './pages/Passport/News';
-import PassportCompanies from './pages/Passport/Companies';
-import PassportMockTest from './pages/Passport/MockTest';
-import PassportAdminNews from './pages/Passport/AdminNews';
-import PassportAdminCompanies from './pages/Passport/AdminCompanies';
-import PassportAdminAnalytics from './pages/Passport/AdminAnalytics';
-import PassportAssessmentPage from './pages/Passport/Assessment';
-import PassportAdminAssessment from './pages/Passport/AdminAssessment';
-import PassportCard from './pages/Passport/Card';
-import PassportJoin from './pages/Passport/Join';
-import PassportLogin from './pages/Passport/Login';
-import HackathonExam from './pages/HackathonExam';
-import HackathonExamAdmin from './pages/HackathonExamAdmin';
-import BattleList from './pages/Battles/PublicList';
-import BattleLanding from './pages/Battles/Landing';
-import BattleExam from './pages/Battles/Exam';
-import BattleLeaderboard from './pages/Battles/Leaderboard';
-import BattlesAdmin from './pages/BattlesAdmin';
-import BattleDetail from './pages/BattlesAdmin/BattleDetail';
-import HackathonsAdmin from './pages/HackathonsAdmin';
-import HackathonResume from './pages/HackathonResume';
-import HackathonDetail from './pages/HackathonsAdmin/HackathonDetail';
-import ProjectBuilder from './pages/ProjectBuilder';
-import JobTracker from './pages/JobTracker';
-import AIMentor from './pages/AIMentor';
-import ResourceLibrary from './pages/ResourceLibrary';
-import ResourceAdmin from './pages/ResourceAdmin';
-import SpeakingPractice from './pages/SpeakingPractice';
-import SpeakingAdmin from './pages/SpeakingAdmin';
-import LogicGym from './pages/LogicGym';
-import DrillsAdmin from './pages/DrillsAdmin';
-import ThinkingLab from './pages/ThinkingLab';
-import ThinkingLabAdmin from './pages/ThinkingLabAdmin';
-import InterviewQuestionsPage from './pages/InterviewQuestions';
-import InterviewQuestionBankPage from './pages/InterviewQuestionBank';
-
-// Structured Interview Module Pages
-import InterviewTemplateList from './pages/InterviewTemplateList';
-import InterviewTemplateCreate from './pages/InterviewTemplateCreate';
-import InterviewQBManagement from './pages/InterviewQBManagement';
-import InterviewAssignment from './pages/InterviewAssignment';
-import InterviewAnalytics from './pages/InterviewAnalytics';
-import TakeStructuredInterview from './pages/TakeStructuredInterview';
-import LiveInterview from './pages/LiveInterview';
-import InterviewFeedbackReport from './pages/InterviewFeedbackReport';
-
-// Assignment Pages
-import {
-  AdminAssignmentList,
-  AdminAssignmentForm,
-  AdminSubmissions,
-  StudentAssignmentList,
-  AssignmentWorkspace,
-  AssignmentResult
-} from './pages/assignments';
-import AssignmentReports from './pages/AssignmentReports';
-import StudentFeaturesPage from './pages/StudentFeatures';
-import ResumeBuilderPage from './pages/ResumeBuilder';
-import PublicResumeView from './pages/ResumeBuilder/PublicResumeView';
-import CareerProfilePage from './pages/CareerProfile';
-import CareerProfileAdmin from './pages/CareerProfile/Admin';
-import PlacementPartnership from './pages/PartnerPipeline';
-import FeesPage from './pages/Fees';
-import LeadsPage from './pages/Leads';
-import TeamActivity from './pages/TeamActivity';
-import LeadDetailPage from './pages/LeadDetail';
-import LeadStagesPage from './pages/LeadStages';
-import LeadFormSettingsPage from './pages/LeadFormSettings';
-import LeadManagerBoardPage from './pages/LeadManagerBoard';
-import LeadMyPerformancePage from './pages/LeadMyPerformance';
-import LeadAuditLogsPage from './pages/LeadAuditLogs';
-import LeadPrioritySettingsPage from './pages/LeadPrioritySettings';
-import QualificationSettingsPage from './pages/QualificationSettings';
-import SalesContentLibraryPage from './pages/SalesContentLibrary';
-import LeadAnalyticsPage from './pages/LeadAnalytics';
-import MeetingsPage from './pages/Meetings';
-import LeadDistributionSettingsPage from './pages/LeadDistributionSettings';
-import FollowUpCalendarPage from './pages/FollowUpCalendar';
-import SeatReservationsPage from './pages/SeatReservations';
-import LeadAgingPage from './pages/LeadAging';
-import LeadDuplicatesPage from './pages/LeadDuplicates';
-import LeadApprovalsPage from './pages/LeadApprovals';
-import LeadKanbanPage from './pages/LeadKanban';
-import { AdminCodeSnippets, StudentCodeSnippets, GradeSubmissions } from './pages/CodeSnippets';
-import CertificatePage from './pages/Certificate/CertificatePage';
-import CertificateVerify from './pages/CertificateVerify';
-import CandidateProfile from './pages/CandidateProfile';
-import CertificatesAdmin from './pages/CertificatesAdmin';
-import AiSpend from './pages/AiSpend';
-import GoogleSheetIntegrationPage from './pages/GoogleSheetIntegration';
-import LeadScoringSettingsPage from './pages/LeadScoringSettings';
-import LeadSourcesPage from './pages/LeadSources';
-import AICallConfigPage from './pages/AICallConfig';
-
-// Class Recording Pages
-
-// Registrations
-import AllRegistrations from './pages/PublicQuizAdmin/AllRegistrations';
-import RegistrationDetail from './pages/PublicQuizAdmin/RegistrationDetail';
-
-// Learning Content Library
-import LearningContentLibraryPage from './pages/LearningContentLibrary';
-import CreateEditContentPage from './pages/LearningContentLibrary/CreateEditContent';
-import RecordClassPage from './pages/LearningContentLibrary/RecordClass';
-import LiveClassPage from './pages/LiveClass';
-
-// Interactive Lesson System
-import InteractiveLessonBuilderPage from './pages/InteractiveLessonBuilder';
-import InteractiveLessonViewerPage from './pages/InteractiveLessonViewer';
-
-// Curriculum Builder
-import CurriculumListPage from './pages/CurriculumBuilder';
-import CurriculumBuilderPage from './pages/CurriculumBuilder/BuilderPage';
-
-// Enrollment Plans
-import EnrollmentPlansPage from './pages/EnrollmentPlans';
-import BatchOfferingsPage from './pages/BatchOfferings';
-import CohortProgressPage from './pages/CohortProgress';
-import MyTasksPage from './pages/MyTasks';
-
-// My Learning Plan (student)
-import MyLearningPlanPage from './pages/MyLearningPlan';
-import DayViewPage from './pages/MyLearningPlan/LearningPlanPro';
-import MyJourneyPage from './pages/MyLearningPlan/Journey';
-import AdminConcernsPage from './pages/AdminConcerns';
-
-// Public quiz session (no auth required — token-based)
-import QuizSession from './pages/QuizSession';
-
-// Public skill assessment funnel (no auth — Meta-ad → exam → roadmap)
-import AssessmentRegister from './pages/Assessment/Register';
-import AssessmentLanding from './pages/Assessment/Landing';
-import AssessmentExam from './pages/Assessment/Exam';
-import AssessmentResult from './pages/Assessment/Result';
-import AssessmentAdmin from './pages/AssessmentAdmin';
-import AssessmentCandidates from './pages/AssessmentCandidates';
-
 import AdminLogPanel from './components/AdminLogPanel';
-import AdminLogs from './pages/AdminLogs';
+
+/*
+ * ── EVERY PAGE IS ITS OWN CHUNK ─────────────────────────────────────────────────────────
+ *
+ * There were 209 static page imports here and no code splitting at all, so webpack emitted
+ * ONE bundle containing every screen in the product. A candidate sitting an exam downloaded
+ * the admin console, the CRM, the content authoring tools and the lead dashboards before
+ * their paper could render — 5.7 MB uncompressed, over a venue's shared wifi, at the exact
+ * moment the platform was under the most load it ever sees.
+ *
+ * These sit BELOW every import on purpose: `import/first` is an error, not a warning, and
+ * a lazy() const between two imports fails the build outright.
+ */
+const CareerPilotStaging = lazy(() => import('./pages/Passport/AdminStaging'));
+const CareerPilotConcepts = lazy(() => import('./pages/Passport/AdminConcepts'));
+const CareerPilotCoverage = lazy(() => import('./pages/Passport/AdminAssessmentCoverage'));
+const CareerPilotPaperDesign = lazy(() => import('./pages/Passport/AdminPaperDesign'));
+const LabTracks = lazy(() => import('./pages/LabTracks'));
+const LoginPage = lazy(() => import('./pages/Login'));
+const RegisterPage = lazy(() => import('./pages/Register'));
+const CreateOrganizationPage = lazy(() => import('./pages/CreateOrganization'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const SetupPassword = lazy(() => import('./pages/SetupPassword/SetupPassword').then(m => ({ default: m.SetupPassword })));
+const ProfileCompletion = lazy(() => import('./pages/ProfileCompletion/ProfileCompletion').then(m => ({ default: m.ProfileCompletion })));
+const DashboardPage = lazy(() => import('./pages/Dashboard'));
+const UsersPage = lazy(() => import('./pages/Users'));
+const RolesPage = lazy(() => import('./pages/Roles'));
+const BatchesPage = lazy(() => import('./pages/Batches'));
+const AttendancePage = lazy(() => import('./pages/Attendance'));
+const MyAttendancePage = lazy(() => import('./pages/MyAttendance'));
+const AttendanceReportsPage = lazy(() => import('./pages/AttendanceReports'));
+const QuizReportsPage = lazy(() => import('./pages/QuizReports'));
+const QuizManagementPage = lazy(() => import('./pages/QuizManagement'));
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const QuestionManagementPage = lazy(() => import('./pages/QuestionManagement'));
+const QuizzesPage = lazy(() => import('./pages/Quizzes'));
+const QuizTakingPage = lazy(() => import('./pages/QuizTaking'));
+const QuizResultsPage = lazy(() => import('./pages/QuizResults'));
+const QuizResultsAdminPage = lazy(() => import('./pages/QuizResultsAdmin'));
+const QuestionBuilder = lazy(() => import('./pages/QuestionBuilder'));
+const StudentProfilePage = lazy(() => import('./pages/StudentProfile'));
+const OAuthCallbackPage = lazy(() => import('./pages/OAuthCallback'));
+const AdminContentPage = lazy(() => import('./pages/AdminContent'));
+const NotFoundPage = lazy(() => import('./pages/NotFound'));
+const WeeklyReportsPage = lazy(() => import('./pages/WeeklyReports'));
+const StudentProfileDetail = lazy(() => import('./pages/AdminStudentProfiles/StudentProfileDetail'));
+const DepartmentsPage = lazy(() => import('./pages/Departments'));
+const CollegeSettingsPage = lazy(() => import('./pages/CollegeSettings'));
+const CollegeMembersPage = lazy(() => import('./pages/CollegeMembers'));
+const PlacementDrivesPage = lazy(() => import('./pages/PlacementDrives'));
+const PlacementAnalyticsPage = lazy(() => import('./pages/PlacementAnalytics'));
+const MyApplicationsPage = lazy(() => import('./pages/MyApplications'));
+const AlumniManagementPage = lazy(() => import('./pages/AlumniManagement'));
+const CollegeCurriculumPage = lazy(() => import('./pages/CollegeCurriculum'));
+const CRTManagementPage = lazy(() => import('./pages/CRTManagement'));
+const TenantManagementPage = lazy(() => import('./pages/TenantManagement'));
+const AlumniDirectoryPage = lazy(() => import('./pages/AlumniDirectory'));
+const NotificationCenterPage = lazy(() => import('./pages/NotificationCenter'));
+const StudentCollegePortal = lazy(() => import('./pages/StudentCollegePortal'));
+const StudentFeeDetailsPage = lazy(() => import('./pages/StudentFeeDetails'));
+const DeptReportsPage = lazy(() => import('./pages/DeptReports'));
+const BulkUploadPage = lazy(() => import('./pages/BulkUpload'));
+const RecordingDiagnostics = lazy(() => import('./pages/RecordingDiagnostics'));
+const PlatformSettings = lazy(() => import('./pages/PlatformSettings'));
+const MyLeave = lazy(() => import('./pages/MyLeave'));
+const LeaveRequests = lazy(() => import('./pages/LeaveRequests'));
+const CodePlayground = lazy(() => import('./pages/CodePlayground'));
+const PassportAdminConfig = lazy(() => import('./pages/Passport/AdminConfig'));
+const PassportAdminStudents = lazy(() => import('./pages/Passport/AdminStudents'));
+const PassportAdminStudentRoadmap = lazy(() => import('./pages/Passport/AdminStudentRoadmap'));
+const PassportAdminStageSkills = lazy(() => import('./pages/Passport/AdminStageSkills'));
+const PassportAdminCoins = lazy(() => import('./pages/Passport/AdminCoins'));
+const PassportAdminFunnel = lazy(() => import('./pages/Passport/AdminFunnel'));
+const PassportAdminCurriculum = lazy(() => import('./pages/Passport/AdminCurriculum'));
+const PassportAdminPathwayRules = lazy(() => import('./pages/Passport/AdminPathwayRules'));
+const PassportAdminCareerRoles = lazy(() => import('./pages/Passport/AdminCareerRoles'));
+const PassportAdminSkillGraph = lazy(() => import('./pages/Passport/AdminSkillGraph'));
+const PassportAdminRoleBlueprint = lazy(() => import('./pages/Passport/AdminRoleBlueprint'));
+const PassportAdminSkillEvidence = lazy(() => import('./pages/Passport/AdminSkillEvidence'));
+const PassportAdminAssessmentPreview = lazy(() => import('./pages/Passport/AdminAssessmentPreview'));
+const PassportAdminAssessmentShape = lazy(() => import('./pages/Passport/AdminAssessmentShape'));
+const PassportAdminQuestionDrafts = lazy(() => import('./pages/Passport/AdminQuestionDrafts'));
+const PassportAdminQuestionBank = lazy(() => import('./pages/Passport/AdminQuestionBank'));
+const PassportAdminPathways = lazy(() => import('./pages/Passport/AdminPathways'));
+const PassportAdminMissions = lazy(() => import('./pages/Passport/AdminMissions'));
+const PassportHome = lazy(() => import('./pages/Passport/PassportHome'));
+const PassportMaterialViewer = lazy(() => import('./pages/Passport/MaterialViewer'));
+const PassportMemberLayout = lazy(() => import('./pages/Passport/MemberLayout'));
+const PassportCareerSetup = lazy(() => import('./pages/Passport/CareerSetup'));
+const PassportAdminActivity = lazy(() => import('./pages/Passport/AdminActivity'));
+const PassportLearningStudio = lazy(() => import('./pages/Passport/AdminLearningStudio'));
+const PassportLearningUnit = lazy(() => import('./pages/Passport/AdminLearningUnit'));
+const PassportRoadmap = lazy(() => import('./pages/Passport/Roadmap'));
+const PassportSkillDna = lazy(() => import('./pages/Passport/SkillDna'));
+const PassportRoleReadiness = lazy(() => import('./pages/Passport/RoleReadiness'));
+const PassportPlacementReadiness = lazy(() => import('./pages/Passport/PlacementReadiness'));
+const PassportSkillAssessment = lazy(() => import('./pages/Passport/SkillAssessment'));
+const PassportGamification = lazy(() => import('./pages/Passport/Gamification'));
+const PassportRewards = lazy(() => import('./pages/Passport/Rewards'));
+const PassportPractice = lazy(() => import('./pages/Passport/Practice'));
+const PassportPracticeItem = lazy(() => import('./pages/Passport/PracticeItem'));
+const PassportInterview = lazy(() => import('./pages/Passport/Interview'));
+const PassportResumeCenter = lazy(() => import('./pages/Passport/ResumeCenter'));
+const PassportCoins = lazy(() => import('./pages/Passport/Coins'));
+const PassportLeaderboard = lazy(() => import('./pages/Passport/Leaderboard'));
+const PassportAchievements = lazy(() => import('./pages/Passport/Achievements'));
+const PassportNews = lazy(() => import('./pages/Passport/News'));
+const PassportCompanies = lazy(() => import('./pages/Passport/Companies'));
+const PassportMockTest = lazy(() => import('./pages/Passport/MockTest'));
+const PassportAdminNews = lazy(() => import('./pages/Passport/AdminNews'));
+const PassportAdminCompanies = lazy(() => import('./pages/Passport/AdminCompanies'));
+const PassportAdminAnalytics = lazy(() => import('./pages/Passport/AdminAnalytics'));
+const PassportAdminAssessment = lazy(() => import('./pages/Passport/AdminAssessment'));
+const PassportCard = lazy(() => import('./pages/Passport/Card'));
+const PassportJoin = lazy(() => import('./pages/Passport/Join'));
+const PassportLogin = lazy(() => import('./pages/Passport/Login'));
+const HackathonExam = lazy(() => import('./pages/HackathonExam'));
+const HackathonExamAdmin = lazy(() => import('./pages/HackathonExamAdmin'));
+const BattleList = lazy(() => import('./pages/Battles/PublicList'));
+const BattleLanding = lazy(() => import('./pages/Battles/Landing'));
+const BattleExam = lazy(() => import('./pages/Battles/Exam'));
+const BattleLeaderboard = lazy(() => import('./pages/Battles/Leaderboard'));
+const BattlesAdmin = lazy(() => import('./pages/BattlesAdmin'));
+const BattleDetail = lazy(() => import('./pages/BattlesAdmin/BattleDetail'));
+const HackathonsAdmin = lazy(() => import('./pages/HackathonsAdmin'));
+const HackathonResume = lazy(() => import('./pages/HackathonResume'));
+const HackathonDetail = lazy(() => import('./pages/HackathonsAdmin/HackathonDetail'));
+const ProjectBuilder = lazy(() => import('./pages/ProjectBuilder'));
+const JobTracker = lazy(() => import('./pages/JobTracker'));
+const AIMentor = lazy(() => import('./pages/AIMentor'));
+const ResourceLibrary = lazy(() => import('./pages/ResourceLibrary'));
+const ResourceAdmin = lazy(() => import('./pages/ResourceAdmin'));
+const SpeakingPractice = lazy(() => import('./pages/SpeakingPractice'));
+const SpeakingAdmin = lazy(() => import('./pages/SpeakingAdmin'));
+const LogicGym = lazy(() => import('./pages/LogicGym'));
+const DrillsAdmin = lazy(() => import('./pages/DrillsAdmin'));
+const ThinkingLab = lazy(() => import('./pages/ThinkingLab'));
+const ThinkingLabAdmin = lazy(() => import('./pages/ThinkingLabAdmin'));
+const InterviewQuestionsPage = lazy(() => import('./pages/InterviewQuestions'));
+const InterviewQuestionBankPage = lazy(() => import('./pages/InterviewQuestionBank'));
+const InterviewTemplateList = lazy(() => import('./pages/InterviewTemplateList'));
+const InterviewTemplateCreate = lazy(() => import('./pages/InterviewTemplateCreate'));
+const InterviewQBManagement = lazy(() => import('./pages/InterviewQBManagement'));
+const InterviewAssignment = lazy(() => import('./pages/InterviewAssignment'));
+const InterviewAnalytics = lazy(() => import('./pages/InterviewAnalytics'));
+const TakeStructuredInterview = lazy(() => import('./pages/TakeStructuredInterview'));
+const LiveInterview = lazy(() => import('./pages/LiveInterview'));
+const InterviewFeedbackReport = lazy(() => import('./pages/InterviewFeedbackReport'));
+const AdminAssignmentList = lazy(() => import('./pages/assignments').then(m => ({ default: m.AdminAssignmentList })));
+const AdminAssignmentForm = lazy(() => import('./pages/assignments').then(m => ({ default: m.AdminAssignmentForm })));
+const AdminSubmissions = lazy(() => import('./pages/assignments').then(m => ({ default: m.AdminSubmissions })));
+const StudentAssignmentList = lazy(() => import('./pages/assignments').then(m => ({ default: m.StudentAssignmentList })));
+const AssignmentWorkspace = lazy(() => import('./pages/assignments').then(m => ({ default: m.AssignmentWorkspace })));
+const AssignmentResult = lazy(() => import('./pages/assignments').then(m => ({ default: m.AssignmentResult })));
+const AssignmentReports = lazy(() => import('./pages/AssignmentReports'));
+const StudentFeaturesPage = lazy(() => import('./pages/StudentFeatures'));
+const ResumeBuilderPage = lazy(() => import('./pages/ResumeBuilder'));
+const PublicResumeView = lazy(() => import('./pages/ResumeBuilder/PublicResumeView'));
+const CareerProfilePage = lazy(() => import('./pages/CareerProfile'));
+const CareerProfileAdmin = lazy(() => import('./pages/CareerProfile/Admin'));
+const PlacementPartnership = lazy(() => import('./pages/PartnerPipeline'));
+const FeesPage = lazy(() => import('./pages/Fees'));
+const LeadsPage = lazy(() => import('./pages/Leads'));
+const TeamActivity = lazy(() => import('./pages/TeamActivity'));
+const LeadDetailPage = lazy(() => import('./pages/LeadDetail'));
+const LeadStagesPage = lazy(() => import('./pages/LeadStages'));
+const LeadFormSettingsPage = lazy(() => import('./pages/LeadFormSettings'));
+const LeadManagerBoardPage = lazy(() => import('./pages/LeadManagerBoard'));
+const LeadMyPerformancePage = lazy(() => import('./pages/LeadMyPerformance'));
+const LeadAuditLogsPage = lazy(() => import('./pages/LeadAuditLogs'));
+const LeadPrioritySettingsPage = lazy(() => import('./pages/LeadPrioritySettings'));
+const QualificationSettingsPage = lazy(() => import('./pages/QualificationSettings'));
+const SalesContentLibraryPage = lazy(() => import('./pages/SalesContentLibrary'));
+const LeadAnalyticsPage = lazy(() => import('./pages/LeadAnalytics'));
+const MeetingsPage = lazy(() => import('./pages/Meetings'));
+const LeadDistributionSettingsPage = lazy(() => import('./pages/LeadDistributionSettings'));
+const FollowUpCalendarPage = lazy(() => import('./pages/FollowUpCalendar'));
+const SeatReservationsPage = lazy(() => import('./pages/SeatReservations'));
+const LeadAgingPage = lazy(() => import('./pages/LeadAging'));
+const LeadDuplicatesPage = lazy(() => import('./pages/LeadDuplicates'));
+const LeadApprovalsPage = lazy(() => import('./pages/LeadApprovals'));
+const LeadKanbanPage = lazy(() => import('./pages/LeadKanban'));
+const AdminCodeSnippets = lazy(() => import('./pages/CodeSnippets').then(m => ({ default: m.AdminCodeSnippets })));
+const StudentCodeSnippets = lazy(() => import('./pages/CodeSnippets').then(m => ({ default: m.StudentCodeSnippets })));
+const GradeSubmissions = lazy(() => import('./pages/CodeSnippets').then(m => ({ default: m.GradeSubmissions })));
+const CertificatePage = lazy(() => import('./pages/Certificate/CertificatePage'));
+const CertificateVerify = lazy(() => import('./pages/CertificateVerify'));
+const CandidateProfile = lazy(() => import('./pages/CandidateProfile'));
+const CertificatesAdmin = lazy(() => import('./pages/CertificatesAdmin'));
+const AiSpend = lazy(() => import('./pages/AiSpend'));
+const GoogleSheetIntegrationPage = lazy(() => import('./pages/GoogleSheetIntegration'));
+const LeadScoringSettingsPage = lazy(() => import('./pages/LeadScoringSettings'));
+const LeadSourcesPage = lazy(() => import('./pages/LeadSources'));
+const AICallConfigPage = lazy(() => import('./pages/AICallConfig'));
+const AllRegistrations = lazy(() => import('./pages/PublicQuizAdmin/AllRegistrations'));
+const RegistrationDetail = lazy(() => import('./pages/PublicQuizAdmin/RegistrationDetail'));
+const LearningContentLibraryPage = lazy(() => import('./pages/LearningContentLibrary'));
+const CreateEditContentPage = lazy(() => import('./pages/LearningContentLibrary/CreateEditContent'));
+const RecordClassPage = lazy(() => import('./pages/LearningContentLibrary/RecordClass'));
+const LiveClassPage = lazy(() => import('./pages/LiveClass'));
+const InteractiveLessonBuilderPage = lazy(() => import('./pages/InteractiveLessonBuilder'));
+const InteractiveLessonViewerPage = lazy(() => import('./pages/InteractiveLessonViewer'));
+const CurriculumListPage = lazy(() => import('./pages/CurriculumBuilder'));
+const CurriculumBuilderPage = lazy(() => import('./pages/CurriculumBuilder/BuilderPage'));
+const EnrollmentPlansPage = lazy(() => import('./pages/EnrollmentPlans'));
+const BatchOfferingsPage = lazy(() => import('./pages/BatchOfferings'));
+const CohortProgressPage = lazy(() => import('./pages/CohortProgress'));
+const MyTasksPage = lazy(() => import('./pages/MyTasks'));
+const MyLearningPlanPage = lazy(() => import('./pages/MyLearningPlan'));
+const DayViewPage = lazy(() => import('./pages/MyLearningPlan/LearningPlanPro'));
+const MyJourneyPage = lazy(() => import('./pages/MyLearningPlan/Journey'));
+const AdminConcernsPage = lazy(() => import('./pages/AdminConcerns'));
+const QuizSession = lazy(() => import('./pages/QuizSession'));
+const AssessmentRegister = lazy(() => import('./pages/Assessment/Register'));
+const AssessmentLanding = lazy(() => import('./pages/Assessment/Landing'));
+const AssessmentExam = lazy(() => import('./pages/Assessment/Exam'));
+const AssessmentResult = lazy(() => import('./pages/Assessment/Result'));
+const AssessmentAdmin = lazy(() => import('./pages/AssessmentAdmin'));
+const AssessmentCandidates = lazy(() => import('./pages/AssessmentCandidates'));
+const AdminLogs = lazy(() => import('./pages/AdminLogs'));
+const ScheduledInterviewsPage = lazy(() => import('./pages/ScheduledInterviews'));
+const InterviewDetailPage = lazy(() => import('./pages/ScheduledInterviews/InterviewDetail'));
+const HmsClassesPage = lazy(() => import('./pages/HmsClasses'));
+const HmsRoomPage = lazy(() => import('./pages/HmsClasses/Room'));
+const CommunicationLab = lazy(() => import('./pages/CommunicationLab'));
+const CommunicationLabAdmin = lazy(() => import('./pages/CommunicationLabAdmin'));
+const MyInterviewsPage = lazy(() => import('./pages/MyInterviews'));
 
 // Scheduled Interview Module
-import ScheduledInterviewsPage from './pages/ScheduledInterviews';
-import InterviewDetailPage from './pages/ScheduledInterviews/InterviewDetail';
-import HmsClassesPage from './pages/HmsClasses';
-import HmsRoomPage from './pages/HmsClasses/Room';
-import CommunicationLab from './pages/CommunicationLab';
-import CommunicationLabAdmin from './pages/CommunicationLabAdmin';
-import MyInterviewsPage from './pages/MyInterviews';
 
 
 interface ProtectedRouteProps {
@@ -396,8 +382,29 @@ const LegacyRedirect: React.FC<{ to: string }> = ({ to }) => {
   return <Navigate to={`${target}${search}${hash}`} replace />;
 };
 
+/**
+ * What a route shows while its chunk is arriving.
+ *
+ * Every page is now its own chunk (see the lazy() imports above), so navigating to a route
+ * the browser has not visited fetches a small file first. On a fast connection that is
+ * imperceptible; on a phone in an exam hall it is a beat, and a beat with a spinner in it
+ * reads as loading rather than as nothing happening.
+ *
+ * Deliberately full-height and centred: a fallback that collapses to nothing makes the page
+ * jump when the chunk lands.
+ */
+const RouteFallback: React.FC = () => (
+  <div style={{
+    minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  }}>
+    <Spinner />
+  </div>
+);
+
+/** Each route fetches only what it needs, behind this one Suspense boundary. */
 const AppRoutes: React.FC = () => {
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
@@ -2162,6 +2169,7 @@ const AppRoutes: React.FC = () => {
         }
       />
     </Routes>
+    </Suspense>
   );
 };
 

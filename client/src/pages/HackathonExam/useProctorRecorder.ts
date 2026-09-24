@@ -29,9 +29,47 @@ import { API_BASE_URL } from '../../api';
 export type RecorderState = 'idle' | 'recording' | 'denied' | 'unavailable' | 'done';
 
 /** Modest on purpose: this shares a candidate's uplink with their answers. */
-const VIDEO_BPS = 150_000;
-const AUDIO_BPS = 48_000;
-const SLICE_MS = 15_000;
+const VIDEO_BPS = 120_000;
+const AUDIO_BPS = 32_000;
+
+/*
+ * ── WHY 60 SECONDS AND NOT 15 ──────────────────────────────────────────────────────────────
+ *
+ * 15-second chunks from 46 candidates is roughly three uploads per second arriving at the API
+ * continuously, and they arrived faster than they uploaded. That queue is what started the
+ * 22 September outage — recording uploads had to be blocked at nginx to get the platform back.
+ *
+ * A minute per chunk is a quarter of the requests for the same footage. Each one is larger,
+ * which an HTTP upload handles far better than four times as many small ones: one TLS
+ * negotiation, one set of headers, one write. The cost is that a laptop dying loses up to a
+ * minute rather than up to fifteen seconds, which is an acceptable trade for evidence.
+ */
+const SLICE_MS = 60_000;
+
+/*
+ * ── AND WHY THE START IS JITTERED ──────────────────────────────────────────────────────────
+ *
+ * This is the part that actually caused the pile-up. Every candidate presses Start within a
+ * minute or two of the same instant, so every MediaRecorder's timeslice fires in lockstep and
+ * the whole cohort's chunks arrive in one synchronised burst, then nothing, then another burst.
+ * The API sees a spike of 46 simultaneous multipart uploads rather than a steady trickle of
+ * the same total bytes.
+ *
+ * Delaying each recorder's start by a random fraction of one slice spreads those bursts evenly
+ * across the window. The footage is unaffected — it just begins a few seconds later.
+ */
+const START_JITTER_MS = SLICE_MS;
+
+/*
+ * ── AND WHY THE QUEUE IS BOUNDED ───────────────────────────────────────────────────────────
+ *
+ * Failed chunks were already dropped rather than retried. A SLOW upload was not: if a chunk
+ * takes longer to send than the next takes to arrive, the queue grows without limit, holding
+ * every blob in memory on a laptop that is already struggling. Four minutes of backlog is
+ * plenty of margin; beyond that the oldest is dropped, because the newest footage is the
+ * footage a reviewer wants and a browser tab that runs out of memory records nothing at all.
+ */
+const MAX_QUEUED_CHUNKS = 4;
 
 function pickMime(): string | undefined {
   if (typeof MediaRecorder === 'undefined') return undefined;
@@ -67,6 +105,8 @@ export function useProctorRecorder(opts: {
   const recRef = useRef<MediaRecorder | null>(null);
   const seqRef = useRef(0);
   const queue = useRef<Blob[]>([]);
+  /* Counted, not silent: a reviewer looking at a gap needs to know it was dropped on purpose. */
+  const droppedRef = useRef(0);
   const sending = useRef(false);
   const stopRef = useRef<() => void>(() => {});
   const stateRef = useRef(onState);
@@ -150,7 +190,14 @@ export function useProctorRecorder(opts: {
     }
 
     rec.ondataavailable = (ev) => {
-      if (ev.data && ev.data.size > 0) { queue.current.push(ev.data); void drain(); }
+      if (!ev.data || ev.data.size === 0) return;
+      queue.current.push(ev.data);
+      /* Bounded: drop the OLDEST when the backlog is too deep. See MAX_QUEUED_CHUNKS. */
+      while (queue.current.length > MAX_QUEUED_CHUNKS) {
+        queue.current.shift();
+        droppedRef.current += 1;
+      }
+      void drain();
     };
     /* Somebody can revoke the camera from the browser's own UI mid-exam. That is worth
        recording as a fact; it is not worth ending their paper over. */
@@ -161,9 +208,21 @@ export function useProctorRecorder(opts: {
     streamRef.current = stream;
     recRef.current = rec;
     setStream(stream);
-    rec.start(SLICE_MS);
+
+    /*
+     * Show the candidate their camera immediately, but stagger when the chunks start flowing.
+     * The self-view is what tells them recording is working, and making them wait up to a
+     * minute for it would read as broken.
+     */
     setState('recording');
     stateRef.current('recording');
+
+    const delay = Math.floor(Math.random() * START_JITTER_MS);
+    window.setTimeout(() => {
+      /* The paper may have been submitted, or the camera revoked, during the wait. */
+      if (recRef.current !== rec || rec.state !== 'inactive') return;
+      try { rec.start(SLICE_MS); } catch { /* the exam carries on regardless */ }
+    }, delay);
   }, [enabled, drain]);
 
   /* Tracks are a device in use. Leaving one running because a component unmounted leaves a
@@ -172,5 +231,5 @@ export function useProctorRecorder(opts: {
 
   useEffect(() => () => { stop(); }, [stop]);
 
-  return { state, chunks, stream, start, stop };
+  return { state, chunks, dropped: droppedRef.current, stream, start, stop };
 }

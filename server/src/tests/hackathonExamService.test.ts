@@ -63,6 +63,14 @@ const mockAttemptUpdateOne = jest.fn(async (filter: any, update: any) => {
   if (!doc) return { matchedCount: 0, modifiedCount: 0 };
   const want = filter['answers.itemId'];
 
+  /* A document-level update, with no array element named in the filter: reconcileDeadlines
+     stamping a new expiresAt. Applied to the document itself, not to an answer. */
+  if (want === undefined) {
+    if (!update.$set) return { matchedCount: 1, modifiedCount: 0 };
+    for (const [path, value] of Object.entries(update.$set)) doc[path] = value;
+    return { matchedCount: 1, modifiedCount: 1 };
+  }
+
   /* Positional $set / $inc — only matches when the element already exists, as Mongo's does.
      $inc matters: runCode now charges a run with $inc rather than reading, adding one and
      writing the whole document back, which is what let two clicks share one slot. */
@@ -98,6 +106,10 @@ const mockAttemptUpdateOne = jest.fn(async (filter: any, update: any) => {
  * So the mock has to honour a projected findOne too, with the same { answers: { $elemMatch } }
  * shape: it returns ONLY the matching element, exactly as Mongo does.
  */
+const mockAttemptFind = jest.fn((_filter: any) => ({
+  select: () => [...mockAttemptDocs.values()].filter(d => !d.submittedAt && d.startedAt),
+}));
+
 const mockAttemptFindOne = jest.fn((filter: any, projection?: any) => ({
   lean: async () => {
     const doc = mockAttemptDocs.get(String(filter._id));
@@ -114,7 +126,9 @@ jest.mock('../models/HackathonExamAttempt', () => ({
   __esModule: true,
   default: {
     findOne: (...a: any[]) => mockAttemptFindOne(a[0], a[1]),
-    find: jest.fn(), create: jest.fn(), updateMany: jest.fn(),
+    /* reconcileDeadlines queries the open attempts and then .select()s two fields. */
+    find: (...a: any[]) => mockAttemptFind(a[0]),
+    create: jest.fn(), updateMany: jest.fn(),
     updateOne: (...a: any[]) => mockAttemptUpdateOne(a[0], a[1]),
   },
 }));
@@ -126,7 +140,7 @@ jest.mock('../services/hackathonExamDrawService', () => ({
 }));
 
 import {
-  windowError, deadlineFor, secondDeviceConflict, buildPaper, recordViolation,
+  windowError, deadlineFor, reconcileDeadlines, secondDeviceConflict, buildPaper, recordViolation,
   submitAttempt, runCandidateCode, saveAnswer, startAttempt, cleanTeamCode, ExamError,
 } from '../services/hackathonExamService';
 
@@ -256,6 +270,85 @@ describe('the window', () => {
     const end = new Date(Date.now() + 10 * 60_000);
     const e = exam({ endAt: end, durationMins: 60 });
     expect(deadlineFor(e, new Date()).getTime()).toBe(end.getTime());
+  });
+
+  it('never leaves the join cutoff sitting past the close', () => {
+    /*
+     * A 15-minute join window on an exam that closes 5 minutes after it opens is a cutoff that
+     * outlives the exam. Clamped, so JOIN_CLOSED and ENDED cannot disagree about whether the
+     * door is open.
+     */
+    const e = exam({
+      startAt: new Date(Date.now() - 10 * 60_000),
+      endAt: new Date(Date.now() - 5 * 60_000),
+      joinCutoffMins: 15,
+    });
+    /* ENDED is checked first and is the honest answer; the point is it is not null. */
+    expect(windowError(e, attempt())).not.toBeNull();
+  });
+});
+
+describe('extending the exam moves the candidates with it', () => {
+  /*
+   * #22 from the 22 September register. expiresAt is stamped when a candidate starts. An
+   * admin pushed the close out and nothing revisited it, so 24 candidates kept the old
+   * deadline and auto-submitted anyway despite being told they had longer.
+   */
+  const openAttempt = (id: string, startedMinsAgo: number, expiresAt: Date) => {
+    const doc = {
+      _id: id,
+      startedAt: new Date(Date.now() - startedMinsAgo * 60_000),
+      submittedAt: null,
+      expiresAt,
+      answers: [],
+    };
+    mockAttemptDocs.set(id, doc);
+    return doc;
+  };
+
+  it('pushes every open clock out when the close is extended', async () => {
+    const started = new Date(Date.now() - 30 * 60_000);
+    const oldEnd = new Date(Date.now() + 10 * 60_000);
+    openAttempt('a1', 30, oldEnd);
+
+    /* The paper is 60 minutes; it was capped at the old close, which is now an hour later. */
+    const e = exam({ endAt: new Date(Date.now() + 70 * 60_000), durationMins: 60 });
+    const r = await reconcileDeadlines(e);
+
+    expect(r.updated).toBe(1);
+    expect(mockAttemptDocs.get('a1').expiresAt.getTime())
+      .toBe(started.getTime() + 60 * 60_000);
+  });
+
+  it('shortens them again when the close is brought forward', async () => {
+    /* An admin who moves the close in means it. The rule is derived, so it cuts both ways. */
+    openAttempt('a1', 10, new Date(Date.now() + 50 * 60_000));
+    const soon = new Date(Date.now() + 5 * 60_000);
+    const r = await reconcileDeadlines(exam({ endAt: soon, durationMins: 60 }));
+
+    expect(r.updated).toBe(1);
+    expect(mockAttemptDocs.get('a1').expiresAt.getTime()).toBe(soon.getTime());
+  });
+
+  it('leaves a submitted paper alone', async () => {
+    const stamped = new Date(Date.now() - 60_000);
+    mockAttemptDocs.set('done', {
+      _id: 'done',
+      startedAt: new Date(Date.now() - 40 * 60_000),
+      submittedAt: new Date(),
+      expiresAt: stamped,
+      answers: [],
+    });
+    const r = await reconcileDeadlines(exam({ endAt: new Date(Date.now() + 3 * HOUR), durationMins: 60 }));
+    expect(r.updated).toBe(0);
+    expect(mockAttemptDocs.get('done').expiresAt).toBe(stamped);
+  });
+
+  it('is idempotent — running it twice changes nothing the second time', async () => {
+    openAttempt('a1', 20, new Date(Date.now() + 5 * 60_000));
+    const e = exam({ endAt: new Date(Date.now() + 2 * HOUR), durationMins: 60 });
+    expect((await reconcileDeadlines(e)).updated).toBe(1);
+    expect((await reconcileDeadlines(e)).updated).toBe(0);
   });
 });
 

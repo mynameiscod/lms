@@ -255,7 +255,20 @@ export function windowError(exam: IHackathonExam, attempt: IHackathonExamAttempt
   if (now > new Date(exam.endAt)) return new ExamError('ENDED', 'This exam has closed.', 403);
 
   if (!attempt.startedAt && exam.joinCutoffMins > 0) {
-    const cutoff = new Date(new Date(exam.startAt).getTime() + exam.joinCutoffMins * 60000);
+    /*
+     * Measured from the exam's OPEN, and clamped so it can never sit past the close — a join
+     * window that outlives the exam is meaningless, and a cutoff computed from a stale startAt
+     * could otherwise land after endAt.
+     *
+     * The related trap is #23: extending endAt used to leave this door shut, because the cutoff
+     * is anchored to startAt and startAt did not move. That is now handled where the decision
+     * belongs — the admin endpoint shifts joinCutoffMins by the same amount the close moved, and
+     * says so — rather than by guessing here.
+     */
+    const cutoff = new Date(Math.min(
+      new Date(exam.startAt).getTime() + exam.joinCutoffMins * 60000,
+      new Date(exam.endAt).getTime(),
+    ));
     if (now > cutoff) return new ExamError('JOIN_CLOSED', 'The window to start this exam has closed.', 403);
   }
   return null;
@@ -267,6 +280,41 @@ export function deadlineFor(exam: IHackathonExam, startedAt: Date): Date {
     startedAt.getTime() + exam.durationMins * 60000,
     new Date(exam.endAt).getTime(),
   ));
+}
+
+/**
+ * When the exam's window moves, move everybody's clock with it.
+ *
+ * `expiresAt` is stamped once, when a candidate starts, as
+ * min(startedAt + duration, endAt). Extending the exam did not revisit it, so on 22 September
+ * an admin pushed the close out and 24 candidates were still holding the deadline computed
+ * against the OLD close — the extension they were told about did not reach them, and their
+ * papers auto-submitted anyway. It was repaired by hand at the time; this is the mechanism.
+ *
+ * Derived, never adjusted: each attempt's deadline is recomputed from its own `startedAt` and
+ * the exam as it now stands. So this is safe to run repeatedly, it shortens as well as extends
+ * (an admin who brings the close forward means it), and it can never drift from the rule in
+ * deadlineFor because it calls it.
+ *
+ * Only attempts that are open are touched. A submitted paper's deadline is history.
+ */
+export async function reconcileDeadlines(
+  exam: IHackathonExam,
+): Promise<{ updated: number }> {
+  const open = await HackathonExamAttempt.find({
+    examId: exam._id, submittedAt: null, startedAt: { $ne: null },
+  }).select('_id startedAt expiresAt');
+
+  let updated = 0;
+  for (const a of open) {
+    const want = deadlineFor(exam, new Date(a.startedAt!));
+    const have = a.expiresAt ? new Date(a.expiresAt).getTime() : 0;
+    if (have !== want.getTime()) {
+      await HackathonExamAttempt.updateOne({ _id: a._id }, { $set: { expiresAt: want } });
+      updated++;
+    }
+  }
+  return { updated };
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════

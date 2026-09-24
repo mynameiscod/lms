@@ -24,6 +24,10 @@ router.get('/:id/readiness', ctrl.getExamReadiness);
 router.get('/:id/sections/:key/pool', ctrl.getSectionPool);
 router.post('/:id/provision', ctrl.provisionExamAttempts);
 router.post('/:id/invite', ctrl.sendExamInvitations);
+/* A bulk send runs in the background and returns 202. These report how far it has got —
+   without a jobId, whichever send is currently running for this exam. */
+router.get('/:id/send-progress', ctrl.getExamSendProgress);
+router.get('/:id/send-progress/:jobId', ctrl.getExamSendProgress);
 
 /* Watch it happen */
 router.get('/:id/dashboard', ctrl.getExamDashboard);

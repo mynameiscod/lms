@@ -331,7 +331,11 @@ async function deliver(
  */
 export async function sendInvitations(
   exam: IHackathonExam,
-  opts: { resend?: boolean } = {},
+  opts: {
+    resend?: boolean;
+    /** Called once per recipient so a long send can report progress. See bulkSendJobs.ts. */
+    onSent?: (t: { email?: number; whatsapp?: number; failed?: number; skipped?: number }) => void;
+  } = {},
 ): Promise<SendCounts & { skipped: number }> {
   const h = await Hackathon.findById(exam.hackathonId).lean() as any;
   const eventTitle = h?.title || exam.title;
@@ -362,8 +366,9 @@ export async function sendInvitations(
 
   for (const a of pending) {
     const need = opts.resend ? channels : channels.filter(c => !a.invitesSent?.[c]);
-    if (!need.length) { skipped++; continue; }
+    if (!need.length) { skipped++; opts.onSent?.({ skipped: 1 }); continue; }
 
+    const before = { email: counts.email, whatsapp: counts.whatsapp, failed: counts.failed };
     const done = await deliver(
       a, need,
       `${eventTitle} — your exam link`,
@@ -376,9 +381,41 @@ export async function sendInvitations(
     if (done.email) a.invitesSent.email = true;
     if (done.whatsapp) a.invitesSent.whatsapp = true;
     if (done.email || done.whatsapp) await a.save();
+
+    /* Report per recipient, so the admin screen can show a number that moves. */
+    opts.onSent?.({
+      email: counts.email - before.email,
+      whatsapp: counts.whatsapp - before.whatsapp,
+      failed: counts.failed - before.failed,
+    });
   }
 
   return { ...counts, skipped };
+}
+
+/**
+ * How many people a send is ABOUT to message, without messaging any of them.
+ *
+ * The admin is told the number before the job starts, because "this will message 443 people"
+ * is the last moment anyone can stop a mistake — and because a progress bar needs a
+ * denominator.
+ */
+export async function countPendingInvitations(
+  exam: IHackathonExam,
+  opts: { resend?: boolean } = {},
+): Promise<number> {
+  const channels = (exam.inviteChannels || []) as Channel[];
+  return HackathonExamAttempt.countDocuments(
+    opts.resend
+      ? { examId: exam._id }
+      : {
+        examId: exam._id,
+        $or: [
+          ...(channels.includes('email') ? [{ 'invitesSent.email': { $ne: true } }] : []),
+          ...(channels.includes('whatsapp') ? [{ 'invitesSent.whatsapp': { $ne: true } }] : []),
+        ],
+      },
+  );
 }
 
 /**

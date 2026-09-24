@@ -1,5 +1,5 @@
 import { ProgrammingLanguage } from '../models/Assignment';
-import { withExecutionSlot, isQueueTimeout } from './executionQueue';
+import { withExecutionSlot, isQueueTimeout, busyMessage } from './executionQueue';
 import * as settings from './settingsService';
 
 interface ExecutionInput {
@@ -637,7 +637,10 @@ class CodeRunnerService {
         // told students to look for an infinite loop in code that had none.
         return {
           passed: false, output: '',
-          error: 'The server is busy right now — too many programs running at once. Wait a few seconds and press Run again. Your code has not been changed.',
+          /* Says WHERE they are in the queue, not just that something is wrong. A wait with a
+             number in it reads as a wait; a bare "server is busy" reads as broken, and that is
+             how students reported it. */
+          error: busyMessage(input.language),
           executionTime: 0, memoryUsed: 0,
         };
       }
@@ -716,7 +719,8 @@ class CodeRunnerService {
         if (response.status === 429) {
           return {
             passed: false, output: '',
-            error: 'The server is busy right now — too many programs running at once. Wait a few seconds and press Run again.',
+            /* Piston's own 429: its job limit, not ours. Same message, same reason. */
+            error: busyMessage(language),
             executionTime: Date.now() - startedAt, memoryUsed: 0,
           };
         }

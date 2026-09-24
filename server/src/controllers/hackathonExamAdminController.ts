@@ -10,7 +10,12 @@ import AssessmentItem from '../models/AssessmentItem';
 import * as exams from '../services/hackathonExamService';
 import { computeLeaderboard, computeTeamResult, drainGradingQueue } from '../services/hackathonExamGradingService';
 import { logger } from '../utils/logger';
-import { sendInvitations, sendResults, resendInvitation } from '../services/hackathonExamNotifyService';
+import {
+  sendInvitations, sendResults, resendInvitation, countPendingInvitations,
+} from '../services/hackathonExamNotifyService';
+import {
+  startBulkSend, getBulkSend, runningBulkSend, SendAlreadyRunning,
+} from '../services/bulkSendJobs';
 import { readChunk, purgeAttemptRecording } from '../services/proctorStorageService';
 
 /**
@@ -89,13 +94,65 @@ export const upsertExam = async (req: AuthenticatedRequest, res: Response) => {
       }
     }
 
+    /*
+     * Remember the window BEFORE the patch, so a change to it can be acted on rather than
+     * silently stored. Two things used to go wrong when an admin extended a live exam, and both
+     * cost time during the 22 September event:
+     *
+     *   #22  Candidates' clocks did not move. expiresAt is stamped when they start, and nothing
+     *        revisited it, so 24 candidates kept the deadline computed against the old close and
+     *        auto-submitted anyway despite being told they had longer.
+     *
+     *   #23  The door stayed shut. joinCutoffMins is measured from startAt, which did not move,
+     *        so extending the close did nothing for anyone still trying to get in.
+     */
+    const prevEndAt = existing?.endAt ? new Date(existing.endAt).getTime() : null;
+    const prevDuration = existing?.durationMins ?? null;
+
     const exam = existing
       ? Object.assign(existing, patch)
       : new HackathonExam({ ...patch, tenantId, hackathonId, createdBy: req.user?.id });
+
+    const newEndAt = new Date(exam.endAt).getTime();
+    const endMovedBy = prevEndAt === null ? 0 : newEndAt - prevEndAt;
+
+    /*
+     * Carry the join window along with the close, by the same amount. Only when the admin did
+     * not set joinCutoffMins themselves in this same request — an explicit value is a decision
+     * and must not be second-guessed — and only when the close moved LATER. Bringing the close
+     * forward is a decision to end sooner, not an instruction to shut the door earlier still,
+     * and windowError clamps the cutoff to endAt anyway.
+     */
+    let joinShiftedMins = 0;
+    if (endMovedBy > 0 && req.body?.joinCutoffMins === undefined && (exam.joinCutoffMins || 0) > 0) {
+      joinShiftedMins = Math.round(endMovedBy / 60000);
+      exam.joinCutoffMins = (exam.joinCutoffMins || 0) + joinShiftedMins;
+    }
+
     await exam.save();
     clearDrawPoolCache();
 
-    res.json({ success: true, message: 'Exam saved', data: exam });
+    /* Now push the new window onto every open attempt. Derived from each candidate's own
+       startedAt, so it is correct whether the window grew or shrank. */
+    let deadlines = { updated: 0 };
+    const windowChanged = endMovedBy !== 0 || (prevDuration !== null && prevDuration !== exam.durationMins);
+    if (existing && windowChanged) {
+      deadlines = await exams.reconcileDeadlines(exam);
+    }
+
+    const notes: string[] = ['Exam saved.'];
+    if (deadlines.updated) {
+      notes.push(`${deadlines.updated} candidate clock(s) updated to the new window.`);
+    }
+    if (joinShiftedMins) {
+      notes.push(`The join window moved ${joinShiftedMins} minute(s) later with the close — set "joinCutoffMins" explicitly to override.`);
+    }
+
+    res.json({
+      success: true,
+      message: notes.join(' '),
+      data: { ...exam.toObject(), _deadlinesUpdated: deadlines.updated, _joinShiftedMins: joinShiftedMins },
+    });
   } catch (e) { fail(res, e, 'Failed to save exam'); }
 };
 
@@ -417,13 +474,78 @@ export const getExamReadiness = async (req: AuthenticatedRequest, res: Response)
 export const sendExamInvitations = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const exam = await examOr404(req);
-    const counts = await sendInvitations(exam, { resend: String(req.query.resend || req.body?.resend || '') === 'true' });
-    res.json({
-      success: true,
-      message: `Invitations sent — ${counts.email} email, ${counts.whatsapp} WhatsApp.`,
-      data: counts,
+    const resend = String(req.query.resend || req.body?.resend || '') === 'true';
+
+    /*
+     * STARTED HERE, NOT DONE HERE.
+     *
+     * This used to run the whole cohort inside the request: 443 recipients across two
+     * channels, sequentially, each a network round trip. It passed nginx's 600s
+     * proxy_read_timeout and returned a 504 — while the send carried on behind it, with no
+     * way to see how far it had got or whether pressing the button again would double-message
+     * everybody.
+     *
+     * The job now runs on its own and this returns immediately with its id and the number of
+     * people it is about to message. Poll GET .../invitations/:jobId for progress.
+     */
+    const total = await countPendingInvitations(exam, { resend });
+
+    const job = startBulkSend({
+      kind: 'hackathon-exam-invitations',
+      scope: String(exam._id),
+      total,
+      work: (tick) => sendInvitations(exam, { resend, onSent: tick }).then(() => undefined),
     });
-  } catch (e) { fail(res, e, 'Failed to send invitations'); }
+
+    res.status(202).json({
+      success: true,
+      message: total
+        ? `Sending to ${total} recipient(s). This runs in the background — the page will keep updating.`
+        : 'Nobody is waiting for an invitation. Nothing to send.',
+      data: { job },
+    });
+  } catch (e) {
+    if (e instanceof SendAlreadyRunning) {
+      /* Two overlapping sends would interleave their reads of the invited flags and message
+         people twice. Point the admin at the one already running instead. */
+      return res.status(409).json({
+        success: false, code: 'SEND_RUNNING',
+        message: 'A send is already running for this exam. Watch that one rather than starting a second.',
+        data: { job: getBulkSend(e.jobId) },
+      });
+    }
+    fail(res, e, 'Failed to send invitations');
+  }
+};
+
+/**
+ * How far a bulk send has got.
+ *
+ * Also answers "is anything running?" with no job id, so an admin who reloaded the page can
+ * find the send they started.
+ */
+export const getExamSendProgress = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const job = req.params.jobId
+      ? getBulkSend(req.params.jobId)
+      : runningBulkSend(String(exam._id));
+
+    if (!job) {
+      /*
+       * Progress lives in this process's memory, so a deploy mid-send loses the record. The
+       * messages already delivered stay delivered and the per-recipient flags make a re-run
+       * safe — say that, rather than leaving a spinner turning forever.
+       */
+      return res.json({
+        success: true,
+        data: { job: null },
+        message: 'No send is running. If one was interrupted by a restart, pressing send again '
+          + 'will reach only the people who still need it.',
+      });
+    }
+    res.json({ success: true, data: { job } });
+  } catch (e) { fail(res, e, 'Failed to read send progress'); }
 };
 
 /** Send results. Refuses on an unpublished exam — a score sent early cannot be recalled. */

@@ -112,21 +112,56 @@ jobs:
         run: npm ci
 
       # CRA fails the build on eslint warnings when CI=true, which GitHub Actions
-      # sets automatically. This repository currently has 110 such warnings (unused
+      # sets automatically. This repository has a backlog of such warnings (unused
       # variables, react-hooks/exhaustive-deps) and the Dockerfile does NOT set CI,
       # so production builds them as warnings and succeeds.
       #
       # CI=false therefore makes this step reproduce the REAL production build
       # rather than a stricter one the project has never passed. It is not there to
-      # make CI green: a genuine compile error still fails this step. Clearing the
-      # warning backlog is tracked separately in docs/ci.md.
+      # make CI green: a genuine compile error still fails this step.
+      #
+      # The warning count IS gated — see the ratchet below.
       #
       # NODE_OPTIONS matches the Dockerfile — the build needs the extra heap.
       - name: Client - Production build
-        run: npm run build --workspace=client
+        run: npm run build --workspace=client 2>&1 | tee /tmp/client-build.log
         env:
           CI: 'false'
           NODE_OPTIONS: '--max-old-space-size=4096'
+
+      # ── The warning ratchet ────────────────────────────────────────────────
+      # The gap this closes: with CI=false the existing warnings are frozen in AND
+      # a new one is invisible, so the build could not tell anyone they had added
+      # one. Turning CI=true instead would fail every build until the whole backlog
+      # was cleared, which is a separate piece of work and not a reason to block
+      # every unrelated change in the meantime.
+      #
+      # So the count is the gate rather than the warnings themselves. The backlog is
+      # allowed to stay; it is not allowed to GROW. Adding a warning fails this step
+      # with the count and the offending lines; removing warnings is rewarded by
+      # being told to lower the baseline, so the number only ever goes down.
+      #
+      # The baseline lives in .github/client-warning-baseline.txt, one integer, and
+      # changing it is a visible line in a diff that somebody has to justify.
+      - name: Client - eslint warning ratchet
+        run: |
+          set -euo pipefail
+          baseline=$(tr -dc '0-9' < .github/client-warning-baseline.txt)
+          count=$(grep -cE '^[[:space:]]+Line [0-9]+:' /tmp/client-build.log || true)
+          echo "eslint warnings: $count   baseline: $baseline"
+          if [ "$count" -gt "$baseline" ]; then
+            echo "::error::This change adds $((count - baseline)) new eslint warning(s) (now $count, baseline $baseline)."
+            echo ""
+            echo "Every warning in the build:"
+            grep -E '^[[:space:]]+Line [0-9]+:|^src/' /tmp/client-build.log || true
+            echo ""
+            echo "Fix the new warning(s). Do not raise the baseline to make this pass."
+            exit 1
+          fi
+          if [ "$count" -lt "$baseline" ]; then
+            echo "::notice::Warnings are down to $count from a baseline of $baseline."
+            echo "Please lower .github/client-warning-baseline.txt to $count so the gain is locked in."
+          fi
 
       # CI=true here is correct and required: it stops react-scripts entering
       # interactive watch mode, which would hang the runner until the timeout.
@@ -135,8 +170,8 @@ jobs:
         env:
           CI: 'true'
 
-      # client/package.json has no lint script. CRA runs eslint as part of the
-      # build above, so lint coverage is not absent — it is just not a gate.
+      # client/package.json has no lint script. CRA runs eslint as part of the build
+      # above, and the ratchet makes it a gate on anything NEW.
 
   # ── repository safety ─────────────────────────────────────────────────────
   # Cheap checks for the classes of breakage that have actually caused outages
@@ -171,6 +206,24 @@ jobs:
             echo "All Linux-executed files are LF:"
             echo "$files" | sed 's/^/  /'
           fi
+          exit "$status"
+
+      # A literal NUL byte in a text file makes git treat it as binary: it stops
+      # diffing, stops merging cleanly, and the byte is invisible in every editor
+      # and every review. One sat in hackathonRegistrationService.ts for months as
+      # a sentinel written '\0never', flagged repeatedly and never fixed because
+      # nobody could see it.
+      - name: Repository Safety - NUL bytes in source
+        run: |
+          set -euo pipefail
+          status=0
+          for f in $(git ls-files '*.ts' '*.tsx' '*.js' '*.jsx' '*.json' '*.yml' '*.yaml' '*.md' '*.sh' | grep -v node_modules); do
+            if LC_ALL=C grep -qP '\x00' "$f" 2>/dev/null; then
+              echo "::error file=$f::NUL byte in a text file. Git will treat this as binary."
+              status=1
+            fi
+          done
+          [ "$status" -eq 0 ] && echo "No NUL bytes in tracked source files."
           exit "$status"
 
       # Syntax only. Nothing here is executed — these scripts deploy, provision and

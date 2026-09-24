@@ -36,6 +36,29 @@ services:
     networks:
       - lms-network
     restart: unless-stopped
+    # ── Resource limits ────────────────────────────────────────────────────
+    # Every container on this box ran with NanoCpus=0 and Memory=0, so nothing
+    # stopped a compile storm from starving the database. These are CAPS, not
+    # reservations: the sum may exceed the box (8 cores, 31 GB) and that is fine.
+    # What they buy is that no one container can take everything.
+    mem_limit: 8g
+    cpus: 3.0
+    # WiredTiger sizes its cache from what it believes the machine has, and inside
+    # a container that is the HOST's 31 GB, not the limit above -- so it would plan
+    # for a ~15 GB cache and then be OOM-killed by the 8 GB cap under load. Set it
+    # explicitly, below the limit, leaving room for connections and sorts.
+    #
+    # --auth and --bind_ip_all are stated EXPLICITLY, not left to the image's
+    # entrypoint. The entrypoint injects both today (verified: the running process
+    # is `mongod --auth --bind_ip_all`), but it does so as a side effect of the
+    # MONGO_INITDB_* variables being present, and overriding `command` is exactly
+    # the kind of change that could quietly stop that happening. A database that
+    # comes back up with authentication off, on a box where the port has been
+    # published to 0.0.0.0 since June, is not a risk worth taking to save a line.
+    #
+    # --bind_ip_all is INSIDE the container and reaches only the docker network;
+    # what restricts access from outside is the 127.0.0.1 port binding above.
+    command: ["mongod", "--auth", "--bind_ip_all", "--wiredTigerCacheSizeGB", "4"]
 
   redis:
     image: redis:7-alpine
@@ -65,6 +88,10 @@ services:
     networks:
       - lms-network
     restart: unless-stopped
+    # Queue metadata and cache only; it was using 6 MB. A cap this far above the
+    # working set exists to bound a runaway key, not to squeeze it.
+    mem_limit: 1g
+    cpus: 1.0
 
   server-blue:
     build:
@@ -101,6 +128,12 @@ services:
     networks:
       - lms-network
     restart: unless-stopped
+    # Only one slot serves traffic at a time, so this is the app's whole budget.
+    # Generous against a measured 154 MB: a 1 GB Resource Library upload is
+    # streamed, but PDF generation and xlsx export are not, and being OOM-killed
+    # mid-export is worse than being slow.
+    mem_limit: 6g
+    cpus: 4.0
 
   server-green:
     build:
@@ -135,6 +168,12 @@ services:
     networks:
       - lms-network
     restart: unless-stopped
+    # Only one slot serves traffic at a time, so this is the app's whole budget.
+    # Generous against a measured 154 MB: a 1 GB Resource Library upload is
+    # streamed, but PDF generation and xlsx export are not, and being OOM-killed
+    # mid-export is worse than being slow.
+    mem_limit: 6g
+    cpus: 4.0
 
   piston:
     image: ghcr.io/engineer-man/piston

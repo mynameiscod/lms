@@ -230,6 +230,30 @@ const DIMENSION: Record<string, AssessmentDimension> = {
   DSA_SORTING: 'dsa',
   DB_NORMALIZATION: 'core_stack',
   DB_TRANSACTIONS: 'core_stack',
+
+  // ── Year 2, batches 2 and 3 ──────────────────────────────────────────────────────────────
+  // Same reasoning as above. The algorithmic skills join DSA_ARRAYS; the data and web skills
+  // join DB_FUNDAMENTALS and HTTP in the practical stack; the rest are conceptual or
+  // professional rather than a technology, so they sit with the other things a student is
+  // taught to understand rather than to operate.
+  DSA_COMPLEXITY: 'dsa',
+  DSA_SEARCHING: 'dsa',
+  DSA_RECURSION: 'dsa',
+  DSA_HASHING: 'dsa',
+  DSA_TREES: 'dsa',
+
+  DB_DESIGN: 'core_stack',
+  SQL_JOINS: 'core_stack',
+  SQL_FILTERING: 'core_stack',
+  API_FUNDAMENTALS: 'core_stack',
+  REST_APIS: 'core_stack',
+  SECURITY_FUNDAMENTALS: 'core_stack',
+
+  OOP_CONCEPTS: 'fundamentals',
+  PYTHON_OOP: 'fundamentals',
+  CLEAN_CODE: 'fundamentals',
+  TESTING_FUNDAMENTALS: 'fundamentals',
+  TECHNICAL_INTERVIEW_PREP: 'fundamentals',
 };
 
 /**

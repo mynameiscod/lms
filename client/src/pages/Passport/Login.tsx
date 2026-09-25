@@ -62,12 +62,29 @@ const PassportLogin: React.FC = () => {
     window.location.href = r.onboardingCompleted ? '/careerpilot' : '/careerpilot/setup';
   };
 
+  /**
+   * A SERVER THAT DID NOT ANSWER IS NOT A WRONG PASSWORD.
+   *
+   * Every failure on this screen read "Login failed", which is also what a member sees when the
+   * API is down, their connection has dropped, or the request never left the browser — and it is
+   * indistinguishable from the message for bad credentials. People then retype a password that
+   * was right all along, and eventually reset one they never needed to.
+   *
+   * The server names every refusal it makes — "Incorrect password.", "No CareerPilot found for
+   * that email/mobile." — so a rejection carrying no message at all means there was no rejection,
+   * and no response either. Shared by all three ways in, because the distinction is the same for
+   * a password, a code request and a code check.
+   */
+  const failureText = (e: any, fallback: string): string =>
+    e?.response?.data?.message
+    || (e?.response ? fallback : 'We could not reach CareerPilot. Check your connection and try again.');
+
   const doPassword = async () => {
     setBusy(true); setMsg('');
     try { land(await passportPublicApi.loginPassword(tenant, identifier, password)); }
     catch (e: any) {
       const m = e?.response?.data;
-      setMsg(m?.message || 'Login failed');
+      setMsg(failureText(e, 'Something went wrong signing you in. Please try again.'));
       if (m?.code === 'NO_PASSWORD') {
         setMode('otp');
         setMobile(identifier.includes('@') ? '' : identifier);
@@ -82,14 +99,14 @@ const PassportLogin: React.FC = () => {
       const r = await passportPublicApi.loginOtp(tenant, mobile);
       setToken(r.token); setDevCode(r.otp?.devCode || ''); setOtpStep(true);
       setMsg(r.otp?.sent ? 'We sent a code to your WhatsApp.' : (r.otp?.devCode ? `Dev code: ${r.otp.devCode}` : 'Enter the code sent to you.'));
-    } catch (e: any) { setMsg(e?.response?.data?.message || 'Could not send code'); }
+    } catch (e: any) { setMsg(failureText(e, 'Could not send the code. Please try again.')); }
     setBusy(false);
   };
 
   const verifyOtp = async (code: string) => {
     setBusy(true); setMsg('');
     try { land(await passportPublicApi.verify(token, code)); }
-    catch (e: any) { setMsg(e?.response?.data?.message || 'Verification failed'); }
+    catch (e: any) { setMsg(failureText(e, 'That code could not be verified. Please try again.')); }
     setBusy(false);
   };
 

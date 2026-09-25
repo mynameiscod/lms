@@ -40,6 +40,8 @@ import { JS_ASYNC } from './jsAsync';
 import { SERVER_SIDE_BASICS } from './serverSideBasics';
 import { CLOUD_FUNDAMENTALS } from './cloudFundamentals';
 import { DEVOPS_FUNDAMENTALS } from './devopsFundamentals';
+import { DATA_WRANGLING } from './dataWrangling';
+import { MOBILE_APP_BASICS } from './mobileAppBasics';
 
 export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_STACK,
@@ -68,6 +70,8 @@ export const YEAR2_BANK: GoldenItem[] = [
   ...SERVER_SIDE_BASICS,
   ...CLOUD_FUNDAMENTALS,
   ...DEVOPS_FUNDAMENTALS,
+  ...DATA_WRANGLING,
+  ...MOBILE_APP_BASICS,
 ];
 
 export { GoldenItem };

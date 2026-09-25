@@ -36,6 +36,7 @@ import { REST_APIS } from './restApis';
 import { SECURITY_FUNDAMENTALS } from './securityFundamentals';
 import { TESTING_FUNDAMENTALS } from './testingFundamentals';
 import { TECHNICAL_INTERVIEW_PREP } from './technicalInterviewPrep';
+import { JS_ASYNC } from './jsAsync';
 
 export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_STACK,
@@ -60,6 +61,7 @@ export const YEAR2_BANK: GoldenItem[] = [
   ...SECURITY_FUNDAMENTALS,
   ...TESTING_FUNDAMENTALS,
   ...TECHNICAL_INTERVIEW_PREP,
+  ...JS_ASYNC,
 ];
 
 export { GoldenItem };

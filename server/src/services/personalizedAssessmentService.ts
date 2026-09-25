@@ -231,7 +231,7 @@ export function rankSkills(
    */
   const preferPrerequisites = policy.preferFoundationalSkills ?? policy.prerequisiteDepth > 0;
 
-  return candidates
+  const ranked = candidates
     .slice()
     .sort((a, b) => {
       if (preferPrerequisites && a.reason !== b.reason) {
@@ -256,8 +256,66 @@ export function rankSkills(
       // Last resort, and deterministic: the order must never depend on how Mongo returned
       // the rows, or two students at the same stage would sit different papers.
       return a.skillKey.localeCompare(b.skillKey);
+    });
+
+  /**
+   * ── SLOTS RESERVED FOR THE FLOOR THE YEAR STANDS ON ─────────────────────────────────────
+   *
+   * A later stage sorts the HARDEST skills first, which is right: a second-year should be
+   * measured on second-year work. But taken alone it means the year's own prerequisites are
+   * never asked, and that had a consequence nobody could see from any single file.
+   *
+   * The bridge teaches a first-year skill when a student is measured below the bar on it, and
+   * it counts only MEASURED skills as gaps — deliberately, so a returning member with a year of
+   * evidence is never re-taught what they have proved. Put that together with a paper that
+   * never asks about first-year skills and the bridge goes blind: measured on the real
+   * database, every Year-2 student had three of the fourteen bridge skills measured, and a
+   * fresh second-year who could not write a loop was never asked about loops, so loops were
+   * never a gap, so loops were never taught.
+   *
+   * So a few slots are reserved for the most foundational skills in scope — the floor. They are
+   * a minority of the paper by design: the year is still mostly measured on itself. For a
+   * student who has the floor this costs a few questions and confirms it; for one who does not,
+   * it is the only way anybody finds out.
+   *
+   * Zero or unset keeps the old behaviour exactly, so every other stage is untouched.
+   */
+  const reserved = Math.max(0, Math.min(policy.readinessSlots ?? 0, policy.maxSkills - 1));
+  if (!reserved) return ranked.slice(0, policy.maxSkills);
+
+  const top = ranked.slice(0, policy.maxSkills - reserved);
+  const taken = new Set(top.map(c => c.skillKey));
+
+  /**
+   * The floor: what the year STANDS ON, not what it teaches.
+   *
+   * Difficulty is not the axis that was losing — BUILD_V1 already prefers foundational skills,
+   * and its prerequisites are FOUNDATION too. They lost on IMPORTANCE: the year's own essentials
+   * take every slot before a supporting skill is considered.
+   *
+   * So these slots deliberately invert that one comparison. SUPPORTING comes first, because a
+   * supporting skill in a stage set is something the stage depends on rather than something it
+   * delivers, and that is exactly what a placement paper needs to confirm. OPTIONAL stays last:
+   * enrichment is not the floor either.
+   */
+  const floorRank: Record<string, number> = { SUPPORTING: 0, IMPORTANT: 1, ESSENTIAL: 2, OPTIONAL: 3 };
+  const floor = ranked
+    .filter(c => !taken.has(c.skillKey))
+    .sort((a, b) => {
+      const pa = priority?.get(a.skillKey);
+      const pb = priority?.get(b.skillKey);
+      const fa = floorRank[pa?.importance || 'ESSENTIAL'] ?? 2;
+      const fb = floorRank[pb?.importance || 'ESSENTIAL'] ?? 2;
+      if (fa !== fb) return fa - fb;
+      const da = difficultyRank[skills.get(a.skillKey)?.difficulty || 'FOUNDATION'] ?? 0;
+      const db = difficultyRank[skills.get(b.skillKey)?.difficulty || 'FOUNDATION'] ?? 0;
+      if (da !== db) return da - db;
+      if (pa && pb && pa.order !== pb.order) return pa.order - pb.order;
+      return a.skillKey.localeCompare(b.skillKey);
     })
-    .slice(0, policy.maxSkills);
+    .slice(0, reserved);
+
+  return [...top, ...floor];
 }
 
 // ── Step 2: the slots ────────────────────────────────────────────────────────

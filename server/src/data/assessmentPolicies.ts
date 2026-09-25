@@ -55,6 +55,19 @@ export interface AssessmentPolicy {
    * in particular.
    */
   prerequisiteDepth: number;
+
+  /**
+   * How many of `maxSkills` are reserved for the most foundational skills in scope.
+   *
+   * A later stage measures the hardest skills first, which is right — but then the year's own
+   * prerequisites are never asked, and the bridge that teaches them counts only MEASURED skills
+   * as gaps. The two together made the bridge blind: a fresh second-year who could not write a
+   * loop was never asked about loops, so loops were never a gap, so loops were never taught.
+   *
+   * These slots are a minority of the paper by design; the year is still mostly measured on
+   * itself. Unset or 0 keeps the previous behaviour exactly.
+   */
+  readinessSlots?: number;
   /**
    * Ask about the ground floor first, rather than the destination.
    *
@@ -179,6 +192,21 @@ export const ASSESSMENT_POLICIES: AssessmentPolicy[] = [
     skillSlots: 24, maxSkills: 8, minItemsPerSkill: 3, maxItemsPerSkill: 3,
     difficultyMix: mix(0.25, 0.5, 0.25),
     prerequisiteDepth: 1,
+    /**
+     * Three of the eight go to the floor Year 2 stands on.
+     *
+     * Without them the paper asked only Year-2 essentials, so the fourteen Year-1 skills the
+     * bridge exists to teach were never measured — and the bridge treats an unmeasured skill as
+     * held, on purpose, so that a returning member is not re-taught what they have proved.
+     * Measured on the real database: every Year-2 student had three of the fourteen measured,
+     * and a fresh second-year who could not write a loop was never asked about loops, so loops
+     * were never a gap, so loops were never taught.
+     *
+     * Three rather than more because the paper's job is still to place a SECOND-year: five
+     * slots stay on Year-2 work. Three skills at three items is nine of twenty-four questions
+     * spent confirming the floor, which is what an entry test is for.
+     */
+    readinessSlots: 3,
     /**
      * ON, and this was measured both ways before it was left alone.
      *

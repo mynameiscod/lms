@@ -278,13 +278,26 @@ describe('the shipped taxonomy is internally consistent', () => {
      * the same lesson repeatedly and scored on a number that could not say which part was
      * missing.
      *
+     * It moved to 180 when Year 3 landed. Year 3 is specialization and production depth, and
+     * thirty-five of its topics had nothing to map to: design patterns, refactoring, caching,
+     * query optimization, authentication and authorization as separate things, threat
+     * modelling, containers, CI/CD, deployment, the ML workflow. Each earns its place by the
+     * test below rather than by being on the syllabus — you can say "this student is 62% there"
+     * about authorization, and an interviewer can probe it on its own.
+     *
+     * What did NOT get a node is as much of the point. Year 3 reuses CODE_REVIEW,
+     * PORTFOLIO_EVIDENCE, INTERNSHIP_READINESS, SYSTEM_DESIGN_BASICS, TECHNICAL_INTERVIEW_PREP,
+     * CLOUD_FUNDAMENTALS and DEVOPS_FUNDAMENTALS exactly as Year 2 left them, and asks more of
+     * them through depth and target level. A second key for the same capability would split one
+     * student's evidence across two numbers and make both of them wrong.
+     *
      * The guard is not removed, because the reason for it has not changed. Every node here
      * must still be something you can say "this student is 62% there" about; a taxonomy that
      * grows without that test becomes a textbook index nobody can navigate. Splitting a node
      * has to earn it: the test is whether the two halves are separately measurable.
      */
     expect(CAREER_SKILL_TAXONOMY.length).toBeGreaterThanOrEqual(40);
-    expect(CAREER_SKILL_TAXONOMY.length).toBeLessThanOrEqual(140);
+    expect(CAREER_SKILL_TAXONOMY.length).toBeLessThanOrEqual(180);
   });
 
   it('has unique keys', () => {

@@ -46,6 +46,15 @@ export const DEFAULT_PROGRAM_DAYS = FOUNDATION_PROGRAM_DAYS;
 export const DEFAULT_PROGRAM_DAYS_BY_STAGE: Record<string, number> = {
   foundation: FOUNDATION_PROGRAM_DAYS,
   build: 110,
+  /*
+   * 130 for specialize, on the same footing: a starting figure an admin moves, not a claim.
+   *
+   * It is longer than Year 2 because Year 3 carries more that cannot be dropped — the advanced
+   * core, one specialization track in full rather than a sampling, a production project and a
+   * capstone, and the portfolio and internship work at the end. The product owner asked for the
+   * length to be admin-set, so this is only where a tenant starts.
+   */
+  specialize: 130,
 };
 
 export const defaultProgramDaysFor = (stageKey?: string | null): number =>

@@ -161,3 +161,14 @@
   .ori-item > header { flex-wrap: wrap; }
   .ori-complete { flex-direction: column; align-items: flex-start; }
 }
+
+/* When the next welcome day arrives — shown beside the tick on a finished day, because a
+   paced member has nothing more to open today and a bare tick is a dead end. */
+.ori-tomorrow {
+  display: block;
+  margin-top: 4px;
+  font-style: normal;
+  font-size: 13.5px;
+  font-weight: 600;
+  opacity: 0.85;
+}

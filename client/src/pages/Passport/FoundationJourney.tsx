@@ -507,8 +507,18 @@ const FoundationJourneyPage: React.FC = () => {
          * than being shown a learning day they cannot open and a message explaining why.
          */
         const asked = Number(params.get('welcome'));
+        /*
+         * THE PLAN STARTS AT 0.1, NOT DAY 1.
+         *
+         * A member who owes the welcome lands on it. `nextDay` is the day they can open NOW,
+         * which for a paced member is null once they have done today's — so they are put on the
+         * last day they finished instead, where the panel can say when the next one arrives.
+         * Landing them on a learning day the server would refuse is the one thing to avoid.
+         */
+        const owes = v.mandatory && !v.complete;
+        const lastDone = [...v.days].reverse().find(d => d.done)?.dayNumber ?? null;
         const open = v.days.some(d => d.dayNumber === asked && !d.locked) ? asked
-          : v.mandatory && !v.complete ? v.nextDay
+          : owes ? (v.nextDay ?? lastDone ?? v.days[0]?.dayNumber ?? null)
             : null;
         if (open) { setOpenOrientationDay(open); setOpenDay(null); }
       })
@@ -795,6 +805,7 @@ const FoundationJourneyPage: React.FC = () => {
           <OrientationDayPanel
             key={welcomeDay.dayNumber}
             day={welcomeDay}
+            nextDay={(orientation?.days || []).find(d => d.dayNumber > welcomeDay.dayNumber) || null}
             onChanged={setOrientation}
             onFinished={next => {
               if (next) { selectOrientationDay(next); return; }

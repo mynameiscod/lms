@@ -2327,6 +2327,8 @@ export interface FoundationJourneyDaySummary {
   objective?: string | null;
   /** The server's ladder: true while the day before is unfinished. The day endpoint refuses a locked day. */
   locked?: boolean;
+  /** Which gate is shut: work still to do, or a day the calendar has not reached. */
+  lockedReason?: 'DAY_LOCKED' | 'NOT_TODAY_YET';
 }
 
 /**
@@ -2348,10 +2350,16 @@ export interface OrientationRoadmapDay {
   minutes: number;
   status: 'COMPLETED' | 'CURRENT' | 'UPCOMING';
   locked: boolean;
+  /** Work still to do, or simply not today yet. Two different things to tell somebody. */
+  lockedReason?: 'PREVIOUS_DAY' | 'NOT_TODAY_YET';
+  /** The IST midnight that opens it, when the calendar is what is holding it. */
+  opensAt?: string | null;
 }
 
 export interface OrientationRoadmap {
   mandatory: boolean;
+  /** True when this member gets one day per calendar day as well as one after another. */
+  paced?: boolean;
   complete: boolean;
   /** True while the welcome must be finished before Day 1 opens. */
   blocking: boolean;
@@ -3517,6 +3525,10 @@ export interface OrientationDay {
   items: OrientationItem[];
   done?: boolean;
   locked?: boolean;
+  /** Why it is shut: the day before it is unfinished, or the calendar has not reached it. */
+  lockedReason?: 'PREVIOUS_DAY' | 'NOT_TODAY_YET';
+  /** The IST midnight that opens it, when the calendar is what is holding it. */
+  opensAt?: string | null;
   minutes?: number;
 }
 
@@ -3524,6 +3536,13 @@ export interface OrientationView {
   enabled: boolean;
   /** True while this member must finish orientation before their first learning day. */
   mandatory: boolean;
+  /**
+   * One welcome day per calendar day, in India time, as well as one after another.
+   *
+   * Members who were already learning when pacing arrived are not paced, so this is false for
+   * them and the screens behave exactly as they did.
+   */
+  paced?: boolean;
   complete: boolean;
   days: OrientationDay[];
   nextDay: number | null;

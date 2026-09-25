@@ -37,6 +37,23 @@ export interface IOrientationProgress extends Document {
    * Decided once, when they first see it, so the answer cannot change under them mid-way.
    */
   mandatory: boolean;
+  /**
+   * Whether this member is on the day-by-day calendar, as well as the completion ladder.
+   *
+   * Decided once when the record is created, exactly like `mandatory`, and never re-evaluated.
+   * Members who were already learning when pacing arrived have it absent, which reads as false,
+   * so nothing they had reached was taken away from them. A rule that re-decided itself every
+   * request would start locking somebody out the first time a field was backfilled.
+   */
+  paced?: boolean;
+  /**
+   * The moment the programme's calendar starts for this member — day 1 of 95.
+   *
+   * Stored rather than derived, because the things it could be derived from move: an admin can
+   * re-grant a membership, and an enrolment can be rebuilt. The clock a member is being held to
+   * must not restart because something behind it was rewritten.
+   */
+  pacedFrom?: Date;
   startedAt?: Date;
   completedAt?: Date;
   createdAt: Date;
@@ -60,6 +77,13 @@ const OrientationProgressSchema = new Schema<IOrientationProgress>(
     completedDays: [{ type: Number }],
     items:         [ItemStateSchema],
     mandatory:     { type: Boolean, default: true },
+    /*
+     * NO DEFAULT, DELIBERATELY. Every row written before pacing existed must read as not paced,
+     * and `default: false` would be indistinguishable from a row that chose false — which is the
+     * distinction that keeps members who were already learning out of this.
+     */
+    paced:         { type: Boolean },
+    pacedFrom:     { type: Date },
     startedAt:     { type: Date },
     completedAt:   { type: Date },
   },

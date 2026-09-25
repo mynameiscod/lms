@@ -65,8 +65,25 @@ import { DEFAULT_ORIENTATION } from '../data/orientationPolicy';
 const TENANT = '6aa8e4d702b4b0e2097b221d';
 const STUDENT = '5f9d1b2c3a4b5c6d7e8f9999';
 
+/**
+ * Let the calendar move on, for a member who is paced.
+ *
+ * Winding the stored start date back N days is exactly equivalent to N midnights passing, and
+ * reads better in a test than freezing the clock: `travel(1)` is "it is tomorrow now".
+ *
+ * Needed because a paced member gets ONE welcome day per calendar day, so a test that finishes
+ * five of them has to let five days pass — which is the rule, not an obstacle to it.
+ */
+const travel = (days: number) => {
+  for (const row of progresses) {
+    if (row.pacedFrom) row.pacedFrom = new Date(new Date(row.pacedFrom).getTime() - days * 86_400_000);
+  }
+};
+
 const finishDay = async (day: number) => {
   const d = DEFAULT_ORIENTATION.find(x => x.dayNumber === day)!;
+  /* Each welcome day is a day apart. Day 1 is open the day they join; the rest need a midnight. */
+  if (day > 1) travel(1);
   for (const item of d.items.filter(i => i.required)) {
     await completeOrientationItem({ tenantId: TENANT, studentId: STUDENT, dayNumber: day, itemKey: item.key });
   }
@@ -125,8 +142,38 @@ describe('a member who has not started learning', () => {
     expect(r.ok).toBe(true);
     const view = await orientationFor(TENANT, STUDENT);
     expect(view.days[0].done).toBe(true);
-    expect(view.days[1].locked).toBe(false);
-    expect(view.nextDay).toBe(2);
+  });
+
+  /**
+   * THE POINT OF PACING, IN ONE TEST.
+   *
+   * Finishing the welcome in an evening makes it a form to fill in. A member who finishes day
+   * one has nothing more to open today — and is told that it opens tomorrow, not that it is
+   * locked, because those are different things to hear.
+   */
+  it('gives a paced member nothing more to open on the day they finish a welcome day', async () => {
+    await finishDay(1);
+    const today = await orientationFor(TENANT, STUDENT);
+    expect(today.paced).toBe(true);
+    expect(today.days[1]).toMatchObject({ dayNumber: 2, locked: true, lockedReason: 'NOT_TODAY_YET' });
+    expect(today.days[1].opensAt).toBeTruthy();
+    expect(today.nextDay).toBeNull();
+
+    travel(1);
+
+    const tomorrow = await orientationFor(TENANT, STUDENT);
+    expect(tomorrow.days[1]).toMatchObject({ dayNumber: 2, locked: false });
+    expect(tomorrow.days[1].opensAt).toBeNull();
+    expect(tomorrow.nextDay).toBe(2);
+    /* And still only one: day three waits for its own midnight. */
+    expect(tomorrow.days[2]).toMatchObject({ dayNumber: 3, locked: true });
+  });
+
+  it('refuses work recorded against a day the calendar has not reached', async () => {
+    await finishDay(1);
+    const r = await completeOrientationDay(TENANT, STUDENT, 2);
+    expect(r.ok).toBe(false);
+    expect(r.message).toMatch(/tomorrow/i);
   });
 
   it('cannot skip ahead to a later day', async () => {
@@ -151,9 +198,10 @@ describe('a member who has not started learning', () => {
   });
 
   it('remembers which lines of a checklist are ticked', async () => {
-    /* Day 3 is reached by finishing the two before it, because a locked day serves nothing. */
+    /* Day 3 is reached by finishing the two before it AND by the calendar reaching day three. */
     await finishDay(1);
     await finishDay(2);
+    travel(1);
     await completeOrientationItem({
       tenantId: TENANT, studentId: STUDENT, dayNumber: 3, itemKey: 'linkedin_todo', checked: [0, 1, 4],
     });
@@ -175,6 +223,7 @@ describe('a member who has not started learning', () => {
     expect(before.days[1]).toMatchObject({ dayNumber: 2, locked: true });
 
     await finishDay(1);
+    travel(1);   // the completion ladder is the subject here; let the calendar catch up
 
     const after = await orientationFor(TENANT, STUDENT);
     expect(after.days[0]).toMatchObject({ dayNumber: 1, done: true });

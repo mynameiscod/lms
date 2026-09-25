@@ -220,6 +220,20 @@ const Item: React.FC<{
 };
 
 /**
+ * When a day opens, in words rather than a timestamp.
+ *
+ * The server sends an exact IST midnight; a member wants to know whether that is tonight or next
+ * week, so a date nobody has to decode is the right answer and "tomorrow" is the common case.
+ */
+const whenItOpens = (iso?: string | null): string => {
+  if (!iso) return 'tomorrow';
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return 'tomorrow';
+  const days = Math.round((at.getTime() - Date.now()) / 86_400_000);
+  if (days <= 1) return 'tomorrow';
+  return `on ${at.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })}`;
+};
+/**
  * ONE WELCOME DAY, WHEREVER IT IS BEING SHOWN.
  *
  * Exported because the plan screen now shows these days in its own day panel, beside the learning
@@ -230,11 +244,13 @@ const Item: React.FC<{
  */
 export const OrientationDayPanel: React.FC<{
   day: OrientationDay;
+  /** The day after this one, when the calendar is what is holding it. Shown once this one is done. */
+  nextDay?: OrientationDay | null;
   /** Every save hands back the whole view, so the caller refreshes from the server's answer. */
   onChanged: (v: OrientationView) => void;
   /** Called once a day is finished, with the next day to open, or null when none is left. */
   onFinished?: (nextDay: number | null) => void;
-}> = ({ day, onChanged, onFinished }) => {
+}> = ({ day, nextDay, onChanged, onFinished }) => {
   const [outstanding, setOutstanding] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -273,7 +289,19 @@ export const OrientationDayPanel: React.FC<{
 
       <footer className="ori-day-foot">
         {day.done ? (
-          <span className="ori-done-note"><i className="bi bi-check-circle-fill" /> Day {day.dayNumber} finished</span>
+          <span className="ori-done-note">
+            <i className="bi bi-check-circle-fill" /> Day {day.dayNumber} finished
+            {/*
+              * WHAT TO DO NOW IS PART OF FINISHING.
+              *
+              * A paced member who finishes today's welcome day has nothing more to open, and a
+              * bare tick leaves them looking for work that does not exist. Saying when the next
+              * one arrives turns a dead end into an appointment.
+              */}
+            {nextDay?.lockedReason === 'NOT_TODAY_YET' && (
+              <em className="ori-tomorrow">Day {nextDay.dayNumber} opens {whenItOpens(nextDay.opensAt)}.</em>
+            )}
+          </span>
         ) : (
           <button type="button" className="ori-btn primary" disabled={busy} onClick={finishDay}>
             {busy ? 'Saving…' : <>Finish day {day.dayNumber} <i className="bi bi-arrow-right" /></>}
@@ -354,6 +382,7 @@ const Orientation: React.FC = () => {
       {day && (
         <OrientationDayPanel
           day={day}
+          nextDay={view.days.find(d => d.dayNumber > day.dayNumber) || null}
           onChanged={adopt}
           onFinished={next => { setOpen(next); if (!next) nav('/careerpilot/plan'); }}
         />

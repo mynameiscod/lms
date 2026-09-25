@@ -24,6 +24,7 @@ import { processGamificationEvent } from './gamificationEngine';
 import {
   DEFAULT_ORIENTATION, OrientationDay, OrientationItem, ORIENTATION_XP_EVENT,
 } from '../data/orientationPolicy';
+import { calendarHasReached, opensAt, programmeDayOfOrientation } from '../data/dailyPacingPolicy';
 
 export interface OrientationItemView extends OrientationItem {
   done: boolean;
@@ -37,8 +38,19 @@ export interface OrientationDayView {
   blurb: string;
   items: OrientationItemView[];
   done: boolean;
-  /** Open, or waiting for the day before it. Orientation is met in order, like the programme. */
+  /** Open, or waiting. Orientation is met in order, like the programme, and a day at a time. */
   locked: boolean;
+  /**
+   * Why it is shut, when it is.
+   *
+   * 'PREVIOUS_DAY' — the day before it is not finished. 'NOT_TODAY_YET' — it is finished but the
+   * calendar has not reached this day. Two very different things to be told: one is work to do,
+   * the other is simply not yet, and a screen that said "locked" for both would have a member
+   * hunting for work that does not exist.
+   */
+  lockedReason?: 'PREVIOUS_DAY' | 'NOT_TODAY_YET';
+  /** The IST midnight that opens it, when the calendar is what is holding it. */
+  opensAt?: string | null;
   minutes: number;
 }
 
@@ -46,9 +58,11 @@ export interface OrientationView {
   enabled: boolean;
   /** True while this member must finish orientation before their first learning day. */
   mandatory: boolean;
+  /** True when this member is also held to one day per calendar day. See dailyPacingPolicy. */
+  paced: boolean;
   complete: boolean;
   days: OrientationDayView[];
-  /** The day to open now, or null when there is nothing left. */
+  /** The day to open NOW — never one the calendar has not reached. Null when there is none. */
   nextDay: number | null;
   totalDays: number;
   completedDays: number;
@@ -91,14 +105,48 @@ async function progressFor(tenantId: string, studentId: string) {
   if (existing) return existing;
 
   const started = await alreadyStarted(tenantId, sid);
-  /* Created on first sight, with the mandatory question answered for good. */
+  const now = new Date();
+  /*
+   * Created on first sight, with BOTH questions answered for good: whether the welcome is
+   * required, and whether this member is paced day by day.
+   *
+   * The two have the same answer for the same reason. A member who was already learning when
+   * this arrived is neither blocked by the welcome nor held to a calendar — taking away days
+   * somebody has already reached and paid for is worse than launching the rule late. Everybody
+   * who starts from here is paced, from today.
+   */
   const created = await OrientationProgress.create({
-    tenantId, studentId: sid, completedDays: [], items: [], mandatory: !started, startedAt: new Date(),
+    tenantId, studentId: sid, completedDays: [], items: [], mandatory: !started, startedAt: now,
+    paced: !started, pacedFrom: started ? undefined : now,
   }).catch(async (e: any) => {
     if (e?.code !== 11000) throw e;
     return OrientationProgress.findOne({ tenantId, studentId: sid });
   });
   return created!;
+}
+
+/**
+ * Is this welcome day shut, and why? The one answer both writes below refuse by.
+ *
+ * Hiding a day's content is not a gate on its own — the endpoints that record work have to
+ * refuse it too, or a day can be completed through the API that cannot be opened in the product.
+ */
+function orientationDayRefusal(
+  ordered: OrientationDay[], progress: any, dayNumber: number, now: Date = new Date(),
+): string | null {
+  const doneDays = new Set<number>((progress.completedDays || []).map(Number));
+  if (doneDays.has(dayNumber)) return null;   // finished days stay open for review
+
+  const index = ordered.findIndex(d => d.dayNumber === dayNumber);
+  if (index > 0 && !doneDays.has(ordered[index - 1].dayNumber)) {
+    return 'Finish the day before this one first.';
+  }
+
+  const clock = progress.paced === true ? (progress.pacedFrom || progress.startedAt || null) : null;
+  if (clock && !calendarHasReached(programmeDayOfOrientation(index + 1), clock, now)) {
+    return 'This day opens tomorrow. One day at a time.';
+  }
+  return null;
 }
 
 const itemDone = (state: IOrientationItemState[], dayNumber: number, key: string) =>
@@ -108,23 +156,43 @@ const itemDone = (state: IOrientationItemState[], dayNumber: number, key: string
 export async function orientationFor(tenantId: string, studentId: string): Promise<OrientationView> {
   const program = await orientationProgram(tenantId);
   if (!program.enabled) {
-    return { enabled: false, mandatory: false, complete: true, days: [], nextDay: null, totalDays: 0, completedDays: 0 };
+    return { enabled: false, mandatory: false, paced: false, complete: true, days: [], nextDay: null, totalDays: 0, completedDays: 0 };
   }
 
   const progress = await progressFor(tenantId, studentId);
   const doneDays = new Set<number>((progress.completedDays || []).map(Number));
   const ordered = [...program.days].sort((a, b) => a.dayNumber - b.dayNumber);
 
+  /**
+   * BOTH GATES, OR NEITHER OPENS THE DAY.
+   *
+   * The day before it must be finished, AND the calendar must have reached it. A member who
+   * joined today gets day 0.1 and nothing else, however fast they work; tomorrow they get 0.2,
+   * but only if 0.1 is done. Members created before pacing existed have `paced` absent and are
+   * held to the completion ladder alone, exactly as before.
+   */
+  const paced = progress.paced === true;
+  const clock: Date | null = paced ? (progress.pacedFrom || progress.startedAt || null) : null;
+  const now = new Date();
+
   const days: OrientationDayView[] = ordered.map((d, i) => {
     const previousDone = i === 0 || doneDays.has(ordered[i - 1].dayNumber);
-    const locked = !previousDone && !doneDays.has(d.dayNumber);
+    const done = doneDays.has(d.dayNumber);
+    const programmeDay = programmeDayOfOrientation(i + 1);
+    const dated = !clock || calendarHasReached(programmeDay, clock, now);
+    /* A day already finished stays open — the calendar never takes back what was done. */
+    const locked = !done && (!previousDone || !dated);
     return {
       dayNumber: d.dayNumber,
       title: d.title,
       blurb: d.blurb,
       minutes: (d.items || []).reduce((n, it) => n + (Number(it.estimatedMinutes) || 0), 0),
-      done: doneDays.has(d.dayNumber),
+      done,
       locked,
+      lockedReason: !locked ? undefined : !previousDone ? 'PREVIOUS_DAY' : 'NOT_TODAY_YET',
+      opensAt: clock && !done && previousDone && !dated
+        ? (opensAt(programmeDay, clock, now)?.toISOString() ?? null)
+        : null,
       /**
        * A LOCKED DAY IS NAMED, NOT SERVED.
        *
@@ -149,11 +217,17 @@ export async function orientationFor(tenantId: string, studentId: string): Promi
   });
 
   const complete = ordered.every(d => doneDays.has(d.dayNumber));
-  const next = days.find(d => !d.done)?.dayNumber ?? null;
+  /*
+   * The day to open NOW, which is not the same as the next unfinished one. A paced member whose
+   * next day is tomorrow has nothing to open today, and saying otherwise would send them to a
+   * day the server then refuses.
+   */
+  const next = days.find(d => !d.done && !d.locked)?.dayNumber ?? null;
 
   return {
     enabled: true,
     mandatory: !!progress.mandatory,
+    paced,
     complete,
     days,
     nextDay: next,
@@ -205,18 +279,13 @@ export async function completeOrientationItem(input: ItemDoneInput): Promise<{ o
   const progress = await progressFor(input.tenantId, input.studentId);
 
   /**
-   * Nothing is recorded against a day the member cannot open.
-   *
-   * completeOrientationDay already refuses out of order, so this was never a way to skip ahead —
-   * but it was a way to bank the work for a day whose content is not being served, which is the
-   * same rule enforced twice over rather than once and hoped for.
+   * Nothing is recorded against a day the member cannot open — out of order, or ahead of the
+   * calendar. Refused by the same function the day submission uses, so the two can never
+   * disagree about which days are shut.
    */
   const ordered = [...program.days].sort((a, b) => a.dayNumber - b.dayNumber);
-  const index = ordered.findIndex(d => d.dayNumber === day.dayNumber);
-  const doneDays = new Set<number>((progress.completedDays || []).map(Number));
-  if (index > 0 && !doneDays.has(ordered[index - 1].dayNumber) && !doneDays.has(day.dayNumber)) {
-    return { ok: false, message: 'Finish the day before this one first.' };
-  }
+  const refusal = orientationDayRefusal(ordered, progress, day.dayNumber);
+  if (refusal) return { ok: false, message: refusal };
   const existing = (progress.items || []).find(s => s.dayNumber === day.dayNumber && s.itemKey === item.key);
   const state: IOrientationItemState = {
     dayNumber: day.dayNumber,
@@ -261,10 +330,8 @@ export async function completeOrientationDay(
   const doneDays = new Set<number>((progress.completedDays || []).map(Number));
 
   const ordered = [...program.days].sort((a, b) => a.dayNumber - b.dayNumber);
-  const index = ordered.findIndex(d => d.dayNumber === day.dayNumber);
-  if (index > 0 && !doneDays.has(ordered[index - 1].dayNumber)) {
-    return { ok: false, message: 'Finish the day before this one first.' };
-  }
+  const refusal = orientationDayRefusal(ordered, progress, day.dayNumber);
+  if (refusal) return { ok: false, message: refusal };
 
   const outstanding = (day.items || [])
     .filter(i => i.required && !itemDone(progress.items || [], day.dayNumber, i.key))
@@ -415,6 +482,32 @@ export async function orientationRoadmap(
   } catch (e: any) {
     /* Same reason orientationBlocksLearning fails open: a welcome must never break a roadmap. */
     console.error('[orientation] roadmap view failed:', e?.message || e);
+    return null;
+  }
+}
+
+/**
+ * When this member's 95 days began, or null when they are not paced.
+ *
+ * READ ONLY, and deliberately so: progressFor creates a record on first sight, and the journey
+ * asking "is this learner paced" must never be the thing that decides they are. A member who has
+ * never opened the welcome gets null here and the completion ladder alone, until the welcome
+ * itself creates their record and answers the question properly.
+ */
+export async function pacingClockFor(tenantId: string, studentId: string): Promise<Date | null> {
+  if (!connected() || !mongoose.Types.ObjectId.isValid(studentId)) return null;
+  try {
+    const row: any = await OrientationProgress
+      .findOne({ tenantId, studentId: new mongoose.Types.ObjectId(studentId) })
+      .select('paced pacedFrom startedAt').lean();
+    if (!row || row.paced !== true) return null;
+    return row.pacedFrom || row.startedAt || null;
+  } catch (e: any) {
+    /*
+     * Fails open, like every other read on this path. A database hiccup must not lock a paying
+     * member out of the day they are on; the worst case is that they are briefly unpaced.
+     */
+    console.error('[pacing] could not read the clock, leaving this learner unpaced:', e?.message || e);
     return null;
   }
 }

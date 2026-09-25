@@ -32,7 +32,8 @@ import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
 import User from '../models/User';
 import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
 import { foundationProgramDaysFor, programDaysFor, journeyDaysOf } from '../services/foundationProgramLengthService';
-import { isJourneyDayOpen, membershipRefusesDay } from '../data/journeyDayLadder';
+import { isJourneyDayOpen, membershipRefusesDay, calendarAllowsDay } from '../data/journeyDayLadder';
+import { opensAt, programmeDayOfLearning } from '../data/dailyPacingPolicy';
 import { FOUNDATION_JOURNEY_KIND } from '../services/foundationJourneyService';
 import { CAREER_STAGES } from '../services/careerStageService';
 import { resolveCurriculumEngine } from '../services/curriculumEngineService';
@@ -43,7 +44,7 @@ import { composeFoundationJourney, loadAssets, activitiesFor } from '../services
 import { applyFoundationTrigger, directionChoiceFor } from '../services/foundationJourneyTriggerService';
 import { resolveModuleStatuses, itemDone } from './enrollmentPlanController';
 import { reconcileJourneyDayXp, xpForJourneyItem, journeyItemFinished, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
-import { orientationBlocksLearning, orientationRoadmap } from '../services/orientationService';
+import { orientationBlocksLearning, orientationRoadmap, pacingClockFor } from '../services/orientationService';
 
 /**
  * Which engine plans this student, for the screens that must show exactly one plan.
@@ -445,6 +446,8 @@ export const getMyJourney = async (req: Request, res: Response) => {
       Math.max(Number(enrollment?.currentDay || 1), 1), programDays,
     );
     const overview = await overviewOf(tenantId, days as any[], stageKey);
+    /* Read once for the whole strip: ninety lookups for one answer would be absurd. */
+    const stripPacedFrom = await pacingClockFor(tenantId, studentId);
 
     /**
      * A short summary per day rather than the full activity list.
@@ -466,7 +469,10 @@ export const getMyJourney = async (req: Request, res: Response) => {
       status: completed.has(d.dayNumber) ? 'COMPLETED'
         : d.dayNumber === currentDay ? 'CURRENT'
           : d.dayNumber < currentDay ? 'SKIPPED' : 'UPCOMING',
-      locked: !isJourneyDayOpen(d.dayNumber, completed),
+      locked: !isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom),
+      /* Which gate is shut, so the strip can say "tomorrow" rather than only "locked". */
+      lockedReason: isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom) ? undefined
+        : !calendarAllowsDay(d.dayNumber, stripPacedFrom) ? 'NOT_TODAY_YET' : 'DAY_LOCKED',
     }));
 
     res.json({
@@ -562,12 +568,24 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
     }
 
     const doneDays = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
-    if (!isJourneyDayOpen(plan.dayNumber, doneDays)) {
+    const pacedFrom = await pacingClockFor(tenantId, String(studentId));
+    if (!isJourneyDayOpen(plan.dayNumber, doneDays, pacedFrom)) {
+      /**
+       * TWO REASONS, TWO MESSAGES.
+       *
+       * "Finish day 11" is useless to somebody who HAS finished day 11 and is simply early. The
+       * refusal names which of the two gates is shut, and when the calendar one opens, so the
+       * screen can say "tomorrow" instead of sending them hunting for work that is already done.
+       */
+      const early = !calendarAllowsDay(plan.dayNumber, pacedFrom);
       return res.status(403).json({
-        reason: 'DAY_LOCKED',
+        reason: early ? 'NOT_TODAY_YET' : 'DAY_LOCKED',
         day: plan.dayNumber,
         title: plan.title || `Day ${plan.dayNumber}`,
-        message: `Finish day ${plan.dayNumber - 1} before starting day ${plan.dayNumber}.`,
+        opensAt: early ? opensAt(programmeDayOfLearning(plan.dayNumber), pacedFrom)?.toISOString() ?? null : null,
+        message: early
+          ? `Day ${plan.dayNumber} opens tomorrow. One learning day at a time.`
+          : `Finish day ${plan.dayNumber - 1} before starting day ${plan.dayNumber}.`,
       });
     }
 

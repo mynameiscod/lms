@@ -670,7 +670,12 @@ describe('the roadmap overview of a persisted journey', () => {
 
   it('5-7. carries no lesson content, questions or assignment detail for any day — locked ones included', async () => {
     const body = await overview();
-    const allowed = ['day', 'title', 'topic', 'module', 'kind', 'objective', 'activities', 'minutes', 'status', 'locked'];
+    /*
+     * `lockedReason` says WHICH gate is shut — work still to do, or simply not today yet. It is
+     * one of two constants and carries nothing of the day, which is why it belongs on a list
+     * whose whole purpose is that nothing of the day escapes.
+     */
+    const allowed = ['day', 'title', 'topic', 'module', 'kind', 'objective', 'activities', 'minutes', 'status', 'locked', 'lockedReason'];
     for (const d of body.days) expect(Object.keys(d).sort()).toEqual([...allowed].sort());
 
     const locked = body.days.find((d: any) => d.day === 40);

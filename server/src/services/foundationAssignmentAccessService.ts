@@ -22,6 +22,7 @@ import DayPlan from '../models/DayPlan';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import { foundationAccess } from './foundationAccessService';
 import { JourneyDayRefusal, journeyDayRefusal } from '../data/journeyDayLadder';
+import { pacingClockFor } from './orientationService';
 
 /** Duplicated from foundationJourneyService on purpose: importing it would load the composer into every assignment request. */
 const FOUNDATION_JOURNEY_KIND = 'FOUNDATION_UNIT_JOURNEY_V1';
@@ -57,11 +58,13 @@ export async function foundationAssignmentAccess(
     foundationAccess(String(tenantId), String(studentId)),
   ]);
   const completed = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
+  /* An assignment is reached THROUGH a journey day, so it is opened by the same two gates. */
+  const pacedFrom = await pacingClockFor(String(tenantId), String(studentId));
 
   // Bound to more than one day would be an authoring fault; the assignment is open if any of its days is.
   let refused: { day: number; reason: JourneyDayRefusal } | null = null;
   for (const day of days) {
-    const reason = journeyDayRefusal(day, completed, access);
+    const reason = journeyDayRefusal(day, completed, access, pacedFrom);
     if (!reason) return { bound: true, allowed: true, day };
     if (!refused) refused = { day, reason };
   }

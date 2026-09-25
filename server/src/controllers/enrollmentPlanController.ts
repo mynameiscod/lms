@@ -23,7 +23,8 @@ import { workingDateForDay, planDayForDate, workingDayCount, asLocalDate, istTod
 import { resolveCurriculumPolicy } from '../services/deadlinePolicyService';
 import * as razorpay from '../services/razorpayService';
 import { foundationAccess } from '../services/foundationAccessService';
-import { isJourneyDayOpen } from '../data/journeyDayLadder';
+import { isJourneyDayOpen, calendarAllowsDay } from '../data/journeyDayLadder';
+import { pacingClockFor } from '../services/orientationService';
 import { studentContentRow } from '../services/studentContentView';
 import { reconcileJourneyDayXp, xpForJourneyItem, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
 
@@ -557,10 +558,15 @@ export const markContentComplete = async (req: Request, res: Response) => {
     const dayNo = Number(dayNumber);
     if ((enrollment as any).enrolledBy === 'foundation-journey') {
       const doneDays = new Set<number>(((enrollment.completedDays || []) as number[]).map(Number));
-      if (!isJourneyDayOpen(dayNo, doneDays)) {
+      /* The same two gates the day endpoint refuses by: completing an item must not be a way past either. */
+      const pacedFrom = await pacingClockFor(String(enrollment.tenantId), String(enrollment.studentId));
+      if (!isJourneyDayOpen(dayNo, doneDays, pacedFrom)) {
+        const early = !calendarAllowsDay(dayNo, pacedFrom);
         return res.status(403).json({
-          reason: 'DAY_LOCKED',
-          message: `Finish day ${dayNo - 1} before starting day ${dayNo}.`,
+          reason: early ? 'NOT_TODAY_YET' : 'DAY_LOCKED',
+          message: early
+            ? `Day ${dayNo} opens tomorrow. One learning day at a time.`
+            : `Finish day ${dayNo - 1} before starting day ${dayNo}.`,
         });
       }
     }

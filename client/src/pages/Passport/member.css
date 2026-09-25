@@ -909,3 +909,12 @@
   margin-top: 10px; font-size: 11.5px; color: #6b7c93; }
 .cadm-need { background: #fff; border: 1px solid #e6d2a8; color: #8a5a12;
   border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 700; }
+
+/* Why the microphone stopped. Amber rather than red: every one of these leaves typing
+   available, so it is a diversion and not a dead end. */
+.cp-iv-micerr {
+  background: #FFF7E8;
+  border: 1px solid #F0D9A8;
+  color: #8A5A00;
+  line-height: 1.5;
+}

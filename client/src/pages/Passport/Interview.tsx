@@ -110,14 +110,36 @@ const Interview: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elapsed, session?.id, session?.status, session?.timeLimitSec]);
 
+  /**
+   * A LINE IS ONLY 'SPOKEN' ONCE IT HAS BEEN HEARD.
+   *
+   * The guard was set BEFORE speaking and every failure inside speak() was swallowed — autoplay
+   * blocked, the TTS endpoint down, a browser with no usable voice. So a line that made no sound
+   * at all was marked as said and could never be attempted again. speak() now reports whether it
+   * played, and only a line that did is remembered.
+   */
   useEffect(() => {
     if (!voiceOn || !session || session.status !== 'in_progress') return;
     const last = session.transcript?.[session.transcript.length - 1];
     if (!last || last.role !== 'interviewer' || last.text === spokenRef.current) return;
-    spokenRef.current = last.text;
+    let live = true;
     voice.stopListening();
-    voice.speak(last.text);
+    voice.speak(last.text).then(heard => { if (live && heard) spokenRef.current = last.text; });
+    return () => { live = false; };
   }, [session?.transcript?.length, voiceOn]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /**
+   * A new sitting starts with a clean voice.
+   *
+   * `spokenRef` outlived the session, so a second interview whose opening line matched the last
+   * one spoken — the same round asks the same opener — had its first question silently skipped.
+   * And `serverVoiceDead` latched for the life of the page, so one failed request left every
+   * later interview on a synthetic voice that often says nothing at all.
+   */
+  useEffect(() => {
+    spokenRef.current = '';
+    voice.resetVoice();
+  }, [session?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = useCallback(async () => {
     try { setData(await passportApi.listInterviews()); } catch { /* ignore */ }
@@ -432,6 +454,18 @@ const Interview: React.FC = () => {
             {busy && <div className="iv-turn interviewer"><span className="av">🎙️</span><div className="bub cp-iv-muted">thinking…</div></div>}
             <div ref={chatEnd} />
             {voice.speaking && <div className="iv-speaking"><span className="dot" /> {session.interviewerName} is speaking… <button onClick={voice.stopSpeaking}>Skip</button></div>}
+            {/*
+              * Hear the question again. There was no way to — the only controls were Skip and a
+              * mute toggle, and the "already spoken" guard blocked any second attempt, so a
+              * candidate who missed a word had to guess at what was asked.
+              */}
+            {voiceOn && !voice.speaking && !busy && session.transcript.some(t => t.role === 'interviewer') && (
+              <div className="iv-speaking">
+                <button onClick={() => voice.replay()}>🔊 Play the question again</button>
+              </div>
+            )}
+            {/* Why the mic stopped, in words. Every one of these used to happen in silence. */}
+            {voice.micError && <div className="iv-speaking cp-iv-micerr">⚠️ {voice.micError}</div>}
             <div className="iv-compose">
               <textarea value={answer + (voice.interim ? ` ${voice.interim}` : '')} onChange={e => setAnswer(e.target.value)} placeholder={voice.listening ? 'Listening — just talk…' : 'Type your answer, or tap the mic…'} onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send(); }} disabled={busy} />
               {speechInSupported && <button className={`iv-mic${voice.listening ? ' on' : ''}`} onClick={() => (voice.listening ? voice.stopListening() : voice.startListening())} disabled={busy || voice.speaking} title={voice.speaking ? 'Wait for the interviewer to finish' : voice.listening ? 'Stop recording' : 'Answer out loud'}>{voice.listening ? '⏹' : '🎤'}</button>}

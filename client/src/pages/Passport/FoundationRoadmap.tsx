@@ -185,6 +185,29 @@ const FoundationRoadmap: React.FC = () => {
         </button>
       </div>
 
+      {/*
+        * SAY WHAT IS BEHIND THE LOCK, RATHER THAN LEAVING IT TO BE INFERRED.
+        *
+        * A non-member sees seven days and then nothing, and without a word for it the page reads
+        * like a roadmap that stops — as though the plan really were seven days long. It is not:
+        * the rest exists and was built for them. Saying so is both honest and the argument.
+        */}
+      {preview && (
+        <div className="fr-locked-note">
+          <span className="ic"><i className="bi bi-lock-fill" aria-hidden /></span>
+          <div>
+            <b>Unlock to see your full {totalDays}-day roadmap</b>
+            <span>
+              These are the first {previewDays} days of the plan built from your skill check.
+              Membership opens the remaining {lockedDays}, day by day, with everything each one teaches.
+            </span>
+          </div>
+          <button type="button" className="fjm-btn light" onClick={() => unlock()} disabled={busy}>
+            {busy ? 'Opening payment…' : `Unlock${priceInr ? ` — ₹${priceInr}` : ''}`}
+          </button>
+        </div>
+      )}
+
       <ul className="fr-legend" aria-label="Legend">
         {(['COMPLETED', 'CURRENT', 'AVAILABLE', 'LOCKED'] as const).map(s => (
           <li key={s}><span className={`fr-dot st-${s.toLowerCase()}`}><i className={`bi ${STATE_ICON[s]}`} aria-hidden /></span>{STATE_LABEL[s]}</li>

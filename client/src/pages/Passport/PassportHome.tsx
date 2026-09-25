@@ -1,4 +1,5 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 import { useMember } from './MemberLayout';
 import Dashboard from './Dashboard';
 import DashboardLocked from './DashboardLocked';
@@ -19,10 +20,28 @@ import DashboardLocked from './DashboardLocked';
 const PassportHome: React.FC = () => {
   const { data, reload } = useMember();
 
+  /**
+   * NOTHING HERE IS REACHABLE BEFORE THE ASSESSMENT.
+   *
+   * The logo, every redirect and every stray link land on this route, and it used to answer with
+   * the locked dashboard — a page about results, for somebody with no results. The student's own
+   * home, until they are measured, IS the assessment: it is free, it is the next thing to do, and
+   * everything else on the account is built out of it.
+   *
+   * Setup comes first where it is outstanding, because the assessment is chosen for a stage and
+   * a target role and cannot be built without them.
+   *
+   * `replace` so the back button does not bounce them between here and there.
+   */
+  if (data && !data.hasAssessment) {
+    return <Navigate to={data.setupCompleted === false ? '/careerpilot/setup' : '/careerpilot/skill-assessment'} replace />;
+  }
+
   return (
     <div className="cb-dashboard-surface">
       {/* MemberLayout has already refused to render without a payload, so `data` is real here. */}
-      {data!.active && data!.hasAssessment
+      {/* Measured by now; what is left to decide is whether they have paid. */}
+      {data!.active
         ? <Dashboard data={data!} reload={reload} />
         : <DashboardLocked data={data!} />}
     </div>

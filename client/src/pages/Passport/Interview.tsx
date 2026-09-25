@@ -111,6 +111,24 @@ const Interview: React.FC = () => {
   }, [elapsed, session?.id, session?.status, session?.timeLimitSec]);
 
   /**
+   * A new sitting starts with a clean voice.
+   *
+   * `spokenRef` outlived the session, so a second interview whose opening line matched the last
+   * one spoken — the same round asks the same opener — had its first question silently skipped.
+   * And `serverVoiceDead` latched for the life of the page, so one failed request left every
+   * later interview on a synthetic voice that often says nothing at all.
+   *
+   * DECLARED BEFORE THE EFFECT THAT SPEAKS, because React runs effects in declaration
+   * order. With it second, a new session spoke its first question and then had the line
+   * it had just said wiped — so Play again did nothing until the second question, the
+   * only one this reset no longer ran after.
+   */
+  useEffect(() => {
+    spokenRef.current = '';
+    voice.resetVoice();
+  }, [session?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /**
    * A LINE IS ONLY 'SPOKEN' ONCE IT HAS BEEN HEARD.
    *
    * The guard was set BEFORE speaking and every failure inside speak() was swallowed — autoplay
@@ -128,18 +146,6 @@ const Interview: React.FC = () => {
     return () => { live = false; };
   }, [session?.transcript?.length, voiceOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /**
-   * A new sitting starts with a clean voice.
-   *
-   * `spokenRef` outlived the session, so a second interview whose opening line matched the last
-   * one spoken — the same round asks the same opener — had its first question silently skipped.
-   * And `serverVoiceDead` latched for the life of the page, so one failed request left every
-   * later interview on a synthetic voice that often says nothing at all.
-   */
-  useEffect(() => {
-    spokenRef.current = '';
-    voice.resetVoice();
-  }, [session?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = useCallback(async () => {
     try { setData(await passportApi.listInterviews()); } catch { /* ignore */ }

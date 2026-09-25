@@ -629,6 +629,17 @@ const FoundationJourneyPage: React.FC = () => {
    * optional. `totalDays` is the one that must never be guessed low — it is the promise.
    */
   const stage = journey.stageLabel || 'Foundation';
+  /**
+   * Still on the welcome: the first unfinished welcome day, and its label.
+   *
+   * `orientation.days` carries the 0.1-0.5 labels the server built, so the screen never invents
+   * one — a tenant with four welcome days or six gets the right numbers without this knowing.
+   */
+  const welcomeOutstanding = journey.orientation && !journey.orientation.complete
+    ? journey.orientation.days.find(d => !d.day.startsWith('done') && d.status !== 'COMPLETED') || null
+    : null;
+  const onWelcome = !!welcomeOutstanding;
+  const welcomeLabel = welcomeOutstanding?.day || '0.1';
   /** The welcome day the panel is showing, from the view the page already holds. */
   const welcomeDay = openOrientationDay === null
     ? null
@@ -674,8 +685,20 @@ const FoundationJourneyPage: React.FC = () => {
     <div className="fj-page fjm">
       <section className="fjm-hero">
         <div className="fjm-hero-copy">
-          {/* Identical for every student. The count is the promise, not a score. */}
-          <span className="fjm-eyebrow">Day {currentDay} of {totalDays}</span>
+          {/*
+            * WHERE THEY ACTUALLY ARE, WHICH IS NOT ALWAYS DAY 1.
+            *
+            * The hero read "Day 1 of 90" for a member still on the welcome, because currentDay
+            * is the learning clock and the welcome sits before it. Everybody starts on 0.1, and
+            * a plan that says Day 1 while Day 1 is shut is telling them the wrong thing on the
+            * first line they read.
+            *
+            * The count after it stays the programme's, not the welcome's: ninety learning days
+            * is the promise, and the five before them are not part of it.
+            */}
+          <span className="fjm-eyebrow">
+            {onWelcome ? `Day ${welcomeLabel} · before Day 1` : `Day ${currentDay} of ${totalDays}`}
+          </span>
           <h1>{stage} <span>Journey</span></h1>
           <p>One learning day at a time. Finish today’s tasks and the next day opens.</p>
           <div className="fjm-chips">

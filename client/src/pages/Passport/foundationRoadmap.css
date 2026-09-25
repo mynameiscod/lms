@@ -181,3 +181,24 @@ button.fr-day-row:hover { background: #f8fafc; }
 /* The welcome group at the head of the road: same card, marked as not-quite-a-topic. */
 .fr-group-welcome .fr-card { border-style: dashed; }
 .fr-group-welcome .fr-span { letter-spacing: -0.01em; }
+
+/* What is behind the lock, for a member who has not bought yet. Stated rather than left to be
+   inferred from a roadmap that appears to stop after seven days. */
+.fr-locked-note {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 18px; margin: 0 0 16px;
+  border: 1px solid #CDE6EA; border-radius: 14px;
+  background: linear-gradient(135deg, #F2FAFB, #EEF5FC);
+}
+.fr-locked-note .ic {
+  flex: none; width: 40px; height: 40px; border-radius: 12px;
+  display: grid; place-items: center; font-size: 17px;
+  background: #fff; color: var(--navy, #051D64);
+}
+.fr-locked-note b { display: block; font-size: 16px; color: var(--navy, #051D64); }
+.fr-locked-note span { display: block; margin-top: 3px; font-size: 14px; line-height: 1.5; color: var(--muted, #64748B); }
+.fr-locked-note > div { flex: 1 1 auto; min-width: 0; }
+@media (max-width: 720px) {
+  .fr-locked-note { flex-wrap: wrap; }
+  .fr-locked-note > button { width: 100%; }
+}

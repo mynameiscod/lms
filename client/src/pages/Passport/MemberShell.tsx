@@ -329,6 +329,23 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                 <button onClick={() => { setUserOpen(false); nav('/careerpilot/profile'); }}>My profile</button>
                 <button onClick={() => { setUserOpen(false); nav('/careerpilot/readiness'); }}>My result</button>
                 <button onClick={share} disabled={!d?.shareSlug}>Share my CareerPilot card</button>
+                {/*
+                  * THE ONLY WAY BACK TO A PASSWORD ONCE YOU HAVE ONE.
+                  *
+                  * SetPasswordDialog already existed and worked, but its single entry point was
+                  * the banner below, which is hidden the moment `passwordSet` turns true. So a
+                  * member who set a password and then forgot it had nowhere to go: "Forgot
+                  * password?" on the login screen only switches to the OTP tab, and after signing
+                  * in by OTP there was no menu item, no route and nothing on the profile page.
+                  * They could get in forever and never change it.
+                  *
+                  * The dialog sets a password rather than changing one — the server asks for no
+                  * current password, only a valid session — so signing in by OTP and coming here
+                  * IS the reset, without a new endpoint or a token to email.
+                  */}
+                <button onClick={() => { setUserOpen(false); setPwdOpen(true); }}>
+                  {d?.passwordSet === false ? 'Set a password' : 'Change my password'}
+                </button>
                 <button className="out" onClick={() => logout()}>Log out</button>
               </div>}
             </div>

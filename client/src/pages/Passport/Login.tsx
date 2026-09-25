@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
 import OtpVerify, { isOtpInfo } from './OtpVerify';
+/* The signup form's own rule, reused so one number cannot be valid on one screen and not the other. */
+import { toMobile } from './Join';
 import './careerpilot.css';
 import './careerpilotLogin.css';
 
@@ -87,7 +89,7 @@ const PassportLogin: React.FC = () => {
       setMsg(failureText(e, 'Something went wrong signing you in. Please try again.'));
       if (m?.code === 'NO_PASSWORD') {
         setMode('otp');
-        setMobile(identifier.includes('@') ? '' : identifier);
+        setMobile(identifier.includes('@') ? '' : toMobile(identifier));
       }
     }
     setBusy(false);
@@ -238,7 +240,8 @@ const PassportLogin: React.FC = () => {
               <label className="cpl-label" htmlFor="cp-mob">Registered Mobile Number</label>
               <div className="cpl-input">
                 <span className="left"><i className="bi bi-phone" /></span>
-                <input id="cp-mob" value={mobile} inputMode="numeric" autoComplete="tel" onChange={e => setMobile(e.target.value)} placeholder="Enter your 10-digit mobile" onKeyDown={e => e.key === 'Enter' && mobile && startOtp()} />
+                {/* Ten digits, and only digits — the field asked for a 10-digit mobile and then took anything. */}
+                <input id="cp-mob" value={mobile} inputMode="numeric" autoComplete="tel" maxLength={10} onChange={e => setMobile(toMobile(e.target.value))} placeholder="Enter your 10-digit mobile" onKeyDown={e => e.key === 'Enter' && mobile && startOtp()} />
               </div>
 
               <div className="cpl-row">

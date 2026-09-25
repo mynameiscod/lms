@@ -7,8 +7,29 @@
 /* Fill the content area below the 64px navbar; 4px right gutter so the IDE
    isn't flush against the viewport edge (product polish). */
 .main-content:has(> .cp-root) { padding: 0 4px 0 0 !important; height: calc(100vh - 64px); overflow: hidden; }
-/* Stop the page scrolling behind the IDE while it's open (replaces old JS body lock). */
-body:has(.cp-root) { overflow: hidden; }
+/*
+ * Stop the page scrolling behind the IDE while it's open — but ONLY where the IDE actually
+ * fills the viewport, which is the LMS layout and fullscreen.
+ *
+ * IN THE CAREERPILOT SHELL IT DOES NOT. That route mounts the IDE inside .gd-main, so none of
+ * the .main-content rules above apply: .cp-root was left with `height: 100%` of an auto-height
+ * parent and `overflow: hidden`, while this locked the page. The result was a panel that could
+ * not size itself inside a page that could not be scrolled — it jumped to the top and would not
+ * come back down.
+ */
+body:has(.main-content > .cp-root), body:has(.cp-root.cp-full) { overflow: hidden; }
+
+/*
+ * The CareerPilot member shell: give the IDE the same treatment .main-content gets, measured
+ * from .gd-main's own padding rather than the LMS navbar's 64px, which is not there.
+ */
+.gd-main:has(> .cp-root) { padding-bottom: 24px !important; }
+.gd-main > .cp-root {
+  width: 100%;
+  /* The member header plus .gd-main's 24px top padding and this rule's 24px bottom. */
+  height: calc(100vh - 168px);
+  min-height: 520px;
+}
 /* Fill the content area. The .main-content > .cp-root selector (specificity 0,2,0)
    beats Layout.css's `.main-content > * { width:auto !important }` (0,1,0), so the
    IDE always fills the full width — no JS measurement needed. */

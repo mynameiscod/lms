@@ -44,6 +44,8 @@ import { DATA_WRANGLING } from './dataWrangling';
 import { MOBILE_APP_BASICS } from './mobileAppBasics';
 import { PYTHON_COLLECTIONS } from './pythonCollections';
 import { PYTHON_ERROR_HANDLING } from './pythonErrorHandling';
+import { PYTHON_MODULES } from './pythonModules';
+import { CODE_REVIEW } from './codeReview';
 
 export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_STACK,
@@ -76,6 +78,8 @@ export const YEAR2_BANK: GoldenItem[] = [
   ...MOBILE_APP_BASICS,
   ...PYTHON_COLLECTIONS,
   ...PYTHON_ERROR_HANDLING,
+  ...PYTHON_MODULES,
+  ...CODE_REVIEW,
 ];
 
 export { GoldenItem };

@@ -51,10 +51,11 @@ export const planLinkFor = (day: number): string => `/careerpilot/plan?day=${day
  * their roadmap left the roadmap entirely, while clicking day 7 opened it in place. Same list,
  * two destinations, and only one of them was the thing that had been built.
  *
- * `welcome` rather than `day` because the plan screen shows exactly one of the two and the
- * parameter is what tells it which.
+ * It goes to the welcome day's own PAGE, which is laid out like a learning day — hero, task
+ * rail, one task at a time — rather than to a card inside the plan screen. A required day
+ * should not look less like the product than an optional one.
  */
-export const welcomeLinkFor = (dayNumber: number): string => `/careerpilot/plan?welcome=${dayNumber}`;
+export const welcomeLinkFor = (dayNumber: number): string => `/careerpilot/journey/welcome/${dayNumber}`;
 
 export interface RoadmapGroup {
   /** Stable within one response: the first day of the run. */

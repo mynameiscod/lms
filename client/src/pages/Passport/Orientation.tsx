@@ -24,7 +24,7 @@ import './orientation.css';
  * their programme is locked behind a microphone.
  */
 
-const mins = (n: number) => (n >= 60 ? `${Math.floor(n / 60)}h ${n % 60}m` : `${n} min`);
+export const mins = (n: number) => (n >= 60 ? `${Math.floor(n / 60)}h ${n % 60}m` : `${n} min`);
 
 /** A prompt the member answers out loud, recorded in the browser. */
 const Recorder: React.FC<{
@@ -239,12 +239,17 @@ const VideoItem: React.FC<{
     </>
   );
 };
-const ICON: Record<string, string> = {
+export const ICON: Record<string, string> = {
   video: 'bi-play-circle', notes: 'bi-journal-text', image: 'bi-image',
   checklist: 'bi-check2-square', recording: 'bi-mic',
 };
 
-const Item: React.FC<{
+/**
+ * Exported so the welcome DAY PAGE can draw one item at a time in its stage, while this screen
+ * still stacks them. One renderer either way: a second copy would drift, and the ninety-per-cent
+ * video gate is the kind of rule that must not exist twice.
+ */
+export const Item: React.FC<{
   day: number; item: OrientationItem; onSaved: (v: OrientationView) => void;
 }> = ({ day, item, onSaved }) => {
   const [busy, setBusy] = useState(false);

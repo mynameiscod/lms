@@ -694,7 +694,7 @@ const FoundationJourneyPage: React.FC = () => {
    * they finish 0.1, then 0.2, and Day 1 arrives when the welcome is done.
    */
   const openToday = () => {
-    if (onWelcome && welcomeOutstanding) { selectOrientationDay(welcomeOutstanding.dayNumber); return; }
+    if (onWelcome && welcomeOutstanding) { nav(`/careerpilot/journey/welcome/${welcomeOutstanding.dayNumber}`); return; }
     if (enrollmentId) nav(`/careerpilot/journey/day/${currentDay}`);
     else selectDay(currentDay);
   };
@@ -780,7 +780,8 @@ const FoundationJourneyPage: React.FC = () => {
 
       {/* The card invites; once the welcome is finished it stops asking. The days stay in the strip. */}
       {orientation && !orientation.complete && (
-        <OrientationCard view={orientation} onOpen={() => selectOrientationDay(orientation.nextDay ?? orientation.days[0]?.dayNumber ?? 1)} />
+        <OrientationCard view={orientation}
+                         onOpen={() => nav(`/careerpilot/journey/welcome/${orientation.nextDay ?? orientation.days[0]?.dayNumber ?? 1}`)} />
       )}
 
       {/* The ninety, as a strip. Scrolls horizontally on a phone rather than reflowing into
@@ -813,7 +814,7 @@ const FoundationJourneyPage: React.FC = () => {
               <button
                 type="button"
                 className={`fj-chip fj-chip-welcome s-${o.status.toLowerCase()}${o.locked ? ' s-locked' : ''}${openOrientationDay === o.dayNumber ? ' open' : ''}`}
-                onClick={() => !o.locked && selectOrientationDay(o.dayNumber)}
+                onClick={() => !o.locked && nav(`/careerpilot/journey/welcome/${o.dayNumber}`)}
                 disabled={o.locked}
                 aria-label={`Welcome day ${o.day}: ${o.title}${o.locked ? ', locked' : ''}`}
                 title={`Day ${o.day} — ${o.title}`}

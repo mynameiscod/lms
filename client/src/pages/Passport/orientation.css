@@ -215,3 +215,24 @@
 }
 .ori-watch-bar i { display: block; height: 100%; border-radius: 999px; background: #17885D; transition: width .25s ease; }
 .ori-watch small { display: block; margin-top: 6px; font-size: 12.5px; opacity: 0.75; }
+
+/* ── A welcome day rendered as a DAY PAGE ────────────────────────────────────
+   WelcomeDay reuses journeyDay.css / journeyDayMember.css so that day 0.1 is
+   laid out exactly as day 1 is. These are the few pieces the learning day has
+   no equivalent for: the welcome's own item kinds, and a blurb under the title. */
+
+.jdm .jdm-blurb { margin: 6px 0 0; font-size: 15px; line-height: 1.55; color: rgba(255, 255, 255, .82); max-width: 62ch; }
+
+/* The welcome's kinds, coloured on the same system as the learning day's types. */
+.jdm .jd-item-icon.t-image, .jdm .jd-type.t-image { background: #FFF4E5; color: #B26A00; }
+.jdm .jd-item-icon.t-checklist, .jdm .jd-type.t-checklist { background: #EDF3FF; color: #2D5BB9; }
+.jdm .jd-item-icon.t-recording, .jdm .jd-type.t-recording { background: #F3EEFF; color: #6A45C2; }
+
+/*
+ * The stage already shows the task's name in its own header, so the item must not print a
+ * second one underneath it. On the standalone welcome screen — where items are stacked and
+ * nothing else names them — that header is exactly what is needed, so this is scoped to the
+ * day page rather than removed from the component.
+ */
+.jd-body > .ori-item { border-top: 0; padding: 0; }
+.jd-body > .ori-item > header { display: none; }

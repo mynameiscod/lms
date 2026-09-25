@@ -42,6 +42,8 @@ import { CLOUD_FUNDAMENTALS } from './cloudFundamentals';
 import { DEVOPS_FUNDAMENTALS } from './devopsFundamentals';
 import { DATA_WRANGLING } from './dataWrangling';
 import { MOBILE_APP_BASICS } from './mobileAppBasics';
+import { PYTHON_COLLECTIONS } from './pythonCollections';
+import { PYTHON_ERROR_HANDLING } from './pythonErrorHandling';
 
 export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_STACK,
@@ -72,6 +74,8 @@ export const YEAR2_BANK: GoldenItem[] = [
   ...DEVOPS_FUNDAMENTALS,
   ...DATA_WRANGLING,
   ...MOBILE_APP_BASICS,
+  ...PYTHON_COLLECTIONS,
+  ...PYTHON_ERROR_HANDLING,
 ];
 
 export { GoldenItem };

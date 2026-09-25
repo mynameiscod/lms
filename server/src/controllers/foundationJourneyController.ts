@@ -228,8 +228,18 @@ async function previewOf(
   const byCode = new Map(units.map(u => [String(u.unitCode), u]));
   const minutesOf = (items: any[]) => items.reduce((n: number, i: any) => n + (Number(i.estimatedDuration) || 0), 0);
 
-  /* Topic and module for the whole programme, from the same reader a member's roadmap uses. */
-  const whole = (allDays && allDays.length ? allDays : days.map(d => ({ day: d.day, unitCode: d.unitCode, title: d.title })));
+  /**
+   * ONLY THE DAYS THEY MAY READ.
+   *
+   * This briefly sent the whole programme's titles and topics so My Roadmap could show the shape
+   * of the road before paying. That was my call and it was the wrong one: the roadmap IS the
+   * thing being sold, and giving away ninety titles and topics is giving away the plan. A
+   * non-member sees the seven days they may read, and what membership opens is a number.
+   *
+   * `allDays` is kept because the count of what lies beyond is honest and useful — it is what
+   * `lockedDays` is built from — but its titles do not travel.
+   */
+  const whole = days.map(d => ({ day: d.day, unitCode: d.unitCode, title: d.title }));
   const overview = await overviewOf(
     tenantId,
     whole.map(d => ({ dayNumber: d.day, primaryUnitCode: d.unitCode })),
@@ -254,8 +264,14 @@ async function previewOf(
     title: `CareerPilot ${stageLabel(stageKey)} Journey`,
     totalDays: programDays,
     /**
-     * The five welcome days, 0.1 to 0.5, shown before Day 1 and counted in nothing.
-     * `totalDays` above is untouched by them on purpose — see orientationRoadmap.
+     * ALWAYS NULL HERE, AND THE PARAMETER IS KEPT TO SAY SO.
+     *
+     * The welcome days are five days of video, notes and checklists — content, and part of what
+     * a membership buys. Sending them to somebody who has not paid put them in the roadmap AND
+     * let them be worked through, which is the whole product's front door left open.
+     *
+     * A member gets them from the branch below. See the orientation controller, which refuses
+     * the same people at the endpoints, so this is not the only thing holding the line.
      */
     orientation: orientation || null,
     previewDays: access.previewDays,
@@ -396,7 +412,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
             unitCode: u.unitCode,
             title: u.title,
             items: activitiesFor(u, assets.get(u.unitCode.toUpperCase()) || EMPTY_ASSETS),
-          })), programDays, stageKey, await orientationRoadmap(tenantId, studentId),
+          })), programDays, stageKey, null,
           /* The composition already holds the whole programme; the preview is a slice of it. */
           composition.units.map((u, i) => ({ day: i + 1, unitCode: u.unitCode, title: u.title }))));
         }
@@ -468,7 +484,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
     if (engine === 'UNIT' && access.level === 'PREVIEW') {
       return res.json(await previewOf(tenantId, engine, access, (days as any[]).slice(0, access.previewDays).map(d => ({
         day: d.dayNumber, unitCode: d.primaryUnitCode || null, title: d.title, items: d.items || [],
-      })), programDays, stageKey, await orientationRoadmap(tenantId, studentId),
+      })), programDays, stageKey, null,
       /* The stored journey holds every day; only the first few are readable. */
       (days as any[]).map(d => ({ day: d.dayNumber, unitCode: d.primaryUnitCode || null, title: d.title }))));
     }

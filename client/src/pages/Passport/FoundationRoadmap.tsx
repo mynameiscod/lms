@@ -293,7 +293,7 @@ const FoundationRoadmap: React.FC = () => {
                 {isOpen && (
                   <ol className="fr-days">
                     {g.days.map(d => {
-                      const state = dayState(d);
+                      const state = preview ? 'LOCKED' : dayState(d);
                       const body = (
                         <>
                           <span className={`fr-dot small st-${state.toLowerCase()}`} aria-hidden><i className={`bi ${STATE_ICON[state]}`} /></span>
@@ -307,8 +307,14 @@ const FoundationRoadmap: React.FC = () => {
                       );
                       return (
                         <li key={d.day} className={`fr-day st-${state.toLowerCase()}`}>
-                          {/* Locked days are not links: the roadmap names them and opens nothing. */}
-                          {canOpenDay(d) ? (
+                          {/*
+                            * Locked days are not links: the roadmap names them and opens nothing.
+                            *
+                            * For a non-member that is EVERY day. This page shows them what the
+                            * programme is; reading the seven preview days happens on My N Days,
+                            * and a roadmap that opened them would be that page again.
+                            */}
+                          {canOpenDay(d) && !preview ? (
                             <button type="button" className="fr-day-row" onClick={() => nav(planLinkFor(d.day))}
                                     aria-label={`Open day ${d.day}: ${d.title}, ${STATE_LABEL[state]}`}>
                               {body}

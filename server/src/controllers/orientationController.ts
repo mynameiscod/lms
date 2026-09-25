@@ -11,6 +11,7 @@ import {
   orientationFor, orientationProgram, completeOrientationItem, completeOrientationDay,
   saveOrientationProgram, resetOrientationProgram, recordingKeyFor,
 } from '../services/orientationService';
+import { foundationAccess } from '../services/foundationAccessService';
 
 /**
  * A member's own recording of themselves.
@@ -35,12 +36,39 @@ async function storeRecording(req: Request, dayNumber: number, itemKey: string) 
 const tenantOf = (req: Request): string => String((req as any).tenantId || (req as any).user?.tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || (req as any).user?._id || '');
 
+/**
+ * THE WELCOME IS PART OF THE MEMBERSHIP.
+ *
+ * `MEMBER` on these routes is a ROLE guard — it asks whether somebody may use CareerPilot at
+ * all, not whether they have paid for it. So every orientation endpoint was open to a
+ * non-member, and the welcome days are real content: five days of video, notes and checklists
+ * that a learner could work through, and finish, without ever buying anything.
+ *
+ * Membership is the same answer the journey uses, so the two can never disagree about who is a
+ * member. A read that fails is treated as not a member: the welcome is behind the paywall, and
+ * failing open on a paywall is the wrong direction to fail.
+ */
+async function membershipRefuses(req: Request, res: Response): Promise<boolean> {
+  try {
+    const access = await foundationAccess(tenantOf(req), userIdOf(req));
+    if (access.level === 'FULL') return false;
+  } catch (e: any) {
+    console.error('[orientation] membership check failed, refusing:', e?.message || e);
+  }
+  res.status(403).json({
+    reason: 'MEMBERSHIP_REQUIRED',
+    message: 'Your welcome days open with membership.',
+  });
+  return true;
+}
+
 /** GET /passport/me/orientation — the welcome, and how far this member has come through it. */
 export const getMyOrientation = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);
     const studentId = userIdOf(req);
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
+    if (await membershipRefuses(req, res)) return;
     res.json(await orientationFor(tenantId, studentId));
   } catch (e: any) {
     console.error('[orientation] read:', e?.message || e);
@@ -51,6 +79,7 @@ export const getMyOrientation = async (req: Request, res: Response) => {
 /** POST /passport/me/orientation/item — one part of a day, finished. */
 export const completeItem = async (req: Request, res: Response) => {
   try {
+    if (await membershipRefuses(req, res)) return;
     const tenantId = tenantOf(req);
     const studentId = userIdOf(req);
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
@@ -77,6 +106,7 @@ export const completeItem = async (req: Request, res: Response) => {
 /** POST /passport/me/orientation/day — a whole day, finished. */
 export const completeDay = async (req: Request, res: Response) => {
   try {
+    if (await membershipRefuses(req, res)) return;
     const tenantId = tenantOf(req);
     const studentId = userIdOf(req);
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
@@ -97,6 +127,7 @@ export const completeDay = async (req: Request, res: Response) => {
 /** POST /passport/me/orientation/recording — the member's own answer to a recording prompt. */
 export const uploadRecording = async (req: Request, res: Response) => {
   try {
+    if (await membershipRefuses(req, res)) return;
     const tenantId = tenantOf(req);
     const studentId = userIdOf(req);
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
@@ -125,6 +156,7 @@ export const uploadRecording = async (req: Request, res: Response) => {
 /** GET /passport/me/orientation/recording/:day/:itemKey — played back to the member who made it. */
 export const streamRecording = async (req: Request, res: Response) => {
   try {
+    if (await membershipRefuses(req, res)) return;
     const tenantId = tenantOf(req);
     const studentId = userIdOf(req);
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });

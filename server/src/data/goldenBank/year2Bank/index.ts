@@ -46,6 +46,8 @@ import { PYTHON_COLLECTIONS } from './pythonCollections';
 import { PYTHON_ERROR_HANDLING } from './pythonErrorHandling';
 import { PYTHON_MODULES } from './pythonModules';
 import { CODE_REVIEW } from './codeReview';
+import { PORTFOLIO_EVIDENCE } from './portfolioEvidence';
+import { INTERNSHIP_READINESS } from './internshipReadiness';
 
 export const YEAR2_BANK: GoldenItem[] = [
   ...DSA_STACK,
@@ -80,6 +82,8 @@ export const YEAR2_BANK: GoldenItem[] = [
   ...PYTHON_ERROR_HANDLING,
   ...PYTHON_MODULES,
   ...CODE_REVIEW,
+  ...PORTFOLIO_EVIDENCE,
+  ...INTERNSHIP_READINESS,
 ];
 
 export { GoldenItem };

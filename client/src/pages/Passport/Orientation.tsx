@@ -290,7 +290,6 @@ const Orientation: React.FC = () => {
   const [open, setOpen] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
-  const [outstanding, setOutstanding] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -305,18 +304,8 @@ const Orientation: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  const adopt = (v: OrientationView) => { setView(v); setOutstanding([]); };
-
-  const finishDay = async (dayNumber: number) => {
-    setOutstanding([]);
-    const r = await passportApi.completeOrientationDay(dayNumber)
-      .catch((e: any) => e?.response?.data || { ok: false, message: 'That did not save.' });
-    if (r?.orientation) setView(r.orientation);
-    if (!r?.ok) { setOutstanding(r?.outstanding || []); return; }
-    const next = r.orientation?.nextDay ?? null;
-    setOpen(next);
-    if (!next) nav('/careerpilot/plan');
-  };
+  /* Finishing a day, and the outstanding list when it is refused, belong to OrientationDayPanel. */
+  const adopt = (v: OrientationView) => setView(v);
 
   if (loading) return <div className="ori"><div className="ori-state">Loading your orientation…</div></div>;
   if (err) return <div className="ori"><div className="ori-state err">{err}</div></div>;

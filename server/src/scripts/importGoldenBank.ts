@@ -254,6 +254,31 @@ const DIMENSION: Record<string, AssessmentDimension> = {
   CLEAN_CODE: 'fundamentals',
   TESTING_FUNDAMENTALS: 'fundamentals',
   TECHNICAL_INTERVIEW_PREP: 'fundamentals',
+
+  // ── Year 2, batch 4: the last twelve ─────────────────────────────────────────────────────
+  //
+  // Same rule as the batch above. A technology a student is taught to OPERATE joins the
+  // practical stack; a skill they are taught to UNDERSTAND or to practise professionally sits
+  // with the conceptual ones. Without these twelve entries the importer refused the whole
+  // Year-2 bank — `dimension` is a required enum, so a skill with no mapping is a blocking
+  // problem rather than a row with a blank field, and their 600 questions could not reach a
+  // student at all.
+  JS_ASYNC: 'core_stack',
+  SERVER_SIDE_BASICS: 'core_stack',
+  CLOUD_FUNDAMENTALS: 'core_stack',
+  DEVOPS_FUNDAMENTALS: 'core_stack',
+  DATA_WRANGLING: 'core_stack',
+  MOBILE_APP_BASICS: 'core_stack',
+
+  PYTHON_COLLECTIONS: 'fundamentals',
+  PYTHON_ERROR_HANDLING: 'fundamentals',
+  PYTHON_MODULES: 'fundamentals',
+
+  // Reading a change, presenting your work, holding a job. Judgement about the practice rather
+  // than a technology, so they join CLEAN_CODE and TECHNICAL_INTERVIEW_PREP.
+  CODE_REVIEW: 'fundamentals',
+  PORTFOLIO_EVIDENCE: 'fundamentals',
+  INTERNSHIP_READINESS: 'fundamentals',
 };
 
 /**

@@ -135,7 +135,23 @@ export const megaCurriculumInUse = (cfg?: CurriculumEngineConfig | null): boolea
  * CAPABLE IS NOT THE SAME AS COMPULSORY — see UNIT_MANDATORY_STAGES immediately below. This
  * list only makes a stage eligible to be switched on; it does not switch it on.
  */
-export const UNIT_ENGINE_STAGES: readonly string[] = ['foundation', 'build'];
+/**
+ * EVERY COLLEGE YEAR IS PLANNED THE SAME WAY.
+ *
+ * A third- or final-year used to fall through to the topic engine, which means the old roadmap:
+ * a pathway template with mission pools, nothing to do with the curriculum they would be taught.
+ * The product has one flow — a welcome, then a personalised plan of units — and a student does
+ * not leave it by being a year older.
+ *
+ * A STAGE WITH NO CURRICULUM SAYS SO. Adding a stage here does not invent content for it: the
+ * readiness check answers NOT_CONFIGURED and the screen tells the student their programme has
+ * not been set up yet. That is the honest answer, and it is a far better one than quietly
+ * serving a plan from a different product and letting them believe it is theirs.
+ *
+ * `job_seeker` is deliberately absent. It is not a year of a course — it is somebody who has
+ * graduated and is in the market now — so it has no year-long programme to be planned into.
+ */
+export const UNIT_ENGINE_STAGES: readonly string[] = ['foundation', 'build', 'specialize', 'placement'];
 
 export const unitEngineServesStage = (stageKey?: string | null): boolean =>
   !!stageKey && UNIT_ENGINE_STAGES.includes(String(stageKey).toLowerCase().trim());

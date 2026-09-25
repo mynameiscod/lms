@@ -116,12 +116,13 @@ describe('the engine every other learner is on', () => {
 
   /**
    * The capability filter still has to exist, and still has to bite, for a stage the engine
-   * genuinely cannot plan. `specialize` has no Learning Unit curriculum, so a tenant switch
-   * that would otherwise move it must be overridden and SAID — silently planning nothing is
-   * the failure this branch was written to prevent.
+   * genuinely cannot plan. Every college YEAR is served now, so the example is `job_seeker` —
+   * somebody who has graduated, who has no year-long programme to be planned into. A tenant
+   * switch that would otherwise move them must be overridden and SAID; silently planning
+   * nothing is the failure this branch was written to prevent.
    */
   it('refuses a stage the engine cannot plan, even with the tenant switch on', () => {
-    expect(effectiveCurriculumEngine({ config: { megaCurriculumEnabled: true }, stageKey: 'specialize' }))
+    expect(effectiveCurriculumEngine({ config: { megaCurriculumEnabled: true }, stageKey: 'job_seeker' }))
       .toMatchObject({ engine: 'TOPIC', requested: 'UNIT', basis: 'NO_UNIT_CURRICULUM_FOR_STAGE' });
   });
 
@@ -145,13 +146,15 @@ describe('the engine every other learner is on', () => {
       expect(summary.stages.filter(s => s.stage !== 'foundation').every(s => s.mode === 'TOPIC')).toBe(true);
     }
 
-    /* Build is offerable to an admin, so the screen must list it as capable. */
-    expect(describeEngineConfig(null as any).unitCapableStages).toEqual(['foundation', 'build']);
+    /* Every college year is offerable to an admin, so the screen must list them all as capable. */
+    expect(describeEngineConfig(null as any).unitCapableStages).toEqual(['foundation', 'build', 'specialize', 'placement']);
 
     /* And once the tenant switch is on, the screen must show build as UNIT rather than TOPIC. */
     const enabled = describeEngineConfig({ megaCurriculumEnabled: true } as any);
     expect(enabled.stages.find(s => s.stage === 'build')?.mode).toBe('UNIT');
-    expect(enabled.stages.find(s => s.stage === 'specialize')?.mode).toBe('TOPIC');
+        /* Third and final year are planned like every other year now; a graduate still is not. */
+    expect(enabled.stages.find(s => s.stage === 'specialize')?.mode).toBe('UNIT');
+    expect(enabled.stages.find(s => s.stage === 'job_seeker')?.mode).toBe('TOPIC');
   });
 });
 

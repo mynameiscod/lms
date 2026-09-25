@@ -84,7 +84,8 @@ describe('saving the engine switches through the Admin handler', () => {
     ['a non-boolean switch', { megaCurriculumEnabled: 'yes' }],
     ['stages that are not a list', { megaCurriculumStages: 'foundation' }],
     ['a stage that does not exist', { megaCurriculumStages: ['year9'] }],
-    ['a stage with no Learning Unit curriculum', { megaCurriculumStages: ['specialize'] }],
+    /* Every college year is served now; a graduate has no year-long programme to plan. */
+    ['a stage the engine cannot plan', { megaCurriculumStages: ['job_seeker'] }],
     ['a malformed student id', { megaCurriculumStudentIds: ['not-an-id'] }],
     ['student ids that are not a list', { megaCurriculumStudentIds: '507f1f77bcf86cd799439d99' }],
   ])('refuses %s and writes nothing', async (_label, body) => {

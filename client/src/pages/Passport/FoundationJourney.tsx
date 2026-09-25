@@ -105,110 +105,194 @@ const NotReady: React.FC<{ totalDays: number; stage?: string; message?: string; 
 );
 
 /**
- * Before membership: the first days of the learner's own plan, and the rest locked.
+ * Before membership: the learner's own plan, on the page they will keep using.
  *
- * Topics and what each day contains, so the plan is visibly theirs — nothing to open. Membership
- * generates all ninety days from the same skill check and this page becomes the full journey.
+ * ── ONE PAGE, WHATEVER THE ACCESS ─────────────────────────────────────────────────────────
  *
- * Laid out as the member journey will be: the ninety at a glance (the preview days lit, the rest
- * locked), the week they can read down the side, and the chosen day in full. One unlock, through
- * the checkout every lock shares (SectionLock's useUnlock); the journey reloads once it succeeds.
+ * This used to be a second layout — its own hero, its own square-grid map, its own "your first
+ * week" list down the side — so buying a membership changed the furniture as well as the locks.
+ * The plan a non-member was shown and the plan they got were visibly different products, which
+ * is the worst possible impression to leave on the screen whose job is to sell the second one.
+ *
+ * It is now the member journey, with the parts a non-member has not got yet: the same hero, the
+ * same day strip of every day in the programme, the same day panel in the same place. What
+ * differs is what is true — the days past the preview are locked, the ring counts what is open
+ * to read rather than what is finished, and the unlock is offered.
+ *
+ * ── SHOWN, NOT OPENED ─────────────────────────────────────────────────────────────────────
+ *
+ * The preview days are read in full — the objective, the outcomes, what the day contains — and
+ * nothing in them can be started. Each activity carries its own lock, so the value is legible
+ * and the gate is honest. The server agrees: it composes these days live and stores nothing.
  */
 const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = ({ journey, onUnlocked }) => {
-  const days = journey.preview || [];
-  const [open, setOpen] = useState<number>(days[0]?.day ?? 1);
+  const previewDays = journey.preview || [];
+  const [open, setOpen] = useState<number>(previewDays[0]?.day ?? 1);
   const { unlock, busy, msg, priceInr } = useUnlock();
+  const stripRef = useRef<HTMLOListElement | null>(null);
+
   /** The programme's own name, from the server. Falls back to the only name this page ever had. */
   const stage = journey.stageLabel || 'Foundation';
-  const total = journey.totalDays ?? 90;
-  const locked = journey.lockedDays ?? Math.max(0, total - days.length);
-  const day = days.find(d => d.day === open) || days[0];
-  const avgMins = days.length ? Math.round(days.reduce((t, d) => t + (d.minutes || 0), 0) / days.length) : 0;
-  const unlockLabel = busy ? 'Opening payment…' : `Unlock all ${total} days${priceInr ? ` — ₹${priceInr}` : ''}`;
-  const previewSet = new Set(days.map(d => d.day));
+  const totalDays = journey.totalDays ?? 90;
+  const openCount = previewDays.length;
+  const lockedCount = journey.lockedDays ?? Math.max(0, totalDays - openCount);
+  const day = previewDays.find(d => d.day === open) || previewDays[0];
+  const avgMins = openCount ? Math.round(previewDays.reduce((t, d) => t + (d.minutes || 0), 0) / openCount) : 0;
+  const unlockLabel = busy ? 'Opening payment…' : `Unlock all ${totalDays} days${priceInr ? ` — ₹${priceInr}` : ''}`;
+  const openSet = new Set(previewDays.map(d => d.day));
+
+  /**
+   * The ring counts what is OPEN TO READ, not what is finished.
+   *
+   * A non-member has finished nothing, so a completion ring would read 0% on every preview ever
+   * shown — a zero against somebody's own plan before they have had the chance to start it. The
+   * number that means something here is how much of the plan they can already see.
+   */
+  const openPct = totalDays ? Math.round((openCount / totalDays) * 100) : 0;
+
+  const marks = [
+    { key: 'start', label: 'Day 1', at: 1 },
+    { key: 'preview', label: `Day ${openCount}`, at: openCount },
+    { key: 'end', label: `Day ${totalDays}`, at: totalDays },
+  ];
+
+  const scrollStrip = (dir: 1 | -1) => {
+    const el = stripRef.current?.parentElement;
+    if (el) el.scrollBy({ left: dir * Math.max(200, el.clientWidth * 0.8), behavior: 'smooth' });
+  };
+  const jumpTo = (from: number) => {
+    const chip = document.getElementById(`fj-chip-${from}`);
+    if (chip && typeof chip.scrollIntoView === 'function') chip.scrollIntoView({ block: 'nearest', inline: 'start', behavior: 'smooth' });
+  };
 
   return (
-    <div className="fjp">
-      <section className="fjp-hero">
-        <div className="fjp-hero-copy">
-          <span className="fjp-eyebrow">Your {total}-day roadmap</span>
+    <div className="fj-page fjm fjm-preview">
+      <section className="fjm-hero">
+        <div className="fjm-hero-copy">
+          <span className="fjm-eyebrow">Day 1 of {totalDays}</span>
           <h1>{stage} <span>Journey</span></h1>
-          <p>Your personalised plan, built from your skill check. The first {days.length} days are open to preview — membership generates and unlocks all {total}.</p>
-          <div className="fjp-chips">
-            <span><i className="bi bi-calendar3" /> {total} learning days</span>
-            <span><i className="bi bi-eye" /> {days.length} days to preview</span>
+          <p>Your personalised plan, built from your skill check. The first {openCount} days are open to read — membership opens all {totalDays}.</p>
+          <div className="fjm-chips">
+            <span><i className="bi bi-calendar3" /> {totalDays} learning days</span>
+            <span><i className="bi bi-eye" /> {openCount} days to preview</span>
             {avgMins > 0 && <span><i className="bi bi-clock" /> About {mins(avgMins)} a day</span>}
           </div>
         </div>
-        <div className="fjp-map" aria-label={`${days.length} of ${total} days open to preview`}>
-          <div className="fjp-map-head"><b>Your {total} days</b><span>{days.length} open · {locked} locked</span></div>
-          <ol className="fjp-dots">
-            {Array.from({ length: total }, (_, i) => i + 1).map(n => (
-              <li key={n} className={previewSet.has(n) ? (n === open ? 'on open' : 'on') : ''} title={previewSet.has(n) ? `Day ${n}` : `Day ${n} — unlocks with membership`} />
+
+        {/* The same column the member's progress sits in, saying what is true before membership. */}
+        <div className="fjm-momentum">
+          <span className="fjm-eyebrow">My {totalDays}</span>
+          <div className="fjm-days on">
+            <span className="ic"><i className="bi bi-eye-fill" aria-hidden /></span>
+            <div>
+              <b>{openCount} of {totalDays} days open</b>
+              <span>{lockedCount > 0 ? `${lockedCount} unlock with membership` : 'Every day is open'}</span>
+            </div>
+            <i className="fjm-days-art" aria-hidden="true"><em /><em /><em /></i>
+          </div>
+          <ol className="fjm-steps2">
+            {marks.map((m, i) => (
+              <li key={m.key} className={i === 0 ? 'current' : ''}><i /><span>{m.label}</span></li>
             ))}
           </ol>
-          <button type="button" className="fjp-btn light" onClick={() => unlock(onUnlocked)} disabled={busy}>{unlockLabel}</button>
-          {msg && <p className="fjp-msg">{msg}</p>}
+          <button type="button" className="fjm-challenge" onClick={() => unlock(onUnlocked)} disabled={busy}>
+            <span className="ic"><i className="bi bi-unlock-fill" aria-hidden /></span>
+            <div>
+              <b>{busy ? 'Opening payment…' : `Unlock all ${totalDays} days`}</b>
+              <span>Every lesson, checkpoint and project</span>
+              {priceInr ? <em>₹{priceInr}</em> : null}
+            </div>
+            <i className="bi bi-chevron-right" aria-hidden />
+          </button>
+          {msg && <p className="fj-msg err">{msg}</p>}
+        </div>
+
+        <div className="fjm-ring" role="progressbar" aria-valuenow={openPct} aria-valuemin={0} aria-valuemax={100}
+             aria-label="Days open to preview" style={{ ['--fjm-deg' as any]: `${openPct * 3.6}deg` }}>
+          <div><strong>{openCount}</strong><span>days to read</span></div>
         </div>
       </section>
 
-      <div className="fjp-grid">
-        <aside className="fjp-week" aria-label="Preview days">
-          <h2>Your first week</h2>
-          <ol>
-            {days.map(d => (
-              <li key={d.day}>
-                <button type="button" className={open === d.day ? 'on' : ''} onClick={() => setOpen(d.day)} aria-current={open === d.day ? 'true' : undefined}>
-                  <span className="n">{d.day}</span>
-                  <span className="t"><b>{d.title}</b>{d.minutes > 0 && <small>{mins(d.minutes)}</small>}</span>
-                </button>
+      {/* The whole programme, as a strip — the same one a member scrolls, with the locks a
+          non-member has. Days past the preview are named by number and open nothing. */}
+      <div className="fjm-strip-card">
+        <nav className="fj-range" aria-label="Jump to days">
+          <button type="button" className="fj-arrow" onClick={() => scrollStrip(-1)} aria-label="Earlier days">
+            <i className="bi bi-chevron-left" aria-hidden />
+          </button>
+          <div className="fj-range-jumps">
+            {dayRanges(totalDays).map(r => (
+              <button type="button" key={r.from} className="fj-range-btn" onClick={() => jumpTo(r.from)}>{r.label}</button>
+            ))}
+          </div>
+          <button type="button" className="fj-arrow" onClick={() => scrollStrip(1)} aria-label="Later days">
+            <i className="bi bi-chevron-right" aria-hidden />
+          </button>
+        </nav>
+        <section className="fj-strip-wrap" aria-label={`All ${totalDays} days`}>
+          <ol className="fj-strip" ref={stripRef}>
+            {Array.from({ length: totalDays }, (_, i) => i + 1).map(n => {
+              const readable = openSet.has(n);
+              const title = previewDays.find(d => d.day === n)?.title;
+              return (
+                <li key={n}>
+                  <button
+                    type="button"
+                    id={`fj-chip-${n}`}
+                    className={`fj-chip s-upcoming${readable ? '' : ' s-locked'}${open === n ? ' open' : ''}`}
+                    onClick={() => readable && setOpen(n)}
+                    disabled={!readable}
+                    aria-label={readable ? `Day ${n}: ${title || 'preview'}` : `Day ${n} — unlocks with membership`}
+                    title={readable ? `Day ${n}${title ? ` — ${title}` : ''}` : `Day ${n} — unlocks with membership`}
+                  >
+                    <span className="fj-chip-n">{n}</span>
+                    {!readable && <i className="bi bi-lock-fill fj-chip-lock" aria-hidden />}
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      </div>
+
+      {day && (
+        <section className="fj-day" aria-live="polite">
+          <div className="fj-day-head">
+            <div>
+              <span className="fj-status s-upcoming"><i className="bi bi-eye" /> Preview</span>
+              <h2>Day {day.day} · {day.title}</h2>
+              {day.objective && <p className="fj-objective">{day.objective}</p>}
+            </div>
+            {day.minutes > 0 && <span className="fj-mins">{mins(day.minutes)}</span>}
+          </div>
+
+          {day.outcomes.length > 0 && (
+            <div className="fjp-outcomes">
+              <span>By the end of this day you can</span>
+              <ul>{day.outcomes.map((o, i) => <li key={i}><i className="bi bi-check2-circle" /> {o}</li>)}</ul>
+            </div>
+          )}
+
+          <h3 className="fjp-acts-title">What this day contains</h3>
+          <ol className="fjp-acts">
+            {day.activities.map((a, i) => (
+              <li key={i} className={a.gating ? 'gating' : ''}>
+                <span className={`ic t-${a.type}`}><i className={`bi ${ICON[a.type] || 'bi-journal-text'}`} aria-hidden /></span>
+                <span className="body">
+                  <b>{a.title}</b>
+                  <small>{TYPE_LABEL[a.type] || a.type}{a.minutes > 0 && <> · {mins(a.minutes)}</>}</small>
+                </span>
+                <span className="lk"><i className="bi bi-lock-fill" aria-hidden /> Membership</span>
               </li>
             ))}
           </ol>
-          {locked > 0 && (
-            <div className="fjp-rest">
-              <i className="bi bi-lock-fill" aria-hidden />
-              <div><b>Days {days.length + 1}–{total}</b><span>Generated for you and unlocked with membership.</span></div>
-            </div>
-          )}
-        </aside>
 
-        {day && (
-          <section className="fjp-day">
-            <header className="fjp-day-head">
-              <div>
-                <span className="fjp-tag"><i className="bi bi-eye" /> Preview · Day {day.day} of {total}</span>
-                <h2>{day.title}</h2>
-                {day.objective && <p>{day.objective}</p>}
-              </div>
-              {day.minutes > 0 && <span className="fjp-mins"><i className="bi bi-clock" /> {mins(day.minutes)}</span>}
-            </header>
-            {day.outcomes.length > 0 && (
-              <div className="fjp-outcomes">
-                <span>By the end of this day you can</span>
-                <ul>{day.outcomes.map((o, i) => <li key={i}><i className="bi bi-check2-circle" /> {o}</li>)}</ul>
-              </div>
-            )}
-            <h3 className="fjp-acts-title">What this day contains</h3>
-            <ol className="fjp-acts">
-              {day.activities.map((a, i) => (
-                <li key={i} className={a.gating ? 'gating' : ''}>
-                  <span className={`ic t-${a.type}`}><i className={`bi ${ICON[a.type] || 'bi-journal-text'}`} aria-hidden /></span>
-                  <span className="body">
-                    <b>{a.title}</b>
-                    <small>{TYPE_LABEL[a.type] || a.type}{a.minutes > 0 && <> · {mins(a.minutes)}</>}</small>
-                  </span>
-                  <span className="lk"><i className="bi bi-lock-fill" aria-hidden /> Membership</span>
-                </li>
-              ))}
-            </ol>
-            <div className="fjp-day-cta">
-              <div><b>Ready to start Day {day.day}?</b><span>Membership opens every lesson, checkpoint and project — all {total} days.</span></div>
-              <button type="button" className="fjp-btn primary" onClick={() => unlock(onUnlocked)} disabled={busy}>{unlockLabel}</button>
-            </div>
-          </section>
-        )}
-      </div>
+          <div className="fjp-day-cta">
+            <div><b>Ready to start Day {day.day}?</b><span>Membership opens every lesson, checkpoint and project — all {totalDays} days.</span></div>
+            <button type="button" className="fjp-btn primary" onClick={() => unlock(onUnlocked)} disabled={busy}>{unlockLabel}</button>
+          </div>
+        </section>
+      )}
     </div>
   );
 };
@@ -592,7 +676,8 @@ const FoundationJourneyPage: React.FC = () => {
         {/* My ninety, in the member's own numbers: the days finished, where today sits between day
             one and day ninety, and what today still holds — not decoration. */}
         <div className="fjm-momentum">
-          <span className="fjm-eyebrow">My ninety</span>
+          {/* Named from the programme, not from ninety: a second-year's plan is 110 days. */}
+          <span className="fjm-eyebrow">My {totalDays}</span>
           <div className={`fjm-days${completedCount > 0 ? ' on' : ''}`}>
             <span className="ic"><i className="bi bi-calendar2-check-fill" aria-hidden /></span>
             <div>

@@ -76,7 +76,7 @@
 .fjp-outcomes ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .fjp-outcomes li { display: flex; gap: 8px; font-size: 15px; line-height: 1.5; color: #155E43; }
 .fjp-outcomes li i { color: var(--green); margin-top: 2px; }
-.fjp .fjp-acts-title { margin-top: 22px; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.fjp .fjp-acts-title, .fjm-preview .fjp-acts-title { margin-top: 22px; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .fjp-acts { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .fjp-acts li { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: #fff; }
 .fjp-acts li.gating { border-color: #D9D2F5; background: #FBFAFF; }

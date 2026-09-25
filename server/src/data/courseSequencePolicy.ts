@@ -25,15 +25,56 @@ export const COURSE_STRANDS: readonly {
   sequence: readonly string[];
 }[] = Object.freeze([
   { strand: 'COMPUTING', modules: ['M01_CS_FUNDAMENTALS'], sequence: ['T_HARDWARE', 'T_FILES'] },
-  { strand: 'THINKING', modules: ['M02_COMPUTATIONAL_THINKING'], sequence: ['T_DECOMPOSITION', 'T_PSEUDOCODE'] },
+  {
+    strand: 'THINKING',
+    /* B01_BRIDGE is where a second-year's readiness is taken apart, which is this strand's work. */
+    modules: ['M02_COMPUTATIONAL_THINKING', 'B01_BRIDGE'],
+    sequence: ['T_DECOMPOSITION', 'T_PSEUDOCODE'],
+  },
   {
     strand: 'PROGRAMMING',
-    modules: ['M03_PROGRAMMING', 'M07_DSA', 'M06_C_PROGRAMMING'],
-    sequence: ['T_VARIABLES', 'T_CONDITIONS', 'T_LOOPS', 'T_FUNCTIONS', 'T_ARRAYS'],
+    /*
+     * THE SPINE, IN BOTH YEARS. Year 1 is variables through arrays; Year 2 is objects, then the
+     * data structures and algorithms built on them, then writing it well. Same strand because it
+     * is the same thing continued — which is why SPINE_STRAND needs no stage to be right.
+     */
+    modules: ['M03_PROGRAMMING', 'M07_DSA', 'M06_C_PROGRAMMING', 'B02_OOP', 'B03_DSA', 'B04_PROGRAMMING'],
+    sequence: [
+      'T_VARIABLES', 'T_CONDITIONS', 'T_LOOPS', 'T_FUNCTIONS', 'T_ARRAYS',
+      /*
+       * Year 2's teaching order, which the unit metadata cannot express: objects before the
+       * principles that generalise them, linear structures before keyed ones, algorithms once
+       * there is something to run them on, and clean code last because it is a judgement about
+       * code you can already write. Without this the cross-topic order was the alphabet, which
+       * put ALGORITHMS first and OOP_PRINCIPLES before OOP_OBJECTS.
+       */
+      'T2_OOP_OBJECTS', 'T2_OOP_PRINCIPLES',
+      'T2_PY_STRUCTURE', 'T2_PY_ROBUST',
+      'T2_DS_LINEAR', 'T2_DS_KEYED', 'T2_ALGORITHMS',
+      'T2_CLEAN_CODE', 'T2_DSA_INTERVIEW',
+    ],
   },
-  { strand: 'TOOLS', modules: ['M04_DEVELOPER_TOOLS'], sequence: [] },
-  { strand: 'DATA', modules: ['M08_DATABASES'], sequence: [] },
-  // Web, AI and data literacy, systems and networking, maths, communication, career, aptitude, capstone.
+  {
+    strand: 'TOOLS',
+    /* Testing and working with other people: what you do AROUND the code. */
+    modules: ['M04_DEVELOPER_TOOLS', 'B05_TESTING', 'B06_COLLABORATION'],
+    sequence: ['T2_DEBUGGING', 'T2_TESTING', 'T2_GIT_TEAM', 'T2_LINUX'],
+  },
+  {
+    strand: 'DATA',
+    modules: ['M08_DATABASES', 'B07_DATABASES'],
+    /* Query a database before designing one — you cannot judge a schema you cannot read. */
+    sequence: ['T2_DB_QUERY', 'T2_DB_DESIGN'],
+  },
+  /*
+   * Everything that is not the spine or its supports. In Year 1: web, AI literacy, systems,
+   * maths, communication, career, aptitude, capstone. In Year 2: the web and API layer,
+   * security, AI-assisted work, the direction tracks, projects and the professional block.
+   *
+   * They belong to no authored sequence, so they are ordered by module then topic code — the
+   * order the curriculum was written in — which is the right default for material with no
+   * teaching order between its parts.
+   */
   { strand: 'BROADER', modules: [], sequence: [] },
 ]);
 

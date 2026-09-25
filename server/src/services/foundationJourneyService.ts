@@ -45,10 +45,11 @@ import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
 import { CAREER_STAGES } from './careerStageService';
 import { foundationProgramDaysFor, programDaysFor, journeyDaysOf } from './foundationProgramLengthService';
 import { inTeachingOrder } from '../data/contentBundlePolicy';
-import { composeUnits, ComposerResult, SelectedUnit, StudentProfile } from './curriculumComposerService';
+import { composeUnits, ComposerResult, SelectedUnit, StudentProfile, ComposableUnit } from './curriculumComposerService';
 import { bridgePlanFor, BridgePlan } from '../data/stageBridgePolicy';
 import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } from '../data/dayPackingPolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource } from './composerCandidateService';
+import { sequencePredecessorOf } from '../data/courseSequencePolicy';
 
 /** Marks a curriculum as a Foundation UNIT-engine journey. Lets one be found without guessing. */
 export const FOUNDATION_JOURNEY_KIND = 'FOUNDATION_UNIT_JOURNEY_V1';
@@ -249,6 +250,46 @@ export async function loadAssets(tenantId: string, unitCodes: string[]): Promise
  * plan they would have got before this existed. Being taught Year 2 too early is a worse
  * experience than being taught it on time; being given no plan at all is worse than both.
  */
+/**
+ * EVERY TOPIC THAT MUST BE PASSED THROUGH TO REACH THESE SKILLS.
+ *
+ * The bridge used to scope its candidates to units that TEACH a gapped skill, and that single
+ * line was the whole of the sequencing bug. A learner gapped on arrays got the array units and
+ * nothing else — so they were taught to traverse an array on day seventeen and write binary
+ * search on day twenty-two without ever having met a loop, a conditional or a function, because
+ * none of those three had been measured and so none of them could be 'wanted'.
+ *
+ * Filtering that hard also defeated the composer, which already orders by prerequisite and by
+ * the authored teaching sequence: it cannot sequence through a topic that was removed from its
+ * pool before it ran.
+ *
+ * So the scope is now the CLOSURE: the topics that teach the gapped skills, plus everything
+ * earlier in their strand's authored sequence. Wanting T_ARRAYS therefore pulls in T_VARIABLES,
+ * T_CONDITIONS, T_LOOPS and T_FUNCTIONS — which is Year 1's own ladder, in Year 1's own order.
+ *
+ * MILESTONES AND CAPSTONES ARE EXCLUDED. They carry the same skill tags, so they were being
+ * drawn in — a fresh second-year met "Choosing Something Worth Building" on day nine, before
+ * they could write a loop. They are the END of a year's work, not a step into the next one.
+ */
+const BRIDGE_EXCLUDED_TOPIC = /MILESTONE|CAPSTONE/i;
+
+function bridgeTopics(units: ComposableUnit[], wanted: Set<string>): Set<string> {
+  const teaching = new Set<string>();
+  for (const u of units) {
+    const topic = String(u.topicCode || '');
+    if (!topic || BRIDGE_EXCLUDED_TOPIC.test(topic)) continue;
+    if ((u.skillKeys || []).some(k => wanted.has(String(k)))) teaching.add(topic);
+  }
+
+  /* Walk each one back through its strand's sequence, so nothing is reached before its groundwork. */
+  const closed = new Set<string>(teaching);
+  for (const topic of teaching) {
+    for (let prior = sequencePredecessorOf(topic); prior; prior = sequencePredecessorOf(prior)) {
+      if (!BRIDGE_EXCLUDED_TOPIC.test(prior)) closed.add(prior);
+    }
+  }
+  return closed;
+}
 async function composeBridge(
   tenantId: string,
   source: CandidateSource,
@@ -260,7 +301,7 @@ async function composeBridge(
     if (source === 'PRODUCTION') assertProductionEligible(set);
 
     const wanted = new Set(bridge.skills);
-    const scoped = set.units.filter(u => (u.skillKeys || []).some(k => wanted.has(String(k))));
+    const scoped = set.units.filter(u => bridgeTopics(set.units, wanted).has(String(u.topicCode)));
     if (!scoped.length) {
       console.warn(`[bridge] ${bridge.sourceStage} teaches none of ${[...wanted].join(', ')} — no bridge`);
       return [];

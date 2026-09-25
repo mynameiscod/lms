@@ -209,6 +209,16 @@ async function previewOf(
   programDays: number,
   stageKey?: string | null,
   orientation?: Awaited<ReturnType<typeof orientationRoadmap>>,
+  /**
+   * EVERY day of the programme, in order — not only the ones open to preview.
+   *
+   * My Roadmap answers "what will I be taught", and answering it with seven days made it the
+   * same page as My 90 Days for anybody who had not paid. The whole shape travels: each day's
+   * title, topic and module, which is exactly what a member's roadmap already sends for days
+   * they cannot open yet. Titles and topics are not content — no activities, no ids, nothing
+   * to open — and the day endpoint still refuses every day past the preview.
+   */
+  allDays?: { day: number; unitCode: string | null; title: string }[],
 ) {
   const codes = [...new Set(days.map(d => d.unitCode).filter(Boolean))] as string[];
   const units = codes.length
@@ -217,6 +227,15 @@ async function previewOf(
     : [];
   const byCode = new Map(units.map(u => [String(u.unitCode), u]));
   const minutesOf = (items: any[]) => items.reduce((n: number, i: any) => n + (Number(i.estimatedDuration) || 0), 0);
+
+  /* Topic and module for the whole programme, from the same reader a member's roadmap uses. */
+  const whole = (allDays && allDays.length ? allDays : days.map(d => ({ day: d.day, unitCode: d.unitCode, title: d.title })));
+  const overview = await overviewOf(
+    tenantId,
+    whole.map(d => ({ dayNumber: d.day, primaryUnitCode: d.unitCode })),
+    stageKey,
+  );
+  const openTo = access.previewDays;
 
   return {
     available: true,
@@ -248,9 +267,18 @@ async function previewOf(
     enrollmentId: null,
     message: `These are the first ${days.length} days of your personalised ${programDays}-day roadmap. `
       + `Take membership to unlock all ${programDays} days.`,
-    days: days.map((d, i) => ({
-      day: d.day, title: d.title, activities: d.items.length, minutes: minutesOf(d.items),
-      status: i === 0 ? 'CURRENT' : 'UPCOMING',
+    /*
+     * The whole road, by topic, with everything past the preview locked. A non-member's roadmap
+     * now answers the question it is for; the seven readable days are in `preview` below.
+     */
+    days: whole.map(d => ({
+      day: d.day,
+      title: d.title,
+      ...overview(d.day, d.unitCode || null),
+      activities: days.find(x => x.day === d.day)?.items.length ?? 0,
+      minutes: minutesOf(days.find(x => x.day === d.day)?.items || []),
+      status: d.day === 1 ? 'CURRENT' : 'UPCOMING',
+      locked: d.day > openTo,
     })),
     preview: days.map(d => {
       const unit = d.unitCode ? byCode.get(String(d.unitCode)) : null;
@@ -368,7 +396,9 @@ export const getMyJourney = async (req: Request, res: Response) => {
             unitCode: u.unitCode,
             title: u.title,
             items: activitiesFor(u, assets.get(u.unitCode.toUpperCase()) || EMPTY_ASSETS),
-          })), programDays, stageKey, await orientationRoadmap(tenantId, studentId)));
+          })), programDays, stageKey, await orientationRoadmap(tenantId, studentId),
+          /* The composition already holds the whole programme; the preview is a slice of it. */
+          composition.units.map((u, i) => ({ day: i + 1, unitCode: u.unitCode, title: u.title }))));
         }
 
         if (summary.measured && access.level === 'FULL') {
@@ -438,7 +468,9 @@ export const getMyJourney = async (req: Request, res: Response) => {
     if (engine === 'UNIT' && access.level === 'PREVIEW') {
       return res.json(await previewOf(tenantId, engine, access, (days as any[]).slice(0, access.previewDays).map(d => ({
         day: d.dayNumber, unitCode: d.primaryUnitCode || null, title: d.title, items: d.items || [],
-      })), programDays, stageKey, await orientationRoadmap(tenantId, studentId)));
+      })), programDays, stageKey, await orientationRoadmap(tenantId, studentId),
+      /* The stored journey holds every day; only the first few are readable. */
+      (days as any[]).map(d => ({ day: d.dayNumber, unitCode: d.primaryUnitCode || null, title: d.title }))));
     }
 
     const completed = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));

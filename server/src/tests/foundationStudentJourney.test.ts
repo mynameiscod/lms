@@ -336,13 +336,33 @@ describe('membership decides how much of the ninety a learner sees', () => {
     await ctrl.getMyJourney(reqOf(), res);
 
     expect(out.body).toMatchObject({ available: true, access: 'PREVIEW', totalDays: 90, previewDays: 7, lockedDays: 83, enrollmentId: null });
-    expect(out.body.days).toHaveLength(7);
+    /**
+     * THE WHOLE ROAD IS NAMED; ONLY THE PREVIEW IS READABLE.
+     *
+     * My Roadmap answers "what will I be taught", and answering it with seven days made it the
+     * same page as My 90 Days for anybody who had not paid. Every day now carries its title,
+     * topic and module — which is exactly what a MEMBER's roadmap already sends for days they
+     * cannot open — and everything past the preview is marked locked and carries nothing to do.
+     */
+    expect(out.body.days).toHaveLength(90);
+    expect(out.body.days.filter((d: any) => !d.locked)).toHaveLength(7);
+    expect(out.body.days[0]).toMatchObject({ day: 1, title: 'Unit 1', locked: false });
+    expect(out.body.days[7]).toMatchObject({ day: 8, title: 'Unit 8', locked: true });
+
+    /* A locked day is named and nothing more: no activities, no minutes, nothing to open. */
+    for (const d of out.body.days.filter((x: any) => x.locked)) {
+      expect(d.activities).toBe(0);
+      expect(d.minutes).toBe(0);
+      expect(d.items).toBeUndefined();
+    }
+
     expect(out.body.preview).toHaveLength(7);
     expect(out.body.preview[0]).toMatchObject({ day: 1, title: 'Unit 1', objective: 'How a computer runs a program.', outcomes: ['Name the parts'] });
     expect(out.body.preview[0].activities[1]).toMatchObject({ type: 'quiz', gating: true });
     const wire = JSON.stringify(out.body);
-    expect(wire).not.toContain('Unit 8');
+    /* Still no internal ids anywhere, and no activity detail for a day past the preview. */
     expect(wire).not.toContain('unitCode');
+    expect(out.body.preview.every((d: any) => d.day <= 7)).toBe(true);
     expect(mockApplyTrigger).not.toHaveBeenCalled();
   });
 
@@ -352,7 +372,10 @@ describe('membership decides how much of the ninety a learner sees', () => {
     const { res, out } = resOf();
     await ctrl.getMyJourney(reqOf(), res);
     expect(out.body).toMatchObject({ access: 'PREVIEW', previewDays: 3, lockedDays: 87 });
-    expect(out.body.days).toHaveLength(3);
+    /* The whole road is still named; the admin's setting decides how much of it is readable. */
+    expect(out.body.days).toHaveLength(90);
+    expect(out.body.days.filter((d: any) => !d.locked)).toHaveLength(3);
+    expect(out.body.preview).toHaveLength(3);
   });
 
   it('asks a learner with no preview entitlement to take membership', async () => {
@@ -397,7 +420,10 @@ describe('membership decides how much of the ninety a learner sees', () => {
     const { res, out } = resOf();
     await ctrl.getMyJourney(reqOf(), res);
     expect(out.body).toMatchObject({ available: true, access: 'PREVIEW', enrollmentId: null, lockedDays: 83 });
-    expect(out.body.days).toHaveLength(7);
+    /* A lapsed member sees the road they were on, with everything past the preview shut again. */
+    expect(out.body.days).toHaveLength(90);
+    expect(out.body.days.filter((d: any) => !d.locked)).toHaveLength(7);
+    expect(out.body.preview).toHaveLength(7);
     expect(mockCompose).not.toHaveBeenCalled();
   });
 

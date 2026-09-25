@@ -23,6 +23,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { FoundationJourney as Journey } from '../../api/passportApi';
 import FoundationJourneyPage from './FoundationJourney';
+import { useUnlock } from './SectionLock';
 import {
   dayState, canOpenDay, planLinkFor, groupJourneyDays, dayRanges, KIND_LABEL, STATE_LABEL, RoadmapGroup,
 } from './foundationRoadmapPresenter';
@@ -54,6 +55,7 @@ const FoundationRoadmap: React.FC = () => {
   const [err, setErr] = useState('');
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [range, setRange] = useState<'all' | number>('all');
+  const { unlock, busy, priceInr } = useUnlock();
 
   useEffect(() => {
     let cancelled = false;
@@ -81,11 +83,23 @@ const FoundationRoadmap: React.FC = () => {
   if (err) return <div className="fj-page"><div className="fj-msg err">{err}</div></div>;
 
   /**
-   * Every state that is not a member's whole journey — not configured, being prepared, a non-member's
-   * preview, membership required — is already said by the journey screen, in the same words. Handed to it
-   * rather than restated, so this page can never show a different plan in its place.
+   * Every state that is not a plan at all — not configured, being prepared, membership required —
+   * is already said by the journey screen, in the same words. Handed to it rather than restated,
+   * so this page can never show a different plan in its place.
+   *
+   * A NON-MEMBER IS NOT ONE OF THOSE. They have a plan; they simply cannot open most of it. This
+   * page used to hand them over too, which made My Roadmap and My 90 Days the same screen for
+   * anybody who had not paid — and the one question this page answers, "what will I be taught",
+   * is exactly the question somebody deciding whether to pay is asking. They now get the whole
+   * road grouped by topic, with everything past the preview locked, from the same server fields
+   * a member's roadmap uses.
    */
-  if (!journey || !journey.available || journey.access === 'PREVIEW') return <FoundationJourneyPage />;
+  if (!journey || !journey.available) return <FoundationJourneyPage />;
+
+  /* A non-member sees the same road; what differs is that most of it is shut, and why. */
+  const preview = journey.access === 'PREVIEW';
+  const previewDays = journey.previewDays ?? 7;
+  const lockedDays = journey.lockedDays ?? Math.max(0, totalDays - previewDays);
 
   const days = journey.days || [];
   const completedCount = journey.completedCount ?? 0;
@@ -109,23 +123,53 @@ const FoundationRoadmap: React.FC = () => {
         <div className="fjm-hero-copy">
           <span className="fjm-eyebrow">Your personalised {totalDays}-day roadmap</span>
           <h1>{journey.stageLabel || 'Foundation'} <span>Journey</span></h1>
-          <p>Every day of your plan, grouped by topic. Learning happens in My {totalDays} Days — this is where you see the whole road.</p>
+          <p>
+            {preview
+              ? `Every day of your plan, grouped by topic — built from your skill check. The first ${previewDays} days are open to read.`
+              : `Every day of your plan, grouped by topic. Learning happens in My ${totalDays} Days — this is where you see the whole road.`}
+          </p>
           <div className="fjm-chips">
-            <span><i className="bi bi-check2-circle" /> {completedCount} of {totalDays} days done</span>
-            <span><i className="bi bi-graph-up-arrow" /> {percentComplete}% complete</span>
+            {preview ? (
+              <>
+                <span><i className="bi bi-eye" /> {previewDays} days to preview</span>
+                <span><i className="bi bi-lock-fill" /> {lockedDays} unlock with membership</span>
+              </>
+            ) : (
+              <>
+                <span><i className="bi bi-check2-circle" /> {completedCount} of {totalDays} days done</span>
+                <span><i className="bi bi-graph-up-arrow" /> {percentComplete}% complete</span>
+              </>
+            )}
           </div>
-          <div className="fjm-hero-bar" role="progressbar" aria-valuenow={percentComplete}
-               aria-valuemin={0} aria-valuemax={100} aria-label="Journey progress">
-            <i style={{ width: `${Math.max(1, percentComplete)}%` }} />
-          </div>
+          {/* A progress bar reading zero against somebody's own plan is worse than no bar. */}
+          {!preview && (
+            <div className="fjm-hero-bar" role="progressbar" aria-valuenow={percentComplete}
+                 aria-valuemin={0} aria-valuemax={100} aria-label="Journey progress">
+              <i style={{ width: `${Math.max(1, percentComplete)}%` }} />
+            </div>
+          )}
         </div>
         <div className="fjm-today">
-          <small>{allDone ? 'Journey complete' : `Today · Day ${currentDay} of ${totalDays}`}</small>
-          <b>{allDone ? 'You have completed every day' : today?.title || `Day ${currentDay}`}</b>
-          {!allDone && today?.topic && <span>{today.topic}</span>}
-          <button type="button" className="fjm-btn light" onClick={() => nav(planLinkFor(allDone ? totalDays : currentDay))}>
-            {allDone ? 'Review your journey' : `Continue Day ${currentDay}`} <i className="bi bi-arrow-right" />
-          </button>
+          {preview ? (
+            <>
+              <small>Day 1 of {totalDays}</small>
+              <b>{today?.title || `Day 1`}</b>
+              {today?.topic && <span>{today.topic}</span>}
+              <button type="button" className="fjm-btn light" onClick={() => unlock()} disabled={busy}>
+                {busy ? 'Opening payment…' : `Unlock all ${totalDays} days${priceInr ? ` — ₹${priceInr}` : ''}`}
+                <i className="bi bi-arrow-right" />
+              </button>
+            </>
+          ) : (
+            <>
+              <small>{allDone ? 'Journey complete' : `Today · Day ${currentDay} of ${totalDays}`}</small>
+              <b>{allDone ? 'You have completed every day' : today?.title || `Day ${currentDay}`}</b>
+              {!allDone && today?.topic && <span>{today.topic}</span>}
+              <button type="button" className="fjm-btn light" onClick={() => nav(planLinkFor(allDone ? totalDays : currentDay))}>
+                {allDone ? 'Review your journey' : `Continue Day ${currentDay}`} <i className="bi bi-arrow-right" />
+              </button>
+            </>
+          )}
         </div>
       </section>
 

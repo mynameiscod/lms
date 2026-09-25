@@ -114,6 +114,20 @@ const PassportJoin: React.FC = () => {
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [fieldsDef, setFieldsDef] = useState<OnboardingField[]>([]);
   const [enabled, setEnabled] = useState(true);
+  /**
+   * WHETHER THE FORM KNOWS WHAT IT IS ASKING FOR YET.
+   *
+   * `fieldsDef` starts empty and the tenant's real fields — degree, branch, academic year —
+   * arrive from the config call a moment later. Until then this card rendered a complete-looking
+   * three-field form that PASSED VALIDATION, because validation is built from the same empty
+   * list, and could be submitted.
+   *
+   * A visitor quick enough to do that created an account with no degree, branch or year. Those
+   * three decide passport.stage, which decides whether they are taught the first year or the
+   * second — so the cost of the race is not a missing dropdown, it is a student the planner
+   * cannot place.
+   */
+  const [loaded, setLoaded] = useState(false);
   const [price, setPrice] = useState<number | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
   const [token, setToken] = useState('');
@@ -161,6 +175,8 @@ const PassportJoin: React.FC = () => {
           || (e?.response
             ? 'CareerPilot is not available right now.'
             : 'We could not reach CareerPilot. Check your connection and try again.'));
+      } finally {
+        setLoaded(true);
       }
     })();
   }, [tenant]);
@@ -185,6 +201,8 @@ const PassportJoin: React.FC = () => {
   };
 
   const submit = async () => {
+    /* Belt and braces: the form is not rendered before the fields arrive, and not sent either. */
+    if (!loaded) return;
     setTried(true);
     if (Object.keys(errors).length) { setMsg(''); return; }
 
@@ -337,7 +355,10 @@ const PassportJoin: React.FC = () => {
               <h2 id="cpx-signup-title">Create Your Account</h2>
               <p className="cpx-card-sub">Start your CareerPilot in under 2 minutes.</p>
 
-              {!enabled ? (
+              {/* The form is not shown until it knows what it is asking for — see `loaded`. */}
+              {!loaded ? (
+                <div className="cpx-msg" aria-live="polite">Loading your sign-up form…</div>
+              ) : !enabled ? (
                 <div className="cpx-msg err">{msg || 'CareerPilot is not available right now.'}</div>
               ) : (
                 <>

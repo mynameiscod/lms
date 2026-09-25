@@ -492,7 +492,25 @@ const SkillAssessment: React.FC = () => {
   const placing = paper.purpose === 'PLACEMENT_CHECK';
   const item = paper.items[at];
   const given = answers[keyOf(item)];
-  const pct = Math.round(((at + 1) / paper.items.length) * 100);
+  /**
+   * PROGRESS IS WHAT HAS BEEN ANSWERED, NOT WHERE THE CURSOR IS.
+   *
+   * This was `(at + 1) / items.length` — the position in the paper. So jumping from question one
+   * to question ten filled the bar to forty-five per cent without a single answer in between, and
+   * a student could reach the end reading every question and be told they were done. A progress
+   * bar that moves when nothing has been done is worse than no bar: it is a false receipt.
+   */
+  const pct = Math.round((answeredCount / paper.items.length) * 100);
+
+  /**
+   * Whether THIS question has an answer — which is what the save badge is about.
+   *
+   * `saveState` is one flag for the whole paper and it is never cleared, so "Answer saved" stayed
+   * on screen from the first answer onwards. Arrive at an untouched question and the page was
+   * telling the student their answer to it had been saved. It had not; there was no answer.
+   */
+  const currentKey = paper.items[at] ? keyOf(paper.items[at]) : '';
+  const currentAnswered = currentKey !== '' && answers[currentKey] !== undefined && answers[currentKey] !== '';
 
   return (
     <div className="ska-page">
@@ -519,7 +537,13 @@ const SkillAssessment: React.FC = () => {
         <section className="ska-question-card">
           <div className="ska-question-top">
             <span>Question {at + 1} of {paper.items.length}</span>
-            <span className={`ska-save ${saveState}`}>{saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Answer saved' : saveState === 'retrying' ? 'Offline — will retry' : ''}</span>
+            {/* In flight is worth saying wherever you are; "saved" is only true of a question you answered. */}
+            <span className={`ska-save ${saveState}`}>
+              {saveState === 'saving' ? 'Saving…'
+                : saveState === 'retrying' ? 'Offline — will retry'
+                  : saveState === 'saved' && currentAnswered ? 'Answer saved'
+                    : ''}
+            </span>
           </div>
           <div className="ska-question-progress"><i style={{ width: `${pct}%` }} /></div>
           <h1>{item.text}</h1>

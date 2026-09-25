@@ -205,6 +205,20 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
       )}
 
       {/* Everything membership opens, in one place, with one button. */}
+      {/*
+        * NOTHING IS SOLD BEFORE ANYTHING IS MEASURED.
+        *
+        * This section — the whole membership offer, the price, the unlock button — rendered for
+        * everybody, including somebody who had not taken the free assessment yet. So the first
+        * thing a new student met was a request to pay for a plan built from results that did not
+        * exist, and the assessment they actually needed was a step in a list further down.
+        *
+        * Every fact this section uses to argue for membership — the priority gaps, the skills
+        * needing work, the plan itself — comes from that assessment. Without it the argument is
+        * empty and the page is asking for money on trust. Once they are measured it makes its
+        * case from their own numbers, which is the only version worth showing.
+        */}
+      {measured && (
       <section className="dl2-member">
         <div className="dl2-member-main">
           <header className="dl2-member-head">
@@ -254,6 +268,7 @@ const DashboardLocked: React.FC<Props> = ({ data }) => {
           <span className="dl2-buy-foot">Everything your assessment measured stays yours either way.</span>
         </aside>
       </section>
+      )}
     </div>
   );
 };

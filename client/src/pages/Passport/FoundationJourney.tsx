@@ -807,14 +807,17 @@ const FoundationJourneyPage: React.FC = () => {
             day={welcomeDay}
             nextDay={(orientation?.days || []).find(d => d.dayNumber > welcomeDay.dayNumber) || null}
             onChanged={setOrientation}
-            onFinished={next => {
-              if (next) { selectOrientationDay(next); return; }
+            onFinished={({ nextDay, complete }) => {
               /*
-               * The welcome is over. Reload the journey so the strip shows the days as open,
-               * then land the member on the day they have been waiting for.
+               * ONLY A FINISHED WELCOME OPENS DAY 1.
+               *
+               * A paced member who finishes today's welcome day has no next day to open, because
+               * the next one is tomorrow. Treating that as "the welcome is over" sent them to
+               * Day 1 — a day the server refuses, since the welcome is not done. They stay on the
+               * day they just finished, where the panel says when the next one arrives.
                */
-              load();
-              selectDay(currentDay);
+              if (complete) { load(); selectDay(currentDay); return; }
+              if (nextDay) selectOrientationDay(nextDay);
             }}
           />
         )}

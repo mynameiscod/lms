@@ -159,6 +159,86 @@ const Notes: React.FC<{ body?: string }> = ({ body }) => {
   return <div className="ori-notes" dangerouslySetInnerHTML={{ __html: html }} />;
 };
 
+/** How much of a video counts as having watched it. */
+export const WATCH_FRACTION_REQUIRED = 0.9;
+
+/**
+ * A video that is finished by WATCHING it, not by saying so.
+ *
+ * ── WHY THERE IS NO BUTTON ────────────────────────────────────────────────────────────────
+ *
+ * Every item had a "Mark as done" button, including the videos, so the whole welcome could be
+ * completed by clicking five times without watching a second of it. A day that can be finished
+ * without doing it is not a gate, it is a checkbox.
+ *
+ * ── SEEKING TO THE END IS NOT WATCHING ────────────────────────────────────────────────────
+ *
+ * Watched time is ACCUMULATED from playback, not read off the scrubber: each tick adds only the
+ * small forward step that normal play produces, so dragging to the end adds nothing. Watching
+ * ninety per cent and stopping counts; skipping to 90% does not.
+ *
+ * Pausing, rewinding and rewatching all behave: rewound seconds are simply watched again, and a
+ * member who watches the middle twice still needs ninety per cent of the whole.
+ */
+const VideoItem: React.FC<{
+  day: number; item: OrientationItem; onSaved: (v: OrientationView) => void;
+}> = ({ day, item, onSaved }) => {
+  const ref = useRef<HTMLVideoElement>(null);
+  const watched = useRef(0);
+  const lastTime = useRef(0);
+  const saving = useRef(false);
+  const [pct, setPct] = useState(item.done ? 100 : 0);
+
+  const save = async () => {
+    const r = await passportApi.completeOrientationItem(day, item.key).catch(() => null);
+    if (r?.orientation) onSaved(r.orientation);
+    else saving.current = false;   // let a failed save be retried by watching on
+  };
+
+  const onTimeUpdate = () => {
+    const v = ref.current;
+    if (!v || !v.duration || Number.isNaN(v.duration)) return;
+    const step = v.currentTime - lastTime.current;
+    /* A normal tick is a fraction of a second. Anything larger is a seek, and seeks are not watching. */
+    if (step > 0 && step < 1.5) watched.current += step;
+    lastTime.current = v.currentTime;
+
+    const fraction = Math.min(1, watched.current / v.duration);
+    setPct(Math.round(fraction * 100));
+    if (!item.done && !saving.current && fraction >= WATCH_FRACTION_REQUIRED) {
+      saving.current = true;
+      save();
+    }
+  };
+
+  /* After a seek the next tick would otherwise look like a huge jump forward. */
+  const resync = () => { lastTime.current = ref.current?.currentTime ?? 0; };
+
+  if (!item.url) {
+    return <p className="ori-missing"><i className="bi bi-camera-video-off" /> This video has not been added yet. You can carry on without it.</p>;
+  }
+
+  const needed = Math.round(WATCH_FRACTION_REQUIRED * 100);
+  return (
+    <>
+      <video
+        ref={ref}
+        className="ori-video"
+        controls
+        src={item.url}
+        onTimeUpdate={onTimeUpdate}
+        onSeeked={resync}
+        onPlay={resync}
+      />
+      {!item.done && (
+        <div className="ori-watch" role="status">
+          <div className="ori-watch-bar"><i style={{ width: `${Math.min(100, Math.round((pct / needed) * 100))}%` }} /></div>
+          <small>{pct}% watched — this opens at {needed}%</small>
+        </div>
+      )}
+    </>
+  );
+};
 const ICON: Record<string, string> = {
   video: 'bi-play-circle', notes: 'bi-journal-text', image: 'bi-image',
   checklist: 'bi-check2-square', recording: 'bi-mic',
@@ -191,11 +271,7 @@ const Item: React.FC<{
         </span>
       </header>
 
-      {item.kind === 'video' && (
-        item.url
-          ? <video className="ori-video" controls src={item.url} onEnded={() => { if (!item.done) markDone(); }} />
-          : <p className="ori-missing"><i className="bi bi-camera-video-off" /> This video has not been added yet. You can carry on without it.</p>
-      )}
+      {item.kind === 'video' && <VideoItem day={day} item={item} onSaved={onSaved} />}
       {item.kind === 'image' && (
         item.url
           ? <img className="ori-image" src={item.url} alt={item.title} />
@@ -210,7 +286,13 @@ const Item: React.FC<{
         </>
       )}
 
-      {item.kind !== 'checklist' && item.kind !== 'recording' && !item.done && (
+      {/*
+        * The button is for the items a member genuinely finishes by deciding they have: notes
+        * they have read, a picture they have looked at. A video is finished by watching it, a
+        * checklist by ticking it, a recording by making it — none of those need, or should have,
+        * a way to declare them done.
+        */}
+      {item.kind !== 'checklist' && item.kind !== 'recording' && item.kind !== 'video' && !item.done && (
         <button type="button" className="ori-btn" disabled={busy} onClick={markDone}>
           {busy ? 'Saving…' : 'Mark as done'}
         </button>
@@ -248,8 +330,15 @@ export const OrientationDayPanel: React.FC<{
   nextDay?: OrientationDay | null;
   /** Every save hands back the whole view, so the caller refreshes from the server's answer. */
   onChanged: (v: OrientationView) => void;
-  /** Called once a day is finished, with the next day to open, or null when none is left. */
-  onFinished?: (nextDay: number | null) => void;
+  /**
+   * Called once a day is finished.
+   *
+   * `nextDay` is the day to open NOW and `complete` says whether the welcome is over — and the
+   * two are NOT the same question. A paced member who finishes today's day has no next day to
+   * open and has not finished the welcome either; reading null as "done" sent them to Day 1,
+   * which the server then refused.
+   */
+  onFinished?: (outcome: { nextDay: number | null; complete: boolean }) => void;
 }> = ({ day, nextDay, onChanged, onFinished }) => {
   const [outstanding, setOutstanding] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -265,7 +354,7 @@ export const OrientationDayPanel: React.FC<{
     if (r?.orientation) onChanged(r.orientation);
     /* Refused while something required is unfinished: the server names what, and so does this. */
     if (!r?.ok) { setOutstanding(r?.outstanding || []); return; }
-    onFinished?.(r.orientation?.nextDay ?? null);
+    onFinished?.({ nextDay: r.orientation?.nextDay ?? null, complete: !!r.orientation?.complete });
   };
 
   return (
@@ -384,7 +473,11 @@ const Orientation: React.FC = () => {
           day={day}
           nextDay={view.days.find(d => d.dayNumber > day.dayNumber) || null}
           onChanged={adopt}
-          onFinished={next => { setOpen(next); if (!next) nav('/careerpilot/plan'); }}
+          onFinished={({ nextDay, complete }) => {
+            /* Only a finished welcome sends them to the plan; no day to open today is not that. */
+            if (complete) { nav('/careerpilot/plan'); return; }
+            if (nextDay) setOpen(nextDay);
+          }}
         />
       )}
 

@@ -54,6 +54,16 @@ const AdminContentBuilder: React.FC = () => {
   const [openTopics, setOpenTopics] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState('');
   const [unitCode, setUnitCode] = useState(params.get('unit') || '');
+  /**
+   * WHICH YEAR THIS BUILDER IS EDITING.
+   *
+   * The server has always taken `?stage=`; this screen never sent one, so it asked for
+   * foundation and the 296 second-year units were unreachable — an admin could not open one,
+   * let alone add a video to it. Kept in the URL, as the mega-curriculum screen keeps it, so a
+   * link to a unit carries its year and a refresh does not drop the admin back into first year.
+   */
+  const stage = (params.get('stage') || 'foundation').toLowerCase();
+  const [stages, setStages] = useState<{ key: string; label: string; who: string }[]>([]);
   const [preview, setPreview] = useState<UnitStudentPreview | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
   const [drawer, setDrawer] = useState<DrawerKind>(null);
@@ -63,13 +73,38 @@ const AdminContentBuilder: React.FC = () => {
   const [toast, setToast] = useState('');
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const r = await passportApi.megaCurriculum('foundation');
+      const r = await passportApi.megaCurriculum(stage);
       setRows(r.rows || []);
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not load the curriculum.'); }
     setLoading(false);
-  }, []);
+  }, [stage]);
   useEffect(() => { load(); }, [load]);
+
+  /* The tabs come from the server's own stage list, as the other two curriculum screens do. */
+  useEffect(() => {
+    passportApi.listStageCurriculumStages()
+      .then(d => setStages(d.stages || []))
+      .catch(() => setStages([]));
+  }, []);
+
+  /**
+   * Moving to another year drops everything that belonged to the last one.
+   *
+   * The open unit, the rail's expanded topics and any open drawer all name units of the stage
+   * being left. Left in place they would draw a Year-1 day beside a Year-2 rail until the fetch
+   * returned, and a drawer saved in that moment would write to the wrong unit.
+   */
+  const setStage = (key: string) => {
+    if (key === stage) return;
+    const next = new URLSearchParams(params);
+    next.set('stage', key);
+    next.delete('unit');
+    setParams(next, { replace: true });
+    setRows([]); setUnitCode(''); setPreview(null); setOpenTopics({});
+    setDrawer(null); setEditUnit(false); setEditItem(null); setErr('');
+  };
 
   const loadPreview = useCallback(async (code: string) => {
     if (!code) { setPreview(null); return; }
@@ -104,7 +139,14 @@ const AdminContentBuilder: React.FC = () => {
   const unitXp = items.reduce((t, it) => t + (XP_BY_TYPE[it.contentType] ?? XP_BY_TYPE[it.kind] ?? 5), 0);
   const minutes = items.reduce((t, it) => t + (Number(it.estimatedDuration) || 0), 0);
 
-  const pick = (code: string) => { setUnitCode(code); setParams({ unit: code }); setErr(''); };
+  /* setParams({ unit }) wiped `stage` from the URL, so picking a unit sent the next load to Year 1. */
+  const pick = (code: string) => {
+    setUnitCode(code);
+    const next = new URLSearchParams(params);
+    next.set('unit', code);
+    setParams(next, { replace: true });
+    setErr('');
+  };
   const say = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2600); };
 
   /** Create the row, bind it to this unit and publish it — the three steps an author always wants together. */
@@ -208,12 +250,23 @@ const AdminContentBuilder: React.FC = () => {
         <h1>Build the learning days</h1>
         <p>Pick a day on the left. What you see on the right is what a member sees, in their order.</p>
       </div>
-      <a className="acb-btn ghost" href="/admin/passport/mega-curriculum"><i className="bi bi-sliders" /> Curriculum settings</a>
+      <a className="acb-btn ghost" href={`/admin/passport/mega-curriculum?stage=${encodeURIComponent(stage)}`}><i className="bi bi-sliders" /> Curriculum settings</a>
     </header>
+
+    {/* Which year's days are being built. Foundation alone until Build existed. */}
+    <div className="acb-tabs">
+      {(stages.length ? stages : [{ key: 'foundation', label: 'Foundation', who: '' }]).map(t => (
+        <button key={t.key} type="button" className={t.key === stage ? 'on' : ''}
+                onClick={() => setStage(t.key)} disabled={loading}>
+          {t.label}
+          {t.who && <em>{t.who}</em>}
+        </button>
+      ))}
+    </div>
 
     {err && <div className="acb-err"><i className="bi bi-exclamation-circle" /> {err}</div>}
 
-    <CoveragePanel />
+    <CoveragePanel stage={stage} />
 
     <div className="acb-body">
       <aside className="acb-rail">
@@ -272,7 +325,7 @@ const AdminContentBuilder: React.FC = () => {
               </button>
             ))}
             <button type="button" className="acb-add-btn" onClick={addCheckpoint} disabled={saving}><i className="bi bi-question-circle-fill" /> Add checkpoint</button>
-            <a className="acb-add-btn" href={`/learning-library/create?unitCode=${encodeURIComponent(unit.unitCode)}&topicCode=${encodeURIComponent(unit.topicCode)}&returnTo=${encodeURIComponent(`/admin/passport/content-builder?unit=${unit.unitCode}`)}`}>
+            <a className="acb-add-btn" href={`/learning-library/create?unitCode=${encodeURIComponent(unit.unitCode)}&topicCode=${encodeURIComponent(unit.topicCode)}&returnTo=${encodeURIComponent(`/admin/passport/content-builder?stage=${stage}&unit=${unit.unitCode}`)}`}>
               <i className="bi bi-upload" /> Upload a file
             </a>
           </div>
@@ -314,7 +367,7 @@ const AdminContentBuilder: React.FC = () => {
 
     {drawer && unit && <ContentDrawer kind={drawer} unitTitle={unit.title} saving={saving}
       onClose={() => setDrawer(null)} onSave={addContent} />}
-    {editUnit && unit && <UnitDrawer unit={unit} saving={saving} onClose={() => setEditUnit(false)} onSave={saveUnit} />}
+    {editUnit && unit && <UnitDrawer unit={unit} saving={saving} stage={stage} onClose={() => setEditUnit(false)} onSave={saveUnit} />}
     {editItem && <ItemDrawer item={editItem} saving={saving} onClose={() => setEditItem(null)} onSave={saveItem} />}
     {toast && <div className="acb-toast"><i className="bi bi-check-circle-fill" /> {toast}</div>}
   </div>;
@@ -438,14 +491,17 @@ const ContentDrawer: React.FC<{
  * curriculum and a plan identical to somebody who chose a different empty direction. That is the
  * gap between "personalised" and personalised, and it belongs where the content is authored.
  */
-const CoveragePanel: React.FC = () => {
+const CoveragePanel: React.FC<{ stage: string }> = ({ stage }) => {
   const [report, setReport] = useState<DirectionCoverageReport | null>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  /* A report is about one year. Changing year throws the last one away rather than showing it. */
+  useEffect(() => { setReport(null); setOpen(false); }, [stage]);
+
   const load = async () => {
     setBusy(true);
-    try { setReport(await passportApi.directionCoverage('foundation')); }
+    try { setReport(await passportApi.directionCoverage(stage)); }
     catch { /* the panel simply stays closed; the builder is not blocked by a report */ }
     setBusy(false);
   };
@@ -496,9 +552,9 @@ const CoveragePanel: React.FC = () => {
 
 /** The day itself: what a member reads at the top of it, and how long it should take. */
 const UnitDrawer: React.FC<{
-  unit: CurriculumLearningUnit; saving: boolean;
+  unit: CurriculumLearningUnit; saving: boolean; stage: string;
   onClose: () => void; onSave: (patch: Partial<CurriculumLearningUnit>) => void;
-}> = ({ unit, saving, onClose, onSave }) => {
+}> = ({ unit, saving, stage, onClose, onSave }) => {
   const [title, setTitle] = useState(unit.title || '');
   const [description, setDescription] = useState(unit.description || '');
   const [outcomes, setOutcomes] = useState((unit.learningOutcomes || []).join('\n'));
@@ -542,7 +598,7 @@ const UnitDrawer: React.FC<{
         <label className="acb-field short"><span>Minutes</span>
           <input type="number" min={0} max={600} value={minutes} onChange={e => setMinutes(Number(e.target.value))} />
         </label>
-        <p className="acb-drawer-to"><i className="bi bi-info-circle" /> Skills, prerequisites and where this day sits stay in <a href={`/admin/passport/mega-curriculum?unit=${encodeURIComponent(unit.unitCode)}`}>curriculum settings</a>.</p>
+        <p className="acb-drawer-to"><i className="bi bi-info-circle" /> Skills, prerequisites and where this day sits stay in <a href={`/admin/passport/mega-curriculum?stage=${encodeURIComponent(stage)}&unit=${encodeURIComponent(unit.unitCode)}`}>curriculum settings</a>.</p>
         {problem && <div className="acb-err"><i className="bi bi-exclamation-circle" /> {problem}</div>}
       </div>
       <footer>

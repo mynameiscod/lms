@@ -21,7 +21,7 @@
 import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
 import { CAREER_DIRECTIONS, DirectionKey } from '../data/careerDirectionPolicy';
 import { composeUnits, ComposableUnit, StudentProfile } from './curriculumComposerService';
-import { foundationProgramDaysFor } from './foundationProgramLengthService';
+import { programDaysFor } from './foundationProgramLengthService';
 
 export interface DirectionCoverage {
   key: string;
@@ -57,7 +57,16 @@ const beginnerOf = (direction: DirectionKey): StudentProfile => ({
 } as any);
 
 export async function directionCoverage(tenantId: string, stageKey = 'foundation'): Promise<CoverageReport> {
-  const programDays = await foundationProgramDaysFor(tenantId);
+  /*
+   * THE LENGTH OF THE STAGE BEING REPORTED ON, NOT OF FOUNDATION.
+   *
+   * This asked for Foundation's length whatever stage it had been given, so a Year-2 coverage
+   * report composed against 90 days when Year 2 is 110. Year 2 is deliberately a bank rather
+   * than a schedule — it holds far more units than any programme length can carry — so the
+   * budget is exactly what decides which units a direction reaches, and being twenty days short
+   * made directions look less covered than they are.
+   */
+  const programDays = await programDaysFor(tenantId, stageKey);
   const units = await CurriculumLearningUnit.find({ tenantId, stageKey }).lean() as any as ComposableUnit[];
 
   const plans = new Map<string, string[]>();

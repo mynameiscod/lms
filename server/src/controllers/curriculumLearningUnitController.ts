@@ -640,8 +640,20 @@ export const saveUnit = async (req: Request, res: Response) => {
       });
     }
 
+    const existing = await CurriculumLearningUnit
+      .findOne({ tenantId, unitCode }).select('status stageKey').lean() as any;
+
     const fields = {
-      stageKey: clean(b.stageKey, 60) || 'foundation',
+      /*
+       * A UNIT NEVER CHANGES YEAR BY OMISSION.
+       *
+       * This fell back to 'foundation' whenever a body arrived without a stageKey, so any
+       * partial save of a Year-2 unit silently moved it into Year 1 — out of the Build
+       * curriculum, out of every Year-2 plan, and into a stage it was never written for. The
+       * unit's own stage is the only safe default; 'foundation' is kept for a unit being
+       * created, which has no stage yet.
+       */
+      stageKey: clean(b.stageKey, 60) || existing?.stageKey || 'foundation',
       moduleCode: clean(b.moduleCode, 80).toUpperCase(),
       topicCode,
       title,
@@ -668,7 +680,6 @@ export const saveUnit = async (req: Request, res: Response) => {
     // Self-reference, duplicates, unknown codes and cycles were all settled above, before any
     // of this was assembled — a save is refused while the problem is still hypothetical.
 
-    const existing = await CurriculumLearningUnit.findOne({ tenantId, unitCode }).select('status').lean() as any;
 
     const doc = await CurriculumLearningUnit.findOneAndUpdate(
       { tenantId, unitCode },

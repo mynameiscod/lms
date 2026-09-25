@@ -83,6 +83,54 @@ beforeEach(async () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+/**
+ * A unit stays in the year it was written for.
+ *
+ * saveUnit defaulted stageKey to 'foundation' whenever a body arrived without one, so a partial
+ * save of a Year-2 unit silently moved it into Year 1 — out of the Build curriculum, out of
+ * every Year-2 plan, and into a stage it was never written for. Nothing failed and nothing said
+ * so; the unit simply stopped appearing where its author had left it.
+ *
+ * The content builder happens to re-send the whole unit, so it never triggered this. Any caller
+ * that sends a patch would have.
+ */
+describe('which year a unit belongs to', () => {
+  it('keeps a build unit in build when a save does not mention the stage', async () => {
+    const created = await call(unitsCtrl.saveUnit,
+      asAdmin({ unitCode: 'T2_OOP_WHY' }, unitBody({ stageKey: 'build', title: 'Why objects' })));
+    expect(created.statusCode).toBe(200);
+
+    const patch = unitBody({ title: 'Why objects, and what they replace' });
+    delete (patch as any).stageKey;
+    expect((await call(unitsCtrl.saveUnit, asAdmin({ unitCode: 'T2_OOP_WHY' }, patch))).statusCode).toBe(200);
+
+    const after = await CurriculumLearningUnit
+      .findOne({ tenantId: TENANT, unitCode: 'T2_OOP_WHY' }).select('stageKey title').lean() as any;
+    expect(after.stageKey).toBe('build');
+    expect(after.title).toBe('Why objects, and what they replace');
+  });
+
+  it('still starts a brand new unit in foundation when nothing says otherwise', async () => {
+    const body = unitBody();
+    delete (body as any).stageKey;
+    expect((await call(unitsCtrl.saveUnit, asAdmin({ unitCode: 'T_LOOPS_NEW' }, body))).statusCode).toBe(200);
+
+    const made = await CurriculumLearningUnit
+      .findOne({ tenantId: TENANT, unitCode: 'T_LOOPS_NEW' }).select('stageKey').lean() as any;
+    expect(made.stageKey).toBe('foundation');
+  });
+
+  it('still moves a unit when a save deliberately names another stage', async () => {
+    await call(unitsCtrl.saveUnit, asAdmin({ unitCode: 'T_LOOPS_MOVE' }, unitBody()));
+    expect((await call(unitsCtrl.saveUnit,
+      asAdmin({ unitCode: 'T_LOOPS_MOVE' }, unitBody({ stageKey: 'build' })))).statusCode).toBe(200);
+
+    const moved = await CurriculumLearningUnit
+      .findOne({ tenantId: TENANT, unitCode: 'T_LOOPS_MOVE' }).select('stageKey').lean() as any;
+    expect(moved.stageKey).toBe('build');
+  });
+});
+
 describe('an admin authors a unit end to end', () => {
   it('creates, edits, attaches content, publishes only once the unit teaches, and detaches', async () => {
     const created = await call(unitsCtrl.saveUnit, asAdmin({ unitCode: 'T_LOOPS_FOR' }, unitBody()));

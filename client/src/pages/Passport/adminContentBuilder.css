@@ -152,3 +152,21 @@
 .acb-cover-note { margin: 10px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
 .acb-cover-note.warn { color: #8A5100; }
 .acb-cover-note i { margin-right: 6px; }
+
+/* ── Which year is being built ───────────────────────────────────────────────
+   The same strip the mega-curriculum screen uses, so the two curriculum screens
+   switch year identically. Values mirror .mgc-tabs in megaCurriculum.css. */
+.acb-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+.acb-tabs button {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  padding: 8px 14px; border: 1px solid rgba(127, 127, 127, 0.28);
+  border-radius: 9px; background: transparent; cursor: pointer;
+  font-size: 13.5px; font-weight: 600; color: inherit; text-align: left;
+}
+.acb-tabs button em { font-style: normal; font-size: 11px; font-weight: 500; opacity: 0.6; }
+.acb-tabs button:hover:not(:disabled) { border-color: rgba(127, 127, 127, 0.5); }
+.acb-tabs button:disabled { opacity: 0.55; cursor: default; }
+.acb-tabs button.on { border-color: #2563eb; box-shadow: inset 0 -2px 0 #2563eb; }
+@media (prefers-color-scheme: dark) {
+  .acb-tabs button.on { border-color: #60a5fa; box-shadow: inset 0 -2px 0 #60a5fa; }
+}

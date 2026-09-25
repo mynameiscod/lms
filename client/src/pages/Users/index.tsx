@@ -113,7 +113,12 @@ const UsersPage: React.FC = () => {
 
   const handleExport = async () => {
     setExporting(true);
-    try { await userApi.exportUsers(); }
+    try {
+      /* Export exactly what the screen is showing. */
+      await userApi.exportUsers({
+        search: searchTerm, role: roleFilter, status: activeFilter, batchId: batchFilter,
+      });
+    }
     catch (e: any) { setError(e?.message || 'Failed to export users'); }
     finally { setExporting(false); }
   };

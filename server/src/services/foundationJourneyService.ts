@@ -50,7 +50,7 @@ import { bridgePlanFor, BridgePlan } from '../data/stageBridgePolicy';
 import { densityFor, unitsForDays } from '../data/learningDensityPolicy';
 import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } from '../data/dayPackingPolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource } from './composerCandidateService';
-import { sequencePredecessorOf } from '../data/courseSequencePolicy';
+import { sequencePredecessorOf, sequenceIndexOf } from '../data/courseSequencePolicy';
 
 /** Marks a curriculum as a Foundation UNIT-engine journey. Lets one be found without guessing. */
 export const FOUNDATION_JOURNEY_KIND = 'FOUNDATION_UNIT_JOURNEY_V1';
@@ -291,6 +291,71 @@ function bridgeTopics(units: ComposableUnit[], wanted: Set<string>): Set<string>
   }
   return closed;
 }
+
+/**
+ * The closure, cut down to what the bridge's days can actually hold.
+ *
+ * ── WHY THE CLOSURE ALONE WAS NOT ENOUGH ──────────────────────────────────────────────────
+ *
+ * The closure is the right set of topics and it is routinely far larger than the bridge. A
+ * learner measured low on arrays alone has a 114-unit ladder behind them; their bridge is 15
+ * units. The composer was handed all 114 in sequence order and filled its 15 from the front, so
+ * the days went to hardware, decomposition and variables and the learner NEVER REACHED ARRAYS —
+ * the one skill the bridge was built to teach. Measured: 0 of 1 gap taught.
+ *
+ * That is worse than no bridge at all. It spends a sixth of the programme re-teaching material
+ * the learner was not measured as lacking, and still hands them Year 2 with the real gap open.
+ *
+ * ── WHAT THIS KEEPS AND WHAT IT DROPS ─────────────────────────────────────────────────────
+ *
+ * The topics that TEACH a gap are never dropped. They are why the bridge exists, and a bridge
+ * that does not reach them has failed whatever else it covered.
+ *
+ * The run-up is then added BACKWARDS FROM THE GAP while the days allow, so the groundwork a
+ * learner keeps is the groundwork nearest to what they are about to be taught. It stops at the
+ * first topic that will not fit rather than skipping it for an older one that would — a run-up
+ * with a hole in it is not a ladder, and arriving at functions having skipped loops is the
+ * sequencing bug this whole closure was written to prevent.
+ *
+ * ── WHEN EVEN THE GAP TOPICS DO NOT FIT ───────────────────────────────────────────────────
+ *
+ * They are kept anyway and the composer covers what it can in sequence order. That case is a
+ * learner whose ladder is 268 units against a 36-unit bridge — a total beginner, for whom no
+ * selection rule and no cap is the answer. composeBridge says so in the log, because the honest
+ * response is a conversation about Year 1 rather than a quietly truncated plan.
+ */
+export function bridgeTopicsWithinBudget(
+  units: ComposableUnit[],
+  wanted: Set<string>,
+  maxUnits: number,
+): { topics: Set<string>; laddersShort: boolean } {
+  const closure = bridgeTopics(units, wanted);
+
+  const teaching = new Set<string>();
+  const sizeOf = new Map<string, number>();
+  for (const u of units) {
+    const topic = String(u.topicCode || '');
+    if (!topic || BRIDGE_EXCLUDED_TOPIC.test(topic)) continue;
+    if (closure.has(topic)) sizeOf.set(topic, (sizeOf.get(topic) || 0) + 1);
+    if ((u.skillKeys || []).some(k => wanted.has(String(k)))) teaching.add(topic);
+  }
+
+  const kept = new Set<string>(teaching);
+  let used = [...teaching].reduce((n, t) => n + (sizeOf.get(t) || 0), 0);
+
+  /* Nearest the gap first: the last rung of the ladder earns its place before the first. */
+  const rank = (t: string) => sequenceIndexOf(t) ?? Number.MAX_SAFE_INTEGER;
+  const runUp = [...closure].filter(t => !teaching.has(t)).sort((a, b) => rank(b) - rank(a));
+  for (const topic of runUp) {
+    const size = sizeOf.get(topic) || 0;
+    if (used + size > maxUnits) break;
+    kept.add(topic);
+    used += size;
+  }
+
+  return { topics: kept, laddersShort: used > maxUnits };
+}
+
 async function composeBridge(
   tenantId: string,
   source: CandidateSource,
@@ -302,11 +367,6 @@ async function composeBridge(
     if (source === 'PRODUCTION') assertProductionEligible(set);
 
     const wanted = new Set(bridge.skills);
-    const scoped = set.units.filter(u => bridgeTopics(set.units, wanted).has(String(u.topicCode)));
-    if (!scoped.length) {
-      console.warn(`[bridge] ${bridge.sourceStage} teaches none of ${[...wanted].join(', ')} — no bridge`);
-      return [];
-    }
 
     /*
      * Density applies here too, and it is what makes the ladder fit. Thirty days at one topic a
@@ -314,9 +374,26 @@ async function composeBridge(
      * the skill that was actually measured as the gap.
      */
     const density = densityFor(profile);
+    const budget = unitsForDays(bridge.days, density);
+
+    /* Scoped to the budget, so the days land on the gap rather than running out before it. */
+    const { topics, laddersShort } = bridgeTopicsWithinBudget(set.units, wanted, budget);
+    const scoped = set.units.filter(u => topics.has(String(u.topicCode)));
+    if (!scoped.length) {
+      console.warn(`[bridge] ${bridge.sourceStage} teaches none of ${[...wanted].join(', ')} — no bridge`);
+      return [];
+    }
+    if (laddersShort) {
+      console.warn(
+        `[bridge] ${[...wanted].join(', ')} needs more ${bridge.sourceStage} teaching than ${budget} units ` +
+        `can hold — this learner is being bridged as far as the cap allows, but ${bridge.sourceStage} ` +
+        `is the right programme for them.`,
+      );
+    }
+
     const out = composeUnits({
       candidates: scoped,
-      targetUnits: unitsForDays(bridge.days, density),
+      targetUnits: budget,
       student: profile,
     });
     if (!out.ok || !out.units.length) {

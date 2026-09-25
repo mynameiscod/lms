@@ -86,8 +86,32 @@ export const DAYS_PER_BRIDGE_SKILL = 10;
  * A learner who bought Year 2 must still be taught Year 2. Someone weak on every measured skill
  * would otherwise be sold a second-year membership and given a first-year plan, which is a
  * refund and a complaint rather than a personalised journey. At a third, a 110-day plan spends
- * at most 38 days catching up and at least 72 on the year they paid for. Past this, the honest
+ * at most 36 days catching up and at least 74 on the year they paid for. Past this, the honest
  * answer is that they should be doing Year 1, and that is a conversation, not a composition.
+ *
+ * ── RAISING THIS WAS CONSIDERED AND MEASURED ──────────────────────────────────────────────
+ *
+ * The question was whether a fresh joiner with no programming at all should get a bigger bridge
+ * instead of being told Year 1 is the right purchase. Measured against the real Year-1
+ * inventory, for a learner below the ready score on all fourteen bridge skills:
+ *
+ *   cap 33% -> 36 bridge days, reaches  4 of 14 gaps    (ladder 13% covered)
+ *   cap 40% -> 44 bridge days, reaches  4 of 14 gaps    (ladder 16% covered)
+ *   cap 45% -> 49 bridge days, reaches  4 of 14 gaps    (ladder 18% covered)
+ *   cap 50% -> 55 bridge days, reaches  4 of 14 gaps    (ladder 21% covered)
+ *
+ * The ladder behind those fourteen skills is 268 units. Half a 110-day programme is 55. No cap
+ * closes a gap of that size, so THE CAP IS NOT THE LEVER — raising it would only sell more of
+ * Year 2 to teach less of Year 1, and the learner would still arrive at OOP unable to write a
+ * loop. For a total beginner the answer is Year 1, and composeBridge now says so in the log
+ * rather than handing them a truncated plan that looks like a journey.
+ *
+ * What the same measurement DID show was a real defect, and it was nothing to do with the size
+ * of the bridge: the days were being spent at the foot of the ladder and never reaching the
+ * gap. A learner gapped on arrays alone was taught hardware, decomposition and variables and
+ * never met an array. See bridgeTopicsWithinBudget — fixing the selection took that learner
+ * from 0 of 1 gap taught to 1 of 1, and a learner rusty on loops, functions and arrays from
+ * 1 of 3 to 3 of 3, without moving this constant at all.
  */
 export const MAX_BRIDGE_SHARE = 1 / 3;
 

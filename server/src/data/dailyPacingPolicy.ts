@@ -77,6 +77,20 @@ export const programmeDayOfOrientation = (orientationDay: number): number => ori
 export const programmeDayOfLearning = (learningDay: number): number => ORIENTATION_DAY_COUNT + learningDay;
 
 /**
+ * What a welcome day is CALLED, everywhere it is shown.
+ *
+ * Welcome days are numbered 1 to 5 internally, because they are rows and rows have whole
+ * numbers, and they are called 0.1 to 0.5 to a member, because they come before Day 1 and are
+ * not part of the ninety. Those are two different things and the code kept confusing them: the
+ * roadmap built "0.1" inline from an array index while the day panel printed the raw
+ * dayNumber, so the same day was a chip called 0.2 that opened a page headed "Day 2" with a
+ * button reading "Finish day 2".
+ *
+ * One producer, so the label cannot drift from the number again.
+ */
+export const welcomeDayLabel = (orientationDay: number): string => `0.${orientationDay}`;
+
+/**
  * Has the calendar reached this day of the programme?
  *
  * `startedAt` absent means the member has no clock yet — nothing has been dated, so nothing is

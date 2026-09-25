@@ -43,6 +43,19 @@ export const canOpenDay = (d: Pick<FoundationJourneyDaySummary, 'status' | 'lock
 /** Where a day is worked through: My 90 Days, on that day. */
 export const planLinkFor = (day: number): string => `/careerpilot/plan?day=${day}`;
 
+/**
+ * Where a WELCOME day is worked through — the same place, by its own parameter.
+ *
+ * The roadmap used to send every welcome row to /careerpilot/orientation, the standalone screen
+ * that existed before these days were folded into the plan. So a member clicking day 0.2 in
+ * their roadmap left the roadmap entirely, while clicking day 7 opened it in place. Same list,
+ * two destinations, and only one of them was the thing that had been built.
+ *
+ * `welcome` rather than `day` because the plan screen shows exactly one of the two and the
+ * parameter is what tells it which.
+ */
+export const welcomeLinkFor = (dayNumber: number): string => `/careerpilot/plan?welcome=${dayNumber}`;
+
 export interface RoadmapGroup {
   /** Stable within one response: the first day of the run. */
   key: string;

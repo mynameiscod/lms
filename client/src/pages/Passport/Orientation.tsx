@@ -342,6 +342,7 @@ export const OrientationDayPanel: React.FC<{
 }> = ({ day, nextDay, onChanged, onFinished }) => {
   const [outstanding, setOutstanding] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const doneCount = day.items.filter(i => i.done).length;
 
   const adopt = (v: OrientationView) => { setOutstanding([]); onChanged(v); };
 
@@ -359,14 +360,38 @@ export const OrientationDayPanel: React.FC<{
 
   return (
     <main className="ori-day">
+      {/*
+        * READ LIKE A ROADMAP DAY.
+        *
+        * A welcome day sits in the same slot of the plan screen as Day 7 does, so it is held to
+        * the same shape: a status badge, "Day N · title", the length, and how far through the
+        * day's work the member is. It had none of those — a number, a heading and a blurb — so
+        * the two days looked like they came from different products.
+        *
+        * The badge deliberately says Completed or Today and never Upcoming: a locked day is not
+        * served at all (the server sends no items), so if this panel is drawing, the day is open.
+        */}
       <div className="ori-day-head">
         <div>
-          <span className="ori-day-n">Day {day.dayNumber}</span>
-          <h2>{day.title}</h2>
+          <span className={`ori-status s-${day.done ? 'completed' : 'current'}`}>
+            {day.done ? 'Completed' : 'Today'}
+          </span>
+          <h2><span className="ori-day-n">Day {day.day}</span> · {day.title}</h2>
           <p>{day.blurb}</p>
         </div>
         <span className="ori-day-mins">{mins(day.minutes || 0)}</span>
       </div>
+
+      {/* One line for the whole day, so progress is visible before scrolling through the items. */}
+      {day.items.length > 0 && (
+        <div className="ori-progress">
+          <div className="ori-progress-bar" role="progressbar" aria-valuemin={0}
+               aria-valuemax={day.items.length} aria-valuenow={doneCount}>
+            <span style={{ width: `${Math.round((doneCount / day.items.length) * 100)}%` }} />
+          </div>
+          <small>{doneCount} of {day.items.length} done</small>
+        </div>
+      )}
 
       {day.items.map(item => (
         <Item key={item.key} day={day.dayNumber} item={item} onSaved={adopt} />
@@ -379,7 +404,7 @@ export const OrientationDayPanel: React.FC<{
       <footer className="ori-day-foot">
         {day.done ? (
           <span className="ori-done-note">
-            <i className="bi bi-check-circle-fill" /> Day {day.dayNumber} finished
+            <i className="bi bi-check-circle-fill" /> Day {day.day} finished
             {/*
               * WHAT TO DO NOW IS PART OF FINISHING.
               *
@@ -388,12 +413,12 @@ export const OrientationDayPanel: React.FC<{
               * one arrives turns a dead end into an appointment.
               */}
             {nextDay?.lockedReason === 'NOT_TODAY_YET' && (
-              <em className="ori-tomorrow">Day {nextDay.dayNumber} opens {whenItOpens(nextDay.opensAt)}.</em>
+              <em className="ori-tomorrow">Day {nextDay.day} opens {whenItOpens(nextDay.opensAt)}.</em>
             )}
           </span>
         ) : (
           <button type="button" className="ori-btn primary" disabled={busy} onClick={finishDay}>
-            {busy ? 'Saving…' : <>Finish day {day.dayNumber} <i className="bi bi-arrow-right" /></>}
+            {busy ? 'Saving…' : <>Finish day {day.day} <i className="bi bi-arrow-right" /></>}
           </button>
         )}
       </footer>
@@ -461,7 +486,7 @@ const Orientation: React.FC = () => {
             disabled={!!d.locked}
             onClick={() => setOpen(d.dayNumber)}
           >
-            <span>{d.done ? <i className="bi bi-check-lg" /> : d.dayNumber}</span>
+            <span>{d.done ? <i className="bi bi-check-lg" /> : d.day}</span>
             <b>{d.title}</b>
             {d.locked && <i className="bi bi-lock-fill ori-chip-lock" />}
           </button>

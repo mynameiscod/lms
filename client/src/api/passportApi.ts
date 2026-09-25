@@ -843,15 +843,15 @@ export const passportApi = {
     `${BASE}/me/orientation/recording/${dayNumber}/${encodeURIComponent(itemKey)}`,
 
   /** Admin: the tenant's welcome, as it stands. */
-  getOrientationProgram: async (): Promise<{ enabled: boolean; days: OrientationDay[] }> => {
+  getOrientationProgram: async (): Promise<{ enabled: boolean; days: AuthoredOrientationDay[] }> => {
     const { data } = await axios.get(`${BASE}/orientation`, { headers: auth() });
     return data;
   },
-  saveOrientationProgram: async (days: OrientationDay[], enabled: boolean): Promise<{ ok: boolean; message?: string; enabled: boolean; days: OrientationDay[] }> => {
+  saveOrientationProgram: async (days: AuthoredOrientationDay[], enabled: boolean): Promise<{ ok: boolean; message?: string; enabled: boolean; days: AuthoredOrientationDay[] }> => {
     const { data } = await axios.put(`${BASE}/orientation`, { days, enabled }, { headers: auth() });
     return data;
   },
-  resetOrientationProgram: async (): Promise<{ ok: boolean; enabled: boolean; days: OrientationDay[] }> => {
+  resetOrientationProgram: async (): Promise<{ ok: boolean; enabled: boolean; days: AuthoredOrientationDay[] }> => {
     const { data } = await axios.post(`${BASE}/orientation/reset`, {}, { headers: auth() });
     return data;
   },
@@ -3520,6 +3520,8 @@ export interface OrientationItem {
 
 export interface OrientationDay {
   dayNumber: number;
+  /** What a member sees: "0.3". `dayNumber` is the row; this is the name it goes by. */
+  day: string;
   title: string;
   blurb: string;
   items: OrientationItem[];
@@ -3531,6 +3533,16 @@ export interface OrientationDay {
   opensAt?: string | null;
   minutes?: number;
 }
+
+/**
+ * A welcome day as it is AUTHORED, which is not a welcome day as it is SERVED.
+ *
+ * The admin endpoints below traffic in the programme definition. `day` — the "0.3" a member
+ * sees — is derived by the server from the day's position when it builds a member's view, so it
+ * is not a field an admin owns or can send. Omitting the one field keeps the two shapes from
+ * drifting apart.
+ */
+export type AuthoredOrientationDay = Omit<OrientationDay, 'day'>;
 
 export interface OrientationView {
   enabled: boolean;

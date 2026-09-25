@@ -62,9 +62,42 @@
 .ori-day { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 26px 28px; }
 .ori-day-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
 .ori-day-n { font-size: 12px; font-weight: 800; color: var(--teal-deep); text-transform: uppercase; letter-spacing: .06em; }
-.ori-day-head h2 { margin: 6px 0 4px; font-size: 22px; }
+.ori-day-head h2 { margin: 10px 0 4px; font-size: 24px; line-height: 1.25; font-weight: 800; color: var(--navy); }
 .ori-day-head p { margin: 0; color: var(--muted); font-size: 14px; }
 .ori-day-mins { flex: none; color: var(--muted); font-size: 13px; }
+
+/*
+ * The status badge, borrowed from the learning day rather than reinvented.
+ *
+ * These values are .fjm .fj-status in foundationMember.css. They are repeated and not imported
+ * because orientation.css is also loaded by the standalone welcome screen, which has no .fjm
+ * ancestor and would otherwise render an unstyled word. If the member skin's badge changes,
+ * this is the second place to change.
+ */
+.ori-status {
+  display: inline-block; padding: 5px 11px; font-size: 11px; text-transform: uppercase;
+  border-radius: 999px; font-weight: 800; letter-spacing: .06em;
+  background: var(--soft); color: var(--muted); border: 1px solid var(--line);
+}
+.ori-status.s-current { background: var(--tint); color: var(--primary); border-color: #CFE0F3; }
+.ori-status.s-completed { background: var(--green-bg); color: var(--green); border-color: #CCE9DC; }
+
+/* How far through the day's work, before the items are scrolled through. */
+.ori-progress { display: flex; align-items: center; gap: 12px; margin: 0 0 18px; }
+.ori-progress-bar { flex: 1; height: 7px; border-radius: 999px; background: var(--soft); overflow: hidden; }
+.ori-progress-bar > span { display: block; height: 100%; border-radius: 999px; background: var(--teal-deep); transition: width .3s ease; }
+.ori-progress small { flex: none; color: var(--muted); font-size: 12px; font-weight: 700; }
+
+/*
+ * A WELCOME DAY INSIDE THE PLAN IS NOT A SECOND CARD.
+ *
+ * The plan screen renders this panel inside <section class="fj-day">, which foundationMember.css
+ * already draws as a white 20px card with a border and a shadow. .ori-day drew its own 18px card
+ * inside that one, so a welcome day appeared as a card nested in a card with two borders and two
+ * paddings, which no learning day has. Inside the plan the panel is the contents of the card, so
+ * it gives up its own chrome; on the standalone screen, where nothing wraps it, it keeps it.
+ */
+.fj-day > .ori-day { background: none; border: 0; border-radius: 0; padding: 0; }
 
 .ori-item { border-top: 1px solid var(--line); padding: 18px 0; }
 .ori-item:first-of-type { border-top: 0; padding-top: 0; }

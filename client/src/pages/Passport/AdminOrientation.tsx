@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import passportApi, { OrientationDay, OrientationItem, OrientationItemKind } from '../../api/passportApi';
+import passportApi, { AuthoredOrientationDay, OrientationItem, OrientationItemKind } from '../../api/passportApi';
 import './adminOrientation.css';
 
 /**
@@ -36,7 +36,7 @@ const blankItem = (n: number): OrientationItem => ({
 });
 
 const AdminOrientation: React.FC = () => {
-  const [days, setDays] = useState<OrientationDay[]>([]);
+  const [days, setDays] = useState<AuthoredOrientationDay[]>([]);
   const [enabled, setEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -56,9 +56,9 @@ const AdminOrientation: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  const edit = (fn: (draft: OrientationDay[]) => void) => {
+  const edit = (fn: (draft: AuthoredOrientationDay[]) => void) => {
     setDays(prev => {
-      const next = JSON.parse(JSON.stringify(prev)) as OrientationDay[];
+      const next = JSON.parse(JSON.stringify(prev)) as AuthoredOrientationDay[];
       fn(next);
       return next;
     });

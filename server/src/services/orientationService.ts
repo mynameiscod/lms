@@ -24,7 +24,7 @@ import { processGamificationEvent } from './gamificationEngine';
 import {
   DEFAULT_ORIENTATION, OrientationDay, OrientationItem, ORIENTATION_XP_EVENT,
 } from '../data/orientationPolicy';
-import { calendarHasReached, opensAt, programmeDayOfOrientation } from '../data/dailyPacingPolicy';
+import { calendarHasReached, opensAt, programmeDayOfOrientation, welcomeDayLabel } from '../data/dailyPacingPolicy';
 
 export interface OrientationItemView extends OrientationItem {
   done: boolean;
@@ -34,6 +34,8 @@ export interface OrientationItemView extends OrientationItem {
 
 export interface OrientationDayView {
   dayNumber: number;
+  /** What a member sees: "0.3". The number above is the row; this is the name. */
+  day: string;
   title: string;
   blurb: string;
   items: OrientationItemView[];
@@ -184,6 +186,7 @@ export async function orientationFor(tenantId: string, studentId: string): Promi
     const locked = !done && (!previousDone || !dated);
     return {
       dayNumber: d.dayNumber,
+      day: welcomeDayLabel(d.dayNumber),
       title: d.title,
       blurb: d.blurb,
       minutes: (d.items || []).reduce((n, it) => n + (Number(it.estimatedMinutes) || 0), 0),
@@ -469,8 +472,8 @@ export async function orientationRoadmap(
       blocking: view.mandatory && !view.complete,
       totalDays: view.totalDays,
       completedDays: view.completedDays,
-      days: view.days.map((d, i) => ({
-        day: `0.${i + 1}`,
+      days: view.days.map(d => ({
+        day: welcomeDayLabel(d.dayNumber),
         dayNumber: d.dayNumber,
         title: d.title,
         blurb: d.blurb,

@@ -9,7 +9,7 @@
 import {
   IST_OFFSET_MINUTES, ORIENTATION_DAY_COUNT,
   istDayIndex, istDaysElapsed, calendarHasReached, opensAt,
-  programmeDayOfOrientation, programmeDayOfLearning,
+  programmeDayOfOrientation, programmeDayOfLearning, welcomeDayLabel,
 } from '../data/dailyPacingPolicy';
 
 /** A moment written in India time, as the student would read it off their own clock. */
@@ -131,5 +131,30 @@ describe('when a day opens', () => {
     const at = opensAt(programmeDayOfLearning(1), start, start)!;
     expect(calendarHasReached(programmeDayOfLearning(1), start, new Date(at.getTime() - 1))).toBe(false);
     expect(calendarHasReached(programmeDayOfLearning(1), start, at)).toBe(true);
+  });
+});
+
+/**
+ * The name a welcome day goes by.
+ *
+ * Welcome days are rows numbered 1 to 5 and are called 0.1 to 0.5, and the code kept confusing
+ * the two. The roadmap built its label inline from an array index while the day panel printed
+ * the raw row number, so one member saw a chip called 0.2 open a panel headed "Day 2" with a
+ * button reading "Finish day 2" — the thing they had already reported once.
+ */
+describe('what a welcome day is called', () => {
+  it('names the five welcome days 0.1 to 0.5', () => {
+    expect([1, 2, 3, 4, 5].map(welcomeDayLabel)).toEqual(['0.1', '0.2', '0.3', '0.4', '0.5']);
+  });
+
+  it('never collides with a learning day, which is what the label is for', () => {
+    const welcome = [1, 2, 3, 4, 5].map(welcomeDayLabel);
+    const learning = [1, 2, 3, 4, 5].map(String);
+    expect(welcome.filter(w => learning.includes(w))).toEqual([]);
+  });
+
+  it('labels one day for every welcome day the programme has', () => {
+    const labels = Array.from({ length: ORIENTATION_DAY_COUNT }, (_, i) => welcomeDayLabel(i + 1));
+    expect(new Set(labels).size).toBe(ORIENTATION_DAY_COUNT);
   });
 });

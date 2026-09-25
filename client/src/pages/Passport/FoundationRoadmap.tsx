@@ -25,7 +25,7 @@ import passportApi, { FoundationJourney as Journey } from '../../api/passportApi
 import FoundationJourneyPage from './FoundationJourney';
 import { useUnlock } from './SectionLock';
 import {
-  dayState, canOpenDay, planLinkFor, groupJourneyDays, dayRanges, KIND_LABEL, STATE_LABEL, RoadmapGroup,
+  dayState, canOpenDay, planLinkFor, welcomeLinkFor, groupJourneyDays, dayRanges, KIND_LABEL, STATE_LABEL, RoadmapGroup,
 } from './foundationRoadmapPresenter';
 import './foundationJourney.css';
 import './foundationRoadmap.css';
@@ -272,7 +272,7 @@ const FoundationRoadmap: React.FC = () => {
                         {d.locked ? (
                           <div className="fr-day-row" aria-label={`Day ${d.day}: ${d.title}, locked`}>{body}</div>
                         ) : (
-                          <button type="button" className="fr-day-row" onClick={() => nav('/careerpilot/orientation')}
+                          <button type="button" className="fr-day-row" onClick={() => nav(welcomeLinkFor(d.dayNumber))}
                                   aria-label={`Open day ${d.day}: ${d.title}`}>
                             {body}
                             <i className="bi bi-chevron-right fr-go" aria-hidden />

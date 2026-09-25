@@ -47,6 +47,7 @@ import { foundationProgramDaysFor, programDaysFor, journeyDaysOf } from './found
 import { inTeachingOrder } from '../data/contentBundlePolicy';
 import { composeUnits, ComposerResult, SelectedUnit, StudentProfile, ComposableUnit } from './curriculumComposerService';
 import { bridgePlanFor, BridgePlan } from '../data/stageBridgePolicy';
+import { densityFor, unitsForDays } from '../data/learningDensityPolicy';
 import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } from '../data/dayPackingPolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource } from './composerCandidateService';
 import { sequencePredecessorOf } from '../data/courseSequencePolicy';
@@ -307,7 +308,17 @@ async function composeBridge(
       return [];
     }
 
-    const out = composeUnits({ candidates: scoped, targetUnits: bridge.days, student: profile });
+    /*
+     * Density applies here too, and it is what makes the ladder fit. Thirty days at one topic a
+     * day reaches functions and stops; the same thirty days carrying two reach arrays, which is
+     * the skill that was actually measured as the gap.
+     */
+    const density = densityFor(profile);
+    const out = composeUnits({
+      candidates: scoped,
+      targetUnits: unitsForDays(bridge.days, density),
+      student: profile,
+    });
     if (!out.ok || !out.units.length) {
       console.warn(`[bridge] could not compose ${bridge.days} days: ${out.code || 'no units'}`);
       return [];
@@ -363,9 +374,27 @@ export async function composeFoundationJourney(
    * thirty off twice and produced an eighty-day plan for a hundred-and-ten-day programme —
    * which the length check would then have refused, leaving the learner with no journey at all.
    */
+  /**
+   * HOW MANY UNITS, NOT HOW MANY DAYS.
+   *
+   * This asked for exactly one unit per day, which is why every day of every plan held one
+   * topic however much the learner already knew. The number of units is now the learner's own
+   * density times the programme length, and dayPackingPolicy — which has allowed three units
+   * and a hundred minutes since it was written — draws the day boundaries.
+   *
+   * The programme length is untouched. Ninety days stays ninety days; what changes is how far
+   * through the curriculum ninety days carries this particular learner.
+   */
+  const density = densityFor(profile);
   const rest = composeUnits({
     candidates: set.units,
-    targetUnits: programDays,
+    /*
+     * The bridge comes OUT of the programme's budget, not on top of it. composeUnits already
+     * subtracts history its pool does not hold — every bridge unit — so this is the WHOLE
+     * plan's size. Adding the bridge again made the weakest learner's days the densest, which
+     * is precisely backwards.
+     */
+    targetUnits: unitsForDays(programDays, density),
     student: profile,
     history: [...(opts.history || []), ...bridgeUnits.map(u => u.unitCode)],
   });
@@ -478,7 +507,15 @@ export async function persistFoundationJourney(
    * student that quietly breaks the one promise the programme makes, and nothing downstream
    * would ever flag it — the days would be contiguous, numbered from one, and wrong.
    */
-  if (!composition.ok || composition.units.length !== programDays) {
+  /*
+   * THE PROMISE IS DAYS, AND THE CHECK IS NOW ON DAYS.
+   *
+   * This compared composed UNITS against days, which was the same number only because exactly
+   * one unit was ever composed per day. With density it is not, so the check moved below the
+   * packer: what must equal the programme length is the number of days packing produced.
+   * Too few units to fill them is still a refusal, and still writes nothing.
+   */
+  if (!composition.ok || composition.units.length < programDays) {
     return {
       ok: false,
       reason: `The curriculum can only fill ${composition.units.length} of `
@@ -495,12 +532,14 @@ export async function persistFoundationJourney(
    * The composed sequence becomes days. With one unit per composed day this is the identity, which is
    * what keeps every Foundation journey exactly as it was.
    */
+  const packDensity = densityFor(profile);
   const packed = packIntoDays(composition.units.map(u => ({
     unitCode: u.unitCode, unitType: u.unitType, estimatedMinutes: u.estimatedMinutes, topicCode: u.topicCode,
   })), {
     days: programDays,
-    budgetMinutes: opts.dayBudgetMinutes ?? DEFAULT_DAY_BUDGET_MINUTES,
-    maxUnitsPerDay: opts.maxUnitsPerDay ?? DEFAULT_MAX_UNITS_PER_DAY,
+    /* The learner's own budget: somebody moving quickly can carry a longer day. */
+    budgetMinutes: opts.dayBudgetMinutes ?? packDensity.budgetMinutes ?? DEFAULT_DAY_BUDGET_MINUTES,
+    maxUnitsPerDay: opts.maxUnitsPerDay ?? packDensity.maxUnitsPerDay ?? DEFAULT_MAX_UNITS_PER_DAY,
   });
   if (!packed.ok) {
     return {

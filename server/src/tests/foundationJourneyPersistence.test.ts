@@ -238,13 +238,23 @@ describe('a short plan is refused rather than written', () => {
     expect(r.reason).toMatch(/90/);
   });
 
-  it('refuses an over-long plan too', async () => {
-    // Not reachable through the shipped policy, and refused anyway: the invariant is exactness.
+  /**
+   * THE INVARIANT IS NINETY DAYS, NOT NINETY UNITS.
+   *
+   * It used to be both, because exactly one unit was ever composed per day. Learning density
+   * makes more units than days the ordinary case for anyone past the building band, so more
+   * units is no longer a fault — it is how a day comes to carry two topics. What must still be
+   * exact, and still writes nothing when it is not, is the number of DAYS.
+   */
+  it('packs a plan with more units than days rather than refusing it', async () => {
     composed = { ...plan(95), ok: true };
     const r = await persistFoundationJourney(TENANT, STUDENT, profile);
 
-    expect(r.ok).toBe(false);
-    expect(dayPlans).toHaveLength(0);
+    expect(r.ok).toBe(true);
+    expect(r.days).toBe(FOUNDATION_PROGRAM_DAYS);
+    expect(dayPlans).toHaveLength(FOUNDATION_PROGRAM_DAYS);
+    /* Every unit still placed, and the day numbers still one to ninety with no gaps. */
+    expect(new Set(dayPlans.map(d => d.dayNumber)).size).toBe(FOUNDATION_PROGRAM_DAYS);
   });
 });
 

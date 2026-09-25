@@ -144,9 +144,23 @@ const PassportJoin: React.FC = () => {
         setFieldsDef(c.onboardingFields || []);
         setEnabled(c.enabled);
         if (typeof c.priceInr === 'number' && c.priceInr > 0) setPrice(c.priceInr);
-      } catch {
+      } catch (e: any) {
+        /**
+         * "NOT AVAILABLE" IS A CLAIM ABOUT THE PRODUCT. A NETWORK ERROR IS NOT.
+         *
+         * Every failure here said CareerPilot was not available, which is what a visitor also saw
+         * when the API was restarting or their connection dropped for a second. That reads as
+         * "this college has switched it off" — so somebody who would have signed up leaves, and
+         * nobody finds out, because the page looked like it was working as intended.
+         *
+         * A tenant that really has it switched off answers `enabled: false` above, and that
+         * message is the one below. Only an unanswered request lands here.
+         */
         setEnabled(false);
-        setMsg('CareerPilot is not available right now.');
+        setMsg(e?.response?.data?.message
+          || (e?.response
+            ? 'CareerPilot is not available right now.'
+            : 'We could not reach CareerPilot. Check your connection and try again.'));
       }
     })();
   }, [tenant]);

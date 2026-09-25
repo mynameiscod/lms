@@ -398,9 +398,24 @@ export async function saveOrientationProgram(
     }
   }
 
+  /*
+   * AN AUDIT STAMP MUST NOT SINK THE WRITE IT IS STAMPING.
+   *
+   * `updatedBy` is an ObjectId, and this cast threw on anything that was not one — so a caller
+   * that is not a user, such as a maintenance script naming itself, lost the entire save to a
+   * field nobody reads for correctness. The placeholder-video script failed exactly this way:
+   * it reported every URL it was about to write and then wrote none of them.
+   *
+   * A recognisable id is recorded, anything else is left unset, and the days are saved either
+   * way. Who saved it is worth knowing; it is not worth losing the content over.
+   */
+  const stamp = updatedBy && mongoose.Types.ObjectId.isValid(updatedBy)
+    ? new mongoose.Types.ObjectId(updatedBy)
+    : undefined;
+
   await OrientationProgram.updateOne(
     { tenantId },
-    { $set: { enabled, days, updatedBy: updatedBy ? new mongoose.Types.ObjectId(updatedBy) : undefined } },
+    { $set: { enabled, days, updatedBy: stamp } },
     { upsert: true },
   );
   return { ok: true };

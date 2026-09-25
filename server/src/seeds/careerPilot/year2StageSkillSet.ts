@@ -49,10 +49,19 @@ export const BUILD_TARGET_BY_DEPTH: Record<LearningDepth, SkillTargetLevel> = {
   CHALLENGE:  'PROFICIENT',
 };
 
-/** The Year-2 modules as stage requirements, in module order. */
+/**
+ * The Year-2 modules as stage requirements, in module order.
+ *
+ * `includePrerequisites` is on because Year 2 is the first stage with a stage before it. The
+ * Year-1 skills its topics declare have to be measurable, or the bridge that is supposed to
+ * teach them cannot see they are missing — only measured skills count as gaps, so an unasked
+ * skill is silently treated as held. Eleven of the bridge's fourteen skills were invisible this
+ * way, and a fresh second-year who could not write a loop was never taught loops.
+ */
 export function buildStageRequirements(): FoundationStageSet {
   return foundationStageRequirements({
     modules: BUILD_MODULES,
     targetByDepth: BUILD_TARGET_BY_DEPTH,
+    includePrerequisites: true,
   });
 }

@@ -50,6 +50,28 @@ export const BUILD_MODULES: FoundationModuleSeed[] = [
         skillKeys: ['PROGRAMMING_FUNDAMENTALS', 'PROBLEM_SOLVING'], category: 'UNIVERSAL', applicableDirections: [],
         defaultDepth: 'STANDARD',
         learningOutcomes: ['Show that the first-year fundamentals are in place, or find out exactly where they are not.'],
+        /*
+         * THE FOURTEEN THIS TOPIC EXISTS TO CHECK.
+         *
+         * These are exactly the skills stageBridgePolicy calls BRIDGE_SKILLS.build — that list
+         * was read off what this module was written to check, and until now the two were only
+         * connected by a comment. Declaring them here is what makes them MEASURABLE: the stage
+         * set is built from what topics teach and require, the entry paper can only ask about
+         * what is in the stage set, and the bridge only counts a measured skill as a gap. With
+         * them undeclared, eleven of the fourteen could never be asked, so they could never be
+         * found missing, so they were never taught — a fresh second-year who could not write a
+         * loop was silently assumed to be able to.
+         *
+         * This is also the first half of the TODO in stageBridgePolicy: with the dependency
+         * authored here, that table can eventually be derived rather than maintained by hand.
+         */
+        prerequisiteSkillKeys: [
+          'PROGRAMMING_FUNDAMENTALS', 'PYTHON_BASICS', 'CONDITIONALS_BASICS', 'LOOPS_BASICS',
+          'FUNCTIONS_BASICS', 'PYTHON_STRINGS', 'DSA_ARRAYS',
+          'PROBLEM_SOLVING', 'PSEUDOCODE_FLOWCHARTS',
+          'GIT_FUNDAMENTALS', 'SHELL_COMMANDS', 'IDE_PROFICIENCY',
+          'SQL_BASICS', 'DB_FUNDAMENTALS',
+        ],
         backbone: true,
       },
     ],

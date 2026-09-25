@@ -150,8 +150,9 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
    */
   const openPct = totalDays ? Math.round((openCount / totalDays) * 100) : 0;
 
+  /* The preview starts where a member starts: on the welcome, not on learning day one. */
   const marks = [
-    { key: 'start', label: 'Day 1', at: 1 },
+    { key: 'start', label: 'Day 0.1', at: 1 },
     { key: 'preview', label: `Day ${openCount}`, at: openCount },
     { key: 'end', label: `Day ${totalDays}`, at: totalDays },
   ];
@@ -169,7 +170,8 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
     <div className="fj-page fjm fjm-preview">
       <section className="fjm-hero">
         <div className="fjm-hero-copy">
-          <span className="fjm-eyebrow">Day 1 of {totalDays}</span>
+          {/* Not "Day 1 of N": nobody starts there. Every student starts on the welcome. */}
+          <span className="fjm-eyebrow">Starts on Day 0.1 · {totalDays} learning days</span>
           <h1>{stage} <span>Journey</span></h1>
           <p>Your personalised plan, built from your skill check. The first {openCount} days are open to read — membership opens all {totalDays}.</p>
           <div className="fjm-chips">
@@ -670,13 +672,29 @@ const FoundationJourneyPage: React.FC = () => {
   const weekMark = Math.min(totalDays, Math.ceil((currentDay + 1) / 7) * 7);
   const lastWeek = weekMark >= totalDays;
   const marks = [
-    { key: 'start', label: 'Day 1', at: 1 },
-    { key: 'today', label: `Day ${currentDay}`, at: currentDay },
+    /*
+      * THE FIRST MARK IS WHERE THEY ACTUALLY START.
+      *
+      * Everybody begins on the welcome, so a rail whose first mark reads "Day 1" is naming a day
+      * the server will refuse. While the welcome is outstanding the start mark is the welcome,
+      * and "today" is that welcome day rather than learning day one — which is not today, has not
+      * opened, and is not what the next click should do.
+      */
+    { key: 'start', label: onWelcome ? `Day ${welcomeLabel}` : 'Day 1', at: 1 },
+    { key: 'today', label: onWelcome ? `Day ${welcomeLabel}` : `Day ${currentDay}`, at: currentDay },
     { key: 'week', label: lastWeek ? 'Final week' : `Day ${weekMark}`, at: lastWeek ? Math.max(currentDay + 1, totalDays - 6) : weekMark },
     { key: 'end', label: `Day ${totalDays}`, at: totalDays },
   ];
-  /* Today opens in the player when there is an enrolment to open it with; otherwise the strip selects it. */
+  /**
+   * What the one big button does.
+   *
+   * It used to go straight to learning day one whatever the member's state. For anybody still on
+   * the welcome that is a day the server refuses, so the most prominent control on the page was
+   * the one guaranteed to fail. While a welcome day is outstanding this opens THAT day instead —
+   * they finish 0.1, then 0.2, and Day 1 arrives when the welcome is done.
+   */
   const openToday = () => {
+    if (onWelcome && welcomeOutstanding) { selectOrientationDay(welcomeOutstanding.dayNumber); return; }
     if (enrollmentId) nav(`/careerpilot/journey/day/${currentDay}`);
     else selectDay(currentDay);
   };
@@ -725,7 +743,24 @@ const FoundationJourneyPage: React.FC = () => {
               return <li key={m.key} className={state}><i /><span>{m.label}</span></li>;
             })}
           </ol>
-          {todayLine && (
+          {/*
+            * ON THE WELCOME, THE BUTTON IS THE WELCOME.
+            *
+            * This rendered only when a LEARNING day had tasks, so a member on the welcome either
+            * saw no button at all or saw one pointing at Day 1. Both are wrong: the welcome is
+            * the work, it is mandatory, and it is what the next click should open.
+            */}
+          {onWelcome && welcomeOutstanding ? (
+            <button type="button" className="fjm-challenge" onClick={openToday}>
+              <span className="ic"><i className="bi bi-play-circle-fill" aria-hidden /></span>
+              <div>
+                <b>Start here</b>
+                <span>Day {welcomeLabel}{welcomeOutstanding.title ? ` · ${welcomeOutstanding.title}` : ''}</span>
+                <em>Finish the welcome and Day 1 opens</em>
+              </div>
+              <i className="bi bi-chevron-right" aria-hidden />
+            </button>
+          ) : todayLine && (
             <button type="button" className="fjm-challenge" onClick={openToday}>
               <span className="ic"><i className={`bi ${todayDone ? 'bi-check-circle-fill' : 'bi-play-circle-fill'}`} aria-hidden /></span>
               <div>

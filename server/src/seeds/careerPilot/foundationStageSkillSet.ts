@@ -122,6 +122,30 @@ export interface StageRequirementOptions {
   modules?: typeof FOUNDATION_MODULES;
   /** Defaults to the Year-1 bar, where being early is the expected state. */
   targetByDepth?: Record<LearningDepth, SkillTargetLevel>;
+  /**
+   * Also measure the EARLIER-YEAR SKILLS this stage is built on.
+   *
+   * ── THE BUG THIS EXISTS FOR ─────────────────────────────────────────────────────────────
+   *
+   * A stage set was built from what its topics TEACH and nothing else. Year 2 declares fourteen
+   * Year-1 prerequisites — Python, loops, functions, SQL, Git and the rest — and none of them
+   * reached the set, so the Year-2 entry paper could never ask about them.
+   *
+   * The bridge then counts only MEASURED skills as gaps, deliberately, so that a returning
+   * member with a year of evidence is not re-taught what they have proved. Put those two
+   * together and eleven of the bridge's fourteen skills were invisible: a fresh second-year who
+   * could not write a loop was never asked about loops, so loops were never a gap, so loops
+   * were never taught. Measured on the real database, every Year-2 student had exactly three of
+   * the fourteen measured.
+   *
+   * ── WHY THEY ARE SUPPORTING AND NOT ESSENTIAL ───────────────────────────────────────────
+   *
+   * They are switched on so they can be ASKED, not promoted to things Year 2 is graded on.
+   * Year 2's own topics still carry the essential weight; a first-year prerequisite sits below
+   * them, which is what SUPPORTING means everywhere else in this file. A skill that Year 2 both
+   * teaches and depends on keeps the stronger claim, because the merge below already does that.
+   */
+  includePrerequisites?: boolean;
 }
 
 /**
@@ -155,7 +179,23 @@ export function foundationStageRequirements(opts: StageRequirementOptions = {}):
       // admin can choose it, not switched on so a seed can choose it for them.
       const active = isMandatoryCategory(t.category);
 
-      for (const raw of t.skillKeys) {
+      /*
+       * The skills this topic teaches, and — when asked for — the earlier-year skills it stands
+       * on. A prerequisite comes in SUPPORTING and active, so the paper may ask about it without
+       * it counting as something this year is graded on. See includePrerequisites.
+       */
+      const taught = t.skillKeys.map(k => ({ raw: k, importance, targetLevel, active }));
+      const required = opts.includePrerequisites
+        ? (t.prerequisiteSkillKeys || []).map(k => ({
+            raw: k,
+            importance: 'SUPPORTING' as SkillImportance,
+            targetLevel: targetMap.FOUNDATION || 'FOUNDATION',
+            active: true,
+          }))
+        : [];
+
+      for (const entry of [...taught, ...required]) {
+        const { raw, importance, targetLevel, active } = entry;
         const key = String(raw).toUpperCase();
         origins.push({
           skillKey: key,

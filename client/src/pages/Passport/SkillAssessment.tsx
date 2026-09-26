@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { SkillAssessment as Paper, SkillAssessmentItem, AssessmentAvailability, PlacementResult } from '../../api/passportApi';
-import { AnswerQueue, enqueueAnswer, drainQueue, requeueFailed, hasPending } from './answerQueue';
+import {
+  AnswerQueue, enqueueAnswer, drainQueue, requeueFailed, hasPending,
+  saveDraft, readDraft, clearDraft,
+} from './answerQueue';
 import { useMember } from './MemberLayout';
 import './skillAssessment.css';
 
@@ -132,6 +135,13 @@ const SkillAssessment: React.FC = () => {
 
   const pending = useRef<AnswerQueue>({});
   const timer = useRef<any>(null);
+  /*
+   * `flush` is deliberately dependency-free so the retry timer it schedules always calls the
+   * same function. It still needs to know the paper and the answers to mirror them, and a
+   * stale closure would write yesterday's draft, so it reads them through refs.
+   */
+  const paperRef = useRef<Paper | null>(null);
+  const answersRef = useRef<Record<string, any>>({});
   const keyOf = (i: SkillAssessmentItem) => `${i.sourceType}:${i.sourceId}`;
 
   const adopt = useCallback((p: Paper) => {
@@ -139,8 +149,25 @@ const SkillAssessment: React.FC = () => {
     setLeft(typeof p.secondsRemaining === 'number' ? p.secondsRemaining : null);
     const restored: Record<string, any> = {};
     for (const i of p.items) if (i.response !== undefined && i.response !== null) restored[keyOf(i)] = i.response;
-    setAnswers(restored);
-    const firstOpen = p.items.findIndex(i => restored[keyOf(i)] === undefined);
+
+    /**
+     * ── WHAT THE SERVER HEARD, THEN WHAT THIS BROWSER STILL HOLDS ──────────────────────
+     *
+     * The outbox kept a failed save safe in memory, which is no help at all to the student
+     * who actually loses their network: they wait, they reload, and every answer that had
+     * not reached the server is gone. That is the case reported.
+     *
+     * The local draft is layered OVER the server's answers, because anything still in it is
+     * by definition newer — it is there precisely because it never got through.
+     */
+    const draft = readDraft(p.id);
+    const merged = draft ? { ...restored, ...draft.answers } : restored;
+    if (draft && Object.keys(draft.pending).length) {
+      pending.current = { ...draft.pending, ...pending.current };
+      setSaveState('retrying');
+    }
+    setAnswers(merged);
+    const firstOpen = p.items.findIndex(i => merged[keyOf(i)] === undefined);
     setAt(firstOpen >= 0 ? firstOpen : 0);
   }, []);
 
@@ -202,6 +229,13 @@ const SkillAssessment: React.FC = () => {
       clearTimeout(timer.current);
       timer.current = setTimeout(flush, RETRY_MS);
     }
+    /*
+     * The mirror follows the outbox either way. On success the queue shrinks and the draft
+     * should stop claiming those answers are unsent; on failure they must still be there
+     * after a reload, which is the whole point.
+     */
+    const p = paperRef.current;
+    if (p) saveDraft(p.id, { answers: answersRef.current, pending: pending.current });
   }, []);
 
   const queueSave = useCallback((item: SkillAssessmentItem, response: any) => {
@@ -214,9 +248,29 @@ const SkillAssessment: React.FC = () => {
   }, [flush]);
 
   const answer = (item: SkillAssessmentItem, response: any) => {
-    setAnswers(a => ({ ...a, [keyOf(item)]: response }));
+    setAnswers(a => {
+      const next = { ...a, [keyOf(item)]: response };
+      /* Written before the network is even attempted, so a drop later cannot take it. */
+      if (paper) saveDraft(paper.id, { answers: next, pending: pending.current });
+      return next;
+    });
     queueSave(item, response);
   };
+
+  useEffect(() => { paperRef.current = paper; }, [paper]);
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+
+  /**
+   * Try again the moment the network comes back, rather than on the next timer tick.
+   *
+   * A student who reconnects and immediately submits would otherwise submit while answers
+   * were still sitting in the outbox.
+   */
+  useEffect(() => {
+    const onOnline = () => { if (hasPending(pending.current)) flush(); };
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, [flush]);
 
   const answeredCount = useMemo(
     () => paper ? paper.items.filter(i => answers[keyOf(i)] !== undefined && answers[keyOf(i)] !== '').length : 0,
@@ -233,7 +287,14 @@ const SkillAssessment: React.FC = () => {
         sourceId: i.sourceId,
         response: answers[keyOf(i)],
       }));
+      /*
+       * Everything still in the outbox goes first. Submitting with unsent answers is how a
+       * paper gets marked against a subset of what the student actually did.
+       */
+      if (hasPending(pending.current)) await flush();
       setDone(await passportApi.submitPersonalizedAssessment(payload));
+      /* Submitted: the draft has nothing left to protect. */
+      clearDraft(paper.id);
       // The member payload was loaded before this paper existed; without a refresh the home screen goes on saying
       // "start the free assessment" until a full page reload.
       reloadMember();

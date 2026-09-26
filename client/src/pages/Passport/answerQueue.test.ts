@@ -1,5 +1,6 @@
 import {
   enqueueAnswer, drainQueue, requeueFailed, hasPending, answerKey, AnswerQueue, PendingAnswer,
+  saveDraft, readDraft, clearDraft, draftKey, DRAFT_MAX_AGE_MS,
 } from './answerQueue';
 
 /**
@@ -129,5 +130,59 @@ describe('a failed save', () => {
     const after = requeueFailed(rest, batch);
 
     expect(after['question:q1'].response).toBe(0);
+  });
+});
+
+/**
+ * A disconnect must not cost a student their answers.
+ *
+ * The outbox alone keeps a failed save safe IN MEMORY, which is no help to the person the
+ * feature exists for: they lose the network, wait, reload the page, and every answer that never
+ * reached the server is gone. That is the reported failure, and it is invisible in testing
+ * because the queue works perfectly right up until the tab is refreshed.
+ */
+describe('a draft survives a reload', () => {
+  const PAPER = 'paper-1';
+  beforeEach(() => { try { localStorage.clear(); } catch { /* ignore */ } });
+
+  it('gives back what was written', () => {
+    saveDraft(PAPER, { answers: { 'q:1': 2 }, pending: { 'q:1': { sourceType: 'q', sourceId: '1', response: 2 } } });
+    const back = readDraft(PAPER);
+    expect(back?.answers).toEqual({ 'q:1': 2 });
+    expect(Object.keys(back?.pending || {})).toEqual(['q:1']);
+  });
+
+  it('keeps one paper out of another', () => {
+    saveDraft(PAPER, { answers: { 'q:1': 2 }, pending: {} });
+    expect(readDraft('paper-2')).toBeNull();
+  });
+
+  it('is gone once the paper is submitted', () => {
+    saveDraft(PAPER, { answers: { 'q:1': 2 }, pending: {} });
+    clearDraft(PAPER);
+    expect(readDraft(PAPER)).toBeNull();
+  });
+
+  /** A paper is a sitting, not a document to come back to next week. */
+  it('ignores a draft older than a day', () => {
+    localStorage.setItem(draftKey(PAPER), JSON.stringify({
+      answers: { 'q:1': 2 }, pending: {}, savedAt: Date.now() - (DRAFT_MAX_AGE_MS + 1000),
+    }));
+    expect(readDraft(PAPER)).toBeNull();
+  });
+
+  it('treats unreadable storage as no draft rather than failing the sitting', () => {
+    localStorage.setItem(draftKey(PAPER), 'not json');
+    expect(readDraft(PAPER)).toBeNull();
+  });
+
+  it('never throws when storage refuses, so a private window can still sit the paper', () => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = () => { throw new Error('blocked'); };
+    try {
+      expect(() => saveDraft(PAPER, { answers: {}, pending: {} })).not.toThrow();
+    } finally {
+      Storage.prototype.setItem = original;
+    }
   });
 });

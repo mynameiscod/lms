@@ -64,3 +64,59 @@ export function requeueFailed(queue: AnswerQueue, failed: PendingAnswer[]): Answ
 
 /** Whether anything is waiting to be sent. */
 export const hasPending = (queue: AnswerQueue): boolean => Object.keys(queue).length > 0;
+
+/**
+ * ── SURVIVING A DISCONNECT ────────────────────────────────────────────────────────────────
+ *
+ * The outbox above solves the wrong half of the problem on its own. It keeps an answer safe
+ * when a SAVE fails, and it kept it in memory — so a student who lost their network, waited,
+ * and then reloaded the page lost every answer that had not reached the server. That is the
+ * exact case reported: answers given, network drops, answers gone.
+ *
+ * Both the queue and the answers already given are mirrored to localStorage, keyed by the
+ * paper, so a reload picks up where the student was rather than where the server last heard
+ * from them. Storage is per-origin and per-browser, which is the right scope: an unsent answer
+ * belongs to the tab that has not managed to send it yet.
+ *
+ * Every access is wrapped. Storage throws in a private window and in a browser with site data
+ * blocked, and an assessment must not fail to load because a draft could not be cached.
+ */
+
+const DRAFT_PREFIX = 'cp.skillAssessment.draft.';
+
+export interface AnswerDraft {
+  /** Answers as the student has them on screen, including ones already acknowledged. */
+  answers: Record<string, any>;
+  /** What has still not reached the server. */
+  pending: AnswerQueue;
+  savedAt: number;
+}
+
+/** Drafts older than this are ignored: a paper is a sitting, not a document to come back to. */
+export const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+export const draftKey = (paperId: string): string => `${DRAFT_PREFIX}${paperId}`;
+
+export function saveDraft(paperId: string, draft: Omit<AnswerDraft, 'savedAt'>): void {
+  if (!paperId) return;
+  try {
+    localStorage.setItem(draftKey(paperId), JSON.stringify({ ...draft, savedAt: Date.now() }));
+  } catch { /* private window, blocked storage, or full — the sitting continues either way */ }
+}
+
+export function readDraft(paperId: string): AnswerDraft | null {
+  if (!paperId) return null;
+  try {
+    const raw = localStorage.getItem(draftKey(paperId));
+    if (!raw) return null;
+    const d = JSON.parse(raw) as AnswerDraft;
+    if (!d || typeof d !== 'object') return null;
+    if (typeof d.savedAt !== 'number' || Date.now() - d.savedAt > DRAFT_MAX_AGE_MS) return null;
+    return { answers: d.answers || {}, pending: d.pending || {}, savedAt: d.savedAt };
+  } catch { return null; }
+}
+
+export function clearDraft(paperId: string): void {
+  if (!paperId) return;
+  try { localStorage.removeItem(draftKey(paperId)); } catch { /* nothing to clean up */ }
+}

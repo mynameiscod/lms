@@ -45,9 +45,10 @@ import { FOUNDATION_PROGRAM_DAYS } from '../data/ninetyDayPolicy';
 import { CAREER_STAGES } from './careerStageService';
 import { foundationProgramDaysFor, programDaysFor, journeyDaysOf } from './foundationProgramLengthService';
 import { inTeachingOrder } from '../data/contentBundlePolicy';
-import { composeUnits, ComposerResult, SelectedUnit, StudentProfile, ComposableUnit } from './curriculumComposerService';
+import { composeUnits, ComposerResult, SelectedUnit, StudentProfile, ComposableUnit, refusedComposition } from './curriculumComposerService';
 import { bridgePlanFor, BridgePlan } from '../data/stageBridgePolicy';
 import { revisionPlanFor, RevisionPlan } from '../data/stageRevisionPolicy';
+import { directionRequiredFor } from '../data/stageDirectionPolicy';
 import { densityFor, unitsForDays } from '../data/learningDensityPolicy';
 import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } from '../data/dayPackingPolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource } from './composerCandidateService';
@@ -583,6 +584,26 @@ export async function composeFoundationJourney(
   // Refuses anything but PRODUCTION for a real build. The check is here rather than at the
   // call site so no future caller can forget it.
   if (source === 'PRODUCTION') assertProductionEligible(set);
+
+  /**
+   * ── A YEAR BUILT ROUND A DIRECTION CANNOT BE BUILT WITHOUT ONE ───────────────────────
+   *
+   * In Year 2 a direction filters enrichment, so a student without one gets a slightly
+   * plainer plan and nothing is wrong. In Year 3 the specialization is six topics, a track
+   * and a project — most of what they are there for — and `applicableDirections` keeps
+   * every one of those topics out of a plan with no direction set.
+   *
+   * Composing anyway would produce a Year 3 with its specialization silently missing,
+   * which looks like a working plan and is not the product. Refusing says so, and the
+   * refusal names what to do about it.
+   */
+  if (directionRequiredFor(opts.stageKey) && !profile.primaryDirection) {
+    console.warn(`[direction] ${opts.stageKey} needs a direction and none is chosen — refusing to compose`);
+    return {
+      candidates: set.units.length,
+      composition: refusedComposition('DIRECTION_REQUIRED', programDays),
+    };
+  }
 
   /**
    * FUNDAMENTALS FIRST, FOR A LEARNER WHO DOES NOT HAVE THEM.

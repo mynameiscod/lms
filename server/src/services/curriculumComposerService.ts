@@ -213,7 +213,15 @@ export interface Reallocation {
   reason: 'NO_SUITABLE_INVENTORY';
 }
 
-export type ComposerFailure = 'INSUFFICIENT_COMPOSER_READY_INVENTORY';
+/**
+ * Why a composition produced nothing usable.
+ *
+ * DIRECTION_REQUIRED is not an inventory problem and must not be reported as one. A stage
+ * whose specialization IS the year cannot be planned before the student has chosen, and the
+ * fix is a choice rather than more authored units — different cause, different reader,
+ * different sentence on screen.
+ */
+export type ComposerFailure = 'INSUFFICIENT_COMPOSER_READY_INVENTORY' | 'DIRECTION_REQUIRED';
 
 export interface ComposerResult {
   ok: boolean;
@@ -520,6 +528,34 @@ const compareArrays = (a: number[], b: number[]): number => {
 /* ------------------------------------------------------------------ *
  * Composition
  * ------------------------------------------------------------------ */
+
+/**
+ * A composition that produced nothing, with a reason.
+ *
+ * ComposerResult has a dozen required fields — excluded, blocked, shape, allocation, the
+ * reports — because a real composition owes an account of itself. A caller that refuses BEFORE
+ * composing owes the same shape and has nothing to put in it, and hand-building one at each
+ * call site is how a field gets forgotten and a reader crashes on `result.blocked.length`.
+ */
+export function refusedComposition(code: ComposerFailure, requestedDays: number): ComposerResult {
+  return {
+    ok: false,
+    code,
+    requestedDays,
+    eligibleUnits: 0,
+    units: [],
+    excluded: [],
+    prerequisites: [],
+    blocked: [],
+    unmetPrerequisites: [],
+    totalMinutes: 0,
+    shape: 'BEGINNER' as LearnerShape,
+    allocation: [],
+    composition: {} as Record<CompositionRole, number>,
+    reallocations: [],
+    shapeViolations: [],
+  };
+}
 
 export function composeUnits(input: ComposerInput): ComposerResult {
   const { candidates, student } = input;

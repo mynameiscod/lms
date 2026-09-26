@@ -47,6 +47,10 @@ import { TECHNICAL_DEBT } from './technicalDebt';
 import { LINUX_ADMINISTRATION } from './linuxAdministration';
 import { DEPENDENCY_MANAGEMENT } from './dependencyManagement';
 import { PRODUCTION_ENGINEERING } from './productionEngineering';
+import { TECHNICAL_WRITING } from './technicalWriting';
+import { COMMUNICATION } from './communication';
+import { BEHAVIORAL_INTERVIEW } from './behavioralInterview';
+import { ML_WORKFLOW } from './mlWorkflow';
 
 export const YEAR3_BANK: GoldenItem[] = [
   ...DESIGN_PATTERNS,
@@ -80,6 +84,10 @@ export const YEAR3_BANK: GoldenItem[] = [
   ...LINUX_ADMINISTRATION,
   ...DEPENDENCY_MANAGEMENT,
   ...PRODUCTION_ENGINEERING,
+  ...TECHNICAL_WRITING,
+  ...COMMUNICATION,
+  ...BEHAVIORAL_INTERVIEW,
+  ...ML_WORKFLOW,
 ];
 
 export { GoldenItem };

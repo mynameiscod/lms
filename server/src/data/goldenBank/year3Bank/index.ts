@@ -17,9 +17,15 @@
 
 import { GoldenItem } from './types';
 import { DESIGN_PATTERNS } from './designPatterns';
+import { SOFTWARE_ARCHITECTURE } from './softwareArchitecture';
+import { AUTHENTICATION } from './authentication';
+import { AUTHORIZATION } from './authorization';
 
 export const YEAR3_BANK: GoldenItem[] = [
   ...DESIGN_PATTERNS,
+  ...SOFTWARE_ARCHITECTURE,
+  ...AUTHENTICATION,
+  ...AUTHORIZATION,
 ];
 
 export { GoldenItem };

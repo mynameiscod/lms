@@ -193,11 +193,33 @@ class CodeRunnerService {
       const normalizedExpected = this.normalizeOutput(expectedOutput);
       const normalizedActual = this.normalizeOutput(simulatedOutput);
       
+      /**
+       * ── A SIMULATED RUN IS NOT A GRADE ──────────────────────────────────────────────────
+       *
+       * This does not execute the program. It reads the source for keywords — "prime",
+       * "fibonacci", "factorial" — and then computes the right answer ITSELF, in TypeScript,
+       * from the stdin. The output it reports is not what the student's code does; it is what
+       * CORRECT code would do.
+       *
+       * So any program mentioning the right word passed. A student could write nothing but a
+       * comment saying `# prime` and be told every test passed, be awarded the XP, and have the
+       * problem marked solved. That is worse than having no practice lab: it teaches that wrong
+       * code is right, and writes the fiction into their record as evidence.
+       *
+       * It therefore comes back marked the way a busy or unreachable grader does — the flag
+       * whose doctrine is already written on the interface above: a grade containing one is not
+       * evidence of skill. The output is still returned, because seeing what correct code would
+       * print is a useful preview. What it must not do is award a pass.
+       *
+       * Set PISTON_URL to grade for real. Markup is unaffected — evaluateMarkup inspects the
+       * student's own HTML rather than guessing, so it judges and stays trusted.
+       */
       return {
         passed: normalizedExpected === normalizedActual,
         output: simulatedOutput,
         executionTime,
-        memoryUsed
+        memoryUsed,
+        graderUnavailable: true,
       };
     } catch (error) {
       return {

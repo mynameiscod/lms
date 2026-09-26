@@ -567,6 +567,8 @@ export interface RunOutcome {
   /** Real figures from Piston when its build reports them; 0 means "unknown", and
    *  the UI hides the metric rather than showing a fabricated number. */
   executionMs: number;
+  /** True when nothing actually executed the code — see runProblem. */
+  graderUnavailable?: boolean;
   memoryMb: number;
 }
 
@@ -609,6 +611,8 @@ export async function runProblem(
   const results: RunOutcome['results'] = [];
   let compilationError: string | undefined;
   let executionMs = 0, memoryMb = 0;   // slowest/heaviest test, when Piston reports them
+  /* True if ANY test came back from a runner that did not actually execute the code. */
+  let graderUnavailable = false;
 
   for (let i = 0; i < tests.length; i++) {
     const t = tests[i];
@@ -630,6 +634,7 @@ export async function runProblem(
       problem.kind === 'sql' && m ? remapSqlErrorLines(m, problem.setupSql || '', code) : m;
 
     if (r.compilationError && !compilationError) compilationError = fix(r.compilationError);
+    if (r.graderUnavailable) graderUnavailable = true;
     executionMs = Math.max(executionMs, r.executionTime || 0);
     memoryMb = Math.max(memoryMb, r.memoryUsed || 0);
     results.push({
@@ -648,6 +653,14 @@ export async function runProblem(
     results, passedCount, total: tests.length,
     allPassed: tests.length > 0 && passedCount === tests.length,
     compilationError, executionMs, memoryMb,
+    /*
+     * Whether anything actually RAN the student's code.
+     *
+     * False when the runner fell back to simulation, which reads the source for keywords and
+     * computes the answer itself — so it can report every test green for a program that does
+     * nothing at all. The caller must not turn that into a solve, XP or evidence.
+     */
+    graderUnavailable,
   };
 }
 

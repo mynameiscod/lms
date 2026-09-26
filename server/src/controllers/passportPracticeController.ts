@@ -269,9 +269,28 @@ export const submit = async (req: Request, res: Response) => {
       if (!code.trim()) return res.status(400).json({ message: 'Write some code first.' });
       const language = (req.body?.language || ProgrammingLanguage.PYTHON) as ProgrammingLanguage;
       const outcome = await runProblem(problem, code, language, false);
-      passed = outcome.allPassed;
+      /*
+       * ── NOTHING RAN IT, SO NOTHING IS SOLVED ─────────────────────────────────────────
+       *
+       * Without PISTON_URL the runner falls back to simulation, which reads the source for
+       * keywords and then computes the answer itself. It will report every test green for a
+       * program containing only a comment. Treating that as a pass awarded XP, marked the
+       * problem solved and wrote the fiction into the student's record — which is how a
+       * practice lab comes to teach that wrong code is right.
+       *
+       * The results still travel, so the screen can show what correct code would print and
+       * say plainly that it was not checked. What does not happen is a solve.
+       */
+      passed = outcome.allPassed && !outcome.graderUnavailable;
       score = outcome.passedCount; total = outcome.total;
-      payload = outcome;
+      payload = {
+        ...outcome,
+        verified: !outcome.graderUnavailable,
+        ...(outcome.graderUnavailable ? {
+          message: 'Your code was not run — this server has no code execution configured, '
+            + 'so these results are a preview and nothing has been marked solved.',
+        } : {}),
+      };
     }
 
     const progress = await getOrCreateProgress(tenantId, studentId);

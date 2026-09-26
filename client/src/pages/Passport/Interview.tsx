@@ -280,6 +280,35 @@ const Interview: React.FC = () => {
     if (previewRef.current && recorder.stream) previewRef.current.srcObject = recorder.stream;
   }, [recorder.stream, session?.id]);
 
+  /**
+   * ── THE CAMERA MUST GO OFF WHEN THE PAGE GOES AWAY ───────────────────────────────────
+   *
+   * recorder.stop() lived only inside finish(). Anybody who navigated away mid-round — a
+   * tab close, the back button, a click on another part of CareerPilot — left the camera
+   * and microphone live, with the recording light on, and nothing on screen to explain it.
+   *
+   * A member ending a sitting by leaving is not an error case; it is how people actually
+   * leave things. The hardware has to be released whatever route they took out.
+   */
+  const recorderRef = useRef(recorder);
+  useEffect(() => { recorderRef.current = recorder; }, [recorder]);
+  useEffect(() => () => { void recorderRef.current?.stop?.().catch(() => {}); }, []);
+
+  /**
+   * Leaving mid-round loses the round, so say so before it happens.
+   *
+   * A session left in_progress is not graded and does not close itself. It then reappears
+   * in the list as "In progress — resume", with a timer counted from the original start,
+   * so a round abandoned an hour ago looks like the current one. Warning at the moment of
+   * leaving is the only point where the member can still choose otherwise.
+   */
+  useEffect(() => {
+    if (!session || session.status !== 'in_progress') return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [session?.id, session?.status]);
+
   const openPast = async (s: InterviewSession) => {
     setSession(s);
     setPlayUrl(u => { if (u) URL.revokeObjectURL(u); return ''; });

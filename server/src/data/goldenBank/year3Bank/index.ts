@@ -32,6 +32,9 @@ import { CACHING } from './caching';
 import { CONTAINERS_DOCKER } from './containersDocker';
 import { CI_CD } from './ciCd';
 import { DEPLOYMENT } from './deployment';
+import { WEB_SECURITY } from './webSecurity';
+import { SECURE_CODING } from './secureCoding';
+import { THREAT_MODELING } from './threatModeling';
 
 export const YEAR3_BANK: GoldenItem[] = [
   ...DESIGN_PATTERNS,
@@ -50,6 +53,9 @@ export const YEAR3_BANK: GoldenItem[] = [
   ...CONTAINERS_DOCKER,
   ...CI_CD,
   ...DEPLOYMENT,
+  ...WEB_SECURITY,
+  ...SECURE_CODING,
+  ...THREAT_MODELING,
 ];
 
 export { GoldenItem };

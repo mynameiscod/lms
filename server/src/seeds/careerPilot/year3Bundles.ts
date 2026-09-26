@@ -31,6 +31,7 @@ import { GREEDY_DP_BUNDLES } from './year3ContentGreedyDp';
 import { ARCHITECTURE_BUNDLES } from './year3ContentArchitecture';
 import { REVIEW_DOCS_BUNDLES } from './year3ContentReviewDocs';
 import { TESTING_BUNDLES } from './year3ContentTesting';
+import { DATA_BUNDLES } from './year3ContentData';
 
 export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...PATTERNS_BUNDLES,
@@ -45,4 +46,5 @@ export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...ARCHITECTURE_BUNDLES,
   ...REVIEW_DOCS_BUNDLES,
   ...TESTING_BUNDLES,
+  ...DATA_BUNDLES,
 ];

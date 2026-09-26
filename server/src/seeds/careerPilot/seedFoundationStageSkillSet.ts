@@ -36,6 +36,7 @@ import {
   foundationStageRequirements, FOUNDATION_STAGE, FOUNDATION_SET_LABEL,
 } from './foundationStageSkillSet';
 import { buildStageRequirements, BUILD_STAGE, BUILD_SET_LABEL } from './year2StageSkillSet';
+import { specializeStageRequirements, SPECIALIZE_STAGE, SPECIALIZE_SET_LABEL } from './year3StageSkillSet';
 
 dotenv.config();
 
@@ -69,10 +70,23 @@ export async function seedFoundationStageSkillSet(opts: {
    * one year's student against the other year's expectations.
    */
   year2?: boolean;
+  /** Write the Year-3 set. Same rule: its own row, its own stage, its own bar. */
+  year3?: boolean;
 }): Promise<SeedStageSetReport> {
-  const stage = opts.year2 ? BUILD_STAGE : FOUNDATION_STAGE;
-  const label = opts.year2 ? BUILD_SET_LABEL : FOUNDATION_SET_LABEL;
-  const built = opts.year2 ? buildStageRequirements() : foundationStageRequirements();
+  /*
+   * A table rather than a chain. With two years this was a pair of ternaries repeated three
+   * times; with three it becomes a chain repeated three times, and the failure mode of that
+   * shape is one of the three disagreeing — a set written under Year 3's stage key carrying
+   * Year 2's label, or measured against Year 2's bar.
+   */
+  const YEARS = {
+    foundation: { stage: FOUNDATION_STAGE, label: FOUNDATION_SET_LABEL, requirements: foundationStageRequirements },
+    build: { stage: BUILD_STAGE, label: BUILD_SET_LABEL, requirements: buildStageRequirements },
+    specialize: { stage: SPECIALIZE_STAGE, label: SPECIALIZE_SET_LABEL, requirements: specializeStageRequirements },
+  } as const;
+  const year = opts.year3 ? 'specialize' : opts.year2 ? 'build' : 'foundation';
+  const { stage, label } = YEARS[year];
+  const built = YEARS[year].requirements();
   const report: SeedStageSetReport = {
     created: false, updated: false, skippedExisting: false, enabled: false,
     skills: built.summary.skills,
@@ -141,14 +155,15 @@ if (require.main === module) {
     const enable = process.argv.includes('--enable');
     const replace = process.argv.includes('--replace');
     const year2 = process.argv.includes('--year2');
+    const year3 = process.argv.includes('--year3');
     if (!tenantId) {
-      console.error('Usage: seedFoundationStageSkillSet.ts <tenantId> [--apply] [--enable] [--replace] [--year2]');
+      console.error('Usage: seedFoundationStageSkillSet.ts <tenantId> [--apply] [--enable] [--replace] [--year2|--year3]');
       process.exit(1);
     }
 
     await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI || '');
-    const built = year2 ? buildStageRequirements() : foundationStageRequirements();
-    const r = await seedFoundationStageSkillSet({ tenantId, apply: apply || enable, enable, replace, year2 });
+    const built = year3 ? specializeStageRequirements() : year2 ? buildStageRequirements() : foundationStageRequirements();
+    const r = await seedFoundationStageSkillSet({ tenantId, apply: apply || enable, enable, replace, year2, year3 });
 
     if (r.unknownSkillKeys.length) {
       console.error('\nREFUSED — these skill keys do not exist in the taxonomy:');

@@ -41,6 +41,9 @@ import { MONITORING_OBSERVABILITY } from './monitoringObservability';
 import { DSA_DIVIDE_CONQUER } from './dsaDivideConquer';
 import { DSA_GREEDY } from './dsaGreedy';
 import { ALGORITHM_DESIGN } from './algorithmDesign';
+import { SYSTEM_DESIGN_BASICS } from './systemDesignBasics';
+import { NOSQL_CONCEPTS } from './nosqlConcepts';
+import { TECHNICAL_DEBT } from './technicalDebt';
 
 export const YEAR3_BANK: GoldenItem[] = [
   ...DESIGN_PATTERNS,
@@ -68,6 +71,9 @@ export const YEAR3_BANK: GoldenItem[] = [
   ...DSA_DIVIDE_CONQUER,
   ...DSA_GREEDY,
   ...ALGORITHM_DESIGN,
+  ...SYSTEM_DESIGN_BASICS,
+  ...NOSQL_CONCEPTS,
+  ...TECHNICAL_DEBT,
 ];
 
 export { GoldenItem };

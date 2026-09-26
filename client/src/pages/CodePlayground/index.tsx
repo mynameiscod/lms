@@ -100,6 +100,30 @@ const CodePlayground: React.FC = () => {
    * both, and rootRef was already here and unread.
    */
   const { ref: rootRef, height: fitH } = useFillViewport<HTMLDivElement>(20, 520);
+
+  /**
+   * ── ON A PHONE THE IDE IS A PAGE, NOT A PANEL ────────────────────────────────────────
+   *
+   * On a desktop this is a viewport-locked workspace: the editor and the output sit side by
+   * side, the panel fills the space below the header, and nothing outside it scrolls.
+   *
+   * A phone cannot hold that. Locking a 390x700 screen to a fixed-height panel left the
+   * editor a few hundred pixels tall with its own inner scrollbar, inside a page that could
+   * not scroll — so the code was tiny AND stuck, which is exactly what it looked like.
+   *
+   * Below the tablet breakpoint the height measurement is dropped entirely. The inline style
+   * it produces beats every stylesheet, so no amount of CSS could have released the lock
+   * while this was still being applied. The page then flows and scrolls normally.
+   */
+  const [narrow, setNarrow] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1024px)');
+    const on = () => setNarrow(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
   /**
    * Mounted twice: the LMS at /playground and CareerPilot at /careerpilot/playground. The CareerPilot one wears the
    * member dashboard's look (a slim navy header, the editor as one card); the LMS one is left exactly as it was.
@@ -428,7 +452,8 @@ const CodePlayground: React.FC = () => {
   );
 
   return (
-    <div className={`cp-root ${full ? 'cp-full' : ''}${inCareerPilot ? ' cpg' : ''}`} ref={rootRef} style={full || !fitH ? undefined : { height: fitH }}>
+    <div className={`cp-root ${full ? 'cp-full' : ''}${inCareerPilot ? ' cpg' : ''}${narrow ? ' cp-narrow' : ''}`} ref={rootRef}
+         style={full || narrow || !fitH ? undefined : { height: fitH }}>
       {toast && (
         <div className="cp-toast" role="status" onClick={() => setToast('')}>
           <i className="bi bi-info-circle" /> {toast}
@@ -558,7 +583,14 @@ const CodePlayground: React.FC = () => {
                 });
               }}
               theme="light"
-              options={{ minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, automaticLayout: true, tabSize: 4, glyphMargin: true }}
+              options={{
+                minimap: { enabled: false },
+                /* 16 on a phone: under that, iOS zooms the page in when the editor takes
+                   focus and strands the student half off-screen. */
+                fontSize: narrow ? 16 : 14,
+                scrollBeyondLastLine: false, automaticLayout: true, tabSize: 4,
+                glyphMargin: !narrow,
+              }}
             />
           )}
         </div>

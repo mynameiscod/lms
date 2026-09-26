@@ -421,3 +421,52 @@ body:has(.main-content > .cp-root), body:has(.cp-root.cp-full) { overflow: hidde
   background: #0F2E4D; color: #fff; box-shadow: 0 6px 20px rgba(15, 46, 77, .28);
 }
 .cp-toast i { flex: none; opacity: .85; }
+
+/* ── The playground on a phone ───────────────────────────────────────────────
+   On a desktop this is a viewport-locked workspace: editor and output side by
+   side, the panel filling the space under the header, nothing outside it
+   scrolling. A phone cannot hold that shape.
+
+   Locked to a 390x700 screen it left the editor a few hundred pixels tall with
+   its own inner scrollbar, inside a page that could not scroll — so the code
+   was both tiny and stuck. Every one of these rules releases one part of that
+   lock so the IDE becomes an ordinary page: header, editor, then input and
+   output underneath, scrolling with the document.
+
+   .cp-root also carried an inline height from useFillViewport, which beats any
+   stylesheet — that is dropped in the component below this breakpoint, or none
+   of this would take effect. Fullscreen is untouched and still pins. */
+@media (max-width: 1024px) {
+  body:has(.main-content > .cp-root) { overflow: auto; }
+  .main-content:has(> .cp-root) { height: auto; overflow: visible; }
+
+  .cp-root.cp-narrow,
+  .gd-main > .cp-root.cp-narrow,
+  .main-content > .cp-root.cp-narrow {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  /* Stacked, and no inner scroller: the page itself is the scroll container. */
+  .cp-narrow .cp-body { flex-direction: column; overflow: visible; }
+  .cp-narrow .cp-vdiv { display: none; }
+  .cp-narrow .cp-right {
+    width: 100% !important;
+    border-left: 0;
+    border-top: 1px solid var(--cp-border);
+    overflow: visible;
+  }
+
+  /* Enough code on screen to be worth editing. 340px was a fifth of a phone. */
+  .cp-narrow .cp-editor-wrap { flex: none; height: 58vh; min-height: 320px; }
+
+  /* The toolbar wraps rather than pushing the page sideways. */
+  .cp-narrow .cp-toolbar { flex-wrap: wrap; row-gap: 8px; }
+  .cp-narrow .cp-toolbar-right { margin-left: 0; width: 100%; justify-content: flex-start; }
+  .cp-narrow .cp-title-input { flex: 1 1 100%; }
+
+  /* Thumb-sized controls, on the row a student uses most. */
+  .cp-narrow .cp-btn { min-height: 44px; }
+  .cp-narrow .cp-icon-btn { width: 44px; height: 44px; }
+}

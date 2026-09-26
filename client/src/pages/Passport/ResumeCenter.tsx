@@ -192,17 +192,55 @@ const ResumeCenter: React.FC = () => {
     const styles = Array.from(document.head.querySelectorAll('style, link[rel="stylesheet"]')).map(n => n.outerHTML).join('');
     const frame = document.createElement('iframe');
     frame.setAttribute('aria-hidden', 'true');
-    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    /*
+     * OFF-SCREEN, NOT INVISIBLE AND NOT ZERO-SIZED.
+     *
+     * This was width:0;height:0;visibility:hidden. A frame with no size has nothing to lay
+     * out, and a hidden one is not guaranteed to render at all — which is how the dialog
+     * came up on a blank or unstyled page. It needs real A4-ish dimensions to lay the
+     * resume out; it just does not need to be anywhere the member can see.
+     */
+    frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0';
     document.body.appendChild(frame);
     const doc = frame.contentDocument!;
     doc.open();
     doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>${name}</title>${styles}<style>@page{size:A4;margin:0}html,body{margin:0!important;padding:0!important;background:#fff!important;zoom:1!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>${src.innerHTML}</body></html>`);
     doc.close();
     const win = frame.contentWindow!;
-    const cleanup = () => setTimeout(() => frame.remove(), 500);
+    let done = false;
+    const cleanup = () => { if (done) return; done = true; setTimeout(() => frame.remove(), 500); };
     win.addEventListener('afterprint', cleanup);
-    // Give the stylesheets and fonts a moment to apply before the dialog snapshots the page.
-    setTimeout(() => { win.focus(); win.print(); if (!('onafterprint' in win)) cleanup(); }, 400);
+
+    /**
+     * WAIT FOR THE PAGE TO BE READY, RATHER THAN FOR 400ms.
+     *
+     * The old code guessed. Every <link rel="stylesheet"> copied into this frame is fetched
+     * again from scratch, and webfonts after that, so on a cold cache or a slow connection
+     * the print dialog opened over an unstyled document — a resume that looked broken, or
+     * blank, with nothing said about why.
+     *
+     * So: wait for every stylesheet to settle, then for the fonts, then print. The timeout
+     * is a ceiling rather than the mechanism, because a stylesheet that never loads must
+     * not leave the member with a button that silently does nothing.
+     */
+    const sheets = Array.from(doc.querySelectorAll('link[rel="stylesheet"]')) as HTMLLinkElement[];
+    const settled = sheets.map(l => (l.sheet ? Promise.resolve() : new Promise<void>(res => {
+      l.addEventListener('load', () => res(), { once: true });
+      l.addEventListener('error', () => res(), { once: true });
+    })));
+    const fonts = (doc as any).fonts?.ready ?? Promise.resolve();
+    const ceiling = new Promise<void>(res => setTimeout(res, 4000));
+
+    void Promise.race([Promise.all([...settled, fonts]), ceiling]).then(() => {
+      try {
+        win.focus();
+        win.print();
+        if (!('onafterprint' in win)) cleanup();
+      } catch {
+        cleanup();
+        setMsg({ kind: 'err', text: 'Your browser blocked the print dialog. Allow pop-ups for this site and try again.' });
+      }
+    });
   };
 
   const runScore = async () => {

@@ -143,6 +143,14 @@ class CodeRunnerService {
     return !!this.resolveUrl();
   }
 
+  /**
+   * Public form of the check above, for callers that must refuse rather than simulate —
+   * the Code Visualizer, where a simulated trace would be fabricated runtime evidence.
+   */
+  isRealExecutionEnabled(): boolean {
+    return this.realExecutionEnabled;
+  }
+
   async execute(input: ExecutionInput): Promise<ExecutionResult> {
     // HTML / CSS are markup, not executable programs. Piston has no runtime for
     // them ("html-5 runtime is unknown"), so never send them there — grade them

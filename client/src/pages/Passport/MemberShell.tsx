@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import './dashboard.css';
 import './member.css';
 import { startActivityBeacon, trackPage } from './activityBeacon';
+import visualizerApi from '../../api/visualizerApi';
 
 const ICONS: Record<string, string> = {
   home: 'house-door-fill',
@@ -70,6 +71,13 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const { user, logout } = useAuth();
   const [copied, setCopied] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  /* Code Visualizer is assigned per member; the rail shows it only once it has been. */
+  const [vzAllowed, setVzAllowed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    visualizerApi.access().then(a => alive && setVzAllowed(!!a.allowed)).catch(() => alive && setVzAllowed(false));
+    return () => { alive = false; };
+  }, []);
   const [userOpen, setUserOpen] = useState(false);
   const userRef = useRef<HTMLDivElement>(null);
 
@@ -198,6 +206,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('AI Mentor', 'robot', '/careerpilot/mentor')}
           {navBtn('Practice', 'code', '/careerpilot/practice')}
           {navBtn('Playground', 'terminal', '/careerpilot/playground')}
+          {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer')}
           {navBtn('Tech News', 'news', '/careerpilot/news')}
           {navBtn('My Progress', 'trophy', '/careerpilot/progress')}
         </nav>

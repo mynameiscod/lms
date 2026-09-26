@@ -80,6 +80,7 @@ import liveClassRoutes from './liveClassRoutes';
 import { hmsWebhook } from '../controllers/liveClassController';
 import communicationRoutes from './communicationRoutes';
 import thinkingLabRoutes from './thinkingLabRoutes';
+import visualizerRoutes from './visualizerRoutes';
 import batchOfferingRoutes from './batchOfferingRoutes';
 import assessmentScheduleRoutes from './assessmentScheduleRoutes';
 import passportRoutes from './passportRoutes';
@@ -227,6 +228,7 @@ router.use('/speaking', speakingRoutes);
 router.use('/communication', communicationRoutes); // AI Communication Lab
 router.use('/drills', drillRoutes);
 router.use('/thinking-lab', thinkingLabRoutes);
+router.use('/visualizer', visualizerRoutes); // Code Visualizer
 router.use('/payments', paymentRoutes);
 router.use('/batch-offerings', batchOfferingRoutes);
 router.use('/assessment-schedules', assessmentScheduleRoutes);

@@ -149,6 +149,9 @@ const SpeakingAdmin = lazy(() => import('./pages/SpeakingAdmin'));
 const LogicGym = lazy(() => import('./pages/LogicGym'));
 const DrillsAdmin = lazy(() => import('./pages/DrillsAdmin'));
 const ThinkingLab = lazy(() => import('./pages/ThinkingLab'));
+const CodeVisualizer = lazy(() => import('./pages/CodeVisualizer'));
+const CodeVisualizerWorkspace = lazy(() => import('./pages/CodeVisualizer/Workspace'));
+const CodeVisualizerAdmin = lazy(() => import('./pages/CodeVisualizerAdmin'));
 const ThinkingLabAdmin = lazy(() => import('./pages/ThinkingLabAdmin'));
 const InterviewQuestionsPage = lazy(() => import('./pages/InterviewQuestions'));
 const InterviewQuestionBankPage = lazy(() => import('./pages/InterviewQuestionBank'));
@@ -639,6 +642,8 @@ const AppRoutes: React.FC = () => {
             /playground wraps it in the LMS Layout, which would drop a CareerPilot member into a
             different application. The component is unchanged; only the chrome differs. */}
         <Route path="/careerpilot/playground" element={<CodePlayground />} />
+        <Route path="/careerpilot/visualizer" element={<CodeVisualizer />} />
+        <Route path="/careerpilot/visualizer/:slug" element={<CodeVisualizerWorkspace />} />
         <Route path="/careerpilot/progress" element={<PassportGamification />} />
         {/* Coins buy rewards; XP never does. */}
         <Route path="/careerpilot/rewards" element={<PassportRewards />} />
@@ -895,6 +900,37 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <HmsRoomPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/visualizer"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <CodeVisualizer />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/visualizer/:slug"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <CodeVisualizerWorkspace />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/visualizer"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <CodeVisualizerAdmin />
+            </Layout>
           </ProtectedRoute>
         }
       />

@@ -5,6 +5,7 @@ import { useStudentFeatures, StudentFeatures } from '../../contexts/StudentFeatu
 import { useTenantModules, TenantModules } from '../../contexts/TenantModulesContext';
 import { useBatchModules } from '../../contexts/BatchModulesContext';
 import { StudentFeatureKey } from '../../config/studentFeatureCatalog';
+import visualizerApi from '../../api/visualizerApi';
 import './Sidebar.css';
 
 interface MenuItem {
@@ -16,6 +17,8 @@ interface MenuItem {
   featureKey?: keyof StudentFeatures;
   moduleKey?: keyof TenantModules;
   permissions?: string[]; // If set, user needs at least one of these permissions
+  /** Shown to a student only when the Code Visualizer has been assigned to them. */
+  needsVisualizerGrant?: boolean;
 }
 
 const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = ({ mobileOpen, onMobileClose }) => {
@@ -38,6 +41,14 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const { isModuleEnabled } = useTenantModules();
   const { isBatchFeatureEnabled } = useBatchModules();
   const activeRef = useRef<HTMLAnchorElement | null>(null);
+  /* The Code Visualizer is assigned per student, so the menu asks the server rather than guessing. */
+  const [vzAllowed, setVzAllowed] = useState(false);
+  useEffect(() => {
+    if (user?.role !== 'STUDENT') return;
+    let alive = true;
+    visualizerApi.access().then(a => alive && setVzAllowed(!!a.allowed)).catch(() => alive && setVzAllowed(false));
+    return () => { alive = false; };
+  }, [user?.role]);
 
   const isActive = (path?: string) => path ? location.pathname === path : false;
 
@@ -228,6 +239,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Live Classes', path: '/hms-classes', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-video', featureKey: 'liveClasses' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'AI Communication Lab', path: '/ai-communication-lab', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-comment-dots', moduleKey: 'aiCommunicationLab', featureKey: 'aiCommunicationLab' as keyof StudentFeatures, permissions: ['use_communication_lab', 'manage_communication_lab'] },
     { label: 'Communication Lab — Manage', path: '/admin/communication-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-headset', moduleKey: 'aiCommunicationLab', permissions: ['manage_communication_lab'] },
+    { label: 'Code Visualizer', path: '/visualizer', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-microscope', needsVisualizerGrant: true, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'Code Visualizer — Manage', path: '/admin/visualizer', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-sliders', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Thinking Lab', path: '/thinking-lab', roles: ['STUDENT'], icon: 'fa-solid fa-brain', moduleKey: 'thinkingLab', featureKey: 'thinkingLab' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
     { label: 'Thinking Lab — Bank', path: '/admin/thinking-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-lightbulb', moduleKey: 'thinkingLab', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Daily Lab Tracks', path: '/lab-tracks', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-days', moduleKey: 'thinkingLab', permissions: ['manage_thinking_lab', 'manage_communication_lab', 'manage_tenant'] },
@@ -300,6 +313,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       const hasPermission = item.permissions.some(p => user.permissions!.includes(p));
       if (!hasPermission) return false;
     }
+
+    if (user.role === 'STUDENT' && item.needsVisualizerGrant && !vzAllowed) return false;
 
     // Platform-level module gate (applies to ALL roles — set by SUPER_ADMIN per tenant)
     if (item.moduleKey && !isModuleEnabled(item.moduleKey)) {

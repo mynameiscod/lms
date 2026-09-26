@@ -26,6 +26,9 @@ import { DSA_HEAPS } from './dsaHeaps';
 import { REFACTORING } from './refactoring';
 import { AUTOMATED_TESTING } from './automatedTesting';
 import { API_DESIGN } from './apiDesign';
+import { DB_INDEXING } from './dbIndexing';
+import { QUERY_OPTIMIZATION } from './queryOptimization';
+import { CACHING } from './caching';
 
 export const YEAR3_BANK: GoldenItem[] = [
   ...DESIGN_PATTERNS,
@@ -38,6 +41,9 @@ export const YEAR3_BANK: GoldenItem[] = [
   ...REFACTORING,
   ...AUTOMATED_TESTING,
   ...API_DESIGN,
+  ...DB_INDEXING,
+  ...QUERY_OPTIMIZATION,
+  ...CACHING,
 ];
 
 export { GoldenItem };

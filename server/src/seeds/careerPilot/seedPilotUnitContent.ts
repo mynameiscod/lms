@@ -38,6 +38,8 @@ import { PILOT_TOPICS } from './pilotUnitContent';
 import { ALL_BUNDLES } from './allBundles';
 import { ALL_YEAR2_BUNDLES } from './year2Bundles';
 import { primarySkillFor } from './year2SkillAttribution';
+import { ALL_YEAR3_BUNDLES } from './year3Bundles';
+import { primarySkillFor as primarySkillForYear3 } from './year3SkillAttribution';
 import { findDuplication, identifyingWordsFor } from '../../services/contentDuplicationService';
 
 dotenv.config();
@@ -77,9 +79,29 @@ const readingMinutes = (text: string): number =>
    * ids, the refusal to guess — is shared, because two copies of this logic would drift.
    */
   const year2 = process.argv.includes('--year2');
-  const bundles = year2 ? ALL_YEAR2_BUNDLES : ALL_BUNDLES;
+  /**
+   * Year 3 differs from Year 2 only in degree: SEVENTY-SIX of its hundred topics declare more
+   * than one skill, against Year 2's twenty-one of thirty-three, because a specialize topic
+   * nearly always sits at the join of two things. So it needs its own attribution table for the
+   * same reason and more urgently, and nothing else here changes, because a third copy of this
+   * logic would drift from the other two.
+   *
+   * Its bundle list is also deliberately incomplete while the year is being authored. A unit
+   * with no bundle is reported as unauthored and skipped, which is what lets the year be seeded
+   * and inspected in batches rather than all at once.
+   */
+  const year3 = process.argv.includes('--year3');
+  const bundles = year3 ? ALL_YEAR3_BUNDLES : year2 ? ALL_YEAR2_BUNDLES : ALL_BUNDLES;
+  /** The attribution table for the year being seeded, or none for Year 1's single-skill topics. */
+  const attributionFor = year3 ? primarySkillForYear3 : year2 ? primarySkillFor : null;
+  /** Shown in the header, so a runbook transcript says which year was seeded. */
+  const label = year3 ? 'YEAR-3' : year2 ? 'YEAR-2' : 'PILOT';
   if (!tenantId) {
-    console.error('Usage: seedPilotUnitContent.ts <tenantId> [--apply] [--year2]');
+    console.error('Usage: seedPilotUnitContent.ts <tenantId> [--apply] [--year2|--year3]');
+    process.exit(1);
+  }
+  if (year2 && year3) {
+    console.error('Pass one of --year2 or --year3, not both.');
     process.exit(1);
   }
 
@@ -115,9 +137,9 @@ const readingMinutes = (text: string): number =>
     .select('unitCode title unitType skillKeys topicCode defaultDepth').lean() as any[];
   const unitByCode = new Map<string, any>(units.map(u => [String(u.unitCode), u]));
 
-  console.log(`\n${year2 ? 'YEAR-2' : 'PILOT'} UNIT CONTENT  ·  tenant ${tenantId}`);
-  console.log(year2
-    ? `  units: ${bundles.length} authored, attribution from year2SkillAttribution`
+  console.log(`\n${label} UNIT CONTENT  ·  tenant ${tenantId}`);
+  console.log(attributionFor
+    ? `  units: ${bundles.length} authored, attribution from ${year3 ? 'year3' : 'year2'}SkillAttribution`
     : `  topics: ${PILOT_TOPICS.join(', ')}`);
   console.log(apply ? '\nAPPLYING\n' : '\nDRY RUN — pass --apply to write\n');
 
@@ -308,7 +330,7 @@ const readingMinutes = (text: string): number =>
            */
           const declared = (unit.skillKeys || []).map(upper);
           /* An author's attribution: the question's own, else Year 2's table. */
-          const attributed = q.skillKey || (year2 ? primarySkillFor(unit.unitCode, unit.topicCode) : '');
+          const attributed = q.skillKey || (attributionFor ? attributionFor(unit.unitCode, unit.topicCode) : '');
           const authored = attributed ? upper(attributed) : '';
           if (authored && !declared.includes(authored)) misattributed.add(`${unit.unitCode} (${authored})`);
           const only = authored

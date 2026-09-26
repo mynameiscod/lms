@@ -79,6 +79,8 @@ const CodePlayground: React.FC = () => {
   const [preview, setPreview] = useState('');
   const [sqlRows, setSqlRows] = useState<SqlResult[] | null>(null);
   const [debugUrl, setDebugUrl] = useState<string | null>(null);
+  /** One short message, for the things that used to fail silently. Clears itself. */
+  const [toast, setToast] = useState('');
   const [pushing, setPushing] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [langSearch, setLangSearch] = useState('');
@@ -188,10 +190,53 @@ const CodePlayground: React.FC = () => {
   }, []);
   useEffect(() => { loadList(); }, [loadList]);
 
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(''), 5000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  /**
+   * OPEN AT THE TOP, EVERY TIME.
+   *
+   * The playground sizes itself to the viewport and holds a Monaco editor, and on the first
+   * open after signing in the page arrived part-scrolled — the browser restoring a position
+   * from the route before it, then the editor mounting underneath. The student saw the page
+   * jump on arrival.
+   *
+   * This is a full-height app surface rather than a document, so there is no position worth
+   * restoring: it always starts at the top. Done once on mount, so it never fights a scroll
+   * the student makes themselves.
+   */
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+
+  /**
+   * Change language WITHOUT throwing away work, and without leaving the wrong code behind.
+   *
+   * It used to swap the starter in only when the editor still held a starter, so a student
+   * who had written anything got a new language label over their old Java — the Run button
+   * then sent Java to a Python runtime. After saving it looked like nothing happened at all,
+   * which is exactly the report: change the language and it does not work.
+   *
+   * Empty or untouched, the starter is swapped in place. Real work opens a NEW TAB at that
+   * language's starter, so the other language is one click away and nothing is lost.
+   */
   const changeLanguage = (key: string) => {
-    setLangOpen(false); setLanguage(key);
-    if (key.startsWith('fw-')) return;
-    if (!code.trim() || STARTERS.has(code)) setCode(byKey(key).starter);
+    setLangOpen(false);
+    if (key === language) return;
+    if (key.startsWith('fw-')) { setLanguage(key); return; }
+
+    const untouched = !code.trim() || STARTERS.has(code);
+    if (untouched) { setLanguage(key); setCode(byKey(key).starter); return; }
+
+    const id = `t-${Date.now()}`;
+    setTabs(prev => [
+      ...prev.map(t => (t.id === activeTabId ? { ...t, title, language, code, stdin, currentId } : t)),
+      { id, title: 'Untitled', language: key, code: byKey(key).starter, stdin: '', currentId: null },
+    ]);
+    setActiveTabId(id);
+    setTitle('Untitled'); setLanguage(key); setCode(byKey(key).starter); setStdin(''); setCurrentId(null);
+    setOutput(''); setError(''); setPreview(''); setSqlRows(null); setDebugMode(false);
   };
 
   const handleRun = async () => {
@@ -283,8 +328,17 @@ const CodePlayground: React.FC = () => {
       const t: any[] = r.data?.trace || [];
       if (!t.length) throw new Error('empty trace');
       setTrace(t); setStep(0); setConsoleTab('Console'); setDebugMode(true);
-    } catch {
-      setDebugUrl(buildDebugUrl(language, code, stdin));   // fallback to Python Tutor iframe
+    } catch (e: any) {
+      /*
+       * The trace failed. It used to fall back to an external Python Tutor iframe in a bare
+       * catch, so a student saw either a foreign site or nothing at all, and never learned
+       * that their own debugger had not started or why. Say what happened, THEN offer the
+       * fallback.
+       */
+      setDebugUrl(buildDebugUrl(language, code, stdin));
+      setToast(e?.message === 'empty trace'
+        ? 'Could not step through this program — it produced no trace. Showing an external visualiser instead.'
+        : `Debugger unavailable (${e?.message || 'no response'}). Showing an external visualiser instead.`);
     } finally { setDbgLoading(false); }
   };
   const stopDebug = () => { setDebugMode(false); setTrace(null); };
@@ -323,7 +377,29 @@ const CodePlayground: React.FC = () => {
     decoRef.current = ed.deltaDecorations(decoRef.current, decos);
   }, [breakpoints, step, debugMode, cur?.line]);
 
-  const formatCode = () => { try { editorRef.current?.getAction('editor.action.formatDocument')?.run(); } catch { /* ignore */ } };
+  /**
+   * Tidy the indentation — and say so when the language has no formatter.
+   *
+   * Monaco only ships formatters for the web languages it understands: JSON, HTML, CSS and
+   * TypeScript/JavaScript. For Java, Python, C and C++ `editor.action.formatDocument` simply
+   * is not registered, and this swallowed that in a bare catch — so the button did nothing,
+   * silently, for most of the languages the playground offers.
+   *
+   * A button that cannot work should say it cannot work. The fallback still re-indents the
+   * selection using the editor's own indent action, which is genuinely useful.
+   */
+  const formatCode = () => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const action = ed.getAction('editor.action.formatDocument');
+    if (action) { try { action.run(); return; } catch { /* fall through to re-indent */ } }
+    try {
+      ed.getAction('editor.action.reindentlines')?.run();
+      setToast(`No full formatter for ${byKey(language).label} — re-indented instead.`);
+    } catch {
+      setToast(`Formatting is not available for ${byKey(language).label}.`);
+    }
+  };
   const resetCode = () => { if (current) setCode(current.starter); setOutput(''); setError(''); setPreview(''); setSqlRows(null); };
   const downloadCode = () => {
     const blob = new Blob([code], { type: 'text/plain' });
@@ -353,6 +429,11 @@ const CodePlayground: React.FC = () => {
 
   return (
     <div className={`cp-root ${full ? 'cp-full' : ''}${inCareerPilot ? ' cpg' : ''}`} ref={rootRef} style={full || !fitH ? undefined : { height: fitH }}>
+      {toast && (
+        <div className="cp-toast" role="status" onClick={() => setToast('')}>
+          <i className="bi bi-info-circle" /> {toast}
+        </div>
+      )}
       {inCareerPilot && !full && (
         <div className="cpg-head">
           <span className="cpg-head-ic"><i className="bi bi-terminal" aria-hidden /></span>
@@ -408,6 +489,22 @@ const CodePlayground: React.FC = () => {
           </div>
         )}
 
+        {/*
+          * THE PROGRAM'S NAME, WHICH THERE WAS NO WAY TO SET.
+          *
+          * `title` existed in state, was sent on every save and was read back when loading a
+          * program — but nothing ever rendered a field for it, so every program a student saved
+          * was called "Untitled" and their list was a column of identical rows.
+          */}
+        <input
+          className="cp-title-input"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          onBlur={() => { if (!title.trim()) setTitle('Untitled'); }}
+          placeholder="Untitled"
+          title="Name this program"
+          aria-label="Program name"
+        />
         {!isFramework && <button className="cp-btn cp-btn-run" onClick={handleRun} disabled={running} title="Run (Ctrl + Enter)"><i className="bi bi-play-fill" />{running ? 'Running…' : 'Run'}</button>}
         {!isFramework && canDebug && (debugMode
           ? <button className="cp-btn danger" onClick={stopDebug}><i className="bi bi-stop-fill" />Stop debug</button>

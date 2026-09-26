@@ -395,3 +395,29 @@ body:has(.main-content > .cp-root), body:has(.cp-root.cp-full) { overflow: hidde
 .cpg-head-t span { color: #5D6E88; }
 .cpg-head-tags span { color: #1B3C77; background: #EEF4FB; border-color: #DFE8F4; }
 .cpg-head-tags i.bi-lightning-charge-fill { color: #B86B00; }
+
+/* ── The program's name, in the toolbar ──────────────────────────────────────
+   `title` was saved, loaded and listed, and there was no field to type it in,
+   so every saved program was called "Untitled". */
+.cp-title-input {
+  flex: 0 1 190px; min-width: 110px;
+  padding: 7px 10px; font-size: 13.5px; font-weight: 600;
+  color: inherit; background: transparent;
+  border: 1px solid rgba(127, 127, 127, .3); border-radius: 8px;
+}
+.cp-title-input:hover { border-color: rgba(127, 127, 127, .5); }
+.cp-title-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, .15); }
+.cp-title-input::placeholder { font-weight: 500; opacity: .55; }
+
+/* ── One short message, for the things that used to fail silently ────────────
+   Format with no formatter, and a debugger that could not start, both did
+   nothing at all and left the student guessing. */
+.cp-toast {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  z-index: 40; max-width: min(560px, calc(100% - 32px));
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: 10px; cursor: pointer;
+  font-size: 13.5px; line-height: 1.45;
+  background: #0F2E4D; color: #fff; box-shadow: 0 6px 20px rgba(15, 46, 77, .28);
+}
+.cp-toast i { flex: none; opacity: .85; }

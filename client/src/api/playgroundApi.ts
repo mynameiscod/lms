@@ -1,4 +1,12 @@
-const BASE = '/api/v1/playground';
+/**
+ * The same base every other api module uses.
+ *
+ * This was a bare '/api/v1/playground'. In development that happens to work, because CRA's dev
+ * server proxies unknown paths to localhost:5000 — so the playground looked fine while being the
+ * one module not pointed at the API. A production build has no proxy, and every save, load and
+ * run would have gone to the static host and 404'd.
+ */
+const BASE = (process.env.REACT_APP_API_URL || '/api/v1') + '/playground';
 
 const authHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('token');

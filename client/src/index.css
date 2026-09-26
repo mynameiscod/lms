@@ -47,6 +47,37 @@ body {
   flex-direction: column;
 }
 
+/*
+ * ── NO ZOOM ON A PHONE ───────────────────────────────────────────────────────────────────
+ *
+ * The rule above exists so a desktop fits more on screen, and it was never turned off, so it
+ * applied to phones too — where it does the opposite of what anybody wanted. Three things went
+ * wrong at once on a 390px screen:
+ *
+ *   EVERYTHING DREW AT 75%. 13px body text rendered at 9.75 real pixels; the 9px labels on the
+ *   interview screen at 6.75. A 44px button — the minimum a thumb can reliably hit — drew at 33.
+ *
+ *   LAYOUT AND MEDIA QUERIES DISAGREED BY A THIRD. zoom scales the layout box, so the app laid
+ *   itself out as though it had 520px of room; @media always measures the REAL viewport, so the
+ *   390px rules fired against a 520px layout. Every breakpoint in the product was off by 33%.
+ *
+ *   AND THE COMPENSATION ONLY EVER RAN ON DESKTOP. Around seventeen stylesheets zoom themselves
+ *   back up at 1200px and 1600px. Nothing did so below. The smallest screens were left with the
+ *   smallest rendering of any device class, which is exactly backwards for students who are
+ *   mostly on a phone.
+ *
+ * Below 1024px the app renders at the size the browser and the reader chose. --app-zoom goes to
+ * 1 with it, because a dozen files divide by it to undo the scaling of vh — leaving it at 0.75
+ * would make every one of those calculations wrong in the other direction.
+ */
+@media (max-width: 1024px) {
+  #root {
+    --app-zoom: 1;
+    zoom: 1;
+    min-height: 100vh;
+  }
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

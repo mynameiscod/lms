@@ -87,3 +87,22 @@
 @media(min-width:981px){
 #root .gd .gd-topbar{position:sticky!important;top:0!important;z-index:40!important;margin:-24px -30px 18px!important;padding:12px 30px!important;background:rgba(246,249,252,.92)!important;-webkit-backdrop-filter:saturate(1.4) blur(10px);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid #E2EAF2!important;box-shadow:0 6px 18px rgba(15,46,77,.05)!important}
 }
+
+/* ── Thumbs, not cursors ─────────────────────────────────────────────────────
+   Below 1024px the app no longer renders at 75%, so these are finally drawn at
+   the size they claim. They were still too small: a burger declared 42px drew
+   at 31.5 real pixels and the drawer's close button at 25.5. iOS asks for 44
+   and Android for 48; a control under that is one somebody misses, and every
+   navigation on a phone goes through these three. */
+@media (max-width: 1024px) {
+  #root .gd-burger { width: 46px; height: 46px; }
+  #root .gd-burger svg { width: 22px; height: 22px; }
+  #root .gd-side-close { width: 44px; height: 44px; }
+  #root .gd-side-close svg { width: 20px; height: 20px; }
+  /* The drawer's own rows: a 42px row at 13.2px type was the smallest thing a
+     student had to hit repeatedly. */
+  #root .gd .gd-nav-btn { min-height: 48px !important; font-size: 15px !important; padding: 12px 14px !important; }
+  #root .gd .gd-nav-label { font-size: 11px !important; }
+  /* The wordmark sits under the close button; keep it clear at the larger size. */
+  #root .gd-logo { padding-right: 56px; }
+}

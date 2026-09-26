@@ -263,7 +263,12 @@
 .fjm .fj-range-btn { min-height: 36px; padding: 0 16px; font-size: 13.5px; font-weight: 700; }
 .fjm .fj-arrow { width: 36px; height: 36px; display: grid; place-items: center; }
 @media (max-width: 640px) {
-  .fjm .fj-chip { width: 38px; height: 38px; border-radius: 12px; }
+  /* Matches the base chip size. The member skin was overriding the phone size back down
+     to 38px, so the one screen most students live on had the smaller targets. */
+  .fjm .fj-chip { width: 44px; height: 44px; border-radius: 12px; font-size: 14px; }
+  /* The range jumps and arrows are the way round ninety days on a phone; size them to hit. */
+  .fjm .fj-range-btn { min-height: 44px; padding: 0 16px; font-size: 14px; }
+  .fjm .fj-arrow { width: 44px; height: 44px; }
 }
 
 /* ── the same page, before membership ──────────────────────────────────────

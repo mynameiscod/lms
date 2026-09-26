@@ -132,3 +132,31 @@
   .cp-iv-allowance { border-left: none; padding-left: 0; text-align: left; }
   .cp-iv-round-cards { grid-template-columns: 1fr; }
 }
+
+/* ── Readable on a phone ─────────────────────────────────────────────────────
+   This file sets 9px, 9.5px, 10px and 10.5px on labels, chart ticks, history
+   rows, tips and metric captions. Under the old global 75% zoom those drew at
+   6.75 to 7.9 real pixels, and none of the three mobile breakpoints raised a
+   single one — they moved grids and padding only. The result was a wall of grey
+   text nobody could read on the screen that is meant to tell a student how
+   ready they are.
+
+   12px is the floor here rather than a target: it is the smallest size that
+   stays legible for secondary text on a phone held at arm's length. */
+@media (max-width: 900px) {
+  .cp-iv-trend-point small,
+  .cp-iv-history-list small,
+  .cp-iv-tips small,
+  .cp-iv-muted,
+  .cp-iv-panel li,
+  .cp-iv-readiness-body p,
+  .cp-iv-metric span,
+  .cp-iv-mini-score { font-size: 12px !important; }
+
+  /* Truncating 7px text was the worst of both. Let a caption use the line it needs. */
+  .cp-iv-metric span { white-space: normal !important; text-overflow: clip !important; overflow: visible !important; }
+
+  /* The trend chart's absolutely-positioned tick labels collide once the type grows,
+     and a bar chart is the least useful thing on a narrow screen anyway. */
+  .cp-iv-trend { display: none; }
+}

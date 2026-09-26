@@ -251,8 +251,17 @@
   .fj-progress-card { align-items: flex-start; }
   .fj-day { padding: 14px; }
   .fj-day-head h2 { font-size: 16px; }
-  /* Smaller chips so a usable number of days is reachable without scrolling forever. */
-  .fj-chip { width: 34px; height: 34px; }
+  /*
+   * BIGGER on a phone, not smaller.
+   *
+   * These were shrunk to 34px so more days fitted without scrolling. Under the old global
+   * 75% zoom that drew at 25.5 real pixels — roughly half the 48px Android asks for, on the
+   * control a student taps more than any other in the product.
+   *
+   * Fitting more days in was never the answer anyway: ninety chips do not fit on a phone at
+   * any size, which is what the range jumps below are for. So the chips are sized to be hit.
+   */
+  .fj-chip { width: 44px; height: 44px; font-size: 14px; }
 }
 
 /* ── Getting around the ninety ──────────────────────────────────────── */
@@ -311,7 +320,9 @@
 .fj-locked-text { margin: 0 0 10px; color: #475569; font-size: 14px; }
 
 @media (max-width: 560px) {
-  .fj-range-btn { padding: 5px 8px; font-size: 11px; }
+  /* The escape hatch from that scroll — it has to be easier to hit than the chips, not harder.
+     At 11px type in a 20px-tall button it was the smallest control on the screen. */
+  .fj-range-btn { padding: 10px 14px; font-size: 14px; min-height: 44px; }
   .fj-locked { padding: 20px 8px; }
 }
 

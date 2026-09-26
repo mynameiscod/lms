@@ -23,6 +23,9 @@ import { AUTHORIZATION } from './authorization';
 import { DSA_GRAPHS } from './dsaGraphs';
 import { DSA_DP } from './dsaDp';
 import { DSA_HEAPS } from './dsaHeaps';
+import { REFACTORING } from './refactoring';
+import { AUTOMATED_TESTING } from './automatedTesting';
+import { API_DESIGN } from './apiDesign';
 
 export const YEAR3_BANK: GoldenItem[] = [
   ...DESIGN_PATTERNS,
@@ -32,6 +35,9 @@ export const YEAR3_BANK: GoldenItem[] = [
   ...DSA_GRAPHS,
   ...DSA_DP,
   ...DSA_HEAPS,
+  ...REFACTORING,
+  ...AUTOMATED_TESTING,
+  ...API_DESIGN,
 ];
 
 export { GoldenItem };

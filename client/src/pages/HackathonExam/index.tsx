@@ -1334,7 +1334,7 @@ const HackathonExam: React.FC = () => {
                       )}
                       {vzResult.status === 'TRUNCATED' && <div className="vz-warn">{vzResult.message}</div>}
                       {vzFrames.length > 0 && (
-                        <TracePlayer frames={vzFrames} animation="array_bars" onFrame={onVzFrame} />
+                        <TracePlayer frames={vzFrames} animation="array_bars" onFrame={onVzFrame} showStepCount />
                       )}
                     </div>
                   )}

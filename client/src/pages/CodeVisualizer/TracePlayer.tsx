@@ -5,7 +5,7 @@ import { VzAnimation } from '../../api/visualizerApi';
 
 /**
  * Steps through a recorded run. Everything is computed from `frames` up front, so moving the
- * slider or pressing ◀ is instant and never touches the server.
+ * slider or pressing a step button is instant and never touches the server.
  */
 
 interface Props {
@@ -13,6 +13,8 @@ interface Props {
   animation: VzAnimation;
   timeComplexity?: string;
   onFrame: (f: Frame | null) => void;
+  /** The workspace shows the step count in its card header; embedded players show it here. */
+  showStepCount?: boolean;
 }
 
 const POINTER_NAMES = new Set(['i', 'j', 'k', 'l', 'r', 'lo', 'hi', 'low', 'high', 'mid', 'left', 'right', 'start', 'end', 'p', 'q']);
@@ -37,7 +39,24 @@ const SPEEDS = [
   { label: '4×', ms: 150 },
 ];
 
-const TracePlayer: React.FC<Props> = ({ frames, animation, timeComplexity, onFrame }) => {
+const CopyOutput: React.FC<{ text: string }> = ({ text }) => {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(text); setCopied(true); window.setTimeout(() => setCopied(false), 1400); } catch { /* clipboard refused */ }
+  };
+  return (
+    <div className="vz-console-wrap">
+      <pre className="vz-console">{text || <span className="vz-console-empty">Nothing printed yet.</span>}</pre>
+      {!!text && (
+        <button type="button" className="vz-copy on-dark" onClick={copy} aria-label="Copy output" title={copied ? 'Copied' : 'Copy'}>
+          <i className={copied ? 'fa-solid fa-check' : 'fa-regular fa-copy'} aria-hidden />
+        </button>
+      )}
+    </div>
+  );
+};
+
+const TracePlayer: React.FC<Props> = ({ frames, animation, timeComplexity, onFrame, showStepCount }) => {
   const [pos, setPos] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -61,7 +80,7 @@ const TracePlayer: React.FC<Props> = ({ frames, animation, timeComplexity, onFra
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
-      if (t?.closest('.monaco-editor') || /INPUT|TEXTAREA|SELECT/.test(t?.tagName || '')) return;
+      if (t?.closest('.monaco-editor') || /INPUT|TEXTAREA|SELECT|BUTTON/.test(t?.tagName || '')) return;
       if (e.key === 'ArrowRight') { e.preventDefault(); go(pos + 1); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); go(pos - 1); }
       else if (e.key === ' ') { e.preventDefault(); setPlaying(p => !p); }
@@ -91,31 +110,39 @@ const TracePlayer: React.FC<Props> = ({ frames, animation, timeComplexity, onFra
   const tone = kind === 'EXCEPTION' ? 'bad'
     : kind === 'CONDITION_EVALUATE' ? (f.event.result ? 'yes' : 'no')
     : kind === 'ARRAY_WRITE' ? 'write' : '';
+  const toneIcon = tone === 'bad' ? 'fa-circle-xmark' : tone === 'yes' ? 'fa-circle-check'
+    : tone === 'no' ? 'fa-circle-minus' : tone === 'write' ? 'fa-pen' : 'fa-circle-info';
 
   return (
     <div className="vz-player">
       <div className="vz-controls">
-        <button className="vz-icon-btn" onClick={() => go(0)} title="First step" aria-label="First step">⏮</button>
-        <button className="vz-icon-btn" onClick={() => go(pos - 1)} title="Previous step (←)" aria-label="Previous step">◀</button>
-        <button className="vz-btn vz-btn-primary vz-play" onClick={() => { if (pos >= last) setPos(0); setPlaying(p => !p); }}>
-          {playing ? '❚❚ Pause' : pos >= last ? '↺ Replay' : '▶ Play'}
+        <button className="vz-sq-btn" onClick={() => go(0)} title="First step" aria-label="First step"><i className="fa-solid fa-backward-step" aria-hidden /></button>
+        <button className="vz-sq-btn" onClick={() => go(pos - 1)} title="Previous step (←)" aria-label="Previous step"><i className="fa-solid fa-caret-left" aria-hidden /></button>
+        <button className="vz-play" onClick={() => { if (pos >= last) setPos(0); setPlaying(p => !p); }}>
+          <i className={`fa-solid ${playing ? 'fa-pause' : pos >= last ? 'fa-rotate-left' : 'fa-play'}`} aria-hidden />
+          {playing ? 'Pause' : pos >= last ? 'Replay' : 'Play'}
         </button>
-        <button className="vz-icon-btn" onClick={() => go(pos + 1)} title="Next step (→)" aria-label="Next step">▶</button>
-        <button className="vz-icon-btn" onClick={() => go(last)} title="Last step" aria-label="Last step">⏭</button>
-        <select className="vz-speed" value={speed} onChange={e => setSpeed(Number(e.target.value))} aria-label="Speed">
-          {SPEEDS.map((s, i) => <option key={s.label} value={i}>{s.label}</option>)}
-        </select>
-        <span className="vz-step-count">Step {pos + 1} / {frames.length}</span>
+        <button className="vz-sq-btn" onClick={() => go(pos + 1)} title="Next step (→)" aria-label="Next step"><i className="fa-solid fa-caret-right" aria-hidden /></button>
+        <button className="vz-sq-btn" onClick={() => go(last)} title="Last step" aria-label="Last step"><i className="fa-solid fa-forward-step" aria-hidden /></button>
+        {showStepCount && <span className="vz-step-count">Step {pos + 1} / {frames.length}</span>}
+        <label className="vz-speed">
+          <select value={speed} onChange={e => setSpeed(Number(e.target.value))} aria-label="Playback speed">
+            {SPEEDS.map((s, i) => <option key={s.label} value={i}>{s.label}</option>)}
+          </select>
+          <i className="fa-solid fa-chevron-down caret" aria-hidden />
+        </label>
       </div>
       <input className="vz-slider" type="range" min={0} max={last} value={pos}
+        style={{ ['--vz-progress' as any]: `${last > 0 ? (pos / last) * 100 : 100}%` }}
         onChange={e => go(Number(e.target.value))} aria-label="Timeline" />
 
       <div className={`vz-narration ${tone}`}>
+        <i className={`fa-solid ${toneIcon} vz-narr-icon`} aria-hidden />
         <span className="vz-line-chip">Line {f.line}</span>
-        <span>{f.narration}</span>
+        <span className="vz-narr-text">{f.narration}</span>
       </div>
       {kind === 'EXCEPTION' && f.event.explanation && (
-        <div className="vz-explain">💡 {f.event.explanation}</div>
+        <div className="vz-explain"><i className="fa-regular fa-lightbulb" aria-hidden /> {f.event.explanation}</div>
       )}
 
       {animation !== 'none' && arrays.map(([name, values]) => (
@@ -127,8 +154,8 @@ const TracePlayer: React.FC<Props> = ({ frames, animation, timeComplexity, onFra
       ))}
 
       <div className="vz-panels">
-        <div className="vz-panel">
-          <div className="vz-panel-title">Variables</div>
+        <div className="vz-mini">
+          <div className="vz-mini-title"><i className="fa-solid fa-database" aria-hidden /> Variables</div>
           {Object.keys(f.vars).length === 0 ? <div className="vz-muted">None yet.</div> : (
             <table className="vz-vars">
               <tbody>
@@ -141,8 +168,8 @@ const TracePlayer: React.FC<Props> = ({ frames, animation, timeComplexity, onFra
             </table>
           )}
         </div>
-        <div className="vz-panel">
-          <div className="vz-panel-title">Call stack</div>
+        <div className="vz-mini">
+          <div className="vz-mini-title"><i className="fa-solid fa-layer-group" aria-hidden /> Call Stack</div>
           {f.callStack.length === 0 ? <div className="vz-muted">Empty.</div> : (
             <div className="vz-stack">
               {[...f.callStack].reverse().map((s, i) => (
@@ -151,25 +178,25 @@ const TracePlayer: React.FC<Props> = ({ frames, animation, timeComplexity, onFra
             </div>
           )}
         </div>
-        <div className="vz-panel">
-          <div className="vz-panel-title">Work done so far</div>
+        <div className="vz-mini">
+          <div className="vz-mini-title"><i className="fa-solid fa-chart-pie" aria-hidden /> Work Done So Far</div>
           <div className="vz-ops">
             <div><b>{f.ops.comparisons}</b><span>comparisons</span></div>
             <div><b>{f.ops.writes}</b><span>array writes</span></div>
             <div><b>{f.ops.iterations}</b><span>loop passes</span></div>
           </div>
           {pred && end && (
-            <div className="vz-predict">
+            <p className="vz-predict">
               Stated <b>{timeComplexity}</b> for n = {firstLen} → about <b>{pred.label} = {pred.value}</b> steps.
               {' '}This run made <b>{end.ops.iterations}</b> loop passes and <b>{end.ops.comparisons}</b> comparisons in total.
-            </div>
+            </p>
           )}
         </div>
       </div>
 
-      <div className="vz-panel">
-        <div className="vz-panel-title">Output</div>
-        <pre className="vz-console">{f.output || <span className="vz-muted">Nothing printed yet.</span>}</pre>
+      <div className="vz-output">
+        <div className="vz-mini-title"><i className="fa-solid fa-terminal" aria-hidden /> Output</div>
+        <CopyOutput text={f.output} />
       </div>
     </div>
   );

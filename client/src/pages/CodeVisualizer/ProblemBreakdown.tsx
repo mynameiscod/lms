@@ -12,11 +12,11 @@ import { VzBreakdown } from '../../api/visualizerApi';
 type ViewKey = 'plain' | 'io' | 'walk' | 'plan' | 'edge';
 
 const VIEWS: { key: ViewKey; label: string; icon: string; hint: string }[] = [
-  { key: 'plain', label: 'Plain English', icon: '💬', hint: 'The problem, retold without jargon.' },
-  { key: 'io',    label: 'Input → Output', icon: '🔁', hint: 'What you are given and what you must produce.' },
-  { key: 'walk',  label: 'Walk an example', icon: '👣', hint: 'One example solved by hand, a step at a time.' },
-  { key: 'plan',  label: 'Plan the steps', icon: '🧭', hint: 'The approach in order — the plan, not the code.' },
-  { key: 'edge',  label: 'Edge cases', icon: '⚠️', hint: 'What a first attempt usually forgets.' },
+  { key: 'plain', label: 'Plain English', icon: 'fa-regular fa-comment', hint: 'The problem, retold without jargon.' },
+  { key: 'io',    label: 'Input → Output', icon: 'fa-solid fa-right-left', hint: 'What you are given and what you must produce.' },
+  { key: 'walk',  label: 'Walk an example', icon: 'fa-solid fa-shoe-prints', hint: 'One example solved by hand, a step at a time.' },
+  { key: 'plan',  label: 'Plan the steps', icon: 'fa-regular fa-compass', hint: 'The approach in order — the plan, not the code.' },
+  { key: 'edge',  label: 'Edge cases', icon: 'fa-solid fa-triangle-exclamation', hint: 'What a first attempt usually forgets.' },
 ];
 
 const Reveal: React.FC<{ items: string[]; numbered?: boolean }> = ({ items, numbered }) => {
@@ -31,11 +31,11 @@ const Reveal: React.FC<{ items: string[]; numbered?: boolean }> = ({ items, numb
       <div className="vz-reveal-actions">
         {shown < items.length ? (
           <>
-            <button className="vz-btn vz-btn-primary" onClick={() => setShown(s => s + 1)}>Next step →</button>
+            <button className="vz-btn vz-btn-primary" onClick={() => setShown(s => s + 1)}>Next step <i className="fa-solid fa-arrow-right" aria-hidden /></button>
             <button className="vz-btn" onClick={() => setShown(items.length)}>Show all</button>
           </>
         ) : items.length > 1 ? (
-          <button className="vz-btn" onClick={() => setShown(1)}>↺ Start over</button>
+          <button className="vz-btn" onClick={() => setShown(1)}><i className="fa-solid fa-rotate-left" aria-hidden /> Start over</button>
         ) : null}
         <span className="vz-muted">{Math.min(shown, items.length)} / {items.length}</span>
       </div>
@@ -53,7 +53,7 @@ const ProblemBreakdown: React.FC<{ breakdown: VzBreakdown }> = ({ breakdown }) =
         {VIEWS.map(v => (
           <button key={v.key} role="tab" aria-selected={view === v.key}
             className={`vz-seg-btn${view === v.key ? ' on' : ''}`} onClick={() => setView(v.key)}>
-            <span aria-hidden>{v.icon}</span> {v.label}
+            <i className={v.icon} aria-hidden /> {v.label}
           </button>
         ))}
       </div>
@@ -64,7 +64,7 @@ const ProblemBreakdown: React.FC<{ breakdown: VzBreakdown }> = ({ breakdown }) =
         {view === 'io' && (
           <div className="vz-io">
             <div className="vz-io-box"><div className="vz-io-label">You get</div><div>{breakdown.input || '—'}</div></div>
-            <div className="vz-io-arrow" aria-hidden>→</div>
+            <div className="vz-io-arrow" aria-hidden><i className="fa-solid fa-arrow-right" /></div>
             <div className="vz-io-box"><div className="vz-io-label">You return</div><div>{breakdown.output || '—'}</div></div>
           </div>
         )}

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import visualizerApi, { VzListItem, vzError } from '../../api/visualizerApi';
 import { useVzBase } from './Workspace';
 import './CodeVisualizer.css';
@@ -13,10 +13,11 @@ const DIFFS = ['beginner', 'easy', 'medium', 'hard'];
 
 const CodeVisualizerLibrary: React.FC = () => {
   const base = useVzBase();
+  const [params] = useSearchParams();
   const [items, setItems] = useState<VzListItem[]>([]);
   const [topics, setTopics] = useState<{ topic: string; count: number }[]>([]);
   const [total, setTotal] = useState(0);
-  const [topic, setTopic] = useState('');
+  const [topic, setTopic] = useState(() => params.get('topic') || '');
   const [difficulty, setDifficulty] = useState('');
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
@@ -39,7 +40,7 @@ const CodeVisualizerLibrary: React.FC = () => {
   const problems = useMemo(() => items.filter(i => i.kind === 'problem'), [items]);
 
   if (error) {
-    return <div className="vz-root"><div className="vz-empty"><h2>🔒 Code Visualizer</h2><p>{error}</p></div></div>;
+    return <div className="vz-root"><div className="vz-empty"><h2><i className="fa-solid fa-lock" aria-hidden /> Code Visualizer</h2><p>{error}</p></div></div>;
   }
 
   const card = (it: VzListItem) => (
@@ -48,12 +49,12 @@ const CodeVisualizerLibrary: React.FC = () => {
         <span className="vz-chip">{it.topic}</span>
         <span className={`vz-chip d-${it.difficulty}`}>{it.difficulty}</span>
       </div>
-      <h3>{it.kind === 'concept' ? '💡 ' : ''}{it.title}</h3>
+      <h3>{it.kind === 'concept' && <i className="fa-regular fa-lightbulb vz-bulb" aria-hidden />} {it.title}</h3>
       {it.summary && <p>{it.summary}</p>}
       {(it.timeComplexity || it.spaceComplexity) && it.kind === 'problem' && (
         <div className="vz-lib-cx">
-          {it.timeComplexity && <span>⏱ {it.timeComplexity}</span>}
-          {it.spaceComplexity && <span>🧠 {it.spaceComplexity}</span>}
+          {it.timeComplexity && <span><i className="fa-regular fa-clock" aria-hidden /> {it.timeComplexity}</span>}
+          {it.spaceComplexity && <span><i className="fa-solid fa-memory" aria-hidden /> {it.spaceComplexity}</span>}
         </div>
       )}
     </Link>
@@ -63,7 +64,7 @@ const CodeVisualizerLibrary: React.FC = () => {
     <div className="vz-root">
       <div className="vz-hero">
         <div>
-          <h1>🔬 Code Visualizer</h1>
+          <h1><i className="fa-solid fa-chart-simple" aria-hidden /> Code Visualizer</h1>
           <p>Understand the problem, write the code, then watch it run — line by line, with every variable, comparison and swap shown.</p>
         </div>
       </div>

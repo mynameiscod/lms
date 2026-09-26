@@ -122,7 +122,7 @@ interface BankProfile {
   tag: string;
 }
 
-const BANKS: Record<'foundation' | 'year2', BankProfile> = {
+const BANKS: Record<'foundation' | 'year2' | 'year3', BankProfile> = {
   foundation: {
     label: 'FOUNDATION',
     master: path.join(__dirname, '../../../docs/audit/foundation-golden-bank-master.csv'),
@@ -134,6 +134,12 @@ const BANKS: Record<'foundation' | 'year2', BankProfile> = {
     master: path.join(__dirname, '../../../docs/audit/year2-golden-bank-master.csv'),
     createdBy: 'year2-golden-bank',
     tag: 'year2',
+  },
+  year3: {
+    label: 'YEAR 3',
+    master: path.join(__dirname, '../../../docs/audit/year3-golden-bank-master.csv'),
+    createdBy: 'year3-golden-bank',
+    tag: 'year3',
   },
 };
 
@@ -279,6 +285,65 @@ const DIMENSION: Record<string, AssessmentDimension> = {
   CODE_REVIEW: 'fundamentals',
   PORTFOLIO_EVIDENCE: 'fundamentals',
   INTERNSHIP_READINESS: 'fundamentals',
+
+  // ── Year 3: all thirty-five ──────────────────────────────────────────────────────────────
+  //
+  // Same rule as the Year-2 batches, with one addition: `system_design` finally has content.
+  // It has been a valid dimension since before this bank existed and nothing has ever been
+  // mapped to it, because Years 1 and 2 teach nothing above the level of one component. Year 3
+  // is the year that changes, so the four skills about the shape of a system rather than the
+  // operation of a technology go there rather than being forced into `core_stack`.
+  //
+  // Without these thirty-five entries the importer refuses the whole Year-3 bank: `dimension`
+  // is a required enum, so an unmapped skill is a blocking problem rather than a blank field,
+  // and all 1,750 questions would be unreachable. That is the same trap Year 2 hit, recorded
+  // here so the next year's bank does not hit it a third time.
+
+  // Deciding the shape of a system, or of a contract between its parts.
+  SOFTWARE_ARCHITECTURE: 'system_design',
+  SYSTEM_DESIGN_BASICS: 'system_design',
+  API_DESIGN: 'system_design',
+  CACHING: 'system_design',
+
+  // Algorithmic, joining the DSA_* skills from both earlier years.
+  ALGORITHM_DESIGN: 'dsa',
+  DSA_DIVIDE_CONQUER: 'dsa',
+  DSA_DP: 'dsa',
+  DSA_GRAPHS: 'dsa',
+  DSA_GREEDY: 'dsa',
+  DSA_HEAPS: 'dsa',
+
+  // Technologies a student is taught to OPERATE, joining DB_FUNDAMENTALS, OPERATING_SYSTEMS,
+  // DEVOPS_FUNDAMENTALS and the rest of the practical stack.
+  AUTHENTICATION: 'core_stack',
+  AUTHORIZATION: 'core_stack',
+  CI_CD: 'core_stack',
+  CONTAINERS_DOCKER: 'core_stack',
+  DB_INDEXING: 'core_stack',
+  DEPLOYMENT: 'core_stack',
+  LINUX_ADMINISTRATION: 'core_stack',
+  MONITORING_OBSERVABILITY: 'core_stack',
+  NOSQL_CONCEPTS: 'core_stack',
+  PRODUCTION_ENGINEERING: 'core_stack',
+  QUERY_OPTIMIZATION: 'core_stack',
+  WEB_SECURITY: 'core_stack',
+
+  // Craft and judgement rather than a technology, joining CLEAN_CODE, TESTING_FUNDAMENTALS,
+  // CODE_REVIEW and the other things a student is taught to understand and to practise.
+  // The three human skills sit here for the same reason TECHNICAL_COMMUNICATION does.
+  AUTOMATED_TESTING: 'fundamentals',
+  BEHAVIORAL_INTERVIEW: 'fundamentals',
+  COMMUNICATION: 'fundamentals',
+  DEPENDENCY_MANAGEMENT: 'fundamentals',
+  DESIGN_PATTERNS: 'fundamentals',
+  ERROR_HANDLING_DESIGN: 'fundamentals',
+  LOGGING_DIAGNOSTICS: 'fundamentals',
+  ML_WORKFLOW: 'fundamentals',
+  REFACTORING: 'fundamentals',
+  SECURE_CODING: 'fundamentals',
+  TECHNICAL_DEBT: 'fundamentals',
+  TECHNICAL_WRITING: 'fundamentals',
+  THREAT_MODELING: 'fundamentals',
 };
 
 /**
@@ -366,16 +431,21 @@ interface Problem { questionId: string; reason: string }
   const tenantId = process.argv[2];
   const apply = process.argv.includes('--apply');
   const keepLegacy = process.argv.includes('--keep-legacy');
-  const bank = BANKS[process.argv.includes('--year2') ? 'year2' : 'foundation'];
+  const bank = BANKS[
+    process.argv.includes('--year3') ? 'year3'
+      : process.argv.includes('--year2') ? 'year2'
+        : 'foundation'
+  ];
   const CREATED_BY = bank.createdBy;
 
   if (!tenantId) {
-    console.error('Usage: importGoldenBank.ts <tenantId> [--apply] [--keep-legacy] [--year2]');
+    console.error('Usage: importGoldenBank.ts <tenantId> [--apply] [--keep-legacy] [--year2|--year3]');
     process.exit(1);
   }
   if (!fs.existsSync(bank.master)) {
     console.error(`Master bank not found: ${bank.master}`);
     if (bank.label === 'YEAR 2') console.error('Emit it first: npx ts-node src/scripts/emitYear2GoldenBank.ts');
+    if (bank.label === 'YEAR 3') console.error('Emit it first: npx ts-node src/scripts/emitYear3GoldenBank.ts');
     process.exit(1);
   }
 

@@ -44,6 +44,9 @@ import { ALGORITHM_DESIGN } from './algorithmDesign';
 import { SYSTEM_DESIGN_BASICS } from './systemDesignBasics';
 import { NOSQL_CONCEPTS } from './nosqlConcepts';
 import { TECHNICAL_DEBT } from './technicalDebt';
+import { LINUX_ADMINISTRATION } from './linuxAdministration';
+import { DEPENDENCY_MANAGEMENT } from './dependencyManagement';
+import { PRODUCTION_ENGINEERING } from './productionEngineering';
 
 export const YEAR3_BANK: GoldenItem[] = [
   ...DESIGN_PATTERNS,
@@ -74,6 +77,9 @@ export const YEAR3_BANK: GoldenItem[] = [
   ...SYSTEM_DESIGN_BASICS,
   ...NOSQL_CONCEPTS,
   ...TECHNICAL_DEBT,
+  ...LINUX_ADMINISTRATION,
+  ...DEPENDENCY_MANAGEMENT,
+  ...PRODUCTION_ENGINEERING,
 ];
 
 export { GoldenItem };

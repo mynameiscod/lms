@@ -263,6 +263,18 @@ export const ASSESSMENT_POLICIES: AssessmentPolicy[] = [
     skillSlots: 24, maxSkills: 8, minItemsPerSkill: 3, maxItemsPerSkill: 3,
     difficultyMix: mix(0.25, 0.5, 0.25),
     prerequisiteDepth: 1,
+    /**
+     * Three of the eight, for the same reason Year 2 reserves them — and Year 3 needs them more.
+     *
+     * Year 3 is the first stage with TWO stages behind it, and its entry population includes
+     * somebody who has done neither. The bridge treats an unmeasured skill as held, so unless
+     * the paper asks about the floor, a fresh third-year is assumed to have a Year-1 and a
+     * Year-2 they may never have sat.
+     *
+     * Still three rather than more: this paper also has to cover the breadth a chosen direction
+     * implies, and five slots is already tight for that.
+     */
+    readinessSlots: 3,
     preferFoundationalSkills: false,
     allowedSkillDifficulty: ['FOUNDATION', 'INTERMEDIATE', 'ADVANCED'],
     allowDifficultyFallback: true,

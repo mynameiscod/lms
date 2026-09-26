@@ -20,12 +20,18 @@ import { DESIGN_PATTERNS } from './designPatterns';
 import { SOFTWARE_ARCHITECTURE } from './softwareArchitecture';
 import { AUTHENTICATION } from './authentication';
 import { AUTHORIZATION } from './authorization';
+import { DSA_GRAPHS } from './dsaGraphs';
+import { DSA_DP } from './dsaDp';
+import { DSA_HEAPS } from './dsaHeaps';
 
 export const YEAR3_BANK: GoldenItem[] = [
   ...DESIGN_PATTERNS,
   ...SOFTWARE_ARCHITECTURE,
   ...AUTHENTICATION,
   ...AUTHORIZATION,
+  ...DSA_GRAPHS,
+  ...DSA_DP,
+  ...DSA_HEAPS,
 ];
 
 export { GoldenItem };

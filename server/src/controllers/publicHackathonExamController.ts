@@ -98,6 +98,7 @@ export const getExamBySlug = async (req: Request, res: Response) => {
             enabled: exam.runPolicy?.enabled,
             maxRunsPerQuestion: exam.runPolicy?.maxRunsPerQuestion,
             cooldownSeconds: exam.runPolicy?.cooldownSeconds,
+            allowVisualizer: !!exam.runPolicy?.allowVisualizer,
           },
           proctoring: {
             tabSwitch: exam.proctoring?.tabSwitch?.enabled ? exam.proctoring.tabSwitch : null,
@@ -383,6 +384,17 @@ export const runExamCode = async (req: Request, res: Response) => {
     const exam = await exams.examForAttempt(attempt);
     const { itemId, code, language } = req.body || {};
     const out = await exams.runCandidateCode(exam, attempt, String(itemId), String(code || ''), language);
+    res.json({ success: true, data: out });
+  } catch (e) { fail(res, e); }
+};
+
+/** Step-through visualization, only when the exam allows it. Spends one run. */
+export const visualizeExamCode = async (req: Request, res: Response) => {
+  try {
+    const attempt = await exams.attemptByToken(req.params.token);
+    const exam = await exams.examForAttempt(attempt);
+    const { itemId, code, language } = req.body || {};
+    const out = await exams.visualizeCandidateCode(exam, attempt, String(itemId), String(code || ''), language);
     res.json({ success: true, data: out });
   } catch (e) { fail(res, e); }
 };

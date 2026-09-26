@@ -6,6 +6,10 @@ import {
 } from '../../api/hackathonExamApi';
 import { RichText } from '../../utils/richText';
 import { useProctorRecorder } from './useProctorRecorder';
+import { buildFrames, Frame } from '../CodeVisualizer/traceModel';
+import TracePlayer from '../CodeVisualizer/TracePlayer';
+import { VzRunResult } from '../../api/visualizerApi';
+import '../CodeVisualizer/CodeVisualizer.css';
 import './hackathonExam.css';
 
 /**
@@ -159,6 +163,13 @@ const HackathonExam: React.FC = () => {
   const [answers, setAnswers] = useState<Record<string, { selectedOptionIds?: string[]; code?: string; text?: string }>>({});
   const [runs, setRuns] = useState<Record<string, RunResult | null>>({});
   const [running, setRunning] = useState(false);
+  /* Code Visualizer — only when the exam allows it. One trace per question, cleared on edit. */
+  const [viz, setViz] = useState<Record<string, VzRunResult | null>>({});
+  const [visualizing, setVisualizing] = useState(false);
+  const [vzFrame, setVzFrame] = useState<Frame | null>(null);
+  const edRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
+  const decoRef = useRef<string[]>([]);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
 
   /* timing + proctoring */
@@ -511,6 +522,21 @@ const HackathonExam: React.FC = () => {
     } finally { setRunning(false); }
   };
 
+  const visualizeCode = async (q: ExamQuestion) => {
+    setVisualizing(true); setErr(''); setVzFrame(null);
+    try {
+      const r = await api.visualize(token, q.itemId, answers[q.itemId]?.code || '', q.language);
+      setViz((p) => ({ ...p, [q.itemId]: r }));
+      /* It spent a run, so the counter under the editor has to say so. */
+      setRuns((p) => ({
+        ...p,
+        [q.itemId]: { output: '', executionTimeMs: 0, ...(p[q.itemId] || {}), runsUsed: r.runsUsed, runsLeft: r.runsLeft },
+      }));
+    } catch (e: any) {
+      setErr(e.message);
+    } finally { setVisualizing(false); }
+  };
+
   const stopRecRef = useRef<() => void>(() => {});
 
   /* Attach the camera to the on-screen preview whenever it changes. srcObject cannot be
@@ -580,6 +606,27 @@ const HackathonExam: React.FC = () => {
   const runsLeft = runs[q?.itemId || '']?.runsLeft;
   const maxRuns = overview?.exam.runPolicy?.maxRunsPerQuestion ?? 0;
   const usedRuns = runs[q?.itemId || '']?.runsUsed ?? q?.answer?.runsUsed ?? 0;
+  const canVisualize = !!overview?.exam.runPolicy?.enabled && !!overview?.exam.runPolicy?.allowVisualizer
+    && isCoding && q?.type !== 'sql' && String(q?.language || 'java').toLowerCase() === 'java';
+  const vzResult = viz[q?.itemId || ''] || null;
+  const vzFrames = useMemo(() => (vzResult?.events?.length ? buildFrames(vzResult.events) : []), [vzResult]);
+  const onVzFrame = useCallback((f: Frame | null) => setVzFrame(f), []);
+
+  /* Follow the trace in the candidate's own editor. */
+  useEffect(() => {
+    const ed = edRef.current, monaco = monacoRef.current;
+    if (!ed || !monaco) return;
+    const line = vzResult ? (vzFrame?.line || (!vzResult.ok && !vzFrames.length ? vzResult.line : 0)) : 0;
+    const isErr = vzFrame?.event.eventType === 'EXCEPTION' || (!!vzResult && !vzResult.ok && !vzFrames.length);
+    const decos = line ? [{
+      range: new monaco.Range(line, 1, line, 1),
+      options: { isWholeLine: true, className: isErr ? 'vz-err-line' : 'vz-cur-line' },
+    }] : [];
+    try {
+      decoRef.current = ed.deltaDecorations(decoRef.current, decos);
+      if (line) ed.revealLineInCenterIfOutsideViewport(line);
+    } catch { /* the editor was unmounted with the question */ }
+  }, [vzFrame, vzResult, vzFrames.length]);
 
   /* ── screens ───────────────────────────────────────────────────────────── */
 
@@ -1248,7 +1295,12 @@ const HackathonExam: React.FC = () => {
                     height="340px"
                     language={q.language === 'sql' || q.type === 'sql' ? 'sql' : (q.language || 'java')}
                     value={answers[q.itemId]?.code ?? ''}
-                    onChange={(v) => setAnswer(q, { code: v ?? '' })}
+                    onChange={(v) => {
+                      setAnswer(q, { code: v ?? '' });
+                      /* A trace belongs to the code that produced it. */
+                      if (viz[q.itemId]) { setViz((p) => ({ ...p, [q.itemId]: null })); setVzFrame(null); }
+                    }}
+                    onMount={(ed, monaco) => { edRef.current = ed; monacoRef.current = monaco; decoRef.current = []; }}
                     options={{
                       minimap: { enabled: false }, fontSize: 13.5, scrollBeyondLastLine: false,
                       automaticLayout: true,
@@ -1258,9 +1310,33 @@ const HackathonExam: React.FC = () => {
                     }}
                   />
                   {overview?.exam.runPolicy?.enabled && (
-                    <button className="hx-btn hx-run" disabled={running} onClick={() => runCode(q)}>
+                    <button className="hx-btn hx-run" disabled={running || visualizing} onClick={() => runCode(q)}>
                       {running ? 'Running…' : '▶ Run against samples'}
                     </button>
+                  )}
+                  {canVisualize && (
+                    <button className="hx-btn hx-run" style={{ marginLeft: 8 }} disabled={running || visualizing} onClick={() => visualizeCode(q)}
+                      title="Step through your program line by line. Uses one run.">
+                      {visualizing ? 'Tracing…' : '🔬 Visualize'}
+                    </button>
+                  )}
+                  {canVisualize && vzResult && (
+                    <div className="vz-root vz-embed">
+                      {!vzResult.ok && (
+                        <div className={`vz-error ${vzResult.errorType === 'RUNTIME_ERROR' || vzResult.errorType === 'COMPILE_ERROR' ? 'yours' : 'ours'}`}>
+                          <div className="vz-error-title">
+                            {vzResult.errorType === 'COMPILE_ERROR' ? 'Compile error' : vzResult.errorType === 'RUNTIME_ERROR' ? 'Your program crashed' : 'Could not visualize'}
+                            {vzResult.line ? <span className="vz-line-chip">Line {vzResult.line}</span> : null}
+                          </div>
+                          <div>{vzResult.message}</div>
+                          {vzResult.details && vzResult.errorType === 'COMPILE_ERROR' && <pre className="vz-details">{vzResult.details}</pre>}
+                        </div>
+                      )}
+                      {vzResult.status === 'TRUNCATED' && <div className="vz-warn">{vzResult.message}</div>}
+                      {vzFrames.length > 0 && (
+                        <TracePlayer frames={vzFrames} animation="array_bars" onFrame={onVzFrame} />
+                      )}
+                    </div>
                   )}
                   {!!q.sampleCases?.length && (
                     <div className="hx-cases">

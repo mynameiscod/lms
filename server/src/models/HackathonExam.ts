@@ -90,6 +90,12 @@ export interface IRunPolicy {
    * running them would hand over the answer key one test at a time.
    */
   maxSampleCases: number;
+  /**
+   * Let candidates step through their code in the Code Visualizer. OFF by default: it shows
+   * exactly what a program did, which suits a practice round and not a graded one. Each
+   * visualization spends one run from the same budget.
+   */
+  allowVisualizer: boolean;
 }
 
 /**
@@ -210,6 +216,7 @@ const HackathonExamSchema = new Schema<IHackathonExam>({
     maxRunsPerQuestion: { type: Number, default: 15, min: 0 },
     cooldownSeconds:    { type: Number, default: 5, min: 0 },
     maxSampleCases:     { type: Number, default: 2, min: 0 },
+    allowVisualizer:    { type: Boolean, default: false },
   },
 
   proctoring: {

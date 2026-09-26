@@ -213,7 +213,7 @@ const HackathonExamAdmin: React.FC = () => {
         durationMins: 60, joinCutoffMins: 15, navigation: 'free',
         sections: [{ ...emptySection('mcq'), label: 'Multiple choice', drawCount: 30 },
           { ...emptySection('code'), label: 'Coding', types: ['live_code'], drawCount: 1, marksPerItem: 20 }],
-        runPolicy: { enabled: true, maxRunsPerQuestion: 10, cooldownSeconds: 5, maxSampleCases: 2 },
+        runPolicy: { enabled: true, maxRunsPerQuestion: 10, cooldownSeconds: 5, maxSampleCases: 2, allowVisualizer: false },
         proctoring: {
           tabSwitch: { enabled: true, maxWarnings: 3, autoSubmit: true },
           fullscreen: { required: true, maxExits: 3, autoSubmit: false },
@@ -416,6 +416,11 @@ const HackathonExamAdmin: React.FC = () => {
               <label>Cooldown (seconds)<input type="number" min={0} value={form.runPolicy.cooldownSeconds} onChange={(e) => up({ runPolicy: { ...form.runPolicy, cooldownSeconds: Number(e.target.value) } })} /></label>
             </div>
             <label>Sample cases a candidate may run<input type="number" min={0} value={form.runPolicy.maxSampleCases} onChange={(e) => up({ runPolicy: { ...form.runPolicy, maxSampleCases: Number(e.target.value) } })} /></label>
+            <label className="hxa-check"><input type="checkbox" checked={!!form.runPolicy.allowVisualizer} disabled={!form.runPolicy.enabled} onChange={(e) => up({ runPolicy: { ...form.runPolicy, allowVisualizer: e.target.checked } })} /> Allow the Code Visualizer (step through code line by line)</label>
+            <p className="hxa-sub" style={{ marginTop: -4 }}>
+              Off by default. It shows candidates exactly what their program does, so it suits practice
+              rounds more than graded ones. Java only; each visualization uses one of the question's runs.
+            </p>
             <p className="hxa-warnbox">
               A Java run costs about seven seconds of a CPU core. With 800 candidates, an unlimited
               Run button is an outage rather than a slow exam — keep the cap and the cooldown.

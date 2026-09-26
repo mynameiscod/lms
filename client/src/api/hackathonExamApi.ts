@@ -1,4 +1,5 @@
 import { API_BASE_URL, authenticatedFetch } from './index';
+import type { VzRunResult } from './visualizerApi';
 
 /**
  * The hackathon exam.
@@ -84,7 +85,7 @@ export interface ExamOverview {
     joinCutoffMins: number;
     teamScoreDenominator: 'registered' | 'attempted';
     totalQuestions: number; totalMarks: number;
-    runPolicy: { enabled: boolean; maxRunsPerQuestion: number; cooldownSeconds: number; maxSampleCases: number };
+    runPolicy: { enabled: boolean; maxRunsPerQuestion: number; cooldownSeconds: number; maxSampleCases: number; allowVisualizer?: boolean };
     proctoring: any;
   };
   attempt: {
@@ -201,6 +202,12 @@ export const hackathonExamApi = {
 
   run: (token: string, itemId: string, code: string, language?: string) =>
     call<RunResult>(`${PUBLIC}/attempt/${token}/run`, {
+      method: 'POST', body: JSON.stringify({ itemId, code, language }),
+    }),
+
+  /** Step-through trace of the candidate's code. Only when the exam allows it; spends one run. */
+  visualize: (token: string, itemId: string, code: string, language?: string) =>
+    call<VzRunResult & { runsUsed: number; runsLeft: number | null }>(`${PUBLIC}/attempt/${token}/visualize`, {
       method: 'POST', body: JSON.stringify({ itemId, code, language }),
     }),
 

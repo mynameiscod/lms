@@ -270,3 +270,6 @@
   .vz-io { grid-template-columns: 1fr; }
   .vz-io-arrow { transform: rotate(90deg); justify-self: center; }
 }
+
+/* Inside another page (the exam): no page padding, sits under the editor. */
+.vz-root.vz-embed { padding: 12px; margin-top: 12px; border: 1px solid var(--vz-line); border-radius: 12px; min-height: 0; }

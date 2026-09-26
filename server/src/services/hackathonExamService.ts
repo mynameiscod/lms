@@ -11,6 +11,7 @@ import codeRunner from './codeRunnerService';
 import { ProgrammingLanguage } from '../models/Assignment';
 import { languageFor } from './assessmentItemValidationService';
 import { writeAnswer } from './attemptAnswerWriter';
+import { visualize, VisualizeResult } from './visualizer/visualizerService';
 
 /**
  * The hackathon exam, from "a team registered" to "an answer is recorded".
@@ -588,30 +589,19 @@ export interface RunOutcome {
 }
 
 /**
- * Run a candidate's code against the VISIBLE sample cases.
+ * Check the cooldown and charge one run against the question's budget, atomically.
  *
- * ── THE LIMITS ARE THE POINT ──────────────────────────────────────────────────────────────
- *
- * One Java execution costs about seven seconds of a full core (measured, see executionQueue).
- * Eight hundred candidates with an unthrottled Run button is not a slow exam, it is an outage:
- * everybody's runs cross the kill threshold at once and correct programs start reporting
- * infinite loops. The per-question cap and the cooldown are what keep that a queue.
- *
- * ── AND HIDDEN CASES ARE NEVER RUN HERE ───────────────────────────────────────────────────
- *
- * Running a hidden case reads out the answer key one test at a time. The candidate sees what
- * the author marked visible, and their score comes from the full set at grading.
+ * Shared by Run and Visualize: a visualization executes the program just as a run does (and
+ * is heavier), so it spends from the same allowance rather than opening a second, uncapped
+ * path to the execution tier.
  */
-export async function runCandidateCode(
+async function chargeRun(
   exam: IHackathonExam,
   attempt: IHackathonExamAttempt,
   itemId: string,
   code: string,
   languageOverride?: string,
-): Promise<RunOutcome> {
-  if (attempt.submittedAt) throw new ExamError('ALREADY_SUBMITTED', 'You have already submitted this exam.', 403);
-  if (!exam.runPolicy?.enabled) throw new ExamError('RUN_DISABLED', 'Running code is switched off for this exam.', 403);
-
+): Promise<{ item: any; answer: any; runsLeft: number | null }> {
   const drawn = attempt.drawnItems.find(d => String(d.itemId) === String(itemId));
   if (!drawn) throw new ExamError('NOT_IN_PAPER', 'That question is not part of your paper.', 400);
 
@@ -663,11 +653,40 @@ export async function runCandidateCode(
     throw new ExamError('RUN_LIMIT', `You have used all ${max} runs for this question. Your answer is still saved and will be graded.`, 429);
   }
 
+  const runsLeft = max > 0 ? Math.max(0, max - answer.runCount) : null;
+  return { item, answer, runsLeft };
+}
+
+/**
+ * Run a candidate's code against the VISIBLE sample cases.
+ *
+ * ── THE LIMITS ARE THE POINT ──────────────────────────────────────────────────────────────
+ *
+ * One Java execution costs about seven seconds of a full core (measured, see executionQueue).
+ * Eight hundred candidates with an unthrottled Run button is not a slow exam, it is an outage:
+ * everybody's runs cross the kill threshold at once and correct programs start reporting
+ * infinite loops. The per-question cap and the cooldown are what keep that a queue.
+ *
+ * ── AND HIDDEN CASES ARE NEVER RUN HERE ───────────────────────────────────────────────────
+ *
+ * Running a hidden case reads out the answer key one test at a time. The candidate sees what
+ * the author marked visible, and their score comes from the full set at grading.
+ */
+export async function runCandidateCode(
+  exam: IHackathonExam,
+  attempt: IHackathonExamAttempt,
+  itemId: string,
+  code: string,
+  languageOverride?: string,
+): Promise<RunOutcome> {
+  if (attempt.submittedAt) throw new ExamError('ALREADY_SUBMITTED', 'You have already submitted this exam.', 403);
+  if (!exam.runPolicy?.enabled) throw new ExamError('RUN_DISABLED', 'Running code is switched off for this exam.', 403);
+
+  const { item, answer, runsLeft } = await chargeRun(exam, attempt, itemId, code, languageOverride);
+
   const language = languageFor(item, languageOverride) as ProgrammingLanguage;
   const samples = (item.testCases || []).filter((tc: any) => tc.hidden === false)
     .slice(0, Math.max(0, exam.runPolicy.maxSampleCases));
-
-  const runsLeft = max > 0 ? Math.max(0, max - answer.runCount) : null;
 
   if (!samples.length) {
     const r = await codeRunner.execute({
@@ -697,6 +716,36 @@ export async function runCandidateCode(
     runsLeft,
     cases,
   };
+}
+
+/**
+ * Step-through visualization of a candidate's code, when the exam allows it.
+ *
+ * OFF BY DEFAULT, per exam. It shows a candidate exactly what their program did, which is
+ * a teaching aid in a practice round and an unfair advantage in a graded one — so an admin
+ * turns it on deliberately, at exam creation, or it does not exist.
+ *
+ * It spends one run from the same per-question budget, with the same cooldown, because it
+ * executes the program just as Run does. It runs against the first VISIBLE sample input, so a
+ * program that reads stdin still has something to read; hidden cases are never touched.
+ */
+export async function visualizeCandidateCode(
+  exam: IHackathonExam,
+  attempt: IHackathonExamAttempt,
+  itemId: string,
+  code: string,
+  languageOverride?: string,
+): Promise<VisualizeResult & { runsUsed: number; runsLeft: number | null }> {
+  if (attempt.submittedAt) throw new ExamError('ALREADY_SUBMITTED', 'You have already submitted this exam.', 403);
+  if (!exam.runPolicy?.enabled || !exam.runPolicy?.allowVisualizer) {
+    throw new ExamError('VISUALIZER_DISABLED', 'The code visualizer is not available in this exam.', 403);
+  }
+  const { item, answer, runsLeft } = await chargeRun(exam, attempt, itemId, code, languageOverride);
+
+  const language = String(languageFor(item, languageOverride) || '').toLowerCase();
+  const sample = (item.testCases || []).find((tc: any) => tc.hidden === false);
+  const result = await visualize({ code, language, stdin: sample?.input || '' });
+  return { ...result, runsUsed: answer.runCount, runsLeft };
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════

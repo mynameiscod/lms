@@ -27,7 +27,17 @@ export type DirectionKey =
   | 'MOBILE'
   | 'CLOUD_DEVOPS'
   | 'CYBERSECURITY'
-  | 'DATA';
+  | 'DATA'
+  /*
+   * Added for Year 3, where a direction stops being a filter on enrichment and becomes the
+   * year itself. Both were in the Year-3 specification and had no key here, so a student
+   * wanting either had to be filed under something adjacent — a full-stack engineer as
+   * 'web', a software engineer as 'backend' — and would then have been given that track.
+   *
+   * Added BEFORE any content references a direction. Afterwards it means re-tagging units.
+   */
+  | 'SOFTWARE_ENGINEERING'
+  | 'FULL_STACK';
 
 /**
  * How firmly the student holds it.
@@ -128,6 +138,34 @@ export const CAREER_DIRECTIONS: CareerDirection[] = [
     blurb: 'Find weaknesses and defend systems against attack.',
     roleKeys: ['SECURITY_ENGINEER', 'SECURITY_ANALYST'],
     displayOrder: 70,
+  },
+  /**
+   * ── THE TWO YEAR 3 NEEDED ──────────────────────────────────────────────────────────────
+   *
+   * SOFTWARE_ENGINEERING is not a narrower backend. It is the direction for somebody whose
+   * interest is how software is BUILT rather than which layer it sits in — design, quality,
+   * architecture, the workflow — and it is what a large employer usually means by the title.
+   *
+   * FULL_STACK is not 'web plus backend'. A student doing both halves separately learns two
+   * things; the direction exists for the third thing, which is the seam between them —
+   * integration, auth across the boundary, deployment of the whole.
+   *
+   * Both are ADVISORY in Years 1 and 2 exactly as every other direction is, and compulsory
+   * only where stageDirectionPolicy says a direction is the year.
+   */
+  {
+    key: 'SOFTWARE_ENGINEERING',
+    name: 'Software Engineering',
+    blurb: 'Design, quality and architecture — how software is built, not which layer it sits in.',
+    roleKeys: ['SOFTWARE_ENGINEER', 'SDE'],
+    displayOrder: 15,
+  },
+  {
+    key: 'FULL_STACK',
+    name: 'Full-Stack Engineering',
+    blurb: 'End to end: the interface, the service behind it, the data, and getting it deployed.',
+    roleKeys: ['FULLSTACK_ENGINEER'],
+    displayOrder: 25,
   },
 ];
 

@@ -29,6 +29,9 @@ import { API_DESIGN } from './apiDesign';
 import { DB_INDEXING } from './dbIndexing';
 import { QUERY_OPTIMIZATION } from './queryOptimization';
 import { CACHING } from './caching';
+import { CONTAINERS_DOCKER } from './containersDocker';
+import { CI_CD } from './ciCd';
+import { DEPLOYMENT } from './deployment';
 
 export const YEAR3_BANK: GoldenItem[] = [
   ...DESIGN_PATTERNS,
@@ -44,6 +47,9 @@ export const YEAR3_BANK: GoldenItem[] = [
   ...DB_INDEXING,
   ...QUERY_OPTIMIZATION,
   ...CACHING,
+  ...CONTAINERS_DOCKER,
+  ...CI_CD,
+  ...DEPLOYMENT,
 ];
 
 export { GoldenItem };

@@ -180,4 +180,14 @@
   z-index: 60;
   overflow-y: auto;
   background: #fff;
+  /*
+   * A FLEX COLUMN, because .cpv is built to be a flex CHILD.
+   *
+   * It sizes itself with `flex: 1 0 auto` inside #root's column. Lifting it into a plain
+   * fixed div left that declaration with no flex parent to act on, so the page collapsed to
+   * its content and the layout was still wrong — the takeover fixed where it rendered without
+   * fixing how it sized. It needs the same shape #root gives it.
+   */
+  display: flex;
+  flex-direction: column;
 }

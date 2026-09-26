@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { instrumentJava } from '../services/visualizer/javaInstrumenter';
 import { VISUALIZER_SEED } from '../services/visualizer/visualizerSeed';
 import { compileErrorLine, statsFor } from '../services/visualizer/visualizerService';
@@ -54,5 +56,17 @@ describe('compileErrorLine', () => {
   });
   it('returns undefined when there is no line', () => {
     expect(compileErrorLine('Compilation failed')).toBeUndefined();
+  });
+});
+
+describe('java-parser pin', () => {
+  /*
+   * 2.3.0+ is ESM-only and production (node:18, CommonJS) cannot require() it. The Docker
+   * build installs server/ on its own, without a lockfile entry for it, so a caret range
+   * silently resolves to an ESM release and the server crash-loops at boot. It did, once.
+   */
+  it('is pinned to an exact CommonJS release', () => {
+    const pkg = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf8'));
+    expect(pkg.dependencies['java-parser']).toBe('2.2.0');
   });
 });

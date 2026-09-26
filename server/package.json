@@ -26,7 +26,7 @@
     "express-validator": "^7.0.0",
     "helmet": "^7.0.0",
     "imapflow": "^1.0.191",
-    "java-parser": "^2.2.0",
+    "java-parser": "2.2.0",
     "jsonwebtoken": "^9.0.2",
     "mailparser": "^3.7.1",
     "mammoth": "^1.12.0",

@@ -37,8 +37,22 @@ import { StudentProfile } from '../services/curriculumComposerService';
  * Foundation has no earlier stage and is absent on purpose: a first-year who knows nothing is
  * exactly who Foundation is written for, so there is nothing to bridge from.
  */
-export const BRIDGE_SOURCE_STAGE: Readonly<Record<string, string>> = Object.freeze({
-  build: 'foundation',
+export const BRIDGE_SOURCE_STAGE: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  build: Object.freeze(['foundation']),
+  /*
+   * YEAR 3 BORROWS FROM BOTH YEARS BEHIND IT, NEAREST FIRST.
+   *
+   * A fresh third-year may have done neither Year 1 nor Year 2, and the two gaps are not the
+   * same shape: missing OOP is a Year-2 gap, missing loops is a Year-1 one. A single source
+   * could only ever serve one of them, so a third-year who could not write a loop would have
+   * been handed Year-2 objects as their remediation.
+   *
+   * Ordered nearest first because that is the order a bridge should spend its days in: bring
+   * somebody up to the year immediately before this one, and only reach further back for what
+   * that year itself stands on. The candidate pools are concatenated in this order, so when
+   * there are not enough days the nearer year wins.
+   */
+  specialize: Object.freeze(['build', 'foundation']),
 });
 
 /**
@@ -65,6 +79,32 @@ export const BRIDGE_SKILLS: Readonly<Record<string, readonly string[]>> = Object
     'GIT_FUNDAMENTALS', 'SHELL_COMMANDS', 'IDE_PROFICIENCY',
     // "Asking a Database a Question"
     'SQL_BASICS', 'DB_FUNDAMENTALS',
+  ]),
+
+  /*
+   * ── WHAT YEAR 3 ASSUMES ─────────────────────────────────────────────────────────────────
+   *
+   * Read off S01_READINESS, which is the module written to check exactly this, so the list and
+   * the teaching cannot drift apart — the same arrangement T2_BRIDGE now has for Year 2.
+   *
+   * It is deliberately NOT Year 2's fourteen plus Year 3's own. A third-year is assumed to be
+   * able to program; what Year 3 stands on is the ENGINEERING layer Year 2 teaches — objects,
+   * data structures, algorithms, databases, the web, testing, version control. The Year-1
+   * fundamentals reach a student through the ladder rather than through this list: the bridge
+   * pulls in each gap topic's predecessors, and for a Year-2 topic those run back into Year 1.
+   * Listing both years here would double-count the ones Year 2 already covers.
+   */
+  specialize: Object.freeze([
+    // Programming that has grown past a script
+    'OOP_CONCEPTS', 'CLEAN_CODE', 'DEBUGGING',
+    // The data structures and algorithms everything in Year 3 is built on
+    'DSA_ARRAYS', 'DSA_COMPLEXITY', 'DSA_RECURSION', 'DSA_HASHING',
+    // Storing and asking for data
+    'DB_DESIGN', 'SQL_JOINS',
+    // The web, which most directions sit on
+    'HTTP', 'REST_APIS',
+    // Working like an engineer rather than a student
+    'TESTING_FUNDAMENTALS', 'GIT_BRANCHING', 'PROBLEM_SOLVING',
   ]),
 });
 
@@ -116,8 +156,8 @@ export const DAYS_PER_BRIDGE_SKILL = 10;
 export const MAX_BRIDGE_SHARE = 1 / 3;
 
 export interface BridgePlan {
-  /** The stage the bridging units are taken from. */
-  sourceStage: string;
+  /** The stages the bridging units are taken from, nearest first. */
+  sourceStages: readonly string[];
   /** The unmet skills, worst first, which the bridge units must teach. */
   skills: string[];
   /** How many days of the programme the bridge may take. Never the whole thing. */
@@ -137,9 +177,9 @@ export function bridgePlanFor(
   programDays: number,
 ): BridgePlan | null {
   const stage = String(stageKey || '').toLowerCase().trim();
-  const sourceStage = BRIDGE_SOURCE_STAGE[stage];
+  const sourceStages = BRIDGE_SOURCE_STAGE[stage];
   const required = BRIDGE_SKILLS[stage];
-  if (!sourceStage || !required?.length) return null;
+  if (!sourceStages?.length || !required?.length) return null;
 
   const held = profile?.skills;
   if (!held || typeof held.get !== 'function') return null;
@@ -160,5 +200,5 @@ export function bridgePlanFor(
   const days = Math.min(gaps.length * DAYS_PER_BRIDGE_SKILL, ceiling);
   if (days < 1) return null;
 
-  return { sourceStage, skills: gaps.map(g => g.key), days };
+  return { sourceStages, skills: gaps.map(g => g.key), days };
 }

@@ -363,8 +363,31 @@ async function composeBridge(
   bridge: BridgePlan,
 ): Promise<SelectedUnit[]> {
   try {
-    const set = await loadCandidates(tenantId, source, bridge.sourceStage);
-    if (source === 'PRODUCTION') assertProductionEligible(set);
+    /*
+     * ONE POOL, DRAWN FROM EVERY YEAR BEHIND THIS ONE.
+     *
+     * Year 2 borrows from Year 1 alone. Year 3 borrows from Year 2 AND Year 1, because a fresh
+     * third-year may have done neither and the two gaps are different shapes — missing objects
+     * is a Year-2 gap, missing loops is a Year-1 one, and a single source could serve only one
+     * of them.
+     *
+     * Concatenated NEAREST FIRST, which is the order bridge days should be spent in: bring the
+     * student up to the year immediately before this one, and reach further back only for what
+     * that year itself stands on. A stage that serves nothing is skipped rather than failing the
+     * bridge, so a tenant that has Year 1 but not Year 2 still gets a usable one.
+     */
+    const sets = [];
+    for (const stage of bridge.sourceStages) {
+      const one = await loadCandidates(tenantId, source, stage);
+      if (source === 'PRODUCTION') assertProductionEligible(one);
+      if (one.units.length) sets.push(one);
+    }
+    if (!sets.length) {
+      console.warn(`[bridge] none of ${bridge.sourceStages.join(', ')} has units — no bridge`);
+      return [];
+    }
+    const set = { ...sets[0], units: sets.flatMap(x => x.units) };
+    const from = bridge.sourceStages.join(' then ');
 
     const wanted = new Set(bridge.skills);
 
@@ -380,13 +403,13 @@ async function composeBridge(
     const { topics, laddersShort } = bridgeTopicsWithinBudget(set.units, wanted, budget);
     const scoped = set.units.filter(u => topics.has(String(u.topicCode)));
     if (!scoped.length) {
-      console.warn(`[bridge] ${bridge.sourceStage} teaches none of ${[...wanted].join(', ')} — no bridge`);
+      console.warn(`[bridge] ${from} teaches none of ${[...wanted].join(', ')} — no bridge`);
       return [];
     }
     if (laddersShort) {
       console.warn(
-        `[bridge] ${[...wanted].join(', ')} needs more ${bridge.sourceStage} teaching than ${budget} units ` +
-        `can hold — this learner is being bridged as far as the cap allows, but ${bridge.sourceStage} ` +
+        `[bridge] ${[...wanted].join(', ')} needs more ${from} teaching than ${budget} units ` +
+        `can hold — this learner is being bridged as far as the cap allows, but ${bridge.sourceStages[bridge.sourceStages.length - 1]} ` +
         `is the right programme for them.`,
       );
     }
@@ -400,7 +423,7 @@ async function composeBridge(
       console.warn(`[bridge] could not compose ${bridge.days} days: ${out.code || 'no units'}`);
       return [];
     }
-    console.log(`[bridge] ${out.units.length} ${bridge.sourceStage} days for ${[...wanted].join(', ')}`);
+    console.log(`[bridge] ${out.units.length} days from ${from} for ${[...wanted].join(', ')}`);
     return out.units;
   } catch (e: any) {
     console.error('[bridge] failed, composing without one:', e?.message || e);

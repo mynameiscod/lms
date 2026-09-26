@@ -116,7 +116,7 @@ describe('a fresh second-year joiner', () => {
   it('is bridged, worst gap first', async () => {
     const { plan } = await bridgeFor();
     expect(plan).not.toBeNull();
-    expect(plan!.sourceStage).toBe('foundation');
+    expect(plan!.sourceStages).toEqual(['foundation']);
     expect(plan!.skills).toEqual(['PROBLEM_SOLVING', 'PROGRAMMING_FUNDAMENTALS', 'DSA_ARRAYS']);
     expect(plan!.days).toBe(3 * DAYS_PER_BRIDGE_SKILL);
   });

@@ -24,6 +24,30 @@ const writeDraft = (slug: string, code: string) => {
   try { localStorage.setItem(draftKey(slug), code); } catch { /* storage unavailable — draft just isn't kept */ }
 };
 
+/** The Monaco font, set both in options and in CSS so a host theme cannot swap it for a proportional one. */
+export const VZ_CODE_FONT = '"JetBrains Mono", "Cascadia Code", Consolas, "Courier New", monospace';
+
+/**
+ * Which grid the workspace can afford, measured on the page itself rather than the window: the
+ * app sidebar takes a variable share of the screen, so a viewport breakpoint guessed wrong and
+ * dropped the Visualization card below the fold on screens that had room for three columns.
+ */
+const useWorkspaceWidth = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<'wide' | 'mid' | 'narrow'>('wide');
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width;
+      setSize(w >= 1060 ? 'wide' : w >= 700 ? 'mid' : 'narrow');
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
+  return { ref, size };
+};
+
 const DIFF_LABEL: Record<string, string> = { beginner: 'Beginner', easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 
 /** A code box with a copy button. The copy falls back to selecting the text when the clipboard is refused. */
@@ -66,6 +90,7 @@ const Workspace: React.FC = () => {
   const monacoRef = useRef<any>(null);
   const decoRef = useRef<string[]>([]);
   const [frame, setFrame] = useState<Frame | null>(null);
+  const { ref: rootRef, size } = useWorkspaceWidth();
 
   useEffect(() => {
     let alive = true;
@@ -198,7 +223,7 @@ const Workspace: React.FC = () => {
   );
 
   return (
-    <div className="vz-root">
+    <div className={`vz-root vz-w-${size}`} ref={rootRef}>
       {header}
       <div className="vz-grid">
         {/* ── Problem card ── */}
@@ -296,7 +321,8 @@ const Workspace: React.FC = () => {
               onMount={(ed, monaco) => { editorRef.current = ed; monacoRef.current = monaco; }}
               theme="light"
               options={{
-                minimap: { enabled: false }, fontSize: 14, lineHeight: 23, scrollBeyondLastLine: false,
+                minimap: { enabled: false }, fontSize: 13, lineHeight: 22, scrollBeyondLastLine: false,
+                fontFamily: VZ_CODE_FONT, stickyScroll: { enabled: false },
                 automaticLayout: true, tabSize: 4, renderLineHighlight: 'none', padding: { top: 12 },
                 overviewRulerLanes: 0, lineDecorationsWidth: 14,
               }}

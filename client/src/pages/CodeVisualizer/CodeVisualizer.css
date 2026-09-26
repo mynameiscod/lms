@@ -99,7 +99,14 @@
 .vz-tag { background: var(--vz-accent-soft); color: var(--vz-accent-ink); border-radius: 999px; padding: 5px 14px; font-size: 12.5px; font-weight: 500; }
 
 /* ── Workspace: the three cards ── */
-.vz-grid { display: grid; grid-template-columns: minmax(290px, .95fr) minmax(360px, 1.2fr) minmax(380px, 1.3fr); gap: 16px; align-items: start; }
+.vz-grid { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.2fr) minmax(0, 1.3fr); gap: 16px; align-items: start; }
+/* The width class is measured on the page itself (see useWorkspaceWidth), not the window. */
+.vz-w-mid .vz-grid { grid-template-columns: minmax(0, .9fr) minmax(0, 1.3fr); }
+.vz-w-mid .vz-run-col { grid-column: 1 / -1; }
+.vz-w-narrow .vz-grid { grid-template-columns: minmax(0, 1fr); }
+.vz-w-narrow .vz-left, .vz-w-narrow .vz-editor-col { position: static; max-height: none; }
+.vz-w-narrow .vz-editor-col { height: 440px; }
+.vz-w-narrow .vz-panels, .vz-w-mid .vz-panels { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 .vz-panel-card { background: var(--vz-card); border: 1px solid var(--vz-line); border-radius: 16px; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); min-width: 0; }
 .vz-left { position: sticky; top: 12px; max-height: calc(100vh - 150px); display: flex; flex-direction: column; overflow: hidden; }
 .vz-tabs { display: flex; gap: 4px; padding: 0 12px; border-bottom: 1px solid var(--vz-line); overflow-x: auto; }
@@ -218,7 +225,7 @@
 @keyframes vz-pop { 40% { transform: scale(1.06); } }
 .vz-ptr { display: flex; flex-direction: column; align-items: center; font-size: 11.5px; font-weight: 700; color: var(--vz-accent); line-height: 1.1; min-height: 28px; font-family: ui-monospace, Menlo, Consolas, monospace; }
 
-.vz-panels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.vz-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 10px; }
 .vz-mini { background: #fff; border: 1px solid var(--vz-line); border-radius: 14px; padding: 14px; min-width: 0; }
 .vz-vars { width: 100%; border-collapse: collapse; font-size: 13px; }
 .vz-vars td { padding: 7px 2px; border-bottom: 1px solid #f0f2f8; }
@@ -338,16 +345,9 @@
 .vz-toast { position: fixed; bottom: 20px; right: 20px; background: #111827; color: #fff; padding: 10px 14px; border-radius: 10px; z-index: 2000; font-size: 13px; }
 
 /* ── Responsive ── */
-@media (max-width: 1360px) {
-  .vz-grid { grid-template-columns: minmax(280px, .9fr) minmax(360px, 1.3fr); }
-  .vz-run-col { grid-column: 1 / -1; }
-}
 @media (max-width: 900px) {
   .vz-root { padding: 14px 16px 20px; }
-  .vz-grid, .vz-admin-grid, .vz-mem { grid-template-columns: 1fr; }
-  .vz-left, .vz-editor-col { position: static; max-height: none; }
-  .vz-editor-col { height: 440px; }
-  .vz-panels { grid-template-columns: 1fr; }
+  .vz-admin-grid, .vz-mem { grid-template-columns: 1fr; }
   .vz-growth-row { grid-template-columns: 100px 1fr 80px; }
   .vz-growth-time { display: none; }
   .vz-io { grid-template-columns: 1fr; }
@@ -362,3 +362,27 @@
 /* Inside another page (the exam): no page padding, sits under the editor. */
 .vz-root.vz-embed { padding: 14px; margin-top: 12px; border: 1px solid var(--vz-line); border-radius: 14px; min-height: 0; }
 .vz-root.vz-embed .vz-panels { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+
+/* ── Host-theme guards ──────────────────────────────────────────────────────────────────
+   The admin surface (components/layout/AdminCore.css) sets Inter on every span and gives every
+   select a bordered 40px box, with !important. Monaco draws code as spans, so without this the
+   editor renders code in a proportional font and the language/speed pills grow a white box. */
+.vz-root .monaco-editor,
+.vz-root .monaco-editor .view-lines,
+.vz-root .monaco-editor .view-line span,
+.vz-root .monaco-editor .margin-view-overlays .line-numbers {
+  font-family: "JetBrains Mono", "Cascadia Code", Consolas, "Courier New", monospace !important;
+}
+.vz-root .vz-lang select,
+.vz-root .vz-lang select:focus {
+  border: 0 !important; background: transparent !important; box-shadow: none !important;
+  min-height: 0 !important; height: auto !important; padding: 0 !important; width: auto !important;
+  color: inherit !important; font-weight: 700 !important; border-radius: 0 !important;
+}
+.vz-root .vz-speed select,
+.vz-root .vz-speed select:focus {
+  min-height: 0 !important; height: 42px !important; border: 1px solid var(--vz-line) !important;
+  border-radius: 10px !important; background: #fff !important; box-shadow: none !important; font-weight: 500 !important;
+}
+.vz-root .vz-slider { min-height: 0 !important; border: 0 !important; }
+.vz-root .vz-search, .vz-root .vz-filters select { border: 1px solid var(--vz-line) !important; border-radius: 10px !important; }

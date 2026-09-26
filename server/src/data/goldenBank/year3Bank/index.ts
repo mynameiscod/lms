@@ -38,6 +38,9 @@ import { THREAT_MODELING } from './threatModeling';
 import { ERROR_HANDLING_DESIGN } from './errorHandlingDesign';
 import { LOGGING_DIAGNOSTICS } from './loggingDiagnostics';
 import { MONITORING_OBSERVABILITY } from './monitoringObservability';
+import { DSA_DIVIDE_CONQUER } from './dsaDivideConquer';
+import { DSA_GREEDY } from './dsaGreedy';
+import { ALGORITHM_DESIGN } from './algorithmDesign';
 
 export const YEAR3_BANK: GoldenItem[] = [
   ...DESIGN_PATTERNS,
@@ -62,6 +65,9 @@ export const YEAR3_BANK: GoldenItem[] = [
   ...ERROR_HANDLING_DESIGN,
   ...LOGGING_DIAGNOSTICS,
   ...MONITORING_OBSERVABILITY,
+  ...DSA_DIVIDE_CONQUER,
+  ...DSA_GREEDY,
+  ...ALGORITHM_DESIGN,
 ];
 
 export { GoldenItem };

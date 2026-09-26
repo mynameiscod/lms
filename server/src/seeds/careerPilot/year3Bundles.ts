@@ -25,6 +25,7 @@ import { ERROR_DESIGN_BUNDLES } from './year3ContentErrorDesign';
 import { COMPLEX_DEBUG_BUNDLES } from './year3ContentDebugging';
 import { ARRIVAL_BUNDLES } from './year3ContentArrival';
 import { TREES_HEAPS_BUNDLES } from './year3ContentTrees';
+import { GRAPHS_BUNDLES } from './year3ContentGraphs';
 
 export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...PATTERNS_BUNDLES,
@@ -33,4 +34,5 @@ export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...COMPLEX_DEBUG_BUNDLES,
   ...ARRIVAL_BUNDLES,
   ...TREES_HEAPS_BUNDLES,
+  ...GRAPHS_BUNDLES,
 ];

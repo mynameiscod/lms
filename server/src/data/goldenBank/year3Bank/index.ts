@@ -35,6 +35,9 @@ import { DEPLOYMENT } from './deployment';
 import { WEB_SECURITY } from './webSecurity';
 import { SECURE_CODING } from './secureCoding';
 import { THREAT_MODELING } from './threatModeling';
+import { ERROR_HANDLING_DESIGN } from './errorHandlingDesign';
+import { LOGGING_DIAGNOSTICS } from './loggingDiagnostics';
+import { MONITORING_OBSERVABILITY } from './monitoringObservability';
 
 export const YEAR3_BANK: GoldenItem[] = [
   ...DESIGN_PATTERNS,
@@ -56,6 +59,9 @@ export const YEAR3_BANK: GoldenItem[] = [
   ...WEB_SECURITY,
   ...SECURE_CODING,
   ...THREAT_MODELING,
+  ...ERROR_HANDLING_DESIGN,
+  ...LOGGING_DIAGNOSTICS,
+  ...MONITORING_OBSERVABILITY,
 ];
 
 export { GoldenItem };

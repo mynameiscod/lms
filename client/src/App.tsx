@@ -129,7 +129,6 @@ import PassportAssessmentPage from './pages/Passport/Assessment';
 import PassportAdminAssessment from './pages/Passport/AdminAssessment';
 import PassportCard from './pages/Passport/Card';
 import PassportJoin from './pages/Passport/Join';
-import PassportLogin from './pages/Passport/Login';
 import HackathonExam from './pages/HackathonExam';
 import HackathonExamAdmin from './pages/HackathonExamAdmin';
 import BattleList from './pages/Battles/PublicList';
@@ -429,7 +428,12 @@ const AppRoutes: React.FC = () => {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/careerpilot/join" element={<PassportJoin />} />
       <Route path="/passport/join" element={<LegacyRedirect to="/careerpilot/join" />} />
-      <Route path="/careerpilot/login" element={<PassportLogin />} />
+      {/*
+        * Sign-in and create-account are one screen now, so this renders the same page as
+        * /careerpilot/join — it simply opens on the other tab. The path is kept because links,
+        * bookmarks and every "Log In" button in the product already point at it.
+        */}
+      <Route path="/careerpilot/login" element={<PassportJoin />} />
       <Route path="/passport/login" element={<LegacyRedirect to="/careerpilot/login" />} />
       <Route path="/careerpilot/card/:slug" element={<PassportCard />} />
       {/* Card links live in recruiters' inboxes; this redirect can never be removed. */}

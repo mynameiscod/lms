@@ -15,7 +15,22 @@ import './careerpilotLogin.css';
 
 const REMEMBER_KEY = 'cp.login.identifier';
 
-const PassportLogin: React.FC = () => {
+/**
+ * ── ONE SIGN-IN FORM, TWO PLACES IT CAN APPEAR ───────────────────────────────────────────
+ *
+ * Signing in and creating an account were separate pages that linked to one another, so a
+ * member who guessed wrong made a round trip through a full page load to find the other. They
+ * are one screen now: Join hosts both and switches between them.
+ *
+ * `embedded` renders the FORM ONLY, because the host already provides the page and the
+ * marketing column. Everything else is shared — a second copy of a login form is a second
+ * place for the password rules, the OTP flow and the error wording to drift apart.
+ */
+const PassportLogin: React.FC<{
+  embedded?: boolean;
+  /** The host's switch back to create-account, instead of a link that reloads the page. */
+  onCreateAccount?: () => void;
+}> = ({ embedded = false, onCreateAccount }) => {
   const [params] = useSearchParams();
   const tenant = params.get('tenant') || 'codebegun';
 
@@ -137,8 +152,8 @@ const PassportLogin: React.FC = () => {
 
   const sent = msg.startsWith('We sent') || msg.startsWith('New code');
 
-  return (
-    <main className="cpl-page">
+  /* Defined once and used by both shapes, so the embedded form cannot drift from the page. */
+  const marketing = (
       <section className="cpl-marketing" aria-label="CareerPilot overview">
         <div className="cpl-brand">
           <div className="cpl-brand-mark">
@@ -194,7 +209,9 @@ const PassportLogin: React.FC = () => {
           <div><i className="bi bi-lightning-charge-fill" /><span><strong>Actionable</strong>Know your next step</span></div>
         </div>
       </section>
+  );
 
+  const form = (
       <section className="cpl-login-side">
         <div className="cpl-form-wrap">
           <div className="cpl-safe"><span><i className="bi bi-shield-check" /> Your data is safe & secure</span></div>
@@ -262,9 +279,23 @@ const PassportLogin: React.FC = () => {
             <div><b>Secure Login</b><span>Your credentials are used only to authenticate your CareerPilot account.</span></div>
           </div>
 
-          <div className="cpl-foot">New to CareerPilot? <a href={`/careerpilot/join?tenant=${tenant}`}>Create your CareerPilot account →</a></div>
+          <div className="cpl-foot">
+            New to CareerPilot?{' '}
+            {onCreateAccount
+              ? <button type="button" className="cpl-link" onClick={onCreateAccount}>Create your CareerPilot account →</button>
+              : <a href={`/careerpilot/join?tenant=${tenant}`}>Create your CareerPilot account →</a>}
+          </div>
         </div>
       </section>
+  );
+
+  /* Embedded: the host owns the page and the marketing column, so only the form travels. */
+  if (embedded) return form;
+
+  return (
+    <main className="cpl-page">
+      {marketing}
+      {form}
     </main>
   );
 };

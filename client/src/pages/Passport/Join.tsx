@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import PassportLogin from './Login';
 import { useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
 import type { OnboardingField } from '../../api/passportApi';
@@ -189,7 +190,24 @@ const PassportJoin: React.FC = () => {
   }, [step, token]);
 
   const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
-  const goLogin = () => { window.location.href = `/careerpilot/login?tenant=${tenant}`; };
+  /**
+   * ── ONE PAGE, TWO FORMS ────────────────────────────────────────────────────────────
+   *
+   * Every "Log In" control used to set window.location, so a member who landed on the
+   * wrong one paid a full page load — and the whole marketing page they were reading was
+   * torn down to show them a form. The form swaps in place now; only this card changes.
+   *
+   * The URL still carries it, so /careerpilot/login keeps working and a link to either
+   * form can still be sent to somebody.
+   */
+  const [authMode, setAuthMode] = useState<'create' | 'signin'>(
+    () => (typeof window !== 'undefined' && window.location.pathname.includes('/login') ? 'signin' : 'create'),
+  );
+  const goLogin = () => {
+    setAuthMode('signin');
+    setMenuOpen(false);
+    document.getElementById('careerpilot-signup')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
   const scrollToSignup = () => {
     setMenuOpen(false);
     document.getElementById('careerpilot-signup')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -352,6 +370,20 @@ const PassportJoin: React.FC = () => {
             </div>
 
             <section className="cpx-card cpx-signup" id="careerpilot-signup" aria-labelledby="cpx-signup-title">
+              <div className="cpx-authtabs" role="tablist" aria-label="Create an account or sign in">
+                <button role="tab" aria-selected={authMode === 'create'}
+                        className={authMode === 'create' ? 'on' : ''}
+                        onClick={() => setAuthMode('create')}>Create account</button>
+                <button role="tab" aria-selected={authMode === 'signin'}
+                        className={authMode === 'signin' ? 'on' : ''}
+                        onClick={() => setAuthMode('signin')}>Sign in</button>
+              </div>
+
+              {authMode === 'signin' ? (
+                /* The real login form, not a copy of it — see Login's `embedded`. */
+                <PassportLogin embedded onCreateAccount={() => setAuthMode('create')} />
+              ) : (
+              <>
               <h2 id="cpx-signup-title">Create Your Account</h2>
               <p className="cpx-card-sub">Start your CareerPilot in under 2 minutes.</p>
 
@@ -407,6 +439,8 @@ const PassportJoin: React.FC = () => {
                   <button className="cpx-btn cpx-btn-soft cpx-login" type="button" onClick={goLogin}>Log In to Your Account</button>
                   <div className="cpx-secure"><i className="bi bi-shield-check" /> We verify your account with a one-time WhatsApp code.</div>
                 </>
+              )}
+              </>
               )}
             </section>
             </div>

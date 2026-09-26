@@ -353,3 +353,22 @@
   .cpx-btn, .cpx-feature, .cpx-faq-caret, .cpx-faq-chev { transition: none; }
   .cpx-btn:hover:not(:disabled), .cpx-feature:hover { transform: none; }
 }
+
+/* ── Create account / Sign in, on one card ───────────────────────────────────
+   The two used to be separate pages that linked to each other, so guessing
+   wrong cost a full page load and tore down the page being read. */
+.cpx-authtabs {
+  display: flex; gap: 6px; margin: 0 0 18px;
+  padding: 4px; border-radius: 12px; background: rgba(5, 29, 100, .06);
+}
+.cpx-authtabs button {
+  flex: 1; padding: 9px 12px; border: 0; border-radius: 9px;
+  background: transparent; cursor: pointer;
+  font-size: 14px; font-weight: 700; color: #51607a;
+}
+.cpx-authtabs button:hover { color: #051D64; }
+.cpx-authtabs button.on { background: #fff; color: #051D64; box-shadow: 0 1px 3px rgba(5, 29, 100, .14); }
+
+/* The embedded login brings its own form styles; it must not also bring a page. */
+.cpx-signup .cpl-login-side { padding: 0; background: none; }
+.cpx-signup .cpl-form-wrap { width: 100%; max-width: none; padding: 0; box-shadow: none; background: none; }

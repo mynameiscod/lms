@@ -1,6 +1,15 @@
 /* CareerPilot login (/careerpilot/login) in the CodeBegun brand: the logo navy #051D64 is the main colour and the
    logo teal #359AAD is the accent. #root renders at zoom .75, so the page fills it with flex instead of 100vh. */
-.cpl-page {
+/*
+ * The brand tokens, on BOTH shapes this form appears in.
+ *
+ * They were declared only on .cpl-page. That was the only place the form existed until Join
+ * began hosting it, and an embedded form has no .cpl-page ancestor — so every colour below
+ * resolved to nothing and the card rendered in browser defaults. Declared on the form's own
+ * section as well, so it carries its palette wherever it is mounted.
+ */
+.cpl-page,
+.cpl-login-side {
   --cpl-navy: #051D64;
   --cpl-navy-2: #0B2D72;
   --cpl-navy-3: #123A8C;
@@ -9,14 +18,18 @@
   --cpl-ink: #102A4F;
   --cpl-muted: #64748B;
   --cpl-line: #DCE5F1;
+  font-family: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* Page layout — the full-page shape only. An embedded form is laid out by its host. */
+.cpl-page {
   flex: 1 0 auto;
   min-height: calc(100vh / .75);
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(500px, .9fr);
   background: #fff;
-  font-family: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
-.cpl-page * { box-sizing: border-box; }
+.cpl-page *, .cpl-login-side * { box-sizing: border-box; }
 :where(.cpl-page) button { font: inherit; }
 
 /* ── Brand side ─────────────────────────────────────────────────────────── */
@@ -154,4 +167,17 @@
   .cpl-brand-mark img { height: 32px; }
   .cpl-brand-name { font-size: 24px; }
   .cpl-row { align-items: flex-start; }
+}
+
+/* ── Verification, when the login form is embedded in another page ───────────
+   OtpVerify is a whole page: its own nav, step indicator and hero. Hosted
+   inside Join's signup card it was squeezed into a column a few words wide.
+   It lifts out and owns the screen instead, which is what a focused step
+   should do wherever it was started from. */
+.cpl-verify-takeover {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow-y: auto;
+  background: #fff;
 }

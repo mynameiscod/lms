@@ -136,19 +136,35 @@ const PassportLogin: React.FC<{
     } catch { /* countdown already guides retry */ }
   };
 
-  if (otpStep) return (
-    <OtpVerify
-      mobile={mobile}
-      busy={busy}
-      resendIn={resendIn}
-      devCode={devCode}
-      error={msg && !isOtpInfo(msg) ? msg : ''}
-      message={isOtpInfo(msg) ? msg : ''}
-      onVerify={verifyOtp}
-      onResend={resend}
-      onBack={() => { setOtpStep(false); setMsg(''); }}
-    />
-  );
+  if (otpStep) {
+    const verify = (
+      <OtpVerify
+        mobile={mobile}
+        busy={busy}
+        resendIn={resendIn}
+        devCode={devCode}
+        error={msg && !isOtpInfo(msg) ? msg : ''}
+        message={isOtpInfo(msg) ? msg : ''}
+        onVerify={verifyOtp}
+        onResend={resend}
+        onBack={() => { setOtpStep(false); setMsg(''); }}
+      />
+    );
+
+    /**
+     * ── VERIFICATION TAKES THE SCREEN, EVEN WHEN THE FORM IS EMBEDDED ──────────────────
+     *
+     * This early return fires BEFORE the `embedded` branch below, which was fine while
+     * login owned its own page and wrong the moment Join started hosting the form: a whole
+     * page — nav, step indicator, hero — was rendering inside a narrow signup card, and the
+     * copy beside it wrapped one word per line.
+     *
+     * Verification is a focused step and should own the screen wherever it was started
+     * from, so embedded it lifts out of the card rather than being squeezed into it. The
+     * host keeps its own layout untouched underneath.
+     */
+    return embedded ? <div className="cpl-verify-takeover">{verify}</div> : verify;
+  }
 
   const sent = msg.startsWith('We sent') || msg.startsWith('New code');
 

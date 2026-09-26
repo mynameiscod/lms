@@ -32,6 +32,7 @@ import { ARCHITECTURE_BUNDLES } from './year3ContentArchitecture';
 import { REVIEW_DOCS_BUNDLES } from './year3ContentReviewDocs';
 import { TESTING_BUNDLES } from './year3ContentTesting';
 import { DATA_BUNDLES } from './year3ContentData';
+import { APIS_BUNDLES } from './year3ContentApis';
 
 export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...PATTERNS_BUNDLES,
@@ -47,4 +48,5 @@ export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...REVIEW_DOCS_BUNDLES,
   ...TESTING_BUNDLES,
   ...DATA_BUNDLES,
+  ...APIS_BUNDLES,
 ];

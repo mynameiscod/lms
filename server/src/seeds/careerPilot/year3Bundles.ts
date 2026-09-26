@@ -33,6 +33,7 @@ import { REVIEW_DOCS_BUNDLES } from './year3ContentReviewDocs';
 import { TESTING_BUNDLES } from './year3ContentTesting';
 import { DATA_BUNDLES } from './year3ContentData';
 import { APIS_BUNDLES } from './year3ContentApis';
+import { OPS_BUNDLES } from './year3ContentOps';
 
 export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...PATTERNS_BUNDLES,
@@ -49,4 +50,5 @@ export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...TESTING_BUNDLES,
   ...DATA_BUNDLES,
   ...APIS_BUNDLES,
+  ...OPS_BUNDLES,
 ];

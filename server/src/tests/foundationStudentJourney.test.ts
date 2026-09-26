@@ -91,8 +91,16 @@ jest.mock('../services/foundationProfileService', () => ({
   buildFoundationProfile: (...a: any[]) => mockProfile(...a),
 }));
 const mockCompose = jest.fn();
+/**
+ * The composer is mocked; the PACKER is not.
+ *
+ * `packComposedDays` and `dayTitle` are the real ones on purpose. The preview's whole job is to
+ * be what membership will generate, and it only is that because both use the same packer — a
+ * mocked packer here would let the two drift apart again without a test noticing, which is
+ * exactly how the preview came to number units as days.
+ */
 jest.mock('../services/foundationJourneyService', () => ({
-  FOUNDATION_JOURNEY_KIND: 'FOUNDATION_UNIT_JOURNEY_V1',
+  ...jest.requireActual('../services/foundationJourneyService'),
   composeFoundationJourney: (...a: any[]) => mockCompose(...a),
   loadAssets: async () => new Map(),
   activitiesFor: (u: any) => [
@@ -322,7 +330,21 @@ describe('a journey that is still being written', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 describe('membership decides how much of the ninety a learner sees', () => {
-  const units90 = Array.from({ length: 90 }, (_, i) => ({ unitCode: `U_${i + 1}`, title: `Unit ${i + 1}` }));
+  /**
+   * Shaped like real composer output, not like the two fields this test happens to read.
+   *
+   * The preview is now PACKED into days by the same packer the stored journey uses, so that what
+   * a non-member is shown is literally what membership will generate — before, it numbered units
+   * `day: i + 1`, which stopped being true the moment a day could hold two. A fixture without
+   * `estimatedMinutes` cannot be packed at all, and the preview silently collapsed to one day.
+   */
+  const units90 = Array.from({ length: 90 }, (_, i) => ({
+    unitCode: `U_${i + 1}`,
+    title: `Unit ${i + 1}`,
+    unitType: 'CONCEPT',
+    estimatedMinutes: 50,
+    topicCode: `T_${Math.floor(i / 5)}`,
+  }));
   beforeEach(() => {
     mockCompose.mockResolvedValue({ candidates: 338, composition: { ok: true, units: units90 } });
   });

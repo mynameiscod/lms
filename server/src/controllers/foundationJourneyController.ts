@@ -40,7 +40,7 @@ import { resolveCurriculumEngine } from '../services/curriculumEngineService';
 import { foundationReadiness, notConfiguredForStudent } from '../services/foundationReadinessService';
 import { foundationAccess, FoundationAccess } from '../services/foundationAccessService';
 import { buildFoundationProfile } from '../services/foundationProfileService';
-import { composeFoundationJourney, loadAssets, activitiesFor } from '../services/foundationJourneyService';
+import { composeFoundationJourney, loadAssets, activitiesFor, packComposedDays, dayTitle } from '../services/foundationJourneyService';
 import { applyFoundationTrigger, directionChoiceFor } from '../services/foundationJourneyTriggerService';
 import { resolveModuleStatuses, itemDone } from './enrollmentPlanController';
 import { reconcileJourneyDayXp, xpForJourneyItem, journeyItemFinished, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
@@ -348,12 +348,22 @@ export const getMyJourney = async (req: Request, res: Response) => {
      */
     const tenantDays = await programDaysFor(tenantId, stageKey);
     let programDays = tenantDays;
+    /*
+     * EVERY ANSWER CARRIES THE STAGE, INCLUDING THE UNHAPPY ONES.
+     *
+     * Only the success paths sent `stageLabel`, so the client fell back to its default on every
+     * refusal — and a second-year whose roadmap failed to compose was shown "Foundation Journey"
+     * above "110 learning days". The stage is not a decoration on a good answer; it is part of
+     * telling somebody whose plan this is.
+     */
     const membershipRequired = () => res.json({
       available: false,
       reason: 'MEMBERSHIP_REQUIRED',
       access: 'LOCKED',
       message: `Take membership to see your ${programDays}-day ${stage} roadmap.`,
       totalDays: programDays,
+      stageLabel: stage,
+      title: `CareerPilot ${stage} Journey`,
       engine,
       enrollmentId: null,
     });
@@ -364,6 +374,8 @@ export const getMyJourney = async (req: Request, res: Response) => {
         reason: 'JOURNEY_NOT_CREATED',
         message: `Your ${programDays}-day roadmap could not be prepared just now. Please try again in a little while.`,
         totalDays: programDays,
+        stageLabel: stage,
+        title: `CareerPilot ${stage} Journey`,
         engine,
         enrollmentId: null,
       });
@@ -386,6 +398,8 @@ export const getMyJourney = async (req: Request, res: Response) => {
           reason: 'NOT_CONFIGURED',
           message: notConfiguredForStudent(stageKey),
           totalDays: programDays,
+          stageLabel: stage,
+          title: `CareerPilot ${stage} Journey`,
           engine,
           enrollmentId: null,
         });
@@ -402,19 +416,43 @@ export const getMyJourney = async (req: Request, res: Response) => {
            * membership will generate — and nothing is stored, so there is nothing to keep in step.
            */
           const { composition } = await composeFoundationJourney(tenantId, profile, { source: 'PRODUCTION', stageKey: stageKey || STAGE_FALLBACK, programDays });
-          if (!composition.ok || composition.units.length !== programDays) {
-            return notCreated(`preview for ${studentId}: ${composition.units.length} of ${programDays} days composed`);
+
+          /**
+           * A DAY IS NOT A UNIT, AND HAS NOT BEEN SINCE DENSITY LANDED.
+           *
+           * This asked for exactly `programDays` UNITS and numbered them `day: i + 1`. Both were
+           * right only while the composer produced one unit per day. It now produces the
+           * learner's own density times the length, so a student above seventy composed 220
+           * units for 110 days, failed the equality check, and was told their roadmap "could not
+           * be prepared just now" — the stronger the student, the more certain the failure.
+           *
+           * Too FEW units to fill the days is still a refusal, because a short plan is a broken
+           * promise. More than days is the normal, healthy case.
+           */
+          if (!composition.ok || composition.units.length < programDays) {
+            return notCreated(`preview for ${studentId}: ${composition.units.length} units for ${programDays} days`);
           }
-          const first = composition.units.slice(0, access.previewDays);
-          const assets = await loadAssets(tenantId, first.map(u => u.unitCode));
-          return res.json(await previewOf(tenantId, engine, access, first.map((u, i) => ({
-            day: i + 1,
-            unitCode: u.unitCode,
-            title: u.title,
-            items: activitiesFor(u, assets.get(u.unitCode.toUpperCase()) || EMPTY_ASSETS),
+          const packed = packComposedDays(composition, profile, programDays);
+          if (!packed.ok) {
+            return notCreated(`preview for ${studentId}: could not arrange ${programDays} days (${packed.reason})`);
+          }
+
+          /* The same packer the real journey uses, so the preview IS what membership generates. */
+          const byCode = new Map(composition.units.map(u => [u.unitCode, u]));
+          const allDays = packed.days.map((day, i) => {
+            const units = day.map(p => byCode.get(p.unitCode)!).filter(Boolean);
+            return { day: i + 1, units };
+          });
+          const firstDays = allDays.slice(0, access.previewDays);
+          const assets = await loadAssets(tenantId, firstDays.flatMap(d => d.units.map(u => u.unitCode)));
+          return res.json(await previewOf(tenantId, engine, access, firstDays.map(d => ({
+            day: d.day,
+            unitCode: d.units[0]?.unitCode,
+            title: dayTitle(d.units),
+            /* Every unit of the day, in order — a dense day shows all its work, not its first piece. */
+            items: d.units.flatMap(u => activitiesFor(u, assets.get(u.unitCode.toUpperCase()) || EMPTY_ASSETS)),
           })), programDays, stageKey, null,
-          /* The composition already holds the whole programme; the preview is a slice of it. */
-          composition.units.map((u, i) => ({ day: i + 1, unitCode: u.unitCode, title: u.title }))));
+          allDays.map(d => ({ day: d.day, unitCode: d.units[0]?.unitCode, title: dayTitle(d.units) }))));
         }
 
         if (summary.measured && access.level === 'FULL') {

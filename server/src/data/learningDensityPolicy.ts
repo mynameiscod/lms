@@ -63,8 +63,28 @@ export const DENSITIES: Record<LearningDensity['band'], LearningDensity> = {
   BUILDING: { band: 'BUILDING', unitsPerDay: 1, budgetMinutes: 100, maxUnitsPerDay: 2 },
   /* Three topics across two days, on average: the middle, where most learners sit. */
   STEADY: { band: 'STEADY', unitsPerDay: 1.5, budgetMinutes: 120, maxUnitsPerDay: 3 },
-  /* Two a day, and three where the topics are short. */
-  FAST: { band: 'FAST', unitsPerDay: 2, budgetMinutes: 140, maxUnitsPerDay: 3 },
+  /*
+   * Two a day, and three where the topics are short.
+   *
+   * ── WHY 170 AND NOT 140 ─────────────────────────────────────────────────────────────────
+   *
+   * 140 was chosen as "a bit more than STEADY" and never checked against the inventory. It is
+   * INFEASIBLE. A fast learner composes two units per day, the longest single unit in the
+   * published curriculum is 150 minutes, and any day holding that unit plus anything else
+   * exceeds 140 — so the packer pushed units forward, ran out of days, and returned CANNOT_PACK.
+   *
+   * The effect was the worst possible way round: the better a student scored, the more units
+   * they were given, the more certainly their plan failed to pack, and the message they saw was
+   * "your roadmap could not be prepared just now".
+   *
+   * Measured against the real Year-2 inventory — 220 units, 11,610 minutes, 106 minutes a day
+   * actually needed — packing fails at 140 and 150 and succeeds from 160. 170 is that floor plus
+   * headroom, so a slightly longer unit landing in the curriculum does not break it again.
+   *
+   * It is a CAP, not a target. The day a fast learner actually gets is about 106 minutes; this
+   * is only the ceiling that lets one long unit share a day with a short one.
+   */
+  FAST: { band: 'FAST', unitsPerDay: 2, budgetMinutes: 170, maxUnitsPerDay: 3 },
 };
 
 /**

@@ -437,6 +437,40 @@ async function composeBridge(
  * Separated from persistence so a plan can be previewed, audited and tested without a student
  * acquiring a journey as a side effect of somebody looking at one.
  */
+/**
+ * Turn a composed sequence into the days a student actually sees.
+ *
+ * ── WHY THIS IS SHARED ────────────────────────────────────────────────────────────────────
+ *
+ * The preview a non-member is shown is supposed to be EXACTLY what membership will generate —
+ * the controller says so in its own comment. It was not. It composed the same units and then
+ * numbered them `day: i + 1`, which was right only while exactly one unit was composed per day.
+ *
+ * Density broke that silently and in the worst direction: the stronger the student, the more
+ * units per day, so a learner scoring above seventy composed 220 units for a 110-day programme,
+ * failed a `units.length !== programDays` check written when the two were the same number, and
+ * was told their roadmap "could not be prepared just now". The better they did, the more certain
+ * the failure — which is why it looked like a membership bug rather than a composer one.
+ *
+ * One packer, used by both, so a preview cannot drift from the journey it is previewing again.
+ */
+export function packComposedDays(
+  composition: ComposerResult,
+  profile: StudentProfile,
+  programDays: number,
+  opts: { dayBudgetMinutes?: number; maxUnitsPerDay?: number } = {},
+) {
+  const density = densityFor(profile);
+  return packIntoDays(composition.units.map(u => ({
+    unitCode: u.unitCode, unitType: u.unitType, estimatedMinutes: u.estimatedMinutes, topicCode: u.topicCode,
+  })), {
+    days: programDays,
+    /* The learner's own budget: somebody moving quickly can carry a longer day. */
+    budgetMinutes: opts.dayBudgetMinutes ?? density.budgetMinutes ?? DEFAULT_DAY_BUDGET_MINUTES,
+    maxUnitsPerDay: opts.maxUnitsPerDay ?? density.maxUnitsPerDay ?? DEFAULT_MAX_UNITS_PER_DAY,
+  });
+}
+
 export async function composeFoundationJourney(
   tenantId: string,
   profile: StudentProfile,
@@ -628,19 +662,7 @@ export async function persistFoundationJourney(
     };
   }
 
-  /**
-   * The composed sequence becomes days. With one unit per composed day this is the identity, which is
-   * what keeps every Foundation journey exactly as it was.
-   */
-  const packDensity = densityFor(profile);
-  const packed = packIntoDays(composition.units.map(u => ({
-    unitCode: u.unitCode, unitType: u.unitType, estimatedMinutes: u.estimatedMinutes, topicCode: u.topicCode,
-  })), {
-    days: programDays,
-    /* The learner's own budget: somebody moving quickly can carry a longer day. */
-    budgetMinutes: opts.dayBudgetMinutes ?? packDensity.budgetMinutes ?? DEFAULT_DAY_BUDGET_MINUTES,
-    maxUnitsPerDay: opts.maxUnitsPerDay ?? packDensity.maxUnitsPerDay ?? DEFAULT_MAX_UNITS_PER_DAY,
-  });
+  const packed = packComposedDays(composition, profile, programDays, opts);
   if (!packed.ok) {
     return {
       ok: false,

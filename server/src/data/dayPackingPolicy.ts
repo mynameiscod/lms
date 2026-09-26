@@ -68,6 +68,18 @@ export const DEFAULT_DAY_BUDGET_MINUTES = 100;
 export const DEFAULT_MAX_UNITS_PER_DAY = 3;
 
 const isSolo = (u: PackableUnit) => SOLO_UNIT_TYPES.includes(String(u.unitType));
+
+/**
+ * How many units from `from` onward own a day to themselves.
+ *
+ * Walked rather than cached because the packer runs once per journey over a few hundred units,
+ * and a stale count here would be a plan that silently fails to fit.
+ */
+const soloCountFrom = (units: PackableUnit[], from: number): number => {
+  let n = 0;
+  for (let k = Math.max(0, from); k < units.length; k++) if (isSolo(units[k])) n++;
+  return n;
+};
 const minutesOf = (day: PackableUnit[]) => day.reduce((n, u) => n + (Number(u.estimatedMinutes) || 0), 0);
 
 /**
@@ -105,8 +117,26 @@ export function packIntoDays(units: PackableUnit[], opts: PackOptions): PackResu
     const remaining = units.length - i;
     if (remaining < daysLeft) return { ok: false, reason: 'CANNOT_PACK', unitsShortBy: daysLeft - remaining, days: [] };
 
-    /* Below this, the units left over cannot fit in the days left over. */
-    const mustTake = Math.max(1, remaining - (daysLeft - 1) * maxPerDay);
+    /*
+     * Below this, the units left over cannot fit in the days left over.
+     *
+     * ── SOLO UNITS MAKE THE LATER DAYS SMALLER, AND THIS HAS TO KNOW ──────────────────────
+     *
+     * This assumed every remaining day could hold `maxPerDay`. Projects and checkpoints own a
+     * day each, so a plan with thirty-seven of them has thirty-seven days that hold exactly one.
+     * Counting them as full days made `mustTake` larger than the days could really absorb; the
+     * solo rule below then cut the day short, `take` fell under that inflated floor, and the
+     * packer refused the whole plan.
+     *
+     * The effect was invisible until density raised the unit count: a strong second-year
+     * composed 294 units, 37 of them solo, and every combination of cap and budget failed —
+     * which read as "no budget is large enough" when the budget was never the problem.
+     *
+     * Counting the solo units ahead gives the real capacity of the days that remain.
+     */
+    const soloAhead = soloCountFrom(units, i + 1);
+    const laterCapacity = Math.max(0, (daysLeft - 1) * maxPerDay - soloAhead * (maxPerDay - 1));
+    const mustTake = Math.max(1, remaining - laterCapacity);
     /* Above this, a later day would be left with nothing. */
     const mayTake = Math.min(maxPerDay, remaining - (daysLeft - 1));
     if (mustTake > mayTake) return { ok: false, reason: 'CANNOT_PACK', days: [] };

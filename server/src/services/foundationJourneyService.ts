@@ -392,12 +392,15 @@ async function composeBridge(
     const wanted = new Set(bridge.skills);
 
     /*
-     * Density applies here too, and it is what makes the ladder fit. Thirty days at one topic a
-     * day reaches functions and stops; the same thirty days carrying two reach arrays, which is
-     * the skill that was actually measured as the gap.
+     * THE BUDGET IS THE PLAN'S, AND IT IS IN UNITS.
+     *
+     * The bridge decides how much TEACHING the gaps imply and how many days that takes this
+     * learner — a faster one covers the same ground in fewer days and keeps the rest for the
+     * year they paid for. Recomputing the budget from the days here would undo that: it would
+     * hand a fast learner the same days AND more units, which is how the bridge came to cost
+     * everybody thirty days regardless.
      */
-    const density = densityFor(profile);
-    const budget = unitsForDays(bridge.days, density);
+    const budget = bridge.units;
 
     /* Scoped to the budget, so the days land on the gap rather than running out before it. */
     const { topics, laddersShort } = bridgeTopicsWithinBudget(set.units, wanted, budget);
@@ -461,14 +464,48 @@ export function packComposedDays(
   opts: { dayBudgetMinutes?: number; maxUnitsPerDay?: number } = {},
 ) {
   const density = densityFor(profile);
-  return packIntoDays(composition.units.map(u => ({
+  const all = composition.units.map(u => ({
     unitCode: u.unitCode, unitType: u.unitType, estimatedMinutes: u.estimatedMinutes, topicCode: u.topicCode,
-  })), {
+  }));
+  const options = {
     days: programDays,
     /* The learner's own budget: somebody moving quickly can carry a longer day. */
     budgetMinutes: opts.dayBudgetMinutes ?? density.budgetMinutes ?? DEFAULT_DAY_BUDGET_MINUTES,
     maxUnitsPerDay: opts.maxUnitsPerDay ?? density.maxUnitsPerDay ?? DEFAULT_MAX_UNITS_PER_DAY,
-  });
+  };
+
+  const first = packIntoDays(all, options);
+  if (first.ok || all.length <= programDays) return first;
+
+  /**
+   * ── THE PROGRAMME IS THE ADMIN'S DAYS. THE CONTENT FITS ITSELF INTO THEM. ───────────────
+   *
+   * Whether a given pile of units packs into a given number of days is not a simple matter of
+   * arithmetic, because projects and checkpoints own a day each AND truncate the day in front of
+   * them. Two compositions of the same size can differ: 280 units packed into 110 days while a
+   * different 268 did not.
+   *
+   * So the number of units to compose cannot be calculated in advance, and tuning the density
+   * until it happens to fit is tuning against one student's content. Density says how much to
+   * AIM for; this trims to what the days will actually take.
+   *
+   * It matters because of what the alternative was. A failure here became "your roadmap could
+   * not be prepared just now" — and it struck the strongest students, who are composed the most
+   * units and are therefore likeliest to overflow. A learner must always get their days; what
+   * varies is how much of the curriculum fits inside them.
+   *
+   * Trimmed from the END, so what is dropped is the material furthest down a sequence already
+   * ordered by what this learner needs most.
+   */
+  let lo = programDays;
+  let hi = all.length;
+  let best = first;
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    const attempt = packIntoDays(all.slice(0, mid), options);
+    if (attempt.ok) { best = attempt; lo = mid + 1; } else { hi = mid - 1; }
+  }
+  return best;
 }
 
 export async function composeFoundationJourney(

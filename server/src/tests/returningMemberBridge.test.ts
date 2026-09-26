@@ -21,7 +21,7 @@ jest.mock('../services/skillDnaService', () => ({
 }));
 
 import { buildFoundationProfile } from '../services/foundationProfileService';
-import { bridgePlanFor, BRIDGE_READY_SCORE, DAYS_PER_BRIDGE_SKILL } from '../data/stageBridgePolicy';
+import { bridgePlanFor, BRIDGE_READY_SCORE, UNITS_PER_BRIDGE_SKILL } from '../data/stageBridgePolicy';
 
 const TENANT = '6aa8e4d702b4b0e2097b221d';
 const STUDENT = '5f9d1b2c3a4b5c6d7e8f9999';
@@ -91,7 +91,16 @@ describe('a returning Year-1 member', () => {
     const { plan } = await bridgeFor();
     expect(plan).not.toBeNull();
     expect(plan!.skills).toEqual(['SQL_BASICS']);
-    expect(plan!.days).toBe(DAYS_PER_BRIDGE_SKILL);
+    /**
+     * TEN UNITS OF TEACHING, AND THE DAYS ARE THE LEARNER'S OWN.
+     *
+     * A gap is worth ten units. How many DAYS that takes depends on density, which is the point
+     * of the change: this learner is strong enough to be STEADY, so the same ten units cost five
+     * days rather than ten, and the five days saved go to the year they actually paid for. The
+     * content does not shrink; the calendar it occupies does.
+     */
+    expect(plan!.units).toBe(UNITS_PER_BRIDGE_SKILL);
+    expect(plan!.days).toBe(UNITS_PER_BRIDGE_SKILL / 2);
   });
 });
 
@@ -118,7 +127,7 @@ describe('a fresh second-year joiner', () => {
     expect(plan).not.toBeNull();
     expect(plan!.sourceStages).toEqual(['foundation']);
     expect(plan!.skills).toEqual(['PROBLEM_SOLVING', 'PROGRAMMING_FUNDAMENTALS', 'DSA_ARRAYS']);
-    expect(plan!.days).toBe(3 * DAYS_PER_BRIDGE_SKILL);
+    expect(plan!.days).toBe(3 * UNITS_PER_BRIDGE_SKILL);
   });
 
   /**

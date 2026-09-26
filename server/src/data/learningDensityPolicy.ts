@@ -59,32 +59,48 @@ export const BUILDING_BELOW = 40;
 export const FAST_AT_OR_ABOVE = 70;
 
 export const DENSITIES: Record<LearningDensity['band'], LearningDensity> = {
-  /* One topic a day, a shorter day, and never more than two. The plan they would have had. */
-  BUILDING: { band: 'BUILDING', unitsPerDay: 1, budgetMinutes: 100, maxUnitsPerDay: 2 },
-  /* Three topics across two days, on average: the middle, where most learners sit. */
-  STEADY: { band: 'STEADY', unitsPerDay: 1.5, budgetMinutes: 120, maxUnitsPerDay: 3 },
   /*
-   * Two a day, and three where the topics are short.
+   * ── THE PROGRAMME IS THE ADMIN'S DAYS. CONTENT COMPRESSES INTO THEM. ────────────────────
    *
-   * ── WHY 170 AND NOT 140 ─────────────────────────────────────────────────────────────────
+   * These numbers are not "how fast may somebody go". The length of the programme is fixed by
+   * the admin and nobody finishes early. What changes is HOW MUCH OF THE CURRICULUM fits inside
+   * those days: a learner who already holds the basics covers three topics in a day, so the same
+   * hundred and ten days carry three times the ground.
    *
-   * 140 was chosen as "a bit more than STEADY" and never checked against the inventory. It is
-   * INFEASIBLE. A fast learner composes two units per day, the longest single unit in the
-   * published curriculum is 150 minutes, and any day holding that unit plus anything else
-   * exceeds 140 — so the packer pushed units forward, ran out of days, and returned CANNOT_PACK.
+   * Every pairing below was measured against the packer rather than chosen by eye, because the
+   * packer must produce EXACTLY the admin's number of days and fails in both directions — too
+   * little room and the work will not fit, too much and it finishes early with days left empty.
+   * At a typical unit of 56 minutes with one in ten at 150:
    *
-   * The effect was the worst possible way round: the better a student scored, the more units
-   * they were given, the more certainly their plan failed to pack, and the message they saw was
-   * "your roadmap could not be prepared just now".
+   * ── WHY THE TOP BAND IS 2.5 AND NOT 3 ──────────────────────────────────────────────────
    *
-   * Measured against the real Year-2 inventory — 220 units, 11,610 minutes, 106 minutes a day
-   * actually needed — packing fails at 140 and 150 and succeeds from 160. 170 is that floor plus
-   * headroom, so a slightly longer unit landing in the curriculum does not break it again.
+   * Three a day was asked for and the curriculum cannot carry it. Roughly one unit in eight is a
+   * PROJECT or a CHECKPOINT, and those own a day to themselves by design — a project IS the
+   * day's work, and a checkpoint measures what came before it. Thirty-seven such units in a
+   * 110-day plan means thirty-seven days that hold exactly one, and a solo unit also truncates
+   * the day in front of it.
    *
-   * It is a CAP, not a target. The day a fast learner actually gets is about 106 minutes; this
-   * is only the ceiling that lets one long unit share a day with a short one.
+   * Measured against the real Year-2 inventory rather than argued: the largest number of units
+   * that packs into 110 days is 260 at a cap of 3, and 280 at a cap of 4 — about 2.5 a day. At
+   * three a day the packer refuses at EVERY budget, which reads as "no day is long enough" when
+   * the budget was never the constraint.
+   *
+   * So 2.5 with a cap of 4: two and a half times the curriculum in the same programme, and days
+   * that may carry four short units where four short units happen to line up. Getting to three
+   * would mean authoring fewer projects or letting a project share its day, and both are
+   * decisions about teaching rather than about packing.
+   *
+   * The budget is a CAP, not a target. Authored minutes describe somebody meeting the material
+   * for the first time; a learner placed in FAST has already shown they hold much of it, so
+   * their real day is shorter than the ceiling allows for.
    */
-  FAST: { band: 'FAST', unitsPerDay: 2, budgetMinutes: 170, maxUnitsPerDay: 3 },
+
+  /* One topic a day, a shorter day, never more than two. The plan a beginner should have. */
+  BUILDING: { band: 'BUILDING', unitsPerDay: 1, budgetMinutes: 110, maxUnitsPerDay: 2 },
+  /* Two a day: twice the curriculum in the same programme, at about two hours. */
+  STEADY: { band: 'STEADY', unitsPerDay: 2, budgetMinutes: 180, maxUnitsPerDay: 3 },
+  /* Two and a half — the measured ceiling of what 110 days can actually hold. */
+  FAST: { band: 'FAST', unitsPerDay: 2.5, budgetMinutes: 240, maxUnitsPerDay: 4 },
 };
 
 /**

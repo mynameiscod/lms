@@ -9,7 +9,7 @@
 
 import {
   bridgePlanFor, BRIDGE_READY_SCORE, BRIDGE_SKILLS, BRIDGE_SOURCE_STAGE,
-  MAX_BRIDGE_SHARE, DAYS_PER_BRIDGE_SKILL,
+  MAX_BRIDGE_SHARE, UNITS_PER_BRIDGE_SKILL,
 } from '../data/stageBridgePolicy';
 
 /** A profile carrying exactly the measured skills named. Skills absent here are UNMEASURED. */
@@ -28,7 +28,7 @@ describe('who gets bridged', () => {
     expect(plan).not.toBeNull();
     expect(plan!.sourceStages).toEqual(['foundation']);
     expect(plan!.skills).toEqual(['PROBLEM_SOLVING', 'PROGRAMMING_FUNDAMENTALS', 'DSA_ARRAYS']);
-    expect(plan!.days).toBe(3 * DAYS_PER_BRIDGE_SKILL);
+    expect(plan!.days).toBe(3 * UNITS_PER_BRIDGE_SKILL);
   });
 
   it('does NOT bridge a returning Year-1 member — they start on the year they bought', () => {
@@ -45,7 +45,16 @@ describe('who gets bridged', () => {
       'build', BUILD_DAYS,
     );
     expect(plan!.skills).toEqual(['SQL_BASICS']);
-    expect(plan!.days).toBe(DAYS_PER_BRIDGE_SKILL);
+    /**
+     * TEN UNITS OF TEACHING, AND THE DAYS ARE THE LEARNER'S OWN.
+     *
+     * A gap is worth ten units. How many DAYS that takes depends on density, which is the point
+     * of the change: this learner is strong enough to be STEADY, so the same ten units cost five
+     * days rather than ten, and the five days saved go to the year they actually paid for. The
+     * content does not shrink; the calendar it occupies does.
+     */
+    expect(plan!.units).toBe(UNITS_PER_BRIDGE_SKILL);
+    expect(plan!.days).toBe(UNITS_PER_BRIDGE_SKILL / 2);
   });
 
   it('treats the ready score as a floor, not a ceiling', () => {

@@ -30,6 +30,7 @@
  */
 
 import { StudentProfile } from '../services/curriculumComposerService';
+import { densityFor, unitsForDays } from './learningDensityPolicy';
 
 /**
  * Which stage's teaching a stage borrows from when its learner is not ready for it.
@@ -118,7 +119,23 @@ export const BRIDGE_SKILLS: Readonly<Record<string, readonly string[]>> = Object
 export const BRIDGE_READY_SCORE = 50;
 
 /** How many learning days one unmet skill is worth. Roughly a week and a half of teaching. */
-export const DAYS_PER_BRIDGE_SKILL = 10;
+/**
+ * How much TEACHING one unmet skill is worth — measured in units, not in days.
+ *
+ * ── WHY THIS IS UNITS NOW ─────────────────────────────────────────────────────────────────
+ *
+ * It used to be ten DAYS per skill, which meant a bridge cost the same amount of calendar
+ * whatever the learner could absorb: three gaps took thirty days from a beginner and thirty days
+ * from somebody who could have covered the same ground in ten. Those twenty days came straight
+ * out of the year they had actually paid for.
+ *
+ * What a gap really implies is a quantity of teaching. Ten units of it. How many DAYS that takes
+ * is the learner's own density — one a day, two, or three — so a faster learner finishes the
+ * same bridge sooner and spends the days they saved on the year they bought.
+ *
+ * The content does not shrink. The calendar it occupies does.
+ */
+export const UNITS_PER_BRIDGE_SKILL = 10;
 
 /**
  * The most of a programme that may be spent bridging.
@@ -162,6 +179,13 @@ export interface BridgePlan {
   skills: string[];
   /** How many days of the programme the bridge may take. Never the whole thing. */
   days: number;
+  /**
+   * How many UNITS of teaching those days should carry.
+   *
+   * Not the same question as the days, and the reason a faster learner's bridge is shorter in
+   * calendar without being thinner in content.
+   */
+  units: number;
 }
 
 /**
@@ -196,9 +220,23 @@ export function bridgePlanFor(
 
   if (!gaps.length) return null;
 
+  /*
+   * The teaching the gaps imply, and then the calendar it takes THIS learner.
+   *
+   * Capped both ways: never more than a third of the programme in days, and never more units
+   * than those days can actually hold, so the composer is not asked for a bridge the packer
+   * would then refuse.
+   */
+  const density = densityFor(profile);
+  const wantedUnits = gaps.length * UNITS_PER_BRIDGE_SKILL;
   const ceiling = Math.floor(programDays * MAX_BRIDGE_SHARE);
-  const days = Math.min(gaps.length * DAYS_PER_BRIDGE_SKILL, ceiling);
+  const days = Math.min(Math.ceil(wantedUnits / density.unitsPerDay), ceiling);
   if (days < 1) return null;
 
-  return { sourceStages, skills: gaps.map(g => g.key), days };
+  return {
+    sourceStages,
+    skills: gaps.map(g => g.key),
+    days,
+    units: Math.min(wantedUnits, unitsForDays(days, density)),
+  };
 }

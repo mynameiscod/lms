@@ -28,6 +28,7 @@ import { TREES_HEAPS_BUNDLES } from './year3ContentTrees';
 import { GRAPHS_BUNDLES } from './year3ContentGraphs';
 import { ALGO_DESIGN_BUNDLES } from './year3ContentAlgoDesign';
 import { GREEDY_DP_BUNDLES } from './year3ContentGreedyDp';
+import { ARCHITECTURE_BUNDLES } from './year3ContentArchitecture';
 
 export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...PATTERNS_BUNDLES,
@@ -39,4 +40,5 @@ export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...GRAPHS_BUNDLES,
   ...ALGO_DESIGN_BUNDLES,
   ...GREEDY_DP_BUNDLES,
+  ...ARCHITECTURE_BUNDLES,
 ];

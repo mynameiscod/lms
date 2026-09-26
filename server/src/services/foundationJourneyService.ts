@@ -47,6 +47,7 @@ import { foundationProgramDaysFor, programDaysFor, journeyDaysOf } from './found
 import { inTeachingOrder } from '../data/contentBundlePolicy';
 import { composeUnits, ComposerResult, SelectedUnit, StudentProfile, ComposableUnit } from './curriculumComposerService';
 import { bridgePlanFor, BridgePlan } from '../data/stageBridgePolicy';
+import { revisionPlanFor, RevisionPlan } from '../data/stageRevisionPolicy';
 import { densityFor, unitsForDays } from '../data/learningDensityPolicy';
 import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } from '../data/dayPackingPolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource } from './composerCandidateService';
@@ -356,6 +357,68 @@ export function bridgeTopicsWithinBudget(
   return { topics: kept, laddersShort: used > maxUnits };
 }
 
+/**
+ * The kinds of unit a revision run is made of.
+ *
+ * Practice, debugging and the checkpoint that measures them — never CONCEPT. A learner who has
+ * already scored above the ready mark does not need the lesson again; they need to do the thing
+ * and find out whether it is still there. Doing it is also what produces the fresh evidence, so
+ * a skill that HAS faded comes back as a gap and gets taught properly rather than revised again.
+ */
+const REVISION_UNIT_TYPES = new Set(['PRACTICE', 'DEBUG', 'CHECKPOINT']);
+
+/**
+ * A short run of practice from the earlier years, for somebody who already holds the ground.
+ *
+ * Deliberately much simpler than composeBridge. The bridge has to walk a ladder in order,
+ * because teaching arrays before loops is worse than teaching neither. Revision has no ladder:
+ * these are skills the learner has PROVED, so the units can be chosen by which skill they
+ * exercise and taken in whatever order the composer's own sequencing prefers.
+ */
+async function composeRevision(
+  tenantId: string,
+  source: CandidateSource,
+  profile: StudentProfile,
+  revision: RevisionPlan,
+): Promise<SelectedUnit[]> {
+  try {
+    const sets = [];
+    for (const stage of revision.sourceStages) {
+      const one = await loadCandidates(tenantId, source, stage);
+      if (source === 'PRODUCTION') assertProductionEligible(one);
+      if (one.units.length) sets.push(one);
+    }
+    if (!sets.length) return [];
+
+    const wanted = new Set(revision.skills);
+    const scoped = sets.flatMap(x => x.units).filter(u =>
+      REVISION_UNIT_TYPES.has(String(u.unitType))
+      && (u.skillKeys || []).some(k => wanted.has(String(k))));
+
+    if (!scoped.length) {
+      /*
+       * Not a failure. A year whose earlier stages have no practice units authored for these
+       * skills simply has nothing to revise, and the student goes straight into their year —
+       * which is exactly what happened before revision existed.
+       */
+      console.log(`[revision] no practice units for ${[...wanted].join(', ')} — skipping`);
+      return [];
+    }
+
+    const out = composeUnits({ candidates: scoped, targetUnits: revision.units, student: profile });
+    if (!out.ok || !out.units.length) {
+      console.warn(`[revision] could not compose ${revision.units} units: ${out.code || 'none'}`);
+      return [];
+    }
+    console.log(`[revision] ${out.units.length} units over ${revision.days} days for ${[...wanted].join(', ')}`);
+    return out.units;
+  } catch (e: any) {
+    /* A warm-up must never cost somebody their journey. */
+    console.error('[revision] failed, composing without one:', e?.message || e);
+    return [];
+  }
+}
+
 async function composeBridge(
   tenantId: string,
   source: CandidateSource,
@@ -536,6 +599,23 @@ export async function composeFoundationJourney(
   const bridgeUnits = bridge ? await composeBridge(tenantId, source, profile, bridge) : [];
 
   /**
+   * ── AND WHEN THERE IS NOTHING TO TEACH, THERE IS STILL SOMETHING TO REMEMBER ──────────
+   *
+   * A student who finished the previous year well has no measured gaps, so the bridge above
+   * returns nothing and they land on day one of an advanced year months after they last
+   * wrote a loop or a join. Revision is the opposite of the bridge and is never given
+   * alongside it — revisionPlanFor asks the bridge itself, so the two cannot both claim the
+   * same student and spend the same days twice.
+   *
+   * It draws on the earlier year's PRACTICE rather than its lessons: you do not re-teach
+   * somebody who has proved they know it. Doing it again is also what re-measures it, so a
+   * skill that really has faded surfaces as a gap and gets taught properly next time.
+   */
+  const revision = bridgeUnits.length ? null : revisionPlanFor(profile, opts.stageKey, programDays);
+  const revisionUnits = revision ? await composeRevision(tenantId, source, profile, revision) : [];
+  const priorUnits = [...bridgeUnits, ...revisionUnits];
+
+  /**
    * The bridge days are handed to the stage composition as history — days already given — so it
    * plans the rest around them rather than teaching the same thing twice.
    *
@@ -567,10 +647,10 @@ export async function composeFoundationJourney(
      */
     targetUnits: unitsForDays(programDays, density),
     student: profile,
-    history: [...(opts.history || []), ...bridgeUnits.map(u => u.unitCode)],
+    history: [...(opts.history || []), ...priorUnits.map(u => u.unitCode)],
   });
 
-  if (!bridgeUnits.length) return { candidates: set.units.length, composition: rest };
+  if (!priorUnits.length) return { candidates: set.units.length, composition: rest };
 
   /*
    * `requestedDays` is restated as the whole programme because that is what was asked for; the
@@ -580,7 +660,7 @@ export async function composeFoundationJourney(
   const composition: ComposerResult = {
     ...rest,
     requestedDays: programDays,
-    units: [...bridgeUnits, ...rest.units],
+    units: [...priorUnits, ...rest.units],
   };
 
   return { candidates: set.units.length, composition };

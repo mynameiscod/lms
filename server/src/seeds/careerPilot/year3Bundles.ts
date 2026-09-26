@@ -27,6 +27,7 @@ import { ARRIVAL_BUNDLES } from './year3ContentArrival';
 import { TREES_HEAPS_BUNDLES } from './year3ContentTrees';
 import { GRAPHS_BUNDLES } from './year3ContentGraphs';
 import { ALGO_DESIGN_BUNDLES } from './year3ContentAlgoDesign';
+import { GREEDY_DP_BUNDLES } from './year3ContentGreedyDp';
 
 export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...PATTERNS_BUNDLES,
@@ -37,4 +38,5 @@ export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...TREES_HEAPS_BUNDLES,
   ...GRAPHS_BUNDLES,
   ...ALGO_DESIGN_BUNDLES,
+  ...GREEDY_DP_BUNDLES,
 ];

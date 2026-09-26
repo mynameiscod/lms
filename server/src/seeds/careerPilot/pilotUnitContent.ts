@@ -76,7 +76,20 @@ export interface PilotAssignmentCoding {
   starter: string;
   /** Visible cases are worked examples on the page; hidden ones check the program generalises. */
   tests: { input: string; expectedOutput: string; isHidden?: boolean }[];
-  difficulty: 'beginner' | 'easy';
+  /**
+   * Widened past 'beginner' | 'easy' for Year 3.
+   *
+   * The narrow pair was right while only Years 1 and 2 used this: nothing in either is
+   * harder than easy, and the narrower type stopped a Year-1 exercise being labelled in a
+   * way its content did not earn. Year 3's practice is meant to be the kind an interview
+   * asks about, so capping it at 'easy' would have every Year-3 exercise under-report its
+   * own difficulty to the student and to anything filtering on the field.
+   *
+   * These are the Assignment model's own DifficultyLevel values, so the widening only
+   * removes a restriction this file was adding; the model always accepted all five, and
+   * Years 1 and 2 keep type-checking unchanged because their values are still in the set.
+   */
+  difficulty: 'beginner' | 'easy' | 'medium' | 'hard' | 'expert';
   passingPoints: number;
 }
 

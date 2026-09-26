@@ -92,4 +92,26 @@ describe('every unit that needs an attribution has one', () => {
     }
     expect(unattributed).toEqual([]);
   });
+
+  /**
+   * A skill the stage set declares is a skill a paper can ask about. One that no unit is
+   * attributed to can therefore be asked and never evidenced, and the student's profile keeps a
+   * hole in it that no amount of work closes.
+   *
+   * This checks the year as a whole rather than each topic: a topic may reasonably leave one of
+   * its two skills to a different topic, and most do. What is not acceptable is a skill that
+   * nothing anywhere produces evidence for.
+   */
+  it('leaves no skill askable but unevidenced across the whole year', () => {
+    const evidenced = new Set<string>();
+    for (const [unitCode, topic] of unitTopic) {
+      const skills = topicSkills.get(topic) || [];
+      const skill = skills.length > 1 ? primarySkillFor(unitCode, topic) : skills[0];
+      if (skill) evidenced.add(skill);
+    }
+    const askableOnly = [...new Set([...topicSkills.values()].flat())]
+      .filter((k) => !evidenced.has(k))
+      .sort();
+    expect(askableOnly).toEqual([]);
+  });
 });

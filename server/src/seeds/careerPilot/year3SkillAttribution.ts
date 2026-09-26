@@ -176,6 +176,20 @@ const OVERRIDES: Record<string, string> = {
   T3_ERROR_DESIGN_LOGGING_THE_FAILURE: 'LOGGING_DIAGNOSTICS',
   T3_COMPLEX_DEBUG_READING_A_STACK_TRACE: 'LOGGING_DIAGNOSTICS',
 
+  /* Two skills the stage set can ask about but that nothing else in Year 3 evidences.
+   *
+   * A skill in the stage set is askable: a paper can draw questions for it. If no unit is
+   * attributed to it, the student can be asked and can never answer with evidence, so the
+   * profile has a permanent hole where a measured skill should be. These two were the only
+   * such holes in the year, and both had an obvious home:
+   *
+   *   DSA_HASHING          the trade-offs unit is the one that actually compares hash maps
+   *   TESTING_FUNDAMENTALS the levels of testing are the fundamentals, by any reading
+   *
+   * `__orphanGlobal` found them; the test now keeps them found. */
+  T3_CHOOSING_STRUCTURES_TRADE_OFFS: 'DSA_HASHING',
+  T3_TEST_DESIGN_CHOOSING_THE_LEVEL: 'TESTING_FUNDAMENTALS',
+
   /* Algorithms: the two DP units inside a topic that opens on greedy. */
   T3_GREEDY_DP_OVERLAPPING_SUBPROBLEMS: 'DSA_DP',
   T3_GREEDY_DP_RECURRENCE_THEN_TABLE: 'DSA_DP',

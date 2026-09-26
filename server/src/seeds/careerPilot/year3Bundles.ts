@@ -21,8 +21,10 @@
 import { PilotBundle } from './pilotUnitContent';
 import { PATTERNS_BUNDLES } from './year3ContentPatterns';
 import { OOP_ADVANCED_BUNDLES } from './year3ContentOop';
+import { ERROR_DESIGN_BUNDLES } from './year3ContentErrorDesign';
 
 export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...PATTERNS_BUNDLES,
   ...OOP_ADVANCED_BUNDLES,
+  ...ERROR_DESIGN_BUNDLES,
 ];

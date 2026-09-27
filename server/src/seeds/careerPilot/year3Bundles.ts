@@ -50,6 +50,7 @@ import { SEC_REST_BUNDLES } from './year3ContentSecRest';
 import { MOBILE_BUNDLES } from './year3ContentMobile';
 import { MOBILE_REST_BUNDLES } from './year3ContentMobileRest';
 import { SWE_BUNDLES } from './year3ContentSwe';
+import { SWE_REST_BUNDLES } from './year3ContentSweRest';
 
 export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...PATTERNS_BUNDLES,
@@ -83,4 +84,5 @@ export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...MOBILE_BUNDLES,
   ...MOBILE_REST_BUNDLES,
   ...SWE_BUNDLES,
+  ...SWE_REST_BUNDLES,
 ];

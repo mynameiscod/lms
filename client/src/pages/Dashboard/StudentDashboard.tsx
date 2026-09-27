@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import GamePanel from '../../components/dashboard/GamePanel';
+import PracticeTodayCard from '../../components/practice/PracticeTodayCard';
 import XpLeaderboard from '../../components/dashboard/XpLeaderboard';
 import './StudentDashboard.css';
 import { thinkingLabApi, DIFF_COLORS } from '../../api/thinkingLabApi';
@@ -62,6 +63,9 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
         <h1>Welcome back, {firstName}! 👋</h1>
         <p>Let's continue your learning journey. Stay consistent and achieve your goals.</p>
       </div>
+
+      {/* Daily Practice Pass — today's required tasks and placement standing, above everything else */}
+      <PracticeTodayCard />
 
       {/* Stat cards */}
       <div className="sd2-stats">

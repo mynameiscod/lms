@@ -14,6 +14,7 @@ import { EmailService } from '../services/emailService';
 import * as settings from '../services/settingsService';
 import * as placementStatus from '../services/placementStatusService';
 import { enrichCompanyContacts } from '../services/contactEnrichmentService';
+import { placementHoldReason } from '../services/practicePassService';
 
 const oid = (s: string) => new mongoose.Types.ObjectId(s);
 const tId = (req: AuthenticatedRequest) => req.user!.tenantId as string;
@@ -282,6 +283,8 @@ export const addCandidate = async (req: AuthenticatedRequest, res: Response) => 
     if (!partner) return res.status(404).json({ success: false, message: 'Not found' });
     if (partner.candidates.some(c => String(c.studentId) === String(studentId)))
       return res.json({ success: true, message: 'Already added', data: partner });
+    const hold = await placementHoldReason(studentId);
+    if (hold) return res.status(403).json({ success: false, message: hold });
     const u: any = await User.findOne({ _id: studentId, tenantId: oid(tId(req)) }).select('firstName lastName').lean();
     partner.candidates.push({ studentId: oid(studentId), studentName: u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : '', addedAt: new Date(), addedBy: oid(uId(req)) });
     await partner.save();

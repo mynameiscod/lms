@@ -131,7 +131,10 @@ export const setApplicantStatus = async (req: AuthenticatedRequest, res: Respons
     }
 
     res.json({ success: true, message: 'Status updated' });
-  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+  } catch (e: any) {
+    if (e?.statusCode === 403) return res.status(403).json({ success: false, message: e.message });
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 };
 
 export const addRound = async (req: AuthenticatedRequest, res: Response) => {

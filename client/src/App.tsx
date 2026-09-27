@@ -82,6 +82,8 @@ const ProblemStudio = lazy(() => import('./pages/ProblemBank/Studio'));
 const ProblemSets = lazy(() => import('./pages/ProblemBank/Sets'));
 const ProblemSetEditor = lazy(() => import('./pages/ProblemBank/SetEditor'));
 const ProblemBankApi = lazy(() => import('./pages/ProblemBank/ApiAccess'));
+const PracticePassAdmin = lazy(() => import('./pages/PracticePass'));
+const MyPractice = lazy(() => import('./pages/PracticePass/MyPractice'));
 const CodingMySets = lazy(() => import('./pages/CodingPractice').then((m) => ({ default: m.MySets })));
 const CodingSetView = lazy(() => import('./pages/CodingPractice').then((m) => ({ default: m.SetView })));
 const CodingSolve = lazy(() => import('./pages/CodingPractice/Solve'));
@@ -734,6 +736,26 @@ const AppRoutes: React.FC = () => {
         }
       />
 
+      <Route
+        path="/practice-pass"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <PracticePassAdmin />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-practice"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT']}>
+            <Layout>
+              <MyPractice />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/problem-bank/api"
         element={

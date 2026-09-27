@@ -72,6 +72,12 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     help: 'Sent when an admin publishes results.',
   },
   {
+    key: 'PRACTICE_REMINDER', label: 'Daily practice — evening reminder', module: 'Practice Pass',
+    settingsKey: 'WHATSAPP_TEMPLATE_PRACTICE_REMINDER',
+    variables: ['Student first name', 'Tasks still left today (e.g. "Communication Lab, Coding problem")'],
+    help: 'Sent at 7 PM IST to students who have not finished today’s practice tasks. Only sent when a template is assigned here. Keep it UTILITY: a missed-practice reminder is transactional.',
+  },
+  {
     key: 'LEAD_WELCOME', label: 'CRM — new lead welcome', module: 'CRM / Leads',
     settingsKey: 'WHATSAPP_TEMPLATE_LEAD_WELCOME',
     variables: ['Lead first name'],

@@ -4,6 +4,7 @@ import User from '../models/User';
 import mongoose from 'mongoose';
 import { eventBus } from '../utils/eventBus';
 import * as placementStatus from '../services/placementStatusService';
+import { placementHoldReason } from '../services/practicePassService';
 
 export const listDrives = (tenantId: string, status?: string) => {
   const query: Record<string, any> = { tenantId, isActive: true };
@@ -47,6 +48,10 @@ export const deleteDrive = (id: string, tenantId: string) =>
 export const applyToDrive = async (id: string, tenantId: string, userId: string) => {
   const drive = await PlacementDrive.findOne({ _id: id, tenantId, status: { $in: ['upcoming', 'ongoing'] } });
   if (!drive) return null;
+
+  // Daily Practice Pass: a student on placement hold cannot apply until they recover.
+  const hold = await placementHoldReason(userId);
+  if (hold) throw Object.assign(new Error(hold), { statusCode: 403 });
 
   // CGPA eligibility check
   if (drive.eligibility?.minCgpa != null) {
@@ -138,6 +143,12 @@ export const updateApplicantStatus = async (
   userId: string,
   status: 'applied' | 'shortlisted' | 'selected' | 'rejected' | 'placed'
 ) => {
+  // Shortlisting is placement support, which a held student has lost. Recording an actual
+  // outcome (selected / placed / rejected) stays allowed — that is a fact, not support.
+  if (status === 'shortlisted') {
+    const hold = await placementHoldReason(userId);
+    if (hold) throw Object.assign(new Error(hold), { statusCode: 403 });
+  }
   const drive = await PlacementDrive.findOneAndUpdate(
     { _id: id, tenantId },
     { $set: { [`applicantStatuses.${userId}`]: status } },
@@ -219,6 +230,10 @@ export const bulkUpdateApplicantStatuses = async (
   for (const row of valid) {
     const uid = row.email ? emailToId[row.email] : row.rollNumber ? rollToId[row.rollNumber] : undefined;
     if (!uid) { errors.push(`Not found: ${row.email || row.rollNumber}`); continue; }
+    if (row.status === 'shortlisted' && await placementHoldReason(uid)) {
+      errors.push(`On placement hold (practice attendance below threshold): ${row.email || row.rollNumber}`);
+      continue;
+    }
     setFields[`applicantStatuses.${uid}`] = row.status;
   }
 

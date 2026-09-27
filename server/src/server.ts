@@ -23,6 +23,7 @@ import { startDueReminderScheduler } from './jobs/dueReminderCron';
 import { startAssessmentMissedSweep } from './jobs/assessmentMissedSweepCron';
 import { startRecordingAlertScheduler } from './jobs/recordingAlertCron';
 import { startSpeakingReminderScheduler } from './jobs/speakingReminderCron';
+import { startPracticePassScheduler } from './jobs/practicePassCron';
 import { startInterviewReminderScheduler } from './jobs/interviewReminderCron';
 import { startLiveClassReminderScheduler } from './jobs/liveClassReminderCron';
 import { startBattleReminderScheduler } from './jobs/battleReminderCron';
@@ -336,6 +337,7 @@ const startServer = async () => {
 
     // Start speaking-practice reminder scheduler (in-app, daily)
     startSpeakingReminderScheduler();
+    startPracticePassScheduler(); // Daily Practice Pass: hourly standings + 7 PM reminders
 
     // Start AI-interview start-reminder scheduler (in-app, 30m lead, every 5 min)
     startInterviewReminderScheduler();

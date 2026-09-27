@@ -52,6 +52,7 @@ import { MOBILE_REST_BUNDLES } from './year3ContentMobileRest';
 import { SWE_BUNDLES } from './year3ContentSwe';
 import { SWE_REST_BUNDLES } from './year3ContentSweRest';
 import { FULLSTACK_BUNDLES } from './year3ContentFullStack';
+import { FULLSTACK_REST_BUNDLES } from './year3ContentFullStackRest';
 
 export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...PATTERNS_BUNDLES,
@@ -87,4 +88,5 @@ export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...SWE_BUNDLES,
   ...SWE_REST_BUNDLES,
   ...FULLSTACK_BUNDLES,
+  ...FULLSTACK_REST_BUNDLES,
 ];

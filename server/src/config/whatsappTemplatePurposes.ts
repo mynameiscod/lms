@@ -84,6 +84,12 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     help: 'Sent when an admin sends the weekly report with WhatsApp ticked (Weekly Reports page). The full report still goes by email; WhatsApp carries the headline numbers. Keep it UTILITY.',
   },
   {
+    key: 'INTERVIEW_EXPERIENCE_INVITE', label: 'Interview experience — invite', module: 'Interview Hub',
+    settingsKey: 'WHATSAPP_TEMPLATE_INTERVIEW_EXPERIENCE_INVITE',
+    variables: ['Student first name', 'Company name', 'Link to share the experience'],
+    help: 'Sent when an admin invites students to share what they were asked in an interview (Admin → Interview Experiences → Invite). Email is always free; WhatsApp only goes out when a template is assigned here. Keep it UTILITY.',
+  },
+  {
     key: 'LEAD_WELCOME', label: 'CRM — new lead welcome', module: 'CRM / Leads',
     settingsKey: 'WHATSAPP_TEMPLATE_LEAD_WELCOME',
     variables: ['Lead first name'],

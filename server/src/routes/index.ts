@@ -111,6 +111,7 @@ import problemBankRoutes from './problemBankRoutes';
 import codingPracticeRoutes from './codingPracticeRoutes';
 import externalApiRoutes from './externalApiRoutes';
 import practicePassRoutes from './practicePassRoutes';
+import interviewHubRoutes from './interviewHubRoutes';
 import concernRoutes from './concernRoutes';
 import paymentRoutes from './paymentRoutes';
 import { webhook as paymentWebhook, paymentReturn } from '../controllers/paymentController';
@@ -220,6 +221,7 @@ router.use('/whatsapp-templates', whatsAppTemplateRoutes); // author Meta templa
 router.use('/problem-bank', problemBankRoutes); // single store of runnable coding problems
 router.use('/coding-practice', codingPracticeRoutes); // learners solving problem sets from the bank
 router.use('/practice-pass', practicePassRoutes); // daily practice attendance + placement hold
+router.use('/interview-hub', interviewHubRoutes); // real interview experiences, global pool + invites
 router.use('/sales-call-recordings', salesCallRecordingRoutes);
 router.use('/google-leads', googleAdsRoutes);
 router.use('/ai-calls', aiCallRoutes);

@@ -204,6 +204,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Opportunities', 'building', '/careerpilot/companies')}
           {navBtn('Resume', 'resume', '/careerpilot/resume')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview')}
+          {navBtn('Interview Experiences', 'interview', '/careerpilot/interview-experiences')}
           {navBtn('AI Mentor', 'robot', '/careerpilot/mentor')}
           {navBtn('Practice', 'code', '/careerpilot/practice')}
           {navBtn('Coding Sets', 'code', '/careerpilot/coding')}

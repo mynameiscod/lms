@@ -340,14 +340,63 @@ export interface IInterviewExperience extends Document {
   rating?: number;
   review?: string;
 
-  status: 'pending' | 'published' | 'rejected';
+  status: 'draft' | 'pending' | 'published' | 'rejected';
   reviewNote?: string;
+
+  // ── Interview Hub (v2) — what was actually asked, round by round ──
+  /** As the candidate typed it; the slug groups the same employer across institutes. */
+  companyName?: string;
+  rounds: IExperienceRound[];
+  /** Advice for the next person. The single most-read field. */
+  tips?: string;
+  /** Where most people were cut, in the candidate's words. */
+  eliminationSummary?: string;
+  /** How it was captured. */
+  captureMode?: 'text' | 'audio' | 'video';
+  media?: {
+    key?: string; contentType?: string; durationSec?: number; transcript?: string;
+    /** Candidate consent to let other students watch or listen. Without it only the text shows. */
+    shareRecording?: boolean;
+  };
+  aiStructured?: boolean;
+  /** Hide the candidate's name everywhere a student sees it. */
+  anonymous?: boolean;
+  /** Visible to students of other institutes (always without the candidate's name). */
+  shareGlobal?: boolean;
+  product?: 'lms' | 'careerpilot';
+  inviteId?: mongoose.Types.ObjectId;
+  /** Bank questions created from this report, so a second promote does not duplicate them. */
+  promotedQuestionIds?: string[];
+  publishedAt?: Date;
   createdAt: Date;
 }
 
+export interface IExperienceRound {
+  key: string;
+  name: string;
+  mode?: string;
+  durationMins?: number;
+  questions: { text: string; category?: string; answerHint?: string }[];
+  /** Did the candidate clear this round? */
+  cleared?: boolean;
+  notes?: string;
+}
+
+const ExperienceRoundSchema = new Schema<IExperienceRound>({
+  key:   { type: String, default: 'technical' },
+  name:  { type: String, default: '' },
+  mode:  { type: String, default: '' },
+  durationMins: Number,
+  questions: [{ text: { type: String, required: true }, category: { type: String, default: '' }, answerHint: { type: String, default: '' }, _id: false }],
+  cleared: Boolean,
+  notes: { type: String, default: '' },
+}, { _id: false });
+
 const ExperienceSchema = new Schema<IInterviewExperience>({
   tenantId:    { type: String, required: true, index: true },
-  companyId:   { type: Schema.Types.ObjectId, ref: 'Company', required: true, index: true },
+  // Optional since the Interview Hub: a candidate may report an employer the institute has
+  // not set up as a Company yet. The slug is what groups reports.
+  companyId:   { type: Schema.Types.ObjectId, ref: 'Company', index: true },
   companySlug: { type: String, required: true },
   studentId:   { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   role:          { type: String, default: '' },
@@ -358,11 +407,31 @@ const ExperienceSchema = new Schema<IInterviewExperience>({
   difficultyFelt:{ type: String, enum: ['easy', 'medium', 'hard'] },
   rating:        { type: Number, min: 1, max: 5 },
   review:        { type: String, default: '' },
-  status:        { type: String, enum: ['pending', 'published', 'rejected'], default: 'pending', index: true },
+  status:        { type: String, enum: ['draft', 'pending', 'published', 'rejected'], default: 'pending', index: true },
   reviewNote:    { type: String, default: '' },
+  companyName:   { type: String, default: '' },
+  rounds:        { type: [ExperienceRoundSchema], default: [] },
+  tips:          { type: String, default: '' },
+  eliminationSummary: { type: String, default: '' },
+  captureMode:   { type: String, enum: ['text', 'audio', 'video'], default: 'text' },
+  media: {
+    key: String, contentType: String, durationSec: Number,
+    transcript: { type: String, default: '' },
+    shareRecording: { type: Boolean, default: false },
+  },
+  aiStructured:  { type: Boolean, default: false },
+  anonymous:     { type: Boolean, default: false },
+  shareGlobal:   { type: Boolean, default: true },
+  product:       { type: String, enum: ['lms', 'careerpilot'], default: 'lms' },
+  inviteId:      { type: Schema.Types.ObjectId },
+  promotedQuestionIds: [{ type: String }],
+  publishedAt:   { type: Date },
 }, { timestamps: true });
 
 ExperienceSchema.index({ tenantId: 1, companySlug: 1, status: 1 });
+// The global feed: everything published and shared, newest first, and one company's reports.
+ExperienceSchema.index({ status: 1, shareGlobal: 1, publishedAt: -1 });
+ExperienceSchema.index({ companySlug: 1, status: 1, publishedAt: -1 });
 ExperienceSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 // One student, one company, one interview date — stops a double submission counting twice
 // in every average on the page.

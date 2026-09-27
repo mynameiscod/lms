@@ -84,6 +84,11 @@ const ProblemSetEditor = lazy(() => import('./pages/ProblemBank/SetEditor'));
 const ProblemBankApi = lazy(() => import('./pages/ProblemBank/ApiAccess'));
 const PracticePassAdmin = lazy(() => import('./pages/PracticePass'));
 const MyPractice = lazy(() => import('./pages/PracticePass/MyPractice'));
+const InterviewHubFeed = lazy(() => import('./pages/InterviewHub/Feed'));
+const InterviewHubDetail = lazy(() => import('./pages/InterviewHub/Detail'));
+const InterviewHubCompany = lazy(() => import('./pages/InterviewHub/Company'));
+const InterviewHubShare = lazy(() => import('./pages/InterviewHub/Share'));
+const InterviewHubAdmin = lazy(() => import('./pages/InterviewHub/Admin'));
 const CodingMySets = lazy(() => import('./pages/CodingPractice').then((m) => ({ default: m.MySets })));
 const CodingSetView = lazy(() => import('./pages/CodingPractice').then((m) => ({ default: m.SetView })));
 const CodingSolve = lazy(() => import('./pages/CodingPractice/Solve'));
@@ -627,6 +632,11 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/assessment" element={<Navigate to="/careerpilot/skill-assessment" replace />} />
         <Route path="/passport/assessment" element={<LegacyRedirect to="/careerpilot/assessment" />} />
         <Route path="/careerpilot/roadmap" element={<PassportRoadmap />} />
+        {/* Interview Experiences — the same pages as the LMS, inside the member shell. */}
+        <Route path="/careerpilot/interview-experiences" element={<InterviewHubFeed />} />
+        <Route path="/careerpilot/interview-experiences/share" element={<InterviewHubShare />} />
+        <Route path="/careerpilot/interview-experiences/company/:slug" element={<InterviewHubCompany />} />
+        <Route path="/careerpilot/interview-experiences/:id" element={<InterviewHubDetail />} />
         <Route path="/careerpilot/skills" element={<PassportSkillDna />} />
         <Route path="/careerpilot/readiness" element={<PassportRoleReadiness />} />
         {/* Resume readiness and interview readiness, beside the skill figure and never
@@ -742,6 +752,56 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
             <Layout>
               <PracticePassAdmin />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interview-experiences"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <InterviewHubFeed />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interview-experiences/share"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <InterviewHubShare />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interview-experiences/company/:slug"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <InterviewHubCompany />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interview-experiences/:id"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <InterviewHubDetail />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/interview-experiences"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <InterviewHubAdmin />
             </Layout>
           </ProtectedRoute>
         }

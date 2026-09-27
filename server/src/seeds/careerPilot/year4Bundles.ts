@@ -27,6 +27,7 @@ import { BUILD_CRAFT_BUNDLES } from './year4ContentBuildCraft';
 import { BUILD_CORE_BUNDLES } from './year4ContentBuildCore';
 import { BUILD_DATA_BUNDLES } from './year4ContentBuildData';
 import { BUILD_OPS_BUNDLES } from './year4ContentBuildOps';
+import { BUILD_INTEGRATION_BUNDLES } from './year4ContentBuildIntegration';
 
 export const ALL_YEAR4_BUNDLES: PilotBundle[] = [
   ...STANDING_BUNDLES,
@@ -37,4 +38,5 @@ export const ALL_YEAR4_BUNDLES: PilotBundle[] = [
   ...BUILD_CORE_BUNDLES,
   ...BUILD_DATA_BUNDLES,
   ...BUILD_OPS_BUNDLES,
+  ...BUILD_INTEGRATION_BUNDLES,
 ];

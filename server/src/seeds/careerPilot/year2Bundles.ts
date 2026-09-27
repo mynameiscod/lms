@@ -32,6 +32,9 @@ import { CLOUD_TRACK_BUNDLES } from './year2TrackCloud';
 import { SECURITY_TRACK_BUNDLES } from './year2TrackSecurity';
 import { APPLICATION_BUNDLES } from './year2ContentApplication';
 import { APPLICATION_REST_BUNDLES } from './year2ContentApplicationRest';
+import { DEEPER_CORE_BUNDLES } from './year2ContentDeeperCore';
+import { DEEPER_DATA_BUNDLES } from './year2ContentDeeperData';
+import { DEEPER_TRACK_BUNDLES } from './year2ContentDeeperTracks';
 
 export const ALL_YEAR2_BUNDLES: PilotBundle[] = [
   ...OOP_BUNDLES, ...DATA_STRUCTURE_BUNDLES, ...ALGORITHM_BUNDLES, ...TESTING_BUNDLES,
@@ -43,4 +46,5 @@ export const ALL_YEAR2_BUNDLES: PilotBundle[] = [
   ...MOBILE_TRACK_BUNDLES, ...CLOUD_TRACK_BUNDLES,
   ...SECURITY_TRACK_BUNDLES,
   ...APPLICATION_BUNDLES, ...APPLICATION_REST_BUNDLES,
+  ...DEEPER_CORE_BUNDLES, ...DEEPER_DATA_BUNDLES, ...DEEPER_TRACK_BUNDLES,
 ];

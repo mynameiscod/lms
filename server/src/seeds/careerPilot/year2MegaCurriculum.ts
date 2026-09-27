@@ -31,20 +31,44 @@ const u = (
   extra: Partial<UnitSeed> = {},
 ): UnitSeed => ({ slug, title, description, learningOutcomes, estimatedMinutes, ...extra });
 
-/** The ending every teaching topic shares: find the fault, drill it, then build something with it. */
+/**
+ * The ending every teaching topic shares: find the fault, drill it, then build something with it.
+ *
+ * ── WHY THERE ARE TWO OF EACH ─────────────────────────────────────────────────────────────
+ *
+ * There used to be one debugging unit and one practice unit per topic, and that turned out to be
+ * the shape of a real problem rather than a matter of taste. `unitSuitabilityPolicy` stops a
+ * CONCEPT unit serving a learner at STANDARD or above, deliberately — somebody who has proved a
+ * skill gets application instead of re-instruction. So a strong second-year's whole plan has to
+ * be built out of these units, and three per topic did not fill a 110-day programme: the
+ * composer reached 92 units and reported the shortfall honestly.
+ *
+ * The second of each pair is not more of the same. HARDER_FAULTS is the fault that survives a
+ * careful read, where DEBUGGING is the one that announces itself; HARDER_PRACTICE is the problem
+ * whose obvious answer is correct and insufficient. Both are written for somebody who found the
+ * first one easy, which is exactly the learner the single-unit version had nothing left for.
+ */
 const closeOut = (what: string, after: string, debugMin = 45, practiceMin = 55, projectMin = 110): UnitSeed[] => [
   u('DEBUGGING', `Debugging ${what}`,
     `Reading what goes wrong in ${what.toLowerCase()}, and finding the cause rather than guessing.`,
     [`Diagnose a broken ${what.toLowerCase()} example without rewriting it at random`],
     debugMin, { unitType: 'DEBUG', after: [after] }),
+  u('HARDER_FAULTS', `${what} — the Fault That Looks Correct`,
+    `Code that reads as right, passes the obvious check, and is wrong where nobody looked.`,
+    [`Find a ${what.toLowerCase()} fault that survives a careful read`],
+    debugMin, { unitType: 'DEBUG', after: ['DEBUGGING'] }),
   u('PRACTICE', `${what} Practice`,
     `Enough repetition that ${what.toLowerCase()} stops needing thought.`,
     [`Work ${what.toLowerCase()} problems without looking things up`],
-    practiceMin, { unitType: 'PRACTICE', after: ['DEBUGGING'] }),
+    practiceMin, { unitType: 'PRACTICE', after: ['HARDER_FAULTS'] }),
+  u('HARDER_PRACTICE', `${what} — Past the Obvious Answer`,
+    `Problems where the first idea is correct and not enough, and the second has to be found.`,
+    [`Reach a ${what.toLowerCase()} answer that holds up, not only one that works`],
+    practiceMin, { unitType: 'PRACTICE', after: ['PRACTICE'] }),
   u('MINI_PROJECT', `Mini Project — ${what}`,
     'One thing built end to end with it, and explained afterwards.',
     [`Build and describe something that uses ${what.toLowerCase()}`],
-    projectMin, { unitType: 'PROJECT', after: ['PRACTICE'] }),
+    projectMin, { unitType: 'PROJECT', after: ['HARDER_PRACTICE'] }),
 ];
 
 export const YEAR2: Record<string, TopicSeed> = {

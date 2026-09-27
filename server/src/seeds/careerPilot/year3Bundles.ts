@@ -45,6 +45,7 @@ import { ML_BUNDLES } from './year3ContentMl';
 import { ML_REST_BUNDLES } from './year3ContentMlRest';
 import { CLOUD_BUNDLES } from './year3ContentCloud';
 import { CLOUD_REST_BUNDLES } from './year3ContentCloudRest';
+import { SEC_BUNDLES } from './year3ContentSec';
 
 export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...PATTERNS_BUNDLES,
@@ -73,4 +74,5 @@ export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...ML_REST_BUNDLES,
   ...CLOUD_BUNDLES,
   ...CLOUD_REST_BUNDLES,
+  ...SEC_BUNDLES,
 ];

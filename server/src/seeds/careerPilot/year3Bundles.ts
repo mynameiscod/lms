@@ -54,6 +54,7 @@ import { SWE_REST_BUNDLES } from './year3ContentSweRest';
 import { FULLSTACK_BUNDLES } from './year3ContentFullStack';
 import { FULLSTACK_REST_BUNDLES } from './year3ContentFullStackRest';
 import { AI_PROJECT_BUNDLES } from './year3ContentAiProject';
+import { INTERVIEW_BUNDLES } from './year3ContentInterview';
 
 export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...PATTERNS_BUNDLES,
@@ -91,4 +92,5 @@ export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...FULLSTACK_BUNDLES,
   ...FULLSTACK_REST_BUNDLES,
   ...AI_PROJECT_BUNDLES,
+  ...INTERVIEW_BUNDLES,
 ];

@@ -5,6 +5,7 @@ import { roleGuard } from '../middleware/roleGuard';
 import { rateLimit } from '../middleware/rateLimit';
 import * as ctrl from '../controllers/problemBankController';
 import * as sets from '../controllers/problemDeliveryController';
+import * as apiClients from '../controllers/apiClientController';
 
 /**
  * Problem Bank — the single store of runnable coding problems.
@@ -36,6 +37,15 @@ router.put('/sets/:id', sets.updateSet);
 router.delete('/sets/:id', sets.deleteSet);
 router.get('/sets/:id/report', sets.setReport);
 router.get('/sets/:id/learners/:userId/submissions', sets.learnerSubmissions);
+
+// External API clients (keys for colleges, partners, Interview Pilot) — institute admins only.
+const adminOnly = roleGuard(['manage_tenant', 'manage_tenant_settings']);
+router.get('/api-clients', adminOnly, apiClients.list);
+router.post('/api-clients', adminOnly, apiClients.create);
+router.put('/api-clients/:id', adminOnly, apiClients.update);
+router.post('/api-clients/:id/rotate', adminOnly, apiClients.rotate);
+router.delete('/api-clients/:id', adminOnly, apiClients.remove);
+router.get('/api-clients/:id/preview', adminOnly, apiClients.preview);
 
 router.get('/problems', ctrl.list);
 router.post('/problems', ctrl.create);

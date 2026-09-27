@@ -109,6 +109,7 @@ import systemSettingsRoutes from './systemSettingsRoutes';
 import whatsAppTemplateRoutes from './whatsAppTemplateRoutes';
 import problemBankRoutes from './problemBankRoutes';
 import codingPracticeRoutes from './codingPracticeRoutes';
+import externalApiRoutes from './externalApiRoutes';
 import concernRoutes from './concernRoutes';
 import paymentRoutes from './paymentRoutes';
 import { webhook as paymentWebhook, paymentReturn } from '../controllers/paymentController';
@@ -126,6 +127,8 @@ const router = express.Router();
 // already sent to recruiters point at it and cannot be recalled.
 router.use('/public/careerpilot', careerPilotActivity, publicPassportRoutes);
 router.use('/public/passport', careerPilotActivity, publicPassportRoutes);
+// Problem Bank external API — API-key auth (not a user session); for colleges, partners and Interview Pilot.
+router.use('/external', externalApiRoutes);
 router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public/certificate', publicCertificateRoutes); // certificate verification (specific, before generic /public)
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount

@@ -81,6 +81,7 @@ const ProblemBank = lazy(() => import('./pages/ProblemBank'));
 const ProblemStudio = lazy(() => import('./pages/ProblemBank/Studio'));
 const ProblemSets = lazy(() => import('./pages/ProblemBank/Sets'));
 const ProblemSetEditor = lazy(() => import('./pages/ProblemBank/SetEditor'));
+const ProblemBankApi = lazy(() => import('./pages/ProblemBank/ApiAccess'));
 const CodingMySets = lazy(() => import('./pages/CodingPractice').then((m) => ({ default: m.MySets })));
 const CodingSetView = lazy(() => import('./pages/CodingPractice').then((m) => ({ default: m.SetView })));
 const CodingSolve = lazy(() => import('./pages/CodingPractice/Solve'));
@@ -733,6 +734,16 @@ const AppRoutes: React.FC = () => {
         }
       />
 
+      <Route
+        path="/problem-bank/api"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <ProblemBankApi />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/problem-bank/sets"
         element={

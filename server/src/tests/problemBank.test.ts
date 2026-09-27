@@ -236,3 +236,21 @@ describe('exam sections drawing from the Problem Bank', () => {
     expect(problemBankFilter('t1', { source: 'problem_bank' } as any).difficulty).toBeUndefined();
   });
 });
+
+import { generateKey, hashKey } from '../services/externalApiService';
+
+describe('external API keys', () => {
+  it('are long, prefixed and random', () => {
+    const a = generateKey(), b = generateKey();
+    expect(a).toMatch(/^cbk_live_[0-9A-Za-z]{32}$/);
+    expect(a).not.toBe(b);
+  });
+
+  it('are stored only as a SHA-256 hash that never contains the key', () => {
+    const k = generateKey();
+    const h = hashKey(k);
+    expect(h).toMatch(/^[0-9a-f]{64}$/);
+    expect(h).not.toContain(k.slice(9));
+    expect(hashKey(k)).toBe(h);
+  });
+});

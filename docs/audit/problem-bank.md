@@ -1,5 +1,5 @@
 # Problem Bank
-**Completion:** 65%  |  **Priority:** P1  |  **Business Impact:** High
+**Completion:** 80%  |  **Priority:** P1  |  **Business Impact:** High
 
 ## Purpose & Business Goal
 One store of runnable coding problems, authored once and REFERENCED by every product: LMS assignments,
@@ -80,14 +80,39 @@ format and scorer. Target size: 10,000 DSA problems now, up to 1M later.
   - Candidates can pick any language the problem allows.
   - Existing exam-bank sections are unchanged; all 141 exam tests pass.
 
+## External API (Phase 3, 2026-09-27)
+- **Endpoint:** `/api/v1/external`, authenticated by API key (`X-API-Key: cbk_live_…`) rather than a user session (`routes/externalApiRoutes.ts`, `services/externalApiService.ts`).
+- **Clients:** `models/ApiClient.ts` (`apiclients`).
+  - Key: shown once at creation and stored only as a SHA-256 hash, plus a 13-character prefix for telling keys apart.
+  - Scopes: `problems:read`, `judge:run`, `judge:submit`, `submissions:read`.
+  - Entitlement: the whole library, a difficulty/topic filter, or specific problem sets. Optionally the institute's own published problems too.
+  - Limits: per-minute requests and per-day judge calls.
+  - Also: an expiry date, and status active/revoked.
+- **Daily usage:** `apiusages`.
+- **Endpoints:**
+  - `GET /problems` (filters, `updatedSince` for syncing)
+  - `GET /problems/random` (interview pick with `exclude`)
+  - `GET /problems/{id}`
+  - `POST /problems/{id}/run`
+  - `POST /problems/{id}/submissions` (`externalUserId`, `reference`)
+  - `GET /submissions`
+  - `GET /submissions/{id}`
+  - `GET /usage`
+- **Errors:** `{error:{code,message}}` with a real HTTP status. 429 responses carry `Retry-After`.
+- **Guarantees:** hidden tests, solutions and wrapper code are never returned. Submissions are recorded in `problemsubmissions` with `context.product='api'`. A client can read only its own submissions.
+- **Admin UI:** Problem Bank → **API access** (institute admins only). Create, edit, rotate, revoke and delete clients (a client with submissions is revoked rather than deleted). Shows usage today and over 30 days, how many problems each client can see, and a built-in API reference with cURL, Node and Python examples, including the Interview Pilot recipe.
+- **Interview Pilot** is a client of this API: `GET /problems/random` → the candidate codes → `POST /submissions` with `reference=<interviewId>`.
+- **Tests:** 2 key unit tests, plus a 32-step API smoke test covering auth, isolation, no leaks, scopes, rate limits, quota, rotation and revocation.
+
 ## Gaps (next phases)
 - **Delivery leftovers:**
   - Coding sets on the LMS student dashboard's upcoming deadlines.
   - Tech Battles drawing from the bank.
   - Migrating CareerPilot's built-in practice list to the bank.
-- **Phase 3:**
-  - External API: API keys, scopes, entitlements, rate limits, and a judge-as-a-service endpoint.
-  - Interview Pilot pull.
+- **API follow-ups:**
+  - Webhooks for completed submissions.
+  - An OpenAPI/Swagger file.
+  - Usage-based billing reports.
 - **Retire the old stores** once delivery reads from the bank: Thinking Lab problems, AssessmentItem live_code/sql, Assignment coding tests, LearningContentLibrary practiceQuestions, the passport built-ins, and the quiz `coding` type (whose tests are never executed).
 - **Special judge:** custom checkers for problems with more than one valid answer.
 - **Scale:**

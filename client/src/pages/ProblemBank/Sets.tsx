@@ -6,12 +6,13 @@ import { relTime } from './shared';
 import './ProblemBank.css';
 
 /** Tabs shared by the Problem Bank's two admin pages. */
-export const BankTabs: React.FC<{ active: 'problems' | 'sets' }> = ({ active }) => {
+export const BankTabs: React.FC<{ active: 'problems' | 'sets' | 'api' }> = ({ active }) => {
   const nav = useNavigate();
   return (
     <div className="pb-tabs" style={{ padding: 0, background: 'transparent', marginBottom: 16 }}>
       <button className={active === 'problems' ? 'on' : ''} onClick={() => nav('/problem-bank')}><i className="fa-solid fa-code" /> Problems</button>
       <button className={active === 'sets' ? 'on' : ''} onClick={() => nav('/problem-bank/sets')}><i className="fa-solid fa-layer-group" /> Problem sets</button>
+      <button className={active === 'api' ? 'on' : ''} onClick={() => nav('/problem-bank/api')}><i className="fa-solid fa-plug" /> API access</button>
     </div>
   );
 };

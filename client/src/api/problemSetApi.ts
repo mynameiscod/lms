@@ -91,3 +91,24 @@ export const codingPracticeApi = {
   submit: (setId: string, problemId: string, body: { language: string; code: string }) =>
     axios.post(`${LEARN}/sets/${setId}/problems/${problemId}/submit`, body, h()).then(d) as Promise<{ result: PbJudgeResult; recorded: boolean; late?: boolean; firstAccept?: boolean; reward?: { xp: number } | null }>,
 };
+
+/* ── External API clients ─────────────────────────────────────────────────────────────────── */
+
+export type ApiScope = 'problems:read' | 'judge:run' | 'judge:submit' | 'submissions:read';
+export interface ApiClientRow {
+  _id: string; name: string; description: string; keyPrefix: string; scopes: ApiScope[];
+  entitlement: { mode: 'all' | 'sets' | 'filter'; setIds: string[]; difficulties: string[]; topics: string[]; includeTenantProblems: boolean };
+  limits: { perMinute: number; judgePerDay: number };
+  status: 'active' | 'revoked'; expiresAt?: string; lastUsedAt?: string; createdAt: string;
+  usage?: { requests30: number; judge30: number; requestsToday: number; judgeToday: number };
+}
+export type ApiClientInput = Partial<Pick<ApiClientRow, 'name' | 'description' | 'scopes' | 'entitlement' | 'limits'>> & { expiresAt?: string | null; status?: string };
+
+export const apiClientApi = {
+  list: () => axios.get(`${ADMIN}/api-clients`, h()).then(d) as Promise<ApiClientRow[]>,
+  create: (b: ApiClientInput) => axios.post(`${ADMIN}/api-clients`, b, h()).then(d) as Promise<{ client: ApiClientRow; key: string }>,
+  update: (id: string, b: ApiClientInput) => axios.put(`${ADMIN}/api-clients/${id}`, b, h()).then(d) as Promise<ApiClientRow>,
+  rotate: (id: string) => axios.post(`${ADMIN}/api-clients/${id}/rotate`, {}, h()).then(d) as Promise<{ client: ApiClientRow; key: string }>,
+  remove: (id: string) => axios.delete(`${ADMIN}/api-clients/${id}`, h()).then(d) as Promise<{ revoked?: boolean; deleted?: boolean }>,
+  preview: (id: string) => axios.get(`${ADMIN}/api-clients/${id}/preview`, h()).then(d) as Promise<{ problems: number }>,
+};

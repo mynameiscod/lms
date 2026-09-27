@@ -282,17 +282,36 @@ describe('a member who was already learning when orientation arrived', () => {
     enrollments.push({ tenantId: TENANT, studentId: STUDENT, completedDays: [1, 2, 3], currentDay: 4 });
   });
 
-  it('is offered it and never blocked by it', async () => {
+  /*
+   * The rule changed: the welcome is required of every member, in every year. What being
+   * mid-journey buys is not an exemption but an unpaced welcome — see the two tests below, which
+   * together are the reason the stricter rule does not strand anybody.
+   */
+  it('is required to do it, like everybody else', async () => {
     const view = await orientationFor(TENANT, STUDENT);
-    expect(view).toMatchObject({ enabled: true, mandatory: false, complete: false });
+    expect(view).toMatchObject({ enabled: true, mandatory: true, complete: false });
+    expect(await orientationBlocksLearning(TENANT, STUDENT)).toBe(true);
+  });
+
+  it('is not paced, so all five days are open at once rather than one a day', async () => {
+    const view = await orientationFor(TENANT, STUDENT);
+    expect(view.paced).toBe(false);
+    /* Only the completion ladder holds them: day one is open, and nothing waits on a calendar. */
+    expect(view.days[0]).toMatchObject({ dayNumber: 1, locked: false });
+    expect(view.days.every(d => d.lockedReason !== 'NOT_TODAY_YET')).toBe(true);
+  });
+
+  it('can finish the whole welcome in one sitting and is then let through', async () => {
+    for (const d of [1, 2, 3, 4, 5]) expect((await finishDay(d)).ok).toBe(true);
     expect(await orientationBlocksLearning(TENANT, STUDENT)).toBe(false);
   });
 
-  it('keeps that answer even after finishing a later day of their programme', async () => {
+  it('keeps that pacing answer even after finishing a later day of their programme', async () => {
     await orientationFor(TENANT, STUDENT);
     enrollments[0].completedDays = [1, 2, 3, 4, 5];
     const view = await orientationFor(TENANT, STUDENT);
-    expect(view.mandatory).toBe(false);
+    expect(view.paced).toBe(false);
+    expect(view.mandatory).toBe(true);
   });
 });
 

@@ -9,11 +9,14 @@
  *
  * ── WHO IT BLOCKS ─────────────────────────────────────────────────────────────────────────
  *
- * A member who has not started their programme completes orientation first. A member already past
- * their first learning day is offered it and never blocked — the welcome arriving after they began
- * must not lock them out of days they already paid for. The answer is decided ONCE, the first time
- * a member sees orientation, and stored: a rule that re-evaluated itself every request would start
- * blocking somebody the moment they were between journeys.
+ * EVERY member, in every year, completes the five welcome days before a learning day opens. There
+ * is no longer a class of member excused from it: the product owner's rule is that membership is
+ * followed by orientation, and only then by a roadmap.
+ *
+ * What still depends on when a member arrived is PACING. Somebody who was already mid-journey when
+ * this rule landed is asked for the same five days but is not held to one a day, because a paced
+ * welcome would shut them out of their programme for five days — days they have already reached and
+ * paid for. So they can sit all five this afternoon and carry on. See `progressFor`.
  */
 
 import mongoose from 'mongoose';
@@ -100,8 +103,11 @@ async function alreadyStarted(tenantId: string, studentId: mongoose.Types.Object
 async function progressFor(tenantId: string, studentId: string) {
   const sid = new mongoose.Types.ObjectId(studentId);
   if (!connected()) {
-    /* Nothing stored and nothing storable: an empty, non-blocking record. */
-    return { completedDays: [], items: [], mandatory: false, save: async () => undefined } as any;
+    /*
+     * Nothing stored and nothing storable. The welcome is still required — that is the rule now,
+     * with or without a database — and with no completed days recorded it is simply unfinished.
+     */
+    return { completedDays: [], items: [], mandatory: true, save: async () => undefined } as any;
   }
   const existing = await OrientationProgress.findOne({ tenantId, studentId: sid });
   if (existing) return existing;
@@ -109,16 +115,27 @@ async function progressFor(tenantId: string, studentId: string) {
   const started = await alreadyStarted(tenantId, sid);
   const now = new Date();
   /*
-   * Created on first sight, with BOTH questions answered for good: whether the welcome is
+   * Created on first sight, with both questions answered for good: whether the welcome is
    * required, and whether this member is paced day by day.
    *
-   * The two have the same answer for the same reason. A member who was already learning when
-   * this arrived is neither blocked by the welcome nor held to a calendar — taking away days
-   * somebody has already reached and paid for is worse than launching the rule late. Everybody
-   * who starts from here is paced, from today.
+   * ── THE WELCOME IS REQUIRED OF EVERYONE, IN EVERY YEAR ──────────────────────────────────
+   *
+   * `mandatory` used to be `!started`, so a member who reached a learning day before ever opening
+   * the welcome screen was excused from it permanently — and because the record is created lazily
+   * on first sight, that was most of them. The product owner's rule is the opposite and applies to
+   * all four years: every member does the five welcome days after taking membership. So it is
+   * true, always, and the backfill script repairs the records written under the old rule.
+   *
+   * ── PACING IS STILL DECIDED BY WHETHER THEY HAD BEGUN, AND MUST STAY THAT WAY ────────────
+   *
+   * These two once shared an answer; they no longer do, and the difference is what keeps the
+   * stricter rule safe. Pacing a member who was already mid-journey would hold their five welcome
+   * days to one per calendar day and shut them out of their programme for the better part of a
+   * week — taking away days they have already reached and paid for. Unpaced, the same member is
+   * asked for the same five days and can sit all of them this afternoon.
    */
   const created = await OrientationProgress.create({
-    tenantId, studentId: sid, completedDays: [], items: [], mandatory: !started, startedAt: now,
+    tenantId, studentId: sid, completedDays: [], items: [], mandatory: true, startedAt: now,
     paced: !started, pacedFrom: started ? undefined : now,
   }).catch(async (e: any) => {
     if (e?.code !== 11000) throw e;

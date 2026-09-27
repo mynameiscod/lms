@@ -35,6 +35,7 @@ import { DATA_BUNDLES } from './year3ContentData';
 import { APIS_BUNDLES } from './year3ContentApis';
 import { OPS_BUNDLES } from './year3ContentOps';
 import { SECURITY_BUNDLES } from './year3ContentSecurity';
+import { BACKEND_BUNDLES } from './year3ContentBackend';
 
 export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...PATTERNS_BUNDLES,
@@ -53,4 +54,5 @@ export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...APIS_BUNDLES,
   ...OPS_BUNDLES,
   ...SECURITY_BUNDLES,
+  ...BACKEND_BUNDLES,
 ];

@@ -69,6 +69,19 @@ const closeOut = (what: string, after: string, debugMin = 45, practiceMin = 55, 
     'One thing built end to end with it, and explained afterwards.',
     [`Build and describe something that uses ${what.toLowerCase()}`],
     projectMin, { unitType: 'PROJECT', after: ['HARDER_PRACTICE'] }),
+  /*
+   * ── AND A MEASUREMENT, BECAUSE MOST TOPICS NEVER HAD ONE ────────────────────────────
+   *
+   * Year 2 held seven CHECKPOINT units across thirty-three topics, so twenty-six topics
+   * taught, drilled and built something and then never asked whether any of it stuck. That
+   * is a gap on its own terms — a topic with no measurement produces no evidence, and Skill
+   * DNA is built from evidence — and it is also the unit a learner who already holds the
+   * material most needs, since a checkpoint serves every state where a lesson does not.
+   */
+  u('CHECKPOINT', `${what} — Checkpoint`,
+    `A short measured check of ${what.toLowerCase()}, to see what is actually there.`,
+    [`Show that ${what.toLowerCase()} holds up without notes or help`],
+    debugMin, { unitType: 'CHECKPOINT', after: ['MINI_PROJECT'] }),
 ];
 
 export const YEAR2: Record<string, TopicSeed> = {
@@ -649,9 +662,13 @@ export const YEAR2: Record<string, TopicSeed> = {
       u('COMPARING', 'Comparing Two Directions Honestly',
         'Weighing interest against evidence against opportunity.',
         ['Compare your two strongest options on the same terms'], 45, { after: ['MARKET'] }),
+      u('SAMPLING', 'Trying One Before Choosing It',
+        'A small piece of real work in two directions, which tells you more than any description.',
+        ['Judge a direction by doing a piece of its work rather than by reading about it'],
+        55, { unitType: 'PRACTICE', after: ['COMPARING'] }),
       u('CHOOSING', 'Choosing, and What It Commits You To',
         'Making the choice, and knowing what it does and does not close off.',
-        ['Choose a direction and state what it means for your year'], 45, { unitType: 'CHECKPOINT', after: ['COMPARING'] }),
+        ['Choose a direction and state what it means for your year'], 45, { unitType: 'CHECKPOINT', after: ['SAMPLING'] }),
     ],
   },
 
@@ -1016,9 +1033,17 @@ export const YEAR2: Record<string, TopicSeed> = {
       u('PROJECT_INTERVIEW', 'Being Asked About Your Project',
         'The questions that follow "tell me about this project".',
         ['Defend your own project under questioning'], 50, { after: ['BEHAVIOURAL'] }),
+      u('APPLICATION_REVIEW', 'Reading an Application the Way a Recruiter Does',
+        'Six real postings and six CVs, judged against each other under the clock.',
+        ['Judge an application against a posting in the time a recruiter actually spends'],
+        50, { unitType: 'DEBUG', after: ['PROJECT_INTERVIEW'] }),
+      u('ANSWER_PRACTICE', 'The Questions That Always Come',
+        'Conflict, failure, something you are proud of — answered from real material, repeatedly.',
+        ['Answer the standard questions with your own work rather than a script'],
+        55, { unitType: 'PRACTICE', after: ['APPLICATION_REVIEW'] }),
       u('MOCK_INTERVIEW', 'A Full Interview, Start to Finish',
         'Introduction, technical questions, project discussion and your questions.',
-        ['Complete a full mock interview and act on the feedback'], 60, { unitType: 'CHECKPOINT', after: ['PROJECT_INTERVIEW'] }),
+        ['Complete a full mock interview and act on the feedback'], 60, { unitType: 'CHECKPOINT', after: ['ANSWER_PRACTICE'] }),
     ],
   },
 

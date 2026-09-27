@@ -35,6 +35,7 @@ import { APPLICATION_REST_BUNDLES } from './year2ContentApplicationRest';
 import { DEEPER_CORE_BUNDLES } from './year2ContentDeeperCore';
 import { DEEPER_DATA_BUNDLES } from './year2ContentDeeperData';
 import { DEEPER_TRACK_BUNDLES } from './year2ContentDeeperTracks';
+import { CHECKPOINT_BUNDLES } from './year2ContentCheckpoints';
 
 export const ALL_YEAR2_BUNDLES: PilotBundle[] = [
   ...OOP_BUNDLES, ...DATA_STRUCTURE_BUNDLES, ...ALGORITHM_BUNDLES, ...TESTING_BUNDLES,
@@ -47,4 +48,5 @@ export const ALL_YEAR2_BUNDLES: PilotBundle[] = [
   ...SECURITY_TRACK_BUNDLES,
   ...APPLICATION_BUNDLES, ...APPLICATION_REST_BUNDLES,
   ...DEEPER_CORE_BUNDLES, ...DEEPER_DATA_BUNDLES, ...DEEPER_TRACK_BUNDLES,
+  ...CHECKPOINT_BUNDLES,
 ];

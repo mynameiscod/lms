@@ -34,15 +34,36 @@ describe('every authored Year-2 unit belongs to the curriculum', () => {
     expect(unknown).toEqual([]);
   });
 
-  it('gives a project unit an assignment, and no other unit one', () => {
+  /**
+   * ── WHY THIS NO LONGER SAYS "AND NO OTHER UNIT ONE" ─────────────────────────────────────
+   *
+   * It used to, and that was right when a brief was the only kind of assignment there was. The
+   * seeder has since grown a second kind: a CODING assignment, which is a runnable task with a
+   * starter and test cases, and which belongs on the unit that PRACTISES the skill rather than
+   * on the project at the end of the topic — see the note above the assignment block in
+   * seedPilotUnitContent. Year 3 is authored that way throughout.
+   *
+   * So the rule the seeder actually enforces is the pairing, not the exclusivity: a PROJECT
+   * unit's assignment must be a brief, and any other unit's must be a coding task. A mismatch
+   * either way is silently skipped at seed time, which is exactly the failure worth a test.
+   */
+  it('pairs every assignment with a unit type the seeder will store it on', () => {
     const typeOf = new Map<string, string>(
       Object.entries(YEAR2).flatMap(([topic, t]: [string, any]) =>
         t.units.map((u: any) => [`${topic}_${u.slug}`, u.unitType || 'CONCEPT'] as [string, string])),
     );
-    const wrong = ALL_YEAR2_BUNDLES
-      .filter(b => (typeOf.get(b.unitCode) === 'PROJECT') !== !!b.assignment)
-      .map(b => `${b.unitCode} (${typeOf.get(b.unitCode)}, assignment ${!!b.assignment})`);
-    expect(wrong).toEqual([]);
+
+    const missing = ALL_YEAR2_BUNDLES
+      .filter(b => typeOf.get(b.unitCode) === 'PROJECT' && !b.assignment)
+      .map(b => `${b.unitCode} (PROJECT with no assignment)`);
+
+    const mismatched = ALL_YEAR2_BUNDLES
+      .filter(b => b.assignment)
+      .filter(b => (typeOf.get(b.unitCode) === 'PROJECT') === !!b.assignment!.coding)
+      .map(b => `${b.unitCode} (${typeOf.get(b.unitCode)}, `
+        + `${b.assignment!.coding ? 'coding task' : 'project brief'})`);
+
+    expect([...missing, ...mismatched]).toEqual([]);
   });
 
   it('gives every teaching unit notes and questions to answer', () => {

@@ -94,6 +94,10 @@ const OVERRIDES: Record<string, string> = {
   T2_DSA_INTERVIEW_MAP_PATTERNS: 'PATTERN_RECOGNITION',
   T2_DSA_INTERVIEW_STACK_QUEUE_PATTERNS: 'PATTERN_RECOGNITION',
   T2_DSA_INTERVIEW_RECURSION_PATTERNS: 'PATTERN_RECOGNITION',
+  /* And the two application units: finding the fault in a plausible solution is pattern work,
+   * while meeting a limit the obvious approach misses is complexity. */
+  T2_DSA_INTERVIEW_DEBUGGING: 'PATTERN_RECOGNITION',
+  T2_DSA_INTERVIEW_HARDER_SET: 'DSA_COMPLEXITY',
 
   /* Robust Python: the three units about working with data rather than with failure. */
   T2_PY_ROBUST_JSON: 'PYTHON_COLLECTIONS',
@@ -102,6 +106,8 @@ const OVERRIDES: Record<string, string> = {
 
   /* Clean code: one unit is literally about reviewing. */
   T2_CLEAN_CODE_CODE_REVIEW: 'CODE_REVIEW',
+  /* Reviewing diffs one after another measures reviewing, not the cleanliness being reviewed. */
+  T2_CLEAN_CODE_REVIEW_PRACTICE: 'CODE_REVIEW',
 
   /* Linux: the machine-state units, against the command-composition ones. */
   T2_LINUX_PERMISSIONS: 'OS_PROCESSES',
@@ -162,6 +168,9 @@ const OVERRIDES: Record<string, string> = {
   T2_COMMUNICATION_EXPLAINING: 'TECHNICAL_EXPLANATION',
   T2_COMMUNICATION_DESIGN_DECISIONS: 'TECHNICAL_EXPLANATION',
   T2_COMMUNICATION_PRESENTING: 'TECHNICAL_EXPLANATION',
+  /* Explaining your own work, in writing and out loud, is explanation rather than general
+   * communication; the harder writing drill stays on the topic default. */
+  T2_COMMUNICATION_MINI_PROJECT: 'TECHNICAL_EXPLANATION',
 };
 
 /**

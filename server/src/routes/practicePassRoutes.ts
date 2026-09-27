@@ -34,5 +34,7 @@ router.delete('/admin/policy/:scope/:targetId', staff, wrap((req) => svc.removeO
 router.get('/admin/standings', staff, wrap((req) => svc.standings(t(req), req.query as any)));
 router.post('/admin/recompute', staff, wrap(async (req) => ({ students: await svc.recomputeTenant(t(req)) })));
 router.get('/admin/students/:id', staff, wrap((req) => svc.studentCalendar(t(req), req.params.id)));
+router.post('/admin/remind', staff, wrap((req) => svc.sendReminders(t(req), u(req), { ...(req.body || {}), origin: String(req.headers.origin || '') || undefined })));
+router.get('/admin/reminders', staff, wrap((req) => svc.reminderHistory(t(req))));
 
 export default router;

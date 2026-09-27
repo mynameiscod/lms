@@ -35,7 +35,21 @@ Students then fail easy interview questions. Nothing depended on practice, so no
   - Recording an actual outcome (selected, placed, rejected) is still allowed.
 - **Schedule:**
   - Every hour, standings are recomputed for every institute that has the pass switched on (`jobs/practicePassCron.ts`).
-  - At 7 PM IST a WhatsApp reminder goes to students with tasks left. This only happens if the `PRACTICE_REMINDER` template is assigned under Admin → WhatsApp Templates → Where used.
+  - The automatic 7 PM IST WhatsApp reminder is **off by default** because every message costs money. An admin can switch it on under Rules; it also needs the `PRACTICE_REMINDER` template assigned under Admin → WhatsApp Templates → Where used.
+- **Admin-sent reminders:**
+  - The "Send reminder" button on `/practice-pass` opens a form with four choices:
+    - Who: tasks left today, missed yesterday, below threshold, or on placement hold.
+    - Which batch.
+    - Channel: Email, which is free.
+    - Channel: WhatsApp, which is priced.
+  - A dry run shows the recipient count, who has a phone, the ₹ estimate, and a sample of students with the tasks they have left. Nothing is sent until the admin confirms.
+  - WhatsApp is sent through `services/purposeMessaging.ts`. It refuses when the purpose has no template of its own and never falls back to the notify template.
+  - The cost is set by `WHATSAPP_COST_PER_MESSAGE_INR` (default ₹0.13 for Utility).
+  - Every send is logged in `practicereminderlogs` with per-channel sent and failed counts. These appear on the Reminders tab.
+- **Weekly report:**
+  - The weekly learning report email has a "🔥 Daily Practice" section: a 7-day ✓/✗/– strip, practice attendance against the threshold, the streak, and the hold status.
+  - The Weekly Reports page shows a Daily Practice column.
+  - Reports can be sent by Email, WhatsApp or both. WhatsApp uses the `WEEKLY_REPORT` template with 5 variables. The page shows a cost estimate for WhatsApp. Each channel is logged separately in `weeklyreportlogs.channel`.
 
 ## Key files
 - Models: `models/PracticePass.ts` → collections `practicepolicies`, `practicedays` (unique on studentId + date), `practicestandings`.
@@ -47,11 +61,21 @@ Students then fail easy interview questions. Nothing depended on practice, so no
   - The Today's practice card on the student dashboard (`components/practice/PracticeTodayCard.tsx`).
   - `/my-practice`, a calendar view.
   - `/practice-pass` for admins: standings (summary tiles, filters for batch/missed/on hold, CSV export, per-student calendar) and rules (institute, batches, individual exceptions).
-- Tests: `tests/practicePass.test.ts` (rule merging). A 24-step local API smoke test covered holds, leave, weekly offs, exemption, overrides, the placement block, and switching off.
+- Tests: `tests/practicePass.test.ts` (rule merging). A 24-step local API smoke test covered holds, leave, weekly offs, exemption, overrides, the placement block, and switching off. A 21-step smoke test covered reminders and weekly-report channels:
+  - auto-reminders off by default;
+  - role guard;
+  - the dry-run count and ₹ estimate;
+  - refusal when there is no template;
+  - the history log;
+  - the weekly estimate;
+  - the practice section in the email;
+  - one log per channel.
 
 ## Gaps
 - Anti-gaming beyond the minimums: assignment quality, Thinking Lab effort, and plagiarism checks.
 - A mentor morning digest (email or WhatsApp) of who missed yesterday.
-- A weekly parent report.
+- A weekly parent report, which could reuse the weekly report's channels.
+- A "Selected students" reminder picker from the standings table. The API already supports `audience: 'selected'`.
+- Actual WhatsApp spend from Meta's billing. The page shows only an estimate.
 - Auto-assigning one daily coding problem per batch from the Problem Bank. Today admins create problem sets manually.
 - Manual class attendance is still separate by design.

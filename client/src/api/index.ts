@@ -995,21 +995,27 @@ export const weeklyReportApi = {
     if (!r.ok) throw new Error('Failed to render preview');
     return r.json();
   },
-  sendToStudent: async (studentId: string, weekStart: string) => {
+  sendToStudent: async (studentId: string, weekStart: string, channels: ('email' | 'whatsapp')[] = ['email']) => {
     const r = await fetch(`${API_BASE_URL}/weekly-reports/send`, {
-      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ studentId, weekStart }),
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ studentId, weekStart, channels }),
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.message || 'Failed to send');
     return data;
   },
-  sendToBatch: async (batchId: string, weekStart: string) => {
+  sendToBatch: async (batchId: string, weekStart: string, channels: ('email' | 'whatsapp')[] = ['email']) => {
     const r = await fetch(`${API_BASE_URL}/weekly-reports/send-batch`, {
-      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ batchId, weekStart }),
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ batchId, weekStart, channels }),
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.message || 'Failed to send');
     return data;
+  },
+  estimate: async (batchId: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/estimate?batchId=${batchId}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to estimate');
+    return data.data as { students: number; withEmail: number; withPhone: number; whatsappTemplateReady: boolean; costPerMessageInr: number; whatsappCostInr: number };
   },
 };
 

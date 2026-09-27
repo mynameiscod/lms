@@ -94,6 +94,7 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'WHATSAPP_ACCESS_TOKEN', label: 'WhatsApp Access Token', group: 'messaging', isSecret: true, type: 'password', perTenant: true },
   { key: 'WHATSAPP_PHONE_NUMBER_ID', label: 'WhatsApp Phone Number ID', group: 'messaging', type: 'text', perTenant: true },
   { key: 'WHATSAPP_BUSINESS_ACCOUNT_ID', label: 'WhatsApp Business Account ID', group: 'messaging', type: 'text', perTenant: true, placeholder: '104567890123456', help: 'Needed to create and sync message templates from the LMS (Admin → WhatsApp Templates). Meta Business Manager → WhatsApp Accounts → the account → Account ID. The access token must also carry the whatsapp_business_management permission.' },
+  { key: 'WHATSAPP_COST_PER_MESSAGE_INR', label: 'WhatsApp cost per message (₹)', group: 'messaging', type: 'number', perTenant: true, placeholder: '0.13', help: 'Used only to show admins an estimate before they send reminders or weekly reports. Meta bills per message by category (Utility is far cheaper than Marketing) — set it to what your invoice shows.' },
   { key: 'META_APP_ID', label: 'Meta App ID', group: 'messaging', type: 'text', help: 'Only used to upload the sample image when creating a template with an IMAGE header. Looked up from the access token when blank.' },
   { key: 'WHATSAPP_VERIFY_TOKEN', label: 'WhatsApp Webhook Verify Token', group: 'messaging', type: 'text', placeholder: 'codebegun_whatsapp_verify' },
   { key: 'WHATSAPP_OTP_TEMPLATE', label: 'WhatsApp OTP Template Name', group: 'messaging', type: 'text' },

@@ -6,6 +6,7 @@ import {
   sendToStudent,
   sendToBatch,
   getBatches,
+  estimateBatch,
 } from '../controllers/weeklyReportController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -25,5 +26,6 @@ router.get('/student/:studentId', canReport, getStudentReport);
 router.get('/student/:studentId/preview', canReport, getStudentReportHtml);
 router.post('/send', canReport, sendToStudent);
 router.post('/send-batch', canReport, sendToBatch);
+router.get('/estimate', canReport, estimateBatch);
 
 export default router;

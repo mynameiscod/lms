@@ -47,6 +47,19 @@ export interface Overview {
 
 export interface StandingRow extends Standing { name: string; email: string; phone?: string; batchName: string }
 
+export type ReminderAudience = 'pending_today' | 'missed_yesterday' | 'at_risk' | 'on_hold' | 'selected';
+export type ReminderChannel = 'email' | 'whatsapp';
+export interface ReminderPreview {
+  recipients: number; withPhone: number; withEmail: number; whatsappTemplateReady: boolean;
+  costPerMessageInr: number; estimatedCostInr: number; sample: { name: string; pct: number; left: string[] }[];
+  started?: boolean;
+}
+export interface ReminderLog {
+  _id: string; audience: string; batchId?: string; channels: string[]; total: number;
+  whatsappSent: number; whatsappFailed: number; emailSent: number; emailFailed: number;
+  estimatedCostInr: number; status: 'running' | 'done'; createdAt: string;
+}
+
 export const practicePassApi = {
   me: () => axios.get(`${BASE}/me`, h()).then(d) as Promise<MyPractice>,
   overview: () => axios.get(`${BASE}/admin/overview`, h()).then(d) as Promise<Overview>,
@@ -58,5 +71,8 @@ export const practicePassApi = {
     rows: StandingRow[]; summary: { students: number; onHold: number; doneToday: number; missedYesterday: number; avgPct: number };
   }>,
   recompute: () => axios.post(`${BASE}/admin/recompute`, {}, h()).then(d) as Promise<{ students: number }>,
+  remind: (body: { audience: ReminderAudience; batchId?: string; studentIds?: string[]; channels: ReminderChannel[]; dryRun?: boolean }) =>
+    axios.post(`${BASE}/admin/remind`, body, h()).then(d) as Promise<ReminderPreview>,
+  reminders: () => axios.get(`${BASE}/admin/reminders`, h()).then(d) as Promise<ReminderLog[]>,
   student: (id: string) => axios.get(`${BASE}/admin/students/${id}`, h()).then(d) as Promise<{ standing: Standing | null; days: { date: string; met: boolean; excused?: string; done: TaskCounts; required: TaskCounts }[] }>,
 };

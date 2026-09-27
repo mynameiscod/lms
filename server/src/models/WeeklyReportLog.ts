@@ -9,6 +9,9 @@ export interface IWeeklyReportLog extends Document {
   email: string;
   score: number;
   status: 'sent' | 'failed';
+  channel?: 'email' | 'whatsapp';
+  phone?: string;
+  error?: string;
   sentBy?: mongoose.Types.ObjectId;
   sentAt: Date;
 }
@@ -22,6 +25,9 @@ const WeeklyReportLogSchema: Schema = new Schema(
     email: { type: String },
     score: { type: Number, default: 0 },
     status: { type: String, enum: ['sent', 'failed'], default: 'sent' },
+    channel: { type: String, enum: ['email', 'whatsapp'], default: 'email' },
+    phone: { type: String },
+    error: { type: String },
     sentBy: { type: mongoose.Types.ObjectId, ref: 'User' },
     sentAt: { type: Date, default: Date.now },
   },

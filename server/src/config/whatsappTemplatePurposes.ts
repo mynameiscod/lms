@@ -78,6 +78,12 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     help: 'Sent at 7 PM IST to students who have not finished today’s practice tasks. Only sent when a template is assigned here. Keep it UTILITY: a missed-practice reminder is transactional.',
   },
   {
+    key: 'WEEKLY_REPORT', label: 'Weekly learning report', module: 'Reports',
+    settingsKey: 'WHATSAPP_TEMPLATE_WEEKLY_REPORT',
+    variables: ['Student first name', 'Week (e.g. 22–27 Sep)', 'Practice days (e.g. 4 of 6)', 'Practice attendance (e.g. 72%)', 'Overall score (e.g. 68/100)'],
+    help: 'Sent when an admin sends the weekly report with WhatsApp ticked (Weekly Reports page). The full report still goes by email; WhatsApp carries the headline numbers. Keep it UTILITY.',
+  },
+  {
     key: 'LEAD_WELCOME', label: 'CRM — new lead welcome', module: 'CRM / Leads',
     settingsKey: 'WHATSAPP_TEMPLATE_LEAD_WELCOME',
     variables: ['Lead first name'],

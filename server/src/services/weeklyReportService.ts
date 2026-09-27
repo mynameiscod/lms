@@ -12,6 +12,8 @@ import CommunicationSchedule from '../models/CommunicationSchedule';
 import CommunicationAttempt from '../models/CommunicationAttempt';
 import ScheduledChallenge from '../models/ScheduledChallenge';
 import DailyChallenge from '../models/DailyChallenge';
+import { PracticeDay, PracticeStanding, PracticePolicy } from '../models/PracticePass';
+import { recomputeStudent } from './practicePassService';
 
 // ── Types ────────────────────────────────────────────────────────────────
 export interface WeeklyReportData {
@@ -27,6 +29,16 @@ export interface WeeklyReportData {
     thinking: { assigned: number; completed: number; missed: number };
     totalAssigned: number; totalCompleted: number; totalMissed: number;
   };
+  /** Daily Practice Pass for the week — null when the institute has not switched it on. */
+  practice: {
+    days: { date: string; weekday: string; met: boolean; excused: string | null; done: Record<string, number>; required: Record<string, number> }[];
+    metDays: number;
+    countedDays: number;
+    pct: number;
+    thresholdPct: number;
+    onHold: boolean;
+    streak: number;
+  } | null;
 }
 
 export interface StudentWeeklySummary {
@@ -36,6 +48,9 @@ export interface StudentWeeklySummary {
   score: number;
   grade: string;
   hasData: boolean;
+  practiceDays?: string;
+  practicePct?: number;
+  onHold?: boolean;
 }
 
 // ── Week helpers ─────────────────────────────────────────────────────────
@@ -275,12 +290,13 @@ export class WeeklyReportService {
     const batchId = (student.batchId as any)?._id?.toString() || '';
     const sid = student._id.toString();
 
-    const [attendance, quizzes, assignments, interview, challenges] = await Promise.all([
+    const [attendance, quizzes, assignments, interview, challenges, practice] = await Promise.all([
       this.attendance(sid, tenantId, start, end),
       this.quizzes(sid, tenantId, batchId, start, end),
       this.assignments(sid, tenantId, batchId, start, end),
       this.interviews(sid, tenantId, start, end),
       this.challenges(sid, tenantId, batchId, start, end),
+      this.practice(sid, tenantId, start),
     ]);
 
     // Completion-aware weighted overall score. A section that was ASSIGNED but not done drags
@@ -314,6 +330,47 @@ export class WeeklyReportService {
       attendance,
       interview,
       challenges,
+      practice,
+    };
+  }
+
+  /**
+   * The Daily Practice Pass for the reported week: each day met / missed / excused, with what
+   * was done. Recomputed first so the email reflects the latest rules and approved leave.
+   */
+  private async practice(studentId: string, tenantId: string, start: Date) {
+    const on = await PracticePolicy.exists({ tenantId, scope: 'tenant', startDate: { $exists: true, $ne: null } });
+    if (!on) return null;
+    await recomputeStudent(tenantId, studentId).catch(() => null);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const dates: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start); d.setDate(d.getDate() + i);
+      dates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+    }
+    const [rows, standing] = await Promise.all([
+      PracticeDay.find({ studentId, date: { $in: dates } }).lean(),
+      PracticeStanding.findOne({ studentId }).lean(),
+    ]);
+    const byDate = new Map(rows.map((r) => [r.date, r]));
+    const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const days = dates.map((date) => {
+      const r: any = byDate.get(date);
+      return {
+        date, weekday: names[new Date(`${date}T00:00:00Z`).getUTCDay()],
+        met: !!r?.met, excused: r ? (r.excused || null) : 'before_start',
+        done: (r?.done || {}) as Record<string, number>, required: (r?.required || {}) as Record<string, number>,
+      };
+    });
+    const counted = days.filter((d) => !d.excused);
+    return {
+      days,
+      metDays: counted.filter((d) => d.met).length,
+      countedDays: counted.length,
+      pct: standing?.pct ?? 100,
+      thresholdPct: standing?.thresholdPct ?? 80,
+      onHold: !!standing?.onHold,
+      streak: standing?.streak ?? 0,
     };
   }
 
@@ -338,6 +395,11 @@ export class WeeklyReportService {
         score: report?.overall.score ?? 0,
         grade: report?.overall.grade ?? 'D',
         hasData: report?.overall.hasData ?? false,
+        ...(report?.practice ? {
+          practiceDays: `${report.practice.metDays} of ${report.practice.countedDays}`,
+          practicePct: report.practice.pct,
+          onHold: report.practice.onHold,
+        } : {}),
       });
     }
     return out;

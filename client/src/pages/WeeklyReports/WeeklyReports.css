@@ -52,3 +52,13 @@
   .wr-field select { min-width: 0; width: 100%; }
   .wr-field { width: 100%; }
 }
+
+/* Channels + cost */
+.wr-channels { display: flex; gap: 8px; flex-wrap: wrap; }
+.wr-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid #dbe2ee; border-radius: 10px; background: #fff; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer; }
+.wr-chip.on { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
+.wr-chip em { font-style: normal; font-weight: 500; font-size: 11px; color: #64748b; }
+.wr-chip input { margin: 0; }
+.wr-cost { margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #14532d; font-size: 13px; }
+.wr-cost.muted { background: #f8fafc; border-color: #e2e8f0; color: #64748b; }
+.wr-hold { color: #dc2626; font-weight: 700; }

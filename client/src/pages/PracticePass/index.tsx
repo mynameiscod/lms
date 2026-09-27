@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { practicePassApi, Overview, StandingRow, TaskCounts, Effective } from '../../api/practicePassApi';
+import { practicePassApi, Overview, StandingRow, TaskCounts, Effective, ReminderAudience, ReminderChannel, ReminderPreview, ReminderLog } from '../../api/practicePassApi';
 import { problemSetAdminApi } from '../../api/problemSetApi';
 import { PracticeCalendar } from './MyPractice';
 import { Modal, useToast } from '../ProblemBank/shared';
@@ -33,7 +33,7 @@ const RuleEditor: React.FC<{
   const [windowDays, setWindowDays] = useState<string>(policy?.windowDays !== undefined ? String(policy.windowDays) : '');
   const [enforce, setEnforce] = useState<string>(policy?.enforce === undefined ? '' : policy.enforce ? 'yes' : 'no');
   const [exempt, setExempt] = useState(!!policy?.exempt);
-  const [reminders, setReminders] = useState(policy?.remindersEnabled !== false);
+  const [reminders, setReminders] = useState(policy?.remindersEnabled === true);
   const [note, setNote] = useState(policy?.note || '');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -86,7 +86,7 @@ const RuleEditor: React.FC<{
         <option value="no">Off — show only</option>
       </select>
       {scope === 'student' && <label className="pb-switch" style={{ marginTop: 12 }}><input type="checkbox" checked={exempt} onChange={(e) => setExempt(e.target.checked)} /> Exempt this student (medical, special case)</label>}
-      {scope === 'tenant' && <label className="pb-switch" style={{ marginTop: 12 }}><input type="checkbox" checked={reminders} onChange={(e) => setReminders(e.target.checked)} /> 7 PM WhatsApp reminder to students with tasks left <small className="pb-faint">(needs the "Daily practice — evening reminder" template assigned)</small></label>}
+      {scope === 'tenant' && <label className="pb-switch" style={{ marginTop: 12 }}><input type="checkbox" checked={reminders} onChange={(e) => setReminders(e.target.checked)} /> Automatic 7 PM WhatsApp reminder every day <small className="pb-faint">(off by default — every message costs money; use "Send reminder" to remind only when you choose)</small></label>}
       <label className="pb-label">Note <small>why this rule</small></label>
       <input className="pb-input" value={note} onChange={(e) => setNote(e.target.value)} />
       {err && <div className="pb-alert pb-alert-bad">{err}</div>}
@@ -94,9 +94,106 @@ const RuleEditor: React.FC<{
   );
 };
 
+const AUDIENCES: { key: ReminderAudience; label: string; help: string }[] = [
+  { key: 'pending_today', label: 'Tasks left today', help: 'Students who have not finished today’s practice yet' },
+  { key: 'missed_yesterday', label: 'Missed yesterday', help: 'Students whose last working day was not a practice day' },
+  { key: 'at_risk', label: 'Below threshold', help: 'Practice attendance under the placement threshold' },
+  { key: 'on_hold', label: 'On placement hold', help: 'Placement support currently withheld' },
+];
+const AUD_LABEL: Record<string, string> = { ...Object.fromEntries(AUDIENCES.map((a) => [a.key, a.label])), selected: 'Selected students' };
+const inr = (n: number) => `₹${(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+
+/** Admin-triggered reminder: pick who and how, see the count and the WhatsApp cost, then send. */
+const ReminderModal: React.FC<{ batches: { _id: string; name: string }[]; initialBatch: string; onClose: () => void; onSent: (msg: string) => void }> = ({ batches, initialBatch, onClose, onSent }) => {
+  const [audience, setAudience] = useState<ReminderAudience>('pending_today');
+  const [batchId, setBatchId] = useState(initialBatch);
+  const [email, setEmail] = useState(true);
+  const [wa, setWa] = useState(false);
+  const [pv, setPv] = useState<ReminderPreview | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const channels: ReminderChannel[] = [...(email ? ['email' as const] : []), ...(wa ? ['whatsapp' as const] : [])];
+
+  useEffect(() => {
+    if (!channels.length) { setPv(null); return; }
+    setLoading(true); setErr('');
+    const t = setTimeout(() => practicePassApi.remind({ audience, batchId: batchId || undefined, channels, dryRun: true })
+      .then(setPv).catch((e) => setErr(e?.response?.data?.message || 'Could not count recipients.')).finally(() => setLoading(false)), 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audience, batchId, email, wa]);
+
+  const send = async () => {
+    if (!pv) return;
+    const parts = [email ? `${pv.withEmail} email(s) — free` : '', wa ? `${pv.withPhone} WhatsApp — about ${inr(pv.estimatedCostInr)}` : ''].filter(Boolean);
+    if (!window.confirm(`Send the reminder to ${pv.recipients} student(s)?\n\n${parts.join('\n')}`)) return;
+    setBusy(true); setErr('');
+    try {
+      await practicePassApi.remind({ audience, batchId: batchId || undefined, channels });
+      onSent(`Reminder going out to ${pv.recipients} student(s). Progress is under Reminders.`);
+    } catch (e: any) { setErr(e?.response?.data?.message || 'Could not send.'); }
+    setBusy(false);
+  };
+
+  const waBlocked = wa && pv && !pv.whatsappTemplateReady;
+  return (
+    <Modal title="Send a practice reminder" onClose={onClose} footer={<>
+      <span className="pb-grow pb-muted" style={{ fontSize: 13 }}>
+        {loading ? <><span className="pb-spinner" /> Counting…</> : pv ? <>
+          <b>{pv.recipients}</b> student(s){wa && pv.whatsappTemplateReady ? <> · WhatsApp ≈ <b>{inr(pv.estimatedCostInr)}</b></> : null}{email ? ' · email free' : ''}
+        </> : null}
+      </span>
+      <button className="pb-btn" onClick={onClose}>Cancel</button>
+      <button className="pb-btn pb-btn-primary" disabled={busy || loading || !pv || !pv.recipients || !channels.length || (!!waBlocked && !email)} onClick={send}>
+        {busy ? <span className="pb-spinner" /> : <i className="fa-solid fa-paper-plane" />} Send reminder
+      </button>
+    </>}>
+      <label className="pb-label">Who</label>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+        {AUDIENCES.map((a) => (
+          <button key={a.key} type="button" className="pb-card" onClick={() => setAudience(a.key)}
+            style={{ textAlign: 'left', padding: '10px 12px', cursor: 'pointer', borderColor: audience === a.key ? 'var(--pb-accent)' : undefined, boxShadow: audience === a.key ? '0 0 0 2px var(--pb-accent-soft, rgba(79,70,229,.15))' : undefined }}>
+            <div style={{ fontWeight: 700 }}>{a.label}</div>
+            <div className="pb-faint" style={{ fontSize: 12 }}>{a.help}</div>
+          </button>
+        ))}
+      </div>
+      <label className="pb-label">Batch</label>
+      <select className="pb-select" value={batchId} onChange={(e) => setBatchId(e.target.value)}>
+        <option value="">All batches</option>{batches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
+      </select>
+      <label className="pb-label">Send by</label>
+      <div className="pb-row" style={{ gap: 16 }}>
+        <label className="pb-switch"><input type="checkbox" checked={email} onChange={(e) => setEmail(e.target.checked)} /> ✉️ Email <small className="pb-faint">free</small></label>
+        <label className="pb-switch"><input type="checkbox" checked={wa} onChange={(e) => setWa(e.target.checked)} /> 💬 WhatsApp <small className="pb-faint">{pv ? `${inr(pv.costPerMessageInr)} per message` : 'paid per message'}</small></label>
+      </div>
+      {waBlocked && <div className="pb-alert pb-alert-warn" style={{ marginTop: 10 }}>No WhatsApp template is assigned for <b>Daily practice — evening reminder</b>. Create one in Admin → WhatsApp Templates → Where used{email ? ' — email will still go out.' : '.'}</div>}
+      {pv && wa && pv.whatsappTemplateReady && pv.withPhone < pv.recipients && <div className="pb-help">{pv.recipients - pv.withPhone} student(s) have no phone number, so they only get email.</div>}
+      {pv && !!pv.sample.length && (
+        <div className="pb-card" style={{ padding: 10, marginTop: 12 }}>
+          <div className="pb-faint" style={{ fontSize: 12, marginBottom: 6 }}>Who gets it{pv.recipients > pv.sample.length ? ` (first ${pv.sample.length} of ${pv.recipients})` : ''}</div>
+          {pv.sample.map((s, i) => (
+            <div key={i} className="pb-row" style={{ fontSize: 13, padding: '3px 0' }}>
+              <span className="pb-grow"><b>{s.name}</b> <span className="pb-faint">{s.pct}%</span></span>
+              <span className="pb-muted" style={{ fontSize: 12 }}>{s.left.length ? `left: ${s.left.join(', ')}` : 'all done today'}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {pv && !pv.recipients && !loading && <div className="pb-muted" style={{ marginTop: 12 }}>Nobody matches right now — nothing would be sent.</div>}
+      {err && <div className="pb-alert pb-alert-bad" style={{ marginTop: 10 }}>{err}</div>}
+    </Modal>
+  );
+};
+
 const PracticePassAdmin: React.FC = () => {
   const toast = useToast();
-  const [tab, setTab] = useState<'standings' | 'rules'>('standings');
+  const [tab, setTab] = useState<'standings' | 'rules' | 'reminders'>('standings');
+  const [reminding, setReminding] = useState(false);
+  const [history, setHistory] = useState<ReminderLog[] | null>(null);
+  const loadHistory = useCallback(() => practicePassApi.reminders().then(setHistory).catch(() => setHistory([])), []);
+  useEffect(() => { if (tab === 'reminders') loadHistory(); }, [tab, loadHistory]);
   const [ov, setOv] = useState<Overview | null>(null);
   const [err, setErr] = useState('');
   const [batchId, setBatchId] = useState('');
@@ -148,6 +245,7 @@ const PracticePassAdmin: React.FC = () => {
             <div className="pb-row">
               <span className="pb-pill pb-badge-ok"><span className="pb-dot" /> On since {ov.tenant.startDate}</span>
               {effTenant && effTenant.enforceFrom > new Date().toISOString().slice(0, 10) && <span className="pb-pill pb-badge-warn">Holds start {effTenant.enforceFrom}</span>}
+              <button className="pb-btn pb-btn-sm pb-btn-primary" onClick={() => setReminding(true)}><i className="fa-solid fa-bell" /> Send reminder</button>
               <button className="pb-btn pb-btn-sm" onClick={async () => { const r = await practicePassApi.recompute(); toast.show(`Recalculated ${r.students} students.`); loadStandings(); }}><i className="fa-solid fa-rotate" /> Recalculate</button>
               <button className="pb-btn pb-btn-sm pb-btn-ghost" onClick={async () => { if (!window.confirm('Switch the Practice Pass off? All placement holds are lifted.')) return; await practicePassApi.disable(); loadOv(); }}>Switch off</button>
             </div>
@@ -171,6 +269,7 @@ const PracticePassAdmin: React.FC = () => {
           <div className="pb-tabs" style={{ padding: 0, background: 'transparent', marginBottom: 14 }}>
             <button className={tab === 'standings' ? 'on' : ''} onClick={() => setTab('standings')}><i className="fa-solid fa-ranking-star" /> Standings</button>
             <button className={tab === 'rules' ? 'on' : ''} onClick={() => setTab('rules')}><i className="fa-solid fa-sliders" /> Rules</button>
+            <button className={tab === 'reminders' ? 'on' : ''} onClick={() => setTab('reminders')}><i className="fa-solid fa-bell" /> Reminders</button>
           </div>
 
           {tab === 'standings' && <>
@@ -220,6 +319,35 @@ const PracticePassAdmin: React.FC = () => {
               </table>
             </div>
           </>}
+
+          {tab === 'reminders' && (
+            <div className="pb-card pb-table-wrap">
+              <div className="pb-row" style={{ padding: '12px 14px' }}>
+                <span className="pb-grow pb-muted" style={{ fontSize: 13 }}>Reminders go out only when you send them{effTenant?.remindersEnabled ? ' — plus the automatic 7 PM WhatsApp reminder, which is ON under Rules' : ''}. Email is free; WhatsApp is charged per message.</span>
+                <button className="pb-btn pb-btn-sm" onClick={loadHistory}><i className="fa-solid fa-rotate" /></button>
+                <button className="pb-btn pb-btn-sm pb-btn-primary" onClick={() => setReminding(true)}><i className="fa-solid fa-bell" /> Send reminder</button>
+              </div>
+              <table className="pb-table">
+                <thead><tr><th>When</th><th>Who</th><th>Batch</th><th>Students</th><th>Email</th><th>WhatsApp</th><th>Est. cost</th><th>Status</th></tr></thead>
+                <tbody>
+                  {history === null && <tr><td colSpan={8} className="pb-muted" style={{ textAlign: 'center', padding: 24 }}><span className="pb-spinner" /></td></tr>}
+                  {history && !history.length && <tr><td colSpan={8} className="pb-muted" style={{ textAlign: 'center', padding: 24 }}>No reminders sent yet.</td></tr>}
+                  {history?.map((h) => (
+                    <tr key={h._id} style={{ cursor: 'default' }}>
+                      <td>{new Date(h.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
+                      <td>{AUD_LABEL[h.audience] || h.audience}</td>
+                      <td className="pb-muted">{h.batchId ? (ov.batches.find((b) => b._id === h.batchId)?.name || '—') : 'All'}</td>
+                      <td>{h.total}</td>
+                      <td>{h.channels.includes('email') ? <>{h.emailSent}{h.emailFailed ? <span style={{ color: 'var(--pb-bad)' }}> · {h.emailFailed} failed</span> : null}</> : <span className="pb-faint">—</span>}</td>
+                      <td>{h.channels.includes('whatsapp') ? <>{h.whatsappSent}{h.whatsappFailed ? <span style={{ color: 'var(--pb-bad)' }}> · {h.whatsappFailed} failed</span> : null}</> : <span className="pb-faint">—</span>}</td>
+                      <td>{h.channels.includes('whatsapp') ? inr(h.estimatedCostInr) : <span className="pb-faint">free</span>}</td>
+                      <td>{h.status === 'done' ? <span className="pb-pill pb-badge-ok">Done</span> : <span className="pb-pill pb-badge-warn">Sending…</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {tab === 'rules' && effTenant && <>
             <div className="pb-card" style={{ padding: 16, marginBottom: 14 }}>
@@ -274,6 +402,7 @@ const PracticePassAdmin: React.FC = () => {
           </>}
         </>}
       </div>
+      {reminding && <ReminderModal batches={ov.batches} initialBatch={batchId} onClose={() => setReminding(false)} onSent={(m) => { setReminding(false); toast.show(m); setTab('reminders'); loadHistory(); }} />}
       {editing && <RuleEditor {...editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); toast.show('Saved and recalculated.'); loadOv(); loadStandings(); }} />}
       {cal && (
         <Modal title={`${cal.row.name} — ${cal.row.pct}% practice`} onClose={() => setCal(null)} wide>

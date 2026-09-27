@@ -138,3 +138,38 @@ const PracticeStandingSchema = new Schema<IPracticeStanding>({
 PracticeStandingSchema.index({ tenantId: 1, batchId: 1, onHold: 1 });
 
 export const PracticeStanding = mongoose.model<IPracticeStanding>('PracticeStanding', PracticeStandingSchema);
+
+/* ── Reminders an admin sent ──────────────────────────────────────────────────────────────── */
+
+export interface IPracticeReminderLog extends Document {
+  tenantId: string;
+  audience: string;
+  batchId?: string;
+  channels: string[];
+  total: number;
+  whatsappSent: number;
+  whatsappFailed: number;
+  emailSent: number;
+  emailFailed: number;
+  estimatedCostInr: number;
+  status: 'running' | 'done';
+  createdBy?: string;
+  createdAt: Date;
+}
+
+const PracticeReminderLogSchema = new Schema<IPracticeReminderLog>({
+  tenantId: { type: String, required: true, index: true },
+  audience: String,
+  batchId: String,
+  channels: [String],
+  total: { type: Number, default: 0 },
+  whatsappSent: { type: Number, default: 0 },
+  whatsappFailed: { type: Number, default: 0 },
+  emailSent: { type: Number, default: 0 },
+  emailFailed: { type: Number, default: 0 },
+  estimatedCostInr: { type: Number, default: 0 },
+  status: { type: String, default: 'running' },
+  createdBy: String,
+}, { timestamps: true });
+
+export const PracticeReminderLog = mongoose.model<IPracticeReminderLog>('PracticeReminderLog', PracticeReminderLogSchema);

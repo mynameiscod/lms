@@ -95,8 +95,29 @@ const STARTERS: { title: string; input: WaTemplateInput }[] = [
   },
 ];
 
+/** Ready-written drafts for uses where the generic "label: value" text would read badly. */
+const PURPOSE_DRAFTS: Record<string, WaTemplateInput> = {
+  PRACTICE_REMINDER: {
+    name: 'daily_practice_reminder', language: 'en', category: 'UTILITY',
+    header: { format: 'NONE' },
+    body: 'Hi {{1}}, your daily practice for today is still pending: {{2}}.\n\nFinish it before midnight so today counts towards your practice attendance and placement support.',
+    bodyExamples: ['Ravi', 'Communication Lab, Coding problem'],
+    footer: 'CodeBegun · Daily Practice Pass',
+    buttons: [],
+  },
+  WEEKLY_REPORT: {
+    name: 'weekly_learning_report', language: 'en', category: 'UTILITY',
+    header: { format: 'NONE' },
+    body: 'Hi {{1}}, here is your weekly learning report for {{2}}.\n\n🔥 Practice days: *{{3}}*\n📊 Practice attendance: *{{4}}*\n⭐ Overall score: *{{5}}*\n\nYour full report has been sent to your email.',
+    bodyExamples: ['Ravi', '22–27 Sep', '4 of 6', '72%', '68/100'],
+    footer: 'CodeBegun · Weekly report',
+    buttons: [],
+  },
+};
+
 /** A draft suited to a system use — the right number of variables and a button slot if it has one. */
 function draftForPurpose(p: WaPurpose): WaTemplateInput {
+  if (PURPOSE_DRAFTS[p.key]) return { ...PURPOSE_DRAFTS[p.key] };
   if (p.requiredCategory === 'AUTHENTICATION') {
     return { name: `${p.key.toLowerCase()}_code`, language: 'en', category: 'AUTHENTICATION', auth: { securityRecommendation: true, codeExpiryMinutes: 10 } };
   }

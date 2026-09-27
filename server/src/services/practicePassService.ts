@@ -1,7 +1,9 @@
 import mongoose from 'mongoose';
 import {
-  PracticePolicy, PracticeDay, PracticeStanding, PRACTICE_TASKS, PracticeTask, TaskCounts, IPracticePolicy,
+  PracticePolicy, PracticeDay, PracticeStanding, PracticeReminderLog, PRACTICE_TASKS, PracticeTask, TaskCounts, IPracticePolicy,
 } from '../models/PracticePass';
+import { EmailService } from './emailService';
+import { estimateCost, purposeTemplate, sendByPurpose, waCostPerMessage } from './purposeMessaging';
 
 /**
  * Daily Practice Pass — the engine.
@@ -20,7 +22,8 @@ export class PracticeError extends Error { constructor(message: string, public s
 
 const MIN_RECORDING_SECONDS = 20;
 const DEFAULT_REQUIREMENTS: Required<TaskCounts> = { communication: 1, coding_problem: 1, assignment: 0, thinking_lab: 1 };
-const DEFAULTS = { thresholdPct: 80, windowDays: 30, enforce: true, remindersEnabled: true };
+// Automatic reminders stay OFF unless an admin turns them on: every WhatsApp message costs money.
+const DEFAULTS = { thresholdPct: 80, windowDays: 30, enforce: true, remindersEnabled: false };
 
 export const istToday = () => new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
 const istDay = (d: Date | string) => new Date(new Date(d).getTime() + 5.5 * 3600_000).toISOString().slice(0, 10);
@@ -427,7 +430,7 @@ export async function studentCalendar(tenantId: string, studentId: string) {
 /** Students with work left today, for the evening reminder. */
 export async function pendingToday(tenantId: string) {
   const { tenant, byBatch, byStudent } = await policiesFor(tenantId);
-  if (!tenant?.startDate || tenant.remindersEnabled === false) return [];
+  if (!tenant?.startDate || tenant.remindersEnabled !== true) return [];
   const students = await lmsStudents(tenantId);
   await recompute(tenantId, students);
   const today = istToday();
@@ -440,3 +443,118 @@ export async function pendingToday(tenantId: string) {
     return { studentId: String(s._id), name: s.firstName || 'there', phone: s.phone, left };
   });
 }
+
+/* ── Admin-sent reminders ────────────────────────────────────────────────────────────────── */
+
+export type ReminderAudience = 'pending_today' | 'missed_yesterday' | 'at_risk' | 'on_hold' | 'selected';
+
+/** Who a reminder would reach, with what is left for each of them today. */
+async function reminderTargets(tenantId: string, q: { audience: ReminderAudience; batchId?: string; studentIds?: string[] }) {
+  const { tenant, byBatch, byStudent } = await policiesFor(tenantId);
+  if (!tenant?.startDate) throw new PracticeError('Switch the Practice Pass on first.');
+  const students = await lmsStudents(tenantId, q.batchId ? { batchId: oid(q.batchId) } : {});
+  await recompute(tenantId, students);
+  const today = istToday();
+  const ids = students.map((s) => String(s._id));
+  const [standings, days] = await Promise.all([
+    PracticeStanding.find({ tenantId, studentId: { $in: ids } }).lean(),
+    PracticeDay.find({ tenantId, date: today, studentId: { $in: ids } }).lean(),
+  ]);
+  const sm = new Map(standings.map((x) => [x.studentId, x]));
+  const dm = new Map(days.map((x) => [x.studentId, x]));
+  const picked = new Set((q.studentIds || []).map(String));
+  return students.filter((s) => {
+    const id = String(s._id);
+    const st: any = sm.get(id);
+    const d: any = dm.get(id);
+    if (!st || st.exempt) return false;
+    switch (q.audience) {
+      case 'pending_today': return !!d && !d.met && !d.excused;
+      case 'missed_yesterday': return !!st.missedYesterday;
+      case 'at_risk': return !st.onHold && st.pct < st.thresholdPct;
+      case 'on_hold': return !!st.onHold;
+      case 'selected': return picked.has(id);
+      default: return false;
+    }
+  }).map((s) => {
+    const id = String(s._id);
+    const pol = resolve(tenant, byBatch.get(String(s.batchId)), byStudent.get(id));
+    const d: any = dm.get(id);
+    const st: any = sm.get(id);
+    const left = PRACTICE_TASKS.filter((t) => pol.requirements[t] > ((d?.done as any)?.[t] || 0)).map((t) => TASK_META[t].label);
+    return {
+      studentId: id, name: s.firstName || 'there', phone: s.phone || '', email: s.email || '', left,
+      pct: st?.pct ?? 100, threshold: st?.thresholdPct ?? pol.thresholdPct, onHold: !!st?.onHold,
+    };
+  });
+}
+
+const escHtml = (x: string) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' } as any)[c]);
+
+function reminderEmail(t: { name: string; left: string[]; pct: number; threshold: number; onHold: boolean }, origin: string) {
+  const tasks = t.left.length
+    ? `<p>Still left today:</p><ul>${t.left.map((l) => `<li><b>${escHtml(l)}</b></li>`).join('')}</ul>`
+    : '<p>Keep your daily practice going.</p>';
+  const hold = t.onHold
+    ? '<p style="background:#fef2f2;color:#991b1b;padding:10px 12px;border-radius:8px">Your placement support is <b>on hold</b>. Complete your daily practice to lift it.</p>'
+    : '';
+  return `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:auto;color:#0f172a">
+  <h2 style="margin:0 0 8px">Hi ${escHtml(t.name)}, your daily practice is waiting</h2>
+  ${tasks}
+  <p>Your practice attendance is <b>${t.pct}%</b>. Placement support needs <b>${t.threshold}%</b>.</p>
+  ${hold}
+  <p><a href="${origin}/my-practice" style="display:inline-block;background:#4f46e5;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:700">Open my practice</a></p>
+  <p style="color:#64748b;font-size:12px">CodeBegun · Daily Practice Pass</p></div>`;
+}
+
+/**
+ * Send, or with dryRun only count and price, a reminder. Nothing goes out unless an admin
+ * presses Send; the dry run shows how many messages and roughly what WhatsApp will cost.
+ */
+export async function sendReminders(tenantId: string, userId: string, body: {
+  audience: ReminderAudience; batchId?: string; studentIds?: string[]; channels: string[]; dryRun?: boolean; origin?: string;
+}) {
+  const channels = (body.channels || []).filter((c) => c === 'whatsapp' || c === 'email');
+  if (!channels.length) throw new PracticeError('Choose Email, WhatsApp or both.');
+  const targets = await reminderTargets(tenantId, body);
+  const withPhone = targets.filter((t) => t.phone).length;
+  const withEmail = targets.filter((t) => t.email).length;
+  const waReady = !!purposeTemplate(tenantId, 'PRACTICE_REMINDER');
+  const waMessages = channels.includes('whatsapp') && waReady ? withPhone : 0;
+  const preview = {
+    recipients: targets.length, withPhone, withEmail, whatsappTemplateReady: waReady,
+    costPerMessageInr: waCostPerMessage(tenantId), estimatedCostInr: estimateCost(tenantId, waMessages),
+    sample: targets.slice(0, 8).map((t) => ({ name: t.name, pct: t.pct, left: t.left })),
+  };
+  if (body.dryRun) return preview;
+  if (!targets.length) throw new PracticeError('Nobody matches, so no reminder was sent.');
+  if (channels.includes('whatsapp') && !waReady && !channels.includes('email')) {
+    throw new PracticeError('No WhatsApp template is assigned for "Daily practice — evening reminder". Assign one in WhatsApp Templates, or send by email.');
+  }
+  const log = await PracticeReminderLog.create({
+    tenantId, audience: body.audience, batchId: body.batchId, channels, total: targets.length,
+    estimatedCostInr: preview.estimatedCostInr, createdBy: userId,
+  });
+  const origin = body.origin || 'https://platform.codebegun.com';
+  (async () => {
+    const mailer = new EmailService(tenantId);
+    const c = { whatsappSent: 0, whatsappFailed: 0, emailSent: 0, emailFailed: 0 };
+    for (const t of targets) {
+      if (channels.includes('whatsapp') && waReady && t.phone) {
+        const r = await sendByPurpose(tenantId, t.phone, 'PRACTICE_REMINDER', [t.name, t.left.join(', ') || 'your daily practice']);
+        if (r.ok) c.whatsappSent++; else c.whatsappFailed++;
+        await new Promise((ok) => setTimeout(ok, 150));
+      }
+      if (channels.includes('email') && t.email) {
+        const subject = t.onHold ? 'Your placement support is on hold: practise today' : 'Your daily practice is waiting';
+        const ok = await mailer.sendGenericEmail(t.email, subject, reminderEmail(t, origin)).catch(() => false);
+        if (ok) c.emailSent++; else c.emailFailed++;
+      }
+    }
+    await PracticeReminderLog.updateOne({ _id: log._id }, { $set: { ...c, status: 'done' } });
+  })().catch((e) => console.error('[practice-pass] reminder send failed', e?.message));
+  return { ...preview, logId: log._id, started: true };
+}
+
+export const reminderHistory = (tenantId: string) =>
+  PracticeReminderLog.find({ tenantId }).sort({ createdAt: -1 }).limit(30).lean();

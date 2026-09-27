@@ -20,7 +20,9 @@
 
 import { PilotBundle } from './pilotUnitContent';
 import { STANDING_BUNDLES } from './year4ContentStanding';
+import { BRIDGE_PROGRAMMING_BUNDLES } from './year4ContentBridgeProgramming';
 
 export const ALL_YEAR4_BUNDLES: PilotBundle[] = [
   ...STANDING_BUNDLES,
+  ...BRIDGE_PROGRAMMING_BUNDLES,
 ];

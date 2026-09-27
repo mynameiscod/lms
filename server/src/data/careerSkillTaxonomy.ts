@@ -400,6 +400,35 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'TECHNICAL_INTERVIEW_PREP', name: 'Technical Interview Preparation', parentKey: 'PROFESSIONAL_SKILLS', difficulty: 'INTERMEDIATE', displayOrder: 7,
     description: 'Reading a coding problem, reaching a working answer, improving it, and explaining the trade-off aloud.',
     prerequisiteKeys: ['PROBLEM_SOLVING'] },
+
+  /**
+   * Year 4: the two things a placement year measures that nothing above does.
+   *
+   * ── WHY PREPARATION AND PERFORMANCE ARE NOT ONE SKILL ─────────────────────────────────
+   *
+   * TECHNICAL_INTERVIEW_PREP is solving a problem and explaining it. INTERVIEW_PERFORMANCE is
+   * doing that for ninety minutes, across rounds, with somebody watching and the clock running —
+   * and the students who lose offers overwhelmingly lose them on the second while holding the
+   * first. A single skill would score them on their preparation and report them ready.
+   *
+   * ── AND WHY PLACEMENT IS NOT INTERNSHIP_READINESS ─────────────────────────────────────
+   *
+   * INTERNSHIP_READINESS is reading a job description and tailoring a resume to it — Year-2 work
+   * and still correct there. A drive is a different object: rounds in a fixed order, a
+   * shortlisting rule between each, eligibility criteria, several companies at once and a
+   * fortnight to run the whole thing. Knowing how to apply does not tell a student what happens
+   * after they do.
+   */
+  { key: 'INTERVIEW_PERFORMANCE', name: 'Interview Performance', parentKey: 'PROFESSIONAL_SKILLS',
+    difficulty: 'ADVANCED', displayOrder: 8,
+    description: 'Holding up across a full interview loop: thinking aloud under time, recovering from a wrong start, and taking a follow-up without losing the thread.',
+    aliases: ['Mock Interview', 'Interview Skills'],
+    prerequisiteKeys: ['TECHNICAL_INTERVIEW_PREP', 'TECHNICAL_EXPLANATION'] },
+  { key: 'PLACEMENT_READINESS', name: 'Placement Readiness', parentKey: 'PROFESSIONAL_SKILLS',
+    difficulty: 'ADVANCED', displayOrder: 9,
+    description: 'How a drive actually runs: eligibility, the order of the rounds, what each one screens for, and tracking several applications at once without losing any.',
+    aliases: ['Campus Placement', 'Placement Preparation'],
+    prerequisiteKeys: ['INTERNSHIP_READINESS'] },
   { key: 'COMMUNICATION', name: 'Communication', parentKey: 'PROFESSIONAL_SKILLS', difficulty: 'FOUNDATION', displayOrder: 10,
     description: 'Speaking and writing clearly to a non-specialist.' },
   { key: 'TECHNICAL_COMMUNICATION', name: 'Technical Communication', parentKey: 'PROFESSIONAL_SKILLS', difficulty: 'INTERMEDIATE', displayOrder: 20,

@@ -37,6 +37,7 @@ import {
 } from './foundationStageSkillSet';
 import { buildStageRequirements, BUILD_STAGE, BUILD_SET_LABEL } from './year2StageSkillSet';
 import { specializeStageRequirements, SPECIALIZE_STAGE, SPECIALIZE_SET_LABEL } from './year3StageSkillSet';
+import { placementStageRequirements, PLACEMENT_STAGE, PLACEMENT_SET_LABEL } from './year4StageSkillSet';
 
 dotenv.config();
 
@@ -56,6 +57,34 @@ export interface SeedStageSetReport {
   unknownSkillKeys: string[];
 }
 
+/**
+ * The four years, each with its own stage, its own label and its own bar.
+ *
+ * A table rather than a chain. With two years this was a pair of ternaries repeated three
+ * times; with three it became a chain repeated three times, and the failure mode of that shape
+ * is one of the three disagreeing — a set written under Year 3's stage key carrying Year 2's
+ * label, or measured against Year 2's bar.
+ *
+ * It lives at module scope rather than inside the function because the CLI needs it too, and
+ * the CLI is where that exact failure had already happened: its report resolved the label with
+ * `year2 ? BUILD_SET_LABEL : FOUNDATION_SET_LABEL`, so every Year-3 run printed "CareerPilot
+ * Year 1 — Foundation" over a Year-3 set and told the operator to re-run without `--year3`.
+ * The write was correct; only the account of it was wrong, which is the kind of bug that is
+ * believed for months.
+ */
+export const STAGE_SET_YEARS = {
+  foundation: { stage: FOUNDATION_STAGE, label: FOUNDATION_SET_LABEL, requirements: foundationStageRequirements, flag: '' },
+  build:      { stage: BUILD_STAGE,      label: BUILD_SET_LABEL,      requirements: buildStageRequirements,      flag: ' --year2' },
+  specialize: { stage: SPECIALIZE_STAGE, label: SPECIALIZE_SET_LABEL, requirements: specializeStageRequirements, flag: ' --year3' },
+  placement:  { stage: PLACEMENT_STAGE,  label: PLACEMENT_SET_LABEL,  requirements: placementStageRequirements,  flag: ' --year4' },
+} as const;
+
+export type StageSetYear = keyof typeof STAGE_SET_YEARS;
+
+/** Which year a set of flags is asking for. Latest year wins, so the flags cannot contradict. */
+export const stageSetYearOf = (o: { year2?: boolean; year3?: boolean; year4?: boolean }): StageSetYear =>
+  o.year4 ? 'placement' : o.year3 ? 'specialize' : o.year2 ? 'build' : 'foundation';
+
 export async function seedFoundationStageSkillSet(opts: {
   tenantId: string;
   apply?: boolean;
@@ -72,21 +101,12 @@ export async function seedFoundationStageSkillSet(opts: {
   year2?: boolean;
   /** Write the Year-3 set. Same rule: its own row, its own stage, its own bar. */
   year3?: boolean;
+  /** Write the Year-4 set. Same rule again. */
+  year4?: boolean;
 }): Promise<SeedStageSetReport> {
-  /*
-   * A table rather than a chain. With two years this was a pair of ternaries repeated three
-   * times; with three it becomes a chain repeated three times, and the failure mode of that
-   * shape is one of the three disagreeing — a set written under Year 3's stage key carrying
-   * Year 2's label, or measured against Year 2's bar.
-   */
-  const YEARS = {
-    foundation: { stage: FOUNDATION_STAGE, label: FOUNDATION_SET_LABEL, requirements: foundationStageRequirements },
-    build: { stage: BUILD_STAGE, label: BUILD_SET_LABEL, requirements: buildStageRequirements },
-    specialize: { stage: SPECIALIZE_STAGE, label: SPECIALIZE_SET_LABEL, requirements: specializeStageRequirements },
-  } as const;
-  const year = opts.year3 ? 'specialize' : opts.year2 ? 'build' : 'foundation';
-  const { stage, label } = YEARS[year];
-  const built = YEARS[year].requirements();
+  const year = stageSetYearOf(opts);
+  const { stage, label } = STAGE_SET_YEARS[year];
+  const built = STAGE_SET_YEARS[year].requirements();
   const report: SeedStageSetReport = {
     created: false, updated: false, skippedExisting: false, enabled: false,
     skills: built.summary.skills,
@@ -156,14 +176,18 @@ if (require.main === module) {
     const replace = process.argv.includes('--replace');
     const year2 = process.argv.includes('--year2');
     const year3 = process.argv.includes('--year3');
+    const year4 = process.argv.includes('--year4');
     if (!tenantId) {
-      console.error('Usage: seedFoundationStageSkillSet.ts <tenantId> [--apply] [--enable] [--replace] [--year2|--year3]');
+      console.error('Usage: seedFoundationStageSkillSet.ts <tenantId> [--apply] [--enable] [--replace] [--year2|--year3|--year4]');
       process.exit(1);
     }
 
     await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI || '');
-    const built = year3 ? specializeStageRequirements() : year2 ? buildStageRequirements() : foundationStageRequirements();
-    const r = await seedFoundationStageSkillSet({ tenantId, apply: apply || enable, enable, replace, year2, year3 });
+    /* One resolution, shared with the write below, so the report cannot describe another year. */
+    const year = stageSetYearOf({ year2, year3, year4 });
+    const { stage, label, flag } = STAGE_SET_YEARS[year];
+    const built = STAGE_SET_YEARS[year].requirements();
+    const r = await seedFoundationStageSkillSet({ tenantId, apply: apply || enable, enable, replace, year2, year3, year4 });
 
     if (r.unknownSkillKeys.length) {
       console.error('\nREFUSED — these skill keys do not exist in the taxonomy:');
@@ -173,7 +197,7 @@ if (require.main === module) {
       process.exit(1);
     }
 
-    console.log(`\n${year2 ? BUILD_SET_LABEL : FOUNDATION_SET_LABEL} → stage skill set "${year2 ? BUILD_STAGE : FOUNDATION_STAGE}"`);
+    console.log(`\n${label} → stage skill set "${stage}"`);
     console.log(`  modules            : ${built.summary.modules}`);
     console.log(`  topics             : ${built.summary.topics}`);
     console.log(`  skills             : ${r.skills}`);
@@ -188,16 +212,16 @@ if (require.main === module) {
     }
 
     if (r.skippedExisting) {
-      console.log(`\nLEFT ALONE — this tenant already has a curated ${year2 ? BUILD_STAGE : FOUNDATION_STAGE} set.`);
+      console.log(`\nLEFT ALONE — this tenant already has a curated ${stage} set.`);
       console.log('Pass --replace to overwrite it with the module-derived one.');
     } else if (apply || enable) {
       console.log(`\n${r.created ? 'CREATED' : 'UPDATED'}  —  enabled = ${r.enabled}`);
       if (!r.enabled) {
         console.log('\nIt is written but OFF, so nothing has changed for any student yet.');
         console.log('Turn it on when the list says what you want it to say:');
-        console.log(`  npx ts-node src/seeds/careerPilot/seedFoundationStageSkillSet.ts ${tenantId} --apply --enable${year2 ? ' --year2' : ''}`);
+        console.log(`  npx ts-node src/seeds/careerPilot/seedFoundationStageSkillSet.ts ${tenantId} --apply --enable${flag}`);
       } else {
-        console.log('\nFirst-years with no chosen role are now planned against the Year-1 modules.');
+        console.log(`\nStudents on '${stage}' with no chosen role are now planned against the ${label} modules.`);
         console.log('Author their journeys in the Learning Studio:  /admin/learning-studio');
       }
     } else {

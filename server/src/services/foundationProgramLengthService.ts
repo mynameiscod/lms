@@ -55,6 +55,19 @@ export const DEFAULT_PROGRAM_DAYS_BY_STAGE: Record<string, number> = {
    * length to be admin-set, so this is only where a tenant starts.
    */
   specialize: 130,
+  /*
+   * 150 for placement, on the same footing again: where a tenant starts, not a claim.
+   *
+   * Longest of the four because Year 4 is the only year that carries a whole second programme
+   * beside its teaching. The curriculum is thirty days of bridge, engineering build and
+   * specialization, then a production project — and then placement practice, which the spec is
+   * explicit is CONTINUOUS rather than a final module: coding sets, aptitude, technical MCQs,
+   * interview practice, ten mock interviews and a six-round simulation, all running alongside.
+   *
+   * Without an entry here `placement` fell through to DEFAULT_PROGRAM_DAYS and quietly ran Year 4
+   * on Year 1's ninety days.
+   */
+  placement: 150,
 };
 
 export const defaultProgramDaysFor = (stageKey?: string | null): number =>

@@ -40,6 +40,8 @@ import { ALL_YEAR2_BUNDLES } from './year2Bundles';
 import { primarySkillFor } from './year2SkillAttribution';
 import { ALL_YEAR3_BUNDLES } from './year3Bundles';
 import { primarySkillFor as primarySkillForYear3 } from './year3SkillAttribution';
+import { ALL_YEAR4_BUNDLES } from './year4Bundles';
+import { primarySkillFor as primarySkillForYear4 } from './year4SkillAttribution';
 import { findDuplication, identifyingWordsFor } from '../../services/contentDuplicationService';
 
 dotenv.config();
@@ -91,17 +93,41 @@ const readingMinutes = (text: string): number =>
    * and inspected in batches rather than all at once.
    */
   const year3 = process.argv.includes('--year3');
-  const bundles = year3 ? ALL_YEAR3_BUNDLES : year2 ? ALL_YEAR2_BUNDLES : ALL_BUNDLES;
-  /** The attribution table for the year being seeded, or none for Year 1's single-skill topics. */
-  const attributionFor = year3 ? primarySkillForYear3 : year2 ? primarySkillFor : null;
-  /** Shown in the header, so a runbook transcript says which year was seeded. */
-  const label = year3 ? 'YEAR-3' : year2 ? 'YEAR-2' : 'PILOT';
-  if (!tenantId) {
-    console.error('Usage: seedPilotUnitContent.ts <tenantId> [--apply] [--year2|--year3]');
+  /**
+   * Year 4 differs from Year 3 only in degree again: EIGHTY-NINE of its ninety-six topics declare
+   * more than one skill, because almost every Year-4 topic is an act rather than a subject — an
+   * interview round, a mock, a drill, a simulation — and an act draws on several skills at once.
+   * So it needs its own attribution table for the same reason and more urgently still.
+   *
+   * Its bundle list is also deliberately incomplete while the year is being authored.
+   */
+  const year4 = process.argv.includes('--year4');
+
+  /*
+   * A table rather than a chain of ternaries. Three years made the chain repeat four times and
+   * the failure mode of that shape is one of the four disagreeing — Year 3's bundles seeded with
+   * Year 2's attribution table, which would silently mis-map every checkpoint question in the
+   * year. The same fix was already needed in seedFoundationStageSkillSet for the same reason.
+   */
+  const YEARS = {
+    1: { bundles: ALL_BUNDLES, attribution: null, label: 'PILOT' },
+    2: { bundles: ALL_YEAR2_BUNDLES, attribution: primarySkillFor, label: 'YEAR-2' },
+    3: { bundles: ALL_YEAR3_BUNDLES, attribution: primarySkillForYear3, label: 'YEAR-3' },
+    4: { bundles: ALL_YEAR4_BUNDLES, attribution: primarySkillForYear4, label: 'YEAR-4' },
+  } as const;
+  const chosen = [year2 && 2, year3 && 3, year4 && 4].filter(Boolean) as number[];
+  if (chosen.length > 1) {
+    console.error('Pass one of --year2, --year3 or --year4, not several.');
     process.exit(1);
   }
-  if (year2 && year3) {
-    console.error('Pass one of --year2 or --year3, not both.');
+  const year = (chosen[0] || 1) as 1 | 2 | 3 | 4;
+  const bundles = YEARS[year].bundles;
+  /** The attribution table for the year being seeded, or none for Year 1's single-skill topics. */
+  const attributionFor = YEARS[year].attribution;
+  /** Shown in the header, so a runbook transcript says which year was seeded. */
+  const label = YEARS[year].label;
+  if (!tenantId) {
+    console.error('Usage: seedPilotUnitContent.ts <tenantId> [--apply] [--year2|--year3|--year4]');
     process.exit(1);
   }
 
@@ -139,7 +165,7 @@ const readingMinutes = (text: string): number =>
 
   console.log(`\n${label} UNIT CONTENT  ·  tenant ${tenantId}`);
   console.log(attributionFor
-    ? `  units: ${bundles.length} authored, attribution from ${year3 ? 'year3' : 'year2'}SkillAttribution`
+    ? `  units: ${bundles.length} authored, attribution from year${year}SkillAttribution`
     : `  topics: ${PILOT_TOPICS.join(', ')}`);
   console.log(apply ? '\nAPPLYING\n' : '\nDRY RUN — pass --apply to write\n');
 

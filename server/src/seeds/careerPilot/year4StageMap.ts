@@ -175,7 +175,9 @@ const TRACKS: TrackSpec[] = [
     moduleName: 'Specialization — Frontend Engineering',
     blurb: 'Advanced web work: state, performance and the users other people forget.',
     depthSkills: ['STATE_MANAGEMENT', 'BROWSER_FUNDAMENTALS', 'JS_ASYNC'],
-    buildSkills: ['RESPONSIVE_DESIGN', 'JS_DOM', 'HTML_FORMS'],
+    /* JS_ASYNC as well as the DEPTH topic's: this topic's first lesson is loading, failure
+     * and out-of-order responses, and an attribution has to be able to say so. */
+    buildSkills: ['RESPONSIVE_DESIGN', 'JS_ASYNC', 'JS_DOM', 'HTML_FORMS'],
     qualitySkills: ['WEB_ACCESSIBILITY', 'WEB_SECURITY', 'DEBUGGING'],
     proofSkills: ['STATE_MANAGEMENT', 'TECHNICAL_EXPLANATION'],
     prerequisites: ['JS_BASICS', 'CSS', 'HTTP'],

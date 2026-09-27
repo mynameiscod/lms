@@ -174,6 +174,16 @@ export const POLICIES = {
     max: 20, windowMs: 60 * 60_000,
     message: 'Too many redemption attempts. Please wait a moment and try again.',
   },
+  /** Problem Bank AI drafting — each call is several model requests plus judge runs. */
+  problemBankAi: {
+    max: 20, windowMs: 60 * 60_000,
+    message: 'Too many AI generations this hour. Please wait a little and try again.',
+  },
+  /** Problem Bank studio runs and output generation — they share the code runner with students. */
+  problemBankRun: {
+    max: 60, windowMs: 10 * 60_000,
+    message: 'Too many runs in a short time. Please wait a moment — the code runner is shared with students.',
+  },
 } satisfies Record<string, RateLimitPolicy>;
 
 export type PolicyName = keyof typeof POLICIES;

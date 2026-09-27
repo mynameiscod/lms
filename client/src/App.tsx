@@ -77,6 +77,8 @@ const BulkUploadPage = lazy(() => import('./pages/BulkUpload'));
 const RecordingDiagnostics = lazy(() => import('./pages/RecordingDiagnostics'));
 const PlatformSettings = lazy(() => import('./pages/PlatformSettings'));
 const WhatsAppTemplates = lazy(() => import('./pages/WhatsAppTemplates'));
+const ProblemBank = lazy(() => import('./pages/ProblemBank'));
+const ProblemStudio = lazy(() => import('./pages/ProblemBank/Studio'));
 const MyLeave = lazy(() => import('./pages/MyLeave'));
 const LeaveRequests = lazy(() => import('./pages/LeaveRequests'));
 const CodePlayground = lazy(() => import('./pages/CodePlayground'));
@@ -718,6 +720,37 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <RecordingDiagnostics />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/problem-bank"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <ProblemBank />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/problem-bank/new"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <ProblemStudio />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/problem-bank/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <ProblemStudio />
             </Layout>
           </ProtectedRoute>
         }

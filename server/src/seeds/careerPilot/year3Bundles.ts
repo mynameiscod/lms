@@ -41,6 +41,7 @@ import { FRONTEND_BUNDLES } from './year3ContentFrontend';
 import { FRONTEND_REST_BUNDLES } from './year3ContentFrontendRest';
 import { DATA_TRACK_BUNDLES } from './year3ContentDataTrack';
 import { DATA_REST_BUNDLES } from './year3ContentDataRest';
+import { ML_BUNDLES } from './year3ContentMl';
 
 export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...PATTERNS_BUNDLES,
@@ -65,4 +66,5 @@ export const ALL_YEAR3_BUNDLES: PilotBundle[] = [
   ...FRONTEND_REST_BUNDLES,
   ...DATA_TRACK_BUNDLES,
   ...DATA_REST_BUNDLES,
+  ...ML_BUNDLES,
 ];

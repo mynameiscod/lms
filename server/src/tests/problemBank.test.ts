@@ -190,3 +190,49 @@ describe('bulk import', () => {
     expect(() => parseImport('x.json', undefined, '{bad')).toThrow(/not valid JSON/);
   });
 });
+
+import { inAudience } from '../services/problemDeliveryService';
+import { problemBankFilter } from '../services/hackathonExamDrawService';
+
+describe('who a problem set is for', () => {
+  const base = { userId: 'u1', tenantId: 't1', role: 'STUDENT', batchId: 'b1', isLms: true, isCareerPilot: false, isStaff: false };
+  const set = (audience: any[]) => ({ audience } as any);
+
+  it('matches a batch, a named user, and the all-students targets', () => {
+    expect(inAudience(set([{ type: 'batch', id: 'b1' }]), base)).toBe(true);
+    expect(inAudience(set([{ type: 'batch', id: 'b2' }]), base)).toBe(false);
+    expect(inAudience(set([{ type: 'user', id: 'u1' }]), { ...base, batchId: '' })).toBe(true);
+    expect(inAudience(set([{ type: 'all_lms' }]), base)).toBe(true);
+  });
+
+  it('keeps LMS-only sets away from CareerPilot members and vice versa', () => {
+    const member = { ...base, batchId: '', isLms: false, isCareerPilot: true };
+    expect(inAudience(set([{ type: 'all_lms' }]), member)).toBe(false);
+    expect(inAudience(set([{ type: 'all_careerpilot' }]), member)).toBe(true);
+    expect(inAudience(set([{ type: 'all_careerpilot' }]), base)).toBe(false);
+  });
+
+  it('matches nobody when the set has no audience yet', () => {
+    expect(inAudience(set([]), base)).toBe(false);
+  });
+});
+
+describe('exam sections drawing from the Problem Bank', () => {
+  const section: any = { source: 'problem_bank', pbDifficulties: ['easy', 'medium'], topics: ['array'], tags: [], languages: ['java'] };
+
+  it('draws only published problems with tests, from the institute or the global library', () => {
+    const f = problemBankFilter('t1', section);
+    expect(f.status).toBe('published');
+    expect(f.testCount).toEqual({ $gt: 0 });
+    expect(f.$or).toEqual([{ scope: 'tenant', tenantId: 't1' }, { scope: 'global' }]);
+  });
+
+  it('narrows by difficulty, topic and language only when set', () => {
+    const f = problemBankFilter('t1', section);
+    expect(f.difficulty).toEqual({ $in: ['easy', 'medium'] });
+    expect(f.topics).toEqual({ $in: ['array'] });
+    expect(f['languages.language']).toEqual({ $in: ['java'] });
+    expect(f.tags).toBeUndefined();
+    expect(problemBankFilter('t1', { source: 'problem_bank' } as any).difficulty).toBeUndefined();
+  });
+});

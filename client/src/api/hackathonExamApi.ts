@@ -71,7 +71,9 @@ export interface ExamQuestion {
   starterCode?: string;
   functionSignature?: string;
   sampleCases?: { input: string; expectedOutput: string }[];
-  answer?: { selectedOptionIds?: string[]; code?: string; text?: string; runsUsed: number };
+  /** Problem Bank questions: languages the candidate may choose, each with its starter code. */
+  languages?: { language: string; starterCode: string }[];
+  answer?: { selectedOptionIds?: string[]; code?: string; text?: string; language?: string; runsUsed: number };
 }
 
 export interface ExamOverview {

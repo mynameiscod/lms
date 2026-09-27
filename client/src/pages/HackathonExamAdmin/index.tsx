@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { hackathonExamAdminApi as api } from '../../api/hackathonExamApi';
 import { assessmentAdminApi } from '../../api/assessmentAdminApi';
+import { problemBankApi, PbMeta } from '../../api/problemBankApi';
 import './hackathonExamAdmin.css';
 
 /**
@@ -42,6 +43,7 @@ const emptySection = (key: string) => ({
   key, label: '', types: ['mcq'], drawCount: 10,
   dimensions: [], tags: [], languages: [],
   minDifficulty: 1, maxDifficulty: 5, marksPerItem: 0,
+  source: 'assessment_bank', pbDifficulties: [], topics: [],
 });
 
 /**
@@ -239,6 +241,9 @@ const HackathonExamAdmin: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { assessmentAdminApi.tags().then(setBankTags).catch(() => {}); }, []);
+  // Problem Bank vocabulary for sections that draw from it; absent if this role cannot read the bank.
+  const [pbMeta, setPbMeta] = useState<PbMeta | null>(null);
+  useEffect(() => { problemBankApi.meta().then(setPbMeta).catch(() => {}); }, []);
 
   /* Live view polls; a stale number on a dashboard is worse than no number. */
   const pollRef = useRef<any>(null);
@@ -363,6 +368,51 @@ const HackathonExamAdmin: React.FC = () => {
                     <label>How many<input type="number" min={1} value={s.drawCount} onChange={(e) => upSection(i, { drawCount: Number(e.target.value) })} /></label>
                   </div>
                   <div className="hxa-row">
+                    <label>Questions from
+                      <select value={s.source || 'assessment_bank'} onChange={(e) => upSection(i, e.target.value === 'problem_bank'
+                        ? { source: 'problem_bank', types: ['live_code'] }
+                        : { source: 'assessment_bank' })}>
+                        <option value="assessment_bank">Exam question bank</option>
+                        <option value="problem_bank">Problem Bank (coding problems)</option>
+                      </select>
+                    </label>
+                  </div>
+                  {s.source === 'problem_bank' ? (
+                    <div className="hxa-row" style={{ display: 'block' }}>
+                      <label>Marks each (0 = the problem's own marks)
+                        <input type="number" min={0} value={s.marksPerItem} onChange={(e) => upSection(i, { marksPerItem: Number(e.target.value) })} />
+                      </label>
+                      <div className="hxa-pb">
+                        <span>Difficulty</span>
+                        {['easy', 'medium', 'hard'].map((d) => {
+                          const on = (s.pbDifficulties || []).includes(d);
+                          return <button type="button" key={d} className={`hxa-chip ${on ? 'on' : ''}`}
+                            onClick={() => upSection(i, { pbDifficulties: on ? s.pbDifficulties.filter((x: string) => x !== d) : [...(s.pbDifficulties || []), d] })}>{d}</button>;
+                        })}
+                        <small>none = any</small>
+                      </div>
+                      <div className="hxa-pb">
+                        <span>Topics</span>
+                        {(pbMeta?.topics || []).map((t) => {
+                          const on = (s.topics || []).includes(t.key);
+                          return <button type="button" key={t.key} className={`hxa-chip ${on ? 'on' : ''}`}
+                            onClick={() => upSection(i, { topics: on ? s.topics.filter((x: string) => x !== t.key) : [...(s.topics || []), t.key] })}>{t.label}</button>;
+                        })}
+                        {!pbMeta && <small>Problem Bank topics could not be loaded.</small>}
+                      </div>
+                      <div className="hxa-pb">
+                        <span>Languages</span>
+                        {(pbMeta?.languages || []).map((l) => {
+                          const on = (s.languages || []).includes(l.key);
+                          return <button type="button" key={l.key} className={`hxa-chip ${on ? 'on' : ''}`}
+                            onClick={() => upSection(i, { languages: on ? s.languages.filter((x: string) => x !== l.key) : [...(s.languages || []), l.key] })}>{l.label}</button>;
+                        })}
+                        <small>problems must allow at least one of these · none = any</small>
+                      </div>
+                      <p className="hxa-sub" style={{ margin: '6px 0 0' }}>Draws published problems from your institute and the CodeBegun library. Candidates choose any language the problem allows; grading uses every hidden test.</p>
+                    </div>
+                  ) : <>
+                  <div className="hxa-row">
                     <label>Type
                       <select value={s.types[0]} onChange={(e) => upSection(i, { types: [e.target.value] })}>
                         <option value="mcq">Multiple choice</option>
@@ -391,6 +441,7 @@ const HackathonExamAdmin: React.FC = () => {
                       </span>
                     </label>
                   </div>
+                  </>}
                   {cov && (
                     <div className={`hxa-cov ${cov.ok ? 'ok' : 'bad'}`}>
                       {cov.ok

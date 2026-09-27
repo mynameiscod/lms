@@ -75,6 +75,8 @@ export interface IDrawnItem {
   type: AssessmentItemType;
   /** Resolved at draw time from the section override or the item's own points. */
   marks: number;
+  /** Which store `itemId` points into. Absent on attempts drawn before the Problem Bank. */
+  source?: 'assessment_bank' | 'problem_bank';
 }
 
 export interface IAttemptAnswer {
@@ -212,6 +214,7 @@ const DrawnItemSchema = new Schema<IDrawnItem>({
   order:      { type: Number, required: true },
   type:       { type: String, required: true },
   marks:      { type: Number, required: true, min: 0 },
+  source:     { type: String, enum: ['assessment_bank', 'problem_bank'] },
 }, { _id: false });
 
 const AnswerSchema = new Schema<IAttemptAnswer>({

@@ -5,6 +5,7 @@ import { DifficultyPill, LANG_SHORT, Menu, ScopePill, StatusPill, VerifyBadge, r
 import ImportDialog from './ImportDialog';
 import AiDialog from './AiDialog';
 import MigrationDialog from './MigrationDialog';
+import { BankTabs } from './Sets';
 import './ProblemBank.css';
 
 /**
@@ -101,6 +102,8 @@ const ProblemBank: React.FC = () => {
             <button className="pb-btn pb-btn-primary" onClick={() => nav('/problem-bank/new')}><i className="fa-solid fa-plus" /> New problem</button>
           </div>
         </div>
+
+        <BankTabs active="problems" />
 
         {s && (
           <div className="pb-stats">

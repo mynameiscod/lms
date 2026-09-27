@@ -92,6 +92,7 @@
 
 .hx-code { margin-top: 4px; }
 .hx-ed-head { display: flex; justify-content: space-between; align-items: center; background: #0f172a; color: #cbd5e1; border-radius: 10px 10px 0 0; padding: 8px 13px; font-size: 12px; font-weight: 700; }
+.hx-lang { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
 .hx-runs { color: #93c5fd; }
 .hx-code :global(.monaco-editor) { border-radius: 0 0 10px 10px; }
 .hx-run { width: auto; padding: 9px 18px; font-size: 13.5px; margin-top: 12px; }

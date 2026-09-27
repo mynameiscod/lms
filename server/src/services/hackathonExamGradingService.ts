@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 import HackathonExamAttempt, { IHackathonExamAttempt } from '../models/HackathonExamAttempt';
 import HackathonExam, { IHackathonExam } from '../models/HackathonExam';
-import AssessmentItem from '../models/AssessmentItem';
+import { loadExamItems } from './examItemResolver';
+import { judge } from './problemJudgeService';
 import codeRunner from './codeRunnerService';
 import { ProgrammingLanguage } from '../models/Assignment';
 import { languageFor } from './assessmentItemValidationService';
@@ -67,9 +68,8 @@ async function gradeAnswers(attempt: IHackathonExamAttempt): Promise<void> {
     );
   }
 
-  const ids = attempt.drawnItems.map(d => d.itemId);
-  const items = await AssessmentItem.find({ _id: { $in: ids } }).lean() as any[];
-  const byId = new Map(items.map(i => [String(i._id), i]));
+  // Items come from the exam bank or the Problem Bank; the resolver loads each from its store.
+  const byId = await loadExamItems(attempt.drawnItems) as Map<string, any>;
 
   let total = 0;
   let executionFailed = false;
@@ -112,6 +112,44 @@ async function gradeAnswers(attempt: IHackathonExamAttempt): Promise<void> {
     if (item.type === 'predict_output') {
       answer.correct = normalize(answer.text || '') === normalize(item.expectedOutput || '');
       answer.score = answer.correct ? drawnItem.marks : 0;
+      answer.graded = true;
+      total += answer.score;
+      continue;
+    }
+
+    if (item.source === 'problem_bank' && (item.type === 'live_code' || item.type === 'sql')) {
+      const tests = item.testCases || [];
+      answer.testCasesTotal = tests.length;
+      if (!answer.code || !answer.code.trim()) {
+        answer.graded = true; answer.correct = false; answer.score = 0; answer.testCasesPassed = 0;
+        continue;
+      }
+      if (!tests.length) {
+        answer.graded = false;
+        answer.gradingNote = 'This question has no test cases to grade against.';
+        continue;
+      }
+      const lang = item.type === 'sql' ? 'sql' : (answer.language || item.language);
+      if (!(item.pb.languages || []).some((l: any) => l.language === lang)) {
+        answer.graded = false;
+        answer.gradingNote = `Submitted in ${lang}, which this problem does not allow.`;
+        continue;
+      }
+      let r;
+      try {
+        // Marks come from the draw, so a section override applies exactly as for bank items.
+        r = await judge({ ...item.pb, marks: drawnItem.marks }, lang, answer.code,
+          tests.map((t: any) => ({ input: t.input, expectedOutput: t.expectedOutput, isSample: !t.hidden, weight: t.weight })),
+          { revealHidden: false });
+      } catch {
+        executionFailed = true;
+        continue;
+      }
+      // A sandbox too busy to run is not a wrong answer: retry the attempt rather than score it.
+      if (r.cases.some((c) => c.verdict === 'BUSY')) { executionFailed = true; continue; }
+      answer.testCasesPassed = r.passed;
+      answer.correct = r.verdict === 'AC';
+      answer.score = r.score;
       answer.graded = true;
       total += answer.score;
       continue;

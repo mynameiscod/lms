@@ -184,6 +184,16 @@ export const POLICIES = {
     max: 60, windowMs: 10 * 60_000,
     message: 'Too many runs in a short time. Please wait a moment — the code runner is shared with students.',
   },
+  /** Learners pressing Run on a coding problem. Generous: running is how people debug. */
+  codingPracticeRun: {
+    max: 40, windowMs: 5 * 60_000,
+    message: 'You are running code very quickly — wait a few seconds and try again.',
+  },
+  /** Learners submitting a coding problem for grading (runs every hidden test). */
+  codingPracticeSubmit: {
+    max: 20, windowMs: 5 * 60_000,
+    message: 'Too many submissions in a few minutes. Take a moment to check your code, then submit again.',
+  },
 } satisfies Record<string, RateLimitPolicy>;
 
 export type PolicyName = keyof typeof POLICIES;

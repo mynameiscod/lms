@@ -108,6 +108,7 @@ import assessmentCandidatesRoutes from './assessmentCandidatesRoutes';
 import systemSettingsRoutes from './systemSettingsRoutes';
 import whatsAppTemplateRoutes from './whatsAppTemplateRoutes';
 import problemBankRoutes from './problemBankRoutes';
+import codingPracticeRoutes from './codingPracticeRoutes';
 import concernRoutes from './concernRoutes';
 import paymentRoutes from './paymentRoutes';
 import { webhook as paymentWebhook, paymentReturn } from '../controllers/paymentController';
@@ -213,6 +214,7 @@ router.use('/lead-distribution-config', leadDistributionRoutes);
 router.use('/whatsapp-drip-config', whatsappDripConfigRoutes);
 router.use('/whatsapp-templates', whatsAppTemplateRoutes); // author Meta templates in the LMS + assign to system uses
 router.use('/problem-bank', problemBankRoutes); // single store of runnable coding problems
+router.use('/coding-practice', codingPracticeRoutes); // learners solving problem sets from the bank
 router.use('/sales-call-recordings', salesCallRecordingRoutes);
 router.use('/google-leads', googleAdsRoutes);
 router.use('/ai-calls', aiCallRoutes);

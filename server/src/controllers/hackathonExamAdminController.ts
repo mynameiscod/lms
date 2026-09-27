@@ -5,8 +5,9 @@ import HackathonExamAttempt from '../models/HackathonExamAttempt';
 import HackathonRegistration from '../models/HackathonRegistration';
 import Hackathon from '../models/Hackathon';
 import { AuthenticatedRequest } from '../types';
-import { checkDrawCoverage, clearDrawPoolCache, sectionFilter } from '../services/hackathonExamDrawService';
+import { checkDrawCoverage, clearDrawPoolCache, sectionFilter, problemBankFilter } from '../services/hackathonExamDrawService';
 import AssessmentItem from '../models/AssessmentItem';
+import CodingProblem from '../models/CodingProblem';
 import * as exams from '../services/hackathonExamService';
 import { computeLeaderboard, computeTeamResult, drainGradingQueue } from '../services/hackathonExamGradingService';
 import { logger } from '../utils/logger';
@@ -578,12 +579,21 @@ export const getSectionPool = async (req: AuthenticatedRequest, res: Response) =
     const section = (exam.sections || []).find((s: any) => s.key === req.params.key);
     if (!section) return res.status(404).json({ success: false, message: 'Section not found.' });
 
-    const items = await AssessmentItem
-      .find(sectionFilter(String(exam.tenantId), section))
-      .select('_id type difficulty language points tags prompt')
-      .sort({ difficulty: 1, _id: 1 })
-      .limit(500)
-      .lean() as any[];
+    const items = section.source === 'problem_bank'
+      ? (await CodingProblem.find(problemBankFilter(String(exam.tenantId), section))
+        .select('_id kind difficulty languages.language marks tags topics title')
+        .sort({ difficulty: 1, _id: 1 }).limit(500).lean() as any[])
+        .map((p) => ({
+          _id: p._id, type: p.kind === 'sql' ? 'sql' : 'live_code', difficulty: p.difficulty,
+          language: (p.languages || []).map((l: any) => l.language).join(', '), points: p.marks,
+          tags: [...(p.topics || []), ...(p.tags || [])], prompt: p.title,
+        }))
+      : await AssessmentItem
+        .find(sectionFilter(String(exam.tenantId), section))
+        .select('_id type difficulty language points tags prompt')
+        .sort({ difficulty: 1, _id: 1 })
+        .limit(500)
+        .lean() as any[];
 
     res.json({
       success: true,

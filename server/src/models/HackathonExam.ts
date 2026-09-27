@@ -70,6 +70,15 @@ export interface IExamSection {
    * one event's weighting would silently reweight every other event using it.
    */
   marksPerItem: number;
+  /**
+   * Where the section's questions come from. 'assessment_bank' (the default, and every section
+   * written before the Problem Bank existed) draws AssessmentItems; 'problem_bank' draws
+   * published runnable problems from the Problem Bank, filtered by `pbDifficulties`, `topics`,
+   * `tags` and `languages`. The type/dimension/difficulty-number fields do not apply to it.
+   */
+  source: 'assessment_bank' | 'problem_bank';
+  pbDifficulties: string[];
+  topics: string[];
 }
 
 /**
@@ -193,6 +202,9 @@ const SectionSchema = new Schema<IExamSection>({
   minDifficulty: { type: Number, default: 1, min: 1, max: 5 },
   maxDifficulty: { type: Number, default: 5, min: 1, max: 5 },
   marksPerItem:  { type: Number, default: 0, min: 0 },
+  source:        { type: String, enum: ['assessment_bank', 'problem_bank'], default: 'assessment_bank' },
+  pbDifficulties: { type: [String], default: [] },
+  topics:        { type: [String], default: [] },
 }, { _id: false });
 
 const HackathonExamSchema = new Schema<IHackathonExam>({

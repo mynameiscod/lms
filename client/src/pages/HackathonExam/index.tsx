@@ -160,7 +160,12 @@ const HackathonExam: React.FC = () => {
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [activeSection, setActiveSection] = useState('');
   const [idx, setIdx] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, { selectedOptionIds?: string[]; code?: string; text?: string }>>({});
+  const [answers, setAnswers] = useState<Record<string, { selectedOptionIds?: string[]; code?: string; text?: string; language?: string }>>({});
+  /** The language a coding answer is written in: the candidate's choice, else the question's default. */
+  const langOf = (q: ExamQuestion) => answers[q.itemId]?.language || q.language;
+  /* Debounced saves fire later than the render that scheduled them; they read the language from here. */
+  const answersRef = useRef(answers);
+  answersRef.current = answers;
   const [runs, setRuns] = useState<Record<string, RunResult | null>>({});
   const [running, setRunning] = useState(false);
   /* Code Visualizer — only when the exam allows it. One trace per question, cleared on edit. */
@@ -349,8 +354,11 @@ const HackathonExam: React.FC = () => {
       r.questions.forEach((q) => {
         seeded[q.itemId] = {
           selectedOptionIds: q.answer?.selectedOptionIds,
-          code: q.answer?.code ?? q.starterCode ?? '',
+          code: q.answer?.code
+            ?? (q.languages?.find((l) => l.language === q.answer?.language)?.starterCode)
+            ?? q.starterCode ?? '',
           text: q.answer?.text,
+          language: q.answer?.language || q.language,
         };
       });
       setAnswers(seeded);
@@ -409,7 +417,7 @@ const HackathonExam: React.FC = () => {
 
   const saveTimers = useRef<Record<string, any>>({});
 
-  const setAnswer = (q: ExamQuestion, patch: { selectedOptionIds?: string[]; code?: string; text?: string }) => {
+  const setAnswer = (q: ExamQuestion, patch: { selectedOptionIds?: string[]; code?: string; text?: string; language?: string }) => {
     setAnswers((prev) => ({ ...prev, [q.itemId]: { ...prev[q.itemId], ...patch } }));
 
     /* MCQ writes through at once; typing is debounced so a code editor is not a chat client. */
@@ -417,7 +425,7 @@ const HackathonExam: React.FC = () => {
     clearTimeout(saveTimers.current[q.itemId]);
     saveTimers.current[q.itemId] = setTimeout(async () => {
       try {
-        await api.saveAnswer(token, { itemId: q.itemId, language: q.language, ...patch });
+        await api.saveAnswer(token, { itemId: q.itemId, language: patch.language || answersRef.current[q.itemId]?.language || q.language, ...patch });
         setSavedAt(new Date());
       } catch { /* the next keystroke retries; submit re-sends everything anyway */ }
     }, delay);
@@ -514,7 +522,7 @@ const HackathonExam: React.FC = () => {
   const runCode = async (q: ExamQuestion) => {
     setRunning(true); setErr('');
     try {
-      const r = await api.run(token, q.itemId, answers[q.itemId]?.code || '', q.language);
+      const r = await api.run(token, q.itemId, answers[q.itemId]?.code || '', langOf(q));
       setRuns((p) => ({ ...p, [q.itemId]: r }));
     } catch (e: any) {
       setRuns((p) => ({ ...p, [q.itemId]: null }));
@@ -525,7 +533,7 @@ const HackathonExam: React.FC = () => {
   const visualizeCode = async (q: ExamQuestion) => {
     setVisualizing(true); setErr(''); setVzFrame(null);
     try {
-      const r = await api.visualize(token, q.itemId, answers[q.itemId]?.code || '', q.language);
+      const r = await api.visualize(token, q.itemId, answers[q.itemId]?.code || '', langOf(q));
       setViz((p) => ({ ...p, [q.itemId]: r }));
       /* It spent a run, so the counter under the editor has to say so. */
       setRuns((p) => ({
@@ -607,7 +615,7 @@ const HackathonExam: React.FC = () => {
   const maxRuns = overview?.exam.runPolicy?.maxRunsPerQuestion ?? 0;
   const usedRuns = runs[q?.itemId || '']?.runsUsed ?? q?.answer?.runsUsed ?? 0;
   const canVisualize = !!overview?.exam.runPolicy?.enabled && !!overview?.exam.runPolicy?.allowVisualizer
-    && isCoding && q?.type !== 'sql' && String(q?.language || 'java').toLowerCase() === 'java';
+    && isCoding && q?.type !== 'sql' && String((q && langOf(q)) || 'java').toLowerCase() === 'java';
   const vzResult = viz[q?.itemId || ''] || null;
   const vzFrames = useMemo(() => (vzResult?.events?.length ? buildFrames(vzResult.events) : []), [vzResult]);
   const onVzFrame = useCallback((f: Frame | null) => setVzFrame(f), []);
@@ -1284,7 +1292,20 @@ const HackathonExam: React.FC = () => {
               {isCoding && (
                 <div className="hx-code">
                   <div className="hx-ed-head">
-                    <span>{q.language || 'code'}</span>
+                    {q.languages && q.languages.length > 1 ? (
+                      <select className="hx-lang" value={langOf(q) || ''} aria-label="Language"
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          const cur = answers[q.itemId]?.code ?? '';
+                          const prevStarter = q.languages!.find((l) => l.language === langOf(q))?.starterCode ?? '';
+                          const nextStarter = q.languages!.find((l) => l.language === next)?.starterCode ?? '';
+                          // Swap the starter only if the candidate has not written anything yet.
+                          const pristine = !cur.trim() || cur === prevStarter;
+                          setAnswer(q, pristine ? { language: next, code: nextStarter } : { language: next });
+                        }}>
+                        {q.languages.map((l) => <option key={l.language} value={l.language}>{l.language}</option>)}
+                      </select>
+                    ) : <span>{langOf(q) || 'code'}</span>}
                     {maxRuns > 0 && (
                       <span className="hx-runs">
                         {runsLeft !== null && runsLeft !== undefined ? runsLeft : Math.max(0, maxRuns - usedRuns)} run(s) left
@@ -1293,7 +1314,7 @@ const HackathonExam: React.FC = () => {
                   </div>
                   <Editor
                     height="340px"
-                    language={q.language === 'sql' || q.type === 'sql' ? 'sql' : (q.language || 'java')}
+                    language={langOf(q) === 'sql' || q.type === 'sql' ? 'sql' : (langOf(q) || 'java')}
                     value={answers[q.itemId]?.code ?? ''}
                     onChange={(v) => {
                       setAnswer(q, { code: v ?? '' });

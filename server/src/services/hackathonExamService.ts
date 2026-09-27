@@ -5,7 +5,8 @@ import HackathonExamAttempt, {
   IHackathonExamAttempt, IAttemptAnswer, ViolationKind,
 } from '../models/HackathonExamAttempt';
 import HackathonRegistration from '../models/HackathonRegistration';
-import AssessmentItem from '../models/AssessmentItem';
+import { loadExamItem, loadExamItems } from './examItemResolver';
+import { assembleSource, judge, runCustom } from './problemJudgeService';
 import { drawForAttempt, newDrawSeed } from './hackathonExamDrawService';
 import codeRunner from './codeRunnerService';
 import { ProgrammingLanguage } from '../models/Assignment';
@@ -336,6 +337,8 @@ export interface CandidateQuestion {
   language?: string;
   starterCode?: string;
   functionSignature?: string;
+  /** Problem Bank questions: every language the candidate may choose, with its starter code. */
+  languages?: { language: string; starterCode: string }[];
   /** VISIBLE cases only, capped by the run policy. Hidden cases never leave the server. */
   sampleCases?: { input: string; expectedOutput: string }[];
   /** What the candidate has entered so far, so a reload restores the paper. */
@@ -343,6 +346,7 @@ export interface CandidateQuestion {
     selectedOptionIds?: string[];
     code?: string;
     text?: string;
+    language?: string;
     runsUsed: number;
   };
 }
@@ -358,9 +362,7 @@ export async function buildPaper(
   exam: IHackathonExam,
   attempt: IHackathonExamAttempt,
 ): Promise<CandidateQuestion[]> {
-  const ids = attempt.drawnItems.map(d => d.itemId);
-  const items = await AssessmentItem.find({ _id: { $in: ids } }).lean() as any[];
-  const byId = new Map(items.map(i => [String(i._id), i]));
+  const byId = await loadExamItems(attempt.drawnItems);
   const answerFor = new Map(attempt.answers.map(a => [String(a.itemId), a]));
   const maxSamples = Math.max(0, exam.runPolicy?.maxSampleCases ?? 0);
 
@@ -387,6 +389,7 @@ export async function buildPaper(
       q.language = item.language || (item.type === 'sql' ? 'sql' : undefined);
       q.starterCode = item.starterCode || '';
       q.functionSignature = item.functionSignature || undefined;
+      if (item.languages?.length) q.languages = item.languages;
       q.sampleCases = (item.testCases || [])
         .filter((tc: any) => tc.hidden === false)
         .slice(0, maxSamples)
@@ -398,6 +401,7 @@ export async function buildPaper(
         selectedOptionIds: a.selectedOptionIds,
         code: a.code,
         text: a.text,
+        language: a.language,
         runsUsed: a.runCount || 0,
       };
     }
@@ -605,8 +609,12 @@ async function chargeRun(
   const drawn = attempt.drawnItems.find(d => String(d.itemId) === String(itemId));
   if (!drawn) throw new ExamError('NOT_IN_PAPER', 'That question is not part of your paper.', 400);
 
-  const item = await AssessmentItem.findById(itemId).lean() as any;
+  const item = await loadExamItem(drawn) as any;
   if (!item) throw new ExamError('ITEM_GONE', 'That question could not be loaded.', 404);
+  if (item.source === 'problem_bank' && languageOverride && item.type !== 'sql'
+    && !(item.languages || []).some((l: any) => l.language === languageOverride)) {
+    throw new ExamError('BAD_LANGUAGE', 'That language is not available for this question.', 400);
+  }
 
   const max = exam.runPolicy.maxRunsPerQuestion;
   const existing = attempt.answers.find(a => String(a.itemId) === String(itemId));
@@ -684,6 +692,24 @@ export async function runCandidateCode(
 
   const { item, answer, runsLeft } = await chargeRun(exam, attempt, itemId, code, languageOverride);
 
+  if (item.source === 'problem_bank') {
+    // The bank's judge, not the raw runner: it is what wraps the candidate's code in the
+    // problem's hidden header/footer, so a "write this function" question runs as authored.
+    const lang = item.type === 'sql' ? 'sql' : (languageOverride || item.language);
+    const samples = (item.testCases || []).filter((tc: any) => tc.hidden === false)
+      .slice(0, Math.max(0, exam.runPolicy.maxSampleCases));
+    if (!samples.length) {
+      const r = await runCustom(item.pb, lang, code, '').catch((e: any) => ({ output: '', error: e?.message, timeMs: 0 } as any));
+      return { output: r.output || '', error: r.error || undefined, executionTimeMs: r.timeMs || 0, runsUsed: answer.runCount, runsLeft };
+    }
+    const r = await judge(item.pb, lang, code, samples.map((tc: any) => ({ ...tc, isSample: true })), { revealHidden: false });
+    const cases = r.cases.map((c, i) => ({
+      input: samples[i].input, expectedOutput: samples[i].expectedOutput,
+      actualOutput: c.error || c.output || '', passed: c.passed,
+    }));
+    return { output: cases.map(c => c.actualOutput).join('\n'), error: r.compileError, executionTimeMs: r.timeMs, runsUsed: answer.runCount, runsLeft, cases };
+  }
+
   const language = languageFor(item, languageOverride) as ProgrammingLanguage;
   const samples = (item.testCases || []).filter((tc: any) => tc.hidden === false)
     .slice(0, Math.max(0, exam.runPolicy.maxSampleCases));
@@ -742,9 +768,12 @@ export async function visualizeCandidateCode(
   }
   const { item, answer, runsLeft } = await chargeRun(exam, attempt, itemId, code, languageOverride);
 
-  const language = String(languageFor(item, languageOverride) || '').toLowerCase();
+  const language = item.source === 'problem_bank'
+    ? String(languageOverride || item.language || '').toLowerCase()
+    : String(languageFor(item, languageOverride) || '').toLowerCase();
   const sample = (item.testCases || []).find((tc: any) => tc.hidden === false);
-  const result = await visualize({ code, language, stdin: sample?.input || '' });
+  const source = item.source === 'problem_bank' ? assembleSource(item.pb, language, code) : code;
+  const result = await visualize({ code: source, language, stdin: sample?.input || '' });
   return { ...result, runsUsed: answer.runCount, runsLeft };
 }
 

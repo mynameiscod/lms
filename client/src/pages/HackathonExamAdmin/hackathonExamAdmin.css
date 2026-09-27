@@ -33,6 +33,11 @@
 .hxa-check input { width: auto !important; margin: 0 !important; }
 .hxa-check.tall { align-self: end; padding-bottom: 9px; }
 .hxa-band { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.hxa-pb { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+.hxa-pb > span { font-size: 12px; font-weight: 700; color: #475569; min-width: 72px; }
+.hxa-pb small { color: #94a3b8; font-size: 11.5px; }
+.hxa-chip { border: 1px solid #d7dbe8; background: #fff; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; color: #334155; cursor: pointer; text-transform: capitalize; }
+.hxa-chip.on { background: #eef0ff; border-color: #c7d2fe; color: #3730a3; }
 
 .hxa-sec { border: 1px solid #eef2f7; border-radius: 11px; padding: 12px; margin-bottom: 11px; background: #fcfdff; }
 .hxa-cov { border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 600; margin-top: 4px; }

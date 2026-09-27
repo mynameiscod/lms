@@ -79,6 +79,11 @@ const PlatformSettings = lazy(() => import('./pages/PlatformSettings'));
 const WhatsAppTemplates = lazy(() => import('./pages/WhatsAppTemplates'));
 const ProblemBank = lazy(() => import('./pages/ProblemBank'));
 const ProblemStudio = lazy(() => import('./pages/ProblemBank/Studio'));
+const ProblemSets = lazy(() => import('./pages/ProblemBank/Sets'));
+const ProblemSetEditor = lazy(() => import('./pages/ProblemBank/SetEditor'));
+const CodingMySets = lazy(() => import('./pages/CodingPractice').then((m) => ({ default: m.MySets })));
+const CodingSetView = lazy(() => import('./pages/CodingPractice').then((m) => ({ default: m.SetView })));
+const CodingSolve = lazy(() => import('./pages/CodingPractice/Solve'));
 const MyLeave = lazy(() => import('./pages/MyLeave'));
 const LeaveRequests = lazy(() => import('./pages/LeaveRequests'));
 const CodePlayground = lazy(() => import('./pages/CodePlayground'));
@@ -657,6 +662,9 @@ const AppRoutes: React.FC = () => {
           under two names, which is worse than having no second screen at all.
         */}
         <Route path="/careerpilot/practice" element={<PassportPractice source="builtin" />} />
+        <Route path="/careerpilot/coding" element={<CodingMySets base="/careerpilot/coding" />} />
+        <Route path="/careerpilot/coding/:setId" element={<CodingSetView base="/careerpilot/coding" />} />
+        <Route path="/careerpilot/coding/:setId/:problemId" element={<CodingSolve base="/careerpilot/coding" />} />
         <Route path="/passport/practice" element={<LegacyRedirect to="/careerpilot/practice" />} />
         <Route path="/careerpilot/practice/:id" element={<PassportPracticeItem />} />
         {/* A material an admin wrote. Materials without an external URL were dropped by the
@@ -725,6 +733,56 @@ const AppRoutes: React.FC = () => {
         }
       />
 
+      <Route
+        path="/problem-bank/sets"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <ProblemSets />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/problem-bank/sets/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <ProblemSetEditor />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/coding-practice"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <CodingMySets base="/coding-practice" />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/coding-practice/:setId"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <CodingSetView base="/coding-practice" />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/coding-practice/:setId/:problemId"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <CodingSolve base="/coding-practice" />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/problem-bank"
         element={

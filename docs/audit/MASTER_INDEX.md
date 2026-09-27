@@ -96,7 +96,7 @@
 ### Assignments & Coding
 - [Assignments](assignments.md) — 82% · P1
 - [Code Snippet Assessments](code-snippet-assessments.md) — 60% · P2
-- [Problem Bank](problem-bank.md) — 40% · P1
+- [Problem Bank](problem-bank.md) — 65% · P1
 - [Code Visualizer](code-visualizer.md) — 45% · P1
 - [Code Playground](code-playground.md) — 75% · P2
 - [Project Builder](project-builder.md) — 63% · P3

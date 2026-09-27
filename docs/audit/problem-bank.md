@@ -1,5 +1,5 @@
 # Problem Bank
-**Completion:** 40%  |  **Priority:** P1  |  **Business Impact:** High
+**Completion:** 65%  |  **Priority:** P1  |  **Business Impact:** High
 
 ## Purpose & Business Goal
 One store of runnable coding problems, authored once and REFERENCED by every product: LMS assignments,
@@ -57,12 +57,34 @@ format and scorer. Target size: 10,000 DSA problems now, up to 1M later.
 | Custom checker / interactive | ✓ | ✓ | ✓ | ✗ (later) |
 | Test generators / validators | – | – | ✓ | ✗ (later) |
 
+## Delivery (Phase 2, 2026-09-27)
+- **Problem Sets:** `models/ProblemSet.ts` (`problemsets`) is the delivery layer.
+  - Contents: ordered bank problems, each with an optional marks override.
+  - Audience: batch, user, all LMS students, or all CareerPilot members. These are the same targets the Code Visualizer uses.
+  - Opening and due dates, whether late submissions are allowed, and status draft/published/closed.
+  - Admin UI lives under `/problem-bank/sets`: list, editor with a problem picker, audience and dates, plus a progress report grid with CSV export and per-learner code review.
+- **One attempt log:** `models/ProblemSubmission.ts` (`problemsubmissions`) records every submission from every product, with `context.product` set to lms, careerpilot, exam, practice or api.
+  - Per-case results are stored without any inputs or outputs.
+  - Staff previews are stored as `practice` and left out of reports.
+- **Learner API:** `/api/v1/coding-practice` (`services/problemDeliveryService.ts`).
+  - Access is resolved per set.
+  - The problem view shows samples and starter code only.
+  - Run executes the samples or custom input.
+  - Submit runs all tests and is recorded. A BUSY sandbox result is not recorded.
+  - A first solve awards XP, streak and coins through the existing LMS gamification and the CareerPilot XP and coin engines.
+- **Learner UI:** `client/src/pages/CodingPractice/` in a LeetCode-style layout (description, submissions, editorial unlocked on solve, per-language code drafts saved locally). It serves LMS learners at `/coding-practice` and CareerPilot members at `/careerpilot/coding`.
+- **Hackathon exams:** a section can set `source: 'problem_bank'`, with filters `pbDifficulties`, `topics`, `tags` and `languages`.
+  - `hackathonExamDrawService.problemBankFilter` builds the query.
+  - `examItemResolver.loadExamItems` loads questions from either store.
+  - Run and grade go through the bank judge, so header and footer stubs apply. A BUSY result triggers a retry rather than a 0.
+  - Candidates can pick any language the problem allows.
+  - Existing exam-bank sections are unchanged; all 141 exam tests pass.
+
 ## Gaps (next phases)
-- **Delivery (Phase 2):**
-  - Assign bank problems to LMS batches.
-  - CareerPilot practice reads from the bank.
-  - Hackathon/battle draws from the bank.
-  - Unified learner attempts collection.
+- **Delivery leftovers:**
+  - Coding sets on the LMS student dashboard's upcoming deadlines.
+  - Tech Battles drawing from the bank.
+  - Migrating CareerPilot's built-in practice list to the bank.
 - **Phase 3:**
   - External API: API keys, scopes, entitlements, rate limits, and a judge-as-a-service endpoint.
   - Interview Pilot pull.

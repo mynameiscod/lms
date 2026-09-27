@@ -4,6 +4,7 @@ import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
 import { rateLimit } from '../middleware/rateLimit';
 import * as ctrl from '../controllers/problemBankController';
+import * as sets from '../controllers/problemDeliveryController';
 
 /**
  * Problem Bank — the single store of runnable coding problems.
@@ -24,6 +25,17 @@ router.post('/migration', ctrl.migrate);
 router.post('/run', rateLimit('problemBankRun'), ctrl.run);
 router.post('/fill-outputs', rateLimit('problemBankRun'), ctrl.fillOutputs);
 router.post('/validate', ctrl.validate);
+
+// Problem sets — delivering bank problems to batches / CareerPilot.
+router.get('/sets', sets.listSets);
+router.post('/sets', sets.createSet);
+router.get('/audience/batches', sets.audienceBatches);
+router.get('/audience/users', sets.audienceUsers);
+router.get('/sets/:id', sets.getSet);
+router.put('/sets/:id', sets.updateSet);
+router.delete('/sets/:id', sets.deleteSet);
+router.get('/sets/:id/report', sets.setReport);
+router.get('/sets/:id/learners/:userId/submissions', sets.learnerSubmissions);
 
 router.get('/problems', ctrl.list);
 router.post('/problems', ctrl.create);

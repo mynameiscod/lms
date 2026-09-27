@@ -63,6 +63,7 @@ const SCREEN_NAMES: Record<string, string> = {
   '/careerpilot/communication': 'Communication Lab',
   '/careerpilot/resume': 'Resume',
   '/careerpilot/practice': 'Practice',
+  '/careerpilot/coding': 'Coding sets',
 };
 
 const MemberShell: React.FC<Props> = ({ children, data }) => {
@@ -205,6 +206,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview')}
           {navBtn('AI Mentor', 'robot', '/careerpilot/mentor')}
           {navBtn('Practice', 'code', '/careerpilot/practice')}
+          {navBtn('Coding Sets', 'code', '/careerpilot/coding')}
           {navBtn('Playground', 'terminal', '/careerpilot/playground')}
           {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer')}
           {navBtn('Tech News', 'news', '/careerpilot/news')}

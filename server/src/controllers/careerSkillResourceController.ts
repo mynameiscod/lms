@@ -15,6 +15,7 @@ import CareerSkill from '../models/CareerSkill';
 import User from '../models/User';
 import PassportConfig from '../models/PassportConfig';
 import { findProblem, listProblems, findCareerPilotProblem } from '../services/passportPracticeService';
+import { CAREER_STAGES } from '../services/careerStageService';
 
 const str = (v: any): string => String(v ?? '').trim();
 /** Tag lists arrive from checkbox groups; drop blanks so an empty row is not a constraint. */
@@ -520,7 +521,14 @@ export const listAudienceOptions = async (req: Request, res: Response) => {
       branches:  merge(branches, fieldOptions('branch')),
       roles:     merge(roles, roles2),
       languages: merge(langs),
-      stages:    merge(stages, ['foundation', 'build', 'placement', 'job_seeker']),
+      /**
+       * The fallback comes from CAREER_STAGES rather than a list written out here, because
+       * a hand-written copy goes stale silently: this one had been missing 'specialize'
+       * since third year got its own stage, so until some member on the tenant already
+       * carried that stage there was no way to target a third-year at all — and nothing
+       * said so. Deriving it means a new stage appears here the day it is defined.
+       */
+      stages:    merge(stages, CAREER_STAGES.map(s => s.key)),
     });
   } catch (e: any) {
     console.error('[skill-resource] audience options:', e?.message || e);

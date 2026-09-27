@@ -108,10 +108,23 @@ const unitRows = (spec: StageCurriculumSpec, tenantId: string) => {
    * every unit unmeasurable: no evidence, no Skill DNA, nothing for the composer to reason about.
    */
   const topicSkills = new Map<string, string[]>();
+  /**
+   * Directions are declared in the same place and for the same reason, and reading them from
+   * the dataset — as this did — silently produced a curriculum with no directions at all.
+   *
+   * The failure is quiet in exactly the worst way. `appliesToDirection` treats an empty list as
+   * "everyone", so every unit of every track composed into every student's plan: a student who
+   * chose Mobile was offered the Security and the Data track as well, the six-sevenths the
+   * seeder header says are filtered away were not filtered, and nothing errored. It is visible
+   * only in directionCoverage, which reported every direction as authoring nothing and every
+   * pair of directions as producing an identical plan.
+   */
+  const topicDirections = new Map<string, string[]>();
   for (const mod of spec.modules) {
     for (const t of mod.topics) {
       topicToModule.set(t.topicCode, mod.moduleCode);
       topicSkills.set(t.topicCode, t.skillKeys || []);
+      topicDirections.set(t.topicCode, (t as any).applicableDirections || []);
     }
   }
 
@@ -145,7 +158,10 @@ const unitRows = (spec: StageCurriculumSpec, tenantId: string) => {
         authored: {
           category: (topic as any).category || 'UNIVERSAL',
           defaultDepth: u.defaultDepth || (topic as any).defaultDepth || 'STANDARD',
-          applicableDirections: u.applicableDirections || (topic as any).applicableDirections || [],
+          applicableDirections: u.applicableDirections
+            || (topic as any).applicableDirections
+            || topicDirections.get(topicCode)
+            || [],
           mandatory: (topic as any).category === 'UNIVERSAL',
           audience: { languages: [], years: [], branches: [] },
           status: 'DRAFT',

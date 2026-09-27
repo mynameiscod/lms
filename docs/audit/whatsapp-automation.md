@@ -1,8 +1,18 @@
 # WhatsApp Automation
-**Completion:** 50%  |  **Priority:** P1  |  **Business Impact:** High
+**Completion:** 62%  |  **Priority:** P1  |  **Business Impact:** High
 
 ## Purpose & Business Goal
 Automate lead nurturing over Meta WhatsApp Cloud API: (1) an **inbound qualification bot** — when a prospect messages the business number, a state machine greets, asks configurable qualification questions, scores answers, creates/updates the Lead, and hands off to a human; (2) **outbound drip nurture** — D+1/D+3/D+7 follow-ups on stage entry; (3) **welcome-on-create** — new leads get an automatic welcome; (4) **cold-lead housekeeping** — abandoned chats marked cold after 24h. WhatsApp is the primary channel for this Indian EdTech audience, so business impact is high — but production-grade nurture is blocked by several gaps.
+
+## Template Management (added 2026-09-27)
+Admins author WhatsApp message templates in the LMS (`/admin/whatsapp-templates`) instead of Meta Business Manager.
+- **Create / edit / delete / sync** against the WhatsApp Business Management API (Graph v21.0, `/{WABA}/message_templates`). Utility, Marketing and Authentication (OTP) categories; text/image header, body with `{{n}}` variables + samples, footer, URL (static or dynamic `{{1}}`) / phone / quick-reply buttons. Validated before submit (name format, sequential vars, no leading/trailing var, sample values, limits). Image headers uploaded via the Resumable Upload API (app id from `META_APP_ID` or looked up from the token).
+- **Status** kept current by the `message_template_status_update` / category / quality webhooks (subscribe these fields on the Meta app) plus an automatic re-sync while anything is in review.
+- **Where used** — every system send point is a *purpose* (`config/whatsappTemplatePurposes.ts`: OTP, Tech Battles, hackathon pending/confirmed, hackathon exam invite/reminder/result, CRM lead welcome). Assigning a template checks it fits (approved, variable count ≤ what the call site provides, dynamic button only where a link exists, OTP ⇔ Authentication) and writes the existing `WHATSAPP_TEMPLATE_*` / `_LANG` / `_BUTTON` tenant settings, so call sites are unchanged.
+- **Send path** now builds components from the stored template shape (`services/whatsAppTemplateShape.ts`): extra values dropped, url param on whichever button is dynamic, stored image as default header. Templates only typed into Platform Settings keep the old behaviour.
+- **Send** — test to one number, or broadcast to pasted numbers / a batch's students (`{name}` personalised), processed in the background with progress in `whatsappbroadcasts`.
+- Collections: `whatsapptemplates` (unique tenantId+name+language), `whatsappbroadcasts`. WABA id: setting `WHATSAPP_BUSINESS_ACCOUNT_ID` (per tenant) → `LeadSourceConfig.whatsApp.config.businessAccountId`. Token needs `whatsapp_business_management`.
+- Tests: `server/src/tests/whatsappTemplateAuthoring.test.ts`.
 
 ## Primary Users & Roles
 - **Prospects** (inbound, unauthenticated via webhook).
@@ -53,16 +63,16 @@ Token source: Platform-Settings-first (`LeadSourceConfig.whatsApp`, encrypted) �
 | Dimension | % | Reasoning |
 |---|---|---|
 | Backend | 75 | Inbound bot + drip + welcome + cold-lead all implemented and wired; missing template send, opt-out, retry/queue robustness. |
-| Frontend/UI | 20 | Qualification-questions UI exists; **drip-config endpoints have zero UI** (orphaned); no automation dashboard. |
+| Frontend/UI | 45 | Qualification-questions UI exists; **drip-config endpoints have zero UI** (orphaned); no automation dashboard. |
 | API | 70 | 9 endpoints incl. webhook; but no signature verification, drip-config lacks role guard, manual-send env-only. |
 | Database | 80 | Clean schemas with unique + TTL indexes; drip "schedule" as parsed activity strings is the weak point. |
 | Automation | 55 | Hourly `setInterval` runner + stage hooks work, but no locking/persistence; `markColdLeads` never auto-triggered; drips fail outside 24h window without templates. |
 | AI | 0 | No LLM; purely rule-based. |
-| Testing | 0 | No tests. |
-| **Overall** | **50** | Inbound qualification + immediate welcome work end-to-end; production nurture blocked by no templates, no opt-out, no webhook security, no UI, fragile scheduler. |
+| Testing | 30 | Template resolution, authoring validation, shape-fitted sends and purpose compatibility covered. |
+| **Overall** | **62** | Inbound qualification + immediate welcome work end-to-end; production nurture blocked by no templates, no opt-out, no webhook security, no UI, fragile scheduler. |
 
 ## Gaps (mark "Not Implemented")
-- **No template (HSM) support** → drips outside the 24h window silently fail at Meta (D+1/D+3/D+7 by definition often outside window). Failures logged, not retried/re-queued.
+- Templates now exist (see above) and the lead **welcome** uses one when assigned, but **drips still send free-form text** → D+1/D+3/D+7 outside the 24h window still fail at Meta. Next step: let each drip message pick a template.
 - **No opt-out/STOP handling** — no keyword detection, no suppression list — **Meta policy compliance risk**.
 - **No webhook HMAC/signature verification** — public POST is forgeable → anyone can create/modify leads.
 - **No frontend for drip config** — 4 endpoints orphaned.

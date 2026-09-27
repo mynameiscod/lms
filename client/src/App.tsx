@@ -76,6 +76,7 @@ const DeptReportsPage = lazy(() => import('./pages/DeptReports'));
 const BulkUploadPage = lazy(() => import('./pages/BulkUpload'));
 const RecordingDiagnostics = lazy(() => import('./pages/RecordingDiagnostics'));
 const PlatformSettings = lazy(() => import('./pages/PlatformSettings'));
+const WhatsAppTemplates = lazy(() => import('./pages/WhatsAppTemplates'));
 const MyLeave = lazy(() => import('./pages/MyLeave'));
 const LeaveRequests = lazy(() => import('./pages/LeaveRequests'));
 const CodePlayground = lazy(() => import('./pages/CodePlayground'));
@@ -717,6 +718,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <RecordingDiagnostics />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/whatsapp-templates"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <WhatsAppTemplates />
             </Layout>
           </ProtectedRoute>
         }

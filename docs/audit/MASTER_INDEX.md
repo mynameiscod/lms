@@ -136,7 +136,7 @@
 - [Lead Distribution](lead-distribution.md) — 72% · P2
 - [Meta & Google Ads Integration](meta-google-ads-integration.md) — 50% · P2
 - [Google Sheets Integration](google-sheets-integration.md) — 80% · P3
-- [WhatsApp Automation](whatsapp-automation.md) — 50% · P1
+- [WhatsApp Automation](whatsapp-automation.md) — 62% · P1
 - [Sales Enablement](sales-enablement.md) — 60% · P3
 - [AI Voice Calling](ai-voice-calling.md) — 72% · P2
 - [Partner / Placement Outreach](partner-placement-outreach.md) — 80% · P2

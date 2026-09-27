@@ -106,6 +106,7 @@ import aiUsageRoutes from './aiUsageRoutes';
 import assessmentItemRoutes from './assessmentItemRoutes';
 import assessmentCandidatesRoutes from './assessmentCandidatesRoutes';
 import systemSettingsRoutes from './systemSettingsRoutes';
+import whatsAppTemplateRoutes from './whatsAppTemplateRoutes';
 import concernRoutes from './concernRoutes';
 import paymentRoutes from './paymentRoutes';
 import { webhook as paymentWebhook, paymentReturn } from '../controllers/paymentController';
@@ -209,6 +210,7 @@ router.use('/notifications', notificationRoutes);
 router.use('/meetings', meetingRoutes);
 router.use('/lead-distribution-config', leadDistributionRoutes);
 router.use('/whatsapp-drip-config', whatsappDripConfigRoutes);
+router.use('/whatsapp-templates', whatsAppTemplateRoutes); // author Meta templates in the LMS + assign to system uses
 router.use('/sales-call-recordings', salesCallRecordingRoutes);
 router.use('/google-leads', googleAdsRoutes);
 router.use('/ai-calls', aiCallRoutes);

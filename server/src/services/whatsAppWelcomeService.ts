@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import LeadSourceConfig from '../models/LeadSourceConfig';
 import { getDecryptedTokens } from '../controllers/leadSourceConfigController';
+import * as settings from './settingsService';
+import { sendWhatsAppTemplate } from './assessmentOtpService';
 
 // Built-in multi-language welcome templates
 const DEFAULT_WELCOME_TEMPLATES: Record<string, string> = {
@@ -69,6 +71,19 @@ export async function sendLeadWelcomeWhatsApp(
       const lang = (sourceConfig as any).whatsApp?.config?.qualificationLanguage || 'english';
       template = DEFAULT_WELCOME_TEMPLATES[lang] || DEFAULT_WELCOME_TEMPLATES['english'];
       if (!sendWelcome) return; // Only skip if sendWelcome is false; use default template otherwise
+    }
+
+    // 2b. An approved template assigned on the WhatsApp Templates page reaches a cold lead;
+    // plain text below only arrives if the lead messaged us in the last 24h. Checked by its own
+    // key on purpose — sendWhatsAppTemplate would otherwise fall back to the Tech Battle slot.
+    if (settings.getStr('WHATSAPP_TEMPLATE_LEAD_WELCOME', '', tenantObjId.toString())) {
+      const firstName = (leadName || '').trim().split(' ')[0] || 'there';
+      const r = await sendWhatsAppTemplate(tenantObjId.toString(), leadPhone, { body: [firstName], purpose: 'LEAD_WELCOME' });
+      if (r.ok) {
+        console.log(`[WELCOME-WA] Sent welcome template to ${leadName} for source "${leadSource}"`);
+        return;
+      }
+      console.warn(`[WELCOME-WA] Welcome template failed (${r.error}); trying plain text.`);
     }
 
     // 3. Check WhatsApp is connected and get credentials

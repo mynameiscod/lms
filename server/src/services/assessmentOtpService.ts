@@ -5,6 +5,8 @@ import LeadSourceConfig from '../models/LeadSourceConfig';
 import * as settings from './settingsService';
 import { EmailService } from './emailService';
 import { getDecryptedTokens } from '../controllers/leadSourceConfigController';
+import WhatsAppTemplate from '../models/WhatsAppTemplate';
+import { buildSendComponents } from './whatsAppTemplateShape';
 
 /**
  * OTP service for assessment registration — sends a 6-digit code over WhatsApp
@@ -31,7 +33,7 @@ type WaCreds = { phoneNumberId: string; accessToken: string };
  * on one automatically falls back to the other — otherwise a dead CRM token
  * silently blocks every OTP even when Platform Settings is configured correctly.
  */
-async function getWhatsAppCredentialCandidates(tenantId: string): Promise<WaCreds[]> {
+export async function getWhatsAppCredentialCandidates(tenantId: string): Promise<WaCreds[]> {
   const out: WaCreds[] = [];
 
   // 1) Per-tenant WhatsApp connection (Lead Source config)
@@ -62,11 +64,28 @@ async function getWhatsAppCredentialCandidates(tenantId: string): Promise<WaCred
 //   WHATSAPP_OTP_TEMPLATE_LANG  (language code, default "en")
 //   WHATSAPP_OTP_TEMPLATE_BUTTON ("false" to omit the copy-code button param)
 // Read at call time so Platform Settings UI values (mirrored to process.env) apply.
-const otpTemplate = () => process.env.WHATSAPP_OTP_TEMPLATE || '';
-const otpTemplateLang = () => process.env.WHATSAPP_OTP_TEMPLATE_LANG || 'en';
-const otpTemplateHasButton = () => String(process.env.WHATSAPP_OTP_TEMPLATE_BUTTON || 'true') !== 'false';
+// Resolved through the settings service (tenant → Platform Settings → env) so a template
+// assigned on the WhatsApp Templates page applies to that tenant.
+const otpTemplate = (tenantId?: string) => settings.getStr('WHATSAPP_OTP_TEMPLATE', '', tenantId);
+const otpTemplateLang = (tenantId?: string) => settings.getStr('WHATSAPP_OTP_TEMPLATE_LANG', 'en', tenantId);
+const otpTemplateHasButton = (tenantId?: string) => String(settings.getStr('WHATSAPP_OTP_TEMPLATE_BUTTON', 'true', tenantId)) !== 'false';
 
-async function waPost(creds: { phoneNumberId: string; accessToken: string }, payload: any): Promise<{ ok: boolean; error?: string }> {
+/**
+ * The locally mirrored definition of a template, when there is one.
+ *
+ * Templates authored or synced on the WhatsApp Templates page carry their shape — variable
+ * count, which button is the dynamic url one, whether the header is an image — so a send can
+ * be built to fit instead of guessed from `_BUTTON` flags. A template that was only ever
+ * typed into Platform Settings has no mirror, and the send keeps the old behaviour.
+ */
+async function findTemplateDef(tenantId: string | undefined, name: string, lang: string) {
+  if (!tenantId || !name || !mongoose.isValidObjectId(tenantId)) return null;
+  try {
+    return await WhatsAppTemplate.findOne({ tenantId, name, language: lang, status: { $ne: 'DELETED' } }).lean();
+  } catch { return null; }
+}
+
+export async function waPost(creds: { phoneNumberId: string; accessToken: string }, payload: any): Promise<{ ok: boolean; error?: string }> {
   try {
     const res = await fetch(`https://graph.facebook.com/v18.0/${creds.phoneNumberId}/messages`, {
       method: 'POST',
@@ -88,22 +107,28 @@ async function waPost(creds: { phoneNumberId: string; accessToken: string }, pay
   }
 }
 
-async function sendWhatsAppOtp(phone: string, code: string, message: string, creds: { phoneNumberId: string; accessToken: string }): Promise<boolean> {
+async function sendWhatsAppOtp(phone: string, code: string, message: string, creds: { phoneNumberId: string; accessToken: string }, tenantId?: string): Promise<boolean> {
   const to = phone.replace(/[^0-9+]/g, '').replace(/^\+/, '');
   if (!to) return false;
 
   // Preferred: approved Authentication template (works for cold recipients)
-  if (otpTemplate()) {
-    const components: any[] = [
-      { type: 'body', parameters: [{ type: 'text', text: code }] },
-    ];
-    // Auth templates carry an OTP "copy code" / one-tap button that echoes the code
-    if (otpTemplateHasButton()) {
-      components.push({ type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: code }] });
+  const name = otpTemplate(tenantId);
+  if (name) {
+    const lang = otpTemplateLang(tenantId);
+    const def = await findTemplateDef(tenantId, name, lang);
+    let components: any[];
+    if (def) {
+      components = buildSendComponents(def as any, { body: [code], urlButtonParam: code });
+    } else {
+      components = [{ type: 'body', parameters: [{ type: 'text', text: code }] }];
+      // Auth templates carry an OTP "copy code" / one-tap button that echoes the code
+      if (otpTemplateHasButton(tenantId)) {
+        components.push({ type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: code }] });
+      }
     }
     const r = await waPost(creds, {
       messaging_product: 'whatsapp', to, type: 'template',
-      template: { name: otpTemplate(), language: { code: otpTemplateLang() }, components },
+      template: { name, language: { code: lang }, components },
     });
     if (r.ok) return true;
   }
@@ -113,7 +138,7 @@ async function sendWhatsAppOtp(phone: string, code: string, message: string, cre
 }
 
 /** Normalize a phone to WhatsApp's `to` format (digits, default India country code). */
-function normalizeTo(phone: string): string {
+export function normalizeTo(phone: string): string {
   let to = String(phone || '').replace(/[^0-9+]/g, '').replace(/^\+/, '');
   if (to.length === 10) to = '91' + to;
   return to;
@@ -202,20 +227,26 @@ export async function sendWhatsAppTemplate(
   const candidates = await getWhatsAppCredentialCandidates(tenantId);
   if (!candidates.length) return { ok: false, error: 'WhatsApp is not configured for this tenant (set it in Platform Settings).' };
 
+  // A template managed on the WhatsApp Templates page is sent to its real shape: extra values
+  // dropped, the url param put on whichever button is dynamic, its stored image used as the
+  // header when the caller has none.
+  const def = await findTemplateDef(tenantId, tpl.name, tpl.lang);
   const clean = (s: string) => String(s ?? '').replace(/[\r\n\t]+/g, ' ').replace(/ {2,}/g, ' ').trim();
-  const components: any[] = [];
-  // Header first — Meta requires components in the order the template declares them.
-  if (opts.headerImageUrl && /^https:\/\//i.test(opts.headerImageUrl)) {
-    components.push({ type: 'header', parameters: [{ type: 'image', image: { link: opts.headerImageUrl } }] });
-  }
-  components.push(
-    { type: 'body', parameters: opts.body.map((v) => ({ type: 'text', text: clean(v) })) },
-  );
-  if (opts.urlButtonParam && tpl.hasButton) {
-    components.push({
-      type: 'button', sub_type: 'url', index: '0',
-      parameters: [{ type: 'text', text: clean(opts.urlButtonParam) }],
-    });
+  const components: any[] = def ? buildSendComponents(def as any, opts) : [];
+  if (!def) {
+    // Header first — Meta requires components in the order the template declares them.
+    if (opts.headerImageUrl && /^https:\/\//i.test(opts.headerImageUrl)) {
+      components.push({ type: 'header', parameters: [{ type: 'image', image: { link: opts.headerImageUrl } }] });
+    }
+    components.push(
+      { type: 'body', parameters: opts.body.map((v) => ({ type: 'text', text: clean(v) })) },
+    );
+    if (opts.urlButtonParam && tpl.hasButton) {
+      components.push({
+        type: 'button', sub_type: 'url', index: '0',
+        parameters: [{ type: 'text', text: clean(opts.urlButtonParam) }],
+      });
+    }
   }
 
   let lastError: string | undefined;
@@ -342,7 +373,7 @@ export async function sendOtp(tenantId: string, token: string, phone: string, em
   const message = `Your CodeBegun verification code is ${code}. It is valid for 10 minutes.`;
   const candidates = await getWhatsAppCredentialCandidates(tenantId);
   for (const creds of candidates) {
-    const ok = await sendWhatsAppOtp(phone, code, message, creds);
+    const ok = await sendWhatsAppOtp(phone, code, message, creds, tenantId);
     if (ok) return { sent: true, channel: 'whatsapp' };
     // else try the next credential set (e.g. env fallback when the CRM token is dead)
   }

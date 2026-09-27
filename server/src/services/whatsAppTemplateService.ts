@@ -357,14 +357,30 @@ const lastSync = new Map<string, number>();
 /** Pull every template on the WABA into the local mirror. */
 export async function syncTemplates(tenantId: string) {
   const all: any[] = await withConn(tenantId, async (c) => {
+    /*
+     * Meta caps the response SIZE, not just the count: with full components a page of 100 is
+     * refused ("Please reduce the amount of data you're asking for", code 1) even for a dozen
+     * templates. Start small and halve the page on that refusal instead of failing the sync.
+     */
+    const fields = 'id,name,language,status,category,components,rejected_reason,quality_score';
+    const tooBig = (e: any) => e?.metaCode === 1 || /reduce the amount of data/i.test(e?.message || '');
     const out: any[] = [];
-    let url: string | undefined =
-      `${GRAPH}/${c.wabaId}/message_templates?fields=id,name,language,status,category,components,rejected_reason,quality_score&limit=100`;
+    let limit = 25;
+    let after = '';
     let guard = 0;
-    while (url && guard++ < 50) {
-      const page: any = await graph('GET', url, c.accessToken);
+    while (guard++ < 200) {
+      let page: any;
+      try {
+        page = await graph('GET',
+          `${GRAPH}/${c.wabaId}/message_templates?fields=${fields}&limit=${limit}${after ? `&after=${encodeURIComponent(after)}` : ''}`,
+          c.accessToken);
+      } catch (e: any) {
+        if (tooBig(e) && limit > 1) { limit = Math.max(1, Math.floor(limit / 2)); continue; }
+        throw e;
+      }
       out.push(...(page.data || []));
-      url = page.paging?.next;
+      after = page.paging?.next ? (page.paging?.cursors?.after || '') : '';
+      if (!after) break;
     }
     return out;
   });

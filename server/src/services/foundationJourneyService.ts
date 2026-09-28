@@ -47,7 +47,7 @@ import { foundationProgramDaysFor, programDaysFor, journeyDaysOf } from './found
 import { inTeachingOrder } from '../data/contentBundlePolicy';
 import { composeUnits, ComposerResult, SelectedUnit, StudentProfile, ComposableUnit, refusedComposition } from './curriculumComposerService';
 import { allocationForStage } from '../data/compositionShapePolicy';
-import { bridgePlanFor, BridgePlan } from '../data/stageBridgePolicy';
+import { bridgePlanFor, BridgePlan, BRIDGE_READY_SCORE } from '../data/stageBridgePolicy';
 import { revisionPlanFor, RevisionPlan } from '../data/stageRevisionPolicy';
 import { directionRequiredFor } from '../data/stageDirectionPolicy';
 import { densityFor, unitsForDays } from '../data/learningDensityPolicy';
@@ -805,8 +805,37 @@ export async function composeFoundationJourney(
    */
   const shortBy = programDays - (priorUnits.length + rest.units.length);
   if (shortBy > 0 && revision) {
+    /*
+     * ── A TOP-UP REVISES EVERYTHING THEY HOLD, NOT JUST THE STAGE'S SHORTLIST ───────────
+     *
+     * `REVISION_SKILLS` names what a year STANDS ON — the handful worth a warm-up before it
+     * begins. That is the right list for the ordinary case and far too narrow for this one: a
+     * learner who has demonstrated their whole year needs practice on everything they hold, and
+     * seventeen skills times three units cannot fill a hundred and fifty days however the cap is
+     * set.
+     *
+     * So when the plan is still short, the top-up widens to every skill this learner is measured
+     * at or above the ready score on. Still only skills with real evidence, still only practice,
+     * debugging and checkpoints from the years behind them, and still nothing they have already
+     * been given.
+     */
+    const holdsWell = [...profile.skills.entries()]
+      .filter(([, b]: any) => typeof b?.score === 'number' && b.score >= BRIDGE_READY_SCORE)
+      .map(([k]) => k);
+    /*
+     * And from their OWN year as well as the ones behind it.
+     *
+     * A learner who has demonstrated this year cannot be given its teaching — a CONCEPT unit
+     * does not serve VERIFIED — and cannot be given its practice either, because PRACTICE stops
+     * at REVISION. Under revision semantics that second rule is wrong for them in their own year
+     * for exactly the reason it is wrong in the earlier ones: they hold the skill, and holding it
+     * is the premise. Adding the stage itself is what closes the last of the gap for a year with
+     * only one or two years behind it to draw on.
+     */
     const extra = await composeRevision(tenantId, source, profile, {
       ...revision,
+      sourceStages: [...new Set([...revision.sourceStages, String(opts.stageKey || 'foundation')])],
+      skills: [...new Set([...revision.skills, ...holdsWell])],
       units: shortBy,
       days: Math.ceil(shortBy / Math.max(1, density.unitsPerDay)),
     }, new Set([...priorUnits, ...rest.units].map(u => u.unitCode)));

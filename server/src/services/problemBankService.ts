@@ -46,8 +46,8 @@ export interface ProblemInput {
   status?: 'draft' | 'published' | 'archived';
 }
 
-// Stress tests (n = 10^5..10^6) run to a few MB. Piston's request limit is raised to 16 MB in
-// docker-compose to carry them; each test is its own document, so Mongo's 16 MB is not in play.
+// Stress tests (n = 10^5..10^6) run to a few MB. Piston is patched in docker-compose (16 MB
+// request limit, and stdin no longer truncated at ~214 KB) to carry them; each test is its own document, so Mongo's 16 MB is not in play.
 const MAX_TEST_MB = 4;
 const MAX_TEST_BYTES = MAX_TEST_MB * 1024 * 1024;
 const MAX_TESTS = 200;

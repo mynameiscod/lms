@@ -34,6 +34,9 @@ import { TRACK_FRONTEND_BUNDLES } from './year4ContentTrackFrontend';
 import { TRACK_FULLSTACK_BUNDLES } from './year4ContentTrackFullstack';
 import { TRACK_DATA_BUNDLES } from './year4ContentTrackData';
 import { TRACK_AIML_BUNDLES } from './year4ContentTrackAiml';
+import { TRACK_CLOUD_BUNDLES } from './year4ContentTrackCloud';
+import { TRACK_SECURITY_BUNDLES } from './year4ContentTrackSecurity';
+import { TRACK_MOBILE_BUNDLES } from './year4ContentTrackMobile';
 
 export const ALL_YEAR4_BUNDLES: PilotBundle[] = [
   ...STANDING_BUNDLES,
@@ -51,4 +54,7 @@ export const ALL_YEAR4_BUNDLES: PilotBundle[] = [
   ...TRACK_FULLSTACK_BUNDLES,
   ...TRACK_DATA_BUNDLES,
   ...TRACK_AIML_BUNDLES,
+  ...TRACK_CLOUD_BUNDLES,
+  ...TRACK_SECURITY_BUNDLES,
+  ...TRACK_MOBILE_BUNDLES,
 ];

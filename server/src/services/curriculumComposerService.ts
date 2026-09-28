@@ -2196,6 +2196,52 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     if (!reallocate()) break;
   }
 
+  /* ---- 4c. repair a floor the spine promised and did not deliver ------ */
+
+  /**
+   * A PROMISE THAT WENT UNKEPT IS STILL AN UNMET FLOOR.
+   *
+   * `shortfall` counts a role as behind on `roleCount + spineHeld` — what the plan HAS, plus what
+   * the unresolved backbone still holds in reserve for it. That reservation is right and it is
+   * why the spine is not starved: a beginner's practice and debugging floors are met by the
+   * backbone's own path, and chasing them separately spent the days exploration and verification
+   * needed.
+   *
+   * But a reservation is a prediction, and when the backbone path is never completed the
+   * prediction is never honoured. The role was never chased, because it never looked behind, and
+   * the plan ends with the floor unmet and the units sitting right there. Measured on a weak
+   * third-year: the plan filled to its target exactly with INTEGRATION at 0 of 4 holding
+   * twenty-six takeable units, and VERIFICATION at 0 of 4 holding three — in a year that ends in
+   * a production project and a checkpoint.
+   *
+   * So before the plan is finalised, any floor still unmet on what was ACTUALLY taken is repaired
+   * from what is actually takeable. Reservations are not consulted here: this pass runs after
+   * every chance to honour them has passed.
+   *
+   * It may take the plan slightly past `targetUnits`, which is deliberate and safe. Density asks
+   * for more units than days in any case, and packComposedDays reconciles the two — trimming from
+   * the bulk while the terminal tail and the learner's own direction are protected. A plan one
+   * project longer than its target is a better plan than one that is exactly the right size and
+   * contains no projects.
+   *
+   * Bounded by the shortfalls themselves, so it can add no more than the allocation already asked
+   * for, and every unit still has to be suitable, ready and within breadth.
+   */
+  for (const a of allocation) {
+    if (a.min <= 0) continue;
+    let missing = a.min - (roleCount.get(a.role) || 0);
+    let guardRepair = 0;
+    while (missing > 0 && guardRepair++ <= a.min * 2) {
+      const floor = breadthFloor();
+      const next = ranked.find(u => !chosen.has(u.unitCode)
+        && roleOf.get(u.unitCode) === a.role
+        && withinBreadthOf(u, floor) && suitableNow(u) && readyToTake(u));
+      if (!next) break;
+      take(next, true);
+      missing--;
+    }
+  }
+
   /* ---- 4c. meet the floor, even where no bucket will pay for it ------- */
 
   /**

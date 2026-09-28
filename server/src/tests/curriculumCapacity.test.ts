@@ -364,10 +364,22 @@ describe('P7A.3 — composition shape against the real curriculum', () => {
 
   /* ---- length ------------------------------------------------------- */
 
-  it.each(PASSING)('%s gets exactly 90 units', (_name, p) => {
+  /**
+   * NEVER SHORT. The risk this guards is a strong learner quietly receiving a smaller course than
+   * a weak one — which is why it was written as an exact count when a day held exactly one unit.
+   *
+   * A plan may now finish a unit or two ABOVE the day count: composeUnits repairs a role floor
+   * the backbone reserved for and then failed to deliver, and a plan one project longer than its
+   * target is a better plan than one that is exactly the right size and contains no projects.
+   * The promise was always the DAYS, and packComposedDays still draws exactly `DAYS` of them.
+   *
+   * The upper bound is here so a repair that ran away would still be caught.
+   */
+  it.each(PASSING)('%s is never given a short course', (_name, p) => {
     const r = plan(p);
     expect(r.ok).toBe(true);
-    expect(r.units).toHaveLength(DAYS);
+    expect(r.units.length).toBeGreaterThanOrEqual(DAYS);
+    expect(r.units.length).toBeLessThanOrEqual(DAYS + 10);
   });
 
   /* ---- the beginner is still taught --------------------------------- */

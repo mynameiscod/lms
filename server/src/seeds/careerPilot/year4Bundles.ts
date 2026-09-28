@@ -38,6 +38,7 @@ import { TRACK_CLOUD_BUNDLES } from './year4ContentTrackCloud';
 import { TRACK_SECURITY_BUNDLES } from './year4ContentTrackSecurity';
 import { TRACK_MOBILE_BUNDLES } from './year4ContentTrackMobile';
 import { PRODUCTION_BUNDLES } from './year4ContentProduction';
+import { PLACEMENT_CODING_BUNDLES } from './year4ContentPlacementCoding';
 
 export const ALL_YEAR4_BUNDLES: PilotBundle[] = [
   ...STANDING_BUNDLES,
@@ -59,4 +60,5 @@ export const ALL_YEAR4_BUNDLES: PilotBundle[] = [
   ...TRACK_SECURITY_BUNDLES,
   ...TRACK_MOBILE_BUNDLES,
   ...PRODUCTION_BUNDLES,
+  ...PLACEMENT_CODING_BUNDLES,
 ];

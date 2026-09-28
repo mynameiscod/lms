@@ -489,7 +489,15 @@ const SPECIALIZE_BASE: Record<LearnerShape, RoleAllocation[]> = {
     { role: 'EXPLORATION', min: 0, target: 0 },
     { role: 'PRACTICE', min: 7, target: 12 },
     { role: 'APPLICATION', min: 6, target: 10 },
-    { role: 'INTEGRATION', min: 8, target: 14 },
+    /*
+     * A PROJECT serves STANDARD and above. A third-year who has proven nothing cannot take
+     * one at all, so a floor of eight per ninety — twenty-three in a 260-unit plan — was
+     * unmeetable by construction, and it starved the verification sitting behind it in the
+     * rotation: measured, this learner composed zero checkpoints in a year that ends in one.
+     * They still get every project they CAN take; what they no longer do is hold a turn open
+     * forever for the ones they cannot.
+     */
+    { role: 'INTEGRATION', min: 2, target: 12 },
     { role: 'VERIFICATION', min: 2, target: 4 },
   ],
   DEVELOPING: [

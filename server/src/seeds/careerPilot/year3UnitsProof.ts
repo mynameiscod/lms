@@ -113,10 +113,18 @@ export const YEAR3_PROOF: Record<string, TopicSeed> = {
       u('A_DESIGN_NOTE', 'A Design Note',
         'The problem, the options, the choice and the consequences — on one page.',
         ['Write a design note somebody could review'], 70, { after: ['WRITING_FOR_ENGINEERS'] }),
+      /*
+       * PRACTICE, not a lesson. Backbone coverage is anchored on a topic's first PRACTICAL unit,
+       * and these professional topics had none — every unit was authored as a lesson, so the
+       * structural walk reported NO_SUITABLE_TREATMENT with boundary=null and skipped them. They
+       * then competed as ordinary advanced material and lost, which is why a weak third-year
+       * composed zero of writing, presenting, the portfolio and applying. The outcome each of
+       * these states is an action, so this is what they always were.
+       */
       u('ASKING_A_GOOD_QUESTION', 'Asking a Question That Gets Answered',
         'Symptom, what you ruled out, and a clear ask. The difference between an hour and a week.',
         ['Write a question somebody can answer between two other things'], 55,
-        { after: ['A_DESIGN_NOTE'] }),
+        { unitType: 'PRACTICE', after: ['A_DESIGN_NOTE'] }),
     ],
   },
   T3_PRESENTING: {
@@ -125,9 +133,17 @@ export const YEAR3_PROOF: Record<string, TopicSeed> = {
       u('EXPLAINING_ARCHITECTURE', 'Explaining How Something Is Built',
         'To somebody who has not seen it, at the level they need, without the whole history.',
         ['Explain an architecture to somebody who has not seen it'], 70),
+      /*
+       * PRACTICE, not a lesson. Backbone coverage is anchored on a topic's first PRACTICAL unit,
+       * and these professional topics had none — every unit was authored as a lesson, so the
+       * structural walk reported NO_SUITABLE_TREATMENT with boundary=null and skipped them. They
+       * then competed as ordinary advanced material and lost, which is why a weak third-year
+       * composed zero of writing, presenting, the portfolio and applying. The outcome each of
+       * these states is an action, so this is what they always were.
+       */
       u('PRESENTING_A_PROJECT', 'Presenting a Project',
         'What it does, what was hard, what you would change. In under ten minutes.',
-        ['Present a project and handle the questions'], 70, { after: ['EXPLAINING_ARCHITECTURE'] }),
+        ['Present a project and handle the questions'], 70, { unitType: 'PRACTICE', after: ['EXPLAINING_ARCHITECTURE'] }),
     ],
   },
 
@@ -141,9 +157,17 @@ export const YEAR3_PROOF: Record<string, TopicSeed> = {
       u('THE_REPOSITORY', 'A Repository Somebody Will Believe',
         'A README, a history that shows the work, and no secrets in it.',
         ['Prepare a repository a reviewer would be glad to open'], 75, { after: ['NINETY_SECONDS'] }),
+      /*
+       * PRACTICE, not a lesson. Backbone coverage is anchored on a topic's first PRACTICAL unit,
+       * and these professional topics had none — every unit was authored as a lesson, so the
+       * structural walk reported NO_SUITABLE_TREATMENT with boundary=null and skipped them. They
+       * then competed as ordinary advanced material and lost, which is why a weak third-year
+       * composed zero of writing, presenting, the portfolio and applying. The outcome each of
+       * these states is an action, so this is what they always were.
+       */
       u('THE_DEMO', 'A Demo That Works When Clicked',
         'Deployed, reachable, and with a way in that does not require signing up.',
-        ['Publish a demo a stranger can try in a minute'], 70, { after: ['THE_REPOSITORY'] }),
+        ['Publish a demo a stranger can try in a minute'], 70, { unitType: 'PRACTICE', after: ['THE_REPOSITORY'] }),
       u('WRITING_THE_PROJECT_UP', 'Writing the Project Up',
         'The problem you had, what you built, and the hardest part — not a list of technologies.',
         ['Write up a project so its value is obvious in a paragraph'], 65, { after: ['THE_DEMO'] }),
@@ -168,10 +192,18 @@ export const YEAR3_PROOF: Record<string, TopicSeed> = {
       u('RESUME_FOR_A_ROLE', 'A Résumé Aimed at One Role',
         'Evidence over adjectives, and the same projects framed for this job.',
         ['Tailor a résumé to a specific role'], 70, { after: ['MATCHING_AND_GAPS'] }),
+      /*
+       * PRACTICE, not a lesson. Backbone coverage is anchored on a topic's first PRACTICAL unit,
+       * and these professional topics had none — every unit was authored as a lesson, so the
+       * structural walk reported NO_SUITABLE_TREATMENT with boundary=null and skipped them. They
+       * then competed as ordinary advanced material and lost, which is why a weak third-year
+       * composed zero of writing, presenting, the portfolio and applying. The outcome each of
+       * these states is an action, so this is what they always were.
+       */
       u('APPLYING_AND_TRACKING', 'Applying, and Keeping Track',
         'Volume, follow-up, and knowing which applications are still alive.',
         ['Run an application process rather than sending and hoping'], 55,
-        { after: ['RESUME_FOR_A_ROLE'] }),
+        { unitType: 'PRACTICE', after: ['RESUME_FOR_A_ROLE'] }),
     ],
   },
   T3_BEHAVIORAL: {
@@ -183,11 +215,19 @@ export const YEAR3_PROOF: Record<string, TopicSeed> = {
       u('THE_COMMON_QUESTIONS', 'The Questions That Always Come',
         'Conflict, failure, something you are proud of — and answering them without a script.',
         ['Answer the standard behavioural questions with real material'], 70,
-        { after: ['A_REAL_EXAMPLE_READY'] }),
+        { unitType: 'PRACTICE', after: ['A_REAL_EXAMPLE_READY'] }),
       u('THE_FIRST_WEEKS', 'Being New Without Being Silently Stuck',
         'Asking, standups, taking a review, and saying early when something has slipped.',
         ['Describe how you would work in your first weeks on a team'], 65,
         { after: ['THE_COMMON_QUESTIONS'] }),
+      /*
+       * PRACTICE, not a lesson. Backbone coverage is anchored on a topic's first PRACTICAL unit,
+       * and these professional topics had none — every unit was authored as a lesson, so the
+       * structural walk reported NO_SUITABLE_TREATMENT with boundary=null and skipped them. They
+       * then competed as ordinary advanced material and lost, which is why a weak third-year
+       * composed zero of writing, presenting, the portfolio and applying. The outcome each of
+       * these states is an action, so this is what they always were.
+       */
       u('MOCK_BEHAVIORAL', 'Mock Behavioural Interview',
         'The whole thing, with feedback.',
         ['Sit a behavioural interview and act on the feedback'],

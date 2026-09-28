@@ -420,8 +420,32 @@ async function composeRevision(
      * none. `minUnits: 1` says what is actually true — any revision is better than no revision,
      * and the cap is the ceiling rather than the floor.
      */
+    /**
+     * ── INSIDE REVISION, "SUITABLE" MEANS SOMETHING ELSE ────────────────────────────────
+     *
+     * PRACTICE serves GUIDED, STANDARD and REVISION, and that is right in a learner's own year:
+     * somebody who has demonstrated a skill does not need to drill it again as part of learning
+     * it.
+     *
+     * Revision is the opposite case by construction. `revisionPlanFor` selects only skills the
+     * learner is ABOVE the ready score on — the entire premise is "you hold this, keep it" — so
+     * the one rule that excludes VERIFIED was excluding precisely the learner revision exists
+     * for. Measured, that is what left a fourth-year holding most of their year unable to fill
+     * it: their own year's teaching is unsuitable to them, and the earlier years' practice was
+     * unsuitable too, so the journey was refused with a third of the inventory untouched.
+     *
+     * Stated as authored suitability on the candidates this path composes, which is the override
+     * unitSuitabilityPolicy provides for where the type-derived default is too blunt. It is
+     * scoped to these units in memory: the global rule is untouched, and a learner's own year
+     * still gives a VERIFIED learner application rather than drill.
+     */
+    const asRevision = scoped.map(u => ({
+      ...u,
+      suitableStates: ['GUIDED', 'STANDARD', 'REVISION', 'VERIFIED', 'ENRICHMENT'] as any,
+    }));
+
     const out = composeUnits({
-      candidates: scoped, targetUnits: revision.units, minUnits: 1, student: profile,
+      candidates: asRevision, targetUnits: revision.units, minUnits: 1, student: profile,
     });
     if (!out.ok || !out.units.length) {
       console.warn(`[revision] could not compose ${revision.units} units: ${out.code || 'none'}`);

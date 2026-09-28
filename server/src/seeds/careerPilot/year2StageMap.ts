@@ -385,6 +385,17 @@ export const BUILD_MODULES: FoundationModuleSeed[] = [
         skillKeys: ['TECHNICAL_COMMUNICATION', 'TECHNICAL_EXPLANATION'], category: 'ENRICHMENT', applicableDirections: [],
         defaultDepth: 'STANDARD',
         learningOutcomes: ['Explain what you built, and why, to somebody who was not there.'],
+        /*
+         * BACKBONE: what every second-year covers, whatever their evidence.
+         *
+         * B13 is the module called Being Hireable, and it was the one a tight plan dropped.
+         * Measured, the weakest second-years composed none of it: unmarked, its units are
+         * ordinary advanced material sitting at module thirteen of fourteen, and they lose the
+         * bucket to everything in front of them. Projects and verification were already backbone
+         * and were reached; these were not and were not. Communication, a portfolio and knowing
+         * how to apply are not enrichment for somebody about to look for work.
+         */
+        backbone: true,
       },
       {
         topicCode: 'T2_PORTFOLIO', title: 'A Portfolio That Shows Evidence',
@@ -392,12 +403,34 @@ export const BUILD_MODULES: FoundationModuleSeed[] = [
         defaultDepth: 'STANDARD',
         learningOutcomes: ['Show what you can do through work somebody can open, not claims on a page.'],
         prerequisiteSkillKeys: ['GIT_FUNDAMENTALS'],
+        /*
+         * BACKBONE: what every second-year covers, whatever their evidence.
+         *
+         * B13 is the module called Being Hireable, and it was the one a tight plan dropped.
+         * Measured, the weakest second-years composed none of it: unmarked, its units are
+         * ordinary advanced material sitting at module thirteen of fourteen, and they lose the
+         * bucket to everything in front of them. Projects and verification were already backbone
+         * and were reached; these were not and were not. Communication, a portfolio and knowing
+         * how to apply are not enrichment for somebody about to look for work.
+         */
+        backbone: true,
       },
       {
         topicCode: 'T2_INTERNSHIP', title: 'Ready for an Internship',
         skillKeys: ['INTERNSHIP_READINESS'], category: 'ENRICHMENT', applicableDirections: [],
         defaultDepth: 'STANDARD',
         learningOutcomes: ['Read a job description, match yourself to it honestly, and apply.'],
+        /*
+         * BACKBONE: what every second-year covers, whatever their evidence.
+         *
+         * B13 is the module called Being Hireable, and it was the one a tight plan dropped.
+         * Measured, the weakest second-years composed none of it: unmarked, its units are
+         * ordinary advanced material sitting at module thirteen of fourteen, and they lose the
+         * bucket to everything in front of them. Projects and verification were already backbone
+         * and were reached; these were not and were not. Communication, a portfolio and knowing
+         * how to apply are not enrichment for somebody about to look for work.
+         */
+        backbone: true,
       },
     ],
   },

@@ -660,12 +660,41 @@ export async function composeFoundationJourney(
    * which looks like a working plan and is not the product. Refusing says so, and the
    * refusal names what to do about it.
    */
+  /**
+   * ── A YEAR THAT NEEDS A DIRECTION COMMITS TO ONE RATHER THAN REFUSING ──────────────────
+   *
+   * Refusing was the original answer here and the reasoning still holds: composing Year 3
+   * without a direction gives a plan with its specialization silently missing, which looks like
+   * a working journey and is not the product.
+   *
+   * What it missed is how MANY students arrive without one. A direction is only ever set by the
+   * role they picked, and only when that role maps to one — `resolveDirection` returns a null
+   * direction for "I'm not sure yet", for a role with no mapping, and for somebody who answered
+   * with technologies rather than a role. Every one of those students reached Year 3 or Year 4,
+   * paid, and was shown "your roadmap could not be prepared just now. Please try again in a
+   * little while" — a message describing a transient hiccup, for a refusal that would never
+   * clear on its own no matter how long they waited.
+   *
+   * So a stage that needs a direction now CHOOSES one when the student has not. The pick is the
+   * best signal available and it is deterministic: the first direction their answers hinted at,
+   * and failing that the first of the exploration set. The status stays whatever it was —
+   * EXPLORING or UNDECIDED, never SELECTED — so nothing here claims the student has decided,
+   * and a later real choice recomposes the plan against it.
+   *
+   * The refusal is kept for the one case it was written for: a stage that needs a direction when
+   * there is not a single direction to be had. That is a configuration fault and still says so.
+   */
   if (directionRequiredFor(opts.stageKey) && !profile.primaryDirection) {
-    console.warn(`[direction] ${opts.stageKey} needs a direction and none is chosen — refusing to compose`);
-    return {
-      candidates: set.units.length,
-      composition: refusedComposition('DIRECTION_REQUIRED', programDays),
-    };
+    const provisional = (profile.explorationDirections || [])[0] || null;
+    if (!provisional) {
+      console.warn(`[direction] ${opts.stageKey} needs a direction and none is available at all — refusing to compose`);
+      return {
+        candidates: set.units.length,
+        composition: refusedComposition('DIRECTION_REQUIRED', programDays),
+      };
+    }
+    console.log(`[direction] ${opts.stageKey} needs a direction and none was chosen — composing provisionally against ${provisional}`);
+    profile = { ...profile, primaryDirection: provisional };
   }
 
   /**

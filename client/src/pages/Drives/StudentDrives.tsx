@@ -54,7 +54,7 @@ const StudentDrives: React.FC = () => {
     setBusy(d._id);
     try {
       if (was) await placementDriveApi.withdraw(d._id); else await placementDriveApi.apply(d._id);
-      toast.show(was ? 'Application withdrawn.' : `Applied to ${d.companyName}. Read what they asked earlier candidates while you wait.`);
+      toast.show(was ? 'Application withdrawn.' : `Applied to ${d.companyName}. Your prep pack is ready — open it from this card.`);
       await load();
     } catch (e: any) { toast.show(e?.message || 'Could not update your application.', true); }
     setBusy(null);
@@ -118,7 +118,12 @@ const StudentDrives: React.FC = () => {
                             {busy === d._id ? <span className="pb-spinner" /> : on ? 'Withdraw' : 'Apply'}
                           </button>
                         </div>
-                        {on && <div className="pb-alert pb-alert-ok" style={{ margin: 0, fontSize: 12.5 }}><i className="fa-solid fa-circle-check" /> You have applied.</div>}
+                        {on && (
+                          <div className="pb-alert pb-alert-ok pb-row" style={{ margin: 0, fontSize: 12.5 }}>
+                            <span className="pb-grow"><i className="fa-solid fa-circle-check" /> You have applied.</span>
+                            <button className="pb-btn pb-btn-sm pb-btn-primary" onClick={() => nav(`/drives/${d._id}/prep`)}><i className="fa-solid fa-book-open" /> Prep pack</button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -142,7 +147,7 @@ const StudentDrives: React.FC = () => {
                             <td className="pb-muted">{ctc(a)}</td>
                             <td><span className={`pb-pill ${cls}`}>{label}</span></td>
                             <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                              <button className="pb-btn pb-btn-sm" onClick={() => nav(`/interview-experiences/company/${slug(a.companyName)}`)}>Prepare</button>
+                              <button className="pb-btn pb-btn-sm" onClick={() => nav(`/drives/${a._id}/prep`)}><i className="fa-solid fa-book-open" /> Prep pack</button>
                               {done && <button className="pb-btn pb-btn-sm pb-btn-primary" onClick={() => nav(`/interview-experiences/share?company=${encodeURIComponent(a.companyName)}`)}>Share how it went</button>}
                             </td>
                           </tr>

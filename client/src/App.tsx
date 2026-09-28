@@ -60,6 +60,7 @@ const WeeklyReportsPage = lazy(() => import('./pages/WeeklyReports'));
 const StudentProfileDetail = lazy(() => import('./pages/AdminStudentProfiles/StudentProfileDetail'));
 const PlacementDrivesPage = lazy(() => import('./pages/PlacementDrives'));
 const StudentDrivesPage = lazy(() => import('./pages/Drives/StudentDrives'));
+const PrepPackPage = lazy(() => import('./pages/Drives/PrepPack'));
 const PlacementAnalyticsPage = lazy(() => import('./pages/PlacementAnalytics'));
 const TenantManagementPage = lazy(() => import('./pages/TenantManagement'));
 const NotificationCenterPage = lazy(() => import('./pages/NotificationCenter'));
@@ -1273,6 +1274,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <StudentDrivesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/drives/:driveId/prep"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <PrepPackPage />
             </Layout>
           </ProtectedRoute>
         }

@@ -56,6 +56,36 @@ export interface InvitePreview {
   estimatedCostInr: number; companyName: string; sample: string[]; created?: number;
 }
 
+export interface PrepPack {
+  drive: { id: string; companyName: string; companySlug: string; role: string; driveDate: string | null; location: string; driveType: string; rounds: { name: string; date: string | null; venue: string }[]; description: string };
+  reports: number; avgRounds: number | null; roundPattern: CompanyView['roundPattern']; outcomes: Record<string, number>;
+  mostAsked: CompanyView['mostAsked'];
+  voices: { tips: string; eliminated: string; interviewedOn: string; outcome: string; role: string }[];
+  bankQuestions: { text: string; answer: string; round: string; category: string }[];
+  predicted: { text: string; answer: string; round: string; category: string }[];
+  preparingPredicted: boolean; codingSetId: string;
+}
+
+export interface HubConfig {
+  prepPack: { enabled: boolean; onApply: boolean; daysBefore: number; channels: string[]; includePredicted: boolean };
+  autoInvite: { enabled: boolean; daysAfter: number; channels: string[] };
+  siteUrl?: string;
+}
+
+export interface AutomationDrive {
+  id: string; companyName: string; role: string; driveDate: string | null; status: string; applicants: number;
+  packsSent: number; packsOpened: number; openedBefore: number; invited: number; answered: number;
+  skipPrep: boolean; skipInvite: boolean; packStatus: string; inviteStatus: string; codingSetId: string; waCostInr: number;
+}
+
+export interface HubInsights {
+  days: number;
+  posting: { invited: number; answered: number };
+  speed: { published: number; medianHours: number | null; within48h: number };
+  packs: { sent: number; opened: number; openedBefore: number };
+  selection: { usedPack: { decided: number; selected: number }; didNot: { decided: number; selected: number } };
+}
+
 export const interviewHubApi = {
   feed: (params: { company?: string; q?: string; outcome?: string; round?: string; page?: number }) =>
     axios.get(`${BASE}/feed`, { ...h(), params }).then(d) as Promise<{ total: number; page: number; items: ExpCard[]; companies: { slug: string; name: string; count: number; offers: number; lastInterviewedOn: string }[] }>,
@@ -66,6 +96,10 @@ export const interviewHubApi = {
     const r = await axios.get(`${BASE}/experiences/${id}/media`, { ...h(), responseType: 'blob' });
     return URL.createObjectURL(r.data);
   },
+
+  prepList: () => axios.get(`${BASE}/prep`, h()).then(d) as Promise<{ driveId: string; companyName: string; role: string; driveDate: string | null; opened: boolean; upcoming: boolean }[]>,
+  prep: (driveId: string) => axios.get(`${BASE}/prep/${driveId}`, h()).then(d) as Promise<PrepPack>,
+  prepOpened: (driveId: string) => axios.post(`${BASE}/prep/${driveId}/open`, {}, h()).then(d),
 
   mine: () => axios.get(`${BASE}/mine`, h()).then(d) as Promise<{ experiences: ExpCard[]; invites: { id: string; companyName: string; role: string; interviewedOn: string | null; message: string; createdAt: string }[] }>,
   getMine: (id: string) => axios.get(`${BASE}/mine/${id}`, h()).then(d) as Promise<ExpFull>,
@@ -88,6 +122,14 @@ export const interviewHubApi = {
     invites: (status?: string) => axios.get(`${BASE}/admin/invites`, { ...h(), params: { status } }).then(d) as Promise<{ counts: Record<string, number>; items: InviteRow[] }>,
     remind: (id: string, channels: string[]) => axios.post(`${BASE}/admin/invites/${id}/remind`, { channels }, h()).then(d) as Promise<{ email?: boolean; whatsapp?: boolean; whatsappError?: string }>,
     cancel: (id: string) => axios.post(`${BASE}/admin/invites/${id}/cancel`, {}, h()).then(d),
+    config: () => axios.get(`${BASE}/admin/config`, h()).then(d) as Promise<HubConfig>,
+    saveConfig: (body: Partial<HubConfig>) => axios.put(`${BASE}/admin/config`, body, h()).then(d) as Promise<HubConfig>,
+    automation: () => axios.get(`${BASE}/admin/automation`, h()).then(d) as Promise<{ config: HubConfig; whatsapp: { prepPackTemplate: boolean; inviteTemplate: boolean; costPerMessageInr: number }; drives: AutomationDrive[] }>,
+    driveFlags: (driveId: string, body: { skipPrep?: boolean; skipInvite?: boolean }) => axios.put(`${BASE}/admin/automation/${driveId}`, body, h()).then(d),
+    sendPack: (driveId: string) => axios.post(`${BASE}/admin/automation/${driveId}/send-pack`, {}, h()).then(d) as Promise<{ sent: number }>,
+    coding: (driveId: string) => axios.get(`${BASE}/admin/automation/${driveId}/coding`, h()).then(d) as Promise<{ companyName: string; codingSetId: string; suggestions: { question: string; matches: { id: string; title: string; difficulty: string; number: number }[] }[] }>,
+    createCodingSet: (driveId: string, problemIds: string[]) => axios.post(`${BASE}/admin/automation/${driveId}/coding`, { problemIds }, h()).then(d) as Promise<{ codingSetId: string; problems: number; students: number }>,
+    insights: (days = 90) => axios.get(`${BASE}/admin/insights`, { ...h(), params: { days } }).then(d) as Promise<HubInsights>,
   },
 };
 

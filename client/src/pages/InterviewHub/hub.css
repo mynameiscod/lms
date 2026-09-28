@@ -81,3 +81,29 @@
 @media (max-width: 640px) { .ih-redit .qrow { grid-template-columns: 1fr 34px; } .ih-redit .qrow select { grid-column: 1; } }
 
 .ih-consent { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; }
+
+/* Flashcards — think, then flip */
+.ih-flash { max-width: 680px; margin: 0 auto; }
+.ih-flash-card { perspective: 1400px; height: 300px; cursor: pointer; }
+.ih-flash-inner { position: relative; width: 100%; height: 100%; transition: transform .55s cubic-bezier(.2,.8,.2,1); transform-style: preserve-3d; }
+.ih-flash-card.flipped .ih-flash-inner { transform: rotateY(180deg); }
+.ih-flash-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 18px; padding: 26px 28px; display: flex; flex-direction: column; overflow: auto;
+  background: #fff; border: 1px solid var(--pb-line); box-shadow: 0 10px 30px rgba(15,23,42,.08); }
+.ih-flash-face.back { transform: rotateY(180deg); background: #fffdf5; border-color: #fde68a; }
+.ih-flash-face .q { font-size: 19px; font-weight: 700; color: var(--pb-ink); line-height: 1.45; white-space: pre-wrap; margin: auto 0; }
+.ih-flash-face .a { font-size: 15px; color: var(--pb-body); line-height: 1.6; white-space: pre-wrap; }
+.ih-flash-face .hint { color: var(--pb-faint); font-size: 12.5px; margin-top: 10px; text-align: center; }
+.ih-flash-bar { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.ih-flash-progress { height: 6px; border-radius: 99px; background: var(--pb-line); overflow: hidden; flex: 1; }
+.ih-flash-progress span { display: block; height: 100%; background: var(--pb-ok); transition: width .3s; }
+
+/* Prep pack */
+.ih-pack-hero { padding: 22px 24px; border-radius: 18px; background: linear-gradient(135deg, #312e81 0%, #4f46e5 55%, #0891b2 100%); color: #fff; margin-bottom: 16px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.ih-pack-hero h1 { color: #fff; }
+.ih-pack-hero .sub { color: #e0e7ff; margin-top: 4px; }
+.ih-pack-hero .count { background: rgba(255,255,255,.14); border-radius: 12px; padding: 10px 14px; text-align: center; min-width: 96px; }
+.ih-pack-hero .count b { display: block; font-size: 22px; }
+.ih-pack-hero .count span { font-size: 11.5px; color: #e0e7ff; }
+.ih-predicted { border: 1px dashed #f59e0b; background: #fffbeb; border-radius: 12px; padding: 10px 14px; color: #92400e; font-size: 13px; margin-bottom: 10px; }
+.ih-voice { border-left: 3px solid var(--pb-accent); padding: 8px 12px; margin-bottom: 10px; background: var(--pb-soft); border-radius: 0 10px 10px 0; font-size: 13.5px; line-height: 1.5; }
+.ih-prepcard { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: linear-gradient(135deg, #eef0ff, #ecfeff); border: 1px solid #d9dcfb; margin: 12px 0; }

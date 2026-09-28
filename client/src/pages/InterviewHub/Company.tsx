@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { interviewHubApi, CompanyView } from '../../api/interviewHubApi';
-import { CompanyLogo, ExperienceCard, fmtDate, useHubBase } from './parts';
+import { CompanyLogo, ExperienceCard, fmtDate, useHubBase, Flashcards } from './parts';
+import { Modal } from '../ProblemBank/shared';
 import '../ProblemBank/ProblemBank.css';
 import './hub.css';
 
@@ -18,6 +19,7 @@ const Company: React.FC = () => {
   const [err, setErr] = useState('');
   const [round, setRound] = useState('');
   const [tab, setTab] = useState<'asked' | 'reports'>('asked');
+  const [flash, setFlash] = useState(false);
   useEffect(() => { interviewHubApi.company(slug).then(setC).catch((x) => setErr(x?.response?.data?.message || 'Could not load.')); }, [slug]);
   const asked = useMemo(() => (c?.mostAsked || []).filter((q) => !round || q.round === round), [c, round]);
 
@@ -33,6 +35,7 @@ const Company: React.FC = () => {
         <div className="pb-head" style={{ alignItems: 'center' }}>
           <CompanyLogo name={c.company.name} size={52} />
           <div className="pb-grow"><h1>{c.company.name}</h1><p style={{ marginTop: 2 }}>From {c.reports} candidate report{c.reports === 1 ? '' : 's'}{c.lastInterviewedOn ? ` · latest ${fmtDate(c.lastInterviewedOn)}` : ''}</p></div>
+          {!!c.mostAsked.length && <button className="pb-btn" onClick={() => setFlash(true)}><i className="fa-solid fa-layer-group" /> Practise with flashcards</button>}
           <button className="pb-btn pb-btn-primary" onClick={() => nav(`${base}/share?company=${encodeURIComponent(c.company.name)}`)}><i className="fa-solid fa-microphone-lines" /> I interviewed here</button>
         </div>
 
@@ -95,6 +98,11 @@ const Company: React.FC = () => {
           )}
         </>}
       </div>
+      {flash && (
+        <Modal wide title={`${c.company.name} — flashcards`} onClose={() => setFlash(false)}>
+          <Flashcards deckKey={`company:${c.company.slug}`} items={c.mostAsked.map((q) => ({ q: q.text, tag: q.round, note: q.count > 1 ? `asked ${q.count}×` : 'reported' }))} onClose={() => setFlash(false)} />
+        </Modal>
+      )}
     </div>
   );
 };

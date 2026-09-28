@@ -4,6 +4,7 @@ import { interviewHubApi, ExpFull, HubRound, InvitePreview, InviteRow } from '..
 import { problemSetAdminApi } from '../../api/problemSetApi';
 import { Modal, useToast, relTime } from '../ProblemBank/shared';
 import { CompanyLogo, OutcomePill, RoundsEditor, RecordingPlayer, StatusPillHub, fmtDate, ModeIcon } from './parts';
+import { AutomationPanel, InsightsPanel } from './Automation';
 import '../ProblemBank/ProblemBank.css';
 import './hub.css';
 
@@ -12,7 +13,7 @@ import './hub.css';
  * copy the questions into the company question bank, and invite people to share after an
  * interview — one student, a batch, or everyone who applied to a placement drive.
  */
-type Tab = 'pending' | 'published' | 'rejected' | 'draft' | 'invites';
+type Tab = 'pending' | 'published' | 'rejected' | 'draft' | 'invites' | 'automation' | 'insights';
 const inr = (n: number) => `₹${(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
 /* ── Review one report ─────────────────────────────────────────────────────────────────── */
@@ -265,6 +266,7 @@ const InterviewHubAdmin: React.FC = () => {
   const [inviting, setInviting] = useState(false);
 
   const load = useCallback(() => {
+    if (tab === 'automation' || tab === 'insights') return;
     if (tab === 'invites') interviewHubApi.admin.invites(invFilter || undefined).then(setInv).catch(() => undefined);
     else interviewHubApi.admin.list({ status: tab, q: q || undefined }).then(setList).catch(() => undefined);
   }, [tab, q, invFilter]);
@@ -285,16 +287,19 @@ const InterviewHubAdmin: React.FC = () => {
         </div>
 
         <div className="pb-card pb-tabs" style={{ marginBottom: 12, borderRadius: 14 }}>
-          {([['pending', 'To review'], ['published', 'Published'], ['rejected', 'Sent back'], ['draft', 'Drafts'], ['invites', 'Invites']] as [Tab, string][]).map(([k, l]) => (
+          {([['pending', 'To review'], ['published', 'Published'], ['rejected', 'Sent back'], ['draft', 'Drafts'], ['invites', 'Invites'], ['automation', 'Automation'], ['insights', 'Insights']] as [Tab, string][]).map(([k, l]) => (
             <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
               {l} {k === 'invites'
                 ? (inv?.counts.overdue ? <span className="cnt" style={{ background: 'var(--pb-bad-soft)', color: 'var(--pb-bad)' }}>{inv.counts.overdue} overdue</span> : null)
-                : counts[k] ? <span className="cnt">{counts[k]}</span> : null}
+                : k === 'automation' || k === 'insights' ? null
+                  : counts[k] ? <span className="cnt">{counts[k]}</span> : null}
             </button>
           ))}
         </div>
 
-        {tab !== 'invites' ? <>
+        {tab === 'automation' ? <AutomationPanel toast={toast.show} />
+          : tab === 'insights' ? <InsightsPanel />
+          : tab !== 'invites' ? <>
           <div className="pb-card pb-filters">
             <div className="pb-search"><i className="fa-solid fa-magnifying-glass" /><input className="pb-input" placeholder="Search company or role" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           </div>

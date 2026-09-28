@@ -6,6 +6,7 @@ import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
 import * as svc from '../services/interviewHubService';
+import * as loop from '../services/interviewHubLoopService';
 
 /**
  * Interview Hub — candidates' real interview experiences. Every signed-in user (LMS student or
@@ -51,6 +52,21 @@ router.post('/admin/invites', staff, wrap((req) => svc.createInvites(t(req), u(r
 router.get('/admin/invites', staff, wrap((req) => svc.listInvites(t(req), req.query as any)));
 router.post('/admin/invites/:id/remind', staff, wrap((req) => svc.remindInvite(t(req), req.params.id, req.body?.channels || ['email'], origin(req))));
 router.post('/admin/invites/:id/cancel', staff, wrap((req) => svc.cancelInvite(t(req), req.params.id)));
+
+// ── Automation: prep packs before a drive, invites after it ──
+router.get('/admin/config', staff, wrap((req) => loop.getConfig(t(req))));
+router.put('/admin/config', staff, wrap((req) => loop.saveConfig(t(req), u(req), req.body || {}, origin(req))));
+router.get('/admin/automation', staff, wrap((req) => loop.automationBoard(t(req))));
+router.put('/admin/automation/:driveId', staff, wrap((req) => loop.setDriveFlags(t(req), req.params.driveId, req.body || {})));
+router.post('/admin/automation/:driveId/send-pack', staff, wrap((req) => loop.sendPackNow(t(req), req.params.driveId)));
+router.get('/admin/automation/:driveId/coding', staff, wrap((req) => loop.codingSuggestions(t(req), req.params.driveId)));
+router.post('/admin/automation/:driveId/coding', staff, wrap((req) => loop.createCodingSet(t(req), { userId: u(req), role: role(req) }, req.params.driveId, req.body?.problemIds || [])));
+router.get('/admin/insights', staff, wrap((req) => loop.insights(t(req), Number(req.query.days) || 90)));
+
+// ── Prep packs (students who applied) ──
+router.get('/prep', wrap((req) => loop.myPacks(t(req), u(req))));
+router.get('/prep/:driveId', wrap((req) => loop.packContent(t(req), req.params.driveId, { userId: u(req), staff: isStaff(req) })));
+router.post('/prep/:driveId/open', wrap((req) => loop.markOpened(t(req), u(req), req.params.driveId)));
 
 // ── Candidate ──
 router.get('/mine', wrap((req) => svc.mine(t(req), u(req))));

@@ -84,6 +84,12 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     help: 'Sent when an admin sends the weekly report with WhatsApp ticked (Weekly Reports page). The full report still goes by email; WhatsApp carries the headline numbers. Keep it UTILITY.',
   },
   {
+    key: 'PREP_PACK', label: 'Drive prep pack', module: 'Interview Hub',
+    settingsKey: 'WHATSAPP_TEMPLATE_PREP_PACK',
+    variables: ['Student first name', 'Company name', 'Drive date (e.g. 10 Oct 2026)', 'Link to the prep pack'],
+    help: 'Sent to students who applied to a placement drive — on applying and/or a few days before the drive (Admin → Drives → Interview Experiences → Automation). Email is always free; WhatsApp only when a template is assigned here and WhatsApp is ticked. Keep it UTILITY.',
+  },
+  {
     key: 'INTERVIEW_EXPERIENCE_INVITE', label: 'Interview experience — invite', module: 'Interview Hub',
     settingsKey: 'WHATSAPP_TEMPLATE_INTERVIEW_EXPERIENCE_INVITE',
     variables: ['Student first name', 'Company name', 'Link to share the experience'],

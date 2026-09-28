@@ -4,6 +4,7 @@ import * as svc from './placementDriveService';
 import User from '../models/User';
 import { EmailService } from '../services/emailService';
 import { placementOverview, notifyRound } from '../services/placementStatusService';
+import { onApplied } from '../services/interviewHubLoopService';
 
 // Applicant userIds actively in the process (shortlisted/selected), or all applicants if none yet.
 function roundAudience(drive: any): string[] {
@@ -80,6 +81,8 @@ export const apply = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const drive = await svc.applyToDrive(req.params.id, req.user!.tenantId, req.user!.id);
     if (!drive) return res.status(404).json({ success: false, message: 'Drive not found or not accepting applications' });
+    // The company's prep pack, straight away when the institute has that switched on.
+    onApplied(String(req.user!.tenantId), req.params.id, String(req.user!.id)).catch((e) => console.error('[interview-hub] prep pack on apply', e?.message));
     res.json({ success: true, message: 'Applied successfully', data: { applicantCount: drive.applicants.length } });
   } catch (e: any) {
     const status = e.statusCode === 403 ? 403 : 500;

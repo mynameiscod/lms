@@ -20,6 +20,10 @@ const BANNED_SECRETS = new Set([
   'secret-key',
   'fallback-key-32-chars-minimum!!',
   'codebegun-dev-secret',
+  // The default this repository's compose/.env examples shipped with. Production ran on it
+  // until 2026-09-28, which let anyone forge an admin token. ENCRYPTION_KEY is not checked
+  // here, so the stored secrets encrypted under this same string stay readable.
+  'your-secret-key-change-this',
 ]);
 
 /** Short enough to brute-force is the same as absent. */

@@ -250,3 +250,74 @@ export const Recorder: React.FC<{ kind: 'audio' | 'video'; onDone: (r: { recordi
     </div>
   );
 };
+
+export interface FlashItem { q: string; a?: string; tag?: string; note?: string }
+
+/**
+ * Flashcards: read the question, think, tap to flip, then say whether you knew it. "Revise"
+ * cards come back at the end of the round; progress is kept in this browser per deck.
+ */
+export const Flashcards: React.FC<{ deckKey: string; items: FlashItem[]; onClose?: () => void }> = ({ deckKey, items, onClose }) => {
+  const storeKey = `ih-flash:${deckKey}`;
+  const load = (): Record<string, 'knew' | 'revise'> => { try { return JSON.parse(localStorage.getItem(storeKey) || '{}'); } catch { return {}; } };
+  const [marks, setMarks] = useState<Record<string, 'knew' | 'revise'>>(load);
+  const [queue, setQueue] = useState<number[]>(() => items.map((_, i) => i).filter((i) => load()[items[i].q] !== 'knew'));
+  const [flipped, setFlipped] = useState(false);
+  const save = (m: Record<string, 'knew' | 'revise'>) => { setMarks(m); try { localStorage.setItem(storeKey, JSON.stringify(m)); } catch { /* private mode */ } };
+  const knewCount = items.filter((it) => marks[it.q] === 'knew').length;
+  const cur = queue[0];
+
+  const mark = (m: 'knew' | 'revise') => {
+    const it = items[cur];
+    save({ ...marks, [it.q]: m });
+    setFlipped(false);
+    setQueue((qu) => (m === 'knew' ? qu.slice(1) : [...qu.slice(1), qu[0]]));
+  };
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (cur === undefined) return;
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setFlipped((f) => !f); }
+      if (flipped && (e.key === 'ArrowRight' || e.key === 'k')) mark('knew');
+      if (flipped && (e.key === 'ArrowLeft' || e.key === 'r')) mark('revise');
+    };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  });
+
+  if (!items.length) return <div className="pb-muted">No questions to practise yet.</div>;
+  if (cur === undefined) return (
+    <div className="ih-flash pb-card pb-empty">
+      <div style={{ fontSize: 42 }}>🎉</div>
+      <h2>You knew all {items.length}</h2>
+      <p className="pb-muted">Come back the day before your interview for a quick run-through.</p>
+      <div className="pb-row" style={{ justifyContent: 'center' }}>
+        <button className="pb-btn" onClick={() => { save({}); setQueue(items.map((_, i) => i)); }}>Start over</button>
+        {onClose && <button className="pb-btn pb-btn-primary" onClick={onClose}>Done</button>}
+      </div>
+    </div>
+  );
+  const it = items[cur];
+  return (
+    <div className="ih-flash">
+      <div className={`ih-flash-card ${flipped ? 'flipped' : ''}`} onClick={() => setFlipped(!flipped)} role="button" tabIndex={0} aria-label="Flip card">
+        <div className="ih-flash-inner">
+          <div className="ih-flash-face">
+            <div className="pb-row">{it.tag && <span className="pb-tag">{it.tag}</span>}{it.note && <span className="pb-faint" style={{ fontSize: 12 }}>{it.note}</span>}</div>
+            <div className="q">{it.q}</div>
+            <div className="hint">Think of your answer, then tap to flip · Space</div>
+          </div>
+          <div className="ih-flash-face back">
+            <div className="pb-faint" style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>ANSWER</div>
+            <div className="a">{it.a || 'No model answer yet — say yours out loud, then judge honestly.'}</div>
+          </div>
+        </div>
+      </div>
+      <div className="ih-flash-bar">
+        <button className="pb-btn" disabled={!flipped} onClick={() => mark('revise')}><i className="fa-solid fa-rotate-left" /> Revise</button>
+        <div className="ih-flash-progress"><span style={{ width: `${(knewCount / items.length) * 100}%` }} /></div>
+        <span className="pb-muted" style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>{knewCount}/{items.length} known</span>
+        <button className="pb-btn pb-btn-success" disabled={!flipped} onClick={() => mark('knew')}><i className="fa-solid fa-check" /> I knew it</button>
+      </div>
+    </div>
+  );
+};

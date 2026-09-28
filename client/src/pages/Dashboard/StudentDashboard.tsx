@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import GamePanel from '../../components/dashboard/GamePanel';
 import PracticeTodayCard from '../../components/practice/PracticeTodayCard';
+import PrepPackCard from '../../components/interviewHub/PrepPackCard';
 import XpLeaderboard from '../../components/dashboard/XpLeaderboard';
 import './StudentDashboard.css';
 import { thinkingLabApi, DIFF_COLORS } from '../../api/thinkingLabApi';
@@ -66,6 +67,9 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
 
       {/* Daily Practice Pass — today's required tasks and placement standing, above everything else */}
       <PracticeTodayCard />
+
+      {/* Next placement drive's prep pack — only when the student has one */}
+      <PrepPackCard />
 
       {/* Stat cards */}
       <div className="sd2-stats">

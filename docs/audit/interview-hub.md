@@ -88,3 +88,41 @@ The College area was retired at the user's request, because it was not used. Pla
 - **Certificates** moved to a top-level item in TEACHING.
 - **Security fix:** the drive create, edit and delete endpoints, applicant results, rounds, overview and analytics had no role check, so any signed-in student could call them. They now require `manage_placement` (or `manage_placement_status` for results). The student drive list now returns only the applicant count and the student's own application and result.
 - **CGPA:** a drive's minimum CGPA is enforced only when the student has a CGPA on record. College profiles are gone, so a missing CGPA no longer blocks applying.
+
+## P3: closing the loop (2026-09-28)
+- **Settings** (Admin → Drives → Interview Experiences → **Automation**):
+  - The prep pack can be on or off. It is sent **the moment a student applies** and/or **N days before the drive** (default: on apply, plus 2 days before; late applicants catch up).
+  - Sending is by email (free) or WhatsApp (purpose `PREP_PACK`).
+  - AI-predicted questions for companies nobody has reported yet can be turned on or off.
+  - The **automatic invite to share** goes out N days after the drive (default 1), by email or WhatsApp.
+  - Each drive can opt out of the pack or the invite.
+- **Recipients:** only students who applied to the drive. The pack is also viewable in the app at `/drives/:driveId/prep`, and staff can preview it.
+- **Pack contents:**
+  - the rounds announced for the drive, and the round pattern earlier candidates faced;
+  - most-asked questions with their count;
+  - bank questions;
+  - tips and where people were eliminated, from recent reports;
+  - flashcards (think, flip, then "I knew it" / "Revise");
+  - the drive's coding set.
+- **Predicted questions:** when a company has no reports and no bank questions, the AI generates 12 questions once. They are saved to the company question bank as `aiPredicted` and always labelled "AI-predicted — not reported".
+- **Coding set:**
+  - The company's coding questions are matched to Problem Bank problems by title coverage: at least 60% of the title's words must appear in the question.
+  - The admin ticks the matches, which creates the "{Company} — interview prep" practice set for every applicant.
+  - Later applicants are added automatically.
+- **Hourly schedule:** `interviewHubLoopService.tick()` runs from `interviewHubCron`. The scheduled pack is claimed per student before sending, so no student gets it twice. The automatic invite fires once per drive (`DriveAutomation.inviteSentAt`).
+- **Surfaces:**
+  - student dashboard: a PrepPackCard;
+  - Drives page: a "Prep pack" button on each applied drive and in My applications;
+  - company page: "Practise with flashcards".
+- **Insights tab** (last 30 or 90 days, or 1 year):
+  - posting rate;
+  - median hours from interview to published;
+  - prep packs opened before the drive;
+  - selection rate of students who used the pack versus those who didn't.
+- **New collections:** `interviewhubconfigs`, `preppackdeliveries`, `driveautomations`.
+- **Tests:** a 29-step local smoke test. It included real AI prediction (12 questions) and matching "Two Sum" while rejecting "Sum of Array Elements".
+- **Not done:** a company-specific AI mock interview. It needs an interview template per company and is a separate piece.
+
+## Security (2026-09-28)
+- `your-secret-key-change-this`, the value production was running on, is now in `BANNED_SECRETS`, so the server refuses to start with it.
+- **The rotation must happen before or with the deploy that ships this.** `ENCRYPTION_KEY` on production is set separately (it has the same weak value), so rotating `JWT_SECRET` does not affect stored secrets. Re-keying `ENCRYPTION_KEY` properly is a separate task that needs a re-encryption pass.

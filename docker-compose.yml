@@ -201,6 +201,17 @@ services:
     # It is Piston's documented requirement, not a shortcut — which is why Piston is
     # bound to no public port, and why moving execution to its own host matters.
     privileged: true
+    # Piston's API parses JSON with body-parser's default 100 KB limit, and code + stdin
+    # travel in that one body. Measured on this host 2026-09-28: 90 KB of stdin ran, 200 KB
+    # came back "PayloadTooLargeError", so any Problem Bank test past ~100 KB could never be
+    # judged. The limit is hard-coded in the image, so it is patched at start (the sed is a
+    # no-op once applied), then Piston's own entrypoint runs exactly as before.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        sed -i "s/body_parser\.json()/body_parser.json({ limit: '16mb' })/" /piston_api/src/index.js
+        exec docker-entrypoint.sh /piston_api/src/docker-entrypoint.sh
     security_opt:
       - apparmor=unconfined
     tmpfs:

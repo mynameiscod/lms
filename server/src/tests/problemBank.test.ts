@@ -85,8 +85,10 @@ describe('validation', () => {
 
   it('rejects a missing title and oversized tests outright', () => {
     expect(normalizeInput({ ...base, title: '' }).errors.join(' ')).toMatch(/Title/);
-    const big = 'x'.repeat(600 * 1024);
-    expect(normalizeInput({ ...base, tests: [{ input: big, expectedOutput: '1', isSample: true }] }).errors.join(' ')).toMatch(/512 KB/);
+    const big = 'x'.repeat(4 * 1024 * 1024 + 1);
+    expect(normalizeInput({ ...base, tests: [{ input: big, expectedOutput: '1', isSample: true }] }).errors.join(' ')).toMatch(/4 MB/);
+    const stress = 'x'.repeat(600 * 1024);
+    expect(normalizeInput({ ...base, tests: [{ input: stress, expectedOutput: '1', isSample: true }] }).errors).toEqual([]);
   });
 
   it('clamps limits to what the runner can honour', () => {

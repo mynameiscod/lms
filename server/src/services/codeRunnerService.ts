@@ -732,6 +732,15 @@ class CodeRunnerService {
             executionTime: Date.now() - startedAt, memoryUsed: 0,
           };
         }
+        // The sandbox's request-size limit, not the student's code. Piston answers 400 (not
+        // 413) with body-parser's stack trace; say so plainly instead of a runtime error.
+        if (response.status === 413 || /PayloadTooLarge|request entity too large/i.test(errorBody)) {
+          return {
+            passed: false, output: '',
+            error: 'This test input is too large for the code runner. Ask your admin to raise the runner\'s request limit.',
+            executionTime: Date.now() - startedAt, memoryUsed: 0,
+          };
+        }
         console.error('[PISTON] Error response:', response.status, errorBody);
         throw new Error(`Piston API error: ${response.statusText} - ${errorBody}`);
       }

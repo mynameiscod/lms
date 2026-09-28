@@ -46,7 +46,10 @@ export interface ProblemInput {
   status?: 'draft' | 'published' | 'archived';
 }
 
-const MAX_TEST_BYTES = 512 * 1024;
+// Stress tests (n = 10^5..10^6) run to a few MB. Piston's request limit is raised to 16 MB in
+// docker-compose to carry them; each test is its own document, so Mongo's 16 MB is not in play.
+const MAX_TEST_MB = 4;
+const MAX_TEST_BYTES = MAX_TEST_MB * 1024 * 1024;
 const MAX_TESTS = 200;
 const cleanList = (v: unknown, max = 30) =>
   Array.from(new Set((Array.isArray(v) ? v : String(v || '').split(/[,|;]/)).map((s) => String(s).trim()).filter(Boolean))).slice(0, max);
@@ -101,7 +104,7 @@ export function normalizeInput(raw: ProblemInput) {
     const input = String(t?.input ?? '').replace(/\r\n?/g, '\n');
     const expectedOutput = String(t?.expectedOutput ?? (t as any)?.output ?? '').replace(/\r\n?/g, '\n');
     if (Buffer.byteLength(input) > MAX_TEST_BYTES || Buffer.byteLength(expectedOutput) > MAX_TEST_BYTES) {
-      errors.push(`Test ${i + 1} is larger than 512 KB.`);
+      errors.push(`Test ${i + 1} is larger than ${MAX_TEST_MB} MB.`);
     }
     const weight = Number(t?.weight ?? 1);
     tests.push({

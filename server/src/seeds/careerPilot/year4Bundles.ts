@@ -41,6 +41,7 @@ import { PRODUCTION_BUNDLES } from './year4ContentProduction';
 import { PLACEMENT_CODING_BUNDLES } from './year4ContentPlacementCoding';
 import { APTITUDE_BUNDLES } from './year4ContentAptitude';
 import { TECHNICAL_MCQ_BUNDLES } from './year4ContentTechnicalMcq';
+import { TECHNICAL_INTERVIEW_BUNDLES } from './year4ContentTechnicalInterview';
 
 export const ALL_YEAR4_BUNDLES: PilotBundle[] = [
   ...STANDING_BUNDLES,
@@ -65,4 +66,5 @@ export const ALL_YEAR4_BUNDLES: PilotBundle[] = [
   ...PLACEMENT_CODING_BUNDLES,
   ...APTITUDE_BUNDLES,
   ...TECHNICAL_MCQ_BUNDLES,
+  ...TECHNICAL_INTERVIEW_BUNDLES,
 ];

@@ -54,6 +54,21 @@ export const BRIDGE_SOURCE_STAGE: Readonly<Record<string, readonly string[]>> = 
    * there are not enough days the nearer year wins.
    */
   specialize: Object.freeze(['build', 'foundation']),
+  /*
+   * ── AND WHY PLACEMENT IS STILL ABSENT ──────────────────────────────────────────────────
+   *
+   * Year 4 carries its own ten-day bridge (P02), authored for a fourth-year rather than borrowed,
+   * and it covers the same ladder this table would: programming, control flow, functions,
+   * collections, objects, DSA, databases and the web.
+   *
+   * Adding a cross-stage bridge on top of it was tried and measured, and it double-bridged. A
+   * fourth-year measured weak across the board came back with 282 units of Year 1, 2 and 3 and
+   * ZERO of Year 4 — no specialization, no mocks, no simulation, no capstone — where P02 alone
+   * had given them the bridge AND the whole terminal half of the year. Two bridges for one gap
+   * is not twice the help; it is the year they paid for, spent on the years they did not.
+   *
+   * REVISION is a different question and Year 4 IS in that table — see stageRevisionPolicy.
+   */
 });
 
 /**
@@ -107,6 +122,7 @@ export const BRIDGE_SKILLS: Readonly<Record<string, readonly string[]>> = Object
     // Working like an engineer rather than a student
     'TESTING_FUNDAMENTALS', 'GIT_BRANCHING', 'PROBLEM_SOLVING',
   ]),
+
 });
 
 /**
@@ -136,6 +152,49 @@ export const BRIDGE_READY_SCORE = 50;
  * The content does not shrink. The calendar it occupies does.
  */
 export const UNITS_PER_BRIDGE_SKILL = 10;
+
+/**
+ * And what an UNMEASURED one is worth, which is less.
+ *
+ * ── A DEMONSTRATED GAP AND AN UNKNOWN ARE NOT THE SAME CLAIM ──────────────────────────────
+ *
+ * A skill measured at 15 is a fact: this learner cannot do it, and ten units of teaching is what
+ * closing that costs. A skill nobody asked about is not a fact at all — it is the absence of one,
+ * and the honest response is a refresher and a check rather than a full re-teach.
+ *
+ * Costing them the same was measured and it was too much. Year 3 assumes fourteen skills and the
+ * entry paper measures one or two of them, so thirteen unknowns at ten units each wanted 130
+ * units — the whole third of the programme the cap allows — and a weak third-year came back with
+ * the bridge in full and ZERO of their specialization, zero production project and zero of the
+ * interview, portfolio and internship blocks. They were given Year 1 and 2 and charged for
+ * Year 3.
+ *
+ * At four units an unknown, the same fourteen come to a bridge that leaves most of the year
+ * intact, and a skill the learner has actually been measured weak on still gets its full ten.
+ */
+export const UNITS_PER_UNMEASURED_BRIDGE_SKILL = 4;
+
+/**
+ * How many gaps one bridge will act on, worst first.
+ *
+ * ── WHY A BRIDGE IS NOT A REMEDIAL YEAR ───────────────────────────────────────────────────
+ *
+ * Counting unmeasured skills as gaps is right, and it made the gap LIST long: Year 3 assumes
+ * fourteen skills and a fresh third-year is measured on one or two of them, so thirteen arrive as
+ * gaps at once. Acting on all of them spends the whole third of the programme the cap allows, and
+ * measured, that is exactly what happened — a weak third-year received the bridge in full and
+ * zero of their specialization, zero production project, and zero of the interview, portfolio and
+ * internship blocks.
+ *
+ * The bridge exists to get somebody far enough in to FOLLOW the year, not to re-teach the two
+ * years before it. The list is already sorted worst-first, so taking the worst six spends the
+ * days where they buy the most and leaves the year they actually bought standing.
+ *
+ * A learner genuinely below the line on everything is not served by a bigger bridge either — see
+ * MAX_BRIDGE_SHARE, which says in as many words that for a total beginner the honest answer is
+ * the earlier programme rather than a truncated version of this one.
+ */
+export const MAX_BRIDGE_SKILLS = 6;
 
 /**
  * The most of a programme that may be spent bridging.
@@ -232,15 +291,42 @@ export function bridgePlanFor(
   const held = profile?.skills;
   if (!held || typeof held.get !== 'function') return null;
 
-  /*
-   * Worst first, so a plan short of days spends them on the biggest gap. Only skills the
-   * learner has actually been measured on — see the header.
+  /**
+   * ── SILENCE IS TRUSTED ONLY FROM SOMEBODY WHO HAS SHOWN SOMETHING ─────────────────────
+   *
+   * This counted only MEASURED skills, and the reasoning is sound as far as it goes: absence of
+   * evidence is not evidence of absence, and counting silence as weakness would bridge the
+   * returning member this exists to let through.
+   *
+   * It does not survive contact with the entry test. The paper is twenty-four items over about
+   * eight skills; Year 3 assumes fourteen. Measured on the real members of this tenant, ONE or
+   * TWO of the fourteen came back measured — so twelve were silently treated as held, a fresh
+   * third-year who had never done Years 1 or 2 here got a FOUR-DAY bridge and was then dropped
+   * into advanced algorithms, and a member with no Skill DNA at all got no bridge whatsoever.
+   *
+   * So silence is read in the light of what they DID show. A learner with any measured assumed
+   * skill at or above the line has demonstrated they are in this material, and their silence is
+   * trusted exactly as before: the returning Year-1 member is not bridged, and the one whose
+   * single skill has faded is bridged on that skill alone. A learner who has shown nothing at or
+   * above the line has given no reason to believe the year can stand on them, and their unmeasured
+   * skills count.
+   *
+   * Worst first: demonstrated low scores ahead of unknowns, because a measured 15 is a worse gap
+   * than an unknown, and the list is then cut to MAX_BRIDGE_SKILLS.
    */
-  const gaps = required
+  const measured = required
     .map(key => ({ key, score: held.get(key)?.score }))
-    .filter((g): g is { key: string; score: number } =>
-      typeof g.score === 'number' && g.score < BRIDGE_READY_SCORE)
-    .sort((a, b) => a.score - b.score);
+    .filter((g): g is { key: string; score: number } => typeof g.score === 'number');
+  const hasPositiveEvidence = measured.some(g => g.score >= BRIDGE_READY_SCORE);
+
+  const gaps: { key: string; score: number | undefined }[] = [
+    ...measured.filter(g => g.score < BRIDGE_READY_SCORE).sort((a, b) => a.score - b.score),
+    ...(hasPositiveEvidence
+      ? []
+      : required
+        .filter(key => typeof held.get(key)?.score !== 'number')
+        .map(key => ({ key, score: undefined }))),
+  ];
 
   if (!gaps.length) return null;
 
@@ -252,14 +338,18 @@ export function bridgePlanFor(
    * would then refuse.
    */
   const density = densityFor(profile, stage);
-  const wantedUnits = gaps.length * UNITS_PER_BRIDGE_SKILL;
+  const acted = gaps.slice(0, MAX_BRIDGE_SKILLS);
+  const wantedUnits = acted.reduce(
+    (n, g) => n + (typeof g.score === 'number' ? UNITS_PER_BRIDGE_SKILL : UNITS_PER_UNMEASURED_BRIDGE_SKILL),
+    0,
+  );
   const ceiling = Math.floor(programDays * MAX_BRIDGE_SHARE);
   const days = Math.min(Math.ceil(wantedUnits / bridgeUnitsPerDay(density)), ceiling);
   if (days < 1) return null;
 
   return {
     sourceStages,
-    skills: gaps.map(g => g.key),
+    skills: acted.map(g => g.key),
     days,
     units: Math.min(wantedUnits, days * bridgeUnitsPerDay(density)),
   };

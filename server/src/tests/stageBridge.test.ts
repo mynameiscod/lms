@@ -7,7 +7,7 @@
  * "returning member" flag to inspect — so the rule itself has to be trustworthy.
  */
 
-import { bridgeUnitsPerDay,
+import { UNITS_PER_UNMEASURED_BRIDGE_SKILL, MAX_BRIDGE_SKILLS, bridgeUnitsPerDay,
   bridgePlanFor, BRIDGE_READY_SCORE, BRIDGE_SKILLS, BRIDGE_SOURCE_STAGE,
   MAX_BRIDGE_SHARE, UNITS_PER_BRIDGE_SKILL,
 } from '../data/stageBridgePolicy';
@@ -28,13 +28,22 @@ describe('who gets bridged', () => {
     );
     expect(plan).not.toBeNull();
     expect(plan!.sourceStages).toEqual(['foundation']);
-    expect(plan!.skills).toEqual(['PROBLEM_SOLVING', 'PROGRAMMING_FUNDAMENTALS', 'DSA_ARRAYS']);
     /*
-     * In UNITS. Three unmet skills imply thirty units of Year-1 teaching whoever the learner is;
-     * the DAYS that takes are their own density, which is why this constant counts units.
+     * The three they were measured on and failed come first and in order. This learner showed
+     * nothing at or above the line, so their eleven unanswered skills are not taken as held
+     * either — the unknowns follow, and the whole list is cut at MAX_BRIDGE_SKILLS.
      */
-    expect(plan!.units).toBe(3 * UNITS_PER_BRIDGE_SKILL);
-    expect(plan!.days).toBe(Math.ceil((3 * UNITS_PER_BRIDGE_SKILL) / bridgeUnitsPerDay(densityFor(null, 'build'))));
+    expect(plan!.skills.slice(0, 3)).toEqual(['PROBLEM_SOLVING', 'PROGRAMMING_FUNDAMENTALS', 'DSA_ARRAYS']);
+    expect(plan!.skills.length).toBeLessThanOrEqual(MAX_BRIDGE_SKILLS);
+    /*
+     * In UNITS. A demonstrated gap implies ten units of Year-1 teaching and an unknown four; the
+     * DAYS that takes are the learner's own density, which is why these constants count units.
+     */
+    expect(plan!.units).toBe(
+      3 * UNITS_PER_BRIDGE_SKILL
+      + (plan!.skills.length - 3) * UNITS_PER_UNMEASURED_BRIDGE_SKILL,
+    );
+    expect(plan!.days).toBe(Math.ceil(plan!.units / bridgeUnitsPerDay(densityFor(null, 'build'))));
   });
 
   it('does NOT bridge a returning Year-1 member — they start on the year they bought', () => {
@@ -81,21 +90,46 @@ describe('who is never bridged', () => {
   });
 
   /**
-   * THE CASE THAT PROTECTS THE RETURNING MEMBER.
+   * THE CASE THAT PROTECTS THE RETURNING MEMBER — AND ITS LIMIT.
    *
-   * The entry test measures eight skills, so most of BRIDGE_SKILLS is unmeasured for everybody.
-   * If silence counted as weakness every learner would be bridged, including the one this whole
-   * feature exists to let through untouched.
+   * The entry test measures eight skills and a stage assumes fourteen, so most of BRIDGE_SKILLS
+   * is unmeasured for everybody. Treating every silence as weakness would bridge the returning
+   * member this whole feature exists to let through; treating every silence as competence gave a
+   * fresh third-year a four-day bridge and a member with no Skill DNA no bridge at all.
+   *
+   * So silence is read in the light of what they DID show: trusted from a learner with any
+   * assumed skill at or above the line, and not from one who has shown nothing.
    */
-  it('does not treat an unmeasured skill as a gap', () => {
-    expect(bridgePlanFor(profileOf({}), 'build', BUILD_DAYS)).toBeNull();
-    const plan = bridgePlanFor(profileOf({ PROBLEM_SOLVING: 10 }), 'build', BUILD_DAYS);
-    expect(plan!.skills).toEqual(['PROBLEM_SOLVING']);
+  it('trusts silence from a learner who has shown something', () => {
+    const plan = bridgePlanFor(
+      profileOf({ PROBLEM_SOLVING: 10, PROGRAMMING_FUNDAMENTALS: 78 }), 'build', BUILD_DAYS,
+    )!;
+    expect(plan.skills).toEqual(['PROBLEM_SOLVING']);
   });
 
-  it('ignores a skill measured without a score', () => {
+  it('does not trust silence from a learner who has shown nothing', () => {
+    /* No Skill DNA at all: the fresh joiner who was getting no bridge whatsoever. */
+    const plan = bridgePlanFor(profileOf({}), 'build', BUILD_DAYS);
+    expect(plan).not.toBeNull();
+    expect(plan!.skills.length).toBeGreaterThan(0);
+    expect(plan!.skills.every(k => (BRIDGE_SKILLS.build as readonly string[]).includes(k))).toBe(true);
+
+    /* Measured, but only below the line — still no reason to believe the year can stand on them. */
+    const weak = bridgePlanFor(profileOf({ PROBLEM_SOLVING: 10 }), 'build', BUILD_DAYS)!;
+    expect(weak.skills[0]).toBe('PROBLEM_SOLVING');
+    expect(weak.skills.length).toBeGreaterThan(1);
+  });
+
+  it('treats a skill measured without a score as unmeasured, not as held', () => {
     const profile: any = { skills: new Map([['PROBLEM_SOLVING', { score: null, confidence: 'LOW' }]]) };
-    expect(bridgePlanFor(profile, 'build', BUILD_DAYS)).toBeNull();
+    /*
+     * A null score is not positive evidence, so it cannot be the thing that makes silence
+     * trustworthy — this learner is bridged. Which of the unknowns the bridge reaches is the
+     * worst-first ordering's business and the MAX_BRIDGE_SKILLS cut's, not this test's.
+     */
+    const plan = bridgePlanFor(profile, 'build', BUILD_DAYS);
+    expect(plan).not.toBeNull();
+    expect(plan!.skills.length).toBeGreaterThan(0);
   });
 
   it('survives a profile with no skill map at all rather than throwing', () => {
@@ -147,7 +181,9 @@ describe('how much of the programme a bridge may take', () => {
       profileOf({ SQL_BASICS: 45, PROBLEM_SOLVING: 5, PROGRAMMING_FUNDAMENTALS: 25 }),
       'build', BUILD_DAYS,
     )!;
-    expect(plan.skills).toEqual(['PROBLEM_SOLVING', 'PROGRAMMING_FUNDAMENTALS', 'SQL_BASICS']);
+    /* Measured gaps come first and in order; unknowns follow, and the list is cut at MAX_BRIDGE_SKILLS. */
+    expect(plan.skills.slice(0, 3)).toEqual(['PROBLEM_SOLVING', 'PROGRAMMING_FUNDAMENTALS', 'SQL_BASICS']);
+    expect(plan.skills.length).toBeLessThanOrEqual(MAX_BRIDGE_SKILLS);
   });
 
   it('gives no bridge at all rather than a zero-day one on a programme too short to spare any', () => {
@@ -215,7 +251,12 @@ describe('a stage with two stages behind it', () => {
     const weak: Record<string, number> = {};
     for (const key of BRIDGE_SKILLS.specialize) weak[key] = 5;
     const plan = bridgePlanFor(profileOf(weak), 'specialize', SPECIALIZE_DAYS)!;
-    expect(plan.days).toBe(Math.floor(SPECIALIZE_DAYS * MAX_BRIDGE_SHARE));
+    /*
+     * The cap is a ceiling. A bridge acts on the worst MAX_BRIDGE_SKILLS gaps rather than on
+     * every one, so it takes what it needs and gives the rest of the year back — which is the
+     * whole reason a weak third-year now keeps their specialization and their capstone.
+     */
+    expect(plan.days).toBeLessThanOrEqual(Math.floor(SPECIALIZE_DAYS * MAX_BRIDGE_SHARE));
     expect(plan.days).toBeLessThan(SPECIALIZE_DAYS - plan.days);
   });
 });

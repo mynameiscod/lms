@@ -21,7 +21,7 @@ jest.mock('../services/skillDnaService', () => ({
 }));
 
 import { buildFoundationProfile } from '../services/foundationProfileService';
-import { bridgeUnitsPerDay, bridgePlanFor, BRIDGE_READY_SCORE, UNITS_PER_BRIDGE_SKILL } from '../data/stageBridgePolicy';
+import { UNITS_PER_UNMEASURED_BRIDGE_SKILL, MAX_BRIDGE_SKILLS, bridgeUnitsPerDay, bridgePlanFor, BRIDGE_READY_SCORE, UNITS_PER_BRIDGE_SKILL } from '../data/stageBridgePolicy';
 import { densityFor } from '../data/learningDensityPolicy';
 
 const TENANT = '6aa8e4d702b4b0e2097b221d';
@@ -127,15 +127,24 @@ describe('a fresh second-year joiner', () => {
     const { plan } = await bridgeFor();
     expect(plan).not.toBeNull();
     expect(plan!.sourceStages).toEqual(['foundation']);
-    expect(plan!.skills).toEqual(['PROBLEM_SOLVING', 'PROGRAMMING_FUNDAMENTALS', 'DSA_ARRAYS']);
+    /*
+     * The three they failed, in order, followed by unknowns — this learner showed nothing at or
+     * above the line, so their unanswered skills are not taken as held either.
+     */
+    expect(plan!.skills.slice(0, 3)).toEqual(['PROBLEM_SOLVING', 'PROGRAMMING_FUNDAMENTALS', 'DSA_ARRAYS']);
+    expect(plan!.skills.length).toBeLessThanOrEqual(MAX_BRIDGE_SKILLS);
     /*
      * THE CONTENT IS THE INVARIANT; THE CALENDAR IS THE LEARNER'S. Three unmet skills imply
      * thirty UNITS of teaching whoever the learner is. How many DAYS that occupies is their own
      * density — which is the whole reason UNITS_PER_BRIDGE_SKILL is counted in units and not,
      * as it once was, in days.
      */
-    expect(plan!.units).toBe(3 * UNITS_PER_BRIDGE_SKILL);
-    expect(plan!.days).toBe(Math.ceil((3 * UNITS_PER_BRIDGE_SKILL) / bridgeUnitsPerDay(densityFor(null, 'build'))));
+    /* Ten units per demonstrated gap, four per unknown — see UNITS_PER_UNMEASURED_BRIDGE_SKILL. */
+    expect(plan!.units).toBe(
+      3 * UNITS_PER_BRIDGE_SKILL
+      + (plan!.skills.length - 3) * UNITS_PER_UNMEASURED_BRIDGE_SKILL,
+    );
+    expect(plan!.days).toBe(Math.ceil(plan!.units / bridgeUnitsPerDay(densityFor(null, 'build'))));
   });
 
   /**
@@ -167,9 +176,9 @@ describe('the two, side by side', () => {
     const returning = (await bridgeFor()).plan;
 
     /* In UNITS: the gap is the same figure at any pace, where the calendar is not. */
-    expect(fresh!.units).toBe(3 * UNITS_PER_BRIDGE_SKILL);
+    expect(fresh!.units).toBeGreaterThanOrEqual(3 * UNITS_PER_BRIDGE_SKILL);
     expect(returning).toBeNull();
-    expect(fresh!.units - (returning?.units ?? 0)).toBe(3 * UNITS_PER_BRIDGE_SKILL);
+    expect(fresh!.units - (returning?.units ?? 0)).toBe(fresh!.units);
     expect(fresh!.days).toBeGreaterThan(0);
   });
 

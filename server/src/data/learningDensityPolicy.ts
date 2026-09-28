@@ -122,56 +122,64 @@ export function measuredMean(profile: StudentProfile | null | undefined): number
 }
 
 /**
- * ── YEAR 4 HAS A FLOOR THE OTHER YEARS DO NOT ─────────────────────────────────────────────
+ * ── YEAR 4'S DAYS ARE FIXED, BECAUSE ITS VALUE IS AT THE END ──────────────────────────────
  *
  * Every year before this one is allowed to give a weak learner less of itself. That is the whole
  * argument above: the programme is the admin's days, and what changes per learner is how much of
  * the curriculum fits inside them. Covering two thirds of Year 2 is a smaller Year 2, and a
  * smaller Year 2 is still a Year 2.
  *
- * Year 4 does not work that way, because its value is concentrated at the END. Its universal
- * content is 295 units and a BUILDING learner at one a day receives 150 of them — measured, that
- * plan contained no ten-day bridge, no specialization, no mock interviews, no placement
- * simulation and no capstone. It is not a smaller Year 4. It is the first half of Year 4 and none
- * of what the year is for, given to the student who needed the mocks most.
+ * Year 4 does not work that way. Its universal content is 295 units and everything it is FOR sits
+ * at the end — the specialization, the nine mocks, the full-day simulation, the capstone. Two
+ * different mechanisms were each cutting exactly that tail off:
  *
- * So placement sets a floor of two units a day for everybody. A learner with nothing proven is
- * still taught before they practise and still meets the material in order — packing never
- * reorders, only draws the day boundaries — they simply meet two topics in a day instead of one,
- * with the minutes to match. Measured at two a day a BUILDING fourth-year receives the bridge in
- * full, their own specialization, all nine mocks, the simulation and the capstone.
+ *   AT ONE UNIT A DAY a BUILDING fourth-year received 150 of 295 units, and measured, that plan
+ *   contained no bridge, no specialization, no mocks, no simulation and no capstone. Not a
+ *   smaller Year 4 — the first half of one.
+ *
+ *   AT TWO AND A HALF a FAST fourth-year was composed 375 units against an inventory of 311, and
+ *   packComposedDays trims from the END when a composition overflows its days. That trim is right
+ *   for a year ordered by need, where the tail is the least important thing. It is exactly wrong
+ *   here, where the tail is the point.
+ *
+ * So placement fixes one density for everybody: two a day, which is 300 units. That is more than
+ * 150 days can hold — measured, they take about 260 — and it is deliberately more. Composing to
+ * the packer's exact capacity starved the very modules this is protecting: at 255 units a
+ * fourth-year was composed three of the nine mocks. Composing 300 and letting the packer drop
+ * what will not fit gives the shape room to reach the end of the year, and terminalCoveragePolicy
+ * makes sure what is dropped comes from the bulk rather than from the tail.
+ *
+ * WHO THE LEARNER IS STILL DECIDES THEIR YEAR. It decides WHICH 255 units, through the shape in
+ * PLACEMENT_BASE and through suitability — a learner holding the material is not given the
+ * bridge, and one without it opens on the bridge. What it no longer decides is how many, because
+ * at this length that number is a property of the curriculum rather than of the student.
  *
  * The honest cost, stated because it is real: a fourth-year arriving without the fundamentals is
  * asked for a fuller day than the same learner would be asked for in Year 2. That is the trade
  * Year 4 makes, and the alternative is selling somebody a placement year that stops before the
  * placement practice.
  */
-const PLACEMENT_FLOOR: LearningDensity = {
-  band: 'BUILDING', unitsPerDay: 2, budgetMinutes: 180, maxUnitsPerDay: 3,
+const PLACEMENT_DENSITY: LearningDensity = {
+  band: 'STEADY', unitsPerDay: 2, budgetMinutes: 180, maxUnitsPerDay: 3,
 };
 
-/** Stages whose weakest band is raised, and to what. Absent means the table above stands. */
-const STAGE_DENSITY_FLOOR: Readonly<Record<string, LearningDensity>> = Object.freeze({
-  placement: PLACEMENT_FLOOR,
+/**
+ * Stages whose density is fixed for every learner, and to what.
+ *
+ * Absent means the three bands above decide, which is every stage but this one.
+ */
+const STAGE_DENSITY: Readonly<Record<string, LearningDensity>> = Object.freeze({
+  placement: PLACEMENT_DENSITY,
 });
 
-/**
- * How dense this learner's days should be.
- *
- * Nothing measured means BUILDING. That is the cautious end on purpose: a learner we know
- * nothing about is given the gentler plan, and their evidence moves them up soon enough.
- *
- * `stageKey` is optional and only ever RAISES the weakest band, never lowers any of them: a
- * caller that omits it gets exactly the behaviour every caller had before this existed.
- */
 export function densityFor(
   profile: StudentProfile | null | undefined,
   stageKey?: string | null,
 ): LearningDensity {
+  const fixed = STAGE_DENSITY[String(stageKey || '').toLowerCase().trim()];
+  if (fixed) return fixed;
   const mean = measuredMean(profile);
-  if (mean === null || mean < BUILDING_BELOW) {
-    return STAGE_DENSITY_FLOOR[String(stageKey || '').toLowerCase().trim()] ?? DENSITIES.BUILDING;
-  }
+  if (mean === null || mean < BUILDING_BELOW) return DENSITIES.BUILDING;
   if (mean >= FAST_AT_OR_ABOVE) return DENSITIES.FAST;
   return DENSITIES.STEADY;
 }

@@ -52,6 +52,7 @@ import { revisionPlanFor, RevisionPlan } from '../data/stageRevisionPolicy';
 import { directionRequiredFor } from '../data/stageDirectionPolicy';
 import { densityFor, unitsForDays } from '../data/learningDensityPolicy';
 import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } from '../data/dayPackingPolicy';
+import { isProtectedFromTrim } from '../data/terminalCoveragePolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource } from './composerCandidateService';
 import { sequencePredecessorOf, sequenceIndexOf } from '../data/courseSequencePolicy';
 
@@ -572,12 +573,28 @@ export function packComposedDays(
    * Trimmed from the END, so what is dropped is the material furthest down a sequence already
    * ordered by what this learner needs most.
    */
-  let lo = programDays;
-  let hi = all.length;
+  /*
+   * ── EXCEPT WHERE THE END IS THE POINT ──────────────────────────────────────────────────
+   *
+   * A placement year's tail is its mocks, its simulation and its capstone — the least urgent
+   * thing in the plan by position and the most important by purpose. Trimming those to make the
+   * arithmetic work produced a journey that looked complete and stopped before the placement
+   * practice. See terminalCoveragePolicy.
+   *
+   * The protected units keep their place at the end of the plan; what changes is that the trim
+   * takes its units from the bulk in front of them instead.
+   */
+  const protectedTail = all.filter(u => isProtectedFromTrim(opts.stageKey, u.topicCode));
+  const trimmable = protectedTail.length
+    ? all.filter(u => !isProtectedFromTrim(opts.stageKey, u.topicCode))
+    : all;
+
+  let lo = Math.max(0, programDays - protectedTail.length);
+  let hi = trimmable.length;
   let best = first;
   while (lo <= hi) {
     const mid = Math.floor((lo + hi) / 2);
-    const attempt = packIntoDays(all.slice(0, mid), options);
+    const attempt = packIntoDays([...trimmable.slice(0, mid), ...protectedTail], options);
     if (attempt.ok) { best = attempt; lo = mid + 1; } else { hi = mid - 1; }
   }
   return best;
@@ -678,6 +695,12 @@ export async function composeFoundationJourney(
      * is precisely backwards.
      */
     targetUnits: unitsForDays(programDays, density),
+    /*
+     * The promise is the DAYS. Density asks for more units than days, and a year whose inventory
+     * is smaller than a strong learner's appetite must give them everything it has rather than
+     * refuse them a journey. See ComposerInput.minUnits.
+     */
+    minUnits: programDays,
     student: profile,
     /*
      * Year 4 composes against its own shape. BASE describes a year that teaches; Year 4's

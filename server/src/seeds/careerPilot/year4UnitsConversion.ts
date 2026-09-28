@@ -31,6 +31,24 @@ import { u, interviewUnit } from './year4UnitKit';
  * simulation that produced a number and stopped would be the exact thing the spec warns against.
  */
 
+/**
+ * ── REHEARSAL SERVES EVERY STATE, INCLUDING THE STRONGEST ─────────────────────────────────
+ *
+ * PRACTICE units serve GUIDED, STANDARD and REVISION, which is right for practising a skill:
+ * somebody who has demonstrated a thing does not need to drill it again.
+ *
+ * A mock interview is not that. It measures PERFORMANCE rather than knowledge — the whole
+ * argument of P22 is that a candidate who solves a medium problem alone and cannot narrate one is
+ * failing at something no amount of further solving fixes. The strongest candidate in the cohort
+ * still sits nine mocks, a full-day simulation and a capstone defence, and on the type default
+ * they were the one learner excluded from all three: a fourth-year measured VERIFIED across the
+ * year composed 64 eligible units for 150 days and was refused a journey outright.
+ *
+ * So the terminal modules author their own suitability, which is what unitSuitabilityPolicy
+ * provides for the cases where the type-derived default is too blunt.
+ */
+const REHEARSAL_STATES = ['GUIDED', 'STANDARD', 'REVISION', 'VERIFIED', 'ENRICHMENT'];
+
 export const YEAR4_CONVERSION: Record<string, TopicSeed> = {
   /* ── P18 · Technical and coding interviews ───────────────────────────────────────────── */
   T4_IV_METHOD: {
@@ -329,23 +347,23 @@ export const YEAR4_CONVERSION: Record<string, TopicSeed> = {
       u('MOCK_1_FOUNDATION', 'Mock 1 — Foundation',
         'Programming, SQL and Git, at first-round pace. The one that establishes the baseline.',
         ['Sit a foundation technical interview and act on the debrief'],
-        70, { unitType: 'PRACTICE' }),
+        70, { unitType: 'PRACTICE', suitableStates: REHEARSAL_STATES }),
       u('MOCK_2_DSA', 'Mock 2 — DSA',
         'One coding problem, the complexity, and the follow-up asking for better.',
         ['Sit a DSA interview and improve the solution when asked'],
-        70, { unitType: 'PRACTICE', after: ['MOCK_1_FOUNDATION'] }),
+        70, { unitType: 'PRACTICE', suitableStates: REHEARSAL_STATES, after: ['MOCK_1_FOUNDATION'] }),
       u('MOCK_3_CORE_CS', 'Mock 3 — Core CS',
         'Operating systems, databases, networking and OOP, probed until the understanding runs out.',
         ['Sit a core-CS interview and hold up under the follow-ups'],
-        70, { unitType: 'PRACTICE', after: ['MOCK_2_DSA'] }),
+        70, { unitType: 'PRACTICE', suitableStates: REHEARSAL_STATES, after: ['MOCK_2_DSA'] }),
       u('MOCK_7_FULL_TECHNICAL', 'Mock 7 — Full Technical',
         'Mixed technical, unannounced: whatever the interviewer decides to open with.',
         ['Sit a mixed technical interview without knowing what is coming'],
-        80, { unitType: 'PRACTICE', after: ['MOCK_3_CORE_CS'] }),
+        80, { unitType: 'PRACTICE', suitableStates: REHEARSAL_STATES, after: ['MOCK_3_CORE_CS'] }),
       u('MOCK_8_FINAL_TECHNICAL', 'Mock 8 — Final Technical',
         'A full timed technical simulation, run as the real thing rather than as practice.',
         ['Sit a full timed technical round at the standard the real one will apply'],
-        90, { unitType: 'PRACTICE', after: ['MOCK_7_FULL_TECHNICAL'] }),
+        90, { unitType: 'PRACTICE', suitableStates: REHEARSAL_STATES, after: ['MOCK_7_FULL_TECHNICAL'] }),
     ],
   },
   T4_MOCK_SPECIALIZATION: {
@@ -354,15 +372,15 @@ export const YEAR4_CONVERSION: Record<string, TopicSeed> = {
       u('MOCK_4_PROJECT', 'Mock 4 — Project',
         'Your own project: architecture, implementation, debugging and the decisions you made.',
         ['Be interviewed on your own project and account for all of it'],
-        75, { unitType: 'PRACTICE' }),
+        75, { unitType: 'PRACTICE', suitableStates: REHEARSAL_STATES }),
       u('MOCK_5_SPECIALIZATION', 'Mock 5 — Specialization',
         'Your direction alone, at the depth somebody hiring for it would probe.',
         ['Be interviewed on your specialization and find where its edge is'],
-        75, { unitType: 'PRACTICE', after: ['MOCK_4_PROJECT'] }),
+        75, { unitType: 'PRACTICE', suitableStates: REHEARSAL_STATES, after: ['MOCK_4_PROJECT'] }),
       u('MOCK_6_SYSTEM_DESIGN', 'Mock 6 — System Design',
         'A brief, a whiteboard, and somebody changing the requirements once you have committed.',
         ['Sit a system-design round and defend the trade-offs you chose'],
-        80, { unitType: 'PRACTICE', after: ['MOCK_5_SPECIALIZATION'] }),
+        80, { unitType: 'PRACTICE', suitableStates: REHEARSAL_STATES, after: ['MOCK_5_SPECIALIZATION'] }),
     ],
   },
   T4_MOCK_HR: {
@@ -371,7 +389,7 @@ export const YEAR4_CONVERSION: Record<string, TopicSeed> = {
       u('MOCK_9_HR', 'Mock 9 — HR and Behavioural',
         'The round treated as a round: communication, structure and professional scenarios.',
         ['Sit an HR round and hear how the answers actually landed'],
-        65, { unitType: 'PRACTICE' }),
+        65, { unitType: 'PRACTICE', suitableStates: REHEARSAL_STATES }),
       u('READING_THE_DEBRIEF', 'Reading a Debrief Without Defending Yourself',
         'The hardest part of a mock is the twenty minutes afterwards. Hearing it rather than explaining it away.',
         ['Take feedback on your own performance and turn it into one specific change'],
@@ -393,11 +411,11 @@ export const YEAR4_CONVERSION: Record<string, TopicSeed> = {
       u('ROUNDS_ONE_TO_THREE', 'Rounds 1 to 3 — Aptitude, Technical MCQ, Coding',
         'The written half of a drive, run back to back at the real pace.',
         ['Complete the written and coding rounds under drive conditions'],
-        150, { unitType: 'PRACTICE', after: ['PREPARING_FOR_THE_DAY'] }),
+        150, { unitType: 'PRACTICE', suitableStates: REHEARSAL_STATES, after: ['PREPARING_FOR_THE_DAY'] }),
       u('ROUNDS_FOUR_TO_SIX', 'Rounds 4 to 6 — Technical, Project, HR',
         'The interview half, on the same day, when you are already tired. Which is the point.',
         ['Complete the interview rounds under drive conditions, after the written ones'],
-        150, { unitType: 'PRACTICE', after: ['ROUNDS_ONE_TO_THREE'] }),
+        150, { unitType: 'PRACTICE', suitableStates: REHEARSAL_STATES, after: ['ROUNDS_ONE_TO_THREE'] }),
     ],
   },
   T4_SIM_DEBRIEF: {
@@ -427,11 +445,11 @@ export const YEAR4_CONVERSION: Record<string, TopicSeed> = {
       u('CLOSING_THEM', 'Closing the Ones That Matter',
         'Targeted work on the two or three things the simulation exposed, rather than starting again.',
         ['Close a specific gap and show evidence that it closed'],
-        70, { unitType: 'PRACTICE', after: ['WHAT_IS_STILL_OPEN'] }),
+        70, { unitType: 'PRACTICE', suitableStates: REHEARSAL_STATES, after: ['WHAT_IS_STILL_OPEN'] }),
       u('PRACTICE', 'Re-verifying',
         'Being measured again on the thing you just worked on, rather than assuming it moved.',
         ['Show that a gap you worked on has actually closed'],
-        60, { unitType: 'PRACTICE', after: ['CLOSING_THEM'] }),
+        60, { unitType: 'PRACTICE', suitableStates: REHEARSAL_STATES, after: ['CLOSING_THEM'] }),
     ],
   },
   T4_CAPSTONE: {
@@ -468,7 +486,7 @@ export const YEAR4_CONVERSION: Record<string, TopicSeed> = {
       u('DEFENDING_IT', 'Defending the Capstone',
         'Architecture, decisions, failures and trade-offs, to somebody who will push on all four.',
         ['Defend the capstone against questions on every decision in it'],
-        80, { unitType: 'PRACTICE', after: ['BUILDING_IT'] }),
+        80, { unitType: 'PRACTICE', suitableStates: REHEARSAL_STATES, after: ['BUILDING_IT'] }),
       u('CHECKPOINT', 'Career Verification',
         'The final one: technical capability, project capability, communication, interview performance, portfolio and known gaps.',
         ['Show evidence across all six of the outcomes Year 4 promises'],

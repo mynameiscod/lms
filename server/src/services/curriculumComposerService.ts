@@ -146,6 +146,27 @@ export interface ComposerInput {
    */
   compositionPolicy?: CompositionPolicy;
   /**
+   * The count below which the plan is a broken promise, rather than merely a less dense one.
+   * Defaults to `targetUnits`, which is the behaviour every caller had before this existed.
+   *
+   * ── WHY THE TWO NUMBERS ARE NOT THE SAME QUESTION ───────────────────────────────────────
+   *
+   * They were identical while a day held one unit. Density separated them: `targetUnits` is now
+   * days times a learner's units-per-day, and what the student was promised is the DAYS.
+   *
+   * Conflating them refuses the strongest learners the moment a year's inventory is smaller than
+   * their appetite. A Year-4 member arriving from Years 2 and 3 composes at 2.5 a day, so 150
+   * days asked for 375 units from a stage that holds 311 for any one direction — and the whole
+   * journey was refused as INSUFFICIENT_COMPOSER_READY_INVENTORY even though 311 units fill 150
+   * days twice over. The stronger the student, the more certain the refusal.
+   *
+   * So a caller that knows the promise states it. Below `minUnits` is still a structured refusal
+   * and still never a short plan; between `minUnits` and `targetUnits` the learner simply
+   * receives everything the curriculum has for them, which is the correct answer to "I could
+   * have taken more and there was no more".
+   */
+  minUnits?: number;
+  /**
    * What this learner has ALREADY been given, in the order they were given it: the frozen days of a journey being
    * recomposed. Empty for a new journey.
    *
@@ -2350,7 +2371,7 @@ export function composeUnits(input: ComposerInput): ComposerResult {
    * roadmap sold as ninety days. The caller is told the number it asked for and the number that
    * exists, and decides what to do about it.
    */
-  if (selected.length < targetUnits) {
+  if (selected.length < Math.min(input.minUnits ?? targetUnits, targetUnits)) {
     return {
       ok: false,
       code: 'INSUFFICIENT_COMPOSER_READY_INVENTORY',

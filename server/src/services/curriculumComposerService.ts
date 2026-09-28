@@ -2196,6 +2196,59 @@ export function composeUnits(input: ComposerInput): ComposerResult {
     if (!reallocate()) break;
   }
 
+  /* ---- 4c. meet the floor, even where no bucket will pay for it ------- */
+
+  /**
+   * THE SHAPE IS A PREFERENCE. THE LENGTH IS A PROMISE.
+   *
+   * 4b stops when no role with budget left has a unit that is suitable and ready. That is the
+   * right place to stop CHASING A SHAPE, and it was the wrong place to stop composing: the plan
+   * was being cut short while units the learner could take were sitting unselected, and the
+   * caller then refused the whole journey for want of the very days these would have filled.
+   *
+   * Measured on a fourth-year holding evidence on sixty per cent of the year's skills: 211 units
+   * were suitable to them, the composer selected 139, and 150 were needed. The eleven missing
+   * days were not an inventory failure. Every remaining bucket belonged to a role whose units
+   * were blocked behind something the plan had run out of budget to teach, so `reallocate` could
+   * find nobody to absorb the capacity and the loop broke with a third of the inventory untouched.
+   * The stronger the learner, the more certain it was — which is the signature of this class of
+   * bug and the second time it has appeared in this file.
+   *
+   * So once the shape can no longer be honoured, the floor still is. Best-ranked first, and only
+   * units that are genuinely suitable and ready right now: nothing here relaxes suitability,
+   * prerequisites, breadth or duplication, and a unit taken here still spends what budget its
+   * role has left. What it does not do is refuse to take a unit because its bucket is empty.
+   *
+   * Runs only up to `minUnits`, so a plan that is already long enough is untouched and every
+   * composition that was correct before this existed is unchanged.
+   */
+  const promisedUnits = Math.min(input.minUnits ?? targetUnits, targetUnits);
+  if (selected.length < promisedUnits) {
+    let guardFloor = 0;
+    while (guardFloor++ <= promisedUnits * 2 && selected.length < promisedUnits) {
+      const floor = breadthFloor();
+      /*
+       * Directly takeable first; otherwise unblock something by teaching what it stands on.
+       *
+       * The pull matters more here than anywhere else. Measured on a fourth-year holding evidence
+       * on sixty per cent of the year, 72 of the 172 unselected units were suitable and waiting
+       * only on a prerequisite — the plan was short by eleven days with seventy-two units it
+       * could have reached one step away. A pull here obeys exactly the rules a pull obeys in
+       * 4b: the prerequisite must itself be suitable, ready and within breadth.
+       */
+      const next = ranked.find(u => !chosen.has(u.unitCode)
+        && withinBreadthOf(u, floor) && suitableNow(u) && readyToTake(u))
+        ?? (() => {
+          const blocked = ranked.find(u => !chosen.has(u.unitCode)
+            && withinBreadthOf(u, floor) && suitableNow(u) && !readyToTake(u)
+            && pullTargetFor(u, floor));
+          return blocked ? pullTargetFor(blocked, floor) : undefined;
+        })();
+      if (!next) break;
+      take(next, true);
+    }
+  }
+
   /* ---- 5. reconcile -------------------------------------------------- */
 
   /** Every prerequisite of every selected unit, resolved against the finished plan. */

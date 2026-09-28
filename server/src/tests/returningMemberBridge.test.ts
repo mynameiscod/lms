@@ -21,7 +21,7 @@ jest.mock('../services/skillDnaService', () => ({
 }));
 
 import { buildFoundationProfile } from '../services/foundationProfileService';
-import { bridgePlanFor, BRIDGE_READY_SCORE, UNITS_PER_BRIDGE_SKILL } from '../data/stageBridgePolicy';
+import { bridgeUnitsPerDay, bridgePlanFor, BRIDGE_READY_SCORE, UNITS_PER_BRIDGE_SKILL } from '../data/stageBridgePolicy';
 import { densityFor } from '../data/learningDensityPolicy';
 
 const TENANT = '6aa8e4d702b4b0e2097b221d';
@@ -101,7 +101,7 @@ describe('a returning Year-1 member', () => {
      * content does not shrink; the calendar it occupies does.
      */
     expect(plan!.units).toBe(UNITS_PER_BRIDGE_SKILL);
-    expect(plan!.days).toBe(UNITS_PER_BRIDGE_SKILL / 2);
+    expect(plan!.days).toBe(Math.ceil(UNITS_PER_BRIDGE_SKILL / bridgeUnitsPerDay(densityFor(null, 'build'))));
   });
 });
 
@@ -135,7 +135,7 @@ describe('a fresh second-year joiner', () => {
      * as it once was, in days.
      */
     expect(plan!.units).toBe(3 * UNITS_PER_BRIDGE_SKILL);
-    expect(plan!.days).toBe((3 * UNITS_PER_BRIDGE_SKILL) / densityFor(null, 'build').unitsPerDay);
+    expect(plan!.days).toBe(Math.ceil((3 * UNITS_PER_BRIDGE_SKILL) / bridgeUnitsPerDay(densityFor(null, 'build'))));
   });
 
   /**

@@ -383,6 +383,8 @@ async function composeRevision(
   source: CandidateSource,
   profile: StudentProfile,
   revision: RevisionPlan,
+  /** Units the plan already holds. A top-up must not hand back what is already in the days. */
+  exclude: Set<string> = new Set(),
 ): Promise<SelectedUnit[]> {
   try {
     const sets = [];
@@ -395,7 +397,8 @@ async function composeRevision(
 
     const wanted = new Set(revision.skills);
     const scoped = sets.flatMap(x => x.units).filter(u =>
-      REVISION_UNIT_TYPES.has(String(u.unitType))
+      !exclude.has(String(u.unitCode))
+      && REVISION_UNIT_TYPES.has(String(u.unitType))
       && (u.skillKeys || []).some(k => wanted.has(String(k))));
 
     if (!scoped.length) {
@@ -727,6 +730,46 @@ export async function composeFoundationJourney(
     compositionPolicy: allocationForStage(opts.stageKey),
     history: [...(opts.history || []), ...priorUnits.map(u => u.unitCode)],
   });
+
+  /*
+   * ── TOP UP FROM THE YEARS BEHIND, RATHER THAN REFUSE THE JOURNEY ───────────────────────
+   *
+   * A learner who already holds most of a year cannot be given much of it: a CONCEPT unit does
+   * not serve VERIFIED, and the practice behind those lessons is blocked on prerequisites they
+   * can never satisfy. Measured on a fourth-year with evidence across sixty per cent of the
+   * year, 72 of the 172 unselected units were unreachable for exactly that reason, and the
+   * journey was refused eleven days short with a third of the inventory untouched.
+   *
+   * Refusing is the wrong answer for that learner. They are not short of ABILITY; the year is
+   * short of anything left to teach them. What they can still use is practice on what they
+   * already hold, which is what revision is and which lives in the years behind them. So when
+   * the plan still cannot fill its days, the revision cap is lifted by exactly the shortfall and
+   * no more — `MAX_REVISION_SHARE` remains the rule for everybody whose year does fill.
+   *
+   * Nothing here relaxes suitability or prerequisites. If the earlier years hold nothing this
+   * learner can take either, the journey is still refused, and that refusal is now a true
+   * statement about the inventory rather than an artefact of a cap.
+   */
+  const shortBy = programDays - (priorUnits.length + rest.units.length);
+  if (shortBy > 0 && revision) {
+    const extra = await composeRevision(tenantId, source, profile, {
+      ...revision,
+      units: shortBy,
+      days: Math.ceil(shortBy / Math.max(1, density.unitsPerDay)),
+    }, new Set([...priorUnits, ...rest.units].map(u => u.unitCode)));
+    if (extra.length) {
+      console.log(`[revision] topped up ${extra.length} more unit(s) to reach ${programDays} days`);
+      return {
+        candidates: set.units.length,
+        composition: {
+          ...rest,
+          ok: priorUnits.length + rest.units.length + extra.length >= programDays,
+          requestedDays: programDays,
+          units: [...priorUnits, ...rest.units, ...extra],
+        },
+      };
+    }
+  }
 
   if (!priorUnits.length) return { candidates: set.units.length, composition: rest };
 

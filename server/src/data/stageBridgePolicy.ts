@@ -30,7 +30,7 @@
  */
 
 import { StudentProfile } from '../services/curriculumComposerService';
-import { densityFor, unitsForDays } from './learningDensityPolicy';
+import { densityFor, unitsForDays, LearningDensity } from './learningDensityPolicy';
 
 /**
  * Which stage's teaching a stage borrows from when its learner is not ready for it.
@@ -195,6 +195,30 @@ export interface BridgePlan {
  * stage, a learner with no measured gaps, or a programme too short to spare the days all take
  * the plan exactly as it is composed now.
  */
+/**
+ * How many bridging units a day carries — one more than the year's own material.
+ *
+ * ── WHY FUNDAMENTALS PACK DENSER THAN THE YEAR THEY LEAD INTO ─────────────────────────────
+ *
+ * A bridge unit is a Year-1 lesson: variables, a loop, a function. They are SHORT — well under
+ * an hour each — where the year the learner actually bought is authored at an hour and more, and
+ * a day's minutes budget is the same either way. Costing them at the year's own pace spends a
+ * learner's calendar on half-empty days.
+ *
+ * It matters most to exactly the learner it hurts. A second-year gapped on three Year-1 skills
+ * is owed thirty units; at the year's two a day that is fifteen days of their hundred and ten,
+ * and at three a day it is ten. Five days back, and they come off the part of the year where a
+ * weak learner was running out — measured, the weakest Year-2 and Year-3 profiles were losing
+ * the professional block entirely.
+ *
+ * Capped at the packer's own ceiling, so this can never ask for a day the packer would refuse.
+ * The CONTENT does not change: the same thirty units, in the same authored order — variables
+ * before loops before functions, with each gap topic's predecessors pulled in ahead of it. Only
+ * the calendar they occupy does.
+ */
+export const bridgeUnitsPerDay = (density: LearningDensity): number =>
+  Math.min(density.unitsPerDay + 1, density.maxUnitsPerDay);
+
 export function bridgePlanFor(
   profile: StudentProfile,
   stageKey: string | null | undefined,
@@ -230,13 +254,13 @@ export function bridgePlanFor(
   const density = densityFor(profile, stage);
   const wantedUnits = gaps.length * UNITS_PER_BRIDGE_SKILL;
   const ceiling = Math.floor(programDays * MAX_BRIDGE_SHARE);
-  const days = Math.min(Math.ceil(wantedUnits / density.unitsPerDay), ceiling);
+  const days = Math.min(Math.ceil(wantedUnits / bridgeUnitsPerDay(density)), ceiling);
   if (days < 1) return null;
 
   return {
     sourceStages,
     skills: gaps.map(g => g.key),
     days,
-    units: Math.min(wantedUnits, unitsForDays(days, density)),
+    units: Math.min(wantedUnits, days * bridgeUnitsPerDay(density)),
   };
 }

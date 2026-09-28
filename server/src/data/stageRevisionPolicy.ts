@@ -37,11 +37,44 @@ import { densityFor, unitsForDays } from './learningDensityPolicy';
  * bought and already passed.
  */
 
-/** Revision draws on the same earlier years the bridge does, nearest first. */
-export const REVISION_SOURCE_STAGE = BRIDGE_SOURCE_STAGE;
+/**
+ * Revision draws on the earlier years, nearest first.
+ *
+ * ── WHY THIS IS NO LONGER JUST THE BRIDGE'S TABLE ───────────────────────────────────────
+ *
+ * It was `BRIDGE_SOURCE_STAGE` verbatim, which meant Year 4 had neither — it is absent from
+ * that table on purpose, because it carries its own ten-day fundamentals bridge (P02) written
+ * for a fourth-year rather than borrowed from Year 1.
+ *
+ * Revision is a different question from bridging, and Year 4 needs it for the opposite reason.
+ * A fourth-year who arrives holding most of the year is VERIFIED on its skills, and a CONCEPT
+ * unit does not serve VERIFIED — so their own year's teaching is unsuitable to them, the
+ * practice behind it is blocked on prerequisites they can never take, and measured, 72 of the
+ * 172 units left unselected for such a learner were structurally unreachable. They do not need
+ * their year explained again. What they can still use is practice on what they already hold,
+ * and that lives in the years behind them.
+ */
+export const REVISION_SOURCE_STAGE: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  ...BRIDGE_SOURCE_STAGE,
+  placement: Object.freeze(['specialize', 'build', 'foundation']),
+});
 
-/** And on the same skills: what the year stands on is what is worth refreshing. */
-export const REVISION_SKILLS = BRIDGE_SKILLS;
+/**
+ * And on the skills each year stands on: what it is built from is what is worth refreshing.
+ *
+ * Year 4's list is what its own bridge module checks, so the two cannot drift apart — the same
+ * arrangement Years 2 and 3 have with their readiness modules.
+ */
+export const REVISION_SKILLS: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  ...BRIDGE_SKILLS,
+  placement: Object.freeze([
+    'PROGRAMMING_FUNDAMENTALS', 'CONDITIONALS_BASICS', 'LOOPS_BASICS', 'FUNCTIONS_BASICS',
+    'PYTHON_COLLECTIONS', 'OOP_CONCEPTS',
+    'DSA_ARRAYS', 'DSA_COMPLEXITY', 'DSA_SEARCHING', 'DSA_SORTING',
+    'SQL_BASICS', 'SQL_JOINS', 'DB_FUNDAMENTALS',
+    'HTTP', 'REST_APIS', 'GIT_FUNDAMENTALS', 'TESTING_FUNDAMENTALS',
+  ]),
+});
 
 /**
  * How much practice one held skill is worth. Three units — enough to remember, not to re-learn.

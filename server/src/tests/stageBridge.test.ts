@@ -7,7 +7,7 @@
  * "returning member" flag to inspect — so the rule itself has to be trustworthy.
  */
 
-import {
+import { bridgeUnitsPerDay,
   bridgePlanFor, BRIDGE_READY_SCORE, BRIDGE_SKILLS, BRIDGE_SOURCE_STAGE,
   MAX_BRIDGE_SHARE, UNITS_PER_BRIDGE_SKILL,
 } from '../data/stageBridgePolicy';
@@ -34,7 +34,7 @@ describe('who gets bridged', () => {
      * the DAYS that takes are their own density, which is why this constant counts units.
      */
     expect(plan!.units).toBe(3 * UNITS_PER_BRIDGE_SKILL);
-    expect(plan!.days).toBe((3 * UNITS_PER_BRIDGE_SKILL) / densityFor(null, 'build').unitsPerDay);
+    expect(plan!.days).toBe(Math.ceil((3 * UNITS_PER_BRIDGE_SKILL) / bridgeUnitsPerDay(densityFor(null, 'build'))));
   });
 
   it('does NOT bridge a returning Year-1 member — they start on the year they bought', () => {
@@ -60,7 +60,7 @@ describe('who gets bridged', () => {
      * content does not shrink; the calendar it occupies does.
      */
     expect(plan!.units).toBe(UNITS_PER_BRIDGE_SKILL);
-    expect(plan!.days).toBe(UNITS_PER_BRIDGE_SKILL / 2);
+    expect(plan!.days).toBe(Math.ceil(UNITS_PER_BRIDGE_SKILL / bridgeUnitsPerDay(densityFor(null, 'build'))));
   });
 
   it('treats the ready score as a floor, not a ceiling', () => {
@@ -114,16 +114,32 @@ describe('how much of the programme a bridge may take', () => {
     for (const key of BRIDGE_SKILLS.build) everything[key] = 5;
 
     const plan = bridgePlanFor(profileOf(everything), 'build', BUILD_DAYS)!;
-    expect(plan.days).toBe(Math.floor(BUILD_DAYS * MAX_BRIDGE_SHARE));
+    expect(plan.days).toBeLessThanOrEqual(Math.floor(BUILD_DAYS * MAX_BRIDGE_SHARE));
     expect(plan.days).toBeLessThan(BUILD_DAYS - plan.days);
   });
 
-  it('scales the cap with the programme an admin has set', () => {
+  /**
+   * THE CAP IS A CEILING, NOT A QUOTA.
+   *
+   * On a short programme the content is larger than a third of it and the cap binds, which is
+   * the rule this exists to protect. On a long one the same fourteen gaps now fit inside the
+   * third with room to spare, because a bridge day carries three short Year-1 units rather than
+   * the year's own two — so the bridge takes what it needs and gives the rest back. Asserting
+   * the cap is always REACHED would be asserting that the bridge always spends its whole
+   * allowance, which is the opposite of what it should do.
+   */
+  it('scales the cap with the programme an admin has set, and never exceeds it', () => {
     const everything: Record<string, number> = {};
     for (const key of BRIDGE_SKILLS.build) everything[key] = 5;
 
-    expect(bridgePlanFor(profileOf(everything), 'build', 60)!.days).toBe(Math.floor(60 * MAX_BRIDGE_SHARE));
-    expect(bridgePlanFor(profileOf(everything), 'build', 180)!.days).toBe(Math.floor(180 * MAX_BRIDGE_SHARE));
+    for (const days of [60, 110, 180]) {
+      const plan = bridgePlanFor(profileOf(everything), 'build', days)!;
+      expect(plan.days).toBeLessThanOrEqual(Math.floor(days * MAX_BRIDGE_SHARE));
+      expect(plan.days).toBeGreaterThan(0);
+    }
+    /* Short programme: the content is bigger than the allowance, so the allowance decides. */
+    expect(bridgePlanFor(profileOf(everything), 'build', 60)!.days)
+      .toBe(Math.floor(60 * MAX_BRIDGE_SHARE));
   });
 
   it('orders the gaps worst first, so a capped bridge spends its days on the biggest', () => {

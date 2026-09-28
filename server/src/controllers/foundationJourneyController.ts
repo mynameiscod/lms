@@ -432,7 +432,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
           if (!composition.ok || composition.units.length < programDays) {
             return notCreated(`preview for ${studentId}: ${composition.units.length} units for ${programDays} days`);
           }
-          const packed = packComposedDays(composition, profile, programDays);
+          const packed = packComposedDays(composition, profile, programDays, { stageKey: stageKey || STAGE_FALLBACK });
           if (!packed.ok) {
             return notCreated(`preview for ${studentId}: could not arrange ${programDays} days (${packed.reason})`);
           }

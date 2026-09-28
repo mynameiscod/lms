@@ -327,6 +327,108 @@ export function allocationFor(
 }
 
 /**
+ * ── YEAR 4 IS SHAPED DIFFERENTLY, SO IT GETS ITS OWN TABLE ────────────────────────────────
+ *
+ * BASE above was calibrated against Year 1's inventory and it describes a year that TEACHES:
+ * an EMERGING learner is given 24 units of first-exposure instruction out of 90, because Year 1
+ * holds hundreds of them.
+ *
+ * Year 4 holds eight. It is a placement year — its inventory is 115 advanced universal units,
+ * 156 practice units, 33 checkpoints and 31 projects, and the only first-exposure teaching in it
+ * is the ten-day bridge for somebody arriving without the fundamentals. Scaled to a 300-unit
+ * plan, BASE asked a fourth-year for 53 foundation-instruction units and 30 guided ones out of
+ * an inventory of 8 and 11, plus 3 exploration units out of an inventory of zero. Those floors
+ * cannot be met by any selection whatsoever, so every Year-4 plan came back carrying three
+ * permanent shape violations that no amount of composing could remove — and, because the floors
+ * kept their turn in the rotation forever, the roles that could actually be filled were starved.
+ * A fresh fourth-year scoped a capstone and was never given the capstone to build.
+ *
+ * This is the case the composer's `compositionPolicy` seam was written for, in its own words: "a
+ * curriculum expansion is half new units and half a revised shape". The shape below is the Year-4
+ * half. It states what a placement year contains — practice, advanced material, the direction
+ * they chose, things they build, and a great deal of measurement — and it asks for first-exposure
+ * teaching only in the quantity that exists.
+ *
+ * The numbers are per the same 90-unit baseline BASE uses, because allocationFrom scales both
+ * identically. At a 300-unit plan every target multiplies by roughly 3.3.
+ */
+const PLACEMENT_BASE: Record<LearnerShape, RoleAllocation[]> = {
+  /**
+   * Arrived without the fundamentals. The bridge is the whole of their first-exposure teaching.
+   *
+   * THE NUMBERS ARE PER NINETY, AND allocationFrom MULTIPLIES THEM BY targetUnits/90. At Year 4's
+   * two-a-day floor that is 300 units and a multiplier of 3.3, so a `min` of 3 is a demand for
+   * ten. Written as real counts they read like a shape and behave like a famine: the first draft
+   * of this table asked for ten direction-learning units out of the five that exist for any one
+   * direction, and the floor it could never meet kept its turn in the rotation forever while the
+   * mock series went unselected.
+   *
+   * So every floor below is set against MEASURED availability for a single direction — 8
+   * first-exposure, 11 guided, 115 advanced, 5 direction-concept, 108 practice, 24 debugging,
+   * 15 projects, 25 checkpoints — and sits under it rather than over it.
+   */
+  EMERGING: [
+    { role: 'FOUNDATION_INSTRUCTION', min: 2, target: 2 },
+    { role: 'GUIDED_INSTRUCTION', min: 3, target: 3 },
+    { role: 'ADVANCED_UNIVERSAL', min: 25, target: 33 },
+    { role: 'DIRECTION_LEARNING', min: 1, target: 1 },
+    { role: 'EXPLORATION', min: 0, target: 0 },
+    { role: 'PRACTICE', min: 25, target: 31 },
+    { role: 'APPLICATION', min: 5, target: 7 },
+    { role: 'INTEGRATION', min: 4, target: 4 },
+    { role: 'VERIFICATION', min: 6, target: 7 },
+  ],
+  /**
+   * Fundamentals in place, the engineering layer still being built. The bridge falls away on
+   * suitability rather than on allocation — a learner who holds the material is not given the
+   * lesson — so the instruction floors drop and the capacity moves to what they build and what
+   * measures them.
+   */
+  DEVELOPING: [
+    { role: 'FOUNDATION_INSTRUCTION', min: 1, target: 2 },
+    { role: 'GUIDED_INSTRUCTION', min: 2, target: 3 },
+    { role: 'ADVANCED_UNIVERSAL', min: 25, target: 32 },
+    { role: 'DIRECTION_LEARNING', min: 1, target: 1 },
+    { role: 'EXPLORATION', min: 0, target: 0 },
+    { role: 'PRACTICE', min: 25, target: 31 },
+    { role: 'APPLICATION', min: 6, target: 8 },
+    { role: 'INTEGRATION', min: 4, target: 5 },
+    { role: 'VERIFICATION', min: 6, target: 8 },
+  ],
+  /**
+   * A continuing member who finished Years 2 and 3. They need none of the bridge and very little
+   * re-instruction; what they are here for is the specialization, the placement practice and the
+   * capstone. This learner reaches the end of the year, so projects and checkpoints are highest.
+   */
+  ESTABLISHED: [
+    { role: 'FOUNDATION_INSTRUCTION', min: 0, target: 1 },
+    { role: 'GUIDED_INSTRUCTION', min: 1, target: 2 },
+    { role: 'ADVANCED_UNIVERSAL', min: 24, target: 31 },
+    { role: 'DIRECTION_LEARNING', min: 1, target: 1 },
+    { role: 'EXPLORATION', min: 0, target: 0 },
+    { role: 'PRACTICE', min: 25, target: 31 },
+    { role: 'APPLICATION', min: 6, target: 8 },
+    { role: 'INTEGRATION', min: 4, target: 5 },
+    { role: 'VERIFICATION', min: 7, target: 9 },
+  ],
+};
+
+/**
+ * Year 4's shape, in the same signature as `allocationFor` so it IS the policy rather than a
+ * special case of it. Passed as `ComposerInput.compositionPolicy` for the placement stage only;
+ * every other stage keeps `allocationFor` untouched.
+ */
+export const placementAllocationFor: CompositionPolicyShape = (shape, stance, programDays) =>
+  allocationFrom(PLACEMENT_BASE[shape], stance, programDays);
+
+/** The shape `ComposerInput.compositionPolicy` expects, restated here to avoid a circular import. */
+export type CompositionPolicyShape = (
+  shape: LearnerShape,
+  stance: DirectionStance,
+  programDays: number,
+) => RoleAllocation[];
+
+/**
  * The same derivation, over any base table.
  *
  * Exported so a PROPOSED shape can be evaluated through exactly the same stance adjustment,

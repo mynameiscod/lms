@@ -46,6 +46,7 @@ import { CAREER_STAGES } from './careerStageService';
 import { foundationProgramDaysFor, programDaysFor, journeyDaysOf } from './foundationProgramLengthService';
 import { inTeachingOrder } from '../data/contentBundlePolicy';
 import { composeUnits, ComposerResult, SelectedUnit, StudentProfile, ComposableUnit, refusedComposition } from './curriculumComposerService';
+import { placementAllocationFor, CompositionPolicyShape } from '../data/compositionShapePolicy';
 import { bridgePlanFor, BridgePlan } from '../data/stageBridgePolicy';
 import { revisionPlanFor, RevisionPlan } from '../data/stageRevisionPolicy';
 import { directionRequiredFor } from '../data/stageDirectionPolicy';
@@ -53,6 +54,16 @@ import { densityFor, unitsForDays } from '../data/learningDensityPolicy';
 import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } from '../data/dayPackingPolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource } from './composerCandidateService';
 import { sequencePredecessorOf, sequenceIndexOf } from '../data/courseSequencePolicy';
+
+/**
+ * The composition shape for a stage, or undefined to use the shipped default.
+ *
+ * Only placement has its own. Returning undefined rather than `allocationFor` matters: the
+ * composer's own default is then what runs, so there is one answer to "what shape does a
+ * non-placement plan have" rather than two that could drift apart.
+ */
+export const compositionPolicyFor = (stageKey?: string | null): CompositionPolicyShape | undefined =>
+  (String(stageKey || '').toLowerCase().trim() === 'placement' ? placementAllocationFor : undefined);
 
 /** Marks a curriculum as a Foundation UNIT-engine journey. Lets one be found without guessing. */
 export const FOUNDATION_JOURNEY_KIND = 'FOUNDATION_UNIT_JOURNEY_V1';
@@ -525,9 +536,9 @@ export function packComposedDays(
   composition: ComposerResult,
   profile: StudentProfile,
   programDays: number,
-  opts: { dayBudgetMinutes?: number; maxUnitsPerDay?: number } = {},
+  opts: { dayBudgetMinutes?: number; maxUnitsPerDay?: number; stageKey?: string } = {},
 ) {
-  const density = densityFor(profile);
+  const density = densityFor(profile, opts.stageKey);
   const all = composition.units.map(u => ({
     unitCode: u.unitCode, unitType: u.unitType, estimatedMinutes: u.estimatedMinutes, topicCode: u.topicCode,
   }));
@@ -657,7 +668,7 @@ export async function composeFoundationJourney(
    * The programme length is untouched. Ninety days stays ninety days; what changes is how far
    * through the curriculum ninety days carries this particular learner.
    */
-  const density = densityFor(profile);
+  const density = densityFor(profile, opts.stageKey);
   const rest = composeUnits({
     candidates: set.units,
     /*
@@ -668,6 +679,13 @@ export async function composeFoundationJourney(
      */
     targetUnits: unitsForDays(programDays, density),
     student: profile,
+    /*
+     * Year 4 composes against its own shape. BASE describes a year that teaches; Year 4's
+     * inventory holds eight first-exposure units and no exploration at all, so BASE's floors
+     * were unmeetable by any selection and starved the roles that could be filled. See
+     * PLACEMENT_BASE. Every other stage passes nothing and keeps `allocationFor`.
+     */
+    compositionPolicy: compositionPolicyFor(opts.stageKey),
     history: [...(opts.history || []), ...priorUnits.map(u => u.unitCode)],
   });
 

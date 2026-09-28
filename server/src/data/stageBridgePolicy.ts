@@ -227,7 +227,7 @@ export function bridgePlanFor(
    * than those days can actually hold, so the composer is not asked for a bridge the packer
    * would then refuse.
    */
-  const density = densityFor(profile);
+  const density = densityFor(profile, stage);
   const wantedUnits = gaps.length * UNITS_PER_BRIDGE_SKILL;
   const ceiling = Math.floor(programDays * MAX_BRIDGE_SHARE);
   const days = Math.min(Math.ceil(wantedUnits / density.unitsPerDay), ceiling);

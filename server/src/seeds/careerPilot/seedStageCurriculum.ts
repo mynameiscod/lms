@@ -170,6 +170,12 @@ const unitRows = (spec: StageCurriculumSpec, tenantId: string) => {
           prerequisiteSkillKeys: u.prerequisiteSkillKeys || [],
           prerequisiteUnitCodes: (u.after || []).map((a: string) => `${topicCode}_${a}`),
           unitType: u.unitType || 'CONCEPT',
+          /*
+           * Authored suitability, and ONLY when authored: the model defaults this to undefined
+           * and suitableStatesFor falls back to the type's own list, so writing an empty array
+           * here would mean "serves nobody" rather than "not stated".
+           */
+          ...((u as any).suitableStates?.length ? { suitableStates: (u as any).suitableStates } : {}),
         },
         /* Authorship — written only when the row is first created. */
         authored: {

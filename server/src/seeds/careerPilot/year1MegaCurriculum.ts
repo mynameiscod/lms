@@ -47,6 +47,15 @@ export interface UnitSeed {
   after?: string[];
   /** Narrows the topic's skills. Omitted means the unit teaches all of them. */
   skillKeys?: string[];
+  /**
+   * Who this unit serves, overriding the default its unitType implies.
+   *
+   * unitSuitabilityPolicy derives suitability from the type and says so: authored states are for
+   * "where the type-derived default is too blunt", and an author who writes them has decided who
+   * the unit is for. Almost nothing needs this. A terminal deliverable every student of the year
+   * must produce, whatever they arrived holding, is the case that does.
+   */
+  suitableStates?: string[];
 }
 
 export interface TopicSeed {

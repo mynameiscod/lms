@@ -440,10 +440,31 @@ export const YEAR4_CONVERSION: Record<string, TopicSeed> = {
       u('SCOPING_IT', 'Scoping Something You Can Actually Finish',
         'The capstone fails on scope more often than on difficulty. Choosing something that ships.',
         ['Scope a capstone you can finish and defend, rather than one you can describe'], 60),
+      /*
+       * ── WHY THE CAPSTONE AUTHORS ITS OWN SUITABILITY ────────────────────────────────────
+       *
+       * PROJECT units serve STANDARD and above, which is right for every other project in this
+       * year: a project is the application a learner earns instead of being re-taught, and
+       * handing one to somebody who has not reached the working level teaches them nothing.
+       *
+       * The capstone is not that. It is the terminal deliverable the whole year is judged by,
+       * every fourth-year must produce one, and the unit in front of it exists specifically to
+       * teach scoping it to something THIS student can finish. Left on the default, a fresh
+       * fourth-year composed a plan that scoped a capstone and was never given the capstone to
+       * build — and the defence and the final checkpoint fell out behind it, because they are
+       * what that project leads to.
+       *
+       * GUIDED is the lowest state it serves, not NOT_EXPOSED: somebody who has met none of the
+       * material still should not open the year's largest piece of work, and the bridge takes
+       * them past that point long before day 140.
+       */
       u('BUILDING_IT', 'The Capstone',
         'One substantial piece of work, built properly, that the whole year is judged by.',
         ['Deliver a substantial system built to the Year-4 engineering standard'],
-        200, { unitType: 'PROJECT', after: ['SCOPING_IT'] }),
+        200, {
+          unitType: 'PROJECT', after: ['SCOPING_IT'],
+          suitableStates: ['GUIDED', 'STANDARD', 'REVISION', 'VERIFIED', 'ENRICHMENT'],
+        }),
       u('DEFENDING_IT', 'Defending the Capstone',
         'Architecture, decisions, failures and trade-offs, to somebody who will push on all four.',
         ['Defend the capstone against questions on every decision in it'],

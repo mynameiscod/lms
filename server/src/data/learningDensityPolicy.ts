@@ -122,14 +122,56 @@ export function measuredMean(profile: StudentProfile | null | undefined): number
 }
 
 /**
+ * ── YEAR 4 HAS A FLOOR THE OTHER YEARS DO NOT ─────────────────────────────────────────────
+ *
+ * Every year before this one is allowed to give a weak learner less of itself. That is the whole
+ * argument above: the programme is the admin's days, and what changes per learner is how much of
+ * the curriculum fits inside them. Covering two thirds of Year 2 is a smaller Year 2, and a
+ * smaller Year 2 is still a Year 2.
+ *
+ * Year 4 does not work that way, because its value is concentrated at the END. Its universal
+ * content is 295 units and a BUILDING learner at one a day receives 150 of them — measured, that
+ * plan contained no ten-day bridge, no specialization, no mock interviews, no placement
+ * simulation and no capstone. It is not a smaller Year 4. It is the first half of Year 4 and none
+ * of what the year is for, given to the student who needed the mocks most.
+ *
+ * So placement sets a floor of two units a day for everybody. A learner with nothing proven is
+ * still taught before they practise and still meets the material in order — packing never
+ * reorders, only draws the day boundaries — they simply meet two topics in a day instead of one,
+ * with the minutes to match. Measured at two a day a BUILDING fourth-year receives the bridge in
+ * full, their own specialization, all nine mocks, the simulation and the capstone.
+ *
+ * The honest cost, stated because it is real: a fourth-year arriving without the fundamentals is
+ * asked for a fuller day than the same learner would be asked for in Year 2. That is the trade
+ * Year 4 makes, and the alternative is selling somebody a placement year that stops before the
+ * placement practice.
+ */
+const PLACEMENT_FLOOR: LearningDensity = {
+  band: 'BUILDING', unitsPerDay: 2, budgetMinutes: 180, maxUnitsPerDay: 3,
+};
+
+/** Stages whose weakest band is raised, and to what. Absent means the table above stands. */
+const STAGE_DENSITY_FLOOR: Readonly<Record<string, LearningDensity>> = Object.freeze({
+  placement: PLACEMENT_FLOOR,
+});
+
+/**
  * How dense this learner's days should be.
  *
  * Nothing measured means BUILDING. That is the cautious end on purpose: a learner we know
  * nothing about is given the gentler plan, and their evidence moves them up soon enough.
+ *
+ * `stageKey` is optional and only ever RAISES the weakest band, never lowers any of them: a
+ * caller that omits it gets exactly the behaviour every caller had before this existed.
  */
-export function densityFor(profile: StudentProfile | null | undefined): LearningDensity {
+export function densityFor(
+  profile: StudentProfile | null | undefined,
+  stageKey?: string | null,
+): LearningDensity {
   const mean = measuredMean(profile);
-  if (mean === null || mean < BUILDING_BELOW) return DENSITIES.BUILDING;
+  if (mean === null || mean < BUILDING_BELOW) {
+    return STAGE_DENSITY_FLOOR[String(stageKey || '').toLowerCase().trim()] ?? DENSITIES.BUILDING;
+  }
   if (mean >= FAST_AT_OR_ABOVE) return DENSITIES.FAST;
   return DENSITIES.STEADY;
 }

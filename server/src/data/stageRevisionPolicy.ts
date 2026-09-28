@@ -112,7 +112,7 @@ export function revisionPlanFor(
 
   if (!holding.length) return null;
 
-  const density = densityFor(profile);
+  const density = densityFor(profile, stage);
   const wantedUnits = holding.length * UNITS_PER_REVISION_SKILL;
   const ceiling = Math.floor(programDays * MAX_REVISION_SHARE);
   const days = Math.min(Math.ceil(wantedUnits / density.unitsPerDay), ceiling);

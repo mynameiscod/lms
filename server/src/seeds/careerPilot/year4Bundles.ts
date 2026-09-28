@@ -45,6 +45,7 @@ import { TECHNICAL_INTERVIEW_BUNDLES } from './year4ContentTechnicalInterview';
 import { PROJECT_DESIGN_BUNDLES } from './year4ContentProjectDesign';
 import { BEHAVIOURAL_BUNDLES } from './year4ContentBehavioural';
 import { EVIDENCE_BUNDLES } from './year4ContentEvidence';
+import { MOCK_BUNDLES } from './year4ContentMocks';
 
 export const ALL_YEAR4_BUNDLES: PilotBundle[] = [
   ...STANDING_BUNDLES,
@@ -73,4 +74,5 @@ export const ALL_YEAR4_BUNDLES: PilotBundle[] = [
   ...PROJECT_DESIGN_BUNDLES,
   ...BEHAVIOURAL_BUNDLES,
   ...EVIDENCE_BUNDLES,
+  ...MOCK_BUNDLES,
 ];

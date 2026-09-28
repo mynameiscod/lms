@@ -58,21 +58,12 @@ const AdminContentPage = lazy(() => import('./pages/AdminContent'));
 const NotFoundPage = lazy(() => import('./pages/NotFound'));
 const WeeklyReportsPage = lazy(() => import('./pages/WeeklyReports'));
 const StudentProfileDetail = lazy(() => import('./pages/AdminStudentProfiles/StudentProfileDetail'));
-const DepartmentsPage = lazy(() => import('./pages/Departments'));
-const CollegeSettingsPage = lazy(() => import('./pages/CollegeSettings'));
-const CollegeMembersPage = lazy(() => import('./pages/CollegeMembers'));
 const PlacementDrivesPage = lazy(() => import('./pages/PlacementDrives'));
+const StudentDrivesPage = lazy(() => import('./pages/Drives/StudentDrives'));
 const PlacementAnalyticsPage = lazy(() => import('./pages/PlacementAnalytics'));
-const MyApplicationsPage = lazy(() => import('./pages/MyApplications'));
-const AlumniManagementPage = lazy(() => import('./pages/AlumniManagement'));
-const CollegeCurriculumPage = lazy(() => import('./pages/CollegeCurriculum'));
-const CRTManagementPage = lazy(() => import('./pages/CRTManagement'));
 const TenantManagementPage = lazy(() => import('./pages/TenantManagement'));
-const AlumniDirectoryPage = lazy(() => import('./pages/AlumniDirectory'));
 const NotificationCenterPage = lazy(() => import('./pages/NotificationCenter'));
-const StudentCollegePortal = lazy(() => import('./pages/StudentCollegePortal'));
 const StudentFeeDetailsPage = lazy(() => import('./pages/StudentFeeDetails'));
-const DeptReportsPage = lazy(() => import('./pages/DeptReports'));
 const BulkUploadPage = lazy(() => import('./pages/BulkUpload'));
 const RecordingDiagnostics = lazy(() => import('./pages/RecordingDiagnostics'));
 const PlatformSettings = lazy(() => import('./pages/PlatformSettings'));
@@ -1268,54 +1259,38 @@ const AppRoutes: React.FC = () => {
       {/* Student Reports merged into the unified Student Detail page (reached from Users) */}
       <Route path="/student-reports" element={<Navigate to="/users" replace />} />
 
+      <Route path="/admin/college/departments" element={<Navigate to="/dashboard" replace />} />
+
+      <Route path="/admin/college/settings" element={<Navigate to="/dashboard" replace />} />
+
+      <Route path="/admin/college/members" element={<Navigate to="/dashboard" replace />} />
+
+      <Route path="/admin/college/placement" element={<Navigate to="/drives/manage" replace />} />
+      {/* Drives — placement drives + interview experiences; replaces the retired College area */}
       <Route
-        path="/admin/college/departments"
+        path="/drives"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+          <ProtectedRoute>
             <Layout>
-              <DepartmentsPage />
+              <StudentDrivesPage />
             </Layout>
           </ProtectedRoute>
         }
       />
-
       <Route
-        path="/admin/college/settings"
+        path="/drives/manage"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
-            <Layout>
-              <CollegeSettingsPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/admin/college/members"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
-            <Layout>
-              <CollegeMembersPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/admin/college/placement"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'PLACEMENT_OFFICER']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'PLACEMENT_OFFICER']}>
             <Layout>
               <PlacementDrivesPage />
             </Layout>
           </ProtectedRoute>
         }
       />
-
       <Route
-        path="/admin/college/placement-analytics"
+        path="/drives/analytics"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'PLACEMENT_OFFICER']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'PLACEMENT_OFFICER']}>
             <Layout>
               <PlacementAnalyticsPage />
             </Layout>
@@ -1323,38 +1298,13 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      <Route
-        path="/admin/college/alumni"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
-            <Layout>
-              <AlumniManagementPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/admin/college/placement-analytics" element={<Navigate to="/drives/analytics" replace />} />
 
-      <Route
-        path="/admin/college/curriculum"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
-            <Layout>
-              <CollegeCurriculumPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/admin/college/alumni" element={<Navigate to="/dashboard" replace />} />
 
-      <Route
-        path="/admin/college/crt"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'CRT_TRAINER']}>
-            <Layout>
-              <CRTManagementPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/admin/college/curriculum" element={<Navigate to="/dashboard" replace />} />
+
+      <Route path="/admin/college/crt" element={<Navigate to="/dashboard" replace />} />
 
       <Route
         path="/super-admin/tenants"
@@ -1367,16 +1317,7 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      <Route
-        path="/student/college"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <StudentCollegePortal />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/student/college" element={<Navigate to="/drives" replace />} />
 
       <Route
         path="/student/fee-details"
@@ -1391,27 +1332,9 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      <Route
-        path="/student/my-applications"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <MyApplicationsPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/student/my-applications" element={<Navigate to="/drives?tab=applications" replace />} />
 
-      <Route
-        path="/student/alumni-directory"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <AlumniDirectoryPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/student/alumni-directory" element={<Navigate to="/dashboard" replace />} />
 
       <Route
         path="/notifications"
@@ -1424,16 +1347,7 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      <Route
-        path="/admin/college/reports"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
-            <Layout>
-              <DeptReportsPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/admin/college/reports" element={<Navigate to="/dashboard" replace />} />
 
       {/* Student Profiles list merged into Users; keep the list route as a redirect */}
       <Route path="/admin/student-profiles" element={<Navigate to="/users" replace />} />

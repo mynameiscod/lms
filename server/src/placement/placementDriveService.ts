@@ -8,7 +8,9 @@ import { placementHoldReason } from '../services/practicePassService';
 
 export const listDrives = (tenantId: string, status?: string) => {
   const query: Record<string, any> = { tenantId, isActive: true };
-  if (status) query.status = status;
+  // 'active' = still open to students (the dashboard widget asks for this).
+  if (status === 'active') query.status = { $in: ['upcoming', 'ongoing'] };
+  else if (status) query.status = status;
   return PlacementDrive.find(query)
     .populate('createdBy', 'firstName lastName')
     .sort({ applyDeadline: 1 });
@@ -57,7 +59,10 @@ export const applyToDrive = async (id: string, tenantId: string, userId: string)
   if (drive.eligibility?.minCgpa != null) {
     const membership = await CollegeMembership.findOne({ userId, tenantId }).lean();
     const studentCgpa = (membership as any)?.cgpa;
-    if (studentCgpa == null || studentCgpa < drive.eligibility.minCgpa) {
+    // Enforced only when the institute has recorded this student's CGPA. College profiles are
+    // no longer used, so a missing CGPA must not lock every student out of the drive; the
+    // requirement is still shown on the drive for them to judge.
+    if (studentCgpa != null && studentCgpa < drive.eligibility.minCgpa) {
       throw Object.assign(
         new Error(`Minimum CGPA of ${drive.eligibility.minCgpa} required (your CGPA: ${studentCgpa ?? 'not set'})`),
         { statusCode: 403 }

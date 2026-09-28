@@ -28,6 +28,17 @@ export const list = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { status } = req.query as { status?: string };
     const drives = await svc.listDrives(req.user!.tenantId, status);
+    // A student sees how many applied and their own application — never who else applied
+    // or anyone else's result.
+    if (req.user!.role === 'STUDENT') {
+      const me = String(req.user!.id);
+      return res.json({ success: true, data: drives.map((d: any) => {
+        const o = typeof d.toObject === 'function' ? d.toObject() : d;
+        const ids = (o.applicants || []).map(String);
+        const st = o.applicantStatuses instanceof Map ? o.applicantStatuses.get(me) : o.applicantStatuses?.[me];
+        return { ...o, applicantCount: ids.length, applicants: ids.includes(me) ? [me] : [], applicantStatuses: st ? { [me]: st } : {} };
+      }) });
+    }
     res.json({ success: true, data: drives });
   } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
 };

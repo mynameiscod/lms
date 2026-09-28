@@ -73,3 +73,18 @@ A team failed an interview. A week later the next batch was asked the same quest
   - metrics: posting rate, hours to publish, and pass rate before and after.
 - **P4, Interview Pilot:** `experiences:read` and `questions:read` scopes on the external API.
 - **Known gap:** AI structuring uses the cheap default model and keeps some questions terse, for example "two sum". The candidate edits them. `prefer: 'anthropic'` would give better rewrites at a higher cost.
+
+## Drives menu (2026-09-28)
+The College area was retired at the user's request, because it was not used. Placement drives and interview experiences now live together under **Drives**:
+- **Admin:** the Drives group in the sidebar, under the section DRIVES & INTERVIEWS:
+  - Placement Drives: `/drives/manage`
+  - Interview Experiences: `/admin/interview-experiences`
+  - Drive Analytics: `/drives/analytics`
+- **Students:** the PLACEMENTS section:
+  - Drives (`/drives`): open drives, apply or withdraw, and "What they asked before" linking to the company's interview experiences.
+  - My applications, where a finished drive shows "Share how it went".
+  - Interview Experiences.
+- **Removed from the menu:** Departments, Members, Curriculum, CRT Sessions, Alumni, College Reports and College Settings; for students, My College Portal and Alumni Directory. Their old URLs redirect. The server APIs are left in place and are unused.
+- **Certificates** moved to a top-level item in TEACHING.
+- **Security fix:** the drive create, edit and delete endpoints, applicant results, rounds, overview and analytics had no role check, so any signed-in student could call them. They now require `manage_placement` (or `manage_placement_status` for results). The student drive list now returns only the applicant count and the student's own application and result.
+- **CGPA:** a drive's minimum CGPA is enforced only when the student has a CGPA on record. College profiles are gone, so a missing CGPA no longer blocks applying.

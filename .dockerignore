@@ -67,6 +67,10 @@ docs/**
 **/*.spec.*
 **/test/**
 **/tests/**
+# Not tests: the evidence simulator and its fixtures are imported by operator scripts in
+# server/src/scripts, so tsc fails in the image without them.
+!server/src/tests/evidenceCalibration/**
+!server/src/tests/fixtures/**
 
 # Question templates
 question-templates/**

@@ -58,8 +58,9 @@ const Reader: React.FC = () => {
     const dir = to > pos ? 'next' : 'prev';
     setTurn(dir); setPhoneTurn(true);
     // Swap the pages as the turning leaf passes the spine.
-    setTimeout(() => { setPos(to); setRevealed(false); }, 300);
-    setTimeout(() => { setTurn(null); setPhoneTurn(false); busy.current = false; }, 640);
+    // The turn takes 1.8s (1.4s on phones); swap the content as the leaf crosses the spine.
+    setTimeout(() => { setPos(to); setRevealed(false); }, 880);
+    setTimeout(() => { setTurn(null); setPhoneTurn(false); busy.current = false; }, 1850);
     const q = list[to];
     if (q) questionBookApi.progress(data.book.id, { last: q.id }).catch(() => undefined);
   }, [data, list, pos]);
@@ -70,7 +71,7 @@ const Reader: React.FC = () => {
     setMarks((x) => { const c = { ...x }; if (next) c[cur.id] = next; else delete c[cur.id]; return c; });
     questionBookApi.progress(data.book.id, { questionId: cur.id, mark: next }).catch(() => undefined);
     // Knowing it moves you on; in "revise" and "unseen" views the card leaves the list itself.
-    if (next && filter === 'all' && pos < list.length - 1) setTimeout(() => go(pos + 1), 450);
+    if (next && filter === 'all' && pos < list.length - 1) setTimeout(() => go(pos + 1), 600);
     if (next && (filter === 'revise' || filter === 'unseen')) setRevealed(false);
   };
   const star = () => {
@@ -108,7 +109,7 @@ const Reader: React.FC = () => {
 
   return (
     <div className="pb-root qb">
-      <div className="pb-page" style={{ maxWidth: 1180 }}>
+      <div className="pb-page" style={{ maxWidth: 'none', padding: 'clamp(12px, 1.6vw, 28px)' }}>
         <div className="pb-row qb-noprint" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
           <button className="pb-btn pb-btn-ghost pb-btn-sm" onClick={() => nav(base)}><i className="fa-solid fa-arrow-left" /> Library</button>
           <b className="pb-grow" style={{ fontSize: 16 }}>{b.title}</b>

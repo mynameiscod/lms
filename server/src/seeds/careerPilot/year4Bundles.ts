@@ -30,6 +30,8 @@ import { BUILD_OPS_BUNDLES } from './year4ContentBuildOps';
 import { BUILD_INTEGRATION_BUNDLES } from './year4ContentBuildIntegration';
 import { TRACK_SE_BUNDLES } from './year4ContentTrackSe';
 import { TRACK_BACKEND_BUNDLES } from './year4ContentTrackBackend';
+import { TRACK_FRONTEND_BUNDLES } from './year4ContentTrackFrontend';
+import { TRACK_FULLSTACK_BUNDLES } from './year4ContentTrackFullstack';
 
 export const ALL_YEAR4_BUNDLES: PilotBundle[] = [
   ...STANDING_BUNDLES,
@@ -43,4 +45,6 @@ export const ALL_YEAR4_BUNDLES: PilotBundle[] = [
   ...BUILD_INTEGRATION_BUNDLES,
   ...TRACK_SE_BUNDLES,
   ...TRACK_BACKEND_BUNDLES,
+  ...TRACK_FRONTEND_BUNDLES,
+  ...TRACK_FULLSTACK_BUNDLES,
 ];

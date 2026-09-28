@@ -141,6 +141,32 @@ export interface GenerationInput {
  */
 const STAGE_SCOPE_OVERRIDES_ROLE = ['foundation', 'build'];
 
+/**
+ * Stages where the role blueprint and the stage skill set are BOTH the scope.
+ *
+ * ── WHY PLACEMENT CANNOT USE EITHER ONE ALONE ───────────────────────────────────────────
+ *
+ * A role blueprint describes a job: the engineering a Backend Engineer does on the day they are
+ * hired. By `placement` that is exactly right for the technical half of the paper, and it is why
+ * the role is not overridden here.
+ *
+ * It is also the whole of what a blueprint contains. No blueprint names aptitude, resume and
+ * portfolio work, HR and behavioural performance, or interview technique — they are not part of
+ * doing the job, they are what stands between the student and being given it. So a fourth-year
+ * who named a target role was never asked about any of them, which means those skills never
+ * showed a gap, which means the roadmap never prioritised them. In the one year built around
+ * getting hired, the getting-hired half of the curriculum was invisible to the assessment: an
+ * aptitude round is the first thing a real drive puts in front of them and the paper never
+ * mentioned it.
+ *
+ * The stage skill set holds exactly those, because it is authored from the Year-4 curriculum. So
+ * at placement the scope is the union: the job from the blueprint, the placement craft from the
+ * stage set, and the student measured on both halves of the year they bought.
+ *
+ * A student with no role still takes the stage-set path above, unchanged.
+ */
+const STAGE_SCOPE_UNIONS_ROLE = ['placement'];
+
 const norm = (v: any): string => String(v ?? '').trim().toUpperCase();
 
 // ── Step 1: which skills this stage should assess ────────────────────────────
@@ -867,6 +893,49 @@ export async function resolvePersonalizedAssessmentContext(tenantId: string, stu
 
   if (!roleSkillKeys.length) {
     return { ok: false, reasonCode: 'BLUEPRINT_EMPTY', message: `The ${blueprint.roleName} blueprint has no usable skills yet.` };
+  }
+
+  /**
+   * At placement, the stage's own skills join the blueprint's rather than replacing them.
+   *
+   * Un-expanded, and the expansion is switched off for the whole union: a blueprint names a
+   * DESTINATION, and walking back through prerequisites is what makes it askable of somebody
+   * still on the way. A fourth-year is not on the way — they are at the end of the last year
+   * before the job, so the destination itself is the right question. The stage set must not be
+   * expanded either, for the reason the branch above gives: it is curriculum-derived and walking
+   * out of it reaches past the syllabus.
+   *
+   * Falls back to the blueprint alone when no stage set is configured, so a tenant that has set
+   * nothing up keeps exactly the behaviour it had.
+   */
+  if (STAGE_SCOPE_UNIONS_ROLE.includes(stage)) {
+    const stageSet = await getStageBlueprint(tenantId, stage);
+    const stageKeys = (stageSet?.requirements || [])
+      .filter(r => r.active && r.skillActive && !r.missing)
+      .map(r => r.skillKey);
+    if (stageKeys.length) {
+      const merged = [...new Set([...roleSkillKeys, ...stageKeys].map(norm))];
+      const skillPriority = new Map(
+        (stageSet!.requirements || []).map(r => [r.skillKey, {
+          importance: r.importance, weight: r.weight, order: r.displayOrder,
+        }]),
+      );
+      return {
+        ok: true,
+        stage,
+        roleKey,
+        policy: { ...policy, prerequisiteDepth: 0 },
+        roleSkillKeys: merged,
+        skillPriority,
+        blueprintVersion: blueprint.version,
+        audience: {
+          roleKey,
+          year: context.education?.currentAcademicYear || undefined,
+          course: context.education?.degree || undefined,
+          branch: context.education?.branch || undefined,
+        },
+      };
+    }
   }
 
   return {

@@ -1,4 +1,5 @@
 import { API_BASE_URL, authenticatedFetch } from './index';
+import type { VzRunResult } from './visualizerApi';
 
 /**
  * The hackathon exam.
@@ -70,22 +71,27 @@ export interface ExamQuestion {
   starterCode?: string;
   functionSignature?: string;
   sampleCases?: { input: string; expectedOutput: string }[];
-  answer?: { selectedOptionIds?: string[]; code?: string; text?: string; runsUsed: number };
+  /** Problem Bank questions: languages the candidate may choose, each with its starter code. */
+  languages?: { language: string; starterCode: string }[];
+  answer?: { selectedOptionIds?: string[]; code?: string; text?: string; language?: string; runsUsed: number };
 }
 
 export interface ExamOverview {
   candidate: { name: string; teamName: string; teamCode: string };
-  hackathon: { title?: string; bannerUrl?: string };
+  hackathon: { title?: string; bannerUrl?: string; collegeLogoUrl?: string };
   exam: {
     title: string; instructions: string;
     startAt: string; endAt: string; durationMins: number;
     navigation: 'free' | 'sequential';
-    sections: { key: string; label: string; count: number }[];
+    sections: { key: string; label: string; count: number; marks: number }[];
+    joinCutoffMins: number;
+    teamScoreDenominator: 'registered' | 'attempted';
     totalQuestions: number; totalMarks: number;
-    runPolicy: { enabled: boolean; maxRunsPerQuestion: number; cooldownSeconds: number; maxSampleCases: number };
+    runPolicy: { enabled: boolean; maxRunsPerQuestion: number; cooldownSeconds: number; maxSampleCases: number; allowVisualizer?: boolean };
     proctoring: any;
   };
   attempt: {
+    otpVerified: boolean;
     status: string; startedAt: string | null; submittedAt: string | null;
     endsAt: string | null; violations: number;
   };
@@ -105,8 +111,47 @@ export interface ViolationOutcome {
 
 /* ── candidate ─────────────────────────────────────────────────────────────── */
 
+/**
+ * What a candidate is told about their own result, and only once an admin has published.
+ *
+ * Before publication the server deliberately returns nothing but `published: false` — a
+ * leaderboard position that moves while grading is still running is worse than no number.
+ */
+export interface ExamResult {
+  published: boolean;
+  submittedAt?: string;
+  timeSpentSec?: number;
+  message?: string;
+  member?: {
+    name: string;
+    score: number;
+    totalMarks: number;
+    percentage: number;
+    timeSpentSec: number;
+  };
+  team?: {
+    name: string;
+    code: string;
+    teamScore: number;
+    registeredMembers: number;
+    attemptedMembers: number;
+  };
+}
+
 export const hackathonExamApi = {
   bySlug: (slug: string) => call<any>(`${PUBLIC}/${encodeURIComponent(slug)}`),
+
+  /* Mobile alone. Offline cohorts never receive a slug or a team code, so asking for them
+     made the form unfillable for exactly the people it was built for. */
+  requestOtpByMobile: (mobile: string, event?: string) =>
+    call<{ sent: boolean; channel: string; maskedMobile: string }>(`${PUBLIC}/otp/by-mobile`, {
+      method: 'POST', body: JSON.stringify({ mobile, event }),
+    }),
+
+  verifyOtpByMobile: (mobile: string, code: string, event?: string) =>
+    call<{ examToken: string; memberName: string; teamName: string }>(`${PUBLIC}/otp/by-mobile/verify`, {
+      method: 'POST', body: JSON.stringify({ mobile, code, event }),
+    }),
 
   requestOtp: (slug: string, teamCode: string, mobile: string) =>
     call<{ sent: boolean; channel: string; maskedMobile: string }>(`${PUBLIC}/otp/request`, {
@@ -116,6 +161,21 @@ export const hackathonExamApi = {
   verifyOtp: (slug: string, teamCode: string, mobile: string, code: string) =>
     call<{ examToken: string; memberName: string; teamName: string }>(`${PUBLIC}/otp/verify`, {
       method: 'POST', body: JSON.stringify({ slug, teamCode, mobile, code }),
+    }),
+
+  /* Verifying from a personal link, where the candidate has never seen a team code. */
+  requestOtpByToken: (token: string) =>
+    call<{ sent: boolean; channel: string; maskedMobile: string }>(`${PUBLIC}/attempt/${token}/otp/request`, { method: 'POST' }),
+
+  verifyOtpByToken: (token: string, code: string) =>
+    call<{ examToken: string; memberName: string; teamName: string }>(`${PUBLIC}/attempt/${token}/otp/verify`, {
+      method: 'POST', body: JSON.stringify({ code }),
+    }),
+
+  /** Tell the server how the camera went — recorded, refused, or could not. */
+  recordingState: (token: string, state: string, note?: string) =>
+    call<{ state: string }>(`${PUBLIC}/attempt/${token}/recording/state`, {
+      method: 'POST', body: JSON.stringify({ state, note }),
     }),
 
   overview: (token: string) => call<ExamOverview>(`${PUBLIC}/attempt/${token}`),
@@ -147,12 +207,18 @@ export const hackathonExamApi = {
       method: 'POST', body: JSON.stringify({ itemId, code, language }),
     }),
 
+  /** Step-through trace of the candidate's code. Only when the exam allows it; spends one run. */
+  visualize: (token: string, itemId: string, code: string, language?: string) =>
+    call<VzRunResult & { runsUsed: number; runsLeft: number | null }>(`${PUBLIC}/attempt/${token}/visualize`, {
+      method: 'POST', body: JSON.stringify({ itemId, code, language }),
+    }),
+
   submit: (token: string) =>
     call<{ submittedAt: string; timeSpentSec: number; answered: number; totalQuestions: number; message: string }>(
       `${PUBLIC}/attempt/${token}/submit`, { method: 'POST', body: '{}' },
     ),
 
-  result: (token: string) => call<any>(`${PUBLIC}/attempt/${token}/result`),
+  result: (token: string) => call<ExamResult>(`${PUBLIC}/attempt/${token}/result`),
 };
 
 /* ── admin ─────────────────────────────────────────────────────────────────── */
@@ -172,8 +238,8 @@ export const hackathonExamAdminApi = {
   provision: async (id: string) =>
     (await authenticatedFetch(`${ADMIN}/${id}/provision`, { method: 'POST', body: '{}' }) as any)?.data,
 
-  invite: async (id: string) =>
-    (await authenticatedFetch(`${ADMIN}/${id}/invite`, { method: 'POST', body: '{}' }) as any)?.data,
+  invite: async (id: string, resend = false) =>
+    (await authenticatedFetch(`${ADMIN}/${id}/invite?resend=${resend}`, { method: 'POST', body: '{}' }) as any)?.data,
 
   dashboard: async (id: string) => (await authenticatedFetch(`${ADMIN}/${id}/dashboard`) as any)?.data,
 
@@ -181,6 +247,42 @@ export const hackathonExamAdminApi = {
     const q = new URLSearchParams(params).toString();
     return (await authenticatedFetch(`${ADMIN}/${id}/attempts${q ? `?${q}` : ''}`) as any)?.data || [];
   },
+
+  /*
+   * Playback goes through the app, not a storage URL: this is video of somebody's face and
+   * every view should pass the same admin check as the rest of the screen.
+   *
+   * Fetched as a blob rather than handed to <video src>, because a plain src sends no
+   * Authorization header and would play a 401 — the same trap the template download fell
+   * into. The caller revokes the object URL when it is finished with it.
+   */
+  recordingChunkBlob: async (id: string, attemptId: string, seq: number): Promise<string> => {
+    const r = await fetch(`${ADMIN}/${id}/attempts/${attemptId}/recording/${seq}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        'X-Tenant-Id': localStorage.getItem('tenantId') || '',
+      },
+    });
+    if (!r.ok) throw new Error(`Could not load that clip (${r.status}).`);
+    return URL.createObjectURL(await r.blob());
+  },
+
+  deleteRecording: async (id: string, attemptId: string) =>
+    (await authenticatedFetch(`${ADMIN}/${id}/attempts/${attemptId}/recording`, { method: 'DELETE' }) as any)?.data,
+
+  /** Let a candidate start without a code. Records who allowed it. */
+  verifyAttempt: async (id: string, attemptId: string) =>
+    (await authenticatedFetch(`${ADMIN}/${id}/attempts/${attemptId}/verify`, { method: 'POST' }) as any),
+
+  /** Correct a mistyped mobile. Clears any verification against the old number. */
+  setAttemptMobile: async (id: string, attemptId: string, mobile: string) =>
+    (await authenticatedFetch(`${ADMIN}/${id}/attempts/${attemptId}/mobile`, {
+      method: 'PATCH', body: JSON.stringify({ mobile }),
+    }) as any),
+
+  /** One candidate's invitation again — the bulk send skips anyone already invited. */
+  resendInvite: async (id: string, attemptId: string) =>
+    (await authenticatedFetch(`${ADMIN}/${id}/attempts/${attemptId}/resend-invite`, { method: 'POST' }) as any)?.data,
 
   attempt: async (id: string, attemptId: string) =>
     (await authenticatedFetch(`${ADMIN}/${id}/attempts/${attemptId}`) as any)?.data,

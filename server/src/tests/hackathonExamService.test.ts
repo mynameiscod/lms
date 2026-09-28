@@ -28,15 +28,109 @@ jest.mock('../models/AssessmentItem', () => ({
 }));
 
 const mockExecute = jest.fn();
+/* executeBatch stands in faithfully: one mockExecute per case, results in order. */
 jest.mock('../services/codeRunnerService', () => ({
   __esModule: true,
-  default: { execute: (...a: any[]) => mockExecute(...a) },
+  default: {
+    execute: (...a: any[]) => mockExecute(...a),
+    executeBatch: async ({ cases }: any) => {
+      const out = [];
+      for (const tc of cases) out.push(await mockExecute({ input: tc.input, expectedOutput: tc.expectedOutput }));
+      return out;
+    },
+  },
 }));
 
 jest.mock('../models/HackathonExam', () => ({ __esModule: true, default: { findById: jest.fn() } }));
+
+/**
+ * A stand-in for the two array updates saveAnswer actually issues.
+ *
+ * WHY THIS EXISTS. saveAnswer used to mutate the attempt and call save(). On 22 Sep that
+ * was rewritten: a whole-document write was rewriting the entire attempt on every
+ * keystroke, and it raced the heartbeat — Mongoose's version check failed the loser and a
+ * candidate's answer came back as a 500. It now issues a positional $set with a guarded
+ * $push fallback, neither of which carries a version.
+ *
+ * The mock was not updated with it, so every call died on `updateOne is not a function`.
+ * Reproducing the two shapes here — rather than handing back a bare spy — keeps the test
+ * asserting the behaviour it was written for (an answer is OVERWRITTEN, never appended
+ * twice) instead of asserting that a function was called.
+ */
+const mockAttemptDocs = new Map<string, any>();
+const mockAttemptUpdateOne = jest.fn(async (filter: any, update: any) => {
+  const doc = mockAttemptDocs.get(String(filter._id));
+  if (!doc) return { matchedCount: 0, modifiedCount: 0 };
+  const want = filter['answers.itemId'];
+
+  /* A document-level update, with no array element named in the filter: reconcileDeadlines
+     stamping a new expiresAt. Applied to the document itself, not to an answer. */
+  if (want === undefined) {
+    if (!update.$set) return { matchedCount: 1, modifiedCount: 0 };
+    for (const [path, value] of Object.entries(update.$set)) doc[path] = value;
+    return { matchedCount: 1, modifiedCount: 1 };
+  }
+
+  /* Positional $set / $inc — only matches when the element already exists, as Mongo's does.
+     $inc matters: runCode now charges a run with $inc rather than reading, adding one and
+     writing the whole document back, which is what let two clicks share one slot. */
+  if (update.$set || update.$inc) {
+    const i = doc.answers.findIndex((x: any) => x.itemId === want);
+    if (i < 0) return { matchedCount: 0, modifiedCount: 0 };
+    for (const [path, value] of Object.entries(update.$set || {})) {
+      doc.answers[i][path.replace('answers.$.', '')] = value;
+    }
+    for (const [path, value] of Object.entries(update.$inc || {})) {
+      const k = path.replace('answers.$.', '');
+      doc.answers[i][k] = (doc.answers[i][k] || 0) + (value as number);
+    }
+    return { matchedCount: 1, modifiedCount: 1 };
+  }
+
+  /* Guarded $push — the filter is { 'answers.itemId': { $ne: id } }, so a second
+     concurrent save finds the element present and pushes nothing. */
+  if (update.$push) {
+    const absent = want && typeof want === 'object' ? want.$ne : undefined;
+    if (absent !== undefined && doc.answers.some((x: any) => x.itemId === absent)) {
+      return { matchedCount: 0, modifiedCount: 0 };
+    }
+    doc.answers.push(update.$push.answers);
+    return { matchedCount: 1, modifiedCount: 1 };
+  }
+  return { matchedCount: 0, modifiedCount: 0 };
+});
+
+/*
+ * writeAnswer reads the element back after writing it, because callers decide on it — the run
+ * throttle reads runCount, and a value one behind hands out a free run to anyone double-clicking.
+ * So the mock has to honour a projected findOne too, with the same { answers: { $elemMatch } }
+ * shape: it returns ONLY the matching element, exactly as Mongo does.
+ */
+const mockAttemptFind = jest.fn((_filter: any) => ({
+  select: () => [...mockAttemptDocs.values()].filter(d => !d.submittedAt && d.startedAt),
+}));
+
+const mockAttemptFindOne = jest.fn((filter: any, projection?: any) => ({
+  lean: async () => {
+    const doc = mockAttemptDocs.get(String(filter._id));
+    if (!doc) return null;
+    const match = projection?.answers?.$elemMatch;
+    if (!match) return doc;
+    const el = doc.answers.find((x: any) => x.itemId === match.itemId);
+    return { ...doc, answers: el ? [el] : [] };
+  },
+  select: () => ({ lean: async () => mockAttemptDocs.get(String(filter._id)) || null }),
+}));
+
 jest.mock('../models/HackathonExamAttempt', () => ({
   __esModule: true,
-  default: { findOne: jest.fn(), find: jest.fn(), create: jest.fn(), updateMany: jest.fn() },
+  default: {
+    findOne: (...a: any[]) => mockAttemptFindOne(a[0], a[1]),
+    /* reconcileDeadlines queries the open attempts and then .select()s two fields. */
+    find: (...a: any[]) => mockAttemptFind(a[0]),
+    create: jest.fn(), updateMany: jest.fn(),
+    updateOne: (...a: any[]) => mockAttemptUpdateOne(a[0], a[1]),
+  },
 }));
 jest.mock('../models/HackathonRegistration', () => ({ __esModule: true, default: { find: jest.fn() } }));
 jest.mock('../services/hackathonExamDrawService', () => ({
@@ -46,7 +140,7 @@ jest.mock('../services/hackathonExamDrawService', () => ({
 }));
 
 import {
-  windowError, deadlineFor, secondDeviceConflict, buildPaper, recordViolation,
+  windowError, deadlineFor, reconcileDeadlines, secondDeviceConflict, buildPaper, recordViolation,
   submitAttempt, runCandidateCode, saveAnswer, startAttempt, cleanTeamCode, ExamError,
 } from '../services/hackathonExamService';
 
@@ -80,6 +174,8 @@ const attempt = (over: any = {}): any => {
     ...over,
   };
   a.save = jest.fn(async () => { a.saves++; return a; });
+  /* Visible to the fake updateOne above, which resolves documents by _id. */
+  mockAttemptDocs.set(String(a._id), a);
   return a;
 };
 
@@ -87,6 +183,8 @@ const drawn = (id: string, type = 'mcq', marks = 1) =>
   ({ itemId: id, sectionKey: type === 'mcq' ? 'mcq' : 'code', order: 0, type, marks });
 
 beforeEach(() => {
+  mockAttemptDocs.clear();
+  mockAttemptUpdateOne.mockClear();
   mockItemFind.mockReset();
   mockItemFindById.mockReset();
   mockExecute.mockReset();
@@ -172,6 +270,85 @@ describe('the window', () => {
     const end = new Date(Date.now() + 10 * 60_000);
     const e = exam({ endAt: end, durationMins: 60 });
     expect(deadlineFor(e, new Date()).getTime()).toBe(end.getTime());
+  });
+
+  it('never leaves the join cutoff sitting past the close', () => {
+    /*
+     * A 15-minute join window on an exam that closes 5 minutes after it opens is a cutoff that
+     * outlives the exam. Clamped, so JOIN_CLOSED and ENDED cannot disagree about whether the
+     * door is open.
+     */
+    const e = exam({
+      startAt: new Date(Date.now() - 10 * 60_000),
+      endAt: new Date(Date.now() - 5 * 60_000),
+      joinCutoffMins: 15,
+    });
+    /* ENDED is checked first and is the honest answer; the point is it is not null. */
+    expect(windowError(e, attempt())).not.toBeNull();
+  });
+});
+
+describe('extending the exam moves the candidates with it', () => {
+  /*
+   * #22 from the 22 September register. expiresAt is stamped when a candidate starts. An
+   * admin pushed the close out and nothing revisited it, so 24 candidates kept the old
+   * deadline and auto-submitted anyway despite being told they had longer.
+   */
+  const openAttempt = (id: string, startedMinsAgo: number, expiresAt: Date) => {
+    const doc = {
+      _id: id,
+      startedAt: new Date(Date.now() - startedMinsAgo * 60_000),
+      submittedAt: null,
+      expiresAt,
+      answers: [],
+    };
+    mockAttemptDocs.set(id, doc);
+    return doc;
+  };
+
+  it('pushes every open clock out when the close is extended', async () => {
+    const started = new Date(Date.now() - 30 * 60_000);
+    const oldEnd = new Date(Date.now() + 10 * 60_000);
+    openAttempt('a1', 30, oldEnd);
+
+    /* The paper is 60 minutes; it was capped at the old close, which is now an hour later. */
+    const e = exam({ endAt: new Date(Date.now() + 70 * 60_000), durationMins: 60 });
+    const r = await reconcileDeadlines(e);
+
+    expect(r.updated).toBe(1);
+    expect(mockAttemptDocs.get('a1').expiresAt.getTime())
+      .toBe(started.getTime() + 60 * 60_000);
+  });
+
+  it('shortens them again when the close is brought forward', async () => {
+    /* An admin who moves the close in means it. The rule is derived, so it cuts both ways. */
+    openAttempt('a1', 10, new Date(Date.now() + 50 * 60_000));
+    const soon = new Date(Date.now() + 5 * 60_000);
+    const r = await reconcileDeadlines(exam({ endAt: soon, durationMins: 60 }));
+
+    expect(r.updated).toBe(1);
+    expect(mockAttemptDocs.get('a1').expiresAt.getTime()).toBe(soon.getTime());
+  });
+
+  it('leaves a submitted paper alone', async () => {
+    const stamped = new Date(Date.now() - 60_000);
+    mockAttemptDocs.set('done', {
+      _id: 'done',
+      startedAt: new Date(Date.now() - 40 * 60_000),
+      submittedAt: new Date(),
+      expiresAt: stamped,
+      answers: [],
+    });
+    const r = await reconcileDeadlines(exam({ endAt: new Date(Date.now() + 3 * HOUR), durationMins: 60 }));
+    expect(r.updated).toBe(0);
+    expect(mockAttemptDocs.get('done').expiresAt).toBe(stamped);
+  });
+
+  it('is idempotent — running it twice changes nothing the second time', async () => {
+    openAttempt('a1', 20, new Date(Date.now() + 5 * 60_000));
+    const e = exam({ endAt: new Date(Date.now() + 2 * HOUR), durationMins: 60 });
+    expect((await reconcileDeadlines(e)).updated).toBe(1);
+    expect((await reconcileDeadlines(e)).updated).toBe(0);
   });
 });
 

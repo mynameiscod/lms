@@ -81,6 +81,7 @@ import liveClassRoutes from './liveClassRoutes';
 import { hmsWebhook } from '../controllers/liveClassController';
 import communicationRoutes from './communicationRoutes';
 import thinkingLabRoutes from './thinkingLabRoutes';
+import visualizerRoutes from './visualizerRoutes';
 import batchOfferingRoutes from './batchOfferingRoutes';
 import assessmentScheduleRoutes from './assessmentScheduleRoutes';
 import passportRoutes from './passportRoutes';
@@ -106,6 +107,13 @@ import aiUsageRoutes from './aiUsageRoutes';
 import assessmentItemRoutes from './assessmentItemRoutes';
 import assessmentCandidatesRoutes from './assessmentCandidatesRoutes';
 import systemSettingsRoutes from './systemSettingsRoutes';
+import whatsAppTemplateRoutes from './whatsAppTemplateRoutes';
+import problemBankRoutes from './problemBankRoutes';
+import codingPracticeRoutes from './codingPracticeRoutes';
+import externalApiRoutes from './externalApiRoutes';
+import practicePassRoutes from './practicePassRoutes';
+import interviewHubRoutes from './interviewHubRoutes';
+import questionBookRoutes from './questionBookRoutes';
 import concernRoutes from './concernRoutes';
 import paymentRoutes from './paymentRoutes';
 import { webhook as paymentWebhook, paymentReturn } from '../controllers/paymentController';
@@ -123,6 +131,8 @@ const router = express.Router();
 // already sent to recruiters point at it and cannot be recalled.
 router.use('/public/careerpilot', careerPilotActivity, publicPassportRoutes);
 router.use('/public/passport', careerPilotActivity, publicPassportRoutes);
+// Problem Bank external API — API-key auth (not a user session); for colleges, partners and Interview Pilot.
+router.use('/external', externalApiRoutes);
 router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public/certificate', publicCertificateRoutes); // certificate verification (specific, before generic /public)
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount
@@ -209,6 +219,12 @@ router.use('/notifications', notificationRoutes);
 router.use('/meetings', meetingRoutes);
 router.use('/lead-distribution-config', leadDistributionRoutes);
 router.use('/whatsapp-drip-config', whatsappDripConfigRoutes);
+router.use('/whatsapp-templates', whatsAppTemplateRoutes); // author Meta templates in the LMS + assign to system uses
+router.use('/problem-bank', problemBankRoutes); // single store of runnable coding problems
+router.use('/coding-practice', codingPracticeRoutes); // learners solving problem sets from the bank
+router.use('/practice-pass', practicePassRoutes); // daily practice attendance + placement hold
+router.use('/interview-hub', interviewHubRoutes); // real interview experiences, global pool + invites
+router.use('/question-books', questionBookRoutes); // staff-written interview question books, read notebook-style
 router.use('/sales-call-recordings', salesCallRecordingRoutes);
 router.use('/google-leads', googleAdsRoutes);
 router.use('/ai-calls', aiCallRoutes);
@@ -231,6 +247,7 @@ router.use('/speaking', speakingRoutes);
 router.use('/communication', communicationRoutes); // AI Communication Lab
 router.use('/drills', drillRoutes);
 router.use('/thinking-lab', thinkingLabRoutes);
+router.use('/visualizer', visualizerRoutes); // Code Visualizer
 router.use('/payments', paymentRoutes);
 router.use('/batch-offerings', batchOfferingRoutes);
 router.use('/assessment-schedules', assessmentScheduleRoutes);

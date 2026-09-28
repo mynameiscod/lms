@@ -230,7 +230,7 @@ export async function findConflicts(
       $or: [
         { teamNameKey: team.teamNameKey },
         { memberMobiles: { $in: team.memberMobiles } },
-        { memberEmails: team.memberEmails.length ? { $in: team.memberEmails } : { $in: [' never'] } },
+        { memberEmails: team.memberEmails.length ? { $in: team.memberEmails } : { $in: ['__never_matches__'] } },
       ],
     }],
   }).select('teamName teamNameKey memberMobiles memberEmails').lean() as any[];

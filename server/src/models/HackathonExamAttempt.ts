@@ -75,6 +75,8 @@ export interface IDrawnItem {
   type: AssessmentItemType;
   /** Resolved at draw time from the section override or the item's own points. */
   marks: number;
+  /** Which store `itemId` points into. Absent on attempts drawn before the Problem Bank. */
+  source?: 'assessment_bank' | 'problem_bank';
 }
 
 export interface IAttemptAnswer {
@@ -123,6 +125,14 @@ export interface IHackathonExamAttempt extends Document {
   /** Credential for the exam link. Issued at invite, unique across the whole collection. */
   examToken: string;
   otpVerifiedAt?: Date | null;
+  /**
+   * Set when an admin verified this candidate by hand instead of by code.
+   *
+   * This exam is sat remotely, so nobody saw the person. A manual verification is therefore
+   * an assertion that somebody trusted them, not a check that was performed — and it must
+   * be visible as that, on the attempt, next to the score it made possible.
+   */
+  otpVerifiedBy?: string;
 
   status: AttemptStatus;
 
@@ -141,6 +151,25 @@ export interface IHackathonExamAttempt extends Document {
   /** Single-device lock. */
   activeSessionId?: string;
   lastHeartbeat?: Date | null;
+
+  /**
+   * The webcam recording, and whether there is one.
+   *
+   * `state` is the whole point. A reviewer looking at a suspicious paper has to be able to
+   * tell three things apart: recorded and here, refused by the candidate, and meant to record
+   * but broken. Treating the last two the same is how somebody concludes a candidate hid
+   * from the camera when in fact the camera never worked.
+   *
+   * `chunks` is what the browser said it uploaded. The reviewer compares it with what plays.
+   */
+  recording: {
+    state: 'off' | 'recording' | 'done' | 'denied' | 'unavailable';
+    startedAt?: Date | null;
+    endedAt?: Date | null;
+    chunks: number;
+    bytes: number;
+    note?: string;
+  };
 
   violations: IViolation[];
   violationCount: number;
@@ -185,6 +214,7 @@ const DrawnItemSchema = new Schema<IDrawnItem>({
   order:      { type: Number, required: true },
   type:       { type: String, required: true },
   marks:      { type: Number, required: true, min: 0 },
+  source:     { type: String, enum: ['assessment_bank', 'problem_bank'] },
 }, { _id: false });
 
 const AnswerSchema = new Schema<IAttemptAnswer>({
@@ -218,11 +248,25 @@ const HackathonExamAttemptSchema = new Schema<IHackathonExamAttempt>({
 
   memberName:   { type: String, required: true },
   memberMobile: { type: String, required: true },
-  memberEmail:  { type: String, required: true, lowercase: true, trim: true },
+  /*
+   * NOT required, deliberately.
+   *
+   * The team importer defaults a member's email to '' and never insists on one, while this
+   * field used to be `required: true`. So provisioning threw a ValidationError on the first
+   * member without an email, inside a loop with no try/catch, and every team after that one
+   * silently got no paper. That is the "0 attempts" state seen mid-event on 22 Sep.
+   *
+   * The two models had to agree, and the argument only goes one way: a candidate is identified
+   * by mobile plus OTP, so an exam must not be blocked by a missing email address. Email is
+   * the fallback OTP channel and the results channel -- valuable, not load-bearing. A member
+   * without one is reported to the admin at provisioning instead of failing the event.
+   */
+  memberEmail:  { type: String, default: '', lowercase: true, trim: true },
   isLead:       { type: Boolean, default: false },
 
   examToken:     { type: String, required: true, unique: true, index: true },
   otpVerifiedAt: { type: Date, default: null },
+  otpVerifiedBy: { type: String },
 
   status: {
     type: String,
@@ -242,6 +286,15 @@ const HackathonExamAttemptSchema = new Schema<IHackathonExamAttempt>({
 
   activeSessionId: { type: String },
   lastHeartbeat:   { type: Date, default: null },
+
+  recording: {
+    state:     { type: String, enum: ['off', 'recording', 'done', 'denied', 'unavailable'], default: 'off', index: true },
+    startedAt: { type: Date, default: null },
+    endedAt:   { type: Date, default: null },
+    chunks:    { type: Number, default: 0 },
+    bytes:     { type: Number, default: 0 },
+    note:      { type: String },
+  },
 
   violations:       { type: [ViolationSchema], default: [] },
   violationCount:   { type: Number, default: 0, index: true },

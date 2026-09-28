@@ -11,6 +11,7 @@ import Role from '../models/Role';
 import AssessmentSubmission from '../models/AssessmentSubmission';
 import StudentProfile from '../models/StudentProfile';
 import { computeProfileCompleteness } from '../utils/profileCompleteness';
+import { collectStudentStats, EMPTY_STATS } from '../services/userExportService';
 import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
 import csvParser from 'csv-parser';
 import * as XLSX from 'xlsx';
@@ -169,61 +170,179 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 // Export the tenant's users as an .xlsx (respects the same role/search filters as the list)
+/**
+ * The Users export.
+ *
+ * ── WHAT CHANGED AND WHY ───────────────────────────────────────────────────────────────────
+ *
+ * It used to be seven columns: name, email, phone, role, batch, status, joined. That answers
+ * "who is enrolled" and nothing else, so anyone asking "who is falling behind" had to open the
+ * attendance page, the assignments page and the quiz page and reconcile three lists by hand.
+ *
+ * It now carries attendance, assignment and quiz figures per student, gathered by aggregation
+ * rather than a loop -- see services/userExportService.ts for why that distinction matters on
+ * this database.
+ *
+ * ── THE SPREADSHEET IS THE PRODUCT ─────────────────────────────────────────────────────────
+ *
+ * Three sheets, because they answer different questions:
+ *
+ *   Students   every student, one row, every figure. The sheet people will actually use.
+ *   All Users  staff and admins too, with the original seven columns. Nobody wants attendance
+ *              for an admin account, and blank columns next to their names would read as
+ *              missing data rather than as not-applicable.
+ *   Summary    the cohort at a glance, plus the counts the percentages came from.
+ *
+ * ── AND BLANK IS NOT ZERO ──────────────────────────────────────────────────────────────────
+ *
+ * A student never marked present or absent shows an empty attendance cell, not 0%. A student
+ * with no graded work shows an empty average, not 0. Writing zero there would put "has done
+ * nothing" and "nobody has marked their work" in the same column, and someone would act on it.
+ */
 export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { search, role } = req.query as { search?: string; role?: string };
+    const { search, role, status, batchId } = req.query as {
+      search?: string; role?: string; status?: string; batchId?: string;
+    };
+
+    /* The export honours the same filters the screen was showing. An admin who filtered to one
+       batch and pressed Export expects that batch, not all 184 people. */
     const filter: any = { tenantId: req.tenantId };
     if (role) filter.role = role;
+    if (batchId) filter.batchId = batchId;
+    if (status === 'active') filter.isActive = { $ne: false };
+    if (status === 'inactive') filter.isActive = false;
     if (search) {
       const re = { $regex: search, $options: 'i' };
-      filter.$or = [{ firstName: re }, { lastName: re }, { name: re }, { email: re }];
+      filter.$or = [{ firstName: re }, { lastName: re }, { name: re }, { email: re }, { phone: re }];
     }
+
     const users = await User.find(filter)
-      .select('firstName lastName name email phone role batchId isActive createdAt')
+      .select('firstName lastName name email phone role batchId isActive createdAt lastLogin')
       .sort({ createdAt: -1 }).lean();
 
     const batches = await Batch.find({ tenantId: req.tenantId }).select('name').lean();
     const batchMap: Record<string, string> = {};
     batches.forEach((b: any) => { batchMap[String(b._id)] = b.name; });
 
-    const headers = ['Name', 'Email', 'Phone', 'Role', 'Batch', 'Status', 'Joined'];
-    const rows = users.map((u: any) => ([
-      [u.firstName, u.lastName].filter(Boolean).join(' ') || u.name || '',
-      u.email || '',
-      u.phone || '',
-      u.role || '',
-      u.batchId ? (batchMap[String(u.batchId)] || '') : '',
-      u.isActive === false ? 'Inactive' : 'Active',
-      u.createdAt ? new Date(u.createdAt).toISOString().split('T')[0] : '',
-    ]));
+    const fullName = (u: any) =>
+      [u.firstName, u.lastName].filter(Boolean).join(' ') || u.name || '';
+    const day = (d: any) => (d ? new Date(d).toISOString().split('T')[0] : '');
+
+    /* Roles are stored UPPERCASE ('STUDENT'), per the User schema enum. Comparing against
+       'student' silently yields an empty Students sheet rather than an error. */
+    const students = users.filter((u: any) => String(u.role).toUpperCase() === 'STUDENT');
+    const stats = await collectStudentStats(
+      String(req.tenantId), students.map((u: any) => String(u._id)),
+    );
 
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    ws['!cols'] = headers.map((h, i) => ({ wch: Math.max(h.length, ...rows.map(r => String(r[i] || '').length), 10) }));
+    const fit = (ws: any, headers: string[], rows: any[][]) => {
+      ws['!cols'] = headers.map((h, i) => ({
+        wch: Math.min(38, Math.max(h.length + 2, ...rows.map(r => String(r[i] ?? '').length + 2), 10)),
+      }));
+      /* Freeze the header row and the name column: this sheet is wide, and scrolling right
+         without them means reading numbers with no idea whose they are. */
+      ws['!freeze'] = { xSplit: 1, ySplit: 1 };
+    };
 
-    // Summary sheet — total + role breakdown
+    /* ── Sheet 1: Students ───────────────────────────────────────────────────────────── */
+    const sHeaders = [
+      'Name', 'Email', 'Phone', 'Batch', 'Status', 'Joined On', 'Last Login', 'Profile %',
+      'Attendance %', 'Present', 'Absent', 'Leave', 'Days Marked', 'First Marked', 'Last Marked',
+      'Assignments Attempted', 'Submitted', 'Graded', 'Passed', 'Avg Score %', 'Last Submission',
+      'Quiz Attempts', 'Quizzes Completed', 'Quizzes Passed', 'Quiz Avg %', 'Quiz Best %',
+      'Last Quiz',
+    ];
+    const sRows = students.map((u: any) => {
+      const st = stats.get(String(u._id)) || EMPTY_STATS;
+      const at = st.attendance, asg = st.assignments, qz = st.quizzes;
+      return [
+        fullName(u), u.email || '', u.phone || '',
+        u.batchId ? (batchMap[String(u.batchId)] || '') : '',
+        u.isActive === false ? 'Inactive' : 'Active',
+        day(u.createdAt), day(u.lastLogin),
+        st.profileComplete ?? '',
+        /* '' rather than 0 when nothing was ever marked -- see the note above. */
+        at.rate ?? '', at.total ? at.present : '', at.total ? at.absent : '',
+        at.total ? at.leave : '', at.total || '',
+        day(at.firstMarked), day(at.lastMarked),
+        asg.attempted || '', asg.submitted || '', asg.graded || '', asg.passed || '',
+        asg.avgScore ?? '', day(asg.lastSubmittedAt),
+        qz.attempts || '', qz.completed || '', qz.passed || '',
+        qz.avgScore ?? '', qz.bestScore ?? '', day(qz.lastAttemptAt),
+      ];
+    });
+    const wsStudents = XLSX.utils.aoa_to_sheet([sHeaders, ...sRows]);
+    fit(wsStudents, sHeaders, sRows);
+    XLSX.utils.book_append_sheet(wb, wsStudents, 'Students');
+
+    /* ── Sheet 2: everyone ───────────────────────────────────────────────────────────── */
+    const aHeaders = ['Name', 'Email', 'Phone', 'Role', 'Batch', 'Status', 'Joined On', 'Last Login'];
+    const aRows = users.map((u: any) => ([
+      fullName(u), u.email || '', u.phone || '', u.role || '',
+      u.batchId ? (batchMap[String(u.batchId)] || '') : '',
+      u.isActive === false ? 'Inactive' : 'Active',
+      day(u.createdAt), day(u.lastLogin),
+    ]));
+    const wsAll = XLSX.utils.aoa_to_sheet([aHeaders, ...aRows]);
+    fit(wsAll, aHeaders, aRows);
+    XLSX.utils.book_append_sheet(wb, wsAll, 'All Users');
+
+    /* ── Sheet 3: summary ────────────────────────────────────────────────────────────── */
     const byRole: Record<string, number> = {};
     users.forEach((u: any) => { byRole[u.role || 'unknown'] = (byRole[u.role || 'unknown'] || 0) + 1; });
     const active = users.filter((u: any) => u.isActive !== false).length;
-    const summary = [
+
+    const withAttendance = students.filter((u: any) => (stats.get(String(u._id))?.attendance.total || 0) > 0);
+    const withGraded = students.filter((u: any) => stats.get(String(u._id))?.assignments.avgScore != null);
+    const mean = (xs: number[]) =>
+      xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10 : null;
+
+    const filtersUsed = [
+      role ? `role = ${role}` : null,
+      status ? `status = ${status}` : null,
+      batchId ? `batch = ${batchMap[String(batchId)] || batchId}` : null,
+      search ? `search = "${search}"` : null,
+    ].filter(Boolean);
+
+    const summary: any[][] = [
       ['Users Export', ''],
-      ['Generated At', new Date().toISOString()],
-      ['Total Users', users.length],
+      ['Generated', new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC'],
+      /* Stated explicitly, because a filtered export that does not say so gets read as the
+         whole cohort and the numbers quietly mean something else. */
+      ['Filters applied', filtersUsed.length ? filtersUsed.join('; ') : 'none - all users'],
+      ['', ''],
+      ['Total in this file', users.length],
       ['Active', active],
       ['Inactive', users.length - active],
       ['', ''],
-      ['Role Breakdown', ''],
+      ['By role', ''],
       ...Object.entries(byRole).map(([r, c]) => [r, c]),
+      ['', ''],
+      ['Students', students.length],
+      ['  with any attendance marked', withAttendance.length],
+      ['  with no attendance at all', students.length - withAttendance.length],
+      ['  with at least one graded assignment', withGraded.length],
+      ['', ''],
+      ['Cohort averages', 'counted over students who HAVE the data'],
+      ['  mean attendance %',
+        mean(withAttendance.map((u: any) => stats.get(String(u._id))!.attendance.rate as number)) ?? 'n/a'],
+      ['  mean assignment score %',
+        mean(withGraded.map((u: any) => stats.get(String(u._id))!.assignments.avgScore as number)) ?? 'n/a'],
+      ['', ''],
+      ['Note', 'A blank cell means no record exists, which is not the same as zero.'],
+      ['', 'Attendance % counts present / (present + absent). Approved leave is excluded.'],
+      ['', 'Assignment average covers graded work only, so unmarked work does not count as 0.'],
     ];
     const wsSummary = XLSX.utils.aoa_to_sheet(summary);
-    wsSummary['!cols'] = [{ wch: 22 }, { wch: 20 }];
-
-    XLSX.utils.book_append_sheet(wb, ws, 'Users');
+    wsSummary['!cols'] = [{ wch: 38 }, { wch: 52 }];
     XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=users_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    res.setHeader('Content-Disposition',
+      `attachment; filename=users_export_${new Date().toISOString().split('T')[0]}.xlsx`);
     res.end(buf);
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to export users', error: error.message });

@@ -5,6 +5,7 @@ import { useStudentFeatures, StudentFeatures } from '../../contexts/StudentFeatu
 import { useTenantModules, TenantModules } from '../../contexts/TenantModulesContext';
 import { useBatchModules } from '../../contexts/BatchModulesContext';
 import { StudentFeatureKey } from '../../config/studentFeatureCatalog';
+import visualizerApi from '../../api/visualizerApi';
 import './Sidebar.css';
 
 interface MenuItem {
@@ -16,6 +17,8 @@ interface MenuItem {
   featureKey?: keyof StudentFeatures;
   moduleKey?: keyof TenantModules;
   permissions?: string[]; // If set, user needs at least one of these permissions
+  /** Shown to a student only when the Code Visualizer has been assigned to them. */
+  needsVisualizerGrant?: boolean;
 }
 
 const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = ({ mobileOpen, onMobileClose }) => {
@@ -38,6 +41,14 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const { isModuleEnabled } = useTenantModules();
   const { isBatchFeatureEnabled } = useBatchModules();
   const activeRef = useRef<HTMLAnchorElement | null>(null);
+  /* The Code Visualizer is assigned per student, so the menu asks the server rather than guessing. */
+  const [vzAllowed, setVzAllowed] = useState(false);
+  useEffect(() => {
+    if (user?.role !== 'STUDENT') return;
+    let alive = true;
+    visualizerApi.access().then(a => alive && setVzAllowed(!!a.allowed)).catch(() => alive && setVzAllowed(false));
+    return () => { alive = false; };
+  }, [user?.role]);
 
   const isActive = (path?: string) => path ? location.pathname === path : false;
 
@@ -144,29 +155,20 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       ],
     },
     // Student Reports & Student Profiles merged into the unified Student Detail page — click a student in Users.
-    { label: 'My College Portal',  path: '/student/college',           roles: ['STUDENT'], icon: 'fa-solid fa-university',  moduleKey: 'placement', featureKey: 'collegePortal' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'My Applications',    path: '/student/my-applications',   roles: ['STUDENT'], icon: 'fa-solid fa-file-lines',  moduleKey: 'placement', featureKey: 'myApplications' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'Alumni Directory',   path: '/student/alumni-directory',  roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', moduleKey: 'placement', featureKey: 'alumniDirectory' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'Drives',             path: '/drives',                    roles: ['STUDENT'], icon: 'fa-solid fa-briefcase' },
     { label: 'Notifications',      path: '/notifications',             roles: ['STUDENT', 'TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-bell', permissions: [] },
     {
-      label: 'College',
-      roles: ['SUPER_ADMIN', 'TENANT_ADMIN'],
-      icon: 'fa-solid fa-university',
-      moduleKey: 'placement',
-      permissions: ['manage_tenant_settings', 'manage_tenant'],
+      label: 'Drives',
+      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'],
+      icon: 'fa-solid fa-briefcase',
+      permissions: ['manage_placement', 'manage_tenant', 'manage_tenant_users', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_passport'],
       submenu: [
-        { label: 'Departments',     path: '/admin/college/departments',           roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-building-columns', permissions: ['manage_tenant_settings', 'manage_tenant'] },
-        { label: 'Members',         path: '/admin/college/members',               roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-users',            permissions: ['manage_tenant_settings', 'manage_tenant'] },
-        { label: 'Curriculum',      path: '/admin/college/curriculum',            roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-book-open',        permissions: ['manage_tenant_settings', 'manage_tenant'] },
-        { label: 'CRT Sessions',    path: '/admin/college/crt',                   roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-person-chalkboard',permissions: ['manage_tenant_settings', 'manage_tenant'] },
-        { label: 'Placement Drives',path: '/admin/college/placement',             roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-briefcase',        permissions: ['manage_tenant_settings', 'manage_tenant'] },
-        { label: 'Placement Analytics', path: '/admin/college/placement-analytics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-pie',     permissions: ['manage_tenant_settings', 'manage_tenant'] },
-        { label: 'Alumni',          path: '/admin/college/alumni',                roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-graduation-cap',  permissions: ['manage_tenant_settings', 'manage_tenant'] },
-        { label: 'Certificates',    path: '/admin/certificates',                  roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-award',    permissions: ['manage_tenant_settings', 'manage_tenant', 'create_courses', 'edit_courses'] },
-        { label: 'Reports',         path: '/admin/college/reports',               roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-column',    permissions: ['manage_tenant_settings', 'manage_tenant'] },
-        { label: 'Settings',        path: '/admin/college/settings',              roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders',         permissions: ['manage_tenant_settings', 'manage_tenant'] },
+        { label: 'Placement Drives',      path: '/drives/manage',               roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-briefcase', permissions: ['manage_placement', 'manage_tenant'] },
+        { label: 'Interview Experiences', path: '/admin/interview-experiences', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-comments', permissions: ['manage_placement', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_passport'] },
+        { label: 'Drive Analytics',       path: '/drives/analytics',            roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-pie', permissions: ['manage_placement', 'manage_tenant'] },
       ]
     },
+    { label: 'Certificates',    path: '/admin/certificates',                  roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-award',    permissions: ['manage_tenant_settings', 'manage_tenant', 'create_courses', 'edit_courses'] },
     {
       label: 'Learning Plans',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'],
@@ -184,6 +186,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'API Logs', path: '/admin/logs', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-bug', permissions: ['manage_tenant_settings', 'manage_tenant', 'view_reports'] },
     { label: 'Recording Diagnostics', path: '/admin/recording-diagnostics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-clapperboard', permissions: ['manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Tenant Management', path: '/super-admin/tenants', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-building', permissions: ['manage_tenants'] },
+    { label: 'WhatsApp Templates', path: '/admin/whatsapp-templates', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-brands fa-whatsapp', permissions: ['manage_tenant_settings', 'manage_tenant'] },
     { label: 'Platform Settings', path: '/admin/platform-settings', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-key', permissions: ['manage_tenants'] },
     // ── Tech Battles (public competitions) ──
     { label: 'Tech Battles', path: '/admin/battles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-trophy', permissions: ['manage_battles', 'view_battles'] },
@@ -220,6 +223,9 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', moduleKey: 'mockInterviews', permissions: ['manage_interviews'] },
     { label: 'Scheduled Interviews', path: '/scheduled-interviews', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-check', permissions: ['manage_tenant_users', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'My Interviews', path: '/my-interviews', roles: ['STUDENT'], icon: 'fa-solid fa-microphone-lines', permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'Interview Experiences', path: '/interview-experiences', roles: ['STUDENT'], icon: 'fa-solid fa-comments' },
+    { label: 'Interview Question Books', path: '/question-books', roles: ['STUDENT'], icon: 'fa-solid fa-book-open' },
+    { label: 'Question Books', path: '/admin/question-books', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-book-open', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant', 'manage_tenant_users', 'manage_interviews'] },
     { label: 'Apply Leave', path: '/my-leave', roles: ['STUDENT'], icon: 'fa-solid fa-calendar-xmark', moduleKey: 'attendance', permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Code Playground', path: '/playground', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-code', moduleKey: 'codeAssessments', featureKey: 'codePlayground' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Project Builder', path: '/project-builder', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-rocket', moduleKey: 'careerPilot', featureKey: 'projectBuilder' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
@@ -232,6 +238,12 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Live Classes', path: '/hms-classes', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-video', featureKey: 'liveClasses' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'AI Communication Lab', path: '/ai-communication-lab', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-comment-dots', moduleKey: 'aiCommunicationLab', featureKey: 'aiCommunicationLab' as keyof StudentFeatures, permissions: ['use_communication_lab', 'manage_communication_lab'] },
     { label: 'Communication Lab — Manage', path: '/admin/communication-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-headset', moduleKey: 'aiCommunicationLab', permissions: ['manage_communication_lab'] },
+    { label: 'Code Visualizer', path: '/visualizer', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-microscope', needsVisualizerGrant: true, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'My Practice', path: '/my-practice', roles: ['STUDENT'], icon: 'fa-solid fa-fire', permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
+    { label: 'Practice Pass', path: '/practice-pass', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-fire', permissions: ['manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
+    { label: 'Coding Practice', path: '/coding-practice', roles: ['STUDENT'], icon: 'fa-solid fa-laptop-code', permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
+    { label: 'Problem Bank', path: '/problem-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-code', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'Code Visualizer — Manage', path: '/admin/visualizer', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-sliders', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Thinking Lab', path: '/thinking-lab', roles: ['STUDENT'], icon: 'fa-solid fa-brain', moduleKey: 'thinkingLab', featureKey: 'thinkingLab' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
     { label: 'Thinking Lab — Bank', path: '/admin/thinking-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-lightbulb', moduleKey: 'thinkingLab', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Daily Lab Tracks', path: '/lab-tracks', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-days', moduleKey: 'thinkingLab', permissions: ['manage_thinking_lab', 'manage_communication_lab', 'manage_tenant'] },
@@ -304,6 +316,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       const hasPermission = item.permissions.some(p => user.permissions!.includes(p));
       if (!hasPermission) return false;
     }
+
+    if (user.role === 'STUDENT' && item.needsVisualizerGrant && !vzAllowed) return false;
 
     // Platform-level module gate (applies to ALL roles — set by SUPER_ADMIN per tenant)
     if (item.moduleKey && !isModuleEnabled(item.moduleKey)) {
@@ -417,7 +431,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const ADMIN_SECTIONS: { title: string; labels: string[] }[] = [
     { title: 'OVERVIEW',                labels: ['Dashboard', 'Notifications'] },
     { title: 'PEOPLE',                  labels: ['Users', 'Roles', 'Batches', 'Concerns'] },
-    { title: 'TEACHING',                labels: ['Learning Plans', 'Quizzes', 'Assignments', 'Code Snippets', 'Attendance', 'Live Classes', 'Leave Requests'] },
+    { title: 'TEACHING',                labels: ['Learning Plans', 'Quizzes', 'Assignments', 'Code Snippets', 'Attendance', 'Live Classes', 'Leave Requests', 'Certificates'] },
     { title: 'STUDENT LABS',            labels: ['AI Communication Lab', 'Communication Lab — Manage', 'Daily Lab Tracks', 'Speaking Practice', 'Speaking Tasks', 'Code Playground', 'Resource Library', 'Project Library'] },
     /**
      * Thinking Lab gets its own heading rather than a line inside STUDENT LABS.
@@ -432,7 +446,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'ASSESSMENTS & INTERVIEWS',labels: ['Skill Assessment', 'Assessment Candidates', 'AI Interviews', 'Scheduled Interviews', 'Interview Q&A Bank'] },
     { title: 'CAREER',                  labels: ['Resume Builder', 'Career Profiles', 'Project Builder', 'Job Tracker', 'AI Mentor'] },
     { title: 'CRM & GROWTH',            labels: ['Leads', 'Placement Partnership'] },
-    { title: 'COLLEGE',                 labels: ['College'] },
+    { title: 'DRIVES & INTERVIEWS',     labels: ['Drives', 'Question Books'] },
     { title: 'BILLING',                 labels: ['Fees'] },
     { title: 'EVENTS',                  labels: ['Tech Battles', 'Hackathons'] },
     /**
@@ -479,8 +493,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const learnItems = filteredItems.filter(i => ['My Learning Plan', 'My Tasks', 'My Work', 'Live Classes', 'Attendance'].includes(i.label));
   const careerItems = filteredItems.filter(i => ['Code Playground', 'My Interviews', 'Resume Builder', 'Career Profile', 'AI Mentor', 'Job Tracker', 'Project Builder', 'Project Library', 'Resource Library'].includes(i.label));
   const accountItems = filteredItems.filter(i => ['Fee Details', 'Apply Leave'].includes(i.label));
-  const collegeItems = filteredItems.filter(i => ['My College Portal', 'My Applications', 'Alumni Directory'].includes(i.label));
-  const studentGrouped = new Set<any>([...homeItems, ...dailyPracticeItems, ...thinkingLabItems, ...learnItems, ...careerItems, ...accountItems, ...collegeItems, ...supportItems]);
+  const placementItems = filteredItems.filter(i => ['Drives', 'Interview Experiences', 'Interview Question Books'].includes(i.label));
+  const studentGrouped = new Set<any>([...homeItems, ...dailyPracticeItems, ...thinkingLabItems, ...learnItems, ...careerItems, ...accountItems, ...placementItems, ...supportItems]);
   const studentMiscItems = filteredItems.filter(i => !studentGrouped.has(i));
 
   return (
@@ -546,10 +560,10 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
                 <ul>{careerItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
-            {collegeItems.length > 0 && (
+            {placementItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">COLLEGE</span>
-                <ul>{collegeItems.map(item => renderMenuItem(item))}</ul>
+                <span className="nav-section-label">PLACEMENTS</span>
+                <ul>{placementItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
             {accountItems.length > 0 && (

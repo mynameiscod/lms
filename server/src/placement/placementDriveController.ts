@@ -4,6 +4,7 @@ import * as svc from './placementDriveService';
 import User from '../models/User';
 import { EmailService } from '../services/emailService';
 import { placementOverview, notifyRound } from '../services/placementStatusService';
+import { onApplied } from '../services/interviewHubLoopService';
 
 // Applicant userIds actively in the process (shortlisted/selected), or all applicants if none yet.
 function roundAudience(drive: any): string[] {
@@ -28,6 +29,17 @@ export const list = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { status } = req.query as { status?: string };
     const drives = await svc.listDrives(req.user!.tenantId, status);
+    // A student sees how many applied and their own application — never who else applied
+    // or anyone else's result.
+    if (req.user!.role === 'STUDENT') {
+      const me = String(req.user!.id);
+      return res.json({ success: true, data: drives.map((d: any) => {
+        const o = typeof d.toObject === 'function' ? d.toObject() : d;
+        const ids = (o.applicants || []).map(String);
+        const st = o.applicantStatuses instanceof Map ? o.applicantStatuses.get(me) : o.applicantStatuses?.[me];
+        return { ...o, applicantCount: ids.length, applicants: ids.includes(me) ? [me] : [], applicantStatuses: st ? { [me]: st } : {} };
+      }) });
+    }
     res.json({ success: true, data: drives });
   } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
 };
@@ -69,6 +81,8 @@ export const apply = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const drive = await svc.applyToDrive(req.params.id, req.user!.tenantId, req.user!.id);
     if (!drive) return res.status(404).json({ success: false, message: 'Drive not found or not accepting applications' });
+    // The company's prep pack, straight away when the institute has that switched on.
+    onApplied(String(req.user!.tenantId), req.params.id, String(req.user!.id)).catch((e) => console.error('[interview-hub] prep pack on apply', e?.message));
     res.json({ success: true, message: 'Applied successfully', data: { applicantCount: drive.applicants.length } });
   } catch (e: any) {
     const status = e.statusCode === 403 ? 403 : 500;
@@ -131,7 +145,10 @@ export const setApplicantStatus = async (req: AuthenticatedRequest, res: Respons
     }
 
     res.json({ success: true, message: 'Status updated' });
-  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+  } catch (e: any) {
+    if (e?.statusCode === 403) return res.status(403).json({ success: false, message: e.message });
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 };
 
 export const addRound = async (req: AuthenticatedRequest, res: Response) => {

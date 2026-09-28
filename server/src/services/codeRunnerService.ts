@@ -1,5 +1,6 @@
 import { ProgrammingLanguage } from '../models/Assignment';
-import { withExecutionSlot, isQueueTimeout } from './executionQueue';
+import { withExecutionSlot, isQueueTimeout, busyMessage } from './executionQueue';
+import * as settings from './settingsService';
 
 interface ExecutionInput {
   code: string;
@@ -22,6 +23,31 @@ interface ExecutionInput {
   enablePromptInput?: boolean;
 }
 
+/**
+ * Where the time actually went.
+ *
+ * `executionTime` alone could not answer the one question that mattered while planning
+ * compile-once: of the ~7s a Java run took, how much was javac, how much was the JVM, how
+ * much was queueing, and how much was the student's own logic. Piston reports the compile and
+ * run stages separately and both were being thrown away, so the 7s was a single opaque number
+ * and every claim about it was a guess.
+ *
+ * Every field is milliseconds, and every field is 0 when this Piston build does not report it
+ * rather than being invented — a fabricated metric is worse than a missing one.
+ */
+export interface ExecutionTiming {
+  /** Waiting for a concurrency slot. Under load this dominates, and it is not the code's fault. */
+  queuedMs: number;
+  /** The compile stage, when the language has one that Piston reports separately. */
+  compileMs: number;
+  /** The run stage. For Java this INCLUDES compilation: the single-file launcher compiles in-process. */
+  runMs: number;
+  /** Wall clock for the run stage, which includes time the process spent descheduled. */
+  wallMs: number;
+  /** Our own round trip to the sandbox, queue wait excluded. Covers network and Piston overhead. */
+  sandboxMs: number;
+}
+
 interface ExecutionResult {
   passed: boolean;
   output: string;
@@ -34,6 +60,10 @@ interface ExecutionResult {
    * nothing about the student's code. A grade containing one is not evidence of skill.
    */
   graderUnavailable?: boolean;
+  /** Present for real executions. Absent for the simulator and for markup "execution". */
+  timing?: ExecutionTiming;
+  /** Set by withExecutionSlot. Kept for callers that read it directly. */
+  queuedMs?: number;
 }
 
 /**
@@ -79,10 +109,11 @@ class CodeRunnerService {
   private useRealExecution: boolean;
 
   constructor() {
-    // Only use real execution if PISTON_URL is explicitly set to a local instance
-    this.pistonUrl = process.env.PISTON_URL || null;
-    this.useRealExecution = !!this.pistonUrl && !this.pistonUrl.includes('emkc.org');
-    
+    // Read once here only so start-up logs say which sandbox is configured. The
+    // VALUE USED AT EXECUTION TIME comes from the getters below, never from this.
+    this.pistonUrl = this.resolveUrl();
+    this.useRealExecution = !!this.pistonUrl;
+
     if (this.useRealExecution) {
       console.log('🚀 [CODE RUNNER] Using Piston API at:', this.pistonUrl);
     } else {
@@ -99,7 +130,42 @@ class CodeRunnerService {
    */
   executesForReal(language: ProgrammingLanguage | string): boolean {
     if (language === ProgrammingLanguage.HTML || language === ProgrammingLanguage.CSS) return false;
-    return this.useRealExecution && !!this.pistonUrl;
+    return this.realExecutionEnabled;
+  }
+
+  /**
+   * Where student code runs, resolved on every call.
+   *
+   * WHY NOT CACHE IT. This used to be captured once in the constructor, on a
+   * singleton, so the only way to change sandbox was to recreate the container —
+   * a deploy. That is the wrong rollback story for moving execution to its own
+   * host: if the new sandbox misbehaves at 10am during a class, the fix has to be
+   * a settings change measured in seconds, not a deploy performed under pressure.
+   *
+   * settingsService resolves DB first, then process.env, so an admin can point at
+   * a new host, confirm it, and point back, without touching the deployment.
+   *
+   * emkc.org is Piston's PUBLIC demo instance. Sending student code there means
+   * shipping it to a third party and accepting their rate limits mid-exam, so it
+   * is treated as "not configured" rather than as a sandbox.
+   */
+  private resolveUrl(): string | null {
+    const raw = (settings.getStr('PISTON_URL', '') || process.env.PISTON_URL || '').trim();
+    if (!raw || raw.includes('emkc.org')) return null;
+    return raw.replace(/\/+$/, '');
+  }
+
+  /** True only when a real sandbox is reachable-by-configuration right now. */
+  private get realExecutionEnabled(): boolean {
+    return !!this.resolveUrl();
+  }
+
+  /**
+   * Public form of the check above, for callers that must refuse rather than simulate —
+   * the Code Visualizer, where a simulated trace would be fabricated runtime evidence.
+   */
+  isRealExecutionEnabled(): boolean {
+    return this.realExecutionEnabled;
   }
 
   async execute(input: ExecutionInput): Promise<ExecutionResult> {
@@ -109,7 +175,7 @@ class CodeRunnerService {
     if (input.language === ProgrammingLanguage.HTML || input.language === ProgrammingLanguage.CSS) {
       return this.evaluateMarkup(input);
     }
-    if (this.useRealExecution && this.pistonUrl) {
+    if (this.realExecutionEnabled) {
       return this.executeWithPiston(input);
     }
     return this.simulateExecution(input);
@@ -618,7 +684,10 @@ class CodeRunnerService {
         // told students to look for an infinite loop in code that had none.
         return {
           passed: false, output: '',
-          error: 'The server is busy right now — too many programs running at once. Wait a few seconds and press Run again. Your code has not been changed.',
+          /* Says WHERE they are in the queue, not just that something is wrong. A wait with a
+             number in it reads as a wait; a bare "server is busy" reads as broken, and that is
+             how students reported it. */
+          error: busyMessage(input.language),
           executionTime: 0, memoryUsed: 0, graderUnavailable: true,
         };
       }
@@ -683,7 +752,7 @@ class CodeRunnerService {
         run_timeout: requestBody.run_timeout
       }));
 
-      const response = await fetch(`${this.pistonUrl}/execute`, {
+      const response = await fetch(`${this.resolveUrl()}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
@@ -697,7 +766,17 @@ class CodeRunnerService {
         if (response.status === 429) {
           return {
             passed: false, output: '',
-            error: 'The server is busy right now — too many programs running at once. Wait a few seconds and press Run again.',
+            /* Piston's own 429: its job limit, not ours. Same message, same reason. */
+            error: busyMessage(language),
+            executionTime: Date.now() - startedAt, memoryUsed: 0, graderUnavailable: true,
+          };
+        }
+        // The sandbox's request-size limit, not the student's code. Piston answers 400 (not
+        // 413) with body-parser's stack trace; say so plainly instead of a runtime error.
+        if (response.status === 413 || /PayloadTooLarge|request entity too large/i.test(errorBody)) {
+          return {
+            passed: false, output: '',
+            error: 'This test input is too large for the code runner. Ask your admin to raise the runner\'s request limit.',
             executionTime: Date.now() - startedAt, memoryUsed: 0, graderUnavailable: true,
           };
         }
@@ -707,6 +786,40 @@ class CodeRunnerService {
 
       const result: any = await response.json();
 
+      /*
+       * Decompose the cost while we still have the stages. Piston reports compile and run
+       * separately with cpu_time and wall_time on each; all of it used to be collapsed into one
+       * `executionTime` and the rest discarded, which is why "a Java run takes 7 seconds" could
+       * not be broken down into javac, JVM start, queue wait and the student's own logic.
+       *
+       * num() returns 0 rather than NaN or a guess when a field is missing, so a caller can
+       * tell "not reported" from "fast".
+       */
+      const num = (v: unknown): number => {
+        const n = Number(v);
+        return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+      };
+      const timing: ExecutionTiming = {
+        queuedMs: 0, // filled in by withExecutionSlot, which is the only place that knows
+        compileMs: num(result.compile?.cpu_time ?? result.compile?.wall_time),
+        runMs: num(result.run?.cpu_time),
+        wallMs: num(result.run?.wall_time),
+        sandboxMs: Date.now() - startedAt,
+      };
+
+      /*
+       * One structured line per execution, so the numbers can be read out of the logs instead
+       * of measured by hand. Deliberately machine-greppable: `grep PISTON-TIMING`.
+       */
+      console.log('[PISTON-TIMING] ' + JSON.stringify({
+        lang: pistonLanguage.language,
+        ver: pistonLanguage.version,
+        bytes: sourceCode?.length ?? 0,
+        ...timing,
+        exit: result.run?.code ?? null,
+        signal: result.run?.signal ?? null,
+      }));
+
       // Compilation errors from the dedicated compile stage
       if (result.compile && result.compile.code !== 0) {
         return {
@@ -714,7 +827,8 @@ class CodeRunnerService {
           output: '',
           compilationError: result.compile.stderr || result.compile.output || 'Compilation failed',
           executionTime: 0,
-          memoryUsed: 0
+          memoryUsed: 0,
+          timing,
         };
       }
 
@@ -733,7 +847,8 @@ class CodeRunnerService {
             output: '',
             compilationError: runStderr,
             executionTime: 0,
-            memoryUsed: 0
+            memoryUsed: 0,
+            timing,
           };
         }
 
@@ -766,7 +881,8 @@ class CodeRunnerService {
           // Real elapsed time. This was hardcoded to 0, which is why every failed test
           // showed "0ms" and made a 32-second starvation look instantaneous.
           executionTime: elapsed,
-          memoryUsed: 0
+          memoryUsed: 0,
+          timing,
         };
       }
 
@@ -784,6 +900,7 @@ class CodeRunnerService {
         output: actualOutput,
         executionTime: Number.isFinite(wall) && wall > 0 ? Math.round(wall) : 0,
         memoryUsed: Number.isFinite(memBytes) && memBytes > 0 ? Math.round((memBytes / (1024 * 1024)) * 10) / 10 : 0,
+        timing,
       };
 
     } catch (error) {
@@ -941,7 +1058,7 @@ class CodeRunnerService {
   // Get available languages
   async getAvailableLanguages(): Promise<string[]> {
     try {
-      const response = await fetch(`${this.pistonUrl}/runtimes`);
+      const response = await fetch(`${this.resolveUrl()}/runtimes`);
       const runtimes = await response.json() as any[];
       return runtimes.map((r: any) => r.language);
     } catch {
@@ -953,10 +1070,167 @@ class CodeRunnerService {
   // Check if service is healthy
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.pistonUrl}/runtimes`);
+      const response = await fetch(`${this.resolveUrl()}/runtimes`);
       return response.ok;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Run one program against MANY test cases: compile once, fresh process per case.
+   *
+   * ── WHY ───────────────────────────────────────────────────────────────────
+   *
+   * Grading called execute() once per test case, so a five-case assignment compiled
+   * identical Java five times. Measured on the execution host: a Java job costs
+   * ~420ms and almost all of it is javac plus JVM start — the student's own logic is
+   * microseconds. Five cases took 2,177ms to do about a millisecond of work.
+   *
+   * Compiling once and forking a fresh JVM per case costs ~935ms fixed and ~67ms per
+   * case. Marginal cost drops 6x, so the saving grows with the number of cases:
+   * 5 cases 2,177 -> ~1,320ms, 20 cases ~8,700 -> ~2,320ms.
+   *
+   * ── WHY A FRESH PROCESS RATHER THAN A LOOP IN ONE JVM ─────────────────────
+   *
+   * Calling main() five times inside one JVM would be faster still, and wrong.
+   * Static state would carry between cases, System.exit() in the student's code
+   * would end the whole batch, and an uncaught exception would abandon the rest.
+   * Separate Piston jobs gave isolation for free; a separate process keeps it.
+   * Verified on the sandbox: a static counter reads 1 in every case, System.exit(3)
+   * ends only its own case, a thrown exception ends only its own case, and an
+   * infinite loop is killed on its own timeout while the remaining cases still run.
+   *
+   * ── IT DECLINES MORE OFTEN THAN IT ACCEPTS ────────────────────────────────
+   *
+   * The fixed cost only pays back from about three cases, and this path exists for
+   * Java, where startup dominates. Everything else — other languages, one or two
+   * cases, simulation mode — falls through to the original per-case path, which is
+   * unchanged. A caller can always use this; it decides whether it is worth it.
+   */
+  async executeBatch(args: {
+    code: string;
+    language: ProgrammingLanguage;
+    cases: { input: string; expectedOutput: string; timeLimit?: number }[];
+    memoryLimit?: number;
+    comparisonMode?: 'lenient' | 'exact' | 'case_insensitive' | 'numeric';
+    enablePromptInput?: boolean;
+  }): Promise<ExecutionResult[]> {
+    const { code, language, cases, memoryLimit = 256, comparisonMode = 'lenient', enablePromptInput } = args;
+
+    /* The fallback must reproduce execute()'s arguments EXACTLY, including the
+       JavaScript prompt() opt-in. Dropping it here would silently break every JS
+       assignment that reads input the way students were taught — and it would only
+       show up as wrong answers, never as an error. */
+    /* At most this many of ONE caller's cases in flight at a time. The global semaphore
+       already caps total concurrency; this caps one submission's share of it, so a
+       seven-case answer cannot hold every slot on the platform while the people behind it
+       time out waiting. Two keeps a little parallelism for the cheap languages. */
+    const PER_CALLER_LIMIT = 2;
+
+    const oneByOne = async (): Promise<ExecutionResult[]> => {
+      const out: ExecutionResult[] = new Array(cases.length);
+      let next = 0;
+      const worker = async () => {
+        for (;;) {
+          const i = next++;
+          if (i >= cases.length) return;
+          const tc = cases[i];
+          out[i] = await this.execute({
+            code, language, input: tc.input, expectedOutput: tc.expectedOutput,
+            timeLimit: tc.timeLimit || 5000, memoryLimit, comparisonMode, enablePromptInput,
+          });
+        }
+      };
+      await Promise.all(
+        Array.from({ length: Math.min(PER_CALLER_LIMIT, cases.length) }, worker),
+      );
+      return out;
+    };
+
+    // Java only, three cases or more, and never against the simulator — a
+    // simulated batch would be fabricated grading.
+    if (language !== ProgrammingLanguage.JAVA || cases.length < 3 || !this.realExecutionEnabled) {
+      return oneByOne();
+    }
+
+    const cls = (code.match(/public\s+class\s+(\w+)/) || [])[1] || 'Main';
+    // Control lines are tagged with a per-request nonce and carry base64 payloads,
+    // so a student printing our marker cannot forge a result or corrupt parsing.
+    const nonce = Math.random().toString(36).slice(2, 10);
+    const perCaseMs = Math.max(1000, Math.min(...cases.map(c => c.timeLimit || 5000)));
+
+    const runner = `
+import java.io.*; import java.nio.charset.StandardCharsets;
+import java.util.Base64; import java.util.concurrent.TimeUnit;
+public class CBRunner {
+  static String b64(byte[] b){ return Base64.getEncoder().encodeToString(b); }
+  public static void main(String[] a) throws Exception {
+    Process c = new ProcessBuilder("javac","${cls}.java").redirectErrorStream(true).start();
+    byte[] cerr = c.getInputStream().readAllBytes();
+    if (c.waitFor() != 0) { System.out.println("##${nonce}##C|"+b64(cerr)); return; }
+    String[] inputs = new String[]{${cases.map(c => JSON.stringify(c.input ?? '')).join(',')}};
+    for (int i = 0; i < inputs.length; i++) {
+      long t0 = System.currentTimeMillis();
+      Process p = new ProcessBuilder("java","-Xmx${memoryLimit}m","${cls}").start();
+      OutputStream os = p.getOutputStream();
+      os.write(inputs[i].getBytes(StandardCharsets.UTF_8)); os.write('\\n'); os.close();
+      boolean done = p.waitFor(${perCaseMs}, TimeUnit.MILLISECONDS);
+      byte[] out, err;
+      if (!done) { p.destroyForcibly(); p.waitFor();
+        out = p.getInputStream().readAllBytes(); err = "TIMEOUT".getBytes(StandardCharsets.UTF_8); }
+      else { out = p.getInputStream().readAllBytes(); err = p.getErrorStream().readAllBytes(); }
+      System.out.println("##${nonce}##R|"+i+"|"+(done?p.exitValue():-1)+"|"
+        +(System.currentTimeMillis()-t0)+"|"+b64(out)+"|"+b64(err));
+    }
+  }
+}`;
+
+    try {
+      const res = await withExecutionSlot(() => fetch(`${this.resolveUrl()}/execute`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: 'java', version: '15.0.2',
+          files: [{ name: 'CBRunner', content: runner }, { name: `${cls}.java`, content: code }],
+          stdin: '', run_timeout: 30000, run_cpu_time: 30000,
+          compile_timeout: 20000, compile_cpu_time: 20000,
+        }),
+      }), language);
+
+      if (!res.ok) return oneByOne();
+      const j: any = await res.json();
+      const lines: string[] = String(j?.run?.stdout || '').split('\n');
+      const dec = (s: string) => Buffer.from(s || '', 'base64').toString('utf8');
+
+      const compileLine = lines.find(l => l.startsWith(`##${nonce}##C|`));
+      if (compileLine) {
+        const msg = dec(compileLine.split('|')[1]);
+        return cases.map(() => ({
+          passed: false, output: '', compilationError: msg, error: msg,
+          executionTime: 0, memoryUsed: 0,
+        }));
+      }
+
+      const out: ExecutionResult[] = [];
+      for (let i = 0; i < cases.length; i++) {
+        const line = lines.find(l => l.startsWith(`##${nonce}##R|${i}|`));
+        // A missing line means the batch died partway (job timeout, OOM). Fall back
+        // rather than score a case nobody ran.
+        if (!line) return oneByOne();
+        const [, , exit, ms, so, se] = line.split('|');
+        const stdout = dec(so); const stderr = dec(se);
+        const timedOut = exit === '-1';
+        out.push({
+          passed: !timedOut && exit === '0' && this.compareOutputs(cases[i].expectedOutput, stdout, comparisonMode),
+          output: stdout,
+          error: timedOut ? 'Time limit exceeded' : (stderr || undefined),
+          executionTime: Number(ms) || 0,
+          memoryUsed: 0,
+        });
+      }
+      return out;
+    } catch {
+      return oneByOne();
     }
   }
 }

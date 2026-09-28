@@ -4,10 +4,13 @@ import User from '../models/User';
 import mongoose from 'mongoose';
 import { eventBus } from '../utils/eventBus';
 import * as placementStatus from '../services/placementStatusService';
+import { placementHoldReason } from '../services/practicePassService';
 
 export const listDrives = (tenantId: string, status?: string) => {
   const query: Record<string, any> = { tenantId, isActive: true };
-  if (status) query.status = status;
+  // 'active' = still open to students (the dashboard widget asks for this).
+  if (status === 'active') query.status = { $in: ['upcoming', 'ongoing'] };
+  else if (status) query.status = status;
   return PlacementDrive.find(query)
     .populate('createdBy', 'firstName lastName')
     .sort({ applyDeadline: 1 });
@@ -48,11 +51,18 @@ export const applyToDrive = async (id: string, tenantId: string, userId: string)
   const drive = await PlacementDrive.findOne({ _id: id, tenantId, status: { $in: ['upcoming', 'ongoing'] } });
   if (!drive) return null;
 
+  // Daily Practice Pass: a student on placement hold cannot apply until they recover.
+  const hold = await placementHoldReason(userId);
+  if (hold) throw Object.assign(new Error(hold), { statusCode: 403 });
+
   // CGPA eligibility check
   if (drive.eligibility?.minCgpa != null) {
     const membership = await CollegeMembership.findOne({ userId, tenantId }).lean();
     const studentCgpa = (membership as any)?.cgpa;
-    if (studentCgpa == null || studentCgpa < drive.eligibility.minCgpa) {
+    // Enforced only when the institute has recorded this student's CGPA. College profiles are
+    // no longer used, so a missing CGPA must not lock every student out of the drive; the
+    // requirement is still shown on the drive for them to judge.
+    if (studentCgpa != null && studentCgpa < drive.eligibility.minCgpa) {
       throw Object.assign(
         new Error(`Minimum CGPA of ${drive.eligibility.minCgpa} required (your CGPA: ${studentCgpa ?? 'not set'})`),
         { statusCode: 403 }
@@ -138,6 +148,12 @@ export const updateApplicantStatus = async (
   userId: string,
   status: 'applied' | 'shortlisted' | 'selected' | 'rejected' | 'placed'
 ) => {
+  // Shortlisting is placement support, which a held student has lost. Recording an actual
+  // outcome (selected / placed / rejected) stays allowed — that is a fact, not support.
+  if (status === 'shortlisted') {
+    const hold = await placementHoldReason(userId);
+    if (hold) throw Object.assign(new Error(hold), { statusCode: 403 });
+  }
   const drive = await PlacementDrive.findOneAndUpdate(
     { _id: id, tenantId },
     { $set: { [`applicantStatuses.${userId}`]: status } },
@@ -219,6 +235,10 @@ export const bulkUpdateApplicantStatuses = async (
   for (const row of valid) {
     const uid = row.email ? emailToId[row.email] : row.rollNumber ? rollToId[row.rollNumber] : undefined;
     if (!uid) { errors.push(`Not found: ${row.email || row.rollNumber}`); continue; }
+    if (row.status === 'shortlisted' && await placementHoldReason(uid)) {
+      errors.push(`On placement hold (practice attendance below threshold): ${row.email || row.rollNumber}`);
+      continue;
+    }
     setFields[`applicantStatuses.${uid}`] = row.status;
   }
 

@@ -1,7 +1,9 @@
+import { readTeamSheet, writeTeams, templateWorkbook } from '../services/hackathonTeamImportService';
 import { Request, Response } from 'express';
 import Hackathon, { TEAM_SIZE_BOUNDS, DEFAULT_TEAM_SIZE } from '../models/Hackathon';
 import HackathonRegistration from '../models/HackathonRegistration';
 import { confirmedTeamCount } from '../services/hackathonRegistrationService';
+import { sendPendingPaymentNotice } from '../services/hackathonNoticeService';
 
 /**
  * Admin side of hackathons — create the event, watch who registered, get the list out.
@@ -42,6 +44,7 @@ function readBody(body: any, existing?: any) {
     process: str(body?.process, 20000),
     venue: str(body?.venue, 300),
     bannerUrl: str(body?.bannerUrl, 600),
+    collegeLogoUrl: str(body?.collegeLogoUrl, 600),
     startAt: dateOrNull(body?.startAt) || existing?.startAt,
     endAt: dateOrNull(body?.endAt),
     prizes: {
@@ -242,5 +245,111 @@ export const markRefunded = async (req: Request, res: Response) => {
     res.json({ success: true, registration: reg });
   } catch (e: any) {
     res.status(500).json({ success: false, message: e.message || 'Could not update registration' });
+  }
+};
+
+/**
+ * POST /hackathons/:id/registrations/:regId/payment-reminder
+ *
+ * Nudge a team that registered and never paid. It sends the same notice the public flow
+ * sends on registration — the one carrying a resume link back to THIS registration — rather
+ * than a second, admin-flavoured message: a team that pays from an admin nudge and a team
+ * that pays from their own confirmation must end up in the same place, and two code paths
+ * to the same payment page is how they stop doing that.
+ *
+ * Only a registration actually awaiting payment can be nudged. Asking someone who has
+ * already paid to pay again is a support call at best.
+ *
+ * The time is recorded because each of these costs money and lands on somebody's phone.
+ * An admin working down a list needs to see that a team was reminded ten minutes ago by
+ * someone else, and the UI cannot show that unless it is written down.
+ */
+export const sendPaymentReminder = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const reg = await HackathonRegistration.findOne({
+      _id: req.params.regId, hackathonId: req.params.id, tenantId,
+    });
+    if (!reg) return res.status(404).json({ success: false, message: 'Registration not found' });
+    if (reg.status !== 'pending_payment') {
+      return res.status(409).json({
+        success: false,
+        message: `This team is "${reg.status}", not awaiting payment — nothing to remind them about.`,
+      });
+    }
+
+    const h = await Hackathon.findOne({ _id: req.params.id, tenantId }).lean() as any;
+    if (!h) return res.status(404).json({ success: false, message: 'Hackathon not found' });
+
+    const sent = await sendPendingPaymentNotice(h, reg);
+    if (!sent.email && !sent.whatsapp) {
+      return res.status(502).json({
+        success: false,
+        message: sent.error || 'Neither the email nor the WhatsApp could be sent.',
+      });
+    }
+
+    reg.paymentRemindedAt = new Date();
+    await reg.save();
+
+    const via = [sent.email && 'email', sent.whatsapp && 'WhatsApp'].filter(Boolean).join(' and ');
+    res.json({ success: true, message: `Payment link sent by ${via}.`, data: { ...sent, at: reg.paymentRemindedAt } });
+  } catch (e: any) {
+    console.error('[hackathon] sendPaymentReminder:', e);
+    res.status(500).json({ success: false, message: e.message || 'Could not send the reminder' });
+  }
+};
+
+/**
+ * GET /hackathons/teams-template.xlsx — the blank sheet for a bulk import.
+ *
+ * Two example rows, not just headers. The commonest mistake is one row per TEAM with the
+ * members crammed into a cell, and a sample showing two rows that share a team name prevents
+ * that better than any instruction next to the upload button.
+ */
+export const teamsImportTemplate = async (_req: Request, res: Response) => {
+  const buf = templateWorkbook();
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="hackathon-teams-template.xlsx"');
+  res.send(buf);
+};
+
+/**
+ * POST /hackathons/:id/import-teams — upload a sheet of offline-registered teams.
+ *
+ * Defaults to a DRY RUN. The screen shows what would happen and the operator confirms, because
+ * the alternative is finding out from the database. `?apply=true` is the same read and the same
+ * verdict, followed by the writes — a preview of a different code path would be a preview of
+ * something else.
+ *
+ * Teams land as `confirmed`, which is what provisionAttempts requires. That is the whole point
+ * of the import: these people paid or were admitted offline, and nothing else is going to
+ * confirm them.
+ */
+export const importTeams = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const h = await Hackathon.findOne({ _id: req.params.id, tenantId }).lean() as any;
+    if (!h) return res.status(404).json({ success: false, message: 'Hackathon not found.' });
+
+    const file = (req as any).file;
+    if (!file?.buffer?.length) return res.status(400).json({ success: false, message: 'No file received. Attach an .xlsx or .csv.' });
+
+    const report = await readTeamSheet(file.buffer, {
+      hackathonId: String(h._id),
+      defaultCollege: String(req.body?.college || '').trim(),
+      sheet: String(req.body?.sheet || '').trim() || undefined,
+    });
+
+    const apply = String(req.query.apply || req.body?.apply || '') === 'true';
+    if (!apply || !report.ok) {
+      return res.json({ success: true, data: { applied: false, ...report } });
+    }
+
+    const result = await writeTeams(tenantId, String(h._id), report);
+    res.json({ success: true, data: { applied: true, ...report, ...result } });
+  } catch (e: any) {
+    console.error('[hackathon] importTeams:', e);
+    res.status(500).json({ success: false, message: e?.message || 'Could not read that file.' });
   }
 };

@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../types';
 import CandidateProofProfile from '../models/CandidateProofProfile';
 import { buildProofProfile } from '../services/candidateProofService';
 import * as settings from '../services/settingsService';
+import { placementHoldReason } from '../services/practicePassService';
 
 const publicBase = () => (process.env.FRONTEND_URL || process.env.CLIENT_URL || 'https://platform.codebegun.com').replace(/\/$/, '');
 const linkFor = (token: string) => `${publicBase()}/candidate/${token}`;
@@ -41,6 +42,8 @@ export const publishProof = async (req: AuthenticatedRequest, res: Response) => 
     const tenantId = tId(req);
     const profile = await buildProofProfile(studentId, tenantId);
     if (!profile) return res.status(404).json({ success: false, message: 'Student not found' });
+    const hold = await placementHoldReason(studentId);
+    if (hold) return res.status(403).json({ success: false, message: hold });
     let rec = await CandidateProofProfile.findOne({ tenantId, studentId });
     if (!rec) rec = new CandidateProofProfile({ tenantId, studentId });
     if (!rec.shareToken) rec.shareToken = crypto.randomBytes(16).toString('base64url');

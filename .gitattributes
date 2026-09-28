@@ -1,8 +1,46 @@
-# Shell scripts must keep LF endings. They are authored on Windows but executed
-# on the Linux VPS, and a CRLF shebang makes the kernel look for an interpreter
-# literally named "/bin/bash\r" — which fails as "bad interpreter: No such file
-# or directory". Pin them so a future clone or editor cannot reintroduce CRLF.
-*.sh text eol=lf
-Dockerfile text eol=lf
-*.yml text eol=lf
-*.yaml text eol=lf
+# Let Git decide text vs binary, and normalise text to LF *in the repository*.
+# This does not change what Windows checks out — core.autocrlf still governs the
+# working tree — it only guarantees the committed blob is LF.
+* text=auto
+
+# ── Files that are EXECUTED on the Linux VPS ────────────────────────────────
+# These must be LF in the WORKING TREE too, not just in the repository, because
+# they are copied to the server verbatim (scp, docker cp, docker build context)
+# rather than checked out there. A CRLF shebang makes the kernel look for an
+# interpreter literally named "/bin/bash\r" and fails with
+#   bad interpreter: No such file or directory
+#
+# The same class of bug bit docker-compose.yml on 2026-09-24: a CRLF copy was
+# scp'd to the server, and `sed -i 's/^    cap_add:$/.../'` then matched nothing
+# because of the trailing \r. sed reported success, the edit silently did not
+# happen, and Piston stayed down. eol=lf on the working tree prevents that at
+# source.
+*.sh        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+Dockerfile  text eol=lf
+*.env.example text eol=lf
+.gitattributes text eol=lf
+
+# ── Deliberately NOT pinned: application source ─────────────────────────────
+# *.ts, *.tsx, *.js and *.json are intentionally left to core.autocrlf (which is
+# `true` on the Windows dev machines here). They are compiled, bundled or read by
+# Node — never executed as a shell script and never copied to the server raw — so
+# CRLF in the working tree is harmless. Pinning them to eol=lf would rewrite
+# thousands of working-tree files on the next checkout for every Windows
+# developer, producing a large and risky diff for no operational benefit.
+#
+# Add a rule here only for a file that is copied to a Linux host verbatim.
+
+# ── Binaries: never normalise ───────────────────────────────────────────────
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.zip  binary
+*.xlsx binary

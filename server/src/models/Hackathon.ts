@@ -34,6 +34,8 @@ export interface IHackathon extends Document {
   process: string;
   venue: string;
   bannerUrl: string;
+  /** A partner college's logo, shown beside ours on the exam pages. Optional. */
+  collegeLogoUrl: string;
 
   /**
    * When it runs. Both are full timestamps, so "date" and "time" are one fact rather than
@@ -100,6 +102,7 @@ const HackathonSchema = new Schema<IHackathon>({
   process:     { type: String, default: '' },
   venue:       { type: String, default: '' },
   bannerUrl:   { type: String, default: '' },
+  collegeLogoUrl: { type: String, default: '' },
 
   startAt: { type: Date, required: true },
   endAt:   { type: Date, default: null },

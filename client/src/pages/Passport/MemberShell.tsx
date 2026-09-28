@@ -7,6 +7,7 @@ import './member.css';
 import SetPasswordDialog from './SetPasswordDialog';
 import ShareCardDialog from './ShareCardDialog';
 import { startActivityBeacon, trackPage } from './activityBeacon';
+import visualizerApi from '../../api/visualizerApi';
 
 const ICONS: Record<string, string> = {
   home: 'house-door-fill',
@@ -65,6 +66,7 @@ const SCREEN_NAMES: Record<string, string> = {
   '/careerpilot/resume': 'Resume',
   '/careerpilot/practice': 'Practice',
   '/careerpilot/news': 'Tech News',
+  '/careerpilot/coding': 'Coding sets',
 };
 
 /**
@@ -116,6 +118,13 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const loc = useLocation();
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  /* Code Visualizer is assigned per member; the rail shows it only once it has been. */
+  const [vzAllowed, setVzAllowed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    visualizerApi.access().then(a => alive && setVzAllowed(!!a.allowed)).catch(() => alive && setVzAllowed(false));
+    return () => { alive = false; };
+  }, []);
   const [userOpen, setUserOpen] = useState(false);
   const userRef = useRef<HTMLDivElement>(null);
 
@@ -262,11 +271,15 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn(`My ${data?.programDays || 90} Days`, 'grid', '/careerpilot/plan', 'roadmap')}
           {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap')}
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice')}
+          {navBtn('Coding Sets', 'code', '/careerpilot/coding')}
           {/* From master. No section, so they stay open to everyone, as master had them. */}
           {navBtn('Playground', 'terminal', '/careerpilot/playground')}
+          {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer')}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'practice')}
           {navBtn('Communication Lab', 'speech', '/careerpilot/communication')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview')}
+          {navBtn('Interview Experiences', 'interview', '/careerpilot/interview-experiences')}
+          {navBtn('Question Books', 'resume', '/careerpilot/question-books')}
           {navBtn('AI Mentor', 'robot', '/careerpilot/mentor')}
           {navBtn('Opportunities', 'building', '/careerpilot/companies', 'companies')}
           {/* Sits with Opportunities because it answers the same question — what is happening in

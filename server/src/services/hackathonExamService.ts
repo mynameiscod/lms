@@ -5,11 +5,14 @@ import HackathonExamAttempt, {
   IHackathonExamAttempt, IAttemptAnswer, ViolationKind,
 } from '../models/HackathonExamAttempt';
 import HackathonRegistration from '../models/HackathonRegistration';
-import AssessmentItem from '../models/AssessmentItem';
+import { loadExamItem, loadExamItems } from './examItemResolver';
+import { assembleSource, judge, runCustom } from './problemJudgeService';
 import { drawForAttempt, newDrawSeed } from './hackathonExamDrawService';
 import codeRunner from './codeRunnerService';
 import { ProgrammingLanguage } from '../models/Assignment';
 import { languageFor } from './assessmentItemValidationService';
+import { writeAnswer } from './attemptAnswerWriter';
+import { visualize, VisualizeResult } from './visualizer/visualizerService';
 
 /**
  * The hackathon exam, from "a team registered" to "an answer is recorded".
@@ -49,6 +52,10 @@ export interface ProvisionResult {
   created: number;
   existing: number;
   skippedTeams: { registrationCode: string; reason: string }[];
+  /** Individual members whose paper could not be drawn. Everyone else still got one. */
+  failedMembers: { registrationCode: string; memberName: string; memberMobile: string; reason: string }[];
+  /** Members with no email address: WhatsApp-only OTP, and no way to send them results. */
+  membersWithoutEmail: { registrationCode: string; memberName: string; memberMobile: string }[];
 }
 
 /**
@@ -69,7 +76,10 @@ export async function provisionAttempts(exam: IHackathonExam): Promise<Provision
     status: 'confirmed',
   }).lean() as any[];
 
-  const result: ProvisionResult = { teams: regs.length, created: 0, existing: 0, skippedTeams: [] };
+  const result: ProvisionResult = {
+    teams: regs.length, created: 0, existing: 0,
+    skippedTeams: [], failedMembers: [], membersWithoutEmail: [],
+  };
 
   for (const reg of regs) {
     const members = (reg.members || []).filter((m: any) => m?.mobile);
@@ -79,37 +89,72 @@ export async function provisionAttempts(exam: IHackathonExam): Promise<Provision
     }
 
     for (const m of members) {
-      const existing = await HackathonExamAttempt.findOne({
-        examId: exam._id, memberMobile: m.mobile,
-      }).select('_id').lean();
-      if (existing) { result.existing++; continue; }
-
-      const seed = newDrawSeed();
       /*
-       * The paper is drawn at provisioning, not at start. Eight hundred people starting at
-       * once would otherwise each pay for a draw at the single busiest moment of the event,
-       * and a draw that throws — because a section cannot be filled — would fail them at the
-       * gun instead of failing the admin days earlier.
+       * ONE MEMBER CANNOT COST EVERYONE ELSE THEIR PAPER.
+       *
+       * This loop had no try/catch. A member whose email was blank threw a ValidationError —
+       * the attempt model required an email the team importer never insisted on — and the
+       * throw escaped the whole function, so every team after that one silently got nothing.
+       * The admin saw a partial count and no error naming the member responsible. That is the
+       * "0 attempts" state during the 22 Sep event.
+       *
+       * The underlying model disagreement is fixed too (memberEmail is no longer required),
+       * but the guard stays: drawForAttempt can fail for its own reasons, and the correct
+       * outcome is always "everybody who could be provisioned was, and here is who was not".
        */
-      const drawnItems = await drawForAttempt(exam, seed);
+      try {
+        const existing = await HackathonExamAttempt.findOne({
+          examId: exam._id, memberMobile: m.mobile,
+        }).select('_id').lean();
+        if (existing) { result.existing++; continue; }
 
-      await HackathonExamAttempt.create({
-        tenantId: exam.tenantId,
-        examId: exam._id,
-        hackathonId: exam.hackathonId,
-        registrationId: reg._id,
-        registrationCode: reg.registrationCode,
-        teamName: reg.teamName,
-        memberName: m.name,
-        memberMobile: m.mobile,
-        memberEmail: m.email,
-        isLead: !!m.isLead,
-        examToken: newExamToken(),
-        drawSeed: seed,
-        drawnItems,
-        status: 'invited',
-      });
-      result.created++;
+        const seed = newDrawSeed();
+        /*
+         * The paper is drawn at provisioning, not at start. Eight hundred people starting at
+         * once would otherwise each pay for a draw at the single busiest moment of the event,
+         * and a draw that throws — because a section cannot be filled — would fail them at the
+         * gun instead of failing the admin days earlier.
+         */
+        const drawnItems = await drawForAttempt(exam, seed);
+
+        await HackathonExamAttempt.create({
+          tenantId: exam.tenantId,
+          examId: exam._id,
+          hackathonId: exam.hackathonId,
+          registrationId: reg._id,
+          registrationCode: reg.registrationCode,
+          teamName: reg.teamName,
+          memberName: m.name,
+          memberMobile: m.mobile,
+          memberEmail: m.email || '',
+          isLead: !!m.isLead,
+          examToken: newExamToken(),
+          drawSeed: seed,
+          drawnItems,
+          status: 'invited',
+        });
+        result.created++;
+
+        /* Not a failure, but the admin needs to know: WhatsApp-only OTP, and no results email. */
+        if (!m.email) {
+          result.membersWithoutEmail.push({
+            registrationCode: reg.registrationCode,
+            memberName: m.name || '(no name)',
+            memberMobile: m.mobile,
+          });
+        }
+      } catch (err: any) {
+        const reason = err?.message || String(err);
+        console.error(
+          `[PROVISION] exam ${exam._id} team ${reg.registrationCode} member ${m.mobile}: ${reason}`,
+        );
+        result.failedMembers.push({
+          registrationCode: reg.registrationCode,
+          memberName: m.name || '(no name)',
+          memberMobile: m.mobile,
+          reason,
+        });
+      }
     }
   }
 
@@ -155,6 +200,50 @@ export async function findAttemptByTeamCode(examId: string, teamCode: string, mo
   return attempt;
 }
 
+/**
+ * Find a candidate's paper from their mobile number alone.
+ *
+ * ── WHY THE TEAM CODE IS NOT REQUIRED ─────────────────────────────────────────────────────
+ *
+ * It was never the thing doing the work. A team code is shared by everybody on the team, so
+ * it identifies a team and not a person; the OTP to the registered number is what proves who
+ * is sitting down. Requiring both meant a candidate needed a shared non-secret in order to
+ * receive the real check.
+ *
+ * And offline cohorts never get one. They are imported from a spreadsheet — no registration
+ * confirmation, no email with a code in it — so the form was asking them for two values that
+ * had never been sent to them. They could not fill it in at all.
+ *
+ * ── WHEN A NUMBER IS ON MORE THAN ONE PAPER ───────────────────────────────────────────────
+ *
+ * Somebody can sit more than one hackathon. Rather than guess, anything already submitted is
+ * dropped — there is nothing to do with a finished paper — and if more than one is still
+ * open the caller is told to name the event. Guessing would occasionally hand a candidate the
+ * wrong exam, and they would not know until they were looking at somebody else's questions.
+ */
+export async function findAttemptsByMobile(mobile: string, eventHint?: string) {
+  const mob = String(mobile || '').replace(/\D/g, '').slice(-10);
+  if (mob.length !== 10) throw new ExamError('BAD_INPUT', 'Enter your 10-digit mobile number.');
+
+  const all = await HackathonExamAttempt.find({ memberMobile: mob, submittedAt: null }).limit(20);
+  if (!all.length) {
+    /*
+     * The same message whether the number is unknown or simply has no paper drawn yet. A
+     * public endpoint that distinguishes them is a way to test whether a number is registered.
+     */
+    throw new ExamError('NOT_FOUND', 'We could not find an exam for that mobile number.', 404);
+  }
+  if (all.length === 1 || !eventHint) return all;
+
+  const hint = String(eventHint).trim().toLowerCase();
+  const exams = await HackathonExam.find({ _id: { $in: all.map((a) => a.examId) } }).select('_id title').lean() as any[];
+  const match = new Set(exams
+    .filter((e) => String(e.title || '').toLowerCase().includes(hint))
+    .map((e) => String(e._id)));
+  const narrowed = all.filter((a) => match.has(String(a.examId)));
+  return narrowed.length ? narrowed : all;
+}
+
 /* ══════════════════════════════════════════════════════════════════════════════════════════
  * THE WINDOW
  * ════════════════════════════════════════════════════════════════════════════════════════ */
@@ -168,7 +257,20 @@ export function windowError(exam: IHackathonExam, attempt: IHackathonExamAttempt
   if (now > new Date(exam.endAt)) return new ExamError('ENDED', 'This exam has closed.', 403);
 
   if (!attempt.startedAt && exam.joinCutoffMins > 0) {
-    const cutoff = new Date(new Date(exam.startAt).getTime() + exam.joinCutoffMins * 60000);
+    /*
+     * Measured from the exam's OPEN, and clamped so it can never sit past the close — a join
+     * window that outlives the exam is meaningless, and a cutoff computed from a stale startAt
+     * could otherwise land after endAt.
+     *
+     * The related trap is #23: extending endAt used to leave this door shut, because the cutoff
+     * is anchored to startAt and startAt did not move. That is now handled where the decision
+     * belongs — the admin endpoint shifts joinCutoffMins by the same amount the close moved, and
+     * says so — rather than by guessing here.
+     */
+    const cutoff = new Date(Math.min(
+      new Date(exam.startAt).getTime() + exam.joinCutoffMins * 60000,
+      new Date(exam.endAt).getTime(),
+    ));
     if (now > cutoff) return new ExamError('JOIN_CLOSED', 'The window to start this exam has closed.', 403);
   }
   return null;
@@ -180,6 +282,41 @@ export function deadlineFor(exam: IHackathonExam, startedAt: Date): Date {
     startedAt.getTime() + exam.durationMins * 60000,
     new Date(exam.endAt).getTime(),
   ));
+}
+
+/**
+ * When the exam's window moves, move everybody's clock with it.
+ *
+ * `expiresAt` is stamped once, when a candidate starts, as
+ * min(startedAt + duration, endAt). Extending the exam did not revisit it, so on 22 September
+ * an admin pushed the close out and 24 candidates were still holding the deadline computed
+ * against the OLD close — the extension they were told about did not reach them, and their
+ * papers auto-submitted anyway. It was repaired by hand at the time; this is the mechanism.
+ *
+ * Derived, never adjusted: each attempt's deadline is recomputed from its own `startedAt` and
+ * the exam as it now stands. So this is safe to run repeatedly, it shortens as well as extends
+ * (an admin who brings the close forward means it), and it can never drift from the rule in
+ * deadlineFor because it calls it.
+ *
+ * Only attempts that are open are touched. A submitted paper's deadline is history.
+ */
+export async function reconcileDeadlines(
+  exam: IHackathonExam,
+): Promise<{ updated: number }> {
+  const open = await HackathonExamAttempt.find({
+    examId: exam._id, submittedAt: null, startedAt: { $ne: null },
+  }).select('_id startedAt expiresAt');
+
+  let updated = 0;
+  for (const a of open) {
+    const want = deadlineFor(exam, new Date(a.startedAt!));
+    const have = a.expiresAt ? new Date(a.expiresAt).getTime() : 0;
+    if (have !== want.getTime()) {
+      await HackathonExamAttempt.updateOne({ _id: a._id }, { $set: { expiresAt: want } });
+      updated++;
+    }
+  }
+  return { updated };
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════
@@ -200,6 +337,8 @@ export interface CandidateQuestion {
   language?: string;
   starterCode?: string;
   functionSignature?: string;
+  /** Problem Bank questions: every language the candidate may choose, with its starter code. */
+  languages?: { language: string; starterCode: string }[];
   /** VISIBLE cases only, capped by the run policy. Hidden cases never leave the server. */
   sampleCases?: { input: string; expectedOutput: string }[];
   /** What the candidate has entered so far, so a reload restores the paper. */
@@ -207,6 +346,7 @@ export interface CandidateQuestion {
     selectedOptionIds?: string[];
     code?: string;
     text?: string;
+    language?: string;
     runsUsed: number;
   };
 }
@@ -222,9 +362,7 @@ export async function buildPaper(
   exam: IHackathonExam,
   attempt: IHackathonExamAttempt,
 ): Promise<CandidateQuestion[]> {
-  const ids = attempt.drawnItems.map(d => d.itemId);
-  const items = await AssessmentItem.find({ _id: { $in: ids } }).lean() as any[];
-  const byId = new Map(items.map(i => [String(i._id), i]));
+  const byId = await loadExamItems(attempt.drawnItems);
   const answerFor = new Map(attempt.answers.map(a => [String(a.itemId), a]));
   const maxSamples = Math.max(0, exam.runPolicy?.maxSampleCases ?? 0);
 
@@ -251,6 +389,7 @@ export async function buildPaper(
       q.language = item.language || (item.type === 'sql' ? 'sql' : undefined);
       q.starterCode = item.starterCode || '';
       q.functionSignature = item.functionSignature || undefined;
+      if (item.languages?.length) q.languages = item.languages;
       q.sampleCases = (item.testCases || [])
         .filter((tc: any) => tc.hidden === false)
         .slice(0, maxSamples)
@@ -262,6 +401,7 @@ export async function buildPaper(
         selectedOptionIds: a.selectedOptionIds,
         code: a.code,
         text: a.text,
+        language: a.language,
         runsUsed: a.runCount || 0,
       };
     }
@@ -339,22 +479,30 @@ export async function saveAnswer(
   const drawn = attempt.drawnItems.find(d => String(d.itemId) === String(itemId));
   if (!drawn) throw new ExamError('NOT_IN_PAPER', 'That question is not part of your paper.', 400);
 
-  let answer = attempt.answers.find(a => String(a.itemId) === String(itemId));
-  if (!answer) {
-    answer = {
-      itemId: drawn.itemId, sectionKey: drawn.sectionKey, runCount: 0, graded: false,
-    } as IAttemptAnswer;
-    attempt.answers.push(answer);
-    answer = attempt.answers[attempt.answers.length - 1];
-  }
+  /*
+   * Write ONE answer, not the whole paper.
+   *
+   * attempt.save() rewrote the entire document on every autosave -- thirty-one drawn
+   * questions and every answer, code included -- to record a few characters somebody had
+   * just typed. With ninety people writing at once that is what took the platform down on
+   * 22 Sep: not the volume of requests, which was modest, but the size of each write.
+   *
+   * It also raced. Two writes to the same document meant Mongoose's version check failed
+   * the loser, and a candidate's answer came back as a 500 -- losing real work to a
+   * concurrent heartbeat.
+   *
+   * writeAnswer() touches one element of one array and does not carry the version, so it
+   * cannot fail that way and cannot overwrite an answer to a different question. It is
+   * shared with runCode() deliberately: two write paths that could not see each other are
+   * what produced the duplicate records on 22 Sep.
+   */
+  const set: Record<string, unknown> = { answeredAt: new Date() };
+  if (patch.selectedOptionIds !== undefined) set.selectedOptionIds = patch.selectedOptionIds;
+  if (patch.code !== undefined) set.code = patch.code;
+  if (patch.language !== undefined) set.language = patch.language;
+  if (patch.text !== undefined) set.text = patch.text;
 
-  if (patch.selectedOptionIds !== undefined) answer.selectedOptionIds = patch.selectedOptionIds;
-  if (patch.code !== undefined) answer.code = patch.code;
-  if (patch.language !== undefined) answer.language = patch.language;
-  if (patch.text !== undefined) answer.text = patch.text;
-  answer.answeredAt = new Date();
-
-  await attempt.save();
+  await writeAnswer(attempt._id, drawn, { set });
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════
@@ -445,6 +593,79 @@ export interface RunOutcome {
 }
 
 /**
+ * Check the cooldown and charge one run against the question's budget, atomically.
+ *
+ * Shared by Run and Visualize: a visualization executes the program just as a run does (and
+ * is heavier), so it spends from the same allowance rather than opening a second, uncapped
+ * path to the execution tier.
+ */
+async function chargeRun(
+  exam: IHackathonExam,
+  attempt: IHackathonExamAttempt,
+  itemId: string,
+  code: string,
+  languageOverride?: string,
+): Promise<{ item: any; answer: any; runsLeft: number | null }> {
+  const drawn = attempt.drawnItems.find(d => String(d.itemId) === String(itemId));
+  if (!drawn) throw new ExamError('NOT_IN_PAPER', 'That question is not part of your paper.', 400);
+
+  const item = await loadExamItem(drawn) as any;
+  if (!item) throw new ExamError('ITEM_GONE', 'That question could not be loaded.', 404);
+  if (item.source === 'problem_bank' && languageOverride && item.type !== 'sql'
+    && !(item.languages || []).some((l: any) => l.language === languageOverride)) {
+    throw new ExamError('BAD_LANGUAGE', 'That language is not available for this question.', 400);
+  }
+
+  const max = exam.runPolicy.maxRunsPerQuestion;
+  const existing = attempt.answers.find(a => String(a.itemId) === String(itemId));
+
+  /*
+   * Cooldown is judged on what we loaded. It only has to be roughly right -- its job is to
+   * stop somebody holding the Run key down, and being a few hundred milliseconds stale does
+   * not change that answer.
+   */
+  const cooldown = exam.runPolicy.cooldownSeconds * 1000;
+  if (cooldown > 0 && existing?.lastRunAt) {
+    const waited = Date.now() - new Date(existing.lastRunAt).getTime();
+    if (waited < cooldown) {
+      const left = Math.ceil((cooldown - waited) / 1000);
+      throw new ExamError('RUN_COOLDOWN', `Please wait ${left}s before running again.`, 429);
+    }
+  }
+
+  /*
+   * Charge the run BEFORE executing, atomically, and let the database decide whether it was
+   * allowed. A run that crashes the process still cost a slot, and not charging for it is how
+   * a retry loop becomes free.
+   *
+   * This used to push onto attempt.answers and call attempt.save(). Two problems, both real:
+   * the full-document save is what took the platform down under load, and interleaving it with
+   * saveAnswer's atomic upsert is what produced duplicate answer records for 137 attempts on
+   * 22 Sep. So the increment and the limit check are now one $inc plus a read of the result --
+   * meaning two clicks that arrive together consume two slots rather than the same one twice.
+   */
+  const stored = await writeAnswer(attempt._id, drawn, {
+    inc: { runCount: 1 },
+    set: {
+      lastRunAt: new Date(),
+      ...(code !== undefined ? { code } : {}),
+      ...(languageOverride ? { language: languageOverride } : {}),
+    },
+  });
+  if (!stored) throw new ExamError('ATTEMPT_GONE', 'Your attempt could not be loaded. Please reload.', 404);
+
+  const answer = stored;
+
+  if (max > 0 && (answer.runCount || 0) > max) {
+    await recordViolation(exam, attempt, 'run_throttled', { itemId, reason: 'limit' });
+    throw new ExamError('RUN_LIMIT', `You have used all ${max} runs for this question. Your answer is still saved and will be graded.`, 429);
+  }
+
+  const runsLeft = max > 0 ? Math.max(0, max - answer.runCount) : null;
+  return { item, answer, runsLeft };
+}
+
+/**
  * Run a candidate's code against the VISIBLE sample cases.
  *
  * ── THE LIMITS ARE THE POINT ──────────────────────────────────────────────────────────────
@@ -469,46 +690,29 @@ export async function runCandidateCode(
   if (attempt.submittedAt) throw new ExamError('ALREADY_SUBMITTED', 'You have already submitted this exam.', 403);
   if (!exam.runPolicy?.enabled) throw new ExamError('RUN_DISABLED', 'Running code is switched off for this exam.', 403);
 
-  const drawn = attempt.drawnItems.find(d => String(d.itemId) === String(itemId));
-  if (!drawn) throw new ExamError('NOT_IN_PAPER', 'That question is not part of your paper.', 400);
+  const { item, answer, runsLeft } = await chargeRun(exam, attempt, itemId, code, languageOverride);
 
-  const item = await AssessmentItem.findById(itemId).lean() as any;
-  if (!item) throw new ExamError('ITEM_GONE', 'That question could not be loaded.', 404);
-
-  let answer = attempt.answers.find(a => String(a.itemId) === String(itemId));
-  if (!answer) {
-    attempt.answers.push({ itemId: drawn.itemId, sectionKey: drawn.sectionKey, runCount: 0, graded: false } as IAttemptAnswer);
-    answer = attempt.answers[attempt.answers.length - 1];
-  }
-
-  const max = exam.runPolicy.maxRunsPerQuestion;
-  if (max > 0 && (answer.runCount || 0) >= max) {
-    await recordViolation(exam, attempt, 'run_throttled', { itemId, reason: 'limit' });
-    throw new ExamError('RUN_LIMIT', `You have used all ${max} runs for this question. Your answer is still saved and will be graded.`, 429);
-  }
-
-  const cooldown = exam.runPolicy.cooldownSeconds * 1000;
-  if (cooldown > 0 && answer.lastRunAt) {
-    const waited = Date.now() - new Date(answer.lastRunAt).getTime();
-    if (waited < cooldown) {
-      const left = Math.ceil((cooldown - waited) / 1000);
-      throw new ExamError('RUN_COOLDOWN', `Please wait ${left}s before running again.`, 429);
+  if (item.source === 'problem_bank') {
+    // The bank's judge, not the raw runner: it is what wraps the candidate's code in the
+    // problem's hidden header/footer, so a "write this function" question runs as authored.
+    const lang = item.type === 'sql' ? 'sql' : (languageOverride || item.language);
+    const samples = (item.testCases || []).filter((tc: any) => tc.hidden === false)
+      .slice(0, Math.max(0, exam.runPolicy.maxSampleCases));
+    if (!samples.length) {
+      const r = await runCustom(item.pb, lang, code, '').catch((e: any) => ({ output: '', error: e?.message, timeMs: 0 } as any));
+      return { output: r.output || '', error: r.error || undefined, executionTimeMs: r.timeMs || 0, runsUsed: answer.runCount, runsLeft };
     }
+    const r = await judge(item.pb, lang, code, samples.map((tc: any) => ({ ...tc, isSample: true })), { revealHidden: false });
+    const cases = r.cases.map((c, i) => ({
+      input: samples[i].input, expectedOutput: samples[i].expectedOutput,
+      actualOutput: c.error || c.output || '', passed: c.passed,
+    }));
+    return { output: cases.map(c => c.actualOutput).join('\n'), error: r.compileError, executionTimeMs: r.timeMs, runsUsed: answer.runCount, runsLeft, cases };
   }
-
-  /* Count and save the attempt BEFORE executing. A run that crashes the process still cost a
-   * slot, and not charging for it is how a retry loop becomes free. */
-  answer.runCount = (answer.runCount || 0) + 1;
-  answer.lastRunAt = new Date();
-  if (code !== undefined) answer.code = code;
-  if (languageOverride) answer.language = languageOverride;
-  await attempt.save();
 
   const language = languageFor(item, languageOverride) as ProgrammingLanguage;
   const samples = (item.testCases || []).filter((tc: any) => tc.hidden === false)
     .slice(0, Math.max(0, exam.runPolicy.maxSampleCases));
-
-  const runsLeft = max > 0 ? Math.max(0, max - answer.runCount) : null;
 
   if (!samples.length) {
     const r = await codeRunner.execute({
@@ -538,6 +742,39 @@ export async function runCandidateCode(
     runsLeft,
     cases,
   };
+}
+
+/**
+ * Step-through visualization of a candidate's code, when the exam allows it.
+ *
+ * OFF BY DEFAULT, per exam. It shows a candidate exactly what their program did, which is
+ * a teaching aid in a practice round and an unfair advantage in a graded one — so an admin
+ * turns it on deliberately, at exam creation, or it does not exist.
+ *
+ * It spends one run from the same per-question budget, with the same cooldown, because it
+ * executes the program just as Run does. It runs against the first VISIBLE sample input, so a
+ * program that reads stdin still has something to read; hidden cases are never touched.
+ */
+export async function visualizeCandidateCode(
+  exam: IHackathonExam,
+  attempt: IHackathonExamAttempt,
+  itemId: string,
+  code: string,
+  languageOverride?: string,
+): Promise<VisualizeResult & { runsUsed: number; runsLeft: number | null }> {
+  if (attempt.submittedAt) throw new ExamError('ALREADY_SUBMITTED', 'You have already submitted this exam.', 403);
+  if (!exam.runPolicy?.enabled || !exam.runPolicy?.allowVisualizer) {
+    throw new ExamError('VISUALIZER_DISABLED', 'The code visualizer is not available in this exam.', 403);
+  }
+  const { item, answer, runsLeft } = await chargeRun(exam, attempt, itemId, code, languageOverride);
+
+  const language = item.source === 'problem_bank'
+    ? String(languageOverride || item.language || '').toLowerCase()
+    : String(languageFor(item, languageOverride) || '').toLowerCase();
+  const sample = (item.testCases || []).find((tc: any) => tc.hidden === false);
+  const source = item.source === 'problem_bank' ? assembleSource(item.pb, language, code) : code;
+  const result = await visualize({ code: source, language, stdin: sample?.input || '' });
+  return { ...result, runsUsed: answer.runCount, runsLeft };
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════

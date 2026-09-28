@@ -5,6 +5,49 @@ import { getWeeklyReportEmailHtml } from '../services/weeklyReportEmailTemplate'
 import { EmailService } from '../services/emailService';
 import WeeklyReportLog from '../models/WeeklyReportLog';
 import Batch from '../models/Batch';
+import User from '../models/User';
+import { estimateCost, purposeTemplate, sendByPurpose, waCostPerMessage } from '../services/purposeMessaging';
+import type { WeeklyReportData } from '../services/weeklyReportService';
+
+type Channel = 'email' | 'whatsapp';
+const channelsOf = (raw: unknown): Channel[] => {
+  const list = Array.isArray(raw) ? raw : ['email'];
+  const out = list.filter((c): c is Channel => c === 'email' || c === 'whatsapp');
+  return out.length ? out : ['email'];
+};
+
+/** WhatsApp carries the headline; the full report is the email. */
+const whatsappBody = (r: WeeklyReportData, weekLabel: string) => [
+  r.student.firstName || 'there',
+  weekLabel,
+  r.practice ? `${r.practice.metDays} of ${r.practice.countedDays}` : 'not tracked',
+  r.practice ? `${r.practice.pct}%` : '-',
+  `${r.overall.score}/100`,
+];
+
+/** Send one student's report on the chosen channels and log each channel separately. */
+async function deliver(tenantId: string, report: WeeklyReportData, channels: Channel[], weekStart: Date, weekLabel: string, sentBy?: string, mailer?: EmailService) {
+  const results: Record<string, { ok: boolean; error?: string }> = {};
+  if (channels.includes('email')) {
+    const ok = await (mailer || new EmailService(tenantId)).sendGenericEmail(report.student.email, SUBJECT, getWeeklyReportEmailHtml(report)).catch(() => false);
+    results.email = { ok: !!ok, error: ok ? undefined : 'Email failed to send' };
+    await WeeklyReportLog.create({
+      tenantId, studentId: report.student.id, batchId: report.student.batchId || undefined, weekStart,
+      email: report.student.email, score: report.overall.score, status: ok ? 'sent' : 'failed', channel: 'email', sentBy,
+    });
+  }
+  if (channels.includes('whatsapp')) {
+    const u: any = await User.findById(report.student.id).select('phone').lean();
+    const r = await sendByPurpose(tenantId, u?.phone || '', 'WEEKLY_REPORT', whatsappBody(report, weekLabel));
+    results.whatsapp = r;
+    await WeeklyReportLog.create({
+      tenantId, studentId: report.student.id, batchId: report.student.batchId || undefined, weekStart,
+      email: report.student.email, phone: u?.phone, score: report.overall.score,
+      status: r.ok ? 'sent' : 'failed', channel: 'whatsapp', error: r.ok ? undefined : r.error, sentBy,
+    });
+  }
+  return results;
+}
 
 const SUBJECT = 'Your Weekly Learning Report — CodeBegun';
 
@@ -22,10 +65,15 @@ export const getBatchSummaries = async (req: AuthenticatedRequest, res: Response
     // Attach last-sent info for this exact week
     const logs = await WeeklyReportLog.find({ tenantId, batchId, weekStart: start })
       .sort({ sentAt: -1 })
-      .select('studentId sentAt status')
+      .select('studentId sentAt status channel')
       .lean();
-    const lastSent: Record<string, { sentAt: Date; status: string }> = {};
-    logs.forEach(l => { const id = l.studentId.toString(); if (!lastSent[id]) lastSent[id] = { sentAt: l.sentAt, status: l.status }; });
+    const lastSent: Record<string, { sentAt: Date; status: string; channels: string[] }> = {};
+    logs.forEach(l => {
+      const id = l.studentId.toString();
+      if (!lastSent[id]) lastSent[id] = { sentAt: l.sentAt, status: l.status, channels: [] };
+      const ch = `${l.channel || 'email'}${l.status === 'sent' ? '' : ' (failed)'}`;
+      if (!lastSent[id].channels.includes(ch)) lastSent[id].channels.push(ch);
+    });
 
     res.json({
       success: true,
@@ -71,24 +119,24 @@ export const getStudentReportHtml = async (req: AuthenticatedRequest, res: Respo
 export const sendToStudent = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const tenantId = req.tenantId!;
-    const { studentId, weekStart } = req.body as { studentId: string; weekStart?: string };
+    const { studentId, weekStart, channels } = req.body as { studentId: string; weekStart?: string; channels?: string[] };
     if (!studentId) return res.status(400).json({ success: false, message: 'studentId is required' });
+    const chosen = channelsOf(channels);
+    if (chosen.includes('whatsapp') && !purposeTemplate(tenantId, 'WEEKLY_REPORT') && chosen.length === 1) {
+      return res.status(400).json({ success: false, message: 'No WhatsApp template is assigned for "Weekly learning report" (WhatsApp Templates → Where used).' });
+    }
 
     const report = await weeklyReportService.getReport(studentId, tenantId, weekStart);
     if (!report) return res.status(404).json({ success: false, message: 'Student not found' });
 
-    const { start } = resolveWeek(weekStart);
-    const mailer = new EmailService(tenantId);
-    const ok = await mailer.sendGenericEmail(report.student.email, SUBJECT, getWeeklyReportEmailHtml(report));
-
-    await WeeklyReportLog.create({
-      tenantId, studentId, batchId: report.student.batchId || undefined,
-      weekStart: start, email: report.student.email, score: report.overall.score,
-      status: ok ? 'sent' : 'failed', sentBy: req.user?.id,
-    });
-
-    if (!ok) return res.status(502).json({ success: false, message: 'Email failed to send' });
-    res.json({ success: true, message: `Report sent to ${report.student.email}` });
+    const { start, label } = resolveWeek(weekStart);
+    const results = await deliver(tenantId, report, chosen, start, label, req.user?.id);
+    const failed = Object.entries(results).filter(([, r]) => !r.ok);
+    if (failed.length === Object.keys(results).length) {
+      return res.status(502).json({ success: false, message: failed.map(([c, r]) => `${c}: ${r.error}`).join(' · ') });
+    }
+    const sent = Object.entries(results).filter(([, r]) => r.ok).map(([c]) => c).join(' + ');
+    res.json({ success: true, message: `Report sent to ${report.student.name} by ${sent}${failed.length ? ` (${failed.map(([c, r]) => `${c} failed: ${r.error}`).join('; ')})` : ''}`, data: results });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message || 'Failed to send report' });
   }
@@ -100,17 +148,20 @@ export const sendToStudent = async (req: AuthenticatedRequest, res: Response) =>
 export const sendToBatch = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const tenantId = req.tenantId!;
-    const { batchId, weekStart } = req.body as { batchId: string; weekStart?: string };
+    const { batchId, weekStart, channels } = req.body as { batchId: string; weekStart?: string; channels?: string[] };
     if (!batchId) return res.status(400).json({ success: false, message: 'batchId is required' });
+    const chosen = channelsOf(channels);
+    if (chosen.includes('whatsapp') && !purposeTemplate(tenantId, 'WEEKLY_REPORT')) {
+      return res.status(400).json({ success: false, message: 'No WhatsApp template is assigned for "Weekly learning report" (WhatsApp Templates → Where used). Untick WhatsApp or assign one.' });
+    }
 
     const students = await weeklyReportService.getBatchStudents(tenantId, batchId);
     if (!students.length) return res.status(400).json({ success: false, message: 'No active students in this batch' });
 
-    const { start } = resolveWeek(weekStart);
+    const { start, label } = resolveWeek(weekStart);
     const sentBy = req.user?.id;
 
-    // Respond right away — bulk sending happens in the background.
-    res.json({ success: true, message: `Sending reports to ${students.length} student(s)…`, data: { queued: students.length } });
+    res.json({ success: true, message: `Sending reports to ${students.length} student(s) by ${chosen.join(' + ')}…`, data: { queued: students.length } });
 
     (async () => {
       const mailer = new EmailService(tenantId);
@@ -118,20 +169,37 @@ export const sendToBatch = async (req: AuthenticatedRequest, res: Response) => {
         try {
           const report = await weeklyReportService.getReport(s._id.toString(), tenantId, weekStart);
           if (!report) continue;
-          const ok = await mailer.sendGenericEmail(report.student.email, SUBJECT, getWeeklyReportEmailHtml(report));
-          await WeeklyReportLog.create({
-            tenantId, studentId: s._id, batchId, weekStart: start,
-            email: report.student.email, score: report.overall.score,
-            status: ok ? 'sent' : 'failed', sentBy,
-          });
+          await deliver(tenantId, report, chosen, start, label, sentBy, mailer);
+          if (chosen.includes('whatsapp')) await new Promise((ok) => setTimeout(ok, 150));
         } catch (e: any) {
           console.error('[WEEKLY REPORT] batch send error for', s.email, e?.message);
         }
       }
-      console.log(`[WEEKLY REPORT] batch send complete for batch ${batchId} (${students.length} students)`);
+      console.log(`[WEEKLY REPORT] batch send complete for batch ${batchId} (${students.length} students, ${chosen.join('+')})`);
     })().catch(e => console.error('[WEEKLY REPORT] batch send crashed:', e?.message));
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message || 'Failed to start batch send' });
+  }
+};
+
+// GET /weekly-reports/estimate?batchId= — who each channel would reach, and the WhatsApp cost.
+export const estimateBatch = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const tenantId = req.tenantId!;
+    const { batchId } = req.query as { batchId?: string };
+    if (!batchId) return res.status(400).json({ success: false, message: 'batchId is required' });
+    const students = await User.find({ tenantId, role: 'STUDENT', isActive: true, batchId }).select('email phone').lean();
+    const withPhone = students.filter((u: any) => u.phone).length;
+    res.json({ success: true, data: {
+      students: students.length,
+      withEmail: students.filter((u: any) => u.email).length,
+      withPhone,
+      whatsappTemplateReady: !!purposeTemplate(tenantId, 'WEEKLY_REPORT'),
+      costPerMessageInr: waCostPerMessage(tenantId),
+      whatsappCostInr: estimateCost(tenantId, withPhone),
+    } });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Failed to estimate' });
   }
 };
 

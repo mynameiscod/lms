@@ -4,7 +4,12 @@
 #
 #   ssh root@<NEW_IP>
 #   git clone <repo> /root/lms && cd /root/lms
-#   bash scripts/provision-vps.sh
+#   bash scripts/provision-vps.sh <public-hostname>
+#
+# The hostname is REQUIRED and becomes FRONTEND_URL / CLIENT_URL. Getting it
+# wrong on a second box means that box generates links into production.
+#   production : bash scripts/provision-vps.sh platform.codebegun.com
+#   QA         : bash scripts/provision-vps.sh qa.codebegun.com
 #
 # Brings the host from bare OS to "ready to receive the app image": Docker,
 # nginx, TLS tooling, firewall, SSH hardening, and freshly generated secrets.
@@ -23,6 +28,19 @@ die()  { echo "${RED}❌ $*${NC}" >&2; exit 1; }
 [ "$(id -u)" -eq 0 ] || die "Run as root."
 APP_DIR="/root/lms"
 [ -f "$APP_DIR/docker-compose.yml" ] || die "Run this from a clone at $APP_DIR (docker-compose.yml not found)."
+
+# The public hostname this box will serve. Required: see the note above
+# server/.env — a wrong or defaulted value silently points a new box at
+# production, and nothing fails until a student clicks a link.
+PUBLIC_HOST="${1:-${PUBLIC_HOST:-}}"
+[ -n "$PUBLIC_HOST" ] || die "Public hostname required.
+   Usage: bash scripts/provision-vps.sh <public-hostname>
+   e.g.   bash scripts/provision-vps.sh qa.codebegun.com"
+case "$PUBLIC_HOST" in
+  http://*|https://*) die "Give the bare hostname, not a URL: ${PUBLIC_HOST#*://}" ;;
+  *.*) : ;;
+  *) die "'$PUBLIC_HOST' does not look like a hostname." ;;
+esac
 
 # ── Preflight: do not lock yourself out ─────────────────────────────────────
 # SSH hardening below disables password login. If no key is installed, that
@@ -100,18 +118,27 @@ fi
 
 # server/.env holds app config. ENCRYPTION_KEY/JWT_SECRET/MONGODB_URI are
 # supplied by compose and intentionally NOT duplicated here.
+#
+# FRONTEND_URL / CLIENT_URL were hardcoded to platform.codebegun.com until
+# 2026-09-24. On a second box that is not a cosmetic default, it is a live wiring
+# error: every link the server generates — exam invitations, OTP links, password
+# resets, unsubscribe URLs — would point at PRODUCTION. A QA box would happily
+# email students a link into the real system, and a staging bug would be
+# indistinguishable from a production one.
+#
+# The host is now required rather than defaulted, because the failure is silent.
 if [ ! -f "$APP_DIR/server/.env" ]; then
-  cat > "$APP_DIR/server/.env" <<'EOF'
+  cat > "$APP_DIR/server/.env" <<EOF
 NODE_ENV=production
 PORT=5000
 LOG_LEVEL=info
-FRONTEND_URL=https://platform.codebegun.com
-CLIENT_URL=https://platform.codebegun.com
+FRONTEND_URL=https://${PUBLIC_HOST}
+CLIENT_URL=https://${PUBLIC_HOST}
 JWT_EXPIRES_IN=7d
 # API keys are entered in Platform Settings (encrypted into MongoDB), not here.
 EOF
   chmod 600 "$APP_DIR/server/.env"
-  ok "wrote $APP_DIR/server/.env"
+  ok "wrote $APP_DIR/server/.env (public host: ${PUBLIC_HOST})"
 fi
 
 # ── SSH hardening ───────────────────────────────────────────────────────────

@@ -29,9 +29,18 @@ let running = false;
 let timer: NodeJS.Timeout | null = null;
 
 export async function hackathonExamTick(now = new Date()): Promise<void> {
-  /* Open and close on time, so nobody is waiting on an admin to press something. */
+  /*
+   * Open and close on time, so nobody is waiting on an admin to press something.
+   *
+   * 'closed' is in this list deliberately. The sweep used to run only while an exam was
+   * `live`, so a paper still sitting open once the exam was marked closed was NEVER
+   * auto-submitted server-side — only the candidate's own browser clock would do it, and a
+   * closed laptop does nothing at all. That leaves an attempt stuck at `started`, ungraded,
+   * holding the event's results open. It also meant an admin extending a closed exam could
+   * not reopen it, because nothing looked at closed exams again.
+   */
   const due = await HackathonExam.find({
-    status: { $in: ['ready', 'live'] },
+    status: { $in: ['ready', 'live', 'closed'] },
     startAt: { $lte: now },
   });
 
@@ -43,18 +52,34 @@ export async function hackathonExamTick(now = new Date()): Promise<void> {
     }
 
     /*
+     * An extension AFTER the close reopens the exam. The admin moved endAt into the future,
+     * which can only mean the event is running again; leaving it `closed` would mean the
+     * extension silently did nothing.
+     */
+    if (exam.status === 'closed' && now < new Date(exam.endAt)) {
+      exam.status = 'live';
+      await exam.save();
+      logger.info('hackathon exam reopened by an extended close', {
+        examId: String(exam._id), endAt: exam.endAt,
+      });
+    }
+
+    /*
      * Swept every tick while live, not only at the end. Somebody who started at the beginning
      * of a two-hour window with a sixty-minute paper runs out long before the exam closes, and
      * their answers should be safely submitted at that moment rather than an hour later.
+     *
+     * And swept while closed too, for the reason above: a paper left open past the close has
+     * work in it that must be graded.
      */
-    if (exam.status === 'live') {
+    if (exam.status === 'live' || exam.status === 'closed') {
       const swept = await sweepExpiredAttempts(exam, now);
       if (swept.autoSubmitted) {
         logger.info('hackathon exam auto-submitted expired papers', {
-          examId: String(exam._id), count: swept.autoSubmitted,
+          examId: String(exam._id), count: swept.autoSubmitted, examStatus: exam.status,
         });
       }
-      if (now >= new Date(exam.endAt)) {
+      if (exam.status === 'live' && now >= new Date(exam.endAt)) {
         exam.status = 'closed';
         await exam.save();
         logger.info('hackathon exam closed', { examId: String(exam._id), noShows: swept.noShows });

@@ -5,12 +5,19 @@ import HackathonExamAttempt from '../models/HackathonExamAttempt';
 import HackathonRegistration from '../models/HackathonRegistration';
 import Hackathon from '../models/Hackathon';
 import { AuthenticatedRequest } from '../types';
-import { checkDrawCoverage, clearDrawPoolCache, sectionFilter } from '../services/hackathonExamDrawService';
+import { checkDrawCoverage, clearDrawPoolCache, sectionFilter, problemBankFilter } from '../services/hackathonExamDrawService';
 import AssessmentItem from '../models/AssessmentItem';
+import CodingProblem from '../models/CodingProblem';
 import * as exams from '../services/hackathonExamService';
 import { computeLeaderboard, computeTeamResult, drainGradingQueue } from '../services/hackathonExamGradingService';
 import { logger } from '../utils/logger';
-import { sendInvitations, sendResults } from '../services/hackathonExamNotifyService';
+import {
+  sendInvitations, sendResults, resendInvitation, countPendingInvitations,
+} from '../services/hackathonExamNotifyService';
+import {
+  startBulkSend, getBulkSend, runningBulkSend, SendAlreadyRunning,
+} from '../services/bulkSendJobs';
+import { readChunk, purgeAttemptRecording } from '../services/proctorStorageService';
 
 /**
  * Running the hackathon exam: configure it, prove it can be drawn, invite the teams, watch it
@@ -88,13 +95,65 @@ export const upsertExam = async (req: AuthenticatedRequest, res: Response) => {
       }
     }
 
+    /*
+     * Remember the window BEFORE the patch, so a change to it can be acted on rather than
+     * silently stored. Two things used to go wrong when an admin extended a live exam, and both
+     * cost time during the 22 September event:
+     *
+     *   #22  Candidates' clocks did not move. expiresAt is stamped when they start, and nothing
+     *        revisited it, so 24 candidates kept the deadline computed against the old close and
+     *        auto-submitted anyway despite being told they had longer.
+     *
+     *   #23  The door stayed shut. joinCutoffMins is measured from startAt, which did not move,
+     *        so extending the close did nothing for anyone still trying to get in.
+     */
+    const prevEndAt = existing?.endAt ? new Date(existing.endAt).getTime() : null;
+    const prevDuration = existing?.durationMins ?? null;
+
     const exam = existing
       ? Object.assign(existing, patch)
       : new HackathonExam({ ...patch, tenantId, hackathonId, createdBy: req.user?.id });
+
+    const newEndAt = new Date(exam.endAt).getTime();
+    const endMovedBy = prevEndAt === null ? 0 : newEndAt - prevEndAt;
+
+    /*
+     * Carry the join window along with the close, by the same amount. Only when the admin did
+     * not set joinCutoffMins themselves in this same request — an explicit value is a decision
+     * and must not be second-guessed — and only when the close moved LATER. Bringing the close
+     * forward is a decision to end sooner, not an instruction to shut the door earlier still,
+     * and windowError clamps the cutoff to endAt anyway.
+     */
+    let joinShiftedMins = 0;
+    if (endMovedBy > 0 && req.body?.joinCutoffMins === undefined && (exam.joinCutoffMins || 0) > 0) {
+      joinShiftedMins = Math.round(endMovedBy / 60000);
+      exam.joinCutoffMins = (exam.joinCutoffMins || 0) + joinShiftedMins;
+    }
+
     await exam.save();
     clearDrawPoolCache();
 
-    res.json({ success: true, message: 'Exam saved', data: exam });
+    /* Now push the new window onto every open attempt. Derived from each candidate's own
+       startedAt, so it is correct whether the window grew or shrank. */
+    let deadlines = { updated: 0 };
+    const windowChanged = endMovedBy !== 0 || (prevDuration !== null && prevDuration !== exam.durationMins);
+    if (existing && windowChanged) {
+      deadlines = await exams.reconcileDeadlines(exam);
+    }
+
+    const notes: string[] = ['Exam saved.'];
+    if (deadlines.updated) {
+      notes.push(`${deadlines.updated} candidate clock(s) updated to the new window.`);
+    }
+    if (joinShiftedMins) {
+      notes.push(`The join window moved ${joinShiftedMins} minute(s) later with the close — set "joinCutoffMins" explicitly to override.`);
+    }
+
+    res.json({
+      success: true,
+      message: notes.join(' '),
+      data: { ...exam.toObject(), _deadlinesUpdated: deadlines.updated, _joinShiftedMins: joinShiftedMins },
+    });
   } catch (e) { fail(res, e, 'Failed to save exam'); }
 };
 
@@ -132,7 +191,27 @@ export const provisionExamAttempts = async (req: AuthenticatedRequest, res: Resp
     const result = await exams.provisionAttempts(exam);
     if (exam.status === 'draft') { exam.status = 'ready'; await exam.save(); }
 
-    res.json({ success: true, message: `${result.created} paper(s) drawn.`, data: { ...result, coverage } });
+    /*
+     * Say out loud when it was a PARTIAL success. The old message reported only the count that
+     * worked, so a run that failed on member three of eighty read as "2 paper(s) drawn." and
+     * looked like there had simply been nothing to do.
+     */
+    const parts = [`${result.created} paper(s) drawn.`];
+    if (result.existing) parts.push(`${result.existing} already had one.`);
+    if (result.failedMembers.length) {
+      parts.push(`${result.failedMembers.length} member(s) COULD NOT be provisioned — see failedMembers.`);
+    }
+    if (result.skippedTeams.length) parts.push(`${result.skippedTeams.length} team(s) skipped.`);
+    if (result.membersWithoutEmail.length) {
+      parts.push(`${result.membersWithoutEmail.length} member(s) have no email: WhatsApp OTP only.`);
+    }
+
+    res.json({
+      success: true,
+      partial: result.failedMembers.length > 0,
+      message: parts.join(' '),
+      data: { ...result, coverage },
+    });
   } catch (e) { fail(res, e, 'Failed to provision attempts'); }
 };
 
@@ -228,11 +307,36 @@ export const listExamAttempts = async (req: AuthenticatedRequest, res: Response)
     const rows = await HackathonExamAttempt.find(filter)
       .sort({ submittedAt: -1, memberName: 1 })
       .limit(1000)
-      .select('memberName memberMobile memberEmail teamName registrationCode status startedAt submittedAt timeSpentSec score totalMarks percentage violationCount grading ipAddress')
+      .select('memberName memberMobile memberEmail teamName registrationCode status startedAt submittedAt timeSpentSec score totalMarks percentage violationCount grading ipAddress invitesSent otpVerifiedAt otpVerifiedBy recording')
       .lean();
 
     res.json({ success: true, data: rows });
   } catch (e) { fail(res, e, 'Failed to list attempts'); }
+};
+
+/**
+ * POST /:id/attempts/:attemptId/resend-invite — one candidate, again.
+ *
+ * The bulk send skips anyone already invited, which is correct for it and leaves no way to
+ * reach the person whose first invitation was wrong or never arrived. One at a time and
+ * never in bulk: each of these costs money, and a mistake here should cost one message.
+ */
+export const resendAttemptInvite = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const attempt = await HackathonExamAttempt.findOne({ _id: req.params.attemptId, examId: exam._id });
+    if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found.' });
+
+    const counts = await resendInvitation(exam, attempt);
+    if (!counts.email && !counts.whatsapp) {
+      return res.status(502).json({
+        success: false,
+        message: 'Neither channel accepted the message. Check the invite channels on this exam.',
+      });
+    }
+    const via = [counts.email && 'email', counts.whatsapp && 'WhatsApp'].filter(Boolean).join(' and ');
+    res.json({ success: true, message: `Invitation re-sent by ${via}.`, data: counts });
+  } catch (e) { fail(res, e, 'Failed to resend the invitation'); }
 };
 
 /** One candidate in full, violations included — what an admin opens when a team is flagged. */
@@ -371,13 +475,78 @@ export const getExamReadiness = async (req: AuthenticatedRequest, res: Response)
 export const sendExamInvitations = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const exam = await examOr404(req);
-    const counts = await sendInvitations(exam);
-    res.json({
-      success: true,
-      message: `Invitations sent — ${counts.email} email, ${counts.whatsapp} WhatsApp.`,
-      data: counts,
+    const resend = String(req.query.resend || req.body?.resend || '') === 'true';
+
+    /*
+     * STARTED HERE, NOT DONE HERE.
+     *
+     * This used to run the whole cohort inside the request: 443 recipients across two
+     * channels, sequentially, each a network round trip. It passed nginx's 600s
+     * proxy_read_timeout and returned a 504 — while the send carried on behind it, with no
+     * way to see how far it had got or whether pressing the button again would double-message
+     * everybody.
+     *
+     * The job now runs on its own and this returns immediately with its id and the number of
+     * people it is about to message. Poll GET .../invitations/:jobId for progress.
+     */
+    const total = await countPendingInvitations(exam, { resend });
+
+    const job = startBulkSend({
+      kind: 'hackathon-exam-invitations',
+      scope: String(exam._id),
+      total,
+      work: (tick) => sendInvitations(exam, { resend, onSent: tick }).then(() => undefined),
     });
-  } catch (e) { fail(res, e, 'Failed to send invitations'); }
+
+    res.status(202).json({
+      success: true,
+      message: total
+        ? `Sending to ${total} recipient(s). This runs in the background — the page will keep updating.`
+        : 'Nobody is waiting for an invitation. Nothing to send.',
+      data: { job },
+    });
+  } catch (e) {
+    if (e instanceof SendAlreadyRunning) {
+      /* Two overlapping sends would interleave their reads of the invited flags and message
+         people twice. Point the admin at the one already running instead. */
+      return res.status(409).json({
+        success: false, code: 'SEND_RUNNING',
+        message: 'A send is already running for this exam. Watch that one rather than starting a second.',
+        data: { job: getBulkSend(e.jobId) },
+      });
+    }
+    fail(res, e, 'Failed to send invitations');
+  }
+};
+
+/**
+ * How far a bulk send has got.
+ *
+ * Also answers "is anything running?" with no job id, so an admin who reloaded the page can
+ * find the send they started.
+ */
+export const getExamSendProgress = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const job = req.params.jobId
+      ? getBulkSend(req.params.jobId)
+      : runningBulkSend(String(exam._id));
+
+    if (!job) {
+      /*
+       * Progress lives in this process's memory, so a deploy mid-send loses the record. The
+       * messages already delivered stay delivered and the per-recipient flags make a re-run
+       * safe — say that, rather than leaving a spinner turning forever.
+       */
+      return res.json({
+        success: true,
+        data: { job: null },
+        message: 'No send is running. If one was interrupted by a restart, pressing send again '
+          + 'will reach only the people who still need it.',
+      });
+    }
+    res.json({ success: true, data: { job } });
+  } catch (e) { fail(res, e, 'Failed to read send progress'); }
 };
 
 /** Send results. Refuses on an unpublished exam — a score sent early cannot be recalled. */
@@ -410,12 +579,21 @@ export const getSectionPool = async (req: AuthenticatedRequest, res: Response) =
     const section = (exam.sections || []).find((s: any) => s.key === req.params.key);
     if (!section) return res.status(404).json({ success: false, message: 'Section not found.' });
 
-    const items = await AssessmentItem
-      .find(sectionFilter(String(exam.tenantId), section))
-      .select('_id type difficulty language points tags prompt')
-      .sort({ difficulty: 1, _id: 1 })
-      .limit(500)
-      .lean() as any[];
+    const items = section.source === 'problem_bank'
+      ? (await CodingProblem.find(problemBankFilter(String(exam.tenantId), section))
+        .select('_id kind difficulty languages.language marks tags topics title')
+        .sort({ difficulty: 1, _id: 1 }).limit(500).lean() as any[])
+        .map((p) => ({
+          _id: p._id, type: p.kind === 'sql' ? 'sql' : 'live_code', difficulty: p.difficulty,
+          language: (p.languages || []).map((l: any) => l.language).join(', '), points: p.marks,
+          tags: [...(p.topics || []), ...(p.tags || [])], prompt: p.title,
+        }))
+      : await AssessmentItem
+        .find(sectionFilter(String(exam.tenantId), section))
+        .select('_id type difficulty language points tags prompt')
+        .sort({ difficulty: 1, _id: 1 })
+        .limit(500)
+        .lean() as any[];
 
     res.json({
       success: true,
@@ -434,4 +612,135 @@ export const getSectionPool = async (req: AuthenticatedRequest, res: Response) =
       },
     });
   } catch (e) { fail(res, e, 'Failed to load the pool'); }
+};
+
+/**
+ * GET /:id/attempts/:attemptId/recording/:seq — one slice of a candidate's recording.
+ *
+ * Streamed through here rather than handed out as a storage URL. This is video of a
+ * student's face: every view should pass the same admin check as the rest of this screen,
+ * and a link that keeps working after it is pasted somewhere is the opposite of that.
+ */
+export const streamAttemptRecording = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const attempt = await HackathonExamAttempt.findOne({ _id: req.params.attemptId, examId: exam._id }).lean() as any;
+    if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found.' });
+
+    const seq = Number(req.params.seq);
+    if (!Number.isInteger(seq) || seq < 1 || seq > (attempt.recording?.chunks || 0)) {
+      return res.status(404).json({ success: false, message: 'No such chunk on this attempt.' });
+    }
+
+    const { stream, size } = await readChunk(String(exam._id), String(attempt._id), seq);
+    res.setHeader('Content-Type', 'video/webm');
+    if (size) res.setHeader('Content-Length', String(size));
+    stream.pipe(res);
+  } catch (e) { fail(res, e, 'Could not read that recording'); }
+};
+
+/**
+ * DELETE /:id/attempts/:attemptId/recording — throw one candidate's footage away.
+ *
+ * Deliberately a button and not a schedule. The footage exists to settle a dispute about one
+ * sitting; once that is settled it is a liability rather than an asset, but deciding it is
+ * settled is a person's judgement on a date they chose, not a cron's.
+ */
+export const deleteAttemptRecording = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const attempt = await HackathonExamAttempt.findOne({ _id: req.params.attemptId, examId: exam._id });
+    if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found.' });
+
+    const removed = await purgeAttemptRecording(String(exam._id), String(attempt._id), attempt.recording?.chunks || 0);
+    attempt.recording.chunks = 0;
+    attempt.recording.bytes = 0;
+    attempt.recording.note = `Deleted by admin on ${new Date().toISOString().slice(0, 10)}.`;
+    await attempt.save();
+    res.json({ success: true, message: `${removed} chunk(s) deleted.`, data: { removed } });
+  } catch (e) { fail(res, e, 'Could not delete that recording'); }
+};
+
+/**
+ * POST /:id/attempts/:attemptId/verify — let a candidate in without a code.
+ *
+ * ── WHAT THIS ACTUALLY IS ─────────────────────────────────────────────────────────────────
+ *
+ * The OTP proves the person holds the registered phone. This exam is sat remotely, so an
+ * admin pressing this has not seen anybody: it is not a check performed by other means, it
+ * is that check waived. Worth being plain about, because the button will be pressed under
+ * pressure by somebody who just wants the candidate to get on with it.
+ *
+ * So it records WHO waived it. The name sits on the attempt and shows in the candidate list
+ * beside the score it made possible, which is the only thing that makes it reviewable
+ * afterwards. An unattributed waiver is indistinguishable from a bypass.
+ *
+ * It is deliberately per-candidate. There is no "verify everyone", because the one case
+ * where that gets used is the case where nobody checked anything at all.
+ */
+export const verifyAttemptManually = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const attempt = await HackathonExamAttempt.findOne({ _id: req.params.attemptId, examId: exam._id });
+    if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found.' });
+    if (attempt.otpVerifiedAt) {
+      return res.json({ success: true, message: 'Already verified.', data: { alreadyVerified: true } });
+    }
+
+    const who = String((req as any).user?.email || (req as any).user?.name || 'an admin');
+    attempt.otpVerifiedAt = new Date();
+    attempt.otpVerifiedBy = who;
+    if (attempt.status === 'invited') attempt.status = 'verified';
+    await attempt.save();
+
+    res.json({
+      success: true,
+      message: `${attempt.memberName} can now start without a code. Recorded against ${who}.`,
+      data: { verifiedBy: who, at: attempt.otpVerifiedAt },
+    });
+  } catch (e) { fail(res, e, 'Could not verify that candidate'); }
+};
+
+/**
+ * PATCH /:id/attempts/:attemptId/mobile — correct a wrong number.
+ *
+ * These cohorts are imported from a spreadsheet, so a mistyped digit is the likeliest single
+ * reason a code never arrives — and until now it was unfixable: the number was set at import
+ * and nothing could change it, so that candidate simply could not sit the exam.
+ *
+ * Changing it clears any verification already on the attempt. A candidate verified against
+ * the old number has proved they hold a phone that is no longer the one on record, and
+ * carrying that forward would quietly turn a typo fix into an identity swap.
+ */
+export const updateAttemptMobile = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const exam = await examOr404(req);
+    const attempt = await HackathonExamAttempt.findOne({ _id: req.params.attemptId, examId: exam._id });
+    if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found.' });
+
+    const mobile = String(req.body?.mobile || '').replace(/\D/g, '').slice(-10);
+    if (mobile.length !== 10) {
+      return res.status(400).json({ success: false, message: 'A 10-digit mobile number is required.' });
+    }
+    if (attempt.submittedAt) {
+      return res.status(409).json({ success: false, message: 'This paper is already submitted — changing the number now changes nothing.' });
+    }
+
+    const was = attempt.memberMobile;
+    attempt.memberMobile = mobile;
+    if (attempt.otpVerifiedAt) {
+      attempt.otpVerifiedAt = null;
+      attempt.otpVerifiedBy = undefined;
+      if (attempt.status === 'verified') attempt.status = 'invited';
+    }
+    /* The old invitation went to the old number, so it has not been delivered to this one. */
+    attempt.invitesSent.whatsapp = false;
+    await attempt.save();
+
+    res.json({
+      success: true,
+      message: `Changed from ${was} to ${mobile}. Send them the invitation again.`,
+      data: { mobile },
+    });
+  } catch (e) { fail(res, e, 'Could not change that number'); }
 };

@@ -48,14 +48,44 @@ export async function gradeCodeItem(item: IAssessmentItem, resp: ISubmissionItem
 
   const language = toProgrammingLanguage(item);
 
-  const results = await Promise.all(
-    tests.map((tc) =>
-      codeRunner
-        .execute({ code: resp.code as string, language, input: tc.input, expectedOutput: tc.expectedOutput, timeLimit: 15000, memoryLimit: 256 })
-        .then((r) => ({ passed: r.passed, weight: tc.weight ?? 1 }))
-        .catch(() => ({ passed: false, weight: tc.weight ?? 1 }))
-    )
-  );
+  /*
+   * ONE execution job for the whole item, not one per test case.
+   *
+   * This was Promise.all over every test case, each a separate execute() call, against a
+   * global concurrency cap of a handful of jobs. Two consequences, both bad: a Java answer
+   * compiled identical source once per case — and compilation is nearly the whole cost — and
+   * one candidate's seven-case answer occupied every execution slot on the platform while it
+   * ran. executeBatch compiles once and forks a fresh process per case, so it is one slot and
+   * one compilation, with the per-case isolation unchanged.
+   */
+  let raw: Awaited<ReturnType<typeof codeRunner.executeBatch>>;
+  try {
+    raw = await codeRunner.executeBatch({
+      code: resp.code as string,
+      language,
+      cases: tests.map((tc) => ({
+        input: tc.input, expectedOutput: tc.expectedOutput, timeLimit: 15000,
+      })),
+      memoryLimit: 256,
+    });
+  } catch {
+    /*
+     * WE COULD NOT RUN IT — which is not the same as the program being wrong.
+     *
+     * This used to be `.catch(() => ({ passed: false }))`, so a queue timeout or a sandbox
+     * outage scored the candidate zero and told them their correct solution failed. An
+     * execution failure now leaves the item ungraded, which excludes it from the totals
+     * rather than penalising it, and leaves it visible for a re-grade.
+     */
+    resp.graded = false;
+    resp.testCasesPassed = 0;
+    return;
+  }
+
+  const results = tests.map((tc, i) => ({
+    passed: !!raw[i]?.passed,
+    weight: tc.weight ?? 1,
+  }));
 
   const totalWeight = results.reduce((s, r) => s + r.weight, 0);
   const passedWeight = results.reduce((s, r) => s + (r.passed ? r.weight : 0), 0);

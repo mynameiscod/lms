@@ -1,0 +1,165 @@
+# Interview Hub: Interview Experiences (P1)
+
+**Status:** P1 built on 2026-09-27. P2 to P4 are planned.
+
+## Why it exists
+A team failed an interview. A week later the next batch was asked the same questions, because nothing recorded what had been asked in between. The fix depends on speed: capture the questions within 48 hours, approve them within a day, and get them to the next batch before its interview.
+
+## Decisions (user, 2026-09-27)
+1. **Global pool.** Published reports are visible to students of every institute. Reports from another institute never show the candidate's name.
+2. **Recordings are visible** to students when the candidate consents (the checkbox is on by default and can be unticked). The transcript and structured text are always visible.
+3. **The obligation is soft.** One free email reminder goes out two days after an unanswered invite. After three days the invite shows as overdue to the admin. Nothing is blocked.
+
+## What was built
+- **Model:** the existing CareerPilot `InterviewExperience` (collection `interviewexperiences`) was extended rather than duplicated. It gains:
+  - `rounds[]`, each with `questions[]`, `cleared` and `notes`;
+  - `companyName`, `tips`, `eliminationSummary` and `captureMode`;
+  - `media` (the Bunny key, transcript and `shareRecording`);
+  - `anonymous`, `shareGlobal` (default true), `product`, `inviteId`, `promotedQuestionIds` and `publishedAt`;
+  - a `draft` status;
+  - `companyId` is now optional, because a report can name a company that no institute has set up yet. Reports are grouped by `companySlug`.
+
+  The existing CareerPilot company stats keep working.
+- **New collection:** `interviewexperienceinvites`.
+- **Service:** `server/src/services/interviewHubService.ts`.
+- **Routes:** `routes/interviewHubRoutes.ts`, served at `/api/v1/interview-hub`.
+- **Cron:** `jobs/interviewHubCron.ts` runs hourly and sends the automatic reminders.
+- **Capture:**
+  - Candidates can type, record a voice note, record a video, or upload a file.
+  - For video, the browser also records a separate audio-only track. Whisper's limit is 25 MB and the server image has no ffmpeg, so the audio track is what gets transcribed.
+  - `aiComplete` (the cheap default model) turns the notes or transcript into rounds, questions, the result, where people were eliminated, and tips. The candidate corrects the draft before submitting.
+  - Recording storage is checked before any paid transcription starts.
+- **Review:**
+  - The admin can edit anything, send the report back with a note, publish, or unpublish.
+  - Publishing awards coins through the existing `experience_approved` rule.
+  - "Add to question bank" copies the ticked questions into `companyquestions`. It creates the `Company` in the tenant if needed, and copies each question only once.
+- **Reading:**
+  - The feed shows all published reports from the global pool, with search (including question text), round and result filters, and a strip of companies.
+  - A company page shows the typical round order and the most-asked questions, grouped across reports after normalising the question text, with "asked N×" and the last-asked date.
+  - A report page shows a timeline of the rounds and questions, the answer hints, the tips, where people were eliminated, the recording and the transcript.
+- **Invites:**
+  - An admin can invite by picked students, a batch, or a placement drive's applicants. A drive also pre-fills the company, role and date.
+  - Sending is by email (free) or WhatsApp (purpose `INTERVIEW_EXPERIENCE_INVITE`), with a dry run showing the count and ₹ cost.
+  - Students who were already invited, or who already posted, are skipped.
+  - An invited student sees a "Share now" banner.
+  - Submitting a report closes the matching invite.
+- **Surfaces:**
+  - LMS students: `/interview-experiences` (sidebar: Interview Experiences).
+  - CareerPilot: `/careerpilot/interview-experiences` (MemberShell nav). These are the same pages, and they detect which base path they are under.
+  - Admin: `/admin/interview-experiences`.
+
+## Tests
+- `tests/interviewHub.test.ts` covers how rounds are cleaned.
+- A 37-step local smoke test covered:
+  - drafts, submitting, sending back and publishing;
+  - visibility within the institute and across institutes, anonymity, and turning off global sharing;
+  - grouping of repeated questions and the round pattern;
+  - search;
+  - promotion to the question bank, including that promoting twice adds nothing;
+  - invites: the dry run, refusal of WhatsApp-only without a template, skipping people already invited, closing on submit, overdue, reminders and cancelling;
+  - the role guards.
+- A real AI structuring run turned rough notes into 3 correct rounds with topics, the cleared/eliminated status, and the tips.
+
+## Next
+- **P2, question library:**
+  - reading modes, including flashcards and "know it / revise";
+  - favourites and personal cheat sheets (PDF);
+  - official cheat sheets from admins;
+  - merging the 4 existing question stores.
+- **P3, closing the loop:**
+  - automatic invites after a placement drive's date;
+  - a prep pack pushed to the next batch before its drive;
+  - "Practice this company", combining flashcards, a mock interview and Problem Bank problems;
+  - metrics: posting rate, hours to publish, and pass rate before and after.
+- **P4, Interview Pilot:** `experiences:read` and `questions:read` scopes on the external API.
+- **Known gap:** AI structuring uses the cheap default model and keeps some questions terse, for example "two sum". The candidate edits them. `prefer: 'anthropic'` would give better rewrites at a higher cost.
+
+## Drives menu (2026-09-28)
+The College area was retired at the user's request, because it was not used. Placement drives and interview experiences now live together under **Drives**:
+- **Admin:** the Drives group in the sidebar, under the section DRIVES & INTERVIEWS:
+  - Placement Drives: `/drives/manage`
+  - Interview Experiences: `/admin/interview-experiences`
+  - Drive Analytics: `/drives/analytics`
+- **Students:** the PLACEMENTS section:
+  - Drives (`/drives`): open drives, apply or withdraw, and "What they asked before" linking to the company's interview experiences.
+  - My applications, where a finished drive shows "Share how it went".
+  - Interview Experiences.
+- **Removed from the menu:** Departments, Members, Curriculum, CRT Sessions, Alumni, College Reports and College Settings; for students, My College Portal and Alumni Directory. Their old URLs redirect. The server APIs are left in place and are unused.
+- **Certificates** moved to a top-level item in TEACHING.
+- **Security fix:** the drive create, edit and delete endpoints, applicant results, rounds, overview and analytics had no role check, so any signed-in student could call them. They now require `manage_placement` (or `manage_placement_status` for results). The student drive list now returns only the applicant count and the student's own application and result.
+- **CGPA:** a drive's minimum CGPA is enforced only when the student has a CGPA on record. College profiles are gone, so a missing CGPA no longer blocks applying.
+
+## P3: closing the loop (2026-09-28)
+- **Settings** (Admin → Drives → Interview Experiences → **Automation**):
+  - The prep pack can be on or off. It is sent **the moment a student applies** and/or **N days before the drive** (default: on apply, plus 2 days before; late applicants catch up).
+  - Sending is by email (free) or WhatsApp (purpose `PREP_PACK`).
+  - AI-predicted questions for companies nobody has reported yet can be turned on or off.
+  - The **automatic invite to share** goes out N days after the drive (default 1), by email or WhatsApp.
+  - Each drive can opt out of the pack or the invite.
+- **Recipients:** only students who applied to the drive. The pack is also viewable in the app at `/drives/:driveId/prep`, and staff can preview it.
+- **Pack contents:**
+  - the rounds announced for the drive, and the round pattern earlier candidates faced;
+  - most-asked questions with their count;
+  - bank questions;
+  - tips and where people were eliminated, from recent reports;
+  - flashcards (think, flip, then "I knew it" / "Revise");
+  - the drive's coding set.
+- **Predicted questions:** when a company has no reports and no bank questions, the AI generates 12 questions once. They are saved to the company question bank as `aiPredicted` and always labelled "AI-predicted — not reported".
+- **Coding set:**
+  - The company's coding questions are matched to Problem Bank problems by title coverage: at least 60% of the title's words must appear in the question.
+  - The admin ticks the matches, which creates the "{Company} — interview prep" practice set for every applicant.
+  - Later applicants are added automatically.
+- **Hourly schedule:** `interviewHubLoopService.tick()` runs from `interviewHubCron`. The scheduled pack is claimed per student before sending, so no student gets it twice. The automatic invite fires once per drive (`DriveAutomation.inviteSentAt`).
+- **Surfaces:**
+  - student dashboard: a PrepPackCard;
+  - Drives page: a "Prep pack" button on each applied drive and in My applications;
+  - company page: "Practise with flashcards".
+- **Insights tab** (last 30 or 90 days, or 1 year):
+  - posting rate;
+  - median hours from interview to published;
+  - prep packs opened before the drive;
+  - selection rate of students who used the pack versus those who didn't.
+- **New collections:** `interviewhubconfigs`, `preppackdeliveries`, `driveautomations`.
+- **Tests:** a 29-step local smoke test. It included real AI prediction (12 questions) and matching "Two Sum" while rejecting "Sum of Array Elements".
+- **Not done:** a company-specific AI mock interview. It needs an interview template per company and is a separate piece.
+
+## Security (2026-09-28)
+- `your-secret-key-change-this`, the value production was running on, is now in `BANNED_SECRETS`, so the server refuses to start with it.
+- **The rotation must happen before or with the deploy that ships this.** `ENCRYPTION_KEY` on production is set separately (it has the same weak value), so rotating `JWT_SECRET` does not affect stored secrets. Re-keying `ENCRYPTION_KEY` properly is a separate task that needs a re-encryption pass.
+
+## P2: Question Books (2026-09-28)
+- **What it is:** interview questions **written by admins and instructors only** (the user's decision), read by LMS students and CareerPilot members as a notebook.
+- **Books:** a book is either a **topic book** (Java, SQL, HR…) or a **company book**. Each has chapters.
+- **Ownership:** as with the Problem Bank, a book is either `global` (CodeBegun's, written by a super admin and seen by every institute) or `tenant` (one institute's own).
+- **Audience:** LMS, CareerPilot, or both.
+- **Reader** (`/question-books/:slug`, and inside CareerPilot's shell at `/careerpilot/question-books/:slug`):
+  - The cover swings open onto a contents spread.
+  - Each spread has the question on the left page and the answer on the right, hidden until "Show the answer" (think, then flip).
+  - Pages turn with a page-turn animation.
+  - The student marks "I knew it" or "Revise later", and stars questions.
+  - The student can add a personal note, shown as a sticky note.
+  - Filters: All, Not yet seen, To revise, Starred.
+  - "Continue from Qn" resumes where the student left off.
+  - Keyboard: ← → to turn pages, Space to show the answer, K knew it, R revise, F star.
+  - Phone: one page at a time.
+  - The notebook paper is ruled with a margin line and uses the Kalam and Caveat handwriting fonts. Code blocks stay monospace.
+- **Cheat sheet** (`/question-books/cheat-sheet`): all starred questions with the student's notes, printable or saveable as PDF.
+- **Staff:** `/admin/question-books`. They can:
+  - create books (cover colour and emblem, audience, and CodeBegun scope for super admins);
+  - edit chapters (a chapter that still has questions cannot be deleted);
+  - add and edit questions (Markdown, difficulty, "commonly asked at", a mentor's tip), with a notebook preview;
+  - paste many questions at once as Q:/A: or numbered blocks, with a live preview;
+  - reorder questions;
+  - publish (an empty book can't be published).
+- **Code:**
+  - Models: `models/QuestionBook.ts`, giving the collections `questionbooks`, `bookquestions` and `bookprogresses`.
+  - Service: `services/questionBookService.ts`.
+  - Routes: `routes/questionBookRoutes.ts` at `/api/v1/question-books`.
+  - Client: `client/src/pages/QuestionBooks/*`.
+- **Tests:**
+  - `tests/questionBook.test.ts` covers the paste parser.
+  - A 16-step API smoke test covered permissions, publish rules, the chapter guard, drafts being hidden from students, progress, and the cheat sheet.
+  - Headless-Chrome screenshots of the production build (shelf, cover opening, contents, question, answer with code, phone, cheat sheet, admin) caught and fixed three bugs:
+    - a Bootstrap `.row` clash in the contents;
+    - the answer buttons overlapping the note;
+    - raw markdown showing in the cheat sheet.

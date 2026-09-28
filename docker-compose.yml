@@ -36,6 +36,29 @@ services:
     networks:
       - lms-network
     restart: unless-stopped
+    # ── Resource limits ────────────────────────────────────────────────────
+    # Every container on this box ran with NanoCpus=0 and Memory=0, so nothing
+    # stopped a compile storm from starving the database. These are CAPS, not
+    # reservations: the sum may exceed the box (8 cores, 31 GB) and that is fine.
+    # What they buy is that no one container can take everything.
+    mem_limit: 8g
+    cpus: 3.0
+    # WiredTiger sizes its cache from what it believes the machine has, and inside
+    # a container that is the HOST's 31 GB, not the limit above -- so it would plan
+    # for a ~15 GB cache and then be OOM-killed by the 8 GB cap under load. Set it
+    # explicitly, below the limit, leaving room for connections and sorts.
+    #
+    # --auth and --bind_ip_all are stated EXPLICITLY, not left to the image's
+    # entrypoint. The entrypoint injects both today (verified: the running process
+    # is `mongod --auth --bind_ip_all`), but it does so as a side effect of the
+    # MONGO_INITDB_* variables being present, and overriding `command` is exactly
+    # the kind of change that could quietly stop that happening. A database that
+    # comes back up with authentication off, on a box where the port has been
+    # published to 0.0.0.0 since June, is not a risk worth taking to save a line.
+    #
+    # --bind_ip_all is INSIDE the container and reaches only the docker network;
+    # what restricts access from outside is the 127.0.0.1 port binding above.
+    command: ["mongod", "--auth", "--bind_ip_all", "--wiredTigerCacheSizeGB", "4"]
 
   redis:
     image: redis:7-alpine
@@ -65,6 +88,10 @@ services:
     networks:
       - lms-network
     restart: unless-stopped
+    # Queue metadata and cache only; it was using 6 MB. A cap this far above the
+    # working set exists to bound a runaway key, not to squeeze it.
+    mem_limit: 1g
+    cpus: 1.0
 
   server-blue:
     build:
@@ -101,6 +128,12 @@ services:
     networks:
       - lms-network
     restart: unless-stopped
+    # Only one slot serves traffic at a time, so this is the app's whole budget.
+    # Generous against a measured 154 MB: a 1 GB Resource Library upload is
+    # streamed, but PDF generation and xlsx export are not, and being OOM-killed
+    # mid-export is worse than being slow.
+    mem_limit: 6g
+    cpus: 4.0
 
   server-green:
     build:
@@ -135,6 +168,12 @@ services:
     networks:
       - lms-network
     restart: unless-stopped
+    # Only one slot serves traffic at a time, so this is the app's whole budget.
+    # Generous against a measured 154 MB: a 1 GB Resource Library upload is
+    # streamed, but PDF generation and xlsx export are not, and being OOM-killed
+    # mid-export is worse than being slow.
+    mem_limit: 6g
+    cpus: 4.0
 
   piston:
     image: ghcr.io/engineer-man/piston
@@ -147,8 +186,39 @@ services:
     # ⚠️ VERIFY code execution after deploying this (runbook step 7). If Piston
     # fails to run jobs, the fallback is `privileged: true` again — but treat that
     # as temporary and keep Piston off any public port either way.
-    cap_add:
-      - SYS_ADMIN
+    # ── 2026-09-24: `cap_add: SYS_ADMIN` does NOT work. Verified on this host. ──
+    # Piston's entrypoint runs `cd /sys/fs/cgroup && mkdir isolate/`. Docker mounts
+    # /sys/fs/cgroup READ-ONLY for an unprivileged container whatever capabilities
+    # it holds, so the container crash-loops before the API starts:
+    #   mkdir: cannot create directory 'isolate/': Read-only file system
+    #
+    # The block above was written on 2026-08-07 and never exercised: the running
+    # container had been created another way and was simply never restarted, so the
+    # drift stayed invisible for seven weeks until a `docker compose up` recreated
+    # it and took code execution down. The note above named this exact fallback.
+    #
+    # ⚠️ This is effective host root for a container running arbitrary student code.
+    # It is Piston's documented requirement, not a shortcut — which is why Piston is
+    # bound to no public port, and why moving execution to its own host matters.
+    privileged: true
+    # Piston's API parses JSON with body-parser's default 100 KB limit, and code + stdin
+    # travel in that one body. Measured on this host 2026-09-28: 90 KB of stdin ran, 200 KB
+    # came back "PayloadTooLargeError", so any Problem Bank test past ~100 KB could never be
+    # judged. The limit is hard-coded in the image, so it is patched at start (the sed is a
+    # no-op once applied), then Piston's own entrypoint runs exactly as before.
+    #
+    # Second patch, job.js: Piston does write(stdin); end(); destroy(). destroy() drops
+    # whatever the pipe has not taken yet, so a program received only the first ~214 KB
+    # of its input (measured: 600 KB and 3 MB both arrived as 219,264 bytes). end() alone
+    # flushes and closes; the error handler keeps an EPIPE (program exits without reading
+    # its input) from crashing the API, which destroy() used to swallow.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        sed -i "s/body_parser\.json()/body_parser.json({ limit: '16mb' })/" /piston_api/src/index.js
+        sed -i "s/proc\.stdin\.destroy();/proc.stdin.on('error', () => {});/" /piston_api/src/job.js
+        exec docker-entrypoint.sh /piston_api/src/docker-entrypoint.sh
     security_opt:
       - apparmor=unconfined
     tmpfs:
@@ -169,6 +239,16 @@ services:
       # means it cheerfully accepts enough concurrent javac runs to starve them all: six
       # at once measured 32s each and every one was SIGKILLed.
       PISTON_MAX_CONCURRENT_JOBS: "6"
+      # Piston's own default is 1024 BYTES per stdio buffer (config option
+      # `output_max_size`, api v3.1.1). Crossing it does not truncate — the job is
+      # SIGKILLed and stdout comes back EMPTY, so a correct program that prints a
+      # kilobyte and one byte looks to the student like a crash or a wrong answer.
+      # Measured on this box: 1024 -> 1024 bytes returned; 1025 -> SIGKILL, 0 bytes.
+      #
+      # This is the SANDBOX ceiling, deliberately generous. The application sets the
+      # limits students actually meet (CODE_OUTPUT_MAX_* in Platform Settings), per
+      # execution mode, so the ceiling never has to be edited to change policy.
+      PISTON_OUTPUT_MAX_SIZE: "8388608"
     networks:
       - lms-network
     restart: unless-stopped

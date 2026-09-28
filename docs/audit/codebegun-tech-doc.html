@@ -157,7 +157,7 @@
       <div>⏱️ <b>13</b> cron jobs</div>
       <div>🖥️ <b>129</b> pages</div>
       <div>🔌 <b>23</b> integrations</div>
-      <div>🧩 <b>76</b> modules audited</div>
+      <div>🧩 <b>77</b> modules audited</div>
     </div>
     <div class="kpis">
       <div class="kpi"><div class="n warn">71%</div><div class="l">Overall completion</div></div>
@@ -212,7 +212,7 @@
 <section id="domains">
   <div class="wrap">
     <div class="sec-eyebrow">Phase 6 · Domain Scorecard</div>
-    <h2 class="sec">Ten domains, 76 modules</h2>
+    <h2 class="sec">Ten domains, 77 modules</h2>
     <p class="sec-lead">Domain averages of module-level completion. Interviews, CareerPilot and the new Career Passport lead; Assessments is dragged down by an orphaned Exam model; Placement/Platform by weak automation.</p>
     <div class="domains" id="domainCards"></div>
   </div>
@@ -517,6 +517,9 @@ const MODULES = [
   // Assignments & Coding
   {n:"Assignments",d:"Assignments & Coding",o:82,p:"P1",i:"High",s:"Most mature; plagiarism schema-only, no AI grading",f:"assignments"},
   {n:"Code Snippet Assessments",d:"Assignments & Coding",o:60,p:"P2",i:"Medium",s:"No code execution; MCQs graded manually",f:"code-snippet-assessments"},
+  {n:"Practice Pass",d:"Assignments & Coding",o:78,p:"P0",i:"Very High",s:"Admin-defined daily tasks (comm lab / coding / assignment / thinking) → practice attendance; per-batch & per-student threshold; automatic placement hold; hourly standings; admin-sent reminders (email free / WhatsApp with ₹ estimate + history; auto 7 PM off by default); practice section in weekly report sent by email and/or WhatsApp",f:"practice-pass"},
+  {n:"Problem Bank",d:"Assignments & Coding",o:80,p:"P1",i:"High",s:"Single global+institute store of runnable problems (9 languages + SQL): studio with live test lab, bulk JSON/CSV/XLSX import, AI drafting with executed answers, multi-language verification, migration from old modules; Problem Sets to batches/CareerPilot with LeetCode-style solve page, unified submissions + reports, hackathon sections draw from the bank. external API with keys/scopes/quotas for colleges & Interview Pilot. Retiring old stores pending",f:"problem-bank"},
+  {n:"Code Visualizer",d:"Assignments & Coding",o:45,p:"P1",i:"High",s:"DSA library + 5-way problem breakdown + line-by-line Java trace with array animation; assigned per batch/user/CareerPilot; per-exam switch (off by default, spends a run). new-arrays + bulk content pending",f:"code-visualizer"},
   {n:"Code Playground",d:"Assignments & Coding",o:75,p:"P2",i:"Medium",s:"Monaco + PythonTutor debug; GitHub token plaintext",f:"code-playground"},
   {n:"Project Builder",d:"Assignments & Coding",o:63,p:"P3",i:"Medium",s:"Claude recommend; AI spend unlogged, no rate-limit",f:"project-builder"},
   {n:"Code Execution Engine",d:"Assignments & Coding",o:70,p:"P1",i:"High",s:"Self-hosted Piston; fabricated metrics, sim fallback mis-grades",f:"code-execution-engine"},
@@ -529,6 +532,8 @@ const MODULES = [
   {n:"Class Recordings",d:"Attendance / Live / Certs",o:64,p:"P2",i:"Medium",s:"Bunny import; diagnostics read-only, AI notes silent-fail",f:"class-recordings"},
   {n:"Certificates",d:"Attendance / Live / Certs",o:62,p:"P2",i:"Medium",s:"Only placement issued; 3-byte cert# no collision retry",f:"certificates"},
   // Interviews
+  {n:"Question Books (Hub P2)",d:"Interviews",o:85,p:"P1",i:"High",s:"Staff-written topic + company books of interview Q&A; notebook reader (cover opens, page-turn, handwriting on ruled paper, think-then-flip answers, knew/revise, stars, sticky notes, printable cheat sheet); LMS + CareerPilot; CodeBegun global or institute books; paste-many authoring",f:"interview-hub"},
+  {n:"Interview Experiences (Hub P1+P3)",d:"Interviews",o:80,p:"P0",i:"Very High",s:"Candidates share real interviews round-by-round (text / voice note / video → Whisper → AI structuring, candidate corrects); admin review + send back + publish; copy questions into the company question bank; invites by student / batch / placement drive (email free, WhatsApp priced) with 2-day auto email reminder + overdue flag; GLOBAL anonymised pool; company pages with most-asked questions + round pattern; LMS + CareerPilot. P3: admin-configured prep pack to drive applicants (on apply / N days before; email+WA; AI-predicted fallback labelled), flashcards, per-drive coding practice set from the Problem Bank, auto invite after the drive, Automation + Insights tabs. Drives menu replaces College. P2 question book / P4 Interview Pilot API pending",f:"interview-hub"},
   {n:"Interview Templates",d:"Interviews",o:88,p:"P2",i:"High",s:"Robust lifecycle",f:"interview-templates"},
   {n:"Interview Question Bank (modern)",d:"Interviews",o:84,p:"P2",i:"Medium",s:"Template-driving bank",f:"interview-question-bank"},
   {n:"Interview Legacy Q&A",d:"Interviews",o:90,p:"P3",i:"Low",s:"Separate chapter-study system (naming hazard)",f:"interview-legacy-qa"},
@@ -552,7 +557,7 @@ const MODULES = [
   {n:"Lead Distribution",d:"CRM / Leads & Marketing",o:72,p:"P2",i:"Medium",s:"Round-robin; race with scoring assign",f:"lead-distribution"},
   {n:"Meta & Google Ads",d:"CRM / Leads & Marketing",o:50,p:"P2",i:"Medium",s:"AdCampaign controller unwired; scraper dead code",f:"meta-google-ads-integration"},
   {n:"Google Sheets Integration",d:"CRM / Leads & Marketing",o:80,p:"P3",i:"Medium",s:"Public-CSV poll every 5 min",f:"google-sheets-integration"},
-  {n:"WhatsApp Automation",d:"CRM / Leads & Marketing",o:50,p:"P1",i:"High",s:"Non-compliant: no HSM templates/STOP/suppression",f:"whatsapp-automation"},
+  {n:"WhatsApp Automation",d:"CRM / Leads & Marketing",o:62,p:"P1",i:"High",s:"Templates authored in-LMS (create/sync/approve status/assign to every system send/broadcast); drips still free-text, no STOP/suppression",f:"whatsapp-automation"},
   {n:"Sales Enablement",d:"CRM / Leads & Marketing",o:60,p:"P3",i:"Medium",s:"Share sends nothing (TODO stub)",f:"sales-enablement"},
   {n:"AI Voice Calling",d:"CRM / Leads & Marketing",o:72,p:"P2",i:"Medium",s:"Exotel + BullMQ; webhook unverified, recording 401s",f:"ai-voice-calling"},
   {n:"Placement Partnership",d:"CRM / Leads & Marketing",o:86,p:"P2",i:"High",s:"AI-written intro + follow-up + Apollo Add-by-Company + openings + Candidate Proof Profile (shareable HR page)",f:"partner-placement-outreach"},

@@ -37,6 +37,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
   { id: 'interview',   label: 'AI Interview', icon: '🎙️', description: 'Realistic AI mock interviews — natural voice (ElevenLabs) and a talking-head interviewer (D-ID). Leave blank to use the free browser voice + animated avatar.' },
   { id: 'live-classes',label: 'Live Classes (100ms)', icon: '🎥', description: 'Live online / hybrid classes powered by 100ms. Instructor broadcasts, 500+ students watch via HLS, and any student can be brought on stage. Recordings auto-save to Class Hub.' },
   { id: 'communication-lab', label: 'AI Communication Lab', icon: '🎙️', description: 'Daily self-introduction practice — enable/disable, gamification, and recording retention.' },
+  { id: 'execution',   label: 'Code Execution',   icon: '⚙️', description: 'Where student code runs, and how many programs may run at once. Changing the sandbox URL takes effect on the next execution — no deploy and no restart — which is what makes moving the sandbox to another host reversible in seconds.' },
 ];
 
 export const SETTING_DEFS: SettingDef[] = [
@@ -67,6 +68,7 @@ export const SETTING_DEFS: SettingDef[] = [
     help: '⚠️ Mobiles listed here are shown their OTP on screen instead of receiving it — phone ownership is NOT verified for them. Use only for testing the signup funnel, and CLEAR IT when finished. Empty = normal OTP for everyone.', perTenant: true },
 
   // ── Amazon SES ───────────────────────────────────────────────────────────── (platform default provider)
+
   { key: 'SES_REGION', label: 'SES Region', group: 'email', type: 'text', placeholder: 'ap-south-1', help: 'AWS region where the sending domain is verified, e.g. ap-south-1 (Mumbai) or eu-west-1. Must match the region the domain identity lives in — SES identities are per-region.', perTenant: true },
   { key: 'SES_ACCESS_KEY_ID', label: 'SES Access Key ID', group: 'email', type: 'text', placeholder: 'AKIA...', help: 'IAM key with ses:SendEmail. Leave blank to use the machine\'s ambient AWS credentials (instance role).', perTenant: true },
   { key: 'SES_SECRET_ACCESS_KEY', label: 'SES Secret Access Key', group: 'email', isSecret: true, type: 'password', placeholder: 'AWS secret key', perTenant: true },
@@ -91,6 +93,9 @@ export const SETTING_DEFS: SettingDef[] = [
   // ── Meta / WhatsApp ──────────────────────────────────────────────────────────
   { key: 'WHATSAPP_ACCESS_TOKEN', label: 'WhatsApp Access Token', group: 'messaging', isSecret: true, type: 'password', perTenant: true },
   { key: 'WHATSAPP_PHONE_NUMBER_ID', label: 'WhatsApp Phone Number ID', group: 'messaging', type: 'text', perTenant: true },
+  { key: 'WHATSAPP_BUSINESS_ACCOUNT_ID', label: 'WhatsApp Business Account ID', group: 'messaging', type: 'text', perTenant: true, placeholder: '104567890123456', help: 'Needed to create and sync message templates from the LMS (Admin → WhatsApp Templates). Meta Business Manager → WhatsApp Accounts → the account → Account ID. The access token must also carry the whatsapp_business_management permission.' },
+  { key: 'WHATSAPP_COST_PER_MESSAGE_INR', label: 'WhatsApp cost per message (₹)', group: 'messaging', type: 'number', perTenant: true, placeholder: '0.13', help: 'Used only to show admins an estimate before they send reminders or weekly reports. Meta bills per message by category (Utility is far cheaper than Marketing) — set it to what your invoice shows.' },
+  { key: 'META_APP_ID', label: 'Meta App ID', group: 'messaging', type: 'text', help: 'Only used to upload the sample image when creating a template with an IMAGE header. Looked up from the access token when blank.' },
   { key: 'WHATSAPP_VERIFY_TOKEN', label: 'WhatsApp Webhook Verify Token', group: 'messaging', type: 'text', placeholder: 'codebegun_whatsapp_verify' },
   { key: 'WHATSAPP_OTP_TEMPLATE', label: 'WhatsApp OTP Template Name', group: 'messaging', type: 'text' },
   { key: 'WHATSAPP_OTP_TEMPLATE_LANG', label: 'OTP Template Language', group: 'messaging', type: 'text', placeholder: 'en' },
@@ -103,9 +108,31 @@ export const SETTING_DEFS: SettingDef[] = [
   // approved template and falls back to WHATSAPP_NOTIFY_TEMPLATE when left blank.
   { key: 'WHATSAPP_TEMPLATE_HACKATHON_PENDING', label: 'Hackathon — Payment Pending Template', group: 'messaging', type: 'text', perTenant: true, placeholder: 'hackathon_payment_pending', help: 'Sent the moment a team registers, carrying the link back to their unpaid registration. Body takes THREE variables — {{1}} team lead’s name, {{2}} team name, {{3}} hackathon title — plus a dynamic url button carrying the registration code. Keep this template in the UTILITY category: an image header can reclassify it as Marketing, and Marketing messages are withheld from anyone opted out.' },
   { key: 'WHATSAPP_TEMPLATE_HACKATHON_PENDING_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en', help: 'Exactly as Meta lists it — "en" and "en_US" are different templates and a mismatch fails every send. Defaults to "en".' },
-  { key: 'WHATSAPP_TEMPLATE_HACKATHON_CONFIRMED', label: 'Hackathon — Registration Confirmed Template', group: 'messaging', type: 'text', perTenant: true, placeholder: 'hackathon_registration_confirmed', help: 'Sent on payment success. Body takes SIX variables — {{1}} name, {{2}} team, {{3}} hackathon, {{4}} registration code, {{5}} date and time, {{6}} venue — plus a dynamic url button carrying the code. Approve it with an IMAGE header and the hackathon’s banner is sent as the poster.' },
+  { key: 'WHATSAPP_TEMPLATE_HACKATHON_CONFIRMED', label: 'Hackathon — Registration Confirmed Template', group: 'messaging', type: 'text', perTenant: true, placeholder: 'hackathon_registration_confirmed', help: 'Sent on payment success. Body takes FIVE variables — {{1}} name, {{2}} team, {{3}} hackathon, {{4}} date and time, {{5}} venue — plus a dynamic url button carrying the registration code (the code is deliberately NOT in the body). Approve it with an IMAGE header and the hackathon’s banner is sent as the poster.' },
   { key: 'WHATSAPP_TEMPLATE_HACKATHON_CONFIRMED_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
+  // ── Hackathon exam: invite, reminders, results ───────────────────────────────
+  // Resolved by purpose in assessmentOtpService.templateConfig as
+  // WHATSAPP_TEMPLATE_<PURPOSE>, so these names must match the purposes the exam
+  // notifier sends: hackathon_exam_invite / _reminder / _result. Each takes the SAME
+  // three body variables and a dynamic url button carrying the candidate's own exam
+  // token, so one approved shape covers all three.
+  { key: 'WHATSAPP_TEMPLATE_HACKATHON_EXAM_INVITE', label: 'Exam — Invitation Template', group: 'messaging', type: 'text', perTenant: true, placeholder: 'hackathon_exam_invite', help: 'Sent when an admin issues exam invitations. Body takes THREE variables — {{1}} the candidate’s name, {{2}} the event title, {{3}} the start time — plus a dynamic url button carrying that candidate’s exam token. Keep it in the UTILITY category: an exam link is not marketing, and a Marketing template is withheld from anyone who has opted out, which locks them out of the exam.' },
+  { key: 'WHATSAPP_TEMPLATE_HACKATHON_EXAM_INVITE_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en', help: 'Exactly as Meta lists it — "en" and "en_US" are different templates and a mismatch fails every send. Defaults to "en".' },
+  { key: 'WHATSAPP_TEMPLATE_HACKATHON_EXAM_REMINDER', label: 'Exam — Reminder Template', group: 'messaging', type: 'text', perTenant: true, placeholder: 'hackathon_exam_reminder', help: 'Fired at each configured reminder offset before the start. Same three variables and the same url button as the invitation, so the invitation template can be duplicated and reworded. Each offset fires once per candidate however often the scheduler ticks.' },
+  { key: 'WHATSAPP_TEMPLATE_HACKATHON_EXAM_REMINDER_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
+  { key: 'WHATSAPP_TEMPLATE_HACKATHON_EXAM_RESULT', label: 'Exam — Result Template', group: 'messaging', type: 'text', perTenant: true, placeholder: 'hackathon_exam_result', help: 'Sent when an admin publishes results. Body takes THREE variables, but the third is the SCORE as "24/40" rather than a time — the same template shape, different meaning, so word it for a score.' },
+  { key: 'WHATSAPP_TEMPLATE_HACKATHON_EXAM_RESULT_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
+  { key: 'WHATSAPP_TEMPLATE_LEAD_WELCOME', label: 'CRM — New Lead Welcome Template', group: 'messaging', type: 'text', perTenant: true, help: 'Approved template sent to a new lead when "Send WhatsApp welcome" is on for its source. Body takes ONE variable — {{1}} the lead’s first name. Without it the welcome goes as plain text, which Meta drops for leads who have not messaged you. Easiest to set from Admin → WhatsApp Templates → Where used.' },
+  { key: 'WHATSAPP_TEMPLATE_LEAD_WELCOME_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
   { key: 'HACKATHON_DEFAULT_POSTER_URL', label: 'Hackathon — Default Poster URL', group: 'messaging', type: 'text', perTenant: true, placeholder: 'https://platform.codebegun.com/uploads/hackathon-default.jpg', help: 'Used as the WhatsApp confirmation image when an event has no banner of its own. The confirmed template was approved WITH an image header, and Meta rejects that template if no image is supplied — so without this, an event whose banner was never filled in fails every confirmation. Must be a public https JPEG or PNG under 5 MB: Meta fetches it from their own servers, with no login.' },
+  // ── Code execution ────────────────────────────────────────────────────────
+  { key: 'PISTON_URL', label: 'Sandbox URL', group: 'execution', type: 'text', placeholder: 'http://piston:2000/api/v2',
+    help: 'Where student code is executed. `http://piston:2000/api/v2` is the sandbox container on this host; a full URL points at a dedicated execution host. Applied on the next execution, so switching hosts — or switching back — needs no deploy and no restart. LEAVE IT SET: if it is blank the code runner falls back to a simulation that pattern-matches common problems instead of running anything, which is fine for a demo and wrong for grading.' },
+  { key: 'CODE_EXEC_CONCURRENCY', label: 'Max concurrent executions (heavy)', group: 'execution', type: 'number', placeholder: '4',
+    help: 'How many compiled-language programs (Java, C, C++) may run at once. Measured on the current 8-core host: one Java run takes ~7s and saturates a core because every run pays for a fresh javac, and six at once drove load to 7.6 with ALL SIX killed at ~32s. Raise this only after the sandbox has its own host, and only with load figures to back it.' },
+  { key: 'CODE_EXEC_MAX_WAIT_MS', label: 'Max queue wait (ms)', group: 'execution', type: 'number', placeholder: '45000',
+    help: 'How long a student waits for a free execution slot before being told the sandbox is busy. A queue is a slope; a rejection is a cliff — prefer waiting to failing.' },
+
   { key: 'META_APP_SECRET', label: 'Meta App Secret', group: 'messaging', isSecret: true, type: 'password', help: 'Used to verify Meta Lead Ads webhook signatures.' },
   { key: 'META_LEAD_VERIFY_TOKEN', label: 'Meta Lead Webhook Verify Token', group: 'messaging', type: 'text' },
   { key: 'PAGE_ACCESS_TOKEN', label: 'Meta Page Access Token', group: 'messaging', isSecret: true, type: 'password' },

@@ -83,6 +83,8 @@ export interface IHackathonRegistration extends Document {
   registrationCode: string;
 
   confirmedAt?: Date | null;
+  /** When an admin last nudged the team lead to pay. Shown in admin so nobody nudges twice. */
+  paymentRemindedAt?: Date | null;
   /** Why a `refund_due` row is owed money, in words an admin can act on. */
   cancelReason?: string;
 
@@ -148,6 +150,7 @@ const HackathonRegistrationSchema = new Schema<IHackathonRegistration>({
   registrationCode: { type: String, required: true },
 
   confirmedAt:  { type: Date, default: null },
+  paymentRemindedAt: { type: Date, default: null },
   cancelReason: { type: String },
 
   ipAddress: { type: String },

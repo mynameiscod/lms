@@ -114,3 +114,55 @@ export async function withExecutionSlot<T>(fn: () => Promise<T>, language?: stri
 
 /** True when the failure was the queue, not the program. */
 export const isQueueTimeout = (e: any): boolean => e?.message === 'QUEUE_TIMEOUT';
+
+/**
+ * What to tell somebody who is waiting, or who just gave up waiting.
+ *
+ * "Server is busy" with no number is indistinguishable from "broken", and that is how
+ * students read it: they pressed Run, waited 45 seconds, were told the server was busy, and
+ * reported the product as down. A wait with a position in it reads as a wait.
+ *
+ * `position` counts from 1 and includes the person asking. `etaSec` is deliberately coarse and
+ * deliberately pessimistic — it assumes every job ahead takes a full slot-time, so it tends to
+ * over-estimate, and being told 40 seconds and waiting 20 is a much better experience than the
+ * reverse.
+ */
+export interface QueuePosition {
+  position: number;
+  waiting: number;
+  active: number;
+  limit: number;
+  etaSec: number;
+}
+
+/** Rough cost of one job, per pool, used only to turn a queue length into a number of seconds. */
+const TYPICAL_JOB_MS: Record<'heavy' | 'light', number> = { heavy: 1_500, light: 400 };
+
+export function queuePosition(language?: string): QueuePosition {
+  const kind = poolFor(language);
+  const pool = pools[kind];
+  const cap = limit(kind);
+  const waiting = pool.waiting.length;
+  /* Everyone already queued is ahead of a caller arriving now, and so is this one. */
+  const position = waiting + 1;
+  /* Jobs ahead drain `cap` at a time. */
+  const batchesAhead = Math.ceil(position / cap);
+  return {
+    position,
+    waiting,
+    active: pool.active,
+    limit: cap,
+    etaSec: Math.max(1, Math.round((batchesAhead * TYPICAL_JOB_MS[kind]) / 1000)),
+  };
+}
+
+/** The sentence a candidate should see. Says where they are, not just that something is wrong. */
+export function busyMessage(language?: string): string {
+  const q = queuePosition(language);
+  if (q.waiting === 0) {
+    return 'The server is busy right now — every slot is running a program. '
+      + 'Press Run again in a few seconds. Your code has not been changed.';
+  }
+  return `The server is busy — you are number ${q.position} in the queue, `
+    + `about ${q.etaSec}s. Press Run again in a moment. Your code has not been changed.`;
+}

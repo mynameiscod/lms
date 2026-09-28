@@ -6,8 +6,12 @@ interface BatchOpt { _id: string; name: string; }
 interface StudentSummary {
   id: string; name: string; email: string;
   score: number; grade: string; hasData: boolean;
-  lastSent: { sentAt: string; status: string } | null;
+  lastSent: { sentAt: string; status: string; channels?: string[] } | null;
+  practiceDays?: string; practicePct?: number; onHold?: boolean;
 }
+type Channel = 'email' | 'whatsapp';
+interface Estimate { students: number; withEmail: number; withPhone: number; whatsappTemplateReady: boolean; costPerMessageInr: number; whatsappCostInr: number }
+const inr = (n: number) => `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
 // ── week helpers (client) — mirror the server's Mon–Sun / last-completed logic ──
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -45,6 +49,11 @@ const WeeklyReports: React.FC = () => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [sendingBatch, setSendingBatch] = useState(false);
+  const [useEmail, setUseEmail] = useState(true);
+  const [useWa, setUseWa] = useState(false);
+  const [est, setEst] = useState<Estimate | null>(null);
+  const channels: Channel[] = [...(useEmail ? ['email' as const] : []), ...(useWa ? ['whatsapp' as const] : [])];
+  const chLabel = channels.map(c => c === 'email' ? 'email' : 'WhatsApp').join(' + ');
 
   useEffect(() => {
     weeklyReportApi.getBatches()
@@ -63,6 +72,10 @@ const WeeklyReports: React.FC = () => {
     finally { setLoading(false); }
   };
   useEffect(() => { loadSummaries(); /* eslint-disable-next-line */ }, [batchId, weekStart]);
+  useEffect(() => {
+    setEst(null);
+    if (batchId) weeklyReportApi.estimate(batchId).then(setEst).catch(() => setEst(null));
+  }, [batchId]);
 
   const openPreview = async (s: StudentSummary) => {
     setPreviewId(s.id); setPreviewName(s.name); setPreviewHtml(''); setPreviewLoading(true);
@@ -74,11 +87,13 @@ const WeeklyReports: React.FC = () => {
   };
 
   const sendOne = async (s: StudentSummary) => {
-    if (!window.confirm(`Send this week's report to ${s.name} (${s.email})?`)) return;
+    if (!channels.length) { setMsg({ type: 'err', text: 'Tick Email or WhatsApp first.' }); return; }
+    const cost = useWa && est ? ` WhatsApp costs about ${inr(est.costPerMessageInr)}.` : '';
+    if (!window.confirm(`Send this week's report to ${s.name} by ${chLabel}?${cost}`)) return;
     setSendingId(s.id); setMsg(null);
     try {
-      await weeklyReportApi.sendToStudent(s.id, weekStart);
-      setMsg({ type: 'ok', text: `Report sent to ${s.name}` });
+      const r = await weeklyReportApi.sendToStudent(s.id, weekStart, channels);
+      setMsg({ type: 'ok', text: r.message || `Report sent to ${s.name}` });
       loadSummaries();
     } catch (e: any) { setMsg({ type: 'err', text: e.message || 'Send failed' }); }
     finally { setSendingId(null); }
@@ -86,10 +101,14 @@ const WeeklyReports: React.FC = () => {
 
   const sendBatch = async () => {
     const batchName = batches.find(b => b._id === batchId)?.name || 'this batch';
-    if (!window.confirm(`Send the weekly report to ALL ${students.length} student(s) in ${batchName}? Each student receives their own personalized report.`)) return;
+    if (!channels.length) { setMsg({ type: 'err', text: 'Tick Email or WhatsApp first.' }); return; }
+    const lines = [`Send the weekly report to ALL ${students.length} student(s) in ${batchName}?`, ''];
+    if (useEmail) lines.push(`• Email: ${est?.withEmail ?? students.length} student(s) — free`);
+    if (useWa) lines.push(`• WhatsApp: ${est?.withPhone ?? '?'} student(s) with a phone — about ${inr(est?.whatsappCostInr ?? 0)}`);
+    if (!window.confirm(lines.join('\n'))) return;
     setSendingBatch(true); setMsg(null);
     try {
-      const r = await weeklyReportApi.sendToBatch(batchId, weekStart);
+      const r = await weeklyReportApi.sendToBatch(batchId, weekStart, channels);
       setMsg({ type: 'ok', text: r.message || 'Batch send started. Reports are being emailed in the background — refresh in a minute to see delivery status.' });
     } catch (e: any) { setMsg({ type: 'err', text: e.message || 'Batch send failed' }); }
     finally { setSendingBatch(false); }
@@ -105,7 +124,7 @@ const WeeklyReports: React.FC = () => {
       <div className="wr-head">
         <div>
           <h1 className="wr-title">📄 Weekly Learning Reports</h1>
-          <p className="wr-sub">Preview each student's weekly progress report and email it to one student or the whole batch.</p>
+          <p className="wr-sub">Preview each student's weekly progress report and send it by email, WhatsApp or both — to one student or the whole batch.</p>
         </div>
       </div>
 
@@ -123,10 +142,27 @@ const WeeklyReports: React.FC = () => {
             {weeks.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
           </select>
         </label>
-        <button className="wr-btn primary" disabled={!students.length || sendingBatch} onClick={sendBatch}>
+        <div className="wr-field">
+          <span>Send by</span>
+          <div className="wr-channels">
+            <label className={`wr-chip ${useEmail ? 'on' : ''}`}><input type="checkbox" checked={useEmail} onChange={e => setUseEmail(e.target.checked)} /> ✉️ Email <em>free</em></label>
+            <label className={`wr-chip ${useWa ? 'on' : ''}`} title={est && !est.whatsappTemplateReady ? 'Assign a template to "Weekly learning report" in WhatsApp Templates → Where used' : ''}>
+              <input type="checkbox" checked={useWa} disabled={!!est && !est.whatsappTemplateReady} onChange={e => setUseWa(e.target.checked)} /> 💬 WhatsApp
+              <em>{est ? (est.whatsappTemplateReady ? `${inr(est.costPerMessageInr)}/msg` : 'no template') : ''}</em>
+            </label>
+          </div>
+        </div>
+        <button className="wr-btn primary" disabled={!students.length || sendingBatch || !channels.length} onClick={sendBatch}>
           {sendingBatch ? 'Starting…' : `📤 Send to Entire Batch (${students.length})`}
         </button>
       </div>
+
+      {useWa && est && (
+        <div className="wr-cost">💬 WhatsApp reaches <b>{est.withPhone}</b> of {est.students} student(s) with a phone number · batch send ≈ <b>{inr(est.whatsappCostInr)}</b> ({inr(est.costPerMessageInr)} per message). WhatsApp carries the headline numbers; the full report goes by email.</div>
+      )}
+      {est && !est.whatsappTemplateReady && (
+        <div className="wr-cost muted">WhatsApp is off until a template is assigned to <b>Weekly learning report</b> in Admin → WhatsApp Templates → Where used.</div>
+      )}
 
       {msg && <div className={`wr-alert ${msg.type}`}>{msg.text}<button onClick={() => setMsg(null)}>✕</button></div>}
 
@@ -139,7 +175,7 @@ const WeeklyReports: React.FC = () => {
           <table className="wr-table">
             <thead>
               <tr>
-                <th>Student</th><th>Weekly Score</th><th>Grade</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th>
+                <th>Student</th><th>Weekly Score</th><th>Grade</th><th>Daily Practice</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -156,8 +192,16 @@ const WeeklyReports: React.FC = () => {
                   </td>
                   <td><span className="wr-grade" style={{ background: gradeColor(s.grade) }}>{s.grade}</span></td>
                   <td>
+                    {s.practiceDays
+                      ? <div>
+                          <span className="wr-score" style={{ fontSize: 15, color: scoreColor(s.practicePct ?? 0) }}>{s.practiceDays}</span>
+                          <div className="wr-email">{s.practicePct}% attendance{s.onHold ? <span className="wr-hold"> · on hold</span> : ''}</div>
+                        </div>
+                      : <span className="wr-nodata">—</span>}
+                  </td>
+                  <td>
                     {s.lastSent
-                      ? <span className={`wr-sent ${s.lastSent.status}`}>{s.lastSent.status === 'sent' ? '✓ Sent' : '✕ Failed'} · {new Date(s.lastSent.sentAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                      ? <span className={`wr-sent ${s.lastSent.status}`}>{s.lastSent.status === 'sent' ? '✓ Sent' : '✕ Failed'} · {new Date(s.lastSent.sentAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}{s.lastSent.channels?.length ? <div className="wr-email">{s.lastSent.channels.join(' · ')}</div> : null}</span>
                       : <span className="wr-notsent">Not sent</span>}
                   </td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>

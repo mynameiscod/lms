@@ -32,6 +32,7 @@ const emptyForm = (): Hackathon => ({
   process: '',
   venue: '',
   bannerUrl: '',
+  collegeLogoUrl: '',
   startAt: '',
   endAt: null,
   prizes: { first: '', second: '', third: '', others: [] },
@@ -160,6 +161,16 @@ const HackathonsAdmin: React.FC = () => {
             <label className="hk-f">
               <span>Venue</span>
               <input value={form.venue || ''} placeholder="Main campus, Block A" onChange={e => patch({ venue: e.target.value })} />
+            </label>
+            <label className="hk-f">
+              <span>Event artwork URL</span>
+              <input value={form.bannerUrl || ''} placeholder="https://…/poster.png"
+                onChange={e => patch({ bannerUrl: e.target.value })} />
+            </label>
+            <label className="hk-f">
+              <span>College logo URL</span>
+              <input value={form.collegeLogoUrl || ''} placeholder="https://…/college-logo.png"
+                onChange={e => patch({ collegeLogoUrl: e.target.value })} />
             </label>
           </div>
 

@@ -567,8 +567,27 @@ export const userApi = {
     return response.json();
   },
 
-  exportUsers: async () => {
-    const response = await fetch(`${API_BASE_URL}/users/export`, { method: 'GET', headers: getAuthHeaders() });
+  /**
+   * Download the Users workbook.
+   *
+   * The filters the screen is showing are passed through, so an admin who narrowed to one batch
+   * and pressed Export gets that batch. Exporting everything regardless would hand them a file
+   * that silently disagrees with the list they were just looking at.
+   */
+  exportUsers: async (filters?: {
+    search?: string; role?: string; status?: string; batchId?: string;
+  }) => {
+    const qs = new URLSearchParams();
+    if (filters?.search?.trim()) qs.set('search', filters.search.trim());
+    /* 'all' is the screen's way of saying "no filter"; it must not reach the server as a value. */
+    if (filters?.role && filters.role !== 'all') qs.set('role', filters.role);
+    if (filters?.status && filters.status !== 'all') qs.set('status', filters.status);
+    if (filters?.batchId && filters.batchId !== 'all') qs.set('batchId', filters.batchId);
+    const query = qs.toString();
+    const response = await fetch(
+      `${API_BASE_URL}/users/export${query ? `?${query}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() },
+    );
     if (!response.ok) throw new Error('Failed to export users');
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
@@ -976,21 +995,27 @@ export const weeklyReportApi = {
     if (!r.ok) throw new Error('Failed to render preview');
     return r.json();
   },
-  sendToStudent: async (studentId: string, weekStart: string) => {
+  sendToStudent: async (studentId: string, weekStart: string, channels: ('email' | 'whatsapp')[] = ['email']) => {
     const r = await fetch(`${API_BASE_URL}/weekly-reports/send`, {
-      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ studentId, weekStart }),
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ studentId, weekStart, channels }),
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.message || 'Failed to send');
     return data;
   },
-  sendToBatch: async (batchId: string, weekStart: string) => {
+  sendToBatch: async (batchId: string, weekStart: string, channels: ('email' | 'whatsapp')[] = ['email']) => {
     const r = await fetch(`${API_BASE_URL}/weekly-reports/send-batch`, {
-      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ batchId, weekStart }),
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ batchId, weekStart, channels }),
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.message || 'Failed to send');
     return data;
+  },
+  estimate: async (batchId: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/estimate?batchId=${batchId}`, { headers: getAuthHeaders() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to estimate');
+    return data.data as { students: number; withEmail: number; withPhone: number; whatsappTemplateReady: boolean; costPerMessageInr: number; whatsappCostInr: number };
   },
 };
 

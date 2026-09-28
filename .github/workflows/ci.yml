@@ -1,0 +1,270 @@
+name: CI
+
+# Answers one question on every push to master and every pull request:
+#   "Does this repository still build, typecheck and pass its automated tests?"
+#
+# It deploys nothing, touches no production system, and needs no secrets.
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+# Read-only. CI has no reason to write to the repository, publish packages or
+# deploy, and a token that cannot do those things cannot be made to do them.
+permissions:
+  contents: read
+
+# Superseded runs for the same branch or PR are cancelled, so a busy branch does
+# not queue five stale runs. This is GitHub Actions concurrency and has nothing to
+# do with the Piston execution pools.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Node 18 because that is what actually runs this code:
+  #   Dockerfile  — node:18-alpine in all three stages
+  #   production  — lms-server-blue reports v18.20.8
+  # Root package.json says engines.node >=16, which 18 satisfies.
+  NODE_VERSION: '18'
+
+jobs:
+  # ── shared ────────────────────────────────────────────────────────────────
+  # Phase 1 of the Code Visualizer intends to put the normalized execution-event
+  # contract in shared/, so we need CI to prove the package compiles. NOTE: as of
+  # this commit nothing imports @lms-saas/shared — see docs/ci.md.
+  shared:
+    name: Shared
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Shared - Checkout
+        uses: actions/checkout@v4
+
+      - name: Shared - Set up Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Shared - Install dependencies
+        run: npm ci
+
+      - name: Shared - Build
+        run: npm run build --workspace=shared
+
+  # ── server ────────────────────────────────────────────────────────────────
+  server:
+    name: Server
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Server - Checkout
+        uses: actions/checkout@v4
+
+      - name: Server - Set up Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Server - Install dependencies
+        run: npm ci
+
+      - name: Server - TypeScript build
+        run: npm run build --workspace=server
+
+      # 122 suites / 2,182 tests, ~2 minutes. These are unit tests over pure
+      # functions and mocked models: no MongoDB, no Redis, no Piston, no network.
+      # --ci makes Jest fail rather than write new snapshots.
+      - name: Server - Jest
+        run: npm test --workspace=server -- --ci
+        env:
+          NODE_ENV: test
+
+      # server/package.json declares `lint: eslint src/**/*.ts`, but NO package in
+      # this repository depends on eslint and server/ has no eslint config, so the
+      # script cannot run. Wiring it up means choosing a config and fixing whatever
+      # it reports across the whole server — a separate, deliberate decision.
+      # Deliberately not run here. See docs/ci.md.
+
+  # ── client ────────────────────────────────────────────────────────────────
+  client:
+    name: Client
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Client - Checkout
+        uses: actions/checkout@v4
+
+      - name: Client - Set up Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Client - Install dependencies
+        run: npm ci
+
+      # CRA fails the build on eslint warnings when CI=true, which GitHub Actions
+      # sets automatically. This repository has a backlog of such warnings (unused
+      # variables, react-hooks/exhaustive-deps) and the Dockerfile does NOT set CI,
+      # so production builds them as warnings and succeeds.
+      #
+      # CI=false therefore makes this step reproduce the REAL production build
+      # rather than a stricter one the project has never passed. It is not there to
+      # make CI green: a genuine compile error still fails this step.
+      #
+      # The warning count IS gated — see the ratchet below.
+      #
+      # NODE_OPTIONS matches the Dockerfile — the build needs the extra heap.
+      - name: Client - Production build
+        run: npm run build --workspace=client 2>&1 | tee /tmp/client-build.log
+        env:
+          CI: 'false'
+          NODE_OPTIONS: '--max-old-space-size=4096'
+
+      # ── The warning ratchet ────────────────────────────────────────────────
+      # The gap this closes: with CI=false the existing warnings are frozen in AND
+      # a new one is invisible, so the build could not tell anyone they had added
+      # one. Turning CI=true instead would fail every build until the whole backlog
+      # was cleared, which is a separate piece of work and not a reason to block
+      # every unrelated change in the meantime.
+      #
+      # So the count is the gate rather than the warnings themselves. The backlog is
+      # allowed to stay; it is not allowed to GROW. Adding a warning fails this step
+      # with the count and the offending lines; removing warnings is rewarded by
+      # being told to lower the baseline, so the number only ever goes down.
+      #
+      # The baseline lives in .github/client-warning-baseline.txt, one integer, and
+      # changing it is a visible line in a diff that somebody has to justify.
+      - name: Client - eslint warning ratchet
+        run: |
+          set -euo pipefail
+          baseline=$(tr -dc '0-9' < .github/client-warning-baseline.txt)
+          count=$(grep -cE '^[[:space:]]+Line [0-9]+:' /tmp/client-build.log || true)
+          echo "eslint warnings: $count   baseline: $baseline"
+          if [ "$count" -gt "$baseline" ]; then
+            echo "::error::This change adds $((count - baseline)) new eslint warning(s) (now $count, baseline $baseline)."
+            echo ""
+            echo "Every warning in the build:"
+            grep -E '^[[:space:]]+Line [0-9]+:|^src/' /tmp/client-build.log || true
+            echo ""
+            echo "Fix the new warning(s). Do not raise the baseline to make this pass."
+            exit 1
+          fi
+          if [ "$count" -lt "$baseline" ]; then
+            echo "::notice::Warnings are down to $count from a baseline of $baseline."
+            echo "Please lower .github/client-warning-baseline.txt to $count so the gain is locked in."
+          fi
+
+      # CI=true here is correct and required: it stops react-scripts entering
+      # interactive watch mode, which would hang the runner until the timeout.
+      - name: Client - Tests
+        run: npm test --workspace=client -- --watchAll=false
+        env:
+          CI: 'true'
+
+      # client/package.json has no lint script. CRA runs eslint as part of the build
+      # above, and the ratchet makes it a gate on anything NEW.
+
+  # ── repository safety ─────────────────────────────────────────────────────
+  # Cheap checks for the classes of breakage that have actually caused outages
+  # here, rather than generic hygiene.
+  repository-safety:
+    name: Repository Safety
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Repository Safety - Checkout
+        uses: actions/checkout@v4
+
+      # A CRLF shebang makes the Linux kernel look for an interpreter literally
+      # named "/bin/bash\r". A CRLF compose file silently defeats `sed -i` on the
+      # server — that is what kept Piston down on 2026-09-24 after the edit
+      # "succeeded" and changed nothing.
+      #
+      # Scoped ON PURPOSE to files executed or parsed on the Linux host. Source
+      # files are left to core.autocrlf; see .gitattributes.
+      - name: Repository Safety - CRLF check
+        run: |
+          set -euo pipefail
+          status=0
+          files=$(git ls-files 'scripts/*.sh' '*.sh' 'docker-compose.yml' 'Dockerfile' '.gitattributes')
+          for f in $files; do
+            if grep -q $'\r' "$f"; then
+              echo "::error file=$f::CRLF line endings found. This file is executed or parsed on Linux and must be LF."
+              status=1
+            fi
+          done
+          if [ "$status" -eq 0 ]; then
+            echo "All Linux-executed files are LF:"
+            echo "$files" | sed 's/^/  /'
+          fi
+          exit "$status"
+
+      # A literal NUL byte in a text file makes git treat it as binary: it stops
+      # diffing, stops merging cleanly, and the byte is invisible in every editor
+      # and every review. One sat in hackathonRegistrationService.ts for months as
+      # a sentinel written '\0never', flagged repeatedly and never fixed because
+      # nobody could see it.
+      - name: Repository Safety - NUL bytes in source
+        run: |
+          set -euo pipefail
+          status=0
+          for f in $(git ls-files '*.ts' '*.tsx' '*.js' '*.jsx' '*.json' '*.yml' '*.yaml' '*.md' '*.sh' | grep -v node_modules); do
+            if LC_ALL=C grep -qP '\x00' "$f" 2>/dev/null; then
+              echo "::error file=$f::NUL byte in a text file. Git will treat this as binary."
+              status=1
+            fi
+          done
+          [ "$status" -eq 0 ] && echo "No NUL bytes in tracked source files."
+          exit "$status"
+
+      # The visualizer's execution-event schema is duplicated: the server emits the
+      # events, the client renders them, and both need the types. It is NOT in the
+      # shared/ workspace because that package does not work — its `main` points at a
+      # file that does not exist, it emits no declarations, neither app depends on it,
+      # and the Dockerfile never copies it, so an import would fail the DEPLOY rather
+      # than the test run. See the header of the file itself.
+      #
+      # Duplication is only safe if the copies cannot drift silently. This is what
+      # makes that true. Drift would show up as the renderer quietly mis-reading an
+      # event, which looks like a bug in the student's code rather than in ours.
+      - name: Repository Safety - Event schema in sync
+        run: node scripts/check-event-schema-sync.js
+
+      # Syntax only. Nothing here is executed — these scripts deploy, provision and
+      # restore production.
+      - name: Repository Safety - Shell syntax
+        run: |
+          set -euo pipefail
+          status=0
+          for f in $(git ls-files '*.sh'); do
+            if bash -n "$f"; then
+              echo "  ok   $f"
+            else
+              echo "::error file=$f::bash syntax error"
+              status=1
+            fi
+          done
+          exit "$status"
+
+      # Catches malformed YAML and invalid Compose schema before merge. `config`
+      # only renders and validates: it pulls nothing, creates nothing and starts
+      # nothing. The values below are throwaway placeholders that exist purely so
+      # variable interpolation resolves — they are not credentials and are not used
+      # to connect to anything.
+      - name: Repository Safety - Compose validation
+        run: docker compose config --quiet && echo "docker-compose.yml is valid"
+        env:
+          MONGO_ROOT_USERNAME: ci-placeholder
+          MONGO_ROOT_PASSWORD: ci-placeholder
+          REDIS_PASSWORD: ci-placeholder
+          JWT_SECRET: ci-placeholder
+          ENCRYPTION_KEY: ci-placeholder

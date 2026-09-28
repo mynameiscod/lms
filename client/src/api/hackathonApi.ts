@@ -23,6 +23,7 @@ export interface Hackathon {
   process?: string;
   venue?: string;
   bannerUrl?: string;
+  collegeLogoUrl?: string;
   /** Date AND time in one value; the form edits it as a datetime-local. */
   startAt: string;
   endAt?: string | null;
@@ -62,6 +63,7 @@ export interface HackathonRegistration {
   payment?: { orderId: string; paymentId?: string; status: string; paidAt?: string | null } | null;
   cancelReason?: string;
   confirmedAt?: string | null;
+  paymentRemindedAt?: string | null;
   createdAt: string;
 }
 
@@ -78,6 +80,48 @@ export const hackathonApi = {
   update: async (id: string, body: Partial<Hackathon>): Promise<Hackathon> =>
     (await axios.put(`${API}/hackathons/${id}`, body, { headers: auth() })).data.hackathon,
 
+  /**
+   * The blank team sheet, as a download.
+   *
+   * Fetched with the auth header and handed over as a blob, not linked to directly: the
+   * endpoint is authenticated, and a plain <a href> navigation sends no Authorization header,
+   * so the link would quietly download a 401 instead of a spreadsheet.
+   */
+  downloadTeamsTemplate: async (): Promise<void> => {
+    const res = await axios.get(`${API}/hackathons/teams-template.xlsx`, { headers: auth(), responseType: 'blob' });
+    const url = URL.createObjectURL(new Blob([res.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'hackathon-teams-template.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
+  /**
+   * Upload a team sheet. Defaults to a DRY RUN: the same read and the same verdict as the real
+   * import, returned instead of written, so the preview cannot disagree with what follows.
+   */
+  importTeams: async (id: string, file: File, opts: { college?: string; apply?: boolean } = {}) => {
+    const form = new FormData();
+    form.append('file', file);
+    if (opts.college) form.append('college', opts.college);
+    const { data } = await axios.post(
+      `${API}/hackathons/${id}/import-teams${opts.apply ? '?apply=true' : ''}`,
+      form, { headers: { ...auth() } },
+    );
+    return data.data as {
+      applied: boolean; ok: boolean; sheetNames: string[]; sheetUsed: string;
+      columns: Record<string, string>; rowCount: number; memberCount: number;
+      teams: { teamName: string; college: string; members: { member: string; mobile: string; email: string }[]; alreadyImported?: boolean; registrationCode?: string }[];
+      problems: string[];
+      created?: number; skipped?: number;
+      codes?: { team: string; code: string; existing: boolean }[];
+    };
+  },
   remove: async (id: string): Promise<void> => {
     await axios.delete(`${API}/hackathons/${id}`, { headers: auth() });
   },
@@ -87,6 +131,12 @@ export const hackathonApi = {
 
   markRefunded: async (id: string, regId: string): Promise<void> => {
     await axios.post(`${API}/hackathons/${id}/registrations/${regId}/refunded`, {}, { headers: auth() });
+  },
+
+  /** Nudge a team that registered and never paid. Returns which channels actually went. */
+  sendPaymentReminder: async (id: string, regId: string): Promise<{ email: boolean; whatsapp: boolean }> => {
+    const r = await axios.post(`${API}/hackathons/${id}/registrations/${regId}/payment-reminder`, {}, { headers: auth() });
+    return r.data?.data;
   },
 
   /**

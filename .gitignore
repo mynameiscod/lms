@@ -52,3 +52,6 @@ yarn.lock
 .DS_Store
 .eslintcache
 __pycache__/
+
+# Participant lists and send artefacts — personal data, never committed.
+hackzen-send/

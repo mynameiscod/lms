@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { hackathonExamAdminApi as api } from '../../api/hackathonExamApi';
 import { assessmentAdminApi } from '../../api/assessmentAdminApi';
+import { problemBankApi, PbMeta } from '../../api/problemBankApi';
 import './hackathonExamAdmin.css';
 
 /**
@@ -42,6 +43,7 @@ const emptySection = (key: string) => ({
   key, label: '', types: ['mcq'], drawCount: 10,
   dimensions: [], tags: [], languages: [],
   minDifficulty: 1, maxDifficulty: 5, marksPerItem: 0,
+  source: 'assessment_bank', pbDifficulties: [], topics: [],
 });
 
 /**
@@ -63,6 +65,24 @@ const TagPicker: React.FC<{
 }> = ({ all, type, chosen, onChange }) => {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
+  const box = useRef<HTMLDivElement>(null);
+
+  /*
+   * Close on a click anywhere else, and on Escape.
+   *
+   * Without this the only way out is the button that opened it — which the menu itself covers
+   * once the chosen-topic chips push the layout down. Choosing a topic deliberately does NOT
+   * close it: picking two tags is the normal case here, and a menu that shut after the first
+   * would make the second one a fight.
+   */
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', away);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
+  }, [open]);
 
   const withCounts = all
     .map((t) => ({ ...t, n: t.byType[type] || 0 }))
@@ -77,7 +97,7 @@ const TagPicker: React.FC<{
   );
 
   return (
-    <div className="hxa-tagpick">
+    <div className="hxa-tagpick" ref={box}>
       <button type="button" className="hxa-tagbtn" onClick={() => setOpen((o) => !o)}>
         {chosen.length
           ? `${chosen.length} topic(s) · ${available} question(s) available`
@@ -116,12 +136,55 @@ const TagPicker: React.FC<{
   );
 };
 
+/**
+ * Watching one candidate's recording.
+ *
+ * Clips load one at a time and the previous object URL is revoked before the next is made.
+ * An hour of fifteen-second slices is 240 clips; holding them all would put an entire
+ * recording in the reviewer's memory to watch one minute of it.
+ */
+const RecordingViewer: React.FC<{ examId: string; attempt: any; onClose: () => void }> = ({ examId, attempt, onClose }) => {
+  const total = attempt?.recording?.chunks || 0;
+  const [seq, setSeq] = useState(1);
+  const [src, setSrc] = useState('');
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    let dead = false;
+    let made = '';
+    setErr('');
+    api.recordingChunkBlob(examId, attempt._id, seq)
+      .then((u) => { if (dead) { URL.revokeObjectURL(u); return; } made = u; setSrc(u); })
+      .catch((e) => !dead && setErr(e.message));
+    return () => { dead = true; if (made) URL.revokeObjectURL(made); };
+  }, [examId, attempt._id, seq]);
+
+  return (
+    <div className="hxa-rec-wrap">
+      <div className="hxa-rec-head">
+        <b>{attempt.memberName}</b>
+        <span>{total} clip(s) · about {Math.round((total * 15) / 60)} min · {Math.round((attempt.recording?.bytes || 0) / 1048576)} MB</span>
+        <button className="hxa-btn small" onClick={onClose}>Close</button>
+      </div>
+      {err ? <div className="hxa-msg">{err}</div>
+        : <video className="hxa-rec-video" src={src} controls autoPlay
+            onEnded={() => seq < total && setSeq(seq + 1)} />}
+      <div className="hxa-rec-nav">
+        <button className="hxa-btn small" disabled={seq <= 1} onClick={() => setSeq(seq - 1)}>Previous</button>
+        <span>clip {seq} of {total}</span>
+        <button className="hxa-btn small" disabled={seq >= total} onClick={() => setSeq(seq + 1)}>Next</button>
+      </div>
+    </div>
+  );
+};
+
 const HackathonExamAdmin: React.FC = () => {
   const { hackathonId = '' } = useParams();
   const [tab, setTab] = useState<Tab>('setup');
   const [exam, setExam] = useState<any>(null);
   const [form, setForm] = useState<any>(null);
   const [coverage, setCoverage] = useState<any>(null);
+  const [watching, setWatching] = useState<any>(null);
   const [readiness, setReadiness] = useState<any>(null);
   const [dash, setDash] = useState<any>(null);
   const [rows, setRows] = useState<any[]>([]);
@@ -152,7 +215,7 @@ const HackathonExamAdmin: React.FC = () => {
         durationMins: 60, joinCutoffMins: 15, navigation: 'free',
         sections: [{ ...emptySection('mcq'), label: 'Multiple choice', drawCount: 30 },
           { ...emptySection('code'), label: 'Coding', types: ['live_code'], drawCount: 1, marksPerItem: 20 }],
-        runPolicy: { enabled: true, maxRunsPerQuestion: 10, cooldownSeconds: 5, maxSampleCases: 2 },
+        runPolicy: { enabled: true, maxRunsPerQuestion: 10, cooldownSeconds: 5, maxSampleCases: 2, allowVisualizer: false },
         proctoring: {
           tabSwitch: { enabled: true, maxWarnings: 3, autoSubmit: true },
           fullscreen: { required: true, maxExits: 3, autoSubmit: false },
@@ -178,6 +241,9 @@ const HackathonExamAdmin: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { assessmentAdminApi.tags().then(setBankTags).catch(() => {}); }, []);
+  // Problem Bank vocabulary for sections that draw from it; absent if this role cannot read the bank.
+  const [pbMeta, setPbMeta] = useState<PbMeta | null>(null);
+  useEffect(() => { problemBankApi.meta().then(setPbMeta).catch(() => {}); }, []);
 
   /* Live view polls; a stale number on a dashboard is worse than no number. */
   const pollRef = useRef<any>(null);
@@ -286,6 +352,7 @@ const HackathonExamAdmin: React.FC = () => {
             </label>
             <label>Instructions shown before starting
               <textarea rows={5} value={form.instructions} onChange={(e) => up({ instructions: e.target.value })} placeholder="Anything the organisers want candidates to read first. HTML allowed." />
+              <span className="hxa-count">{(form.instructions || '').length} characters</span>
             </label>
           </div>
 
@@ -300,6 +367,51 @@ const HackathonExamAdmin: React.FC = () => {
                     <label>Label<input value={s.label} onChange={(e) => upSection(i, { label: e.target.value })} /></label>
                     <label>How many<input type="number" min={1} value={s.drawCount} onChange={(e) => upSection(i, { drawCount: Number(e.target.value) })} /></label>
                   </div>
+                  <div className="hxa-row">
+                    <label>Questions from
+                      <select value={s.source || 'assessment_bank'} onChange={(e) => upSection(i, e.target.value === 'problem_bank'
+                        ? { source: 'problem_bank', types: ['live_code'] }
+                        : { source: 'assessment_bank' })}>
+                        <option value="assessment_bank">Exam question bank</option>
+                        <option value="problem_bank">Problem Bank (coding problems)</option>
+                      </select>
+                    </label>
+                  </div>
+                  {s.source === 'problem_bank' ? (
+                    <div className="hxa-row" style={{ display: 'block' }}>
+                      <label>Marks each (0 = the problem's own marks)
+                        <input type="number" min={0} value={s.marksPerItem} onChange={(e) => upSection(i, { marksPerItem: Number(e.target.value) })} />
+                      </label>
+                      <div className="hxa-pb">
+                        <span>Difficulty</span>
+                        {['easy', 'medium', 'hard'].map((d) => {
+                          const on = (s.pbDifficulties || []).includes(d);
+                          return <button type="button" key={d} className={`hxa-chip ${on ? 'on' : ''}`}
+                            onClick={() => upSection(i, { pbDifficulties: on ? s.pbDifficulties.filter((x: string) => x !== d) : [...(s.pbDifficulties || []), d] })}>{d}</button>;
+                        })}
+                        <small>none = any</small>
+                      </div>
+                      <div className="hxa-pb">
+                        <span>Topics</span>
+                        {(pbMeta?.topics || []).map((t) => {
+                          const on = (s.topics || []).includes(t.key);
+                          return <button type="button" key={t.key} className={`hxa-chip ${on ? 'on' : ''}`}
+                            onClick={() => upSection(i, { topics: on ? s.topics.filter((x: string) => x !== t.key) : [...(s.topics || []), t.key] })}>{t.label}</button>;
+                        })}
+                        {!pbMeta && <small>Problem Bank topics could not be loaded.</small>}
+                      </div>
+                      <div className="hxa-pb">
+                        <span>Languages</span>
+                        {(pbMeta?.languages || []).map((l) => {
+                          const on = (s.languages || []).includes(l.key);
+                          return <button type="button" key={l.key} className={`hxa-chip ${on ? 'on' : ''}`}
+                            onClick={() => upSection(i, { languages: on ? s.languages.filter((x: string) => x !== l.key) : [...(s.languages || []), l.key] })}>{l.label}</button>;
+                        })}
+                        <small>problems must allow at least one of these · none = any</small>
+                      </div>
+                      <p className="hxa-sub" style={{ margin: '6px 0 0' }}>Draws published problems from your institute and the CodeBegun library. Candidates choose any language the problem allows; grading uses every hidden test.</p>
+                    </div>
+                  ) : <>
                   <div className="hxa-row">
                     <label>Type
                       <select value={s.types[0]} onChange={(e) => upSection(i, { types: [e.target.value] })}>
@@ -329,6 +441,7 @@ const HackathonExamAdmin: React.FC = () => {
                       </span>
                     </label>
                   </div>
+                  </>}
                   {cov && (
                     <div className={`hxa-cov ${cov.ok ? 'ok' : 'bad'}`}>
                       {cov.ok
@@ -347,12 +460,18 @@ const HackathonExamAdmin: React.FC = () => {
 
           <div className="hxa-card">
             <h3>Running code</h3>
+            <p className="hxa-sub">Let candidates test their answer before they commit it.</p>
             <label className="hxa-check"><input type="checkbox" checked={form.runPolicy.enabled} onChange={(e) => up({ runPolicy: { ...form.runPolicy, enabled: e.target.checked } })} /> Let candidates run their code</label>
             <div className="hxa-row">
               <label>Runs per question (0 = unlimited)<input type="number" min={0} value={form.runPolicy.maxRunsPerQuestion} onChange={(e) => up({ runPolicy: { ...form.runPolicy, maxRunsPerQuestion: Number(e.target.value) } })} /></label>
               <label>Cooldown (seconds)<input type="number" min={0} value={form.runPolicy.cooldownSeconds} onChange={(e) => up({ runPolicy: { ...form.runPolicy, cooldownSeconds: Number(e.target.value) } })} /></label>
             </div>
             <label>Sample cases a candidate may run<input type="number" min={0} value={form.runPolicy.maxSampleCases} onChange={(e) => up({ runPolicy: { ...form.runPolicy, maxSampleCases: Number(e.target.value) } })} /></label>
+            <label className="hxa-check"><input type="checkbox" checked={!!form.runPolicy.allowVisualizer} disabled={!form.runPolicy.enabled} onChange={(e) => up({ runPolicy: { ...form.runPolicy, allowVisualizer: e.target.checked } })} /> Allow the Code Visualizer (step through code line by line)</label>
+            <p className="hxa-sub" style={{ marginTop: -4 }}>
+              Off by default. It shows candidates exactly what their program does, so it suits practice
+              rounds more than graded ones. Java only; each visualization uses one of the question's runs.
+            </p>
             <p className="hxa-warnbox">
               A Java run costs about seven seconds of a CPU core. With 800 candidates, an unlimited
               Run button is an outage rather than a slow exam — keep the cap and the cooldown.
@@ -361,6 +480,7 @@ const HackathonExamAdmin: React.FC = () => {
 
           <div className="hxa-card">
             <h3>Proctoring</h3>
+            <p className="hxa-sub">Keep the paper honest without locking anyone out.</p>
             <label className="hxa-check"><input type="checkbox" checked={form.proctoring.tabSwitch.enabled} onChange={(e) => up({ proctoring: { ...form.proctoring, tabSwitch: { ...form.proctoring.tabSwitch, enabled: e.target.checked } } })} /> Record tab switches</label>
             <div className="hxa-row">
               <label>Warnings before auto-submit<input type="number" min={1} value={form.proctoring.tabSwitch.maxWarnings} onChange={(e) => up({ proctoring: { ...form.proctoring, tabSwitch: { ...form.proctoring.tabSwitch, maxWarnings: Number(e.target.value) } } })} /></label>
@@ -369,11 +489,14 @@ const HackathonExamAdmin: React.FC = () => {
             <label className="hxa-check"><input type="checkbox" checked={form.proctoring.fullscreen.required} onChange={(e) => up({ proctoring: { ...form.proctoring, fullscreen: { ...form.proctoring.fullscreen, required: e.target.checked } } })} /> Require fullscreen</label>
             <label className="hxa-check"><input type="checkbox" checked={form.proctoring.copyPasteBlocked} onChange={(e) => up({ proctoring: { ...form.proctoring, copyPasteBlocked: e.target.checked } })} /> Block copy and paste</label>
             <label className="hxa-check"><input type="checkbox" checked={form.proctoring.clusterDetection} onChange={(e) => up({ proctoring: { ...form.proctoring, clusterDetection: e.target.checked } })} /> Flag teams sitting from one device or address</label>
+            <label className="hxa-check"><input type="checkbox" checked={!!form.proctoring.camera?.enabled} onChange={(e) => up({ proctoring: { ...form.proctoring, camera: { ...(form.proctoring.camera || {}), enabled: e.target.checked } } })} /> Record camera and microphone</label>
+            <p className="hxa-sub">Continuous video with audio, about 90MB per candidate per hour, stored in Bunny. A candidate who refuses or has no camera still sits the paper — it is recorded on their attempt and shown in the candidate list.</p>
             <p className="hxa-sub">Clustering is the control that matches the risk here: scores average into a team result, so the cheat worth catching is one member sitting several papers.</p>
           </div>
 
           <div className="hxa-card">
             <h3>Messages</h3>
+            <p className="hxa-sub">Invitations, reminders and results.</p>
             <label>Invitations go by
               <span className="hxa-chips">
                 {(['email', 'whatsapp'] as const).map((c) => (
@@ -439,8 +562,42 @@ const HackathonExamAdmin: React.FC = () => {
                   <b>3 · Send the links</b>
                   <span>Email and WhatsApp, skipping anyone already invited</span>
                   <button className="hxa-btn small" disabled={busy === 'inv'}
-                    onClick={() => act('inv', () => api.invite(examId), (r) => say(`Sent — ${r.email} email, ${r.whatsapp} WhatsApp${r.failed ? `, ${r.failed} failed` : ''}.`))}>
+                    onClick={() => act('inv', () => api.invite(examId), (r) => {
+                      /*
+                       * Say WHY nothing went.
+                       *
+                       * This skips anyone already invited, which is right — pressing it twice must
+                       * not message eight hundred people twice. But it reported only what it sent,
+                       * so a run that skipped everybody said "Sent — 0 email, 0 WhatsApp" and read
+                       * as a broken button. The skipped count was in the response all along and
+                       * the screen was throwing it away.
+                       */
+                      const sent = (r.email || 0) + (r.whatsapp || 0);
+                      if (!sent && r.skipped) {
+                        say(`Nobody new to invite — all ${r.skipped} already have theirs. Use "Send to everyone again" to send anyway.`);
+                      } else {
+                        say(`Sent — ${r.email} email, ${r.whatsapp} WhatsApp`
+                          + `${r.skipped ? `, ${r.skipped} already had theirs` : ''}`
+                          + `${r.failed ? `, ${r.failed} failed` : ''}.`);
+                      }
+                    })}>
                     {busy === 'inv' ? 'Sending…' : 'Send invitations'}
+                  </button>
+                  {/* Sends again to everybody, flags ignored. Confirmed with a count, because
+                      the number of people about to be messaged is the thing worth knowing. */}
+                  <button className="hxa-btn small" disabled={busy === 'inv2'}
+                    onClick={() => {
+                      const n = readiness?.provisionedCandidates ?? readiness?.provisionedTeams ?? 0;
+                      if (!window.confirm(
+                        `Send the invitation again to EVERY candidate on this exam${n ? ` (${n})` : ''}?
+
+`
+                        + 'Anyone who already had one gets another. Use this when the first batch was wrong.',
+                      )) return;
+                      act('inv2', () => api.invite(examId, true),
+                        (r) => say(`Sent again — ${r.email} email, ${r.whatsapp} WhatsApp${r.failed ? `, ${r.failed} failed` : ''}.`));
+                    }}>
+                    {busy === 'inv2' ? 'Sending…' : 'Send to everyone again'}
                   </button>
                 </div>
               </>
@@ -501,9 +658,11 @@ const HackathonExamAdmin: React.FC = () => {
             <span className="hxa-fresh">{lastAt ? `Updated ${lastAt.toLocaleTimeString('en-IN')}` : 'Loading…'}</span>
           </div>
 
+          {watching && <RecordingViewer examId={examId} attempt={watching} onClose={() => setWatching(null)} />}
+
           <div className="hxa-tablewrap">
             <table className="hxa-table">
-              <thead><tr><th>Candidate</th><th>Team</th><th>Status</th><th>Started</th><th>Time</th><th>Score</th><th>Flags</th><th>Grading</th></tr></thead>
+              <thead><tr><th>Candidate</th><th>Team</th><th>Status</th><th>Started</th><th>Time</th><th>Score</th><th>Flags</th><th>Grading</th><th>Recording</th><th>Invite</th></tr></thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r._id} className={r.violationCount ? 'flagged' : ''}>
@@ -515,9 +674,60 @@ const HackathonExamAdmin: React.FC = () => {
                     <td>{r.score != null ? `${r.score}/${r.totalMarks ?? '?'}` : '—'}</td>
                     <td>{r.violationCount ? <span className="hxa-flag">{r.violationCount}</span> : '—'}</td>
                     <td><span className={`hxa-pill ${r.grading?.status}`}>{r.grading?.status}</span></td>
+                    <td>
+                      {r.recording?.chunks > 0 ? (
+                        <button className="hxa-btn small" onClick={() => setWatching(r)}>
+                          Watch ({r.recording.chunks})
+                        </button>
+                      ) : (
+                        <span className={`hxa-pill ${r.recording?.state || 'off'}`}>
+                          {r.recording?.state === 'denied' ? 'refused'
+                            : r.recording?.state === 'unavailable' ? 'no camera'
+                            : r.recording?.state === 'recording' ? 'recording' : 'none'}
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <button className="hxa-btn small" disabled={busy === `re${r._id}`}
+                        onClick={() => act(`re${r._id}`, () => api.resendInvite(examId, r._id),
+                          (c) => say(`Re-sent to ${r.memberName} — ${c.email} email, ${c.whatsapp} WhatsApp.`))}>
+                        {busy === `re${r._id}` ? 'Sending…' : 'Resend'}
+                      </button>
+                      <div className="hxa-dim">
+                        {r.invitesSent?.email || r.invitesSent?.whatsapp
+                          ? `sent: ${[r.invitesSent?.email && 'email', r.invitesSent?.whatsapp && 'WA'].filter(Boolean).join(' + ')}`
+                          : 'never sent'}
+                      </div>
+                      <div className="hxa-rescue">
+                        {!r.otpVerifiedAt && !r.submittedAt && (
+                          <button className="hxa-link" disabled={busy === `v${r._id}`}
+                            onClick={() => {
+                              if (!window.confirm(
+                                `Let ${r.memberName} start WITHOUT a code?
+
+`
+                                + 'This exam is sat remotely, so nobody has seen them. You are vouching for '
+                                + 'them, and your name is recorded against it.',
+                              )) return;
+                              act(`v${r._id}`, () => api.verifyAttempt(examId, r._id),
+                                (r) => say(r?.message || 'Verified.'));
+                            }}>Let them in without a code</button>
+                        )}
+                        {r.otpVerifiedBy && <span className="hxa-waived">let in by {r.otpVerifiedBy}</span>}
+                        {!r.submittedAt && (
+                          <button className="hxa-link" disabled={busy === `m${r._id}`}
+                            onClick={() => {
+                              const next = window.prompt(`New mobile for ${r.memberName}`, r.memberMobile || '');
+                              if (!next) return;
+                              act(`m${r._id}`, () => api.setAttemptMobile(examId, r._id, next),
+                                (r) => say(r?.message || 'Number changed.'));
+                            }}>Fix number</button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
-                {!rows.length && <tr><td colSpan={8} className="hxa-msg">Nobody matches that filter.</td></tr>}
+                {!rows.length && <tr><td colSpan={10} className="hxa-msg">Nobody matches that filter.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -542,7 +752,14 @@ const HackathonExamAdmin: React.FC = () => {
                 {busy === 'pub' ? 'Publishing…' : 'Publish results'}
               </button>
               <button className="hxa-btn" disabled={busy === 'send' || !exam?.publishedAt}
-                onClick={() => act('send', () => api.sendResults(examId), (r) => say(`Sent — ${r.email} email, ${r.whatsapp} WhatsApp.`))}>
+                onClick={() => act('send', () => api.sendResults(examId), (r) => {
+                  const sent = (r.email || 0) + (r.whatsapp || 0);
+                  say(!sent && r.skipped
+                    ? `Nobody new — all ${r.skipped} already have their result.`
+                    : `Sent — ${r.email} email, ${r.whatsapp} WhatsApp`
+                      + `${r.skipped ? `, ${r.skipped} already had theirs` : ''}`
+                      + `${r.failed ? `, ${r.failed} failed` : ''}.`);
+                })}>
                 {busy === 'send' ? 'Sending…' : 'Send results'}
               </button>
             </div>

@@ -8,6 +8,7 @@ import LeadSourceConfig from '../models/LeadSourceConfig';
 import { scoreAndAssignLead } from '../services/leadScoringService';
 import WhatsAppConversationState, { ConversationStep } from '../models/WhatsAppConversationState';
 import QualificationQuestionConfig, { IQualificationQuestion } from '../models/QualificationQuestionConfig';
+import { applyStatusWebhook } from '../services/whatsAppTemplateService';
 
 // ===================== TYPES =====================
 
@@ -236,6 +237,12 @@ async function processWhatsAppMessage(payload: WhatsAppWebhookPayload) {
       const value = change.value;
       
       console.log('📨 Change field:', change.field, 'Messages:', value.messages?.length || 0, 'Statuses:', value.statuses?.length || 0);
+
+      // Template review results — keep the WhatsApp Templates page's status current.
+      if (['message_template_status_update', 'template_category_update', 'message_template_quality_update'].includes(change.field)) {
+        await applyStatusWebhook(change.field, value as any).catch((e) => console.error('[WA] template status update failed:', e?.message));
+        continue;
+      }
 
       // Handle status updates (delivered, read, etc.)
       if (value.statuses && value.statuses.length > 0) {

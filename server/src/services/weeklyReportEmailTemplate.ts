@@ -204,6 +204,28 @@ export function getWeeklyReportEmailHtml(d: WeeklyReportData): string {
           </tr></table>
         </td></tr>
 
+        ${d.practice ? `
+        <!-- DAILY PRACTICE -->
+        <tr><td style="padding:6px 26px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eef1f6; border-radius:14px;"><tr><td style="padding:16px 18px;">
+            <div style="font-size:15px; font-weight:800; color:#0b2e63; margin-bottom:2px;">🔥 Daily Practice</div>
+            <div style="font-size:12px; color:#8a94a6; margin-bottom:12px;">Every working day's tasks — ${d.practice.metDays} of ${d.practice.countedDays} practice days this week.</div>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate; border-spacing:4px;">
+              <tr>${d.practice.days.map((x) => `
+                <td align="center" style="width:14%; border-radius:10px; padding:8px 2px; font-size:11px; background:${x.excused ? '#f1f5f9' : x.met ? '#d1fae5' : '#fee2e2'}; color:${x.excused ? '#94a3b8' : x.met ? '#065f46' : '#991b1b'};">
+                  <div style="font-weight:800;">${x.weekday}</div>
+                  <div style="font-size:15px; font-weight:800;">${x.excused ? '–' : x.met ? '✓' : '✗'}</div>
+                </td>`).join('')}
+              </tr>
+            </table>
+            <div style="font-size:13px; color:#334155; margin-top:10px;">Practice attendance: <b>${d.practice.pct}%</b> · placement support needs <b>${d.practice.thresholdPct}%</b> · streak <b>${d.practice.streak}</b></div>
+            ${d.practice.onHold
+              ? `<div style="font-size:12px; color:#991b1b; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:8px 12px; margin-top:10px;">⛔ Placement support is on hold. Complete your daily practice every working day to lift it.</div>`
+              : d.practice.pct < d.practice.thresholdPct
+                ? `<div style="font-size:12px; color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:8px 12px; margin-top:10px;">⚠️ Below ${d.practice.thresholdPct}% — practise every working day to stay eligible for placement support.</div>`
+                : `<div style="font-size:12px; color:#047857; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:8px 12px; margin-top:10px;">✅ Eligible for placement support. Keep the streak going.</div>`}
+          </td></tr></table>
+        </td></tr>` : ''}
         ${d.challenges.totalAssigned > 0 ? `
         <!-- DAILY CHALLENGES -->
         <tr><td style="padding:6px 26px;">

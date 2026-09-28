@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import AssessmentItem from '../models/AssessmentItem';
+import CodingProblem from '../models/CodingProblem';
 import { IExamSection, IHackathonExam } from '../models/HackathonExam';
 import { IDrawnItem } from '../models/HackathonExamAttempt';
 
@@ -89,7 +90,24 @@ export function sectionFilter(tenantId: string, s: IExamSection): Record<string,
   return f;
 }
 
-interface PoolEntry { at: number; items: { _id: any; type: string; points: number }[] }
+/**
+ * The Problem Bank query a 'problem_bank' section describes: published, runnable problems the
+ * institute can use — its own plus CodeBegun's global library.
+ */
+export function problemBankFilter(tenantId: string, s: IExamSection): Record<string, any> {
+  const f: Record<string, any> = {
+    $or: [{ scope: 'tenant', tenantId }, { scope: 'global' }],
+    status: 'published',
+    testCount: { $gt: 0 },
+  };
+  if (s.pbDifficulties?.length) f.difficulty = { $in: s.pbDifficulties };
+  if (s.topics?.length) f.topics = { $in: s.topics };
+  if (s.tags?.length) f.tags = { $in: s.tags };
+  if (s.languages?.length) f['languages.language'] = { $in: s.languages };
+  return f;
+}
+
+interface PoolEntry { at: number; items: { _id: any; type: string; points: number; source: 'assessment_bank' | 'problem_bank' }[] }
 const poolCache = new Map<string, PoolEntry>();
 /** Long enough to cover an event, short enough that an admin edit lands without a restart. */
 const POOL_TTL_MS = 2 * 60 * 1000;
@@ -103,10 +121,14 @@ async function loadPool(tenantId: string, examId: string, s: IExamSection) {
   const hit = poolCache.get(key);
   if (hit && Date.now() - hit.at < POOL_TTL_MS) return hit.items;
 
-  const items = await AssessmentItem
-    .find(sectionFilter(tenantId, s))
-    .select('_id type points')
-    .lean() as any[];
+  const fromProblemBank = s.source === 'problem_bank';
+  const items = fromProblemBank
+    ? (await CodingProblem.find(problemBankFilter(tenantId, s)).select('_id kind marks').lean() as any[])
+      .map(p => ({ _id: p._id, type: p.kind === 'sql' ? 'sql' : 'live_code', points: p.marks }))
+    : await AssessmentItem
+      .find(sectionFilter(tenantId, s))
+      .select('_id type points')
+      .lean() as any[];
 
   /*
    * Sorted by id before caching. The Mongo result order is not guaranteed stable across
@@ -114,7 +136,7 @@ async function loadPool(tenantId: string, examId: string, s: IExamSection) {
    * quietly removes the reproducibility this service exists to provide.
    */
   const sorted = items
-    .map(i => ({ _id: i._id, type: String(i.type), points: Number(i.points) || 1 }))
+    .map(i => ({ _id: i._id, type: String(i.type), points: Number(i.points) || 1, source: (fromProblemBank ? 'problem_bank' : 'assessment_bank') as 'assessment_bank' | 'problem_bank' }))
     .sort((a, b) => String(a._id).localeCompare(String(b._id)));
 
   poolCache.set(key, { at: Date.now(), items: sorted });
@@ -159,7 +181,9 @@ export async function checkDrawCoverage(exam: IHackathonExam): Promise<DrawCover
     let problem: string | undefined;
     if (!ok) {
       problem = available === 0
-        ? `No active items match this section — check the type, tags, language and difficulty band.`
+        ? (s.source === 'problem_bank'
+          ? `No published Problem Bank problems match this section — check the difficulty, topics, tags and languages.`
+          : `No active items match this section — check the type, tags, language and difficulty band.`)
         : `Only ${available} item${available === 1 ? '' : 's'} match, and ${required} are needed.`;
     }
 
@@ -205,6 +229,7 @@ export async function drawForAttempt(exam: IHackathonExam, seed: string): Promis
         order,
         type: item.type as IDrawnItem['type'],
         marks: s.marksPerItem > 0 ? s.marksPerItem : item.points,
+        ...(item.source === 'problem_bank' ? { source: 'problem_bank' as const } : {}),
       });
     });
   }

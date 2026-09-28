@@ -41,6 +41,45 @@
  */
 export const PROTECTED_TAIL_TOPIC_PREFIXES: Readonly<Record<string, readonly string[]>> =
   Object.freeze({
+    /*
+     * Year 2 ends in what the year is evidenced by: the engineering projects, the professional
+     * block and the verification that closes it. Measured, an EMERGING second-year was selecting
+     * none of them — the floors above were the cause, and this keeps the trim from becoming the
+     * next one.
+     */
+    build: Object.freeze([
+      /*
+       * B11 — the direction the student chose. Protected for the same reason as the tail: a
+       * plan that drops the specialization somebody picked has dropped the thing they came
+       * for. Measured, a second-year composed eight of their nine backend lessons and was
+       * PLACED none of them, because B11 sits late enough in the order to be what the trim
+       * reaches first.
+       */
+      'T2_TRACK_',
+      /* B12 — the engineering projects. */
+      'T2_PROJECTS',
+      /* B13 — communication, the portfolio, and applying for the internship. */
+      'T2_COMMUNICATION', 'T2_PORTFOLIO', 'T2_INTERNSHIP',
+      /* B14 — the verification that closes the year. */
+      'T2_VERIFICATION',
+    ]),
+    /*
+     * Year 3 ends in the production project and the evidence that comes out of it, which is the
+     * whole argument of the year: a third-year is judged on something they shipped.
+     */
+    specialize: Object.freeze([
+      /* S12-S18C — the specialization, which is most of why a third-year is here. */
+      'T3_BACKEND', 'T3_FRONTEND', 'T3_DATA', 'T3_ML', 'T3_CLOUD', 'T3_CICD',
+      'T3_SEC', 'T3_MOBILE', 'T3_SWE', 'T3_FS',
+      /* S20 — the production project and the capstone built on it. */
+      'T3_PROJECT', 'T3_CAPSTONE',
+      /* S21 — the technical interview and system design. */
+      'T3_INTERVIEW_PRACTICE', 'T3_SYSTEM_DESIGN',
+      /* S22-S24 — writing, presenting, the portfolio, and applying. */
+      'T3_TECH_WRITING', 'T3_PRESENTING', 'T3_PORTFOLIO', 'T3_APPLYING', 'T3_BEHAVIORAL',
+      /* S25 — the verification that closes the year. */
+      'T3_VERIFICATION',
+    ]),
     placement: Object.freeze([
       /* P22 — the nine mocks. */
       'T4_MOCK_',

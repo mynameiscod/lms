@@ -46,7 +46,7 @@ import { CAREER_STAGES } from './careerStageService';
 import { foundationProgramDaysFor, programDaysFor, journeyDaysOf } from './foundationProgramLengthService';
 import { inTeachingOrder } from '../data/contentBundlePolicy';
 import { composeUnits, ComposerResult, SelectedUnit, StudentProfile, ComposableUnit, refusedComposition } from './curriculumComposerService';
-import { placementAllocationFor, CompositionPolicyShape } from '../data/compositionShapePolicy';
+import { allocationForStage } from '../data/compositionShapePolicy';
 import { bridgePlanFor, BridgePlan } from '../data/stageBridgePolicy';
 import { revisionPlanFor, RevisionPlan } from '../data/stageRevisionPolicy';
 import { directionRequiredFor } from '../data/stageDirectionPolicy';
@@ -55,16 +55,6 @@ import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } f
 import { isProtectedFromTrim } from '../data/terminalCoveragePolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource } from './composerCandidateService';
 import { sequencePredecessorOf, sequenceIndexOf } from '../data/courseSequencePolicy';
-
-/**
- * The composition shape for a stage, or undefined to use the shipped default.
- *
- * Only placement has its own. Returning undefined rather than `allocationFor` matters: the
- * composer's own default is then what runs, so there is one answer to "what shape does a
- * non-placement plan have" rather than two that could drift apart.
- */
-export const compositionPolicyFor = (stageKey?: string | null): CompositionPolicyShape | undefined =>
-  (String(stageKey || '').toLowerCase().trim() === 'placement' ? placementAllocationFor : undefined);
 
 /** Marks a curriculum as a Foundation UNIT-engine journey. Lets one be found without guessing. */
 export const FOUNDATION_JOURNEY_KIND = 'FOUNDATION_UNIT_JOURNEY_V1';
@@ -418,7 +408,18 @@ async function composeRevision(
       return [];
     }
 
-    const out = composeUnits({ candidates: scoped, targetUnits: revision.units, student: profile });
+    /*
+     * THE BUDGET IS A CAP, NOT A PROMISE.
+     *
+     * `targetUnits` is the most revision this learner's days can spare. Refusing everything when
+     * the earlier stages hold fewer practice units than that threw the whole remediation away
+     * over a shortfall of one: a learner owed nine units of revision and offered seven was given
+     * none. `minUnits: 1` says what is actually true — any revision is better than no revision,
+     * and the cap is the ceiling rather than the floor.
+     */
+    const out = composeUnits({
+      candidates: scoped, targetUnits: revision.units, minUnits: 1, student: profile,
+    });
     if (!out.ok || !out.units.length) {
       console.warn(`[revision] could not compose ${revision.units} units: ${out.code || 'none'}`);
       return [];
@@ -496,6 +497,13 @@ async function composeBridge(
     const out = composeUnits({
       candidates: scoped,
       targetUnits: budget,
+      /*
+       * The same reason revision states it: this budget is the most bridging the plan can spare,
+       * not an amount that must be met exactly. A fresh second-year gapped on five Year-1 skills
+       * was being handed NO bridge at all because the ladder for them came to a few units fewer
+       * than the cap — which is the one learner the bridge exists for.
+       */
+      minUnits: 1,
       student: profile,
     });
     if (!out.ok || !out.units.length) {
@@ -699,16 +707,24 @@ export async function composeFoundationJourney(
      * The promise is the DAYS. Density asks for more units than days, and a year whose inventory
      * is smaller than a strong learner's appetite must give them everything it has rather than
      * refuse them a journey. See ComposerInput.minUnits.
+     *
+     * NET OF WHAT THE BRIDGE AND THE REVISION ALREADY SUPPLY. Those units are part of the plan
+     * and already occupy days, so this composition only has to fill what is left. Charging it
+     * the whole programme refused the learners who got the largest bridge: a third-year was
+     * composed 137 units for 130 days and told "the curriculum can only fill 137 of 130 days",
+     * because `rest` alone fell short of a floor that the bridge had already half met.
      */
-    minUnits: programDays,
+    minUnits: Math.max(0, programDays - priorUnits.length),
     student: profile,
     /*
-     * Year 4 composes against its own shape. BASE describes a year that teaches; Year 4's
-     * inventory holds eight first-exposure units and no exploration at all, so BASE's floors
-     * were unmeetable by any selection and starved the roles that could be filled. See
-     * PLACEMENT_BASE. Every other stage passes nothing and keeps `allocationFor`.
+     * Years 2, 3 and 4 each compose against their own shape. BASE was calibrated against Year
+     * 1 and describes a year that teaches from first principles; the later years hold very
+     * different mixes, and a floor a stage's inventory cannot meet is held open forever and
+     * starves every role behind it. Measured, that cost Years 2 and 3 every project and every
+     * checkpoint in the plan. See BUILD_BASE, SPECIALIZE_BASE and PLACEMENT_BASE. Foundation
+     * passes nothing and keeps `allocationFor`, which is still right for it.
      */
-    compositionPolicy: compositionPolicyFor(opts.stageKey),
+    compositionPolicy: allocationForStage(opts.stageKey),
     history: [...(opts.history || []), ...priorUnits.map(u => u.unitCode)],
   });
 

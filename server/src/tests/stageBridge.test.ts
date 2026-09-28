@@ -11,6 +11,7 @@ import {
   bridgePlanFor, BRIDGE_READY_SCORE, BRIDGE_SKILLS, BRIDGE_SOURCE_STAGE,
   MAX_BRIDGE_SHARE, UNITS_PER_BRIDGE_SKILL,
 } from '../data/stageBridgePolicy';
+import { densityFor } from '../data/learningDensityPolicy';
 
 /** A profile carrying exactly the measured skills named. Skills absent here are UNMEASURED. */
 const profileOf = (scores: Record<string, number>): any => ({
@@ -28,7 +29,12 @@ describe('who gets bridged', () => {
     expect(plan).not.toBeNull();
     expect(plan!.sourceStages).toEqual(['foundation']);
     expect(plan!.skills).toEqual(['PROBLEM_SOLVING', 'PROGRAMMING_FUNDAMENTALS', 'DSA_ARRAYS']);
-    expect(plan!.days).toBe(3 * UNITS_PER_BRIDGE_SKILL);
+    /*
+     * In UNITS. Three unmet skills imply thirty units of Year-1 teaching whoever the learner is;
+     * the DAYS that takes are their own density, which is why this constant counts units.
+     */
+    expect(plan!.units).toBe(3 * UNITS_PER_BRIDGE_SKILL);
+    expect(plan!.days).toBe((3 * UNITS_PER_BRIDGE_SKILL) / densityFor(null, 'build').unitsPerDay);
   });
 
   it('does NOT bridge a returning Year-1 member — they start on the year they bought', () => {

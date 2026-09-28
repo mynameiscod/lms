@@ -414,12 +414,135 @@ const PLACEMENT_BASE: Record<LearnerShape, RoleAllocation[]> = {
 };
 
 /**
+ * ── YEAR 2'S SHAPE ────────────────────────────────────────────────────────────────────────
+ *
+ * Year 2 still teaches, so unlike Years 3 and 4 it keeps a real first-exposure floor — measured,
+ * it holds 76 such units for one direction against Year 4's eight. What it does NOT hold is
+ * second-pass instruction: six GUIDED units in the whole year, against a BASE floor of eleven.
+ *
+ * That one unmeetable floor was enough to break the year. It kept its turn in the rotation
+ * forever, the roles behind it never got one, and an EMERGING second-year composed 58 units of
+ * first-exposure teaching against a target of 30 while selecting ZERO of the 27 projects and
+ * ZERO of the 23 checkpoints available to them. They finished Year 2 having built nothing and
+ * proved nothing.
+ *
+ * Every floor below sits under measured availability for a single direction.
+ */
+const BUILD_BASE: Record<LearnerShape, RoleAllocation[]> = {
+  EMERGING: [
+    { role: 'FOUNDATION_INSTRUCTION', min: 14, target: 26 },
+    { role: 'GUIDED_INSTRUCTION', min: 0, target: 2 },
+    { role: 'ADVANCED_UNIVERSAL', min: 9, target: 16 },
+    { role: 'DIRECTION_LEARNING', min: 4, target: 5 },
+    { role: 'EXPLORATION', min: 0, target: 1 },
+    { role: 'PRACTICE', min: 10, target: 16 },
+    { role: 'APPLICATION', min: 6, target: 11 },
+    { role: 'INTEGRATION', min: 5, target: 9 },
+    { role: 'VERIFICATION', min: 5, target: 9 },
+  ],
+  DEVELOPING: [
+    { role: 'FOUNDATION_INSTRUCTION', min: 9, target: 18 },
+    { role: 'GUIDED_INSTRUCTION', min: 0, target: 2 },
+    { role: 'ADVANCED_UNIVERSAL', min: 11, target: 19 },
+    { role: 'DIRECTION_LEARNING', min: 4, target: 5 },
+    { role: 'EXPLORATION', min: 0, target: 1 },
+    { role: 'PRACTICE', min: 10, target: 16 },
+    { role: 'APPLICATION', min: 8, target: 13 },
+    { role: 'INTEGRATION', min: 6, target: 10 },
+    { role: 'VERIFICATION', min: 6, target: 9 },
+  ],
+  ESTABLISHED: [
+    { role: 'FOUNDATION_INSTRUCTION', min: 3, target: 8 },
+    { role: 'GUIDED_INSTRUCTION', min: 0, target: 2 },
+    { role: 'ADVANCED_UNIVERSAL', min: 10, target: 21 },
+    { role: 'DIRECTION_LEARNING', min: 4, target: 6 },
+    { role: 'EXPLORATION', min: 0, target: 1 },
+    { role: 'PRACTICE', min: 9, target: 15 },
+    { role: 'APPLICATION', min: 9, target: 15 },
+    { role: 'INTEGRATION', min: 7, target: 12 },
+    { role: 'VERIFICATION', min: 7, target: 12 },
+  ],
+};
+
+/**
+ * ── YEAR 3'S SHAPE ────────────────────────────────────────────────────────────────────────
+ *
+ * Year 3 teaches nothing from first principles and says so in its own map: every one of its
+ * hundred topics is authored STANDARD or CHALLENGE, because a third-year is assumed to be able
+ * to program and what the year adds is depth. Its measured inventory for one direction is
+ * therefore ZERO first-exposure units, ZERO second-pass units and ZERO exploration.
+ *
+ * BASE asked an EMERGING third-year for 23, 13 and 1 of them. Three floors that no selection
+ * could ever satisfy, held open forever, and the result was the same as Year 2's: zero of the 29
+ * projects and zero of the 12 checkpoints, in a year whose whole point is a production project
+ * and the evidence that comes out of it.
+ *
+ * VERIFICATION's target is deliberately low — four per ninety — because that is nearly all the
+ * year has. Asking for more would be the same mistake in the other direction.
+ */
+const SPECIALIZE_BASE: Record<LearnerShape, RoleAllocation[]> = {
+  EMERGING: [
+    { role: 'FOUNDATION_INSTRUCTION', min: 0, target: 0 },
+    { role: 'GUIDED_INSTRUCTION', min: 0, target: 0 },
+    { role: 'ADVANCED_UNIVERSAL', min: 26, target: 45 },
+    { role: 'DIRECTION_LEARNING', min: 3, target: 5 },
+    { role: 'EXPLORATION', min: 0, target: 0 },
+    { role: 'PRACTICE', min: 7, target: 12 },
+    { role: 'APPLICATION', min: 6, target: 10 },
+    { role: 'INTEGRATION', min: 8, target: 14 },
+    { role: 'VERIFICATION', min: 2, target: 4 },
+  ],
+  DEVELOPING: [
+    { role: 'FOUNDATION_INSTRUCTION', min: 0, target: 0 },
+    { role: 'GUIDED_INSTRUCTION', min: 0, target: 0 },
+    { role: 'ADVANCED_UNIVERSAL', min: 25, target: 43 },
+    { role: 'DIRECTION_LEARNING', min: 3, target: 6 },
+    { role: 'EXPLORATION', min: 0, target: 0 },
+    { role: 'PRACTICE', min: 7, target: 12 },
+    { role: 'APPLICATION', min: 7, target: 11 },
+    { role: 'INTEGRATION', min: 8, target: 14 },
+    { role: 'VERIFICATION', min: 2, target: 4 },
+  ],
+  ESTABLISHED: [
+    { role: 'FOUNDATION_INSTRUCTION', min: 0, target: 0 },
+    { role: 'GUIDED_INSTRUCTION', min: 0, target: 0 },
+    { role: 'ADVANCED_UNIVERSAL', min: 23, target: 40 },
+    { role: 'DIRECTION_LEARNING', min: 4, target: 7 },
+    { role: 'EXPLORATION', min: 0, target: 0 },
+    { role: 'PRACTICE', min: 7, target: 12 },
+    { role: 'APPLICATION', min: 7, target: 12 },
+    { role: 'INTEGRATION', min: 9, target: 15 },
+    { role: 'VERIFICATION', min: 2, target: 4 },
+  ],
+};
+
+/**
  * Year 4's shape, in the same signature as `allocationFor` so it IS the policy rather than a
  * special case of it. Passed as `ComposerInput.compositionPolicy` for the placement stage only;
  * every other stage keeps `allocationFor` untouched.
  */
 export const placementAllocationFor: CompositionPolicyShape = (shape, stance, programDays) =>
   allocationFrom(PLACEMENT_BASE[shape], stance, programDays);
+
+/**
+ * The base table a stage composes against, or undefined for the shipped default.
+ *
+ * Foundation is absent on purpose: BASE was calibrated against Year 1's inventory and is still
+ * exactly right for it. Every year after it holds a different mix, and each says so here.
+ */
+const STAGE_BASE: Readonly<Record<string, Record<LearnerShape, RoleAllocation[]>>> = Object.freeze({
+  build: BUILD_BASE,
+  specialize: SPECIALIZE_BASE,
+  placement: PLACEMENT_BASE,
+});
+
+/** The composition shape for a stage, or undefined to let the composer use its own default. */
+export const allocationForStage = (
+  stageKey: string | null | undefined,
+): CompositionPolicyShape | undefined => {
+  const table = STAGE_BASE[String(stageKey || '').toLowerCase().trim()];
+  return table ? (shape, stance, programDays) => allocationFrom(table[shape], stance, programDays) : undefined;
+};
 
 /** The shape `ComposerInput.compositionPolicy` expects, restated here to avoid a circular import. */
 export type CompositionPolicyShape = (

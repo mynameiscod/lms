@@ -22,6 +22,7 @@ jest.mock('../services/skillDnaService', () => ({
 
 import { buildFoundationProfile } from '../services/foundationProfileService';
 import { bridgePlanFor, BRIDGE_READY_SCORE, UNITS_PER_BRIDGE_SKILL } from '../data/stageBridgePolicy';
+import { densityFor } from '../data/learningDensityPolicy';
 
 const TENANT = '6aa8e4d702b4b0e2097b221d';
 const STUDENT = '5f9d1b2c3a4b5c6d7e8f9999';
@@ -127,7 +128,14 @@ describe('a fresh second-year joiner', () => {
     expect(plan).not.toBeNull();
     expect(plan!.sourceStages).toEqual(['foundation']);
     expect(plan!.skills).toEqual(['PROBLEM_SOLVING', 'PROGRAMMING_FUNDAMENTALS', 'DSA_ARRAYS']);
-    expect(plan!.days).toBe(3 * UNITS_PER_BRIDGE_SKILL);
+    /*
+     * THE CONTENT IS THE INVARIANT; THE CALENDAR IS THE LEARNER'S. Three unmet skills imply
+     * thirty UNITS of teaching whoever the learner is. How many DAYS that occupies is their own
+     * density — which is the whole reason UNITS_PER_BRIDGE_SKILL is counted in units and not,
+     * as it once was, in days.
+     */
+    expect(plan!.units).toBe(3 * UNITS_PER_BRIDGE_SKILL);
+    expect(plan!.days).toBe((3 * UNITS_PER_BRIDGE_SKILL) / densityFor(null, 'build').unitsPerDay);
   });
 
   /**
@@ -144,10 +152,10 @@ describe('a fresh second-year joiner', () => {
 describe('the two, side by side', () => {
   /**
    * THE WHOLE POINT, IN ONE TEST. The same code, the same stage, the same programme length —
-   * and thirty days of difference, decided by nothing but the evidence each one carries. No
+   * and a whole bridge of difference, decided by nothing but the evidence each one carries. No
    * flag distinguishes them, which is what makes it impossible for the flag to be wrong.
    */
-  it('differ by thirty days on evidence alone', async () => {
+  it('differ by a whole bridge on evidence alone', async () => {
     getSkillDna.mockResolvedValue([
       dna('PROGRAMMING_FUNDAMENTALS', 17), dna('PROBLEM_SOLVING', 16), dna('DSA_ARRAYS', 34),
     ]);
@@ -158,9 +166,11 @@ describe('the two, side by side', () => {
     ]);
     const returning = (await bridgeFor()).plan;
 
-    expect(fresh!.days).toBe(30);
+    /* In UNITS: the gap is the same figure at any pace, where the calendar is not. */
+    expect(fresh!.units).toBe(3 * UNITS_PER_BRIDGE_SKILL);
     expect(returning).toBeNull();
-    expect(fresh!.days - (returning?.days ?? 0)).toBe(30);
+    expect(fresh!.units - (returning?.units ?? 0)).toBe(3 * UNITS_PER_BRIDGE_SKILL);
+    expect(fresh!.days).toBeGreaterThan(0);
   });
 
   /**

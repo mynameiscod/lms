@@ -172,14 +172,56 @@ const STAGE_DENSITY: Readonly<Record<string, LearningDensity>> = Object.freeze({
   placement: PLACEMENT_DENSITY,
 });
 
+/**
+ * ── THE WEAKEST BAND IS RAISED IN THE YEARS THAT END IN EVIDENCE ──────────────────────────
+ *
+ * One unit a day is the right pace for somebody meeting ideas for the first time, and it stays
+ * the rule in Year 1. In Years 2 and 3 it had a consequence nobody intended.
+ *
+ * At one a day a second-year composes 110 units. Measured, 58 of those went to first-exposure
+ * teaching before the role rotation even began — the backbone is taught up to its first practice,
+ * and for a learner who has proven nothing that is most of the year's instruction — which left 52
+ * for everything else and the plan reached ZERO of the 27 projects and ZERO of the 23 checkpoints
+ * available to it. A third-year at one a day was the same story. Both finished a year having
+ * built nothing and proved nothing, which is not a smaller year; it is a year with its evidence
+ * taken out.
+ *
+ * Two a day is not an overload at this pace: Year-2 units average under an hour, so two of them
+ * is about the hundred and ten minutes the BUILDING band already budgets for. What changes is
+ * that the backbone no longer consumes the whole plan on its way past.
+ *
+ * Foundation is deliberately absent. A first-year who knows nothing is exactly who Year 1 is
+ * written for, there is no earlier backbone competing for their days, and the gentler pace is the
+ * product rather than an accident.
+ */
+const EVIDENCED_YEAR_FLOOR: LearningDensity = {
+  band: 'BUILDING', unitsPerDay: 2, budgetMinutes: 180, maxUnitsPerDay: 3,
+};
+
+/** Stages whose WEAKEST band is raised. Every stronger band is untouched. */
+const STAGE_DENSITY_FLOOR: Readonly<Record<string, LearningDensity>> = Object.freeze({
+  build: EVIDENCED_YEAR_FLOOR,
+  specialize: EVIDENCED_YEAR_FLOOR,
+});
+
+/**
+ * How dense this learner's days should be.
+ *
+ * Nothing measured means the weakest band. That is the cautious end on purpose: a learner we know
+ * nothing about is given the gentler plan, and their evidence moves them up soon enough.
+ *
+ * `stageKey` is optional and only ever RAISES what a learner is given, never lowers it: a caller
+ * that omits it gets exactly the behaviour every caller had before any of this existed.
+ */
 export function densityFor(
   profile: StudentProfile | null | undefined,
   stageKey?: string | null,
 ): LearningDensity {
-  const fixed = STAGE_DENSITY[String(stageKey || '').toLowerCase().trim()];
+  const stage = String(stageKey || '').toLowerCase().trim();
+  const fixed = STAGE_DENSITY[stage];
   if (fixed) return fixed;
   const mean = measuredMean(profile);
-  if (mean === null || mean < BUILDING_BELOW) return DENSITIES.BUILDING;
+  if (mean === null || mean < BUILDING_BELOW) return STAGE_DENSITY_FLOOR[stage] ?? DENSITIES.BUILDING;
   if (mean >= FAST_AT_OR_ABOVE) return DENSITIES.FAST;
   return DENSITIES.STEADY;
 }

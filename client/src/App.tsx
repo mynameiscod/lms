@@ -61,6 +61,11 @@ const StudentProfileDetail = lazy(() => import('./pages/AdminStudentProfiles/Stu
 const PlacementDrivesPage = lazy(() => import('./pages/PlacementDrives'));
 const StudentDrivesPage = lazy(() => import('./pages/Drives/StudentDrives'));
 const PrepPackPage = lazy(() => import('./pages/Drives/PrepPack'));
+const QuestionBooksLibrary = lazy(() => import('./pages/QuestionBooks/Library'));
+const QuestionBookReader = lazy(() => import('./pages/QuestionBooks/Reader'));
+const QuestionBookCheatSheet = lazy(() => import('./pages/QuestionBooks/CheatSheet'));
+const QuestionBooksAdmin = lazy(() => import('./pages/QuestionBooks/Admin'));
+const QuestionBookEditor = lazy(() => import('./pages/QuestionBooks/Admin').then((m) => ({ default: m.BookEditor })));
 const PlacementAnalyticsPage = lazy(() => import('./pages/PlacementAnalytics'));
 const TenantManagementPage = lazy(() => import('./pages/TenantManagement'));
 const NotificationCenterPage = lazy(() => import('./pages/NotificationCenter'));
@@ -625,6 +630,9 @@ const AppRoutes: React.FC = () => {
         <Route path="/passport/assessment" element={<LegacyRedirect to="/careerpilot/assessment" />} />
         <Route path="/careerpilot/roadmap" element={<PassportRoadmap />} />
         {/* Interview Experiences — the same pages as the LMS, inside the member shell. */}
+        <Route path="/careerpilot/question-books" element={<QuestionBooksLibrary />} />
+        <Route path="/careerpilot/question-books/cheat-sheet" element={<QuestionBookCheatSheet />} />
+        <Route path="/careerpilot/question-books/:slug" element={<QuestionBookReader />} />
         <Route path="/careerpilot/interview-experiences" element={<InterviewHubFeed />} />
         <Route path="/careerpilot/interview-experiences/share" element={<InterviewHubShare />} />
         <Route path="/careerpilot/interview-experiences/company/:slug" element={<InterviewHubCompany />} />
@@ -1284,6 +1292,56 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <PrepPackPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/question-books"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <QuestionBooksLibrary />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/question-books/cheat-sheet"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <QuestionBookCheatSheet />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/question-books/:slug"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <QuestionBookReader />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/question-books"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <QuestionBooksAdmin />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/question-books/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <QuestionBookEditor />
             </Layout>
           </ProtectedRoute>
         }

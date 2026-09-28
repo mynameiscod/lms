@@ -126,3 +126,40 @@ The College area was retired at the user's request, because it was not used. Pla
 ## Security (2026-09-28)
 - `your-secret-key-change-this`, the value production was running on, is now in `BANNED_SECRETS`, so the server refuses to start with it.
 - **The rotation must happen before or with the deploy that ships this.** `ENCRYPTION_KEY` on production is set separately (it has the same weak value), so rotating `JWT_SECRET` does not affect stored secrets. Re-keying `ENCRYPTION_KEY` properly is a separate task that needs a re-encryption pass.
+
+## P2: Question Books (2026-09-28)
+- **What it is:** interview questions **written by admins and instructors only** (the user's decision), read by LMS students and CareerPilot members as a notebook.
+- **Books:** a book is either a **topic book** (Java, SQL, HR…) or a **company book**. Each has chapters.
+- **Ownership:** as with the Problem Bank, a book is either `global` (CodeBegun's, written by a super admin and seen by every institute) or `tenant` (one institute's own).
+- **Audience:** LMS, CareerPilot, or both.
+- **Reader** (`/question-books/:slug`, and inside CareerPilot's shell at `/careerpilot/question-books/:slug`):
+  - The cover swings open onto a contents spread.
+  - Each spread has the question on the left page and the answer on the right, hidden until "Show the answer" (think, then flip).
+  - Pages turn with a page-turn animation.
+  - The student marks "I knew it" or "Revise later", and stars questions.
+  - The student can add a personal note, shown as a sticky note.
+  - Filters: All, Not yet seen, To revise, Starred.
+  - "Continue from Qn" resumes where the student left off.
+  - Keyboard: ← → to turn pages, Space to show the answer, K knew it, R revise, F star.
+  - Phone: one page at a time.
+  - The notebook paper is ruled with a margin line and uses the Kalam and Caveat handwriting fonts. Code blocks stay monospace.
+- **Cheat sheet** (`/question-books/cheat-sheet`): all starred questions with the student's notes, printable or saveable as PDF.
+- **Staff:** `/admin/question-books`. They can:
+  - create books (cover colour and emblem, audience, and CodeBegun scope for super admins);
+  - edit chapters (a chapter that still has questions cannot be deleted);
+  - add and edit questions (Markdown, difficulty, "commonly asked at", a mentor's tip), with a notebook preview;
+  - paste many questions at once as Q:/A: or numbered blocks, with a live preview;
+  - reorder questions;
+  - publish (an empty book can't be published).
+- **Code:**
+  - Models: `models/QuestionBook.ts`, giving the collections `questionbooks`, `bookquestions` and `bookprogresses`.
+  - Service: `services/questionBookService.ts`.
+  - Routes: `routes/questionBookRoutes.ts` at `/api/v1/question-books`.
+  - Client: `client/src/pages/QuestionBooks/*`.
+- **Tests:**
+  - `tests/questionBook.test.ts` covers the paste parser.
+  - A 16-step API smoke test covered permissions, publish rules, the chapter guard, drafts being hidden from students, progress, and the cheat sheet.
+  - Headless-Chrome screenshots of the production build (shelf, cover opening, contents, question, answer with code, phone, cheat sheet, admin) caught and fixed three bugs:
+    - a Bootstrap `.row` clash in the contents;
+    - the answer buttons overlapping the note;
+    - raw markdown showing in the cheat sheet.

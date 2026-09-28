@@ -36,7 +36,9 @@ Drop `--check` to rewrite them, then commit the CSVs.
 
 ## 2. Provision
 
-Dry run first — it writes nothing and tells you what each step would do:
+Dry run first — it writes nothing and tells you what each step would do (on a NEW tenant it stops at the
+first step that needs an earlier step's writes — e.g. "No 'foundation' curriculum" — which is
+expected: a dry run cannot read data it did not write):
 
 ```bash
 cd server
@@ -49,13 +51,13 @@ Then:
 npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --apply
 ```
 
-It runs 24 steps in dependency order and **halts on the first failure**, because a later step
+It runs 25 steps in dependency order and **halts on the first failure**, because a later step
 reading a half-written earlier one is how a tenant ends up subtly wrong rather than obviously
 broken. To continue after fixing something:
 
 ```bash
-npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --apply --from 14
-npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --apply --only 18,19,20
+npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --apply --from 15
+npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --apply --only 19,20,21
 ```
 
 ### What it does, and why in that order
@@ -63,13 +65,14 @@ npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --apply --only 18,19,
 | Steps | What | Why here |
 |---|---|---|
 | 1 | Career skill taxonomy (global, not per tenant) | A curriculum naming an unknown skill is refused |
-| 2–6 | The four curricula and their units | Units land DRAFT — invisible to every planning path |
-| 7 | Reconcile unit depth and directions | Both are written on insert only, so a tenant seeded earlier keeps wrong values |
-| 8–11 | Stage skill sets, enabled | What each stage measures |
-| 12–13 | Role blueprints, seeded **and published** | Without these, naming a target role refuses the assessment and then the roadmap |
-| 14–17 | Unit content — notes, practice, checkpoints, assignments | Binds to unit codes that must already exist |
-| 18–20 | Golden banks | The entry assessment's questions |
-| 21–24 | Publish each stage | A unit is only publishable once it has something to teach |
+| 2 | Year 1's curriculum document (topics, skills, backbone) | Years 2–4 create theirs in their seeders; Year 1's seeder only adds units to an existing one |
+| 3–7 | Validate Year 1, then the four curricula and their units | Units land DRAFT — invisible to every planning path |
+| 8 | Reconcile unit depth and directions | Both are written on insert only, so a tenant seeded earlier keeps wrong values |
+| 9–12 | Stage skill sets, enabled | What each stage measures |
+| 13–14 | Role blueprints, seeded **and published** | Without these, naming a target role refuses the assessment and then the roadmap |
+| 15–18 | Unit content — notes, practice, checkpoints, assignments | Binds to unit codes that must already exist |
+| 19–21 | Golden banks | The entry assessment's questions |
+| 22–25 | Publish each stage | A unit is only publishable once it has something to teach |
 
 ---
 
@@ -110,17 +113,22 @@ The provisioning script runs this automatically at the end, or on its own:
 npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --verify-only
 ```
 
-Expected on a fully provisioned tenant:
+Expected on a fully provisioned tenant — measured 2026-09-28 by provisioning an EMPTY database
+from the repo (these are what the generators produce; a tenant that has been hand-edited will differ):
 
 ```
-  foundation    346/359  units published    45 topics (11 backbone)
-  build         377/377  units published    33 topics (17 backbone)
+  foundation    345/350  units published    43 topics (11 backbone)
+  build         377/377  units published    33 topics (20 backbone)
   specialize    453/453  units published   100 topics (75 backbone)
   placement     439/439  units published    96 topics (50 backbone)
 
   assessment items       6150 (6150 skill-keyed)
   role blueprints        7 (7 published)
 ```
+
+The AI, Data, Security and Cloud roles (step 14) are skipped on a new tenant: those twelve roles
+are not system roles, so create them in the admin screen first if you want their blueprints, then
+re-run with `--only 14`.
 
 It warns loudly if a stage has no published units, if no blueprint is published, or if there are
 no skill-keyed assessment items — the three faults that produce a member who can pay and then
@@ -145,7 +153,7 @@ and the packer trimmed it silently, and that was invisible until a journey was a
 Every step is idempotent, and the seeders never unpublish a unit somebody published or undo an
 authorship decision an admin made. That is what makes re-running safe when content changes.
 
-It is not invisible, though. **Step 7 changes unit depth and direction scoping**, and both are
+It is not invisible, though. **Step 8 changes unit depth and direction scoping**, and both are
 inputs to composition — so a student whose journey is recomposed *after* this runs may get a
 different plan from the one they would have got before. Nothing already written to a student's
 days is touched. The script counts existing journeys and says so before it starts.

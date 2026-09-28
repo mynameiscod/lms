@@ -6,8 +6,8 @@
  *
  *   npx ts-node src/scripts/provisionCareerPilot.ts <tenantId>
  *   npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --apply
- *   npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --apply --from 7
- *   npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --apply --only 12,13,14,15
+ *   npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --apply --from 8
+ *   npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --apply --only 15,16,17,18
  *   npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --verify-only
  *
  * ── READ THIS BEFORE RUNNING IT AGAINST PRODUCTION ────────────────────────────────────────
@@ -90,38 +90,45 @@ const STEPS: Step[] = [
   },
 
   /* ── The four curricula. Units land DRAFT; nothing is visible yet. ────────────────────── */
+  /**
+   * Year 1's curriculum document itself — its topics, skill keys and backbone flags. Years 2-4
+   * create theirs inside their seeders; Year 1's seeder only adds units to one that already
+   * exists, so on a new tenant everything after this step used to halt on "No 'foundation'
+   * curriculum".
+   */
+  { n: 2, label: 'Year 1 — create the foundation curriculum (topics, skills, backbone)', script: 'src/seeds/careerPilot/createFoundationCurriculum.ts', args: ['%t'] },
   {
-    n: 2,
+    n: 3,
     label: 'Validate the Year-1 mega curriculum before importing it',
     script: 'src/scripts/validateMegaCurriculum.ts',
     args: ['%t'],
     readOnly: true,
   },
-  { n: 3, label: 'Year 1 — foundation curriculum and units', script: 'src/seeds/careerPilot/seedYear1MegaCurriculum.ts', args: ['%t'] },
-  { n: 4, label: 'Year 2 — build curriculum and units', script: 'src/seeds/careerPilot/seedYear2Curriculum.ts', args: ['%t'] },
-  { n: 5, label: 'Year 3 — specialize curriculum and units', script: 'src/seeds/careerPilot/seedYear3Curriculum.ts', args: ['%t'] },
-  { n: 6, label: 'Year 4 — placement curriculum and units', script: 'src/seeds/careerPilot/seedYear4Curriculum.ts', args: ['%t'] },
+  { n: 4, label: 'Year 1 — foundation curriculum and units', script: 'src/seeds/careerPilot/seedYear1MegaCurriculum.ts', args: ['%t'] },
+  { n: 5, label: 'Year 2 — build curriculum and units', script: 'src/seeds/careerPilot/seedYear2Curriculum.ts', args: ['%t'] },
+  { n: 6, label: 'Year 3 — specialize curriculum and units', script: 'src/seeds/careerPilot/seedYear3Curriculum.ts', args: ['%t'] },
+  { n: 7, label: 'Year 4 — placement curriculum and units', script: 'src/seeds/careerPilot/seedYear4Curriculum.ts', args: ['%t'] },
 
   /**
    * Depth and directions are written on INSERT only, so a tenant seeded before those fields were
    * resolved correctly keeps the wrong values however often it is re-seeded. On a fresh tenant
    * this finds nothing and says so.
    */
-  { n: 7, label: 'Reconcile unit depth and direction scoping', script: 'src/scripts/reconcileUnitAuthorship.ts', args: ['%t'] },
+  { n: 8, label: 'Reconcile unit depth and direction scoping', script: 'src/scripts/reconcileUnitAuthorship.ts', args: ['%t'] },
 
   /* ── What each stage measures. `--enable` turns the set on; without it nothing reads it. ── */
-  { n: 8, label: 'Stage skill set — foundation', script: 'src/seeds/careerPilot/seedFoundationStageSkillSet.ts', args: ['%t', '--enable'] },
-  { n: 9, label: 'Stage skill set — build', script: 'src/seeds/careerPilot/seedFoundationStageSkillSet.ts', args: ['%t', '--enable', '--year2'] },
-  { n: 10, label: 'Stage skill set — specialize', script: 'src/seeds/careerPilot/seedFoundationStageSkillSet.ts', args: ['%t', '--enable', '--year3'] },
-  { n: 11, label: 'Stage skill set — placement', script: 'src/seeds/careerPilot/seedFoundationStageSkillSet.ts', args: ['%t', '--enable', '--year4'] },
+  { n: 9, label: 'Stage skill set — foundation', script: 'src/seeds/careerPilot/seedFoundationStageSkillSet.ts', args: ['%t', '--enable'] },
+  { n: 10, label: 'Stage skill set — build', script: 'src/seeds/careerPilot/seedFoundationStageSkillSet.ts', args: ['%t', '--enable', '--year2'] },
+  { n: 11, label: 'Stage skill set — specialize', script: 'src/seeds/careerPilot/seedFoundationStageSkillSet.ts', args: ['%t', '--enable', '--year3'] },
+  { n: 12, label: 'Stage skill set — placement', script: 'src/seeds/careerPilot/seedFoundationStageSkillSet.ts', args: ['%t', '--enable', '--year4'] },
 
   /**
    * Without these, every student who names a target role is refused an assessment and then a
    * roadmap. The seeder writes them unpublished; this publishes the ones it just created.
    */
-  { n: 12, label: 'Role blueprints — the seven core roles, seeded and published', script: 'src/scripts/seedAndPublishRoleBlueprints.ts', args: ['%t'] },
+  { n: 13, label: 'Role blueprints — the seven core roles, seeded and published', script: 'src/scripts/seedAndPublishRoleBlueprints.ts', args: ['%t'] },
   {
-    n: 13,
+    n: 14,
     label: 'Role blueprints — AI, Data, Security and Cloud',
     script: 'src/scripts/seedAiDataSecurityRoles.ts',
     args: ['%t'],
@@ -129,25 +136,25 @@ const STEPS: Step[] = [
   },
 
   /* ── The teaching itself: notes, practice, checkpoints and assignments per unit ────────── */
-  { n: 14, label: 'Unit content — Year 1', script: 'src/seeds/careerPilot/seedPilotUnitContent.ts', args: ['%t'] },
-  { n: 15, label: 'Unit content — Year 2', script: 'src/seeds/careerPilot/seedPilotUnitContent.ts', args: ['%t', '--year2'] },
-  { n: 16, label: 'Unit content — Year 3', script: 'src/seeds/careerPilot/seedPilotUnitContent.ts', args: ['%t', '--year3'] },
-  { n: 17, label: 'Unit content — Year 4', script: 'src/seeds/careerPilot/seedPilotUnitContent.ts', args: ['%t', '--year4'] },
+  { n: 15, label: 'Unit content — Year 1', script: 'src/seeds/careerPilot/seedPilotUnitContent.ts', args: ['%t'] },
+  { n: 16, label: 'Unit content — Year 2', script: 'src/seeds/careerPilot/seedPilotUnitContent.ts', args: ['%t', '--year2'] },
+  { n: 17, label: 'Unit content — Year 3', script: 'src/seeds/careerPilot/seedPilotUnitContent.ts', args: ['%t', '--year3'] },
+  { n: 18, label: 'Unit content — Year 4', script: 'src/seeds/careerPilot/seedPilotUnitContent.ts', args: ['%t', '--year4'] },
 
   /**
    * The assessment banks. These read the master CSVs under `docs/audit`, which are build
    * artefacts committed to the repo — if they are stale, re-emit them first with
    * emitYear2GoldenBank.ts / emitYear3GoldenBank.ts.
    */
-  { n: 18, label: 'Golden bank — foundation', script: 'src/scripts/importGoldenBank.ts', args: ['%t'] },
-  { n: 19, label: 'Golden bank — Year 2', script: 'src/scripts/importGoldenBank.ts', args: ['%t', '--year2'] },
-  { n: 20, label: 'Golden bank — Year 3', script: 'src/scripts/importGoldenBank.ts', args: ['%t', '--year3'] },
+  { n: 19, label: 'Golden bank — foundation', script: 'src/scripts/importGoldenBank.ts', args: ['%t'] },
+  { n: 20, label: 'Golden bank — Year 2', script: 'src/scripts/importGoldenBank.ts', args: ['%t', '--year2'] },
+  { n: 21, label: 'Golden bank — Year 3', script: 'src/scripts/importGoldenBank.ts', args: ['%t', '--year3'] },
 
   /* ── Last, because a unit is only publishable once it has something to teach ───────────── */
-  { n: 21, label: 'Publish — foundation', script: 'src/scripts/publishStageUnits.ts', args: ['%t', 'foundation'] },
-  { n: 22, label: 'Publish — build', script: 'src/scripts/publishStageUnits.ts', args: ['%t', 'build'] },
-  { n: 23, label: 'Publish — specialize', script: 'src/scripts/publishStageUnits.ts', args: ['%t', 'specialize'] },
-  { n: 24, label: 'Publish — placement', script: 'src/scripts/publishStageUnits.ts', args: ['%t', 'placement'] },
+  { n: 22, label: 'Publish — foundation', script: 'src/scripts/publishStageUnits.ts', args: ['%t', 'foundation'] },
+  { n: 23, label: 'Publish — build', script: 'src/scripts/publishStageUnits.ts', args: ['%t', 'build'] },
+  { n: 24, label: 'Publish — specialize', script: 'src/scripts/publishStageUnits.ts', args: ['%t', 'specialize'] },
+  { n: 25, label: 'Publish — placement', script: 'src/scripts/publishStageUnits.ts', args: ['%t', 'placement'] },
 ];
 
 const SERVER_ROOT = path.resolve(__dirname, '../..');
@@ -248,7 +255,7 @@ async function main(): Promise<void> {
   const existingJourneys = await LearningCurriculum.countDocuments({ tenantId, personalizedFor: { $ne: null } } as any);
   if (existingJourneys) {
     console.log(`  NOTE: this tenant already has ${existingJourneys} student journey(s).`);
-    console.log('  Step 7 changes unit depth and direction scoping, which are inputs to composition,');
+    console.log('  Step 8 changes unit depth and direction scoping, which are inputs to composition,');
     console.log('  so a journey recomposed after this runs may differ from the one it would have');
     console.log('  produced before. Nothing already written to a student\'s days is touched.\n');
   }

@@ -187,7 +187,9 @@ if (require.main === module) {
     const year = stageSetYearOf({ year2, year3, year4 });
     const { stage, label, flag } = STAGE_SET_YEARS[year];
     const built = STAGE_SET_YEARS[year].requirements();
-    const r = await seedFoundationStageSkillSet({ tenantId, apply: apply || enable, enable, replace, year2, year3, year4 });
+    /* Only --apply writes. --enable used to imply it, so a provisioning DRY RUN (which passes
+       --enable to every stage) silently created and switched on all four sets. */
+    const r = await seedFoundationStageSkillSet({ tenantId, apply, enable, replace, year2, year3, year4 });
 
     if (r.unknownSkillKeys.length) {
       console.error('\nREFUSED — these skill keys do not exist in the taxonomy:');
@@ -214,7 +216,7 @@ if (require.main === module) {
     if (r.skippedExisting) {
       console.log(`\nLEFT ALONE — this tenant already has a curated ${stage} set.`);
       console.log('Pass --replace to overwrite it with the module-derived one.');
-    } else if (apply || enable) {
+    } else if (apply) {
       console.log(`\n${r.created ? 'CREATED' : 'UPDATED'}  —  enabled = ${r.enabled}`);
       if (!r.enabled) {
         console.log('\nIt is written but OFF, so nothing has changed for any student yet.');
@@ -225,7 +227,7 @@ if (require.main === module) {
         console.log('Author their journeys in the Learning Studio:  /admin/learning-studio');
       }
     } else {
-      console.log(`\nDRY RUN — would ${r.updated ? 'update the existing' : 'create a new'} set.`);
+      console.log(`\nDRY RUN — would ${r.updated ? 'update the existing' : 'create a new'} set${enable ? ' and switch it on' : ''}.`);
       console.log('Pass --apply to write.');
     }
 

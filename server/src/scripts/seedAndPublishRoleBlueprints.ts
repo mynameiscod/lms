@@ -44,6 +44,8 @@ dotenv.config();
 
 import RoleSkillBlueprint from '../models/RoleSkillBlueprint';
 import { seedRoleBlueprints } from '../services/roleSkillBlueprintSeedService';
+import { ensureCareerRoles } from '../services/careerRoleService';
+import { getRoleSkillBlueprint } from '../services/roleSkillBlueprintService';
 
 async function run(): Promise<void> {
   const tenantId = process.argv[2];
@@ -62,6 +64,11 @@ async function run(): Promise<void> {
   const before = await RoleSkillBlueprint.find({ tenantId })
     .select('roleKey published').lean() as any[];
   console.log(`  already present: ${before.length} (${before.filter(b => b.published).length} published)`);
+
+  /* The app seeds a tenant's career roles lazily, on the first read of a role list. A tenant
+     being provisioned has had no such read, so without this every blueprint is refused for a
+     missing role and the step writes nothing. Insert-only: an admin's edits are never undone. */
+  if (apply) await ensureCareerRoles(tenantId);
 
   const report = await seedRoleBlueprints(tenantId, { dryRun: !apply, updatedBy: 'role-blueprint-seed' });
 
@@ -88,19 +95,31 @@ async function run(): Promise<void> {
   }
 
   const after = await RoleSkillBlueprint.find({ tenantId })
-    .select('roleKey published requirements').lean() as any[];
-  const unusable = after.filter(b => !b.published
-    || !(b.requirements || []).some((r: any) => r.active && r.skillActive && !r.missing));
+    .select('roleKey published').lean() as any[];
+  /* `skillActive` and `missing` are not stored — the app resolves them against the live skill
+     catalogue on read. Reading the raw documents here reported every blueprint as unusable. */
+  const usableCount = new Map<string, number>();
+  for (const b of after) {
+    const resolved = await getRoleSkillBlueprint(tenantId, b.roleKey);
+    usableCount.set(b.roleKey, (resolved?.requirements || []).filter(r => r.active && r.skillActive && !r.missing).length);
+  }
+  const unusable = after.filter(b => !b.published || !usableCount.get(b.roleKey));
   console.log(`\n  now present: ${after.length}, of which ${after.length - unusable.length} are assessable.`);
   if (unusable.length) {
     console.log('  NOT assessable (a student naming one of these is still refused):');
     for (const b of unusable) {
-      const usable = (b.requirements || []).filter((r: any) => r.active && r.skillActive && !r.missing).length;
-      console.log(`    ${String(b.roleKey).padEnd(34)} published=${!!b.published} usable requirements=${usable}`);
+      console.log(`    ${String(b.roleKey).padEnd(34)} published=${!!b.published} usable requirements=${usableCount.get(b.roleKey) || 0}`);
     }
   }
   console.log('');
   await mongoose.disconnect();
+
+  /* Zero assessable blueprints after an apply is a failure, not a quiet success: the provisioner
+     reads the exit code, and "ok" here once hid a tenant where no student could be assessed. */
+  if (apply && after.length === unusable.length) {
+    console.error('  FAILED: no assessable role blueprint on this tenant after applying.');
+    process.exit(1);
+  }
 }
 
 run().catch(async (e) => {

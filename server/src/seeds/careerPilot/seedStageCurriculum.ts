@@ -120,11 +120,28 @@ const unitRows = (spec: StageCurriculumSpec, tenantId: string) => {
    * pair of directions as producing an identical plan.
    */
   const topicDirections = new Map<string, string[]>();
+  /**
+   * DEPTH IS DECLARED IN THE SAME PLACE, AND WAS BEING DISCARDED IN THE SAME WAY.
+   *
+   * `spec.dataset`'s topics carry `{ category, units }` and nothing else, so reading depth from
+   * there gave every unit of Years 2, 3 and 4 the 'STANDARD' default — including the ten Year-4
+   * bridge topics authored at FOUNDATION and GUIDED precisely so a fourth-year arriving without
+   * the fundamentals is TAUGHT rather than revised.
+   *
+   * The failure is quiet in the same worst way the directions one was. `compositionRoleOf` reads
+   * depth to tell FOUNDATION_INSTRUCTION and GUIDED_INSTRUCTION apart from ADVANCED_UNIVERSAL,
+   * so all three years composed with those two buckets EMPTY: an EMERGING learner's plan came
+   * back violating five role minimums, with 102 units of advanced material against a target of
+   * 27, and nothing errored. unitSuitabilityPolicy reads depth too, so every suitability decision
+   * was being made against a depth the author never wrote.
+   */
+  const topicDepths = new Map<string, string>();
   for (const mod of spec.modules) {
     for (const t of mod.topics) {
       topicToModule.set(t.topicCode, mod.moduleCode);
       topicSkills.set(t.topicCode, t.skillKeys || []);
       topicDirections.set(t.topicCode, (t as any).applicableDirections || []);
+      if ((t as any).defaultDepth) topicDepths.set(t.topicCode, String((t as any).defaultDepth));
     }
   }
 
@@ -157,7 +174,7 @@ const unitRows = (spec: StageCurriculumSpec, tenantId: string) => {
         /* Authorship — written only when the row is first created. */
         authored: {
           category: (topic as any).category || 'UNIVERSAL',
-          defaultDepth: u.defaultDepth || (topic as any).defaultDepth || 'STANDARD',
+          defaultDepth: u.defaultDepth || (topic as any).defaultDepth || topicDepths.get(topicCode) || 'STANDARD',
           applicableDirections: u.applicableDirections
             || (topic as any).applicableDirections
             || topicDirections.get(topicCode)

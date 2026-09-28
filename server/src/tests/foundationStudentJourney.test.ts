@@ -123,6 +123,26 @@ jest.mock('../services/foundationJourneyTriggerService', () => ({
   directionChoiceFor: () => ({}),
 }));
 
+/**
+ * ORIENTATION IS GATED OPEN HERE, ON PURPOSE.
+ *
+ * Orientation is mandatory for every member of every year, so the day endpoint refuses with
+ * ORIENTATION_REQUIRED before it ever reaches the day ladder. That refusal is the product and it
+ * is asserted where it belongs — in orientation.test.ts, and in the one test below that pins the
+ * precedence.
+ *
+ * Every other test in this file is about what a day SERVES and what it WITHHOLDS, which is a
+ * different question and one that cannot be asked at all while an earlier gate answers first.
+ * So the gate is opened for them, and `mockOrientationBlocks` closes it for the test that needs
+ * it closed.
+ */
+const mockOrientationBlocks = jest.fn(async () => false);
+jest.mock('../services/orientationService', () => ({
+  ...jest.requireActual('../services/orientationService'),
+  orientationBlocksLearning: (...a: any[]) => (mockOrientationBlocks as any)(...a),
+  pacingClockFor: jest.fn(async () => null),
+}));
+
 import * as ctrl from '../controllers/foundationJourneyController';
 
 const TENANT = '5f9d1b2c3a4b5c6d7e8f9012';
@@ -785,6 +805,46 @@ describe('the roadmap overview of a persisted journey', () => {
     expect(body.days).toBeUndefined();
     expect(JSON.stringify(body)).not.toMatch(/phases|weeks/);
     expect(mockCompose).not.toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('orientation answers before the day ladder does', () => {
+  beforeEach(() => { seed(); mockOrientationBlocks.mockResolvedValue(true); });
+  afterEach(() => { mockOrientationBlocks.mockResolvedValue(false); });
+
+  const dayCall = async (n: number) => {
+    const { res, out } = resOf();
+    await ctrl.getMyJourneyDay(reqOf({ params: { dayNumber: String(n) } }), res);
+    return out;
+  };
+
+  /*
+   * Day 1 is the day that is always open — no predecessor, no pacing clock, nothing else to
+   * refuse it. So it is the day that proves orientation is checked FIRST rather than merely
+   * being one more reason a locked day stays locked.
+   */
+  it('refuses even Day 1, which nothing else would refuse', async () => {
+    const out = await dayCall(1);
+    expect(out.status).toBe(403);
+    expect(out.body.reason).toBe('ORIENTATION_REQUIRED');
+  });
+
+  it('refuses a day the learner has already completed', async () => {
+    const out = await dayCall(2);
+    expect(out.status).toBe(403);
+    expect(out.body.reason).toBe('ORIENTATION_REQUIRED');
+  });
+
+  /*
+   * The refusal names the day so the screen can say which one is waiting, and carries nothing
+   * of its contents — the same boundary every other refusal in this file is held to.
+   */
+  it('names the day but serves none of it', async () => {
+    const out = await dayCall(6);
+    expect(out.body).toMatchObject({ reason: 'ORIENTATION_REQUIRED', day: 6 });
+    expect(out.body.items).toBeUndefined();
+    expect(out.body.activities).toBeUndefined();
   });
 });
 

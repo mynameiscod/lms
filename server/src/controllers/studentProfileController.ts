@@ -595,12 +595,20 @@ export const getStudentActivity = async (req: AuthRequest, res: Response) => {
       assigned: true,
     }));
 
-    // Attendance summary
-    const present = attendanceRecords.filter((a: any) => a.status === 'present').length;
-    const absent = attendanceRecords.filter((a: any) => a.status === 'absent').length;
-    const late = attendanceRecords.filter((a: any) => a.status === 'late').length;
-    const totalDays = present + absent + late;
-    const attendancePercentage = totalDays > 0 ? Math.round(((present + late) / totalDays) * 100) : 0;
+    /*
+     * Attendance summary — the SAME figure the student sees on My Attendance: present ÷ every
+     * class marked (leave included), over the last 30 days the card is labelled with.
+     * This used to be the last 60 records of any date, with leave left out of the total, so staff
+     * and student looked at two different numbers for one student.
+     */
+    const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
+    const window30 = attendanceRecords.filter((a: any) => a.date && new Date(a.date) >= since);
+    const present = window30.filter((a: any) => a.status === 'present').length;
+    const absent = window30.filter((a: any) => a.status === 'absent').length;
+    const leave = window30.filter((a: any) => a.status === 'leave').length;
+    const late = 0; // no 'late' status exists; kept in the response shape for older clients
+    const totalDays = window30.length;
+    const attendancePercentage = totalDays > 0 ? Math.round((present / totalDays) * 100) : 0;
 
     // ── Student labs — previously untrackable from the admin side at all ────────
     const [gameStats, challenges, thinkingProfile, commAttempts, commStreak] = await Promise.all([
@@ -666,7 +674,7 @@ export const getStudentActivity = async (req: AuthRequest, res: Response) => {
       success: true,
       data: {
         attendance: {
-          summary: { present, absent, late, totalDays, percentage: attendancePercentage },
+          summary: { present, absent, leave, late, totalDays, percentage: attendancePercentage },
           recent: attendanceRecords.slice(0, 15),
         },
         quizAttempts,

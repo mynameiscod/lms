@@ -53,6 +53,11 @@ export const getStudentAttendance = async (req: AuthenticatedRequest, res: Respo
   try {
     const { studentId } = req.params;
     const { startDate, endDate } = req.query;
+    // A student may read only their own attendance. Without this, any student could read any
+    // other student's record by changing the id in the URL.
+    if (req.user?.role === 'STUDENT' && String(req.user.id) !== String(studentId)) {
+      return res.status(403).json({ success: false, message: 'You can only view your own attendance' });
+    }
     const tenantId = req.tenantId!;
 
     const attendance = await attendanceService.getStudentAttendance(
@@ -124,6 +129,11 @@ export const getStudentAttendanceSummary = async (req: AuthenticatedRequest, res
   try {
     const { studentId } = req.params;
     const { batchId } = req.query;
+    // A student may read only their own attendance. Without this, any student could read any
+    // other student's record by changing the id in the URL.
+    if (req.user?.role === 'STUDENT' && String(req.user.id) !== String(studentId)) {
+      return res.status(403).json({ success: false, message: 'You can only view your own attendance' });
+    }
     const tenantId = req.tenantId!;
 
     const summary = await attendanceService.getStudentAttendanceSummary(

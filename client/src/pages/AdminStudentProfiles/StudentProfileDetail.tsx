@@ -575,9 +575,9 @@ const StudentProfileDetail: React.FC = () => {
             <div className="spd-att-summary">
               <div className="spd-att-card green"><span className="spd-att-num">{att.summary.present}</span><span>Present</span></div>
               <div className="spd-att-card red"><span className="spd-att-num">{att.summary.absent}</span><span>Absent</span></div>
-              <div className="spd-att-card orange"><span className="spd-att-num">{att.summary.late}</span><span>Late</span></div>
+              <div className="spd-att-card orange"><span className="spd-att-num">{att.summary.leave ?? 0}</span><span>Leave</span></div>
               <div className="spd-att-card blue">
-                <span className="spd-att-num">{att.summary.percentage}%</span><span>Attendance</span>
+                <span className="spd-att-num">{att.summary.percentage}%</span><span>Last 30 days</span>
               </div>
             </div>
             {att.recent.length > 0 && (

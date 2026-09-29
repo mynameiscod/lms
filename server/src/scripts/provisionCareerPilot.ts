@@ -4,11 +4,21 @@
  *
  * DRY RUN BY DEFAULT.
  *
+ * IN PRODUCTION — one command, everything, from inside the container:
+ *
+ *   docker exec <container> node dist/scripts/provisionCareerPilot.js <tenantId>
+ *   docker exec <container> node dist/scripts/provisionCareerPilot.js <tenantId> --apply
+ *
+ * In development:
+ *
  *   npx ts-node src/scripts/provisionCareerPilot.ts <tenantId>
  *   npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --apply
  *   npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --apply --from 8
  *   npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --apply --only 15,16,17,18
  *   npx ts-node src/scripts/provisionCareerPilot.ts <tenantId> --verify-only
+ *
+ * It detects which of the two it is from its own filename and runs its steps the matching way.
+ * Nothing to pass, nothing to remember. See `stepCommand`.
  *
  * ── READ THIS BEFORE RUNNING IT AGAINST PRODUCTION ────────────────────────────────────────
  *
@@ -58,6 +68,7 @@
 
 import { spawnSync } from 'child_process';
 import path from 'path';
+import fs from 'fs';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -66,6 +77,13 @@ import LearningCurriculum from '../models/LearningCurriculum';
 import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
 import AssessmentItem from '../models/AssessmentItem';
 import RoleSkillBlueprint from '../models/RoleSkillBlueprint';
+import PassportConfig from '../models/PassportConfig';
+import SkillEvidence from '../models/SkillEvidence';
+import { foundationReadiness } from '../services/foundationReadinessService';
+import { effectiveCurriculumEngine } from '../data/curriculumEnginePolicy';
+import { defaultProgramDaysFor } from '../services/foundationProgramLengthService';
+
+const STAGES = ['foundation', 'build', 'specialize', 'placement'] as const;
 
 interface Step {
   n: number;
@@ -97,12 +115,22 @@ const STEPS: Step[] = [
    * curriculum".
    */
   { n: 2, label: 'Year 1 — create the foundation curriculum (topics, skills, backbone)', script: 'src/seeds/careerPilot/createFoundationCurriculum.ts', args: ['%t'] },
+  /**
+   * A pre-flight report, not a gate.
+   *
+   * It halted the run, and that is disproportionate: it validates the Year-1 dataset against the
+   * curriculum already on the tenant, so one stale topic reference — drift on a tenant somebody
+   * has been editing for months — stopped all four years from being provisioned. The operator
+   * ends up with nothing, from a check that found nothing wrong with the twenty-two steps after
+   * it. Its findings are printed in full; deciding what they mean is a person's job.
+   */
   {
     n: 3,
     label: 'Validate the Year-1 mega curriculum before importing it',
     script: 'src/scripts/validateMegaCurriculum.ts',
     args: ['%t'],
     readOnly: true,
+    optional: 'a pre-flight report — read its findings above; they do not block the later years',
   },
   { n: 4, label: 'Year 1 — foundation curriculum and units', script: 'src/seeds/careerPilot/seedYear1MegaCurriculum.ts', args: ['%t'] },
   { n: 5, label: 'Year 2 — build curriculum and units', script: 'src/seeds/careerPilot/seedYear2Curriculum.ts', args: ['%t'] },
@@ -159,20 +187,151 @@ const STEPS: Step[] = [
 
 const SERVER_ROOT = path.resolve(__dirname, '../..');
 
+/**
+ * How to run a child step, decided by how THIS file is running.
+ *
+ * ── WHY THIS IS NOT JUST `npx ts-node` ────────────────────────────────────────────────────
+ *
+ * It was, and that made the whole script unrunnable in production — the one place it exists for.
+ * The production image (see the repo Dockerfile) does three things that each break it on their
+ * own:
+ *
+ *   COPY --from=backend-build /app/dist ./dist   there is no `src/`, so every step path is wrong
+ *   RUN npm prune --omit=dev                     ts-node and typescript are devDependencies
+ *                                                and are DELETED from the image
+ *   (docs/ is never copied at all)               see CSV_STEPS below
+ *
+ * So `npx ts-node src/scripts/…ts` failed at step 1 on production and every step after it. It
+ * worked perfectly in development, which is exactly how it survived long enough to be trusted.
+ *
+ * `dist/` mirrors `src/` one-for-one, so the same step list runs either way: the source path is
+ * rewritten and the runner swapped. Deciding it from `__filename` rather than a flag means
+ * nobody has to remember which mode they are in — running the compiled file IS the signal.
+ */
+const COMPILED = __filename.endsWith('.js');
+
+const stepCommand = (script: string): { cmd: string; head: string[] } => COMPILED
+  ? { cmd: process.execPath, head: [script.replace(/^src\//, 'dist/').replace(/\.ts$/, '.js')] }
+  : { cmd: 'npx', head: ['ts-node', script] };
+
 function runStep(step: Step, tenantId: string, apply: boolean): { ok: boolean; tail: string } {
   const args = step.args.map(a => (a === '%t' ? tenantId : a));
   if (apply && !step.readOnly) args.push('--apply');
 
-  const res = spawnSync('npx', ['ts-node', step.script, ...args], {
+  const { cmd, head } = stepCommand(step.script);
+  const res = spawnSync(cmd, [...head, ...args], {
     cwd: SERVER_ROOT,
     encoding: 'utf8',
-    shell: true,
+    /* `shell: true` is needed for `npx` on Windows and is wrong for an absolute node path:
+       it re-parses the command, so a path containing a space would be split. */
+    shell: !COMPILED,
     maxBuffer: 64 * 1024 * 1024,
   });
 
   const out = `${res.stdout || ''}${res.stderr || ''}`;
   const lines = out.split('\n').filter(l => l.trim().length);
   return { ok: res.status === 0, tail: lines.slice(-14).join('\n') };
+}
+
+/**
+ * Steps that read a CSV from `docs/audit`, which the production image does not carry.
+ *
+ * The golden banks are generated from master CSVs committed to the repo, and `docs/` is outside
+ * everything the Dockerfile copies. Inside a container those steps fail on ENOENT — a file-not-
+ * found error twenty lines into a seeder, which reads as a broken script rather than a missing
+ * mount. Checked up front instead, by name, with the two ways out.
+ */
+const CSV_STEPS = new Map<number, string>([
+  [19, 'docs/audit/foundation-golden-bank-master.csv'],
+  [20, 'docs/audit/year2-golden-bank-master.csv'],
+  [21, 'docs/audit/year3-golden-bank-master.csv'],
+]);
+
+const csvMissing = (step: Step): string | null => {
+  const rel = CSV_STEPS.get(step.n);
+  if (!rel) return null;
+  const full = path.resolve(SERVER_ROOT, '..', rel);
+  return fs.existsSync(full) ? null : full;
+};
+
+/**
+ * Turn the years on. Seeding content does not do this, and nothing else does either.
+ *
+ * ── WHY PROVISIONING WAS NOT ENOUGH ───────────────────────────────────────────────────────
+ *
+ * `foundation` is on the unit engine unconditionally; every other stage reaches it only where
+ * the tenant has opted in, through three PassportConfig fields that NO ADMIN SCREEN RENDERS.
+ * So a tenant could be provisioned with all four years — 1,600 units, published, with banks —
+ * and still serve every second-, third- and final-year the old topic roadmap, because the last
+ * step was a config write nobody knew was owed. That is precisely what happened in production.
+ *
+ * ── IT ENABLES ONLY WHAT IT CAN SERVE ─────────────────────────────────────────────────────
+ *
+ * A stage whose readiness fails is left OFF, by name. Enabling a stage with no content moves its
+ * students from a wrong roadmap to no roadmap — "your curriculum has not been set up" — which is
+ * more honest and no more useful. This runs after the seeding steps precisely so the check is
+ * made against what the tenant now actually holds.
+ *
+ * ── WHAT IT WILL NOT DECIDE FOR YOU ───────────────────────────────────────────────────────
+ *
+ * Length and price are commercial, not structural. Missing programme days are filled from the
+ * shipped defaults, which are the lengths the curricula were authored to. Price is NEVER
+ * invented: a stage with no price falls back to the tenant's single `priceInr`, and if that is a
+ * test value then Years 2-4 are being sold at it. That is reported loudly and left alone,
+ * because guessing a number somebody is charged is worse than naming the problem.
+ *
+ * `megaCurriculumEnabled` is never set. It moves every stage at once, including any added later.
+ */
+async function configureStages(tenantId: string, apply: boolean): Promise<string[]> {
+  console.log('\n══ CONFIGURATION ══════════════════════════════════════════════════════════════\n');
+  const warnings: string[] = [];
+
+  const cfg = await PassportConfig.findOne({ tenantId }).lean() as any;
+  if (!cfg) {
+    console.log('  NO PassportConfig on this tenant — CareerPilot is not set up here at all.');
+    console.log('  Creating one is a product decision, not a provisioning step. Nothing written.');
+    return ['no PassportConfig: every stage stays on the topic engine'];
+  }
+
+  const asMap = (v: any): Record<string, number> =>
+    v instanceof Map ? Object.fromEntries(v) : ({ ...(v || {}) });
+  const days = asMap(cfg.programDaysByStage);
+  const prices = asMap(cfg.priceInrByStage);
+  const haveStages: string[] = (cfg.megaCurriculumStages || []).map(String);
+
+  const enable: string[] = [];
+  for (const stage of STAGES) {
+    const r = await foundationReadiness(tenantId, stage);
+    if (r.configured) {
+      enable.push(stage);
+      console.log(`  ${stage.padEnd(11)} ready — ${r.publishedUnits} published units`);
+    } else {
+      console.log(`  ${stage.padEnd(11)} LEFT OFF — ${r.message}`);
+      warnings.push(`${stage} is not switched on: ${r.reason}`);
+    }
+    if (!days[stage]) days[stage] = defaultProgramDaysFor(stage);
+    if (!prices[stage]) {
+      warnings.push(`${stage} has no price of its own and will sell at priceInr = ${cfg.priceInr}`);
+    }
+  }
+
+  const nextStages = [...new Set([...haveStages, ...enable])];
+  console.log('');
+  console.log(`  megaCurriculumStages   [${haveStages.join(', ') || '(empty)'}]  ->  [${nextStages.join(', ')}]`);
+  console.log(`  programDaysByStage     ${JSON.stringify(asMap(cfg.programDaysByStage))}  ->  ${JSON.stringify(days)}`);
+  console.log(`  priceInrByStage        ${JSON.stringify(prices)}   (never invented — see above)`);
+  console.log(`  priceInr               ${cfg.priceInr}`);
+
+  if (apply) {
+    await PassportConfig.updateOne({ tenantId }, {
+      $set: { megaCurriculumStages: nextStages, programDaysByStage: days },
+    });
+    console.log('\n  WRITTEN.');
+  } else {
+    console.log('\n  DRY RUN — nothing written.');
+  }
+  console.log('');
+  return warnings;
 }
 
 /** What the tenant actually holds afterwards — the only report worth trusting. */
@@ -202,6 +361,30 @@ async function verify(tenantId: string): Promise<void> {
 
   const journeys = await LearningCurriculum.countDocuments({ tenantId, personalizedFor: { $ne: null } } as any);
   console.log(`  student journeys       ${journeys}`);
+
+  const mappings = await SkillEvidence.countDocuments({ tenantId, active: true, contribution: 'PRIMARY' } as any);
+  console.log(`  skill-evidence maps    ${mappings} active PRIMARY`);
+
+  /**
+   * The only line that answers the question somebody actually ran this to answer.
+   *
+   * Counts prove the content landed. They do not prove a student receives it — a fully seeded
+   * stage whose switch is off serves the old topic roadmap, and every count above is green while
+   * it does. So the report ends with what a real learner on each stage is served.
+   */
+  const cfg = await PassportConfig.findOne({ tenantId })
+    .select('megaCurriculumEnabled megaCurriculumStages megaCurriculumStudentIds').lean() as any;
+  console.log('\n  what a student on each stage is served:');
+  for (const stage of STAGES) {
+    const e = effectiveCurriculumEngine({ config: cfg, studentId: null, stageKey: stage });
+    const verdict = e.engine === 'UNIT' ? 'their curriculum' : 'the OLD topic roadmap';
+    console.log(`    ${stage.padEnd(11)} ${e.engine.padEnd(6)} ${verdict.padEnd(22)} (${e.basis})`);
+  }
+
+  if (!mappings) {
+    console.log('\n  ⚠ No active PRIMARY skill-evidence mappings: no student can be measured on any');
+    console.log('    stage, so no Skill DNA is ever written and no journey is ever created.');
+  }
 
   console.log('');
   if (anyMissing) {
@@ -264,9 +447,25 @@ async function main(): Promise<void> {
   console.log(`  running ${planned.length} of ${STEPS.length} steps\n`);
 
   const failures: string[] = [];
+  const skippedBanks: string[] = [];
   for (const step of planned) {
     const tag = `[${String(step.n).padStart(2)}/${STEPS.length}]`;
     process.stdout.write(`${tag} ${step.label} … `);
+
+    const missingCsv = csvMissing(step);
+    if (missingCsv) {
+      console.log('SKIPPED (source CSV is not in this image)');
+      console.log(`        expected: ${missingCsv}`);
+      console.log('        The production image does not copy docs/. Either add');
+      console.log('          COPY docs ./docs');
+      console.log('        to the final stage of the Dockerfile and redeploy, or run this step');
+      console.log('        from a checkout that has docs/ with MONGODB_URI pointed at production.');
+      console.log('        Until then this stage has no question bank and no skill evidence,');
+      console.log('        so no student on it can be measured.');
+      skippedBanks.push(step.label);
+      continue;
+    }
+
     const { ok, tail } = runStep(step, tenantId, apply);
     if (ok) {
       console.log('ok');
@@ -291,7 +490,18 @@ async function main(): Promise<void> {
     if (!apply) console.log('  DRY RUN — nothing was written. Re-run with --apply.');
   }
 
+  /* Configuration runs even after a halt: a tenant whose content is already there and whose
+     switch is off is the exact case this exists for, and it checks readiness itself. */
+  const warnings = await configureStages(tenantId, apply);
   await verify(tenantId);
+
+  if (skippedBanks.length) {
+    console.log('  ⚠ Question banks skipped for lack of their source CSV:');
+    for (const s of skippedBanks) console.log(`      ${s}`);
+  }
+  for (const w of warnings) console.log(`  ⚠ ${w}`);
+  if (skippedBanks.length || warnings.length) console.log('');
+
   await mongoose.disconnect();
   if (failures.length) process.exit(1);
 }

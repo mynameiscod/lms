@@ -59,6 +59,12 @@ RUN npm prune --omit=dev
 # Copy backend compiled JS from build stage
 COPY --from=backend-build /app/dist ./dist
 
+# Golden-bank master CSVs. The question banks are GENERATED from these at provisioning time,
+# so without them `provisionCareerPilot` cannot import a bank inside the container, no skill
+# evidence is written, and no student on that stage can be measured. They are data the seeders
+# read, not documentation — the path is what makes them look optional.
+COPY docs/audit ./docs/audit
+
 # Copy built frontend from build stage
 COPY --from=client-build /app/client/build ./client/build
 

@@ -1,104 +1,128 @@
-# Turning on Years 2, 3 and 4 in production
+# Fixing CareerPilot in production — the one command
 
-**Symptom this fixes:** a second-, third- or final-year is shown "Your Learning Roadmap ·
-Foundation → Build → Placement · Day 1 / 90" — the old pathway roadmap — while the sidebar
-beside it correctly says "My 110 Days". Or `/careerpilot/plan` says "Your ninety days are being
-written, 5 of 90" with Year-1 band names for a Year-2 student.
-
-**Cause:** `foundation` is on the UNIT engine unconditionally. Every other stage reaches it only
-where the tenant has opted in, via three `PassportConfig` fields that **no admin screen renders**.
-A deployment carrying a full four-year curriculum still serves Years 2–4 the topic roadmap until
-somebody opts in.
-
-This is working as designed — see the header of `src/data/curriculumEnginePolicy.ts`. The gate
-exists so a stage cannot be switched on for paying members before its content is there.
+**Symptom:** a second-, third- or final-year is shown "Your Learning Roadmap · Foundation →
+Build → Placement · Day 1 / 90" — the old pathway roadmap — while the sidebar beside it
+correctly says "My 110 Days". Only Year 1 works.
 
 ---
 
-## Step 1 — Diagnose. Read-only, safe any time.
+## The command
 
 ```bash
-docker exec lms-server-<slot> node dist/scripts/diagnoseCareerPilotEngine.js <tenantId>
+# 1. See what it would do. Writes nothing.
+docker exec <container> node dist/scripts/provisionCareerPilot.js <tenantId>
+
+# 2. Do it.
+docker exec <container> node dist/scripts/provisionCareerPilot.js <tenantId> --apply
 ```
 
-Writes nothing. Reports, per stage: which engine resolves, published unit counts against the
-stage's own programme length, stage template topics and backbone flags, stage skill set size,
-journeys already written, role blueprints, and a verdict naming what is in the way.
+That is the whole fix. It runs all 25 provisioning steps, then configures the stages, then
+verifies. Dry run by default.
 
-Read section 6. There are two blockers and they need different fixes:
+**Read the last block of the output.** It is the only one that answers the question you ran it
+for:
 
-| Verdict | Meaning | Fix |
-|---|---|---|
-| `SWITCH OFF` only | content is there, nobody opted in | step 3 |
-| `CONTENT SHORT` | the curriculum did not reach production | deploy content first |
-| `NO SKILL CHECK` | no PRIMARY skill-evidence mappings | run provisioning |
-
-**Do not skip to step 3 if any stage says CONTENT SHORT.** Switching a short stage on moves its
-students from a wrong roadmap to no roadmap at all.
-
-## Step 2 — Check price and programme length while you are there.
-
-Section 1 of the same output prints `priceInr`, `priceInrByStage`, `programDaysByStage` and
-`foundationProgramDays`.
-
-`priceInrByStage` unset means every year sells at the base `priceInr`. A Year-2 student offered
-"Unlock CareerPilot — ₹1" is this. Fix it before the rollout, not after — the engine switch is
-what sends them to the paywall.
-
-## Step 3 — Switch on, narrowly first.
-
-No admin screen sets these fields. Use the script.
-
-**A pilot account per year, before anybody who paid:**
-
-```bash
-docker exec lms-server-<slot> node dist/scripts/setCurriculumEngineStages.js <tenantId> \
-  --students <id1>,<id2>,<id3>
-# then, to write:
-docker exec lms-server-<slot> node dist/scripts/setCurriculumEngineStages.js <tenantId> \
-  --students <id1>,<id2>,<id3> --apply
+```
+  what a student on each stage is served:
+    foundation  UNIT   their curriculum       (FOUNDATION_PRODUCT)
+    build       UNIT   their curriculum       (STAGE_LIST)
+    specialize  UNIT   their curriculum       (STAGE_LIST)
+    placement   UNIT   their curriculum       (STAGE_LIST)
 ```
 
-Dry run by default. Verify each pilot account composes a real roadmap for its year before going
-further.
+Any line saying `TOPIC  the OLD topic roadmap` is a year still broken, and the warnings above it
+say why.
 
-**Then the stages:**
+---
+
+## Why the previous version could not work
+
+It ran its steps as `npx ts-node src/scripts/…ts`. The production image (see the Dockerfile)
+makes that impossible three times over:
+
+| Dockerfile line | Consequence |
+|---|---|
+| `COPY --from=backend-build /app/dist ./dist` | there is no `src/` — every step path is wrong |
+| `RUN npm prune --omit=dev` | `ts-node` and `typescript` are devDependencies and are **deleted** |
+| `docs/` was never copied | the golden-bank CSVs the question banks are generated from are absent |
+
+So it failed at step 1 and at every step after it. It worked perfectly in development, which is
+how it survived long enough to be trusted.
+
+**Fixed:** the script now detects from its own filename whether it is compiled, and runs its
+steps as `node dist/…js` or `npx ts-node src/…ts` to match. Nothing to pass. The Dockerfile now
+carries `COPY docs/audit ./docs/audit`, so **the image must be rebuilt and redeployed once**
+before the question-bank steps (19–21) can run inside the container.
+
+If you have not redeployed yet, those three steps skip themselves with the path they wanted and
+the two ways out — the rest still runs.
+
+---
+
+## What it now does that it did not before
+
+**It turns the years on.** Seeding content never did this, and nothing else did either.
+`foundation` is on the unit engine unconditionally; every other stage opts in through three
+`PassportConfig` fields that **no admin screen renders**. A tenant could hold all four years,
+published, with banks — and still serve Years 2–4 the old roadmap, because the last step was a
+config write nobody knew was owed. That is what happened in production.
+
+It enables only stages that pass readiness, and names any it leaves off. Enabling a stage with no
+content moves its students from a wrong roadmap to no roadmap.
+
+It never sets `megaCurriculumEnabled` — that moves every stage at once, including any added
+later.
+
+**It fills in programme length** from the shipped defaults (90 / 110 / 130 / 150).
+
+**It never invents a price.** A stage with no entry in `priceInrByStage` falls back to the
+tenant's single `priceInr`, and the script says so loudly:
+
+```
+  ⚠ specialize has no price of its own and will sell at priceInr = 499
+```
+
+Set those in the admin Config screen. A Year-2 student offered "Unlock CareerPilot — ₹1" is this.
+
+---
+
+## If you only need the switch
+
+Content already in production and only the opt-in missing:
 
 ```bash
-docker exec lms-server-<slot> node dist/scripts/setCurriculumEngineStages.js <tenantId> \
+docker exec <container> node dist/scripts/diagnoseCareerPilotEngine.js <tenantId>     # read-only
+docker exec <container> node dist/scripts/setCurriculumEngineStages.js <tenantId> \
   --stages build,specialize,placement --apply
 ```
 
-The script runs the readiness check per stage first and **refuses a stage whose content is
-short**, naming it. `--force` overrides that and is only right when a content deploy is already
-staged and you know the order you are doing it in.
+`setCurriculumEngineStages` refuses a stage whose content is short, by name. Additive —
+a later run for Year 3 cannot take Year 2 back off. `--remove` is the rollback.
 
-Both lists are additive — a later run for Year 3 cannot silently take Year 2 back off.
-`--remove` takes stages off again, which is the rollback.
+Pilot one account per year first if you prefer:
 
-## What NOT to do
+```bash
+docker exec <container> node dist/scripts/setCurriculumEngineStages.js <tenantId> \
+  --students <id1>,<id2>,<id3> --apply
+```
 
-**Do not set `megaCurriculumEnabled: true`.** It moves every stage at once, including any with
-no content and any added later. The stage list records what was decided, one stage at a time,
-and reads back as the decision it was. The script deliberately offers no flag for the tenant
-switch.
+---
 
-## Step 4 — Existing journeys
+## Existing journeys
 
 Nothing here rewrites a journey that already exists. A student already carrying a topic roadmap
-keeps it until a trigger recomposes them; a student with no journey gets a unit one at their next
-trigger (`DIAGNOSTIC_COMPLETED`, `MODULE_ASSESSMENT_COMPLETED`, `PROJECT_EVALUATED`,
-`SIGNIFICANT_MASTERY_CHANGE`, `DIRECTION_CHANGED`).
+keeps it until a trigger recomposes them (`DIAGNOSTIC_COMPLETED`, `MODULE_ASSESSMENT_COMPLETED`,
+`PROJECT_EVALUATED`, `SIGNIFICANT_MASTERY_CHANGE`, `DIRECTION_CHANGED`). A student with no
+journey gets a unit one at their next trigger.
 
-Decide deliberately whether to leave them or rebuild the unstarted ones. Do not bulk-delete
-journeys of students who have started.
+Do not bulk-delete journeys of students who have started.
 
 ## Rollback
 
 ```bash
-docker exec lms-server-<slot> node dist/scripts/setCurriculumEngineStages.js <tenantId> \
+docker exec <container> node dist/scripts/setCurriculumEngineStages.js <tenantId> \
   --stages build,specialize,placement --remove --apply
 ```
 
-Students return to the topic roadmap. Unit journeys already written are left in place and are
-picked up again if the stage is switched back on.
+Students return to the topic roadmap. Unit journeys already written are left in place and picked
+up again if the stage is switched back on.

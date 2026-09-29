@@ -4,6 +4,11 @@ import { passportPublicApi } from '../../api/passportApi';
 import OtpVerify, { isOtpInfo, otpSendMessage } from './OtpVerify';
 import { createPortal } from 'react-dom';
 
+/* The signup form's own rule, reused so one number cannot be valid on one screen and not the other. */
+import { toMobile } from './Join';
+import './careerpilot.css';
+import './careerpilotLogin.css';
+
 /**
  * Shows the verification step AS THE PAGE while the login form that started it stays mounted.
  *
@@ -25,10 +30,6 @@ const VerifyTakeover: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }, [root]);
   return root ? createPortal(<div className="cpl-verify-host">{children}</div>, root) : <>{children}</>;
 };
-/* The signup form's own rule, reused so one number cannot be valid on one screen and not the other. */
-import { toMobile } from './Join';
-import './careerpilot.css';
-import './careerpilotLogin.css';
 
 /**
  * Returning CareerPilot member login. Two ways in:

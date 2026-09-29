@@ -109,6 +109,12 @@ export interface IUser extends Document {
      * by a join nobody remembers to write.
      */
     attribution?: ICareerPilotAttribution;
+    /**
+     * Answers to sign-up questions an admin added (PassportConfig.onboardingFields with
+     * `custom: true`), by field key. The shipped questions map onto the named fields above;
+     * these have nowhere else to go, and were discarded at verification before this existed.
+     */
+    customFields?: Record<string, string>;
   };
   phone?: string;
   avatar?: string;
@@ -286,6 +292,7 @@ const UserSchema: Schema = new Schema(
       shareSlug:   { type: String, index: true },
       passwordSet: { type: Boolean, default: false },
       attribution: { type: CareerPilotAttributionSchema, default: undefined },
+      customFields: { type: Schema.Types.Mixed, default: undefined },
     },
     phone: {
       type: String,

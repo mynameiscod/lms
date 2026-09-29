@@ -24,6 +24,7 @@ import { validateProgramDays, programDaysFor } from '../services/foundationProgr
 import { UNIT_ENGINE_STAGES } from '../data/curriculumEnginePolicy';
 import { membershipPriceFor, validatePriceInr } from '../services/membershipPricingService';
 import { clampPreviewDays } from '../data/foundationAccessPolicy';
+import { normaliseOnboardingFields } from '../data/onboardingFieldPolicy';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -91,9 +92,34 @@ export const updateConfig = async (req: Request, res: Response) => {
     await ensureConfig(tenantId);
     // The allow-list is the whole security model for this endpoint, so a field absent from it
     // is silently discarded — a toggle that appears to save and changes nothing.
-    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'roadmapPreviewDays', 'conceptLearningEnabled', 'paymentMode', 'foundationProgramDays', 'programDaysByStage', 'priceInrByStage'];
+    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'roadmapPreviewDays', 'conceptLearningEnabled', 'paymentMode', 'foundationProgramDays', 'programDaysByStage', 'priceInrByStage', 'registrationOpensAt', 'registrationClosesAt', 'academicSession'];
     const $set: any = {};
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
+
+    /**
+     * The sign-up form. The array replaces the stored one wholesale, so it is checked here:
+     * locked fields are restored, duplicate keys and unknown types are refused, and dropdowns
+     * must have choices. Before this, a save that left out Name/Mobile/Email deleted them.
+     */
+    if ($set.onboardingFields !== undefined) {
+      const current = await PassportConfig.findOne({ tenantId }).select('onboardingFields').lean() as any;
+      const { fields, errors } = normaliseOnboardingFields($set.onboardingFields, current?.onboardingFields || []);
+      if (errors.length) return res.status(400).json({ message: 'The sign-up form was not saved.', errors });
+      $set.onboardingFields = fields;
+    }
+
+    /* The registration window: dates or empty (open-ended), and it cannot close before it opens. */
+    for (const k of ['registrationOpensAt', 'registrationClosesAt'] as const) {
+      if ($set[k] === undefined) continue;
+      if (!$set[k]) { $set[k] = null; continue; }
+      const d = new Date($set[k]);
+      if (isNaN(d.getTime())) return res.status(400).json({ message: `${k === 'registrationOpensAt' ? 'Registration start' : 'Registration end'} is not a valid date.` });
+      $set[k] = d;
+    }
+    if ($set.registrationOpensAt && $set.registrationClosesAt && $set.registrationClosesAt < $set.registrationOpensAt) {
+      return res.status(400).json({ message: 'Registration end date is before the start date.' });
+    }
+    if ($set.academicSession !== undefined) $set.academicSession = String($set.academicSession || '').trim().slice(0, 20);
     /**
      * The length of the Foundation programme. Refused rather than clamped: a tenant typing 1200
      * meant something, and silently storing 180 would have them believe a plan they never chose.

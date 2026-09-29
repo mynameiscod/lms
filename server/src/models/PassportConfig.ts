@@ -7,14 +7,30 @@ import mongoose, { Document, Schema } from 'mongoose';
  * "set up" for Passport lives here, so behaviour changes without code.
  */
 
+export const ONBOARDING_FIELD_TYPES = ['text', 'textarea', 'select', 'number', 'date', 'phone', 'email'] as const;
+export type OnboardingFieldType = typeof ONBOARDING_FIELD_TYPES[number];
+
 export interface IOnboardingField {
   key: string;
   label: string;
-  type: 'text' | 'select' | 'number' | 'phone' | 'email';
+  type: OnboardingFieldType;
   required: boolean;
   locked?: boolean;        // Name/Mobile/Email are locked-mandatory
   options?: string[];      // for 'select'
   order: number;
+  /** Hint shown inside the empty input on the sign-up form. */
+  placeholder?: string;
+  /**
+   * Whether the field is on the sign-up form at all. Absent means on, so every field that
+   * existed before this switch keeps appearing. Switching a field off hides it and stops it
+   * being required; answers members already gave are kept.
+   */
+  enabled?: boolean;
+  /**
+   * Added by an admin rather than shipped. Only these can be deleted, and only their answers
+   * land in `passport.customFields` — the shipped keys map onto named passport fields.
+   */
+  custom?: boolean;
 }
 
 export interface IEntitlement {
@@ -117,6 +133,15 @@ export interface IPassportConfig extends Document {
    */
   roadmapPreviewDays: number;
   /**
+   * The registration window. New sign-ups are refused before `registrationOpensAt` and after
+   * the end of the day `registrationClosesAt` names; either may be unset (open-ended). Members
+   * who already have an account can always log in — this governs joining, not access.
+   */
+  registrationOpensAt?: Date | null;
+  registrationClosesAt?: Date | null;
+  /** The intake this registration window is for, e.g. "2026-2027". A label, not a rule. */
+  academicSession?: string;
+  /**
    * Skill check-in policy (Module 13).
    *
    * Lives here rather than in a new collection because it is ordinary CareerPilot tenant
@@ -137,11 +162,14 @@ export interface IPassportConfig extends Document {
 const OnboardingFieldSchema = new Schema<IOnboardingField>({
   key:      { type: String, required: true },
   label:    { type: String, required: true },
-  type:     { type: String, enum: ['text', 'select', 'number', 'phone', 'email'], default: 'text' },
+  type:     { type: String, enum: ONBOARDING_FIELD_TYPES as unknown as string[], default: 'text' },
   required: { type: Boolean, default: false },
   locked:   { type: Boolean, default: false },
   options:  [{ type: String }],
   order:    { type: Number, default: 0 },
+  placeholder: { type: String, default: '' },
+  enabled:  { type: Boolean, default: true },
+  custom:   { type: Boolean, default: false },
 }, { _id: false });
 
 const EntitlementSchema = new Schema<IEntitlement>({
@@ -196,6 +224,9 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
     // rather than a fact.
     roadmapDays: { type: Number, default: 90 },
     roadmapPreviewDays: { type: Number, default: 7 },
+    registrationOpensAt:  { type: Date, default: null },
+    registrationClosesAt: { type: Date, default: null },
+    academicSession:      { type: String, default: '' },
     // Skill check-in policy. Optional throughout — an existing tenant document without this
     // subtree resolves to the shipped defaults, so nothing has to be backfilled.
     reassessment: {

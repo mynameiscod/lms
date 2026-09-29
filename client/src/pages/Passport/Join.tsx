@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import PassportLogin from './Login';
 import { useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
-import type { OnboardingField } from '../../api/passportApi';
+import type { OnboardingField, RegistrationWindow } from '../../api/passportApi';
 import OtpVerify, { isOtpInfo } from './OtpVerify';
 import './careerpilotJoin.css';
 
@@ -108,6 +108,9 @@ function validateJoin(
 
 const ICON: Record<string, string> = { name: 'bi-person', mobile: 'bi-phone', email: 'bi-envelope' };
 
+/** "2026-10-01T00:00:00Z" → "1 Oct 2026". */
+const fmtDay = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
 const PassportJoin: React.FC = () => {
   const [params] = useSearchParams();
   const tenant = params.get('tenant') || 'codebegun';
@@ -115,6 +118,8 @@ const PassportJoin: React.FC = () => {
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [fieldsDef, setFieldsDef] = useState<OnboardingField[]>([]);
   const [enabled, setEnabled] = useState(true);
+  /** The registration window, as the server resolves it. Closed means the form is not offered. */
+  const [registration, setRegistration] = useState<RegistrationWindow | null>(null);
   /**
    * WHETHER THE FORM KNOWS WHAT IT IS ASKING FOR YET.
    *
@@ -158,6 +163,7 @@ const PassportJoin: React.FC = () => {
         const c = await passportPublicApi.getConfig(tenant);
         setFieldsDef(c.onboardingFields || []);
         setEnabled(c.enabled);
+        setRegistration(c.registration || null);
         if (typeof c.priceInr === 'number' && c.priceInr > 0) setPrice(c.priceInr);
       } catch (e: any) {
         /**
@@ -392,6 +398,16 @@ const PassportJoin: React.FC = () => {
                 <div className="cpx-msg" aria-live="polite">Loading your sign-up form…</div>
               ) : !enabled ? (
                 <div className="cpx-msg err">{msg || 'CareerPilot is not available right now.'}</div>
+              ) : registration && !registration.open ? (
+                /* Joining is closed; existing members can still log in, so that stays. */
+                <>
+                  <div className="cpx-msg err">
+                    {registration.reason === 'NOT_YET_OPEN'
+                      ? `Registration${registration.academicSession ? ` for ${registration.academicSession}` : ''} opens on ${fmtDay(registration.opensAt)}.`
+                      : `Registration${registration.academicSession ? ` for ${registration.academicSession}` : ''} closed on ${fmtDay(registration.closesAt)}.`}
+                  </div>
+                  <button className="cpx-btn cpx-btn-soft cpx-login" type="button" onClick={goLogin}>Log In to Your Account</button>
+                </>
               ) : (
                 <>
                   {msg && <div className="cpx-msg err">{msg}</div>}
@@ -423,8 +439,10 @@ const PassportJoin: React.FC = () => {
                             <option value="">Select…</option>
                             {(f.options || []).map(o => <option key={o} value={o}>{o}</option>)}
                           </select>
+                        ) : f.type === 'textarea' ? (
+                          <textarea id={`jn-${f.key}`} rows={3} maxLength={1000} value={form[f.key] || ''} aria-invalid={!!errFor(f.key)} onBlur={() => blur(f.key)} onChange={e => set(f.key, e.target.value)} placeholder={f.placeholder || `Enter ${f.label.toLowerCase()}`} />
                         ) : (
-                          <input id={`jn-${f.key}`} value={form[f.key] || ''} aria-invalid={!!errFor(f.key)} onBlur={() => blur(f.key)} onChange={e => set(f.key, f.type === 'phone' ? toMobile(e.target.value) : e.target.value)} maxLength={f.type === 'phone' ? 10 : undefined} inputMode={f.type === 'phone' ? 'numeric' : undefined} type={f.type === 'number' ? 'number' : 'text'} placeholder={`Enter ${f.label.toLowerCase()}`} />
+                          <input id={`jn-${f.key}`} value={form[f.key] || ''} aria-invalid={!!errFor(f.key)} onBlur={() => blur(f.key)} onChange={e => set(f.key, f.type === 'phone' ? toMobile(e.target.value) : e.target.value)} maxLength={f.type === 'phone' ? 10 : undefined} inputMode={f.type === 'phone' ? 'numeric' : undefined} type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'} placeholder={f.placeholder || `Enter ${f.label.toLowerCase()}`} />
                         )}
                       </div>
                       {errFor(f.key) && <div className="cpx-fe">{errFor(f.key)}</div>}

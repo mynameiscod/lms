@@ -372,3 +372,8 @@
 /* The embedded login brings its own form styles; it must not also bring a page. */
 .cpx-signup .cpl-login-side { padding: 0; background: none; }
 .cpx-signup .cpl-form-wrap { width: 100%; max-width: none; padding: 0; box-shadow: none; background: none; }
+
+/* A multi-line answer (admin "Textarea" field): the box grows instead of the 50px input row. */
+.cpx-input:has(textarea) { height: auto; padding: 10px 14px; align-items: stretch; }
+.cpx-input textarea { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 15px; color: var(--ink); resize: vertical; min-height: 64px; }
+.cpx-input textarea::placeholder { color: #9aa6ba; }

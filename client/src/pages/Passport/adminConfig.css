@@ -1,0 +1,114 @@
+/* CareerPilot — Configuration. Layout follows the approved mockup: white cards with a tinted
+   icon badge, a label-over-input grid, teal switches, and a sticky save bar.
+   Inputs and selects inherit the admin surface's own styling (AdminCore.css); only layout,
+   switches and rows are defined here. Prefix: cpc-. */
+
+.cpc { --cpc-ink: #0f172a; --cpc-sub: #64748b; --cpc-line: #e8edf4; --cpc-teal: #0d9488; --cpc-indigo: #4f46e5;
+  padding: 20px 26px 96px; max-width: 1240px; }
+
+.cpc-crumb { font-size: 12.5px; color: #94a3b8; margin-bottom: 6px; }
+.cpc-crumb b { color: #334155; font-weight: 600; }
+.cpc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.cpc-head h1 { font-size: 24px; font-weight: 800; color: var(--cpc-ink); margin: 0 0 4px; }
+.cpc-head p { color: var(--cpc-sub); font-size: 13.5px; margin: 0; }
+.cpc-view { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; padding: 9px 16px; border: 1.5px solid var(--cpc-indigo);
+  color: var(--cpc-indigo); background: #fff; border-radius: 10px; font-weight: 700; font-size: 13.5px; text-decoration: none; }
+.cpc-view:hover { background: #eef2ff; }
+
+.cpc-warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 12px; padding: 12px 14px; font-size: 13px; margin-bottom: 14px; }
+
+.cpc-tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--cpc-line); margin-bottom: 16px; }
+.cpc-tab { border: 0; background: none; cursor: pointer; padding: 9px 2px; font-size: 14px; font-weight: 600; color: var(--cpc-sub); border-bottom: 2.5px solid transparent; }
+.cpc-tab.on { font-weight: 800; color: var(--cpc-indigo); border-bottom-color: var(--cpc-indigo); }
+
+.cpc-card { background: #fff; border: 1px solid var(--cpc-line); border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(16, 24, 40, .04); }
+.cpc-card-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.cpc-card-head .grow { flex: 1; min-width: 0; }
+.cpc-badge { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; font-size: 18px; flex: 0 0 auto; }
+.cpc-badge.indigo { background: #eef2ff; color: #4f46e5; }
+.cpc-badge.teal { background: #e6f7f5; color: #0d9488; }
+.cpc-badge.amber { background: #fff7e6; color: #d97706; }
+.cpc-badge.sky { background: #e8f4fd; color: #0284c7; }
+.cpc-card-head h2 { font-size: 15.5px; font-weight: 800; color: var(--cpc-ink); margin: 0 0 2px; }
+.cpc-card-head p { font-size: 12.5px; color: var(--cpc-sub); margin: 0; }
+
+.cpc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px 18px; }
+.cpc-f { min-width: 0; }
+.cpc-f > .lbl { display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px; }
+.cpc-f > .lbl em { color: #e11d48; font-style: normal; }
+.cpc-f > .hint { display: block; font-size: 11.5px; color: #8494a8; margin-top: 5px; line-height: 1.45; }
+.cpc-f input, .cpc-f select { width: 100%; }
+.cpc-f .inline { display: flex; align-items: center; gap: 10px; min-height: 40px; }
+
+/* Switch — a button, so the admin surface's checkbox rules never touch it. */
+.cpc-sw { position: relative; width: 40px; height: 22px; border-radius: 999px; border: 0; padding: 0; cursor: pointer; background: #cbd5e1; transition: background .15s; flex: 0 0 auto; }
+.cpc-sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .15s; }
+.cpc-sw.on { background: var(--cpc-teal); }
+.cpc-sw.on::after { transform: translateX(18px); }
+.cpc-sw:disabled { opacity: .5; cursor: not-allowed; }
+.cpc-sw:focus-visible { outline: 2px solid #78afc4; outline-offset: 2px; }
+
+.cpc-note { border-radius: 10px; padding: 10px 12px; font-size: 12.5px; line-height: 1.55; margin-top: 12px; }
+.cpc-note.warn { background: #fff7e8; border: 1px solid #f2d9a8; color: #8a5a00; }
+.cpc-note.ok { background: #ecfdf5; color: #047857; }
+.cpc-note.bad { background: #fef2f2; color: #b91c1c; }
+.cpc-note.info { background: #f1f5f9; color: #475569; }
+.cpc-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.cpc-chip { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #f1f5f9; color: #475569; }
+.cpc-chip.unit { background: #eef2ff; color: #4338ca; }
+
+/* Entitlements */
+.cpc-ent { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 4px; border-bottom: 1px solid #f3f5f9; font-size: 13.5px; color: #334155; }
+.cpc-ent:last-child { border-bottom: 0; }
+.cpc-seg { display: inline-flex; background: #f1f5f9; border-radius: 8px; padding: 3px; }
+.cpc-seg button { border: 0; border-radius: 6px; padding: 5px 14px; font-size: 12.5px; font-weight: 700; cursor: pointer; background: transparent; color: #64748b; text-transform: capitalize; }
+.cpc-seg button.free { background: #16a34a; color: #fff; }
+.cpc-seg button.paid { background: var(--cpc-indigo); color: #fff; }
+
+/* Registration form rows */
+.cpc-add { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1.5px solid var(--cpc-indigo); color: var(--cpc-indigo);
+  background: #fff; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.cpc-add:hover { background: #eef2ff; }
+.cpc-rows { border: 1px solid #eef1f6; border-radius: 12px; overflow: hidden; }
+.cpc-row { display: grid; grid-template-columns: 22px minmax(140px, 1.4fr) 92px minmax(120px, 2fr) auto; align-items: center; gap: 12px;
+  padding: 10px 12px; border-bottom: 1px solid #f1f4f8; background: #fff; }
+.cpc-row:last-child { border-bottom: 0; }
+.cpc-row.off .name, .cpc-row.off .ph { opacity: .55; }
+.cpc-row.drag-over { box-shadow: inset 0 2px 0 var(--cpc-indigo); }
+.cpc-row.dragging { opacity: .4; }
+.cpc-grip { color: #94a3b8; cursor: grab; font-size: 16px; line-height: 1; text-align: center; }
+.cpc-grip.fixed { cursor: default; color: #cbd5e1; }
+.cpc-row .name { font-size: 13.5px; font-weight: 600; color: #1e293b; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cpc-row .name .lock { color: #94a3b8; font-size: 12px; margin-left: 6px; }
+.cpc-type { justify-self: start; font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: #eef2ff; color: #4f46e5; }
+.cpc-row .ph { font-size: 12.5px; color: #94a3b8; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cpc-acts { display: flex; align-items: center; gap: 14px; }
+.cpc-req { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: #475569; font-weight: 600; min-width: 94px; }
+.cpc-icon { border: 0; background: none; cursor: pointer; color: #64748b; font-size: 15px; padding: 4px; border-radius: 6px; }
+.cpc-icon:hover { background: #f1f5f9; color: #1e293b; }
+.cpc-icon.danger:hover { background: #fef2f2; color: #dc2626; }
+.cpc-icon:disabled { visibility: hidden; }
+
+.cpc-edit { grid-column: 1 / -1; background: #f8fafc; border: 1px solid #e8edf4; border-radius: 10px; padding: 14px; margin-top: 4px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; }
+.cpc-edit .wide { grid-column: 1 / -1; }
+.cpc-edit .done { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; }
+.cpc-btn-sm { border: 0; border-radius: 8px; padding: 7px 14px; font-weight: 700; font-size: 12.5px; cursor: pointer; background: var(--cpc-indigo); color: #fff; }
+.cpc-btn-sm.ghost { background: #fff; color: #475569; border: 1px solid #dbe2ec; }
+
+/* Sticky save bar */
+.cpc-bar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 12px 0; margin-top: 8px;
+  background: linear-gradient(to top, #f6f8fb 70%, rgba(246, 248, 251, 0)); }
+.cpc-save { display: inline-flex; align-items: center; gap: 8px; background: var(--cpc-indigo); color: #fff; border: 0; border-radius: 10px; padding: 11px 20px; font-weight: 800; font-size: 14px; cursor: pointer; }
+.cpc-save:disabled { opacity: .6; cursor: default; }
+.cpc-reset { display: inline-flex; align-items: center; gap: 8px; background: #fff; color: var(--cpc-indigo); border: 1.5px solid var(--cpc-indigo); border-radius: 10px; padding: 10px 18px; font-weight: 700; font-size: 14px; cursor: pointer; }
+.cpc-msg { font-size: 13px; }
+.cpc-msg.ok { color: #16a34a; } .cpc-msg.err { color: #dc2626; }
+.cpc-dirty { font-size: 12.5px; color: #b45309; font-weight: 600; }
+
+@media (max-width: 760px) {
+  .cpc { padding: 16px 16px 96px; }
+  .cpc-head { flex-direction: column; }
+  .cpc-row { grid-template-columns: 22px 1fr auto; }
+  .cpc-row .cpc-type, .cpc-row .ph { display: none; }
+}

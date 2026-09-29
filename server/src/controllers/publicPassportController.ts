@@ -12,6 +12,7 @@ import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 import { jwtSecret } from '../config/secrets';
 import { isCareerPilotMember } from '../services/careerPilotPopulation';
 import PendingPassportSignup from '../models/PendingPassportSignup';
+import { registrationWindowState, validateSignupAnswers } from '../data/onboardingFieldPolicy';
 import { sanitiseAttribution, mergeAttribution } from '../models/careerPilotAttribution';
 
 // Public CareerPilot funnel: signup (Name/Mobile/Email + admin-configured onboarding
@@ -66,12 +67,17 @@ export const getPublicConfig = async (req: Request, res: Response) => {
     const tenantId = await resolveTenantId(req.query.tenant);
     if (!tenantId) return res.status(400).json({ success: false, message: 'Unknown tenant' });
     const cfg = await ensureConfig(tenantId);
+    const window = registrationWindowState(cfg.registrationOpensAt, cfg.registrationClosesAt);
     res.json({
       success: true,
       enabled: passportEnabled(tenantId, cfg),
-      onboardingFields: (cfg.onboardingFields || []).sort((a: any, b: any) => a.order - b.order),
+      // Fields an admin switched off are not on the form at all.
+      onboardingFields: (cfg.onboardingFields || [])
+        .filter((f: any) => f.enabled !== false)
+        .sort((a: any, b: any) => a.order - b.order),
       priceInr: cfg.priceInr ?? 499,
       tenantId,
+      registration: { ...window, academicSession: cfg.academicSession || '' },
     });
   } catch (e: any) {
     res.status(500).json({ success: false, message: e.message || 'Failed to load config' });
@@ -112,10 +118,22 @@ export const signup = async (req: Request, res: Response) => {
     const cfg = await ensureConfig(tenantId);
     if (!passportEnabled(tenantId, cfg)) return res.status(503).json({ success: false, message: 'CareerPilot is not available yet.' });
 
+    /* The registration window governs JOINING only; existing members log in through other routes. */
+    const window = registrationWindowState(cfg.registrationOpensAt, cfg.registrationClosesAt);
+    if (!window.open) {
+      const on = (d: Date | null) => d ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+      return res.status(403).json({
+        success: false, code: `REGISTRATION_${window.reason}`,
+        message: window.reason === 'NOT_YET_OPEN'
+          ? `Registration opens on ${on(window.opensAt)}.`
+          : `Registration closed on ${on(window.closesAt)}.`,
+      });
+    }
+
     const name = String(b.name || '').trim();
     const email = String(b.email || '').trim().toLowerCase();
     const mobile = normalizePhone(b.mobile);
-    const fields = b.fields || {};
+    const fields: Record<string, any> = { ...(b.fields || {}) };
 
     if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
     // `< 10` accepted anything longer, so a pasted +91 number sailed through as twelve
@@ -123,12 +141,19 @@ export const signup = async (req: Request, res: Response) => {
     const mobErr = mobileError(b.mobile);
     if (mobErr) return res.status(400).json({ success: false, message: mobErr });
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ success: false, message: 'A valid email is required' });
-    // Enforce admin-configured required onboarding fields (beyond the locked Name/Mobile/Email).
+    /*
+     * The admin's form, enforced: required, dropdown choices, numbers and dates. Only fields that
+     * are switched on are read. Clean values replace what was typed; answers to admin-added
+     * questions are kept aside so verification can store them (they have no named passport field).
+     */
+    const answers = validateSignupAnswers(cfg.onboardingFields || [], fields);
+    if (answers.errors.length) return res.status(400).json({ success: false, message: answers.errors[0], errors: answers.errors });
+    Object.assign(fields, answers.values);
+    const custom: Record<string, string> = {};
     for (const f of cfg.onboardingFields || []) {
-      if (f.required && !f.locked && !String(fields[f.key] || '').trim()) {
-        return res.status(400).json({ success: false, message: `${f.label} is required` });
-      }
+      if ((f as any).custom && answers.values[f.key] !== undefined) custom[f.key] = answers.values[f.key];
     }
+    if (Object.keys(custom).length) fields._custom = custom;
 
     /**
      * NOTHING IS CREATED HERE. The account begins to exist at verification, not now.
@@ -273,6 +298,8 @@ async function materialiseSignup(pending: any): Promise<any> {
     active: false, product: 'career_passport', onboarded: true, verifiedAt: now,
     // The campaign that produced this member, carried up from the lead it came from.
     ...(attribution ? { attribution } : {}),
+    // Answers to the questions an admin added to the sign-up form.
+    ...(fields._custom && typeof fields._custom === 'object' ? { customFields: fields._custom } : {}),
     degree: fields.degree, yearOfStudy: fields.yearOfStudy, careerGoal: fields.careerGoal, pathway: fields.pathway,
     // Career staging. Stored raw AND derived: the raw inputs are the fact, `stage` is a
     // cached read of them that is recomputed on every login so a member advances from

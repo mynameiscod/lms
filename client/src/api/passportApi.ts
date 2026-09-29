@@ -22,7 +22,21 @@ const auth = () => {
   return { ...trail, ...(token && { Authorization: `Bearer ${token}` }), ...(tenantId && { 'X-Tenant-Id': tenantId }) };
 };
 
-export interface OnboardingField { key: string; label: string; type: string; required: boolean; locked?: boolean; options?: string[]; order: number; }
+export type OnboardingFieldType = 'text' | 'textarea' | 'select' | 'number' | 'date' | 'phone' | 'email';
+export interface OnboardingField {
+  key: string; label: string; type: OnboardingFieldType | string; required: boolean; locked?: boolean; options?: string[]; order: number;
+  /** Hint inside the empty input. */
+  placeholder?: string;
+  /** Whether the field is on the sign-up form. Absent means on. */
+  enabled?: boolean;
+  /** Added by an admin; only these can be deleted. */
+  custom?: boolean;
+}
+/** The registration window as the server resolves it right now. */
+export interface RegistrationWindow {
+  open: boolean; reason: 'NOT_YET_OPEN' | 'CLOSED' | null;
+  opensAt: string | null; closesAt: string | null; academicSession?: string;
+}
 export interface Entitlement { featureKey: string; label: string; tier: 'free' | 'paid'; }
 export interface PassportConfig {
   _id?: string; enabled: boolean; assessmentMode: 'deterministic' | 'ai';
@@ -52,6 +66,11 @@ export interface PassportConfig {
   megaCurriculumEnabled?: boolean;
   megaCurriculumStages?: string[];
   megaCurriculumStudentIds?: string[];
+  /** Sign-ups are refused outside these dates (either may be empty = open-ended). ISO strings. */
+  registrationOpensAt?: string | null;
+  registrationClosesAt?: string | null;
+  /** The intake label, e.g. "2026-2027". */
+  academicSession?: string;
 }
 
 /** Which engine plans students' learning, as the server resolves it. */
@@ -2560,7 +2579,7 @@ const PUB = (process.env.REACT_APP_API_URL || '/api/v1') + '/public/passport';
 export const passportPublicApi = {
   getConfig: async (tenant: string) => {
     const { data } = await axios.get(`${PUB}/config`, { params: { tenant } });
-    return data as { success: boolean; enabled: boolean; onboardingFields: OnboardingField[]; priceInr: number; tenantId: string };
+    return data as { success: boolean; enabled: boolean; onboardingFields: OnboardingField[]; priceInr: number; tenantId: string; registration?: RegistrationWindow };
   },
   signup: async (body: { tenant: string; name: string; mobile: string; email: string; fields: Record<string, any> }) => {
     /**

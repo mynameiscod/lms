@@ -70,3 +70,14 @@ export function audienceIncludes(kind: 'lms' | 'careerpilot', audience: any): bo
   const a = isContentAudience(audience) ? audience : DEFAULT_CONTENT_AUDIENCE;
   return a === 'all' || a === kind;
 }
+
+/**
+ * Users who belong on LMS admin screens: everyone EXCEPT CareerPilot-only members.
+ *
+ * The same line as learnerAudienceOf: a STUDENT with a CareerPilot passport and no batch is a
+ * CareerPilot member only; one who is also in a batch is an LMS student too and stays. Staff always
+ * stay. CareerPilot members are managed on the CareerPilot Members screen.
+ */
+export const LMS_USERS_FILTER = {
+  $nor: [{ role: 'STUDENT', 'passport.product': { $nin: [null, ''] }, batchId: null }],
+};

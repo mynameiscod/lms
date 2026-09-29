@@ -23,6 +23,20 @@ export interface OtpVerifyProps {
  */
 export const isOtpInfo = (m: string) => /^(We sent|New code|Code resent|Enter the code|Dev code)/.test(m);
 
+/**
+ * What to tell someone after asking for a code.
+ *
+ * "Not sent" means two different things: a code went out moments ago (throttled — the code they
+ * have is still good), or nothing could deliver it at all. The second used to read "Enter the code
+ * sent to you" while nothing had been sent, and production no longer hands the code back.
+ */
+export const otpSendMessage = (otp: any, resend = false): string => {
+  if (otp?.sent) return resend ? 'New code sent.' : 'We sent a code to your WhatsApp.';
+  if (otp?.devCode) return `Dev code: ${otp.devCode}`;
+  if (otp?.throttledSeconds) return resend ? 'Code resent.' : 'Enter the code sent to you.';
+  return 'We could not deliver a code to this number. Check it is your WhatsApp number, or try again in a minute.';
+};
+
 const BENEFITS = [
   { icon: 'bi-compass', title: 'Career Direction', desc: 'Continue into your personalised CareerPilot journey.' },
   { icon: 'bi-speedometer2', title: 'Readiness Insights', desc: 'See your skill level, gaps and next best actions.' },

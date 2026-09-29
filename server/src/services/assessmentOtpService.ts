@@ -408,8 +408,16 @@ export async function sendOtp(tenantId: string, token: string, phone: string, em
     }
   }
 
-  // Nothing worked. The code is logged so somebody can still be helped by hand.
+  /*
+   * Nothing worked. The code is logged so somebody can still be helped by hand.
+   *
+   * NEVER RETURNED TO THE CALLER IN PRODUCTION. It used to be, as `devCode`, and the page showed
+   * it — so typing any number WhatsApp could not reach (a fake one, or somebody else's that is not
+   * on WhatsApp) put the code on screen and verified a phone nobody owned. Outside production it
+   * is still returned, which is what local development needs. Test numbers are the allowlist above.
+   */
   console.warn(`[assessment-otp] no channel delivered for tenant ${tenantId}; OTP for ${phone} = ${code}`);
+  if (process.env.NODE_ENV === 'production') return { sent: false, channel: 'none' };
   return { sent: false, channel: 'none', devCode: code };
 }
 

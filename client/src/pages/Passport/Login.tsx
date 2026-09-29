@@ -1,7 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
-import OtpVerify, { isOtpInfo } from './OtpVerify';
+import OtpVerify, { isOtpInfo, otpSendMessage } from './OtpVerify';
+import { createPortal } from 'react-dom';
+
+/**
+ * Shows the verification step AS THE PAGE while the login form that started it stays mounted.
+ *
+ * It used to be a position:fixed overlay with its own scroll area on top of the host page. Under
+ * #root's 75% zoom that overlay never quite covered the page beneath, so the landing page's nav and
+ * its "64" readiness ring showed through, and the overlay's own scroll area was a second scrollbar.
+ *
+ * Now it renders into #root as an ordinary flex child — exactly how the signup OTP step renders —
+ * and #root's other children are hidden while it is open. One page, one scrollbar, same zoom. The
+ * portal keeps this component in the login form's React tree, so its state survives.
+ */
+const VerifyTakeover: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const root = typeof document !== 'undefined' ? document.getElementById('root') : null;
+  React.useEffect(() => {
+    if (!root) return;
+    root.classList.add('cp-verify-active');
+    window.scrollTo(0, 0);
+    return () => root.classList.remove('cp-verify-active');
+  }, [root]);
+  return root ? createPortal(<div className="cpl-verify-host">{children}</div>, root) : <>{children}</>;
+};
 /* The signup form's own rule, reused so one number cannot be valid on one screen and not the other. */
 import { toMobile } from './Join';
 import './careerpilot.css';
@@ -115,7 +138,7 @@ const PassportLogin: React.FC<{
     try {
       const r = await passportPublicApi.loginOtp(tenant, mobile);
       setToken(r.token); setDevCode(r.otp?.devCode || ''); setOtpStep(true);
-      setMsg(r.otp?.sent ? 'We sent a code to your WhatsApp.' : (r.otp?.devCode ? `Dev code: ${r.otp.devCode}` : 'Enter the code sent to you.'));
+      setMsg(otpSendMessage(r.otp));
     } catch (e: any) { setMsg(failureText(e, 'Could not send the code. Please try again.')); }
     setBusy(false);
   };
@@ -132,7 +155,7 @@ const PassportLogin: React.FC<{
     try {
       const r = await passportPublicApi.loginOtp(tenant, mobile);
       setToken(r.token); setDevCode(r.otp?.devCode || '');
-      setMsg(r.otp?.sent ? 'New code sent.' : (r.otp?.devCode ? `Dev code: ${r.otp.devCode}` : 'Code resent.'));
+      setMsg(otpSendMessage(r.otp, true));
     } catch { /* countdown already guides retry */ }
   };
 
@@ -163,7 +186,7 @@ const PassportLogin: React.FC<{
      * from, so embedded it lifts out of the card rather than being squeezed into it. The
      * host keeps its own layout untouched underneath.
      */
-    return embedded ? <div className="cpl-verify-takeover">{verify}</div> : verify;
+    return embedded ? <VerifyTakeover>{verify}</VerifyTakeover> : verify;
   }
 
   const sent = msg.startsWith('We sent') || msg.startsWith('New code');

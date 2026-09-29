@@ -50,6 +50,17 @@ const phoneVariants = (p: string): string[] => {
   return n ? Array.from(new Set([n, `91${n}`, `+91${n}`, `0${n}`])) : [];
 };
 
+/**
+ * Whether a user row is a real account rather than a CareerPilot sign-up nobody finished.
+ *
+ * Only an unfinished CareerPilot stub (passport started, never verified or activated) may be
+ * taken over or ignored by a new sign-up. An LMS account has no passport at all, and used to read
+ * as "never verified" — so a CareerPilot sign-up on the same mobile could adopt it and overwrite
+ * its email. Anything without a CareerPilot stub is somebody's real account.
+ */
+export const isRealAccount = (u: any): boolean =>
+  !!u && (!u.passport?.product || !!u.passport?.verifiedAt || !!u.passport?.active);
+
 async function ensureConfig(tenantId: string) {
   let cfg = await PassportConfig.findOne({ tenantId });
   if (!cfg) cfg = await PassportConfig.create({ tenantId, onboardingFields: DEFAULT_ONBOARDING_FIELDS, entitlements: DEFAULT_ENTITLEMENTS });
@@ -172,9 +183,12 @@ export const signup = async (req: Request, res: Response) => {
     const proved = (u: any): boolean => !!(u?.passport?.verifiedAt || u?.passport?.active);
 
     // ONE MOBILE, ONE ACCOUNT — but only against an account somebody actually proved.
-    const phoneOwner: any = await User.findOne({ phone: mobile, tenantId })
-      .select('email passport.verifiedAt passport.active').lean();
-    if (phoneOwner && proved(phoneOwner) && String(phoneOwner.email || '').toLowerCase() !== email) {
+    // Every stored form of the number: LMS accounts were saved as "+91…", CareerPilot as ten digits,
+    // and matching one form only is how one person ended up with two accounts.
+    const phoneOwner: any = await User.findOne({ phone: { $in: phoneVariants(mobile) }, tenantId })
+      .select('email passport.verifiedAt passport.active passport.product').lean();
+    // isRealAccount, not proved: an LMS student's mobile is taken even though they never did CareerPilot.
+    if (phoneOwner && isRealAccount(phoneOwner) && String(phoneOwner.email || '').toLowerCase() !== email) {
       const masked = String(phoneOwner.email || '').replace(/^(.{2})[^@]*(@.*)$/, '$1•••$2');
       return res.status(409).json({
         success: false,
@@ -319,11 +333,11 @@ async function materialiseSignup(pending: any): Promise<any> {
 
   const stranded: any =
     await User.findOne({ email })
-    || await User.findOne({ tenantId, phone: mobile });
+    || await User.findOne({ tenantId, phone: { $in: phoneVariants(mobile) } });
 
   // Only a row nobody ever proved may be taken over. Anything else is a real account and
   // signup refused it long before this point.
-  if (stranded && !stranded.passport?.verifiedAt && !stranded.passport?.active) {
+  if (stranded && !isRealAccount(stranded)) {
     stranded.email = email;
     stranded.phone = mobile;
     stranded.firstName = firstName;

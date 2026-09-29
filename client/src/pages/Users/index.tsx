@@ -54,7 +54,7 @@ const UsersPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [usersRes, rolesRes, batchesRes] = await Promise.all([userApi.getUsers(), roleApi.getRoles(), batchApi.getBatches()]);
+      const [usersRes, rolesRes, batchesRes] = await Promise.all([userApi.getUsers('lms'), roleApi.getRoles(), batchApi.getBatches()]);
       setUsers(usersRes.data || []);
       setRoles(rolesRes.data || []);
       setBatches(batchesRes.data || []);
@@ -116,7 +116,7 @@ const UsersPage: React.FC = () => {
     try {
       /* Export exactly what the screen is showing. */
       await userApi.exportUsers({
-        search: searchTerm, role: roleFilter, status: activeFilter, batchId: batchFilter,
+        search: searchTerm, role: roleFilter, status: activeFilter, batchId: batchFilter, scope: 'lms',
       });
     }
     catch (e: any) { setError(e?.message || 'Failed to export users'); }

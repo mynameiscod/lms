@@ -174,20 +174,11 @@
    inside Join's signup card it was squeezed into a column a few words wide.
    It lifts out and owns the screen instead, which is what a focused step
    should do wherever it was started from. */
-.cpl-verify-takeover {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  overflow-y: auto;
-  background: #fff;
-  /*
-   * A FLEX COLUMN, because .cpv is built to be a flex CHILD.
-   *
-   * It sizes itself with `flex: 1 0 auto` inside #root's column. Lifting it into a plain
-   * fixed div left that declaration with no flex parent to act on, so the page collapsed to
-   * its content and the layout was still wrong — the takeover fixed where it rendered without
-   * fixing how it sized. It needs the same shape #root gives it.
-   */
+.cpl-verify-host {
+  /* An ordinary flex child of #root, like every page: fills the column, scrolls with the window. */
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
 }
+/* While verification is open, the page that started it steps aside rather than showing through. */
+#root.cp-verify-active > :not(.cpl-verify-host) { display: none !important; }

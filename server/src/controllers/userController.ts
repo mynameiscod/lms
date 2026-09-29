@@ -15,6 +15,7 @@ import { collectStudentStats, EMPTY_STATS } from '../services/userExportService'
 import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
 import csvParser from 'csv-parser';
 import * as XLSX from 'xlsx';
+import { LMS_USERS_FILTER } from '../services/learnerAudience';
 
 const userService = new UserService();
 const emailService = new EmailService();
@@ -139,17 +140,22 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
 
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { search, role } = req.query as { search?: string; role?: string };
+    const { search, role, scope } = req.query as { search?: string; role?: string; scope?: string };
+    /* ?scope=lms — the admin Users screen lists LMS users only; CareerPilot-only members have their
+       own screen. Other callers (pickers, reports) get everyone, as before. */
+    const scopeFilter = scope === 'lms' ? LMS_USERS_FILTER : {};
 
     let users;
-    if (search || role) {
-      const filter: any = { tenantId: req.tenantId };
+    if (search || role || scope === 'lms') {
+      const filter: any = { tenantId: req.tenantId, ...scopeFilter };
       if (role) filter.role = role;
       if (search) {
         const re = { $regex: search, $options: 'i' };
         filter.$or = [{ name: re }, { email: re }];
       }
-      users = await User.find(filter).select('_id firstName lastName email role batchId').lean();
+      users = scope === 'lms' && !search && !role
+        ? await User.find(filter)   // the full records the Users screen renders, as the unscoped branch returns
+        : await User.find(filter).select('_id firstName lastName email role batchId').lean();
     } else {
       users = await userService.getUsersByTenant(req.tenantId!);
     }
@@ -201,13 +207,13 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
  */
 export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { search, role, status, batchId } = req.query as {
-      search?: string; role?: string; status?: string; batchId?: string;
+    const { search, role, status, batchId, scope } = req.query as {
+      search?: string; role?: string; status?: string; batchId?: string; scope?: string;
     };
 
     /* The export honours the same filters the screen was showing. An admin who filtered to one
        batch and pressed Export expects that batch, not all 184 people. */
-    const filter: any = { tenantId: req.tenantId };
+    const filter: any = { tenantId: req.tenantId, ...(scope === 'lms' ? LMS_USERS_FILTER : {}) };
     if (role) filter.role = role;
     if (batchId) filter.batchId = batchId;
     if (status === 'active') filter.isActive = { $ne: false };

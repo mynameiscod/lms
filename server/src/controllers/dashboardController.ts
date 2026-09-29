@@ -117,6 +117,7 @@ class DashboardController {
         tenant: tenantObjectId,
         status: 'published',
         dueDate: { $gte: now },
+        unitCode: { $in: [null, ''] }, // CareerPilot unit items are delivered through the member's day, never listed here
         $or: assignmentAccessOr
       })
         .select('title type difficulty dueDate totalPoints')
@@ -140,6 +141,7 @@ class DashboardController {
       const upcomingQuizzes = await Quiz.find({
         tenantId: tenantObjectId,
         isActive: true,
+        unitCode: { $in: [null, ''] }, // CareerPilot unit items are delivered through the member's day, never listed here
         $and: [
           { $or: [{ endDate: { $gte: now } }, { endDate: { $exists: false } }] },
           { $or: quizAccessOr }
@@ -261,6 +263,7 @@ class DashboardController {
       const totalAssignments = await Assignment.countDocuments({
         tenant: tenantObjectId,
         status: 'published',
+        unitCode: { $in: [null, ''] }, // CareerPilot unit items are delivered through the member's day, never listed here
         $or: assignmentAccessOr
       });
 
@@ -273,6 +276,7 @@ class DashboardController {
       const totalQuizzes = await Quiz.countDocuments({
         tenantId: tenantObjectId,
         isActive: true,
+        unitCode: { $in: [null, ''] }, // CareerPilot unit items are delivered through the member's day, never listed here
         $or: quizAccessOr
       });
 

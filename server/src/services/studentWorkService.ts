@@ -68,6 +68,10 @@ export async function resolveAssignedQuizzes(
   const schedMap = await studentSchedulesMap(tenantId, studentId, batchId, 'quiz');
 
   const visible = all.filter((quiz: any) => {
+    /* A CareerPilot unit's checkpoint is delivered through the member's day, not this list.
+       Its accessibleTo defaults to 'everyone', so without this every LMS student saw every
+       checkpoint. Only an explicit schedule puts one in front of an LMS student. */
+    if (quiz.unitCode) return schedMap.has(String(quiz._id));
     if (quiz.accessibleTo === 'batch_wise') {
       if (batchId && (quiz.selectedBatches || []).includes(batchId)) return true;
     } else if (quiz.accessibleTo === 'individual') {

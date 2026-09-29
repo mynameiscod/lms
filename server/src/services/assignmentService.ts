@@ -293,6 +293,9 @@ class AssignmentService {
   // Send email notifications to students about new assignment
   private async sendAssignmentNotifications(assignment: IAssignment, tenant: Types.ObjectId): Promise<void> {
     try {
+      /* A CareerPilot unit's assignment is not for LMS students — publishing it must not
+         email the whole tenant. */
+      if ((assignment as any).unitCode) return;
       const accessibleTo = (assignment as any).accessibleTo || 'everyone';
       let students: any[] = [];
 
@@ -522,7 +525,10 @@ class AssignmentService {
       tenant,
       $or: [
         ...(scheduledIds.length ? [{ _id: { $in: scheduledIds } }] : []),
-        { status: AssignmentStatus.PUBLISHED, $or: accessOr },
+        /* A CareerPilot unit's assignment is delivered through the member's day; its
+           accessibleTo defaults to 'everyone', so it must never auto-list for LMS students.
+           Only an explicit schedule (above) delivers one. */
+        { status: AssignmentStatus.PUBLISHED, unitCode: { $in: [null, ''] }, $or: accessOr },
       ],
     };
 

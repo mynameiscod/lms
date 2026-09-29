@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { leadSourceConfigApi, metaLeadsApi } from '../../api/index';
+import LinesTextarea from '../../components/common/LinesTextarea';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -340,11 +341,11 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                       <label className="form-label fw-semibold" style={{ fontSize: '0.83rem', color: '#374151' }}>
                         Allowed Domains <span className="fw-normal text-muted">(one per line)</span>
                       </label>
-                      <textarea className="form-control font-monospace" rows={3}
+                      <LinesTextarea className="form-control font-monospace" rows={3}
                         style={{ fontSize: '0.82rem' }}
                         placeholder={'https://yourwebsite.com\nhttps://www.yourwebsite.com'}
-                        value={(config.allowedDomains || []).join('\n')}
-                        onChange={e => setConfig(c => ({ ...c, allowedDomains: e.target.value.split('\n').filter(Boolean) }))} />
+                        value={config.allowedDomains || []}
+                        onChange={allowedDomains => setConfig(c => ({ ...c, allowedDomains }))} />
                       <div className="form-text">Leave blank to allow all domains (not recommended for production)</div>
                     </div>
                     <TextField label="Redirect URL after form submission" value={config.redirectUrl || ''}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import hackathonApi, { Hackathon } from '../../api/hackathonApi';
 import './hackathons.css';
+import LinesTextarea from '../../components/common/LinesTextarea';
 
 /**
  * Hackathons — the events, and the form the public registration API validates against.
@@ -229,8 +230,8 @@ const HackathonsAdmin: React.FC = () => {
             <label className="hk-f"><span>3rd prize</span><input value={form.prizes?.third || ''} placeholder="₹10,000" onChange={e => patch({ prizes: { ...form.prizes!, third: e.target.value } })} /></label>
             <label className="hk-f wide">
               <span>Other prizes — one per line</span>
-              <textarea rows={3} value={(form.prizes?.others || []).join('\n')}
-                onChange={e => patch({ prizes: { ...form.prizes!, others: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) } })} />
+              <LinesTextarea rows={3} value={form.prizes?.others || []}
+                onChange={others => patch({ prizes: { ...form.prizes!, others } })} />
             </label>
           </div>
 
@@ -248,8 +249,8 @@ const HackathonsAdmin: React.FC = () => {
           <div className="hk-grid" style={{ marginBottom: 8 }}>
             <label className="hk-f wide">
               <span>Colleges — one per line ({(form.colleges || []).length})</span>
-              <textarea rows={6} value={(form.colleges || []).join('\n')}
-                onChange={e => patch({ colleges: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })} />
+              <LinesTextarea rows={6} value={form.colleges || []}
+                onChange={colleges => patch({ colleges })} />
               <small>This is the dropdown on the registration form. Leave empty to accept any college typed in.</small>
             </label>
             <div className="hk-f">

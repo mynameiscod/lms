@@ -22,6 +22,7 @@ import passportApi, {
 } from '../../api/passportApi';
 import UnitStudentPreview from './UnitStudentPreview';
 import './megaCurriculum.css';
+import LinesTextarea from '../../components/common/LinesTextarea';
 
 /**
  * Where the content and assessment editors send an author back to: this screen, with the unit reopened.
@@ -867,8 +868,8 @@ const AdminMegaCurriculum: React.FC = () => {
             </label>
 
             <label>Learning outcomes <em>one per line</em>
-              <textarea rows={3} value={editing.learningOutcomes.join('\n')}
-                        onChange={e => patch({ learningOutcomes: e.target.value.split('\n').map(x => x.trim()).filter(Boolean) })}
+              <LinesTextarea rows={3} value={editing.learningOutcomes}
+                        onChange={learningOutcomes => patch({ learningOutcomes })}
                         placeholder="Explain what a subclass inherits" />
             </label>
 

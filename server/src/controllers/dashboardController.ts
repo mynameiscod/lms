@@ -410,14 +410,18 @@ class DashboardController {
       ]);
       const rev = revAgg[0] || { total: 0, thisM: 0, lastM: 0 };
 
-      // Fee collection donut
+      // Fee collection donut. Collected counts every student; pending and overdue count only
+      // ACTIVE students, whose balances are the ones being collected (same rule as /fees).
+      const activeStudentIds = (await User.find({ tenantId: t, role: 'STUDENT', isActive: true }).select('_id').lean())
+        .map((u: any) => u._id);
       const feeAgg = await Fee.aggregate([
         { $match: { tenantId: t } },
+        { $addFields: { counts: { $in: ['$studentId', activeStudentIds] } } },
         { $group: {
           _id: null,
           collected: { $sum: '$paidAmount' },
-          pending: { $sum: { $cond: [{ $eq: ['$status', 'overdue'] }, 0, '$dueAmount'] } },
-          overdue: { $sum: { $cond: [{ $eq: ['$status', 'overdue'] }, '$dueAmount', 0] } },
+          pending: { $sum: { $cond: [{ $and: ['$counts', { $ne: ['$status', 'overdue'] }] }, '$dueAmount', 0] } },
+          overdue: { $sum: { $cond: [{ $and: ['$counts', { $eq: ['$status', 'overdue'] }] }, '$dueAmount', 0] } },
         } },
       ]);
       const fees = feeAgg[0] ? { collected: feeAgg[0].collected || 0, pending: feeAgg[0].pending || 0, overdue: feeAgg[0].overdue || 0 } : { collected: 0, pending: 0, overdue: 0 };
@@ -456,7 +460,7 @@ class DashboardController {
 
       // Upcoming reminders
       const reminders: { kind: string; title: string; when: Date | null }[] = [];
-      const feeDueCount = await Fee.countDocuments({ tenantId: t, dueAmount: { $gt: 0 }, dueDate: { $gte: now, $lte: in7 } });
+      const feeDueCount = await Fee.countDocuments({ tenantId: t, studentId: { $in: activeStudentIds }, dueAmount: { $gt: 0 }, dueDate: { $gte: now, $lte: in7 } });
       if (feeDueCount > 0) reminders.push({ kind: 'fee', title: `Fee Due Reminder · ${feeDueCount} student${feeDueCount === 1 ? '' : 's'}`, when: in7 });
       const endingBatches = await Batch.find({ tenantId: t, isActive: true, endDate: { $gte: now, $lte: in60 } }).select('name endDate').sort({ endDate: 1 }).limit(2).lean();
       endingBatches.forEach((b: any) => reminders.push({ kind: 'batch', title: `Batch Ending · ${b.name}`, when: b.endDate }));

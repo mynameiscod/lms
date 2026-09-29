@@ -17,6 +17,19 @@ const inr = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
 const inr2 = (n: number) => `₹${(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const sumPayments = (payments: any[]) => (payments || []).reduce((s, p) => s + (p.amount || 0), 0);
 
+/**
+ * Active students → their CURRENT batch. The one population whose dues count.
+ *
+ * An inactive student's balance is not collected, so it must not appear in any pending total or
+ * receive a reminder. It is left on the record rather than cleared, so reactivating the student
+ * brings the balance back. Money already RECEIVED from them is real and is still counted.
+ * Batch comes from the user, not the fee record, so totals match the fee table exactly.
+ */
+async function activeStudentBatches(tenantId: string): Promise<Map<string, string | null>> {
+  const students = await User.find({ tenantId, role: 'STUDENT', isActive: true }).select('batchId').lean();
+  return new Map(students.map((s: any) => [String(s._id), s.batchId ? String(s.batchId) : null]));
+}
+
 // CodeBegun brand details — used as the DEFAULT receipt branding. Each tenant
 // can override every field via tenant.receipt (see resolveReceiptBrand). Logo,
 // signature and QR are hot-linked so they render in email clients and on print.
@@ -481,16 +494,19 @@ export async function deletePayment(req: AuthRequest, res: Response) {
 export async function getFeeAnalytics(req: AuthRequest, res: Response) {
   try {
     const tenantId = req.tenantId!;
-    const [fees, batches] = await Promise.all([
+    const [fees, batches, active] = await Promise.all([
       Fee.find({ tenantId }).lean(),
       Batch.find({ tenantId }).select('name').lean(),
+      activeStudentBatches(tenantId),
     ]);
     const batchName: Record<string, string> = {};
     batches.forEach((b: any) => { batchName[String(b._id)] = b.name; });
+    /* Money owed is counted only for active students; money received, for everyone. */
+    const activeFees = fees.filter((f: any) => active.has(String(f.studentId)));
 
-    const totalBilled = fees.reduce((s: number, f: any) => s + (f.totalAmount || 0), 0);
+    const totalBilled = activeFees.reduce((s: number, f: any) => s + (f.totalAmount || 0), 0);
     const totalCollected = fees.reduce((s: number, f: any) => s + (f.paidAmount || 0), 0);
-    const totalDue = fees.reduce((s: number, f: any) => s + (f.dueAmount || 0), 0);
+    const totalDue = activeFees.reduce((s: number, f: any) => s + (f.dueAmount || 0), 0);
 
     // Monthly collections — last 6 months
     const months: { key: string; label: string; amount: number }[] = [];
@@ -509,8 +525,8 @@ export async function getFeeAnalytics(req: AuthRequest, res: Response) {
 
     // Batch-wise pending
     const batchAgg: Record<string, { batchId: string; batchName: string; due: number; students: number }> = {};
-    fees.forEach((f: any) => {
-      const bid = f.batchId ? String(f.batchId) : 'none';
+    activeFees.forEach((f: any) => {
+      const bid = active.get(String(f.studentId)) || 'none';
       if (!batchAgg[bid]) batchAgg[bid] = { batchId: bid, batchName: bid === 'none' ? 'Unassigned' : (batchName[bid] || '—'), due: 0, students: 0 };
       batchAgg[bid].due += f.dueAmount || 0;
       if ((f.dueAmount || 0) > 0) batchAgg[bid].students += 1;
@@ -525,10 +541,10 @@ export async function getFeeAnalytics(req: AuthRequest, res: Response) {
         monthly: months,
         batchWisePending,
         statusCounts: {
-          paid: fees.filter((f: any) => f.status === 'paid').length,
-          partial: fees.filter((f: any) => f.status === 'partial').length,
-          pending: fees.filter((f: any) => f.status === 'pending').length,
-          overdue: fees.filter((f: any) => f.status === 'overdue').length,
+          paid: activeFees.filter((f: any) => f.status === 'paid').length,
+          partial: activeFees.filter((f: any) => f.status === 'partial').length,
+          pending: activeFees.filter((f: any) => f.status === 'pending').length,
+          overdue: activeFees.filter((f: any) => f.status === 'overdue').length,
         },
       },
     });
@@ -745,9 +761,14 @@ export async function sendBulkReminders(req: AuthRequest, res: Response) {
     const { batch } = req.body || {};
     const tenant = await Tenant.findById(tenantId).select('name').lean() as any;
     const orgName = tenant?.name || 'Codebegun';
-    const query: any = { tenantId, dueAmount: { $gt: 0 } };
-    if (batch) query.batchId = batch;
-    const fees = await Fee.find(query).populate('studentId', 'firstName lastName email').lean();
+    /* Only active students are chased, and "batch" means the batch they are in NOW (the fee
+       record's batch can be stale). An inactive student's balance is not being collected. */
+    const active = await activeStudentBatches(tenantId);
+    const all = await Fee.find({ tenantId, dueAmount: { $gt: 0 } }).populate('studentId', 'firstName lastName email').lean();
+    const fees = (all as any[]).filter(f => {
+      const sid = String(f.studentId?._id || f.studentId);
+      return active.has(sid) && (!batch || active.get(sid) === String(batch));
+    });
     let sent = 0;
     for (const f of fees as any[]) {
       const s = f.studentId;

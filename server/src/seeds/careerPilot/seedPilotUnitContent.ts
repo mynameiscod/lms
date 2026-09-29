@@ -399,6 +399,11 @@ const readingMinutes = (text: string): number =>
               title: `${unit.title} — checkpoint`,
               description: `Checks the outcomes of ${unit.unitCode}.`,
               unitCode: unit.unitCode,
+              /* For CareerPilot members only — never listed to LMS students. In $set (not
+                 $setOnInsert) so a re-run also corrects rows seeded before the field existed.
+                 accessibleTo is left at its default: members may reach the checkpoint through
+                 canStudentAccessQuiz's 'everyone' branch, and narrowing it would lock them out. */
+              audience: 'careerpilot',
               questionIds,
               totalQuestions: questionIds.length,
               questionCount: questionIds.length,
@@ -483,6 +488,8 @@ const readingMinutes = (text: string): number =>
                 instructions: bundle.assignment.instructions,
                 type: coding ? AssignmentType.CODING : AssignmentType.PROJECT,
                 unitCode: unit.unitCode,
+                // CareerPilot members only; $set so re-runs fix rows seeded before the field existed.
+                audience: 'careerpilot',
                 totalPoints: bundle.assignment.totalPoints,
                 rubric: bundle.assignment.rubric.map((r, i) => ({
                   criterion: r.criterion, description: r.description,

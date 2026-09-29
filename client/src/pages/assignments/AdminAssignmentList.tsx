@@ -12,6 +12,7 @@ import { batchApi, userApi } from '../../api';
 import AssignmentPreviewModal from '../AssignmentReports/AssignmentPreviewModal';
 import AssignToBatchesModal from '../../components/AssignToBatches/AssignToBatchesModal';
 import { TECH_CATEGORIES, techDef } from '../../config/techCategories';
+import { AUDIENCE_OPTIONS, audienceDef } from '../../config/contentAudience';
 import './assignments.css';
 
 // Windowed page numbers with ellipses, e.g. 1 … 4 5 [6] 7 8 … 20
@@ -135,6 +136,7 @@ const AdminAssignmentList: React.FC = () => {
   const [batchFilter, setBatchFilter] = useState<string>('');
   const [languageFilter, setLanguageFilter] = useState<string>('');
   const [techFilter, setTechFilter] = useState<string>('');
+  const [audienceFilter, setAudienceFilter] = useState<string>(''); // '' | lms | careerpilot | all
   const [topicFilter, setTopicFilter] = useState<string>('');
   const [lessonFilter, setLessonFilter] = useState<string>('');
   const [groupBy, setGroupBy] = useState<'none' | 'language' | 'topic' | 'lesson'>('none');
@@ -166,10 +168,10 @@ const AdminAssignmentList: React.FC = () => {
     points: { sortBy: 'totalPoints', sortOrder: 'desc', label: 'Highest Points' },
     title: { sortBy: 'title', sortOrder: 'asc', label: 'Title (A–Z)' },
   };
-  const hasFilters = !!(search || statusFilter || typeFilter || difficultyFilter || batchFilter || languageFilter || techFilter || createdByFilter);
+  const hasFilters = !!(search || statusFilter || typeFilter || difficultyFilter || batchFilter || languageFilter || techFilter || audienceFilter || createdByFilter);
   const clearFilters = () => {
     setSearch(''); setStatusFilter(''); setTypeFilter(''); setDifficultyFilter('');
-    setBatchFilter(''); setLanguageFilter(''); setTechFilter(''); setCreatedByFilter(''); setPage(1);
+    setBatchFilter(''); setLanguageFilter(''); setTechFilter(''); setAudienceFilter(''); setCreatedByFilter(''); setPage(1);
   };
 
   const loadAssignments = useCallback(async () => {
@@ -189,6 +191,7 @@ const AdminAssignmentList: React.FC = () => {
         batch: batchFilter || undefined,
         language: languageFilter || undefined,
         primaryTech: techFilter || undefined,
+        audience: audienceFilter || undefined,
         topics: topicFilter || undefined,
         chapter: lessonFilter || undefined,
         createdBy: createdByFilter || undefined,
@@ -205,7 +208,7 @@ const AdminAssignmentList: React.FC = () => {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, search, statusFilter, typeFilter, difficultyFilter, batchFilter, languageFilter, techFilter, topicFilter, lessonFilter, groupBy, createdByFilter, sortOption]);
+  }, [page, limit, search, statusFilter, typeFilter, difficultyFilter, batchFilter, languageFilter, techFilter, audienceFilter, topicFilter, lessonFilter, groupBy, createdByFilter, sortOption]);
 
   // Load batches + creators for the filters
   useEffect(() => {
@@ -843,6 +846,12 @@ const AdminAssignmentList: React.FC = () => {
               {TECH_CATEGORIES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
             </select>
           </div>
+          <div className="lib-fb-field"><label>Audience</label>
+            <select value={audienceFilter} onChange={(e) => { setAudienceFilter(e.target.value); setPage(1); }}>
+              <option value="">All Audiences</option>
+              {AUDIENCE_OPTIONS.map(a => <option key={a.value} value={a.value}>{a.icon} {a.label}</option>)}
+            </select>
+          </div>
           <div className="lib-fb-field"><label>Topic</label>
             <select value={topicFilter} onChange={(e) => { setTopicFilter(e.target.value); setPage(1); }}>
               <option value="">All Topics</option>
@@ -862,7 +871,7 @@ const AdminAssignmentList: React.FC = () => {
             <input type="text" placeholder="Search by title or description..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
           </div>
           <button className="lib-clear" onClick={clearFilters}>↻ Clear</button>
-          <button className="lib-filters-count">Filters ({[statusFilter, typeFilter, difficultyFilter, batchFilter, techFilter, topicFilter, lessonFilter, createdByFilter].filter(Boolean).length})</button>
+          <button className="lib-filters-count">Filters ({[statusFilter, typeFilter, difficultyFilter, batchFilter, techFilter, audienceFilter, topicFilter, lessonFilter, createdByFilter].filter(Boolean).length})</button>
         </div>
         {/* Tech category chips */}
         <div className="lib-techchips">
@@ -1003,11 +1012,15 @@ const AdminAssignmentList: React.FC = () => {
                     const renderRow = (assignment: Assignment) => {
                       const created = formatDateTime(assignment.updatedAt || assignment.createdAt);
                       const tech = techDef((assignment as any).primaryTech);
+                      const product = audienceDef((assignment as any).audience);
                       const desc = (assignment.description || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
                       return (
                         <tr key={assignment._id}>
                           <td className="title-cell">
-                            <div className="title-main">{assignment.title}</div>
+                            <div className="title-main">
+                              {assignment.title}
+                              <span title={`Listed to: ${product.label}`} style={{ display: 'inline-block', marginLeft: 8, verticalAlign: 'middle', background: product.bg, color: product.color, borderRadius: 20, padding: '1px 8px', fontSize: 11, fontWeight: 600 }}>{product.icon} {product.short}</span>
+                            </div>
                             {desc && <div className="title-topics">{desc.slice(0, 72)}{desc.length > 72 ? '…' : ''}</div>}
                           </td>
                           <td>{tech ? <span className="lib-cell-chip" style={{ color: tech.color, background: tech.color + '18' }}>{tech.icon} {tech.label}</span> : <span className="lib-muted">—</span>}</td>

@@ -14,6 +14,7 @@ import {
 } from '../../api/assignmentApi';
 import { courseApi, subjectApi, chapterApi, quizApi, batchApi, userApi } from '../../api';
 import { TECH_CATEGORIES } from '../../config/techCategories';
+import { AUDIENCE_OPTIONS, audienceDef, ContentAudience } from '../../config/contentAudience';
 import CourseSelect from '../../components/common/CourseSelect';
 import './assignments.css';
 
@@ -36,6 +37,8 @@ const AdminAssignmentForm: React.FC = () => {
   const [type, setType] = useState<AssignmentType>(AssignmentType.CODING);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>(DifficultyLevel.MEDIUM);
   const [primaryTech, setPrimaryTech] = useState<string>('');
+  // Which student population lists it. Legacy assignments have none and have always been LMS.
+  const [audience, setAudience] = useState<ContentAudience>('lms');
   const [totalPoints, setTotalPoints] = useState(100);
   // The pass line a submission is judged against (Submission.isPassing). The model's default is 40.
   const [passingPoints, setPassingPoints] = useState(40);
@@ -278,6 +281,7 @@ const AdminAssignmentForm: React.FC = () => {
       setType(a.type);
       setDifficulty(a.difficulty);
       setPrimaryTech((a as any).primaryTech || '');
+      setAudience(audienceDef((a as any).audience).value);
       setTotalPoints(a.totalPoints);
       setPassingPoints(typeof (a as any).passingPoints === 'number' ? (a as any).passingPoints : 40);
       setTopics(a.topics);
@@ -369,6 +373,7 @@ const AdminAssignmentForm: React.FC = () => {
         type,
         difficulty,
         primaryTech: primaryTech || undefined,
+        audience,
         totalPoints,
         passingPoints,
         topics,
@@ -859,6 +864,17 @@ const AdminAssignmentForm: React.FC = () => {
                 >
                   <option value="">— Select —</option>
                   {TECH_CATEGORIES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Audience <span style={{ color: '#94a3b8', fontWeight: 400 }}>(who sees it in their assignment list)</span></label>
+                <select
+                  className="form-control"
+                  value={audience}
+                  onChange={(e) => setAudience(e.target.value as ContentAudience)}
+                >
+                  {AUDIENCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
 

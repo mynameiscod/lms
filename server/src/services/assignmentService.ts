@@ -13,6 +13,7 @@ import { createNotifications } from '../notifications/notificationService';
 import { studentSchedulesMap, policyFromRow } from './assessmentDeliveryService';
 import { computeStatus, DEFAULT_POLICY } from './deadlinePolicyService';
 import { Types } from 'mongoose';
+import { audienceFilterFor, audienceIncludes, isContentAudience, ContentAudience } from './learnerAudience';
 
 const emailService = new EmailService();
 
@@ -37,6 +38,7 @@ interface CreateAssignmentInput {
   chapter?: Types.ObjectId;
   batch?: Types.ObjectId;
   accessibleTo?: 'everyone' | 'batch_wise' | 'individual';
+  audience?: ContentAudience;
   selectedBatches?: string[];
   selectedStudents?: string[];
   allowedLanguages?: ProgrammingLanguage[];
@@ -77,6 +79,7 @@ interface ListAssignmentsFilter {
   createdBy?: Types.ObjectId | string;
   language?: string;
   primaryTech?: string;
+  audience?: string;
   isInBank?: boolean;
   bankCategory?: string;
   search?: string;
@@ -200,6 +203,8 @@ class AssignmentService {
     if (filter.subject) query.subject = filter.subject;
     if (filter.chapter) query.chapter = filter.chapter;
     if (filter.primaryTech) query.primaryTech = filter.primaryTech;
+    // Legacy rows have no audience and read as 'lms', so the LMS filter includes them.
+    if (isContentAudience(filter.audience)) query.audience = filter.audience === 'lms' ? { $in: ['lms', null] } : filter.audience;
     if (filter.createdBy) query.createdBy = filter.createdBy;
     if (filter.language) query.allowedLanguages = filter.language; // matches assignments whose allowedLanguages array contains it
     if (filter.isInBank !== undefined) query.isInBank = filter.isInBank;
@@ -296,6 +301,9 @@ class AssignmentService {
       /* A CareerPilot unit's assignment is not for LMS students — publishing it must not
          email the whole tenant. */
       if ((assignment as any).unitCode) return;
+      /* Nor is one whose audience is CareerPilot members only — only lms/all (or a legacy row
+         with no audience) emails LMS students. */
+      if (!audienceIncludes('lms', (assignment as any).audience)) return;
       const accessibleTo = (assignment as any).accessibleTo || 'everyone';
       let students: any[] = [];
 
@@ -369,6 +377,8 @@ class AssignmentService {
     tenant: Types.ObjectId
   ): Promise<void> {
     try {
+      // Same rule as sendAssignmentNotifications: CareerPilot-only content never emails LMS students.
+      if ((after as any).unitCode || !audienceIncludes('lms', (after as any).audience)) return;
       const accessibleTo = (after as any).accessibleTo || 'everyone';
 
       if (accessibleTo === 'individual') {
@@ -527,8 +537,10 @@ class AssignmentService {
         ...(scheduledIds.length ? [{ _id: { $in: scheduledIds } }] : []),
         /* A CareerPilot unit's assignment is delivered through the member's day; its
            accessibleTo defaults to 'everyone', so it must never auto-list for LMS students.
-           Only an explicit schedule (above) delivers one. */
-        { status: AssignmentStatus.PUBLISHED, unitCode: { $in: [null, ''] }, $or: accessOr },
+           Only an explicit schedule (above) delivers one. The audience condition does the
+           same job for anything an admin marked CareerPilot-only; the unitCode check stays as
+           belt-and-braces until backfillContentAudience has run. */
+        { status: AssignmentStatus.PUBLISHED, unitCode: { $in: [null, ''] }, ...audienceFilterFor('lms'), $or: accessOr },
       ],
     };
 

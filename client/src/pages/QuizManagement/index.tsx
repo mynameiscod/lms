@@ -7,6 +7,7 @@ import QuizWizard from '../../components/QuizWizard/QuizWizard';
 import QuizQuestionLinking from '../../components/QuizQuestionLinking/QuizQuestionLinking';
 import { Quiz, Batch } from '../../types';
 import { TECH_CATEGORIES, techDef } from '../../config/techCategories';
+import { AUDIENCE_OPTIONS, audienceDef } from '../../config/contentAudience';
 import AssignToBatchesModal from '../../components/AssignToBatches/AssignToBatchesModal';
 import '../library-shared.css';
 import './QuizManagementPage.css';
@@ -96,6 +97,7 @@ const QuizManagementPage: React.FC = () => {
   const [archivedQuizzes, setArchivedQuizzes] = useState<Quiz[]>([]);
   // Organize / reuse: filters + group-by
   const [techFilter, setTechFilter] = useState('');
+  const [audienceFilter, setAudienceFilter] = useState(''); // '' | lms | careerpilot | all
   const [lessonFilter, setLessonFilter] = useState('');
   const [search, setSearch] = useState('');
   const [groupBy, setGroupBy] = useState<'none' | 'language' | 'lesson'>('none');
@@ -328,8 +330,8 @@ const QuizManagementPage: React.FC = () => {
     return Array.from(m.entries());
   }, [quizzes]);
 
-  const activeFiltersCount = [techFilter, lessonFilter, search].filter(Boolean).length;
-  const clearFilters = () => { setTechFilter(''); setLessonFilter(''); setSearch(''); setGroupBy('none'); };
+  const activeFiltersCount = [techFilter, audienceFilter, lessonFilter, search].filter(Boolean).length;
+  const clearFilters = () => { setTechFilter(''); setAudienceFilter(''); setLessonFilter(''); setSearch(''); setGroupBy('none'); };
 
   if (loading) return <Spinner fullScreen />;
 
@@ -594,6 +596,7 @@ const QuizManagementPage: React.FC = () => {
       {activeTab === 'active' && (() => {
         const filtered = quizzes
           .filter(q => !techFilter || (q as any).primaryTech === techFilter)
+          .filter(q => !audienceFilter || audienceDef((q as any).audience).value === audienceFilter)
           .filter(q => !lessonFilter || String((q as any).chapterId?._id || (q as any).chapterId?.title || '') === lessonFilter)
           .filter(q => !search || q.title.toLowerCase().includes(search.toLowerCase()));
         const sorted = filtered.slice().sort((a, b) =>
@@ -622,6 +625,12 @@ const QuizManagementPage: React.FC = () => {
                   <select value={techFilter} onChange={e => setTechFilter(e.target.value)}>
                     <option value="">All Languages</option>
                     {TECH_CATEGORIES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
+                  </select>
+                </div>
+                <div className="lib-fb-field"><label>Audience</label>
+                  <select value={audienceFilter} onChange={e => setAudienceFilter(e.target.value)}>
+                    <option value="">All Audiences</option>
+                    {AUDIENCE_OPTIONS.map(a => <option key={a.value} value={a.value}>{a.icon} {a.label}</option>)}
                   </select>
                 </div>
                 <div className="lib-fb-field"><label>Lesson (Chapter)</label>
@@ -683,6 +692,7 @@ const QuizManagementPage: React.FC = () => {
                           lastKey = gk;
                           const tech = techDef((quiz as any).primaryTech);
                           const audience = getAudienceBadge(quiz);
+                          const product = audienceDef((quiz as any).audience);
                           const status = getQuizStatus(quiz);
                           const chapterTitle = (quiz as any).chapterId?.title;
                           const isExternal = !!(quiz as any).isExternalQuiz;
@@ -709,6 +719,7 @@ const QuizManagementPage: React.FC = () => {
                                 <td className="quiz-title">
                                   <div style={{ fontWeight: 700, color: '#0f172a' }}>{quiz.title}</div>
                                   <span style={{ display: 'inline-block', marginTop: 4, background: audience.bg, color: audience.color, borderRadius: 20, padding: '2px 9px', fontSize: 11.5, fontWeight: 600 }}>{audience.label}</span>
+                                  <span title={`Listed to: ${product.label}`} style={{ display: 'inline-block', marginTop: 4, marginLeft: 6, background: product.bg, color: product.color, borderRadius: 20, padding: '2px 9px', fontSize: 11.5, fontWeight: 600 }}>{product.icon} {product.short}</span>
                                 </td>
                                 <td>
                                   {tech

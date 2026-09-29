@@ -229,6 +229,7 @@ export async function createQuizForUnit(
     tenantId,
     createdBy: actor || 'curriculum-admin',
     unitCode,
+    audience: 'careerpilot', // a unit's checkpoint is for CareerPilot members, never the LMS list
     // The quiz engine requires a window; a checkpoint is taken when the plan reaches it, so the
     // window is wide and the real gating is the unit's place in the plan.
     startDate: now,
@@ -270,6 +271,7 @@ export async function createAssignmentForUnit(
     status: AssignmentStatus.DRAFT,
     totalPoints: 100,
     unitCode,
+    audience: 'careerpilot', // a unit's project is for CareerPilot members, never the LMS list
     createdBy: new mongoose.Types.ObjectId(createdBy),
   } as any);
 

@@ -8,6 +8,7 @@ import Batch from '../models/Batch';
 import User from '../models/User';
 import { resolveForStudent } from './assessmentDeliveryService';
 import crypto from 'crypto';
+import { isContentAudience } from './learnerAudience';
 
 /**
  * Resolve the correct option text(s) for an MCQ question, honoring BOTH ways a question
@@ -84,6 +85,8 @@ export class QuizService {
       query.access = filters.access;
     }
     if (filters?.primaryTech) query.primaryTech = filters.primaryTech;
+    // Legacy rows have no audience and read as 'lms', so the LMS filter includes them.
+    if (isContentAudience(filters?.audience)) query.audience = filters.audience === 'lms' ? { $in: ['lms', null] } : filters.audience;
     if (filters?.chapterId) query.chapterId = filters.chapterId;
     if (filters?.search) {
       query.$or = [
@@ -106,6 +109,12 @@ export class QuizService {
 
   // Update quiz
   async updateQuiz(quizId: string, updateData: Partial<IQuiz>): Promise<IQuiz | null> {
+    /* findByIdAndUpdate skips schema validators, so an unknown audience would be stored as-is
+       and then silently read as 'lms'. Drop it instead, leaving the stored value alone. */
+    if ('audience' in (updateData || {}) && !isContentAudience((updateData as any).audience)) {
+      updateData = { ...updateData };
+      delete (updateData as any).audience;
+    }
     return Quiz.findByIdAndUpdate(quizId, updateData, { new: true });
   }
 

@@ -5,6 +5,7 @@ import { Button, Input, Alert } from '../common';
 import { Batch } from '../../types';
 import { courseApi, subjectApi, chapterApi, userApi } from '../../api';
 import { TECH_CATEGORIES } from '../../config/techCategories';
+import { AUDIENCE_OPTIONS } from '../../config/contentAudience';
 import './QuizWizard.css';
 
 interface Course {
@@ -29,6 +30,7 @@ interface QuizFormData {
   description: string;
   instructions: string;
   primaryTech: string;
+  audience: 'lms' | 'careerpilot' | 'all';
   courseId: string;
   subjectId: string;
   chapterId: string;
@@ -116,6 +118,8 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
     description: initialData?.description || '',
     instructions: (initialData as any)?.instructions || '',
     primaryTech: (initialData as any)?.primaryTech || '',
+    // Which student population lists this quiz. Legacy quizzes have none and have always been LMS.
+    audience: (initialData as any)?.audience || 'lms',
     courseId: (initialData as any)?.courseId || '',
     subjectId: (initialData as any)?.subjectId || '',
     chapterId: (initialData as any)?.chapterId || '',
@@ -497,6 +501,20 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
                 <option value="">-- Select --</option>
                 {TECH_CATEGORIES.map((t) => (
                   <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Audience <span style={{ color: '#94a3b8', fontWeight: 400 }}>(who sees it in their quiz list)</span></label>
+              <select
+                name="audience"
+                value={formData.audience}
+                onChange={handleInputChange}
+                className="select-input"
+              >
+                {AUDIENCE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
             </div>

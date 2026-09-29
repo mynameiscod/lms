@@ -8,6 +8,7 @@ import User from '../models/User';
 import Batch from '../models/Batch';
 import { visualize } from '../services/visualizer/visualizerService';
 import { VISUALIZER_SEED } from '../services/visualizer/visualizerSeed';
+import { learnerAudienceOf, LEARNER_AUDIENCE_FIELDS } from '../services/learnerAudience';
 
 const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
@@ -34,18 +35,16 @@ export interface VisualizerAccessDecision {
  * product they "belong" to first.
  */
 export async function resolveAccess(tenantId: string, userId: string): Promise<VisualizerAccessDecision> {
-  const user: any = await User.findById(userId).select('role batchId passport.active passport.expiresAt passport.product').lean();
+  const user: any = await User.findById(userId).select(LEARNER_AUDIENCE_FIELDS).lean();
   if (!user) return { allowed: false, via: 'none' };
   if (STAFF_ROLES.has(user.role)) return { allowed: true, via: 'staff' };
 
   const grants = await VisualizerAccess.find({ tenantId }).select('targetType targetId').lean();
   if (!grants.length) return { allowed: false, via: 'none' };
 
-  const now = Date.now();
-  const passportActive = !!user.passport?.active
-    && (!user.passport?.expiresAt || new Date(user.passport.expiresAt).getTime() > now);
-  /* An LMS student is one in a batch, or a student account that never came through CareerPilot. */
-  const isLms = user.role === 'STUDENT' && (!!user.batchId || !user.passport?.product);
+  /* An LMS student is one in a batch, or a student account that never came through CareerPilot;
+     a CareerPilot member has an active, unexpired passport. Shared rule: learnerAudience.ts. */
+  const { lms: isLms, careerpilot: passportActive } = learnerAudienceOf(user);
   const id = String(userId);
   const batch = user.batchId ? String(user.batchId) : '';
 

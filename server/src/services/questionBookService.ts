@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import User from '../models/User';
 import { QuestionBook, BookQuestion, BookProgress } from '../models/QuestionBook';
+import { learnerAudienceOf, LEARNER_AUDIENCE_FIELDS } from './learnerAudience';
 
 export class BookError extends Error {
   constructor(message: string, public status = 400) { super(message); }
@@ -17,8 +18,10 @@ const COLORS = ['#4f46e5', '#0d9488', '#be123c', '#b45309', '#0369a1', '#7c3aed'
 
 /** Books a student may read: published, CodeBegun's or their institute's, for their product. */
 async function readerFilter(tenantId: string, userId: string) {
-  const u: any = await User.findById(userId).select('passport role').lean();
-  const cp = !!u?.passport?.active;
+  const u: any = await User.findById(userId).select(LEARNER_AUDIENCE_FIELDS).lean();
+  /* Shared CareerPilot rule (learnerAudience.ts): unlike the old inline `passport.active` test it
+     also honours expiry, so a lapsed member reads as LMS here, exactly like a never-member. */
+  const cp = learnerAudienceOf(u).careerpilot;
   return {
     status: 'published',
     $or: [{ scope: 'global' }, { scope: 'tenant', tenantId }],

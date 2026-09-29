@@ -114,6 +114,7 @@ export interface Assignment {
   type: AssignmentType;
   difficulty: DifficultyLevel;
   primaryTech?: string;
+  audience?: 'lms' | 'careerpilot' | 'all';
   topics: string[];
   tags: string[];
   totalPoints: number;
@@ -278,6 +279,7 @@ export interface AssignmentInput {
   type: AssignmentType;
   difficulty?: DifficultyLevel;
   primaryTech?: string;
+  audience?: 'lms' | 'careerpilot' | 'all';
   topics?: string[];
   tags?: string[];
   totalPoints?: number;
@@ -367,6 +369,7 @@ export const assignmentApi = {
     createdBy?: string;
     language?: string;
     primaryTech?: string;
+    audience?: string;
     topics?: string;
     search?: string;
     isInBank?: boolean;

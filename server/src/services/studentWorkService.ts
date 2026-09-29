@@ -18,6 +18,7 @@ import CodeSnippetAssessment from '../models/CodeSnippetAssessment';
 import CodeSnippetSubmission from '../models/CodeSnippetSubmission';
 import { studentSchedulesMap, policyFromRow } from './assessmentDeliveryService';
 import { computeStatus, mergePolicy, DEFAULT_POLICY, AssessmentStatusKind } from './deadlinePolicyService';
+import { audienceIncludes } from './learnerAudience';
 
 /** Statuses that mean "the student has actually done it". */
 export const DONE_STATUSES: AssessmentStatusKind[] = ['submitted', 'late', 'graded'];
@@ -72,6 +73,10 @@ export async function resolveAssignedQuizzes(
        Its accessibleTo defaults to 'everyone', so without this every LMS student saw every
        checkpoint. Only an explicit schedule puts one in front of an LMS student. */
     if (quiz.unitCode) return schedMap.has(String(quiz._id));
+    /* A quiz written for CareerPilot members only never auto-lists for an LMS student; missing
+       audience (legacy rows) reads as 'lms'. The unitCode guard above stays as belt-and-braces
+       until backfillContentAudience has run everywhere. An explicit schedule still delivers. */
+    if (!audienceIncludes('lms', quiz.audience)) return schedMap.has(String(quiz._id));
     if (quiz.accessibleTo === 'batch_wise') {
       if (batchId && (quiz.selectedBatches || []).includes(batchId)) return true;
     } else if (quiz.accessibleTo === 'individual') {

@@ -10,6 +10,7 @@ import StudentGameStats from '../models/StudentGameStats';
 import * as game from './gamificationService';
 import { getOrCreateProgress, addXp } from './passportXpService';
 import { awardCoins } from './coinService';
+import { learnerAudienceOf, LEARNER_AUDIENCE_FIELDS } from './learnerAudience';
 
 /**
  * Delivery of Problem Bank problems to learners, through Problem Sets.
@@ -32,15 +33,14 @@ export interface Learner {
 }
 
 export async function loadLearner(userId: string, tenantId: string): Promise<Learner> {
-  const u: any = await User.findById(userId).select('role batchId passport.active passport.expiresAt passport.product').lean();
+  const u: any = await User.findById(userId).select(LEARNER_AUDIENCE_FIELDS).lean();
   if (!u) throw new PbError('Account not found', 401);
-  const now = Date.now();
-  const isCareerPilot = !!u.passport?.active && (!u.passport?.expiresAt || new Date(u.passport.expiresAt).getTime() > now);
+  // One definition shared with the Code Visualizer and content audience gating (learnerAudience.ts).
+  const aud = learnerAudienceOf(u);
   return {
     userId: String(userId), tenantId, role: u.role, batchId: u.batchId ? String(u.batchId) : '',
-    // Same definition the Code Visualizer uses: a student in a batch, or one who never came through CareerPilot.
-    isLms: u.role === 'STUDENT' && (!!u.batchId || !u.passport?.product),
-    isCareerPilot,
+    isLms: aud.lms,
+    isCareerPilot: aud.careerpilot,
     isStaff: STAFF.has(u.role),
   };
 }

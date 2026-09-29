@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { TechCategory } from './Assignment';
+import { CONTENT_AUDIENCES, ContentAudience, DEFAULT_CONTENT_AUDIENCE } from '../services/learnerAudience';
 
 export interface IQuiz extends Document {
   _id: string;
@@ -29,6 +30,13 @@ export interface IQuiz extends Document {
    * — this sits beside them for the curriculum CareerPilot actually teaches.
    */
   unitCode?: string;
+
+  /**
+   * Which student population sees this quiz in its lists: LMS students, CareerPilot members,
+   * or both. Separate from accessibleTo, which narrows WITHIN the LMS (everyone / batch /
+   * individual). Rows written before this field existed have none and are read as 'lms'.
+   */
+  audience?: ContentAudience;
 
   startDate: Date;
   endDate: Date;
@@ -85,6 +93,7 @@ const quizSchema = new Schema<IQuiz>(
     topicId:   { type: Schema.Types.ObjectId, ref: 'Topic' },
     /** See ICurriculum note above. Sparse: only a minority of rows will ever carry one. */
     unitCode: { type: String, trim: true, uppercase: true },
+    audience: { type: String, enum: [...CONTENT_AUDIENCES], default: DEFAULT_CONTENT_AUDIENCE, index: true },
 
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },

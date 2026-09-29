@@ -167,6 +167,7 @@ class AssignmentController {
         createdBy,
         language,
         primaryTech,
+        audience,
         search,
         isInBank,
         topics
@@ -185,6 +186,7 @@ class AssignmentController {
           createdBy: createdBy ? (createdBy as string) : undefined,
           language: language as string,
           primaryTech: primaryTech as string,
+          audience: audience as string,
           search: search as string,
           isInBank: isInBank === 'true' ? true : isInBank === 'false' ? false : undefined,
           topics: topics ? (Array.isArray(topics) ? topics as string[] : [topics as string]) : undefined

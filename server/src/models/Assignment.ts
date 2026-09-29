@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema, Types } from 'mongoose';
+import { CONTENT_AUDIENCES, ContentAudience, DEFAULT_CONTENT_AUDIENCE } from '../services/learnerAudience';
 
 // Enums
 export enum AssignmentType {
@@ -123,6 +124,13 @@ export interface IAssignment extends Document {
    * — this sits beside them for the curriculum CareerPilot actually teaches.
    */
   unitCode?: string;
+
+  /**
+   * Which student population sees this assignment in its lists: LMS students, CareerPilot
+   * members, or both. Separate from accessibleTo, which narrows WITHIN the LMS. Rows written
+   * before this field existed have none and are read as 'lms'.
+   */
+  audience?: ContentAudience;
   topics: string[];
   tags: string[];
 
@@ -249,6 +257,7 @@ const AssignmentSchema = new Schema<IAssignment>({
   primaryTech: { type: String, enum: Object.values(TechCategory), index: true },
     /** See IAssignment note above. Sparse: only a minority of rows will ever carry one. */
     unitCode: { type: String, trim: true, uppercase: true },
+  audience: { type: String, enum: [...CONTENT_AUDIENCES], default: DEFAULT_CONTENT_AUDIENCE, index: true },
   topics: [{ type: String, trim: true }],
   tags: [{ type: String, trim: true }],
   

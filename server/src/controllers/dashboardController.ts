@@ -19,6 +19,7 @@ import Attendance from '../models/Attendance';
 import PlacementDrive from '../models/PlacementDrive';
 import ScheduledInterview from '../models/ScheduledInterview';
 import AssessmentSubmission from '../models/AssessmentSubmission';
+import { audienceFilterFor } from '../services/learnerAudience';
 
 interface AuthRequest extends Request {
   user?: { id: string; role?: string };
@@ -118,6 +119,7 @@ class DashboardController {
         status: 'published',
         dueDate: { $gte: now },
         unitCode: { $in: [null, ''] }, // CareerPilot unit items are delivered through the member's day, never listed here
+        ...audienceFilterFor('lms'), // CareerPilot-only content never lists for an LMS student
         $or: assignmentAccessOr
       })
         .select('title type difficulty dueDate totalPoints')
@@ -142,6 +144,7 @@ class DashboardController {
         tenantId: tenantObjectId,
         isActive: true,
         unitCode: { $in: [null, ''] }, // CareerPilot unit items are delivered through the member's day, never listed here
+        ...audienceFilterFor('lms'), // CareerPilot-only content never lists for an LMS student
         $and: [
           { $or: [{ endDate: { $gte: now } }, { endDate: { $exists: false } }] },
           { $or: quizAccessOr }
@@ -264,6 +267,7 @@ class DashboardController {
         tenant: tenantObjectId,
         status: 'published',
         unitCode: { $in: [null, ''] }, // CareerPilot unit items are delivered through the member's day, never listed here
+        ...audienceFilterFor('lms'), // CareerPilot-only content never lists for an LMS student
         $or: assignmentAccessOr
       });
 
@@ -277,6 +281,7 @@ class DashboardController {
         tenantId: tenantObjectId,
         isActive: true,
         unitCode: { $in: [null, ''] }, // CareerPilot unit items are delivered through the member's day, never listed here
+        ...audienceFilterFor('lms'), // CareerPilot-only content never lists for an LMS student
         $or: quizAccessOr
       });
 

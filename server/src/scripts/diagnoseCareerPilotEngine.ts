@@ -155,10 +155,20 @@ async function run(): Promise<void> {
 
   /* ── 4. Students waiting on this ──────────────────────────────────────────────────────── */
 
-  const byStage = await User.aggregate([
-    { $match: { tenantId, 'passport.stage': { $exists: true, $ne: null } } },
+  /**
+   * User.tenantId is an ObjectId. Every other CareerPilot model uses a String.
+   *
+   * A `find` casts the string for you because the schema says ObjectId; an AGGREGATE does not —
+   * `$match` is handed to the server as written. So the string form returns zero users and no
+   * error, which reads as "this tenant has no students" on a tenant with seventy. Measured on
+   * production: string 0, ObjectId 70.
+   */
+  const tenantOid = mongoose.Types.ObjectId.isValid(tenantId)
+    ? new mongoose.Types.ObjectId(tenantId) : null;
+  const byStage = tenantOid ? await User.aggregate([
+    { $match: { tenantId: tenantOid, 'passport.stage': { $exists: true, $ne: null } } },
     { $group: { _id: '$passport.stage', n: { $sum: 1 } } },
-  ]);
+  ]) : [];
   console.log('4. STUDENTS BY STAGE');
   if (!byStage.length) console.log('   none with a stage set.');
   for (const s of byStage.sort((a: any, b: any) => String(a._id).localeCompare(String(b._id)))) {

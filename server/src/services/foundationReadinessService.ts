@@ -25,14 +25,15 @@
 
 import CurriculumLearningUnit from '../models/CurriculumLearningUnit';
 import SkillEvidence from '../models/SkillEvidence';
-import { foundationProgramDaysFor } from './foundationProgramLengthService';
+import { programDaysFor } from './foundationProgramLengthService';
+import { CAREER_STAGES } from './careerStageService';
 
 export type FoundationNotConfiguredReason = 'NO_PRODUCTION_CURRICULUM' | 'NO_SKILL_CHECK';
 
 export interface FoundationReadiness {
   configured: boolean;
   reason: FoundationNotConfiguredReason | null;
-  /** PUBLISHED Foundation units in this tenant. The certified set is 338. */
+  /** PUBLISHED units for the stage that was asked about — not always Foundation. */
   publishedUnits: number;
   /** Active PRIMARY skill-evidence mappings — what a skill check is built from. */
   skillCheckMappings: number;
@@ -60,8 +61,18 @@ export async function foundationReadiness(
   const stage = String(stageKey || 'foundation').toLowerCase().trim();
   const label = STAGE_LABEL[stage] || 'Foundation';
 
-  /* A tenant on a longer programme needs more published units before it can compose one. */
-  const programDays = await foundationProgramDaysFor(tenantId);
+  /*
+   * A tenant on a longer programme needs more published units before it can compose one — and
+   * the programme that matters is THIS stage's, not Foundation's.
+   *
+   * This asked `foundationProgramDaysFor`, which is `programDaysFor(tenantId, 'foundation')`
+   * with the stage baked in. The unit counts above were made stage-aware when `build` joined the
+   * engine; this number was missed, so a second-year's 110-day programme was checked against
+   * Foundation's 90. A tenant holding 100 published Build units passed readiness and was then
+   * refused by the composer, which needs 110 — the same failure, reported twice, in two places,
+   * with two different messages and only the second one true.
+   */
+  const programDays = await programDaysFor(tenantId, stage);
   const [publishedUnits, skillCheckMappings] = await Promise.all([
     CurriculumLearningUnit.countDocuments({ tenantId, stageKey: stage, status: 'PUBLISHED' }),
     SkillEvidence.countDocuments({ tenantId, active: true, contribution: 'PRIMARY' }),
@@ -84,8 +95,19 @@ export async function foundationReadiness(
   return { configured: true, reason: null, publishedUnits, skillCheckMappings, message: null };
 }
 
-/** Stage keys to the word a person reads. Kept local: this file reports, it does not route. */
-const STAGE_LABEL: Record<string, string> = { foundation: 'Foundation', build: 'Build' };
+/**
+ * Stage keys to the word a person reads, from the one list that already names them.
+ *
+ * This was a local map holding `foundation` and `build` only, written when they were the only
+ * two stages the engine served. `specialize` and `placement` joined later and fell through its
+ * `|| 'Foundation'` fallback, so a final-year whose curriculum was missing read "Your Foundation
+ * curriculum has not been set up" — the precise confusion `notConfiguredForStudent` below says
+ * it exists to avoid, and unfindable from the message itself because it names a real stage.
+ *
+ * Derived rather than restated, so a stage added to CAREER_STAGES cannot be missing here again.
+ */
+const STAGE_LABEL: Record<string, string> =
+  Object.fromEntries(CAREER_STAGES.map(s => [s.key, s.label]));
 
 /**
  * What a learner is told when their institute's curriculum for their stage is not set up.

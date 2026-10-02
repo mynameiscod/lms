@@ -224,7 +224,7 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const users = await User.find(filter)
-      .select('firstName lastName name email phone role batchId isActive createdAt lastLogin')
+      .select('firstName lastName name email phone role batchId isActive createdAt lastLogin passport.graduationYear')
       .sort({ createdAt: -1 }).lean();
 
     const batches = await Batch.find({ tenantId: req.tenantId }).select('name').lean();
@@ -242,6 +242,17 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
       String(req.tenantId), students.map((u: any) => String(u._id)),
     );
 
+    /* Graduation year: the student's profile (Education → Degree) first, since that is what they
+       filled in about their degree; the CareerPilot sign-up's answer when the profile has none. */
+    const gradProfiles = await StudentProfile.find({ tenantId: req.tenantId, userId: { $in: students.map((u: any) => u._id) } })
+      .select('userId education.degree.graduationYear').lean();
+    const gradYear: Record<string, number> = {};
+    for (const p of gradProfiles as any[]) {
+      const y = p?.education?.degree?.graduationYear;
+      if (y) gradYear[String(p.userId)] = y;
+    }
+    const graduationYearOf = (u: any) => gradYear[String(u._id)] || u.passport?.graduationYear || '';
+
     const wb = XLSX.utils.book_new();
     const fit = (ws: any, headers: string[], rows: any[][]) => {
       ws['!cols'] = headers.map((h, i) => ({
@@ -254,7 +265,7 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
 
     /* ── Sheet 1: Students ───────────────────────────────────────────────────────────── */
     const sHeaders = [
-      'Name', 'Email', 'Phone', 'Batch', 'Status', 'Joined On', 'Last Login', 'Profile %',
+      'Name', 'Email', 'Phone', 'Batch', 'Graduation Year', 'Status', 'Joined On', 'Last Login', 'Profile %',
       'Attendance %', 'Present', 'Absent', 'Leave', 'Days Marked', 'First Marked', 'Last Marked',
       'Assignments Attempted', 'Submitted', 'Graded', 'Passed', 'Avg Score %', 'Last Submission',
       'Quiz Attempts', 'Quizzes Completed', 'Quizzes Passed', 'Quiz Avg %', 'Quiz Best %',
@@ -266,6 +277,7 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
       return [
         fullName(u), u.email || '', u.phone || '',
         u.batchId ? (batchMap[String(u.batchId)] || '') : '',
+        graduationYearOf(u),
         u.isActive === false ? 'Inactive' : 'Active',
         day(u.createdAt), day(u.lastLogin),
         st.profileComplete ?? '',

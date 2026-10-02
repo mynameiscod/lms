@@ -9,6 +9,7 @@ import { scoreAndAssignLead } from '../services/leadScoringService';
 import WhatsAppConversationState, { ConversationStep } from '../models/WhatsAppConversationState';
 import QualificationQuestionConfig, { IQualificationQuestion } from '../models/QualificationQuestionConfig';
 import { applyStatusWebhook } from '../services/whatsAppTemplateService';
+import { applyDeliveryStatuses } from '../services/whatsAppDeliveryService';
 
 // ===================== TYPES =====================
 
@@ -30,7 +31,7 @@ interface WhatsAppWebhookPayload {
         metadata: { display_phone_number: string; phone_number_id: string };
         contacts?: Array<{ profile: { name: string }; wa_id: string }>;
         messages?: WhatsAppMessage[];
-        statuses?: Array<{ id: string; status: string; timestamp: string; recipient_id: string }>;
+        statuses?: Array<{ id: string; status: string; timestamp: string; recipient_id: string; errors?: Array<{ code?: number; title?: string; message?: string; error_data?: { details?: string } }> }>;
       };
       field: string;
     }>;
@@ -244,9 +245,11 @@ async function processWhatsAppMessage(payload: WhatsAppWebhookPayload) {
         continue;
       }
 
-      // Handle status updates (delivered, read, etc.)
+      // Delivery reports (sent / delivered / read / failed) — applied to the delivery log by wamid.
       if (value.statuses && value.statuses.length > 0) {
         console.log('📊 Status update:', value.statuses[0].status, 'for', value.statuses[0].recipient_id);
+        await applyDeliveryStatuses(value.statuses as any)
+          .catch((e) => console.error('[WA] delivery status update failed:', e?.message));
         continue;
       }
 

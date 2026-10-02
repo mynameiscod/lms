@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import Batch from '../models/Batch';
 import * as settings from '../services/settingsService';
 import * as svc from '../services/whatsAppTemplateService';
+import { listMessages, explainWaError } from '../services/whatsAppDeliveryService';
 import { WA_TEMPLATE_PURPOSES } from '../config/whatsappTemplatePurposes';
 
 const tId = (req: Request) => (req as any).tenantId as string;
@@ -83,9 +84,17 @@ export const compatibility = wrap(async (req, res) => {
 export const sendTest = wrap(async (req, res) => {
   const { phone, values, buttonParam } = req.body || {};
   if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required.' });
-  const r = await svc.sendTest(tId(req), req.params.id, String(phone), Array.isArray(values) ? values.map(String) : [], buttonParam);
-  if (!r.ok) return res.status(400).json({ success: false, message: `Meta did not accept it: ${r.error}` });
-  res.json({ success: true, message: 'Sent' });
+  const r = await svc.sendTest(tId(req), req.params.id, String(phone), Array.isArray(values) ? values.map(String) : [], buttonParam, uId(req));
+  if (!r.ok) return res.status(400).json({ success: false, message: `Meta did not accept it: ${explainWaError(r.errorCode, r.error)}` });
+  /* "Accepted", not "Sent": Meta has queued it. Whether it reaches the phone arrives later, from Meta's
+     delivery report, and shows in the delivery log. */
+  res.json({ success: true, message: 'Accepted by Meta. Delivery status will appear in the Delivery log.', data: { messageId: r.messageId } });
+});
+
+/** GET /whatsapp-templates/messages?phone=&templateId=&limit= — recent sends and what became of them. */
+export const messages = wrap(async (req, res) => {
+  const { phone, templateId, limit } = req.query as any;
+  res.json({ success: true, data: await listMessages(tId(req), { phone, templateId, limit: Number(limit) || 50 }) });
 });
 
 export const broadcast = wrap(async (req, res) => {

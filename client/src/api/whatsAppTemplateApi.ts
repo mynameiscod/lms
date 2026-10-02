@@ -59,6 +59,14 @@ export interface WaBroadcast {
   status: 'running' | 'done' | 'failed'; failures: { phone: string; error: string }[]; createdAt: string; finishedAt?: string;
 }
 
+/** One template send and what Meta later reported about it. */
+export interface WaMessage {
+  _id: string; to: string; templateName: string; source: 'test' | 'broadcast' | 'system';
+  status: 'accepted' | 'sent' | 'delivered' | 'read' | 'failed';
+  errorCode?: number; errorTitle?: string; errorDetail?: string; reason?: string;
+  statusAt?: string; createdAt: string;
+}
+
 const d = (r: any) => r.data.data;
 
 export const waTemplateApi = {
@@ -78,6 +86,8 @@ export const waTemplateApi = {
     axios.post(`${BASE}/${id}/broadcast`, body, h()).then(d) as Promise<WaBroadcast>,
   broadcasts: () => axios.get(`${BASE}/broadcasts`, h()).then(d) as Promise<WaBroadcast[]>,
   batches: () => axios.get(`${BASE}/batches`, h()).then(d) as Promise<{ _id: string; name: string }[]>,
+  messages: (q: { phone?: string; templateId?: string; limit?: number } = {}) =>
+    axios.get(`${BASE}/messages`, { ...h(), params: q }).then(d) as Promise<WaMessage[]>,
 };
 
 export const errMsg = (e: any, fallback = 'Something went wrong') => e?.response?.data?.message || e?.message || fallback;

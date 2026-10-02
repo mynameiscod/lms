@@ -5,6 +5,7 @@ import LeadSourceConfig from '../models/LeadSourceConfig';
 import User from '../models/User';
 import * as settings from './settingsService';
 import { getWhatsAppCredentialCandidates, waPost, normalizeTo } from './assessmentOtpService';
+import { recordSend } from './whatsAppDeliveryService';
 import { WA_TEMPLATE_PURPOSES, WaTemplatePurpose, getPurpose } from '../config/whatsappTemplatePurposes';
 import { templateShape, buildSendComponents, varIndexes } from './whatsAppTemplateShape';
 
@@ -505,27 +506,35 @@ export async function assignPurpose(tenantId: string, userId: string, purposeKey
 
 export async function sendTemplateTo(
   tenantId: string, t: IWhatsAppTemplate, phone: string,
-  opts: { body: string[]; urlButtonParam?: string; headerImageUrl?: string },
-): Promise<{ ok: boolean; error?: string }> {
+  opts: {
+    body: string[]; urlButtonParam?: string; headerImageUrl?: string;
+    /** Where the send came from, for the delivery log. */
+    log?: { source: 'test' | 'broadcast' | 'system'; broadcastId?: any; sentBy?: string };
+  },
+): Promise<{ ok: boolean; error?: string; errorCode?: number; messageId?: string }> {
   const to = normalizeTo(phone);
   if (!to || to.length < 10) return { ok: false, error: 'invalid phone' };
   const creds = await getWhatsAppCredentialCandidates(tenantId);
   if (!creds.length) return { ok: false, error: 'WhatsApp is not configured for this tenant.' };
   const components = buildSendComponents(t, opts);
-  let last: string | undefined;
+  let result: { ok: boolean; error?: string; errorCode?: number; messageId?: string } = { ok: false, error: 'send failed' };
   for (const c of creds) {
-    const r = await waPost(c, { messaging_product: 'whatsapp', to, type: 'template', template: { name: t.name, language: { code: t.language }, components } });
-    if (r.ok) return r;
-    last = r.error;
+    result = await waPost(c, { messaging_product: 'whatsapp', to, type: 'template', template: { name: t.name, language: { code: t.language }, components } });
+    if (result.ok) break;
   }
-  return { ok: false, error: last || 'send failed' };
+  // Every attempt is logged — accepted ones are later updated by Meta's delivery reports.
+  await recordSend({
+    tenantId, to, templateName: t.name, templateId: t._id,
+    source: opts.log?.source || 'system', broadcastId: opts.log?.broadcastId, sentBy: opts.log?.sentBy, result,
+  });
+  return result;
 }
 
-export async function sendTest(tenantId: string, id: string, phone: string, values: string[], buttonParam?: string) {
+export async function sendTest(tenantId: string, id: string, phone: string, values: string[], buttonParam?: string, sentBy?: string) {
   const t = await WhatsAppTemplate.findOne({ _id: id, tenantId });
   if (!t) throw new WaTemplateError('Template not found', 404);
   if (t.status !== 'APPROVED') throw new WaTemplateError(`Template is ${t.status} — Meta only sends APPROVED templates.`);
-  return sendTemplateTo(tenantId, t, phone, { body: values, urlButtonParam: buttonParam });
+  return sendTemplateTo(tenantId, t, phone, { body: values, urlButtonParam: buttonParam, log: { source: 'test', sentBy } });
 }
 
 /** Recipients: pasted numbers, or every student in a batch with a phone. `{name}` in a value is personalised. */
@@ -576,6 +585,7 @@ export async function startBroadcast(
       const res = await sendTemplateTo(tenantId, t, r.phone, {
         body: input.values.map(personalise),
         urlButtonParam: input.buttonParam ? personalise(input.buttonParam) : undefined,
+        log: { source: 'broadcast', broadcastId: b._id, sentBy: userId },
       });
       if (res.ok) sent++; else { failed++; if (failures.length < 50) failures.push({ phone: r.phone, error: res.error || 'failed' }); }
       if (k % 10 === 9 || k === recipients.length - 1) {

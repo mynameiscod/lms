@@ -20,7 +20,10 @@ const LOGO = '/assets/careerpilot/careerpilot-logo.png';
 const HERO_CHECKS = [
   'Discover the right career direction',
   'Know your actual skill readiness',
-  'Get a personalised 90-day roadmap',
+  /* No length named here on purpose: the programme is 90 days for a first-year and 110, 130 or
+     150 for the years above, and it is admin-settable per stage — so a figure on the public
+     page would be wrong for most of the people reading it. */
+  'Get a personalised roadmap',
   'Track your weekly progress & skill milestones',
   'Prepare with targeted interview practice & assessments',
   'Find relevant jobs & internships',

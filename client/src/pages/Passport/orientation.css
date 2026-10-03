@@ -1,6 +1,23 @@
 /* The welcome days, before Day 1. Brand navy and teal, the same card language as the rest of CareerPilot. */
 
-.ori {
+/*
+ * THE TOKENS LIVE ON BOTH ROOTS, BECAUSE THERE ARE TWO.
+ *
+ * `.ori-day` is a card INSIDE `.ori` on the orientation list, and it inherited these from the
+ * wrapper. Orientation.tsx then began rendering a single day on its own, with `.ori-day` as its
+ * ROOT element and no `.ori` above it — so in that subtree every `var(--navy)`, `var(--line)`
+ * and `var(--muted)` resolved to nothing.
+ *
+ * An undefined custom property does not fall back, it makes the whole declaration INVALID and
+ * the browser drops it. So `.ori-btn.primary { background: var(--navy); color: #fff }` lost its
+ * background and kept its colour: the "Finish day" button rendered white text on the base
+ * rule's white background — a button that looked like an empty outlined box. The card's border
+ * disappeared the same way.
+ *
+ * Defining the tokens on both roots fixes every such declaration at once. The nested case
+ * simply redefines them to the same values, which costs nothing.
+ */
+.ori, .ori-day {
   --navy: #051D64;
   --navy-hover: #0A2A7A;
   --teal: #359AAD;
@@ -8,13 +25,17 @@
   --muted: #5D6E88;
   --line: #E2EAF2;
   --page: #F4F8FC;
+}
+/* Page layout stays on the list wrapper only — `.ori-day` is a card and must not take a
+   full-height page background with it. */
+.ori {
   width: 100%;
   padding: 24px 28px 56px;
   background: var(--page);
   min-height: 100vh;
   color: var(--navy);
 }
-.ori * { box-sizing: border-box; }
+.ori *, .ori-day * { box-sizing: border-box; }
 
 .ori-state {
   padding: 22px; border-radius: 14px; background: #fff; border: 1px solid var(--line);

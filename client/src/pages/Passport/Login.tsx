@@ -310,8 +310,12 @@ const PassportLogin: React.FC<{
   const form = (
       <section className="cpl-login-side">
         <div className="cpl-form-wrap">
-          <div className="cpl-safe"><span><i className="bi bi-shield-check" /> Your data is safe & secure</span></div>
-
+          {/* The "Your data is safe & secure" badge was removed from Sign In. It is a
+              reassurance for somebody about to HAND OVER details, which is the Create Account
+              side; a returning member is typing a password they already chose and does not
+              need persuading. Its 34px bottom margin went with it, which leaves the heading the
+              same distance below the tab row as "Create Your Account" has — the two tabs now
+              open at the same place instead of one starting a badge lower. */}
           <h2>Welcome back!</h2>
           <p className="cpl-sub">Login to continue your CareerPilot journey.</p>
 

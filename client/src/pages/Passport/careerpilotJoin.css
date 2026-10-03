@@ -153,8 +153,13 @@
 .cpx-hero h1 { font-size: clamp(32px, 3.1vw, 50px); line-height: 1.08; font-weight: 800; letter-spacing: -.025em; color: var(--navy); }
 .cpx-hero h1 span { color: var(--teal-2); background: linear-gradient(90deg, var(--teal-2), var(--teal)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .cpx .cpx-lead { text-wrap: pretty; margin-top: 18px; font-size: clamp(16px, 1vw, 19px); line-height: 1.65; color: var(--text); max-width: 640px; }
-.cpx-checks { list-style: none; padding: 0; margin: 24px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, max-content)); gap: 14px 28px; }
-.cpx-checks li { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; color: #26334d; }
+/* Two equal columns, not two content-sized ones: at six points the longest line would set a
+   column width the hero cannot afford and push the picture over. `1fr` lets the long ones wrap
+   inside their own half instead. `align-items: flex-start` keeps the tick level with the FIRST
+   line of a wrapped point rather than floating to its vertical middle. */
+.cpx-checks { list-style: none; padding: 0; margin: 22px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; }
+.cpx-checks li { display: flex; align-items: flex-start; gap: 10px; font-size: 15px; font-weight: 600; color: #26334d; line-height: 1.4; }
+.cpx-checks li i { margin-top: 1px; }
 .cpx-checks i { color: var(--teal-2); font-size: 17px; }
 .cpx-hero-ctas { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 30px; }
 .cpx-trust { display: flex; align-items: center; gap: 12px; margin-top: 26px; font-size: 13.5px; color: var(--muted); font-weight: 500; }
@@ -454,6 +459,27 @@
  * on a 2158px screen, with a ~160px margin each side.
  */
 /* Laptop widths: a steady ~60 real-pixel margin (160 page pixels at the app's .75 zoom). */
+/*
+ * THE ROW KEEPS ITS HEIGHT WHEN THE FORM CHANGES.
+ *
+ * "Create account" has four field rows; "Sign in" has two, a method toggle and no safety badge
+ * — roughly 190px shorter. The row is sized by its tallest item, and the illustration is
+ * centred in that row, so switching tabs changed the row's height and the picture visibly
+ * jumped up or down. Nothing was wrong with the picture; it was being measured against a
+ * moving target.
+ *
+ * A floor on the row fixes the track height for both states, so the centring resolves to the
+ * same place either way. 700px clears the taller "create account" card, and the card itself is
+ * untouched — it stays `align-items: start`, keeps its natural height and simply has space
+ * beneath it on the shorter tab, which is invisible because the card carries its own
+ * background.
+ *
+ * Desktop only. Below 1400 the hero stacks and the picture is not beside the form at all.
+ */
+@media (min-width: 1401px) {
+  .cpx-hero-grid { min-height: 700px; }
+}
+
 @media (min-width: 1200px) and (max-width: 1599px) {
   .cpx { zoom: 1.12; }
   .cpx-wrap { width: calc(100% - 150px); }

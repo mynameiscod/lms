@@ -9,10 +9,20 @@ import { copyrightLine } from '../../config/brand';
 
 const LOGO = '/assets/careerpilot/careerpilot-logo.png';
 
+/**
+ * Six, in two columns of three.
+ *
+ * The order is the order a member lives them — find a direction, measure where you are, get the
+ * plan, work it week by week, practise for the interview, apply. The last two are longer than
+ * the first four, so `.cpx-checks` sizes its columns as fractions rather than to content:
+ * `max-content` would let one of these set a column width the hero cannot afford.
+ */
 const HERO_CHECKS = [
   'Discover the right career direction',
   'Know your actual skill readiness',
   'Get a personalised 90-day roadmap',
+  'Track your weekly progress & skill milestones',
+  'Prepare with targeted interview practice & assessments',
   'Find relevant jobs & internships',
 ];
 

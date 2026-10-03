@@ -9,7 +9,7 @@ interview → agreement → security cheque → placement. LMS students can be p
 |---|---|
 | Storage | ONE collection, `placementcandidates`, for ad leads **and** pushed LMS students; one record per (tenant, mobile). Timeline in `placementevents`. |
 | Interview fee | **50% refundable**. Admin "Refund 50%" issues a Razorpay refund; the percentage is a setting. |
-| Interviewers | **Several staff, each with their own Google Calendar** and availability. Round-robin or admin pick; Meet link per booking. |
+| Interviewers | **Several staff**, each with their own weekly hours, days off and one permanent meeting link (kept in the LMS — no calendar connection). Least-busy free interviewer gets the booking. |
 | Payment gate | Toggle **"Payment before booking"**: ON → calendar unlocks after payment; OFF → book directly. Enforced on the server. |
 | Cheque | **Security cheque**: Received → Verified → Held → Returned at program end. Deposited only on breach, with a written reason. |
 | Fee for pushed LMS students | **Admin decides per student** (charge or waive). |

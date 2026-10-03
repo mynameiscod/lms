@@ -44,6 +44,12 @@ export async function saveConfig(tenantId: string, body: any) {
   for (const k of allowed) if (body?.[k] !== undefined) $set[k] = k === 'paymentBeforeBooking' ? !!body[k] : Number(body[k]);
   if ($set.feeInr !== undefined && (!Number.isFinite($set.feeInr) || $set.feeInr < 0 || $set.feeInr > 100000)) throw new PlacementError('Fee must be between ₹0 and ₹1,00,000.');
   if ($set.refundablePct !== undefined && ($set.refundablePct < 0 || $set.refundablePct > 100)) throw new PlacementError('Refundable share must be 0–100%.');
+  if (body?.scorecardCriteria !== undefined) {
+    const list = [...new Set((Array.isArray(body.scorecardCriteria) ? body.scorecardCriteria : [])
+      .map((x: any) => String(x).trim().slice(0, 40)).filter(Boolean))] as string[];
+    if (!list.length || list.length > 8) throw new PlacementError('The scorecard needs between 1 and 8 things to rate.');
+    $set.scorecardCriteria = list;
+  }
   await getConfig(tenantId);
   return PlacementProgramConfig.findOneAndUpdate({ tenantId }, { $set }, { new: true, runValidators: true });
 }
@@ -308,7 +314,27 @@ export async function adminCancelBooking(tenantId: string, bookingId: string, ac
 }
 
 /** Interviewer or admin: did they attend? Moves the candidate's stage with it. */
-export async function setOutcome(tenantId: string, bookingId: string, outcome: 'attended' | 'no_show', actorId: string, isAdmin = false) {
+export const RECOMMENDATIONS = ['strong_yes', 'yes', 'maybe', 'no'] as const;
+const REC_LABEL: Record<string, string> = { strong_yes: 'Strong yes', yes: 'Yes', maybe: 'Maybe', no: 'No' };
+
+/**
+ * Check a scorecard against the configured criteria: every criterion rated 1–5, a recommendation,
+ * optional notes. Pure, so it is tested without a database.
+ */
+export function cleanScorecard(input: any, criteria: string[]) {
+  const ratings = criteria.map((criterion) => {
+    const found = (Array.isArray(input?.ratings) ? input.ratings : []).find((r: any) => r?.criterion === criterion);
+    return { criterion, score: Number(found?.score) };
+  });
+  const missing = ratings.filter((r) => !Number.isInteger(r.score) || r.score < 1 || r.score > 5).map((r) => r.criterion);
+  if (missing.length) throw new PlacementError(`Rate ${missing.join(', ')} from 1 to 5.`);
+  const recommendation = String(input?.recommendation || '');
+  if (!(RECOMMENDATIONS as readonly string[]).includes(recommendation)) throw new PlacementError('Choose a recommendation.');
+  const average = Math.round((ratings.reduce((a, r) => a + r.score, 0) / ratings.length) * 10) / 10;
+  return { ratings, recommendation: recommendation as typeof RECOMMENDATIONS[number], notes: String(input?.notes || '').trim().slice(0, 2000), average };
+}
+
+export async function setOutcome(tenantId: string, bookingId: string, outcome: 'attended' | 'no_show', actorId: string, isAdmin = false, scorecardInput?: any) {
   if (!['attended', 'no_show'].includes(outcome)) throw new PlacementError('Unknown outcome');
   const b = await PlacementBooking.findOne({ _id: bookingId, tenantId });
   if (!b || b.status === 'cancelled') throw new PlacementError('Booking not found', 404);
@@ -318,13 +344,20 @@ export async function setOutcome(tenantId: string, bookingId: string, outcome: '
     if (!iv?.userId || String(iv.userId) !== String(actorId)) throw new PlacementError('Only the interviewer or an admin can mark this interview.', 403);
   }
   if (b.startsAt.getTime() > Date.now()) throw new PlacementError('An interview can be marked once it has started.');
-  b.status = outcome; await b.save();
+  // Attended needs the scorecard: "attended" alone tells the admin nothing about whether to select them.
+  const card = outcome === 'attended' ? cleanScorecard(scorecardInput, (await getConfig(tenantId)).scorecardCriteria) : undefined;
+  b.status = outcome;
+  if (card) b.scorecard = { ...card, by: actorId && mongoose.Types.ObjectId.isValid(actorId) ? new mongoose.Types.ObjectId(actorId) : undefined, at: new Date() };
+  await b.save();
   const c = await PlacementCandidate.findById(b.candidateId);
   if (c) {
     c.stage = outcome === 'attended' ? 'interview_attended' : 'interview_no_show'; c.stageChangedAt = new Date();
-    c.interview = { ...(c.interview || {}), outcome }; c.markModified('interview');
+    c.interview = { ...(c.interview || {}), outcome, ...(card ? { score: card.average, recommendation: card.recommendation, notes: card.notes } : {}) };
+    c.markModified('interview');
     await c.save();
-    await event(tenantId, c._id, 'stage', outcome === 'attended' ? 'Attended the interview' : 'Did not attend the interview', { bookingId }, actorId);
+    await event(tenantId, c._id, 'stage', outcome === 'attended'
+      ? `Attended the interview — scored ${card!.average}/5, recommendation: ${REC_LABEL[card!.recommendation]}`
+      : 'Did not attend the interview', { bookingId }, actorId);
   }
   return { ok: true };
 }
@@ -339,6 +372,13 @@ export async function listBookings(tenantId: string, q: { mine?: string; userId?
   }
   return PlacementBooking.find(filter).sort({ startsAt: q.range === 'past' ? -1 : 1 }).limit(200)
     .populate('candidateId', 'name mobile email college targetRole stage').populate('interviewerId', 'name').lean();
+}
+
+/** Every candidate, compact, for the Kanban board (capped — the board is for working, not archiving). */
+export async function board(tenantId: string) {
+  return PlacementCandidate.find({ tenantId, stage: { $ne: 'withdrawn' } })
+    .select('name mobile college targetRole stage stageChangedAt fee.status fee.waived interview.startsAt interview.score interview.recommendation createdAt')
+    .sort({ stageChangedAt: -1 }).limit(1000).lean();
 }
 
 // ── Interviewers ─────────────────────────────────────────────────────────────
@@ -405,6 +445,31 @@ export async function fireDueReminders(now: Date = new Date()) {
       .catch((e: any) => ({ ok: false, error: e?.message }));
     await event(c.tenantId, c._id, 'whatsapp', wa.ok ? `Reminder sent (${which === 'h1' ? '1 hour' : '24 hours'} before)` : `Reminder not sent: ${(wa as any).error}`);
     if (wa.ok) sent++;
+  }
+
+  /*
+   * Interviews nobody marked. Half an hour after the end, the interviewer gets one email asking them
+   * to record attendance and the scorecard — without it the candidate sits at "Interview booked" and
+   * nobody notices. Claimed in the database first, like the reminders above.
+   */
+  const unmarked = await PlacementBooking.find({
+    status: 'booked', 'reminded.outcome': { $exists: false },
+    endsAt: { $lt: new Date(now.getTime() - 30 * 60_000), $gt: new Date(now.getTime() - 7 * 86_400_000) },
+  }).lean();
+  for (const b of unmarked as any[]) {
+    const claimed = await PlacementBooking.findOneAndUpdate(
+      { _id: b._id, status: 'booked', 'reminded.outcome': { $exists: false } }, { $set: { 'reminded.outcome': now } },
+    );
+    if (!claimed) continue;
+    const [iv, c] = await Promise.all([
+      PlacementInterviewer.findById(b.interviewerId).select('name email').lean() as any,
+      PlacementCandidate.findById(b.candidateId).select('name').lean() as any,
+    ]);
+    if (!iv?.email) continue;
+    await new EmailService(String(b.tenantId)).sendGenericEmail(iv.email, `Please mark: interview with ${c?.name || 'a candidate'}`,
+      `<p>Hi ${iv.name || 'there'},</p><p>Your interview with <b>${c?.name || 'a candidate'}</b> on <b>${istLabel(b.startsAt)} (IST)</b> has not been marked yet.</p>
+       <p>Please record whether they attended and fill the scorecard: <a href="${PUBLIC_BASE()}/placement-program/my-interviews">My Placement Interviews</a>.</p>`,
+    ).catch(() => false);
   }
   return sent;
 }

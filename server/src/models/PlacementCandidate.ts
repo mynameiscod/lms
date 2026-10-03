@@ -79,6 +79,7 @@ export interface IPlacementCandidate extends Document {
   interview?: {
     interviewerId?: mongoose.Types.ObjectId; startsAt?: Date; endsAt?: Date; meetUrl?: string;
     outcome?: 'attended' | 'no_show'; score?: number; notes?: string;
+    recommendation?: 'strong_yes' | 'yes' | 'maybe' | 'no';
   };
   agreement?: { version?: string; sentAt?: Date; signedAt?: Date; signedName?: string; signedIp?: string; pdfUrl?: string };
   /** Security cheque: held, returned at the end of the program, deposited only on breach. */

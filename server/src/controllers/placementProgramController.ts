@@ -67,8 +67,12 @@ export const cancelBooking = wrap(async (req, res) => { res.json({ success: true
 export const bookingOutcome = wrap(async (req, res) => {
   const perms = await permissionsOf((req as any).user || { role: '' }).catch(() => [] as string[]);
   const isAdmin = perms.includes('manage_placement') || perms.includes('manage_tenant');
-  res.json({ success: true, data: await portal.setOutcome(tId(req), req.params.bookingId, req.body?.outcome, uId(req), isAdmin) });
+  res.json({ success: true, data: await portal.setOutcome(tId(req), req.params.bookingId, req.body?.outcome, uId(req), isAdmin, req.body?.scorecard) });
 });
 export const waive = wrap(async (req, res) => { res.json({ success: true, data: await portal.setWaived(tId(req), req.params.id, !!req.body?.waived, uId(req)) }); });
 export const refund = wrap(async (req, res) => { res.json({ success: true, data: await portal.refundFee(tId(req), req.params.id, uId(req), req.body?.reason) }); });
 export const portalLink = wrap(async (req, res) => { res.json({ success: true, data: await portal.ensurePortalToken(tId(req), req.params.id) }); });
+
+export const board = wrap(async (req, res) => { res.json({ success: true, data: await portal.board(tId(req)) }); });
+/** The scorecard criteria, for the interviewer's form (no admin rights needed). */
+export const scorecardCriteria = wrap(async (req, res) => { res.json({ success: true, data: (await portal.getConfig(tId(req))).scorecardCriteria }); });

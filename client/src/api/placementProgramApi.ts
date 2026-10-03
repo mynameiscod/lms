@@ -28,7 +28,7 @@ export interface PlacementCandidate {
   source: 'ad' | 'lms_push' | 'manual'; stage: PlacementStage; stageChangedAt: string; submissions: number; createdAt: string;
   attribution?: { first_touch?: PlacementTouch; last_touch?: PlacementTouch };
   fee?: { waived?: boolean; amountInr?: number; refundablePct?: number; status?: 'created' | 'paid' | 'refunded'; paidAt?: string; refund?: { amountInr: number; at: string; reason?: string } };
-  interview?: { startsAt?: string; meetUrl?: string; outcome?: string };
+  interview?: { startsAt?: string; meetUrl?: string; outcome?: string; score?: number; recommendation?: Recommendation; notes?: string };
 }
 export interface PlacementEvent { _id: string; kind: string; message: string; createdAt: string; actorId?: { firstName?: string; lastName?: string } }
 
@@ -68,13 +68,27 @@ export const placementPortalApi = {
   cancel: (token: string) => axios.post(`${PUB}/portal/${token}/cancel`).then(d),
 };
 
-export interface PlacementConfig { feeInr: number; refundablePct: number; paymentBeforeBooking: boolean; slotMinutes: number; bufferMinutes: number; bookingWindowDays: number; minNoticeHours: number }
+export interface PlacementConfig { feeInr: number; refundablePct: number; paymentBeforeBooking: boolean; slotMinutes: number; bufferMinutes: number; bookingWindowDays: number; minNoticeHours: number; scorecardCriteria: string[] }
+
+export type Recommendation = 'strong_yes' | 'yes' | 'maybe' | 'no';
+export const RECOMMENDATIONS: [Recommendation, string][] = [['strong_yes', 'Strong yes'], ['yes', 'Yes'], ['maybe', 'Maybe'], ['no', 'No']];
+export const recLabel = (r?: string) => RECOMMENDATIONS.find(([k]) => k === r)?.[1] || '';
+export interface Scorecard { ratings: { criterion: string; score: number }[]; recommendation: Recommendation; notes?: string; average?: number }
+
+/** An interview nobody marked half an hour after it ended. */
+export const needsMarking = (b: { status: string; endsAt: string }) => b.status === 'booked' && new Date(b.endsAt).getTime() + 30 * 60_000 < Date.now();
 export interface WeeklyWindow { day: number; start: string; end: string }
 export interface Interviewer { _id?: string; name: string; email?: string; meetingUrl: string; active: boolean; weekly: WeeklyWindow[]; daysOff: string[]; userId?: string }
 export interface Booking {
   _id: string; startsAt: string; endsAt: string; meetingUrl: string; status: 'booked' | 'cancelled' | 'attended' | 'no_show';
   candidateId?: { _id: string; name: string; mobile: string; email?: string; college?: string; targetRole?: string; stage: string };
   interviewerId?: { _id: string; name: string };
+  scorecard?: Scorecard;
+}
+export interface BoardCard {
+  _id: string; name: string; mobile: string; college?: string; targetRole?: string; stage: PlacementStage; stageChangedAt: string; createdAt: string;
+  fee?: { status?: string; waived?: boolean };
+  interview?: { startsAt?: string; score?: number; recommendation?: Recommendation };
 }
 
 export const placementAdminApi = {
@@ -87,7 +101,9 @@ export const placementAdminApi = {
   bookings: (range: 'upcoming' | 'past' = 'upcoming') => axios.get(`${BASE}/bookings`, { ...h(), params: { range } }).then(d) as Promise<Booking[]>,
   myBookings: (range: 'upcoming' | 'past' = 'upcoming') => axios.get(`${BASE}/bookings/mine`, { ...h(), params: { range } }).then(d) as Promise<Booking[]>,
   cancelBooking: (id: string, reason?: string) => axios.post(`${BASE}/bookings/${id}/cancel`, { reason }, h()).then(d),
-  outcome: (id: string, outcome: 'attended' | 'no_show') => axios.post(`${BASE}/bookings/${id}/outcome`, { outcome }, h()).then(d),
+  outcome: (id: string, outcome: 'attended' | 'no_show', scorecard?: Scorecard) => axios.post(`${BASE}/bookings/${id}/outcome`, { outcome, scorecard }, h()).then(d),
+  scorecardCriteria: () => axios.get(`${BASE}/scorecard-criteria`, h()).then(d) as Promise<string[]>,
+  board: () => axios.get(`${BASE}/board`, h()).then(d) as Promise<BoardCard[]>,
   waive: (id: string, waived: boolean) => axios.put(`${BASE}/${id}/waive`, { waived }, h()).then(d),
   refund: (id: string, reason?: string) => axios.post(`${BASE}/${id}/refund`, { reason }, h()).then(d),
   portalLink: (id: string) => axios.post(`${BASE}/${id}/portal-link`, {}, h()).then(d) as Promise<{ url: string }>,

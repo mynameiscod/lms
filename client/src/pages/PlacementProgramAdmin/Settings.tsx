@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { placementAdminApi, PlacementConfig, errMsg } from '../../api/placementProgramApi';
+import LinesTextarea from '../../components/common/LinesTextarea';
 
 /** Fee, refund share, the "payment before booking" switch, and how slots are cut. */
 const PlacementSettings: React.FC = () => {
@@ -42,6 +43,14 @@ const PlacementSettings: React.FC = () => {
         <label>Gap after each (minutes)<input type="number" min={0} max={120} value={cfg.bufferMinutes} onChange={num('bufferMinutes')} /></label>
         <label>Book up to (days ahead)<input type="number" min={1} max={90} value={cfg.bookingWindowDays} onChange={num('bookingWindowDays')} /></label>
         <label>Minimum notice (hours)<input type="number" min={0} max={168} value={cfg.minNoticeHours} onChange={num('minNoticeHours')} /><small>Also how late a candidate may cancel.</small></label>
+      </div>
+
+      <h3 className="ppa-card-title">Interview scorecard</h3>
+      <div className="ppa-form one">
+        <label>What interviewers rate, 1–5 — one per line ({(cfg.scorecardCriteria || []).length} of 8)
+          <LinesTextarea rows={5} value={cfg.scorecardCriteria || []} onChange={v => set('scorecardCriteria', v)} />
+          <small>Interviewers fill this when they mark a candidate attended, with a recommendation and notes. Changing it does not alter scorecards already filled.</small>
+        </label>
       </div>
 
       <div className="ppa-save-row">

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { placementAdminApi, Booking, istTime, stageLabel, errMsg } from '../../api/placementProgramApi';
+import { placementAdminApi, Booking, istTime, stageLabel, recLabel, needsMarking, errMsg } from '../../api/placementProgramApi';
+import ScorecardModal from './ScorecardModal';
 
 /**
  * Interviews — upcoming and past. "Mine" shows only the ones assigned to the logged-in interviewer,
@@ -10,6 +11,7 @@ const PlacementInterviews: React.FC<{ onOpenCandidate?: (id: string) => void; mi
   const [mine, setMine] = useState(!!mineOnly);
   const [rows, setRows] = useState<Booking[] | null>(null);
   const [err, setErr] = useState('');
+  const [scoring, setScoring] = useState<Booking | null>(null);
 
   const load = useCallback(() => {
     (mine ? placementAdminApi.myBookings(range) : placementAdminApi.bookings(range))
@@ -17,9 +19,11 @@ const PlacementInterviews: React.FC<{ onOpenCandidate?: (id: string) => void; mi
   }, [mine, range]);
   useEffect(() => { load(); }, [load]);
 
-  const outcome = async (b: Booking, o: 'attended' | 'no_show') => {
-    try { await placementAdminApi.outcome(b._id, o); load(); } catch (e) { setErr(errMsg(e)); }
+  const noShow = async (b: Booking) => {
+    if (!window.confirm(`Mark ${b.candidateId?.name || 'this candidate'} as a no-show?`)) return;
+    try { await placementAdminApi.outcome(b._id, 'no_show'); load(); } catch (e) { setErr(errMsg(e)); }
   };
+  const pending = (rows || []).filter(needsMarking);
   const cancel = async (b: Booking) => {
     const reason = window.prompt('Reason for cancelling (sent to the candidate by email):', 'Interviewer unavailable');
     if (reason === null) return;
@@ -42,6 +46,9 @@ const PlacementInterviews: React.FC<{ onOpenCandidate?: (id: string) => void; mi
         )}
       </div>
       {err && <div className="ppa-err">{err}</div>}
+      {pending.length > 0 && (
+        <div className="ppa-flag"><i className="bi bi-exclamation-triangle-fill" /> {pending.length} interview{pending.length === 1 ? '' : 's'} not marked yet — record attendance and the scorecard.</div>
+      )}
       <div className="ppa-table-wrap">
         <table className="ppa-table">
           <thead><tr><th>When (IST)</th><th>Candidate</th><th>Role wanted</th><th>Interviewer</th><th>Status</th><th></th></tr></thead>
@@ -49,19 +56,20 @@ const PlacementInterviews: React.FC<{ onOpenCandidate?: (id: string) => void; mi
             {!rows ? <tr><td colSpan={6} className="ppa-muted">Loading…</td></tr> : !rows.length ? (
               <tr><td colSpan={6} className="ppa-muted">{range === 'upcoming' ? 'No upcoming interviews.' : 'No past interviews.'}</td></tr>
             ) : rows.map(b => (
-              <tr key={b._id} onClick={() => b.candidateId && onOpenCandidate?.(b.candidateId._id)}>
+              <tr key={b._id} className={needsMarking(b) ? 'flagged' : ''} onClick={() => b.candidateId && onOpenCandidate?.(b.candidateId._id)}>
                 <td><b>{istTime(b.startsAt)}</b></td>
                 <td>{b.candidateId?.name || '—'}<div className="ppa-sub2">+91 {b.candidateId?.mobile}</div></td>
                 <td>{b.candidateId?.targetRole || '—'}</td>
                 <td>{b.interviewerId?.name || '—'}</td>
                 <td><span className={`ppa-stage s-${b.status === 'booked' ? 'interview_booked' : b.status === 'attended' ? 'interview_attended' : 'interview_no_show'}`}>
-                  {b.status === 'booked' ? 'Booked' : b.status === 'attended' ? 'Attended' : b.status === 'no_show' ? 'No-show' : stageLabel(b.status)}
-                </span></td>
+                  {b.status === 'booked' ? (needsMarking(b) ? 'Needs marking' : 'Booked') : b.status === 'attended' ? 'Attended' : b.status === 'no_show' ? 'No-show' : stageLabel(b.status)}
+                </span>
+                {b.scorecard && <div className="ppa-sub2">{b.scorecard.average}/5 · {recLabel(b.scorecard.recommendation)}</div>}</td>
                 <td onClick={e => e.stopPropagation()} className="ppa-acts">
                   <a className="ppa-btn ghost" href={b.meetingUrl} target="_blank" rel="noreferrer">Join</a>
                   {b.status === 'booked' && started(b) && <>
-                    <button className="ppa-btn ghost" onClick={() => outcome(b, 'attended')}>Attended</button>
-                    <button className="ppa-btn ghost" onClick={() => outcome(b, 'no_show')}>No-show</button>
+                    <button className="ppa-btn ghost" onClick={() => setScoring(b)}>Attended</button>
+                    <button className="ppa-btn ghost" onClick={() => noShow(b)}>No-show</button>
                   </>}
                   {b.status === 'booked' && !started(b) && !mineOnly && <button className="ppa-btn ghost" onClick={() => cancel(b)}>Cancel</button>}
                 </td>
@@ -70,6 +78,7 @@ const PlacementInterviews: React.FC<{ onOpenCandidate?: (id: string) => void; mi
           </tbody>
         </table>
       </div>
+      {scoring && <ScorecardModal bookingId={scoring._id} candidateName={scoring.candidateId?.name || 'Candidate'} onClose={() => setScoring(null)} onSaved={() => { setScoring(null); load(); }} />}
     </div>
   );
 };

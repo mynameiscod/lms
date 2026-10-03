@@ -18,7 +18,7 @@ jest.mock('../models/PlacementCandidate', () => ({
 jest.mock('../models/PlacementEvent', () => ({ __esModule: true, default: { create: jest.fn(async () => ({})) } }));
 jest.mock('../services/razorpayService', () => ({ fetchPayment: jest.fn(async () => ({ status: 'captured', amount: 50000, currency: 'INR' })) }));
 
-import { mustPayFirst, settleFee } from '../services/placementPortalService';
+import { mustPayFirst, settleFee, cleanScorecard } from '../services/placementPortalService';
 
 describe('mustPayFirst', () => {
   const cfg: any = { paymentBeforeBooking: true, feeInr: 500 };
@@ -52,5 +52,22 @@ describe('settleFee', () => {
 
   it('ignores an order it does not know', async () => {
     expect(await settleFee('order_unknown', 'pay_x')).toEqual({ found: false });
+  });
+});
+
+
+describe('cleanScorecard', () => {
+  const criteria = ['Communication', 'Technical skills'];
+  it('needs every criterion rated 1–5 and a recommendation, and averages the ratings', () => {
+    const r = cleanScorecard({ ratings: [{ criterion: 'Communication', score: 4 }, { criterion: 'Technical skills', score: 3 }], recommendation: 'yes', notes: ' good ' }, criteria);
+    expect(r).toEqual({ ratings: [{ criterion: 'Communication', score: 4 }, { criterion: 'Technical skills', score: 3 }], recommendation: 'yes', notes: 'good', average: 3.5 });
+  });
+  it('names the criteria that were not rated', () => {
+    expect(() => cleanScorecard({ ratings: [{ criterion: 'Communication', score: 9 }], recommendation: 'yes' }, criteria))
+      .toThrow('Rate Communication, Technical skills from 1 to 5.');
+  });
+  it('refuses a missing recommendation', () => {
+    expect(() => cleanScorecard({ ratings: [{ criterion: 'Communication', score: 4 }, { criterion: 'Technical skills', score: 4 }] }, criteria))
+      .toThrow('Choose a recommendation.');
   });
 });

@@ -18,6 +18,8 @@ export interface IPlacementProgramConfig extends Document {
   /** How far ahead a candidate may book, and how much notice a slot needs. */
   bookingWindowDays: number;
   minNoticeHours: number;
+  /** What interviewers rate, 1–5 each, on the scorecard after an attended interview. */
+  scorecardCriteria: string[];
   updatedAt: Date;
 }
 
@@ -30,6 +32,7 @@ const PlacementProgramConfigSchema = new Schema<IPlacementProgramConfig>({
   bufferMinutes: { type: Number, default: 10, min: 0, max: 120 },
   bookingWindowDays: { type: Number, default: 14, min: 1, max: 90 },
   minNoticeHours: { type: Number, default: 12, min: 0, max: 168 },
+  scorecardCriteria: { type: [String], default: ['Communication', 'Technical skills', 'Problem solving', 'Attitude and confidence'] },
 }, { timestamps: true });
 
 export default mongoose.model<IPlacementProgramConfig>('PlacementProgramConfig', PlacementProgramConfigSchema);

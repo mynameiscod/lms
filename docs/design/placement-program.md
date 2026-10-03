@@ -22,7 +22,7 @@ interview → agreement → security cheque → placement. LMS students can be p
 |---|---|---|
 | P1 | Public form `/placement-program?tenant=<slug>` with ad attribution, candidate record, WhatsApp confirmation (purpose `PLACEMENT_PROGRAM_REGISTERED`, UTILITY), admin pipeline `/admin/placement-program` (stages, timeline, notes) | **Built** |
 | P2 | Interview fee (Razorpay), "payment before booking" toggle, interviewer availability, slot booking, .ics invites, WhatsApp reminders, refund | **Built** |
-| P3 | Interview outcome (attended / no-show, scorecard), auto-flag unmarked slots, Kanban view | — |
+| P3 | Interview scorecard (configurable criteria 1–5 + recommendation + notes), unmarked-interview flags + interviewer email, Kanban board | **Built** |
 | P4 | Agreement e-sign + PDF; security cheque upload and lifecycle | — |
 | P5 | Push LMS students (fee per student), bulk WhatsApp by stage, send Paid/Attended conversions back to Meta and Google | — |
 
@@ -50,3 +50,13 @@ interview → agreement → security cheque → placement. LMS students can be p
   + .ics email to candidate and interviewer.
 - Outcome (attended / no-show): only the booking's interviewer (linked LMS login) or a placement admin.
   Interviewers see "My Placement Interviews" without admin rights.
+
+## Phase 3 notes
+
+- "Attended" requires the scorecard: every configured criterion rated 1–5 (Settings → Interview scorecard, up to 8)
+  and a recommendation (strong yes / yes / maybe / no). The average and recommendation are copied to the candidate
+  and the timeline. No-show needs only a confirmation.
+- After an attended interview the candidate panel offers Selected / Not selected (stage change, recorded).
+- An interview still "booked" 30 min after it ends is flagged on the Interviews tab and in the candidate panel; the
+  interviewer gets one email (claimed in the DB, `reminded.outcome`) linking to My Placement Interviews.
+- Board tab: Kanban of every candidate by stage (withdrawn excluded, capped at 1000); drag a card to change stage.

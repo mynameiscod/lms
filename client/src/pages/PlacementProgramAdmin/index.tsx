@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  placementProgramApi, placementAdminApi, PlacementCandidate, PlacementEvent, Booking, PLACEMENT_STAGES, stageLabel, istTime, errMsg,
+  placementProgramApi, placementAdminApi, PlacementCandidate, PlacementEvent, Booking, PLACEMENT_STAGES, stageLabel, istTime, recLabel, needsMarking, errMsg,
 } from '../../api/placementProgramApi';
 import PlacementSettings from './Settings';
 import PlacementInterviewers from './Interviewers';
 import PlacementInterviews from './Interviews';
+import PlacementBoard from './Board';
+import ScorecardModal from './ScorecardModal';
 import './placementProgramAdmin.css';
 
 /**
@@ -24,6 +26,7 @@ const adOf = (c: PlacementCandidate) => {
 const Detail: React.FC<{ id: string; onClose: () => void; onChanged: () => void }> = ({ id, onClose, onChanged }) => {
   const [data, setData] = useState<{ candidate: PlacementCandidate & { hasPortal?: boolean }; events: PlacementEvent[]; bookings: Booking[] } | null>(null);
   const [copied, setCopied] = useState('');
+  const [scoring, setScoring] = useState<Booking | null>(null);
   const [stage, setStage] = useState('');
   const [stageNote, setStageNote] = useState('');
   const [note, setNote] = useState('');
@@ -119,19 +122,34 @@ const Detail: React.FC<{ id: string; onClose: () => void; onChanged: () => void 
               <ul className="ppa-bookings">
                 {data!.bookings.map(b => (
                   <li key={b._id}>
-                    <span><b>{istTime(b.startsAt)}</b> · {b.interviewerId?.name || '—'} · {b.status === 'booked' ? 'Booked' : b.status === 'attended' ? 'Attended' : b.status === 'no_show' ? 'No-show' : 'Cancelled'}</span>
+                    <span><b>{istTime(b.startsAt)}</b> · {b.interviewerId?.name || '—'} · {b.status === 'booked' ? (needsMarking(b) ? 'Needs marking' : 'Booked') : b.status === 'attended' ? 'Attended' : b.status === 'no_show' ? 'No-show' : 'Cancelled'}</span>
                     {b.status === 'booked' && (
                       <span className="ppa-acts">
                         {new Date(b.startsAt).getTime() <= Date.now() ? <>
-                          <button className="ppa-btn ghost" disabled={busy} onClick={() => act(() => placementAdminApi.outcome(b._id, 'attended'))}>Attended</button>
-                          <button className="ppa-btn ghost" disabled={busy} onClick={() => act(() => placementAdminApi.outcome(b._id, 'no_show'))}>No-show</button>
+                          <button className="ppa-btn ghost" disabled={busy} onClick={() => setScoring(b)}>Attended</button>
+                          <button className="ppa-btn ghost" disabled={busy} onClick={() => { if (window.confirm('Mark as a no-show?')) act(() => placementAdminApi.outcome(b._id, 'no_show')); }}>No-show</button>
                         </> : <button className="ppa-btn ghost" disabled={busy} onClick={() => { const r = window.prompt('Reason for cancelling:', 'Interviewer unavailable'); if (r !== null) act(() => placementAdminApi.cancelBooking(b._id, r)); }}>Cancel</button>}
                       </span>
+                    )}
+                    {b.scorecard && (
+                      <div className="ppa-scorecard">
+                        <div className="head"><b>{b.scorecard.average}/5</b> · {recLabel(b.scorecard.recommendation)}</div>
+                        <div className="rows">{b.scorecard.ratings.map(r => <span key={r.criterion}>{r.criterion}: <b>{r.score}</b></span>)}</div>
+                        {b.scorecard.notes && <p>{b.scorecard.notes}</p>}
+                      </div>
                     )}
                   </li>
                 ))}
               </ul>
             )}
+            {c.stage === 'interview_attended' && (
+              <div className="ppa-decide">
+                <span>Decision after the interview:</span>
+                <button className="ppa-btn" disabled={busy} onClick={() => act(() => placementProgramApi.setStage(id, 'selected', 'Selected after interview'))}>Selected</button>
+                <button className="ppa-btn ghost danger" disabled={busy} onClick={() => act(() => placementProgramApi.setStage(id, 'rejected', 'Not selected after interview'))}>Not selected</button>
+              </div>
+            )}
+            {scoring && <ScorecardModal bookingId={scoring._id} candidateName={c.name} onClose={() => setScoring(null)} onSaved={() => { setScoring(null); load(); onChanged(); }} />}
 
             <h3>Where they came from</h3>
             <div className="ppa-box">
@@ -175,7 +193,7 @@ const Detail: React.FC<{ id: string; onClose: () => void; onChanged: () => void 
   );
 };
 
-type Tab = 'candidates' | 'interviews' | 'interviewers' | 'settings';
+type Tab = 'candidates' | 'board' | 'interviews' | 'interviewers' | 'settings';
 
 const PlacementProgramAdmin: React.FC = () => {
   const [tab, setTab] = useState<Tab>('candidates');
@@ -216,11 +234,12 @@ const PlacementProgramAdmin: React.FC = () => {
         </div>
       </div>
       <div className="ppa-tabs" role="tablist">
-        {([['candidates', 'Candidates'], ['interviews', 'Interviews'], ['interviewers', 'Interviewers'], ['settings', 'Settings']] as [Tab, string][]).map(([k, l]) => (
+        {([['candidates', 'Candidates'], ['board', 'Board'], ['interviews', 'Interviews'], ['interviewers', 'Interviewers'], ['settings', 'Settings']] as [Tab, string][]).map(([k, l]) => (
           <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
 
+      {tab === 'board' && <PlacementBoard onOpenCandidate={setOpen} />}
       {tab === 'interviews' && <PlacementInterviews onOpenCandidate={setOpen} />}
       {tab === 'interviewers' && <PlacementInterviewers />}
       {tab === 'settings' && <PlacementSettings />}

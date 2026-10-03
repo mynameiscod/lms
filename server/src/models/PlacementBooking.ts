@@ -13,8 +13,15 @@ export interface IPlacementBooking extends Document {
   endsAt: Date;
   meetingUrl: string;
   status: 'booked' | 'cancelled' | 'attended' | 'no_show';
-  /** Which reminders went out, so a scheduler tick can never send one twice. */
-  reminded: { h24?: Date; h1?: Date };
+  /** Which reminders went out, so a scheduler tick can never send one twice. `outcome` = the
+   *  interviewer was asked to mark an interview nobody marked. */
+  reminded: { h24?: Date; h1?: Date; outcome?: Date };
+  /** Filled by the interviewer when they mark the candidate attended. */
+  scorecard?: {
+    ratings: { criterion: string; score: number }[];
+    recommendation: 'strong_yes' | 'yes' | 'maybe' | 'no';
+    notes?: string; average?: number; by?: mongoose.Types.ObjectId; at?: Date;
+  };
   cancelledReason?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -28,7 +35,8 @@ const PlacementBookingSchema = new Schema<IPlacementBooking>({
   endsAt: { type: Date, required: true },
   meetingUrl: { type: String, default: '' },
   status: { type: String, enum: ['booked', 'cancelled', 'attended', 'no_show'], default: 'booked' },
-  reminded: { type: new Schema({ h24: Date, h1: Date }, { _id: false }), default: {} },
+  reminded: { type: new Schema({ h24: Date, h1: Date, outcome: Date }, { _id: false }), default: {} },
+  scorecard: { type: Schema.Types.Mixed, default: undefined },
   cancelledReason: String,
 }, { timestamps: true });
 

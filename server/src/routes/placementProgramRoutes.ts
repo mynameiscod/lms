@@ -22,6 +22,7 @@ router.use(authMiddleware, tenantMiddleware);
 // An interviewer's own list needs only a login; everything below needs placement-admin rights.
 router.get('/bookings/mine', ctrl.myBookings);
 router.post('/bookings/:bookingId/outcome', ctrl.bookingOutcome);
+router.get('/scorecard-criteria', ctrl.scorecardCriteria);
 router.use(roleGuard(['manage_placement', 'manage_tenant']));
 router.get('/config', ctrl.getConfig);
 router.put('/config', ctrl.saveConfig);
@@ -30,6 +31,7 @@ router.post('/interviewers', ctrl.createInterviewer);
 router.put('/interviewers/:ivId', ctrl.updateInterviewer);
 router.delete('/interviewers/:ivId', ctrl.deleteInterviewer);
 router.get('/bookings', ctrl.listBookings);
+router.get('/board', ctrl.board);
 router.post('/bookings/:bookingId/cancel', ctrl.cancelBooking);
 router.get('/', ctrl.list);
 router.get('/:id', ctrl.get);

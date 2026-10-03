@@ -147,6 +147,8 @@ export async function setStage(tenantId: string, id: string, stage: string, acto
   c.stageChangedAt = new Date();
   await c.save();
   await event(tenantId, c._id, 'stage', `Stage: ${from} → ${stage}${note ? ` — ${clip(note, 300)}` : ''}`, { from, to: stage }, actorId);
+  // Loaded on demand: the growth service imports this one, so a static import would be circular.
+  if (stage === 'selected') import('./placementGrowthService').then((m) => m.sendMetaConversion(tenantId, c._id, 'Selected')).catch(() => undefined);
   return c;
 }
 

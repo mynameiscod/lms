@@ -10,6 +10,7 @@ import { sendByPurpose } from './purposeMessaging';
 import { EmailService } from './emailService';
 import { generateSlots, buildIcs, istLabel, Slot } from '../data/placementSlotPolicy';
 import { PlacementError, newPortalToken } from './placementProgramService';
+import { sendMetaConversion } from './placementGrowthService';
 export { newPortalToken };
 
 /**
@@ -182,6 +183,7 @@ export async function settleFee(orderId: string, paymentId: string, captured?: {
   );
   if (!claimed) return { found: true, alreadyPaid: true };
   await event(tenantId, c._id, 'stage', `Interview fee paid (₹${c.fee?.amountInr})`, { paymentId });
+  sendMetaConversion(tenantId, c._id, 'Purchase', c.fee?.amountInr); // fire-and-forget: never blocks the payment
   return { found: true, paid: true };
 }
 
@@ -373,6 +375,7 @@ export async function setOutcome(tenantId: string, bookingId: string, outcome: '
     await event(tenantId, c._id, 'stage', outcome === 'attended'
       ? `Attended the interview — scored ${card!.average}/5, recommendation: ${REC_LABEL[card!.recommendation]}`
       : 'Did not attend the interview', { bookingId }, actorId);
+    if (outcome === 'attended') sendMetaConversion(tenantId, c._id, 'InterviewAttended');
   }
   return { ok: true };
 }

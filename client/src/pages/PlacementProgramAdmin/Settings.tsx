@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { placementAdminApi, PlacementConfig, errMsg } from '../../api/placementProgramApi';
 import LinesTextarea from '../../components/common/LinesTextarea';
+import { ConversionsSettings } from './Growth';
 
 /** Fee, refund share, the "payment before booking" switch, and how slots are cut. */
 const PlacementSettings: React.FC = () => {
@@ -43,6 +44,7 @@ const PlacementSettings: React.FC = () => {
   };
 
   return (
+    <>
     <div className="ppa-card">
       <h3 className="ppa-card-title">Interview fee</h3>
       <div className="ppa-form">
@@ -98,6 +100,8 @@ const PlacementSettings: React.FC = () => {
         {msg && <span className={msg.ok ? 'ppa-ok' : 'ppa-bad'}>{msg.text}</span>}
       </div>
     </div>
+    <ConversionsSettings />
+    </>
   );
 };
 

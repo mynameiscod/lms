@@ -125,6 +125,21 @@ export const placementAdminApi = {
   agreementPreview: () => axios.get(`${BASE}/agreement/preview`, h()).then(d) as Promise<{ title: string; text: string; version: number; fields: [string, string][] }>,
   sendAgreement: (id: string) => axios.post(`${BASE}/${id}/agreement/send`, {}, h()).then(d) as Promise<{ ok: boolean; link: string }>,
   chequeStatus: (id: string, status: ChequeStatus, reason?: string) => axios.put(`${BASE}/${id}/cheque`, { status, reason }, h()).then(d),
+  /** Add LMS students; fee charged or waived per student. */
+  push: (items: { userId: string; waiveFee: boolean }[], notify: boolean) =>
+    axios.post(`${BASE}/push`, { items, notify }, h()).then(d) as Promise<{ added: number; linked: number; skipped: { name: string; reason: string }[] }>,
+  /** Message everyone in the chosen stages with an approved template ({name} and {link} are filled per person). */
+  broadcast: (body: { stages: string[]; templateId: string; values: string[]; buttonParam?: string }) =>
+    axios.post(`${BASE}/broadcast`, body, h()).then(d) as Promise<{ broadcastId: string; total: number }>,
+  conversionsStatus: () => axios.get(`${BASE}/conversions/status`, h()).then(d) as Promise<{ meta: { configured: boolean; pixelId: string }; googleNames: Record<string, string> }>,
+  downloadGoogleCsv: async (from: string, to: string) => {
+    const r = await axios.get(`${BASE}/conversions/google.csv`, { ...h(), params: { from, to }, responseType: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(r.data);
+    a.download = `placement-google-conversions-${from}-to-${to}.csv`;
+    a.click();
+    return Number(r.headers['x-rows'] || 0);
+  },
   /** Files that need the login token: fetched as a blob and opened in a new tab. */
   openPrivate: async (path: 'agreement.pdf' | 'cheque/file', id: string) => {
     const r = await axios.get(`${BASE}/${id}/${path}`, { ...h(), responseType: 'blob' });

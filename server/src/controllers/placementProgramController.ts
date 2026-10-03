@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import * as svc from '../services/placementProgramService';
 import * as portal from '../services/placementPortalService';
 import * as agreement from '../services/placementAgreementService';
+import * as growth from '../services/placementGrowthService';
 import { permissionsOf } from '../middleware/roleGuard';
 
 const tId = (req: Request) => (req as any).tenantId as string;
@@ -108,4 +109,20 @@ export const chequeFile = wrap(async (req, res) => {
   res.setHeader('Content-Type', f.mime);
   res.setHeader('Cache-Control', 'private, no-store');
   res.sendFile(f.full);
+});
+
+// ── Phase 5: LMS push, stage messages, conversions ───────────────────────────
+export const pushStudents = wrap(async (req, res) => {
+  res.json({ success: true, data: await growth.pushLmsStudents(tId(req), uId(req), req.body?.items || [], !!req.body?.notify) });
+});
+export const stageBroadcast = wrap(async (req, res) => { res.json({ success: true, data: await growth.stageBroadcast(tId(req), uId(req), req.body || {}) }); });
+export const conversionsStatus = wrap(async (req, res) => {
+  res.json({ success: true, data: { meta: growth.metaConfigured(tId(req)), googleNames: growth.GOOGLE_CONVERSION_NAMES } });
+});
+export const googleCsv = wrap(async (req, res) => {
+  const r = await growth.googleConversionsCsv(tId(req), req.query.from as string, req.query.to as string);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="placement-google-conversions.csv"');
+  res.setHeader('X-Rows', String(r.rows));
+  res.send(r.csv);
 });

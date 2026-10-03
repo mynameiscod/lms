@@ -24,7 +24,7 @@ interview → agreement → security cheque → placement. LMS students can be p
 | P2 | Interview fee (Razorpay), "payment before booking" toggle, interviewer availability, slot booking, .ics invites, WhatsApp reminders, refund | **Built** |
 | P3 | Interview scorecard (configurable criteria 1–5 + recommendation + notes), unmarked-interview flags + interviewer email, Kanban board | **Built** |
 | P4 | Admin-written agreement (merge fields, versions) e-signed with WhatsApp code + PDF; private security-cheque upload and lifecycle | **Built** |
-| P5 | Push LMS students (fee per student), bulk WhatsApp by stage, send Paid/Attended conversions back to Meta and Google | — |
+| P5 | Add LMS students (charge/waive per student), message a whole stage, Meta Conversions API + Google Ads offline-conversion CSV | **Built** |
 
 ## Phase 1 notes
 
@@ -75,3 +75,17 @@ interview → agreement → security cheque → placement. LMS students can be p
   in `uploads/.private/placement-cheques` — never served publicly (explicit 404 + `dotfiles: 'deny'`); admin views via an
   authenticated endpoint. Moves: received → verified → held → returned | deposited (deposit needs a written reason ≥ 10
   chars). Verified → stage `cheque_verified`.
+
+## Phase 5 notes
+
+- Add LMS students (Candidates tab): pick from a batch, charge or waive the fee per student, optional WhatsApp welcome.
+  One record per mobile — a student already in from an ad is linked to their LMS account, not duplicated. Students
+  without a valid mobile are skipped and listed with the reason.
+- Message a stage: any approved template to everyone in the chosen stages; `{name}` and `{link}` (their own page) are
+  filled per person. Recorded as a WhatsApp broadcast (Sent history) and per message in the Delivery log + timeline.
+- Meta Conversions API (Platform Settings → Meta/WhatsApp: `META_PIXEL_ID`, `META_CAPI_ACCESS_TOKEN`, optional
+  `META_CAPI_TEST_EVENT_CODE`): Purchase (fee paid, value), InterviewAttended, Selected — sent automatically,
+  fire-and-forget; phone/email SHA-256 hashed; fbclid passed as `fbc`; `event_id` dedupes retries.
+- Google Ads: no API (needs an approved developer token). Settings → Ad conversions downloads an offline-conversion CSV
+  (Google Click ID, Conversion Name, Time in +0530, Value, Currency) for candidates who arrived with a gclid. Create the
+  conversion actions "Placement Paid", "Placement Interview Attended", "Placement Selected" once in Google Ads.

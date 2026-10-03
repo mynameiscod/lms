@@ -7,6 +7,7 @@ import PlacementInterviewers from './Interviewers';
 import PlacementInterviews from './Interviews';
 import PlacementBoard from './Board';
 import ScorecardModal from './ScorecardModal';
+import { AddStudentsModal, StageMessageModal } from './Growth';
 import './placementProgramAdmin.css';
 
 /**
@@ -252,6 +253,8 @@ const PlacementProgramAdmin: React.FC = () => {
   const [err, setErr] = useState('');
   const [open, setOpen] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [messaging, setMessaging] = useState(false);
 
   const load = useCallback(() => {
     placementProgramApi.list({ stage: stage || undefined, source: source || undefined, search: search.trim() || undefined, page, limit: 25 })
@@ -276,6 +279,8 @@ const PlacementProgramAdmin: React.FC = () => {
           <p>Everyone who registered from your ads, which ad brought them, and where they are now.</p>
         </div>
         <div className="ppa-head-actions">
+          <button className="ppa-btn ghost" onClick={() => setAdding(true)}><i className="bi bi-person-plus" /> Add LMS students</button>
+          <button className="ppa-btn ghost" onClick={() => setMessaging(true)}><i className="bi bi-whatsapp" /> Message a stage</button>
           <a className="ppa-btn ghost" href="/placement-program" target="_blank" rel="noreferrer"><i className="bi bi-box-arrow-up-right" /> View form</a>
           <button className="ppa-btn" onClick={copyLink}><i className="bi bi-link-45deg" /> {copied ? 'Copied' : 'Copy form link'}</button>
         </div>
@@ -342,6 +347,8 @@ const PlacementProgramAdmin: React.FC = () => {
       </>}
 
       {open && <Detail id={open} onClose={() => setOpen(null)} onChanged={load} />}
+      {adding && <AddStudentsModal onClose={() => setAdding(false)} onDone={load} />}
+      {messaging && <StageMessageModal initialStage={stage || undefined} counts={data?.byStage || {}} onClose={() => setMessaging(false)} />}
     </div>
   );
 };

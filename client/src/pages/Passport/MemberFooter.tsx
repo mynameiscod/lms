@@ -1,5 +1,6 @@
 import React from 'react';
 import './memberFooter.css';
+import { copyrightLine } from '../../config/brand';
 
 /**
  * The footer for CareerPilot member screens.
@@ -40,7 +41,7 @@ const MemberFooter: React.FC = () => (
 
       <div className="mf-meta">
         <span><i className="bi bi-shield-lock-fill" /> Your data is private and never sold</span>
-        <span className="mf-copy">© {new Date().getFullYear()} CodeBegun. All rights reserved.</span>
+        <span className="mf-copy">{copyrightLine()}</span>
       </div>
     </div>
   </footer>

@@ -6,6 +6,7 @@ import './dashboard.css';
 import './member.css';
 import SetPasswordDialog from './SetPasswordDialog';
 import ShareCardDialog from './ShareCardDialog';
+import { useUnlock } from './useUnlock';
 import { startActivityBeacon, trackPage } from './activityBeacon';
 import visualizerApi from '../../api/visualizerApi';
 
@@ -211,6 +212,20 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const lockedSet = new Set((d?.locked || []).map(l => l.section));
 
   /**
+   * The way out of the locks, in the rail that shows them.
+   *
+   * Every locked item already carried a padlock, and that was the whole conversation: it said
+   * "no" in six places and never once said how to fix it. A member had to click a locked item,
+   * land on its page and find the unlock there — so the rail answered a question it would not
+   * help with, and anyone who did not click never saw a price at all.
+   *
+   * Same `useUnlock` every lock uses, so there is still exactly one checkout and unlocking here
+   * reloads every other surface without a refresh. Rendered only when something IS locked; a
+   * paying member must never be shown a buy button for what they already own.
+   */
+  const { unlock, busy: unlockBusy, label: unlockLabel, msg: unlockMsg } = useUnlock();
+
+  /**
    * A locked item is SHOWN AND MARKED, never hidden.
    *
    * Hiding it removes the only reason to buy — a student cannot want what they cannot see —
@@ -289,6 +304,15 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Resume', 'resume', '/careerpilot/resume', 'resume')}
           {navBtn('My Progress', 'trophy', '/careerpilot/progress', 'progress')}
         </nav>
+
+        {lockedSet.size > 0 && (
+          <div className="gd-unlock">
+            <div className="gd-unlock-hd"><i className="bi bi-lock-fill" /> {lockedSet.size} {lockedSet.size === 1 ? 'feature is' : 'features are'} locked</div>
+            <p>Membership opens your full roadmap, daily practice, mock interviews and everything else marked with a lock.</p>
+            <button className="gd-unlock-cta" onClick={() => unlock()} disabled={unlockBusy}>{unlockLabel}</button>
+            {unlockMsg && <span className="gd-unlock-msg">{unlockMsg}</span>}
+          </div>
+        )}
 
         <div className="gd-side-account">
           <div className="gd-side-me">

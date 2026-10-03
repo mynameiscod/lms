@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
 import OtpVerify, { isOtpInfo, otpSendMessage } from './OtpVerify';
+import SetPasswordDialog from './SetPasswordDialog';
 import { createPortal } from 'react-dom';
 
 /* The signup form's own rule, reused so one number cannot be valid on one screen and not the other. */
@@ -68,6 +69,10 @@ const PassportLogin: React.FC<{
   const [token, setToken] = useState('');
   const [devCode, setDevCode] = useState('');
   const [busy, setBusy] = useState(false);
+  /** They came via "Forgot password?", so a verified code should offer a new password. */
+  const [resetting, setResetting] = useState(false);
+  /** The verified session, held while the password dialog is open instead of redirecting. */
+  const [landed, setLanded] = useState<{ onboardingCompleted?: boolean } | null>(null);
   const [msg, setMsg] = useState('');
   const [resendIn, setResendIn] = useState(25);
 
@@ -88,7 +93,14 @@ const PassportLogin: React.FC<{
     return () => clearInterval(t);
   }, [otpStep, token]);
 
-  const land = (r: { token: string; tenantId: string; user: any; onboardingCompleted?: boolean }) => {
+  /**
+   * Store the session. Split out of `land` so "forgot password" can hold the redirect.
+   *
+   * Setting a password needs an authenticated call (`POST /passport/set-password`, MEMBER), so
+   * the session has to exist before the dialog opens — but `land` navigated away in the same
+   * breath, which is why there was nowhere to put it.
+   */
+  const storeSession = (r: { token: string; tenantId: string; user: any }) => {
     if (remember && identifier) localStorage.setItem(REMEMBER_KEY, identifier);
     else localStorage.removeItem(REMEMBER_KEY);
 
@@ -100,7 +112,15 @@ const PassportLogin: React.FC<{
         email: r.user.email, firstName: r.user.firstName, lastName: r.user.lastName, role: r.user.role,
       }));
     }
-    window.location.href = r.onboardingCompleted ? '/careerpilot' : '/careerpilot/setup';
+  };
+
+  const goHome = (onboardingCompleted?: boolean) => {
+    window.location.href = onboardingCompleted ? '/careerpilot' : '/careerpilot/setup';
+  };
+
+  const land = (r: { token: string; tenantId: string; user: any; onboardingCompleted?: boolean }) => {
+    storeSession(r);
+    goHome(r.onboardingCompleted);
   };
 
   /**
@@ -144,9 +164,28 @@ const PassportLogin: React.FC<{
     setBusy(false);
   };
 
+  /**
+   * "Forgot password?" sent a code and then logged them straight in, with no way to choose a new
+   * password — so the only account they could not fix was the one they came here to fix. A member
+   * who forgot their password had to find the dialog buried in the member menu afterwards, and
+   * nothing told them it was there.
+   *
+   * The code is proof of the number, which is the same proof a reset needs, so after a verified
+   * code from THIS path the session is stored and the password dialog opens over the page. Only
+   * from this path: somebody choosing WhatsApp OTP as their normal way in has not asked to change
+   * anything, and being made to think about passwords every login is its own annoyance.
+   */
   const verifyOtp = async (code: string) => {
     setBusy(true); setMsg('');
-    try { land(await passportPublicApi.verify(token, code)); }
+    try {
+      const r = await passportPublicApi.verify(token, code);
+      if (resetting) {
+        storeSession(r);
+        setLanded(r);
+      } else {
+        land(r);
+      }
+    }
     catch (e: any) { setMsg(failureText(e, 'That code could not be verified. Please try again.')); }
     setBusy(false);
   };
@@ -187,7 +226,24 @@ const PassportLogin: React.FC<{
      * from, so embedded it lifts out of the card rather than being squeezed into it. The
      * host keeps its own layout untouched underneath.
      */
-    return embedded ? <VerifyTakeover>{verify}</VerifyTakeover> : verify;
+    /**
+     * After a verified code from "forgot password", the new-password dialog opens over this
+     * screen. Dismissing it still goes home: the code was valid, so they ARE signed in, and
+     * refusing to let somebody in until they choose a password would lock out the one person
+     * who already told us they are bad at remembering them.
+     */
+    const body = (
+      <>
+        {verify}
+        {landed && (
+          <SetPasswordDialog
+            onClose={() => goHome(landed.onboardingCompleted)}
+            onDone={() => goHome(landed.onboardingCompleted)}
+          />
+        )}
+      </>
+    );
+    return embedded ? <VerifyTakeover>{body}</VerifyTakeover> : body;
   }
 
   const sent = msg.startsWith('We sent') || msg.startsWith('New code');
@@ -260,10 +316,10 @@ const PassportLogin: React.FC<{
           <p className="cpl-sub">Login to continue your CareerPilot journey.</p>
 
           <div className="cpl-tabs" role="tablist" aria-label="Login method">
-            <button role="tab" aria-selected={mode === 'password'} className={`cpl-tab${mode === 'password' ? ' on' : ''}`} onClick={() => { setMode('password'); setMsg(''); }}>
+            <button role="tab" aria-selected={mode === 'password'} className={`cpl-tab${mode === 'password' ? ' on' : ''}`} onClick={() => { setMode('password'); setMsg(''); setResetting(false); }}>
               <i className="bi bi-lock-fill" /> Password
             </button>
-            <button role="tab" aria-selected={mode === 'otp'} className={`cpl-tab${mode === 'otp' ? ' on' : ''}`} onClick={() => { setMode('otp'); setMsg(''); }}>
+            <button role="tab" aria-selected={mode === 'otp'} className={`cpl-tab${mode === 'otp' ? ' on' : ''}`} onClick={() => { setMode('otp'); setMsg(''); setResetting(false); }}>
               <i className="bi bi-whatsapp" /> WhatsApp OTP
             </button>
           </div>
@@ -287,7 +343,7 @@ const PassportLogin: React.FC<{
 
               <div className="cpl-row">
                 <label className="cpl-check"><input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} /> Remember me</label>
-                <button type="button" className="cpl-link" onClick={() => { setMode('otp'); setMsg(''); setMobile(identifier.includes('@') ? '' : identifier); }}>Forgot password?</button>
+                <button type="button" className="cpl-link" onClick={() => { setMode('otp'); setMsg(''); setResetting(true); setMobile(identifier.includes('@') ? '' : identifier); }}>Forgot password?</button>
               </div>
 
               <button className="cpl-go" disabled={busy || !identifier || !password} onClick={doPassword}>{busy ? 'Logging in…' : 'Continue →'}</button>
@@ -303,14 +359,14 @@ const PassportLogin: React.FC<{
 
               <div className="cpl-row">
                 <label className="cpl-check"><input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} /> Remember me</label>
-                <button type="button" className="cpl-link" onClick={() => { setMode('password'); setMsg(''); }}>Use password instead</button>
+                <button type="button" className="cpl-link" onClick={() => { setMode('password'); setMsg(''); setResetting(false); }}>Use password instead</button>
               </div>
 
               <button className="cpl-go" disabled={busy || !mobile} onClick={startOtp}>{busy ? 'Sending…' : 'Send WhatsApp Code →'}</button>
             </>
           )}
 
-          <button className="cpl-switch" type="button" onClick={() => { setMode(mode === 'password' ? 'otp' : 'password'); setMsg(''); }}>
+          <button className="cpl-switch" type="button" onClick={() => { setMode(mode === 'password' ? 'otp' : 'password'); setMsg(''); setResetting(false); }}>
             <i className={mode === 'password' ? 'bi bi-whatsapp' : 'bi bi-lock-fill'} /> {mode === 'password' ? 'Continue with WhatsApp OTP' : 'Continue with Password'}
           </button>
 

@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { assessmentApi, PROFILE_OPTIONS, PRIMARY_LANGUAGES, TARGET_ROLES } from '../../api/assessmentApi';
 import './assessment.css';
+import { copyrightLine } from '../../config/brand';
 
 const WEB = 'https://www.codebegun.com';
 
@@ -513,7 +514,7 @@ const Register: React.FC = () => {
             <a href="mailto:contact@codebegun.com">contact@codebegun.com</a>
           </div>
         </div>
-        <div className="as-footer-bottom">© {new Date().getFullYear()} CodeBegun · All rights reserved.</div>
+        <div className="as-footer-bottom">{copyrightLine()}</div>
       </footer>
     </div>
   );

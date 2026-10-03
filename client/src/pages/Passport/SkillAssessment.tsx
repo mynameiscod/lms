@@ -7,6 +7,7 @@ import {
 } from './answerQueue';
 import { useMember } from './MemberLayout';
 import './skillAssessment.css';
+import { copyrightLine } from '../../config/brand';
 
 const AUTOSAVE_MS = 900;
 const RETRY_MS = 4000;
@@ -130,6 +131,8 @@ const SkillAssessment: React.FC = () => {
   };
   const [err, setErr] = useState('');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'retrying'>('idle');
+  /** Set while "Save & exit" is flushing the outbox, so the button cannot be pressed twice. */
+  const [exiting, setExiting] = useState(false);
   /** Preflight: whether they have already sat one, and whether a real attempt is open. */
   const [avail, setAvail] = useState<AssessmentAvailability | null>(null);
 
@@ -247,6 +250,30 @@ const SkillAssessment: React.FC = () => {
     timer.current = setTimeout(flush, AUTOSAVE_MS);
   }, [flush]);
 
+  /**
+   * "Save & exit" — which did not save.
+   *
+   * Every answer is queued into an outbox and sent by `flush` on a 900ms debounce. The button
+   * only called `nav()`, so a member who answered a question and left within that window took
+   * their last answer with them: it was written to the local draft, never sent, and the timer
+   * died with the unmounting component. Answering and immediately leaving is not an edge case —
+   * it is what "I'll finish this later" looks like, which is exactly who the button is for.
+   *
+   * So it now drains the outbox first and only then navigates. The pending debounce is cancelled
+   * so the same batch is not sent twice.
+   *
+   * A FAILED FLUSH STILL LETS THEM LEAVE. `flush` re-queues a failed batch and persists the draft
+   * either way, so the answers survive in local storage and go up on their next visit. Trapping
+   * somebody on an assessment page because the network dropped would be a worse bug than the one
+   * being fixed here.
+   */
+  const saveAndExit = useCallback(async () => {
+    setExiting(true);
+    clearTimeout(timer.current);
+    try { await flush(); } catch { /* reported by saveState; the draft already holds the answers */ }
+    nav(returnTo || '/careerpilot');
+  }, [flush, nav, returnTo]);
+
   const answer = (item: SkillAssessmentItem, response: any) => {
     setAnswers(a => {
       const next = { ...a, [keyOf(item)]: response };
@@ -331,7 +358,12 @@ const SkillAssessment: React.FC = () => {
           <img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" />
         </a>
         {exit
-          ? <button className="ska-exit-btn" onClick={() => nav(returnTo || '/careerpilot')}><i className="bi bi-box-arrow-left" /> Save &amp; exit</button>
+          ? (
+            <button className="ska-exit-btn" onClick={saveAndExit} disabled={exiting}>
+              <i className={exiting ? 'bi bi-arrow-repeat' : 'bi bi-box-arrow-left'} />
+              {exiting ? ' Saving…' : ' Save & exit'}
+            </button>
+          )
           : <span className="ska-safe-pill"><i className="bi bi-shield-check" /> Your answers are private</span>}
       </div>
     </header>
@@ -341,7 +373,7 @@ const SkillAssessment: React.FC = () => {
     <footer className="ska-foot">
       <div className="ska-wrap ska-foot-in">
         <img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" />
-        <span>© {new Date().getFullYear()} CodeBegun · CareerPilot. All rights reserved.</span>
+        <span>{copyrightLine()}</span>
         <span className="ska-foot-made">Made for ambitious careers in India</span>
       </div>
     </footer>

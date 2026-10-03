@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import passportApi, { LockedSection, MemberSection } from '../../api/passportApi';
+import React from 'react';
+import { LockedSection, MemberSection } from '../../api/passportApi';
 import { useMember } from './MemberLayout';
+import { useUnlock } from './useUnlock';
 import './sectionLock.css';
 
 /**
@@ -40,32 +41,11 @@ interface Props {
 }
 
 /**
- * The one checkout. Exported so a screen that needs its own layout (the locked dashboard's membership panel) still
- * pays through exactly this path rather than growing a seventh copy of it.
+ * The one checkout, re-exported from its own module so existing imports keep working.
+ * It moved out because this file imports `sectionLock.css` and the member rail needs the
+ * behaviour without the styling — see useUnlock.ts.
  */
-export const useUnlock = () => {
-  const { data, reload } = useMember();
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState('');
-  const priceInr = data?.priceInr;
-
-  /** `after` runs once payment succeeds, for a screen with its own data to refresh (the journey preview). */
-  const unlock = async (after?: () => void) => {
-    setBusy(true); setMsg('');
-    try {
-      const r = await passportApi.membershipCheckout();
-      // Every locked surface reloads the same way, so unlocking on one opens all of them
-      // without a refresh — the old screens each decided this differently and two forgot.
-      if (r?.ok) { reload(); after?.(); }
-      else if (r?.message) setMsg(r.message);
-    } catch {
-      setMsg('The payment window could not open. Check your connection and try again.');
-    } finally { setBusy(false); }
-  };
-
-  const label = busy ? 'Opening payment…' : priceInr ? `Unlock CareerPilot — ₹${priceInr}` : 'Unlock CareerPilot';
-  return { unlock, busy, msg, label, priceInr };
-};
+export { useUnlock } from './useUnlock';
 
 const SectionLock: React.FC<Props> = ({ section, title, blurb, facts, children, variant = 'page' }) => {
   const { data } = useMember();

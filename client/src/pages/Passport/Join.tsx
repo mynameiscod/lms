@@ -5,6 +5,7 @@ import { passportPublicApi } from '../../api/passportApi';
 import type { OnboardingField, RegistrationWindow } from '../../api/passportApi';
 import OtpVerify, { isOtpInfo, otpSendMessage } from './OtpVerify';
 import './careerpilotJoin.css';
+import { copyrightLine } from '../../config/brand';
 
 const LOGO = '/assets/careerpilot/careerpilot-logo.png';
 
@@ -709,7 +710,7 @@ const PassportJoin: React.FC = () => {
             <button type="button" className="cpx-footer-link" onClick={scrollToSignup}>Create an Account</button>
           </div>
         </div>
-        <div className="cpx-wrap cpx-copy">© {new Date().getFullYear()} CodeBegun · CareerPilot. All rights reserved.</div>
+        <div className="cpx-wrap cpx-copy">{copyrightLine()}</div>
       </footer>
     </div>
   );

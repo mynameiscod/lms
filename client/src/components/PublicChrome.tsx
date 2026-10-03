@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './publicChrome.css';
+import { copyrightLine } from '../config/brand';
 
 /** Shared header + footer for ALL public/outside pages (Passport, Tech Battles, …).
  *  Mirrors codebegun.com so every public surface is consistently branded. */
@@ -74,7 +75,7 @@ const PublicChrome: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         </div>
         <div className="pc-fbottom">
           <div className="pc-fbottom-in">
-            <div>© 2026 CodeBegun by Savas Tech Solution Pvt Ltd · All rights reserved</div>
+            <div>{copyrightLine()}</div>
             <div className="links">{BOTTOM.map(b => <a key={b} href={SITE}>{b}</a>)}</div>
           </div>
         </div>

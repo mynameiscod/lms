@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { assessmentApi, DIMENSION_LABELS } from '../../api/assessmentApi';
 import './assessment.css';
+import { copyrightLine } from '../../config/brand';
 
 interface SubScore { dimension: string; percentage: number; }
 interface ResultData {
@@ -327,7 +328,7 @@ const Result: React.FC = () => {
           <div style={{ fontSize: 12.5 }}><div style={{ color: '#fff', fontWeight: 700, marginBottom: 8 }}>Support</div>Help Center · Contact Us · Privacy Policy · Terms</div>
           <div style={{ fontSize: 12.5 }}><div style={{ color: '#fff', fontWeight: 700, marginBottom: 8 }}>Stay Connected</div>in · ig · yt · fb</div>
         </div>
-        <div style={{ textAlign: 'center', fontSize: 12, color: '#6b7a97', marginTop: 22 }}>© {new Date().getFullYear()} CodeBegun. All rights reserved.</div>
+        <div style={{ textAlign: 'center', fontSize: 12, color: '#6b7a97', marginTop: 22 }}>{copyrightLine()}</div>
       </footer>
     </div>
   );

@@ -40,6 +40,19 @@ let rowSeq = 0;
 const toRows = (fields: OnboardingField[]): Row[] =>
   [...(fields || [])].sort((a, b) => (a.order || 0) - (b.order || 0)).map(f => ({ ...f, _id: `r${++rowSeq}` }));
 
+/**
+ * The four years an admin prices and lengths, with the figure each inherits when left blank.
+ * `job_seeker` is absent on purpose: it is not a year of a course, so it has no programme.
+ * The defaults mirror DEFAULT_PROGRAM_DAYS_BY_STAGE on the server — shown as placeholders only,
+ * never written, so the two cannot silently disagree about what was actually saved.
+ */
+const STAGE_YEARS: { key: string; label: string; who: string; defaultDays: number }[] = [
+  { key: 'foundation', label: 'Year 1 — Foundation', who: '1st year', defaultDays: 90 },
+  { key: 'build', label: 'Year 2 — Build', who: '2nd year', defaultDays: 110 },
+  { key: 'specialize', label: 'Year 3 — Specialize', who: '3rd year', defaultDays: 130 },
+  { key: 'placement', label: 'Year 4 — Placement', who: 'Final year', defaultDays: 150 },
+];
+
 const PassportAdminConfig: React.FC = () => {
   const [cfg, setCfg] = useState<PassportConfig | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
@@ -105,6 +118,13 @@ const PassportAdminConfig: React.FC = () => {
         roadmapDays: journeyDays,
         roadmapPreviewDays: cfg.roadmapPreviewDays ?? 7,
         foundationProgramDays: cfg.foundationProgramDays ?? 90,
+        /**
+         * Only the years an admin actually set are sent. An empty box means "use the single
+         * price/length", so sending 0 for it would sell that year for nothing — and the server
+         * would accept it, because 0 is a legal price.
+         */
+        programDaysByStage: cfg.programDaysByStage || {},
+        priceInrByStage: cfg.priceInrByStage || {},
         entitlements: cfg.entitlements,
         registrationOpensAt: cfg.registrationOpensAt || null,
         registrationClosesAt: cfg.registrationClosesAt || null,
@@ -131,6 +151,22 @@ const PassportAdminConfig: React.FC = () => {
   const set = (patch: Partial<PassportConfig>) => setCfg({ ...cfg, ...patch });
   const setEnt = (key: string, tier: 'free' | 'paid') =>
     set({ entitlements: cfg.entitlements.map(e => e.featureKey === key ? { ...e, tier } : e) });
+
+  /**
+   * Set — or clear — one year's price or programme length.
+   *
+   * CLEARING IS NOT SETTING ZERO. An empty box means "this year uses the single value above",
+   * so the key is DELETED rather than written as 0. The server accepts 0 as a price (a tenant
+   * may give a year away), so writing it on an empty box would silently make that year free,
+   * and the admin would have no way to tell that apart from what they meant.
+   */
+  const setStageNum = (field: 'programDaysByStage' | 'priceInrByStage', stage: string, raw: string) => {
+    const next = { ...(cfg[field] || {}) };
+    const trimmed = raw.trim();
+    if (trimmed === '') delete next[stage];
+    else next[stage] = Number(trimmed);
+    set({ [field]: next } as Partial<PassportConfig>);
+  };
   const setRow = (id: string, patch: Partial<Row>) => setRows(rs => rs.map(r => r._id === id ? { ...r, ...patch } : r));
 
   /** The free roadmap preview is the `roadmap_preview` entitlement; the switch is a shortcut to it. */
@@ -300,6 +336,61 @@ const PassportAdminConfig: React.FC = () => {
                 {engine.stages.map(s => <span key={s.stage} className={`cpc-chip${s.mode === 'UNIT' ? ' unit' : ''}`}>{s.label}: {s.mode}</span>)}
               </div>
             )}
+          </section>
+
+          {/* ── Per-year price and length ───────────────────────────────────────
+            * WHY THIS SCREEN EXISTS. Every year was sold at one price and planned at one
+            * length, because the single `priceInr` and `foundationProgramDays` boxes above
+            * were the only ones the UI had. The fields behind this have been on PassportConfig
+            * and validated by the API the whole time — nothing rendered them, so the only way
+            * to set a second-year's price was to edit the database by hand. Measured in
+            * production: a final-year offered ₹1.
+            *
+            * EMPTY IS NOT ZERO. A blank box inherits the single value above, which is why the
+            * placeholder shows what it would inherit rather than a 0.
+            */}
+          <section className="cpc-card">
+            <div className="cpc-card-head">
+              <span className="cpc-badge"><i className="bi bi-calendar3" /></span>
+              <div className="grow">
+                <h2>Price and length, per year</h2>
+                <p>Each year can carry its own membership price and its own number of days. Leave a box empty to use the single values above.</p>
+              </div>
+            </div>
+            <div className="cpc-years">
+              <div className="cpc-years-hd"><span>Year</span><span>Price (₹)</span><span>Programme length (days)</span></div>
+              {STAGE_YEARS.map(y => (
+                <div key={y.key} className="cpc-year">
+                  <span className="cpc-year-name"><b>{y.label}</b><small>{y.who}</small></span>
+                  {/* The column headings are hidden on a phone, so each box carries its own
+                      label there. Hidden on desktop, where the heading row says it once. */}
+                  <label className="cpc-year-in">
+                    <span className="cpc-year-lbl">Price (₹)</span>
+                    <input
+                      type="number" min={0} max={100000}
+                      aria-label={`${y.label} membership price in rupees`}
+                      value={cfg.priceInrByStage?.[y.key] ?? ''}
+                      placeholder={`${cfg.priceInr}`}
+                      onChange={e => setStageNum('priceInrByStage', y.key, e.target.value)}
+                    />
+                  </label>
+                  <label className="cpc-year-in">
+                    <span className="cpc-year-lbl">Days</span>
+                    <input
+                      type="number" min={30} max={180}
+                      aria-label={`${y.label} programme length in days`}
+                      value={cfg.programDaysByStage?.[y.key] ?? ''}
+                      placeholder={`${y.defaultDays}`}
+                      onChange={e => setStageNum('programDaysByStage', y.key, e.target.value)}
+                    />
+                  </label>
+                </div>
+              ))}
+            </div>
+            <p className="cpc-years-note">
+              Price 0–100,000. Length 30–180 days, and it only changes journeys composed from now on —
+              a member already on a plan keeps the length theirs was built with.
+            </p>
           </section>
 
           {/* ── Free vs paid ────────────────────────────────────────────────── */}

@@ -91,7 +91,10 @@ const RoleReadiness: React.FC = () => {
           <div className="rr-hero-chips">
             <span><i className="bi bi-grid-3x3-gap" /> {coverage}% of the role measured</span>
             <span><i className="bi bi-shield-check" /> {confLabel} confidence</span>
-            {roleName && <button onClick={() => nav('/careerpilot/setup?step=direction')}><i className="bi bi-pencil" /> Change role</button>}
+            {/* "Change role" was removed from here deliberately. Re-running direction setup after a
+                result has been read re-scopes the blueprint a member was measured against, so the
+                readiness figure on this page would change with no assessment behind it. Setting a
+                role for the FIRST time is still offered above, where there is no result to contradict. */}
           </div>
         </div>
 

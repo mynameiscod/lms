@@ -112,3 +112,31 @@
   .cpc-row { grid-template-columns: 22px 1fr auto; }
   .cpc-row .cpc-type, .cpc-row .ph { display: none; }
 }
+
+/* ── Price and length, per year ───────────────────────────────────────────────────────────
+   A three-column grid on desktop; on a phone each year becomes its own labelled block, because
+   a 3-col grid at 360px gives number inputs about 70px and the year name wraps to four lines. */
+.cpc-years { margin-top: 14px; border: 1px solid #E6E9F2; border-radius: 12px; overflow: hidden; }
+.cpc-years-hd,
+.cpc-year { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px 14px; }
+.cpc-years-hd { background: #F6F8FC; border-bottom: 1px solid #E6E9F2; font-size: 12px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: #6B7488; }
+.cpc-year + .cpc-year { border-top: 1px solid #F0F2F7; }
+.cpc-year-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cpc-year-name b { font-size: 13.5px; color: #0F172A; }
+.cpc-year-name small { font-size: 11.5px; color: #8B93A4; }
+.cpc-year input { width: 100%; min-width: 0; border: 1px solid #DDE2EC; border-radius: 9px; padding: 8px 10px; font-size: 13.5px; color: #0F172A; background: #fff; }
+.cpc-year input:focus { outline: none; border-color: #051D64; box-shadow: 0 0 0 3px rgba(5, 29, 100, .09); }
+.cpc-year input::placeholder { color: #AEB6C4; }
+.cpc-years-note { margin-top: 10px; font-size: 11.5px; color: #8B93A4; line-height: 1.5; }
+
+/* Each input carries its own label in the markup; on desktop the heading row says it once,
+   so the per-box label is hidden rather than repeated four times down each column. */
+.cpc-year-in { display: block; min-width: 0; }
+.cpc-year-lbl { display: none; }
+
+@media (max-width: 720px) {
+  .cpc-years-hd { display: none; }
+  .cpc-year { grid-template-columns: 1fr 1fr; gap: 10px 12px; padding: 12px 14px; }
+  .cpc-year-name { grid-column: 1 / -1; }
+  .cpc-year-lbl { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: #8B93A4; }
+}

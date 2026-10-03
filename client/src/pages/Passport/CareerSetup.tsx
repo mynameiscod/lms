@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { AssessmentAvailability, CareerContext, CareerContextOptions } from '../../api/passportApi';
 import { useMember } from './MemberLayout';
 import './careerSetup.css';
+import { copyrightLine } from '../../config/brand';
 
 type Answers = {
   degree: string; branch: string; currentAcademicYear: string;
@@ -300,7 +301,7 @@ const CareerSetup: React.FC = () => {
             </div>
           </section>
         </main>
-        <footer className="cps-footer"><div className="cps-footer-brand"><img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" /></div><span>© {new Date().getFullYear()} CodeBegun · CareerPilot. All rights reserved.</span><span className="cps-footer-made">Made for ambitious careers in India</span></footer>
+        <footer className="cps-footer"><div className="cps-footer-brand"><img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" /></div><span>{copyrightLine()}</span><span className="cps-footer-made">Made for ambitious careers in India</span></footer>
       </div>
     );
   }
@@ -467,7 +468,7 @@ const CareerSetup: React.FC = () => {
       </main>
 
       <section className="cps-capabilities"><div className="cps-cap-title">With <b>Career<span>Pilot</span></b>, you can</div><div className="cps-cap-grid">{CAPABILITIES.map((item, index) => <div className={`cps-cap tone-${(index % 5) + 1}`} key={item.title}><span><i className={`bi ${item.icon}`} /></span><b>{item.title}</b></div>)}</div></section>
-      <footer className="cps-footer"><div className="cps-footer-brand"><img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" /></div><span>© {new Date().getFullYear()} CodeBegun · CareerPilot. All rights reserved.</span><span className="cps-footer-made">Made for ambitious careers in India</span></footer>
+      <footer className="cps-footer"><div className="cps-footer-brand"><img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" /></div><span>{copyrightLine()}</span><span className="cps-footer-made">Made for ambitious careers in India</span></footer>
     </div>
   );
 };

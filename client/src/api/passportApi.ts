@@ -56,6 +56,19 @@ export interface PassportConfig {
   /** The length of a Foundation journey composed from now on. Ninety when unset. */
   foundationProgramDays?: number;
   /**
+   * Programme length and price PER YEAR, keyed by stage.
+   *
+   * `priceInr` is the tenant's single price and `foundationProgramDays` its single length;
+   * both remain the fallback for any stage with no entry here. Without these a tenant selling
+   * four years sells them all at one price and plans them all at one length, which is how a
+   * final-year came to be offered a first-year's price.
+   *
+   * Mongoose stores them as Maps and returns plain objects on a lean read, which is what the
+   * API sends. A stage absent from the object is not zero — it is "use the single value".
+   */
+  programDaysByStage?: Record<string, number>;
+  priceInrByStage?: Record<string, number>;
+  /**
    * Whether daily missions follow authored Concept Learning Units.
    *
    * Off is not a degraded mode: with it off the mission engine behaves exactly as it did

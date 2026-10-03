@@ -79,6 +79,37 @@
    the words lead, the illustration supports. */
 .cpx-hero-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: clamp(28px, 2.6vw, 52px); align-items: center; }
 
+/* ── The hero is ONE row of three, not a column beside a nested grid ──────────────────────
+ *
+ * The markup is copy | stage, and `stage` holds the illustration AND the signup card. Two
+ * grids sizing themselves independently is where the empty space came from: the outer grid
+ * handed `stage` a share, `stage` gave the signup card its 430–490px, the illustration got
+ * whatever was left — and the illustration is capped and centred, so the remainder became a
+ * gap on both sides of it rather than going back to the text.
+ *
+ * It was wide enough to be obvious because `.cpx-wrap` runs to `min(2400px, 100% - 200px)`:
+ * on a 1900px screen the hero is ~1760px across, so "a share of the leftover" is hundreds of
+ * pixels. `display: contents` drops the wrapper's box and lets its two children sit directly
+ * in the hero grid, so all three columns are sized together, once, and there is no leftover
+ * to strand.
+ *
+ * Desktop only. Below 1200px the grid stacks and `.cpx-stage` becomes a real box again, with
+ * the rules further down that put the form before the picture.
+ */
+@media (min-width: 1201px) {
+  .cpx-stage { display: contents; }
+  .cpx-hero-grid {
+    /* Capped so the hero reads as a designed row instead of three columns stretched across a
+       very wide monitor, which is the other half of what looked like "too much space". */
+    max-width: 1560px; margin-inline: auto;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, .82fr) minmax(400px, 440px);
+    gap: clamp(24px, 2.1vw, 40px);
+  }
+  /* Fill the column it was given rather than sitting capped in the middle of it. */
+  .cpx-hero-visual { align-self: center; }
+  .cpx-visual-in { max-width: 100%; }
+}
+
 /* The stage: one rounded panel holding the illustration, with the signup card overlapping it on the right. */
 /* No panel behind the illustration and the form: the picture sits on the page and only the signup card
    is a card, so the hero does not read as a card inside a card. */

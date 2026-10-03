@@ -95,7 +95,20 @@
  * is left, 479 — it is a 600px asset and was being rendered at 380 while the form sat at its
  * 490px maximum. The picture is what the eye lands on; the form's fields are no better wide.
  */
-.cpx-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); gap: 40px; align-items: center; }
+/*
+ * THE THREE COLUMNS SHARE A TOP EDGE.
+ *
+ * `align-items: center` centred all three against the tallest, which is the signup card — a
+ * form with tabs, a heading, two fields, a checkbox row and two buttons. The copy and the
+ * illustration are both much shorter, so centring them pushed each down by half the
+ * difference: roughly 200px of empty space above the headline, and the same again below it,
+ * on a row that was already taller than the viewport. Nothing was wrong with the widths; the
+ * hero simply had three things floating at three different heights.
+ *
+ * `start` lines them up on one edge, which is what makes a hero read as a row. The space above
+ * and below is then the section's own padding and is the same for all three.
+ */
+.cpx-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); gap: 40px; align-items: start; }
 /*
  * The hero row is capped, where the rest of the page is not.
  *
@@ -123,7 +136,7 @@
    * 600px asset. Dropping the card's ceiling to 430 gives the picture ~60px back, and the
    * form loses nothing: its widest row is two fields side by side, which fits comfortably.
    */
-  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 416px); column-gap: 24px; align-items: center;
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 416px); column-gap: 24px; align-items: start;
   padding: 0; border-radius: 0; background: none; border: 0; box-shadow: none;
 }
 .cpx-eyebrow { color: var(--teal); font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 12px; }

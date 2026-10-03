@@ -374,11 +374,10 @@ const PassportLogin: React.FC<{
             <i className={mode === 'password' ? 'bi bi-whatsapp' : 'bi bi-lock-fill'} /> {mode === 'password' ? 'Continue with WhatsApp OTP' : 'Continue with Password'}
           </button>
 
-          <div className="cpl-security">
-            <i className="bi bi-shield-check" />
-            <div><b>Secure Login</b><span>Your credentials are used only to authenticate your CareerPilot account.</span></div>
-          </div>
-
+          {/* The "Secure Login" notice was removed with the safety badge above it, for the same
+              reason: it reassures somebody about to hand over details, and a returning member is
+              typing a password they already chose. It also made Sign In taller, which is what the
+              hero row's height floor exists to absorb. */}
           <div className="cpl-foot">
             New to CareerPilot?{' '}
             {onCreateAccount

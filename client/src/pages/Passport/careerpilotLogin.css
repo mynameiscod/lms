@@ -98,9 +98,6 @@
 /* ── Form side ──────────────────────────────────────────────────────────── */
 .cpl-login-side { display: flex; align-items: center; justify-content: center; padding: 40px 56px; background: linear-gradient(180deg, #FFFFFF 0%, #F6FAFD 100%); }
 .cpl-form-wrap { width: 100%; max-width: 520px; }
-.cpl-safe { display: flex; justify-content: flex-end; margin-bottom: 34px; }
-.cpl-safe span { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #D8E5F2; background: #F2F8FD; color: var(--cpl-navy); border-radius: 999px; padding: 9px 15px; font-size: 11.5px; font-weight: 800; }
-.cpl-safe i { color: var(--cpl-teal); }
 .cpl-form-wrap h2 { margin: 0; color: var(--cpl-navy); font-size: clamp(30px, 2.6vw, 38px); letter-spacing: -.03em; font-weight: 900; }
 .cpl-form-wrap > .cpl-sub { margin: 8px 0 26px; color: var(--cpl-muted); font-size: 14.5px; }
 
@@ -133,10 +130,6 @@
 .cpl-switch { width: 100%; margin-top: 12px; height: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1.5px solid var(--cpl-line); border-radius: 14px; background: #fff; color: var(--cpl-navy); font-weight: 800; font-size: 14.5px; cursor: pointer; }
 .cpl-switch:hover { background: #F2F7FC; border-color: #C6D8EA; }
 
-.cpl-security { display: flex; gap: 15px; align-items: flex-start; margin-top: 26px; padding: 18px; border: 1px solid #DDE7F3; border-radius: 18px; background: linear-gradient(135deg, #F7FBFF, #F1F7FD); }
-.cpl-security i { flex: none; width: 46px; height: 46px; border-radius: 15px; background: #EAF3FD; color: var(--cpl-navy); display: grid; place-items: center; font-size: 20px; }
-.cpl-security b { display: block; color: var(--cpl-navy); font-size: 13.5px; }
-.cpl-security span { display: block; color: var(--cpl-muted); font-size: 12px; line-height: 1.55; margin-top: 3px; }
 .cpl-foot { margin-top: 26px; padding-top: 24px; border-top: 1px dashed #DCE4EE; text-align: center; color: var(--cpl-muted); font-size: 13px; }
 .cpl-foot a { color: var(--cpl-navy); font-weight: 850; text-decoration: none; }
 .cpl-foot a:hover { text-decoration: underline; }
@@ -154,7 +147,6 @@
   .cpl-page { grid-template-columns: 1fr; min-height: 0; }
   .cpl-login-side { order: 1; padding: 28px 22px 34px; }
   .cpl-marketing { order: 2; padding: 30px 22px; }
-  .cpl-safe { margin-bottom: 22px; }
   .cpl-stage { grid-template-columns: 1fr; }
   .cpl-student { display: none; }
   .cpl-feature-stack { grid-template-columns: 1fr; }

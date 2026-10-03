@@ -23,7 +23,7 @@ interview → agreement → security cheque → placement. LMS students can be p
 | P1 | Public form `/placement-program?tenant=<slug>` with ad attribution, candidate record, WhatsApp confirmation (purpose `PLACEMENT_PROGRAM_REGISTERED`, UTILITY), admin pipeline `/admin/placement-program` (stages, timeline, notes) | **Built** |
 | P2 | Interview fee (Razorpay), "payment before booking" toggle, interviewer availability, slot booking, .ics invites, WhatsApp reminders, refund | **Built** |
 | P3 | Interview scorecard (configurable criteria 1–5 + recommendation + notes), unmarked-interview flags + interviewer email, Kanban board | **Built** |
-| P4 | Agreement e-sign + PDF; security cheque upload and lifecycle | — |
+| P4 | Admin-written agreement (merge fields, versions) e-signed with WhatsApp code + PDF; private security-cheque upload and lifecycle | **Built** |
 | P5 | Push LMS students (fee per student), bulk WhatsApp by stage, send Paid/Attended conversions back to Meta and Google | — |
 
 ## Phase 1 notes
@@ -60,3 +60,18 @@ interview → agreement → security cheque → placement. LMS students can be p
 - An interview still "booked" 30 min after it ends is flagged on the Interviews tab and in the candidate panel; the
   interviewer gets one email (claimed in the DB, `reminded.outcome`) linking to My Placement Interviews.
 - Board tab: Kanban of every candidate by stage (withdrawn excluded, capped at 1000); drag a card to change stage.
+
+## Phase 4 notes
+
+- Agreement template lives in Settings (title + body with `{{name}} {{first_name}} {{mobile}} {{email}} {{college}} {{fee}}
+  {{refundable_pct}} {{refund_amount}} {{date}} {{org}}`); every change bumps the version. Unknown fields stay visible in
+  the preview so typos are caught.
+- "Send agreement" (only after Selected) freezes the rendered text on the candidate — later edits never change it — and
+  sends `PLACEMENT_AGREEMENT_SENT` (first name, page link).
+- Signing on the candidate page: tick "I agree" + type the registered full name (case/punctuation-insensitive) + WhatsApp
+  code (`pp-agree:<id>`). Evidence stored: signedAt, typed name, IP, user agent, OTP verified, SHA-256 of the frozen text.
+  PDF built on demand from the frozen text + evidence (admin and candidate).
+- Security cheque: candidate uploads after signing (JPG/PNG/WEBP/PDF ≤ 8 MB, 6-digit number, bank, amount, date); stored
+  in `uploads/.private/placement-cheques` — never served publicly (explicit 404 + `dotfiles: 'deny'`); admin views via an
+  authenticated endpoint. Moves: received → verified → held → returned | deposited (deposit needs a written reason ≥ 10
+  chars). Verified → stage `cheque_verified`.

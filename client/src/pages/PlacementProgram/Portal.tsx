@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { placementPortalApi, PortalView, istTime, errMsg } from '../../api/placementProgramApi';
 import { loadRazorpay } from '../../api/paymentApi';
+import { AgreementStep, ChequeStep } from './PortalSteps';
 import './placementProgram.css';
 
 /**
@@ -151,6 +152,9 @@ const PlacementPortal: React.FC = () => {
             </>
           )}
         </section>
+
+        {view.agreement && <AgreementStep token={token} view={view} step={showFee ? 3 : 2} onDone={() => { setNotice('Agreement signed. Thank you.'); load(); }} />}
+        {view.cheque && <ChequeStep token={token} view={view} step={showFee ? 4 : 3} onDone={() => { setNotice('Cheque uploaded. We will verify it.'); load(); }} />}
       </main>
     </div>
   );

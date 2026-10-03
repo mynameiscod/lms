@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import * as svc from '../services/placementProgramService';
 import * as portal from '../services/placementPortalService';
+import * as agreement from '../services/placementAgreementService';
 import { permissionsOf } from '../middleware/roleGuard';
 
 const tId = (req: Request) => (req as any).tenantId as string;
@@ -76,3 +77,35 @@ export const portalLink = wrap(async (req, res) => { res.json({ success: true, d
 export const board = wrap(async (req, res) => { res.json({ success: true, data: await portal.board(tId(req)) }); });
 /** The scorecard criteria, for the interviewer's form (no admin rights needed). */
 export const scorecardCriteria = wrap(async (req, res) => { res.json({ success: true, data: (await portal.getConfig(tId(req))).scorecardCriteria }); });
+
+// ── Phase 4: agreement + security cheque ─────────────────────────────────────
+const sendPdf = (res: Response, r: { pdf: Buffer; filename: string }) => {
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="${r.filename.replace(/[^\w.-]/g, '')}"`);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.send(r.pdf);
+};
+const clientIp = (req: Request) => String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || '';
+
+export const portalAgreementOtp = wrap(async (req, res) => { res.json({ success: true, data: await agreement.portalAgreementOtp(req.params.token) }); });
+export const portalSign = wrap(async (req, res) => {
+  res.json({ success: true, data: await agreement.portalSign(req.params.token, req.body || {}, clientIp(req), String(req.headers['user-agent'] || '')) });
+});
+export const portalAgreementPdf = wrap(async (req, res) => { sendPdf(res, await agreement.portalAgreementPdf(req.params.token)); });
+export const portalCheque = wrap(async (req, res) => {
+  if (!(req as any).file && (req as any).chequeRejectedType) return res.status(400).json({ success: false, message: 'Upload a JPG, PNG or PDF of the cheque.' });
+  res.json({ success: true, data: await agreement.portalUploadCheque(req.params.token, (req as any).file, req.body || {}) });
+});
+
+export const agreementPreview = wrap(async (req, res) => { res.json({ success: true, data: { ...(await agreement.previewAgreement(tId(req))), fields: agreement.MERGE_FIELDS } }); });
+export const sendAgreement = wrap(async (req, res) => { res.json({ success: true, data: await agreement.sendAgreement(tId(req), req.params.id, uId(req)) }); });
+export const agreementPdf = wrap(async (req, res) => { sendPdf(res, await agreement.adminAgreementPdf(tId(req), req.params.id)); });
+export const chequeStatus = wrap(async (req, res) => {
+  res.json({ success: true, data: await agreement.setChequeStatus(tId(req), req.params.id, String(req.body?.status || ''), uId(req), req.body?.reason) });
+});
+export const chequeFile = wrap(async (req, res) => {
+  const f = await agreement.chequeFile(tId(req), req.params.id);
+  res.setHeader('Content-Type', f.mime);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.sendFile(f.full);
+});

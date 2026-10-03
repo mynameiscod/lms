@@ -20,6 +20,8 @@ export interface IPlacementProgramConfig extends Document {
   minNoticeHours: number;
   /** What interviewers rate, 1–5 each, on the scorecard after an attended interview. */
   scorecardCriteria: string[];
+  /** The agreement candidates sign — written by the admin, with {{fields}}. Version goes up on every change. */
+  agreement?: { title: string; body: string; version: number };
   updatedAt: Date;
 }
 
@@ -33,6 +35,7 @@ const PlacementProgramConfigSchema = new Schema<IPlacementProgramConfig>({
   bookingWindowDays: { type: Number, default: 14, min: 1, max: 90 },
   minNoticeHours: { type: Number, default: 12, min: 0, max: 168 },
   scorecardCriteria: { type: [String], default: ['Communication', 'Technical skills', 'Problem solving', 'Attitude and confidence'] },
+  agreement: { type: new Schema({ title: String, body: String, version: Number }, { _id: false }), default: undefined },
 }, { timestamps: true });
 
 export default mongoose.model<IPlacementProgramConfig>('PlacementProgramConfig', PlacementProgramConfigSchema);

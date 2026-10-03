@@ -119,6 +119,12 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     variables: ['Candidate first name', 'Interview date and time (IST)', 'Meeting link'],
     help: 'Sent 24 hours and 1 hour before the interview. Same three variables as the booking message. Keep it UTILITY.',
   },
+  {
+    key: 'PLACEMENT_AGREEMENT_SENT', label: 'Placement Program — agreement to sign', module: 'Placement Program',
+    settingsKey: 'WHATSAPP_TEMPLATE_PLACEMENT_AGREEMENT_SENT',
+    variables: ['Candidate first name', 'Link to their page'],
+    help: 'Sent when an admin sends the agreement. Keep it UTILITY, e.g. "Hi {{1}}, your Placement Program agreement is ready to review and sign: {{2}}".',
+  },
 ];
 
 export const getPurpose = (key: string) =>

@@ -28,6 +28,8 @@ export interface PlacementCandidate {
   source: 'ad' | 'lms_push' | 'manual'; stage: PlacementStage; stageChangedAt: string; submissions: number; createdAt: string;
   attribution?: { first_touch?: PlacementTouch; last_touch?: PlacementTouch };
   fee?: { waived?: boolean; amountInr?: number; refundablePct?: number; status?: 'created' | 'paid' | 'refunded'; paidAt?: string; refund?: { amountInr: number; at: string; reason?: string } };
+  agreement?: { version?: string; title?: string; sentAt?: string; signedAt?: string; signedName?: string; signedIp?: string; textHash?: string };
+  cheque?: { file?: string; number?: string; bank?: string; amountInr?: number; date?: string; status?: ChequeStatus; uploadedAt?: string; verifiedAt?: string; depositReason?: string };
   interview?: { startsAt?: string; meetUrl?: string; outcome?: string; score?: number; recommendation?: Recommendation; notes?: string };
 }
 export interface PlacementEvent { _id: string; kind: string; message: string; createdAt: string; actorId?: { firstName?: string; lastName?: string } }
@@ -55,7 +57,10 @@ export interface PortalView {
   fee: { amountInr: number; refundablePct: number; due: boolean; paid: boolean; waived: boolean; payFirst: boolean };
   canBook: boolean;
   booking: null | { id: string; startsAt: string; endsAt: string; meetingUrl: string; interviewer: string; canCancel: boolean };
+  agreement: null | { title: string; text: string; signed: boolean; signedAt?: string; signedName?: string; fullName: string };
+  cheque: null | { status: ChequeStatus | null; number?: string; bank?: string; amountInr?: number };
 }
+export type ChequeStatus = 'received' | 'verified' | 'held' | 'returned' | 'deposited';
 export interface PortalOrder { orderId: string; amount: number; currency: string; keyId?: string; name: string; mobile: string; email?: string }
 
 /** The candidate's own page (no login — the secret link is the key). */
@@ -66,9 +71,22 @@ export const placementPortalApi = {
   verify: (token: string, body: { orderId: string; paymentId: string; signature: string }) => axios.post(`${PUB}/portal/${token}/verify`, body).then(d),
   book: (token: string, startsAt: string) => axios.post(`${PUB}/portal/${token}/book`, { startsAt }).then(d) as Promise<{ startsAt: string; meetingUrl: string; interviewer: string }>,
   cancel: (token: string) => axios.post(`${PUB}/portal/${token}/cancel`).then(d),
+  agreementOtp: (token: string) => axios.post(`${PUB}/portal/${token}/agreement/otp`).then(d) as Promise<{ sent: boolean; channel: string; throttledSeconds?: number; devCode?: string }>,
+  sign: (token: string, body: { name: string; code: string; agree: boolean }) => axios.post(`${PUB}/portal/${token}/agreement/sign`, body).then(d),
+  agreementPdfUrl: (token: string) => `${PUB}/portal/${token}/agreement.pdf`,
+  uploadCheque: (token: string, file: File, fields: { number: string; bank: string; amountInr: string; date: string }) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    Object.entries(fields).forEach(([k, v]) => fd.append(k, v));
+    return axios.post(`${PUB}/portal/${token}/cheque`, fd).then(d);
+  },
 };
 
-export interface PlacementConfig { feeInr: number; refundablePct: number; paymentBeforeBooking: boolean; slotMinutes: number; bufferMinutes: number; bookingWindowDays: number; minNoticeHours: number; scorecardCriteria: string[] }
+export interface PlacementConfig {
+  feeInr: number; refundablePct: number; paymentBeforeBooking: boolean; slotMinutes: number; bufferMinutes: number;
+  bookingWindowDays: number; minNoticeHours: number; scorecardCriteria: string[];
+  agreement?: { title: string; body: string; version: number };
+}
 
 export type Recommendation = 'strong_yes' | 'yes' | 'maybe' | 'no';
 export const RECOMMENDATIONS: [Recommendation, string][] = [['strong_yes', 'Strong yes'], ['yes', 'Yes'], ['maybe', 'Maybe'], ['no', 'No']];
@@ -104,6 +122,16 @@ export const placementAdminApi = {
   outcome: (id: string, outcome: 'attended' | 'no_show', scorecard?: Scorecard) => axios.post(`${BASE}/bookings/${id}/outcome`, { outcome, scorecard }, h()).then(d),
   scorecardCriteria: () => axios.get(`${BASE}/scorecard-criteria`, h()).then(d) as Promise<string[]>,
   board: () => axios.get(`${BASE}/board`, h()).then(d) as Promise<BoardCard[]>,
+  agreementPreview: () => axios.get(`${BASE}/agreement/preview`, h()).then(d) as Promise<{ title: string; text: string; version: number; fields: [string, string][] }>,
+  sendAgreement: (id: string) => axios.post(`${BASE}/${id}/agreement/send`, {}, h()).then(d) as Promise<{ ok: boolean; link: string }>,
+  chequeStatus: (id: string, status: ChequeStatus, reason?: string) => axios.put(`${BASE}/${id}/cheque`, { status, reason }, h()).then(d),
+  /** Files that need the login token: fetched as a blob and opened in a new tab. */
+  openPrivate: async (path: 'agreement.pdf' | 'cheque/file', id: string) => {
+    const r = await axios.get(`${BASE}/${id}/${path}`, { ...h(), responseType: 'blob' });
+    const url = URL.createObjectURL(r.data);
+    window.open(url, '_blank', 'noopener');
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  },
   waive: (id: string, waived: boolean) => axios.put(`${BASE}/${id}/waive`, { waived }, h()).then(d),
   refund: (id: string, reason?: string) => axios.post(`${BASE}/${id}/refund`, { reason }, h()).then(d),
   portalLink: (id: string) => axios.post(`${BASE}/${id}/portal-link`, {}, h()).then(d) as Promise<{ url: string }>,

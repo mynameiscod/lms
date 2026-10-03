@@ -81,12 +81,17 @@ export interface IPlacementCandidate extends Document {
     outcome?: 'attended' | 'no_show'; score?: number; notes?: string;
     recommendation?: 'strong_yes' | 'yes' | 'maybe' | 'no';
   };
-  agreement?: { version?: string; sentAt?: Date; signedAt?: Date; signedName?: string; signedIp?: string; pdfUrl?: string };
+  /** The exact text sent (frozen at send time) and the signing evidence. */
+  agreement?: {
+    version?: string; title?: string; text?: string; sentAt?: Date;
+    signedAt?: Date; signedName?: string; signedIp?: string; userAgent?: string; otpVerified?: boolean; textHash?: string;
+  };
   /** Security cheque: held, returned at the end of the program, deposited only on breach. */
   cheque?: {
-    imageUrl?: string; number?: string; bank?: string; amountInr?: number; date?: Date;
+    /** File name inside the private cheque folder — never a public URL. */
+    file?: string; mime?: string; number?: string; bank?: string; amountInr?: number; date?: Date;
     status?: 'received' | 'verified' | 'held' | 'returned' | 'deposited';
-    depositReason?: string;
+    uploadedAt?: Date; verifiedAt?: Date; depositReason?: string;
   };
 
   createdAt: Date;

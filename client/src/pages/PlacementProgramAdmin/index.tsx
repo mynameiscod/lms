@@ -142,6 +142,53 @@ const Detail: React.FC<{ id: string; onClose: () => void; onChanged: () => void 
                 ))}
               </ul>
             )}
+            <h3>Agreement</h3>
+            <div className="ppa-box">
+              <div className="ppa-kv"><span>Status</span><b>{
+                c.agreement?.signedAt ? `Signed by ${c.agreement.signedName}` : c.agreement?.sentAt ? 'Sent — waiting for signature' : 'Not sent'
+              }</b></div>
+              <div className="ppa-kv"><span>{c.agreement?.signedAt ? 'Signed' : 'Sent'}</span><b>{
+                c.agreement?.signedAt ? istTime(c.agreement.signedAt) : c.agreement?.sentAt ? `${istTime(c.agreement.sentAt)} · v${c.agreement.version}` : '—'
+              }</b></div>
+              {c.agreement?.signedAt && <div className="ppa-kv full"><span>Evidence</span><b className="ppa-mono">WhatsApp code verified · IP {c.agreement.signedIp || '—'} · SHA-256 {String(c.agreement.textHash || '').slice(0, 16)}…</b></div>}
+            </div>
+            <div className="ppa-acts wrap">
+              {!c.agreement?.signedAt && ['selected', 'agreement_sent', 'agreement_signed', 'cheque_verified', 'active', 'placed'].includes(c.stage) && (
+                <button className="ppa-btn" disabled={busy} onClick={() => act(() => placementAdminApi.sendAgreement(id), c.agreement?.sentAt ? 'Agreement re-sent' : 'Agreement sent')}>
+                  {c.agreement?.sentAt ? 'Resend agreement' : 'Send agreement'}
+                </button>
+              )}
+              {!c.agreement?.sentAt && !['selected', 'agreement_sent', 'agreement_signed', 'cheque_verified', 'active', 'placed'].includes(c.stage) && (
+                <span className="ppa-note" style={{ margin: 0 }}>The agreement can be sent once the candidate is selected.</span>
+              )}
+              {c.agreement?.sentAt && <button className="ppa-btn ghost" disabled={busy} onClick={() => placementAdminApi.openPrivate('agreement.pdf', id).catch(e => setErr(errMsg(e)))}><i className="bi bi-file-earmark-pdf" /> PDF</button>}
+            </div>
+
+            <h3>Security cheque</h3>
+            {!c.cheque?.status ? (
+              <p className="ppa-note" style={{ marginTop: 0 }}>{c.agreement?.signedAt ? 'Waiting for the candidate to upload it on their page.' : 'The candidate uploads it after signing the agreement.'}</p>
+            ) : (
+              <>
+                <div className="ppa-box">
+                  <div className="ppa-kv"><span>Status</span><b>{({ received: 'Received — to verify', verified: 'Verified', held: 'Held as security', returned: 'Returned', deposited: 'Deposited' } as Record<string, string>)[c.cheque.status]}</b></div>
+                  <div className="ppa-kv"><span>Cheque</span><b>No. {c.cheque.number} · {c.cheque.bank}</b></div>
+                  <div className="ppa-kv"><span>Amount</span><b>₹{(c.cheque.amountInr || 0).toLocaleString('en-IN')}</b></div>
+                  <div className="ppa-kv"><span>Date on cheque</span><b>{c.cheque.date ? new Date(c.cheque.date).toLocaleDateString('en-IN') : '—'}</b></div>
+                  {c.cheque.depositReason && <div className="ppa-kv full"><span>Deposit reason</span><b>{c.cheque.depositReason}</b></div>}
+                </div>
+                <div className="ppa-acts wrap">
+                  <button className="ppa-btn ghost" disabled={busy} onClick={() => placementAdminApi.openPrivate('cheque/file', id).catch(e => setErr(errMsg(e)))}><i className="bi bi-image" /> View photo</button>
+                  {c.cheque.status === 'received' && <button className="ppa-btn" disabled={busy} onClick={() => act(() => placementAdminApi.chequeStatus(id, 'verified'))}>Mark verified</button>}
+                  {c.cheque.status === 'verified' && <button className="ppa-btn ghost" disabled={busy} onClick={() => act(() => placementAdminApi.chequeStatus(id, 'held'))}>Hold as security</button>}
+                  {['verified', 'held'].includes(c.cheque.status) && <button className="ppa-btn ghost" disabled={busy} onClick={() => { if (window.confirm('Mark the cheque as returned to the candidate?')) act(() => placementAdminApi.chequeStatus(id, 'returned')); }}>Returned</button>}
+                  {['verified', 'held'].includes(c.cheque.status) && <button className="ppa-btn ghost danger" disabled={busy} onClick={() => {
+                    const r = window.prompt('Depositing a security cheque needs a written reason — which part of the agreement was breached?');
+                    if (r !== null) act(() => placementAdminApi.chequeStatus(id, 'deposited', r));
+                  }}>Deposit</button>}
+                </div>
+              </>
+            )}
+
             {c.stage === 'interview_attended' && (
               <div className="ppa-decide">
                 <span>Decision after the interview:</span>

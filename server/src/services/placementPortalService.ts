@@ -44,6 +44,14 @@ export async function saveConfig(tenantId: string, body: any) {
   for (const k of allowed) if (body?.[k] !== undefined) $set[k] = k === 'paymentBeforeBooking' ? !!body[k] : Number(body[k]);
   if ($set.feeInr !== undefined && (!Number.isFinite($set.feeInr) || $set.feeInr < 0 || $set.feeInr > 100000)) throw new PlacementError('Fee must be between ₹0 and ₹1,00,000.');
   if ($set.refundablePct !== undefined && ($set.refundablePct < 0 || $set.refundablePct > 100)) throw new PlacementError('Refundable share must be 0–100%.');
+  if (body?.agreement !== undefined) {
+    const title = String(body.agreement?.title || '').trim().slice(0, 120);
+    const text = String(body.agreement?.body || '').replace(/\r\n/g, '\n').slice(0, 30000);
+    const current = (await getConfig(tenantId)).agreement;
+    const changed = !current || current.title !== title || current.body !== text;
+    // A new version on every change: what each candidate signed stays identifiable.
+    $set.agreement = { title, body: text, version: changed ? (current?.version || 0) + 1 : current!.version };
+  }
   if (body?.scorecardCriteria !== undefined) {
     const list = [...new Set((Array.isArray(body.scorecardCriteria) ? body.scorecardCriteria : [])
       .map((x: any) => String(x).trim().slice(0, 40)).filter(Boolean))] as string[];
@@ -87,6 +95,13 @@ export async function portalView(token: string) {
     stage: c.stage,
     fee: { amountInr: cfg.feeInr, refundablePct: cfg.refundablePct, due: feeDue, paid: c.fee?.status === 'paid', waived: !!c.fee?.waived, payFirst },
     canBook: !payFirst && !booking,
+    agreement: c.agreement?.sentAt ? {
+      title: c.agreement.title || 'Agreement', text: c.agreement.text || '', signed: !!c.agreement.signedAt,
+      signedAt: c.agreement.signedAt, signedName: c.agreement.signedName, fullName: c.name,
+    } : null,
+    cheque: c.agreement?.signedAt ? {
+      status: c.cheque?.status || null, number: c.cheque?.number, bank: c.cheque?.bank, amountInr: c.cheque?.amountInr,
+    } : null,
     booking: booking ? {
       id: String(booking._id), startsAt: booking.startsAt, endsAt: booking.endsAt, meetingUrl: booking.meetingUrl,
       interviewer: (booking.interviewerId as any)?.name || '',

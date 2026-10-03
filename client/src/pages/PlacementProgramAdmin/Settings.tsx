@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { placementAdminApi, PlacementConfig, errMsg } from '../../api/placementProgramApi';
 import LinesTextarea from '../../components/common/LinesTextarea';
 
@@ -7,8 +7,14 @@ const PlacementSettings: React.FC = () => {
   const [cfg, setCfg] = useState<PlacementConfig | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [fields, setFields] = useState<[string, string][]>([]);
+  const [preview, setPreview] = useState<{ title: string; text: string } | null>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => { placementAdminApi.getConfig().then(setCfg).catch(e => setMsg({ ok: false, text: errMsg(e) })); }, []);
+  useEffect(() => {
+    placementAdminApi.getConfig().then(setCfg).catch(e => setMsg({ ok: false, text: errMsg(e) }));
+    placementAdminApi.agreementPreview().then(p => setFields(p.fields)).catch(() => undefined);
+  }, []);
   if (!cfg) return <div className="ppa-card">{msg?.text || 'Loading…'}</div>;
 
   const set = (k: keyof PlacementConfig, v: any) => setCfg({ ...cfg, [k]: v });
@@ -20,6 +26,21 @@ const PlacementSettings: React.FC = () => {
     setBusy(false);
   };
   const refund = Math.floor(((Number(cfg.feeInr) || 0) * (Number(cfg.refundablePct) || 0)) / 100);
+  const ag = cfg.agreement || { title: '', body: '', version: 0 };
+  const setAg = (patch: Partial<typeof ag>) => setCfg({ ...cfg, agreement: { ...ag, ...patch } });
+  /** Put {{field}} where the cursor is in the agreement body. */
+  const insertField = (k: string) => {
+    const el = bodyRef.current;
+    const tag = `{{${k}}}`;
+    if (!el) return setAg({ body: ag.body + tag });
+    const start = el.selectionStart ?? ag.body.length, end = el.selectionEnd ?? start;
+    setAg({ body: ag.body.slice(0, start) + tag + ag.body.slice(end) });
+    requestAnimationFrame(() => { el.focus(); el.selectionStart = el.selectionEnd = start + tag.length; });
+  };
+  const showPreview = async () => {
+    try { await placementAdminApi.saveConfig(cfg).then(setCfg); setPreview(await placementAdminApi.agreementPreview()); }
+    catch (e) { setMsg({ ok: false, text: errMsg(e) }); }
+  };
 
   return (
     <div className="ppa-card">
@@ -52,6 +73,25 @@ const PlacementSettings: React.FC = () => {
           <small>Interviewers fill this when they mark a candidate attended, with a recommendation and notes. Changing it does not alter scorecards already filled.</small>
         </label>
       </div>
+
+      <h3 className="ppa-card-title">Agreement {ag.version ? <span className="ppa-sub2">— version {ag.version}</span> : null}</h3>
+      <div className="ppa-form one">
+        <label>Title<input value={ag.title} maxLength={120} placeholder="Placement Program Agreement" onChange={e => setAg({ title: e.target.value })} /></label>
+        <label>Agreement text
+          <div className="ppa-fieldchips">
+            {fields.map(([k, l]) => <button type="button" key={k} title={l} onClick={() => insertField(k)}>{`{{${k}}}`}</button>)}
+          </div>
+          <textarea ref={bodyRef} rows={16} value={ag.body} placeholder="Write the agreement. Click a field above to insert it — e.g. I, {{name}}, agree to …" onChange={e => setAg({ body: e.target.value })} />
+          <small>Fields are filled for each candidate when you send it, and the exact text is frozen for them — editing here later never changes what someone already received. Each change makes a new version.</small>
+        </label>
+      </div>
+      <button type="button" className="ppa-btn ghost" onClick={showPreview}><i className="bi bi-eye" /> Save &amp; preview with sample data</button>
+      {preview && (
+        <div className="ppa-agreement-preview">
+          <b>{preview.title || 'Agreement'}</b>
+          <div>{preview.text}</div>
+        </div>
+      )}
 
       <div className="ppa-save-row">
         <button className="ppa-btn" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save settings'}</button>

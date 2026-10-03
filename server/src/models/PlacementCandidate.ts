@@ -62,13 +62,19 @@ export interface IPlacementCandidate extends Document {
   stageChangedAt: Date;
   /** Staff member who owns this candidate. */
   ownerId?: mongoose.Types.ObjectId;
+  /**
+   * The secret in the candidate's own page link (/placement-program/me/<token>), where they pay
+   * the fee and book their interview without an account. Unguessable; never listed anywhere.
+   */
+  portalToken?: string;
 
   // ── Later phases (shape settled now) ──
   /** Interview fee: charged, or waived by an admin for this candidate. */
   fee?: {
-    waived: boolean; amountInr?: number; refundablePct?: number;
-    paymentId?: string; paidAt?: Date;
-    refund?: { amountInr: number; refundId?: string; at: Date; reason?: string };
+    waived?: boolean; amountInr?: number; refundablePct?: number;
+    status?: 'created' | 'paid' | 'refunded';
+    orderId?: string; paymentId?: string; paidAt?: Date;
+    refund?: { amountInr: number; refundId?: string; at: Date; reason?: string; by?: string };
   };
   interview?: {
     interviewerId?: mongoose.Types.ObjectId; startsAt?: Date; endsAt?: Date; meetUrl?: string;
@@ -109,6 +115,7 @@ const PlacementCandidateSchema = new Schema<IPlacementCandidate>({
   stage: { type: String, enum: PLACEMENT_STAGES as unknown as string[], default: 'registered', index: true },
   stageChangedAt: { type: Date, default: Date.now },
   ownerId: { type: Schema.Types.ObjectId, ref: 'User' },
+  portalToken: { type: String, index: { unique: true, sparse: true } },
 
   fee: { type: Schema.Types.Mixed, default: undefined },
   interview: { type: Schema.Types.Mixed, default: undefined },
@@ -118,5 +125,6 @@ const PlacementCandidateSchema = new Schema<IPlacementCandidate>({
 
 PlacementCandidateSchema.index({ tenantId: 1, mobile: 1 }, { unique: true });
 PlacementCandidateSchema.index({ tenantId: 1, createdAt: -1 });
+PlacementCandidateSchema.index({ 'fee.orderId': 1 }, { sparse: true });
 
 export default mongoose.model<IPlacementCandidate>('PlacementCandidate', PlacementCandidateSchema);

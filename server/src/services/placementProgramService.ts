@@ -1,9 +1,11 @@
 import mongoose from 'mongoose';
 import PlacementCandidate, { PLACEMENT_STAGES, PlacementStage, EXPERIENCE_LEVELS } from '../models/PlacementCandidate';
 import PlacementEvent from '../models/PlacementEvent';
+import PlacementBooking from '../models/PlacementBooking';
 import Tenant from '../models/Tenant';
 import { normalizePhone, mobileError } from '../utils/phone';
 import { sanitiseAttribution, mergeAttribution } from '../models/careerPilotAttribution';
+import crypto from 'crypto';
 import { sendByPurpose } from './purposeMessaging';
 
 /**
@@ -15,6 +17,9 @@ export class PlacementError extends Error {
 }
 
 export const PLACEMENT_WELCOME_PURPOSE = 'PLACEMENT_PROGRAM_REGISTERED';
+
+/** The secret in a candidate's own page link. Unguessable; never listed anywhere. */
+export const newPortalToken = () => crypto.randomBytes(24).toString('base64url');
 
 /** A tenant from the form's ?tenant= — an id or a slug (the ad links carry the slug). */
 export async function resolveTenantId(raw: unknown): Promise<string | null> {
@@ -82,7 +87,7 @@ export async function register(tenantId: string, body: any) {
   } else {
     candidate = await PlacementCandidate.create({
       tenantId, ...values, source: 'ad', attribution: attribution ? mergeAttribution(undefined, attribution) : undefined,
-      stage: 'registered', stageChangedAt: new Date(),
+      stage: 'registered', stageChangedAt: new Date(), portalToken: newPortalToken(),
     });
     await event(tenantId, candidate._id, 'submitted', 'Submitted the form', { utm: attribution?.first_touch });
   }
@@ -95,7 +100,9 @@ export async function register(tenantId: string, body: any) {
   await event(tenantId, candidate._id, 'whatsapp',
     wa.ok ? 'WhatsApp confirmation sent' : `WhatsApp confirmation not sent: ${(wa as any).error}`, { ok: wa.ok });
 
-  return { id: String(candidate._id), returning: !!existing };
+  /* The page link goes back only for a NEW record. Handing it out on a repeat submission would let
+     anyone who types a candidate's mobile number open that candidate's page. */
+  return { id: String(candidate._id), returning: !!existing, portalToken: existing ? undefined : candidate.portalToken };
 }
 
 export async function list(tenantId: string, q: { stage?: string; source?: string; search?: string; page?: number; limit?: number }) {
@@ -122,9 +129,12 @@ export async function get(tenantId: string, id: string) {
   if (!mongoose.Types.ObjectId.isValid(id)) throw new PlacementError('Not found', 404);
   const c = await PlacementCandidate.findOne({ _id: id, tenantId }).lean();
   if (!c) throw new PlacementError('Not found', 404);
-  const events = await PlacementEvent.find({ candidateId: c._id }).sort({ createdAt: -1 }).limit(200)
-    .populate('actorId', 'firstName lastName').lean();
-  return { candidate: c, events };
+  const [events, bookings] = await Promise.all([
+    PlacementEvent.find({ candidateId: c._id }).sort({ createdAt: -1 }).limit(200).populate('actorId', 'firstName lastName').lean(),
+    PlacementBooking.find({ candidateId: c._id }).sort({ startsAt: -1 }).limit(20).populate('interviewerId', 'name').lean(),
+  ]);
+  const { portalToken, ...candidate } = c as any; // the link is fetched on purpose, not shipped with every view
+  return { candidate: { ...candidate, hasPortal: !!portalToken }, events, bookings };
 }
 
 export async function setStage(tenantId: string, id: string, stage: string, actorId: string, note?: string) {

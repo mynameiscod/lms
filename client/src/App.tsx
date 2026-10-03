@@ -61,7 +61,9 @@ const WeeklyReportsPage = lazy(() => import('./pages/WeeklyReports'));
 const StudentProfileDetail = lazy(() => import('./pages/AdminStudentProfiles/StudentProfileDetail'));
 const PlacementDrivesPage = lazy(() => import('./pages/PlacementDrives'));
 const PlacementProgramRegister = lazy(() => import('./pages/PlacementProgram/Register'));
+const PlacementProgramPortal = lazy(() => import('./pages/PlacementProgram/Portal'));
 const PlacementProgramAdmin = lazy(() => import('./pages/PlacementProgramAdmin'));
+const MyPlacementInterviews = lazy(() => import('./pages/PlacementProgramAdmin/MyInterviews'));
 const StudentDrivesPage = lazy(() => import('./pages/Drives/StudentDrives'));
 const PrepPackPage = lazy(() => import('./pages/Drives/PrepPack'));
 const QuestionBooksLibrary = lazy(() => import('./pages/QuestionBooks/Library'));
@@ -454,6 +456,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/careerpilot/join" element={<PassportJoin />} />
       {/* Placement Program — the page every ad points at (public, no login). */}
       <Route path="/placement-program" element={<PlacementProgramRegister />} />
+      {/* The candidate's own page — fee and interview booking, reached by their secret link. */}
+      <Route path="/placement-program/me/:token" element={<PlacementProgramPortal />} />
       <Route path="/passport/join" element={<LegacyRedirect to="/careerpilot/join" />} />
       {/*
         * Sign-in and create-account are one screen now, so this renders the same page as
@@ -1425,6 +1429,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
             <Layout>
               <QuestionBookEditor />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/placement-program/my-interviews"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR', 'PLACEMENT_OFFICER']}>
+            <Layout>
+              <MyPlacementInterviews />
             </Layout>
           </ProtectedRoute>
         }

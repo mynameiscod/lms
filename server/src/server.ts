@@ -29,6 +29,7 @@ import { startInterviewHubScheduler } from './jobs/interviewHubCron';
 import { startInterviewReminderScheduler } from './jobs/interviewReminderCron';
 import { startLiveClassReminderScheduler } from './jobs/liveClassReminderCron';
 import { startBattleReminderScheduler } from './jobs/battleReminderCron';
+import { startPlacementReminderScheduler } from './jobs/placementReminderCron';
 import { startHackathonExamScheduler } from './jobs/hackathonExamCron';
 import { startCommunicationReminderScheduler } from './jobs/communicationReminderCron';
 import { startInterviewRecordingRetentionScheduler } from './jobs/interviewRecordingRetentionCron';
@@ -360,6 +361,8 @@ const startServer = async () => {
     // Start Tech Battle reminder scheduler (email link at 24h / 1h / live, every 2 min)
     startBattleReminderScheduler();
     startHackathonExamScheduler();
+    // Placement Program interview reminders (WhatsApp 24h / 1h before, every 2 min)
+    startPlacementReminderScheduler();
 
     // Start communication-lab daily streak-nudge scheduler (in-app, once/day)
     startCommunicationReminderScheduler();

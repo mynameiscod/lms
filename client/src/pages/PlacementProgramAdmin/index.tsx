@@ -1,13 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  placementProgramApi, PlacementCandidate, PlacementEvent, PLACEMENT_STAGES, stageLabel, errMsg,
+  placementProgramApi, placementAdminApi, PlacementCandidate, PlacementEvent, Booking, PLACEMENT_STAGES, stageLabel, istTime, errMsg,
 } from '../../api/placementProgramApi';
+import PlacementSettings from './Settings';
+import PlacementInterviewers from './Interviewers';
+import PlacementInterviews from './Interviews';
 import './placementProgramAdmin.css';
 
 /**
- * Placement Program — the admin pipeline (Phase 1): every candidate from the ad form, which ad
- * brought them, their stage, notes, and the full timeline. Payment, booking, agreement and cheque
- * arrive in later phases on the same record.
+ * Placement Program — the admin pipeline: every candidate from the ad form (and later, pushed LMS
+ * students), which ad brought them, their fee and interview, stage, notes and timeline. Tabs hold the
+ * interviews, the interview team and the settings. Agreement and cheque arrive in Phase 4.
  */
 
 const EXP: Record<string, string> = { fresher: 'Fresher', '0-1': '< 1 yr', '1-3': '1–3 yrs', '3+': '3+ yrs' };
@@ -19,7 +22,8 @@ const adOf = (c: PlacementCandidate) => {
 };
 
 const Detail: React.FC<{ id: string; onClose: () => void; onChanged: () => void }> = ({ id, onClose, onChanged }) => {
-  const [data, setData] = useState<{ candidate: PlacementCandidate; events: PlacementEvent[] } | null>(null);
+  const [data, setData] = useState<{ candidate: PlacementCandidate & { hasPortal?: boolean }; events: PlacementEvent[]; bookings: Booking[] } | null>(null);
+  const [copied, setCopied] = useState('');
   const [stage, setStage] = useState('');
   const [stageNote, setStageNote] = useState('');
   const [note, setNote] = useState('');
@@ -42,6 +46,27 @@ const Detail: React.FC<{ id: string; onClose: () => void; onChanged: () => void 
     try { await placementProgramApi.addNote(id, note); setNote(''); await load(); }
     catch (e) { setErr(errMsg(e)); }
     setBusy(false);
+  };
+
+  const act = async (fn: () => Promise<any>, after?: string) => {
+    setBusy(true); setErr('');
+    try { await fn(); await load(); onChanged(); if (after) { setCopied(after); setTimeout(() => setCopied(''), 2500); } }
+    catch (e) { setErr(errMsg(e)); }
+    setBusy(false);
+  };
+  const copyPortal = () => act(async () => {
+    const { url } = await placementAdminApi.portalLink(id);
+    try { await navigator.clipboard.writeText(url); } catch { window.prompt('Copy the candidate page link:', url); }
+  }, 'Link copied');
+  const refundPct = data?.candidate.fee?.refundablePct ?? 50;
+  const refundAmt = Math.floor(((data?.candidate.fee?.amountInr || 0) * refundPct) / 100);
+  const feeText = (c?: PlacementCandidate) => {
+    if (!c) return '';
+    if (c.fee?.waived) return 'Waived';
+    if (c.fee?.status === 'paid') return `Paid ₹${(c.fee.amountInr || 0).toLocaleString('en-IN')}`;
+    if (c.fee?.status === 'refunded') return `Refunded ₹${(c.fee.refund?.amountInr || 0).toLocaleString('en-IN')}`;
+    if (c.fee?.status === 'created') return 'Payment started, not completed';
+    return 'Not paid';
   };
 
   const c = data?.candidate;
@@ -69,6 +94,44 @@ const Detail: React.FC<{ id: string; onClose: () => void; onChanged: () => void 
               <div className="ppa-kv"><span>City</span><b>{c.city || '—'}</b></div>
               {c.skills && <div className="ppa-kv full"><span>Skills</span><b>{c.skills}</b></div>}
             </div>
+
+            <h3>Fee &amp; interview</h3>
+            <div className="ppa-box">
+              <div className="ppa-kv"><span>Interview fee</span><b>{feeText(c)}</b></div>
+              <div className="ppa-kv"><span>Interview</span><b>{c.interview?.startsAt ? istTime(c.interview.startsAt) : 'Not booked'}</b></div>
+            </div>
+            <div className="ppa-acts wrap">
+              <button className="ppa-btn ghost" disabled={busy} onClick={copyPortal}><i className="bi bi-link-45deg" /> Copy candidate page link</button>
+              {c.fee?.status !== 'paid' && c.fee?.status !== 'refunded' && (
+                <button className="ppa-btn ghost" disabled={busy} onClick={() => act(() => placementAdminApi.waive(id, !c.fee?.waived))}>
+                  {c.fee?.waived ? 'Charge the fee' : 'Waive the fee'}
+                </button>
+              )}
+              {c.fee?.status === 'paid' && (
+                <button className="ppa-btn ghost danger" disabled={busy} onClick={() => {
+                  const reason = window.prompt(`Refund ₹${refundAmt.toLocaleString('en-IN')} (${refundPct}% of the fee) to this candidate? Reason:`, 'Not selected');
+                  if (reason !== null) act(() => placementAdminApi.refund(id, reason), 'Refund issued');
+                }}>Refund {refundPct}%</button>
+              )}
+              {copied && <span className="ppa-ok">{copied}</span>}
+            </div>
+            {data!.bookings.length > 0 && (
+              <ul className="ppa-bookings">
+                {data!.bookings.map(b => (
+                  <li key={b._id}>
+                    <span><b>{istTime(b.startsAt)}</b> · {b.interviewerId?.name || '—'} · {b.status === 'booked' ? 'Booked' : b.status === 'attended' ? 'Attended' : b.status === 'no_show' ? 'No-show' : 'Cancelled'}</span>
+                    {b.status === 'booked' && (
+                      <span className="ppa-acts">
+                        {new Date(b.startsAt).getTime() <= Date.now() ? <>
+                          <button className="ppa-btn ghost" disabled={busy} onClick={() => act(() => placementAdminApi.outcome(b._id, 'attended'))}>Attended</button>
+                          <button className="ppa-btn ghost" disabled={busy} onClick={() => act(() => placementAdminApi.outcome(b._id, 'no_show'))}>No-show</button>
+                        </> : <button className="ppa-btn ghost" disabled={busy} onClick={() => { const r = window.prompt('Reason for cancelling:', 'Interviewer unavailable'); if (r !== null) act(() => placementAdminApi.cancelBooking(b._id, r)); }}>Cancel</button>}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
 
             <h3>Where they came from</h3>
             <div className="ppa-box">
@@ -112,7 +175,10 @@ const Detail: React.FC<{ id: string; onClose: () => void; onChanged: () => void 
   );
 };
 
+type Tab = 'candidates' | 'interviews' | 'interviewers' | 'settings';
+
 const PlacementProgramAdmin: React.FC = () => {
+  const [tab, setTab] = useState<Tab>('candidates');
   const [stage, setStage] = useState('');
   const [source, setSource] = useState('');
   const [search, setSearch] = useState('');
@@ -149,6 +215,17 @@ const PlacementProgramAdmin: React.FC = () => {
           <button className="ppa-btn" onClick={copyLink}><i className="bi bi-link-45deg" /> {copied ? 'Copied' : 'Copy form link'}</button>
         </div>
       </div>
+      <div className="ppa-tabs" role="tablist">
+        {([['candidates', 'Candidates'], ['interviews', 'Interviews'], ['interviewers', 'Interviewers'], ['settings', 'Settings']] as [Tab, string][]).map(([k, l]) => (
+          <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
+        ))}
+      </div>
+
+      {tab === 'interviews' && <PlacementInterviews onOpenCandidate={setOpen} />}
+      {tab === 'interviewers' && <PlacementInterviewers />}
+      {tab === 'settings' && <PlacementSettings />}
+
+      {tab === 'candidates' && <>
       <p className="ppa-hint">
         The copied link is an example for Instagram — change <code>utm_source</code> (instagram / youtube / google) and <code>utm_campaign</code> for each ad so you can see which one works.
       </p>
@@ -195,6 +272,8 @@ const PlacementProgramAdmin: React.FC = () => {
           <button disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Next ›</button>
         </div>
       )}
+
+      </>}
 
       {open && <Detail id={open} onClose={() => setOpen(null)} onChanged={load} />}
     </div>

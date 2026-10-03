@@ -108,7 +108,17 @@
  * `start` lines them up on one edge, which is what makes a hero read as a row. The space above
  * and below is then the section's own padding and is the same for all three.
  */
-.cpx-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.85fr); gap: 40px; align-items: start; }
+/*
+ * Copy and form carry the same weight; the picture sits between them.
+ *
+ *     copy 487  +  gap 40  +  picture 461  +  gap 32  +  form 480  =  1500
+ *
+ * The outer ratio 1 : 2 gives the copy 487px against the card's 480px, so neither side of the
+ * hero looks like the junior partner. 487 is also under `.cpx-lead`'s own 640px measure, which
+ * is the line past which a wider column stops being used by the text and starts stranding
+ * space — the mistake that made this worse earlier.
+ */
+.cpx-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 40px; align-items: start; }
 /*
  * The hero row is capped, where the rest of the page is not.
  *
@@ -136,7 +146,7 @@
    * 600px asset. Dropping the card's ceiling to 430 gives the picture ~60px back, and the
    * form loses nothing: its widest row is two fields side by side, which fits comfortably.
    */
-  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(370px, 400px); column-gap: 24px; align-items: start;
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(400px, 480px); column-gap: 32px; align-items: start;
   padding: 0; border-radius: 0; background: none; border: 0; box-shadow: none;
 }
 .cpx-eyebrow { color: var(--teal); font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 12px; }
@@ -169,7 +179,16 @@
 .cpx-hero-visual { display: flex; align-items: center; justify-content: center; margin-right: 0; position: relative; z-index: 0; align-self: center; }
 /* 56px of trailing padding reserved room for the handwritten line beneath the picture; it
    needs about half that, and the rest read as a gap under the whole hero. */
-.cpx-visual-in { position: relative; width: 100%; max-width: 600px; padding-bottom: 28px; }
+/*
+ * The padding IS the gap under the illustration.
+ *
+ * `.cpx-script` is absolutely positioned at `bottom: 0`, which is the bottom of this element's
+ * PADDING box, so the space between the picture and "A clearer, brighter future" is whatever
+ * this padding is MINUS the height of that line. At 28px against a 28px/1.05 line the caption
+ * had nothing to clear and sat on the artwork. 68px leaves roughly 36px of real air, and the
+ * -6deg rotation needs a little of that for its top corner.
+ */
+.cpx-visual-in { position: relative; width: 100%; max-width: 600px; padding-bottom: 68px; }
 .cpx-visual-in img {
   width: 100%; height: auto; display: block;
   -webkit-mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 62%, transparent 100%);
@@ -350,6 +369,24 @@
 .cpx-copy { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
 
 /* ── Responsive ──────────────────────────────────────────────────── */
+
+/*
+ * THREE COLUMNS NEED THE ROOM FOR THREE COLUMNS.
+ *
+ * The hero went side-by-side at 1200px, which was fine while the form was 400px. At 480 it is
+ * not: at a 1201px viewport the wrap is ~1117, the stage gets two thirds of it, the card takes
+ * its 480 and the illustration is left with about 200px — a 600px asset at a third of its size,
+ * squeezed for the sake of a layout that does not fit. It is not an overflow, so nothing
+ * reports it; it just looks wrong on exactly the laptops most people use.
+ *
+ * Stacking until 1400 means the full-width form sits under the copy on those screens, which is
+ * the better of the two layouts there, and the row appears only once it has somewhere to go.
+ */
+@media (max-width: 1400px) {
+  .cpx-hero-grid { grid-template-columns: 1fr; gap: 28px; }
+  .cpx-hero-copy { max-width: 820px; }
+}
+
 @media (max-width: 1200px) {
   .cpx-links { gap: 20px; }
   .cpx-hero-grid { grid-template-columns: 1fr; gap: 36px; }
@@ -390,6 +427,9 @@
   .cpx-hero-ctas .cpx-btn { flex: 1 1 100%; }
   .cpx-float-fit { right: 0; bottom: 20%; }
   .cpx-script { font-size: 22px; right: 2%; }
+  /* The caption is smaller here, so it needs less room to clear — 68px would read as a hole
+     on a phone, where vertical space is the scarce thing. */
+  .cpx-visual-in { padding-bottom: 50px; }
   .cpx-stage { padding: 0; background: none; border: 0; box-shadow: none; border-radius: 0; }
   .cpx-fields { grid-template-columns: 1fr; }
   .cpx-signup { padding: 24px 18px 20px; }

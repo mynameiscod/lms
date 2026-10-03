@@ -15,6 +15,7 @@ import { collectStudentStats, EMPTY_STATS } from '../services/userExportService'
 import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
 import csvParser from 'csv-parser';
 import * as XLSX from 'xlsx';
+import { LMS_USERS_FILTER } from '../services/learnerAudience';
 
 const userService = new UserService();
 const emailService = new EmailService();
@@ -139,17 +140,22 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
 
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { search, role } = req.query as { search?: string; role?: string };
+    const { search, role, scope } = req.query as { search?: string; role?: string; scope?: string };
+    /* ?scope=lms — the admin Users screen lists LMS users only; CareerPilot-only members have their
+       own screen. Other callers (pickers, reports) get everyone, as before. */
+    const scopeFilter = scope === 'lms' ? LMS_USERS_FILTER : {};
 
     let users;
-    if (search || role) {
-      const filter: any = { tenantId: req.tenantId };
+    if (search || role || scope === 'lms') {
+      const filter: any = { tenantId: req.tenantId, ...scopeFilter };
       if (role) filter.role = role;
       if (search) {
         const re = { $regex: search, $options: 'i' };
         filter.$or = [{ name: re }, { email: re }];
       }
-      users = await User.find(filter).select('_id firstName lastName email role batchId').lean();
+      users = scope === 'lms' && !search && !role
+        ? await User.find(filter)   // the full records the Users screen renders, as the unscoped branch returns
+        : await User.find(filter).select('_id firstName lastName email role batchId').lean();
     } else {
       users = await userService.getUsersByTenant(req.tenantId!);
     }
@@ -201,13 +207,13 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
  */
 export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { search, role, status, batchId } = req.query as {
-      search?: string; role?: string; status?: string; batchId?: string;
+    const { search, role, status, batchId, scope } = req.query as {
+      search?: string; role?: string; status?: string; batchId?: string; scope?: string;
     };
 
     /* The export honours the same filters the screen was showing. An admin who filtered to one
        batch and pressed Export expects that batch, not all 184 people. */
-    const filter: any = { tenantId: req.tenantId };
+    const filter: any = { tenantId: req.tenantId, ...(scope === 'lms' ? LMS_USERS_FILTER : {}) };
     if (role) filter.role = role;
     if (batchId) filter.batchId = batchId;
     if (status === 'active') filter.isActive = { $ne: false };
@@ -218,7 +224,7 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const users = await User.find(filter)
-      .select('firstName lastName name email phone role batchId isActive createdAt lastLogin')
+      .select('firstName lastName name email phone role batchId isActive createdAt lastLogin passport.graduationYear')
       .sort({ createdAt: -1 }).lean();
 
     const batches = await Batch.find({ tenantId: req.tenantId }).select('name').lean();
@@ -236,6 +242,17 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
       String(req.tenantId), students.map((u: any) => String(u._id)),
     );
 
+    /* Graduation year: the student's profile (Education → Degree) first, since that is what they
+       filled in about their degree; the CareerPilot sign-up's answer when the profile has none. */
+    const gradProfiles = await StudentProfile.find({ tenantId: req.tenantId, userId: { $in: students.map((u: any) => u._id) } })
+      .select('userId education.degree.graduationYear').lean();
+    const gradYear: Record<string, number> = {};
+    for (const p of gradProfiles as any[]) {
+      const y = p?.education?.degree?.graduationYear;
+      if (y) gradYear[String(p.userId)] = y;
+    }
+    const graduationYearOf = (u: any) => gradYear[String(u._id)] || u.passport?.graduationYear || '';
+
     const wb = XLSX.utils.book_new();
     const fit = (ws: any, headers: string[], rows: any[][]) => {
       ws['!cols'] = headers.map((h, i) => ({
@@ -248,7 +265,7 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
 
     /* ── Sheet 1: Students ───────────────────────────────────────────────────────────── */
     const sHeaders = [
-      'Name', 'Email', 'Phone', 'Batch', 'Status', 'Joined On', 'Last Login', 'Profile %',
+      'Name', 'Email', 'Phone', 'Batch', 'Graduation Year', 'Status', 'Joined On', 'Last Login', 'Profile %',
       'Attendance %', 'Present', 'Absent', 'Leave', 'Days Marked', 'First Marked', 'Last Marked',
       'Assignments Attempted', 'Submitted', 'Graded', 'Passed', 'Avg Score %', 'Last Submission',
       'Quiz Attempts', 'Quizzes Completed', 'Quizzes Passed', 'Quiz Avg %', 'Quiz Best %',
@@ -260,6 +277,7 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
       return [
         fullName(u), u.email || '', u.phone || '',
         u.batchId ? (batchMap[String(u.batchId)] || '') : '',
+        graduationYearOf(u),
         u.isActive === false ? 'Inactive' : 'Active',
         day(u.createdAt), day(u.lastLogin),
         st.profileComplete ?? '',

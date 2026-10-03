@@ -101,6 +101,12 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     variables: ['Lead first name'],
     help: 'Sent to a new lead when "Send WhatsApp welcome" is on for its source. Without a template the welcome goes as plain text, which Meta drops for anyone who has not messaged you first — i.e. almost every ad lead.',
   },
+  {
+    key: 'PLACEMENT_PROGRAM_REGISTERED', label: 'Placement Program — registration received', module: 'Placement Program',
+    settingsKey: 'WHATSAPP_TEMPLATE_PLACEMENT_PROGRAM_REGISTERED',
+    variables: ['Candidate first name'],
+    help: 'Sent as soon as someone submits the Placement Program form from an ad. Nothing is sent until a template is assigned here, and the candidate timeline records that. Keep it UTILITY (a factual "we received your registration") — a marketing template is not delivered to most ad leads.',
+  },
 ];
 
 export const getPurpose = (key: string) =>

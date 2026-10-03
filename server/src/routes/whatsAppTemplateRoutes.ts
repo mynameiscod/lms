@@ -20,6 +20,7 @@ router.get('/usage/compatibility', ctrl.compatibility);
 router.put('/usage/:purpose', ctrl.assign);
 
 router.get('/broadcasts', ctrl.broadcasts);
+router.get('/messages', ctrl.messages);
 router.get('/batches', ctrl.batches);
 
 router.get('/', ctrl.list);

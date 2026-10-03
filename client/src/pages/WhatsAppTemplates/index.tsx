@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  waTemplateApi, errMsg, WaTemplate, WaTemplateInput, WaPurpose, WaCompat, WaBroadcast, WaButton, WaCategory,
+  waTemplateApi, errMsg, WaTemplate, WaTemplateInput, WaPurpose, WaCompat, WaBroadcast, WaButton, WaCategory, WaMessage,
 } from '../../api/whatsAppTemplateApi';
 
 /**
@@ -378,7 +378,7 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
     try {
       if (mode === 'test') {
         await waTemplateApi.sendTest(t._id, phone, values, hasBtn ? buttonParam : undefined);
-        onDone(`Test sent to ${phone}.`);
+        onDone(`Accepted by Meta for ${phone} — watch the Delivery log for whether it arrives.`);
       } else {
         if (!window.confirm('Send this template to every recipient now? This cannot be undone.')) { setBusy(false); return; }
         const b = await waTemplateApi.broadcast(t._id, { phones: audience === 'paste' ? phones : undefined, batchId: audience === 'batch' ? batchId : undefined, values, buttonParam: hasBtn ? buttonParam : undefined });
@@ -461,7 +461,77 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'templates' | 'usage' | 'history';
+type Tab = 'templates' | 'usage' | 'history' | 'delivery';
+
+/** Status → label and colour. "Accepted" means Meta queued it; only "Delivered"/"Read" mean it arrived. */
+const DELIVERY_STATUS: Record<WaMessage['status'], { label: string; fg: string; bg: string }> = {
+  accepted: { label: 'Accepted by Meta', fg: C.muted, bg: C.bg },
+  sent: { label: 'Sent', fg: C.blue, bg: C.blueBg },
+  delivered: { label: 'Delivered', fg: C.green, bg: C.greenBg },
+  read: { label: 'Read', fg: C.green, bg: C.greenBg },
+  failed: { label: 'Failed', fg: C.red, bg: C.redBg },
+};
+
+/**
+ * Every template send and what Meta later reported. Meta answering a send means "queued"; delivery is
+ * decided after, and reported to our webhook — so a row that stays "Accepted" for minutes means the
+ * report never came (the webhook is not subscribed to message statuses in Meta).
+ */
+const DeliveryLog: React.FC = () => {
+  const [rows, setRows] = useState<WaMessage[]>([]);
+  const [phone, setPhone] = useState('');
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const load = () => waTemplateApi.messages({ phone: phone.trim() || undefined, limit: 100 })
+      .then((r) => { if (alive) { setRows(r); setLoaded(true); } }).catch(() => { if (alive) setLoaded(true); });
+    load();
+    const id = setInterval(load, 5000);
+    return () => { alive = false; clearInterval(id); };
+  }, [phone]);
+  const stale = (m: WaMessage) => m.status === 'accepted' && Date.now() - new Date(m.createdAt).getTime() > 5 * 60 * 1000;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ ...card, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input style={{ ...input, maxWidth: 260 }} placeholder="Search by phone, e.g. 9743545311" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <span style={hint}>Updates every few seconds. "Delivered"/"Read" mean it reached the phone.</span>
+      </div>
+      {!loaded ? <div style={{ ...card, color: C.muted }}>Loading…</div> : !rows.length ? (
+        <div style={{ ...card, textAlign: 'center', color: C.muted, padding: 40 }}>No messages{phone ? ' to this number' : ''} yet. Sends are logged from now on.</div>
+      ) : (
+        <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead><tr style={{ background: C.bg, textAlign: 'left', color: C.muted }}>
+              {['When', 'To', 'Template', 'Source', 'Status', 'Why'].map((h) => <th key={h} style={{ padding: '9px 12px', fontWeight: 700 }}>{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {rows.map((m) => {
+                const s = DELIVERY_STATUS[m.status];
+                return (
+                  <tr key={m._id} style={{ borderTop: `1px solid ${C.border}`, verticalAlign: 'top' }}>
+                    <td style={{ padding: '9px 12px', whiteSpace: 'nowrap', color: C.muted }}>{new Date(m.createdAt).toLocaleString()}</td>
+                    <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>+{m.to}</td>
+                    <td style={{ padding: '9px 12px' }}>{m.templateName}</td>
+                    <td style={{ padding: '9px 12px', textTransform: 'capitalize', color: C.muted }}>{m.source}</td>
+                    <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 9px', borderRadius: 999, color: s.fg, background: s.bg }}>{s.label}</span>
+                      {m.statusAt && m.status !== 'accepted' && <div style={{ ...hint, marginTop: 4 }}>{new Date(m.statusAt).toLocaleTimeString()}</div>}
+                    </td>
+                    <td style={{ padding: '9px 12px', color: m.status === 'failed' ? C.red : C.muted, maxWidth: 420 }}>
+                      {m.status === 'failed'
+                        ? <>{m.reason}{m.errorCode ? <span style={{ color: C.muted }}> (code {m.errorCode})</span> : null}</>
+                        : stale(m) ? 'No delivery report from Meta yet — the webhook may not be subscribed to message statuses.' : ''}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const WhatsAppTemplates: React.FC = () => {
   const [tab, setTab] = useState<Tab>('templates');
@@ -583,7 +653,7 @@ const WhatsAppTemplates: React.FC = () => {
       {loading ? <div style={{ padding: 40, textAlign: 'center', color: C.muted }}>Loading…</div> : conn?.wabaId ? (
         <>
           <div style={{ display: 'flex', gap: 4, borderBottom: `1px solid ${C.border}`, margin: '18px 0 14px', overflowX: 'auto' }}>
-            {([['templates', `Templates (${templates.length})`], ['usage', 'Where used'], ['history', 'Sent history']] as [Tab, string][]).map(([k, l]) => (
+            {([['templates', `Templates (${templates.length})`], ['usage', 'Where used'], ['history', 'Sent history'], ['delivery', 'Delivery log']] as [Tab, string][]).map(([k, l]) => (
               <button key={k} onClick={() => setTab(k)} style={{ background: 'none', border: 'none', padding: '9px 14px', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', color: tab === k ? C.text : C.muted, borderBottom: tab === k ? '2px solid #16a34a' : '2px solid transparent' }}>{l}</button>
             ))}
           </div>
@@ -676,6 +746,8 @@ const WhatsAppTemplates: React.FC = () => {
             </div>
           )}
 
+          {tab === 'delivery' && <DeliveryLog />}
+
           {tab === 'history' && (
             !history.length ? <div style={{ ...card, textAlign: 'center', color: C.muted, padding: 40 }}>Nothing sent yet. Use "Send" on an approved template.</div> : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -705,7 +777,7 @@ const WhatsAppTemplates: React.FC = () => {
       ) : null}
 
       {editor && <Editor initial={editor.initial} draft={editor.draft} onClose={() => setEditor(null)} onSaved={(m) => { setEditor(null); say('ok', m); loadAll(); }} />}
-      {sending && <SendModal t={sending} onClose={() => setSending(null)} onDone={(m) => { setSending(null); say('ok', m); if (m.startsWith('Broadcast')) setTab('history'); }} />}
+      {sending && <SendModal t={sending} onClose={() => setSending(null)} onDone={(m) => { setSending(null); say('ok', m); if (m.startsWith('Broadcast')) setTab('history'); else if (m.startsWith('Accepted')) setTab('delivery'); }} />}
     </div>
   );
 };

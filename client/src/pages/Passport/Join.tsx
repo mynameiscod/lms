@@ -3,7 +3,7 @@ import PassportLogin from './Login';
 import { useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
 import type { OnboardingField, RegistrationWindow } from '../../api/passportApi';
-import OtpVerify, { isOtpInfo } from './OtpVerify';
+import OtpVerify, { isOtpInfo, otpSendMessage } from './OtpVerify';
 import './careerpilotJoin.css';
 
 const LOGO = '/assets/careerpilot/careerpilot-logo.png';
@@ -243,7 +243,7 @@ const PassportJoin: React.FC = () => {
       setToken(r.token);
       setDevCode(r.otp?.devCode || '');
       setStep('otp');
-      setMsg(r.otp?.sent ? 'We sent a code to your WhatsApp.' : (r.otp?.devCode ? `Dev code: ${r.otp.devCode}` : 'Enter the code sent to you.'));
+      setMsg(otpSendMessage(r.otp));
     } catch (e: any) {
       setMsg(e?.response?.data?.message || 'Signup failed');
     }
@@ -279,7 +279,7 @@ const PassportJoin: React.FC = () => {
     try {
       const r = await passportPublicApi.resend(token);
       setDevCode(r.otp?.devCode || '');
-      setMsg(r.otp?.sent ? 'New code sent.' : (r.otp?.devCode ? `Dev code: ${r.otp.devCode}` : 'Code resent.'));
+      setMsg(otpSendMessage(r.otp, true));
     } catch { /* Keep the current OTP screen usable. */ }
   };
 

@@ -558,8 +558,9 @@ export const userApi = {
     return response.json();
   },
 
-  getUsers: async () => {
-    const response = await fetch(`${API_BASE_URL}/users`, {
+  /** `scope: 'lms'` leaves out CareerPilot-only members (the admin Users screen). Default: everyone. */
+  getUsers: async (scope?: 'lms') => {
+    const response = await fetch(`${API_BASE_URL}/users${scope ? `?scope=${scope}` : ''}`, {
       method: 'GET',
       headers: getAuthHeaders()
     });
@@ -575,9 +576,10 @@ export const userApi = {
    * that silently disagrees with the list they were just looking at.
    */
   exportUsers: async (filters?: {
-    search?: string; role?: string; status?: string; batchId?: string;
+    search?: string; role?: string; status?: string; batchId?: string; scope?: 'lms';
   }) => {
     const qs = new URLSearchParams();
+    if (filters?.scope) qs.set('scope', filters.scope);
     if (filters?.search?.trim()) qs.set('search', filters.search.trim());
     /* 'all' is the screen's way of saying "no filter"; it must not reach the server as a value. */
     if (filters?.role && filters.role !== 'all') qs.set('role', filters.role);

@@ -164,6 +164,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       permissions: ['manage_placement', 'manage_tenant', 'manage_tenant_users', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_passport'],
       submenu: [
         { label: 'Placement Drives',      path: '/drives/manage',               roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-briefcase', permissions: ['manage_placement', 'manage_tenant'] },
+        { label: 'Placement Program',     path: '/admin/placement-program',     roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-user-check', permissions: ['manage_placement', 'manage_tenant'] },
         { label: 'Interview Experiences', path: '/admin/interview-experiences', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-comments', permissions: ['manage_placement', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_passport'] },
         { label: 'Drive Analytics',       path: '/drives/analytics',            roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-pie', permissions: ['manage_placement', 'manage_tenant'] },
       ]

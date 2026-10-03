@@ -85,7 +85,9 @@ async function findTemplateDef(tenantId: string | undefined, name: string, lang:
   } catch { return null; }
 }
 
-export async function waPost(creds: { phoneNumberId: string; accessToken: string }, payload: any): Promise<{ ok: boolean; error?: string }> {
+export async function waPost(
+  creds: { phoneNumberId: string; accessToken: string }, payload: any,
+): Promise<{ ok: boolean; error?: string; errorCode?: number; messageId?: string }> {
   try {
     const res = await fetch(`https://graph.facebook.com/v18.0/${creds.phoneNumberId}/messages`, {
       method: 'POST',
@@ -95,12 +97,16 @@ export async function waPost(creds: { phoneNumberId: string; accessToken: string
     if (!res.ok) {
       const err = await res.text().catch(() => '');
       console.warn('[whatsapp] send failed', res.status, err.slice(0, 400));
-      // Extract Meta's human message if present.
+      // Extract Meta's human message (and its code, so the delivery log can explain it).
       let msg = err.slice(0, 200);
-      try { msg = JSON.parse(err)?.error?.message || msg; } catch { /* keep raw */ }
-      return { ok: false, error: msg };
+      let code: number | undefined;
+      try { const j = JSON.parse(err)?.error; msg = j?.message || msg; code = typeof j?.code === 'number' ? j.code : undefined; } catch { /* keep raw */ }
+      return { ok: false, error: msg, errorCode: code };
     }
-    return { ok: true };
+    /* Meta's id for the message (wamid). Every later delivery report carries it; keeping it is the
+       only way to know whether this message actually arrived. */
+    const body: any = await res.json().catch(() => null);
+    return { ok: true, messageId: body?.messages?.[0]?.id };
   } catch (e: any) {
     console.warn('[whatsapp] send error', e?.message);
     return { ok: false, error: e?.message || 'network error' };
@@ -408,8 +414,16 @@ export async function sendOtp(tenantId: string, token: string, phone: string, em
     }
   }
 
-  // Nothing worked. The code is logged so somebody can still be helped by hand.
+  /*
+   * Nothing worked. The code is logged so somebody can still be helped by hand.
+   *
+   * NEVER RETURNED TO THE CALLER IN PRODUCTION. It used to be, as `devCode`, and the page showed
+   * it — so typing any number WhatsApp could not reach (a fake one, or somebody else's that is not
+   * on WhatsApp) put the code on screen and verified a phone nobody owned. Outside production it
+   * is still returned, which is what local development needs. Test numbers are the allowlist above.
+   */
   console.warn(`[assessment-otp] no channel delivered for tenant ${tenantId}; OTP for ${phone} = ${code}`);
+  if (process.env.NODE_ENV === 'production') return { sent: false, channel: 'none' };
   return { sent: false, channel: 'none', devCode: code };
 }
 

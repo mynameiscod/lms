@@ -192,6 +192,9 @@ export class AuthService {
         tenantId: user.tenantId,
         customRoleId: user.customRoleId || null,
         isActive: user.isActive,
+        // Student screens (attendance, batch work) key off this. Without it a student who
+        // logged in and went straight to My Attendance saw 0 classes until a page reload.
+        batchId: (user as any).batchId || null,
         permissions
       },
       tenant 

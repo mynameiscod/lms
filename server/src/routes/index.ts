@@ -101,6 +101,7 @@ import feeRoutes from './feeRoutes';
 import publicAssessmentRoutes from './publicAssessmentRoutes';
 import publicCertificateRoutes from './publicCertificateRoutes';
 import publicProofRoutes from './publicProofRoutes';
+import placementProgramRoutes, { publicPlacementProgramRoutes } from './placementProgramRoutes';
 import candidateProofRoutes from './candidateProofRoutes';
 import certificateRoutes from './certificateRoutes';
 import aiUsageRoutes from './aiUsageRoutes';
@@ -137,6 +138,7 @@ router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public/certificate', publicCertificateRoutes); // certificate verification (specific, before generic /public)
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount
 router.use('/public/proof', publicProofRoutes); // HR-facing candidate proof profile (specific, before generic /public)
+router.use('/public/placement-program', publicPlacementProgramRoutes); // ad landing form (specific, before generic /public)
 router.get('/public/unsubscribe', unsubscribe);
 // Amazon SES bounce/complaint events via SNS (public, signature-verified).
 // express.json() only parses application/json; SNS posts text/plain, so this
@@ -149,6 +151,7 @@ router.use('/public', publicHackathonRoutes);
 router.use('/public', publicBattleRoutes); // Tech Battle public funnel (specific battle paths, before generic /public)
 router.use('/public', publicLeadRoutes);
 router.use('/battles', battleRoutes);
+router.use('/placement-program', placementProgramRoutes);
 router.use('/hackathons', hackathonRoutes);
 router.use('/certificates', certificateRoutes);
 router.use('/ai-usage', aiUsageRoutes);

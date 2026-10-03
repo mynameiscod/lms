@@ -1,0 +1,52 @@
+/* Placement Program — the ad landing page. Same brand family as the CareerPilot join page. Prefix: ppr-. */
+.ppr { --navy: #0b1a66; --teal: #3598ad; --ink: #0e1b3d; --text: #3d4a63; --muted: #6b7890; --line: #e2e8f2;
+  flex: 1 0 auto; display: flex; flex-direction: column; color: var(--ink);
+  background: radial-gradient(circle at 75% 15%, rgba(53, 152, 173, .12), transparent 38%), linear-gradient(180deg, #f5f9ff 0%, #eef5fd 100%);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.ppr *, .ppr *::before, .ppr *::after { box-sizing: border-box; }
+.ppr h1, .ppr h2, .ppr p { margin: 0; }
+
+.ppr-nav { height: 68px; display: flex; align-items: center; padding: 0 clamp(16px, 5vw, 64px); background: rgba(255,255,255,.9); border-bottom: 1px solid var(--line); }
+.ppr-nav img { height: 40px; }
+
+.ppr-main { flex: 1; width: min(1200px, calc(100% - 32px)); margin: 0 auto; padding: clamp(24px, 5vw, 56px) 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 520px); gap: clamp(24px, 4vw, 56px); align-items: start; }
+
+.ppr-eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }
+.ppr-copy h1 { font-size: clamp(30px, 4.2vw, 46px); line-height: 1.12; font-weight: 800; color: var(--navy); margin: 14px 0 14px; }
+.ppr-copy h1 span { color: var(--teal); }
+.ppr-lead { font-size: 17px; line-height: 1.6; color: var(--text); max-width: 520px; }
+.ppr-steps { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 12px; max-width: 520px; }
+.ppr-steps li { display: flex; gap: 14px; align-items: flex-start; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+.ppr-steps b { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #e6f4f7; color: var(--teal); font-size: 14px; flex: 0 0 auto; }
+.ppr-steps strong { display: block; font-size: 15px; }
+.ppr-steps small { display: block; font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+
+.ppr-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 26px; box-shadow: 0 24px 60px rgba(14, 27, 61, .10); }
+.ppr-card h2 { font-size: 22px; font-weight: 800; color: var(--navy); margin-bottom: 16px; }
+.ppr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 14px; }
+.ppr-grid label { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; font-weight: 700; color: #2b3852; min-width: 0; }
+.ppr-grid label.full { grid-column: 1 / -1; }
+.ppr-grid label em { color: #e04f5f; font-style: normal; }
+.ppr-grid input, .ppr-grid select, .ppr-grid textarea { width: 100%; height: 46px; padding: 0 12px; border: 1px solid #d4dcea; border-radius: 10px;
+  font: inherit; font-weight: 500; font-size: 15px; color: var(--ink); background: #fff; outline: 0; }
+.ppr-grid textarea { height: auto; padding: 10px 12px; resize: vertical; }
+.ppr-grid input:focus, .ppr-grid select:focus, .ppr-grid textarea:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(53, 152, 173, .16); }
+.ppr-err { background: #fdecef; color: #b4233a; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; margin-bottom: 14px; }
+.ppr-submit { margin-top: 18px; width: 100%; height: 52px; border: 0; border-radius: 12px; background: var(--navy); color: #fff; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.ppr-submit:disabled { opacity: .65; cursor: default; }
+.ppr-fine { margin-top: 12px; font-size: 12.5px; color: var(--muted); text-align: center; }
+
+.ppr-done { text-align: center; padding: 26px 8px; }
+.ppr-done-ic { display: inline-grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: #e7f7ef; color: #16a34a; font-size: 32px; margin-bottom: 12px; }
+.ppr-done h2 { margin-bottom: 8px; }
+.ppr-done p { color: var(--text); line-height: 1.6; }
+
+@media (max-width: 900px) {
+  .ppr-main { grid-template-columns: 1fr; }
+  .ppr-steps { display: none; }
+}
+@media (max-width: 520px) {
+  .ppr-grid { grid-template-columns: 1fr; }
+  .ppr-card { padding: 20px 16px; }
+}

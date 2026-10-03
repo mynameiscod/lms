@@ -160,6 +160,12 @@ export const POLICIES = {
     keyBy: req => mobileSubject(((req.body || {}).members || [])[0]?.mobile),
     message: 'Too many registration attempts for this mobile number. Please try again shortly.',
   },
+  /** The Placement Program ad form, per mobile: a few honest retries, not a flood. */
+  placementRegister: {
+    max: 6, windowMs: 15 * 60_000,
+    keyBy: req => mobileSubject((req.body || {}).mobile),
+    message: 'Too many submissions for this mobile number. Please try again in a few minutes.',
+  },
   /** A backstop on the address, sized for a shared connection rather than a person. */
   hackathonPayment: {
     max: 60, windowMs: 30 * 60_000,

@@ -81,7 +81,21 @@
    ceiling, so the text was being squeezed by the column rather than by its own measure. .88fr
    lets it reach that ceiling and no further, which is the point at which more width would start
    stranding space instead of being used. */
-.cpx-hero-grid { display: grid; grid-template-columns: minmax(0, .88fr) minmax(0, 1.26fr); gap: clamp(24px, 2.4vw, 44px); align-items: center; }
+/*
+ * THE THREE COLUMNS, SIZED TO ADD UP.
+ *
+ * This was guessed at twice and both guesses cancelled each other out. The arithmetic, at the
+ * 1500px cap below:
+ *
+ *     copy 541  +  gap 40  +  picture 479  +  gap 24  +  form 416  =  1500
+ *
+ * The outer ratio 1 : 1.7 puts 541px on the copy — just under `.cpx-lead`'s own 640px measure,
+ * so the column never gets wider than the text can use, which is what stranded space before.
+ * The rest goes to `.cpx-stage`, where the form takes a fixed 416 and the picture takes what
+ * is left, 479 — it is a 600px asset and was being rendered at 380 while the form sat at its
+ * 490px maximum. The picture is what the eye lands on; the form's fields are no better wide.
+ */
+.cpx-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); gap: 40px; align-items: center; }
 /*
  * The hero row is capped, where the rest of the page is not.
  *
@@ -96,7 +110,7 @@
  * full width, and leaves the column proportions and the signup card's overlap exactly as
  * designed. Below the cap nothing changes at all.
  */
-.cpx-hero > .cpx-hero-grid { max-width: 1420px; margin-inline: auto; }
+.cpx-hero > .cpx-hero-grid { max-width: 1500px; margin-inline: auto; }
 
 /* The stage: one rounded panel holding the illustration, with the signup card overlapping it on the right. */
 /* No panel behind the illustration and the form: the picture sits on the page and only the signup card
@@ -109,7 +123,7 @@
    * 600px asset. Dropping the card's ceiling to 430 gives the picture ~60px back, and the
    * form loses nothing: its widest row is two fields side by side, which fits comfortably.
    */
-  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(390px, 430px); align-items: center;
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 416px); column-gap: 24px; align-items: center;
   padding: 0; border-radius: 0; background: none; border: 0; box-shadow: none;
 }
 .cpx-eyebrow { color: var(--teal); font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 12px; }

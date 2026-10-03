@@ -265,7 +265,11 @@ export const DEFAULT_ONBOARDING_FIELDS: IOnboardingField[] = [
   { key: 'email',  label: 'Email',       type: 'email', required: true, locked: true, order: 3 },
   // Narrowed to what is actually being onboarded. The list is data, not code: more can
   // be added from Platform Settings without a release.
-  { key: 'degree', label: 'Degree',      type: 'select', required: false, order: 4, options: ['B.Tech'] },
+  /* "Qualification", not "Degree": a diploma and a BCA are qualifications and not degrees in
+     the way a student reads the word, and this list is meant to hold all of them. The KEY stays
+     `degree` — it is written to passport.degree, read by stageFromCourse, the background axis and
+     every audience rule, so renaming it would silently unmatch every one of them. */
+  { key: 'degree', label: 'Qualification', type: 'select', required: false, order: 4, options: ['B.Tech'] },
   { key: 'yearOfStudy', label: 'Academic Year', type: 'select', required: false, order: 6, options: ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Graduated'] },
   // Degree alone cannot say CS or not — a B.Tech is CSE and Civil alike — so without
   // this the background axis resolves to 'any' for nearly everyone and any question or

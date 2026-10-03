@@ -9,6 +9,22 @@ import { useMember } from './MemberLayout';
 import './skillAssessment.css';
 import { copyrightLine } from '../../config/brand';
 
+/**
+ * A stage key as the member's own year, for the identity strip.
+ *
+ * `job_seeker` is deliberately absent: they are not in a year of a course, and inventing one for
+ * them would be the page telling somebody who has graduated that they are a student. An unknown
+ * or missing stage simply shows the name alone.
+ */
+const YEAR_LABEL: Record<string, string> = {
+  foundation: '1st year · Foundation',
+  build: '2nd year · Build',
+  specialize: '3rd year · Specialize',
+  placement: 'Final year · Placement',
+};
+const yearLabel = (stage?: string | null): string =>
+  YEAR_LABEL[String(stage || '').toLowerCase().trim()] || '';
+
 const AUTOSAVE_MS = 900;
 const RETRY_MS = 4000;
 
@@ -85,7 +101,7 @@ const PlacementDone: React.FC<{ result: PlacementResult; topic: string; onBack: 
 };
 
 const SkillAssessment: React.FC = () => {
-  const { reload: reloadMember } = useMember();
+  const { data: member, reload: reloadMember } = useMember();
   const nav = useNavigate();
   const [params] = useSearchParams();
   /**
@@ -133,6 +149,12 @@ const SkillAssessment: React.FC = () => {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'retrying'>('idle');
   /** Set while "Save & exit" is flushing the outbox, so the button cannot be pressed twice. */
   const [exiting, setExiting] = useState(false);
+  /**
+   * Questions the member said they could not answer. Client-side only — the server is sent the
+   * same empty response it already understands, so this changes what the PALETTE shows and
+   * nothing about what is measured.
+   */
+  const [dontKnow, setDontKnow] = useState<Set<string>>(new Set());
   /** Preflight: whether they have already sat one, and whether a real attempt is open. */
   const [avail, setAvail] = useState<AssessmentAvailability | null>(null);
 
@@ -270,11 +292,47 @@ const SkillAssessment: React.FC = () => {
   const saveAndExit = useCallback(async () => {
     setExiting(true);
     clearTimeout(timer.current);
-    try { await flush(); } catch { /* reported by saveState; the draft already holds the answers */ }
+    /*
+     * The flush is RACED AGAINST A DEADLINE, not simply awaited.
+     *
+     * `flush` retries a failed batch on its own timer and resolves only when the request
+     * settles; a request that neither succeeds nor fails — a captive Wi-Fi portal, a proxy
+     * holding the socket — leaves the button disabled with "Saving…" on it and the member
+     * stuck inside the assessment. Every answer is already in the local draft before any of
+     * this runs, so after two seconds leaving costs nothing and waiting costs everything.
+     */
+    try {
+      await Promise.race([flush(), new Promise(r => setTimeout(r, 2000))]);
+    } catch { /* reported by saveState; the draft already holds the answers */ }
     nav(returnTo || '/careerpilot');
   }, [flush, nav, returnTo]);
 
+  /**
+   * "I don't know this one" — recorded as an explicit act, sent as the absence of an answer.
+   *
+   * It writes `''`, which is exactly what the server already treats as unanswered, so nothing
+   * about scoring, Skill DNA or the grader changes and no new response shape goes over the
+   * wire. What it adds is CLIENT-SIDE INTENT: the palette can show a question somebody read and
+   * could not answer differently from one they never reached, which is the distinction a member
+   * actually wants when reviewing before submitting.
+   *
+   * Clearing matters when they had already picked something. Leaving the old answer behind
+   * while the palette claimed they did not know it would be the page lying about their paper.
+   */
+  const markDontKnow = (item: SkillAssessmentItem) => {
+    const key = keyOf(item);
+    setDontKnow(s => { const n = new Set(s); n.add(key); return n; });
+    answer(item, '');
+    setAt(n => Math.min(paperRef.current ? paperRef.current.items.length - 1 : n, n + 1));
+  };
+
   const answer = (item: SkillAssessmentItem, response: any) => {
+    /* Answering a question they had marked unknown takes the mark off — otherwise the palette
+       would keep calling it unknown while holding their answer to it. */
+    if (response !== '' && response !== undefined && response !== null) {
+      const key = keyOf(item);
+      setDontKnow(s => (s.has(key) ? new Set([...s].filter(k => k !== key)) : s));
+    }
     setAnswers(a => {
       const next = { ...a, [keyOf(item)]: response };
       /* Written before the network is even attempted, so a drop later cannot take it. */
@@ -610,6 +668,21 @@ const SkillAssessment: React.FC = () => {
       <Header exit />
       <main className="ska-assessment-shell">
         <aside className="ska-progress-panel">
+          {/* WHOSE PAPER THIS IS.
+            * The page showed a question and a progress ring and nothing else — no name, no year.
+            * On a shared or lab machine that is a real question ("am I logged in as me?"), and it
+            * is asked at the worst possible moment, because the answers are about to be written
+            * to somebody's Skill DNA. Read from the member context the layout already loaded, so
+            * it costs no request. */}
+          {(member?.name || member?.firstName) && (
+            <div className="ska-who">
+              <span className="ska-who-av">{(member.name || member.firstName || '?').trim().charAt(0).toUpperCase()}</span>
+              <div className="ska-who-t">
+                <b>{member.name || member.firstName}</b>
+                {yearLabel(member.stage) && <small>{yearLabel(member.stage)}</small>}
+              </div>
+            </div>
+          )}
           <span className="ska-progress-label">{placing ? 'PLACEMENT CHECK' : 'ASSESSMENT PROGRESS'}</span>
           <div className="ska-progress-copy"><b>Question {at + 1} of {paper.items.length}</b><small>{answeredCount} answered</small></div>
           <div className="ska-ring" style={{ '--pct': `${pct}%` } as React.CSSProperties}><div><b>{pct}%</b><small>Complete</small></div></div>
@@ -672,6 +745,16 @@ const SkillAssessment: React.FC = () => {
 
           <div className="ska-nav">
             <button className="ska-btn ghost" disabled={at === 0} onClick={() => setAt(n => Math.max(0, n - 1))}><i className="bi bi-arrow-left" /> Previous</button>
+            {/* Guessing to get past a question is the one answer that teaches the plan something
+                untrue: a lucky guess reads as a skill the member has, and the roadmap then skips
+                teaching it. Saying so is a better answer than a guess, and it costs nothing —
+                an unanswered question is already how the grader reads it. */}
+            <button
+              className={`ska-btn ghost ska-dk${paper.items[at] && dontKnow.has(keyOf(paper.items[at])) ? ' on' : ''}`}
+              onClick={() => paper.items[at] && markDontKnow(paper.items[at])}
+            >
+              <i className="bi bi-question-circle" /> I don&apos;t know the answer
+            </button>
             {at < paper.items.length - 1 ? (
               <button className="ska-btn primary" onClick={() => setAt(n => n + 1)}>Save & next <i className="bi bi-arrow-right" /></button>
             ) : (
@@ -682,7 +765,8 @@ const SkillAssessment: React.FC = () => {
           <div className="ska-question-palette">
             {paper.items.map((q, i) => {
               const has = answers[keyOf(q)] !== undefined && answers[keyOf(q)] !== '';
-              return <button key={q.sourceId} className={`${has ? 'has ' : ''}${i === at ? 'now' : ''}`} onClick={() => setAt(i)} aria-label={`Question ${i + 1}${has ? ', answered' : ''}`}>{i + 1}</button>;
+              const dk = !has && dontKnow.has(keyOf(q));
+              return <button key={q.sourceId} className={`${has ? 'has ' : ''}${dk ? 'dk ' : ''}${i === at ? 'now' : ''}`} onClick={() => setAt(i)} aria-label={`Question ${i + 1}${has ? ', answered' : dk ? ', marked not known' : ''}`}>{i + 1}</button>;
             })}
           </div>
           {err && <p className="ska-err">{err}</p>}

@@ -337,10 +337,16 @@ const PassportJoin: React.FC = () => {
           <div className="cpx-wrap cpx-hero-grid">
             <div className="cpx-hero-copy">
               <div className="cpx-eyebrow">Your future starts here</div>
-              <h1>Stop Guessing Your Career.<br /><span>Build the Right One.</span></h1>
+              {/* The heading names what the product DOES, in the two halves it actually has.
+                  "Stop Guessing Your Career / Build the Right One" could sell any careers site
+                  and says nothing about a measured assessment or a day-by-day plan — the two
+                  things that make this different and the two things the page goes on to explain.
+                  Kept to two short parallel lines so the gradient span lands on the second and
+                  the whole heading still fits one line per half on a phone. */}
+              <h1>Your skills, measured.<br /><span>Your career, planned.</span></h1>
               <p className="cpx-lead">
-                CareerPilot helps you understand your goals, measure your real skills and create a
-                personalised plan from where you are today to where you want to go.
+                Take one honest assessment, then follow a plan built for your year — day by day,
+                from where you are today to the job you want.
               </p>
               <ul className="cpx-checks">
                 {HERO_CHECKS.map(c => <li key={c}><i className="bi bi-check-circle-fill" />{c}</li>)}

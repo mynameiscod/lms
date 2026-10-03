@@ -64,13 +64,20 @@
 
 /* ── Hero ────────────────────────────────────────────────────────── */
 .cpx-hero {
-  padding: 48px 0 40px;
+  /* Was 48px top / 40px bottom, on top of a 76px sticky nav above and a 72px-padded section
+     below — so the hero sat in roughly 120px of empty space at each end and the heading was
+     pushed below the fold on a laptop. Tightened at both ends; the illustration's own
+     padding-bottom was the other half of the gap underneath. */
+  padding: 28px 0 24px;
   background:
     radial-gradient(circle at 56% 30%, rgba(53, 152, 173, .12), transparent 32%),
     radial-gradient(circle at 8% 90%, rgba(31, 111, 235, .06), transparent 30%),
     linear-gradient(180deg, #f5f9ff 0%, #eef5fd 100%);
 }
-.cpx-hero-grid { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.3fr); gap: clamp(32px, 3.2vw, 64px); align-items: center; }
+/* The copy column was NARROWER than the illustration (.8fr against 1.3fr), so a 50px heading
+   had less room than the picture beside it and broke across lines at odd places. Evened up:
+   the words lead, the illustration supports. */
+.cpx-hero-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: clamp(28px, 2.6vw, 52px); align-items: center; }
 
 /* The stage: one rounded panel holding the illustration, with the signup card overlapping it on the right. */
 /* No panel behind the illustration and the form: the picture sits on the page and only the signup card
@@ -95,7 +102,7 @@
 .cpx-trust-dots i:nth-child(3) { background: var(--blue); }
 
 .cpx-hero-visual { display: flex; align-items: center; justify-content: center; margin-right: 0; position: relative; z-index: 0; }
-.cpx-visual-in { position: relative; width: 100%; max-width: 600px; padding-bottom: 56px; }
+.cpx-visual-in { position: relative; width: 100%; max-width: 560px; padding-bottom: 24px; }
 .cpx-visual-in img {
   width: 100%; height: auto; display: block;
   -webkit-mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 62%, transparent 100%);
@@ -278,7 +285,9 @@
 /* ── Responsive ──────────────────────────────────────────────────── */
 @media (max-width: 1200px) {
   .cpx-links { gap: 20px; }
-  .cpx-hero-grid { grid-template-columns: 1fr; gap: 36px; }
+  /* Stacked, so the gap between copy and illustration is vertical and 36px of it reads as
+     dead space between the heading and the picture. */
+  .cpx-hero-grid { grid-template-columns: 1fr; gap: 24px; }
   .cpx-hero-copy { max-width: 820px; }
   .cpx-hero h1 { font-size: clamp(32px, 4.4vw, 50px); }
   .cpx-network-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -310,7 +319,7 @@
   .cpx-logo img { height: 38px; }
   .cpx-hide-sm { display: none; }
   .cpx-nav-cta .cpx-btn { padding: 9px 14px; }
-  .cpx-hero { padding: 32px 0 28px; }
+  .cpx-hero { padding: 20px 0 20px; }
   .cpx-lead { font-size: 15.5px; }
   .cpx-checks { grid-template-columns: 1fr; }
   .cpx-hero-ctas .cpx-btn { flex: 1 1 100%; }

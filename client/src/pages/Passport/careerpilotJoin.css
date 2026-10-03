@@ -71,7 +71,7 @@
      tried and that is exactly what happened.
      48/40 sat under a 76px sticky nav and above a 72px section, which pushed the heading
      under the fold on a laptop. */
-  padding: 30px 0 26px;
+  padding: 30px 0 16px;
   background:
     radial-gradient(circle at 56% 30%, rgba(53, 152, 173, .12), transparent 32%),
     radial-gradient(circle at 8% 90%, rgba(31, 111, 235, .06), transparent 30%),
@@ -108,7 +108,7 @@
  * `start` lines them up on one edge, which is what makes a hero read as a row. The space above
  * and below is then the section's own padding and is the same for all three.
  */
-.cpx-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); gap: 40px; align-items: start; }
+.cpx-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.85fr); gap: 40px; align-items: start; }
 /*
  * The hero row is capped, where the rest of the page is not.
  *
@@ -136,7 +136,7 @@
    * 600px asset. Dropping the card's ceiling to 430 gives the picture ~60px back, and the
    * form loses nothing: its widest row is two fields side by side, which fits comfortably.
    */
-  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 416px); column-gap: 24px; align-items: start;
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(370px, 400px); column-gap: 24px; align-items: start;
   padding: 0; border-radius: 0; background: none; border: 0; box-shadow: none;
 }
 .cpx-eyebrow { color: var(--teal); font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 12px; }
@@ -154,7 +154,19 @@
 .cpx-trust-dots i:nth-child(2) { background: var(--teal); }
 .cpx-trust-dots i:nth-child(3) { background: var(--blue); }
 
-.cpx-hero-visual { display: flex; align-items: center; justify-content: center; margin-right: 0; position: relative; z-index: 0; }
+/*
+ * The copy keeps the shared top edge; the PICTURE is centred against the row.
+ *
+ * The form is a tall form — four field rows, two buttons and a divider — and no illustration
+ * at a sane width is ever going to match it. Top-aligning the picture therefore parked all of
+ * that difference as white space directly beneath it, which is the emptiness in the lower
+ * middle of the hero. Centring it puts the picture where the eye expects it and splits the
+ * unavoidable difference above and below, where it reads as breathing room rather than a hole.
+ *
+ * The headline still starts level with the top of the card, which is the alignment that makes
+ * the row read as a row.
+ */
+.cpx-hero-visual { display: flex; align-items: center; justify-content: center; margin-right: 0; position: relative; z-index: 0; align-self: center; }
 /* 56px of trailing padding reserved room for the handwritten line beneath the picture; it
    needs about half that, and the rest read as a gap under the whole hero. */
 .cpx-visual-in { position: relative; width: 100%; max-width: 600px; padding-bottom: 28px; }
@@ -175,15 +187,15 @@
 
 /* ── Signup card ─────────────────────────────────────────────────── */
 .cpx-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 18px 50px rgba(14, 27, 61, .1); }
-.cpx-signup { position: relative; z-index: 1; padding: 32px 30px 24px; border-radius: 24px; border: 1px solid var(--line); box-shadow: 0 24px 60px rgba(14, 27, 61, .14); }
+.cpx-signup { position: relative; z-index: 1; padding: 26px 26px 20px; border-radius: 24px; border: 1px solid var(--line); box-shadow: 0 24px 60px rgba(14, 27, 61, .14); }
 .cpx-signup h2 { font-size: 27px; font-weight: 800; color: var(--navy); letter-spacing: -.015em; }
 .cpx .cpx-card-sub { margin-top: 6px; margin-bottom: 6px; font-size: 15px; color: var(--muted); }
 .cpx-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
-.cpx-field { margin-top: 15px; min-width: 0; }
+.cpx-field { margin-top: 11px; min-width: 0; }
 .cpx-field.full { grid-column: 1 / -1; }
 .cpx-field label { display: block; font-size: 14px; font-weight: 700; color: #2b3852; margin-bottom: 7px; }
 .cpx-field label em { color: #e04f5f; font-style: normal; }
-.cpx-input { display: flex; align-items: center; gap: 10px; height: 50px; padding: 0 14px; border: 1px solid #d4dcea; border-radius: 12px; background: #fff; transition: border-color .15s ease, box-shadow .15s ease; }
+.cpx-input { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border: 1px solid #d4dcea; border-radius: 12px; background: #fff; transition: border-color .15s ease, box-shadow .15s ease; }
 .cpx-input:focus-within { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(53, 152, 173, .16); }
 .cpx-input.bad { border-color: #e04f5f; box-shadow: 0 0 0 3px rgba(224, 79, 95, .1); }
 .cpx-input i { color: #8391a8; font-size: 17px; }
@@ -193,11 +205,11 @@
 .cpx-fe { margin-top: 5px; font-size: 12px; color: #c9354a; line-height: 1.4; }
 .cpx-msg { margin-top: 14px; padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.45; }
 .cpx-msg.err { background: #fff1f2; color: #b4233a; border: 1px solid #fbd0d6; }
-.cpx-submit { width: 100%; margin-top: 22px; padding: 16px 18px; font-size: 16px; border-radius: 12px; }
-.cpx-or { display: flex; align-items: center; gap: 12px; margin: 18px 0 12px; color: var(--muted); font-size: 13.5px; }
+.cpx-submit { width: 100%; margin-top: 18px; padding: 14px 18px; font-size: 16px; border-radius: 12px; }
+.cpx-or { display: flex; align-items: center; gap: 12px; margin: 14px 0 10px; color: var(--muted); font-size: 13.5px; }
 .cpx-or::before, .cpx-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .cpx-login { width: 100%; padding: 13px 16px; font-size: 15px; }
-.cpx-secure { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 14px; font-size: 13px; color: var(--muted); text-align: center; }
+.cpx-secure { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; font-size: 13px; color: var(--muted); text-align: center; }
 .cpx-secure i { color: var(--teal); }
 
 /* ── Campus network ──────────────────────────────────────────────── */
@@ -420,7 +432,7 @@
    The two used to be separate pages that linked to each other, so guessing
    wrong cost a full page load and tore down the page being read. */
 .cpx-authtabs {
-  display: flex; gap: 6px; margin: 0 0 18px;
+  display: flex; gap: 6px; margin: 0 0 14px;
   padding: 4px; border-radius: 12px; background: rgba(5, 29, 100, .06);
 }
 .cpx-authtabs button {

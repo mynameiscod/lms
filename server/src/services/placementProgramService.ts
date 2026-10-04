@@ -60,6 +60,44 @@ export function validateRegistration(b: any): { values?: Record<string, any>; er
   };
 }
 
+/** The courseInterest the www.codebegun.com/placements-2026 form sends to the website-lead endpoint. */
+export const WEBSITE_PLACEMENT_INTEREST = 'placement_support_2026';
+
+const WEBSITE_LABELS: Record<string, string> = {
+  'College': 'college', 'Degree': 'degree', 'Branch': 'branch',
+  'Graduation year': 'graduationYear', 'Role': 'targetRole', 'Key skills': 'skills',
+};
+
+/**
+ * The website form posts the generic website-lead shape — name, phone, email, and the rest packed
+ * into one `message`: "Placement Support 2026 registration | College: X | Degree: Y | … | Key skills: Z".
+ * Unpack it into a registration body. Fields sent on their own win over the packed copy, so the
+ * site can switch to sending them separately without a change here.
+ */
+export function fromWebsiteForm(b: any, landingPage = '') {
+  const packed: Record<string, string> = {};
+  const parts = String(b?.message || '').split(/\s\|\s(?=(?:College|Degree|Branch|Graduation year|Role|Key skills):\s)/);
+  for (const part of parts) {
+    const m = /^(College|Degree|Branch|Graduation year|Role|Key skills):\s*([\s\S]*)$/.exec(part.trim());
+    if (m) packed[WEBSITE_LABELS[m[1]]] = m[2].trim();
+  }
+  const pick = (k: string, ...alts: string[]) => [b?.[k], ...alts.map((a) => b?.[a]), packed[k]].find((v) => v !== undefined && v !== null && String(v).trim() !== '');
+  // "Below 2021" and the like carry no usable year; leave it out rather than reject the whole form.
+  const year = String(pick('graduationYear', 'year') ?? '').trim();
+
+  const touch: Record<string, string> = {};
+  for (const k of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'fbclid', 'gclid']) if (b?.[k]) touch[k] = String(b[k]);
+  if (Object.keys(touch).length && landingPage) touch.landing_page = landingPage;
+
+  return {
+    name: b?.name, mobile: b?.mobile || b?.phone, email: b?.email,
+    college: pick('college'), degree: pick('degree'), branch: pick('branch'),
+    graduationYear: /^\d{4}$/.test(year) ? Number(year) : undefined,
+    targetRole: pick('targetRole', 'role'), skills: pick('skills'), city: pick('city'),
+    attribution: b?.attribution || (Object.keys(touch).length ? { first_touch: touch, last_touch: touch } : undefined),
+  };
+}
+
 async function event(tenantId: any, candidateId: any, kind: string, message: string, data?: any, actorId?: string) {
   await PlacementEvent.create({
     tenantId, candidateId, kind, message, data,
@@ -71,7 +109,7 @@ async function event(tenantId: any, candidateId: any, kind: string, message: str
  * The public form. One record per mobile: a repeat submission refreshes the profile and the
  * last-touch attribution (which ad brought them back) but never resets their stage.
  */
-export async function register(tenantId: string, body: any) {
+export async function register(tenantId: string, body: any, opts: { source?: 'ad' | 'website' } = {}) {
   const { values, errors } = validateRegistration(body);
   if (!values) throw new PlacementError(errors[0]);
   const attribution = sanitiseAttribution(body?.attribution);
@@ -86,7 +124,7 @@ export async function register(tenantId: string, body: any) {
     await event(tenantId, candidate._id, 'resubmitted', 'Submitted the form again', { utm: attribution?.last_touch });
   } else {
     candidate = await PlacementCandidate.create({
-      tenantId, ...values, source: 'ad', attribution: attribution ? mergeAttribution(undefined, attribution) : undefined,
+      tenantId, ...values, source: opts.source || 'ad', attribution: attribution ? mergeAttribution(undefined, attribution) : undefined,
       stage: 'registered', stageChangedAt: new Date(), portalToken: newPortalToken(),
     });
     await event(tenantId, candidate._id, 'submitted', 'Submitted the form', { utm: attribution?.first_touch });
@@ -108,7 +146,7 @@ export async function register(tenantId: string, body: any) {
 export async function list(tenantId: string, q: { stage?: string; source?: string; search?: string; page?: number; limit?: number }) {
   const filter: any = { tenantId };
   if (q.stage && (PLACEMENT_STAGES as readonly string[]).includes(q.stage)) filter.stage = q.stage;
-  if (q.source && ['ad', 'lms_push', 'manual'].includes(q.source)) filter.source = q.source;
+  if (q.source && ['ad', 'website', 'lms_push', 'manual'].includes(q.source)) filter.source = q.source;
   if (q.search) {
     const s = String(q.search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const re = { $regex: s, $options: 'i' };

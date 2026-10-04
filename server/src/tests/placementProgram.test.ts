@@ -15,7 +15,7 @@ jest.mock('../models/PlacementCandidate', () => {
 jest.mock('../models/PlacementEvent', () => ({ __esModule: true, default: { create: jest.fn(async (e: any) => { events.push(e); return e; }) } }));
 jest.mock('../services/purposeMessaging', () => ({ sendByPurpose: jest.fn(async () => ({ ok: false, error: 'No WhatsApp template is assigned' })) }));
 
-import { validateRegistration, register } from '../services/placementProgramService';
+import { validateRegistration, register, fromWebsiteForm } from '../services/placementProgramService';
 import { sendByPurpose } from '../services/purposeMessaging';
 
 beforeEach(() => { store.length = 0; events.length = 0; (sendByPurpose as jest.Mock).mockClear(); });
@@ -50,5 +50,36 @@ describe('register', () => {
     expect(r.returning).toBe(true);
     expect(store).toHaveLength(1);
     expect(store[0]).toMatchObject({ college: 'NEC', submissions: 2, stage: 'paid' });
+  });
+});
+
+describe('the placements-2026 website form', () => {
+  // Exactly what www.codebegun.com/placements-2026 posts to the website-lead endpoint.
+  const site = {
+    name: 'Ravi Kumar', phone: '9876543210', email: 'ravi@example.com', courseInterest: 'placement_support_2026',
+    message: 'Placement Support 2026 registration | College: JNTU Kakinada | Degree: B.Tech | Branch: CSE | Graduation year: 2026 | Role: Java Developer | Key skills: Java | SQL, React',
+  };
+
+  it('unpacks the message into registration fields', () => {
+    expect(fromWebsiteForm(site)).toMatchObject({
+      name: 'Ravi Kumar', mobile: '9876543210', email: 'ravi@example.com', college: 'JNTU Kakinada', degree: 'B.Tech',
+      branch: 'CSE', graduationYear: 2026, targetRole: 'Java Developer', skills: 'Java | SQL, React',
+    });
+  });
+
+  it('prefers fields sent on their own, drops a non-numeric year, and turns utm_* into a touch', () => {
+    const r = fromWebsiteForm({ ...site, college: 'AU', year: 'Below 2021', utm_source: 'facebook', fbclid: 'abc' }, '/placements-2026');
+    expect(r.college).toBe('AU');
+    expect(r.graduationYear).toBeUndefined();
+    expect(r.attribution).toEqual({
+      first_touch: { utm_source: 'facebook', fbclid: 'abc', landing_page: '/placements-2026' },
+      last_touch: { utm_source: 'facebook', fbclid: 'abc', landing_page: '/placements-2026' },
+    });
+  });
+
+  it('registers as a website candidate', async () => {
+    const r = await register('t1', fromWebsiteForm(site), { source: 'website' });
+    expect(r.portalToken).toBeTruthy();
+    expect(store[0]).toMatchObject({ source: 'website', college: 'JNTU Kakinada', graduationYear: 2026 });
   });
 });

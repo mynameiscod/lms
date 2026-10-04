@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { placementProgramApi, PlacementRegistration, errMsg } from '../../api/placementProgramApi';
 import './placementProgram.css';
@@ -104,4 +104,21 @@ const PlacementProgramRegister: React.FC = () => {
   );
 };
 
-export default PlacementProgramRegister;
+/** CodeBegun registers on its own website now; this form stays for other institutes (?tenant=<slug>). */
+const WEBSITE_FORM = 'https://www.codebegun.com/placements-2026';
+
+const PlacementProgramEntry: React.FC = () => {
+  const [params] = useSearchParams();
+  const tenant = (params.get('tenant') || 'codebegun').toLowerCase();
+  const toWebsite = tenant === 'codebegun';
+  useEffect(() => {
+    if (!toWebsite) return;
+    const rest = new URLSearchParams(window.location.search);
+    rest.delete('tenant');
+    const qs = rest.toString();
+    window.location.replace(WEBSITE_FORM + (qs ? `?${qs}` : ''));
+  }, [toWebsite]);
+  return toWebsite ? null : <PlacementProgramRegister />;
+};
+
+export default PlacementProgramEntry;

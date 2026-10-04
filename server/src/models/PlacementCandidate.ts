@@ -54,7 +54,7 @@ export interface IPlacementCandidate extends Document {
   targetRole?: string;
   city?: string;
 
-  source: 'ad' | 'lms_push' | 'manual';
+  source: 'ad' | 'website' | 'lms_push' | 'manual';
   attribution?: ICareerPilotAttribution;
   submissions: number;
 
@@ -114,7 +114,7 @@ const PlacementCandidateSchema = new Schema<IPlacementCandidate>({
   targetRole: { type: String, trim: true, default: '' },
   city: { type: String, trim: true, default: '' },
 
-  source: { type: String, enum: ['ad', 'lms_push', 'manual'], default: 'ad' },
+  source: { type: String, enum: ['ad', 'website', 'lms_push', 'manual'], default: 'ad' },
   attribution: { type: CareerPilotAttributionSchema, default: undefined },
   submissions: { type: Number, default: 1 },
 

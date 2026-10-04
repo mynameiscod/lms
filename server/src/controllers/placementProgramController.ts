@@ -20,7 +20,9 @@ const wrap = (fn: (req: Request, res: Response) => Promise<any>) => async (req: 
 export const publicRegister = wrap(async (req, res) => {
   const tenantId = await svc.resolveTenantId(req.query.tenant || req.body?.tenant);
   if (!tenantId) return res.status(400).json({ success: false, message: 'Unknown organisation.' });
-  const r = await svc.register(tenantId, req.body || {});
+  // A form on the marketing site (www.codebegun.com) rather than the platform's own page.
+  const fromWebsite = /^https:\/\/(www\.)?codebegun\.com$/i.test(String(req.headers.origin || ''));
+  const r = await svc.register(tenantId, req.body || {}, { source: fromWebsite ? 'website' : 'ad' });
   res.json({ success: true, data: { returning: r.returning, portalToken: r.portalToken } });
 });
 

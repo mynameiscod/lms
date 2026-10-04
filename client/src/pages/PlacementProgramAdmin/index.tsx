@@ -20,7 +20,7 @@ const EXP: Record<string, string> = { fresher: 'Fresher', '0-1': '< 1 yr', '1-3'
 const when = (d?: string) => (d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const adOf = (c: PlacementCandidate) => {
   const t = c.attribution?.last_touch || c.attribution?.first_touch;
-  if (!t) return c.source === 'lms_push' ? 'LMS student' : 'Direct';
+  if (!t) return c.source === 'lms_push' ? 'LMS student' : c.source === 'website' ? 'Website form' : 'Direct';
   return [t.utm_source || (t.fbclid ? 'facebook' : t.gclid ? 'google' : ''), t.utm_campaign].filter(Boolean).join(' · ') || 'Direct';
 };
 
@@ -201,7 +201,7 @@ const Detail: React.FC<{ id: string; onClose: () => void; onChanged: () => void 
 
             <h3>Where they came from</h3>
             <div className="ppa-box">
-              <div className="ppa-kv"><span>First ad</span><b>{touch ? [touch.utm_source, touch.utm_medium, touch.utm_campaign, touch.utm_content].filter(Boolean).join(' · ') || 'Direct' : (c.source === 'lms_push' ? 'LMS student' : 'Direct')}</b></div>
+              <div className="ppa-kv"><span>First ad</span><b>{touch ? [touch.utm_source, touch.utm_medium, touch.utm_campaign, touch.utm_content].filter(Boolean).join(' · ') || 'Direct' : (c.source === 'lms_push' ? 'LMS student' : c.source === 'website' ? 'Website form' : 'Direct')}</b></div>
               {last && last !== touch && <div className="ppa-kv"><span>Latest ad</span><b>{[last.utm_source, last.utm_campaign, last.utm_content].filter(Boolean).join(' · ') || 'Direct'}</b></div>}
               <div className="ppa-kv"><span>Submissions</span><b>{c.submissions}</b></div>
               <div className="ppa-kv"><span>Registered</span><b>{when(c.createdAt)}</b></div>
@@ -311,7 +311,7 @@ const PlacementProgramAdmin: React.FC = () => {
       <div className="ppa-filters">
         <input placeholder="Search name, mobile, email, college, campaign" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
         <select value={source} onChange={e => { setSource(e.target.value); setPage(1); }}>
-          <option value="">All sources</option><option value="ad">From ads</option><option value="lms_push">LMS students</option><option value="manual">Added manually</option>
+          <option value="">All sources</option><option value="ad">From ads</option><option value="website">Website form</option><option value="lms_push">LMS students</option><option value="manual">Added manually</option>
         </select>
       </div>
 

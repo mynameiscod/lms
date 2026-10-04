@@ -25,7 +25,7 @@ export interface PlacementTouch { utm_source?: string; utm_medium?: string; utm_
 export interface PlacementCandidate {
   _id: string; name: string; mobile: string; email?: string; college?: string; degree?: string; branch?: string;
   graduationYear?: number; experience?: string; skills?: string; targetRole?: string; city?: string;
-  source: 'ad' | 'lms_push' | 'manual'; stage: PlacementStage; stageChangedAt: string; submissions: number; createdAt: string;
+  source: 'ad' | 'website' | 'lms_push' | 'manual'; stage: PlacementStage; stageChangedAt: string; submissions: number; createdAt: string;
   attribution?: { first_touch?: PlacementTouch; last_touch?: PlacementTouch };
   fee?: { waived?: boolean; amountInr?: number; refundablePct?: number; status?: 'created' | 'paid' | 'refunded'; paidAt?: string; refund?: { amountInr: number; at: string; reason?: string } };
   agreement?: { version?: string; title?: string; sentAt?: string; signedAt?: string; signedName?: string; signedIp?: string; textHash?: string };

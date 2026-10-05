@@ -126,3 +126,18 @@
   .aori-hd { flex-direction: column; }
   .aori-item-top { gap: 8px; }
 }
+
+/* ── Link or upload, on one row ───────────────────────────────────────────────────────────
+   The URL box keeps its width and the button sits beside it, so the field still reads as the
+   one place the media lives — an upload fills it rather than replacing it. */
+.aori-media { display: flex; align-items: stretch; gap: 8px; }
+.aori-media .aori-url { flex: 1; min-width: 0; }
+.aori-upload { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 0 14px; border: 1px solid #C9D6E6; border-radius: 10px; background: #fff; color: #051D64; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.aori-upload:hover:not(.busy) { border-color: #051D64; background: #F7FAFC; }
+.aori-upload.busy { opacity: .7; cursor: default; }
+
+@media (max-width: 760px) {
+  /* A 14px button and a URL field cannot share 360px; the button goes full width underneath. */
+  .aori-media { flex-direction: column; }
+  .aori-upload { justify-content: center; padding: 10px 14px; }
+}

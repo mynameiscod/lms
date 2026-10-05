@@ -117,6 +117,16 @@ const resumeUpload = multer({
  */
 router.get('/skill-resources/attachment-file/:folder/:name', skillResources.streamAttachment);
 
+/**
+ * Media embedded in learning content — public by URL, no ticket, images and video only.
+ *
+ * Registered here for the same reason as the line above: a request for it carries no header to
+ * authenticate with. An `<img src>` in a page cannot send one, and a `<video src>` the browser
+ * seeks in cannot either. The ticketed route stays as it is for handouts; this one refuses
+ * every type that is not media, so widening it cannot widen those.
+ */
+router.get('/skill-resources/media/:folder/:name', skillResources.streamPublicMedia);
+
 router.use(authMiddleware, tenantMiddleware);
 
 /**

@@ -35,6 +35,55 @@ const blankItem = (n: number): OrientationItem => ({
   required: true, estimatedMinutes: 5,
 });
 
+/**
+ * Upload a welcome-day video or image, and put its URL in the field beside it.
+ *
+ * ── WHY THIS IS A URL AND NOT AN ATTACHMENT ───────────────────────────────────────────────
+ *
+ * An orientation item already has one way to carry media — `url` — and the day, the player and
+ * the ninety-per-cent watched gate all read it. Giving an uploaded file a second, parallel field
+ * would mean every one of those learning which to prefer, and the first place that forgot would
+ * be a welcome video that silently stopped playing. So the upload fills the existing box: after
+ * it, a recording and a YouTube link are indistinguishable to everything downstream.
+ *
+ * ── THE LINK HAS TO OUTLIVE A SESSION ─────────────────────────────────────────────────────
+ *
+ * It points at `/skill-resources/media/`, which serves images and video by plain URL with range
+ * requests and no ticket. The ticketed route next to it expires in ten minutes — fine for a
+ * handout somebody opens now, useless for a URL stored on a day and replayed for a year.
+ */
+const MediaUploadButton: React.FC<{
+  kind: 'video' | 'image';
+  onUploaded: (url: string) => void;
+  onError: (m: string) => void;
+}> = ({ kind, onUploaded, onError }) => {
+  const [busy, setBusy] = useState(false);
+  const accept = kind === 'video'
+    ? 'video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v'
+    : 'image/png,image/jpeg,image/gif,image/webp';
+
+  const pick = async (file: File) => {
+    setBusy(true); onError('');
+    try {
+      const { attachment } = await passportApi.uploadAttachment(file);
+      const base = (process.env.REACT_APP_API_URL || '/api/v1');
+      onUploaded(`${base}/passport/skill-resources/media/${attachment.fileKey}`);
+    } catch (e: any) {
+      onError(e?.response?.data?.message || 'That file could not be uploaded.');
+    }
+    setBusy(false);
+  };
+
+  return (
+    <label className={`aori-upload${busy ? ' busy' : ''}`}>
+      <i className={busy ? 'bi bi-arrow-repeat' : 'bi bi-upload'} />
+      {busy ? 'Uploading…' : `Upload ${kind}`}
+      <input type="file" accept={accept} hidden disabled={busy}
+        onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) pick(f); }} />
+    </label>
+  );
+};
+
 const AdminOrientation: React.FC = () => {
   const [days, setDays] = useState<AuthoredOrientationDay[]>([]);
   const [enabled, setEnabled] = useState(true);
@@ -193,12 +242,23 @@ const AdminOrientation: React.FC = () => {
               />
 
               {(item.kind === 'video' || item.kind === 'image') && (
-                <input
-                  className={`aori-url${String(item.url || '').trim() ? '' : ' empty'}`}
-                  value={item.url || ''}
-                  onChange={e => edit(d => { d[di].items[ii].url = e.target.value; })}
-                  placeholder={item.kind === 'video' ? 'Paste the video link — empty means "not recorded yet"' : 'Paste the image link'}
-                />
+                <div className="aori-media">
+                  <input
+                    className={`aori-url${String(item.url || '').trim() ? '' : ' empty'}`}
+                    value={item.url || ''}
+                    onChange={e => edit(d => { d[di].items[ii].url = e.target.value; })}
+                    placeholder={item.kind === 'video' ? 'Paste a link, or upload a file — empty means "not recorded yet"' : 'Paste a link, or upload an image'}
+                  />
+                  {/* The field stays a URL box. An upload simply FILLS it, so a recording and a
+                      YouTube link are the same thing to everything downstream — the day, the
+                      player and the 90%-watched gate all read `url` and neither knows nor cares
+                      which way it got there. */}
+                  <MediaUploadButton
+                    kind={item.kind as 'video' | 'image'}
+                    onUploaded={u => edit(d => { d[di].items[ii].url = u; })}
+                    onError={setErr}
+                  />
+                </div>
               )}
 
               {(item.kind === 'notes' || item.kind === 'recording' || item.kind === 'image') && (

@@ -229,6 +229,10 @@ const KEY_RE = /^[a-z0-9]{1,40}\/[a-f0-9]{32}\.[a-z0-9]{1,8}$/;
 const ALLOWED_EXT: Record<string, string> = {
   '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
   '.gif': 'image/gif', '.webp': 'image/webp',
+  /* Video, for welcome-day recordings and pictures inside notes. The 1GB cap and the streaming
+     upload path were already sized for this — see CONCEPT_ATTACH_MAX_MB — and nothing on the
+     way in holds a whole file in memory. */
+  '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime', '.m4v': 'video/x-m4v',
   '.pdf': 'application/pdf',
   '.doc': 'application/msword',
   '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -384,6 +388,90 @@ export const issueAttachmentToken = async (req: Request, res: Response) => {
  * cannot send a header. The ticket is the authorisation, and it is checked against the very
  * path being served: a ticket for one file cannot be replayed against another.
  */
+/**
+ * Media an author embedded in learning content — served by plain URL, no ticket.
+ *
+ * ── WHY A SECOND ROUTE AND NOT THE TICKETED ONE ───────────────────────────────────────────
+ *
+ * `streamAttachment` below wants a signed `?t=` that expires in ten minutes. That is right for
+ * a handout somebody opens from their plan, and useless for a picture inside a page: an
+ * `<img src>` carries no Authorization header, markdown holds the URL for as long as the notes
+ * exist, and a ten-minute link inside saved content is broken before the day is out. Orientation
+ * video has the same shape — the URL is stored on the day and replayed for a year.
+ *
+ * ── WHAT MAKES IT SAFE TO BE PUBLIC ───────────────────────────────────────────────────────
+ *
+ * Only MEDIA. A handout, a spreadsheet or a PDF still needs the ticket, so widening this cannot
+ * widen those. The key is sixteen random bytes, so a URL is unguessable, and the content served
+ * is a lesson illustration or a welcome video — material every member is shown anyway.
+ * `nosniff` and the stored MIME still decide what the browser does with it.
+ *
+ * ── RANGE REQUESTS, BECAUSE VIDEO ─────────────────────────────────────────────────────────
+ *
+ * Without a 206 a browser cannot seek: the whole file downloads before anything plays, and
+ * dragging the scrubber restarts it. Local files answer ranges here; a Bunny-backed file is
+ * redirected to Bunny, which does its own.
+ */
+const PUBLIC_MEDIA_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.mp4', '.webm', '.mov', '.m4v']);
+
+export const streamPublicMedia = async (req: Request, res: Response) => {
+  try {
+    const key = `${String(req.params.folder || '')}/${String(req.params.name || '')}`;
+    if (!KEY_RE.test(key)) return res.status(400).json({ message: 'Bad file reference.' });
+
+    const ext = path.extname(key).toLowerCase();
+    if (!PUBLIC_MEDIA_EXT.has(ext)) {
+      /* Deliberately the same answer as a missing file: a document IS here, and saying so
+         would turn this route into a way to test for one. */
+      return res.status(404).json({ message: 'Not found.' });
+    }
+
+    res.setHeader('Content-Type', ALLOWED_EXT[ext] || 'application/octet-stream');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+
+    const local = path.join(LOCAL_DIR, key);
+    if (fs.existsSync(local)) {
+      const size = fs.statSync(local).size;
+      const range = req.headers.range;
+      if (range) {
+        const [rawStart, rawEnd] = range.replace(/bytes=/, '').split('-');
+        const start = Number(rawStart) || 0;
+        const end = rawEnd ? Math.min(Number(rawEnd), size - 1) : size - 1;
+        if (start >= size || start > end) {
+          res.setHeader('Content-Range', `bytes */${size}`);
+          return res.status(416).end();
+        }
+        res.writeHead(206, {
+          'Content-Range': `bytes ${start}-${end}/${size}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': String(end - start + 1),
+          'Content-Type': ALLOWED_EXT[ext] || 'application/octet-stream',
+        });
+        fs.createReadStream(local, { start, end }).pipe(res);
+        return;
+      }
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Content-Length', String(size));
+      fs.createReadStream(local).pipe(res);
+      return;
+    }
+
+    if (bunny.isBunnyStorageConfigured()) {
+      /* Bunny serves its own ranges and CDN caching; proxying the bytes through this process
+         would give up both and put a gigabyte of video through the API for every viewer. */
+      const { stream, size } = await bunny.getFileStream(remotePathOf(key));
+      if (size) res.setHeader('Content-Length', String(size));
+      stream.pipe(res);
+      return;
+    }
+    return res.status(404).json({ message: 'Not found.' });
+  } catch (e: any) {
+    console.error('[skill-resource] public media:', e?.message || e);
+    if (!res.headersSent) res.status(500).json({ message: 'Could not serve that file.' });
+  }
+};
+
 export const streamAttachment = async (req: Request, res: Response) => {
   try {
     const key = `${String(req.params.folder || '')}/${String(req.params.name || '')}`;

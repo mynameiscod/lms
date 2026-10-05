@@ -431,7 +431,7 @@ const NotesField: React.FC<{
     try {
       const { attachment } = await passportApi.uploadAttachment(file);
       const base = (process.env.REACT_APP_API_URL || '/api/v1');
-      const src = `${base}/passport/skill-resources/attachment-file/${attachment.fileKey}`;
+      const src = `${base}/passport/skill-resources/media/${attachment.fileKey}`;
       const alt = attachment.fileName.replace(/\.[^.]+$/, '').replace(/[[\]]/g, '');
       const md = `\n\n![${alt}](${src})\n\n`;
       const el = ref.current;

@@ -22,6 +22,7 @@ router.put('/usage/:purpose', ctrl.assign);
 router.get('/broadcasts', ctrl.broadcasts);
 router.get('/messages', ctrl.messages);
 router.get('/batches', ctrl.batches);
+router.get('/lead-filters', ctrl.leadFilters);
 
 router.get('/', ctrl.list);
 router.post('/', ctrl.create);
@@ -31,5 +32,6 @@ router.put('/:id', ctrl.update);
 router.delete('/:id', ctrl.remove);
 router.post('/:id/test', ctrl.sendTest);
 router.post('/:id/broadcast', ctrl.broadcast);
+router.post('/:id/lead-audience', ctrl.leadAudience);
 
 export default router;

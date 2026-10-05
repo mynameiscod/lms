@@ -86,6 +86,8 @@ export interface OrderableContent {
   type: string;
   canonical?: boolean;
   createdAt?: Date | string;
+  /** An author's own position for this row on its unit's day. See LearningContentLibrary. */
+  unitOrder?: number | null;
 }
 
 /**
@@ -97,6 +99,21 @@ export interface OrderableContent {
  */
 export function inTeachingOrder<T extends OrderableContent>(rows: T[]): T[] {
   return [...rows].sort((a, b) => {
+    /*
+     * AN AUTHOR'S ORDER BEATS THE TYPE ORDER.
+     *
+     * Everything below is a rule about TYPES — video before notes, teaching before practice —
+     * and it is right for almost every day, which is why it stays the default. It cannot express
+     * "the notes set up this video" or "this second recording comes after the exercise", and an
+     * author who wanted that had nothing to say it with.
+     *
+     * Rows an author has not placed keep their type-ranked position AFTER the placed ones, so
+     * numbering two items on a day does not scramble the other three.
+     */
+    const ao = typeof a.unitOrder === 'number' ? a.unitOrder : Number.POSITIVE_INFINITY;
+    const bo = typeof b.unitOrder === 'number' ? b.unitOrder : Number.POSITIVE_INFINITY;
+    if (ao !== bo) return ao - bo;
+
     const byType = teachingRank(a.type) - teachingRank(b.type);
     if (byType) return byType;
 

@@ -103,6 +103,19 @@ export interface ILearningContentLibrary extends Document {
    * still serves by topic or by skill exactly as it does today. Nothing is migrated.
    */
   unitCode?: string;
+  /**
+   * Where this row sits on its unit's day, when an author has said.
+   *
+   * Absent is the normal state and means "use the teaching order" — video, then notes, then
+   * worked examples, then practice. That default is right for almost every day, which is why it
+   * is the default; but it is a RULE ABOUT TYPES, and an author who wants the notes read before
+   * the video, or the second video after the practice, had no way to say so.
+   *
+   * Set, it wins over the type ranking (see inTeachingOrder). Rows without it keep their
+   * type-ranked place after the ones that have it, so numbering some of a day's items does not
+   * scramble the rest.
+   */
+  unitOrder?: number;
 
   /**
    * WHO this version of the material is pitched at, which is not the same as how hard it is.
@@ -251,6 +264,7 @@ const LearningContentLibrarySchema = new Schema<ILearningContentLibrary>(
     skillKeys:            { type: [String], default: undefined },
     topicCode:            { type: String, trim: true },
     unitCode:             { type: String, trim: true, uppercase: true },
+    unitOrder:            { type: Number },
     learningDepth:        { type: String, enum: ['FOUNDATION', 'GUIDED', 'STANDARD', 'REVISION', 'CHALLENGE'] },
     difficultyLevel:      { type: Number, min: 1, max: 4 },
     applicableDirections: { type: [String], default: undefined },

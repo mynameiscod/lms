@@ -970,6 +970,57 @@ export const unitContent = async (req: Request, res: Response) => {
  * REFUSES A ROW ANOTHER UNIT ALREADY OWNS. Silently reassigning it would remove content from a
  * lesson nobody was looking at, and the author who lost it would have no way to find out why.
  */
+/**
+ * Put this unit's content in the order the author wants a student to meet it.
+ *
+ * ── WHY THIS EXISTS ───────────────────────────────────────────────────────────────────────
+ *
+ * The order was a rule about TYPES — video, notes, worked example, then practice. It is right
+ * for most days, and it cannot say "read the notes first, they set the video up" or "this second
+ * recording comes after the exercise". An author adding a second video watched it land at the
+ * bottom with no way to move it.
+ *
+ * ── WHAT IT WILL NOT REORDER ──────────────────────────────────────────────────────────────
+ *
+ * Quizzes and assignments are not here, deliberately. `activitiesFor` puts them after the
+ * teaching and marks the checkpoint as the thing that holds the day open; a checkpoint a student
+ * could meet before the lesson measures nobody. Only the teaching and practice rows move.
+ *
+ * ── EVERY ROW IS NUMBERED, NOT JUST THE MOVED ONE ─────────────────────────────────────────
+ *
+ * The list arrives whole and is written 0..n-1. Numbering only what moved would leave the rest
+ * on `undefined`, where they sort after everything placed — so moving one item to position two
+ * would silently send every unnumbered item below it.
+ */
+export const reorderUnitContent = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const unitCode = clean(req.params.unitCode, 80).toUpperCase();
+    const ids = Array.isArray(req.body?.contentIds) ? req.body.contentIds.map((i: any) => clean(i, 60)) : null;
+    if (!ids || !ids.length) return res.status(400).json({ message: 'contentIds must be a non-empty list.' });
+
+    /* Only rows that are actually on this unit. An id from another unit would otherwise be
+       given a position here and silently pulled onto this day. */
+    const own = await LearningContentLibrary.find({ tenantId, unitCode }).select('_id').lean() as any[];
+    const ownIds = new Set(own.map(r => String(r._id)));
+    const unknown = ids.filter((i: string) => !ownIds.has(i));
+    if (unknown.length) {
+      return res.status(400).json({ message: `${unknown.length} item(s) are not on this day.` });
+    }
+
+    await LearningContentLibrary.bulkWrite(
+      ids.map((id: string, i: number) => ({
+        updateOne: { filter: { tenantId, _id: id, unitCode }, update: { $set: { unitOrder: i } } },
+      })),
+      { ordered: false },
+    );
+    res.json({ reordered: ids.length });
+  } catch (e: any) {
+    console.error('[curriculum-unit] reorder content:', e?.message || e);
+    res.status(500).json({ message: e?.message || 'Could not reorder that day.' });
+  }
+};
+
 export const attachContent = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);

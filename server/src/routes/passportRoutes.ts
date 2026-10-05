@@ -475,6 +475,8 @@ router.post('/curriculum-units/:unitCode/status',   MANAGE, express.json(), lear
 router.get('/curriculum-units/:unitCode/content',    MANAGE, learningUnits2.unitContent);
 // Read-only: the day this unit gives a student, built as a journey day is built. Writes nothing.
 router.get('/curriculum-units/:unitCode/student-preview', MANAGE, learningUnits2.unitStudentPreview);
+/* Registered BEFORE the :contentId route below, or "reorder" is read as a content id. */
+router.post('/curriculum-units/:unitCode/content/reorder', MANAGE, express.json(), learningUnits2.reorderUnitContent);
 router.post('/curriculum-units/:unitCode/content/:contentId',   MANAGE, learningUnits2.attachContent);
 router.delete('/curriculum-units/:unitCode/content/:contentId', MANAGE, learningUnits2.detachContent);
 

@@ -188,3 +188,7 @@
 .acb-notes-tools { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 .acb-notes-tools .acb-btn { align-self: flex-start; cursor: pointer; }
 .acb-notes-tools .acb-btn.busy { opacity: .7; cursor: default; }
+
+/* Move up / move down sit with the other row actions and go quiet at the ends of the run. */
+.acb-i-act:disabled { opacity: .3; cursor: default; }
+.acb-i-act:disabled:hover { background: transparent; border-color: transparent; }

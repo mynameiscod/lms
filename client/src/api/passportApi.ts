@@ -363,6 +363,18 @@ export const passportApi = {
       {}, { headers: auth() });
     return r.data;
   },
+  /**
+   * The whole content list, in the order a student should meet it.
+   *
+   * Sent whole rather than as "move this one up": the server numbers every row, because leaving
+   * the unmoved ones unnumbered would send them all below the ones that have a position.
+   */
+  reorderUnitContent: async (unitCode: string, contentIds: string[]): Promise<{ reordered: number }> => {
+    const r = await axios.post(
+      `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/content/reorder`,
+      { contentIds }, { headers: auth() });
+    return r.data;
+  },
   detachUnitContent: async (unitCode: string, contentId: string): Promise<{ detached: boolean }> => {
     const r = await axios.delete(
       `${CP}/curriculum-units/${encodeURIComponent(unitCode)}/content/${encodeURIComponent(contentId)}`,

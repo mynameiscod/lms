@@ -136,6 +136,48 @@ const AdminContentBuilder: React.FC = () => {
   }, [rows, search]);
 
   const items: any[] = preview?.items || [];
+  /**
+   * The content rows' bounds within the day.
+   *
+   * Content comes first and assessment last, so the movable block is a contiguous run at the
+   * top — but the arrows are disabled by INDEX, and taking `0` and `items.length - 1` would let
+   * the last video try to swap with the checkpoint below it. These are the real edges of what
+   * may move.
+   */
+  const firstContent = items.findIndex(i => i.kind === 'content');
+  const lastContent = items.map(i => i.kind).lastIndexOf('content');
+  const [savingOrder, setSavingOrder] = useState(false);
+
+  /**
+   * Move one item a step, then send the WHOLE order.
+   *
+   * The server numbers every row from the list it is given, because numbering only what moved
+   * would leave the rest unplaced — and an unplaced row sorts after every placed one, so
+   * nudging the second item would silently drop the other three below it.
+   *
+   * The list is re-read afterwards rather than patched locally: the day's order is the server's
+   * answer, and a screen that computes its own version of it is the second source of truth this
+   * file keeps trying to grow.
+   */
+  const moveItem = async (index: number, delta: number) => {
+    if (!unit || savingOrder) return;
+    const target = index + delta;
+    if (target < firstContent || target > lastContent) return;
+    const content = items.filter(i => i.kind === 'content');
+    const from = content.findIndex(c => String(c.contentId) === String(items[index].contentId));
+    const to = content.findIndex(c => String(c.contentId) === String(items[target].contentId));
+    if (from < 0 || to < 0) return;
+    const next = [...content];
+    next.splice(to, 0, next.splice(from, 1)[0]);
+    setSavingOrder(true); setErr('');
+    try {
+      await passportApi.reorderUnitContent(unit.unitCode, next.map(c => String(c.contentId)));
+      await loadPreview(unit.unitCode);
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || 'Could not reorder that day.');
+    }
+    setSavingOrder(false);
+  };
   const unitXp = items.reduce((t, it) => t + (XP_BY_TYPE[it.contentType] ?? XP_BY_TYPE[it.kind] ?? 5), 0);
   const minutes = items.reduce((t, it) => t + (Number(it.estimatedDuration) || 0), 0);
 
@@ -221,11 +263,23 @@ const AdminContentBuilder: React.FC = () => {
   };
 
   /** A content row edits by name and length here; its body stays where that type is authored. */
-  const saveItem = async (patch: any) => {
+  const saveItem = async (patch: any, file: File | null = null) => {
     if (!editItem || !unit) return;
     setSaving(true); setErr('');
     try {
-      await learningContentLibraryApi.updateJson(String(editItem.contentId), patch);
+      /* A replacement file forces multipart, exactly as adding one does. Same endpoint, same
+         convention — the type goes in the query because the body is not parsed yet. */
+      if (file) {
+        const fd = new FormData();
+        Object.entries(patch).forEach(([k, v]) => {
+          if (v === undefined || v === null) return;
+          fd.append(k, Array.isArray(v) || typeof v === 'object' ? JSON.stringify(v) : String(v));
+        });
+        fd.append('videoFile', file);
+        await learningContentLibraryApi.update(String(editItem.contentId), fd, patch.type || editItem.contentType);
+      } else {
+        await learningContentLibraryApi.updateJson(String(editItem.contentId), patch);
+      }
       setEditItem(null);
       await loadPreview(unit.unitCode);
       say('Saved.');
@@ -372,6 +426,17 @@ const AdminContentBuilder: React.FC = () => {
                       <small>{prettyType(it.contentType)} · {it.estimatedDuration || 0} min{it.isGating ? ' · must be completed' : ''}</small>
                     </span>
                     <span className="acb-i-xp">+{xp} XP</span>
+                    {/* Move within the CONTENT only. A checkpoint sits last and holds the day
+                        open until it is done; one a student could meet before the lesson would
+                        measure nobody, so quizzes and assignments have no arrows. */}
+                    {it.kind === 'content' && (
+                      <>
+                        <button className="acb-i-act" disabled={savingOrder || i === firstContent}
+                          onClick={() => moveItem(i, -1)} title="Move up"><i className="bi bi-arrow-up" /></button>
+                        <button className="acb-i-act" disabled={savingOrder || i === lastContent}
+                          onClick={() => moveItem(i, 1)} title="Move down"><i className="bi bi-arrow-down" /></button>
+                      </>
+                    )}
                     {it.editPath
                       ? <a className="acb-i-act" href={it.editPath} title="Open the editor"><i className="bi bi-box-arrow-up-right" /></a>
                       : <button className="acb-i-act" onClick={() => setEditItem(it)} title="Edit"><i className="bi bi-pencil" /></button>}
@@ -741,7 +806,7 @@ const UnitDrawer: React.FC<{
 };
 
 /** One task on the day: its name, its length, and the link or notes it carries. */
-const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; onSave: (patch: any) => void }> = ({ item, saving, onClose, onSave }) => {
+const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; onSave: (patch: any, file: File | null) => void }> = ({ item, saving, onClose, onSave }) => {
   const [row, setRow] = useState<any>(null);
   const [loadErr, setLoadErr] = useState('');
   const [title, setTitle] = useState(item.contentTitle || '');
@@ -749,6 +814,10 @@ const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; on
   const [url, setUrl] = useState('');
   const [body, setBody] = useState('');
   const [problem, setProblem] = useState('');
+  /* Starts on whatever the row already is, so opening an uploaded video does not look like an
+     invitation to replace it with a link. */
+  const [videoMode, setVideoMode] = useState<'link' | 'upload'>('link');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -756,6 +825,7 @@ const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; on
         const r: any = await learningContentLibraryApi.getById(String(item.contentId));
         setRow(r); setTitle(r.title || ''); setMinutes(Number(r.estimatedDuration) || 0);
         setUrl(r.videoUrl || ''); setBody(r.notesContent || '');
+        setVideoMode(String(r.videoSource || '') === 'upload' ? 'upload' : 'link');
       } catch (e: any) { setLoadErr(e?.response?.data?.message || 'Could not open this item.'); }
     })();
   }, [item.contentId]);
@@ -767,21 +837,36 @@ const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; on
   }, [onClose, saving]);
 
   const type = String(row?.type || item.contentType || '');
-  const isVideoLink = type === 'video' && ['youtube', 'vimeo'].includes(String(row?.videoSource || ''));
+  /**
+   * EVERY video is editable here, not only a linked one.
+   *
+   * This was `videoSource is youtube or vimeo`, so an UPLOADED video fell through to "open the
+   * full editor" — the one kind of video you could add from this screen was the one kind you
+   * could not then change on it. A video is now always editable, and the mode starts on
+   * whichever the row already is.
+   */
+  const isVideo = type === 'video';
+  const isVideoLink = isVideo && ['youtube', 'vimeo'].includes(String(row?.videoSource || ''));
   const isRichNotes = ['notes', 'worked_example'].includes(type) && String(row?.notesSource || '') !== 'upload';
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) { setProblem('Give it a title.'); return; }
     const patch: any = { title: title.trim(), estimatedDuration: Number(minutes) || 0 };
-    if (isVideoLink) {
-      if (!VIDEO_LINK.test(url.trim())) { setProblem('Paste a YouTube or Vimeo link.'); return; }
-      patch.videoSource = /vimeo/i.test(url) ? 'vimeo' : 'youtube';
-      patch.videoUrl = url.trim();
+    if (isVideo) {
+      if (videoMode === 'upload') {
+        /* No new file means "leave the recording alone and just save the title or minutes",
+           which is the common edit — demanding a re-upload to rename something would be absurd. */
+        if (videoFile) patch.videoSource = 'upload';
+      } else {
+        if (!VIDEO_LINK.test(url.trim())) { setProblem('Paste a YouTube or Vimeo link.'); return; }
+        patch.videoSource = /vimeo/i.test(url) ? 'vimeo' : 'youtube';
+        patch.videoUrl = url.trim();
+      }
     }
     if (isRichNotes) { patch.notesSource = 'richtext'; patch.notesContent = body; }
     setProblem('');
-    onSave(patch);
+    onSave(patch, isVideo && videoMode === 'upload' ? videoFile : null);
   };
 
   return <div className="acb-drawer-back" onMouseDown={e => { if (e.target === e.currentTarget && !saving) onClose(); }}>
@@ -796,9 +881,34 @@ const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; on
         <label className="acb-field"><span>Title</span>
           <input value={title} autoFocus onChange={e => setTitle(e.target.value)} />
         </label>
-        {isVideoLink && <label className="acb-field"><span>YouTube or Vimeo link</span>
-          <input value={url} onChange={e => setUrl(e.target.value)} />
-        </label>}
+        {isVideo && <>
+          <div className="acb-seg" role="tablist" aria-label="Where the video comes from">
+            <button type="button" role="tab" aria-selected={videoMode === 'link'}
+              className={videoMode === 'link' ? 'on' : ''}
+              onClick={() => { setVideoMode('link'); setProblem(''); }}>
+              <i className="bi bi-link-45deg" /> Paste a link
+            </button>
+            <button type="button" role="tab" aria-selected={videoMode === 'upload'}
+              className={videoMode === 'upload' ? 'on' : ''}
+              onClick={() => { setVideoMode('upload'); setProblem(''); }}>
+              <i className="bi bi-upload" /> Upload a file
+            </button>
+          </div>
+          {videoMode === 'link' ? (
+            <label className="acb-field"><span>YouTube or Vimeo link</span>
+              <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" />
+            </label>
+          ) : (
+            <label className="acb-field"><span>Video file</span>
+              <input type="file" accept="video/*" onChange={e => { setVideoFile(e.target.files?.[0] || null); setProblem(''); }} />
+              {videoFile
+                ? <small className="acb-file-note">{videoFile.name} · {(videoFile.size / 1048576).toFixed(1)} MB</small>
+                : <small className="acb-hint">{row?.videoSource === 'upload'
+                  ? 'A recording is already on this item. Choose a file only to replace it.'
+                  : 'Choose a file to replace the link with a recording.'}</small>}
+            </label>
+          )}
+        </>}
         {isRichNotes && <NotesField value={body} onChange={setBody} onError={setProblem} />}
         <label className="acb-field short"><span>Minutes</span>
           <input type="number" min={0} max={180} value={minutes} onChange={e => setMinutes(Number(e.target.value))} />

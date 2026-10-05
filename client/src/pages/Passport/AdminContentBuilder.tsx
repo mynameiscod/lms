@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { CurriculumLearningUnit, DirectionCoverageReport, MegaCurriculumTopicRow, UnitStudentPreview } from '../../api/passportApi';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
@@ -150,16 +150,43 @@ const AdminContentBuilder: React.FC = () => {
   const say = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2600); };
 
   /** Create the row, bind it to this unit and publish it — the three steps an author always wants together. */
-  const addContent = async (body: any) => {
+  const addContent = async (body: any, file: File | null = null) => {
     if (!unit) return;
     setSaving(true); setErr('');
     try {
-      const created = await learningContentLibraryApi.createJson({
+      /* The unit decides the tagging either way — a row that reaches no unit is content the
+         composer cannot see, and an author adding something to a day has already said where
+         it goes. */
+      const owned = {
         ...body,
         topicTags: unit.topicCode ? [unit.topicCode] : [],
         topicCode: unit.topicCode,
         skillKeys: unit.skillKeys || [],
-      } as any);
+      };
+      /**
+       * A file forces multipart; everything else stays JSON.
+       *
+       * The endpoint accepts both and has from the start — `uploadMw` only runs for multipart,
+       * and the type goes in the QUERY because at that point the body has not been parsed and
+       * the middleware has no other way to know which fields to expect.
+       *
+       * Arrays are JSON-encoded because multipart has no array type. That is the convention the
+       * Content Library screen already uses against this same endpoint, and the server parses
+       * them back — sending them any other way produces a row whose skillKeys are the string
+       * "[object Object]" and which therefore matches nothing.
+       */
+      let created: any;
+      if (file) {
+        const fd = new FormData();
+        Object.entries(owned).forEach(([k, v]) => {
+          if (v === undefined || v === null) return;
+          fd.append(k, Array.isArray(v) || typeof v === 'object' ? JSON.stringify(v) : String(v));
+        });
+        fd.append('videoFile', file);
+        created = await learningContentLibraryApi.create(fd, owned.type);
+      } else {
+        created = await learningContentLibraryApi.createJson(owned as any);
+      }
       const id = String((created as any)._id);
       await passportApi.attachUnitContent(unit.unitCode, id);
       if (!(created as any).isPublished) await learningContentLibraryApi.togglePublish(id);
@@ -373,10 +400,77 @@ const AdminContentBuilder: React.FC = () => {
   </div>;
 };
 
+/**
+ * The notes editor, with image upload — used by BOTH drawers.
+ *
+ * Adding and editing notes are the same job done at two moments, and this screen already has a
+ * precedent for what happens when one idea grows two implementations: the one that gets fixed is
+ * whichever the author happened to open. So the textarea, the upload and the caret handling live
+ * here once.
+ *
+ * THE IMAGE IS A PLAIN MARKDOWN LINK. The attachment endpoint already existed for concept
+ * materials and takes exactly these types; the file it returns is served by a route registered
+ * BEFORE the auth middleware, deliberately, so a student reading the notes loads the picture
+ * without a token. Nothing in the player has to resolve anything.
+ *
+ * IT LANDS AT THE CURSOR. An author adding a diagram means it to sit with the paragraph that
+ * explains it; an image that always appends has to be cut and pasted into place every time.
+ */
+const NotesField: React.FC<{
+  value: string;
+  onChange: (v: string) => void;
+  onError: (m: string) => void;
+  rows?: number;
+  placeholder?: string;
+}> = ({ value, onChange, onError, rows = 10, placeholder }) => {
+  const ref = useRef<HTMLTextAreaElement | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const insert = async (file: File) => {
+    setBusy(true); onError('');
+    try {
+      const { attachment } = await passportApi.uploadAttachment(file);
+      const base = (process.env.REACT_APP_API_URL || '/api/v1');
+      const src = `${base}/passport/skill-resources/attachment-file/${attachment.fileKey}`;
+      const alt = attachment.fileName.replace(/\.[^.]+$/, '').replace(/[[\]]/g, '');
+      const md = `\n\n![${alt}](${src})\n\n`;
+      const el = ref.current;
+      const from = el ? el.selectionStart : value.length;
+      const to = el ? el.selectionEnd : value.length;
+      onChange(value.slice(0, from) + md + value.slice(to));
+      /* Caret after what was inserted, so typing continues below the image, not before it. */
+      requestAnimationFrame(() => {
+        if (!el) return;
+        el.focus();
+        const pos = from + md.length;
+        el.setSelectionRange(pos, pos);
+      });
+    } catch (e: any) {
+      onError(e?.response?.data?.message || 'That image could not be uploaded.');
+    }
+    setBusy(false);
+  };
+
+  return (
+    <label className="acb-field"><span>Notes</span>
+      <textarea ref={ref} rows={rows} value={value} placeholder={placeholder}
+        onChange={e => onChange(e.target.value)} />
+      <div className="acb-notes-tools">
+        <label className={`acb-btn ghost sm${busy ? ' busy' : ''}`}>
+          <i className={busy ? 'bi bi-arrow-repeat' : 'bi bi-image'} /> {busy ? 'Uploading…' : 'Insert image'}
+          <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" hidden disabled={busy}
+            onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) insert(f); }} />
+        </label>
+        <small className="acb-hint">PNG, JPG, GIF or WebP. It is placed where the cursor is.</small>
+      </div>
+    </label>
+  );
+};
+
 /** One drawer, one content type, only the fields that type needs. */
 const ContentDrawer: React.FC<{
   kind: Exclude<DrawerKind, null>; unitTitle: string; saving: boolean;
-  onClose: () => void; onSave: (body: any) => void;
+  onClose: () => void; onSave: (body: any, file: File | null) => void;
 }> = ({ kind, unitTitle, saving, onClose, onSave }) => {
   const meta = KIND_META[kind];
   const [title, setTitle] = useState('');
@@ -385,6 +479,16 @@ const ContentDrawer: React.FC<{
   const [body, setBody] = useState('');
   const [pairs, setPairs] = useState([{ question: '', answer: '' }]);
   const [problem, setProblem] = useState('');
+  /**
+   * A video is a LINK or a FILE, never both.
+   *
+   * The drawer only ever offered a link, and its own error message told the author to "use
+   * Upload a file" — a path that did not exist anywhere on this screen. The library model has
+   * carried `videoSource: 'upload'` and `videoFilePath` from the start, and the API has accepted
+   * multipart on this endpoint the whole time; only the form was missing.
+   */
+  const [videoMode, setVideoMode] = useState<'link' | 'upload'>('link');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !saving) onClose(); };
@@ -397,14 +501,17 @@ const ContentDrawer: React.FC<{
     if (!title.trim()) { setProblem('Give it a title.'); return; }
     const base: any = { title: title.trim(), type: kind, estimatedDuration: Number(minutes) || 0, isPublished: true };
     if (kind === 'video') {
-      if (!VIDEO_LINK.test(url.trim())) {
-        setProblem('Paste a YouTube or Vimeo link. For a file, use "Upload a file".'); return;
+      if (videoMode === 'upload') {
+        if (!videoFile) { setProblem('Choose a video file, or switch to a link.'); return; }
+        base.videoSource = 'upload';
+      } else {
+        if (!VIDEO_LINK.test(url.trim())) { setProblem('Paste a YouTube or Vimeo link.'); return; }
+        base.videoSource = /vimeo/i.test(url) ? 'vimeo' : 'youtube';
+        base.videoUrl = url.trim();
       }
-      base.videoSource = /vimeo/i.test(url) ? 'vimeo' : 'youtube';
-      base.videoUrl = url.trim();
     }
     if (kind === 'notes') {
-      if (!body.trim()) { setProblem('Write the notes, or use "Upload a file" for a PDF.'); return; }
+      if (!body.trim()) { setProblem('Write the notes, or insert an image.'); return; }
       base.notesSource = 'richtext';
       base.notesContent = body;
     }
@@ -421,7 +528,9 @@ const ContentDrawer: React.FC<{
       base.practiceQuestions = qs;
     }
     setProblem('');
-    onSave(base);
+    /* The file travels beside the body rather than inside it: the caller decides between a JSON
+       create and a multipart one, and only it knows which fields the unit contributes. */
+    onSave(base, kind === 'video' && videoMode === 'upload' ? videoFile : null);
   };
 
   const setPair = (i: number, k: 'question' | 'answer', v: string) =>
@@ -444,13 +553,35 @@ const ContentDrawer: React.FC<{
           <input value={title} autoFocus onChange={e => setTitle(e.target.value)} placeholder={`e.g. ${unitTitle} — ${meta.label.toLowerCase()}`} />
         </label>
 
-        {kind === 'video' && <label className="acb-field"><span>YouTube or Vimeo link</span>
-          <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" />
-        </label>}
+        {kind === 'video' && <>
+          <div className="acb-seg" role="tablist" aria-label="Where the video comes from">
+            <button type="button" role="tab" aria-selected={videoMode === 'link'}
+              className={videoMode === 'link' ? 'on' : ''}
+              onClick={() => { setVideoMode('link'); setProblem(''); }}>
+              <i className="bi bi-link-45deg" /> Paste a link
+            </button>
+            <button type="button" role="tab" aria-selected={videoMode === 'upload'}
+              className={videoMode === 'upload' ? 'on' : ''}
+              onClick={() => { setVideoMode('upload'); setProblem(''); }}>
+              <i className="bi bi-upload" /> Upload a file
+            </button>
+          </div>
+          {videoMode === 'link' ? (
+            <label className="acb-field"><span>YouTube or Vimeo link</span>
+              <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" />
+            </label>
+          ) : (
+            <label className="acb-field"><span>Video file</span>
+              <input type="file" accept="video/*" onChange={e => { setVideoFile(e.target.files?.[0] || null); setProblem(''); }} />
+              {videoFile && <small className="acb-file-note">{videoFile.name} · {(videoFile.size / 1048576).toFixed(1)} MB</small>}
+              <small className="acb-hint">MP4 plays everywhere. A large file takes a while to upload — the button stays on &ldquo;Adding…&rdquo; until it finishes.</small>
+            </label>
+          )}
+        </>}
 
-        {kind === 'notes' && <label className="acb-field"><span>Notes</span>
-          <textarea rows={10} value={body} onChange={e => setBody(e.target.value)} placeholder="Write the notes. Markdown and simple HTML both render." />
-        </label>}
+        {kind === 'notes' && <NotesField
+          value={body} onChange={setBody} onError={setProblem}
+          placeholder="Write the notes. Markdown and simple HTML both render." />}
 
         {usesPairs && <div className="acb-pairs">
           {pairs.map((p, i) => <div className="acb-pair" key={i}>
@@ -668,9 +799,7 @@ const ItemDrawer: React.FC<{ item: any; saving: boolean; onClose: () => void; on
         {isVideoLink && <label className="acb-field"><span>YouTube or Vimeo link</span>
           <input value={url} onChange={e => setUrl(e.target.value)} />
         </label>}
-        {isRichNotes && <label className="acb-field"><span>Notes</span>
-          <textarea rows={10} value={body} onChange={e => setBody(e.target.value)} />
-        </label>}
+        {isRichNotes && <NotesField value={body} onChange={setBody} onError={setProblem} />}
         <label className="acb-field short"><span>Minutes</span>
           <input type="number" min={0} max={180} value={minutes} onChange={e => setMinutes(Number(e.target.value))} />
         </label>

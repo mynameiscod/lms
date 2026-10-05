@@ -170,3 +170,21 @@
 @media (prefers-color-scheme: dark) {
   .acb-tabs button.on { border-color: #60a5fa; box-shadow: inset 0 -2px 0 #60a5fa; }
 }
+
+/* ── Link or file ─────────────────────────────────────────────────────────────────────────
+   A two-way segmented control, so the choice is visible before the author starts typing a URL
+   they then have to delete. */
+.acb-seg { display: flex; gap: 4px; padding: 4px; margin-bottom: 12px; border-radius: 11px; background: #EEF2F7; border: 1px solid #E1E7EF; }
+.acb-seg button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 8px; background: transparent; padding: 8px 10px; font: inherit; font-size: 13px; font-weight: 700; color: #5C6B80; cursor: pointer; }
+.acb-seg button.on { background: #fff; color: #051D64; box-shadow: 0 1px 3px rgba(15, 46, 77, .12); }
+.acb-seg button:hover:not(.on) { color: #051D64; }
+
+.acb-field input[type="file"] { font: inherit; font-size: 13px; color: #42536B; padding: 9px 0; }
+.acb-file-note { display: block; margin-top: 5px; font-size: 12px; font-weight: 700; color: #17885D; }
+.acb-hint { display: block; margin-top: 5px; font-size: 11.5px; line-height: 1.5; color: #7B8798; }
+
+/* ── Insert image ─────────────────────────────────────────────────────────────────────────
+   A <label> wrapping a hidden input, so it is keyboard reachable and still opens the picker. */
+.acb-notes-tools { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.acb-notes-tools .acb-btn { align-self: flex-start; cursor: pointer; }
+.acb-notes-tools .acb-btn.busy { opacity: .7; cursor: default; }

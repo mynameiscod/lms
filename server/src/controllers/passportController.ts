@@ -48,6 +48,34 @@ async function ensureConfig(tenantId: string) {
   return cfg;
 }
 
+/**
+ * Can each year the unit engine CAN serve actually serve it, on this tenant?
+ *
+ * The engine summary says which switch a stage is on; it cannot say whether that stage has a
+ * curriculum behind it. Switching a year on without one moves its students from a wrong roadmap
+ * to no roadmap, which is the mistake this exists to make impossible from the UI — the admin
+ * sees the published-unit count and the shortfall before touching the toggle, rather than
+ * discovering it from a student.
+ *
+ * One cheap count per stage. Never throws: readiness is advisory on a config screen, and a
+ * tenant whose counts cannot be read should still be able to edit its price.
+ */
+async function stageReadinessSummary(tenantId: string) {
+  const out: Record<string, any> = {};
+  await Promise.all(UNIT_ENGINE_STAGES.map(async (stage) => {
+    try {
+      const r = await foundationReadiness(tenantId, stage);
+      out[stage] = {
+        configured: r.configured, reason: r.reason,
+        publishedUnits: r.publishedUnits, message: r.message,
+      };
+    } catch (e: any) {
+      out[stage] = { configured: false, reason: 'UNKNOWN', publishedUnits: null, message: e?.message || 'could not be read' };
+    }
+  }));
+  return out;
+}
+
 /** Admin: read the Passport config (seeds defaults on first open). */
 export const getConfig = async (req: Request, res: Response) => {
   try {
@@ -59,6 +87,8 @@ export const getConfig = async (req: Request, res: Response) => {
       engine: describeEngineConfig(cfg as any),
       // Whether this tenant can actually serve the Foundation journey — provisioning, not a switch.
       foundation: await foundationReadiness(tenantId),
+      // Per-year, so the engine toggles can refuse a year with nothing behind it.
+      stageReadiness: await stageReadinessSummary(tenantId),
       platformEnabled: settings.getStr('PASSPORT_ENABLED', 'true', tenantId) !== 'false',
     });
   } catch (e: any) {
@@ -200,7 +230,12 @@ export const updateConfig = async (req: Request, res: Response) => {
       $set.paymentMode = wanted;
     }
     const cfg = await PassportConfig.findOneAndUpdate({ tenantId }, { $set }, { new: true });
-    res.json({ config: cfg, engine: describeEngineConfig(cfg as any), foundation: await foundationReadiness(tenantId) });
+    res.json({
+      config: cfg,
+      engine: describeEngineConfig(cfg as any),
+      foundation: await foundationReadiness(tenantId),
+      stageReadiness: await stageReadinessSummary(tenantId),
+    });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Failed to update config' });
   }

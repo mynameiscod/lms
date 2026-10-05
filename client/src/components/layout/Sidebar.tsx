@@ -196,13 +196,19 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     // ── CareerPilot (separate product) ──
     { label: 'CareerPilot Config', path: '/admin/passport/config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_passport'] },
     { label: 'CareerPilot Members', path: '/admin/passport/students', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-id-card-clip', permissions: ['view_passport_members', 'manage_passport'] },
-    { label: 'CareerPilot Missions', path: '/admin/passport/missions', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-bullseye', permissions: ['manage_passport'] },
+    /* FIVE ENTRIES WERE REMOVED FROM HERE, NOT FIVE SCREENS.
+       CareerPilot Missions, Learning Studio, Concept Bank, Career Stage Tagging and Paper
+       Designer each write to a store nothing reads any more: missions need an ACTIVE
+       CareerRoadmap and there are none, Concept Bank and Learning Studio feed that same dead
+       path, and the other two edit the legacy PassportAssessment that the personalised
+       assessment replaced. They opened, they looked like they worked, and an afternoon spent
+       in any of them changed nothing a student saw.
+       The ROUTES are left in place, so anyone who needs the legacy data can still reach them
+       by URL. Their replacements are Content Builder, Skills by Stage and Assessment Shape. */
     { label: 'Assessment Coverage', path: '/admin/passport/assessment-coverage', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-table-cells', permissions: ['manage_passport'] },
-    { label: 'Learning Studio', path: '/admin/passport/learning-studio', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-diagram-successor', permissions: ['manage_passport'] },
     { label: 'Content Builder', path: '/admin/passport/content-builder', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport'] },
     { label: 'Orientation', path: '/admin/passport/orientation', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-flag-checkered', permissions: ['manage_passport'] },
     { label: 'Mega Curriculum', path: '/admin/passport/mega-curriculum', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-calendar-days', permissions: ['manage_passport'] },
-    { label: 'Concept Bank', path: '/admin/passport/concepts', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-book-open-reader', permissions: ['manage_passport'] },
     { label: 'CareerPilot Coins', path: '/admin/passport/coins', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-coins', permissions: ['manage_passport'] },
     { label: 'CareerPilot Drop-off', path: '/admin/passport/funnel', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-line', permissions: ['view_passport_funnel'] },
     { label: 'CareerPilot Career Roles', path: '/admin/passport/career-roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-briefcase', permissions: ['manage_passport'] },
@@ -218,8 +224,6 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'CareerPilot Question Bank', path: '/admin/passport/question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-list-check', permissions: ['manage_passport'] },
     { label: 'CareerPilot News', path: '/admin/passport/news', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-newspaper', permissions: ['manage_passport'] },
     { label: 'Company Questions', path: '/admin/passport/companies', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-building', permissions: ['manage_passport'] },
-    { label: 'Career Stage Tagging', path: '/admin/careerpilot/staging', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport'] },
-    { label: 'Paper Designer', path: '/admin/careerpilot/paper-design', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_passport'] },
     { label: 'AI Spend', path: '/admin/ai-spend', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-indian-rupee-sign', permissions: ['manage_tenant_settings', 'manage_tenant'] },
     { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', moduleKey: 'mockInterviews', permissions: ['manage_interviews'] },
     { label: 'Scheduled Interviews', path: '/scheduled-interviews', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-check', permissions: ['manage_tenant_users', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },

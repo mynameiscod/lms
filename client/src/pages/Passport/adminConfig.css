@@ -140,3 +140,22 @@
   .cpc-year-name { grid-column: 1 / -1; }
   .cpc-year-lbl { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: #8B93A4; }
 }
+
+/* ── Which years are live ─────────────────────────────────────────────────────────────────
+   Reuses the per-year grid so the two panels read as one idea: the same four rows, priced and
+   lengthed above, switched on here. */
+.cpc-engine { margin-top: 14px; }
+.cpc-units { display: flex; flex-direction: column; gap: 2px; font-size: 14px; font-weight: 700; color: #0F172A; }
+.cpc-units em { font-style: normal; font-size: 11px; font-weight: 600; color: #B86B00; }
+.cpc-units.short { color: #B86B00; }
+.cpc-locked { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #6B7488; }
+.cpc-toggle { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; font-size: 13px; font-weight: 700; color: #0F172A; }
+.cpc-toggle input { width: 17px; height: 17px; accent-color: #051D64; cursor: pointer; flex: none; }
+.cpc-toggle.off { cursor: not-allowed; color: #98A1B0; }
+.cpc-toggle.off input { cursor: not-allowed; }
+
+@media (max-width: 720px) {
+  /* Same stacking as the price/length rows: the year names its own two values. */
+  .cpc-engine .cpc-year { grid-template-columns: 1fr 1fr; }
+  .cpc-engine .cpc-year-name { grid-column: 1 / -1; }
+}

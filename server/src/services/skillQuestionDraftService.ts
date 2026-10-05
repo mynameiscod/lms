@@ -5,6 +5,8 @@ import SkillEvidence from '../models/SkillEvidence';
 import RoleSkillBlueprint from '../models/RoleSkillBlueprint';
 import { findEvidenceCandidates } from './skillEvidenceService';
 import CareerSkill from '../models/CareerSkill';
+import StageSkillSet from '../models/StageSkillSet';
+import { CAREER_STAGES } from './careerStageService';
 import { aiComplete } from './aiGateway';
 
 /**
@@ -816,6 +818,10 @@ export interface RoleSkillCoverage {
 
 export interface RoleCoverage {
   roleKey: string;
+  /** What to show a person. Absent for a role, whose key reads well enough on its own. */
+  label?: string;
+  /** A target role, or a YEAR's skill set — the list used when a student names no role. */
+  kind?: 'ROLE' | 'STAGE';
   skills: RoleSkillCoverage[];
   /** Skills with no candidates at any difficulty. These are what blocks generation. */
   blocking: string[];
@@ -825,8 +831,20 @@ export async function assessmentCoverage(tenantId: string): Promise<{
   roles: RoleCoverage[];
   totals: { owned: number; borrowed: number; pending: number; skills: number; blockingSkills: number };
 }> {
-  const [blueprints, skills, drafts] = await Promise.all([
+  /**
+   * STAGE SKILL SETS COUNT TOO.
+   *
+   * This read role blueprints and nothing else, so a skill that lives only in a YEAR's skill set
+   * was invisible here — and that is the list a student is measured against whenever they answer
+   * "I'm not sure yet", plus the whole of the final year, where the paper is scoped to the union
+   * of role and stage. Fourteen Year-4 skills with no questions at all, and four aptitude skills
+   * with none anywhere, sat in that blind spot: the screen whose entire job is to show where a
+   * paper cannot be built was the one place they could not be seen. They had to be found with a
+   * script.
+   */
+  const [blueprints, stageSets, skills, drafts] = await Promise.all([
     RoleSkillBlueprint.find({ tenantId }).lean() as any,
+    StageSkillSet.find({ tenantId }).lean() as any,
     CareerSkill.find({}).select('key name').lean() as any,
     SkillQuestionDraft.aggregate([
       { $match: { tenantId, status: 'pending' } },
@@ -837,9 +855,13 @@ export async function assessmentCoverage(tenantId: string): Promise<{
   const nameOf = new Map((skills as any[]).map(s => [s.key, s.name]));
   const pendingOf = new Map(drafts.map((r: any) => [r._id, r.n]));
 
-  // Every skill any role needs, asked for once. Per-role queries would repeat most of them.
-  const allKeys = [...new Set((blueprints as any[]).flatMap((b: any) =>
-    (b.requirements || []).filter((r: any) => r.active !== false).map((r: any) => r.skillKey)))];
+  /* Every skill any role OR any year needs, asked for once. Per-group queries would repeat
+     most of them, and the two lists overlap heavily. */
+  const reqsOf = (holder: any) => (holder?.requirements || []).filter((r: any) => r.active !== false);
+  const allKeys = [...new Set([
+    ...(blueprints as any[]).flatMap(b => reqsOf(b).map((r: any) => r.skillKey)),
+    ...(stageSets as any[]).flatMap(st => reqsOf(st).map((r: any) => r.skillKey)),
+  ])];
 
   /**
    * One pass per difficulty rather than per skill. `findEvidenceCandidates` takes a set of
@@ -863,8 +885,10 @@ export async function assessmentCoverage(tenantId: string): Promise<{
 
   let tOwned = 0, tBorrowed = 0, tPending = 0, blockingSkills = 0;
 
-  const roles: RoleCoverage[] = (blueprints as any[]).map((b: any) => {
-    const reqs = (b.requirements || []).filter((r: any) => r.active !== false);
+  /* One builder for both kinds of group, so a role and a year can never be measured by
+     slightly different rules — the bug this whole function exists to prevent. */
+  const groupOf = (key: string, holder: any, kind: 'ROLE' | 'STAGE', label?: string): RoleCoverage => {
+    const reqs = reqsOf(holder);
     const rows: RoleSkillCoverage[] = reqs.map((r: any) => {
       const byDifficulty: Record<string, { owned: number; borrowed: number }> = {};
       let any = 0, hole = false;
@@ -885,7 +909,9 @@ export async function assessmentCoverage(tenantId: string): Promise<{
     });
 
     return {
-      roleKey: b.roleKey,
+      roleKey: key,
+      kind,
+      ...(label ? { label } : {}),
       skills: rows.sort((x, y) => {
         const tot = (z: RoleSkillCoverage) => COVERAGE_DIFFICULTIES
           .reduce((n, d) => n + z.byDifficulty[d].owned + z.byDifficulty[d].borrowed, 0);
@@ -894,7 +920,20 @@ export async function assessmentCoverage(tenantId: string): Promise<{
       blocking: rows.filter(z => COVERAGE_DIFFICULTIES
         .every(d => z.byDifficulty[d].owned + z.byDifficulty[d].borrowed === 0)).map(z => z.skillKey),
     };
-  });
+  };
+
+  const labelOfStage = (stage: string) =>
+    `${CAREER_STAGES.find(c => c.key === stage)?.label || stage} — no role chosen`;
+
+  /* Years first: a gap there affects everyone in that year, including every student who
+     answered "I'm not sure yet", where a gap in one role affects only those who chose it. */
+  const roles: RoleCoverage[] = [
+    ...(stageSets as any[])
+      .filter(st => reqsOf(st).length)
+      .sort((a, b) => CAREER_STAGES.findIndex(c => c.key === a.stage) - CAREER_STAGES.findIndex(c => c.key === b.stage))
+      .map(st => groupOf(String(st.stage), st, 'STAGE', labelOfStage(String(st.stage)))),
+    ...(blueprints as any[]).map((b: any) => groupOf(b.roleKey, b, 'ROLE')),
+  ];
 
   // Totals count each SKILL once, not once per role that needs it — roles overlap heavily
   // and summing per role would triple-count the same questions.

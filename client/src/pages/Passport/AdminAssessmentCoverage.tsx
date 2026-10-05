@@ -37,7 +37,10 @@ interface SkillRow {
   byDifficulty: Record<string, { owned: number; borrowed: number }>;
   hasHole: boolean;
 }
-interface RoleRow { roleKey: string; skills: SkillRow[]; blocking: string[] }
+/* `label` and `kind` arrive for a YEAR's skill set — the list a student is measured against
+   when they name no role. Roles have neither; their key reads well enough on its own. */
+interface RoleRow { roleKey: string; label?: string; kind?: 'ROLE' | 'STAGE'; skills: SkillRow[]; blocking: string[] }
+const nameOfGroup = (r: RoleRow) => r.label || r.roleKey.replace(/_/g, ' ');
 interface Totals { owned: number; borrowed: number; pending: number; skills: number; blockingSkills: number }
 
 /** What one generated question costs, for the warning below. Sonnet-class list pricing. */
@@ -170,9 +173,9 @@ const AdminAssessmentCoverage: React.FC = () => {
           {roles.map(r => (
             <button
               key={r.roleKey}
-              className={`ac-role${r.roleKey === role ? ' on' : ''}${r.blocking.length ? ' has-gap' : ''}`}
+              className={`ac-role${r.roleKey === role ? ' on' : ''}${r.blocking.length ? ' has-gap' : ''}${r.kind === 'STAGE' ? ' is-stage' : ''}`}
               onClick={() => setRole(r.roleKey)}>
-              {r.roleKey.replace(/_/g, ' ')}
+              {nameOfGroup(r)}
               {r.blocking.length > 0 && <em>{r.blocking.length}</em>}
             </button>
           ))}
@@ -219,7 +222,7 @@ const AdminAssessmentCoverage: React.FC = () => {
       {current && current.blocking.length > 0 && (
         <div className="ac-note bad">
           <b>{current.blocking.length} skill{current.blocking.length === 1 ? '' : 's'} have nothing at any difficulty.</b>
-          {' '}A paper for {current.roleKey.replace(/_/g, ' ')} cannot be generated while that is
+          {' '}A paper for {nameOfGroup(current)} cannot be generated while that is
           true. Either add questions, or deactivate the requirement on the role blueprint.
         </div>
       )}

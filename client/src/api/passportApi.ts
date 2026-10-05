@@ -96,6 +96,20 @@ export interface CurriculumEngineSummary {
   stages: { stage: string; label: string; mode: 'TOPIC' | 'UNIT' }[];
 }
 
+/**
+ * Whether each year the unit engine CAN serve actually has a curriculum on this tenant.
+ *
+ * The engine summary says which switch a year is on; it cannot say whether anything is behind
+ * it. Both are needed before a toggle is safe: switching on a year with no units moves its
+ * students from a wrong roadmap to no roadmap at all.
+ */
+export interface StageReadiness {
+  configured: boolean;
+  reason: string | null;
+  publishedUnits: number | null;
+  message: string | null;
+}
+
 /** One skill's share of the assessable pool. */
 export interface PoolCoverageRow {
   skillKey: string;
@@ -147,13 +161,23 @@ export interface DraftBatchReport {
 }
 
 export const passportApi = {
-  getConfig: async (): Promise<{ config: PassportConfig; platformEnabled: boolean; engine?: CurriculumEngineSummary; foundation?: FoundationReadiness }> => {
+  getConfig: async (): Promise<{ config: PassportConfig; platformEnabled: boolean; engine?: CurriculumEngineSummary; foundation?: FoundationReadiness; stageReadiness?: Record<string, StageReadiness> }> => {
     const { data } = await axios.get(`${BASE}/config`, { headers: auth() });
     return data;
   },
-  updateConfig: async (patch: Partial<PassportConfig>): Promise<PassportConfig> => {
+  /**
+   * Returns the whole envelope, not just the config.
+   *
+   * Saving the engine switches changes which engine every year resolves to, and the server is
+   * the only thing that knows the answer — capability is applied after the switches. Returning
+   * `config` alone meant the screen had to guess, or reload, to show what it had just done.
+   */
+  updateConfig: async (patch: Partial<PassportConfig>): Promise<{
+    config: PassportConfig; engine?: CurriculumEngineSummary;
+    foundation?: FoundationReadiness; stageReadiness?: Record<string, StageReadiness>;
+  }> => {
     const { data } = await axios.put(`${BASE}/config`, patch, { headers: auth() });
-    return data.config;
+    return data;
   },
   listStudents: async (search = ''): Promise<any[]> => {
     const { data } = await axios.get(`${BASE}/students`, { headers: auth(), params: { search } });

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import passportApi, { PassportConfig, CurriculumEngineSummary, FoundationReadiness, OnboardingField } from '../../api/passportApi';
+import passportApi, { PassportConfig, CurriculumEngineSummary, FoundationReadiness, StageReadiness, OnboardingField } from '../../api/passportApi';
 import AdminInterviewPlans from './AdminInterviewPlans';
 import LinesTextarea from '../../components/common/LinesTextarea';
 import './adminConfig.css';
@@ -63,6 +63,8 @@ const PassportAdminConfig: React.FC = () => {
   /** The engine each stage is on as the SERVER resolved it after the last save. */
   const [engine, setEngine] = useState<CurriculumEngineSummary | null>(null);
   const [foundation, setFoundation] = useState<FoundationReadiness | null>(null);
+  /** Per-year: has this stage got a curriculum behind it, and how many published units. */
+  const [stageReadiness, setStageReadiness] = useState<Record<string, StageReadiness>>({});
   /** Programme length and missions per day live on PassportContent; edited here anyway. */
   const [journeyDays, setJourneyDays] = useState(90);
   const [missionsPerDay, setMissionsPerDay] = useState(3);
@@ -91,6 +93,7 @@ const PassportAdminConfig: React.FC = () => {
       const mpd = content?.content?.missionsPerDay ?? 3;
       setCfg(r.config); setRows(loadedRows); setPlatformEnabled(r.platformEnabled);
       setEngine(r.engine || null); setFoundation(r.foundation || null);
+      setStageReadiness(r.stageReadiness || {});
       setJourneyDays(jd); setMissionsPerDay(mpd);
       setSnapshot(serialise(r.config, loadedRows, jd, mpd));
     } catch (e: any) { setMsg({ ok: false, text: e?.response?.data?.message || 'Failed to load' }); }
@@ -125,6 +128,13 @@ const PassportAdminConfig: React.FC = () => {
          */
         programDaysByStage: cfg.programDaysByStage || {},
         priceInrByStage: cfg.priceInrByStage || {},
+        /**
+         * Which years are on the unit engine. `megaCurriculumEnabled` is deliberately NOT sent:
+         * it moves every stage at once, including ones added later and ones with no content, and
+         * nothing on this screen should be able to do that by accident. Years are chosen one at
+         * a time, below.
+         */
+        megaCurriculumStages: cfg.megaCurriculumStages || [],
         entitlements: cfg.entitlements,
         registrationOpensAt: cfg.registrationOpensAt || null,
         registrationClosesAt: cfg.registrationClosesAt || null,
@@ -132,11 +142,16 @@ const PassportAdminConfig: React.FC = () => {
         // New rows go without a key: the server names them from their label.
         onboardingFields: rows.map(({ _id, ...f }, i) => ({ ...f, key: f.key || (undefined as any), order: i + 1 })),
       });
-      const savedRows = toRows(saved.onboardingFields);
-      setCfg(saved); setRows(savedRows); setEditing(null);
-      setSnapshot(serialise(saved, savedRows, journeyDays, missionsPerDay));
-      const fresh = await passportApi.getConfig().catch(() => null);
-      if (fresh) { setEngine(fresh.engine || null); setFoundation(fresh.foundation || null); }
+      /* The save already answers with the resolved engine and readiness — capability is applied
+         server-side after the switches, so this screen must never work out for itself what a
+         year resolved to. It used to re-GET for that; one round trip is enough. */
+      const savedCfg = saved.config;
+      const savedRows = toRows(savedCfg.onboardingFields);
+      setCfg(savedCfg); setRows(savedRows); setEditing(null);
+      setSnapshot(serialise(savedCfg, savedRows, journeyDays, missionsPerDay));
+      if (saved.engine) setEngine(saved.engine);
+      if (saved.foundation) setFoundation(saved.foundation);
+      if (saved.stageReadiness) setStageReadiness(saved.stageReadiness);
       setMsg({ ok: true, text: 'Saved.' });
     } catch (e: any) {
       const errors: string[] = e?.response?.data?.errors || [];
@@ -336,6 +351,64 @@ const PassportAdminConfig: React.FC = () => {
                 {engine.stages.map(s => <span key={s.stage} className={`cpc-chip${s.mode === 'UNIT' ? ' unit' : ''}`}>{s.label}: {s.mode}</span>)}
               </div>
             )}
+
+            {/* ── Which years are live ─────────────────────────────────────────
+              * These three fields have been on PassportConfig and validated by the API since the
+              * unit engine shipped, and NOTHING rendered them. A tenant could hold four years of
+              * published curriculum and still serve every second-, third- and final-year the old
+              * topic roadmap, because the last step was a config write no screen could make.
+              * That is not hypothetical: it is what happened in production, and it took a
+              * mongosh one-liner to undo.
+              *
+              * Foundation has no toggle because it has no choice — every first-year is planned by
+              * the unit engine, always. A year with no curriculum is refused here rather than
+              * allowed and then explained to a student, because switching it on would move that
+              * year from a wrong roadmap to no roadmap at all. */}
+            {engine && (
+              <div className="cpc-years cpc-engine">
+                <div className="cpc-years-hd"><span>Year</span><span>Published units</span><span>Planned by</span></div>
+                {engine.stages.filter(st => engine.unitCapableStages.includes(st.stage)).map(st => {
+                  const ready = stageReadiness[st.stage];
+                  const mandatory = st.stage === 'foundation';
+                  const on = (cfg.megaCurriculumStages || []).includes(st.stage);
+                  const blocked = !mandatory && ready && !ready.configured;
+                  return (
+                    <div key={st.stage} className="cpc-year">
+                      <span className="cpc-year-name">
+                        <b>{st.label}</b>
+                        <small>{mandatory ? 'Always on — every first-year is planned by units' : st.mode === 'UNIT' ? 'Their curriculum' : 'The old topic roadmap'}</small>
+                      </span>
+                      <span className={`cpc-units${blocked ? ' short' : ''}`}>
+                        {ready?.publishedUnits ?? '—'}
+                        {blocked && <em>not enough to compose</em>}
+                      </span>
+                      {mandatory ? (
+                        <span className="cpc-locked"><i className="bi bi-lock-fill" /> Units</span>
+                      ) : (
+                        <label className={`cpc-toggle${blocked ? ' off' : ''}`} title={blocked ? (ready?.message || '') : undefined}>
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            disabled={!!blocked}
+                            onChange={e => {
+                              const next = new Set(cfg.megaCurriculumStages || []);
+                              if (e.target.checked) next.add(st.stage); else next.delete(st.stage);
+                              set({ megaCurriculumStages: [...next] });
+                            }}
+                          />
+                          <span>{on ? 'Their curriculum' : 'Topic roadmap'}</span>
+                        </label>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <p className="cpc-years-note">
+              Turning a year on plans everyone in it from that year&apos;s curriculum. It does not rewrite a
+              plan somebody already has — those change when the student next triggers a recomposition.
+              A year with too few published units cannot be switched on; publish its curriculum first.
+            </p>
           </section>
 
           {/* ── Per-year price and length ───────────────────────────────────────

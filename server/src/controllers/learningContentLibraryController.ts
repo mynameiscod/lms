@@ -468,6 +468,8 @@ export const streamVideo = async (req: Request, res: Response) => {
         'Accept-Ranges': 'bytes',
         'Content-Length': chunkSize,
         'Content-Type': mimeType,
+        /* See the 200 branch below: a <video> on another origin is refused without this. */
+        'Cross-Origin-Resource-Policy': 'cross-origin',
       });
       fs.createReadStream(filePath, { start, end }).pipe(res);
     } else {
@@ -475,6 +477,14 @@ export const streamVideo = async (req: Request, res: Response) => {
         'Content-Length': fileSize,
         'Content-Type': mimeType,
         'Accept-Ranges': 'bytes',
+        /**
+         * Helmet sets `Cross-Origin-Resource-Policy: same-origin` on everything, which is right
+         * for an API and wrong for a file whose only job is to be the `src` of a <video>: the
+         * browser fetches it, sees the header and refuses to USE it. There is no error — just a
+         * black player stuck at 0:00 next to a 200 in the network tab. It bites whenever the page
+         * and the API are different origins, which they are in development.
+         */
+        'Cross-Origin-Resource-Policy': 'cross-origin',
       });
       fs.createReadStream(filePath).pipe(res);
     }

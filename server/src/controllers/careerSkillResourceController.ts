@@ -429,6 +429,24 @@ export const streamPublicMedia = async (req: Request, res: Response) => {
     res.setHeader('Content-Type', ALLOWED_EXT[ext] || 'application/octet-stream');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    /**
+     * EMBEDDABLE FROM ANOTHER ORIGIN — which is the entire point of this route.
+     *
+     * Helmet sets `Cross-Origin-Resource-Policy: same-origin` on everything, and that is right
+     * for an API. It is wrong for a file whose only job is to be the `src` of an `<img>` or a
+     * `<video>`: the browser fetches it, sees the header, and refuses to USE it. The symptom is
+     * not an error anywhere — it is a black video player stuck at 0:00 and an image that never
+     * appears, with a 200 in the network tab.
+     *
+     * It bites wherever the page and the API are different origins: in development the client is
+     * on :3000 and the API on :5000, and it would bite again if these were ever served from a
+     * CDN or a separate media host.
+     *
+     * Only this route is relaxed. The ticketed attachment route beside it keeps `same-origin`,
+     * because a handout is downloaded by the page that asked for it rather than embedded by
+     * anything else.
+     */
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
 
     const local = path.join(LOCAL_DIR, key);
     if (fs.existsSync(local)) {

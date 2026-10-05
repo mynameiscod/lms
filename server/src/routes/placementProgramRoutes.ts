@@ -46,7 +46,7 @@ router.use(authMiddleware, tenantMiddleware);
 router.get('/bookings/mine', ctrl.myBookings);
 router.post('/bookings/:bookingId/outcome', ctrl.bookingOutcome);
 router.get('/scorecard-criteria', ctrl.scorecardCriteria);
-router.use(roleGuard(['manage_placement', 'manage_tenant']));
+router.use(roleGuard(['manage_placement_program', 'manage_placement', 'manage_tenant']));
 router.get('/config', ctrl.getConfig);
 router.put('/config', ctrl.saveConfig);
 router.get('/interviewers', ctrl.listInterviewers);

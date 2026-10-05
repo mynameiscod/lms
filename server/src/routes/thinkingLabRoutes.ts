@@ -39,7 +39,7 @@ router.post('/:id/journal', ctrl.saveJournal);
 router.post('/:id/explain', ctrl.explain);
 
 // Admin / instructor — question bank
-const adminGuard = roleGuard(['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
+const adminGuard = roleGuard(['manage_thinking_lab', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
 router.get('/admin/meta', adminGuard, ctrl.meta);
 router.get('/admin/problems', adminGuard, ctrl.listProblems);
 router.post('/admin/generate', adminGuard, ctrl.generateProblems);

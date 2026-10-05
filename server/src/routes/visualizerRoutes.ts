@@ -11,7 +11,7 @@ import * as ctrl from '../controllers/visualizerController';
 const router = express.Router();
 router.use(authMiddleware, tenantMiddleware);
 
-const adminGuard = roleGuard(['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
+const adminGuard = roleGuard(['manage_visualizer', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
 
 // Admin — content
 router.get('/admin/items', adminGuard, ctrl.adminListItems);

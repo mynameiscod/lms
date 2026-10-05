@@ -38,7 +38,7 @@ const attachUpload = multer({
 });
 
 // Admin / placement team only (admins inherit all permissions).
-const guard = roleGuard(['manage_leads', 'manage_tenant']);
+const guard = roleGuard(['manage_placement_partners', 'manage_leads', 'manage_tenant']);
 
 router.use(authMiddleware, tenantResolver, guard);
 

@@ -20,7 +20,7 @@ const upload = multer({
   }),
   limits: { fileSize: 1100 * 1024 * 1024 }, // ~1 GB per file
 });
-const ADMIN = roleGuard(['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
+const ADMIN = roleGuard(['manage_resources', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
 
 router.use(authMiddleware, tenantMiddleware);
 

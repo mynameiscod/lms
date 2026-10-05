@@ -10,6 +10,7 @@ import { resolveLabDay } from '../services/labTrackService';
 import CommunicationAttempt from '../models/CommunicationAttempt';
 import CommunicationStreak from '../models/CommunicationStreak';
 import User from '../models/User';
+import { allowedByRoleOrPermission } from '../middleware/roleGuard';
 import * as bunny from '../services/bunnyStorageService';
 import { transcribeFile } from '../services/speakingService';
 import { evaluateIntroduction, computeSpeechMetrics, generateTemplate } from '../services/communicationEvalService';
@@ -23,7 +24,8 @@ import * as settings from '../services/settingsService';
 const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
 const role = (req: Request) => (req as any).user?.role as string;
-const isAdminish = (req: Request) => ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'].includes(role(req));
+const isAdminish = (req: Request) =>
+  allowedByRoleOrPermission((req as any).user, ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], ['manage_communication_lab', 'manage_tenant']);
 
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const validDate = (s: any) => (typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ymd(new Date()));
@@ -346,7 +348,7 @@ export const getAttempt = async (req: Request, res: Response) => {
   try {
     const a = await CommunicationAttempt.findOne({ _id: req.params.id, tenantId: tId(req) }).select('-recordingKey').lean();
     if (!a) return res.status(404).json({ message: 'Not found' });
-    if (!isAdminish(req) && String((a as any).studentId) !== uId(req)) return res.status(403).json({ message: 'Forbidden' });
+    if (!(await isAdminish(req)) && String((a as any).studentId) !== uId(req)) return res.status(403).json({ message: 'Forbidden' });
     res.json({ attempt: a });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
@@ -355,7 +357,7 @@ export const playRecording = async (req: Request, res: Response) => {
   try {
     const a = await CommunicationAttempt.findOne({ _id: req.params.id, tenantId: tId(req) }).select('recordingKey studentId recordingType').lean();
     if (!a) return res.status(404).json({ message: 'Not found' });
-    if (!isAdminish(req) && String((a as any).studentId) !== uId(req)) return res.status(403).json({ message: 'Forbidden' });
+    if (!(await isAdminish(req)) && String((a as any).studentId) !== uId(req)) return res.status(403).json({ message: 'Forbidden' });
     const { stream } = await bunny.getFileStream((a as any).recordingKey);
     res.setHeader('Content-Type', (a as any).recordingType === 'audio' ? 'audio/webm' : 'video/webm');
     stream.on('error', () => { if (!res.headersSent) res.status(502).end(); });
@@ -598,7 +600,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
       return res.json({ enabled: false, rows: [], me: null });
     }
     let batchId = req.query.batchId ? String(req.query.batchId) : undefined;
-    if (!isAdminish(req)) { const me: any = await User.findById(uId(req)).select('batchId').lean(); batchId = me?.batchId ? String(me.batchId) : undefined; }
+    if (!(await isAdminish(req))) { const me: any = await User.findById(uId(req)).select('batchId').lean(); batchId = me?.batchId ? String(me.batchId) : undefined; }
     const { rows, me } = await computeLeaderboard(tenantId, uId(req), batchId);
     res.json({ enabled: true, rows, me });
   } catch (err: any) { res.status(500).json({ message: err.message }); }

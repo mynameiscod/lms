@@ -9,7 +9,7 @@ import * as ctrl from '../controllers/whatsAppTemplateController';
  * Tenant settings territory: templates go out under the institute's WhatsApp number.
  */
 const router = express.Router();
-router.use(authMiddleware, tenantMiddleware, roleGuard(['manage_tenant_settings', 'manage_tenant']));
+router.use(authMiddleware, tenantMiddleware, roleGuard(['manage_whatsapp_templates', 'manage_tenant_settings', 'manage_tenant']));
 
 router.get('/connection', ctrl.getConnection);
 router.put('/connection', ctrl.saveConnection);

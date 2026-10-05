@@ -13,7 +13,7 @@ import * as apiClients from '../controllers/apiClientController';
  * Static routes are declared before `/:id` so they are never captured as an id.
  */
 const router = express.Router();
-router.use(authMiddleware, tenantResolver, roleGuard(['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']));
+router.use(authMiddleware, tenantResolver, roleGuard(['manage_problem_bank', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']));
 
 router.get('/meta', ctrl.meta);
 router.get('/import/template', ctrl.importTemplate);

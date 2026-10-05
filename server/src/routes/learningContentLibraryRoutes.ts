@@ -111,7 +111,7 @@ router.use(tenantMiddleware);
 // The library is staff authoring: rows carry hidden grader tests and drafts, so students neither read nor write it here.
 // Learners receive content only through their day plans, which strip grading material. Recording an interview answer
 // (a student flow) still needs a Bunny upload slot, so that route stays open to any authenticated member.
-const AUTHOR = roleGuard(['create_courses', 'edit_courses', 'manage_own_courses']);
+const AUTHOR = roleGuard(['manage_learning_plans', 'create_courses', 'edit_courses', 'manage_own_courses']);
 
 // Tags (for filter dropdowns)
 router.get('/tags/topics',  AUTHOR, ctrl.getTopicTags);

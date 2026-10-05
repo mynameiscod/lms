@@ -21,8 +21,8 @@ const wrap = (fn: (req: Request, res: Response) => Promise<any>) => async (req: 
   }
 };
 
-const staff = roleGuard(['manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses']);
-const admin = roleGuard(['manage_tenant', 'manage_tenant_settings']);
+const staff = roleGuard(['manage_practice_pass', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses']);
+const admin = roleGuard(['manage_practice_pass', 'manage_tenant', 'manage_tenant_settings']);
 
 router.get('/me', wrap((req) => svc.myPractice(t(req), u(req))));
 

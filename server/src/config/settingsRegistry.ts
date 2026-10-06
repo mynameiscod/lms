@@ -145,6 +145,9 @@ export const SETTING_DEFS: SettingDef[] = [
     help: 'How long a student waits for a free execution slot before being told the sandbox is busy. A queue is a slope; a rejection is a cliff — prefer waiting to failing.' },
 
   { key: 'META_APP_SECRET', label: 'Meta App Secret', group: 'messaging', isSecret: true, type: 'password', help: 'Used to verify Meta Lead Ads webhook signatures.' },
+  { key: 'WHATSAPP_APP_SECRET', label: 'WhatsApp App Secret', group: 'messaging', isSecret: true, type: 'password', help: 'App secret of the Meta app that sends WhatsApp webhooks. Leave blank if it is the same app as Lead Ads (META_APP_SECRET is used).' },
+  { key: 'WHATSAPP_WEBHOOK_SIGNATURE', label: 'WhatsApp webhook signature check', group: 'messaging', type: 'text', placeholder: 'log',
+    help: '"log" (default) checks Meta\'s signature and only logs a mismatch; "enforce" rejects unsigned or forged calls; "off" skips it. Switch to "enforce" once the server log shows no "signature mismatch" for real replies.' },
   { key: 'META_LEAD_VERIFY_TOKEN', label: 'Meta Lead Webhook Verify Token', group: 'messaging', type: 'text' },
   { key: 'PAGE_ACCESS_TOKEN', label: 'Meta Page Access Token', group: 'messaging', isSecret: true, type: 'password' },
 

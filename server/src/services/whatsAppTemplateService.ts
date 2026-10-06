@@ -9,6 +9,7 @@ import WhatsAppMessageLog from '../models/WhatsAppMessageLog';
 import * as settings from './settingsService';
 import { getWhatsAppCredentialCandidates, waPost, normalizeTo } from './assessmentOtpService';
 import { recordSend } from './whatsAppDeliveryService';
+import { recordOutbound, renderTemplateBody } from './whatsAppChatStore';
 import { WA_TEMPLATE_PURPOSES, WaTemplatePurpose, getPurpose } from '../config/whatsappTemplatePurposes';
 import { templateShape, buildSendComponents, varIndexes } from './whatsAppTemplateShape';
 
@@ -529,6 +530,12 @@ export async function sendTemplateTo(
   await recordSend({
     tenantId, to, templateName: t.name, templateId: t._id,
     source: opts.log?.source || 'system', broadcastId: opts.log?.broadcastId, sentBy: opts.log?.sentBy, result,
+  });
+  // …and in the person's conversation, so the Chat tab shows what they were sent.
+  await recordOutbound(tenantId, to, {
+    kind: 'template', templateName: t.name, wamid: result.messageId, ok: result.ok, error: result.error,
+    body: [t.header?.format === 'TEXT' ? t.header.text : '', renderTemplateBody(t.body, opts.body || [])].filter(Boolean).join('\n'),
+    sentBy: opts.log?.sentBy, source: opts.log?.source || 'system',
   });
   return result;
 }

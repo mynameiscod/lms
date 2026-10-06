@@ -109,6 +109,7 @@ import assessmentItemRoutes from './assessmentItemRoutes';
 import assessmentCandidatesRoutes from './assessmentCandidatesRoutes';
 import systemSettingsRoutes from './systemSettingsRoutes';
 import whatsAppTemplateRoutes from './whatsAppTemplateRoutes';
+import whatsAppChatRoutes from './whatsAppChatRoutes';
 import problemBankRoutes from './problemBankRoutes';
 import codingPracticeRoutes from './codingPracticeRoutes';
 import externalApiRoutes from './externalApiRoutes';
@@ -199,6 +200,7 @@ router.use('/code-snippets', codeSnippetRoutes);
 router.use('/share', shareRoutes);
 router.use('/stage-history', leadStageHistoryRoutes);
 router.use('/whatsapp', whatsappRoutes);
+router.use('/whatsapp-chat', whatsAppChatRoutes); // read & answer a person's WhatsApp conversation
 router.use('/follow-ups', followUpRoutes);
 router.use('/seat-reservations', seatReservationRoutes);
 router.use('/lead-priority', leadPriorityRoutes);

@@ -8,6 +8,9 @@ import PlacementInterviews from './Interviews';
 import PlacementBoard from './Board';
 import ScorecardModal from './ScorecardModal';
 import { AddStudentsModal, StageMessageModal } from './Growth';
+import ChatPanel from '../../components/WhatsAppChat/ChatPanel';
+import { whatsAppChatApi, canChat } from '../../api/whatsAppChatApi';
+import { useAuth } from '../../contexts/AuthContext';
 import './placementProgramAdmin.css';
 
 /**
@@ -24,7 +27,10 @@ const adOf = (c: PlacementCandidate) => {
   return [t.utm_source || (t.fbclid ? 'facebook' : t.gclid ? 'google' : ''), t.utm_campaign].filter(Boolean).join(' · ') || 'Direct';
 };
 
-const Detail: React.FC<{ id: string; onClose: () => void; onChanged: () => void }> = ({ id, onClose, onChanged }) => {
+const Detail: React.FC<{ id: string; onClose: () => void; onChanged: () => void; unread?: number }> = ({ id, onClose, onChanged, unread }) => {
+  const { user } = useAuth();
+  const chatAllowed = canChat(user as any);
+  const [view, setView] = useState<'details' | 'chat'>('details');
   const [data, setData] = useState<{ candidate: PlacementCandidate & { hasPortal?: boolean }; events: PlacementEvent[]; bookings: Booking[] } | null>(null);
   const [copied, setCopied] = useState('');
   const [scoring, setScoring] = useState<Booking | null>(null);
@@ -89,6 +95,16 @@ const Detail: React.FC<{ id: string; onClose: () => void; onChanged: () => void 
             </div>
             {err && <div className="ppa-err">{err}</div>}
 
+            {chatAllowed && (
+              <div className="ppa-tabs ppa-drawer-tabs" role="tablist">
+                <button role="tab" aria-selected={view === 'details'} className={view === 'details' ? 'on' : ''} onClick={() => setView('details')}>Details</button>
+                <button role="tab" aria-selected={view === 'chat'} className={view === 'chat' ? 'on' : ''} onClick={() => { setView('chat'); onChanged(); }}>
+                  <i className="bi bi-whatsapp" /> WhatsApp{!!unread && view !== 'chat' && <span className="wac-badge">{unread}</span>}
+                </button>
+              </div>
+            )}
+
+            {view === 'chat' && chatAllowed ? <ChatPanel phone={c.mobile} name={c.name} /> : <>
             <div className="ppa-box">
               <div className="ppa-kv"><span>College</span><b>{c.college || '—'}</b></div>
               <div className="ppa-kv"><span>Degree / branch</span><b>{[c.degree, c.branch].filter(Boolean).join(' · ') || '—'}</b></div>
@@ -234,6 +250,7 @@ const Detail: React.FC<{ id: string; onClose: () => void; onChanged: () => void 
                 </li>
               ))}
             </ul>
+            </>}
           </>
         )}
       </aside>
@@ -255,12 +272,20 @@ const PlacementProgramAdmin: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [adding, setAdding] = useState(false);
   const [messaging, setMessaging] = useState(false);
+  const { user } = useAuth();
+  const chatAllowed = canChat(user as any);
+  const [unread, setUnread] = useState<Record<string, number>>({});
 
   const load = useCallback(() => {
     placementProgramApi.list({ stage: stage || undefined, source: source || undefined, search: search.trim() || undefined, page, limit: 25 })
       .then(r => { setData(r); setErr(''); }).catch(e => setErr(errMsg(e)));
   }, [stage, source, search, page]);
   useEffect(() => { const t = setTimeout(load, search ? 300 : 0); return () => clearTimeout(t); }, [load, search]);
+  // Unread WhatsApp replies for the rows on screen.
+  useEffect(() => {
+    if (!chatAllowed || !data?.rows.length) { setUnread({}); return; }
+    whatsAppChatApi.unread(data.rows.map(r => r.mobile)).then(setUnread).catch(() => {});
+  }, [chatAllowed, data]);
 
   const all = data ? Object.values(data.byStage).reduce((a, b) => a + b, 0) : 0;
   const pages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
@@ -324,7 +349,7 @@ const PlacementProgramAdmin: React.FC = () => {
               <tr><td colSpan={7} className="ppa-muted">No candidates yet. Share the form link in your ads.</td></tr>
             ) : data.rows.map(c => (
               <tr key={c._id} onClick={() => setOpen(c._id)}>
-                <td><b>{c.name}</b>{c.submissions > 1 && <span className="ppa-tag">×{c.submissions}</span>}</td>
+                <td><b>{c.name}</b>{c.submissions > 1 && <span className="ppa-tag">×{c.submissions}</span>}{!!unread[c.mobile] && <span className="wac-badge" title="Unread WhatsApp messages"><i className="bi bi-whatsapp" /> {unread[c.mobile]}</span>}</td>
                 <td>+91 {c.mobile}</td>
                 <td>{c.college || '—'}{c.graduationYear ? ` · ${c.graduationYear}` : ''}</td>
                 <td>{c.targetRole || '—'}</td>
@@ -346,7 +371,7 @@ const PlacementProgramAdmin: React.FC = () => {
 
       </>}
 
-      {open && <Detail id={open} onClose={() => setOpen(null)} onChanged={load} />}
+      {open && <Detail id={open} onClose={() => setOpen(null)} onChanged={load} unread={unread[data?.rows.find(r => r._id === open)?.mobile || ''] || 0} />}
       {adding && <AddStudentsModal onClose={() => setAdding(false)} onDone={load} />}
       {messaging && <StageMessageModal initialStage={stage || undefined} counts={data?.byStage || {}} onClose={() => setMessaging(false)} />}
     </div>

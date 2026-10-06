@@ -281,7 +281,8 @@ const DashboardPage: React.FC = () => {
       } else {
         await Promise.all([
           fetchAdminStats(),
-          fetchCollegeSnapshot(),
+          // Placement snapshot needs placement access — asking without it only produced a 403 on every visit
+          ...(user?.role === 'SUPER_ADMIN' || (user?.permissions || []).some((p) => p === 'manage_placement' || p === 'manage_tenant') ? [fetchCollegeSnapshot()] : []),
           ...(hasLeadPermission ? [fetchLeadFollowUps()] : [])
         ]);
       }

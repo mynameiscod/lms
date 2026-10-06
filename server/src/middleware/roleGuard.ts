@@ -268,6 +268,8 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     label: 'WhatsApp',
     permissions: [
       { key: 'manage_whatsapp_templates', label: 'Create WhatsApp Templates & Send Broadcasts' },
+      // Reading a thread also needs access to the placement/lead records it is opened from.
+      { key: 'chat_whatsapp', label: 'Read & Reply to WhatsApp Conversations' },
     ]
   },
   practice: {
@@ -311,6 +313,7 @@ export const FEATURE_PERMISSIONS = [
   'manage_placement_program', 'manage_placement_partners', 'manage_interview_hub', 'manage_whatsapp_templates',
   'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans',
   'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests', 'manage_concerns', 'view_activity_logs',
+  'chat_whatsapp',
 ];
 
 // Flatten all permission keys

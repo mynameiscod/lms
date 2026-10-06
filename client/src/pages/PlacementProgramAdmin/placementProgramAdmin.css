@@ -77,6 +77,8 @@
 .ppa-tabs { display: flex; gap: 4px; border-bottom: 1px solid #e8edf4; margin: 14px 0 16px; overflow-x: auto; }
 .ppa-tabs button { border: 0; background: none; padding: 9px 14px; font-size: 14px; font-weight: 700; color: #64748b; cursor: pointer; border-bottom: 2.5px solid transparent; white-space: nowrap; }
 .ppa-tabs button.on { color: #0f172a; border-bottom-color: #4f46e5; }
+.ppa-drawer-tabs { margin: 12px 0 12px; }
+.ppa-drawer-tabs button i { margin-right: 4px; color: #16a34a; }
 .ppa-card { background: #fff; border: 1px solid #e8edf4; border-radius: 14px; padding: 18px 20px; margin-bottom: 14px; }
 .ppa-card-title { font-size: 15px; font-weight: 800; color: #0f172a; margin: 4px 0 12px; }
 .ppa-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px 18px; }

@@ -11,7 +11,7 @@ const ADMINISH = ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'];
 describe('features with a permission of their own', () => {
   it('lists every feature key in the Roles screen catalogue', () => {
     for (const k of FEATURE_PERMISSIONS) expect(ALL_PERMISSIONS).toContain(k);
-    expect(PERMISSION_GROUPS.whatsapp.permissions.map((p) => p.key)).toEqual(['manage_whatsapp_templates']);
+    expect(PERMISSION_GROUPS.whatsapp.permissions.map((p) => p.key)).toEqual(['manage_whatsapp_templates', 'chat_whatsapp']);
   });
 
   it('gives tenant admins every feature key by default', () => {

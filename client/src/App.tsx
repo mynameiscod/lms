@@ -64,6 +64,7 @@ const PlacementProgramRegister = lazy(() => import('./pages/PlacementProgram/Reg
 const PlacementProgramPortal = lazy(() => import('./pages/PlacementProgram/Portal'));
 const PlacementProgramAdmin = lazy(() => import('./pages/PlacementProgramAdmin'));
 const MyPlacementInterviews = lazy(() => import('./pages/PlacementProgramAdmin/MyInterviews'));
+const WhatsAppInbox = lazy(() => import('./pages/WhatsAppInbox'));
 const StudentDrivesPage = lazy(() => import('./pages/Drives/StudentDrives'));
 const PrepPackPage = lazy(() => import('./pages/Drives/PrepPack'));
 const QuestionBooksLibrary = lazy(() => import('./pages/QuestionBooks/Library'));
@@ -1445,6 +1446,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR', 'PLACEMENT_OFFICER']}>
             <Layout>
               <MyPlacementInterviews />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/whatsapp-inbox"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <WhatsAppInbox />
             </Layout>
           </ProtectedRoute>
         }

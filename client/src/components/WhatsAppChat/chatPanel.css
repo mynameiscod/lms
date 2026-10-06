@@ -48,3 +48,29 @@
   .wac-bubble { max-width: 92%; }
   .wac-list { height: 58vh; }
 }
+
+/* Owner, quick replies, attachments (Step 2/3) */
+.wac-bar-right { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.wac-owner { border: 1px solid #dbe2ec; border-radius: 8px; padding: 4px 8px; font-size: 12px; font-weight: 600; color: #334155; background: #fff; max-width: 190px; }
+.wac-owner-text { font-size: 12px; color: #475569; display: inline-flex; gap: 6px; align-items: center; }
+.wac-link { border: 0; background: none; color: #4f46e5; font-weight: 700; font-size: 12px; cursor: pointer; padding: 2px 4px; }
+.wac-link.danger { color: #b91c1c; }
+.wac-icon { border: 1px solid #dbe2ec; background: #fff; border-radius: 10px; width: 40px; height: 42px; cursor: pointer; color: #475569; font-size: 16px; flex: 0 0 auto; }
+.wac-icon:hover { background: #f1f5f9; }
+.wac-file-chip { display: inline-flex; gap: 6px; align-items: center; align-self: flex-start; background: #eef2ff; color: #3730a3; border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 12.5px; font-weight: 600; max-width: 100%; }
+.wac-file-chip span { color: #6366f1; font-weight: 500; }
+
+.wac-qr { position: relative; flex: 0 0 auto; }
+.wac-qr-pop { position: absolute; bottom: 50px; left: 0; z-index: 20; width: min(360px, 80vw); max-height: 360px; overflow-y: auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 16px 40px rgba(15, 23, 42, .18); padding: 10px; }
+.wac-qr-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.wac-qr-head b { flex: 1; font-size: 13px; }
+.wac-qr-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.wac-qr-list li { border: 1px solid #eef1f6; border-radius: 9px; }
+.wac-qr-item { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; border: 0; background: none; padding: 8px 10px; cursor: pointer; border-radius: 9px; }
+.wac-qr-item:hover { background: #f8fafc; }
+.wac-qr-item b { font-size: 12.5px; color: #0f172a; }
+.wac-qr-item span { font-size: 12px; color: #64748b; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; }
+.wac-qr-tools { display: flex; justify-content: flex-end; gap: 4px; padding: 0 6px 4px; }
+.wac-qr-edit { display: flex; flex-direction: column; gap: 6px; }
+.wac-qr-edit input, .wac-qr-edit textarea { border: 1px solid #dbe2ec; border-radius: 8px; padding: 7px 9px; font: inherit; font-size: 13px; }
+.wac-qr-actions { display: flex; justify-content: flex-end; gap: 6px; }

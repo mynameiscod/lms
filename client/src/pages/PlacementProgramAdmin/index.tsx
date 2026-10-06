@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   placementProgramApi, placementAdminApi, PlacementCandidate, PlacementEvent, Booking, PLACEMENT_STAGES, stageLabel, istTime, recLabel, needsMarking, errMsg,
 } from '../../api/placementProgramApi';
@@ -268,7 +269,9 @@ const PlacementProgramAdmin: React.FC = () => {
   const [page, setPage] = useState(1);
   const [data, setData] = useState<{ rows: PlacementCandidate[]; total: number; limit: number; byStage: Record<string, number> } | null>(null);
   const [err, setErr] = useState('');
-  const [open, setOpen] = useState<string | null>(null);
+  const [params] = useSearchParams();
+  // ?open=<id> opens a candidate directly — the WhatsApp Inbox links here.
+  const [open, setOpen] = useState<string | null>(() => params.get('open'));
   const [copied, setCopied] = useState(false);
   const [adding, setAdding] = useState(false);
   const [messaging, setMessaging] = useState(false);

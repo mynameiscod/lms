@@ -188,6 +188,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'API Logs', path: '/admin/logs', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-bug', permissions: ['view_activity_logs', 'manage_tenant_settings', 'manage_tenant', 'view_reports'] },
     { label: 'Recording Diagnostics', path: '/admin/recording-diagnostics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-clapperboard', permissions: ['manage_live_classes', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Tenant Management', path: '/super-admin/tenants', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-building', permissions: ['manage_tenants'] },
+    { label: 'WhatsApp Inbox', path: '/whatsapp-inbox', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-comments', permissions: ['chat_whatsapp'] },
     { label: 'WhatsApp Templates', path: '/admin/whatsapp-templates', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-brands fa-whatsapp', permissions: ['manage_whatsapp_templates', 'manage_tenant_settings', 'manage_tenant'] },
     { label: 'Platform Settings', path: '/admin/platform-settings', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-key', permissions: ['manage_tenants'] },
     // ── Tech Battles (public competitions) ──

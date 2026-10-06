@@ -3,6 +3,8 @@ import WhatsAppChatMessage, { IWhatsAppChatMessage, WaChatKind, WaChatStatus } f
 import WhatsAppThread from '../models/WhatsAppThread';
 import { normalizeTo } from './assessmentOtpService';
 import * as bunny from './bunnyStorageService';
+import { emitWaThread } from '../realtime/whatsAppChatRealtime';
+import { refreshLinks, notifyInbound } from './whatsAppChatInbox';
 
 /**
  * Writing the conversation record. Kept free of sending logic so the template service, the webhook
@@ -86,14 +88,18 @@ export async function recordInbound(tenantId: string, m: any, contactName: strin
     if (e?.code === 11000) return null; // a concurrent retry beat us to it
     throw e;
   }
-  await WhatsAppThread.updateOne(
+  const thread: any = await WhatsAppThread.findOneAndUpdate(
     { tenantId: oid(tenantId), phone },
     {
       $set: { lastInboundAt: at, lastMessageAt: at, lastPreview: preview(parsed.kind, parsed.body), ...(contactName ? { contactName } : {}) },
       $inc: { unreadCount: 1 },
     },
-    { upsert: true },
-  );
+    { upsert: true, new: true },
+  ).select('linkedAt').lean();
+  // Which records share the number (for inbox filters), then live update + the bell. None of it may lose the message.
+  await refreshLinks(tenantId, phone, thread?.linkedAt);
+  emitWaThread(tenantId, { phone, reason: 'in' });
+  await notifyInbound(tenantId, phone, preview(parsed.kind, parsed.body)).catch((e) => console.warn('[wa-chat] notify failed', e?.message));
   return { doc, botText: parsed.botText };
 }
 
@@ -101,6 +107,7 @@ export async function recordInbound(tenantId: string, m: any, contactName: strin
 export async function recordOutbound(tenantId: string, rawPhone: string, f: {
   kind?: WaChatKind; body: string; templateName?: string; wamid?: string; ok: boolean; error?: string;
   sentBy?: string; source: IWhatsAppChatMessage['source'];
+  media?: { mime?: string; fileName?: string; storedKey?: string; size?: number };
 }) {
   try {
     const phone = normalizeTo(rawPhone);
@@ -108,7 +115,7 @@ export async function recordOutbound(tenantId: string, rawPhone: string, f: {
     const now = new Date();
     const doc = await WhatsAppChatMessage.create({
       tenantId: oid(tenantId), phone, direction: 'out', kind: f.kind || 'text', body: f.body, templateName: f.templateName,
-      wamid: f.wamid, status: (f.ok ? 'accepted' : 'failed') as WaChatStatus, error: f.ok ? undefined : f.error,
+      media: f.media, wamid: f.wamid, status: (f.ok ? 'accepted' : 'failed') as WaChatStatus, error: f.ok ? undefined : f.error,
       sentBy: f.sentBy && mongoose.isValidObjectId(f.sentBy) ? oid(f.sentBy) : undefined, source: f.source,
     });
     const staff = f.source === 'chat' && f.sentBy && mongoose.isValidObjectId(f.sentBy);
@@ -117,6 +124,7 @@ export async function recordOutbound(tenantId: string, rawPhone: string, f: {
       { $set: { lastMessageAt: now, lastPreview: preview(f.kind || 'text', f.body), ...(staff ? { lastStaffReplyAt: now, lastStaffReplyBy: oid(f.sentBy!) } : {}) } },
       { upsert: true },
     );
+    emitWaThread(tenantId, { phone, reason: 'out' });
     return doc;
   } catch (e: any) {
     console.warn('[wa-chat] could not record outbound message', e?.message);
@@ -130,8 +138,9 @@ const RANK: Record<string, number> = { accepted: 0, sent: 1, delivered: 2, read:
 export async function applyChatStatuses(statuses: { id?: string; status?: string; errors?: any[] }[]) {
   for (const s of statuses || []) {
     if (!s.id || !['sent', 'delivered', 'read', 'failed'].includes(String(s.status))) continue;
-    const row = await WhatsAppChatMessage.findOne({ wamid: s.id }).select('status');
+    const row = await WhatsAppChatMessage.findOne({ wamid: s.id }).select('status tenantId phone');
     if (!row || row.status === 'failed') continue;
+    const before = row.status;
     if (s.status === 'failed') {
       if (row.status === 'delivered' || row.status === 'read') continue;
       const e = s.errors?.[0];
@@ -139,6 +148,7 @@ export async function applyChatStatuses(statuses: { id?: string; status?: string
     } else if ((RANK[s.status!] ?? -1) > (RANK[row.status] ?? -1)) {
       await WhatsAppChatMessage.updateOne({ _id: row._id }, { $set: { status: s.status } });
     }
+    if (before !== s.status) emitWaThread(String(row.tenantId), { phone: row.phone, reason: 'status' });
   }
 }
 

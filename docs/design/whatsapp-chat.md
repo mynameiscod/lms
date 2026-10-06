@@ -1,6 +1,6 @@
 # WhatsApp Chat inside the platform — Step 1 design
 
-**Status:** Step 1 BUILT 2026-10-06 (Placement candidate drawer + Lead page WhatsApp tab).
+**Status:** Steps 1–3 BUILT 2026-10-06 — chat tabs (Step 1), shared inbox `/whatsapp-inbox` (Step 2), live updates + bell + file sending (Step 3).
 **Date:** 2026-10-06
 **Goal:** staff can read and answer a candidate's or lead's WhatsApp messages from the candidate/lead page,
 using the institute's existing WhatsApp number — no separate tool, no phone in hand.
@@ -99,7 +99,26 @@ New permission **`chat_whatsapp`** — "Read & reply to WhatsApp conversations" 
 admins get it by default. Reading a thread also requires access to the record it is opened from (placement or
 leads), so a telecaller cannot open placement chats unless granted.
 
-## Not in Step 1
+## Steps 2 and 3 — as built (2026-10-06)
+
+- **Inbox** `/whatsapp-inbox` (sidebar "WhatsApp Inbox", permission `chat_whatsapp`): unread first, then newest;
+  filters All / Unread / Mine / Unassigned / Placement / Leads / Students; search by name, number or message.
+  Threads carry `links` (placement candidate, lead, student with that number), worked out on arrival and
+  refreshed every 6 h. Placement-only chats are hidden from users without placement access, lead-only chats
+  from users without leads access.
+- **Ownership:** the first staff member to reply owns the chat. Anyone who can chat can take an unowned chat or
+  release their own; moving a chat between other people needs an admin (`manage_whatsapp_templates`,
+  `manage_tenant` or `manage_tenant_settings`). Assignees must hold `chat_whatsapp`.
+- **Quick replies:** shared per institute (⚡ in the reply box); `{name}` becomes the first name. Admins add/edit.
+- **Live updates:** socket room `wa_<tenant>` joined only after the JWT verifies and the user holds
+  `chat_whatsapp` (the old `join_tenant` room is unauthenticated, so nothing goes there). Events carry the phone
+  and what changed, never message text. A 60 s poll remains as a fallback.
+- **Bell:** a reply notifies the owner, or everyone with `chat_whatsapp` when unowned; at most once per
+  conversation per 10 minutes. Assigning a chat to someone notifies them.
+- **Files:** PDF, Word/Excel/PowerPoint, text, JPEG/PNG (5 MB), MP3/OGG/AAC/M4A, MP4 (16 MB); 25 MB server cap.
+  Only inside the 24-hour window (Meta's rule). A copy is kept in Bunny so the chat can show it.
+
+## Originally not in Step 1
 
 - Shared inbox page across all conversations, assignment, quick replies (Step 2).
 - Real-time sockets, desktop/WhatsApp notifications to the assigned staff member, response-time reports (Step 3).

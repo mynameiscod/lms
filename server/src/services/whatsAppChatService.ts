@@ -7,6 +7,9 @@ import { recordSend, explainWaError } from './whatsAppDeliveryService';
 import { recordOutbound } from './whatsAppChatStore';
 import { sendTemplateTo, WaTemplateError } from './whatsAppTemplateService';
 import { templateShape } from './whatsAppTemplateShape';
+import { autoAssign } from './whatsAppChatInbox';
+import { emitWaThread } from '../realtime/whatsAppChatRealtime';
+import * as bunny from './bunnyStorageService';
 
 /**
  * Reading and answering a person's WhatsApp conversation from the platform.
@@ -44,7 +47,7 @@ export async function getThread(tenantId: string, rawPhone: string, opts: { befo
   const [rows, thread] = await Promise.all([
     WhatsAppChatMessage.find(q).sort({ createdAt: -1 }).limit(limit)
       .populate('sentBy', 'firstName lastName').lean(),
-    WhatsAppThread.findOne({ tenantId: oid(tenantId), phone }).populate('lastStaffReplyBy', 'firstName lastName').lean(),
+    WhatsAppThread.findOne({ tenantId: oid(tenantId), phone }).populate('lastStaffReplyBy', 'firstName lastName').populate('assignedTo', 'firstName lastName email').lean(),
   ]);
   const messages = rows.reverse().map((m: any) => ({
     _id: String(m._id), direction: m.direction, kind: m.kind, body: m.body, templateName: m.templateName,
@@ -62,6 +65,12 @@ export async function getThread(tenantId: string, rawPhone: string, opts: { befo
     botPaused: !!t?.botPaused,
     unreadCount: t?.unreadCount || 0,
     contactName: t?.contactName,
+    assignedTo: t?.assignedTo ? { _id: String(t.assignedTo._id), name: [t.assignedTo.firstName, t.assignedTo.lastName].filter(Boolean).join(' ') || t.assignedTo.email } : null,
+    links: {
+      placementId: t?.links?.placementId ? String(t.links.placementId) : undefined, placementName: t?.links?.placementName,
+      leadId: t?.links?.leadId ? String(t.links.leadId) : undefined, leadName: t?.links?.leadName,
+      userId: t?.links?.userId ? String(t.links.userId) : undefined, userName: t?.links?.userName,
+    },
     lastStaffReply: t?.lastStaffReplyAt ? {
       at: t.lastStaffReplyAt,
       by: t.lastStaffReplyBy ? [t.lastStaffReplyBy.firstName, t.lastStaffReplyBy.lastName].filter(Boolean).join(' ') : undefined,
@@ -69,9 +78,13 @@ export async function getThread(tenantId: string, rawPhone: string, opts: { befo
   };
 }
 
-/** Taking over a chat pauses the qualification bot for that person (decided 2026-10-06). */
-async function pauseBot(tenantId: string, phone: string) {
+/**
+ * A staff reply takes the conversation over: the qualification bot pauses for that person and,
+ * if nobody owns the chat yet, the replier does (both decided 2026-10-06).
+ */
+async function takeOver(tenantId: string, phone: string, userId: string) {
   await WhatsAppThread.updateOne({ tenantId: oid(tenantId), phone }, { $set: { botPaused: true } }, { upsert: true });
+  await autoAssign(tenantId, phone, userId);
 }
 
 export async function sendText(tenantId: string, userId: string, rawPhone: string, text: string) {
@@ -92,7 +105,7 @@ export async function sendText(tenantId: string, userId: string, rawPhone: strin
   }
   await recordSend({ tenantId, to: phone, templateName: '(chat reply)', source: 'test', sentBy: userId, result });
   const msg = await recordOutbound(tenantId, phone, { body, wamid: result.messageId, ok: result.ok, error: result.error, sentBy: userId, source: 'chat' });
-  if (result.ok) await pauseBot(tenantId, phone);
+  if (result.ok) await takeOver(tenantId, phone, userId);
   if (!result.ok) throw new ChatError(explainWaError(result.errorCode, result.error) || result.error || 'WhatsApp refused the message', 502);
   return msg;
 }
@@ -111,19 +124,99 @@ export async function sendTemplate(tenantId: string, userId: string, rawPhone: s
     if (e instanceof WaTemplateError) throw new ChatError(e.message, e.status);
     throw e;
   }
-  await pauseBot(tenantId, phone);
+  await takeOver(tenantId, phone, userId);
   return { ok: true };
 }
 
 export async function setBotPaused(tenantId: string, rawPhone: string, paused: boolean) {
   const phone = phoneOf(rawPhone);
   await WhatsAppThread.updateOne({ tenantId: oid(tenantId), phone }, { $set: { botPaused: !!paused } }, { upsert: true });
+  emitWaThread(tenantId, { phone, reason: 'bot' });
   return { botPaused: !!paused };
 }
 
 export async function markRead(tenantId: string, rawPhone: string) {
-  await WhatsAppThread.updateOne({ tenantId: oid(tenantId), phone: phoneOf(rawPhone) }, { $set: { unreadCount: 0 } });
+  const phone = phoneOf(rawPhone);
+  const r = await WhatsAppThread.updateOne({ tenantId: oid(tenantId), phone, unreadCount: { $gt: 0 } }, { $set: { unreadCount: 0 } });
+  if (r.modifiedCount) emitWaThread(tenantId, { phone, reason: 'read' });
 }
+
+// ── Sending a file ───────────────────────────────────────────────────────────
+
+/** What WhatsApp accepts, and as which message type. Size limits are Meta's. */
+const MEDIA_TYPES: Record<string, { type: 'image' | 'document' | 'audio' | 'video'; maxMb: number }> = {
+  'image/jpeg': { type: 'image', maxMb: 5 }, 'image/png': { type: 'image', maxMb: 5 },
+  'application/pdf': { type: 'document', maxMb: 25 },
+  'application/msword': { type: 'document', maxMb: 25 },
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': { type: 'document', maxMb: 25 },
+  'application/vnd.ms-excel': { type: 'document', maxMb: 25 },
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { type: 'document', maxMb: 25 },
+  'application/vnd.ms-powerpoint': { type: 'document', maxMb: 25 },
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': { type: 'document', maxMb: 25 },
+  'text/plain': { type: 'document', maxMb: 25 },
+  'audio/mpeg': { type: 'audio', maxMb: 16 }, 'audio/ogg': { type: 'audio', maxMb: 16 }, 'audio/aac': { type: 'audio', maxMb: 16 }, 'audio/mp4': { type: 'audio', maxMb: 16 },
+  'video/mp4': { type: 'video', maxMb: 16 },
+};
+/** Our own ceiling on what the server holds in memory for one upload (Meta allows larger documents). */
+export const MEDIA_UPLOAD_LIMIT_BYTES = 25 * 1024 * 1024;
+
+export async function sendMedia(
+  tenantId: string, userId: string, rawPhone: string,
+  file: { buffer: Buffer; mimetype: string; originalname: string; size: number }, caption?: string,
+) {
+  const phone = phoneOf(rawPhone);
+  const spec = MEDIA_TYPES[file.mimetype];
+  if (!spec) throw new ChatError('WhatsApp cannot send this kind of file. Use a PDF, Word/Excel/PowerPoint file, JPEG/PNG photo, MP3/OGG audio or MP4 video.');
+  if (file.size > spec.maxMb * 1024 * 1024) throw new ChatError(`That file is too large — the limit for ${spec.type === 'image' ? 'photos' : `${spec.type}s`} is ${spec.maxMb} MB.`);
+  const thread = await WhatsAppThread.findOne({ tenantId: oid(tenantId), phone }).select('lastInboundAt').lean();
+  if (!windowOf((thread as any)?.lastInboundAt).open) {
+    throw new ChatError('The 24-hour reply window is closed — files can only be sent after the person writes to you.', 409);
+  }
+  const creds = await getWhatsAppCredentialCandidates(tenantId);
+  if (!creds.length) throw new ChatError('WhatsApp is not configured for this institute.');
+  const cap = String(caption || '').trim().slice(0, 1024);
+  const fileName = String(file.originalname || 'file').replace(/[\r\n"]/g, '').slice(0, 120);
+
+  let result: { ok: boolean; error?: string; errorCode?: number; messageId?: string } = { ok: false, error: 'send failed' };
+  for (const c of creds) {
+    // Upload to Meta first (media id), then send a message pointing at it — same phone number id for both.
+    const form = new FormData();
+    form.append('messaging_product', 'whatsapp');
+    form.append('type', file.mimetype);
+    form.append('file', new Blob([file.buffer], { type: file.mimetype }), fileName);
+    const up = await fetch(`https://graph.facebook.com/v18.0/${c.phoneNumberId}/media`, {
+      method: 'POST', headers: { Authorization: `Bearer ${c.accessToken}` }, body: form,
+    })
+      .then(async (r) => ({ ok: r.ok, body: (await r.json().catch(() => null)) as any }))
+      .catch((e: any) => ({ ok: false, body: { error: { message: e?.message } } as any }));
+    if (!up.ok || !up.body?.id) {
+      result = { ok: false, error: up.body?.error?.message || 'Upload to WhatsApp failed', errorCode: up.body?.error?.code };
+      continue;
+    }
+    const payload: any = { id: up.body.id };
+    if (cap && spec.type !== 'audio') payload.caption = cap;
+    if (spec.type === 'document') payload.filename = fileName;
+    result = await waPost(c, { messaging_product: 'whatsapp', to: phone, type: spec.type, [spec.type]: payload });
+    if (result.ok) break;
+  }
+  await recordSend({ tenantId, to: phone, templateName: `(chat ${spec.type})`, source: 'test', sentBy: userId, result });
+
+  // Keep our own copy so the chat can show it later (Meta's copy cannot be read back).
+  let storedKey: string | undefined;
+  if (result.ok && bunny.isBunnyStorageConfigured()) {
+    const ext = (fileName.split('.').pop() || 'bin').replace(/[^a-z0-9]/gi, '').slice(0, 8);
+    const key = `whatsapp-media/${tenantId}/out-${(result.messageId || String(Date.now())).replace(/[^a-zA-Z0-9_-]/g, '')}.${ext}`;
+    storedKey = await bunny.uploadFile(key, file.buffer, file.mimetype).then(() => key).catch(() => undefined);
+  }
+  const msg = await recordOutbound(tenantId, phone, {
+    kind: spec.type, body: cap, wamid: result.messageId, ok: result.ok, error: result.error, sentBy: userId, source: 'chat',
+    media: { mime: file.mimetype, fileName, storedKey, size: file.size },
+  });
+  if (!result.ok) throw new ChatError(explainWaError(result.errorCode, result.error), 502);
+  await takeOver(tenantId, phone, userId);
+  return msg;
+}
+
 
 /** Unread counts for a page of records, keyed by the 10-digit mobile the caller passed. */
 export async function unreadFor(tenantId: string, mobiles: string[]) {

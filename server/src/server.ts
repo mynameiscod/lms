@@ -36,6 +36,7 @@ import { startInterviewRecordingRetentionScheduler } from './jobs/interviewRecor
 import { startPartnerOutreachScheduler } from './jobs/partnerOutreachCron';
 import { startPartnerRetentionScheduler } from './jobs/partnerRetentionCron';
 import { startPartnerReplyScheduler } from './jobs/partnerReplyCron';
+import { registerWaChatSocket } from './realtime/whatsAppChatRealtime';
 
 const PORT = process.env.PORT || 5000;
 console.log(`🚀 Starting server with NODE_ENV=${process.env.NODE_ENV}, PORT=${PORT}`);
@@ -88,6 +89,8 @@ const startServer = async () => {
 
     // Store io instance in app for access in controllers
     app.set('io', io);
+    // WhatsApp chat live updates — its own authenticated room (see realtime/whatsAppChatRealtime).
+    registerWaChatSocket(io);
 
     console.log('🔌 Setting up WebSocket handlers...');
 

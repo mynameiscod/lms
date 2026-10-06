@@ -136,6 +136,35 @@ export async function resolveModuleStatuses(
 }
 
 // True when a day item is "done" for must-attempt gating/day-completion.
+/**
+ * Has this day actually been finished?
+ *
+ * ── WHY THIS IS NOT `items.every(itemDone)` ───────────────────────────────────────────────
+ *
+ * It was, and `[].every(...)` is `true`. A day carrying NO items therefore completed itself the
+ * instant a student opened it — no work, no click, nothing to do and nothing they could have
+ * done differently. The same held for a day whose every item was optional, since `itemDone`
+ * answers true for those by design.
+ *
+ * Both are reachable. A composed day can end up empty when the content behind its unit is
+ * unpublished or deleted after the plan was written — `verifyStageJourneys` counts exactly that
+ * case and calls it EMPTY_DAYS — and the completion runs on a GET, so merely LOOKING at such a
+ * day banked it, advanced `currentDay` past it, and paid the day's XP.
+ *
+ * A day with nothing required on it is not a finished day. It is a broken one, and it should sit
+ * there looking unfinished until somebody notices, rather than quietly marking itself done and
+ * carrying the student past content they were never given.
+ */
+export function dayIsComplete(
+  items: any[],
+  dayNumber: number,
+  completedItems: Array<{ contentId: string; dayNumber: number }>,
+  moduleStatus: Record<string, { attempted: boolean }>,
+): boolean {
+  if (!items.some(it => it?.required !== false)) return false;
+  return items.every(it => itemDone(it, dayNumber, completedItems, moduleStatus));
+}
+
 export function itemDone(
   item: any,
   dayNumber: number,
@@ -596,7 +625,7 @@ export const markContentComplete = async (req: Request, res: Response) => {
         : null;
       const dayItems = effectiveItemsForDay(dayPlan.items, offering, dayNumber);
       const moduleStatus = await resolveModuleStatuses(sId, dayItems);
-      const allDone = dayItems.every((item: any) => itemDone(item, dayNumber, enrollment.completedItems, moduleStatus));
+      const allDone = dayIsComplete(dayItems, dayNumber, enrollment.completedItems, moduleStatus);
       if ((enrollment as any).enrolledBy === 'foundation-journey') {
         journeyXp = { items: dayItems, moduleStatus, dayComplete: allDone };
       }
@@ -968,7 +997,7 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
 
       // Derive day completion (must-attempt): when every item is done, mark the
       // day complete and advance currentDay. Persisted idempotently.
-      const allDone = dayItems.every((it: any) => itemDone(it, dayNumber, enrollment.completedItems, moduleStatus));
+      const allDone = dayIsComplete(dayItems, dayNumber, enrollment.completedItems, moduleStatus);
       // CareerPilot XP for the journey: each finished task and the finished day, paid once (see the service).
       if ((enrollment as any).enrolledBy === 'foundation-journey') {
         xpJustPaid = await reconcileJourneyDayXp({

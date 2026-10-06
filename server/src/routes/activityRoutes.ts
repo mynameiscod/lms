@@ -2,6 +2,7 @@ import express, { Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../types';
 import { authMiddleware } from '../middleware/auth';
+import { allowedByRoleOrPermission } from '../middleware/roleGuard';
 import { tenantResolver } from '../middleware/tenantResolver';
 import StudentActivityLog from '../models/StudentActivityLog';
 import User from '../models/User';
@@ -9,9 +10,11 @@ import User from '../models/User';
 const router = express.Router();
 
 // Admin/instructor/staff only (these expose other users' activity).
-const adminOnly = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  const role = (req.user as any)?.role;
-  if (['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'].includes(role)) return next();
+const adminOnly = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  // Custom roles need "API Logs & Student Activity" ticked; others keep the role rule.
+  const ok = await allowedByRoleOrPermission((req as any).user, ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'],
+    ['view_activity_logs', 'manage_tenant', 'manage_tenant_settings', 'view_reports']);
+  if (ok) return next();
   return res.status(403).json({ success: false, message: 'Admins only' });
 };
 

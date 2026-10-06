@@ -82,9 +82,9 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Fees', path: '/fees', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-money-bill-wave', permissions: ['view_fees', 'manage_billing'] },
     { label: 'Roles', path: '/roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-user-shield', permissions: ['manage_roles'] },
     { label: 'Batches', path: '/batches', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_tenant_courses'] },
-    { label: 'Skill Assessment', path: '/assessment-admin', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-clipboard-question', permissions: ['create_quiz', 'edit_quiz'] },
-    { label: 'Assessment Candidates', path: '/assessment-candidates', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-user-group', permissions: ['create_quiz', 'edit_quiz', 'manage_leads'] },
-    { label: 'Concerns', path: '/admin/concerns', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-circle-question', permissions: ['view_reports', 'manage_leads', 'view_courses'] },
+    { label: 'Skill Assessment', path: '/assessment-admin', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-clipboard-question', permissions: ['manage_skill_assessment', 'create_quiz', 'edit_quiz'] },
+    { label: 'Assessment Candidates', path: '/assessment-candidates', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-user-group', permissions: ['manage_skill_assessment', 'create_quiz', 'edit_quiz', 'manage_leads'] },
+    { label: 'Concerns', path: '/admin/concerns', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-circle-question', permissions: ['manage_concerns', 'view_reports', 'manage_leads', 'view_courses'] },
     {
       label: 'Attendance',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'],
@@ -161,33 +161,35 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       label: 'Drives',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'],
       icon: 'fa-solid fa-briefcase',
-      permissions: ['manage_placement', 'manage_tenant', 'manage_tenant_users', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_passport'],
+      permissions: ['manage_placement_program', 'manage_interview_hub', 'manage_placement', 'manage_tenant', 'manage_tenant_users', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_passport'],
       submenu: [
         { label: 'Placement Drives',      path: '/drives/manage',               roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-briefcase', permissions: ['manage_placement', 'manage_tenant'] },
-        { label: 'Placement Program',     path: '/admin/placement-program',     roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-user-check', permissions: ['manage_placement', 'manage_tenant'] },
-        { label: 'Interview Experiences', path: '/admin/interview-experiences', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-comments', permissions: ['manage_placement', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_passport'] },
+        { label: 'Placement Program',     path: '/admin/placement-program',     roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-user-check', permissions: ['manage_placement_program', 'manage_placement', 'manage_tenant'] },
+        { label: 'My Placement Interviews', path: '/placement-program/my-interviews', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-video', permissions: [] },
+        { label: 'Interview Experiences', path: '/admin/interview-experiences', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-comments', permissions: ['manage_interview_hub', 'manage_placement', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_passport'] },
         { label: 'Drive Analytics',       path: '/drives/analytics',            roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-pie', permissions: ['manage_placement', 'manage_tenant'] },
       ]
     },
-    { label: 'Certificates',    path: '/admin/certificates',                  roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-award',    permissions: ['manage_tenant_settings', 'manage_tenant', 'create_courses', 'edit_courses'] },
+    { label: 'Certificates',    path: '/admin/certificates',                  roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-award',    permissions: ['manage_certificates', 'manage_tenant_settings', 'manage_tenant', 'create_courses', 'edit_courses'] },
     {
       label: 'Learning Plans',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'],
       icon: 'fa-solid fa-calendar-days',
-      permissions: ['create_courses', 'edit_courses', 'manage_own_courses'],
+      permissions: ['manage_learning_plans', 'create_courses', 'edit_courses', 'manage_own_courses'],
       submenu: [
-        { label: 'Content Library',    path: '/learning-library',    roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-book',          permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
-        { label: 'Curriculum Builder', path: '/curriculum-builder',  roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-sitemap',       permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
-        { label: 'Enrollments',        path: '/enrollment-plans',    roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-user-graduate',  permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
-        { label: 'Batch Offerings',    path: '/batch-offerings',     roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-days',  permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
+        { label: 'Content Library',    path: '/learning-library',    roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-book',          permissions: ['manage_learning_plans', 'create_courses', 'edit_courses', 'manage_own_courses'] },
+        { label: 'Curriculum Builder', path: '/curriculum-builder',  roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-sitemap',       permissions: ['manage_learning_plans', 'create_courses', 'edit_courses', 'manage_own_courses'] },
+        { label: 'Enrollments',        path: '/enrollment-plans',    roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-user-graduate',  permissions: ['manage_learning_plans', 'create_courses', 'edit_courses', 'manage_own_courses'] },
+        { label: 'Batch Offerings',    path: '/batch-offerings',     roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-days',  permissions: ['manage_learning_plans', 'create_courses', 'edit_courses', 'manage_own_courses'] },
       ]
     },
     { label: 'Weekly Reports', path: '/weekly-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-chart-line', permissions: ['view_reports', 'view_analytics', 'manage_tenant'] },
     { label: 'Student Features', path: '/student-features', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-toggle-on', permissions: ['manage_tenant_settings', 'manage_tenant'] },
-    { label: 'API Logs', path: '/admin/logs', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-bug', permissions: ['manage_tenant_settings', 'manage_tenant', 'view_reports'] },
-    { label: 'Recording Diagnostics', path: '/admin/recording-diagnostics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-clapperboard', permissions: ['manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
+    { label: 'API Logs', path: '/admin/logs', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-bug', permissions: ['view_activity_logs', 'manage_tenant_settings', 'manage_tenant', 'view_reports'] },
+    { label: 'Recording Diagnostics', path: '/admin/recording-diagnostics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-clapperboard', permissions: ['manage_live_classes', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Tenant Management', path: '/super-admin/tenants', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-building', permissions: ['manage_tenants'] },
-    { label: 'WhatsApp Templates', path: '/admin/whatsapp-templates', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-brands fa-whatsapp', permissions: ['manage_tenant_settings', 'manage_tenant'] },
+    { label: 'WhatsApp Inbox', path: '/whatsapp-inbox', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-comments', permissions: ['chat_whatsapp'] },
+    { label: 'WhatsApp Templates', path: '/admin/whatsapp-templates', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-brands fa-whatsapp', permissions: ['manage_whatsapp_templates', 'manage_tenant_settings', 'manage_tenant'] },
     { label: 'Platform Settings', path: '/admin/platform-settings', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-key', permissions: ['manage_tenants'] },
     // ── Tech Battles (public competitions) ──
     { label: 'Tech Battles', path: '/admin/battles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-trophy', permissions: ['manage_battles', 'view_battles'] },
@@ -224,13 +226,16 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'CareerPilot Question Bank', path: '/admin/passport/question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-list-check', permissions: ['manage_passport'] },
     { label: 'CareerPilot News', path: '/admin/passport/news', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-newspaper', permissions: ['manage_passport'] },
     { label: 'Company Questions', path: '/admin/passport/companies', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-building', permissions: ['manage_passport'] },
-    { label: 'AI Spend', path: '/admin/ai-spend', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-indian-rupee-sign', permissions: ['manage_tenant_settings', 'manage_tenant'] },
+    /* Career Stage Tagging and Paper Designer stay removed — see the note above. Master still
+       had them because that branch predates the removal, not because it disagreed. AI Spend
+       keeps master's new `view_ai_spend` grant, which is the point of its Roles work. */
+    { label: 'AI Spend', path: '/admin/ai-spend', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-indian-rupee-sign', permissions: ['view_ai_spend', 'manage_tenant_settings', 'manage_tenant'] },
     { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', moduleKey: 'mockInterviews', permissions: ['manage_interviews'] },
-    { label: 'Scheduled Interviews', path: '/scheduled-interviews', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-check', permissions: ['manage_tenant_users', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'Scheduled Interviews', path: '/scheduled-interviews', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-check', permissions: ['assign_interviews', 'manage_tenant_users', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'My Interviews', path: '/my-interviews', roles: ['STUDENT'], icon: 'fa-solid fa-microphone-lines', permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Interview Experiences', path: '/interview-experiences', roles: ['STUDENT'], icon: 'fa-solid fa-comments' },
     { label: 'Interview Question Books', path: '/question-books', roles: ['STUDENT'], icon: 'fa-solid fa-book-open' },
-    { label: 'Question Books', path: '/admin/question-books', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-book-open', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant', 'manage_tenant_users', 'manage_interviews'] },
+    { label: 'Question Books', path: '/admin/question-books', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-book-open', permissions: ['manage_interview_hub', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant', 'manage_tenant_users', 'manage_interviews'] },
     { label: 'Apply Leave', path: '/my-leave', roles: ['STUDENT'], icon: 'fa-solid fa-calendar-xmark', moduleKey: 'attendance', permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Code Playground', path: '/playground', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-code', moduleKey: 'codeAssessments', featureKey: 'codePlayground' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Project Builder', path: '/project-builder', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-rocket', moduleKey: 'careerPilot', featureKey: 'projectBuilder' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
@@ -239,26 +244,26 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Project Library', path: '/resource-library', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-folder-open', moduleKey: 'resourceLibrary', featureKey: 'resourceLibrary' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     // Retired from the student menu in favour of AI Communication Lab (which supersedes it).
     // Kept for admin/instructor preview; the /speaking-practice route still works.
-    { label: 'Speaking Practice', path: '/speaking-practice', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-microphone', moduleKey: 'speakingPractice', featureKey: 'speakingPractice' as keyof StudentFeatures, permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
-    { label: 'Live Classes', path: '/hms-classes', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-video', featureKey: 'liveClasses' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'Speaking Practice', path: '/speaking-practice', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-microphone', moduleKey: 'speakingPractice', featureKey: 'speakingPractice' as keyof StudentFeatures, permissions: ['manage_speaking', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'Live Classes', path: '/hms-classes', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-video', featureKey: 'liveClasses' as keyof StudentFeatures, permissions: ['manage_live_classes', 'enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'AI Communication Lab', path: '/ai-communication-lab', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-comment-dots', moduleKey: 'aiCommunicationLab', featureKey: 'aiCommunicationLab' as keyof StudentFeatures, permissions: ['use_communication_lab', 'manage_communication_lab'] },
     { label: 'Communication Lab — Manage', path: '/admin/communication-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-headset', moduleKey: 'aiCommunicationLab', permissions: ['manage_communication_lab'] },
     { label: 'Code Visualizer', path: '/visualizer', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-microscope', needsVisualizerGrant: true, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'My Practice', path: '/my-practice', roles: ['STUDENT'], icon: 'fa-solid fa-fire', permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
-    { label: 'Practice Pass', path: '/practice-pass', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-fire', permissions: ['manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
+    { label: 'Practice Pass', path: '/practice-pass', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-fire', permissions: ['manage_practice_pass', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Coding Practice', path: '/coding-practice', roles: ['STUDENT'], icon: 'fa-solid fa-laptop-code', permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
-    { label: 'Problem Bank', path: '/problem-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-code', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
-    { label: 'Code Visualizer — Manage', path: '/admin/visualizer', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-sliders', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'Problem Bank', path: '/problem-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-code', permissions: ['manage_problem_bank', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'Code Visualizer — Manage', path: '/admin/visualizer', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-sliders', permissions: ['manage_visualizer', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Thinking Lab', path: '/thinking-lab', roles: ['STUDENT'], icon: 'fa-solid fa-brain', moduleKey: 'thinkingLab', featureKey: 'thinkingLab' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
-    { label: 'Thinking Lab — Bank', path: '/admin/thinking-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-lightbulb', moduleKey: 'thinkingLab', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'Thinking Lab — Bank', path: '/admin/thinking-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-lightbulb', moduleKey: 'thinkingLab', permissions: ['manage_thinking_lab', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Daily Lab Tracks', path: '/lab-tracks', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-days', moduleKey: 'thinkingLab', permissions: ['manage_thinking_lab', 'manage_communication_lab', 'manage_tenant'] },
-    { label: 'Resource Library', path: '/admin/resources', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-box-archive', moduleKey: 'resourceLibrary', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
-    { label: 'Speaking Tasks', path: '/admin/speaking-tasks', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-comment-dots', moduleKey: 'speakingPractice', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
-    { label: 'Leave Requests', path: '/admin/leave-requests', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-xmark', moduleKey: 'attendance', permissions: ['manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
+    { label: 'Resource Library', path: '/admin/resources', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-box-archive', moduleKey: 'resourceLibrary', permissions: ['manage_resources', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'Speaking Tasks', path: '/admin/speaking-tasks', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-comment-dots', moduleKey: 'speakingPractice', permissions: ['manage_speaking', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'Leave Requests', path: '/admin/leave-requests', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-xmark', moduleKey: 'attendance', permissions: ['manage_leave_requests', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Resume Builder', path: '/resume-builder', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-file-lines', featureKey: 'resumeBuilder' as keyof StudentFeatures, permissions: ['enroll_courses', 'submit_assignments', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Career Profile', path: '/career-profile', roles: ['STUDENT'], icon: 'fa-solid fa-id-badge', moduleKey: 'careerPilot', featureKey: 'careerProfile' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'Career Profiles', path: '/admin/career-profiles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-id-badge', moduleKey: 'careerPilot', permissions: ['manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
-    { label: 'Placement Partnership', path: '/admin/placement-partnership', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-handshake', permissions: ['manage_leads', 'manage_tenant'] },
+    { label: 'Career Profiles', path: '/admin/career-profiles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-id-badge', moduleKey: 'careerPilot', permissions: ['manage_career_pilot', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
+    { label: 'Placement Partnership', path: '/admin/placement-partnership', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-handshake', permissions: ['manage_placement_partners', 'manage_leads', 'manage_tenant'] },
     {
       label: 'AI Interviews',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'],
@@ -305,21 +310,23 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     if (!user) return false;
 
     const roleAllowed = !!(user.role && item.roles.includes(user.role));
+    const perms = user.permissions || [];
+    const hasItemPermission = !!item.permissions && item.permissions.some(p => perms.includes(p));
 
-    // STAFF users with custom permissions can access menu items based on permissions alone,
-    // regardless of whether their role is listed in the item's roles array.
-    if (!roleAllowed && user.role === 'STAFF' && user.permissions && user.permissions.length > 0 && item.permissions) {
-      return item.permissions.some(p => user.permissions!.includes(p));
-    }
+    // A custom role (or STAFF) is decided by the permissions ticked in Roles, whatever the base
+    // role — otherwise ticking "Leads" for an instructor-based role showed nothing. Student-only
+    // items and items without permissions keep the role rule.
+    const decidedByPermissions = user.role !== 'SUPER_ADMIN' && user.role !== 'STUDENT'
+      && (!!user.customRoleId || user.role === 'STAFF')
+      && !!item.permissions && item.permissions.length > 0
+      && item.roles.some(r => r !== 'STUDENT');
 
-    // For all other roles: role is always a hard gate
-    if (!roleAllowed) return false;
-
-    // If user has a permissions array (custom role), also verify at least one permission matches
-    // SUPER_ADMIN bypasses permission checks — role alone is the gate
-    if (user.role !== 'SUPER_ADMIN' && user.permissions && user.permissions.length > 0 && item.permissions) {
-      const hasPermission = item.permissions.some(p => user.permissions!.includes(p));
-      if (!hasPermission) return false;
+    if (decidedByPermissions) {
+      if (!hasItemPermission) return false;
+    } else {
+      if (!roleAllowed) return false;
+      // SUPER_ADMIN bypasses permission checks — role alone is the gate
+      if (user.role !== 'SUPER_ADMIN' && perms.length > 0 && item.permissions && item.permissions.length > 0 && !hasItemPermission) return false;
     }
 
     if (user.role === 'STUDENT' && item.needsVisualizerGrant && !vzAllowed) return false;

@@ -50,3 +50,41 @@
   .ppr-grid { grid-template-columns: 1fr; }
   .ppr-card { padding: 20px 16px; }
 }
+
+/* ── The candidate's own page (Portal.tsx) ── */
+.ppr-portal { flex: 1; width: min(720px, calc(100% - 32px)); margin: 0 auto; padding: clamp(24px, 5vw, 48px) 0; }
+.ppr-portal h1 { font-size: clamp(26px, 4vw, 34px); font-weight: 800; color: var(--navy); margin-bottom: 6px; }
+.ppr-portal .ppr-lead { margin-bottom: 18px; }
+.ppr-muted { color: var(--muted); font-size: 14.5px; }
+.ppr-ok { background: #e7f7ef; color: #15803d; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; margin-bottom: 14px; }
+.ppr-step { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 20px; margin-bottom: 16px; box-shadow: 0 12px 32px rgba(14, 27, 61, .06); }
+.ppr-step.done { border-color: #bbf7d0; }
+.ppr-step-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; }
+.ppr-step-head b { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #e6f4f7; color: var(--teal); flex: 0 0 auto; }
+.ppr-step.done .ppr-step-head b { background: #dcfce7; color: #15803d; }
+.ppr-step-head strong { display: block; font-size: 17px; }
+.ppr-step-head small { display: block; color: var(--muted); font-size: 13.5px; margin-top: 2px; }
+.ppr-done-line { color: #15803d; font-weight: 700; display: flex; gap: 8px; align-items: center; }
+.ppr-days { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; }
+.ppr-days button, .ppr-times button { border: 1px solid #d4dcea; background: #fff; border-radius: 10px; padding: 9px 14px; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; white-space: nowrap; }
+.ppr-days button.on, .ppr-times button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.ppr-times { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.ppr-booked .when { font-size: 20px; font-weight: 800; color: var(--navy); }
+.ppr-booked .with { color: var(--muted); margin-top: 2px; }
+.ppr-booked-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.ppr-btn { display: inline-flex; gap: 8px; align-items: center; border: 1px solid #d4dcea; background: #fff; color: var(--ink); border-radius: 10px; padding: 10px 14px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: none; }
+.ppr-btn.primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+.ppr-btn.danger { color: #b4233a; }
+.ppr-btn:disabled { opacity: .6; cursor: default; }
+.ppr-continue { margin-top: 16px; display: inline-flex; }
+
+/* ── Agreement + cheque steps (PortalSteps.tsx) ── */
+.ppr-agreement { white-space: pre-wrap; max-height: 360px; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; line-height: 1.65; color: var(--text); background: #fbfcfe; }
+.ppr-pdf { margin-top: 10px; }
+.ppr-sign { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+.ppr-check { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.ppr-check input { width: 18px; height: 18px; margin-top: 2px; }
+.ppr-field { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; font-weight: 700; color: #2b3852; }
+.ppr-field input { height: 46px; padding: 0 12px; border: 1px solid #d4dcea; border-radius: 10px; font: inherit; font-weight: 500; font-size: 15px; }
+.ppr-field input[type="file"] { height: auto; padding: 10px; }
+.ppr-linkbtn { border: 0; background: none; color: var(--teal); font: inherit; font-weight: 700; cursor: pointer; align-self: center; }

@@ -22,7 +22,7 @@ import { roleGuard } from '../middleware/roleGuard';
 
 const router = express.Router();
 
-const adminGuard = roleGuard(['manage_tenant_courses', 'manage_leads', 'TENANT_ADMIN']);
+const adminGuard = roleGuard(['manage_tenant_courses', 'manage_leads', 'manage_tenant', 'assign_interviews']);
 
 // ── Student routes (all authenticated users) ─────────────────────────────────
 router.get('/my', authMiddleware, tenantResolver, getMyInterviews);

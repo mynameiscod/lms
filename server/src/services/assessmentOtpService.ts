@@ -7,6 +7,7 @@ import { EmailService } from './emailService';
 import { getDecryptedTokens } from '../controllers/leadSourceConfigController';
 import WhatsAppTemplate from '../models/WhatsAppTemplate';
 import { buildSendComponents } from './whatsAppTemplateShape';
+import { recordOutbound, renderTemplateBody } from './whatsAppChatStore';
 
 /**
  * OTP service for assessment registration — sends a 6-digit code over WhatsApp
@@ -261,7 +262,14 @@ export async function sendWhatsAppTemplate(
       messaging_product: 'whatsapp', to, type: 'template',
       template: { name: tpl.name, language: { code: tpl.lang }, components },
     });
-    if (r.ok) return { ok: true };
+    if (r.ok) {
+      // Into the person's conversation, so the Chat tab shows the confirmation/reminder they got.
+      await recordOutbound(tenantId, to, {
+        kind: 'template', templateName: tpl.name, wamid: r.messageId, ok: true, source: 'system',
+        body: def ? renderTemplateBody((def as any).body, opts.body) : opts.body.join(' · '),
+      });
+      return { ok: true };
+    }
     lastError = r.error;
   }
   return { ok: false, error: lastError || 'send failed' };
@@ -310,7 +318,10 @@ export async function sendWhatsAppText(
       ? { messaging_product: 'whatsapp', to, type: 'template', template: { name: tpl.name, language: { code: tpl.lang }, components: [{ type: 'body', parameters: [{ type: 'text', text: oneLine }] }] } }
       : { messaging_product: 'whatsapp', to, type: 'text', text: { body: message } };
     const r = await waPost(creds, payload);
-    if (r.ok) return { ok: true };
+    if (r.ok) {
+      await recordOutbound(tenantId, to, { kind: payload.type === 'template' ? 'template' : 'text', templateName: payload.type === 'template' ? tpl.name : undefined, wamid: r.messageId, ok: true, source: 'system', body: message });
+      return { ok: true };
+    }
     lastError = r.error;
   }
   return { ok: false, error: lastError || 'send failed' };

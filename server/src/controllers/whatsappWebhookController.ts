@@ -10,13 +10,16 @@ import WhatsAppConversationState, { ConversationStep } from '../models/WhatsAppC
 import QualificationQuestionConfig, { IQualificationQuestion } from '../models/QualificationQuestionConfig';
 import { applyStatusWebhook } from '../services/whatsAppTemplateService';
 import { applyDeliveryStatuses } from '../services/whatsAppDeliveryService';
+import { recordInbound, recordOutbound, applyChatStatuses, isBotPaused } from '../services/whatsAppChatStore';
+import { verifyMetaSignature } from '../services/whatsAppWebhookSignature';
 
 // ===================== TYPES =====================
 
 interface WhatsAppMessage {
   from: string; // Phone number
   timestamp: string;
-  type: 'text' | 'image' | 'audio' | 'video' | 'document' | 'interactive';
+  id?: string;
+  type: string;
   text?: { body: string };
   interactive?: { button_reply?: { id: string; title: string }; list_reply?: { id: string; title: string } };
 }
@@ -212,6 +215,13 @@ export const verifyWebhook = async (req: Request, res: Response) => {
 
 export const handleWebhook = async (req: Request, res: Response) => {
   try {
+    // Replies now become chats that staff act on, so a forged "reply" must not get in.
+    const sig = verifyMetaSignature((req as any).rawBody, req.headers['x-hub-signature-256'] as string | undefined);
+    if (!sig.accept) {
+      console.warn('[WA] webhook rejected —', sig.reason);
+      return res.status(401).send('invalid signature');
+    }
+    if (sig.reason) console.warn('[WA] webhook signature:', sig.reason, '(accepted — mode "log")');
     const payload: WhatsAppWebhookPayload = req.body;
     // Always 200 quickly to avoid WA retries
     res.status(200).send('EVENT_RECEIVED');
@@ -250,6 +260,8 @@ async function processWhatsAppMessage(payload: WhatsAppWebhookPayload) {
         console.log('📊 Status update:', value.statuses[0].status, 'for', value.statuses[0].recipient_id);
         await applyDeliveryStatuses(value.statuses as any)
           .catch((e) => console.error('[WA] delivery status update failed:', e?.message));
+        await applyChatStatuses(value.statuses as any)
+          .catch((e) => console.error('[WA] chat status update failed:', e?.message));
         continue;
       }
 
@@ -257,28 +269,34 @@ async function processWhatsAppMessage(payload: WhatsAppWebhookPayload) {
         continue;
       }
 
-      const message = value.messages[0];
-      const contact = value.contacts?.[0];
-      const phoneNumber = message.from;
-      const senderName = contact?.profile?.name || 'Unknown';
-
-      let messageText = '';
-      if (message.type === 'text' && message.text) {
-        messageText = message.text.body;
-      } else if (message.type === 'interactive') {
-        messageText = message.interactive?.button_reply?.title ||
-                      message.interactive?.list_reply?.title || '';
-      }
-
-      if (!messageText) continue;
-
       const tenantInfo = await resolveTenantByPhoneNumberId(value.metadata.phone_number_id);
       if (!tenantInfo) {
         console.error(`[WA] Cannot resolve tenant for phoneNumberId: ${value.metadata.phone_number_id}`);
         continue;
       }
 
-      await handleConversation(phoneNumber, senderName, messageText, value.metadata.phone_number_id, tenantInfo);
+      // Meta batches several messages into one call — every one of them is kept, in order.
+      for (const message of value.messages) {
+        const contact = value.contacts?.find((c) => c.wa_id === message.from) || value.contacts?.[0];
+        const phoneNumber = message.from;
+        const senderName = contact?.profile?.name || 'Unknown';
+
+        // Into the conversation first (photos/PDFs/voice notes too), so nothing a person sends is lost.
+        const stored = await recordInbound(tenantInfo.tenantId, message, contact?.profile?.name, tenantInfo.accessToken)
+          .catch((e) => { console.error('[WA] could not store inbound message:', e?.message); return undefined; });
+        if (stored === null) continue; // Meta re-delivered a message we already have
+
+        const messageText = stored?.botText ?? ((message.type === 'text' && message.text?.body) || message.interactive?.button_reply?.title || message.interactive?.list_reply?.title || '');
+        if (!messageText) continue;
+
+        // A person on our side has taken over this chat — the bot stays quiet, the lead still gets the note.
+        if (await isBotPaused(tenantInfo.tenantId, phoneNumber)) {
+          await appendMessageToLead(phoneNumber, messageText, tenantInfo.tenantId);
+          continue;
+        }
+
+        await handleConversation(phoneNumber, senderName, messageText, value.metadata.phone_number_id, tenantInfo);
+      }
     }
   }
 }
@@ -438,7 +456,11 @@ async function sendWhatsAppMessage(phoneNumberId: string, to: string, message: s
         body: JSON.stringify({ messaging_product: 'whatsapp', to, type: 'text', text: { body: message } }),
       }
     );
-    if (!response.ok) console.error('[WA] API error:', await response.text());
+    if (!response.ok) { console.error('[WA] API error:', await response.text()); return; }
+    // The bot's question shows in the conversation too, so staff see what the person is answering.
+    const sent: any = await response.json().catch(() => null);
+    const tenant = await resolveTenantByPhoneNumberId(phoneNumberId).catch(() => null);
+    if (tenant) await recordOutbound(tenant.tenantId, to, { body: message, wamid: sent?.messages?.[0]?.id, ok: true, source: 'bot' });
   } catch (error) {
     console.error('[WA] sendWhatsAppMessage error:', error);
   }

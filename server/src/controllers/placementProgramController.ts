@@ -1,5 +1,9 @@
 import { Request, Response } from 'express';
 import * as svc from '../services/placementProgramService';
+import * as portal from '../services/placementPortalService';
+import * as agreement from '../services/placementAgreementService';
+import * as growth from '../services/placementGrowthService';
+import { permissionsOf } from '../middleware/roleGuard';
 
 const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
@@ -16,8 +20,10 @@ const wrap = (fn: (req: Request, res: Response) => Promise<any>) => async (req: 
 export const publicRegister = wrap(async (req, res) => {
   const tenantId = await svc.resolveTenantId(req.query.tenant || req.body?.tenant);
   if (!tenantId) return res.status(400).json({ success: false, message: 'Unknown organisation.' });
-  const r = await svc.register(tenantId, req.body || {});
-  res.json({ success: true, data: { returning: r.returning } });
+  // A form on the marketing site (www.codebegun.com) rather than the platform's own page.
+  const fromWebsite = /^https:\/\/(www\.)?codebegun\.com$/i.test(String(req.headers.origin || ''));
+  const r = await svc.register(tenantId, req.body || {}, { source: fromWebsite ? 'website' : 'ad' });
+  res.json({ success: true, data: { returning: r.returning, portalToken: r.portalToken } });
 });
 
 export const list = wrap(async (req, res) => {
@@ -36,4 +42,89 @@ export const setStage = wrap(async (req, res) => {
 
 export const addNote = wrap(async (req, res) => {
   res.json({ success: true, data: await svc.addNote(tId(req), req.params.id, String(req.body?.text || ''), uId(req)) });
+});
+
+// ── Phase 2: the candidate's own page (public, by secret link) ────────────────
+
+export const portalView = wrap(async (req, res) => { res.json({ success: true, data: await portal.portalView(req.params.token) }); });
+export const portalSlots = wrap(async (req, res) => { res.json({ success: true, data: await portal.portalSlots(req.params.token) }); });
+export const portalOrder = wrap(async (req, res) => { res.json({ success: true, data: await portal.portalCreateOrder(req.params.token) }); });
+export const portalVerify = wrap(async (req, res) => { res.json({ success: true, data: await portal.portalVerifyPayment(req.params.token, req.body || {}) }); });
+export const portalBook = wrap(async (req, res) => { res.json({ success: true, data: await portal.portalBook(req.params.token, String(req.body?.startsAt || '')) }); });
+export const portalCancel = wrap(async (req, res) => { res.json({ success: true, data: await portal.portalCancel(req.params.token) }); });
+
+// ── Phase 2: admin ─────────────────────────────────────────────────────────────
+export const getConfig = wrap(async (req, res) => { res.json({ success: true, data: await portal.getConfig(tId(req)) }); });
+export const saveConfig = wrap(async (req, res) => { res.json({ success: true, data: await portal.saveConfig(tId(req), req.body || {}) }); });
+export const listInterviewers = wrap(async (req, res) => { res.json({ success: true, data: await portal.listInterviewers(tId(req)) }); });
+export const createInterviewer = wrap(async (req, res) => { res.json({ success: true, data: await portal.saveInterviewer(tId(req), null, req.body || {}) }); });
+export const updateInterviewer = wrap(async (req, res) => { res.json({ success: true, data: await portal.saveInterviewer(tId(req), req.params.ivId, req.body || {}) }); });
+export const deleteInterviewer = wrap(async (req, res) => { res.json({ success: true, data: await portal.deleteInterviewer(tId(req), req.params.ivId) }); });
+export const listBookings = wrap(async (req, res) => {
+  res.json({ success: true, data: await portal.listBookings(tId(req), { range: req.query.range === 'past' ? 'past' : 'upcoming' }) });
+});
+/** An interviewer's own interviews — needs only a login, not placement-admin rights. */
+export const myBookings = wrap(async (req, res) => {
+  res.json({ success: true, data: await portal.listBookings(tId(req), { mine: '1', userId: uId(req), range: req.query.range === 'past' ? 'past' : 'upcoming' }) });
+});
+export const cancelBooking = wrap(async (req, res) => { res.json({ success: true, data: await portal.adminCancelBooking(tId(req), req.params.bookingId, uId(req), req.body?.reason) }); });
+export const bookingOutcome = wrap(async (req, res) => {
+  const perms = await permissionsOf((req as any).user || { role: '' }).catch(() => [] as string[]);
+  const isAdmin = perms.includes('manage_placement') || perms.includes('manage_tenant');
+  res.json({ success: true, data: await portal.setOutcome(tId(req), req.params.bookingId, req.body?.outcome, uId(req), isAdmin, req.body?.scorecard) });
+});
+export const waive = wrap(async (req, res) => { res.json({ success: true, data: await portal.setWaived(tId(req), req.params.id, !!req.body?.waived, uId(req)) }); });
+export const refund = wrap(async (req, res) => { res.json({ success: true, data: await portal.refundFee(tId(req), req.params.id, uId(req), req.body?.reason) }); });
+export const portalLink = wrap(async (req, res) => { res.json({ success: true, data: await portal.ensurePortalToken(tId(req), req.params.id) }); });
+
+export const board = wrap(async (req, res) => { res.json({ success: true, data: await portal.board(tId(req)) }); });
+/** The scorecard criteria, for the interviewer's form (no admin rights needed). */
+export const scorecardCriteria = wrap(async (req, res) => { res.json({ success: true, data: (await portal.getConfig(tId(req))).scorecardCriteria }); });
+
+// ── Phase 4: agreement + security cheque ─────────────────────────────────────
+const sendPdf = (res: Response, r: { pdf: Buffer; filename: string }) => {
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="${r.filename.replace(/[^\w.-]/g, '')}"`);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.send(r.pdf);
+};
+const clientIp = (req: Request) => String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || '';
+
+export const portalAgreementOtp = wrap(async (req, res) => { res.json({ success: true, data: await agreement.portalAgreementOtp(req.params.token) }); });
+export const portalSign = wrap(async (req, res) => {
+  res.json({ success: true, data: await agreement.portalSign(req.params.token, req.body || {}, clientIp(req), String(req.headers['user-agent'] || '')) });
+});
+export const portalAgreementPdf = wrap(async (req, res) => { sendPdf(res, await agreement.portalAgreementPdf(req.params.token)); });
+export const portalCheque = wrap(async (req, res) => {
+  if (!(req as any).file && (req as any).chequeRejectedType) return res.status(400).json({ success: false, message: 'Upload a JPG, PNG or PDF of the cheque.' });
+  res.json({ success: true, data: await agreement.portalUploadCheque(req.params.token, (req as any).file, req.body || {}) });
+});
+
+export const agreementPreview = wrap(async (req, res) => { res.json({ success: true, data: { ...(await agreement.previewAgreement(tId(req))), fields: agreement.MERGE_FIELDS } }); });
+export const sendAgreement = wrap(async (req, res) => { res.json({ success: true, data: await agreement.sendAgreement(tId(req), req.params.id, uId(req)) }); });
+export const agreementPdf = wrap(async (req, res) => { sendPdf(res, await agreement.adminAgreementPdf(tId(req), req.params.id)); });
+export const chequeStatus = wrap(async (req, res) => {
+  res.json({ success: true, data: await agreement.setChequeStatus(tId(req), req.params.id, String(req.body?.status || ''), uId(req), req.body?.reason) });
+});
+export const chequeFile = wrap(async (req, res) => {
+  const f = await agreement.chequeFile(tId(req), req.params.id);
+  res.setHeader('Content-Type', f.mime);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.sendFile(f.full);
+});
+
+// ── Phase 5: LMS push, stage messages, conversions ───────────────────────────
+export const pushStudents = wrap(async (req, res) => {
+  res.json({ success: true, data: await growth.pushLmsStudents(tId(req), uId(req), req.body?.items || [], !!req.body?.notify) });
+});
+export const stageBroadcast = wrap(async (req, res) => { res.json({ success: true, data: await growth.stageBroadcast(tId(req), uId(req), req.body || {}) }); });
+export const conversionsStatus = wrap(async (req, res) => {
+  res.json({ success: true, data: { meta: growth.metaConfigured(tId(req)), googleNames: growth.GOOGLE_CONVERSION_NAMES } });
+});
+export const googleCsv = wrap(async (req, res) => {
+  const r = await growth.googleConversionsCsv(tId(req), req.query.from as string, req.query.to as string);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="placement-google-conversions.csv"');
+  res.setHeader('X-Rows', String(r.rows));
+  res.send(r.csv);
 });

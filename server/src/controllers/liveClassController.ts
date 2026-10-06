@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
+import { allowedByRoleOrPermission } from '../middleware/roleGuard';
 import LiveClass from '../models/LiveClass';
 import User from '../models/User';
 import * as hms from '../services/hmsService';
@@ -8,7 +9,9 @@ import { importRecording, generateNotesFromTranscript, fetchTranscriptText } fro
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'];
 
-const isAdminish = (req: AuthenticatedRequest) => ADMIN_ROLES.includes(req.user?.role || '');
+// Custom roles decide by permission (Live Classes), others by role name.
+const isAdminish = (req: AuthenticatedRequest) =>
+  allowedByRoleOrPermission(req.user as any, ADMIN_ROLES, ['manage_live_classes', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
 
 // ── Create (schedule) a live class ────────────────────────────────────────────
 export const createLiveClass = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
@@ -46,7 +49,7 @@ export const listLiveClasses = async (req: AuthenticatedRequest, res: Response<A
     if (req.query.status) q.status = req.query.status;
 
     // Students only see live classes assigned to THEIR batch (hosts/admins see all)
-    if (!isAdminish(req)) {
+    if (!(await isAdminish(req))) {
       const me = await User.findById(req.user?.id).select('batchId').lean();
       const myBatch = (me as any)?.batchId;
       if (!myBatch) return res.status(200).json({ success: true, message: 'Live classes', data: [] });
@@ -138,7 +141,7 @@ export const getJoinToken = async (req: AuthenticatedRequest, res: Response<ApiR
       return res.status(409).json({ success: false, message: 'Class is not live yet', error: 'not_live' });
     }
     // The instructor (or an admin) joins as broadcaster; everyone else as viewer (HLS audience)
-    const isHost = isAdminish(req) || String(lc.instructorId) === String(req.user?.id);
+    const isHost = (await isAdminish(req)) || String(lc.instructorId) === String(req.user?.id);
 
     // A student may only join a class assigned to their batch
     if (!isHost && lc.batchId) {

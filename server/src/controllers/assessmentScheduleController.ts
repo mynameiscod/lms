@@ -4,12 +4,14 @@ import AssessmentSchedule from '../models/AssessmentSchedule';
 import Assignment from '../models/Assignment';
 import Quiz from '../models/Quiz';
 import Batch from '../models/Batch';
+import { allowedByRoleOrPermission } from '../middleware/roleGuard';
 import { mergePolicy, DEFAULT_POLICY } from '../services/deadlinePolicyService';
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
 const userId = (req: Request): string => (req as any).user?.id || '';
 const role = (req: Request): string => (req as any).user?.role || '';
-const canManage = (req: Request) => ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'].includes(role(req));
+const canManage = (req: Request) =>
+  allowedByRoleOrPermission((req as any).user, ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], ['manage_skill_assessment', 'create_quiz', 'edit_quiz', 'manage_assignments', 'manage_tenant']);
 
 async function contentTitleOf(type: string, id: string): Promise<string> {
   try {
@@ -45,7 +47,7 @@ export const listSchedules = async (req: Request, res: Response) => {
  */
 export const assignToBatches = async (req: Request, res: Response) => {
   try {
-    if (!canManage(req)) return res.status(403).json({ message: 'Not allowed' });
+    if (!(await canManage(req))) return res.status(403).json({ message: 'Not allowed' });
     const tId = tenantId(req);
     const { contentType, contentId, policy, batches, students } = req.body || {};
     if (!['assignment', 'quiz'].includes(contentType) || !contentId) {
@@ -121,7 +123,7 @@ export const assignToBatches = async (req: Request, res: Response) => {
 /** PATCH /assessment-schedules/:id — change one batch's window / policy. */
 export const updateSchedule = async (req: Request, res: Response) => {
   try {
-    if (!canManage(req)) return res.status(403).json({ message: 'Not allowed' });
+    if (!(await canManage(req))) return res.status(403).json({ message: 'Not allowed' });
     const allowed = ['startAt', 'dueAt', 'latePolicy', 'graceDays', 'penaltyPct', 'dueTime', 'status'];
     const $set: any = {};
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = (k === 'startAt' || k === 'dueAt') && req.body[k] ? new Date(req.body[k]) : req.body[k];
@@ -142,7 +144,7 @@ export const updateSchedule = async (req: Request, res: Response) => {
  */
 export const extendSchedules = async (req: Request, res: Response) => {
   try {
-    if (!canManage(req)) return res.status(403).json({ message: 'Not allowed' });
+    if (!(await canManage(req))) return res.status(403).json({ message: 'Not allowed' });
     const days = Number(req.body.days);
     if (!days || Number.isNaN(days)) return res.status(400).json({ message: 'days is required' });
     const filter: any = { tenantId: tenantId(req) };
@@ -169,7 +171,7 @@ export const extendSchedules = async (req: Request, res: Response) => {
 /** DELETE /assessment-schedules/:id — unassign an assessment from a batch. */
 export const removeSchedule = async (req: Request, res: Response) => {
   try {
-    if (!canManage(req)) return res.status(403).json({ message: 'Not allowed' });
+    if (!(await canManage(req))) return res.status(403).json({ message: 'Not allowed' });
     const r = await AssessmentSchedule.findOneAndDelete({ _id: req.params.id, tenantId: tenantId(req) });
     if (!r) return res.status(404).json({ message: 'Schedule not found' });
     res.json({ message: 'Unassigned' });

@@ -19,7 +19,7 @@ const wrap = (fn: (req: Request) => Promise<any>) => async (req: Request, res: R
     res.status(status).json({ success: false, message: e?.message || 'Something went wrong' });
   }
 };
-const staff = roleGuard(['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant', 'manage_tenant_users', 'manage_interviews']);
+const staff = roleGuard(['manage_interview_hub', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant', 'manage_tenant_users', 'manage_interviews']);
 
 // ── Staff ──
 router.get('/admin/books', staff, wrap((req) => svc.adminBooks(actor(req))));

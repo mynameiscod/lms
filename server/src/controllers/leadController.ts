@@ -513,7 +513,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
     if (assignedTo && String(assignedTo) !== String(req.user!.id)) {
       const io = req.app.get('io');
       if (io) {
-        io.to(`tenant_${req.tenantId}`).emit('lead_assigned', {
+        io.to(`staff_${req.tenantId}`).emit('lead_assigned', {
           leadId: lead._id,
           leadName: name,
           assignedTo,
@@ -673,7 +673,7 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
       // Notify managers via socket
       const io = req.app.get('io');
       if (io) {
-        io.to(`tenant_${req.tenantId}`).emit('stage_approval_requested', {
+        io.to(`staff_${req.tenantId}`).emit('stage_approval_requested', {
           leadId: lead._id,
           leadName: lead.name,
           requestedStage: newStage.name,

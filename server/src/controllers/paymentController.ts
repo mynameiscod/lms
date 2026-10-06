@@ -10,6 +10,8 @@ import { applyFeePayment, reverseFeePayment } from '../services/feePaymentServic
 import { unlockCandidatePlans } from '../services/assessmentEnrollmentService';
 import { activateMembership } from '../services/passportActivationService';
 import HackathonRegistration from '../models/HackathonRegistration';
+import PlacementCandidate from '../models/PlacementCandidate';
+import { settleFee } from '../services/placementPortalService';
 import { settleRegistration } from './publicHackathonController';
 
 /**
@@ -205,7 +207,23 @@ export const webhook = async (req: Request, res: Response) => {
      * its own lookup rather than being silently ignored — which would leave every paid team
      * sitting at `pending_payment` unless their browser happened to complete the return trip.
      */
-    if (!payment) return handleHackathonWebhook(req, res, event, orderId, raw, signature);
+    if (!payment) {
+      // A Placement Program interview fee is on the candidate record (they have no account either).
+      const placement = await PlacementCandidate.findOne({ 'fee.orderId': orderId }).select('tenantId').lean() as any;
+      if (placement) {
+        if (!razorpay.verifyWebhookSignature(String(placement.tenantId), raw, signature)) {
+          return res.status(400).json({ success: false, message: 'Invalid signature' });
+        }
+        const evType = String(event?.event || '');
+        if (evType === 'payment.captured' || evType === 'order.paid') {
+          const entity = event?.payload?.payment?.entity || {};
+          const captured = entity.amount !== undefined ? { amount: Number(entity.amount), currency: String(entity.currency || '') } : undefined;
+          await settleFee(orderId, String(entity.id || ''), captured); // idempotent: the browser may have settled it already
+        }
+        return res.status(200).json({ success: true });
+      }
+      return handleHackathonWebhook(req, res, event, orderId, raw, signature);
+    }
 
     // Verify against the tenant that owns this order.
     if (!razorpay.verifyWebhookSignature(String(payment.tenantId), raw, signature)) {

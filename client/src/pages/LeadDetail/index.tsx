@@ -8,6 +8,8 @@ import LostReasonModal from '../../components/leads/LostReasonModal';
 import MeetingSchedulerModal from '../../components/leads/MeetingSchedulerModal';
 import LeadDetailModern from './LeadDetailModern';
 import LeadDetailV2 from './LeadDetailV2';
+import ChatPanel from '../../components/WhatsAppChat/ChatPanel';
+import { canChat } from '../../api/whatsAppChatApi';
 import './LeadDetailNew.css';
 
 interface Stage { _id: string; name: string; color: string; order: number; }
@@ -347,6 +349,7 @@ const LeadDetail: React.FC = () => {
   const { leadId } = useParams<{ leadId: string }>();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
+  const chatAllowed = canChat(currentUser as any);
   const [lead, setLead] = useState<Lead|null>(null);
   const [stages, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -949,6 +952,10 @@ const LeadDetail: React.FC = () => {
             <button className={`crm-activity-tab${timelineFilter === 'whatsapp' ? ' active' : ''}`} onClick={() => setTimelineFilter('whatsapp')}>WhatsApp</button>
           </div>
 
+          {/* WhatsApp tab = the real conversation, when the user may chat */}
+          {timelineFilter === 'whatsapp' && chatAllowed && <div className="crm-wa-chat"><ChatPanel phone={lead.phone} name={lead.name} /></div>}
+
+          {!(timelineFilter === 'whatsapp' && chatAllowed) && <>
           {/* Filters Row */}
           <div className="crm-filters-row">
             <select className="crm-filter-select">
@@ -1080,6 +1087,7 @@ const LeadDetail: React.FC = () => {
               ))
             )}
           </div>
+          </>}
         </div>
 
         {/* ═══ RIGHT SIDEBAR ═══ */}

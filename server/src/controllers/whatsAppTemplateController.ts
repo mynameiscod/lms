@@ -98,12 +98,26 @@ export const messages = wrap(async (req, res) => {
 });
 
 export const broadcast = wrap(async (req, res) => {
-  const { phones, batchId, values, buttonParam } = req.body || {};
+  const { phones, batchId, leads, values, buttonParam } = req.body || {};
   if (batchId && !mongoose.isValidObjectId(batchId)) return res.status(400).json({ success: false, message: 'Invalid batch' });
   const b = await svc.startBroadcast(tId(req), uId(req), req.params.id, {
-    phones, batchId, values: Array.isArray(values) ? values.map(String) : [], buttonParam,
+    phones, batchId, leads: leads ? leadFilter(leads) : undefined, values: Array.isArray(values) ? values.map(String) : [], buttonParam,
   });
   res.status(202).json({ success: true, data: b });
+});
+
+const strList = (v: any) => (Array.isArray(v) ? v.map(String).filter(Boolean).slice(0, 50) : []);
+const leadFilter = (b: any): svc.LeadFilter => ({
+  stageIds: strList(b?.stageIds), sources: strList(b?.sources), passoutYears: strList(b?.passoutYears),
+  skipAlreadySent: b?.skipAlreadySent !== false,
+});
+
+export const leadAudience = wrap(async (req, res) => {
+  res.json({ success: true, data: await svc.previewLeadAudience(tId(req), req.params.id, leadFilter(req.body)) });
+});
+
+export const leadFilters = wrap(async (req, res) => {
+  res.json({ success: true, data: await svc.leadFilterOptions(tId(req)) });
 });
 
 export const broadcasts = wrap(async (req, res) => {

@@ -40,7 +40,7 @@ const wrap = (fn: (req: Request, res: Response) => Promise<any>) => async (req: 
   }
 };
 
-const staff = roleGuard(['manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_passport']);
+const staff = roleGuard(['manage_interview_hub', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_passport']);
 
 // ── Admin (declared before /:id) ──
 router.get('/admin/experiences', staff, wrap((req) => svc.adminList(t(req), req.query as any)));

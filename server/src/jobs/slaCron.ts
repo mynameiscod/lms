@@ -67,7 +67,7 @@ export async function checkSlaBreaches(io: any): Promise<void> {
     // Emit socket notifications (per tenant room)
     if (io) {
       for (const n of breachNotifications) {
-        io.to(`tenant_${n.tenantId}`).emit('sla_breach', {
+        io.to(`staff_${n.tenantId}`).emit('sla_breach', {
           leadId: n.leadId,
           stageName: n.stageName,
           hoursInStage: n.hoursInStage,

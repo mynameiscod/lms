@@ -9,7 +9,7 @@ import * as ctrl from '../controllers/whatsAppTemplateController';
  * Tenant settings territory: templates go out under the institute's WhatsApp number.
  */
 const router = express.Router();
-router.use(authMiddleware, tenantMiddleware, roleGuard(['manage_tenant_settings', 'manage_tenant']));
+router.use(authMiddleware, tenantMiddleware, roleGuard(['manage_whatsapp_templates', 'manage_tenant_settings', 'manage_tenant']));
 
 router.get('/connection', ctrl.getConnection);
 router.put('/connection', ctrl.saveConnection);
@@ -22,6 +22,7 @@ router.put('/usage/:purpose', ctrl.assign);
 router.get('/broadcasts', ctrl.broadcasts);
 router.get('/messages', ctrl.messages);
 router.get('/batches', ctrl.batches);
+router.get('/lead-filters', ctrl.leadFilters);
 
 router.get('/', ctrl.list);
 router.post('/', ctrl.create);
@@ -31,5 +32,6 @@ router.put('/:id', ctrl.update);
 router.delete('/:id', ctrl.remove);
 router.post('/:id/test', ctrl.sendTest);
 router.post('/:id/broadcast', ctrl.broadcast);
+router.post('/:id/lead-audience', ctrl.leadAudience);
 
 export default router;

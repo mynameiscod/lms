@@ -190,7 +190,10 @@ app.use('/api/v1', apiRoutes);
 
 // Serve uploaded files (profile photos, resumes, etc.)
 const uploadsPath = path.join(__dirname, '..', 'uploads');
-app.use('/uploads', express.static(uploadsPath));
+// Private files (security cheques) share the volume but are never served: express.static ignores
+// dot-folders by default, and this refuses them outright in case that default ever changes.
+app.use('/uploads/.private', (_req, res) => { res.status(404).end(); });
+app.use('/uploads', express.static(uploadsPath, { dotfiles: 'deny' }));
 console.log(`📁 Serving uploaded files from: ${uploadsPath}`);
 
 // Serve static files AFTER API routes

@@ -3,9 +3,13 @@ import WhatsAppTemplate, { IWhatsAppTemplate, IWaButton, WaTemplateCategory } fr
 import WhatsAppBroadcast from '../models/WhatsAppBroadcast';
 import LeadSourceConfig from '../models/LeadSourceConfig';
 import User from '../models/User';
+import Lead from '../models/Lead';
+import LeadStage from '../models/LeadStage';
+import WhatsAppMessageLog from '../models/WhatsAppMessageLog';
 import * as settings from './settingsService';
 import { getWhatsAppCredentialCandidates, waPost, normalizeTo } from './assessmentOtpService';
 import { recordSend } from './whatsAppDeliveryService';
+import { recordOutbound, renderTemplateBody } from './whatsAppChatStore';
 import { WA_TEMPLATE_PURPOSES, WaTemplatePurpose, getPurpose } from '../config/whatsappTemplatePurposes';
 import { templateShape, buildSendComponents, varIndexes } from './whatsAppTemplateShape';
 
@@ -527,6 +531,12 @@ export async function sendTemplateTo(
     tenantId, to, templateName: t.name, templateId: t._id,
     source: opts.log?.source || 'system', broadcastId: opts.log?.broadcastId, sentBy: opts.log?.sentBy, result,
   });
+  // …and in the person's conversation, so the Chat tab shows what they were sent.
+  await recordOutbound(tenantId, to, {
+    kind: 'template', templateName: t.name, wamid: result.messageId, ok: result.ok, error: result.error,
+    body: [t.header?.format === 'TEXT' ? t.header.text : '', renderTemplateBody(t.body, opts.body || [])].filter(Boolean).join('\n'),
+    sentBy: opts.log?.sentBy, source: opts.log?.source || 'system',
+  });
   return result;
 }
 
@@ -537,18 +547,22 @@ export async function sendTest(tenantId: string, id: string, phone: string, valu
   return sendTemplateTo(tenantId, t, phone, { body: values, urlButtonParam: buttonParam, log: { source: 'test', sentBy } });
 }
 
-/** Recipients: pasted numbers, or every student in a batch with a phone. `{name}` in a value is personalised. */
+/** Recipients: pasted numbers, students of a batch, or CRM leads matching a filter. `{name}` in a value is personalised. */
 export async function startBroadcast(
   tenantId: string, userId: string, id: string,
-  input: { phones?: string; batchId?: string; values: string[]; buttonParam?: string },
+  input: { phones?: string; batchId?: string; leads?: LeadFilter; values: string[]; buttonParam?: string },
 ) {
   const t = await WhatsAppTemplate.findOne({ _id: id, tenantId });
   if (!t) throw new WaTemplateError('Template not found', 404);
   if (t.status !== 'APPROVED') throw new WaTemplateError(`Template is ${t.status} — Meta only sends APPROVED templates.`);
 
-  let recipients: { phone: string; name: string }[] = [];
+  let recipients: { phone: string; name: string; leadId?: any }[] = [];
   let audience = '';
-  if (input.batchId) {
+  if (input.leads) {
+    const r = await resolveLeadAudience(tenantId, t, input.leads);
+    recipients = r.recipients;
+    audience = `CRM leads: ${r.label} (${recipients.length})`;
+  } else if (input.batchId) {
     const users = await User.find({
       tenantId: new mongoose.Types.ObjectId(tenantId),
       batchId: new mongoose.Types.ObjectId(input.batchId),
@@ -587,6 +601,12 @@ export async function startBroadcast(
         urlButtonParam: input.buttonParam ? personalise(input.buttonParam) : undefined,
         log: { source: 'broadcast', broadcastId: b._id, sentBy: userId },
       });
+      if (res.ok && r.leadId) {
+        // Leave a trace on the lead so a telecaller sees the message in its timeline.
+        await Lead.updateOne({ _id: r.leadId }, { $push: { activities: {
+          type: 'whatsapp', description: `WhatsApp template "${t.name}" sent (broadcast)`, createdBy: userId, createdAt: new Date(),
+        } } }).catch(() => {});
+      }
       if (res.ok) sent++; else { failed++; if (failures.length < 50) failures.push({ phone: r.phone, error: res.error || 'failed' }); }
       if (k % 10 === 9 || k === recipients.length - 1) {
         await WhatsAppBroadcast.updateOne({ _id: b._id }, { $set: { sent, failed, failures } });
@@ -600,6 +620,98 @@ export async function startBroadcast(
   });
 
   return b;
+}
+
+// ── CRM leads as a broadcast audience ────────────────────────────────────────
+
+export interface LeadFilter {
+  stageIds?: string[];
+  sources?: string[];
+  /** e.g. ["2026"]; "unknown" matches leads whose form had no passout year. */
+  passoutYears?: string[];
+  /** Leave out numbers this template already reached (anything but a failed send). */
+  skipAlreadySent?: boolean;
+}
+
+/** Meta lead forms store the year under keys like "🎓_passout_year"; take the first 20xx found. */
+export function passoutYearOf(customFields: any): string {
+  if (!customFields || typeof customFields !== 'object') return '';
+  for (const [k, v] of Object.entries(customFields)) {
+    if (!/pass\s*_?out|graduat|year_of_pass|yop/i.test(k)) continue;
+    const m = String(v ?? '').match(/20\d\d/);
+    if (m) return m[0];
+  }
+  return '';
+}
+
+const oids = (ids?: string[]) => (ids || []).filter((x) => mongoose.isValidObjectId(x)).map((x) => new mongoose.Types.ObjectId(x));
+
+/**
+ * Leads matching a filter, one per phone number. Stage and source filter in Mongo; the passout year
+ * lives in free-form customFields, so it is filtered here. `years` counts every year among the
+ * stage/source matches so the UI can offer them as choices.
+ */
+export async function resolveLeadAudience(tenantId: string, t: IWhatsAppTemplate, f: LeadFilter) {
+  const tid = new mongoose.Types.ObjectId(tenantId);
+  const q: any = { tenantId: tid, phone: { $nin: [null, ''] } };
+  const stageIds = oids(f.stageIds);
+  if (stageIds.length) q.stageId = { $in: stageIds };
+  if (f.sources?.length) q.source = { $in: f.sources };
+  const leads = await Lead.find(q).select('name phone customFields').lean();
+
+  const years: Record<string, number> = {};
+  let rows = leads.map((l: any) => {
+    const year = passoutYearOf(l.customFields);
+    years[year || 'unknown'] = (years[year || 'unknown'] || 0) + 1;
+    return { leadId: l._id, name: l.name || '', phone: String(l.phone), year };
+  });
+  const wanted = f.passoutYears || [];
+  if (wanted.length) rows = rows.filter((r) => wanted.includes(r.year || 'unknown'));
+
+  // One message per number.
+  const seen = new Set<string>();
+  rows = rows.filter((r) => { const k = normalizeTo(r.phone); if (k.length < 10 || seen.has(k)) return false; seen.add(k); return true; });
+
+  let alreadySent = 0;
+  if (f.skipAlreadySent) {
+    const done = new Set<string>(await WhatsAppMessageLog.distinct('to', { tenantId: tid, templateName: t.name, status: { $ne: 'failed' } }));
+    const before = rows.length;
+    rows = rows.filter((r) => !done.has(normalizeTo(r.phone)));
+    alreadySent = before - rows.length;
+  }
+
+  const stageNames = stageIds.length ? (await LeadStage.find({ _id: { $in: stageIds } }).select('name').lean()).map((s: any) => s.name) : [];
+  const label = [
+    stageNames.length ? stageNames.join(', ') : 'all stages',
+    f.sources?.length ? f.sources.join(', ') : '',
+    wanted.length ? `passout ${wanted.join('/')}` : '',
+  ].filter(Boolean).join(' · ');
+
+  return { recipients: rows.map(({ leadId, name, phone }) => ({ leadId, name, phone })), alreadySent, years, label };
+}
+
+/** For the send dialog: how many would get it, and a few names to sanity-check, before anything is sent. */
+export async function previewLeadAudience(tenantId: string, id: string, f: LeadFilter) {
+  const t = await WhatsAppTemplate.findOne({ _id: id, tenantId });
+  if (!t) throw new WaTemplateError('Template not found', 404);
+  const r = await resolveLeadAudience(tenantId, t, f);
+  return { total: r.recipients.length, alreadySent: r.alreadySent, years: r.years, sample: r.recipients.slice(0, 5).map((x) => x.name || x.phone) };
+}
+
+/** Stages and sources with how many leads (with a phone) are in each — the filter choices. */
+export async function leadFilterOptions(tenantId: string) {
+  const tid = new mongoose.Types.ObjectId(tenantId);
+  const match = { tenantId: tid, phone: { $nin: [null, ''] } };
+  const [byStage, bySource, stages] = await Promise.all([
+    Lead.aggregate([{ $match: match }, { $group: { _id: '$stageId', n: { $sum: 1 } } }]),
+    Lead.aggregate([{ $match: match }, { $group: { _id: '$source', n: { $sum: 1 } } }, { $sort: { n: -1 } }]),
+    LeadStage.find({ tenantId: tid }).select('name order').sort({ order: 1 }).lean(),
+  ]);
+  const count = new Map(byStage.map((x: any) => [String(x._id), x.n as number]));
+  return {
+    stages: stages.map((s: any) => ({ _id: String(s._id), name: s.name as string, count: count.get(String(s._id)) || 0 })),
+    sources: bySource.filter((x: any) => x._id).map((x: any) => ({ source: String(x._id), count: x.n as number })),
+  };
 }
 
 export const listBroadcasts = (tenantId: string) =>

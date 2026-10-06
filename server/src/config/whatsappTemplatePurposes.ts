@@ -107,6 +107,24 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     variables: ['Candidate first name'],
     help: 'Sent as soon as someone submits the Placement Program form from an ad. Nothing is sent until a template is assigned here, and the candidate timeline records that. Keep it UTILITY (a factual "we received your registration") — a marketing template is not delivered to most ad leads.',
   },
+  {
+    key: 'PLACEMENT_INTERVIEW_BOOKED', label: 'Placement Program — interview booked', module: 'Placement Program',
+    settingsKey: 'WHATSAPP_TEMPLATE_PLACEMENT_INTERVIEW_BOOKED',
+    variables: ['Candidate first name', 'Interview date and time (IST)', 'Meeting link'],
+    help: 'Sent when a candidate books their interview. Keep it UTILITY, e.g. "Hi {{1}}, your interview is confirmed for {{2}} IST. Join here: {{3}}". An email with a calendar invite also goes out when the candidate gave an email.',
+  },
+  {
+    key: 'PLACEMENT_INTERVIEW_REMINDER', label: 'Placement Program — interview reminder', module: 'Placement Program',
+    settingsKey: 'WHATSAPP_TEMPLATE_PLACEMENT_INTERVIEW_REMINDER',
+    variables: ['Candidate first name', 'Interview date and time (IST)', 'Meeting link'],
+    help: 'Sent 24 hours and 1 hour before the interview. Same three variables as the booking message. Keep it UTILITY.',
+  },
+  {
+    key: 'PLACEMENT_AGREEMENT_SENT', label: 'Placement Program — agreement to sign', module: 'Placement Program',
+    settingsKey: 'WHATSAPP_TEMPLATE_PLACEMENT_AGREEMENT_SENT',
+    variables: ['Candidate first name', 'Link to their page'],
+    help: 'Sent when an admin sends the agreement. Keep it UTILITY, e.g. "Hi {{1}}, your Placement Program agreement is ready to review and sign: {{2}}".',
+  },
 ];
 
 export const getPurpose = (key: string) =>

@@ -1,14 +1,17 @@
 import express, { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
 import { authMiddleware } from '../middleware/auth';
+import { allowedByRoleOrPermission } from '../middleware/roleGuard';
 import { logger } from '../utils/logger';
 
 const router = express.Router();
 
 // Server logs can expose other users' data — admins/instructors/staff only.
-const adminOnly = (req: Request, res: Response, next: NextFunction) => {
-  const role = (req as any).user?.role;
-  if (['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'].includes(role)) return next();
+const adminOnly = async (req: Request, res: Response, next: NextFunction) => {
+  // Custom roles need "API Logs & Student Activity" ticked; others keep the role rule.
+  const ok = await allowedByRoleOrPermission((req as any).user, ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'],
+    ['view_activity_logs', 'manage_tenant', 'manage_tenant_settings', 'view_reports']);
+  if (ok) return next();
   return res.status(403).json({ error: 'Admins only' });
 };
 

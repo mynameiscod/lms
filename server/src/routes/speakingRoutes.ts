@@ -17,7 +17,7 @@ const upload = multer({
   }),
   limits: { fileSize: 200 * 1024 * 1024 }, // 200 MB per recording
 });
-const ADMIN = roleGuard(['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
+const ADMIN = roleGuard(['manage_speaking', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
 
 router.use(authMiddleware, tenantMiddleware);
 

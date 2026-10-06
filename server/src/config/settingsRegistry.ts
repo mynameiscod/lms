@@ -126,6 +126,15 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'WHATSAPP_TEMPLATE_LEAD_WELCOME_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
   { key: 'WHATSAPP_TEMPLATE_PLACEMENT_PROGRAM_REGISTERED', label: 'Placement Program — Registration Received Template', group: 'messaging', type: 'text', perTenant: true, help: 'Sent when someone submits the Placement Program form. Body takes ONE variable — {{1}} the candidate’s first name. Keep it UTILITY. Easiest to set from Admin → WhatsApp Templates → Where used.' },
   { key: 'WHATSAPP_TEMPLATE_PLACEMENT_PROGRAM_REGISTERED_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
+  { key: 'WHATSAPP_TEMPLATE_PLACEMENT_INTERVIEW_BOOKED', label: 'Placement Program — Interview Booked Template', group: 'messaging', type: 'text', perTenant: true, help: 'Three variables: {{1}} first name, {{2}} date and time (IST), {{3}} meeting link. Keep it UTILITY. Set from Admin → WhatsApp Templates → Where used.' },
+  { key: 'WHATSAPP_TEMPLATE_PLACEMENT_INTERVIEW_BOOKED_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
+  { key: 'WHATSAPP_TEMPLATE_PLACEMENT_INTERVIEW_REMINDER', label: 'Placement Program — Interview Reminder Template', group: 'messaging', type: 'text', perTenant: true, help: 'Sent 24 h and 1 h before. Same three variables as the booking message. Keep it UTILITY.' },
+  { key: 'WHATSAPP_TEMPLATE_PLACEMENT_INTERVIEW_REMINDER_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
+  { key: 'WHATSAPP_TEMPLATE_PLACEMENT_AGREEMENT_SENT', label: 'Placement Program — Agreement To Sign Template', group: 'messaging', type: 'text', perTenant: true, help: 'Two variables: {{1}} first name, {{2}} link to their page. Keep it UTILITY.' },
+  { key: 'WHATSAPP_TEMPLATE_PLACEMENT_AGREEMENT_SENT_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
+  { key: 'META_PIXEL_ID', label: 'Meta Pixel / Dataset ID (Conversions API)', group: 'messaging', type: 'text', perTenant: true, placeholder: '1234567890123456', help: 'Events Manager → Data sources → your pixel → Settings. With the token below, the Placement Program sends Paid, Interview attended and Selected to Meta so ads optimise for real candidates.' },
+  { key: 'META_CAPI_ACCESS_TOKEN', label: 'Meta Conversions API Access Token', group: 'messaging', type: 'password', isSecret: true, perTenant: true, help: 'Events Manager → your pixel → Settings → Conversions API → Generate access token.' },
+  { key: 'META_CAPI_TEST_EVENT_CODE', label: 'Meta Test Event Code (optional)', group: 'messaging', type: 'text', perTenant: true, placeholder: 'TEST12345', help: 'Only while testing: events then appear under Events Manager → Test events. Clear it when done.' },
   { key: 'HACKATHON_DEFAULT_POSTER_URL', label: 'Hackathon — Default Poster URL', group: 'messaging', type: 'text', perTenant: true, placeholder: 'https://platform.codebegun.com/uploads/hackathon-default.jpg', help: 'Used as the WhatsApp confirmation image when an event has no banner of its own. The confirmed template was approved WITH an image header, and Meta rejects that template if no image is supplied — so without this, an event whose banner was never filled in fails every confirmation. Must be a public https JPEG or PNG under 5 MB: Meta fetches it from their own servers, with no login.' },
   // ── Code execution ────────────────────────────────────────────────────────
   { key: 'PISTON_URL', label: 'Sandbox URL', group: 'execution', type: 'text', placeholder: 'http://piston:2000/api/v2',
@@ -136,6 +145,9 @@ export const SETTING_DEFS: SettingDef[] = [
     help: 'How long a student waits for a free execution slot before being told the sandbox is busy. A queue is a slope; a rejection is a cliff — prefer waiting to failing.' },
 
   { key: 'META_APP_SECRET', label: 'Meta App Secret', group: 'messaging', isSecret: true, type: 'password', help: 'Used to verify Meta Lead Ads webhook signatures.' },
+  { key: 'WHATSAPP_APP_SECRET', label: 'WhatsApp App Secret', group: 'messaging', isSecret: true, type: 'password', help: 'App secret of the Meta app that sends WhatsApp webhooks. Leave blank if it is the same app as Lead Ads (META_APP_SECRET is used).' },
+  { key: 'WHATSAPP_WEBHOOK_SIGNATURE', label: 'WhatsApp webhook signature check', group: 'messaging', type: 'text', placeholder: 'log',
+    help: '"log" (default) checks Meta\'s signature and only logs a mismatch; "enforce" rejects unsigned or forged calls; "off" skips it. Switch to "enforce" once the server log shows no "signature mismatch" for real replies.' },
   { key: 'META_LEAD_VERIFY_TOKEN', label: 'Meta Lead Webhook Verify Token', group: 'messaging', type: 'text' },
   { key: 'PAGE_ACCESS_TOKEN', label: 'Meta Page Access Token', group: 'messaging', isSecret: true, type: 'password' },
 

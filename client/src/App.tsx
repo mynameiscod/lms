@@ -61,7 +61,10 @@ const WeeklyReportsPage = lazy(() => import('./pages/WeeklyReports'));
 const StudentProfileDetail = lazy(() => import('./pages/AdminStudentProfiles/StudentProfileDetail'));
 const PlacementDrivesPage = lazy(() => import('./pages/PlacementDrives'));
 const PlacementProgramRegister = lazy(() => import('./pages/PlacementProgram/Register'));
+const PlacementProgramPortal = lazy(() => import('./pages/PlacementProgram/Portal'));
 const PlacementProgramAdmin = lazy(() => import('./pages/PlacementProgramAdmin'));
+const MyPlacementInterviews = lazy(() => import('./pages/PlacementProgramAdmin/MyInterviews'));
+const WhatsAppInbox = lazy(() => import('./pages/WhatsAppInbox'));
 const StudentDrivesPage = lazy(() => import('./pages/Drives/StudentDrives'));
 const PrepPackPage = lazy(() => import('./pages/Drives/PrepPack'));
 const QuestionBooksLibrary = lazy(() => import('./pages/QuestionBooks/Library'));
@@ -284,8 +287,14 @@ interface ProtectedRouteProps {
 // Used to grant custom role users access to routes they have permissions for
 const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
   'SUPER_ADMIN': ['manage_tenants', 'manage_all_users', 'manage_system_settings'],
-  'TENANT_ADMIN': ['manage_tenant_users', 'manage_roles', 'manage_tenant', 'manage_tenant_settings', 'manage_leads', 'manage_marketing', 'view_leads', 'create_leads', 'edit_leads', 'delete_leads', 'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads', 'manage_interview_templates', 'assign_interviews', 'evaluate_interviews'],
-  'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments', 'manage_snippets', 'grade_snippets', 'manage_interview_templates', 'assign_interviews', 'evaluate_interviews'],
+  'TENANT_ADMIN': ['manage_tenant_users', 'manage_roles', 'manage_tenant', 'manage_tenant_settings', 'manage_leads', 'manage_marketing', 'view_leads', 'create_leads', 'edit_leads', 'delete_leads', 'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads', 'manage_interview_templates', 'assign_interviews', 'evaluate_interviews',
+    // Features with a permission of their own — so a custom role ticked for one can open its page
+    'manage_placement_program', 'manage_placement_partners', 'manage_placement', 'manage_whatsapp_templates', 'chat_whatsapp', 'manage_certificates',
+    'view_ai_spend', 'view_activity_logs', 'manage_concerns', 'manage_career_pilot', 'view_fees', 'manage_billing', 'manage_exams',
+    'manage_battles', 'view_battles', 'manage_hackathons', 'view_hackathons', 'manage_passport', 'view_passport_members', 'view_passport_funnel'],
+  'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments', 'manage_snippets', 'grade_snippets', 'manage_interview_templates', 'assign_interviews', 'evaluate_interviews',
+    'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans', 'manage_live_classes',
+    'manage_skill_assessment', 'manage_leave_requests', 'manage_thinking_lab', 'manage_resources', 'manage_speaking', 'manage_communication_lab'],
   'ATTENDANCE_ADMIN': ['mark_attendance'],
   'STAFF': ['mark_attendance', 'view_attendance', 'view_reports', 'manage_tenant_users', 'create_courses', 'view_leads', 'create_leads', 'edit_leads', 'assign_leads', 'view_lead_analytics', 'export_leads', 'convert_leads'],
   'STUDENT': ['enroll_courses', 'submit_assignments', 'view_quiz', 'take_interviews', 'view_snippets', 'attempt_interviews'],
@@ -454,6 +463,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/careerpilot/join" element={<PassportJoin />} />
       {/* Placement Program — the page every ad points at (public, no login). */}
       <Route path="/placement-program" element={<PlacementProgramRegister />} />
+      {/* The candidate's own page — fee and interview booking, reached by their secret link. */}
+      <Route path="/placement-program/me/:token" element={<PlacementProgramPortal />} />
       <Route path="/passport/join" element={<LegacyRedirect to="/careerpilot/join" />} />
       {/*
         * Sign-in and create-account are one screen now, so this renders the same page as
@@ -1425,6 +1436,26 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
             <Layout>
               <QuestionBookEditor />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/placement-program/my-interviews"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR', 'PLACEMENT_OFFICER']}>
+            <Layout>
+              <MyPlacementInterviews />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/whatsapp-inbox"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <WhatsAppInbox />
             </Layout>
           </ProtectedRoute>
         }

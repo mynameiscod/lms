@@ -13,7 +13,7 @@ router.use(tenantResolver);
 router.post('/', ctrl.logRecordingEvent);
 
 // Admin / instructor: review recording sessions + timelines
-const adminPerms = ['manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'];
+const adminPerms = ['manage_live_classes', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'];
 router.get('/', roleGuard(adminPerms), ctrl.listRecordingLogs);
 router.get('/:sessionId', roleGuard(adminPerms), ctrl.getRecordingLog);
 

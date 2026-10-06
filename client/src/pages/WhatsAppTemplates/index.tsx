@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   waTemplateApi, errMsg, WaTemplate, WaTemplateInput, WaPurpose, WaCompat, WaBroadcast, WaButton, WaCategory, WaMessage,
+  WaLeadFilter, WaLeadFilterOptions, WaLeadAudience,
 } from '../../api/whatsAppTemplateApi';
 
 /**
@@ -23,6 +24,13 @@ const btn = (kind: 'primary' | 'ghost' | 'danger' = 'ghost'): React.CSSPropertie
   background: kind === 'primary' ? '#16a34a' : kind === 'danger' ? C.redBg : '#fff',
   color: kind === 'primary' ? '#fff' : kind === 'danger' ? C.red : C.text,
 });
+const chipRow: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 };
+const Chip: React.FC<{ on: boolean; onClick: () => void; children: React.ReactNode }> = ({ on, onClick, children }) => (
+  <button type="button" onClick={onClick} style={{
+    padding: '4px 10px', borderRadius: 999, fontSize: 12.5, cursor: 'pointer',
+    border: `1px solid ${on ? C.green : C.border}`, background: on ? C.greenBg : '#fff', color: on ? C.green : C.text, fontWeight: on ? 700 : 500,
+  }}>{children}</button>
+);
 
 const STATUS: Record<string, { bg: string; c: string; label: string }> = {
   APPROVED: { bg: C.greenBg, c: C.green, label: 'Approved' },
@@ -88,6 +96,16 @@ const STARTERS: { title: string; input: WaTemplateInput }[] = [
       body: 'Hi {{1}}, admissions for our {{2}} batch are open! Early-bird seats close this week.',
       bodyExamples: ['Ravi', 'Java Full Stack'],
       buttons: [{ type: 'URL', text: 'View details', url: 'https://codebegun.com' }],
+    },
+  },
+  {
+    title: 'Placement program invite', input: {
+      name: 'placement_program_invite_2026', language: 'en', category: 'MARKETING',
+      header: { format: 'TEXT', text: 'CodeBegun Placement Program 2026' },
+      body: 'Hi {{1}} 👋\n\n🎓 Are you a 2026 graduate?\n✅ Is your training completed?\n💼 Looking for placement support now?\n\nThen you are in the right place! Fill in the short form below and our team will connect with you to explain the CodeBegun Placement Program.',
+      bodyExamples: ['Ravi'],
+      footer: 'CodeBegun · Placements 2026',
+      buttons: [{ type: 'URL', text: 'Fill the form', url: 'https://www.codebegun.com/placements-2026' }],
     },
   },
   {
@@ -362,16 +380,30 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
   const [phone, setPhone] = useState('');
   const [values, setValues] = useState<string[]>(() => Array.from({ length: t.shape.bodyVarCount }, (_, i) => t.bodyExamples?.[i] || ''));
   const [buttonParam, setButtonParam] = useState('');
-  const [audience, setAudience] = useState<'paste' | 'batch'>('paste');
+  const [audience, setAudience] = useState<'paste' | 'batch' | 'leads'>('paste');
   const [phones, setPhones] = useState('');
   const [batchId, setBatchId] = useState('');
   const [batches, setBatches] = useState<{ _id: string; name: string }[]>([]);
+  const [leadOpts, setLeadOpts] = useState<WaLeadFilterOptions | null>(null);
+  const [leadFilter, setLeadFilter] = useState<WaLeadFilter>({ stageIds: [], sources: [], passoutYears: [], skipAlreadySent: true });
+  const [leadPreview, setLeadPreview] = useState<WaLeadAudience | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const isAuth = t.category === 'AUTHENTICATION';
   const hasBtn = t.shape.urlButtonIndex >= 0;
 
   useEffect(() => { if (mode === 'broadcast' && !batches.length) waTemplateApi.batches().then(setBatches).catch(() => {}); }, [mode, batches.length]);
+  useEffect(() => { if (audience === 'leads' && !leadOpts) waTemplateApi.leadFilters().then(setLeadOpts).catch((e) => setErr(errMsg(e))); }, [audience, leadOpts]);
+  // Re-count whenever the filter changes, so the number on the Send button is the number that goes out.
+  useEffect(() => {
+    if (audience !== 'leads') return;
+    let live = true;
+    setLeadPreview(null);
+    const h = setTimeout(() => waTemplateApi.leadAudience(t._id, leadFilter).then((p) => live && setLeadPreview(p)).catch((e) => live && setErr(errMsg(e))), 250);
+    return () => { live = false; clearTimeout(h); };
+  }, [audience, leadFilter, t._id]);
+  const toggle = (key: 'stageIds' | 'sources' | 'passoutYears', v: string) =>
+    setLeadFilter((f) => ({ ...f, [key]: f[key].includes(v) ? f[key].filter((x) => x !== v) : [...f[key], v] }));
 
   const go = async () => {
     setBusy(true); setErr('');
@@ -381,7 +413,10 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
         onDone(`Accepted by Meta for ${phone} — watch the Delivery log for whether it arrives.`);
       } else {
         if (!window.confirm('Send this template to every recipient now? This cannot be undone.')) { setBusy(false); return; }
-        const b = await waTemplateApi.broadcast(t._id, { phones: audience === 'paste' ? phones : undefined, batchId: audience === 'batch' ? batchId : undefined, values, buttonParam: hasBtn ? buttonParam : undefined });
+        const b = await waTemplateApi.broadcast(t._id, {
+          phones: audience === 'paste' ? phones : undefined, batchId: audience === 'batch' ? batchId : undefined,
+          leads: audience === 'leads' ? leadFilter : undefined, values, buttonParam: hasBtn ? buttonParam : undefined,
+        });
         onDone(`Broadcast started to ${b.total} recipient${b.total === 1 ? '' : 's'} — follow it under Sent history.`);
       }
     } catch (e) { setErr(errMsg(e)); }
@@ -409,8 +444,48 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
           <div style={{ display: 'flex', gap: 14, fontSize: 13 }}>
             <label><input type="radio" checked={audience === 'paste'} onChange={() => setAudience('paste')} /> Paste numbers</label>
             <label><input type="radio" checked={audience === 'batch'} onChange={() => setAudience('batch')} /> Students of a batch</label>
+            <label><input type="radio" checked={audience === 'leads'} onChange={() => setAudience('leads')} /> CRM leads</label>
           </div>
-          {audience === 'paste' ? (
+          {audience === 'leads' ? (
+            <div style={{ marginTop: 6 }}>
+              {!leadOpts ? <div style={hint}>Loading lead stages…</div> : (
+                <>
+                  <div style={{ ...hint, fontWeight: 600, color: C.text }}>Stage</div>
+                  <div style={chipRow}>
+                    {leadOpts.stages.filter((s) => s.count > 0).map((s) => (
+                      <Chip key={s._id} on={leadFilter.stageIds.includes(s._id)} onClick={() => toggle('stageIds', s._id)}>{s.name} · {s.count}</Chip>
+                    ))}
+                  </div>
+                  <div style={{ ...hint, fontWeight: 600, color: C.text, marginTop: 8 }}>Source</div>
+                  <div style={chipRow}>
+                    {leadOpts.sources.map((s) => (
+                      <Chip key={s.source} on={leadFilter.sources.includes(s.source)} onClick={() => toggle('sources', s.source)}>{s.source} · {s.count}</Chip>
+                    ))}
+                  </div>
+                  {leadPreview && Object.keys(leadPreview.years).length > 0 && (
+                    <>
+                      <div style={{ ...hint, fontWeight: 600, color: C.text, marginTop: 8 }}>Passout year <span style={{ fontWeight: 400 }}>(from the lead form)</span></div>
+                      <div style={chipRow}>
+                        {Array.from(new Set([...Object.keys(leadPreview.years), ...leadFilter.passoutYears])).sort().map((y) => (
+                          <Chip key={y} on={leadFilter.passoutYears.includes(y)} onClick={() => toggle('passoutYears', y)}>{y}{leadPreview.years[y] ? ` · ${leadPreview.years[y]}` : ''}</Chip>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  <label style={{ display: 'block', fontSize: 13, marginTop: 8 }}>
+                    <input type="checkbox" checked={leadFilter.skipAlreadySent} onChange={(e) => setLeadFilter((f) => ({ ...f, skipAlreadySent: e.target.checked }))} /> Skip numbers this template already reached
+                  </label>
+                  <div style={{ ...hint, marginTop: 6 }}>
+                    {!leadPreview ? 'Counting…' : (
+                      <><b style={{ color: C.text }}>{leadPreview.total} lead{leadPreview.total === 1 ? '' : 's'}</b> will get this
+                        {leadPreview.alreadySent > 0 && ` (${leadPreview.alreadySent} skipped — already sent)`}
+                        {leadPreview.sample.length > 0 && ` — e.g. ${leadPreview.sample.join(', ')}`}. No stage or source picked means all of them.</>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : audience === 'paste' ? (
             <>
               <textarea style={{ ...input, minHeight: 90, marginTop: 6 }} value={phones} placeholder={'Ravi Kumar, 9876543210\nPriya 9123456780\n9000000000'} onChange={(e) => setPhones(e.target.value)} />
               <div style={hint}>One per line. A name on the line is used for {'{name}'}.</div>
@@ -453,7 +528,9 @@ const SendModal: React.FC<{ t: WaTemplate; onClose: () => void; onDone: (msg: st
       {err && <div style={{ background: C.redBg, color: C.red, borderRadius: 8, padding: '8px 12px', fontSize: 13, marginTop: 12 }}>{err}</div>}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
         <button style={btn()} onClick={onClose}>Cancel</button>
-        <button style={btn('primary')} disabled={busy} onClick={go}>{busy ? 'Sending…' : mode === 'test' ? 'Send test' : 'Send now'}</button>
+        <button style={btn('primary')} disabled={busy || (mode === 'broadcast' && audience === 'leads' && !leadPreview?.total)} onClick={go}>
+          {busy ? 'Sending…' : mode === 'test' ? 'Send test' : audience === 'leads' && leadPreview ? `Send to ${leadPreview.total} leads` : 'Send now'}
+        </button>
       </div>
     </Modal>
   );

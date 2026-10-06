@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { placementProgramApi, PlacementRegistration, errMsg } from '../../api/placementProgramApi';
 import './placementProgram.css';
@@ -26,7 +26,7 @@ const PlacementProgramRegister: React.FC = () => {
   const [form, setForm] = useState<PlacementRegistration>(EMPTY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [done, setDone] = useState<{ returning: boolean } | null>(null);
+  const [done, setDone] = useState<{ returning: boolean; portalToken?: string } | null>(null);
 
   const set = (k: keyof PlacementRegistration) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: k === 'mobile' ? e.target.value.replace(/\D/g, '').slice(0, 10) : e.target.value }));
@@ -66,7 +66,10 @@ const PlacementProgramRegister: React.FC = () => {
             <div className="ppr-done" role="status">
               <span className="ppr-done-ic"><i className="bi bi-check2-circle" /></span>
               <h2>{done.returning ? 'Your details are updated' : 'Registration received'}</h2>
-              <p>Thank you, {form.name.split(' ')[0]}. We will confirm on WhatsApp at <b>+91 {form.mobile}</b> and contact you about your interview.</p>
+              <p>Thank you, {form.name.split(' ')[0]}. We will confirm on WhatsApp at <b>+91 {form.mobile}</b>.</p>
+              {done.portalToken && (
+                <a className="ppr-submit ppr-continue" href={`/placement-program/me/${done.portalToken}`}>Continue: book your interview <i className="bi bi-arrow-right" /></a>
+              )}
             </div>
           ) : (
             <form onSubmit={submit} noValidate>
@@ -101,4 +104,21 @@ const PlacementProgramRegister: React.FC = () => {
   );
 };
 
-export default PlacementProgramRegister;
+/** CodeBegun registers on its own website now; this form stays for other institutes (?tenant=<slug>). */
+const WEBSITE_FORM = 'https://www.codebegun.com/placements-2026';
+
+const PlacementProgramEntry: React.FC = () => {
+  const [params] = useSearchParams();
+  const tenant = (params.get('tenant') || 'codebegun').toLowerCase();
+  const toWebsite = tenant === 'codebegun';
+  useEffect(() => {
+    if (!toWebsite) return;
+    const rest = new URLSearchParams(window.location.search);
+    rest.delete('tenant');
+    const qs = rest.toString();
+    window.location.replace(WEBSITE_FORM + (qs ? `?${qs}` : ''));
+  }, [toWebsite]);
+  return toWebsite ? null : <PlacementProgramRegister />;
+};
+
+export default PlacementProgramEntry;

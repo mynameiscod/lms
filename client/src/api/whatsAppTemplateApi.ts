@@ -59,6 +59,14 @@ export interface WaBroadcast {
   status: 'running' | 'done' | 'failed'; failures: { phone: string; error: string }[]; createdAt: string; finishedAt?: string;
 }
 
+/** CRM leads to broadcast to. An empty list means "any". */
+export interface WaLeadFilter { stageIds: string[]; sources: string[]; passoutYears: string[]; skipAlreadySent: boolean }
+export interface WaLeadFilterOptions {
+  stages: { _id: string; name: string; count: number }[];
+  sources: { source: string; count: number }[];
+}
+export interface WaLeadAudience { total: number; alreadySent: number; years: Record<string, number>; sample: string[] }
+
 /** One template send and what Meta later reported about it. */
 export interface WaMessage {
   _id: string; to: string; templateName: string; source: 'test' | 'broadcast' | 'system';
@@ -82,10 +90,12 @@ export const waTemplateApi = {
   compatibility: () => axios.get(`${BASE}/usage/compatibility`, h()).then(d) as Promise<Record<string, Record<string, WaCompat>>>,
   assign: (purpose: string, templateId: string | null) => axios.put(`${BASE}/usage/${purpose}`, { templateId }, h()).then(d) as Promise<{ ok: boolean; warnings: string[] }>,
   sendTest: (id: string, phone: string, values: string[], buttonParam?: string) => axios.post(`${BASE}/${id}/test`, { phone, values, buttonParam }, h()),
-  broadcast: (id: string, body: { phones?: string; batchId?: string; values: string[]; buttonParam?: string }) =>
+  broadcast: (id: string, body: { phones?: string; batchId?: string; leads?: WaLeadFilter; values: string[]; buttonParam?: string }) =>
     axios.post(`${BASE}/${id}/broadcast`, body, h()).then(d) as Promise<WaBroadcast>,
   broadcasts: () => axios.get(`${BASE}/broadcasts`, h()).then(d) as Promise<WaBroadcast[]>,
   batches: () => axios.get(`${BASE}/batches`, h()).then(d) as Promise<{ _id: string; name: string }[]>,
+  leadFilters: () => axios.get(`${BASE}/lead-filters`, h()).then(d) as Promise<WaLeadFilterOptions>,
+  leadAudience: (id: string, f: WaLeadFilter) => axios.post(`${BASE}/${id}/lead-audience`, f, h()).then(d) as Promise<WaLeadAudience>,
   messages: (q: { phone?: string; templateId?: string; limit?: number } = {}) =>
     axios.get(`${BASE}/messages`, { ...h(), params: q }).then(d) as Promise<WaMessage[]>,
 };

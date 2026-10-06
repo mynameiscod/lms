@@ -245,7 +245,76 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'use_passport', label: 'Use CareerPilot (Member Surfaces)' },
     ]
   },
+  /*
+   * Features below used to borrow another feature's permission (Problem Bank opened with
+   * "Create Courses", WhatsApp Templates with "Organization Settings", ...), so a role could
+   * not be given one of them alone. Each now has its own key. Routes accept the new key OR
+   * the borrowed ones, so no existing role loses access.
+   */
+  placementProgram: {
+    label: 'Placement Program',
+    permissions: [
+      { key: 'manage_placement_program', label: 'Run the Placement Program (candidates, interviews, agreements, cheques)' },
+      { key: 'manage_placement_partners', label: 'Manage Placement Partners (hiring-company outreach)' },
+    ]
+  },
+  interviewHub: {
+    label: 'Interview Hub',
+    permissions: [
+      { key: 'manage_interview_hub', label: 'Manage Interview Experiences & Question Books' },
+    ]
+  },
+  whatsapp: {
+    label: 'WhatsApp',
+    permissions: [
+      { key: 'manage_whatsapp_templates', label: 'Create WhatsApp Templates & Send Broadcasts' },
+      // Reading a thread also needs access to the placement/lead records it is opened from.
+      { key: 'chat_whatsapp', label: 'Read & Reply to WhatsApp Conversations' },
+    ]
+  },
+  practice: {
+    label: 'Practice & Coding',
+    permissions: [
+      { key: 'manage_practice_pass', label: 'Manage Practice Pass (daily tasks & thresholds)' },
+      { key: 'manage_problem_bank', label: 'Manage Problem Bank & Problem Sets' },
+      { key: 'manage_visualizer', label: 'Manage Code Visualizer Library & Access' },
+    ]
+  },
+  learningPlans: {
+    label: 'Learning Plans',
+    permissions: [
+      { key: 'manage_learning_plans', label: 'Content Library, Curriculum Builder, Enrollments & Batch Offerings' },
+    ]
+  },
+  liveClasses: {
+    label: 'Live Classes',
+    permissions: [
+      { key: 'manage_live_classes', label: 'Schedule & Host Live Classes, Recording Diagnostics' },
+    ]
+  },
+  skillAssessment: {
+    label: 'Skill Assessment',
+    permissions: [
+      { key: 'manage_skill_assessment', label: 'Manage Skill Assessment, Schedules & Candidates' },
+    ]
+  },
+  operations: {
+    label: 'Operations & Monitoring',
+    permissions: [
+      { key: 'manage_leave_requests', label: 'Approve / Reject Student Leave Requests' },
+      { key: 'manage_concerns', label: 'View & Respond to Student Concerns' },
+      { key: 'view_activity_logs', label: 'View API Logs & Student Activity' },
+    ]
+  },
 };
+
+/** Every key added for a feature that used to borrow another's — admins get them all by default. */
+export const FEATURE_PERMISSIONS = [
+  'manage_placement_program', 'manage_placement_partners', 'manage_interview_hub', 'manage_whatsapp_templates',
+  'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans',
+  'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests', 'manage_concerns', 'view_activity_logs',
+  'chat_whatsapp',
+];
 
 // Flatten all permission keys
 export const ALL_PERMISSIONS = Object.values(PERMISSION_GROUPS)
@@ -312,6 +381,10 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_hackathons', 'view_hackathons', 'export_hackathon_data',
     // Exams — record and correct offline/external marks
     'manage_exams', 'view_exams',
+    // Fees — view as well as record
+    'view_fees',
+    // Features that now have a permission of their own
+    ...FEATURE_PERMISSIONS,
   ],
   INSTRUCTOR: [
     // Courses
@@ -349,6 +422,10 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_battles', 'view_battles', 'review_battle_registrations',
     // Exams — instructors conduct them, so they enter and correct the marks
     'manage_exams', 'view_exams',
+    // The same features instructors already reached through "Create Courses"
+    'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer',
+    'manage_learning_plans', 'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests',
+    'manage_concerns', 'view_activity_logs',
   ],
   ATTENDANCE_ADMIN: [
     'mark_attendance', 'view_attendance', 'view_reports',
@@ -421,6 +498,20 @@ export const permissionsOf = async (user: { role: string; customRoleId?: any }):
     }
   }
   return ROLE_PERMISSIONS[user.role] || [];
+};
+
+/**
+ * For checks that used to compare role NAMES ("is this an admin or instructor?"). A user on a
+ * custom role is decided by the permissions ticked on that role, so the Roles screen can grant
+ * or withhold the feature; everyone else keeps the role-name rule they had.
+ */
+export const allowedByRoleOrPermission = async (
+  user: { role: string; customRoleId?: any } | undefined, roles: string[], permissions: string[],
+): Promise<boolean> => {
+  if (!user) return false;
+  if (user.role === 'SUPER_ADMIN') return true;
+  if (user.customRoleId) return (await permissionsOf(user)).some((p) => permissions.includes(p));
+  return roles.includes(user.role);
 };
 
 export const roleGuard = (requiredPermissions: string[]) => {

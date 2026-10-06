@@ -4,6 +4,7 @@ import Tenant from '../models/Tenant';
 import Lead from '../models/Lead';
 import LeadFormConfig from '../models/LeadFormConfig';
 import LeadStage from '../models/LeadStage';
+import * as placement from '../services/placementProgramService';
 
 // Rate limiting map (simple in-memory)
 const submitCounts = new Map<string, { count: number; resetAt: number }>();
@@ -40,6 +41,23 @@ export const submitWebsiteLead = async (req: Request, res: Response) => {
 
     const { name, phone, mobile, email, courseInterest, course, message, notes,
             utm_source, utm_medium, utm_campaign, utm_content, utm_term } = req.body;
+
+    // The placements-2026 page posts here too, but those registrations belong to the Placement
+    // Program only — no CRM lead. Same endpoint so the website needs no change.
+    if ((courseInterest || course) === placement.WEBSITE_PLACEMENT_INTEREST) {
+      let landingPage = '';
+      try { landingPage = req.headers.referer ? new URL(String(req.headers.referer)).pathname : ''; } catch { /* no referer path */ }
+      try {
+        const r = await placement.register(String(tenant._id), placement.fromWebsiteForm(req.body, landingPage), { source: 'website' });
+        return res.status(r.returning ? 200 : 201).json({
+          success: true, message: 'Thank you! We will contact you on WhatsApp.',
+          isExisting: r.returning, portalToken: r.portalToken,
+        });
+      } catch (e: any) {
+        if (e instanceof placement.PlacementError) return res.status(e.status).json({ success: false, message: e.message });
+        throw e;
+      }
+    }
 
     const contactPhone = (phone || mobile || '').toString().replace(/[^\d+]/g, '');
     const contactName  = (name || '').toString().trim().substring(0, 200);

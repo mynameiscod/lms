@@ -54,7 +54,7 @@ export interface IPlacementCandidate extends Document {
   targetRole?: string;
   city?: string;
 
-  source: 'ad' | 'lms_push' | 'manual';
+  source: 'ad' | 'website' | 'lms_push' | 'manual';
   attribution?: ICareerPilotAttribution;
   submissions: number;
 
@@ -62,24 +62,36 @@ export interface IPlacementCandidate extends Document {
   stageChangedAt: Date;
   /** Staff member who owns this candidate. */
   ownerId?: mongoose.Types.ObjectId;
+  /**
+   * The secret in the candidate's own page link (/placement-program/me/<token>), where they pay
+   * the fee and book their interview without an account. Unguessable; never listed anywhere.
+   */
+  portalToken?: string;
 
   // ── Later phases (shape settled now) ──
   /** Interview fee: charged, or waived by an admin for this candidate. */
   fee?: {
-    waived: boolean; amountInr?: number; refundablePct?: number;
-    paymentId?: string; paidAt?: Date;
-    refund?: { amountInr: number; refundId?: string; at: Date; reason?: string };
+    waived?: boolean; amountInr?: number; refundablePct?: number;
+    status?: 'created' | 'paid' | 'refunded';
+    orderId?: string; paymentId?: string; paidAt?: Date;
+    refund?: { amountInr: number; refundId?: string; at: Date; reason?: string; by?: string };
   };
   interview?: {
     interviewerId?: mongoose.Types.ObjectId; startsAt?: Date; endsAt?: Date; meetUrl?: string;
     outcome?: 'attended' | 'no_show'; score?: number; notes?: string;
+    recommendation?: 'strong_yes' | 'yes' | 'maybe' | 'no';
   };
-  agreement?: { version?: string; sentAt?: Date; signedAt?: Date; signedName?: string; signedIp?: string; pdfUrl?: string };
+  /** The exact text sent (frozen at send time) and the signing evidence. */
+  agreement?: {
+    version?: string; title?: string; text?: string; sentAt?: Date;
+    signedAt?: Date; signedName?: string; signedIp?: string; userAgent?: string; otpVerified?: boolean; textHash?: string;
+  };
   /** Security cheque: held, returned at the end of the program, deposited only on breach. */
   cheque?: {
-    imageUrl?: string; number?: string; bank?: string; amountInr?: number; date?: Date;
+    /** File name inside the private cheque folder — never a public URL. */
+    file?: string; mime?: string; number?: string; bank?: string; amountInr?: number; date?: Date;
     status?: 'received' | 'verified' | 'held' | 'returned' | 'deposited';
-    depositReason?: string;
+    uploadedAt?: Date; verifiedAt?: Date; depositReason?: string;
   };
 
   createdAt: Date;
@@ -102,13 +114,14 @@ const PlacementCandidateSchema = new Schema<IPlacementCandidate>({
   targetRole: { type: String, trim: true, default: '' },
   city: { type: String, trim: true, default: '' },
 
-  source: { type: String, enum: ['ad', 'lms_push', 'manual'], default: 'ad' },
+  source: { type: String, enum: ['ad', 'website', 'lms_push', 'manual'], default: 'ad' },
   attribution: { type: CareerPilotAttributionSchema, default: undefined },
   submissions: { type: Number, default: 1 },
 
   stage: { type: String, enum: PLACEMENT_STAGES as unknown as string[], default: 'registered', index: true },
   stageChangedAt: { type: Date, default: Date.now },
   ownerId: { type: Schema.Types.ObjectId, ref: 'User' },
+  portalToken: { type: String, index: { unique: true, sparse: true } },
 
   fee: { type: Schema.Types.Mixed, default: undefined },
   interview: { type: Schema.Types.Mixed, default: undefined },
@@ -118,5 +131,6 @@ const PlacementCandidateSchema = new Schema<IPlacementCandidate>({
 
 PlacementCandidateSchema.index({ tenantId: 1, mobile: 1 }, { unique: true });
 PlacementCandidateSchema.index({ tenantId: 1, createdAt: -1 });
+PlacementCandidateSchema.index({ 'fee.orderId': 1 }, { sparse: true });
 
 export default mongoose.model<IPlacementCandidate>('PlacementCandidate', PlacementCandidateSchema);

@@ -21,7 +21,7 @@ router.use(authMiddleware);
 router.use(tenantResolver);
 
 // Instructor/admin — manage & host
-const hostGuard = roleGuard(['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
+const hostGuard = roleGuard(['manage_live_classes', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
 
 // Any authenticated member of the tenant can list / view / get a join token
 router.get('/', listLiveClasses);

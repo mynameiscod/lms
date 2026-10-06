@@ -61,6 +61,8 @@ GITHUB_ACTIONS_*.md
 # Documentation  
 README.md
 docs/**
+# Not documentation: the golden-bank CSVs the CareerPilot provisioner imports (Dockerfile COPY docs/audit).
+!docs/audit/**
 
 # Test files
 **/*.test.*

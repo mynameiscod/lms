@@ -1,5 +1,5 @@
 import { ProgrammingLanguage } from '../models/Assignment';
-import { withExecutionSlot, isQueueTimeout, busyMessage } from './executionQueue';
+import { withExecutionSlot, isQueueTimeout, busyMessage, QueueScope } from './executionQueue';
 import * as settings from './settingsService';
 
 interface ExecutionInput {
@@ -21,6 +21,14 @@ interface ExecutionInput {
    * Ignored for every language but JavaScript: Java keeps Scanner, Python keeps input().
    */
   enablePromptInput?: boolean;
+  /** Which slots to queue in. Only Interview Pilot's judge passes 'judge'; everyone else is 'lms'. */
+  queueScope?: QueueScope;
+  /**
+   * Overrides the 30 s run ceiling. The judge passes a shorter one so an infinite loop in an
+   * interview is reported as a time limit before Interview Pilot stops waiting (20 s).
+   * Compiled languages still need room for compilation inside the run stage.
+   */
+  runLimitMs?: number;
 }
 
 /**
@@ -64,6 +72,10 @@ interface ExecutionResult {
   timing?: ExecutionTiming;
   /** Set by withExecutionSlot. Kept for callers that read it directly. */
   queuedMs?: number;
+  /** The sandbox stopped the program (signal, or no exit code) — a time limit or starvation. */
+  killed?: boolean;
+  /** Process exit code when it ran to an end; null when killed. */
+  exitCode?: number | null;
 }
 
 /**
@@ -166,6 +178,24 @@ class CodeRunnerService {
    */
   isRealExecutionEnabled(): boolean {
     return this.realExecutionEnabled;
+  }
+
+  /**
+   * The languages the sandbox can actually run right now: our mapping intersected with the
+   * runtimes installed on Piston (name or alias, exact version). Throws when the sandbox is
+   * unreachable, so a caller can say "the judge is down" instead of "no languages".
+   */
+  async installedLanguages(): Promise<ProgrammingLanguage[]> {
+    const url = this.resolveUrl();
+    if (!url) return [];
+    const res = await fetch(`${url}/runtimes`, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) throw new Error(`Sandbox answered ${res.status}`);
+    const runtimes: { language: string; version: string; aliases?: string[] }[] = await res.json() as any;
+    return (Object.values(ProgrammingLanguage) as ProgrammingLanguage[]).filter((l) => {
+      if (l === ProgrammingLanguage.HTML || l === ProgrammingLanguage.CSS) return false;
+      const want = this.mapToPistonLanguage(l);
+      return runtimes.some((r) => r.version === want.version && (r.language === want.language || (r.aliases || []).includes(want.language)));
+    });
   }
 
   async execute(input: ExecutionInput): Promise<ExecutionResult> {
@@ -677,7 +707,7 @@ class CodeRunnerService {
    */
   private async executeWithPiston(input: ExecutionInput): Promise<ExecutionResult> {
     try {
-      return await withExecutionSlot(() => this.executeOnPiston(input), input.language);
+      return await withExecutionSlot(() => this.executeOnPiston(input), input.language, input.queueScope || 'lms');
     } catch (e: any) {
       if (isQueueTimeout(e)) {
         // Say what actually happened. The old code called every kill a time limit and
@@ -729,7 +759,9 @@ class CodeRunnerService {
       // queueing at all a cold javac plus JVM start can pass 20s, and the extra ten
       // seconds is free — it only ever applies to a program that would otherwise be
       // killed for being slow rather than wrong.
-      const runLimit = Math.min(Math.max(timeLimit || 5000, 30000), 30000);
+      const runLimit = input.runLimitMs
+        ? Math.min(Math.max(input.runLimitMs, 1000), 30000)
+        : Math.min(Math.max(timeLimit || 5000, 30000), 30000);
       const requestBody = {
         language: pistonLanguage.language,
         version: pistonLanguage.version,
@@ -883,6 +915,8 @@ class CodeRunnerService {
           executionTime: elapsed,
           memoryUsed: 0,
           timing,
+          killed,
+          exitCode: result.run.code ?? null,
         };
       }
 

@@ -37,6 +37,20 @@ const pools: Record<'heavy' | 'light', Pool> = {
   light: { active: 0, waiting: [] },
 };
 
+/**
+ * Interview Pilot's code judge (/api/v1/judge) queues separately.
+ *
+ * A live interview must not wait behind a class pressing Run, and a burst of interviews must
+ * not take every slot from students. Each side gets its own slots against the same sandbox;
+ * the total the sandbox sees is the sum, so size both with the execution host in mind.
+ */
+export type QueueScope = 'lms' | 'judge';
+const judgePools: Record<'heavy' | 'light', Pool> = {
+  heavy: { active: 0, waiting: [] },
+  light: { active: 0, waiting: [] },
+};
+const poolOf = (scope: QueueScope, kind: 'heavy' | 'light') => (scope === 'judge' ? judgePools : pools)[kind];
+
 /** Languages that invoke a compiler on every run. */
 const HEAVY = new Set(['java', 'cpp', 'c', 'csharp', 'go', 'rust', 'kotlin', 'scala']);
 export const poolFor = (language?: string): 'heavy' | 'light' =>
@@ -53,9 +67,13 @@ export const poolFor = (language?: string): 'heavy' | 'light' =>
  *
  * Raise it only after adding cores, and re-run the load test before believing it.
  */
-const limit = (kind: 'heavy' | 'light') => kind === 'heavy'
-  ? Math.max(1, settings.getNum('CODE_EXEC_CONCURRENCY', 2))
-  : Math.max(1, settings.getNum('CODE_EXEC_CONCURRENCY_LIGHT', 12));
+const limit = (kind: 'heavy' | 'light', scope: QueueScope = 'lms') => scope === 'judge'
+  ? (kind === 'heavy'
+    ? Math.max(1, settings.getNum('JUDGE_EXEC_CONCURRENCY', 2))
+    : Math.max(1, settings.getNum('JUDGE_EXEC_CONCURRENCY_LIGHT', 6)))
+  : kind === 'heavy'
+    ? Math.max(1, settings.getNum('CODE_EXEC_CONCURRENCY', 2))
+    : Math.max(1, settings.getNum('CODE_EXEC_CONCURRENCY_LIGHT', 12));
 /** How long someone may wait before we admit defeat honestly. */
 const maxWaitMs = () => Math.max(5_000, settings.getNum('CODE_EXEC_MAX_WAIT_MS', 45_000));
 
@@ -65,8 +83,7 @@ export const queueStats = () => ({
   light: { active: pools.light.active, waiting: pools.light.waiting.length, limit: limit('light') },
 });
 
-function releaseOne(kind: 'heavy' | 'light'): void {
-  const pool = pools[kind];
+function releaseOne(pool: Pool): void {
   const next = pool.waiting.shift();
   if (!next) { pool.active--; return; }
   clearTimeout(next.timer);
@@ -81,12 +98,12 @@ function releaseOne(kind: 'heavy' | 'light'): void {
  * worse served than one told the server is busy. The caller turns that into a message
  * that says so plainly.
  */
-export async function withExecutionSlot<T>(fn: () => Promise<T>, language?: string): Promise<T> {
+export async function withExecutionSlot<T>(fn: () => Promise<T>, language?: string, scope: QueueScope = 'lms'): Promise<T> {
   const waitedFrom = Date.now();
   const kind = poolFor(language);
-  const pool = pools[kind];
+  const pool = poolOf(scope, kind);
 
-  if (pool.active >= limit(kind)) {
+  if (pool.active >= limit(kind, scope)) {
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {
         const i = pool.waiting.findIndex(w => w.timer === timer);
@@ -108,7 +125,7 @@ export async function withExecutionSlot<T>(fn: () => Promise<T>, language?: stri
     if (out && typeof out === 'object') (out as any).queuedMs = queuedMs;
     return out;
   } finally {
-    releaseOne(kind);
+    releaseOne(pool);
   }
 }
 

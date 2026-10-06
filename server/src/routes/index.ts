@@ -113,6 +113,7 @@ import whatsAppChatRoutes from './whatsAppChatRoutes';
 import problemBankRoutes from './problemBankRoutes';
 import codingPracticeRoutes from './codingPracticeRoutes';
 import externalApiRoutes from './externalApiRoutes';
+import codeJudgeRoutes from './codeJudgeRoutes';
 import practicePassRoutes from './practicePassRoutes';
 import interviewHubRoutes from './interviewHubRoutes';
 import questionBookRoutes from './questionBookRoutes';
@@ -135,6 +136,8 @@ router.use('/public/careerpilot', careerPilotActivity, publicPassportRoutes);
 router.use('/public/passport', careerPilotActivity, publicPassportRoutes);
 // Problem Bank external API — API-key auth (not a user session); for colleges, partners and Interview Pilot.
 router.use('/external', externalApiRoutes);
+// CodeBegun Judge for Interview Pilot — HMAC-signed, no session (Judge URL = https://<platform>/api/v1/judge).
+router.use('/judge', codeJudgeRoutes);
 router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public/certificate', publicCertificateRoutes); // certificate verification (specific, before generic /public)
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount

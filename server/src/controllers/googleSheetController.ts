@@ -261,7 +261,7 @@ export const triggerSync = async (req: AuthenticatedRequest, res: Response): Pro
     // Emit real-time update
     const io = req.app.get('io');
     if (io && req.tenantId) {
-      io.to(`tenant_${req.tenantId}`).emit('leads_updated', {
+      io.to(`staff_${req.tenantId}`).emit('leads_updated', {
         source: 'google_sheet',
         newLeads: syncLog.newLeads
       });

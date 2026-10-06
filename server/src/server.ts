@@ -37,6 +37,7 @@ import { startPartnerOutreachScheduler } from './jobs/partnerOutreachCron';
 import { startPartnerRetentionScheduler } from './jobs/partnerRetentionCron';
 import { startPartnerReplyScheduler } from './jobs/partnerReplyCron';
 import { registerWaChatSocket } from './realtime/whatsAppChatRealtime';
+import { registerSocketAuth, socketUser, mayJoinTenant, mayJoinStaff, mayHostLiveClass } from './realtime/socketAuth';
 
 const PORT = process.env.PORT || 5000;
 console.log(`🚀 Starting server with NODE_ENV=${process.env.NODE_ENV}, PORT=${PORT}`);
@@ -81,11 +82,14 @@ const startServer = async () => {
     const httpServer = http.createServer(app);
     const io = new SocketIOServer(httpServer, {
       cors: {
-        origin: true,  // Allow all origins — socket auth is JWT-based
+        origin: true,  // Allow all origins — every socket is identified from its JWT (realtime/socketAuth)
         methods: ['GET', 'POST'],
         credentials: true
       }
     });
+
+    // Identify every socket from its JWT before any handler runs — rooms are joined on that, not on the client's word.
+    registerSocketAuth(io);
 
     // Store io instance in app for access in controllers
     app.set('io', io);
@@ -105,6 +109,7 @@ const startServer = async () => {
       videoEnabled: boolean;
     }
     interface LiveSession {
+      tenantId: string;
       hostSocketId: string;
       participants: Map<string, LiveParticipant>;
       chatEnabled: boolean;
@@ -112,40 +117,59 @@ const startServer = async () => {
       createdAt: number;
     }
     const liveSessions = new Map<string, LiveSession>();
+    // Signalling may only be relayed between two participants of the same session.
+    const inSameSession = (sessionId: string, from: string, to: string) => {
+      const sess = liveSessions.get(sessionId);
+      return !!sess && sess.participants.has(from) && sess.participants.has(to);
+    };
 
     // WebSocket connection handlers
     io.on('connection', (socket) => {
       console.log(`✅ Client connected: ${socket.id}`);
 
-      // Join tenant-specific room for real-time updates
+      // Join tenant-specific room for real-time updates — own institute only
       socket.on('join_tenant', (tenantId: string) => {
+        if (!mayJoinTenant(socketUser(socket), String(tenantId || ''))) return;
         socket.join(`tenant_${tenantId}`);
-        console.log(`📢 Socket ${socket.id} joined tenant_${tenantId}`);
       });
 
-      // Join staff-only room (receives hot lead alerts and other staff notifications)
+      // Join staff-only room (hot lead alerts, follow-ups, SLA) — never students
       socket.on('join_staff', (tenantId: string) => {
+        if (!mayJoinStaff(socketUser(socket), String(tenantId || ''))) return;
         socket.join(`staff_${tenantId}`);
-        console.log(`👔 Socket ${socket.id} joined staff_${tenantId}`);
       });
 
       // Join course-specific room
       socket.on('join_course', (courseId: string) => {
+        if (!socketUser(socket) || !/^[a-f0-9]{24}$/i.test(String(courseId || ''))) return;
         socket.join(`course_${courseId}`);
-        console.log(`📚 Socket ${socket.id} joined course_${courseId}`);
       });
 
       // ── Live Classroom signaling ──
 
-      socket.on('live_class:join', ({ sessionId, userId, name, initials, role }: {
-        sessionId: string; userId: string; name: string; initials: string; role: 'host' | 'viewer';
+      socket.on('live_class:join', async ({ sessionId, initials, role }: {
+        sessionId: string; userId?: string; name?: string; initials?: string; role: 'host' | 'viewer';
       }) => {
-        if (!sessionId || !userId || !name) return;
+        // Who joins is the verified login, not what the browser says; hosting needs host rights.
+        const me = socketUser(socket);
+        if (!sessionId || !me) return;
+        const name = me.name;
+        const userId = me.id;
+        if (role === 'host' && !(await mayHostLiveClass(me))) {
+          socket.emit('live_class:error', { message: 'Only an instructor or admin can host this session.' });
+          return;
+        }
+        const existing = liveSessions.get(sessionId);
+        if (existing && me.role !== 'SUPER_ADMIN' && existing.tenantId !== me.tenantId) {
+          socket.emit('live_class:error', { message: 'Session not found. Ask the host to start the session first.' });
+          return;
+        }
 
         if (role === 'host') {
           // Create session (or reclaim if host reconnects)
           if (!liveSessions.has(sessionId)) {
             liveSessions.set(sessionId, {
+              tenantId: me.tenantId,
               hostSocketId: socket.id,
               participants: new Map(),
               chatEnabled: true,
@@ -175,7 +199,7 @@ const startServer = async () => {
 
         session.participants.set(socket.id, participant);
         socket.join(`live_${sessionId}`);
-        console.log(`🎓 ${name} (${role}) joined live session ${sessionId}`);
+        console.log(`🎓 ${userId} (${participant.role}) joined live session ${sessionId}`);
 
         // Send current state to the new joiner
         socket.emit('live_class:participant_list', {
@@ -200,19 +224,19 @@ const startServer = async () => {
 
       // WebRTC signaling — relay between peers
       socket.on('live_class:offer', ({ sessionId, to, sdp }: { sessionId: string; to: string; sdp: object }) => {
-        if (liveSessions.has(sessionId)) {
+        if (inSameSession(sessionId, socket.id, to)) {
           io.to(to).emit('live_class:offer', { from: socket.id, sdp });
         }
       });
 
       socket.on('live_class:answer', ({ sessionId, to, sdp }: { sessionId: string; to: string; sdp: object }) => {
-        if (liveSessions.has(sessionId)) {
+        if (inSameSession(sessionId, socket.id, to)) {
           io.to(to).emit('live_class:answer', { from: socket.id, sdp });
         }
       });
 
       socket.on('live_class:ice', ({ sessionId, to, candidate }: { sessionId: string; to: string; candidate: object }) => {
-        if (liveSessions.has(sessionId)) {
+        if (inSameSession(sessionId, socket.id, to)) {
           io.to(to).emit('live_class:ice', { from: socket.id, candidate });
         }
       });

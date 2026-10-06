@@ -46,7 +46,7 @@ export async function fireFollowUpReminders(io: any): Promise<void> {
 
       // Emit to the tenant socket room so the frontend can show a notification
       if (io) {
-        io.to(`tenant_${reminder.tenantId}`).emit('followup_reminder', {
+        io.to(`staff_${reminder.tenantId}`).emit('followup_reminder', {
           reminderId: reminder._id,
           leadId: reminder.leadId?._id || reminder.leadId,
           leadName: reminder.leadId?.name || 'Unknown Lead',

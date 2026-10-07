@@ -238,6 +238,15 @@ export interface ILead extends Document {
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  outpero?: {
+    status?: 'pending' | 'sent' | 'failed';
+    via?: 'auto' | 'bulk';
+    attempts?: number;
+    nextAttemptAt?: Date;
+    sentAt?: Date;
+    httpStatus?: number;
+    lastError?: string;
+  };
 }
 
 const LeadActivitySchema: Schema = new Schema(
@@ -598,6 +607,17 @@ const LeadSchema: Schema = new Schema(
     },
     nextAICallAt: { type: Date },
 
+    // Forwarding to Outpero (external AI calling agent). See services/outperoForwardService.
+    outpero: {
+      status: { type: String, enum: ['pending', 'sent', 'failed'] },
+      via: { type: String, enum: ['auto', 'bulk'] },
+      attempts: { type: Number, default: 0 },
+      nextAttemptAt: { type: Date },
+      sentAt: { type: Date },
+      httpStatus: { type: Number },
+      lastError: { type: String, trim: true },
+    },
+
     tenantId: {
       type: mongoose.Types.ObjectId,
       ref: 'Tenant',
@@ -627,5 +647,23 @@ LeadSchema.index({ tenantId: 1, 'assignment.assignedTo': 1 });
 LeadSchema.index({ tenantId: 1, 'telecallerMetrics.lastActionAt': -1 });
 LeadSchema.index({ tenantId: 1, aiCallStatus: 1 });
 LeadSchema.index({ tenantId: 1, nextAICallAt: 1 });
+LeadSchema.index({ 'outpero.status': 1, 'outpero.nextAttemptAt': 1 });
+
+/*
+ * A new lead — however it arrived (Meta, Google Ads, website, sheet, WhatsApp, manual) — is offered
+ * to the Outpero forwarder, which does nothing unless the institute's admin has set its mode to
+ * "automatic" (default "off"). One hook here instead of a call in each of the seven create paths.
+ * Loaded lazily: the service imports this model.
+ */
+LeadSchema.pre('save', function (next) {
+  (this as any).$locals.wasNew = this.isNew;
+  next();
+});
+LeadSchema.post('save', function (doc: any) {
+  if (!doc?.$locals?.wasNew) return;
+  import('../services/outperoForwardService')
+    .then((m) => m.onLeadCreated(doc))
+    .catch((e) => console.error('[outpero] could not queue new lead', e?.message));
+});
 
 export default mongoose.model<ILead>('Lead', LeadSchema);

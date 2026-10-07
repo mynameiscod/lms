@@ -1,0 +1,47 @@
+/* Leads → Outpero AI calls. Prefix: opo-. Light admin surface. */
+.opo { padding: 22px 26px 40px; max-width: 980px; }
+.opo-head h1 { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px; display: flex; gap: 10px; align-items: center; }
+.opo-head h1 i { color: #7c3aed; }
+.opo-head p { color: #64748b; font-size: 13.5px; margin: 0 0 14px; }
+.opo-msg { border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 12px; }
+.opo-msg.ok { background: #dcfce7; color: #15803d; }
+.opo-msg.err { background: #fef2f2; color: #b91c1c; }
+.opo-muted { color: #94a3b8; }
+.opo-card { background: #fff; border: 1px solid #e8edf4; border-radius: 14px; padding: 18px 20px; margin-bottom: 14px; }
+.opo-card h2 { font-size: 15px; font-weight: 800; color: #0f172a; margin: 0 0 8px; display: flex; gap: 8px; align-items: center; }
+.opo-pill { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 2px 8px; }
+.opo-pill.ok { background: #dcfce7; color: #15803d; }
+.opo-pill.warn { background: #fef3c7; color: #b45309; }
+.opo-hint { font-size: 12px; color: #64748b; font-weight: 400; }
+.opo-label { display: block; font-size: 12.5px; font-weight: 700; color: #0f172a; margin: 12px 0 5px; }
+.opo-input { width: 100%; box-sizing: border-box; border: 1px solid #dbe2ec; border-radius: 9px; padding: 8px 10px; font: inherit; font-size: 13.5px; }
+.opo-input.sm { width: 170px; }
+.opo-input.xs { width: 110px; }
+.opo-test { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.opo-btn { border: 0; border-radius: 9px; padding: 9px 14px; font-weight: 700; font-size: 13px; cursor: pointer; background: #4f46e5; color: #fff; }
+.opo-btn.ghost { background: #fff; color: #334155; border: 1px solid #dbe2ec; }
+.opo-btn:disabled { opacity: .5; cursor: default; }
+.opo-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.opo-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.opo-mode { border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #64748b; }
+.opo-mode input { display: none; }
+.opo-mode b { font-size: 14px; color: #0f172a; }
+.opo-mode.on { border-color: #4f46e5; background: #eef2ff; }
+.opo-filters { margin-top: 6px; }
+.opo-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.opo-chip { border: 1px solid #e2e8f0; background: #fff; border-radius: 999px; padding: 4px 10px; font-size: 12.5px; cursor: pointer; color: #334155; }
+.opo-chip.on { border-color: #16a34a; background: #dcfce7; color: #15803d; font-weight: 700; }
+.opo-warn { font-size: 12px; color: #b45309; margin: 10px 0 0; }
+.opo-check { display: block; font-size: 13px; margin-top: 10px; }
+.opo-preview { font-size: 13px; color: #475569; margin-top: 10px; }
+.opo-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.opo-stats div { background: #f8fafc; border: 1px solid #eef1f6; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; }
+.opo-stats b { font-size: 22px; color: #0f172a; }
+.opo-stats span { font-size: 12px; color: #64748b; }
+.opo-stats .bad b { color: #b91c1c; }
+.opo-fails { margin: 12px 0 0; padding-left: 18px; font-size: 12.5px; color: #475569; }
+.opo-fails a { color: #4f46e5; font-weight: 600; }
+@media (max-width: 720px) {
+  .opo { padding: 16px; }
+  .opo-modes, .opo-stats { grid-template-columns: 1fr 1fr; }
+}

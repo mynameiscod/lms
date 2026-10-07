@@ -65,6 +65,7 @@ const PlacementProgramPortal = lazy(() => import('./pages/PlacementProgram/Porta
 const PlacementProgramAdmin = lazy(() => import('./pages/PlacementProgramAdmin'));
 const MyPlacementInterviews = lazy(() => import('./pages/PlacementProgramAdmin/MyInterviews'));
 const WhatsAppInbox = lazy(() => import('./pages/WhatsAppInbox'));
+const OutperoSettings = lazy(() => import('./pages/OutperoSettings'));
 const StudentDrivesPage = lazy(() => import('./pages/Drives/StudentDrives'));
 const PrepPackPage = lazy(() => import('./pages/Drives/PrepPack'));
 const QuestionBooksLibrary = lazy(() => import('./pages/QuestionBooks/Library'));
@@ -1446,6 +1447,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR', 'PLACEMENT_OFFICER']}>
             <Layout>
               <MyPlacementInterviews />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/outpero"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <OutperoSettings />
             </Layout>
           </ProtectedRoute>
         }

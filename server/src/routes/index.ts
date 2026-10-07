@@ -114,6 +114,7 @@ import problemBankRoutes from './problemBankRoutes';
 import codingPracticeRoutes from './codingPracticeRoutes';
 import externalApiRoutes from './externalApiRoutes';
 import codeJudgeRoutes from './codeJudgeRoutes';
+import outperoRoutes from './outperoRoutes';
 import practicePassRoutes from './practicePassRoutes';
 import interviewHubRoutes from './interviewHubRoutes';
 import questionBookRoutes from './questionBookRoutes';
@@ -138,6 +139,7 @@ router.use('/public/passport', careerPilotActivity, publicPassportRoutes);
 router.use('/external', externalApiRoutes);
 // CodeBegun Judge for Interview Pilot — HMAC-signed, no session (Judge URL = https://<platform>/api/v1/judge).
 router.use('/judge', codeJudgeRoutes);
+router.use('/outpero', outperoRoutes); // leads → Outpero AI calls (off / manual / auto)
 router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public/certificate', publicCertificateRoutes); // certificate verification (specific, before generic /public)
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount

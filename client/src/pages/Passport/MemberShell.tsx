@@ -128,6 +128,8 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   }, []);
   const [userOpen, setUserOpen] = useState(false);
   const userRef = useRef<HTMLDivElement>(null);
+  /* The phone bar's account button and menu: a second home for the same menu, see .gd-mbar. */
+  const mUserRef = useRef<HTMLDivElement>(null);
 
   /**
    * Page views, recorded here because this shell is the one component every CareerPilot screen
@@ -151,7 +153,8 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   useEffect(() => {
     if (!userOpen) return;
     const onDown = (e: PointerEvent) => {
-      if (!userRef.current?.contains(e.target as Node)) setUserOpen(false);
+      const t = e.target as Node;
+      if (!userRef.current?.contains(t) && !mUserRef.current?.contains(t)) setUserOpen(false);
     };
     document.addEventListener('pointerdown', onDown);
     return () => document.removeEventListener('pointerdown', onDown);
@@ -255,11 +258,58 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
     );
   };
 
+  /** One account menu, opened from the desktop top bar or the phone bar (.gd-mbar). */
+  const userMenu = (
+    <div className="gd-user-menu">
+      <div className="hd"><b>{d?.name || firstName}</b>{lv && <span>Level {lv.level} · {lv.title}</span>}</div>
+      {st && <div className="stats"><div><b>{st.xp.toLocaleString()}</b><span>XP</span></div><div><b>{st.streak}</b><span>Streak</span></div><div><b>{myRank ? `#${myRank}` : '—'}</b><span>Rank</span></div></div>}
+      <button onClick={() => { setUserOpen(false); nav('/careerpilot/profile'); }}>My profile</button>
+      <button onClick={() => { setUserOpen(false); nav('/careerpilot/readiness'); }}>My result</button>
+      <button onClick={share} disabled={!d?.shareSlug}>Share my CareerPilot card</button>
+      {/*
+        * THE ONLY WAY BACK TO A PASSWORD ONCE YOU HAVE ONE.
+        *
+        * SetPasswordDialog already existed and worked, but its single entry point was
+        * the banner below, which is hidden the moment `passwordSet` turns true. So a
+        * member who set a password and then forgot it had nowhere to go: "Forgot
+        * password?" on the login screen only switches to the OTP tab, and after signing
+        * in by OTP there was no menu item, no route and nothing on the profile page.
+        * They could get in forever and never change it.
+        *
+        * The dialog sets a password rather than changing one — the server asks for no
+        * current password, only a valid session — so signing in by OTP and coming here
+        * IS the reset, without a new endpoint or a token to email.
+        */}
+      <button onClick={() => { setUserOpen(false); setPwdOpen(true); }}>
+        {d?.passwordSet === false ? 'Set a password' : 'Change my password'}
+      </button>
+      <button className="out" onClick={() => logout()}>Log out</button>
+    </div>
+  );
+
   return (
     <div className="gd">
-      <button className={`gd-burger${mobileOpen ? ' hide' : ''}`} onClick={openDrawer} aria-label="Menu">
-        <Icon name="menu" />
-      </button>
+      {/*
+        * THE PHONE BAR. Below 981px the rail is a drawer, and the page had nothing at the top
+        * but a floating menu button: no brand, and no account — which had been moved into the
+        * drawer's footer, the last place anybody looks for it. This bar is the app's header on
+        * a phone: menu on the left, the mark, and the account menu on the right, as on desktop.
+        * Hidden on desktop (dashboard.css), where the rail and the top bar already do this.
+        */}
+      <header className="gd-mbar">
+        <button className={`gd-burger${mobileOpen ? ' hide' : ''}`} onClick={openDrawer} aria-label="Menu">
+          <Icon name="menu" />
+        </button>
+        <button className="gd-mbar-logo" onClick={() => nav('/careerpilot')} aria-label="CareerPilot home">
+          <img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" />
+        </button>
+        <div className="gd-mbar-user" ref={mUserRef}>
+          <button className="gd-mbar-av" onClick={toggleUserMenu} aria-expanded={userOpen} aria-haspopup="true" aria-label="Account menu">
+            {initial}
+          </button>
+          {userOpen && userMenu}
+        </div>
+      </header>
       {mobileOpen && <div className="gd-scrim" onClick={() => setMobileOpen(false)} />}
 
       <aside className={`gd-side${mobileOpen ? ' open' : ''}`}>
@@ -359,31 +409,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
               <button className="gd-user-btn" onClick={toggleUserMenu} aria-expanded={userOpen} aria-haspopup="true">
                 <span className="av">{initial}</span><span className="nm">{d?.name || firstName}</span><span className={`cr${userOpen ? ' open' : ''}`}><Icon name="chevron" /></span>
               </button>
-              {userOpen && <div className="gd-user-menu">
-                <div className="hd"><b>{d?.name || firstName}</b>{lv && <span>Level {lv.level} · {lv.title}</span>}</div>
-                {st && <div className="stats"><div><b>{st.xp.toLocaleString()}</b><span>XP</span></div><div><b>{st.streak}</b><span>Streak</span></div><div><b>{myRank ? `#${myRank}` : '—'}</b><span>Rank</span></div></div>}
-                <button onClick={() => { setUserOpen(false); nav('/careerpilot/profile'); }}>My profile</button>
-                <button onClick={() => { setUserOpen(false); nav('/careerpilot/readiness'); }}>My result</button>
-                <button onClick={share} disabled={!d?.shareSlug}>Share my CareerPilot card</button>
-                {/*
-                  * THE ONLY WAY BACK TO A PASSWORD ONCE YOU HAVE ONE.
-                  *
-                  * SetPasswordDialog already existed and worked, but its single entry point was
-                  * the banner below, which is hidden the moment `passwordSet` turns true. So a
-                  * member who set a password and then forgot it had nowhere to go: "Forgot
-                  * password?" on the login screen only switches to the OTP tab, and after signing
-                  * in by OTP there was no menu item, no route and nothing on the profile page.
-                  * They could get in forever and never change it.
-                  *
-                  * The dialog sets a password rather than changing one — the server asks for no
-                  * current password, only a valid session — so signing in by OTP and coming here
-                  * IS the reset, without a new endpoint or a token to email.
-                  */}
-                <button onClick={() => { setUserOpen(false); setPwdOpen(true); }}>
-                  {d?.passwordSet === false ? 'Set a password' : 'Change my password'}
-                </button>
-                <button className="out" onClick={() => logout()}>Log out</button>
-              </div>}
+              {userOpen && userMenu}
             </div>
           </div>
         </div>

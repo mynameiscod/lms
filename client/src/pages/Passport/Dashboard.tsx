@@ -9,8 +9,32 @@ const Bi: React.FC<{ name: string; className?: string }> = ({ name, className = 
   <i className={`bi bi-${name}${className ? ` ${className}` : ''}`} aria-hidden="true" />
 );
 
+/**
+ * A skill name broken into at most two lines of about `max` characters, on word boundaries.
+ *
+ * The radar's labels used to be one line each, and a name like "Data Structures & Algorithms"
+ * ran past the card on a phone — the SVG is `overflow: visible`, so nothing clipped it. Two
+ * short lines fit inside the side margin the chart now reserves; anything longer than that is
+ * ellipsised on the second line rather than spilling.
+ */
+const wrapLabel = (label: string, max = 13): string[] => {
+  const lines: string[] = [];
+  let cur = '';
+  for (const w of label.split(/\s+/).filter(Boolean)) {
+    if (!cur) cur = w;
+    else if ((cur + ' ' + w).length <= max) cur += ' ' + w;
+    else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  if (lines.length <= 2) return lines;
+  const second = lines.slice(1).join(' ');
+  return [lines[0], second.length > max ? `${second.slice(0, max - 1).trimEnd()}…` : second];
+};
+
 const Radar: React.FC<{ skills: { label: string; score: number }[] }> = ({ skills }) => {
-  const size = 290, cx = size / 2, cy = size / 2 + 6, R = 92;
+  // The chart is drawn inside a wider box so the labels at the left and right have room of
+  // their own: `pad` on each side is where a wrapped name sits, inside the viewBox.
+  const size = 290, pad = 46, cx = size / 2 + pad, cy = size / 2 + 6, R = 84;
   const n = skills.length;
   if (n < 3) return <div className="gd-chart-empty">Not enough category data to draw your skill meter.</div>;
 
@@ -21,7 +45,8 @@ const Radar: React.FC<{ skills: { label: string; score: number }[] }> = ({ skill
   const poly = (dist: (i: number) => number) => skills.map((_, i) => pt(i, dist(i)).join(',')).join(' ');
 
   return (
-    <svg className="gd-radar" width="100%" height={size} viewBox={`0 0 ${size} ${size}`}>
+    <svg className="gd-radar" width="100%" viewBox={`0 0 ${size + pad * 2} ${size}`} role="img" aria-label="Skill meter">
+      <title>{skills.map(s => `${s.label}: ${s.score}`).join(', ')}</title>
       {[0.25, 0.5, 0.75, 1].map(f => (
         <polygon key={f} points={poly(() => R * f)} fill="none" stroke="#e4edf4" strokeWidth={1} />
       ))}
@@ -35,12 +60,18 @@ const Radar: React.FC<{ skills: { label: string; score: number }[] }> = ({ skill
         return <circle key={i} cx={x} cy={y} r={3.5} fill="#087f91" />;
       })}
       {skills.map((s, i) => {
-        const [x, y] = pt(i, R + 30);
+        const [x, y] = pt(i, R + 16);
         const anchor = Math.abs(x - cx) < 6 ? 'middle' : x > cx ? 'start' : 'end';
+        const lines = wrapLabel(s.label);
+        // The label block grows away from the chart: upward above it, downward below it, and
+        // centred on the point at the sides.
+        const top = y < cy - 6 ? y - lines.length * 12 : y > cy + 6 ? y + 4 : y - (lines.length * 12) / 2;
         return (
           <g key={s.label}>
-            <text x={x} y={y - 5} textAnchor={anchor}>{s.label}</text>
-            <text x={x} y={y + 8} textAnchor={anchor} className="v">{s.score}</text>
+            <text x={x} y={top} textAnchor={anchor}>
+              {lines.map((l, k) => <tspan key={k} x={x} dy={k === 0 ? 0 : 12}>{l}</tspan>)}
+            </text>
+            <text x={x} y={top + lines.length * 12} textAnchor={anchor} className="v">{s.score}</text>
           </g>
         );
       })}

@@ -32,7 +32,6 @@ const CareerPilotPaperDesign = lazy(() => import('./pages/Passport/AdminPaperDes
 const LabTracks = lazy(() => import('./pages/LabTracks'));
 const LoginPage = lazy(() => import('./pages/Login'));
 const RegisterPage = lazy(() => import('./pages/Register'));
-const CreateOrganizationPage = lazy(() => import('./pages/CreateOrganization'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const SetupPassword = lazy(() => import('./pages/SetupPassword/SetupPassword').then(m => ({ default: m.SetupPassword })));
@@ -494,8 +493,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/battles/exam/:token" element={<BattleExam />} />
       <Route path="/battles/:slug/leaderboard" element={<BattleLeaderboard />} />
       <Route path="/battles/:slug" element={<BattleLanding />} />
-      {/* Platform administrator only — creating an institute is no longer a public sign-up. */}
-      <Route path="/create-organization" element={<ProtectedRoute requiredRoles={['SUPER_ADMIN']}><CreateOrganizationPage /></ProtectedRoute>} />
+      {/* Institutes are created from Tenant Management (platform administrator). The old public page
+          logged the creator in AS the new institute, which would now sign the super admin out. */}
+      <Route path="/create-organization" element={<Navigate to="/super-admin/tenants" replace />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/certificate/:type/:token" element={<CertificatePage />} />

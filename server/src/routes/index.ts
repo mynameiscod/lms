@@ -1,4 +1,6 @@
 import express from 'express';
+import { tenantForHost } from '../services/tenantDomainService';
+import { getBranding } from '../services/tenantBrandingService';
 import { publicBranding } from '../services/tenantBrandingService';
 import authRoutes from './authRoutes';
 import tenantRoutes from './tenantRoutes';
@@ -145,6 +147,14 @@ router.use('/public/passport', careerPilotActivity, publicPassportRoutes);
 router.use('/external', externalApiRoutes);
 // CodeBegun Judge for Interview Pilot — HMAC-signed, no session (Judge URL = https://<platform>/api/v1/judge).
 router.use('/judge', codeJudgeRoutes);
+// Public: which institute owns the domain this page was opened on (custom domains).
+router.get('/public/branding-by-host', async (req, res) => {
+  try {
+    const id = await tenantForHost(String(req.headers['x-forwarded-host'] || req.headers.host || ''));
+    const b = id ? await publicBranding(id) : null;
+    res.json({ success: true, data: b ? { ...b, slug: (await getBranding(id!)).slug } : null });
+  } catch { res.json({ success: true, data: null }); }
+});
 // Public: the login page shows an institute's name/logo before sign-in (no private data).
 router.get('/public/branding/:idOrSlug', async (req, res) => {
   try {

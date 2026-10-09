@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { hostTenantSlug } from '../../config/hostTenant';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { battlePublicApi } from '../../api/battleApi';
 import BattleChrome from './BattleChrome';
@@ -9,7 +10,7 @@ const BattleLanding: React.FC = () => {
   const { slug } = useParams();
   const [sp] = useSearchParams();
   const nav = useNavigate();
-  const tenant = sp.get('tenant') || 'codebegun';
+  const tenant = sp.get('tenant') || hostTenantSlug() || 'codebegun';
   const doorCode = sp.get('door') || 'public';
 
   const [data, setData] = useState<any>(null);

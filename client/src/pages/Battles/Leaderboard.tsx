@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { hostTenantSlug } from '../../config/hostTenant';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { battlePublicApi } from '../../api/battleApi';
 import BattleChrome from './BattleChrome';
@@ -8,7 +9,7 @@ import './battles.css';
 const BattleLeaderboard: React.FC = () => {
   const { slug } = useParams();
   const [sp] = useSearchParams();
-  const tenant = sp.get('tenant') || 'codebegun';
+  const tenant = sp.get('tenant') || hostTenantSlug() || 'codebegun';
   const [data, setData] = useState<any>(null);
   const [college, setCollege] = useState('');
   const [loading, setLoading] = useState(true);

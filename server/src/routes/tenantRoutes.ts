@@ -1,4 +1,5 @@
 import express from 'express';
+import { domainStatus, setDomain, verifyDomain } from '../services/tenantDomainService';
 import { limitsWithUsage, saveLimits } from '../services/tenantLimits';
 import { getBranding, saveBranding } from '../services/tenantBrandingService';
 import { onboardTenant, onboardingChecklist } from '../services/tenantOnboardingService';
@@ -55,6 +56,16 @@ router.get('/:tenantId/limits', authMiddleware, roleGuard(['manage_tenants']), a
 router.put('/:tenantId/limits', authMiddleware, roleGuard(['manage_tenants']), async (req: any, res: any) => {
   try { await saveLimits(req.params.tenantId, req.body || {}); res.json({ success: true, data: await limitsWithUsage(req.params.tenantId) }); }
   catch (e: any) { res.status(e?.status || 500).json({ success: false, message: e?.message }); }
+});
+// Custom domain (platform administrator): set, check DNS, and the server command to go live.
+router.get('/:tenantId/domain', authMiddleware, roleGuard(['manage_tenants']), async (req: any, res: any) => {
+  try { res.json({ success: true, data: await domainStatus(req.params.tenantId) }); } catch (e: any) { res.status(500).json({ success: false, message: e?.message }); }
+});
+router.put('/:tenantId/domain', authMiddleware, roleGuard(['manage_tenants']), async (req: any, res: any) => {
+  try { res.json({ success: true, data: await setDomain(req.params.tenantId, String(req.body?.domain || '')) }); } catch (e: any) { res.status(e?.status || 500).json({ success: false, message: e?.message }); }
+});
+router.post('/:tenantId/domain/verify', authMiddleware, roleGuard(['manage_tenants']), async (req: any, res: any) => {
+  try { res.json({ success: true, data: await verifyDomain(req.params.tenantId) }); } catch (e: any) { res.status(e?.status || 500).json({ success: false, message: e?.message }); }
 });
 // Onboarding: what is still to set up, and (re)run the default setup — idempotent.
 router.get('/:tenantId/onboarding', authMiddleware, ownTenant, async (req: any, res: any) => {

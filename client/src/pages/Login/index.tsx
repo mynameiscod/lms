@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { hostTenant } from '../../config/hostTenant';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Alert } from '../../components/common';
@@ -88,7 +89,7 @@ const LoginPage: React.FC = () => {
   // The institute from the invite link — its logo and name instead of CodeBegun's.
   const [inst, setInst] = useState<{ name: string; logo: string; welcomeMessage: string; isPlatformOwner: boolean } | null>(null);
   useEffect(() => {
-    const id = searchParams.get('tenantId') || searchParams.get('tenant');
+    const id = searchParams.get('tenantId') || searchParams.get('tenant') || hostTenant()?.tenantId;
     if (!id) return;
     fetch(`/api/v1/public/branding/${encodeURIComponent(id)}`).then((r) => (r.ok ? r.json() : null))
       .then((j) => { if (j?.success && !j.data.isPlatformOwner) setInst(j.data); }).catch(() => {});

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { hostTenantSlug } from '../../config/hostTenant';
 import { useSearchParams } from 'react-router-dom';
 import { placementProgramApi, PlacementRegistration, errMsg } from '../../api/placementProgramApi';
 import './placementProgram.css';
@@ -22,7 +23,7 @@ const EMPTY: PlacementRegistration = {
 
 const PlacementProgramRegister: React.FC = () => {
   const [params] = useSearchParams();
-  const tenant = params.get('tenant') || 'codebegun';
+  const tenant = params.get('tenant') || hostTenantSlug() || 'codebegun';
   const [form, setForm] = useState<PlacementRegistration>(EMPTY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -109,7 +110,7 @@ const WEBSITE_FORM = 'https://www.codebegun.com/placements-2026';
 
 const PlacementProgramEntry: React.FC = () => {
   const [params] = useSearchParams();
-  const tenant = (params.get('tenant') || 'codebegun').toLowerCase();
+  const tenant = (params.get('tenant') || hostTenantSlug() || 'codebegun').toLowerCase();
   const toWebsite = tenant === 'codebegun';
   useEffect(() => {
     if (!toWebsite) return;

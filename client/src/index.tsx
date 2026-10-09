@@ -1,4 +1,5 @@
 import React from 'react';
+import { loadHostTenant } from './config/hostTenant';
 import ReactDOM from 'react-dom/client';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
@@ -24,11 +25,13 @@ const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 
-root.render(
+// On an institute's own domain, learn which institute it is before the first route renders
+// (instant on platform.codebegun.com — nothing is fetched there).
+loadHostTenant().finally(() => root.render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
-);
+));
 
 reportWebVitals();
 

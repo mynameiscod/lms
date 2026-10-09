@@ -19,6 +19,8 @@ export interface Brand {
   address: string;
   website: string;
   primaryColor: string;
+  /** https://<custom domain> once verified — email links then point there. */
+  baseUrl?: string;
 }
 
 export const CODEBEGUN_BRAND: Brand = {
@@ -55,6 +57,7 @@ export async function getBrand(tenantId?: string | null): Promise<Brand> {
     address: r.address || '',
     website: r.website || t?.website || '',
     primaryColor: t?.branding?.primaryColor || '#4f46e5',
+    baseUrl: t?.branding?.customDomain && t?.branding?.customDomainVerifiedAt ? `https://${t.branding.customDomain}` : '',
   };
   cache.set(key, { at: Date.now(), brand });
   return brand;
@@ -81,6 +84,9 @@ export function rebrand(text: string, brand: Brand): string {
   s = s.replace(/CodeBegun LMS/g, brand.name);
   // Leaves codebegun.com / CodeBegun.in style addresses alone (a sentence-ending full stop is fine).
   s = s.replace(/(?<![\w./@-])CodeBegun(?![\w-]*\.(com|in|io))/g, brand.name);
+  // Links to the platform → the institute's own verified domain (the same app answers there).
+  // Last, so the logo swap above still recognises CodeBegun's logo URL.
+  if (brand.baseUrl) s = s.replace(/https:\/\/platform\.codebegun\.com/g, brand.baseUrl);
   return s;
 }
 

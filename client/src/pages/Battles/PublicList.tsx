@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { hostTenantSlug } from '../../config/hostTenant';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { battlePublicApi } from '../../api/battleApi';
 import BattleChrome from './BattleChrome';
@@ -8,7 +9,7 @@ import './battles.css';
 const BattleList: React.FC = () => {
   const [sp] = useSearchParams();
   const nav = useNavigate();
-  const tenant = sp.get('tenant') || 'codebegun';
+  const tenant = sp.get('tenant') || hostTenantSlug() || 'codebegun';
   const [battles, setBattles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { hostTenantSlug } from '../../config/hostTenant';
 import { useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
 import OtpVerify, { isOtpInfo, otpSendMessage } from './OtpVerify';
@@ -57,7 +58,7 @@ const PassportLogin: React.FC<{
   onCreateAccount?: () => void;
 }> = ({ embedded = false, onCreateAccount }) => {
   const [params] = useSearchParams();
-  const tenant = params.get('tenant') || 'codebegun';
+  const tenant = params.get('tenant') || hostTenantSlug() || 'codebegun';
 
   const [mode, setMode] = useState<'password' | 'otp'>('password');
   const [otpStep, setOtpStep] = useState(false);

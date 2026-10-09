@@ -122,6 +122,7 @@ export interface IBranding {
   coverImageUrl?: string;
   hideCodeBegunBranding?: boolean;
   customDomain?: string;        // e.g. "lms.stmarys.edu"
+  customDomainVerifiedAt?: Date | null; // set when DNS was checked to point at the platform
 }
 
 export interface ITenant extends Document {
@@ -290,7 +291,8 @@ const TenantSchema: Schema = new Schema(
       faviconUrl: { type: String, default: null },
       coverImageUrl: { type: String, default: null },
       hideCodeBegunBranding: { type: Boolean, default: false },
-      customDomain: { type: String, default: null }
+      customDomain: { type: String, default: null },
+      customDomainVerifiedAt: { type: Date, default: null }
     },
     // Per-tenant fee-receipt configuration — all optional, defaults applied in code
     receipt: {

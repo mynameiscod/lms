@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { hostTenantSlug } from '../../config/hostTenant';
 import PassportLogin from './Login';
 import { useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
@@ -127,7 +128,7 @@ const fmtDay = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('e
 
 const PassportJoin: React.FC = () => {
   const [params] = useSearchParams();
-  const tenant = params.get('tenant') || 'codebegun';
+  const tenant = params.get('tenant') || hostTenantSlug() || 'codebegun';
 
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [fieldsDef, setFieldsDef] = useState<OnboardingField[]>([]);

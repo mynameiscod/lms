@@ -1,4 +1,5 @@
 import { Response, Request } from 'express';
+import mongoose from 'mongoose';
 import { UserService } from '../services/userService';
 import { AuthenticatedRequest } from '../types';
 import { EmailService } from '../services/emailService';
@@ -78,6 +79,38 @@ const autoEnrollInBatchCourse = async (userId: string, batchId: string, tenantId
   }
 };
 
+/*
+ * Account-level guards (security fix 2026-10-09).
+ * - A user record is only reachable inside the caller's OWN institute (the token's, never a header),
+ *   except for a super admin.
+ * - Only a super admin may create or promote a SUPER_ADMIN, or touch one.
+ * - A password hash never leaves the server.
+ */
+const ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF', 'STUDENT', 'GUEST', 'ATTENDANCE_ADMIN', 'PLACEMENT_OFFICER'];
+const isSuper = (req: AuthenticatedRequest) => (req.user as any)?.role === 'SUPER_ADMIN';
+const callerTenant = (req: AuthenticatedRequest) => String((req.user as any)?.tenantId || '');
+
+/** May the caller give this role? Unknown roles never; SUPER_ADMIN only by a super admin. */
+const roleAllowed = (req: AuthenticatedRequest, role: string) => ROLES.includes(role) && (role !== 'SUPER_ADMIN' || isSuper(req));
+
+/** The target user, if the caller may act on them — otherwise null (answered as 404, so ids are not probeable). */
+async function targetInOwnTenant(req: AuthenticatedRequest, userId: string) {
+  if (!mongoose.isValidObjectId(userId)) return null;
+  const u: any = await User.findById(userId).select('tenantId role').lean();
+  if (!u) return null;
+  if (isSuper(req)) return u;
+  if (String(u.tenantId) !== callerTenant(req)) return null;
+  if (u.role === 'SUPER_ADMIN') return null;
+  return u;
+}
+
+const stripSecrets = (u: any) => {
+  if (!u) return u;
+  const o = typeof u.toObject === 'function' ? u.toObject() : { ...u };
+  delete o.password; delete o.resetToken; delete o.resetTokenExpires;
+  return o;
+};
+
 export const createUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { email, firstName, lastName, password, role, customRoleId } = req.body;
@@ -89,6 +122,9 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
         error: 'Email, firstName, lastName, and password are required'
       });
     }
+    if (!roleAllowed(req, role || 'STUDENT')) {
+      return res.status(403).json({ success: false, message: 'You cannot create a user with that role.' });
+    }
 
     const user = await userService.createUser(
       email,
@@ -96,7 +132,8 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       lastName,
       password,
       role || 'STUDENT',
-      req.tenantId!,
+      // A super admin creates in the institute they have open; everyone else only in their own.
+      isSuper(req) ? req.tenantId! : callerTenant(req),
       undefined,
       customRoleId || undefined
     );
@@ -124,7 +161,7 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       message: emailSent
         ? 'User created successfully. Welcome email sent.'
         : 'User created but email could not be sent.',
-      data: user,
+      data: stripSecrets(user),
       emailSent,
       emailError,
       setupLink: !emailSent ? setupLink : undefined
@@ -370,6 +407,15 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
 export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId } = req.params;
+    // Your own record always; someone else's only for staff of the same institute (students never).
+    const self = String((req.user as any)?.id) === String(userId);
+    const callerRole = (req.user as any)?.role;
+    if (!self && (callerRole === 'STUDENT' || callerRole === 'GUEST')) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    if (!self && !(await targetInOwnTenant(req, userId))) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
     const user = await userService.getUserById(userId);
 
     if (!user) {
@@ -383,7 +429,7 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
     // (funnel candidate, or an existing student who joined via the assessment).
     // Drives the focused, career-only experience on the client (no batch LMS clutter).
     const isCareerPilot = !!(await AssessmentSubmission.exists({ candidateUserId: userId }));
-    const data = (user as any).toObject ? { ...(user as any).toObject(), isCareerPilot } : { ...(user as any), isCareerPilot };
+    const data = { ...stripSecrets(user), isCareerPilot };
 
     res.json({
       success: true,
@@ -409,6 +455,12 @@ export const updateUserRole = async (req: AuthenticatedRequest, res: Response) =
         message: 'Role is required'
       });
     }
+    if (!roleAllowed(req, role)) {
+      return res.status(403).json({ success: false, message: 'You cannot give that role.' });
+    }
+    if (!(await targetInOwnTenant(req, userId))) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
 
     const updateData: any = { role };
     // Allow setting or clearing customRoleId
@@ -426,7 +478,7 @@ export const updateUserRole = async (req: AuthenticatedRequest, res: Response) =
     res.json({
       success: true,
       message: 'User role updated successfully',
-      data: user
+      data: stripSecrets(user)
     });
   } catch (error: any) {
     res.status(500).json({
@@ -439,6 +491,9 @@ export const updateUserRole = async (req: AuthenticatedRequest, res: Response) =
 export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId } = req.params;
+    if (!(await targetInOwnTenant(req, userId))) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
     const user = await userService.deleteUser(userId);
 
     if (!user) {
@@ -451,7 +506,7 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
     res.json({
       success: true,
       message: 'User deleted successfully',
-      data: user
+      data: stripSecrets(user)
     });
   } catch (error: any) {
     res.status(500).json({
@@ -464,6 +519,9 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
 export const deactivateUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId } = req.params;
+    if (!(await targetInOwnTenant(req, userId))) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
     const user = await userService.deactivateUser(userId);
 
     if (!user) {
@@ -476,7 +534,7 @@ export const deactivateUser = async (req: AuthenticatedRequest, res: Response) =
     res.json({
       success: true,
       message: 'User deactivated successfully',
-      data: user
+      data: stripSecrets(user)
     });
   } catch (error: any) {
     res.status(500).json({
@@ -489,6 +547,9 @@ export const deactivateUser = async (req: AuthenticatedRequest, res: Response) =
 export const activateUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId } = req.params;
+    if (!(await targetInOwnTenant(req, userId))) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
     const user = await userService.activateUser(userId);
 
     if (!user) {
@@ -501,7 +562,7 @@ export const activateUser = async (req: AuthenticatedRequest, res: Response) => 
     res.json({
       success: true,
       message: 'User activated successfully',
-      data: user
+      data: stripSecrets(user)
     });
   } catch (error: any) {
     res.status(500).json({
@@ -787,7 +848,7 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response) =>
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      data: user
+      data: stripSecrets(user)
     });
   } catch (error: any) {
     res.status(500).json({

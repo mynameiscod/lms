@@ -92,20 +92,11 @@ export class AuthService {
         $or: [{ slug }, { name: tenantIdentifier }] 
       });
 
+      // Self-registration can only JOIN an existing institute. Creating one is a SaaS-admin
+      // action (register-organization); this used to create an institute for any unknown name
+      // and make the caller its TENANT_ADMIN.
       if (!tenant) {
-        // Create a placeholder user ID for adminId (will be updated after user creation)
-        const placeholderAdminId = new mongoose.Types.ObjectId();
-        
-        tenant = new Tenant({
-          name: tenantIdentifier,
-          slug,
-          adminId: placeholderAdminId,
-          isActive: true,
-          subscriptionPlan: 'free',
-          ...(studentFeatures ? { studentFeatures } : {})
-        });
-        await tenant.save();
-        isNewTenant = true;
+        throw new Error('Institute not found. Use the sign-up link your institute gave you.');
       }
       tenantId = tenant._id as mongoose.Types.ObjectId;
     }
@@ -113,6 +104,12 @@ export class AuthService {
     // If user is creating a new tenant, make them TENANT_ADMIN
     // Otherwise, they're joining an existing tenant as STUDENT
     const userRole = isNewTenant ? 'TENANT_ADMIN' : 'STUDENT';
+
+    // A deactivated institute takes no new sign-ups.
+    const joining: any = await Tenant.findById(tenantId).select('isActive').lean();
+    if (!joining || joining.isActive === false) {
+      throw new Error('This institute is not accepting sign-ups.');
+    }
 
     const user = new User({
       email,
@@ -152,6 +149,10 @@ export class AuthService {
     }
 
     const tenant = await Tenant.findById(user.tenantId);
+    // A deactivated institute is locked out entirely (the platform administrator is not).
+    if (user.role !== 'SUPER_ADMIN' && tenant && (tenant as any).isActive === false) {
+      throw new Error('Your institute\'s account is not active. Please contact the platform administrator.');
+    }
 
     const secret = jwtSecret();
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';

@@ -706,7 +706,8 @@ export const tenantApi = {
   }) => {
     const response = await fetch(`${API_BASE_URL}/auth/register-organization`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // Creating an institute needs the platform administrator's login.
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
       body: JSON.stringify(data)
     });
     const json = await response.json();

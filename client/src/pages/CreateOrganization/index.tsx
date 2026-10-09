@@ -69,7 +69,8 @@ const CreateOrganizationPage: React.FC = () => {
       const API_URL = process.env.REACT_APP_API_URL || '/api/v1';
       const response = await fetch(`${API_URL}/auth/register-organization`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // Creating an institute needs the platform administrator's login.
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
         body: JSON.stringify({
           organizationName,
           firstName,

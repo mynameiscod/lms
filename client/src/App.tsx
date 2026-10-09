@@ -487,7 +487,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/battles/exam/:token" element={<BattleExam />} />
       <Route path="/battles/:slug/leaderboard" element={<BattleLeaderboard />} />
       <Route path="/battles/:slug" element={<BattleLanding />} />
-      <Route path="/create-organization" element={<CreateOrganizationPage />} />
+      {/* Platform administrator only — creating an institute is no longer a public sign-up. */}
+      <Route path="/create-organization" element={<ProtectedRoute requiredRoles={['SUPER_ADMIN']}><CreateOrganizationPage /></ProtectedRoute>} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/certificate/:type/:token" element={<CertificatePage />} />

@@ -359,4 +359,18 @@ UserSchema.methods.comparePassword = async function(password: string): Promise<b
   return await bcryptjs.compare(password, this.password);
 };
 
+/*
+ * A password hash or reset token must never reach a browser. Any handler that sends a user
+ * document with res.json goes through toJSON, so strip them here as the last line of defence
+ * (lean() results bypass this — those queries must select fields explicitly).
+ */
+UserSchema.set('toJSON', {
+  transform: (_doc: any, ret: any) => {
+    delete ret.password;
+    delete ret.resetToken;
+    delete ret.resetTokenExpires;
+    return ret;
+  },
+});
+
 export default mongoose.model<IUser>('User', UserSchema);

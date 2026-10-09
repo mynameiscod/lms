@@ -45,6 +45,15 @@ async function ensureConfig(tenantId: string) {
       entitlements: DEFAULT_ENTITLEMENTS,
     });
   }
+  /*
+   * Features added to the defaults after this tenant saved its list are appended, at their
+   * default tier, so the admin screen shows a switch for them. Not saved here — it persists
+   * the next time the admin saves, and until then entitlementMap already treats them as paid.
+   */
+  const have = new Set((cfg.entitlements || []).map((e: any) => e.featureKey));
+  for (const d of DEFAULT_ENTITLEMENTS) {
+    if (!have.has(d.featureKey)) (cfg.entitlements as any).push({ ...d });
+  }
   return cfg;
 }
 

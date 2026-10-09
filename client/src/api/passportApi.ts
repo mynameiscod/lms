@@ -1957,7 +1957,8 @@ export interface SpineCoverage {
 /** A part of the member experience that can be locked on its own. Mirrors memberAccessPolicy. */
 export type MemberSection =
   | 'score' | 'roadmap' | 'missions' | 'progress'
-  | 'practice' | 'interview' | 'resume' | 'companies' | 'news';
+  | 'practice' | 'interview' | 'resume' | 'companies' | 'news'
+  | 'coding' | 'playground' | 'communication' | 'experiences' | 'questionBooks' | 'mentor';
 
 export interface LockedSection {
   section: MemberSection;

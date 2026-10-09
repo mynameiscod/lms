@@ -2,6 +2,8 @@
 // features require an active, non-expired membership. The entitlement list is admin-
 // configured on PassportConfig, so tiers are data, not hard-coded.
 
+import { DEFAULT_ENTITLEMENTS } from '../models/PassportConfig';
+
 interface EntitlementCfg { featureKey: string; label: string; tier: 'free' | 'paid'; }
 interface PassportSub { active?: boolean; expiresAt?: Date | string | null; }
 
@@ -33,6 +35,12 @@ export function entitlementMap(
 ): Record<string, boolean> {
   const active = membershipActive(passport, now);
   const out: Record<string, boolean> = {};
+  /*
+   * A default feature the tenant's saved list does not mention is PAID, exactly as isEntitled
+   * treats an unknown key. Without this, a feature added to the defaults after a tenant saved
+   * its list was absent from the map and therefore locked for everybody — paying members too.
+   */
+  for (const d of DEFAULT_ENTITLEMENTS) out[d.featureKey] = active;
   for (const e of entitlements || []) out[e.featureKey] = e.tier === 'free' ? true : active;
   return out;
 }

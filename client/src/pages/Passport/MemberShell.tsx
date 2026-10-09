@@ -286,16 +286,15 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn(`My ${data?.programDays || 90} Days`, 'grid', '/careerpilot/plan', 'roadmap')}
           {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap')}
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice')}
-          {navBtn('Coding Sets', 'code', '/careerpilot/coding')}
-          {/* From master. No section, so they stay open to everyone, as master had them. */}
-          {navBtn('Playground', 'terminal', '/careerpilot/playground')}
+          {navBtn('Coding Sets', 'code', '/careerpilot/coding', 'coding')}
+          {navBtn('Playground', 'terminal', '/careerpilot/playground', 'playground')}
           {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer')}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'practice')}
-          {navBtn('Communication Lab', 'speech', '/careerpilot/communication')}
+          {navBtn('Communication Lab', 'speech', '/careerpilot/communication', 'communication')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview')}
-          {navBtn('Interview Experiences', 'interview', '/careerpilot/interview-experiences')}
-          {navBtn('Question Books', 'resume', '/careerpilot/question-books')}
-          {navBtn('AI Mentor', 'robot', '/careerpilot/mentor')}
+          {navBtn('Interview Experiences', 'interview', '/careerpilot/interview-experiences', 'experiences')}
+          {navBtn('Question Books', 'resume', '/careerpilot/question-books', 'questionBooks')}
+          {navBtn('AI Mentor', 'robot', '/careerpilot/mentor', 'mentor')}
           {navBtn('Opportunities', 'building', '/careerpilot/companies', 'companies')}
           {/* Sits with Opportunities because it answers the same question — what is happening in
               the industry I am applying to. It was reachable only from the user menu, which is

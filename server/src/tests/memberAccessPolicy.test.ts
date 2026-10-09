@@ -66,13 +66,14 @@ describe('what a student who has not paid can still see', () => {
   });
 
   it('locks what membership actually buys', () => {
-    for (const s of ['roadmap', 'missions', 'progress', 'practice', 'interview', 'resume'] as MemberSection[]) {
+    for (const s of ['roadmap', 'missions', 'progress', 'practice', 'interview', 'resume',
+      'coding', 'playground', 'communication', 'experiences', 'questionBooks', 'mentor'] as MemberSection[]) {
       expect(locked).toContain(s);
     }
   });
 
   it('locks enough to be worth buying, and not everything', () => {
-    // If this ever locks all nine, the dashboard has become the wall it replaced.
+    // If this ever locks every section, the dashboard has become the wall it replaced.
     expect(locked.length).toBeGreaterThan(3);
     expect(locked.length).toBeLessThan(MEMBER_SECTIONS.length);
   });
@@ -90,6 +91,23 @@ describe('what membership opens', () => {
   it('closes again when the membership lapses', () => {
     expect(lockedSections(mapFor(lapsed))).toContain('roadmap');
     expect(lockedSections(mapFor(lapsed))).not.toContain('score');
+  });
+});
+
+describe('features added after a tenant saved its settings', () => {
+  // A tenant's saved list predates the six newer keys. Missing from the map, they would be
+  // locked for paying members too; read as paid, they follow the membership like the rest.
+  const savedBefore = DEFAULT_ENTITLEMENTS.filter(e => !['coding_sets', 'code_playground',
+    'communication_lab', 'interview_experiences', 'question_books', 'ai_mentor'].includes(e.featureKey));
+
+  it('opens them for a paying member', () => {
+    expect(lockedSections(entitlementMap(savedBefore as any, paying, NOW))).toEqual([]);
+  });
+
+  it('locks them for a member who has not paid', () => {
+    const locked = lockedSections(entitlementMap(savedBefore as any, neverPaid, NOW));
+    expect(locked).toEqual(expect.arrayContaining(['coding', 'playground', 'communication', 'experiences', 'questionBooks', 'mentor']));
+    expect(locked).not.toContain('score');
   });
 });
 

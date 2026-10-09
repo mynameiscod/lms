@@ -331,6 +331,14 @@ export const DEFAULT_ENTITLEMENTS: IEntitlement[] = [
   { featureKey: 'career_passport', label: 'CareerPilot Profile',      tier: 'paid' },
   { featureKey: 'tech_news',       label: 'Daily Tech News',             tier: 'paid' },
   { featureKey: 'company_questions', label: 'Company Interview Questions', tier: 'paid' },
+  // Added after tenants already had a saved list. A tenant whose list predates these does not
+  // hold them, and entitlementMap reads a missing key as paid — see there.
+  { featureKey: 'coding_sets',     label: 'Coding Sets',                  tier: 'paid' },
+  { featureKey: 'code_playground', label: 'Code Playground',              tier: 'paid' },
+  { featureKey: 'communication_lab', label: 'AI Communication Lab',       tier: 'paid' },
+  { featureKey: 'interview_experiences', label: 'Interview Experiences',  tier: 'paid' },
+  { featureKey: 'question_books',  label: 'Question Books',               tier: 'paid' },
+  { featureKey: 'ai_mentor',       label: 'AI Mentor',                    tier: 'paid' },
 ];
 
 export default mongoose.model<IPassportConfig>('PassportConfig', PassportConfigSchema);

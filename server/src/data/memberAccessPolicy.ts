@@ -35,7 +35,13 @@ export type MemberSection =
   | 'interview'
   | 'resume'
   | 'companies'
-  | 'news';
+  | 'news'
+  | 'coding'          // Coding Sets
+  | 'playground'      // Code Playground
+  | 'communication'   // AI Communication Lab
+  | 'experiences'     // Interview Experiences
+  | 'questionBooks'   // Question Books
+  | 'mentor';         // AI Mentor
 
 /**
  * Section to the entitlement key that pays for it.
@@ -55,6 +61,12 @@ export const SECTION_FEATURE: Record<MemberSection, string> = {
   resume:    'resume',
   companies: 'company_questions',
   news:      'tech_news',
+  coding:        'coding_sets',
+  playground:    'code_playground',
+  communication: 'communication_lab',
+  experiences:   'interview_experiences',
+  questionBooks: 'question_books',
+  mentor:        'ai_mentor',
 };
 
 export const MEMBER_SECTIONS = Object.keys(SECTION_FEATURE) as MemberSection[];
@@ -76,6 +88,12 @@ export const SECTION_COPY: Record<MemberSection, { title: string; blurb: string 
   resume:    { title: 'Resume Center',      blurb: 'Build it, score it, and see what a recruiter would.' },
   companies: { title: 'Company prep',       blurb: 'What each company actually asks, and how ready you are for it.' },
   news:      { title: 'Tech news',          blurb: 'What is moving in the industry you are heading into.' },
+  coding:        { title: 'Coding Sets',          blurb: 'Curated sets of coding problems, solved and checked in the browser.' },
+  playground:    { title: 'Code Playground',      blurb: 'Write and run code in any language, with nothing to install.' },
+  communication: { title: 'AI Communication Lab', blurb: 'Practise speaking and writing, and get told exactly what to improve.' },
+  experiences:   { title: 'Interview Experiences', blurb: 'What real candidates were asked, round by round, at real companies.' },
+  questionBooks: { title: 'Question Books',       blurb: 'Interview question books by topic, with worked answers.' },
+  mentor:        { title: 'AI Mentor',            blurb: 'Ask anything about your plan, your code or your career, any time.' },
 };
 
 /**
@@ -98,7 +116,7 @@ export interface LockedSectionView {
  * The locks, with the words that go on them.
  *
  * Sent rather than duplicated in the client so a section and the reason it is locked cannot
- * drift apart — and so a tenant renaming a feature key has one place to change. At most nine
+ * drift apart — and so a tenant renaming a feature key has one place to change. At most fifteen
  * short entries, and none at all for a paying member.
  */
 export const lockedSectionViews = (entitled: Record<string, boolean> | undefined): LockedSectionView[] =>

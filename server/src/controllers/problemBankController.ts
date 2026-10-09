@@ -57,6 +57,10 @@ export const setStatus = wrap(async (req, res) => {
   res.json({ success: true, data: { status: p.status } });
 });
 
+export const bulkStatus = wrap(async (req, res) => {
+  res.json({ success: true, data: await svc.bulkSetStatus(actor(req), req.body?.ids, req.body?.status) });
+});
+
 export const remove = wrap(async (req, res) => {
   res.json({ success: true, data: await svc.deleteProblem(actor(req), req.params.id) });
 });

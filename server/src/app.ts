@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 import apiRoutes from './routes';
+import { jsonExceptImports } from './routes/problemBankRoutes';
 import { ApiResponse } from './types';
 import { processDueMessages } from './services/whatsAppDripService';
 import { apiErrorLogger } from './middleware/errorLogger';
@@ -141,7 +142,8 @@ app.use((req: Request, res: Response, next: NextFunction) =>
 app.use(apiErrorLogger); // log all 4xx/5xx responses to file + stdout
 // Stash the raw body so signature-verified webhooks (e.g. Razorpay) can HMAC the
 // exact bytes Razorpay signed, while routes still receive parsed JSON in req.body.
-app.use(express.json({ limit: '10mb', verify: (req, _res, buf) => { (req as any).rawBody = buf; } }));
+// Problem Bank imports (up to 100 MB files) are parsed by their own router, after login is checked.
+app.use(jsonExceptImports(express.json({ limit: '10mb', verify: (req, _res, buf) => { (req as any).rawBody = buf; } })));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 /**

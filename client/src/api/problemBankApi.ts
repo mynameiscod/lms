@@ -98,6 +98,10 @@ export const problemBankApi = {
   update: (id: string, p: PbProblemInput) => axios.put(`${BASE}/problems/${id}`, p, h()).then(d) as Promise<{ id: string; version: number; verification: PbVerification; warnings: string[]; publishErrors: string[] }>,
   validate: (p: PbProblemInput) => axios.post(`${BASE}/validate`, p, h()).then(d) as Promise<{ errors: string[]; warnings: string[]; publishErrors: string[] }>,
   setStatus: (id: string, status: string) => axios.post(`${BASE}/problems/${id}/status`, { status }, h()).then(d),
+  bulkStatus: (ids: string[], status: 'published' | 'draft') =>
+    axios.post(`${BASE}/problems/bulk-status`, { ids, status }, h()).then(d) as Promise<{
+      status: string; changed: { id: string; title: string }[]; failed: { id: string; title: string; reason: string }[];
+    }>,
   remove: (id: string) => axios.delete(`${BASE}/problems/${id}`, h()).then(d) as Promise<{ archived?: boolean; deleted?: boolean }>,
   duplicate: (id: string, scope: 'tenant' | 'global' = 'tenant') => axios.post(`${BASE}/problems/${id}/duplicate`, { scope }, h()).then(d) as Promise<{ id: string }>,
   promote: (id: string) => axios.post(`${BASE}/problems/${id}/promote`, {}, h()).then(d),

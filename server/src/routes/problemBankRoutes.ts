@@ -7,6 +7,15 @@ import * as ctrl from '../controllers/problemBankController';
 import * as sets from '../controllers/problemDeliveryController';
 import * as apiClients from '../controllers/apiClientController';
 
+/** Body limit for the two import routes: a 100 MB file, base64-encoded, plus headroom. */
+export const IMPORT_BODY_LIMIT = '150mb';
+/** Paths whose JSON body is parsed by this router rather than by app.ts. */
+export const IMPORT_BODY_PATHS = /^\/api\/v1\/problem-bank\/import\/(preview|commit)\/?$/;
+
+/** The app-wide JSON parser, skipped for the import paths so their larger limit can apply after login. */
+export const jsonExceptImports = (appJson: express.RequestHandler): express.RequestHandler =>
+  (req, res, next) => (IMPORT_BODY_PATHS.test(req.path) ? next() : appJson(req, res, next));
+
 /**
  * Problem Bank — the single store of runnable coding problems.
  * Authors (admins and instructors) manage it here; delivery to students comes in later phases.
@@ -17,8 +26,12 @@ router.use(authMiddleware, tenantResolver, roleGuard(['manage_problem_bank', 'cr
 
 router.get('/meta', ctrl.meta);
 router.get('/import/template', ctrl.importTemplate);
-router.post('/import/preview', ctrl.importPreview);
-router.post('/import/commit', ctrl.importCommit);
+// Import files go up to 100 MB. The file travels base64-encoded (about a third larger) and the
+// commit sends the parsed problems back, so these two routes get their own larger body limit;
+// app.ts skips its 10 MB parser for them (IMPORT_BODY_PATHS).
+const importBody = express.json({ limit: IMPORT_BODY_LIMIT });
+router.post('/import/preview', importBody, ctrl.importPreview);
+router.post('/import/commit', importBody, ctrl.importCommit);
 router.post('/ai/generate', rateLimit('problemBankAi'), ctrl.aiGenerate);
 router.get('/ai/jobs/:jobId', ctrl.aiJob);
 router.get('/migration', ctrl.migrationInfo);
@@ -49,6 +62,7 @@ router.get('/api-clients/:id/preview', adminOnly, apiClients.preview);
 
 router.get('/problems', ctrl.list);
 router.post('/problems', ctrl.create);
+router.post('/problems/bulk-status', ctrl.bulkStatus);
 router.get('/problems/:id', ctrl.get);
 router.put('/problems/:id', ctrl.update);
 router.delete('/problems/:id', ctrl.remove);

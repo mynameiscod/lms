@@ -2,6 +2,9 @@ import React, { useRef, useState } from 'react';
 import { problemBankApi, pbError, PbImportRow } from '../../api/problemBankApi';
 import { Modal } from './shared';
 
+/** Largest file the import accepts. The server's import routes allow this, base64-encoded. */
+const MAX_IMPORT_MB = 100;
+
 /**
  * Bulk import, in three steps: choose (file or pasted JSON) → preview every row → import.
  * Nothing is saved until the last step, and rows with errors are skipped, never half-created.
@@ -35,7 +38,7 @@ const ImportDialog: React.FC<{ canGlobal: boolean; onClose: () => void; onDone: 
 
   const onFile = (f?: File | null) => {
     if (!f) return;
-    if (f.size > 8 * 1024 * 1024) { setErr('That file is larger than 8 MB — split it into smaller files.'); return; }
+    if (f.size > MAX_IMPORT_MB * 1024 * 1024) { setErr(`That file is larger than ${MAX_IMPORT_MB} MB. Split it into smaller files.`); return; }
     setFileName(f.name);
     const reader = new FileReader();
     reader.onload = () => {
@@ -96,7 +99,7 @@ const ImportDialog: React.FC<{ canGlobal: boolean; onClose: () => void; onDone: 
             {busy ? <><span className="pb-spinner" /><div style={{ marginTop: 8 }}>Reading {fileName}…</div></> : <>
               <i className="fa-solid fa-cloud-arrow-up" />
               <div style={{ fontWeight: 700, marginTop: 8 }}>Drop a .json, .csv or .xlsx file here, or click to choose</div>
-              <div className="pb-muted" style={{ fontSize: 13, marginTop: 4 }}>Up to 1,000 problems per file · 8 MB</div>
+              <div className="pb-muted" style={{ fontSize: 13, marginTop: 4 }}>Up to 1,000 problems per file · {MAX_IMPORT_MB} MB</div>
             </>}
             <input ref={fileRef} type="file" accept=".json,.csv,.xlsx,.xls" hidden onChange={(e) => onFile(e.target.files?.[0])} />
           </div>

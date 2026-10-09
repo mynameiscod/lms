@@ -41,6 +41,9 @@ const ProblemBank: React.FC = () => {
   const [verification, setVerification] = useState('');
   const [sort, setSort] = useState('updated');
   const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkFailed, setBulkFailed] = useState<{ id: string; title: string; reason: string }[]>([]);
 
   useEffect(() => { const t = setTimeout(() => setDebouncedQ(q), 300); return () => clearTimeout(t); }, [q]);
   useEffect(() => { setPage(1); }, [debouncedQ, difficulty, topic, language, company, scope, status, verification, sort]);
@@ -61,6 +64,8 @@ const ProblemBank: React.FC = () => {
     setLoading(false);
   }, [debouncedQ, difficulty, topic, language, company, scope, status, verification, sort, page]);
   useEffect(() => { load(); }, [load]);
+  // A selection belongs to the rows on screen; a new page or filter starts it again.
+  useEffect(() => { setSelected(new Set()); }, [debouncedQ, difficulty, topic, language, company, scope, status, verification, sort, page]);
 
   const refresh = () => { load(); loadMeta(); };
   const topicLabel = useMemo(() => Object.fromEntries((meta?.topics || []).map((t) => [t.key, t.label])), [meta]);
@@ -74,6 +79,26 @@ const ProblemBank: React.FC = () => {
 
   const act = async (fn: () => Promise<any>, ok: string) => {
     try { await fn(); toast.show(ok); refresh(); } catch (e) { toast.show(pbError(e), true); }
+  };
+
+  const selectable = rows.filter((p) => p.editable && p.status !== 'archived');
+  const allOnPage = selectable.length > 0 && selectable.every((p) => selected.has(p._id));
+  const toggle = (id: string) => setSelected((x) => { const n = new Set(x); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const togglePage = () => setSelected(allOnPage ? new Set() : new Set(selectable.map((p) => p._id)));
+
+  const bulk = async (to: 'published' | 'draft') => {
+    setBulkBusy(true); setBulkFailed([]);
+    try {
+      const r = await problemBankApi.bulkStatus([...selected], to);
+      const verb = to === 'published' ? 'Published' : 'Moved to draft';
+      toast.show(r.failed.length
+        ? `${verb} ${r.changed.length} of ${r.changed.length + r.failed.length}. ${r.failed.length} need fixing first.`
+        : `${verb} ${r.changed.length} problem${r.changed.length === 1 ? '' : 's'}.`, r.failed.length > 0 && !r.changed.length);
+      setBulkFailed(r.failed);
+      setSelected(new Set(r.failed.map((f) => f.id)));
+      refresh();
+    } catch (e) { toast.show(pbError(e), true); }
+    setBulkBusy(false);
   };
 
   const s = meta?.stats;
@@ -196,6 +221,29 @@ const ProblemBank: React.FC = () => {
 
         {err && <div className="pb-alert pb-alert-bad">{err}</div>}
 
+        {selected.size > 0 && (
+          <div className="pb-card pb-bulkbar" role="region" aria-label="Selected problems">
+            <b>{selected.size} selected</b>
+            <span className="pb-spacer" />
+            <button className="pb-btn pb-btn-sm pb-btn-primary" disabled={bulkBusy} onClick={() => bulk('published')}>
+              {bulkBusy ? <span className="pb-spinner" /> : <i className="fa-solid fa-upload" />} Publish
+            </button>
+            <button className="pb-btn pb-btn-sm" disabled={bulkBusy} onClick={() => bulk('draft')}><i className="fa-solid fa-eye-slash" /> Move to draft</button>
+            <button className="pb-btn pb-btn-sm pb-btn-ghost" disabled={bulkBusy} onClick={() => { setSelected(new Set()); setBulkFailed([]); }}>Clear</button>
+          </div>
+        )}
+        {bulkFailed.length > 0 && (
+          <div className="pb-alert pb-alert-warn">
+            <b>{bulkFailed.length} problem{bulkFailed.length === 1 ? '' : 's'} could not be changed.</b> They stay selected. Open each one to fix it:
+            <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+              {bulkFailed.slice(0, 10).map((f) => (
+                <li key={f.id}><a href={`/problem-bank/${f.id}`} onClick={(e) => { e.preventDefault(); nav(`/problem-bank/${f.id}`); }}>{f.title}</a>: {f.reason}</li>
+              ))}
+              {bulkFailed.length > 10 && <li>…and {bulkFailed.length - 10} more.</li>}
+            </ul>
+          </div>
+        )}
+
         {!loading && !rows.length && !filtersOn ? (
           <div className="pb-card pb-empty">
             <h2>Start your problem bank</h2>
@@ -224,19 +272,28 @@ const ProblemBank: React.FC = () => {
               <table className="pb-table">
                 <thead>
                   <tr>
+                    <th style={{ width: 36 }} onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" aria-label="Select all problems on this page" checked={allOnPage}
+                        disabled={!selectable.length} onChange={togglePage} />
+                    </th>
                     <th style={{ width: 60 }}>#</th><th>Title</th><th>Difficulty</th><th>Languages</th><th>Tests</th>
                     <th>Verification</th><th>Status</th><th>Owner</th><th>Updated</th><th style={{ width: 44 }} />
                   </tr>
                 </thead>
                 <tbody>
                   {loading && !rows.length && (
-                    <tr><td colSpan={10} className="pb-muted" style={{ textAlign: 'center', padding: 36 }}><span className="pb-spinner" /> Loading…</td></tr>
+                    <tr><td colSpan={11} className="pb-muted" style={{ textAlign: 'center', padding: 36 }}><span className="pb-spinner" /> Loading…</td></tr>
                   )}
                   {!loading && !rows.length && (
-                    <tr><td colSpan={10} className="pb-muted" style={{ textAlign: 'center', padding: 36 }}>No problems match these filters.</td></tr>
+                    <tr><td colSpan={11} className="pb-muted" style={{ textAlign: 'center', padding: 36 }}>No problems match these filters.</td></tr>
                   )}
                   {rows.map((p) => (
-                    <tr key={p._id} onClick={() => nav(`/problem-bank/${p._id}`)}>
+                    <tr key={p._id} onClick={() => nav(`/problem-bank/${p._id}`)} className={selected.has(p._id) ? 'pb-row-selected' : undefined}>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        {p.editable && p.status !== 'archived' && (
+                          <input type="checkbox" aria-label={`Select ${p.title}`} checked={selected.has(p._id)} onChange={() => toggle(p._id)} />
+                        )}
+                      </td>
                       <td className="pb-muted pb-mono">{p.scope === 'global' ? '' : 'I-'}{p.number}</td>
                       <td className="pb-title-cell">
                         <div className="t">{p.title}{p.kind === 'sql' && <span className="pb-tag" style={{ marginLeft: 6 }}>SQL</span>}</div>

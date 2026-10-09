@@ -351,6 +351,34 @@ export async function setStatus(a: Actor, id: string, status: 'draft' | 'publish
   return p;
 }
 
+/** At most this many problems change status in one request. */
+export const MAX_BULK_STATUS = 200;
+
+/**
+ * Publish (or unpublish) many problems at once. Each problem is checked on its own: one that
+ * cannot be published yet is reported with its reason and the rest still go through.
+ */
+export async function bulkSetStatus(a: Actor, ids: unknown, status: unknown) {
+  if (status !== 'published' && status !== 'draft') throw new PbError('Status must be published or draft.');
+  const list = [...new Set((Array.isArray(ids) ? ids : []).map(String).filter((x) => mongoose.Types.ObjectId.isValid(x)))];
+  if (!list.length) throw new PbError('Select at least one problem.');
+  if (list.length > MAX_BULK_STATUS) throw new PbError(`Select at most ${MAX_BULK_STATUS} problems at a time.`);
+
+  const changed: { id: string; title: string }[] = [];
+  const failed: { id: string; title: string; reason: string }[] = [];
+  for (const id of list) {
+    try {
+      const p = await setStatus(a, id, status);
+      changed.push({ id, title: p.title });
+    } catch (e: any) {
+      // Only name problems this person can see; an id from elsewhere stays an id.
+      const p: any = await CodingProblem.findOne({ _id: id, ...visibilityFilter(a) }).select('title').lean().catch(() => null);
+      failed.push({ id, title: p?.title || id, reason: e?.message || 'Could not change this problem.' });
+    }
+  }
+  return { status, changed, failed };
+}
+
 export async function deleteProblem(a: Actor, id: string) {
   const p = await loadEditable(a, id);
   // Once published it may be referenced by assignments and results: archive, never delete.

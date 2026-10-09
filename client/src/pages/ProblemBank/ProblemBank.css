@@ -118,6 +118,9 @@
 .pb-table tr:last-child td { border-bottom: 0; }
 .pb-table tbody tr { cursor: pointer; }
 .pb-table tbody tr:hover td { background: #fafbff; }
+.pb-table tbody tr.pb-row-selected td { background: var(--pb-accent-soft); }
+.pb-bulkbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 14px; margin: 10px 0;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
 .pb-title-cell { min-width: 260px; }
 .pb-title-cell .t { font-weight: 700; color: var(--pb-ink); }
 .pb-title-cell .sub { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }

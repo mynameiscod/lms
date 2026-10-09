@@ -165,6 +165,18 @@ const JourneyDay: React.FC = () => {
       const j = await passportApi.myFoundationJourney();
       setJourney(j);
 
+      /*
+       * Not a member: the day's missions are not shown. Listing them while every lesson behind
+       * them is refused gave away the plan and offered a page of dead clicks; the membership
+       * lock is the honest answer. Members (`access: FULL`) are untouched.
+       */
+      if ((j as any)?.access === 'PREVIEW' || (!j?.available && (j as any)?.reason === 'MEMBERSHIP_REQUIRED')) {
+        setLocked(true);
+        setItems([]);
+        setLoading(false);
+        return;
+      }
+
       if (!j.enrollmentId) {
         // No whole journey yet — the roadmap explains the state properly, so defer to it.
         setItems([]);

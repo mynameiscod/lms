@@ -338,9 +338,13 @@ export const getMyJourney = async (req: Request, res: Response) => {
      * How much of the ninety this learner may see — membership decides: the whole journey, a preview
      * of its first days (the admin sets how many), or nothing until they take membership.
      */
-    const access: FoundationAccess = engine === 'UNIT'
-      ? await foundationAccess(tenantId, studentId)
-      : { level: 'FULL', previewDays: 0 };
+    /*
+     * EVERY ENGINE, NOT ONLY UNIT. The TOPIC engine used to be handed FULL for everybody, so a
+     * non-member on a TOPIC-planned stage got the whole journey and its "Today's work" button —
+     * which opened a day listing every mission while each lesson behind it refused them. What a
+     * learner may see is decided by membership, whichever engine planned the days.
+     */
+    const access: FoundationAccess = await foundationAccess(tenantId, studentId);
     /**
      * Two numbers, and they are not interchangeable. `tenantDays` is how long the next journey
      * composed here will be; `programDays` is how long THIS student's journey is, once they have
@@ -518,8 +522,8 @@ export const getMyJourney = async (req: Request, res: Response) => {
     }
 
     // A stored journey whose learner is not (or no longer) a member shows only its preview.
-    if (engine === 'UNIT' && access.level === 'LOCKED') return membershipRequired();
-    if (engine === 'UNIT' && access.level === 'PREVIEW') {
+    if (access.level === 'LOCKED') return membershipRequired();
+    if (access.level === 'PREVIEW') {
       return res.json(await previewOf(tenantId, engine, access, (days as any[]).slice(0, access.previewDays).map(d => ({
         day: d.dayNumber, unitCode: d.primaryUnitCode || null, title: d.title, items: d.items || [],
       })), programDays, stageKey, null,

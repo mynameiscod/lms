@@ -1,4 +1,5 @@
 import express from 'express';
+import { limitsWithUsage, saveLimits } from '../services/tenantLimits';
 import { getBranding, saveBranding } from '../services/tenantBrandingService';
 import { onboardTenant, onboardingChecklist } from '../services/tenantOnboardingService';
 import { 
@@ -44,6 +45,15 @@ router.get('/:tenantId/branding', authMiddleware, ownTenant, async (req: any, re
 });
 router.put('/:tenantId/branding', authMiddleware, ownTenant, roleGuard(['manage_tenant_settings', 'manage_tenant', 'manage_tenants']), async (req: any, res: any) => {
   try { res.json({ success: true, data: await saveBranding(req.params.tenantId, req.body || {}) }); }
+  catch (e: any) { res.status(e?.status || 500).json({ success: false, message: e?.message }); }
+});
+// Plan limits (platform administrator): max students, max staff, monthly AI budget — with current usage.
+router.get('/:tenantId/limits', authMiddleware, roleGuard(['manage_tenants']), async (req: any, res: any) => {
+  try { res.json({ success: true, data: await limitsWithUsage(req.params.tenantId) }); }
+  catch (e: any) { res.status(500).json({ success: false, message: e?.message }); }
+});
+router.put('/:tenantId/limits', authMiddleware, roleGuard(['manage_tenants']), async (req: any, res: any) => {
+  try { await saveLimits(req.params.tenantId, req.body || {}); res.json({ success: true, data: await limitsWithUsage(req.params.tenantId) }); }
   catch (e: any) { res.status(e?.status || 500).json({ success: false, message: e?.message }); }
 });
 // Onboarding: what is still to set up, and (re)run the default setup — idempotent.

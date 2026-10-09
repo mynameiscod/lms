@@ -134,6 +134,8 @@ export interface ITenant extends Document {
   isActive: boolean;
   type: 'institute' | 'college' | 'corporate' | 'codebegun';
   subscriptionPlan: 'free' | 'pro' | 'enterprise';
+  /** Plan limits set by the platform administrator; blank = unlimited (services/tenantLimits). */
+  limits?: { maxStudents?: number | null; maxStaff?: number | null; aiBudgetInrMonthly?: number | null };
   settings: ITenantSettings;
   studentFeatures: IStudentFeatures;
   modules: ITenantModules;
@@ -181,6 +183,11 @@ const TenantSchema: Schema = new Schema(
       type: String,
       enum: ['institute', 'college', 'corporate', 'codebegun'],
       default: 'institute'
+    },
+    limits: {
+      maxStudents: { type: Number, default: null },
+      maxStaff: { type: Number, default: null },
+      aiBudgetInrMonthly: { type: Number, default: null },
     },
     subscriptionPlan: { 
       type: String, 

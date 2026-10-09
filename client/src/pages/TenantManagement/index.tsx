@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useState, useCallback } from 'react';
+import TenantLimitsEditor from '../../components/TenantLimitsEditor';
 import OnboardingChecklist from '../../components/OnboardingChecklist';
 import { tenantApi } from '../../api';
 import './TenantManagement.css';
@@ -528,6 +529,7 @@ const TenantManagementPage: React.FC = () => {
               </div>
             </div>
             <OnboardingChecklist key={selected._id} tenantId={selected._id} mode="admin" />
+            <TenantLimitsEditor key={`limits-${selected._id}`} tenantId={selected._id} />
             <p className="tm-panel-hint">
               Toggle modules on/off. <strong>A disabled module is hidden and blocked</strong> for every user in
               this institute — admins, instructors and students alike (menu, pages and API).

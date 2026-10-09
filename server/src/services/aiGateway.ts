@@ -1,4 +1,6 @@
-import { getAnthropic, getOpenAI } from './aiClients';
+import { getAnthropicRaw as getAnthropic, getOpenAIRaw as getOpenAI } from './aiClients';
+import { assertAiBudget } from './tenantLimits';
+import { currentTenantId } from './requestContext';
 import * as settings from './settingsService';
 import { istToday, ymd } from '../utils/planSchedule';
 import AiUsage from '../models/AiUsage';
@@ -96,6 +98,8 @@ async function callAnthropic(o: AiCompleteOpts): Promise<{ text: string; model: 
  * other, so one provider running dry never takes a feature down.
  */
 export async function aiComplete(o: AiCompleteOpts): Promise<string> {
+  // The institute's monthly AI budget (tenantLimits); this path records its own usage below.
+  await assertAiBudget(o.tenantId || currentTenantId());
   const prefer = o.prefer || 'openai';
   const order: ('openai' | 'anthropic')[] = prefer === 'anthropic' ? ['anthropic', 'openai'] : ['openai', 'anthropic'];
   let lastErr: any = null;

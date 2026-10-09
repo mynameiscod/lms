@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { assertSeats } from './tenantLimits';
 import { onboardTenant } from './tenantOnboardingService';
 import mongoose from 'mongoose';
 import User, { IUser } from '../models/User';
@@ -113,6 +114,8 @@ export class AuthService {
     if (!joining || joining.isActive === false) {
       throw new Error('This institute is not accepting sign-ups.');
     }
+    // …nor one whose plan is full.
+    await assertSeats(String(tenantId), userRole);
 
     const user = new User({
       email,

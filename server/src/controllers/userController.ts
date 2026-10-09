@@ -1,4 +1,5 @@
 import { Response, Request } from 'express';
+import { assertSeats, LimitError } from '../services/tenantLimits';
 import mongoose from 'mongoose';
 import { UserService } from '../services/userService';
 import { AuthenticatedRequest } from '../types';
@@ -125,6 +126,9 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
     if (!roleAllowed(req, role || 'STUDENT')) {
       return res.status(403).json({ success: false, message: 'You cannot create a user with that role.' });
     }
+    // The institute's plan (max students / staff), set by the platform administrator.
+    try { await assertSeats(isSuper(req) ? String(req.tenantId) : callerTenant(req), role || 'STUDENT'); }
+    catch (e: any) { if (e instanceof LimitError) return res.status(403).json({ success: false, code: e.code, message: e.message }); throw e; }
 
     const user = await userService.createUser(
       email,
@@ -887,6 +891,9 @@ export const bulkUploadStudents = async (req: AuthenticatedRequest, res: Respons
         message: 'No students data provided'
       });
     }
+    // The whole upload must fit in the institute's plan — never half an upload.
+    try { await assertSeats(String(req.tenantId), 'STUDENT', students.length); }
+    catch (e: any) { if (e instanceof LimitError) return res.status(403).json({ success: false, code: e.code, message: e.message }); throw e; }
 
     // Verify batch exists and check capacity
     const batch = await Batch.findById(batchId);

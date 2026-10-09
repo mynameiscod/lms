@@ -121,6 +121,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.error('Failed to fetch permissions:', permError);
             }
 
+            // The account record has no photo: it lives on the student profile and is kept on
+            // the stored user after an upload. Refreshing from the account dropped it, so the
+            // avatar fell back to an initial on every reload. Carry it across.
+            if (!freshUser.profilePicture && parsedUser.profilePicture) freshUser.profilePicture = parsedUser.profilePicture;
             localStorage.setItem('user', JSON.stringify(freshUser));
             setUser(freshUser);
             setToken(savedToken);

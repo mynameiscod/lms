@@ -9,6 +9,7 @@ import ShareCardDialog from './ShareCardDialog';
 import { useUnlock } from './useUnlock';
 import { startActivityBeacon, trackPage } from './activityBeacon';
 import visualizerApi from '../../api/visualizerApi';
+import { studentProfileAPI } from '../../api/studentProfileAPI';
 
 const ICONS: Record<string, string> = {
   home: 'house-door-fill',
@@ -117,7 +118,7 @@ const sectionFor = (pathname: string): string => {
 const MemberShell: React.FC<Props> = ({ children, data }) => {
   const nav = useNavigate();
   const loc = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   /* Code Visualizer is assigned per member; the rail shows it only once it has been. */
   const [vzAllowed, setVzAllowed] = useState(false);
@@ -126,6 +127,16 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
     visualizerApi.access().then(a => alive && setVzAllowed(!!a.allowed)).catch(() => alive && setVzAllowed(false));
     return () => { alive = false; };
   }, []);
+  useEffect(() => {
+    if ((user as any)?.profilePicture) return;
+    let alive = true;
+    studentProfileAPI.getMyProfile()
+      .then(r => { const url = r?.data?.personalInfo?.profilePhoto; if (alive && url) updateProfile({ profilePicture: url } as any); })
+      .catch(() => {});
+    return () => { alive = false; };
+    // Once per member, not on every user change: updateProfile itself changes `user`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(user as any)?._id || (user as any)?.id]);
   const [userOpen, setUserOpen] = useState(false);
   const userRef = useRef<HTMLDivElement>(null);
   /* The phone bar's account button and menu: a second home for the same menu, see .gd-mbar. */
@@ -200,6 +211,14 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const navSection = sectionFor(path);
   const firstName = d?.firstName || user?.firstName || 'there';
   const initial = (firstName[0] || 'C').toUpperCase();
+  /*
+   * The member's photo, wherever an avatar is drawn. It is uploaded on My profile, which puts
+   * it on the stored user (`profilePicture`), so it appears here the moment it is saved. A
+   * member who uploaded it on another device or before this existed has no copy locally, so
+   * it is read once from their profile.
+   */
+  const photo = (user as any)?.profilePicture as string | undefined;
+  const avatar = photo ? <img src={photo} alt="" className="gd-av-img" /> : initial;
   const st = d?.stats;
   const lv = d?.level;
   const goal = d?.dailyGoal;
@@ -305,7 +324,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         </button>
         <div className="gd-mbar-user" ref={mUserRef}>
           <button className="gd-mbar-av" onClick={toggleUserMenu} aria-expanded={userOpen} aria-haspopup="true" aria-label="Account menu">
-            {initial}
+            {avatar}
           </button>
           {userOpen && userMenu}
         </div>
@@ -365,7 +384,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
 
         <div className="gd-side-account">
           <div className="gd-side-me">
-            <span className="av">{initial}</span>
+            <span className="av">{avatar}</span>
             <div className="t"><b>{d?.name || firstName}</b>{lv && <span>Level {lv.level} · {lv.title}</span>}</div>
           </div>
           <button className="gd-nav-btn" onClick={() => nav('/careerpilot/profile')}><span className="ic"><Icon name="user" /></span><span className="lbl">My profile</span></button>
@@ -407,7 +426,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
             </>}
             <div className="gd-user" ref={userRef}>
               <button className="gd-user-btn" onClick={toggleUserMenu} aria-expanded={userOpen} aria-haspopup="true">
-                <span className="av">{initial}</span><span className="nm">{d?.name || firstName}</span><span className={`cr${userOpen ? ' open' : ''}`}><Icon name="chevron" /></span>
+                <span className="av">{avatar}</span><span className="nm">{d?.name || firstName}</span><span className={`cr${userOpen ? ' open' : ''}`}><Icon name="chevron" /></span>
               </button>
               {userOpen && userMenu}
             </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   studentProfileAPI,
@@ -14,6 +15,7 @@ import {
   HOW_DID_YOU_HEAR,
 } from '../../api/studentProfileAPI';
 import './StudentProfile.css';
+import ProfileView from './ProfileView';
 
 interface OAuthStatus {
   github: { connected: boolean; username?: string; profileUrl?: string; connectedAt?: string };
@@ -36,6 +38,28 @@ const StudentProfilePage: React.FC = () => {
   });
   const [connectingOAuth, setConnectingOAuth] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  /*
+   * VIEW OR EDIT. A student with a saved profile sees it read-only (ProfileView) and opens the
+   * form with Edit; a first-time student goes straight to the form. The mode lives in the URL
+   * (`?edit=1&step=N`) so a refresh or the back button keeps the screen they were on.
+   */
+  const [params, setParams] = useSearchParams();
+  const [hasSaved, setHasSaved] = useState(false);
+  const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const editing = params.get('edit') === '1' || !hasSaved;
+  const openEditor = (step?: number) => {
+    const next: Record<string, string> = { edit: '1' };
+    if (step) { next.step = String(step); setCurrentStep(step); }
+    setSavedMsg(null); setError(null); setSuccess(null);
+    setParams(next);
+    window.scrollTo(0, 0);
+  };
+  const openView = () => { setParams({}); window.scrollTo(0, 0); };
+  useEffect(() => {
+    const s = Number(params.get('step'));
+    if (params.get('edit') === '1' && s >= 1 && s <= 6) setCurrentStep(s);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [profile, setProfile] = useState<StudentProfileData>({
     personalInfo: {
@@ -112,6 +136,7 @@ const StudentProfilePage: React.FC = () => {
       setLoading(true);
       const response = await studentProfileAPI.getMyProfile();
       if (response.success && response.data) {
+        setHasSaved(!!(response.data._id || response.data.exists));
         setProfile(prev => ({
           ...prev,
           ...response.data,
@@ -256,7 +281,12 @@ const StudentProfilePage: React.FC = () => {
     }
   };
 
-  const handleSave = async () => {
+  /**
+   * Save the form. `toView` is the explicit save (Save Progress / Complete Profile): on success
+   * the student is taken to their read-only profile. The auto-save on Next stays in the form.
+   * Returns whether it saved.
+   */
+  const handleSave = async (toView = false): Promise<boolean> => {
     try {
       setSaving(true);
       setError(null);
@@ -280,12 +310,22 @@ const StudentProfilePage: React.FC = () => {
         if (response.data.personalInfo?.profilePhoto) {
           const photoUrl = response.data.personalInfo.profilePhoto;
           setProfilePhotoPreview(photoUrl);
-          // Update navbar profile picture
+          // Every avatar reads this: the LMS navbar and the CareerPilot bar alike.
           updateProfile({ profilePicture: photoUrl });
+          setProfilePhoto(null);
         }
+        setHasSaved(true);
+        if (toView) {
+          setSuccess(null);
+          setSavedMsg('Your profile has been saved.');
+          openView();
+        }
+        return true;
       }
+      return false;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save profile');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -410,8 +450,26 @@ const StudentProfilePage: React.FC = () => {
     );
   }
 
+  if (!editing) {
+    return (
+      <div className="student-profile-page">
+        <ProfileView
+          profile={profile}
+          photoUrl={profilePhotoPreview || profile.personalInfo?.profilePhoto || null}
+          onEdit={openEditor}
+          message={savedMsg}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="student-profile-page">
+      {hasSaved && (
+        <button type="button" className="btn btn-secondary" style={{ marginBottom: 14 }} onClick={openView}>
+          ← Back to my profile
+        </button>
+      )}
       {/* Score Banner */}
       {(() => {
         const pct = profile.profileCompletionPercentage || 0;
@@ -1335,7 +1393,7 @@ const StudentProfilePage: React.FC = () => {
             <button 
               type="button" 
               className="btn btn-outline save-btn"
-              onClick={handleSave}
+              onClick={() => handleSave(true)}
               disabled={saving}
             >
               {saving ? '⏳ Saving...' : '💾 Save Progress'}
@@ -1355,7 +1413,7 @@ const StudentProfilePage: React.FC = () => {
               <button 
                 type="button" 
                 className="btn btn-success"
-                onClick={handleSave}
+                onClick={() => handleSave(true)}
                 disabled={saving}
               >
                 {saving ? '⏳ Submitting...' : '✅ Complete Profile'}

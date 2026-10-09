@@ -393,19 +393,53 @@
 }
 
 @media (max-width: 1200px) {
-  .cpx-links { gap: 20px; }
+  /* Five links plus two buttons do not fit one line below ~1200: the links wrapped onto two
+     lines each. The menu button takes over here rather than at 980. */
+  .cpx-links { display: none; position: absolute; top: 76px; left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 0; background: #fff; border-bottom: 1px solid var(--line); box-shadow: var(--shadow); padding: 8px 16px 14px; }
+  .cpx-links.open { display: flex; }
+  .cpx-links a { padding: 12px 4px; border-bottom: 1px solid #f0f3f8; }
+  .cpx-nav-cta { margin-left: auto; }
+  .cpx-menu { display: inline-grid; place-items: center; }
   .cpx-hero-grid { grid-template-columns: 1fr; gap: 36px; }
   .cpx-hero-copy { max-width: 820px; }
   .cpx-hero h1 { font-size: clamp(32px, 4.4vw, 50px); }
   .cpx-network-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .cpx-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+/*
+ * LAPTOPS AND LANDSCAPE TABLETS: ONE ROW, NOT THREE LOOSE BLOCKS.
+ *
+ * Stacking the copy above the stage left the headline alone at the top with the right half
+ * of the screen empty, and the picture and form below it — the picture centred against a
+ * much taller form, so the two started at different heights. Here the stage dissolves into
+ * the hero grid: copy with the picture under it on the left, the form on the right, both
+ * starting on the headline's top edge. Below 981 the page stacks (form first), above 1400
+ * the three-column row takes over.
+ */
+@media (min-width: 981px) and (max-width: 1400px) {
+  .cpx-hero-grid { grid-template-columns: minmax(0, 1fr) minmax(380px, 440px); column-gap: 48px; row-gap: 4px; align-items: start; }
+  .cpx-stage { display: contents; }
+  .cpx-hero-copy { grid-column: 1; grid-row: 1; max-width: none; }
+  .cpx-hero-visual { grid-column: 1; grid-row: 2; align-self: start; justify-self: center; width: 100%; max-width: 440px; }
+  .cpx-signup { grid-column: 2; grid-row: 1 / span 2; align-self: start; }
+  .cpx-hero h1 { font-size: clamp(32px, 3.6vw, 46px); }
+}
+/* Small laptops: the copy column is narrow, so the picture under it is shrunk and the copy
+   tightened, keeping the picture on the first screen instead of below the fold. */
+@media (min-width: 981px) and (max-width: 1200px) {
+  .cpx-hero { padding-top: 22px; }
+  .cpx .cpx-lead { margin-top: 12px; font-size: 15px; line-height: 1.55; }
+  .cpx-checks { margin-top: 14px; gap: 8px 18px; }
+  .cpx-checks li { font-size: 13.5px; }
+  .cpx-hero-ctas { margin-top: 18px; gap: 10px; flex-wrap: nowrap; }
+  .cpx-hero-ctas .cpx-btn-lg { padding: 12px 16px; font-size: 14px; }
+  .cpx-trust { margin-top: 14px; }
+  .cpx-hero-visual { max-width: 320px; }
+  .cpx-visual-in { padding-bottom: 44px; }
+  .cpx-script { font-size: 22px; }
+}
+
 @media (max-width: 980px) {
-  .cpx-links { display: none; position: absolute; top: 76px; left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 0; background: #fff; border-bottom: 1px solid var(--line); box-shadow: var(--shadow); padding: 8px 16px 14px; }
-  .cpx-links.open { display: flex; }
-  .cpx-links a { padding: 12px 4px; border-bottom: 1px solid #f0f3f8; }
-  .cpx-nav-cta { margin-left: auto; }
-  .cpx-menu { display: inline-grid; place-items: center; }
   /* Stacked: the form first, straight after the headline; the picture after it. */
   .cpx-stage { grid-template-columns: 1fr; padding: 20px; gap: 8px; }
   .cpx-signup { order: 1; max-width: 560px; width: 100%; justify-self: center; }

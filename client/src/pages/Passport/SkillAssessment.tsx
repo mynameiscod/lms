@@ -6,6 +6,7 @@ import {
   saveDraft, readDraft, clearDraft,
 } from './answerQueue';
 import { useMember } from './MemberLayout';
+import { useAuth } from '../../contexts/AuthContext';
 import './skillAssessment.css';
 import { copyrightLine } from '../../config/brand';
 
@@ -102,6 +103,7 @@ const PlacementDone: React.FC<{ result: PlacementResult; topic: string; onBack: 
 
 const SkillAssessment: React.FC = () => {
   const { data: member, reload: reloadMember } = useMember();
+  const { logout } = useAuth();
   const nav = useNavigate();
   const [params] = useSearchParams();
   /**
@@ -149,6 +151,8 @@ const SkillAssessment: React.FC = () => {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'retrying'>('idle');
   /** Set while "Save & exit" is flushing the outbox, so the button cannot be pressed twice. */
   const [exiting, setExiting] = useState(false);
+  /** "Save & exit" with nowhere to exit to: the paper is saved and set aside, see saveAndExit. */
+  const [paused, setPaused] = useState(false);
   /**
    * Questions the member said they could not answer. Client-side only — the server is sent the
    * same empty response it already understands, so this changes what the PALETTE shows and
@@ -304,8 +308,22 @@ const SkillAssessment: React.FC = () => {
     try {
       await Promise.race([flush(), new Promise(r => setTimeout(r, 2000))]);
     } catch { /* reported by saveState; the draft already holds the answers */ }
-    nav(returnTo || '/careerpilot');
-  }, [flush, nav, returnTo]);
+    /*
+     * NOWHERE TO EXIT TO, BEFORE THE FIRST RESULT.
+     *
+     * `/careerpilot` sends a member with no finished assessment straight back here
+     * (PassportHome), so for exactly the student this button is for — part-way through their
+     * first paper — "exit" was a round trip that landed them on the same question, and the
+     * button looked dead. They get a saved screen instead, with a way back in and a way out.
+     */
+    const dest = returnTo || '/careerpilot';
+    if (member && !member.hasAssessment && dest.replace(/\/+$/, '') === '/careerpilot') {
+      setExiting(false);
+      setPaused(true);
+      return;
+    }
+    nav(dest);
+  }, [flush, nav, returnTo, member]);
 
   /**
    * "I don't know this one" — recorded as an explicit act, sent as the absence of an answer.
@@ -544,6 +562,37 @@ const SkillAssessment: React.FC = () => {
             </div>
           </section>
         </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (paused && paper) {
+    const answered = paper.items.filter(i => {
+      const v = answers[keyOf(i)];
+      return v !== undefined && v !== null && v !== '';
+    }).length;
+    return (
+      <div className="ska-page">
+        <Header />
+        <div className="ska-state">
+          <div className="ska-paused">
+            <span className="ska-paused-ic"><i className="bi bi-check2-circle" /></span>
+            <h1>Your answers are saved</h1>
+            <p>
+              You have answered {answered} of {paper.items.length} questions. Come back any time —
+              you will pick up right where you left off.
+            </p>
+            <div className="ska-paused-actions">
+              <button className="ska-btn primary lg" onClick={() => setPaused(false)}>
+                Resume assessment <i className="bi bi-arrow-right" />
+              </button>
+              <button className="ska-btn ghost lg" onClick={() => logout()}>
+                <i className="bi bi-box-arrow-right" /> Log out
+              </button>
+            </div>
+          </div>
+        </div>
         <Footer />
       </div>
     );

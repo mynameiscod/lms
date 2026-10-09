@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import * as settings from '../services/settingsService';
 import mongoose from 'mongoose';
 import SeatReservation from '../models/SeatReservation';
 import User from '../models/User';
@@ -689,7 +690,7 @@ export const sendPaymentReminderEmail = async (req: AuthenticatedRequest, res: R
       <div class="info-card">
         <div class="info-card-title">🏦 Payment Options</div>
         <div class="info-row"><span class="info-label">💵 Cash</span><span class="info-value">Visit our office</span></div>
-        <div class="info-row"><span class="info-label">📱 UPI</span><span class="info-value">${process.env.UPI_ID || 'Contact us for UPI details'}</span></div>
+        <div class="info-row"><span class="info-label">📱 UPI</span><span class="info-value">${settings.getCredential('UPI_ID', String(tenantId)) || 'Contact us for UPI details'}</span></div>
         <div class="info-row"><span class="info-label">🏧 Bank Transfer</span><span class="info-value">Contact us for account details</span></div>
       </div>
 
@@ -929,7 +930,7 @@ export const sendWhatsAppPaymentReminder = async (req: AuthenticatedRequest, res
     }
 
     const tokens = await getDecryptedTokens(tenantId);
-    const accessToken = tokens?.whatsApp?.accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
+    const accessToken = tokens?.whatsApp?.accessToken || (settings.isPlatformOwner(String(tenantId)) ? process.env.WHATSAPP_ACCESS_TOKEN : '');
     if (!accessToken) {
       return res.status(400).json({ success: false, message: 'WhatsApp access token not found' });
     }

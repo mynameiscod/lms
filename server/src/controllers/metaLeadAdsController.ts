@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import * as settings from '../services/settingsService';
 import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
 import User from '../models/User';
@@ -376,8 +377,9 @@ async function fetchAndCreateLead(
     }
   }
 
-  // .env fallback (legacy support, or when DB token has encryption key mismatch)
-  if (!accessToken) {
+  // .env fallback (legacy support, or when DB token has encryption key mismatch) — the platform
+  // page token belongs to the platform owner, so it is never used for another institute's page.
+  if (!accessToken && (!tenantId || settings.isPlatformOwner(tenantId))) {
     const envToken = process.env.PAGE_ACCESS_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN;
     if (envToken && envToken.startsWith('EAA')) {
       accessToken = envToken;

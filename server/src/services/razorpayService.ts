@@ -16,12 +16,17 @@ export interface RzpConfig {
   webhookSecret?: string;
 }
 
-/** Resolve Razorpay credentials for a tenant (falls back to platform/.env). */
+/**
+ * Razorpay credentials for an institute: its OWN account. Only the platform owner (CodeBegun)
+ * falls back to the platform/.env keys — before, any institute without keys took payments into
+ * CodeBegun's account. Key id, secret and webhook secret always come from the same account.
+ */
 export function getConfig(tenantId?: string): RzpConfig | null {
-  const keyId = settings.getStr('RAZORPAY_KEY_ID', '', tenantId);
-  const keySecret = settings.getStr('RAZORPAY_KEY_SECRET', '', tenantId);
+  const c = settings.getCredentialSet(['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_WEBHOOK_SECRET'], tenantId);
+  const keyId = c.RAZORPAY_KEY_ID;
+  const keySecret = c.RAZORPAY_KEY_SECRET;
   if (!keyId || !keySecret) return null;
-  return { keyId, keySecret, webhookSecret: settings.getStr('RAZORPAY_WEBHOOK_SECRET', '', tenantId) || undefined };
+  return { keyId, keySecret, webhookSecret: c.RAZORPAY_WEBHOOK_SECRET || undefined };
 }
 
 export function isConfigured(tenantId?: string): boolean {
@@ -56,7 +61,7 @@ export async function createOrder(
   notes: Record<string, string> = {}
 ): Promise<CreatedOrder> {
   const cfg = getConfig(tenantId);
-  if (!cfg) throw new Error('Razorpay is not configured. Add the keys in Platform Settings → Other Integrations.');
+  if (!cfg) throw new Error('Online payment is not set up for this institute yet. The institute admin can add Razorpay keys in Settings → Integrations.');
   const amount = Math.round(amountInr * 100); // paise
   const order = await client(cfg).orders.create({
     amount,

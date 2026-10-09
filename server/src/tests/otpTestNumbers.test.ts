@@ -15,6 +15,9 @@ const settingsValues: Record<string, string> = {};
 jest.mock('../services/settingsService', () => ({
   getStr: (key: string, fallback = '') => settingsValues[key] ?? fallback,
   getNum: (_k: string, fallback = 0) => fallback,
+  // Single-institute test: it is the platform owner, so the platform number is still a candidate.
+  isPlatformOwner: () => true,
+  getCredential: (key: string) => settingsValues[key] ?? '',
 }));
 
 const findOne = jest.fn();

@@ -93,7 +93,7 @@ export async function sendLeadWelcomeWhatsApp(
 
     // 4. Get decrypted access token
     const tokens = await getDecryptedTokens(tenantObjId.toString());
-    const accessToken = tokens?.whatsApp?.accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
+    const accessToken = tokens?.whatsApp?.accessToken || (settings.isPlatformOwner(tenantObjId.toString()) ? process.env.WHATSAPP_ACCESS_TOKEN : '');
     if (!accessToken) return;
 
     // 5. Render template — replace {{name}} placeholder

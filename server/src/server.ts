@@ -13,6 +13,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
 import { assertSecretsPresent } from './config/secrets';
 import { initSettings } from './services/settingsService';
+import { initPlatformOwner } from './services/platformOwner';
 import { registerAdaptiveHandlers } from './services/adaptiveCurriculumEvents';
 import { syncAllActiveSheets } from './services/googleSheetSyncService';
 import { fireFollowUpReminders, CRON_INTERVAL_MS } from './jobs/followUpCron';
@@ -68,6 +69,8 @@ const startServer = async () => {
 
     // Load admin-managed configuration from DB (keys/models set in the UI).
     await initSettings();
+    // Which institute may use the platform's payment/WhatsApp credentials (every other uses its own).
+    await initPlatformOwner();
 
     /**
      * Connect the adaptive planner to the events that concern it.

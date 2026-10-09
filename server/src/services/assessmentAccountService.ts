@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import * as settings from './settingsService';
 import mongoose from 'mongoose';
 import User from '../models/User';
 import LeadSourceConfig from '../models/LeadSourceConfig';
@@ -30,7 +31,8 @@ async function getWhatsAppCredentials(tenantId: string): Promise<{ phoneNumberId
       if (accessToken) return { phoneNumberId: wa.config.phoneNumberId, accessToken };
     }
   } catch { /* fall through to env */ }
-  // 2) Platform Settings / env fallback
+  // 2) The platform number — only for the platform owner (never another institute's students).
+  if (!settings.isPlatformOwner(tenantId)) return null;
   const pid = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
   const tok = process.env.WHATSAPP_ACCESS_TOKEN || '';
   if (pid && tok) return { phoneNumberId: pid, accessToken: tok };

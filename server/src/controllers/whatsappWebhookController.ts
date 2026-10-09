@@ -11,6 +11,7 @@ import QualificationQuestionConfig, { IQualificationQuestion } from '../models/Q
 import { applyStatusWebhook } from '../services/whatsAppTemplateService';
 import { applyDeliveryStatuses } from '../services/whatsAppDeliveryService';
 import { recordInbound, recordOutbound, applyChatStatuses, isBotPaused } from '../services/whatsAppChatStore';
+import { getWhatsAppCredentialCandidates } from '../services/assessmentOtpService';
 import { verifyMetaSignature } from '../services/whatsAppWebhookSignature';
 
 // ===================== TYPES =====================
@@ -499,9 +500,10 @@ export const markColdLeads = async (req: Request, res: Response) => {
 export const sendManualMessage = async (req: Request, res: Response) => {
   try {
     const { phoneNumber, message } = req.body;
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    if (!phoneNumberId) return res.status(400).json({ success: false, message: 'WhatsApp not configured' });
-    await sendWhatsAppMessage(phoneNumberId, phoneNumber, message);
+    // The institute's own WhatsApp number (the platform's only for the platform owner).
+    const creds = (await getWhatsAppCredentialCandidates(String((req as any).tenantId)))[0];
+    if (!creds) return res.status(400).json({ success: false, message: 'WhatsApp is not connected for this institute (Lead Sources → WhatsApp).' });
+    await sendWhatsAppMessage(creds.phoneNumberId, phoneNumber, message, creds.accessToken);
     res.json({ success: true, message: 'Message sent' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -515,8 +517,8 @@ export const sendBulkColdLeadMessages = async (req: Request, res: Response) => {
     const { tenantId } = req as any;
     const { message, leadIds } = req.body;
     if (!message) return res.status(400).json({ success: false, message: 'Message is required' });
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    if (!phoneNumberId) return res.status(400).json({ success: false, message: 'WhatsApp not configured' });
+    const creds = (await getWhatsAppCredentialCandidates(String(tenantId)))[0];
+    if (!creds) return res.status(400).json({ success: false, message: 'WhatsApp is not connected for this institute (Lead Sources → WhatsApp).' });
     const query: any = { tenantId };
     if (leadIds?.length) query._id = { $in: leadIds.map((id: string) => new mongoose.Types.ObjectId(id)) };
     const leads = await Lead.find(query).select('phone name');
@@ -524,7 +526,7 @@ export const sendBulkColdLeadMessages = async (req: Request, res: Response) => {
     for (const lead of leads) {
       if (lead.phone) {
         const firstName = lead.name?.split(' ')[0] || 'there';
-        await sendWhatsAppMessage(phoneNumberId, lead.phone, message.replace('{{name}}', firstName).replace('{name}', firstName));
+        await sendWhatsAppMessage(creds.phoneNumberId, lead.phone, message.replace('{{name}}', firstName).replace('{name}', firstName), creds.accessToken);
         sent++;
         await new Promise((r) => setTimeout(r, 100));
       }

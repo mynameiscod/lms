@@ -131,8 +131,8 @@ export type ConversionEvent = 'Purchase' | 'InterviewAttended' | 'Selected';
 const sha = (v: string) => crypto.createHash('sha256').update(v.trim().toLowerCase()).digest('hex');
 
 export function metaConfigured(tenantId: string) {
-  const pixel = settings.getStr('META_PIXEL_ID', '', tenantId).trim();
-  const token = settings.getStr('META_CAPI_ACCESS_TOKEN', '', tenantId).trim();
+  const pixel = settings.getCredential('META_PIXEL_ID', tenantId).trim();
+  const token = settings.getCredential('META_CAPI_ACCESS_TOKEN', tenantId).trim();
   return { configured: !!(pixel && token), pixelId: pixel ? `…${pixel.slice(-4)}` : '' };
 }
 
@@ -167,9 +167,10 @@ export async function sendMetaConversion(tenantId: string, candidateId: any, nam
     if (!metaConfigured(tenantId).configured) return;
     const c = await PlacementCandidate.findById(candidateId).select('mobile email attribution').lean() as any;
     if (!c) return;
-    const pixel = settings.getStr('META_PIXEL_ID', '', tenantId).trim();
-    const token = settings.getStr('META_CAPI_ACCESS_TOKEN', '', tenantId).trim();
-    const testCode = settings.getStr('META_CAPI_TEST_EVENT_CODE', '', tenantId).trim();
+    // The institute's own pixel — never CodeBegun's (its conversions would train CodeBegun's ads).
+    const pixel = settings.getCredential('META_PIXEL_ID', tenantId).trim();
+    const token = settings.getCredential('META_CAPI_ACCESS_TOKEN', tenantId).trim();
+    const testCode = settings.getCredential('META_CAPI_TEST_EVENT_CODE', tenantId).trim();
     const res = await fetch(`https://graph.facebook.com/v21.0/${encodeURIComponent(pixel)}/events?access_token=${encodeURIComponent(token)}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: [buildMetaEvent({ ...c, _id: candidateId }, name, new Date(), valueInr)], ...(testCode ? { test_event_code: testCode } : {}) }),

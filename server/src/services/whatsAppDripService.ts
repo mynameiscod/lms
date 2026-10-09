@@ -9,6 +9,7 @@
  */
 
 import mongoose from 'mongoose';
+import * as settings from './settingsService';
 import Lead from '../models/Lead';
 import LeadSourceConfig from '../models/LeadSourceConfig';
 import WhatsAppDripConfig, { DEFAULT_DRIP_SEQUENCES, IDripSequence } from '../models/WhatsAppDripConfig';
@@ -49,7 +50,8 @@ async function getWhatsAppCredentials(tenantId: string): Promise<{ phoneNumberId
   if (!wa?.isConnected || !wa?.config?.phoneNumberId) return null;
 
   const tokens = await getDecryptedTokens(tenantId);
-  const accessToken = tokens?.whatsApp?.accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
+  // The platform token only works for — and only belongs to — the platform owner's number.
+  const accessToken = tokens?.whatsApp?.accessToken || (settings.isPlatformOwner(tenantId) ? process.env.WHATSAPP_ACCESS_TOKEN : '');
   if (!accessToken) return null;
 
   return { phoneNumberId: wa.config.phoneNumberId, accessToken };

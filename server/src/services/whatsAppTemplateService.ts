@@ -36,7 +36,8 @@ type Conn = { wabaId: string; accessToken: string };
 
 /** The WABA id: Platform Settings (tenant → platform → env), then the CRM WhatsApp connection. */
 export async function getWabaId(tenantId: string): Promise<{ wabaId: string; source: 'settings' | 'lead_source' | 'unset' }> {
-  const fromSettings = settings.getStr('WHATSAPP_BUSINESS_ACCOUNT_ID', '', tenantId).trim();
+  // The platform WABA only for the platform owner — another institute must never author templates in CodeBegun's account.
+  const fromSettings = settings.getCredential('WHATSAPP_BUSINESS_ACCOUNT_ID', tenantId).trim();
   if (fromSettings) return { wabaId: fromSettings, source: 'settings' };
   try {
     const cfg: any = await LeadSourceConfig.findOne({ tenantId: new mongoose.Types.ObjectId(tenantId) }).lean();

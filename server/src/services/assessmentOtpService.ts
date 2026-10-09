@@ -48,11 +48,15 @@ export async function getWhatsAppCredentialCandidates(tenantId: string): Promise
     }
   } catch { /* ignore — fall through to env */ }
 
-  // 2) Platform/env config (Platform Settings values are mirrored to process.env)
-  const envPid = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
-  const envTok = process.env.WHATSAPP_ACCESS_TOKEN || '';
-  if (envPid && envTok && !out.some((c) => c.phoneNumberId === envPid)) {
-    out.push({ phoneNumberId: envPid, accessToken: envTok });
+  // 2) The platform number (Platform Settings values are mirrored to process.env) — ONLY for the
+  //    platform owner. Another institute without its own WhatsApp connection sends nothing,
+  //    rather than messaging its students from CodeBegun's number.
+  if (settings.isPlatformOwner(tenantId)) {
+    const envPid = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
+    const envTok = process.env.WHATSAPP_ACCESS_TOKEN || '';
+    if (envPid && envTok && !out.some((c) => c.phoneNumberId === envPid)) {
+      out.push({ phoneNumberId: envPid, accessToken: envTok });
+    }
   }
 
   return out;

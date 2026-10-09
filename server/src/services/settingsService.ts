@@ -180,6 +180,62 @@ export function isSet(key: string, tenantId?: string): boolean {
   return get(key, tenantId) !== undefined;
 }
 
+// ── Credentials: an institute's own, never CodeBegun's ────────────────────────
+//
+// Payment, WhatsApp and ad-tracking credentials must belong to the institute that uses them.
+// With plain get(), an institute that had not set its own Razorpay keys silently used the
+// platform's — so a college's student fees landed in CodeBegun's account, and its WhatsApp
+// went out from CodeBegun's number. getCredential() falls back to the platform/env value ONLY
+// for the platform owner (CodeBegun) and for system work with no institute at all.
+
+let platformOwnerTenantId: string | null = null;
+
+/** Set once at boot by services/platformOwner. */
+export function setPlatformOwnerTenant(id: string | null) {
+  platformOwnerTenantId = id ? String(id) : null;
+}
+
+export function getPlatformOwnerTenant(): string | null {
+  return platformOwnerTenantId;
+}
+
+/**
+ * Is this the institute that owns the platform credentials? With no owner configured every
+ * institute is treated as owner — the old behaviour — so a missing setting can never cut
+ * CodeBegun off from its own keys (boot logs a warning in that case).
+ */
+export function isPlatformOwner(tenantId?: string | null): boolean {
+  if (!tenantId) return true;
+  if (!platformOwnerTenantId) return true;
+  return String(tenantId) === platformOwnerTenantId;
+}
+
+/** A credential for an institute: its own value; the platform/env value only for the owner. */
+export function getCredential(key: string, tenantId?: string | null): string {
+  if (isPlatformOwner(tenantId)) return get(key, tenantId || undefined) ?? '';
+  const tv = tenantCache.get(String(tenantId))?.get(key);
+  return tv !== undefined && tv !== '' ? tv : '';
+}
+
+/**
+ * Several credentials that only work together (key id + secret + webhook secret), all taken
+ * from the SAME level — the institute's own if it set the first one, otherwise (owner only)
+ * the platform's. A half-configured institute can never mix its key id with someone else's secret.
+ */
+export function getCredentialSet(keys: string[], tenantId?: string | null): Record<string, string> {
+  const own = tenantId ? tenantCache.get(String(tenantId)) : undefined;
+  const ownHasPrimary = !!own?.get(keys[0]);
+  const out: Record<string, string> = {};
+  for (const k of keys) {
+    if (ownHasPrimary) out[k] = own!.get(k) || '';
+    else if (isPlatformOwner(tenantId)) {
+      const pv = platformCache.get(k);
+      out[k] = (pv !== undefined && pv !== '' ? pv : process.env[k]) || '';
+    } else out[k] = '';
+  }
+  return out;
+}
+
 /** Where the active value came from — for the admin UI. */
 export function source(key: string, tenantId?: string): 'tenant' | 'ui' | 'env' | 'unset' {
   if (tenantId) {

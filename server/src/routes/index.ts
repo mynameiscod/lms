@@ -1,4 +1,6 @@
 import express from 'express';
+import { tenantForToken, receiveCall } from '../services/outperoCallService';
+import { runWithTenant } from '../services/requestContext';
 import { tenantForHost } from '../services/tenantDomainService';
 import { getBranding } from '../services/tenantBrandingService';
 import { publicBranding } from '../services/tenantBrandingService';
@@ -147,6 +149,19 @@ router.use('/public/passport', careerPilotActivity, publicPassportRoutes);
 router.use('/external', externalApiRoutes);
 // CodeBegun Judge for Interview Pilot — HMAC-signed, no session (Judge URL = https://<platform>/api/v1/judge).
 router.use('/judge', codeJudgeRoutes);
+// Public: Outpero's post-call webhook. The token in the path is the institute's secret (Leads →
+// Outpero AI Calls); an unknown token gets 404 and nothing is stored.
+router.post('/public/outpero/calls/:token', async (req, res) => {
+  const tenantId = tenantForToken(String(req.params.token || ''));
+  if (!tenantId) return res.status(404).json({ success: false, message: 'Unknown webhook' });
+  try {
+    const r = await runWithTenant(tenantId, () => receiveCall(tenantId, req.body));
+    res.json({ success: true, data: r });
+  } catch (e: any) {
+    console.error('[outpero-calls] delivery failed', e?.message);
+    res.status(500).json({ success: false, message: 'Could not store the call' });
+  }
+});
 // Public: which institute owns the domain this page was opened on (custom domains).
 router.get('/public/branding-by-host', async (req, res) => {
   try {

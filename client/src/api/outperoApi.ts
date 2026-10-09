@@ -44,4 +44,17 @@ export const outperoApi = {
   bulk: (f: BulkFilter) => axios.post(`${BASE}/bulk`, f, h()).then(d) as Promise<{ queued: number; etaMinutes: number }>,
   cancelPending: () => axios.post(`${BASE}/cancel-pending`, {}, h()).then(d) as Promise<{ cancelled: number }>,
   retryFailed: () => axios.post(`${BASE}/retry-failed`, {}, h()).then(d) as Promise<{ requeued: number }>,
+  webhook: () => axios.get(`${BASE}/webhook`, h()).then(d) as Promise<{ url: string }>,
+  rotateWebhook: () => axios.post(`${BASE}/webhook/rotate`, {}, h()).then(d) as Promise<{ url: string }>,
+  calls: () => axios.get(`${BASE}/calls`, h()).then(d) as Promise<OutperoCalls>,
+  latestRaw: () => axios.get(`${BASE}/calls/latest-raw`, h()).then(d) as Promise<{ callId: string; delivery: { at: string; body: unknown } | null } | null>,
 };
+
+export interface OutperoCalls {
+  total: number;
+  unmatched: number;
+  rows: {
+    callId: string; lead: { _id: string; name: string; phone: string } | null; matchedBy: string | null; phone?: string;
+    status?: string; outcome?: string; durationSec?: number; actions: string[]; deliveries: number; at: string; variableKeys: string[];
+  }[];
+}

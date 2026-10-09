@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import * as calls from '../services/outperoCallService';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { roleGuard } from '../middleware/roleGuard';
@@ -36,5 +37,11 @@ router.post('/bulk/preview', wrap((req) => svc.previewBulk(tId(req), filter(req.
 router.post('/bulk', wrap((req) => svc.startBulk(tId(req), filter(req.body))));
 router.post('/cancel-pending', wrap((req) => svc.cancelPending(tId(req))));
 router.post('/retry-failed', wrap((req) => svc.retryFailed(tId(req))));
+
+// Call results coming back (post-call webhook): the address to paste into Outpero, and what arrived.
+router.get('/webhook', wrap((req) => calls.webhookFor(tId(req), uId(req))));
+router.post('/webhook/rotate', wrap((req) => calls.webhookFor(tId(req), uId(req), true)));
+router.get('/calls', wrap((req) => calls.recentCalls(tId(req))));
+router.get('/calls/latest-raw', wrap((req) => calls.latestRaw(tId(req))));
 
 export default router;

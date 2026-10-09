@@ -159,6 +159,8 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'OUTPERO_LEAD_SECRET', label: 'Outpero — X-Outpero-Lead-Secret', group: 'integrations', isSecret: true, type: 'password' },
   { key: 'OUTPERO_SOURCES', label: 'Outpero — only these lead sources', group: 'integrations', type: 'text', help: 'Comma-separated; blank = every source. Automatic mode only.' },
   { key: 'OUTPERO_COURSES', label: 'Outpero — only these courses', group: 'integrations', type: 'text', help: 'Comma-separated; blank = every course. Automatic mode only.' },
+  { key: 'OUTPERO_WEBHOOK_TOKEN', label: 'Outpero — call results webhook token', group: 'integrations', isSecret: true, type: 'password',
+    help: 'Generated on Leads → Outpero AI Calls. Part of the webhook address Outpero posts call results to.' },
   { key: 'OUTPERO_PER_MINUTE', label: 'Outpero — leads per minute (bulk sends)', group: 'integrations', type: 'number', placeholder: '5',
     help: 'How fast a manual "send these leads" goes out, so Jyothi is not handed hundreds of calls at once.' },
   { key: 'PLATFORM_OWNER_TENANT_ID', label: 'Platform owner institute id', group: 'integrations', type: 'text',

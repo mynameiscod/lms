@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import CallResults from './CallResults';
 import { outperoApi, outperoErr, OutperoConfig, OutperoMode, LeadFilterOptions, BulkFilter, OutperoStats } from '../../api/outperoApi';
 import './outperoSettings.css';
 
@@ -166,6 +167,8 @@ const OutperoSettings: React.FC = () => {
           </div>
         </section>
       )}
+
+      <CallResults />
 
       <section className="opo-card">
         <h2>Status</h2>

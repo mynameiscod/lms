@@ -236,6 +236,22 @@ export function getCredentialSet(keys: string[], tenantId?: string | null): Reco
   return out;
 }
 
+/**
+ * Which institute has `value` stored for `key` (e.g. an inbound webhook token → its institute).
+ * Read from the in-memory cache; compared in constant time so a token cannot be guessed by timing.
+ */
+export function tenantWithValue(key: string, value: string): string | null {
+  if (!value) return null;
+  const want = Buffer.from(value);
+  for (const [tid, map] of tenantCache) {
+    const have = map.get(key);
+    if (!have) continue;
+    const b = Buffer.from(have);
+    if (b.length === want.length && crypto.timingSafeEqual(b, want)) return tid;
+  }
+  return null;
+}
+
 /** Where the active value came from — for the admin UI. */
 export function source(key: string, tenantId?: string): 'tenant' | 'ui' | 'env' | 'unset' {
   if (tenantId) {

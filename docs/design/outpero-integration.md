@@ -1,7 +1,7 @@
 # Outpero (AI calling) integration
 
-**Status:** Part A (leads → Outpero) BUILT 2026-10-07. Part B (call results → LMS) DESIGNED, waiting for one
-real webhook delivery to fix the field names.
+**Status:** Part A (leads → Outpero) BUILT 2026-10-07. Part B1–B4 (call results → LMS) BUILT 2026-10-09; field names
+to be confirmed from the first real delivery ("Show last delivery (raw)" on the Outpero page). B5 report not built.
 
 Outpero is the external AI calling agent ("Jyothi", Training Institute Counsellor). It calls every lead it is
 given within seconds, and after each call it can POST the result back.
@@ -26,7 +26,19 @@ Screen: **Leads → Outpero AI Calls** (`/admin/outpero`, permission `manage_lea
 - Test lead to your own number from the page (Jyothi really calls).
 - Overlap: if **Leads → AI Call Config** (the LMS's own AI calling) is also on, a lead can get two AI calls.
 
-## Part B — call results back (design)
+## Part B — call results back
+
+**As built (2026-10-09):** `POST /api/v1/public/outpero/calls/<token>` (token per institute, setting
+`OUTPERO_WEBHOOK_TOKEN`, shown with Copy/Rotate on the Outpero page). Every delivery stored in `outperocalls`
+(upsert by call id, last 5 raw bodies kept). Lead matched by `lms_lead_id`, else phone. On the lead: aiCallLogs entry +
+timeline, summary/outcome note, captured variables into empty `customFields`, demo follow-up from
+`demo_date`/`demo_time`/`demo_mode`, call follow-up from `callback_date`/`callback_time`/`counsellor_callback`, the
+`not_interested_reason` on the timeline (stage left to a person), `whatsapp_consent`. Each action once per call.
+Variables Jyothi captures as of 2026-10-09: qualification, current_status, graduation_year, college, city,
+previous_training, placement_support, online_offline, preferred_timing, joining_timeline, budget_concern,
+whatsapp_consent, demo_date, demo_time, demo_mode, callback_date, callback_time, counsellor_callback, not_interested_reason.
+
+### Original design
 
 Outpero → AI employee → Outcomes → **Post-Call Webhooks → Add Webhook**. Per its screen, every delivery has the
 recording URL, full transcript, duration, status (completed/voicemail), hangup reason and timestamps; the

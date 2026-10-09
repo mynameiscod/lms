@@ -311,9 +311,44 @@ export const paymentReturn = async (req: Request, res: Response) => {
    * restricted to a same-site path above, so this cannot be pointed at another site by
    * anything a caller sends.
    */
-  const appOrigin = String(process.env.CLIENT_URL || process.env.FRONTEND_URL || '').replace(/\/+$/, '');
+  const configured = String(process.env.CLIENT_URL || process.env.FRONTEND_URL || '').replace(/\/+$/, '');
+  /*
+   * The origin the payment STARTED on wins, when it is one we trust.
+   *
+   * CLIENT_URL is one fixed address, and on a dev machine on office Wi-Fi it goes stale every
+   * time DHCP hands out a new IP: a member who paid at http://192.168.0.104:3000 was sent to
+   * .101, a different machine, and the app "changed address" right after they paid. The
+   * client now sends `origin` — accepted only when isTrustedAppOrigin says so, so this is
+   * still not a redirect anybody can aim at another site.
+   */
+  const requested = trustedOriginOf(src.origin, configured);
+  const appOrigin = requested || configured;
   return res.redirect(302, appOrigin ? `${appOrigin}${to}` : to);
 };
+
+const PRIVATE_LAN_HOST = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)[\d.]+$/;
+
+/**
+ * `raw` as a bare origin (scheme://host[:port]) if the app may be sent back to it, else ''.
+ *
+ * Trusted: the configured app origins (CLIENT_URL / FRONTEND_URL), and — outside production
+ * only — localhost and the private-network ranges, which are not reachable from the internet.
+ * The same line the dev CORS policy draws in app.ts.
+ */
+export function trustedOriginOf(raw: unknown, configured = ''): string {
+  let u: URL;
+  try { u = new URL(String(raw || '')); } catch { return ''; }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
+  if (u.username || u.password) return '';
+  const origin = u.origin;
+  const known = [configured, process.env.CLIENT_URL, process.env.FRONTEND_URL]
+    .map(v => String(v || '').replace(/\/+$/, '')).filter(Boolean);
+  if (known.includes(origin)) return origin;
+  if (process.env.NODE_ENV === 'production') return '';
+  const host = u.hostname;
+  if (host === 'localhost' || host === '127.0.0.1' || PRIVATE_LAN_HOST.test(host)) return origin;
+  return '';
+}
 
 const isAdmin = (req: AuthenticatedRequest) => ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'].includes(String((req.user as any)?.role));
 

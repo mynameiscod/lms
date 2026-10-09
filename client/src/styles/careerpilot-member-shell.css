@@ -106,3 +106,220 @@
   /* The wordmark sits under the close button; keep it clear at the larger size. */
   #root .gd-logo { padding-right: 56px; }
 }
+
+/* ── The phone bar (MemberShell .gd-mbar) ────────────────────────────────────
+   Below 981px the rail is a drawer. The page used to have nothing at the top but a
+   floating menu button, and the account lived in the drawer's footer. This is the app's
+   header on a phone: menu left, the mark, the account menu right. Below the drawer and
+   its scrim in z-order, so an open drawer covers it. */
+.gd-mbar { display: none; }
+@media (max-width: 980px) {
+  #root .gd .gd-mbar {
+    display: flex; align-items: center; gap: 10px;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 28; height: 60px; padding: 0 12px;
+    background: rgba(255, 255, 255, .96); -webkit-backdrop-filter: saturate(1.4) blur(10px); backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid #E2EAF2; box-shadow: 0 4px 14px rgba(15, 46, 77, .06);
+  }
+  /* The burger now sits in the bar instead of floating over the page. */
+  #root .gd .gd-mbar .gd-burger { position: static !important; flex: none; width: 42px !important; height: 42px !important; border-radius: 11px !important; }
+  #root .gd .gd-mbar .gd-burger.hide { display: grid; visibility: hidden; }
+  .gd-mbar-logo { flex: 1; min-width: 0; display: flex; align-items: center; background: none; border: 0; padding: 0; cursor: pointer; }
+  .gd-mbar-logo img { display: block; height: 34px; width: auto; max-width: 100%; object-fit: contain; }
+  .gd-mbar-user { position: relative; flex: none; }
+  .gd-mbar-av {
+    width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff; cursor: pointer;
+    background: #359aad; color: #fff; font-weight: 900; font-size: 15px; display: grid; place-items: center;
+    box-shadow: 0 0 0 1px #d8e2ec, 0 4px 12px rgba(5, 29, 100, .12);
+  }
+  #root .gd .gd-mbar .gd-user-menu { right: 0; top: calc(100% + 10px); width: min(260px, calc(100vw - 24px)); }
+  /* Room for the fixed bar. */
+  #root .gd .gd-main { padding-top: 76px !important; }
+  /* The account has one home per breakpoint: on a phone it is the bar's menu, so the
+     drawer's account footer (added when the phone had no account menu at all) goes. */
+  #root .gd .gd-side-account { display: none !important; }
+}
+
+/* ── Small phones (320-480px): cards that fit ────────────────────────────── */
+@media (max-width: 480px) {
+  #root .gd .gd-main { padding-left: 12px !important; padding-right: 12px !important; }
+  /* Streak, coins, level and XP: a compact two-by-two grid, not four full-width cards. */
+  #root .gd .gd-topbar-r { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px !important; width: 100%; margin-left: 0; }
+  #root .gd .gd-topbar-r .gd-pill { min-width: 0; padding: 8px 10px !important; gap: 8px; }
+  #root .gd .gd-topbar-r .gd-pill > div { min-width: 0; }
+  #root .gd .gd-topbar-r .gd-pill b, #root .gd .gd-topbar-r .gd-pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #root .gd .gd-pill.level .hex { width: 32px; height: 32px; flex: none; }
+  #root .gd .gd-pill.level .lbar { width: 100%; max-width: 108px; }
+  /* A word too long for its card breaks instead of pushing out of it. `break-word`, NOT
+     `anywhere`: `anywhere` also lowers the text's min-content width to one letter, so a flex
+     row let a heading shrink into a column one character wide ("In/te/r/vi/ew"). */
+  #root .gd .cb-member-page :where(h1, h2, h3, h4, b, strong, p, span, a, li) { overflow-wrap: break-word; }
+  #root .gd .cb-member-page img, #root .gd .cb-member-page video { max-width: 100%; height: auto; }
+}
+@media (max-width: 360px) {
+  #root .gd .gd-main { padding-left: 10px !important; padding-right: 10px !important; }
+  #root .gd .gd-hello h1 { font-size: 22px !important; }
+}
+@media (max-width: 480px) {
+  /* Dashboard stat tiles: the text column may shrink, so a long level title wraps. */
+  #root .gd .md-kpis > div, #root .gd .md-kpis > div > div { min-width: 0; }
+  #root .gd .md-kpis b { white-space: normal !important; overflow-wrap: break-word; }
+  #root .gd .md-kpis .md-mini-bar { width: 100% !important; max-width: 100%; }
+  /* Career path: three steps that fit the card instead of a sideways scroller. */
+  #root .gd .md-steps { overflow-x: visible; gap: 6px; }
+  #root .gd .md-steps .md-step { min-width: 0 !important; }
+  #root .gd .md-steps .dot { width: 30px; height: 30px; font-size: 12px; }
+  #root .gd .md .md-steps .cap { font-size: 12px; }
+  #root .gd .md .md-steps .cap span { font-size: 11px; }
+  /* Skill meter: the chart scales down to the card, so its labels are drawn larger to land
+     at a readable size. */
+  #root .gd .md-radar .gd-radar text { font-size: 12.5px !important; }
+  #root .gd .md-radar .gd-radar text.v { font-size: 13px !important; }
+}
+
+/* The closed drawer sits just off-screen to the left, and its shadow (40px blur) still fell
+   across the page as a grey strip down the left edge. Shadow only while it is open. */
+@media (max-width: 980px) {
+  #root .gd .gd-side:not(.open) { box-shadow: none !important; }
+}
+
+/* ══ CareerPilot on a phone: page-by-page fixes ══════════════════════════════
+   Scoped to .gd, the CareerPilot shell, so the same LMS pages outside CareerPilot are
+   untouched. Each block names the screen and what was wrong with it. */
+@media (max-width: 640px) {
+  /* Interview Experiences: the text block is `flex: 1; min-width: 0` beside a no-wrap
+     button, so it could shrink to nothing and the row never wrapped — the title read one
+     letter per line. On a phone the text takes the full row and the button goes under it. */
+  #root .gd .ih-hero { padding: 18px 16px; gap: 12px; }
+  #root .gd .ih-hero > .pb-grow { flex: 1 1 100%; }
+  #root .gd .ih-hero > .pb-btn { width: 100%; justify-content: center; }
+
+  /* Question Books (and other ProblemBank rows): search box and its button wrap. */
+  #root .gd .pb-row { flex-wrap: wrap; }
+  #root .gd .pb-row > input, #root .gd .pb-row > .pb-search, #root .gd .pb-row > div:has(> input) { flex: 1 1 100%; min-width: 0; }
+
+  /* Progress: `1fr` columns cannot shrink below their content, so the widest card set the
+     page width and everything overflowed by ~80px. minmax(0, 1fr) lets them fit. */
+  #root .gd .gam-split { grid-template-columns: minmax(0, 1fr) !important; }
+  #root .gd .gam-split > *, #root .gd .gam-card { min-width: 0; }
+  #root .gd .gam-five-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  #root .gd .gam-card-hd { flex-wrap: wrap; gap: 6px; }
+  /* Achievement rows: the text column could not shrink and the description could not wrap. */
+  #root .gd .gam-ach { grid-template-columns: 36px minmax(0, 1fr) auto; }
+  #root .gd .gam-ach small { white-space: normal; max-width: none; }
+
+  /* Communication Lab: three tiles in a 280px row broke "SESSIONS" mid-word. */
+  #root .gd .clx-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
+  #root .gd .clx-kpis > * { min-width: 0; padding: 12px 10px !important; }
+  #root .gd .clx-kpis :is(small, span, label) { font-size: 10.5px !important; letter-spacing: .02em !important; }
+
+  /* Code Playground: the toolbar was a ragged wrap of seven buttons and two fields. On a
+     phone it is a tidy grid — language and file name full width, then three even columns,
+     Run the widest. Fullscreen is dropped: on a phone the page already is the screen. */
+  #root .gd .cp-toolbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 10px 12px; }
+  #root .gd .cp-toolbar > .cp-lang, #root .gd .cp-toolbar > .cp-title-input { grid-column: 1 / -1; min-width: 0; width: 100%; }
+  #root .gd .cp-toolbar-right { display: contents; }
+  #root .gd .cp-toolbar .cp-btn { justify-content: center; min-width: 0; padding: 10px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #root .gd .cp-toolbar .cp-btn-run { grid-column: span 2; }
+  #root .gd .cp-toolbar-right > .cp-btn:nth-last-child(2) { grid-column: span 2; }
+  #root .gd .cp-toolbar .cp-icon-btn { display: none; }
+  #root .gd .cp-tabbar { overflow-x: auto; }
+
+  /* Progress, Ways to earn XP: five columns with a border between each became a ragged
+     stack. Two even columns, a full border on each. */
+  #root .gd .gam-earn-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px; }
+  #root .gd .gam-earn-grid button { border: 1px solid #e7ecf1 !important; border-radius: 12px; min-width: 0; padding: 12px !important; }
+
+  /* Pages built on the shared LMS components (Interview Experiences, Question Books, Coding
+     Sets) carried their own 24px side padding inside the shell's, so content sat in a column
+     with a wide margin on both sides. The shell's padding is enough on a phone. */
+  #root .gd .pb-page { padding: 4px 0 24px !important; }
+  #root .gd .pb-root :is(input, select, textarea) { max-width: 100%; min-width: 0; box-sizing: border-box; }
+  #root .gd .pb-root h1 { font-size: 23px; }
+
+  /* Hero cards on every page: a little less padding so the content gets the width. */
+  #root .gd :is(.pm-head, .rq-title.row, .opp-head, .rdy-hero, .rc-head, .md-hero) { padding-left: 16px !important; padding-right: 16px !important; }
+}
+@media (max-width: 480px) {
+  /* Progress steppers under the page heroes (Resume, Interview, Practice…: `*-steps2`). Five
+     labels on a 260px line ran together ("CONTACTSUMMARYSKILLS"). Each step gets an equal
+     share and its label shrinks and ellipsises inside it. */
+  #root .gd [class*="-steps2"] > li { flex: 1 1 0; min-width: 0; }
+  #root .gd [class*="-steps2"] > li > span { font-size: 9px !important; letter-spacing: .02em !important; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+
+  /* Score cards (a ring with its copy beside it: `*-score`, `rc-score-card`): the copy was
+     squeezed to a word per line. They wrap — the copy drops under the ring when it must. */
+  /* Matched on a class ENDING in -score (or the -score-card), never a -score-ring inside it. */
+  #root .gd .cb-member-page :is([class$="-score"], [class*="-score "], .rc-score-card):not(svg):not(svg *) { flex-wrap: wrap; }
+  #root .gd .cb-member-page :is([class$="-score"], [class*="-score "], .rc-score-card):not(svg):not(svg *) > :last-child { flex: 1 1 150px; min-width: 0; }
+
+  /* Stat tiles with the icon beside the label (Opportunities): the label had ~60px. Icon
+     above, label under it, both full width. */
+  #root .gd .opp-metric { flex-direction: column; align-items: flex-start !important; gap: 8px !important; }
+  #root .gd .opp-metric span { white-space: normal; }
+}
+@media (max-width: 1100px) {
+  /* Roadmap hero: the Today card is a 380px desktop panel. In a single `1fr` column it could
+     still be wider than the hero, which clips — so on a phone its left edge was cut off
+     ("ODAY · DAY 1", "Jnderstanding"). It now fills the hero and never exceeds it. */
+  #root .gd .fjm-hero { grid-template-columns: minmax(0, 1fr) !important; }
+  #root .gd .fjm-hero > * { min-width: 0; }
+  #root .gd .fjm-today { width: 100% !important; max-width: 100% !important; justify-self: stretch !important; box-sizing: border-box; margin-left: 0 !important; transform: none !important; }
+}
+@media (max-width: 480px) {
+  #root .gd .fjm-hero { padding: 20px 16px !important; }
+  #root .gd .fjm-today { padding: 16px !important; }
+  #root .gd .fjm-today b { font-size: 17px !important; }
+  #root .gd .fjm-today .fjm-btn { width: 100%; justify-content: center; white-space: normal; }
+}
+@media (max-width: 640px) {
+  /* Leaderboard: five columns do not fit a phone and the table was cut off at "CIT…".
+     Rank, member and XP are what the board is for; City and Streak go below this width. */
+  #root .gd .lb-table th:nth-child(3), #root .gd .lb-table td:nth-child(3),
+  #root .gd .lb-table th:nth-child(4), #root .gd .lb-table td:nth-child(4) { display: none; }
+  #root .gd .lb-table { width: 100%; min-width: 0 !important; table-layout: fixed; }
+  #root .gd .lb-table th:first-child, #root .gd .lb-table td:first-child { width: 40px; }
+  #root .gd .lb-table th:last-child, #root .gd .lb-table td:last-child { width: 72px; text-align: right; }
+  #root .gd .lb-table td:nth-child(2) { overflow-wrap: break-word; }
+
+  /* Practice / Thinking Lab filters: search on its own row, the two dropdowns side by side
+     under it at full width, instead of a narrow search and right-aligned stragglers. */
+  #root .gd .pl2-tools { flex-direction: column; align-items: stretch !important; gap: 10px; }
+  #root .gd .pl2-tools > * { min-width: 0; width: 100%; max-width: 100%; }
+  #root .gd .pl2-filters { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; margin-left: 0 !important; }
+  #root .gd .pl2-filters > * { width: 100%; min-width: 0; }
+  /* Where the search sits inside the filter group (Practice), it takes the whole first row. */
+  #root .gd .pl2-filters > :not(select):first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  /* My Plan / Journey day picker: the five "Days 1–30" ranges wrapped into a vertical stack
+     between the arrows. On a phone they are one row that swipes, with the arrows either side. */
+  #root .gd .fj-range { align-items: center; gap: 6px !important; }
+  #root .gd .fj-range-jumps { flex-wrap: nowrap !important; overflow-x: auto; min-width: 0; scroll-snap-type: x proximity; scrollbar-width: none; padding: 2px 0; }
+  #root .gd .fj-range-jumps::-webkit-scrollbar { display: none; }
+  #root .gd .fj-range-btn { flex: none; white-space: nowrap; scroll-snap-align: start; min-height: 38px !important; padding: 0 12px !important; font-size: 12.5px !important; }
+  #root .gd .fj-range .fj-arrow { flex: none; width: 36px; height: 36px; min-height: 36px; padding: 0; }
+}
+@media (max-width: 480px) {
+  /* Top badges: with three (no coins yet) the third sat alone in half a row. An odd last
+     badge takes the full row. `.gd-user` is the hidden last child on a phone. */
+  #root .gd .gd-topbar-r > .gd-pill:nth-last-child(2):nth-child(odd) { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  /* Roadmap filters: "All 130 days", five ranges and "Expand all" wrapped onto four rows.
+     The ranges are one swipeable row; Expand all keeps its own line under them. */
+  #root .gd .fr-tools { flex-wrap: wrap; gap: 8px; }
+  #root .gd .fr-ranges { display: flex !important; flex-wrap: nowrap !important; overflow-x: auto; gap: 6px; width: 100%; min-width: 0; scrollbar-width: none; padding-bottom: 2px; }
+  #root .gd .fr-ranges::-webkit-scrollbar { display: none; }
+  #root .gd .fr-ranges > button { flex: none; white-space: nowrap; }
+}
+@media (max-width: 1100px) {
+  /* Roadmap hero, stacked: the progress bar is the last line of the copy and the Today card
+     the next grid row, with no row gap — so the card sat on the bar and the two read as one
+     block. A clear gap, and the bar itself keeps its own breathing room. */
+  #root .gd .fjm-hero { row-gap: 20px !important; }
+  #root .gd .fjm-hero .fjm-hero-bar { margin-bottom: 4px; }
+}
+
+/* The member's photo inside any avatar circle (MemberShell `avatar`). */
+#root .gd .gd-av-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+#root .gd :is(.gd-mbar-av, .gd-user-btn .av, .gd-side-me .av) { overflow: hidden; padding: 0; }

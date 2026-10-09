@@ -9,6 +9,7 @@ import ShareCardDialog from './ShareCardDialog';
 import { useUnlock } from './useUnlock';
 import { startActivityBeacon, trackPage } from './activityBeacon';
 import visualizerApi from '../../api/visualizerApi';
+import { studentProfileAPI } from '../../api/studentProfileAPI';
 
 const ICONS: Record<string, string> = {
   home: 'house-door-fill',
@@ -117,7 +118,7 @@ const sectionFor = (pathname: string): string => {
 const MemberShell: React.FC<Props> = ({ children, data }) => {
   const nav = useNavigate();
   const loc = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   /* Code Visualizer is assigned per member; the rail shows it only once it has been. */
   const [vzAllowed, setVzAllowed] = useState(false);
@@ -126,8 +127,20 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
     visualizerApi.access().then(a => alive && setVzAllowed(!!a.allowed)).catch(() => alive && setVzAllowed(false));
     return () => { alive = false; };
   }, []);
+  useEffect(() => {
+    if ((user as any)?.profilePicture) return;
+    let alive = true;
+    studentProfileAPI.getMyProfile()
+      .then(r => { const url = r?.data?.personalInfo?.profilePhoto; if (alive && url) updateProfile({ profilePicture: url } as any); })
+      .catch(() => {});
+    return () => { alive = false; };
+    // Once per member, not on every user change: updateProfile itself changes `user`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(user as any)?._id || (user as any)?.id]);
   const [userOpen, setUserOpen] = useState(false);
   const userRef = useRef<HTMLDivElement>(null);
+  /* The phone bar's account button and menu: a second home for the same menu, see .gd-mbar. */
+  const mUserRef = useRef<HTMLDivElement>(null);
 
   /**
    * Page views, recorded here because this shell is the one component every CareerPilot screen
@@ -151,7 +164,8 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   useEffect(() => {
     if (!userOpen) return;
     const onDown = (e: PointerEvent) => {
-      if (!userRef.current?.contains(e.target as Node)) setUserOpen(false);
+      const t = e.target as Node;
+      if (!userRef.current?.contains(t) && !mUserRef.current?.contains(t)) setUserOpen(false);
     };
     document.addEventListener('pointerdown', onDown);
     return () => document.removeEventListener('pointerdown', onDown);
@@ -197,6 +211,14 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const navSection = sectionFor(path);
   const firstName = d?.firstName || user?.firstName || 'there';
   const initial = (firstName[0] || 'C').toUpperCase();
+  /*
+   * The member's photo, wherever an avatar is drawn. It is uploaded on My profile, which puts
+   * it on the stored user (`profilePicture`), so it appears here the moment it is saved. A
+   * member who uploaded it on another device or before this existed has no copy locally, so
+   * it is read once from their profile.
+   */
+  const photo = (user as any)?.profilePicture as string | undefined;
+  const avatar = photo ? <img src={photo} alt="" className="gd-av-img" /> : initial;
   const st = d?.stats;
   const lv = d?.level;
   const goal = d?.dailyGoal;
@@ -255,11 +277,58 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
     );
   };
 
+  /** One account menu, opened from the desktop top bar or the phone bar (.gd-mbar). */
+  const userMenu = (
+    <div className="gd-user-menu">
+      <div className="hd"><b>{d?.name || firstName}</b>{lv && <span>Level {lv.level} · {lv.title}</span>}</div>
+      {st && <div className="stats"><div><b>{st.xp.toLocaleString()}</b><span>XP</span></div><div><b>{st.streak}</b><span>Streak</span></div><div><b>{myRank ? `#${myRank}` : '—'}</b><span>Rank</span></div></div>}
+      <button onClick={() => { setUserOpen(false); nav('/careerpilot/profile'); }}>My profile</button>
+      <button onClick={() => { setUserOpen(false); nav('/careerpilot/readiness'); }}>My result</button>
+      <button onClick={share} disabled={!d?.shareSlug}>Share my CareerPilot card</button>
+      {/*
+        * THE ONLY WAY BACK TO A PASSWORD ONCE YOU HAVE ONE.
+        *
+        * SetPasswordDialog already existed and worked, but its single entry point was
+        * the banner below, which is hidden the moment `passwordSet` turns true. So a
+        * member who set a password and then forgot it had nowhere to go: "Forgot
+        * password?" on the login screen only switches to the OTP tab, and after signing
+        * in by OTP there was no menu item, no route and nothing on the profile page.
+        * They could get in forever and never change it.
+        *
+        * The dialog sets a password rather than changing one — the server asks for no
+        * current password, only a valid session — so signing in by OTP and coming here
+        * IS the reset, without a new endpoint or a token to email.
+        */}
+      <button onClick={() => { setUserOpen(false); setPwdOpen(true); }}>
+        {d?.passwordSet === false ? 'Set a password' : 'Change my password'}
+      </button>
+      <button className="out" onClick={() => logout()}>Log out</button>
+    </div>
+  );
+
   return (
     <div className="gd">
-      <button className={`gd-burger${mobileOpen ? ' hide' : ''}`} onClick={openDrawer} aria-label="Menu">
-        <Icon name="menu" />
-      </button>
+      {/*
+        * THE PHONE BAR. Below 981px the rail is a drawer, and the page had nothing at the top
+        * but a floating menu button: no brand, and no account — which had been moved into the
+        * drawer's footer, the last place anybody looks for it. This bar is the app's header on
+        * a phone: menu on the left, the mark, and the account menu on the right, as on desktop.
+        * Hidden on desktop (dashboard.css), where the rail and the top bar already do this.
+        */}
+      <header className="gd-mbar">
+        <button className={`gd-burger${mobileOpen ? ' hide' : ''}`} onClick={openDrawer} aria-label="Menu">
+          <Icon name="menu" />
+        </button>
+        <button className="gd-mbar-logo" onClick={() => nav('/careerpilot')} aria-label="CareerPilot home">
+          <img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun" />
+        </button>
+        <div className="gd-mbar-user" ref={mUserRef}>
+          <button className="gd-mbar-av" onClick={toggleUserMenu} aria-expanded={userOpen} aria-haspopup="true" aria-label="Account menu">
+            {avatar}
+          </button>
+          {userOpen && userMenu}
+        </div>
+      </header>
       {mobileOpen && <div className="gd-scrim" onClick={() => setMobileOpen(false)} />}
 
       <aside className={`gd-side${mobileOpen ? ' open' : ''}`}>
@@ -286,16 +355,15 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn(`My ${data?.programDays || 90} Days`, 'grid', '/careerpilot/plan', 'roadmap')}
           {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap')}
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice')}
-          {navBtn('Coding Sets', 'code', '/careerpilot/coding')}
-          {/* From master. No section, so they stay open to everyone, as master had them. */}
-          {navBtn('Playground', 'terminal', '/careerpilot/playground')}
+          {navBtn('Coding Sets', 'code', '/careerpilot/coding', 'coding')}
+          {navBtn('Playground', 'terminal', '/careerpilot/playground', 'playground')}
           {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer')}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'practice')}
-          {navBtn('Communication Lab', 'speech', '/careerpilot/communication')}
+          {navBtn('Communication Lab', 'speech', '/careerpilot/communication', 'communication')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview')}
-          {navBtn('Interview Experiences', 'interview', '/careerpilot/interview-experiences')}
-          {navBtn('Question Books', 'resume', '/careerpilot/question-books')}
-          {navBtn('AI Mentor', 'robot', '/careerpilot/mentor')}
+          {navBtn('Interview Experiences', 'interview', '/careerpilot/interview-experiences', 'experiences')}
+          {navBtn('Question Books', 'resume', '/careerpilot/question-books', 'questionBooks')}
+          {navBtn('AI Mentor', 'robot', '/careerpilot/mentor', 'mentor')}
           {navBtn('Opportunities', 'building', '/careerpilot/companies', 'companies')}
           {/* Sits with Opportunities because it answers the same question — what is happening in
               the industry I am applying to. It was reachable only from the user menu, which is
@@ -316,7 +384,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
 
         <div className="gd-side-account">
           <div className="gd-side-me">
-            <span className="av">{initial}</span>
+            <span className="av">{avatar}</span>
             <div className="t"><b>{d?.name || firstName}</b>{lv && <span>Level {lv.level} · {lv.title}</span>}</div>
           </div>
           <button className="gd-nav-btn" onClick={() => nav('/careerpilot/profile')}><span className="ic"><Icon name="user" /></span><span className="lbl">My profile</span></button>
@@ -358,33 +426,9 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
             </>}
             <div className="gd-user" ref={userRef}>
               <button className="gd-user-btn" onClick={toggleUserMenu} aria-expanded={userOpen} aria-haspopup="true">
-                <span className="av">{initial}</span><span className="nm">{d?.name || firstName}</span><span className={`cr${userOpen ? ' open' : ''}`}><Icon name="chevron" /></span>
+                <span className="av">{avatar}</span><span className="nm">{d?.name || firstName}</span><span className={`cr${userOpen ? ' open' : ''}`}><Icon name="chevron" /></span>
               </button>
-              {userOpen && <div className="gd-user-menu">
-                <div className="hd"><b>{d?.name || firstName}</b>{lv && <span>Level {lv.level} · {lv.title}</span>}</div>
-                {st && <div className="stats"><div><b>{st.xp.toLocaleString()}</b><span>XP</span></div><div><b>{st.streak}</b><span>Streak</span></div><div><b>{myRank ? `#${myRank}` : '—'}</b><span>Rank</span></div></div>}
-                <button onClick={() => { setUserOpen(false); nav('/careerpilot/profile'); }}>My profile</button>
-                <button onClick={() => { setUserOpen(false); nav('/careerpilot/readiness'); }}>My result</button>
-                <button onClick={share} disabled={!d?.shareSlug}>Share my CareerPilot card</button>
-                {/*
-                  * THE ONLY WAY BACK TO A PASSWORD ONCE YOU HAVE ONE.
-                  *
-                  * SetPasswordDialog already existed and worked, but its single entry point was
-                  * the banner below, which is hidden the moment `passwordSet` turns true. So a
-                  * member who set a password and then forgot it had nowhere to go: "Forgot
-                  * password?" on the login screen only switches to the OTP tab, and after signing
-                  * in by OTP there was no menu item, no route and nothing on the profile page.
-                  * They could get in forever and never change it.
-                  *
-                  * The dialog sets a password rather than changing one — the server asks for no
-                  * current password, only a valid session — so signing in by OTP and coming here
-                  * IS the reset, without a new endpoint or a token to email.
-                  */}
-                <button onClick={() => { setUserOpen(false); setPwdOpen(true); }}>
-                  {d?.passwordSet === false ? 'Set a password' : 'Change my password'}
-                </button>
-                <button className="out" onClick={() => logout()}>Log out</button>
-              </div>}
+              {userOpen && userMenu}
             </div>
           </div>
         </div>

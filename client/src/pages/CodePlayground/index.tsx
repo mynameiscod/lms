@@ -590,6 +590,10 @@ const CodePlayground: React.FC = () => {
                 fontSize: narrow ? 16 : 14,
                 scrollBeyondLastLine: false, automaticLayout: true, tabSize: 4,
                 glyphMargin: !narrow,
+                /* A phone shows ~30 characters; without wrapping, every real line ran off the
+                   right edge behind a sideways scroll. Wrapped, the student reads their code. */
+                wordWrap: narrow ? 'on' : 'off',
+                lineNumbersMinChars: narrow ? 2 : 5,
               }}
             />
           )}

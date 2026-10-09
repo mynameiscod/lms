@@ -1661,7 +1661,9 @@ export const passportApi = {
     // server settles and bounces back to /passport.
     const apiRoot = process.env.REACT_APP_API_URL || '/api/v1';
     const base = apiRoot.startsWith('http') ? apiRoot : window.location.origin + apiRoot;
-    const callbackUrl = `${base}/payments/return?to=${encodeURIComponent('/careerpilot')}`;
+    // `origin`: come back to the address the member is on, not the server's configured one —
+    // on a LAN dev machine that one goes stale with every new IP (server checks it is trusted).
+    const callbackUrl = `${base}/payments/return?to=${encodeURIComponent('/careerpilot')}&origin=${encodeURIComponent(window.location.origin)}`;
     return new Promise((resolve) => {
       const rzp = new (window as any).Razorpay({
         key: order.keyId, amount: order.amount, currency: order.currency,
@@ -1957,7 +1959,8 @@ export interface SpineCoverage {
 /** A part of the member experience that can be locked on its own. Mirrors memberAccessPolicy. */
 export type MemberSection =
   | 'score' | 'roadmap' | 'missions' | 'progress'
-  | 'practice' | 'interview' | 'resume' | 'companies' | 'news';
+  | 'practice' | 'interview' | 'resume' | 'companies' | 'news'
+  | 'coding' | 'playground' | 'communication' | 'experiences' | 'questionBooks' | 'mentor';
 
 export interface LockedSection {
   section: MemberSection;

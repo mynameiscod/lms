@@ -457,6 +457,31 @@ describe('membership decides how much of the ninety a learner sees', () => {
     expect(mockCompose).not.toHaveBeenCalled();
   });
 
+  /**
+   * THE ENGINE DOES NOT DECIDE WHO MAY READ THE PLAN.
+   *
+   * TOPIC-planned stages were handed FULL for everybody, so a non-member saw the whole journey
+   * and its "Today's work" button — a day listing every mission while each lesson refused them.
+   */
+  it('shows only the preview to a non-member on a TOPIC-planned stage too', async () => {
+    seed();
+    mockResolveEngine.mockResolvedValue({ engine: 'TOPIC' });
+    mockAccess.mockResolvedValue({ level: 'PREVIEW', previewDays: 7 });
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+    expect(out.body).toMatchObject({ available: true, access: 'PREVIEW', enrollmentId: null });
+    expect(out.body.days).toHaveLength(7);
+  });
+
+  it('refuses a TOPIC-planned journey to a learner with no access at all', async () => {
+    seed();
+    mockResolveEngine.mockResolvedValue({ engine: 'TOPIC' });
+    mockAccess.mockResolvedValue({ level: 'LOCKED', previewDays: 7 });
+    const { res, out } = resOf();
+    await ctrl.getMyJourney(reqOf(), res);
+    expect(out.body).toMatchObject({ available: false, reason: 'MEMBERSHIP_REQUIRED' });
+  });
+
   it('refuses a day beyond the preview on the server, and serves one inside it', async () => {
     seed();
     mockAccess.mockResolvedValue({ level: 'PREVIEW', previewDays: 7 });

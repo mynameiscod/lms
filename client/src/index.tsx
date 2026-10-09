@@ -10,6 +10,42 @@ import reportWebVitals from './reportWebVitals';
 import { captureCareerPilotAttribution } from './utils/careerPilotAttribution';
 
 /**
+ * DEVELOPMENT ONLY: keep opaque cross-origin errors off the dev-server overlay.
+ *
+ * A script from another origin that throws reaches the page as the bare string
+ * "Script error." — no message, no stack, no file — because the browser withholds the
+ * details. The dev server's overlay then covered the whole app with "Uncaught runtime
+ * errors: Script error." on page switches. The sources are the Monaco editor (loaded from
+ * cdn.jsdelivr.net) and browser extensions, neither of which the error lets anyone fix.
+ *
+ * The overlay's listener is registered before any app code and runs first, so the event
+ * cannot be stopped. Instead the overlay is hidden while EVERY error in it is that opaque
+ * one; the moment it holds anything else — an error from our own code, a compile error —
+ * it shows again. The production build has no overlay, so nothing changes there.
+ */
+if (process.env.NODE_ENV === 'development') {
+  const OVERLAY_ID = 'webpack-dev-server-client-overlay';
+  const watched = new WeakSet<Document>();
+  const review = () => {
+    const frame = document.getElementById(OVERLAY_ID) as HTMLIFrameElement | null;
+    const doc = frame?.contentDocument;
+    if (!frame || !doc?.body) return;
+    if (!watched.has(doc)) {
+      watched.add(doc);
+      new MutationObserver(review).observe(doc.body, { childList: true, subtree: true, characterData: true });
+    }
+    const text = doc.body.innerText || '';
+    const errors = (text.match(/\bERROR\b/g) || []).length;
+    const opaque = (text.match(/Script error\./g) || []).length;
+    const onlyOpaque = errors > 0 && errors === opaque;
+    frame.style.display = onlyOpaque ? 'none' : '';
+    if (onlyOpaque) console.warn('[dev] Hid the overlay for an opaque cross-origin "Script error." (CDN script or browser extension).');
+  };
+  const later = () => { review(); setTimeout(review, 60); setTimeout(review, 300); };
+  new MutationObserver(later).observe(document.documentElement, { childList: true, subtree: true });
+}
+
+/**
  * Campaign attribution is captured BEFORE React renders anything.
  *
  * Every later moment is too late for at least one real path: the join flow redirects, a login

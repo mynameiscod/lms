@@ -37,7 +37,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Validate user still exists and is active
           try {
             const API_URL = process.env.REACT_APP_API_URL || '/api/v1';
-            const response = await fetch(`${API_URL}/users/${parsedUser._id}`, {
+            // A CareerPilot login stores the member as `id`, the LMS login as `_id`. Reading only
+            // `_id` sent every CareerPilot page load to /users/undefined — a 500 on each refresh.
+            const userId = parsedUser._id || parsedUser.id;
+            if (!userId) throw new Error('saved user has no id');
+            const response = await fetch(`${API_URL}/users/${userId}`, {
               method: 'GET',
               headers: {
                 'Authorization': `Bearer ${savedToken}`,
@@ -117,6 +121,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.error('Failed to fetch permissions:', permError);
             }
 
+            // The account record has no photo: it lives on the student profile and is kept on
+            // the stored user after an upload. Refreshing from the account dropped it, so the
+            // avatar fell back to an initial on every reload. Carry it across.
+            if (!freshUser.profilePicture && parsedUser.profilePicture) freshUser.profilePicture = parsedUser.profilePicture;
             localStorage.setItem('user', JSON.stringify(freshUser));
             setUser(freshUser);
             setToken(savedToken);

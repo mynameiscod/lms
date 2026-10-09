@@ -443,6 +443,9 @@ const PracticeItem: React.FC = () => {
                   scrollBeyondLastLine: false, tabSize: 2, automaticLayout: true,
                   padding: { top: 12, bottom: 12 }, renderLineHighlight: 'line',
                   fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+                  /* On a phone the editor shows ~30 characters; wrapped, a line is read
+                     instead of scrolled sideways. 16px stops iOS zooming in on focus. */
+                  ...(window.innerWidth <= 640 ? { wordWrap: 'on' as const, fontSize: 16, lineNumbersMinChars: 2 } : {}),
                 }}
               />
             </div>

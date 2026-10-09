@@ -81,7 +81,7 @@ const HackathonResume: React.FC = () => {
       const apiRoot = process.env.REACT_APP_API_URL || '/api/v1';
       const base = apiRoot.startsWith('http') ? apiRoot : window.location.origin + apiRoot;
       const backHere = `/hackathons/resume/${encodeURIComponent(code)}`;
-      const callbackUrl = `${base}/payments/return?to=${encodeURIComponent(backHere)}`;
+      const callbackUrl = `${base}/payments/return?to=${encodeURIComponent(backHere)}&origin=${encodeURIComponent(window.location.origin)}`;
 
       const rzp = new (window as any).Razorpay({
         key: d.payment.keyId,

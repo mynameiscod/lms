@@ -1,7 +1,7 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, createContext, lazy, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import CareerSetupPrompt from './CareerSetupPrompt';
 import { Outlet, useLocation } from 'react-router-dom';
-import passportApi, { DashboardData } from '../../api/passportApi';
+import passportApi, { DashboardData, MemberSection } from '../../api/passportApi';
 import MemberShell from './MemberShell';
 import './memberLayoutFix.css';
 import './memberCodebegun.css';
@@ -34,6 +34,35 @@ const FOCUSED_ROUTES = [
   '/careerpilot/skill-assessment',
   '/careerpilot/assessment',
 ];
+
+/**
+ * Membership-only pages that are shared LMS screens rather than CareerPilot ones.
+ *
+ * Practice, Interview and the rest explain their own lock, because their CareerPilot API refuses
+ * a non-member and the page reads that refusal. These six are the LMS's own pages mounted under
+ * /careerpilot, with no CareerPilot API behind them to refuse anything — so the lock is applied
+ * here, by route, and the page itself is never rendered for a member who has not paid. Whether
+ * each one is paid is still the tenant's setting: the server lists it in `data.locked` or not.
+ *
+ * Matched on a path SEGMENT, so '/careerpilot/interview-experiences' does not also catch
+ * '/careerpilot/interview'.
+ */
+const ROUTE_SECTIONS: { prefix: string; section: MemberSection }[] = [
+  { prefix: '/careerpilot/coding',                section: 'coding' },
+  { prefix: '/careerpilot/playground',            section: 'playground' },
+  { prefix: '/careerpilot/communication',         section: 'communication' },
+  { prefix: '/careerpilot/interview-experiences', section: 'experiences' },
+  { prefix: '/careerpilot/question-books',        section: 'questionBooks' },
+  { prefix: '/careerpilot/mentor',                section: 'mentor' },
+];
+const sectionForRoute = (pathname: string): MemberSection | undefined =>
+  ROUTE_SECTIONS.find(r => pathname === r.prefix || pathname.startsWith(`${r.prefix}/`))?.section;
+
+/*
+ * Lazy, so sectionLock.css stays out of the shell's chunk: pulling it in there is what broke the
+ * CI build on a CSS ordering conflict once already (see useUnlock.ts).
+ */
+const SectionLock = lazy(() => import('./SectionLock'));
 
 const pageKeyFor = (pathname: string) => {
   if (pathname === '/careerpilot') return 'dashboard';
@@ -110,6 +139,8 @@ const MemberLayout: React.FC = () => {
   }
 
   const ctx = { data, reload: load };
+  const routeSection = sectionForRoute(pathname);
+  const routeLocked = !!routeSection && (data.locked || []).some(l => l.section === routeSection);
 
   /**
    * THE RAIL IS EVERYONE'S.
@@ -150,7 +181,9 @@ const MemberLayout: React.FC = () => {
       <MemberShell data={data}>
         <CareerSetupPrompt />
         <div className={`cb-member-page cb-member-${pageKey}`} data-member-page={pageKey}>
-          <Outlet />
+          {routeLocked
+            ? <Suspense fallback={null}><SectionLock section={routeSection!} /></Suspense>
+            : <Outlet />}
         </div>
       </MemberShell>
     </Ctx.Provider>

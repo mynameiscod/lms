@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { onboardTenant } from './tenantOnboardingService';
 import mongoose from 'mongoose';
 import User, { IUser } from '../models/User';
 import Tenant from '../models/Tenant';
@@ -57,6 +58,8 @@ export class AuthService {
     await user.save();
 
     await Tenant.findByIdAndUpdate(tenant._id, { adminId: user._id });
+    // Default setup (lead pipeline etc.) so the new institute does not start with empty screens.
+    await onboardTenant(String(tenant._id)).catch((e) => console.error('[onboarding] setup failed', e?.message));
 
     return user;
   }

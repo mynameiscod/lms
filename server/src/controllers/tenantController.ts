@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { onboardTenant } from '../services/tenantOnboardingService';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import { TenantService } from '../services/tenantService';
 import Tenant, { IStudentFeatures, ITenantModules } from '../models/Tenant';
@@ -23,6 +24,7 @@ export const createTenant = async (
     }
 
     const tenant = await tenantService.createTenant(name, slug, adminId, description);
+    await onboardTenant(String((tenant as any)._id)).catch((e) => console.error('[onboarding] setup failed', e?.message));
 
     res.status(201).json({
       success: true,

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import OnboardingChecklist from '../../components/OnboardingChecklist';
 import XpLeaderboard from '../../components/dashboard/XpLeaderboard';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -315,7 +316,15 @@ const DashboardPage: React.FC = () => {
   const isOrgAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN';
 
   if (isOrgAdmin) {
-    return <AdminOverview firstName={user.firstName} />;
+    return (
+      <>
+        {/* Until the institute is set up, its admin sees what is left to do. */}
+        {user.role === 'TENANT_ADMIN' && user.tenantId && (
+          <div style={{ padding: '16px 24px 0' }}><OnboardingChecklist tenantId={String(user.tenantId)} mode="dashboard" /></div>
+        )}
+        <AdminOverview firstName={user.firstName} />
+      </>
+    );
   }
 
   // Other staff/instructor roles — a simple welcome with quick links, no org metrics.

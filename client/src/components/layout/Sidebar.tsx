@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTenant } from '../../contexts/TenantContext';
 import { moduleForPath } from '../../config/tenantModules';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -40,6 +41,9 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const { user } = useAuth();
   const { isFeatureEnabled } = useStudentFeatures();
   const { isModuleEnabled } = useTenantModules();
+  // An institute with its own brand shows its own logo (CodeBegun's otherwise).
+  const { tenant: tenantBrand } = useTenant();
+  const ownLogo = tenantBrand?.branding?.hideCodeBegunBranding && (tenantBrand as any)?.logo ? String((tenantBrand as any).logo) : '';
   const { isBatchFeatureEnabled } = useBatchModules();
   const activeRef = useRef<HTMLAnchorElement | null>(null);
   /* The Code Visualizer is assigned per student, so the menu asks the server rather than guessing. */
@@ -185,6 +189,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       ]
     },
     { label: 'Weekly Reports', path: '/weekly-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-chart-line', permissions: ['view_reports', 'view_analytics', 'manage_tenant'] },
+    { label: 'Branding', path: '/admin/branding', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-palette', permissions: ['manage_tenant_settings', 'manage_tenant'] },
     { label: 'Integrations', path: '/admin/integrations', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-plug', permissions: ['manage_tenant_settings', 'manage_tenant'] },
     { label: 'Student Features', path: '/student-features', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-toggle-on', permissions: ['manage_tenant_settings', 'manage_tenant'] },
     { label: 'API Logs', path: '/admin/logs', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-bug', permissions: ['view_activity_logs', 'manage_tenant_settings', 'manage_tenant', 'view_reports'] },
@@ -525,8 +530,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
             reads CSS. PUBLIC_URL keeps the asset served from public/ and keeps the path
             correct under any deploy base path, with nothing duplicated into src/. */}
         <img
-          src={`${process.env.PUBLIC_URL}/assets/logo.png`}
-          alt="CodeBegun"
+          src={ownLogo || `${process.env.PUBLIC_URL}/assets/logo.png`}
+          alt={ownLogo ? (tenantBrand?.branding?.portalTitle || tenantBrand?.name || 'Logo') : 'CodeBegun'}
           className="sidebar-brand-logo"
         />
         <div className="brand-icon" onClick={() => { if (mobileOpen) { onMobileClose?.(); } else { setIsOpen(!isOpen); } }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (mobileOpen) onMobileClose?.(); else setIsOpen(!isOpen); } }}>

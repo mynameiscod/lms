@@ -1,4 +1,5 @@
 import express from 'express';
+import { publicBranding } from '../services/tenantBrandingService';
 import authRoutes from './authRoutes';
 import tenantRoutes from './tenantRoutes';
 import courseRoutes from './courseRoutes';
@@ -144,6 +145,14 @@ router.use('/public/passport', careerPilotActivity, publicPassportRoutes);
 router.use('/external', externalApiRoutes);
 // CodeBegun Judge for Interview Pilot — HMAC-signed, no session (Judge URL = https://<platform>/api/v1/judge).
 router.use('/judge', codeJudgeRoutes);
+// Public: the login page shows an institute's name/logo before sign-in (no private data).
+router.get('/public/branding/:idOrSlug', async (req, res) => {
+  try {
+    const b = await publicBranding(String(req.params.idOrSlug));
+    if (!b) return res.status(404).json({ success: false, message: 'Not found' });
+    res.json({ success: true, data: b });
+  } catch { res.status(404).json({ success: false, message: 'Not found' }); }
+});
 router.use('/outpero', outperoRoutes); // leads → Outpero AI calls (off / manual / auto)
 router.use('/tenant-integrations', tenantIntegrationsRoutes); // institute admin: own Razorpay, UPI, email, Meta pixel
 router.use('/public/assessment', publicAssessmentRoutes); // specific first

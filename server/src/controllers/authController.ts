@@ -54,8 +54,8 @@ export const registerOrganization = async (
     const tenantId = user.tenantId?.toString();
     const loginLink = `${frontendUrl}/login?tenantId=${tenantId}`;
 
-    // Send welcome email to tenant admin (non-blocking)
-    const emailService = new EmailService();
+    // Send welcome email to tenant admin (non-blocking) — under the new institute's brand.
+    const emailService = new EmailService(tenantId);
     const enabledModules = modules
       ? Object.entries(modules as Record<string, boolean>)
           .filter(([, v]) => v)
@@ -199,7 +199,8 @@ export const forgotPassword = async (
 
     // Send email
     try {
-      const emailService = new EmailService();
+      // The user's institute — this request is not signed in, so there is no request context.
+      const emailService = new EmailService(user.tenantId ? String(user.tenantId) : undefined);
       await emailService.sendPasswordResetEmail(
         user.email,
         user.firstName,

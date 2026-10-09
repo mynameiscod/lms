@@ -85,6 +85,15 @@ const LoginPage: React.FC = () => {
     }
   }, [searchParams]);
 
+  // The institute from the invite link — its logo and name instead of CodeBegun's.
+  const [inst, setInst] = useState<{ name: string; logo: string; welcomeMessage: string; isPlatformOwner: boolean } | null>(null);
+  useEffect(() => {
+    const id = searchParams.get('tenantId') || searchParams.get('tenant');
+    if (!id) return;
+    fetch(`/api/v1/public/branding/${encodeURIComponent(id)}`).then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (j?.success && !j.data.isPlatformOwner) setInst(j.data); }).catch(() => {});
+  }, [searchParams]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
@@ -110,7 +119,10 @@ const LoginPage: React.FC = () => {
       {/* Left — brand / marketing */}
       <section className="login-brand">
         <div className="login-brand-inner">
-          <img src="/assets/logo.png" alt="CodeBegun" className="login-logo" />
+          {inst
+            ? (inst.logo ? <img src={inst.logo} alt={inst.name} className="login-logo" /> : <h2 className="login-logo" style={{ fontSize: 26, fontWeight: 800 }}>{inst.name}</h2>)
+            : <img src="/assets/logo.png" alt="CodeBegun" className="login-logo" />}
+          {inst?.welcomeMessage && <p style={{ marginTop: 8 }}>{inst.welcomeMessage}</p>}
 
           <h1 className="login-tagline">
             <span className="tw-teal">Gamify</span> <span className="tw-navy">Learning,</span> <span className="login-spark">✨</span>

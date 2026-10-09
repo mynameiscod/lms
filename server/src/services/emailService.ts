@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer';
+import { currentTenantId } from './requestContext';
+import { getBrand, rebrand } from './tenantBrand';
 import * as settings from './settingsService';
 import { isSuppressed } from './unsubscribeService';
 import { sendViaSes, isTransientSesError, SesAttachment } from './sesMailer';
@@ -90,8 +92,17 @@ export class EmailService {
     this.tenantId = tenantId;
   }
 
+  /**
+   * The institute this mail is for: the one it was constructed with, otherwise the institute of
+   * the request/job it is sent from (requestContext). Most services keep one module-level
+   * EmailService, so without the fallback every institute's mail went out as CodeBegun.
+   */
+  private get tid(): string | undefined {
+    return this.tenantId || currentTenantId();
+  }
+
   private cfg(key: string): string {
-    return settings.getStr(key, '', this.tenantId);
+    return settings.getStr(key, '', this.tid);
   }
 
   /**
@@ -112,8 +123,19 @@ export class EmailService {
     return this.provider === 'brevo';
   }
 
+  private _brandName = '';
+
+  /**
+   * The From header. An institute's own EMAIL_FROM wins. Otherwise the platform address is
+   * used — with the institute's name in front of it, so students see who wrote to them.
+   */
   private fromHeader(): string {
-    return this.cfg('EMAIL_FROM') || `CodeBegun <${this.cfg('EMAIL_USER')}>`;
+    const own = settings.source('EMAIL_FROM', this.tid) === 'tenant' ? this.cfg('EMAIL_FROM') : '';
+    if (own) return own;
+    const platform = this.cfg('EMAIL_FROM') || `CodeBegun <${this.cfg('EMAIL_USER')}>`;
+    if (!this._brandName) return platform;
+    const addr = platform.match(/<([^>]+)>/)?.[1] || platform.trim();
+    return `${this._brandName.replace(/[<>"]/g, '')} <${addr}>`;
   }
 
   /**
@@ -128,9 +150,16 @@ export class EmailService {
    * Throws on failure; callers decide whether that is fatal.
    */
   private async dispatch(args: DispatchArgs): Promise<string> {
-    const { to, subject, html, text, attachments, opts } = args;
+    // An institute that is not CodeBegun sends under ITS brand: name, logo and contact lines in
+    // every template, and its name on the From header. CodeBegun's own mail is unchanged.
+    const brand = await getBrand(this.tid);
+    const subject = rebrand(args.subject, brand);
+    const html = rebrand(args.html, brand);
+    const text = rebrand(args.text, brand);
+    const { to, attachments, opts } = args;
     const label = args.label || `email to ${to}`;
     const provider = this.provider;
+    this._brandName = brand.isPlatformOwner ? '' : brand.name;
 
     if (provider === 'brevo') {
       await this.sendViaBrevoApi(to, subject, html, text, attachments);
@@ -148,7 +177,7 @@ export class EmailService {
           ...(opts?.messageId ? { messageId: opts.messageId } : {}),
           ...(opts?.inReplyTo ? { inReplyTo: opts.inReplyTo } : {}),
           ...(opts?.references ? { references: opts.references } : {}),
-        }, this.tenantId),
+        }, this.tid),
         isTransientSesError,
         SES_MIN_SEND_GAP_MS,
         label,
@@ -270,7 +299,7 @@ export class EmailService {
   private async sendViaBrevoApi(to: string, subject: string, htmlContent: string, textContent: string, attachments?: { filename: string; content: Buffer }[]): Promise<void> {
     const fromRaw = this.cfg('EMAIL_FROM');
     const fromEmail = fromRaw.match(/<(.+)>/)?.[1] || this.cfg('EMAIL_USER');
-    const fromName = fromRaw.match(/^([^<]+)/)?.[1]?.trim() || 'CodeBegun';
+    const fromName = this._brandName || fromRaw.match(/^([^<]+)/)?.[1]?.trim() || 'CodeBegun';
     
     console.log('   📤 Brevo API Call:');
     console.log('      From:', fromName, '<' + fromEmail + '>');

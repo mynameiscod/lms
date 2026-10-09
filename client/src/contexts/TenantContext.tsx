@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 import { Tenant } from '../types';
 
 /** Convert "#rrggbb" → "r, g, b" string Bootstrap needs for rgba() */
@@ -28,6 +29,22 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setTenantId(storedTenantId);
     }
   }, []);
+
+  // Load the signed-in institute (name, logo, colours) so its brand applies right after login —
+  // before, branding only applied after saving it on the settings page.
+  const { user } = useAuth();
+  const signedInTenant = user?.tenantId ? String(user.tenantId) : null;
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const id = signedInTenant || tenantId;
+    if (!token || !id || (tenant && String((tenant as any)._id) === id)) return;
+    let live = true;
+    fetch(`/api/v1/tenants/${id}`, { headers: { Authorization: `Bearer ${token}`, 'X-Tenant-Id': id } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (live && j?.success && j.data) setTenant(j.data); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [signedInTenant, tenantId, tenant]);
 
   // Override Bootstrap 5 CSS variables so every bs-component re-themes automatically
   useEffect(() => {

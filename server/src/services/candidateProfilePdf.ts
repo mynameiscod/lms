@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import { getBrand } from './tenantBrand';
 import mongoose from 'mongoose';
 import User from '../models/User';
 import StudentProfile from '../models/StudentProfile';
@@ -15,6 +16,8 @@ const uniq = (arr: string[]) => Array.from(new Set(arr.filter(Boolean).map(s => 
 
 /** Generate a branded one-page candidate profile PDF for a student. */
 export async function generateOnePager(studentId: string, tenantId: string): Promise<OnePager> {
+  // The sharing institute's name and contact on the page — CodeBegun's only for CodeBegun.
+  const brand = await getBrand(tenantId);
   const oid = (s: string) => new mongoose.Types.ObjectId(s);
   const [user, profile, resume] = await Promise.all([
     User.findOne({ _id: oid(studentId), tenantId: oid(tenantId) }).select('firstName lastName email phone').lean() as any,
@@ -52,7 +55,7 @@ export async function generateOnePager(studentId: string, tenantId: string): Pro
   doc.fillColor('#9fb6c8').fontSize(9).text(
     [email, phone].filter(Boolean).join('   |   '), 50, 86);
   // Brand mark
-  doc.fillColor(TEAL).font('Helvetica-Bold').fontSize(13).text('CodeBegun', pageW - 160, 40, { width: 110, align: 'right' });
+  doc.fillColor(TEAL).font('Helvetica-Bold').fontSize(13).text(brand.name, pageW - 160, 40, { width: 110, align: 'right' });
   doc.fillColor('#9fb6c8').font('Helvetica').fontSize(8).text('Verified Candidate', pageW - 160, 58, { width: 110, align: 'right' });
 
   doc.fillColor(DARK).y = 130;
@@ -100,10 +103,12 @@ export async function generateOnePager(studentId: string, tenantId: string): Pro
   const fy = doc.page.height - 60;
   doc.moveTo(50, fy).lineTo(pageW - 50, fy).strokeColor('#e2e8f0').lineWidth(1).stroke();
   doc.fillColor(GREY).font('Helvetica').fontSize(8).text(
-    'Shared by CodeBegun — Java Full Stack Training & Placements, Hyderabad  ·  hr@codebegun.com',
+    brand.isPlatformOwner
+      ? 'Shared by CodeBegun — Java Full Stack Training & Placements, Hyderabad  ·  hr@codebegun.com'
+      : `Shared by ${brand.name}${brand.supportEmail ? `  ·  ${brand.supportEmail}` : ''}`,
     50, fy + 8, { width: pageW - 100, align: 'center' });
 
   doc.end();
   const buffer = await done;
-  return { buffer, fileName: `${name.replace(/[^a-zA-Z0-9]+/g, '_')}_CodeBegun.pdf`, studentName: name };
+  return { buffer, fileName: `${name.replace(/[^a-zA-Z0-9]+/g, '_')}_${brand.name.replace(/[^a-zA-Z0-9]+/g, '_')}.pdf`, studentName: name };
 }

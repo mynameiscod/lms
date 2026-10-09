@@ -18,6 +18,9 @@ const settingsValues: Record<string, string> = {};
 jest.mock('../services/settingsService', () => ({
   getStr: (key: string, fallback = '') => settingsValues[key] ?? fallback,
   getNum: (_key: string, fallback = 0) => fallback,
+  // Branding/sender helpers (2026-10-09): no tenant override; single institute = platform owner.
+  source: () => 'unset',
+  isPlatformOwner: () => true,
 }));
 
 jest.mock('../services/unsubscribeService', () => ({

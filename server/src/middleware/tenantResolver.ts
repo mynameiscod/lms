@@ -1,4 +1,5 @@
 import { Response, NextFunction } from 'express';
+import { runWithTenant } from '../services/requestContext';
 import { AuthenticatedRequest } from '../types';
 
 /**
@@ -55,5 +56,6 @@ export const tenantResolver = (req: AuthenticatedRequest, res: Response, next: N
 
   req.tenantId = tenantId;
   req.userId = req.user?.id;
-  next();
+  // Make the institute available to everything this request calls (emails, branding) — requestContext.
+  runWithTenant(tenantId, () => next());
 };

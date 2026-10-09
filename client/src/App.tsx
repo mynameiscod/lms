@@ -67,6 +67,7 @@ const MyPlacementInterviews = lazy(() => import('./pages/PlacementProgramAdmin/M
 const WhatsAppInbox = lazy(() => import('./pages/WhatsAppInbox'));
 const OutperoSettings = lazy(() => import('./pages/OutperoSettings'));
 const TenantIntegrations = lazy(() => import('./pages/TenantIntegrations'));
+const TenantBranding = lazy(() => import('./pages/TenantBranding'));
 const StudentDrivesPage = lazy(() => import('./pages/Drives/StudentDrives'));
 const PrepPackPage = lazy(() => import('./pages/Drives/PrepPack'));
 const QuestionBooksLibrary = lazy(() => import('./pages/QuestionBooks/Library'));
@@ -1374,7 +1375,7 @@ const AppRoutes: React.FC = () => {
 
       <Route path="/admin/college/departments" element={<Navigate to="/dashboard" replace />} />
 
-      <Route path="/admin/college/settings" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/admin/college/settings" element={<Navigate to="/admin/branding" replace />} />
 
       <Route path="/admin/college/members" element={<Navigate to="/dashboard" replace />} />
 
@@ -1460,6 +1461,17 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/branding"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <TenantBranding />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* The old college settings page wrote the raw tenant record and always 403'd for a college admin. */}
       <Route
         path="/admin/integrations"
         element={

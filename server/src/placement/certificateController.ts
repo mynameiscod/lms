@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { getBrand } from '../services/tenantBrand';
 import PDFDocument from 'pdfkit';
 import { AuthenticatedRequest } from '../types';
 import PlacementDrive from '../models/PlacementDrive';
@@ -108,9 +109,11 @@ export const downloadCertificate = async (req: AuthenticatedRequest, res: Respon
     const footerY = doc.page.height - 130;
     doc.moveTo(60, footerY).lineTo(doc.page.width - 60, footerY).stroke('#e5e7eb');
 
+    // The institute that issued it — CodeBegun only for CodeBegun's own certificates.
+    const brand = await getBrand(String(tenantId));
     doc.fontSize(10).fillColor('#6b7280').font('Helvetica')
       .text('Authorized by Placement Cell', 60, footerY + 15)
-      .text('CodeBegun Learning Management System', 60, footerY + 30);
+      .text(brand.isPlatformOwner ? 'CodeBegun Learning Management System' : brand.name, 60, footerY + 30);
 
     doc.fontSize(9).fillColor('#374151').font('Helvetica-Bold')
       .text(`Certificate No: ${cert.certificateNumber}`, 60, footerY + 52);

@@ -1,4 +1,5 @@
 import express from 'express';
+import { getBranding, saveBranding } from '../services/tenantBrandingService';
 import { onboardTenant, onboardingChecklist } from '../services/tenantOnboardingService';
 import { 
   createTenant, 
@@ -36,6 +37,15 @@ router.get('/:tenantId/invite-link', authMiddleware, ownTenant, generateInviteLi
 router.get('/:tenantId/student-features', authMiddleware, ownTenant, getStudentFeatures);
 router.patch('/:tenantId/student-features', authMiddleware, ownTenant, roleGuard(['manage_tenant']), updateStudentFeatures);
 router.get('/:tenantId/modules', authMiddleware, ownTenant, getTenantModules);
+// Branding — the institute admin's own name, logo, colours and support contact (whitelisted fields).
+router.get('/:tenantId/branding', authMiddleware, ownTenant, async (req: any, res: any) => {
+  try { res.json({ success: true, data: await getBranding(req.params.tenantId) }); }
+  catch (e: any) { res.status(e?.status || 500).json({ success: false, message: e?.message }); }
+});
+router.put('/:tenantId/branding', authMiddleware, ownTenant, roleGuard(['manage_tenant_settings', 'manage_tenant', 'manage_tenants']), async (req: any, res: any) => {
+  try { res.json({ success: true, data: await saveBranding(req.params.tenantId, req.body || {}) }); }
+  catch (e: any) { res.status(e?.status || 500).json({ success: false, message: e?.message }); }
+});
 // Onboarding: what is still to set up, and (re)run the default setup — idempotent.
 router.get('/:tenantId/onboarding', authMiddleware, ownTenant, async (req: any, res: any) => {
   try { res.json({ success: true, data: await onboardingChecklist(req.params.tenantId) }); }

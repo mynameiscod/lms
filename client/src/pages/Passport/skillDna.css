@@ -196,3 +196,8 @@
 #root .gd .sdn .sdn-ring span, .sdn .sdn-ring span { color: #7C8DA5 !important; }
 #root .gd .sdn .sdn-hero-score-copy b, .sdn .sdn-hero-score-copy b { color: #051D64 !important; }
 #root .gd .sdn .sdn-hero-score-copy span, .sdn .sdn-hero-score-copy span { color: #6B7C96 !important; }
+
+/* Compact radar (phones, see Radar in SkillDna.tsx): drawn narrower, so its labels are set
+   larger in drawing units to land at a readable size once scaled to the card. */
+.sdn-radar .label.compact .name { font-size: 15px; }
+.sdn-radar .label.compact .val { font-size: 15px; }

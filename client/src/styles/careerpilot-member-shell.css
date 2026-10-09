@@ -290,3 +290,25 @@
   /* Where the search sits inside the filter group (Practice), it takes the whole first row. */
   #root .gd .pl2-filters > :not(select):first-child { grid-column: 1 / -1; }
 }
+@media (max-width: 640px) {
+  /* My Plan / Journey day picker: the five "Days 1–30" ranges wrapped into a vertical stack
+     between the arrows. On a phone they are one row that swipes, with the arrows either side. */
+  #root .gd .fj-range { align-items: center; gap: 6px !important; }
+  #root .gd .fj-range-jumps { flex-wrap: nowrap !important; overflow-x: auto; min-width: 0; scroll-snap-type: x proximity; scrollbar-width: none; padding: 2px 0; }
+  #root .gd .fj-range-jumps::-webkit-scrollbar { display: none; }
+  #root .gd .fj-range-btn { flex: none; white-space: nowrap; scroll-snap-align: start; min-height: 38px !important; padding: 0 12px !important; font-size: 12.5px !important; }
+  #root .gd .fj-range .fj-arrow { flex: none; width: 36px; height: 36px; min-height: 36px; padding: 0; }
+}
+@media (max-width: 480px) {
+  /* Top badges: with three (no coins yet) the third sat alone in half a row. An odd last
+     badge takes the full row. `.gd-user` is the hidden last child on a phone. */
+  #root .gd .gd-topbar-r > .gd-pill:nth-last-child(2):nth-child(odd) { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  /* Roadmap filters: "All 130 days", five ranges and "Expand all" wrapped onto four rows.
+     The ranges are one swipeable row; Expand all keeps its own line under them. */
+  #root .gd .fr-tools { flex-wrap: wrap; gap: 8px; }
+  #root .gd .fr-ranges { display: flex !important; flex-wrap: nowrap !important; overflow-x: auto; gap: 6px; width: 100%; min-width: 0; scrollbar-width: none; padding-bottom: 2px; }
+  #root .gd .fr-ranges::-webkit-scrollbar { display: none; }
+  #root .gd .fr-ranges > button { flex: none; white-space: nowrap; }
+}

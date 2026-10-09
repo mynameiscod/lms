@@ -32,8 +32,39 @@ const band = (score: number) => (score >= 70 ? 'strong' : score >= 40 ? 'mid' : 
  * The radar, drawn as SVG so the shape, the rings and the labels share one coordinate system. (The old one laid
  * labels out with CSS positions around a clip-path, and they drifted away from the points they named.)
  */
+/** True on a phone-width screen; follows rotation and resizing. */
+const useNarrow = (max = 520) => {
+  const q = `(max-width: ${max}px)`;
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches);
+  useEffect(() => {
+    const m = window.matchMedia(q);
+    const on = () => setNarrow(m.matches);
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, [q]);
+  return narrow;
+};
+
+/** A skill name as at most two lines of about `max` characters, broken on words. */
+const twoLines = (t: string, max: number): string[] => {
+  const out: string[] = []; let cur = '';
+  for (const w of t.split(/\s+/).filter(Boolean)) {
+    if (!cur) cur = w; else if ((cur + ' ' + w).length <= max) cur += ' ' + w; else { out.push(cur); cur = w; }
+  }
+  if (cur) out.push(cur);
+  if (out.length <= 2) return out;
+  const rest = out.slice(1).join(' ');
+  return [out[0], rest.length > max ? `${rest.slice(0, max - 1).trimEnd()}…` : rest];
+};
+
 const Radar: React.FC<{ skills: SkillDnaRow[] }> = ({ skills }) => {
-  const W = 540, H = 340, cx = W / 2, cy = H / 2 + 4, R = 112;
+  /*
+   * COMPACT ON A PHONE. The chart is drawn 540 wide and scaled to the card, so on a 260px card
+   * every label rendered at about 6px. The compact drawing is narrower, so the same labels
+   * land at a readable size, and long names wrap onto two lines instead of being cut.
+   */
+  const compact = useNarrow();
+  const W = compact ? 380 : 540, H = compact ? 360 : 340, cx = W / 2, cy = H / 2 + 4, R = compact ? 84 : 112;
   const n = skills.length;
   const at = (i: number, r: number) => {
     const a = (-90 + (360 / n) * i) * (Math.PI / 180);
@@ -51,11 +82,14 @@ const Radar: React.FC<{ skills: SkillDnaRow[] }> = ({ skills }) => {
       {skills.map((s, i) => {
         const [x, y] = at(i, R + 22);
         const anchor = Math.abs(x - cx) < 8 ? 'middle' : x > cx ? 'start' : 'end';
-        const dy = y < cy - R ? -8 : y > cy + R ? 12 : 0;
+        const lines = compact ? twoLines(s.skillName, 13) : [short(s.skillName)];
+        const lh = compact ? 17 : 15;
+        // Above the chart the block grows upward, so its extra name line does not run into it.
+        const dy = (y < cy - R ? -8 - (lines.length - 1) * lh : y > cy + R ? 12 : 0) - (compact && Math.abs(y - cy) <= R ? ((lines.length - 1) * lh) / 2 : 0);
         return (
-          <text key={s.skillKey} x={x} y={y + dy} textAnchor={anchor} className="label">
-            <tspan x={x} className="name">{short(s.skillName)}</tspan>
-            <tspan x={x} dy="15" className={`val ${band(s.score)}`}>{s.score}/100</tspan>
+          <text key={s.skillKey} x={x} y={y + dy} textAnchor={anchor} className={`label${compact ? ' compact' : ''}`}>
+            {lines.map((l, k) => <tspan key={k} x={x} dy={k === 0 ? 0 : lh} className="name">{l}</tspan>)}
+            <tspan x={x} dy={lh} className={`val ${band(s.score)}`}>{s.score}/100</tspan>
           </text>
         );
       })}

@@ -37,7 +37,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Validate user still exists and is active
           try {
             const API_URL = process.env.REACT_APP_API_URL || '/api/v1';
-            const response = await fetch(`${API_URL}/users/${parsedUser._id}`, {
+            // A CareerPilot login stores the member as `id`, the LMS login as `_id`. Reading only
+            // `_id` sent every CareerPilot page load to /users/undefined — a 500 on each refresh.
+            const userId = parsedUser._id || parsedUser.id;
+            if (!userId) throw new Error('saved user has no id');
+            const response = await fetch(`${API_URL}/users/${userId}`, {
               method: 'GET',
               headers: {
                 'Authorization': `Bearer ${savedToken}`,

@@ -54,6 +54,7 @@ const QuizResultsPage = lazy(() => import('./pages/QuizResults'));
 const QuizResultsAdminPage = lazy(() => import('./pages/QuizResultsAdmin'));
 const QuestionBuilder = lazy(() => import('./pages/QuestionBuilder'));
 const StudentProfilePage = lazy(() => import('./pages/StudentProfile'));
+const AccountProfilePage = lazy(() => import('./pages/AccountProfile'));
 const OAuthCallbackPage = lazy(() => import('./pages/OAuthCallback'));
 const AdminContentPage = lazy(() => import('./pages/AdminContent'));
 const NotFoundPage = lazy(() => import('./pages/NotFound'));
@@ -332,6 +333,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   return <>{children}</>;
+};
+
+// Students get the student profile wizard; staff get a plain account page.
+const ProfileForRole: React.FC = () => {
+  const { user } = useAuth();
+  return user?.role === 'STUDENT' || user?.role === 'GUEST' ? <StudentProfilePage /> : <AccountProfilePage />;
 };
 
 // Wraps student routes to check if a feature is enabled by admin
@@ -1704,7 +1711,7 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <Layout>
-              <StudentProfilePage />
+              <ProfileForRole />
             </Layout>
           </ProtectedRoute>
         }

@@ -869,3 +869,9 @@
   color: #1d4ed8;
   margin: 0.75rem 0;
 }
+
+/* Module groups (2026-10-09) */
+.tm-module-group { margin-bottom: 18px; }
+.tm-module-group-head { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 8px; }
+.tm-module-group-head h4 { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #475569; margin: 0; }
+.tm-link { border: 0; background: none; color: #4f46e5; font-weight: 700; font-size: 12.5px; cursor: pointer; }

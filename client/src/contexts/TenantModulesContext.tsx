@@ -1,68 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { allModules, TenantModules, ModuleKey } from '../config/tenantModules';
 import { useAuth } from './AuthContext';
 import { tenantApi } from '../api';
 
-export interface TenantModules {
-  courses: boolean;
-  attendance: boolean;
-  quizzes: boolean;
-  assignments: boolean;
-  classRecordings: boolean;
-  codeAssessments: boolean;
-  mockInterviews: boolean;
-  placement: boolean;
-  leads: boolean;
-  marketing: boolean;
-  feeManagement: boolean;
-  thinkingLab: boolean;
-  speakingPractice: boolean;
-  resourceLibrary: boolean;
-  careerPilot: boolean;
-  aiCommunicationLab: boolean;
-}
+// The module list lives in config/tenantModules (shared with the menu and Tenant Management).
+export type { TenantModules } from '../config/tenantModules';
 
-const DEFAULT_MODULES: TenantModules = {
-  courses: true,
-  attendance: true,
-  quizzes: true,
-  assignments: true,
-  classRecordings: true,
-  codeAssessments: true,
-  mockInterviews: true,
-  placement: true,
-  leads: true,
-  marketing: true,
-  feeManagement: true,
-  thinkingLab: true,
-  speakingPractice: true,
-  resourceLibrary: true,
-  careerPilot: true,
-  aiCommunicationLab: true,
-};
-
-const ALL_DISABLED_MODULES: TenantModules = {
-  courses: false,
-  attendance: false,
-  quizzes: false,
-  assignments: false,
-  classRecordings: false,
-  codeAssessments: false,
-  mockInterviews: false,
-  placement: false,
-  leads: false,
-  marketing: false,
-  feeManagement: false,
-  thinkingLab: false,
-  speakingPractice: false,
-  resourceLibrary: false,
-  careerPilot: false,
-  aiCommunicationLab: false,
-};
+const DEFAULT_MODULES: TenantModules = allModules(true);
+const ALL_DISABLED_MODULES: TenantModules = allModules(false);
 
 interface TenantModulesContextType {
   modules: TenantModules;
   loading: boolean;
-  isModuleEnabled: (key: keyof TenantModules) => boolean;
+  isModuleEnabled: (key: ModuleKey) => boolean;
   refreshModules: () => Promise<void>;
 }
 
@@ -102,7 +52,7 @@ export const TenantModulesProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [isAuthenticated, user?.role, user?.tenantId, fetchModules]);
 
   // SUPER_ADMIN bypasses module gates (they manage other tenants, not their own)
-  const isModuleEnabled = useCallback((key: keyof TenantModules): boolean => {
+  const isModuleEnabled = useCallback((key: ModuleKey): boolean => {
     if (user?.role === 'SUPER_ADMIN') return true;
     return modules[key] === true;
   }, [user?.role, modules]);

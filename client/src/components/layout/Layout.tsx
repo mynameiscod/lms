@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTenantModules } from '../../contexts/TenantModulesContext';
+import { moduleForPath, MODULE_DEFS } from '../../config/tenantModules';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import './Layout.css';
@@ -33,6 +35,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { pathname } = useLocation();
   const { user } = useAuth();
+  const { isModuleEnabled, loading: modulesLoading } = useTenantModules();
+  // A page whose module the platform administrator switched off is not shown, even by typed URL.
+  const pageModule = moduleForPath(pathname);
+  const pageBlocked = !!pageModule && !modulesLoading && !isModuleEnabled(pageModule);
+  const blockedLabel = MODULE_DEFS.find((d) => d.key === pageModule)?.label;
   const isCareerPilotAdmin = pathname.startsWith('/admin/passport') || pathname.startsWith('/admin/careerpilot');
   const isAdminCore = Boolean(user && user.role !== 'STUDENT' && !isCareerPilotAdmin);
   const studentCoreRouteKey = routeKeyFor(pathname);
@@ -63,7 +70,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           data-admin-core-route={adminCoreRouteKey || undefined}
           data-careerpilot-admin-route={careerPilotRouteKey || undefined}
           onClick={mobileSidebarOpen ? () => setMobileSidebarOpen(false) : undefined}
-        >{children}</main>
+        >{pageBlocked ? (
+          <div style={{ maxWidth: 520, margin: '80px auto', textAlign: 'center', color: '#475569' }} role="alert">
+            <i className="fa-solid fa-lock" style={{ fontSize: 34, color: '#94a3b8' }} aria-hidden="true" />
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', margin: '14px 0 6px' }}>{blockedLabel || 'This feature'} is not enabled for your institute</h2>
+            <p style={{ fontSize: 14, margin: 0 }}>Contact the platform administrator to switch it on.</p>
+          </div>
+        ) : children}</main>
       </div>
     </div>
   );

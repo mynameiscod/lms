@@ -1,25 +1,7 @@
 ﻿import React, { useEffect, useState, useCallback } from 'react';
 import { tenantApi } from '../../api';
 import './TenantManagement.css';
-
-interface TenantModules {
-  courses: boolean;
-  attendance: boolean;
-  quizzes: boolean;
-  assignments: boolean;
-  classRecordings: boolean;
-  codeAssessments: boolean;
-  mockInterviews: boolean;
-  placement: boolean;
-  leads: boolean;
-  marketing: boolean;
-  feeManagement: boolean;
-  thinkingLab: boolean;
-  speakingPractice: boolean;
-  resourceLibrary: boolean;
-  careerPilot: boolean;
-  aiCommunicationLab: boolean;
-}
+import { MODULE_DEFS, TenantModules, effectiveModules, allModules, ModuleKey } from '../../config/tenantModules';
 
 interface TenantRow {
   _id: string;
@@ -31,25 +13,6 @@ interface TenantRow {
   modules: TenantModules;
   createdAt: string;
 }
-
-const MODULE_DEFS: { key: keyof TenantModules; label: string; icon: string; desc: string }[] = [
-  { key: 'courses',         label: 'Courses & Learning',   icon: 'fa-solid fa-book-open',         desc: 'Course mgmt, My Course, Topic Hub' },
-  { key: 'attendance',      label: 'Attendance',           icon: 'fa-solid fa-calendar-check',    desc: 'Mark, view & report attendance' },
-  { key: 'quizzes',         label: 'Quizzes',              icon: 'fa-solid fa-circle-question',   desc: 'Quiz management & taking' },
-  { key: 'assignments',     label: 'Assignments',          icon: 'fa-solid fa-file-pen',          desc: 'Assignments & grading' },
-  { key: 'classRecordings', label: 'Class Recordings',     icon: 'fa-solid fa-video',             desc: 'Live classes & recordings' },
-  { key: 'codeAssessments', label: 'Code Assessments',     icon: 'fa-solid fa-code',              desc: 'Coding snippets & submissions' },
-  { key: 'mockInterviews',  label: 'Mock Interviews',      icon: 'fa-solid fa-comments',          desc: 'AI mock interview practice' },
-  { key: 'placement',       label: 'CRT / Placement',      icon: 'fa-solid fa-briefcase',         desc: 'Placement drives, alumni, applications' },
-  { key: 'leads',           label: 'Leads / CRM',          icon: 'fa-solid fa-user-tag',          desc: 'Lead management & telecaller' },
-  { key: 'marketing',       label: 'Marketing',            icon: 'fa-solid fa-bullhorn',          desc: 'Campaigns, analytics, insights' },
-  { key: 'feeManagement',   label: 'Fee Management',       icon: 'fa-solid fa-wallet',            desc: 'Seat reservations, payments, receipts, installments' },
-  { key: 'thinkingLab',     label: 'Thinking Lab', icon: 'fa-solid fa-brain',             desc: 'AI-graded logic & aptitude drills' },
-  { key: 'speakingPractice',label: 'Speaking Practice',    icon: 'fa-solid fa-microphone',        desc: 'AI speaking practice & feedback' },
-  { key: 'resourceLibrary', label: 'Resource Library',     icon: 'fa-solid fa-box-archive',       desc: 'Projects, references & downloads' },
-  { key: 'careerPilot',     label: 'CareerPilot',          icon: 'fa-solid fa-compass',           desc: 'AI Mentor, Job Tracker, Project Builder, Career Profile' },
-  { key: 'aiCommunicationLab', label: 'AI Communication Lab', icon: 'fa-solid fa-comment-dots',   desc: 'Daily self-introduction practice with AI feedback' },
-];
 
 const STUDENT_FEATURES = [
   { key: 'dashboard',       label: 'Dashboard',        icon: 'fa-solid fa-gauge-high' },
@@ -71,12 +34,7 @@ const STUDENT_FEATURES = [
   { key: 'aiCommunicationLab', label: 'Communication Lab', icon: 'fa-solid fa-comment-dots' },
 ];
 
-const DEFAULT_MODULES: TenantModules = {
-  courses: true, attendance: true, quizzes: true, assignments: true,
-  classRecordings: true, codeAssessments: true, mockInterviews: true,
-  placement: true, leads: true, marketing: true, feeManagement: true,
-  thinkingLab: true, speakingPractice: true, resourceLibrary: true, careerPilot: true, aiCommunicationLab: true,
-};
+const DEFAULT_MODULES: TenantModules = allModules(true);
 
 const DEFAULT_STUDENT_FEATURES: Record<string, boolean> = {
   dashboard: true, myCourse: true, classHub: true,
@@ -91,11 +49,10 @@ interface CreateModalProps {
   onCreated: (tenant: TenantRow, loginLink: string, registerLink: string) => void;
 }
 
+// A new institute starts with the basics; everything else is switched on deliberately.
 const DEFAULT_CREATE_MODULES: TenantModules = {
-  courses: true, attendance: true, quizzes: true, assignments: true,
-  classRecordings: false, codeAssessments: false, mockInterviews: false,
-  placement: false, leads: false, marketing: false, feeManagement: true,
-  thinkingLab: false, speakingPractice: false, resourceLibrary: false, careerPilot: false, aiCommunicationLab: false,
+  ...allModules(false),
+  courses: true, attendance: true, quizzes: true, assignments: true, feeManagement: true,
 };
 
 const CreateTenantPanel: React.FC<CreateModalProps> = ({ onClose, onCreated }) => {
@@ -381,10 +338,10 @@ const TenantManagementPage: React.FC = () => {
 
   const openPanel = (t: TenantRow) => {
     setSelected(t);
-    setEditModules({ ...DEFAULT_MODULES, ...(t.modules || {}) });
+    setEditModules(effectiveModules(t.modules));
   };
 
-  const toggle = (key: keyof TenantModules) => {
+  const toggle = (key: ModuleKey) => {
     setEditModules(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -426,8 +383,8 @@ const TenantManagementPage: React.FC = () => {
     setSuccessLinks({ name: tenant.name, login: loginLink, register: registerLink });
   };
 
-  const enabledCount = (m?: TenantModules) =>
-    Object.values(m || DEFAULT_MODULES).filter(Boolean).length;
+  const enabledCount = (m?: Partial<TenantModules>) =>
+    Object.values(effectiveModules(m)).filter(Boolean).length;
 
   const openCreate = () => {
     setSelected(null);
@@ -513,7 +470,7 @@ const TenantManagementPage: React.FC = () => {
               </div>
               <div className="tm-modules-chips">
                 {MODULE_DEFS.map(m => {
-                  const on = (t.modules || DEFAULT_MODULES)[m.key];
+                  const on = effectiveModules(t.modules)[m.key];
                   return (
                     <span key={m.key} className={`tm-chip ${on ? 'on' : 'off'}`} title={m.label}>
                       <i className={m.icon} />
@@ -570,30 +527,44 @@ const TenantManagementPage: React.FC = () => {
               </div>
             </div>
             <p className="tm-panel-hint">
-              Toggle modules on/off. <strong>Disabled modules are completely hidden</strong> from all
-              users in this tenant — admins, instructors, and students alike.
+              Toggle modules on/off. <strong>A disabled module is hidden and blocked</strong> for every user in
+              this institute — admins, instructors and students alike (menu, pages and API).
             </p>
-            <div className="tm-module-grid">
-              {MODULE_DEFS.map(m => {
-                const on = editModules[m.key];
-                return (
-                  <div
-                    key={m.key}
-                    className={`tm-module-card${on ? ' on' : ' off'}`}
-                    onClick={() => toggle(m.key)}
-                  >
-                    <div className="tm-module-top">
-                      <span className="tm-module-icon"><i className={m.icon} /></span>
-                      <div className={`tm-switch${on ? ' on' : ''}`}>
-                        <div className="tm-switch-thumb" />
-                      </div>
-                    </div>
-                    <div className="tm-module-label">{m.label}</div>
-                    <div className="tm-module-desc">{m.desc}</div>
+            {Array.from(new Set(MODULE_DEFS.map(d => d.group))).map(group => {
+              const defs = MODULE_DEFS.filter(d => d.group === group);
+              const allOn = defs.every(d => editModules[d.key]);
+              return (
+                <div key={group} className="tm-module-group">
+                  <div className="tm-module-group-head">
+                    <h4>{group}</h4>
+                    <button type="button" className="tm-link" onClick={() => setEditModules(prev => ({ ...prev, ...Object.fromEntries(defs.map(d => [d.key, !allOn])) }))}>
+                      {allOn ? 'Turn all off' : 'Turn all on'}
+                    </button>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="tm-module-grid">
+                    {defs.map(m => {
+                      const on = editModules[m.key];
+                      return (
+                        <div
+                          key={m.key}
+                          className={`tm-module-card${on ? ' on' : ' off'}`}
+                          onClick={() => toggle(m.key)}
+                        >
+                          <div className="tm-module-top">
+                            <span className="tm-module-icon"><i className={m.icon} /></span>
+                            <div className={`tm-switch${on ? ' on' : ''}`}>
+                              <div className="tm-switch-thumb" />
+                            </div>
+                          </div>
+                          <div className="tm-module-label">{m.label}</div>
+                          <div className="tm-module-desc">{m.desc}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
             <div className="tm-panel-footer">
               <span className="tm-enabled-count">
                 <i className="fa-solid fa-circle-check" style={{ color: 'var(--bs-success)' }} />

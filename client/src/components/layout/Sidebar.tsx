@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { moduleForPath } from '../../config/tenantModules';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStudentFeatures, StudentFeatures } from '../../contexts/StudentFeaturesContext';
@@ -332,8 +333,10 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
 
     if (user.role === 'STUDENT' && item.needsVisualizerGrant && !vzAllowed) return false;
 
-    // Platform-level module gate (applies to ALL roles — set by SUPER_ADMIN per tenant)
-    if (item.moduleKey && !isModuleEnabled(item.moduleKey)) {
+    // Platform-level module gate (applies to ALL roles — set by SUPER_ADMIN per tenant). Every page
+    // belongs to a module by its path (config/tenantModules); an explicit moduleKey still wins.
+    const moduleKey = item.moduleKey || moduleForPath(item.path);
+    if (moduleKey && !isModuleEnabled(moduleKey)) {
       return false;
     }
 

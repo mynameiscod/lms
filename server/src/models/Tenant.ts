@@ -56,6 +56,21 @@ export interface ITenantModules {
   resourceLibrary?: boolean; // Project / Resource Library
   careerPilot?: boolean;     // CareerPilot suite: AI Mentor, Job Tracker, Project Builder, Career Profile
   aiCommunicationLab?: boolean; // AI Communication Lab (daily self-intro practice)
+  // Added 2026-10-09. No schema default: until saved, each follows its parent module
+  // (config/tenantModules.ts MODULE_PARENT) — read through effectiveModules(), never directly.
+  skillAssessment?: boolean;
+  whatsapp?: boolean;
+  learningPlans?: boolean;
+  certificates?: boolean;
+  weeklyReports?: boolean;
+  placementProgram?: boolean;
+  interviewHub?: boolean;
+  liveClasses?: boolean;
+  problemBank?: boolean;
+  practicePass?: boolean;
+  codeVisualizer?: boolean;
+  techBattles?: boolean;
+  hackathons?: boolean;
 }
 
 // College-specific information (only populated when type = 'college')
@@ -223,7 +238,21 @@ const TenantSchema: Schema = new Schema(
       speakingPractice: { type: Boolean, default: true },
       resourceLibrary:  { type: Boolean, default: true },
       careerPilot:      { type: Boolean, default: true },
-      aiCommunicationLab: { type: Boolean, default: true }
+      aiCommunicationLab: { type: Boolean, default: true },
+      // No default on purpose — see ITenantModules.
+      skillAssessment: { type: Boolean },
+      whatsapp: { type: Boolean },
+      learningPlans: { type: Boolean },
+      certificates: { type: Boolean },
+      weeklyReports: { type: Boolean },
+      placementProgram: { type: Boolean },
+      interviewHub: { type: Boolean },
+      liveClasses: { type: Boolean },
+      problemBank: { type: Boolean },
+      practicePass: { type: Boolean },
+      codeVisualizer: { type: Boolean },
+      techBattles: { type: Boolean },
+      hackathons: { type: Boolean },
     },
     // College-specific info — all optional, existing tenants unaffected
     collegeInfo: {

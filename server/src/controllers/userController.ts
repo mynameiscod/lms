@@ -827,6 +827,13 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response) =>
   try {
     const { userId } = req.params;
     const { phone, bio, avatar, linkedin, github, profileComplete } = req.body;
+    // Your own profile, or same-institute staff (students never edit someone else). A changed phone
+    // number redirects WhatsApp login codes, so this must not be open to any logged-in user.
+    const self = String((req.user as any)?.id) === String(userId);
+    const callerRole = (req.user as any)?.role;
+    if (!self && (callerRole === 'STUDENT' || callerRole === 'GUEST' || !(await targetInOwnTenant(req, userId)))) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
 
     const updateData: any = {};
     if (phone !== undefined) updateData.phone = phone;

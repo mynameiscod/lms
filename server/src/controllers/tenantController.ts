@@ -2,6 +2,8 @@ import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import { TenantService } from '../services/tenantService';
 import Tenant, { IStudentFeatures, ITenantModules } from '../models/Tenant';
+import { effectiveModules, ALL_MODULES } from '../config/tenantModules';
+import { invalidateModuleCache } from '../middleware/moduleGate';
 
 const tenantService = new TenantService();
 
@@ -285,17 +287,12 @@ export const getTenantModules = async (
 ) => {
   try {
     const { tenantId } = req.params;
-    const tenant = await Tenant.findById(tenantId).select('modules');
+    const tenant: any = await Tenant.findById(tenantId).select('modules').lean();
     if (!tenant) {
       return res.status(404).json({ success: false, message: 'Tenant not found', error: 'Not found' });
     }
-    const defaults: ITenantModules = {
-      courses: true, attendance: true, quizzes: true, assignments: true,
-      classRecordings: true, codeAssessments: true, mockInterviews: true,
-      placement: true, leads: true, marketing: true, feeManagement: true,
-      thinkingLab: true, speakingPractice: true, resourceLibrary: true, careerPilot: true, aiCommunicationLab: true
-    };
-    res.status(200).json({ success: true, message: 'Modules fetched', data: tenant.modules || defaults });
+    // Every module, new ones resolved from their parent until saved — what the menu and the API gate both use.
+    res.status(200).json({ success: true, message: 'Modules fetched', data: effectiveModules(tenant.modules) });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message, error: error.message });
   }
@@ -309,17 +306,10 @@ export const updateTenantModules = async (
   try {
     const { tenantId } = req.params;
     const incoming = req.body as Partial<ITenantModules>;
-    const allowedKeys: (keyof ITenantModules)[] = [
-      'courses', 'attendance', 'quizzes', 'assignments',
-      'classRecordings', 'codeAssessments', 'mockInterviews',
-      'placement', 'leads', 'marketing', 'feeManagement',
-      'thinkingLab', 'speakingPractice', 'resourceLibrary', 'careerPilot', 'aiCommunicationLab'
-    ];
     const updateObj: Record<string, boolean> = {};
-    for (const key of allowedKeys) {
-      if (typeof incoming[key] === 'boolean') {
-        updateObj[`modules.${key}`] = incoming[key]!;
-      }
+    for (const key of ALL_MODULES) {
+      const v = (incoming as any)[key];
+      if (typeof v === 'boolean') updateObj[`modules.${key}`] = v;
     }
     const tenant = await Tenant.findByIdAndUpdate(
       tenantId,
@@ -329,7 +319,8 @@ export const updateTenantModules = async (
     if (!tenant) {
       return res.status(404).json({ success: false, message: 'Tenant not found', error: 'Not found' });
     }
-    res.status(200).json({ success: true, message: 'Tenant modules updated', data: tenant.modules });
+    invalidateModuleCache(String(tenantId));
+    res.status(200).json({ success: true, message: 'Tenant modules updated', data: effectiveModules((tenant as any).toObject ? (tenant as any).toObject().modules : (tenant as any).modules) });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message, error: error.message });
   }

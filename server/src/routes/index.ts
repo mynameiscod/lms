@@ -114,6 +114,7 @@ import problemBankRoutes from './problemBankRoutes';
 import codingPracticeRoutes from './codingPracticeRoutes';
 import externalApiRoutes from './externalApiRoutes';
 import codeJudgeRoutes from './codeJudgeRoutes';
+import { moduleGate } from '../middleware/moduleGate';
 import outperoRoutes from './outperoRoutes';
 import practicePassRoutes from './practicePassRoutes';
 import interviewHubRoutes from './interviewHubRoutes';
@@ -128,6 +129,9 @@ import { unsubscribe } from '../controllers/unsubscribeController';
 import { sesEvents } from '../controllers/sesEventsController';
 
 const router = express.Router();
+
+// Module switches set by the SaaS admin are enforced here, ahead of every router (middleware/moduleGate).
+router.use(moduleGate);
 
 // PUBLIC ROUTES (no auth required)
 // CareerPilot signup (specific, before generic /public). Mounted at BOTH paths:

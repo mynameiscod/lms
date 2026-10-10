@@ -121,6 +121,7 @@ import externalApiRoutes from './externalApiRoutes';
 import codeJudgeRoutes from './codeJudgeRoutes';
 import { moduleGate } from '../middleware/moduleGate';
 import outperoRoutes from './outperoRoutes';
+import eventApiRoutes, { publicEventRoutes } from './eventApiRoutes';
 import tenantIntegrationsRoutes from './tenantIntegrationsRoutes';
 import practicePassRoutes from './practicePassRoutes';
 import interviewHubRoutes from './interviewHubRoutes';
@@ -178,12 +179,14 @@ router.get('/public/branding/:idOrSlug', async (req, res) => {
     res.json({ success: true, data: b });
   } catch { res.status(404).json({ success: false, message: 'Not found' }); }
 });
+router.use('/event-apis', eventApiRoutes); // Event APIs: admin-defined registration APIs for the website
 router.use('/outpero', outperoRoutes); // leads → Outpero AI calls (off / manual / auto)
 router.use('/tenant-integrations', tenantIntegrationsRoutes); // institute admin: own Razorpay, UPI, email, Meta pixel
 router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public/certificate', publicCertificateRoutes); // certificate verification (specific, before generic /public)
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount
 router.use('/public/proof', publicProofRoutes); // HR-facing candidate proof profile (specific, before generic /public)
+router.use('/public/events', publicEventRoutes); // Event APIs: what the website calls (live events, fields, registrations)
 router.use('/public/placement-program', publicPlacementProgramRoutes); // ad landing form (specific, before generic /public)
 router.get('/public/unsubscribe', unsubscribe);
 // Amazon SES bounce/complaint events via SNS (public, signature-verified).

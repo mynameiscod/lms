@@ -185,6 +185,15 @@ export const POLICIES = {
     max: 20, windowMs: 60 * 60_000,
     message: 'Too many AI generations this hour. Please wait a little and try again.',
   },
+  /**
+   * Event API registrations from the website, per address. Sized for a college lab registering
+   * together behind one public IP; one person registering twice is handled by the event's own
+   * one-per-mobile rule, not by this.
+   */
+  eventSubmit: {
+    max: 300, windowMs: 15 * 60_000,
+    message: 'Too many registrations from this network.',
+  },
   /** Problem Bank studio runs and output generation — they share the code runner with students. */
   problemBankRun: {
     max: 60, windowMs: 10 * 60_000,

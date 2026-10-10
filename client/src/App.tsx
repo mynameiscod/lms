@@ -66,6 +66,8 @@ const PlacementProgramAdmin = lazy(() => import('./pages/PlacementProgramAdmin')
 const MyPlacementInterviews = lazy(() => import('./pages/PlacementProgramAdmin/MyInterviews'));
 const WhatsAppInbox = lazy(() => import('./pages/WhatsAppInbox'));
 const OutperoSettings = lazy(() => import('./pages/OutperoSettings'));
+const EventApis = lazy(() => import('./pages/EventApis'));
+const EventApiEditor = lazy(() => import('./pages/EventApis/EventEditor'));
 const TenantIntegrations = lazy(() => import('./pages/TenantIntegrations'));
 const TenantBranding = lazy(() => import('./pages/TenantBranding'));
 const StudentDrivesPage = lazy(() => import('./pages/Drives/StudentDrives'));
@@ -294,7 +296,8 @@ const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
     // Features with a permission of their own — so a custom role ticked for one can open its page
     'manage_placement_program', 'manage_placement_partners', 'manage_placement', 'manage_whatsapp_templates', 'chat_whatsapp', 'manage_certificates',
     'view_ai_spend', 'view_activity_logs', 'manage_concerns', 'manage_career_pilot', 'view_fees', 'manage_billing', 'manage_exams',
-    'manage_battles', 'view_battles', 'manage_hackathons', 'view_hackathons', 'manage_passport', 'view_passport_members', 'view_passport_funnel'],
+    'manage_battles', 'view_battles', 'manage_hackathons', 'view_hackathons', 'manage_passport', 'view_passport_members', 'view_passport_funnel',
+    'manage_event_apis'],
   'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments', 'manage_snippets', 'grade_snippets', 'manage_interview_templates', 'assign_interviews', 'evaluate_interviews',
     'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans', 'manage_live_classes',
     'manage_skill_assessment', 'manage_leave_requests', 'manage_thinking_lab', 'manage_resources', 'manage_speaking', 'manage_communication_lab'],
@@ -1478,6 +1481,36 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <TenantIntegrations />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/event-apis"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <EventApis />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/event-apis/new"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <EventApiEditor />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/event-apis/:id/edit"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <EventApiEditor />
             </Layout>
           </ProtectedRoute>
         }

@@ -1,0 +1,330 @@
+<title>Event Registration API</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a developer reference — one column, endpoints as blocks with method chips, examples beside the rules they illustrate. */
+:root{
+  --bg:#f5f6fa; --paper:#ffffff; --ink:#182033; --muted:#596379; --rule:#dfe3ec;
+  --accent:#2f5bea; --accent-soft:#e9efff;
+  --get:#16794a; --get-bg:#e3f4ea; --post:#2f5bea; --post-bg:#e6edff;
+  --warn:#8a5a00; --warn-bg:#fbf1dc; --bad:#b42323; --bad-bg:#fbe7e7;
+  --code-bg:#0f172a; --code-ink:#e2e8f0; --inline-bg:#edf0f6;
+  --f-display:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10141c; --paper:#161c27; --ink:#e3e8f1; --muted:#9aa4b6; --rule:#2a3342;
+  --accent:#8fb0ff; --accent-soft:#1c2840;
+  --get:#62d39b; --get-bg:#15301f; --post:#8fb0ff; --post-bg:#1c2840;
+  --warn:#f0bf5a; --warn-bg:#33280f; --bad:#f28a8a; --bad-bg:#3a1919;
+  --code-bg:#0b0f17; --code-ink:#dbe3ef; --inline-bg:#232b3a; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#10141c; --paper:#161c27; --ink:#e3e8f1; --muted:#9aa4b6; --rule:#2a3342;
+  --accent:#8fb0ff; --accent-soft:#1c2840;
+  --get:#62d39b; --get-bg:#15301f; --post:#8fb0ff; --post-bg:#1c2840;
+  --warn:#f0bf5a; --warn-bg:#33280f; --bad:#f28a8a; --bad-bg:#3a1919;
+  --code-bg:#0b0f17; --code-ink:#dbe3ef; --inline-bg:#232b3a; color-scheme:dark;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 var(--f-body);padding-inline:16px;padding-block:28px 64px}
+.wrap{max-width:980px;margin:0 auto;display:grid;gap:22px}
+header{display:grid;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:18px}
+.eyebrow{font:500 12px/1.3 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 clamp(28px,4.4vw,38px)/1.15 var(--f-display);margin:0;text-wrap:balance}
+h2{font:700 22px/1.25 var(--f-display);margin:0 0 8px;text-wrap:balance}
+h3{font:600 15.5px/1.35 var(--f-body);margin:16px 0 6px}
+p{margin:0 0 10px;max-width:74ch}
+section{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:22px clamp(16px,3vw,26px);min-width:0}
+ul,ol{margin:0 0 10px;padding-left:22px;max-width:76ch} li{margin:3px 0}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--inline-bg);padding:1px 5px;border-radius:3px;overflow-wrap:anywhere}
+pre{background:var(--code-bg);color:var(--code-ink);padding:13px 15px;border-radius:6px;overflow-x:auto;font:12.5px/1.6 var(--f-mono);margin:8px 0 12px}
+pre code{background:none;padding:0;color:inherit}
+.ep{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font:500 14px/1.4 var(--f-mono);background:var(--inline-bg);border-radius:6px;padding:10px 12px;margin:6px 0 10px;overflow-wrap:anywhere}
+.m{font:700 12px/1 var(--f-mono);padding:5px 8px;border-radius:4px;letter-spacing:.04em}
+.m.get{color:var(--get);background:var(--get-bg)} .m.post{color:var(--post);background:var(--post-bg)}
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:5px;margin:8px 0 12px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:620px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--rule)}
+th{font:600 12px/1.3 var(--f-body);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--accent-soft)}
+tr:last-child td{border-bottom:0}
+td.n{font-variant-numeric:tabular-nums;white-space:nowrap;font-family:var(--f-mono)}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:11px 15px;border-radius:0 5px 5px 0;margin:10px 0}
+.note.warn{border-color:var(--warn);background:var(--warn-bg)}
+.note p:last-child{margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13px;color:var(--muted)} .meta b{color:var(--ink)}
+nav ol{columns:2;column-gap:28px;font-size:14px} @media (max-width:620px){nav ol{columns:1}}
+a{color:var(--accent)} a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.small{font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">CodeBegun · for the codebegun.com website team</div>
+  <h1>Event Registration API</h1>
+  <p>Build one dynamic registration page on codebegun.com that works for every workshop, hackathon or webinar. The CodeBegun team creates each event in the LMS (name, fields, closing date); your page reads the fields from this API, draws the form, and posts the registration back.</p>
+  <div class="meta">
+    <span><b>Base URL</b> <code>https://platform.codebegun.com/api/v1/public/events/codebegun</code></span>
+    <span><b>Format</b> JSON</span>
+    <span><b>Auth</b> none (public)</span>
+    <span><b>Version</b> 1 · Oct 2026</span>
+  </div>
+</header>
+
+<nav aria-label="Contents">
+  <ol>
+    <li><a href="#flow">How it fits together</a></li>
+    <li><a href="#list">List open events</a></li>
+    <li><a href="#form">Get one event's form</a></li>
+    <li><a href="#types">Field types and how to render them</a></li>
+    <li><a href="#submit">Submit a registration</a></li>
+    <li><a href="#errors">Responses and error codes</a></li>
+    <li><a href="#example">Complete example</a></li>
+    <li><a href="#rules">Limits, caching and testing</a></li>
+  </ol>
+</nav>
+
+<section id="flow">
+  <h2>How it fits together</h2>
+  <ol>
+    <li>The CodeBegun team creates an event in the LMS (<b>Leads → Event APIs</b>) and gives it an <b>API name</b>, for example <code>java-workshop-nov-2026</code>.</li>
+    <li>Your events page calls <b>List open events</b> to show what is open right now.</li>
+    <li>Your registration page, for example <code>codebegun.com/events/java-workshop-nov-2026</code>, calls <b>Get one event's form</b> and draws the inputs from <code>fields</code>.</li>
+    <li>On submit, your page sends the answers to <b>Submit a registration</b>. Show the returned message, or show each error under its field.</li>
+  </ol>
+  <p>Nothing about a particular event is hard-coded on the website. When the team adds a field, changes a label or closes an event, your page follows within about a minute.</p>
+  <div class="note"><p><b>Keys are stable, labels are not.</b> Send answers using each field's <code>key</code>. Show the <code>label</code> to people. Labels can change at any time; a key never changes once the event has registrations.</p></div>
+</section>
+
+<section id="list">
+  <h2>List open events</h2>
+  <div class="ep"><span class="m get">GET</span>/api/v1/public/events/codebegun</div>
+  <p>Every event that is live and not past its closing date, soonest closing first. Use it for an "Upcoming events" listing.</p>
+<pre><code>{
+  "success": true,
+  "data": [
+    {
+      "name": "Java Full Stack Workshop – Nov 2026",
+      "apiName": "java-workshop-nov-2026",
+      "description": "Two-day hands-on workshop…",
+      "opensAt": null,
+      "closesAt": "2026-11-30T18:29:00.000Z",
+      "status": "open"
+    }
+  ]
+}</code></pre>
+  <p class="small">Dates are ISO 8601 in UTC. Show them in India time (<code>Asia/Kolkata</code>). An event that has not opened yet can appear here with <code>status: "not_yet_open"</code>.</p>
+</section>
+
+<section id="form">
+  <h2>Get one event's form</h2>
+  <div class="ep"><span class="m get">GET</span>/api/v1/public/events/codebegun/<b>{apiName}</b></div>
+<pre><code>{
+  "success": true,
+  "data": {
+    "event": {
+      "name": "Java Full Stack Workshop – Nov 2026",
+      "apiName": "java-workshop-nov-2026",
+      "description": "Two-day hands-on workshop…",
+      "opensAt": null,
+      "closesAt": "2026-11-30T18:29:00.000Z",
+      "status": "open",
+      "successMessage": "Thank you — we will WhatsApp you the venue details."
+    },
+    "fields": [
+      { "key": "name",    "label": "Full name",      "type": "text",   "required": true },
+      { "key": "phone",   "label": "WhatsApp number","type": "phone",  "required": true },
+      { "key": "college", "label": "College",        "type": "text",   "required": false, "placeholder": "e.g. JNTU Hyderabad" },
+      { "key": "year",    "label": "Year of study",  "type": "select", "required": true, "options": ["1st", "2nd", "3rd", "4th"] }
+    ]
+  }
+}</code></pre>
+  <h3>What to show for each <code>event.status</code></h3>
+  <div class="tbl"><table>
+    <thead><tr><th>status</th><th>Meaning</th><th>Show</th></tr></thead>
+    <tbody>
+      <tr><td><code>open</code></td><td>Taking registrations</td><td>The form</td></tr>
+      <tr><td><code>not_yet_open</code></td><td>Before <code>opensAt</code></td><td>"Registrations open on …" and no form</td></tr>
+      <tr><td><code>closed</code></td><td>Past <code>closesAt</code></td><td>"Registrations are closed" and no form</td></tr>
+      <tr><td><code>paused</code></td><td>Stopped by the team for now</td><td>"Registrations are paused" and no form</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">An unknown API name returns <code>404</code>; show a "this event does not exist" page.</p>
+</section>
+
+<section id="types">
+  <h2>Field types and how to render them</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>type</th><th>Render as</th><th>Send</th><th>Accepted</th></tr></thead>
+    <tbody>
+      <tr><td><code>text</code></td><td><code>&lt;input type="text"&gt;</code></td><td>string</td><td>Up to 500 characters</td></tr>
+      <tr><td><code>textarea</code></td><td><code>&lt;textarea&gt;</code></td><td>string</td><td>Up to 5,000 characters</td></tr>
+      <tr><td><code>email</code></td><td><code>&lt;input type="email"&gt;</code></td><td>string</td><td>A valid email address</td></tr>
+      <tr><td><code>phone</code></td><td><code>&lt;input type="tel"&gt;</code></td><td>string</td><td>Indian mobile, 10 digits starting 6–9. <code>9876543210</code>, <code>+91 98765 43210</code> and <code>098765 43210</code> all work.</td></tr>
+      <tr><td><code>number</code></td><td><code>&lt;input type="number"&gt;</code></td><td>number or numeric string</td><td>Any number</td></tr>
+      <tr><td><code>date</code></td><td><code>&lt;input type="date"&gt;</code></td><td>string</td><td><code>YYYY-MM-DD</code></td></tr>
+      <tr><td><code>select</code></td><td><code>&lt;select&gt;</code> or radio buttons from <code>options</code></td><td>string</td><td>Exactly one of <code>options</code></td></tr>
+      <tr><td><code>multiselect</code></td><td>Checkboxes from <code>options</code></td><td>array of strings</td><td>Any of <code>options</code></td></tr>
+      <tr><td><code>checkbox</code></td><td>One checkbox (yes/no)</td><td><code>true</code> / <code>false</code></td><td>If <code>required</code>, it must be ticked (for example a consent box)</td></tr>
+      <tr><td><code>url</code></td><td><code>&lt;input type="url"&gt;</code></td><td>string</td><td>Starts with <code>http://</code> or <code>https://</code></td></tr>
+    </tbody>
+  </table></div>
+  <p>Fields may also carry <code>placeholder</code> and <code>helpText</code>; show them when present. Render fields in the order given. If a type you don't recognise ever appears, render it as a text input rather than failing.</p>
+</section>
+
+<section id="submit">
+  <h2>Submit a registration</h2>
+  <div class="ep"><span class="m post">POST</span>/api/v1/public/events/codebegun/<b>{apiName}</b></div>
+  <p>Header <code>Content-Type: application/json</code>. The body is a flat object: one property per field <code>key</code>, plus these optional extras:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Property</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>_hp</code></td><td><b>Spam trap.</b> Add a hidden text input named <code>_hp</code> to every form (hidden with CSS, not <code>type="hidden"</code>, with <code>tabindex="-1"</code> and <code>autocomplete="off"</code>) and send whatever it contains. People leave it empty. If it has a value, the API answers as though the registration succeeded but stores nothing.</td></tr>
+      <tr><td><code>utm_source</code>, <code>utm_medium</code>, <code>utm_campaign</code>, <code>utm_term</code>, <code>utm_content</code></td><td>Copy these from the page's own URL when present (for example ads linking to <code>?utm_source=instagram</code>). The team sees the source next to each registration.</td></tr>
+    </tbody>
+  </table></div>
+<pre><code>POST /api/v1/public/events/codebegun/java-workshop-nov-2026
+Content-Type: application/json
+
+{
+  "name": "Ravi Kumar",
+  "phone": "9876543210",
+  "college": "JNTU Hyderabad",
+  "year": "3rd",
+  "utm_source": "instagram",
+  "_hp": ""
+}</code></pre>
+  <p>Properties that are not fields of this event are ignored. Do not add extra validation rules of your own beyond <code>required</code> and the input types; the API is the source of truth and returns a message for every problem.</p>
+</section>
+
+<section id="errors">
+  <h2>Responses and error codes</h2>
+  <p>Every response is JSON with <code>success</code>. Failures also carry <code>code</code> (stable, for your logic) and <code>message</code> (readable, safe to show).</p>
+  <div class="tbl"><table>
+    <thead><tr><th>HTTP</th><th>code</th><th>When</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr><td class="n">201</td><td>—</td><td>Registered</td><td>Show <code>data.message</code> and hide the form</td></tr>
+      <tr><td class="n">400</td><td><code>VALIDATION_FAILED</code></td><td>One or more answers are missing or invalid</td><td>Show each message from <code>errors</code> under its field (keys match field keys)</td></tr>
+      <tr><td class="n">403</td><td><code>EVENT_CLOSED</code></td><td>Past the closing date</td><td>Show <code>message</code>; hide the form</td></tr>
+      <tr><td class="n">403</td><td><code>EVENT_NOT_OPEN</code></td><td>Before the opening date</td><td>Show <code>message</code></td></tr>
+      <tr><td class="n">403</td><td><code>EVENT_PAUSED</code></td><td>Paused by the team</td><td>Show <code>message</code></td></tr>
+      <tr><td class="n">404</td><td><code>NOT_FOUND</code></td><td>Unknown event</td><td>Show a not-found page</td></tr>
+      <tr><td class="n">409</td><td><code>DUPLICATE</code></td><td>This mobile is already registered (only on events set to one per mobile)</td><td>Show <code>message</code></td></tr>
+      <tr><td class="n">429</td><td>—</td><td>Too many attempts from one network</td><td>Show <code>message</code>; the <code>Retry-After</code> header gives the seconds to wait</td></tr>
+      <tr><td class="n">500</td><td><code>SERVER_ERROR</code></td><td>Something failed on our side</td><td>Show <code>message</code> and let the person try again</td></tr>
+    </tbody>
+  </table></div>
+<pre><code>// 201
+{ "success": true, "data": { "id": "6730…", "message": "Thank you — we will WhatsApp you the venue details." } }
+
+// 400
+{
+  "success": false,
+  "code": "VALIDATION_FAILED",
+  "message": "Please correct the highlighted fields.",
+  "errors": {
+    "phone": "Enter a valid 10-digit mobile number for WhatsApp number.",
+    "year": "Year of study is required."
+  }
+}
+
+// 403
+{ "success": false, "code": "EVENT_CLOSED", "message": "Registrations for this event are closed." }</code></pre>
+</section>
+
+<section id="example">
+  <h2>Complete example</h2>
+  <p>A dependency-free page script. It reads the API name from the URL (<code>/events/&lt;apiName&gt;</code>), draws the form, and handles every response above. Adapt the markup to the site's design.</p>
+<pre><code>&lt;div id="event"&gt;&lt;/div&gt;
+&lt;script&gt;
+const API = 'https://platform.codebegun.com/api/v1/public/events/codebegun';
+const apiName = location.pathname.split('/').filter(Boolean).pop();
+const root = document.getElementById('event');
+const esc = (s) => String(s ?? '').replace(/[&amp;&lt;&gt;"]/g, (c) => ({ '&amp;': '&amp;amp;', '&lt;': '&amp;lt;', '&gt;': '&amp;gt;', '"': '&amp;quot;' }[c]));
+
+function input(f) {
+  const req = f.required ? 'required' : '';
+  const ph = f.placeholder ? `placeholder="${esc(f.placeholder)}"` : '';
+  switch (f.type) {
+    case 'textarea': return `&lt;textarea name="${f.key}" ${req} ${ph}&gt;&lt;/textarea&gt;`;
+    case 'select': return `&lt;select name="${f.key}" ${req}&gt;&lt;option value=""&gt;Choose…&lt;/option&gt;${
+      f.options.map((o) =&gt; `&lt;option&gt;${esc(o)}&lt;/option&gt;`).join('')}&lt;/select&gt;`;
+    case 'multiselect': return f.options.map((o) =&gt;
+      `&lt;label&gt;&lt;input type="checkbox" name="${f.key}" value="${esc(o)}"&gt; ${esc(o)}&lt;/label&gt;`).join('');
+    case 'checkbox': return `&lt;input type="checkbox" name="${f.key}" ${req}&gt;`;
+    default: {
+      const t = { email: 'email', phone: 'tel', number: 'number', date: 'date', url: 'url' }[f.type] || 'text';
+      return `&lt;input type="${t}" name="${f.key}" ${req} ${ph}&gt;`;
+    }
+  }
+}
+
+async function load() {
+  const res = await fetch(`${API}/${apiName}`);
+  if (res.status === 404) { root.innerHTML = '&lt;p&gt;This event does not exist.&lt;/p&gt;'; return; }
+  const { data } = await res.json();
+  const ev = data.event;
+  const closedText = {
+    closed: 'Registrations are closed.',
+    paused: 'Registrations are paused for now.',
+    not_yet_open: `Registrations open on ${new Date(ev.opensAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}.`,
+  }[ev.status];
+  root.innerHTML = `&lt;h1&gt;${esc(ev.name)}&lt;/h1&gt;&lt;p&gt;${esc(ev.description)}&lt;/p&gt;` + (closedText
+    ? `&lt;p&gt;${closedText}&lt;/p&gt;`
+    : `&lt;form novalidate&gt;
+        ${data.fields.map((f) =&gt; `&lt;div class="field" data-key="${f.key}"&gt;
+          &lt;label&gt;${esc(f.label)}${f.required ? ' *' : ''}&lt;/label&gt;${input(f)}
+          ${f.helpText ? `&lt;small&gt;${esc(f.helpText)}&lt;/small&gt;` : ''}
+          &lt;div class="error"&gt;&lt;/div&gt;&lt;/div&gt;`).join('')}
+        &lt;input name="_hp" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true"&gt;
+        &lt;button type="submit"&gt;Register&lt;/button&gt;&lt;p class="form-message"&gt;&lt;/p&gt;
+      &lt;/form&gt;`);
+  const form = root.querySelector('form');
+  if (form) form.addEventListener('submit', (e) =&gt; submit(e, data.fields));
+}
+
+async function submit(e, fields) {
+  e.preventDefault();
+  const form = e.target;
+  const body = { _hp: form._hp.value };
+  for (const f of fields) {
+    if (f.type === 'multiselect') body[f.key] = [...form.querySelectorAll(`[name="${f.key}"]:checked`)].map((x) =&gt; x.value);
+    else if (f.type === 'checkbox') body[f.key] = form.querySelector(`[name="${f.key}"]`).checked;
+    else body[f.key] = form.querySelector(`[name="${f.key}"]`).value;
+  }
+  const qs = new URLSearchParams(location.search);
+  for (const k of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']) if (qs.get(k)) body[k] = qs.get(k);
+
+  form.querySelectorAll('.error').forEach((el) =&gt; { el.textContent = ''; });
+  const button = form.querySelector('button'); button.disabled = true;
+  try {
+    const res = await fetch(`${API}/${apiName}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const out = await res.json();
+    if (res.status === 201) { form.innerHTML = `&lt;p&gt;${esc(out.data.message)}&lt;/p&gt;`; return; }
+    if (out.errors) for (const [key, msg] of Object.entries(out.errors)) {
+      const box = form.querySelector(`.field[data-key="${key}"] .error`); if (box) box.textContent = msg;
+    }
+    form.querySelector('.form-message').textContent = out.message || 'Something went wrong. Please try again.';
+  } catch {
+    form.querySelector('.form-message').textContent = 'Could not reach the server. Check your connection and try again.';
+  }
+  button.disabled = false;
+}
+load();
+&lt;/script&gt;</code></pre>
+  <p class="small">Always escape labels, options and messages before inserting them as HTML, as <code>esc()</code> does above. They are written by staff, but treat them as text.</p>
+</section>
+
+<section id="rules">
+  <h2>Limits, caching and testing</h2>
+  <ul>
+    <li><b>Cross-site requests:</b> allowed from codebegun.com; no API key or login is needed.</li>
+    <li><b>Caching:</b> the two GET calls are cacheable for 60 seconds (<code>Cache-Control: max-age=60</code>). Don't cache POST.</li>
+    <li><b>Rate limit:</b> 300 registrations per 15 minutes from one network. That is enough for a whole college lab registering at once; beyond it you get <code>429</code>.</li>
+    <li><b>Duplicates:</b> an event can be set to one registration per mobile; a repeat gets <code>409 DUPLICATE</code>.</li>
+    <li><b>Not supported yet:</b> file uploads, and non-Indian phone numbers in phone fields. Use a text field if international numbers are needed.</li>
+    <li><b>Testing:</b> ask the CodeBegun team to create a test event (for example <code>website-test</code>), point your page at it, and submit freely. The team can delete test registrations from the Data screen, then pause or close the test event.</li>
+    <li><b>The registration list</b> is only visible to CodeBegun staff in the LMS. This API never returns other people's registrations.</li>
+  </ul>
+  <div class="note warn"><p><b>Go-live checklist:</b> the page shows each <code>status</code> correctly, shows per-field errors, includes the hidden <code>_hp</code> input, passes UTM values through, and shows <code>data.message</code> after success.</p></div>
+</section>
+</div>

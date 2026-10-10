@@ -130,6 +130,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     label: 'Marketing Intelligence',
     permissions: [
       { key: 'manage_marketing', label: 'Marketing Intelligence Dashboard' },
+      { key: 'manage_event_apis', label: 'Event APIs: registration forms for the website, and their data' },
     ]
   },
   codingSnippets: {
@@ -313,7 +314,7 @@ export const FEATURE_PERMISSIONS = [
   'manage_placement_program', 'manage_placement_partners', 'manage_interview_hub', 'manage_whatsapp_templates',
   'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans',
   'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests', 'manage_concerns', 'view_activity_logs',
-  'chat_whatsapp',
+  'chat_whatsapp', 'manage_event_apis',
 ];
 
 // Flatten all permission keys
@@ -425,7 +426,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // The same features instructors already reached through "Create Courses"
     'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer',
     'manage_learning_plans', 'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests',
-    'manage_concerns', 'view_activity_logs',
+    'manage_concerns', 'view_activity_logs', 'manage_event_apis',
   ],
   ATTENDANCE_ADMIN: [
     'mark_attendance', 'view_attendance', 'view_reports',

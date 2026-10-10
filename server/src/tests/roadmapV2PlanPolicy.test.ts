@@ -92,3 +92,24 @@ describe('fitting the plan into the admin’s days', () => {
     expect(fitToDays([item('a', 'ESSENTIAL')], { days: 3, dailyMinutes: 150, maxUnitsPerDay: 3 }).reason).toBe('TOO_FEW_UNITS');
   });
 });
+
+describe('revision for an existing member', () => {
+  const { revisionPick } = require('../data/roadmapV2PlanPolicy');
+  const topicOf = (code: string, score: number | null) => ({
+    topicCode: code, score,
+    units: [u(`${code}-c`, 'CONCEPT', code, 60, 1), u(`${code}-p1`, 'PRACTICE', code, 60, 2), u(`${code}-p2`, 'PRACTICE', code, 60, 3), u(`${code}-k`, 'CHECKPOINT', code, 30, 4)],
+  });
+  it('practises — never re-teaches the lesson', () => {
+    const picked = revisionPick([topicOf('A', 60)], 1000).map((x: any) => x.unitType);
+    expect(picked).not.toContain('CONCEPT');
+  });
+  it('starts with the weakest topic and goes round one unit per topic, within the budget', () => {
+    const picked = revisionPick([topicOf('STRONG', 90), topicOf('WEAK', 55), topicOf('UNSEEN', null)], 200);
+    expect(picked.map((x: any) => x.unitCode)).toEqual(['UNSEEN-p1', 'WEAK-p1', 'STRONG-p1']);
+    expect(picked.reduce((m: number, x: any) => m + x.estimatedMinutes, 0)).toBeLessThanOrEqual(200);
+  });
+  it('prefers practice they have not done yet', () => {
+    const picked = revisionPick([topicOf('A', 60)], 60, new Set(['A-p1']));
+    expect(picked.map((x: any) => x.unitCode)).toEqual(['A-p2']);
+  });
+});

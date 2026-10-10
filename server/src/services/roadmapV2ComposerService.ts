@@ -6,8 +6,9 @@ import { allocationForStage } from '../data/compositionShapePolicy';
 import { densityFor, unitsForDays } from '../data/learningDensityPolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource, CandidateSet } from './composerCandidateService';
 import {
-  standingOn, bridgeUnitsForTopic, yearTiers, fitToDays, PlanItem, V2Tier, V2Phase,
+  standingOn, bridgeUnitsForTopic, yearTiers, fitToDays, PlanItem, V2Tier, V2Phase, revisionPick,
 } from '../data/roadmapV2PlanPolicy';
+import { priorStudyOf } from './learnerHistoryService';
 
 /**
  * Roadmap V2 — compose a learner's roadmap to fit the admin's days (see roadmapV2PlanPolicy).
@@ -30,6 +31,10 @@ export interface V2Options {
   stageKey: string;
   programDays: number;
   dailyMinutes: number;
+  /** Revision days for an existing member moving up a year (the admin's setting). */
+  revisionDays?: number;
+  /** Whose roadmap: needed to read what they already studied with CareerPilot. */
+  studentId?: string | null;
   source: CandidateSource;
   history?: string[];
 }
@@ -37,6 +42,7 @@ export interface V2Options {
 export interface V2Plan {
   /** The days, in order, each unit with its phase. */
   days: { unit: SelectedUnit; phase: V2Phase; tier: V2Tier; part?: { index: number; of: number } }[][];
+  revisionDays: number;
   bridgeDays: number;
   yearDays: number;
   dropped: Record<V2Tier, number>;
@@ -143,6 +149,12 @@ export async function composeRoadmapV2(
       for (const k of u.prerequisiteSkillKeys || []) needs.add(String(k));
     }
   }
+  /*
+   * AN EXISTING MEMBER IS REVISED, NOT RE-TAUGHT. A topic they completed in an earlier CareerPilot
+   * year goes to revision; a topic they never reached (a year left part-way) is still bridged.
+   */
+  const prior = await priorStudyOf(tenantId, opts.studentId, earlier);
+  const revisionPool: { topicCode: string; units: ComposableUnit[]; score: number | null }[] = [];
   const bridge: { unit: SelectedUnit; tier: V2Tier }[] = [];
   const taken = new Set<string>([...history, ...year.map(u => u.unitCode)]);
   for (const src of earlier) {
@@ -163,7 +175,12 @@ export async function composeRoadmapV2(
         const ob = order?.get(b[0]) ?? Number.MAX_SAFE_INTEGER;
         return oa - ob || Math.min(...a[1].map(u => u.displayOrder ?? 0)) - Math.min(...b[1].map(u => u.displayOrder ?? 0));
       });
-    for (const [, units] of topics) {
+    for (const [topicCode, units] of topics) {
+      if (prior.studiedTopics.has(topicCode)) {
+        const scores = topicSkills(units).map(k => profile.skills.get(k)?.score).filter((x): x is number => typeof x === 'number');
+        revisionPool.push({ topicCode, units: units.filter(u => !taken.has(u.unitCode)), score: scores.length ? Math.min(...scores) : null });
+        continue;
+      }
       const fresh = units.filter(u => !taken.has(u.unitCode));
       if (!fresh.length) continue;
       const standing = standingOn(profile.skills as any, topicSkills(fresh));
@@ -174,13 +191,41 @@ export async function composeRoadmapV2(
     }
   }
 
+  // Revision: the admin's revision days of practice on what they studied, weakest first.
+  const revisionBudget = Math.max(0, (opts.revisionDays ?? 0) * opts.dailyMinutes);
+  const revision = revisionPool.length && revisionBudget
+    ? revisionPick(revisionPool, revisionBudget, prior.completedUnits).map(u => asSelected(u, profile, true, 0))
+    : [];
+
   // ── 3. Fit into the admin's days at the daily study time. ──
+  /*
+   * Revision is its own block of exactly the admin's revision days (fewer only when there is less
+   * to revise). Packed with everything else, the even-load packer spread seven days of revision
+   * over ten. The bridge and the year then fit the days that remain.
+   */
+  const fitOpts = { dailyMinutes: opts.dailyMinutes, maxUnitsPerDay: density.maxUnitsPerDay };
+  const revisionItems: PlanItem<SelectedUnit>[] = revision.map(u => ({ unit: u, phase: 'REVISION' as V2Phase, tier: 'REVISION' as V2Tier }));
+  const revisionFit = revisionItems.length
+    ? fitToDays(revisionItems, { ...fitOpts, days: Math.max(1, Math.min(opts.revisionDays ?? 0, revisionItems.length)) })
+    : null;
+  const revisionDayCount = revisionFit?.ok ? revisionFit.days.length : 0;
+
   const tiers = yearTiers(year, yearPriority);
   const items: PlanItem<SelectedUnit>[] = [
     ...bridge.map(b => ({ unit: b.unit, phase: 'BRIDGE' as V2Phase, tier: b.tier })),
     ...year.map((u, i) => ({ unit: u, phase: 'YEAR' as V2Phase, tier: tiers[i] })),
   ];
-  const fit = fitToDays(items, { days: opts.programDays, dailyMinutes: opts.dailyMinutes, maxUnitsPerDay: density.maxUnitsPerDay });
+  const mainFit = fitToDays(items, { ...fitOpts, days: opts.programDays - revisionDayCount });
+  /* One plan out of the two blocks: revision days first, then the bridge and the year. */
+  const fit = mainFit.ok && revisionFit?.ok
+    ? {
+      ...mainFit,
+      kept: [...revisionFit.kept, ...mainFit.kept],
+      days: [...revisionFit.days, ...mainFit.days],
+      dropped: Object.fromEntries(Object.keys(mainFit.dropped).map(k => [k, (mainFit.dropped as any)[k] + ((revisionFit.dropped as any)[k] || 0)])) as Record<V2Tier, number>,
+      overflowDays: mainFit.overflowDays + revisionFit.overflowDays,
+    }
+    : mainFit;
   if (!fit.ok) {
     return {
       composition: { ...rest, ok: false, requestedDays: opts.programDays, units: items.map(i => i.unit) },
@@ -193,10 +238,11 @@ export async function composeRoadmapV2(
     unit: units[keptIndex.get(i.unit.unitCode) as number], phase: i.phase, tier: i.tier, part: i.part,
   })));
   const bridgeDays = days.filter(d => d.some(x => x.phase === 'BRIDGE')).length;
-  console.log(`[roadmap-v2] ${stage}: ${days.length} days (${bridgeDays} bridge) — dropped ${JSON.stringify(fit.dropped)}`
+  const revisionDays = days.filter(d => !d.some(x => x.phase === 'BRIDGE') && d.some(x => x.phase === 'REVISION')).length;
+  console.log(`[roadmap-v2] ${stage}: ${days.length} days (${revisionDays} revision, ${bridgeDays} bridge) — dropped ${JSON.stringify(fit.dropped)}`
     + (fit.overflowDays ? ` — ESSENTIALS OVER BY ${fit.overflowDays} DAY(S)` : ''));
   return {
     composition: { ...rest, ok: true, requestedDays: opts.programDays, units },
-    plan: { days, bridgeDays, yearDays: days.length - bridgeDays, dropped: fit.dropped, overflowDays: fit.overflowDays },
+    plan: { days, revisionDays, bridgeDays, yearDays: days.length - bridgeDays - revisionDays, dropped: fit.dropped, overflowDays: fit.overflowDays },
   };
 }

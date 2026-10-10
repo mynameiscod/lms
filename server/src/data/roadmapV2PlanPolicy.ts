@@ -24,10 +24,14 @@
  */
 import { packIntoDays, PackableUnit, PackResult } from './dayPackingPolicy';
 
-export type V2Phase = 'BRIDGE' | 'YEAR';
-export type V2Tier = 'ESSENTIAL' | 'MUST_EXTRA' | 'BRIDGE_EXTRA' | 'SHOULD' | 'OPTIONAL';
-/** The order tiers are given up in when the days are short. ESSENTIAL is never in it. */
-export const REMOVAL_ORDER: readonly V2Tier[] = ['OPTIONAL', 'SHOULD', 'BRIDGE_EXTRA', 'MUST_EXTRA'];
+export type V2Phase = 'REVISION' | 'BRIDGE' | 'YEAR';
+export type V2Tier = 'ESSENTIAL' | 'MUST_EXTRA' | 'BRIDGE_EXTRA' | 'REVISION' | 'SHOULD' | 'OPTIONAL';
+/**
+ * The order tiers are given up in when the days are short. ESSENTIAL is never in it. Revision (on
+ * what a member already studied with us) goes before a bridge extra: a skill they have not met
+ * matters more than practising one they have.
+ */
+export const REMOVAL_ORDER: readonly V2Tier[] = ['OPTIONAL', 'SHOULD', 'REVISION', 'BRIDGE_EXTRA', 'MUST_EXTRA'];
 
 export type SkillStanding = 'HELD' | 'WEAK' | 'UNKNOWN';
 export const READY_SCORE = 50;
@@ -136,7 +140,7 @@ export interface FitResult<U extends PackableUnit> {
   overflowDays: number;
 }
 
-const emptyDropped = (): Record<V2Tier, number> => ({ ESSENTIAL: 0, MUST_EXTRA: 0, BRIDGE_EXTRA: 0, SHOULD: 0, OPTIONAL: 0 });
+const emptyDropped = (): Record<V2Tier, number> => ({ ESSENTIAL: 0, MUST_EXTRA: 0, BRIDGE_EXTRA: 0, REVISION: 0, SHOULD: 0, OPTIONAL: 0 });
 
 /**
  * Fit an ordered plan into the days.
@@ -217,4 +221,44 @@ export function fitToDays<U extends PackableUnit>(items: PlanItem<U>[], opts: Fi
   // One unit (or part) a day always packs.
   const single = expand(kept).map(i => [i]);
   return { ok: true, kept, days: single, dropped, overflowDays: Math.max(0, single.length - opts.days) };
+}
+
+/** The kinds of unit revision is made of: doing it again, never the lesson. */
+export const REVISION_UNIT_TYPES: readonly string[] = ['PRACTICE', 'DEBUG', 'CHECKPOINT'];
+
+/**
+ * Revision for an existing member: practice on the topics they already studied with CareerPilot,
+ * weakest first, one unit per topic per round, until `budgetMinutes` (the admin's revision days at
+ * the daily study time) is spent. Units they have not done yet are preferred to ones they have.
+ *
+ * `topics` carries each topic's units and the learner's lowest score on it (null when unmeasured,
+ * which sorts first: an unmeasured skill is the one most worth checking).
+ */
+export function revisionPick<U extends TopicUnit>(
+  topics: { topicCode: string; units: U[]; score: number | null }[],
+  budgetMinutes: number,
+  done: Set<string> = new Set(),
+): U[] {
+  const queues = topics
+    .map(t => ({
+      t,
+      q: t.units
+        .filter(u => REVISION_UNIT_TYPES.includes(u.unitType))
+        .sort((a, b) => Number(done.has(a.unitCode)) - Number(done.has(b.unitCode)) || (a.displayOrder ?? 0) - (b.displayOrder ?? 0)),
+    }))
+    .filter(x => x.q.length)
+    .sort((a, b) => (a.t.score ?? -1) - (b.t.score ?? -1) || a.t.topicCode.localeCompare(b.t.topicCode));
+  const out: U[] = [];
+  let used = 0;
+  for (let round = 0; queues.some(x => x.q.length > round); round++) {
+    for (const x of queues) {
+      const u = x.q[round];
+      if (!u) continue;
+      const m = Number(u.estimatedMinutes) || 0;
+      if (used + m > budgetMinutes) return out;
+      out.push(u);
+      used += m;
+    }
+  }
+  return out;
 }

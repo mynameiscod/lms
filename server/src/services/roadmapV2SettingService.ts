@@ -12,11 +12,11 @@ export async function roadmapV2SettingFor(
   tenantId: string,
   studentId: string,
   stageKey: string,
-): Promise<{ dailyMinutes: number } | null> {
+): Promise<{ dailyMinutes: number; revisionDays: number } | null> {
   try {
     const cfg = await PassportConfig.findOne({ tenantId }).select('roadmapV2').lean() as any;
     return roadmapV2For(cfg?.roadmapV2, studentId, stageKey)
-      ? { dailyMinutes: resolveRoadmapV2(cfg?.roadmapV2).dailyMinutes }
+      ? (({ dailyMinutes, revisionDays }) => ({ dailyMinutes, revisionDays }))(resolveRoadmapV2(cfg?.roadmapV2))
       : null;
   } catch (e: any) {
     console.error('[roadmap-v2] could not read the setting — composing with V1:', e?.message || e);

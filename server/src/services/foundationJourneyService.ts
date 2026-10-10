@@ -66,7 +66,9 @@ export interface JourneyBuildOptions {
    * Roadmap V2 for this learner: the daily study time it plans with. Set (by persistFoundationJourney,
    * from roadmapV2For) only when V2 is on for them; absent or null composes exactly as V1.
    */
-  roadmapV2?: { dailyMinutes: number } | null;
+  roadmapV2?: { dailyMinutes: number; revisionDays?: number } | null;
+  /** Whose journey. Roadmap V2 reads what they already studied with CareerPilot from it. */
+  studentId?: string;
   /**
    * Where candidates come from. PRODUCTION in every real call.
    *
@@ -711,7 +713,7 @@ export async function composeFoundationJourney(
   if (opts.roadmapV2) {
     const v2 = await composeRoadmapV2(tenantId, profile, set, {
       stageKey: opts.stageKey || 'foundation', programDays, dailyMinutes: opts.roadmapV2.dailyMinutes,
-      source, history: opts.history,
+      revisionDays: opts.roadmapV2.revisionDays, studentId: opts.studentId, source, history: opts.history,
     });
     return { candidates: set.units.length, composition: v2.composition, v2: v2.plan };
   }
@@ -974,7 +976,7 @@ export async function persistFoundationJourney(
   /* Roadmap V2 decides per learner, unless the caller already said. OFF unless switched on. */
   const roadmapV2 = opts.roadmapV2 !== undefined ? opts.roadmapV2 : await roadmapV2SettingFor(tenantId, String(sid), stageKey);
 
-  const { composition, v2 } = await composeFoundationJourney(tenantId, profile, { ...opts, programDays, roadmapV2 });
+  const { composition, v2 } = await composeFoundationJourney(tenantId, profile, { ...opts, programDays, roadmapV2, studentId: String(sid) });
   if (roadmapV2) return persistRoadmapV2(tenantId, sid, stageKey, source, programDays, composition, v2 || null);
 
   /**
@@ -1108,7 +1110,7 @@ async function persistRoadmapV2(
             tenantId, topicId: units[0].topicCode, primaryUnitCode: units[0].unitCode,
             unitCodes: units.map(u => u.unitCode), title: dayTitle(units), items: dayItems(units, assets),
             /* A day that carries any bridge unit is a bridge day: the year starts on a clean day. */
-            phase: day.some(d => d.phase === 'BRIDGE') ? 'BRIDGE' : 'YEAR',
+            phase: day.some(d => d.phase === 'BRIDGE') ? 'BRIDGE' : day.some(d => d.phase === 'REVISION') ? 'REVISION' : 'YEAR',
           },
           $setOnInsert: { curriculumId: doc._id, dayNumber: i + 1 },
         },
@@ -1120,7 +1122,7 @@ async function persistRoadmapV2(
   await DayPlan.deleteMany({ curriculumId: doc._id, dayNumber: { $gt: totalDays } });
   doc.totalDays = totalDays;
   doc.roadmapVersion = 'ROADMAP_V2';
-  doc.phaseDays = { bridge: plan.bridgeDays, year: plan.yearDays };
+  doc.phaseDays = { revision: plan.revisionDays, bridge: plan.bridgeDays, year: plan.yearDays };
   doc.v2Report = { dropped: plan.dropped, overflowDays: plan.overflowDays, programDays };
   await doc.save();
   if (plan.overflowDays) {

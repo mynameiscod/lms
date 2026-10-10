@@ -2398,9 +2398,16 @@ export interface FoundationJourneyDaySummary {
   objective?: string | null;
   /** The server's ladder: true while the day before is unfinished. The day endpoint refuses a locked day. */
   locked?: boolean;
-  /** Which gate is shut: work still to do, or a day the calendar has not reached. */
-  lockedReason?: 'DAY_LOCKED' | 'NOT_TODAY_YET';
+  /** Which gate is shut: work still to do, a day the calendar has not reached, or (Roadmap V2) the foundation checks. */
+  lockedReason?: 'DAY_LOCKED' | 'NOT_TODAY_YET' | 'FOUNDATION_GATE';
+  /** Roadmap V2 only: which part of the plan the day belongs to. */
+  phase?: JourneyPhase;
 }
+
+/** Roadmap V2: revision of what a member studied before, the bridge of earlier years, then the year. */
+export type JourneyPhase = 'REVISION' | 'BRIDGE' | 'YEAR';
+export interface RoadmapPhaseSummary { phase: JourneyPhase; days: number; completed: number; fromDay: number | null; toDay: number | null }
+export interface RoadmapGateSummary { open: boolean; passed: number; total: number; firstYearDay: number | null; pending: number; flagged: number }
 
 /**
  * One interface rather than a discriminated union on `available`.
@@ -2483,6 +2490,10 @@ export interface FoundationJourney {
   percentComplete?: number;
   startedAt?: string | null;
   days?: FoundationJourneyDaySummary[];
+  /** Roadmap V2 only: the plan's phases with their progress, and the foundation gate. */
+  roadmapVersion?: 'ROADMAP_V2';
+  phases?: RoadmapPhaseSummary[];
+  gate?: RoadmapGateSummary | null;
 }
 
 export interface FoundationJourneyActivity {
@@ -2532,6 +2543,8 @@ export interface FoundationPreviewDay {
 /** Admin view of one member's journey. Unlike the member's own, it names the unit behind each day. */
 export interface AdminFoundationJourneyDay {
   day: number;
+  /** Roadmap V2 only. */
+  phase?: JourneyPhase;
   title: string;
   unitCode: string | null;
   unitType: string | null;
@@ -2561,6 +2574,15 @@ export interface AdminFoundationJourney {
   reason?: string;
   /** Whether this member sees all ninety days or only the preview. */
   access?: { level: 'FULL' | 'PREVIEW' | 'LOCKED'; previewDays: number } | null;
+  /** Roadmap V2 only: how the days split, what was given up to fit them, and the foundation gate. */
+  roadmapVersion?: 'ROADMAP_V2';
+  phaseDays?: { revision?: number; bridge: number; year: number } | null;
+  v2Report?: { dropped: Record<string, number>; overflowDays: number; programDays: number } | null;
+  gate?: {
+    open: boolean; passed: number; total: number; firstYearDay: number | null;
+    pending: { quizId: string; title: string; dayNumber: number; attempts: number }[];
+    flagged: { quizId: string; title: string; dayNumber: number; attempts: number }[];
+  } | null;
 }
 
 /** Whether a tenant can serve the Foundation journey. Decided by provisioning, not by a switch. */

@@ -102,7 +102,7 @@ async function journeyOf(tenantId: string, studentId: string, stageKey?: string 
     personalizedFor: new mongoose.Types.ObjectId(studentId),
     adaptiveStage: String(stageKey || STAGE_FALLBACK),
     journeyKind: FOUNDATION_JOURNEY_KIND,
-  }).select('_id title createdAt totalDays').lean() as any;
+  }).select('_id title createdAt totalDays roadmapVersion phaseDays v2Report').lean() as any;
 }
 
 /**
@@ -510,7 +510,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
 
     const [days, enrollment] = await Promise.all([
       DayPlan.find({ curriculumId: curriculum._id })
-        .select('dayNumber title primaryUnitCode items').sort({ dayNumber: 1 }).lean() as any,
+        .select('dayNumber title primaryUnitCode items phase').sort({ dayNumber: 1 }).lean() as any,
       CurriculumEnrollment.findOne({
         tenantId, curriculumId: curriculum._id,
         studentId: new mongoose.Types.ObjectId(studentId),
@@ -572,9 +572,19 @@ export const getMyJourney = async (req: Request, res: Response) => {
      * titles, ids, questions or assignment detail. Those come only from the day endpoint, which refuses a
      * locked day on the server.
      */
+    /*
+     * ROADMAP V2: the gate, read once for the strip. While it is closed, the year's days say so —
+     * a learner looking at a locked Day 10 should see "pass your foundation checks", not "locked".
+     */
+    const isV2 = (curriculum as any).roadmapVersion === 'ROADMAP_V2';
+    const gate = isV2 ? await foundationGateFor(curriculum._id, String(studentId)) : null;
+    const gateHolds = (day: number) => !!gate && gate.applies && !gate.open && gate.firstYearDay !== null
+      && day >= gate.firstYearDay && !completed.has(day);
+
     const strip = (days as any[]).map(d => ({
       day: d.dayNumber,
       title: d.title,
+      ...(isV2 ? { phase: d.phase || 'YEAR' } : {}),
       ...overview(d.dayNumber, d.primaryUnitCode || null),
       activities: (d.items || []).length,
       minutes: (d.items || []).reduce((n: number, i: any) => n + (Number(i.estimatedDuration) || 0), 0),
@@ -583,9 +593,19 @@ export const getMyJourney = async (req: Request, res: Response) => {
           : d.dayNumber < currentDay ? 'SKIPPED' : 'UPCOMING',
       locked: !isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom),
       /* Which gate is shut, so the strip can say "tomorrow" rather than only "locked". */
-      lockedReason: isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom) ? undefined
-        : !calendarAllowsDay(d.dayNumber, stripPacedFrom) ? 'NOT_TODAY_YET' : 'DAY_LOCKED',
-    }));
+      lockedReason: gateHolds(d.dayNumber) && isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom) ? 'FOUNDATION_GATE'
+        : isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom) ? undefined
+          : !calendarAllowsDay(d.dayNumber, stripPacedFrom) ? 'NOT_TODAY_YET' : 'DAY_LOCKED',
+    })).map(d => (d.lockedReason === 'FOUNDATION_GATE' ? { ...d, locked: true } : d));
+
+    /* Each phase's size and progress, for the "Revision · Bridge · Year" bands. */
+    const phases = isV2
+      ? (['REVISION', 'BRIDGE', 'YEAR'] as const).map(p => {
+        const inPhase = strip.filter((d: any) => d.phase === p);
+        return { phase: p, days: inPhase.length, completed: inPhase.filter((d: any) => d.status === 'COMPLETED').length,
+          fromDay: inPhase.length ? inPhase[0].day : null, toDay: inPhase.length ? inPhase[inPhase.length - 1].day : null };
+      }).filter(x => x.days > 0)
+      : undefined;
 
     res.json({
       available: true,
@@ -607,6 +627,14 @@ export const getMyJourney = async (req: Request, res: Response) => {
       /** Where a day is actually worked through: the learning-plan day player. */
       enrollmentId: enrollment?._id ? String(enrollment._id) : null,
       days: strip,
+      ...(isV2 ? {
+        roadmapVersion: 'ROADMAP_V2',
+        phases,
+        gate: gate && gate.applies ? {
+          open: gate.open, passed: gate.passed, total: gate.total, firstYearDay: gate.firstYearDay,
+          pending: gate.pending.length, flagged: gate.flagged.length,
+        } : null,
+      } : {}),
     });
   } catch (e: any) {
     console.error('[foundation-journey] me:', e?.message || e);
@@ -835,7 +863,7 @@ export const getStudentJourney = async (req: Request, res: Response) => {
 
     const [days, enrollment] = await Promise.all([
       DayPlan.find({ curriculumId: curriculum._id })
-        .select('dayNumber title primaryUnitCode items').sort({ dayNumber: 1 }).lean() as any,
+        .select('dayNumber title primaryUnitCode items phase').sort({ dayNumber: 1 }).lean() as any,
       CurriculumEnrollment.findOne({
         tenantId, curriculumId: curriculum._id,
         studentId: new mongoose.Types.ObjectId(studentId),
@@ -878,12 +906,26 @@ export const getStudentJourney = async (req: Request, res: Response) => {
           activities: items.length,
           checkpoint: items.some(i => i.kind === 'quiz'),
           project: items.some(i => i.kind === 'assignment'),
+          ...(curriculum.roadmapVersion === 'ROADMAP_V2' ? { phase: d.phase || 'YEAR' } : {}),
           minutes: items.reduce((n, i) => n + (Number(i.estimatedDuration) || 0), 0),
           status: completed.has(d.dayNumber) ? 'COMPLETED'
             : d.dayNumber === currentDay ? 'CURRENT'
               : d.dayNumber < currentDay ? 'SKIPPED' : 'UPCOMING',
         };
       }),
+      /*
+       * Roadmap V2, for the admin: how the days split, what was given up to fit them, and the
+       * gate — including the checks a mentor should help with.
+       */
+      ...(curriculum.roadmapVersion === 'ROADMAP_V2' ? {
+        roadmapVersion: 'ROADMAP_V2',
+        phaseDays: curriculum.phaseDays || null,
+        v2Report: curriculum.v2Report || null,
+        gate: await (async () => {
+          const g = await foundationGateFor(curriculum._id, String(studentId));
+          return g.applies ? { open: g.open, passed: g.passed, total: g.total, firstYearDay: g.firstYearDay, pending: g.pending, flagged: g.flagged } : null;
+        })(),
+      } : {}),
     });
   } catch (e: any) {
     console.error('[foundation-journey] admin student:', e?.message || e);

@@ -33,6 +33,7 @@ import passportApi, {
 import SectionLock, { useUnlock } from './SectionLock';
 import { OrientationDayPanel } from './Orientation';
 import { dayState, dayRanges, initialDay, STATE_LABEL } from './foundationRoadmapPresenter';
+import RoadmapPhaseBands from './RoadmapPhaseBands';
 import './foundationJourney.css';
 import './foundationPreview.css';
 import './foundationMember.css';
@@ -778,6 +779,9 @@ const FoundationJourneyPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Roadmap V2: revision · bridge · year, with the foundation gate. Nothing for a V1 journey. */}
+      <RoadmapPhaseBands phases={journey.phases} gate={journey.gate} stageLabel={journey.stageLabel || undefined} />
+
       {/* The card invites; once the welcome is finished it stops asking. The days stay in the strip. */}
       {orientation && !orientation.complete && (
         <OrientationCard view={orientation}
@@ -832,7 +836,7 @@ const FoundationJourneyPage: React.FC = () => {
                 <button
                   type="button"
                   id={`fj-chip-${d.day}`}
-                  className={`fj-chip s-${d.status.toLowerCase()}${state === 'LOCKED' ? ' s-locked' : ''}${openDay === d.day ? ' open' : ''}`}
+                  className={`fj-chip s-${d.status.toLowerCase()}${state === 'LOCKED' ? ' s-locked' : ''}${openDay === d.day ? ' open' : ''}${d.phase && d.phase !== 'YEAR' ? ` ph-${d.phase.toLowerCase()}` : ''}`}
                   onClick={() => selectDay(d.day)}
                   aria-current={d.day === currentDay ? 'step' : undefined}
                   aria-label={`Day ${d.day}, ${STATE_LABEL[state]}: ${d.title}`}

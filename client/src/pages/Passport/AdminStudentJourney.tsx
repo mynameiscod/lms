@@ -77,6 +77,36 @@ const AdminStudentJourney: React.FC<{ studentId: string }> = ({ studentId }) => 
         </div>
       </header>
 
+      {/* Roadmap V2: the split, what was given up to fit the admin's days, and the gate. */}
+      {data.roadmapVersion === 'ROADMAP_V2' && (
+        <div className="sr-note">
+          <b>
+            Roadmap V2 — {data.phaseDays?.revision ? `${data.phaseDays.revision} revision · ` : ''}
+            {data.phaseDays?.bridge ?? 0} bridge · {data.phaseDays?.year ?? 0} year days
+          </b>
+          <span>
+            Left out to fit {data.v2Report?.programDays ?? data.totalDays} days at the daily study time:{' '}
+            {data.v2Report
+              ? ['OPTIONAL', 'SHOULD', 'REVISION', 'BRIDGE_EXTRA', 'MUST_EXTRA']
+                .filter(k => (data.v2Report!.dropped[k] || 0) > 0)
+                .map(k => `${data.v2Report!.dropped[k]} ${k.toLowerCase().replace('_', ' ')}`).join(', ') || 'nothing'
+              : '—'}
+            {data.v2Report?.overflowDays ? ` · Must topics needed ${data.v2Report.overflowDays} extra day(s) — review priorities or days.` : ''}
+          </span>
+          {data.gate && (
+            <span>
+              Foundation gate: {data.gate.open ? 'open' : `closed — ${data.gate.passed} of ${data.gate.total} checks passed`}
+              {data.gate.pending.length ? ` · still to pass: ${data.gate.pending.slice(0, 5).map(c => `${c.title} (day ${c.dayNumber}, ${c.attempts} tried)`).join('; ')}${data.gate.pending.length > 5 ? '; …' : ''}` : ''}
+            </span>
+          )}
+          {data.gate && data.gate.flagged.length > 0 && (
+            <span style={{ color: '#b42318', fontWeight: 700 }}>
+              Mentor follow-up: {data.gate.flagged.map(c => `${c.title} (day ${c.dayNumber}, failed ${c.attempts}×)`).join('; ')}
+            </span>
+          )}
+        </div>
+      )}
+
       {offCurriculum.length > 0 && (
         <div className="sr-note warn">
           <b>{offCurriculum.length} day{offCurriculum.length === 1 ? '' : 's'} use a unit that is no longer published.</b>
@@ -103,7 +133,14 @@ const AdminStudentJourney: React.FC<{ studentId: string }> = ({ studentId }) => 
           <tbody>
             {shown.map(d => (
               <tr key={d.day} style={d.status === 'CURRENT' ? { background: '#eef2ff' } : undefined}>
-                <td className="c seq">{d.day}</td>
+                <td className="c seq">
+                  {d.day}
+                  {d.phase && d.phase !== 'YEAR' && (
+                    <small style={{ display: 'block', fontSize: 10.5, fontWeight: 800, color: d.phase === 'BRIDGE' ? '#1b7d91' : '#7c5ae0' }}>
+                      {d.phase === 'BRIDGE' ? 'Bridge' : 'Revision'}
+                    </small>
+                  )}
+                </td>
                 <td>{STATUS_LABEL[d.status] || d.status}</td>
                 <td>
                   <b>{d.title}</b>

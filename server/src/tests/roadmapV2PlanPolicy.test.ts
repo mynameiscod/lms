@@ -1,5 +1,5 @@
 import {
-  standingOn, bridgeUnitsForTopic, yearTiers, fitToDays, PlanItem, V2Tier,
+  standingOn, bridgeUnitsForTopic, yearTiers, fitToDays, fitBridgeThenYear, packTight, PlanItem, V2Tier,
 } from '../data/roadmapV2PlanPolicy';
 
 const u = (code: string, unitType: string, topicCode = 'T', estimatedMinutes = 60, displayOrder = 0) =>
@@ -90,6 +90,43 @@ describe('fitting the plan into the admin’s days', () => {
 
   it('says so when there is too little content to fill the days', () => {
     expect(fitToDays([item('a', 'ESSENTIAL')], { days: 3, dailyMinutes: 150, maxUnitsPerDay: 3 }).reason).toBe('TOO_FEW_UNITS');
+  });
+});
+
+describe('the bridge is packed tight; the year gets the days it leaves', () => {
+  const item = (code: string, tier: V2Tier, phase: 'BRIDGE' | 'YEAR', mins: number, type: string): PlanItem =>
+    ({ unit: u(code, type, code, mins), phase, tier });
+  // A strong learner: six half-hour proofs in the bridge, then ten hour-long year units.
+  const proofs = Array.from({ length: 6 }, (_, i) => item(`k${i}`, 'ESSENTIAL', 'BRIDGE', 30, 'CHECKPOINT'));
+  const year = Array.from({ length: 10 }, (_, i) => item(`y${i}`, 'MUST_EXTRA', 'YEAR', 60, 'CONCEPT'));
+  const opts = { days: 10, dailyMinutes: 150, maxUnitsPerDay: 3 };
+
+  it('a strong learner’s proofs take two full days, not one thin day each', () => {
+    const r = fitBridgeThenYear([...proofs, ...year], opts);
+    expect(r.ok).toBe(true);
+    expect(r.days).toHaveLength(10);
+    expect(r.days.filter(d => d.some(i => i.phase === 'BRIDGE'))).toHaveLength(2);
+    expect(r.kept).toHaveLength(16);
+  });
+
+  it('the year starts on a clean day and no day passes the daily study time', () => {
+    const r = fitBridgeThenYear([...proofs, ...year], opts);
+    for (const d of r.days) {
+      expect(new Set(d.map(i => i.phase)).size).toBe(1);
+      expect(d.reduce((m, i) => m + i.unit.estimatedMinutes, 0)).toBeLessThanOrEqual(150);
+    }
+  });
+
+  it('keeps the joint fit when the year cannot fill the days a tight bridge frees', () => {
+    const r = fitBridgeThenYear([...proofs, ...year.slice(0, 5)], opts);
+    expect(r.ok).toBe(true);
+    expect(r.days).toHaveLength(10);
+    expect(r.kept).toHaveLength(11);
+  });
+
+  it('packTight finds the fewest days, or says the items need more than allowed', () => {
+    expect(packTight(proofs, opts, 10)).toHaveLength(2);
+    expect(packTight(proofs, opts, 1)).toBeNull();
   });
 });
 

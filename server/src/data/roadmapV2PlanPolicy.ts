@@ -20,6 +20,9 @@
  * even they do not fit, the plan is still built, over as few extra days as it takes, and reported:
  * dropping a MUST topic silently is the one outcome V2 exists to prevent.
  *
+ * THE BRIDGE IS PACKED TIGHT (fitBridgeThenYear): as few days as the daily study time and the
+ * per-day unit limit allow, and the year gets every day it frees.
+ *
  * Pure and deterministic: same units, same options, same plan.
  */
 import { packIntoDays, PackableUnit, PackResult } from './dayPackingPolicy';
@@ -142,6 +145,66 @@ export interface FitResult<U extends PackableUnit> {
 
 const emptyDropped = (): Record<V2Tier, number> => ({ ESSENTIAL: 0, MUST_EXTRA: 0, BRIDGE_EXTRA: 0, REVISION: 0, SHOULD: 0, OPTIONAL: 0 });
 
+/*
+ * A UNIT LONGER THAN A DAY SPANS DAYS. A four-hour project in a 2.5-hour day is a day nobody can
+ * finish, so it is packed as consecutive parts that each own a day. It is kept or given up
+ * whole — removal works on the unit, never on a part.
+ */
+const partsOf = (i: PlanItem<any>, opts: { dailyMinutes: number }) =>
+  Math.max(1, Math.ceil((Number(i.unit.estimatedMinutes) || 0) / Math.max(1, opts.dailyMinutes)));
+/*
+ * A BRIDGE CHECKPOINT SHARES ITS DAY. In a year a checkpoint owns its day (dayPackingPolicy):
+ * it measures the work before it. In a bridge it is a short proof, and a strong learner proving
+ * forty topics would otherwise spend forty days on forty half-hour checks. Shared days still
+ * keep to the daily study time.
+ */
+const asPacked = <U extends PackableUnit>(i: PlanItem<U>): PlanItem<U> =>
+  (i.phase === 'BRIDGE' && i.unit.unitType === 'CHECKPOINT' ? { ...i, unit: { ...i.unit, unitType: 'PRACTICE' } } : i);
+const expand = <U extends PackableUnit>(list: PlanItem<U>[], opts: { dailyMinutes: number }): PlanItem<U>[] => list.map(asPacked).flatMap(i => {
+  const of = partsOf(i, opts);
+  if (of === 1) return [i];
+  return Array.from({ length: of }, (_, k) => ({
+    ...i, part: { index: k + 1, of },
+    unit: { ...i.unit, unitCode: `${i.unit.unitCode}#${k + 1}`, unitType: 'PROJECT', estimatedMinutes: Math.ceil(i.unit.estimatedMinutes / of) },
+  }));
+});
+/* One topic a day where it costs nothing; a mixed day before any content is taken away. */
+const pack = <U extends PackableUnit>(list: PlanItem<U>[], days: number, opts: Omit<FitOptions, 'days'>): PackResult => {
+  const units = expand(list, opts).map(i => i.unit);
+  const base = { days, budgetMinutes: opts.dailyMinutes, maxUnitsPerDay: opts.maxUnitsPerDay };
+  const grouped = packIntoDays(units, base);
+  return grouped.ok ? grouped : packIntoDays(units, { ...base, preferSameTopicDays: false });
+};
+/* Back from packed units to plan items: a part keeps its ORIGINAL unit, and says which part it is. */
+const toDays = <U extends PackableUnit>(list: PlanItem<U>[], packed: PackResult, opts: { dailyMinutes: number }): PlanItem<U>[][] => {
+  const byCode = new Map(list.map(i => [i.unit.unitCode, i]));
+  return packed.days.map(d => d.map(u => {
+    const [code, part] = String(u.unitCode).split('#');
+    const item = byCode.get(code)!;
+    return part ? { ...item, part: { index: Number(part), of: partsOf(item, opts) } } : item;
+  }));
+};
+
+/** How many days a plan item takes up at least: one, or one per part of a long project. */
+export const slotsOf = (items: PlanItem<any>[], opts: { dailyMinutes: number }): number =>
+  items.reduce((s, i) => s + partsOf(i, opts), 0);
+
+/**
+ * The fewest days `items` pack into with every one of them kept, up to `limit`; null when they
+ * need more. Days are as full as the daily study time and the per-day unit limit allow.
+ */
+export function packTight<U extends PackableUnit>(items: PlanItem<U>[], opts: Omit<FitOptions, 'days'>, limit: number): PlanItem<U>[][] | null {
+  const parts = expand(items, opts);
+  if (!parts.length) return [];
+  const minutes = parts.reduce((s, i) => s + (Number(i.unit.estimatedMinutes) || 0), 0);
+  const from = Math.max(1, Math.ceil(minutes / Math.max(1, opts.dailyMinutes)), Math.ceil(parts.length / Math.max(1, opts.maxUnitsPerDay)));
+  for (let d = from; d <= Math.min(limit, parts.length); d++) {
+    const p = pack(items, d, opts);
+    if (p.ok) return toDays(items, p, opts);
+  }
+  return null;
+}
+
 /**
  * Fit an ordered plan into the days.
  *
@@ -150,77 +213,71 @@ const emptyDropped = (): Record<V2Tier, number> => ({ ESSENTIAL: 0, MUST_EXTRA: 
  * checkpoint owns its day, and no day exceeds `dailyMinutes`.
  */
 export function fitToDays<U extends PackableUnit>(items: PlanItem<U>[], opts: FitOptions): FitResult<U> {
-  /*
-   * A UNIT LONGER THAN A DAY SPANS DAYS. A four-hour project in a 2.5-hour day is a day nobody can
-   * finish, so it is packed as consecutive parts that each own a day. It is kept or given up
-   * whole — removal works on the unit, never on a part.
-   */
-  const partsOf = (i: PlanItem<U>) => Math.max(1, Math.ceil((Number(i.unit.estimatedMinutes) || 0) / Math.max(1, opts.dailyMinutes)));
-  /*
-   * A BRIDGE CHECKPOINT SHARES ITS DAY. In a year a checkpoint owns its day (dayPackingPolicy):
-   * it measures the work before it. In a bridge it is a short proof, and a strong learner proving
-   * forty topics would otherwise spend forty days on forty half-hour checks. Shared days still
-   * keep to the daily study time.
-   */
-  const asPacked = (i: PlanItem<U>): PlanItem<U> =>
-    (i.phase === 'BRIDGE' && i.unit.unitType === 'CHECKPOINT' ? { ...i, unit: { ...i.unit, unitType: 'PRACTICE' } } : i);
-  const expand = (list: PlanItem<U>[]): PlanItem<U>[] => list.map(asPacked).flatMap(i => {
-    const of = partsOf(i);
-    if (of === 1) return [i];
-    return Array.from({ length: of }, (_, k) => ({
-      ...i, part: { index: k + 1, of },
-      unit: { ...i.unit, unitCode: `${i.unit.unitCode}#${k + 1}`, unitType: 'PROJECT', estimatedMinutes: Math.ceil(i.unit.estimatedMinutes / of) },
-    }));
-  });
-  /* One topic a day where it costs nothing; a mixed day before any content is taken away. */
-  const pack = (list: PlanItem<U>[], days: number): PackResult => {
-    const units = expand(list).map(i => i.unit);
-    const base = { days, budgetMinutes: opts.dailyMinutes, maxUnitsPerDay: opts.maxUnitsPerDay };
-    const grouped = packIntoDays(units, base);
-    return grouped.ok ? grouped : packIntoDays(units, { ...base, preferSameTopicDays: false });
-  };
-
   const removal: number[] = [];
   for (const tier of REMOVAL_ORDER) {
     for (let i = items.length - 1; i >= 0; i--) if (items[i].tier === tier) removal.push(i);
   }
 
-  /* Back from packed units to plan items: a part keeps its ORIGINAL unit, and says which part it is. */
-  const toDays = (list: PlanItem<U>[], packed: PackResult): PlanItem<U>[][] => {
-    const byCode = new Map(list.map(i => [i.unit.unitCode, i]));
-    return packed.days.map(d => d.map(u => {
-      const [code, part] = String(u.unitCode).split('#');
-      const item = byCode.get(code)!;
-      return part ? { ...item, part: { index: Number(part), of: partsOf(item) } } : item;
-    }));
-  };
   const dropped = emptyDropped();
   const removed = new Set<number>();
   const current = () => items.filter((_, i) => !removed.has(i));
 
-  if (expand(items).length < opts.days) {
+  if (expand(items, opts).length < opts.days) {
     return { ok: false, reason: 'TOO_FEW_UNITS', kept: items, days: [], dropped, overflowDays: 0 };
   }
-  let attempt = pack(items, opts.days);
+  let attempt = pack(items, opts.days, opts);
   for (const idx of removal) {
     if (attempt.ok) break;
-    if (expand(items.filter((_, i) => i !== idx && !removed.has(i))).length < opts.days) break; // could never fill the days
+    if (expand(items.filter((_, i) => i !== idx && !removed.has(i)), opts).length < opts.days) break; // could never fill the days
     removed.add(idx);
     dropped[items[idx].tier]++;
-    attempt = pack(current(), opts.days);
+    attempt = pack(current(), opts.days, opts);
   }
   const kept = current();
-  if (attempt.ok) return { ok: true, kept, days: toDays(kept, attempt), dropped, overflowDays: 0 };
+  if (attempt.ok) return { ok: true, kept, days: toDays(kept, attempt, opts), dropped, overflowDays: 0 };
 
   // The essentials alone do not fit: build over the fewest extra days that hold them, and say so.
-  const keptParts = expand(kept).length;
+  const keptParts = expand(kept, opts).length;
   for (let d = opts.days + 1; d <= keptParts; d++) {
-    const p = pack(kept, d);
-    if (p.ok) return { ok: true, kept, days: toDays(kept, p), dropped, overflowDays: d - opts.days };
+    const p = pack(kept, d, opts);
+    if (p.ok) return { ok: true, kept, days: toDays(kept, p, opts), dropped, overflowDays: d - opts.days };
   }
   // One unit (or part) a day always packs.
-  const single = expand(kept).map(i => [i]);
+  const single = expand(kept, opts).map(i => [i]);
   return { ok: true, kept, days: single, dropped, overflowDays: Math.max(0, single.length - opts.days) };
+}
+
+/**
+ * Fit a bridge and a year into the days: the bridge as tight as the daily study time allows, the
+ * year in every day it leaves.
+ *
+ * WHY. Packed together, the even-load packer spreads a short bridge thin: a strong learner whose
+ * bridge is forty half-hour proofs got forty days of one proof each — the longest bridge of
+ * anyone, for the learner who needs it least. A tight bridge gives those days to the year.
+ *
+ * What is kept is decided by the joint fit first (so a bridge extra still goes before a MUST
+ * extra when the days are short); the year is then refitted into the days the tight bridge leaves.
+ * Whenever that cannot be done cleanly, the joint fit stands — never a worse plan.
+ */
+export function fitBridgeThenYear<U extends PackableUnit>(items: PlanItem<U>[], opts: FitOptions): FitResult<U> {
+  const joint = fitToDays(items, opts);
+  if (!joint.ok || joint.overflowDays) return joint;
+  const bridge = joint.kept.filter(i => i.phase === 'BRIDGE');
+  const year = items.filter(i => i.phase !== 'BRIDGE');
+  const jointBridgeDays = joint.days.filter(d => d.some(i => i.phase === 'BRIDGE')).length;
+  if (!bridge.length || !year.length) return joint;
+
+  const tight = packTight(bridge, opts, jointBridgeDays - 1);
+  if (!tight) return joint;
+  const yearFit = fitToDays(year, { ...opts, days: opts.days - tight.length });
+  if (!yearFit.ok || yearFit.overflowDays) return joint;
+  return {
+    ok: true,
+    kept: [...bridge, ...yearFit.kept],
+    days: [...tight, ...yearFit.days],
+    dropped: { ...yearFit.dropped, BRIDGE_EXTRA: joint.dropped.BRIDGE_EXTRA },
+    overflowDays: 0,
+  };
 }
 
 /** The kinds of unit revision is made of: doing it again, never the lesson. */

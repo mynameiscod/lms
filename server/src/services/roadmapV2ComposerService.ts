@@ -6,7 +6,7 @@ import { allocationForStage } from '../data/compositionShapePolicy';
 import { densityFor, unitsForDays } from '../data/learningDensityPolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource, CandidateSet } from './composerCandidateService';
 import {
-  standingOn, bridgeUnitsForTopic, yearTiers, fitToDays, PlanItem, V2Tier, V2Phase, revisionPick,
+  standingOn, bridgeUnitsForTopic, yearTiers, fitToDays, fitBridgeThenYear, packTight, slotsOf, PlanItem, V2Tier, V2Phase, revisionPick,
 } from '../data/roadmapV2PlanPolicy';
 import { priorStudyOf } from './learnerHistoryService';
 
@@ -211,11 +211,47 @@ export async function composeRoadmapV2(
   const revisionDayCount = revisionFit?.ok ? revisionFit.days.length : 0;
 
   const tiers = yearTiers(year, yearPriority);
+
+  /*
+   * A LEARNER WHO ALREADY HOLDS MOST OF THE YEAR STILL GETS THE ADMIN'S DAYS. The composer leaves
+   * out what a strong learner has proved, and a very strong one can be left with fewer units than
+   * days — which used to refuse them a roadmap. They are given more of the year instead: practice,
+   * debugging and projects before lessons, MUST topics before SHOULD before OPTIONAL, each in its
+   * authored place. A top-up is never essential, so it can always be given up again by the fit.
+   */
+  /* The year fills every day the bridge leaves, and the bridge is packed tight (fitBridgeThenYear). */
+  const bridgeItems: PlanItem<SelectedUnit>[] = bridge.map(b => ({ unit: b.unit, phase: 'BRIDGE' as V2Phase, tier: b.tier }));
+  const mainDays = opts.programDays - revisionDayCount;
+  const tightBridge = packTight(bridgeItems, fitOpts, mainDays)?.length ?? slotsOf(bridgeItems, fitOpts);
+  const asYearItem = (u: SelectedUnit) => [{ unit: u, phase: 'YEAR' as V2Phase, tier: 'OPTIONAL' as V2Tier }];
+  const slotsNeeded = mainDays - tightBridge;
+  let slots = year.reduce((s, u) => s + slotsOf(asYearItem(u), fitOpts), 0);
+  if (slots < slotsNeeded) {
+    const DOING = ['PROJECT', 'PRACTICE', 'DEBUG', 'CHECKPOINT'];
+    const rank: Record<Priority, number> = { MUST: 0, SHOULD: 1, OPTIONAL: 2 };
+    const inYear = new Set(year.map(u => u.unitCode));
+    const spare = yearSet.units
+      .filter(u => !inYear.has(u.unitCode) && !taken.has(u.unitCode) && !history.has(u.unitCode))
+      .sort((a, b) => Number(!DOING.includes(a.unitType)) - Number(!DOING.includes(b.unitType))
+        || rank[yearPriority(String(a.topicCode))] - rank[yearPriority(String(b.topicCode))]
+        || (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+    for (const unit of spare) {
+      if (slots >= slotsNeeded) break;
+      const p = yearPriority(String(unit.topicCode));
+      const standing = standingOn(profile.skills as any, topicSkills([unit]));
+      const at = year.findIndex(s => (orderOf.get(s.unitCode) ?? 0) > (unit.displayOrder ?? 0));
+      const sel = asSelected(unit, profile, standing === 'HELD', 0);
+      const tier: V2Tier = p === 'MUST' ? 'MUST_EXTRA' : p;
+      if (at < 0) { year.push(sel); tiers.push(tier); } else { year.splice(at, 0, sel); tiers.splice(at, 0, tier); }
+      slots += slotsOf(asYearItem(sel), fitOpts);
+    }
+  }
+
   const items: PlanItem<SelectedUnit>[] = [
-    ...bridge.map(b => ({ unit: b.unit, phase: 'BRIDGE' as V2Phase, tier: b.tier })),
+    ...bridgeItems,
     ...year.map((u, i) => ({ unit: u, phase: 'YEAR' as V2Phase, tier: tiers[i] })),
   ];
-  const mainFit = fitToDays(items, { ...fitOpts, days: opts.programDays - revisionDayCount });
+  const mainFit = fitBridgeThenYear(items, { ...fitOpts, days: mainDays });
   /* One plan out of the two blocks: revision days first, then the bridge and the year. */
   const fit = mainFit.ok && revisionFit?.ok
     ? {

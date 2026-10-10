@@ -176,6 +176,8 @@ router.put('/config',    MANAGE, ctrl.updateConfig);
 router.get('/admin/roadmap-v2',                          MANAGE, roadmapV2Admin.getOverview);
 router.get('/admin/topic-priorities/:stage',             MANAGE, roadmapV2Admin.listTopics);
 router.put('/admin/topic-priorities/:stage/:topicCode',  MANAGE, roadmapV2Admin.updateTopic);
+router.get('/admin/topic-priorities-draft',              MANAGE, roadmapV2Admin.previewDraft);
+router.post('/admin/topic-priorities-draft',             MANAGE, roadmapV2Admin.applyDraftNow);
 
 // ── Mock interview plans: how many sittings a member gets and how each is composed,
 //    targeted by year / course / branch / role. Ordinary CareerPilot configuration, so

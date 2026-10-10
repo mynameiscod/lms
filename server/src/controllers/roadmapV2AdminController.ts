@@ -4,7 +4,12 @@ import { resolveRoadmapV2 } from '../data/roadmapV2Policy';
 import { isTopicPriority } from '../data/topicPriorityPolicy';
 import {
   PRIORITY_STAGES, PriorityStage, listStagePriorities, setTopicPriority, stageBudgets, loadAllStages,
+  computeDraft, applyDraft, StageDraft,
 } from '../services/topicPriorityService';
+import { getApplied, recordApplied } from '../migrations/roadmap-v2/_ledger';
+
+/** The ledger id migration RV2_M001 records under; the screen's draft shares it. */
+const DRAFT_MIGRATION = 'RV2_M001_topicPriorityDraft';
 import { summarisePriorities } from '../data/topicPriorityPolicy';
 
 /**
@@ -75,3 +80,48 @@ export const updateTopic = async (req: Request, res: Response) => {
     res.status(500).json({ message: e.message || 'Could not save the priority.' });
   }
 };
+
+/**
+ * The draft priorities, from the admin screen — so production needs no shell to get them.
+ *
+ * GET previews what the draft would set (nothing written); POST writes it. Both go through the
+ * same code as migration RV2_M001, and an admin-set priority is never changed. The first write
+ * is recorded in the same ledger the migration uses, so the migration's --rollback can still
+ * return the curricula to exactly how they were before V2.
+ */
+export const previewDraft = async (req: Request, res: Response) => {
+  try {
+    const drafts = await computeDraft(tenantOf(req));
+    res.json({ stages: drafts.map(draftView) });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message || 'Could not compute the draft.' });
+  }
+};
+
+export const applyDraftNow = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const drafts = await computeDraft(tenantId);
+    const { written, prior } = await applyDraft(tenantId, drafts, actorOf(req));
+    if (written && !(await getApplied(DRAFT_MIGRATION, tenantId))) {
+      await recordApplied({
+        migration: DRAFT_MIGRATION, tenantId, appliedBy: actorOf(req),
+        gitCommit: process.env.GIT_COMMIT || 'admin-screen', counts: { written }, prior,
+      });
+    }
+    res.json({ written, stages: drafts.map(draftView) });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message || 'Could not apply the draft.' });
+  }
+};
+
+/** What the screen needs from a draft: the counts, and how many topics it would change. */
+const draftView = (d: StageDraft) => ({
+  stage: d.stage,
+  available: !!d.curriculumId,
+  budget: d.budget,
+  after: d.after,
+  changes: d.rows.filter(r => r.source !== 'ADMIN' && r.current !== r.draft).length,
+  adminSet: d.rows.filter(r => r.source === 'ADMIN').length,
+  overCap: d.overCap,
+});

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   roadmapV2Api, RoadmapV2Overview, RoadmapV2Settings, StagePriorities, TopicPriority, RoadmapV2Budget, PrioritySummary,
+  DraftStageView,
 } from '../../api/passportApi';
 import './adminRoadmapV2.css';
 
@@ -78,6 +79,9 @@ const AdminRoadmapV2: React.FC = () => {
   const [filter, setFilter] = useState<'ALL' | TopicPriority>('ALL');
   const [q, setQ] = useState('');
   const [busyTopic, setBusyTopic] = useState('');
+  /* The draft priorities: previewed first, written only on confirm. */
+  const [draft, setDraft] = useState<DraftStageView[] | null>(null);
+  const [draftBusy, setDraftBusy] = useState(false);
 
   const loadOverview = useCallback(async () => {
     const o = await roadmapV2Api.overview();
@@ -123,6 +127,25 @@ const AdminRoadmapV2: React.FC = () => {
     } catch (e: any) {
       setMsg({ ok: false, text: e?.response?.data?.message || 'Could not save the priority.' });
     } finally { setBusyTopic(''); }
+  };
+
+  const previewDraft = async () => {
+    setDraftBusy(true); setMsg(null);
+    try { setDraft((await roadmapV2Api.previewDraft()).stages); }
+    catch (e: any) { setMsg({ ok: false, text: e?.response?.data?.message || 'Could not compute the draft.' }); }
+    finally { setDraftBusy(false); }
+  };
+  const applyDraft = async () => {
+    setDraftBusy(true);
+    try {
+      const r = await roadmapV2Api.applyDraft();
+      setDraft(null);
+      await loadOverview();
+      setData(await roadmapV2Api.topics(stage));
+      setMsg({ ok: true, text: r.written ? `Draft priorities applied to ${r.written} topic(s).` : 'Nothing to change — every topic already has its draft or admin priority.' });
+    } catch (e: any) {
+      setMsg({ ok: false, text: e?.response?.data?.message || 'Could not apply the draft.' });
+    } finally { setDraftBusy(false); }
   };
 
   const rows = useMemo(() => {
@@ -195,6 +218,41 @@ const AdminRoadmapV2: React.FC = () => {
           {msg && <span className={msg.ok ? 'rv2-ok' : 'rv2-err'}>{msg.text}</span>}
           <button type="button" className="rv2-btn" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save settings'}</button>
         </div>
+      </section>
+
+      {/* ── Draft priorities: how a fresh tenant (or production) gets them without a shell ── */}
+      <section className="rv2-card">
+        <div className="rv2-topics-hd">
+          <h2><i className="bi bi-magic" /> Draft priorities</h2>
+          <button type="button" className="rv2-btn ghost" onClick={previewDraft} disabled={draftBusy}>
+            {draftBusy && !draft ? 'Working…' : 'Generate draft priorities'}
+          </button>
+        </div>
+        <p className="rv2-muted">Sets Must / Should / Optional for every topic from the curriculum (the core topics, what later years
+          build on, and checkpoints), sized so each year’s Must topics fit. Topics you set yourself are never changed.
+          You will see what changes before anything is saved.</p>
+        {draft && (
+          <div className="rv2-draft">
+            <div className="rv2-draft-grid">
+              {draft.map(d => (
+                <div key={d.stage} className="rv2-draft-year">
+                  <b>{yearOf(d.stage).label}</b>
+                  {!d.available ? <span className="rv2-muted">No curriculum</span> : <>
+                    <span><em>{d.changes}</em> topic(s) would change{d.adminSet ? ` · ${d.adminSet} set by admin, kept` : ''}</span>
+                    <span>Must: {d.after.MUST.topics} topics, {hrs(d.after.MUST.minutes)} of {hrs(d.budget.mustCapMinutes)}</span>
+                    {d.overCap && <span className="rv2-err">Admin-set Must topics alone exceed the room</span>}
+                  </>}
+                </div>
+              ))}
+            </div>
+            <div className="rv2-actions">
+              <button type="button" className="rv2-btn ghost" onClick={() => setDraft(null)} disabled={draftBusy}>Cancel</button>
+              <button type="button" className="rv2-btn" onClick={applyDraft} disabled={draftBusy || !draft.some(d => d.changes > 0)}>
+                {draftBusy ? 'Applying…' : `Apply to ${draft.reduce((n, d) => n + d.changes, 0)} topic(s)`}
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ── Each year's budget ── */}

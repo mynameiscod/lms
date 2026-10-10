@@ -91,3 +91,13 @@
   .rv2-seg { width: 100%; } .rv2-seg button { flex: 1; }
   .rv2-search { min-width: 0; width: 100%; }
 }
+
+/* Draft priorities preview */
+.rv2-btn.ghost { background: #fff; color: var(--navy); border: 1px solid #c9d6e4; }
+.rv2-draft { margin-top: 12px; border: 1px dashed #c9d6e4; border-radius: 14px; padding: 14px; background: #fafcfe; }
+.rv2-draft-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.rv2-draft-year { display: flex; flex-direction: column; gap: 4px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 13px; color: #3e4f6b; min-width: 0; }
+.rv2-draft-year b { color: var(--navy); font-size: 13.5px; }
+.rv2-draft-year em { font-style: normal; font-weight: 800; color: var(--navy); }
+@media (max-width: 1100px) { .rv2-draft-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .rv2-draft-grid { grid-template-columns: minmax(0, 1fr); } }

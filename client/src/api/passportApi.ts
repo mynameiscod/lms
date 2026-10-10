@@ -4164,7 +4164,15 @@ export interface PriorityTopic {
 export interface StagePriorities {
   stage: string; available: boolean; budget: RoadmapV2Budget; summary: PrioritySummary; topics: PriorityTopic[];
 }
+export interface DraftStageView {
+  stage: string; available: boolean; budget: RoadmapV2Budget; after: PrioritySummary;
+  changes: number; adminSet: number; overCap: boolean;
+}
 export const roadmapV2Api = {
+  previewDraft: async (): Promise<{ stages: DraftStageView[] }> =>
+    (await axios.get(`${BASE}/admin/topic-priorities-draft`, { headers: auth() })).data,
+  applyDraft: async (): Promise<{ written: number; stages: DraftStageView[] }> =>
+    (await axios.post(`${BASE}/admin/topic-priorities-draft`, {}, { headers: auth() })).data,
   overview: async (): Promise<RoadmapV2Overview> =>
     (await axios.get(`${BASE}/admin/roadmap-v2`, { headers: auth() })).data,
   saveSettings: async (patch: Partial<RoadmapV2Settings>) =>

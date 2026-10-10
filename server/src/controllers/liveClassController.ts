@@ -11,6 +11,18 @@ import { getStr } from '../services/settingsService';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 
+/** Does any header carry the webhook secret? Timing-safe for each value compared. */
+export function webhookCarriesSecret(headers: Record<string, unknown>, secret: string): boolean {
+  const want = Buffer.from(secret);
+  for (const v of Object.values(headers || {})) {
+    for (const one of Array.isArray(v) ? v : [v]) {
+      const got = Buffer.from(String(one ?? '').replace(/^Bearer\s+/i, ''));
+      if (got.length === want.length && crypto.timingSafeEqual(got, want)) return true;
+    }
+  }
+  return false;
+}
+
 /** Batch ids from a request body: the new list, plus the single legacy field if sent. */
 const batchIdsFrom = (body: any): mongoose.Types.ObjectId[] | undefined => {
   if (!Array.isArray(body?.batchIds) && !body?.batchId) return undefined;
@@ -231,14 +243,17 @@ export const endLiveClass = async (req: AuthenticatedRequest, res: Response<ApiR
 // ── 100ms webhook (public; recording ready etc.) ──────────────────────────────
 export const hmsWebhook = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // With a secret set (Platform Settings → Live Classes), only 100ms — which sends it as a header — gets through.
+    /*
+     * The shared secret (Platform Settings → Live Classes) arrives as a custom header whose name
+     * is whatever was typed in the 100ms dashboard, so any header carrying it counts. A call
+     * without it is refused only once HMS_WEBHOOK_ENFORCE is "true": the secret was stored long
+     * before it was checked, and refusing straight away could drop real recordings and attendance
+     * if 100ms was never set up to send it.
+     */
     const secret = getStr('HMS_WEBHOOK_SECRET', '');
-    if (secret) {
-      const got = Buffer.from(String(req.headers['x-webhook-secret'] || ''));
-      const want = Buffer.from(secret);
-      if (got.length !== want.length || !crypto.timingSafeEqual(got, want)) {
-        return res.status(401).json({ ok: false });
-      }
+    if (secret && !webhookCarriesSecret(req.headers, secret)) {
+      if (getStr('HMS_WEBHOOK_ENFORCE', 'false').toLowerCase() === 'true') return res.status(401).json({ ok: false });
+      console.warn('[hms-webhook] secret missing from a webhook call — accepted because HMS_WEBHOOK_ENFORCE is not "true"');
     }
     const event = (req.body || {}) as any;
     const type = event.type;

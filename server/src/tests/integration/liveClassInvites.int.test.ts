@@ -232,14 +232,26 @@ describe('the personal join link (no login)', () => {
     expect(after.totalSeconds).toBe(1800);
   });
 
-  it('refuses webhook calls without the secret once one is set', async () => {
-    const spy = jest.spyOn(settings, 'getStr').mockImplementation((k: string, f = '') => (k === 'HMS_WEBHOOK_SECRET' ? 's3cret-value' : f));
+  it('accepts a webhook without the secret until enforcing is switched on, then refuses it', async () => {
+    const values: Record<string, string> = { HMS_WEBHOOK_SECRET: 's3cret-value' };
+    const spy = jest.spyOn(settings, 'getStr').mockImplementation((k: string, f = '') => values[k] ?? f);
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const logged = res();
+    await ctrl.hmsWebhook({ body: { type: 'noop', data: {} }, headers: {} } as any, logged);
+    expect(logged.statusCode).toBe(200);
+    expect(warn).toHaveBeenCalled();
+
+    values.HMS_WEBHOOK_ENFORCE = 'true';
     const no = res();
-    await ctrl.hmsWebhook({ body: { type: 'peer.join.success', data: {} }, headers: {} } as any, no);
+    await ctrl.hmsWebhook({ body: { type: 'peer.join.success', data: {} }, headers: { 'x-other': 'wrong' } } as any, no);
     expect(no.statusCode).toBe(401);
-    const yes = res();
-    await ctrl.hmsWebhook({ body: { type: 'noop', data: {} }, headers: { 'x-webhook-secret': 's3cret-value' } } as any, yes);
-    expect(yes.statusCode).toBe(200);
-    spy.mockRestore();
+    // Whatever header name was typed in the 100ms dashboard.
+    for (const headers of [{ 'x-webhook-secret': 's3cret-value' }, { 'x-100ms-secret': 's3cret-value' }, { authorization: 'Bearer s3cret-value' }]) {
+      const yes = res();
+      await ctrl.hmsWebhook({ body: { type: 'noop', data: {} }, headers } as any, yes);
+      expect(yes.statusCode).toBe(200);
+    }
+    spy.mockRestore(); warn.mockRestore();
   });
 });

@@ -181,7 +181,7 @@ export async function processDue(limit = 30): Promise<number> {
 export interface BulkFilter { stageIds?: string[]; sources?: string[]; courses?: string[]; includeAlreadySent?: boolean }
 
 function bulkQuery(tenantId: string, f: BulkFilter) {
-  const q: any = { tenantId: oid(tenantId), phone: { $nin: [null, ''] } };
+  const q: any = { tenantId: oid(tenantId), phone: { $nin: [null, ''] }, archivedAt: null };
   const stageIds = (f.stageIds || []).filter((s) => mongoose.isValidObjectId(s)).map(oid);
   if (stageIds.length) q.stageId = { $in: stageIds };
   if (f.sources?.length) q.source = { $in: f.sources };

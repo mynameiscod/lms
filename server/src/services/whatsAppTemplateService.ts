@@ -654,7 +654,7 @@ const oids = (ids?: string[]) => (ids || []).filter((x) => mongoose.isValidObjec
  */
 export async function resolveLeadAudience(tenantId: string, t: IWhatsAppTemplate, f: LeadFilter) {
   const tid = new mongoose.Types.ObjectId(tenantId);
-  const q: any = { tenantId: tid, phone: { $nin: [null, ''] } };
+  const q: any = { tenantId: tid, phone: { $nin: [null, ''] }, archivedAt: null };
   const stageIds = oids(f.stageIds);
   if (stageIds.length) q.stageId = { $in: stageIds };
   if (f.sources?.length) q.source = { $in: f.sources };
@@ -702,7 +702,7 @@ export async function previewLeadAudience(tenantId: string, id: string, f: LeadF
 /** Stages and sources with how many leads (with a phone) are in each — the filter choices. */
 export async function leadFilterOptions(tenantId: string) {
   const tid = new mongoose.Types.ObjectId(tenantId);
-  const match = { tenantId: tid, phone: { $nin: [null, ''] } };
+  const match = { tenantId: tid, phone: { $nin: [null, ''] }, archivedAt: null };
   const [byStage, bySource, stages] = await Promise.all([
     Lead.aggregate([{ $match: match }, { $group: { _id: '$stageId', n: { $sum: 1 } } }]),
     Lead.aggregate([{ $match: match }, { $group: { _id: '$source', n: { $sum: 1 } } }, { $sort: { n: -1 } }]),

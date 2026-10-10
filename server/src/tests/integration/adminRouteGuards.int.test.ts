@@ -48,6 +48,12 @@ jest.mock('../../controllers/whatsAppDripConfigController', () => stubController
 jest.mock('../../controllers/salesCallRecordingController', () => stubControllers('../../controllers/salesCallRecordingController'));
 jest.mock('../../controllers/hackathonExamAdminController', () => stubControllers('../../controllers/hackathonExamAdminController'));
 jest.mock('../../controllers/dashboardController', () => stubControllers('../../controllers/dashboardController'));
+jest.mock('../../services/leadArchiveService', () => {
+  const real = jest.requireActual('../../services/leadArchiveService');
+  const stub: any = { __esModule: true, ArchiveError: real.ArchiveError };
+  for (const k of Object.keys(real)) if (typeof real[k] === 'function' && k !== 'ArchiveError') stub[k] = async () => ({ reached: true });
+  return stub;
+});
 
 import adminPublicQuizRoutes from '../../routes/adminPublicQuizRoutes';
 import aiCallRoutes from '../../routes/aiCallRoutes';
@@ -65,6 +71,7 @@ import whatsappDripConfigRoutes from '../../routes/whatsappDripConfigRoutes';
 import salesCallRecordingRoutes from '../../routes/salesCallRecordingRoutes';
 import hackathonExamRoutes from '../../routes/hackathonExamRoutes';
 import dashboardRoutes from '../../routes/dashboardRoutes';
+import leadArchiveRoutes from '../../routes/leadArchiveRoutes';
 
 const app = express();
 app.use(express.json());
@@ -84,6 +91,7 @@ app.use('/whatsapp-drip-config', whatsappDripConfigRoutes);
 app.use('/sales-call-recordings', salesCallRecordingRoutes);
 app.use('/hackathon-exams', hackathonExamRoutes);
 app.use('/dashboard', dashboardRoutes);
+app.use('/lead-archive', leadArchiveRoutes);
 
 const ID = '507f1f77bcf86cd799439011';
 type Who = 'student' | 'instructor' | 'admin' | 'staff' | 'custom';
@@ -117,6 +125,9 @@ const CASES: [string, string, Who[]][] = [
   ['post', `/hackathon-exams/${ID}/attempts/${ID}/score`, ['admin']],
   ['get', `/hackathon-exams/${ID}/attempts/${ID}/recording/1`, ['admin']],
   ['get', '/dashboard/admin-overview', ['admin']],
+  ['post', '/lead-archive/run', ['admin']],
+  ['post', '/lead-archive/purge', ['admin']],
+  ['get', '/lead-archive/archived', ['admin']],
 ];
 
 /** What a student keeps: their own things. */
@@ -156,8 +167,9 @@ describe('admin endpoints refuse anyone without the permission', () => {
   it.each(CASES)('%s %s', async (method, path, allowed) => {
     for (const who of ['student', 'instructor', 'admin', 'staff', 'custom'] as Who[]) {
       const r = await call(method, path, who);
-      const want = allowed.includes(who) ? REACHED : 403;
-      if (r.status !== want) throw new Error(`${who}: expected ${want}, got ${r.status} ${JSON.stringify(r.body).slice(0, 120)}`);
+      // Allowed means the guard let them through to the handler (stubbed: 299, or 200 for services).
+      const ok = allowed.includes(who) ? [REACHED, 200].includes(r.status) : r.status === 403;
+      if (!ok) throw new Error(`${who}: expected ${allowed.includes(who) ? 'through' : 403}, got ${r.status} ${JSON.stringify(r.body).slice(0, 120)}`);
     }
   });
 });

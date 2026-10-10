@@ -4,6 +4,7 @@ import LeadStage from '../models/LeadStage';
 import User from '../models/User';
 import { IAssessmentSubmission } from '../models/AssessmentSubmission';
 import { SEGMENT_LABELS, CandidateSegment } from '../constants/assessment';
+import { reviveIfArchived } from './leadArchiveService';
 
 /**
  * Bridges an assessment submission into the Lead CRM so telecallers can follow
@@ -85,6 +86,8 @@ export async function syncSubmissionToLead(
   const existing = await Lead.findOne({ tenantId: tenantOid, phone: { $regex: ten + '$' } });
 
   if (existing) {
+    await reviveIfArchived(existing._id, 'took the skill assessment');
+    existing.archivedAt = null;
     existing.activities.push({
       type: 'note',
       description: noteDescription,

@@ -12,6 +12,7 @@ import { scoreAndAssignLead } from '../services/leadScoringService';
 import { enqueueAICall } from '../services/aiCallQueueService';
 import AICallConfig from '../models/AICallConfig';
 import { AuthenticatedRequest } from '../types';
+import { reviveIfArchived } from '../services/leadArchiveService';
 
 // ===================== DEBUG LOGGER =====================
 
@@ -820,6 +821,7 @@ async function createOrUpdateLeadFromData(
   });
 
   if (existing) {
+    await reviveIfArchived(existing._id, 'new Meta lead form');
     // Add activity note if this is a new form submission
     await Lead.updateOne(
       { _id: existing._id },

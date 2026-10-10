@@ -81,6 +81,7 @@ export const submitWebsiteLead = async (req: Request, res: Response) => {
     const noteText = message || notes || '';
 
     if (existing) {
+      if (existing.archivedAt) { existing.archivedAt = null; existing.set('archivedBy', undefined); existing.set('archiveReason', undefined); existing.set('archiveRunId', undefined); }
       existing.activities.push({
         type: 'note',
         description: `Re-enquired via website.${noteText ? ' Message: ' + noteText : ''}`,

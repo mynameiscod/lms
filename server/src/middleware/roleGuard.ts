@@ -124,6 +124,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'view_lead_analytics', label: 'View Lead Analytics & Reports' },
       { key: 'manage_lead_stages', label: 'Manage Lead Stages & Form Config' },
       { key: 'convert_leads', label: 'Convert Leads to Students' },
+      { key: 'archive_leads', label: 'Archive Leads, Restore, and Delete Leads Archived 3+ Years' },
     ]
   },
   marketing: {
@@ -352,7 +353,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_billing',
     // Leads (full access)
     'manage_leads', 'view_leads', 'create_leads', 'edit_leads', 'delete_leads',
-    'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads',
+    'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads', 'archive_leads',
     // Marketing
     'manage_marketing',
     // Coding Snippets

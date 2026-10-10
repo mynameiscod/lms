@@ -13,6 +13,7 @@ import { applyDeliveryStatuses } from '../services/whatsAppDeliveryService';
 import { recordInbound, recordOutbound, applyChatStatuses, isBotPaused } from '../services/whatsAppChatStore';
 import { getWhatsAppCredentialCandidates } from '../services/assessmentOtpService';
 import { verifyMetaSignature } from '../services/whatsAppWebhookSignature';
+import { reviveIfArchived } from '../services/leadArchiveService';
 
 // ===================== TYPES =====================
 
@@ -385,7 +386,7 @@ async function ensureLeadExists(phone: string, name: string, tenantId: string, p
       tenantId: new mongoose.Types.ObjectId(tenantId),
       phone: { $regex: phone.slice(-10), $options: 'i' },
     });
-    if (existing) { existing.whatsappStatus = 'replied'; await existing.save(); return existing; }
+    if (existing) { if (existing.archivedAt) await reviveIfArchived(existing._id, 'messaged on WhatsApp'); existing.archivedAt = null; existing.whatsappStatus = 'replied'; await existing.save(); return existing; }
 
     const initialStage = await LeadStage.findOne({ tenantId: new mongoose.Types.ObjectId(tenantId) }).sort({ order: 1 });
     const adminUser = await User.findOne({ tenantId: new mongoose.Types.ObjectId(tenantId), role: { $in: ['TENANT_ADMIN', 'SUPER_ADMIN', 'MANAGER'] } }).select('_id').lean();
@@ -519,7 +520,7 @@ export const sendBulkColdLeadMessages = async (req: Request, res: Response) => {
     if (!message) return res.status(400).json({ success: false, message: 'Message is required' });
     const creds = (await getWhatsAppCredentialCandidates(String(tenantId)))[0];
     if (!creds) return res.status(400).json({ success: false, message: 'WhatsApp is not connected for this institute (Lead Sources → WhatsApp).' });
-    const query: any = { tenantId };
+    const query: any = { tenantId, archivedAt: null };
     if (leadIds?.length) query._id = { $in: leadIds.map((id: string) => new mongoose.Types.ObjectId(id)) };
     const leads = await Lead.find(query).select('phone name');
     let sent = 0;

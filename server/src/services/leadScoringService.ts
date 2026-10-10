@@ -295,7 +295,7 @@ export async function rescoreAllLeads(tenantId: mongoose.Types.ObjectId): Promis
     return { processed: 0, scored: 0, assigned: 0 };
   }
 
-  const leads = await Lead.find({ tenantId });
+  const leads = await Lead.find({ tenantId, archivedAt: null });
   let scored = 0;
   let assigned = 0;
 
@@ -461,7 +461,7 @@ class LeadScoringService {
   }
 
   async bulkUpdateScores(tenantId: mongoose.Types.ObjectId): Promise<number> {
-    const leads = await Lead.find({ tenantId, convertedStudentId: { $exists: false } });
+    const leads = await Lead.find({ tenantId, convertedStudentId: { $exists: false }, archivedAt: null });
     let updated = 0;
     for (const lead of leads) {
       const result = await this.calculateScore(lead);

@@ -64,7 +64,7 @@ export const API_MODULE_PREFIXES: [string, ModuleKey][] = [
   ['/sales-content', 'leads'], ['/lead-ai', 'leads'], ['/lost-reasons', 'leads'], ['/google-sheet-integrations', 'leads'],
   ['/lead-scoring', 'leads'], ['/lead-source-config', 'leads'], ['/lead-distribution-config', 'leads'],
   ['/whatsapp-drip-config', 'leads'], ['/meetings', 'leads'], ['/sales-call-recordings', 'leads'], ['/ai-calls', 'leads'],
-  ['/outpero', 'leads'], ['/event-apis', 'leads'],
+  ['/outpero', 'leads'], ['/event-apis', 'leads'], ['/lead-archive', 'leads'],
   ['/seat-reservations', 'feeManagement'], ['/fees', 'feeManagement'],
   ['/thinking-lab', 'thinkingLab'], ['/drills', 'thinkingLab'],
   ['/speaking', 'speakingPractice'],

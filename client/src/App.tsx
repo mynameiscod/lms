@@ -67,6 +67,7 @@ const MyPlacementInterviews = lazy(() => import('./pages/PlacementProgramAdmin/M
 const WhatsAppInbox = lazy(() => import('./pages/WhatsAppInbox'));
 const OutperoSettings = lazy(() => import('./pages/OutperoSettings'));
 const EventApis = lazy(() => import('./pages/EventApis'));
+const LeadArchivePage = lazy(() => import('./pages/LeadArchive'));
 const EventApiEditor = lazy(() => import('./pages/EventApis/EventEditor'));
 const TenantIntegrations = lazy(() => import('./pages/TenantIntegrations'));
 const TenantBranding = lazy(() => import('./pages/TenantBranding'));
@@ -298,7 +299,7 @@ const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
     'manage_placement_program', 'manage_placement_partners', 'manage_placement', 'manage_whatsapp_templates', 'chat_whatsapp', 'manage_certificates',
     'view_ai_spend', 'view_activity_logs', 'manage_concerns', 'manage_career_pilot', 'view_fees', 'manage_billing', 'manage_exams',
     'manage_battles', 'view_battles', 'manage_hackathons', 'view_hackathons', 'manage_passport', 'view_passport_members', 'view_passport_funnel',
-    'manage_event_apis', 'view_admin_dashboard'],
+    'manage_event_apis', 'view_admin_dashboard', 'archive_leads'],
   'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments', 'manage_snippets', 'grade_snippets', 'manage_interview_templates', 'assign_interviews', 'evaluate_interviews',
     'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans', 'manage_live_classes',
     'manage_skill_assessment', 'manage_leave_requests', 'manage_thinking_lab', 'manage_resources', 'manage_speaking', 'manage_communication_lab'],
@@ -2265,6 +2266,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <SalesContentLibraryPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/leads/archive"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['archive_leads']}>
+            <Layout>
+              <LeadArchivePage />
             </Layout>
           </ProtectedRoute>
         }

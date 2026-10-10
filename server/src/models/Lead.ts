@@ -238,6 +238,15 @@ export interface ILead extends Document {
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  /**
+   * Archived: kept, but out of the working lists, counts and sends (Leads → Archive). Reports still
+   * count it. Restored automatically if the person enquires again. Deleted for good only by an admin,
+   * three years after archiving.
+   */
+  archivedAt?: Date | null;
+  archivedBy?: mongoose.Types.ObjectId;
+  archiveReason?: string;
+  archiveRunId?: mongoose.Types.ObjectId;
   outpero?: {
     status?: 'pending' | 'sent' | 'failed';
     via?: 'auto' | 'bulk';
@@ -608,6 +617,11 @@ const LeadSchema: Schema = new Schema(
     nextAICallAt: { type: Date },
 
     // Forwarding to Outpero (external AI calling agent). See services/outperoForwardService.
+    archivedAt: { type: Date, default: null },
+    archivedBy: { type: mongoose.Types.ObjectId, ref: 'User' },
+    archiveReason: { type: String, trim: true, maxlength: 300 },
+    archiveRunId: { type: mongoose.Types.ObjectId, ref: 'LeadArchiveRun' },
+
     outpero: {
       status: { type: String, enum: ['pending', 'sent', 'failed'] },
       via: { type: String, enum: ['auto', 'bulk'] },
@@ -633,6 +647,8 @@ const LeadSchema: Schema = new Schema(
 );
 
 LeadSchema.index({ tenantId: 1, stageId: 1 });
+LeadSchema.index({ tenantId: 1, archivedAt: 1, createdAt: -1 });
+LeadSchema.index({ archiveRunId: 1 }, { partialFilterExpression: { archiveRunId: { $exists: true } } });
 LeadSchema.index({ tenantId: 1, assignedTo: 1 });
 LeadSchema.index({ tenantId: 1, nextFollowUp: 1 });
 LeadSchema.index({ tenantId: 1, source: 1 });

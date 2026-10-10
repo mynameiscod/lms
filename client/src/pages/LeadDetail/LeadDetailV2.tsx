@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { leadApi, leadStageApi, qualificationApi, followUpApi } from '../../api';
 import SalesCallRecordingCard from '../../components/leads/SalesCallRecordingCard';
+import { leadArchiveApi, archiveError } from '../../api/leadArchiveApi';
 import './LeadDetailV2.css';
 
 interface Lead {
@@ -53,6 +54,7 @@ const LeadDetailV2: React.FC = () => {
   const navigate = useNavigate();
   
   const [lead, setLead] = useState<Lead | null>(null);
+  const [archiveMsg, setArchiveMsg] = useState('');
   const [stages, setStages] = useState<Stage[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -387,6 +389,22 @@ const LeadDetailV2: React.FC = () => {
         </div>
       )}
 
+      {(lead as any).archivedAt && (
+        <div style={{ background: '#fdf3dc', color: '#8a5a00', padding: '10px 16px', borderRadius: 8, margin: '0 0 12px', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 14 }}>
+          <span style={{ flex: 1 }}>
+            This lead is archived ({new Date((lead as any).archivedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            {(lead as any).archiveReason ? ` — ${(lead as any).archiveReason}` : ''}). It is hidden from All Leads, counts and messages.
+            {archiveMsg && <b> {archiveMsg}</b>}
+          </span>
+          <button
+            onClick={async () => {
+              try { await leadArchiveApi.restore({ leadIds: [lead._id] }); setLead({ ...(lead as any), archivedAt: null }); setArchiveMsg(''); }
+              catch (e) { setArchiveMsg(archiveError(e, 'Only an admin can restore it.')); }
+            }}
+            style={{ border: '1px solid #8a5a00', background: '#fff', color: '#8a5a00', borderRadius: 8, padding: '6px 12px', fontWeight: 600, cursor: 'pointer' }}
+          >Restore</button>
+        </div>
+      )}
       {/* Header */}
       <header className="ld2-header">
         <div className="ld2-header-left">

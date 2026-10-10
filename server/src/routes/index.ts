@@ -122,6 +122,7 @@ import externalApiRoutes from './externalApiRoutes';
 import codeJudgeRoutes from './codeJudgeRoutes';
 import { moduleGate } from '../middleware/moduleGate';
 import outperoRoutes from './outperoRoutes';
+import leadArchiveRoutes from './leadArchiveRoutes';
 import eventApiRoutes, { publicEventRoutes } from './eventApiRoutes';
 import tenantIntegrationsRoutes from './tenantIntegrationsRoutes';
 import practicePassRoutes from './practicePassRoutes';
@@ -181,6 +182,7 @@ router.get('/public/branding/:idOrSlug', async (req, res) => {
   } catch { res.status(404).json({ success: false, message: 'Not found' }); }
 });
 router.use('/event-apis', eventApiRoutes); // Event APIs: admin-defined registration APIs for the website
+router.use('/lead-archive', leadArchiveRoutes); // Leads → Archive (admins): archive by filter, restore, delete after 3 years
 router.use('/outpero', outperoRoutes); // leads → Outpero AI calls (off / manual / auto)
 router.use('/tenant-integrations', tenantIntegrationsRoutes); // institute admin: own Razorpay, UPI, email, Meta pixel
 router.use('/public/assessment', publicAssessmentRoutes); // specific first

@@ -4143,3 +4143,34 @@ export interface StageTopicInput {
   learningOutcomes?: string[];
   order?: number;
 }
+
+// ── Roadmap V2 (admin): settings, per-year budgets, topic priorities ───────────────────────────
+export type TopicPriority = 'MUST' | 'SHOULD' | 'OPTIONAL';
+export interface RoadmapV2Settings {
+  enabled: boolean; stages: string[]; studentIds: string[]; dailyMinutes: number; revisionDays: number;
+}
+export interface RoadmapV2Budget {
+  programDays: number; dailyMinutes: number; budgetMinutes: number; bridgeMinutes: number; mustCapMinutes: number;
+}
+export type PrioritySummary = Record<'MUST' | 'SHOULD' | 'OPTIONAL' | 'UNSET', { topics: number; minutes: number }>;
+export interface RoadmapV2Overview {
+  settings: RoadmapV2Settings;
+  stages: { stage: string; available: boolean; topics: number; budget: RoadmapV2Budget; summary: PrioritySummary }[];
+}
+export interface PriorityTopic {
+  topicCode: string; title: string; minutes: number; backbone: boolean; mandatory: boolean;
+  hasCheckpoint: boolean; priority: TopicPriority | null; prioritySource: 'DRAFT' | 'ADMIN' | null;
+}
+export interface StagePriorities {
+  stage: string; available: boolean; budget: RoadmapV2Budget; summary: PrioritySummary; topics: PriorityTopic[];
+}
+export const roadmapV2Api = {
+  overview: async (): Promise<RoadmapV2Overview> =>
+    (await axios.get(`${BASE}/admin/roadmap-v2`, { headers: auth() })).data,
+  saveSettings: async (patch: Partial<RoadmapV2Settings>) =>
+    (await axios.put(`${BASE}/config`, { roadmapV2: patch }, { headers: auth() })).data,
+  topics: async (stage: string): Promise<StagePriorities> =>
+    (await axios.get(`${BASE}/admin/topic-priorities/${stage}`, { headers: auth() })).data,
+  setPriority: async (stage: string, topicCode: string, priority: TopicPriority): Promise<StagePriorities> =>
+    (await axios.put(`${BASE}/admin/topic-priorities/${stage}/${encodeURIComponent(topicCode)}`, { priority }, { headers: auth() })).data,
+};

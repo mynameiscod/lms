@@ -117,6 +117,7 @@ const PassportAdminAssessmentPreview = lazy(() => import('./pages/Passport/Admin
 const PassportAdminAssessmentShape = lazy(() => import('./pages/Passport/AdminAssessmentShape'));
 const PassportAdminQuestionDrafts = lazy(() => import('./pages/Passport/AdminQuestionDrafts'));
 const PassportAdminQuestionBank = lazy(() => import('./pages/Passport/AdminQuestionBank'));
+const PassportAdminRoadmapV2 = lazy(() => import('./pages/Passport/AdminRoadmapV2'));
 const PassportAdminPathways = lazy(() => import('./pages/Passport/AdminPathways'));
 const PassportAdminMissions = lazy(() => import('./pages/Passport/AdminMissions'));
 const PassportHome = lazy(() => import('./pages/Passport/PassportHome'));
@@ -665,6 +666,10 @@ const AppRoutes: React.FC = () => {
       } />
       {/* The approved bank. Drafting shows only what is still pending, so before this there
           was no screen that could reach a question once it had been approved. */}
+      {/* Roadmap V2: who is on it, the daily study time, and each topic's priority. */}
+      <Route path="/admin/passport/roadmap-v2" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminRoadmapV2 /></Layout></ProtectedRoute>
+      } />
       <Route path="/admin/passport/question-bank" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminQuestionBank /></Layout></ProtectedRoute>
       } />

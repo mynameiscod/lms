@@ -61,6 +61,17 @@ export interface ICurriculumTopic {
    */
   backbone?: boolean;
 
+  /**
+   * Roadmap V2: how much this topic matters when a roadmap has to fit the admin's days
+   * (data/topicPriorityPolicy.ts). MUST is never left out; SHOULD goes in while there is room;
+   * OPTIONAL is the first to go. Absent means not yet classified — V1 never reads it.
+   */
+  priority?: 'MUST' | 'SHOULD' | 'OPTIONAL';
+  /** DRAFT when the classifier set it, ADMIN when a person did. A draft re-run never overwrites ADMIN. */
+  prioritySource?: 'DRAFT' | 'ADMIN';
+  priorityUpdatedAt?: Date;
+  priorityUpdatedBy?: string;
+
   /** Directions this topic serves. Empty means everyone — see careerDirectionPolicy. */
   applicableDirections?: string[];
 
@@ -171,6 +182,10 @@ const CurriculumTopicSchema = new Schema<ICurriculumTopic>(
     defaultDepth:          { type: String, enum: ['FOUNDATION', 'GUIDED', 'STANDARD', 'REVISION', 'CHALLENGE'] },
     mandatory:             { type: Boolean },
     backbone:              { type: Boolean },
+    priority:              { type: String, enum: ['MUST', 'SHOULD', 'OPTIONAL'] },
+    prioritySource:        { type: String, enum: ['DRAFT', 'ADMIN'] },
+    priorityUpdatedAt:     { type: Date },
+    priorityUpdatedBy:     { type: String },
     applicableDirections:  { type: [String], default: undefined },
     learningOutcomes:      { type: [String], default: undefined },
   },

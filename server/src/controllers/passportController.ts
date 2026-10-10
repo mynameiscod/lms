@@ -22,6 +22,7 @@ import { foundationReadiness } from '../services/foundationReadinessService';
 import { passwordProblem } from '../utils/passwordPolicy';
 import { validateProgramDays, programDaysFor } from '../services/foundationProgramLengthService';
 import { UNIT_ENGINE_STAGES } from '../data/curriculumEnginePolicy';
+import { resolveRoadmapV2, validateRoadmapV2Patch } from '../data/roadmapV2Policy';
 import { membershipPriceFor, validatePriceInr } from '../services/membershipPricingService';
 import { clampPreviewDays } from '../data/foundationAccessPolicy';
 import { normaliseOnboardingFields } from '../data/onboardingFieldPolicy';
@@ -51,7 +52,7 @@ async function ensureConfig(tenantId: string) {
    * the next time the admin saves, and until then entitlementMap already treats them as paid.
    */
   const have = new Set((cfg.entitlements || []).map((e: any) => e.featureKey));
-  for (const d of DEFAULT_ENTITLEMENTS) {
+  for (const d of DEFAULT_ENTITLEMENTS || []) {
     if (!have.has(d.featureKey)) (cfg.entitlements as any).push({ ...d });
   }
   return cfg;
@@ -131,7 +132,7 @@ export const updateConfig = async (req: Request, res: Response) => {
     await ensureConfig(tenantId);
     // The allow-list is the whole security model for this endpoint, so a field absent from it
     // is silently discarded — a toggle that appears to save and changes nothing.
-    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'roadmapPreviewDays', 'conceptLearningEnabled', 'paymentMode', 'foundationProgramDays', 'programDaysByStage', 'priceInrByStage', 'registrationOpensAt', 'registrationClosesAt', 'academicSession'];
+    const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths', 'roadmapDays', 'roadmapPreviewDays', 'conceptLearningEnabled', 'paymentMode', 'foundationProgramDays', 'programDaysByStage', 'priceInrByStage', 'registrationOpensAt', 'registrationClosesAt', 'academicSession', 'roadmapV2'];
     const $set: any = {};
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
 
@@ -159,6 +160,13 @@ export const updateConfig = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Registration end date is before the start date.' });
     }
     if ($set.academicSession !== undefined) $set.academicSession = String($set.academicSession || '').trim().slice(0, 20);
+    /* Roadmap V2: merged over what is stored, so saving one field does not reset the others. */
+    if ($set.roadmapV2 !== undefined) {
+      const current = await PassportConfig.findOne({ tenantId }).select('roadmapV2').lean() as any;
+      const checked = validateRoadmapV2Patch({ ...resolveRoadmapV2(current?.roadmapV2), ...($set.roadmapV2 || {}) });
+      if (!checked.ok) return res.status(400).json({ message: 'Roadmap V2 settings were not saved.', errors: (checked as { ok: false; errors: string[] }).errors });
+      $set.roadmapV2 = (checked as { ok: true; value: any }).value;
+    }
     /**
      * The length of the Foundation programme. Refused rather than clamped: a tenant typing 1200
      * meant something, and silently storing 180 would have them believe a plan they never chose.

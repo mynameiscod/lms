@@ -155,6 +155,17 @@ export interface IPassportConfig extends Document {
     studentRequestEnabled: boolean;
     materialChangeThreshold: number;
   };
+  /**
+   * Roadmap V2 (data/roadmapV2Policy.ts): who is planned by it, and the daily load and revision
+   * days it plans with. Absent on every existing tenant, which reads as OFF with the defaults.
+   */
+  roadmapV2?: {
+    enabled: boolean;
+    stages: string[];
+    studentIds: string[];
+    dailyMinutes: number;
+    revisionDays: number;
+  };
   updatedAt: Date;
   createdAt: Date;
 }
@@ -227,6 +238,15 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
     registrationOpensAt:  { type: Date, default: null },
     registrationClosesAt: { type: Date, default: null },
     academicSession:      { type: String, default: '' },
+    // Roadmap V2. OFF unless set; resolveRoadmapV2 fills anything missing with the defaults,
+    // so an existing tenant document needs no backfill.
+    roadmapV2: {
+      enabled:      { type: Boolean, default: false },
+      stages:       { type: [String], default: [] },
+      studentIds:   { type: [String], default: [] },
+      dailyMinutes: { type: Number, default: 150 },
+      revisionDays: { type: Number, default: 7 },
+    },
     // Skill check-in policy. Optional throughout — an existing tenant document without this
     // subtree resolves to the shipped defaults, so nothing has to be backfilled.
     reassessment: {

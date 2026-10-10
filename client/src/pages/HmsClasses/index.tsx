@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { hmsClassApi, HmsClass, batchApi } from '../../api';
 import InvitePanel from './InvitePanel';
+import { userCan } from '../../utils/permissions';
 
 const HOST_ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'];
 
@@ -19,7 +20,8 @@ const fmt = (d: string) =>
 const HmsClassesPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const isHost = HOST_ROLES.includes(user?.role || '');
+  // The same permissions the server's host guard accepts, so a custom role ticked for Live Classes can schedule and host.
+  const isHost = userCan(user as any, ['manage_live_classes', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'], HOST_ROLES);
 
   const [items, setItems] = useState<HmsClass[]>([]);
   const [loading, setLoading] = useState(true);

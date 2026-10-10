@@ -15,6 +15,7 @@
 import express from 'express';
 import { authMiddleware as authenticateToken } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
+import { roleGuard } from '../middleware/roleGuard';
 import {
   getConfig,
   updateConfig,
@@ -30,7 +31,7 @@ const router = express.Router();
 router.post('/webhook/exotel', handleExotelWebhook);
 
 // ── AUTHENTICATED ──
-router.use(authenticateToken, tenantResolver);
+router.use(authenticateToken, tenantResolver, roleGuard(['manage_leads']));
 
 router.get('/config', getConfig);
 router.put('/config', updateConfig);

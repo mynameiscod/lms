@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { userCan } from '../../utils/permissions';
 import { seatReservationApi } from '../../api';
 import './SeatReservations.css';
 
@@ -92,7 +93,8 @@ function getStudentPhone(r: Reservation): string {
 
 const SeatReservationsPage: React.FC = () => {
   const { user } = useAuth();
-  const isAdmin = user && ['SUPER_ADMIN', 'TENANT_ADMIN'].includes(user.role);
+  // "Mark as Enrolled" converts to a student: the same permissions its API requires.
+  const isAdmin = userCan(user as any, ['manage_leads', 'manage_tenant_users'], ['TENANT_ADMIN']);
 
   const [loading, setLoading] = useState(true);
   const [reservations, setReservations] = useState<Reservation[]>([]);

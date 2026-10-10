@@ -302,6 +302,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
   operations: {
     label: 'Operations & Monitoring',
     permissions: [
+      { key: 'view_admin_dashboard', label: 'Admin Dashboard — institute-wide numbers (revenue, leads, placements)' },
       { key: 'manage_leave_requests', label: 'Approve / Reject Student Leave Requests' },
       { key: 'manage_concerns', label: 'View & Respond to Student Concerns' },
       { key: 'view_activity_logs', label: 'View API Logs & Student Activity' },
@@ -314,7 +315,7 @@ export const FEATURE_PERMISSIONS = [
   'manage_placement_program', 'manage_placement_partners', 'manage_interview_hub', 'manage_whatsapp_templates',
   'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans',
   'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests', 'manage_concerns', 'view_activity_logs',
-  'chat_whatsapp', 'manage_event_apis',
+  'chat_whatsapp', 'manage_event_apis', 'view_admin_dashboard',
 ];
 
 // Flatten all permission keys
@@ -426,7 +427,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // The same features instructors already reached through "Create Courses"
     'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer',
     'manage_learning_plans', 'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests',
-    'manage_concerns', 'view_activity_logs', 'manage_event_apis',
+    'manage_concerns', 'view_activity_logs',
   ],
   ATTENDANCE_ADMIN: [
     'mark_attendance', 'view_attendance', 'view_reports',

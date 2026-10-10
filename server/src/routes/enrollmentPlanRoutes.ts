@@ -1,3 +1,4 @@
+import { roleGuard } from '../middleware/roleGuard';
 import express from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
@@ -31,13 +32,15 @@ router.post('/:id/assistant',                       exp.studyAssistant);
 router.get('/:id/search',                           exp.searchPlan);
 
 // Admin routes
-router.get('/',                                     ctrl.listAllEnrollments);
-router.post('/student',                             ctrl.enrollStudent);
-router.post('/batch',                               ctrl.enrollBatch);
-router.get('/curriculum/:curriculumId',             ctrl.listEnrollmentsByCurriculum);
-router.get('/curriculum/:curriculumId/stats',       ctrl.getCurriculumEnrollmentStats);
-router.get('/:id',                                  ctrl.getEnrollment);
-router.patch('/:id/status',                         ctrl.updateStatus);
-router.put('/:id/settings',                         ctrl.updateSettings);
+/** Management only — students reach their own data through the /my routes. Same keys as the menu item. */
+const manage = roleGuard(['manage_learning_plans', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
+router.get('/',                                     manage, ctrl.listAllEnrollments);
+router.post('/student',                             manage, ctrl.enrollStudent);
+router.post('/batch',                               manage, ctrl.enrollBatch);
+router.get('/curriculum/:curriculumId',             manage, ctrl.listEnrollmentsByCurriculum);
+router.get('/curriculum/:curriculumId/stats',       manage, ctrl.getCurriculumEnrollmentStats);
+router.get('/:id',                                  manage, ctrl.getEnrollment);
+router.patch('/:id/status',                         manage, ctrl.updateStatus);
+router.put('/:id/settings',                         manage, ctrl.updateSettings);
 
 export default router;

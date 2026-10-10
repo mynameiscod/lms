@@ -298,7 +298,7 @@ const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
     'manage_placement_program', 'manage_placement_partners', 'manage_placement', 'manage_whatsapp_templates', 'chat_whatsapp', 'manage_certificates',
     'view_ai_spend', 'view_activity_logs', 'manage_concerns', 'manage_career_pilot', 'view_fees', 'manage_billing', 'manage_exams',
     'manage_battles', 'view_battles', 'manage_hackathons', 'view_hackathons', 'manage_passport', 'view_passport_members', 'view_passport_funnel',
-    'manage_event_apis'],
+    'manage_event_apis', 'view_admin_dashboard'],
   'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments', 'manage_snippets', 'grade_snippets', 'manage_interview_templates', 'assign_interviews', 'evaluate_interviews',
     'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans', 'manage_live_classes',
     'manage_skill_assessment', 'manage_leave_requests', 'manage_thinking_lab', 'manage_resources', 'manage_speaking', 'manage_communication_lab'],
@@ -309,7 +309,8 @@ const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
-  requiredRoles
+  requiredRoles,
+  requiredPermissions,
 }) => {
   const { isAuthenticated, loading, user } = useAuth();
   const { pathname } = useLocation();
@@ -322,6 +323,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // re-runs) and a session expiring mid-visit. `replace` so the back button does not
     // return to a page they are no longer allowed to see.
     return <Navigate to={loginPathFor(pathname)} replace />;
+  }
+
+  // A page that names its own permissions opens for anyone holding one of them — the same keys
+  // its menu item and its API check — whatever the role is called.
+  if (requiredPermissions?.length && user && (user.permissions || []).some((p) => requiredPermissions.includes(p))) {
+    return <>{children}</>;
   }
 
   if (requiredRoles && user && !requiredRoles.includes(user.role)) {
@@ -1333,7 +1340,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/batches"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_tenant_courses']}>
             <Layout>
               <BatchesPage />
             </Layout>
@@ -1676,7 +1683,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/interview-question-bank"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']} requiredPermissions={['manage_interviews']}>
             <Layout>
               <InterviewQuestionBankPage />
             </Layout>
@@ -1746,7 +1753,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/quiz-reports"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']} requiredPermissions={['view_reports']}>
             <Layout>
               <QuizReportsPage />
             </Layout>

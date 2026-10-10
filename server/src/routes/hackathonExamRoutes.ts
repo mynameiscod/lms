@@ -1,6 +1,7 @@
 import express from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
+import { roleGuard } from '../middleware/roleGuard';
 import * as ctrl from '../controllers/hackathonExamAdminController';
 
 /**
@@ -12,39 +13,42 @@ import * as ctrl from '../controllers/hackathonExamAdminController';
  */
 const router = express.Router();
 router.use(authMiddleware, tenantMiddleware);
+// Same split as hackathonRoutes: reading results needs view, everything that changes an exam needs manage.
+const MANAGE = roleGuard(['manage_hackathons']);
+const VIEW = roleGuard(['view_hackathons', 'manage_hackathons']);
 
 /* Configure */
-router.get('/by-hackathon/:hackathonId', ctrl.getExamForHackathon);
-router.post('/by-hackathon/:hackathonId', ctrl.upsertExam);
+router.get('/by-hackathon/:hackathonId', VIEW, ctrl.getExamForHackathon);
+router.post('/by-hackathon/:hackathonId', MANAGE, ctrl.upsertExam);
 
 /* Prove it can be drawn, then draw it */
-router.get('/:id/coverage', ctrl.getExamCoverage);
-router.get('/:id/readiness', ctrl.getExamReadiness);
+router.get('/:id/coverage', VIEW, ctrl.getExamCoverage);
+router.get('/:id/readiness', VIEW, ctrl.getExamReadiness);
 /** Which questions a section draws from — 'how many' is not the same as 'which'. */
-router.get('/:id/sections/:key/pool', ctrl.getSectionPool);
-router.post('/:id/provision', ctrl.provisionExamAttempts);
-router.post('/:id/invite', ctrl.sendExamInvitations);
+router.get('/:id/sections/:key/pool', MANAGE, ctrl.getSectionPool);
+router.post('/:id/provision', MANAGE, ctrl.provisionExamAttempts);
+router.post('/:id/invite', MANAGE, ctrl.sendExamInvitations);
 /* A bulk send runs in the background and returns 202. These report how far it has got —
    without a jobId, whichever send is currently running for this exam. */
-router.get('/:id/send-progress', ctrl.getExamSendProgress);
-router.get('/:id/send-progress/:jobId', ctrl.getExamSendProgress);
+router.get('/:id/send-progress', VIEW, ctrl.getExamSendProgress);
+router.get('/:id/send-progress/:jobId', VIEW, ctrl.getExamSendProgress);
 
 /* Watch it happen */
-router.get('/:id/dashboard', ctrl.getExamDashboard);
-router.get('/:id/attempts', ctrl.listExamAttempts);
-router.get('/:id/attempts/:attemptId', ctrl.getExamAttempt);
-router.post('/:id/attempts/:attemptId/resend-invite', ctrl.resendAttemptInvite);
-router.post('/:id/attempts/:attemptId/verify', ctrl.verifyAttemptManually);
-router.patch('/:id/attempts/:attemptId/mobile', ctrl.updateAttemptMobile);
-router.get('/:id/attempts/:attemptId/recording/:seq', ctrl.streamAttemptRecording);
-router.delete('/:id/attempts/:attemptId/recording', ctrl.deleteAttemptRecording);
+router.get('/:id/dashboard', VIEW, ctrl.getExamDashboard);
+router.get('/:id/attempts', VIEW, ctrl.listExamAttempts);
+router.get('/:id/attempts/:attemptId', VIEW, ctrl.getExamAttempt);
+router.post('/:id/attempts/:attemptId/resend-invite', MANAGE, ctrl.resendAttemptInvite);
+router.post('/:id/attempts/:attemptId/verify', MANAGE, ctrl.verifyAttemptManually);
+router.patch('/:id/attempts/:attemptId/mobile', MANAGE, ctrl.updateAttemptMobile);
+router.get('/:id/attempts/:attemptId/recording/:seq', MANAGE, ctrl.streamAttemptRecording);
+router.delete('/:id/attempts/:attemptId/recording', MANAGE, ctrl.deleteAttemptRecording);
 
 /* Grade, review, publish */
-router.post('/:id/grade', ctrl.runGradingPass);
-router.post('/:id/attempts/:attemptId/score', ctrl.overrideAttemptScore);
-router.get('/:id/leaderboard', ctrl.getExamLeaderboard);
-router.post('/:id/close', ctrl.closeExam);
-router.post('/:id/publish', ctrl.publishExamResults);
-router.post('/:id/send-results', ctrl.sendExamResults);
+router.post('/:id/grade', MANAGE, ctrl.runGradingPass);
+router.post('/:id/attempts/:attemptId/score', MANAGE, ctrl.overrideAttemptScore);
+router.get('/:id/leaderboard', VIEW, ctrl.getExamLeaderboard);
+router.post('/:id/close', MANAGE, ctrl.closeExam);
+router.post('/:id/publish', MANAGE, ctrl.publishExamResults);
+router.post('/:id/send-results', MANAGE, ctrl.sendExamResults);
 
 export default router;

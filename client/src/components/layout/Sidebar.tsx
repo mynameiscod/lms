@@ -10,6 +10,20 @@ import { StudentFeatureKey } from '../../config/studentFeatureCatalog';
 import visualizerApi from '../../api/visualizerApi';
 import './Sidebar.css';
 
+/**
+ * Pages taken out of the menu on request (2026-10-10). They still open from a direct link, and
+ * nothing behind them changed — /leads/analytics in particular also feeds the stage counts on All
+ * Leads. Delete a line to put that page back in the menu.
+ */
+const HIDDEN_FROM_MENU = new Set<string>([
+  '/lead-manager-board',
+  '/follow-ups',
+  '/leads/analytics',
+  '/sales-content',
+  '/lead-priority-settings',
+  '/qualification-settings',
+]);
+
 interface MenuItem {
   label: string;
   path?: string;
@@ -317,6 +331,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
 
   const hasAccessToMenu = (item: MenuItem): boolean => {
     if (!user) return false;
+    if (item.path && HIDDEN_FROM_MENU.has(item.path)) return false;
 
     const roleAllowed = !!(user.role && item.roles.includes(user.role));
     const perms = user.permissions || [];

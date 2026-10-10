@@ -45,6 +45,12 @@ const matches = (doc: any, q: any): boolean =>
       ? (v.$in as any[]).map(String).includes(String(doc[k]))
       : String(doc[k]) === String(v)));
 
+/* Roadmap V2 is off and no gate applies: this suite pins the V1 journey. */
+jest.mock('../services/roadmapV2SettingService', () => ({ roadmapV2SettingFor: async () => null }));
+jest.mock('../services/roadmapV2GateService', () => ({
+  foundationGateFor: async () => ({ applies: false, firstYearDay: null, open: true, pending: [], flagged: [], passed: 0, total: 0 }),
+  gateRefusal: () => ({}),
+}));
 jest.mock('../models/User', () => ({
   __esModule: true,
   default: { findOne: (q: any) => chain(members.find(d => matches(d, q)) || null) },

@@ -45,6 +45,8 @@ import { applyFoundationTrigger, directionChoiceFor } from '../services/foundati
 import { resolveModuleStatuses, itemDone } from './enrollmentPlanController';
 import { reconcileJourneyDayXp, xpForJourneyItem, journeyItemFinished, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
 import { orientationBlocksLearning, orientationRoadmap, pacingClockFor } from '../services/orientationService';
+import { foundationGateFor, gateRefusal } from '../services/roadmapV2GateService';
+import { roadmapV2SettingFor } from '../services/roadmapV2SettingService';
 
 /**
  * Which engine plans this student, for the screens that must show exactly one plan.
@@ -419,7 +421,27 @@ export const getMyJourney = async (req: Request, res: Response) => {
            * THE PREVIEW IS THEIR OWN PLAN. Composed on read from their Skill DNA — exactly what
            * membership will generate — and nothing is stored, so there is nothing to keep in step.
            */
-          const { composition } = await composeFoundationJourney(tenantId, profile, { source: 'PRODUCTION', stageKey: stageKey || STAGE_FALLBACK, programDays });
+          /*
+           * The preview IS what membership will build — so for a learner on Roadmap V2 it is
+           * composed by V2 (bridge, revision and all) and its days are V2's own.
+           */
+          const v2Setting = await roadmapV2SettingFor(tenantId, String(studentId), stageKey || STAGE_FALLBACK);
+          const { composition, v2 } = await composeFoundationJourney(tenantId, profile, {
+            source: 'PRODUCTION', stageKey: stageKey || STAGE_FALLBACK, programDays,
+            roadmapV2: v2Setting, studentId: String(studentId),
+          });
+          if (v2Setting && v2) {
+            const allDays = v2.days.map((day, i) => ({ day: i + 1, units: day.map(d => d.unit) }));
+            const firstDays = allDays.slice(0, access.previewDays);
+            const assets = await loadAssets(tenantId, firstDays.flatMap(d => d.units.map(u => u.unitCode)));
+            return res.json(await previewOf(tenantId, engine, access, firstDays.map(d => ({
+              day: d.day,
+              unitCode: d.units[0]?.unitCode,
+              title: dayTitle(d.units),
+              items: d.units.flatMap(u => activitiesFor(u, assets.get(u.unitCode.toUpperCase()) || EMPTY_ASSETS)),
+            })), programDays, stageKey, null,
+            allDays.map(d => ({ day: d.day, unitCode: d.units[0]?.unitCode, title: dayTitle(d.units) }))));
+          }
 
           /**
            * A DAY IS NOT A UNIT, AND HAS NOT BEEN SINCE DENSITY LANDED.
@@ -632,6 +654,18 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
 
     const plan = (day as any[])[0];
     if (!plan) return res.status(404).json({ message: 'That day is not part of your journey.' });
+
+    /*
+     * Roadmap V2's foundation gate: the year's first day opens only when the bridge checks are
+     * passed. Refused on the server, so a day opened by its URL is held exactly as one clicked.
+     */
+    const finishedDays = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
+    if (!finishedDays.has(dayNumber)) {
+      const gate = await foundationGateFor(curriculum._id, String(studentId));
+      if (gate.applies && gate.firstYearDay !== null && dayNumber >= gate.firstYearDay && !gate.open) {
+        return res.status(403).json(gateRefusal(gate));
+      }
+    }
 
     /**
      * The ninety days are a ladder, and this endpoint has to say so too.

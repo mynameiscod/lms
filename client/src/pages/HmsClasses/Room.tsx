@@ -21,7 +21,7 @@ import {
   HMSNotificationTypes,
 } from '@100mslive/react-sdk';
 import { useAuth } from '../../contexts/AuthContext';
-import { hmsClassApi } from '../../api';
+import { hmsClassApi, liveGuestApi } from '../../api';
 
 const BROADCASTER = 'broadcaster';
 const STAGE = 'viewer-on-stage';
@@ -112,11 +112,22 @@ const ChatPanel: React.FC = () => {
 };
 
 // ── The room, once connected ──────────────────────────────────────────────────
-const RoomInner: React.FC = () => {
+/**
+ * A logged-in member joins by class id; a guest from an invitation link joins by their invite
+ * token and the name they gave, with no login. Everything after the token is the same room.
+ */
+interface RoomProps { guestToken?: string; guestName?: string; exitTo?: string }
+
+const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const hmsActions = useHMSActions();
+  const backTo = exitTo || '/hms-classes';
+  /** What other people in the room see: a name, never an email address. */
+  const displayName = guestToken
+    ? (guestName || 'Guest')
+    : ([(user as any)?.firstName, (user as any)?.lastName].filter(Boolean).join(' ').trim() || String(user?.email || '').split('@')[0] || 'Participant');
 
   const isConnected = useHMSStore(selectIsConnectedToRoom);
   const localPeer = useHMSStore(selectLocalPeer);
@@ -146,13 +157,14 @@ const RoomInner: React.FC = () => {
   const isViewer = !isBroadcaster && !isOnStage;
   const willPublish = role === BROADCASTER || role === STAGE;
   const isRecording = !!(recording?.browser?.running || recording?.server?.running || recording?.hls?.running);
+  const [recBusy, setRecBusy] = useState(false);
 
   // 1) Fetch the join token up front
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res: any = await hmsClassApi.joinToken(id!);
+        const res: any = guestToken ? await liveGuestApi.join(guestToken, displayName) : await hmsClassApi.joinToken(id!);
         if (!res.success) throw new Error(res.message || 'Could not get join token');
         if (!cancelled) { setTokenData(res.data); setRole(res.data.role); }
       } catch (e: any) {
@@ -161,7 +173,7 @@ const RoomInner: React.FC = () => {
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, guestToken]);
 
   // 2) Lobby camera preview for hosts / on-stage roles
   useEffect(() => {
@@ -203,7 +215,7 @@ const RoomInner: React.FC = () => {
     try {
       await hmsActions.join({
         authToken: tokenData.token,
-        userName: [user?.email].filter(Boolean).join(' ') || 'Guest',
+        userName: displayName,
         settings: { isAudioMuted: willPublish ? !micReady : true, isVideoMuted: willPublish ? !camReady : true },
       });
       setPhase('joined');
@@ -233,6 +245,22 @@ const RoomInner: React.FC = () => {
     try { await hmsActions.stopHLSStreaming(); } catch { /* ignore */ }
   }, [hmsActions]);
 
+  // Recording is the host's call: nothing is recorded until they press Record.
+  const toggleRecording = useCallback(async () => {
+    setRecBusy(true);
+    try {
+      if (isRecording) await (hmsActions as any).stopRTMPAndRecording();
+      else await (hmsActions as any).startRTMPOrRecording({ record: true });
+      setNotice('');
+    } catch (e: any) {
+      const msg = String(e?.message || 'error');
+      setNotice(/permission/i.test(msg)
+        ? "Couldn't change recording — the broadcaster role needs the Recording permission in your 100ms template."
+        : `Couldn't ${isRecording ? 'stop' : 'start'} recording: ${msg}`);
+    }
+    setRecBusy(false);
+  }, [hmsActions, isRecording]);
+
   // Generic role change via SDK (broadcaster has changeRole permission)
   const setPeerRole = async (peerId: string, roleName: string) => {
     const act: any = hmsActions;
@@ -248,9 +276,9 @@ const RoomInner: React.FC = () => {
   };
 
   const raiseHand = () =>
-    hmsActions.sendBroadcastMessage('✋ ' + (user?.email || 'A student') + ' raised their hand').catch(() => {});
+    hmsActions.sendBroadcastMessage('✋ ' + displayName + ' raised their hand').catch(() => {});
 
-  const leave = async () => { await hmsActions.leave().catch(() => {}); navigate('/hms-classes'); };
+  const leave = async () => { await hmsActions.leave().catch(() => {}); navigate(backTo); };
 
   const canShareScreen = isBroadcaster; // host + co-hosts (broadcaster role) only
 
@@ -259,7 +287,7 @@ const RoomInner: React.FC = () => {
       <div style={shell}>
         <div style={{ margin: 'auto', textAlign: 'center' }}>
           <p style={{ fontSize: 16 }}>⚠ {err}</p>
-          <button onClick={() => navigate('/hms-classes')} style={btn('#374151')}>Back to classes</button>
+          <button onClick={() => navigate(backTo)} style={btn('#374151')}>{guestToken ? 'Back' : 'Back to classes'}</button>
         </div>
       </div>
     );
@@ -291,7 +319,7 @@ const RoomInner: React.FC = () => {
           <button onClick={doJoin} disabled={!tokenData} style={{ ...btn('#16a34a'), width: '100%', padding: '12px 0', fontSize: 15 }}>
             {tokenData ? (willPublish ? 'Join Class' : 'Join & Watch') : 'Loading…'}
           </button>
-          <button onClick={() => navigate('/hms-classes')} style={{ ...btn('transparent'), marginTop: 8, color: '#9ca3af' }}>Cancel</button>
+          <button onClick={() => navigate(backTo)} style={{ ...btn('transparent'), marginTop: 8, color: '#9ca3af' }}>Cancel</button>
         </div>
       </div>
     );
@@ -368,6 +396,12 @@ const RoomInner: React.FC = () => {
                 {isBroadcaster && (!hlsState?.running
                   ? <button onClick={goLive} style={btn('#16a34a')}>▶ Go Live</button>
                   : <button onClick={stopLive} style={btn('#dc2626')}>■ Stop stream</button>)}
+                {isBroadcaster && (
+                  <button onClick={toggleRecording} disabled={recBusy} style={btn(isRecording ? '#dc2626' : '#374151')}
+                    title={isRecording ? 'Stop recording' : 'Start recording this class'}>
+                    {recBusy ? '…' : isRecording ? '■ Stop recording' : '⏺ Record'}
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -420,6 +454,13 @@ const shell: React.CSSProperties = { position: 'fixed', inset: 0, background: '#
 const btn = (bg: string): React.CSSProperties => ({ padding: '9px 16px', background: bg, color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' });
 const smallBtn = (bg: string): React.CSSProperties => ({ padding: '4px 9px', background: bg, color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' });
 const rowStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, padding: '6px 0', borderBottom: '1px solid #1f2937' };
+
+/** The room for a guest who opened an invitation link. */
+export const GuestRoom: React.FC<{ token: string; name: string; exitTo: string }> = ({ token, name, exitTo }) => (
+  <HMSRoomProvider>
+    <RoomInner guestToken={token} guestName={name} exitTo={exitTo} />
+  </HMSRoomProvider>
+);
 
 const HmsRoomPage: React.FC = () => (
   <HMSRoomProvider>

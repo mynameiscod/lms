@@ -190,6 +190,11 @@ export const POLICIES = {
    * together behind one public IP; one person registering twice is handled by the event's own
    * one-per-mobile rule, not by this.
    */
+  /** A guest opening their live-class join link. Generous: the page polls until the class starts. */
+  liveJoin: {
+    max: 600, windowMs: 15 * 60_000,
+    message: 'Too many attempts to open this class from this network.',
+  },
   eventSubmit: {
     max: 300, windowMs: 15 * 60_000,
     message: 'Too many registrations from this network.',

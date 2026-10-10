@@ -262,6 +262,7 @@ const ScheduledInterviewsPage = lazy(() => import('./pages/ScheduledInterviews')
 const InterviewDetailPage = lazy(() => import('./pages/ScheduledInterviews/InterviewDetail'));
 const HmsClassesPage = lazy(() => import('./pages/HmsClasses'));
 const HmsRoomPage = lazy(() => import('./pages/HmsClasses/Room'));
+const LiveGuestJoin = lazy(() => import('./pages/HmsClasses/GuestJoin'));
 const CommunicationLab = lazy(() => import('./pages/CommunicationLab'));
 const CommunicationLabAdmin = lazy(() => import('./pages/CommunicationLabAdmin'));
 const MyInterviewsPage = lazy(() => import('./pages/MyInterviews'));
@@ -494,6 +495,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/hackathon-exam" element={<HackathonExam />} />
 
       {/* ── Public Tech Battles (no auth) ── */}
+      {/* A live-class invitation link: guests join without an account */}
+      <Route path="/live/:token" element={<LiveGuestJoin />} />
       <Route path="/battles" element={<BattleList />} />
       <Route path="/battles/exam/:token" element={<BattleExam />} />
       <Route path="/battles/:slug/leaderboard" element={<BattleLeaderboard />} />

@@ -6,6 +6,18 @@ import User from '../models/User';
 import * as hms from '../services/hmsService';
 import { recordJoin, recordLeave, finalizeAttendance } from '../services/liveClassAttendanceService';
 import { importRecording, generateNotesFromTranscript, fetchTranscriptText } from '../services/liveClassRecordingService';
+import * as invites from '../services/liveClassInviteService';
+import { getStr } from '../services/settingsService';
+import crypto from 'crypto';
+import mongoose from 'mongoose';
+
+/** Batch ids from a request body: the new list, plus the single legacy field if sent. */
+const batchIdsFrom = (body: any): mongoose.Types.ObjectId[] | undefined => {
+  if (!Array.isArray(body?.batchIds) && !body?.batchId) return undefined;
+  const ids = [...(Array.isArray(body?.batchIds) ? body.batchIds : []), ...(body?.batchId ? [body.batchId] : [])]
+    .map(String).filter((x) => mongoose.Types.ObjectId.isValid(x));
+  return [...new Set(ids)].map((x) => new mongoose.Types.ObjectId(x));
+};
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'];
 
@@ -17,7 +29,7 @@ const isAdminish = (req: AuthenticatedRequest) =>
 export const createLiveClass = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const tenantId = req.tenantId || req.user?.tenantId;
-    const { title, description, mode, scheduledAt, durationMin, batchId, courseId, instructorName } = req.body;
+    const { title, description, mode, scheduledAt, durationMin, courseId, instructorName, openToInstitute } = req.body;
     if (!title || !scheduledAt) {
       return res.status(400).json({ success: false, message: 'Title and scheduledAt are required', error: 'validation' });
     }
@@ -28,7 +40,9 @@ export const createLiveClass = async (req: AuthenticatedRequest, res: Response<A
       mode: mode || 'online',
       instructorId: req.user?.id,
       instructorName: instructorName || req.user?.email,
-      batchId: batchId || undefined,
+      // New classes keep their audience in batchIds; batchId stays empty so there is one list.
+      batchIds: batchIdsFrom(req.body) || [],
+      openToInstitute: openToInstitute === true,
       courseId: courseId || undefined,
       scheduledAt: new Date(scheduledAt),
       durationMin: durationMin || 60,
@@ -48,12 +62,9 @@ export const listLiveClasses = async (req: AuthenticatedRequest, res: Response<A
     const q: any = { tenantId };
     if (req.query.status) q.status = req.query.status;
 
-    // Students only see live classes assigned to THEIR batch (hosts/admins see all)
+    // Everyone else sees what is for them: open classes, their batch's, and ones they were invited to.
     if (!(await isAdminish(req))) {
-      const me = await User.findById(req.user?.id).select('batchId').lean();
-      const myBatch = (me as any)?.batchId;
-      if (!myBatch) return res.status(200).json({ success: true, message: 'Live classes', data: [] });
-      q.batchId = myBatch;
+      Object.assign(q, await invites.visibleClassFilter(String(tenantId), String(req.user?.id)));
     }
 
     const items = await LiveClass.find(q).sort({ scheduledAt: -1 }).limit(200).lean();
@@ -66,8 +77,12 @@ export const listLiveClasses = async (req: AuthenticatedRequest, res: Response<A
 export const getLiveClass = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const tenantId = req.tenantId || req.user?.tenantId;
-    const lc = await LiveClass.findOne({ _id: req.params.id, tenantId }).lean();
+    const lc = await LiveClass.findOne({ _id: req.params.id, tenantId });
     if (!lc) return res.status(404).json({ success: false, message: 'Not found', error: 'not_found' });
+    const host = (await isAdminish(req)) || String(lc.instructorId) === String(req.user?.id);
+    if (!host && !(await invites.userMayJoin(lc, String(req.user?.id)))) {
+      return res.status(404).json({ success: false, message: 'Not found', error: 'not_found' });
+    }
     res.status(200).json({ success: true, message: 'Live class', data: lc });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message, error: error.message });
@@ -77,9 +92,12 @@ export const getLiveClass = async (req: AuthenticatedRequest, res: Response<ApiR
 export const updateLiveClass = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const tenantId = req.tenantId || req.user?.tenantId;
-    const allowed = ['title', 'description', 'mode', 'scheduledAt', 'durationMin', 'batchId', 'courseId', 'instructorName'];
+    const allowed = ['title', 'description', 'mode', 'scheduledAt', 'durationMin', 'courseId', 'instructorName'];
     const update: any = {};
     for (const k of allowed) if (k in req.body) update[k] = req.body[k];
+    const batchIds = batchIdsFrom(req.body);
+    if (batchIds) { update.batchIds = batchIds; update.batchId = undefined; }
+    if (typeof req.body?.openToInstitute === 'boolean') update.openToInstitute = req.body.openToInstitute;
     const lc = await LiveClass.findOneAndUpdate({ _id: req.params.id, tenantId }, { $set: update }, { new: true });
     if (!lc) return res.status(404).json({ success: false, message: 'Not found', error: 'not_found' });
     res.status(200).json({ success: true, message: 'Updated', data: lc });
@@ -143,12 +161,9 @@ export const getJoinToken = async (req: AuthenticatedRequest, res: Response<ApiR
     // The instructor (or an admin) joins as broadcaster; everyone else as viewer (HLS audience)
     const isHost = (await isAdminish(req)) || String(lc.instructorId) === String(req.user?.id);
 
-    // A student may only join a class assigned to their batch
-    if (!isHost && lc.batchId) {
-      const me = await User.findById(req.user?.id).select('batchId').lean();
-      if (String((me as any)?.batchId) !== String(lc.batchId)) {
-        return res.status(403).json({ success: false, message: 'This live class is for a different batch', error: 'not_your_batch' });
-      }
+    // Everyone else must be in the class's audience: open, their batch, or invited.
+    if (!isHost && !(await invites.userMayJoin(lc, String(req.user?.id)))) {
+      return res.status(403).json({ success: false, message: 'You are not invited to this live class', error: 'not_invited' });
     }
     const role = isHost ? hms.HMS_ROLES.broadcaster : hms.HMS_ROLES.viewer;
     const token = hms.authToken(lc.hmsRoomId, String(req.user?.id), role, tenantId);
@@ -216,6 +231,15 @@ export const endLiveClass = async (req: AuthenticatedRequest, res: Response<ApiR
 // ── 100ms webhook (public; recording ready etc.) ──────────────────────────────
 export const hmsWebhook = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    // With a secret set (Platform Settings → Live Classes), only 100ms — which sends it as a header — gets through.
+    const secret = getStr('HMS_WEBHOOK_SECRET', '');
+    if (secret) {
+      const got = Buffer.from(String(req.headers['x-webhook-secret'] || ''));
+      const want = Buffer.from(secret);
+      if (got.length !== want.length || !crypto.timingSafeEqual(got, want)) {
+        return res.status(401).json({ ok: false });
+      }
+    }
     const event = (req.body || {}) as any;
     const type = event.type;
     const data = event.data || {};
@@ -250,10 +274,13 @@ export const hmsWebhook = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Attendance — accumulate watch time from peer lifecycle events
+    const peerUser = String(data.user_id || data.userId || '');
     if (type === 'peer.join.success') {
-      await recordJoin(roomId, data.user_id || data.userId, data.role);
+      if (peerUser.startsWith('invite_')) await invites.recordGuestJoin(peerUser);
+      else await recordJoin(roomId, peerUser, data.role);
     } else if (type === 'peer.leave.success') {
-      await recordLeave(roomId, data.user_id || data.userId, data.duration);
+      if (peerUser.startsWith('invite_')) await invites.recordGuestLeave(peerUser, data.duration);
+      else await recordLeave(roomId, peerUser, data.duration);
     } else if (type === 'session.close.success' || type === 'room.end.success') {
       // Session/room closed by 100ms — finalise attendance for that class
       const lc = roomId ? await LiveClass.findOne({ hmsRoomId: roomId }).select('_id') : null;
@@ -264,5 +291,111 @@ export const hmsWebhook = async (req: AuthenticatedRequest, res: Response) => {
     res.status(200).json({ ok: true });
   } catch {
     res.status(200).json({ ok: true });
+  }
+};
+
+/* ── Invites (hosts) ───────────────────────────────────────────────────────────────────── */
+
+const inviteFail = (res: Response, e: any) =>
+  res.status(e instanceof invites.InviteError ? e.status : 400).json({ success: false, message: e?.message || 'Something went wrong', error: 'invite' });
+
+async function hostClass(req: AuthenticatedRequest) {
+  const tenantId = req.tenantId || req.user?.tenantId;
+  if (!mongoose.Types.ObjectId.isValid(String(req.params.id))) throw new invites.InviteError('Not found', 404);
+  const lc = await LiveClass.findOne({ _id: req.params.id, tenantId });
+  if (!lc) throw new invites.InviteError('Not found', 404);
+  return lc;
+}
+
+export const listInvites = async (req: AuthenticatedRequest, res: Response) => {
+  try { res.json({ success: true, data: await invites.listInvites(await hostClass(req)) }); } catch (e) { inviteFail(res, e); }
+};
+
+export const addInvites = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const lc = await hostClass(req);
+    const out = await invites.addInvites(lc, req.body || {}, String(req.user?.id));
+    if (typeof req.body?.openToInstitute === 'boolean') await LiveClass.updateOne({ _id: lc._id }, { $set: { openToInstitute: req.body.openToInstitute } });
+    let sent: invites.SendResult | null = null;
+    const ch = req.body?.send;
+    if (ch && (ch.email || ch.whatsapp)) {
+      const fresh = (await LiveClass.findById(lc._id))!;
+      sent = await invites.sendInvites(fresh, { channels: { email: !!ch.email, whatsapp: !!ch.whatsapp }, onlyUnsent: true });
+    }
+    res.json({ success: true, data: { ...out, sent } });
+  } catch (e) { inviteFail(res, e); }
+};
+
+export const sendInvites = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const lc = await hostClass(req);
+    const ids = Array.isArray(req.body?.inviteIds) ? req.body.inviteIds.map(String) : undefined;
+    const data = await invites.sendInvites(lc, {
+      inviteIds: ids,
+      channels: { email: req.body?.email !== false, whatsapp: req.body?.whatsapp !== false },
+      onlyUnsent: !ids?.length && req.body?.onlyUnsent !== false,
+    });
+    res.json({ success: true, data });
+  } catch (e) { inviteFail(res, e); }
+};
+
+export const removeInvite = async (req: AuthenticatedRequest, res: Response) => {
+  try { res.json({ success: true, data: await invites.removeInvite(await hostClass(req), String(req.params.inviteId)) }); } catch (e) { inviteFail(res, e); }
+};
+
+export const removeInviteBatch = async (req: AuthenticatedRequest, res: Response) => {
+  try { res.json({ success: true, data: await invites.removeBatch(await hostClass(req), String(req.params.batchId)) }); } catch (e) { inviteFail(res, e); }
+};
+
+/** People in this institute, for the invite picker. Name, email or mobile; at most 20. */
+export const searchPeople = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const tenantId = req.tenantId || req.user?.tenantId;
+    const q = String(req.query.q || '').trim().slice(0, 60);
+    if (q.length < 2) return res.json({ success: true, data: [] });
+    const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const digits = q.replace(/\D/g, '');
+    const users = await User.find({
+      tenantId, isActive: { $ne: false },
+      $or: [{ firstName: rx }, { lastName: rx }, { email: rx }, ...(digits.length >= 4 ? [{ phone: new RegExp(digits) }] : [])],
+    }).select('firstName lastName email phone role').limit(20).lean();
+    res.json({ success: true, data: users.map((u: any) => ({
+      _id: u._id, name: [u.firstName, u.lastName].filter(Boolean).join(' '), email: u.email || '', phone: u.phone || '', role: u.role,
+    })) });
+  } catch (e) { inviteFail(res, e); }
+};
+
+/* ── Guests: the personal join link (no login) ─────────────────────────────────────────── */
+
+const BAD_LINK = 'This invitation link is not valid. Ask the organiser for a new one.';
+
+export const publicInviteInfo = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const found = await invites.inviteByToken(String(req.params.token));
+    if (!found) return res.status(404).json({ success: false, message: BAD_LINK });
+    res.json({ success: true, data: invites.publicClassInfo(found.lc, found.inv) });
+  } catch {
+    res.status(500).json({ success: false, message: 'Could not load the class. Please try again.' });
+  }
+};
+
+export const publicJoin = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const found = await invites.inviteByToken(String(req.params.token));
+    if (!found) return res.status(404).json({ success: false, message: BAD_LINK });
+    const { lc, inv } = found;
+    if (lc.status !== 'live' || !lc.hmsRoomId) {
+      return res.status(409).json({
+        success: false, error: 'not_live',
+        message: lc.status === 'ended' ? 'This class has ended.' : 'The class has not started yet. This page opens it when the host starts.',
+      });
+    }
+    const typed = String(req.body?.name || '').trim().slice(0, 80);
+    if (typed && !inv.name) { inv.name = typed; await inv.save(); }
+    const name = inv.name || typed || 'Guest';
+    const token = hms.authToken(lc.hmsRoomId, invites.guestPeerId(inv._id), hms.HMS_ROLES.viewer, String(lc.tenantId));
+    res.json({ success: true, data: { token, roomId: lc.hmsRoomId, role: hms.HMS_ROLES.viewer, title: lc.title, status: lc.status, name } });
+  } catch (e: any) {
+    res.status(400).json({ success: false, message: e?.message || 'Could not join' });
   }
 };

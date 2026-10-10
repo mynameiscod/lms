@@ -120,6 +120,18 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     help: 'Sent 24 hours and 1 hour before the interview. Same three variables as the booking message. Keep it UTILITY.',
   },
   {
+    key: 'LIVE_CLASS_INVITE', label: 'Live class — invitation', module: 'Live Classes',
+    settingsKey: 'WHATSAPP_TEMPLATE_LIVE_CLASS_INVITE',
+    variables: ['Invitee first name', 'Class title', 'Date and time (IST)', 'Join link'],
+    help: 'Sent when a host invites people to a live class. Keep it UTILITY, e.g. "Hi {{1}}, you are invited to the live class {{2}} on {{3}} IST. Join here: {{4}}". The join link is personal and works without logging in. An email with a calendar invite also goes to everyone with an email.',
+  },
+  {
+    key: 'LIVE_CLASS_REMINDER', label: 'Live class — starts soon', module: 'Live Classes',
+    settingsKey: 'WHATSAPP_TEMPLATE_LIVE_CLASS_REMINDER',
+    variables: ['Invitee first name', 'Class title', 'Date and time (IST)', 'Join link'],
+    help: 'Sent about 15 minutes before a live class starts, to everyone invited. Same four variables as the invitation. Keep it UTILITY.',
+  },
+  {
     key: 'PLACEMENT_AGREEMENT_SENT', label: 'Placement Program — agreement to sign', module: 'Placement Program',
     settingsKey: 'WHATSAPP_TEMPLATE_PLACEMENT_AGREEMENT_SENT',
     variables: ['Candidate first name', 'Link to their page'],

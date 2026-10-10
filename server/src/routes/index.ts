@@ -83,7 +83,8 @@ import resourceRoutes from './resourceRoutes';
 import speakingRoutes from './speakingRoutes';
 import drillRoutes from './drillRoutes';
 import liveClassRoutes from './liveClassRoutes';
-import { hmsWebhook } from '../controllers/liveClassController';
+import { rateLimit } from '../middleware/rateLimit';
+import { hmsWebhook, publicInviteInfo, publicJoin } from '../controllers/liveClassController';
 import communicationRoutes from './communicationRoutes';
 import thinkingLabRoutes from './thinkingLabRoutes';
 import visualizerRoutes from './visualizerRoutes';
@@ -208,6 +209,9 @@ router.use('/meta-leads', metaLeadAdsRoutes);
 router.post('/payments/webhook', paymentWebhook); // Razorpay webhook (public, signature-verified) — before the authed /payments mount
 router.all('/payments/return', paymentReturn);    // Razorpay redirect-mode return URL (public) — settles + bounces to app
 router.post('/hms/webhook', hmsWebhook); // 100ms webhook (public) — recording ready, peer join/leave
+// Public: a live-class invitee's personal join link (/live/<token>) — no login.
+router.get('/public/live/:token', rateLimit('liveJoin'), publicInviteInfo as any);
+router.post('/public/live/:token/join', rateLimit('liveJoin'), publicJoin as any);
 
 router.use('/auth', authRoutes);
 router.use('/tenants', tenantRoutes);

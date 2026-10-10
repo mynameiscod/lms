@@ -17,6 +17,15 @@ export interface ILiveClass extends Document {
   batchId?: mongoose.Types.ObjectId;
   courseId?: mongoose.Types.ObjectId;
 
+  /**
+   * Who the class is for. Students of any batch here can see and join it; people invited one by
+   * one are in LiveClassInvite. `openToInstitute` lets everyone in the institute in. A class saved
+   * before these existed has neither set and keeps its old rule: its one batch, or — with no
+   * batch — everyone in the institute (see liveClassAccess).
+   */
+  batchIds?: mongoose.Types.ObjectId[];
+  openToInstitute?: boolean;
+
   // Schedule
   scheduledAt: Date;
   durationMin: number;
@@ -29,7 +38,7 @@ export interface ILiveClass extends Document {
   endedAt?: Date;
   reminderSent: boolean;   // "starts soon" reminder fired
 
-  // Recording (auto-start on the 100ms template; url arrives via webhook)
+  // Recording (the host presses Record in the room; the url arrives via webhook)
   recordingReady: boolean;
   recordingUrl?: string;
   recordingContentId?: mongoose.Types.ObjectId; // LearningContentLibrary entry (Class Hub)
@@ -50,6 +59,8 @@ const LiveClassSchema = new Schema<ILiveClass>(
     instructorName: { type: String, trim: true },
 
     batchId: { type: Schema.Types.ObjectId, ref: 'Batch' },
+    batchIds: { type: [{ type: Schema.Types.ObjectId, ref: 'Batch' }], default: undefined },
+    openToInstitute: { type: Boolean },
     courseId: { type: Schema.Types.ObjectId, ref: 'Course' },
 
     scheduledAt: { type: Date, required: true },
@@ -73,6 +84,7 @@ const LiveClassSchema = new Schema<ILiveClass>(
 
 LiveClassSchema.index({ tenantId: 1, status: 1, scheduledAt: -1 });
 LiveClassSchema.index({ tenantId: 1, batchId: 1 });
+LiveClassSchema.index({ tenantId: 1, batchIds: 1 });
 LiveClassSchema.index({ hmsRoomId: 1 });
 
 export default mongoose.model<ILiveClass>('LiveClass', LiveClassSchema);

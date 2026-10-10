@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { hmsClassApi, HmsClass, batchApi } from '../../api';
+import InvitePanel from './InvitePanel';
 
 const HOST_ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'];
 
@@ -26,7 +27,9 @@ const HmsClassesPage: React.FC = () => {
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState('');
   const [batches, setBatches] = useState<{ _id: string; name: string }[]>([]);
-  const [form, setForm] = useState({ title: '', description: '', mode: 'hybrid', scheduledAt: '', durationMin: 60, instructorName: '', batchId: '' });
+  const EMPTY = { title: '', description: '', mode: 'hybrid', scheduledAt: '', durationMin: 60, instructorName: '', batchIds: [] as string[], openToInstitute: false };
+  const [form, setForm] = useState(EMPTY);
+  const [inviting, setInviting] = useState<HmsClass | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,8 +61,12 @@ const HmsClassesPage: React.FC = () => {
     if (!form.title || !form.scheduledAt) { setMsg('Title and date/time are required'); return; }
     setBusy('create');
     try {
-      const res: any = await hmsClassApi.create(form);
-      if (res.success) { setShowCreate(false); setForm({ title: '', description: '', mode: 'hybrid', scheduledAt: '', durationMin: 60, instructorName: '', batchId: '' }); load(); }
+      const res: any = await hmsClassApi.create({ ...form, scheduledAt: new Date(form.scheduledAt).toISOString() });
+      if (res.success) {
+        setShowCreate(false); setForm(EMPTY); load();
+        // Straight on to who it is for: people, pasted emails and more batches, and sending the invites.
+        setInviting(res.data);
+      }
       else setMsg(res.message || 'Failed');
     } catch (e: any) { setMsg(e.message || 'Failed'); } finally { setBusy(''); }
   };
@@ -156,6 +163,12 @@ const HmsClassesPage: React.FC = () => {
                     End
                   </button>
                 )}
+                {isHost && c.status !== 'ended' && (
+                  <button onClick={() => setInviting(c)}
+                    style={{ padding: '8px 14px', background: '#fff', color: '#1a5490', border: '1px solid #bfdbfe', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    Invite
+                  </button>
+                )}
                 {isHost && c.status !== 'live' && (
                   <button disabled={busy === c._id} onClick={() => remove(c._id)}
                     style={{ padding: '8px 12px', background: '#fff', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>
@@ -206,11 +219,23 @@ const HmsClassesPage: React.FC = () => {
               </div>
             </div>
             <div>
-              <label style={lbl}>Batch <span style={{ fontWeight: 400, color: '#9ca3af' }}>(for auto-attendance & reminders)</span></label>
-              <select style={input} value={form.batchId} onChange={e => setForm(f => ({ ...f, batchId: e.target.value }))}>
-                <option value="">— No batch (attendance won’t be recorded) —</option>
-                {batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
-              </select>
+              <label style={lbl}>Who is this class for?</label>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14, marginBottom: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={form.openToInstitute} onChange={e => setForm(f => ({ ...f, openToInstitute: e.target.checked }))} />
+                Everyone in the institute
+              </label>
+              <div style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 6 }}>Batches (students get attendance and reminders):</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 140, overflowY: 'auto' }}>
+                {batches.map(b => (
+                  <label key={b._id} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', background: form.batchIds.includes(b._id) ? '#dbeafe' : '#f3f4f6', borderRadius: 999, padding: '4px 10px', fontSize: 12.5, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={form.batchIds.includes(b._id)}
+                      onChange={e => setForm(f => ({ ...f, batchIds: e.target.checked ? [...f.batchIds, b._id] : f.batchIds.filter(x => x !== b._id) }))} />
+                    {b.name}
+                  </label>
+                ))}
+                {!batches.length && <span style={{ fontSize: 12.5, color: '#9ca3af' }}>No batches found.</span>}
+              </div>
+              <div style={{ fontSize: 12.5, color: '#6b7280', marginTop: 6 }}>After saving you can add individual people, paste emails or mobiles (guests too), and send the invitations.</div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 6 }}>
               <button type="button" onClick={() => setShowCreate(false)} style={{ padding: '9px 16px', background: '#f3f4f6', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>Cancel</button>
@@ -221,6 +246,8 @@ const HmsClassesPage: React.FC = () => {
           </form>
         </div>
       )}
+
+      {inviting && <InvitePanel cls={inviting} batches={batches} onClose={() => { setInviting(null); load(); }} />}
     </div>
   );
 };

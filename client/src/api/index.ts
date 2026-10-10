@@ -3254,7 +3254,25 @@ export interface HmsClass {
   hlsUrl?: string;
   recordingReady?: boolean;
   recordingUrl?: string;
+  batchId?: string;
+  batchIds?: string[];
+  openToInstitute?: boolean;
 }
+
+export interface HmsInvite {
+  _id: string; kind: 'user' | 'contact' | 'batch'; name: string; email: string; phone: string; hasAccount: boolean;
+  link: string; emailSentAt?: string | null; whatsappSentAt?: string | null; lastSendError: string;
+  firstJoinedAt?: string | null; totalSeconds: number;
+}
+export interface HmsInviteSendResult { recipients: number; email: number; whatsapp: number; whatsappSkipped?: string }
+
+/** A live-class guest's personal join link — no login, so no auth headers. */
+export const liveGuestApi = {
+  info: (token: string) => fetch(`${API_BASE_URL}/public/live/${encodeURIComponent(token)}`).then((r) => r.json()),
+  join: (token: string, name: string) => fetch(`${API_BASE_URL}/public/live/${encodeURIComponent(token)}/join`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }),
+  }).then((r) => r.json()),
+};
 
 export const hmsClassApi = {
   list: (status?: string) =>
@@ -3276,4 +3294,15 @@ export const hmsClassApi = {
     authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/hls-url`, { method: 'POST', body: JSON.stringify({ hlsUrl }) }),
   changeRole: (id: string, peerId: string, toStage: boolean) =>
     authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/change-role`, { method: 'POST', body: JSON.stringify({ peerId, toStage }) }),
+  invites: (id: string) => authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/invites`),
+  addInvites: (id: string, body: { userIds?: string[]; contacts?: string; batchIds?: string[]; openToInstitute?: boolean; send?: { email: boolean; whatsapp: boolean } }) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/invites`, { method: 'POST', body: JSON.stringify(body) }),
+  sendInvites: (id: string, body: { inviteIds?: string[]; email: boolean; whatsapp: boolean; onlyUnsent?: boolean }) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/invites/send`, { method: 'POST', body: JSON.stringify(body) }),
+  removeInvite: (id: string, inviteId: string) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/invites/${inviteId}`, { method: 'DELETE' }),
+  removeBatch: (id: string, batchId: string) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/batches/${batchId}`, { method: 'DELETE' }),
+  searchPeople: (q: string) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes/people/search?q=${encodeURIComponent(q)}`),
 };

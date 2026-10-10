@@ -55,11 +55,18 @@ import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } f
 import { isProtectedFromTrim } from '../data/terminalCoveragePolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource } from './composerCandidateService';
 import { sequencePredecessorOf, sequenceIndexOf } from '../data/courseSequencePolicy';
+import { composeRoadmapV2, V2Plan } from './roadmapV2ComposerService';
+import { roadmapV2SettingFor } from './roadmapV2SettingService';
 
 /** Marks a curriculum as a Foundation UNIT-engine journey. Lets one be found without guessing. */
 export const FOUNDATION_JOURNEY_KIND = 'FOUNDATION_UNIT_JOURNEY_V1';
 
 export interface JourneyBuildOptions {
+  /**
+   * Roadmap V2 for this learner: the daily study time it plans with. Set (by persistFoundationJourney,
+   * from roadmapV2For) only when V2 is on for them; absent or null composes exactly as V1.
+   */
+  roadmapV2?: { dailyMinutes: number } | null;
   /**
    * Where candidates come from. PRODUCTION in every real call.
    *
@@ -639,7 +646,7 @@ export async function composeFoundationJourney(
   tenantId: string,
   profile: StudentProfile,
   opts: JourneyBuildOptions = {},
-): Promise<{ candidates: number; composition: ComposerResult }> {
+): Promise<{ candidates: number; composition: ComposerResult; v2?: V2Plan | null }> {
   const source = opts.source || 'PRODUCTION';
   const programDays = opts.programDays ?? await programDaysFor(tenantId, opts.stageKey);
   const set = await loadCandidates(tenantId, source, opts.stageKey || 'foundation');
@@ -695,6 +702,18 @@ export async function composeFoundationJourney(
     }
     console.log(`[direction] ${opts.stageKey} needs a direction and none was chosen — composing provisionally against ${provisional}`);
     profile = { ...profile, primaryDirection: provisional };
+  }
+
+  /*
+   * ROADMAP V2: fit the admin's days at the daily study time, by topic priority, with a bridge of
+   * the earlier years for a fresh joiner. Only for a learner V2 is on for; V1 continues below.
+   */
+  if (opts.roadmapV2) {
+    const v2 = await composeRoadmapV2(tenantId, profile, set, {
+      stageKey: opts.stageKey || 'foundation', programDays, dailyMinutes: opts.roadmapV2.dailyMinutes,
+      source, history: opts.history,
+    });
+    return { candidates: set.units.length, composition: v2.composition, v2: v2.plan };
   }
 
   /**
@@ -952,7 +971,11 @@ export async function persistFoundationJourney(
   /* Resolved once and passed on, so composing, checking and writing all use the same number. */
   const programDays = opts.programDays ?? await programDaysFor(tenantId, opts.stageKey);
 
-  const { composition } = await composeFoundationJourney(tenantId, profile, { ...opts, programDays });
+  /* Roadmap V2 decides per learner, unless the caller already said. OFF unless switched on. */
+  const roadmapV2 = opts.roadmapV2 !== undefined ? opts.roadmapV2 : await roadmapV2SettingFor(tenantId, String(sid), stageKey);
+
+  const { composition, v2 } = await composeFoundationJourney(tenantId, profile, { ...opts, programDays, roadmapV2 });
+  if (roadmapV2) return persistRoadmapV2(tenantId, sid, stageKey, source, programDays, composition, v2 || null);
 
   /**
    * THE INVARIANT, CHECKED BEFORE THE FIRST WRITE.
@@ -1045,6 +1068,65 @@ export async function persistFoundationJourney(
   }
 
   return { ok: true, curriculumId: doc._id, days: programDays, created, composition };
+}
+
+/**
+ * Write a Roadmap V2 journey: the days exactly as V2 fitted them, each with its phase.
+ *
+ * Its own path because V2 has already packed the days — V1's unit-count check and packer would
+ * re-cut a plan that was fitted to the daily study time on purpose. The journey records that it is
+ * V2, and how many of its days are bridge and how many are the year, so every screen and the gate
+ * can tell the two apart.
+ */
+async function persistRoadmapV2(
+  tenantId: string,
+  sid: mongoose.Types.ObjectId,
+  stageKey: string,
+  source: CandidateSource,
+  programDays: number,
+  composition: ComposerResult,
+  plan: V2Plan | null,
+): Promise<JourneyResult> {
+  if (!composition.ok || !plan) {
+    return {
+      ok: false,
+      reason: `Roadmap V2 could not fill ${programDays} days for this student from the published curriculum. Nothing was written.`,
+      days: composition.units.length, created: false, composition,
+    };
+  }
+  const totalDays = plan.days.length;
+  const { doc, created } = await findOrCreateJourney(tenantId, sid, stageKey, source, totalDays);
+  const assets = await loadAssets(tenantId, composition.units.map(u => u.unitCode));
+  const ops = plan.days.map((day, i) => {
+    /* A project spanning days names its part, so day 2 does not read as the same day repeated. */
+    const units = day.map(d => (d.part ? { ...d.unit, title: `${d.unit.title} (part ${d.part.index} of ${d.part.of})` } : d.unit));
+    return {
+      updateOne: {
+        filter: { curriculumId: doc._id, dayNumber: i + 1 },
+        update: {
+          $set: {
+            tenantId, topicId: units[0].topicCode, primaryUnitCode: units[0].unitCode,
+            unitCodes: units.map(u => u.unitCode), title: dayTitle(units), items: dayItems(units, assets),
+            /* A day that carries any bridge unit is a bridge day: the year starts on a clean day. */
+            phase: day.some(d => d.phase === 'BRIDGE') ? 'BRIDGE' : 'YEAR',
+          },
+          $setOnInsert: { curriculumId: doc._id, dayNumber: i + 1 },
+        },
+        upsert: true,
+      },
+    };
+  });
+  await DayPlan.bulkWrite(ops, { ordered: false });
+  await DayPlan.deleteMany({ curriculumId: doc._id, dayNumber: { $gt: totalDays } });
+  doc.totalDays = totalDays;
+  doc.roadmapVersion = 'ROADMAP_V2';
+  doc.phaseDays = { bridge: plan.bridgeDays, year: plan.yearDays };
+  doc.v2Report = { dropped: plan.dropped, overflowDays: plan.overflowDays, programDays };
+  await doc.save();
+  if (plan.overflowDays) {
+    console.warn(`[roadmap-v2] ${String(sid)} ${stageKey}: MUST content needs ${plan.overflowDays} day(s) past the admin's ${programDays} — review priorities or days.`);
+  }
+  return { ok: true, curriculumId: doc._id, days: totalDays, created, composition };
 }
 
 /* ------------------------------------------------------------------ *

@@ -57,6 +57,7 @@ export interface IDayPlan extends Document {
    */
   unitCodes?: string[];
   dayNumber: number;
+  phase?: 'BRIDGE' | 'YEAR';
   title?: string;
   notes?: string;
   items: IDayContentItem[];
@@ -99,6 +100,8 @@ const DayPlanSchema = new Schema<IDayPlan>(
     primaryUnitCode: { type: String, trim: true, uppercase: true },
     unitCodes:       [{ type: String, trim: true, uppercase: true }],
     dayNumber:    { type: Number, required: true, min: 1 },
+    /** Roadmap V2: BRIDGE (earlier years' foundations) or YEAR. Absent on every V1 day, which reads as YEAR. */
+    phase:        { type: String, enum: ['BRIDGE', 'YEAR'] },
     title:        { type: String },
     notes:        { type: String },
     items:        [DayContentItemSchema],

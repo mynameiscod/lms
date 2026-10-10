@@ -149,6 +149,13 @@ export interface ILearningCurriculum extends Document {
    */
   adaptiveStage?: string;
 
+  /** Roadmap V2 journeys say so ('ROADMAP_V2'); absent means V1. */
+  roadmapVersion?: string;
+  /** A V2 journey's days by phase. */
+  phaseDays?: { bridge: number; year: number };
+  /** What V2 gave up to fit the days, and any days it needed past the admin's. */
+  v2Report?: { dropped: Record<string, number>; overflowDays: number; programDays: number };
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -200,6 +207,9 @@ const LearningCurriculumSchema = new Schema<ILearningCurriculum>(
     targetCourse:    { type: String, trim: true },
     totalDays:       { type: Number, default: 145, min: 1 },
     topics:          [CurriculumTopicSchema],
+    roadmapVersion:  { type: String },
+    phaseDays:       { type: new Schema({ bridge: Number, year: Number }, { _id: false }), default: undefined },
+    v2Report:        { type: Schema.Types.Mixed, default: undefined },
     modules:         { type: [CurriculumModuleSchema], default: undefined },
     isPublished:     { type: Boolean, default: false },
     shared:          { type: Boolean, default: false, index: true },

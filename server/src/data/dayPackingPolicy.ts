@@ -44,6 +44,12 @@ export interface PackOptions {
   budgetMinutes: number;
   /** The most units one day may hold, however short they are. */
   maxUnitsPerDay: number;
+  /**
+   * Prefer a day about one topic (the default, true). Greedy: it can end a day early to keep it on
+   * one topic and leave a later day too heavy to pack. Roadmap V2 retries with false before it
+   * removes any content, because a mixed-topic day is better than a topic taken away.
+   */
+  preferSameTopicDays?: boolean;
 }
 
 export interface PackResult {
@@ -150,7 +156,9 @@ export function packIntoDays(units: PackableUnit[], opts: PackOptions): PackResu
       for (let k = 1; k < take; k++) if (isSolo(units[i + k])) { take = k; break; }
       while (take > mustTake && minutesOf(units.slice(i, i + take)) > budget) take--;
       /* A day about one thing reads as a day rather than as a list — but only where it is free. */
-      while (take > mustTake && take > 1 && units[i + take - 1].topicCode !== units[i].topicCode) take--;
+      if (opts.preferSameTopicDays !== false) {
+        while (take > mustTake && take > 1 && units[i + take - 1].topicCode !== units[i].topicCode) take--;
+      }
     }
 
     if (take < mustTake) return { ok: false, reason: 'CANNOT_PACK', days: [] };

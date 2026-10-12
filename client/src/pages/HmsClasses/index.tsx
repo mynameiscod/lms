@@ -93,6 +93,15 @@ const HmsClassesPage: React.FC = () => {
     try { await hmsClassApi.remove(id); load(); } catch (e: any) { setMsg(e.message); } finally { setBusy(''); }
   };
 
+  const addToLibrary = async (id: string) => {
+    setBusy(id);
+    try {
+      const r: any = await hmsClassApi.importRecording(id);
+      setMsg(r.success ? `${r.message}. It can take a few minutes to finish processing.` : (r.message || 'Could not add the recording'));
+      load();
+    } catch (e: any) { setMsg(e.message); } finally { setBusy(''); }
+  };
+
   const label = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   const input: React.CSSProperties = { padding: '9px 11px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, width: '100%', outline: 'none' };
   const lbl: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4, display: 'block' };
@@ -163,6 +172,12 @@ const HmsClassesPage: React.FC = () => {
                   <button disabled={busy === c._id} onClick={() => end(c._id)}
                     style={{ padding: '8px 16px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                     End
+                  </button>
+                )}
+                {isHost && c.status === 'ended' && c.recordingReady && (
+                  <button disabled={busy === c._id} onClick={() => addToLibrary(c._id)}
+                    style={{ padding: '8px 14px', background: '#fff', color: '#1a5490', border: '1px solid #bfdbfe', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    {busy === c._id ? 'Adding…' : '📚 Add to library'}
                   </button>
                 )}
                 {isHost && c.status !== 'ended' && (

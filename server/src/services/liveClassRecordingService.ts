@@ -41,10 +41,16 @@ async function bunnyPull(title: string, sourceUrl: string): Promise<{ videoId: s
   return { videoId, libraryId, playUrl };
 }
 
-export async function importRecording(liveClassId: string, recordingUrl: string): Promise<void> {
+/**
+ * Put a class's recording in the Content Library. Idempotent while the library entry still exists;
+ * if the entry was deleted (the class still points at it), the recording is imported again.
+ * Returns whether a new library entry was created.
+ */
+export async function importRecording(liveClassId: string, recordingUrl?: string): Promise<boolean> {
   const lc = await LiveClass.findById(liveClassId);
-  if (!lc || !recordingUrl) return;
-  if (lc.recordingContentId) return; // already imported — idempotent
+  recordingUrl = recordingUrl || lc?.recordingUrl;
+  if (!lc || !recordingUrl) return false;
+  if (lc.recordingContentId && (await LearningContentLibrary.exists({ _id: lc.recordingContentId }))) return false;
 
   // The webhook hands us a gs:// path that Bunny can't download — resolve a real
   // presigned HTTPS URL from 100ms whenever the URL isn't already an http(s) one.
@@ -96,6 +102,7 @@ export async function importRecording(liveClassId: string, recordingUrl: string)
   lc.recordingContentId = content._id as any;
   lc.recordingReady = true;
   await lc.save();
+  return true;
 }
 
 // ── Claude summary + Q&A + practice questions from a transcript ────────────────

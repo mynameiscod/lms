@@ -3294,6 +3294,8 @@ export const hmsClassApi = {
     authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/hls-url`, { method: 'POST', body: JSON.stringify({ hlsUrl }) }),
   changeRole: (id: string, peerId: string, toStage: boolean) =>
     authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/change-role`, { method: 'POST', body: JSON.stringify({ peerId, toStage }) }),
+  importRecording: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/import-recording`, { method: 'POST' }),
   invites: (id: string) => authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/invites`),
   addInvites: (id: string, body: { userIds?: string[]; contacts?: string; batchIds?: string[]; openToInstitute?: boolean; send?: { email: boolean; whatsapp: boolean } }) =>
     authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/invites`, { method: 'POST', body: JSON.stringify(body) }),

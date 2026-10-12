@@ -8,6 +8,7 @@ import {
   startLiveClass,
   getJoinToken,
   changePeerRole,
+  importClassRecording,
   setHlsUrl,
   endLiveClass,
   listInvites,
@@ -43,6 +44,7 @@ router.post('/:id/start', hostGuard, startLiveClass);
 router.post('/:id/end', hostGuard, endLiveClass);
 router.post('/:id/hls-url', hostGuard, setHlsUrl);
 router.post('/:id/change-role', hostGuard, changePeerRole);
+router.post('/:id/import-recording', hostGuard, importClassRecording);
 
 // Invites — individual people, pasted emails / mobiles, and batches
 router.get('/:id/invites', hostGuard, listInvites);

@@ -205,6 +205,27 @@ export const changePeerRole = async (req: AuthenticatedRequest, res: Response<Ap
   }
 };
 
+// ── Host: (re)import the recording into the Content Library ──────────────────
+export const importClassRecording = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const tenantId = req.tenantId || req.user?.tenantId;
+    const lc = await LiveClass.findOne({ _id: req.params.id, tenantId });
+    if (!lc) return res.status(404).json({ success: false, message: 'Not found', error: 'not_found' });
+    if (!lc.recordingUrl) {
+      return res.status(409).json({ success: false, message: 'No recording has arrived from 100ms for this class yet', error: 'no_recording' });
+    }
+    const created = await importRecording(String(lc._id), lc.recordingUrl);
+    const fresh = await LiveClass.findById(lc._id).select('recordingContentId');
+    res.status(200).json({
+      success: true,
+      message: created ? 'Added to the Content Library' : 'Already in the Content Library',
+      data: { created, contentId: fresh?.recordingContentId },
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message, error: error.message });
+  }
+};
+
 // ── Instructor client reports the HLS URL once streaming starts ───────────────
 export const setHlsUrl = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {

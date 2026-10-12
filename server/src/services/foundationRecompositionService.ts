@@ -55,6 +55,7 @@ import {
 import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } from '../data/dayPackingPolicy';
 import PassportConfig from '../models/PassportConfig';
 import { resolveRoadmapV2 } from '../data/roadmapV2Policy';
+import { roadmapV2OnlyFor } from './roadmapV2SettingService';
 
 export interface RecompositionResult {
   ok: boolean;
@@ -66,6 +67,8 @@ export interface RecompositionResult {
   /** Future days whose unit is unchanged — the plan agreeing with itself, not a failure. */
   unchangedFutureDays: number[];
   totalDays: number;
+  /** A dry run's plan for the days it would write: nothing was written. */
+  preview?: { dayNumber: number; phase: string; titles: string[] }[];
 }
 
 /**
@@ -113,6 +116,11 @@ export async function recomposeFutureDays(
   }
   /* A Roadmap V2 journey is recomposed by V2: same fit, same daily study time, phases kept. */
   if (curriculum.roadmapVersion === 'ROADMAP_V2') return recomposeV2(tenantId, sid, profile, curriculum, stageKey, opts);
+  /*
+   * V2 ONLY: V1 never updates a roadmap again. A V1 roadmap that new evidence would recompose is
+   * moved to V2 instead — the days already done kept, the rest rebuilt by V2.
+   */
+  if (await roadmapV2OnlyFor(tenantId)) return moveFutureToV2(tenantId, sid, profile, curriculum._id, stageKey, opts);
 
   const [existing, enrollment] = await Promise.all([
     DayPlan.find({ curriculumId: curriculum._id })
@@ -371,6 +379,33 @@ export async function previewRecomposition(
  * start of a year: a learner already part-way through is not given it again. If V2 cannot fill
  * exactly the days left, the plan is left as it was.
  */
+/**
+ * Move a V1 roadmap to V2 from where the student is: the days they completed and the one they are
+ * on stay exactly as they were, every later day is rebuilt by V2. With `dryRun` nothing is written
+ * and the result carries the plan. If V2 cannot fill the days, the V1 roadmap stays as it was.
+ */
+export async function moveFutureToV2(
+  tenantId: string,
+  sid: mongoose.Types.ObjectId,
+  profile: StudentProfile,
+  curriculumId: mongoose.Types.ObjectId,
+  stageKey: string,
+  opts: JourneyBuildOptions = {},
+  dryRun = false,
+): Promise<RecompositionResult> {
+  const curriculum = { _id: curriculumId };
+  if (dryRun) return recomposeV2(tenantId, sid, profile, curriculum, stageKey, opts, true);
+  const before = await LearningCurriculum.findById(curriculumId).select('roadmapVersion').lean() as any;
+  await LearningCurriculum.updateOne({ _id: curriculumId }, { $set: { roadmapVersion: 'ROADMAP_V2' } });
+  const result = await recomposeV2(tenantId, sid, profile, curriculum, stageKey, opts);
+  if (!result.ok) {
+    /* Nothing was written to the days, so the roadmap is V1 again exactly as it was. */
+    await LearningCurriculum.updateOne({ _id: curriculumId }, before?.roadmapVersion
+      ? { $set: { roadmapVersion: before.roadmapVersion } } : { $unset: { roadmapVersion: 1 } });
+  }
+  return result;
+}
+
 async function recomposeV2(
   tenantId: string,
   sid: mongoose.Types.ObjectId,
@@ -378,6 +413,7 @@ async function recomposeV2(
   curriculum: any,
   stageKey: string,
   opts: JourneyBuildOptions,
+  dryRun = false,
 ): Promise<RecompositionResult> {
   const [existing, enrollment, cfg] = await Promise.all([
     DayPlan.find({ curriculumId: curriculum._id }).select('dayNumber primaryUnitCode unitCodes items phase').sort({ dayNumber: 1 }).lean() as any,
@@ -406,6 +442,16 @@ async function recomposeV2(
       ok: false,
       reason: `Roadmap V2 could not recompose exactly the ${futureSlots.length} remaining days, so the existing plan was left unchanged.`,
       frozenDays: frozen, rewrittenDays: [], unchangedFutureDays: [], totalDays,
+    };
+  }
+  if (dryRun) {
+    return {
+      ok: true, frozenDays: frozen, rewrittenDays: futureSlots, unchangedFutureDays: [], totalDays,
+      preview: v2.days.map((day, i) => ({
+        dayNumber: futureSlots[i],
+        phase: day.some(d => d.phase === 'BRIDGE') ? 'BRIDGE' : day.some(d => d.phase === 'REVISION') ? 'REVISION' : 'YEAR',
+        titles: day.map(d => (d.part ? `${d.unit.title} (part ${d.part.index} of ${d.part.of})` : d.unit.title)),
+      })),
     };
   }
   const assets = await loadAssets(tenantId, composition.units.map(u => u.unitCode));

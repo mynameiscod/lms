@@ -102,7 +102,7 @@ async function journeyOf(tenantId: string, studentId: string, stageKey?: string 
     personalizedFor: new mongoose.Types.ObjectId(studentId),
     adaptiveStage: String(stageKey || STAGE_FALLBACK),
     journeyKind: FOUNDATION_JOURNEY_KIND,
-  }).select('_id title createdAt totalDays roadmapVersion phaseDays v2Report').lean() as any;
+  }).select('_id title createdAt totalDays roadmapVersion phaseDays v2Report rebuilds').lean() as any;
 }
 
 /**
@@ -921,6 +921,7 @@ export const getStudentJourney = async (req: Request, res: Response) => {
         roadmapVersion: 'ROADMAP_V2',
         phaseDays: curriculum.phaseDays || null,
         v2Report: curriculum.v2Report || null,
+        rebuilds: curriculum.rebuilds || [],
         gate: await (async () => {
           const g = await foundationGateFor(curriculum._id, String(studentId));
           return g.applies ? { open: g.open, passed: g.passed, total: g.total, firstYearDay: g.firstYearDay, pending: g.pending, flagged: g.flagged } : null;

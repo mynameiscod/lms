@@ -23,3 +23,17 @@ export async function roadmapV2SettingFor(
     return null;
   }
 }
+
+/**
+ * Is the tenant on V2 only — V1 never builds or updates a roadmap again? False when the setting
+ * cannot be read: recomposition then keeps the roadmap in the version it already is.
+ */
+export async function roadmapV2OnlyFor(tenantId: string): Promise<boolean> {
+  try {
+    const cfg = await PassportConfig.findOne({ tenantId }).select('roadmapV2').lean() as any;
+    return resolveRoadmapV2(cfg?.roadmapV2).v2Only;
+  } catch (e: any) {
+    console.error('[roadmap-v2] could not read the V2-only setting:', e?.message || e);
+    return false;
+  }
+}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { AdminFoundationJourney } from '../../api/passportApi';
+import RoadmapRebuildPanel from './RoadmapRebuildPanel';
 
 /**
  * One member's ninety-day Foundation journey, as an admin needs to see it.
@@ -26,6 +27,8 @@ const AdminStudentJourney: React.FC<{ studentId: string }> = ({ studentId }) => 
   const [data, setData] = useState<AdminFoundationJourney | null>(null);
   const [err, setErr] = useState('');
   const [showAll, setShowAll] = useState(false);
+  /* Bumped after a rebuild, to read the journey again. */
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,7 +37,8 @@ const AdminStudentJourney: React.FC<{ studentId: string }> = ({ studentId }) => 
       .then(d => { if (!cancelled) setData(d); })
       .catch(e => { if (!cancelled) setErr(e?.response?.data?.message || 'Could not load this member’s Foundation journey.'); });
     return () => { cancelled = true; };
-  }, [studentId]);
+  }, [studentId, reloadKey]);
+  const reload = () => setReloadKey(k => k + 1);
 
   if (err) return <div className="sr-note warn"><b>{err}</b></div>;
   if (!data) return null;
@@ -44,6 +48,9 @@ const AdminStudentJourney: React.FC<{ studentId: string }> = ({ studentId }) => 
       <div className="sr-note">
         <b>Foundation journey — {data.reason === 'NOT_CONFIGURED' ? 'NOT CONFIGURED for this tenant' : data.engine === 'UNIT' ? 'not created yet' : 'not on the unit engine'}</b>
         <span>{data.message}</span>
+        {data.engine === 'UNIT' && data.reason !== 'NOT_CONFIGURED' && (
+          <RoadmapRebuildPanel studentId={studentId} isV2={false} onRebuilt={reload} />
+        )}
       </div>
     );
   }
@@ -72,10 +79,12 @@ const AdminStudentJourney: React.FC<{ studentId: string }> = ({ studentId }) => 
           <div><small>Started</small><b>{data.startedAt ? new Date(data.startedAt).toLocaleDateString() : '—'}</b></div>
           <div>
             <small>Membership</small>
-            <b>{data.access?.level === 'FULL' ? 'Member — all 90 days' : data.access ? `Not a member — sees first ${data.access.previewDays} days` : '—'}</b>
+            <b>{data.access?.level === 'FULL' ? `Member — all ${data.totalDays} days` : data.access ? `Not a member — sees first ${data.access.previewDays} days` : '—'}</b>
           </div>
         </div>
       </header>
+
+      <RoadmapRebuildPanel studentId={studentId} isV2={data.roadmapVersion === 'ROADMAP_V2'} rebuilds={data.rebuilds} onRebuilt={reload} />
 
       {/* Roadmap V2: the split, what was given up to fit the admin's days, and the gate. */}
       {data.roadmapVersion === 'ROADMAP_V2' && (

@@ -39,6 +39,11 @@ export interface RoadmapV2Config {
   dailyMinutes: number;
   /** Revision days for an existing member moving up a year. */
   revisionDays: number;
+  /**
+   * V2 only: on for every learner, and a V1 roadmap that new evidence would update is moved to V2
+   * instead — so V1 never builds or changes a roadmap again. Implies `enabled`.
+   */
+  v2Only: boolean;
 }
 
 export const DEFAULT_ROADMAP_V2: Readonly<RoadmapV2Config> = Object.freeze({
@@ -47,6 +52,7 @@ export const DEFAULT_ROADMAP_V2: Readonly<RoadmapV2Config> = Object.freeze({
   studentIds: [],
   dailyMinutes: DEFAULT_DAILY_MINUTES,
   revisionDays: DEFAULT_REVISION_DAYS,
+  v2Only: false,
 });
 
 const clampInt = (v: unknown, min: number, max: number, fallback: number): number => {
@@ -67,12 +73,14 @@ export function resolveRoadmapV2(raw: Partial<RoadmapV2Config> | null | undefine
   const studentIds = Array.isArray(r.studentIds)
     ? [...new Set(r.studentIds.map(s => String(s).trim()).filter(Boolean))]
     : [];
+  const v2Only = r.v2Only === true;
   return {
-    enabled: r.enabled === true,
+    enabled: r.enabled === true || v2Only,
     stages,
     studentIds,
     dailyMinutes: clampInt(r.dailyMinutes, MIN_DAILY_MINUTES, MAX_DAILY_MINUTES, DEFAULT_DAILY_MINUTES),
     revisionDays: clampInt(r.revisionDays, MIN_REVISION_DAYS, MAX_REVISION_DAYS, DEFAULT_REVISION_DAYS),
+    v2Only,
   };
 }
 
@@ -110,6 +118,7 @@ export function validateRoadmapV2Patch(
   const p = patch as Record<string, unknown>;
   const errors: string[] = [];
   if (p.enabled !== undefined && typeof p.enabled !== 'boolean') errors.push('roadmapV2.enabled must be true or false.');
+  if (p.v2Only !== undefined && typeof p.v2Only !== 'boolean') errors.push('roadmapV2.v2Only must be true or false.');
   if (p.stages !== undefined) {
     if (!Array.isArray(p.stages)) errors.push('roadmapV2.stages must be a list of stages.');
     else for (const s of p.stages) {

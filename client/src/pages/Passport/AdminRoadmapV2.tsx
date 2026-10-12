@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   roadmapV2Api, RoadmapV2Overview, RoadmapV2Settings, StagePriorities, TopicPriority, RoadmapV2Budget, PrioritySummary,
-  DraftStageView,
+  DraftStageView, RebuildCounts, RebuildJob,
 } from '../../api/passportApi';
 import './adminRoadmapV2.css';
 
@@ -82,6 +82,9 @@ const AdminRoadmapV2: React.FC = () => {
   /* The draft priorities: previewed first, written only on confirm. */
   const [draft, setDraft] = useState<DraftStageView[] | null>(null);
   const [draftBusy, setDraftBusy] = useState(false);
+  /* Moving existing roadmaps to V2: counts per year and the background run's progress. */
+  const [rebuild, setRebuild] = useState<{ counts: RebuildCounts[]; job: RebuildJob | null } | null>(null);
+  const [rebuildBusy, setRebuildBusy] = useState(false);
 
   const loadOverview = useCallback(async () => {
     const o = await roadmapV2Api.overview();
@@ -90,6 +93,27 @@ const AdminRoadmapV2: React.FC = () => {
     setPilotText(o.settings.studentIds.join(', '));
   }, []);
   useEffect(() => { loadOverview().catch(() => setMsg({ ok: false, text: 'Could not load Roadmap V2.' })); }, [loadOverview]);
+
+  const loadRebuild = useCallback(async () => setRebuild(await roadmapV2Api.bulkStatus()), []);
+  useEffect(() => { loadRebuild().catch(() => undefined); }, [loadRebuild]);
+  /* While a run is going, follow it. */
+  useEffect(() => {
+    if (!rebuild?.job?.running) return undefined;
+    const t = window.setInterval(() => { loadRebuild().catch(() => undefined); }, 2000);
+    return () => window.clearInterval(t);
+  }, [rebuild?.job?.running, loadRebuild]);
+
+  const startRebuild = async (stageKey: string | null, count: number) => {
+    const what = stageKey ? `${yearOf(stageKey).label}` : 'every year';
+    if (!window.confirm(`Rebuild ${count} old (V1) roadmap(s) in ${what} as V2?
+
+Days a student has completed are kept; `
+      + 'everything after them is rebuilt. Quiz results, XP and progress are not touched.')) return;
+    setRebuildBusy(true);
+    try { await roadmapV2Api.startBulk(stageKey); await loadRebuild(); }
+    catch (e: any) { setMsg({ ok: false, text: e?.response?.data?.message || 'Could not start the rebuild.' }); }
+    finally { setRebuildBusy(false); }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -155,7 +179,7 @@ const AdminRoadmapV2: React.FC = () => {
       && (!needle || t.title.toLowerCase().includes(needle) || t.topicCode.toLowerCase().includes(needle)));
   }, [data, filter, q]);
 
-  const status = !form ? '' : form.enabled ? 'On for every student'
+  const status = !form ? '' : form.v2Only ? 'V2 only' : form.enabled ? 'On for every student'
     : form.stages.length ? `On for ${form.stages.map(s => yearOf(s).short).join(', ')}`
       : form.studentIds.length ? `Pilot: ${form.studentIds.length} student(s)` : 'Off';
 
@@ -182,8 +206,12 @@ const AdminRoadmapV2: React.FC = () => {
       <section className="rv2-card">
         <h2><i className="bi bi-sliders" /> Settings</h2>
         <div className="rv2-settings">
-          <label className="rv2-switch">
-            <input type="checkbox" checked={form.enabled} onChange={e => setForm({ ...form, enabled: e.target.checked })} />
+          <label className="rv2-switch only">
+            <input type="checkbox" checked={!!form.v2Only} onChange={e => setForm({ ...form, v2Only: e.target.checked, enabled: e.target.checked || form.enabled })} />
+            <span><b>V2 only</b><small>Every roadmap is V2. An old (V1) roadmap is moved to V2 the next time it would change — V1 never builds or updates a roadmap again.</small></span>
+          </label>
+          <label className={`rv2-switch${form.v2Only ? ' locked' : ''}`}>
+            <input type="checkbox" checked={form.enabled || !!form.v2Only} disabled={!!form.v2Only} onChange={e => setForm({ ...form, enabled: e.target.checked })} />
             <span><b>On for every student</b><small>Leave off to pilot first with named students or one year.</small></span>
           </label>
           <div className="rv2-field">
@@ -218,6 +246,60 @@ const AdminRoadmapV2: React.FC = () => {
           {msg && <span className={msg.ok ? 'rv2-ok' : 'rv2-err'}>{msg.text}</span>}
           <button type="button" className="rv2-btn" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save settings'}</button>
         </div>
+      </section>
+
+      {/* ── Existing roadmaps: move the old (V1) ones to V2 ── */}
+      <section className="rv2-card">
+        <div className="rv2-topics-hd">
+          <h2><i className="bi bi-arrow-repeat" /> Move existing students to V2</h2>
+          {rebuild && rebuild.counts.some(c => c.v1 > 0) && (
+            <button type="button" className="rv2-btn" disabled={rebuildBusy || !!rebuild.job?.running}
+              onClick={() => startRebuild(null, rebuild.counts.reduce((n, c) => n + c.v1, 0))}>
+              Rebuild all V1 roadmaps
+            </button>
+          )}
+        </div>
+        <p className="rv2-muted">Turning V2 on changes only roadmaps built from now on. Students who already have a roadmap keep their
+          old (V1) one until it is rebuilt here. A student who has not started gets a whole new V2 roadmap; one who has started keeps the
+          days they completed, and everything after is rebuilt. To rebuild one student, open their journey page.</p>
+        {!rebuild ? <div className="rv2-muted">Loading…</div> : (
+          <div className="rv2-rebuild">
+            <div className="rv2-rebuild-grid">
+              {YEARS.map(y => {
+                const c = rebuild.counts.find(x => x.stageKey === y.key) || { stageKey: y.key, v1: 0, notStarted: 0, started: 0, v2: 0 };
+                return (
+                  <div key={y.key} className="rv2-draft-year">
+                    <b>{y.label}</b>
+                    <span><em>{c.v2}</em> on V2</span>
+                    <span><em>{c.v1}</em> still V1{c.v1 ? ` — ${c.notStarted} not started, ${c.started} started` : ''}</span>
+                    {c.v1 > 0 && (
+                      <button type="button" className="rv2-btn ghost sm" disabled={rebuildBusy || !!rebuild.job?.running}
+                        onClick={() => startRebuild(y.key, c.v1)}>Rebuild {y.short}</button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {rebuild.job && (
+              <div className="rv2-job">
+                <div className="rv2-job-hd">
+                  <b>{rebuild.job.running ? 'Rebuilding…' : 'Last rebuild'}</b>
+                  <span>{rebuild.job.done} of {rebuild.job.total} done · {rebuild.job.rebuilt} moved to V2
+                    {rebuild.job.failed.length ? ` · ${rebuild.job.failed.length} not` : ''}</span>
+                </div>
+                <div className="rv2-job-bar"><span style={{ width: `${rebuild.job.total ? Math.round((rebuild.job.done / rebuild.job.total) * 100) : 100}%` }} /></div>
+                {rebuild.job.failed.length > 0 && (
+                  <ul className="rv2-job-failed">
+                    {rebuild.job.failed.slice(0, 10).map(f => (
+                      <li key={f.studentId}><a href={`/admin/passport/students/${f.studentId}/roadmap`}>{f.studentId}</a> — {f.reason}</li>
+                    ))}
+                    {rebuild.job.failed.length > 10 && <li>…and {rebuild.job.failed.length - 10} more</li>}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {/* ── Draft priorities: how a fresh tenant (or production) gets them without a shell ── */}

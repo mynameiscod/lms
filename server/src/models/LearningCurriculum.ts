@@ -155,6 +155,8 @@ export interface ILearningCurriculum extends Document {
   phaseDays?: { revision?: number; bridge: number; year: number };
   /** What V2 gave up to fit the days, and any days it needed past the admin's. */
   v2Report?: { dropped: Record<string, number>; overflowDays: number; programDays: number };
+  /** Admin rebuilds of this roadmap (roadmapRebuildService), newest last. */
+  rebuilds?: { at: Date; by: string | null; from: string; mode: string; keptDays: number }[];
 
   createdAt: Date;
   updatedAt: Date;
@@ -210,6 +212,7 @@ const LearningCurriculumSchema = new Schema<ILearningCurriculum>(
     roadmapVersion:  { type: String },
     phaseDays:       { type: new Schema({ revision: Number, bridge: Number, year: Number }, { _id: false }), default: undefined },
     v2Report:        { type: Schema.Types.Mixed, default: undefined },
+    rebuilds:        { type: [new Schema({ at: Date, by: String, from: String, mode: String, keptDays: Number }, { _id: false })], default: undefined },
     modules:         { type: [CurriculumModuleSchema], default: undefined },
     isPublished:     { type: Boolean, default: false },
     shared:          { type: Boolean, default: false, index: true },

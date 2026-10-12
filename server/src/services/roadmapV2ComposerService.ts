@@ -113,7 +113,7 @@ export async function composeRoadmapV2(
   const earlier = STAGE_ORDER.slice(0, Math.max(0, STAGE_ORDER.indexOf(stage)));
   const { priorities, topicOrder } = await prioritiesFor(tenantId, [stage, ...earlier]);
   const yearPriority = (topic: string): Priority => priorities.get(stage)?.get(topic) || 'OPTIONAL';
-  const history = new Set(opts.history || []);
+  const history = new Set((opts.history || []).map(c => String(c).toUpperCase()));
   const density = densityFor(profile, stage);
 
   // ── 2. The year, chosen for this learner by the composer (as V1 does), then MUST coverage. ──
@@ -132,12 +132,16 @@ export async function composeRoadmapV2(
     compositionPolicy: allocationForStage(stage),
     history: [...history],
   });
-  const year: SelectedUnit[] = rest.units.slice();
+  /*
+   * The composer REPLAYS history — the days already given come back first in its output, as taken.
+   * They are days the learner has done, not days to plan: only what comes after them is the year.
+   */
+  const year: SelectedUnit[] = rest.units.filter(u => !history.has(String(u.unitCode).toUpperCase()));
   const yearTopics = byTopic(yearUnits);
   const chosenTopics = new Set(year.map(u => u.topicCode));
   for (const [topic, units] of yearTopics) {
     if (yearPriority(topic) !== 'MUST' || chosenTopics.has(topic)) continue;
-    const fresh = units.filter(u => !history.has(u.unitCode));
+    const fresh = units.filter(u => !history.has(String(u.unitCode).toUpperCase()));
     const standing = standingOn(profile.skills as any, topicSkills(fresh));
     for (const { unit } of bridgeUnitsForTopic(fresh, standing)) year.push(asSelected(unit, profile, standing === 'HELD', 0));
   }
@@ -150,7 +154,7 @@ export async function composeRoadmapV2(
   for (const topic of new Set(year.map(u => String(u.topicCode)))) {
     if (year.some(u => u.topicCode === topic && u.unitType === 'CONCEPT')) continue;
     const lesson = (yearTopics.get(topic) || [])
-      .filter(u => u.unitType === 'CONCEPT' && !history.has(u.unitCode) && !inYearCodes.has(u.unitCode))
+      .filter(u => u.unitType === 'CONCEPT' && !history.has(String(u.unitCode).toUpperCase()) && !inYearCodes.has(u.unitCode))
       .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))[0];
     if (!lesson) continue;
     const standing = standingOn(profile.skills as any, topicSkills([lesson]));
@@ -254,7 +258,7 @@ export async function composeRoadmapV2(
     const rank: Record<Priority, number> = { MUST: 0, SHOULD: 1, OPTIONAL: 2 };
     const inYear = new Set(year.map(u => u.unitCode));
     const spare = yearUnits
-      .filter(u => !inYear.has(u.unitCode) && !taken.has(u.unitCode) && !history.has(u.unitCode))
+      .filter(u => !inYear.has(u.unitCode) && !taken.has(u.unitCode) && !history.has(String(u.unitCode).toUpperCase()))
       .sort((a, b) => Number(!DOING.includes(a.unitType)) - Number(!DOING.includes(b.unitType))
         || rank[yearPriority(String(a.topicCode))] - rank[yearPriority(String(b.topicCode))]
         || (a.displayOrder ?? 0) - (b.displayOrder ?? 0));

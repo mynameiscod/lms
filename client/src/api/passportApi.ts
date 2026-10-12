@@ -2578,6 +2578,8 @@ export interface AdminFoundationJourney {
   roadmapVersion?: 'ROADMAP_V2';
   phaseDays?: { revision?: number; bridge: number; year: number } | null;
   v2Report?: { dropped: Record<string, number>; overflowDays: number; programDays: number } | null;
+  /** Admin rebuilds of this roadmap, newest last. */
+  rebuilds?: { at: string; by: string | null; from: string; mode: 'FULL' | 'FUTURE'; keptDays: number }[];
   gate?: {
     open: boolean; passed: number; total: number; firstYearDay: number | null;
     pending: { quizId: string; title: string; dayNumber: number; attempts: number }[];
@@ -4170,6 +4172,8 @@ export interface StageTopicInput {
 export type TopicPriority = 'MUST' | 'SHOULD' | 'OPTIONAL';
 export interface RoadmapV2Settings {
   enabled: boolean; stages: string[]; studentIds: string[]; dailyMinutes: number; revisionDays: number;
+  /** V2 only: every roadmap is V2, and V1 never builds or updates one again. */
+  v2Only: boolean;
 }
 export interface RoadmapV2Budget {
   programDays: number; dailyMinutes: number; budgetMinutes: number; bridgeMinutes: number; mustCapMinutes: number;
@@ -4203,4 +4207,33 @@ export const roadmapV2Api = {
     (await axios.get(`${BASE}/admin/topic-priorities/${stage}`, { headers: auth() })).data,
   setPriority: async (stage: string, topicCode: string, priority: TopicPriority): Promise<StagePriorities> =>
     (await axios.put(`${BASE}/admin/topic-priorities/${stage}/${encodeURIComponent(topicCode)}`, { priority }, { headers: auth() })).data,
+  /** What rebuilding this member's roadmap as V2 would do. Writes nothing. */
+  previewRebuild: async (studentId: string): Promise<RebuildOutcome> =>
+    (await axios.get(`${BASE}/admin/students/${studentId}/roadmap-rebuild`, { headers: auth(), validateStatus: s => s < 500 })).data,
+  /** Rebuild this member's roadmap as V2: completed days kept, the rest rebuilt. */
+  applyRebuild: async (studentId: string): Promise<RebuildOutcome> =>
+    (await axios.post(`${BASE}/admin/students/${studentId}/roadmap-rebuild`, {}, { headers: auth(), validateStatus: s => s < 500 })).data,
+  bulkStatus: async (): Promise<{ counts: RebuildCounts[]; job: RebuildJob | null }> =>
+    (await axios.get(`${BASE}/admin/roadmap-rebuild`, { headers: auth() })).data,
+  startBulk: async (stageKey?: string | null): Promise<{ job: RebuildJob }> =>
+    (await axios.post(`${BASE}/admin/roadmap-rebuild`, stageKey ? { stageKey } : {}, { headers: auth() })).data,
 };
+
+// ── Rebuild a roadmap as V2 (admin) ─────────────────────────────────────────────────────────────
+export interface RebuildDay { dayNumber: number; phase: string; titles: string[] }
+export interface RebuildOutcome {
+  ok: boolean;
+  reason?: string;
+  studentId: string;
+  stageKey: string | null;
+  /** FULL: nothing done yet, the whole roadmap is rebuilt. FUTURE: done days kept, the rest rebuilt. */
+  mode?: 'FULL' | 'FUTURE';
+  before?: { version: 'V1' | 'V2' | 'NONE'; totalDays: number; completedDays: number; days: RebuildDay[] };
+  after?: { totalDays: number; keptDays: number[]; phaseDays: { revision: number; bridge: number; year: number }; days: RebuildDay[] };
+  applied?: boolean;
+}
+export interface RebuildCounts { stageKey: string; v1: number; notStarted: number; started: number; v2: number }
+export interface RebuildJob {
+  running: boolean; stageKey: string | null; total: number; done: number; rebuilt: number;
+  failed: { studentId: string; reason: string }[]; startedAt: string | null; finishedAt: string | null;
+}

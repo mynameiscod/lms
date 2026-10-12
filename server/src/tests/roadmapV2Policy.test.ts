@@ -61,3 +61,18 @@ describe('validateRoadmapV2Patch', () => {
 it('a roadmap budget is its days at the daily load', () => {
   expect(budgetMinutes(150, 150)).toBe(22500); // Year 4: 150 days × 2.5 h = 375 h
 });
+
+describe('V2 only', () => {
+  it('is off unless set, and turns V2 on for every learner of every college year', () => {
+    expect(resolveRoadmapV2({}).v2Only).toBe(false);
+    const cfg = { v2Only: true, enabled: false };
+    expect(resolveRoadmapV2(cfg).enabled).toBe(true);
+    for (const stage of ['foundation', 'build', 'specialize', 'placement']) expect(roadmapV2For(cfg, 'anyone', stage)).toBe(true);
+    expect(roadmapV2For(cfg, 'anyone', 'graduate')).toBe(false);
+  });
+  it('must be true or false', () => {
+    expect(validateRoadmapV2Patch({ v2Only: 'yes' }).ok).toBe(false);
+    const ok = validateRoadmapV2Patch({ v2Only: true });
+    expect(ok.ok && ok.value.v2Only && ok.value.enabled).toBe(true);
+  });
+});

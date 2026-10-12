@@ -7,6 +7,7 @@ import {
   computeDraft, applyDraft, StageDraft,
 } from '../services/topicPriorityService';
 import { getApplied, recordApplied } from '../migrations/roadmap-v2/_ledger';
+import { rebuildRoadmap, bulkCounts, bulkJobOf, startBulkRebuild } from '../services/roadmapRebuildService';
 
 /** The ledger id migration RV2_M001 records under; the screen's draft shares it. */
 const DRAFT_MIGRATION = 'RV2_M001_topicPriorityDraft';
@@ -125,3 +126,54 @@ const draftView = (d: StageDraft) => ({
   adminSet: d.rows.filter(r => r.source === 'ADMIN').length,
   overCap: d.overCap,
 });
+
+/* ------------------------------------------------------------------ *
+ * Rebuild roadmaps as V2 (roadmapRebuildService)
+ * ------------------------------------------------------------------ */
+
+/** GET /passport/admin/students/:studentId/roadmap-rebuild — what a rebuild would do. Writes nothing. */
+export const previewRebuild = async (req: Request, res: Response) => {
+  try {
+    const r = await rebuildRoadmap(tenantOf(req), String(req.params.studentId || ''), { apply: false });
+    res.status(r.ok ? 200 : 422).json(r);
+  } catch (e: any) {
+    console.error('[roadmap-rebuild] preview failed:', e);
+    res.status(500).json({ message: 'Could not preview the rebuild.' });
+  }
+};
+
+/** POST /passport/admin/students/:studentId/roadmap-rebuild — rebuild it as V2. */
+export const applyRebuild = async (req: Request, res: Response) => {
+  try {
+    const r = await rebuildRoadmap(tenantOf(req), String(req.params.studentId || ''), { apply: true, by: actorOf(req) });
+    res.status(r.ok ? 200 : 422).json(r);
+  } catch (e: any) {
+    console.error('[roadmap-rebuild] apply failed:', e);
+    res.status(500).json({ message: 'Could not rebuild the roadmap.' });
+  }
+};
+
+/** GET /passport/admin/roadmap-rebuild — roadmaps per year by version, and the bulk run's progress. */
+export const bulkRebuildStatus = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    res.json({ counts: await bulkCounts(tenantId), job: bulkJobOf(tenantId) });
+  } catch (e: any) {
+    console.error('[roadmap-rebuild] status failed:', e);
+    res.status(500).json({ message: 'Could not read the roadmaps.' });
+  }
+};
+
+/** POST /passport/admin/roadmap-rebuild { stageKey? } — move every V1 roadmap (of one year, or all) to V2. */
+export const startBulkRebuildNow = async (req: Request, res: Response) => {
+  try {
+    const raw = req.body?.stageKey;
+    const stageKey = raw ? stageOf(raw) : null;
+    if (raw && !stageKey) return res.status(400).json({ message: `"${raw}" is not a college year.` });
+    const job = await startBulkRebuild(tenantOf(req), { stageKey, by: actorOf(req) });
+    res.status(202).json({ job });
+  } catch (e: any) {
+    console.error('[roadmap-rebuild] bulk start failed:', e);
+    res.status(500).json({ message: 'Could not start the rebuild.' });
+  }
+};

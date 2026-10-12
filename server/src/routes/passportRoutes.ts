@@ -178,6 +178,11 @@ router.get('/admin/topic-priorities/:stage',             MANAGE, roadmapV2Admin.
 router.put('/admin/topic-priorities/:stage/:topicCode',  MANAGE, roadmapV2Admin.updateTopic);
 router.get('/admin/topic-priorities-draft',              MANAGE, roadmapV2Admin.previewDraft);
 router.post('/admin/topic-priorities-draft',             MANAGE, roadmapV2Admin.applyDraftNow);
+// Rebuild roadmaps as V2: one member (preview, then apply) or every V1 roadmap in the background.
+router.get('/admin/students/:studentId/roadmap-rebuild',  MANAGE, roadmapV2Admin.previewRebuild);
+router.post('/admin/students/:studentId/roadmap-rebuild', MANAGE, roadmapV2Admin.applyRebuild);
+router.get('/admin/roadmap-rebuild',                      MANAGE, roadmapV2Admin.bulkRebuildStatus);
+router.post('/admin/roadmap-rebuild',                     MANAGE, roadmapV2Admin.startBulkRebuildNow);
 
 // ── Mock interview plans: how many sittings a member gets and how each is composed,
 //    targeted by year / course / branch / role. Ordinary CareerPilot configuration, so

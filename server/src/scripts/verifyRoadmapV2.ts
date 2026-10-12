@@ -17,6 +17,8 @@
  *   ORDER     the year is taught in the curriculum's topic order (never what they hold first)
  *   CLASS     every topic of the year includes its class — a strong learner's too
  *   REFRESHER Years 2 and 4 carry none of their own refresher module (the bridge replaces it)
+ *   MID-YEAR  (fresh joiners) after 5 days done, rebuilding the rest keeps those days exactly,
+ *             repeats none of their units and keeps the length
  *
  * The joiners: FRESH (new to CareerPilot this year), MEMBER (finished every earlier year with us)
  * and LEFT (finished the years before last, left last year at day 10). Earlier-year journeys of a
@@ -36,6 +38,7 @@ import { StudentProfile } from '../services/curriculumComposerService';
 import { programDaysFor } from '../services/foundationProgramLengthService';
 import { loadCandidates } from '../services/composerCandidateService';
 import { foundationGateFor } from '../services/roadmapV2GateService';
+import { recomposeFutureDays } from '../services/foundationRecompositionService';
 import { resolveRoadmapV2, ROADMAP_V2_STAGES } from '../data/roadmapV2Policy';
 import { isYearRefresher } from '../data/roadmapV2PlanPolicy';
 import PassportConfig from '../models/PassportConfig';
@@ -152,6 +155,7 @@ async function run(): Promise<void> {
             else if (gate.open) row.problems.push('GATE: open before any check was passed');
             if (gate.firstYearDay !== row.rev + row.bridge + 1) row.problems.push(`GATE: stands at day ${gate.firstYearDay}, year starts at ${row.rev + row.bridge + 1}`);
           } else if (gate.applies && !gate.open) row.problems.push('GATE: closed with no bridge');
+          if (joiner === 'FRESH') await checkMidYear(row, tenantId, sid, profile, stage, r.curriculumId, plans);
         } catch (e: any) {
           row.problems.push(`THREW ${String(e?.message || e).slice(0, 80)}`);
         } finally {
@@ -273,6 +277,28 @@ function checkJourney(
   }
 
   row.fingerprint = plans.map(d => (d.unitCodes || []).join('+')).join('|');
+}
+
+/** Five days done, then new evidence: the rest is rebuilt, and nothing done is touched or repeated. */
+async function checkMidYear(row: Row, tenantId: string, sid: mongoose.Types.ObjectId, profile: StudentProfile, stage: string, curriculumId: any, before: any[]): Promise<void> {
+  const DONE = 5;
+  await CurriculumEnrollment.create({
+    tenantId, curriculumId, curriculumTitle: 'verify', studentId: sid, studentName: 'Roadmap V2 verify',
+    studentEmail: 'roadmap-v2-verify@example.com', startDate: new Date(), enrolledBy: 'verifyRoadmapV2',
+    completedDays: Array.from({ length: DONE }, (_, i) => i + 1), currentDay: DONE + 1,
+  });
+  const r = await recomposeFutureDays(tenantId, sid, profile, { stageKey: stage, source: 'PRODUCTION' });
+  if (!r.ok) { row.problems.push(`MID-YEAR: refused — ${String(r.reason).slice(0, 60)}`); return; }
+  const after = await DayPlan.find({ curriculumId }).select('dayNumber unitCodes').sort({ dayNumber: 1 }).lean() as any[];
+  if (after.length !== before.length) row.problems.push(`MID-YEAR: ${after.length} days, was ${before.length}`);
+  const codes = (d: any) => (d?.unitCodes || []).map(String).join('+');
+  for (let n = 1; n <= DONE + 1; n++) {
+    if (codes(after[n - 1]) !== codes(before[n - 1])) { row.problems.push(`MID-YEAR: day ${n} changed though it was done or open`); break; }
+  }
+  const doneUnits = new Set(after.slice(0, DONE + 1).flatMap(d => (d.unitCodes || []).map(String)));
+  const repeated = [...new Set(after.slice(DONE + 1).flatMap(d => (d.unitCodes || []).map(String)))].filter(c => doneUnits.has(c)
+    && !after[DONE].unitCodes.map(String).includes(c)); // a project spanning the open day may continue
+  if (repeated.length) row.problems.push(`MID-YEAR: ${repeated.length} completed unit(s) given again: ${repeated.slice(0, 3).join(', ')}`);
 }
 
 function report(r: Row): void {

@@ -165,6 +165,8 @@ export interface IPassportConfig extends Document {
     studentIds: string[];
     dailyMinutes: number;
     revisionDays: number;
+    /** V2 only: every roadmap is V2 and V1 never builds or updates one again. */
+    v2Only?: boolean;
   };
   updatedAt: Date;
   createdAt: Date;
@@ -246,6 +248,7 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
       studentIds:   { type: [String], default: [] },
       dailyMinutes: { type: Number, default: 150 },
       revisionDays: { type: Number, default: 7 },
+      v2Only:       { type: Boolean, default: false },
     },
     // Skill check-in policy. Optional throughout — an existing tenant document without this
     // subtree resolves to the shipped defaults, so nothing has to be backfilled.

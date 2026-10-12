@@ -151,6 +151,40 @@ describe('the bridge is packed tight; the year gets the days it leaves', () => {
     expect(r.kept).toHaveLength(11);
   });
 
+  it('a bridge day holds three units while the year keeps its own limit of two', () => {
+    const bridge = Array.from({ length: 6 }, (_, i) => item(`b${i}`, 'ESSENTIAL', 'BRIDGE', 40, 'CONCEPT'));
+    const yr = Array.from({ length: 8 }, (_, i) => item(`y${i}`, 'MUST_EXTRA', 'YEAR', 60, 'CONCEPT'));
+    const r = fitBridgeThenYear([...bridge, ...yr], { days: 6, dailyMinutes: 150, maxUnitsPerDay: 2 });
+    const bridgeDays = r.days.filter(d => d.some(i => i.phase === 'BRIDGE'));
+    expect(bridgeDays).toHaveLength(2);
+    expect(Math.max(...bridgeDays.map(d => d.length))).toBe(3);
+    expect(Math.max(...r.days.filter(d => d[0].phase === 'YEAR').map(d => d.length))).toBeLessThanOrEqual(2);
+  });
+
+  it('a bridge practice goes before a MUST extra of the year — the strong topic’s first', () => {
+    const bridge = [
+      item('c1', 'ESSENTIAL', 'BRIDGE', 40, 'CONCEPT'), { ...item('p1', 'BRIDGE_EXTRA', 'BRIDGE', 40, 'PRACTICE'), strength: 30 },
+      item('c2', 'ESSENTIAL', 'BRIDGE', 40, 'CONCEPT'), { ...item('p2', 'BRIDGE_EXTRA', 'BRIDGE', 40, 'PRACTICE'), strength: 80 },
+    ];
+    const yr = ['m1', 'm2', 'm3'].map((c, i) => item(c, i ? 'MUST_EXTRA' : 'ESSENTIAL', 'YEAR', 60, 'CONCEPT'));
+    // 4 days: the bridge's 160 min take 2 days, the year's 2 days hold all three — nothing given up.
+    const roomy = fitBridgeThenYear([...bridge, ...yr], { days: 4, dailyMinutes: 150, maxUnitsPerDay: 2 });
+    expect(roomy.kept.map(i => i.unit.unitCode)).toEqual(['c1', 'p1', 'c2', 'p2', 'm1', 'm2', 'm3']);
+    // 3 days: keeping both practices would cost the year a MUST extra, so one practice goes — the
+    // strong topic's; the bridge then fits one day of three units and the year keeps everything.
+    const tight = fitBridgeThenYear([...bridge, ...yr], { days: 3, dailyMinutes: 150, maxUnitsPerDay: 2 });
+    expect(tight.kept.map(i => i.unit.unitCode)).toEqual(['c1', 'p1', 'c2', 'm1', 'm2', 'm3']);
+    expect(tight.dropped).toMatchObject({ BRIDGE_EXTRA: 1, MUST_EXTRA: 0 });
+  });
+
+  it('the year gives up SHOULD before any bridge practice goes', () => {
+    const bridge = [item('c1', 'ESSENTIAL', 'BRIDGE', 40, 'CONCEPT'), { ...item('p1', 'BRIDGE_EXTRA', 'BRIDGE', 40, 'PRACTICE'), strength: 80 }];
+    const yr = [item('m1', 'ESSENTIAL', 'YEAR', 60, 'CONCEPT'), item('m2', 'MUST_EXTRA', 'YEAR', 60, 'CONCEPT'), item('s1', 'SHOULD', 'YEAR', 60, 'CONCEPT')];
+    const r = fitBridgeThenYear([...bridge, ...yr], { days: 2, dailyMinutes: 150, maxUnitsPerDay: 2 });
+    expect(r.kept.map(i => i.unit.unitCode)).toEqual(['c1', 'p1', 'm1', 'm2']);
+    expect(r.dropped).toMatchObject({ SHOULD: 1, BRIDGE_EXTRA: 0, MUST_EXTRA: 0 });
+  });
+
   it('packTight finds the fewest days, or says the items need more than allowed', () => {
     expect(packTight(proofs, opts, 10)).toHaveLength(2);
     expect(packTight(proofs, opts, 1)).toBeNull();

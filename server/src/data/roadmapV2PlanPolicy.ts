@@ -47,6 +47,8 @@ export const isYearRefresher = (moduleCode: string | null | undefined): boolean 
 
 export type SkillStanding = 'HELD' | 'WEAK' | 'UNKNOWN';
 export const READY_SCORE = 50;
+/** Units a bridge day may hold (the year keeps its own limit). The daily study time still caps it. */
+export const BRIDGE_MAX_UNITS_PER_DAY = 3;
 
 export interface PlanItem<U extends PackableUnit = PackableUnit> {
   unit: U;
@@ -285,29 +287,71 @@ export function fitToDays<U extends PackableUnit>(items: PlanItem<U>[], opts: Fi
  * bridge is forty half-hour proofs got forty days of one proof each — the longest bridge of
  * anyone, for the learner who needs it least. A tight bridge gives those days to the year.
  *
- * What is kept is decided by the joint fit first (so a bridge extra still goes before a MUST
- * extra when the days are short); the year is then refitted into the days the tight bridge leaves.
- * Whenever that cannot be done cleanly, the joint fit stands — never a worse plan.
+ * The bridge holds up to BRIDGE_MAX_UNITS_PER_DAY units a day; the year keeps its own limit. As
+ * few bridge practices are given up (strongest topic first) as keep the year's MUST extras whole —
+ * the year gives up its OPTIONAL and SHOULD first. Whenever that cannot be done cleanly, the joint
+ * fit stands — never a worse plan.
  */
 export function fitBridgeThenYear<U extends PackableUnit>(items: PlanItem<U>[], opts: FitOptions): FitResult<U> {
   const joint = fitToDays(items, opts);
-  if (!joint.ok || joint.overflowDays) return joint;
-  const bridge = joint.kept.filter(i => i.phase === 'BRIDGE');
+  const bridgeAll = items.filter(i => i.phase === 'BRIDGE');
   const year = items.filter(i => i.phase !== 'BRIDGE');
-  const jointBridgeDays = joint.days.filter(d => d.some(i => i.phase === 'BRIDGE')).length;
-  if (!bridge.length || !year.length) return joint;
+  if (!bridgeAll.length || !year.length) return joint;
 
-  const tight = packTight(bridge, opts, jointBridgeDays - 1);
-  if (!tight) return joint;
-  const yearFit = fitToDays(year, { ...opts, days: opts.days - tight.length });
-  if (!yearFit.ok || yearFit.overflowDays) return joint;
-  return {
+  /*
+   * THE BRIDGE MAY HOLD THREE UNITS A DAY, the year keeps its own limit. A bridge day is short
+   * classes and checks on what the learner should already know; the daily study time still caps it.
+   */
+  const bridgeOpts = { ...opts, maxUnitsPerDay: Math.max(opts.maxUnitsPerDay, BRIDGE_MAX_UNITS_PER_DAY) };
+  /* Bridge practice in the order it is given up: the learner's strongest topic first. */
+  const strengthOf = (i: number) => (typeof bridgeAll[i].strength === 'number' ? (bridgeAll[i].strength as number) : -1);
+  const extras = bridgeAll.map((_, i) => i).filter(i => bridgeAll[i].tier === 'BRIDGE_EXTRA')
+    .sort((a, b) => strengthOf(b) - strengthOf(a) || b - a);
+
+  /* k practices given up: the bridge packed tight, the year fitted into what it leaves. */
+  const attempt = (k: number) => {
+    const gone = new Set(extras.slice(0, k));
+    const bridge = bridgeAll.filter((_, i) => !gone.has(i));
+    const tight = packTight(bridge, bridgeOpts, opts.days - 1);
+    if (!tight) return null;
+    const yearFit = fitToDays(year, { ...opts, days: opts.days - tight.length });
+    if (!yearFit.ok || yearFit.overflowDays) return null;
+    return { k, bridge, tight, yearFit };
+  };
+  /*
+   * The removal order holds across the two blocks: the year gives up OPTIONAL and SHOULD before a
+   * bridge practice goes, and a bridge practice goes before a MUST extra of the year. So the fewest
+   * practices are given up that leave the year's MUST extras whole.
+   */
+  const keepsMust = (a: ReturnType<typeof attempt>) => !!a && a.yearFit.dropped.MUST_EXTRA === 0;
+  let best = attempt(0);
+  if (!keepsMust(best)) {
+    const all = attempt(extras.length);
+    if (keepsMust(all)) {
+      let lo = 1;
+      let hi = extras.length;
+      best = all;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        const a = attempt(mid);
+        if (keepsMust(a)) { best = a; hi = mid; } else lo = mid + 1;
+      }
+    } else if (all) {
+      best = !best || all.yearFit.dropped.MUST_EXTRA < best.yearFit.dropped.MUST_EXTRA ? all : best;
+    }
+  }
+  if (!best) return joint;
+  const split: FitResult<U> = {
     ok: true,
-    kept: [...bridge, ...yearFit.kept],
-    days: [...tight, ...yearFit.days],
-    dropped: { ...yearFit.dropped, BRIDGE_EXTRA: joint.dropped.BRIDGE_EXTRA },
+    kept: [...best.bridge, ...best.yearFit.kept],
+    days: [...best.tight, ...best.yearFit.days],
+    dropped: { ...best.yearFit.dropped, BRIDGE_EXTRA: best.k },
     overflowDays: 0,
   };
+  /* Never a worse plan than the joint fit: fewer MUST extras lost wins, then fewer practices. */
+  if (joint.ok && !joint.overflowDays && (joint.dropped.MUST_EXTRA < split.dropped.MUST_EXTRA
+    || (joint.dropped.MUST_EXTRA === split.dropped.MUST_EXTRA && joint.dropped.BRIDGE_EXTRA < split.dropped.BRIDGE_EXTRA))) return joint;
+  return split;
 }
 
 /** The kinds of unit revision is made of: doing it again, never the lesson. */

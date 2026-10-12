@@ -7,7 +7,7 @@ import { densityFor, unitsForDays } from '../data/learningDensityPolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource, CandidateSet } from './composerCandidateService';
 import {
   standingOn, bridgeUnitsForTopic, yearTiers, fitToDays, fitBridgeThenYear, packTight, slotsOf, PlanItem, V2Tier, V2Phase, revisionPick,
-  isYearRefresher,
+  isYearRefresher, BRIDGE_MAX_UNITS_PER_DAY,
 } from '../data/roadmapV2PlanPolicy';
 import { priorStudyOf } from './learnerHistoryService';
 
@@ -236,12 +236,15 @@ export async function composeRoadmapV2(
    * out what a strong learner has proved, and a very strong one can be left with fewer units than
    * days — which used to refuse them a roadmap. They are given more of the year instead: practice,
    * debugging and projects before lessons, MUST topics before SHOULD before OPTIONAL. A top-up is
-   * never essential, so it can always be given up again by the fit.
+   * stretch work (SHOULD at most), so it is given up before any bridge practice or MUST extra.
    */
   /* The year fills every day the bridge leaves, and the bridge is packed tight (fitBridgeThenYear). */
   const bridgeItems: PlanItem<SelectedUnit>[] = bridge.map(b => ({ unit: b.unit, phase: 'BRIDGE' as V2Phase, tier: b.tier, strength: b.strength }));
   const mainDays = opts.programDays - revisionDayCount;
-  const tightBridge = packTight(bridgeItems, fitOpts, mainDays)?.length ?? slotsOf(bridgeItems, fitOpts);
+  const bridgeFitOpts = { ...fitOpts, maxUnitsPerDay: Math.max(fitOpts.maxUnitsPerDay, BRIDGE_MAX_UNITS_PER_DAY) };
+  /* The shortest the bridge can be (its essentials alone): the most days the year may have to fill. */
+  const bridgeCore = bridgeItems.filter(b => b.tier === 'ESSENTIAL');
+  const tightBridge = packTight(bridgeCore, bridgeFitOpts, mainDays)?.length ?? slotsOf(bridgeCore, fitOpts);
   const asYearItem = (u: SelectedUnit) => [{ unit: u, phase: 'YEAR' as V2Phase, tier: 'OPTIONAL' as V2Tier }];
   const slotsNeeded = mainDays - tightBridge;
   const topUpTier = new Map<string, V2Tier>();
@@ -261,7 +264,8 @@ export async function composeRoadmapV2(
       const standing = standingOn(profile.skills as any, topicSkills([unit]));
       const sel = asSelected(unit, profile, standing === 'HELD', 0);
       year.push(sel);
-      topUpTier.set(sel.unitCode, p === 'MUST' ? 'MUST_EXTRA' : p);
+      /* Stretch work, given up before any bridge practice: SHOULD at most, even in a MUST topic. */
+      topUpTier.set(sel.unitCode, p === 'OPTIONAL' ? 'OPTIONAL' : 'SHOULD');
       slots += slotsOf(asYearItem(sel), fitOpts);
     }
   }

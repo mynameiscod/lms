@@ -110,6 +110,7 @@ export const updateLiveClass = async (req: AuthenticatedRequest, res: Response<A
     const batchIds = batchIdsFrom(req.body);
     if (batchIds) { update.batchIds = batchIds; update.batchId = undefined; }
     if (typeof req.body?.openToInstitute === 'boolean') update.openToInstitute = req.body.openToInstitute;
+    if (typeof req.body?.autoOnStage === 'boolean') update.autoOnStage = req.body.autoOnStage;
     const lc = await LiveClass.findOneAndUpdate({ _id: req.params.id, tenantId }, { $set: update }, { new: true });
     if (!lc) return res.status(404).json({ success: false, message: 'Not found', error: 'not_found' });
     res.status(200).json({ success: true, message: 'Updated', data: lc });
@@ -177,12 +178,12 @@ export const getJoinToken = async (req: AuthenticatedRequest, res: Response<ApiR
     if (!isHost && !(await invites.userMayJoin(lc, String(req.user?.id)))) {
       return res.status(403).json({ success: false, message: 'You are not invited to this live class', error: 'not_invited' });
     }
-    const role = isHost ? hms.HMS_ROLES.broadcaster : hms.HMS_ROLES.viewer;
+    const role = isHost ? hms.HMS_ROLES.broadcaster : (lc.autoOnStage ? hms.HMS_ROLES.stage : hms.HMS_ROLES.viewer);
     const token = hms.authToken(lc.hmsRoomId, String(req.user?.id), role, tenantId);
     res.status(200).json({
       success: true,
       message: 'Join token',
-      data: { token, roomId: lc.hmsRoomId, role, hlsUrl: lc.hlsUrl, status: lc.status, title: lc.title },
+      data: { token, roomId: lc.hmsRoomId, role, hlsUrl: lc.hlsUrl, status: lc.status, title: lc.title, autoOnStage: !!lc.autoOnStage },
     });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message, error: error.message });
@@ -408,8 +409,9 @@ export const publicJoin = async (req: AuthenticatedRequest, res: Response) => {
     const typed = String(req.body?.name || '').trim().slice(0, 80);
     if (typed && !inv.name) { inv.name = typed; await inv.save(); }
     const name = inv.name || typed || 'Guest';
-    const token = hms.authToken(lc.hmsRoomId, invites.guestPeerId(inv._id), hms.HMS_ROLES.viewer, String(lc.tenantId));
-    res.json({ success: true, data: { token, roomId: lc.hmsRoomId, role: hms.HMS_ROLES.viewer, title: lc.title, status: lc.status, name } });
+    const guestRole = lc.autoOnStage ? hms.HMS_ROLES.stage : hms.HMS_ROLES.viewer;
+    const token = hms.authToken(lc.hmsRoomId, invites.guestPeerId(inv._id), guestRole, String(lc.tenantId));
+    res.json({ success: true, data: { token, roomId: lc.hmsRoomId, role: guestRole, title: lc.title, status: lc.status, name } });
   } catch (e: any) {
     res.status(400).json({ success: false, message: e?.message || 'Could not join' });
   }

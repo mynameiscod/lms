@@ -39,6 +39,7 @@ export interface ILiveClass extends Document {
   reminderSent: boolean;   // "starts soon" reminder fired
 
   // Recording (the host presses Record in the room; the url arrives via webhook)
+  autoOnStage?: boolean;   // host switch: everyone who joins goes straight on stage
   recordingReady: boolean;
   recordingUrl?: string;
   recordingContentId?: mongoose.Types.ObjectId; // LearningContentLibrary entry (Class Hub)
@@ -73,6 +74,7 @@ const LiveClassSchema = new Schema<ILiveClass>(
     endedAt: { type: Date },
     reminderSent: { type: Boolean, default: false },
 
+    autoOnStage: { type: Boolean, default: false },
     recordingReady: { type: Boolean, default: false },
     recordingUrl: { type: String },
     recordingContentId: { type: Schema.Types.ObjectId, ref: 'LearningContentLibrary' },

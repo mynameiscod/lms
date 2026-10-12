@@ -79,6 +79,9 @@ const HlsPlayer: React.FC<{ src: string }> = ({ src }) => {
 // ── Chat panel (everyone) ─────────────────────────────────────────────────────
 const ChatPanel: React.FC = () => {
   const messages: any[] = useHMSStore(selectHMSMessages) as any;
+  const chatPeers: any[] = useHMSStore(selectPeers) as any;
+  const nameOf = (m: any) =>
+    m.senderName || chatPeers.find(p => p.id === m.sender)?.name || (m.sender === 'localPeer' ? 'You' : '') || 'Someone';
   const hmsActions = useHMSActions();
   const [text, setText] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
@@ -95,7 +98,7 @@ const ChatPanel: React.FC = () => {
         {(!messages || messages.length === 0) && <div style={{ color: '#6b7280', fontSize: 12 }}>No messages yet.</div>}
         {(messages || []).map((m: any) => (
           <div key={m.id} style={{ fontSize: 13 }}>
-            <span style={{ color: '#8fb6d9', fontSize: 11, fontWeight: 600 }}>{m.senderName || 'Someone'}</span>
+            <span style={{ color: '#8fb6d9', fontSize: 11, fontWeight: 600 }}>{nameOf(m)}</span>
             <div style={{ color: '#e5e7eb', wordBreak: 'break-word' }}>{m.message}</div>
           </div>
         ))}
@@ -158,6 +161,8 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
   const willPublish = role === BROADCASTER || role === STAGE;
   const isRecording = !!(recording?.browser?.running || recording?.server?.running || recording?.hls?.running);
   const [recBusy, setRecBusy] = useState(false);
+  const [recPaused, setRecPaused] = useState(false);
+  const [autoStage, setAutoStage] = useState(false);
 
   // 1) Fetch the join token up front
   useEffect(() => {
@@ -166,7 +171,7 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
       try {
         const res: any = guestToken ? await liveGuestApi.join(guestToken, displayName) : await hmsClassApi.joinToken(id!);
         if (!res.success) throw new Error(res.message || 'Could not get join token');
-        if (!cancelled) { setTokenData(res.data); setRole(res.data.role); }
+        if (!cancelled) { setTokenData(res.data); setRole(res.data.role); setAutoStage(!!res.data.autoOnStage); }
       } catch (e: any) {
         if (!cancelled) setErr(e.message || 'Failed to load the class');
       }
@@ -216,7 +221,7 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
       await hmsActions.join({
         authToken: tokenData.token,
         userName: displayName,
-        settings: { isAudioMuted: willPublish ? !micReady : true, isVideoMuted: willPublish ? !camReady : true },
+        settings: { isAudioMuted: role === BROADCASTER ? !micReady : true, isVideoMuted: willPublish ? !camReady : true },
       });
       setPhase('joined');
     } catch (e: any) {
@@ -251,6 +256,7 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
     try {
       if (isRecording) await (hmsActions as any).stopRTMPAndRecording();
       else await (hmsActions as any).startRTMPOrRecording({ record: true });
+      setRecPaused(false);
       setNotice('');
     } catch (e: any) {
       const msg = String(e?.message || 'error');
@@ -260,6 +266,39 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
     }
     setRecBusy(false);
   }, [hmsActions, isRecording]);
+
+  // 100ms has no true pause: Pause stops the recording, Resume starts a new one (a separate file).
+  const togglePause = useCallback(async () => {
+    setRecBusy(true);
+    try {
+      if (recPaused) { await (hmsActions as any).startRTMPOrRecording({ record: true }); setRecPaused(false); }
+      else { await (hmsActions as any).stopRTMPAndRecording(); setRecPaused(true); }
+      setNotice('');
+    } catch (e: any) {
+      setNotice(`Could not ${recPaused ? 'resume' : 'pause'} recording: ${String(e?.message || 'error')}`);
+    }
+    setRecBusy(false);
+  }, [hmsActions, recPaused]);
+
+  // Host switch: everyone who joins goes straight on stage. Turning it on also brings the current audience up.
+  const toggleAutoStage = async () => {
+    const next = !autoStage;
+    try {
+      const res: any = await hmsClassApi.update(id!, { autoOnStage: next });
+      if (res && res.success === false) throw new Error(res.message);
+      setAutoStage(next);
+      if (next) for (const p of peers.filter(x => x.roleName === VIEWER)) await setPeerRole(p.id, STAGE);
+    } catch (e: any) { setNotice(`Could not change auto on-stage: ${e?.message || 'error'}`); }
+  };
+
+  const removePerson = async (peerId: string, name: string) => {
+    if (!window.confirm(`Remove ${name} from the class?`)) return;
+    try { await (hmsActions as any).removePeer(peerId, 'Removed by the host'); setNotice(''); }
+    catch (e: any) {
+      const msg = String(e?.message || 'error');
+      setNotice(/permission/i.test(msg) ? 'Could not remove: the broadcaster role needs the Remove participants permission in your 100ms template.' : `Could not remove: ${msg}`);
+    }
+  };
 
   // Generic role change via SDK (broadcaster has changeRole permission)
   const setPeerRole = async (peerId: string, roleName: string) => {
@@ -339,6 +378,7 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
         <div style={{ fontWeight: 700, fontSize: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
           <span>{hlsState?.running ? '🔴 LIVE' : '● Room'}</span>
           {isRecording && <span style={{ fontSize: 12, color: '#fca5a5', background: '#3f1d1d', padding: '2px 8px', borderRadius: 6 }}>● REC</span>}
+          {recPaused && !isRecording && <span style={{ fontSize: 12, color: '#fde68a', background: '#3f2d10', padding: '2px 8px', borderRadius: 6 }}>⏸ REC paused</span>}
           <span style={{ color: '#9ca3af', fontWeight: 400, fontSize: 14 }}>· {peers.length} in room</span>
         </div>
         <button onClick={leave} style={btn('#dc2626')}>Leave</button>
@@ -396,7 +436,13 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
                 {isBroadcaster && (!hlsState?.running
                   ? <button onClick={goLive} style={btn('#16a34a')}>▶ Go Live</button>
                   : <button onClick={stopLive} style={btn('#dc2626')}>■ Stop stream</button>)}
-                {isBroadcaster && (
+                {isBroadcaster && (isRecording || recPaused) && (
+                  <button onClick={togglePause} disabled={recBusy} style={btn(recPaused ? '#16a34a' : '#b45309')}
+                    title="Pause stops this recording; Resume starts a new one">
+                    {recPaused ? '▶ Resume recording' : '⏸ Pause recording'}
+                  </button>
+                )}
+                {isBroadcaster && !recPaused && (
                   <button onClick={toggleRecording} disabled={recBusy} style={btn(isRecording ? '#dc2626' : '#374151')}
                     title={isRecording ? 'Stop recording' : 'Start recording this class'}>
                     {recBusy ? '…' : isRecording ? '■ Stop recording' : '⏺ Record'}
@@ -417,12 +463,17 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
                 <button onClick={() => bulkTracks(true, 'audio')} style={smallBtn('#374151')}>🎙 Ask unmute</button>
                 <button onClick={() => bulkTracks(false, 'video')} style={smallBtn('#dc2626')}>📷 Cams off</button>
               </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, marginBottom: 10, cursor: 'pointer' }}>
+                <input type="checkbox" checked={autoStage} onChange={toggleAutoStage} />
+                Auto on stage: everyone who joins goes straight on stage
+              </label>
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>On stage ({stagePeers.length})</div>
               {stagePeers.filter(p => p.roleName === STAGE).map(p => (
                 <div key={p.id} style={rowStyle}>
                   <span style={{ fontSize: 12.5, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎤 {p.name}</span>
                   <button onClick={() => setPeerRole(p.id, BROADCASTER)} style={smallBtn('#7c3aed')} title="Make co-host (can present & manage)">Co-host</button>
-                  <button onClick={() => setPeerRole(p.id, VIEWER)} style={smallBtn('#dc2626')}>Send back</button>
+                  <button onClick={() => setPeerRole(p.id, VIEWER)} style={smallBtn('#374151')}>Send back</button>
+                  <button onClick={() => removePerson(p.id, p.name)} style={smallBtn('#dc2626')}>Remove</button>
                 </div>
               ))}
               {stagePeers.filter(p => p.roleName === BROADCASTER && !p.isLocal).map(p => (
@@ -437,6 +488,7 @@ const RoomInner: React.FC<RoomProps> = ({ guestToken, guestName, exitTo }) => {
                 <div key={p.id} style={rowStyle}>
                   <span style={{ fontSize: 12.5, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>👤 {p.name}</span>
                   <button onClick={() => setPeerRole(p.id, STAGE)} style={smallBtn('#1a5490')}>On stage</button>
+                  <button onClick={() => removePerson(p.id, p.name)} style={smallBtn('#dc2626')}>Remove</button>
                 </div>
               ))}
             </div>

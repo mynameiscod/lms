@@ -43,3 +43,12 @@ describe('Meta webhook and recovery submission deduplication', () => {
     expect(await createOrUpdateLeadFromData(submission('historical'), 'form', tenant)).toBe('skipped'); expect(revive).not.toHaveBeenCalled();
   });
 });
+
+describe('optional Meta fields', () => {
+  it('imports a valid lead when optional answers omit the values array', async () => {
+    const data: any = submission('optional'); data.field_data.push({ name: 'optional_question' }, { values: ['unnamed'] });
+    expect(await createOrUpdateLeadFromData(data, 'form', tenant)).toBe('created');
+    expect(leads[0].customFields.phone_number).toBe('9876543210');
+    expect(leads[0].customFields.optional_question).toBeUndefined();
+  });
+});

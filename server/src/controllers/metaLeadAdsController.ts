@@ -163,10 +163,10 @@ function extractFieldValue(fieldData: MetaLeadData['field_data'], fieldName: str
   debugLog('EXTRACT', `Looking for field '${fieldName}', checking: ${namesToSearch.join(', ')}`);
 
   for (const name of namesToSearch) {
-    const field = fieldData.find(f => f.name.toLowerCase() === name.toLowerCase());
-    if (field && field.values && field.values.length > 0) {
+    const field = fieldData.find(f => typeof f?.name === 'string' && f.name.toLowerCase() === name.toLowerCase());
+    if (field && Array.isArray(field.values) && field.values.length > 0) {
       debugLog('EXTRACT', `Found '${fieldName}' as '${name}': ${field.values[0]}`);
-      return field.values[0];
+      return String(field.values[0] ?? '');
     }
   }
   
@@ -672,7 +672,9 @@ async function importMetaSubmission(
       metadata: { metaSubmissionId: String(leadData.id) },
     }],
     customFields: leadData.field_data.reduce((acc: Record<string, string>, f) => {
-      acc[f.name] = f.values.join(', ');
+      if (typeof f?.name === 'string' && f.name && !f.name.includes('.') && !f.name.startsWith('$') && !['__proto__', 'constructor', 'prototype'].includes(f.name) && Array.isArray(f.values)) {
+        acc[f.name] = f.values.map(value => String(value ?? '')).join(', ');
+      }
       return acc;
     }, {}),
     createdAt: leadData.created_time ? new Date(leadData.created_time) : new Date(),

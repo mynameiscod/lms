@@ -156,6 +156,11 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'CODE_EXEC_MAX_WAIT_MS', label: 'Max queue wait (ms)', group: 'execution', type: 'number', placeholder: '45000',
     help: 'How long a student waits for a free execution slot before being told the sandbox is busy. A queue is a slope; a rejection is a cliff — prefer waiting to failing.' },
 
+  { key: 'OUTPERO_FEEDBACK_ENABLED', label: 'Outpero - feedback automation', group: 'integrations', type: 'text', help: 'Configure on Leads > Outpero AI calls.' },
+  { key: 'OUTPERO_ASSIGNMENT_TIMING', label: 'Outpero - assignment timing', group: 'integrations', type: 'text' },
+  { key: 'OUTPERO_STAGE_MAPPING', label: 'Outpero - outcome stage mapping', group: 'integrations', type: 'text' },
+  { key: 'OUTPERO_MAX_CALL_ATTEMPTS', label: 'Outpero - maximum call attempts', group: 'integrations', type: 'number' },
+  { key: 'OUTPERO_RETRY_GAP_MINUTES', label: 'Outpero - retry gap minutes', group: 'integrations', type: 'number' },
   { key: 'OUTPERO_MODE', label: 'Outpero — sending mode', group: 'integrations', type: 'text', placeholder: 'off',
     help: 'off, manual or auto. Set per institute on Leads → Outpero AI calls.' },
   { key: 'OUTPERO_ENDPOINT_URL', label: 'Outpero — lead intake endpoint', group: 'integrations', type: 'text',

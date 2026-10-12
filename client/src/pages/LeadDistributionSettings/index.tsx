@@ -29,7 +29,7 @@ interface TeamUser {
 const defaultConfig: Config = {
   mode: 'manual',
   enabled: false,
-  eligibleRoles: [],
+  eligibleRoles: ['TENANT_ADMIN', 'STAFF'],
   maxLeadsPerDayDefault: 20,
   weights: [],
 };
@@ -53,8 +53,8 @@ const LeadDistributionSettings: React.FC = () => {
         if (cfgRes?.data) {
           setConfig({ ...defaultConfig, ...cfgRes.data });
         }
-        const userList = Array.isArray(usrRes) ? usrRes : usrRes?.users ?? [];
-        setUsers(userList);
+        const userList = Array.isArray(usrRes) ? usrRes : usrRes?.users ?? usrRes?.data?.users ?? usrRes?.data ?? [];
+        setUsers(Array.isArray(userList) ? userList.filter(u => !['STUDENT', 'GUEST'].includes(u.role)) : []);
       } catch {
         // use defaults
       } finally {
@@ -138,6 +138,13 @@ const LeadDistributionSettings: React.FC = () => {
         </div>
       </div>
 
+      <div className="dist-section">
+        <h2>Eligible staff roles</h2>
+        <p className="dist-hint">Choose who can receive leads. With no roles selected, active staff and tenant admins are eligible.</p>
+        {['STAFF', 'TENANT_ADMIN', 'INSTRUCTOR'].map(role => <label key={role} style={{ marginRight: 16 }}>
+          <input type="checkbox" checked={config.eligibleRoles.includes(role)} onChange={e => setConfig(prev => ({ ...prev, eligibleRoles: e.target.checked ? [...prev.eligibleRoles, role] : prev.eligibleRoles.filter(r => r !== role) }))} /> {role.replace(/_/g, ' ')}
+        </label>)}
+      </div>
       {/* Default daily cap */}
       <div className="dist-section">
         <h2>Default Max Leads / Day</h2>

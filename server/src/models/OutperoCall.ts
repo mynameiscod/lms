@@ -26,6 +26,7 @@ export interface IOutperoCall extends Document {
   endedAt?: Date;
   /** Things already done for this call, so a re-delivery never repeats them. */
   actions: string[];
+  pendingAutomation?: boolean;
   deliveries: number;
   raw: unknown[];
   createdAt: Date;
@@ -49,6 +50,7 @@ const OutperoCallSchema = new Schema<IOutperoCall>({
   startedAt: Date,
   endedAt: Date,
   actions: { type: [String], default: [] },
+  pendingAutomation: { type: Boolean, default: false },
   deliveries: { type: Number, default: 0 },
   // The last few deliveries as received (capped in the service).
   raw: { type: [Schema.Types.Mixed], default: [] },

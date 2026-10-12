@@ -147,3 +147,14 @@ describe('saving the configuration', () => {
     await expect(svc.saveConfig(T, 'u1', { mode: 'auto', endpointUrl: 'https://api.outpero.com/lead-intake/x', secret: 's'.repeat(20) })).resolves.toMatchObject({ mode: 'auto', secretSet: true });
   });
 });
+
+describe('contact suppression', () => {
+  it('never sends an opted-out lead', async () => {
+    connect(); leads.set('L1', lead({ outpero: { status: 'pending' }, aiFeedback: { doNotContact: true } }));
+    await svc.sendLead('L1'); expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it('never sends an archived lead', async () => {
+    connect(); leads.set('L1', lead({ outpero: { status: 'pending' }, archivedAt: new Date() }));
+    await svc.sendLead('L1'); expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

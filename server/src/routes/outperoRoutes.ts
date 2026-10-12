@@ -1,3 +1,5 @@
+import Lead from '../models/Lead';
+import { getPolicy, savePolicy } from '../services/outperoPolicyService';
 import express, { Request, Response } from 'express';
 import * as calls from '../services/outperoCallService';
 import { authMiddleware } from '../middleware/auth';
@@ -31,6 +33,12 @@ router.put('/config', wrap((req) => svc.saveConfig(tId(req), uId(req), {
   secret: req.body?.secret === undefined || req.body?.secret === null ? undefined : String(req.body.secret),
   sources: strs(req.body?.sources), courses: strs(req.body?.courses), perMinute: req.body?.perMinute,
 })));
+router.get('/feedback-queue', wrap(async (req) => Lead.find({ tenantId: tId(req), archivedAt: null, 'aiFeedback.state': { $in: ['needs_review', 'awaiting_assignment'] } }).select('name phone aiFeedback').sort({ 'aiFeedback.receivedAt': -1 }).limit(100).lean()));
+router.get('/feedback-policy', wrap(async (req) => getPolicy(tId(req))));
+router.put('/feedback-policy', async (req, res) => {
+  try { res.json({ success: true, data: await savePolicy(tId(req), uId(req), req.body) }); }
+  catch (e: any) { res.status(400).json({ success: false, message: e.message }); }
+});
 router.get('/stats', wrap((req) => svc.stats(tId(req))));
 router.post('/test', wrap((req) => svc.testSend(tId(req), req.body || {})));
 router.post('/bulk/preview', wrap((req) => svc.previewBulk(tId(req), filter(req.body))));

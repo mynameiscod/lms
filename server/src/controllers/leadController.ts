@@ -1,3 +1,4 @@
+import { waitsForOutpero } from '../services/outperoPolicyService';
 import { Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest, ApiResponse } from '../types';
@@ -484,7 +485,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
     // AI Voice Qualification call — enqueue if enabled for this tenant (fire-and-forget)
     AICallConfig.findOne({ tenantId: req.tenantId, enabled: true })
       .then(cfg => {
-        if (cfg) {
+        if (cfg && !waitsForOutpero(lead, req.tenantId!)) {
           Lead.findByIdAndUpdate(lead._id, { aiCallStatus: 'pending' }).exec().catch(() => {});
           enqueueAICall(lead._id.toString(), req.tenantId!, 1).catch(err =>
             console.error('[LEAD-CREATE] AI call enqueue failed:', err)

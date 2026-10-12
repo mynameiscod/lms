@@ -1,3 +1,4 @@
+import { waitsForOutpero } from './outperoPolicyService';
 import mongoose from 'mongoose';
 import Lead, { ILead, LeadPriority, LeadEligibility } from '../models/Lead';
 import LeadPriorityConfig, {
@@ -248,10 +249,11 @@ export async function scoreAndAssignLead(lead: any, tenantId: mongoose.Types.Obj
   // 4. Assignment
   let assignedTo: mongoose.Types.ObjectId | undefined;
 
-  if (config.assignmentMode === 'round_robin') {
+  const canAssign = !lead.assignedTo && !lead.assignment?.assignedTo && !waitsForOutpero(lead, String(tenantId));
+  if (canAssign && config.assignmentMode === 'round_robin') {
     const assignee = await getNextRoundRobinAssignee(tenantId, config.roundRobinMembers, 'roundRobinIndex');
     if (assignee) assignedTo = assignee;
-  } else if (config.assignmentMode === 'rule_based') {
+  } else if (canAssign && config.assignmentMode === 'rule_based') {
     lead.priority = priority;
     lead.score = score;
 
@@ -278,7 +280,15 @@ export async function scoreAndAssignLead(lead: any, tenantId: mongoose.Types.Obj
     updateData['assignment.assignedAt'] = new Date();
   }
 
+  const assignmentData: any = {};
+  for (const key of ['assignedTo', 'assignment.assignedTo', 'assignment.assignedAt']) {
+    if (key in updateData) { assignmentData[key] = updateData[key]; delete updateData[key]; }
+  }
   await lead.constructor.findByIdAndUpdate(lead._id, { $set: updateData });
+  if (assignedTo) {
+    const assigned = await Lead.updateOne({ _id: lead._id, tenantId, assignedTo: null, 'assignment.assignedTo': null }, { $set: assignmentData });
+    if (!assigned.modifiedCount) assignedTo = undefined;
+  }
 
   console.log(`[LEAD-SCORING] Lead ${lead._id}: score=${score}, priority=${priority}, eligibility=${eligibility}${assignedTo ? `, assigned=${assignedTo}` : ''}`);
 

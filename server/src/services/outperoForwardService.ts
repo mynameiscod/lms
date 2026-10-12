@@ -1,3 +1,4 @@
+import { getPolicy } from './outperoPolicyService';
 import mongoose from 'mongoose';
 import Lead from '../models/Lead';
 import * as settings from './settingsService';
@@ -127,11 +128,15 @@ async function post(tenantId: string, body: Record<string, unknown>): Promise<{ 
 
 /** Attempt one lead now and record the outcome on it. */
 export async function sendLead(leadId: string): Promise<void> {
-  const lead: any = await Lead.findById(leadId).select('tenantId name phone source courseInterest createdBy outpero').lean();
-  if (!lead || lead.outpero?.status !== 'pending') return;
+  const lead: any = await Lead.findById(leadId).select('tenantId name phone source courseInterest createdBy outpero stageId aiFeedback archivedAt').lean();
+  if (!lead || lead.outpero?.status !== 'pending' || lead.aiFeedback?.doNotContact || lead.archivedAt) return;
   const tenantId = String(lead.tenantId);
   if (getConfig(tenantId).mode === 'off') return; // switched off since it was queued — leave it waiting
 
+  if (getPolicy(tenantId).enabled) {
+    const hour = new Date(Date.now() + 330 * 60_000).getUTCHours();
+    if (hour < 9 || hour >= 20) return;
+  }
   const phone = toE164(lead.phone);
   const attempts = (lead.outpero?.attempts || 0) + 1;
   let r: { ok: boolean; status: number; message: string };
@@ -141,7 +146,7 @@ export async function sendLead(leadId: string): Promise<void> {
   // Retry only what may succeed later: network trouble, 429 and 5xx. A wrong secret or a missing phone will not fix itself.
   const retryable = !r.ok && (r.status === 0 || r.status === 429 || r.status >= 500) && attempts < MAX_ATTEMPTS && !!phone;
   const set: any = { 'outpero.attempts': attempts, 'outpero.httpStatus': r.status || 0 };
-  if (r.ok) Object.assign(set, { 'outpero.status': 'sent', 'outpero.sentAt': new Date(), 'outpero.lastError': '' });
+  if (r.ok) Object.assign(set, { 'outpero.status': 'sent', 'outpero.sentAt': new Date(), 'outpero.stageAtSend': lead.stageId, 'outpero.lastError': '' });
   else if (retryable) Object.assign(set, { 'outpero.status': 'pending', 'outpero.nextAttemptAt': new Date(Date.now() + RETRY_MINUTES[attempts - 1] * 60_000), 'outpero.lastError': r.message });
   else Object.assign(set, { 'outpero.status': 'failed', 'outpero.lastError': r.message });
 
@@ -153,7 +158,7 @@ export async function sendLead(leadId: string): Promise<void> {
       description: r.ok ? '🤖 Sent to Outpero — Jyothi (AI) will call this lead.' : `🤖 Not sent to Outpero: ${r.message}`,
     } };
   }
-  await Lead.updateOne({ _id: lead._id }, update);
+  await Lead.updateOne({ _id: lead._id, 'aiFeedback.doNotContact': { $ne: true } }, update);
 }
 
 /** Called for every new lead (Lead post-save hook). Only "automatic" mode acts. */
@@ -162,7 +167,7 @@ export async function onLeadCreated(doc: any): Promise<void> {
   if (!mongoose.isValidObjectId(tenantId)) return;
   const cfg = getConfig(tenantId);
   if (cfg.mode !== 'auto' || !cfg.endpointUrl || !cfg.secretSet) return;
-  if (!matchesFilters(doc, cfg)) return;
+  if (!matchesFilters(doc, cfg) || doc.aiFeedback?.doNotContact || doc.archivedAt) return;
   await Lead.updateOne({ _id: doc._id, 'outpero.status': { $exists: false } },
     { $set: { outpero: { status: 'pending', via: 'auto', attempts: 0, nextAttemptAt: new Date() } } });
   await sendLead(String(doc._id));
@@ -181,7 +186,7 @@ export async function processDue(limit = 30): Promise<number> {
 export interface BulkFilter { stageIds?: string[]; sources?: string[]; courses?: string[]; includeAlreadySent?: boolean }
 
 function bulkQuery(tenantId: string, f: BulkFilter) {
-  const q: any = { tenantId: oid(tenantId), phone: { $nin: [null, ''] }, archivedAt: null };
+  const q: any = { 'aiFeedback.doNotContact': { $ne: true }, tenantId: oid(tenantId), phone: { $nin: [null, ''] }, archivedAt: null };
   const stageIds = (f.stageIds || []).filter((s) => mongoose.isValidObjectId(s)).map(oid);
   if (stageIds.length) q.stageId = { $in: stageIds };
   if (f.sources?.length) q.source = { $in: f.sources };
@@ -252,7 +257,7 @@ export async function testSend(tenantId: string, input: { name?: string; phone?:
 
 /** Put failed leads back in the queue (after fixing the secret, say). */
 export async function retryFailed(tenantId: string) {
-  const r = await Lead.updateMany({ tenantId: oid(tenantId), 'outpero.status': 'failed', phone: { $nin: [null, ''] } },
+  const r = await Lead.updateMany({ tenantId: oid(tenantId), archivedAt: null, 'aiFeedback.doNotContact': { $ne: true }, 'outpero.status': 'failed', phone: { $nin: [null, ''] } },
     { $set: { 'outpero.status': 'pending', 'outpero.attempts': 0, 'outpero.nextAttemptAt': new Date() } });
   return { requeued: r.modifiedCount };
 }

@@ -247,12 +247,14 @@ export interface ILead extends Document {
   archivedBy?: mongoose.Types.ObjectId;
   archiveReason?: string;
   archiveRunId?: mongoose.Types.ObjectId;
+  aiFeedback?: { callId?: string; outcome?: string; receivedAt?: Date; callAt?: Date; state?: string; doNotContact?: boolean };
   outpero?: {
     status?: 'pending' | 'sent' | 'failed';
     via?: 'auto' | 'bulk';
     attempts?: number;
     nextAttemptAt?: Date;
     sentAt?: Date;
+    stageAtSend?: mongoose.Types.ObjectId;
     httpStatus?: number;
     lastError?: string;
   };
@@ -622,12 +624,15 @@ const LeadSchema: Schema = new Schema(
     archiveReason: { type: String, trim: true, maxlength: 300 },
     archiveRunId: { type: mongoose.Types.ObjectId, ref: 'LeadArchiveRun' },
 
+    aiFeedbackLock: { token: String, until: Date },
+    aiFeedback: { callId: String, outcome: String, receivedAt: Date, callAt: Date, state: String, doNotContact: Boolean },
     outpero: {
       status: { type: String, enum: ['pending', 'sent', 'failed'] },
       via: { type: String, enum: ['auto', 'bulk'] },
       attempts: { type: Number, default: 0 },
       nextAttemptAt: { type: Date },
       sentAt: { type: Date },
+      stageAtSend: { type: mongoose.Types.ObjectId },
       httpStatus: { type: Number },
       lastError: { type: String, trim: true },
     },

@@ -1,3 +1,7 @@
+import { recordStageTransition } from '../controllers/leadStageHistoryController';
+import { classifyOutcome, getPolicy } from './outperoPolicyService';
+import { autoAssignLead } from './leadDistributionService';
+import LeadStage from '../models/LeadStage';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import OutperoCall from '../models/OutperoCall';
@@ -158,13 +162,13 @@ export function readIstDateTime(dateV: unknown, timeV: unknown, now = new Date()
 async function matchLead(tenantId: string, p: ParsedCall): Promise<{ lead: any; by: 'lms_lead_id' | 'phone' } | null> {
   const tid = oid(tenantId);
   if (p.leadIdHint && mongoose.isValidObjectId(p.leadIdHint)) {
-    const lead = await Lead.findOne({ _id: oid(p.leadIdHint), tenantId: tid }).select('name phone customFields createdBy assignedTo assignment aiCallAttempts aiSummary').lean();
+    const lead = await Lead.findOne({ _id: oid(p.leadIdHint), tenantId: tid }).select('name phone customFields createdBy assignedTo assignment aiCallAttempts aiSummary stageId outpero aiFeedback activities archivedAt aiCallLogs').lean();
     if (lead) return { lead, by: 'lms_lead_id' };
   }
   const ten = String(p.phone || '').replace(/\D/g, '').slice(-10);
   if (ten.length === 10) {
     const lead = await Lead.findOne({ tenantId: tid, phone: new RegExp(`${ten}$`) }).sort({ createdAt: -1 })
-      .select('name phone customFields createdBy assignedTo assignment aiCallAttempts aiSummary').lean();
+      .select('name phone customFields createdBy assignedTo assignment aiCallAttempts aiSummary stageId outpero aiFeedback activities archivedAt').lean();
     if (lead) return { lead, by: 'phone' };
   }
   return null;
@@ -180,7 +184,7 @@ export async function receiveCall(tenantId: string, body: any) {
   const tid = oid(tenantId);
 
   const existing: any = await OutperoCall.findOne({ tenantId: tid, callId }).lean();
-  const set: Record<string, unknown> = {};
+  const set: Record<string, unknown> = { pendingAutomation: !!p.callId };
   for (const [k, v] of Object.entries({
     phone: p.phone, status: p.status, outcome: p.outcome, summary: p.summary, hangupReason: p.hangupReason,
     durationSec: p.durationSec, recordingUrl: p.recordingUrl, transcript: p.transcript, startedAt: p.startedAt, endedAt: p.endedAt,
@@ -193,7 +197,7 @@ export async function receiveCall(tenantId: string, body: any) {
     const m = await matchLead(tenantId, p);
     if (m) { lead = m.lead; leadId = String(m.lead._id); set.leadId = m.lead._id; set.matchedBy = m.by; }
   } else {
-    lead = await Lead.findOne({ _id: oid(leadId), tenantId: tid }).select('name phone customFields createdBy assignedTo assignment aiCallAttempts aiSummary').lean();
+    lead = await Lead.findOne({ _id: oid(leadId), tenantId: tid }).select('name phone customFields createdBy assignedTo assignment aiCallAttempts aiSummary stageId outpero aiFeedback activities archivedAt').lean();
   }
 
   const call: any = await OutperoCall.findOneAndUpdate(
@@ -203,7 +207,8 @@ export async function receiveCall(tenantId: string, body: any) {
   ).lean();
 
   const done: string[] = [];
-  if (lead) done.push(...(await applyToLead(tenantId, call, lead)));
+  if (!p.callId) done.push('needs_call_id');
+  if (lead && p.callId) done.push(...(await applyLocked(tenantId, call, lead)));
   return { callId, matched: !!lead, leadId, actions: done };
 }
 
@@ -213,15 +218,66 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
   const has = (a: string) => (call.actions || []).includes(a);
   const mark = async (a: string) => { did.push(a); await OutperoCall.updateOne({ _id: call._id }, { $addToSet: { actions: a } }); };
   const v = call.variables || {};
-  const by = owner(lead);
-  const leadQ = { _id: lead._id };
+  let by = owner(lead);
+  const leadQ = { _id: lead._id, tenantId: oid(tenantId) };
+  const policy = getPolicy(tenantId);
+  const outcome = classifyOutcome(call);
+  const callAt = call.startedAt || call.createdAt;
+  const stale = lead.archivedAt || (lead.aiFeedback?.callAt && callAt && new Date(lead.aiFeedback.callAt) > new Date(callAt));
+  let automate = policy.enabled && !stale && !lead.aiFeedback?.doNotContact;
+  const stage = await LeadStage.findOne({ _id: lead.stageId, tenantId: oid(tenantId) }).lean();
+  if (stage?.isFinal || stage?.category === 'converted' || stage?.category === 'lost') automate = false;
+  const humanChangedStage = lead.activities?.some((a: any) => a.type === 'status_change' && !a.metadata?.outperoCallId && new Date(a.createdAt) > new Date(call.startedAt || lead.outpero?.sentAt || call.createdAt));
+  if (humanChangedStage) automate = false;
+  if (policy.enabled && (outcome === 'opt_out' || outcome === 'wrong_number')) await Lead.updateOne(leadQ, { $set: { 'aiFeedback.doNotContact': true, 'outpero.status': 'failed', 'outpero.lastError': 'Further calls stopped: ' + outcome } });
+  if (automate && !outcome && !lead.aiFeedback?.doNotContact) await Lead.updateOne(leadQ, { $set: { 'aiFeedback.callId': call.callId, 'aiFeedback.outcome': 'awaiting_outcome', 'aiFeedback.state': 'needs_review', 'aiFeedback.receivedAt': new Date(), 'aiFeedback.callAt': callAt } });
+  const negative = outcome === 'not_interested' || outcome === 'wrong_number' || outcome === 'opt_out';
+  const count = (lead.aiCallAttempts || 0) + (lead.aiCallLogs?.some((l: any) => l.callSid === call.callId) ? 0 : 1);
+  const retryNoAnswer = outcome === 'no_answer' && count < policy.maxCallAttempts && !!lead.outpero && !lead.aiFeedback?.doNotContact;
+  if (automate && outcome && !has('feedback_' + outcome)) {
+    let state = outcome === 'needs_review' ? 'needs_review' : 'processed';
+    if (retryNoAnswer) state = 'retry_scheduled';
+    if ((['interested', 'callback', 'demo'].includes(outcome) || (outcome === 'no_answer' && !retryNoAnswer))) {
+      const assigned = await autoAssignLead(tenantId, String(lead._id), true);
+      if (assigned) lead.assignedTo = assigned;
+      else if (!lead.assignedTo && !lead.assignment?.assignedTo) state = 'awaiting_assignment';
+    }
+    const set: any = { 'aiFeedback.callId': call.callId, 'aiFeedback.outcome': outcome, 'aiFeedback.receivedAt': new Date(), 'aiFeedback.callAt': callAt, 'aiFeedback.state': state };
+    if (outcome === 'wrong_number' || outcome === 'opt_out') { set['aiFeedback.doNotContact'] = true; set['outpero.status'] = 'failed'; set['outpero.lastError'] = 'Further calls stopped: ' + outcome; }
+    if (outcome === 'needs_review') { set.eligibility = 'needs_review'; set.eligibilityReason = 'AI call outcome requires review'; }
+    if (retryNoAnswer) {
+      const at = nextCallWindow(new Date(Date.now() + policy.retryGapMinutes * 60_000));
+      set['outpero.status'] = 'pending'; set['outpero.attempts'] = 0; set['outpero.nextAttemptAt'] = at;
+    }
+    if (outcome !== 'no_answer' && lead.outpero?.status === 'pending') set['outpero.status'] = 'sent';
+    const stageId = policy.stageMapping[outcome];
+    const target = stageId ? await LeadStage.findOne({ _id: stageId, tenantId: oid(tenantId), isActive: true }).lean() : null;
+    if (target && (!lead.outpero?.stageAtSend || String(lead.stageId) === String(lead.outpero.stageAtSend))) {
+      set.stageId = target._id;
+    }
+    const update: any = { $set: set };
+    if (set.stageId && String(set.stageId) !== String(lead.stageId)) update.$push = { activities: { type: 'status_change', createdBy: lead.createdBy, createdAt: new Date(), description: 'AI call outcome: ' + outcome, metadata: { outperoCallId: call.callId } } };
+    const applied = await Lead.updateOne({ ...leadQ, stageId: lead.stageId, activities: { $not: { $elemMatch: { type: 'status_change', createdAt: { $gt: new Date(call.startedAt || lead.outpero?.sentAt || call.createdAt) }, 'metadata.outperoCallId': { $exists: false } } } } }, update);
+    if (applied.matchedCount === 0) automate = false;
+    if (automate && target && set.stageId && String(set.stageId) !== String(lead.stageId)) await recordStageTransition(lead._id, lead.stageId, target._id, target.name, lead.createdBy, oid(tenantId));
+    if (state !== 'awaiting_assignment') await mark('feedback_' + outcome);
+    else did.push('awaiting_assignment');
+  }
+  by = owner(lead);
+  const taskOwner = lead.assignedTo || lead.assignment?.assignedTo;
+  const canTask = !stale && !lead.aiFeedback?.doNotContact && (!policy.enabled || (automate && !negative && !!taskOwner));
+  const saveTask = async (kind: string, data: any) => {
+    const automationKey = 'outpero:' + call.callId + ':' + kind;
+    await FollowUpReminder.updateOne({ tenantId: oid(tenantId), automationKey }, { $setOnInsert: { ...data, automationKey } }, { upsert: true });
+  };
 
+  const connected = outcome !== 'no_answer' && !/voicemail|no.?answer|busy|failed|not.?connected/i.test(String(call.status || '')) && ((call.durationSec || 0) > 5 || /^(answered|connected|completed)$/i.test(String(call.status || '')) || ['interested', 'callback', 'demo', 'not_interested', 'opt_out', 'wrong_number'].includes(outcome || ''));
   // 1. Call log + timeline, on the first delivery.
-  if (!has('logged')) {
-    const connected = (call.durationSec || 0) > 5 && !/voicemail|no.?answer|busy|failed|not.?connected/i.test(`${call.status} ${call.hangupReason}`);
+  if (!has('logged') && !lead.aiCallLogs?.some((l: any) => l.callSid === call.callId)) {
+
     await Lead.updateOne(leadQ, {
       $inc: { aiCallAttempts: 1 },
-      $set: { aiCallStatus: connected ? 'answered' : 'not_answered' },
+      $set: !stale ? { aiCallStatus: connected ? 'answered' : 'not_answered' } : {},
       $push: {
         aiCallLogs: {
           attemptNumber: (lead.aiCallAttempts || 0) + 1, callSid: call.callId,
@@ -238,18 +294,17 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
   } else if (call.transcript || call.recordingUrl) {
     // A later delivery may bring the transcript/recording — keep the log current.
     await Lead.updateOne({ ...leadQ, 'aiCallLogs.callSid': call.callId }, {
-      $set: { 'aiCallLogs.$.transcript': call.transcript, 'aiCallLogs.$.recordingUrl': call.recordingUrl, 'aiCallLogs.$.duration': call.durationSec },
+      $set: { 'aiCallLogs.$.transcript': call.transcript, 'aiCallLogs.$.recordingUrl': call.recordingUrl, 'aiCallLogs.$.duration': call.durationSec, 'aiCallLogs.$.outcome': connected ? 'answered' : 'not_answered' },
     });
   }
 
+  // Classification and recordings may arrive after the initial completion.
+  if (!stale && call.summary && call.summary !== lead.aiSummary?.summary) {
+    await Lead.updateOne({ ...leadQ, $or: [{ 'aiSummary.summary': { $exists: false } }, { 'aiSummary.generatedBy': 'outpero' }] }, { $set: { aiSummary: { generatedAt: new Date(), summary: call.summary, generatedBy: 'outpero', keyInsights: [], suggestedNextAction: '' } } });
+  }
   // 2. Summary + outcome, once the call is classified.
   if (!has('summary') && (call.summary || call.outcome)) {
-    const set: any = {};
-    if (call.summary && (!lead.aiSummary?.summary || lead.aiSummary?.generatedBy === 'outpero')) {
-      set.aiSummary = { generatedAt: new Date(), summary: call.summary, generatedBy: 'outpero', keyInsights: [], suggestedNextAction: '' };
-    }
     await Lead.updateOne(leadQ, {
-      ...(Object.keys(set).length ? { $set: set } : {}),
       $push: { activities: { type: 'note', createdBy: by, createdAt: new Date(), description: `🤖 Jyothi: ${call.outcome ? `${call.outcome}. ` : ''}${call.summary || ''}`.slice(0, 2000) } },
     });
     await mark('summary');
@@ -260,15 +315,18 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
   for (const [k, val] of Object.entries(v)) {
     if (blankish(val) || k === 'lms_lead_id') continue;
     const cf = lead.customFields || {};
-    if (cf[k] === undefined || cf[k] === '') filled[`customFields.${k}`] = typeof val === 'object' ? JSON.stringify(val) : val;
+    if (/^[a-zA-Z0-9_]+$/.test(k) && (cf[k] === undefined || cf[k] === '')) filled[`customFields.${k}`] = typeof val === 'object' ? JSON.stringify(val) : val;
   }
-  if (Object.keys(filled).length) { await Lead.updateOne(leadQ, { $set: filled }); did.push('details'); }
+  for (const [key, value] of Object.entries(filled)) {
+    await Lead.updateOne({ ...leadQ, $or: [{ [key]: { $exists: false } }, { [key]: '' }] }, { $set: { [key]: value } });
+  }
+  if (Object.keys(filled).length) did.push('details');
 
   // 4. Demo booked on the call → a demo follow-up at that time (or for a person to confirm).
-  if (!has('demo') && (!blankish(v.demo_date) || !blankish(v.demo_time))) {
+  if (canTask && !has('demo') && (!blankish(v.demo_date) || !blankish(v.demo_time) || (automate && outcome === 'demo'))) {
     const at = readIstDateTime(v.demo_date, v.demo_time);
-    await FollowUpReminder.create({
-      tenantId: oid(tenantId), leadId: lead._id, assignedTo: by, createdBy: by, type: 'demo',
+    await saveTask('demo', {
+      tenantId: oid(tenantId), leadId: lead._id, assignedTo: taskOwner || by, createdBy: lead.createdBy, type: 'demo',
       title: `Demo with ${lead.name || 'lead'} (booked by Jyothi)`,
       description: `Asked for ${[v.demo_date, v.demo_time].filter(Boolean).join(' ')}${v.demo_mode ? ` · ${v.demo_mode}` : ''}.${at ? '' : ' Time could not be read — confirm with the lead.'}`,
       scheduledAt: at || new Date(Date.now() + 3600_000), reminderAt: at ? new Date(at.getTime() - 30 * 60_000) : undefined,
@@ -279,10 +337,10 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
 
   // 5. Callback asked for (or a counsellor call wanted) → a call follow-up for the lead's owner.
   const wantsCounsellor = yes(v.counsellor_callback);
-  if (!has('callback') && (!blankish(v.callback_date) || !blankish(v.callback_time) || wantsCounsellor)) {
+  if (canTask && !has('callback') && (!blankish(v.callback_date) || !blankish(v.callback_time) || wantsCounsellor || (automate && outcome === 'callback'))) {
     const at = readIstDateTime(v.callback_date, v.callback_time);
-    await FollowUpReminder.create({
-      tenantId: oid(tenantId), leadId: lead._id, assignedTo: by, createdBy: by, type: 'call',
+    await saveTask('callback', {
+      tenantId: oid(tenantId), leadId: lead._id, assignedTo: taskOwner || by, createdBy: lead.createdBy, type: 'call',
       title: `Call ${lead.name || 'lead'} back${wantsCounsellor ? ' (counsellor requested)' : ''}`,
       description: `Requested on Jyothi's call${[v.callback_date, v.callback_time].some((x) => !blankish(x)) ? `: ${[v.callback_date, v.callback_time].filter((x) => !blankish(x)).join(' ')}` : ''}.${at || !(v.callback_date || v.callback_time) ? '' : ' Time could not be read — confirm.'}`,
       scheduledAt: at || new Date(Date.now() + 2 * 3600_000), reminderAt: at ? new Date(at.getTime() - 15 * 60_000) : undefined,
@@ -304,6 +362,10 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
   if (!has('whatsapp_consent') && yes(v.whatsapp_consent)) {
     await Lead.updateOne(leadQ, { $set: { 'customFields.whatsapp_consent': 'yes' } });
     await mark('whatsapp_consent');
+  }
+  if (automate && (outcome === 'interested' || (outcome === 'no_answer' && !retryNoAnswer)) && taskOwner && !has('interested_task')) {
+    await saveTask('interested', { tenantId: oid(tenantId), leadId: lead._id, assignedTo: taskOwner, createdBy: lead.createdBy, type: 'call', title: (outcome === 'no_answer' ? 'AI attempts exhausted: call ' : 'Follow up with ') + (lead.name || 'lead'), description: call.summary || 'Interested after AI qualification', scheduledAt: new Date(Date.now() + 3600_000), priority: 'high', status: 'scheduled' });
+    await mark('interested_task');
   }
   return did;
 }
@@ -332,4 +394,37 @@ export async function recentCalls(tenantId: string, limit = 20) {
 export async function latestRaw(tenantId: string) {
   const c: any = await OutperoCall.findOne({ tenantId: oid(tenantId) }).sort({ updatedAt: -1 }).select('raw callId').lean();
   return c ? { callId: c.callId, delivery: (c.raw || []).slice(-1)[0] || null } : null;
+}
+
+async function applyLocked(tenantId: string, call: any, lead: any) {
+  const token = crypto.randomBytes(16).toString('hex');
+  const locked = await Lead.findOneAndUpdate({ _id: lead._id, tenantId: oid(tenantId), $or: [{ 'aiFeedbackLock.until': { $exists: false } }, { 'aiFeedbackLock.until': { $lt: new Date() } }] }, { $set: { aiFeedbackLock: { token, until: new Date(Date.now() + 120_000) } } });
+  if (!locked) throw new OutperoCallError('Call feedback is being processed; retry shortly.', 503);
+  try {
+    const fresh: any = await Lead.findOne({ _id: lead._id, tenantId: oid(tenantId) }).lean();
+    const current: any = await OutperoCall.findOne({ tenantId: oid(tenantId), callId: call.callId }).lean();
+    const actions = await applyToLead(tenantId, current, fresh);
+    // Do not clear pending when a newer delivery arrived during processing.
+    await OutperoCall.updateOne({ _id: call._id, deliveries: current.deliveries }, { $set: { pendingAutomation: actions.includes('awaiting_assignment') } });
+    return actions;
+  } finally {
+    await Lead.updateOne({ _id: lead._id, 'aiFeedbackLock.token': token }, { $unset: { aiFeedbackLock: '' } });
+  }
+}
+/** Recover interrupted processing and retry leads awaiting an available owner. */
+export async function processPendingFeedback() {
+  const rows: any[] = await OutperoCall.find({ pendingAutomation: true, leadId: { $ne: null } }).sort({ updatedAt: 1 }).limit(30).lean();
+  for (const call of rows) {
+    const lead = await Lead.findOne({ _id: call.leadId, tenantId: call.tenantId }).lean();
+    if (lead) await applyLocked(String(call.tenantId), call, lead).catch((e) => console.error('[outpero-feedback]', e.message));
+  }
+}
+
+/** Calling window in IST, independent of the server timezone. */
+export function nextCallWindow(at: Date): Date {
+  const local = new Date(at.getTime() + 330 * 60_000);
+  const h = local.getUTCHours();
+  if (h < 9) local.setUTCHours(9, 0, 0, 0);
+  else if (h >= 20) { local.setUTCDate(local.getUTCDate() + 1); local.setUTCHours(9, 0, 0, 0); }
+  return new Date(local.getTime() - 330 * 60_000);
 }

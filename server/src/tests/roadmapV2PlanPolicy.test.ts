@@ -1,5 +1,5 @@
 import {
-  standingOn, bridgeUnitsForTopic, yearTiers, fitToDays, fitBridgeThenYear, packTight, PlanItem, V2Tier,
+  standingOn, bridgeUnitsForTopic, yearTiers, fitToDays, fitBridgeThenYear, packTight, isYearRefresher, PlanItem, V2Tier,
 } from '../data/roadmapV2PlanPolicy';
 
 const u = (code: string, unitType: string, topicCode = 'T', estimatedMinutes = 60, displayOrder = 0) =>
@@ -25,16 +25,21 @@ describe('how a learner stands on a topic', () => {
 
 describe('the bridge gives each topic what this learner needs', () => {
   const topic = [u('C1', 'CONCEPT', 'T', 60, 1), u('P1', 'PRACTICE', 'T', 60, 2), u('K1', 'CHECKPOINT', 'T', 30, 3), u('C2', 'CONCEPT', 'T', 60, 4)];
-  it('a learner who holds it proves it — no lesson again', () => {
-    expect(bridgeUnitsForTopic(topic, 'HELD').map(x => x.unit.unitCode)).toEqual(['K1']);
+  it('a learner who holds it still gets the class, then proves it — no practice', () => {
+    expect(bridgeUnitsForTopic(topic, 'HELD').map(x => [x.unit.unitCode, x.tier])).toEqual([['C1', 'ESSENTIAL'], ['K1', 'ESSENTIAL']]);
   });
   it('a weak learner is taught it: lesson, practice, checkpoint — practice may be given up first', () => {
     expect(bridgeUnitsForTopic(topic, 'WEAK').map(x => [x.unit.unitCode, x.tier])).toEqual([
       ['C1', 'ESSENTIAL'], ['P1', 'BRIDGE_EXTRA'], ['K1', 'ESSENTIAL'],
     ]);
   });
-  it('an unmeasured learner gets the lesson and the checkpoint', () => {
-    expect(bridgeUnitsForTopic(topic, 'UNKNOWN').map(x => x.unit.unitCode)).toEqual(['C1', 'K1']);
+  it('an unmeasured learner is taught it in full, like a weak one — every fresh joiner gets the foundation', () => {
+    expect(bridgeUnitsForTopic(topic, 'UNKNOWN').map(x => x.unit.unitCode)).toEqual(['C1', 'P1', 'K1']);
+  });
+  it('where a topic has no checkpoint, a strong learner’s practice proof is droppable — as a weak learner’s is', () => {
+    const noCheck = [u('C1', 'CONCEPT', 'T', 60, 1), u('P1', 'PRACTICE', 'T', 60, 2)];
+    expect(bridgeUnitsForTopic(noCheck, 'HELD').map(x => [x.unit.unitCode, x.tier])).toEqual([['C1', 'ESSENTIAL'], ['P1', 'BRIDGE_EXTRA']]);
+    expect(bridgeUnitsForTopic(noCheck, 'WEAK').map(x => [x.unit.unitCode, x.tier])).toEqual([['C1', 'ESSENTIAL'], ['P1', 'BRIDGE_EXTRA']]);
   });
   it('never leaves a bridge topic empty', () => {
     expect(bridgeUnitsForTopic([u('D1', 'DEBUG')], 'UNKNOWN').map(x => x.unit.unitCode)).toEqual(['D1']);
@@ -90,6 +95,15 @@ describe('fitting the plan into the admin’s days', () => {
 
   it('says so when there is too little content to fill the days', () => {
     expect(fitToDays([item('a', 'ESSENTIAL')], { days: 3, dailyMinutes: 150, maxUnitsPerDay: 3 }).reason).toBe('TOO_FEW_UNITS');
+  });
+});
+
+describe('the year’s own refresher', () => {
+  it('Year 2 and Year 4 bridge modules are refreshers; Year 3 readiness is not', () => {
+    expect(isYearRefresher('B01_BRIDGE')).toBe(true);
+    expect(isYearRefresher('P02_BRIDGE')).toBe(true);
+    expect(isYearRefresher('S01_READINESS')).toBe(false);
+    expect(isYearRefresher('P03_ENGINEERING_BUILD')).toBe(false);
   });
 });
 

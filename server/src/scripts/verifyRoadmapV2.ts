@@ -14,6 +14,9 @@
  *             (one who left a year part-way gets revision on what they reached — at most that)
  *   GATE      a journey with a bridge has a foundation gate in front of the year's first day
  *   DNA       learners with different Skill DNA get different roadmaps
+ *   ORDER     the year is taught in the curriculum's topic order (never what they hold first)
+ *   CLASS     every topic of the year includes its class — a strong learner's too
+ *   REFRESHER Years 2 and 4 carry none of their own refresher module (the bridge replaces it)
  *
  * The joiners: FRESH (new to CareerPilot this year), MEMBER (finished every earlier year with us)
  * and LEFT (finished the years before last, left last year at day 10). Earlier-year journeys of a
@@ -34,6 +37,7 @@ import { programDaysFor } from '../services/foundationProgramLengthService';
 import { loadCandidates } from '../services/composerCandidateService';
 import { foundationGateFor } from '../services/roadmapV2GateService';
 import { resolveRoadmapV2, ROADMAP_V2_STAGES } from '../data/roadmapV2Policy';
+import { isYearRefresher } from '../data/roadmapV2PlanPolicy';
 import PassportConfig from '../models/PassportConfig';
 import DayPlan from '../models/DayPlan';
 import LearningCurriculum from '../models/LearningCurriculum';
@@ -72,7 +76,7 @@ async function run(): Promise<void> {
   const setting = { dailyMinutes, revisionDays };
 
   const allUnits = await CurriculumLearningUnit.find({ tenantId })
-    .select('unitCode topicCode stageKey estimatedMinutes skillKeys prerequisiteSkillKeys').lean() as any[];
+    .select('unitCode topicCode moduleCode unitType stageKey estimatedMinutes skillKeys prerequisiteSkillKeys').lean() as any[];
   const unitOf = new Map(allUnits.map(u => [String(u.unitCode), u]));
   const allSkills = [...new Set(allUnits.flatMap(u => [...(u.skillKeys || []), ...(u.prerequisiteSkillKeys || [])]).map(String))];
   const profileOf = (score: (k: string) => number | null): StudentProfile => {
@@ -87,11 +91,17 @@ async function run(): Promise<void> {
 
   /** Each stage's MUST topics that the published curriculum can actually give a unit to. */
   const mustOf = new Map<string, Set<string>>();
+  /** Each stage's topic order, and the topics that have a published class to give. */
+  const orderOf = new Map<string, Map<string, number>>();
+  const classOf = new Map<string, Set<string>>();
   for (const st of ROADMAP_V2_STAGES) {
     const cur = await LearningCurriculum.findOne({ tenantId, adaptiveStage: st, personalizedFor: null })
-      .select('topics.topicCode topics.priority').lean() as any;
+      .select('topics.topicCode topics.priority topics.order').lean() as any;
+    orderOf.set(st, new Map(((cur?.topics || []) as any[]).map(t => [String(t.topicCode), Number(t.order) || 0])));
     const set = await loadCandidates(tenantId, 'PRODUCTION', st).catch(() => null);
-    const teachable = new Set((set?.units || []).map(u => String(u.topicCode)));
+    classOf.set(st, new Set((set?.units || []).filter(u => u.unitType === 'CONCEPT').map(u => String(u.topicCode))));
+    /* A year's own refresher is left out under V2 (the bridge replaces it), so it is not expected. */
+    const teachable = new Set((set?.units || []).filter(u => st === 'foundation' || !isYearRefresher(u.moduleCode)).map(u => String(u.topicCode)));
     const must = ((cur?.topics || []) as any[]).filter(t => t.priority === 'MUST').map(t => String(t.topicCode));
     const unteachable = must.filter(t => !teachable.has(t));
     if (unteachable.length) console.log(`  note: ${st} has ${unteachable.length} MUST topic(s) with no published unit — not checked: ${unteachable.join(', ')}`);
@@ -135,7 +145,7 @@ async function run(): Promise<void> {
           if (r?.ok === false) { row.problems.push(`REFUSED: ${String(r.reason).slice(0, 80)}`); rows.push(row); report(row); continue; }
           const cur = await LearningCurriculum.findById(r.curriculumId).select('totalDays roadmapVersion phaseDays v2Report').lean() as any;
           const plans = await DayPlan.find({ curriculumId: r.curriculumId }).select('dayNumber phase unitCodes items').sort({ dayNumber: 1 }).lean() as any[];
-          checkJourney(row, cur, plans, { programDays, dailyMinutes, revisionDays, earlier, unitOf, mustOf });
+          checkJourney(row, cur, plans, { programDays, dailyMinutes, revisionDays, earlier, unitOf, mustOf, orderOf, classOf });
           const gate = await foundationGateFor(r.curriculumId, String(sid));
           if (row.bridge) {
             if (!gate.applies || !gate.total) row.problems.push('GATE: a bridge with no foundation checks');
@@ -177,7 +187,8 @@ async function run(): Promise<void> {
 
 function checkJourney(
   row: Row, cur: any, plans: any[],
-  ctx: { programDays: number; dailyMinutes: number; revisionDays: number; earlier: string[]; unitOf: Map<string, any>; mustOf: Map<string, Set<string>> },
+  ctx: { programDays: number; dailyMinutes: number; revisionDays: number; earlier: string[]; unitOf: Map<string, any>; mustOf: Map<string, Set<string>>;
+    orderOf: Map<string, Map<string, number>>; classOf: Map<string, Set<string>> },
 ): void {
   const p = row.problems;
   row.days = plans.length;
@@ -239,6 +250,26 @@ function checkJourney(
   if (row.joiner === 'FRESH' && ctx.earlier.length) {
     const y1 = [...(ctx.mustOf.get('foundation') || [])].filter(t => !topics.has(t));
     if (y1.length) p.push(`MUST: ${y1.length} Year-1 topic(s) not bridged: ${y1.slice(0, 4).join(', ')}`);
+  }
+
+  // ORDER — the year's units in the curriculum's topic order.
+  const order = ctx.orderOf.get(row.stage) || new Map<string, number>();
+  const yearUnits = plans.filter(d => d.phase === 'YEAR').flatMap(d => (d.unitCodes || []).map((c: any) => ctx.unitOf.get(String(c))).filter(Boolean));
+  for (let i = 1; i < yearUnits.length; i++) {
+    const a = order.get(String(yearUnits[i - 1].topicCode)) ?? 0;
+    const b = order.get(String(yearUnits[i].topicCode)) ?? 0;
+    if (b < a) { p.push(`ORDER: ${yearUnits[i].unitCode} (topic ${b}) after ${yearUnits[i - 1].unitCode} (topic ${a})`); break; }
+  }
+
+  // CLASS — every topic of the year that has a class gives it.
+  const classes = ctx.classOf.get(row.stage) || new Set<string>();
+  const noClass = [...yearTopics].filter(t => classes.has(t) && !yearUnits.some(u => String(u.topicCode) === t && u.unitType === 'CONCEPT'));
+  if (noClass.length) p.push(`CLASS: ${noClass.length} year topic(s) without their class: ${noClass.slice(0, 3).join(', ')}`);
+
+  // REFRESHER — none of the year's own refresher module in Years 2–4.
+  if (row.stage !== 'foundation') {
+    const refresher = yearUnits.filter(u => u.stageKey === row.stage && isYearRefresher(u.moduleCode)).length;
+    if (refresher) p.push(`REFRESHER: ${refresher} unit(s) of the year's own refresher module`);
   }
 
   row.fingerprint = plans.map(d => (d.unitCodes || []).join('+')).join('|');

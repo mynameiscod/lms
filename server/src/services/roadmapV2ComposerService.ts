@@ -7,6 +7,7 @@ import { densityFor, unitsForDays } from '../data/learningDensityPolicy';
 import { loadCandidates, assertProductionEligible, CandidateSource, CandidateSet } from './composerCandidateService';
 import {
   standingOn, bridgeUnitsForTopic, yearTiers, fitToDays, fitBridgeThenYear, packTight, slotsOf, PlanItem, V2Tier, V2Phase, revisionPick,
+  isYearRefresher,
 } from '../data/roadmapV2PlanPolicy';
 import { priorStudyOf } from './learnerHistoryService';
 
@@ -116,8 +117,15 @@ export async function composeRoadmapV2(
   const density = densityFor(profile, stage);
 
   // ── 2. The year, chosen for this learner by the composer (as V1 does), then MUST coverage. ──
+  /*
+   * THE YEAR'S OWN REFRESHER IS LEFT OUT. Years 2 and 4 open with a short refresher module
+   * (B01_BRIDGE, P02_BRIDGE) written for the old roadmap, which had no bridge. Under V2 every
+   * learner in those years already gets the real thing — a bridge from the earlier years'
+   * curricula, or revision on what they studied with us — so the refresher would teach it twice.
+   */
+  const yearUnits = stage === 'foundation' ? yearSet.units : yearSet.units.filter(u => !isYearRefresher(u.moduleCode));
   const rest = composeUnits({
-    candidates: yearSet.units,
+    candidates: yearUnits,
     targetUnits: Math.max(unitsForDays(opts.programDays, density), opts.programDays),
     minUnits: 1,
     student: profile,
@@ -125,19 +133,29 @@ export async function composeRoadmapV2(
     history: [...history],
   });
   const year: SelectedUnit[] = rest.units.slice();
-  const yearTopics = byTopic(yearSet.units);
-  const orderOf = new Map(yearSet.units.map(u => [u.unitCode, u.displayOrder ?? 0]));
+  const yearTopics = byTopic(yearUnits);
   const chosenTopics = new Set(year.map(u => u.topicCode));
   for (const [topic, units] of yearTopics) {
     if (yearPriority(topic) !== 'MUST' || chosenTopics.has(topic)) continue;
     const fresh = units.filter(u => !history.has(u.unitCode));
     const standing = standingOn(profile.skills as any, topicSkills(fresh));
-    for (const { unit } of bridgeUnitsForTopic(fresh, standing)) {
-      // Into the sequence where its authored order puts it, so it still follows what it needs.
-      const at = year.findIndex(s => (orderOf.get(s.unitCode) ?? 0) > (unit.displayOrder ?? 0));
-      const sel = asSelected(unit, profile, standing === 'HELD', 0);
-      if (at < 0) year.push(sel); else year.splice(at, 0, sel);
-    }
+    for (const { unit } of bridgeUnitsForTopic(fresh, standing)) year.push(asSelected(unit, profile, standing === 'HELD', 0));
+  }
+  /*
+   * A STRONG LEARNER STILL GETS THE CLASS. The composer gives a learner who already holds a skill
+   * only the proof of it — the mini project, the debugging — and no lesson. Every topic in their
+   * year gets its class too, as a refresher before the proof.
+   */
+  const inYearCodes = new Set(year.map(u => u.unitCode));
+  for (const topic of new Set(year.map(u => String(u.topicCode)))) {
+    if (year.some(u => u.topicCode === topic && u.unitType === 'CONCEPT')) continue;
+    const lesson = (yearTopics.get(topic) || [])
+      .filter(u => u.unitType === 'CONCEPT' && !history.has(u.unitCode) && !inYearCodes.has(u.unitCode))
+      .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))[0];
+    if (!lesson) continue;
+    const standing = standingOn(profile.skills as any, topicSkills([lesson]));
+    year.push(asSelected(lesson, profile, standing === 'HELD', 0));
+    inYearCodes.add(lesson.unitCode);
   }
 
   // ── 1. The bridge: Year 1's MUST topics, then what this year's MUST topics stand on. ──
@@ -210,14 +228,12 @@ export async function composeRoadmapV2(
     : null;
   const revisionDayCount = revisionFit?.ok ? revisionFit.days.length : 0;
 
-  const tiers = yearTiers(year, yearPriority);
-
   /*
    * A LEARNER WHO ALREADY HOLDS MOST OF THE YEAR STILL GETS THE ADMIN'S DAYS. The composer leaves
    * out what a strong learner has proved, and a very strong one can be left with fewer units than
    * days — which used to refuse them a roadmap. They are given more of the year instead: practice,
-   * debugging and projects before lessons, MUST topics before SHOULD before OPTIONAL, each in its
-   * authored place. A top-up is never essential, so it can always be given up again by the fit.
+   * debugging and projects before lessons, MUST topics before SHOULD before OPTIONAL. A top-up is
+   * never essential, so it can always be given up again by the fit.
    */
   /* The year fills every day the bridge leaves, and the bridge is packed tight (fitBridgeThenYear). */
   const bridgeItems: PlanItem<SelectedUnit>[] = bridge.map(b => ({ unit: b.unit, phase: 'BRIDGE' as V2Phase, tier: b.tier }));
@@ -225,12 +241,13 @@ export async function composeRoadmapV2(
   const tightBridge = packTight(bridgeItems, fitOpts, mainDays)?.length ?? slotsOf(bridgeItems, fitOpts);
   const asYearItem = (u: SelectedUnit) => [{ unit: u, phase: 'YEAR' as V2Phase, tier: 'OPTIONAL' as V2Tier }];
   const slotsNeeded = mainDays - tightBridge;
+  const topUpTier = new Map<string, V2Tier>();
   let slots = year.reduce((s, u) => s + slotsOf(asYearItem(u), fitOpts), 0);
   if (slots < slotsNeeded) {
     const DOING = ['PROJECT', 'PRACTICE', 'DEBUG', 'CHECKPOINT'];
     const rank: Record<Priority, number> = { MUST: 0, SHOULD: 1, OPTIONAL: 2 };
     const inYear = new Set(year.map(u => u.unitCode));
-    const spare = yearSet.units
+    const spare = yearUnits
       .filter(u => !inYear.has(u.unitCode) && !taken.has(u.unitCode) && !history.has(u.unitCode))
       .sort((a, b) => Number(!DOING.includes(a.unitType)) - Number(!DOING.includes(b.unitType))
         || rank[yearPriority(String(a.topicCode))] - rank[yearPriority(String(b.topicCode))]
@@ -239,13 +256,28 @@ export async function composeRoadmapV2(
       if (slots >= slotsNeeded) break;
       const p = yearPriority(String(unit.topicCode));
       const standing = standingOn(profile.skills as any, topicSkills([unit]));
-      const at = year.findIndex(s => (orderOf.get(s.unitCode) ?? 0) > (unit.displayOrder ?? 0));
       const sel = asSelected(unit, profile, standing === 'HELD', 0);
-      const tier: V2Tier = p === 'MUST' ? 'MUST_EXTRA' : p;
-      if (at < 0) { year.push(sel); tiers.push(tier); } else { year.splice(at, 0, sel); tiers.splice(at, 0, tier); }
+      year.push(sel);
+      topUpTier.set(sel.unitCode, p === 'MUST' ? 'MUST_EXTRA' : p);
       slots += slotsOf(asYearItem(sel), fitOpts);
     }
   }
+
+  /*
+   * THE YEAR IN THE COURSE'S ORDER. The composer puts what a learner already holds first — a
+   * student scoring 100 on testing opened Year 4 with its mini project. The year is taught in the
+   * curriculum's topic order, and within a topic in its authored order: class, practice, proof.
+   */
+  const yearOrder = topicOrder.get(stage);
+  const unitOrder = new Map(yearUnits.map(u => [u.unitCode, u.displayOrder ?? 0]));
+  const seq = new Map(year.map((u, i) => [u.unitCode, i]));
+  year.sort((a, b) =>
+    (yearOrder?.get(String(a.topicCode)) ?? Number.MAX_SAFE_INTEGER) - (yearOrder?.get(String(b.topicCode)) ?? Number.MAX_SAFE_INTEGER)
+    || (unitOrder.get(a.unitCode) ?? 0) - (unitOrder.get(b.unitCode) ?? 0)
+    || (seq.get(a.unitCode) ?? 0) - (seq.get(b.unitCode) ?? 0));
+  const baseTiers = yearTiers(year.filter(u => !topUpTier.has(u.unitCode)), yearPriority);
+  const tierOf = new Map(year.filter(u => !topUpTier.has(u.unitCode)).map((u, i) => [u.unitCode, baseTiers[i]]));
+  const tiers = year.map(u => topUpTier.get(u.unitCode) ?? tierOf.get(u.unitCode) ?? 'OPTIONAL');
 
   const items: PlanItem<SelectedUnit>[] = [
     ...bridgeItems,

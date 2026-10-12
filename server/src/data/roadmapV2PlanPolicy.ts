@@ -8,10 +8,11 @@
  *
  * THE BRIDGE, PER TOPIC, PER LEARNER. A topic in a fresh joiner's bridge is given by what the
  * learner shows on the skills it teaches:
- *   HELD     (measured at or above the ready score, with some confidence) → prove it: a checkpoint,
- *            or one practice where the topic has none. Not re-taught.
- *   WEAK     (measured below the ready score) → teach it: the lesson, one practice, the checkpoint.
- *   UNKNOWN  (never measured) → the lesson and the checkpoint.
+ *   HELD     (measured at or above the ready score, with some confidence) → the class as a
+ *            refresher, then prove it: the checkpoint (or, where the topic has none and there is
+ *            room, one practice).
+ *   WEAK     (measured below the ready score) → teach it: the class, one practice, the checkpoint.
+ *   UNKNOWN  (never measured) → taught as WEAK: a fresh joiner gets the whole foundation.
  *
  * THE FIT. Every unit carries a tier. When the units do not pack into the days, they are removed in
  * this order, each from the END of the plan (furthest from what the learner needs first):
@@ -35,6 +36,13 @@ export type V2Tier = 'ESSENTIAL' | 'MUST_EXTRA' | 'BRIDGE_EXTRA' | 'REVISION' | 
  * matters more than practising one they have.
  */
 export const REMOVAL_ORDER: readonly V2Tier[] = ['OPTIONAL', 'SHOULD', 'REVISION', 'BRIDGE_EXTRA', 'MUST_EXTRA'];
+
+/**
+ * A year's own refresher module (Year 2's B01_BRIDGE, Year 4's P02_BRIDGE): written for the old
+ * roadmap, which had no bridge. V2 gives the real bridge or revision instead, so it is left out.
+ * Year 3's S01_READINESS is a readiness check and gap plan, not a refresher, and stays.
+ */
+export const isYearRefresher = (moduleCode: string | null | undefined): boolean => /_BRIDGE$/.test(String(moduleCode || ''));
 
 export type SkillStanding = 'HELD' | 'WEAK' | 'UNKNOWN';
 export const READY_SCORE = 50;
@@ -85,15 +93,22 @@ export function bridgeUnitsForTopic<U extends TopicUnit>(units: U[], standing: S
   const lastCheckpoint = ordered.filter(u => u.unitType === 'CHECKPOINT').slice(-1);
   const checkpoints = lastCheckpoint;
   const pick: { unit: U; tier: V2Tier }[] = [];
-  if (standing === 'HELD') {
-    if (checkpoints.length) pick.push(...checkpoints.map(u => ({ unit: u, tier: 'ESSENTIAL' as V2Tier })));
-    else if (practice) pick.push({ unit: practice, tier: 'ESSENTIAL' });
-    else if (concept) pick.push({ unit: concept, tier: 'ESSENTIAL' });
-  } else {
-    if (concept) pick.push({ unit: concept, tier: 'ESSENTIAL' });
-    if (standing === 'WEAK' && practice) pick.push({ unit: practice, tier: 'BRIDGE_EXTRA' });
-    pick.push(...checkpoints.map(u => ({ unit: u, tier: 'ESSENTIAL' as V2Tier })));
-    if (!pick.length && ordered[0]) pick.push({ unit: ordered[0], tier: 'ESSENTIAL' });
+  /*
+   * Every learner gets the topic's class — a strong one too, as a refresher before they prove it.
+   * Only a learner who already holds the topic is spared the practice.
+   */
+  /*
+   * The class and the checkpoint are the topic's core; practice is given while there is room — to
+   * a strong learner too, as the proof where a topic has no checkpoint. It is never essential for
+   * one learner and droppable for another: that once left a strong learner's bridge 40 units
+   * longer than a weak learner's.
+   */
+  if (concept) pick.push({ unit: concept, tier: 'ESSENTIAL' });
+  if (practice && (standing !== 'HELD' || !checkpoints.length)) pick.push({ unit: practice, tier: 'BRIDGE_EXTRA' });
+  pick.push(...checkpoints.map(u => ({ unit: u, tier: 'ESSENTIAL' as V2Tier })));
+  if (!pick.some(x => x.tier === 'ESSENTIAL') && ordered[0]) {
+    const first = pick.find(x => x.unit.unitCode === ordered[0].unitCode);
+    if (first) first.tier = 'ESSENTIAL'; else pick.push({ unit: ordered[0], tier: 'ESSENTIAL' });
   }
   // Authored order, so a lesson still comes before its checkpoint.
   const pos = new Map(ordered.map((u, i) => [u.unitCode, i]));

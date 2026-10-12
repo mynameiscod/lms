@@ -1,3 +1,4 @@
+import { startMetaRecoveryScheduler } from './jobs/metaRecoveryCron';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -335,6 +336,7 @@ const startServer = async () => {
       console.log(`⏭️  worker ${process.pid}: schedulers skipped (job runner is another worker)`);
     } else {
 
+    startMetaRecoveryScheduler();
     // Start Google Sheets sync cron (runs every 5 minutes)
     const GSHEET_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
     setInterval(async () => {

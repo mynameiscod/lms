@@ -1,3 +1,6 @@
+import { waitsForOutpero } from '../services/outperoPolicyService';
+import { recoverMetaLeads, MetaSyncBusy, withMetaImportLock } from '../services/metaRecoveryService';
+import MetaSyncState from '../models/MetaSyncState';
 import { Request, Response } from 'express';
 import * as settings from '../services/settingsService';
 import Lead from '../models/Lead';
@@ -112,7 +115,7 @@ function fetchLeadFromMeta(leadgenId: string, accessToken: string): Promise<Meta
     debugLog('FETCH', `Making request to Meta Graph API: ${maskedUrl}`);
     debugLog('FETCH', `Token length: ${accessToken.length}, First 10 chars: ${accessToken.substring(0, 10)}...`);
 
-    https.get(url, (resp) => {
+    const request = https.get(url, (resp) => {
       debugLog('FETCH', `Response status code: ${resp.statusCode}`);
       debugLog('FETCH', `Response headers:`, resp.headers);
       
@@ -426,167 +429,16 @@ async function fetchAndCreateLead(
     throw fetchError;
   }
 
-  // Extract fields
-  debugLog('CREATE', '========== EXTRACTING FIELDS ==========');
-  debugLog('CREATE', `field_data from Meta:`, leadData.field_data);
-  
-  const name = extractFieldValue(leadData.field_data, 'name')
-    || [extractFieldValue(leadData.field_data, 'firstName'), extractFieldValue(leadData.field_data, 'lastName')].filter(Boolean).join(' ')
-    || 'Unknown';
-
-  const phone = extractFieldValue(leadData.field_data, 'phone') || '';
-  const email = extractFieldValue(leadData.field_data, 'email') || '';
-  const city = extractFieldValue(leadData.field_data, 'city') || '';
-  const course = extractFieldValue(leadData.field_data, 'course') || '';
-
-  debugLog('CREATE', `Extracted name: ${name}`);
-  debugLog('CREATE', `Extracted phone: ${phone}`);
-  debugLog('CREATE', `Extracted email: ${email}`);
-  debugLog('CREATE', `Extracted city: ${city}`);
-  debugLog('CREATE', `Extracted course: ${course}`);
-
-  // Clean phone number
-  const cleanPhone = normalizeIndianPhone(phone);
-  debugLog('CREATE', `Cleaned phone: ${cleanPhone}`);
-
-  if (!cleanPhone) {
-    errorLog('CREATE', '❌ No phone number found in Meta lead data');
-    console.error('❌ No phone number found in Meta lead data');
-    return;
-  }
-
-  const tenantObjectId = new mongoose.Types.ObjectId(tenantId);
-  debugLog('CREATE', `Tenant ObjectId: ${tenantObjectId}`);
-
-  // Check for duplicate by phone number
-  debugLog('CREATE', `Checking for existing lead with phone ending in: ${cleanPhone.slice(-10)}`);
-  const existingLead = await Lead.findOne({
-    tenantId: tenantObjectId,
-    phone: { $regex: cleanPhone.slice(-10) + '$' }
-  });
-
-  if (existingLead) {
-    debugLog('CREATE', `📌 Lead already exists: ${existingLead._id}`);
-    console.log('📌 Lead already exists for phone:', cleanPhone, '- Updating activity');
-
-    // Update existing lead with $push for activity and $set for metadata
-    await Lead.updateOne(
-      { _id: existingLead._id },
-      {
-        $push: {
-          activities: {
-            type: 'note',
-            description: `New Meta Lead Form submission (Form: ${meta.formId || 'N/A'}, Campaign: ${meta.campaignId || 'N/A'})`,
-            performedBy: existingLead.assignedTo || existingLead.createdBy,
-            createdAt: new Date()
-          }
-        },
-        $set: {
-          sourceDetails: {
-            platform: 'meta',
-            formId: meta.formId,
-            adId: meta.adId,
-            campaignName: leadData.campaign_name,
-          },
-          updatedAt: new Date()
-        }
-      }
-    );
-
-    debugLog('CREATE', '✅ Existing lead updated successfully');
-    console.log('✅ Existing lead updated:', existingLead._id);
-    return;
-  }
-
-  debugLog('CREATE', 'No existing lead found, creating new lead');
-
-  // Get default stage
-  debugLog('CREATE', 'Looking for default stage');
-  let defaultStage = await LeadStage.findOne({
-    tenantId: tenantObjectId,
-    $or: [{ name: /new/i }, { order: 1 }]
-  }).sort({ order: 1 });
-
-  if (!defaultStage) {
-    defaultStage = await LeadStage.findOne({ tenantId: tenantObjectId }).sort({ order: 1 });
-  }
-  
-  debugLog('CREATE', `Default stage: ${defaultStage?._id} (${defaultStage?.name || 'none'})`);
-
-  // Create new lead
-  const adminId = await getTenantAdminId(tenantObjectId);
-  const leadPayload = {
-    tenantId: tenantObjectId,
-    name: name,
-    phone: cleanPhone,
-    email: email,
-    source: 'meta_form',
-    priority: 'warm',
-    stageId: defaultStage?._id,
-    location: city,
-    courseInterest: course ? [course] : [],
-    createdBy: adminId,
-    sourceDetails: {
-      platform: 'meta',
-      formId: meta.formId,
-      adId: meta.adId,
-      campaignName: leadData.campaign_name,
-      adSetName: leadData.adset_name,
-      adName: leadData.ad_name,
-    },
-    utmParams: {
-      source: 'facebook',
-      medium: 'paid',
-      campaign: leadData.campaign_name || meta.campaignId,
-    },
-    activityLog: [{
-      type: 'created',
-      description: `Lead created from Meta Lead Form (${leadData.form_name || meta.formId || 'N/A'})`,
-      timestamp: new Date()
-    }],
-    customFields: leadData.field_data.reduce((acc: Record<string, string>, field) => {
-      acc[field.name] = field.values.join(', ');
-      return acc;
-    }, {}),
-  };
-  
-  debugLog('CREATE', 'Creating lead with payload:', leadPayload);
-  
-  const newLead = new Lead(leadPayload);
-
-  await newLead.save();
-  
-  debugLog('CREATE', `✅ NEW LEAD CREATED SUCCESSFULLY`);
-  debugLog('CREATE', `Lead ID: ${newLead._id}`);
-  debugLog('CREATE', `Name: ${name}`);
-  debugLog('CREATE', `Phone: ${cleanPhone}`);
-  console.log('✅ New lead created from Meta form:', newLead._id, 'Name:', name, 'Phone:', cleanPhone);
-
-  // Auto-score and assign the new lead
-  scoreAndAssignLead(newLead, new mongoose.Types.ObjectId(tenantId)).catch(err =>
-    console.error('[META-LEAD] Auto-score failed:', err)
-  );
-
-  // AI Voice Qualification call — enqueue if enabled for this tenant (fire-and-forget)
-  AICallConfig.findOne({ tenantId: tenantObjectId, enabled: true })
-    .then(cfg => {
-      if (cfg) {
-        Lead.findByIdAndUpdate(newLead._id, { aiCallStatus: 'pending' }).exec().catch(() => {});
-        enqueueAICall(newLead._id.toString(), tenantId!, 1).catch(err =>
-          console.error('[META-LEAD] AI call enqueue failed:', err)
-        );
-      }
-    })
-    .catch(err => console.error('[META-LEAD] AI config lookup failed:', err));
+  await createOrUpdateLeadFromData({ ...leadData, id: leadData.id || leadgenId }, meta.formId || leadData.form_id || '', tenantId);
 }
 
 // ===================== GRAPH API HELPER =====================
 
-function graphGet(path: string, accessToken: string, extraParams: Record<string, string> = {}): Promise<any> {
+export function graphGet(path: string, accessToken: string, extraParams: Record<string, string> = {}): Promise<any> {
   return new Promise((resolve, reject) => {
     const params = new URLSearchParams({ access_token: accessToken, ...extraParams });
     const url = `https://graph.facebook.com/v19.0/${path}?${params.toString()}`;
-    https.get(url, (resp) => {
+    const request = https.get(url, (resp) => {
       let data = '';
       resp.on('data', (chunk) => { data += chunk; });
       resp.on('end', () => {
@@ -595,96 +447,19 @@ function graphGet(path: string, accessToken: string, extraParams: Record<string,
           if (parsed.error) reject(new Error(`Meta API: ${parsed.error.message} (code ${parsed.error.code})`));
           else resolve(parsed);
         } catch (e: any) {
-          reject(new Error(`Failed to parse Meta response: ${data.substring(0, 200)}`));
+          reject(new Error(`Invalid Meta response; recovery will retry.`));
         }
       });
     }).on('error', reject);
+    request.setTimeout(30000, () => request.destroy(new Error('Meta API timed out. Recovery will retry.')));
   });
 }
 
 // ===================== SYNC LEADS FROM META PAGE =====================
 
 export const syncMetaLeads = async (req: AuthenticatedRequest, res: Response) => {
-  const tenantId = req.tenantId!;
-
-  try {
-    const tokens = await getDecryptedTokens(tenantId);
-    const accessToken = tokens?.metaAds?.pageAccessToken;
-    const pageId = tokens?.metaAds?.pageId;
-
-    if (!accessToken || !accessToken.startsWith('EAA')) {
-      return res.status(400).json({ success: false, message: 'No valid Meta Page Access Token configured. Set it in Lead Sources → Meta Lead Ads.' });
-    }
-    if (!pageId) {
-      return res.status(400).json({ success: false, message: 'No Facebook Page ID configured. Set it in Lead Sources → Meta Lead Ads.' });
-    }
-
-    const tenantObjectId = new mongoose.Types.ObjectId(tenantId);
-
-    // 1. Get all lead forms on the page
-    const formsResp = await graphGet(`${pageId}/leadgen_forms`, accessToken, {
-      fields: 'id,name,leads_count',
-      limit: '20',
-    });
-
-    const forms: Array<{ id: string; name: string; leads_count: number }> = formsResp.data || [];
-    console.log(`[META-SYNC] Found ${forms.length} forms on page ${pageId}`);
-
-    if (forms.length === 0) {
-      return res.json({ success: true, message: 'No lead forms found on this Facebook Page. Make sure at least one Lead Ad form exists.', created: 0, updated: 0 });
-    }
-
-    // 2. Determine since-timestamp: last 30 days or last known lead
-    const lastLead = await Lead.findOne({ tenantId: tenantObjectId, source: 'meta_form' }).sort({ createdAt: -1 }).select('createdAt');
-    const sinceDate = lastLead
-      ? new Date(lastLead.createdAt as Date)
-      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
-
-    const sinceUnix = Math.floor(sinceDate.getTime() / 1000);
-
-    let totalCreated = 0;
-    let totalUpdated = 0;
-    let totalSkipped = 0;
-
-    // 3. Fetch leads from each form
-    for (const form of forms) {
-      try {
-        const leadsResp = await graphGet(`${form.id}/leads`, accessToken, {
-          fields: 'id,created_time,field_data,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,form_id',
-          limit: '100',
-          since: String(sinceUnix),
-        });
-
-        const leads: MetaLeadData[] = leadsResp.data || [];
-        console.log(`[META-SYNC] Form "${form.name}" (${form.id}): ${leads.length} leads since ${sinceDate.toISOString()}`);
-
-        for (const leadData of leads) {
-          try {
-            const result = await createOrUpdateLeadFromData(leadData, form.id, tenantObjectId, tenantId);
-            if (result === 'created') totalCreated++;
-            else if (result === 'updated') totalUpdated++;
-            else totalSkipped++;
-          } catch (err: any) {
-            console.error(`[META-SYNC] Failed to process lead ${leadData.id}:`, err.message);
-            totalSkipped++;
-          }
-        }
-      } catch (formErr: any) {
-        console.error(`[META-SYNC] Failed to fetch leads for form ${form.id}:`, formErr.message);
-      }
-    }
-
-    const msg = `Sync complete: ${totalCreated} new lead${totalCreated !== 1 ? 's' : ''} created` +
-      (totalUpdated > 0 ? `, ${totalUpdated} updated` : '') +
-      (totalSkipped > 0 ? `, ${totalSkipped} skipped (duplicates or errors)` : '') + '.';
-
-    console.log(`[META-SYNC] ${msg}`);
-    return res.json({ success: true, message: msg, created: totalCreated, updated: totalUpdated, skipped: totalSkipped });
-
-  } catch (error: any) {
-    console.error('[META-SYNC] Sync error:', error);
-    return res.status(500).json({ success: false, message: error.message || 'Sync failed' });
-  }
+  try { return res.json(await recoverMetaLeads(req.tenantId!)); }
+  catch (e: any) { return res.status(e instanceof MetaSyncBusy ? 409 : 502).json({ success: false, message: e.message || 'Meta sync failed.' }); }
 };
 
 // ===================== SETUP META APP WEBHOOK SUBSCRIPTION =====================
@@ -703,6 +478,7 @@ export const setupMetaWebhook = async (req: AuthenticatedRequest, res: Response)
       return res.status(400).json({ success: false, message: 'App ID and App Secret are required. Save them in Lead Sources → Meta Lead Ads first.' });
     }
 
+    if (!pageId || !pageToken) return res.status(400).json({ success: false, message: 'Page ID and Page token are required for webhook setup.' });
     // Step 1: Generate App Access Token
     const appTokenResp = await graphGet('oauth/access_token', '', {
       client_id: appId,
@@ -720,7 +496,7 @@ export const setupMetaWebhook = async (req: AuthenticatedRequest, res: Response)
     const existingSubs: any[] = subsResp.data || [];
     const pageField = existingSubs.find(s => s.object === 'page');
 
-    const webhookUrl = `https://platform.codebegun.com/api/v1/meta-leads/webhook`;
+    const webhookUrl = (process.env.API_PUBLIC_URL || 'https://platform.codebegun.com').replace(/\/$/, '') + '/api/v1/meta-leads/webhook';
     const verifyToken = process.env.META_LEAD_VERIFY_TOKEN || 'codebegun_verify';
 
     // Step 3: Subscribe / re-subscribe
@@ -744,13 +520,14 @@ export const setupMetaWebhook = async (req: AuthenticatedRequest, res: Response)
         resp.on('data', (c: string) => { data += c; });
         resp.on('end', () => { try { resolve(JSON.parse(data)); } catch { resolve({}); } });
       });
+      reqHttp.setTimeout(30000, () => reqHttp.destroy(new Error('Meta subscription request timed out.')));
       reqHttp.on('error', reject);
       reqHttp.write(params.toString());
       reqHttp.end();
     });
 
-    if (subResult.error) {
-      return res.json({ success: false, message: `Webhook subscription failed: ${subResult.error.message}` });
+    if (subResult.error || subResult.success !== true) {
+      return res.json({ success: false, message: `Webhook subscription failed: ${subResult.error?.message || 'Meta did not confirm the subscription'}` });
     }
 
     // Step 4: Also subscribe the page to the app (ensure leadgen is in subscribed fields)
@@ -760,7 +537,7 @@ export const setupMetaWebhook = async (req: AuthenticatedRequest, res: Response)
           subscribed_fields: 'leadgen',
           access_token: pageToken,
         });
-        await new Promise<any>((resolve, reject) => {
+        const pageResult = await new Promise<any>((resolve, reject) => {
           const https = require('https');
           const options = {
             hostname: 'graph.facebook.com',
@@ -773,13 +550,19 @@ export const setupMetaWebhook = async (req: AuthenticatedRequest, res: Response)
             resp.on('data', (c: string) => { data += c; });
             resp.on('end', () => { try { resolve(JSON.parse(data)); } catch { resolve({}); } });
           });
-          reqHttp.on('error', reject);
+          reqHttp.setTimeout(30000, () => reqHttp.destroy(new Error('Meta subscription request timed out.')));
+      reqHttp.on('error', reject);
           reqHttp.write(pageSubParams.toString());
           reqHttp.end();
         });
-      } catch { /* non-fatal */ }
+        if (pageResult.error || pageResult.success !== true) throw new Error(pageResult.error?.message || 'Meta did not confirm the Page subscription.');
+      } catch (e: any) {
+        await MetaSyncState.updateOne({ tenantId }, { $set: { webhookStatus: 'needs_setup', webhookError: e.message, webhookCheckedAt: new Date() } }, { upsert: true });
+        return res.status(502).json({ success: false, message: 'Page subscription failed: ' + e.message });
+      }
     }
 
+    await MetaSyncState.updateOne({ tenantId }, { $set: { webhookStatus: 'verified', webhookError: '', webhookCheckedAt: new Date() } }, { upsert: true });
     const wasAlreadySet = pageField?.callback_url === webhookUrl;
     return res.json({
       success: true,
@@ -804,12 +587,15 @@ async function getTenantAdminId(tenantObjectId: mongoose.Types.ObjectId): Promis
   return admin?._id as mongoose.Types.ObjectId | undefined;
 }
 
-async function createOrUpdateLeadFromData(
+async function importMetaSubmission(
   leadData: MetaLeadData,
   formId: string,
-  tenantObjectId: mongoose.Types.ObjectId,
   tenantId: string
 ): Promise<'created' | 'updated' | 'skipped'> {
+  const tenantObjectId = new mongoose.Types.ObjectId(tenantId);
+  if (!leadData.id || !Array.isArray(leadData.field_data)) throw new Error('Meta submission is missing an ID or field data.');
+  const imported = await Lead.exists({ tenantId: tenantObjectId, metaSubmissionIds: String(leadData.id) });
+  if (imported) return 'skipped';
   const phone = extractFieldValue(leadData.field_data, 'phone') || '';
   const cleanPhone = normalizeIndianPhone(phone);
 
@@ -821,15 +607,19 @@ async function createOrUpdateLeadFromData(
   });
 
   if (existing) {
+    if (existing.archivedAt && (!leadData.created_time || new Date(leadData.created_time) <= existing.archivedAt)) {
+      await Lead.updateOne({ _id: existing._id }, { $addToSet: { metaSubmissionIds: String(leadData.id) } });
+      return 'skipped';
+    }
     await reviveIfArchived(existing._id, 'new Meta lead form');
-    // Add activity note if this is a new form submission
     await Lead.updateOne(
-      { _id: existing._id },
+      { _id: existing._id, metaSubmissionIds: { $ne: String(leadData.id) } },
       {
+        $addToSet: { metaSubmissionIds: String(leadData.id) },
+        $push: { activities: { type: 'note', description: 'New Meta form submission (' + formId + ')', createdBy: existing.createdBy, createdAt: new Date(), metadata: { metaSubmissionId: String(leadData.id) } } },
         $set: {
           'sourceDetails.formId': formId,
           'sourceDetails.campaignName': leadData.campaign_name || existing.get('sourceDetails.campaignName'),
-          updatedAt: new Date(),
         },
       }
     );
@@ -864,6 +654,7 @@ async function createOrUpdateLeadFromData(
     location: city,
     courseInterest: course ? [course] : [],
     createdBy: adminId,
+    metaSubmissionIds: [String(leadData.id)],
     sourceDetails: {
       platform: 'meta',
       formId,
@@ -873,10 +664,12 @@ async function createOrUpdateLeadFromData(
       adName: leadData.ad_name,
     },
     utmParams: { source: 'facebook', medium: 'paid', campaign: leadData.campaign_name },
-    activityLog: [{
+    activities: [{
       type: 'created',
       description: `Lead synced from Meta Lead Form (${leadData.form_name || formId})`,
-      timestamp: new Date(leadData.created_time || Date.now()),
+      createdBy: adminId,
+      createdAt: new Date(leadData.created_time || Date.now()),
+      metadata: { metaSubmissionId: String(leadData.id) },
     }],
     customFields: leadData.field_data.reduce((acc: Record<string, string>, f) => {
       acc[f.name] = f.values.join(', ');
@@ -893,7 +686,7 @@ async function createOrUpdateLeadFromData(
 
   AICallConfig.findOne({ tenantId: tenantObjectId, enabled: true })
     .then(cfg => {
-      if (cfg) {
+      if (cfg && !waitsForOutpero(newLead, tenantId)) {
         Lead.findByIdAndUpdate(newLead._id, { aiCallStatus: 'pending' }).exec().catch(() => {});
         enqueueAICall(newLead._id.toString(), tenantId, 1).catch(() => {});
       }
@@ -901,4 +694,8 @@ async function createOrUpdateLeadFromData(
     .catch(() => {});
 
   return 'created';
+}
+
+export async function createOrUpdateLeadFromData(leadData: MetaLeadData, formId: string, tenantId: string): Promise<'created' | 'updated' | 'skipped'> {
+  return withMetaImportLock(tenantId, () => importMetaSubmission(leadData, formId, tenantId));
 }

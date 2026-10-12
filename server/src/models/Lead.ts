@@ -137,6 +137,7 @@ export interface ILeadActivity {
 }
 
 export interface ILead extends Document {
+  metaSubmissionIds?: string[];
   name: string;
   email?: string;
   phone: string;
@@ -373,6 +374,7 @@ const LeadSchema: Schema = new Schema(
       type: mongoose.Types.ObjectId,
       ref: 'User'
     },
+    metaSubmissionIds: { type: [String], default: undefined },
     activities: [LeadActivitySchema],
     
     // Campaign tracking
@@ -651,6 +653,7 @@ const LeadSchema: Schema = new Schema(
   { timestamps: true }
 );
 
+LeadSchema.index({ tenantId: 1, metaSubmissionIds: 1 });
 LeadSchema.index({ tenantId: 1, stageId: 1 });
 LeadSchema.index({ tenantId: 1, archivedAt: 1, createdAt: -1 });
 LeadSchema.index({ archiveRunId: 1 }, { partialFilterExpression: { archiveRunId: { $exists: true } } });

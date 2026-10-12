@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { leadSourceConfigApi, metaLeadsApi } from '../../api/index';
 import LinesTextarea from '../../components/common/LinesTextarea';
 
@@ -18,7 +18,12 @@ interface SourceStats {
   leadsTotal: number;
 }
 
+interface MetaSyncStatus {
+  status?: string; lastAttemptAt?: string; lastSuccessAt?: string; lastError?: string;
+  webhookStatus?: string; webhookError?: string; tokenExpiresAt?: string;
+}
 interface SourceCard {
+  sync?: MetaSyncStatus | null;
   isConnected: boolean;
   config: Record<string, any>;
   autoActions: AutoActions;
@@ -739,6 +744,17 @@ const SourceCardComponent: React.FC<{
           </p>
 
           {/* ── Sync Result (Meta only) ── */}
+          {sourceKey === 'metaAds' && data.isConnected && (
+            <div className="small rounded-2 p-2 mb-3" style={{ background: '#f8fafc', fontSize: '0.76rem' }}>
+              <div className="fw-semibold">Automatic recovery every 5 minutes</div>
+              <div>Status: {data.sync?.status === 'syncing' ? 'Syncing...' : data.sync?.status === 'healthy' ? 'Up to date' : data.sync?.status === 'needs_attention' ? 'Needs attention' : 'Waiting for first check'}</div>
+              <div>Last successful sync: {data.sync?.lastSuccessAt ? new Date(data.sync.lastSuccessAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : 'Not yet'}</div>
+              <div>Webhook: {data.sync?.webhookStatus === 'verified' ? 'Verified' : data.sync?.webhookStatus?.replace(/_/g, ' ') || 'Awaiting verification'}</div>
+              {data.sync?.tokenExpiresAt && <div>Token expires: {new Date(data.sync.tokenExpiresAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</div>}
+              {data.sync?.lastError && <div className="text-danger" role="status">{data.sync.lastError}</div>}
+              {data.sync?.webhookError && <div className="text-warning">{data.sync.webhookError}</div>}
+            </div>
+          )}
           {sourceKey === 'metaAds' && syncResult && (
             <div className="rounded-2 px-3 py-2 mb-3 d-flex gap-2 align-items-start"
               style={{
@@ -838,20 +854,37 @@ const LeadSourcesPage: React.FC = () => {
   const [newTPName, setNewTPName] = useState('');
   const [addingTP, setAddingTP] = useState(false);
 
-  const load = useCallback(async () => {
+  const loadingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const load = useCallback(async (silent = false) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError('');
       const data = await leadSourceConfigApi.getSources();
+      if (!mountedRef.current) return;
       setConfig(data.data);
+      setLastRefreshed(new Date());
     } catch (e: any) {
-      setError(e.message || 'Failed to load source configuration');
+      if (mountedRef.current) setError(e.message || 'Failed to load source configuration');
     } finally {
-      setLoading(false);
+      loadingRef.current = false;
+      if (mountedRef.current && !silent) setLoading(false);
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    mountedRef.current = true; load();
+    return () => { mountedRef.current = false; };
+  }, [load]);
+  useEffect(() => {
+    const refresh = () => { if (!document.hidden && !activeModal) load(true); };
+    const timer = setInterval(refresh, 30000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', refresh); };
+  }, [load, activeModal]);
 
   const handleSave = async (
     sourceKey: SourceKey,
@@ -865,7 +898,10 @@ const LeadSourcesPage: React.FC = () => {
       await leadSourceConfigApi.updateSource(sourceKey, { isConnected, config: cfg, autoActions });
       // Auto-subscribe webhook when Meta Ads is saved as connected
       if (sourceKey === 'metaAds' && isConnected) {
-        try { await metaLeadsApi.setupWebhook(); } catch {}
+        try {
+          const result = await metaLeadsApi.setupWebhook();
+          if (!result.success) setError(result.message || 'Meta settings saved, but webhook setup needs attention.');
+        } catch (e: any) { setError(e.message || 'Meta settings saved, but webhook setup needs attention.'); }
       }
       setSaveSuccess(`${SOURCE_META[sourceKey].label} settings saved!`);
       setTimeout(() => setSaveSuccess(''), 3000);
@@ -965,9 +1001,10 @@ const LeadSourcesPage: React.FC = () => {
           </h4>
           <p className="text-muted mb-0" style={{ fontSize: '0.88rem' }}>
             Manage every channel that brings leads into your CRM pipeline.
+            <span className="d-block small text-muted">Auto-refresh every 30 seconds{lastRefreshed ? ' - updated ' + lastRefreshed.toLocaleTimeString('en-IN') : ''}</span>
           </p>
         </div>
-        <button className="btn btn-outline-secondary btn-sm px-3" onClick={load} disabled={loading}>
+        <button className="btn btn-outline-secondary btn-sm px-3" onClick={() => load()} disabled={loading}>
           <i className={`fa-solid fa-arrows-rotate me-2 ${loading ? 'fa-spin' : ''}`}></i>Refresh
         </button>
       </div>
@@ -1010,7 +1047,7 @@ const LeadSourcesPage: React.FC = () => {
         <div className="alert alert-danger d-flex gap-2 align-items-center mb-4">
           <i className="fa-solid fa-triangle-exclamation"></i>
           {error}
-          <button className="btn btn-sm btn-outline-danger ms-auto" onClick={load}>Retry</button>
+          <button className="btn btn-sm btn-outline-danger ms-auto" onClick={() => load()}>Retry</button>
         </div>
       )}
 

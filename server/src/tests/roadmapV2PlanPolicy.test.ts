@@ -80,6 +80,19 @@ describe('fitting the plan into the admin’s days', () => {
     expect(tight.kept.map(i => i.unit.unitCode)).toEqual(['e1', 'e2']);
   });
 
+  it('gives up bridge practice on the strongest topic first, so a weak topic keeps its practice', () => {
+    const strong: PlanItem = { ...item('pStrong', 'BRIDGE_EXTRA', 'BRIDGE'), strength: 85 };
+    const weak: PlanItem = { ...item('pWeak', 'BRIDGE_EXTRA', 'BRIDGE'), strength: 25 };
+    const unmeasured: PlanItem = { ...item('pNew', 'BRIDGE_EXTRA', 'BRIDGE'), strength: null };
+    // Strong first in the course, weak and unmeasured later: the end of the plan is NOT what goes.
+    const items = [item('c1', 'ESSENTIAL', 'BRIDGE'), strong, item('c2', 'ESSENTIAL', 'BRIDGE'), weak, unmeasured];
+    const r = fitToDays(items, { days: 2, dailyMinutes: 150, maxUnitsPerDay: 3 });
+    expect(r.kept.map(i => i.unit.unitCode)).toEqual(['c1', 'c2', 'pWeak', 'pNew']);
+    const tighter = fitToDays(items, { days: 1, dailyMinutes: 150, maxUnitsPerDay: 3 });
+    expect(tighter.kept.map(i => i.unit.unitCode)).toEqual(['c1', 'c2']);
+    expect(tighter.dropped.BRIDGE_EXTRA).toBe(3);
+  });
+
   it('never plans a day past the daily study time', () => {
     const items = Array.from({ length: 9 }, (_, i) => item(`x${i}`, 'SHOULD', 'YEAR', 50));
     const r = fitToDays(items, { days: 3, dailyMinutes: 150, maxUnitsPerDay: 4 });

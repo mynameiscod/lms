@@ -17,6 +17,7 @@
  * THE FIT. Every unit carries a tier. When the units do not pack into the days, they are removed in
  * this order, each from the END of the plan (furthest from what the learner needs first):
  *   OPTIONAL → SHOULD → BRIDGE_EXTRA → MUST_EXTRA.
+ * Bridge extras (practice) go from the learner's strongest topic first, so a weak topic keeps it.
  * ESSENTIAL units — the core of every MUST topic and of every bridge topic — are never removed. If
  * even they do not fit, the plan is still built, over as few extra days as it takes, and reported:
  * dropping a MUST topic silently is the one outcome V2 exists to prevent.
@@ -53,6 +54,11 @@ export interface PlanItem<U extends PackableUnit = PackableUnit> {
   tier: V2Tier;
   /** Set on a unit longer than one day (a project): which day of it this is. */
   part?: { index: number; of: number };
+  /**
+   * The learner's score on the unit's topic (their weakest skill in it); null when never measured.
+   * A bridge extra on a stronger topic is given up before one on a weaker topic.
+   */
+  strength?: number | null;
 }
 
 /** How a learner stands on a topic's skills: the weakest measured one decides. */
@@ -228,9 +234,18 @@ export function packTight<U extends PackableUnit>(items: PlanItem<U>[], opts: Om
  * checkpoint owns its day, and no day exceeds `dailyMinutes`.
  */
 export function fitToDays<U extends PackableUnit>(items: PlanItem<U>[], opts: FitOptions): FitResult<U> {
+  /*
+   * Each tier is given up from the end of the plan — except bridge extras, which go from the
+   * learner's STRONGEST topic first: a weak learner keeps the practice on what they are weak at,
+   * wherever it falls in the course. Never measured counts as weakest (taught as weak).
+   */
   const removal: number[] = [];
+  const strengthOf = (i: number) => (typeof items[i].strength === 'number' ? (items[i].strength as number) : -1);
   for (const tier of REMOVAL_ORDER) {
-    for (let i = items.length - 1; i >= 0; i--) if (items[i].tier === tier) removal.push(i);
+    const idx = items.map((_, i) => i).filter(i => items[i].tier === tier);
+    if (tier === 'BRIDGE_EXTRA') idx.sort((a, b) => strengthOf(b) - strengthOf(a) || b - a);
+    else idx.sort((a, b) => b - a);
+    removal.push(...idx);
   }
 
   const dropped = emptyDropped();

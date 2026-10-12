@@ -173,7 +173,7 @@ export async function composeRoadmapV2(
    */
   const prior = await priorStudyOf(tenantId, opts.studentId, earlier);
   const revisionPool: { topicCode: string; units: ComposableUnit[]; score: number | null }[] = [];
-  const bridge: { unit: SelectedUnit; tier: V2Tier }[] = [];
+  const bridge: { unit: SelectedUnit; tier: V2Tier; strength: number | null }[] = [];
   const taken = new Set<string>([...history, ...year.map(u => u.unitCode)]);
   for (const src of earlier) {
     const set = await loadCandidates(tenantId, opts.source, src);
@@ -202,9 +202,12 @@ export async function composeRoadmapV2(
       const fresh = units.filter(u => !taken.has(u.unitCode));
       if (!fresh.length) continue;
       const standing = standingOn(profile.skills as any, topicSkills(fresh));
+      /* Their weakest measured skill in the topic: decides whose practice is given up first. */
+      const measured = topicSkills(fresh).map(k => profile.skills.get(k)?.score).filter((x): x is number => typeof x === 'number');
+      const strength = measured.length ? Math.min(...measured) : null;
       for (const { unit, tier } of bridgeUnitsForTopic(fresh, standing)) {
         taken.add(unit.unitCode);
-        bridge.push({ unit: asSelected(unit, profile, standing === 'HELD', 0), tier });
+        bridge.push({ unit: asSelected(unit, profile, standing === 'HELD', 0), tier, strength });
       }
     }
   }
@@ -236,7 +239,7 @@ export async function composeRoadmapV2(
    * never essential, so it can always be given up again by the fit.
    */
   /* The year fills every day the bridge leaves, and the bridge is packed tight (fitBridgeThenYear). */
-  const bridgeItems: PlanItem<SelectedUnit>[] = bridge.map(b => ({ unit: b.unit, phase: 'BRIDGE' as V2Phase, tier: b.tier }));
+  const bridgeItems: PlanItem<SelectedUnit>[] = bridge.map(b => ({ unit: b.unit, phase: 'BRIDGE' as V2Phase, tier: b.tier, strength: b.strength }));
   const mainDays = opts.programDays - revisionDayCount;
   const tightBridge = packTight(bridgeItems, fitOpts, mainDays)?.length ?? slotsOf(bridgeItems, fitOpts);
   const asYearItem = (u: SelectedUnit) => [{ unit: u, phase: 'YEAR' as V2Phase, tier: 'OPTIONAL' as V2Tier }];

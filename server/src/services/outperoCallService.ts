@@ -8,6 +8,7 @@ import OutperoCall from '../models/OutperoCall';
 import Lead from '../models/Lead';
 import FollowUpReminder from '../models/FollowUpReminder';
 import * as settings from './settingsService';
+import * as bunny from './bunnyStorageService';
 
 /**
  * Outpero post-call webhook → the LMS (plan: docs/design/outpero-integration.md, Part B).
@@ -237,7 +238,7 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
   if (automate && outcome && !has('feedback_' + outcome)) {
     let state = outcome === 'needs_review' ? 'needs_review' : 'processed';
     if (retryNoAnswer) state = 'retry_scheduled';
-    if ((['interested', 'callback', 'demo'].includes(outcome) || (outcome === 'no_answer' && !retryNoAnswer))) {
+    if (!retryNoAnswer) { // every result gets an owner; only a no-answer that will be called again keeps waiting
       const assigned = await autoAssignLead(tenantId, String(lead._id), true);
       if (assigned) lead.assignedTo = assigned;
       else if (!lead.assignedTo && !lead.assignment?.assignedTo) state = 'awaiting_assignment';
@@ -262,6 +263,13 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
     if (automate && target && set.stageId && String(set.stageId) !== String(lead.stageId)) await recordStageTransition(lead._id, lead.stageId, target._id, target.name, lead.createdBy, oid(tenantId));
     if (state !== 'awaiting_assignment') await mark('feedback_' + outcome);
     else did.push('awaiting_assignment');
+  }
+  // Whatever the result, a lead that was waiting for Outpero gets its owner now — also when the stage
+  // was left alone because a person had already moved it. A no-answer that will be retried keeps waiting.
+  if (policy.enabled && outcome && !retryNoAnswer && !lead.archivedAt && !lead.assignedTo && !lead.assignment?.assignedTo) {
+    const assigned = await autoAssignLead(tenantId, String(lead._id), true);
+    if (assigned) { lead.assignedTo = assigned; did.push('assigned'); }
+    else if (!did.includes('awaiting_assignment')) did.push('awaiting_assignment');
   }
   by = owner(lead);
   const taskOwner = lead.assignedTo || lead.assignment?.assignedTo;
@@ -297,6 +305,8 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
       $set: { 'aiCallLogs.$.transcript': call.transcript, 'aiCallLogs.$.recordingUrl': call.recordingUrl, 'aiCallLogs.$.duration': call.durationSec, 'aiCallLogs.$.outcome': connected ? 'answered' : 'not_answered' },
     });
   }
+
+  if (call.recordingUrl && !call.recordingKey && !has('recording_saved')) void saveRecording(tenantId, call);
 
   // Classification and recordings may arrive after the initial completion.
   if (!stale && call.summary && call.summary !== lead.aiSummary?.summary) {
@@ -368,6 +378,38 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
     await mark('interested_task');
   }
   return did;
+}
+
+/**
+ * Keep our own copy of the call recording — Outpero's link may expire. Only when file storage is
+ * set up; otherwise the Outpero link stays the record. Never blocks or fails the call result.
+ */
+const MAX_RECORDING_BYTES = 60 * 1024 * 1024;
+export const recordingKeyFor = (tenantId: string, callId: string) => `outpero-recordings/${tenantId}/${callId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+export async function saveRecording(tenantId: string, call: { _id: any; callId: string; recordingUrl?: string }): Promise<boolean> {
+  try {
+    if (!call.recordingUrl || !/^https:\/\//i.test(call.recordingUrl) || !bunny.isBunnyStorageConfigured()) return false;
+    const r = await fetch(call.recordingUrl, { signal: AbortSignal.timeout(60_000) });
+    if (!r.ok) return false;
+    const declared = Number(r.headers.get('content-length') || 0);
+    if (declared > MAX_RECORDING_BYTES) return false;
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (!buf.length || buf.length > MAX_RECORDING_BYTES) return false;
+    const key = recordingKeyFor(tenantId, call.callId);
+    await bunny.uploadFile(key, buf, r.headers.get('content-type') || 'audio/mpeg');
+    await OutperoCall.updateOne({ _id: call._id }, { $set: { recordingKey: key }, $addToSet: { actions: 'recording_saved' } });
+    return true;
+  } catch (e: any) {
+    console.error('[outpero-recording]', e?.message);
+    return false;
+  }
+}
+
+/** The stored recording of one call, for playing back through the app. */
+export async function recordingStream(tenantId: string, callId: string) {
+  const call: any = await OutperoCall.findOne({ tenantId: oid(tenantId), callId }).select('recordingKey').lean();
+  if (!call?.recordingKey) throw new OutperoCallError('No stored recording for this call.', 404);
+  return bunny.getFileStream(call.recordingKey);
 }
 
 // ── For the Outpero page ─────────────────────────────────────────────────────

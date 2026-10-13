@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { waitsForOutpero } from './outperoPolicyService';
+import { assignViaScoringConfig } from './leadScoringService';
 /**
  * leadDistributionService.ts
  * Auto-assigns incoming leads to eligible team members based on tenant config.
@@ -21,7 +22,15 @@ export const autoAssignLead = async (tenantId: string, leadId: string, afterCall
     if (existing) return String(existing);
     if (!afterCall && waitsForOutpero(lead, tenantId)) return null;
     const config = await LeadDistributionConfig.findOne({ tenantId, enabled: true });
-    if (!config || config.mode === 'manual') return null;
+    if (!config || config.mode === 'manual') {
+      // A lead held for Outpero still needs an owner once its result is in: use the Lead Scoring
+      // assignment settings when Lead Distribution is not what this institute uses.
+      if (!afterCall) return null;
+      const viaScoring = await assignViaScoringConfig(lead, new mongoose.Types.ObjectId(tenantId));
+      if (!viaScoring) return null;
+      await Lead.updateOne({ _id: leadId, tenantId }, { $push: { activities: { type: 'assignment', description: 'Assigned by round robin after the AI call', createdBy: lead.createdBy, createdAt: new Date() } } });
+      return String(viaScoring);
+    }
 
     // Build candidate user list
     let candidates = await getCandidates(tenantId, config);

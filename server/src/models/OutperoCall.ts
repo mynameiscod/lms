@@ -20,6 +20,8 @@ export interface IOutperoCall extends Document {
   hangupReason?: string;
   durationSec?: number;
   recordingUrl?: string;
+  /** Our own stored copy of the recording (file storage), when one has been made. */
+  recordingKey?: string;
   transcript?: string;
   variables?: Record<string, unknown>;
   startedAt?: Date;
@@ -45,6 +47,7 @@ const OutperoCallSchema = new Schema<IOutperoCall>({
   hangupReason: String,
   durationSec: Number,
   recordingUrl: String,
+  recordingKey: String,
   transcript: String,
   variables: { type: Schema.Types.Mixed, default: {} },
   startedAt: Date,

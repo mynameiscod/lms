@@ -296,6 +296,31 @@ export async function scoreAndAssignLead(lead: any, tenantId: mongoose.Types.Obj
 }
 
 /**
+ * Give an unassigned lead an owner using the institute's Lead Scoring assignment settings
+ * (round robin or rule based). Used when a lead was held for Outpero and its result has arrived —
+ * the same engine that would have assigned it on arrival, just later. Returns the new owner id.
+ */
+export async function assignViaScoringConfig(lead: any, tenantId: mongoose.Types.ObjectId): Promise<mongoose.Types.ObjectId | null> {
+  if (lead.assignedTo || lead.assignment?.assignedTo) return null;
+  const config = await LeadScoringConfig.findOne({ tenantId, isActive: true });
+  if (!config) return null;
+  let assignee: mongoose.Types.ObjectId | null = null;
+  if (config.assignmentMode === 'round_robin') {
+    assignee = await getNextRoundRobinAssignee(tenantId, config.roundRobinMembers, 'roundRobinIndex');
+  } else if (config.assignmentMode === 'rule_based') {
+    const match = findMatchingAssignmentRule(lead, config);
+    if (match) assignee = await getNextRoundRobinAssignee(tenantId, match.members, 'assignmentRule', match.ruleIndex);
+    else if (config.fallbackMembers?.length) assignee = await getNextRoundRobinAssignee(tenantId, config.fallbackMembers, 'fallbackIndex');
+  }
+  if (!assignee) return null;
+  const res = await Lead.updateOne(
+    { _id: lead._id, tenantId, assignedTo: null, 'assignment.assignedTo': null },
+    { $set: { assignedTo: assignee, 'assignment.assignedTo': assignee, 'assignment.assignedAt': new Date() } },
+  );
+  return res.modifiedCount ? assignee : null;
+}
+
+/**
  * Bulk re-score all leads for a tenant (for when rules change)
  */
 export async function rescoreAllLeads(tenantId: mongoose.Types.ObjectId): Promise<{ processed: number; scored: number; assigned: number }> {

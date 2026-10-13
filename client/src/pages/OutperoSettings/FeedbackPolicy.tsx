@@ -21,12 +21,19 @@ export default function FeedbackPolicy({ stages }: { stages: LeadFilterOptions['
     <h2>After an AI call</h2>
     {message && <p role="status">{message}</p>}
     {policy && <>
-      <label className="opo-check"><input type="checkbox" checked={policy.enabled} onChange={e => setPolicy({ ...policy, enabled: e.target.checked })} /> Update lead stages and assign from call feedback</label>
+      <label className="opo-check"><input type="checkbox" checked={policy.enabled} onChange={e => setPolicy({ ...policy, enabled: e.target.checked })} /> Hold new leads for Outpero, then update the stage and assign from the call result</label>
       <label className="opo-label" htmlFor="feedback-timing">When to assign new leads</label>
       <select id="feedback-timing" className="opo-input" value={policy.assignmentTiming} onChange={e => setPolicy({ ...policy, assignmentTiming: e.target.value as OutperoPolicy['assignmentTiming'] })}>
         <option value="on_creation">When the lead arrives</option><option value="after_call">After AI feedback (automatically sent leads)</option>
       </select>
-      <p className="opo-hint">Existing owners are retained. Interested, callback and demo leads use the eligible staff and daily limits in Lead Distribution. Enable round robin there. No available owner: the lead waits below.</p>
+      <p className="opo-hint">While Outpero is calling, a lead has no owner. When the result arrives (any result), it is moved to the stage you map below and given to the next person by round robin, using Lead Distribution if it is on, otherwise Lead Scoring assignment. Existing owners are retained. No available owner: the lead waits below.</p>
+      <label className="opo-label" htmlFor="sent-stage">Stage while Outpero is calling</label>
+      <select id="sent-stage" className="opo-input" value={policy.sentStageId || ''} onChange={e => setPolicy({ ...policy, sentStageId: e.target.value })}>
+        <option value="">Keep current stage</option>{stages.map(stage => <option key={stage._id} value={stage._id}>{stage.name}</option>)}
+      </select>
+      <label className="opo-label" htmlFor="fallback-hours">Hours to wait for Outpero before assigning anyway</label>
+      <input id="fallback-hours" className="opo-input xs" type="number" min={1} max={168} value={policy.fallbackHours ?? 24} onChange={e => setPolicy({ ...policy, fallbackHours: Number(e.target.value) })} />
+      <p className="opo-hint">If Outpero cannot be reached, or never reports a result, the lead is assigned after this time and a note is added to its timeline.</p>
       <label className="opo-label" htmlFor="ai-attempts">Maximum AI call attempts</label>
       <input id="ai-attempts" className="opo-input xs" type="number" min={1} max={5} value={policy.maxCallAttempts} onChange={e => setPolicy({ ...policy, maxCallAttempts: Number(e.target.value) })} />
       <label className="opo-label" htmlFor="ai-retry-gap">Minutes before retrying no answer</label>

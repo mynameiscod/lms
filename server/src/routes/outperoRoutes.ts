@@ -50,6 +50,15 @@ router.post('/retry-failed', wrap((req) => svc.retryFailed(tId(req))));
 router.get('/webhook', wrap((req) => calls.webhookFor(tId(req), uId(req))));
 router.post('/webhook/rotate', wrap((req) => calls.webhookFor(tId(req), uId(req), true)));
 router.get('/calls', wrap((req) => calls.recentCalls(tId(req))));
+router.get('/calls/:callId/recording', async (req, res) => {
+  try {
+    const { stream, size } = await calls.recordingStream(tId(req), req.params.callId);
+    res.setHeader('Content-Type', 'audio/mpeg');
+    if (size) res.setHeader('Content-Length', String(size));
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    stream.pipe(res);
+  } catch (e: any) { res.status(e instanceof calls.OutperoCallError ? e.status : 500).json({ success: false, message: e?.message || 'Could not load the recording' }); }
+});
 router.get('/calls/latest-raw', wrap((req) => calls.latestRaw(tId(req))));
 
 export default router;

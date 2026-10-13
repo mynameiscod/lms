@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks';
 import { userCan } from '../../utils/permissions';
-import { employeesApi, empErr, EmployeeConfig, ExpenseCategory } from '../../api/employeesApi';
+import { employeesApi, empErr, EmployeeConfig, ExpenseCategory, CompanyCategory } from '../../api/employeesApi';
 import './employees.css';
 import './employeesAdmin.css';
 
@@ -78,6 +78,9 @@ const EmployeeSettings: React.FC = () => {
   const setEp = (p: Partial<EmployeeConfig['expensePolicy']>) => patch({ expensePolicy: { ...ep, ...p } });
   const setAp = (p: Partial<EmployeeConfig['activityPolicy']>) => patch({ activityPolicy: { ...ap, ...p } });
   const setCat = (i: number, p: Partial<ExpenseCategory>) => patch({ expenseCategories: cfg.expenseCategories.map((c, j) => (j === i ? { ...c, ...p } : c)) });
+  const cp = cfg.companyPolicy || { allowSelfApproval: true, invoiceRequiredAbove: 0 };
+  const setCp = (p: Partial<EmployeeConfig['companyPolicy']>) => patch({ companyPolicy: { ...cp, ...p } });
+  const setCo = (i: number, p: Partial<CompanyCategory>) => patch({ companyCategories: cfg.companyCategories.map((c, j) => (j === i ? { ...c, ...p } : c)) });
   const setField = (i: number, p: Partial<EmployeeConfig['customFields'][number]>) => patch({ customFields: cfg.customFields.map((c, j) => (j === i ? { ...c, ...p } : c)) });
 
   const save = async () => {
@@ -87,6 +90,8 @@ const EmployeeSettings: React.FC = () => {
     if (cfg.customFields.some((f) => !KEY_RE.test(f.key) || !f.label.trim())) return fail('Each extra field needs a label and a key that starts with a letter (letters, numbers, underscore).');
     if (new Set(keys).size !== keys.length) return fail('Extra field keys must be unique.');
     if (cfg.expenseCategories.some((c) => !c.name.trim())) return fail('Every expense category needs a name.');
+    if (cfg.companyCategories.length === 0) return fail('Add at least one company expense category.');
+    if (cfg.companyCategories.some((c) => !c.name.trim())) return fail('Every company expense category needs a name.');
     if (ap.workingDays.length === 0) return fail('Pick at least one working day.');
     setBusy(true); setMsg(null);
     try {
@@ -143,7 +148,8 @@ const EmployeeSettings: React.FC = () => {
       </div>
 
       <div className="emp-card">
-        <h2>Expense categories</h2>
+        <h2>Employee claim categories</h2>
+        <p className="emp-hint" style={{ marginTop: 0 }}>For expenses employees claim back from the company (travel, meals ...).</p>
         {cfg.expenseCategories.length > 0 && (
           <div className="emp-table-wrap">
             <table className="emp-table">
@@ -166,7 +172,8 @@ const EmployeeSettings: React.FC = () => {
       </div>
 
       <div className="emp-card">
-        <h2>Expense rules</h2>
+        <h2>Employee claim rules</h2>
+        <p className="emp-hint" style={{ marginTop: 0 }}>For expenses employees claim back from the company (travel, meals ...).</p>
         <div className="emp-label" style={{ marginBottom: 6 }}>Who approves expenses</div>
         <Radio name="appr" value="reporting_manager" current={ep.approvalMode} disabled={ro} onPick={(v) => setEp({ approvalMode: v as typeof ep.approvalMode })} label="The employee's reporting manager approves" />
         <Radio name="appr" value="approvers" current={ep.approvalMode} disabled={ro} onPick={(v) => setEp({ approvalMode: v as typeof ep.approvalMode })} label="Only people with the approve-expenses permission" />
@@ -177,6 +184,36 @@ const EmployeeSettings: React.FC = () => {
           <Num id="ep-mon" label="Monthly limit ₹" value={ep.monthlyLimit} onChange={(n) => setEp({ monthlyLimit: n })} disabled={ro} hint="0 = no limit." />
           <Num id="ep-auto" label="Auto-approve claims up to ₹" value={ep.autoApproveBelow} onChange={(n) => setEp({ autoApproveBelow: n })} disabled={ro} hint="0 = off, every claim is reviewed." />
           <Num id="ep-back" label="Days back an expense can be claimed" value={ep.maxBackdateDays} onChange={(n) => setEp({ maxBackdateDays: n })} disabled={ro} hint="0 = only today." />
+        </div>
+      </div>
+
+      <div className="emp-card">
+        <h2>Company expense categories</h2>
+        <p className="emp-hint" style={{ marginTop: 0 }}>What the company spends money on: rent, software, ads, salaries ... A category marked 'no approval needed' goes straight to 'approved to pay'.</p>
+        <div className="emp-table-wrap">
+          <table className="emp-table">
+            <thead><tr><th>Name</th><th>No approval needed</th><th>Active</th><th /></tr></thead>
+            <tbody>
+              {cfg.companyCategories.map((c, i) => (
+                <tr key={i}>
+                  <td><input aria-label={`Company category ${i + 1} name`} className="emp-input" value={c.name} disabled={ro} onChange={(e) => setCo(i, { name: e.target.value })} /></td>
+                  <td><input aria-label={`Company category ${i + 1} no approval needed`} type="checkbox" checked={c.skipApproval} disabled={ro} onChange={(e) => setCo(i, { skipApproval: e.target.checked })} /></td>
+                  <td><input aria-label={`Company category ${i + 1} active`} type="checkbox" checked={c.active} disabled={ro} onChange={(e) => setCo(i, { active: e.target.checked })} /></td>
+                  <td>{!ro && cfg.companyCategories.length > 1 && <button type="button" className="emp-btn ghost sm" onClick={() => patch({ companyCategories: cfg.companyCategories.filter((_, j) => j !== i) })}>Remove</button>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!ro && <div style={{ marginTop: 8 }}><button type="button" className="emp-btn ghost sm" onClick={() => patch({ companyCategories: [...cfg.companyCategories, { name: '', skipApproval: false, active: true }] })}>Add category</button></div>}
+      </div>
+
+      <div className="emp-card">
+        <h2>Company expense rules</h2>
+        <label className="emp-radio"><input type="checkbox" checked={cp.allowSelfApproval} disabled={ro} onChange={(e) => setCp({ allowSelfApproval: e.target.checked })} /> The person who recorded an expense may approve it themselves</label>
+        <p className="emp-hint">Turn off to make a second person approve every bill.</p>
+        <div className="emp-grid c3" style={{ marginTop: 12 }}>
+          <Num id="cp-inv" label="Bill or invoice must be attached above ₹" value={cp.invoiceRequiredAbove} onChange={(n) => setCp({ invoiceRequiredAbove: n })} disabled={ro} hint="0 = never required." />
         </div>
       </div>
 

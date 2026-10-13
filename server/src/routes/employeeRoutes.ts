@@ -29,10 +29,12 @@ router.get('/files/:fileId', async (req: Request, res) => {
     const f = await svc.fileMeta(t(req), req.params.fileId);
     const perms = await permsOf(actorOf(req));
     const mine = await employeeOfUser(t(req), u(req));
-    const owner = mine && String(mine._id) === String(f.employeeId);
-    const owned: any = owner ? null : await (await import('../models/Employee')).default.findOne({ _id: f.employeeId, tenantId: svc.oid(t(req)) }).select('reportingManagerId').lean();
+    const owner = !!(mine && f.employeeId && String(mine._id) === String(f.employeeId));
+    const owned: any = owner || !f.employeeId ? null : await (await import('../models/Employee')).default.findOne({ _id: f.employeeId, tenantId: svc.oid(t(req)) }).select('reportingManagerId').lean();
     const isManager = !!(mine && owned?.reportingManagerId && String(owned.reportingManagerId) === String(mine._id));
-    const staff = f.kind === 'receipt'
+    const staff = f.kind === 'invoice'
+      ? ['view_expenses', 'approve_expenses', 'manage_expenses'].some((k) => perms.has(k))
+      : f.kind === 'receipt'
       ? ['view_expenses', 'approve_expenses', 'manage_expenses', 'manage_employees'].some((k) => perms.has(k)) || isManager
       : ['view_employees', 'manage_employees'].some((k) => perms.has(k)) || (f.kind === 'photo' && isManager);
     if (!owner && !staff) return res.status(403).json({ success: false, message: 'You cannot open this file.' });

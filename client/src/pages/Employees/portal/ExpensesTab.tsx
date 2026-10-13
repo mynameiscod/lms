@@ -93,7 +93,7 @@ const ExpenseModal: React.FC<{ me: PortalMe; editing: Expense | null; onClose: (
   return (
     <div className="emp-modal-back" onClick={onClose}>
       <form className="emp-modal" role="dialog" aria-modal="true" aria-label="Expense" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <h2>{editing ? (editing.status === 'rejected' ? 'Fix and send again' : 'Edit expense') : 'Add expense'}</h2>
+        <h2>{editing ? (editing.status === 'rejected' ? 'Fix and send again' : 'Edit claim') : 'Claim an expense'}</h2>
         {err && <div className="emp-msg err" role="alert">{err}</div>}
         <div className="emp-grid c2">
           <div className="emp-field">
@@ -204,7 +204,7 @@ const ExpensesTab: React.FC<Props> = ({ me, reload }) => {
   const t = data?.totals;
   return (
     <div>
-      <button type="button" className="emp-btn emp-fab" onClick={() => setModal({ editing: null })}>＋ Add expense</button>
+      <button type="button" className="emp-btn emp-fab" onClick={() => setModal({ editing: null })}>＋ Claim an expense</button>
       {msg && <div className={`emp-msg ${msg.kind}`} role="status">{msg.text}</div>}
 
       <div className="emp-stats">
@@ -233,7 +233,7 @@ const ExpensesTab: React.FC<Props> = ({ me, reload }) => {
       </div>
 
       {loading ? <p className="emp-empty">Loading…</p> : !data || data.rows.length === 0 ? (
-        <p className="emp-empty">No expenses for this month. Tap "Add expense" when you spend on work.</p>
+        <p className="emp-empty">No claims for this month. Tap "Claim an expense" when you spend your own money on work.</p>
       ) : data.rows.map((e) => {
         const st = STATUS[e.status] || STATUS.cancelled;
         return (

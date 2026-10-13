@@ -7,8 +7,8 @@ import mongoose, { Schema, Document } from 'mongoose';
  */
 const EmployeeFileSchema = new Schema({
   tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
-  employeeId: { type: Schema.Types.ObjectId, ref: 'Employee', required: true },
-  kind: { type: String, enum: ['receipt', 'document', 'photo'], required: true },
+  employeeId: { type: Schema.Types.ObjectId, ref: 'Employee' },
+  kind: { type: String, enum: ['receipt', 'document', 'photo', 'invoice'], required: true },
   name: String,
   mime: String,
   size: Number,

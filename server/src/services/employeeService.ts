@@ -62,7 +62,7 @@ export async function teamIds(tenantId: string, managerEmployeeId: string): Prom
 
 export async function getConfig(tenantId: string): Promise<any> {
   const existing = await EmployeeConfig.findOne({ tenantId: oid(tenantId) }).lean();
-  if (existing) return { ...DEFAULT_CONFIG, ...existing, expensePolicy: { ...DEFAULT_CONFIG.expensePolicy, ...(existing as any).expensePolicy }, activityPolicy: { ...DEFAULT_CONFIG.activityPolicy, ...(existing as any).activityPolicy } };
+  if (existing) return { ...DEFAULT_CONFIG, ...existing, expensePolicy: { ...DEFAULT_CONFIG.expensePolicy, ...(existing as any).expensePolicy }, companyPolicy: { ...DEFAULT_CONFIG.companyPolicy, ...(existing as any).companyPolicy }, companyCategories: (existing as any).companyCategories?.length ? (existing as any).companyCategories : DEFAULT_CONFIG.companyCategories, activityPolicy: { ...DEFAULT_CONFIG.activityPolicy, ...(existing as any).activityPolicy } };
   await EmployeeConfig.updateOne({ tenantId: oid(tenantId) }, { $setOnInsert: { tenantId: oid(tenantId) } }, { upsert: true });
   return { ...DEFAULT_CONFIG, tenantId, codePrefix: 'EMP', codeCounter: 0 };
 }
@@ -93,6 +93,25 @@ export async function saveConfig(tenantId: string, input: any): Promise<any> {
     }
     if (!cats.length) throw new EmployeeError('Keep at least one expense category.');
     set.expenseCategories = cats;
+  }
+  if (Array.isArray(input?.companyCategories)) {
+    const seen = new Set<string>(); const cats: any[] = [];
+    for (const c of input.companyCategories) {
+      const name = String(c?.name ?? '').trim().slice(0, 60);
+      if (!name || seen.has(name.toLowerCase())) continue;
+      seen.add(name.toLowerCase());
+      cats.push({ name, skipApproval: !!c.skipApproval, active: c.active !== false });
+    }
+    if (!cats.length) throw new EmployeeError('Keep at least one company expense category.');
+    set.companyCategories = cats;
+  }
+  if (input?.companyPolicy) {
+    const p = input.companyPolicy;
+    set.companyPolicy = {
+      ...cur.companyPolicy,
+      allowSelfApproval: p.allowSelfApproval ?? cur.companyPolicy.allowSelfApproval,
+      invoiceRequiredAbove: num(p.invoiceRequiredAbove, 0, 100_000_000, cur.companyPolicy.invoiceRequiredAbove),
+    };
   }
   if (Array.isArray(input?.customFields)) {
     const seen = new Set<string>(); const fields: any[] = [];
@@ -568,15 +587,15 @@ export async function summary(tenantId: string) {
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
 
-export async function saveFile(tenantId: string, employeeId: string, uploaderId: string, kind: 'receipt' | 'document' | 'photo', file: { originalname: string; mimetype: string; buffer: Buffer; size: number }) {
+export async function saveFile(tenantId: string, employeeId: string | null, uploaderId: string, kind: 'receipt' | 'document' | 'photo' | 'invoice', file: { originalname: string; mimetype: string; buffer: Buffer; size: number }) {
   if (!file?.buffer?.length) throw new EmployeeError('Choose a file to upload.');
   if (file.size > MAX_FILE_BYTES) throw new EmployeeError('That file is larger than 5 MB.');
   if (!FILE_TYPES.includes(file.mimetype)) throw new EmployeeError('Upload a photo (JPG, PNG, WebP) or a PDF.');
   if (kind === 'photo' && !file.mimetype.startsWith('image/')) throw new EmployeeError('A profile photo must be an image.');
   const _id = new mongoose.Types.ObjectId();
-  const doc: any = { _id, tenantId: oid(tenantId), employeeId: oid(employeeId), kind, name: String(file.originalname || 'file').slice(0, 150), mime: file.mimetype, size: file.size, uploadedBy: oid(uploaderId) };
+  const doc: any = { _id, tenantId: oid(tenantId), ...(employeeId ? { employeeId: oid(employeeId) } : {}), kind, name: String(file.originalname || 'file').slice(0, 150), mime: file.mimetype, size: file.size, uploadedBy: oid(uploaderId) };
   if (bunny.isBunnyStorageConfigured()) {
-    doc.storage = 'bunny'; doc.key = `employees/${tenantId}/${employeeId}/${String(_id)}`;
+    doc.storage = 'bunny'; doc.key = `employees/${tenantId}/${employeeId || 'company'}/${String(_id)}`;
     await bunny.uploadFile(doc.key, file.buffer, file.mimetype);
   } else {
     doc.storage = 'db'; doc.data = file.buffer;

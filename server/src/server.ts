@@ -41,6 +41,7 @@ import { startPartnerReplyScheduler } from './jobs/partnerReplyCron';
 import { registerWaChatSocket } from './realtime/whatsAppChatRealtime';
 import { registerSocketAuth, socketUser, mayJoinTenant, mayJoinStaff, mayHostLiveClass } from './realtime/socketAuth';
 import { startOutperoForwardScheduler } from './jobs/outperoForwardCron';
+import { startCompanyExpenseScheduler } from './jobs/companyExpenseCron';
 
 const PORT = process.env.PORT || 5000;
 console.log(`🚀 Starting server with NODE_ENV=${process.env.NODE_ENV}, PORT=${PORT}`);
@@ -412,6 +413,9 @@ const startServer = async () => {
 
     // Send leads queued for Outpero (bulk sends, retries)
     startOutperoForwardScheduler();
+
+    // Add each month's recurring company costs (rent, subscriptions)
+    startCompanyExpenseScheduler();
 
     } // ── end background jobs (single process only) ─────────────────────────────
 

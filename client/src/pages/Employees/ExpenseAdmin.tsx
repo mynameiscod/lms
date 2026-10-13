@@ -449,7 +449,7 @@ const SummaryTab: React.FC<{ month: string; refreshKey: number }> = ({ month, re
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-const ExpenseAdmin: React.FC = () => {
+const ExpenseAdmin: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const [tab, setTab] = useState<Tab>('mine');
   const [month, setMonth] = useState(thisMonth());
   const [msg, setMsg] = useState<{ text: string; bad: boolean } | null>(null);
@@ -471,7 +471,7 @@ const ExpenseAdmin: React.FC = () => {
   return (
     <div className="emp-page">
       <div className="emp-head">
-        <div><h1>Employee expenses</h1><p className="emp-sub">Review, approve and pay employee expense claims.</p></div>
+        {!embedded && <div><h1>Employee claims</h1><p className="emp-sub">Review, approve and pay employee expense claims.</p></div>}
         <div className="emp-field">
           <label htmlFor="ex-month">Month</label>
           <input id="ex-month" type="month" className="emp-input" value={month} onChange={e => e.target.value && setMonth(e.target.value)} />

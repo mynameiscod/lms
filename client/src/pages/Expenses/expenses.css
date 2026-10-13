@@ -1,0 +1,27 @@
+.exp-bar-row { display: grid; grid-template-columns: minmax(90px, 160px) 1fr auto; gap: 10px; align-items: center; margin: 6px 0; font-size: 13px; }
+.exp-bar-track { background: rgba(127,127,127,.15); border-radius: 6px; height: 10px; overflow: hidden; }
+.exp-bar-fill { height: 100%; background: #4f46e5; border-radius: 6px; min-width: 2px; }
+.exp-big { font-size: 28px; font-weight: 700; }
+.exp-trend { display: flex; align-items: flex-end; gap: 12px; height: 180px; padding-top: 20px; }
+.exp-trend-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; min-width: 0; }
+.exp-trend-bar { width: 100%; max-width: 56px; background: #4f46e5; border-radius: 6px 6px 0 0; min-height: 2px; }
+.exp-trend-bar.cur { background: #059669; }
+.exp-trend-val { font-size: 11px; margin-bottom: 4px; white-space: nowrap; }
+.exp-trend-lab { font-size: 12px; margin-top: 6px; }
+.exp-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-bottom: 12px; }
+.exp-toolbar .emp-field { min-width: 140px; }
+.exp-totals { display: flex; flex-wrap: wrap; gap: 16px; margin: 8px 0 12px; font-size: 13px; }
+.exp-totals b { font-size: 15px; }
+.exp-sub { font-size: 12px; opacity: .7; }
+.exp-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.exp-clip { white-space: nowrap; }
+.exp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.exp-detail dl { display: grid; grid-template-columns: 130px 1fr; gap: 6px 12px; margin: 0 0 12px; font-size: 14px; }
+.exp-detail dt { opacity: .65; }
+.exp-detail dd { margin: 0; word-break: break-word; }
+.exp-trail { list-style: none; margin: 8px 0 0; padding: 0 0 0 14px; border-left: 2px solid rgba(127,127,127,.3); }
+.exp-trail li { margin: 0 0 10px; font-size: 13px; position: relative; }
+.exp-trail li::before { content: ''; position: absolute; left: -20px; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: #4f46e5; }
+.exp-linkbtn { background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }
+.exp-stat-click { cursor: pointer; }
+@media (max-width: 600px) { .exp-detail dl { grid-template-columns: 1fr; } .exp-bar-row { grid-template-columns: 90px 1fr auto; } }

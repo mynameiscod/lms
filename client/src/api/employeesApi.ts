@@ -67,6 +67,8 @@ export interface ExpenseCategory { name: string; dailyLimit: number; receiptRequ
 export interface EmployeeConfig {
   departments: string[]; designations: string[]; employmentTypes: string[]; workLocations: string[]; documentTypes: string[];
   expenseCategories: ExpenseCategory[]; activityCategories: string[];
+  companyCategories: CompanyCategory[];
+  companyPolicy: { allowSelfApproval: boolean; invoiceRequiredAbove: number };
   customFields: { key: string; label: string; required?: boolean }[];
   codePrefix: string;
   expensePolicy: { approvalMode: 'reporting_manager' | 'approvers' | 'manager_then_approver'; receiptRequiredAbove: number; dailyLimit: number; monthlyLimit: number; autoApproveBelow: number; maxBackdateDays: number };
@@ -212,4 +214,80 @@ export const portalApi = {
   createExpense: (body: ExpenseInput) => axios.post(`${API}/employee-portal/expenses`, body, h()).then(d) as Promise<Expense>,
   updateExpense: (id: string, body: Partial<ExpenseInput>) => axios.put(`${API}/employee-portal/expenses/${id}`, body, h()).then(d) as Promise<Expense>,
   cancelExpense: (id: string) => axios.post(`${API}/employee-portal/expenses/${id}/cancel`, {}, h()).then(d),
+};
+
+// ── The company expense ledger ───────────────────────────────────────────────
+
+export type LedgerKind = 'bill' | 'recurring' | 'salary' | 'reimbursement';
+export type LedgerStatus = 'pending' | 'approved' | 'paid' | 'rejected' | 'cancelled';
+
+export interface CompanyCategory { name: string; skipApproval: boolean; active: boolean }
+export interface TrailEntry { action: string; byName?: string; at: string; note?: string }
+
+export interface LedgerRow {
+  _id: string; kind: LedgerKind; date: string; month: string; dueDate?: string; category: string; title?: string; vendor?: string; description?: string;
+  amount: number; gst?: number; invoiceNumber?: string; invoices: { fileId: string; name: string }[];
+  status: LedgerStatus; paidOn?: string; paymentMode?: string; paymentRef?: string;
+  employeeId?: string; employeeName?: string; employeeCode?: string; recurringId?: string; sourceExpenseId?: string;
+  trail?: TrailEntry[];
+  // What the signed-in person may do with this line
+  canApprove: boolean; canPay: boolean; canEdit: boolean;
+}
+
+export interface LedgerQuery { month?: string; from?: string; to?: string; category?: string; kind?: LedgerKind | ''; status?: LedgerStatus | ''; search?: string; employeeId?: string }
+export interface LedgerResult { rows: LedgerRow[]; totals: Record<LedgerStatus, number>; hiddenSalaryLines: boolean }
+
+export interface BillInput {
+  date: string; category: string; title?: string; vendor?: string; description?: string; amount: number; gst?: number; invoiceNumber?: string; dueDate?: string; paymentMode?: string;
+  invoices?: { fileId: string; name?: string }[];
+  /** The money has already gone out: approve and pay in one step (needs approve permission). */
+  recordAsPaid?: boolean; paidOn?: string; paymentRef?: string;
+}
+
+export interface CompanySummary {
+  month: string; label: string; pendingApprovals: number; recurringNotYetAdded: number; spent: number; salaryLinesHidden: boolean;
+  byStatus: Partial<Record<'pending' | 'approved' | 'paid', { total: number; count: number }>>;
+  byCategory: { category: string; total: number; count: number }[];
+  byKind: { kind: LedgerKind; total: number; count: number }[];
+  topVendors: { vendor: string; total: number; count: number }[];
+  trend: { month: string; label: string; total: number }[];
+}
+
+export interface RecurringItem {
+  _id: string; title: string; category: string; vendor?: string; amount: number; gst?: number; dayOfMonth: number;
+  startMonth: string; endMonth?: string; paymentMode?: string; notes?: string; active: boolean;
+}
+export type RecurringInput = Omit<RecurringItem, '_id'>;
+
+export interface SalaryPreview {
+  month: string; label: string; toAdd: number; total: number;
+  rows: { employeeId: string; name: string; code: string; department?: string; designation?: string; amount: number; alreadyAdded: boolean; existingStatus?: LedgerStatus }[];
+}
+
+export const companyApi = {
+  ledger: (q?: LedgerQuery) => axios.get(`${API}/company-expenses/ledger${qs(q as Record<string, any>)}`, h()).then(d) as Promise<LedgerResult>,
+  summary: (month?: string) => axios.get(`${API}/company-expenses/summary${qs({ month })}`, h()).then(d) as Promise<CompanySummary>,
+  vendors: () => axios.get(`${API}/company-expenses/vendors`, h()).then(d) as Promise<string[]>,
+  detail: (id: string) => axios.get(`${API}/company-expenses/${id}`, h()).then(d) as Promise<LedgerRow>,
+  create: (body: BillInput) => axios.post(`${API}/company-expenses`, body, h()).then(d) as Promise<LedgerRow>,
+  update: (id: string, body: Partial<BillInput>) => axios.put(`${API}/company-expenses/${id}`, body, h()).then(d) as Promise<LedgerRow>,
+  cancel: (id: string, note?: string) => axios.delete(`${API}/company-expenses/${id}`, { ...h(), data: { note } }).then(d),
+  act: (id: string, action: 'approve' | 'reject', note?: string) => axios.post(`${API}/company-expenses/${id}/act`, { action, note }, h()).then(d) as Promise<LedgerRow>,
+  pay: (ids: string[], input: { paymentMode?: string; paymentRef?: string; paidOn?: string }) => axios.post(`${API}/company-expenses/pay`, { ids, ...input }, h()).then(d) as Promise<{ paid: number }>,
+  unpay: (id: string) => axios.post(`${API}/company-expenses/${id}/unpay`, {}, h()).then(d),
+  uploadInvoice: (file: File) => axios.post(`${API}/company-expenses/invoice`, form(file), h()).then(d) as Promise<UploadedFile>,
+  recurring: () => axios.get(`${API}/company-expenses/recurring`, h()).then(d) as Promise<RecurringItem[]>,
+  createRecurring: (body: Partial<RecurringInput>) => axios.post(`${API}/company-expenses/recurring`, body, h()).then(d) as Promise<RecurringItem>,
+  updateRecurring: (id: string, body: Partial<RecurringInput>) => axios.put(`${API}/company-expenses/recurring/${id}`, body, h()).then(d) as Promise<RecurringItem>,
+  deleteRecurring: (id: string) => axios.delete(`${API}/company-expenses/recurring/${id}`, h()).then(d),
+  generateRecurring: (month?: string) => axios.post(`${API}/company-expenses/recurring/generate`, { month }, h()).then(d) as Promise<{ month: string; added: number }>,
+  salaryPreview: (month?: string) => axios.get(`${API}/company-expenses/salaries/preview${qs({ month })}`, h()).then(d) as Promise<SalaryPreview>,
+  generateSalaries: (input: { month?: string; employeeIds?: string[]; amounts?: Record<string, number> }) => axios.post(`${API}/company-expenses/salaries/generate`, input, h()).then(d) as Promise<{ month: string; added: number }>,
+  exportCsv: async (q?: LedgerQuery) => {
+    const r = await axios.get(`${API}/company-expenses/export${qs(q as Record<string, any>)}`, { ...h(), responseType: 'blob' });
+    const url = URL.createObjectURL(r.data);
+    const a = document.createElement('a');
+    a.href = url; a.download = `company-expenses-${q?.month || 'all'}.csv`; document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  },
 };

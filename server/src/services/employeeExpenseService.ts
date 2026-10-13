@@ -2,6 +2,7 @@ import Employee from '../models/Employee';
 import EmployeeExpense from '../models/EmployeeExpense';
 import EmployeeFile from '../models/EmployeeFile';
 import { EmployeeError, oid, validId, istDate, istMonth, validDay, getConfig } from './employeeService';
+import { recordReimbursement, removeReimbursement } from './companyExpenseService';
 
 /**
  * Employee expenses. An employee claims money they spent (one a day, or several), with receipts.
@@ -213,6 +214,11 @@ export async function markPaid(tenantId: string, viewer: Viewer, ids: string[], 
     { _id: { $in: list }, tenantId: oid(tenantId), status: 'approved' },
     { $set: { status: 'paid', paidAt: now, paidBy: oid(viewer.userId), paymentMode: mode, paymentRef: ref }, $push: { trail: { action: 'paid', by: oid(viewer.userId), byName: viewer.name, at: now, note: [mode, ref].filter(Boolean).join(' · ') } } },
   );
+  // A paid claim is company money out: it joins the company ledger (once, however often this runs).
+  if (r.modifiedCount) {
+    const paid: any[] = await EmployeeExpense.find({ _id: { $in: list }, tenantId: oid(tenantId), status: 'paid', paidAt: now }).lean();
+    for (const claim of paid) await recordReimbursement(tenantId, claim, { userId: viewer.userId, name: viewer.name });
+  }
   return { paid: r.modifiedCount };
 }
 
@@ -220,6 +226,7 @@ export async function reopenPaid(tenantId: string, viewer: Viewer, id: string) {
   if (!viewer.canManage) throw new EmployeeError('You cannot change a paid expense.', 403);
   const r = await EmployeeExpense.updateOne({ _id: oid(id), tenantId: oid(tenantId), status: 'paid' }, { $set: { status: 'approved', paidAt: null, paymentMode: '', paymentRef: '' }, $push: { trail: { action: 'unpaid', by: oid(viewer.userId), byName: viewer.name, at: new Date() } } });
   if (!r.matchedCount) throw new EmployeeError('That expense is not marked paid.', 404);
+  await removeReimbursement(tenantId, oid(id));
 }
 
 // ── Reports ──────────────────────────────────────────────────────────────────

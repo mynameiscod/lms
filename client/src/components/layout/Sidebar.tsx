@@ -281,7 +281,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Employee Portal', path: '/employee', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-id-badge', needsEmployee: true },
     { label: 'Employees', path: '/employees', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-people-group', permissions: ['view_employees', 'manage_employees'] },
     { label: 'Employee Activity', path: '/employee-activity', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-list-check', permissions: ['review_employee_activity', 'manage_employees'], orTeam: true },
-    { label: 'Employee Expenses', path: '/employee-expenses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-receipt', permissions: ['view_expenses', 'approve_expenses', 'manage_expenses'], orTeam: true },
+    { label: 'Expenses', path: '/expenses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-receipt', permissions: ['view_expenses', 'approve_expenses', 'manage_expenses'], orTeam: true },
     { label: 'Practice Pass', path: '/practice-pass', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-fire', permissions: ['manage_practice_pass', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Coding Practice', path: '/coding-practice', roles: ['STUDENT'], icon: 'fa-solid fa-laptop-code', permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
     { label: 'Problem Bank', path: '/problem-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-code', permissions: ['manage_problem_bank', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
@@ -503,7 +503,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'CRM & GROWTH',            labels: ['Leads', 'Placement Partnership'] },
     { title: 'DRIVES & INTERVIEWS',     labels: ['Drives', 'Question Books'] },
     { title: 'BILLING',                 labels: ['Fees'] },
-    { title: 'EMPLOYEES',               labels: ['Employee Portal', 'Employees', 'Employee Activity', 'Employee Expenses'] },
+    { title: 'EMPLOYEES',               labels: ['Employee Portal', 'Employees', 'Employee Activity', 'Expenses'] },
     { title: 'EVENTS',                  labels: ['Tech Battles', 'Hackathons'] },
     /**
      * Every CareerPilot screen, in the order an admin actually works through them:

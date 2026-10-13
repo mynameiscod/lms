@@ -310,11 +310,11 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     ]
   },
   expenses: {
-    label: 'Employee Expenses',
+    label: 'Company Expenses',
     permissions: [
-      { key: 'view_expenses', label: 'View all employee expenses and reports' },
-      { key: 'approve_expenses', label: 'Approve or reject employee expenses' },
-      { key: 'manage_expenses', label: 'Mark expenses paid, set expense categories and rules, export' },
+      { key: 'view_expenses', label: 'View the company expense ledger, reports and employee claims' },
+      { key: 'approve_expenses', label: 'Approve or reject company expenses and employee claims' },
+      { key: 'manage_expenses', label: 'Record company expenses, recurring items and salaries, mark paid, set categories and rules, export' },
     ]
   },
   employee_portal: {

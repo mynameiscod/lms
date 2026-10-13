@@ -12,7 +12,7 @@ type TabKey = 'today' | 'history' | 'expenses' | 'profile';
 const TABS: { k: TabKey; label: string }[] = [
   { k: 'today', label: 'Today' },
   { k: 'history', label: 'History' },
-  { k: 'expenses', label: 'Expenses' },
+  { k: 'expenses', label: 'My claims' },
   { k: 'profile', label: 'My profile' },
 ];
 const fromHash = (): TabKey => {

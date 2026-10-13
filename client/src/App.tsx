@@ -96,7 +96,7 @@ const EmployeeDirectory = lazy(() => import('./pages/Employees/EmployeeDirectory
 const EmployeeProfile = lazy(() => import('./pages/Employees/EmployeeProfile'));
 const EmployeeSettings = lazy(() => import('./pages/Employees/EmployeeSettings'));
 const ActivityReview = lazy(() => import('./pages/Employees/ActivityReview'));
-const ExpenseAdmin = lazy(() => import('./pages/Employees/ExpenseAdmin'));
+const CompanyExpenses = lazy(() => import('./pages/Expenses/CompanyExpenses'));
 const EmployeePortal = lazy(() => import('./pages/Employees/portal/EmployeePortal'));
 const MyPractice = lazy(() => import('./pages/PracticePass/MyPractice'));
 const InterviewHubFeed = lazy(() => import('./pages/InterviewHub/Feed'));
@@ -883,7 +883,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/employee-settings" element={<ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_employees']}><Layout><EmployeeSettings /></Layout></ProtectedRoute>} />
       {/* Review and expenses also open for managers (the server limits them to their own team), so no role gate here. */}
       <Route path="/employee-activity" element={<ProtectedRoute><Layout><ActivityReview /></Layout></ProtectedRoute>} />
-      <Route path="/employee-expenses" element={<ProtectedRoute><Layout><ExpenseAdmin /></Layout></ProtectedRoute>} />
+      <Route path="/expenses" element={<ProtectedRoute><Layout><CompanyExpenses /></Layout></ProtectedRoute>} />
+      {/* The old address of the employee claims screen now lives inside Expenses. */}
+      <Route path="/employee-expenses" element={<Navigate to="/expenses?tab=claims" replace />} />
       {/* The employee's own portal: open to any signed-in login, answered by the server with who they are. */}
       <Route path="/employee" element={<ProtectedRoute><Layout><EmployeePortal /></Layout></ProtectedRoute>} />
 

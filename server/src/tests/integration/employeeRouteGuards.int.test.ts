@@ -23,6 +23,7 @@ import employeeRoutes from '../../routes/employeeRoutes';
 import employeePortalRoutes from '../../routes/employeePortalRoutes';
 import employeeActivityRoutes from '../../routes/employeeActivityRoutes';
 import employeeExpenseRoutes from '../../routes/employeeExpenseRoutes';
+import companyExpenseRoutes from '../../routes/companyExpenseRoutes';
 import * as svc from '../../services/employeeService';
 
 const app = express();
@@ -31,8 +32,9 @@ app.use('/employees', employeeRoutes);
 app.use('/employee-portal', employeePortalRoutes);
 app.use('/employee-activity', employeeActivityRoutes);
 app.use('/employee-expenses', employeeExpenseRoutes);
+app.use('/company-expenses', companyExpenseRoutes);
 
-type Who = 'student' | 'admin' | 'viewer' | 'portal' | 'manager' | 'worker' | 'plain';
+type Who = 'student' | 'admin' | 'viewer' | 'portal' | 'manager' | 'worker' | 'plain' | 'reader' | 'accounts' | 'approver';
 const tokens = {} as Record<Who, string>;
 const ids = {} as Record<string, string>;
 let tenantId = '';
@@ -46,6 +48,9 @@ beforeAll(async () => {
   tenantId = String(t._id);
   const portalRole = await Role.create({ name: 'Employee (portal only)', permissions: ['use_employee_portal'], tenantId: t._id } as any);
   const viewerRole = await Role.create({ name: 'HR viewer', permissions: ['view_employees'], tenantId: t._id } as any);
+  const readerRole = await Role.create({ name: 'Expense reader', permissions: ['view_expenses'], tenantId: t._id } as any);
+  const accountsRole = await Role.create({ name: 'Accounts', permissions: ['view_expenses', 'manage_expenses'], tenantId: t._id } as any);
+  const approverRole = await Role.create({ name: 'Approver', permissions: ['view_expenses', 'approve_expenses'], tenantId: t._id } as any);
   const mk = async (who: Who, role: string, extra: any = {}) => {
     const u: any = await User.create({ tenantId: t._id, firstName: who, lastName: 'T', email: `${who}@emp.test`, password: 'x', role, isActive: true, ...extra });
     ids[who] = String(u._id);
@@ -59,6 +64,9 @@ beforeAll(async () => {
   await mk('manager', 'STAFF');
   await mk('worker', 'STAFF', { customRoleId: portalRole._id });
   await mk('plain', 'STAFF');
+  await mk('reader', 'STAFF', { customRoleId: readerRole._id });
+  await mk('accounts', 'STAFF', { customRoleId: accountsRole._id });
+  await mk('approver', 'STAFF', { customRoleId: approverRole._id });
   const E = (who: string, extra: any, code: string) => Employee.create({ tenantId: t._id, userId: ids[who], employeeCode: code, firstName: who, lastName: 'T', workEmail: `${who}@emp.test`, ...extra });
   const mgr: any = await E('manager', { currentCtc: 900000, sensitive: { bankIfsc: 'X' } }, 'EMP-0001');
   ids.mgrEmp = String(mgr._id);
@@ -297,6 +305,78 @@ describe('logins', () => {
     expect((await call('post', `/employees/${noMail._id}/link`, 'admin', { userId: ids.student })).status).toBe(409);
     expect((await call('delete', `/employees/${noMail._id}/login`, 'admin')).status).toBe(200);
     expect((await call('get', '/employee-portal/exists', 'plain')).body.data.isEmployee).toBe(false);
+  });
+});
+
+describe('the company expense ledger', () => {
+  const BILL = { category: 'Software & subscriptions', vendor: 'Zoho', title: 'CRM seats', amount: 12000, date: svc.istDate(), gst: 1830, invoiceNumber: 'Z-1', description: '', paymentMode: '', invoices: [] };
+  let billId = '';
+
+  it('is closed to students and to anyone without an expense permission', async () => {
+    for (const who of ['student', 'portal', 'manager', 'plain', 'viewer', 'worker'] as Who[]) expect([who, (await call('get', '/company-expenses/ledger', who)).status]).toEqual([who, 403]);
+    for (const who of ['reader', 'accounts', 'approver', 'admin'] as Who[]) expect([who, (await call('get', '/company-expenses/ledger', who)).status]).toEqual([who, 200]);
+  });
+
+  it('lets accounts record, a reader only read, an approver only approve', async () => {
+    expect((await call('post', '/company-expenses', 'reader', BILL)).status).toBe(403);
+    expect((await call('post', '/company-expenses', 'approver', BILL)).status).toBe(403);
+    const made = await call('post', '/company-expenses', 'accounts', BILL);
+    expect([made.status, made.body.message]).toEqual([200, undefined]);
+    expect(made.body.data.status).toBe('pending');
+    billId = made.body.data._id;
+    expect((await call('post', `/company-expenses/${billId}/act`, 'accounts', { action: 'approve' })).status).toBe(403);
+    expect((await call('post', `/company-expenses/${billId}/act`, 'reader', { action: 'approve' })).status).toBe(403);
+    expect((await call('post', `/company-expenses/${billId}/act`, 'approver', { action: 'approve' })).body.data.status).toBe('approved');
+    expect((await call('post', '/company-expenses/pay', 'approver', { ids: [billId] })).status).toBe(403);
+    expect((await call('post', '/company-expenses/pay', 'accounts', { ids: [billId], paymentMode: 'UPI', paymentRef: 'U1' })).body.data.paid).toBe(1);
+    expect((await call('post', `/company-expenses/${billId}/unpay`, 'reader')).status).toBe(403);
+  });
+
+  it('takes a bill with an attached invoice, and serves it only to those who look after expenses', async () => {
+    const up = await (request(app) as any).post('/company-expenses/invoice').set('Authorization', `Bearer ${tokens.accounts}`).set('X-Tenant-Id', tenantId)
+      .attach('file', Buffer.from('%PDF-1.4 invoice'), { filename: 'inv.pdf', contentType: 'application/pdf' });
+    expect([up.status, up.body.message]).toEqual([200, undefined]);
+    const made = await call('post', '/company-expenses', 'accounts', { ...BILL, title: 'With invoice', invoices: [{ fileId: up.body.data.fileId }] });
+    expect(made.body.data.invoices).toHaveLength(1);
+    expect((await call('get', `/employees/files/${up.body.data.fileId}`, 'reader')).status).toBe(200);
+    expect((await call('get', `/employees/files/${up.body.data.fileId}`, 'student')).status).toBe(403);
+    expect((await call('get', `/employees/files/${up.body.data.fileId}`, 'worker')).status).toBe(403);
+    const reader = await (request(app) as any).post('/company-expenses/invoice').set('Authorization', `Bearer ${tokens.reader}`).set('X-Tenant-Id', tenantId).attach('file', Buffer.from('x'), { filename: 'a.pdf', contentType: 'application/pdf' });
+    expect(reader.status).toBe(403);
+  });
+
+  it('keeps salary lines from a reader, shows them to someone who may see pay, and keeps the totals honest', async () => {
+    const owner = await call('get', '/company-expenses/salaries/preview', 'admin');
+    expect([owner.status, owner.body.message]).toEqual([200, undefined]);
+    expect(owner.body.data.rows.length).toBeGreaterThan(0);
+    expect((await call('get', '/company-expenses/salaries/preview', 'accounts')).status).toBe(403);
+    expect((await call('get', '/company-expenses/salaries/preview', 'reader')).status).toBe(403);
+    const gen = await call('post', '/company-expenses/salaries/generate', 'admin', {});
+    expect(gen.body.data.added).toBeGreaterThan(0);
+    const asReader = (await call('get', '/company-expenses/ledger', 'reader')).body.data;
+    expect(asReader.rows.some((r: any) => r.kind === 'salary')).toBe(false);
+    const asAdmin = (await call('get', '/company-expenses/ledger', 'admin')).body.data;
+    expect(asAdmin.rows.some((r: any) => r.kind === 'salary')).toBe(true);
+    const sum = (await call('get', '/company-expenses/summary', 'reader')).body.data;
+    expect(sum.byCategory.find((c: any) => c.category === 'Salaries').total).toBeGreaterThan(0);
+    const csv = await call('get', '/company-expenses/export', 'reader');
+    expect(csv.status).toBe(200);
+    expect(csv.text).not.toContain('Salary');
+  });
+
+  it('sets up a recurring cost and saves the expense settings the way the screens send them', async () => {
+    const rec = await call('post', '/company-expenses/recurring', 'accounts', { title: 'Office rent', category: 'Rent', vendor: 'Landlord', amount: 45000, gst: 0, dayOfMonth: 1, startMonth: svc.istMonth(), endMonth: '', paymentMode: 'Bank', notes: '' });
+    expect([rec.status, rec.body.message]).toEqual([200, undefined]);
+    expect((await call('post', '/company-expenses/recurring', 'reader', { title: 'x', category: 'Rent', amount: 1, startMonth: svc.istMonth() })).status).toBe(403);
+    const gen = await call('post', '/company-expenses/recurring/generate', 'accounts', {});
+    expect(gen.body.data.added).toBe(1);
+    expect((await call('post', '/company-expenses/recurring/generate', 'accounts', {})).body.data.added).toBe(0);
+    expect((await call('get', '/company-expenses/recurring', 'reader')).body.data).toHaveLength(1);
+    const cfg = (await call('get', '/employees/config', 'admin')).body.data;
+    expect(cfg.companyCategories.length).toBeGreaterThan(5);
+    const saved = await call('put', '/employees/config', 'admin', { ...cfg, companyCategories: [...cfg.companyCategories, { name: 'Legal', skipApproval: false, active: true }], companyPolicy: { allowSelfApproval: false, invoiceRequiredAbove: 20000 } });
+    expect([saved.status, saved.body.message]).toEqual([200, undefined]);
+    expect(saved.body.data.companyPolicy).toEqual({ allowSelfApproval: false, invoiceRequiredAbove: 20000 });
   });
 });
 

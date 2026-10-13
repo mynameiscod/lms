@@ -20,12 +20,15 @@ export interface IOutperoCall extends Document {
   hangupReason?: string;
   durationSec?: number;
   recordingUrl?: string;
+  /** Our own stored copy of the recording (file storage), when one has been made. */
+  recordingKey?: string;
   transcript?: string;
   variables?: Record<string, unknown>;
   startedAt?: Date;
   endedAt?: Date;
   /** Things already done for this call, so a re-delivery never repeats them. */
   actions: string[];
+  pendingAutomation?: boolean;
   deliveries: number;
   raw: unknown[];
   createdAt: Date;
@@ -44,11 +47,13 @@ const OutperoCallSchema = new Schema<IOutperoCall>({
   hangupReason: String,
   durationSec: Number,
   recordingUrl: String,
+  recordingKey: String,
   transcript: String,
   variables: { type: Schema.Types.Mixed, default: {} },
   startedAt: Date,
   endedAt: Date,
   actions: { type: [String], default: [] },
+  pendingAutomation: { type: Boolean, default: false },
   deliveries: { type: Number, default: 0 },
   // The last few deliveries as received (capped in the service).
   raw: { type: [Schema.Types.Mixed], default: [] },

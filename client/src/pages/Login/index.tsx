@@ -1,3 +1,4 @@
+import { portalApi } from '../../api/employeesApi';
 import React, { useState, useEffect } from 'react';
 import { hostTenant } from '../../config/hostTenant';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
@@ -107,7 +108,9 @@ const LoginPage: React.FC = () => {
 
       // Pass tenantId only if it was pre-filled from URL
       await login(email, password, tenantId || undefined);
-      navigate('/dashboard');
+      // A login made only for the employee portal lands there; everyone else on the dashboard.
+      const asEmployee = await portalApi.exists().catch(() => null);
+      navigate(asEmployee?.isEmployee && asEmployee.portalOnly ? '/employee' : '/dashboard');
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials and try again.');
     } finally {

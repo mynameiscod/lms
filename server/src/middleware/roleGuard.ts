@@ -124,12 +124,14 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'view_lead_analytics', label: 'View Lead Analytics & Reports' },
       { key: 'manage_lead_stages', label: 'Manage Lead Stages & Form Config' },
       { key: 'convert_leads', label: 'Convert Leads to Students' },
+      { key: 'archive_leads', label: 'Archive Leads, Restore, and Delete Leads Archived 3+ Years' },
     ]
   },
   marketing: {
     label: 'Marketing Intelligence',
     permissions: [
       { key: 'manage_marketing', label: 'Marketing Intelligence Dashboard' },
+      { key: 'manage_event_apis', label: 'Event APIs: registration forms for the website, and their data' },
     ]
   },
   codingSnippets: {
@@ -298,9 +300,33 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'manage_skill_assessment', label: 'Manage Skill Assessment, Schedules & Candidates' },
     ]
   },
+  employees: {
+    label: 'Employees',
+    permissions: [
+      { key: 'view_employees', label: 'View the employee directory and profiles' },
+      { key: 'manage_employees', label: 'Add and edit employees, record hikes, create logins, set up employee lists' },
+      { key: 'view_employee_sensitive', label: 'See salary, PAN, Aadhaar and bank details' },
+      { key: 'review_employee_activity', label: 'See all employees daily activity and sign it off' },
+    ]
+  },
+  expenses: {
+    label: 'Employee Expenses',
+    permissions: [
+      { key: 'view_expenses', label: 'View all employee expenses and reports' },
+      { key: 'approve_expenses', label: 'Approve or reject employee expenses' },
+      { key: 'manage_expenses', label: 'Mark expenses paid, set expense categories and rules, export' },
+    ]
+  },
+  employee_portal: {
+    label: 'Employee Portal',
+    permissions: [
+      { key: 'use_employee_portal', label: 'Use the employee portal (own profile, daily activity, expenses)' },
+    ]
+  },
   operations: {
     label: 'Operations & Monitoring',
     permissions: [
+      { key: 'view_admin_dashboard', label: 'Admin Dashboard — institute-wide numbers (revenue, leads, placements)' },
       { key: 'manage_leave_requests', label: 'Approve / Reject Student Leave Requests' },
       { key: 'manage_concerns', label: 'View & Respond to Student Concerns' },
       { key: 'view_activity_logs', label: 'View API Logs & Student Activity' },
@@ -313,7 +339,9 @@ export const FEATURE_PERMISSIONS = [
   'manage_placement_program', 'manage_placement_partners', 'manage_interview_hub', 'manage_whatsapp_templates',
   'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans',
   'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests', 'manage_concerns', 'view_activity_logs',
-  'chat_whatsapp',
+  'chat_whatsapp', 'manage_event_apis', 'view_admin_dashboard',
+  'view_employees', 'manage_employees', 'view_employee_sensitive', 'review_employee_activity',
+  'view_expenses', 'approve_expenses', 'manage_expenses', 'use_employee_portal',
 ];
 
 // Flatten all permission keys
@@ -350,7 +378,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_billing',
     // Leads (full access)
     'manage_leads', 'view_leads', 'create_leads', 'edit_leads', 'delete_leads',
-    'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads',
+    'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads', 'archive_leads',
     // Marketing
     'manage_marketing',
     // Coding Snippets

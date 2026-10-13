@@ -1,3 +1,6 @@
+import mongoose from 'mongoose';
+import { waitsForOutpero } from './outperoPolicyService';
+import { assignViaScoringConfig } from './leadScoringService';
 /**
  * leadDistributionService.ts
  * Auto-assigns incoming leads to eligible team members based on tenant config.
@@ -11,10 +14,23 @@ import User from '../models/User';
  * Given a tenantId and a freshly created leadId, auto-assign it to an agent
  * if the tenant has auto-distribution enabled. No-op when mode=manual or disabled.
  */
-export const autoAssignLead = async (tenantId: string, leadId: string): Promise<string | null> => {
+export const autoAssignLead = async (tenantId: string, leadId: string, afterCall = false): Promise<string | null> => {
   try {
+    const lead = await Lead.findOne({ _id: leadId, tenantId });
+    if (!lead) return null;
+    const existing = lead.assignedTo || lead.assignment?.assignedTo;
+    if (existing) return String(existing);
+    if (!afterCall && waitsForOutpero(lead, tenantId)) return null;
     const config = await LeadDistributionConfig.findOne({ tenantId, enabled: true });
-    if (!config || config.mode === 'manual') return null;
+    if (!config || config.mode === 'manual') {
+      // A lead held for Outpero still needs an owner once its result is in: use the Lead Scoring
+      // assignment settings when Lead Distribution is not what this institute uses.
+      if (!afterCall) return null;
+      const viaScoring = await assignViaScoringConfig(lead, new mongoose.Types.ObjectId(tenantId));
+      if (!viaScoring) return null;
+      await Lead.updateOne({ _id: leadId, tenantId }, { $push: { activities: { type: 'assignment', description: 'Assigned by round robin after the AI call', createdBy: lead.createdBy, createdAt: new Date() } } });
+      return String(viaScoring);
+    }
 
     // Build candidate user list
     let candidates = await getCandidates(tenantId, config);
@@ -29,7 +45,8 @@ export const autoAssignLead = async (tenantId: string, leadId: string): Promise<
     }
 
     if (assignedUserId) {
-      await Lead.findByIdAndUpdate(leadId, { assignedTo: assignedUserId });
+      const updated = await Lead.findOneAndUpdate({ _id: leadId, tenantId, assignedTo: null, 'assignment.assignedTo': null }, { $set: { assignedTo: assignedUserId, 'assignment.assignedTo': assignedUserId, 'assignment.assignedAt': new Date() }, $push: { activities: { type: 'assignment', description: 'Assigned automatically by lead distribution', createdBy: lead.createdBy, createdAt: new Date() } } });
+      if (!updated) return null;
     }
     return assignedUserId;
   } catch (err) {
@@ -41,9 +58,13 @@ export const autoAssignLead = async (tenantId: string, leadId: string): Promise<
 /** Get agents eligible for assignment and under their daily cap */
 async function getCandidates(tenantId: string, config: any): Promise<string[]> {
   // Fetch users that belong to the tenant (role-based filter if eligibleRoles set)
-  const userFilter: any = { tenantId };
+  const userFilter: any = { tenantId, isActive: true };
   if (config.eligibleRoles?.length) {
-    userFilter.role = { $in: config.eligibleRoles };
+    const customIds = config.eligibleRoles.filter((r: string) => mongoose.isValidObjectId(r));
+    if (customIds.length) userFilter.$or = [{ role: { $in: config.eligibleRoles } }, { customRoleId: { $in: customIds } }];
+    else userFilter.role = { $in: config.eligibleRoles };
+  } else {
+    userFilter.role = { $in: ['TENANT_ADMIN', 'STAFF'] };
   }
   const users = await User.find(userFilter, '_id').lean();
   const userIds = users.map((u: any) => u._id.toString());
@@ -51,15 +72,15 @@ async function getCandidates(tenantId: string, config: any): Promise<string[]> {
   if (userIds.length === 0) return [];
 
   // Apply daily cap: count leads assigned today per user
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const istNow = new Date(Date.now() + 330 * 60_000);
+  const todayStart = new Date(Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), istNow.getUTCDate()) - 330 * 60_000);
 
   const todayCounts: { _id: string; count: number }[] = await Lead.aggregate([
-    { $match: { tenantId, createdAt: { $gte: todayStart }, assignedTo: { $in: userIds } } },
+    { $match: { tenantId: new mongoose.Types.ObjectId(tenantId), 'assignment.assignedAt': { $gte: todayStart }, assignedTo: { $in: users.map((u: any) => u._id) } } },
     { $group: { _id: '$assignedTo', count: { $sum: 1 } } },
   ]);
 
-  const countMap = new Map(todayCounts.map(r => [r._id, r.count]));
+  const countMap = new Map(todayCounts.map(r => [String(r._id), r.count]));
 
   return userIds.filter((uid: string) => {
     const agentCfg = config.weights?.find((w: any) => w.userId === uid);
@@ -70,18 +91,18 @@ async function getCandidates(tenantId: string, config: any): Promise<string[]> {
 
 /** Round-robin: pick the next agent after the last assigned one */
 async function pickRoundRobin(config: any, candidates: string[], tenantId: string): Promise<string | null> {
-  const ptr = config.roundRobinPointer;
-  let nextIndex = 0;
-  if (ptr) {
-    const idx = candidates.indexOf(ptr);
-    if (idx !== -1) nextIndex = (idx + 1) % candidates.length;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const ptr = config.roundRobinPointer;
+    const idx = ptr ? candidates.indexOf(ptr) : -1;
+    const chosen = candidates[(idx + 1) % candidates.length];
+    const updated = await LeadDistributionConfig.findOneAndUpdate(
+      { tenantId, roundRobinPointer: ptr }, { roundRobinPointer: chosen }
+    );
+    if (updated) return chosen;
+    config = await LeadDistributionConfig.findOne({ tenantId });
+    if (!config) return null;
   }
-  const chosen = candidates[nextIndex];
-  await LeadDistributionConfig.findOneAndUpdate(
-    { tenantId },
-    { roundRobinPointer: chosen }
-  );
-  return chosen;
+  return null;
 }
 
 /** Weighted: pick probabilistically based on weights */

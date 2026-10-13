@@ -8,6 +8,8 @@ import { outperoApi, outperoErr, OutperoCalls } from '../../api/outperoApi';
  */
 
 const ACTION_LABEL: Record<string, string> = {
+  needs_call_id: 'Missing provider call ID: review payload',
+  awaiting_assignment: 'Awaiting owner', feedback_interested: 'Interested lead assigned', feedback_callback: 'Callback processed', feedback_demo: 'Demo processed', feedback_needs_review: 'Needs review', feedback_no_answer: 'No answer: review', feedback_not_interested: 'Not interested', feedback_wrong_number: 'Wrong number: calls stopped', feedback_opt_out: 'Opt-out: calls stopped', interested_task: 'Follow-up task',
   logged: 'Logged on lead', summary: 'Summary added', demo: 'Demo follow-up', callback: 'Callback follow-up',
   not_interested: 'Not-interested reason', whatsapp_consent: 'WhatsApp consent', details: 'Details filled',
 };

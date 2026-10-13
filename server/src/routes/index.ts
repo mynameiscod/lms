@@ -83,7 +83,8 @@ import resourceRoutes from './resourceRoutes';
 import speakingRoutes from './speakingRoutes';
 import drillRoutes from './drillRoutes';
 import liveClassRoutes from './liveClassRoutes';
-import { hmsWebhook } from '../controllers/liveClassController';
+import { rateLimit } from '../middleware/rateLimit';
+import { hmsWebhook, publicInviteInfo, publicJoin } from '../controllers/liveClassController';
 import communicationRoutes from './communicationRoutes';
 import thinkingLabRoutes from './thinkingLabRoutes';
 import visualizerRoutes from './visualizerRoutes';
@@ -121,8 +122,14 @@ import externalApiRoutes from './externalApiRoutes';
 import codeJudgeRoutes from './codeJudgeRoutes';
 import { moduleGate } from '../middleware/moduleGate';
 import outperoRoutes from './outperoRoutes';
+import leadArchiveRoutes from './leadArchiveRoutes';
+import eventApiRoutes, { publicEventRoutes } from './eventApiRoutes';
 import tenantIntegrationsRoutes from './tenantIntegrationsRoutes';
 import practicePassRoutes from './practicePassRoutes';
+import employeeRoutes from './employeeRoutes';
+import employeePortalRoutes from './employeePortalRoutes';
+import employeeActivityRoutes from './employeeActivityRoutes';
+import employeeExpenseRoutes from './employeeExpenseRoutes';
 import interviewHubRoutes from './interviewHubRoutes';
 import questionBookRoutes from './questionBookRoutes';
 import concernRoutes from './concernRoutes';
@@ -178,12 +185,15 @@ router.get('/public/branding/:idOrSlug', async (req, res) => {
     res.json({ success: true, data: b });
   } catch { res.status(404).json({ success: false, message: 'Not found' }); }
 });
+router.use('/event-apis', eventApiRoutes); // Event APIs: admin-defined registration APIs for the website
+router.use('/lead-archive', leadArchiveRoutes); // Leads → Archive (admins): archive by filter, restore, delete after 3 years
 router.use('/outpero', outperoRoutes); // leads → Outpero AI calls (off / manual / auto)
 router.use('/tenant-integrations', tenantIntegrationsRoutes); // institute admin: own Razorpay, UPI, email, Meta pixel
 router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public/certificate', publicCertificateRoutes); // certificate verification (specific, before generic /public)
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount
 router.use('/public/proof', publicProofRoutes); // HR-facing candidate proof profile (specific, before generic /public)
+router.use('/public/events', publicEventRoutes); // Event APIs: what the website calls (live events, fields, registrations)
 router.use('/public/placement-program', publicPlacementProgramRoutes); // ad landing form (specific, before generic /public)
 router.get('/public/unsubscribe', unsubscribe);
 // Amazon SES bounce/complaint events via SNS (public, signature-verified).
@@ -205,6 +215,9 @@ router.use('/meta-leads', metaLeadAdsRoutes);
 router.post('/payments/webhook', paymentWebhook); // Razorpay webhook (public, signature-verified) — before the authed /payments mount
 router.all('/payments/return', paymentReturn);    // Razorpay redirect-mode return URL (public) — settles + bounces to app
 router.post('/hms/webhook', hmsWebhook); // 100ms webhook (public) — recording ready, peer join/leave
+// Public: a live-class invitee's personal join link (/live/<token>) — no login.
+router.get('/public/live/:token', rateLimit('liveJoin'), publicInviteInfo as any);
+router.post('/public/live/:token/join', rateLimit('liveJoin'), publicJoin as any);
 
 router.use('/auth', authRoutes);
 router.use('/tenants', tenantRoutes);
@@ -272,6 +285,10 @@ router.use('/whatsapp-drip-config', whatsappDripConfigRoutes);
 router.use('/whatsapp-templates', whatsAppTemplateRoutes); // author Meta templates in the LMS + assign to system uses
 router.use('/problem-bank', problemBankRoutes); // single store of runnable coding problems
 router.use('/coding-practice', codingPracticeRoutes); // learners solving problem sets from the bank
+router.use('/employees', employeeRoutes); // employee directory, profiles, pay history, logins, lists
+router.use('/employee-portal', employeePortalRoutes); // an employee's own profile, daily activity, expenses
+router.use('/employee-activity', employeeActivityRoutes); // daily activity review
+router.use('/employee-expenses', employeeExpenseRoutes); // expense approval, payment, reports
 router.use('/practice-pass', practicePassRoutes); // daily practice attendance + placement hold
 router.use('/interview-hub', interviewHubRoutes); // real interview experiences, global pool + invites
 router.use('/question-books', questionBookRoutes); // staff-written interview question books, read notebook-style

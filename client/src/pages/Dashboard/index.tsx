@@ -3,6 +3,7 @@ import OnboardingChecklist from '../../components/OnboardingChecklist';
 import XpLeaderboard from '../../components/dashboard/XpLeaderboard';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { userCan } from '../../utils/permissions';
 import { Spinner } from '../../components/common';
 import { attendanceApi, dashboardApi, leadApi, collegeSnapshotApi, placementDriveApi, alumniApi } from '../../api';
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
@@ -313,7 +314,7 @@ const DashboardPage: React.FC = () => {
   // Admin Dashboard
   const isAdmin = isAdminUser;
   // The rich overview (org-wide revenue, leads, placements…) is for org admins only.
-  const isOrgAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN';
+  const isOrgAdmin = userCan(user as any, ['view_admin_dashboard'], ['TENANT_ADMIN']);
 
   if (isOrgAdmin) {
     return (

@@ -24,6 +24,7 @@ export type FollowUpStatus =
 export type FollowUpPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface IFollowUpReminder extends Document {
+  automationKey?: string;
   tenantId: mongoose.Types.ObjectId;
   leadId: mongoose.Types.ObjectId;
   assignedTo: mongoose.Types.ObjectId;
@@ -66,6 +67,7 @@ export interface IFollowUpReminder extends Document {
 
 const FollowUpReminderSchema: Schema = new Schema(
   {
+    automationKey: { type: String },
     tenantId: {
       type: mongoose.Types.ObjectId,
       ref: 'Tenant',
@@ -172,5 +174,7 @@ FollowUpReminderSchema.index({ tenantId: 1, leadId: 1 });
 FollowUpReminderSchema.index({ tenantId: 1, status: 1, scheduledAt: 1 });
 FollowUpReminderSchema.index({ tenantId: 1, reminderAt: 1, reminderSent: 1 });
 FollowUpReminderSchema.index({ tenantId: 1, type: 1 });
+
+FollowUpReminderSchema.index({ tenantId: 1, automationKey: 1 }, { unique: true, partialFilterExpression: { automationKey: { $type: 'string' } } });
 
 export default mongoose.model<IFollowUpReminder>('FollowUpReminder', FollowUpReminderSchema);

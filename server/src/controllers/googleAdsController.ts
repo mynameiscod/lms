@@ -5,6 +5,7 @@ import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
 import { scoreAndAssignLead } from '../services/leadScoringService';
 import { sendLeadWelcomeWhatsApp } from '../services/whatsAppWelcomeService';
+import { reviveIfArchived } from '../services/leadArchiveService';
 
 // ── Interfaces matching Google Lead Form webhook payload ─────────────────────
 
@@ -113,6 +114,7 @@ export const handleGoogleLeadWebhook = async (req: Request, res: Response) => {
       const lastTen = phone.replace(/\D/g, '').slice(-10);
       const existing = await Lead.findOne({ tenantId, phone: { $regex: lastTen + '$' } }).lean();
       if (existing) {
+        await reviveIfArchived((existing as any)._id, 'new Google Ads enquiry');
         // Append a note that Google Ads lead came in again
         await Lead.updateOne({ _id: (existing as any)._id }, {
           $push: {

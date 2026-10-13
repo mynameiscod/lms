@@ -1,3 +1,4 @@
+import { roleGuard } from '../middleware/roleGuard';
 import express from 'express';
 import {
   listLessons,
@@ -20,22 +21,23 @@ const router = express.Router();
 
 // All routes require auth + tenant
 router.use(authMiddleware, tenantResolver);
+const manage = roleGuard(['manage_learning_plans', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
 
 // Templates (admin)
 router.get('/templates', getTemplates);
 
 // AI generation (admin)
-router.post('/generate-ai', generateLessonAI);
+router.post('/generate-ai', manage, generateLessonAI);
 
 // Lessons CRUD (admin/instructor)
 router.get('/', listLessons);
-router.post('/', createLesson);
+router.post('/', manage, createLesson);
 router.get('/:id', getLesson);
-router.put('/:id', updateLesson);
-router.delete('/:id', deleteLesson);
+router.put('/:id', manage, updateLesson);
+router.delete('/:id', manage, deleteLesson);
 
 // Progress admin view
-router.get('/:lessonId/progress-admin', getLessonProgressAdmin);
+router.get('/:lessonId/progress-admin', manage, getLessonProgressAdmin);
 
 // Code execution (student use during lesson)
 router.post('/execute', executeCode);

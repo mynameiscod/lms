@@ -1,3 +1,4 @@
+import FeedbackPolicy from './FeedbackPolicy';
 import React, { useCallback, useEffect, useState } from 'react';
 import CallResults from './CallResults';
 import { outperoApi, outperoErr, OutperoConfig, OutperoMode, LeadFilterOptions, BulkFilter, OutperoStats } from '../../api/outperoApi';
@@ -168,6 +169,7 @@ const OutperoSettings: React.FC = () => {
         </section>
       )}
 
+      <FeedbackPolicy stages={opts.stages} />
       <CallResults />
 
       <section className="opo-card">

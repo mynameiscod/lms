@@ -218,6 +218,7 @@ export const getLeadsNeedingSummary = async (req: AuthRequest, res: Response) =>
 
     const leads = await Lead.find({
       tenantId,
+      archivedAt: null,
       $or: [
         { 'aiSummary.lastGeneratedAt': { $exists: false } },
         { 'aiSummary.lastGeneratedAt': null },

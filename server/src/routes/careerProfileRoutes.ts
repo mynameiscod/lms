@@ -1,6 +1,7 @@
 import express from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
+import { roleGuard } from '../middleware/roleGuard';
 import {
   getMyProfile,
   updateMyProfile,
@@ -28,11 +29,13 @@ router.post('/my/review', runReview);
 router.post('/my/pillar/:pillar/section/:section/regenerate', regenerateMySection);
 
 // Admin / trainer
-router.get('/', listProfiles);
-router.get('/:id', getProfileById);
-router.patch('/:id/review', updateReview);
-router.patch('/:id/pillar/:pillar', updatePillar);
-router.post('/:id/pillar/:pillar/regenerate', regeneratePillar);
-router.post('/:id/pillar/:pillar/section/:section/regenerate', regenerateSectionAdmin);
+// Everyone's profiles — the same keys as the Career Profiles menu item.
+const manage = roleGuard(['manage_career_pilot', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses']);
+router.get('/', manage, listProfiles);
+router.get('/:id', manage, getProfileById);
+router.patch('/:id/review', manage, updateReview);
+router.patch('/:id/pillar/:pillar', manage, updatePillar);
+router.post('/:id/pillar/:pillar/regenerate', manage, regeneratePillar);
+router.post('/:id/pillar/:pillar/section/:section/regenerate', manage, regenerateSectionAdmin);
 
 export default router;

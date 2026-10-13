@@ -1,3 +1,4 @@
+import { waitsForOutpero } from '../services/outperoPolicyService';
 import { Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest, ApiResponse } from '../types';
@@ -20,6 +21,7 @@ import { scheduleDripOnStageEntry } from '../services/whatsAppDripService';
 import leadAIService from '../services/leadAIService';
 import { enqueueAICall } from '../services/aiCallQueueService';
 import AICallConfig from '../models/AICallConfig';
+import { reviveIfArchived } from '../services/leadArchiveService';
 
 // Helper to create audit log entries
 const auditLog = async (
@@ -57,7 +59,8 @@ const emitLeadEvent = (req: AuthenticatedRequest, event: string, data: any) => {
 // Build common filter from query params, merged with scope filter
 const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<string, any> = {}) => {
   const { stageId, source, assignedTo, search, dateFrom, dateTo, priority, hasPendingApproval } = query;
-  const filter: any = { tenantId, ...scopeFilter };
+  // Archived leads are out of the working lists; Leads → Archive shows them.
+  const filter: any = { tenantId, ...scopeFilter, archivedAt: null };
   if (stageId) filter.stageId = stageId;
   if (source) filter.source = source;
   if (assignedTo) filter.assignedTo = assignedTo;
@@ -100,13 +103,17 @@ export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiRespo
     const skip = (pageNum - 1) * limitNum;
 
     const [leads, total] = await Promise.all([
+      // The timeline and AI-call logs grow with every action and are not shown in the list —
+      // leaving them out keeps the page the same size however long a lead's history gets.
       Lead.find(filter)
+        .select('-activities -aiCallLogs')
         .populate('stageId', 'name color order')
         .populate('assignedTo', 'firstName lastName email')
         .populate('createdBy', 'firstName lastName')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limitNum),
+        .limit(limitNum)
+        .lean(),
       Lead.countDocuments(filter)
     ]);
 
@@ -397,10 +404,14 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
         phone: { $regex: lastTen + '$' }
       }).lean();
       if (dup) {
+        // An archived lead with this number comes back rather than being duplicated.
+        const restored = (dup as any).archivedAt ? await reviveIfArchived((dup as any)._id, 'added again by hand') : false;
         return res.status(409).json({
           success: false,
-          message: 'A lead with this phone number already exists',
-          data: { existingLeadId: (dup as any)._id }
+          message: restored
+            ? 'This number belonged to an archived lead, which has been restored. Open it instead of adding a new one.'
+            : 'A lead with this phone number already exists',
+          data: { existingLeadId: (dup as any)._id, restored }
         });
       }
     }
@@ -474,7 +485,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
     // AI Voice Qualification call — enqueue if enabled for this tenant (fire-and-forget)
     AICallConfig.findOne({ tenantId: req.tenantId, enabled: true })
       .then(cfg => {
-        if (cfg) {
+        if (cfg && !waitsForOutpero(lead, req.tenantId!)) {
           Lead.findByIdAndUpdate(lead._id, { aiCallStatus: 'pending' }).exec().catch(() => {});
           enqueueAICall(lead._id.toString(), req.tenantId!, 1).catch(err =>
             console.error('[LEAD-CREATE] AI call enqueue failed:', err)
@@ -907,6 +918,8 @@ export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<
   try {
     const scopeFilter = await buildLeadScopeFilter(req);
     const baseMatch: any = { tenantId: new mongoose.Types.ObjectId(String(req.tenantId)), ...scopeFilter };
+    // All Leads asks for activeOnly so its counts match its (archive-free) table; reports leave it off.
+    if ((req.query as any).activeOnly === '1') baseMatch.archivedAt = null;
 
     // Apply optional UI filters so stats reflect the same subset as the table
     const { stageId, source, assignedTo, priority, search, dateFrom, dateTo } = req.query as Record<string, string>;
@@ -1343,9 +1356,9 @@ export const getMyPerformance = async (req: AuthenticatedRequest, res: Response<
       stageBreakdown,
       recentActivities
     ] = await Promise.all([
-      Lead.countDocuments({ tenantId: req.tenantId, assignedTo: userId }),
-      Lead.countDocuments({ tenantId: req.tenantId, assignedTo: userId, nextFollowUp: { $gte: today, $lte: todayEnd } }),
-      Lead.countDocuments({ tenantId: req.tenantId, assignedTo: userId, nextFollowUp: { $lt: today, $ne: null } }),
+      Lead.countDocuments({ tenantId: req.tenantId, assignedTo: userId, archivedAt: null }),
+      Lead.countDocuments({ tenantId: req.tenantId, assignedTo: userId, archivedAt: null, nextFollowUp: { $gte: today, $lte: todayEnd } }),
+      Lead.countDocuments({ tenantId: req.tenantId, assignedTo: userId, archivedAt: null, nextFollowUp: { $lt: today, $ne: null } }),
       // Count ALL activities today by this user across all tenant leads
       Lead.aggregate([
         { $match: { tenantId: tenantOid } },
@@ -1770,7 +1783,7 @@ export const getAgingLeads = async (req: AuthenticatedRequest, res: Response<Api
 export const getDuplicateLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const groups = await Lead.aggregate([
-      { $match: { tenantId: req.tenantId as any } },
+      { $match: { tenantId: req.tenantId as any, archivedAt: null } },
       {
         $addFields: {
           last10: { $substr: [{ $replaceAll: { input: '$phone', find: ' ', replacement: '' } }, -10, 10] },
@@ -2093,6 +2106,7 @@ export const getStaleFollowupLeads = async (req: AuthenticatedRequest, res: Resp
 
     // Leads in followup stages where lastActionAt is null or before cutoff
     const staleLeads = await Lead.find({
+      archivedAt: null,
       tenantId: req.tenantId,
       stageId: { $in: stageIds },
       $or: [

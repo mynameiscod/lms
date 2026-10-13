@@ -130,7 +130,7 @@ export const getAICallLeads = async (req: AuthenticatedRequest, res: Response<Ap
     const pageNum = parseInt(page as string, 10);
     const limitNum = parseInt(limit as string, 10);
 
-    const filter: any = { tenantId, aiCallStatus: { $exists: true } };
+    const filter: any = { tenantId, aiCallStatus: { $exists: true }, archivedAt: null };
     if (status) filter.aiCallStatus = status;
     if (category) filter.aiCategory = category;
 

@@ -2,11 +2,12 @@ import express from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import * as ctrl from '../controllers/assessmentItemController';
+import { roleGuard } from '../middleware/roleGuard';
 
 // Admin question-bank management for the skill assessment.
 const router = express.Router();
 
-router.use(authMiddleware, tenantMiddleware);
+router.use(authMiddleware, tenantMiddleware, roleGuard(['manage_skill_assessment', 'create_quiz', 'edit_quiz', 'manage_tenant']));
 
 router.get('/', ctrl.listAssessmentItems);
 router.get('/coverage', ctrl.getAssessmentCoverage);

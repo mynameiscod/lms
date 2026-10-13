@@ -120,7 +120,7 @@ const PATH_MODULE: [string, ModuleKey][] = ([
   ['/problem-bank', 'problemBank'],
   ['/thinking-lab', 'thinkingLab'], ['/admin/thinking-lab', 'thinkingLab'], ['/lab-tracks', 'thinkingLab'],
   ['/leads', 'leads'], ['/follow-ups', 'leads'], ['/lead-', 'leads'], ['/team-activity', 'leads'], ['/sales-content', 'leads'],
-  ['/qualification-settings', 'leads'], ['/google-sheet-integration', 'leads'], ['/admin/outpero', 'leads'], ['/ai-call-config', 'leads'],
+  ['/qualification-settings', 'leads'], ['/google-sheet-integration', 'leads'], ['/admin/outpero', 'leads'], ['/event-apis', 'leads'], ['/ai-call-config', 'leads'],
 ] as [string, ModuleKey][]).sort((a, b) => b[0].length - a[0].length);
 
 export function moduleForPath(path?: string): ModuleKey | null {

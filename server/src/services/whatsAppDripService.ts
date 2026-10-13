@@ -125,7 +125,7 @@ export async function scheduleDripOnStageEntry(
 export async function processDueMessages(): Promise<void> {
   const now = new Date();
   try {
-    const leads = await Lead.find({ 'activities.description': /^drip_entry:/ })
+    const leads = await Lead.find({ 'activities.description': /^drip_entry:/, archivedAt: null })
       .select('_id name phone tenantId activities')
       .lean();
 

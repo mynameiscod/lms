@@ -32,6 +32,9 @@ export interface ISourceDetails {
   formId?: string;
   landingPage?: string;
   referrerUrl?: string;
+  /** Click-to-WhatsApp ads: Meta's click id and the headline the person saw. */
+  ctwaClid?: string;
+  adHeadline?: string;
 }
 
 export interface ICostData {
@@ -137,6 +140,7 @@ export interface ILeadActivity {
 }
 
 export interface ILead extends Document {
+  metaSubmissionIds?: string[];
   name: string;
   email?: string;
   phone: string;
@@ -238,12 +242,23 @@ export interface ILead extends Document {
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  /**
+   * Archived: kept, but out of the working lists, counts and sends (Leads → Archive). Reports still
+   * count it. Restored automatically if the person enquires again. Deleted for good only by an admin,
+   * three years after archiving.
+   */
+  archivedAt?: Date | null;
+  archivedBy?: mongoose.Types.ObjectId;
+  archiveReason?: string;
+  archiveRunId?: mongoose.Types.ObjectId;
+  aiFeedback?: { callId?: string; outcome?: string; receivedAt?: Date; callAt?: Date; state?: string; doNotContact?: boolean };
   outpero?: {
     status?: 'pending' | 'sent' | 'failed';
     via?: 'auto' | 'bulk';
     attempts?: number;
     nextAttemptAt?: Date;
     sentAt?: Date;
+    stageAtSend?: mongoose.Types.ObjectId;
     httpStatus?: number;
     lastError?: string;
   };
@@ -362,6 +377,7 @@ const LeadSchema: Schema = new Schema(
       type: mongoose.Types.ObjectId,
       ref: 'User'
     },
+    metaSubmissionIds: { type: [String], default: undefined },
     activities: [LeadActivitySchema],
     
     // Campaign tracking
@@ -441,7 +457,9 @@ const LeadSchema: Schema = new Schema(
       adName: { type: String, trim: true },
       formId: { type: String, trim: true },
       landingPage: { type: String, trim: true },
-      referrerUrl: { type: String, trim: true }
+      referrerUrl: { type: String, trim: true },
+      ctwaClid: { type: String, trim: true },
+      adHeadline: { type: String, trim: true }
     },
     
     // NEW: Cost tracking (admin visibility only)
@@ -608,12 +626,20 @@ const LeadSchema: Schema = new Schema(
     nextAICallAt: { type: Date },
 
     // Forwarding to Outpero (external AI calling agent). See services/outperoForwardService.
+    archivedAt: { type: Date, default: null },
+    archivedBy: { type: mongoose.Types.ObjectId, ref: 'User' },
+    archiveReason: { type: String, trim: true, maxlength: 300 },
+    archiveRunId: { type: mongoose.Types.ObjectId, ref: 'LeadArchiveRun' },
+
+    aiFeedbackLock: { token: String, until: Date },
+    aiFeedback: { callId: String, outcome: String, receivedAt: Date, callAt: Date, state: String, doNotContact: Boolean },
     outpero: {
       status: { type: String, enum: ['pending', 'sent', 'failed'] },
       via: { type: String, enum: ['auto', 'bulk'] },
       attempts: { type: Number, default: 0 },
       nextAttemptAt: { type: Date },
       sentAt: { type: Date },
+      stageAtSend: { type: mongoose.Types.ObjectId },
       httpStatus: { type: Number },
       lastError: { type: String, trim: true },
     },
@@ -632,7 +658,10 @@ const LeadSchema: Schema = new Schema(
   { timestamps: true }
 );
 
+LeadSchema.index({ tenantId: 1, metaSubmissionIds: 1 });
 LeadSchema.index({ tenantId: 1, stageId: 1 });
+LeadSchema.index({ tenantId: 1, archivedAt: 1, createdAt: -1 });
+LeadSchema.index({ archiveRunId: 1 }, { partialFilterExpression: { archiveRunId: { $exists: true } } });
 LeadSchema.index({ tenantId: 1, assignedTo: 1 });
 LeadSchema.index({ tenantId: 1, nextFollowUp: 1 });
 LeadSchema.index({ tenantId: 1, source: 1 });

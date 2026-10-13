@@ -2,10 +2,13 @@ import express from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import * as ctrl from '../controllers/publicQuizController';
+import { roleGuard } from '../middleware/roleGuard';
 
 const router = express.Router();
 
 router.use(authMiddleware, tenantMiddleware);
+/** Management only — students reach their own data through the /my routes. Same keys as the menu item. */
+router.use(roleGuard(['create_quiz', 'edit_quiz', 'manage_tenant']));
 router.use(express.json());
 
 // Available quizzes (for week-config dropdown)

@@ -1,3 +1,4 @@
+import { useEmployeeStatus } from '../../hooks/useEmployeeStatus';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import { moduleForPath } from '../../config/tenantModules';
@@ -10,6 +11,20 @@ import { StudentFeatureKey } from '../../config/studentFeatureCatalog';
 import visualizerApi from '../../api/visualizerApi';
 import './Sidebar.css';
 
+/**
+ * Pages taken out of the menu on request (2026-10-10). They still open from a direct link, and
+ * nothing behind them changed — /leads/analytics in particular also feeds the stage counts on All
+ * Leads. Delete a line to put that page back in the menu.
+ */
+const HIDDEN_FROM_MENU = new Set<string>([
+  '/lead-manager-board',
+  '/follow-ups',
+  '/leads/analytics',
+  '/sales-content',
+  '/lead-priority-settings',
+  '/qualification-settings',
+]);
+
 interface MenuItem {
   label: string;
   path?: string;
@@ -21,9 +36,14 @@ interface MenuItem {
   permissions?: string[]; // If set, user needs at least one of these permissions
   /** Shown to a student only when the Code Visualizer has been assigned to them. */
   needsVisualizerGrant?: boolean;
+  /** Shown only to a login that is linked to an employee record (the employee portal). */
+  needsEmployee?: boolean;
+  /** Also shown to anyone who has people reporting to them, whatever their permissions. */
+  orTeam?: boolean;
 }
 
 const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = ({ mobileOpen, onMobileClose }) => {
+  const employee = useEmployeeStatus();
   const [isOpen, setIsOpen] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     attendance: false,
@@ -258,6 +278,10 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Communication Lab — Manage', path: '/admin/communication-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-headset', moduleKey: 'aiCommunicationLab', permissions: ['manage_communication_lab'] },
     { label: 'Code Visualizer', path: '/visualizer', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-microscope', needsVisualizerGrant: true, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'My Practice', path: '/my-practice', roles: ['STUDENT'], icon: 'fa-solid fa-fire', permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
+    { label: 'Employee Portal', path: '/employee', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-id-badge', needsEmployee: true },
+    { label: 'Employees', path: '/employees', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-people-group', permissions: ['view_employees', 'manage_employees'] },
+    { label: 'Employee Activity', path: '/employee-activity', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-list-check', permissions: ['review_employee_activity', 'manage_employees'], orTeam: true },
+    { label: 'Employee Expenses', path: '/employee-expenses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-receipt', permissions: ['view_expenses', 'approve_expenses', 'manage_expenses'], orTeam: true },
     { label: 'Practice Pass', path: '/practice-pass', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-fire', permissions: ['manage_practice_pass', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Coding Practice', path: '/coding-practice', roles: ['STUDENT'], icon: 'fa-solid fa-laptop-code', permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
     { label: 'Problem Bank', path: '/problem-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-code', permissions: ['manage_problem_bank', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
@@ -291,7 +315,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'],
       icon: 'fa-solid fa-user-tag',
       moduleKey: 'leads',
-      permissions: ['manage_leads', 'view_leads', 'create_leads', 'edit_leads'],
+      permissions: ['manage_leads', 'view_leads', 'create_leads', 'edit_leads', 'manage_event_apis'],
       submenu: [
         { label: 'All Leads', path: '/leads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-users-viewfinder', permissions: ['manage_leads', 'view_leads'] },
         { label: 'Follow-up Calendar', path: '/follow-ups', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-calendar-days', permissions: ['view_leads', 'edit_leads'] },
@@ -309,6 +333,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'Google Sheets', path: '/google-sheet-integration', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-table', permissions: ['manage_leads'] },
         { label: 'Lead Scoring', path: '/lead-scoring-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_leads'] },
         { label: 'Audit Logs', path: '/lead-audit-logs', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-clock-rotate-left', permissions: ['manage_leads'] },
+        { label: 'Lead Archive', path: '/leads/archive', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-box-archive', permissions: ['archive_leads'] },
+        { label: 'Event APIs', path: '/event-apis', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-calendar-plus', permissions: ['manage_event_apis'] },
         { label: 'Outpero AI Calls', path: '/admin/outpero', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-robot', permissions: ['manage_leads'] },
         { label: 'AI Call Config', path: '/ai-call-config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-phone-volume', permissions: ['manage_leads'] },
       ]
@@ -317,6 +343,12 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
 
   const hasAccessToMenu = (item: MenuItem): boolean => {
     if (!user) return false;
+    if (item.path && HIDDEN_FROM_MENU.has(item.path)) return false;
+
+    // The employee portal belongs to whoever is linked to an employee record, whatever their role;
+    // the team screens also open for a manager, whatever their permissions.
+    if (item.needsEmployee) return employee.isEmployee;
+    if (item.orTeam && employee.hasTeam) return true;
 
     const roleAllowed = !!(user.role && item.roles.includes(user.role));
     const perms = user.permissions || [];
@@ -471,6 +503,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'CRM & GROWTH',            labels: ['Leads', 'Placement Partnership'] },
     { title: 'DRIVES & INTERVIEWS',     labels: ['Drives', 'Question Books'] },
     { title: 'BILLING',                 labels: ['Fees'] },
+    { title: 'EMPLOYEES',               labels: ['Employee Portal', 'Employees', 'Employee Activity', 'Employee Expenses'] },
     { title: 'EVENTS',                  labels: ['Tech Battles', 'Hackathons'] },
     /**
      * Every CareerPilot screen, in the order an admin actually works through them:

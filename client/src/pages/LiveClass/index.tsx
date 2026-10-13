@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { userCan } from '../../utils/permissions';
 
 /**
  * Live Class — browser-native live classroom via Jitsi (no OBS, no install).
@@ -43,7 +44,7 @@ export default function LiveClass() {
   const navigate = useNavigate();
   const { user } = useAuth() as any;
   const role: string = user?.role || '';
-  const isHost = ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'].includes(role);
+  const isHost = userCan(user, ['manage_live_classes', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'], ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']) || role === 'SUPER_ADMIN';
   const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.name || (isHost ? 'Instructor' : 'Student');
 
   const [active, setActive] = useState<LiveSession[]>([]);

@@ -237,6 +237,8 @@ const LeadsPage: React.FC = () => {
       // Analytics params shared by both calls (no stageId — stage cards must show
       // their own count regardless of which stage is currently selected)
       const baseAnalyticsParams = {
+        // The counts match the table, which leaves archived leads out.
+        activeOnly: '1',
         source: filterSource || undefined,
         assignedTo: filterAssignee || undefined,
         priority: filterPriority || undefined,

@@ -111,6 +111,7 @@ async function processAICallJob(job: Job<AICallJobData>): Promise<void> {
     }
 
     // Skip if already completed or converted
+    if (lead.aiFeedback?.doNotContact || lead.archivedAt) return;
     if (lead.aiCallStatus === 'completed' || lead.aiCallStatus === 'skipped') {
       console.log(`${logPrefix} — Lead already ${lead.aiCallStatus}, skipping`);
       return;

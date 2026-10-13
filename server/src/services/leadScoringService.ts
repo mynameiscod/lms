@@ -1,3 +1,4 @@
+import { waitsForOutpero } from './outperoPolicyService';
 import mongoose from 'mongoose';
 import Lead, { ILead, LeadPriority, LeadEligibility } from '../models/Lead';
 import LeadPriorityConfig, {
@@ -248,10 +249,11 @@ export async function scoreAndAssignLead(lead: any, tenantId: mongoose.Types.Obj
   // 4. Assignment
   let assignedTo: mongoose.Types.ObjectId | undefined;
 
-  if (config.assignmentMode === 'round_robin') {
+  const canAssign = !lead.assignedTo && !lead.assignment?.assignedTo && !waitsForOutpero(lead, String(tenantId));
+  if (canAssign && config.assignmentMode === 'round_robin') {
     const assignee = await getNextRoundRobinAssignee(tenantId, config.roundRobinMembers, 'roundRobinIndex');
     if (assignee) assignedTo = assignee;
-  } else if (config.assignmentMode === 'rule_based') {
+  } else if (canAssign && config.assignmentMode === 'rule_based') {
     lead.priority = priority;
     lead.score = score;
 
@@ -278,11 +280,44 @@ export async function scoreAndAssignLead(lead: any, tenantId: mongoose.Types.Obj
     updateData['assignment.assignedAt'] = new Date();
   }
 
+  const assignmentData: any = {};
+  for (const key of ['assignedTo', 'assignment.assignedTo', 'assignment.assignedAt']) {
+    if (key in updateData) { assignmentData[key] = updateData[key]; delete updateData[key]; }
+  }
   await lead.constructor.findByIdAndUpdate(lead._id, { $set: updateData });
+  if (assignedTo) {
+    const assigned = await Lead.updateOne({ _id: lead._id, tenantId, assignedTo: null, 'assignment.assignedTo': null }, { $set: assignmentData });
+    if (!assigned.modifiedCount) assignedTo = undefined;
+  }
 
   console.log(`[LEAD-SCORING] Lead ${lead._id}: score=${score}, priority=${priority}, eligibility=${eligibility}${assignedTo ? `, assigned=${assignedTo}` : ''}`);
 
   return { score, priority, eligibility, eligibilityReason: qualification.reason, assignedTo };
+}
+
+/**
+ * Give an unassigned lead an owner using the institute's Lead Scoring assignment settings
+ * (round robin or rule based). Used when a lead was held for Outpero and its result has arrived —
+ * the same engine that would have assigned it on arrival, just later. Returns the new owner id.
+ */
+export async function assignViaScoringConfig(lead: any, tenantId: mongoose.Types.ObjectId): Promise<mongoose.Types.ObjectId | null> {
+  if (lead.assignedTo || lead.assignment?.assignedTo) return null;
+  const config = await LeadScoringConfig.findOne({ tenantId, isActive: true });
+  if (!config) return null;
+  let assignee: mongoose.Types.ObjectId | null = null;
+  if (config.assignmentMode === 'round_robin') {
+    assignee = await getNextRoundRobinAssignee(tenantId, config.roundRobinMembers, 'roundRobinIndex');
+  } else if (config.assignmentMode === 'rule_based') {
+    const match = findMatchingAssignmentRule(lead, config);
+    if (match) assignee = await getNextRoundRobinAssignee(tenantId, match.members, 'assignmentRule', match.ruleIndex);
+    else if (config.fallbackMembers?.length) assignee = await getNextRoundRobinAssignee(tenantId, config.fallbackMembers, 'fallbackIndex');
+  }
+  if (!assignee) return null;
+  const res = await Lead.updateOne(
+    { _id: lead._id, tenantId, assignedTo: null, 'assignment.assignedTo': null },
+    { $set: { assignedTo: assignee, 'assignment.assignedTo': assignee, 'assignment.assignedAt': new Date() } },
+  );
+  return res.modifiedCount ? assignee : null;
 }
 
 /**
@@ -295,7 +330,7 @@ export async function rescoreAllLeads(tenantId: mongoose.Types.ObjectId): Promis
     return { processed: 0, scored: 0, assigned: 0 };
   }
 
-  const leads = await Lead.find({ tenantId });
+  const leads = await Lead.find({ tenantId, archivedAt: null });
   let scored = 0;
   let assigned = 0;
 
@@ -461,7 +496,7 @@ class LeadScoringService {
   }
 
   async bulkUpdateScores(tenantId: mongoose.Types.ObjectId): Promise<number> {
-    const leads = await Lead.find({ tenantId, convertedStudentId: { $exists: false } });
+    const leads = await Lead.find({ tenantId, convertedStudentId: { $exists: false }, archivedAt: null });
     let updated = 0;
     for (const lead of leads) {
       const result = await this.calculateScore(lead);

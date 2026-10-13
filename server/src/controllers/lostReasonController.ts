@@ -382,6 +382,7 @@ export const getLostReasonAnalytics = async (req: AuthRequest, res: Response) =>
     // Leads due for re-engagement
     const reEngagementDue = await Lead.countDocuments({
       tenantId,
+      archivedAt: null,
       lostAt: { $exists: true },
       reEngagementDate: { $lte: new Date() }
     });
@@ -414,6 +415,7 @@ export const getReEngagementLeads = async (req: AuthRequest, res: Response) => {
 
     const leads = await Lead.find({
       tenantId,
+      archivedAt: null,
       lostAt: { $exists: true },
       reEngagementDate: { $lte: cutoffDate }
     })

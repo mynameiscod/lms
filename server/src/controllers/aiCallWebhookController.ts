@@ -69,8 +69,10 @@ export const handleExotelWebhook = async (req: Request, res: Response): Promise<
     console.log(`[AIWebhook] CallSid=${callSid} status=${exotelStatus} duration=${duration} leadId=${leadId}`);
 
     // Find the lead
-    const lead = leadId
-      ? await Lead.findById(leadId)
+    // The CallSid must be one we placed on that lead: the callback is public, and an id alone would
+    // let anyone rewrite any lead's call log. The institute is the lead's own, never the body's.
+    const lead = leadId && mongoose.Types.ObjectId.isValid(leadId)
+      ? await Lead.findOne({ _id: leadId, 'aiCallLogs.callSid': callSid })
       : await Lead.findOne({ 'aiCallLogs.callSid': callSid });
 
     if (!lead) {
@@ -78,7 +80,7 @@ export const handleExotelWebhook = async (req: Request, res: Response): Promise<
       return;
     }
 
-    if (!tenantId) tenantId = lead.tenantId.toString();
+    tenantId = lead.tenantId.toString();
 
     const outcome = mapExotelStatus(exotelStatus);
     const config = await AICallConfig.findOne({ tenantId });

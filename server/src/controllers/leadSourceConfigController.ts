@@ -1,3 +1,4 @@
+import MetaSyncState from '../models/MetaSyncState';
 import { Response } from 'express';
 import crypto from 'crypto';
 import { AuthenticatedRequest } from '../types';
@@ -87,16 +88,19 @@ export const getConfig = async (req: AuthenticatedRequest, res: Response) => {
       sourceMap[s._id] = { count: s.count, lastLead: s.lastLead };
     }
 
+    const metaSync = await MetaSyncState.findOne({ tenantId }).select('status lastAttemptAt lastSuccessAt lastError webhookStatus webhookError webhookCheckedAt tokenExpiresAt created updated skipped').lean();
     // Build response — mask all tokens
     const safeConfig = {
       _id: config._id,
       metaAds: {
         isConnected: config.metaAds.isConnected,
+        sync: metaSync,
         config: {
           pageAccessToken: maskToken(config.metaAds.config.pageAccessToken || ''),
           appId: config.metaAds.config.appId || '',
           appSecret: maskToken(config.metaAds.config.appSecret || ''),
           pageId: config.metaAds.config.pageId,
+      formIds: config.metaAds.config.formIds || [],
           verifyToken: config.metaAds.config.verifyToken,
           adAccountId: config.metaAds.config.adAccountId,
           webhookUrl: buildWebhookUrl(req, 'meta-leads/webhook'),
@@ -316,6 +320,7 @@ export const getDecryptedTokens = async (tenantId: string) => {
       appId: config.metaAds.config.appId || '',
       appSecret: decrypt(config.metaAds.config.appSecret || ''),
       pageId: config.metaAds.config.pageId,
+      formIds: config.metaAds.config.formIds || [],
       verifyToken: config.metaAds.config.verifyToken,
       adAccountId: config.metaAds.config.adAccountId,
       autoActions: config.metaAds.autoActions,

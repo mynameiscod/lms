@@ -130,6 +130,10 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'WHATSAPP_TEMPLATE_PLACEMENT_INTERVIEW_BOOKED_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
   { key: 'WHATSAPP_TEMPLATE_PLACEMENT_INTERVIEW_REMINDER', label: 'Placement Program — Interview Reminder Template', group: 'messaging', type: 'text', perTenant: true, help: 'Sent 24 h and 1 h before. Same three variables as the booking message. Keep it UTILITY.' },
   { key: 'WHATSAPP_TEMPLATE_PLACEMENT_INTERVIEW_REMINDER_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
+  { key: 'WHATSAPP_TEMPLATE_LIVE_CLASS_INVITE', label: 'Live Class — Invitation Template', group: 'messaging', type: 'text', perTenant: true, help: 'Four variables: {{1}} first name, {{2}} class title, {{3}} date and time (IST), {{4}} join link. Keep it UTILITY. Set from Admin → WhatsApp Templates → Where used.' },
+  { key: 'WHATSAPP_TEMPLATE_LIVE_CLASS_INVITE_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
+  { key: 'WHATSAPP_TEMPLATE_LIVE_CLASS_REMINDER', label: 'Live Class — Starts Soon Template', group: 'messaging', type: 'text', perTenant: true, help: 'Sent about 15 minutes before the class. Same four variables as the invitation. Keep it UTILITY.' },
+  { key: 'WHATSAPP_TEMPLATE_LIVE_CLASS_REMINDER_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
   { key: 'WHATSAPP_TEMPLATE_PLACEMENT_AGREEMENT_SENT', label: 'Placement Program — Agreement To Sign Template', group: 'messaging', type: 'text', perTenant: true, help: 'Two variables: {{1}} first name, {{2}} link to their page. Keep it UTILITY.' },
   { key: 'WHATSAPP_TEMPLATE_PLACEMENT_AGREEMENT_SENT_LANG', label: '↳ Language', group: 'messaging', type: 'text', perTenant: true, placeholder: 'en' },
   { key: 'META_PIXEL_ID', label: 'Meta Pixel / Dataset ID (Conversions API)', group: 'messaging', type: 'text', perTenant: true, placeholder: '1234567890123456', help: 'Events Manager → Data sources → your pixel → Settings. With the token below, the Placement Program sends Paid, Interview attended and Selected to Meta so ads optimise for real candidates.' },
@@ -152,6 +156,11 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'CODE_EXEC_MAX_WAIT_MS', label: 'Max queue wait (ms)', group: 'execution', type: 'number', placeholder: '45000',
     help: 'How long a student waits for a free execution slot before being told the sandbox is busy. A queue is a slope; a rejection is a cliff — prefer waiting to failing.' },
 
+  { key: 'OUTPERO_FEEDBACK_ENABLED', label: 'Outpero - feedback automation', group: 'integrations', type: 'text', help: 'Configure on Leads > Outpero AI calls.' },
+  { key: 'OUTPERO_ASSIGNMENT_TIMING', label: 'Outpero - assignment timing', group: 'integrations', type: 'text' },
+  { key: 'OUTPERO_STAGE_MAPPING', label: 'Outpero - outcome stage mapping', group: 'integrations', type: 'text' },
+  { key: 'OUTPERO_MAX_CALL_ATTEMPTS', label: 'Outpero - maximum call attempts', group: 'integrations', type: 'number' },
+  { key: 'OUTPERO_RETRY_GAP_MINUTES', label: 'Outpero - retry gap minutes', group: 'integrations', type: 'number' },
   { key: 'OUTPERO_MODE', label: 'Outpero — sending mode', group: 'integrations', type: 'text', placeholder: 'off',
     help: 'off, manual or auto. Set per institute on Leads → Outpero AI calls.' },
   { key: 'OUTPERO_ENDPOINT_URL', label: 'Outpero — lead intake endpoint', group: 'integrations', type: 'text',
@@ -216,6 +225,7 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'HMS_TEMPLATE_ID', label: '100ms Template ID', group: 'live-classes', type: 'text', placeholder: '6a5114e5...', help: '100ms Dashboard → Templates → your Webinar template → Template ID. Defines the roles (broadcaster / viewer / viewer-on-stage).' },
   { key: 'HMS_SUBDOMAIN', label: '100ms Subdomain', group: 'live-classes', type: 'text', placeholder: 'code-webinar-2111.app.100ms.live', help: 'Your 100ms app subdomain (from the dashboard).' },
   { key: 'HMS_WEBHOOK_SECRET', label: '100ms Webhook Secret', group: 'live-classes', isSecret: true, type: 'password', help: 'Optional. Shared secret to verify 100ms webhook calls (recording ready, peer join/leave). Set the same value in Dashboard → Developer → Webhooks.' },
+  { key: 'HMS_WEBHOOK_ENFORCE', label: '100ms Webhook — refuse calls without the secret', group: 'live-classes', type: 'text', placeholder: 'false', help: 'Leave "false" until you have added the secret in 100ms (Dashboard → Developer → Webhooks → headers, any header name, e.g. x-webhook-secret). Until then a call without it is accepted and logged. Set "true" once the server log shows no "secret missing" warnings: fake recordings and attendance are then refused.' },
 
   // ── AI Communication Lab ─────────────────────────────────────────────────────
   { key: 'COMMUNICATION_LAB_LEADERBOARD', label: 'Show Leaderboard', group: 'communication-lab', type: 'select', options: ['true', 'false'], placeholder: 'true', help: 'Batch leaderboard visibility for students.', perTenant: true },

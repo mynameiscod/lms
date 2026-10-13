@@ -1,3 +1,7 @@
+import { getPolicy } from './outperoPolicyService';
+import { autoAssignLead } from './leadDistributionService';
+import LeadStage from '../models/LeadStage';
+import { recordStageTransition } from '../controllers/leadStageHistoryController';
 import mongoose from 'mongoose';
 import Lead from '../models/Lead';
 import * as settings from './settingsService';
@@ -127,11 +131,15 @@ async function post(tenantId: string, body: Record<string, unknown>): Promise<{ 
 
 /** Attempt one lead now and record the outcome on it. */
 export async function sendLead(leadId: string): Promise<void> {
-  const lead: any = await Lead.findById(leadId).select('tenantId name phone source courseInterest createdBy outpero').lean();
-  if (!lead || lead.outpero?.status !== 'pending') return;
+  const lead: any = await Lead.findById(leadId).select('tenantId name phone source courseInterest createdBy outpero stageId aiFeedback archivedAt').lean();
+  if (!lead || lead.outpero?.status !== 'pending' || lead.aiFeedback?.doNotContact || lead.archivedAt) return;
   const tenantId = String(lead.tenantId);
   if (getConfig(tenantId).mode === 'off') return; // switched off since it was queued — leave it waiting
 
+  if (getPolicy(tenantId).enabled) {
+    const hour = new Date(Date.now() + 330 * 60_000).getUTCHours();
+    if (hour < 9 || hour >= 20) return;
+  }
   const phone = toE164(lead.phone);
   const attempts = (lead.outpero?.attempts || 0) + 1;
   let r: { ok: boolean; status: number; message: string };
@@ -141,7 +149,16 @@ export async function sendLead(leadId: string): Promise<void> {
   // Retry only what may succeed later: network trouble, 429 and 5xx. A wrong secret or a missing phone will not fix itself.
   const retryable = !r.ok && (r.status === 0 || r.status === 429 || r.status >= 500) && attempts < MAX_ATTEMPTS && !!phone;
   const set: any = { 'outpero.attempts': attempts, 'outpero.httpStatus': r.status || 0 };
-  if (r.ok) Object.assign(set, { 'outpero.status': 'sent', 'outpero.sentAt': new Date(), 'outpero.lastError': '' });
+  let sentStage: any = null;
+  if (r.ok) {
+    // The lead now belongs to Outpero: show it as such ("With Outpero") until the call result comes back.
+    const policy = getPolicy(tenantId);
+    if (policy.enabled && policy.sentStageId && mongoose.isValidObjectId(policy.sentStageId) && String(policy.sentStageId) !== String(lead.stageId)) {
+      sentStage = await LeadStage.findOne({ _id: policy.sentStageId, tenantId: lead.tenantId, isActive: true }).lean();
+    }
+    Object.assign(set, { 'outpero.status': 'sent', 'outpero.sentAt': new Date(), 'outpero.stageAtSend': sentStage ? sentStage._id : lead.stageId, 'outpero.lastError': '' });
+    if (sentStage) set.stageId = sentStage._id;
+  }
   else if (retryable) Object.assign(set, { 'outpero.status': 'pending', 'outpero.nextAttemptAt': new Date(Date.now() + RETRY_MINUTES[attempts - 1] * 60_000), 'outpero.lastError': r.message });
   else Object.assign(set, { 'outpero.status': 'failed', 'outpero.lastError': r.message });
 
@@ -153,7 +170,35 @@ export async function sendLead(leadId: string): Promise<void> {
       description: r.ok ? '🤖 Sent to Outpero — Jyothi (AI) will call this lead.' : `🤖 Not sent to Outpero: ${r.message}`,
     } };
   }
-  await Lead.updateOne({ _id: lead._id }, update);
+  const moved = await Lead.updateOne({ _id: lead._id, 'aiFeedback.doNotContact': { $ne: true }, ...(sentStage ? { stageId: lead.stageId } : {}) }, update);
+  if (sentStage && moved.modifiedCount) await recordStageTransition(lead._id, lead.stageId, sentStage._id, sentStage.name, lead.createdBy, lead.tenantId).catch(() => {});
+}
+
+/**
+ * A lead that has waited too long for Outpero (never reached it, or no call result came back) is
+ * given to a person by the normal round robin, with a note saying why. Without this a lead could
+ * wait for ever for a result that is never coming.
+ */
+export async function assignOverdue(limit = 50): Promise<number> {
+  const rows: any[] = await Lead.find({
+    archivedAt: null, assignedTo: null, 'assignment.assignedTo': null,
+    'outpero.status': { $in: ['pending', 'sent', 'failed'] },
+    'aiFeedback.state': { $nin: ['awaiting_assignment'] },
+  }).sort({ updatedAt: 1 }).limit(limit * 4).select('tenantId createdBy outpero createdAt updatedAt').lean();
+  let n = 0;
+  for (const l of rows) {
+    if (n >= limit) break;
+    const tenantId = String(l.tenantId);
+    const policy = getPolicy(tenantId);
+    if (!policy.enabled) continue;
+    const since = new Date(l.outpero?.sentAt || l.outpero?.nextAttemptAt || l.createdAt).getTime();
+    if (Date.now() - since < policy.fallbackHours * 3600_000) continue;
+    const owner = await autoAssignLead(tenantId, String(l._id), true).catch(() => null);
+    if (!owner) continue;
+    n++;
+    await Lead.updateOne({ _id: l._id }, { $push: { activities: { type: 'note', createdBy: l.createdBy, createdAt: new Date(), description: `🤖 No call result from Outpero within ${policy.fallbackHours} hours — assigned to a team member by round robin.` } } });
+  }
+  return n;
 }
 
 /** Called for every new lead (Lead post-save hook). Only "automatic" mode acts. */
@@ -162,7 +207,7 @@ export async function onLeadCreated(doc: any): Promise<void> {
   if (!mongoose.isValidObjectId(tenantId)) return;
   const cfg = getConfig(tenantId);
   if (cfg.mode !== 'auto' || !cfg.endpointUrl || !cfg.secretSet) return;
-  if (!matchesFilters(doc, cfg)) return;
+  if (!matchesFilters(doc, cfg) || doc.aiFeedback?.doNotContact || doc.archivedAt) return;
   await Lead.updateOne({ _id: doc._id, 'outpero.status': { $exists: false } },
     { $set: { outpero: { status: 'pending', via: 'auto', attempts: 0, nextAttemptAt: new Date() } } });
   await sendLead(String(doc._id));
@@ -181,7 +226,7 @@ export async function processDue(limit = 30): Promise<number> {
 export interface BulkFilter { stageIds?: string[]; sources?: string[]; courses?: string[]; includeAlreadySent?: boolean }
 
 function bulkQuery(tenantId: string, f: BulkFilter) {
-  const q: any = { tenantId: oid(tenantId), phone: { $nin: [null, ''] } };
+  const q: any = { 'aiFeedback.doNotContact': { $ne: true }, tenantId: oid(tenantId), phone: { $nin: [null, ''] }, archivedAt: null };
   const stageIds = (f.stageIds || []).filter((s) => mongoose.isValidObjectId(s)).map(oid);
   if (stageIds.length) q.stageId = { $in: stageIds };
   if (f.sources?.length) q.source = { $in: f.sources };
@@ -252,7 +297,7 @@ export async function testSend(tenantId: string, input: { name?: string; phone?:
 
 /** Put failed leads back in the queue (after fixing the secret, say). */
 export async function retryFailed(tenantId: string) {
-  const r = await Lead.updateMany({ tenantId: oid(tenantId), 'outpero.status': 'failed', phone: { $nin: [null, ''] } },
+  const r = await Lead.updateMany({ tenantId: oid(tenantId), archivedAt: null, 'aiFeedback.doNotContact': { $ne: true }, 'outpero.status': 'failed', phone: { $nin: [null, ''] } },
     { $set: { 'outpero.status': 'pending', 'outpero.attempts': 0, 'outpero.nextAttemptAt': new Date() } });
   return { requeued: r.modifiedCount };
 }

@@ -35,7 +35,11 @@ export interface OutperoStats {
 
 export const outperoErr = (e: any, fallback = 'Something went wrong') => e?.response?.data?.message || e?.message || fallback;
 
+export interface OutperoPolicy { maxCallAttempts: number; retryGapMinutes: number; enabled: boolean; assignmentTiming: 'on_creation' | 'after_call'; stageMapping: Record<string, string>; sentStageId: string; fallbackHours: number; }
 export const outperoApi = {
+  policy: () => axios.get(BASE + '/feedback-policy', h()).then(d) as Promise<OutperoPolicy>,
+  savePolicy: (p: OutperoPolicy) => axios.put(BASE + '/feedback-policy', p, h()).then(d) as Promise<OutperoPolicy>,
+  feedbackQueue: () => axios.get(BASE + '/feedback-queue', h()).then(d) as Promise<{ _id: string; name: string; phone: string; aiFeedback: { state: string; outcome: string } }[]>,
   config: () => axios.get(`${BASE}/config`, h()).then(d) as Promise<{ config: OutperoConfig; options: LeadFilterOptions }>,
   save: (c: Partial<OutperoConfig> & { secret?: string }) => axios.put(`${BASE}/config`, c, h()).then(d) as Promise<OutperoConfig>,
   stats: () => axios.get(`${BASE}/stats`, h()).then(d) as Promise<OutperoStats>,

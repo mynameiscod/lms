@@ -1,3 +1,5 @@
+import Lead from '../models/Lead';
+import { getPolicy, savePolicy } from '../services/outperoPolicyService';
 import express, { Request, Response } from 'express';
 import * as calls from '../services/outperoCallService';
 import { authMiddleware } from '../middleware/auth';
@@ -31,6 +33,12 @@ router.put('/config', wrap((req) => svc.saveConfig(tId(req), uId(req), {
   secret: req.body?.secret === undefined || req.body?.secret === null ? undefined : String(req.body.secret),
   sources: strs(req.body?.sources), courses: strs(req.body?.courses), perMinute: req.body?.perMinute,
 })));
+router.get('/feedback-queue', wrap(async (req) => Lead.find({ tenantId: tId(req), archivedAt: null, 'aiFeedback.state': { $in: ['needs_review', 'awaiting_assignment'] } }).select('name phone aiFeedback').sort({ 'aiFeedback.receivedAt': -1 }).limit(100).lean()));
+router.get('/feedback-policy', wrap(async (req) => getPolicy(tId(req))));
+router.put('/feedback-policy', async (req, res) => {
+  try { res.json({ success: true, data: await savePolicy(tId(req), uId(req), req.body) }); }
+  catch (e: any) { res.status(400).json({ success: false, message: e.message }); }
+});
 router.get('/stats', wrap((req) => svc.stats(tId(req))));
 router.post('/test', wrap((req) => svc.testSend(tId(req), req.body || {})));
 router.post('/bulk/preview', wrap((req) => svc.previewBulk(tId(req), filter(req.body))));
@@ -42,6 +50,15 @@ router.post('/retry-failed', wrap((req) => svc.retryFailed(tId(req))));
 router.get('/webhook', wrap((req) => calls.webhookFor(tId(req), uId(req))));
 router.post('/webhook/rotate', wrap((req) => calls.webhookFor(tId(req), uId(req), true)));
 router.get('/calls', wrap((req) => calls.recentCalls(tId(req))));
+router.get('/calls/:callId/recording', async (req, res) => {
+  try {
+    const { stream, size } = await calls.recordingStream(tId(req), req.params.callId);
+    res.setHeader('Content-Type', 'audio/mpeg');
+    if (size) res.setHeader('Content-Length', String(size));
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    stream.pipe(res);
+  } catch (e: any) { res.status(e instanceof calls.OutperoCallError ? e.status : 500).json({ success: false, message: e?.message || 'Could not load the recording' }); }
+});
 router.get('/calls/latest-raw', wrap((req) => calls.latestRaw(tId(req))));
 
 export default router;

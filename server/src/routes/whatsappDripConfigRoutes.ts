@@ -1,3 +1,4 @@
+import { roleGuard } from '../middleware/roleGuard';
 import express from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
@@ -12,6 +13,7 @@ const router = express.Router();
 
 router.use(authMiddleware as any);
 router.use(tenantMiddleware as any);
+router.use(roleGuard(['manage_leads']) as any);
 
 router.get('/', getDripConfig as any);
 router.put('/', saveDripConfig as any);

@@ -1,3 +1,4 @@
+import { roleGuard } from '../middleware/roleGuard';
 import express, { Request, Response, NextFunction } from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -15,6 +16,7 @@ const router = express.Router();
 
 router.use(authMiddleware as any);
 router.use(tenantResolver as any);
+router.use(roleGuard(['manage_leads', 'view_leads', 'create_leads', 'edit_leads']) as any);
 
 // Multer wrapper that returns 400 on file-type/size errors instead of crashing
 const handleUpload = (req: Request, res: Response, next: NextFunction) => {

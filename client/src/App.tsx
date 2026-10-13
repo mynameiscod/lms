@@ -66,6 +66,9 @@ const PlacementProgramAdmin = lazy(() => import('./pages/PlacementProgramAdmin')
 const MyPlacementInterviews = lazy(() => import('./pages/PlacementProgramAdmin/MyInterviews'));
 const WhatsAppInbox = lazy(() => import('./pages/WhatsAppInbox'));
 const OutperoSettings = lazy(() => import('./pages/OutperoSettings'));
+const EventApis = lazy(() => import('./pages/EventApis'));
+const LeadArchivePage = lazy(() => import('./pages/LeadArchive'));
+const EventApiEditor = lazy(() => import('./pages/EventApis/EventEditor'));
 const TenantIntegrations = lazy(() => import('./pages/TenantIntegrations'));
 const TenantBranding = lazy(() => import('./pages/TenantBranding'));
 const StudentDrivesPage = lazy(() => import('./pages/Drives/StudentDrives'));
@@ -89,6 +92,12 @@ const ProblemSets = lazy(() => import('./pages/ProblemBank/Sets'));
 const ProblemSetEditor = lazy(() => import('./pages/ProblemBank/SetEditor'));
 const ProblemBankApi = lazy(() => import('./pages/ProblemBank/ApiAccess'));
 const PracticePassAdmin = lazy(() => import('./pages/PracticePass'));
+const EmployeeDirectory = lazy(() => import('./pages/Employees/EmployeeDirectory'));
+const EmployeeProfile = lazy(() => import('./pages/Employees/EmployeeProfile'));
+const EmployeeSettings = lazy(() => import('./pages/Employees/EmployeeSettings'));
+const ActivityReview = lazy(() => import('./pages/Employees/ActivityReview'));
+const ExpenseAdmin = lazy(() => import('./pages/Employees/ExpenseAdmin'));
+const EmployeePortal = lazy(() => import('./pages/Employees/portal/EmployeePortal'));
 const MyPractice = lazy(() => import('./pages/PracticePass/MyPractice'));
 const InterviewHubFeed = lazy(() => import('./pages/InterviewHub/Feed'));
 const InterviewHubDetail = lazy(() => import('./pages/InterviewHub/Detail'));
@@ -261,6 +270,7 @@ const ScheduledInterviewsPage = lazy(() => import('./pages/ScheduledInterviews')
 const InterviewDetailPage = lazy(() => import('./pages/ScheduledInterviews/InterviewDetail'));
 const HmsClassesPage = lazy(() => import('./pages/HmsClasses'));
 const HmsRoomPage = lazy(() => import('./pages/HmsClasses/Room'));
+const LiveGuestJoin = lazy(() => import('./pages/HmsClasses/GuestJoin'));
 const CommunicationLab = lazy(() => import('./pages/CommunicationLab'));
 const CommunicationLabAdmin = lazy(() => import('./pages/CommunicationLabAdmin'));
 const MyInterviewsPage = lazy(() => import('./pages/MyInterviews'));
@@ -295,7 +305,8 @@ const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
     // Features with a permission of their own — so a custom role ticked for one can open its page
     'manage_placement_program', 'manage_placement_partners', 'manage_placement', 'manage_whatsapp_templates', 'chat_whatsapp', 'manage_certificates',
     'view_ai_spend', 'view_activity_logs', 'manage_concerns', 'manage_career_pilot', 'view_fees', 'manage_billing', 'manage_exams',
-    'manage_battles', 'view_battles', 'manage_hackathons', 'view_hackathons', 'manage_passport', 'view_passport_members', 'view_passport_funnel'],
+    'manage_battles', 'view_battles', 'manage_hackathons', 'view_hackathons', 'manage_passport', 'view_passport_members', 'view_passport_funnel',
+    'manage_event_apis', 'view_admin_dashboard', 'archive_leads'],
   'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments', 'manage_snippets', 'grade_snippets', 'manage_interview_templates', 'assign_interviews', 'evaluate_interviews',
     'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans', 'manage_live_classes',
     'manage_skill_assessment', 'manage_leave_requests', 'manage_thinking_lab', 'manage_resources', 'manage_speaking', 'manage_communication_lab'],
@@ -306,7 +317,8 @@ const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
-  requiredRoles
+  requiredRoles,
+  requiredPermissions,
 }) => {
   const { isAuthenticated, loading, user } = useAuth();
   const { pathname } = useLocation();
@@ -319,6 +331,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // re-runs) and a session expiring mid-visit. `replace` so the back button does not
     // return to a page they are no longer allowed to see.
     return <Navigate to={loginPathFor(pathname)} replace />;
+  }
+
+  // A page that names its own permissions opens for anyone holding one of them — the same keys
+  // its menu item and its API check — whatever the role is called.
+  if (requiredPermissions?.length && user && (user.permissions || []).some((p) => requiredPermissions.includes(p))) {
+    return <>{children}</>;
   }
 
   if (requiredRoles && user && !requiredRoles.includes(user.role)) {
@@ -492,6 +510,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/hackathon-exam" element={<HackathonExam />} />
 
       {/* ── Public Tech Battles (no auth) ── */}
+      {/* A live-class invitation link: guests join without an account */}
+      <Route path="/live/:token" element={<LiveGuestJoin />} />
       <Route path="/battles" element={<BattleList />} />
       <Route path="/battles/exam/:token" element={<BattleExam />} />
       <Route path="/battles/:slug/leaderboard" element={<BattleLeaderboard />} />
@@ -855,6 +875,17 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* Employees: directory, profiles, lists. Each screen opens for the permissions its API checks. */}
+      <Route path="/employees" element={<ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['view_employees', 'manage_employees']}><Layout><EmployeeDirectory /></Layout></ProtectedRoute>} />
+      <Route path="/employees/new" element={<ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_employees']}><Layout><EmployeeProfile /></Layout></ProtectedRoute>} />
+      <Route path="/employees/:id" element={<ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['view_employees', 'manage_employees']}><Layout><EmployeeProfile /></Layout></ProtectedRoute>} />
+      <Route path="/employee-settings" element={<ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_employees']}><Layout><EmployeeSettings /></Layout></ProtectedRoute>} />
+      {/* Review and expenses also open for managers (the server limits them to their own team), so no role gate here. */}
+      <Route path="/employee-activity" element={<ProtectedRoute><Layout><ActivityReview /></Layout></ProtectedRoute>} />
+      <Route path="/employee-expenses" element={<ProtectedRoute><Layout><ExpenseAdmin /></Layout></ProtectedRoute>} />
+      {/* The employee's own portal: open to any signed-in login, answered by the server with who they are. */}
+      <Route path="/employee" element={<ProtectedRoute><Layout><EmployeePortal /></Layout></ProtectedRoute>} />
 
       <Route
         path="/practice-pass"
@@ -1332,7 +1363,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/batches"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_tenant_courses']}>
             <Layout>
               <BatchesPage />
             </Layout>
@@ -1483,6 +1514,36 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <TenantIntegrations />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/event-apis"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <EventApis />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/event-apis/new"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <EventApiEditor />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/event-apis/:id/edit"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <EventApiEditor />
             </Layout>
           </ProtectedRoute>
         }
@@ -1645,7 +1706,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/interview-question-bank"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']} requiredPermissions={['manage_interviews']}>
             <Layout>
               <InterviewQuestionBankPage />
             </Layout>
@@ -1715,7 +1776,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/quiz-reports"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']} requiredPermissions={['view_reports']}>
             <Layout>
               <QuizReportsPage />
             </Layout>
@@ -2227,6 +2288,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <SalesContentLibraryPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/leads/archive"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['archive_leads']}>
+            <Layout>
+              <LeadArchivePage />
             </Layout>
           </ProtectedRoute>
         }

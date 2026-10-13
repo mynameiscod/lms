@@ -29,6 +29,11 @@ values its rollback needs; a second `--apply` does nothing.
 | 3 | `rv2Settings` | `passportconfigs.roadmapV2`: `pilot <ids>` / `on` / `v2only` / `off`. Takes effect at once. | Admin → **CareerPilot Roadmap V2** → **Settings**. |
 | 4 | `rv2Rebuild` | Rebuilds old (V1) student roadmaps as V2: not started → whole roadmap; started → completed and open days kept, the rest rebuilt. Dry run without `--apply`; `--stage=<year>` or `--student=<userId>` to narrow it. | Admin → **CareerPilot Roadmap V2** → **Move existing students to V2**, or a student's journey page → **Rebuild roadmap as V2**. |
 
+| 5 | `rv2Lessons` | Rewrites the activities of days students have NOT completed from their units' content as it is now, so a video (or any lesson) uploaded after a roadmap was built appears on it. Also prints how many units per year have a video, and how many of those are placeholders. Dry run without `--apply`. | — |
+
+Run `rv2Lessons … --apply` after every batch of video uploads: a day's activities are saved when
+the roadmap is built, so without it students already on a roadmap never see the new videos.
+
 `rv2Status` is read-only and safe any time: the tenant's name (to confirm the id), the V2
 setting, each year's topic priorities, and how many student roadmaps are V1 and V2 per year.
 

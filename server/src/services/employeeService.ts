@@ -142,14 +142,19 @@ export async function saveConfig(tenantId: string, input: any): Promise<any> {
   return getConfig(tenantId);
 }
 
-async function nextCode(tenantId: string): Promise<string> {
+async function nextCode(tenantId: string): Promise<{ code: string; n: number }> {
   // Skip any code already taken (imported or typed by hand), so a clash can never fail a new employee.
   for (let i = 0; i < 50; i++) {
     const c: any = await EmployeeConfig.findOneAndUpdate({ tenantId: oid(tenantId) }, { $inc: { codeCounter: 1 }, $setOnInsert: { tenantId: oid(tenantId) } }, { upsert: true, new: true }).lean();
     const code = `${c.codePrefix || 'EMP'}-${String(c.codeCounter).padStart(4, '0')}`;
-    if (!(await Employee.exists({ tenantId: oid(tenantId), employeeCode: code }))) return code;
+    if (!(await Employee.exists({ tenantId: oid(tenantId), employeeCode: code }))) return { code, n: c.codeCounter };
   }
   throw new EmployeeError('Could not choose an employee id. Try again.', 500);
+}
+
+/** Give a number back when the employee could not be saved, so ids stay in step with real employees. */
+async function releaseCode(tenantId: string, n: number) {
+  await EmployeeConfig.updateOne({ tenantId: oid(tenantId), codeCounter: n }, { $inc: { codeCounter: -1 } }).catch(() => {});
 }
 
 // ── Reading employees ────────────────────────────────────────────────────────
@@ -322,7 +327,7 @@ export async function createEmployee(tenantId: string, actorId: string, body: an
     if (await Employee.exists({ tenantId: oid(tenantId), workEmail })) throw new EmployeeError('Another employee already has that work email.', 409);
   }
   await assertManagerOk(tenantId, null, body.reportingManagerId);
-  const doc: any = { tenantId: oid(tenantId), employeeCode: await nextCode(tenantId), createdBy: oid(actorId), firstName, lastName: str(body.lastName) || '' };
+  const doc: any = { tenantId: oid(tenantId), createdBy: oid(actorId), firstName, lastName: str(body.lastName) || '' };
   applyPatch(doc, body, PERSONAL.filter((k) => k !== 'firstName' && k !== 'lastName'));
   applyPatch(doc, body, JOB.filter((k) => k !== 'exitReason'));
   for (const k of DATES) { const d = toDate(body[k]); if (d !== undefined) doc[k] = d; }
@@ -340,8 +345,16 @@ export async function createEmployee(tenantId: string, actorId: string, body: an
     }
   }
   doc.roleHistory = [{ effectiveFrom: doc.joiningDate || new Date(), type: 'joining', designation: doc.designation, department: doc.department, grade: doc.grade, reportingManagerId: doc.reportingManagerId, note: 'Joined', createdBy: oid(actorId) }];
-  const created: any = await Employee.create(doc);
-  return created.toObject();
+  // Only now, with every check passed, is an employee id used up.
+  const { code, n } = await nextCode(tenantId);
+  doc.employeeCode = code;
+  try {
+    const created: any = await Employee.create(doc);
+    return created.toObject();
+  } catch (e) {
+    await releaseCode(tenantId, n);
+    throw e;
+  }
 }
 
 export async function updateEmployee(tenantId: string, actorId: string, id: string, body: any, perms: { sensitive: boolean }, deactivateLoginOnExit = false) {

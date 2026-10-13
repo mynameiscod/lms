@@ -39,6 +39,16 @@ describe('employee records', () => {
     await expect(mkEmp({ workEmail: 'same@x.test' })).rejects.toThrow('already has that work email');
   });
 
+  it('does not use up an employee id when the employee could not be saved', async () => {
+    await expect(mkEmp({ gender: 'Robot' })).rejects.toThrow('not a valid gender');
+    await expect(mkEmp({ firstName: '' })).rejects.toThrow('First name');
+    await expect(mkEmp({ workMode: 'moon' })).rejects.toThrow('work mode');
+    const first = await mkEmp();
+    expect(first.employeeCode).toBe('EMP-0001');
+    await expect(mkEmp({ workEmail: first.workEmail })).rejects.toThrow('already has that work email');
+    expect((await mkEmp()).employeeCode).toBe('EMP-0002');
+  });
+
   it('stores identity and bank numbers encrypted, and shows them only to those allowed', async () => {
     const e = await mkEmp({ sensitive: { pan: 'ABCDE1234F', bankAccountNumber: '123456789012', bankIfsc: 'HDFC0001234' } });
     const raw: any = await Employee.findById(e._id).lean();

@@ -1,0 +1,22 @@
+/* Screen-specific bits for the admin employee screens (directory, profile, settings). */
+.emp-dir-mini { list-style: none; margin: 0; padding: 0; font-size: 13px; display: grid; gap: 4px; }
+.emp-dir-link { border: 0; background: none; padding: 0; font: inherit; font-weight: 700; color: #3730a3; cursor: pointer; }
+.emp-dir-link:hover { text-decoration: underline; }
+
+.emp-prof-head { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 14px; }
+.emp-prof-head h1 { font-size: 21px; font-weight: 800; margin: 0; }
+.emp-rowlist { display: grid; gap: 8px; }
+.emp-rowlist-item { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) auto; align-items: end; padding: 8px; border: 1px solid #eef2f7; border-radius: 10px; }
+.emp-timeline { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 2px solid #e2e8f0; display: grid; gap: 12px; }
+.emp-timeline li { position: relative; font-size: 13.5px; }
+.emp-timeline li::before { content: ''; position: absolute; left: -20px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: #6366f1; }
+.emp-copybox { background: #f1f5f9; border: 1px dashed #94a3b8; border-radius: 9px; padding: 8px 10px; font-family: monospace; font-size: 12.5px; word-break: break-all; }
+.emp-link-danger { border: 0; background: none; color: #b91c1c; font-weight: 700; cursor: pointer; padding: 0; font-size: 13px; }
+.emp-link-danger:hover { text-decoration: underline; }
+.emp-pos { color: #166534; font-weight: 700; }
+.emp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.emp-chip .x { border: 0; background: none; cursor: pointer; font-size: 15px; line-height: 1; color: #64748b; padding: 0 0 0 2px; }
+.emp-savebar { position: sticky; top: 0; z-index: 5; background: #f8fafc; padding: 8px 0; margin-bottom: 8px; }
+.emp-pick-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.emp-pick-list li { display: flex; justify-content: space-between; gap: 8px; align-items: center; border: 1px solid #eef2f7; border-radius: 9px; padding: 6px 10px; font-size: 13.5px; }
+.emp-radio { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; margin-bottom: 6px; }

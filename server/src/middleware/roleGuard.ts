@@ -300,6 +300,29 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'manage_skill_assessment', label: 'Manage Skill Assessment, Schedules & Candidates' },
     ]
   },
+  employees: {
+    label: 'Employees',
+    permissions: [
+      { key: 'view_employees', label: 'View the employee directory and profiles' },
+      { key: 'manage_employees', label: 'Add and edit employees, record hikes, create logins, set up employee lists' },
+      { key: 'view_employee_sensitive', label: 'See salary, PAN, Aadhaar and bank details' },
+      { key: 'review_employee_activity', label: 'See all employees daily activity and sign it off' },
+    ]
+  },
+  expenses: {
+    label: 'Employee Expenses',
+    permissions: [
+      { key: 'view_expenses', label: 'View all employee expenses and reports' },
+      { key: 'approve_expenses', label: 'Approve or reject employee expenses' },
+      { key: 'manage_expenses', label: 'Mark expenses paid, set expense categories and rules, export' },
+    ]
+  },
+  employee_portal: {
+    label: 'Employee Portal',
+    permissions: [
+      { key: 'use_employee_portal', label: 'Use the employee portal (own profile, daily activity, expenses)' },
+    ]
+  },
   operations: {
     label: 'Operations & Monitoring',
     permissions: [
@@ -317,6 +340,8 @@ export const FEATURE_PERMISSIONS = [
   'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans',
   'manage_live_classes', 'manage_skill_assessment', 'manage_leave_requests', 'manage_concerns', 'view_activity_logs',
   'chat_whatsapp', 'manage_event_apis', 'view_admin_dashboard',
+  'view_employees', 'manage_employees', 'view_employee_sensitive', 'review_employee_activity',
+  'view_expenses', 'approve_expenses', 'manage_expenses', 'use_employee_portal',
 ];
 
 // Flatten all permission keys

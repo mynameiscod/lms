@@ -1,3 +1,4 @@
+import { useEmployeeStatus } from '../../hooks/useEmployeeStatus';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import { moduleForPath } from '../../config/tenantModules';
@@ -35,9 +36,14 @@ interface MenuItem {
   permissions?: string[]; // If set, user needs at least one of these permissions
   /** Shown to a student only when the Code Visualizer has been assigned to them. */
   needsVisualizerGrant?: boolean;
+  /** Shown only to a login that is linked to an employee record (the employee portal). */
+  needsEmployee?: boolean;
+  /** Also shown to anyone who has people reporting to them, whatever their permissions. */
+  orTeam?: boolean;
 }
 
 const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = ({ mobileOpen, onMobileClose }) => {
+  const employee = useEmployeeStatus();
   const [isOpen, setIsOpen] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     attendance: false,
@@ -272,6 +278,10 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Communication Lab — Manage', path: '/admin/communication-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-headset', moduleKey: 'aiCommunicationLab', permissions: ['manage_communication_lab'] },
     { label: 'Code Visualizer', path: '/visualizer', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-microscope', needsVisualizerGrant: true, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'My Practice', path: '/my-practice', roles: ['STUDENT'], icon: 'fa-solid fa-fire', permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
+    { label: 'Employee Portal', path: '/employee', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-id-badge', needsEmployee: true },
+    { label: 'Employees', path: '/employees', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-people-group', permissions: ['view_employees', 'manage_employees'] },
+    { label: 'Employee Activity', path: '/employee-activity', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-list-check', permissions: ['review_employee_activity', 'manage_employees'], orTeam: true },
+    { label: 'Employee Expenses', path: '/employee-expenses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-receipt', permissions: ['view_expenses', 'approve_expenses', 'manage_expenses'], orTeam: true },
     { label: 'Practice Pass', path: '/practice-pass', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-fire', permissions: ['manage_practice_pass', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Coding Practice', path: '/coding-practice', roles: ['STUDENT'], icon: 'fa-solid fa-laptop-code', permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
     { label: 'Problem Bank', path: '/problem-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-code', permissions: ['manage_problem_bank', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
@@ -334,6 +344,11 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const hasAccessToMenu = (item: MenuItem): boolean => {
     if (!user) return false;
     if (item.path && HIDDEN_FROM_MENU.has(item.path)) return false;
+
+    // The employee portal belongs to whoever is linked to an employee record, whatever their role;
+    // the team screens also open for a manager, whatever their permissions.
+    if (item.needsEmployee) return employee.isEmployee;
+    if (item.orTeam && employee.hasTeam) return true;
 
     const roleAllowed = !!(user.role && item.roles.includes(user.role));
     const perms = user.permissions || [];
@@ -488,6 +503,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'CRM & GROWTH',            labels: ['Leads', 'Placement Partnership'] },
     { title: 'DRIVES & INTERVIEWS',     labels: ['Drives', 'Question Books'] },
     { title: 'BILLING',                 labels: ['Fees'] },
+    { title: 'EMPLOYEES',               labels: ['Employee Portal', 'Employees', 'Employee Activity', 'Employee Expenses'] },
     { title: 'EVENTS',                  labels: ['Tech Battles', 'Hackathons'] },
     /**
      * Every CareerPilot screen, in the order an admin actually works through them:

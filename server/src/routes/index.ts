@@ -126,6 +126,10 @@ import leadArchiveRoutes from './leadArchiveRoutes';
 import eventApiRoutes, { publicEventRoutes } from './eventApiRoutes';
 import tenantIntegrationsRoutes from './tenantIntegrationsRoutes';
 import practicePassRoutes from './practicePassRoutes';
+import employeeRoutes from './employeeRoutes';
+import employeePortalRoutes from './employeePortalRoutes';
+import employeeActivityRoutes from './employeeActivityRoutes';
+import employeeExpenseRoutes from './employeeExpenseRoutes';
 import interviewHubRoutes from './interviewHubRoutes';
 import questionBookRoutes from './questionBookRoutes';
 import concernRoutes from './concernRoutes';
@@ -281,6 +285,10 @@ router.use('/whatsapp-drip-config', whatsappDripConfigRoutes);
 router.use('/whatsapp-templates', whatsAppTemplateRoutes); // author Meta templates in the LMS + assign to system uses
 router.use('/problem-bank', problemBankRoutes); // single store of runnable coding problems
 router.use('/coding-practice', codingPracticeRoutes); // learners solving problem sets from the bank
+router.use('/employees', employeeRoutes); // employee directory, profiles, pay history, logins, lists
+router.use('/employee-portal', employeePortalRoutes); // an employee's own profile, daily activity, expenses
+router.use('/employee-activity', employeeActivityRoutes); // daily activity review
+router.use('/employee-expenses', employeeExpenseRoutes); // expense approval, payment, reports
 router.use('/practice-pass', practicePassRoutes); // daily practice attendance + placement hold
 router.use('/interview-hub', interviewHubRoutes); // real interview experiences, global pool + invites
 router.use('/question-books', questionBookRoutes); // staff-written interview question books, read notebook-style

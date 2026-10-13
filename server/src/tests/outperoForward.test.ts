@@ -33,10 +33,15 @@ const lead = (over: any = {}) => ({ _id: 'L1', tenantId: T, name: 'Ravi', phone:
 const connect = (mode = 'auto') => Object.assign(settingsValues, { OUTPERO_MODE: mode, OUTPERO_ENDPOINT_URL: 'https://api.outpero.com/lead-intake/x', OUTPERO_LEAD_SECRET: 's'.repeat(24) });
 const answer = (status: number) => fetchMock.mockResolvedValue({ ok: status < 300, status, text: async () => '' });
 
+// Outpero only calls between 9 AM and 8 PM India time; these tests are about sending, so pin the clock to midday there.
+const NOON_IST = Date.UTC(2026, 9, 14, 12, 0) - 330 * 60_000;
 beforeEach(() => {
+  jest.spyOn(Date, 'now').mockReturnValue(NOON_IST);
   for (const k of Object.keys(settingsValues)) delete settingsValues[k];
   leads.clear(); updates.length = 0; fetchMock.mockReset();
 });
+
+afterEach(() => { jest.restoreAllMocks(); });
 
 describe('toE164', () => {
   it('normalises Indian numbers in every shape the sources send', () => {

@@ -259,6 +259,8 @@ export interface ILead extends Document {
     nextAttemptAt?: Date;
     sentAt?: Date;
     stageAtSend?: mongoose.Types.ObjectId;
+    /** The stage the lead was in before it moved to the Outpero holding stage; put back if Outpero cannot take it. */
+    stageBefore?: mongoose.Types.ObjectId;
     httpStatus?: number;
     lastError?: string;
   };
@@ -640,6 +642,7 @@ const LeadSchema: Schema = new Schema(
       nextAttemptAt: { type: Date },
       sentAt: { type: Date },
       stageAtSend: { type: mongoose.Types.ObjectId },
+      stageBefore: { type: mongoose.Types.ObjectId },
       httpStatus: { type: Number },
       lastError: { type: String, trim: true },
     },

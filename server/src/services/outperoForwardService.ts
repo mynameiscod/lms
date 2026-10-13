@@ -161,6 +161,9 @@ export async function sendLead(leadId: string): Promise<void> {
   }
   else if (retryable) Object.assign(set, { 'outpero.status': 'pending', 'outpero.nextAttemptAt': new Date(Date.now() + RETRY_MINUTES[attempts - 1] * 60_000), 'outpero.lastError': r.message });
   else Object.assign(set, { 'outpero.status': 'failed', 'outpero.lastError': r.message });
+  // Outpero will never call this lead: take it back out of the "With Outpero" stage.
+  const goBack = !r.ok && !retryable && lead.outpero?.stageBefore && String(lead.stageId) === String(lead.outpero.stageAtSend);
+  if (goBack) set.stageId = lead.outpero.stageBefore;
 
   const update: any = { $set: set };
   // The timeline records the outcome once — not every retry.
@@ -170,7 +173,11 @@ export async function sendLead(leadId: string): Promise<void> {
       description: r.ok ? '🤖 Sent to Outpero — Jyothi (AI) will call this lead.' : `🤖 Not sent to Outpero: ${r.message}`,
     } };
   }
-  const moved = await Lead.updateOne({ _id: lead._id, 'aiFeedback.doNotContact': { $ne: true }, ...(sentStage ? { stageId: lead.stageId } : {}) }, update);
+  const moved = await Lead.updateOne({ _id: lead._id, 'aiFeedback.doNotContact': { $ne: true }, ...(sentStage || goBack ? { stageId: lead.stageId } : {}) }, update);
+  if (goBack && moved.modifiedCount) {
+    const prev: any = await LeadStage.findById(lead.outpero.stageBefore).select('name').lean();
+    await recordStageTransition(lead._id, lead.stageId, lead.outpero.stageBefore, prev?.name || 'previous stage', lead.createdBy, lead.tenantId).catch(() => {});
+  }
   if (sentStage && moved.modifiedCount) await recordStageTransition(lead._id, lead.stageId, sentStage._id, sentStage.name, lead.createdBy, lead.tenantId).catch(() => {});
 }
 
@@ -208,9 +215,30 @@ export async function onLeadCreated(doc: any): Promise<void> {
   const cfg = getConfig(tenantId);
   if (cfg.mode !== 'auto' || !cfg.endpointUrl || !cfg.secretSet) return;
   if (!matchesFilters(doc, cfg) || doc.aiFeedback?.doNotContact || doc.archivedAt) return;
-  await Lead.updateOne({ _id: doc._id, 'outpero.status': { $exists: false } },
+  const queued = await Lead.updateOne({ _id: doc._id, 'outpero.status': { $exists: false } },
     { $set: { outpero: { status: 'pending', via: 'auto', attempts: 0, nextAttemptAt: new Date() } } });
+  if (queued.modifiedCount) await showAsWithOutpero(doc);
   await sendLead(String(doc._id));
+}
+
+/**
+ * The moment a new lead is handed to Outpero it shows as "With Outpero", not as a new lead nobody
+ * has touched: calls only run 9 AM to 8 PM India time, so a lead that arrives at night would
+ * otherwise sit as "New Lead" with no explanation until morning.
+ */
+async function showAsWithOutpero(doc: any): Promise<void> {
+  const tenantId = String(doc.tenantId);
+  const policy = getPolicy(tenantId);
+  if (!policy.enabled || !policy.sentStageId || !mongoose.isValidObjectId(policy.sentStageId)) return;
+  const target: any = await LeadStage.findOne({ _id: policy.sentStageId, tenantId: doc.tenantId, isActive: true }).lean();
+  if (!target || String(doc.stageId) === String(target._id)) return;
+  const hour = new Date(Date.now() + 330 * 60_000).getUTCHours();
+  const inHours = hour >= 9 && hour < 20;
+  const moved = await Lead.updateOne({ _id: doc._id, stageId: doc.stageId }, {
+    $set: { stageId: target._id, 'outpero.stageAtSend': target._id, 'outpero.stageBefore': doc.stageId },
+    ...(inHours ? {} : { $push: { activities: { type: 'note', createdBy: doc.createdBy, createdAt: new Date(), description: '🤖 With Outpero — calls run 9 AM to 8 PM (India time), so Jyothi (AI) will call this lead from 9 AM.' } } }),
+  });
+  if (moved.modifiedCount) await recordStageTransition(doc._id, doc.stageId, target._id, target.name, doc.createdBy, doc.tenantId).catch(() => {});
 }
 
 /** The one-minute job: send everything due, oldest first, spaced as queued. */

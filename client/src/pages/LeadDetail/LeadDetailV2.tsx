@@ -25,12 +25,31 @@ interface Lead {
   customFields?: Record<string, any>;
 }
 
+/**
+ * Who an entry on the timeline belongs to. Entries the system writes by itself (a WhatsApp chat
+ * starting a lead, Outpero's AI, a Meta sync, round-robin assignment) are filed under an admin
+ * account in the data, so naming that account would say a person did it; they are labelled by
+ * what really did it. Everything else shows the person's name.
+ */
+export const activityAuthor = (a: { type: string; description: string; createdBy?: { name?: string; firstName?: string; lastName?: string } | null }): string => {
+  const d = a.description || '';
+  if (d.startsWith('🤖')) return 'Outpero AI';
+  if (d.startsWith('📞 AI call')) return 'Outpero AI';
+  if (d.startsWith('📣 Came from a WhatsApp ad')) return 'WhatsApp ad';
+  if (a.type === 'whatsapp' && /^(Lead created from WhatsApp|WhatsApp:|WhatsApp qualification)/.test(d)) return 'WhatsApp (automatic)';
+  if (a.type === 'created' && /synced from Meta/i.test(d)) return 'Meta lead form (automatic)';
+  if (a.type === 'assignment' && /automatic|round robin/i.test(d)) return 'Auto-assignment';
+  const c = a.createdBy;
+  const person = c ? (c.name || [c.firstName, c.lastName].filter(Boolean).join(' ')).trim() : '';
+  return person || 'System';
+};
+
 interface Activity {
   _id: string;
   type: string;
   description: string;
   createdAt: string;
-  createdBy?: { name: string };
+  createdBy?: { name?: string; firstName?: string; lastName?: string } | null;
   recordingUrl?: string;
   callOutcome?: string;
 }
@@ -637,9 +656,7 @@ const LeadDetailV2: React.FC = () => {
                                   <audio controls src={activity.recordingUrl} />
                                 </div>
                               )}
-                              {activity.createdBy && (
-                                <span className="ld2-timeline-user">by {activity.createdBy.name}</span>
-                              )}
+                              <span className="ld2-timeline-user">by {activityAuthor(activity)}</span>
                             </div>
                           </div>
                           {index < sortedActivities.length - 1 && (

@@ -779,8 +779,8 @@ const FoundationJourneyPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Roadmap V2: revision · bridge · year, with the foundation gate. Nothing for a V1 journey. */}
-      <RoadmapPhaseBands phases={journey.phases} gate={journey.gate} stageLabel={journey.stageLabel || undefined} />
+      {/* Roadmap V2: why a day is locked, while earlier checkpoints hold it. The bridge/year split is admin-only. */}
+      <RoadmapPhaseBands gate={journey.gate} />
 
       {/* The card invites; once the welcome is finished it stops asking. The days stay in the strip. */}
       {orientation && !orientation.complete && (
@@ -836,7 +836,7 @@ const FoundationJourneyPage: React.FC = () => {
                 <button
                   type="button"
                   id={`fj-chip-${d.day}`}
-                  className={`fj-chip s-${d.status.toLowerCase()}${state === 'LOCKED' ? ' s-locked' : ''}${openDay === d.day ? ' open' : ''}${d.phase && d.phase !== 'YEAR' ? ` ph-${d.phase.toLowerCase()}` : ''}`}
+                  className={`fj-chip s-${d.status.toLowerCase()}${state === 'LOCKED' ? ' s-locked' : ''}${openDay === d.day ? ' open' : ''}`}
                   onClick={() => selectDay(d.day)}
                   aria-current={d.day === currentDay ? 'step' : undefined}
                   aria-label={`Day ${d.day}, ${STATE_LABEL[state]}: ${d.title}`}

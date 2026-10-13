@@ -96,6 +96,12 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     help: 'Sent when an admin invites students to share what they were asked in an interview (Admin → Interview Experiences → Invite). Email is always free; WhatsApp only goes out when a template is assigned here. Keep it UTILITY.',
   },
   {
+    key: 'OUTPERO_AFTER_HOURS', label: 'CRM — lead arrived after calling hours', module: 'CRM / Leads',
+    settingsKey: 'WHATSAPP_TEMPLATE_OUTPERO_AFTER_HOURS',
+    variables: ['Lead first name', 'When we will call (e.g. "tomorrow morning")'],
+    help: 'Sent once to a lead handed to Outpero outside calling hours (9 AM to 8 PM IST), telling them the team is away and will call from 9 AM. Nothing is sent until a template is assigned here. Keep it UTILITY: it answers their enquiry and has no offer in it. Example: "Hi {{1}}, thank you for your enquiry. Our team is away right now and will call you {{2}} from 9 AM. If you would like to talk sooner, just reply here."',
+  },
+  {
     key: 'LEAD_WELCOME', label: 'CRM — new lead welcome', module: 'CRM / Leads',
     settingsKey: 'WHATSAPP_TEMPLATE_LEAD_WELCOME',
     variables: ['Lead first name'],

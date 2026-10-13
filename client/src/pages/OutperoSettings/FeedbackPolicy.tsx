@@ -34,6 +34,7 @@ export default function FeedbackPolicy({ stages }: { stages: LeadFilterOptions['
       <label className="opo-label" htmlFor="fallback-hours">Hours to wait for Outpero before assigning anyway</label>
       <input id="fallback-hours" className="opo-input xs" type="number" min={1} max={168} value={policy.fallbackHours ?? 24} onChange={e => setPolicy({ ...policy, fallbackHours: Number(e.target.value) })} />
       <p className="opo-hint">If Outpero cannot be reached, or never reports a result, the lead is assigned after this time and a note is added to its timeline.</p>
+      <p className="opo-hint">Calls run 9 AM to 8 PM (India time). A lead that arrives outside those hours shows as "With Outpero" at once, and can be told on WhatsApp that the team will call from 9 AM. To switch that message on, create a UTILITY template in <a href="/admin/whatsapp-templates">WhatsApp Templates</a> and assign it under Where used → "CRM — lead arrived after calling hours". With no template assigned, nothing is sent.</p>
       <label className="opo-label" htmlFor="ai-attempts">Maximum AI call attempts</label>
       <input id="ai-attempts" className="opo-input xs" type="number" min={1} max={5} value={policy.maxCallAttempts} onChange={e => setPolicy({ ...policy, maxCallAttempts: Number(e.target.value) })} />
       <label className="opo-label" htmlFor="ai-retry-gap">Minutes before retrying no answer</label>

@@ -14,6 +14,12 @@ jest.mock('../../services/settingsService', () => ({
   getNum: (k: string, fallback: number) => (values[k] ? Number(values[k]) : fallback),
   setMany: jest.fn(),
 }));
+const sent: any[][] = [];
+let whatsappResult: any = { ok: true };
+jest.mock('../../services/purposeMessaging', () => ({
+  purposeTemplate: (_t: string, key: string) => values['TPL_' + key] ?? '',
+  sendByPurpose: (...a: any[]) => { sent.push(a); return Promise.resolve(whatsappResult); },
+}));
 const fetchMock = jest.fn();
 (global as any).fetch = (...a: any[]) => fetchMock(...a);
 
@@ -31,6 +37,7 @@ beforeEach(async () => {
   await clearCollections();
   for (const k of Object.keys(values)) delete values[k];
   fetchMock.mockReset();
+  sent.length = 0; whatsappResult = { ok: true };
   jest.restoreAllMocks();
   fresh = await LeadStage.create({ tenantId: T, name: 'New Lead', order: 1, color: '#000', isActive: true, createdBy: U } as any);
   withOutpero = await LeadStage.create({ tenantId: T, name: 'With Outpero', order: 2, color: '#000', isActive: true, createdBy: U } as any);
@@ -50,6 +57,59 @@ const settled = async (id: any, done: (l: any) => boolean) => {
   for (let i = 0; i < 60; i++) { const l = await reload(id); if (done(l)) return l; await new Promise((r) => setTimeout(r, 50)); }
   return reload(id);
 };
+
+describe('the after-hours WhatsApp message', () => {
+  const assign = () => { values.TPL_OUTPERO_AFTER_HOURS = 'lead_after_hours'; };
+
+  it('is sent once, in the evening, and tells the lead we will call tomorrow morning', async () => {
+    assign(); atIst(20, 27); answer(202);
+    const lead: any = await newLead();
+    const l = await settled(lead._id, (x) => x.outpero?.afterHoursNoticeAt && x.activities.some((a: any) => /Told on WhatsApp/.test(a.description)));
+    expect(sent).toHaveLength(1);
+    expect(sent[0].slice(1)).toEqual(['9876543210', 'OUTPERO_AFTER_HOURS', ['Ravi', 'tomorrow morning']]);
+    expect(l.activities.some((a: any) => /will call tomorrow morning from 9 AM/.test(a.description))).toBe(true);
+    expect(String(l.stageId)).toBe(String(withOutpero._id));
+    expect(l.outpero.status).toBe('pending');
+    // The one-minute job tries again every minute until morning: still only one message.
+    await svc.sendLead(String(lead._id)); await svc.sendLead(String(lead._id));
+    expect(sent).toHaveLength(1);
+  });
+
+  it('says this morning when the lead arrives in the small hours', async () => {
+    assign(); atIst(5, 10); answer(202);
+    const lead: any = await newLead();
+    await settled(lead._id, () => sent.length === 1);
+    expect(sent[0][3]).toEqual(['Ravi', 'this morning']);
+  });
+
+  it('is not sent during calling hours, when no template is assigned, or when the lead is outside the filters', async () => {
+    assign(); atIst(11, 0); answer(202);
+    await settled((await newLead() as any)._id, (x) => x.outpero?.status === 'sent');
+    expect(sent).toHaveLength(0);
+    delete values.TPL_OUTPERO_AFTER_HOURS; atIst(21, 0);
+    const b: any = await newLead();
+    const lb = await settled(b._id, (x) => x.outpero?.status === 'pending' && String(x.stageId) === String(withOutpero._id));
+    expect(sent).toHaveLength(0);
+    expect(lb.activities.some((a: any) => /WhatsApp message/.test(a.description))).toBe(false);
+    assign(); values.OUTPERO_SOURCES = 'website';
+    const c: any = await newLead();
+    await new Promise((r) => setTimeout(r, 400));
+    expect(sent).toHaveLength(0);
+    expect(String((await reload(c._id)).stageId)).toBe(String(fresh._id));
+  });
+
+  it('writes down on the lead when WhatsApp refuses it, and does not stop the lead being handed to Outpero', async () => {
+    assign(); atIst(21, 0); answer(202);
+    whatsappResult = { ok: false, error: 'Template not approved' };
+    const lead: any = await newLead();
+    const l = await settled(lead._id, (x) => x.activities.some((a: any) => /Could not send the after-hours/.test(a.description)));
+    expect(l.activities.some((a: any) => /Template not approved/.test(a.description))).toBe(true);
+    expect(l.outpero.status).toBe('pending');
+    expect(String(l.stageId)).toBe(String(withOutpero._id));
+    atIst(9, 2); await svc.sendLead(String(lead._id));
+    expect((await reload(lead._id)).outpero.status).toBe('sent');
+  });
+});
 
 describe('a new lead handed to Outpero', () => {
   it('is With Outpero as soon as it is sent, during calling hours', async () => {

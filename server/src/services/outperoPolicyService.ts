@@ -14,6 +14,13 @@ export interface OutperoPolicy {
   /** Hours a lead may wait for Outpero's result before it is given to a person anyway. */
   fallbackHours: number;
 }
+/** Outpero calls between 9 AM and 8 PM India time. */
+export const CALL_FROM_HOUR = 9;
+export const CALL_TO_HOUR = 20;
+export function inCallingWindow(now: number = Date.now()): boolean {
+  const hour = new Date(now + 330 * 60_000).getUTCHours();
+  return hour >= CALL_FROM_HOUR && hour < CALL_TO_HOUR;
+}
 export function getPolicy(tenantId: string): OutperoPolicy {
   let stageMapping: OutperoPolicy['stageMapping'] = {};
   try { const parsed = JSON.parse(settings.getStr('OUTPERO_STAGE_MAPPING', '{}', tenantId)); if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) stageMapping = parsed; } catch { /* old invalid setting */ }

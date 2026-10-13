@@ -1,4 +1,5 @@
-import { getPolicy } from './outperoPolicyService';
+import { getPolicy, inCallingWindow, CALL_FROM_HOUR, CALL_TO_HOUR } from './outperoPolicyService';
+import { purposeTemplate, sendByPurpose } from './purposeMessaging';
 import { autoAssignLead } from './leadDistributionService';
 import LeadStage from '../models/LeadStage';
 import { recordStageTransition } from '../controllers/leadStageHistoryController';
@@ -136,10 +137,7 @@ export async function sendLead(leadId: string): Promise<void> {
   const tenantId = String(lead.tenantId);
   if (getConfig(tenantId).mode === 'off') return; // switched off since it was queued — leave it waiting
 
-  if (getPolicy(tenantId).enabled) {
-    const hour = new Date(Date.now() + 330 * 60_000).getUTCHours();
-    if (hour < 9 || hour >= 20) return;
-  }
+  if (getPolicy(tenantId).enabled && !inCallingWindow()) return;
   const phone = toE164(lead.phone);
   const attempts = (lead.outpero?.attempts || 0) + 1;
   let r: { ok: boolean; status: number; message: string };
@@ -217,7 +215,7 @@ export async function onLeadCreated(doc: any): Promise<void> {
   if (!matchesFilters(doc, cfg) || doc.aiFeedback?.doNotContact || doc.archivedAt) return;
   const queued = await Lead.updateOne({ _id: doc._id, 'outpero.status': { $exists: false } },
     { $set: { outpero: { status: 'pending', via: 'auto', attempts: 0, nextAttemptAt: new Date() } } });
-  if (queued.modifiedCount) await showAsWithOutpero(doc);
+  if (queued.modifiedCount) { await showAsWithOutpero(doc); await sendAfterHoursNotice(doc).catch((e) => console.error('[outpero] after-hours notice', e?.message)); }
   await sendLead(String(doc._id));
 }
 
@@ -232,13 +230,36 @@ async function showAsWithOutpero(doc: any): Promise<void> {
   if (!policy.enabled || !policy.sentStageId || !mongoose.isValidObjectId(policy.sentStageId)) return;
   const target: any = await LeadStage.findOne({ _id: policy.sentStageId, tenantId: doc.tenantId, isActive: true }).lean();
   if (!target || String(doc.stageId) === String(target._id)) return;
-  const hour = new Date(Date.now() + 330 * 60_000).getUTCHours();
-  const inHours = hour >= 9 && hour < 20;
+  const inHours = inCallingWindow();
   const moved = await Lead.updateOne({ _id: doc._id, stageId: doc.stageId }, {
     $set: { stageId: target._id, 'outpero.stageAtSend': target._id, 'outpero.stageBefore': doc.stageId },
     ...(inHours ? {} : { $push: { activities: { type: 'note', createdBy: doc.createdBy, createdAt: new Date(), description: '🤖 With Outpero — calls run 9 AM to 8 PM (India time), so Jyothi (AI) will call this lead from 9 AM.' } } }),
   });
   if (moved.modifiedCount) await recordStageTransition(doc._id, doc.stageId, target._id, target.name, doc.createdBy, doc.tenantId).catch(() => {});
+}
+
+/**
+ * A lead handed over outside calling hours is told on WhatsApp, once, that the team is away and
+ * will call from 9 AM, so they are not left wondering. Needs a template assigned to the "after
+ * hours" use (WhatsApp Templates, Where used); with none assigned nothing is sent and nothing is
+ * written on the lead.
+ */
+export async function sendAfterHoursNotice(doc: any): Promise<void> {
+  const tenantId = String(doc.tenantId);
+  const policy = getPolicy(tenantId);
+  if (!policy.enabled || inCallingWindow() || doc.aiFeedback?.doNotContact || !doc.phone) return;
+  if (!purposeTemplate(tenantId, 'OUTPERO_AFTER_HOURS')) return;
+  // Claim it first, so two runs can never both send.
+  const claimed = await Lead.updateOne({ _id: doc._id, 'outpero.afterHoursNoticeAt': { $exists: false } }, { $set: { 'outpero.afterHoursNoticeAt': new Date() } });
+  if (!claimed.modifiedCount) return;
+  const hour = new Date(Date.now() + 330 * 60_000).getUTCHours();
+  const when = hour >= CALL_TO_HOUR ? 'tomorrow morning' : 'this morning';
+  const first = String(doc.name || '').trim().split(/\s+/)[0] || 'there';
+  const r = await sendByPurpose(tenantId, String(doc.phone), 'OUTPERO_AFTER_HOURS', [first, when]);
+  await Lead.updateOne({ _id: doc._id }, { $push: { activities: {
+    type: 'whatsapp', createdBy: doc.createdBy, createdAt: new Date(),
+    description: r.ok ? `📲 Told on WhatsApp that our team is away and will call ${when} from ${CALL_FROM_HOUR} AM.` : `📲 Could not send the after-hours WhatsApp message: ${(r as any).error || 'unknown error'}`,
+  } } });
 }
 
 /** The one-minute job: send everything due, oldest first, spaced as queued. */

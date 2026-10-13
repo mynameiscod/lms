@@ -141,6 +141,9 @@ const OutperoSettings: React.FC = () => {
           <>
             <label className="opo-label">Leads per minute for bulk sends</label>
             <input className="opo-input xs" type="number" min={1} max={60} value={cfg.perMinute} onChange={(e) => setCfg({ ...cfg, perMinute: Number(e.target.value) || 5 })} />
+            <label className="opo-label" htmlFor="opo-fallback-name">Name to use when a lead's name cannot be read aloud</label>
+            <input id="opo-fallback-name" className="opo-input xs" maxLength={30} value={cfg.fallbackName || ''} onChange={(e) => setCfg({ ...cfg, fallbackName: e.target.value })} />
+            <p className="opo-hint">Outpero says the name out loud, so names are sent in normal capitals (RAVI KUMAR becomes Ravi Kumar). If a name is empty, or has emojis, numbers, symbols or non-English letters, Jyothi says this stand-in name instead. The lead always keeps its real name here.</p>
           </>
         )}
         <div className="opo-actions"><button className="opo-btn" disabled={busy === 'save'} onClick={save}>{busy === 'save' ? 'Saving…' : 'Save'}</button></div>

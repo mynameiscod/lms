@@ -18,6 +18,7 @@ export interface OutperoConfig {
   sources: string[];
   courses: string[];
   perMinute: number;
+  fallbackName: string;
 }
 
 export interface LeadFilterOptions {

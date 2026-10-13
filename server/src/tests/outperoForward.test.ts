@@ -92,6 +92,78 @@ describe('modes', () => {
   });
 });
 
+describe('the name Outpero says aloud', () => {
+  it('writes ALL CAPS and lower case as a normal name', () => {
+    expect(svc.cleanName('RAVI KUMAR')).toBe('Ravi Kumar');
+    expect(svc.cleanName('muni mohan sammana')).toBe('Muni Mohan Sammana');
+    expect(svc.cleanName("o'neil")).toBe("O'Neil");
+    expect(svc.cleanName('MARY-ANN')).toBe('Mary-Ann');
+    expect(svc.cleanName('DR. PRIYA')).toBe('Dr. Priya');
+    expect(svc.cleanName('JOSÉ')).toBe('José');
+    expect(svc.cleanName('  Ravi    Kumar  ')).toBe('Ravi Kumar');
+  });
+
+  it('takes emojis, digits and symbols out of a name that has real letters', () => {
+    expect(svc.cleanName('❤️SHAD SIDDIQUI')).toBe('Shad Siddiqui');
+    expect(svc.cleanName('Raju123')).toBe('Raju');
+    expect(svc.cleanName('~~ Anil _ Reddy ~~')).toBe('Anil Reddy');
+  });
+
+  it('gives nothing back when no readable name is left', () => {
+    for (const bad of ['', '   ', '..', '@@@', '😊', '1234567890', 'A', '-', null, undefined]) expect(svc.cleanName(bad as any)).toBe('');
+  });
+
+  it('refuses a name in another script, even with English letters beside it', () => {
+    expect(svc.cleanName('అజయ్')).toBe('');
+    expect(svc.cleanName('राहुल शर्मा')).toBe('');
+    expect(svc.cleanName('Ravi అజయ్')).toBe('');
+  });
+
+  it('keeps a very long name to a sensible length', () => {
+    const n = svc.cleanName('Averyveryverylong '.repeat(10));
+    expect(n.length).toBeLessThanOrEqual(40);
+    expect(n.endsWith(' ')).toBe(false);
+  });
+
+  it('sends the readable name, or the stand-in, and never touches the lead’s own name', async () => {
+    connect('auto'); answer(200);
+    const cases: [string, string][] = [['GOHAR KHAN', 'Gohar Khan'], ['❤️SHAD SIDDIQUI', 'Shad Siddiqui'], ['..', 'Shiva'], ['', 'Shiva'], ['రమేష్', 'Shiva'], ['1234', 'Shiva']];
+    for (const [i, [raw, expected]] of cases.entries()) {
+      const id = `N${i}`;
+      leads.set(id, { ...lead({ _id: id, name: raw }), outpero: { status: 'pending', attempts: 0 } });
+      await svc.sendLead(id);
+      expect([raw, JSON.parse(fetchMock.mock.calls[i][1].body).lead_name]).toEqual([raw, expected]);
+      expect(leads.get(id).name).toBe(raw);
+      expect(leads.get(id).outpero.sentName).toBe(expected);
+    }
+    // No write ever sets the lead's name.
+    expect(updates.some((u) => u.u?.$set && 'name' in u.u.$set)).toBe(false);
+    // The timeline says when a stand-in was used.
+    const standIn = updates.find((u) => /cannot be read aloud/.test(JSON.stringify(u.u?.$push || '')));
+    expect(standIn).toBeTruthy();
+  });
+
+  it('uses the institute’s own stand-in name when one is set, and Shiva when that is unusable', async () => {
+    connect('auto'); answer(200);
+    settingsValues.OUTPERO_FALLBACK_NAME = 'siva';
+    expect(svc.speakableName('..', T)).toEqual({ name: 'Siva', standIn: true });
+    expect(svc.speakableName('Ravi', T)).toEqual({ name: 'Ravi', standIn: false });
+    settingsValues.OUTPERO_FALLBACK_NAME = '😊';
+    expect(svc.speakableName('..', T).name).toBe('Shiva');
+    delete settingsValues.OUTPERO_FALLBACK_NAME;
+    expect(svc.getConfig(T).fallbackName).toBe('Shiva');
+  });
+
+  it('checks the stand-in name when it is saved, and the test call also gets a readable name', async () => {
+    connect('auto'); answer(200);
+    await expect(svc.saveConfig(T, 'u1', { mode: 'auto', endpointUrl: 'https://api.outpero.com/x', fallbackName: 'రమేష్' })).rejects.toThrow('simple first name');
+    await svc.saveConfig(T, 'u1', { mode: 'auto', endpointUrl: 'https://api.outpero.com/x', fallbackName: 'SIVA' });
+    expect(settingsValues.OUTPERO_FALLBACK_NAME).toBe('Siva');
+    await svc.testSend(T, { name: 'TEST PERSON', phone: '9876543210' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).lead_name).toBe('Test Person');
+  });
+});
+
 describe('delivery outcomes', () => {
   beforeEach(() => connect('auto'));
 

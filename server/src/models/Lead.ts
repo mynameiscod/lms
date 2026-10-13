@@ -261,6 +261,8 @@ export interface ILead extends Document {
     stageAtSend?: mongoose.Types.ObjectId;
     /** The stage the lead was in before it moved to the Outpero holding stage; put back if Outpero cannot take it. */
     stageBefore?: mongoose.Types.ObjectId;
+    /** The name Outpero was told to use (readable, or a stand-in); the lead's own name is never changed. */
+    sentName?: string;
     /** When the lead was told on WhatsApp that calls start in the morning (sent once, only outside calling hours). */
     afterHoursNoticeAt?: Date;
     httpStatus?: number;
@@ -645,6 +647,7 @@ const LeadSchema: Schema = new Schema(
       sentAt: { type: Date },
       stageAtSend: { type: mongoose.Types.ObjectId },
       stageBefore: { type: mongoose.Types.ObjectId },
+      sentName: { type: String },
       afterHoursNoticeAt: { type: Date },
       httpStatus: { type: Number },
       lastError: { type: String, trim: true },

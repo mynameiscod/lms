@@ -96,6 +96,17 @@ describe('reading Outpero deliveries', () => {
     expect(c.durationSec).toBe(43);
     expect(c.startedAt.toISOString()).toBe('2026-10-13T13:10:06.425Z');
   });
+
+  it('keeps the lead’s real name when Outpero reports back with the stand-in name', async () => {
+    await Lead.updateOne({ _id: lead._id }, { $set: { name: '❤️SHAD SIDDIQUI' } });
+    await receiveCall(String(T._id), {
+      event: 'call.ended', call_id: 'real-2', to_number: '+919866185686', status: 'completed', duration_s: '43', outcome: 'interested', summary: 'Spoke to Shiva about Java.',
+      pre_call: { lead_name: 'Shiva', phone: '+919866185686' }, captured: { name: 'Shiva', college: 'JNTU' },
+    });
+    const l: any = await Lead.findById(lead._id).lean();
+    expect(l.name).toBe('❤️SHAD SIDDIQUI');
+    expect(l.customFields?.college).toBe('JNTU');
+  });
 });
 
 describe('the 24-hour link', () => {

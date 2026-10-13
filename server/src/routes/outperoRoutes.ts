@@ -32,6 +32,7 @@ router.put('/config', wrap((req) => svc.saveConfig(tId(req), uId(req), {
   mode: req.body?.mode, endpointUrl: req.body?.endpointUrl,
   secret: req.body?.secret === undefined || req.body?.secret === null ? undefined : String(req.body.secret),
   sources: strs(req.body?.sources), courses: strs(req.body?.courses), perMinute: req.body?.perMinute,
+  fallbackName: req.body?.fallbackName === undefined ? undefined : String(req.body.fallbackName),
 })));
 router.get('/feedback-queue', wrap(async (req) => Lead.find({ tenantId: tId(req), archivedAt: null, 'aiFeedback.state': { $in: ['needs_review', 'awaiting_assignment'] } }).select('name phone aiFeedback').sort({ 'aiFeedback.receivedAt': -1 }).limit(100).lean()));
 router.get('/feedback-policy', wrap(async (req) => getPolicy(tId(req))));

@@ -39,6 +39,8 @@ export interface OutperoConfig {
   sources: string[];
   courses: string[];
   perMinute: number;
+  /** The name spoken to a lead whose own name cannot be read aloud. */
+  fallbackName: string;
 }
 
 const list = (v: string) => String(v || '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -52,11 +54,12 @@ export function getConfig(tenantId: string): OutperoConfig {
     sources: list(settings.getStr('OUTPERO_SOURCES', '', tenantId)),
     courses: list(settings.getStr('OUTPERO_COURSES', '', tenantId)),
     perMinute: Math.min(Math.max(settings.getNum('OUTPERO_PER_MINUTE', 5, tenantId), 1), 60),
+    fallbackName: fallbackNameOf(tenantId),
   };
 }
 
 export async function saveConfig(tenantId: string, userId: string, input: {
-  mode?: string; endpointUrl?: string; secret?: string; sources?: string[]; courses?: string[]; perMinute?: number;
+  mode?: string; endpointUrl?: string; secret?: string; sources?: string[]; courses?: string[]; perMinute?: number; fallbackName?: string;
 }) {
   const mode = String(input.mode || 'off');
   if (!['off', 'manual', 'auto'].includes(mode)) throw new OutperoError('Choose Off, Manual or Automatic.');
@@ -70,7 +73,10 @@ export async function saveConfig(tenantId: string, userId: string, input: {
     if (!willHaveSecret) throw new OutperoError('Add the X-Outpero-Lead-Secret before turning sending on.');
   }
   const perMinute = Math.min(Math.max(Number(input.perMinute) || 5, 1), 60);
+  const fallbackName = input.fallbackName === undefined ? '' : cleanName(input.fallbackName);
+  if (input.fallbackName !== undefined && String(input.fallbackName).trim() && !fallbackName) throw new OutperoError('The stand-in name must be a simple first name in English letters, for example Shiva.');
   await settings.setMany([
+    ...(fallbackName ? [{ key: 'OUTPERO_FALLBACK_NAME', value: fallbackName }] : []),
     { key: 'OUTPERO_MODE', value: mode },
     { key: 'OUTPERO_ENDPOINT_URL', value: url },
     { key: 'OUTPERO_LEAD_SECRET', value: secret },
@@ -79,6 +85,37 @@ export async function saveConfig(tenantId: string, userId: string, input: {
     { key: 'OUTPERO_PER_MINUTE', value: String(perMinute) },
   ], userId, tenantId);
   return getConfig(tenantId);
+}
+
+// ── The name Outpero speaks ──────────────────────────────────────────────────
+
+export const DEFAULT_FALLBACK_NAME = 'Shiva';
+
+/**
+ * A name in plain English letters, or '' when it cannot be said aloud: a letter from another
+ * script (Telugu, Hindi ...) makes it unreadable for the caller, and so does a name with too few
+ * letters left once emojis, digits and symbols are taken out.
+ */
+export function cleanName(raw: unknown): string {
+  const s = String(raw ?? '').normalize('NFKC');
+  if (/\p{L}/u.test(s.replace(/\p{Script=Latin}/gu, ''))) return '';
+  const kept = s
+    .replace(/[^\p{Script=Latin}\s'.-]/gu, ' ')
+    .replace(/(^|\s)[.'-]+(?=\s|$)/g, ' ')
+    .replace(/^[\s.'-]+|[\s.'-]+$/g, '')
+    .replace(/\s+/g, ' ');
+  if ((kept.match(/\p{Script=Latin}/gu) || []).length < 2) return '';
+  // ALL CAPS is read out letter by letter, so every name is written as a name: Ravi Kumar, O'Neil, Mary-Ann.
+  const cased = kept.toLowerCase().replace(/(^|[\s'-])(\p{L})/gu, (_m, sep: string, c: string) => sep + c.toUpperCase());
+  return cased.length > 40 ? cased.slice(0, 40).replace(/\s+\S*$/, '') : cased;
+}
+
+const fallbackNameOf = (tenantId: string) => cleanName(settings.getStr('OUTPERO_FALLBACK_NAME', DEFAULT_FALLBACK_NAME, tenantId)) || DEFAULT_FALLBACK_NAME;
+
+/** What Outpero is told to call this lead, and whether that is a stand-in because the real name could not be said aloud. */
+export function speakableName(raw: unknown, tenantId: string): { name: string; standIn: boolean } {
+  const name = cleanName(raw);
+  return name ? { name, standIn: false } : { name: fallbackNameOf(tenantId), standIn: true };
 }
 
 /** Outpero wants E.164; the LMS stores whatever the source gave (10 digits, 91…, +91…, spaces). */
@@ -139,10 +176,12 @@ export async function sendLead(leadId: string): Promise<void> {
 
   if (getPolicy(tenantId).enabled && !inCallingWindow()) return;
   const phone = toE164(lead.phone);
+  // Outpero says the name aloud: it gets a readable one, while the lead keeps its real name here.
+  const spoken = speakableName(lead.name, tenantId);
   const attempts = (lead.outpero?.attempts || 0) + 1;
   let r: { ok: boolean; status: number; message: string };
   if (!phone) r = { ok: false, status: 422, message: 'No valid phone number on this lead.' };
-  else r = await post(tenantId, { lead_name: lead.name || '', phone, course: courseOf(lead), lms_lead_id: String(lead._id), source: lead.source || '' });
+  else r = await post(tenantId, { lead_name: spoken.name, phone, course: courseOf(lead), lms_lead_id: String(lead._id), source: lead.source || '' });
 
   // Retry only what may succeed later: network trouble, 429 and 5xx. A wrong secret or a missing phone will not fix itself.
   const retryable = !r.ok && (r.status === 0 || r.status === 429 || r.status >= 500) && attempts < MAX_ATTEMPTS && !!phone;
@@ -154,7 +193,7 @@ export async function sendLead(leadId: string): Promise<void> {
     if (policy.enabled && policy.sentStageId && mongoose.isValidObjectId(policy.sentStageId) && String(policy.sentStageId) !== String(lead.stageId)) {
       sentStage = await LeadStage.findOne({ _id: policy.sentStageId, tenantId: lead.tenantId, isActive: true }).lean();
     }
-    Object.assign(set, { 'outpero.status': 'sent', 'outpero.sentAt': new Date(), 'outpero.stageAtSend': sentStage ? sentStage._id : lead.stageId, 'outpero.lastError': '' });
+    Object.assign(set, { 'outpero.sentName': spoken.name, 'outpero.status': 'sent', 'outpero.sentAt': new Date(), 'outpero.stageAtSend': sentStage ? sentStage._id : lead.stageId, 'outpero.lastError': '' });
     if (sentStage) set.stageId = sentStage._id;
   }
   else if (retryable) Object.assign(set, { 'outpero.status': 'pending', 'outpero.nextAttemptAt': new Date(Date.now() + RETRY_MINUTES[attempts - 1] * 60_000), 'outpero.lastError': r.message });
@@ -168,7 +207,7 @@ export async function sendLead(leadId: string): Promise<void> {
   if (r.ok || !retryable) {
     update.$push = { activities: {
       type: 'note', createdBy: lead.createdBy, createdAt: new Date(),
-      description: r.ok ? '🤖 Sent to Outpero — Jyothi (AI) will call this lead.' : `🤖 Not sent to Outpero: ${r.message}`,
+      description: r.ok ? `🤖 Sent to Outpero — Jyothi (AI) will call this lead.${spoken.standIn ? ` She will say "${spoken.name}" because the name on this lead cannot be read aloud; the lead keeps its real name here.` : ''}` : `🤖 Not sent to Outpero: ${r.message}`,
     } };
   }
   const moved = await Lead.updateOne({ _id: lead._id, 'aiFeedback.doNotContact': { $ne: true }, ...(sentStage || goBack ? { stageId: lead.stageId } : {}) }, update);
@@ -341,7 +380,7 @@ export async function stats(tenantId: string) {
 export async function testSend(tenantId: string, input: { name?: string; phone?: string }) {
   const phone = toE164(String(input.phone || ''));
   if (!phone) throw new OutperoError('Enter a valid mobile number for the test call.');
-  return post(tenantId, { lead_name: String(input.name || 'Test lead').slice(0, 80), phone, course: 'Test', source: 'lms_test' });
+  return post(tenantId, { lead_name: speakableName(input.name || 'Test lead', tenantId).name, phone, course: 'Test', source: 'lms_test' });
 }
 
 /** Put failed leads back in the queue (after fixing the secret, say). */

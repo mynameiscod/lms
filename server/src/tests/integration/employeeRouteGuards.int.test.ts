@@ -10,6 +10,8 @@ import jwt from 'jsonwebtoken';
 import { startMongo, stopMongo } from './mongoHarness';
 
 jest.setTimeout(240_000);
+// Sending the invite is not what is under test: pretend the mail server is down, so the setup link comes back.
+jest.mock('../../services/emailService', () => ({ EmailService: class { async sendWelcomeEmail() { throw new Error('mail down'); } } }));
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'employee-route-guards-integration-test-secret-0123456789abcdef';
 
 import User from '../../models/User';
@@ -88,6 +90,46 @@ describe('the directory and admin screens', () => {
     expect((await call('post', '/employees', 'admin', { firstName: 'Nina', workEmail: 'nina@emp.test' })).status).toBe(200);
   });
 
+  /** The create form's own payload, as the screen builds it: capitalised choices, address, contacts, IDs, extra fields. */
+  const FORM = {
+    firstName: 'Ravi', lastName: 'Kumar', workEmail: 'ravi.k@emp.test', personalEmail: 'ravi@gmail.test', phone: '9876543210',
+    dob: '1995-04-12', gender: 'Male', maritalStatus: 'Married', bloodGroup: 'B+',
+    currentAddress: { line1: '12 MG Road', city: 'Hyderabad', state: 'Telangana', pincode: '500001' },
+    permanentAddress: { line1: '12 MG Road', city: 'Hyderabad', state: 'Telangana', pincode: '500001' },
+    emergencyContacts: [{ name: 'Sita', relation: 'Wife', phone: '9000000000' }],
+    department: 'Technology', designation: 'Executive', employmentType: 'Full-time', workMode: 'office', workLocation: 'Head office',
+    joiningDate: '2026-10-01', probationEndDate: '2027-01-01', noticePeriodDays: 30, status: 'active',
+    customFields: {},
+    currentCtc: 480000, payFrequency: 'annual',
+    sensitive: { pan: 'ABCDE1234F', aadhaar: '123412341234', bankAccountHolder: 'Ravi Kumar', bankName: 'HDFC', bankAccountNumber: '5010012345', bankIfsc: 'HDFC0001234' },
+  };
+
+  it('creates an employee from exactly what the create form sends', async () => {
+    const r = await call('post', '/employees', 'admin', FORM);
+    expect([r.status, r.body.message]).toEqual([200, undefined]);
+    expect(r.body.data).toMatchObject({ gender: 'Male', maritalStatus: 'Married', department: 'Technology' });
+    const again = await call('post', '/employees', 'admin', { ...FORM, workEmail: 'ravi2@emp.test', gender: 'female', maritalStatus: 'single', workMode: 'Remote' });
+    expect(again.status).toBe(200);
+    expect(again.body.data).toMatchObject({ gender: 'Female', maritalStatus: 'Single', workMode: 'remote' });
+  });
+
+  it('says what is wrong in plain words, not a server error, when a choice is not valid', async () => {
+    const r = await call('post', '/employees', 'admin', { ...FORM, workEmail: 'bad@emp.test', gender: 'Robot' });
+    expect(r.status).toBe(400); expect(r.body.message).toContain('not a valid gender');
+    expect((await call('post', '/employees', 'admin', { ...FORM, workEmail: 'bad2@emp.test', status: 'retired' })).status).toBe(400);
+  });
+
+  it('saves the whole edit-screen draft back, including the values it loaded', async () => {
+    const made = (await call('post', '/employees', 'admin', { ...FORM, workEmail: 'edit@emp.test' })).body.data;
+    const loaded = (await call('get', `/employees/${made._id}`, 'admin')).body.data;
+    const draft = { ...loaded, designation: 'Team Lead', reportingManagerId: ids.mgrEmp };
+    const r = await call('put', `/employees/${made._id}`, 'admin', draft);
+    expect([r.status, r.body.message]).toEqual([200, undefined]);
+    expect(r.body.data).toMatchObject({ designation: 'Team Lead', gender: 'Male' });
+    const blank = await call('put', `/employees/${made._id}`, 'admin', { gender: '', maritalStatus: '', reportingManagerId: '' });
+    expect(blank.status).toBe(200);
+  });
+
   it('lets anyone signed in read the lists to fill a form', async () => {
     expect((await call('get', '/employees/config', 'portal')).status).toBe(200);
   });
@@ -141,6 +183,120 @@ describe('the employee portal', () => {
     expect((await call('get', '/employee-expenses/export?month=' + svc.istMonth(), 'worker')).status).toBe(403);
     const csv = await call('get', '/employee-expenses/export', 'admin');
     expect(csv.status).toBe(200); expect(csv.text).toContain('Home broadband'.slice(0, 0) + 'EMP-0002');
+  });
+});
+
+describe('every other screen sends payloads the server accepts', () => {
+  it('saves the settings screen back unchanged, and with edits', async () => {
+    const cfg = (await call('get', '/employees/config', 'admin')).body.data;
+    const same = await call('put', '/employees/config', 'admin', cfg);
+    expect([same.status, same.body.message]).toEqual([200, undefined]);
+    const edited = await call('put', '/employees/config', 'admin', {
+      ...cfg, departments: [...cfg.departments, 'Research'], codePrefix: 'CB',
+      customFields: [{ key: 'tshirt', label: 'T-shirt size', required: false }],
+      expenseCategories: [...cfg.expenseCategories, { name: 'Courier', dailyLimit: 500, receiptRequiredAbove: 100, active: true }],
+      expensePolicy: { ...cfg.expensePolicy, approvalMode: 'reporting_manager', autoApproveBelow: 50 },
+      activityPolicy: { ...cfg.activityPolicy, workingDays: [1, 2, 3, 4, 5], lateCheckInAfter: '09:45', reviewMode: 'reviewers' },
+    });
+    expect([edited.status, edited.body.message]).toEqual([200, undefined]);
+    expect(edited.body.data.departments).toContain('Research');
+    expect(edited.body.data.activityPolicy.workingDays).toEqual([1, 2, 3, 4, 5]);
+    expect((await call('put', '/employees/config', 'admin', { activityPolicy: { lateCheckInAfter: '9am' } })).status).toBe(400);
+    // Put the original rules back for the tests that follow.
+    await call('put', '/employees/config', 'admin', { activityPolicy: { ...cfg.activityPolicy }, expensePolicy: { ...cfg.expensePolicy }, codePrefix: 'EMP' });
+  });
+
+  it('records a hike and a role change the way the modals send them', async () => {
+    const hike = await call('post', `/employees/${ids.wkEmp}/change`, 'admin', { type: 'hike', effectiveFrom: '2026-10-01', newCtc: 560000, note: 'Annual' });
+    expect([hike.status, hike.body.message]).toEqual([200, undefined]);
+    expect(hike.body.data.compensationHistory[hike.body.data.compensationHistory.length - 1]).toMatchObject({ ctc: 560000, previousCtc: 500000, hikePercent: 12 });
+    const role = await call('post', `/employees/${ids.wkEmp}/change`, 'admin', { type: 'promotion', effectiveFrom: '2026-10-01', designation: 'Senior Executive', reportingManagerId: null });
+    expect([role.status, role.body.message]).toEqual([200, undefined]);
+    expect(role.body.data.designation).toBe('Senior Executive');
+    expect(role.body.data.reportingManagerId).toBeNull();
+    await Employee.updateOne({ _id: ids.wkEmp }, { $set: { reportingManagerId: ids.mgrEmp } });
+    expect((await call('post', `/employees/${ids.wkEmp}/notes`, 'admin', { text: 'Good progress' })).status).toBe(200);
+  });
+
+  it('saves the employee profile as the portal sends it, leaving masked numbers alone', async () => {
+    const r = await call('put', '/employee-portal/me', 'worker', {
+      personalEmail: 'w@gmail.test', phone: '9000011111', altPhone: '', bloodGroup: 'O+', maritalStatus: 'Married',
+      currentAddress: { line1: '5 Lake View', city: 'Pune' }, permanentAddress: { line1: '5 Lake View', city: 'Pune' },
+      emergencyContacts: [{ name: 'Mum', relation: 'Mother', phone: '9000022222' }],
+      education: [{ degree: 'B.Tech', institution: 'JNTU', year: '2018', grade: '8.1' }],
+      experience: [{ company: 'Acme', role: 'Caller', from: '2019', to: '2022', note: '' }],
+      skills: ['Calling', 'CRM'],
+      sensitive: { bankName: 'HDFC', bankAccountNumber: '5010099999', bankIfsc: 'HDFC0000001', pan: 'ABCDE1234F' },
+    });
+    expect([r.status, r.body.message]).toEqual([200, undefined]);
+    expect(r.body.data.sensitive.bankAccountNumber).toBe('******9999');
+    const again = await call('put', '/employee-portal/me', 'worker', { sensitive: { bankAccountNumber: '******9999', pan: '******234F' }, phone: '9000033333' });
+    expect(again.status).toBe(200);
+    const admin = (await call('get', `/employees/${ids.wkEmp}`, 'admin')).body.data;
+    expect(admin.sensitive.bankAccountNumber).toBe('5010099999');
+    expect(admin.sensitive.pan).toBe('ABCDE1234F');
+    expect(admin.phone).toBe('9000033333');
+  });
+
+  it('saves a day the way the editor sends it, and shows it on the reviewer boards', async () => {
+    const day = svc.istDate(new Date(Date.now() - 86_400_000));
+    const r = await call('put', `/employee-portal/day/${day}`, 'portal', {
+      workMode: 'field', summary: '', blockers: '', tomorrowPlan: 'Visit college',
+      tasks: [{ title: 'Seminar at college', category: 'Counselling', hours: 3.5, status: 'done', note: '' }, { title: 'Report', category: '', hours: 1, status: 'in_progress', note: 'half done' }],
+    });
+    expect([r.status, r.body.message]).toEqual([200, undefined]);
+    expect(r.body.data.totalHours).toBe(4.5);
+    expect((await call('get', '/employee-portal/history', 'portal')).body.data.length).toBeGreaterThan(20);
+    expect((await call('get', '/employee-activity/board', 'admin')).status).toBe(200);
+    expect((await call('get', `/employee-activity/list?from=${day}&to=${day}`, 'admin')).body.data.length).toBeGreaterThan(0);
+    const report = await call('get', `/employee-activity/report?month=${svc.istMonth()}`, 'admin');
+    expect(report.status).toBe(200);
+    expect(report.body.data.rows.length).toBeGreaterThan(0);
+  });
+
+  it('serves the expense screens and takes a claim as the form sends it', async () => {
+    for (const path of ['/employee-expenses/queue?tab=all', '/employee-expenses/queue?tab=mine', `/employee-expenses/summary?month=${svc.istMonth()}`]) {
+      const r = await call('get', path, 'admin');
+      expect([path, r.status]).toEqual([path, 200]);
+    }
+    expect((await call('get', '/employee-portal/expenses', 'worker')).status).toBe(200);
+    const made = await call('post', '/employee-portal/expenses', 'worker', { date: svc.istDate(), category: 'Travel', amount: '120.50', merchant: '', description: 'Auto', workMode: '', receipts: [] });
+    expect([made.status, made.body.message]).toEqual([200, undefined]);
+    const edit = await call('put', `/employee-portal/expenses/${made.body.data._id}`, 'worker', { amount: 130, description: 'Auto to college' });
+    expect([edit.status, edit.body.message]).toEqual([200, undefined]);
+    expect((await call('post', `/employee-portal/expenses/${made.body.data._id}/cancel`, 'worker')).status).toBe(200);
+  });
+});
+
+describe('logins', () => {
+  it('creates a portal-only login from the work email, and refuses a second one', async () => {
+    const e = (await call('post', '/employees', 'admin', { firstName: 'Lata', workEmail: 'lata@emp.test' })).body.data;
+    const r = await call('post', `/employees/${e._id}/login`, 'admin');
+    expect([r.status, r.body.message]).toEqual([200, undefined]);
+    expect(r.body.data.emailSent).toBe(false);
+    expect(r.body.data.setupLink).toContain('/setup-password?token=');
+    const user: any = await User.findOne({ email: 'lata@emp.test' }).lean();
+    expect(user.role).toBe('STAFF');
+    const role: any = await Role.findById(user.customRoleId).lean();
+    expect(role.permissions).toEqual(['use_employee_portal']);
+    const after = (await call('get', `/employees/${e._id}`, 'admin')).body.data;
+    expect(after.hasLogin).toBe(true); expect(after.portalOnly).toBe(true);
+    expect((await call('post', `/employees/${e._id}/login`, 'admin')).status).toBe(409);
+    expect((await call('post', '/employees', 'admin', { firstName: 'NoMail' })).status).toBe(200);
+  });
+
+  it('asks for a work email first, and links an existing staff login instead', async () => {
+    const noMail = (await call('post', '/employees', 'admin', { firstName: 'Nomi' })).body.data;
+    const r = await call('post', `/employees/${noMail._id}/login`, 'admin');
+    expect(r.status).toBe(400); expect(r.body.message).toContain('work email');
+    const free = (await call('get', '/employees/unlinked-users', 'admin')).body.data;
+    expect(free.map((u: any) => u.email)).toContain('plain@emp.test');
+    expect(free.map((u: any) => u.email)).not.toContain('manager@emp.test');
+    expect((await call('post', `/employees/${noMail._id}/link`, 'admin', { userId: ids.plain })).status).toBe(200);
+    expect((await call('get', '/employee-portal/exists', 'plain')).body.data).toMatchObject({ isEmployee: true, portalOnly: false });
+    expect((await call('post', `/employees/${noMail._id}/link`, 'admin', { userId: ids.student })).status).toBe(409);
+    expect((await call('delete', `/employees/${noMail._id}/login`, 'admin')).status).toBe(200);
+    expect((await call('get', '/employee-portal/exists', 'plain')).body.data.isEmployee).toBe(false);
   });
 });
 

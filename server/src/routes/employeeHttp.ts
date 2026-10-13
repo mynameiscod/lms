@@ -15,9 +15,12 @@ export const wrap = (tag: string, fn: (req: Request, res: Response) => Promise<a
     const data = await fn(req, res);
     if (!res.headersSent) res.json({ success: true, data });
   } catch (e: any) {
-    const status = e instanceof EmployeeError ? e.status : 500;
+    // A value the database refuses (a bad choice, a wrong type) is the caller's mistake, not a server fault.
+    const invalid = e?.name === 'ValidationError' || e?.name === 'CastError';
+    const status = e instanceof EmployeeError ? e.status : invalid ? 400 : 500;
     if (status === 500) console.error(`[${tag}]`, e);
-    if (!res.headersSent) res.status(status).json({ success: false, message: status === 500 ? 'Something went wrong' : e?.message });
+    const message = invalid ? String(e.message).replace(/^[A-Za-z]+ validation failed: /, '') : e?.message;
+    if (!res.headersSent) res.status(status).json({ success: false, message: status === 500 ? 'Something went wrong' : message });
   }
 };
 

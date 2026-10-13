@@ -240,8 +240,27 @@ const toDate = (v: unknown) => {
   return d;
 };
 
+/** The fixed choices, matched without regard to capitalisation ("male" and "Male" are the same answer). */
+const CHOICES: Record<string, string[]> = {
+  gender: ['Male', 'Female', 'Other', 'Undisclosed'],
+  maritalStatus: ['Single', 'Married', 'Other'],
+  workMode: ['office', 'remote', 'hybrid'],
+  status: ['active', 'probation', 'on_notice', 'on_leave', 'exited'],
+};
+const LABEL: Record<string, string> = { gender: 'gender', maritalStatus: 'marital status', workMode: 'work mode', status: 'status' };
+
 function applyPatch(target: any, body: any, keys: string[]) {
-  for (const k of keys) if (body[k] !== undefined) target[k] = typeof body[k] === 'string' ? body[k].trim() : body[k];
+  for (const k of keys) {
+    if (body[k] === undefined) continue;
+    const v = typeof body[k] === 'string' ? body[k].trim() : body[k];
+    const choices = CHOICES[k];
+    if (choices) {
+      if (v === '' || v === null) { if (k === 'gender' || k === 'maritalStatus') target[k] = ''; continue; }
+      const match = choices.find((c) => c.toLowerCase() === String(v).toLowerCase().replace(/[ -]+/g, '_'));
+      if (!match) throw new EmployeeError(`"${v}" is not a valid ${LABEL[k]}. Choose one of: ${choices.join(', ')}.`);
+      target[k] = match;
+    } else target[k] = v;
+  }
 }
 
 function applyLists(target: any, body: any) {

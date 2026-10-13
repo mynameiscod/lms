@@ -284,8 +284,8 @@ const JourneyDay: React.FC = () => {
         </nav>
         <div className="jd-launch">
           <div className="jd-launch-icon" aria-hidden><i className="bi bi-shield-lock-fill" /></div>
-          <h2 style={{ margin: '0 0 6px', fontSize: 18 }}>Pass your foundation checks to open your year</h2>
-          <p>You have passed {gate.passed} of {gate.total}. Pass the rest and Day {dayNumber} opens.</p>
+          <h2 style={{ margin: '0 0 6px', fontSize: 18 }}>Pass your earlier checkpoints to open Day {dayNumber}</h2>
+          <p>You have passed {gate.passed} of {gate.total} checkpoints. Pass the rest and Day {dayNumber} opens.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '12px auto 0', maxWidth: 460, textAlign: 'left' }}>
             {gate.pending.map(c => (
               <button key={c.quizId} type="button" className="jd-btn" style={{ justifyContent: 'space-between', display: 'flex', gap: 10 }}
@@ -297,7 +297,7 @@ const JourneyDay: React.FC = () => {
           </div>
           {gate.flagged.length > 0 && (
             <p style={{ marginTop: 12, fontSize: 13 }}>
-              {gate.flagged.length} check(s) were tried three times — your mentor will help you with them, and they no longer hold your year.
+              {gate.flagged.length} checkpoint(s) were tried three times — your mentor will help you with them, and they no longer hold your roadmap.
             </p>
           )}
         </div>

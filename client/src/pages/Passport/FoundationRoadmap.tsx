@@ -174,8 +174,8 @@ const FoundationRoadmap: React.FC = () => {
         </div>
       </section>
 
-      {/* Roadmap V2: revision · bridge · year, with the foundation gate. Nothing for a V1 journey. */}
-      <RoadmapPhaseBands phases={journey.phases} gate={journey.gate} stageLabel={journey.stageLabel || undefined} />
+      {/* Roadmap V2: why a day is locked, while earlier checkpoints hold it. The bridge/year split is admin-only. */}
+      <RoadmapPhaseBands gate={journey.gate} />
 
       <div className="fr-tools">
         <div className="fr-ranges" role="group" aria-label="Show days">

@@ -211,7 +211,13 @@ export async function composeRoadmapV2(
       const strength = measured.length ? Math.min(...measured) : null;
       for (const { unit, tier } of bridgeUnitsForTopic(fresh, standing)) {
         taken.add(unit.unitCode);
-        bridge.push({ unit: asSelected(unit, profile, standing === 'HELD', 0), tier, strength });
+        /*
+         * YEAR 1'S PRACTICE IS NEVER GIVEN UP. Every fresh joiner gets the foundation — the class,
+         * the practice and the check of each Year-1 topic they do not hold. Only the later years'
+         * bridge practice may go when the days are short.
+         */
+        const kept: V2Tier = src === 'foundation' && tier === 'BRIDGE_EXTRA' && standing !== 'HELD' ? 'ESSENTIAL' : tier;
+        bridge.push({ unit: asSelected(unit, profile, standing === 'HELD', 0), tier: kept, strength });
       }
     }
   }

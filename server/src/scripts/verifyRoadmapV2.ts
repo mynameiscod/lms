@@ -17,6 +17,7 @@
  *   ORDER     the year is taught in the curriculum's topic order (never what they hold first)
  *   CLASS     every topic of the year includes its class — a strong learner's too
  *   REFRESHER Years 2 and 4 carry none of their own refresher module (the bridge replaces it)
+ *   Y1 PRACTICE a weak or unmeasured fresh joiner in Years 2–4 gets every Year-1 MUST topic's practice
  *   MID-YEAR  (fresh joiners) after 5 days done, rebuilding the rest keeps those days exactly,
  *             repeats none of their units and keeps the length
  *
@@ -97,12 +98,15 @@ async function run(): Promise<void> {
   /** Each stage's topic order, and the topics that have a published class to give. */
   const orderOf = new Map<string, Map<string, number>>();
   const classOf = new Map<string, Set<string>>();
+  /** Topics that have a published practice, per stage. */
+  const practiceOf = new Map<string, Set<string>>();
   for (const st of ROADMAP_V2_STAGES) {
     const cur = await LearningCurriculum.findOne({ tenantId, adaptiveStage: st, personalizedFor: null })
       .select('topics.topicCode topics.priority topics.order').lean() as any;
     orderOf.set(st, new Map(((cur?.topics || []) as any[]).map(t => [String(t.topicCode), Number(t.order) || 0])));
     const set = await loadCandidates(tenantId, 'PRODUCTION', st).catch(() => null);
     classOf.set(st, new Set((set?.units || []).filter(u => u.unitType === 'CONCEPT').map(u => String(u.topicCode))));
+    practiceOf.set(st, new Set((set?.units || []).filter(u => u.unitType === 'PRACTICE').map(u => String(u.topicCode))));
     /* A year's own refresher is left out under V2 (the bridge replaces it), so it is not expected. */
     const teachable = new Set((set?.units || []).filter(u => st === 'foundation' || !isYearRefresher(u.moduleCode)).map(u => String(u.topicCode)));
     const must = ((cur?.topics || []) as any[]).filter(t => t.priority === 'MUST').map(t => String(t.topicCode));
@@ -148,7 +152,7 @@ async function run(): Promise<void> {
           if (r?.ok === false) { row.problems.push(`REFUSED: ${String(r.reason).slice(0, 80)}`); rows.push(row); report(row); continue; }
           const cur = await LearningCurriculum.findById(r.curriculumId).select('totalDays roadmapVersion phaseDays v2Report').lean() as any;
           const plans = await DayPlan.find({ curriculumId: r.curriculumId }).select('dayNumber phase unitCodes items').sort({ dayNumber: 1 }).lean() as any[];
-          checkJourney(row, cur, plans, { programDays, dailyMinutes, revisionDays, earlier, unitOf, mustOf, orderOf, classOf });
+          checkJourney(row, cur, plans, { programDays, dailyMinutes, revisionDays, earlier, unitOf, mustOf, orderOf, classOf, practiceOf });
           const gate = await foundationGateFor(r.curriculumId, String(sid));
           if (row.bridge) {
             if (!gate.applies || !gate.total) row.problems.push('GATE: a bridge with no foundation checks');
@@ -192,7 +196,7 @@ async function run(): Promise<void> {
 function checkJourney(
   row: Row, cur: any, plans: any[],
   ctx: { programDays: number; dailyMinutes: number; revisionDays: number; earlier: string[]; unitOf: Map<string, any>; mustOf: Map<string, Set<string>>;
-    orderOf: Map<string, Map<string, number>>; classOf: Map<string, Set<string>> },
+    orderOf: Map<string, Map<string, number>>; classOf: Map<string, Set<string>>; practiceOf: Map<string, Set<string>> },
 ): void {
   const p = row.problems;
   row.days = plans.length;
@@ -251,6 +255,12 @@ function checkJourney(
   }
   const missing = [...(ctx.mustOf.get(row.stage) || [])].filter(t => !topics.has(t));
   if (missing.length) p.push(`MUST: ${missing.length} year topic(s) missing: ${missing.slice(0, 4).join(', ')}`);
+  if (row.joiner === 'FRESH' && ctx.earlier.length && ['nothing measured', 'weak (28)'].includes(row.profile)) {
+    const practised = new Set(plans.filter(d => d.phase === 'BRIDGE').flatMap(d => (d.unitCodes || []).map((c: any) => ctx.unitOf.get(String(c))))
+      .filter((u: any) => u?.unitType === 'PRACTICE').map((u: any) => String(u.topicCode)));
+    const noPractice = [...(ctx.mustOf.get('foundation') || [])].filter(t => ctx.practiceOf.get('foundation')?.has(t) && !practised.has(t));
+    if (noPractice.length) p.push(`Y1 PRACTICE: ${noPractice.length} Year-1 topic(s) without practice: ${noPractice.slice(0, 3).join(', ')}`);
+  }
   if (row.joiner === 'FRESH' && ctx.earlier.length) {
     const y1 = [...(ctx.mustOf.get('foundation') || [])].filter(t => !topics.has(t));
     if (y1.length) p.push(`MUST: ${y1.length} Year-1 topic(s) not bridged: ${y1.slice(0, 4).join(', ')}`);

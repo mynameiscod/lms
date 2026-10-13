@@ -14,6 +14,8 @@ import { recordInbound, recordOutbound, applyChatStatuses, isBotPaused } from '.
 import { getWhatsAppCredentialCandidates } from '../services/assessmentOtpService';
 import { verifyMetaSignature } from '../services/whatsAppWebhookSignature';
 import { reviveIfArchived } from '../services/leadArchiveService';
+import { extractReferral, applyReferralToLead, lookupAd, adFields, referralActivity, AdReferral } from '../services/whatsAppAdReferralService';
+import { linkLeadToCampaign } from './adCampaignController';
 
 // ===================== TYPES =====================
 
@@ -23,6 +25,7 @@ interface WhatsAppMessage {
   id?: string;
   type: string;
   text?: { body: string };
+  referral?: Record<string, unknown>; // present on the first message of a Click-to-WhatsApp ad chat
   interactive?: { button_reply?: { id: string; title: string }; list_reply?: { id: string; title: string } };
 }
 
@@ -288,6 +291,10 @@ async function processWhatsAppMessage(payload: WhatsAppWebhookPayload) {
           .catch((e) => { console.error('[WA] could not store inbound message:', e?.message); return undefined; });
         if (stored === null) continue; // Meta re-delivered a message we already have
 
+        // Tapped a Click-to-WhatsApp ad: keep which ad on the lead (creating the lead if this is a new person).
+        const referral = extractReferral(message);
+        if (referral) await keepAdOnLead(phoneNumber, senderName, tenantInfo.tenantId, referral).catch((e) => console.error('[WA] could not record ad referral:', e?.message));
+
         const messageText = stored?.botText ?? ((message.type === 'text' && message.text?.body) || message.interactive?.button_reply?.title || message.interactive?.list_reply?.title || '');
         if (!messageText) continue;
 
@@ -378,9 +385,16 @@ async function handleConversation(
   }
 }
 
+async function keepAdOnLead(phone: string, name: string, tenantId: string, referral: AdReferral) {
+  const tid = new mongoose.Types.ObjectId(tenantId);
+  const existing = await Lead.findOne({ tenantId: tid, phone: { $regex: phone.slice(-10), $options: 'i' } }).select('_id').lean();
+  if (existing) { await applyReferralToLead(tenantId, existing._id, referral); return; }
+  await ensureLeadExists(phone, name, tenantId, 'warm', referral);
+}
+
 // ===================== ENSURE LEAD EXISTS =====================
 
-async function ensureLeadExists(phone: string, name: string, tenantId: string, priority: 'hot' | 'warm' | 'cold') {
+async function ensureLeadExists(phone: string, name: string, tenantId: string, priority: 'hot' | 'warm' | 'cold', referral?: AdReferral) {
   try {
     const existing = await Lead.findOne({
       tenantId: new mongoose.Types.ObjectId(tenantId),
@@ -391,17 +405,21 @@ async function ensureLeadExists(phone: string, name: string, tenantId: string, p
     const initialStage = await LeadStage.findOne({ tenantId: new mongoose.Types.ObjectId(tenantId) }).sort({ order: 1 });
     const adminUser = await User.findOne({ tenantId: new mongoose.Types.ObjectId(tenantId), role: { $in: ['TENANT_ADMIN', 'SUPER_ADMIN', 'MANAGER'] } }).select('_id').lean();
     const adminId = adminUser?._id || new mongoose.Types.ObjectId(tenantId);
+    const names = referral ? await lookupAd(tenantId, referral.adId) : {};
+    const ad = referral ? adFields(referral, names) : null;
     const lead = await Lead.create({
       tenantId: new mongoose.Types.ObjectId(tenantId),
       name: name || 'WhatsApp User',
       phone,
+      ...(ad ? { sourceDetails: ad.sourceDetails, utmParams: ad.utmParams } : {}),
       source: 'whatsapp',
       priority,
       stageId: initialStage?._id,
       whatsappStatus: 'replied',
       createdBy: adminId,
-      activities: [{ type: 'whatsapp', description: 'Lead created from WhatsApp conversation.', createdAt: new Date(), createdBy: adminId }],
+      activities: [{ type: 'whatsapp', description: 'Lead created from WhatsApp conversation.', createdAt: new Date(), createdBy: adminId }, ...(referral ? [referralActivity(referral, names, adminId)] : [])],
     });
+    if (names.campaignName) linkLeadToCampaign(lead._id as mongoose.Types.ObjectId, { source: 'facebook', campaign: names.campaignName }, new mongoose.Types.ObjectId(tenantId)).catch(() => {});
     scoreAndAssignLead(lead, new mongoose.Types.ObjectId(tenantId)).catch(console.error);
     return lead;
   } catch (err) {

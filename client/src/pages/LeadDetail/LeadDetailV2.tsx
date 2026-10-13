@@ -13,6 +13,7 @@ interface Lead {
   priority: string;
   stage: string;
   source: string;
+  sourceDetails?: { adName?: string; adId?: string; adSetName?: string; campaignName?: string; adHeadline?: string };
   assignedTo?: { _id?: string; name?: string; firstName?: string; lastName?: string } | null;
   courseInterested?: string;
   nextFollowUp?: string;
@@ -476,6 +477,17 @@ const LeadDetailV2: React.FC = () => {
                   <span>{lead.source || '-'}</span>
                 </div>
               </div>
+              {(lead.sourceDetails?.adName || lead.sourceDetails?.adId || lead.sourceDetails?.campaignName) && (
+                <div className="ld2-summary-item">
+                  <i className="bi bi-megaphone"></i>
+                  <div>
+                    <label>Ad</label>
+                    <span title={lead.sourceDetails.adId ? `Ad id ${lead.sourceDetails.adId}` : undefined}>
+                      {[lead.sourceDetails.campaignName, lead.sourceDetails.adSetName, lead.sourceDetails.adName || lead.sourceDetails.adHeadline].filter(Boolean).join(' › ') || `Ad ${lead.sourceDetails.adId}`}
+                    </span>
+                  </div>
+                </div>
+              )}
               <div className="ld2-summary-item">
                 <i className="bi bi-person"></i>
                 <div>

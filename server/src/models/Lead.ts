@@ -32,6 +32,9 @@ export interface ISourceDetails {
   formId?: string;
   landingPage?: string;
   referrerUrl?: string;
+  /** Click-to-WhatsApp ads: Meta's click id and the headline the person saw. */
+  ctwaClid?: string;
+  adHeadline?: string;
 }
 
 export interface ICostData {
@@ -454,7 +457,9 @@ const LeadSchema: Schema = new Schema(
       adName: { type: String, trim: true },
       formId: { type: String, trim: true },
       landingPage: { type: String, trim: true },
-      referrerUrl: { type: String, trim: true }
+      referrerUrl: { type: String, trim: true },
+      ctwaClid: { type: String, trim: true },
+      adHeadline: { type: String, trim: true }
     },
     
     // NEW: Cost tracking (admin visibility only)

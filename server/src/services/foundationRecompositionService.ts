@@ -53,6 +53,9 @@ import {
   loadAssets, dayItems, dayTitle, UnitAssets,
 } from './foundationJourneyService';
 import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } from '../data/dayPackingPolicy';
+import PassportConfig from '../models/PassportConfig';
+import { resolveRoadmapV2 } from '../data/roadmapV2Policy';
+import { roadmapV2OnlyFor } from './roadmapV2SettingService';
 
 export interface RecompositionResult {
   ok: boolean;
@@ -64,6 +67,8 @@ export interface RecompositionResult {
   /** Future days whose unit is unchanged — the plan agreeing with itself, not a failure. */
   unchangedFutureDays: number[];
   totalDays: number;
+  /** A dry run's plan for the days it would write: nothing was written. */
+  preview?: { dayNumber: number; phase: string; titles: string[] }[];
 }
 
 /**
@@ -101,7 +106,7 @@ export async function recomposeFutureDays(
 
   const curriculum = await LearningCurriculum.findOne({
     tenantId, personalizedFor: sid, adaptiveStage: stageKey, journeyKind: FOUNDATION_JOURNEY_KIND,
-  }).select('_id totalDays').lean() as any;
+  }).select('_id totalDays roadmapVersion').lean() as any;
 
   if (!curriculum) {
     return {
@@ -109,6 +114,13 @@ export async function recomposeFutureDays(
       frozenDays: [], rewrittenDays: [], unchangedFutureDays: [], totalDays: 0,
     };
   }
+  /* A Roadmap V2 journey is recomposed by V2: same fit, same daily study time, phases kept. */
+  if (curriculum.roadmapVersion === 'ROADMAP_V2') return recomposeV2(tenantId, sid, profile, curriculum, stageKey, opts);
+  /*
+   * V2 ONLY: V1 never updates a roadmap again. A V1 roadmap that new evidence would recompose is
+   * moved to V2 instead — the days already done kept, the rest rebuilt by V2.
+   */
+  if (await roadmapV2OnlyFor(tenantId)) return moveFutureToV2(tenantId, sid, profile, curriculum._id, stageKey, opts);
 
   const [existing, enrollment] = await Promise.all([
     DayPlan.find({ curriculumId: curriculum._id })
@@ -356,4 +368,114 @@ export async function previewRecomposition(
   }
 
   return { wouldChange, frozenDays: frozen };
+}
+
+/**
+ * Recompose a Roadmap V2 journey's future days, by V2.
+ *
+ * Completed days are frozen exactly as they are. The future is composed by V2 for the days left —
+ * at the tenant's daily study time, by topic priority, nothing already done repeated — and written
+ * with its phases, so the foundation gate still knows where the year starts. Revision is for the
+ * start of a year: a learner already part-way through is not given it again. If V2 cannot fill
+ * exactly the days left, the plan is left as it was.
+ */
+/**
+ * Move a V1 roadmap to V2 from where the student is: the days they completed and the one they are
+ * on stay exactly as they were, every later day is rebuilt by V2. With `dryRun` nothing is written
+ * and the result carries the plan. If V2 cannot fill the days, the V1 roadmap stays as it was.
+ */
+export async function moveFutureToV2(
+  tenantId: string,
+  sid: mongoose.Types.ObjectId,
+  profile: StudentProfile,
+  curriculumId: mongoose.Types.ObjectId,
+  stageKey: string,
+  opts: JourneyBuildOptions = {},
+  dryRun = false,
+): Promise<RecompositionResult> {
+  const curriculum = { _id: curriculumId };
+  if (dryRun) return recomposeV2(tenantId, sid, profile, curriculum, stageKey, opts, true);
+  const before = await LearningCurriculum.findById(curriculumId).select('roadmapVersion').lean() as any;
+  await LearningCurriculum.updateOne({ _id: curriculumId }, { $set: { roadmapVersion: 'ROADMAP_V2' } });
+  const result = await recomposeV2(tenantId, sid, profile, curriculum, stageKey, opts);
+  if (!result.ok) {
+    /* Nothing was written to the days, so the roadmap is V1 again exactly as it was. */
+    await LearningCurriculum.updateOne({ _id: curriculumId }, before?.roadmapVersion
+      ? { $set: { roadmapVersion: before.roadmapVersion } } : { $unset: { roadmapVersion: 1 } });
+  }
+  return result;
+}
+
+async function recomposeV2(
+  tenantId: string,
+  sid: mongoose.Types.ObjectId,
+  profile: StudentProfile,
+  curriculum: any,
+  stageKey: string,
+  opts: JourneyBuildOptions,
+  dryRun = false,
+): Promise<RecompositionResult> {
+  const [existing, enrollment, cfg] = await Promise.all([
+    DayPlan.find({ curriculumId: curriculum._id }).select('dayNumber primaryUnitCode unitCodes items phase').sort({ dayNumber: 1 }).lean() as any,
+    CurriculumEnrollment.findOne({ tenantId, curriculumId: curriculum._id, studentId: sid }).select('completedDays currentDay').lean() as any,
+    PassportConfig.findOne({ tenantId }).select('roadmapV2').lean() as any,
+  ]);
+  const totalDays = (existing as any[]).length;
+  const frozen = frozenDayNumbers(enrollment || {}, totalDays);
+  const frozenSet = new Set(frozen);
+  const futureSlots = (existing as any[]).map(d => Number(d.dayNumber)).filter(d => !frozenSet.has(d));
+  if (!futureSlots.length) return { ok: true, frozenDays: frozen, rewrittenDays: [], unchangedFutureDays: [], totalDays };
+
+  const unitsOf = (day: any): string[] => {
+    const codes = (day?.unitCodes || []).map((c: any) => String(c).toUpperCase()).filter(Boolean);
+    return codes.length ? codes : (day?.primaryUnitCode ? [String(day.primaryUnitCode).toUpperCase()] : []);
+  };
+  const byDay = new Map<number, any>((existing as any[]).map(d => [Number(d.dayNumber), d]));
+  const history = frozen.flatMap(d => unitsOf(byDay.get(d)));
+  const settings = resolveRoadmapV2(cfg?.roadmapV2);
+  const { composition, v2 } = await composeFoundationJourney(tenantId, profile, {
+    ...opts, stageKey, history, programDays: futureSlots.length, studentId: String(sid),
+    roadmapV2: { dailyMinutes: settings.dailyMinutes, revisionDays: frozen.length ? 0 : settings.revisionDays },
+  });
+  if (!composition.ok || !v2 || v2.days.length !== futureSlots.length) {
+    return {
+      ok: false,
+      reason: `Roadmap V2 could not recompose exactly the ${futureSlots.length} remaining days, so the existing plan was left unchanged.`,
+      frozenDays: frozen, rewrittenDays: [], unchangedFutureDays: [], totalDays,
+    };
+  }
+  if (dryRun) {
+    return {
+      ok: true, frozenDays: frozen, rewrittenDays: futureSlots, unchangedFutureDays: [], totalDays,
+      preview: v2.days.map((day, i) => ({
+        dayNumber: futureSlots[i],
+        phase: day.some(d => d.phase === 'BRIDGE') ? 'BRIDGE' : day.some(d => d.phase === 'REVISION') ? 'REVISION' : 'YEAR',
+        titles: day.map(d => (d.part ? `${d.unit.title} (part ${d.part.index} of ${d.part.of})` : d.unit.title)),
+      })),
+    };
+  }
+  const assets = await loadAssets(tenantId, composition.units.map(u => u.unitCode));
+  const rewritten: number[] = [];
+  const unchanged: number[] = [];
+  const ops: any[] = [];
+  v2.days.forEach((day, i) => {
+    const dayNumber = futureSlots[i];
+    const units = day.map(d => (d.part ? { ...d.unit, title: `${d.unit.title} (part ${d.part.index} of ${d.part.of})` } : d.unit));
+    const phase = day.some(d => d.phase === 'BRIDGE') ? 'BRIDGE' : day.some(d => d.phase === 'REVISION') ? 'REVISION' : 'YEAR';
+    const same = JSON.stringify(unitsOf(byDay.get(dayNumber))) === JSON.stringify(units.map(u => u.unitCode.toUpperCase()))
+      && byDay.get(dayNumber)?.phase === phase;
+    if (same) { unchanged.push(dayNumber); return; }
+    rewritten.push(dayNumber);
+    ops.push({ updateOne: { filter: { curriculumId: curriculum._id, dayNumber }, update: { $set: {
+      tenantId, topicId: units[0].topicCode, primaryUnitCode: units[0].unitCode, unitCodes: units.map(u => u.unitCode),
+      title: dayTitle(units), items: dayItems(units, assets), phase,
+    } } } });
+  });
+  if (ops.length) await DayPlan.bulkWrite(ops, { ordered: false });
+
+  /* The phase counts follow the days, frozen ones included. */
+  const phases = await DayPlan.find({ curriculumId: curriculum._id }).select('phase').lean() as any[];
+  const count = (p: string) => phases.filter(d => (d.phase || 'YEAR') === p).length;
+  await LearningCurriculum.updateOne({ _id: curriculum._id }, { $set: { phaseDays: { revision: count('REVISION'), bridge: count('BRIDGE'), year: count('YEAR') } } });
+  return { ok: true, frozenDays: frozen, rewrittenDays: rewritten, unchangedFutureDays: unchanged, totalDays };
 }

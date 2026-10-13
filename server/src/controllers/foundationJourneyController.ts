@@ -45,6 +45,8 @@ import { applyFoundationTrigger, directionChoiceFor } from '../services/foundati
 import { resolveModuleStatuses, itemDone } from './enrollmentPlanController';
 import { reconcileJourneyDayXp, xpForJourneyItem, journeyItemFinished, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
 import { orientationBlocksLearning, orientationRoadmap, pacingClockFor } from '../services/orientationService';
+import { foundationGateFor, gateRefusal } from '../services/roadmapV2GateService';
+import { roadmapV2SettingFor } from '../services/roadmapV2SettingService';
 
 /**
  * Which engine plans this student, for the screens that must show exactly one plan.
@@ -100,7 +102,7 @@ async function journeyOf(tenantId: string, studentId: string, stageKey?: string 
     personalizedFor: new mongoose.Types.ObjectId(studentId),
     adaptiveStage: String(stageKey || STAGE_FALLBACK),
     journeyKind: FOUNDATION_JOURNEY_KIND,
-  }).select('_id title createdAt totalDays').lean() as any;
+  }).select('_id title createdAt totalDays roadmapVersion phaseDays v2Report rebuilds').lean() as any;
 }
 
 /**
@@ -419,7 +421,27 @@ export const getMyJourney = async (req: Request, res: Response) => {
            * THE PREVIEW IS THEIR OWN PLAN. Composed on read from their Skill DNA — exactly what
            * membership will generate — and nothing is stored, so there is nothing to keep in step.
            */
-          const { composition } = await composeFoundationJourney(tenantId, profile, { source: 'PRODUCTION', stageKey: stageKey || STAGE_FALLBACK, programDays });
+          /*
+           * The preview IS what membership will build — so for a learner on Roadmap V2 it is
+           * composed by V2 (bridge, revision and all) and its days are V2's own.
+           */
+          const v2Setting = await roadmapV2SettingFor(tenantId, String(studentId), stageKey || STAGE_FALLBACK);
+          const { composition, v2 } = await composeFoundationJourney(tenantId, profile, {
+            source: 'PRODUCTION', stageKey: stageKey || STAGE_FALLBACK, programDays,
+            roadmapV2: v2Setting, studentId: String(studentId),
+          });
+          if (v2Setting && v2) {
+            const allDays = v2.days.map((day, i) => ({ day: i + 1, units: day.map(d => d.unit) }));
+            const firstDays = allDays.slice(0, access.previewDays);
+            const assets = await loadAssets(tenantId, firstDays.flatMap(d => d.units.map(u => u.unitCode)));
+            return res.json(await previewOf(tenantId, engine, access, firstDays.map(d => ({
+              day: d.day,
+              unitCode: d.units[0]?.unitCode,
+              title: dayTitle(d.units),
+              items: d.units.flatMap(u => activitiesFor(u, assets.get(u.unitCode.toUpperCase()) || EMPTY_ASSETS)),
+            })), programDays, stageKey, null,
+            allDays.map(d => ({ day: d.day, unitCode: d.units[0]?.unitCode, title: dayTitle(d.units) }))));
+          }
 
           /**
            * A DAY IS NOT A UNIT, AND HAS NOT BEEN SINCE DENSITY LANDED.
@@ -488,7 +510,7 @@ export const getMyJourney = async (req: Request, res: Response) => {
 
     const [days, enrollment] = await Promise.all([
       DayPlan.find({ curriculumId: curriculum._id })
-        .select('dayNumber title primaryUnitCode items').sort({ dayNumber: 1 }).lean() as any,
+        .select('dayNumber title primaryUnitCode items phase').sort({ dayNumber: 1 }).lean() as any,
       CurriculumEnrollment.findOne({
         tenantId, curriculumId: curriculum._id,
         studentId: new mongoose.Types.ObjectId(studentId),
@@ -550,9 +572,19 @@ export const getMyJourney = async (req: Request, res: Response) => {
      * titles, ids, questions or assignment detail. Those come only from the day endpoint, which refuses a
      * locked day on the server.
      */
+    /*
+     * ROADMAP V2: the gate, read once for the strip. While it is closed, the year's days say so —
+     * a learner looking at a locked Day 10 should see "pass your foundation checks", not "locked".
+     */
+    const isV2 = (curriculum as any).roadmapVersion === 'ROADMAP_V2';
+    const gate = isV2 ? await foundationGateFor(curriculum._id, String(studentId)) : null;
+    const gateHolds = (day: number) => !!gate && gate.applies && !gate.open && gate.firstYearDay !== null
+      && day >= gate.firstYearDay && !completed.has(day);
+
     const strip = (days as any[]).map(d => ({
       day: d.dayNumber,
       title: d.title,
+      ...(isV2 ? { phase: d.phase || 'YEAR' } : {}),
       ...overview(d.dayNumber, d.primaryUnitCode || null),
       activities: (d.items || []).length,
       minutes: (d.items || []).reduce((n: number, i: any) => n + (Number(i.estimatedDuration) || 0), 0),
@@ -561,9 +593,19 @@ export const getMyJourney = async (req: Request, res: Response) => {
           : d.dayNumber < currentDay ? 'SKIPPED' : 'UPCOMING',
       locked: !isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom),
       /* Which gate is shut, so the strip can say "tomorrow" rather than only "locked". */
-      lockedReason: isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom) ? undefined
-        : !calendarAllowsDay(d.dayNumber, stripPacedFrom) ? 'NOT_TODAY_YET' : 'DAY_LOCKED',
-    }));
+      lockedReason: gateHolds(d.dayNumber) && isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom) ? 'FOUNDATION_GATE'
+        : isJourneyDayOpen(d.dayNumber, completed, stripPacedFrom) ? undefined
+          : !calendarAllowsDay(d.dayNumber, stripPacedFrom) ? 'NOT_TODAY_YET' : 'DAY_LOCKED',
+    })).map(d => (d.lockedReason === 'FOUNDATION_GATE' ? { ...d, locked: true } : d));
+
+    /* Each phase's size and progress, for the "Revision · Bridge · Year" bands. */
+    const phases = isV2
+      ? (['REVISION', 'BRIDGE', 'YEAR'] as const).map(p => {
+        const inPhase = strip.filter((d: any) => d.phase === p);
+        return { phase: p, days: inPhase.length, completed: inPhase.filter((d: any) => d.status === 'COMPLETED').length,
+          fromDay: inPhase.length ? inPhase[0].day : null, toDay: inPhase.length ? inPhase[inPhase.length - 1].day : null };
+      }).filter(x => x.days > 0)
+      : undefined;
 
     res.json({
       available: true,
@@ -585,6 +627,14 @@ export const getMyJourney = async (req: Request, res: Response) => {
       /** Where a day is actually worked through: the learning-plan day player. */
       enrollmentId: enrollment?._id ? String(enrollment._id) : null,
       days: strip,
+      ...(isV2 ? {
+        roadmapVersion: 'ROADMAP_V2',
+        phases,
+        gate: gate && gate.applies ? {
+          open: gate.open, passed: gate.passed, total: gate.total, firstYearDay: gate.firstYearDay,
+          pending: gate.pending.length, flagged: gate.flagged.length,
+        } : null,
+      } : {}),
     });
   } catch (e: any) {
     console.error('[foundation-journey] me:', e?.message || e);
@@ -632,6 +682,18 @@ export const getMyJourneyDay = async (req: Request, res: Response) => {
 
     const plan = (day as any[])[0];
     if (!plan) return res.status(404).json({ message: 'That day is not part of your journey.' });
+
+    /*
+     * Roadmap V2's foundation gate: the year's first day opens only when the bridge checks are
+     * passed. Refused on the server, so a day opened by its URL is held exactly as one clicked.
+     */
+    const finishedDays = new Set<number>(((enrollment?.completedDays || []) as number[]).map(Number));
+    if (!finishedDays.has(dayNumber)) {
+      const gate = await foundationGateFor(curriculum._id, String(studentId));
+      if (gate.applies && gate.firstYearDay !== null && dayNumber >= gate.firstYearDay && !gate.open) {
+        return res.status(403).json(gateRefusal(gate));
+      }
+    }
 
     /**
      * The ninety days are a ladder, and this endpoint has to say so too.
@@ -801,7 +863,7 @@ export const getStudentJourney = async (req: Request, res: Response) => {
 
     const [days, enrollment] = await Promise.all([
       DayPlan.find({ curriculumId: curriculum._id })
-        .select('dayNumber title primaryUnitCode items').sort({ dayNumber: 1 }).lean() as any,
+        .select('dayNumber title primaryUnitCode items phase').sort({ dayNumber: 1 }).lean() as any,
       CurriculumEnrollment.findOne({
         tenantId, curriculumId: curriculum._id,
         studentId: new mongoose.Types.ObjectId(studentId),
@@ -844,12 +906,27 @@ export const getStudentJourney = async (req: Request, res: Response) => {
           activities: items.length,
           checkpoint: items.some(i => i.kind === 'quiz'),
           project: items.some(i => i.kind === 'assignment'),
+          ...(curriculum.roadmapVersion === 'ROADMAP_V2' ? { phase: d.phase || 'YEAR' } : {}),
           minutes: items.reduce((n, i) => n + (Number(i.estimatedDuration) || 0), 0),
           status: completed.has(d.dayNumber) ? 'COMPLETED'
             : d.dayNumber === currentDay ? 'CURRENT'
               : d.dayNumber < currentDay ? 'SKIPPED' : 'UPCOMING',
         };
       }),
+      /*
+       * Roadmap V2, for the admin: how the days split, what was given up to fit them, and the
+       * gate — including the checks a mentor should help with.
+       */
+      ...(curriculum.roadmapVersion === 'ROADMAP_V2' ? {
+        roadmapVersion: 'ROADMAP_V2',
+        phaseDays: curriculum.phaseDays || null,
+        v2Report: curriculum.v2Report || null,
+        rebuilds: curriculum.rebuilds || [],
+        gate: await (async () => {
+          const g = await foundationGateFor(curriculum._id, String(studentId));
+          return g.applies ? { open: g.open, passed: g.passed, total: g.total, firstYearDay: g.firstYearDay, pending: g.pending, flagged: g.flagged } : null;
+        })(),
+      } : {}),
     });
   } catch (e: any) {
     console.error('[foundation-journey] admin student:', e?.message || e);

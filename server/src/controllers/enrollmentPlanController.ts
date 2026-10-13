@@ -27,6 +27,7 @@ import { isJourneyDayOpen, calendarAllowsDay } from '../data/journeyDayLadder';
 import { pacingClockFor } from '../services/orientationService';
 import { studentContentRow } from '../services/studentContentView';
 import { reconcileJourneyDayXp, xpForJourneyItem, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
+import { foundationGateFor, gateRefusal } from '../services/roadmapV2GateService';
 
 /**
  * A Foundation journey is the member's ninety days. Without membership its days cannot be opened or
@@ -866,7 +867,9 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     // DISABLED for all batches — students can open any curriculum day. Only the
     // assessment preview/paywall gate below still applies.
     let isLocked = false;
-    let lockReason: 'sequential' | 'preview' | 'schedule' | null = null;
+    let lockReason: 'sequential' | 'preview' | 'schedule' | 'foundation' | null = null;
+    /** Roadmap V2's foundation gate, when it is what holds this day. */
+    let gate: any = null;
 
     /**
      * A FOUNDATION JOURNEY IS SEQUENTIAL. A BATCH IS NOT.
@@ -888,6 +891,23 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       if (!doneDays.has(dayNumber - 1) && !doneDays.has(dayNumber)) {
         isLocked = true;
         lockReason = 'sequential';
+      }
+    }
+
+    /*
+     * ROADMAP V2: THE YEAR OPENS ON PASSED FOUNDATIONS. The ladder above lets the year's first day
+     * open once the last bridge day was ATTEMPTED; the gate also requires every bridge check
+     * PASSED (or failed three times, which flags a mentor instead of trapping the learner).
+     */
+    if (!isLocked && isFoundationJourney && (curriculum as any).roadmapVersion === 'ROADMAP_V2') {
+      const doneDays = new Set<number>(((enrollment.completedDays || []) as number[]).map(Number));
+      if (!doneDays.has(dayNumber)) {
+        const g = await foundationGateFor(curriculum._id as any, String(sId));
+        if (g.applies && g.firstYearDay !== null && dayNumber >= g.firstYearDay && !g.open) {
+          isLocked = true;
+          lockReason = 'foundation';
+          gate = gateRefusal(g).gate;
+        }
       }
     }
 
@@ -1039,6 +1059,7 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       xpJustPaid,
       isLocked,
       lockReason,
+      gate,
       todayPlanDay,
       aiGenStatus: aiGenStatus || null,
     });

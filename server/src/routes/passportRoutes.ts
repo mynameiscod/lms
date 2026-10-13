@@ -11,6 +11,7 @@ import { roleGuard } from '../middleware/roleGuard';
 // under normal use is a worse outage than the spend it was protecting.
 import { rateLimit } from '../middleware/rateLimit';
 import * as ctrl from '../controllers/passportController';
+import * as roadmapV2Admin from '../controllers/roadmapV2AdminController';
 import * as assess from '../controllers/passportAssessmentController';
 import * as missions from '../controllers/passportMissionController';
 import * as roadmap from '../controllers/passportRoadmapController';
@@ -171,6 +172,17 @@ const SUPER_ADMIN = (req: any, res: any, next: any) => {
 // Admin config + members
 router.get('/config',    MANAGE, ctrl.getConfig);
 router.put('/config',    MANAGE, ctrl.updateConfig);
+// Roadmap V2: settings overview and topic priorities (settings themselves save through PUT /config).
+router.get('/admin/roadmap-v2',                          MANAGE, roadmapV2Admin.getOverview);
+router.get('/admin/topic-priorities/:stage',             MANAGE, roadmapV2Admin.listTopics);
+router.put('/admin/topic-priorities/:stage/:topicCode',  MANAGE, roadmapV2Admin.updateTopic);
+router.get('/admin/topic-priorities-draft',              MANAGE, roadmapV2Admin.previewDraft);
+router.post('/admin/topic-priorities-draft',             MANAGE, roadmapV2Admin.applyDraftNow);
+// Rebuild roadmaps as V2: one member (preview, then apply) or every V1 roadmap in the background.
+router.get('/admin/students/:studentId/roadmap-rebuild',  MANAGE, roadmapV2Admin.previewRebuild);
+router.post('/admin/students/:studentId/roadmap-rebuild', MANAGE, roadmapV2Admin.applyRebuild);
+router.get('/admin/roadmap-rebuild',                      MANAGE, roadmapV2Admin.bulkRebuildStatus);
+router.post('/admin/roadmap-rebuild',                     MANAGE, roadmapV2Admin.startBulkRebuildNow);
 
 // ── Mock interview plans: how many sittings a member gets and how each is composed,
 //    targeted by year / course / branch / role. Ordinary CareerPilot configuration, so

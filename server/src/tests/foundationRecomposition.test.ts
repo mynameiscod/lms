@@ -43,6 +43,11 @@ const matches = (doc: any, q: any): boolean =>
     return String(doc[k]) === String(v);
   });
 
+/* Roadmap V2's V2-only switch is read from PassportConfig; these tests are about V1 recomposition. */
+jest.mock('../services/roadmapV2SettingService', () => ({
+  roadmapV2SettingFor: jest.fn(async () => null),
+  roadmapV2OnlyFor: jest.fn(async () => false),
+}));
 jest.mock('../models/DayPlan', () => ({
   __esModule: true,
   default: {

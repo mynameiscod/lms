@@ -2398,9 +2398,16 @@ export interface FoundationJourneyDaySummary {
   objective?: string | null;
   /** The server's ladder: true while the day before is unfinished. The day endpoint refuses a locked day. */
   locked?: boolean;
-  /** Which gate is shut: work still to do, or a day the calendar has not reached. */
-  lockedReason?: 'DAY_LOCKED' | 'NOT_TODAY_YET';
+  /** Which gate is shut: work still to do, a day the calendar has not reached, or (Roadmap V2) the foundation checks. */
+  lockedReason?: 'DAY_LOCKED' | 'NOT_TODAY_YET' | 'FOUNDATION_GATE';
+  /** Roadmap V2 only: which part of the plan the day belongs to. */
+  phase?: JourneyPhase;
 }
+
+/** Roadmap V2: revision of what a member studied before, the bridge of earlier years, then the year. */
+export type JourneyPhase = 'REVISION' | 'BRIDGE' | 'YEAR';
+export interface RoadmapPhaseSummary { phase: JourneyPhase; days: number; completed: number; fromDay: number | null; toDay: number | null }
+export interface RoadmapGateSummary { open: boolean; passed: number; total: number; firstYearDay: number | null; pending: number; flagged: number }
 
 /**
  * One interface rather than a discriminated union on `available`.
@@ -2483,6 +2490,10 @@ export interface FoundationJourney {
   percentComplete?: number;
   startedAt?: string | null;
   days?: FoundationJourneyDaySummary[];
+  /** Roadmap V2 only: the plan's phases with their progress, and the foundation gate. */
+  roadmapVersion?: 'ROADMAP_V2';
+  phases?: RoadmapPhaseSummary[];
+  gate?: RoadmapGateSummary | null;
 }
 
 export interface FoundationJourneyActivity {
@@ -2532,6 +2543,8 @@ export interface FoundationPreviewDay {
 /** Admin view of one member's journey. Unlike the member's own, it names the unit behind each day. */
 export interface AdminFoundationJourneyDay {
   day: number;
+  /** Roadmap V2 only. */
+  phase?: JourneyPhase;
   title: string;
   unitCode: string | null;
   unitType: string | null;
@@ -2561,6 +2574,17 @@ export interface AdminFoundationJourney {
   reason?: string;
   /** Whether this member sees all ninety days or only the preview. */
   access?: { level: 'FULL' | 'PREVIEW' | 'LOCKED'; previewDays: number } | null;
+  /** Roadmap V2 only: how the days split, what was given up to fit them, and the foundation gate. */
+  roadmapVersion?: 'ROADMAP_V2';
+  phaseDays?: { revision?: number; bridge: number; year: number } | null;
+  v2Report?: { dropped: Record<string, number>; overflowDays: number; programDays: number } | null;
+  /** Admin rebuilds of this roadmap, newest last. */
+  rebuilds?: { at: string; by: string | null; from: string; mode: 'FULL' | 'FUTURE'; keptDays: number }[];
+  gate?: {
+    open: boolean; passed: number; total: number; firstYearDay: number | null;
+    pending: { quizId: string; title: string; dayNumber: number; attempts: number }[];
+    flagged: { quizId: string; title: string; dayNumber: number; attempts: number }[];
+  } | null;
 }
 
 /** Whether a tenant can serve the Foundation journey. Decided by provisioning, not by a switch. */
@@ -4142,4 +4166,74 @@ export interface StageTopicInput {
   applicableDirections?: string[];
   learningOutcomes?: string[];
   order?: number;
+}
+
+// ── Roadmap V2 (admin): settings, per-year budgets, topic priorities ───────────────────────────
+export type TopicPriority = 'MUST' | 'SHOULD' | 'OPTIONAL';
+export interface RoadmapV2Settings {
+  enabled: boolean; stages: string[]; studentIds: string[]; dailyMinutes: number; revisionDays: number;
+  /** V2 only: every roadmap is V2, and V1 never builds or updates one again. */
+  v2Only: boolean;
+}
+export interface RoadmapV2Budget {
+  programDays: number; dailyMinutes: number; budgetMinutes: number; bridgeMinutes: number; mustCapMinutes: number;
+}
+export type PrioritySummary = Record<'MUST' | 'SHOULD' | 'OPTIONAL' | 'UNSET', { topics: number; minutes: number }>;
+export interface RoadmapV2Overview {
+  settings: RoadmapV2Settings;
+  stages: { stage: string; available: boolean; topics: number; budget: RoadmapV2Budget; summary: PrioritySummary }[];
+}
+export interface PriorityTopic {
+  topicCode: string; title: string; minutes: number; backbone: boolean; mandatory: boolean;
+  hasCheckpoint: boolean; priority: TopicPriority | null; prioritySource: 'DRAFT' | 'ADMIN' | null;
+}
+export interface StagePriorities {
+  stage: string; available: boolean; budget: RoadmapV2Budget; summary: PrioritySummary; topics: PriorityTopic[];
+}
+export interface DraftStageView {
+  stage: string; available: boolean; budget: RoadmapV2Budget; after: PrioritySummary;
+  changes: number; adminSet: number; overCap: boolean;
+}
+export const roadmapV2Api = {
+  previewDraft: async (): Promise<{ stages: DraftStageView[] }> =>
+    (await axios.get(`${BASE}/admin/topic-priorities-draft`, { headers: auth() })).data,
+  applyDraft: async (): Promise<{ written: number; stages: DraftStageView[] }> =>
+    (await axios.post(`${BASE}/admin/topic-priorities-draft`, {}, { headers: auth() })).data,
+  overview: async (): Promise<RoadmapV2Overview> =>
+    (await axios.get(`${BASE}/admin/roadmap-v2`, { headers: auth() })).data,
+  saveSettings: async (patch: Partial<RoadmapV2Settings>) =>
+    (await axios.put(`${BASE}/config`, { roadmapV2: patch }, { headers: auth() })).data,
+  topics: async (stage: string): Promise<StagePriorities> =>
+    (await axios.get(`${BASE}/admin/topic-priorities/${stage}`, { headers: auth() })).data,
+  setPriority: async (stage: string, topicCode: string, priority: TopicPriority): Promise<StagePriorities> =>
+    (await axios.put(`${BASE}/admin/topic-priorities/${stage}/${encodeURIComponent(topicCode)}`, { priority }, { headers: auth() })).data,
+  /** What rebuilding this member's roadmap as V2 would do. Writes nothing. */
+  previewRebuild: async (studentId: string): Promise<RebuildOutcome> =>
+    (await axios.get(`${BASE}/admin/students/${studentId}/roadmap-rebuild`, { headers: auth(), validateStatus: s => s < 500 })).data,
+  /** Rebuild this member's roadmap as V2: completed days kept, the rest rebuilt. */
+  applyRebuild: async (studentId: string): Promise<RebuildOutcome> =>
+    (await axios.post(`${BASE}/admin/students/${studentId}/roadmap-rebuild`, {}, { headers: auth(), validateStatus: s => s < 500 })).data,
+  bulkStatus: async (): Promise<{ counts: RebuildCounts[]; job: RebuildJob | null }> =>
+    (await axios.get(`${BASE}/admin/roadmap-rebuild`, { headers: auth() })).data,
+  startBulk: async (stageKey?: string | null): Promise<{ job: RebuildJob }> =>
+    (await axios.post(`${BASE}/admin/roadmap-rebuild`, stageKey ? { stageKey } : {}, { headers: auth() })).data,
+};
+
+// ── Rebuild a roadmap as V2 (admin) ─────────────────────────────────────────────────────────────
+export interface RebuildDay { dayNumber: number; phase: string; titles: string[] }
+export interface RebuildOutcome {
+  ok: boolean;
+  reason?: string;
+  studentId: string;
+  stageKey: string | null;
+  /** FULL: nothing done yet, the whole roadmap is rebuilt. FUTURE: done days kept, the rest rebuilt. */
+  mode?: 'FULL' | 'FUTURE';
+  before?: { version: 'V1' | 'V2' | 'NONE'; totalDays: number; completedDays: number; days: RebuildDay[] };
+  after?: { totalDays: number; keptDays: number[]; phaseDays: { revision: number; bridge: number; year: number }; days: RebuildDay[] };
+  applied?: boolean;
+}
+export interface RebuildCounts { stageKey: string; v1: number; notStarted: number; started: number; v2: number }
+export interface RebuildJob {
+  running: boolean; stageKey: string | null; total: number; done: number; rebuilt: number;
+  failed: { studentId: string; reason: string }[]; startedAt: string | null; finishedAt: string | null;
 }

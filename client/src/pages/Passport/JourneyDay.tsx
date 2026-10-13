@@ -151,6 +151,8 @@ const JourneyDay: React.FC = () => {
    * the membership panel here would ask somebody to buy something they already own.
    */
   const [dayLock, setDayLock] = useState<string>('');
+  /** Roadmap V2's foundation gate, when it holds this day: the bridge checks still to pass. */
+  const [gate, setGate] = useState<{ passed: number; total: number; pending: { quizId: string; title: string; dayNumber: number; attempts: number }[]; flagged: any[] } | null>(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [dayDone, setDayDone] = useState(false);
@@ -160,7 +162,7 @@ const JourneyDay: React.FC = () => {
   const { reload: reloadMember } = useMember();
 
   const load = useCallback(async () => {
-    setLoading(true); setError(''); setLocked(false); setDayLock('');
+    setLoading(true); setError(''); setLocked(false); setDayLock(''); setGate(null);
     try {
       const j = await passportApi.myFoundationJourney();
       setJourney(j);
@@ -192,6 +194,7 @@ const JourneyDay: React.FC = () => {
         setItems([]);
         return;
       }
+      if (plan?.isLocked && plan?.lockReason === 'foundation' && plan?.gate) { setGate(plan.gate); setItems([]); return; }
       if (plan?.isLocked) { setLocked(true); setItems([]); return; }
 
       setItems(Array.isArray(plan?.items) ? plan.items : []);
@@ -210,7 +213,8 @@ const JourneyDay: React.FC = () => {
       else setSelIdx(firstOpen >= 0 ? firstOpen : 0);
     } catch (e: any) {
       const reason = e?.response?.data?.reason;
-      if (reason === 'DAY_LOCKED') setDayLock(e?.response?.data?.message || `Finish day ${dayNumber - 1} first.`);
+      if (reason === 'FOUNDATION_NOT_VALIDATED' && e?.response?.data?.gate) setGate(e.response.data.gate);
+      else if (reason === 'DAY_LOCKED') setDayLock(e?.response?.data?.message || `Finish day ${dayNumber - 1} first.`);
       else if (e?.response?.status === 403) setLocked(true);
       else setError(e?.response?.data?.message || 'This day could not be opened.');
     } finally {
@@ -266,6 +270,41 @@ const JourneyDay: React.FC = () => {
    * Locked by the ladder. Nothing to buy, so nothing is sold — the way out is the previous day,
    * and that is the only button offered.
    */
+  /**
+   * The foundation gate (Roadmap V2): the year opens once the bridge checks are passed. Says which
+   * checks are left and takes the learner straight to each one — never a bare "locked".
+   */
+  if (gate) {
+    return (
+      <div className="jd-page jdm">
+        <nav className="jd-crumb">
+          <button type="button" onClick={() => nav('/careerpilot/roadmap')}>
+            <i className="bi bi-arrow-left" aria-hidden /> My Roadmap
+          </button>
+        </nav>
+        <div className="jd-launch">
+          <div className="jd-launch-icon" aria-hidden><i className="bi bi-shield-lock-fill" /></div>
+          <h2 style={{ margin: '0 0 6px', fontSize: 18 }}>Pass your foundation checks to open your year</h2>
+          <p>You have passed {gate.passed} of {gate.total}. Pass the rest and Day {dayNumber} opens.</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '12px auto 0', maxWidth: 460, textAlign: 'left' }}>
+            {gate.pending.map(c => (
+              <button key={c.quizId} type="button" className="jd-btn" style={{ justifyContent: 'space-between', display: 'flex', gap: 10 }}
+                onClick={() => nav(`/careerpilot/journey/day/${c.dayNumber}`)}>
+                <span><i className="bi bi-patch-question" aria-hidden /> {c.title}</span>
+                <span style={{ whiteSpace: 'nowrap' }}>Day {c.dayNumber}{c.attempts ? ` · ${c.attempts} tried` : ''} →</span>
+              </button>
+            ))}
+          </div>
+          {gate.flagged.length > 0 && (
+            <p style={{ marginTop: 12, fontSize: 13 }}>
+              {gate.flagged.length} check(s) were tried three times — your mentor will help you with them, and they no longer hold your year.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (dayLock) {
     return (
       <div className="jd-page jdm">

@@ -48,6 +48,8 @@ const matches = (doc: any, q: any): boolean =>
     return String(doc[k]) === String(v);
   });
 
+/* Roadmap V2 is off for these learners: the V1 journey is what this suite pins. */
+jest.mock('../services/roadmapV2SettingService', () => ({ roadmapV2SettingFor: async () => null }));
 jest.mock('../models/DayPlan', () => ({
   __esModule: true,
   default: {

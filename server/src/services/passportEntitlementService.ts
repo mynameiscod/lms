@@ -40,7 +40,8 @@ export function entitlementMap(
    * treats an unknown key. Without this, a feature added to the defaults after a tenant saved
    * its list was absent from the map and therefore locked for everybody — paying members too.
    */
-  for (const d of DEFAULT_ENTITLEMENTS) out[d.featureKey] = active;
+  // `|| []`: a module that does not supply the list (a test double) must not crash every check.
+  for (const d of DEFAULT_ENTITLEMENTS || []) out[d.featureKey] = active;
   for (const e of entitlements || []) out[e.featureKey] = e.tier === 'free' ? true : active;
   return out;
 }

@@ -23,6 +23,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { FoundationJourney as Journey } from '../../api/passportApi';
 import FoundationJourneyPage from './FoundationJourney';
+import RoadmapPhaseBands from './RoadmapPhaseBands';
 import { useUnlock } from './SectionLock';
 import {
   dayState, canOpenDay, planLinkFor, welcomeLinkFor, groupJourneyDays, dayRanges, KIND_LABEL, STATE_LABEL, RoadmapGroup,
@@ -172,6 +173,9 @@ const FoundationRoadmap: React.FC = () => {
           )}
         </div>
       </section>
+
+      {/* Roadmap V2: revision · bridge · year, with the foundation gate. Nothing for a V1 journey. */}
+      <RoadmapPhaseBands phases={journey.phases} gate={journey.gate} stageLabel={journey.stageLabel || undefined} />
 
       <div className="fr-tools">
         <div className="fr-ranges" role="group" aria-label="Show days">

@@ -230,11 +230,13 @@ export interface LedgerRow {
   status: LedgerStatus; paidOn?: string; paymentMode?: string; paymentRef?: string;
   employeeId?: string; employeeName?: string; employeeCode?: string; recurringId?: string; sourceExpenseId?: string;
   trail?: TrailEntry[];
+  /** The day it should be paid by (a bill's due date, or the day a recurring or salary line falls). */
+  dueOn?: string; overdue: boolean; daysOverdue: number;
   // What the signed-in person may do with this line
   canApprove: boolean; canPay: boolean; canEdit: boolean;
 }
 
-export interface LedgerQuery { month?: string; from?: string; to?: string; category?: string; kind?: LedgerKind | ''; status?: LedgerStatus | ''; search?: string; employeeId?: string }
+export interface LedgerQuery { overdue?: boolean; month?: string; from?: string; to?: string; category?: string; kind?: LedgerKind | ''; status?: LedgerStatus | ''; search?: string; employeeId?: string }
 export interface LedgerResult { rows: LedgerRow[]; totals: Record<LedgerStatus, number>; hiddenSalaryLines: boolean }
 
 export interface BillInput {
@@ -246,6 +248,8 @@ export interface BillInput {
 
 export interface CompanySummary {
   month: string; label: string; pendingApprovals: number; recurringNotYetAdded: number; spent: number; salaryLinesHidden: boolean;
+  /** Unpaid lines whose day has passed, across all months; and unpaid bills due in the next 7 days. */
+  overdue: { count: number; total: number }; dueSoon: { count: number; total: number };
   byStatus: Partial<Record<'pending' | 'approved' | 'paid', { total: number; count: number }>>;
   byCategory: { category: string; total: number; count: number }[];
   byKind: { kind: LedgerKind; total: number; count: number }[];
@@ -255,6 +259,8 @@ export interface CompanySummary {
 
 export interface RecurringItem {
   _id: string; title: string; category: string; vendor?: string; amount: number; gst?: number; dayOfMonth: number;
+  /** 1 = every month; 4 = one payment every four months (and so on: 2, 3, 6, 12). */
+  everyMonths: number;
   startMonth: string; endMonth?: string; paymentMode?: string; notes?: string; active: boolean;
 }
 export type RecurringInput = Omit<RecurringItem, '_id'>;
@@ -280,6 +286,7 @@ export const companyApi = {
   createRecurring: (body: Partial<RecurringInput>) => axios.post(`${API}/company-expenses/recurring`, body, h()).then(d) as Promise<RecurringItem>,
   updateRecurring: (id: string, body: Partial<RecurringInput>) => axios.put(`${API}/company-expenses/recurring/${id}`, body, h()).then(d) as Promise<RecurringItem>,
   deleteRecurring: (id: string) => axios.delete(`${API}/company-expenses/recurring/${id}`, h()).then(d),
+  payAhead: (id: string, input: { periods: number; paymentMode?: string; paymentRef?: string; paidOn?: string }) => axios.post(`${API}/company-expenses/recurring/${id}/pay-ahead`, input, h()).then(d) as Promise<{ covered: string[]; labels: string[] }>,
   generateRecurring: (month?: string) => axios.post(`${API}/company-expenses/recurring/generate`, { month }, h()).then(d) as Promise<{ month: string; added: number }>,
   salaryPreview: (month?: string) => axios.get(`${API}/company-expenses/salaries/preview${qs({ month })}`, h()).then(d) as Promise<SalaryPreview>,
   generateSalaries: (input: { month?: string; employeeIds?: string[]; amounts?: Record<string, number> }) => axios.post(`${API}/company-expenses/salaries/generate`, input, h()).then(d) as Promise<{ month: string; added: number }>,

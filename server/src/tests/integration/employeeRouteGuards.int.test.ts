@@ -153,6 +153,14 @@ describe('the employee portal', () => {
     expect(nope.status).toBe(403); expect(nope.body.code).toBe('NOT_EMPLOYEE');
   });
 
+  it('treats a login as portal-only only while it really can do nothing else', async () => {
+    // The manager login was never made by the employee module; mark it as if it had been, but it holds a real staff role.
+    await Employee.updateOne({ _id: ids.mgrEmp }, { $set: { portalOnly: true } });
+    expect((await call('get', '/employee-portal/exists', 'manager')).body.data).toMatchObject({ isEmployee: true, portalOnly: false });
+    expect((await call('get', '/employee-portal/exists', 'portal')).body.data.portalOnly).toBe(true);
+    await Employee.updateOne({ _id: ids.mgrEmp }, { $set: { portalOnly: false } });
+  });
+
   it('shows an employee themselves without pay, HR notes, or full identity numbers', async () => {
     const me = (await call('get', '/employee-portal/me', 'worker')).body.data;
     expect(me.employee.employeeCode).toBe('EMP-0002');

@@ -25,3 +25,9 @@
 .exp-linkbtn { background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }
 .exp-stat-click { cursor: pointer; }
 @media (max-width: 600px) { .exp-detail dl { grid-template-columns: 1fr; } .exp-bar-row { grid-template-columns: 90px 1fr auto; } }
+
+.exp-overdue-count { color: #b91c1c; font-weight: 600; align-self: center; font-size: 13px; }
+.exp-stat-overdue { border-left: 4px solid #dc2626; }
+.exp-stat-overdue .exp-big { color: #b91c1c; }
+.exp-stat-soon { border-left: 4px solid #d97706; }
+.exp-stat-soon .exp-big { color: #b45309; }

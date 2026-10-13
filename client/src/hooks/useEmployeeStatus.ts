@@ -18,7 +18,7 @@ const writeCache = (id: string, v: Cached) => {
   try { sessionStorage.setItem(keyFor(id), JSON.stringify(v)); } catch { /* storage unavailable */ }
 };
 
-/** Is the signed-in user an employee (and do they manage a team)? Asked once per user per session. */
+/** Is the signed-in user an employee (and do they manage a team)? Remembered for a quick first paint, re-checked on every load. */
 export function useEmployeeStatus(): EmployeeStatus {
   const { user } = useAuth();
   const userId = user?._id || '';
@@ -29,10 +29,11 @@ export function useEmployeeStatus(): EmployeeStatus {
 
   useEffect(() => {
     if (!userId) { setState({ loading: false, ...NOT }); return undefined; }
+    // Show what was learned earlier at once, then ask again: an admin may have linked this login to an
+    // employee (or changed their role) since, and a stale "not an employee" must never stick.
     const cached = readCache(userId);
-    if (cached) { setState({ loading: false, ...cached }); return undefined; }
     let live = true;
-    setState({ loading: true, ...NOT });
+    setState(cached ? { loading: false, ...cached } : { loading: true, ...NOT });
     portalApi.exists()
       .then((r) => {
         const v: Cached = { isEmployee: !!r.isEmployee, portalOnly: !!r.portalOnly, hasTeam: !!r.hasTeam };

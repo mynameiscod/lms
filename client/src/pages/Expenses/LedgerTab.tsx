@@ -9,6 +9,7 @@ interface Props {
   refreshKey: number;
   config: EmployeeConfig;
   preset?: 'approvals';
+  overdueOnly?: boolean;
   canManage: boolean;
   canApprove: boolean;
   onChanged: () => void;
@@ -18,6 +19,7 @@ interface Props {
 const inr = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
 const fmtDate = (s?: string) => (s ? new Date(s.length === 10 ? `${s}T00:00:00` : s).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 const fmtDateTime = (s?: string) => (s ? `${fmtDate(s)}, ${new Date(s).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}` : '—');
+const fmtDue = (s?: string) => (s ? new Date(s.length === 10 ? `${s}T00:00:00` : s).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '');
 const todayIn = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
 
 const KIND_LABEL: Record<LedgerKind, string> = { bill: 'Bill', recurring: 'Recurring', salary: 'Salary', reimbursement: 'Reimbursement' };
@@ -181,7 +183,7 @@ const Detail: React.FC<{ id: string; canManage: boolean; onClose: () => void; on
 
 // ── Tab ──────────────────────────────────────────────────────────────────────
 
-const LedgerTab: React.FC<Props> = ({ month, refreshKey, config, preset, canManage, canApprove, onChanged, onEdit }) => {
+const LedgerTab: React.FC<Props> = ({ month, refreshKey, config, preset, overdueOnly, canManage, canApprove, onChanged, onEdit }) => {
   const approvals = preset === 'approvals';
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -189,6 +191,7 @@ const LedgerTab: React.FC<Props> = ({ month, refreshKey, config, preset, canMana
   const [kind, setKind] = useState<LedgerKind | ''>('');
   const [status, setStatus] = useState<LedgerStatus | ''>(approvals ? 'pending' : '');
   const [byMonth, setByMonth] = useState(!approvals);
+  const [overdueOn, setOverdueOn] = useState(!!overdueOnly);
   const [data, setData] = useState<LedgerResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -199,18 +202,21 @@ const LedgerTab: React.FC<Props> = ({ month, refreshKey, config, preset, canMana
   const [detailId, setDetailId] = useState<string | null>(null);
   const [localKey, setLocalKey] = useState(0);
 
+  useEffect(() => { if (overdueOnly) setOverdueOn(true); }, [overdueOnly]);
+
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput.trim()), 350);
     return () => clearTimeout(t);
   }, [searchInput]);
 
   const query = useMemo<LedgerQuery>(() => ({
-    ...(byMonth ? { month } : {}),
+    ...(byMonth && !overdueOn ? { month } : {}),
+    ...(overdueOn ? { overdue: true } : {}),
     ...(category ? { category } : {}),
     ...(kind ? { kind } : {}),
     ...(status ? { status } : {}),
     ...(search ? { search } : {}),
-  }), [byMonth, month, category, kind, status, search]);
+  }), [byMonth, overdueOn, month, category, kind, status, search]);
 
   useEffect(() => {
     let alive = true;
@@ -237,7 +243,14 @@ const LedgerTab: React.FC<Props> = ({ month, refreshKey, config, preset, canMana
     try { await companyApi.exportCsv(query); } catch (e) { setErr(empErr(e, 'Could not export')); }
   };
 
-  const rows = data?.rows || [];
+  const rows = useMemo(() => {
+    const list = data?.rows || [];
+    return overdueOn ? [...list].sort((a, b) => (a.dueOn || a.date || '').localeCompare(b.dueOn || b.date || '')) : list;
+  }, [data, overdueOn]);
+  const overdueRows = rows.filter(r => r.overdue);
+  const overdueTotal = overdueRows.reduce((sum, r) => sum + (r.amount || 0), 0);
+  const todayStr = todayIn();
+  const soonStr = new Date(Date.now() + 330 * 60000 + 7 * 86400000).toISOString().slice(0, 10);
   const payable = rows.filter(r => r.canPay);
   const allSel = payable.length > 0 && payable.every(r => selected.includes(r._id));
   const toggle = (id: string) => setSelected(s => (s.includes(id) ? s.filter(x => x !== id) : [...s, id]));
@@ -282,11 +295,15 @@ const LedgerTab: React.FC<Props> = ({ month, refreshKey, config, preset, canMana
         )}
         <div className="emp-field">
           <label htmlFor="lt-range">Period</label>
-          <select id="lt-range" className="emp-select" value={byMonth ? 'month' : 'all'} onChange={e => setByMonth(e.target.value === 'month')}>
+          <select id="lt-range" className="emp-select" disabled={overdueOn} value={byMonth && !overdueOn ? 'month' : 'all'} onChange={e => setByMonth(e.target.value === 'month')}>
             <option value="month">Whole month</option>
             <option value="all">All time</option>
           </select>
         </div>
+        <label className="exp-check" htmlFor="lt-overdue">
+          <input id="lt-overdue" type="checkbox" checked={overdueOn} onChange={e => setOverdueOn(e.target.checked)} /> Overdue only
+        </label>
+        {overdueRows.length > 0 && <span className="exp-overdue-count" role="status">{overdueRows.length} overdue · {inr(overdueTotal)}</span>}
         <button className="emp-btn ghost" onClick={exportCsv}>Export CSV</button>
         {selected.length > 0 && <button className="emp-btn good" onClick={() => setPayIds(selected)}>Mark selected as paid ({selected.length})</button>}
       </div>
@@ -323,13 +340,17 @@ const LedgerTab: React.FC<Props> = ({ month, refreshKey, config, preset, canMana
                   <td>
                     <div>{r.title || r.employeeName || r.category} <Badge color={KIND_COLOR[r.kind]}>{KIND_LABEL[r.kind]}</Badge></div>
                     {(r.vendor || r.employeeName) && <div className="exp-sub">{r.vendor || r.employeeName}</div>}
+                    {r.dueOn && (r.overdue || (r.dueOn >= todayStr && r.dueOn <= soonStr)) && <div className="exp-sub">Due {fmtDue(r.dueOn)}</div>}
                   </td>
                   <td>{r.category}</td>
                   <td className="num">
                     <div>{inr(r.amount)}</div>
                     {!!r.gst && r.gst > 0 && <div className="exp-sub">incl. GST {inr(r.gst)}</div>}
                   </td>
-                  <td><Badge color={STATUS_COLOR[r.status]}>{STATUS_LABEL[r.status]}</Badge></td>
+                  <td>
+                    <Badge color={STATUS_COLOR[r.status]}>{STATUS_LABEL[r.status]}</Badge>
+                    {r.overdue && <> <Badge color="red">Overdue · {r.daysOverdue} {r.daysOverdue === 1 ? 'day' : 'days'}</Badge></>}
+                  </td>
                   <td>{r.invoices.length > 0 ? <span title={`${r.invoices.length} attached`}>📎 {r.invoices.length}</span> : <span className="emp-muted">—</span>}</td>
                   <td onClick={e => e.stopPropagation()}>
                     <div className="exp-actions">

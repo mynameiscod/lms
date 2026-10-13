@@ -10,6 +10,7 @@ import Enrollment from '../models/Enrollment';
 import Course from '../models/Course';
 import User from '../models/User';
 import Role from '../models/Role';
+import Employee from '../models/Employee';
 import AssessmentSubmission from '../models/AssessmentSubmission';
 import StudentProfile from '../models/StudentProfile';
 import { computeProfileCompleteness } from '../utils/profileCompleteness';
@@ -207,7 +208,10 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
       const profiles = await StudentProfile.find({ tenantId: req.tenantId, userId: { $in: ids } }).lean();
       const byUser: Record<string, number> = {};
       for (const p of profiles) byUser[String((p as any).userId)] = computeProfileCompleteness(p);
-      users = (users as any[]).map(u => ({ ...(u.toObject ? u.toObject() : u), completeness: byUser[String(u._id)] ?? 0 }));
+      // Which logins belong to an employee, so the Users list can say so.
+      const emps: any[] = await Employee.find({ tenantId: req.tenantId, userId: { $in: ids } }).select('userId employeeCode').lean();
+      const empOf = new Map(emps.map(e => [String(e.userId), e.employeeCode]));
+      users = (users as any[]).map(u => ({ ...(u.toObject ? u.toObject() : u), completeness: byUser[String(u._id)] ?? 0, employeeCode: empOf.get(String(u._id)) }));
     } catch { /* non-fatal — return users without completeness */ }
 
     res.json({ success: true, message: 'Users fetched successfully', data: users });

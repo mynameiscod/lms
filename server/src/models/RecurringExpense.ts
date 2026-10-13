@@ -10,6 +10,8 @@ const RecurringExpenseSchema = new Schema({
   gst: { type: Number, min: 0, default: 0 },
   /** Day of the month it falls due, 1-28 (kept to 28 so every month has it). */
   dayOfMonth: { type: Number, min: 1, max: 28, default: 1 },
+  /** How many months one payment covers: 1 = every month, 4 = a line every four months (rent paid in four-month blocks). */
+  everyMonths: { type: Number, enum: [1, 2, 3, 4, 6, 12], default: 1 },
   /** First and last month it applies to, YYYY-MM. No end month = until switched off. */
   startMonth: { type: String, required: true },
   endMonth: { type: String },

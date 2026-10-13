@@ -47,6 +47,7 @@ router.post('/recurring/generate', wrap('company-expenses', async (req) => {
   if (!v.canManage) throw new svc.EmployeeError('You cannot add recurring expenses.', 403);
   return ce.generateRecurring(t(req), { userId: v.userId, name: v.name }, req.body?.month);
 }));
+router.post('/recurring/:id/pay-ahead', wrap('company-expenses', async (req) => ce.payAhead(t(req), await viewerOf(req), req.params.id, req.body || {})));
 router.put('/recurring/:id', wrap('company-expenses', async (req) => ce.updateRecurring(t(req), await viewerOf(req), req.params.id, req.body || {})));
 router.delete('/recurring/:id', wrap('company-expenses', async (req) => { await ce.deleteRecurring(t(req), await viewerOf(req), req.params.id); return { deleted: true }; }));
 

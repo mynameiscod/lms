@@ -18,7 +18,11 @@ router.get('/exists', wrap('employee-portal', async (req) => {
   const me = await employeeOfUser(t(req), u(req));
   if (!me || me.status === 'exited') return { isEmployee: false };
   const reports = await svc.teamIds(t(req), String(me._id));
-  return { isEmployee: true, portalOnly: !!me.portalOnly, name: [me.firstName, me.lastName].filter(Boolean).join(' '), hasTeam: reports.length > 0 };
+  // "Portal only" is what the login can actually do now, not how it was created: once an admin gives
+  // the person a bigger role, they are no longer sent to the portal page when they sign in.
+  const perms = await svc.permsOf((req as any).user);
+  const portalOnly = !!me.portalOnly && perms.has('use_employee_portal') && perms.size <= 1;
+  return { isEmployee: true, portalOnly, name: [me.firstName, me.lastName].filter(Boolean).join(' '), hasTeam: reports.length > 0 };
 }));
 
 const needEmployee = async (req: Request, res: Response, next: NextFunction) => {

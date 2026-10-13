@@ -20,6 +20,27 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 export const monthLabel = (m: string) => `${MONTHS[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}`;
 const addMonths = (m: string, n: number) => { const d = new Date(Date.UTC(Number(m.slice(0, 4)), Number(m.slice(5, 7)) - 1 + n, 1)); return d.toISOString().slice(0, 7); };
 
+const monthIndex = (m: string) => Number(m.slice(0, 4)) * 12 + Number(m.slice(5, 7)) - 1;
+const EVERY = [1, 2, 3, 4, 6, 12];
+
+/** The day a line should be paid by: a bill its due date, a recurring or salary line its own day. */
+export const dueOnOf = (r: { dueDate?: string; kind?: string; date: string }) => r.dueDate || (r.kind === 'recurring' || r.kind === 'salary' ? r.date : undefined);
+
+/** Unpaid lines whose day has passed (the query form of dueOnOf, so reports and the list agree). */
+const overdueFilter = (today: string) => ({
+  status: { $in: ['pending', 'approved'] },
+  $or: [
+    { dueDate: { $lt: today, $nin: [null, ''] } },
+    { kind: { $in: ['recurring', 'salary'] }, dueDate: { $in: [null, ''] }, date: { $lt: today } },
+    { kind: { $in: ['recurring', 'salary'] }, dueDate: { $exists: false }, date: { $lt: today } },
+  ],
+});
+
+const isOverdue = (r: any, today: string) => ['pending', 'approved'].includes(r.status) && !!dueOnOf(r) && (dueOnOf(r) as string) < today;
+const daysLate = (r: any, today: string) => (isOverdue(r, today)
+  ? Math.round((new Date(today + 'T00:00:00Z').getTime() - new Date((dueOnOf(r) as string) + 'T00:00:00Z').getTime()) / 86_400_000)
+  : 0);
+
 export interface Viewer {
   userId: string; name: string;
   canViewAll: boolean; canManage: boolean; canApprove: boolean;
@@ -180,7 +201,7 @@ export async function unpay(tenantId: string, viewer: Viewer, id: string) {
 
 // ── Reading ──────────────────────────────────────────────────────────────────
 
-export interface LedgerQuery { month?: string; from?: string; to?: string; category?: string; kind?: string; status?: string; search?: string; employeeId?: string }
+export interface LedgerQuery { overdue?: string | boolean; month?: string; from?: string; to?: string; category?: string; kind?: string; status?: string; search?: string; employeeId?: string }
 
 /** Salary lines name a person's pay: only people allowed to see pay get them line by line. */
 const visibleFilter = (viewer: Viewer) => (viewer.canSalary ? {} : { kind: { $ne: 'salary' } });
@@ -194,6 +215,8 @@ export async function ledger(tenantId: string, viewer: Viewer, q: LedgerQuery) {
   if (q.kind && ['bill', 'recurring', 'salary', 'reimbursement'].includes(q.kind)) { if (q.kind === 'salary' && !viewer.canSalary) return { rows: [], totals: emptyTotals(), hiddenSalaryLines: true }; filter.kind = q.kind; }
   if (q.status) filter.status = q.status;
   if (q.employeeId && validId(q.employeeId)) filter.employeeId = oid(q.employeeId);
+  const today = istDate();
+  if (q.overdue === true || q.overdue === 'true') filter.$and = [overdueFilter(today)];
   const search = String(q.search || '').trim();
   if (search) { const re = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'); filter.$or = [{ title: re }, { vendor: re }, { description: re }, { invoiceNumber: re }, { category: re }]; }
   const rows: any[] = await CompanyExpense.find(filter).sort({ date: -1, createdAt: -1 }).limit(1000).lean();
@@ -203,6 +226,7 @@ export async function ledger(tenantId: string, viewer: Viewer, q: LedgerQuery) {
   const out = rows.map((r) => {
     const e = r.employeeId ? byEmp.get(String(r.employeeId)) : null;
     return { ...r, _id: String(r._id), employeeId: r.employeeId ? String(r.employeeId) : undefined, employeeName: e ? fullName(e) : undefined, employeeCode: e?.employeeCode,
+      dueOn: dueOnOf(r), overdue: isOverdue(r, today), daysOverdue: daysLate(r, today),
       canApprove: r.status === 'pending' && viewer.canApprove, canPay: r.status === 'approved' && viewer.canManage && r.kind !== 'reimbursement', canEdit: viewer.canManage && ['pending', 'approved', 'rejected'].includes(r.status) && r.kind !== 'reimbursement' };
   });
   const totals = emptyTotals();
@@ -240,10 +264,18 @@ export async function summary(tenantId: string, viewer: Viewer, month?: string) 
     CompanyExpense.countDocuments({ tenantId: tid, status: 'pending' }),
   ]);
   const dueRecurring = await recurringDue(tenantId);
+  const todayStr = istDate();
+  const soon = istDate(new Date(Date.now() + 7 * 86_400_000));
+  const [overdueAgg, soonAgg] = await Promise.all([
+    CompanyExpense.aggregate([{ $match: { tenantId: tid, ...overdueFilter(todayStr) } }, { $group: { _id: null, total: { $sum: '$amount' }, n: { $sum: 1 } } }]),
+    CompanyExpense.aggregate([{ $match: { tenantId: tid, status: { $in: ['pending', 'approved'] }, dueDate: { $gte: todayStr, $lte: soon } } }, { $group: { _id: null, total: { $sum: '$amount' }, n: { $sum: 1 } } }]),
+  ]);
   const months = Array.from({ length: 6 }, (_, i) => addMonths(m, i - 5));
   const trendMap = new Map(trend.map((t: any) => [t._id, round2(t.total)]));
   return {
     month: m, label: monthLabel(m), pendingApprovals: pendingCount, recurringNotYetAdded: dueRecurring.length,
+    overdue: { count: overdueAgg[0]?.n || 0, total: round2(overdueAgg[0]?.total || 0) },
+    dueSoon: { count: soonAgg[0]?.n || 0, total: round2(soonAgg[0]?.total || 0) },
     byStatus: Object.fromEntries(byStatus.map((x: any) => [x._id, { total: round2(x.total), count: x.n }])),
     spent: round2(byCategory.reduce((s: number, x: any) => s + x.total, 0)),
     byCategory: byCategory.map((x: any) => ({ category: x._id, total: round2(x.total), count: x.n })),
@@ -271,11 +303,13 @@ async function checkRecurring(tenantId: string, body: any, current?: any) {
   if (!Number.isFinite(amount) || amount <= 0) throw new EmployeeError('Enter the monthly amount in rupees.');
   const dayOfMonth = Math.round(Number(body?.dayOfMonth ?? current?.dayOfMonth ?? 1));
   if (!(dayOfMonth >= 1 && dayOfMonth <= 28)) throw new EmployeeError('Choose a day from 1 to 28.');
+  const everyMonths = Math.round(Number(body?.everyMonths ?? current?.everyMonths ?? 1));
+  if (!EVERY.includes(everyMonths)) throw new EmployeeError('Choose how often it is paid: every 1, 2, 3, 4, 6 or 12 months.');
   const startMonth = String(body?.startMonth ?? current?.startMonth ?? istMonth());
   if (!monthOk(startMonth)) throw new EmployeeError('Choose the month it starts.');
   const endMonth = body?.endMonth === '' || body?.endMonth === null ? undefined : (body?.endMonth ?? current?.endMonth);
   if (endMonth && (!monthOk(endMonth) || endMonth < startMonth)) throw new EmployeeError('The end month must be the start month or later.');
-  return { title, category, vendor: String(body?.vendor ?? current?.vendor ?? '').trim().slice(0, 120), amount, gst: round2(Number(body?.gst ?? current?.gst ?? 0)) || 0, dayOfMonth, startMonth, endMonth,
+  return { title, category, vendor: String(body?.vendor ?? current?.vendor ?? '').trim().slice(0, 120), amount, gst: round2(Number(body?.gst ?? current?.gst ?? 0)) || 0, dayOfMonth, everyMonths, startMonth, endMonth,
     paymentMode: String(body?.paymentMode ?? current?.paymentMode ?? '').trim().slice(0, 40), notes: String(body?.notes ?? current?.notes ?? '').trim().slice(0, 500), active: body?.active ?? current?.active ?? true };
 }
 
@@ -309,7 +343,7 @@ async function recurringDue(tenantId: string, month = istMonth(), today = istDat
   const made: any[] = await CompanyExpense.find({ tenantId: oid(tenantId), month, recurringId: { $in: templates.map((t) => t._id) } }).select('recurringId').lean();
   const have = new Set(made.map((m) => String(m.recurringId)));
   const day = Number(today.slice(8, 10));
-  return templates.filter((t) => !have.has(String(t._id)) && (month < today.slice(0, 7) || t.dayOfMonth <= day));
+  return templates.filter((t) => !have.has(String(t._id)) && (monthIndex(month) - monthIndex(t.startMonth)) % (t.everyMonths || 1) === 0 && (month < today.slice(0, 7) || t.dayOfMonth <= day));
 }
 
 /** Add this month's line for every recurring cost that has fallen due and has none yet. Safe to run any number of times. */
@@ -339,6 +373,49 @@ export async function generateRecurringForAll(): Promise<number> {
   let n = 0;
   for (const t of tenants) n += (await generateRecurring(String(t), { name: 'Recurring schedule' })).added;
   return n;
+}
+
+/**
+ * Pay several periods of a recurring cost in one go (rent paid for four months at once): the
+ * lines for the coming periods are added and marked paid together under one payment. A line that
+ * already exists and is unpaid is paid; one already paid is skipped, so nothing is paid twice.
+ */
+export async function payAhead(tenantId: string, viewer: Viewer, id: string, input: { periods?: number; paymentMode?: string; paymentRef?: string; paidOn?: string }) {
+  if (!viewer.canManage) throw new EmployeeError('You cannot record payments.', 403);
+  const t: any = await RecurringExpense.findOne({ _id: oid(id), tenantId: oid(tenantId) }).lean();
+  if (!t) throw new EmployeeError('Recurring expense not found', 404);
+  const periods = Math.round(Number(input?.periods));
+  if (!(periods >= 1 && periods <= 12)) throw new EmployeeError('Choose how many payments to cover, from 1 to 12.');
+  const paidOn = input?.paidOn ? String(input.paidOn) : istDate();
+  if (!validDay(paidOn)) throw new EmployeeError('Choose the date it was paid.');
+  const mode = String(input?.paymentMode || t.paymentMode || '').trim().slice(0, 40);
+  const ref = String(input?.paymentRef || '').trim().slice(0, 80);
+  const rule = await categoryRule(tenantId, t.category);
+  const every = t.everyMonths || 1;
+  const covered: string[] = [];
+  const note = `Paid ahead with ${periods} payment${periods > 1 ? 's' : ''} of ${t.title}`;
+  let m = t.startMonth > istMonth() ? t.startMonth : istMonth();
+  // Begin at the first month this cost falls due, then step by its billing interval.
+  while ((monthIndex(m) - monthIndex(t.startMonth)) % every !== 0) m = addMonths(m, 1);
+  for (let guard = 0; covered.length < periods && guard < 60; guard++, m = addMonths(m, every)) {
+    if (t.endMonth && m > t.endMonth) break;
+    const existing: any = await CompanyExpense.findOne({ tenantId: oid(tenantId), recurringId: t._id, month: m });
+    if (existing && ['paid', 'cancelled'].includes(existing.status)) continue;
+    const line = existing || new CompanyExpense({
+      tenantId: oid(tenantId), kind: 'recurring', date: `${m}-${String(t.dayOfMonth).padStart(2, '0')}`, month: m, category: t.category, title: t.title, vendor: t.vendor,
+      amount: t.amount, gst: t.gst || 0, description: t.notes, recurringId: t._id, createdBy: oid(viewer.userId), status: rule.skipApproval ? 'approved' : 'pending',
+      trail: [trailEntry(viewer, 'recorded', `Recurring: ${t.title}`)],
+    });
+    if (line.status === 'pending') {
+      if (!(await mayApprove(tenantId, viewer, line))) throw new EmployeeError('Paying ahead needs someone who can approve this category. Ask an approver, or pay after it is approved.', 403);
+      line.status = 'approved'; line.trail.push(trailEntry(viewer, 'approved'));
+    }
+    line.status = 'paid'; line.paidOn = paidOn; line.paymentMode = mode; line.paymentRef = ref;
+    line.trail.push(trailEntry(viewer, 'paid', [mode, ref, note].filter(Boolean).join(' · ')));
+    await line.save();
+    covered.push(m);
+  }
+  return { covered, labels: covered.map(monthLabel) };
 }
 
 // ── Salaries ─────────────────────────────────────────────────────────────────

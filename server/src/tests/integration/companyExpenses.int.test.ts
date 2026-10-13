@@ -177,6 +177,83 @@ describe('employee claims in the ledger', () => {
   });
 });
 
+describe('overdue', () => {
+  const daysAgo = (n: number) => svc.istDate(new Date(Date.now() - n * 86_400_000));
+
+  it('marks unpaid lines past their day as overdue, and clears it when paid', async () => {
+    const late = await bill({ dueDate: daysAgo(5), amount: 1000 });
+    const notYet = await bill({ dueDate: svc.istDate(new Date(Date.now() + 3 * 86_400_000)), amount: 2000 });
+    await bill({ amount: 500 }); // no due date: never overdue
+    await ce.createRecurring(T, ACCOUNTS, { title: 'Rent', category: 'Rent', amount: 45000, dayOfMonth: 1, startMonth: '2026-06' });
+    await ce.generateRecurring(T, { name: 's' }, '2026-06', daysAgo(0));
+    const rows = (await ce.ledger(T, READER, {})).rows;
+    expect(rows.find((r: any) => r._id === String(late._id))).toMatchObject({ overdue: true, daysOverdue: 5, dueOn: daysAgo(5) });
+    expect(rows.find((r: any) => r._id === String(notYet._id))).toMatchObject({ overdue: false, daysOverdue: 0 });
+    const rent: any = rows.find((r: any) => r.kind === 'recurring');
+    expect(rent.overdue).toBe(true);
+    const only = (await ce.ledger(T, READER, { overdue: 'true' })).rows;
+    expect(only.map((r: any) => r.kind).sort()).toEqual(['bill', 'recurring']);
+    const s1 = await ce.summary(T, READER, svc.istMonth());
+    expect(s1.overdue).toEqual({ count: 2, total: 46000 });
+    expect(s1.dueSoon).toEqual({ count: 1, total: 2000 });
+    await ce.actOn(T, APPROVER, String(late._id), 'approve');
+    await ce.pay(T, ACCOUNTS, [String(late._id), rent._id], { paymentMode: 'Bank' });
+    expect((await ce.summary(T, READER, svc.istMonth())).overdue).toEqual({ count: 0, total: 0 });
+    expect((await ce.ledger(T, READER, { overdue: 'true' })).rows).toHaveLength(0);
+  });
+});
+
+describe('costs paid every few months, and paid ahead', () => {
+  const rows = async (tid: any) => (await CompanyExpense.find({ recurringId: tid }).sort({ month: 1 }).lean()).map((r: any) => [r.month, r.status, r.paymentRef || '']);
+
+  it('adds a line only in the months it falls due when it is paid every four months', async () => {
+    await ce.createRecurring(T, ACCOUNTS, { title: 'Rent (4-monthly)', category: 'Rent', amount: 180000, dayOfMonth: 1, everyMonths: 4, startMonth: '2026-06' });
+    expect((await ce.generateRecurring(T, { name: 's' }, '2026-07', '2026-12-01')).added).toBe(0);
+    expect((await ce.generateRecurring(T, { name: 's' }, '2026-09', '2026-12-01')).added).toBe(0);
+    expect((await ce.generateRecurring(T, { name: 's' }, '2026-10', '2026-12-01')).added).toBe(1);
+    expect((await ce.generateRecurring(T, { name: 's' }, '2026-06', '2026-12-01')).added).toBe(1);
+    await expect(ce.createRecurring(T, ACCOUNTS, { title: 'x', category: 'Rent', amount: 1, everyMonths: 5, startMonth: '2026-06' })).rejects.toThrow('every 1, 2, 3, 4, 6 or 12');
+  });
+
+  it('pays several months at once, under one payment, and never pays one twice', async () => {
+    const m0 = svc.istMonth();
+    const rent = await ce.createRecurring(T, ACCOUNTS, { title: 'Office rent', category: 'Rent', amount: 45000, dayOfMonth: 1, startMonth: m0 });
+    await ce.generateRecurring(T, { name: 's' }, m0, `${m0}-28`); // this month is already in the ledger, unpaid
+    const first = await ce.payAhead(T, ACCOUNTS, String(rent._id), { periods: 4, paymentMode: 'Bank', paymentRef: 'NEFT-77' });
+    expect(first.covered).toHaveLength(4);
+    expect(first.covered[0]).toBe(m0);
+    const lines = await rows(rent._id);
+    expect(lines).toHaveLength(4);
+    expect(lines.every(([, st, ref]) => st === 'paid' && ref === 'NEFT-77')).toBe(true);
+    const second = await ce.payAhead(T, ACCOUNTS, String(rent._id), { periods: 2, paymentRef: 'NEFT-78' });
+    expect(second.covered).toHaveLength(2);
+    const after = (x: string) => new Date(Date.UTC(Number(x.slice(0, 4)), Number(x.slice(5, 7)), 1)).toISOString().slice(0, 7);
+    expect(second.covered[0]).toBe(after(first.covered[3]));
+    expect(await rows(rent._id)).toHaveLength(6);
+    // The ledger totals count each month once.
+    expect((await ce.ledger(T, READER, { status: 'paid' })).totals.paid).toBe(6 * 45000);
+  });
+
+  it('steps by the billing interval, and stops at the end month', async () => {
+    const m0 = svc.istMonth();
+    const q = await ce.createRecurring(T, ACCOUNTS, { title: 'Quarterly fee', category: 'Rent', amount: 9000, dayOfMonth: 5, everyMonths: 3, startMonth: m0 });
+    const r = await ce.payAhead(T, ACCOUNTS, String(q._id), { periods: 3 });
+    const idx = (m: string) => Number(m.slice(0, 4)) * 12 + Number(m.slice(5, 7));
+    expect(r.covered.map((m, i) => idx(m) - idx(m0) - 3 * i)).toEqual([0, 0, 0]);
+    const ended = await ce.createRecurring(T, ACCOUNTS, { title: 'Short lease', category: 'Rent', amount: 100, dayOfMonth: 1, startMonth: m0, endMonth: m0 });
+    expect((await ce.payAhead(T, ACCOUNTS, String(ended._id), { periods: 5 })).covered).toEqual([m0]);
+    await expect(ce.payAhead(T, ACCOUNTS, String(q._id), { periods: 0 })).rejects.toThrow('1 to 12');
+  });
+
+  it('needs someone who can approve when the category needs approval', async () => {
+    const m0 = svc.istMonth();
+    const sw = await ce.createRecurring(T, ACCOUNTS, { title: 'CRM yearly', category: 'Software & subscriptions', amount: 60000, dayOfMonth: 1, everyMonths: 12, startMonth: m0 });
+    await expect(ce.payAhead(T, ACCOUNTS, String(sw._id), { periods: 1 })).rejects.toThrow('can approve');
+    await expect(ce.payAhead(T, READER, String(sw._id), { periods: 1 })).rejects.toThrow('cannot record');
+    expect((await ce.payAhead(T, OWNER, String(sw._id), { periods: 1, paymentRef: 'CARD-1' })).covered).toEqual([m0]);
+  });
+});
+
 describe('reports', () => {
   it('summarise the month: spent, by category, by vendor, trend, and what is waiting', async () => {
     const a = await bill({ amount: 10000 });

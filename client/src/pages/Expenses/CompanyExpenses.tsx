@@ -45,6 +45,13 @@ const CompanyExpenses: React.FC = () => {
     setParams({ tab: t }, { replace: true });
   };
   useEffect(() => { if (isTab(urlTab)) setTabState(urlTab); }, [urlTab]);
+  // The overview links to the ledger already narrowed to what is overdue; every other way in shows everything.
+  const [overdueOnly, setOverdueOnly] = useState(false);
+  const go = (id: string) => {
+    if (id === 'ledger-overdue') { setOverdueOnly(true); setTab('ledger'); return; }
+    setOverdueOnly(false);
+    setTab(id);
+  };
 
   useEffect(() => {
     let alive = true;
@@ -104,20 +111,20 @@ const CompanyExpenses: React.FC = () => {
 
       <div className="emp-tabs" role="tablist">
         {tabs.map(t => (
-          <button key={t.id} role="tab" aria-selected={active === t.id} className={`emp-tab${active === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>
+          <button key={t.id} role="tab" aria-selected={active === t.id} className={`emp-tab${active === t.id ? ' active' : ''}`} onClick={() => go(t.id)}>{t.label}</button>
         ))}
       </div>
 
       {active === 'claims' && <ClaimsView embedded />}
       {!claimsOnly && !config && active !== 'overview' && active !== 'claims' && !err && <div className="emp-empty">Loading…</div>}
-      {!claimsOnly && active === 'overview' && <OverviewTab month={month} refreshKey={refreshKey} onGoto={setTab} />}
+      {!claimsOnly && active === 'overview' && <OverviewTab month={month} refreshKey={refreshKey} onGoto={go} />}
       {!claimsOnly && config && active === 'ledger' && (
-        <LedgerTab month={month} refreshKey={refreshKey} config={config} canManage={canManage} canApprove={canApprove} onChanged={refresh} onEdit={row => setModal({ row })} />
+        <LedgerTab month={month} refreshKey={refreshKey} config={config} overdueOnly={overdueOnly} canManage={canManage} canApprove={canApprove} onChanged={refresh} onEdit={row => setModal({ row })} />
       )}
       {!claimsOnly && config && active === 'approvals' && (
         <LedgerTab key="approvals" month={month} refreshKey={refreshKey} config={config} preset="approvals" canManage={canManage} canApprove={canApprove} onChanged={refresh} onEdit={row => setModal({ row })} />
       )}
-      {!claimsOnly && config && active === 'recurring' && <RecurringTab config={config} canManage={canManage} />}
+      {!claimsOnly && config && active === 'recurring' && <RecurringTab config={config} canManage={canManage} onChanged={refresh} />}
       {!claimsOnly && showSalaries && active === 'salaries' && <SalariesTab canManage={canManage} canSalary={canSalary} />}
 
       {modal && config && (

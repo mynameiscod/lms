@@ -2,11 +2,28 @@ import React, { useCallback, useEffect, useState } from 'react';
 import '../Employees/employees.css';
 import './expensesSetup.css';
 import { companyApi, empErr, EmployeeConfig, RecurringItem } from '../../api/employeesApi';
+import { PAY_MODES } from './BillModal';
 
-const PAY_MODES = ['Bank transfer', 'UPI', 'Cash', 'Cheque', 'Card'];
+const todayIn = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
+const EVERY_OPTIONS: { value: number; label: string }[] = [
+  { value: 1, label: 'Every month' }, { value: 2, label: 'Every 2 months' }, { value: 3, label: 'Every 3 months (quarterly)' },
+  { value: 4, label: 'Every 4 months' }, { value: 6, label: 'Every 6 months' }, { value: 12, label: 'Every year' },
+];
 const inr = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
 const thisMonth = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 7);
 const monthLabel = (m?: string) => (m && /^\d{4}-\d{2}$/.test(m) ? new Date(`${m}-01T00:00:00`).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '');
+const monthIndex = (m: string) => Number(m.slice(0, 4)) * 12 + Number(m.slice(5, 7)) - 1;
+const indexMonth = (i: number) => `${Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, '0')}`;
+/** First due month >= the current India month, bounded by endMonth. */
+const nextDueMonth = (r: RecurringItem): string => {
+  if (!/^\d{4}-\d{2}$/.test(r.startMonth)) return '';
+  const step = Math.max(1, r.everyMonths || 1);
+  const start = monthIndex(r.startMonth);
+  const now = monthIndex(thisMonth());
+  const idx = now <= start ? start : start + Math.ceil((now - start) / step) * step;
+  const m = indexMonth(idx);
+  return r.endMonth && m > r.endMonth ? '' : m;
+};
 const ordinal = (n: number) => {
   const v = n % 100;
   if (v >= 11 && v <= 13) return `${n}th`;
@@ -15,16 +32,16 @@ const ordinal = (n: number) => {
 
 interface Form {
   title: string; category: string; vendor: string; amount: string; gst: string; dayOfMonth: string;
-  startMonth: string; endMonth: string; paymentMode: string; notes: string; active: boolean;
+  startMonth: string; endMonth: string; paymentMode: string; notes: string; active: boolean; everyMonths: string;
 }
 
 const emptyForm = (category: string): Form => ({
-  title: '', category, vendor: '', amount: '', gst: '', dayOfMonth: '1', startMonth: thisMonth(), endMonth: '', paymentMode: PAY_MODES[0], notes: '', active: true,
+  title: '', category, vendor: '', amount: '', gst: '', dayOfMonth: '1', startMonth: thisMonth(), endMonth: '', paymentMode: PAY_MODES[0], notes: '', active: true, everyMonths: '1',
 });
 
 const toForm = (r: RecurringItem): Form => ({
   title: r.title, category: r.category, vendor: r.vendor || '', amount: String(r.amount), gst: r.gst ? String(r.gst) : '', dayOfMonth: String(r.dayOfMonth),
-  startMonth: r.startMonth, endMonth: r.endMonth || '', paymentMode: r.paymentMode || PAY_MODES[0], notes: r.notes || '', active: r.active,
+  startMonth: r.startMonth, endMonth: r.endMonth || '', paymentMode: r.paymentMode || PAY_MODES[0], notes: r.notes || '', active: r.active, everyMonths: String(r.everyMonths || 1),
 });
 
 const RecurringModal: React.FC<{
@@ -43,7 +60,7 @@ const RecurringModal: React.FC<{
     const gst = f.gst === '' ? 0 : Number(f.gst);
     if (!f.title.trim()) return setErr('Give this cost a title, like "Office rent".');
     if (!f.category) return setErr('Pick a category.');
-    if (!Number.isFinite(amount) || amount <= 0) return setErr('Enter the monthly amount in rupees.');
+    if (!Number.isFinite(amount) || amount <= 0) return setErr('Enter the amount in rupees for one payment.');
     if (!Number.isFinite(gst) || gst < 0) return setErr('GST cannot be negative.');
     if (!Number.isInteger(day) || day < 1 || day > 28) return setErr('Day of month must be between 1 and 28.');
     if (!f.startMonth) return setErr('Pick the month it starts.');
@@ -51,7 +68,7 @@ const RecurringModal: React.FC<{
     setBusy(true); setErr('');
     const body = {
       title: f.title.trim(), category: f.category, vendor: f.vendor.trim(), amount, gst, dayOfMonth: day,
-      startMonth: f.startMonth, endMonth: f.endMonth || undefined, paymentMode: f.paymentMode, notes: f.notes.trim(), active: f.active,
+      startMonth: f.startMonth, endMonth: f.endMonth || undefined, paymentMode: f.paymentMode, notes: f.notes.trim(), active: f.active, everyMonths: Number(f.everyMonths) || 1,
     };
     try {
       if (editing) await companyApi.updateRecurring(editing._id, body); else await companyApi.createRecurring(body);
@@ -87,7 +104,14 @@ const RecurringModal: React.FC<{
             </select>
           </div>
           <div className="emp-field">
-            <label htmlFor="rc-amt">Monthly amount ₹</label>
+            <label htmlFor="rc-every">Paid every</label>
+            <select id="rc-every" className="emp-select" value={f.everyMonths} onChange={(e) => set({ everyMonths: e.target.value })}>
+              {EVERY_OPTIONS.map((o) => <option key={o.value} value={String(o.value)}>{o.label}</option>)}
+            </select>
+            <p className="emp-hint">How often one payment is due. If you pay rent once for four months, choose every 4 months and enter the amount for the whole period.</p>
+          </div>
+          <div className="emp-field">
+            <label htmlFor="rc-amt">{f.everyMonths === '1' ? 'Monthly amount ₹' : 'Amount per payment ₹'}</label>
             <input id="rc-amt" className="emp-input" type="number" min={0} value={f.amount} onChange={(e) => set({ amount: e.target.value })} />
           </div>
           <div className="emp-field">
@@ -124,12 +148,64 @@ const RecurringModal: React.FC<{
   );
 };
 
-const RecurringTab: React.FC<{ config: EmployeeConfig; canManage: boolean }> = ({ config, canManage }) => {
+const PayAheadModal: React.FC<{ item: RecurringItem; onClose: () => void; onDone: (labels: string[]) => void }> = ({ item, onClose, onDone }) => {
+  const every = item.everyMonths || 1;
+  const [periods, setPeriods] = useState('1');
+  const [mode, setMode] = useState(item.paymentMode && PAY_MODES.includes(item.paymentMode) ? item.paymentMode : PAY_MODES[0]);
+  const [ref, setRef] = useState('');
+  const [paidOn, setPaidOn] = useState(todayIn());
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const n = Number(periods);
+  const submit = async () => {
+    if (!Number.isInteger(n) || n < 1 || n > 12) return setErr('Enter a number from 1 to 12.');
+    if (!paidOn) return setErr('Pick the date it was paid.');
+    setBusy(true); setErr('');
+    try {
+      const r = await companyApi.payAhead(item._id, { periods: n, paymentMode: mode, paymentRef: ref.trim() || undefined, paidOn });
+      onDone(r.labels);
+    } catch (e) { setErr(empErr(e)); } finally { setBusy(false); }
+  };
+  return (
+    <div className="emp-modal-back" onClick={onClose}>
+      <div className="emp-modal" role="dialog" aria-modal="true" aria-label={`Pay ahead: ${item.title}`} onClick={(e) => e.stopPropagation()}>
+        <h2>Pay ahead: {item.title}</h2>
+        {err && <div className="emp-msg err" role="alert">{err}</div>}
+        <div className="emp-field">
+          <label htmlFor="pa-n">How many payments to cover ({every === 1 ? 'months' : 'payments'}, 1 to 12)</label>
+          <input id="pa-n" className="emp-input" type="number" min={1} max={12} value={periods} onChange={(e) => setPeriods(e.target.value)} />
+        </div>
+        <div className="emp-field" style={{ marginTop: 10 }}>
+          <label htmlFor="pa-mode">Payment mode</label>
+          <select id="pa-mode" className="emp-select" value={mode} onChange={(e) => setMode(e.target.value)}>
+            {PAY_MODES.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+        <div className="emp-field" style={{ marginTop: 10 }}>
+          <label htmlFor="pa-ref">Reference (transaction id, cheque no.)</label>
+          <input id="pa-ref" className="emp-input" value={ref} onChange={(e) => setRef(e.target.value)} />
+        </div>
+        <div className="emp-field" style={{ marginTop: 10 }}>
+          <label htmlFor="pa-on">Paid on</label>
+          <input id="pa-on" type="date" className="emp-input" value={paidOn} onChange={(e) => setPaidOn(e.target.value)} />
+        </div>
+        <p className="emp-hint">Adds the next {Number.isInteger(n) && n > 0 ? n : 'N'} payments to the ledger and marks them all paid together with this reference. Anything already paid is skipped.</p>
+        <div className="emp-actions" style={{ marginTop: 14 }}>
+          <button type="button" className="emp-btn good" disabled={busy} onClick={submit}>{busy ? 'Saving…' : 'Pay now'}</button>
+          <button type="button" className="emp-btn ghost" disabled={busy} onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const RecurringTab: React.FC<{ config: EmployeeConfig; canManage: boolean; onChanged?: () => void }> = ({ config, canManage, onChanged }) => {
   const [rows, setRows] = useState<RecurringItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState<{ text: string; bad: boolean } | null>(null);
   const [modal, setModal] = useState<{ item: RecurringItem | null } | null>(null);
+  const [aheadItem, setAheadItem] = useState<RecurringItem | null>(null);
   const [busyId, setBusyId] = useState('');
   const [generating, setGenerating] = useState(false);
 
@@ -165,11 +241,19 @@ const RecurringTab: React.FC<{ config: EmployeeConfig; canManage: boolean }> = (
     } catch (e) { setMsg({ text: empErr(e), bad: true }); } finally { setGenerating(false); }
   };
 
+  const paidAhead = (labels: string[]) => {
+    setAheadItem(null);
+    setMsg({ text: `Paid: ${labels.join(', ')}`, bad: false });
+    load();
+    if (onChanged) onChanged();
+  };
+
   const saved = (text: string) => { setModal(null); setMsg({ text, bad: false }); load(); };
 
   return (
     <div className="emp-card">
       <p className="emp-hint" style={{ marginTop: 0 }}>Set a cost once (like rent) and its line is added to the ledger every month automatically, on its day.</p>
+      <p className="emp-hint">Paid late, or paid for several months at once? Open the Ledger and select the lines, or use Pay ahead for months that have not come yet.</p>
       {msg && <div className={`emp-msg ${msg.bad ? 'err' : 'ok'}`} role={msg.bad ? 'alert' : 'status'}>{msg.text}</div>}
       {canManage && (
         <div className="exp-toolbar">
@@ -184,7 +268,7 @@ const RecurringTab: React.FC<{ config: EmployeeConfig; canManage: boolean }> = (
         <div className="emp-table-wrap">
           <table className="emp-table">
             <thead>
-              <tr><th>Title</th><th>Category</th><th>Vendor</th><th className="num">Per month</th><th>Day</th><th>Period</th><th>Status</th>{canManage && <th aria-label="Actions" />}</tr>
+              <tr><th>Title</th><th>Category</th><th>Vendor</th><th className="num">Amount</th><th>Schedule</th><th>Period</th><th>Status</th>{canManage && <th aria-label="Actions" />}</tr>
             </thead>
             <tbody>
               {rows.map((r) => (
@@ -193,12 +277,16 @@ const RecurringTab: React.FC<{ config: EmployeeConfig; canManage: boolean }> = (
                   <td>{r.category}</td>
                   <td>{r.vendor || '—'}</td>
                   <td className="num">{inr(r.amount)}</td>
-                  <td>on the {ordinal(r.dayOfMonth)}</td>
+                  <td>
+                    <div>{r.everyMonths > 1 ? `every ${r.everyMonths} months` : 'every month'} on the {ordinal(r.dayOfMonth)}</div>
+                    {r.active && nextDueMonth(r) && <div className="exp-sub">Next: {monthLabel(nextDueMonth(r))}</div>}
+                  </td>
                   <td>{monthLabel(r.startMonth)} → {r.endMonth ? monthLabel(r.endMonth) : 'ongoing'}</td>
                   <td><span className={`emp-badge ${r.active ? 'green' : 'grey'}`}>{r.active ? 'Active' : 'Off'}</span></td>
                   {canManage && (
                     <td>
                       <div className="exp-actions">
+                        {r.active && <button type="button" className="emp-btn sm" disabled={busyId === r._id} onClick={() => setAheadItem(r)}>Pay ahead</button>}
                         <button type="button" className="emp-btn ghost sm" disabled={busyId === r._id} onClick={() => setModal({ item: r })}>Edit</button>
                         <button type="button" className="emp-btn ghost sm" disabled={busyId === r._id} onClick={() => toggle(r)}>{r.active ? 'Switch off' : 'Switch on'}</button>
                         <button type="button" className="emp-btn danger sm" disabled={busyId === r._id} onClick={() => remove(r)}>Delete</button>
@@ -211,6 +299,7 @@ const RecurringTab: React.FC<{ config: EmployeeConfig; canManage: boolean }> = (
           </table>
         </div>
       )}
+      {aheadItem && <PayAheadModal item={aheadItem} onClose={() => setAheadItem(null)} onDone={paidAhead} />}
       {modal && <RecurringModal config={config} editing={modal.item} onClose={() => setModal(null)} onSaved={saved} />}
     </div>
   );

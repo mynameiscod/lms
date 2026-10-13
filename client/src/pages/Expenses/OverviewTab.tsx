@@ -52,6 +52,20 @@ const OverviewTab: React.FC<Props> = ({ month, refreshKey, onGoto }) => {
   return (
     <div>
       <div className="emp-grid c4" style={{ marginBottom: 16 }}>
+        {data.overdue && data.overdue.count > 0 && (
+          <div className="emp-stat exp-stat-click exp-stat-overdue" role="button" tabIndex={0} onClick={() => onGoto('ledger-overdue')} onKeyDown={e => { if (e.key === 'Enter') onGoto('ledger-overdue'); }}>
+            <div className="emp-muted">Overdue</div>
+            <div className="exp-big">{inr(data.overdue.total)}</div>
+            <div className="emp-hint">{data.overdue.count} unpaid past the due day</div>
+          </div>
+        )}
+        {data.dueSoon && data.dueSoon.count > 0 && (
+          <div className="emp-stat exp-stat-click exp-stat-soon" role="button" tabIndex={0} onClick={() => onGoto('ledger')} onKeyDown={e => { if (e.key === 'Enter') onGoto('ledger'); }}>
+            <div className="emp-muted">Due in the next 7 days</div>
+            <div className="exp-big">{inr(data.dueSoon.total)}</div>
+            <div className="emp-hint">{data.dueSoon.count} bill{data.dueSoon.count === 1 ? '' : 's'} to pay</div>
+          </div>
+        )}
         <div className="emp-stat">
           <div className="emp-muted">Spent in {data.label}</div>
           <div className="exp-big">{inr(spent)}</div>

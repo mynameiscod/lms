@@ -214,6 +214,37 @@ describe('listening to a call', () => {
     expect(whisper).toHaveBeenCalledTimes(3);
   });
 
+  it('waits and tries again when the AI account is out of credit, without using up the call’s tries, and carries on once credit is back', async () => {
+    audio(true);
+    const noCredit = Object.assign(new Error('Request failed with status code 429'), { response: { status: 429, data: { error: { code: 'insufficient_quota', message: 'You have no credits remaining.' } } } });
+    whisper.mockRejectedValue(noCredit);
+    const c: any = await mkCall();
+    expect(await an.processPendingAnalysis()).toBe(0);
+    let row: any = await OutperoCall.findById(c._id).lean();
+    expect(row.analysisAttempts ?? 0).toBe(0);
+    expect(row.analysisError).toMatch(/no credits remaining/);
+    expect(row.analysisRetryAt.getTime()).toBeGreaterThan(Date.now() + 5 * 60_000);
+    // Not retried while it is waiting.
+    await an.processPendingAnalysis();
+    expect(whisper).toHaveBeenCalledTimes(1);
+    // Credit is added; the wait is over.
+    whisper.mockResolvedValue({ data: { text: 'Hello, I want to join the Java Full Stack course. Please call me in the evening.', duration: 40 } }); ai.mockResolvedValue(ANALYSIS);
+    await OutperoCall.collection.updateOne({ _id: c._id }, { $set: { analysisRetryAt: new Date(Date.now() - 1000), updatedAt: new Date(Date.now() - 60_000) } });
+    expect(await an.processPendingAnalysis()).toBe(1);
+    row = await OutperoCall.findById(c._id).lean();
+    expect(row.analysis.intent).toBe('high');
+  });
+
+  it('also picks up calls an older version gave up on because of the credit refusal', async () => {
+    whisper.mockResolvedValue({ data: { text: 'Hello, I want to join the Java Full Stack course. Please call me in the evening.', duration: 40 } }); audio(true); ai.mockResolvedValue(ANALYSIS);
+    const c: any = await mkCall({ analysisAttempts: 3, analysisError: 'Request failed with status code 429' });
+    expect(await an.processPendingAnalysis()).toBe(1);
+    expect((await OutperoCall.findById(c._id).lean() as any).analysis).toBeTruthy();
+    const other: any = await mkCall({ callId: 'other', analysisAttempts: 3, analysisError: 'The summary could not be read.' });
+    expect(await an.processPendingAnalysis()).toBe(0);
+    expect((await OutperoCall.findById(other._id).lean() as any).analysis).toBeUndefined();
+  });
+
   it('copes with a reply that is not JSON', async () => {
     audio(true); whisper.mockResolvedValue({ data: { text: 'A long enough conversation about the Java course and the fees.', duration: 30 } }); ai.mockResolvedValue('Sorry, I cannot do that.');
     const c: any = await mkCall();

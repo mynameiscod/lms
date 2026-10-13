@@ -164,16 +164,33 @@ export async function analyseCall(callMongoId: any): Promise<'done' | 'skipped' 
     return 'done';
   } catch (e: any) {
     console.error('[outpero-analysis]', e?.message);
-    await OutperoCall.updateOne({ _id: call._id }, { $set: { analysisError: String(e?.message || 'failed').slice(0, 300) }, $inc: { analysisAttempts: 1 } });
+    const detail = e?.response?.data?.error?.message || e?.message || 'failed';
+    if (isAccountLimit(e)) {
+      // Out of credits or rate limited: nothing is wrong with the call. Wait, and try again later without using up its tries.
+      await OutperoCall.updateOne({ _id: call._id }, { $set: { analysisError: `AI service refused: ${String(detail).slice(0, 240)}`, analysisRetryAt: new Date(Date.now() + 10 * 60_000) } });
+    } else {
+      await OutperoCall.updateOne({ _id: call._id }, { $set: { analysisError: String(detail).slice(0, 300) }, $inc: { analysisAttempts: 1 } });
+    }
     return 'failed';
   }
 }
+
+/** The speech or AI service said no because the account is out of credits or over its rate limit (429), or the key is refused. */
+export const isAccountLimit = (e: any) => {
+  const s = e?.response?.status ?? e?.status;
+  return s === 429 || s === 402 || /insufficient_quota|credit_balance|exceeded your current quota|rate limit/i.test(String(e?.response?.data?.error?.message || e?.message || ''));
+};
 
 /** The one-minute job: listen to the next few answered calls that have not been written up. */
 export async function processPendingAnalysis(limit = 3): Promise<number> {
   const calls: any[] = await OutperoCall.find({
     leadId: { $ne: null }, analysis: { $exists: false }, analysisSkipped: { $ne: true }, createdAt: { $gte: new Date(Date.now() - 22 * HOUR) },
-    recordingUrl: { $type: 'string', $ne: '' }, $or: [{ analysisAttempts: { $lt: 3 } }, { analysisAttempts: { $exists: false } }],
+    recordingUrl: { $type: 'string', $ne: '' },
+    $and: [
+      // Three real failures end it; a refusal for lack of credit never does (and neither did the older ones that were counted).
+      { $or: [{ analysisAttempts: { $lt: 3 } }, { analysisAttempts: { $exists: false } }, { analysisError: { $regex: '429|insufficient_quota|credit|AI service refused' } }] },
+      { $or: [{ analysisRetryAt: { $exists: false } }, { analysisRetryAt: { $lte: new Date() } }] },
+    ],
     // Give Outpero's second delivery (the outcome) a moment to arrive.
     updatedAt: { $lte: new Date(Date.now() - 20_000) },
   }).sort({ createdAt: 1 }).limit(limit * 4).select('_id tenantId outcome status durationSec variables summary transcript').lean();

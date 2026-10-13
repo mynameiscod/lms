@@ -29,6 +29,8 @@ export interface IOutperoCall extends Document {
   analysedAt?: Date;
   analysisAttempts?: number;
   analysisError?: string;
+  /** After the AI service refused for lack of credit, do not try again before this time. */
+  analysisRetryAt?: Date;
   analysisSkipped?: boolean;
   transcript?: string;
   variables?: Record<string, unknown>;
@@ -62,6 +64,7 @@ const OutperoCallSchema = new Schema<IOutperoCall>({
   analysedAt: Date,
   analysisAttempts: Number,
   analysisError: String,
+  analysisRetryAt: Date,
   analysisSkipped: Boolean,
   transcript: String,
   variables: { type: Schema.Types.Mixed, default: {} },

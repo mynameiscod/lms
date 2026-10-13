@@ -22,6 +22,14 @@ export interface IOutperoCall extends Document {
   recordingUrl?: string;
   /** Our own stored copy of the recording (file storage), when one has been made. */
   recordingKey?: string;
+  recordingAttempts?: number;
+  recordingError?: string;
+  /** What listening to the recording produced: transcript is on the call; this is the write-up. */
+  analysis?: Record<string, unknown>;
+  analysedAt?: Date;
+  analysisAttempts?: number;
+  analysisError?: string;
+  analysisSkipped?: boolean;
   transcript?: string;
   variables?: Record<string, unknown>;
   startedAt?: Date;
@@ -48,6 +56,13 @@ const OutperoCallSchema = new Schema<IOutperoCall>({
   durationSec: Number,
   recordingUrl: String,
   recordingKey: String,
+  recordingAttempts: Number,
+  recordingError: String,
+  analysis: Schema.Types.Mixed,
+  analysedAt: Date,
+  analysisAttempts: Number,
+  analysisError: String,
+  analysisSkipped: Boolean,
   transcript: String,
   variables: { type: Schema.Types.Mixed, default: {} },
   startedAt: Date,

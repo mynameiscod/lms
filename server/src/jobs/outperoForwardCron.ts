@@ -1,6 +1,7 @@
 import { loadAll } from '../services/settingsService';
 import { processPendingFeedback } from '../services/outperoCallService';
 import { processDue, assignOverdue } from '../services/outperoForwardService';
+import { rescueRecordings, processPendingAnalysis } from '../services/outperoCallAnalysisService';
 
 /**
  * Sends leads queued for Outpero (bulk sends spaced at the admin's per-minute rate, and retries
@@ -14,7 +15,7 @@ export function startOutperoForwardScheduler(): void {
   const tick = async () => {
     if (running) return; // a slow Outpero must not stack runs
     running = true;
-    try { await loadAll(); await processDue(); await processPendingFeedback(); await assignOverdue(); } catch (err) { console.error('[OUTPERO-CRON] Error:', err); } finally { running = false; }
+    try { await loadAll(); await processDue(); await processPendingFeedback(); await assignOverdue(); await rescueRecordings(); await processPendingAnalysis(); } catch (err) { console.error('[OUTPERO-CRON] Error:', err); } finally { running = false; }
   };
   setInterval(tick, INTERVAL_MS);
   setTimeout(tick, 20_000);

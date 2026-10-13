@@ -1,4 +1,5 @@
 import express from 'express';
+import { listLeadAiCalls, streamLeadAiCallRecording } from '../controllers/leadAiCallsController';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -77,6 +78,8 @@ router.post('/import', authMiddleware, tenantResolver, roleGuard(['export_leads'
 // CRUD — granular permissions
 router.get('/', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getLeads);
 router.get('/:leadId', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getLeadById);
+router.get('/:leadId/ai-calls', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), listLeadAiCalls);
+router.get('/:leadId/ai-calls/:callId/recording', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), streamLeadAiCallRecording);
 router.post('/', authMiddleware, tenantResolver, roleGuard(['create_leads', 'manage_leads']), createLead);
 router.put('/:leadId', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'manage_leads']), updateLead);
 router.delete('/:leadId', authMiddleware, tenantResolver, roleGuard(['delete_leads', 'manage_leads']), deleteLead);

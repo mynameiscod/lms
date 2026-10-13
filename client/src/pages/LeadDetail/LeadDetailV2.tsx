@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { leadApi, leadStageApi, qualificationApi, followUpApi } from '../../api';
 import SalesCallRecordingCard from '../../components/leads/SalesCallRecordingCard';
+import LeadAiCalls from './LeadAiCalls';
 import { leadArchiveApi, archiveError } from '../../api/leadArchiveApi';
 import './LeadDetailV2.css';
 
@@ -603,6 +604,7 @@ const LeadDetailV2: React.FC = () => {
 
           {/* Tab Content */}
           <div className="ld2-tab-content">
+            {activeTab === 'timeline' && lead && <LeadAiCalls leadId={lead._id} />}
             {activeTab === 'timeline' && (
               <div className="ld2-timeline">
                 <div className="ld2-timeline-header">

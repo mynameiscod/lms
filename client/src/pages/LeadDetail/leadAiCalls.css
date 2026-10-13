@@ -1,0 +1,22 @@
+.lac-card { background: #fff; border: 1px solid #e8edf4; border-radius: 14px; padding: 16px 18px; margin-bottom: 16px; }
+.lac-card h3 { margin: 0 0 10px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.lac-count { background: #eef2ff; color: #3730a3; border-radius: 999px; font-size: 12px; padding: 1px 9px; font-weight: 700; }
+.lac-call { border-top: 1px solid #eef2f7; padding: 12px 0; }
+.lac-call:first-of-type { border-top: 0; padding-top: 0; }
+.lac-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+.lac-muted { color: #64748b; font-size: 12.5px; }
+.lac-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: #e2e8f0; color: #334155; }
+.lac-badge.good { background: #dcfce7; color: #166534; }
+.lac-badge.info { background: #dbeafe; color: #1e40af; }
+.lac-badge.bad { background: #fee2e2; color: #991b1b; }
+.lac-badge.muted { background: #f1f5f9; color: #475569; }
+.lac-summary { margin: 4px 0 8px; font-size: 14px; line-height: 1.5; color: #0f172a; }
+.lac-facts { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 3px; font-size: 13px; color: #334155; }
+.lac-facts b { display: inline-block; min-width: 92px; color: #64748b; font-weight: 700; }
+.lac-next { color: #3730a3; }
+.lac-next b { color: #3730a3; }
+.lac-btn { border: 0; border-radius: 9px; padding: 7px 13px; font-size: 13px; font-weight: 700; background: #4f46e5; color: #fff; cursor: pointer; }
+.lac-btn:disabled { opacity: 0.6; cursor: wait; }
+.lac-audio { width: 100%; max-width: 420px; margin-top: 4px; }
+.lac-link { border: 0; background: none; color: #4f46e5; font-weight: 700; font-size: 13px; padding: 6px 0; cursor: pointer; }
+.lac-transcript { white-space: pre-wrap; background: #f8fafc; border: 1px solid #e8edf4; border-radius: 10px; padding: 10px 12px; font: 13px/1.5 inherit; max-height: 320px; overflow: auto; margin: 4px 0 0; }

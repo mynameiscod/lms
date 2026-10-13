@@ -13,6 +13,8 @@ export interface OutperoPolicy {
   sentStageId: string;
   /** Hours a lead may wait for Outpero's result before it is given to a person anyway. */
   fallbackHours: number;
+  /** Listen to each answered call's recording and write a full summary from it. */
+  callAnalysis: boolean;
 }
 /** Outpero calls between 9 AM and 8 PM India time. */
 export const CALL_FROM_HOUR = 9;
@@ -33,6 +35,7 @@ export function getPolicy(tenantId: string): OutperoPolicy {
     stageMapping,
     sentStageId: settings.getStr('OUTPERO_SENT_STAGE', '', tenantId),
     fallbackHours: Math.max(1, Math.min(168, Number(settings.getStr('OUTPERO_FALLBACK_HOURS', '24', tenantId)) || 24)),
+    callAnalysis: settings.getStr('OUTPERO_CALL_ANALYSIS', 'true', tenantId) !== 'false',
   };
 }
 /** Only leads actually eligible for automatic calling wait for feedback. */
@@ -56,7 +59,7 @@ export function classifyOutcome(call: any): OutperoOutcome | null {
     demo: 'demo', demo_requested: 'demo', demo_booked: 'demo',
     not_interested: 'not_interested', wrong_number: 'wrong_number', invalid_number: 'wrong_number',
     opt_out: 'opt_out', do_not_call: 'opt_out', do_not_contact: 'opt_out',
-    no_answer: 'no_answer', no_response: 'no_answer', noresponse: 'no_answer', call_failed: 'no_answer', not_answered: 'no_answer', busy: 'no_answer', voicemail: 'no_answer', failed: 'no_answer', not_connected: 'no_answer',
+    no_answer: 'no_answer', missed: 'no_answer', no_response: 'no_answer', noresponse: 'no_answer', call_failed: 'no_answer', not_answered: 'no_answer', busy: 'no_answer', voicemail: 'no_answer', failed: 'no_answer', not_connected: 'no_answer',
   };
   if (aliases[text] === 'opt_out' || aliases[text] === 'wrong_number' || aliases[text] === 'not_interested') return aliases[text];
   const present = (x: any) => x && !/^(null|none|no|unknown|n\/a|-)$/i.test(String(x));
@@ -94,6 +97,7 @@ export async function savePolicy(tenantId: string, userId: string, input: any) {
     { key: 'OUTPERO_STAGE_MAPPING', value: JSON.stringify(mapping) },
     { key: 'OUTPERO_SENT_STAGE', value: sentStageId },
     { key: 'OUTPERO_FALLBACK_HOURS', value: String(fallbackHours) },
+    ...(typeof input.callAnalysis === 'boolean' ? [{ key: 'OUTPERO_CALL_ANALYSIS', value: String(input.callAnalysis) }] : []),
   ], userId, tenantId);
   return getPolicy(tenantId);
 }

@@ -73,7 +73,10 @@ const str = (v: unknown) => (v === undefined || v === null ? undefined : String(
 const toDate = (v: unknown) => {
   if (v === undefined || v === null || v === '') return undefined;
   const n = Number(v);
-  const d = Number.isFinite(n) ? new Date(n < 1e12 ? n * 1000 : n) : new Date(String(v));
+  // Outpero sends times like 2026-10-13T14:24:52.270844 with no zone: they are UTC, not the server's local time.
+  const raw = String(v);
+  const zoned = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(raw) ? raw + 'Z' : raw;
+  const d = Number.isFinite(n) ? new Date(n < 1e12 ? n * 1000 : n) : new Date(zoned);
   return Number.isNaN(d.getTime()) ? undefined : d;
 };
 
@@ -100,7 +103,7 @@ export interface ParsedCall {
 export function parseCall(body: any): ParsedCall {
   const varsRaw = pick(body, ['extracted_variables', 'extractedVariables', 'variables', 'extracted', 'captured', 'collected_data']);
   const variables = varsRaw && typeof varsRaw === 'object' && !Array.isArray(varsRaw) ? { ...varsRaw } : {};
-  const dur = Number(pick(body, ['duration', 'duration_seconds', 'durationSeconds', 'call_duration', 'billsec']));
+  const dur = Number(pick(body, ['duration_s', 'duration_sec', 'durationSec', 'duration', 'duration_seconds', 'durationSeconds', 'call_duration', 'billsec']));
   return {
     callId: str(pick(body, ['call_id', 'callId', 'call_sid', 'callSid', 'conversation_id', 'session_id', 'id'])),
     leadIdHint: str(pick(body, ['lms_lead_id', 'lmsLeadId'])) || str((variables as any).lms_lead_id),
@@ -387,21 +390,23 @@ async function applyToLead(tenantId: string, call: any, lead: any): Promise<stri
 const MAX_RECORDING_BYTES = 60 * 1024 * 1024;
 export const recordingKeyFor = (tenantId: string, callId: string) => `outpero-recordings/${tenantId}/${callId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
 export async function saveRecording(tenantId: string, call: { _id: any; callId: string; recordingUrl?: string }): Promise<boolean> {
+  const fail = async (why: string) => { await OutperoCall.updateOne({ _id: call._id }, { $set: { recordingError: why }, $inc: { recordingAttempts: 1 } }).catch(() => {}); return false; };
   try {
-    if (!call.recordingUrl || !/^https:\/\//i.test(call.recordingUrl) || !bunny.isBunnyStorageConfigured()) return false;
+    if (!call.recordingUrl || !/^https:\/\//i.test(call.recordingUrl)) return false;
+    if (!bunny.isBunnyStorageConfigured()) return false;
     const r = await fetch(call.recordingUrl, { signal: AbortSignal.timeout(60_000) });
-    if (!r.ok) return false;
+    if (!r.ok) return fail(`Outpero recording answered ${r.status}`);
     const declared = Number(r.headers.get('content-length') || 0);
-    if (declared > MAX_RECORDING_BYTES) return false;
+    if (declared > MAX_RECORDING_BYTES) return fail('The recording is larger than 60 MB.');
     const buf = Buffer.from(await r.arrayBuffer());
-    if (!buf.length || buf.length > MAX_RECORDING_BYTES) return false;
+    if (!buf.length || buf.length > MAX_RECORDING_BYTES) return fail('The recording was empty or too large.');
     const key = recordingKeyFor(tenantId, call.callId);
     await bunny.uploadFile(key, buf, r.headers.get('content-type') || 'audio/mpeg');
-    await OutperoCall.updateOne({ _id: call._id }, { $set: { recordingKey: key }, $addToSet: { actions: 'recording_saved' } });
+    await OutperoCall.updateOne({ _id: call._id }, { $set: { recordingKey: key }, $unset: { recordingError: '' }, $addToSet: { actions: 'recording_saved' } });
     return true;
   } catch (e: any) {
     console.error('[outpero-recording]', e?.message);
-    return false;
+    return fail(String(e?.message || 'failed').slice(0, 200));
   }
 }
 

@@ -194,6 +194,10 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'JS_DOM', name: 'JavaScript DOM', parentKey: 'JAVASCRIPT', difficulty: 'INTERMEDIATE', displayOrder: 50,
     description: 'Selecting, changing and reacting to elements on a page.',
     prerequisiteKeys: ['JS_ARRAYS_OBJECTS', 'HTML'] },
+  // Career tracks (Java / Python Full Stack + AI): the modern language and React itself.
+  { key: 'JS_ES6', name: 'Modern JavaScript (ES6+)', parentKey: 'JAVASCRIPT', difficulty: 'INTERMEDIATE', displayOrder: 55,
+    description: 'let/const, arrow functions, destructuring, spread, modules and classes — the JavaScript every framework is written in.',
+    prerequisiteKeys: ['JS_FUNCTIONS', 'JS_ARRAYS_OBJECTS'] },
 
   // ── Data Structures & Algorithms ──────────────────────────────────────────────
   GROUP('DSA', 'Data Structures & Algorithms', 20, 'Choosing the right structure and algorithm, and knowing what it costs.'),
@@ -681,6 +685,22 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
     difficulty: 'INTERMEDIATE', displayOrder: 150,
     description: 'One interface that works on a phone and on a monitor without two codebases.',
     prerequisiteKeys: ['CSS'] },
+  { key: 'BOOTSTRAP', name: 'Bootstrap', parentKey: 'WEB_FUNDAMENTALS',
+    difficulty: 'FOUNDATION', displayOrder: 155,
+    description: 'The grid, components and utilities of a CSS framework, and when not to fight it.',
+    prerequisiteKeys: ['CSS', 'RESPONSIVE_DESIGN'] },
+  { key: 'REACT_COMPONENTS', name: 'React Components', parentKey: 'WEB_FUNDAMENTALS',
+    difficulty: 'INTERMEDIATE', displayOrder: 160,
+    description: 'JSX, components, props, state, events and rendering lists — building a screen out of parts.',
+    prerequisiteKeys: ['JS_ES6', 'JS_DOM'] },
+  { key: 'REACT_HOOKS', name: 'React Hooks', parentKey: 'WEB_FUNDAMENTALS',
+    difficulty: 'INTERMEDIATE', displayOrder: 165,
+    description: 'useState, useEffect, context, refs and custom hooks — and the rules that keep them correct.',
+    prerequisiteKeys: ['REACT_COMPONENTS'] },
+  { key: 'REACT_ROUTING', name: 'React Routing and Data', parentKey: 'WEB_FUNDAMENTALS',
+    difficulty: 'INTERMEDIATE', displayOrder: 170,
+    description: 'Pages with React Router, calling APIs, and the loading, error and empty states between.',
+    prerequisiteKeys: ['REACT_HOOKS', 'JS_ASYNC'] },
 
   // ── Software engineering at production depth ──
   { key: 'SOFTWARE_ARCHITECTURE', name: 'Software Architecture', parentKey: 'SE_PRACTICES',

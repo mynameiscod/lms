@@ -295,9 +295,15 @@ describe('the shipped taxonomy is internally consistent', () => {
      * must still be something you can say "this student is 62% there" about; a taxonomy that
      * grows without that test becomes a textbook index nobody can navigate. Splitting a node
      * has to earn it: the test is whether the two halves are separately measurable.
+     *
+     * It moved to 260 for career tracks (Year 3 and 4 by role and language). A Java Full Stack
+     * student is measured on React, Spring Boot, JPA and generative AI, and none of those had a
+     * node: "62% on React hooks" and "62% on Spring Data JPA" are each something an interviewer
+     * probes on its own. The same rule stands — a framework earns nodes for what is separately
+     * measurable in it, not one per chapter of its documentation.
      */
     expect(CAREER_SKILL_TAXONOMY.length).toBeGreaterThanOrEqual(40);
-    expect(CAREER_SKILL_TAXONOMY.length).toBeLessThanOrEqual(180);
+    expect(CAREER_SKILL_TAXONOMY.length).toBeLessThanOrEqual(260);
   });
 
   it('has unique keys', () => {

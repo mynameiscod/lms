@@ -42,6 +42,8 @@ import { ALL_YEAR3_BUNDLES } from './year3Bundles';
 import { primarySkillFor as primarySkillForYear3 } from './year3SkillAttribution';
 import { ALL_YEAR4_BUNDLES } from './year4Bundles';
 import { primarySkillFor as primarySkillForYear4 } from './year4SkillAttribution';
+import { ALL_TRACK_BUNDLES } from './trackBundles';
+import { primarySkillFor as primarySkillForTrack } from './trackSkillAttribution';
 import { findDuplication, identifyingWordsFor } from '../../services/contentDuplicationService';
 
 dotenv.config();
@@ -102,6 +104,8 @@ const readingMinutes = (text: string): number =>
    * Its bundle list is also deliberately incomplete while the year is being authored.
    */
   const year4 = process.argv.includes('--year4');
+  /** Career-track content (stage `track`): lessons tracks reuse by topic. Same rules, its own attribution. */
+  const track = process.argv.includes('--track');
 
   /*
    * A table rather than a chain of ternaries. Three years made the chain repeat four times and
@@ -114,20 +118,21 @@ const readingMinutes = (text: string): number =>
     2: { bundles: ALL_YEAR2_BUNDLES, attribution: primarySkillFor, label: 'YEAR-2' },
     3: { bundles: ALL_YEAR3_BUNDLES, attribution: primarySkillForYear3, label: 'YEAR-3' },
     4: { bundles: ALL_YEAR4_BUNDLES, attribution: primarySkillForYear4, label: 'YEAR-4' },
+    5: { bundles: ALL_TRACK_BUNDLES, attribution: primarySkillForTrack, label: 'CAREER-TRACK' },
   } as const;
-  const chosen = [year2 && 2, year3 && 3, year4 && 4].filter(Boolean) as number[];
+  const chosen = [year2 && 2, year3 && 3, year4 && 4, track && 5].filter(Boolean) as number[];
   if (chosen.length > 1) {
-    console.error('Pass one of --year2, --year3 or --year4, not several.');
+    console.error('Pass one of --year2, --year3, --year4 or --track, not several.');
     process.exit(1);
   }
-  const year = (chosen[0] || 1) as 1 | 2 | 3 | 4;
+  const year = (chosen[0] || 1) as 1 | 2 | 3 | 4 | 5;
   const bundles = YEARS[year].bundles;
   /** The attribution table for the year being seeded, or none for Year 1's single-skill topics. */
   const attributionFor = YEARS[year].attribution;
   /** Shown in the header, so a runbook transcript says which year was seeded. */
   const label = YEARS[year].label;
   if (!tenantId) {
-    console.error('Usage: seedPilotUnitContent.ts <tenantId> [--apply] [--year2|--year3|--year4]');
+    console.error('Usage: seedPilotUnitContent.ts <tenantId> [--apply] [--year2|--year3|--year4|--track]');
     process.exit(1);
   }
 

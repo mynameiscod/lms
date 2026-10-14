@@ -95,13 +95,13 @@ Nothing here says "change the paragraph". The click changes the data; React call
 sees that the paragraph text differs, and updates that one text node.`,
     mcqs: [
       mcq('What does React do after a component\'s data changes?', [
-        ['Reloads the page so the browser rebuilds the DOM', false],
+        ['Reloads the whole page so the browser rebuilds the full DOM', false],
         ['Calls the component again and patches only what differs', true],
         ['Asks the developer to update the changed elements', false],
         ['Replaces the whole body element with fresh markup', false],
       ], 'React re-runs the component to get a new description of the UI, compares it with the previous one (reconciliation), and applies only the differences to the real DOM.'),
       mcq('A developer writes function card() { return <div>Hi</div>; } and renders <card />. What happens?', [
-        ['React renders the div, since case does not matter', false],
+        ['React renders the div normally, since component name case does not matter', false],
         ['React treats card as an unknown HTML tag, not the component', true],
         ['The build fails with a syntax error at the function', false],
       ], 'JSX treats lowercase tags as built-in HTML elements. A component must start with a capital letter so React calls the function instead of creating a <card> element.'),
@@ -114,17 +114,17 @@ sees that the paragraph text differs, and updates that one text node.`,
     ],
     checkpoint: [
       mcq('A page shows a cart count in the header and in the sidebar. In plain DOM code they disagree after some clicks. Why does a React version avoid this?', [
-        ['React stores the DOM in localStorage between clicks', false],
+        ['React stores the DOM in localStorage between clicks so both places can restore it', false],
         ['Both places derive from the same data and re-render together', true],
         ['React locks the header until the sidebar finishes', false],
       ], 'In React both views read one piece of state. When it changes, every component using it re-renders, so they cannot drift apart the way two hand-edited DOM nodes can.'),
       mcq('Which statement about the virtual DOM is accurate?', [
         ['It is a faster browser that React ships with each app', false],
         ['It is an in-memory description React compares to find changes', true],
-        ['It is a second copy of the page hidden behind the real one', false],
+        ['It is a second, fully rendered copy of the page hidden behind the real one', false],
       ], 'The virtual DOM is just the tree of objects that components return. React diffs the new tree against the previous one and patches the real DOM where they differ.'),
       mcq('Inside a component, a teammate uses document.getElementById("total").innerText = sum to update a total. What is the main problem?', [
-        ['innerText is not supported in modern browsers, so nothing is shown', false],
+        ['innerText is not supported in modern browsers, so nothing is shown on screen at all', false],
         ['React will overwrite it on the next render, since the data never changed', true],
         ['getElementById only works inside class components, not functions', false],
       ], 'React owns the DOM it renders. Changing it by hand bypasses state, so the next render puts back whatever the component returns. The fix is to hold sum in state or derive it.'),
@@ -208,7 +208,7 @@ JSX does not.
     ],
     checkpoint: [
       mcq('A component returns <h1>Title</h1><p>Body</p> with no wrapper. What happens?', [
-        ['React renders both and adds a hidden div around them', false],
+        ['React renders both and silently adds a hidden div around them', false],
         ['It is a compile error: adjacent JSX must have one parent', true],
         ['Only the h1 renders and the p is silently dropped', false],
       ], 'A function returns one value, and two sibling JSX elements are two values. Wrap them in a parent element or a fragment (<>...</>).'),
@@ -297,7 +297,7 @@ This is how layout components wrap content they know nothing about.
         ['The child edits a variable exported by the parent', false],
         ['The parent passes a function prop and the child calls it', true],
         ['The child returns a value that the parent reads', false],
-        ['The child dispatches a DOM event the parent polls', false],
+        ['The child dispatches a DOM event that the parent polls on a timer', false],
       ], 'Data flows down as props; events flow up through callback props. The parent owns the state and passes a function such as onSelect, which the child calls.'),
     ],
     checkpoint: [
@@ -403,12 +403,12 @@ attribute is derived from state rather than stored separately, so it can never d
       mcq('Why does todos.push(item); setTodos(todos) often fail to update the screen?', [
         ['push is asynchronous in React components', false],
         ['The array reference is unchanged, so React sees no change', true],
-        ['setTodos only accepts arrays created by useState', false],
+        ['setTodos only accepts arrays that were originally created by useState', false],
       ], 'React compares old and new state with Object.is. Mutating and passing the same array gives an identical reference, so React can bail out of the re-render.'),
       mcq('Why can\'t a plain let variable replace useState for a counter?', [
         ['let is block-scoped and JSX cannot read it', false],
         ['It resets every render and changing it triggers none', true],
-        ['let variables are frozen once the component mounts', false],
+        ['let variables are frozen once the component first mounts', false],
       ], 'The component function runs fresh on each render, so a local variable starts over each time, and assigning to it does not tell React anything changed.'),
     ],
     checkpoint: [
@@ -600,14 +600,14 @@ Early returns keep the main render readable. Returning null renders nothing.
       mcq('In {users.map(u => <UserCard key={u.id} user={u} />)}, what is props.key inside UserCard?', [
         ['The user\'s id, copied over from u.id', false],
         ['undefined, because key is not passed on as a prop', true],
-        ['The index of the user in the users array', false],
+        ['The index of the user in the users array, set automatically by map', false],
       ], 'key is consumed by React for reconciliation and is not forwarded to the component. Pass the id as a separate prop if the component needs it.'),
     ],
     checkpoint: [
       mcq('A to-do list uses index keys. After deleting the first item, the checkbox ticked on item 2 now shows ticked on item 3. Why?', [
         ['Checkboxes keep their ticked state in localStorage', false],
         ['Keys shifted, so React reused DOM nodes for different items', true],
-        ['Deleting an item re-ticks the next checkbox by design', false],
+        ['Deleting an item re-ticks the next checkbox, as React does by design', false],
       ], 'After deletion each item\'s index moves up by one, so React matches the old DOM node with key 1 to what is now a different task. Stable ids prevent this.'),
       mcq('Where must the key go in tasks.map(t => <TaskRow task={t} />)?', [
         ['On the li inside TaskRow\'s own return', false],
@@ -689,7 +689,7 @@ two unnecessary changes behind.`,
         ['{open && <Modal onClose={() => setOpen(false)} />}', false],
       ], 'onClick={setOpen(true)} calls the setter while rendering; that schedules a render, which calls it again, forever. Passing an arrow function defers the call to the click.'),
       mcq('After clicking "Add", the log shows the new item in the array but the list on screen is unchanged. What do you check first?', [
-        ['Whether the list component is exported as the default export', false],
+        ['Whether the list component is exported as the default export of its file', false],
         ['Whether the handler mutates the array and sets the same reference', true],
         ['Whether the browser cache needs to be cleared before testing', false],
         ['Whether the key prop uses the item title', false],
@@ -753,12 +753,12 @@ parent, not a boolean in each item.
       mcq('In exercise 4, why keep only the selected category in state rather than the filtered list too?', [
         ['React cannot store arrays in state reliably', false],
         ['The filtered list is derivable, so storing it risks drift', true],
-        ['StrictMode requires filtering to happen in render', false],
+        ['StrictMode requires all filtering to happen inside the render function', false],
       ], 'Anything computable from existing state and props should be computed during render. A second copy must be updated in step and eventually is not.'),
       mcq('In the accordion, why store openId in the parent rather than an isOpen boolean in each item?', [
         ['Booleans are not allowed in child component state', false],
         ['Only the parent can ensure one item is open at a time', true],
-        ['Child state is reset on every parent render', false],
+        ['Child state is reset on every parent render, so the booleans would be lost', false],
       ], 'The rule "only one open" spans siblings, so the state must live in their common parent. This is lifting state up.'),
       mcq('In exercise 2, the user clicks +1 very fast. Which update keeps the count correct?', [
         ['setCount(count + 1)', false],
@@ -828,7 +828,7 @@ for those two becomes unpredictable — one may be dropped or duplicated.`,
         ['By importing the parent\'s useState from its module', false],
       ], 'State belongs to the component that declares it. The parent exposes a callback prop, and the child calls it to request the change.'),
       mcq('When is using the array index as a key acceptable?', [
-        ['When the list is very long and ids are slow to read', false],
+        ['When the list is very long and the item ids are slow to read', false],
         ['When the list is static and never reordered or filtered', true],
         ['When the items are objects rather than strings', false],
       ], 'If positions never change, index and identity coincide. The problems only appear when items move, are inserted, or are removed.'),
@@ -882,7 +882,7 @@ A GitHub repository with a README describing the component tree, plus either a d
 short screen recording of the acceptance criteria.`,
     mcqs: [
       mcq('In the task list, where should the "items left" number come from?', [
-        ['A separate leftCount state updated in every handler', false],
+        ['A separate leftCount state kept in sync and updated in every handler', false],
         ['tasks.filter(t => !t.done).length computed during render', true],
         ['A counter stored in TaskItem and summed by App', false],
       ], 'The count is fully derivable from tasks. Computing it during render guarantees it is right after every action, including ones added later.'),
@@ -953,7 +953,7 @@ what the code does, not what it was meant to do.`,
         ['The box stays empty because value is overridden', false],
       ], 'In a controlled input the displayed value is whatever state holds, and state is set to the uppercased text on every keystroke.'),
       mcq('An app keeps both selectedId and selectedUser (a copy of the user object) in state, and the panel shows an old name after an edit. Best fix?', [
-        ['Update selectedUser in a timeout after the edit', false],
+        ['Update selectedUser in a setTimeout callback shortly after each edit', false],
         ['Store only selectedId and look the user up during render', true],
         ['Add a key to the panel equal to the user name', false],
       ], 'The copy goes stale when the original changes. Storing the id and deriving the object keeps one source of truth.'),
@@ -1055,17 +1055,17 @@ not removing StrictMode.
       mcq('An effect has the dependency array [query]. When does it run?', [
         ['Only once, when the component first mounts', false],
         ['After mount and after any render where query changed', true],
-        ['Before every render, whether or not query changed', false],
+        ['Before every single render, whether or not query has changed', false],
       ], 'React runs the effect after the first commit and then after each commit in which a dependency is different (compared with Object.is) from the previous render.'),
       mcq('In development, a mount effect logs "connected" twice. The app uses StrictMode. What is going on?', [
         ['A bug in React that production builds also show', false],
         ['StrictMode mounts, cleans up and re-runs effects to expose missing cleanup', true],
-        ['The component is rendered twice by two different parent components', false],
+        ['The component is rendered twice, once by each of two different parent components', false],
       ], 'React 18 StrictMode deliberately simulates unmount and remount in development so an effect that does not clean up properly shows its problem early.'),
       mcq('Why is useEffect(async () => { ... }, [id]) a problem?', [
         ['async functions cannot call fetch from inside an effect', false],
         ['It returns a promise where React expects a cleanup or nothing', true],
-        ['React awaits the promise and blocks the next render', false],
+        ['React awaits the returned promise and blocks the next render until it resolves', false],
       ], 'An effect\'s return value is treated as its cleanup. An async function always returns a promise, which React cannot call. Define an async function inside and invoke it.'),
     ],
     checkpoint: [
@@ -1082,7 +1082,7 @@ not removing StrictMode.
       mcq('An effect fetches /api/products?page= + page but its array is []. The user clicks Next. What happens?', [
         ['Page 2 loads, because page is read inside the effect', false],
         ['Nothing new loads; the effect only ran for the first page', true],
-        ['React throws a missing-dependency error at runtime', false],
+        ['React throws a missing-dependency error at runtime on the click', false],
       ], 'With [] the effect runs once and never again. page must be in the dependency array. The lint rule warns, but React itself does not throw.'),
     ],
   },
@@ -1145,17 +1145,17 @@ The ESLint rule rules-of-hooks reports all of these. Treat its errors as build f
       mcq('How does React know which useState call a stored value belongs to?', [
         ['By the variable name on the left of the call', false],
         ['By the order in which hooks are called each render', true],
-        ['By a hidden id the compiler adds to each call', false],
+        ['By a hidden id the JSX compiler adds to each hook call', false],
       ], 'Hook state is kept in a per-component list indexed by call order. That is why the order must be identical on every render.'),
       mcq('A component calls useState inside if (isEditing). What fails when isEditing changes?', [
         ['Only the first render, after which React adapts', false],
         ['Hook slots shift, so later hooks read the wrong state', true],
-        ['Nothing, provided the hook is the last one called', false],
+        ['Nothing, provided the conditional hook is the last one called', false],
       ], 'When the conditional hook appears or disappears the number of hooks changes, and React either throws or pairs later hooks with the wrong stored values.'),
       mcq('Each row of a table needs its own expanded state. What respects the rules of hooks?', [
         ['Call useState inside rows.map for each row', false],
         ['Make a Row component that calls useState itself', true],
-        ['Call useState in a for loop before the return', false],
+        ['Call useState in a for loop over rows before the return', false],
       ], 'Hooks cannot be called in loops or callbacks. Turning each row into a component gives every instance its own top-level useState.'),
     ],
     checkpoint: [
@@ -1249,12 +1249,12 @@ change does not re-render components that only care about the user.
       mcq('What does useContext(ThemeContext) return when there is no ThemeContext.Provider above the component?', [
         ['It throws an error', false],
         ['The default value passed to createContext', true],
-        ['undefined, whatever the default was', false],
+        ['undefined, whatever default value createContext was given', false],
       ], 'Without a provider, useContext returns the default given to createContext. That silent fallback is why a custom hook that throws on null is a useful guard.'),
       mcq('A provider renders value={{ user, setUser }}. Its parent re-renders for unrelated reasons. What happens to consumers?', [
         ['Nothing, since user has not changed', false],
         ['They all re-render, because value is a new object', true],
-        ['Only the consumers that call setUser re-render', false],
+        ['Only the consumers that actually call setUser re-render', false],
       ], 'An object literal is a new reference on every render, so React sees a changed value and re-renders every consumer. Memoise it with useMemo.'),
       mcq('Which use of context is the poorest fit?', [
         ['The current theme, read by many components at many depths', false],
@@ -1266,12 +1266,12 @@ change does not re-render components that only care about the user.
       mcq('Header, Sidebar and Settings all need the current user; App is the only component with it, three levels up. What is the cleanest approach?', [
         ['Store the user on window and read it from any component', false],
         ['Provide it with an AuthProvider and read it with useContext', true],
-        ['Copy the user into local state inside each component', false],
+        ['Copy the user into local state inside each of the three components', false],
       ], 'Context delivers one value to many components at different depths without forwarding props through components that do not use them.'),
       mcq('A ThemeContext value changes from "light" to "dark". Which components re-render because of the change?', [
         ['Every component in the app, provider or not', false],
         ['Components that read ThemeContext, and their children', true],
-        ['Only the Provider component itself and its parent', false],
+        ['Only the Provider component itself and its direct parent', false],
       ], 'React re-renders the consumers of that context. Their child components re-render as normal children do; unrelated branches that do not read it are not affected by the context change.'),
       mcq('Why wrap useContext(CartContext) in a useCart hook that throws when the value is null?', [
         ['It makes context updates reach consumers faster', false],
@@ -1354,7 +1354,7 @@ every function in useCallback "for performance" usually adds cost and noise.
       mcq('A component stores a click count in useRef and shows {countRef.current} in JSX. After clicks, what does the screen show?', [
         ['The updated count after each click, as usual', false],
         ['The old number, since changing a ref does not re-render', true],
-        ['An error, because ref values cannot be rendered', false],
+        ['An error, because ref values cannot be rendered inside JSX', false],
       ], 'ref.current changes silently. The JSX only reflects it when something else causes a render. Values shown on screen belong in state.'),
       mcq('What does useCallback(fn, [a]) give you that a plain inline function does not?', [
         ['A function that runs faster', false],
@@ -1371,7 +1371,7 @@ every function in useCallback "for performance" usually adds cost and noise.
       mcq('A memoised ProductRow (React.memo) still re-renders every time the parent renders. The parent passes onSelect={(id) => setSel(id)}. What fixes it?', [
         ['Wrap ProductRow in a second React.memo call', false],
         ['Pass onSelect from useCallback(id => setSel(id), [])', true],
-        ['Move setSel into a useRef and pass the ref instead', false],
+        ['Move setSel into a useRef and pass the ref down instead', false],
       ], 'React.memo compares props shallowly. A new arrow function each render is a changed prop, so memo never skips. useCallback keeps the reference stable.'),
       mcq('A component reads inputRef.current.value in its render body on the first render and crashes. Why?', [
         ['Refs only work on class components', false],
@@ -1470,7 +1470,7 @@ are fixed once.
       mcq('Why pass a function to useState(() => readFromStorage()) instead of useState(readFromStorage())?', [
         ['The function form makes the stored state read-only', false],
         ['The function runs only on the first render, not every render', true],
-        ['useState only accepts functions when storing strings', false],
+        ['useState only accepts functions when the stored value is a string', false],
       ], 'useState(readFromStorage()) calls readFromStorage on every render and discards the result after the first. The lazy initialiser avoids that repeated work.'),
       mcq('What makes a function a custom hook rather than a helper?', [
         ['It returns JSX', false],
@@ -1492,7 +1492,7 @@ are fixed once.
       mcq('Which is a sensible custom hook to extract?', [
         ['useHeader() returning the header\'s JSX', false],
         ['useDebounce(value, ms) returning the debounced value', true],
-        ['useAdd(a, b) returning a + b with no hooks inside', false],
+        ['useAdd(a, b) returning a + b, with no hooks used inside it', false],
       ], 'useDebounce wraps state and an effect with a timer, which several components can reuse. A hook should return data, not JSX, and a pure calculation needs no hook.'),
     ],
   },
@@ -1566,7 +1566,7 @@ see which one changes identity. The React DevTools Profiler's "why did this rend
 the changed prop or hook.`,
     mcqs: [
       mcq('An effect with dependency [config] runs on every render, and config is const config = { pageSize: 10 } in the component body. Why?', [
-        ['pageSize is a number, which React always treats as changed', false],
+        ['pageSize is a number, which React always treats as changed between renders', false],
         ['config is a new object each render, so the dependency always differs', true],
         ['Effects with object dependencies are skipped by React', false],
         ['StrictMode re-runs every effect on every render', false],
@@ -1580,11 +1580,11 @@ the changed prop or hook.`,
       mcq('Only in development, a page opens two WebSocket connections on load. Which change is correct?', [
         ['Remove StrictMode from main.jsx', false],
         ['Return a cleanup that closes the socket from the effect', true],
-        ['Add a global flag so the effect only runs once', false],
+        ['Add a module-level global flag so the effect only ever runs once', false],
         ['Move the connection into the render body', false],
       ], 'StrictMode\'s remount is surfacing a missing cleanup. With socket.close() in the cleanup, the first connection is closed before the second opens, and production also behaves correctly on real unmounts.'),
       mcq('Search results sometimes show the answer for an older query. Which fix addresses the cause?', [
-        ['Debounce the input by 300 ms before each request', false],
+        ['Debounce the input by 300 ms before sending each new request', false],
         ['Ignore or abort stale requests in the effect\'s cleanup', true],
         ['Store the results in a ref instead of in state', false],
         ['Use index keys on the result list', false],
@@ -1642,12 +1642,12 @@ hook that shows "was X, now Y" for a counter.
         ['Call the API immediately', false],
       ], 'Each keystroke changes value, which runs the cleanup first. Clearing the pending timeout is exactly what makes only the last value, after a pause, get through.'),
       mcq('How does usePrevious(value) typically remember the last value without causing an extra render?', [
-        ['It stores value in useState and sets it during each render', false],
+        ['It stores value in useState and calls the setter during each render', false],
         ['It writes value into a ref in an effect and returns ref.current', true],
         ['It reads the previous value from React DevTools', false],
       ], 'The effect runs after render, so during render ref.current still holds the earlier value. Writing a ref does not trigger a render.'),
       mcq('In exercise 4, why must useTheme throw when the context is null?', [
-        ['Because React refuses to render a null context value', false],
+        ['Because React refuses to render a provider with a null context value', false],
         ['So a missing provider fails loudly with a clear message', true],
         ['Because toggling the theme needs an error boundary', false],
       ], 'Without the guard, a missing provider yields the default value and the bug surfaces far away. The throw names the real cause immediately.'),
@@ -1731,7 +1731,7 @@ come from assuming what the code meant instead of what it does.`,
       mcq('useEffect(() => { setItems(data.filter(isActive)); }, [data]) exists only to filter. What is better?', [
         ['Add isActive to the dependency array as well', false],
         ['Compute const items = data.filter(isActive) during render', true],
-        ['Use useLayoutEffect instead so it runs before paint', false],
+        ['Use useLayoutEffect instead so the filtering runs before paint', false],
       ], 'Derived data needs no effect. The effect version renders twice (once stale) and adds state that can drift from its source.'),
       mcq('function Badge({ show }) { if (!show) return null; const [n] = useState(0); ... }. What breaks?', [
         ['Nothing, null returns are allowed before hooks', false],

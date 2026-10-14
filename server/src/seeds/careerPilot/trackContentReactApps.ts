@@ -877,7 +877,7 @@ update logic: a store.
       mcq('Why is the text of a half-typed form field usually kept in local component state?', [
         ['Only that form uses it, and it changes on every keystroke', true],
         ['Redux cannot hold strings longer than a few characters', false],
-        ['Context and stores are not allowed to hold input values', false],
+        ['Context and stores are not allowed to hold any input values', false],
       ], 'State belongs with whoever reads and changes it. Draft input matters only to its form, and routing every keystroke through a global store adds work and re-renders for nothing.'),
       mcq('React Context mainly removes which problem?', [
         ['Passing a value through layers of components that do not use it', true],
@@ -1131,7 +1131,7 @@ When a component needs to know how one particular dispatch went — to close a f
     mcqs: [
       mcq("A thunk created with createAsyncThunk('tasks/fetchAll', ...) is dispatched. Which action types can follow?", [
         ['tasks/fetchAll/pending, then /fulfilled or /rejected', true],
-        ['tasks/fetchAll/start, then /done or /error', false],
+        ['tasks/fetchAll/start, then tasks/fetchAll/done or /error', false],
         ['tasks/fetchAll/loading, then /success only', false],
         ['FETCH_ALL_REQUEST, then _SUCCESS or _FAILURE', false],
       ], 'createAsyncThunk appends /pending, /fulfilled and /rejected to the type prefix you give it. Pending is dispatched immediately, then exactly one of the other two.'),
@@ -1418,7 +1418,7 @@ from a real codebase. Answer without looking anything up.`,
       ], 'A custom hook packages repeated hook calls so several components share them. It still relies on the Provider and still re-runs selectors on store changes.'),
       cq('STATE_MANAGEMENT', 'A user ticks a task and the UI should update before the server confirms. What is the pattern, and what must you handle?', [
         ['An optimistic update; roll back if the request fails', true],
-        ['A pessimistic update; block the UI until a reload', false],
+        ['A pessimistic update; block the whole UI until a full reload', false],
         ['A memoised update; cache the response for an hour', false],
         ['A batched update; merge all changes at logout', false],
       ], 'Optimistic updates change local state first for responsiveness. Because the server may refuse, the rejected case must restore the previous value.'),
@@ -1443,7 +1443,7 @@ from a real codebase. Answer without looking anything up.`,
       cq('STATE_MANAGEMENT', "After createTask succeeds, the list still doesn't show the new task. The createTask.fulfilled case is empty. What fixes it?", [
         ["Push action.payload into state.items in createTask's fulfilled case", true],
         ['Dispatch fetchTasks from inside the createTask reducer at once', false],
-        ['Call window.location.reload once the createTask promise resolves', false],
+        ['Call window.location.reload() once the createTask promise has resolved', false],
         ["Add createTask to the list component's effect dependency array", false],
       ], 'The fulfilled payload is the created task from the server; adding it to items updates every component that selects the list. Reducers cannot dispatch, and reloading discards the app.'),
       cq('REACT_HOOKS', 'dispatch comes from useDispatch() at the top of a form component. Which submit handler adds the task?', [
@@ -1643,7 +1643,7 @@ NavLink adds the active class, which Bootstrap already styles.
       ], 'React-Bootstrap outputs Bootstrap markup and classes but ships no CSS. The stylesheet must be imported once, usually in main.jsx.'),
       mcq('Why is a React-Bootstrap Modal opened with a show prop instead of data-bs-toggle?', [
         ['React state then owns whether it is open, like any other UI', true],
-        ['data-bs attributes are not valid HTML inside JSX at all', false],
+        ['data-bs attributes are not valid HTML anywhere inside JSX markup', false],
         ["The show prop loads the modal's CSS from a CDN on demand", false],
       ], 'React-Bootstrap components are controlled by props. Keeping open/closed in state means code can open or close the modal, for example after a successful save.'),
       mcq('Which JSX makes a navbar link navigate with React Router and still look like a Bootstrap nav link?', [
@@ -1663,12 +1663,12 @@ NavLink adds the active class, which Bootstrap already styles.
       cq('REACT_COMPONENTS', "A developer writes <div class='card'> in JSX and sees a warning. What is the fix?", [
         ['Use className, since class is reserved in JavaScript', true],
         ['Use styleName, which is how JSX names CSS classes', false],
-        ['Use cssClass, which React maps to class on render', false],
+        ['Use cssClass, which React maps to the class attribute on render', false],
         ['Wrap the class name in braces so JSX evaluates it', false],
       ], 'JSX compiles to JavaScript, where class is a keyword, so React uses the DOM property name className for the class attribute.'),
       cq('BOOTSTRAP', "Bootstrap's bundle JS and React-Bootstrap are both loaded, and dropdowns open then close instantly. Why?", [
         ['Two scripts handle the same click and toggle it twice', true],
-        ['React-Bootstrap needs jQuery to keep its menus open', false],
+        ['React-Bootstrap needs jQuery loaded to keep its dropdown menus open', false],
         ['The CSS file must be loaded after the JS for menus', false],
         ['Dropdowns need a key prop to stay open in React', false],
       ], 'Bootstrap\'s own JavaScript and React-Bootstrap both respond to the click; one opens the menu and the other closes it. In React, use React-Bootstrap and drop bootstrap.bundle.js.'),
@@ -1741,7 +1741,7 @@ rewrite serves index.html for every path, React loads, and React Router renders 
       mcq('Why must a payment provider secret never go in VITE_SECRET_KEY?', [
         ['VITE_ values are bundled into public JavaScript anyone can read', true],
         ['Vite encrypts the values, and the key is lost on every build', false],
-        ['Vite reads secrets only from a file named .env.secret instead', false],
+        ['Vite reads secrets only from a separate file named .env.secret instead', false],
       ], 'Vite inlines VITE_ variables into the built files as plain strings, and those files are downloaded by every visitor. Secrets must stay on a server.'),
       mcq('VITE_API_URL was changed in the Netlify dashboard, but the live site still calls the old URL. What is needed?', [
         ['A new build and deploy, since the value is fixed at build time', true],
@@ -1771,7 +1771,7 @@ rewrite serves index.html for every path, React loads, and React Router renders 
       cq('REACT_COMPONENTS', 'On Vercel, client routes such as /tasks/5 return 404 on refresh. What does the fix in vercel.json do?', [
         ['Rewrites every path to /index.html so React Router takes over', true],
         ['Redirects each path to the home page with a 301 status code', false],
-        ['Prebuilds a separate HTML file for each route at deploy time', false],
+        ['Prebuilds a separate static HTML file for each route at deploy time', false],
         ['Turns off caching so the router can read the live URL again', false],
       ], 'A rewrite serves index.html without changing the URL, so React loads and the router renders /tasks/5. A redirect would lose the path the user asked for.'),
     ],

@@ -144,4 +144,45 @@ describe('the answer-length tell', () => {
   };
   it('is gone from the graded checkpoint bank', () => { expect(share('checkpoint')).toBeLessThanOrEqual(0.10); });
   it('is at or below chance in the practice bank', () => { expect(share('practice')).toBeLessThanOrEqual(0.35); });
+
+  /*
+   * The subtler tell. A correct option only a few characters longer than every distractor passes
+   * the check above, but if it is the longest option in most questions a student learns "pick the
+   * longest" and passes without the skill. With three or four options chance is a quarter to a
+   * third; no topic's bank may sit far above it.
+   */
+  it('is the longest option about as often as chance, in every topic', () => {
+    const byTopic = new Map<string, { n: number; longest: number }>();
+    for (const r of rows) {
+      const topic = topicOfUnit.get(r.unitCode) || r.unitCode;
+      const c = r.q.options.find(o => o.isCorrect);
+      if (!c) continue;
+      const s = byTopic.get(topic) || { n: 0, longest: 0 };
+      s.n++;
+      if (r.q.options.every(o => o === c || o.text.length < c.text.length)) s.longest++;
+      byTopic.set(topic, s);
+    }
+    // Never-longest is a tell too ("pick anything but the longest"), so the floor is not zero.
+    const over = [...byTopic.entries()].filter(([, s]) => s.n >= 10 && (s.longest / s.n > 0.35 || s.longest / s.n < 0.10))
+      .map(([t, s]) => `${t}: ${s.longest}/${s.n}`);
+    expect(over).toEqual([]);
+  });
+});
+
+describe('the answer-position tell', () => {
+  it('puts the correct option in no one position for most of a topic', () => {
+    const byTopic = new Map<string, number[]>();
+    for (const r of rows) {
+      const topic = topicOfUnit.get(r.unitCode) || r.unitCode;
+      const at = r.q.options.findIndex(o => o.isCorrect);
+      const counts = byTopic.get(topic) || [0, 0, 0, 0, 0, 0];
+      counts[at]++;
+      byTopic.set(topic, counts);
+    }
+    const over = [...byTopic.entries()].filter(([, c]) => {
+      const n = c.reduce((s, x) => s + x, 0);
+      return n >= 10 && Math.max(...c) / n > 0.45;
+    }).map(([t, c]) => `${t}: ${c.join('/')}`);
+    expect(over).toEqual([]);
+  });
 });

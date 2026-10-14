@@ -174,6 +174,32 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Plan, build, deploy and defend a full-stack application with an AI assistant and an agent in it.']),
     ],
   },
+
+  /* ══════════════ PLACEMENT — what a Java full-stack interview asks that Year 4 does not ══════════════ */
+  {
+    moduleCode: 'JT_PLACE',
+    moduleName: 'Java Full-Stack Placement',
+    displayOrder: 90,
+    blurb: 'Year 4 teaches aptitude, core CS, coding patterns, HR and mocks for everyone; this adds the Java, Spring, React, SQL and AI interview, coding in Java, and the Java full-stack candidate.',
+    topics: [
+      t('JT_IV_CORE_JAVA', 'Core Java Interview Questions', ['JAVA_BASICS', 'JAVA_OOP', 'JAVA_COLLECTIONS', 'JAVA_STREAMS', 'JAVA_CONCURRENCY', 'JAVA_EXCEPTIONS'],
+        ['Answer Core Java interview questions — language, OOP, collections, Java 8, concurrency and the JVM — with the follow-up.']),
+      t('JT_IV_SPRING', 'Spring, Spring Boot and Hibernate Interview Questions', ['SPRING_CORE', 'SPRING_BOOT', 'JPA_HIBERNATE', 'SPRING_SECURITY'],
+        ['Answer Spring, Boot, JPA and Security interview questions at the depth a backend round expects.']),
+      t('JT_IV_FRONTEND', 'JavaScript and React Interview Questions', ['HTML', 'CSS', 'JS_BASICS', 'JS_ES6', 'JS_ASYNC', 'REACT_COMPONENTS', 'REACT_HOOKS'],
+        ['Answer HTML, CSS, JavaScript and React interview questions, including the event loop and re-renders.']),
+      t('JT_IV_SQL_MYSQL', 'SQL and MySQL Interview Questions', ['SQL_BASICS', 'SQL_JOINS', 'DB_DESIGN', 'DB_INDEXING', 'DB_TRANSACTIONS'],
+        ['Write the classic interview queries and explain keys, normalisation, indexes and transactions.']),
+      t('JT_IV_AI', 'AI Engineering Interview Questions', ['LLM_APPLICATIONS', 'GENERATIVE_AI_LLM', 'RAG_SYSTEMS', 'AI_AGENTS'],
+        ['Answer interview questions on LLM features, RAG and agents, and on the AI in your own project.']),
+      t('JT_CODING_JAVA', 'Coding Rounds in Java', ['JAVA_BASICS', 'DSA_ARRAYS', 'DSA_STRINGS', 'DSA_HASHING', 'DSA_STACK', 'DSA_LINKED_LIST', 'DSA_TREES', 'DSA_GRAPHS', 'DSA_DP', 'DSA_GREEDY'],
+        ['Solve timed coding-round problems in Java, from arrays to dynamic programming.']),
+      t('JT_MCQ_JAVA_SPRING', 'Java and Spring MCQ Rounds', ['JAVA_BASICS', 'JAVA_OOP', 'SPRING_CORE', 'SPRING_BOOT'],
+        ['Clear the Java and Spring sections of a company online test.']),
+      t('JT_PLACE_JAVA_FS', 'The Java Full-Stack Candidate', ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE', 'TECHNICAL_EXPLANATION', 'INTERVIEW_PERFORMANCE'],
+        ['Present a Java full-stack resume and capstone and get through a full interview loop.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

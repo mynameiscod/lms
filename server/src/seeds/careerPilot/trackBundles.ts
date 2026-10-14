@@ -28,6 +28,12 @@ import { TRACK_AI_SPRING_BUNDLES } from './trackContentAiSpring';
 import { TRACK_AI_AGENTS_BUNDLES } from './trackContentAiAgents';
 import { TRACK_AI_AGENTS_JAVA_BUNDLES } from './trackContentAiAgentsJava';
 import { TRACK_CAPSTONE_BUNDLES } from './trackContentCapstone';
+import { TRACK_IV_CORE_JAVA_BUNDLES } from './trackContentIvCoreJava';
+import { TRACK_IV_SPRING_BUNDLES } from './trackContentIvSpring';
+import { TRACK_IV_FRONTEND_BUNDLES } from './trackContentIvFrontend';
+import { TRACK_IV_SQL_AI_BUNDLES } from './trackContentIvSqlAi';
+import { TRACK_CODING_JAVA_BUNDLES } from './trackContentCodingJava';
+import { TRACK_PLACE_JAVA_FS_BUNDLES } from './trackContentPlaceJavaFs';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -75,4 +81,10 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_AI_AGENTS_BUNDLES,
   ...TRACK_AI_AGENTS_JAVA_BUNDLES,
   ...TRACK_CAPSTONE_BUNDLES,
+  ...TRACK_IV_CORE_JAVA_BUNDLES,
+  ...TRACK_IV_SPRING_BUNDLES,
+  ...TRACK_IV_FRONTEND_BUNDLES,
+  ...TRACK_IV_SQL_AI_BUNDLES,
+  ...TRACK_CODING_JAVA_BUNDLES,
+  ...TRACK_PLACE_JAVA_FS_BUNDLES,
 ].map(balanced);

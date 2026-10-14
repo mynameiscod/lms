@@ -3,6 +3,7 @@
  *
  *   npx ts-node src/scripts/verifyCareerTrack.ts <tenantId> <trackKey>
  *   npx ts-node src/scripts/verifyCareerTrack.ts <tenantId> --demo      a track assembled from existing topics
+ *   ... --days=180 --minutes=150                                         try a year length before setting it
  *
  * For Year 3, and for Year 4 as a member (did Year 3 on the track) and as a fresh joiner, across
  * Skill DNA profiles, it writes a real roadmap and checks:
@@ -65,7 +66,10 @@ async function run(): Promise<void> {
   const resolved = which === '--demo' ? await demoTrack(tenantId) : await loadTrack(tenantId, which);
   if (!resolved) throw new Error(`No track ${which}.`);
   const cfg = await PassportConfig.findOne({ tenantId }).select('roadmapV2').lean() as any;
-  const { dailyMinutes, revisionDays } = resolveRoadmapV2(cfg?.roadmapV2);
+  const flag = (name: string) => Number(process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1]) || null;
+  const resolvedV2 = resolveRoadmapV2(cfg?.roadmapV2);
+  const dailyMinutes = flag('minutes') || resolvedV2.dailyMinutes;
+  const { revisionDays } = resolvedV2;
   const setting = { dailyMinutes, revisionDays };
   const allUnits = await CurriculumLearningUnit.find({ tenantId }).select('unitCode topicCode estimatedMinutes skillKeys prerequisiteSkillKeys').lean() as any[];
   const unitOf = new Map(allUnits.map(u => [String(u.unitCode), u]));
@@ -80,7 +84,7 @@ async function run(): Promise<void> {
   let failures = 0;
 
   for (const [stage, joiner] of [['specialize', 'FRESH'], ['placement', 'MEMBER'], ['placement', 'FRESH']] as const) {
-    const days = await programDaysFor(tenantId, stage);
+    const days = (stage === 'specialize' && flag('days')) || await programDaysFor(tenantId, stage);
     const mustTopics = trackTopics(stage === 'specialize' ? track.specializePacks : track.placementPacks, packs).filter(t => t.priority === 'MUST').map(t => t.topicCode);
     console.log(`\n${stage === 'specialize' ? 'YEAR 3' : 'YEAR 4'} ${joiner} — ${days} days`);
     const prints: string[] = [];

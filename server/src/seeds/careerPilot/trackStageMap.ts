@@ -76,6 +76,46 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Create, style, configure and deploy a React app with Vite, and ship the React project.']),
     ],
   },
+
+  /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
+  {
+    moduleCode: 'JT_JAVA',
+    moduleName: 'Core Java',
+    displayOrder: 40,
+    blurb: 'Java from the first program: the language, OOP, exceptions, collections, modern Java and concurrency.',
+    topics: [
+      t('JT_JAVA_START', 'Getting Started with Java', ['JAVA_BASICS', 'IDE_PROFICIENCY'],
+        ['Install a JDK, run a program from IntelliJ and from the command line, and manage a Maven project.']),
+      t('JT_JAVA_BASICS', 'Java Fundamentals', ['JAVA_BASICS', 'JAVA_CONTROL_FLOW', 'JAVA_ARRAYS', 'JAVA_METHODS'],
+        ['Write Java with types, operators, conditions, loops, arrays, strings and methods, and predict what it prints.']),
+      t('JT_JAVA_OOP', 'Object-Oriented Programming in Java', ['JAVA_OOP'],
+        ['Design classes with encapsulation, inheritance, polymorphism, abstract classes and interfaces, and say why.']),
+      t('JT_JAVA_EXCEPTIONS', 'Exceptions and File I/O', ['JAVA_EXCEPTIONS'],
+        ['Handle checked and unchecked exceptions, close resources safely, and read and write files.']),
+      t('JT_JAVA_COLLECTIONS', 'Collections and Generics', ['JAVA_COLLECTIONS'],
+        ['Choose the right List, Set, Map or Queue, sort with Comparable and Comparator, and write generic code.']),
+      t('JT_JAVA_MODERN', 'Modern Java: Lambdas, Streams and Java 17', ['JAVA_STREAMS'],
+        ['Write lambdas, method references and stream pipelines, use Optional, and read Java 17 code.']),
+      t('JT_JAVA_CONCURRENCY', 'Concurrency and the JVM', ['JAVA_CONCURRENCY'],
+        ['Run work on threads and executors safely, and explain how the JVM manages memory.']),
+    ],
+  },
+
+  /* ══════════════ DSA IN JAVA — the years teach DSA in Python; a Java developer needs it in Java ══════════════ */
+  {
+    moduleCode: 'JT_JAVA_DSA',
+    moduleName: 'Data Structures and Algorithms in Java',
+    displayOrder: 50,
+    blurb: 'The data structures and algorithms interviews ask, implemented and solved in Java.',
+    topics: [
+      t('JT_JAVA_DSA_LINEAR', 'DSA in Java: Arrays to Sorting',
+        ['DSA_COMPLEXITY', 'DSA_ARRAYS', 'DSA_LINKED_LIST', 'DSA_STACK', 'DSA_HASHING', 'DSA_RECURSION', 'DSA_SORTING'],
+        ['Solve array, string, linked-list, stack, hashing, recursion and sorting problems in Java and state their cost.']),
+      t('JT_JAVA_DSA_NONLINEAR', 'DSA in Java: Trees to Dynamic Programming',
+        ['DSA_TREES', 'DSA_HEAPS', 'DSA_GRAPHS', 'DSA_GREEDY', 'DSA_DP'],
+        ['Solve tree, heap, graph, greedy and dynamic-programming problems in Java.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

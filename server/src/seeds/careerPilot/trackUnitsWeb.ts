@@ -14,7 +14,7 @@ import { u } from './year4UnitKit';
  * interviewer has half of it. One unit is one sitting, and nothing is called "basics".
  */
 
-const ending = (what: string, after: string, opts: { project?: [string, string, string]; minutes?: [number, number, number, number] } = {}): UnitSeed[] => {
+export const ending = (what: string, after: string, opts: { project?: [string, string, string]; minutes?: [number, number, number, number] } = {}): UnitSeed[] => {
   const [debugMin, practiceMin, interviewMin, checkMin] = opts.minutes || [45, 60, 40, 40];
   const units: UnitSeed[] = [
     u('DEBUGGING', `Debugging ${what}`,

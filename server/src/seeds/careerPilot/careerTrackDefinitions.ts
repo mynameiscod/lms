@@ -33,12 +33,21 @@ export const PACKS: PackDefinition[] = [
   { key: 'GIT_TOOLS', title: 'Git and Developer Tools', kind: 'SKILL',
     description: 'Version control with Git and GitHub, and an editor set up to work in.',
     topics: [['T_GIT', 'MUST'], ['T_EDITOR', 'SHOULD']] },
+
+  /* ── Java Full Stack + AI, batch 2: Java and DSA in Java ── */
+  { key: 'CORE_JAVA', title: 'Core Java', kind: 'SKILL',
+    description: 'Java from the first program: fundamentals, OOP, exceptions, collections, lambdas and streams, concurrency and the JVM.',
+    topics: [['JT_JAVA_START', 'MUST'], ['JT_JAVA_BASICS', 'MUST'], ['JT_JAVA_OOP', 'MUST'], ['JT_JAVA_EXCEPTIONS', 'MUST'],
+      ['JT_JAVA_COLLECTIONS', 'MUST'], ['JT_JAVA_MODERN', 'MUST'], ['JT_JAVA_CONCURRENCY', 'SHOULD']] },
+  { key: 'DSA_JAVA', title: 'DSA in Java', kind: 'SKILL',
+    description: 'The data structures and algorithms interviews ask, solved in Java.',
+    topics: [['JT_JAVA_DSA_LINEAR', 'MUST'], ['JT_JAVA_DSA_NONLINEAR', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
   { key: 'JAVA_FULLSTACK_AI', name: 'Java Full Stack + AI', language: 'Java', order: 10,
     description: 'HTML, CSS, Bootstrap, JavaScript and React; Core Java, MySQL, Spring Boot; then generative and agentic AI built into your own app.',
-    /* Batch 1 is the frontend; Java, MySQL, Spring Boot and AI packs are appended as their batches land. */
-    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS'],
+    /* Batch 1 is the frontend, batch 2 Java and DSA; MySQL, Spring Boot and AI packs are appended as their batches land. */
+    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_JAVA', 'DSA_JAVA'],
     placementPacks: [] },
 ];

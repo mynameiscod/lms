@@ -143,6 +143,9 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'JAVA_CONCURRENCY', name: 'Java Concurrency', parentKey: 'JAVA', difficulty: 'ADVANCED', displayOrder: 80,
     description: 'Threads, synchronisation and the concurrency utilities.',
     prerequisiteKeys: ['JAVA_OOP', 'JAVA_COLLECTIONS'] },
+  { key: 'JAVA_STREAMS', name: 'Java Lambdas & Streams', parentKey: 'JAVA', difficulty: 'INTERMEDIATE', displayOrder: 75,
+    description: 'Lambdas, functional interfaces, the Stream API, collectors and Optional — modern Java as interviews ask it.',
+    prerequisiteKeys: ['JAVA_COLLECTIONS'] },
 
   SUB('PYTHON', 'Python', 'PROGRAMMING', 30, 'The Python language and its standard library.'),
   { key: 'PYTHON_BASICS', name: 'Python Basics', parentKey: 'PYTHON', difficulty: 'FOUNDATION', displayOrder: 10,

@@ -139,6 +139,17 @@ export const PACKS: PackDefinition[] = [
   { key: 'CAPSTONE_PY_AI', title: 'Capstone: Python Full Stack + AI', kind: 'SKILL',
     description: 'One application that proves the track: React, Django and MySQL with a FastAPI AI service, deployed, with an assistant and an agent.',
     topics: [['JT_CAPSTONE_PY', 'MUST']] },
+  /* ── Python Full Stack + AI, batch P4: Year-4 placement (the rest is the shared placement packs) ── */
+  { key: 'PL_CODING_PYTHON', title: 'Coding Rounds in Python', kind: 'PLACEMENT',
+    description: 'The coding-round patterns, then timed problems solved in Python.',
+    topics: [['T4_PL_DSA_PATTERNS', 'MUST'], ['T4_PL_DSA_STRUCTURES', 'MUST'], ['T4_PL_COMPLEXITY', 'MUST'], ['JT_CODING_PYTHON', 'MUST'],
+      ['T4_PL_DSA_ADVANCED', 'SHOULD'], ['T4_PL_CODING_SETS', 'SHOULD']] },
+  { key: 'PL_PYTHON_INTERVIEW', title: 'Python, Django and FastAPI Interviews', kind: 'PLACEMENT',
+    description: 'Python, Django, DRF and FastAPI at interview depth, and the Python and Django sections of online tests.',
+    topics: [['JT_IV_PYTHON', 'MUST'], ['JT_IV_DJANGO', 'MUST'], ['JT_MCQ_PYTHON_DJANGO', 'MUST']] },
+  { key: 'PL_PY_FS_CANDIDATE', title: 'The Python Full-Stack Candidate', kind: 'PLACEMENT',
+    description: 'A Python full-stack resume and GitHub, the capstone defended, and a full Python interview loop.',
+    topics: [['JT_PLACE_PY_FS', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -150,8 +161,9 @@ export const TRACKS: TrackDefinition[] = [
       'PL_PROJECT_DESIGN', 'PL_JAVA_FS_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
   { key: 'PY_FULLSTACK_AI', name: 'Python Full Stack + AI', language: 'Python', order: 20,
     description: 'HTML, CSS, Bootstrap, JavaScript and React; Python, Django and Django REST Framework on MySQL; FastAPI and AI in Python built into your own app.',
-    /* Batches: P1 Python and DSA in Python (frontend packs shared with Java Full Stack), P2 Django, P3 the stack, AI and the capstone; placement packs are appended as they land. */
+    /* Batches: P1 Python and DSA in Python (frontend packs shared with Java Full Stack), P2 Django, P3 the stack, AI and the capstone, P4 placement. */
     specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_PYTHON', 'DSA_PYTHON', 'MYSQL', 'PYTHON_DATA', 'DJANGO',
       'FULLSTACK_DEPLOY_PY', 'GENAI_PY', 'AGENTIC_AI_PY', 'CAPSTONE_PY_AI'],
-    placementPacks: [] },
+    placementPacks: ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_PYTHON_INTERVIEW', 'PL_WEB_INTERVIEW', 'PL_AI_INTERVIEW', 'PL_CORE_CS',
+      'PL_PROJECT_DESIGN', 'PL_PY_FS_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
 ];

@@ -231,6 +231,26 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ PYTHON PLACEMENT — what a Python full-stack interview asks that Year 4 does not ══════════════ */
+  {
+    moduleCode: 'JT_PLACE_PY',
+    moduleName: 'Python Full-Stack Placement',
+    displayOrder: 130,
+    blurb: 'The web, SQL and AI interview topics are shared with every full-stack track; this adds Python, Django and FastAPI interviews, coding in Python, and the Python full-stack candidate.',
+    topics: [
+      t('JT_IV_PYTHON', 'Python Interview Questions', ['PYTHON_BASICS', 'PYTHON_COLLECTIONS', 'PYTHON_FUNCTIONS', 'PYTHON_OOP', 'PYTHON_ADVANCED', 'PYTHON_ERROR_HANDLING'],
+        ['Answer Python interview questions — the data model, collections, closures and decorators, OOP, the GIL and concurrency, memory — with the follow-up.']),
+      t('JT_IV_DJANGO', 'Django, DRF and FastAPI Interview Questions', ['DJANGO', 'DJANGO_REST', 'FASTAPI'],
+        ['Answer Django, ORM, DRF, auth and FastAPI interview questions at the depth a backend round expects.']),
+      t('JT_CODING_PYTHON', 'Coding Rounds in Python', ['PYTHON_BASICS', 'DSA_ARRAYS', 'DSA_STRINGS', 'DSA_HASHING', 'DSA_STACK', 'DSA_LINKED_LIST', 'DSA_TREES', 'DSA_GRAPHS', 'DSA_DP', 'DSA_GREEDY'],
+        ['Solve timed coding-round problems in Python, from arrays to dynamic programming.']),
+      t('JT_MCQ_PYTHON_DJANGO', 'Python and Django MCQ Rounds', ['PYTHON_BASICS', 'PYTHON_ADVANCED', 'DJANGO', 'DJANGO_REST'],
+        ['Clear the Python and Django sections of a company online test.']),
+      t('JT_PLACE_PY_FS', 'The Python Full-Stack Candidate', ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE', 'TECHNICAL_EXPLANATION', 'INTERVIEW_PERFORMANCE'],
+        ['Present a Python full-stack resume and capstone and get through a full interview loop.']),
+    ],
+  },
+
   /* ══════════════ PLACEMENT — what a Java full-stack interview asks that Year 4 does not ══════════════ */
   {
     moduleCode: 'JT_PLACE',

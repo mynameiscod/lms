@@ -170,6 +170,8 @@ const DIMENSION: Record<string, AssessmentDimension> = {
   REACT_COMPONENTS: 'core_stack', REACT_HOOKS: 'core_stack', REACT_ROUTING: 'core_stack', STATE_MANAGEMENT: 'core_stack',
   JDBC: 'core_stack', JPA_HIBERNATE: 'core_stack', SPRING_CORE: 'core_stack', SPRING_BOOT: 'core_stack', SPRING_SECURITY: 'core_stack',
   LLM_APPLICATIONS: 'core_stack', RAG_SYSTEMS: 'core_stack', AI_AGENTS: 'core_stack',
+  PYTHON_FUNCTIONS: 'fundamentals', PYTHON_ADVANCED: 'core_stack', PYTHON_DB: 'core_stack',
+  DJANGO: 'core_stack', DJANGO_REST: 'core_stack', FASTAPI: 'core_stack',
   APTITUDE_DATA_INTERPRETATION: 'aptitude',
   APTITUDE_REASONING_LOGIC: 'aptitude',
   APTITUDE_REASONING_SERIES: 'aptitude',

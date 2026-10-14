@@ -47,6 +47,10 @@ import { TRACK_FASTAPI_BUNDLES } from './trackContentFastApi';
 import { TRACK_AI_PY_BUNDLES } from './trackContentAiPy';
 import { TRACK_AI_AGENTS_PY_BUNDLES } from './trackContentAiAgentsPy';
 import { TRACK_CAPSTONE_PY_BUNDLES } from './trackContentCapstonePy';
+import { TRACK_IV_PYTHON_BUNDLES } from './trackContentIvPython';
+import { TRACK_IV_DJANGO_BUNDLES } from './trackContentIvDjango';
+import { TRACK_CODING_PYTHON_BUNDLES } from './trackContentCodingPython';
+import { TRACK_PLACE_PY_FS_BUNDLES } from './trackContentPlacePyFs';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -113,4 +117,8 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_AI_PY_BUNDLES,
   ...TRACK_AI_AGENTS_PY_BUNDLES,
   ...TRACK_CAPSTONE_PY_BUNDLES,
+  ...TRACK_IV_PYTHON_BUNDLES,
+  ...TRACK_IV_DJANGO_BUNDLES,
+  ...TRACK_CODING_PYTHON_BUNDLES,
+  ...TRACK_PLACE_PY_FS_BUNDLES,
 ].map(balanced);

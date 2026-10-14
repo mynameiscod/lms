@@ -35,6 +35,12 @@ import { STATE_MANAGEMENT } from './stateManagement';
 import { LLM_APPLICATIONS } from './llmApplications';
 import { RAG_SYSTEMS } from './ragSystems';
 import { AI_AGENTS } from './aiAgents';
+import { PYTHON_FUNCTIONS } from './pythonFunctions';
+import { PYTHON_ADVANCED } from './pythonAdvanced';
+import { PYTHON_DB } from './pythonDb';
+import { DJANGO } from './django';
+import { DJANGO_REST } from './djangoRest';
+import { FASTAPI } from './fastapi';
 
 export const TRACK_BANK: GoldenItem[] = [
   ...JAVA_BASICS,
@@ -63,4 +69,10 @@ export const TRACK_BANK: GoldenItem[] = [
   ...LLM_APPLICATIONS,
   ...RAG_SYSTEMS,
   ...AI_AGENTS,
+  ...PYTHON_FUNCTIONS,
+  ...PYTHON_ADVANCED,
+  ...PYTHON_DB,
+  ...DJANGO,
+  ...DJANGO_REST,
+  ...FASTAPI,
 ];

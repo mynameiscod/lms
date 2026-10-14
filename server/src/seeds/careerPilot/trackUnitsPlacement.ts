@@ -119,3 +119,72 @@ export const TRACK_PLACEMENT: Record<string, TopicSeed> = {
       ['Show the judgement a Java full-stack hiring panel looks for'], 40, { unitType: 'CHECKPOINT', after: ['MOCK_LOOP'] }),
   ] },
 };
+
+/**
+ * Year-4 placement for Python Full Stack + AI (batch P4). The web, SQL and AI interview topics
+ * above name no backend language and are reused as they stand; these add Python, Django and
+ * FastAPI at interview depth, coding rounds solved in Python, and the Python full-stack candidate.
+ */
+export const TRACK_PLACEMENT_PY: Record<string, TopicSeed> = {
+  /* ── Python at interview depth ── */
+  JT_IV_PYTHON: { category: 'UNIVERSAL', units: interview('Python Interview', [
+    ['IV_LANGUAGE', 'Python’s Data Model', 'Names and objects, mutability, is vs ==, copying, integer and string interning, and pass-by-object-reference.', ['PYTHON_BASICS']],
+    ['IV_DATA_STRUCTURES', 'Lists, Dicts and Sets Inside', 'How list, dict and set are built, the cost of each operation, hashing and why a list cannot be a dict key.', ['PYTHON_COLLECTIONS']],
+    ['IV_FUNCTIONS', 'Functions, Closures and Decorators', '*args and **kwargs, mutable defaults, late-binding closures, decorators with arguments, and generators.', ['PYTHON_FUNCTIONS']],
+    ['IV_OOP', 'OOP the Python Way', 'Dunder methods, MRO and super, @property, classmethod vs staticmethod, ABCs, dataclasses and duck typing.', ['PYTHON_OOP']],
+    ['IV_CONCURRENCY', 'The GIL, Threads, Processes and asyncio', 'What the GIL blocks and what it does not, threads for I/O, processes for CPU, and asyncio’s event loop.', ['PYTHON_ADVANCED']],
+    ['IV_ERRORS_MEMORY', 'Exceptions, Context Managers and Memory', 'Exception hierarchy and chaining, with and its protocol, reference counting, cycles and the garbage collector.', ['PYTHON_ERROR_HANDLING']],
+  ]) },
+
+  /* ── Django, DRF and FastAPI at interview depth ── */
+  JT_IV_DJANGO: { category: 'UNIVERSAL', units: interview('Django and FastAPI Interview', [
+    ['IV_DJANGO_CORE', 'Django Internals', 'The request–response cycle and middleware, settings, apps, signals and when to avoid them, and the admin.', ['DJANGO']],
+    ['IV_ORM', 'The Django ORM Under Pressure', 'Lazy querysets, N+1 and its fixes, F and Q, annotate vs aggregate, transactions and select_for_update, migrations.', ['DJANGO']],
+    ['IV_DRF', 'Django REST Framework', 'Serializers vs ModelSerializers, viewsets and routers, validation order, pagination and filtering, versioning.', ['DJANGO_REST']],
+    ['IV_AUTH_SECURITY', 'Auth and Security in Django', 'Sessions vs JWT, Simple JWT refresh and blacklisting, permissions and object ownership, CSRF, CORS and the deploy checklist.', ['DJANGO_REST']],
+    ['IV_FASTAPI', 'FastAPI', 'Pydantic validation, async vs def endpoints, dependencies, when to choose FastAPI over Django, and testing it.', ['FASTAPI']],
+    ['IV_ARCHITECTURE', 'Scaling and Running a Python Backend', 'Gunicorn workers, caching, background jobs, a separate AI service, testing strategy and what breaks at ten times the users.', ['DJANGO']],
+  ]) },
+
+  /* ── Coding rounds, solved in Python ── */
+  JT_CODING_PYTHON: { category: 'UNIVERSAL', units: [
+    u('PYTHON_FOR_CODING', 'Python for Coding Rounds', 'Fast input, the collections, heapq and bisect a timed round needs, recursion limits, and the Python mistakes that cost marks.',
+      ['Write contest-style Python quickly: reading input, choosing structures, and avoiding slow or recursive traps'], 40, { skillKeys: ['PYTHON_BASICS'] }),
+    u('ROUND_ARRAYS_STRINGS', 'Coding Round — Arrays and Strings', 'Prefix sums, two pointers and sliding windows on lists and strings, under a clock, in Python.',
+      ['Solve array and string problems in Python within the time a coding round allows'], 50, { unitType: 'PRACTICE', after: ['PYTHON_FOR_CODING'], skillKeys: ['DSA_ARRAYS', 'DSA_STRINGS'] }),
+    u('ROUND_HASHING', 'Coding Round — Hashing and Counting', 'dict, set, Counter and defaultdict patterns: frequency, complements, grouping and first-unique, in Python.',
+      ['Solve hashing problems in Python and state their cost'], 50, { unitType: 'PRACTICE', after: ['ROUND_ARRAYS_STRINGS'], skillKeys: ['DSA_HASHING'] }),
+    u('ROUND_STACKS_LISTS', 'Coding Round — Stacks, Queues and Linked Lists', 'deque as stack and queue, monotonic stacks, and linked-list pointer problems, in Python.',
+      ['Solve stack, queue and linked-list problems in Python'], 50, { unitType: 'PRACTICE', after: ['ROUND_HASHING'], skillKeys: ['DSA_STACK', 'DSA_LINKED_LIST'] }),
+    u('ROUND_TREES_GRAPHS', 'Coding Round — Trees and Graphs', 'Traversals, BFS on grids and graphs, and reading a graph from input — iteratively, because of Python’s recursion limit.',
+      ['Solve tree and graph problems in Python'], 55, { unitType: 'PRACTICE', after: ['ROUND_STACKS_LISTS'], skillKeys: ['DSA_TREES', 'DSA_GRAPHS'] }),
+    u('ROUND_DP_GREEDY', 'Coding Round — Greedy and Dynamic Programming', 'Recognising greedy and DP problems, tables and lru_cache, in Python.',
+      ['Solve greedy and dynamic-programming problems in Python'], 55, { unitType: 'PRACTICE', after: ['ROUND_TREES_GRAPHS'], skillKeys: ['DSA_DP', 'DSA_GREEDY'] }),
+    u('CHECKPOINT', 'Coding Rounds in Python — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Read and reason about Python solutions at the standard a coding round expects'], 40, { unitType: 'CHECKPOINT', after: ['ROUND_DP_GREEDY'] }),
+  ] },
+
+  /* ── Python and Django MCQ rounds ── */
+  JT_MCQ_PYTHON_DJANGO: { category: 'UNIVERSAL', units: [
+    u('MCQ_OUTPUT', 'What Does This Python Print?', 'Output-prediction questions: mutable defaults, closures, slicing, integer and string identity, scoping, generators and exceptions.',
+      ['Predict the output of short Python programs without running them'], 40, { skillKeys: ['PYTHON_BASICS', 'PYTHON_ADVANCED'] }),
+    u('MCQ_DJANGO', 'Django, DRF and FastAPI MCQs', 'The defaults, behaviours and settings online tests ask about in Django, its ORM, DRF and FastAPI.',
+      ['Answer Django, DRF and FastAPI MCQs correctly and quickly'], 40, { after: ['MCQ_OUTPUT'], skillKeys: ['DJANGO', 'DJANGO_REST'] }),
+    u('TIMED_SET', 'Timed MCQ Set — Python and Django', 'A timed mixed set in the format of a company online test, with the reasoning for each answer.',
+      ['Finish a timed Python and Django MCQ set with accuracy'], 45, { unitType: 'PRACTICE', after: ['MCQ_DJANGO'] }),
+    u('CHECKPOINT', 'Python and Django MCQs — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Show Python and Django knowledge at online-test standard'], 40, { unitType: 'CHECKPOINT', after: ['TIMED_SET'] }),
+  ] },
+
+  /* ── The Python full-stack candidate ── */
+  JT_PLACE_PY_FS: { category: 'UNIVERSAL', units: [
+    u('RESUME', 'A Python Full-Stack Resume and GitHub', 'The template, the skills line recruiters filter on, project bullets with numbers, and a GitHub that backs them up.',
+      ['Write a Python full-stack resume and GitHub profile whose every claim can be checked'], 45, { skillKeys: ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE'] }),
+    u('DEFEND_CAPSTONE', 'Defending Your Python Full-Stack + AI Capstone', 'The architecture walk-through, Django vs FastAPI, the AI service and how it is evaluated, and the questions panels ask.',
+      ['Defend the capstone end to end under follow-up questions'], 45, { after: ['RESUME'], skillKeys: ['TECHNICAL_EXPLANATION'] }),
+    u('MOCK_LOOP', 'The Python Full-Stack Interview Loop — Mock', 'Online test, technical round one (Python and DSA), technical round two (Django, React, SQL, the AI service), managerial and HR — as one mock day.',
+      ['Go through a complete Python full-stack interview loop and act on its debrief'], 60, { unitType: 'PRACTICE', after: ['DEFEND_CAPSTONE'], skillKeys: ['INTERVIEW_PERFORMANCE'] }),
+    u('CHECKPOINT', 'Python Full-Stack Placement — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Show the judgement a Python full-stack hiring panel looks for'], 40, { unitType: 'CHECKPOINT', after: ['MOCK_LOOP'] }),
+  ] },
+};

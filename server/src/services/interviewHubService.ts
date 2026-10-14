@@ -131,7 +131,8 @@ function card(e: any, viewerTenant: string) {
     id: String(e._id),
     companyName: e.companyName || e.companySlug, companySlug: e.companySlug,
     role: e.role || '', interviewedOn: e.interviewedOn, outcome: e.outcome, difficultyFelt: e.difficultyFelt || '',
-    rounds: rounds.length ? rounds.map((r: any) => r.name || ROUND_LABEL[r.key] || r.key) : (e.roundsFaced || []).map((k: string) => ROUND_LABEL[k] || k),
+    rounds: (rounds.length ? rounds.map((r: any) => r.name || ROUND_LABEL[r.key] || r.key) : (e.roundsFaced || []).map((k: string) => ROUND_LABEL[k] || k))
+      .filter((n: any) => n && n !== 'null'),
     questionCount: rounds.reduce((n: number, r: any) => n + (r.questions?.length || 0), 0),
     captureMode: e.captureMode || 'text',
     hasRecording: !!(e.media?.key && e.media?.shareRecording),
@@ -181,6 +182,7 @@ export async function createDraft(tenantId: string, userId: string, body: any, f
     const when = new Date(body.interviewedOn);
     if (isNaN(when.getTime())) throw new HubError('When was the interview?');
     if (when.getTime() > Date.now() + 86400000) throw new HubError('That date is in the future.');
+    if (when.getFullYear() < new Date().getFullYear() - 10) throw new HubError('That date looks wrong - pick the day of your interview.');
     const captureMode = ['audio', 'video'].includes(body.captureMode) && files.recording ? body.captureMode : 'text';
     const notes = str(body.notes, 20000);
     // Before any paid step: a recording with nowhere to keep it is refused up front.

@@ -2123,9 +2123,22 @@ export interface TodayMissions {
   missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; verify?: 'interview' | 'resume'; done: boolean; answer?: string; feedback?: string }[];
 }
 
+/** The shareable CareerPilot card — computed fresh on every request (server: passportShareCardService). */
 export interface PassportCard {
-  name: string; careerScore: number | null; level: string | null;
-  pathway: string | null; careerGoal: string | null; memberSince: string | null;
+  name: string; photo: string | null;
+  stage: string | null; track: string | null; role: string | null; careerGoal: string | null;
+  memberSince: string | null;
+  /** 0–100 role readiness from the assessment; null until measured. */
+  careerScore: number | null; careerLevel: string | null;
+  /** 0–1000 composite — the same coder score Home shows. */
+  coderScore: number;
+  level: { level: number; title: string; progressPct: number; xpToNextLevel: number; nextTitle: string };
+  stats: {
+    xp: number; streak: number; longestStreak: number; coins: number | null; solved: number;
+    daysCompleted: number; totalDays: number | null; testsPassed: number; interviews: number;
+  };
+  topSkills: { key: string; name: string; score: number }[];
+  updatedAt: string;
 }
 
 export interface AssessQuestion { id: string; category: string; text: string; options: string[]; dependsOn?: { questionId: string; minChosen: number }; }

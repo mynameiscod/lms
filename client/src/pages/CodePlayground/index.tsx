@@ -6,6 +6,7 @@ import { runSql, SqlResult } from '../../utils/sqlRunner';
 import { useFillViewport } from '../../hooks/useFillViewport';
 import { useLocation } from 'react-router-dom';
 import './CodePlayground.css';
+import { toast as notify, confirmDialog, promptDialog, copyText } from '../../components/feedback/appFeedback';
 
 interface Lang { key: string; label: string; icon: string; monaco: string; file: string; starter: string; }
 
@@ -288,7 +289,7 @@ const CodePlayground: React.FC = () => {
       const r = currentId ? await playgroundApi.update(currentId, body) : await playgroundApi.create(body);
       setCurrentId(r.data?._id || currentId);
       loadList();
-    } catch (e: any) { alert(e.message || 'Save failed'); }
+    } catch (e: any) { notify(e.message || 'Could not save this program', 'error'); }
     finally { setSaving(false); }
   };
 
@@ -309,7 +310,11 @@ const CodePlayground: React.FC = () => {
 
   const del = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm('Delete this saved program?')) return;
+    if (!(await confirmDialog({
+      title: 'Delete this saved program?',
+      message: 'It is removed from your saved programs. This cannot be undone.',
+      confirmLabel: 'Delete', danger: true,
+    }))) return;
     try { await playgroundApi.remove(id); if (currentId === id) newProgram(); loadList(); } catch { /* ignore */ }
   };
 
@@ -326,12 +331,20 @@ const CodePlayground: React.FC = () => {
       if (id) await playgroundApi.update(id, body);
       else { const r = await playgroundApi.create(body); id = r.data?._id; setCurrentId(id); loadList(); }
       const suggested = (title.trim() || 'playground').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-      const repoName = window.prompt('GitHub repository name:', suggested);
+      const repoName = await promptDialog({
+        title: 'Push to GitHub',
+        message: 'Name the repository to create or update on your GitHub account.',
+        defaultValue: suggested, placeholder: 'repository-name', confirmLabel: 'Push',
+      });
       if (repoName === null) { setPushing(false); return; }
       const r = await playgroundApi.pushGithub(id as string, { repoName });
-      if (window.confirm(`Pushed to ${r.data?.repo}. Open it on GitHub?`)) window.open(r.data?.url, '_blank');
+      if (await confirmDialog({
+        title: 'Pushed to GitHub',
+        message: `Your code is in ${r.data?.repo}. Open it on GitHub?`,
+        confirmLabel: 'Open on GitHub', cancelLabel: 'Not now',
+      })) window.open(r.data?.url, '_blank');
     } catch (e: any) {
-      if (/connect.*github/i.test(e.message || '')) setGhModal(true); else alert(e.message || 'GitHub push failed');
+      if (/connect.*github/i.test(e.message || '')) setGhModal(true); else notify(e.message || 'GitHub push failed', 'error');
     } finally { setPushing(false); }
   };
 
@@ -340,7 +353,7 @@ const CodePlayground: React.FC = () => {
     try {
       const c = await studentProfileAPI.connectGitHub();
       if (c?.authUrl) window.open(c.authUrl, '_blank', 'width=760,height=820');
-    } catch (e: any) { alert(e.message || 'Could not start GitHub connect'); }
+    } catch (e: any) { notify(e.message || 'Could not start GitHub connect', 'error'); }
     finally { setGhConnecting(false); }
   };
 
@@ -430,7 +443,7 @@ const CodePlayground: React.FC = () => {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
     a.download = current?.file || 'program.txt'; a.click(); URL.revokeObjectURL(a.href);
   };
-  const share = async () => { try { await navigator.clipboard.writeText(code); alert('Code copied to clipboard.'); } catch { /* ignore */ } };
+  const share = () => copyText(code, 'Code copied to clipboard');
 
   const visibleLangs = LANGS.filter(l => l.label.toLowerCase().includes(langSearch.toLowerCase()));
   const visibleFw = FRAMEWORKS.filter(f => f.label.toLowerCase().includes(langSearch.toLowerCase()));

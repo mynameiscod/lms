@@ -14,6 +14,7 @@ import { isCareerPilotMember } from '../services/careerPilotPopulation';
 import PendingPassportSignup from '../models/PendingPassportSignup';
 import { registrationWindowState, validateSignupAnswers } from '../data/onboardingFieldPolicy';
 import { sanitiseAttribution, mergeAttribution } from '../models/careerPilotAttribution';
+import { buildShareCard } from '../services/passportShareCardService';
 
 // Public CareerPilot funnel: signup (Name/Mobile/Email + admin-configured onboarding
 // fields) → OTP → account created (STUDENT + passport, not yet active/paid) → auto-login.
@@ -95,26 +96,24 @@ export const getPublicConfig = async (req: Request, res: Response) => {
   }
 };
 
-/** GET /public/passport/card/:slug — the shareable, read-only CareerPilot card. */
+/**
+ * GET /public/passport/card/:slug — the shareable, read-only CareerPilot card.
+ *
+ * Computed on every request (see passportShareCardService) and never cached, so the card a
+ * friend opens — and the preview in the member's own share dialog — carries today's figures,
+ * not the ones from whenever the score was last stored.
+ */
 export const getCard = async (req: Request, res: Response) => {
   try {
     const slug = String(req.params.slug || '').trim();
     if (!slug) return res.status(400).json({ success: false, message: 'Missing slug' });
-    const user = await User.findOne({ 'passport.shareSlug': slug }).select('firstName lastName passport').lean() as any;
+    const user = await User.findOne({ 'passport.shareSlug': slug })
+      .select('firstName lastName tenantId avatar passport').lean() as any;
     if (!user || !user.passport?.active) return res.status(404).json({ success: false, message: 'Passport not found' });
 
-    const p = user.passport;
-    res.json({
-      success: true,
-      card: {
-        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'CodeBegun Learner',
-        careerScore: p.careerScore ?? null,
-        level: p.level || null,
-        pathway: p.pathway || null,
-        careerGoal: p.careerGoal || null,
-        memberSince: p.activatedAt || null,
-      },
-    });
+    const card = await buildShareCard(user);
+    res.set('Cache-Control', 'no-store');
+    res.json({ success: true, card });
   } catch (e: any) {
     res.status(500).json({ success: false, message: e.message || 'Failed to load card' });
   }

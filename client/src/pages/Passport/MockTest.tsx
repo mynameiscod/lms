@@ -3,6 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import passportApi, { MockAttempt, MockResult } from '../../api/passportApi';
 import PassportShell from './PassportShell';
 import useExamGuards from '../../hooks/useExamGuards';
+import { confirmDialog } from '../../components/feedback/appFeedback';
+
+/** Submitting with questions left blank is allowed, but never by accident. */
+const confirmBlank = (blank: number) => confirmDialog({
+  title: 'Submit with blank questions?',
+  message: `${blank} question${blank === 1 ? ' is' : 's are'} still unanswered. Blank questions score zero.`,
+  confirmLabel: 'Submit test',
+  cancelLabel: 'Keep answering',
+});
 
 /**
  * Sitting a company mock test.
@@ -181,9 +190,9 @@ const MockTest: React.FC = () => {
             <button className="pm-btn ghost" onClick={() => { const n = { ...answers }; delete n[q.id]; setAnswers(n); }}>Clear</button>
             {idx < flat.length - 1
               ? <button className="pm-btn primary" onClick={() => setIdx(i => i + 1)}>Next →</button>
-              : <button className="pm-btn teal" disabled={busy} onClick={() => {
+              : <button className="pm-btn teal" disabled={busy} onClick={async () => {
                   const blank = flat.length - Object.keys(answers).length;
-                  if (blank && !window.confirm(`${blank} question${blank === 1 ? '' : 's'} still blank. Submit anyway?`)) return;
+                  if (blank && !(await confirmBlank(blank))) return;
                   submit();
                 }}>{busy ? 'Submitting…' : 'Submit test'}</button>}
           </div>
@@ -204,9 +213,9 @@ const MockTest: React.FC = () => {
               <span>{answered} of {flat.length} answered</span>
             </div>
             <button className="pm-btn teal" style={{ width: '100%', marginTop: 12 }} disabled={busy}
-              onClick={() => {
+              onClick={async () => {
                 const blank = flat.length - answered;
-                if (blank && !window.confirm(`${blank} question${blank === 1 ? '' : 's'} still blank. Submit anyway?`)) return;
+                if (blank && !(await confirmBlank(blank))) return;
                 submit();
               }}>Submit test</button>
           </div>

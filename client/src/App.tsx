@@ -805,9 +805,8 @@ const AppRoutes: React.FC = () => {
             TOPIC engine sees the "not created yet" state rather than an error. */}
         <Route path="/careerpilot/journey" element={<PassportFoundationJourney />} />
         {/*
-          Thinking Lab reuses the Practice screen against the admin-authored bank. A problem
-          opened from either list lands on the same /careerpilot/practice/:id, because the id
-          already carries its source — the bank rows are prefixed `db:`.
+          Bank problems still open at /careerpilot/practice/:id (ids prefixed `db:`); the
+          Thinking Lab itself is the daily-challenge page mounted below.
         */}
         {/*
           Communication Lab, inside the member layout so it gets the rail.
@@ -816,13 +815,11 @@ const AppRoutes: React.FC = () => {
           above, and a member route that skips it strands the member with no way back.
         */}
         <Route path="/careerpilot/communication" element={<CommunicationLab />} />
-        <Route path="/careerpilot/thinking-lab" element={
-          <PassportPractice
-            source="bank"
-            heading="Thinking Lab"
-            blurb="Problems set by your mentors, with difficulty, XP and how many people have solved each one. Your code compiles and runs here."
-          />
-        } />
+        {/* The real Thinking Lab — today's problem, think-first gate, run/submit, progress,
+            analytics and leaderboard — inside the member shell. Practice is a separate list
+            (/careerpilot/practice); this is the one-problem-a-day lab, served to members from
+            the CareerPilot bank in curriculum order. */}
+        <Route path="/careerpilot/thinking-lab" element={<ThinkingLab variant="careerpilot" />} />
         <Route path="/passport/practice/:id" element={<LegacyRedirect to="/careerpilot/practice/:id" />} />
         <Route path="/careerpilot/interview" element={<PassportInterview />} />
         <Route path="/passport/interview" element={<LegacyRedirect to="/careerpilot/interview" />} />

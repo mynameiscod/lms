@@ -247,6 +247,10 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   };
 
   const journeyMode = journey?.engine === 'UNIT';
+  /* The hero's "Day N of M" is the member's own programme (130 for a Specialize journey), not the
+     old 90-day stats default: the journey when there is one, else the plan length the rail uses. */
+  const heroTotal = (journey?.available && journey.totalDays) || d.programDays || st.totalDays;
+  const heroDay = journey?.available ? (journey.currentDay ?? 1) : st.day;
   const jActs = jDay?.activities || [];
   const jDone = jActs.filter(a => a.done).length;
   const jTotalXp = jActs.reduce((t, a) => t + (a.xp || 0), 0) + (jDay?.dayBonusXp || 0);
@@ -292,7 +296,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
     <div className="md">
       <section className="md-hero">
         <div className="md-hero-copy">
-          <span className="md-eyebrow">Day {st.day} of {st.totalDays}{d.pathwayLabel ? ` · ${d.pathwayLabel}` : ''}</span>
+          <span className="md-eyebrow">Day {heroDay} of {heroTotal}{d.pathwayLabel ? ` · ${d.pathwayLabel}` : ''}</span>
           <h1>Today’s <span>focus</span></h1>
           <p>{goal.met
             ? 'Today’s goal is reached — anything else you do today is bonus.'
@@ -371,7 +375,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             <header className="md-card-head">
               <div>
                 <h2><Bi name="list-task" /> Today’s missions</h2>
-                <p>{jDay ? `Day ${jDay.day} of ${jDay.totalDays} · ${jDay.title}` : journey?.available ? `Day ${journey.currentDay ?? 1} of ${journey.totalDays ?? 90}` : `Your ${journey?.stageLabel || 'CareerPilot'} journey`}</p>
+                <p>{jDay ? `Day ${jDay.day} of ${jDay.totalDays} · ${jDay.title}` : journey?.available ? `Day ${journey.currentDay ?? 1} of ${journey.totalDays ?? d.programDays ?? 90}` : `Your ${journey?.stageLabel || 'CareerPilot'} journey`}</p>
               </div>
               {jDay && <span className="md-pill">{jDone} of {jActs.length} done · +{jEarned} / {jTotalXp} XP</span>}
             </header>
@@ -403,7 +407,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
               </div>
               <div className="md-jm-actions">
                 {journey.enrollmentId && <button className="md-btn primary" onClick={() => nav(dayHref)}>{jDone ? 'Continue today’s work' : 'Start today’s work'} <Bi name="arrow-right" /></button>}
-                <button className="md-btn" onClick={() => nav('/careerpilot/roadmap')}>See all {journey.totalDays ?? 90} days</button>
+                <button className="md-btn" onClick={() => nav('/careerpilot/roadmap')}>See all {journey.totalDays ?? d.programDays ?? 90} days</button>
               </div>
             </>}
           </article>

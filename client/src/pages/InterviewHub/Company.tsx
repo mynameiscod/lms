@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { interviewHubApi, CompanyView } from '../../api/interviewHubApi';
-import { CompanyLogo, ExperienceCard, fmtDate, useHubBase, Flashcards } from './parts';
+import { CompanyLogo, ExperienceCard, fmtDate, fmtInterviewDate, prettyCompany, useHubBase, Flashcards } from './parts';
 import { Modal } from '../ProblemBank/shared';
 import '../ProblemBank/ProblemBank.css';
 import './hub.css';
@@ -23,39 +23,49 @@ const Company: React.FC = () => {
   useEffect(() => { interviewHubApi.company(slug).then(setC).catch((x) => setErr(x?.response?.data?.message || 'Could not load.')); }, [slug]);
   const asked = useMemo(() => (c?.mostAsked || []).filter((q) => !round || q.round === round), [c, round]);
 
-  if (err) return <div className="pb-root"><div className="pb-page"><div className="pb-alert pb-alert-bad">{err}</div></div></div>;
-  if (!c) return <div className="pb-root"><div className="pb-page pb-muted"><span className="pb-spinner" /> Loading…</div></div>;
+  if (err) return <div className="pb-root ih-cb"><div className="pb-page ihx-page"><button className="ihx-back" onClick={() => nav(base)}><i className="bi bi-arrow-left" /> All experiences</button><div className="ihx-alert bad"><i className="bi bi-exclamation-triangle" /> {err}</div></div></div>;
+  if (!c) return <div className="pb-root ih-cb"><div className="pb-page ihx-page pb-muted"><span className="pb-spinner" /> Loading the company…</div></div>;
+  const name = prettyCompany(c.company.name);
+  const latest = fmtInterviewDate(c.lastInterviewedOn);
   const offers = c.outcomes.offer || 0;
   const decided = offers + (c.outcomes.rejected || 0);
 
   return (
-    <div className="pb-root">
-      <div className="pb-page" style={{ maxWidth: 1180 }}>
-        <button className="pb-btn pb-btn-ghost pb-btn-sm" style={{ marginBottom: 10 }} onClick={() => nav(base)}><i className="fa-solid fa-arrow-left" /> All experiences</button>
-        <div className="pb-head" style={{ alignItems: 'center' }}>
-          <CompanyLogo name={c.company.name} size={52} />
-          <div className="pb-grow"><h1>{c.company.name}</h1><p style={{ marginTop: 2 }}>From {c.reports} candidate report{c.reports === 1 ? '' : 's'}{c.lastInterviewedOn ? ` · latest ${fmtDate(c.lastInterviewedOn)}` : ''}</p></div>
-          {!!c.mostAsked.length && <button className="pb-btn" onClick={() => setFlash(true)}><i className="fa-solid fa-layer-group" /> Practise with flashcards</button>}
-          <button className="pb-btn pb-btn-primary" onClick={() => nav(`${base}/share?company=${encodeURIComponent(c.company.name)}`)}><i className="fa-solid fa-microphone-lines" /> I interviewed here</button>
+    <div className="pb-root ih-cb">
+      <div className="pb-page ihx-page">
+        <button className="ihx-back" onClick={() => nav(base)}><i className="bi bi-arrow-left" aria-hidden="true" /> All experiences</button>
+        <div className="ihx-head">
+          <CompanyLogo name={name} size={60} />
+          <div className="t">
+            <h1>{name}</h1>
+            <div className="sub">
+              <span><i className="bi bi-chat-square-quote" aria-hidden="true" /> From {c.reports} candidate report{c.reports === 1 ? '' : 's'}</span>
+              {latest && <span><i className="bi bi-calendar3" aria-hidden="true" /> Latest {latest}</span>}
+            </div>
+          </div>
+          <div className="acts">
+            {!!c.mostAsked.length && <button className="ihx-btn" onClick={() => setFlash(true)}><i className="bi bi-stack" aria-hidden="true" /> Practise with flashcards</button>}
+            <button className="ihx-btn primary" onClick={() => nav(`${base}/share?company=${encodeURIComponent(name)}`)}><i className="bi bi-mic" aria-hidden="true" /> I interviewed here</button>
+          </div>
         </div>
 
         {!c.reports ? (
-          <div className="pb-card pb-empty"><h2>No experiences for this company yet</h2><p className="pb-muted">If you interviewed here, you would be the first to help the next batch.</p></div>
+          <div className="ihx-empty"><span className="ill"><i className="bi bi-buildings" aria-hidden="true" /></span><h2>No experiences for this company yet</h2><p>If you interviewed here, you would be the first to help the next batch.</p></div>
         ) : <>
-          <div className="pb-stats" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-            <div className="pb-card pb-stat"><div className="l">Reports</div><div className="n">{c.reports}</div></div>
-            <div className="pb-card pb-stat"><div className="l">Typical rounds</div><div className="n">{c.avgRounds ?? '—'}</div></div>
-            <div className="pb-card pb-stat"><div className="l">Questions collected</div><div className="n">{c.mostAsked.length}</div></div>
-            <div className="pb-card pb-stat"><div className="l">Offers (of decided)</div><div className="n">{decided ? `${offers}/${decided}` : '—'}</div></div>
+          <div className="ihx-stats">
+            <div><div className="l">Reports</div><div className="n">{c.reports}</div></div>
+            <div><div className="l">Typical rounds</div><div className="n">{c.avgRounds ?? '—'}</div></div>
+            <div><div className="l">Questions collected</div><div className="n">{c.mostAsked.length}</div></div>
+            <div><div className="l">Selected (of decided)</div><div className="n">{decided ? `${offers}/${decided}` : '—'}</div></div>
           </div>
 
           {!!c.roundPattern.length && (
-            <div className="pb-card" style={{ padding: 16, marginBottom: 14 }}>
+            <div className="ihx-panel">
               <h3>The usual process</h3>
               <div className="ih-flow">
                 {c.roundPattern.map((r, i) => (
                   <React.Fragment key={r.key}>
-                    {i > 0 && <i className="fa-solid fa-chevron-right" />}
+                    {i > 0 && <i className="bi bi-chevron-right" aria-hidden="true" />}
                     <span className="step">{r.name}<small>{r.seenIn}/{c.reports}</small></span>
                   </React.Fragment>
                 ))}
@@ -64,13 +74,13 @@ const Company: React.FC = () => {
             </div>
           )}
 
-          <div className="pb-seg" style={{ marginBottom: 12 }}>
-            <button className={tab === 'asked' ? 'on' : ''} onClick={() => setTab('asked')}>Most-asked questions</button>
-            <button className={tab === 'reports' ? 'on' : ''} onClick={() => setTab('reports')}>Experiences ({c.experiences.length})</button>
+          <div className="ihx-tabs" role="tablist">
+            <button role="tab" aria-selected={tab === 'asked'} className={tab === 'asked' ? 'on' : ''} onClick={() => setTab('asked')}><i className="bi bi-fire" aria-hidden="true" /> Most-asked questions</button>
+            <button role="tab" aria-selected={tab === 'reports'} className={tab === 'reports' ? 'on' : ''} onClick={() => setTab('reports')}><i className="bi bi-chat-square-quote" aria-hidden="true" /> Experiences <span className="count">{c.experiences.length}</span></button>
           </div>
 
           {tab === 'asked' ? (
-            <div className="pb-card">
+            <div className="ihx-panel" style={{ padding: 0, overflow: 'hidden' }}>
               <div className="pb-row" style={{ padding: '10px 14px', borderBottom: '1px solid var(--pb-line)', flexWrap: 'wrap' }}>
                 <span className="pb-muted pb-grow" style={{ fontSize: 13 }}>Grouped across reports — the higher the count, the more likely you face it.</span>
                 <div className="pb-chips">
@@ -94,12 +104,12 @@ const Company: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div className="ih-grid">{c.experiences.map((e) => <ExperienceCard key={e.id} e={e} onOpen={() => nav(`${base}/${e.id}`)} />)}</div>
+            <div className="ihx-grid">{c.experiences.map((e) => <ExperienceCard key={e.id} e={e} onOpen={() => nav(`${base}/${e.id}`)} />)}</div>
           )}
         </>}
       </div>
       {flash && (
-        <Modal wide title={`${c.company.name} — flashcards`} onClose={() => setFlash(false)}>
+        <Modal wide title={`${name} — flashcards`} onClose={() => setFlash(false)}>
           <Flashcards deckKey={`company:${c.company.slug}`} items={c.mostAsked.map((q) => ({ q: q.text, tag: q.round, note: q.count > 1 ? `asked ${q.count}×` : 'reported' }))} onClose={() => setFlash(false)} />
         </Modal>
       )}

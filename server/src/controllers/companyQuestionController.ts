@@ -168,8 +168,10 @@ export const companyDetail = async (req: Request, res: Response) => {
       // Every figure carries the sample it came from, so the UI can say "from 3 reports"
       // rather than implying confidence the data does not support.
       stats,
-      rounds: tax.rounds.filter(r => r.enabled).map(r => ({
-        ...r, count: byRound.find((b: any) => b._id === r.key)?.n || 0,
+      // `tax` is a hydrated document: spreading a subdocument copies Mongoose internals, not
+      // key/label, so the "rounds you faced" picker got blank buttons and stored "null".
+      rounds: tax.rounds.filter(r => r.enabled).map((r: any) => ({
+        ...(typeof r.toObject === 'function' ? r.toObject() : r), count: byRound.find((b: any) => b._id === r.key)?.n || 0,
       })),
       categories: tax.categories.filter(c => c.enabled),
       difficulties: tax.difficulties,
@@ -249,8 +251,12 @@ export const submitExperience = async (req: Request, res: Response) => {
     const when = new Date(b.interviewedOn);
     if (isNaN(when.getTime())) return res.status(400).json({ message: 'When did you interview?' });
     if (when > new Date()) return res.status(400).json({ message: 'That date is in the future.' });
+    if (when.getFullYear() < new Date().getFullYear() - 10) return res.status(400).json({ message: 'That date looks wrong - pick the day of your interview.' });
 
-    const rounds = Array.isArray(b.roundsFaced) ? b.roundsFaced.map((r: any) => String(r)).slice(0, 12) : [];
+    // Drop empty picks: String(null) is "null", which the feed then printed as a round name.
+    const rounds = Array.isArray(b.roundsFaced)
+      ? b.roundsFaced.filter((r: any) => r !== null && r !== undefined && String(r).trim() && String(r) !== 'null').map((r: any) => String(r)).slice(0, 12)
+      : [];
     if (!rounds.length) return res.status(400).json({ message: 'Pick at least one round you faced.' });
 
     await InterviewExperience.create({

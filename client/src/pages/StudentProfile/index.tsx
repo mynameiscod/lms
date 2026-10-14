@@ -16,6 +16,7 @@ import {
 } from '../../api/studentProfileAPI';
 import './StudentProfile.css';
 import ProfileView from './ProfileView';
+import { confirmDialog } from '../../components/feedback/appFeedback';
 
 interface OAuthStatus {
   github: { connected: boolean; username?: string; profileUrl?: string; connectedAt?: string };
@@ -207,9 +208,14 @@ const StudentProfilePage: React.FC = () => {
   };
 
   const handleOAuthDisconnect = async (provider: 'github' | 'linkedin') => {
-    if (!window.confirm(`Are you sure you want to disconnect your ${provider === 'github' ? 'GitHub' : 'LinkedIn'} account?`)) {
-      return;
-    }
+    const providerName = provider === 'github' ? 'GitHub' : 'LinkedIn';
+    const ok = await confirmDialog({
+      title: `Disconnect ${providerName}?`,
+      message: `Your ${providerName} account will no longer be linked to your profile. You can connect it again at any time.`,
+      confirmLabel: 'Disconnect',
+      danger: true,
+    });
+    if (!ok) return;
     
     try {
       setConnectingOAuth(provider);
@@ -481,58 +487,58 @@ const StudentProfilePage: React.FC = () => {
         const hasResume = !!(profile.professionalProfiles?.resumeUrl || resume);
         const hasLinkedIn = !!profile.professionalProfiles?.linkedInUrl;
         const hasPhoto = !!(profilePhotoPreview || profile.personalInfo?.profilePhoto);
+        const checks = [
+          { label: 'Personal info', done: !!profile.personalInfo?.firstName, step: 1 },
+          { label: 'Education', done: !!profile.education?.highestQualification, step: 3 },
+          { label: 'Resume', done: hasResume, step: 2 },
+          { label: 'LinkedIn', done: hasLinkedIn, step: 2 },
+          { label: 'Course interest', done: !!profile.courseInterest?.interestedCourse, step: 5 },
+          { label: 'Profile photo', done: hasPhoto, step: 1 },
+        ];
         return (
           <div className="score-banner">
-            <div className="score-ring-wrap">
-              <svg width="110" height="110" viewBox="0 0 110 110">
-                <circle cx="55" cy="55" r={r} fill="none" stroke="#e2e8f0" strokeWidth="10" />
-                <circle
-                  cx="55" cy="55" r={r} fill="none"
-                  stroke={scoreColor} strokeWidth="10"
-                  strokeLinecap="round"
-                  strokeDasharray={circ}
-                  strokeDashoffset={offset}
-                  transform="rotate(-90 55 55)"
-                  style={{ transition: 'stroke-dashoffset 0.6s ease' }}
-                />
-              </svg>
-              <div className="score-ring-label">
-                <span className="score-pct" style={{ color: scoreColor }}>{pct}%</span>
-                <span className="score-level" style={{ color: scoreColor }}>{scoreLabel}</span>
+            <div className="score-ring-col">
+              <div className="score-ring-wrap" role="img" aria-label={`Profile ${pct}% complete`}>
+                <svg width="110" height="110" viewBox="0 0 110 110" aria-hidden="true">
+                  <circle cx="55" cy="55" r={r} fill="none" stroke="#e2e8f0" strokeWidth="10" />
+                  <circle
+                    cx="55" cy="55" r={r} fill="none"
+                    stroke={scoreColor} strokeWidth="10"
+                    strokeLinecap="round"
+                    strokeDasharray={circ}
+                    strokeDashoffset={offset}
+                    transform="rotate(-90 55 55)"
+                    style={{ transition: 'stroke-dashoffset 0.6s ease', opacity: pct > 0 ? 1 : 0 }}
+                  />
+                </svg>
+                <div className="score-ring-label">
+                  <span className="score-pct" style={{ color: scoreColor }}>{pct}<small>%</small></span>
+                </div>
               </div>
+              {/* The level sits under the ring as a chip: inside it, "INCOMPLETE" never fit. */}
+              <span className={`score-level score-level-${scoreLabel.toLowerCase()}`}>{scoreLabel}</span>
             </div>
             <div className="score-details">
               <h2 className="score-title">Profile Completion Score</h2>
               <p className="score-subtitle">Complete your profile to get noticed by recruiters</p>
               <div className="score-checklist">
-                <div className={`score-check ${profile.personalInfo?.firstName ? 'done' : ''}`}>
-                  {profile.personalInfo?.firstName ? '✅' : '⬜'} Personal Info
-                </div>
-                <div className={`score-check ${profile.education?.highestQualification ? 'done' : ''}`}>
-                  {profile.education?.highestQualification ? '✅' : '⬜'} Education Details
-                </div>
-                <div className={`score-check ${hasResume ? 'done' : ''}`}>
-                  {hasResume ? '✅' : '⬜'} Resume Uploaded
-                </div>
-                <div className={`score-check ${hasLinkedIn ? 'done' : ''}`}>
-                  {hasLinkedIn ? '✅' : '⬜'} LinkedIn Profile
-                </div>
-                <div className={`score-check ${profile.courseInterest?.interestedCourse ? 'done' : ''}`}>
-                  {profile.courseInterest?.interestedCourse ? '✅' : '⬜'} Course Interest
-                </div>
-                <div className={`score-check ${hasPhoto ? 'done' : ''}`}>
-                  {hasPhoto ? '✅' : '⬜'} Profile Photo
-                </div>
+                {checks.map(c => (
+                  <button type="button" key={c.label} className={`score-check ${c.done ? 'done' : ''}`} onClick={() => openEditor(c.step)} title={c.done ? `${c.label}: done` : `Add your ${c.label.toLowerCase()}`}>
+                    <i className={`bi ${c.done ? 'bi-check-circle-fill' : 'bi-circle'}`} aria-hidden="true" /> {c.label}
+                  </button>
+                ))}
               </div>
             </div>
             <div className="score-recruiter-status">
               <div className={`recruiter-badge ${pct >= 80 ? 'visible' : 'hidden'}`}>
-                {pct >= 80 ? '🔍 Visible to Recruiters' : '🔒 Not yet visible to Recruiters'}
+                <i className={`bi ${pct >= 80 ? 'bi-eye-fill' : 'bi-lock-fill'}`} aria-hidden="true" />
+                {pct >= 80 ? 'Visible to recruiters' : 'Not yet visible to recruiters'}
               </div>
+              <div className="recruiter-meter" aria-hidden="true"><span style={{ width: `${Math.min(100, Math.round((pct / 80) * 100))}%` }} /></div>
               <p className="recruiter-hint">
                 {pct >= 80
-                  ? 'Your profile is complete and visible to admin/recruiters'
-                  : `Complete ${80 - pct}% more to become visible to recruiters`}
+                  ? 'Your profile is complete and visible to admins and recruiters.'
+                  : `Reach 80% to become visible — ${80 - pct}% to go.`}
               </p>
             </div>
           </div>
@@ -787,7 +793,7 @@ const StudentProfilePage: React.FC = () => {
                   value={profile.personalInfo?.address || ''}
                   onChange={e => handleInputChange('personalInfo', 'address', e.target.value)}
                   placeholder="Enter your full address (House No, Street, Locality)"
-                  rows={2}
+                  rows={3}
                 />
               </div>
             </div>

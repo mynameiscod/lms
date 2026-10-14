@@ -37,7 +37,7 @@ export interface TLChallenge {
   code: string; language: string; attempts: number; hintsUsed: number; timeSpentSec: number;
   passed: boolean; score?: number; xpEarned: number; aiFeedback?: TLRubric; problem: TLProblem | null;
 }
-export interface TLStats { xpTotal: number; level: number; coins: number; streak: number; longestStreak: number; solvedTotal: number; solvedToday: number; badgeCount: number; }
+export interface TLStats { /** A CareerPilot member with no batch: member bank, member leaderboard. */ member?: boolean; xpTotal: number; level: number; coins: number; streak: number; longestStreak: number; solvedTotal: number; solvedToday: number; badgeCount: number; }
 export interface TLBadge { key: string; name: string; icon: string; desc: string; earned: boolean; earnedAt?: string | null; }
 export interface TLLeaderRow { rank: number; studentId: string; name: string; xp: number; level?: number; solved?: number; streak?: number; isMe: boolean; }
 export interface TLVoiceEval { transcript: string; durationSec: number; confidence: number; communication: number; grammar: number; logic: number; flow: number; professionalism: number; technicalVocabulary: number; overall: number; summary: string; tips: string[]; }
@@ -51,8 +51,8 @@ export interface TLAdminProblem { id: string; title: string; category: string; d
 const h = () => ({ headers: authHeader() });
 
 export const thinkingLabApi = {
-  getToday: async (): Promise<{ challenge: TLChallenge | null; empty?: boolean; message?: string }> => (await axios.get(`${BASE}/today`, h())).data,
-  next: async (): Promise<{ challenge: TLChallenge | null; empty?: boolean }> => (await axios.post(`${BASE}/next`, {}, h())).data,
+  getToday: async (): Promise<{ challenge: TLChallenge | null; empty?: boolean; message?: string; member?: { position: number; total: number } }> => (await axios.get(`${BASE}/today`, h())).data,
+  next: async (): Promise<{ challenge: TLChallenge | null; empty?: boolean; message?: string }> => (await axios.post(`${BASE}/next`, {}, h())).data,
   stats: async (): Promise<TLStats> => (await axios.get(`${BASE}/stats`, h())).data,
   badges: async (): Promise<TLBadge[]> => (await axios.get(`${BASE}/badges`, h())).data.badges || [],
   leaderboard: async (scope: string): Promise<{ scope: string; leaderboard: TLLeaderRow[]; myRank: number | null }> => (await axios.get(`${BASE}/leaderboard`, { ...h(), params: { scope } })).data,
@@ -87,3 +87,39 @@ export const thinkingLabApi = {
 
 export const TL_LANGS = [{ v: 'javascript', l: 'JavaScript' }, { v: 'python', l: 'Python' }, { v: 'java', l: 'Java' }, { v: 'cpp', l: 'C++' }];
 export const DIFF_COLORS: Record<string, string> = { easy: '#16a34a', medium: '#d97706', hard: '#dc2626', expert: '#7c3aed', interview: '#2563eb' };
+
+/**
+ * Input-reading skeletons for stdin/stdout problems, used when a student switches language
+ * and the editor still holds an untouched template.
+ */
+export const TL_TEMPLATES: Record<string, string> = {
+  python: `import sys
+
+def main():
+    data = sys.stdin.read().split()
+    # Parse the input, solve, and print the answer
+
+main()
+`,
+  javascript: `const data = require('fs').readFileSync(0, 'utf8').split(/\\s+/).filter(Boolean);
+// Parse the input, solve, and print the answer with console.log
+`,
+  java: `import java.util.*;
+import java.io.*;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        // Read the input, solve, and print the answer with System.out.println
+    }
+}
+`,
+  cpp: `#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    // Read the input with cin, solve, and print the answer with cout
+    return 0;
+}
+`,
+};

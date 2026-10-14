@@ -280,11 +280,11 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   /** One account menu, opened from the desktop top bar or the phone bar (.gd-mbar). */
   const userMenu = (
     <div className="gd-user-menu">
-      <div className="hd"><b>{d?.name || firstName}</b>{lv && <span>Level {lv.level} · {lv.title}</span>}</div>
+      <div className="hd"><span className="av" aria-hidden>{avatar}</span><div><b>{d?.name || firstName}</b>{lv && <span>Level {lv.level} · {lv.title}</span>}</div></div>
       {st && <div className="stats"><div><b>{st.xp.toLocaleString()}</b><span>XP</span></div><div><b>{st.streak}</b><span>Streak</span></div><div><b>{myRank ? `#${myRank}` : '—'}</b><span>Rank</span></div></div>}
-      <button onClick={() => { setUserOpen(false); nav('/careerpilot/profile'); }}>My profile</button>
-      <button onClick={() => { setUserOpen(false); nav('/careerpilot/readiness'); }}>My result</button>
-      <button onClick={share} disabled={!d?.shareSlug}>Share my CareerPilot card</button>
+      <button onClick={() => { setUserOpen(false); nav('/careerpilot/profile'); }}><i className="bi bi-person" aria-hidden /> My profile</button>
+      <button onClick={() => { setUserOpen(false); nav('/careerpilot/readiness'); }}><i className="bi bi-bar-chart" aria-hidden /> My result</button>
+      <button onClick={share} disabled={!d?.shareSlug}><i className="bi bi-share" aria-hidden /> Share my CareerPilot card</button>
       {/*
         * THE ONLY WAY BACK TO A PASSWORD ONCE YOU HAVE ONE.
         *
@@ -300,9 +300,9 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         * IS the reset, without a new endpoint or a token to email.
         */}
       <button onClick={() => { setUserOpen(false); setPwdOpen(true); }}>
-        {d?.passwordSet === false ? 'Set a password' : 'Change my password'}
+        <i className="bi bi-key" aria-hidden /> {d?.passwordSet === false ? 'Set a password' : 'Change my password'}
       </button>
-      <button className="out" onClick={() => logout()}>Log out</button>
+      <button className="out" onClick={() => logout()}><i className="bi bi-box-arrow-right" aria-hidden /> Log out</button>
     </div>
   );
 
@@ -412,21 +412,54 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
             {path === '/careerpilot' && d?.active && d?.hasAssessment && <div className="gd-hello"><h1>Hey {firstName}!</h1><p>Let’s code, solve problems and level up your skills.</p></div>}
           </div>
           <div className="gd-topbar-r">
-            {st && lv && <>
-              <Link to="/careerpilot/leaderboard" className="gd-pill" style={{ textDecoration: 'none' }} title="See where you rank">
-                <span className="em"><Icon name="fire" /></span><div><b>{st.streak}</b><span>Day Streak</span></div>
-              </Link>
-              {!!d?.coins?.balance && <Link to="/careerpilot/coins" className="gd-pill" style={{ textDecoration: 'none' }}><span className="em"><Icon name="coin" /></span><div><b>{d.coins.balance.toLocaleString('en-IN')}</b><span>Coins</span></div></Link>}
-              <Link to="/careerpilot/achievements" className="gd-pill level" style={{ textDecoration: 'none' }} title="See your badges and achievements">
-                <span className="hex"><Icon name="medal" /></span><div><b>Level {lv.level}</b><span>{lv.title}</span><div className="lbar"><i style={{ width: `${lv.progressPct}%` }} /></div></div>
-              </Link>
-              <Link to="/careerpilot/progress" className="gd-pill" style={{ textDecoration: 'none' }} title="See your XP, badges and streak">
-                <span className="em"><Icon name="lightning-charge-fill" /></span><div><b>{lv.xp.toLocaleString()} XP</b><span>{lv.xpToNextLevel.toLocaleString()} to level {lv.nextLevel}</span></div>
-              </Link>
-            </>}
+            {/*
+              * THE STAT GROUP. One rounded tray of four readable stats — a coloured badge each
+              * (streak orange, coins gold, level navy with a real bar, XP teal), dark numbers and
+              * labels that pass AA on white, and a tooltip saying what the stat is. The old pills
+              * had grey icons and #a3aab8 labels that disappeared at .75 zoom. On a phone the
+              * tray is one row of icon + number (careerpilot-member-shell.css, .gd-stats).
+              */}
+            {st && lv && (
+              <div className="gd-stats" role="group" aria-label="Your progress">
+                <Link to="/careerpilot/leaderboard" className="gd-stat s-streak"
+                      aria-label={`${st.streak} day streak. See where you rank`}>
+                  <span className="gd-stat-ic" aria-hidden><i className="bi bi-fire" /></span>
+                  <span className="gd-stat-tx"><b>{st.streak}</b><small>Day streak</small></span>
+                  <span className="gd-tip" aria-hidden>Days in a row you have learned. Miss a day and it starts again.</span>
+                </Link>
+                {!!d?.coins?.balance && (
+                  <Link to="/careerpilot/coins" className="gd-stat s-coins"
+                        aria-label={`${d.coins.balance.toLocaleString('en-IN')} coins. Open your coins`}>
+                    <span className="gd-stat-ic" aria-hidden><i className="bi bi-coin" /></span>
+                    <span className="gd-stat-tx"><b>{d.coins.balance.toLocaleString('en-IN')}</b><small>Coins</small></span>
+                    <span className="gd-tip" aria-hidden>Coins you have earned. Spend them on rewards.</span>
+                  </Link>
+                )}
+                <Link to="/careerpilot/achievements" className="gd-stat s-level"
+                      aria-label={`Level ${lv.level}, ${lv.title}, ${lv.progressPct}% of the way to level ${lv.nextLevel}. See your badges`}>
+                  <span className="gd-stat-ic" aria-hidden><i className="bi bi-award-fill" /></span>
+                  <span className="gd-stat-tx">
+                    <b><span className="gd-stat-long">Level </span><span className="gd-stat-short">Lv </span>{lv.level}</b>
+                    <small>{lv.title}</small>
+                    <span className="gd-stat-bar" aria-hidden>
+                      <i style={{ width: `${Math.max(4, Math.min(100, lv.progressPct))}%` }} />
+                    </span>
+                  </span>
+                  <span className="gd-tip" aria-hidden>Your level rises with XP. {lv.progressPct}% of the way to level {lv.nextLevel}.</span>
+                </Link>
+                <Link to="/careerpilot/progress" className="gd-stat s-xp"
+                      aria-label={`${lv.xp.toLocaleString()} XP, ${lv.xpToNextLevel.toLocaleString()} to level ${lv.nextLevel}. See your progress`}>
+                  <span className="gd-stat-ic" aria-hidden><i className="bi bi-lightning-charge-fill" /></span>
+                  <span className="gd-stat-tx"><b>{lv.xp.toLocaleString()}<em> XP</em></b><small>{lv.xpToNextLevel.toLocaleString()} to level {lv.nextLevel}</small></span>
+                  <span className="gd-tip" aria-hidden>XP from lessons, practice and interviews. {lv.xpToNextLevel.toLocaleString()} more reaches level {lv.nextLevel}.</span>
+                </Link>
+              </div>
+            )}
             <div className="gd-user" ref={userRef}>
               <button className="gd-user-btn" onClick={toggleUserMenu} aria-expanded={userOpen} aria-haspopup="true">
-                <span className="av">{avatar}</span><span className="nm">{d?.name || firstName}</span><span className={`cr${userOpen ? ' open' : ''}`}><Icon name="chevron" /></span>
+                <span className="av">{avatar}</span>
+                <span className="nm-wrap"><span className="nm">{d?.name || firstName}</span>{lv && <small>Level {lv.level} · {lv.title}</small>}</span>
+                <span className={`cr${userOpen ? ' open' : ''}`}><Icon name="chevron" /></span>
               </button>
               {userOpen && userMenu}
             </div>

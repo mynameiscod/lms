@@ -12,6 +12,9 @@ import './hub.css';
  */
 type Mode = 'text' | 'audio' | 'video';
 const today = () => new Date().toISOString().slice(0, 10);
+/** The earliest date the picker offers: a slip of the year field otherwise files a 2000 interview. */
+const earliest = () => { const d = new Date(); d.setFullYear(d.getFullYear() - 5); return d.toISOString().slice(0, 10); };
+const STEPS = ['The interview', 'How you share it', 'Rounds & questions', 'Done'];
 
 const Share: React.FC = () => {
   const nav = useNavigate();
@@ -69,7 +72,8 @@ const Share: React.FC = () => {
     setAnonymous(!!e.anonymous); setShareGlobal(e.shareGlobal !== false); setShareRecording(e.shareRecording !== false);
   };
 
-  const basicsOk = companyName.trim().length >= 2 && !!interviewedOn;
+  const dateOk = !!interviewedOn && interviewedOn >= earliest() && interviewedOn <= today();
+  const basicsOk = companyName.trim().length >= 2 && dateOk;
 
   const createDraft = async () => {
     setErr(''); setBusy(true); setProgress(0);
@@ -110,27 +114,31 @@ const Share: React.FC = () => {
   const qTotal = rounds.reduce((n, r) => n + r.questions.filter((q) => q.text.trim()).length, 0);
 
   return (
-    <div className="pb-root">
+    <div className="pb-root ih-cb">
       <div className="pb-page ih-wizard">
-        <button className="pb-btn pb-btn-ghost pb-btn-sm" style={{ marginBottom: 10 }} onClick={() => nav(`${base}?tab=mine`)}><i className="fa-solid fa-arrow-left" /> My posts</button>
-        <h1 style={{ marginBottom: 4 }}>Share your interview</h1>
-        <p className="pb-muted" style={{ marginTop: 0 }}>What you were asked is the most useful thing the next candidate can read. Your admin reviews it before anyone sees it.</p>
-        <div className="ih-steps">{[0, 1, 2, 3].map((i) => <span key={i} className={step >= i ? 'on' : ''} />)}</div>
+        <button className="ihx-back" onClick={() => nav(`${base}?tab=mine`)}><i className="bi bi-arrow-left" aria-hidden="true" /> My posts</button>
+        <div className="ihx-head" style={{ display: 'block' }}>
+          <h1>Share your interview</h1>
+          <p style={{ margin: '6px 0 16px', color: '#64748B', fontSize: 15, lineHeight: 1.55 }}>What you were asked is the most useful thing the next candidate can read. Your admin reviews it before anyone sees it.</p>
+          <ol className="ihx-stepper" aria-label="Progress">
+            {STEPS.map((t, i) => <li key={t} className={step > i ? 'done' : step === i ? 'on' : ''}><span className="n">{step > i ? <i className="bi bi-check-lg" aria-hidden="true" /> : i + 1}</span><span className="l">{t}</span></li>)}
+          </ol>
+        </div>
         {inviteMsg && step < 2 && <div className="pb-alert pb-alert-info"><b>From your admin:</b> {inviteMsg}</div>}
         {err && <div className="pb-alert pb-alert-bad">{err}</div>}
 
         {step === 0 && (
-          <div className="pb-card" style={{ padding: 20 }}>
+          <div className="ihx-panel" style={{ padding: 22 }}>
             <h2>The interview</h2>
             <div className="pb-field-row">
               <div><label className="pb-label">Company</label><input className="pb-input" autoFocus value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="e.g. Infosys" /></div>
               <div><label className="pb-label">Role</label><input className="pb-input" value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Java Developer" /></div>
             </div>
             <div className="pb-field-row">
-              <div><label className="pb-label">Interview date <small>the last round you faced</small></label><input className="pb-input" type="date" max={today()} value={interviewedOn} onChange={(e) => setInterviewedOn(e.target.value)} /></div>
+              <div><label className="pb-label">Interview date <small>the last round you faced</small></label><input className="pb-input" type="date" min={earliest()} max={today()} value={interviewedOn} onChange={(e) => setInterviewedOn(e.target.value)} />{interviewedOn && !dateOk && <div style={{ color: '#C93737', fontSize: 13, marginTop: 6 }}>Pick the date of your interview — within the last five years.</div>}</div>
               <div><label className="pb-label">Result so far</label>
                 <select className="pb-select" value={outcome} onChange={(e) => setOutcome(e.target.value)}>
-                  <option value="waiting">Waiting for the result</option><option value="offer">Got the offer</option><option value="rejected">Not selected</option><option value="withdrew">I withdrew</option>
+                  <option value="waiting">Pending — waiting for the result</option><option value="offer">Selected — got the offer</option><option value="rejected">Not selected</option><option value="withdrew">I withdrew</option>
                 </select></div>
             </div>
             <div className="pb-row" style={{ marginTop: 18, justifyContent: 'flex-end' }}>
@@ -140,7 +148,7 @@ const Share: React.FC = () => {
         )}
 
         {step === 1 && (
-          <div className="pb-card" style={{ padding: 20 }}>
+          <div className="ihx-panel" style={{ padding: 22 }}>
             <h2>How do you want to share it?</h2>
             <p className="pb-muted" style={{ marginTop: 4 }}>Speaking is fastest — we turn it into rounds and questions for you.</p>
             <div className="ih-modes">
@@ -193,27 +201,27 @@ const Share: React.FC = () => {
           <>
             {aiNote && <div className="pb-alert pb-alert-info">{aiNote}</div>}
             {exp.status === 'rejected' && exp.reviewNote && <div className="pb-alert pb-alert-warn"><b>Your admin asked for changes:</b> {exp.reviewNote}</div>}
-            <div className="pb-card" style={{ padding: 16, marginBottom: 12 }}>
+            <div className="ihx-panel">
               <div className="pb-row" style={{ flexWrap: 'wrap' }}>
                 <b className="pb-grow" style={{ fontSize: 16 }}>{companyName}{role ? ` · ${role}` : ''}</b>
                 <select className="pb-select" style={{ width: 200 }} value={outcome} onChange={(e) => setOutcome(e.target.value)}>
-                  <option value="waiting">Waiting for the result</option><option value="offer">Got the offer</option><option value="rejected">Not selected</option><option value="withdrew">I withdrew</option>
+                  <option value="waiting">Pending — waiting for the result</option><option value="offer">Selected — got the offer</option><option value="rejected">Not selected</option><option value="withdrew">I withdrew</option>
                 </select>
               </div>
               {exp.recording && <div style={{ marginTop: 10 }}><RecordingPlayer id={exp.id} contentType={exp.recording.contentType} durationSec={exp.recording.durationSec} /></div>}
             </div>
 
-            <h2 style={{ margin: '4px 0 10px' }}>Rounds & questions <span className="pb-muted" style={{ fontSize: 13, fontWeight: 600 }}>{rounds.length} rounds · {qTotal} questions</span></h2>
+            <h2 className="ihx-section-title">Rounds &amp; questions <small>{rounds.length} round{rounds.length === 1 ? '' : 's'} · {qTotal} question{qTotal === 1 ? '' : 's'}</small></h2>
             <RoundsEditor rounds={rounds} onChange={setRounds} />
 
-            <div className="pb-card" style={{ padding: 16, marginTop: 14 }}>
+            <div className="ihx-panel" style={{ marginTop: 14 }}>
               <label className="pb-label" style={{ marginTop: 0 }}>Where were people eliminated, and why?</label>
               <textarea className="pb-textarea" rows={3} value={elim} onChange={(e) => setElim(e.target.value)} placeholder="e.g. About half were cut in the coding round — most could not finish the second problem in time." />
               <label className="pb-label">Your advice for the next person</label>
               <textarea className="pb-textarea" rows={3} value={tips} onChange={(e) => setTips(e.target.value)} placeholder="What should they revise? What surprised you?" />
             </div>
 
-            <div className="pb-card ih-consent" style={{ marginTop: 14 }}>
+            <div className="ihx-panel ih-consent" style={{ marginTop: 14 }}>
               <b>Who can see it</b>
               <label className="pb-switch"><input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} /> Post without my name</label>
               <label className="pb-switch"><input type="checkbox" checked={shareGlobal} onChange={(e) => setShareGlobal(e.target.checked)} /> Also help students at other institutes <small className="pb-faint">(they never see your name)</small></label>
@@ -230,13 +238,13 @@ const Share: React.FC = () => {
         )}
 
         {step === 3 && (
-          <div className="pb-card pb-empty">
-            <div style={{ fontSize: 44 }}>🙌</div>
+          <div className="ihx-empty">
+            <span className="ill"><i className="bi bi-check2-circle" aria-hidden="true" /></span>
             <h2>Thank you — that will genuinely help someone</h2>
-            <p className="pb-muted">Your admin reviews it, then it goes live for every student preparing for {companyName}. You earn coins when it is approved.</p>
+            <p>Your admin reviews it, then it goes live for every student preparing for {companyName}. You earn coins when it is approved.</p>
             <div className="pb-row" style={{ justifyContent: 'center', marginTop: 12 }}>
-              <button className="pb-btn" onClick={() => nav(`${base}?tab=mine`)}>My posts</button>
-              <button className="pb-btn pb-btn-primary" onClick={() => nav(base)}>Read other experiences</button>
+              <button className="ihx-btn" onClick={() => nav(`${base}?tab=mine`)}>My posts</button>
+              <button className="ihx-btn primary" onClick={() => nav(base)}>Read other experiences</button>
             </div>
           </div>
         )}

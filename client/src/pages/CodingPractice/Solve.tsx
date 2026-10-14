@@ -6,6 +6,7 @@ import { pbError, PbCustomResult, PbJudgeResult } from '../../api/problemBankApi
 import { DifficultyPill, LANG_SHORT, Markdown, VERDICT_LABEL, relTime } from '../ProblemBank/shared';
 import { MONACO_LANG } from '../ProblemBank/templates';
 import '../ProblemBank/ProblemBank.css';
+import { confirmDialog } from '../../components/feedback/appFeedback';
 
 /**
  * The solve workspace — LeetCode's layout, because it is what learners preparing for
@@ -189,8 +190,12 @@ const Solve: React.FC<{ base: string }> = ({ base }) => {
                 {p.languages.map((l) => <option key={l.language} value={l.language}>{LANG_SHORT[l.language] || l.language}</option>)}
               </select>
               <span className="pb-spacer" />
-              <button className="pb-btn pb-btn-ghost pb-btn-sm" onClick={() => {
-                if (!window.confirm('Reset to the starter code? Your current code in this language will be replaced.')) return;
+              <button className="pb-btn pb-btn-ghost pb-btn-sm" onClick={async () => {
+                if (!(await confirmDialog({
+                  title: 'Reset to the starter code?',
+                  message: 'Your current code in this language will be replaced.',
+                  confirmLabel: 'Reset code', danger: true,
+                }))) return;
                 const starter = p.languages.find((l) => l.language === lang)?.starterCode || '';
                 setCode(starter); writeDraft(draftKey(p._id, lang), starter);
               }}><i className="fa-solid fa-rotate-left" /> Reset</button>

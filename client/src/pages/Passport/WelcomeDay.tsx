@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import passportApi, { OrientationDay, OrientationView } from '../../api/passportApi';
-import { Item, ICON, mins } from './Orientation';
+import { Item, ICON, ICON_FILLED, mins } from './Orientation';
 import './journeyDay.css';
 import './journeyDayMember.css';
 import './orientation.css';
@@ -187,7 +187,7 @@ const WelcomeDay: React.FC = () => {
                     aria-current={i === selIdx ? 'true' : undefined}
                   >
                     <span className={`jd-item-icon t-${it.kind}`} aria-hidden>
-                      <i className={`bi ${it.done ? 'bi-check-lg' : (ICON[it.kind] || 'bi-journal-text')}`} />
+                      <i className={`bi ${it.done ? 'bi-check-lg' : (ICON_FILLED[it.kind] || ICON[it.kind] || 'bi-journal-text')}`} />
                     </span>
                     <span className="jd-item-body">
                       <b>{it.title}</b>
@@ -208,8 +208,11 @@ const WelcomeDay: React.FC = () => {
             {sel && (
               <>
                 <div className="jd-stage-head">
-                  <span className={`jd-type t-${sel.kind}`}>{sel.kind}</span>
-                  <h2>{sel.title}</h2>
+                  {/* Type and title stacked on the left, as on a learning day; the done badge sits right. */}
+                  <div>
+                    <span className={`jd-type t-${sel.kind}`}>{sel.kind}</span>
+                    <h2>{sel.title}</h2>
+                  </div>
                   {sel.done && <span className="jd-done-badge"><i className="bi bi-check-lg" /> Done</span>}
                 </div>
                 <div className="jd-body">

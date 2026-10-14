@@ -4,19 +4,133 @@ import { passportPublicApi, PassportCard } from '../../api/passportApi';
 import './shareCard.css';
 
 /**
- * Public, read-only CareerPilot card (shareable link `/careerpilot/card/:slug`).
- * No auth — anyone with the link can view the learner's verified career score, level and pathway.
- * It is the first thing a friend sees of CareerPilot, so it carries the brand rather than a bare
- * panel of inline styles: the logo navy, the logo teal, and one clear way in at the bottom.
+ * The CareerPilot card — one design, drawn in two places:
+ *   • the public page a friend opens (`/careerpilot/card/:slug`, no login), and
+ *   • the preview inside the member's own "Share my CareerPilot card" dialog.
+ *
+ * Both read GET /public/passport/card/:slug, which the server computes on every request, so the
+ * card always carries today's figures. It used to be drawn from two different stale sources —
+ * the dashboard payload loaded once at login, and a score stored on the passport that only moves
+ * when an assessment is submitted — which is why the score on it never seemed to update.
  */
-const PATHWAY_LABEL: Record<string, string> = {
-  software_dev: 'Software Development Foundation',
-  data_analytics: 'Data Analytics Foundation',
-  ai_ready: 'AI-Ready Student',
-  it_bridge: 'IT Career Bridge',
+
+const API_ORIGIN = (() => {
+  try { return new URL(process.env.REACT_APP_API_URL || '/api/v1', window.location.origin).origin; }
+  catch { return window.location.origin; }
+})();
+/** Uploaded photos are served by the API, which is not always this page's origin. */
+export const photoUrl = (p: string | null | undefined): string | null =>
+  !p ? null : /^https?:\/\//.test(p) ? p : `${API_ORIGIN}${p}`;
+
+export const initialsOf = (name: string) =>
+  name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'C';
+
+/** Home's coder score is out of 1000 (its parts can add to a little more; the ring stops at full). */
+export const CODER_MAX = 1000;
+
+export const subtitleOf = (c: PassportCard): string | null =>
+  [c.stage ? `${c.stage} stage` : null, c.track || null].filter(Boolean).join(' · ') || null;
+
+export const aimOf = (c: PassportCard): string | null =>
+  c.role ? `Aiming for ${c.role}` : c.careerGoal ? `Working towards ${c.careerGoal}` : null;
+
+export const statTiles = (c: PassportCard) => {
+  const s = c.stats;
+  return [
+    { ic: 'bi-lightning-charge-fill', tone: 'amber', value: s.xp.toLocaleString('en-IN'), label: 'XP earned' },
+    { ic: 'bi-graph-up-arrow', tone: 'navy', value: c.careerScore === null ? '—' : `${c.careerScore}/100`, label: c.careerScore === null ? 'Career readiness · measuring' : `Career readiness${c.careerLevel ? ` · ${c.careerLevel}` : ''}` },
+    { ic: 'bi-fire', tone: 'red', value: String(s.streak), label: `Day streak · best ${s.longestStreak}` },
+    { ic: 'bi-coin', tone: 'amber', value: s.coins === null ? '—' : s.coins.toLocaleString('en-IN'), label: 'Coins' },
+    { ic: 'bi-code-slash', tone: 'teal', value: String(s.solved), label: 'Problems solved' },
+    { ic: 'bi-calendar2-check-fill', tone: 'green', value: s.totalDays ? `${s.daysCompleted}/${s.totalDays}` : String(s.daysCompleted), label: 'Plan days done' },
+    { ic: 'bi-patch-check-fill', tone: 'teal', value: String(s.testsPassed), label: 'Tests passed' },
+    { ic: 'bi-mic-fill', tone: 'navy', value: String(s.interviews), label: 'Mock interviews' },
+  ];
 };
 
-const Card: React.FC = () => {
+export const CareerCard: React.FC<{ card: PassportCard; compact?: boolean }> = ({ card, compact }) => {
+  const [photoOk, setPhotoOk] = useState(true);
+  const photo = photoOk ? photoUrl(card.photo) : null;
+  const score = Math.max(0, Math.round(card.coderScore || 0));
+  const deg = Math.min(CODER_MAX, score) / CODER_MAX * 360;
+  const sub = subtitleOf(card);
+  const aim = aimOf(card);
+  const memberSince = card.memberSince
+    ? new Date(card.memberSince).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : null;
+
+  return (
+    <article className={`cpc${compact ? ' cpc-compact' : ''}`} aria-label={`${card.name}'s CareerPilot card`}>
+      <header className="cpc-hero">
+        <div className="cpc-top">
+          <span className="cpc-logo">
+            <img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun"
+              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+          </span>
+          <span className="cpc-verified"><i className="bi bi-patch-check-fill" aria-hidden /> Verified progress</span>
+        </div>
+
+        <div className="cpc-who">
+          <span className="cpc-av">
+            {photo ? <img src={photo} alt="" onError={() => setPhotoOk(false)} /> : initialsOf(card.name)}
+          </span>
+          <div className="cpc-id">
+            <h3>{card.name}</h3>
+            {sub && <p>{sub}</p>}
+            {aim && <p className="cpc-aim"><i className="bi bi-bullseye" aria-hidden /> {aim}</p>}
+          </div>
+        </div>
+
+        <div className="cpc-scores">
+          <div className="cpc-ring" style={{ ['--cpc-deg' as any]: `${deg}deg` }}
+            role="img" aria-label={`Coder score ${score} out of ${CODER_MAX}`}>
+            <div><strong>{score}</strong><span>/ {CODER_MAX}</span></div>
+          </div>
+          <div className="cpc-score-copy">
+            <small>Coder score</small>
+            <div className="cpc-level">
+              <b>Level {card.level.level}</b><span>{card.level.title}</span>
+            </div>
+            <div className="cpc-bar" aria-hidden><i style={{ width: `${Math.max(3, card.level.progressPct)}%` }} /></div>
+            <em>{card.level.xpToNextLevel.toLocaleString('en-IN')} XP to Level {card.level.level + 1}</em>
+          </div>
+        </div>
+      </header>
+
+      <div className="cpc-body">
+        <ul className="cpc-stats">
+          {statTiles(card).map(t => (
+            <li key={t.label} className={`t-${t.tone}`}>
+              <i className={`bi ${t.ic}`} aria-hidden />
+              <b>{t.value}</b>
+              <span>{t.label}</span>
+            </li>
+          ))}
+        </ul>
+
+        {card.topSkills.length > 0 && (
+          <section className="cpc-skills">
+            <h4><i className="bi bi-diagram-3-fill" aria-hidden /> Top skills · Skill DNA</h4>
+            {card.topSkills.map(s => (
+              <div key={s.key} className="cpc-skill">
+                <span>{s.name}</span>
+                <div className="cpc-skill-bar" aria-hidden><i style={{ width: `${Math.max(4, Math.min(100, s.score))}%` }} /></div>
+                <b>{s.score}</b>
+              </div>
+            ))}
+          </section>
+        )}
+      </div>
+
+      <footer className="cpc-foot">
+        <span>{memberSince ? `Member since ${memberSince}` : 'CareerPilot member'}</span>
+        <span>Updated {new Date(card.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+      </footer>
+    </article>
+  );
+};
+
+/** The public page (`/careerpilot/card/:slug`). No auth — anyone with the link can view it. */
+const CardPage: React.FC = () => {
   const { slug } = useParams();
   const [card, setCard] = useState<PassportCard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,9 +146,6 @@ const Card: React.FC = () => {
     })();
   }, [slug]);
 
-  const logo = <img className="spc-logo" src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun"
-    onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />;
-
   if (loading) return <main className="spc-page"><div className="spc-note">Loading this CareerPilot card…</div></main>;
   if (notFound || !card) return <main className="spc-page">
     <div className="spc-note">
@@ -45,46 +156,17 @@ const Card: React.FC = () => {
     </div>
   </main>;
 
-  const score = card.careerScore ?? 0;
-  const memberSince = card.memberSince ? new Date(card.memberSince).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : null;
-  const pathway = card.pathway ? (PATHWAY_LABEL[card.pathway] || card.pathway) : null;
-
   return (
     <main className="spc-page">
-      <article className="spc-card">
-        <header className="spc-head">
-          {logo}
-          <span className="spc-verified"><i className="bi bi-patch-check-fill" /> Verified progress</span>
-        </header>
-
-        <div className="spc-body">
-          <div className="spc-who">
-            <span className="spc-av">{(card.name?.[0] || 'C').toUpperCase()}</span>
-            <div>
-              <b>{card.name}</b>
-              {pathway && <small>{pathway}</small>}
-            </div>
-          </div>
-
-          <div className="spc-score">
-            <div className="spc-ring" style={{ ['--spc-deg' as any]: `${Math.min(100, score) * 3.6}deg` }}>
-              <div><strong>{card.careerScore ?? '—'}</strong><span>Career score</span></div>
-            </div>
-            <div className="spc-facts">
-              {card.level && <p><i className="bi bi-award-fill" /> {card.level}</p>}
-              {card.careerGoal && <p><i className="bi bi-bullseye" /> Working towards {card.careerGoal}</p>}
-              {memberSince && <p><i className="bi bi-calendar3" /> Member since {memberSince}</p>}
-            </div>
-          </div>
-        </div>
-
-        <footer className="spc-foot">
+      <div className="spc-wrap">
+        <CareerCard card={card} />
+        <div className="spc-foot">
           <span>Built on real assessments, practice and projects.</span>
           <a className="spc-cta" href="/careerpilot/join">Get your own CareerPilot <i className="bi bi-arrow-right" /></a>
-        </footer>
-      </article>
+        </div>
+      </div>
     </main>
   );
 };
 
-export default Card;
+export default CardPage;

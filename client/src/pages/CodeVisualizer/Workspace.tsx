@@ -7,6 +7,7 @@ import TracePlayer from './TracePlayer';
 import ProblemBreakdown from './ProblemBreakdown';
 import { CONCEPT_WIDGETS } from './concepts';
 import './CodeVisualizer.css';
+import { confirmDialog } from '../../components/feedback/appFeedback';
 
 /** The same page serves the LMS (/visualizer) and CareerPilot (/careerpilot/visualizer). */
 export const useVzBase = () => {
@@ -152,9 +153,19 @@ const Workspace: React.FC = () => {
     if (result) { setResult(null); setFrame(null); }
   };
 
-  const reset = () => { if (item && window.confirm('Replace your code with the starter code?')) onEdit(item.starterCode || ''); };
-  const loadSolution = () => {
-    if (item?.solutionCode && window.confirm('Load the reference solution? Your current code will be replaced.')) onEdit(item.solutionCode);
+  const reset = async () => {
+    if (item && await confirmDialog({
+      title: 'Reset to the starter code?',
+      message: 'Your current code will be replaced with the starter code.',
+      confirmLabel: 'Reset code', danger: true,
+    })) onEdit(item.starterCode || '');
+  };
+  const loadSolution = async () => {
+    if (item?.solutionCode && await confirmDialog({
+      title: 'Load the reference solution?',
+      message: 'Your current code will be replaced with the solution.',
+      confirmLabel: 'Load solution', danger: true,
+    })) onEdit(item.solutionCode);
   };
 
   if (loadError) {

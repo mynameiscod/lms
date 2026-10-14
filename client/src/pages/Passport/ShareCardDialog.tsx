@@ -1,20 +1,31 @@
-import React, { useEffect, useState } from 'react';
-import { DashboardData } from '../../api/passportApi';
+import React, { useCallback, useEffect, useState } from 'react';
+import { DashboardData, PassportCard, passportPublicApi } from '../../api/passportApi';
+import { copyText, toast } from '../../components/feedback/appFeedback';
+import { CareerCard } from './Card';
+import { renderCardImage } from './shareCardImage';
 import './shareCardDialog.css';
 
 /**
- * Sharing a CareerPilot card used to copy a link and say nothing else, so nobody knew what their
- * friends would see. This shows the card first — the same figures the public page carries — and then
- * offers the ways people actually share: WhatsApp, LinkedIn, or the plain link.
+ * Share your CareerPilot card: the card first, exactly as a friend will see it, then the ways to share.
+ *
+ * WHY IT FETCHES ON EVERY OPEN. The dialog used to draw from the dashboard payload the member layout
+ * loads once, when the member arrives — so the card showed whatever was true at login, however much
+ * they had done since, and never matched the public page (which read a score stored on the passport).
+ * Now both read the same endpoint, computed on every request, and this one asks again each time it opens.
  */
 const ShareCardDialog: React.FC<{ data: DashboardData; onClose: () => void }> = ({ data, onClose }) => {
-  const [copied, setCopied] = useState(false);
-  const url = `${window.location.origin}/careerpilot/card/${data.shareSlug}`;
-  const st = data.stats;
-  const lv = data.level;
-  const score = data.careerScore ?? data.coderScore?.score ?? null;
-  const name = data.name || data.firstName || 'My CareerPilot';
-  const message = `${name} on CareerPilot${lv?.title ? ` — ${lv.title}` : ''}${score !== null ? `, career score ${score}` : ''}. See my card:`;
+  const slug = data.shareSlug || '';
+  const url = `${window.location.origin}/careerpilot/card/${slug}`;
+  const [card, setCard] = useState<PassportCard | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    setFailed(false);
+    try { setCard((await passportPublicApi.getCard(slug)).card); }
+    catch { setFailed(true); }
+  }, [slug]);
+  useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -22,9 +33,25 @@ const ShareCardDialog: React.FC<{ data: DashboardData; onClose: () => void }> = 
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const copy = async () => {
-    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2200); }
-    catch { window.prompt('Copy your CareerPilot link:', url); }
+  const name = card?.name || data.name || data.firstName || 'My CareerPilot';
+  const message = card
+    ? `${name} on CareerPilot — Level ${card.level.level} ${card.level.title}, coder score ${card.coderScore}, ${card.stats.xp.toLocaleString('en-IN')} XP and a ${card.stats.streak}-day streak. See my card:`
+    : `${name} on CareerPilot. See my card:`;
+
+  const download = async () => {
+    if (!card) return;
+    setSaving(true);
+    try {
+      const blob = await renderCardImage(card, url);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `careerpilot-card-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'me'}.png`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast('Card image downloaded');
+    } catch {
+      toast('Could not create the image. Try again.', 'error');
+    } finally { setSaving(false); }
   };
 
   return <div className="shc-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -32,46 +59,37 @@ const ShareCardDialog: React.FC<{ data: DashboardData; onClose: () => void }> = 
       <div className="shc-hd">
         <div>
           <h2 id="shc-title">Share your CareerPilot card</h2>
-          <p>This is what your friends see — your verified progress, nothing private.</p>
+          <p>This is exactly what your friends see — your live progress, nothing private.</p>
         </div>
         <button className="shc-x" aria-label="Close" onClick={onClose}><i className="bi bi-x-lg" /></button>
       </div>
 
       <div className="shc-body">
-        <article className="shc-card">
-          <header>
-            <img src="/assets/careerpilot/careerpilot-logo.png" alt="CareerPilot by CodeBegun"
-              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-            <span>Verified progress</span>
-          </header>
-          <div className="shc-name">
-            <span className="shc-av">{(name[0] || 'C').toUpperCase()}</span>
-            <div><b>{name}</b>{lv?.title && <small>Level {lv.level} · {lv.title}</small>}</div>
-          </div>
-          <div className="shc-score">
-            <div className="shc-ring" style={{ ['--shc-deg' as any]: `${Math.min(100, score ?? 0) * 3.6}deg` }}>
-              <div><strong>{score ?? '—'}</strong><span>score</span></div>
-            </div>
-            <ul>
-              {st && <li><b>{st.xp.toLocaleString()}</b><span>XP earned</span></li>}
-              {st && <li><b>{st.streak}</b><span>day streak</span></li>}
-              {st && <li><b>{st.solved}</b><span>problems solved</span></li>}
-            </ul>
-          </div>
-          <footer>careerpilot.codebegun.com</footer>
-        </article>
+        <div className="shc-preview">
+          {card ? <CareerCard card={card} compact />
+            : failed ? <div className="shc-state">
+                <i className="bi bi-wifi-off" aria-hidden />
+                <b>Your card could not be loaded</b>
+                <button className="shc-btn" onClick={load}><i className="bi bi-arrow-clockwise" /> Try again</button>
+              </div>
+            : <div className="shc-state" aria-busy="true"><span className="shc-spin" aria-hidden /> Loading your latest figures…</div>}
+        </div>
 
         <div className="shc-actions">
+          <h3>Share it</h3>
           <a className="shc-btn wa" href={`https://wa.me/?text=${encodeURIComponent(`${message} ${url}`)}`} target="_blank" rel="noreferrer">
             <i className="bi bi-whatsapp" /> Share on WhatsApp
           </a>
           <a className="shc-btn li" href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`} target="_blank" rel="noreferrer">
             <i className="bi bi-linkedin" /> Share on LinkedIn
           </a>
-          <button className={`shc-btn copy${copied ? ' done' : ''}`} onClick={copy}>
-            <i className={`bi ${copied ? 'bi-check-lg' : 'bi-link-45deg'}`} /> {copied ? 'Link copied' : 'Copy link'}
+          <button className="shc-btn copy" onClick={() => copyText(url, 'Link copied — paste it anywhere')}>
+            <i className="bi bi-link-45deg" /> Copy link
           </button>
-          <a className="shc-btn open" href={url} target="_blank" rel="noreferrer"><i className="bi bi-box-arrow-up-right" /> Open the card</a>
+          <button className="shc-btn dl" onClick={download} disabled={!card || saving}>
+            <i className={`bi ${saving ? 'bi-hourglass-split' : 'bi-download'}`} /> {saving ? 'Creating image…' : 'Download image'}
+          </button>
+          <a className="shc-btn open" href={url} target="_blank" rel="noreferrer"><i className="bi bi-box-arrow-up-right" /> Open card</a>
           <p className="shc-url">{url}</p>
         </div>
       </div>

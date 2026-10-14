@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { copyText } from '../../components/feedback/appFeedback';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { AssessResult, TodayMissions } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
@@ -155,7 +156,7 @@ const MissionControl: React.FC = () => {
     if (!slug) return;
     const url = `${window.location.origin}/careerpilot/card/${slug}`;
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-    catch { window.prompt('Copy your CareerPilot link:', url); }
+    catch { await copyText(url, 'Link copied'); }
   };
 
   const firstName = user?.firstName || (status?.name || '').split(' ')[0] || 'there';

@@ -54,12 +54,20 @@ export const PACKS: PackDefinition[] = [
   { key: 'SPRING_CORE', title: 'Spring Core', kind: 'SKILL',
     description: 'Inversion of control, dependency injection, beans, configuration and AOP — what Spring Boot is built on.',
     topics: [['JT_SPRING_CORE', 'MUST']] },
+
+  /* ── Java Full Stack + AI, batch 4: Spring Boot and the full stack ── */
+  { key: 'SPRING_BOOT', title: 'Spring Boot', kind: 'SKILL',
+    description: 'A REST API on Spring Boot: controllers, validation, errors, Spring Data JPA, security with JWT, and tests.',
+    topics: [['JT_BOOT_REST', 'MUST'], ['JT_BOOT_DATA', 'MUST'], ['JT_BOOT_SECURITY', 'MUST'], ['JT_BOOT_TESTING', 'MUST']] },
+  { key: 'FULLSTACK_DEPLOY', title: 'Full-Stack Integration and Deployment', kind: 'SKILL',
+    description: 'React talking to Spring Boot — CORS, a JWT login flow, uploads and errors — then Docker and a deployed stack.',
+    topics: [['JT_FULLSTACK', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
   { key: 'JAVA_FULLSTACK_AI', name: 'Java Full Stack + AI', language: 'Java', order: 10,
     description: 'HTML, CSS, Bootstrap, JavaScript and React; Core Java, MySQL, Spring Boot; then generative and agentic AI built into your own app.',
-    /* Batches: 1 frontend, 2 Java and DSA, 3 MySQL/persistence/Spring core; Spring Boot and AI packs are appended as they land. */
-    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_JAVA', 'DSA_JAVA', 'MYSQL', 'JAVA_PERSISTENCE', 'SPRING_CORE'],
+    /* Batches: 1 frontend, 2 Java and DSA, 3 MySQL/persistence/Spring core, 4 Spring Boot and the full stack; Spring Boot and AI packs are appended as they land. */
+    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_JAVA', 'DSA_JAVA', 'MYSQL', 'JAVA_PERSISTENCE', 'SPRING_CORE', 'SPRING_BOOT', 'FULLSTACK_DEPLOY'],
     placementPacks: [] },
 ];

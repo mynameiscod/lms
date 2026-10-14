@@ -134,6 +134,26 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Explain and use inversion of control, dependency injection, bean scopes, configuration and AOP proxies.']),
     ],
   },
+
+  /* ══════════════ SPRING BOOT AND THE FULL STACK — an API, secured and tested, then React on top and deployed ══════════════ */
+  {
+    moduleCode: 'JT_BOOT',
+    moduleName: 'Spring Boot and the Full Stack',
+    displayOrder: 70,
+    blurb: 'A Spring Boot REST API on MySQL, secured with JWT and tested, then the React app wired to it and the whole stack deployed.',
+    topics: [
+      t('JT_BOOT_REST', 'Spring Boot and REST APIs', ['SPRING_BOOT', 'REST_APIS'],
+        ['Build a Spring Boot REST API with DTOs, validation, consistent errors, configuration and OpenAPI docs.']),
+      t('JT_BOOT_DATA', 'Spring Data JPA', ['SPRING_BOOT', 'JPA_HIBERNATE'],
+        ['Persist through Spring Data repositories with derived and custom queries, pagination, and a transactional service layer.']),
+      t('JT_BOOT_SECURITY', 'Spring Security and JWT', ['SPRING_SECURITY', 'AUTHENTICATION', 'AUTHORIZATION'],
+        ['Secure a Spring Boot API with hashed passwords, JWT login and role-based access, and explain each check.']),
+      t('JT_BOOT_TESTING', 'Testing Spring Boot', ['AUTOMATED_TESTING', 'SPRING_BOOT'],
+        ['Test a Spring Boot API with JUnit 5, Mockito, MockMvc and repository tests, and choose the right test for each layer.']),
+      t('JT_FULLSTACK', 'Full-Stack Integration and Deployment', ['REST_APIS', 'AUTHENTICATION', 'CONTAINERS_DOCKER', 'DEPLOYMENT'],
+        ['Wire a React app to a Spring Boot API with CORS and a JWT login flow, containerise both, and deploy the stack.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

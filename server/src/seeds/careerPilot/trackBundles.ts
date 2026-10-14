@@ -18,6 +18,11 @@ import { TRACK_MYSQL_BUNDLES } from './trackContentMysql';
 import { TRACK_JDBC_BUNDLES } from './trackContentJdbc';
 import { TRACK_JPA_BUNDLES } from './trackContentJpa';
 import { TRACK_SPRING_CORE_BUNDLES } from './trackContentSpringCore';
+import { TRACK_BOOT_REST_BUNDLES } from './trackContentBootRest';
+import { TRACK_BOOT_DATA_BUNDLES } from './trackContentBootData';
+import { TRACK_BOOT_SECURITY_BUNDLES } from './trackContentBootSecurity';
+import { TRACK_BOOT_TESTING_BUNDLES } from './trackContentBootTesting';
+import { TRACK_FULLSTACK_BUNDLES } from './trackContentFullstack';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -55,4 +60,9 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_JDBC_BUNDLES,
   ...TRACK_JPA_BUNDLES,
   ...TRACK_SPRING_CORE_BUNDLES,
+  ...TRACK_BOOT_REST_BUNDLES,
+  ...TRACK_BOOT_DATA_BUNDLES,
+  ...TRACK_BOOT_SECURITY_BUNDLES,
+  ...TRACK_BOOT_TESTING_BUNDLES,
+  ...TRACK_FULLSTACK_BUNDLES,
 ].map(balanced);

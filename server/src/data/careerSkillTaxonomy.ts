@@ -156,6 +156,12 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'SPRING_CORE', name: 'Spring Core', parentKey: 'JAVA', difficulty: 'INTERMEDIATE', displayOrder: 100,
     description: 'Inversion of control, dependency injection, beans and scopes, configuration and the proxies behind AOP.',
     prerequisiteKeys: ['JAVA_OOP'] },
+  { key: 'SPRING_BOOT', name: 'Spring Boot', parentKey: 'JAVA', difficulty: 'INTERMEDIATE', displayOrder: 105,
+    description: 'Starters and auto-configuration, REST controllers, validation, error handling, Spring Data JPA and configuration.',
+    prerequisiteKeys: ['SPRING_CORE', 'JPA_HIBERNATE', 'REST_APIS'] },
+  { key: 'SPRING_SECURITY', name: 'Spring Security', parentKey: 'JAVA', difficulty: 'ADVANCED', displayOrder: 110,
+    description: 'The security filter chain, password storage, JWT authentication and role-based access in a Spring Boot API.',
+    prerequisiteKeys: ['SPRING_BOOT', 'AUTHENTICATION'] },
 
   SUB('PYTHON', 'Python', 'PROGRAMMING', 30, 'The Python language and its standard library.'),
   { key: 'PYTHON_BASICS', name: 'Python Basics', parentKey: 'PYTHON', difficulty: 'FOUNDATION', displayOrder: 10,

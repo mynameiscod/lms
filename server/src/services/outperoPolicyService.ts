@@ -13,7 +13,7 @@ export interface OutperoPolicy {
   sentStageId: string;
   /** Hours a lead may wait for Outpero's result before it is given to a person anyway. */
   fallbackHours: number;
-  /** Listen to each answered call's recording and write a full summary from it. */
+  /** Listen to each answered call's recording and write a fuller summary from it. Off by default. */
   callAnalysis: boolean;
 }
 /** Outpero calls between 9 AM and 8 PM India time. */
@@ -35,7 +35,8 @@ export function getPolicy(tenantId: string): OutperoPolicy {
     stageMapping,
     sentStageId: settings.getStr('OUTPERO_SENT_STAGE', '', tenantId),
     fallbackHours: Math.max(1, Math.min(168, Number(settings.getStr('OUTPERO_FALLBACK_HOURS', '24', tenantId)) || 24)),
-    callAnalysis: settings.getStr('OUTPERO_CALL_ANALYSIS', 'true', tenantId) !== 'false',
+    // Off unless an admin turns it on: Outpero already sends its own summary, and listening to every call costs money.
+    callAnalysis: settings.getStr('OUTPERO_CALL_ANALYSIS', 'false', tenantId) === 'true',
   };
 }
 /** Only leads actually eligible for automatic calling wait for feedback. */

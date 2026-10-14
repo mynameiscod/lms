@@ -121,6 +121,16 @@ export function trackProblems(track: TrackDef, packs: Map<string, PackDef>): str
   return problems;
 }
 
+/**
+ * What stops a track from building THIS year's roadmap: Year 3 needs only its skill packs; Year 4
+ * needs both, since it is the track again and then placement. Going live still needs both
+ * (`trackProblems`) — this is what lets a track's Year 3 be piloted before its placement packs exist.
+ */
+export function stageProblems(track: TrackDef, packs: Map<string, PackDef>, stage: string): string[] {
+  const all = trackProblems(track, packs);
+  return stage === 'placement' ? all : all.filter(p => p.startsWith('Year 3'));
+}
+
 /** Keys are UPPER_SNAKE so they read the same in URLs, logs and the database. */
 export const normaliseKey = (raw: unknown): string =>
   String(raw || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');

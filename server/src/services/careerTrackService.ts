@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import CareerTrack from '../models/CareerTrack';
 import SkillPack from '../models/SkillPack';
 import User from '../models/User';
-import { PackDef, TrackDef, TrackStage, TRACK_STAGES, resolveSplit, trackProblems } from '../data/careerTrackPolicy';
+import { PackDef, TrackDef, TrackStage, TRACK_STAGES, resolveSplit, trackProblems, stageProblems } from '../data/careerTrackPolicy';
 
 /**
  * The career-track catalogue (tracks and their skill packs) and which track a student is on.
@@ -68,7 +68,7 @@ export async function trackForStudent(tenantId: string, studentId: string | null
     if (!resolved) return null;
     const byAdmin = chosen.chosenBy && chosen.chosenBy !== 'student';
     if (resolved.track.status !== 'LIVE' && !byAdmin) return null;
-    if (trackProblems(resolved.track, resolved.packs).length) return null;
+    if (stageProblems(resolved.track, resolved.packs, String(stageKey)).length) return null;
     return resolved;
   } catch (e: any) {
     console.error('[career-track] could not read the student\'s track:', e?.message || e);

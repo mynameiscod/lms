@@ -1,5 +1,5 @@
 import {
-  placementSplit, resolveSplit, trackTopics, trackProblems, validateTrackInput, validatePackInput, normaliseKey,
+  placementSplit, resolveSplit, trackTopics, trackProblems, stageProblems, validateTrackInput, validatePackInput, normaliseKey,
   PackDef, DEFAULT_TRACK_SPLIT,
 } from '../data/careerTrackPolicy';
 
@@ -54,6 +54,11 @@ describe('what stops a track from going live', () => {
   ]);
   it('a complete track has no problems', () => {
     expect(trackProblems({ key: 'J', name: 'J', language: 'Java', specializePacks: ['JAVA'], placementPacks: ['JAVA_INTERVIEW'] }, packs)).toEqual([]);
+  });
+  it('a Year-3 roadmap needs only the Year-3 packs; Year 4 needs both', () => {
+    const t = { key: 'J', name: 'J', language: 'Java', specializePacks: ['JAVA'], placementPacks: [] };
+    expect(stageProblems(t, packs, 'specialize')).toEqual([]);
+    expect(stageProblems(t, packs, 'placement').join(' ')).toMatch(/Year 4 placement has no packs/);
   });
   it('names a missing pack, an empty pack, a pack of the wrong kind and an empty year', () => {
     const p = trackProblems({ key: 'J', name: 'J', language: 'Java', specializePacks: ['MISSING', 'EMPTY', 'JAVA_INTERVIEW'], placementPacks: [] }, packs);

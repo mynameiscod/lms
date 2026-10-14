@@ -56,6 +56,7 @@ import { packIntoDays, DEFAULT_DAY_BUDGET_MINUTES, DEFAULT_MAX_UNITS_PER_DAY } f
 import PassportConfig from '../models/PassportConfig';
 import { resolveRoadmapV2 } from '../data/roadmapV2Policy';
 import { roadmapV2OnlyFor } from './roadmapV2SettingService';
+import { loadTrack, trackForStudent } from './careerTrackService';
 
 export interface RecompositionResult {
   ok: boolean;
@@ -106,7 +107,7 @@ export async function recomposeFutureDays(
 
   const curriculum = await LearningCurriculum.findOne({
     tenantId, personalizedFor: sid, adaptiveStage: stageKey, journeyKind: FOUNDATION_JOURNEY_KIND,
-  }).select('_id totalDays roadmapVersion').lean() as any;
+  }).select('_id totalDays roadmapVersion trackKey').lean() as any;
 
   if (!curriculum) {
     return {
@@ -393,7 +394,7 @@ export async function moveFutureToV2(
   opts: JourneyBuildOptions = {},
   dryRun = false,
 ): Promise<RecompositionResult> {
-  const curriculum = { _id: curriculumId };
+  const curriculum = await LearningCurriculum.findById(curriculumId).select('_id trackKey').lean() as any || { _id: curriculumId };
   if (dryRun) return recomposeV2(tenantId, sid, profile, curriculum, stageKey, opts, true);
   const before = await LearningCurriculum.findById(curriculumId).select('roadmapVersion').lean() as any;
   await LearningCurriculum.updateOne({ _id: curriculumId }, { $set: { roadmapVersion: 'ROADMAP_V2' } });
@@ -433,8 +434,12 @@ async function recomposeV2(
   const byDay = new Map<number, any>((existing as any[]).map(d => [Number(d.dayNumber), d]));
   const history = frozen.flatMap(d => unitsOf(byDay.get(d)));
   const settings = resolveRoadmapV2(cfg?.roadmapV2);
+  /* A track roadmap is recomposed from its track; a track since removed falls back to the student's own. */
+  const track = curriculum.trackKey
+    ? (await loadTrack(tenantId, String(curriculum.trackKey))) || await trackForStudent(tenantId, String(sid), stageKey)
+    : await trackForStudent(tenantId, String(sid), stageKey);
   const { composition, v2 } = await composeFoundationJourney(tenantId, profile, {
-    ...opts, stageKey, history, programDays: futureSlots.length, studentId: String(sid),
+    ...opts, stageKey, history, programDays: futureSlots.length, studentId: String(sid), track,
     roadmapV2: { dailyMinutes: settings.dailyMinutes, revisionDays: frozen.length ? 0 : settings.revisionDays },
   });
   if (!composition.ok || !v2 || v2.days.length !== futureSlots.length) {

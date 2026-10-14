@@ -52,6 +52,8 @@ export interface IUser extends Document {
     careerDomain?: string;         // CareerDomainKey; SOFTWARE_ENGINEERING is the only live one
     primaryRole?: string;          // CareerRole key, or NOT_SURE — a real answer, not a blank
     secondaryRole?: string;
+    /** Career track for Year 3 and 4 (role + language), once chosen — see careerTrackPolicy. */
+    careerTrack?: { key: string; chosenAt?: Date; chosenBy?: string };
     /**
      * Languages the member wants to WORK IN. Deliberately not
      * StudentProfile.technicalBackground.programmingLanguages, which records what they
@@ -273,6 +275,16 @@ const UserSchema: Schema = new Schema(
       secondaryRole:         { type: String },
       preferredLanguages:    { type: [String], default: undefined },
       preferredTechnologies: { type: [String], default: undefined },
+      // Career track (Year 3 and 4): the role + language roadmap the student picked, or an admin
+      // set. Absent until chosen; see data/careerTrackPolicy.ts.
+      careerTrack: {
+        type: new mongoose.Schema({
+          key:      { type: String },
+          chosenAt: { type: Date },
+          chosenBy: { type: String },   // 'student', or the admin's id
+        }, { _id: false }),
+        default: undefined,
+      },
       minutesPerDay:         { type: Number },
       daysPerWeek:           { type: Number },
       contextCompletedAt:    { type: Date },

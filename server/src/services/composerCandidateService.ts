@@ -76,12 +76,17 @@ export async function loadCandidates(
   tenantId: string,
   source: CandidateSource,
   stageKey = 'foundation',
+  /**
+   * Career tracks: the units teaching these topics, from ANY year's content — a track reuses a
+   * topic wherever it was written. When given, `stageKey` only names the backbone curriculum.
+   */
+  opts: { topicCodes?: string[] } = {},
 ): Promise<CandidateSet> {
   const tenantOid = mongoose.Types.ObjectId.isValid(tenantId)
     ? new mongoose.Types.ObjectId(tenantId) : null;
 
   const [units, published, quizzes, assignments, stageCurriculum] = await Promise.all([
-    CurriculumLearningUnit.find({ tenantId, stageKey }).lean() as any,
+    CurriculumLearningUnit.find(opts.topicCodes ? { tenantId, topicCode: { $in: opts.topicCodes } } : { tenantId, stageKey }).lean() as any,
     LearningContentLibrary.find({ tenantId, isPublished: true })
       .select('type topicCode skillKeys unitCode').lean() as any,
     Quiz.find({ tenantId, unitCode: { $exists: true, $ne: '' } }).select('unitCode').lean() as any,

@@ -57,6 +57,10 @@ import { loadCandidates, assertProductionEligible, CandidateSource } from './com
 import { sequencePredecessorOf, sequenceIndexOf } from '../data/courseSequencePolicy';
 import { composeRoadmapV2, V2Plan } from './roadmapV2ComposerService';
 import { roadmapV2SettingFor } from './roadmapV2SettingService';
+import { ResolvedTrack, trackForStudent } from './careerTrackService';
+import { composeTrackRoadmap } from './careerTrackComposerService';
+import { resolveRoadmapV2 } from '../data/roadmapV2Policy';
+import PassportConfig from '../models/PassportConfig';
 
 /** Marks a curriculum as a Foundation UNIT-engine journey. Lets one be found without guessing. */
 export const FOUNDATION_JOURNEY_KIND = 'FOUNDATION_UNIT_JOURNEY_V1';
@@ -69,6 +73,12 @@ export interface JourneyBuildOptions {
   roadmapV2?: { dailyMinutes: number; revisionDays?: number } | null;
   /** Whose journey. Roadmap V2 reads what they already studied with CareerPilot from it. */
   studentId?: string;
+  /**
+   * Career track (Year 3 and 4): when set, the roadmap is built from the track's packs
+   * (careerTrackComposerService) instead of the stage curriculum. Resolved by
+   * persistFoundationJourney from the student's chosen track; null = not on a track.
+   */
+  track?: ResolvedTrack | null;
   /**
    * Where candidates come from. PRODUCTION in every real call.
    *
@@ -651,6 +661,17 @@ export async function composeFoundationJourney(
 ): Promise<{ candidates: number; composition: ComposerResult; v2?: V2Plan | null }> {
   const source = opts.source || 'PRODUCTION';
   const programDays = opts.programDays ?? await programDaysFor(tenantId, opts.stageKey);
+
+  /* CAREER TRACK: a Year-3/4 student on a track gets the track, not the stage curriculum. */
+  if (opts.track) {
+    const r = await composeTrackRoadmap(tenantId, profile, opts.track, {
+      stageKey: opts.stageKey || 'specialize', programDays,
+      dailyMinutes: opts.roadmapV2?.dailyMinutes ?? resolveRoadmapV2(null).dailyMinutes,
+      studentId: opts.studentId, source, history: opts.history,
+    });
+    return { candidates: r.composition.units.length, composition: r.composition, v2: r.plan };
+  }
+
   const set = await loadCandidates(tenantId, source, opts.stageKey || 'foundation');
 
   // Refuses anything but PRODUCTION for a real build. The check is here rather than at the
@@ -973,11 +994,26 @@ export async function persistFoundationJourney(
   /* Resolved once and passed on, so composing, checking and writing all use the same number. */
   const programDays = opts.programDays ?? await programDaysFor(tenantId, opts.stageKey);
 
-  /* Roadmap V2 decides per learner, unless the caller already said. OFF unless switched on. */
-  const roadmapV2 = opts.roadmapV2 !== undefined ? opts.roadmapV2 : await roadmapV2SettingFor(tenantId, String(sid), stageKey);
+  /*
+   * A student on a career track gets a track roadmap, which is always a V2 roadmap (planned at the
+   * tenant's daily study time whether V2 is switched on for others or not).
+   */
+  const track = opts.track !== undefined ? opts.track : await trackForStudent(tenantId, String(sid), stageKey);
+  let roadmapV2 = opts.roadmapV2 !== undefined ? opts.roadmapV2 : await roadmapV2SettingFor(tenantId, String(sid), stageKey);
+  if (track && !roadmapV2) {
+    const cfg = await PassportConfig.findOne({ tenantId }).select('roadmapV2').lean().catch(() => null) as any;
+    const s = resolveRoadmapV2(cfg?.roadmapV2);
+    roadmapV2 = { dailyMinutes: s.dailyMinutes, revisionDays: s.revisionDays };
+  }
 
-  const { composition, v2 } = await composeFoundationJourney(tenantId, profile, { ...opts, programDays, roadmapV2, studentId: String(sid) });
-  if (roadmapV2) return persistRoadmapV2(tenantId, sid, stageKey, source, programDays, composition, v2 || null);
+  const { composition, v2 } = await composeFoundationJourney(tenantId, profile, { ...opts, programDays, roadmapV2, track, studentId: String(sid) });
+  if (roadmapV2) {
+    const r = await persistRoadmapV2(tenantId, sid, stageKey, source, programDays, composition, v2 || null);
+    if (r.ok && r.curriculumId) {
+      await LearningCurriculum.updateOne({ _id: r.curriculumId }, track ? { $set: { trackKey: track.track.key } } : { $unset: { trackKey: 1 } });
+    }
+    return r;
+  }
 
   /**
    * THE INVARIANT, CHECKED BEFORE THE FIRST WRITE.
@@ -1092,7 +1128,9 @@ async function persistRoadmapV2(
   if (!composition.ok || !plan) {
     return {
       ok: false,
-      reason: `Roadmap V2 could not fill ${programDays} days for this student from the published curriculum. Nothing was written.`,
+      reason: (composition as any).reason
+        ? `${(composition as any).reason} Nothing was written.`
+        : `Roadmap V2 could not fill ${programDays} days for this student from the published curriculum. Nothing was written.`,
       days: composition.units.length, created: false, composition,
     };
   }

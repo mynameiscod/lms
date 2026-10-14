@@ -62,12 +62,23 @@ export const PACKS: PackDefinition[] = [
   { key: 'FULLSTACK_DEPLOY', title: 'Full-Stack Integration and Deployment', kind: 'SKILL',
     description: 'React talking to Spring Boot — CORS, a JWT login flow, uploads and errors — then Docker and a deployed stack.',
     topics: [['JT_FULLSTACK', 'MUST']] },
+
+  /* ── Java Full Stack + AI, batch 5: generative AI, agentic AI and the capstone ── */
+  { key: 'GENAI_JAVA', title: 'Generative AI for Java Developers', kind: 'SKILL',
+    description: 'How models work, prompting and RAG — then Spring AI in your own Spring Boot and React app.',
+    topics: [['T_GENAI', 'MUST'], ['JT_AI_CONCEPTS', 'MUST'], ['JT_AI_SPRING', 'MUST'], ['T3_AI_ASSISTED', 'SHOULD']] },
+  { key: 'AGENTIC_AI_JAVA', title: 'Agentic AI', kind: 'SKILL',
+    description: 'Agents, tools, memory and MCP — when to build one, and building one in Java with guardrails.',
+    topics: [['JT_AI_AGENTS', 'SHOULD'], ['JT_AI_AGENTS_JAVA', 'SHOULD']] },
+  { key: 'CAPSTONE_JAVA_AI', title: 'Capstone: Full Stack + AI', kind: 'SKILL',
+    description: 'One application that proves the track: React, Spring Boot and MySQL, deployed, with an AI assistant and an agent.',
+    topics: [['JT_CAPSTONE', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
   { key: 'JAVA_FULLSTACK_AI', name: 'Java Full Stack + AI', language: 'Java', order: 10,
     description: 'HTML, CSS, Bootstrap, JavaScript and React; Core Java, MySQL, Spring Boot; then generative and agentic AI built into your own app.',
-    /* Batches: 1 frontend, 2 Java and DSA, 3 MySQL/persistence/Spring core, 4 Spring Boot and the full stack; Spring Boot and AI packs are appended as they land. */
-    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_JAVA', 'DSA_JAVA', 'MYSQL', 'JAVA_PERSISTENCE', 'SPRING_CORE', 'SPRING_BOOT', 'FULLSTACK_DEPLOY'],
+    /* Batches: 1 frontend, 2 Java and DSA, 3 MySQL/persistence/Spring core, 4 Spring Boot and the full stack, 5 AI and the capstone; Spring Boot and AI packs are appended as they land. */
+    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_JAVA', 'DSA_JAVA', 'MYSQL', 'JAVA_PERSISTENCE', 'SPRING_CORE', 'SPRING_BOOT', 'FULLSTACK_DEPLOY', 'GENAI_JAVA', 'AGENTIC_AI_JAVA', 'CAPSTONE_JAVA_AI'],
     placementPacks: [] },
 ];

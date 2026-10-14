@@ -566,6 +566,19 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
     difficulty: 'FOUNDATION', displayOrder: 50,
     description: 'Hallucination, source verification, bias, confidential data and academic integrity.',
     prerequisiteKeys: ['GENERATIVE_AI_LLM'] },
+  // Career tracks (+ AI): building with models, not only using them. Language-free, so every "+ AI" track shares them.
+  { key: 'LLM_APPLICATIONS', name: 'Building LLM Applications', parentKey: 'AI_LITERACY',
+    difficulty: 'INTERMEDIATE', displayOrder: 60,
+    description: 'Calling a model from code: prompts as templates, structured output, streaming, limits, cost and failure handling.',
+    prerequisiteKeys: ['PROMPT_ENGINEERING', 'REST_APIS'] },
+  { key: 'RAG_SYSTEMS', name: 'Embeddings & RAG', parentKey: 'AI_LITERACY',
+    difficulty: 'ADVANCED', displayOrder: 70,
+    description: 'Embeddings, vector search, chunking and retrieval — answering from your own documents, with evaluation.',
+    prerequisiteKeys: ['LLM_APPLICATIONS'] },
+  { key: 'AI_AGENTS', name: 'Agentic AI', parentKey: 'AI_LITERACY',
+    difficulty: 'ADVANCED', displayOrder: 80,
+    description: 'Tool calling, multi-step workflows, memory, MCP, and the guardrails and tests an agent needs.',
+    prerequisiteKeys: ['LLM_APPLICATIONS'] },
 
   // ── Aptitude ──────────────────────────────────────────────────────────────────
   GROUP('APTITUDE', 'Aptitude', 80, 'The quantitative, reasoning and verbal round that opens every campus drive.'),

@@ -23,6 +23,11 @@ import { TRACK_BOOT_DATA_BUNDLES } from './trackContentBootData';
 import { TRACK_BOOT_SECURITY_BUNDLES } from './trackContentBootSecurity';
 import { TRACK_BOOT_TESTING_BUNDLES } from './trackContentBootTesting';
 import { TRACK_FULLSTACK_BUNDLES } from './trackContentFullstack';
+import { TRACK_AI_CONCEPTS_BUNDLES } from './trackContentAiConcepts';
+import { TRACK_AI_SPRING_BUNDLES } from './trackContentAiSpring';
+import { TRACK_AI_AGENTS_BUNDLES } from './trackContentAiAgents';
+import { TRACK_AI_AGENTS_JAVA_BUNDLES } from './trackContentAiAgentsJava';
+import { TRACK_CAPSTONE_BUNDLES } from './trackContentCapstone';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -65,4 +70,9 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_BOOT_SECURITY_BUNDLES,
   ...TRACK_BOOT_TESTING_BUNDLES,
   ...TRACK_FULLSTACK_BUNDLES,
+  ...TRACK_AI_CONCEPTS_BUNDLES,
+  ...TRACK_AI_SPRING_BUNDLES,
+  ...TRACK_AI_AGENTS_BUNDLES,
+  ...TRACK_AI_AGENTS_JAVA_BUNDLES,
+  ...TRACK_CAPSTONE_BUNDLES,
 ].map(balanced);

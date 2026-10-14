@@ -154,6 +154,26 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Wire a React app to a Spring Boot API with CORS and a JWT login flow, containerise both, and deploy the stack.']),
     ],
   },
+
+  /* ══════════════ AI — concepts once for every "+ AI" track; the code lessons per language ══════════════ */
+  {
+    moduleCode: 'JT_AI',
+    moduleName: 'Generative and Agentic AI',
+    displayOrder: 80,
+    blurb: 'Year 1 explains how a model works; this builds with one. The concept topics are language-free and shared; the Spring topics are the Java code.',
+    topics: [
+      t('JT_AI_CONCEPTS', 'Building with LLMs: The Concepts', ['LLM_APPLICATIONS', 'PROMPT_ENGINEERING', 'RAG_SYSTEMS'],
+        ['Design prompts and structured output, reason about tokens, cost and limits, and explain embeddings, RAG and how LLM features fail.']),
+      t('JT_AI_SPRING', 'Generative AI in Spring Boot', ['LLM_APPLICATIONS', 'RAG_SYSTEMS'],
+        ['Add an LLM feature to a Spring Boot app with Spring AI: chat, structured output, streaming to React, and RAG over your own documents.']),
+      t('JT_AI_AGENTS', 'Agentic AI: The Concepts', ['AI_AGENTS'],
+        ['Explain what an agent is and when not to build one, and design its tools, workflow, memory and guardrails.']),
+      t('JT_AI_AGENTS_JAVA', 'Building Agents in Java', ['AI_AGENTS', 'LLM_APPLICATIONS'],
+        ['Build a tool-calling agent with memory in Spring AI, connect it to an MCP server, and test it.']),
+      t('JT_CAPSTONE', 'Capstone: A Full-Stack App with AI', ['PRODUCTION_ENGINEERING', 'LLM_APPLICATIONS', 'AI_AGENTS'],
+        ['Plan, build, deploy and defend a full-stack application with an AI assistant and an agent in it.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

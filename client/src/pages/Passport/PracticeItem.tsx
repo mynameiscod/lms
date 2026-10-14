@@ -18,7 +18,8 @@ type Tab = 'tests' | 'output' | 'expected' | 'console' | 'hints';
  * them; they used to be Math.random() in the runner and are now real-or-absent.
  */
 const PracticeItem: React.FC = () => {
-  const { id = '' } = useParams();
+  const { id: idParam = '', problemId = '' } = useParams();
+  const id = idParam || problemId;
   const nav = useNavigate();
 
   /**

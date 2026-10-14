@@ -3,18 +3,13 @@ import { AuthenticatedRequest, ApiResponse } from '../types';
 import { BatchService } from '../services/batchService';
 import Batch from '../models/Batch';
 import User from '../models/User';
+import { STUDENT_FEATURE_KEYS as SHARED_STUDENT_FEATURE_KEYS } from '../data/studentFeatureKeys';
 
 const batchService = new BatchService();
 
 // The full set of per-batch controllable student-feature keys. Mirrors the
 // tenant-level studentFeatures set; a batch may turn any of these OFF (never on).
-export const STUDENT_FEATURE_KEYS = [
-  'dashboard', 'myCourse', 'topicHub', 'attendance', 'quizzes', 'assignments',
-  'mockInterviews', 'codingSnippets', 'classHub', 'feeDetails', 'scheduledInterviews',
-  'resumeBuilder', 'learningPlan', 'thinkingLab', 'speakingPractice', 'jobTracker',
-  'aiMentor', 'projectBuilder', 'resourceLibrary', 'codePlayground', 'careerProfile',
-  'aiCommunicationLab', 'liveClasses', 'collegePortal', 'myApplications', 'alumniDirectory'
-];
+export const STUDENT_FEATURE_KEYS: string[] = [...SHARED_STUDENT_FEATURE_KEYS];
 
 // Weekly off-days: JS getDay() numbers (0=Sun … 6=Sat). Falls back to Sat+Sun off.
 const sanitizeOffDays = (v: any): number[] => {

@@ -70,6 +70,24 @@ export interface LearnerProblem {
   set: { _id: string; title: string; dueAt?: string; status: string; allowLate: boolean; prevId: string | null; nextId: string | null; position: number; count: number };
 }
 
+/* ── Practice library: every published problem, chosen by the member ── */
+export interface LibraryRow {
+  _id: string; number: number; slug: string; title: string; difficulty: PbDifficulty; kind: 'code' | 'sql';
+  topics: string[]; tags: string[]; companies: string[]; languages: string[]; acceptance: number | null; attempts: number;
+  status: 'todo' | 'attempted' | 'solved';
+}
+export interface LibraryPage {
+  rows: LibraryRow[]; total: number; page: number; limit: number; pages: number;
+  progress: { solved: number; total: number; byDifficulty: Record<string, { solved: number; total: number }> };
+  next: { _id: string; number: number; title: string; difficulty: PbDifficulty } | null;
+}
+export interface LibraryFacets {
+  total: number; difficulties: Record<string, number>;
+  topics: { name: string; count: number }[]; companies: { name: string; count: number }[];
+  tags: { name: string; count: number }[]; languages: { name: string; count: number }[];
+}
+export type LibraryQuery = Partial<Record<'q' | 'difficulty' | 'topic' | 'tag' | 'company' | 'language' | 'status' | 'sort', string>> & { page?: number; limit?: number };
+
 export const problemSetAdminApi = {
   list: () => axios.get(`${ADMIN}/sets`, h()).then(d) as Promise<ProblemSetAdmin[]>,
   get: (id: string) => axios.get(`${ADMIN}/sets/${id}`, h()).then(d) as Promise<ProblemSetAdmin>,
@@ -90,6 +108,13 @@ export const codingPracticeApi = {
     axios.post(`${LEARN}/sets/${setId}/problems/${problemId}/run`, body, h()).then(d) as Promise<{ result?: PbJudgeResult; custom?: PbCustomResult }>,
   submit: (setId: string, problemId: string, body: { language: string; code: string }) =>
     axios.post(`${LEARN}/sets/${setId}/problems/${problemId}/submit`, body, h()).then(d) as Promise<{ result: PbJudgeResult; recorded: boolean; late?: boolean; firstAccept?: boolean; reward?: { xp: number } | null }>,
+  library: (q: LibraryQuery) => axios.get(`${LEARN}/library`, { ...h(), params: Object.fromEntries(Object.entries(q).filter(([, v]) => v !== '' && v !== undefined)) }).then(d) as Promise<LibraryPage>,
+  libraryFacets: () => axios.get(`${LEARN}/library/facets`, h()).then(d) as Promise<LibraryFacets>,
+  libraryProblem: (id: string) => axios.get(`${LEARN}/library/${id}`, h()).then(d) as Promise<LearnerProblem>,
+  libraryRun: (id: string, body: { language: string; code: string; mode: 'samples' | 'custom'; stdin?: string }) =>
+    axios.post(`${LEARN}/library/${id}/run`, body, h()).then(d) as Promise<{ result?: PbJudgeResult; custom?: PbCustomResult }>,
+  librarySubmit: (id: string, body: { language: string; code: string }) =>
+    axios.post(`${LEARN}/library/${id}/submit`, body, h()).then(d) as Promise<{ result: PbJudgeResult; recorded: boolean; late?: boolean; firstAccept?: boolean; reward?: { xp: number } | null }>,
 };
 
 /* ── External API clients ─────────────────────────────────────────────────────────────────── */

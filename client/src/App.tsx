@@ -107,6 +107,8 @@ const InterviewHubAdmin = lazy(() => import('./pages/InterviewHub/Admin'));
 const CodingMySets = lazy(() => import('./pages/CodingPractice').then((m) => ({ default: m.MySets })));
 const CodingSetView = lazy(() => import('./pages/CodingPractice').then((m) => ({ default: m.SetView })));
 const CodingSolve = lazy(() => import('./pages/CodingPractice/Solve'));
+const PracticeLibrary = lazy(() => import('./pages/CodingPractice/Library'));
+const LibraryProblemOr = lazy(() => import('./pages/CodingPractice/Library').then((m) => ({ default: m.LibraryProblemOr })));
 const MyLeave = lazy(() => import('./pages/MyLeave'));
 const LeaveRequests = lazy(() => import('./pages/LeaveRequests'));
 const CodePlayground = lazy(() => import('./pages/CodePlayground'));
@@ -315,6 +317,23 @@ const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
   'STUDENT': ['enroll_courses', 'submit_assignments', 'view_quiz', 'take_interviews', 'view_snippets', 'attempt_interviews'],
 };
 
+/**
+ * Which student page belongs to which feature switch (Student Features page, "LMS students" tab).
+ * A student who types the address of a page the admin has switched off is sent back to the
+ * dashboard, exactly as the menu hides it.
+ */
+const STUDENT_PAGE_FEATURES: [string, keyof StudentFeatures][] = [
+  ['/my-tasks', 'myTasks'], ['/my-leave', 'applyLeave'], ['/interview-experiences', 'interviewExperiences'], ['/question-books', 'questionBooks'],
+  ['/drives', 'drives'], ['/my-practice', 'myPractice'], ['/coding-practice', 'codingPractice'], ['/visualizer', 'codeVisualizer'],
+  ['/my-interviews', 'scheduledInterviews'], ['/quizzes', 'quizzes'], ['/assignments', 'assignments'], ['/coding-snippets', 'codingSnippets'],
+  ['/my-attendance', 'attendance'], ['/playground', 'codePlayground'], ['/project-builder', 'projectBuilder'], ['/job-tracker', 'jobTracker'],
+  ['/ai-mentor', 'aiMentor'], ['/resource-library', 'resourceLibrary'], ['/ai-communication-lab', 'aiCommunicationLab'], ['/thinking-lab', 'thinkingLab'],
+  ['/resume-builder', 'resumeBuilder'], ['/career-profile', 'careerProfile'], ['/hms-classes', 'liveClasses'], ['/my-learning', 'learningPlan'],
+  ['/speaking-practice', 'speakingPractice'],
+];
+const featureForStudentPath = (pathname: string) =>
+  STUDENT_PAGE_FEATURES.find(([p]) => pathname === p || pathname.startsWith(`${p}/`))?.[1];
+
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRoles,
@@ -322,6 +341,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { isAuthenticated, loading, user } = useAuth();
   const { pathname } = useLocation();
+  const { isFeatureEnabled: studentFeatureOn } = useStudentFeatures();
 
   if (loading) return <Spinner fullScreen />;
 
@@ -331,6 +351,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // re-runs) and a session expiring mid-visit. `replace` so the back button does not
     // return to a page they are no longer allowed to see.
     return <Navigate to={loginPathFor(pathname)} replace />;
+  }
+
+  if (user?.role === 'STUDENT') {
+    const feature = featureForStudentPath(pathname);
+    if (feature && !studentFeatureOn(feature)) return <Navigate to="/dashboard" replace />;
   }
 
   // A page that names its own permissions opens for anyone holding one of them — the same keys
@@ -779,12 +804,12 @@ const AppRoutes: React.FC = () => {
           well, so every Thinking Lab problem appeared on both screens — the same problem
           under two names, which is worse than having no second screen at all.
         */}
-        <Route path="/careerpilot/practice" element={<PassportPractice source="builtin" />} />
+        <Route path="/careerpilot/practice" element={<PracticeLibrary base="/careerpilot/practice" />} />
         <Route path="/careerpilot/coding" element={<CodingMySets base="/careerpilot/coding" />} />
         <Route path="/careerpilot/coding/:setId" element={<CodingSetView base="/careerpilot/coding" />} />
         <Route path="/careerpilot/coding/:setId/:problemId" element={<CodingSolve base="/careerpilot/coding" />} />
         <Route path="/passport/practice" element={<LegacyRedirect to="/careerpilot/practice" />} />
-        <Route path="/careerpilot/practice/:id" element={<PassportPracticeItem />} />
+        <Route path="/careerpilot/practice/:problemId" element={<LibraryProblemOr base="/careerpilot/practice" legacy={<PassportPracticeItem />} />} />
         {/* A material an admin wrote. Materials without an external URL were dropped by the
             mission engine, so a full lesson could be authored with nowhere to open it. */}
         <Route path="/careerpilot/material/:id" element={<PassportMaterialViewer />} />

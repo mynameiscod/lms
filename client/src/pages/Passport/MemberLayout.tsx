@@ -1,6 +1,7 @@
 import React, { Suspense, createContext, lazy, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import CareerSetupPrompt from './CareerSetupPrompt';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import type { CareerPilotFeatureKey } from '../../config/studentFeatureCatalog';
 import passportApi, { DashboardData, MemberSection } from '../../api/passportApi';
 import MemberShell from './MemberShell';
 import './memberLayoutFix.css';
@@ -55,6 +56,20 @@ const ROUTE_SECTIONS: { prefix: string; section: MemberSection }[] = [
   { prefix: '/careerpilot/question-books',        section: 'questionBooks' },
   { prefix: '/careerpilot/mentor',                section: 'mentor' },
 ];
+/**
+ * Which menu switch (Student Features, CareerPilot tab) each page belongs to. Longest prefix first,
+ * so '/careerpilot/interview-experiences' is not mistaken for '/careerpilot/interview'.
+ */
+const ROUTE_FEATURES: [string, CareerPilotFeatureKey][] = [
+  ['/careerpilot/interview-experiences', 'experiences'], ['/careerpilot/question-books', 'questionBooks'],
+  ['/careerpilot/interview', 'interview'], ['/careerpilot/thinking-lab', 'thinkingLab'], ['/careerpilot/communication', 'communication'],
+  ['/careerpilot/playground', 'playground'], ['/careerpilot/practice', 'practice'], ['/careerpilot/coding', 'coding'],
+  ['/careerpilot/roadmap', 'roadmap'], ['/careerpilot/plan', 'plan'], ['/careerpilot/mentor', 'mentor'],
+  ['/careerpilot/companies', 'companies'], ['/careerpilot/news', 'news'], ['/careerpilot/resume', 'resume'], ['/careerpilot/progress', 'progress'],
+];
+const featureForRoute = (pathname: string) =>
+  ROUTE_FEATURES.find(([p]) => pathname === p || pathname.startsWith(`${p}/`))?.[1];
+
 const sectionForRoute = (pathname: string): MemberSection | undefined =>
   ROUTE_SECTIONS.find(r => pathname === r.prefix || pathname.startsWith(`${r.prefix}/`))?.section;
 
@@ -139,6 +154,8 @@ const MemberLayout: React.FC = () => {
   }
 
   const ctx = { data, reload: load };
+  const routeFeature = featureForRoute(pathname);
+  if (routeFeature && (data.hidden || []).includes(routeFeature)) return <Navigate to="/careerpilot" replace />;
   const routeSection = sectionForRoute(pathname);
   const routeLocked = !!routeSection && (data.locked || []).some(l => l.section === routeSection);
 

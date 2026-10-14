@@ -18,8 +18,15 @@ const draftKey = (pid: string, lang: string) => `pb-code:${pid}:${lang}`;
 const readDraft = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 const writeDraft = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* storage full or blocked */ } };
 
+/**
+ * Without a set in the address this is the practice library: any published problem, chosen by the
+ * member. `base` is then the library list, and problems live at `${base}/:problemId`.
+ */
 const Solve: React.FC<{ base: string }> = ({ base }) => {
   const { setId, problemId } = useParams();
+  const library = !setId;
+  const home = library ? base : `${base}/${setId}`;
+  const at = (id: string) => (library ? `${base}/${id}` : `${base}/${setId}/${id}`);
   const nav = useNavigate();
   const [p, setP] = useState<LearnerProblem | null>(null);
   const [err, setErr] = useState('');
@@ -39,14 +46,14 @@ const Solve: React.FC<{ base: string }> = ({ base }) => {
 
   const load = useCallback(() => {
     setErr('');
-    codingPracticeApi.problem(setId!, problemId!).then((r) => {
+    (library ? codingPracticeApi.libraryProblem(problemId!) : codingPracticeApi.problem(setId!, problemId!)).then((r) => {
       setP(r);
       const last = r.submissions[0]?.language;
       const pick = r.languages.find((l) => l.language === last) ? last : (r.languages[0]?.language || '');
       setLang((cur) => (cur && r.languages.some((l) => l.language === cur) ? cur : pick));
       if (r.samples[0]) setStdin(r.samples[0].input);
     }).catch((e) => setErr(pbError(e, 'Could not open this problem.')));
-  }, [setId, problemId]);
+  }, [library, setId, problemId]);
   useEffect(() => { setP(null); setRunRes(null); setSubRes(null); setCustomRes(null); setHints(0); setLeftTab('desc'); load(); }, [load]);
 
   // Restore this language's code: saved draft → last submission in it → starter.
@@ -67,7 +74,7 @@ const Solve: React.FC<{ base: string }> = ({ base }) => {
     if (!p || busy) return;
     setBusy('run'); setConsoleTab('result'); setSubRes(null);
     try {
-      const r = await codingPracticeApi.run(setId!, problemId!, { language: lang, code, mode: useCustom ? 'custom' : 'samples', stdin });
+      const r = await (library ? codingPracticeApi.libraryRun(problemId!, { language: lang, code, mode: useCustom ? 'custom' : 'samples', stdin }) : codingPracticeApi.run(setId!, problemId!, { language: lang, code, mode: useCustom ? 'custom' : 'samples', stdin }));
       setRunRes(r.result || null); setCustomRes(r.custom || null); setSel(0);
     } catch (e) { setRunRes(null); setCustomRes({ verdict: 'RE', output: '', error: pbError(e, 'Run failed.'), timeMs: 0 }); }
     setBusy('');
@@ -77,7 +84,7 @@ const Solve: React.FC<{ base: string }> = ({ base }) => {
     if (!p || busy) return;
     setBusy('submit'); setConsoleTab('result'); setRunRes(null); setCustomRes(null);
     try {
-      const r = await codingPracticeApi.submit(setId!, problemId!, { language: lang, code });
+      const r = await (library ? codingPracticeApi.librarySubmit(problemId!, { language: lang, code }) : codingPracticeApi.submit(setId!, problemId!, { language: lang, code }));
       setSubRes(r);
       if (r.recorded) load();
     } catch (e) { setCustomRes({ verdict: 'RE', output: '', error: pbError(e, 'Submit failed.'), timeMs: 0 }); }
@@ -93,7 +100,7 @@ const Solve: React.FC<{ base: string }> = ({ base }) => {
   });
 
   if (err) return <div className="pb-root"><div className="pb-page"><div className="pb-alert pb-alert-bad">{err}</div>
-    <button className="pb-btn" onClick={() => nav(`${base}/${setId}`)}><i className="fa-solid fa-arrow-left" /> Back to the set</button></div></div>;
+    <button className="pb-btn" onClick={() => nav(home)}><i className="fa-solid fa-arrow-left" /> {library ? 'Back to the problems' : 'Back to the set'}</button></div></div>;
   if (!p) return <div className="pb-root"><div className="pb-page pb-muted"><span className="pb-spinner" /> Loading problem…</div></div>;
 
   const solved = p.submissions.some((s) => s.verdict === 'AC');
@@ -106,10 +113,10 @@ const Solve: React.FC<{ base: string }> = ({ base }) => {
     <div className="pb-root">
       <div className="pb-studio">
         <div className="pb-studio-bar">
-          <button className="pb-btn pb-btn-ghost pb-btn-sm" onClick={() => nav(`${base}/${setId}`)}><i className="fa-solid fa-list" /> {p.set.title}</button>
-          <span className="pb-muted" style={{ fontSize: 13 }}>{p.set.position} / {p.set.count}</span>
-          <button className="pb-btn pb-btn-ghost pb-btn-icon" disabled={!p.set.prevId} onClick={() => nav(`${base}/${setId}/${p.set.prevId}`)} aria-label="Previous problem"><i className="fa-solid fa-chevron-left" /></button>
-          <button className="pb-btn pb-btn-ghost pb-btn-icon" disabled={!p.set.nextId} onClick={() => nav(`${base}/${setId}/${p.set.nextId}`)} aria-label="Next problem"><i className="fa-solid fa-chevron-right" /></button>
+          <button className="pb-btn pb-btn-ghost pb-btn-sm" onClick={() => nav(home)}><i className="fa-solid fa-list" /> {p.set.title}</button>
+          {!library && <span className="pb-muted" style={{ fontSize: 13 }}>{p.set.position} / {p.set.count}</span>}
+          <button className="pb-btn pb-btn-ghost pb-btn-icon" disabled={!p.set.prevId} onClick={() => nav(at(p.set.prevId!))} aria-label="Previous problem"><i className="fa-solid fa-chevron-left" /></button>
+          <button className="pb-btn pb-btn-ghost pb-btn-icon" disabled={!p.set.nextId} onClick={() => nav(at(p.set.nextId!))} aria-label="Next problem"><i className="fa-solid fa-chevron-right" /></button>
           <span className="pb-spacer" />
           {p.set.dueAt && <span className={`pb-pill ${overdue ? 'pb-badge-bad' : 'pb-badge-neutral'}`}><i className="fa-regular fa-clock" /> Due {new Date(p.set.dueAt).toLocaleString()}</span>}
           <button className="pb-btn pb-btn-sm" disabled={!!busy || !lang} onClick={run} title="Ctrl+Enter">{busy === 'run' ? <span className="pb-spinner" /> : <i className="fa-solid fa-play" />} Run</button>
@@ -128,7 +135,7 @@ const Solve: React.FC<{ base: string }> = ({ base }) => {
             <div className="pb-pane">
               {leftTab === 'desc' && (
                 <div className="pb-preview">
-                  <h2>{p.title} {solved && <i className="fa-solid fa-circle-check" style={{ color: 'var(--pb-ok)', fontSize: 18 }} title="Solved" />}</h2>
+                  <h2>{library && p.number ? `${p.number}. ` : ''}{p.title} {solved && <i className="fa-solid fa-circle-check" style={{ color: 'var(--pb-ok)', fontSize: 18 }} title="Solved" />}</h2>
                   <div className="pb-row pb-wrap" style={{ marginBottom: 12 }}>
                     <DifficultyPill d={p.difficulty} /><span className="pb-tag">{p.marks} marks</span>
                     {p.companies.map((co) => <span key={co} className="pb-tag" style={{ background: '#fdf4ff', color: '#86198f' }}>{co}</span>)}

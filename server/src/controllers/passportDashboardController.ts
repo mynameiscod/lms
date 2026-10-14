@@ -8,11 +8,12 @@ import PassportResume from '../models/PassportResume';
 import TechBattle from '../models/TechBattle';
 import { membershipActive, entitlementMap } from '../services/passportEntitlementService';
 import { lockedSections, lockedSectionViews } from '../data/memberAccessPolicy';
+import { hiddenCareerPilotFeatures } from '../services/careerPilotFeatureService';
 import { ensureContent, poolMapOf, dayNumber, ymd, clampSlots } from '../services/passportMissionService';
 import { awardCoins, getAccount } from '../services/coinService';
 import { getOrCreateProgress } from '../services/passportXpService';
 import { buildRoadmap } from '../services/passportRoadmapService';
-import { PRACTICE_BANK } from '../services/passportPracticeService';
+import { memberLibraryStats } from '../services/problemLibraryService';
 import { getTodaysPlan, toMemberMissions } from '../services/dailyMissionOrchestrator';
 import PassportAssessment, { categoriesOf } from '../models/PassportAssessment';
 import { resolveAssessedState } from '../services/memberAssessmentStateService';
@@ -153,6 +154,7 @@ export const getDashboard = async (req: Request, res: Response) => {
         passwordSet: !!user?.passport?.passwordSet,
         entitled,
         locked,
+        hidden: await hiddenCareerPilotFeatures(tenantId),
       });
     }
 
@@ -213,6 +215,7 @@ export const getDashboard = async (req: Request, res: Response) => {
         passwordSet: !!user?.passport?.passwordSet,
         entitled,
         locked,
+        hidden: await hiddenCareerPilotFeatures(tenantId),
       });
     }
 
@@ -248,9 +251,11 @@ export const getDashboard = async (req: Request, res: Response) => {
     const bestInterview = interviews.reduce<number | null>(
       (best, i: any) => Math.max(best ?? 0, i?.evaluation?.overallScore ?? 0) || null, null);
 
-    const codingIds = new Set(PRACTICE_BANK.filter(p => p.kind === 'coding').map(p => p.id));
-    const solved = progress.solvedProblems || [];
-    const codingSolved = solved.filter(id => codingIds.has(id)).length;
+    // Practice now comes from the Problem Bank. The old built-in exercises a member solved before
+    // that still count: they are kept in solvedProblems and simply added.
+    const library = await memberLibraryStats(tenantId, studentId);
+    const legacySolved = (progress.solvedProblems || []).length;
+    const solvedCount = library.solved + legacySolved;
 
     const board = await PassportProgress.find({ tenantId })
       .select('studentId xp').sort({ xp: -1 }).limit(200).lean();
@@ -273,8 +278,8 @@ export const getDashboard = async (req: Request, res: Response) => {
     const level = g.levelFromXp(progress.xp);
     const score = g.coderScore({
       careerScore: attempt.careerScore ?? null,
-      solvedCount: solved.length,
-      totalProblems: PRACTICE_BANK.length,
+      solvedCount,
+      totalProblems: g.PRACTICE_TARGET,
       completedDays: roadmap.completedDays,
       totalDays,
       interviewsCompleted: interviews.length,
@@ -308,9 +313,9 @@ export const getDashboard = async (req: Request, res: Response) => {
       pathwayLabel: attempt.pathwayLabel,
 
       stats: {
-        solved: solved.length,
+        solved: solvedCount,
         solvedToday: g.solvedToday(progress, now),
-        totalProblems: PRACTICE_BANK.length,
+        totalProblems: library.total,
         accuracy: g.accuracy(progress),
         streak: progress.streak,
         longestStreak: progress.longestStreak,
@@ -341,9 +346,9 @@ export const getDashboard = async (req: Request, res: Response) => {
       activity: g.activitySeries(progress, 7, now),
 
       badges: g.badges({
-        solvedCount: solved.length,
-        codingSolved,
-        totalCoding: codingIds.size,
+        solvedCount,
+        codingSolved: solvedCount,
+        totalCoding: g.PRACTICE_TARGET,
         streak: progress.streak,
         longestStreak: progress.longestStreak,
         completedDays: roadmap.completedDays,
@@ -386,6 +391,8 @@ export const getDashboard = async (req: Request, res: Response) => {
       // Empty for a paying member at default settings, but not necessarily: a tenant may sell
       // tiers, and the client draws its locks from this either way.
       locked,
+      // Parts of the menu the institute's admin has switched off for CareerPilot students.
+      hidden: await hiddenCareerPilotFeatures(tenantId),
     });
   } catch (e: any) {
     console.error('[passport] getDashboard:', e);

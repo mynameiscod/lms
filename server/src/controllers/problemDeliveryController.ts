@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import * as svc from '../services/problemDeliveryService';
+import * as lib from '../services/problemLibraryService';
 import { PbError } from '../services/problemBankService';
 import Batch from '../models/Batch';
 import User from '../models/User';
@@ -37,6 +38,24 @@ export const learnerRun = wrap(async (req, res) => {
 });
 export const learnerSubmit = wrap(async (req, res) => {
   res.json({ success: true, data: await svc.submitForLearner(await learner(req), req.params.setId, req.params.problemId, req.body || {}) });
+});
+
+/* ── The practice library (no set: the member chooses) ────────────────────────────────────── */
+
+export const libraryList = wrap(async (req, res) => {
+  res.json({ success: true, data: await lib.listLibrary(await learner(req), req.query as any) });
+});
+export const libraryFacets = wrap(async (req, res) => {
+  res.json({ success: true, data: await lib.libraryFacets(await learner(req)) });
+});
+export const libraryProblem = wrap(async (req, res) => {
+  res.json({ success: true, data: await lib.libraryProblem(await learner(req), req.params.problemId) });
+});
+export const libraryRun = wrap(async (req, res) => {
+  res.json({ success: true, data: await lib.runLibrary(await learner(req), req.params.problemId, req.body || {}) });
+});
+export const librarySubmit = wrap(async (req, res) => {
+  res.json({ success: true, data: await lib.submitLibrary(await learner(req), req.params.problemId, req.body || {}) });
 });
 
 /* ── Admin ────────────────────────────────────────────────────────────────────────────────── */

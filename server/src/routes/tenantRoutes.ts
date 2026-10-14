@@ -10,6 +10,8 @@ import {
   generateInviteLink,
   getStudentFeatures,
   updateStudentFeatures,
+  getCareerPilotFeatures,
+  updateCareerPilotFeatures,
   listTenants,
   getTenantModules,
   updateTenantModules
@@ -38,6 +40,8 @@ router.patch('/:tenantId', authMiddleware, roleGuard(['manage_tenants']), update
 router.get('/:tenantId/invite-link', authMiddleware, ownTenant, generateInviteLink);
 router.get('/:tenantId/student-features', authMiddleware, ownTenant, getStudentFeatures);
 router.patch('/:tenantId/student-features', authMiddleware, ownTenant, roleGuard(['manage_tenant']), updateStudentFeatures);
+router.get('/:tenantId/career-pilot-features', authMiddleware, ownTenant, getCareerPilotFeatures);
+router.patch('/:tenantId/career-pilot-features', authMiddleware, ownTenant, roleGuard(['manage_tenant']), updateCareerPilotFeatures);
 router.get('/:tenantId/modules', authMiddleware, ownTenant, getTenantModules);
 // Branding — the institute admin's own name, logo, colours and support contact (whitelisted fields).
 router.get('/:tenantId/branding', authMiddleware, ownTenant, async (req: any, res: any) => {

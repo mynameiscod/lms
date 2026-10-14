@@ -1905,6 +1905,8 @@ export interface DashboardData {
    * anybody could remove with dev tools. Empty for a member with everything.
    */
   locked?: LockedSection[];
+  /** Menu items the institute's admin has switched off for CareerPilot students (Student Features page). */
+  hidden?: string[];
 }
 
 /** One day of the ninety. A unit of curriculum, not a calendar date. */

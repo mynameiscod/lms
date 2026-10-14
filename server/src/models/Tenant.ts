@@ -36,6 +36,22 @@ export interface IStudentFeatures {
   collegePortal?: boolean;
   myApplications?: boolean;
   alumniDirectory?: boolean;
+  // Menu items that used to have no switch
+  myTasks?: boolean;
+  applyLeave?: boolean;
+  interviewExperiences?: boolean;
+  questionBooks?: boolean;
+  drives?: boolean;
+  myPractice?: boolean;
+  codingPractice?: boolean;
+  codeVisualizer?: boolean;
+}
+
+/** The CareerPilot student's menu: false = hidden by the admin. */
+export interface ICareerPilotFeatures {
+  plan?: boolean; roadmap?: boolean; practice?: boolean; coding?: boolean; playground?: boolean; thinkingLab?: boolean;
+  communication?: boolean; interview?: boolean; experiences?: boolean; questionBooks?: boolean; mentor?: boolean;
+  companies?: boolean; news?: boolean; resume?: boolean; progress?: boolean;
 }
 
 // Platform-level module gates set by SUPER_ADMIN (applies to ALL roles in the tenant)
@@ -139,6 +155,7 @@ export interface ITenant extends Document {
   limits?: { maxStudents?: number | null; maxStaff?: number | null; aiBudgetInrMonthly?: number | null };
   settings: ITenantSettings;
   studentFeatures: IStudentFeatures;
+  careerPilotFeatures?: ICareerPilotFeatures;
   modules: ITenantModules;
   collegeInfo?: ICollegeInfo;
   branding?: IBranding;
@@ -227,7 +244,32 @@ const TenantSchema: Schema = new Schema(
       liveClasses: { type: Boolean, default: true },
       collegePortal: { type: Boolean, default: true },
       myApplications: { type: Boolean, default: true },
-      alumniDirectory: { type: Boolean, default: true }
+      alumniDirectory: { type: Boolean, default: true },
+      myTasks: { type: Boolean, default: true },
+      applyLeave: { type: Boolean, default: true },
+      interviewExperiences: { type: Boolean, default: true },
+      questionBooks: { type: Boolean, default: true },
+      drives: { type: Boolean, default: true },
+      myPractice: { type: Boolean, default: true },
+      codingPractice: { type: Boolean, default: true },
+      codeVisualizer: { type: Boolean, default: true }
+    },
+    careerPilotFeatures: {
+      plan: { type: Boolean, default: true },
+      roadmap: { type: Boolean, default: true },
+      practice: { type: Boolean, default: true },
+      coding: { type: Boolean, default: true },
+      playground: { type: Boolean, default: true },
+      thinkingLab: { type: Boolean, default: true },
+      communication: { type: Boolean, default: true },
+      interview: { type: Boolean, default: true },
+      experiences: { type: Boolean, default: true },
+      questionBooks: { type: Boolean, default: true },
+      mentor: { type: Boolean, default: true },
+      companies: { type: Boolean, default: true },
+      news: { type: Boolean, default: true },
+      resume: { type: Boolean, default: true },
+      progress: { type: Boolean, default: true }
     },
     // Platform-level module gates — set by SUPER_ADMIN, apply to ALL roles in the tenant
     modules: {

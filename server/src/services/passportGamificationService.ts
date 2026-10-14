@@ -138,6 +138,13 @@ export interface CoderScore {
  * transparent — the client shows the breakdown, so the number is never a black box.
  *   Assessment 400 · Practice 250 · Missions 200 · Interviews 100 · Resume 50
  */
+/**
+ * How many problems count as "fully practised" for the score and the top coding badge. The
+ * practice library holds thousands, so a share of the whole library would round to nothing for
+ * everyone; this is the finish line instead.
+ */
+export const PRACTICE_TARGET = 100;
+
 export function coderScore(input: {
   careerScore: number | null;        // 0–100 from the assessment
   solvedCount: number;
@@ -195,7 +202,7 @@ export function badges(input: {
   return [
     mk('problem_solver', 'Problem Solver', '⭐', '#16a34a', 'Solve your first practice problem', input.solvedCount, 1),
     mk('dsa_explorer',   'DSA Explorer',   '🧊', '#2563eb', 'Solve 5 coding problems', input.codingSolved, 5),
-    mk('algo_wizard',    'Algo Wizard',    '🪄', '#f59e0b', 'Solve every coding problem', input.codingSolved, Math.max(1, input.totalCoding)),
+    mk('algo_wizard',    'Algo Wizard',    '🪄', '#f59e0b', `Solve ${PRACTICE_TARGET} coding problems`, input.codingSolved, PRACTICE_TARGET),
     mk('speed_demon',    'Speed Demon',    '⚡', '#ef4444', 'Hit a 7-day streak', input.longestStreak, 7),
     mk('consistency',    'Consistency King', '📅', '#8b5cf6', 'Complete 30 mission days', input.completedDays, 30),
     mk('interview_ready','Interview Ready', '🎙️', '#0891b2', 'Finish a mock interview', input.interviewsCompleted, 1),

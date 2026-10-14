@@ -131,3 +131,85 @@ export const TRACK_DJANGO: Record<string, TopicSeed> = {
     ...ending('Django Testing', 'FACTORIES', { project: ['MINI_PROJECT', 'Mini Project — A Secured, Tested Library API on DRF', 'A Django REST Framework library API on MySQL: books, members and loans, JWT login with roles and ownership, and pytest-django tests for models, permissions and every endpoint.'] }),
   ] },
 };
+
+/**
+ * Batch P3: the full stack and AI in Python. The React app is wired to the Django API and the
+ * stack deployed; then a small FastAPI service holds the AI — chat, structured output, streaming,
+ * RAG and an agent — which Django calls, and the capstone ties it together. The AI concepts
+ * (JT_AI_CONCEPTS, JT_AI_AGENTS) are the language-free topics every "+ AI" track shares.
+ */
+export const TRACK_PY_STACK_AI: Record<string, TopicSeed> = {
+  /* ── React and Django, together and deployed ── */
+  JT_FULLSTACK_PY: { category: 'UNIVERSAL', units: [
+    u('REACT_CALLS_DRF', 'React Calling the Django API', 'An axios client with the base URL from the environment, the Vite dev proxy, and DRF’s JSON and error shapes in React.',
+      ['Call a Django REST Framework API from React through one configured client'], 40),
+    u('CORS_CSRF', 'CORS and CSRF Between React and Django', 'django-cors-headers for the browser, why JWT in a header avoids CSRF, and when session auth needs it.',
+      ['Allow exactly the React origin and explain when CSRF protection applies'], 35, { after: ['REACT_CALLS_DRF'] }),
+    u('JWT_LOGIN_FLOW', 'The Login Flow End to End', 'Simple JWT login from React, keeping the access token, refreshing it, protected routes, and handling 401 and expiry.',
+      ['Build a working JWT login across React and Django, including refresh and logout'], 55, { after: ['CORS_CSRF'], skillKeys: ['AUTHENTICATION'] }),
+    u('FILE_UPLOAD', 'Uploading Files', 'Multipart from a React form, FileField and ImageField in DRF, size and type limits, and media storage.',
+      ['Upload a file from React to Django with validation and storage outside the code'], 40, { after: ['JWT_LOGIN_FLOW'] }),
+    u('ERRORS_ACROSS', 'Errors Across Both Halves', 'DRF’s validation errors in React forms, one error contract, and the network failure nobody handled.',
+      ['Show API validation errors in a React form and handle failures gracefully'], 35, { after: ['FILE_UPLOAD'] }),
+    u('DOCKER', 'Docker for Django and React', 'Gunicorn behind nginx, the React build served by nginx, collectstatic, and docker compose with MySQL.',
+      ['Run the Django API, the React app and MySQL together with docker compose'], 50, { after: ['ERRORS_ACROSS'], skillKeys: ['CONTAINERS_DOCKER'] }),
+    u('DEPLOY', 'Deploying the Python Stack', 'A managed MySQL, the API and the frontend on a cloud host, migrations on release, secrets in environment variables.',
+      ['Deploy the Django and React stack with configuration kept out of the code'], 50, { after: ['DOCKER'], skillKeys: ['DEPLOYMENT'] }),
+    ...ending('React and Django Integration', 'DEPLOY', { project: ['PROJECT', 'Project — A Django and React App, Deployed', 'The React frontend and the secured DRF API on MySQL as one application: login with refresh, roles, CRUD, an upload, consistent errors, Docker, and a public URL.'] }),
+  ] },
+
+  /* ── FastAPI, for the AI service ── */
+  JT_FASTAPI: { category: 'UNIVERSAL', units: [
+    u('ROUTES_PYDANTIC', 'FastAPI: Routes and Pydantic Models', 'Path and query parameters, request and response models with Pydantic v2, validation errors and the automatic docs.',
+      ['Build typed FastAPI endpoints whose requests and responses are validated by Pydantic'], 45),
+    u('ASYNC_DEPENDENCIES', 'Async Endpoints and Dependencies', 'async def and when it helps, Depends for settings, clients and auth, httpx for outbound calls, and timeouts.',
+      ['Write async endpoints that share clients and settings through dependencies'], 45, { after: ['ROUTES_PYDANTIC'] }),
+    u('SERVICE_AUTH', 'Securing a Service Django Calls', 'Settings from the environment, an API key or the user’s JWT between services, and keeping the AI key in one place.',
+      ['Secure the AI service so only the Django app, acting for a user, can call it'], 40, { after: ['ASYNC_DEPENDENCIES'] }),
+    u('DJANGO_CALLS_FASTAPI', 'Django Calling the AI Service', 'Why the AI lives in its own service, calling it from Django with timeouts and retries, and failing gracefully.',
+      ['Call the FastAPI service from Django and keep the app working when it is slow or down'], 40, { after: ['SERVICE_AUTH'] }),
+    u('TESTING', 'Testing FastAPI', 'TestClient, overriding dependencies, and testing the AI service without calling a real model.',
+      ['Test FastAPI endpoints, with fake dependencies for the model and the database'], 35, { after: ['DJANGO_CALLS_FASTAPI'] }),
+    ...ending('FastAPI', 'TESTING', { minutes: [40, 50, 35, 40] }),
+  ] },
+
+  /* ── Generative AI in Python ── */
+  JT_AI_PY: { category: 'UNIVERSAL', units: [
+    u('SDK_SETUP', 'Calling a Model from Python', 'A provider SDK in the FastAPI service, messages and parameters, the key from the environment, timeouts, retries and cost.',
+      ['Call an LLM from the FastAPI service with the key kept out of the code and the cost under control'], 45),
+    u('STRUCTURED_OUTPUT', 'Structured Output with Pydantic', 'Asking for JSON, validating it with a Pydantic model, retrying or failing safely when it does not parse.',
+      ['Turn a model answer into a validated Pydantic object and handle the failure case'], 40, { after: ['SDK_SETUP'] }),
+    u('STREAMING_REACT', 'Streaming a Chat Answer into React', 'Server-sent events from FastAPI, reading the stream in React as it arrives, and cancelling it.',
+      ['Stream a chat answer from FastAPI to a React UI token by token'], 45, { after: ['STRUCTURED_OUTPUT'] }),
+    u('EMBEDDINGS_VECTOR_STORE', 'Embeddings and a Vector Store in Python', 'Embedding documents, chunking them, storing vectors (Chroma or pgvector), and searching by meaning.',
+      ['Ingest documents into a vector store from Python and search them by meaning'], 45, { after: ['STREAMING_REACT'], skillKeys: ['RAG_SYSTEMS'] }),
+    u('RAG', 'RAG in Python, with and without LangChain', 'Retrieve, ground, cite — written by hand first, then with LangChain — and answering only from the app’s documents.',
+      ['Answer questions over your own documents in Python, citing what the answer used'], 50, { after: ['EMBEDDINGS_VECTOR_STORE'], skillKeys: ['RAG_SYSTEMS'] }),
+    ...ending('AI in Python', 'RAG', { project: ['MINI_PROJECT', 'Mini Project — An AI Help Desk on FastAPI', 'A FastAPI service that answers questions over a set of product documents with RAG — streamed to React, with cited sources, an "I don’t know" path and a small evaluation set — called from the Django app.'] }),
+  ] },
+
+  /* ── Agents in Python ── */
+  JT_AI_AGENTS_PY: { category: 'UNIVERSAL', units: [
+    u('TOOLS_PY', 'Tool Calling in Python', 'Tools as typed Python functions, the schema the model sees, running the loop, and checking every call against the user’s permissions.',
+      ['Give a model tools backed by your own services, with checks on every call'], 45),
+    u('LANGGRAPH', 'An Agent with LangGraph', 'State, nodes and edges, a tool-calling loop with a step limit, and a human approval step before anything irreversible.',
+      ['Build a bounded tool-calling agent with LangGraph, including an approval step'], 45, { after: ['TOOLS_PY'] }),
+    u('MEMORY_MCP_PY', 'Memory and MCP in Python', 'Per-user conversation memory and its limits, and using or exposing tools over MCP with the Python SDK.',
+      ['Give an agent per-user memory and connect it to an MCP server'], 40, { after: ['LANGGRAPH'] }),
+    ...ending('Python AI Agents', 'MEMORY_MCP_PY', { minutes: [40, 50, 35, 40] }),
+  ] },
+
+  /* ── The capstone ── */
+  JT_CAPSTONE_PY: { category: 'UNIVERSAL', units: [
+    u('BRIEF', 'The Capstone: Scope, Architecture and Plan', 'An e-commerce store or a job portal on React, Django, MySQL and a FastAPI AI service: the architecture, a design document and a plan.',
+      ['Scope the capstone, draw its architecture and write a plan you can deliver in the time'], 45),
+    u('BUILD_CORE', 'Capstone Build — The Full-Stack Application', 'React, Django REST Framework and MySQL: login and roles, the core features, tests, and a deployed first version.',
+      ['Build and deploy the core application to the standard of the earlier projects'], 300, { unitType: 'PROJECT', after: ['BRIEF'] }),
+    u('AI_FEATURES', 'Capstone Build — The AI Assistant and the Agent', 'The FastAPI AI service: a RAG assistant over the app’s own catalogue or listings, and an agent that acts for the user with approval.',
+      ['Add a grounded AI assistant and a guarded agent to the application and evaluate both'], 240, { unitType: 'PROJECT', after: ['BUILD_CORE'], skillKeys: ['LLM_APPLICATIONS', 'AI_AGENTS'] }),
+    u('DEFENCE', 'Demo Day: Presenting and Defending the Capstone', 'A five-minute demo, the architecture walk-through, and the questions a panel asks about it.',
+      ['Demo the capstone and defend every design decision under questioning'], 45, { unitType: 'PRACTICE', after: ['AI_FEATURES'] }),
+    u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
+      ['Show full-stack and AI judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
+  ] },
+};

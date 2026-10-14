@@ -211,6 +211,9 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'DJANGO_REST', name: 'Django REST Framework', parentKey: 'PYTHON', difficulty: 'ADVANCED', displayOrder: 85,
     description: 'Serializers, viewsets and routers, validation, pagination and filtering, permissions and JWT in a DRF API.',
     prerequisiteKeys: ['DJANGO', 'REST_APIS'] },
+  { key: 'FASTAPI', name: 'FastAPI', parentKey: 'PYTHON', difficulty: 'INTERMEDIATE', displayOrder: 90,
+    description: 'Typed async APIs with Pydantic models, dependencies, service-to-service auth and testing — the AI service a Django app calls.',
+    prerequisiteKeys: ['PYTHON_ADVANCED', 'REST_APIS'] },
 
   SUB('JAVASCRIPT', 'JavaScript', 'PROGRAMMING', 40, 'The JavaScript language, in the browser and beyond.'),
   { key: 'JS_BASICS', name: 'JavaScript Basics', parentKey: 'JAVASCRIPT', difficulty: 'FOUNDATION', displayOrder: 10,

@@ -126,6 +126,19 @@ export const PACKS: PackDefinition[] = [
   { key: 'DJANGO', title: 'Django and Django REST Framework', kind: 'SKILL',
     description: 'A REST API on Django and DRF over MySQL: the ORM, serializers and viewsets, JWT and permissions, and tests.',
     topics: [['JT_DJANGO_CORE', 'MUST'], ['JT_DJANGO_ORM', 'MUST'], ['JT_DRF', 'MUST'], ['JT_DJANGO_AUTH', 'MUST'], ['JT_DJANGO_TESTING', 'MUST']] },
+  /* ── Python Full Stack + AI, batch P3: the stack together, FastAPI and AI in Python, the capstone ── */
+  { key: 'FULLSTACK_DEPLOY_PY', title: 'React and Django: Integration and Deployment', kind: 'SKILL',
+    description: 'React talking to Django — CORS, a JWT login flow, uploads and errors — then Docker and a deployed stack.',
+    topics: [['JT_FULLSTACK_PY', 'MUST']] },
+  { key: 'GENAI_PY', title: 'Generative AI for Python Developers', kind: 'SKILL',
+    description: 'How models work, prompting and RAG — then a FastAPI AI service in your own Django and React app.',
+    topics: [['T_GENAI', 'MUST'], ['JT_AI_CONCEPTS', 'MUST'], ['JT_FASTAPI', 'MUST'], ['JT_AI_PY', 'MUST'], ['T3_AI_ASSISTED', 'SHOULD']] },
+  { key: 'AGENTIC_AI_PY', title: 'Agentic AI in Python', kind: 'SKILL',
+    description: 'Agents, tools, memory and MCP — when to build one, and building one in Python with guardrails.',
+    topics: [['JT_AI_AGENTS', 'SHOULD'], ['JT_AI_AGENTS_PY', 'SHOULD']] },
+  { key: 'CAPSTONE_PY_AI', title: 'Capstone: Python Full Stack + AI', kind: 'SKILL',
+    description: 'One application that proves the track: React, Django and MySQL with a FastAPI AI service, deployed, with an assistant and an agent.',
+    topics: [['JT_CAPSTONE_PY', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -137,7 +150,8 @@ export const TRACKS: TrackDefinition[] = [
       'PL_PROJECT_DESIGN', 'PL_JAVA_FS_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
   { key: 'PY_FULLSTACK_AI', name: 'Python Full Stack + AI', language: 'Python', order: 20,
     description: 'HTML, CSS, Bootstrap, JavaScript and React; Python, Django and Django REST Framework on MySQL; FastAPI and AI in Python built into your own app.',
-    /* Batches: P1 Python and DSA in Python (frontend packs shared with Java Full Stack), P2 Django; AI and placement packs are appended as they land. */
-    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_PYTHON', 'DSA_PYTHON', 'MYSQL', 'PYTHON_DATA', 'DJANGO'],
+    /* Batches: P1 Python and DSA in Python (frontend packs shared with Java Full Stack), P2 Django, P3 the stack, AI and the capstone; placement packs are appended as they land. */
+    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_PYTHON', 'DSA_PYTHON', 'MYSQL', 'PYTHON_DATA', 'DJANGO',
+      'FULLSTACK_DEPLOY_PY', 'GENAI_PY', 'AGENTIC_AI_PY', 'CAPSTONE_PY_AI'],
     placementPacks: [] },
 ];

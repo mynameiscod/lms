@@ -211,6 +211,26 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ PYTHON FULL STACK AND AI — React with Django, FastAPI for the AI, the capstone ══════════════ */
+  {
+    moduleCode: 'JT_PY_STACK_AI',
+    moduleName: 'The Python Full Stack and AI',
+    displayOrder: 120,
+    blurb: 'React wired to Django and deployed, then a FastAPI service for chat, RAG and an agent, and the capstone. The AI concepts are the shared language-free topics.',
+    topics: [
+      t('JT_FULLSTACK_PY', 'React and Django: Integration and Deployment', ['REST_APIS', 'AUTHENTICATION', 'CONTAINERS_DOCKER', 'DEPLOYMENT'],
+        ['Wire a React app to a Django REST Framework API with CORS and a JWT login flow, containerise both, and deploy the stack.']),
+      t('JT_FASTAPI', 'FastAPI for the AI Service', ['FASTAPI'],
+        ['Build and test a typed async FastAPI service that a Django app calls safely.']),
+      t('JT_AI_PY', 'Generative AI in Python', ['LLM_APPLICATIONS', 'RAG_SYSTEMS'],
+        ['Add LLM features in Python: structured output with Pydantic, streaming to React, and RAG over your own documents.']),
+      t('JT_AI_AGENTS_PY', 'Building Agents in Python', ['AI_AGENTS', 'LLM_APPLICATIONS'],
+        ['Build a bounded tool-calling agent with memory in Python, connect it to MCP, and keep it safe.']),
+      t('JT_CAPSTONE_PY', 'Capstone: A Python Full-Stack App with AI', ['PRODUCTION_ENGINEERING', 'LLM_APPLICATIONS', 'AI_AGENTS'],
+        ['Plan, build, deploy and defend a React, Django and FastAPI application with an AI assistant and an agent.']),
+    ],
+  },
+
   /* ══════════════ PLACEMENT — what a Java full-stack interview asks that Year 4 does not ══════════════ */
   {
     moduleCode: 'JT_PLACE',

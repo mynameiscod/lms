@@ -99,7 +99,7 @@ const AdminStudentJourney: React.FC<{ studentId: string }> = ({ studentId }) => 
           <span>
             Left out to fit {data.v2Report?.programDays ?? data.totalDays} days at the daily study time:{' '}
             {data.v2Report
-              ? ['OPTIONAL', 'SHOULD', 'REVISION', 'BRIDGE_EXTRA', 'MUST_EXTRA']
+              ? ['OPTIONAL', 'DRILL', 'SHOULD', 'REVISION', 'BRIDGE_EXTRA', 'MUST_EXTRA']
                 .filter(k => (data.v2Report!.dropped[k] || 0) > 0)
                 .map(k => `${data.v2Report!.dropped[k]} ${k.toLowerCase().replace('_', ' ')}`).join(', ') || 'nothing'
               : '—'}

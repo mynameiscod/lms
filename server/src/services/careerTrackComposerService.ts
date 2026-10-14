@@ -30,6 +30,7 @@ export interface TrackComposeOptions {
 type Item = PlanItem<SelectedUnit>;
 const TIER_OF: Record<TrackPriority, V2Tier> = { MUST: 'MUST_EXTRA', SHOULD: 'SHOULD', OPTIONAL: 'OPTIONAL' };
 const PROOF = ['CHECKPOINT', 'PROJECT'];
+const DRILLS = ['DEBUG', 'PRACTICE'];
 
 const refuse = (programDays: number, reason: string): { composition: ComposerResult; plan: null; reason: string } => ({
   composition: { ok: false, requestedDays: programDays, units: [], reason } as any,
@@ -60,13 +61,26 @@ export async function composeTrackRoadmap(
   const held = (units: ComposableUnit[]) => standingOn(profile.skills as any, topicSkills(units)) === 'HELD';
   const item = (u: ComposableUnit, phase: V2Phase, tier: V2Tier, isHeld: boolean): Item =>
     ({ unit: asSelected(u, profile, isHeld, 0), phase, tier });
+  /** The learner's weakest measured score on a topic's skills (null when none is measured). */
+  const scoreOrNull = (topicCode: string): number | null => {
+    const scores = topicSkills(unitsOf.get(topicCode) || []).map(k => profile.skills.get(k)?.score).filter((x): x is number => typeof x === 'number');
+    return scores.length ? Math.min(...scores) : null;
+  };
+  const scoreOf = (topicCode: string): number => scoreOrNull(topicCode) ?? 0;
 
   /*
    * A WHOLE TOPIC, AS THIS LEARNER NEEDS IT. Every unit of the topic — class, practice, debugging,
    * checkpoint, project — for a learner who does not hold it. One who does gets the class and the
    * proof (checkpoint, project), not the drills; `full` gives them the drills back when the year
    * has days to spare. In a MUST topic the first class and every checkpoint are never given up.
+   *
+   * In Year 3 a MUST or SHOULD topic's drills (debugging, practice, interview units) are DRILL: an
+   * over-full year gives them up — strongest topic first, one per topic at a time — before any
+   * lesson, checkpoint or project, so the end of the track (its full-stack and AI work, and the
+   * capstone) is never what a weak learner loses. If MUST lessons must go too, they go the same
+   * way, and projects only after every topic's lessons. Year 4's practice IS placement, so it is not.
    */
+  const drillTier = stage !== 'placement';
   const topicItems = (topics: { topicCode: string; priority: TrackPriority }[], drilled: Set<string> | 'ALL'): Item[] => {
     const out: Item[] = [];
     for (const t of topics) {
@@ -74,22 +88,33 @@ export async function composeTrackRoadmap(
       if (!units.length) continue;
       const isHeld = held(units);
       const full = drilled === 'ALL' || drilled.has(t.topicCode);
+      const strength = scoreOrNull(t.topicCode);
+      const mine: Item[] = [];
       let firstClass = true;
       for (const u of units) {
         const isClass = u.unitType === 'CONCEPT';
         if (isHeld && !full && !(isClass && firstClass) && !PROOF.includes(u.unitType)) continue;
         const core = t.priority === 'MUST' && ((isClass && firstClass) || u.unitType === 'CHECKPOINT');
         if (isClass) firstClass = false;
-        out.push(item(u, 'YEAR', core ? 'ESSENTIAL' : TIER_OF[t.priority], isHeld));
+        const drill = drillTier && t.priority !== 'OPTIONAL' && DRILLS.includes(u.unitType);
+        mine.push({ ...item(u, 'YEAR', core ? 'ESSENTIAL' : drill ? 'DRILL' : TIER_OF[t.priority], isHeld), ...(drill ? { strength } : {}) });
       }
+      if (drillTier) {
+        // Ranked from the end of the topic, so an over-full year takes each topic's last first.
+        // A project ranks after every lesson: the topic's proof is the last thing it gives up.
+        const rankFromEnd = (list: Item[], offset = 0) => list.forEach((d, k) => { d.dropRank = offset + list.length - 1 - k; });
+        rankFromEnd(mine.filter(i => i.tier === 'DRILL'));
+        const extras = mine.filter(i => i.tier === 'MUST_EXTRA');
+        const lessons = extras.filter(i => i.unit.unitType !== 'PROJECT');
+        rankFromEnd(lessons);
+        rankFromEnd(extras.filter(i => i.unit.unitType === 'PROJECT'), 1000);
+        for (const i of extras) i.strength = strength;
+      }
+      out.push(...mine);
     }
     return out;
   };
-  /** The learner's weakest measured score on a topic's skills (null when none is measured). */
-  const scoreOf = (topicCode: string): number => {
-    const scores = topicSkills(unitsOf.get(topicCode) || []).map(k => profile.skills.get(k)?.score).filter((x): x is number => typeof x === 'number');
-    return scores.length ? Math.min(...scores) : 0;
-  };
+
   /** Enough for the days: at least a unit a day, and about half the study time the days hold. */
   const enough = (items: Item[], n: number) => slotsOf(items, fitOpts) >= n
     && items.reduce((s, i) => s + (Number(i.unit.estimatedMinutes) || 0), 0) >= n * opts.dailyMinutes * 0.5;
@@ -119,7 +144,7 @@ export async function composeTrackRoadmap(
   };
 
   let planDays: Item[][] = [];
-  const dropped: Record<V2Tier, number> = { ESSENTIAL: 0, MUST_EXTRA: 0, BRIDGE_EXTRA: 0, REVISION: 0, SHOULD: 0, OPTIONAL: 0 };
+  const dropped: Record<V2Tier, number> = { ESSENTIAL: 0, MUST_EXTRA: 0, BRIDGE_EXTRA: 0, REVISION: 0, SHOULD: 0, OPTIONAL: 0, DRILL: 0 };
   let overflowDays = 0;
   const addDropped = (d: Record<V2Tier, number>) => { for (const k of Object.keys(d) as V2Tier[]) dropped[k] += d[k] || 0; };
 

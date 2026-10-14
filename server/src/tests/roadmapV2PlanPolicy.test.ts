@@ -93,6 +93,32 @@ describe('fitting the plan into the admin’s days', () => {
     expect(tighter.dropped.BRIDGE_EXTRA).toBe(3);
   });
 
+  it('a career track gives up drills — one per topic at a time — before any lesson, even late in the year', () => {
+    // Topic A early, topic B late; each has a lesson (MUST extra) and two drills. Lessons are SHOULD-
+    // or MUST-tier, drills are DRILL: the drills go before the late lessons, spread over both topics.
+    const drill = (code: string, rank: number): PlanItem => ({ ...item(code, 'DRILL', 'YEAR', 60, 'PRACTICE'), strength: null, dropRank: rank });
+    const items = [
+      item('a1', 'ESSENTIAL'), drill('aDebug', 1), drill('aPractice', 0), item('a2', 'MUST_EXTRA'),
+      item('b1', 'ESSENTIAL'), drill('bDebug', 1), drill('bPractice', 0), item('b2', 'MUST_EXTRA'),
+    ];
+    // 3 days × 150 min hold 6 one-hour units: two drills go — the LAST drill of each topic.
+    const r = fitToDays(items, { days: 3, dailyMinutes: 150, maxUnitsPerDay: 3 });
+    expect(r.kept.map(i => i.unit.unitCode)).toEqual(['a1', 'aDebug', 'a2', 'b1', 'bDebug', 'b2']);
+    expect(r.dropped).toMatchObject({ DRILL: 2, MUST_EXTRA: 0 });
+    // 2 days hold 4: every drill goes, and still no lesson.
+    const tight = fitToDays(items, { days: 2, dailyMinutes: 150, maxUnitsPerDay: 3 });
+    expect(tight.kept.map(i => i.unit.unitCode)).toEqual(['a1', 'a2', 'b1', 'b2']);
+  });
+
+  it('gives up drills on the strongest topic first', () => {
+    const items = [
+      item('a1', 'ESSENTIAL'), { ...item('aDrill', 'DRILL', 'YEAR', 60, 'PRACTICE'), strength: 30, dropRank: 0 },
+      item('b1', 'ESSENTIAL'), { ...item('bDrill', 'DRILL', 'YEAR', 60, 'PRACTICE'), strength: 80, dropRank: 0 },
+    ];
+    const r = fitToDays(items, { days: 3, dailyMinutes: 100, maxUnitsPerDay: 3 }); // a unit a day: one drill goes
+    expect(r.kept.map(i => i.unit.unitCode)).toEqual(['a1', 'aDrill', 'b1']);
+  });
+
   it('never plans a day past the daily study time', () => {
     const items = Array.from({ length: 9 }, (_, i) => item(`x${i}`, 'SHOULD', 'YEAR', 50));
     const r = fitToDays(items, { days: 3, dailyMinutes: 150, maxUnitsPerDay: 4 });

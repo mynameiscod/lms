@@ -18,6 +18,10 @@
  * this order, each from the END of the plan (furthest from what the learner needs first):
  *   OPTIONAL → SHOULD → BRIDGE_EXTRA → MUST_EXTRA.
  * Bridge extras (practice) go from the learner's strongest topic first, so a weak topic keeps it.
+ * A career track's year puts its DRILLS (debugging, practice, interview units) right after OPTIONAL:
+ * an over-full track year gives up drills across every topic before any lesson, checkpoint or
+ * project — never the end of the track, where its full-stack and AI work and the capstone sit. If
+ * lessons must go too, they go the same way — one per topic at a time — and projects go last.
  * ESSENTIAL units — the core of every MUST topic and of every bridge topic — are never removed. If
  * even they do not fit, the plan is still built, over as few extra days as it takes, and reported:
  * dropping a MUST topic silently is the one outcome V2 exists to prevent.
@@ -30,13 +34,13 @@
 import { packIntoDays, PackableUnit, PackResult } from './dayPackingPolicy';
 
 export type V2Phase = 'REVISION' | 'BRIDGE' | 'YEAR';
-export type V2Tier = 'ESSENTIAL' | 'MUST_EXTRA' | 'BRIDGE_EXTRA' | 'REVISION' | 'SHOULD' | 'OPTIONAL';
+export type V2Tier = 'ESSENTIAL' | 'MUST_EXTRA' | 'BRIDGE_EXTRA' | 'REVISION' | 'SHOULD' | 'OPTIONAL' | 'DRILL';
 /**
  * The order tiers are given up in when the days are short. ESSENTIAL is never in it. Revision (on
  * what a member already studied with us) goes before a bridge extra: a skill they have not met
- * matters more than practising one they have.
+ * matters more than practising one they have. DRILL is used only by career-track years.
  */
-export const REMOVAL_ORDER: readonly V2Tier[] = ['OPTIONAL', 'SHOULD', 'REVISION', 'BRIDGE_EXTRA', 'MUST_EXTRA'];
+export const REMOVAL_ORDER: readonly V2Tier[] = ['OPTIONAL', 'DRILL', 'SHOULD', 'REVISION', 'BRIDGE_EXTRA', 'MUST_EXTRA'];
 
 /**
  * A year's own refresher module (Year 2's B01_BRIDGE, Year 4's P02_BRIDGE): written for the old
@@ -61,6 +65,12 @@ export interface PlanItem<U extends PackableUnit = PackableUnit> {
    * A bridge extra on a stronger topic is given up before one on a weaker topic.
    */
   strength?: number | null;
+  /**
+   * Its place from the end of its topic's units of the same tier (0 = the last). Set by a career
+   * track's year: such units are given up one per topic at a time, so every topic loses its last
+   * before any topic loses two, and the end of the year is not what goes.
+   */
+  dropRank?: number;
 }
 
 /** How a learner stands on a topic's skills: the weakest measured one decides. */
@@ -166,7 +176,7 @@ export interface FitResult<U extends PackableUnit> {
   overflowDays: number;
 }
 
-const emptyDropped = (): Record<V2Tier, number> => ({ ESSENTIAL: 0, MUST_EXTRA: 0, BRIDGE_EXTRA: 0, REVISION: 0, SHOULD: 0, OPTIONAL: 0 });
+const emptyDropped = (): Record<V2Tier, number> => ({ ESSENTIAL: 0, MUST_EXTRA: 0, BRIDGE_EXTRA: 0, REVISION: 0, SHOULD: 0, OPTIONAL: 0, DRILL: 0 });
 
 /*
  * A UNIT LONGER THAN A DAY SPANS DAYS. A four-hour project in a 2.5-hour day is a day nobody can
@@ -246,6 +256,12 @@ export function fitToDays<U extends PackableUnit>(items: PlanItem<U>[], opts: Fi
   for (const tier of REMOVAL_ORDER) {
     const idx = items.map((_, i) => i).filter(i => items[i].tier === tier);
     if (tier === 'BRIDGE_EXTRA') idx.sort((a, b) => strengthOf(b) - strengthOf(a) || b - a);
+    // Ranked items (a career track's drills and lessons) go a topic at a time: strongest topic first,
+    // each topic's last first, every topic once before any twice. Unranked ones go from the end.
+    else if (idx.some(i => typeof items[i].dropRank === 'number')) {
+      const rank = (i: number) => (typeof items[i].dropRank === 'number' ? items[i].dropRank as number : -1);
+      idx.sort((a, b) => (rank(a) < 0 ? 0 : 1) - (rank(b) < 0 ? 0 : 1) || strengthOf(b) - strengthOf(a) || rank(a) - rank(b) || b - a);
+    }
     else idx.sort((a, b) => b - a);
     removal.push(...idx);
   }

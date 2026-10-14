@@ -63,7 +63,7 @@ const ROUTE_SECTIONS: { prefix: string; section: MemberSection }[] = [
 const ROUTE_FEATURES: [string, CareerPilotFeatureKey][] = [
   ['/careerpilot/interview-experiences', 'experiences'], ['/careerpilot/question-books', 'questionBooks'],
   ['/careerpilot/interview', 'interview'], ['/careerpilot/thinking-lab', 'thinkingLab'], ['/careerpilot/communication', 'communication'],
-  ['/careerpilot/playground', 'playground'], ['/careerpilot/practice', 'practice'], ['/careerpilot/coding', 'coding'],
+  ['/careerpilot/playground', 'playground'], ['/careerpilot/visualizer', 'visualizer'], ['/careerpilot/practice', 'practice'], ['/careerpilot/coding', 'coding'],
   ['/careerpilot/roadmap', 'roadmap'], ['/careerpilot/plan', 'plan'], ['/careerpilot/mentor', 'mentor'],
   ['/careerpilot/companies', 'companies'], ['/careerpilot/news', 'news'], ['/careerpilot/resume', 'resume'], ['/careerpilot/progress', 'progress'],
 ];

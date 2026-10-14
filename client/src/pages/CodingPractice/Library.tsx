@@ -63,7 +63,7 @@ export const PracticeLibrary: React.FC<{ base: string }> = ({ base }) => {
 
   return (
     <div className="pb-root">
-      <div className="pb-page" style={{ maxWidth: 1100 }}>
+      <div className="pb-page" style={{ maxWidth: 'none' }}>
         <div className="pb-head">
           <div className="pb-grow">
             <h1>Practice</h1>

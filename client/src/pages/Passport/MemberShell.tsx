@@ -361,7 +361,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Practice', 'code', '/careerpilot/practice', 'practice', 'practice')}
           {navBtn('Coding Sets', 'code', '/careerpilot/coding', 'coding', 'coding')}
           {navBtn('Playground', 'terminal', '/careerpilot/playground', 'playground', 'playground')}
-          {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer')}
+          {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer', undefined, 'visualizer')}
           {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'practice', 'thinkingLab')}
           {navBtn('Communication Lab', 'speech', '/careerpilot/communication', 'communication', 'communication')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview', 'interview')}

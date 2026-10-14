@@ -23,7 +23,7 @@ export type StudentFeatureKey = typeof STUDENT_FEATURE_KEYS[number];
 
 /** The CareerPilot student's menu. Home, profile, result and the account block are always there. */
 export const CAREERPILOT_FEATURE_KEYS = [
-  'plan', 'roadmap', 'practice', 'coding', 'playground', 'thinkingLab', 'communication', 'interview',
+  'plan', 'roadmap', 'practice', 'coding', 'playground', 'visualizer', 'thinkingLab', 'communication', 'interview',
   'experiences', 'questionBooks', 'mentor', 'companies', 'news', 'resume', 'progress',
 ] as const;
 

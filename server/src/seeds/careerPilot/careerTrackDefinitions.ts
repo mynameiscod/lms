@@ -122,6 +122,10 @@ export const PACKS: PackDefinition[] = [
   { key: 'PYTHON_DATA', title: 'Python and MySQL', kind: 'SKILL',
     description: 'Python reaching MySQL directly — before the Django ORM does it for you.',
     topics: [['JT_PY_MYSQL', 'MUST']] },
+  /* ── Python Full Stack + AI, batch P2: Django and Django REST Framework ── */
+  { key: 'DJANGO', title: 'Django and Django REST Framework', kind: 'SKILL',
+    description: 'A REST API on Django and DRF over MySQL: the ORM, serializers and viewsets, JWT and permissions, and tests.',
+    topics: [['JT_DJANGO_CORE', 'MUST'], ['JT_DJANGO_ORM', 'MUST'], ['JT_DRF', 'MUST'], ['JT_DJANGO_AUTH', 'MUST'], ['JT_DJANGO_TESTING', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -133,7 +137,7 @@ export const TRACKS: TrackDefinition[] = [
       'PL_PROJECT_DESIGN', 'PL_JAVA_FS_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
   { key: 'PY_FULLSTACK_AI', name: 'Python Full Stack + AI', language: 'Python', order: 20,
     description: 'HTML, CSS, Bootstrap, JavaScript and React; Python, Django and Django REST Framework on MySQL; FastAPI and AI in Python built into your own app.',
-    /* Batches: P1 Python and DSA in Python (frontend packs shared with Java Full Stack); Django, AI and placement packs are appended as they land. */
-    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_PYTHON', 'DSA_PYTHON', 'MYSQL', 'PYTHON_DATA'],
+    /* Batches: P1 Python and DSA in Python (frontend packs shared with Java Full Stack), P2 Django; AI and placement packs are appended as they land. */
+    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_PYTHON', 'DSA_PYTHON', 'MYSQL', 'PYTHON_DATA', 'DJANGO'],
     placementPacks: [] },
 ];

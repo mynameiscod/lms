@@ -191,6 +191,26 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ DJANGO — the Python track's backend: Django, its ORM, DRF, auth and tests ══════════════ */
+  {
+    moduleCode: 'JT_DJANGO',
+    moduleName: 'Django and Django REST Framework',
+    displayOrder: 110,
+    blurb: 'A Django REST Framework API on MySQL, grown through the ORM, auth and tests — the Python track’s Spring Boot.',
+    topics: [
+      t('JT_DJANGO_CORE', 'Django Fundamentals', ['DJANGO'],
+        ['Build a Django project: apps, URLs and views, the admin, and settings for each environment on MySQL.']),
+      t('JT_DJANGO_ORM', 'The Django ORM', ['DJANGO'],
+        ['Model data with Django, query it with querysets, Q and F, and keep it fast with select_related and prefetch_related.']),
+      t('JT_DRF', 'Django REST Framework', ['DJANGO_REST', 'REST_APIS'],
+        ['Build a REST API with serializers, viewsets, validation, pagination, filtering and OpenAPI docs.']),
+      t('JT_DJANGO_AUTH', 'Auth and Security in Django', ['DJANGO_REST', 'AUTHENTICATION', 'AUTHORIZATION'],
+        ['Secure a DRF API with a custom user model, JWT, permissions and object ownership, and production settings.']),
+      t('JT_DJANGO_TESTING', 'Testing Django', ['AUTOMATED_TESTING', 'DJANGO_REST'],
+        ['Test a Django API with pytest-django, APIClient and factories, including permissions.']),
+    ],
+  },
+
   /* ══════════════ PLACEMENT — what a Java full-stack interview asks that Year 4 does not ══════════════ */
   {
     moduleCode: 'JT_PLACE',

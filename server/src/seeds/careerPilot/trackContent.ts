@@ -5,7 +5,7 @@ import { TRACK_DATA_SPRING } from './trackUnitsDataSpring';
 import { TRACK_BOOT } from './trackUnitsBoot';
 import { TRACK_AI } from './trackUnitsAi';
 import { TRACK_PLACEMENT } from './trackUnitsPlacement';
-import { TRACK_PYTHON } from './trackUnitsPython';
+import { TRACK_PYTHON, TRACK_DJANGO } from './trackUnitsPython';
 
 /**
  * Every career-track topic and its units (stage `track`), in one dataset. See trackStageMap for
@@ -19,4 +19,5 @@ export const TRACK_CONTENT: Record<string, TopicSeed> = {
   ...TRACK_AI,
   ...TRACK_PLACEMENT,
   ...TRACK_PYTHON,
+  ...TRACK_DJANGO,
 };

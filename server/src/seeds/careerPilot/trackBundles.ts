@@ -37,6 +37,11 @@ import { TRACK_PLACE_JAVA_FS_BUNDLES } from './trackContentPlaceJavaFs';
 import { TRACK_PY_MODERN_BUNDLES } from './trackContentPyModern';
 import { TRACK_PY_TESTING_BUNDLES } from './trackContentPyTesting';
 import { TRACK_PY_MYSQL_BUNDLES } from './trackContentPyMysql';
+import { TRACK_DJANGO_CORE_BUNDLES } from './trackContentDjangoCore';
+import { TRACK_DJANGO_ORM_BUNDLES } from './trackContentDjangoOrm';
+import { TRACK_DRF_BUNDLES } from './trackContentDrf';
+import { TRACK_DJANGO_AUTH_BUNDLES } from './trackContentDjangoAuth';
+import { TRACK_DJANGO_TESTING_BUNDLES } from './trackContentDjangoTesting';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -93,4 +98,9 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_PY_MODERN_BUNDLES,
   ...TRACK_PY_TESTING_BUNDLES,
   ...TRACK_PY_MYSQL_BUNDLES,
+  ...TRACK_DJANGO_CORE_BUNDLES,
+  ...TRACK_DJANGO_ORM_BUNDLES,
+  ...TRACK_DRF_BUNDLES,
+  ...TRACK_DJANGO_AUTH_BUNDLES,
+  ...TRACK_DJANGO_TESTING_BUNDLES,
 ].map(balanced);

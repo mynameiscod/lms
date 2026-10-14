@@ -205,6 +205,12 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'PYTHON_DB', name: 'Python & SQL Databases', parentKey: 'PYTHON', difficulty: 'INTERMEDIATE', displayOrder: 75,
     description: 'The DB-API, parameterised queries, transactions and a data-access layer between Python and MySQL.',
     prerequisiteKeys: ['PYTHON_ERROR_HANDLING', 'SQL_BASICS'] },
+  { key: 'DJANGO', name: 'Django', parentKey: 'PYTHON', difficulty: 'INTERMEDIATE', displayOrder: 80,
+    description: 'Projects and apps, URLs and views, the admin, settings, and the Django ORM: models, migrations, querysets and relations.',
+    prerequisiteKeys: ['PYTHON_OOP', 'PYTHON_DB'] },
+  { key: 'DJANGO_REST', name: 'Django REST Framework', parentKey: 'PYTHON', difficulty: 'ADVANCED', displayOrder: 85,
+    description: 'Serializers, viewsets and routers, validation, pagination and filtering, permissions and JWT in a DRF API.',
+    prerequisiteKeys: ['DJANGO', 'REST_APIS'] },
 
   SUB('JAVASCRIPT', 'JavaScript', 'PROGRAMMING', 40, 'The JavaScript language, in the browser and beyond.'),
   { key: 'JS_BASICS', name: 'JavaScript Basics', parentKey: 'JAVASCRIPT', difficulty: 'FOUNDATION', displayOrder: 10,

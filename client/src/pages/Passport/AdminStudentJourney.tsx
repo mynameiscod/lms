@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { AdminFoundationJourney } from '../../api/passportApi';
 import RoadmapRebuildPanel from './RoadmapRebuildPanel';
+import StudentTrackSelect from './StudentTrackSelect';
 
 /**
  * One member's ninety-day Foundation journey, as an admin needs to see it.
@@ -48,9 +49,10 @@ const AdminStudentJourney: React.FC<{ studentId: string }> = ({ studentId }) => 
       <div className="sr-note">
         <b>Foundation journey — {data.reason === 'NOT_CONFIGURED' ? 'NOT CONFIGURED for this tenant' : data.engine === 'UNIT' ? 'not created yet' : 'not on the unit engine'}</b>
         <span>{data.message}</span>
-        {data.engine === 'UNIT' && data.reason !== 'NOT_CONFIGURED' && (
+        {data.engine === 'UNIT' && data.reason !== 'NOT_CONFIGURED' && (<>
+          <StudentTrackSelect studentId={studentId} stage={data.student.stage} current={data.student.careerTrack || null} onChanged={reload} />
           <RoadmapRebuildPanel studentId={studentId} isV2={false} onRebuilt={reload} />
-        )}
+        </>)}
       </div>
     );
   }
@@ -84,6 +86,7 @@ const AdminStudentJourney: React.FC<{ studentId: string }> = ({ studentId }) => 
         </div>
       </header>
 
+      <StudentTrackSelect studentId={studentId} stage={data.student.stage} current={data.student.careerTrack || null} onChanged={reload} />
       <RoadmapRebuildPanel studentId={studentId} isV2={data.roadmapVersion === 'ROADMAP_V2'} rebuilds={data.rebuilds} onRebuilt={reload} />
 
       {/* Roadmap V2: the split, what was given up to fit the admin's days, and the gate. */}

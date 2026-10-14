@@ -832,7 +832,7 @@ export const getStudentJourney = async (req: Request, res: Response) => {
 
     // The tenant comes from the admin's verified identity, so another tenant's member is simply not found.
     const member = await User.findOne({ _id: studentId, tenantId })
-      .select('firstName lastName email passport.stage').lean() as any;
+      .select('firstName lastName email passport.stage passport.careerTrack').lean() as any;
     if (!member) return res.status(404).json({ message: 'No such member in this tenant.' });
 
     const { engine, stageKey } = await engineOf(tenantId, studentId);
@@ -846,6 +846,7 @@ export const getStudentJourney = async (req: Request, res: Response) => {
       name: [member.firstName, member.lastName].filter(Boolean).join(' ') || member.email || 'Member',
       email: member.email || null,
       stage: member.passport?.stage || null,
+      careerTrack: member.passport?.careerTrack?.key || null,
     };
 
     if (!curriculum) {

@@ -1,0 +1,47 @@
+/* Admin: Career Tracks (AdminCareerTracks.tsx). Builds on adminRoadmapV2.css (.rv2 tokens). */
+.ct-tabs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ct-tabs button { border: 1px solid #c9d6e4; background: #fff; color: var(--navy); border-radius: 999px; padding: 8px 16px; font-weight: 700; font-size: 13.5px; cursor: pointer; }
+.rv2 .ct-tabs button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.ct-split { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
+.ct-list { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ct-group { margin-top: 10px; }
+.ct-item { text-align: left; display: flex; flex-direction: column; gap: 3px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; min-width: 0; }
+.ct-item b { color: var(--navy); font-size: 14px; }
+.ct-item span { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.ct-item.on { border-color: var(--teal); box-shadow: 0 0 0 2px rgba(53, 154, 173, .18); }
+.ct-status { display: inline-block; align-self: flex-start; font-size: 11.5px !important; font-weight: 800; padding: 2px 9px; border-radius: 99px; background: #fff4e5; color: #9a5b00 !important; margin-left: 8px; }
+.ct-status.live { background: #e7f7ee; color: #106b3a !important; }
+.ct-item .ct-status { margin-left: 0; }
+.ct-order { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ct-order li { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; background: #fafcfe; min-width: 0; }
+.ct-order li.bad { border-color: #f3b4ad; background: #fef3f2; }
+.ct-order li.ct-empty { color: var(--muted); font-size: 13px; justify-content: center; }
+.ct-n { width: 22px; height: 22px; border-radius: 50%; background: #e6f0fb; color: var(--navy); font-size: 12px; font-weight: 800; display: grid; place-items: center; flex: none; }
+.ct-t { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+.ct-t small { display: block; font-weight: 500; font-size: 11.5px; color: var(--muted); }
+.ct-prio { width: auto !important; padding: 5px 8px !important; font-size: 12.5px !important; }
+.ct-acts { display: flex; gap: 4px; flex: none; }
+.ct-acts button { border: 1px solid #d8e2ec; background: #fff; border-radius: 8px; width: 28px; height: 28px; cursor: pointer; color: var(--navy); }
+.ct-acts button:disabled { opacity: .35; cursor: default; }
+.ct-search { margin-top: 8px; }
+.ct-hits { list-style: none; margin: 6px 0 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; max-height: 260px; overflow: auto; }
+.ct-hits li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 10px; border-bottom: 1px solid #f0f4f8; font-size: 13px; }
+.ct-hits li small { display: block; color: var(--muted); font-size: 11.5px; }
+.ct-hits button { border: 0; background: var(--teal); color: #fff; border-radius: 8px; padding: 5px 12px; font-weight: 700; cursor: pointer; flex: none; }
+.ct-problems { margin: 14px 0 0; padding: 10px 12px 10px 28px; border-radius: 10px; background: #fff8eb; color: #8a5300; font-size: 13px; }
+.rv2-btn.danger { color: #b42318; border-color: #f3b4ad; }
+.ct-cov { margin-top: 16px; display: flex; flex-direction: column; gap: 14px; }
+.ct-cov-topic b { color: var(--navy); font-size: 14px; }
+.ct-cov-topic b small { font-weight: 600; color: var(--muted); margin-left: 6px; }
+.ct-cov table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12.5px; }
+.ct-cov th { text-align: left; color: #7b8aa0; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 5px 6px; border-bottom: 1px solid var(--line); }
+.ct-cov td { padding: 5px 6px; border-bottom: 1px solid #f0f4f8; }
+.ct-cov td.yes { color: #106b3a; font-weight: 700; }
+.ct-cov td.meh { color: #9a5b00; }
+.ct-cov td.no { color: #b42318; }
+.ct-cov tr.draft td { opacity: .7; }
+.ct-warn { color: #b42318; font-size: 13px; margin: 4px 0 0; }
+@media (max-width: 900px) {
+  .ct-split { grid-template-columns: minmax(0, 1fr); }
+  .ct-cov { overflow-x: auto; }
+}

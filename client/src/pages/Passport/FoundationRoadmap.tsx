@@ -24,6 +24,7 @@ import { useNavigate } from 'react-router-dom';
 import passportApi, { FoundationJourney as Journey } from '../../api/passportApi';
 import FoundationJourneyPage from './FoundationJourney';
 import RoadmapPhaseBands from './RoadmapPhaseBands';
+import CareerTrackPicker from './CareerTrackPicker';
 import { useUnlock } from './SectionLock';
 import {
   dayState, canOpenDay, planLinkFor, welcomeLinkFor, groupJourneyDays, dayRanges, KIND_LABEL, STATE_LABEL, RoadmapGroup,
@@ -175,6 +176,7 @@ const FoundationRoadmap: React.FC = () => {
       </section>
 
       {/* Roadmap V2: why a day is locked, while earlier checkpoints hold it. The bridge/year split is admin-only. */}
+      <CareerTrackPicker onPicked={() => window.location.reload()} />
       <RoadmapPhaseBands gate={journey.gate} />
 
       <div className="fr-tools">

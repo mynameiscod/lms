@@ -34,6 +34,7 @@ import SectionLock, { useUnlock } from './SectionLock';
 import { OrientationDayPanel } from './Orientation';
 import { dayState, dayRanges, initialDay, STATE_LABEL } from './foundationRoadmapPresenter';
 import RoadmapPhaseBands from './RoadmapPhaseBands';
+import CareerTrackPicker from './CareerTrackPicker';
 import './foundationJourney.css';
 import './foundationPreview.css';
 import './foundationMember.css';
@@ -780,6 +781,7 @@ const FoundationJourneyPage: React.FC = () => {
       </section>
 
       {/* Roadmap V2: why a day is locked, while earlier checkpoints hold it. The bridge/year split is admin-only. */}
+      <CareerTrackPicker onPicked={() => { load(); }} />
       <RoadmapPhaseBands gate={journey.gate} />
 
       {/* The card invites; once the welcome is finished it stops asking. The days stay in the strip. */}

@@ -2560,7 +2560,7 @@ export interface AdminFoundationJourneyDay {
 export interface AdminFoundationJourney {
   available: boolean;
   engine: 'UNIT' | 'TOPIC';
-  student: { name: string; email: string | null; stage: string | null };
+  student: { name: string; email: string | null; stage: string | null; careerTrack?: string | null };
   totalDays: number;
   message?: string;
   curriculumId?: string;
@@ -4237,3 +4237,50 @@ export interface RebuildJob {
   running: boolean; stageKey: string | null; total: number; done: number; rebuilt: number;
   failed: { studentId: string; reason: string }[]; startedAt: string | null; finishedAt: string | null;
 }
+
+// ── Career tracks (Year 3 and 4): role + language roadmaps ──────────────────────────────────────
+export type TrackPriority = 'MUST' | 'SHOULD' | 'OPTIONAL';
+export interface PackTopicRow { topicCode: string; title?: string | null; priority: TrackPriority }
+export interface SkillPackRow { key: string; title: string; kind: 'SKILL' | 'PLACEMENT'; description: string; topics: PackTopicRow[] }
+export interface CareerTrackRow {
+  key: string; name: string; language: string; description: string; status: 'DRAFT' | 'LIVE'; order: number;
+  specializePacks: string[]; placementPacks: string[];
+  split: { memberTrackShare: number; freshTrackShare: number };
+  problems: string[]; students: number;
+}
+export interface CareerTrackCatalogue { tracks: CareerTrackRow[]; packs: SkillPackRow[] }
+export interface CoverageUnit {
+  unitCode: string; title: string; unitType: string; stageKey: string; status: string;
+  video: 'REAL' | 'PLACEHOLDER' | 'NONE'; notes: boolean; practice: boolean; checkpoint: boolean;
+}
+export interface PackCoverage { key: string; topics: { topicCode: string; title: string | null; priority: TrackPriority; units: CoverageUnit[] }[] }
+export interface TopicHit { topicCode: string; title: string; stageKey: string; moduleCode: string }
+export interface MyTracks { stage: string | null; current: string | null; tracks: { key: string; name: string; language: string; description: string | null }[] }
+
+const keep500 = { validateStatus: (s: number) => s < 500 };
+export const careerTrackApi = {
+  list: async (): Promise<CareerTrackCatalogue> =>
+    (await axios.get(`${BASE}/admin/career-tracks`, { headers: auth() })).data,
+  createTrack: async (body: Partial<CareerTrackRow>): Promise<CareerTrackCatalogue> =>
+    (await axios.post(`${BASE}/admin/career-tracks`, body, { headers: auth() })).data,
+  updateTrack: async (key: string, body: Partial<CareerTrackRow>): Promise<CareerTrackCatalogue> =>
+    (await axios.put(`${BASE}/admin/career-tracks/${encodeURIComponent(key)}`, body, { headers: auth() })).data,
+  deleteTrack: async (key: string): Promise<CareerTrackCatalogue> =>
+    (await axios.delete(`${BASE}/admin/career-tracks/${encodeURIComponent(key)}`, { headers: auth() })).data,
+  createPack: async (body: Partial<SkillPackRow>): Promise<CareerTrackCatalogue> =>
+    (await axios.post(`${BASE}/admin/skill-packs`, body, { headers: auth() })).data,
+  updatePack: async (key: string, body: Partial<SkillPackRow>): Promise<CareerTrackCatalogue> =>
+    (await axios.put(`${BASE}/admin/skill-packs/${encodeURIComponent(key)}`, body, { headers: auth() })).data,
+  deletePack: async (key: string): Promise<CareerTrackCatalogue> =>
+    (await axios.delete(`${BASE}/admin/skill-packs/${encodeURIComponent(key)}`, { headers: auth() })).data,
+  coverage: async (key: string): Promise<PackCoverage> =>
+    (await axios.get(`${BASE}/admin/skill-packs/${encodeURIComponent(key)}/coverage`, { headers: auth() })).data,
+  searchTopics: async (q: string): Promise<{ topics: TopicHit[] }> =>
+    (await axios.get(`${BASE}/admin/career-topics`, { headers: auth(), params: { q } })).data,
+  setStudentTrack: async (studentId: string, key: string | null): Promise<{ ok?: boolean; key?: string | null; rebuilt?: boolean; message?: string }> =>
+    (await axios.put(`${BASE}/admin/students/${studentId}/career-track`, { key }, { headers: auth(), ...keep500 })).data,
+  myTracks: async (): Promise<MyTracks> =>
+    (await axios.get(`${BASE}/me/career-tracks`, { headers: auth() })).data,
+  pickMyTrack: async (key: string): Promise<{ ok?: boolean; key?: string; rebuilt?: boolean; message?: string }> =>
+    (await axios.put(`${BASE}/me/career-track`, { key }, { headers: auth(), ...keep500 })).data,
+};

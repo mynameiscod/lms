@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { refreshLessonsInBackground } from '../services/roadmapLessonRefreshService';
 import fs from 'fs';
 import path from 'path';
 import LearningContentLibrary from '../models/LearningContentLibrary';
@@ -306,6 +307,8 @@ export const createContent = async (req: Request, res: Response) => {
 
     await item.save();
     res.status(201).json(item);
+    // A lesson attached to a unit reaches the roadmaps that already have that unit.
+    if (item.isPublished) refreshLessonsInBackground(String(tenantId), [(item as any).unitCode]);
   } catch (err: any) {
     res.status(400).json({ message: err.message });
   }
@@ -385,6 +388,7 @@ export const updateContent = async (req: Request, res: Response) => {
 
     await item.save();
     res.json(item);
+    refreshLessonsInBackground(String(tenantId), [(item as any).unitCode]);
   } catch (err: any) {
     res.status(400).json({ message: err.message });
   }
@@ -411,8 +415,10 @@ export const deleteContent = async (req: Request, res: Response) => {
       fs.unlink(item.notesFilePath, () => {});
     }
 
+    const unitCode = (item as any).unitCode;
     await item.deleteOne();
     res.json({ message: 'Deleted successfully' });
+    refreshLessonsInBackground(String(tenantId), [unitCode]);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
@@ -428,6 +434,7 @@ export const togglePublish = async (req: Request, res: Response) => {
     item.isPublished = !item.isPublished;
     await item.save();
     res.json({ isPublished: item.isPublished });
+    refreshLessonsInBackground(String(tenantId), [(item as any).unitCode]);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }

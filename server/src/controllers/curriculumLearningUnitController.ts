@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { refreshLessonsInBackground } from '../services/roadmapLessonRefreshService';
 import mongoose from 'mongoose';
 import CurriculumLearningUnit, {
   LEARNING_UNIT_TYPES, LEARNING_UNIT_CATEGORIES,
@@ -1042,6 +1043,8 @@ export const attachContent = async (req: Request, res: Response) => {
 
     await LearningContentLibrary.updateOne({ tenantId, _id: contentId }, { $set: { unitCode } });
     res.json({ attached: true, unitCode, contentId });
+    // The days already planned with this unit get the lesson now, not on the next rebuild.
+    refreshLessonsInBackground(tenantId, [unitCode]);
   } catch (e: any) {
     console.error('[learning-units] attach:', e?.message || e);
     res.status(500).json({ message: 'Could not attach this content.' });
@@ -1070,6 +1073,7 @@ export const detachContent = async (req: Request, res: Response) => {
     }
 
     res.json({ detached: true, unitCode, contentId });
+    refreshLessonsInBackground(tenantId, [unitCode]);
   } catch (e: any) {
     console.error('[learning-units] detach:', e?.message || e);
     res.status(500).json({ message: 'Could not detach this content.' });

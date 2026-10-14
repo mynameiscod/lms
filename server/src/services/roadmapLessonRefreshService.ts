@@ -60,16 +60,24 @@ export async function videoCoverage(tenantId: string): Promise<StageCoverage[]> 
 
 const keyOf = (it: any) => `${it.kind}:${String(it.contentId || it.sourceId || '')}`;
 
-/** Rewrite the activities of every day not yet completed from the units' content as it is now. */
+/**
+ * Rewrite the activities of every day not yet completed from the units' content as it is now.
+ * `unitCodes` narrows it to the days that hold one of those units — what an admin save calls.
+ */
 export async function refreshRoadmapLessons(
   tenantId: string,
-  opts: { apply: boolean; stageKey?: string | null; studentId?: string | null },
+  opts: { apply: boolean; stageKey?: string | null; studentId?: string | null; unitCodes?: string[] | null },
 ): Promise<LessonRefreshResult> {
   const result: LessonRefreshResult = { journeys: 0, daysChecked: 0, daysChanged: 0, videosAdded: 0, itemsAdded: 0, itemsRemoved: 0, applied: opts.apply };
+  const only = opts.unitCodes?.length ? [...new Set(opts.unitCodes.map(c => String(c).toUpperCase()))] : null;
+  const holdsUnit = only ? { $or: [{ unitCodes: { $in: only } }, { primaryUnitCode: { $in: only } }] } : null;
+  const onlyJourneys = holdsUnit ? await DayPlan.distinct('curriculumId', { tenantId, ...holdsUnit }) : null;
+  if (onlyJourneys && !onlyJourneys.length) return result;
   const journeys = await LearningCurriculum.find({
     tenantId, journeyKind: FOUNDATION_JOURNEY_KIND, personalizedFor: opts.studentId
       ? new mongoose.Types.ObjectId(opts.studentId) : { $ne: null },
     ...(opts.stageKey ? { adaptiveStage: opts.stageKey } : {}),
+    ...(onlyJourneys ? { _id: { $in: onlyJourneys } } : {}),
   }).select('_id personalizedFor').lean() as any[];
 
   for (const j of journeys) {
@@ -77,7 +85,7 @@ export async function refreshRoadmapLessons(
     const enrollment = await CurriculumEnrollment.findOne({ curriculumId: j._id, studentId: j.personalizedFor })
       .select('completedDays').lean() as any;
     const completed = new Set(((enrollment?.completedDays || []) as number[]).map(Number));
-    const days = (await DayPlan.find({ curriculumId: j._id }).select('dayNumber unitCodes primaryUnitCode items').lean() as any[])
+    const days = (await DayPlan.find({ curriculumId: j._id, ...(holdsUnit || {}) }).select('dayNumber unitCodes primaryUnitCode items').lean() as any[])
       .filter(d => !completed.has(Number(d.dayNumber)));
     if (!days.length) continue;
 
@@ -113,4 +121,19 @@ export async function refreshRoadmapLessons(
     if (opts.apply && ops.length) await DayPlan.bulkWrite(ops, { ordered: false });
   }
   return result;
+}
+
+/**
+ * After an admin saves, publishes, unpublishes or deletes a lesson attached to a unit: the days
+ * already planned with that unit get it now, with nobody running a script. Runs after the response
+ * so the save is not slowed, and never fails the save — the next save, or rv2Lessons, catches up.
+ */
+export function refreshLessonsInBackground(tenantId: string, unitCodes: (string | null | undefined)[]): void {
+  const codes = unitCodes.filter((c): c is string => !!c && !!String(c).trim());
+  if (!tenantId || !codes.length) return;
+  setImmediate(() => {
+    refreshRoadmapLessons(String(tenantId), { apply: true, unitCodes: codes })
+      .then(r => { if (r.daysChanged) console.log(`[lesson-refresh] ${codes.join(',')}: ${r.daysChanged} open day(s) updated in ${r.journeys} roadmap(s), ${r.videosAdded} video(s) added`); })
+      .catch(err => console.error(`[lesson-refresh] ${codes.join(',')} failed:`, err?.message || err));
+  });
 }

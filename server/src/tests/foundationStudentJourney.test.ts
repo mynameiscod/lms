@@ -228,7 +228,7 @@ describe('an admin reading one member’s journey', () => {
 
     expect(out.status).toBe(200);
     expect(out.body.available).toBe(true);
-    expect(out.body.student).toEqual({ name: 'Asha K', email: 'asha@example.com', stage: 'foundation' });
+    expect(out.body.student).toEqual({ name: 'Asha K', email: 'asha@example.com', stage: 'foundation', careerTrack: null });
     expect(out.body.enrollmentId).toBe('enr1');
     expect(out.body.currentDay).toBe(6);
     expect(out.body.days).toHaveLength(90);

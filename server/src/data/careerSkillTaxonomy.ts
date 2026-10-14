@@ -198,6 +198,13 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'PYTHON_OOP', name: 'Python OOP', parentKey: 'PYTHON', difficulty: 'INTERMEDIATE', displayOrder: 50,
     description: 'Classes, objects and inheritance as expressed in Python.',
     prerequisiteKeys: ['PYTHON_FUNCTIONS', 'OOP_CONCEPTS'] },
+  // Career tracks (Python Full Stack + AI): the Python a full-stack developer writes, and Python reaching a database.
+  { key: 'PYTHON_ADVANCED', name: 'Modern Python', parentKey: 'PYTHON', difficulty: 'INTERMEDIATE', displayOrder: 70,
+    description: 'Comprehensions, generators, decorators, context managers, type hints, dataclasses and async/await.',
+    prerequisiteKeys: ['PYTHON_FUNCTIONS', 'PYTHON_COLLECTIONS'] },
+  { key: 'PYTHON_DB', name: 'Python & SQL Databases', parentKey: 'PYTHON', difficulty: 'INTERMEDIATE', displayOrder: 75,
+    description: 'The DB-API, parameterised queries, transactions and a data-access layer between Python and MySQL.',
+    prerequisiteKeys: ['PYTHON_ERROR_HANDLING', 'SQL_BASICS'] },
 
   SUB('JAVASCRIPT', 'JavaScript', 'PROGRAMMING', 40, 'The JavaScript language, in the browser and beyond.'),
   { key: 'JS_BASICS', name: 'JavaScript Basics', parentKey: 'JAVASCRIPT', difficulty: 'FOUNDATION', displayOrder: 10,

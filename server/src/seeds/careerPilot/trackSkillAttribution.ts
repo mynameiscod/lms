@@ -33,6 +33,7 @@ const TOPIC_DEFAULT: Record<string, string> = {
   JT_CODING_JAVA: 'DSA_ARRAYS',
   JT_MCQ_JAVA_SPRING: 'JAVA_BASICS',
   JT_PLACE_JAVA_FS: 'PLACEMENT_READINESS',
+  JT_PY_MYSQL: 'PYTHON_DB',
 };
 
 /** Units whose lesson is about one of the topic's other skills. */

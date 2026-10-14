@@ -34,6 +34,9 @@ import { TRACK_IV_FRONTEND_BUNDLES } from './trackContentIvFrontend';
 import { TRACK_IV_SQL_AI_BUNDLES } from './trackContentIvSqlAi';
 import { TRACK_CODING_JAVA_BUNDLES } from './trackContentCodingJava';
 import { TRACK_PLACE_JAVA_FS_BUNDLES } from './trackContentPlaceJavaFs';
+import { TRACK_PY_MODERN_BUNDLES } from './trackContentPyModern';
+import { TRACK_PY_TESTING_BUNDLES } from './trackContentPyTesting';
+import { TRACK_PY_MYSQL_BUNDLES } from './trackContentPyMysql';
 
 type Mcq = { question: string; options: { text: string; isCorrect: boolean }[] };
 
@@ -87,4 +90,7 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_IV_SQL_AI_BUNDLES,
   ...TRACK_CODING_JAVA_BUNDLES,
   ...TRACK_PLACE_JAVA_FS_BUNDLES,
+  ...TRACK_PY_MODERN_BUNDLES,
+  ...TRACK_PY_TESTING_BUNDLES,
+  ...TRACK_PY_MYSQL_BUNDLES,
 ].map(balanced);

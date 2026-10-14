@@ -108,6 +108,20 @@ export const PACKS: PackDefinition[] = [
     description: 'Technical, project and HR mocks, then the full six-round simulation and its debrief.',
     topics: [['T4_MOCK_TECHNICAL', 'MUST'], ['T4_MOCK_SPECIALIZATION', 'MUST'], ['T4_MOCK_HR', 'MUST'], ['T4_SIM_ROUNDS', 'MUST'],
       ['T4_SIM_DEBRIEF', 'MUST'], ['T4_VERIFY_GAPS', 'SHOULD']] },
+
+  /* ── Python Full Stack + AI, batch P1: Python (the years' Python reused, the gaps added) and DSA in Python ── */
+  { key: 'CORE_PYTHON', title: 'Core Python', kind: 'SKILL',
+    description: 'Python from the first variable — the years’ lessons — to OOP, modules, files and errors, then modern Python and pytest.',
+    topics: [['T_VARIABLES', 'MUST'], ['T_CONDITIONS', 'MUST'], ['T_LOOPS', 'MUST'], ['T_FUNCTIONS', 'MUST'], ['T_ARRAYS', 'MUST'],
+      ['T2_OOP_OBJECTS', 'MUST'], ['T2_OOP_PRINCIPLES', 'MUST'], ['T2_PY_STRUCTURE', 'MUST'], ['T2_PY_ROBUST', 'MUST'],
+      ['JT_PY_MODERN', 'MUST'], ['JT_PY_TESTING', 'MUST'], ['T3_ADV_OOP', 'SHOULD']] },
+  { key: 'DSA_PYTHON', title: 'DSA in Python', kind: 'SKILL',
+    description: 'The data structures and algorithms interviews ask, in Python — the years’ lessons, in order.',
+    topics: [['T2_DS_LINEAR', 'MUST'], ['T2_DS_KEYED', 'MUST'], ['T2_ALGORITHMS', 'MUST'], ['T2_DSA_INTERVIEW', 'MUST'],
+      ['T3_TREES_BST', 'MUST'], ['T3_GRAPHS', 'MUST'], ['T3_GREEDY_DP', 'MUST'], ['T3_HEAPS', 'SHOULD']] },
+  { key: 'PYTHON_DATA', title: 'Python and MySQL', kind: 'SKILL',
+    description: 'Python reaching MySQL directly — before the Django ORM does it for you.',
+    topics: [['JT_PY_MYSQL', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -117,4 +131,9 @@ export const TRACKS: TrackDefinition[] = [
     specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_JAVA', 'DSA_JAVA', 'MYSQL', 'JAVA_PERSISTENCE', 'SPRING_CORE', 'SPRING_BOOT', 'FULLSTACK_DEPLOY', 'GENAI_JAVA', 'AGENTIC_AI_JAVA', 'CAPSTONE_JAVA_AI'],
     placementPacks: ['PL_APTITUDE', 'PL_CODING_JAVA', 'PL_JAVA_INTERVIEW', 'PL_WEB_INTERVIEW', 'PL_AI_INTERVIEW', 'PL_CORE_CS',
       'PL_PROJECT_DESIGN', 'PL_JAVA_FS_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
+  { key: 'PY_FULLSTACK_AI', name: 'Python Full Stack + AI', language: 'Python', order: 20,
+    description: 'HTML, CSS, Bootstrap, JavaScript and React; Python, Django and Django REST Framework on MySQL; FastAPI and AI in Python built into your own app.',
+    /* Batches: P1 Python and DSA in Python (frontend packs shared with Java Full Stack); Django, AI and placement packs are appended as they land. */
+    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_PYTHON', 'DSA_PYTHON', 'MYSQL', 'PYTHON_DATA'],
+    placementPacks: [] },
 ];

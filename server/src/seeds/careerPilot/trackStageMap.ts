@@ -175,6 +175,22 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ PYTHON — what the years do not teach: modern Python, pytest, Python and MySQL ══════════════ */
+  {
+    moduleCode: 'JT_PYTHON',
+    moduleName: 'Python for the Full Stack',
+    displayOrder: 100,
+    blurb: 'Years 1–3 teach Python, OOP and DSA in Python; this adds modern Python, testing with pytest, and Python talking to MySQL.',
+    topics: [
+      t('JT_PY_MODERN', 'Modern and Pythonic Python', ['PYTHON_ADVANCED'],
+        ['Write idiomatic, typed Python: comprehensions, generators, decorators, context managers, dataclasses and async.']),
+      t('JT_PY_TESTING', 'Testing Python with pytest', ['AUTOMATED_TESTING'],
+        ['Test Python code with pytest: fixtures, parametrised tests, mocking and coverage.']),
+      t('JT_PY_MYSQL', 'Python and MySQL', ['PYTHON_DB', 'SQL_BASICS'],
+        ['Connect Python to MySQL, query safely with parameters, use transactions and keep SQL behind a data-access layer.']),
+    ],
+  },
+
   /* ══════════════ PLACEMENT — what a Java full-stack interview asks that Year 4 does not ══════════════ */
   {
     moduleCode: 'JT_PLACE',

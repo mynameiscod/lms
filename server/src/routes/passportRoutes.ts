@@ -12,6 +12,7 @@ import { roleGuard } from '../middleware/roleGuard';
 import { rateLimit } from '../middleware/rateLimit';
 import * as ctrl from '../controllers/passportController';
 import * as roadmapV2Admin from '../controllers/roadmapV2AdminController';
+import * as careerTrackAdmin from '../controllers/careerTrackAdminController';
 import * as assess from '../controllers/passportAssessmentController';
 import * as missions from '../controllers/passportMissionController';
 import * as roadmap from '../controllers/passportRoadmapController';
@@ -182,6 +183,17 @@ router.post('/admin/topic-priorities-draft',             MANAGE, roadmapV2Admin.
 router.get('/admin/students/:studentId/roadmap-rebuild',  MANAGE, roadmapV2Admin.previewRebuild);
 router.post('/admin/students/:studentId/roadmap-rebuild', MANAGE, roadmapV2Admin.applyRebuild);
 router.get('/admin/roadmap-rebuild',                      MANAGE, roadmapV2Admin.bulkRebuildStatus);
+// Career tracks (Year 3 and 4): tracks, their skill packs, coverage, and a student's track.
+router.get('/admin/career-tracks',                    MANAGE, careerTrackAdmin.listTracks);
+router.post('/admin/career-tracks',                   MANAGE, careerTrackAdmin.createTrack);
+router.put('/admin/career-tracks/:key',               MANAGE, careerTrackAdmin.updateTrack);
+router.delete('/admin/career-tracks/:key',            MANAGE, careerTrackAdmin.deleteTrack);
+router.post('/admin/skill-packs',                     MANAGE, careerTrackAdmin.savePack);
+router.put('/admin/skill-packs/:key',                 MANAGE, careerTrackAdmin.savePack);
+router.delete('/admin/skill-packs/:key',              MANAGE, careerTrackAdmin.deletePack);
+router.get('/admin/skill-packs/:key/coverage',        MANAGE, careerTrackAdmin.packCoverage);
+router.get('/admin/career-topics',                    MANAGE, careerTrackAdmin.searchTopics);
+router.put('/admin/students/:studentId/career-track', MANAGE, careerTrackAdmin.setStudentTrackAdmin);
 router.post('/admin/roadmap-rebuild',                     MANAGE, roadmapV2Admin.startBulkRebuildNow);
 
 // ── Mock interview plans: how many sittings a member gets and how each is composed,
@@ -748,6 +760,8 @@ router.put('/me/profile', MEMBER, ctrl.updateMyProfile);
 // act on the caller only; the student id comes from the token, never from the request.
 router.get('/me/context', MEMBER, careerContext.getMyCareerContext);
 router.put('/me/context', MEMBER, careerContext.updateMyCareerContext);
+router.get('/me/career-tracks', MEMBER, careerTrackAdmin.myTracks);
+router.put('/me/career-track',  MEMBER, careerTrackAdmin.pickMyTrack);
 router.post('/set-password', MEMBER, ctrl.setPassword);
 
 // Membership activation (₹499, reuses the Razorpay rail)

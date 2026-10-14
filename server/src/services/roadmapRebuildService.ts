@@ -13,6 +13,7 @@ import {
 import { moveFutureToV2 } from './foundationRecompositionService';
 import { programDaysFor } from './foundationProgramLengthService';
 import { resolveCurriculumEngine } from './curriculumEngineService';
+import { trackForStudent } from './careerTrackService';
 
 /**
  * Rebuild a student's roadmap as Roadmap V2 — the admin's "Rebuild roadmap" button.
@@ -106,6 +107,7 @@ export async function rebuildRoadmap(
     if (!opts.apply) {
       const { composition, v2 } = await composeFoundationJourney(tenantId, profile, {
         stageKey, programDays, source: 'PRODUCTION', studentId, roadmapV2: settings,
+        track: await trackForStudent(tenantId, studentId, stageKey),
       });
       if (!composition.ok || !v2) return { ok: false, reason: `V2 could not fill ${programDays} days for this member from the published curriculum.`, studentId, stageKey, mode: 'FULL', before };
       const days: RebuildDay[] = v2.days.map((day, i) => ({

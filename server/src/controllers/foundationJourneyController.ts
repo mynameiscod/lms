@@ -24,6 +24,8 @@
  */
 
 import { Request, Response } from 'express';
+import { trackForStudent } from '../services/careerTrackService';
+import { resolveRoadmapV2 } from '../data/roadmapV2Policy';
 import mongoose from 'mongoose';
 import LearningCurriculum from '../models/LearningCurriculum';
 import DayPlan from '../models/DayPlan';
@@ -425,10 +427,13 @@ export const getMyJourney = async (req: Request, res: Response) => {
            * The preview IS what membership will build — so for a learner on Roadmap V2 it is
            * composed by V2 (bridge, revision and all) and its days are V2's own.
            */
-          const v2Setting = await roadmapV2SettingFor(tenantId, String(studentId), stageKey || STAGE_FALLBACK);
+          let v2Setting = await roadmapV2SettingFor(tenantId, String(studentId), stageKey || STAGE_FALLBACK);
+          /* A student on a career track previews the track (always planned as V2). */
+          const track = await trackForStudent(tenantId, String(studentId), stageKey || STAGE_FALLBACK);
+          if (track && !v2Setting) v2Setting = { dailyMinutes: resolveRoadmapV2(null).dailyMinutes, revisionDays: resolveRoadmapV2(null).revisionDays };
           const { composition, v2 } = await composeFoundationJourney(tenantId, profile, {
             source: 'PRODUCTION', stageKey: stageKey || STAGE_FALLBACK, programDays,
-            roadmapV2: v2Setting, studentId: String(studentId),
+            roadmapV2: v2Setting, studentId: String(studentId), track,
           });
           if (v2Setting && v2) {
             const allDays = v2.days.map((day, i) => ({ day: i + 1, units: day.map(d => d.unit) }));

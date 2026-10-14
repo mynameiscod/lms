@@ -99,6 +99,9 @@ export async function composeTrackRoadmap(
         const drill = drillTier && t.priority !== 'OPTIONAL' && DRILLS.includes(u.unitType);
         mine.push({ ...item(u, 'YEAR', core ? 'ESSENTIAL' : drill ? 'DRILL' : TIER_OF[t.priority], isHeld), ...(drill ? { strength } : {}) });
       }
+      // A MUST topic is never empty: a learner who holds a topic made only of practice (Year 4's
+      // mocks) still gets its first unit, as the topic's core.
+      if (!mine.length && t.priority === 'MUST') mine.push(item(units[0], 'YEAR', 'ESSENTIAL', isHeld));
       if (drillTier) {
         // Ranked from the end of the topic, so an over-full year takes each topic's last first.
         // A project ranks after every lesson: the topic's proof is the last thing it gives up.

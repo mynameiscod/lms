@@ -13,6 +13,10 @@ import { TRACK_JAVA_OOP_BUNDLES } from './trackContentJavaOop';
 import { TRACK_JAVA_COLLECTIONS_BUNDLES } from './trackContentJavaCollections';
 import { TRACK_JAVA_CONCURRENCY_DSA_BUNDLES } from './trackContentJavaConcurrencyDsa';
 import { TRACK_JAVA_DSA_NONLINEAR_BUNDLES } from './trackContentJavaDsaNonlinear';
+import { TRACK_MYSQL_BUNDLES } from './trackContentMysql';
+import { TRACK_JDBC_BUNDLES } from './trackContentJdbc';
+import { TRACK_JPA_BUNDLES } from './trackContentJpa';
+import { TRACK_SPRING_CORE_BUNDLES } from './trackContentSpringCore';
 
 export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_BOOTSTRAP_BUNDLES,
@@ -24,4 +28,8 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_JAVA_COLLECTIONS_BUNDLES,
   ...TRACK_JAVA_CONCURRENCY_DSA_BUNDLES,
   ...TRACK_JAVA_DSA_NONLINEAR_BUNDLES,
+  ...TRACK_MYSQL_BUNDLES,
+  ...TRACK_JDBC_BUNDLES,
+  ...TRACK_JPA_BUNDLES,
+  ...TRACK_SPRING_CORE_BUNDLES,
 ];

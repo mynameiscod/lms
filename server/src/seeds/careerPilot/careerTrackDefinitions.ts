@@ -42,12 +42,24 @@ export const PACKS: PackDefinition[] = [
   { key: 'DSA_JAVA', title: 'DSA in Java', kind: 'SKILL',
     description: 'The data structures and algorithms interviews ask, solved in Java.',
     topics: [['JT_JAVA_DSA_LINEAR', 'MUST'], ['JT_JAVA_DSA_NONLINEAR', 'MUST']] },
+
+  /* ── Java Full Stack + AI, batch 3: MySQL, persistence and Spring core ── */
+  { key: 'MYSQL', title: 'MySQL', kind: 'SKILL',
+    description: 'SQL from the first SELECT to joins, design, transactions and indexes — and MySQL itself.',
+    topics: [['T_SQL', 'MUST'], ['T2_DB_QUERY', 'MUST'], ['T2_DB_DESIGN', 'MUST'], ['JT_MYSQL', 'MUST'],
+      ['T3_TRANSACTIONS_INTEGRITY', 'SHOULD'], ['T3_QUERY_PERF', 'SHOULD']] },
+  { key: 'JAVA_PERSISTENCE', title: 'JDBC and Hibernate/JPA', kind: 'SKILL',
+    description: 'Java talking to MySQL: JDBC first, then Hibernate and JPA.',
+    topics: [['JT_JDBC', 'MUST'], ['JT_JPA', 'MUST']] },
+  { key: 'SPRING_CORE', title: 'Spring Core', kind: 'SKILL',
+    description: 'Inversion of control, dependency injection, beans, configuration and AOP — what Spring Boot is built on.',
+    topics: [['JT_SPRING_CORE', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
   { key: 'JAVA_FULLSTACK_AI', name: 'Java Full Stack + AI', language: 'Java', order: 10,
     description: 'HTML, CSS, Bootstrap, JavaScript and React; Core Java, MySQL, Spring Boot; then generative and agentic AI built into your own app.',
-    /* Batch 1 is the frontend, batch 2 Java and DSA; MySQL, Spring Boot and AI packs are appended as their batches land. */
-    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_JAVA', 'DSA_JAVA'],
+    /* Batches: 1 frontend, 2 Java and DSA, 3 MySQL/persistence/Spring core; Spring Boot and AI packs are appended as they land. */
+    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_JAVA', 'DSA_JAVA', 'MYSQL', 'JAVA_PERSISTENCE', 'SPRING_CORE'],
     placementPacks: [] },
 ];

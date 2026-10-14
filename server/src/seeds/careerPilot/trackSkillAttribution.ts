@@ -15,6 +15,7 @@ const TOPIC_DEFAULT: Record<string, string> = {
   JT_JAVA_BASICS: 'JAVA_BASICS',
   JT_JAVA_DSA_LINEAR: 'DSA_ARRAYS',
   JT_JAVA_DSA_NONLINEAR: 'DSA_TREES',
+  JT_MYSQL: 'SQL_BASICS',
 };
 
 /** Units whose lesson is about one of the topic's other skills. */
@@ -41,6 +42,8 @@ const OVERRIDES: Record<string, string> = {
   JT_JAVA_DSA_NONLINEAR_SHORTEST_PATH: 'DSA_GRAPHS',
   JT_JAVA_DSA_NONLINEAR_GREEDY: 'DSA_GREEDY',
   JT_JAVA_DSA_NONLINEAR_DYNAMIC_PROGRAMMING: 'DSA_DP',
+  JT_MYSQL_SETUP_WORKBENCH: 'DB_FUNDAMENTALS',
+  JT_MYSQL_CONSTRAINTS_INNODB: 'DB_FUNDAMENTALS',
 };
 
 export function primarySkillFor(unitCode: string, topicCode: string): string {

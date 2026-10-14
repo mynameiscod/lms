@@ -146,6 +146,16 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'JAVA_STREAMS', name: 'Java Lambdas & Streams', parentKey: 'JAVA', difficulty: 'INTERMEDIATE', displayOrder: 75,
     description: 'Lambdas, functional interfaces, the Stream API, collectors and Optional — modern Java as interviews ask it.',
     prerequisiteKeys: ['JAVA_COLLECTIONS'] },
+  // Career tracks (Java Full Stack + AI): Java talking to a database, and the Spring container.
+  { key: 'JDBC', name: 'JDBC', parentKey: 'JAVA', difficulty: 'INTERMEDIATE', displayOrder: 90,
+    description: 'Connections, PreparedStatement, result sets, transactions and pools — Java talking to a database directly.',
+    prerequisiteKeys: ['JAVA_EXCEPTIONS', 'SQL_BASICS'] },
+  { key: 'JPA_HIBERNATE', name: 'JPA & Hibernate', parentKey: 'JAVA', difficulty: 'ADVANCED', displayOrder: 95,
+    description: 'Entities, mappings, relationships, JPQL, fetching and the persistence context — and the N+1 problem.',
+    prerequisiteKeys: ['JDBC', 'DB_DESIGN'] },
+  { key: 'SPRING_CORE', name: 'Spring Core', parentKey: 'JAVA', difficulty: 'INTERMEDIATE', displayOrder: 100,
+    description: 'Inversion of control, dependency injection, beans and scopes, configuration and the proxies behind AOP.',
+    prerequisiteKeys: ['JAVA_OOP'] },
 
   SUB('PYTHON', 'Python', 'PROGRAMMING', 30, 'The Python language and its standard library.'),
   { key: 'PYTHON_BASICS', name: 'Python Basics', parentKey: 'PYTHON', difficulty: 'FOUNDATION', displayOrder: 10,

@@ -116,6 +116,24 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
         ['Solve tree, heap, graph, greedy and dynamic-programming problems in Java.']),
     ],
   },
+
+  /* ══════════════ DATA AND SPRING — MySQL, JDBC, JPA and the Spring container ══════════════ */
+  {
+    moduleCode: 'JT_DATA_SPRING',
+    moduleName: 'MySQL, Persistence and Spring',
+    displayOrder: 60,
+    blurb: 'The years teach SQL; this adds MySQL itself, Java talking to it through JDBC and JPA, and the Spring container.',
+    topics: [
+      t('JT_MYSQL', 'MySQL in Practice', ['DB_FUNDAMENTALS', 'SQL_BASICS'],
+        ['Install and work in MySQL 8: types, constraints, InnoDB, scripts, dumps, views and procedures.']),
+      t('JT_JDBC', 'JDBC: Java Talking to MySQL', ['JDBC'],
+        ['Connect Java to MySQL with JDBC, query safely with PreparedStatement, manage transactions and pool connections.']),
+      t('JT_JPA', 'Hibernate and JPA', ['JPA_HIBERNATE'],
+        ['Map classes to tables with JPA, model relationships, query with JPQL and avoid the N+1 problem.']),
+      t('JT_SPRING_CORE', 'Spring Core', ['SPRING_CORE'],
+        ['Explain and use inversion of control, dependency injection, bean scopes, configuration and AOP proxies.']),
+    ],
+  },
 ];
 
 /** Every skill the track content names — the seeder refuses to import if one is not in the taxonomy. */

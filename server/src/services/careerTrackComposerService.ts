@@ -67,12 +67,13 @@ export async function composeTrackRoadmap(
    * proof (checkpoint, project), not the drills; `full` gives them the drills back when the year
    * has days to spare. In a MUST topic the first class and every checkpoint are never given up.
    */
-  const topicItems = (topics: { topicCode: string; priority: TrackPriority }[], full: boolean): Item[] => {
+  const topicItems = (topics: { topicCode: string; priority: TrackPriority }[], drilled: Set<string> | 'ALL'): Item[] => {
     const out: Item[] = [];
     for (const t of topics) {
       const units = unitsOf.get(t.topicCode) || [];
       if (!units.length) continue;
       const isHeld = held(units);
+      const full = drilled === 'ALL' || drilled.has(t.topicCode);
       let firstClass = true;
       for (const u of units) {
         const isClass = u.unitType === 'CONCEPT';
@@ -84,11 +85,32 @@ export async function composeTrackRoadmap(
     }
     return out;
   };
+  /** The learner's weakest measured score on a topic's skills (null when none is measured). */
+  const scoreOf = (topicCode: string): number => {
+    const scores = topicSkills(unitsOf.get(topicCode) || []).map(k => profile.skills.get(k)?.score).filter((x): x is number => typeof x === 'number');
+    return scores.length ? Math.min(...scores) : 0;
+  };
+  /** Enough for the days: at least a unit a day, and about half the study time the days hold. */
+  const enough = (items: Item[], n: number) => slotsOf(items, fitOpts) >= n
+    && items.reduce((s, i) => s + (Number(i.unit.estimatedMinutes) || 0), 0) >= n * opts.dailyMinutes * 0.5;
 
-  /* Fill `n` days from topics: as this learner needs them, and with every drill when days are left. */
+  /*
+   * Fill `n` days from topics, as this learner needs them. When the days have room left, a topic
+   * they already hold gets its drills back — their WEAKEST held topics first, one topic at a time,
+   * until the year is full. So a strong learner's year is drill on what they are least sure of and
+   * class-and-proof on what they plainly know: never everybody's identical year.
+   */
   const fitTopics = (topics: { topicCode: string; priority: TrackPriority }[], n: number, label: string) => {
-    let items = topicItems(topics, false);
-    if (slotsOf(items, fitOpts) < n) items = topicItems(topics, true);
+    const drilled = new Set<string>();
+    let items = topicItems(topics, drilled);
+    const heldTopics = topics.filter(t => held(unitsOf.get(t.topicCode) || [])).map(t => t.topicCode)
+      .sort((a, b) => scoreOf(a) - scoreOf(b));
+    for (const code of heldTopics) {
+      if (enough(items, n)) break;
+      drilled.add(code);
+      items = topicItems(topics, drilled);
+    }
+    if (slotsOf(items, fitOpts) < n) items = topicItems(topics, 'ALL');
     if (slotsOf(items, fitOpts) < n) {
       return { error: `${label} has lessons for ${slotsOf(items, fitOpts)} day(s) but needs ${n}. Add content to its packs, or lower the days.` };
     }

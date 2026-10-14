@@ -1,3 +1,4 @@
+import type { CareerPilotFeatureKey } from '../../config/studentFeatureCatalog';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { DashboardData, MemberSection } from '../../api/passportApi';
@@ -232,6 +233,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
    * moment an admin changed anything.
    */
   const lockedSet = new Set((d?.locked || []).map(l => l.section));
+  const hiddenSet = new Set(d?.hidden || []);
 
   /**
    * The way out of the locks, in the rail that shows them.
@@ -254,7 +256,9 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
    * and it also makes the product look smaller than it is. It still navigates, because the
    * destination now explains itself rather than dead-ending.
    */
-  const navBtn = (label: string, icon: string, to: string, section?: MemberSection) => {
+  const navBtn = (label: string, icon: string, to: string, section?: MemberSection, feature?: CareerPilotFeatureKey) => {
+    // Switched off by the institute's admin (Student Features, CareerPilot tab): not shown at all.
+    if (feature && hiddenSet.has(feature)) return null;
     const locked = !!section && lockedSet.has(section);
     /**
      * Home prefixes every other destination, so it alone must match exactly; everything else
@@ -352,25 +356,25 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
             appearing in those moments looks like the navigation has been renamed. Ninety is the
             default programme length, so the fallback is what it always was.
           */}
-          {navBtn(`My ${data?.programDays || 90} Days`, 'grid', '/careerpilot/plan', 'roadmap')}
-          {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap')}
-          {navBtn('Practice', 'code', '/careerpilot/practice', 'practice')}
-          {navBtn('Coding Sets', 'code', '/careerpilot/coding', 'coding')}
-          {navBtn('Playground', 'terminal', '/careerpilot/playground', 'playground')}
+          {navBtn(`My ${data?.programDays || 90} Days`, 'grid', '/careerpilot/plan', 'roadmap', 'plan')}
+          {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap', 'roadmap', 'roadmap')}
+          {navBtn('Practice', 'code', '/careerpilot/practice', 'practice', 'practice')}
+          {navBtn('Coding Sets', 'code', '/careerpilot/coding', 'coding', 'coding')}
+          {navBtn('Playground', 'terminal', '/careerpilot/playground', 'playground', 'playground')}
           {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer')}
-          {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'practice')}
-          {navBtn('Communication Lab', 'speech', '/careerpilot/communication', 'communication')}
-          {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview')}
-          {navBtn('Interview Experiences', 'interview', '/careerpilot/interview-experiences', 'experiences')}
-          {navBtn('Question Books', 'resume', '/careerpilot/question-books', 'questionBooks')}
-          {navBtn('AI Mentor', 'robot', '/careerpilot/mentor', 'mentor')}
-          {navBtn('Opportunities', 'building', '/careerpilot/companies', 'companies')}
+          {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'practice', 'thinkingLab')}
+          {navBtn('Communication Lab', 'speech', '/careerpilot/communication', 'communication', 'communication')}
+          {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview', 'interview')}
+          {navBtn('Interview Experiences', 'interview', '/careerpilot/interview-experiences', 'experiences', 'experiences')}
+          {navBtn('Question Books', 'resume', '/careerpilot/question-books', 'questionBooks', 'questionBooks')}
+          {navBtn('AI Mentor', 'robot', '/careerpilot/mentor', 'mentor', 'mentor')}
+          {navBtn('Opportunities', 'building', '/careerpilot/companies', 'companies', 'companies')}
           {/* Sits with Opportunities because it answers the same question — what is happening in
               the industry I am applying to. It was reachable only from the user menu, which is
               where people look for their account, not for a daily read. */}
-          {navBtn('Tech News', 'news', '/careerpilot/news', 'news')}
-          {navBtn('Resume', 'resume', '/careerpilot/resume', 'resume')}
-          {navBtn('My Progress', 'trophy', '/careerpilot/progress', 'progress')}
+          {navBtn('Tech News', 'news', '/careerpilot/news', 'news', 'news')}
+          {navBtn('Resume', 'resume', '/careerpilot/resume', 'resume', 'resume')}
+          {navBtn('My Progress', 'trophy', '/careerpilot/progress', 'progress', 'progress')}
         </nav>
 
         {lockedSet.size > 0 && (

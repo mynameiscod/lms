@@ -3,6 +3,8 @@ import { onboardTenant } from '../services/tenantOnboardingService';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import { TenantService } from '../services/tenantService';
 import Tenant, { IStudentFeatures, ITenantModules } from '../models/Tenant';
+import { STUDENT_FEATURE_KEYS, allOn } from '../data/studentFeatureKeys';
+import { careerPilotFeatures as readCareerPilotFeatures, saveCareerPilotFeatures } from '../services/careerPilotFeatureService';
 import { effectiveModules, ALL_MODULES } from '../config/tenantModules';
 import { invalidateModuleCache } from '../middleware/moduleGate';
 
@@ -174,34 +176,7 @@ export const getStudentFeatures = async (
       });
     }
 
-    const defaults: IStudentFeatures = {
-      dashboard: true,
-      myCourse: true,
-      topicHub: true,
-      attendance: true,
-      quizzes: true,
-      assignments: true,
-      mockInterviews: true,
-      codingSnippets: true,
-      classHub: true,
-      feeDetails: true,
-      scheduledInterviews: true,
-      resumeBuilder: true,
-      learningPlan: true,
-      thinkingLab: true,
-      speakingPractice: true,
-      jobTracker: true,
-      aiMentor: true,
-      projectBuilder: true,
-      resourceLibrary: true,
-      codePlayground: true,
-      careerProfile: true,
-      aiCommunicationLab: true,
-      liveClasses: true,
-      collegePortal: true,
-      myApplications: true,
-      alumniDirectory: true
-    };
+    const defaults = allOn(STUDENT_FEATURE_KEYS);
 
     const featureData = { ...defaults, ...(tenant.studentFeatures || {}) };
     res.status(200).json({
@@ -226,12 +201,7 @@ export const updateStudentFeatures = async (
     const { tenantId } = req.params;
     const features = req.body as Partial<IStudentFeatures>;
 
-    const allowedKeys: (keyof IStudentFeatures)[] = [
-      'dashboard', 'myCourse', 'topicHub', 'attendance', 'quizzes', 'assignments', 'mockInterviews',
-      'codingSnippets', 'classHub', 'feeDetails', 'scheduledInterviews', 'resumeBuilder', 'learningPlan',
-      'thinkingLab', 'speakingPractice', 'jobTracker', 'aiMentor', 'projectBuilder', 'resourceLibrary', 'codePlayground', 'careerProfile', 'aiCommunicationLab',
-      'liveClasses', 'collegePortal', 'myApplications', 'alumniDirectory'
-    ];
+    const allowedKeys = STUDENT_FEATURE_KEYS as readonly (keyof IStudentFeatures)[];
     const updateObj: Record<string, boolean> = {};
     for (const key of allowedKeys) {
       if (typeof features[key] === 'boolean') {
@@ -323,6 +293,21 @@ export const updateTenantModules = async (
     }
     invalidateModuleCache(String(tenantId));
     res.status(200).json({ success: true, message: 'Tenant modules updated', data: effectiveModules((tenant as any).toObject ? (tenant as any).toObject().modules : (tenant as any).modules) });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message, error: error.message });
+  }
+};
+export const getCareerPilotFeatures = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    res.status(200).json({ success: true, message: 'CareerPilot features fetched', data: await readCareerPilotFeatures(req.params.tenantId) });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message, error: error.message });
+  }
+};
+
+export const updateCareerPilotFeatures = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    res.status(200).json({ success: true, message: 'CareerPilot features updated', data: await saveCareerPilotFeatures(req.params.tenantId, req.body || {}) });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message, error: error.message });
   }

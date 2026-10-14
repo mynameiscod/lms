@@ -303,3 +303,15 @@
   cursor: not-allowed;
   opacity: 0.5;
 }
+
+/* Audience tabs: LMS students / CareerPilot students */
+.sf-tabs { display: flex; gap: 6px; border-bottom: 1px solid #e2e8f0; margin: 14px 0 10px; }
+.sf-tab { border: 0; background: none; padding: 10px 16px; font-size: 15px; font-weight: 700; color: #64748b; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; display: inline-flex; align-items: center; gap: 7px; }
+.sf-tab.on { color: #1d4ed8; border-bottom-color: #2563eb; }
+.sf-dot { width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; display: inline-block; }
+.sf-audience { color: #475569; font-size: 13.5px; margin: 0 0 12px; max-width: 880px; }
+.sf-bulk { display: flex; align-items: center; gap: 8px; color: #94a3b8; font-size: 13px; margin: 4px 0 2px; }
+.sf-link { border: 0; background: none; color: #2563eb; font-weight: 700; cursor: pointer; padding: 0; font-size: 13px; }
+.sf-hint { color: #64748b; font-size: 12.5px; margin-left: 8px; }
+.sf-saved-msg.sf-err { color: #b91c1c; }
+.sf-group-title { font-size: 14px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: .05em; margin: 22px 0 10px; }

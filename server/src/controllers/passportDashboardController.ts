@@ -8,6 +8,7 @@ import PassportResume from '../models/PassportResume';
 import TechBattle from '../models/TechBattle';
 import { membershipActive, entitlementMap } from '../services/passportEntitlementService';
 import { lockedSections, lockedSectionViews } from '../data/memberAccessPolicy';
+import { hiddenCareerPilotFeatures } from '../services/careerPilotFeatureService';
 import { ensureContent, poolMapOf, dayNumber, ymd, clampSlots } from '../services/passportMissionService';
 import { awardCoins, getAccount } from '../services/coinService';
 import { getOrCreateProgress } from '../services/passportXpService';
@@ -153,6 +154,7 @@ export const getDashboard = async (req: Request, res: Response) => {
         passwordSet: !!user?.passport?.passwordSet,
         entitled,
         locked,
+        hidden: await hiddenCareerPilotFeatures(tenantId),
       });
     }
 
@@ -213,6 +215,7 @@ export const getDashboard = async (req: Request, res: Response) => {
         passwordSet: !!user?.passport?.passwordSet,
         entitled,
         locked,
+        hidden: await hiddenCareerPilotFeatures(tenantId),
       });
     }
 
@@ -386,6 +389,8 @@ export const getDashboard = async (req: Request, res: Response) => {
       // Empty for a paying member at default settings, but not necessarily: a tenant may sell
       // tiers, and the client draws its locks from this either way.
       locked,
+      // Parts of the menu the institute's admin has switched off for CareerPilot students.
+      hidden: await hiddenCareerPilotFeatures(tenantId),
     });
   } catch (e: any) {
     console.error('[passport] getDashboard:', e);

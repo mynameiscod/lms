@@ -315,6 +315,23 @@ const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
   'STUDENT': ['enroll_courses', 'submit_assignments', 'view_quiz', 'take_interviews', 'view_snippets', 'attempt_interviews'],
 };
 
+/**
+ * Which student page belongs to which feature switch (Student Features page, "LMS students" tab).
+ * A student who types the address of a page the admin has switched off is sent back to the
+ * dashboard, exactly as the menu hides it.
+ */
+const STUDENT_PAGE_FEATURES: [string, keyof StudentFeatures][] = [
+  ['/my-tasks', 'myTasks'], ['/my-leave', 'applyLeave'], ['/interview-experiences', 'interviewExperiences'], ['/question-books', 'questionBooks'],
+  ['/drives', 'drives'], ['/my-practice', 'myPractice'], ['/coding-practice', 'codingPractice'], ['/visualizer', 'codeVisualizer'],
+  ['/my-interviews', 'scheduledInterviews'], ['/quizzes', 'quizzes'], ['/assignments', 'assignments'], ['/coding-snippets', 'codingSnippets'],
+  ['/my-attendance', 'attendance'], ['/playground', 'codePlayground'], ['/project-builder', 'projectBuilder'], ['/job-tracker', 'jobTracker'],
+  ['/ai-mentor', 'aiMentor'], ['/resource-library', 'resourceLibrary'], ['/ai-communication-lab', 'aiCommunicationLab'], ['/thinking-lab', 'thinkingLab'],
+  ['/resume-builder', 'resumeBuilder'], ['/career-profile', 'careerProfile'], ['/hms-classes', 'liveClasses'], ['/my-learning', 'learningPlan'],
+  ['/speaking-practice', 'speakingPractice'],
+];
+const featureForStudentPath = (pathname: string) =>
+  STUDENT_PAGE_FEATURES.find(([p]) => pathname === p || pathname.startsWith(`${p}/`))?.[1];
+
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRoles,
@@ -322,6 +339,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { isAuthenticated, loading, user } = useAuth();
   const { pathname } = useLocation();
+  const { isFeatureEnabled: studentFeatureOn } = useStudentFeatures();
 
   if (loading) return <Spinner fullScreen />;
 
@@ -331,6 +349,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // re-runs) and a session expiring mid-visit. `replace` so the back button does not
     // return to a page they are no longer allowed to see.
     return <Navigate to={loginPathFor(pathname)} replace />;
+  }
+
+  if (user?.role === 'STUDENT') {
+    const feature = featureForStudentPath(pathname);
+    if (feature && !studentFeatureOn(feature)) return <Navigate to="/dashboard" replace />;
   }
 
   // A page that names its own permissions opens for anyone holding one of them — the same keys

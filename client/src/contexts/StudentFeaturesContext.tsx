@@ -29,6 +29,14 @@ export interface StudentFeatures {
   collegePortal: boolean;
   myApplications: boolean;
   alumniDirectory: boolean;
+  myTasks: boolean;
+  applyLeave: boolean;
+  interviewExperiences: boolean;
+  questionBooks: boolean;
+  drives: boolean;
+  myPractice: boolean;
+  codingPractice: boolean;
+  codeVisualizer: boolean;
 }
 
 const DEFAULT_FEATURES: StudentFeatures = {
@@ -58,6 +66,14 @@ const DEFAULT_FEATURES: StudentFeatures = {
   collegePortal: true,
   myApplications: true,
   alumniDirectory: true,
+  myTasks: true,
+  applyLeave: true,
+  interviewExperiences: true,
+  questionBooks: true,
+  drives: true,
+  myPractice: true,
+  codingPractice: true,
+  codeVisualizer: true,
 };
 
 interface StudentFeaturesContextType {

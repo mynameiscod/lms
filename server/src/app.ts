@@ -8,6 +8,7 @@ import path from 'path';
 
 import apiRoutes from './routes';
 import mcpRouter from './mcp/router';
+import mcpOAuthRoutes from './mcp/oauthRoutes';
 import { jsonExceptImports } from './routes/problemBankRoutes';
 import { ApiResponse } from './types';
 import { processDueMessages } from './services/whatsAppDripService';
@@ -190,6 +191,7 @@ app.get(['/api/health', '/api/health/ready'], (_req: Request, res: Response<ApiR
 
 // MCP uses the same LMS authentication and tenant resolver; read-only and disabled until permissions granted.
 app.use('/mcp', mcpRouter);
+app.use('/mcp-oauth', mcpOAuthRoutes);
 
 // API Routes - BEFORE static files and catch-all
 app.use('/api/v1', apiRoutes);

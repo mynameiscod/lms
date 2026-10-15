@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { careerTrackApi, MyTracks } from '../../api/passportApi';
+import { toast } from '../../components/feedback/appFeedback';
 import './careerTrackPicker.css';
 
 /**
@@ -27,7 +28,9 @@ const CareerTrackPicker: React.FC<{ onPicked?: () => void }> = ({ onPicked }) =>
       if (!r.ok) { setMsg({ ok: false, text: r.message || 'Your track was not saved.' }); return; }
       setData({ ...data, current: key });
       setOpen(false);
-      setMsg({ ok: true, text: r.rebuilt ? 'Your roadmap has been rebuilt for this track.' : 'Saved. Your roadmap follows this track.' });
+      // A toast, not the inline message: onPicked reloads the page around this picker, which
+      // would wipe an inline confirmation before anyone read it.
+      toast(r.rebuilt ? 'Your roadmap has been rebuilt for this track.' : 'Saved. Your roadmap follows this track.');
       onPicked?.();
     } catch {
       setMsg({ ok: false, text: 'Your track was not saved. Please try again.' });

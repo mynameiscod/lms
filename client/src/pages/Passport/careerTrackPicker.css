@@ -9,14 +9,14 @@
 .ctp-current button, .ctp-cancel { border: 1px solid #c9d6e4; background: #fff; color: #051D64; border-radius: 10px; padding: 7px 14px; font-weight: 700; font-size: 13px; cursor: pointer; }
 .ctp-hd b { display: block; color: #051D64; font-size: 16px; }
 .ctp-hd span { display: block; font-size: 13px; color: #55657e; margin-top: 3px; }
-.ctp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 12px; }
+.ctp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; margin-top: 12px; }
 .ctp-card { text-align: left; display: flex; flex-direction: column; gap: 4px; border: 1px solid #dfe8f2; background: #fff; border-radius: 14px; padding: 12px 14px; cursor: pointer; min-width: 0; }
 .ctp-card:hover:not(:disabled) { border-color: #359AAD; box-shadow: 0 0 0 2px rgba(53, 154, 173, .15); }
 .ctp-card.on { border-color: #359AAD; background: #eef8fa; }
 .ctp-card b { color: #051D64; font-size: 14.5px; }
 .ctp-lang { font-size: 12px; font-weight: 800; color: #359AAD; }
-.ctp-desc { font-size: 12.5px; color: #55657e; overflow-wrap: anywhere; }
-.ctp-go { margin-top: 6px; align-self: flex-start; font-size: 12.5px; font-weight: 800; color: #fff; background: #051D64; border-radius: 8px; padding: 5px 12px; }
+.ctp-desc { margin-bottom: 6px; font-size: 12.5px; color: #55657e; overflow-wrap: anywhere; }
+.ctp-go { margin-top: auto;  align-self: flex-start; font-size: 12.5px; font-weight: 800; color: #fff; background: #051D64; border-radius: 8px; padding: 5px 12px; }
 .ctp-card.on .ctp-go { background: #359AAD; }
 .ctp-cancel { margin-top: 10px; }
 .ctp-msg { margin: 10px 0 0; font-size: 13px; padding: 8px 10px; border-radius: 10px; }

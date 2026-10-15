@@ -90,8 +90,9 @@ case "${1:-help}" in
     ;;
   up)
     docker_ready
+    require curl
     initialize
-    if command -v ss >/dev/null && [[ -z "$("${COMPOSE[@]}" ps -q app)" ]] &&
+    if command -v ss >/dev/null && [[ -z "$("${COMPOSE[@]}" ps -q proxy)" ]] &&
        ss -H -ltn 'sport = :5010' | grep -q .; then
       fail 'Port 5010 is already in use; no existing service will be replaced.'
     fi
@@ -100,6 +101,9 @@ case "${1:-help}" in
     "${COMPOSE[@]}" up -d --wait --wait-timeout 120 mongo
     "${COMPOSE[@]}" run --rm --no-deps prepare
     "${COMPOSE[@]}" up -d --wait --wait-timeout 120 app
+    "${COMPOSE[@]}" up -d --wait --wait-timeout 120 proxy
+    curl --fail --silent --show-error --max-time 15 -H 'Host: mcp-test.codebegun.com' -H 'X-Forwarded-Proto: https' \
+      http://127.0.0.1:5010/.well-known/oauth-authorization-server --output /dev/null
     smoke
     printf '%s\n' 'Test stack ready at 127.0.0.1:5010. Configure the separate TLS site next.' \
       "Synthetic account password is stored only at $PRIVATE/test-password."
@@ -125,7 +129,7 @@ case "${1:-help}" in
     ;;
   stop)
     docker_ready
-    "${COMPOSE[@]}" stop app mongo
+    "${COMPOSE[@]}" stop proxy app mongo
     ;;
   nginx-http) install_nginx http ;;
   nginx-tls) install_nginx https ;;

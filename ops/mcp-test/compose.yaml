@@ -50,11 +50,34 @@ services:
 
   app:
     <<: *app
-    ports: [127.0.0.1:5010:5000]
     secrets: [mongo_app_password, oauth_clients]
     restart: unless-stopped
     healthcheck:
       test: [CMD, node, -e, 'fetch("http://127.0.0.1:5000/healthz").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  # Docker does not publish ports for a service attached only to an internal
+  # network. This fixed TCP bridge exposes ingress without giving the app an
+  # outbound route or mounting any credentials in the bridge.
+  proxy:
+    image: haproxy:3.0-alpine
+    user: '65534:65534'
+    command: [haproxy, -W, -db, -f, /usr/local/etc/haproxy/haproxy.cfg]
+    ports: [127.0.0.1:5010:8080]
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks: [isolated, ingress]
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 32
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, haproxy, -c, -f, /usr/local/etc/haproxy/haproxy.cfg]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -74,6 +97,7 @@ services:
 networks:
   isolated:
     internal: true
+  ingress:
 
 volumes:
   mongo-data:

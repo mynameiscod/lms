@@ -8,8 +8,8 @@ The test image compiles the server with the committed root workspace lockfile an
 
 - Separate Compose project: `codebegun-mcp-test`; separate MongoDB volume and internal network.
 - MongoDB 7.0.24 with authentication and a single-member test replica set; no published database port.
-- Only the test HTTP port is bound: `127.0.0.1:5010`. Existing ports 5001/5002/8000 are not used.
-- Runtime caps: 1 GiB RAM and one CPU each for the application and database. The image build needs additional temporary capacity; run outside busy exam periods.
+- A credential-free TCP bridge publishes only the test HTTP port: `127.0.0.1:5010`. Existing ports 5001/5002/8000 are not used.
+- Runtime caps: 1 GiB RAM and one CPU each for the application and database, plus 128 MiB and 0.25 CPU for the TCP bridge. The image build needs additional temporary capacity; run outside busy exam periods.
 - The non-root app has a read-only filesystem, no Linux capabilities and no outbound network route. It has no API keys for real integrations.
 - The database app account can read only the fixture LMS collections and operate on MCP state. Audit insertion/reading is allowed; audit update/delete and LMS writes are denied. Migration credentials are mounted only in preparation/verification jobs.
 - Two synthetic tenants, with explicit tenant-owned MCP roles, each contain an admin, instructor, staff member and two students. Synthetic attendance, exams, fees, placements, leads and call records contain no real personal data.
@@ -19,7 +19,7 @@ A single-member test replica set provides transaction support, not high availabi
 
 ## 1. Start and verify the private test stack
 
-Prerequisites: Docker Engine, Docker Compose v2 with `up --wait` (v2.20+), Bash and OpenSSL. Port 5010 must be free. DNS `mcp-test.codebegun.com` should point to the VPS IPv4 used by `platform.codebegun.com`.
+Prerequisites: Docker Engine, Docker Compose v2 with `up --wait` (v2.20+), Bash, curl and OpenSSL. Port 5010 must be free. DNS `mcp-test.codebegun.com` should point to the VPS IPv4 used by `platform.codebegun.com`.
 
 From the separate checkout containing this package:
 
@@ -28,7 +28,7 @@ cd /root/lms-mcp-test
 bash scripts/mcp-test.sh up
 ```
 
-The command generates separate secrets, builds the image, starts the private MongoDB, initializes its replica set, seeds synthetic records, prepares MCP indexes, starts the app, and runs actual HTTP and database checks. It never sources an existing `.env` or uses the production Compose file. The setup refuses to run from the live LMS checkout and refuses to replace another service on port 5010.
+The command generates separate secrets, builds the image, starts the private MongoDB, initializes its replica set, seeds synthetic records, prepares MCP indexes, starts the app and its fixed TCP ingress bridge, and runs actual HTTP and database checks. It never sources an existing `.env` or uses the production Compose file. The setup refuses to run from the live LMS checkout and refuses to replace another service on port 5010.
 
 Successful output includes `PASS` for discovery, LMS password login, explicit consent, PKCE, all 15 tools, student and tenant isolation, refresh rotation/replay, revocation, token hashing and database privileges. The checks revoke their grants and never print tokens or passwords. Repeat preparation preserves existing records and generated secrets. It refuses to seed an unmarked non-empty database.
 
@@ -48,14 +48,14 @@ bash scripts/mcp-test.sh nginx-http
 Use the existing Certbot installation to request **only this hostname**. Certbot may ask for account details/terms; complete those yourself. Do not run Certbot standalone, which would need port 80 stopped, or replace the platform certificate.
 
 ```bash
-certbot certonly --webroot -w /var/www/codebegun-mcp-test -d mcp-test.codebegun.com
+certbot certonly --webroot -w /var/www/codebegun-mcp-test -d mcp-test.codebegun.com --deploy-hook 'nginx -t && nginx -s reload'
 bash scripts/mcp-test.sh nginx-tls
 bash scripts/mcp-test.sh public
 ```
 
 If Certbot is not installed, finish installing/configuring the server's normal ACME tooling first. Confirm ports 80/443 are already reachable; do not expose 5010 or MongoDB publicly. Keep the server's existing certificate-renewal timer; verify it includes this webroot certificate and reloads Nginx after renewal.
 
-The public smoke command validates the actual certificate, hostname, Nginx routing and OAuth flow over HTTPS. It is a short-lived verification container using the host network and only the synthetic account password. The application and database remain on their internal network. A passing local Docker check alone does not prove public DNS/TLS reachability.
+The public smoke command validates the actual certificate, hostname, Nginx routing and OAuth flow over HTTPS. It is a short-lived verification container using the host network and only the synthetic account password. The application and database remain on their internal network. The ingress bridge has a separate external bridge network but accepts only fixed TCP forwarding to the test app; it has no credentials and does not modify HTTP headers. A passing local Docker check alone does not prove public DNS/TLS reachability.
 
 Nginx overwrites forwarded headers, preserves the canonical Host, disables caching, and disables access/error request logging for this test vhost to keep OAuth queries and credentials out of logs. The application retains durable security audit records in its isolated database.
 
@@ -93,7 +93,7 @@ bash scripts/mcp-test.sh smoke
 bash scripts/mcp-test.sh stop
 ```
 
-`stop` stops only the two test services and preserves test data/secrets. A failed setup can be rerun after fixing the reported cause. Do not delete secrets while keeping the database volume: database credentials must continue to match. Never use a production Compose file, run a broad Docker prune, or copy production `.env`/uploads/database backups into this test stack.
+`stop` stops only the three test services and preserves test data/secrets. A failed setup can be rerun after fixing the reported cause. Do not delete secrets while keeping the database volume: database credentials must continue to match. Never use a production Compose file, run a broad Docker prune, or copy production `.env`/uploads/database backups into this test stack.
 
 For diagnostics use the test application logs only: `docker compose --env-file /dev/null -p codebegun-mcp-test -f ops/mcp-test/compose.yaml logs --tail=80 app`. Do not post full Docker inspections, database records or secret files.
 

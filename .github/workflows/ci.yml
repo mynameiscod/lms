@@ -136,9 +136,11 @@ jobs:
           set -euo pipefail
           compose=(docker compose --env-file /dev/null -p codebegun-mcp-test -f ops/mcp-test/compose.yaml)
           app="$("${compose[@]}" ps -q app)"
+          proxy="$("${compose[@]}" ps -q proxy)"
           mongo="$("${compose[@]}" ps -q mongo)"
           test "$(docker network inspect codebegun-mcp-test_isolated --format '{{.Internal}}')" = true
-          test "$(docker port "$app" 5000)" = 127.0.0.1:5010
+          test "$(docker port "$proxy" 8080)" = 127.0.0.1:5010
+          test -z "$(docker port "$app")"
           test -z "$(docker port "$mongo")"
           test "$(docker inspect "$app" --format '{{.HostConfig.ReadonlyRootfs}}')" = true
           test "$(docker inspect "$app" --format '{{.HostConfig.Memory}}')" = 1073741824
@@ -150,16 +152,24 @@ jobs:
           bash scripts/mcp-test.sh restart
           docker compose --env-file /dev/null -p codebegun-mcp-test -f ops/mcp-test/compose.yaml up -d --wait --wait-timeout 60 app
           bash scripts/mcp-test.sh smoke
-      - name: Validate the separate Nginx TLS site
+      - name: Validate Nginx and the complete HTTPS flow through the TCP bridge
         shell: bash
         run: |
           set -euo pipefail
           cert_dir="$(mktemp -d)"
-          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=mcp-test.codebegun.com -keyout "$cert_dir/privkey.pem" -out "$cert_dir/fullchain.pem" 2>/dev/null
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=mcp-test.codebegun.com -addext subjectAltName=DNS:mcp-test.codebegun.com -keyout "$cert_dir/privkey.pem" -out "$cert_dir/fullchain.pem" 2>/dev/null
           docker run --rm --network none -v "$PWD/ops/mcp-test/nginx-https.conf:/etc/nginx/conf.d/default.conf:ro" -v "$cert_dir:/etc/letsencrypt/live/mcp-test.codebegun.com:ro" nginx:1.28-alpine nginx -t
+          docker run -d --name mcp-staging-tls-verifier --network host -v "$PWD/ops/mcp-test/nginx-https.conf:/etc/nginx/conf.d/default.conf:ro" -v "$cert_dir:/etc/letsencrypt/live/mcp-test.codebegun.com:ro" nginx:1.28-alpine
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent --cacert "$cert_dir/fullchain.pem" --resolve mcp-test.codebegun.com:443:127.0.0.1 https://mcp-test.codebegun.com/healthz >/dev/null; then break; fi
+            sleep 1
+          done
+          docker run --rm --network host --read-only --cap-drop ALL --security-opt no-new-privileges:true --add-host mcp-test.codebegun.com:127.0.0.1 -e NODE_EXTRA_CA_CERTS=/tmp/staging-ca.pem -v "$cert_dir/fullchain.pem:/tmp/staging-ca.pem:ro" -v "$PWD/ops/mcp-test/private/test-password:/run/secrets/test_password:ro" codebegun-mcp-test:local node ops/mcp-test/smoke.cjs --public
       - name: Clean up disposable CI containers and data
         if: always()
-        run: docker compose --env-file /dev/null -p codebegun-mcp-test -f ops/mcp-test/compose.yaml down --volumes --remove-orphans
+        run: |
+          docker rm -f mcp-staging-tls-verifier 2>/dev/null || true
+          docker compose --env-file /dev/null -p codebegun-mcp-test -f ops/mcp-test/compose.yaml down --volumes --remove-orphans
 
   # ── client ────────────────────────────────────────────────────────────────
   client:

@@ -1,6 +1,7 @@
 'use strict';
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
+const http = require('node:http');
 const settings = require('./settings.cjs');
 const publicMode = process.argv.includes('--public');
 const base = publicMode ? settings.issuer : 'http://app:5000';
@@ -12,13 +13,36 @@ const tokens = new Set();
 let checks = 0;
 function check(value, message) { assert.ok(value, message); checks++; }
 async function request(path, options = {}) {
-  const headers = publicMode ? {} : { Host: 'mcp-test.codebegun.com', 'X-Forwarded-Proto': 'https' };
-  const r = await fetch(base + path, { ...options, redirect: 'manual',
-    headers: { ...headers, ...options.headers }, signal: AbortSignal.timeout(20000) });
-  const text = await r.text();
+  let status, headers, text;
+  if (publicMode) {
+    const response = await fetch(base + path, { ...options, redirect: 'manual', signal: AbortSignal.timeout(20000) });
+    status = response.status;
+    headers = response.headers;
+    text = await response.text();
+  } else {
+    // Node's fetch ignores a custom Host header. Use the native HTTP client to
+    // reproduce the canonical Host and HTTPS forwarding supplied by Nginx.
+    const response = await new Promise((resolve, reject) => {
+      const req = http.request(base + path, { ...options, timeout: 20000,
+        headers: { Host: 'mcp-test.codebegun.com', 'X-Forwarded-Proto': 'https', ...options.headers } }, res => {
+        const chunks = [];
+        res.on('data', chunk => chunks.push(chunk));
+        res.on('error', reject);
+        res.on('end', () => resolve({ status: res.statusCode, text: Buffer.concat(chunks).toString('utf8'),
+          headers: { get: name => {
+            const value = res.headers[name.toLowerCase()];
+            return Array.isArray(value) ? value.join(', ') : value || null;
+          }, getSetCookie: () => res.headers['set-cookie'] || [] } }));
+      });
+      req.on('error', reject);
+      req.on('timeout', () => req.destroy(new Error('Staging request timed out')));
+      req.end(options.body);
+    });
+    ({ status, headers, text } = response);
+  }
   let json;
   try { json = JSON.parse(text); } catch { /* Consent pages are HTML. */ }
-  return { status: r.status, headers: r.headers, text, json };
+  return { status, headers, text, json };
 }
 const form = (path, fields, headers = {}) => request(path, {
   method: 'POST', headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -70,7 +94,7 @@ const revoke = token => form('/mcp-oauth/revoke', { token, client_id: clientId }
 
 async function main() {
   const metadata = await request('/.well-known/oauth-authorization-server');
-  check(metadata.status === 200 && metadata.json?.issuer === settings.issuer, 'Issuer discovery failed');
+  check(metadata.status === 200 && metadata.json?.issuer === settings.issuer, 'Issuer discovery failed (HTTP ' + metadata.status + ')');
   check(metadata.json?.code_challenge_methods_supported?.includes('S256'), 'PKCE metadata missing');
   for (const path of ['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp']) {
     const r = await request(path);

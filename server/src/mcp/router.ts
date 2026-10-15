@@ -2,6 +2,7 @@ import express, { Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../types';
 import { authMiddleware } from '../middleware/auth';
+import { mcpOAuthAuth } from './oauthAuth';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { permissionsOf } from '../middleware/roleGuard';
 import OutperoCall from '../models/OutperoCall';
@@ -28,7 +29,11 @@ router.use((req, res, next) => {
   }
   next();
 });
-router.use(authMiddleware, tenantResolver);
+router.use((req, res, next) => {
+  if (process.env.MCP_AUTH_MODE === 'oauth') return mcpOAuthAuth(req as AuthenticatedRequest, res, next);
+  return authMiddleware(req as AuthenticatedRequest, res, next);
+});
+router.use(tenantResolver);
 const PROTOCOL = '2025-03-26';
 const tools = [
   { name: 'codebegun_call_summary', description: 'Summarize authorized Outpero call outcomes', inputSchema: { type: 'object', properties: { days: { type: 'integer', minimum: 1, maximum: 90 } }, additionalProperties: false }, permission: 'mcp_calls_read' },

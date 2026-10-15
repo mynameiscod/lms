@@ -1,5 +1,6 @@
 import request from 'supertest';
 import express from 'express';
+jest.mock('../models/McpAuditEvent', () => ({ __esModule: true, default: { create: jest.fn().mockResolvedValue({}) } }));
 import mcpRouter from '../mcp/router';
 
 jest.mock('../middleware/auth', () => ({

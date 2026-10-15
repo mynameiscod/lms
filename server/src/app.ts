@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 import apiRoutes from './routes';
+import mcpRouter from './mcp/router';
 import { jsonExceptImports } from './routes/problemBankRoutes';
 import { ApiResponse } from './types';
 import { processDueMessages } from './services/whatsAppDripService';
@@ -186,6 +187,9 @@ app.get(['/api/health', '/api/health/ready'], (_req: Request, res: Response<ApiR
  *
  * Nothing in the product called it. securityHardening.test.ts asserts it stays gone.
  */
+
+// MCP uses the same LMS authentication and tenant resolver; read-only and disabled until permissions granted.
+app.use('/mcp', mcpRouter);
 
 // API Routes - BEFORE static files and catch-all
 app.use('/api/v1', apiRoutes);

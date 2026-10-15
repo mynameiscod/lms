@@ -1,4 +1,5 @@
 import express from 'express';
+import { validRegisteredClient } from './oauthPolicy';
 import McpOAuthCode from '../models/McpOAuthCode';
 import McpOAuthAccessToken from '../models/McpOAuthAccessToken';
 import { registeredRedirect, verifyPkceS256, tokenDigest, generateOpaqueToken } from './oauthSecurity';
@@ -20,6 +21,7 @@ router.post('/token', async (req, res) => {
   if (typeof code !== 'string' || code.length < 40 || typeof clientId !== 'string' || typeof redirectUri !== 'string') {
     return res.status(400).json({ error: 'invalid_request' });
   }
+  if (!validRegisteredClient(clientId)) return res.status(400).json({ error: 'invalid_client' });
   try {
     const codeHash = tokenDigest(code);
     const authCode = await McpOAuthCode.findOne({ codeHash, clientId, redirectUri, consumedAt: { $exists: false }, expiresAt: { $gt: new Date() } });

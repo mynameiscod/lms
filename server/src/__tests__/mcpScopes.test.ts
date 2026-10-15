@@ -12,6 +12,7 @@ const mockExamAggregate = jest.fn();
 const mockFeeAggregate = jest.fn();
 const mockUserCount = jest.fn();
 const mockCallAggregate = jest.fn();
+const mockAuditCreate = jest.fn();
 
 jest.mock('../middleware/auth', () => ({
   authMiddleware: (req: any, _res: any, next: any) => { req.user = { ...mockIdentity }; next(); }
@@ -41,6 +42,11 @@ jest.mock('../models/OutperoCall', () => ({
 }));
 jest.mock('../models/Lead', () => ({ __esModule: true, default: { aggregate: jest.fn() } }));
 
+jest.mock('../models/McpAuditEvent', () => ({
+  __esModule: true,
+  default: { create: (...args: any[]) => mockAuditCreate(...args) }
+}));
+
 import mcpRouter from '../mcp/router';
 const app = express();
 app.use(express.json());
@@ -51,6 +57,7 @@ const invoke = (name: string, args: object = {}) => request(app).post('/mcp')
 describe('MCP domain permission and tenant scoping', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAuditCreate.mockResolvedValue({});
     mockIdentity.role = 'INSTRUCTOR';
     mockPermissions.mockResolvedValue(['mcp_connect', 'mcp_attendance_read', 'mcp_assessments_read', 'mcp_students_read']);
     mockBatches.mockResolvedValue([BATCH_ID]);

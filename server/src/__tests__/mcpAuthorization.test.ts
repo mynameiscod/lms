@@ -23,6 +23,22 @@ app.use(express.json());
 app.use('/mcp', mcpRouter);
 
 describe('MCP authorization', () => {
+  test('production transport is unavailable unless explicitly enabled', async () => {
+    const priorNodeEnv = process.env.NODE_ENV;
+    const priorEnabled = process.env.MCP_INTERNAL_ENABLED;
+    try {
+      process.env.NODE_ENV = 'production';
+      delete process.env.MCP_INTERNAL_ENABLED;
+      const r = await request(app).post('/mcp').send({ jsonrpc: '2.0', id: 7, method: 'initialize' });
+      expect(r.status).toBe(404);
+    } finally {
+      if (priorNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = priorNodeEnv;
+      if (priorEnabled === undefined) delete process.env.MCP_INTERNAL_ENABLED;
+      else process.env.MCP_INTERNAL_ENABLED = priorEnabled;
+    }
+  });
+
   test('denies initialize without mcp_connect', async () => {
     const r = await request(app).post('/mcp').send({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} });
     expect(r.body.error.code).toBe(-32003);

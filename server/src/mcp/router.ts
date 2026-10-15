@@ -20,6 +20,14 @@ import McpAuditEvent from '../models/McpAuditEvent';
  * OAuth discovery, PKCE, audience validation and token revocation are implemented.
  */
 const router = express.Router();
+// Keep the experimental LMS-JWT transport inaccessible in production.
+// A ChatGPT connector must use a separately implemented, validated OAuth flow.
+router.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && process.env.MCP_INTERNAL_ENABLED !== 'true') {
+    return res.status(404).json({ message: 'Not found' });
+  }
+  next();
+});
 router.use(authMiddleware, tenantResolver);
 const PROTOCOL = '2025-03-26';
 const tools = [

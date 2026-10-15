@@ -85,6 +85,9 @@
 .fjm .fj-act-icon.t-notes, .fjm .fj-act-icon.t-worked_example { background: #E6F4F7; color: #1B7D91; box-shadow: inset 0 0 0 1px #C5E4EA; }
 .fjm .fj-act-icon.t-practice_theory, .fjm .fj-act-icon.t-practice_coding { background: #FFF4E0; color: #B86B00; box-shadow: inset 0 0 0 1px #F6DDB0; }
 .fjm .fj-act-icon.t-quiz { background: #EAF1FB; color: #051D64; box-shadow: inset 0 0 0 1px #D3E1F2; }
+.fjm .fj-act-icon.t-image { background: #FFF4E5; color: #B26A00; }
+.fjm .fj-act-icon.t-checklist { background: #EDF3FF; color: #2D5BB9; }
+.fjm .fj-act-icon.t-recording { background: #FFF0F0; color: #C93737; }
 .fjm .fj-act-icon.t-assignment { background: #EAF8F1; color: #17885D; box-shadow: inset 0 0 0 1px #C8EAD9; }
 .fjm .fj-acts li.done .fj-act-icon { background: #EAF8F1; color: #17885D; box-shadow: inset 0 0 0 1px #C8EAD9; }
 .fjm .fj-act-body { flex: 1; min-width: 0; }

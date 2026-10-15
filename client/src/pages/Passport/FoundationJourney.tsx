@@ -31,7 +31,6 @@ import passportApi, {
   OrientationView,
 } from '../../api/passportApi';
 import SectionLock, { useUnlock } from './SectionLock';
-import { OrientationDayPanel } from './Orientation';
 import { dayState, dayRanges, initialDay, STATE_LABEL } from './foundationRoadmapPresenter';
 import RoadmapPhaseBands from './RoadmapPhaseBands';
 import './foundationJourney.css';
@@ -77,6 +76,14 @@ const ICON_FILLED: Record<string, string> = {
 
 const mins = (n: number) =>
   (n >= 60 ? `${Math.floor(n / 60)}h${n % 60 ? ` ${n % 60}m` : ''}` : `${n} min`);
+
+/** A welcome-day task, as it is listed on the plan (the same glyphs the welcome day page uses). */
+const WELCOME_ICON: Record<string, string> = {
+  video: 'bi-play-fill', notes: 'bi-journal-text', image: 'bi-image-fill', checklist: 'bi-check2-square', recording: 'bi-mic-fill',
+};
+const WELCOME_LABEL: Record<string, string> = {
+  video: 'Video', notes: 'Notes', image: 'Image', checklist: 'Checklist', recording: 'Recording',
+};
 
 /**
  * THE DAYS, AS A STRIP YOU STEP THROUGH — NOT ONE YOU SCROLL.
@@ -928,35 +935,71 @@ const FoundationJourneyPage: React.FC = () => {
 
       <section className="fj-day" aria-live="polite">
         {/*
-          * A WELCOME DAY, READ WHERE THE LEARNING DAYS ARE READ.
+          * A WELCOME DAY, SHOWN THE WAY A LEARNING DAY IS.
           *
-          * Same panel, same place on the page, so the plan reads as one sequence: 0.1 through 0.5
-          * and then Day 1. Finishing one opens the next — the gate is the server's, exactly as it
-          * is for a learning day, and a locked chip cannot be clicked to get here.
+          * The plan is an overview: a learning day shows what it holds and opens on its own page
+          * to be worked through, and a welcome day does the same — its tasks are listed here, and
+          * the videos, recordings and checklist are done on the welcome day page
+          * (/careerpilot/journey/welcome/:day), which finishes the day and moves on. The gate is
+          * the server's either way, and a locked chip cannot be clicked to get here.
           *
           * Rendered instead of the learning day rather than beside it, because exactly one of the
           * two is ever open.
           */}
-        {openOrientationDay !== null && welcomeDay && (
-          <OrientationDayPanel
-            key={welcomeDay.dayNumber}
-            day={welcomeDay}
-            nextDay={(orientation?.days || []).find(d => d.dayNumber > welcomeDay.dayNumber) || null}
-            onChanged={setOrientation}
-            onFinished={({ nextDay, complete }) => {
-              /*
-               * ONLY A FINISHED WELCOME OPENS DAY 1.
-               *
-               * A paced member who finishes today's welcome day has no next day to open, because
-               * the next one is tomorrow. Treating that as "the welcome is over" sent them to
-               * Day 1 — a day the server refuses, since the welcome is not done. They stay on the
-               * day they just finished, where the panel says when the next one arrives.
-               */
-              if (complete) { load(); selectDay(currentDay); return; }
-              if (nextDay) selectOrientationDay(nextDay);
-            }}
-          />
-        )}
+        {openOrientationDay !== null && welcomeDay && (() => {
+          const wd = welcomeDay;
+          const doneCount = wd.items.filter(i => i.done).length;
+          const finished = !!wd.done || (wd.items.length > 0 && doneCount === wd.items.length);
+          const isToday = welcomeOutstanding?.dayNumber === wd.dayNumber;
+          const minutes = wd.minutes ?? wd.items.reduce((s, i) => s + (i.estimatedMinutes || 0), 0);
+          return (
+            <>
+              <div className="fj-day-head">
+                <div>
+                  <span className={`fj-status s-${finished ? 'completed' : isToday ? 'current' : 'upcoming'}`}>
+                    {finished ? 'Completed' : isToday ? 'Today' : 'Upcoming'}
+                  </span>
+                  <h2>Day {wd.day} · {wd.title}</h2>
+                  {wd.blurb && <p className="fj-objective">{wd.blurb}</p>}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+                  {minutes > 0 && <span className="fj-mins">{mins(minutes)}</span>}
+                  {!wd.locked && (
+                    <button
+                      type="button"
+                      className={`fj-start${finished ? ' ghost' : ''}`}
+                      onClick={() => nav(`/careerpilot/journey/welcome/${wd.dayNumber}`)}
+                    >
+                      {finished ? 'Review this day' : isToday ? "Start today's welcome" : 'Open this day'}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {wd.items.length === 0 ? (
+                <p className="fj-empty">This day is still being prepared. It will appear here before you reach it.</p>
+              ) : (
+                <ol className="fj-acts">
+                  {wd.items.map(it => (
+                    <li key={it.key} className={`${it.required ? 'gating' : ''}${it.done ? ' done' : ''}`}>
+                      <span className={`fj-act-icon t-${it.kind}`}>
+                        <i className={`bi ${WELCOME_ICON[it.kind] || 'bi-journal-text'}`} aria-hidden />
+                      </span>
+                      <span className="fj-act-body">
+                        <b>{it.title}</b>
+                        <small>
+                          {WELCOME_LABEL[it.kind] || it.kind}
+                          {it.estimatedMinutes > 0 && <> · {mins(it.estimatedMinutes)}</>}
+                          {it.required ? <> · must be completed</> : <> · optional</>}
+                        </small>
+                      </span>
+                      <span className={`fjm-check${it.done ? ' on' : ''}`} aria-label={it.done ? 'Done' : 'Not done yet'}>{it.done && <i className="bi bi-check-lg" />}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </>
+          );
+        })()}
 
         {openOrientationDay === null && dayLoading && <div className="fj-skeleton">Loading day…</div>}
 

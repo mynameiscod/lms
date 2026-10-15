@@ -30,6 +30,9 @@ const issuer = 'https://lms.example';
 const resource = `${issuer}/mcp`;
 const redirect = 'https://assistant.example/callback';
 const clientId = 'integration-client';
+const secondClientId = 'second-client';
+const confidentialId = 'confidential-client';
+const clientSecret = 'test-only-confidential-secret-' + 'x'.repeat(32);
 const scopes = Object.keys(SCOPE_LABELS).join(' ');
 const verifier = 'test-verifier-' + 'a'.repeat(43);
 const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
@@ -90,8 +93,12 @@ beforeAll(async () => {
   process.env.MCP_ISSUER_URL = issuer;
   process.env.MCP_RESOURCE_URL = resource;
   delete process.env.MCP_ALLOWED_ORIGINS;
-  process.env.MCP_OAUTH_CLIENTS = JSON.stringify([{ id: clientId, name: 'Integration Assistant', applicationType: 'web',
-    redirectUris: [redirect], scopes: Object.keys(SCOPE_LABELS), tokenEndpointAuthMethod: 'none' }]);
+  const registration = { name: 'Integration Assistant', applicationType: 'web',
+    redirectUris: [redirect], scopes: Object.keys(SCOPE_LABELS), tokenEndpointAuthMethod: 'none' };
+  process.env.MCP_OAUTH_CLIENTS = JSON.stringify([
+    { ...registration, id: clientId }, { ...registration, id: secondClientId },
+    { ...registration, id: confidentialId, tokenEndpointAuthMethod: 'client_secret_basic', secretHash: tokenDigest(clientSecret) },
+  ]);
   hashedPassword = await bcrypt.hash(password, 10);
   mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 }, binary: { version: '7.0.24' } });
   await mongoose.connect(mongo.getUri());
@@ -225,6 +232,39 @@ describe('OAuth HTTP flow with real transactional MongoDB', () => {
     expect((await exchange(code, { client_id: 'unknown-client' })).status).toBe(401);
     expect((await exchange(code)).status).toBe(200);
   });
+  test('a different registered client cannot exchange, refresh or revoke another client grant', async () => {
+    const code = await codeFor();
+    expect((await exchange(code, { client_id: secondClientId })).status).toBe(400);
+    const first = await exchange(code);
+    expect(first.status).toBe(200);
+    expect((await refresh(first.body.refresh_token, { client_id: secondClientId })).status).toBe(400);
+    expect((await request(app).post('/mcp-oauth/revoke').type('form').send({ client_id: secondClientId, token: first.body.refresh_token })).status).toBe(200);
+    expect((await call(first.body.access_token, 'codebegun_student_count')).status).toBe(200);
+    expect((await refresh(first.body.refresh_token)).status).toBe(200);
+  });
+  test('confidential code, refresh and revocation endpoints require Basic authentication in addition to PKCE', async () => {
+    const code = await codeFor('admin@example.test', { client_id: confidentialId });
+    expect((await exchange(code, { client_id: confidentialId })).status).toBe(401);
+    const authenticate = (path: string, body: any, secret = clientSecret) => request(app).post(path)
+      .auth(confidentialId, secret).type('form').send(body);
+    const body = { grant_type: 'authorization_code', code, redirect_uri: redirect, code_verifier: verifier, resource };
+    expect((await authenticate('/mcp-oauth/token', body, 'incorrect-secret')).status).toBe(401);
+    const first = await authenticate('/mcp-oauth/token', body);
+    expect(first.status).toBe(200);
+    expect((await refresh(first.body.refresh_token, { client_id: confidentialId })).status).toBe(401);
+    const second = await authenticate('/mcp-oauth/token', { grant_type: 'refresh_token', refresh_token: first.body.refresh_token, resource });
+    expect(second.status).toBe(200);
+    expect((await request(app).post('/mcp-oauth/revoke').type('form').send({ client_id: confidentialId, token: second.body.refresh_token })).status).toBe(401);
+    expect((await authenticate('/mcp-oauth/revoke', { token: second.body.refresh_token })).status).toBe(200);
+    expect((await call(second.body.access_token, 'codebegun_student_count')).status).toBe(401);
+  });
+  test('simultaneous code redemption detects replay and revokes the winning grant', async () => {
+    const code = await codeFor();
+    const responses = await Promise.all([exchange(code), exchange(code)]);
+    expect(responses.map(r => r.status).sort()).toEqual([200, 400]);
+    const winner = responses.find(r => r.status === 200)!;
+    expect((await call(winner.body.access_token, 'codebegun_student_count')).status).toBe(401);
+  });
   test('expired codes are denied', async () => {
     const code = await codeFor();
     await Code.updateMany({}, { $set: { expiresAt: new Date(0) } });
@@ -285,6 +325,30 @@ describe('OAuth HTTP flow with real transactional MongoDB', () => {
     expect((await revoke('unknown')).status).toBe(200);
     expect((await call(token.access_token, 'codebegun_student_count')).status).toBe(401);
     expect((await refresh(token.refresh_token)).status).toBe(400);
+  });
+  test('concurrent revocation and refresh cannot leave a usable descendant', async () => {
+    const first = await tokenFor();
+    const [rotated, revoked] = await Promise.all([
+      refresh(first.refresh_token),
+      request(app).post('/mcp-oauth/revoke').type('form').send({ client_id: clientId, token: first.refresh_token }),
+    ]);
+    expect(revoked.status).toBe(200);
+    expect([200, 400]).toContain(rotated.status);
+    expect((await call(first.access_token, 'codebegun_student_count')).status).toBe(401);
+    if (rotated.status === 200) {
+      expect((await call(rotated.body.access_token, 'codebegun_student_count')).status).toBe(401);
+      expect((await refresh(rotated.body.refresh_token)).status).toBe(400);
+    }
+  });
+  test.each(['user', 'tenant', 'password', 'grant expiry', 'connect permission'])('refresh checks current %s state', async change => {
+    const first = await tokenFor();
+    if (change === 'user') await User.updateOne({ _id: admin }, { $set: { isActive: false } });
+    if (change === 'tenant') await Tenant.updateOne({ _id: tenantA }, { $set: { isActive: false } });
+    if (change === 'password') await User.collection.updateOne({ _id: admin }, { $set: { password: 'changed-hash' } });
+    if (change === 'grant expiry') await Grant.updateMany({}, { $set: { expiresAt: new Date(0) } });
+    if (change === 'connect permission') await Role.updateOne({ _id: roleA }, { $pull: { permissions: 'mcp_connect' } });
+    expect((await refresh(first.refresh_token)).status).toBe(400);
+    expect(await Access.countDocuments()).toBe(1);
   });
   test('connection management disconnects only the signed-in user grants', async () => {
     const token = await tokenFor();

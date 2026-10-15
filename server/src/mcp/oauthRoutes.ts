@@ -17,6 +17,10 @@ const esc = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, c => ({ 
 const field = (name: string, value: string) => `<input type="hidden" name="${name}" value="${esc(value)}">`;
 const cookieName = () => mcpConfig().secure ? '__Secure-codebegun-mcp' : 'codebegun-mcp';
 const cookieOptions = () => ({ httpOnly: true, secure: mcpConfig().secure, sameSite: 'lax' as const, path: '/mcp-oauth', maxAge: 10 * 60 * 1000 });
+function clearSessionCookie(res: Response) {
+  const { maxAge, ...options } = cookieOptions();
+  res.clearCookie(cookieName(), options);
+}
 
 function page(res: Response, title: string, content: string, status = 200) {
   return res.status(status).type('html').send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} | CodeBegun</title><style>body{margin:0;background:#f4f7fb;font:16px/1.6 system-ui;color:#16233e}main{max-width:560px;margin:6vh auto;padding:32px;background:white;border-radius:16px;box-shadow:0 12px 40px #051d6414}h1{color:#051d64;font-size:26px}label{display:block;margin:14px 0}input{box-sizing:border-box;width:100%;padding:12px;border:1px solid #9cacbd;border-radius:6px;font:inherit}button{padding:12px 20px;margin:12px 8px 0 0;background:#051d64;color:white;border:0;border-radius:6px;font:inherit;cursor:pointer}button.secondary{background:#e8edf4;color:#051d64}.brand{color:#339aad;font-weight:700}.error{color:#a32121}article{border-top:1px solid #dae1eb;padding:16px 0}small{overflow-wrap:anywhere}@media(max-width:640px){main{margin:16px;padding:24px}}</style></head><body><main><div class="brand">CodeBegun</div><h1>${esc(title)}</h1>${content}</main></body></html>`);
@@ -153,7 +157,7 @@ oauthRouter.post('/consent', endpoint('oauth_consent', async (req, res) => {
     }
     return issueCode(params, client, identity, session);
   });
-  res.clearCookie(cookieName(), cookieOptions());
+  clearSessionCookie(res);
   return res.redirect(303, location);
 }));
 
@@ -200,7 +204,7 @@ oauthRouter.post('/logout', endpoint('oauth_logout', async (req, res) => {
   scalarParameters(req.body, ['csrf']);
   const browser = await browserSession(req);
   await McpOAuthSession.deleteOne({ _id: browser._id, tokenHash: browser.tokenHash });
-  res.clearCookie(cookieName(), cookieOptions());
+  clearSessionCookie(res);
   return page(res, 'Signed out', '<p>You have signed out of connection management.</p>');
 }));
 export default oauthRouter;

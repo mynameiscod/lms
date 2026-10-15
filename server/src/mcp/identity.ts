@@ -16,7 +16,9 @@ export async function identityFor(userId: any, tenantId: any, session?: ClientSe
   // Do not use permissionsOf's legacy fallback for missing/deleted custom roles.
   const role = user.customRoleId && await Role.findOne({ _id: user.customRoleId, tenantId }).session(session || null).lean();
   if (user.customRoleId && !role) throw new McpError('insufficient_scope', 403);
-  const permissions: string[] = role ? role.permissions : ROLE_PERMISSIONS[user.role] || [];
+  // The LMS Super Admin default includes the entire permission catalog. MCP is
+  // opt-in: only an explicitly assigned, tenant-owned role may grant MCP keys.
+  const permissions: string[] = role ? role.permissions : (ROLE_PERMISSIONS[user.role] || []).filter(p => !p.startsWith('mcp_'));
   if (!permissions.includes('mcp_connect') || user.role === 'GUEST') throw new McpError('insufficient_scope', 403);
   const credentialVersion = tokenDigest(user.password);
   delete user.password;

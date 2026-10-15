@@ -41,6 +41,19 @@ const ThemeCtx = createContext<Theme>(THEMES.lms);
 const useT = () => useContext(ThemeCtx);
 const fz = (t: Theme, n: number) => Math.round(n * t.scale * 10) / 10;
 
+/**
+ * One constraint per line. AI-generated problems answer with a list, and the server used to store it
+ * through String(list), which joins with bare commas: "1 <= N <= 10^5,Array elements range…". Newer
+ * rows keep one per line; this also splits those older rows — only at a comma with no space after it
+ * that starts a new sentence or a new bound ("…10^5,Array", "…N,1 <= K"), so "1, 2" or "1,000" stay whole.
+ */
+const constraintLines = (c: unknown): string[] => {
+  const parts = Array.isArray(c) ? c.map(x => String(x)) : String(c ?? '').split(/\r?\n/);
+  return parts
+    .flatMap(line => line.split(/,(?=[A-Z]|-?\d+(?:\^\d+)?\s*(?:<=?|\u2264))/))
+    .map(x => x.trim())
+    .filter(Boolean);
+};
 const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
 const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
@@ -343,7 +356,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
             {/* Left: problem */}
             <div style={card}>
               <SectionH>Problem</SectionH>
-              <div style={{ fontSize: fz(t, 14.5), color: t.ink, lineHeight: 1.6, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{p.statement}</div>
+              <div className="tl-statement" style={{ fontSize: fz(t, 14.5), color: t.ink, lineHeight: 1.6, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{p.statement}</div>
               {p.imageUrl && <img src={p.imageUrl} alt="problem" style={{ maxWidth: '100%', borderRadius: 10, marginTop: 12, border: `1px solid ${t.line}` }} />}
               {p.examples?.length > 0 && (
                 <div style={{ marginTop: 14 }}>
@@ -357,7 +370,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
                   ))}
                 </div>
               )}
-              {p.constraints && <div style={{ marginTop: 12 }}><SectionH>Constraints</SectionH><pre style={{ ...pre, color: '#475569' }}>{p.constraints}</pre></div>}
+              {p.constraints && <div style={{ marginTop: 12 }}><SectionH>Constraints</SectionH><ul className="tl-constraints" style={{ ...pre, color: '#475569', listStyle: 'none', padding: 0 }}>{constraintLines(p.constraints).map((c, i) => <li key={i} style={{ margin: '0 0 3px' }}>{c}</li>)}</ul></div>}
               {p.notes && <div style={{ marginTop: 12, fontSize: fz(t, 13), color: t.sub }}>{p.notes}</div>}
             </div>
 

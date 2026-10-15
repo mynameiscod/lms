@@ -16,6 +16,8 @@
 .tl-actions .tl-submit { margin-left: auto; }
 .tl-stats { display: flex; gap: 10px; flex-wrap: wrap; }
 .tl-root pre { overflow-x: auto; }
+/* A readable measure for the problem text when the panel is wide (the CareerPilot page fills the screen). */
+.tl-statement { max-width: 80ch; }
 
 /* Inside the CareerPilot member shell the shell already pads the page. */
 .cb-member-thinking .tl-root { padding: 4px 0 24px; max-width: 1240px; }

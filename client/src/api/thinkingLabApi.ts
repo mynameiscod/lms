@@ -10,7 +10,7 @@ const authHeader = () => {
 export interface TLProblem {
   id: string; title: string; category: string; difficulty: string; language: string;
   statement: string; examples: { input: string; expectedOutput: string; explanation?: string }[];
-  constraints?: string; notes?: string; starterCode?: string; xp: number; estimatedMinutes?: number;
+  constraints?: string | string[]; notes?: string; starterCode?: string; xp: number; estimatedMinutes?: number;
   totalHints: number; hints: string[]; expectedTimeComplexity?: string; expectedSpaceComplexity?: string;
   imageUrl?: string; videoUrl?: string; referenceVideo?: string;
 }

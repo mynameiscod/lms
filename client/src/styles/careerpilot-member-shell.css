@@ -436,3 +436,77 @@
 @media (min-width: 981px) {
   #root .gd::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 264px; background: #061e66; pointer-events: none; }
 }
+
+/* ── ONE PAGE WIDTH ─────────────────────────────────────────────────────────────────────────
+   Every CareerPilot page used to cap its own width (Thinking Lab 1240px, Interview Experiences
+   and Question Books 1280px, Practice 1100–1440px, most others 1760px — some zoomed 1.12 on
+   top), each centred with margin:auto. Under #root's zoom .75 those caps drew as cards of
+   930–1520 real pixels floating in a 1677px column at 1920, each a different width, none lined
+   up with the top bar.
+
+   Now there is one rule. The page box (.cb-member-page) is the column between the rail and the
+   right edge, minus .gd-main's own padding — the same edges as the top bar's contents — and
+   every page's own root fills it. Only on very wide screens (from ~2200 real pixels) does the
+   column stop growing, at --cp-page-max, centred, and the top bar's contents follow it.
+
+   The page roots' caps are neutralised here rather than in their own files because those
+   components are shared: ThinkingLab also renders at /thinking-lab in the LMS, ProblemBank.css
+   styles the admin problem pages, and InterviewHub/QuestionBooks have admin screens. This only
+   applies inside the member shell. `#root#root` (two ids) outranks the page files' own
+   `#root .gd .cb-member-x .root` !important caps without listing each one. */
+#root .gd { --cp-page-max: 2600px; }
+#root .gd .cb-member-page { max-width: var(--cp-page-max); margin-left: auto; margin-right: auto; }
+#root#root .gd .cb-member-page > *,
+#root#root .gd .cb-member-page > [class*="-surface"] > *,
+#root#root .gd .cb-member-page > .pb-root > .pb-page {
+  max-width: none !important; margin-left: 0 !important; margin-right: 0 !important;
+}
+/* The member shell already gives the page its side gutter (.gd-main padding); pb-page's own
+   24px would make Practice/Coding/Interview Experiences/Question Books sit further in than the
+   rest. Keep its top/bottom rhythm. */
+#root#root .gd .cb-member-page > .pb-root > .pb-page { padding-left: 0 !important; padding-right: 0 !important; }
+@media (min-width: 981px) {
+  /* The bar bleeds across .gd-main's padding (margin -30px, padding 30px). Once the page box stops
+     at --cp-page-max and centres, push the bar's contents in by the same amount. */
+  #root .gd .gd-topbar { padding-left: max(30px, calc(30px + (100% - var(--cp-page-max)) / 2)) !important;
+                         padding-right: max(30px, calc(30px + (100% - var(--cp-page-max)) / 2)) !important; }
+}
+/* Page roots that pad themselves sideways would sit 6–28px inside everyone else's edge. */
+#root#root .gd .cb-member-page > :is(.ori, .vz-root, .plr, .cpw) { padding-left: 0 !important; padding-right: 0 !important; }
+
+/* ── Using the width, not stretching into it ─────────────────────────────────────────────────
+   Pages that now fill the column keep their inner layouts readable on a wide screen. Card grids
+   (Interview Experiences, Question Books) are auto-fill and simply gain columns. These are the
+   layouts that would otherwise stretch: */
+/* Tech News: one story per row made a 1,300px summary line. Two columns from laptop-wide up. */
+@media (min-width: 1500px) {
+  #root .gd .cb-member-news .nws-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+  #root .gd .cb-member-news .nws-card { grid-template-columns: 168px minmax(0, 1fr); }
+}
+/* Forms keep a form's width — the card lines up with the page, the fields don't run 800px. */
+#root .gd .cb-member-profile .form-step { max-width: 1480px; }
+#root .gd .cb-member-page .ih-wizard :is(.pb-field-row, .pb-textarea, .ih-modes) { max-width: 1240px; }
+
+/* ── One text size on wide screens ─────────────────────────────────────────────────────────
+   My Days, Roadmap, Progress, Mock Interview and the dashboards enlarge themselves on wide
+   screens (zoom 1.05 at 1200–1599px, 1.12 from 1600px — foundationMember.css and friends), so
+   pages built on the Problem Bank shell (Practice, Coding Sets, Interview Experiences, Question
+   Books) read 5–12% smaller next to them. Same steps here. The Thinking Lab sizes its own text
+   for the member shell (thinkingLab.css) and keeps Monaco out of a nested zoom. */
+@media (min-width: 1200px) and (max-width: 1599px) {
+  #root .gd .cb-member-page > .pb-root > .pb-page { zoom: 1.05; }
+}
+@media (min-width: 1600px) {
+  #root .gd .cb-member-page > .pb-root > .pb-page { zoom: 1.12; }
+}
+
+/* ── CodeBegun colours on the Problem Bank pages ───────────────────────────────────────────
+   Practice, Coding Sets and the problem solver are built on the Problem Bank shell, whose accent is
+   indigo (ProblemBank.css --pb-accent). Students see CodeBegun navy/teal; the admin Problem Bank keeps
+   its own look because this applies only inside the member page. */
+#root .gd .cb-member-page .pb-root {
+  --pb-accent: #051D64;
+  --pb-accent-ink: #051D64;
+  --pb-accent-soft: #E8F1FB;
+  --pb-accent-line: #C9D8E5;
+}

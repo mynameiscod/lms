@@ -47,7 +47,9 @@ export async function generateThinkingProblem(
     category, difficulty, language: base.language,
     statement: base.prompt,
     examples: base.examples,
-    constraints: meta.constraints ? String(meta.constraints).slice(0, 500) : undefined,
+    // The model often answers with a list despite the prompt. String(['a','b']) is "a,b", which the page
+    // showed as one comma-run line; keep one constraint per line instead.
+    constraints: meta.constraints ? (Array.isArray(meta.constraints) ? meta.constraints.map((c: any) => String(c).trim()).filter(Boolean).join('\n') : String(meta.constraints)).slice(0, 500) : undefined,
     starterCode: base.starterCode,
     testCases: base.testCases,
     hints: Array.isArray(meta.hints) ? meta.hints.slice(0, 3).map((h: any) => String(h).slice(0, 300)) : [],

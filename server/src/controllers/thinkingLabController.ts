@@ -650,7 +650,7 @@ function sanitizeProblemInput(b: any) {
     difficulty, language: String(b.language || 'javascript'),
     statement: String(b.statement || '').slice(0, 8000),
     examples, testCases,
-    constraints: b.constraints ? String(b.constraints).slice(0, 800) : undefined,
+    constraints: b.constraints ? (Array.isArray(b.constraints) ? b.constraints.map((c: any) => String(c).trim()).filter(Boolean).join('\n') : String(b.constraints)).slice(0, 800) : undefined,
     notes: b.notes ? String(b.notes).slice(0, 800) : undefined,
     starterCode: b.starterCode ? String(b.starterCode).slice(0, 8000) : '',
     hints: (Array.isArray(b.hints) ? b.hints : []).slice(0, 3).map((h: any) => String(h).slice(0, 400)),

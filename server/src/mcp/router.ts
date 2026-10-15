@@ -45,12 +45,16 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     return error(res, body?.id ?? null, -32600, 'Invalid request');
   }
   const id = body.id;
-  if (body.method === 'notifications/initialized') return res.status(202).end();
+  if (body.method === 'notifications/initialized') {
+    const p = await permissionsOf(req.user!);
+    return p.includes('mcp_connect') ? res.status(202).end() : res.status(403).end();
+  }
   if (id === undefined || id === null) return error(res, null, -32600, 'Request ID required');
   // Require authorization even for protocol discovery. Never expose tools to unauthorized users.
   if (body.method === 'initialize') {
+    if (req.user!.customRoleId && !(await Role.exists({ _id: req.user!.customRoleId, tenantId: req.tenantId }))) return error(res, id, -32003, 'Assigned role unavailable');
     const p = await permissionsOf(req.user!);
-    if (!p.includes('mcp_connect')) return error(res, id, -32003, 'MCP access denied');
+    if (!p.includes('mcp_connect') || !['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'].includes(req.user!.role)) return error(res, id, -32003, 'MCP access denied');
     return reply(res, id, { protocolVersion: PROTOCOL, capabilities: { tools: {} }, serverInfo: { name: 'codebegun-lms', version: '0.1.0' } });
   }
   try {
@@ -62,6 +66,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     }
     // Super Admin has no implicit bypass: access must be explicitly granted.
     if (!perms.includes('mcp_connect')) return error(res, id, -32003, 'MCP access denied');
+    if (!['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'].includes(req.user!.role)) return error(res, id, -32003, 'MCP role not enabled');
     if (body.method === 'ping') return reply(res, id, {});
     if (body.method === 'tools/list') return reply(res, id, { tools: tools.filter(t => perms.includes(t.permission)).map(({ permission, ...t }) => t) });
     if (body.method !== 'tools/call') return error(res, id, -32601, 'Method not found');

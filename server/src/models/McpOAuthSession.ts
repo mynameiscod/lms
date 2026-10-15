@@ -9,6 +9,6 @@ const schema = new Schema({
   tenantId: Schema.Types.ObjectId,
   credentialVersion: String,
   expiresAt: { type: Date, required: true },
-}, { timestamps: true });
+}, { timestamps: true, autoCreate: false, autoIndex: false });
 schema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 export default mongoose.model('McpOAuthSession', schema);

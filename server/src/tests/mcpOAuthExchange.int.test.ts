@@ -25,6 +25,7 @@ import { McpRateLimit } from '../mcp/rateLimit';
 import { tools } from '../mcp/tools';
 import { SCOPE_LABELS } from '../mcp/oauthPolicy';
 import { tokenDigest } from '../mcp/oauthSecurity';
+import { assertMcpReady, mcpModels } from '../mcp/bootstrap';
 
 const issuer = 'https://lms.example';
 const resource = `${issuer}/mcp`;
@@ -103,6 +104,9 @@ beforeAll(async () => {
   mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 }, binary: { version: '7.0.24' } });
   await mongoose.connect(mongo.getUri());
   await Promise.all(models.map(m => m.init()));
+  // Production MCP models never create indexes at application startup. This
+  // disposable database gets the same explicit indexes as mcp:prepare.
+  for (const model of mcpModels) await model.createIndexes();
 }, 120000);
 afterAll(async () => {
   await mongoose.disconnect();
@@ -150,6 +154,16 @@ beforeEach(async () => {
 });
 
 describe('OAuth HTTP flow with real transactional MongoDB', () => {
+  test('startup requires prepared indexes and rejects the prototype replay-breaking TTL', async () => {
+    await expect(assertMcpReady()).resolves.toBeUndefined();
+    await Code.collection.dropIndex('purgeAt_1');
+    try { await expect(assertMcpReady()).rejects.toThrow('MCP indexes missing'); }
+    finally { await Code.createIndexes(); }
+    await Code.collection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+    try { await expect(assertMcpReady()).rejects.toThrow('prototype code TTL'); }
+    finally { await Code.collection.dropIndex('expiresAt_1'); }
+    await expect(assertMcpReady()).resolves.toBeUndefined();
+  });
   test('discovery advertises issuer, resource, PKCE and revocation', async () => {
     const a = await request(app).get('/.well-known/oauth-authorization-server');
     expect(a.body.issuer).toBe(issuer);

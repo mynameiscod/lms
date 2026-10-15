@@ -15,6 +15,6 @@ const schema = new Schema({
   // Keep consumed codes until the grant expires so replay can revoke the family.
   purgeAt: { type: Date, required: true },
   consumedAt: { type: Date },
-}, { timestamps: true });
+}, { timestamps: true, autoCreate: false, autoIndex: false });
 schema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
 export default mongoose.model('McpOAuthCode', schema);

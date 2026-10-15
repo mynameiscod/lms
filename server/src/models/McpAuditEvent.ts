@@ -10,7 +10,7 @@ const schema = new Schema({
   reason: { type: String, required: true },
   outcome: { type: String, enum: ['allowed', 'denied', 'failed'], required: true },
   at: { type: Date, default: Date.now },
-});
+}, { autoCreate: false, autoIndex: false });
 schema.index({ tenantId: 1, at: -1 });
 schema.index({ requestId: 1 });
 export default mongoose.model('McpAuditEvent', schema);

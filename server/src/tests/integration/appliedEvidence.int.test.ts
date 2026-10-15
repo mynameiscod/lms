@@ -16,17 +16,21 @@ let runnerReal = true;
 let passing = (_code: string, _i: number) => true;
 let unavailableAt = -1;
 let caseIndex = 0;
-jest.mock('../../services/codeRunnerService', () => ({
-  __esModule: true,
-  default: {
-    executesForReal: () => runnerReal,
-    execute: async (input: any) => {
-      const i = caseIndex++;
-      if (i === unavailableAt) return { passed: false, output: '', error: 'busy', executionTime: 0, memoryUsed: 0, graderUnavailable: true };
-      return { passed: passing(input.code, i), output: 'x', executionTime: 1, memoryUsed: 1 };
+jest.mock('../../services/codeRunnerService', () => {
+  const execute = async (input: any) => {
+    const i = caseIndex++;
+    if (i === unavailableAt) return { passed: false, output: '', error: 'busy', executionTime: 0, memoryUsed: 0, graderUnavailable: true };
+    return { passed: passing(input.code, i), output: 'x', executionTime: 1, memoryUsed: 1 };
+  };
+  return {
+    __esModule: true,
+    default: {
+      executesForReal: () => runnerReal,
+      execute,
+      executeBatch: async (input: any) => Promise.all(input.cases.map((testCase: any) => execute({ ...input, ...testCase }))),
     },
-  },
-}));
+  };
+});
 
 const published: any[] = [];
 jest.mock('../../services/adaptiveCurriculumEvents', () => ({

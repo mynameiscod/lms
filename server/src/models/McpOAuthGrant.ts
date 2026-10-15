@@ -12,7 +12,7 @@ const schema = new Schema({
   revokedAt: Date,
   // Every exchange writes this document to serialize rotation and revocation.
   version: { type: Number, default: 0 },
-}, { timestamps: true });
+}, { timestamps: true, autoCreate: false, autoIndex: false });
 schema.index({ userId: 1, tenantId: 1, revokedAt: 1 });
 schema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 export default mongoose.model('McpOAuthGrant', schema);

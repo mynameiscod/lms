@@ -12,7 +12,7 @@ const schema = new Schema({
   scopes: { type: [String], required: true },
   expiresAt: { type: Date, required: true },
   revokedAt: { type: Date },
-}, { timestamps: true });
+}, { timestamps: true, autoCreate: false, autoIndex: false });
 schema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 schema.index({ userId: 1, tenantId: 1 });
 export default mongoose.model('McpOAuthAccessToken', schema);

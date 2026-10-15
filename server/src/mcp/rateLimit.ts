@@ -5,7 +5,7 @@ import { McpError } from './oauthPolicy';
 
 const schema = new Schema({
   _id: String, count: { type: Number, default: 0 }, expiresAt: { type: Date, required: true },
-});
+}, { autoCreate: false, autoIndex: false });
 schema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 export const McpRateLimit = mongoose.model('McpRateLimit', schema);
 

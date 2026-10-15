@@ -8,6 +8,6 @@ const schema = new Schema({
   expiresAt: { type: Date, required: true },
   usedAt: Date,
   purgeAt: { type: Date, required: true },
-}, { timestamps: true });
+}, { timestamps: true, autoCreate: false, autoIndex: false });
 schema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
 export default mongoose.model('McpOAuthRefreshToken', schema);

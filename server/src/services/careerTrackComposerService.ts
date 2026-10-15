@@ -57,7 +57,8 @@ export async function composeTrackRoadmap(
   const unitsOf = byTopic(set.units.filter(u => !history.has(String(u.unitCode).toUpperCase())));
   for (const list of unitsOf.values()) list.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 
-  const fitOpts = { dailyMinutes: opts.dailyMinutes, maxUnitsPerDay: densityFor(profile, stage).maxUnitsPerDay };
+  // A track's checkpoints and projects share a day with lessons (roadmapV2PlanPolicy soloSharesDay).
+  const fitOpts = { dailyMinutes: opts.dailyMinutes, maxUnitsPerDay: densityFor(profile, stage).maxUnitsPerDay, soloSharesDay: true };
   const held = (units: ComposableUnit[]) => standingOn(profile.skills as any, topicSkills(units)) === 'HELD';
   const item = (u: ComposableUnit, phase: V2Phase, tier: V2Tier, isHeld: boolean): Item =>
     ({ unit: asSelected(u, profile, isHeld, 0), phase, tier });

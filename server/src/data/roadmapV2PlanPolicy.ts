@@ -162,6 +162,13 @@ export interface FitOptions {
   days: number;
   dailyMinutes: number;
   maxUnitsPerDay: number;
+  /**
+   * A checkpoint or project shares its day with lessons instead of owning it (career-track years —
+   * the user's decision, 2026-10-15). Each one owning a day cost a track year about 55 days, and a
+   * weak learner paid for them in lessons given up. Shared days still keep to the daily study time
+   * and the per-day unit limit, and a project longer than a day still spans whole days of its own.
+   */
+  soloSharesDay?: boolean;
 }
 
 export interface FitResult<U extends PackableUnit> {
@@ -191,9 +198,12 @@ const partsOf = (i: PlanItem<any>, opts: { dailyMinutes: number }) =>
  * forty topics would otherwise spend forty days on forty half-hour checks. Shared days still
  * keep to the daily study time.
  */
-const asPacked = <U extends PackableUnit>(i: PlanItem<U>): PlanItem<U> =>
-  (i.phase === 'BRIDGE' && i.unit.unitType === 'CHECKPOINT' ? { ...i, unit: { ...i.unit, unitType: 'PRACTICE' } } : i);
-const expand = <U extends PackableUnit>(list: PlanItem<U>[], opts: { dailyMinutes: number }): PlanItem<U>[] => list.map(asPacked).flatMap(i => {
+const asPacked = <U extends PackableUnit>(i: PlanItem<U>, opts: { dailyMinutes: number; soloSharesDay?: boolean }): PlanItem<U> => {
+  const shares = (i.phase === 'BRIDGE' && i.unit.unitType === 'CHECKPOINT')
+    || (!!opts.soloSharesDay && (i.unit.unitType === 'CHECKPOINT' || i.unit.unitType === 'PROJECT') && partsOf(i, opts) === 1);
+  return shares ? { ...i, unit: { ...i.unit, unitType: 'PRACTICE' } } : i;
+};
+const expand = <U extends PackableUnit>(list: PlanItem<U>[], opts: { dailyMinutes: number; soloSharesDay?: boolean }): PlanItem<U>[] => list.map(i => asPacked(i, opts)).flatMap(i => {
   const of = partsOf(i, opts);
   if (of === 1) return [i];
   return Array.from({ length: of }, (_, k) => ({

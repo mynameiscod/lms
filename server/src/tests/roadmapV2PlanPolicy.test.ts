@@ -237,3 +237,25 @@ describe('revision for an existing member', () => {
     expect(picked.map((x: any) => x.unitCode)).toEqual(['A-p2']);
   });
 });
+
+describe('a career track lets checkpoints and projects share a day (soloSharesDay)', () => {
+  const item = (code: string, type: string, mins = 40): PlanItem =>
+    ({ unit: u(code, type, 'T', mins), phase: 'YEAR', tier: 'ESSENTIAL' });
+  const items = [item('c1', 'CONCEPT'), item('k1', 'CHECKPOINT'), item('c2', 'CONCEPT'), item('p1', 'PROJECT'), item('c3', 'CONCEPT'), item('k2', 'CHECKPOINT')];
+  const opts = { days: 2, dailyMinutes: 150, maxUnitsPerDay: 3 };
+  it('in a year they own their day, so six units do not fit in two days', () => {
+    expect(fitToDays(items, opts).dropped.ESSENTIAL + fitToDays(items, opts).overflowDays).toBeGreaterThan(0);
+  });
+  it('on a track they share, within the daily time and unit limit, and nothing is given up', () => {
+    const fit = fitToDays(items, { ...opts, soloSharesDay: true });
+    expect(fit.ok).toBe(true);
+    expect(fit.overflowDays).toBe(0);
+    expect(fit.days.map(d => d.map(i => i.unit.unitCode))).toEqual([['c1', 'k1', 'c2'], ['p1', 'c3', 'k2']]);
+    expect(fit.days[1][0].unit.unitType).toBe('PROJECT');
+  });
+  it('a project longer than a day still spans whole days of its own', () => {
+    const fit = fitToDays([item('c1', 'CONCEPT'), item('big', 'PROJECT', 300), item('c2', 'CONCEPT')], { days: 3, dailyMinutes: 150, maxUnitsPerDay: 3, soloSharesDay: true });
+    expect(fit.days.flat().filter(i => i.part).map(i => i.part!.index)).toEqual([1, 2]);
+    expect(fit.days.every(d => !d.some(i => i.part) || d.length === 1)).toBe(true);
+  });
+});

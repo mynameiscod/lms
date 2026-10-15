@@ -104,7 +104,7 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await Promise.all(models.map(m => m.collection.deleteMany({})));
-  await Tenant.collection.insertMany([{ _id: tenantA, name: 'Tenant A', isActive: true }, { _id: tenantB, name: 'Tenant B', isActive: true }]);
+  await Tenant.collection.insertMany([{ _id: tenantA, name: 'Tenant A', slug: 'tenant-a', isActive: true }, { _id: tenantB, name: 'Tenant B', slug: 'tenant-b', isActive: true }]);
   await Role.collection.insertMany([{ _id: roleA, tenantId: tenantA, name: 'MCP A', permissions }, { _id: roleB, tenantId: tenantB, name: 'MCP B', permissions }]);
   const base = { firstName: 'Test', lastName: 'User', password: hashedPassword, isActive: true, tenantId: tenantA, customRoleId: roleA };
   await User.collection.insertMany([

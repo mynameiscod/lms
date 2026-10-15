@@ -291,7 +291,12 @@ jobs:
       # variable interpolation resolves — they are not credentials and are not used
       # to connect to anything.
       - name: Repository Safety - Compose validation
-        run: docker compose config --quiet && echo "docker-compose.yml is valid"
+        run: |
+          # Compose reads env_file even during validation. CI uses placeholders
+          # below and an empty local file; no deployment configuration is needed.
+          test -f server/.env || touch server/.env
+          docker compose config --quiet
+          echo "docker-compose.yml is valid"
         env:
           MONGO_ROOT_USERNAME: ci-placeholder
           MONGO_ROOT_PASSWORD: ci-placeholder

@@ -14,7 +14,7 @@ export function verifyPkceS256(verifier: unknown, challenge: unknown): boolean {
 
 /** Require exact registered callback URIs; no wildcards, prefixes or fragments. */
 export function registeredRedirect(uri: unknown, registered: readonly string[]): boolean {
-  if (typeof uri !== 'string' || uri.includes('#')) return false;
+  if (typeof uri !== 'string' || uri.includes('#') || /[\u0000-\u0020\u007f]/.test(uri)) return false;
   try {
     const parsed = new URL(uri);
     if (parsed.username || parsed.password) return false;

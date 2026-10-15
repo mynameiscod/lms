@@ -1,8 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Button from '../common/Button';
-import Input from '../common/Input';
-import Card from '../common/Card';
-import Spinner from '../common/Spinner';
 import { type AlertType } from '../common';
 import contentAPI, { ContentData } from '../../api/contentAPI';
 import { courseApi, subjectApi, chapterApi, topicApi } from '../../api';

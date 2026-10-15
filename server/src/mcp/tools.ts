@@ -48,7 +48,7 @@ const domainPolicy: Record<Domain, { native: string[]; module?: string; studentF
   students: { native: ['view_enrolled_students', 'manage_tenant_users', 'manage_all_users'] },
   batches: { native: ['manage_tenant_courses', 'view_courses'], module: 'courses', studentFeature: 'myCourse' },
   attendance: { native: ['mark_attendance', 'view_attendance'], module: 'attendance', studentFeature: 'attendance' },
-  exams: { native: ['view_exams', 'manage_exams', 'view_grades'], studentFeature: 'quizzes' },
+  exams: { native: ['view_exams', 'manage_exams', 'view_reports'], studentFeature: 'quizzes' },
   fees: { native: ['view_fees', 'manage_billing'], module: 'feeManagement', studentFeature: 'feeDetails' },
   placements: { native: ['manage_placement', 'manage_placement_status', 'view_placement'], module: 'placement', studentFeature: 'drives' },
   leads: { native: ['view_leads', 'manage_leads'], module: 'leads' },
@@ -61,7 +61,8 @@ export function canUseTool(identity: McpIdentity, scopes: string[], candidate: T
   if (!scopes.includes('mcp_connect') || !scopes.includes(candidate.scope) || !identity.permissions.includes(candidate.scope)) return false;
   if (p.module && !identity.modules[p.module]) return false;
   if (student && (candidate.domain === 'leads' || candidate.domain === 'calls')) return false;
-  if (student && p.studentFeature && identity.tenant.studentFeatures?.[p.studentFeature] === false) return false;
+  if (student && p.studentFeature && (identity.tenant.studentFeatures?.[p.studentFeature] === false ||
+      identity.disabledBatchFeatures?.includes(p.studentFeature))) return false;
   // LMS students already own their profile and fee page. Other domains retain the native permission checks.
   return (student && ['students', 'fees'].includes(candidate.domain)) || p.native.some(k => identity.permissions.includes(k));
 }

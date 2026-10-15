@@ -484,6 +484,23 @@ describe('OAuth resource, data isolation and audit boundary', () => {
     expect(payload(await call(token.access_token, 'codebegun_attendance')).items).toEqual([]);
     expect(payload(await call(token.access_token, 'codebegun_student_count')).count).toBe(0);
   });
+  test('student batch feature restrictions update both discovery and execution immediately', async () => {
+    const token = await tokenFor('student@example.test');
+    await Batch.updateOne({ _id: batchA }, { $set: { disabledFeatures: ['attendance', 'feeDetails'] } });
+    expect((await call(token.access_token, 'codebegun_attendance')).body.error.code).toBe(-32003);
+    expect((await call(token.access_token, 'codebegun_fees')).body.error.code).toBe(-32003);
+    const listed = await request(app).post('/mcp').set('Authorization', `Bearer ${token.access_token}`)
+      .send({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
+    const names = listed.body.result.tools.map((t: any) => t.name);
+    expect(names).not.toContain('codebegun_attendance');
+    expect(names).not.toContain('codebegun_fees');
+    expect((await call(token.access_token, 'codebegun_student_count')).status).toBe(200);
+  });
+  test('a student batch reference in another tenant fails closed', async () => {
+    const token = await tokenFor('student@example.test');
+    await User.updateOne({ _id: studentA }, { $set: { batchId: batchB } });
+    expect((await call(token.access_token, 'codebegun_attendance')).status).toBe(403);
+  });
   test('tenant header and tool arguments cannot expand the authorized tenant', async () => {
     const token = await tokenFor();
     const r = await call(token.access_token, 'codebegun_students').set('x-tenant-id', String(tenantB));

@@ -24,6 +24,12 @@ describe('MCP tool permission intersection', () => {
     const attendance = tools.find(t => t.name === 'codebegun_attendance')!;
     expect(canUseTool(identity({ modules: { attendance: false } }), allScopes, attendance)).toBe(false);
     expect(canUseTool(identity({ user: { role: 'STUDENT' }, tenant: { studentFeatures: { attendance: false } } }), allScopes, attendance)).toBe(false);
+    expect(canUseTool(identity({ user: { role: 'STUDENT' }, disabledBatchFeatures: ['attendance'] }), allScopes, attendance)).toBe(false);
+  });
+  test('exam access uses the LMS exam route permissions, not assignment-grade permission', () => {
+    const exams = tools.find(t => t.name === 'codebegun_exams')!;
+    expect(canUseTool(identity({ permissions: [...allScopes, 'view_grades'] }), allScopes, exams)).toBe(false);
+    expect(canUseTool(identity({ permissions: [...allScopes, 'view_reports'] }), allScopes, exams)).toBe(true);
   });
   test('all tools declare read-only bounded schemas', () => {
     expect(new Set(tools.map(t => t.name)).size).toBe(tools.length);

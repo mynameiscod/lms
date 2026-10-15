@@ -8,14 +8,14 @@ The first-party OAuth sign-in calls the same `authenticateLmsCredentials` servic
 
 Every request resolves the active user, active tenant and current custom role from MongoDB. A missing role, cross-tenant role, deleted/inactive account, tenant move, password change, revoked grant or removed client fails closed. Custom roles replace base permissions, matching Roles & Permissions. No role, including Super Admin, receives implicit `mcp_connect` access.
 
-Access is the intersection of client scope allowlist, explicit user consent, current MCP domain permission, native LMS feature permission, tenant module switches and record restrictions. See `server/src/mcp/tools.ts` for the authoritative catalog and schemas.
+Access is the intersection of client scope allowlist, explicit user consent, current MCP domain permission, native LMS feature permission, tenant and student batch feature switches, and record restrictions. Student batch references are resolved within the authenticated tenant. See `server/src/mcp/tools.ts` for the authoritative catalog and schemas.
 
 | Domain | Tools | MCP permission | Native LMS permission (any listed) |
 |---|---|---|---|
 | Students | `codebegun_student_count`, `codebegun_students` | `mcp_students_read` | `view_enrolled_students`, `manage_tenant_users`, `manage_all_users`; students can read themselves |
 | Batches | `codebegun_batches` | `mcp_batches_read` | `manage_tenant_courses`, `view_courses` |
 | Attendance | `codebegun_attendance_summary`, `codebegun_attendance` | `mcp_attendance_read` | `mark_attendance`, `view_attendance` |
-| Exams | `codebegun_exam_summary`, `codebegun_exams` | `mcp_assessments_read` | `view_exams`, `manage_exams`, `view_grades` |
+| Exams | `codebegun_exam_summary`, `codebegun_exams` | `mcp_assessments_read` | `view_exams`, `manage_exams`, `view_reports` |
 | Fees | `codebegun_fee_summary`, `codebegun_fees` | `mcp_finance_read` | `view_fees`, `manage_billing`; students can read their own fees |
 | Placements | `codebegun_placement_summary`, `codebegun_placements` | `mcp_placements_read` | `manage_placement`, `manage_placement_status`, `view_placement` |
 | CRM | `codebegun_lead_summary`, `codebegun_leads` | `mcp_leads_read` | `view_leads`, `manage_leads` |

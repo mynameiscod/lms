@@ -9,6 +9,10 @@ It MUST NOT be registered as a public ChatGPT connector. Production disables
 the endpoint unless MCP_INTERNAL_ENABLED=true. Do not enable this flag for a
 public deployment.
 
+## Selected login method
+
+Use existing CodeBegun LMS user accounts. The authorization endpoint must authenticate users through the existing LMS login service, establish a secure browser session, and display a consent screen. The OAuth provider must not expose LMS passwords or session JWTs to ChatGPT. Keep identity, tenant, and current permissions server-side and verify them on every MCP request.
+
 ## Recommended OAuth 2.1 architecture
 
 Use a vetted OpenID Connect/OAuth authorization provider or a dedicated,

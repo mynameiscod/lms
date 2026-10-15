@@ -186,6 +186,7 @@ export async function libraryProblem(l: Learner, id: string) {
     _id: p._id, number: p.number, title: p.title, kind: p.kind, statement: p.statement, inputFormat: p.inputFormat,
     outputFormat: p.outputFormat, constraints: p.constraints, hints: p.hints, difficulty: p.difficulty, topics: p.topics,
     companies: p.companies, marks: p.marks, limits: p.limits,
+    solvedBy: (p as any).stats?.accepted || 0,
     // The editorial is the worked answer: shown once the member has solved the problem (or to staff).
     editorial: l.isStaff || subs.some((s: any) => s.verdict === 'AC') ? p.editorial : '',
     languages: p.languages.map((x) => ({ language: x.language, starterCode: x.starterCode })),

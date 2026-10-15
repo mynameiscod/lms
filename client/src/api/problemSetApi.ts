@@ -65,6 +65,7 @@ export interface LearnerProblem {
   constraints: string; hints: string[]; difficulty: PbDifficulty; topics: string[]; companies: string[]; marks: number;
   limits: { timeMs: number; memoryMb: number }; editorial: string;
   languages: { language: string; starterCode: string }[];
+  solvedBy?: number;
   samples: { input: string; expectedOutput: string; explanation: string }[];
   submissions: LearnerSubmission[];
   set: { _id: string; title: string; dueAt?: string; status: string; allowLate: boolean; prevId: string | null; nextId: string | null; position: number; count: number };

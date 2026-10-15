@@ -4,6 +4,8 @@ Merging and production deployment require owner approval. This branch does not d
 
 ## Before enabling in staging
 
+For a single VPS with a live LMS, use the [isolated synthetic MCP test package](mcp-single-server-test.md) to verify OAuth and connector behavior without starting LMS jobs or using production data. It is a focused MCP harness; the complete LMS and production infrastructure checks below still apply.
+
 1. Use an isolated staging copy of LMS data with two synthetic tenants. Reuse the existing LMS MongoDB connection and account collection; never copy production credentials into Git or tests.
 2. MongoDB must be a replica set or sharded cluster with transaction support, majority writes and backups. A standalone MongoDB is unsupported. Convert it through a separately reviewed infrastructure change; do not improvise a production conversion while deploying this feature.
 3. Build from the repository root using the committed workspace lockfile:

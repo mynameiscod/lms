@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { aiMentorApi, MentorMessage } from '../../api/aiMentorApi';
 import { useFillViewport } from '../../hooks/useFillViewport';
 import './aiMentor.css';
+import { confirmDialog } from '../../components/feedback/appFeedback';
 
 /**
  * Renders the mentor's reply: fenced code blocks, `inline code`, **bold**, bullets, headings.
@@ -121,7 +122,11 @@ const AIMentor: React.FC = () => {
   };
 
   const clear = async () => {
-    if (!window.confirm('Clear this conversation?')) return;
+    if (!(await confirmDialog({
+      title: 'Clear this conversation?',
+      message: 'Every message with your AI Mentor is deleted. This cannot be undone.',
+      confirmLabel: 'Clear conversation', danger: true,
+    }))) return;
     await aiMentorApi.clear();
     setMessages([]);
   };

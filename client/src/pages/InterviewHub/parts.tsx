@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { interviewHubApi, HubRound, ExpCard, OUTCOME_LABEL, ROUND_OPTIONS, CATEGORY_OPTIONS } from '../../api/interviewHubApi';
+import { interviewHubApi, HubRound, ExpCard, ROUND_OPTIONS, CATEGORY_OPTIONS } from '../../api/interviewHubApi';
 
 const CAT_LABEL = Object.fromEntries(CATEGORY_OPTIONS.map((c) => [c.key, c.label]));
-const COLORS = ['#4f46e5', '#0d9488', '#be123c', '#b45309', '#0369a1', '#7c3aed', '#15803d', '#c2410c'];
+const ROUND_LABEL = Object.fromEntries(ROUND_OPTIONS.map((r) => [r.key, r.label]));
+/* CodeBegun-friendly tile colours: navy, teal, green, amber, blue, red, slate, deep teal. Never purple. */
+const COLORS = ['#051D64', '#287F91', '#17885D', '#B86B00', '#1D5FB4', '#C93737', '#3E5672', '#0B6E7F'];
 
 /** Where the hub lives: inside CareerPilot's shell for members who opened it there, else the LMS. */
 export function useHubBase() {
@@ -13,49 +15,131 @@ export function useHubBase() {
 
 export const fmtDate = (iso?: string | null) => iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 
+/**
+ * The interview date as a reader should see it. Dates that cannot be real for a candidate on
+ * this platform (unparseable, or before 2010 - a slip in the date picker) show as "Date not
+ * given" instead of a confident "1 Sept 2000".
+ */
+export const fmtInterviewDate = (iso?: string | null) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime()) || d.getFullYear() < 2010) return '';
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+/**
+ * Round names as a reader should see them. Older reports stored taxonomy keys, and a bug in the
+ * "I interviewed here" form stored the string "null" - both are cleaned up here rather than
+ * printed as "1. null" or "online_assessment".
+ */
+export const cleanRoundNames = (rounds: (string | null | undefined)[] = []) =>
+  rounds
+    .map((r) => String(r ?? '').trim())
+    .filter((r) => r && r !== 'null' && r !== 'undefined')
+    .map((r) => ROUND_LABEL[r] || (/^[a-z0-9_]+$/.test(r) ? (r.charAt(0).toUpperCase() + r.slice(1)).replace(/_/g, ' ') : r));
+
+/** Reports from the older "I interviewed here" form carry only a slug ("cognizant"); show it as a name. */
+export const prettyCompany = (name?: string | null) => {
+  const n = String(name || '').trim();
+  if (!n) return 'Company not given';
+  return /^[a-z0-9-]+$/.test(n) ? n.split('-').filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : n;
+};
+
 /** A letter tile coloured by the company name, so the same company always looks the same. */
 export const CompanyLogo: React.FC<{ name: string; size?: number }> = ({ name, size }) => {
   const n = (name || '?').trim();
   let h = 0; for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0;
-  return <span className="ih-logo" style={{ background: COLORS[h % COLORS.length], ...(size ? { width: size, height: size } : {}) }}>{n.slice(0, 1).toUpperCase()}</span>;
+  return <span className="ih-logo" style={{ background: COLORS[h % COLORS.length], ...(size ? { width: size, height: size, fontSize: Math.round(size * 0.42) } : {}) }}>{n.slice(0, 1).toUpperCase()}</span>;
 };
 
-export const OutcomePill: React.FC<{ o: string }> = ({ o }) => {
-  const [cls, label] = OUTCOME_LABEL[o] || ['pb-badge-neutral', o];
-  return <span className={`pb-pill ${cls}`}>{label}</span>;
+const OUTCOME: Record<string, [string, string, string]> = {
+  offer: ['ok', 'Selected', 'bi-check-circle-fill'],
+  rejected: ['bad', 'Not selected', 'bi-x-circle-fill'],
+  waiting: ['warn', 'Pending', 'bi-hourglass-split'],
+  withdrew: ['neutral', 'Withdrew', 'bi-dash-circle'],
 };
+export const OutcomePill: React.FC<{ o: string }> = ({ o }) => {
+  const [cls, label, icon] = OUTCOME[o] || ['neutral', o || 'Unknown', 'bi-circle'];
+  return <span className={`ihx-result ${cls}`}><i className={`bi ${icon}`} aria-hidden="true" /> {label}</span>;
+};
+
+const DIFF: Record<string, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+export const DifficultyTag: React.FC<{ d?: string }> = ({ d }) => d && DIFF[d]
+  ? <span className={`ihx-diff ${d}`}><i className="bi bi-speedometer2" aria-hidden="true" /> {DIFF[d]}</span> : null;
 
 export const ModeIcon: React.FC<{ mode: string; recording?: boolean }> = ({ mode, recording }) =>
-  mode === 'video' ? <span title={recording ? 'Video available' : 'Recorded on video'}><i className="fa-solid fa-video" /></span>
-    : mode === 'audio' ? <span title={recording ? 'Voice note available' : 'Recorded as a voice note'}><i className="fa-solid fa-microphone" /></span>
-      : <span title="Written"><i className="fa-regular fa-file-lines" /></span>;
+  mode === 'video' ? <span title={recording ? 'Video available' : 'Recorded on video'}><i className="bi bi-camera-video" /></span>
+    : mode === 'audio' ? <span title={recording ? 'Voice note available' : 'Recorded as a voice note'}><i className="bi bi-mic" /></span>
+      : <span title="Written"><i className="bi bi-file-earmark-text" /></span>;
 
-export const ExperienceCard: React.FC<{ e: ExpCard; onOpen: () => void; showStatus?: boolean }> = ({ e, onOpen, showStatus }) => (
-  <div className="pb-card ih-card" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(k) => { if (k.key === 'Enter') onOpen(); }}>
-    <div className="pb-row" style={{ alignItems: 'flex-start' }}>
-      <CompanyLogo name={e.companyName} />
-      <div className="pb-grow" style={{ minWidth: 0 }}>
-        <div className="co">{e.companyName}</div>
-        <div className="meta">{e.role || 'Role not given'} · {fmtDate(e.interviewedOn)}</div>
+export const MODE_LABEL: Record<string, string> = { video: 'Video', audio: 'Voice note', text: 'Written' };
+
+/** The rounds as a small timeline: numbered dots joined by a line. */
+export const RoundsMini: React.FC<{ rounds: string[]; max?: number }> = ({ rounds, max = 3 }) => {
+  const names = cleanRoundNames(rounds);
+  if (!names.length) return <div className="ihx-rounds empty"><i className="bi bi-signpost-split" aria-hidden="true" /> Rounds not recorded</div>;
+  const shown = names.slice(0, max);
+  return (
+    <ol className="ihx-rounds" aria-label={`${names.length} round${names.length === 1 ? '' : 's'}`}>
+      {shown.map((r, i) => (
+        <li key={i}><span className="n">{i + 1}</span><span className="l">{r}</span></li>
+      ))}
+      {names.length > max && <li className="more"><span className="n">+{names.length - max}</span><span className="l">more</span></li>}
+    </ol>
+  );
+};
+
+export const ExperienceCard: React.FC<{ e: ExpCard; onOpen: () => void; showStatus?: boolean }> = ({ e, onOpen, showStatus }) => {
+  const date = fmtInterviewDate(e.interviewedOn);
+  const rounds = cleanRoundNames(e.rounds);
+  return (
+    <article className="ihx-card" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(k) => { if (k.key === 'Enter' || k.key === ' ') { k.preventDefault(); onOpen(); } }}>
+      <header className="ihx-card-head">
+        <CompanyLogo name={prettyCompany(e.companyName)} size={46} />
+        <div className="who">
+          <div className="co">{prettyCompany(e.companyName)}</div>
+          <div className="role">{e.role || 'Role not given'}</div>
+        </div>
+        {showStatus && e.status ? <StatusPillHub s={e.status} /> : <OutcomePill o={e.outcome} />}
+      </header>
+      <div className="ihx-date"><i className="bi bi-calendar3" aria-hidden="true" /> {date ? `Interviewed ${date}` : 'Date not given'}</div>
+      <RoundsMini rounds={e.rounds} />
+      {e.tips && <p className="ihx-tip"><i className="bi bi-lightbulb" aria-hidden="true" /> {e.tips}</p>}
+      <div className="ihx-facts">
+        <span className="fact"><i className="bi bi-question-circle" aria-hidden="true" /> {e.questionCount ? `${e.questionCount} question${e.questionCount === 1 ? '' : 's'}` : 'No questions listed'}</span>
+        {rounds.length > 0 && <span className="fact"><i className="bi bi-signpost-split" aria-hidden="true" /> {rounds.length} round{rounds.length === 1 ? "" : "s"}</span>}
+        <DifficultyTag d={e.difficultyFelt} />
+        <span className="fact"><ModeIcon mode={e.captureMode} recording={e.hasRecording} /> {MODE_LABEL[e.captureMode] || 'Written'}</span>
       </div>
-      {showStatus && e.status ? <StatusPillHub s={e.status} /> : <OutcomePill o={e.outcome} />}
-    </div>
-    {!!e.rounds.length && <div className="pb-chips">{e.rounds.slice(0, 5).map((r, i) => <span key={i} className="pb-tag">{i + 1}. {r}</span>)}{e.rounds.length > 5 && <span className="pb-tag">+{e.rounds.length - 5}</span>}</div>}
-    {e.tips && <div className="tip">💡 {e.tips}</div>}
-    <div className="foot">
-      <span><i className="fa-regular fa-circle-question" /> {e.questionCount} question{e.questionCount === 1 ? '' : 's'}</span>
-      <ModeIcon mode={e.captureMode} recording={e.hasRecording} />
-      <span className="pb-grow" />
-      <span>{e.by}</span>
-    </div>
-    {showStatus && e.status === 'rejected' && e.reviewNote && <div className="pb-alert pb-alert-bad" style={{ margin: 0, fontSize: 12.5 }}>{e.reviewNote}</div>}
+      {showStatus && e.status === 'rejected' && e.reviewNote && <div className="ihx-review-note"><i className="bi bi-chat-left-text" aria-hidden="true" /> {e.reviewNote}</div>}
+      <footer className="ihx-card-foot">
+        <span className="by"><i className="bi bi-person-circle" aria-hidden="true" /> {e.by}</span>
+        <span className="read">{showStatus && e.status !== 'published' ? 'Open' : 'Read'} <i className="bi bi-arrow-right" aria-hidden="true" /></span>
+      </footer>
+    </article>
+  );
+};
+
+/** Placeholder cards while the feed loads. */
+export const CardSkeletons: React.FC<{ n?: number }> = ({ n = 6 }) => (
+  <div className="ihx-grid" aria-busy="true" aria-label="Loading">
+    {Array.from({ length: n }).map((_, i) => (
+      <div key={i} className="ihx-card skeleton">
+        <div className="ihx-card-head"><span className="sk sk-logo" /><div className="who"><span className="sk sk-line w60" /><span className="sk sk-line w40" /></div></div>
+        <span className="sk sk-line w90" /><span className="sk sk-line w70" /><span className="sk sk-line w50" />
+      </div>
+    ))}
   </div>
 );
 
-const STATUS: Record<string, [string, string]> = {
-  draft: ['pb-badge-neutral', 'Draft'], pending: ['pb-badge-warn', 'In review'], published: ['pb-badge-ok', 'Published'], rejected: ['pb-badge-bad', 'Needs changes'],
+const STATUS: Record<string, [string, string, string]> = {
+  draft: ['neutral', 'Draft', 'bi-pencil'], pending: ['warn', 'In review', 'bi-hourglass-split'],
+  published: ['ok', 'Published', 'bi-check-circle-fill'], rejected: ['bad', 'Needs changes', 'bi-exclamation-circle-fill'],
 };
-export const StatusPillHub: React.FC<{ s: string }> = ({ s }) => <span className={`pb-pill ${(STATUS[s] || STATUS.draft)[0]}`}>{(STATUS[s] || STATUS.draft)[1]}</span>;
+export const StatusPillHub: React.FC<{ s: string }> = ({ s }) => {
+  const [cls, label, icon] = STATUS[s] || STATUS.draft;
+  return <span className={`ihx-result ${cls}`}><i className={`bi ${icon}`} aria-hidden="true" /> {label}</span>;
+};
 
 /** Read-only rounds, as a timeline. */
 export const RoundsTimeline: React.FC<{ rounds: HubRound[] }> = ({ rounds }) => {
@@ -68,7 +152,7 @@ export const RoundsTimeline: React.FC<{ rounds: HubRound[] }> = ({ rounds }) => 
           <span className={`dot ${r.cleared === true ? 'ok' : r.cleared === false ? 'bad' : ''}`}>{i + 1}</span>
           <div className="pb-card">
             <div className="pb-row" style={{ flexWrap: 'wrap' }}>
-              <h3 style={{ margin: 0 }} className="pb-grow">{r.name || r.label}</h3>
+              <h3 style={{ margin: 0 }} className="pb-grow">{cleanRoundNames([r.name || r.label || r.key])[0] || `Round ${i + 1}`}</h3>
               {r.mode && <span className="pb-tag">{r.mode === 'online' ? 'Online' : 'In person'}</span>}
               {r.durationMins ? <span className="pb-tag">{r.durationMins} min</span> : null}
               {r.cleared === true && <span className="pb-pill pb-badge-ok">Cleared</span>}

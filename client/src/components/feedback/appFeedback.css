@@ -1,0 +1,59 @@
+/* In-app toasts and dialogs (appFeedback.tsx). CodeBegun colours; values declared here because
+   these mount on <body>, outside the member shell where the --cb-* variables live. */
+
+.afb-toasts {
+  position: fixed; right: 20px; bottom: 20px; z-index: 3000;
+  display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+.afb-toast {
+  display: flex; align-items: center; gap: 10px; min-width: 240px; max-width: 420px;
+  padding: 12px 12px 12px 14px; border-radius: 12px; background: #fff; color: #102A4F;
+  border: 1px solid #E2EAF2; border-left: 4px solid #17885D;
+  box-shadow: 0 10px 30px rgba(5, 29, 100, .16); font-size: 14px; font-weight: 600;
+  animation: afb-in .18s ease-out;
+}
+.afb-toast > i { font-size: 18px; color: #17885D; flex: none; }
+.afb-toast > span { flex: 1; line-height: 1.35; }
+.afb-toast > button { border: 0; background: transparent; color: #64748B; font-size: 18px; line-height: 1; padding: 2px; cursor: pointer; border-radius: 6px; }
+.afb-toast > button:hover { background: #F4F8FC; color: #102A4F; }
+.afb-toast-error { border-left-color: #C93737; }
+.afb-toast-error > i { color: #C93737; }
+.afb-toast-info { border-left-color: #359AAD; }
+.afb-toast-info > i { color: #359AAD; }
+
+.afb-backdrop {
+  position: fixed; inset: 0; z-index: 3100; display: grid; place-items: center; padding: 16px;
+  background: rgba(5, 29, 100, .38); backdrop-filter: blur(2px);
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  animation: afb-fade .15s ease-out;
+}
+.afb-dialog {
+  width: min(440px, 100%); background: #fff; border-radius: 16px; padding: 22px 22px 18px;
+  box-shadow: 0 24px 60px rgba(5, 29, 100, .28); border: 1px solid #E2EAF2;
+  animation: afb-in .18s ease-out;
+}
+.afb-dialog h3 { margin: 0 0 8px; font-size: 18px; font-weight: 800; color: #051D64; }
+.afb-msg { color: #33475B; font-size: 14px; line-height: 1.55; margin-bottom: 4px; }
+.afb-input {
+  width: 100%; margin-top: 10px; padding: 10px 12px; border: 1px solid #C9D8E5; border-radius: 10px;
+  font-size: 14px; color: #102A4F; outline: none; box-sizing: border-box;
+}
+.afb-input:focus { border-color: #359AAD; box-shadow: 0 0 0 3px rgba(53, 154, 173, .18); }
+.afb-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.afb-btn { border-radius: 10px; padding: 9px 16px; font-size: 14px; font-weight: 700; cursor: pointer; border: 1px solid transparent; }
+.afb-ghost { background: #fff; color: #33475B; border-color: #C9D8E5; }
+.afb-ghost:hover { background: #F4F8FC; }
+.afb-primary { background: #051D64; color: #fff; }
+.afb-primary:hover { background: #0A2A7A; }
+.afb-danger { background: #C93737; color: #fff; }
+.afb-danger:hover { background: #A92C2C; }
+.afb-btn:focus-visible { outline: 3px solid rgba(53, 154, 173, .45); outline-offset: 2px; }
+
+@keyframes afb-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes afb-fade { from { opacity: 0; } to { opacity: 1; } }
+
+@media (max-width: 600px) {
+  .afb-toasts { left: 12px; right: 12px; bottom: 12px; align-items: stretch; }
+  .afb-toast { min-width: 0; max-width: none; }
+}

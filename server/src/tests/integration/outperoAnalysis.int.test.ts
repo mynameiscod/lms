@@ -66,6 +66,7 @@ beforeEach(async () => {
   for (const k of Object.keys(values)) delete values[k];
   stored.clear(); storageOn = true; whisper.mockReset(); ai.mockReset(); fetchMock.mockReset();
   values.OPENAI_API_KEY = 'sk-test';
+  values.OUTPERO_CALL_ANALYSIS = 'true'; // off unless an admin turns it on; these tests are about what it does when on
   T = await Tenant.create({ name: 'Calls', slug: 'calls', domain: 'calls.test', isActive: true, adminId: new mongoose.Types.ObjectId() } as any);
   stage = await LeadStage.create({ tenantId: T._id, name: 'New Lead', order: 1, color: '#000', isActive: true, createdBy: new mongoose.Types.ObjectId() } as any);
   const leadRole = await Role.create({ name: 'Telecaller', permissions: ['view_leads'], tenantId: T._id } as any);
@@ -170,6 +171,25 @@ describe('listening to a call', () => {
     expect(l.activities.filter((a: any) => /Call summary \(from the recording\)/.test(a.description))).toHaveLength(1);
     expect(await an.analyseCall(c._id)).toBe('skipped');
     expect(whisper).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing at all unless an admin has turned it on: no transcript, no AI, no cost', async () => {
+    delete values.OUTPERO_CALL_ANALYSIS;
+    speak();
+    const c: any = await mkCall();
+    expect(await an.processPendingAnalysis()).toBe(0);
+    expect(await an.analyseCall(c._id)).toBe('skipped');
+    expect(whisper).not.toHaveBeenCalled();
+    expect(ai).not.toHaveBeenCalled();
+    const row: any = await OutperoCall.findById(c._id).lean();
+    expect(row.analysis).toBeUndefined();
+    expect(row.analysisSkipped).toBeUndefined(); // still eligible if an admin switches it on later
+    // Outpero's own summary is still what the lead shows.
+    const list = await get(`/leads/${lead._id}/ai-calls`, 'admin');
+    expect(list.body.data[0].summary).toBe('The caller engaged and wants details.');
+    // Switched on, the same call is written up.
+    values.OUTPERO_CALL_ANALYSIS = 'true';
+    expect(await an.processPendingAnalysis()).toBe(1);
   });
 
   it('uses the transcript Outpero sends when it sends one, without paying to transcribe again', async () => {

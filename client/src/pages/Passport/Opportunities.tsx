@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { collegeMembershipApi, placementDriveApi } from '../../api';
 import passportApi, { CompanyRow } from '../../api/passportApi';
 import { useMember } from './MemberLayout';
+import { copyText } from '../../components/feedback/appFeedback';
 import './opportunities.css';
 import './opportunitiesRedesign.css';
 
@@ -206,7 +207,7 @@ const Opportunities: React.FC = () => {
     if (!member?.shareSlug) return;
     const url = `${window.location.origin}/careerpilot/card/${member.shareSlug}`;
     try { await navigator.clipboard.writeText(url); setMessage('CareerPilot profile link copied.'); }
-    catch { window.prompt('Copy your CareerPilot link:', url); }
+    catch { await copyText(url, 'CareerPilot profile link copied'); }
   };
 
   if (loading) return <div className="opp-state">Loading opportunities…</div>;

@@ -146,7 +146,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       moduleKey: 'assignments',
       permissions: ['manage_assignments', 'submit_assignments', 'view_grades'],
       submenu: [
-        { label: 'My Assignments', path: '/assignments', roles: ['STUDENT'], icon: 'fa-solid fa-file-lines', permissions: ['submit_assignments', 'view_grades'] },
+        { label: 'My Assignments', path: '/assignments', roles: ['STUDENT'], icon: 'fa-solid fa-file-lines', featureKey: 'assignments' as keyof StudentFeatures, permissions: ['submit_assignments', 'view_grades'] },
         { label: 'Manage Assignments', path: '/admin/assignments', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-folder-open', permissions: ['manage_assignments'] },
         { label: 'Assignment Reports', path: '/admin/assignments/reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-chart-column', permissions: ['view_reports', 'grade_assignments'] },
       ]
@@ -159,14 +159,14 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       moduleKey: 'codeAssessments',
       permissions: ['manage_snippets', 'grade_snippets', 'view_snippets'],
       submenu: [
-        { label: 'My Assessments', path: '/coding-snippets', roles: ['STUDENT'], icon: 'fa-solid fa-terminal', permissions: ['view_snippets'] },
+        { label: 'My Assessments', path: '/coding-snippets', roles: ['STUDENT'], icon: 'fa-solid fa-terminal', featureKey: 'codingSnippets' as keyof StudentFeatures, permissions: ['view_snippets'] },
         { label: 'Manage Assessments', path: '/admin/coding-snippets', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-gears', permissions: ['manage_snippets'] },
         { label: 'Grade Submissions', path: '/admin/coding-snippets/grade', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-star-half-stroke', permissions: ['manage_snippets', 'grade_snippets'] },
       ]
     },
     // ── Student learning section: journey → do → review ──────────────────────
     { label: 'My Learning Plan', path: '/my-learning', roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', featureKey: 'learningPlan' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'My Tasks',         path: '/my-tasks',     roles: ['STUDENT'], icon: 'fa-solid fa-list-check',     permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'My Tasks',         path: '/my-tasks',     roles: ['STUDENT'], icon: 'fa-solid fa-list-check',     featureKey: 'myTasks' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
     // "My Work" = review past quizzes/assignments/code + grades (the gradebook).
     {
       label: 'My Work',
@@ -174,13 +174,13 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       icon: 'fa-solid fa-folder-open',
       permissions: ['view_quiz', 'view_grades', 'view_snippets'],
       submenu: [
-        { label: 'My Quizzes',     path: '/quizzes',         roles: ['STUDENT'], icon: 'fa-solid fa-list-check',  permissions: ['view_quiz'] },
-        { label: 'My Assignments', path: '/assignments',     roles: ['STUDENT'], icon: 'fa-solid fa-file-lines',  permissions: ['submit_assignments', 'view_grades'] },
-        { label: 'My Code Practice', path: '/coding-snippets', roles: ['STUDENT'], icon: 'fa-solid fa-terminal',  permissions: ['view_snippets'] },
+        { label: 'My Quizzes',     path: '/quizzes',         roles: ['STUDENT'], icon: 'fa-solid fa-list-check',  featureKey: 'quizzes' as keyof StudentFeatures, permissions: ['view_quiz'] },
+        { label: 'My Assignments', path: '/assignments',     roles: ['STUDENT'], icon: 'fa-solid fa-file-lines',  featureKey: 'assignments' as keyof StudentFeatures, permissions: ['submit_assignments', 'view_grades'] },
+        { label: 'My Code Practice', path: '/coding-snippets', roles: ['STUDENT'], icon: 'fa-solid fa-terminal',  featureKey: 'codingSnippets' as keyof StudentFeatures, permissions: ['view_snippets'] },
       ],
     },
     // Student Reports & Student Profiles merged into the unified Student Detail page — click a student in Users.
-    { label: 'Drives',             path: '/drives',                    roles: ['STUDENT'], icon: 'fa-solid fa-briefcase' },
+    { label: 'Drives',             path: '/drives',                    roles: ['STUDENT'], icon: 'fa-solid fa-briefcase', featureKey: 'drives' as keyof StudentFeatures },
     { label: 'Notifications',      path: '/notifications',             roles: ['STUDENT', 'TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-bell', permissions: [] },
     {
       label: 'Drives',
@@ -261,11 +261,11 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'AI Spend', path: '/admin/ai-spend', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-indian-rupee-sign', permissions: ['view_ai_spend', 'manage_tenant_settings', 'manage_tenant'] },
     { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', moduleKey: 'mockInterviews', permissions: ['manage_interviews'] },
     { label: 'Scheduled Interviews', path: '/scheduled-interviews', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-check', permissions: ['assign_interviews', 'manage_tenant_users', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
-    { label: 'My Interviews', path: '/my-interviews', roles: ['STUDENT'], icon: 'fa-solid fa-microphone-lines', permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'Interview Experiences', path: '/interview-experiences', roles: ['STUDENT'], icon: 'fa-solid fa-comments' },
-    { label: 'Interview Question Books', path: '/question-books', roles: ['STUDENT'], icon: 'fa-solid fa-book-open' },
+    { label: 'My Interviews', path: '/my-interviews', roles: ['STUDENT'], icon: 'fa-solid fa-microphone-lines', featureKey: 'scheduledInterviews' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'Interview Experiences', path: '/interview-experiences', roles: ['STUDENT'], icon: 'fa-solid fa-comments', featureKey: 'interviewExperiences' as keyof StudentFeatures },
+    { label: 'Interview Question Books', path: '/question-books', roles: ['STUDENT'], icon: 'fa-solid fa-book-open', featureKey: 'questionBooks' as keyof StudentFeatures },
     { label: 'Question Books', path: '/admin/question-books', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-book-open', permissions: ['manage_interview_hub', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant', 'manage_tenant_users', 'manage_interviews'] },
-    { label: 'Apply Leave', path: '/my-leave', roles: ['STUDENT'], icon: 'fa-solid fa-calendar-xmark', moduleKey: 'attendance', permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'Apply Leave', path: '/my-leave', roles: ['STUDENT'], icon: 'fa-solid fa-calendar-xmark', moduleKey: 'attendance', featureKey: 'applyLeave' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Code Playground', path: '/playground', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-code', moduleKey: 'codeAssessments', featureKey: 'codePlayground' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Project Builder', path: '/project-builder', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-rocket', moduleKey: 'careerPilot', featureKey: 'projectBuilder' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Job Tracker', path: '/job-tracker', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', moduleKey: 'careerPilot', featureKey: 'jobTracker' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
@@ -277,14 +277,14 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Live Classes', path: '/hms-classes', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-video', featureKey: 'liveClasses' as keyof StudentFeatures, permissions: ['manage_live_classes', 'enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'AI Communication Lab', path: '/ai-communication-lab', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-comment-dots', moduleKey: 'aiCommunicationLab', featureKey: 'aiCommunicationLab' as keyof StudentFeatures, permissions: ['use_communication_lab', 'manage_communication_lab'] },
     { label: 'Communication Lab — Manage', path: '/admin/communication-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-headset', moduleKey: 'aiCommunicationLab', permissions: ['manage_communication_lab'] },
-    { label: 'Code Visualizer', path: '/visualizer', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-microscope', needsVisualizerGrant: true, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
-    { label: 'My Practice', path: '/my-practice', roles: ['STUDENT'], icon: 'fa-solid fa-fire', permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
+    { label: 'Code Visualizer', path: '/visualizer', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-microscope', needsVisualizerGrant: true, featureKey: 'codeVisualizer' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'My Practice', path: '/my-practice', roles: ['STUDENT'], icon: 'fa-solid fa-fire', featureKey: 'myPractice' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
     { label: 'Employee Portal', path: '/employee', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-id-badge', needsEmployee: true },
     { label: 'Employees', path: '/employees', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-people-group', permissions: ['view_employees', 'manage_employees'] },
     { label: 'Employee Activity', path: '/employee-activity', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-list-check', permissions: ['review_employee_activity', 'manage_employees'], orTeam: true },
     { label: 'Expenses', path: '/expenses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-receipt', permissions: ['view_expenses', 'approve_expenses', 'manage_expenses'], orTeam: true },
     { label: 'Practice Pass', path: '/practice-pass', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-fire', permissions: ['manage_practice_pass', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
-    { label: 'Coding Practice', path: '/coding-practice', roles: ['STUDENT'], icon: 'fa-solid fa-laptop-code', permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
+    { label: 'Coding Practice', path: '/coding-practice', roles: ['STUDENT'], icon: 'fa-solid fa-laptop-code', featureKey: 'codingPractice' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
     { label: 'Problem Bank', path: '/problem-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-code', permissions: ['manage_problem_bank', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Code Visualizer — Manage', path: '/admin/visualizer', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-sliders', permissions: ['manage_visualizer', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Thinking Lab', path: '/thinking-lab', roles: ['STUDENT'], icon: 'fa-solid fa-brain', moduleKey: 'thinkingLab', featureKey: 'thinkingLab' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },

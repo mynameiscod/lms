@@ -243,6 +243,11 @@ export const ICON: Record<string, string> = {
   video: 'bi-play-circle', notes: 'bi-journal-text', image: 'bi-image',
   checklist: 'bi-check2-square', recording: 'bi-mic',
 };
+/** The solid glyphs, for the item's header badge, where an outline icon read as faint. */
+export const ICON_FILLED: Record<string, string> = {
+  video: 'bi-play-fill', notes: 'bi-journal-text', image: 'bi-image-fill',
+  checklist: 'bi-check2-square', recording: 'bi-mic-fill',
+};
 
 /**
  * Exported so the welcome DAY PAGE can draw one item at a time in its stage, while this screen
@@ -264,8 +269,11 @@ export const Item: React.FC<{
   return (
     <section className={`ori-item${item.done ? ' done' : ''}`}>
       <header>
-        <span className="ori-item-ic"><i className={`bi ${ICON[item.kind] || 'bi-dot'}`} /></span>
-        <div>
+        {/* A filled badge per kind (video, notes, picture…), a tick once done. */}
+        <span className={`ori-item-ic k-${item.kind}`} aria-hidden>
+          <i className={`bi ${item.done ? 'bi-check-lg' : (ICON_FILLED[item.kind] || 'bi-journal-text')}`} />
+        </span>
+        <div className="ori-item-tx">
           <b>{item.title}</b>
           {item.blurb && <span>{item.blurb}</span>}
         </div>

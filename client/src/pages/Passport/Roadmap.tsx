@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { Roadmap as RoadmapT, RoadmapWeek, RoadmapPhase } from '../../api/passportApi';
 import { useMember } from './MemberLayout';
+import { copyText } from '../../components/feedback/appFeedback';
 import SkillPlan, { SkillPlanState } from './SkillPlan';
 import SectionLock from './SectionLock';
 import FoundationRoadmap from './FoundationRoadmap';
@@ -103,7 +104,7 @@ const Roadmap: React.FC = () => {
     const slug = member?.shareSlug;
     const url = slug ? `${window.location.origin}/careerpilot/card/${slug}` : window.location.href;
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-    catch { window.prompt('Copy your roadmap link:', url); }
+    catch { await copyText(url, 'Link copied'); }
   };
 
   // Milestones = the next unearned badges. Real progress, no invented reward numbers.

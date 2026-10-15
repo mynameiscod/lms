@@ -13,6 +13,8 @@ import { istToday, ymd } from '../utils/planSchedule';
 import * as lab from '../services/thinkingLabService';
 import * as game from '../services/gamificationService';
 import { transcribeFile } from '../services/speakingService';
+import { isCareerPilotMember, careerPilotMemberFilter } from '../services/careerPilotPopulation';
+import { pickMemberProblem, positionInBank } from '../services/thinkingLabMemberDaily';
 
 // Credit bonus XP (voice/journal) to the student's game stats. Returns coins + new badges.
 async function creditBonusXp(req: Request, amount: number) {
@@ -115,11 +117,59 @@ async function scheduledProblem(tenantId: string, batchId: any, dateStr: string)
   return p || null;
 }
 
+// ── CareerPilot members ──────────────────────────────────────────────────────
+// A member has no batch, so neither a ScheduledChallenge nor a lab track can name their day.
+// They are served the CareerPilot bank in curriculum order instead — see thinkingLabMemberDaily.
+
+const USER_FIELDS = 'firstName lastName batchId passport.product passport.active passport.activatedAt passport.verifiedAt';
+
+/** The CareerPilot bank for a tenant, as the selection rule needs it. */
+async function memberBank(tenantId: string) {
+  const rows: any[] = await ThinkingProblem.find({ tenantId, active: true, ...audienceFilter('careerpilot') })
+    .select('_id order createdAt').lean();
+  return rows.map(r => ({ id: String(r._id), order: r.order, createdAt: r.createdAt }));
+}
+
+/** Leaderboard rows for a member compare members only — not the LMS students of the same tenant. */
+async function memberIds(tenantId: string) {
+  return User.find({ tenantId, ...careerPilotMemberFilter() }).distinct('_id');
+}
+
+/** The viewer is a CareerPilot member with no batch — the member rules apply to them. */
+const isMemberView = (u: any) => !u?.batchId && isCareerPilotMember(u?.passport);
+
+async function memberToday(req: Request, res: Response, u: any, d: string) {
+  const bank = await memberBank(tId(req));
+  let ch: any = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 });
+  if (!ch) {
+    const given: any[] = await DailyChallenge.find({ tenantId: tId(req), studentId: uId(req) }).select('problemId').lean();
+    const pickId = pickMemberProblem(bank, given.map(g => String(g.problemId)));
+    const p: any = pickId ? await ThinkingProblem.findOne({ _id: pickId, tenantId: tId(req), active: true }).lean() : null;
+    if (!p) {
+      return res.json({ challenge: null, empty: true, reason: 'bank_empty', message: 'Thinking Lab problems are being prepared. Check back soon.' });
+    }
+    // Upsert on the day, so two tabs opening the page at once still get ONE problem for today.
+    const before = await DailyChallenge.findOneAndUpdate(
+      { tenantId: tId(req), studentId: uId(req), date: d, seq: 1 },
+      { $setOnInsert: {
+        tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '),
+        date: d, seq: 1, problemId: p._id, difficulty: p.difficulty, language: p.language, code: p.starterCode || '',
+        status: 'assigned', startedAt: new Date(),
+      } },
+      { upsert: true, new: false },
+    );
+    if (!before) await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesAssigned: 1 } });
+    ch = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 });
+  }
+  const p = await ThinkingProblem.findById(ch.problemId).lean();
+  res.json({ challenge: challengeView(ch, p), member: { position: positionInBank(bank, String(ch.problemId)), total: bank.length } });
+}
+
 // GET /thinking-lab/today — the student's current challenge (creates one if none today).
 export const getToday = async (req: Request, res: Response) => {
   try {
     const d = today();
-    const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
+    const u: any = await User.findById(uId(req)).select(USER_FIELDS).lean();
     // Admin-scheduled batch challenge (may carry a time window) takes priority.
     let sc: any = u?.batchId ? await ScheduledChallenge.findOne({ tenantId: tId(req), batchId: u.batchId, date: d }).lean() : null;
 
@@ -142,6 +192,9 @@ export const getToday = async (req: Request, res: Response) => {
         };
       }
     }
+
+    // A CareerPilot member with no batch schedule: today's problem comes from the member bank.
+    if (!sc && isCareerPilotMember(u?.passport)) return memberToday(req, res, u, d);
 
     // Still nothing: say WHY, because "not scheduled", "your plan starts Monday" and
     // "today is a rest day" need very different responses from the student.
@@ -198,7 +251,12 @@ export const nextChallenge = async (req: Request, res: Response) => {
     }
     // Schedule-driven: one admin-assigned challenge per day. Once it's done there is no
     // random "next" — the student is finished until the next scheduled challenge.
-    res.json({ challenge: null, empty: true, message: "That's today's challenge. Check back when your instructor assigns the next one." });
+    // A member follows the same one-a-day rhythm; their next problem unlocks tomorrow.
+    const u: any = await User.findById(uId(req)).select(USER_FIELDS).lean();
+    const message = isMemberView(u)
+      ? "That's today's problem done. Your next Thinking Lab problem unlocks tomorrow."
+      : "That's today's challenge. Check back when your instructor assigns the next one.";
+    res.json({ challenge: null, empty: true, message });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
 
@@ -318,7 +376,9 @@ export const stats = async (req: Request, res: Response) => {
   try {
     const gs: any = await StudentGameStats.findOne({ tenantId: tId(req), studentId: uId(req) }).lean();
     const solvedToday = await DailyChallenge.countDocuments({ tenantId: tId(req), studentId: uId(req), passed: true, date: today() });
+    const u: any = await User.findById(uId(req)).select(USER_FIELDS).lean();
     res.json({
+      member: isMemberView(u),
       xpTotal: gs?.xpTotal || 0, level: gs?.level || 1, coins: gs?.coins || 0,
       streak: gs?.currentStreak || 0, longestStreak: gs?.longestStreak || 0,
       solvedTotal: gs?.solvedTotal || 0, solvedToday, badgeCount: (gs?.badges || []).length,
@@ -340,6 +400,10 @@ export const leaderboard = async (req: Request, res: Response) => {
     const scope = String(req.query.scope || 'overall');
     const limit = Math.min(50, Math.max(5, Number(req.query.limit) || 20));
     const me: any = await StudentGameStats.findOne({ tenantId: tId(req), studentId: uId(req) }).lean();
+    // A member is ranked among CareerPilot members, not the tenant's LMS batches. A member has
+    // no batch, so 'batch' means the same member board for them.
+    const viewer: any = await User.findById(uId(req)).select(USER_FIELDS).lean();
+    const onlyIds = isMemberView(viewer) ? await memberIds(tId(req)) : null;
 
     let rows: any[] = [];
     if (scope === 'weekly' || scope === 'monthly') {
@@ -349,14 +413,15 @@ export const leaderboard = async (req: Request, res: Response) => {
       else d.setDate(1);
       const since = ymd(d);
       const agg = await DailyChallenge.aggregate([
-        { $match: { tenantId: tId(req), passed: true, date: { $gte: since } } },
+        { $match: { tenantId: tId(req), passed: true, date: { $gte: since }, ...(onlyIds ? { studentId: { $in: onlyIds } } : {}) } },
         { $group: { _id: '$studentId', name: { $first: '$studentName' }, xp: { $sum: '$xpEarned' }, solved: { $sum: 1 } } },
         { $sort: { xp: -1 } }, { $limit: limit },
       ]);
       rows = agg.map((r: any) => ({ studentId: String(r._id), name: r.name || 'Student', xp: r.xp, solved: r.solved }));
     } else {
       const q: any = { tenantId: tId(req) };
-      if (scope === 'batch' && me?.batchId) q.batchId = me.batchId;
+      if (onlyIds) q.studentId = { $in: onlyIds };
+      else if (scope === 'batch' && me?.batchId) q.batchId = me.batchId;
       const gsRows = await StudentGameStats.find(q).sort({ xpTotal: -1 }).limit(limit)
         .select('studentId studentName xpTotal level solvedTotal currentStreak').lean();
       rows = gsRows.map((r: any) => ({ studentId: String(r.studentId), name: r.studentName || 'Student', xp: r.xpTotal, level: r.level, solved: r.solvedTotal, streak: r.currentStreak }));
@@ -585,7 +650,7 @@ function sanitizeProblemInput(b: any) {
     difficulty, language: String(b.language || 'javascript'),
     statement: String(b.statement || '').slice(0, 8000),
     examples, testCases,
-    constraints: b.constraints ? String(b.constraints).slice(0, 800) : undefined,
+    constraints: b.constraints ? (Array.isArray(b.constraints) ? b.constraints.map((c: any) => String(c).trim()).filter(Boolean).join('\n') : String(b.constraints)).slice(0, 800) : undefined,
     notes: b.notes ? String(b.notes).slice(0, 800) : undefined,
     starterCode: b.starterCode ? String(b.starterCode).slice(0, 8000) : '',
     hints: (Array.isArray(b.hints) ? b.hints : []).slice(0, 3).map((h: any) => String(h).slice(0, 400)),

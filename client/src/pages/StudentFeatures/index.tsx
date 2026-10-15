@@ -1,233 +1,164 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { tenantApi } from '../../api';
+import {
+  FEATURE_META, FEATURE_MODULE_MAP, GROUP_ORDER, STUDENT_FEATURE_KEYS, StudentFeatureKey,
+  CAREERPILOT_FEATURE_META, CAREERPILOT_GROUP_ORDER, CAREERPILOT_FEATURE_KEYS, CareerPilotFeatureKey,
+} from '../../config/studentFeatureCatalog';
 import './StudentFeaturesPage.css';
 
-interface FeatureConfig {
-  dashboard: boolean;
-  myCourse: boolean;
-  topicHub: boolean;
-  attendance: boolean;
-  quizzes: boolean;
-  assignments: boolean;
-  mockInterviews: boolean;
-  codingSnippets: boolean;
-  classHub: boolean;
-  feeDetails: boolean;
-  scheduledInterviews: boolean;
-  resumeBuilder: boolean;
-  learningPlan: boolean;
-  thinkingLab: boolean;
-  speakingPractice: boolean;
-  jobTracker: boolean;
-  aiMentor: boolean;
-  projectBuilder: boolean;
-  resourceLibrary: boolean;
-  codePlayground: boolean;
-  careerProfile: boolean;
-  aiCommunicationLab: boolean;
-  liveClasses: boolean;
-  collegePortal: boolean;
-  myApplications: boolean;
-  alumniDirectory: boolean;
-}
+/**
+ * Student Feature Control. One page decides what each kind of student sees in their menu:
+ *   LMS students        the students of your batches (the LMS menu)
+ *   CareerPilot students the members of the CareerPilot product (their own menu)
+ * Everything comes from the shared catalogue (config/studentFeatureCatalog), the same list the
+ * per-batch screen uses, so a new menu item appears here and there together.
+ */
 
-// Map each student feature to the module that must be enabled for it
-const FEATURE_MODULE_MAP: Record<keyof FeatureConfig, string | null> = {
-  dashboard:            null,
-  myCourse:             'courses',
-  topicHub:             'courses',
-  classHub:             'classRecordings',
-  attendance:           'attendance',
-  quizzes:              'quizzes',
-  assignments:          'assignments',
-  mockInterviews:       'mockInterviews',
-  codingSnippets:       'codeEditor',
-  feeDetails:           null,
-  scheduledInterviews:  null,
-  resumeBuilder:        null,
-  learningPlan:         'courses',
-  thinkingLab:          'thinkingLab',
-  speakingPractice:     'speakingPractice',
-  jobTracker:           'careerPilot',
-  aiMentor:             'careerPilot',
-  projectBuilder:       'careerPilot',
-  resourceLibrary:      'resourceLibrary',
-  codePlayground:       'codeAssessments',
-  careerProfile:        'careerPilot',
-  aiCommunicationLab:   'aiCommunicationLab',
-  liveClasses:          null,
-  collegePortal:        'placement',
-  myApplications:       'placement',
-  alumniDirectory:      'placement',
-};
+type Audience = 'lms' | 'careerpilot';
+type LmsState = Record<StudentFeatureKey, boolean>;
+type CpState = Record<CareerPilotFeatureKey, boolean>;
 
-type FeatureGroup = 'Home' | 'Daily Practice' | 'My Learning' | 'Prep & Career' | 'My Account';
-const GROUP_ORDER: FeatureGroup[] = ['Home', 'Daily Practice', 'My Learning', 'Prep & Career', 'My Account'];
-
-const FEATURE_META: { key: keyof FeatureConfig; label: string; description: string; icon: string; group: FeatureGroup }[] = [
-  // Home
-  { key: 'dashboard',      label: 'Dashboard',                       description: 'Student dashboard with stats, progress, deadlines, and daily challenge cards', icon: '☑', group: 'Home' },
-  // Daily Practice
-  { key: 'aiCommunicationLab', label: 'AI Communication Lab', description: 'Daily self-introduction practice — record, get AI feedback, build a streak', icon: '🎙', group: 'Daily Practice' },
-  { key: 'thinkingLab',     label: 'Thinking Lab',    description: 'AI-graded logic, aptitude and problem-solving drills', icon: '🧩', group: 'Daily Practice' },
-  { key: 'speakingPractice',label: 'Speaking Practice (retired)', description: 'Superseded by AI Communication Lab — hidden from students. Leave off unless you specifically need the old tool.', icon: '🗣', group: 'Daily Practice' },
-  // My Learning
-  { key: 'myCourse',       label: 'My Course',                       description: 'Course content, chapters, and learning materials', icon: '📚', group: 'My Learning' },
-  { key: 'learningPlan',   label: 'Learning Plan',                    description: 'Personalised learning plan and curriculum schedule', icon: '📅', group: 'My Learning' },
-  { key: 'topicHub',       label: 'Topic Hub',                        description: 'Topic-wise practice, mastery and learning hub', icon: '🧠', group: 'My Learning' },
-  { key: 'classHub',       label: '🎥 My Classes (Class Hub)',        description: 'View recorded classes with AI summary, quiz, notes, practice & assignment tabs', icon: '🎬', group: 'My Learning' },
-  { key: 'quizzes',        label: 'Quizzes',                          description: 'Take quizzes and view quiz results', icon: '✍', group: 'My Learning' },
-  { key: 'assignments',    label: 'Assignments',                      description: 'Submit coding assignments and view results', icon: '📝', group: 'My Learning' },
-  { key: 'codingSnippets', label: 'Code Practice',                   description: 'Code editor access with snippet manager and practice problems', icon: '💻', group: 'My Learning' },
-  { key: 'liveClasses',    label: 'Live Classes',                     description: 'Join scheduled live/online classes with recording playback', icon: '🎥', group: 'My Learning' },
-  { key: 'attendance',     label: 'Attendance',                       description: 'View attendance records and attendance percentage', icon: '📊', group: 'My Learning' },
-  // Prep & Career
-  { key: 'codePlayground',  label: 'Code Playground',         description: 'Free-form multi-language code playground with run & GitHub push', icon: '🎮', group: 'Prep & Career' },
-  { key: 'mockInterviews', label: 'Mock Interviews',                  description: 'Practice mock interviews with AI feedback', icon: '🎙', group: 'Prep & Career' },
-  { key: 'scheduledInterviews', label: 'My Interviews',         description: 'View scheduled mock interviews and released feedback from interviewers', icon: '🗓', group: 'Prep & Career' },
-  { key: 'resumeBuilder',  label: 'Resume Builder',                   description: 'Build, score, download and share a resume', icon: '📄', group: 'Prep & Career' },
-  { key: 'careerProfile',   label: 'Career Profile (CareerPilot)', description: 'AI review of resume, GitHub and LinkedIn with improvement suggestions', icon: '🎯', group: 'Prep & Career' },
-  { key: 'aiMentor',        label: 'AI Mentor (CareerPilot)', description: 'Personal AI mentor for guidance, doubts and career questions', icon: '🤖', group: 'Prep & Career' },
-  { key: 'jobTracker',      label: 'Job Tracker (CareerPilot)', description: 'Track job applications, statuses and interview pipeline', icon: '📋', group: 'Prep & Career' },
-  { key: 'projectBuilder',  label: 'Project Builder (CareerPilot)', description: 'Guided project builder to create portfolio-ready projects', icon: '🛠', group: 'Prep & Career' },
-  { key: 'resourceLibrary', label: 'Resource Library',        description: 'Curated projects, references and downloadable learning resources', icon: '📁', group: 'Prep & Career' },
-  // My Account
-  { key: 'feeDetails',          label: 'Fee Details',           description: 'Student fee ledger, payments, receipts, and reservation status', icon: '💰', group: 'My Account' },
-];
+const allOn = <K extends string>(keys: K[]) => Object.fromEntries(keys.map(k => [k, true])) as Record<K, boolean>;
 
 const StudentFeaturesPage: React.FC = () => {
   const { user } = useAuth();
-  const [features, setFeatures] = useState<FeatureConfig>({
-    dashboard: true,
-    myCourse: true,
-    topicHub: true,
-    attendance: true,
-    quizzes: true,
-    assignments: true,
-    mockInterviews: true,
-    codingSnippets: true,
-    classHub: true,
-    feeDetails: true,
-    scheduledInterviews: true,
-    resumeBuilder: true,
-    learningPlan: true,
-    thinkingLab: true,
-    speakingPractice: true,
-    jobTracker: true,
-    aiMentor: true,
-    projectBuilder: true,
-    resourceLibrary: true,
-    codePlayground: true,
-    careerProfile: true,
-    aiCommunicationLab: true,
-    liveClasses: true,
-    collegePortal: true,
-    myApplications: true,
-    alumniDirectory: true,
-  });
+  const [tab, setTab] = useState<Audience>('lms');
+  const [lms, setLms] = useState<LmsState>(allOn(STUDENT_FEATURE_KEYS));
+  const [cp, setCp] = useState<CpState>(allOn(CAREERPILOT_FEATURE_KEYS));
+  const [savedLms, setSavedLms] = useState<LmsState>(allOn(STUDENT_FEATURE_KEYS));
+  const [savedCp, setSavedCp] = useState<CpState>(allOn(CAREERPILOT_FEATURE_KEYS));
   const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
   const [modulesLoaded, setModulesLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
 
   useEffect(() => {
-    const fetchAll = async () => {
+    const load = async () => {
       if (!user?.tenantId) return;
-      try {
-        const [featRes, tenantRes] = await Promise.allSettled([
-          tenantApi.getStudentFeatures(user.tenantId),
-          tenantApi.getTenant(user.tenantId)
-        ]);
-        if (featRes.status === 'fulfilled' && featRes.value.success && featRes.value.data) {
-          setFeatures(prev => ({ ...prev, ...featRes.value.data }));
-        }
-        if (tenantRes.status === 'fulfilled' && tenantRes.value.data) {
-          setEnabledModules(tenantRes.value.data.modules || {});
-        }
-        setModulesLoaded(true);
-      } catch (err) {
-        console.error('Failed to fetch student features:', err);
-      } finally {
-        setLoading(false);
+      const [featRes, cpRes, tenantRes] = await Promise.allSettled([
+        tenantApi.getStudentFeatures(user.tenantId),
+        tenantApi.getCareerPilotFeatures(user.tenantId),
+        tenantApi.getTenant(user.tenantId),
+      ]);
+      if (featRes.status === 'fulfilled' && featRes.value.success && featRes.value.data) {
+        const v = { ...allOn(STUDENT_FEATURE_KEYS), ...featRes.value.data };
+        setLms(v); setSavedLms(v);
       }
+      if (cpRes.status === 'fulfilled' && cpRes.value.success && cpRes.value.data) {
+        const v = { ...allOn(CAREERPILOT_FEATURE_KEYS), ...cpRes.value.data };
+        setCp(v); setSavedCp(v);
+      }
+      if (tenantRes.status === 'fulfilled' && tenantRes.value.data) setEnabledModules(tenantRes.value.data.modules || {});
+      setModulesLoaded(true);
+      setLoading(false);
     };
-    fetchAll();
+    load();
   }, [user?.tenantId]);
 
-  const isModuleLocked = (featureKey: keyof FeatureConfig): boolean => {
+  const isModuleLocked = (key: StudentFeatureKey): boolean => {
     if (isSuperAdmin) return false;
-    const moduleKey = FEATURE_MODULE_MAP[featureKey];
-    if (!moduleKey) return false;
-    return modulesLoaded && enabledModules[moduleKey] === false;
+    const moduleKey = FEATURE_MODULE_MAP[key];
+    return !!moduleKey && modulesLoaded && enabledModules[moduleKey] === false;
+  };
+  // CareerPilot as a whole can be switched off by the platform owner.
+  const careerPilotOff = !isSuperAdmin && modulesLoaded && enabledModules.careerPilot === false;
+
+  const lmsDirty = useMemo(() => STUDENT_FEATURE_KEYS.some(k => lms[k] !== savedLms[k]), [lms, savedLms]);
+  const cpDirty = useMemo(() => CAREERPILOT_FEATURE_KEYS.some(k => cp[k] !== savedCp[k]), [cp, savedCp]);
+  const dirty = tab === 'lms' ? lmsDirty : cpDirty;
+
+  const toggleLms = (key: StudentFeatureKey) => { if (!isModuleLocked(key)) { setLms(p => ({ ...p, [key]: !p[key] })); setMessage(null); } };
+  const toggleCp = (key: CareerPilotFeatureKey) => { setCp(p => ({ ...p, [key]: !p[key] })); setMessage(null); };
+
+  const setAll = (on: boolean) => {
+    setMessage(null);
+    if (tab === 'lms') setLms(p => Object.fromEntries(STUDENT_FEATURE_KEYS.map(k => [k, isModuleLocked(k) ? p[k] : k === 'dashboard' ? true : on])) as LmsState);
+    else setCp(Object.fromEntries(CAREERPILOT_FEATURE_KEYS.map(k => [k, on])) as CpState);
   };
 
-  const handleToggle = (key: keyof FeatureConfig) => {
-    if (isModuleLocked(key)) return;
-    setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
-    setSaved(false);
-  };
-
-  const handleSave = async () => {
+  const save = async () => {
     if (!user?.tenantId) return;
     setSaving(true);
     try {
-      await tenantApi.updateStudentFeatures(user.tenantId, { ...features });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (err) {
-      console.error('Failed to save student features:', err);
+      if (tab === 'lms') { await tenantApi.updateStudentFeatures(user.tenantId, { ...lms }); setSavedLms(lms); }
+      else { await tenantApi.updateCareerPilotFeatures(user.tenantId, { ...cp }); setSavedCp(cp); }
+      setMessage({ kind: 'ok', text: tab === 'lms' ? 'LMS student menu saved. Students see it the next time their page loads.' : 'CareerPilot student menu saved. Members see it the next time their page loads.' });
+    } catch {
+      setMessage({ kind: 'err', text: 'Could not save. Check your connection and try again.' });
     } finally {
       setSaving(false);
     }
   };
 
-  const enabledCount = Object.values(features).filter(Boolean).length;
-  const lockedCount = FEATURE_META.filter(f => isModuleLocked(f.key)).length;
+  if (loading) return <div className="sf-page"><div className="sf-loading">Loading feature settings...</div></div>;
 
-  if (loading) {
-    return (
-      <div className="sf-page">
-        <div className="sf-loading">Loading feature settings...</div>
-      </div>
-    );
-  }
+  const lmsOn = STUDENT_FEATURE_KEYS.filter(k => lms[k]).length;
+  const cpOn = CAREERPILOT_FEATURE_KEYS.filter(k => cp[k]).length;
+  const lockedCount = FEATURE_META.filter(f => isModuleLocked(f.key)).length;
 
   return (
     <div className="sf-page">
       <div className="sf-header">
         <div className="sf-header-text">
           <h1>Student Feature Control</h1>
-          <p>Control which features and modules are visible to students. Toggle features on or off to customize the student experience.</p>
+          <p>Choose which menu items each kind of student can see. Anything you switch off disappears from their menu and cannot be opened by typing its address.</p>
         </div>
         <div className="sf-header-badge">
-          {enabledCount} of {FEATURE_META.length} enabled
+          {tab === 'lms' ? `${lmsOn} of ${STUDENT_FEATURE_KEYS.length} visible` : `${cpOn} of ${CAREERPILOT_FEATURE_KEYS.length} visible`}
         </div>
       </div>
 
-      {lockedCount > 0 && (
+      <div className="sf-tabs" role="tablist">
+        <button role="tab" aria-selected={tab === 'lms'} className={`sf-tab${tab === 'lms' ? ' on' : ''}`} onClick={() => { setTab('lms'); setMessage(null); }}>
+          LMS students{lmsDirty && <span className="sf-dot" title="Unsaved changes" />}
+        </button>
+        <button role="tab" aria-selected={tab === 'careerpilot'} className={`sf-tab${tab === 'careerpilot' ? ' on' : ''}`} onClick={() => { setTab('careerpilot'); setMessage(null); }}>
+          CareerPilot students{cpDirty && <span className="sf-dot" title="Unsaved changes" />}
+        </button>
+      </div>
+
+      <p className="sf-audience">
+        {tab === 'lms'
+          ? 'The students of your batches. Per-batch switches (Batches → Modules) can hide more for one batch, never show more than this.'
+          : 'Members of CareerPilot, the career product with its own menu. Home, My profile, My result and Share my card are always shown. Items still under membership show a padlock until the student pays; items you hide here are removed for everyone.'}
+      </p>
+
+      {tab === 'lms' && lockedCount > 0 && (
         <div className="sf-module-notice">
           <i className="fa-solid fa-lock me-2" />
-          <strong>{lockedCount} feature{lockedCount > 1 ? 's are' : ' is'} locked</strong> â€” the corresponding platform module{lockedCount > 1 ? 's are' : ' is'} disabled by your Super Admin. Contact them to enable.
+          <strong>{lockedCount} feature{lockedCount > 1 ? 's are' : ' is'} locked</strong> because the platform module{lockedCount > 1 ? 's are' : ' is'} disabled by your Super Admin. Contact them to enable.
+        </div>
+      )}
+      {tab === 'careerpilot' && careerPilotOff && (
+        <div className="sf-module-notice">
+          <i className="fa-solid fa-lock me-2" />
+          <strong>CareerPilot is disabled for your institute</strong> by your Super Admin, so these switches have no effect until it is enabled.
         </div>
       )}
 
-      {GROUP_ORDER.map((group) => {
-        const groupFeatures = FEATURE_META.filter((f) => f.group === group);
-        if (groupFeatures.length === 0) return null;
+      <div className="sf-bulk">
+        <button type="button" className="sf-link" onClick={() => setAll(true)}>Show all</button>
+        <span>·</span>
+        <button type="button" className="sf-link" onClick={() => setAll(false)}>Hide all</button>
+        {tab === 'lms' && <span className="sf-hint">The Dashboard always stays on.</span>}
+      </div>
+
+      {tab === 'lms' && GROUP_ORDER.map((group) => {
+        const items = FEATURE_META.filter((f) => f.group === group);
+        if (items.length === 0) return null;
         return (
           <div key={group} className="sf-group">
-            <h2 className="sf-group-title" style={{ fontSize: 14, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '.05em', margin: '22px 0 10px' }}>
-              {group === 'Daily Practice' ? '🔥 ' : ''}{group}
-            </h2>
+            <h2 className="sf-group-title">{group === 'Daily Practice' ? '🔥 ' : ''}{group}</h2>
             <div className="sf-features-grid">
-              {groupFeatures.map(({ key, label, description, icon }) => {
+              {items.map(({ key, label, description, icon }) => {
                 const locked = isModuleLocked(key);
+                const on = lms[key] && !locked;
                 return (
-                  <div key={key} className={`sf-feature-card ${features[key] && !locked ? 'enabled' : 'disabled'}${locked ? ' sf-locked' : ''}`}>
+                  <div key={key} className={`sf-feature-card ${on ? 'enabled' : 'disabled'}${locked ? ' sf-locked' : ''}`}>
                     <div className="sf-feature-info">
                       <span className="sf-feature-icon">{icon}</span>
                       <div className="sf-feature-text">
@@ -236,14 +167,9 @@ const StudentFeaturesPage: React.FC = () => {
                       </div>
                     </div>
                     <label className={`sf-toggle${locked ? ' sf-toggle-disabled' : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={features[key] && !locked}
-                        onChange={() => handleToggle(key)}
-                        disabled={locked}
-                      />
+                      <input type="checkbox" checked={on} onChange={() => toggleLms(key)} disabled={locked || key === 'dashboard'} aria-label={label} />
                       <span className="sf-toggle-slider"></span>
-                      <span className="sf-toggle-label">{locked ? 'Locked' : features[key] ? 'Visible' : 'Hidden'}</span>
+                      <span className="sf-toggle-label">{locked ? 'Locked' : on ? 'Visible' : 'Hidden'}</span>
                     </label>
                   </div>
                 );
@@ -253,15 +179,39 @@ const StudentFeaturesPage: React.FC = () => {
         );
       })}
 
+      {tab === 'careerpilot' && CAREERPILOT_GROUP_ORDER.map((group) => {
+        const items = CAREERPILOT_FEATURE_META.filter((f) => f.group === group);
+        return (
+          <div key={group} className="sf-group">
+            <h2 className="sf-group-title">{group}</h2>
+            <div className="sf-features-grid">
+              {items.map(({ key, label, description, icon }) => (
+                <div key={key} className={`sf-feature-card ${cp[key] ? 'enabled' : 'disabled'}`}>
+                  <div className="sf-feature-info">
+                    <span className="sf-feature-icon">{icon}</span>
+                    <div className="sf-feature-text"><h3>{label}</h3><p>{description}</p></div>
+                  </div>
+                  <label className="sf-toggle">
+                    <input type="checkbox" checked={cp[key]} onChange={() => toggleCp(key)} aria-label={label} />
+                    <span className="sf-toggle-slider"></span>
+                    <span className="sf-toggle-label">{cp[key] ? 'Visible' : 'Hidden'}</span>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
       <div className="sf-actions">
-        <button className="sf-save-btn" onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving...' : saved ? 'âœ“ Saved!' : 'Save Changes'}
+        <button className="sf-save-btn" onClick={save} disabled={saving || !dirty}>
+          {saving ? 'Saving...' : 'Save changes'}
         </button>
-        {saved && <span className="sf-saved-msg">Student feature settings updated successfully.</span>}
+        {dirty && !saving && <span className="sf-hint">You have unsaved changes.</span>}
+        {message && <span className={`sf-saved-msg${message.kind === 'err' ? ' sf-err' : ''}`}>{message.text}</span>}
       </div>
     </div>
   );
 };
-
 
 export default StudentFeaturesPage;

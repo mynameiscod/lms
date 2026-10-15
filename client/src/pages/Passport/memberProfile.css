@@ -79,10 +79,24 @@
   font-size: 30px !important; font-weight: 850 !important;
   letter-spacing: -.02em; color: var(--mp-navy) !important;
 }
+#root .gd .cb-member-profile .score-pct small { font-size: 18px; font-weight: 800; margin-left: 1px; }
+/* The level is a chip under the ring (never inside it), coloured by state. */
 #root .gd .cb-member-profile .score-level {
-  margin-top: 3px !important; font-size: 11px !important; font-weight: 800 !important;
-  letter-spacing: .09em; color: var(--mp-teal-deep) !important;
+  margin: 0 !important; padding: 5px 12px !important; font-size: 12px !important; font-weight: 800 !important;
+  letter-spacing: .07em; border-radius: 999px; white-space: nowrap;
+  background: #FFF0F0; color: #A82E2E !important; border: 1px solid #F2C9C9;
 }
+#root .gd .cb-member-profile .score-level-basic { background: #FFF7E8; color: #8F5300 !important; border-color: #F3D9A8; }
+#root .gd .cb-member-profile .score-level-good { background: var(--mp-tint); color: var(--mp-navy) !important; border-color: #C9D8E5; }
+#root .gd .cb-member-profile .score-level-excellent { background: var(--mp-green-bg); color: #136C4A !important; border-color: var(--mp-green-line); }
+#root .gd .cb-member-profile .score-ring-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+#root .gd .cb-member-profile .score-check { cursor: pointer; font-family: inherit !important; transition: border-color .15s ease, background .15s ease; }
+#root .gd .cb-member-profile .score-check:hover { border-color: var(--mp-navy) !important; }
+#root .gd .cb-member-profile .score-check .bi { color: #9AAABE; }
+#root .gd .cb-member-profile .score-check.done .bi { color: var(--mp-green); }
+#root .gd .cb-member-profile .recruiter-meter { width: 100%; height: 6px; border-radius: 999px; background: #E9EFF6; overflow: hidden; }
+#root .gd .cb-member-profile .recruiter-meter span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--mp-teal), var(--mp-green)); }
+#root .gd .cb-member-profile .recruiter-badge .bi { font-size: 13px; }
 
 #root .gd .cb-member-profile .score-details {
   display: flex; flex-direction: column; align-items: flex-start; min-width: 0;
@@ -286,7 +300,10 @@
 }
 #root .gd .cb-member-profile .form-group textarea {
   min-height: 112px !important; padding: 12px 14px !important; line-height: 1.55;
+  width: 100% !important; box-sizing: border-box !important; resize: vertical;
 }
+/* Address sits alone in a flex .form-row; without this it shrank to a small box. */
+#root .gd .cb-member-profile .form-row > .form-group.full-width { flex: 1 1 100% !important; min-width: 0; }
 #root .gd .cb-member-profile .form-group input:focus,
 #root .gd .cb-member-profile .form-group select:focus,
 #root .gd .cb-member-profile .form-group textarea:focus {
@@ -545,7 +562,7 @@
 }
 
 @media (max-width: 420px) {
-  #root .gd .cb-member-profile .score-check { width: 100%; justify-content: flex-start; }
+  #root .gd .cb-member-profile .score-check { width: calc(50% - 4px); justify-content: flex-start; padding: 0 10px !important; }
   #root .gd .cb-member-profile .status-card,
   #root .gd .cb-member-profile .experience-card,
   #root .gd .cb-member-profile .mode-card,

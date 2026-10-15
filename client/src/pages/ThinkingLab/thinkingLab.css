@@ -1,0 +1,35 @@
+/*
+ * Layout only — colours live in the page's theme so the LMS keeps its own look and the
+ * CareerPilot member shell gets CodeBegun's. Grid columns are here rather than inline so a
+ * phone can collapse them to one column.
+ */
+.tl-root { box-sizing: border-box; max-width: 1200px; margin: 0 auto; padding: 22px; }
+.tl-root *, .tl-root *::before, .tl-root *::after { box-sizing: border-box; }
+.tl-split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; }
+.tl-split-even { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.tl-split-wide { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
+.tl-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.tl-tabs::-webkit-scrollbar { display: none; }
+.tl-tabs > button { white-space: nowrap; flex: 0 0 auto; }
+.tl-example { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.tl-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tl-actions .tl-submit { margin-left: auto; }
+.tl-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+.tl-root pre { overflow-x: auto; }
+/* A readable measure for the problem text when the panel is wide (the CareerPilot page fills the screen). */
+.tl-statement { max-width: 80ch; }
+
+/* Inside the CareerPilot member shell the shell already pads the page. */
+.cb-member-thinking .tl-root { padding: 4px 0 24px; max-width: 1240px; }
+
+@media (max-width: 860px) {
+  .tl-split, .tl-split-even, .tl-split-wide { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .tl-root { padding: 14px 16px; }
+  .cb-member-thinking .tl-root { padding: 0 0 20px; }
+  .tl-example { grid-template-columns: minmax(0, 1fr); }
+  .tl-actions .tl-submit { margin-left: 0; width: 100%; }
+  .tl-stats { width: 100%; }
+  .tl-stats > div { flex: 1 1 0; min-width: 0 !important; padding: 8px 6px !important; }
+}

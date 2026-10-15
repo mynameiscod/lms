@@ -48,6 +48,15 @@ export interface IThinkingProblem extends Document {
   estimatedMinutes?: number;
   tags?: string[];
   /**
+   * Position in a curriculum sequence (1, 2, 3…), lowest first.
+   *
+   * Only the CareerPilot daily challenge reads it: a member with no batch schedule is served
+   * the bank in this order, one new problem a day. Absent means "after every numbered problem"
+   * (then oldest first), so problems written before the field existed keep working and an admin
+   * can number only the ones whose position matters.
+   */
+  order?: number;
+  /**
    * WHO this problem is for. One bank, two products.
    *
    * Defaults to ['lms'] rather than both, and that is deliberate: every problem written
@@ -115,6 +124,7 @@ const ThinkingProblemSchema = new Schema<IThinkingProblem>(
     xp:         { type: Number, default: 50 },
     estimatedMinutes: { type: Number, default: 15 },
     tags:       { type: [String], default: [] },
+    order:      { type: Number },
     audiences:  { type: [String], enum: PROBLEM_AUDIENCES, default: ['lms'] },
     audience:   MemberAudienceSchema,
     solutionUnlockAfterAttempts: { type: Number, default: 3 },
@@ -130,5 +140,6 @@ const ThinkingProblemSchema = new Schema<IThinkingProblem>(
   { timestamps: true }
 );
 ThinkingProblemSchema.index({ tenantId: 1, active: 1, difficulty: 1, category: 1 });
+ThinkingProblemSchema.index({ tenantId: 1, audiences: 1, active: 1, order: 1 });
 
 export default mongoose.model<IThinkingProblem>('ThinkingProblem', ThinkingProblemSchema);

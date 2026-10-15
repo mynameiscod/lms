@@ -762,6 +762,23 @@ export const tenantApi = {
     return response.json();
   },
 
+  /** The CareerPilot student's menu: which items the admin has left on (true) or hidden (false). */
+  getCareerPilotFeatures: async (tenantId: string) => {
+    const response = await fetch(`${API_BASE_URL}/tenants/${tenantId}/career-pilot-features`, { method: 'GET', headers: getAuthHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch CareerPilot features');
+    return response.json();
+  },
+
+  updateCareerPilotFeatures: async (tenantId: string, features: { [key: string]: boolean }) => {
+    const response = await fetch(`${API_BASE_URL}/tenants/${tenantId}/career-pilot-features`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(features)
+    });
+    if (!response.ok) throw new Error('Failed to update CareerPilot features');
+    return response.json();
+  },
+
   updateTenant: async (tenantId: string, data: Record<string, any>) =>
     authenticatedFetch(`${API_BASE_URL}/tenants/${tenantId}`, {
       method: 'PATCH',

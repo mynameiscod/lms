@@ -76,13 +76,21 @@
 
 /* ── The ninety ─────────────────────────────────────────────────────── */
 
+/* The strip moves with the arrows either side of it (DayStrip) and by swipe; it never shows a
+   scrollbar, in any browser. position:relative makes it the chips' offsetParent, which is how
+   DayStrip measures where a chip sits. */
 .fj-strip-wrap {
-  margin-bottom: 22px;
-  /* Horizontal scroll is the point; the shadow hints there is more to the right. */
+  position: relative;
+  min-width: 0;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 6px;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 6px 2px 10px;
 }
+.fj-strip-wrap::-webkit-scrollbar { display: none; width: 0; height: 0; }
 
 .fj-strip {
   display: flex;
@@ -289,7 +297,7 @@
 .fj-chip.s-locked { background: #f8fafc; color: #94a3b8; }
 .fj-chip-lock { position: absolute; top: 2px; right: 3px; font-size: 7px; line-height: 1; color: #94a3b8; }
 /* The current day is never only a colour: it is also marked with a bar underneath. */
-.fj-strip-wrap { padding-bottom: 10px; scroll-padding-inline: 12px; }
+.fj-strip-wrap { scroll-padding-inline: 12px; }
 .fj-chip.s-current::after {
   content: '';
   position: absolute;

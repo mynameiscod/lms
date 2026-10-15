@@ -209,6 +209,11 @@ export const POLICIES = {
     max: 40, windowMs: 5 * 60_000,
     message: 'You are running code very quickly — wait a few seconds and try again.',
   },
+  /** The practice library: running AND submitting share one budget, since both use the judge. 20 a minute per member. */
+  practiceLibraryJudge: {
+    max: 20, windowMs: 60_000,
+    message: 'You are running code very quickly: 20 runs a minute is the limit.',
+  },
   /** Learners submitting a coding problem for grading (runs every hidden test). */
   codingPracticeSubmit: {
     max: 20, windowMs: 5 * 60_000,

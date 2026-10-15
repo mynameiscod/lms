@@ -142,13 +142,6 @@
 /* ── Small phones (320-480px): cards that fit ────────────────────────────── */
 @media (max-width: 480px) {
   #root .gd .gd-main { padding-left: 12px !important; padding-right: 12px !important; }
-  /* Streak, coins, level and XP: a compact two-by-two grid, not four full-width cards. */
-  #root .gd .gd-topbar-r { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px !important; width: 100%; margin-left: 0; }
-  #root .gd .gd-topbar-r .gd-pill { min-width: 0; padding: 8px 10px !important; gap: 8px; }
-  #root .gd .gd-topbar-r .gd-pill > div { min-width: 0; }
-  #root .gd .gd-topbar-r .gd-pill b, #root .gd .gd-topbar-r .gd-pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #root .gd .gd-pill.level .hex { width: 32px; height: 32px; flex: none; }
-  #root .gd .gd-pill.level .lbar { width: 100%; max-width: 108px; }
   /* A word too long for its card breaks instead of pushing out of it. `break-word`, NOT
      `anywhere`: `anywhere` also lowers the text's min-content width to one letter, so a flex
      row let a heading shrink into a column one character wide ("In/te/r/vi/ew"). */
@@ -291,18 +284,11 @@
   #root .gd .pl2-filters > :not(select):first-child { grid-column: 1 / -1; }
 }
 @media (max-width: 640px) {
-  /* My Plan / Journey day picker: the five "Days 1–30" ranges wrapped into a vertical stack
-     between the arrows. On a phone they are one row that swipes, with the arrows either side. */
-  #root .gd .fj-range { align-items: center; gap: 6px !important; }
-  #root .gd .fj-range-jumps { flex-wrap: nowrap !important; overflow-x: auto; min-width: 0; scroll-snap-type: x proximity; scrollbar-width: none; padding: 2px 0; }
-  #root .gd .fj-range-jumps::-webkit-scrollbar { display: none; }
-  #root .gd .fj-range-btn { flex: none; white-space: nowrap; scroll-snap-align: start; min-height: 38px !important; padding: 0 12px !important; font-size: 12.5px !important; }
-  #root .gd .fj-range .fj-arrow { flex: none; width: 36px; height: 36px; min-height: 36px; padding: 0; }
-}
-@media (max-width: 480px) {
-  /* Top badges: with three (no coins yet) the third sat alone in half a row. An odd last
-     badge takes the full row. `.gd-user` is the hidden last child on a phone. */
-  #root .gd .gd-topbar-r > .gd-pill:nth-last-child(2):nth-child(odd) { grid-column: 1 / -1; }
+  /* My Plan / Journey day picker: the "Days 1–30" ranges are a grid, every one on screen (no
+     sideways row, no scrollbar); the strip under them moves with its own arrows (DayStrip). */
+  #root .gd .fj-range { align-items: stretch; gap: 6px !important; }
+  #root .gd .fj-range-jumps { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px !important; min-width: 0; width: 100%; }
+  #root .gd .fj-range-btn { white-space: nowrap; min-height: 40px !important; padding: 0 8px !important; font-size: 13px !important; }
 }
 @media (max-width: 640px) {
   /* Roadmap filters: "All 130 days", five ranges and "Expand all" wrapped onto four rows.
@@ -323,3 +309,204 @@
 /* The member's photo inside any avatar circle (MemberShell `avatar`). */
 #root .gd .gd-av-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
 #root .gd :is(.gd-mbar-av, .gd-user-btn .av, .gd-side-me .av) { overflow: hidden; padding: 0; }
+
+/* ── The top bar's stats and account chip (MemberShell .gd-stats / .gd-user) ─────────────────
+   Shared by every member page. One white tray holding the stats, each a coloured badge
+   (streak orange, coins gold, level navy with a real progress bar, XP teal), a dark number and
+   an AA-contrast label, with a tooltip on hover/focus. Heights match the account chip.
+   Class names are new on purpose: the old .gd-pill was restyled by five stylesheets with
+   !important, which is why its icons were grey and its labels #a3aab8. */
+#root .gd .gd-topbar-r { display: flex !important; align-items: center; gap: 12px !important; flex-wrap: nowrap; margin-left: auto; min-width: 0; }
+#root .gd .gd-stats {
+  display: flex; align-items: stretch; min-width: 0;
+  background: #fff; border: 1px solid #E2EAF2; border-radius: 16px; padding: 4px;
+  box-shadow: 0 2px 10px rgba(5, 29, 100, .05);
+}
+#root .gd .gd-stat {
+  position: relative; display: flex; align-items: center; gap: 10px; min-width: 0;
+  min-height: 46px; padding: 4px 14px 4px 6px; border-radius: 12px;
+  color: #102A4F; text-decoration: none; transition: background .15s ease;
+}
+#root .gd .gd-stat + .gd-stat::before {
+  content: ""; position: absolute; left: -1px; top: 10px; bottom: 10px; width: 1px; background: #E2EAF2;
+}
+#root .gd .gd-stat:hover { background: #F4F8FC; }
+#root .gd .gd-stat:hover::before, #root .gd .gd-stat:hover + .gd-stat::before { opacity: 0; }
+#root .gd .gd-stat:focus-visible { outline: 3px solid rgba(53, 154, 173, .55); outline-offset: 1px; }
+#root .gd .gd-stat-ic {
+  flex: none; width: 38px; height: 38px; border-radius: 11px;
+  display: grid; place-items: center; font-size: 19px; line-height: 1;
+}
+#root .gd .gd-stat-ic i { display: block; line-height: 1; }
+#root .gd .s-streak .gd-stat-ic { background: #FFEFE3; color: #E8590C; }
+#root .gd .s-coins .gd-stat-ic { background: #FFF5D1; color: #B7791F; }
+#root .gd .s-level .gd-stat-ic { background: #051D64; color: #FFD166; box-shadow: 0 4px 10px rgba(5, 29, 100, .2); }
+#root .gd .s-xp .gd-stat-ic { background: #E1F3F6; color: #1B7D91; }
+#root .gd .gd-stat-tx { display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.15; }
+#root .gd .gd-stat-tx b { display: block; font-size: 17px; font-weight: 800; color: #051D64; white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+#root .gd .gd-stat-tx b em { font-style: normal; font-size: 13px; font-weight: 700; color: #33475B; }
+#root .gd .gd-stat-tx small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 600; color: #52667D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+#root .gd .gd-stat-short { display: none; }
+#root .gd .gd-stat-bar { display: block; width: 100px; height: 6px; margin-top: 5px; border-radius: 999px; background: #E2EAF2; overflow: hidden; }
+#root .gd .gd-stat-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #051D64, #359AAD); }
+/* Tooltips: what each stat is, under it, on hover or keyboard focus. Not on touch screens. */
+#root .gd .gd-tip {
+  position: absolute; top: calc(100% + 10px); left: 50%; z-index: 60;
+  width: max-content; max-width: 240px; padding: 8px 11px; border-radius: 9px;
+  background: #051D64; color: #fff; font-size: 12.5px; font-weight: 500; line-height: 1.45; white-space: normal; text-align: left;
+  box-shadow: 0 10px 24px rgba(5, 29, 100, .22);
+  opacity: 0; visibility: hidden; transform: translate(-50%, -4px); pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease, visibility .15s;
+}
+#root .gd .gd-tip::before { content: ""; position: absolute; top: -5px; left: 50%; width: 10px; height: 10px; margin-left: -5px; background: #051D64; transform: rotate(45deg); border-radius: 2px; }
+#root .gd .gd-stat:hover .gd-tip, #root .gd .gd-stat:focus-visible .gd-tip { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition-delay: .25s; }
+#root .gd .gd-stat:last-child .gd-tip { left: auto; right: 0; transform: translateY(-4px); }
+#root .gd .gd-stat:last-child:hover .gd-tip, #root .gd .gd-stat:last-child:focus-visible .gd-tip { transform: none; }
+#root .gd .gd-stat:last-child .gd-tip::before { left: auto; right: 24px; }
+@media (hover: none) { #root .gd .gd-tip { display: none; } }
+
+/* The account chip: avatar, name, level line, chevron. */
+#root .gd .gd-user-btn {
+  display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 4px 14px 4px 5px !important;
+  border: 1px solid #E2EAF2 !important; border-radius: 999px !important; background: #fff !important;
+  box-shadow: 0 2px 10px rgba(5, 29, 100, .05) !important; color: #102A4F; text-align: left;
+}
+#root .gd .gd-user-btn:hover { border-color: #C9D8E5 !important; background: #FBFDFF !important; }
+#root .gd .gd-user-btn:focus-visible { outline: 3px solid rgba(53, 154, 173, .55); outline-offset: 2px; }
+#root .gd .gd-user-btn[aria-expanded="true"] { border-color: #359AAD !important; box-shadow: 0 0 0 3px rgba(53, 154, 173, .18) !important; }
+#root .gd .gd-user-btn .av {
+  width: 42px; height: 42px; font-size: 17px; font-weight: 800;
+  background: linear-gradient(135deg, #051D64, #359AAD) !important; color: #fff !important;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px #D3E1F2;
+}
+#root .gd .gd-user-btn .nm-wrap { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+#root .gd .gd-user-btn .nm { font-size: 14.5px; font-weight: 800; color: #051D64; max-width: 170px; }
+#root .gd .gd-user-btn .nm-wrap small { font-size: 12px; font-weight: 600; color: #52667D; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+#root .gd .gd-user-btn .cr { width: 18px; height: 18px; color: #52667D; font-size: 13px; }
+/* The account menu (desktop top bar and phone bar share it). */
+#root .gd .gd-user-menu { width: 280px; padding: 6px; border-radius: 16px; border: 1px solid #E2EAF2 !important; }
+#root .gd .gd-user-menu .hd { display: flex; align-items: center; gap: 11px; padding: 10px 10px 12px; }
+#root .gd .gd-user-menu .hd .av { flex: none; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: linear-gradient(135deg, #051D64, #359AAD); color: #fff; font-weight: 800; font-size: 16px; }
+#root .gd .gd-user-menu .hd > div { min-width: 0; }
+#root .gd .gd-user-menu .hd b { color: #051D64; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#root .gd .gd-user-menu .hd span { display: block; color: #52667D; font-size: 12px; }
+#root .gd .gd-user-menu .stats b { color: #051D64; }
+#root .gd .gd-user-menu .stats span { color: #52667D; font-size: 11.5px; }
+#root .gd .gd-user-menu button { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #33475B; padding: 10px 12px; }
+#root .gd .gd-user-menu button i { width: 18px; font-size: 16px; color: #359AAD; text-align: center; }
+#root .gd .gd-user-menu button:hover:not(:disabled) { background: #F4F8FC; color: #051D64; }
+#root .gd .gd-user-menu button.out, #root .gd .gd-user-menu button.out i { color: #C93737; }
+#root .gd .gd-user-menu button.out:hover { background: #FFF0F0; }
+
+/* A narrower desktop: the chip's level line goes before anything overflows. */
+@media (max-width: 1280px) and (min-width: 981px) {
+  #root .gd .gd-user-btn .nm-wrap small { display: none; }
+  #root .gd .gd-stat-tx small { max-width: 120px; }
+}
+/* Tablet and phone: the account lives in the phone bar; the tray takes the row. */
+@media (max-width: 980px) {
+  #root .gd .gd-topbar-r { width: 100%; margin-left: 0; }
+  #root .gd .gd-stats { flex: 1 1 auto; }
+  #root .gd .gd-stat { flex: 1 1 0; }
+  #root .gd .gd-tip { display: none; }
+}
+/* Phone: one compact row — badge and number, no labels, nothing wraps or overflows. */
+@media (max-width: 640px) {
+  #root .gd .gd-stats { padding: 3px; border-radius: 14px; }
+  #root .gd .gd-stat { justify-content: center; gap: 7px; padding: 5px 4px; min-height: 44px; }
+  #root .gd .gd-stat-ic { width: 30px; height: 30px; border-radius: 9px; font-size: 15px; }
+  #root .gd .gd-stat-tx b { font-size: 15px; }
+  #root .gd .gd-stat-tx small, #root .gd .gd-stat-tx b em, #root .gd .gd-stat-long { display: none; }
+  #root .gd .gd-stat-short { display: inline; font-size: 12px; font-weight: 700; color: #33475B; }
+  #root .gd .gd-stat-bar { width: 100%; min-width: 30px; height: 4px; margin-top: 3px; }
+}
+@media (max-width: 360px) {
+  #root .gd .gd-stat { gap: 5px; }
+  #root .gd .gd-stat-ic { width: 26px; height: 26px; font-size: 13px; }
+  #root .gd .gd-stat-tx b { font-size: 14px; }
+}
+
+/* ── The shell fills the screen, and the rail runs the full height ─────────────────────────
+   `.gd { min-height: 100vh }` (dashboard.css) is measured inside #root's zoom .75, so the page
+   background stopped three-quarters of the way down a short page. Divide by --app-zoom (1 on
+   a phone). The rail is position:fixed, which is right in a browser, but anything that renders
+   the whole document (a full-page capture, print-to-image) drew it only one screen tall; a navy
+   band behind it, as tall as the page, makes the column read continuous either way. */
+#root .gd { min-height: calc(100vh / var(--app-zoom, 1)) !important; position: relative; }
+@media (min-width: 981px) {
+  #root .gd::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 264px; background: #061e66; pointer-events: none; }
+}
+
+/* ── ONE PAGE WIDTH ─────────────────────────────────────────────────────────────────────────
+   Every CareerPilot page used to cap its own width (Thinking Lab 1240px, Interview Experiences
+   and Question Books 1280px, Practice 1100–1440px, most others 1760px — some zoomed 1.12 on
+   top), each centred with margin:auto. Under #root's zoom .75 those caps drew as cards of
+   930–1520 real pixels floating in a 1677px column at 1920, each a different width, none lined
+   up with the top bar.
+
+   Now there is one rule. The page box (.cb-member-page) is the column between the rail and the
+   right edge, minus .gd-main's own padding — the same edges as the top bar's contents — and
+   every page's own root fills it. Only on very wide screens (from ~2200 real pixels) does the
+   column stop growing, at --cp-page-max, centred, and the top bar's contents follow it.
+
+   The page roots' caps are neutralised here rather than in their own files because those
+   components are shared: ThinkingLab also renders at /thinking-lab in the LMS, ProblemBank.css
+   styles the admin problem pages, and InterviewHub/QuestionBooks have admin screens. This only
+   applies inside the member shell. `#root#root` (two ids) outranks the page files' own
+   `#root .gd .cb-member-x .root` !important caps without listing each one. */
+#root .gd { --cp-page-max: 2600px; }
+#root .gd .cb-member-page { max-width: var(--cp-page-max); margin-left: auto; margin-right: auto; }
+#root#root .gd .cb-member-page > *,
+#root#root .gd .cb-member-page > [class*="-surface"] > *,
+#root#root .gd .cb-member-page > .pb-root > .pb-page {
+  max-width: none !important; margin-left: 0 !important; margin-right: 0 !important;
+}
+/* The member shell already gives the page its side gutter (.gd-main padding); pb-page's own
+   24px would make Practice/Coding/Interview Experiences/Question Books sit further in than the
+   rest. Keep its top/bottom rhythm. */
+#root#root .gd .cb-member-page > .pb-root > .pb-page { padding-left: 0 !important; padding-right: 0 !important; }
+@media (min-width: 981px) {
+  /* The bar bleeds across .gd-main's padding (margin -30px, padding 30px). Once the page box stops
+     at --cp-page-max and centres, push the bar's contents in by the same amount. */
+  #root .gd .gd-topbar { padding-left: max(30px, calc(30px + (100% - var(--cp-page-max)) / 2)) !important;
+                         padding-right: max(30px, calc(30px + (100% - var(--cp-page-max)) / 2)) !important; }
+}
+/* Page roots that pad themselves sideways would sit 6–28px inside everyone else's edge. */
+#root#root .gd .cb-member-page > :is(.ori, .vz-root, .plr, .cpw) { padding-left: 0 !important; padding-right: 0 !important; }
+
+/* ── Using the width, not stretching into it ─────────────────────────────────────────────────
+   Pages that now fill the column keep their inner layouts readable on a wide screen. Card grids
+   (Interview Experiences, Question Books) are auto-fill and simply gain columns. These are the
+   layouts that would otherwise stretch: */
+/* Tech News: one story per row made a 1,300px summary line. Two columns from laptop-wide up. */
+@media (min-width: 1500px) {
+  #root .gd .cb-member-news .nws-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+  #root .gd .cb-member-news .nws-card { grid-template-columns: 168px minmax(0, 1fr); }
+}
+/* Forms keep a form's width — the card lines up with the page, the fields don't run 800px. */
+#root .gd .cb-member-profile .form-step { max-width: 1480px; }
+#root .gd .cb-member-page .ih-wizard :is(.pb-field-row, .pb-textarea, .ih-modes) { max-width: 1240px; }
+
+/* ── One text size on wide screens ─────────────────────────────────────────────────────────
+   My Days, Roadmap, Progress, Mock Interview and the dashboards enlarge themselves on wide
+   screens (zoom 1.05 at 1200–1599px, 1.12 from 1600px — foundationMember.css and friends), so
+   pages built on the Problem Bank shell (Practice, Coding Sets, Interview Experiences, Question
+   Books) read 5–12% smaller next to them. Same steps here. The Thinking Lab sizes its own text
+   for the member shell (thinkingLab.css) and keeps Monaco out of a nested zoom. */
+@media (min-width: 1200px) and (max-width: 1599px) {
+  #root .gd .cb-member-page > .pb-root > .pb-page { zoom: 1.05; }
+}
+@media (min-width: 1600px) {
+  #root .gd .cb-member-page > .pb-root > .pb-page { zoom: 1.12; }
+}
+
+/* ── CodeBegun colours on the Problem Bank pages ───────────────────────────────────────────
+   Practice, Coding Sets and the problem solver are built on the Problem Bank shell, whose accent is
+   indigo (ProblemBank.css --pb-accent). Students see CodeBegun navy/teal; the admin Problem Bank keeps
+   its own look because this applies only inside the member page. */
+#root .gd .cb-member-page .pb-root {
+  --pb-accent: #051D64;
+  --pb-accent-ink: #051D64;
+  --pb-accent-soft: #E8F1FB;
+  --pb-accent-line: #C9D8E5;
+}

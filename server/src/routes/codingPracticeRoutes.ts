@@ -11,6 +11,13 @@ import * as ctrl from '../controllers/problemDeliveryController';
 const router = express.Router();
 router.use(authMiddleware, tenantResolver);
 
+// The practice library: every published problem, chosen by the member. Facets before :problemId.
+router.get('/library', ctrl.libraryList);
+router.get('/library/facets', ctrl.libraryFacets);
+router.get('/library/:problemId', ctrl.libraryProblem);
+router.post('/library/:problemId/run', rateLimit('practiceLibraryJudge'), ctrl.libraryRun);
+router.post('/library/:problemId/submit', rateLimit('practiceLibraryJudge'), ctrl.librarySubmit);
+
 router.get('/sets', ctrl.mySets);
 router.get('/sets/:setId', ctrl.learnerSet);
 router.get('/sets/:setId/problems/:problemId', ctrl.learnerProblem);

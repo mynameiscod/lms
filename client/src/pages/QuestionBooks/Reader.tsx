@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom';
 import { questionBookApi, ReadBook, BookQ } from '../../api/questionBookApi';
 import { renderMarkdown } from '../ProblemBank/shared';
-import { useBooksBase } from './Library';
+import { useBooksBase, coverFor } from './Library';
 import '../ProblemBank/ProblemBank.css';
 import './book.css';
 
@@ -100,23 +100,41 @@ const Reader: React.FC = () => {
     return () => window.removeEventListener('keydown', k);
   });
 
-  if (err) return <div className="pb-root"><div className="pb-page"><div className="pb-alert pb-alert-bad">{err}</div><button className="pb-btn" onClick={() => nav(base)}>Back to the library</button></div></div>;
-  if (!data) return <div className="pb-root"><div className="pb-page pb-muted"><span className="pb-spinner" /> Opening the book…</div></div>;
+  if (err) return <div className="pb-root qb qbk"><div className="pb-page qbk-page"><div className="qbk-alert"><i className="bi bi-exclamation-triangle" aria-hidden="true" /> {err}</div><button className="qbk-go" style={{ maxWidth: 240 }} onClick={() => nav(base)}><i className="bi bi-arrow-left" aria-hidden="true" /> Back to the library</button></div></div>;
+  if (!data) return <div className="pb-root qb qbk"><div className="pb-page qbk-page pb-muted"><span className="pb-spinner" /> Opening the book…</div></div>;
   const b = data.book;
   const known = data.questions.filter((q) => marks[q.id] === 'knew').length;
   const lastIdx = data.progress.lastQuestionId ? data.questions.findIndex((q) => q.id === data.progress.lastQuestionId) : -1;
+  const cover = coverFor(b);
+  const knownPct = data.questions.length ? Math.round((known / data.questions.length) * 100) : 0;
+  const curChapter = cur ? cur.chapterId : '';
   const counts = { all: data.questions.length, revise: data.questions.filter((q) => marks[q.id] === 'revise').length, unseen: data.questions.filter((q) => !marks[q.id]).length, favorites: favs.size };
 
   return (
-    <div className="pb-root qb">
+    <div className="pb-root qb qbk">
       <div className="pb-page" style={{ maxWidth: 'none', padding: 'clamp(12px, 1.6vw, 28px)' }}>
-        <div className="pb-row qb-noprint" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
-          <button className="pb-btn pb-btn-ghost pb-btn-sm" onClick={() => nav(base)}><i className="fa-solid fa-arrow-left" /> Library</button>
-          <b className="pb-grow" style={{ fontSize: 16 }}>{b.title}</b>
-          <div className="pb-seg">
+        <div className="qbk-bar qb-noprint">
+          <button className="back" onClick={() => nav(base)}><i className="bi bi-arrow-left" aria-hidden="true" /> Library</button>
+          <div className="ttl">
+            <span className="ic" style={{ background: cover.color }}><i className={`bi ${cover.icon}`} aria-hidden="true" /></span>
+            <div style={{ minWidth: 0 }}>
+              <b>{b.title}</b>
+              <div className="mini"><span className="bar"><span style={{ width: `${knownPct}%` }} /></span>{known} of {data.questions.length} known</div>
+            </div>
+          </div>
+          {data.chapters.length > 1 && (
+            <select aria-label="Jump to a chapter" value={curChapter} onChange={(e) => {
+              const i = list.findIndex((q) => q.chapterId === e.target.value);
+              if (e.target.value === '') go(-1); else if (i >= 0) go(i);
+            }}>
+              <option value="">Contents</option>
+              {data.chapters.map((c) => { const n = list.filter((q) => q.chapterId === c.id).length; return <option key={c.id} value={c.id} disabled={!n}>{c.title} ({n})</option>; })}
+            </select>
+          )}
+          <div className="qbk-filter" role="tablist" aria-label="Which questions">
             {(['all', 'unseen', 'revise', 'favorites'] as Filter[]).map((f) => (
-              <button key={f} className={filter === f ? 'on' : ''} onClick={() => { setFilter(f); setPos(-1); setRevealed(false); }}>
-                {f === 'all' ? 'All' : f === 'unseen' ? 'Not yet seen' : f === 'revise' ? 'To revise' : '★ Starred'} ({counts[f]})
+              <button key={f} role="tab" aria-selected={filter === f} className={filter === f ? 'on' : ''} onClick={() => { setFilter(f); setPos(-1); setRevealed(false); }}>
+                {f === 'all' ? 'All' : f === 'unseen' ? 'Not seen' : f === 'revise' ? 'To revise' : '★ Starred'}<span className="c">{counts[f]}</span>
               </button>
             ))}
           </div>
@@ -124,7 +142,7 @@ const Reader: React.FC = () => {
 
         <div className="qb-stage">
           <div className={`qb-book ${phoneTurn ? 'turning' : ''}`}>
-            <div className="qb-front" style={{ backgroundColor: b.color, backgroundImage: 'linear-gradient(160deg, rgba(255,255,255,.14), rgba(0,0,0,.22))' }}>
+            <div className="qb-front" style={{ backgroundColor: cover.color, backgroundImage: 'linear-gradient(160deg, rgba(255,255,255,.14), rgba(0,0,0,.22))' }}>
               <div className="emb">{b.emblem || (b.kind === 'company' ? '🏢' : '📘')}</div>
               <div className="ttl">{b.title}</div>
               {b.subject && <div style={{ marginTop: 10, opacity: .85 }}>{b.subject}</div>}
@@ -173,8 +191,8 @@ const Reader: React.FC = () => {
                   <div className="meta">
                     <span className={`qb-diff ${cur.difficulty}`}>{cur.difficulty}</span>
                     {cur.askedAt && <span>🏢 asked at {cur.askedAt}</span>}
-                    {marks[cur.id] === 'knew' && <span style={{ color: '#047857' }}>✓ you knew this</span>}
-                    {marks[cur.id] === 'revise' && <span style={{ color: '#b45309' }}>↻ on your revise list</span>}
+                    {marks[cur.id] === 'knew' && <span style={{ color: '#17885D' }}>✓ you knew this</span>}
+                    {marks[cur.id] === 'revise' && <span style={{ color: '#B86B00' }}>↻ on your revise list</span>}
                   </div>
                   <span className="pno">{pos + 1}</span>
                 </div>
@@ -214,7 +232,7 @@ const Reader: React.FC = () => {
           </div>
           <button className="pb-btn pb-btn-primary" disabled={pos >= list.length - 1} onClick={() => go(pos + 1)}>{pos === -1 ? 'Start' : 'Next'} <i className="fa-solid fa-chevron-right" /></button>
         </div>
-        <div className="pb-faint qb-noprint" style={{ textAlign: 'center', fontSize: 12, marginTop: 8 }}>← → turn pages · Space shows the answer · K knew it · R revise · F star</div>
+        <div className="qbk-shortcuts qb-noprint"><kbd>←</kbd> <kbd>→</kbd> turn pages · <kbd>Space</kbd> show the answer · <kbd>K</kbd> knew it · <kbd>R</kbd> revise · <kbd>F</kbd> star</div>
       </div>
     </div>
   );

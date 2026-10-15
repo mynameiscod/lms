@@ -31,7 +31,6 @@ import passportApi, {
   OrientationView,
 } from '../../api/passportApi';
 import SectionLock, { useUnlock } from './SectionLock';
-import { OrientationDayPanel } from './Orientation';
 import { dayState, dayRanges, initialDay, STATE_LABEL } from './foundationRoadmapPresenter';
 import RoadmapPhaseBands from './RoadmapPhaseBands';
 import CareerTrackPicker from './CareerTrackPicker';
@@ -65,9 +64,147 @@ const ICON: Record<string, string> = {
   quiz: 'bi-patch-question',
   assignment: 'bi-upload',
 };
+/** Solid glyphs for the activity badges: the outline set read as faint at .75 zoom. */
+const ICON_FILLED: Record<string, string> = {
+  video: 'bi-play-fill',
+  notes: 'bi-file-text-fill',
+  worked_example: 'bi-lightbulb-fill',
+  practice_theory: 'bi-pencil-fill',
+  practice_coding: 'bi-code-slash',
+  quiz: 'bi-patch-question-fill',
+  assignment: 'bi-upload',
+};
 
 const mins = (n: number) =>
   (n >= 60 ? `${Math.floor(n / 60)}h${n % 60 ? ` ${n % 60}m` : ''}` : `${n} min`);
+
+/** A welcome-day task, as it is listed on the plan (the same glyphs the welcome day page uses). */
+const WELCOME_ICON: Record<string, string> = {
+  video: 'bi-play-fill', notes: 'bi-journal-text', image: 'bi-image-fill', checklist: 'bi-check2-square', recording: 'bi-mic-fill',
+};
+const WELCOME_LABEL: Record<string, string> = {
+  video: 'Video', notes: 'Notes', image: 'Image', checklist: 'Checklist', recording: 'Recording',
+};
+
+/**
+ * THE DAYS, AS A STRIP YOU STEP THROUGH — NOT ONE YOU SCROLL.
+ *
+ * Ninety (or 130) chips never fit, and a scrollbar under them was the only way along: thin,
+ * easy to miss, and on a laptop a horizontal scrollbar is a thing nobody drags. The owner asked
+ * for arrows instead, so the strip has a large arrow on each side that steps a page of chips,
+ * greys out at either end, and the scrollbar is gone in every browser. Swiping still works on a
+ * phone and the range jumps above still move it; the day in focus is centred on load.
+ *
+ * Positions are read with offsetLeft against the strip itself (it is position:relative), not
+ * getBoundingClientRect, because #root renders at zoom .75 and the two disagree under zoom.
+ */
+const DayStrip: React.FC<{ totalDays: number; label: string; focusDay?: number | null; children: React.ReactNode }> =
+  ({ totalDays, label, focusDay, children }) => {
+    const wrapRef = useRef<HTMLElement | null>(null);
+    const [edge, setEdge] = useState({ prev: false, next: false });
+    const [activeFrom, setActiveFrom] = useState<number | null>(null);
+    const firstFocus = useRef(true);
+    const ranges = dayRanges(totalDays);
+
+    const chipFor = (n: number): HTMLElement | null => {
+      const chip = document.getElementById(`fj-chip-${n}`);
+      return chip && wrapRef.current?.contains(chip) ? chip : null;
+    };
+
+    const update = () => {
+      const el = wrapRef.current;
+      if (!el) return;
+      const max = el.scrollWidth - el.clientWidth;
+      const prev = el.scrollLeft > 2;
+      const next = el.scrollLeft < max - 2;
+      setEdge(e => (e.prev === prev && e.next === next ? e : { prev, next }));
+      // The range whose first chip sits left of the strip's middle is the one being looked at.
+      const mid = el.scrollLeft + el.clientWidth / 2;
+      let active: number | null = null;
+      for (const r of ranges) {
+        const c = chipFor(r.from);
+        if (c && c.offsetLeft <= mid) active = r.from;
+      }
+      // At the far end the last range is on screen even when its first chip is right of middle.
+      if (!next && prev && ranges.length) active = ranges[ranges.length - 1].from;
+      setActiveFrom(active);
+    };
+    const updateRef = useRef(update);
+    updateRef.current = update;
+
+    useEffect(() => {
+      const el = wrapRef.current;
+      if (!el) return undefined;
+      const run = () => updateRef.current();
+      run();
+      if (typeof ResizeObserver === 'undefined') {
+        window.addEventListener('resize', run);
+        return () => window.removeEventListener('resize', run);
+      }
+      const ro = new ResizeObserver(run);
+      ro.observe(el);
+      if (el.firstElementChild) ro.observe(el.firstElementChild);
+      return () => ro.disconnect();
+    }, []);
+
+    /* The day in focus sits in the middle of the strip — instantly on load, smoothly after. */
+    useEffect(() => {
+      if (focusDay === null || focusDay === undefined) return;
+      const el = wrapRef.current;
+      const chip = chipFor(focusDay);
+      if (!el || !chip) return;
+      el.scrollTo({ left: chip.offsetLeft - (el.clientWidth - chip.offsetWidth) / 2, behavior: firstFocus.current ? 'auto' : 'smooth' });
+      firstFocus.current = false;
+      updateRef.current();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [focusDay]);
+
+    /** One page of chips, less one, so the last chip seen is the first one after the step. */
+    const page = (dir: 1 | -1) => {
+      const el = wrapRef.current;
+      if (el) el.scrollBy({ left: dir * Math.max(120, el.clientWidth - 56), behavior: 'smooth' });
+    };
+    const jumpTo = (from: number) => {
+      const el = wrapRef.current;
+      const chip = chipFor(from);
+      if (el && chip) el.scrollTo({ left: chip.offsetLeft - 6, behavior: 'smooth' });
+    };
+    /** Left/right arrow keys walk the chips, the way a tab list does. */
+    const onKey = (e: React.KeyboardEvent) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const btns = Array.from(wrapRef.current?.querySelectorAll<HTMLButtonElement>('button.fj-chip:not(:disabled)') || []);
+      const i = btns.indexOf(document.activeElement as HTMLButtonElement);
+      if (i < 0) return;
+      const to = btns[i + (e.key === 'ArrowRight' ? 1 : -1)];
+      if (to) { e.preventDefault(); to.focus({ preventScroll: true }); to.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+    };
+
+    return (
+      <div className="fjm-strip-card">
+        <nav className="fj-range" aria-label="Jump to days">
+          <div className="fj-range-jumps">
+            {ranges.map(r => (
+              <button type="button" key={r.from} className={`fj-range-btn${activeFrom === r.from ? ' on' : ''}`}
+                      aria-current={activeFrom === r.from ? 'true' : undefined} onClick={() => jumpTo(r.from)}>{r.label}</button>
+            ))}
+          </div>
+        </nav>
+        <div className={`fj-strip-row${edge.prev ? ' can-prev' : ''}${edge.next ? ' can-next' : ''}`}>
+          <button type="button" className="fj-strip-arrow prev" onClick={() => page(-1)} disabled={!edge.prev}
+                  aria-label="Show earlier days" title="Earlier days">
+            <i className="bi bi-chevron-left" aria-hidden />
+          </button>
+          <section className="fj-strip-wrap" aria-label={label} ref={wrapRef} onScroll={update} onKeyDown={onKey}>
+            <ol className="fj-strip">{children}</ol>
+          </section>
+          <button type="button" className="fj-strip-arrow next" onClick={() => page(1)} disabled={!edge.next}
+                  aria-label="Show later days" title="Later days">
+            <i className="bi bi-chevron-right" aria-hidden />
+          </button>
+        </div>
+      </div>
+    );
+  };
 
 /** Shown before a journey exists. Still states the length, because ninety is the promise. */
 /**
@@ -131,7 +268,6 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
   const previewDays = journey.preview || [];
   const [open, setOpen] = useState<number>(previewDays[0]?.day ?? 1);
   const { unlock, busy, msg, priceInr } = useUnlock();
-  const stripRef = useRef<HTMLOListElement | null>(null);
 
   /** The programme's own name, from the server. Falls back to the only name this page ever had. */
   const stage = journey.stageLabel || 'Foundation';
@@ -159,15 +295,6 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
     { key: 'end', label: `Day ${totalDays}`, at: totalDays },
   ];
 
-  const scrollStrip = (dir: 1 | -1) => {
-    const el = stripRef.current?.parentElement;
-    if (el) el.scrollBy({ left: dir * Math.max(200, el.clientWidth * 0.8), behavior: 'smooth' });
-  };
-  const jumpTo = (from: number) => {
-    const chip = document.getElementById(`fj-chip-${from}`);
-    if (chip && typeof chip.scrollIntoView === 'function') chip.scrollIntoView({ block: 'nearest', inline: 'start', behavior: 'smooth' });
-  };
-
   return (
     <div className="fj-page fjm fjm-preview">
       <section className="fjm-hero">
@@ -185,7 +312,7 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
 
         {/* The same column the member's progress sits in, saying what is true before membership. */}
         <div className="fjm-momentum">
-          <span className="fjm-eyebrow">My {totalDays}</span>
+          <span className="fjm-eyebrow">My {totalDays} days</span>
           <div className="fjm-days on">
             <span className="ic"><i className="bi bi-eye-fill" aria-hidden /></span>
             <div>
@@ -219,22 +346,7 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
 
       {/* The whole programme, as a strip — the same one a member scrolls, with the locks a
           non-member has. Days past the preview are named by number and open nothing. */}
-      <div className="fjm-strip-card">
-        <nav className="fj-range" aria-label="Jump to days">
-          <button type="button" className="fj-arrow" onClick={() => scrollStrip(-1)} aria-label="Earlier days">
-            <i className="bi bi-chevron-left" aria-hidden />
-          </button>
-          <div className="fj-range-jumps">
-            {dayRanges(totalDays).map(r => (
-              <button type="button" key={r.from} className="fj-range-btn" onClick={() => jumpTo(r.from)}>{r.label}</button>
-            ))}
-          </div>
-          <button type="button" className="fj-arrow" onClick={() => scrollStrip(1)} aria-label="Later days">
-            <i className="bi bi-chevron-right" aria-hidden />
-          </button>
-        </nav>
-        <section className="fj-strip-wrap" aria-label={`All ${totalDays} days`}>
-          <ol className="fj-strip" ref={stripRef}>
+      <DayStrip totalDays={totalDays} label={`All ${totalDays} days`} focusDay={open}>
             {Array.from({ length: totalDays }, (_, i) => i + 1).map(n => {
               const readable = openSet.has(n);
               const title = previewDays.find(d => d.day === n)?.title;
@@ -255,9 +367,7 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
                 </li>
               );
             })}
-          </ol>
-        </section>
-      </div>
+      </DayStrip>
 
       {day && (
         <section className="fj-day" aria-live="polite">
@@ -281,7 +391,7 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
           <ol className="fjp-acts">
             {day.activities.map((a, i) => (
               <li key={i} className={a.gating ? 'gating' : ''}>
-                <span className={`ic t-${a.type}`}><i className={`bi ${ICON[a.type] || 'bi-journal-text'}`} aria-hidden /></span>
+                <span className={`ic t-${a.type}`}><i className={`bi ${ICON_FILLED[a.type] || ICON[a.type] || 'bi-journal-text'}`} aria-hidden /></span>
                 <span className="body">
                   <b>{a.title}</b>
                   <small>{TYPE_LABEL[a.type] || a.type}{a.minutes > 0 && <> · {mins(a.minutes)}</>}</small>
@@ -445,7 +555,6 @@ const FoundationJourneyPage: React.FC = () => {
   const [err, setErr] = useState('');
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
-  const stripRef = useRef<HTMLOListElement | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true); setErr('');
@@ -577,21 +686,7 @@ const FoundationJourneyPage: React.FC = () => {
     return () => { cancelled = true; };
   }, [openDay, journey, dayRetry]);
 
-  /** The selected day stays in view on the strip — Day 90 included. */
-  useEffect(() => {
-    if (openDay === null) return;
-    const chip = document.getElementById(`fj-chip-${openDay}`);
-    if (chip && typeof chip.scrollIntoView === 'function') chip.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
-  }, [openDay, loading]);
-
-  const scrollStrip = (dir: 1 | -1) => {
-    const el = stripRef.current?.parentElement;
-    if (el) el.scrollBy({ left: dir * Math.max(200, el.clientWidth * 0.8), behavior: 'smooth' });
-  };
-  const jumpTo = (from: number) => {
-    const chip = document.getElementById(`fj-chip-${from}`);
-    if (chip && typeof chip.scrollIntoView === 'function') chip.scrollIntoView({ block: 'nearest', inline: 'start', behavior: 'smooth' });
-  };
+  /* The selected day stays centred on the strip — Day 90 included. DayStrip does it (focusDay). */
 
   if (loading) {
     return <div className="fj-page"><div className="fj-skeleton">Loading your journey…</div></div>;
@@ -682,8 +777,10 @@ const FoundationJourneyPage: React.FC = () => {
       * and "today" is that welcome day rather than learning day one — which is not today, has not
       * opened, and is not what the next click should do.
       */
-    { key: 'start', label: onWelcome ? `Day ${welcomeLabel}` : 'Day 1', at: 1 },
-    { key: 'today', label: onWelcome ? `Day ${welcomeLabel}` : `Day ${currentDay}`, at: currentDay },
+    /* Named, not numbered: on the welcome (or on Day 1) start and today are the same day, and the
+       rail read "Day 0.1 · Day 0.1". The day itself is in the hero's eyebrow and the button below. */
+    { key: 'start', label: 'Start', at: 1 },
+    { key: 'today', label: 'Today', at: currentDay },
     { key: 'week', label: lastWeek ? 'Final week' : `Day ${weekMark}`, at: lastWeek ? Math.max(currentDay + 1, totalDays - 6) : weekMark },
     { key: 'end', label: `Day ${totalDays}`, at: totalDays },
   ];
@@ -730,7 +827,7 @@ const FoundationJourneyPage: React.FC = () => {
             one and day ninety, and what today still holds — not decoration. */}
         <div className="fjm-momentum">
           {/* Named from the programme, not from ninety: a second-year's plan is 110 days. */}
-          <span className="fjm-eyebrow">My {totalDays}</span>
+          <span className="fjm-eyebrow">My {totalDays} days</span>
           <div className={`fjm-days${completedCount > 0 ? ' on' : ''}`}>
             <span className="ic"><i className="bi bi-calendar2-check-fill" aria-hidden /></span>
             <div>
@@ -790,25 +887,10 @@ const FoundationJourneyPage: React.FC = () => {
                          onOpen={() => nav(`/careerpilot/journey/welcome/${orientation.nextDay ?? orientation.days[0]?.dayNumber ?? 1}`)} />
       )}
 
-      {/* The ninety, as a strip. Scrolls horizontally on a phone rather than reflowing into
-          a grid nobody can read — with jumps and arrows, so the days beyond the edge are never a
-          guess, and a lock on every day that cannot be opened yet. */}
-      <div className="fjm-strip-card">
-      <nav className="fj-range" aria-label="Jump to days">
-        <button type="button" className="fj-arrow" onClick={() => scrollStrip(-1)} aria-label="Earlier days">
-          <i className="bi bi-chevron-left" aria-hidden />
-        </button>
-        <div className="fj-range-jumps">
-          {dayRanges(totalDays).map(r => (
-            <button type="button" key={r.from} className="fj-range-btn" onClick={() => jumpTo(r.from)}>{r.label}</button>
-          ))}
-        </div>
-        <button type="button" className="fj-arrow" onClick={() => scrollStrip(1)} aria-label="Later days">
-          <i className="bi bi-chevron-right" aria-hidden />
-        </button>
-      </nav>
-      <section className="fj-strip-wrap" aria-label={`All ${totalDays} days`}>
-        <ol className="fj-strip" ref={stripRef}>
+      {/* The ninety, as a strip you step through with the arrows either side (see DayStrip) —
+          with range jumps, so the days beyond the edge are never a guess, and a lock on every
+          day that cannot be opened yet. */}
+      <DayStrip totalDays={totalDays} label={`All ${totalDays} days`} focusDay={openDay}>
           {/*
             * The welcome days sit at the head of the strip, numbered 0.1 onward, so the plan
             * reads in the order it is actually met. They open the welcome screen rather than the
@@ -851,41 +933,75 @@ const FoundationJourneyPage: React.FC = () => {
               </li>
             );
           })}
-        </ol>
-      </section>
-      </div>
+      </DayStrip>
 
       <section className="fj-day" aria-live="polite">
         {/*
-          * A WELCOME DAY, READ WHERE THE LEARNING DAYS ARE READ.
+          * A WELCOME DAY, SHOWN THE WAY A LEARNING DAY IS.
           *
-          * Same panel, same place on the page, so the plan reads as one sequence: 0.1 through 0.5
-          * and then Day 1. Finishing one opens the next — the gate is the server's, exactly as it
-          * is for a learning day, and a locked chip cannot be clicked to get here.
+          * The plan is an overview: a learning day shows what it holds and opens on its own page
+          * to be worked through, and a welcome day does the same — its tasks are listed here, and
+          * the videos, recordings and checklist are done on the welcome day page
+          * (/careerpilot/journey/welcome/:day), which finishes the day and moves on. The gate is
+          * the server's either way, and a locked chip cannot be clicked to get here.
           *
           * Rendered instead of the learning day rather than beside it, because exactly one of the
           * two is ever open.
           */}
-        {openOrientationDay !== null && welcomeDay && (
-          <OrientationDayPanel
-            key={welcomeDay.dayNumber}
-            day={welcomeDay}
-            nextDay={(orientation?.days || []).find(d => d.dayNumber > welcomeDay.dayNumber) || null}
-            onChanged={setOrientation}
-            onFinished={({ nextDay, complete }) => {
-              /*
-               * ONLY A FINISHED WELCOME OPENS DAY 1.
-               *
-               * A paced member who finishes today's welcome day has no next day to open, because
-               * the next one is tomorrow. Treating that as "the welcome is over" sent them to
-               * Day 1 — a day the server refuses, since the welcome is not done. They stay on the
-               * day they just finished, where the panel says when the next one arrives.
-               */
-              if (complete) { load(); selectDay(currentDay); return; }
-              if (nextDay) selectOrientationDay(nextDay);
-            }}
-          />
-        )}
+        {openOrientationDay !== null && welcomeDay && (() => {
+          const wd = welcomeDay;
+          const doneCount = wd.items.filter(i => i.done).length;
+          const finished = !!wd.done || (wd.items.length > 0 && doneCount === wd.items.length);
+          const isToday = welcomeOutstanding?.dayNumber === wd.dayNumber;
+          const minutes = wd.minutes ?? wd.items.reduce((s, i) => s + (i.estimatedMinutes || 0), 0);
+          return (
+            <>
+              <div className="fj-day-head">
+                <div>
+                  <span className={`fj-status s-${finished ? 'completed' : isToday ? 'current' : 'upcoming'}`}>
+                    {finished ? 'Completed' : isToday ? 'Today' : 'Upcoming'}
+                  </span>
+                  <h2>Day {wd.day} · {wd.title}</h2>
+                  {wd.blurb && <p className="fj-objective">{wd.blurb}</p>}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+                  {minutes > 0 && <span className="fj-mins">{mins(minutes)}</span>}
+                  {!wd.locked && (
+                    <button
+                      type="button"
+                      className={`fj-start${finished ? ' ghost' : ''}`}
+                      onClick={() => nav(`/careerpilot/journey/welcome/${wd.dayNumber}`)}
+                    >
+                      {finished ? 'Review this day' : isToday ? "Start today's welcome" : 'Open this day'}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {wd.items.length === 0 ? (
+                <p className="fj-empty">This day is still being prepared. It will appear here before you reach it.</p>
+              ) : (
+                <ol className="fj-acts">
+                  {wd.items.map(it => (
+                    <li key={it.key} className={`${it.required ? 'gating' : ''}${it.done ? ' done' : ''}`}>
+                      <span className={`fj-act-icon t-${it.kind}`}>
+                        <i className={`bi ${WELCOME_ICON[it.kind] || 'bi-journal-text'}`} aria-hidden />
+                      </span>
+                      <span className="fj-act-body">
+                        <b>{it.title}</b>
+                        <small>
+                          {WELCOME_LABEL[it.kind] || it.kind}
+                          {it.estimatedMinutes > 0 && <> · {mins(it.estimatedMinutes)}</>}
+                          {it.required ? <> · must be completed</> : <> · optional</>}
+                        </small>
+                      </span>
+                      <span className={`fjm-check${it.done ? ' on' : ''}`} aria-label={it.done ? 'Done' : 'Not done yet'}>{it.done && <i className="bi bi-check-lg" />}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </>
+          );
+        })()}
 
         {openOrientationDay === null && dayLoading && <div className="fj-skeleton">Loading day…</div>}
 
@@ -953,7 +1069,7 @@ const FoundationJourneyPage: React.FC = () => {
                 {day.activities.map((a: FoundationJourneyActivity) => (
                   <li key={a.id || `${a.order}`} className={`${a.gating ? 'gating' : ''}${a.done ? ' done' : ''}`}>
                     <span className={`fj-act-icon t-${a.type}`}>
-                      <i className={`bi ${ICON[a.type] || 'bi-journal-text'}`} aria-hidden />
+                      <i className={`bi ${ICON_FILLED[a.type] || ICON[a.type] || 'bi-journal-text'}`} aria-hidden />
                     </span>
                     <span className="fj-act-body">
                       <b>{a.title}</b>

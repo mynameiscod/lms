@@ -93,12 +93,53 @@
   line-height: 1;
 }
 
+.score-pct small {
+  font-size: 0.6em;
+  font-weight: 800;
+  margin-left: 1px;
+}
+
+/* The ring holds only the figure; the level is a chip under it, so a long word
+   ("Incomplete") can never spill outside the circle. */
+.score-ring-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .score-level {
-  font-size: 0.68rem;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 2px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  background: #FFF0F0;
+  color: #A82E2E;
+  border: 1px solid #F2C9C9;
+}
+.score-level-basic { background: #FFF7E8; color: #8F5300; border-color: #F3D9A8; }
+.score-level-good { background: #EAF1FB; color: #051D64; border-color: #C9D8E5; }
+.score-level-excellent { background: #EAF8F1; color: #136C4A; border-color: #C3E7D4; }
+
+.recruiter-meter {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #E9EFF6;
+  overflow: hidden;
+}
+.recruiter-meter span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #359AAD, #17885D);
+  transition: width 0.5s ease;
 }
 
 .score-details {
@@ -125,6 +166,11 @@
 }
 
 .score-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  cursor: pointer;
   font-size: 0.8rem;
   padding: 4px 10px;
   border-radius: 20px;
@@ -190,7 +236,7 @@
     padding: 22px 18px;
   }
 
-  .score-ring-wrap { align-self: center; }
+  .score-ring-wrap, .score-ring-col { align-self: center; }
 
   .score-details { text-align: center; }
   .score-title { font-size: 1.05rem; }
@@ -202,7 +248,7 @@
     grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
     gap: 8px;
   }
-  .score-check { text-align: center; }
+  .score-check { text-align: center; justify-content: center; }
 
   .score-recruiter-status {
     min-width: 0;
@@ -367,6 +413,17 @@
 
 .form-group.full-width {
   grid-column: 1 / -1;
+}
+
+/* A full-width field in a flex row (Address) must actually take the row, or it
+   shrinks to the textarea's intrinsic width and looks like a small box. */
+.form-row > .form-group.full-width {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+.form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .form-group label {

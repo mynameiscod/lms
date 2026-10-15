@@ -593,8 +593,8 @@ const ResultView: React.FC<{
           <div className="rs-focus-grid">
             {sorted.slice(-3).reverse().map((c, i) => {
               const tint = ['#f4f2ff', '#f0fdf4', '#fff7ed'][i] || '#f8fafc';
-              const to = c.key === 'technical' ? '/careerpilot/practice?kind=coding'
-                : c.key === 'aptitude' || c.key === 'logical_reasoning' ? '/careerpilot/practice?kind=mcq'
+              const to = c.key === 'technical' ? '/careerpilot/practice'
+                : c.key === 'aptitude' || c.key === 'logical_reasoning' ? '/careerpilot/thinking-lab'
                 : c.key === 'communication' ? '/careerpilot/interview'
                 : c.key === 'employability' ? '/careerpilot/resume' : '/careerpilot/roadmap';
               return (

@@ -66,7 +66,7 @@ function learnerFilter(l: Learner): any {
   };
 }
 
-const productFor = (l: Learner) => (l.isStaff ? 'practice' : l.isLms ? 'lms' : l.isCareerPilot ? 'careerpilot' : 'practice');
+export const productFor = (l: Learner) => (l.isStaff ? 'practice' : l.isLms ? 'lms' : l.isCareerPilot ? 'careerpilot' : 'practice');
 
 /** Load a set the learner may open; staff may open any set of their institute. */
 async function openSet(l: Learner, setId: string) {
@@ -184,20 +184,20 @@ export async function problemForLearner(l: Learner, setId: string, problemId: st
   };
 }
 
-function judgeView(p: any, marks: number) {
+export function judgeView(p: any, marks: number) {
   return { kind: p.kind, languages: p.languages, sqlSetup: p.sqlSetup, limits: p.limits, comparisonMode: p.comparisonMode, marks };
 }
 
-function assertLanguage(p: any, language: string) {
+export function assertLanguage(p: any, language: string) {
   const lang = p.kind === 'sql' ? 'sql' : language;
   if (!p.languages.some((x: any) => x.language === lang)) throw new PbError('That language is not enabled for this problem.');
   return lang;
 }
 
-export async function runForLearner(l: Learner, setId: string, problemId: string, body: { language: string; code: string; stdin?: string; mode?: 'samples' | 'custom' }) {
-  const { item, problem: p } = await problemInSet(l, setId, problemId);
+/** Check code against a problem's example tests, or against the learner's own input. Nothing is recorded. */
+export async function runSamples(p: any, marks: number, body: { language: string; code: string; stdin?: string; mode?: 'samples' | 'custom' }) {
   const lang = assertLanguage(p, body.language);
-  const jp: any = judgeView(p.toObject(), itemMarks(item, p));
+  const jp: any = judgeView(p.toObject(), marks);
   if (body.mode === 'custom') return { custom: await runCustom(jp, lang, body.code, String(body.stdin || '')) };
   const samples = await CodingProblemTestCase.find({ problemId: p._id, isSample: true }).sort({ order: 1 }).lean();
   if (!samples.length) throw new PbError('This problem has no sample tests to run.');
@@ -205,27 +205,33 @@ export async function runForLearner(l: Learner, setId: string, problemId: string
   return { result: r };
 }
 
-export async function submitForLearner(l: Learner, setId: string, problemId: string, body: { language: string; code: string }) {
-  const { set, item, problem: p } = await problemInSet(l, setId, problemId);
-  if (!l.isStaff) {
-    if (set.status === 'closed') throw new PbError('This problem set is closed for submissions.');
-    if (set.dueAt && set.dueAt.getTime() < Date.now() && !set.allowLate) throw new PbError('The due date has passed and late submissions are not accepted.');
-  }
+export async function runForLearner(l: Learner, setId: string, problemId: string, body: { language: string; code: string; stdin?: string; mode?: 'samples' | 'custom' }) {
+  const { item, problem: p } = await problemInSet(l, setId, problemId);
+  return runSamples(p, itemMarks(item, p), body);
+}
+
+/**
+ * Judge a submission on every test, record it, and pay the first solve. One path for a problem
+ * set and for the practice library, so a solve counts the same wherever it was made.
+ */
+export async function gradeAndRecord(
+  l: Learner, p: any, marks: number, ctx: { setId?: string; late?: boolean; refType?: string },
+  body: { language: string; code: string },
+) {
   const lang = assertLanguage(p, body.language);
   if (String(body.code || '').length > 100_000) throw new PbError('Code is limited to 100 KB.');
   const tests = await CodingProblemTestCase.find({ problemId: p._id }).sort({ order: 1 }).lean();
-  const marks = itemMarks(item, p);
   const r = await judge(judgeView(p.toObject(), marks) as any, lang, body.code, tests.map((t) => ({ ...t })), { revealHidden: false });
 
-  // A sandbox that was too busy to run is not an attempt — do not record it against the learner.
+  // A sandbox that was too busy to run is not an attempt: do not record it against the learner.
   if (r.verdict === 'BUSY') return { result: r, recorded: false };
 
-  const late = !!(set.dueAt && set.dueAt.getTime() < Date.now());
+  const late = !!ctx.late;
   const firstAccept = r.verdict === 'AC'
     && !(await ProblemSubmission.exists({ userId: l.userId, problemId: p._id, verdict: 'AC' }));
   const sub = await ProblemSubmission.create({
     tenantId: l.tenantId, userId: l.userId, problemId: p._id, problemVersion: p.version,
-    context: { product: productFor(l), setId: String(set._id) },
+    context: { product: productFor(l), ...(ctx.setId ? { setId: ctx.setId } : {}), ...(ctx.refType ? { refType: ctx.refType } : {}) },
     language: lang, code: body.code, verdict: r.verdict, passed: r.passed, total: r.total,
     score: r.score, maxScore: r.maxScore, timeMs: r.timeMs, late,
     cases: r.cases.map((c) => ({ verdict: c.verdict, timeMs: c.timeMs, weight: c.weight, isSample: c.isSample })),
@@ -237,6 +243,16 @@ export async function submitForLearner(l: Learner, setId: string, problemId: str
     if (firstAccept) reward = await rewardFirstSolve(l, p);
   }
   return { result: r, recorded: true, submissionId: sub._id, late, firstAccept, reward };
+}
+
+export async function submitForLearner(l: Learner, setId: string, problemId: string, body: { language: string; code: string }) {
+  const { set, item, problem: p } = await problemInSet(l, setId, problemId);
+  if (!l.isStaff) {
+    if (set.status === 'closed') throw new PbError('This problem set is closed for submissions.');
+    if (set.dueAt && set.dueAt.getTime() < Date.now() && !set.allowLate) throw new PbError('The due date has passed and late submissions are not accepted.');
+  }
+  const late = !!(set.dueAt && set.dueAt.getTime() < Date.now());
+  return gradeAndRecord(l, p, itemMarks(item, p), { setId: String(set._id), late }, body);
 }
 
 /**

@@ -81,8 +81,8 @@ jobs:
       # 122 suites / 2,182 tests, ~2 minutes. These are unit tests over pure
       # functions and mocked models: no MongoDB, no Redis, no Piston, no network.
       # --ci makes Jest fail rather than write new snapshots.
-      - name: Server - Jest
-        run: npm test --workspace=server -- --ci
+      - name: Server - Jest unit regressions
+        run: npm run test:unit --workspace=server -- --ci
         env:
           NODE_ENV: test
 
@@ -91,6 +91,36 @@ jobs:
       # script cannot run. Wiring it up means choosing a config and fixing whatever
       # it reports across the whole server — a separate, deliberate decision.
       # Deliberately not run here. See docs/ci.md.
+
+  mcp-integration:
+    name: MCP OAuth and MongoDB integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      # mongodb-memory-server 11 requires Node >=20.19; production code is also
+      # compiled by the existing Node 18 server job above.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongo-${{ runner.os }}-7.0.24
+      - name: OAuth unit and replica-set security tests
+        run: npm run test:mcp --workspace=server -- --ci
+        env:
+          MONGOMS_VERSION: '7.0.24'
+      - name: Existing MongoDB integration regressions
+        run: npm run test:integration --workspace=server -- --ci --testPathIgnorePatterns=mcpOAuthExchange
+        env:
+          MONGOMS_VERSION: '7.0.24'
 
   # ── client ────────────────────────────────────────────────────────────────
   client:

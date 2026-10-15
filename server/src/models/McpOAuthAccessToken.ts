@@ -7,6 +7,9 @@ const schema = new Schema({
   tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
   clientId: { type: String, required: true },
   audience: { type: String, required: true },
+  issuer: { type: String, required: true },
+  grantId: { type: Schema.Types.ObjectId, required: true, index: true },
+  scopes: { type: [String], required: true },
   expiresAt: { type: Date, required: true },
   revokedAt: { type: Date },
 }, { timestamps: true });

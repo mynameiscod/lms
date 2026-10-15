@@ -7,6 +7,7 @@ import Tenant from '../models/Tenant';
 import Role from '../models/Role';
 import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
 import { jwtSecret } from '../config/secrets';
+import { authenticateLmsCredentials } from './lmsCredentials';
 
 export class AuthService {
   async registerOrganizationFull(
@@ -137,28 +138,7 @@ export class AuthService {
   }
 
   async login(email: string, password: string): Promise<any> {
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      throw new Error('Invalid credentials');
-    }
-
-    // Check if user account is active
-    if (!user.isActive) {
-      throw new Error('Your account has been deactivated. Please contact your administrator.');
-    }
-
-    const isValidPassword = await user.comparePassword(password);
-
-    if (!isValidPassword) {
-      throw new Error('Invalid credentials');
-    }
-
-    const tenant = await Tenant.findById(user.tenantId);
-    // A deactivated institute is locked out entirely (the platform administrator is not).
-    if (user.role !== 'SUPER_ADMIN' && tenant && (tenant as any).isActive === false) {
-      throw new Error('Your institute\'s account is not active. Please contact the platform administrator.');
-    }
+    const { user, tenant } = await authenticateLmsCredentials(email, password);
 
     const secret = jwtSecret();
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';

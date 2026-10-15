@@ -328,6 +328,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     permissions: [
       { key: 'mcp_connect', label: 'Connect an AI assistant to CodeBegun LMS' },
       { key: 'mcp_students_read', label: 'Read permitted student records through MCP' },
+      { key: 'mcp_batches_read', label: 'Read permitted batches through MCP' },
       { key: 'mcp_attendance_read', label: 'Read permitted attendance through MCP' },
       { key: 'mcp_assessments_read', label: 'Read permitted exams and assessments through MCP' },
       { key: 'mcp_leads_read', label: 'Read permitted CRM leads through MCP' },

@@ -1,132 +1,40 @@
-import request from 'supertest';
-import express from 'express';
+import { canUseTool, tools, validateArguments } from '../mcp/tools';
+const allScopes = ['mcp_connect', ...tools.map(t => t.scope)];
+const native = ['view_enrolled_students', 'view_courses', 'view_attendance', 'view_exams', 'view_fees', 'view_placement', 'view_leads', 'manage_leads'];
+const identity = (overrides: any = {}) => ({ user: { role: 'TENANT_ADMIN' }, tenant: { studentFeatures: {} },
+  modules: { courses: true, attendance: true, feeManagement: true, placement: true, leads: true },
+  permissions: [...allScopes, ...native], ...overrides } as any);
 
-const USER_ID = '507f1f77bcf86cd799439011';
-const TENANT_ID = '507f1f77bcf86cd799439012';
-const BATCH_ID = '507f1f77bcf86cd799439013';
-const mockIdentity = { id: USER_ID, tenantId: TENANT_ID, role: 'INSTRUCTOR' };
-const mockPermissions = jest.fn();
-const mockBatches = jest.fn();
-const mockAttendanceAggregate = jest.fn();
-const mockExamAggregate = jest.fn();
-const mockFeeAggregate = jest.fn();
-const mockUserCount = jest.fn();
-const mockCallAggregate = jest.fn();
-const mockAuditCreate = jest.fn();
-
-jest.mock('../middleware/auth', () => ({
-  authMiddleware: (req: any, _res: any, next: any) => { req.user = { ...mockIdentity }; next(); }
-}));
-jest.mock('../middleware/tenantResolver', () => ({
-  tenantResolver: (req: any, _res: any, next: any) => { req.tenantId = req.user.tenantId; next(); }
-}));
-jest.mock('../middleware/roleGuard', () => ({ permissionsOf: (...args: any[]) => mockPermissions(...args) }));
-jest.mock('../models/Role', () => ({ __esModule: true, default: { exists: jest.fn(), findOne: jest.fn() } }));
-jest.mock('../models/Batch', () => ({
-  __esModule: true, default: { find: (...args: any[]) => ({ distinct: () => mockBatches(...args) }) }
-}));
-jest.mock('../models/Attendance', () => ({
-  __esModule: true, default: { aggregate: (...args: any[]) => mockAttendanceAggregate(...args) }
-}));
-jest.mock('../models/Exam', () => ({
-  __esModule: true, default: { aggregate: (...args: any[]) => mockExamAggregate(...args) }
-}));
-jest.mock('../models/Fee', () => ({
-  __esModule: true, default: { aggregate: (...args: any[]) => mockFeeAggregate(...args) }
-}));
-jest.mock('../models/User', () => ({
-  __esModule: true, default: { countDocuments: (...args: any[]) => mockUserCount(...args) }
-}));
-jest.mock('../models/OutperoCall', () => ({
-  __esModule: true, default: { aggregate: (...args: any[]) => mockCallAggregate(...args), find: jest.fn() }
-}));
-jest.mock('../models/Lead', () => ({ __esModule: true, default: { aggregate: jest.fn() } }));
-
-jest.mock('../models/McpAuditEvent', () => ({
-  __esModule: true,
-  default: { create: (...args: any[]) => mockAuditCreate(...args) }
-}));
-
-import mcpRouter from '../mcp/router';
-const app = express();
-app.use(express.json());
-app.use('/mcp', mcpRouter);
-const invoke = (name: string, args: object = {}) => request(app).post('/mcp')
-  .send({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } });
-
-describe('MCP domain permission and tenant scoping', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockAuditCreate.mockResolvedValue({});
-    mockIdentity.role = 'INSTRUCTOR';
-    mockPermissions.mockResolvedValue(['mcp_connect', 'mcp_attendance_read', 'mcp_assessments_read', 'mcp_students_read']);
-    mockBatches.mockResolvedValue([BATCH_ID]);
-    mockAttendanceAggregate.mockResolvedValue([{ _id: 'present', count: 2 }]);
-    mockExamAggregate.mockResolvedValue([{ _id: 'pass', count: 2 }]);
-    mockFeeAggregate.mockResolvedValue([]);
-    mockCallAggregate.mockResolvedValue([]);
-    mockUserCount.mockResolvedValue(2);
+describe('MCP tool permission intersection', () => {
+  test.each(tools)('$name requires consent AND the current domain permission', candidate => {
+    expect(canUseTool(identity(), allScopes, candidate)).toBe(true);
+    expect(canUseTool(identity(), ['mcp_connect'], candidate)).toBe(false);
+    expect(canUseTool(identity({ permissions: native }), allScopes, candidate)).toBe(false);
+    expect(canUseTool(identity(), [candidate.scope], candidate)).toBe(false);
   });
-
-  test('authorized instructor sees only their own attendance batches and tenant', async () => {
-    const r = await invoke('codebegun_attendance_summary', { days: 7 });
-    expect(r.body.error).toBeUndefined();
-    const pipeline = mockAttendanceAggregate.mock.calls[0][0];
-    expect(String(pipeline[0].$match.tenantId)).toBe(TENANT_ID);
-    expect(pipeline[0].$match.batchId.$in).toEqual([BATCH_ID]);
-    expect(pipeline[0].$match.date.$gte).toBeInstanceOf(Date);
+  test.each(tools)('$name requires the native LMS domain permission', candidate => {
+    expect(canUseTool(identity({ permissions: allScopes }), allScopes, candidate)).toBe(false);
   });
-
-  test('instructor exam query stays within assigned batches', async () => {
-    const r = await invoke('codebegun_exam_summary');
-    expect(r.body.error).toBeUndefined();
-    const match = mockExamAggregate.mock.calls[0][0][0].$match;
-    expect(String(match.tenantId)).toBe(TENANT_ID);
-    expect(match.batchId.$in).toEqual([BATCH_ID]);
+  test('student self access never includes CRM or Outpero', () => {
+    for (const candidate of tools.filter(t => ['calls', 'leads'].includes(t.domain))) {
+      expect(canUseTool(identity({ user: { role: 'STUDENT' } }), allScopes, candidate)).toBe(false);
+    }
   });
-
-  test('instructor without assigned batches cannot read academic aggregates', async () => {
-    mockBatches.mockResolvedValue([]);
-    const r = await invoke('codebegun_attendance_summary');
-    expect(r.body.error.code).toBe(-32003);
-    expect(mockAttendanceAggregate).not.toHaveBeenCalled();
+  test('tenant and student feature gates apply', () => {
+    const attendance = tools.find(t => t.name === 'codebegun_attendance')!;
+    expect(canUseTool(identity({ modules: { attendance: false } }), allScopes, attendance)).toBe(false);
+    expect(canUseTool(identity({ user: { role: 'STUDENT' }, tenant: { studentFeatures: { attendance: false } } }), allScopes, attendance)).toBe(false);
   });
-
-  test('instructor cannot read finance or calls even with a domain permission', async () => {
-    mockPermissions.mockResolvedValue(['mcp_connect', 'mcp_finance_read', 'mcp_calls_read']);
-    expect((await invoke('codebegun_fee_summary')).body.error.code).toBe(-32003);
-    expect((await invoke('codebegun_call_summary')).body.error.code).toBe(-32003);
-    expect(mockFeeAggregate).not.toHaveBeenCalled();
-    expect(mockCallAggregate).not.toHaveBeenCalled();
+  test('all tools declare read-only bounded schemas', () => {
+    expect(new Set(tools.map(t => t.name)).size).toBe(tools.length);
+    for (const candidate of tools) {
+      expect(candidate.annotations.readOnlyHint).toBe(true);
+      expect(candidate.inputSchema.additionalProperties).toBe(false);
+      if (!candidate.summary) expect(candidate.inputSchema.properties.limit.maximum).toBe(50);
+    }
   });
-
-  test('permission revocation takes effect on next request', async () => {
-    expect((await invoke('codebegun_student_count')).body.error).toBeUndefined();
-    mockPermissions.mockResolvedValue(['mcp_connect']);
-    expect((await invoke('codebegun_student_count')).body.error.code).toBe(-32003);
-    expect(mockUserCount).toHaveBeenCalledTimes(1);
-  });
-
-  test('student count includes tenant and assigned batch filter', async () => {
-    const r = await invoke('codebegun_student_count');
-    expect(r.body.error).toBeUndefined();
-    expect(mockUserCount).toHaveBeenCalledWith({
-      tenantId: TENANT_ID, role: 'STUDENT', isActive: true, batchId: { $in: [BATCH_ID] }
-    });
-  });
-
-  test('admin attendance query uses tenant scope without instructor batch restriction', async () => {
-    mockIdentity.role = 'TENANT_ADMIN';
-    const r = await invoke('codebegun_attendance_summary');
-    expect(r.body.error).toBeUndefined();
-    const match = mockAttendanceAggregate.mock.calls[0][0][0].$match;
-    expect(String(match.tenantId)).toBe(TENANT_ID);
-    expect(match.batchId).toBeUndefined();
-    expect(mockBatches).not.toHaveBeenCalled();
-  });
-
-  test('invalid date window is rejected before a database aggregate', async () => {
-    expect((await invoke('codebegun_attendance_summary', { days: 1000 })).body.error.code).toBe(-32602);
-    expect(mockAttendanceAggregate).not.toHaveBeenCalled();
+  test.each([{ tenantId: '507f1f77bcf86cd799439011' }, { limit: 51 }, { limit: 0 }, { limit: '1' },
+    { limit: 1.1 }, { after: { $ne: null } }, { recordId: 'not-an-id' }, { $where: 'evil' }, [], null])('rejects unsupported input %j', args => {
+    expect(() => validateArguments(tools.find(t => t.name === 'codebegun_students')!, args)).toThrow('invalid_arguments');
   });
 });

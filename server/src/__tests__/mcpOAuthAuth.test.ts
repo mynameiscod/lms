@@ -1,35 +1,29 @@
-import { mcpOAuthAuth } from '../mcp/oauthAuth';
-
-jest.mock('../models/McpOAuthAccessToken', () => ({
-  __esModule: true, default: { findOne: jest.fn() }
-}));
-jest.mock('../models/User', () => ({ __esModule: true, default: { findOne: jest.fn() } }));
-jest.mock('../models/Role', () => ({ __esModule: true, default: { exists: jest.fn() } }));
-jest.mock('../middleware/roleGuard', () => ({ permissionsOf: jest.fn() }));
-
-describe('OAuth MCP resource authorization', () => {
-  const previous = process.env.MCP_RESOURCE_URL;
-  beforeEach(() => { process.env.MCP_RESOURCE_URL = 'https://mcp.codebegun.com/mcp'; });
-  afterAll(() => {
-    if (previous === undefined) delete process.env.MCP_RESOURCE_URL;
-    else process.env.MCP_RESOURCE_URL = previous;
-  });
-  test('rejects a missing bearer credential', async () => {
-    const status = jest.fn().mockReturnThis();
-    const set = jest.fn().mockReturnThis();
-    const json = jest.fn().mockReturnThis();
-    const next = jest.fn();
-    await mcpOAuthAuth({ headers: {} } as any, { status, set, json } as any, next);
-    expect(status).toHaveBeenCalledWith(401);
-    expect(next).not.toHaveBeenCalled();
-  });
-  test('fails closed if OAuth resource URL is not configured', async () => {
-    delete process.env.MCP_RESOURCE_URL;
-    const status = jest.fn().mockReturnThis();
-    const json = jest.fn().mockReturnThis();
-    const next = jest.fn();
-    await mcpOAuthAuth({ headers: { authorization: 'Bearer ' + 'a'.repeat(43) } } as any, { status, json } as any, next);
-    expect(status).toHaveBeenCalledWith(503);
-    expect(next).not.toHaveBeenCalled();
-  });
+import { authenticateClient } from '../mcp/oauthEngine';
+import { tokenDigest } from '../mcp/oauthSecurity';
+const secret = 'test-secret-with-at-least-32-random-bytes';
+const saved = { ...process.env };
+beforeAll(() => {
+  process.env.MCP_ISSUER_URL = 'https://lms.example';
+  process.env.MCP_RESOURCE_URL = 'https://lms.example/mcp';
+  process.env.MCP_OAUTH_CLIENTS = JSON.stringify([
+    { id: 'public-client', name: 'Public', applicationType: 'web', redirectUris: ['https://assistant.example/cb'], scopes: ['mcp_connect'], tokenEndpointAuthMethod: 'none' },
+    { id: 'secret-client', name: 'Confidential', applicationType: 'web', redirectUris: ['https://assistant.example/cb'], scopes: ['mcp_connect'], tokenEndpointAuthMethod: 'client_secret_basic', secretHash: tokenDigest(secret) },
+  ]);
+});
+afterAll(() => { process.env = saved; });
+const req = (authorization?: string) => ({ headers: { ...(authorization ? { authorization } : {}) } } as any);
+const basic = (id: string, password: string) => 'Basic ' + Buffer.from(`${id}:${password}`).toString('base64');
+test('public clients use registered client id without a secret', () => {
+  expect(authenticateClient(req(), { client_id: 'public-client' }).id).toBe('public-client');
+});
+test('confidential clients must authenticate even with PKCE', () => {
+  expect(() => authenticateClient(req(), { client_id: 'secret-client', code_verifier: 'a'.repeat(43) })).toThrow('invalid_client');
+  expect(authenticateClient(req(basic('secret-client', secret)), {}).id).toBe('secret-client');
+  expect(() => authenticateClient(req(basic('secret-client', 'wrong')), {})).toThrow('invalid_client');
+});
+test('rejects mixed credentials and unsupported authentication methods', () => {
+  expect(() => authenticateClient(req(basic('secret-client', secret)), { client_id: 'secret-client' })).toThrow();
+  expect(() => authenticateClient(req(), { client_id: 'secret-client', client_secret: secret })).toThrow();
+  expect(() => authenticateClient(req('Bearer x'), { client_id: 'public-client' })).toThrow();
+  expect(() => authenticateClient(req(basic('public-client', 'secret')), {})).toThrow();
 });

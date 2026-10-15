@@ -12,6 +12,7 @@ import http from 'http';
 import cluster from 'cluster';
 import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
+import { assertMcpReady } from './mcp/bootstrap';
 import { assertSecretsPresent } from './config/secrets';
 import { initSettings } from './services/settingsService';
 import { initPlatformOwner } from './services/platformOwner';
@@ -67,6 +68,7 @@ const startServer = async () => {
     console.log('📡 Attempting to connect to MongoDB...');
     // Connect to database
     await connectDB();
+    await assertMcpReady();
     console.log('✅ MongoDB connection successful');
 
     // Load admin-managed configuration from DB (keys/models set in the UI).

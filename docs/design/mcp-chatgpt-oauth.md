@@ -1,51 +1,51 @@
-# CodeBegun ChatGPT OAuth connection plan
+# CodeBegun MCP OAuth architecture
 
-Status: design specification; not an operational OAuth authorization server.
+The authorization server uses pinned `@node-oauth/oauth2-server` 5.3.1 for authorization-code issuance, S256 PKCE and OAuth token response validation. CodeBegun's adapter supplies identity, client policy, consent, durable storage, revocation and replay handling. OAuth 2.1 remains an IETF draft; this implements its authorization-code + mandatory PKCE profile, with no implicit/password/client-credentials grants.
 
-## Security boundary
+## Public endpoints
 
-The existing POST /mcp endpoint accepts LMS session JWTs for internal tests only.
-It MUST NOT be registered as a public ChatGPT connector. Production disables
-the endpoint unless MCP_INTERNAL_ENABLED=true. Do not enable this flag for a
-public deployment.
+| Endpoint | Purpose |
+|---|---|
+| `GET /.well-known/oauth-authorization-server` | RFC 8414 issuer and endpoint metadata |
+| `GET /.well-known/oauth-protected-resource/mcp` | RFC 9728 resource metadata; also available without `/mcp` suffix |
+| `GET /mcp-oauth/authorize` | Validate registered callback, resource, scopes and S256 challenge, then show first-party login |
+| `POST /mcp-oauth/login` | Verify existing LMS credentials; rotate server-side browser session |
+| `POST /mcp-oauth/consent` | Explicit allow/deny; one-time, CSRF-protected transaction |
+| `POST /mcp-oauth/token` | URL-encoded authorization-code exchange or refresh |
+| `POST /mcp-oauth/revoke` | RFC 7009 revocation; revokes the associated grant family |
+| `GET /mcp-oauth/connections` | First-party login to inspect and disconnect own grants |
+| `POST /mcp-oauth/disconnect` | CSRF-protected revoke-one or revoke-all for the signed-in user |
+| `POST /mcp-oauth/logout` | End the connection-management browser session |
+| `POST /mcp` | Protected stateless MCP JSON-RPC |
 
-## Selected login method
+Use an origin-only HTTPS issuer, and exactly `issuer + /mcp` as resource. `resource` is required at authorization and token exchange. Authorization responses preserve state and include `iss` (RFC 9207). The metadata advertises that behavior. Access-token challenges include resource metadata; missing tool scopes produce HTTP 403 with an `insufficient_scope` challenge naming the required scope.
 
-Use existing CodeBegun LMS user accounts. The authorization endpoint must authenticate users through the existing LMS login service, establish a secure browser session, and display a consent screen. The OAuth provider must not expose LMS passwords or session JWTs to ChatGPT. Keep identity, tenant, and current permissions server-side and verify them on every MCP request.
+## Clients and browser sessions
 
-## Recommended OAuth 2.1 architecture
+Clients are explicitly pre-registered through `MCP_OAUTH_CLIENTS`. Registration is not public; DCR and remote client-metadata fetching are intentionally absent. Each record declares ID, name, application type, exact redirect URIs, allowed scopes and `none` or `client_secret_basic` authentication. Native clients may register exact HTTP loopback callbacks; web clients require HTTPS. No wildcard matching, URL prefix matching, fragments or embedded URL credentials. Confidential clients still authenticate when using PKCE. Plaintext client secrets are not stored; use the SHA-256 digest of a high-entropy secret.
 
-Use a vetted OpenID Connect/OAuth authorization provider or a dedicated,
-well-tested authorization-server library rather than implementing authorization
-code and refresh-token flows manually in Express.
+Browser sessions last ten minutes and store only a hash of a random cookie and CSRF token. Cookies are HttpOnly, Secure on HTTPS, SameSite=Lax and scoped to `/mcp-oauth`; the cookie changes after login. Only server-stored authorization parameters may be approved. Consent is always shown, binds account/tenant/client/resource/scopes, and is consumed once. Forms enforce CSRF tokens and first-party Origin/Fetch Metadata. CSP forbids scripts, framing and nonlocal form submissions. The UI identifies the requesting client and institute and offers both allow and deny.
 
-1. Register a confidential or public OAuth client as required by the ChatGPT
-   connector integration, with exact callback URI allowlisting.
-2. Use authorization code + PKCE (S256), HTTPS, and explicit user consent.
-3. Expose authorization server metadata, OAuth protected-resource metadata,
-   and a WWW-Authenticate resource challenge.
-4. Issue audience-restricted, short-lived access tokens for the MCP resource.
-   Refresh tokens must be rotated, revocable and stored hashed server-side.
-5. Validate issuer, audience, signature, expiry, authorized client, and
-   scopes on every MCP request. Never reuse normal LMS login JWTs.
-6. Resolve the user and tenant from verified server-side identity; verify
-   active status and current role permissions on every tool call.
-7. Require both mcp_connect and the domain-specific MCP permission.
-8. Implement per-user disconnect, token revocation, consent revocation,
-   audit logs, rate limits and monitoring.
-9. Run negative tests for PKCE bypass, replay, token substitution, cross-tenant
-   access, expired tokens, permission revocation and wrong audience.
+## Token lifecycle and atomicity
 
-## Integration with existing LMS Roles
+- Authorization codes: 256-bit opaque random values, hashed at rest, five-minute validity, exact client/redirect/resource binding, S256 only. The OAuth engine consumes codes before checking PKCE to prevent repeated guesses. Consumed codes remain until the grant expires; replay revokes the family.
+- Access tokens: 256-bit opaque random values, SHA-256 digests in MongoDB, at most 15 minutes, with explicit issuer, audience, client, tenant, user, grant and scopes. They are not JWTs, so signature validation is not applicable; authoritative server-side lookup verifies their bindings and expiration.
+- Refresh tokens: issued only for consented `offline_access`; hashed, one-time rotation, seven-day idle validity, capped by the grant's absolute 30-day lifetime. Scope can narrow but cannot expand. Reuse revokes the whole grant, including issued access tokens.
+- Every exchange writes the grant version inside a MongoDB snapshot/majority transaction. Concurrent refresh and revocation serialize on that document. Token creation, consumption and successful audit either commit together or roll back. Expected OAuth failures commit deliberate consumption/replay revocation; unexpected persistence failures roll back. No response is sent before commit.
+- Per-user disconnect and RFC 7009 revocation update the grant. Resource authorization checks grant revocation every request. Current identity and permissions are never cached across requests. A digest of the existing password hash invalidates grants when credentials change.
 
-Reuse PERMISSION_GROUPS.mcp and existing custom role assignments. OAuth scopes
-do not grant data access by themselves; MCP tools must check LMS permissions
-and record-level constraints on every invocation.
+## Operational controls
 
-## Deployment checklist
+Shared MongoDB fixed-window counters limit transport traffic, token exchange, user tool calls and login attempts by both IP and account. Rate-limit storage errors fail closed. HTTPS and canonical Host checks apply in production; trusted-proxy configuration must reflect the actual edge. Exact CORS origins are isolated from LMS CORS. Reverse proxies and APM must also suppress OAuth query/body/token logging: the application cannot control upstream logs.
 
-- Complete OAuth provider integration and test with staging identities.
-- Verify ChatGPT's current connector requirements before registration.
-- Use a dedicated HTTPS endpoint and no permissive cross-origin settings.
-- Confirm durable audit writes and MongoDB isolation using staging data.
-- Keep the production MCP route disabled until a security review is complete.
+Startup validates configuration, replica-set/sharded transaction support and required indexes when enabled. `mcp:prepare` explicitly creates MCP indexes and replaces only the prototype authorization-code TTL index. Old prototype tokens have no grant and are rejected. Audit events deliberately have no automatic TTL; choose retention and append-only database privileges operationally.
+
+## Standards and upstream references
+
+- [MCP authorization](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization)
+- [MCP Streamable HTTP, implemented protocol revision](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
+- [OAuth security best current practice, RFC 9700](https://www.rfc-editor.org/rfc/rfc9700.html)
+- [OAuth engine PKCE guide](https://node-oauth.github.io/node-oauth2-server/guide/pkce.html)
+- [OAuth engine integration responsibilities](https://node-oauth.github.io/node-oauth2-server/guide/compliance.html)
+
+This is an application implementation, not an independent security certification. Staging interoperability and independent review remain release gates before production approval.

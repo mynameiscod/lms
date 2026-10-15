@@ -1,58 +1,57 @@
-import request from 'supertest';
-import express from 'express';
-jest.mock('../models/McpAuditEvent', () => ({ __esModule: true, default: { create: jest.fn().mockResolvedValue({}) } }));
-import mcpRouter from '../mcp/router';
+import { mcpConfig, registeredClient, parseScopes, scalarParameters, SCOPE_LABELS } from '../mcp/oauthPolicy';
 
-jest.mock('../middleware/auth', () => ({
-  authMiddleware: (req: any, _res: any, next: any) => {
-    req.user = { id: '507f1f77bcf86cd799439011', tenantId: '507f1f77bcf86cd799439012', role: 'INSTRUCTOR' };
-    next();
-  }
-}));
-jest.mock('../middleware/tenantResolver', () => ({
-  tenantResolver: (req: any, _res: any, next: any) => {
-    req.tenantId = req.user.tenantId;
-    next();
-  }
-}));
-jest.mock('../middleware/roleGuard', () => ({ permissionsOf: jest.fn().mockResolvedValue([]) }));
-jest.mock('../models/Role', () => ({ __esModule: true, default: { exists: jest.fn() } }));
+const client = { id: 'test-client', name: 'Assistant', applicationType: 'web', tokenEndpointAuthMethod: 'none',
+  redirectUris: ['https://assistant.example/callback'], scopes: Object.keys(SCOPE_LABELS) };
+const saved = { ...process.env };
+beforeEach(() => {
+  process.env.MCP_ISSUER_URL = 'https://lms.example';
+  process.env.MCP_RESOURCE_URL = 'https://lms.example/mcp';
+  process.env.MCP_OAUTH_CLIENTS = JSON.stringify([client]);
+  delete process.env.MCP_ALLOWED_ORIGINS;
+});
+afterAll(() => { process.env = saved; });
 
-const app = express();
-app.use(express.json());
-app.use('/mcp', mcpRouter);
-
-describe('MCP authorization', () => {
-  test('production transport is unavailable unless explicitly enabled', async () => {
-    const priorNodeEnv = process.env.NODE_ENV;
-    const priorEnabled = process.env.MCP_INTERNAL_ENABLED;
-    try {
-      process.env.NODE_ENV = 'production';
-      delete process.env.MCP_INTERNAL_ENABLED;
-      const r = await request(app).post('/mcp').send({ jsonrpc: '2.0', id: 7, method: 'initialize' });
-      expect(r.status).toBe(404);
-    } finally {
-      if (priorNodeEnv === undefined) delete process.env.NODE_ENV;
-      else process.env.NODE_ENV = priorNodeEnv;
-      if (priorEnabled === undefined) delete process.env.MCP_INTERNAL_ENABLED;
-      else process.env.MCP_INTERNAL_ENABLED = priorEnabled;
-    }
+describe('MCP configuration and OAuth policy', () => {
+  test('uses explicit pre-registration and exact resource', () => {
+    expect(registeredClient(client.id).id).toBe(client.id);
+    expect(mcpConfig().resource).toBe('https://lms.example/mcp');
+    expect(() => registeredClient('not-registered')).toThrow('invalid_client');
   });
-
-  test('denies initialize without mcp_connect', async () => {
-    const r = await request(app).post('/mcp').send({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} });
-    expect(r.body.error.code).toBe(-32003);
+  test.each(['http://lms.example', 'https://lms.example/path', 'https://user:pass@lms.example', 'https://lms.example/'])('rejects unsafe issuer %s', issuer => {
+    process.env.MCP_ISSUER_URL = issuer;
+    expect(() => mcpConfig()).toThrow('mcp_not_configured');
   });
-  test('denies tool listing without mcp_connect', async () => {
-    const r = await request(app).post('/mcp').send({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
-    expect(r.body.error.code).toBe(-32003);
+  test('has no production localhost exception', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.MCP_ISSUER_URL = 'http://localhost:5000';
+    process.env.MCP_RESOURCE_URL = 'http://localhost:5000/mcp';
+    expect(() => mcpConfig()).toThrow('mcp_not_configured');
+    process.env.NODE_ENV = 'test';
   });
-  test('rejects malformed JSON-RPC envelope', async () => {
-    const r = await request(app).post('/mcp').send({ method: 'tools/list', id: 3 });
-    expect(r.body.error.code).toBe(-32600);
+  test.each([
+    { redirectUris: ['https://*.example/cb'] }, { redirectUris: ['http://example/cb'] },
+    { redirectUris: ['https://example/cb#fragment'] }, { tokenEndpointAuthMethod: 'client_secret_post' },
+    { tokenEndpointAuthMethod: 'client_secret_basic', secretHash: 'weak' }, { scopes: ['mcp_connect', 'mcp_write'] },
+  ])('rejects malformed client metadata %j', override => {
+    process.env.MCP_OAUTH_CLIENTS = JSON.stringify([{ ...client, ...override }]);
+    expect(() => mcpConfig()).toThrow('mcp_not_configured');
   });
-  test('rejects unauthenticated notification without access', async () => {
-    const r = await request(app).post('/mcp').send({ jsonrpc: '2.0', method: 'notifications/initialized' });
-    expect(r.status).toBe(403);
+  test('rejects duplicates, empty registration and wildcard origins', () => {
+    process.env.MCP_OAUTH_CLIENTS = JSON.stringify([client, client]);
+    expect(() => mcpConfig()).toThrow();
+    process.env.MCP_OAUTH_CLIENTS = '[]';
+    expect(() => mcpConfig()).toThrow();
+    process.env.MCP_OAUTH_CLIENTS = JSON.stringify([client]);
+    process.env.MCP_ALLOWED_ORIGINS = '*';
+    expect(() => mcpConfig()).toThrow();
+  });
+  test('validates scopes without granting more authority', () => {
+    expect(parseScopes('mcp_connect offline_access mcp_connect', client as any)).toEqual(['mcp_connect', 'offline_access']);
+    expect(() => parseScopes('mcp_connect mcp_write', client as any)).toThrow('invalid_scope');
+    expect(() => parseScopes('offline_access', client as any)).toThrow('invalid_scope');
+    expect(() => parseScopes('mcp_connect\nmcp_students_read', client as any)).toThrow('invalid_scope');
+  });
+  test.each([{ client_id: ['a', 'b'] }, { client_id: { $ne: null } }, { unexpected: 'x' }])('rejects parameter pollution %j', value => {
+    expect(() => scalarParameters(value, ['client_id'])).toThrow('invalid_request');
   });
 });

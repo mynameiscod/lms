@@ -12,6 +12,7 @@ import Exam from '../models/Exam';
 import Fee from '../models/Fee';
 import Batch from '../models/Batch';
 import Role from '../models/Role';
+import McpAuditEvent from '../models/McpAuditEvent';
 
 /**
  * Read-only MCP JSON-RPC transport for internal testing with LMS JWTs.
@@ -143,7 +144,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
         break;
       default: return error(res, id, -32601, 'Tool not implemented');
     }
-    console.info('[MCP AUDIT]', JSON.stringify({ userId: req.user!.id, tenantId, tool: name, at: new Date().toISOString() }));
+    await McpAuditEvent.create({ tenantId, userId: req.user!.id, tool: name, outcome: 'allowed' });
     return reply(res, id, { content: [{ type: 'text', text: JSON.stringify(result) }] });
   } catch (e) {
     console.error('[MCP] Tool error', e);

@@ -24,7 +24,8 @@ import { resolveCurriculumPolicy } from '../services/deadlinePolicyService';
 import * as razorpay from '../services/razorpayService';
 import { foundationAccess } from '../services/foundationAccessService';
 import { isJourneyDayOpen, calendarAllowsDay } from '../data/journeyDayLadder';
-import { pacingClockFor } from '../services/orientationService';
+import { pacingClockFor, orientationBlocksLearning } from '../services/orientationService';
+import { opensAt as programmeDayOpensAt, programmeDayOfLearning } from '../data/dailyPacingPolicy';
 import { studentContentRow } from '../services/studentContentView';
 import { reconcileJourneyDayXp, xpForJourneyItem, FOUNDATION_DAY_BONUS_XP } from '../services/foundationJourneyXpService';
 import { foundationGateFor, gateRefusal } from '../services/roadmapV2GateService';
@@ -589,13 +590,16 @@ export const markContentComplete = async (req: Request, res: Response) => {
     if ((enrollment as any).enrolledBy === 'foundation-journey') {
       const doneDays = new Set<number>(((enrollment.completedDays || []) as number[]).map(Number));
       /* The same two gates the day endpoint refuses by: completing an item must not be a way past either. */
+      if (!doneDays.has(dayNo) && await orientationBlocksLearning(String(enrollment.tenantId), String(enrollment.studentId))) {
+        return res.status(403).json({ reason: 'ORIENTATION_REQUIRED', message: 'Finish your welcome days first — Day 1 opens after them.' });
+      }
       const pacedFrom = await pacingClockFor(String(enrollment.tenantId), String(enrollment.studentId));
       if (!isJourneyDayOpen(dayNo, doneDays, pacedFrom)) {
         const early = !calendarAllowsDay(dayNo, pacedFrom);
         return res.status(403).json({
           reason: early ? 'NOT_TODAY_YET' : 'DAY_LOCKED',
           message: early
-            ? `Day ${dayNo} opens tomorrow. One learning day at a time.`
+            ? `Day ${dayNo} is not open yet. One learning day a day: it opens on its own date.`
             : `Finish day ${dayNo - 1} before starting day ${dayNo}.`,
         });
       }
@@ -867,7 +871,9 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     // DISABLED for all batches — students can open any curriculum day. Only the
     // assessment preview/paywall gate below still applies.
     let isLocked = false;
-    let lockReason: 'sequential' | 'preview' | 'schedule' | 'foundation' | null = null;
+    let lockReason: 'sequential' | 'preview' | 'schedule' | 'foundation' | 'orientation' | 'not_today' | null = null;
+    /** When a 'not_today' day opens (start of that IST day). */
+    let lockOpensAt: Date | null = null;
     /** Roadmap V2's foundation gate, when it is what holds this day. */
     let gate: any = null;
 
@@ -891,6 +897,33 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       if (!doneDays.has(dayNumber - 1) && !doneDays.has(dayNumber)) {
         isLocked = true;
         lockReason = 'sequential';
+      }
+    }
+
+    /*
+     * ONE DAY AT A TIME, AND THE WELCOME FIRST.
+     *
+     * The ladder above is only half the rule. A paced member gets one programme day per calendar
+     * day — the welcome days 0.1–0.5 first, then Day 1 — so finishing a day today does not open
+     * the next one until tomorrow; and no learning day opens before the welcome is finished. Item
+     * completion (markContentComplete) and the journey's own day endpoint already refused both;
+     * this page, the one a member actually opens, did not, so any day whose predecessor was done
+     * opened at once by its URL. A day already completed stays open whatever the calendar says.
+     */
+    if (!isLocked && isFoundationJourney) {
+      const doneDays = new Set<number>(((enrollment.completedDays || []) as number[]).map(Number));
+      if (!doneDays.has(dayNumber)) {
+        if (await orientationBlocksLearning(String(tId), String(sId))) {
+          isLocked = true;
+          lockReason = 'orientation';
+        } else {
+          const pacedFrom = await pacingClockFor(String(tId), String(sId));
+          if (!calendarAllowsDay(dayNumber, pacedFrom)) {
+            isLocked = true;
+            lockReason = 'not_today';
+            lockOpensAt = programmeDayOpensAt(programmeDayOfLearning(dayNumber), pacedFrom);
+          }
+        }
       }
     }
 
@@ -1059,6 +1092,7 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       xpJustPaid,
       isLocked,
       lockReason,
+      lockOpensAt,
       gate,
       todayPlanDay,
       aiGenStatus: aiGenStatus || null,

@@ -172,8 +172,10 @@ describe('OAuth HTTP flow with real transactional MongoDB', () => {
     expect((await request(app).get('/.well-known/oauth-protected-resource/mcp')).body.resource).toBe(resource);
     expect((await request(app).get('/unrelated')).body).toEqual({ ok: true });
   });
-  test('sign-in uses LMS credentials, rotates the browser session and issues hashed tokens only after consent', async () => {
-    const { start, signed } = await login();
+  test('ChatGPT locale hint permits LMS sign-in, session rotation and hashed tokens only after consent', async () => {
+    const { start, signed } = await login('admin@example.test', { ui_locales: 'en-US' });
+    const browser = await Session.findOne({ purpose: 'authorize' }).lean();
+    expect(browser?.parameters).not.toHaveProperty('ui_locales');
     expect(cookie(start)).not.toBe(cookie(signed));
     expect(start.headers['set-cookie'][0]).toMatch(/HttpOnly/);
     expect(start.headers['set-cookie'][0]).toMatch(/Secure/);

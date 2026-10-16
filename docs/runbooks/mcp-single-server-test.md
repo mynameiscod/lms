@@ -85,6 +85,21 @@ Read the generated shared test-account password locally from `ops/mcp-test/priva
 
 Follow the full staging acceptance checklist, including actual client interoperability, permission changes, revocation, audit failures and results compared with fixture source records. Do not call the production Outpero API; call tools read synthetic stored metadata only.
 
+### ChatGPT authorization returns `invalid_request` before login
+
+The original test image rejected ChatGPT's optional `ui_locales=en-US` parameter. The authorization endpoint now accepts and discards this bounded scalar hint; login remains in English. Callback matching, scopes, PKCE and other request validation still apply. Both private and public smoke flows now send the locale hint so this case cannot pass unnoticed.
+
+Update the separate test checkout and rebuild the image (a restart alone keeps the old code):
+
+```bash
+cd /root/lms-mcp-test &&
+git pull --ff-only origin feature/mcp-role-permissions &&
+bash scripts/mcp-test.sh up &&
+bash scripts/mcp-test.sh public
+```
+
+The setup preserves `private/clients.json`, generated secrets and existing synthetic records. After the checks pass, start a fresh Connect attempt in ChatGPT so its OAuth state and PKCE verifier are current.
+
 ## Status, recovery and stop
 
 ```bash

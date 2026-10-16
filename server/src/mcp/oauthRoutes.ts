@@ -44,7 +44,10 @@ export function endpoint(tool: string, fn: (req: Request, res: Response) => Prom
 }
 
 function authorizationParameters(query: unknown) {
-  const params = scalarParameters(query, ['response_type', 'client_id', 'redirect_uri', 'scope', 'state', 'resource', 'code_challenge', 'code_challenge_method']);
+  const params = scalarParameters(query, ['response_type', 'client_id', 'redirect_uri', 'scope', 'state', 'resource', 'code_challenge', 'code_challenge_method', 'ui_locales']);
+  // ChatGPT sends this optional UI language hint. Our login currently uses
+  // English; accept the bounded scalar without saving or acting on the hint.
+  delete params.ui_locales;
   const config = mcpConfig();
   const client = registeredClient(params.client_id);
   if (params.response_type !== 'code') throw new McpError('unsupported_response_type');

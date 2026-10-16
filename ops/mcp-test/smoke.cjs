@@ -55,7 +55,8 @@ async function login(account) {
   const state = crypto.randomBytes(24).toString('base64url');
   const query = new URLSearchParams({ response_type: 'code', client_id: clientId, redirect_uri: redirectUri,
     resource: settings.issuer + '/mcp', scope: scopes.join(' '), state, code_challenge_method: 'S256',
-    code_challenge: crypto.createHash('sha256').update(verifier).digest('base64url') });
+    // Exercise the optional locale hint included by the actual ChatGPT client.
+    ui_locales: 'en-US', code_challenge: crypto.createHash('sha256').update(verifier).digest('base64url') });
   const start = await request('/mcp-oauth/authorize?' + query);
   check(start.status === 200 && !!csrf(start), 'Authorization page failed');
   check(start.headers.get('set-cookie')?.includes('Secure') && start.headers.get('set-cookie')?.includes('HttpOnly'),

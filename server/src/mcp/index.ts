@@ -2,7 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import { randomUUID } from 'crypto';
 import mcpRouter from './router';
 import oauthRouter, { endpoint } from './oauthRoutes';
-import { McpError, mcpConfig, SCOPE_LABELS } from './oauthPolicy';
+import { McpError, mcpConfig } from './oauthPolicy';
 import { mcpContentSecurityPolicy } from './oauthSecurity';
 import { ipKey, rateLimit } from './rateLimit';
 import { audit } from './audit';
@@ -37,12 +37,12 @@ router.use((req: Request, res: Response, next: NextFunction) => {
 router.use(express.json({ limit: '32kb', strict: true }));
 router.use(express.urlencoded({ extended: false, limit: '16kb', parameterLimit: 20 }));
 router.get('/.well-known/oauth-authorization-server', endpoint('oauth_metadata', async (_req, res) => {
-  const { issuer } = mcpConfig();
+  const { issuer, clients } = mcpConfig();
   return res.json({ issuer, authorization_endpoint: `${issuer}/mcp-oauth/authorize`, token_endpoint: `${issuer}/mcp-oauth/token`,
     revocation_endpoint: `${issuer}/mcp-oauth/revoke`, response_types_supported: ['code'],
     grant_types_supported: ['authorization_code', 'refresh_token'], code_challenge_methods_supported: ['S256'],
     token_endpoint_auth_methods_supported: ['none', 'client_secret_basic'], revocation_endpoint_auth_methods_supported: ['none', 'client_secret_basic'],
-    scopes_supported: Object.keys(SCOPE_LABELS), authorization_response_iss_parameter_supported: true });
+    scopes_supported: [...new Set(clients.flatMap(client => client.scopes))], authorization_response_iss_parameter_supported: true });
 }));
 router.get(['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp'], endpoint('resource_metadata', async (_req, res) => {
   const { resource, issuer } = mcpConfig();

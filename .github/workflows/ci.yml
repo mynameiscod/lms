@@ -182,6 +182,15 @@ jobs:
       - name: Rehearse backup, conversion and rollback on MongoDB 8.2.7
         run: sudo -E bash ops/mcp-production/rehearse.sh
 
+  mcp-production-app:
+    name: Production MCP deployment rehearsal (synthetic)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rehearse production runtime, TLS, privileges and individual access
+        run: sudo -E bash ops/mcp-production/rehearse-app.sh
+
   # ── client ────────────────────────────────────────────────────────────────
   client:
     name: Client

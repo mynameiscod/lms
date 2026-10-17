@@ -104,7 +104,9 @@ The setup preserves `private/clients.json`, generated secrets and existing synth
 
 The original HTML responses inherited `Referrer-Policy: no-referrer`. Browsers apply that policy to native form POSTs and send `Origin: null`, which the MCP transport correctly rejects before checking credentials. OAuth HTML pages now use `same-origin`; JSON and callback redirects retain `no-referrer`. The origin allowlist, CSRF checks and session protections remain enforced. Never add `null` to the origin allowlist.
 
-Rebuild using the update command above, then start a fresh ChatGPT Connect attempt. The Docker/private and public HTTPS verifiers now check login/consent headers and reject null/foreign form origins (93 checks). CI also runs Chrome over local HTTPS through login, consent to a different callback origin, token exchange, a student-count tool call, connection management, revocation and logout. The generated test password and registered ChatGPT client are preserved by the rebuild.
+Chrome also enforces CSP `form-action` on redirects after form submission. The consent page permits its validated registered callback origin so the 303 can return to ChatGPT. Password and connection-management forms remain restricted to `'self'`; the exact registered callback is still checked by the server.
+
+Rebuild using the update command above, then start a fresh ChatGPT Connect attempt. The Docker/private and public HTTPS verifiers now check login/consent headers and reject null/foreign form origins (99 checks). CI also runs Chrome over local HTTPS through login, consent to a different callback origin, token exchange, a student-count tool call, connection management, revocation and logout. The generated test password and registered ChatGPT client are preserved by the rebuild.
 
 ## Status, recovery and stop
 

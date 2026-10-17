@@ -1,5 +1,11 @@
 import crypto from 'crypto';
 
+/** Only the consent page may permit its already-validated callback origin. */
+export function mcpContentSecurityPolicy(redirectUri?: string): string {
+  const callbackOrigin = redirectUri ? ` ${new URL(redirectUri).origin}` : '';
+  return `default-src 'none'; style-src 'unsafe-inline'; form-action 'self'${callbackOrigin}; base-uri 'none'; frame-ancestors 'none'`;
+}
+
 /** OAuth 2.1 PKCE S256 verifier. No plain challenge support. */
 export function validPkceChallenge(challenge: unknown): challenge is string {
   return typeof challenge === 'string' && /^[A-Za-z0-9_-]{43}$/.test(challenge);

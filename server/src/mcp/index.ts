@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import mcpRouter from './router';
 import oauthRouter, { endpoint } from './oauthRoutes';
 import { McpError, mcpConfig, SCOPE_LABELS } from './oauthPolicy';
+import { mcpContentSecurityPolicy } from './oauthSecurity';
 import { ipKey, rateLimit } from './rateLimit';
 import { audit } from './audit';
 
@@ -16,7 +17,7 @@ router.use((req: Request, res: Response, next: NextFunction) => {
   res.locals.requestId = randomUUID();
   res.set({ 'Cache-Control': 'no-store', Pragma: 'no-cache', 'Referrer-Policy': 'no-referrer',
     'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'X-Request-ID': res.locals.requestId,
-    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'" });
+    'Content-Security-Policy': mcpContentSecurityPolicy() });
   if (process.env.MCP_ENABLED !== 'true') return res.status(404).end();
   return endpoint('mcp_transport', async (request, response) => {
     const config = mcpConfig();

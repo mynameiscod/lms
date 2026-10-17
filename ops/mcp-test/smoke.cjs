@@ -61,12 +61,16 @@ async function login(account) {
   check(start.status === 200 && !!csrf(start), 'Authorization page failed');
   // no-referrer makes browsers send Origin: null on native form POSTs.
   check(start.headers.get('referrer-policy') === 'same-origin', 'Login page suppresses the browser form origin');
+  check(start.headers.get('content-security-policy')?.includes("form-action 'self';"),
+    'Password form permits an external destination');
   check(start.headers.get('set-cookie')?.includes('Secure') && start.headers.get('set-cookie')?.includes('HttpOnly'),
     'Secure browser cookie missing');
   const signed = await form('/mcp-oauth/login', { email: account + '@mcp-test.invalid',
     password: settings.secret('test_password'), csrf: csrf(start) }, { Cookie: cookie(start), Origin: settings.issuer });
   check(signed.status === 200 && signed.text.includes('Approve assistant access'), 'LMS login/consent failed');
   check(signed.headers.get('referrer-policy') === 'same-origin', 'Consent page suppresses the browser form origin');
+  check(signed.headers.get('content-security-policy')?.includes(`form-action 'self' ${new URL(redirectUri).origin};`),
+    'Consent form policy does not permit only the registered callback origin');
   check(cookie(start) !== cookie(signed), 'Browser session did not rotate');
   const consent = await form('/mcp-oauth/consent', { csrf: csrf(signed), decision: 'approve' },
     { Cookie: cookie(signed), Origin: settings.issuer });

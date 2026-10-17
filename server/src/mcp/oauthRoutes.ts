@@ -5,7 +5,7 @@ import McpOAuthGrant from '../models/McpOAuthGrant';
 import McpOAuthAccessToken from '../models/McpOAuthAccessToken';
 import McpOAuthRefreshToken from '../models/McpOAuthRefreshToken';
 import { authenticateLmsCredentials } from '../services/lmsCredentials';
-import { generateOpaqueToken, registeredRedirect, tokenDigest, validPkceChallenge } from './oauthSecurity';
+import { generateOpaqueToken, mcpContentSecurityPolicy, registeredRedirect, tokenDigest, validPkceChallenge } from './oauthSecurity';
 import { McpError, mcpConfig, parseScopes, registeredClient, scalarParameters, SCOPE_LABELS } from './oauthPolicy';
 import { authenticateClient, exchangeToken, issueCode, revokeGrant, inTransaction } from './oauthEngine';
 import { identityFor } from './identity';
@@ -142,6 +142,9 @@ oauthRouter.post('/login', endpoint('oauth_login', async (req, res) => {
   if (browser.purpose === 'connections') return connectionsPage(res, identity, csrf);
   const { params, client } = authorizationParameters(browser.parameters);
   if (!params.scope.split(' ').every(s => s === 'offline_access' || identity.permissions.includes(s))) throw new McpError('invalid_scope', 403);
+  // Chrome also applies form-action to the consent POST's 303 callback redirect.
+  // Allow only this validated callback origin, after password entry is complete.
+  res.set('Content-Security-Policy', mcpContentSecurityPolicy(params.redirect_uri));
   return page(res, 'Approve assistant access', `<p><strong>${esc(client.name)}</strong> wants to access <strong>${esc(identity.tenant.name)}</strong> as ${esc(identity.user.email)}.</p><ul>${params.scope.split(' ').map(s => `<li>${esc(SCOPE_LABELS[s])}</li>`).join('')}</ul><p>Your current LMS permissions and record restrictions apply to every request. You can disconnect at any time.</p><form method="post" action="/mcp-oauth/consent">${field('csrf', csrf)}<button name="decision" value="approve">Allow access</button><button class="secondary" name="decision" value="deny">Deny</button></form>`);
 }));
 

@@ -197,16 +197,19 @@ describe('OAuth HTTP flow with real transactional MongoDB', () => {
       const navigate = async (selector: string) => {
         const [response] = await Promise.all([page.waitForNavigation({ waitUntil: 'domcontentloaded' }), page.click(selector)]);
         expect(response?.status()).toBe(200);
+        return response!;
       };
       const signIn = async () => {
         await page.type('input[name="email"]', 'admin@example.test');
         await page.type('input[name="password"]', password);
-        await navigate('button[type="submit"]');
+        return navigate('button[type="submit"]');
       };
-      await page.goto(`${browserIssuer}/mcp-oauth/authorize?${new URLSearchParams(authorization({
+      const start = await page.goto(`${browserIssuer}/mcp-oauth/authorize?${new URLSearchParams(authorization({
         resource: browserResource, redirect_uri: browserRedirect, ui_locales: 'en-US',
       }))}`);
-      await signIn();
+      expect(start!.headers()['content-security-policy']).toContain("form-action 'self';");
+      const signed = await signIn();
+      expect(signed.headers()['content-security-policy']).toContain(`form-action 'self' ${new URL(browserRedirect).origin};`);
       expect(await page.$eval('h1', element => element.textContent)).toBe('Approve assistant access');
       expect(await Access.countDocuments()).toBe(0);
       await navigate('button[value="approve"]');
@@ -219,7 +222,8 @@ describe('OAuth HTTP flow with real transactional MongoDB', () => {
       expect(token.status).toBe(200);
       expect(payload(await call(token.body.access_token, 'codebegun_student_count')).count).toBe(2);
       await page.goto(`${browserIssuer}/mcp-oauth/connections`);
-      await signIn();
+      const management = await signIn();
+      expect(management.headers()['content-security-policy']).toContain("form-action 'self';");
       expect(await page.$eval('h1', element => element.textContent)).toBe('Connected assistants');
       await navigate('form[action="/mcp-oauth/disconnect"] button');
       expect((await call(token.body.access_token, 'codebegun_student_count')).status).toBe(401);

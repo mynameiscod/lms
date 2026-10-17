@@ -57,6 +57,10 @@ import { TRACK_CS_SQLSERVER_BUNDLES } from './trackContentCsSqlServer';
 import { TRACK_CS_ADONET_BUNDLES } from './trackContentCsAdoNet';
 import { TRACK_CS_EFCORE_BUNDLES } from './trackContentCsEfCore';
 import { TRACK_CS_DI_BUNDLES } from './trackContentCsDi';
+import { TRACK_CS_ASPNET_API_BUNDLES } from './trackContentCsAspnetApi';
+import { TRACK_CS_ASPNET_DATA_SECURITY_BUNDLES } from './trackContentCsAspnetDataSecurity';
+import { TRACK_CS_ASPNET_TESTING_BUNDLES } from './trackContentCsAspnetTesting';
+import { TRACK_CS_FULLSTACK_BUNDLES } from './trackContentCsFullstack';
 import { TRACK_IV_DJANGO_BUNDLES } from './trackContentIvDjango';
 import { TRACK_CODING_PYTHON_BUNDLES } from './trackContentCodingPython';
 import { TRACK_PLACE_PY_FS_BUNDLES } from './trackContentPlacePyFs';
@@ -139,4 +143,8 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_CS_ADONET_BUNDLES,
   ...TRACK_CS_EFCORE_BUNDLES,
   ...TRACK_CS_DI_BUNDLES,
+  ...TRACK_CS_ASPNET_API_BUNDLES,
+  ...TRACK_CS_ASPNET_DATA_SECURITY_BUNDLES,
+  ...TRACK_CS_ASPNET_TESTING_BUNDLES,
+  ...TRACK_CS_FULLSTACK_BUNDLES,
 ].map(balanced);

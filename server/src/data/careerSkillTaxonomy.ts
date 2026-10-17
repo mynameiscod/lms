@@ -193,6 +193,13 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'DOTNET_DI', name: '.NET Dependency Injection', parentKey: 'CSHARP', difficulty: 'INTERMEDIATE', displayOrder: 90,
     description: 'The service container, lifetimes and captive dependencies, configuration and the options pattern, and ILogger.',
     prerequisiteKeys: ['CSHARP_OOP'] },
+  // .NET Full Stack + AI, batch N3: the web API and its security.
+  { key: 'ASPNET_CORE', name: 'ASP.NET Core Web API', parentKey: 'CSHARP', difficulty: 'INTERMEDIATE', displayOrder: 100,
+    description: 'The request pipeline and middleware, controllers and minimal APIs, DTOs, validation, ProblemDetails errors, EF Core in an API and OpenAPI.',
+    prerequisiteKeys: ['DOTNET_DI', 'EF_CORE', 'REST_APIS'] },
+  { key: 'ASPNET_SECURITY', name: 'ASP.NET Core Security', parentKey: 'CSHARP', difficulty: 'ADVANCED', displayOrder: 110,
+    description: 'Authentication schemes, ASP.NET Core Identity and password hashing, JWT bearer tokens, and role, policy and resource-based authorization.',
+    prerequisiteKeys: ['ASPNET_CORE', 'AUTHENTICATION'] },
 
   SUB('PYTHON', 'Python', 'PROGRAMMING', 30, 'The Python language and its standard library.'),
   { key: 'PYTHON_BASICS', name: 'Python Basics', parentKey: 'PYTHON', difficulty: 'FOUNDATION', displayOrder: 10,

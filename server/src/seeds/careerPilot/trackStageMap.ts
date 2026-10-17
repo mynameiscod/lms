@@ -135,6 +135,26 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ ASP.NET CORE AND THE FULL STACK (batch N3) ══════════════ */
+  {
+    moduleCode: 'JT_DOTNET_WEB',
+    moduleName: 'ASP.NET Core and the Full Stack',
+    displayOrder: 170,
+    blurb: 'An ASP.NET Core Web API on SQL Server, secured with JWT and tested, then the React app wired to it and the whole stack deployed.',
+    topics: [
+      t('JT_ASPNET_API', 'ASP.NET Core Web APIs', ['ASPNET_CORE', 'REST_APIS'],
+        ['Build an ASP.NET Core Web API with DTOs, validation, consistent ProblemDetails errors, configuration and OpenAPI docs.']),
+      t('JT_ASPNET_DATA', 'EF Core in ASP.NET Core', ['ASPNET_CORE', 'EF_CORE'],
+        ['Persist through EF Core in an API with a service layer, pagination and filtering, async endpoints and transactions.']),
+      t('JT_ASPNET_SECURITY', 'ASP.NET Core Security and JWT', ['ASPNET_SECURITY', 'AUTHENTICATION', 'AUTHORIZATION'],
+        ['Secure an API with Identity, JWT bearer authentication and role, policy and per-record authorization, and explain each check.']),
+      t('JT_ASPNET_TESTING', 'Testing ASP.NET Core', ['AUTOMATED_TESTING', 'ASPNET_CORE'],
+        ['Test an API with xUnit, Moq, WebApplicationFactory integration tests and real-database tests, and choose the right test for each layer.']),
+      t('JT_FULLSTACK_DOTNET', 'React and ASP.NET Core: Integration and Deployment', ['REST_APIS', 'AUTHENTICATION', 'CONTAINERS_DOCKER', 'DEPLOYMENT'],
+        ['Wire a React app to an ASP.NET Core API with CORS and a JWT login flow, containerise both, and deploy the stack.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

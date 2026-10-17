@@ -171,6 +171,14 @@ export const PACKS: PackDefinition[] = [
   { key: 'DOTNET_DI', title: 'Dependency Injection and Configuration', kind: 'SKILL',
     description: 'The .NET service container, lifetimes, configuration and the options pattern, and logging.',
     topics: [['JT_DOTNET_DI', 'MUST']] },
+
+  /* ── .NET Full Stack + AI, batch N3: ASP.NET Core and the full stack ── */
+  { key: 'ASPNET_CORE', title: 'ASP.NET Core Web API', kind: 'SKILL',
+    description: 'A REST API on ASP.NET Core: controllers and minimal APIs, validation, errors, EF Core, security with JWT, and tests.',
+    topics: [['JT_ASPNET_API', 'MUST'], ['JT_ASPNET_DATA', 'MUST'], ['JT_ASPNET_SECURITY', 'MUST'], ['JT_ASPNET_TESTING', 'MUST']] },
+  { key: 'FULLSTACK_DEPLOY_DOTNET', title: 'React and ASP.NET Core: Integration and Deployment', kind: 'SKILL',
+    description: 'React talking to ASP.NET Core — CORS, a JWT login flow, uploads and errors — then Docker and a deployed stack.',
+    topics: [['JT_FULLSTACK_DOTNET', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -190,6 +198,6 @@ export const TRACKS: TrackDefinition[] = [
   { key: 'DOTNET_FULLSTACK_AI', name: '.NET Full Stack + AI', language: 'C#', order: 30,
     description: 'HTML, CSS, Bootstrap, JavaScript and React; C#, ASP.NET Core Web API and Entity Framework Core on SQL Server; then AI with the OpenAI .NET SDK and Semantic Kernel built into your own app.',
     /* Batches: N1 C# and DSA in C# (frontend packs shared with the other full-stack tracks); SQL Server, ASP.NET Core, AI and placement packs are appended as they land. */
-    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_CSHARP', 'DSA_CSHARP', 'SQL_SERVER', 'DOTNET_DATA_ACCESS', 'DOTNET_DI'],
+    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_CSHARP', 'DSA_CSHARP', 'SQL_SERVER', 'DOTNET_DATA_ACCESS', 'DOTNET_DI', 'ASPNET_CORE', 'FULLSTACK_DEPLOY_DOTNET'],
     placementPacks: [] },
 ];

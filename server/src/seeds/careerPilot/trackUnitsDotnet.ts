@@ -256,3 +256,86 @@ export const TRACK_DOTNET_DATA: Record<string, TopicSeed> = {
     ...ending('.NET Dependency Injection', 'LOGGING', { minutes: [40, 50, 40, 40] }),
   ] },
 };
+
+/**
+ * Batch N3: an ASP.NET Core Web API on SQL Server, secured with JWT and tested, then the React app wired
+ * to it and the whole stack containerised and deployed. React itself is the shared REACT pack.
+ */
+export const TRACK_DOTNET_WEB: Record<string, TopicSeed> = {
+  /* ── ASP.NET Core Web API ── */
+  JT_ASPNET_API: { category: 'UNIVERSAL', units: [
+    u('PIPELINE', 'ASP.NET Core: The Project, Program.cs and the Request Pipeline', 'dotnet new webapi, the builder and the app, Kestrel, middleware in order, and what happens to one request.',
+      ['Create a Web API project and explain how a request flows through the middleware pipeline'], 45),
+    u('CONTROLLERS_MINIMAL', 'Controllers and Minimal APIs', '[ApiController], routes and HTTP verbs, route and query parameters, and the same endpoints as minimal APIs.',
+      ['Build endpoints with controllers and with minimal APIs, and say when each fits'], 45, { after: ['PIPELINE'] }),
+    u('DTOS_RESULTS', 'Request Bodies, DTOs and Status Codes', 'Model binding, DTOs instead of entities, ActionResult<T> and TypedResults, and the status code each outcome deserves.',
+      ['Accept and return DTOs and answer every outcome with the right status code'], 45, { after: ['CONTROLLERS_MINIMAL'] }),
+    u('VALIDATION', 'Validating Input', 'Data annotations, automatic 400 responses with ValidationProblemDetails, and FluentValidation for real rules.',
+      ['Validate requests and return field errors the caller can act on'], 40, { after: ['DTOS_RESULTS'] }),
+    u('ERRORS_MIDDLEWARE', 'Global Error Handling and Custom Middleware', 'UseExceptionHandler, IExceptionHandler and ProblemDetails, one error shape for the whole API, and writing your own middleware.',
+      ['Return one consistent error shape for every failure and write a small custom middleware'], 45, { after: ['VALIDATION'] }),
+    u('CONFIG_ENVIRONMENTS', 'Configuration, Environments and Logging in a Web API', 'appsettings per environment, options bound to sections, launchSettings, and request logging.',
+      ['Configure an API per environment and log requests usefully'], 35, { after: ['ERRORS_MIDDLEWARE'] }),
+    u('OPENAPI', 'Documenting the API with OpenAPI and Swagger UI', 'Swashbuckle and the generated spec, XML comments and response types, and an API another developer can call without asking you.',
+      ['Publish an OpenAPI description and Swagger UI that document every endpoint and response'], 35, { after: ['CONFIG_ENVIRONMENTS'] }),
+    ...ending('ASP.NET Core Web APIs', 'OPENAPI', { project: ['MINI_PROJECT', 'Mini Project — A Product Catalogue Web API', 'An ASP.NET Core Web API for a product catalogue: CRUD endpoints with DTOs, validation, one ProblemDetails error shape, per-environment configuration and Swagger docs.'] }),
+  ] },
+
+  /* ── EF Core inside the API ── */
+  JT_ASPNET_DATA: { category: 'UNIVERSAL', units: [
+    u('DBCONTEXT_IN_API', 'EF Core in a Web API', 'Registering the DbContext, its scoped lifetime, connection strings from configuration, and migrations at deployment.',
+      ['Wire EF Core into an API correctly and apply migrations safely'], 40),
+    u('SERVICE_LAYER', 'Controllers, Services and Repositories', 'Keeping controllers thin, where business rules live, mapping entities to DTOs, and whether to wrap EF Core in a repository.',
+      ['Structure an API into controller, service and data layers and map entities to DTOs'], 45, { after: ['DBCONTEXT_IN_API'] }),
+    u('PAGINATION_FILTERING', 'Pagination, Sorting and Filtering', 'Skip and Take, page metadata, sorting and filtering from query parameters, and an endpoint that never returns ten thousand rows.',
+      ['Build paged, sorted and filtered list endpoints'], 40, { after: ['SERVICE_LAYER'] }),
+    u('ASYNC_TRANSACTIONS', 'Async Endpoints, Cancellation and Transactions', 'async all the way to the database, passing the request CancellationToken, and a transaction across several writes.',
+      ['Write async endpoints that honour cancellation and keep multi-step writes atomic'], 40, { after: ['PAGINATION_FILTERING'] }),
+    ...ending('EF Core in ASP.NET Core', 'ASYNC_TRANSACTIONS', { minutes: [40, 55, 35, 40] }),
+  ] },
+
+  /* ── Security ── */
+  JT_ASPNET_SECURITY: { category: 'UNIVERSAL', units: [
+    u('AUTH_PIPELINE', 'Authentication and Authorization in ASP.NET Core', 'Schemes and handlers, UseAuthentication and UseAuthorization, [Authorize] and [AllowAnonymous], and what happens before your controller.',
+      ['Explain how ASP.NET Core authenticates a request and decides whether it may proceed'], 40),
+    u('IDENTITY_PASSWORDS', 'Users and Passwords with ASP.NET Core Identity', 'Identity on EF Core, UserManager, how passwords are hashed, and why a password is never stored or logged.',
+      ['Register and sign in users with Identity and explain how their passwords are stored'], 45, { after: ['AUTH_PIPELINE'] }),
+    u('JWT_AUTH', 'JWT Bearer Authentication', 'A login endpoint that issues a token, AddJwtBearer validating it, expiry and refresh, and what a JWT does not protect.',
+      ['Issue and validate JWTs and explain their limits'], 45, { after: ['IDENTITY_PASSWORDS'] }),
+    u('ROLES_POLICIES', 'Roles, Policies and Resource-Based Authorization', 'Role checks, policy-based authorization with requirements, and checking that a user may touch THIS record.',
+      ['Protect endpoints with roles and policies and enforce per-record ownership'], 45, { after: ['JWT_AUTH'] }),
+    ...ending('ASP.NET Core Security', 'ROLES_POLICIES', { minutes: [45, 55, 40, 40] }),
+  ] },
+
+  /* ── Testing ── */
+  JT_ASPNET_TESTING: { category: 'UNIVERSAL', units: [
+    u('XUNIT', 'Unit Tests with xUnit', 'Facts and theories, assertions, arrange-act-assert, and testing one thing at a time.',
+      ['Write focused unit tests with xUnit, including data-driven theories'], 40),
+    u('MOQ', 'Mocking Dependencies with Moq', 'Mocking an interface, setups and returns, verifying calls, and when a mock lies to you.',
+      ['Isolate a service from its dependencies with Moq and verify the calls that matter'], 40, { after: ['XUNIT'] }),
+    u('INTEGRATION_TESTS', 'Integration Tests with WebApplicationFactory', 'Running the real API in memory, HttpClient against it, replacing services, and testing secured endpoints.',
+      ['Test API endpoints end to end in memory, including authenticated requests'], 45, { after: ['MOQ'] }),
+    u('DATABASE_TESTS', 'Testing with a Real Database', 'Why the in-memory provider misleads, SQLite in-memory and Testcontainers for SQL Server, and resetting data between tests.',
+      ['Test data access against a real database engine and keep tests independent'], 40, { after: ['INTEGRATION_TESTS'] }),
+    ...ending('ASP.NET Core Testing', 'DATABASE_TESTS', { project: ['MINI_PROJECT', 'Mini Project — A Secured, Tested Library API', 'A library API on ASP.NET Core and SQL Server: books, members and loans through EF Core, JWT login with roles, and unit, integration and database tests.'] }),
+  ] },
+
+  /* ── React and ASP.NET Core together, then deployed ── */
+  JT_FULLSTACK_DOTNET: { category: 'UNIVERSAL', units: [
+    u('REACT_CALLS_API', 'React Calling ASP.NET Core', 'An API client with axios or fetch, the base URL from the environment, and the Vite dev proxy to the API.',
+      ['Call an ASP.NET Core API from React through one API client'], 40),
+    u('CORS', 'CORS: Why the Browser Blocks You', 'Origins, preflight requests, and a named CORS policy in ASP.NET Core that does not open the API to everyone.',
+      ['Configure CORS in ASP.NET Core for exactly the origins that need it'], 35, { after: ['REACT_CALLS_API'] }),
+    u('JWT_LOGIN_FLOW', 'The Login Flow End to End', 'Logging in, keeping the token, sending it on every call, protected routes, and handling 401 and expiry.',
+      ['Build a complete JWT login flow across React and ASP.NET Core'], 45, { after: ['CORS'] }),
+    u('FILE_UPLOAD', 'Uploading Files', 'Multipart requests from a React form, IFormFile in ASP.NET Core, size limits, and where files go.',
+      ['Upload a file from React to the API safely with limits'], 40, { after: ['JWT_LOGIN_FLOW'] }),
+    u('ERRORS_ACROSS', 'Errors Across Both Halves', 'One ProblemDetails contract, showing field errors in the form, and the network failure nobody handled.',
+      ['Show API errors properly in the UI, including validation errors and network failures'], 35, { after: ['FILE_UPLOAD'] }),
+    u('DOCKER', 'Docker for the Full Stack', 'A multi-stage Dockerfile for the API, one for the React build behind nginx, and docker compose with SQL Server.',
+      ['Containerise the API and the frontend and run the stack with docker compose'], 45, { after: ['ERRORS_ACROSS'] }),
+    u('DEPLOY', 'Deploying the Stack to the Cloud', 'A managed SQL database, the API and the frontend on a cloud host (Azure App Service or a container host), secrets in configuration, and checking it works.',
+      ['Deploy the full stack with secrets kept out of source and verify it end to end'], 45, { after: ['DOCKER'] }),
+    ...ending('Full-Stack Integration', 'DEPLOY', { project: ['PROJECT', 'Project — A Full-Stack .NET App, Deployed', 'The React frontend and the secured ASP.NET Core API on SQL Server as one application: login, roles, CRUD, an upload, consistent errors, Docker, and a public URL.'] }),
+  ] },
+};

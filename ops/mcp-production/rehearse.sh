@@ -30,9 +30,9 @@ env = {'MONGO_INITDB_ROOT_USERNAME':'migration_fixture_admin', 'MONGO_INITDB_ROO
 spec = {'services': {
   'mongodb': {'image':os.environ['FIXTURE_IMAGE'], 'container_name':os.environ['FIXTURE_MONGO'],
     'environment':env, 'command':['mongod','--auth','--bind_ip_all'],
-    'volumes':['data:/data/db'], 'ports':['127.0.0.1:27028:27017']},
+    'volumes':['data:/data/db'], 'ports':['127.0.0.2:27028:27017']},
   'app': {'image':os.environ['FIXTURE_IMAGE'], 'container_name':os.environ['FIXTURE_APP'],
-    'entrypoint':['bash','-c','sleep infinity']}}, 'volumes':{'data':{}}}
+    'entrypoint':['bash','-c',"trap 'exit 0' TERM INT; while :; do sleep 1 & wait; done"]}}, 'volumes':{'data':{}}}
 (p / 'docker-compose.yml').write_text(json.dumps(spec))
 (p / 'deploy-image.sh').write_text('# local operator modification must survive\n')
 (p / 'server/.env').write_text('MCP_ENABLED=false\n')
@@ -105,8 +105,8 @@ docker exec "$mongo_name" mongosh --quiet --eval '
 const a=db.getSiblingDB("admin"); a.auth(process.env.MONGO_INITDB_ROOT_USERNAME,process.env.MONGO_INITDB_ROOT_PASSWORD);
 if (a.runCommand({hello:1}).setName || db.getSiblingDB("lms-saas").users.countDocuments({}) !== 3) quit(1);
 ' >/dev/null
-test "$(docker port "$mongo_name" 27017)" = 127.0.0.1:27028
-echo 'PASS: version/volume guards, cold backup restoration, replica-set conversion, authentication, transactions, localhost publication, local-file preservation and rollback preserving newer writes.'
+test "$(docker port "$mongo_name" 27017)" = 127.0.0.2:27028
+echo 'PASS: version/volume guards, cold backup restoration, replica-set conversion, authentication, transactions, localhost publication, local-file preservation and rollback preserving newer writes and original routing.'
 
 # Start a NEW synthetic volume for the automatic-recovery scenario. Never remove
 # production storage; this entire test owns its unique temporary Compose project.
@@ -132,5 +132,5 @@ const a=db.getSiblingDB("admin"); a.auth(process.env.MONGO_INITDB_ROOT_USERNAME,
 if (a.runCommand({hello:1}).setName || db.getSiblingDB("lms-saas").users.countDocuments({}) !== 1) quit(1);
 ' >/dev/null
 test "$(docker inspect "$app_name" --format '{{.State.Running}}')" = true
-test "$(docker port "$mongo_name" 27017)" = 127.0.0.1:27028
+test "$(docker port "$mongo_name" 27017)" = 127.0.0.2:27028
 echo 'PASS: failed post-conversion readiness automatically restores standalone configuration and resumes dependent services.'

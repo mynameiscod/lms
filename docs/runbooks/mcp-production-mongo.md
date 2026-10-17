@@ -103,8 +103,14 @@ deployment by omitting the override. Keep the keyfile and state directory.
 Before the production conversion, a failed backup/rehearsal restarts the original
 MongoDB and application containers. After conversion, an unsuccessful database
 or application readiness check attempts a configuration rollback on the **same
-live volume**, retaining localhost-only publication and the pinned image.
+live volume**, retaining the pinned image and restoring the original port bindings.
 It never overwrites current records with an older backup.
+
+Restoring the previous binding is necessary if a legacy client still uses the
+host/public endpoint: retaining the new localhost binding would leave that
+client broken after rollback. For the observed production container this also
+restores its previous public binding, which the script explicitly reports.
+Review client routing and close that port in the next controlled attempt.
 
 For a deliberate configuration rollback before any subsequent application
 deployment, use the exact state directory printed by the migration:

@@ -52,11 +52,8 @@ interface CreateModalProps {
   onCreated: (tenant: TenantRow, loginLink: string, registerLink: string) => void;
 }
 
-// A new institute starts with the basics; everything else is switched on deliberately.
-const DEFAULT_CREATE_MODULES: TenantModules = {
-  ...allModules(false),
-  courses: true, attendance: true, quizzes: true, assignments: true, feeManagement: true,
-};
+// A new institute starts with nothing: every module is switched on deliberately, for what it pays for.
+const DEFAULT_CREATE_MODULES: TenantModules = allModules(false);
 
 const CreateTenantPanel: React.FC<CreateModalProps> = ({ onClose, onCreated }) => {
   const [form, setForm] = useState({

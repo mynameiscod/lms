@@ -5,11 +5,13 @@ jest.mock('../models/Tenant', () => ({
 }));
 
 import jwt from 'jsonwebtoken';
-import { effectiveModules, moduleForApiPath, ALL_MODULES, ORIGINAL_MODULES } from '../config/tenantModules';
+import { effectiveModules, moduleForApiPath, ALL_MODULES, ORIGINAL_MODULES, ADMIN_MODULES } from '../config/tenantModules';
 import { moduleGate, invalidateModuleCache } from '../middleware/moduleGate';
 import { jwtSecret } from '../config/secrets';
 
 const allOff = Object.fromEntries(ORIGINAL_MODULES.map((k) => [k, false]));
+// What a NEW institute is saved with (authService.registerOrganizationFull): every module, off.
+const newInstitute = Object.fromEntries(ALL_MODULES.map((k) => [k, false]));
 
 describe('effectiveModules', () => {
   it('keeps everything for an institute with every original module on (CodeBegun)', () => {
@@ -17,9 +19,17 @@ describe('effectiveModules', () => {
     expect(ALL_MODULES.every((k) => m[k])).toBe(true);
   });
 
-  it('gives an institute created with every module off none of the new ones', () => {
-    const m = effectiveModules(allOff);
+  it('gives an institute created with every module off none of them', () => {
+    const m = effectiveModules(newInstitute);
     expect(ALL_MODULES.some((k) => m[k])).toBe(false);
+  });
+
+  it('keeps the institute-admin menu ON for an institute that existed before it had switches', () => {
+    const m = effectiveModules(allOff);
+    for (const k of ADMIN_MODULES) expect([k, m[k]]).toEqual([k, true]);
+    // ...until the platform administrator switches one off.
+    expect(effectiveModules({ ...allOff, employees: false }).employees).toBe(false);
+    expect(effectiveModules({ ...allOff, employees: false }).expenses).toBe(true);
   });
 
   it('new modules follow their parent until set, then their own value', () => {
@@ -39,6 +49,21 @@ describe('moduleForApiPath', () => {
     for (const core of ['/auth/login', '/users/1', '/batches', '/dashboard', '/notifications', '/tenants/1', '/public/battles', '/whatsapp/webhook', '/payments/x']) {
       expect(moduleForApiPath(core)).toBeNull();
     }
+  });
+});
+
+describe('institute-admin tools are gated on the server too', () => {
+  it('maps their APIs to a module, and leaves the shared people/batch/role APIs alone', () => {
+    expect(moduleForApiPath('/employees/1')).toBe('employees');
+    expect(moduleForApiPath('/employee-portal/me')).toBe('employees');
+    expect(moduleForApiPath('/employee-activity')).toBe('employees');
+    expect(moduleForApiPath('/company-expenses/ledger')).toBe('expenses');
+    expect(moduleForApiPath('/employee-expenses/9')).toBe('expenses');
+    expect(moduleForApiPath('/ai-usage/summary')).toBe('aiSpend');
+    expect(moduleForApiPath('/admin/logs')).toBe('apiLogs');
+    expect(moduleForApiPath('/tenant-integrations/razorpay')).toBe('integrations');
+    expect(moduleForApiPath('/concerns/5')).toBe('concerns');
+    for (const shared of ['/users', '/roles', '/batches', '/notifications']) expect(moduleForApiPath(shared)).toBeNull();
   });
 });
 

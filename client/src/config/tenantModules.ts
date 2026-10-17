@@ -28,9 +28,15 @@ export const MODULE_PARENT = {
   hackathons: 'codeAssessments',
 } as const;
 
-export type ModuleKey = typeof ORIGINAL_MODULE_KEYS[number] | keyof typeof MODULE_PARENT;
+/** The institute-admin menu. Unset reads as ON for institutes that existed before; new ones start with all off. */
+export const ADMIN_MODULE_KEYS = [
+  'userManagement', 'rolesManagement', 'batchManagement', 'notifications', 'concerns', 'employees', 'expenses',
+  'aiSpend', 'apiLogs', 'integrations', 'branding', 'studentFeatures',
+] as const;
+
+export type ModuleKey = typeof ORIGINAL_MODULE_KEYS[number] | keyof typeof MODULE_PARENT | typeof ADMIN_MODULE_KEYS[number];
 export type TenantModules = Record<ModuleKey, boolean>;
-export const ALL_MODULE_KEYS = [...ORIGINAL_MODULE_KEYS, ...Object.keys(MODULE_PARENT)] as ModuleKey[];
+export const ALL_MODULE_KEYS = [...ORIGINAL_MODULE_KEYS, ...Object.keys(MODULE_PARENT), ...ADMIN_MODULE_KEYS] as ModuleKey[];
 
 export function effectiveModules(stored?: Partial<Record<string, unknown>> | null): TenantModules {
   const raw = (stored || {}) as Record<string, unknown>;
@@ -39,6 +45,7 @@ export function effectiveModules(stored?: Partial<Record<string, unknown>> | nul
   for (const [k, parent] of Object.entries(MODULE_PARENT) as [keyof typeof MODULE_PARENT, ModuleKey][]) {
     out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : out[parent];
   }
+  for (const k of ADMIN_MODULE_KEYS) out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : true;
   return out;
 }
 
@@ -82,6 +89,19 @@ export const MODULE_DEFS: ModuleDef[] = [
   { group: 'Admissions & money', key: 'skillAssessment', label: 'Skill Assessment', icon: 'fa-solid fa-clipboard-question', desc: 'Public skill assessment funnel & candidates' },
   { group: 'Admissions & money', key: 'marketing', label: 'Marketing', icon: 'fa-solid fa-bullhorn', desc: 'Campaigns, analytics, insights' },
   { group: 'Admissions & money', key: 'feeManagement', label: 'Fee Management', icon: 'fa-solid fa-wallet', desc: 'Seat reservations, payments, receipts, installments' },
+
+  { group: 'Institute admin', key: 'userManagement', label: 'Users', icon: 'fa-solid fa-users', desc: 'Add and manage students, instructors and staff' },
+  { group: 'Institute admin', key: 'rolesManagement', label: 'Roles', icon: 'fa-solid fa-user-shield', desc: 'Custom roles and permissions' },
+  { group: 'Institute admin', key: 'batchManagement', label: 'Batches', icon: 'fa-solid fa-layer-group', desc: 'Create and manage batches' },
+  { group: 'Institute admin', key: 'notifications', label: 'Notifications', icon: 'fa-solid fa-bell', desc: 'Notification page for everyone in the institute' },
+  { group: 'Institute admin', key: 'concerns', label: 'Concerns', icon: 'fa-solid fa-circle-question', desc: 'Student concerns and responses' },
+  { group: 'Institute admin', key: 'branding', label: 'Branding', icon: 'fa-solid fa-palette', desc: 'Logo, name and colours' },
+  { group: 'Institute admin', key: 'studentFeatures', label: 'Student Features', icon: 'fa-solid fa-toggle-on', desc: 'Choose which menu items students see' },
+  { group: 'Institute admin', key: 'integrations', label: 'Integrations', icon: 'fa-solid fa-plug', desc: 'Own email sender, payments, tracking (their own accounts and keys)' },
+  { group: 'Institute admin', key: 'employees', label: 'Employees', icon: 'fa-solid fa-people-group', desc: 'Employee directory, daily activity, employee portal' },
+  { group: 'Institute admin', key: 'expenses', label: 'Expenses', icon: 'fa-solid fa-receipt', desc: 'Company expense ledger and employee claims' },
+  { group: 'Institute admin', key: 'aiSpend', label: 'AI Spend', icon: 'fa-solid fa-indian-rupee-sign', desc: 'What AI costs, by day, module and model' },
+  { group: 'Institute admin', key: 'apiLogs', label: 'API Logs', icon: 'fa-solid fa-bug', desc: 'Technical request and error logs' },
 ];
 
 /**
@@ -119,6 +139,10 @@ const PATH_MODULE: [string, ModuleKey][] = ([
   ['/my-practice', 'practicePass'], ['/practice-pass', 'practicePass'],
   ['/problem-bank', 'problemBank'],
   ['/thinking-lab', 'thinkingLab'], ['/admin/thinking-lab', 'thinkingLab'], ['/lab-tracks', 'thinkingLab'],
+  ['/users', 'userManagement'], ['/roles', 'rolesManagement'], ['/batches', 'batchManagement'], ['/notifications', 'notifications'],
+  ['/admin/concerns', 'concerns'], ['/admin/branding', 'branding'], ['/student-features', 'studentFeatures'], ['/admin/integrations', 'integrations'],
+  ['/employee', 'employees'], ['/employees', 'employees'], ['/employee-activity', 'employees'], ['/employee-portal', 'employees'], ['/expenses', 'expenses'],
+  ['/admin/ai-spend', 'aiSpend'], ['/admin/logs', 'apiLogs'],
   ['/leads', 'leads'], ['/follow-ups', 'leads'], ['/lead-', 'leads'], ['/team-activity', 'leads'], ['/sales-content', 'leads'],
   ['/qualification-settings', 'leads'], ['/google-sheet-integration', 'leads'], ['/admin/outpero', 'leads'], ['/event-apis', 'leads'], ['/ai-call-config', 'leads'],
 ] as [string, ModuleKey][]).sort((a, b) => b[0].length - a[0].length);

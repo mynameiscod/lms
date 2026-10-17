@@ -31,8 +31,19 @@ export const MODULE_PARENT = {
   hackathons: 'codeAssessments',
 } as const;
 
-export type ModuleKey = typeof ORIGINAL_MODULES[number] | keyof typeof MODULE_PARENT;
-export const ALL_MODULES: ModuleKey[] = [...ORIGINAL_MODULES, ...(Object.keys(MODULE_PARENT) as (keyof typeof MODULE_PARENT)[])];
+/**
+ * The institute-admin menu: people, roles, batches, notifications, and the admin tools. Until 2026-10-17 these
+ * had no switch and every institute admin saw them. Now the platform administrator switches each one on. An
+ * institute that already exists keeps them (a value never saved reads as ON); a NEW institute is created with
+ * every module off (authService.registerOrganizationFull), so it starts with nothing.
+ */
+export const ADMIN_MODULES = [
+  'userManagement', 'rolesManagement', 'batchManagement', 'notifications', 'concerns', 'employees', 'expenses',
+  'aiSpend', 'apiLogs', 'integrations', 'branding', 'studentFeatures',
+] as const;
+
+export type ModuleKey = typeof ORIGINAL_MODULES[number] | keyof typeof MODULE_PARENT | typeof ADMIN_MODULES[number];
+export const ALL_MODULES: ModuleKey[] = [...ORIGINAL_MODULES, ...(Object.keys(MODULE_PARENT) as (keyof typeof MODULE_PARENT)[]), ...ADMIN_MODULES];
 
 /** The modules an institute really has: stored values, new ones falling back to their parent. */
 export function effectiveModules(stored: Record<string, unknown> | null | undefined): Record<ModuleKey, boolean> {
@@ -42,6 +53,7 @@ export function effectiveModules(stored: Record<string, unknown> | null | undefi
   for (const [k, parent] of Object.entries(MODULE_PARENT) as [keyof typeof MODULE_PARENT, ModuleKey][]) {
     out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : out[parent];
   }
+  for (const k of ADMIN_MODULES) out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : true;
   return out;
 }
 
@@ -87,6 +99,9 @@ export const API_MODULE_PREFIXES: [string, ModuleKey][] = [
   ['/visualizer', 'codeVisualizer'],
   ['/battles', 'techBattles'],
   ['/hackathons', 'hackathons'], ['/hackathon-exams', 'hackathons'],
+  ['/employees', 'employees'], ['/employee-portal', 'employees'], ['/employee-activity', 'employees'],
+  ['/employee-expenses', 'expenses'], ['/company-expenses', 'expenses'],
+  ['/ai-usage', 'aiSpend'], ['/admin/logs', 'apiLogs'], ['/tenant-integrations', 'integrations'], ['/concerns', 'concerns'],
 ].sort((a, b) => b[0].length - a[0].length) as [string, ModuleKey][];
 
 /** Which module an API path belongs to (path relative to /api/v1), or null for core. */

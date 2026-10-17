@@ -77,6 +77,11 @@ jest.mock('../services/codeRunnerService', () => ({
   __esModule: true,
   default: {
     executesForReal: () => false,
+    // The grader now compiles once and runs all stored cases through executeBatch.
+    executeBatch: async (x: any) => x.cases.map((testCase: any) => {
+      executed.push({ input: testCase.input, expectedOutput: testCase.expectedOutput });
+      return { passed: true, output: testCase.expectedOutput, executionTime: 1, memoryUsed: 1 };
+    }),
     execute: async (x: any) => {
       executed.push({ input: x.input, expectedOutput: x.expectedOutput });
       return { passed: true, output: x.expectedOutput, executionTime: 1, memoryUsed: 1 };

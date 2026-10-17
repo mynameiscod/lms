@@ -16,6 +16,8 @@ server/dist
 # the root, so client/.env was slipping through and breaking prod API calls).
 **/.env
 **/.env.*
+ops/mcp-test/private
+ops/mcp-test/.private.*
 
 # Git and version control
 .git

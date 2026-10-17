@@ -323,6 +323,24 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'use_employee_portal', label: 'Use the employee portal (own profile, daily activity, expenses)' },
     ]
   },
+  mcp: {
+    label: 'ChatGPT / MCP Access',
+    permissions: [
+      { key: 'mcp_connect', label: 'Connect an AI assistant to CodeBegun LMS' },
+      { key: 'mcp_students_read', label: 'Read permitted student records through MCP' },
+      { key: 'mcp_batches_read', label: 'Read permitted batches through MCP' },
+      { key: 'mcp_attendance_read', label: 'Read permitted attendance through MCP' },
+      { key: 'mcp_assessments_read', label: 'Read permitted exams and assessments through MCP' },
+      { key: 'mcp_leads_read', label: 'Read permitted CRM leads through MCP' },
+      { key: 'mcp_calls_read', label: 'Read permitted Outpero call summaries through MCP' },
+      { key: 'mcp_recordings_read', label: 'Access permitted call recordings and transcripts through MCP' },
+      { key: 'mcp_finance_read', label: 'Read permitted financial information through MCP' },
+      { key: 'mcp_placements_read', label: 'Read permitted placement records through MCP' },
+      { key: 'mcp_reports_read', label: 'Read permitted aggregated reports through MCP' },
+      { key: 'mcp_export', label: 'Export permitted data through MCP' },
+      { key: 'mcp_write', label: 'Allow approved MCP write operations (additional checks required)' },
+    ],
+  },
   operations: {
     label: 'Operations & Monitoring',
     permissions: [

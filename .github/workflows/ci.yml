@@ -1,6 +1,6 @@
 name: CI
 
-# Answers one question on every push to master and every pull request:
+# Answers one question on master, the standalone MCP release branch and every PR:
 #   "Does this repository still build, typecheck and pass its automated tests?"
 #
 # It deploys nothing, touches no production system, and needs no secrets.
@@ -9,6 +9,8 @@ on:
   push:
     branches:
       - master
+      # This branch also ships a standalone gateway without merging the full LMS.
+      - feature/mcp-role-permissions
   pull_request:
 
 # Read-only. CI has no reason to write to the repository, publish packages or
@@ -81,8 +83,8 @@ jobs:
       # 122 suites / 2,182 tests, ~2 minutes. These are unit tests over pure
       # functions and mocked models: no MongoDB, no Redis, no Piston, no network.
       # --ci makes Jest fail rather than write new snapshots.
-      - name: Server - Jest
-        run: npm test --workspace=server -- --ci
+      - name: Server - Jest unit regressions
+        run: npm run test:unit --workspace=server -- --ci
         env:
           NODE_ENV: test
 
@@ -91,6 +93,108 @@ jobs:
       # script cannot run. Wiring it up means choosing a config and fixing whatever
       # it reports across the whole server — a separate, deliberate decision.
       # Deliberately not run here. See docs/ci.md.
+
+  mcp-integration:
+    name: MCP OAuth and MongoDB integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      # mongodb-memory-server 11 requires Node >=20.19; production code is also
+      # compiled by the existing Node 18 server job above.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      - name: Install Chrome for real OAuth browser regression
+        run: npx puppeteer browsers install chrome
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongo-${{ runner.os }}-7.0.24
+      - name: OAuth unit and replica-set security tests
+        run: npm run test:mcp --workspace=server -- --ci
+        env:
+          MONGOMS_VERSION: '7.0.24'
+      - name: Existing MongoDB integration regressions
+        run: npm run test:integration --workspace=server -- --ci --testPathIgnorePatterns=mcpOAuthExchange
+        env:
+          MONGOMS_VERSION: '7.0.24'
+
+  mcp-staging:
+    name: Isolated MCP staging package
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and verify the real isolated Docker stack
+        run: bash scripts/mcp-test.sh up
+      - name: Verify network, port and filesystem isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          compose=(docker compose --env-file /dev/null -p codebegun-mcp-test -f ops/mcp-test/compose.yaml)
+          app="$("${compose[@]}" ps -q app)"
+          proxy="$("${compose[@]}" ps -q proxy)"
+          mongo="$("${compose[@]}" ps -q mongo)"
+          test "$(docker network inspect codebegun-mcp-test_isolated --format '{{.Internal}}')" = true
+          test "$(docker port "$proxy" 8080)" = 127.0.0.1:5010
+          test -z "$(docker port "$app")"
+          test -z "$(docker port "$mongo")"
+          test "$(docker inspect "$app" --format '{{.HostConfig.ReadonlyRootfs}}')" = true
+          test "$(docker inspect "$app" --format '{{.HostConfig.Memory}}')" = 1073741824
+          test "$(docker inspect "$app" --format '{{.Config.User}}')" = node
+          "${compose[@]}" exec -T app node -e 'const s=require("net").connect({host:"1.1.1.1",port:443});s.setTimeout(2000);s.on("connect",()=>process.exit(1));s.on("error",()=>process.exit(0));s.on("timeout",()=>process.exit(0));'
+      - name: Verify repeat preparation and restart preserve the test environment
+        run: |
+          docker compose --env-file /dev/null -p codebegun-mcp-test -f ops/mcp-test/compose.yaml run --rm --no-deps prepare
+          bash scripts/mcp-test.sh restart
+          docker compose --env-file /dev/null -p codebegun-mcp-test -f ops/mcp-test/compose.yaml up -d --wait --wait-timeout 60 app
+          bash scripts/mcp-test.sh smoke
+      - name: Validate Nginx and the complete HTTPS flow through the TCP bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          cert_dir="$(mktemp -d)"
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=mcp-test.codebegun.com -addext subjectAltName=DNS:mcp-test.codebegun.com -keyout "$cert_dir/privkey.pem" -out "$cert_dir/fullchain.pem" 2>/dev/null
+          docker run --rm --network none -v "$PWD/ops/mcp-test/nginx-https.conf:/etc/nginx/conf.d/default.conf:ro" -v "$cert_dir:/etc/letsencrypt/live/mcp-test.codebegun.com:ro" nginx:1.28-alpine nginx -t
+          docker run -d --name mcp-staging-tls-verifier --network host -v "$PWD/ops/mcp-test/nginx-https.conf:/etc/nginx/conf.d/default.conf:ro" -v "$cert_dir:/etc/letsencrypt/live/mcp-test.codebegun.com:ro" nginx:1.28-alpine
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent --cacert "$cert_dir/fullchain.pem" --resolve mcp-test.codebegun.com:443:127.0.0.1 https://mcp-test.codebegun.com/healthz >/dev/null; then break; fi
+            sleep 1
+          done
+          docker run --rm --network host --read-only --cap-drop ALL --security-opt no-new-privileges:true --add-host mcp-test.codebegun.com:127.0.0.1 -e NODE_EXTRA_CA_CERTS=/tmp/staging-ca.pem -v "$cert_dir/fullchain.pem:/tmp/staging-ca.pem:ro" -v "$PWD/ops/mcp-test/private/test-password:/run/secrets/test_password:ro" codebegun-mcp-test:local node ops/mcp-test/smoke.cjs --public
+      - name: Clean up disposable CI containers and data
+        if: always()
+        run: |
+          docker rm -f mcp-staging-tls-verifier 2>/dev/null || true
+          docker compose --env-file /dev/null -p codebegun-mcp-test -f ops/mcp-test/compose.yaml down --volumes --remove-orphans
+
+  mcp-production-migration:
+    name: Production MongoDB migration rehearsal (synthetic)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rehearse backup, conversion and rollback on MongoDB 8.2.7
+        run: sudo -E bash ops/mcp-production/rehearse.sh
+
+  mcp-production-app:
+    name: Production MCP deployment rehearsal (synthetic)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Rehearse the exact gateway source, not a synthetic merge with master.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Rehearse production runtime, TLS, privileges and individual access
+        run: sudo -E bash ops/mcp-production/rehearse-app.sh
 
   # ── client ────────────────────────────────────────────────────────────────
   client:
@@ -261,7 +365,12 @@ jobs:
       # variable interpolation resolves — they are not credentials and are not used
       # to connect to anything.
       - name: Repository Safety - Compose validation
-        run: docker compose config --quiet && echo "docker-compose.yml is valid"
+        run: |
+          # Compose reads env_file even during validation. CI uses placeholders
+          # below and an empty local file; no deployment configuration is needed.
+          test -f server/.env || touch server/.env
+          docker compose config --quiet
+          echo "docker-compose.yml is valid"
         env:
           MONGO_ROOT_USERNAME: ci-placeholder
           MONGO_ROOT_PASSWORD: ci-placeholder

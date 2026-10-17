@@ -150,6 +150,15 @@ export const PACKS: PackDefinition[] = [
   { key: 'PL_PY_FS_CANDIDATE', title: 'The Python Full-Stack Candidate', kind: 'PLACEMENT',
     description: 'A Python full-stack resume and GitHub, the capstone defended, and a full Python interview loop.',
     topics: [['JT_PLACE_PY_FS', 'MUST']] },
+
+  /* ── .NET Full Stack + AI, batch N1: C# and DSA in C# ── */
+  { key: 'CORE_CSHARP', title: 'Core C#', kind: 'SKILL',
+    description: 'C# from the first program: fundamentals, OOP, exceptions, collections and generics, LINQ and modern C#, and async.',
+    topics: [['JT_CS_START', 'MUST'], ['JT_CS_BASICS', 'MUST'], ['JT_CS_OOP', 'MUST'], ['JT_CS_EXCEPTIONS', 'MUST'],
+      ['JT_CS_COLLECTIONS', 'MUST'], ['JT_CS_LINQ', 'MUST'], ['JT_CS_ASYNC', 'MUST']] },
+  { key: 'DSA_CSHARP', title: 'DSA in C#', kind: 'SKILL',
+    description: 'The data structures and algorithms interviews ask, solved in C#.',
+    topics: [['JT_CS_DSA_LINEAR', 'MUST'], ['JT_CS_DSA_NONLINEAR', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -166,4 +175,9 @@ export const TRACKS: TrackDefinition[] = [
       'FULLSTACK_DEPLOY_PY', 'GENAI_PY', 'AGENTIC_AI_PY', 'CAPSTONE_PY_AI'],
     placementPacks: ['PL_APTITUDE', 'PL_CODING_PYTHON', 'PL_PYTHON_INTERVIEW', 'PL_WEB_INTERVIEW', 'PL_AI_INTERVIEW', 'PL_CORE_CS',
       'PL_PROJECT_DESIGN', 'PL_PY_FS_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
+  { key: 'DOTNET_FULLSTACK_AI', name: '.NET Full Stack + AI', language: 'C#', order: 30,
+    description: 'HTML, CSS, Bootstrap, JavaScript and React; C#, ASP.NET Core Web API and Entity Framework Core on SQL Server; then AI with the OpenAI .NET SDK and Semantic Kernel built into your own app.',
+    /* Batches: N1 C# and DSA in C# (frontend packs shared with the other full-stack tracks); SQL Server, ASP.NET Core, AI and placement packs are appended as they land. */
+    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_CSHARP', 'DSA_CSHARP'],
+    placementPacks: [] },
 ];

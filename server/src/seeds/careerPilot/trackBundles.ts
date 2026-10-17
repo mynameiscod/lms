@@ -48,6 +48,11 @@ import { TRACK_AI_PY_BUNDLES } from './trackContentAiPy';
 import { TRACK_AI_AGENTS_PY_BUNDLES } from './trackContentAiAgentsPy';
 import { TRACK_CAPSTONE_PY_BUNDLES } from './trackContentCapstonePy';
 import { TRACK_IV_PYTHON_BUNDLES } from './trackContentIvPython';
+import { TRACK_CS_CORE_BUNDLES } from './trackContentCsCore';
+import { TRACK_CS_OOP_BUNDLES } from './trackContentCsOop';
+import { TRACK_CS_COLLECTIONS_BUNDLES } from './trackContentCsCollections';
+import { TRACK_CS_ASYNC_DSA_BUNDLES } from './trackContentCsAsyncDsa';
+import { TRACK_CS_DSA_NONLINEAR_BUNDLES } from './trackContentCsDsaNonlinear';
 import { TRACK_IV_DJANGO_BUNDLES } from './trackContentIvDjango';
 import { TRACK_CODING_PYTHON_BUNDLES } from './trackContentCodingPython';
 import { TRACK_PLACE_PY_FS_BUNDLES } from './trackContentPlacePyFs';
@@ -121,4 +126,9 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_IV_DJANGO_BUNDLES,
   ...TRACK_CODING_PYTHON_BUNDLES,
   ...TRACK_PLACE_PY_FS_BUNDLES,
+  ...TRACK_CS_CORE_BUNDLES,
+  ...TRACK_CS_OOP_BUNDLES,
+  ...TRACK_CS_COLLECTIONS_BUNDLES,
+  ...TRACK_CS_ASYNC_DSA_BUNDLES,
+  ...TRACK_CS_DSA_NONLINEAR_BUNDLES,
 ].map(balanced);

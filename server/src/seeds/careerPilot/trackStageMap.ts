@@ -77,6 +77,46 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ C# — the language, from the first program to async (.NET Full Stack + AI, batch N1) ══════════════ */
+  {
+    moduleCode: 'JT_CSHARP',
+    moduleName: 'Core C#',
+    displayOrder: 140,
+    blurb: 'C# from the first program: the language, OOP, exceptions, collections, LINQ and modern C#, and async.',
+    topics: [
+      t('JT_CS_START', 'Getting Started with C# and .NET', ['CSHARP_BASICS', 'IDE_PROFICIENCY'],
+        ['Install the .NET SDK, run a program from the IDE and the command line, and manage projects and NuGet packages.']),
+      t('JT_CS_BASICS', 'C# Fundamentals', ['CSHARP_BASICS'],
+        ['Write C# with types, nullable values, operators, conditions, loops, arrays, strings and methods, and predict what it prints.']),
+      t('JT_CS_OOP', 'Object-Oriented Programming in C#', ['CSHARP_OOP'],
+        ['Design classes with properties, inheritance, polymorphism, abstract classes, interfaces, structs and records, and say why.']),
+      t('JT_CS_EXCEPTIONS', 'Exceptions and File I/O in C#', ['CSHARP_EXCEPTIONS'],
+        ['Handle exceptions without swallowing them, release resources with using, and read and write files.']),
+      t('JT_CS_COLLECTIONS', 'Collections and Generics in C#', ['CSHARP_COLLECTIONS'],
+        ['Choose the right List, Dictionary, set, stack or queue, sort with comparers, and write generic code.']),
+      t('JT_CS_LINQ', 'Delegates, LINQ and Modern C#', ['CSHARP_LINQ'],
+        ['Write delegates and lambdas, query data with LINQ, predict when a query runs, and read modern C#.']),
+      t('JT_CS_ASYNC', 'Async C# and the .NET Runtime', ['CSHARP_ASYNC'],
+        ['Write correct async code, run work concurrently and safely, and explain how .NET manages memory.']),
+    ],
+  },
+
+  /* ══════════════ DSA IN C# — the years teach DSA in Python; a .NET developer needs it in C# ══════════════ */
+  {
+    moduleCode: 'JT_CSHARP_DSA',
+    moduleName: 'Data Structures and Algorithms in C#',
+    displayOrder: 150,
+    blurb: 'The data structures and algorithms interviews ask, implemented and solved in C#.',
+    topics: [
+      t('JT_CS_DSA_LINEAR', 'DSA in C#: Arrays to Sorting',
+        ['DSA_COMPLEXITY', 'DSA_ARRAYS', 'DSA_LINKED_LIST', 'DSA_STACK', 'DSA_HASHING', 'DSA_RECURSION', 'DSA_SORTING'],
+        ['Solve array, string, linked-list, stack, hashing, recursion and sorting problems in C# and state their cost.']),
+      t('JT_CS_DSA_NONLINEAR', 'DSA in C#: Trees to Dynamic Programming',
+        ['DSA_TREES', 'DSA_HEAPS', 'DSA_GRAPHS', 'DSA_GREEDY', 'DSA_DP'],
+        ['Solve tree, heap, graph, greedy and dynamic-programming problems in C#.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

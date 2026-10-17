@@ -57,21 +57,39 @@ async function main() {
   const User = model('User'), Role = model('Role');
   const user = await User.findOne({ email: 'admin-a@mcp-test.invalid' }).lean();
   const staff = await User.findOne({ email: 'staff-a@mcp-test.invalid' }).lean();
+  const student = await User.findOne({ email: 'student-a@mcp-test.invalid' }).lean();
   const base = require('./server/dist/middleware/roleGuard').ROLE_PERMISSIONS;
   const basePermissions = Object.fromEntries(Object.entries(base).map(([key, value]) => [key, value.filter(p => !p.startsWith('mcp_'))]));
   const shared = await Role.create({ tenantId: user.tenantId, name: 'Existing shared CI role', permissions: basePermissions.SUPER_ADMIN });
+  await User.updateOne({ _id: user._id }, { $set: { role: 'SUPER_ADMIN' } });
   await User.updateMany({ _id: { $in: [user._id, staff._id] } }, { $set: { customRoleId: shared._id } });
   const scopes = ['mcp_connect', 'mcp_students_read', 'mcp_batches_read'];
   const req = { email: user.email, basePermissions, scopes, newRoleId: new mongoose.Types.ObjectId().toString(), operationId: crypto.randomUUID() };
   const before = await Role.countDocuments();
+  // Existing custom-role accounts must not be cloned: role-id-based lead
+  // distribution and future shared-role permission changes must keep working.
+  assert.throws(() => operator('access-plan', req));
+  assert.equal(String((await User.findById(user._id)).customRoleId), String(shared._id));
+  // A default student/staff must not acquire customRoleId just to connect MCP;
+  // native LMS routes branch on its truthiness, beyond permission-array checks.
+  for (const account of [staff, student]) {
+    assert.ok(account);
+    await User.updateOne({ _id: account._id }, { $unset: { customRoleId: '' } });
+    assert.throws(() => operator('access-plan', { ...req, email: account.email }));
+    assert.ok(!(await User.findById(account._id)).customRoleId);
+  }
+  assert.equal(await Role.countDocuments(), before);
+  await User.updateOne({ _id: staff._id }, { $set: { customRoleId: shared._id } });
+  await User.updateOne({ _id: user._id }, { $unset: { customRoleId: '' } });
   const plan = operator('access-plan', req);
   assert.equal(await Role.countDocuments(), before);
-  assert.equal(String((await User.findById(user._id)).customRoleId), String(shared._id));
-  await Role.updateOne({ _id: shared._id }, { $pull: { permissions: 'view_enrolled_students' } });
+  assert.ok(!(await User.findById(user._id)).customRoleId);
+  await User.updateOne({ _id: user._id }, { $set: { role: 'TENANT_ADMIN' } });
   assert.throws(() => operator('access-apply', { ...req, ...plan }), 'Stale account plan was accepted');
   assert.equal(await Role.countDocuments(), before);
-  await Role.updateOne({ _id: shared._id }, { $set: { permissions: basePermissions.SUPER_ADMIN } });
+  await User.updateOne({ _id: user._id }, { $set: { role: 'SUPER_ADMIN' } });
   const applied = operator('access-apply', { ...req, ...plan });
+  assert.equal(operator('access-apply', { ...req, ...plan }).applied, true, 'Committed grant recovery failed');
   const granted = await Role.findById(req.newRoleId).lean();
   assert.deepEqual(granted.permissions.filter(p => !p.startsWith('mcp_')).sort(), [...basePermissions.SUPER_ADMIN].sort());
   assert.equal(String((await User.findById(staff._id)).customRoleId), String(shared._id));
@@ -111,10 +129,10 @@ async function main() {
   const count = await rpc(token.body.access_token, 'tools/call', { name: 'codebegun_student_count', arguments: {} });
   assert.equal(JSON.parse(count.body.result.content[0].text).count, 2);
   assert.equal(operator('access-revoke', applied).revoked, true);
-  assert.equal(String((await User.findById(user._id)).customRoleId), String(shared._id));
+  assert.ok(!(await User.findById(user._id)).customRoleId);
   assert.equal(await Role.countDocuments(), before);
   assert.equal((await rpc(token.body.access_token, 'tools/list')).status, 401);
-  console.log('PASS: unchanged LMS records, read-only access preview, stale-plan rejection, individual grant, native permission preservation, limited-scope OAuth and revocation.');
+  console.log('PASS: unchanged LMS records, rejected student/staff/custom-role opt-in, read-only access preview, stale-plan rejection, default-admin grant/recovery, limited-scope OAuth and revocation.');
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; }).finally(async () => {
   if (child && child.exitCode === null) {

@@ -1,6 +1,6 @@
 name: CI
 
-# Answers one question on every push to master and every pull request:
+# Answers one question on master, the standalone MCP release branch and every PR:
 #   "Does this repository still build, typecheck and pass its automated tests?"
 #
 # It deploys nothing, touches no production system, and needs no secrets.
@@ -9,6 +9,8 @@ on:
   push:
     branches:
       - master
+      # This branch also ships a standalone gateway without merging the full LMS.
+      - feature/mcp-role-permissions
   pull_request:
 
 # Read-only. CI has no reason to write to the repository, publish packages or
@@ -188,6 +190,9 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Rehearse the exact gateway source, not a synthetic merge with master.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Rehearse production runtime, TLS, privileges and individual access
         run: sudo -E bash ops/mcp-production/rehearse-app.sh
 

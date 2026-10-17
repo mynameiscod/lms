@@ -23,7 +23,15 @@ services:
     image: mongo:8.2.7
 EOF
 "${compose[@]}" build app
-docker build -f ops/mcp-production/Dockerfile -t mcp-production-ci .
+# Match the VPS installer exactly. Directory-context .dockerignore filtering
+# previously hid the integration-test import that broke the real archive build.
+git archive --format=tar HEAD | docker build -f ops/mcp-production/Dockerfile -t mcp-production-ci -
+docker run --rm --network none --read-only mcp-production-ci node -e '
+  const fs = require("node:fs");
+  if (fs.existsSync("server/dist/tests/mcpOAuthExchange.int.test.js")) throw new Error("Test compiled into runtime image");
+  require("./server/dist/mcp");
+  console.log("PASS: committed archive runtime build excludes browser integration tests");
+'
 "${compose[@]}" up -d --wait --wait-timeout 120 mongo
 "${compose[@]}" run --rm --no-deps prepare
 python3 - "$scratch" <<'PY'

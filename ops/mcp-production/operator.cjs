@@ -73,11 +73,16 @@ async function accessSnapshot(request, session) {
   assert.ok(request.scopes.every(s => s !== 'offline_access' && Object.hasOwn(SCOPE_LABELS, s)));
   const user = await model('User').findOne({ email: request.email, isActive: true }).session(session || null).lean();
   assert.ok(user && user.role !== 'GUEST', 'Active existing account required');
+  // Legacy LMS routes branch on the presence of customRoleId, not just its
+  // permissions. Turning a default student/staff account into a custom-role
+  // account can expand ordinary LMS access. Cloning an existing custom role
+  // also breaks role-id-based lead assignment and future shared-role edits.
+  // This first-production operator is therefore limited to default Super Admins.
+  assert.ok(user.role === 'SUPER_ADMIN' && !user.customRoleId,
+    'Initial production opt-in requires a tenant-bound Super Admin using default permissions');
   const tenant = await model('Tenant').findOne({ _id: user.tenantId, isActive: true }).session(session || null).lean();
   assert.ok(tenant, 'Account must belong to an active tenant');
-  const role = user.customRoleId && await model('Role').findOne({ _id: user.customRoleId, tenantId: user.tenantId }).session(session || null).lean();
-  assert.ok(!user.customRoleId || role, 'Existing role must belong to this tenant');
-  const originalPermissions = role ? role.permissions : request.basePermissions[user.role]?.filter(p => !p.startsWith('mcp_'));
+  const originalPermissions = request.basePermissions[user.role]?.filter(p => !p.startsWith('mcp_'));
   assert.ok(Array.isArray(originalPermissions), 'Running LMS permission map required');
   // A new opt-in never silently changes an already enabled account's grants.
   assert.ok(!originalPermissions.includes('mcp_connect'), 'Account already has MCP access; use its existing role');
@@ -103,6 +108,8 @@ async function access(request) {
       if (previous) {
         const user = await model('User').findOne({ _id: request.userId, tenantId: request.tenantId }).session(session).lean();
         const role = await model('Role').findOne({ _id: roleId, tenantId: request.tenantId }).session(session).lean();
+        assert.equal(user?.role, request.baseRole);
+        assert.equal(user?.isActive, true);
         assert.equal(String(user?.customRoleId), String(roleId));
         assert.deepEqual([...role.permissions].sort(), [...new Set([...request.nativePermissions, ...request.scopes])].sort());
         const { basePermissions, operationId, ...saved } = request;

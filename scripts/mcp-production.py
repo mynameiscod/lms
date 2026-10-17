@@ -219,7 +219,10 @@ def prepare(args):
     requested = ['mcp_connect'] + (SCOPES if args.all_read_domains else ['mcp_students_read', 'mcp_batches_read'])
     if (STATE / 'state.json').exists():
         s = state()
-        require(s['commit'] == current['commit'] and s['scopes'] == requested, 'Existing installation has another commit/scope configuration; review an upgrade separately.')
+        require(s['scopes'] == requested, 'Existing installation has another scope configuration; review a scope change separately.')
+        if s['commit'] != current['commit']:
+            require(args.upgrade_prepared, 'A different commit was prepared. For a reviewed update before first enablement, use prepare --upgrade-prepared.')
+            upgrade_prepared(s, current)
     else:
         require(not STATE.exists(), 'Unrecognized existing deployment directory.')
         STATE.mkdir(mode=0o700)
@@ -250,6 +253,24 @@ def prepare(args):
     s['phase'] = 'prepared' if s['phase'] == 'preparing' else s['phase']
     save(s)
     print('PASS: production MCP image, indexes and limited runtime privileges prepared. No service or account access enabled.')
+
+
+def upgrade_prepared(s, current):
+    """Only replace a preparation which has never installed a service or grant."""
+    require(s['phase'] in ['preparing', 'prepared'], 'An enabled/disabled installation needs a separately reviewed service upgrade.')
+    require(not inspect(CONTAINER) and not SNIPPET.exists(), 'Pre-enable upgrade requires no gateway container or route snippet.')
+    require(not any(STATE.glob('access-*.json')), 'A saved access operation needs review before upgrading.')
+    unchanged_lms(s)
+    config = json.loads((STATE / 'runtime.json').read_text())
+    require(config['installation'] == s['installation'] and config['purpose'] == MARKER,
+            'Runtime installation does not match its preparation state.')
+    require(config['clients'][0]['scopes'] == s['scopes'] + ['offline_access'], 'Runtime scopes changed.')
+    write(STATE / ('prepared-' + s['commit'] + '.json'), s)
+    s.setdefault('preparationHistory', []).append({'commit': s['commit'], 'imageId': s.get('imageId')})
+    s.update(commit=current['commit'], image=current['image'], phase='preparing')
+    s.pop('imageId', None)
+    save(s)
+    print('Updating the never-enabled preparation; existing runtime credentials and scope configuration are retained.', flush=True)
 
 
 def unchanged_lms(s):
@@ -330,14 +351,17 @@ def enable():
         s['siteDigest'] = digest(candidate)
         save(s)
     except BaseException:
-        write(target, original, original_mode)
-        if previous is None: SNIPPET.unlink(missing_ok=True)
-        else: write(SNIPPET, previous, 0o644)
-        run(['nginx', '-t'])
-        run(['nginx', '-s', 'reload'])
-        if not existing or not existing['State']['Running']: docker('stop', CONTAINER)
-        s['phase'] = 'prepared' if previous is None else 'disabled' if 'return 404;' in previous else 'enabled'
-        save(s)
+        try:
+            write(target, original, original_mode)
+            if previous is None: SNIPPET.unlink(missing_ok=True)
+            else: write(SNIPPET, previous, 0o644)
+            run(['nginx', '-t'])
+            run(['nginx', '-s', 'reload'])
+        finally:
+            # An unrelated Nginx error must not leave a new gateway running.
+            if not existing or not existing['State']['Running']: docker('stop', CONTAINER)
+            s['phase'] = 'prepared' if previous is None else 'disabled' if 'return 404;' in previous else 'enabled'
+            save(s)
         raise
     print('Production MCP endpoint: ' + ISSUER + '/mcp')
     print('Client ID: codebegun-production-chatgpt; OAuth client secret: leave blank.')
@@ -346,29 +370,33 @@ def enable():
 
 def disable():
     s = state()
-    if SNIPPET.exists():
-        require(SNIPPET.read_text().startswith('# Managed by ' + MARKER + '\n'), 'Managed routing is missing.')
-        before = SNIPPET.read_text()
-        write(SNIPPET, routes(False), 0o644)
-        try:
+    failures = []
+    try:
+        if SNIPPET.exists():
+            require(SNIPPET.read_text().startswith('# Managed by ' + MARKER + '\n'), 'Managed routing is missing.')
+            # Keep the deny configuration on disk even if reload fails. Old
+            # workers are cut off by the independent container stop below.
+            write(SNIPPET, routes(False), 0o644)
             run(['nginx', '-t'])
             run(['nginx', '-s', 'reload'])
-        except BaseException:
-            write(SNIPPET, before, 0o644)
-            raise
+    except (m.MigrationError, OSError, subprocess.SubprocessError):
+        failures.append('Nginx routing needs repair')
     current = inspect(CONTAINER)
     if current:
         require(current['Config'].get('Labels', {}).get('codebegun.managed') == MARKER, 'Unowned MCP container.')
         docker('stop', CONTAINER)
     s['phase'] = 'disabled'
     save(s)
-    healthy()
-    print('PASS: production MCP disabled; the LMS and audit history remain available.')
+    require(not failures, 'MCP gateway stopped, but Nginx routing could not be reloaded. Keep MCP disabled and repair Nginx before enabling it again.')
+    print('PASS: production MCP disabled; no LMS service was stopped and audit history is retained.')
 
 
 def access_command(args):
     s = state()
-    unchanged_lms(s)
+    # Revocation must work during an LMS outage or after a normal app/container
+    # replacement. The operator still authenticates to the configured replica
+    # set and validates the exact user/tenant/role before restoring it.
+    if args.command != 'access-revoke': unchanged_lms(s)
     path = STATE / 'access-plan.json'
     if args.command == 'access-plan':
         email = (args.email or input('Enter your existing production LMS login email: ')).strip().lower()
@@ -380,7 +408,7 @@ def access_command(args):
         plan = operator(s, 'access-plan', request)
         write(path, {**request, **plan})
         print(json.dumps({key: plan[key] for key in ['email', 'tenantName', 'userId', 'baseRole', 'scopes']}, indent=2))
-        print('Only this account will receive a separate role with its existing native permissions retained. No shared role is edited.')
+        print('This default Super Admin will receive an individual MCP role with its existing native permission keys. Other account types are refused by this initial-production operator.')
         print('Read-only access plan saved. To grant the displayed access: python3 scripts/mcp-production.py access-apply')
     elif args.command == 'access-apply':
         require(path.exists() and not (STATE / 'access-applied.json').exists(), 'A fresh access-plan is required.')
@@ -402,6 +430,7 @@ def main():
     parser.add_argument('command', choices=['plan', 'prepare', 'enable', 'verify', 'disable', 'access-plan', 'access-apply', 'access-revoke'])
     parser.add_argument('--email', help='Existing LMS login email, used only by access-plan; never a password.')
     parser.add_argument('--all-read-domains', action='store_true', help='prepare: allow all eight MCP read domains, including finance and CRM, instead of students/batches.')
+    parser.add_argument('--upgrade-prepared', action='store_true', help='prepare: update a reviewed commit only before any gateway service, routes or account access have been installed; retain credentials/scopes.')
     args = parser.parse_args()
     require(os.geteuid() == 0, 'Run as root on the VPS.')
     if args.command == 'plan':

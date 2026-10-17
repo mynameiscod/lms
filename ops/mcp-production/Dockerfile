@@ -7,8 +7,10 @@ COPY client/package.json client/package.json
 COPY shared/package.json shared/package.json
 RUN npm ci --workspace=server --workspace=shared --include-workspace-root=false --no-audit --no-fund
 COPY server/src server/src
-COPY server/tsconfig.json server/tsconfig.json
-RUN npm run build --workspace=server
+COPY server/tsconfig.json server/tsconfig.runtime.json server/
+# Archive build contexts can include test sources. Compile runtime entry points
+# explicitly; browser-test dependencies are not part of this production build.
+RUN ./node_modules/.bin/tsc -p server/tsconfig.runtime.json
 RUN npm prune --omit=dev --workspace=server --workspace=shared --include-workspace-root=false --no-audit --no-fund && mkdir -p server/node_modules
 
 FROM node:22-bookworm-slim

@@ -245,7 +245,7 @@ def preflight(args):
     state["mongo_gid"] = int(docker("exec", args.mongo_container, "id", "-g", "mongodb").stdout.strip())
     size = int(docker("exec", args.mongo_container, "du", "-sb", "/data/db").stdout.split()[0])
     root = Path(args.state_root).resolve()
-    require(not root.is_relative_to(app), "Backups and credentials must be stored outside the application checkout.")
+    require(root != app and app not in root.parents, "Backups and credentials must be stored outside the application checkout.")
     free = shutil.disk_usage(root if root.exists() else root.parent).free
     require(free > 3 * size + 1024**3, "Insufficient backup and rehearsal disk space.")
     wait_health(state)
@@ -338,6 +338,7 @@ def migrate(args):
     verify_name = state["project"] + "-mcp-verify-" + str(os.getpid())
     verify_volume = verify_name + "-data"
     paused = applied = False
+    verify_owned = volume_owned = False
     try:
         print("Starting maintenance: pausing LMS and legacy MCP clients, then stopping MongoDB cleanly.", flush=True)
         paused = True
@@ -356,18 +357,24 @@ def migrate(args):
         os.chmod(archive, 0o600)
         require(archive.stat().st_size > 0, "The backup archive is empty.")
         with archive.open("rb") as handle:
-            state["backup_sha256"] = hashlib.file_digest(handle, "sha256").hexdigest()
+            digest = hashlib.sha256()
+            for chunk in iter(lambda: handle.read(1024 * 1024), b''):
+                digest.update(chunk)
+            state["backup_sha256"] = digest.hexdigest()
         private_write(directory / "mongo-data.tar.gz.sha256", state["backup_sha256"] + "  mongo-data.tar.gz\n")
         state["phase"] = "backed-up"
         save_state(state)
         print("Restoring the backup into an isolated disposable volume and rehearsing the conversion.", flush=True)
         require(not inspect(verify_name), "Verification container name is already in use.")
+        require(docker("volume", "inspect", verify_volume, check=False).returncode != 0, "Verification volume name is already in use.")
         docker("volume", "create", verify_volume)
+        volume_owned = True
         docker("run", "--rm", "--network", "none", "--user", "0:0", "--entrypoint", "tar",
                "--mount", "type=volume,src=" + verify_volume + ",dst=/restore",
                "--mount", "type=bind,src=" + str(directory) + ",dst=/backup,readonly", state["image"],
                "--numeric-owner", "-xzpf", "/backup/mongo-data.tar.gz", "-C", "/restore", timeout=1800)
         def start_verify(replica=False):
+            nonlocal verify_owned
             command = ["run", "-d", "--name", verify_name, "--network", "none", "--env-file", directory / "verify.env",
                        "--mount", "type=volume,src=" + verify_volume + ",dst=/data/db",
                        "--mount", "type=bind,src=" + state["key_file"] + ",dst=/run/mcp-mongo-keyfile,readonly",
@@ -375,6 +382,7 @@ def migrate(args):
             if replica:
                 command += ["--replSet", state["replica"], "--keyFile", "/run/mcp-mongo-keyfile"]
             docker(*command)
+            verify_owned = True
         start_verify()
         wait_mongo(verify_name)
         require(data_check(verify_name, state["database"]) == state["baseline"], "Restored LMS counts/indexes differ from the stopped source database.")
@@ -418,9 +426,10 @@ def migrate(args):
         raise
     finally:
         # ONLY disposable verification resources. Never remove a production volume.
-        if inspect(verify_name):
+        if verify_owned and inspect(verify_name):
             docker("rm", "-f", verify_name, check=False)
-        docker("volume", "rm", verify_volume, check=False)
+        if volume_owned:
+            docker("volume", "rm", verify_volume, check=False)
         (directory / "verify.env").unlink(missing_ok=True)
 
 

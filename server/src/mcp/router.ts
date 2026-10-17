@@ -4,6 +4,19 @@ import { tools, canUseTool, executeTool } from './tools';
 import { McpError, mcpConfig } from './oauthPolicy';
 import { audit } from './audit';
 
+function validateToolParameters(params: Record<string, any> | undefined, allowed: string[]) {
+  if (!params) return;
+  if (Object.keys(params).some(key => key !== '_meta' && !allowed.includes(key))) throw new McpError('invalid_params');
+  const metadata = params._meta;
+  if (metadata === undefined) return;
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) throw new McpError('invalid_params');
+  const progress = metadata.progressToken;
+  if (progress !== undefined && typeof progress !== 'string' &&
+      (typeof progress !== 'number' || !Number.isFinite(progress))) throw new McpError('invalid_params');
+  // MCP request metadata is opaque client context, never tool arguments,
+  // identity, permissions or audit fields. Progress notifications are optional.
+}
+
 const router = express.Router();
 router.use(mcpOAuthAuth);
 // Stateless Streamable HTTP with JSON responses. GET/SSE is optional and unsupported.
@@ -45,11 +58,12 @@ router.all('/', async (req, res) => {
       }
       case 'ping': result = {}; break;
       case 'tools/list':
-        if (body.params && Object.keys(body.params).length) throw new McpError('invalid_params');
+        validateToolParameters(body.params, []);
         result = { tools: tools.filter(t => canUseTool(context.identity, context.scopes, t)).map(({ scope, domain, summary, ...publicTool }) => publicTool) };
         break;
       case 'tools/call': {
-        if (!body.params || Object.keys(body.params).some(k => !['name', 'arguments'].includes(k))) throw new McpError('invalid_params');
+        if (!body.params) throw new McpError('invalid_params');
+        validateToolParameters(body.params, ['name', 'arguments']);
         const candidate = tools.find(t => t.name === body.params.name);
         if (!candidate) throw new McpError('unknown_tool');
         operation = candidate.name;

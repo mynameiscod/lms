@@ -92,7 +92,8 @@ const rpc = (token, method, params = {}) => request('/mcp', {
   body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
 });
 async function call(token, name, args = {}) {
-  const r = await rpc(token, 'tools/call', { name, arguments: args });
+  const r = await rpc(token, 'tools/call', { name, arguments: args,
+    _meta: { progressToken: 0, 'openai/locale': 'en-US' } });
   check(r.status === 200 && !!r.json?.result?.content?.[0]?.text, name + ' failed');
   check(!r.text.includes('PRIVATE_FIXTURE') && !r.text.includes('password'), name + ' exposed private fields');
   return JSON.parse(r.json.result.content[0].text);
@@ -120,8 +121,15 @@ async function main() {
   const initialized = await rpc(admin.access_token, 'initialize', { protocolVersion: '2025-11-25',
     capabilities: {}, clientInfo: { name: 'codebegun-staging-smoke', version: '1.0' } });
   check(initialized.json?.result?.serverInfo?.name === 'codebegun-universal-mcp', 'MCP initialization failed');
-  const listed = await rpc(admin.access_token, 'tools/list');
+  const listed = await rpc(admin.access_token, 'tools/list', { _meta: { progressToken: 'list-tools' } });
   check(listed.json?.result?.tools?.length === 15, 'Expected all 15 authorized tools');
+  const withoutMetadata = await rpc(admin.access_token, 'tools/call', { name: 'codebegun_student_count', arguments: {} });
+  check(JSON.parse(withoutMetadata.json?.result?.content?.[0]?.text || '{}').count === 2,
+    'Tool call without metadata failed');
+  const malformedMetadata = await rpc(admin.access_token, 'tools/call', {
+    name: 'codebegun_student_count', arguments: {}, _meta: { progressToken: false } });
+  check(malformedMetadata.json?.error?.code === -32602 && malformedMetadata.json?.error?.message === 'invalid_params',
+    'Malformed MCP metadata was accepted');
   for (const tool of listed.json.result.tools) await call(admin.access_token, tool.name);
   check((await call(admin.access_token, 'codebegun_student_count')).count === 2, 'Tenant A student count mismatch');
   check((await call(admin.access_token, 'codebegun_students',

@@ -106,7 +106,13 @@ The original HTML responses inherited `Referrer-Policy: no-referrer`. Browsers a
 
 Chrome also enforces CSP `form-action` on redirects after form submission. The consent page permits its validated registered callback origin so the 303 can return to ChatGPT. Password and connection-management forms remain restricted to `'self'`; the exact registered callback is still checked by the server.
 
-Rebuild using the update command above, then start a fresh ChatGPT Connect attempt. The Docker/private and public HTTPS verifiers now check login/consent headers and reject null/foreign form origins (99 checks). CI also runs Chrome over local HTTPS through login, consent to a different callback origin, token exchange, a student-count tool call, connection management, revocation and logout. The generated test password and registered ChatGPT client are preserved by the rebuild.
+Rebuild using the update command above, then start a fresh ChatGPT Connect attempt. The Docker/private and public HTTPS verifiers now check login/consent headers, reject null/foreign form origins, and exercise protocol metadata (101 checks). CI also runs Chrome over local HTTPS through login, consent to a different callback origin, token exchange, a student-count tool call, connection management, revocation and logout. The generated test password and registered ChatGPT client are preserved by the rebuild.
+
+### Connected app returns `invalid_params` when calling tools
+
+The original strict parameter allowlist rejected the standard MCP `params._meta` envelope on `tools/call` and `tools/list`. The server now accepts an object with an optional string/number `progressToken` and opaque client metadata, while keeping it separate from tool arguments, identity, permissions and audits. Invalid metadata and unknown tool arguments still fail closed. Private/public smoke checks and the real OAuth integration suite exercise metadata-bearing tool requests, including tenant isolation and revocation. Calls without metadata remain supported.
+
+Rebuild using the update command above and retry a tool in the connected ChatGPT app. The existing connection and test password are preserved.
 
 ## Status, recovery and stop
 

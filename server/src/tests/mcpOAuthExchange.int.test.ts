@@ -63,7 +63,8 @@ const csrf = (response: any) => /name="csrf" value="([A-Za-z0-9_-]+)"/.exec(resp
 const authorization = (overrides: any = {}) => ({ response_type: 'code', client_id: clientId, redirect_uri: redirect,
   scope: scopes, state: 'state-preserved', resource, code_challenge: challenge, code_challenge_method: 'S256', ...overrides });
 const call = (token: string, name: string, args: any = {}) => request(app).post('/mcp').set('Authorization', `Bearer ${token}`)
-  .send({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } });
+  .send({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args,
+    _meta: { progressToken: 0, 'openai/locale': 'en-US' } } });
 const payload = (r: any) => JSON.parse(r.body.result.content[0].text);
 const exchange = (code: string, overrides: any = {}) => request(app).post('/mcp-oauth/token').type('form').send({
   grant_type: 'authorization_code', code, client_id: clientId, redirect_uri: redirect, code_verifier: verifier, resource, ...overrides,
@@ -623,7 +624,8 @@ describe('OAuth resource, data isolation and audit boundary', () => {
   });
   test('tool discovery is filtered by consent and permission', async () => {
     const token = await tokenFor('admin@example.test', { scope: 'mcp_connect mcp_students_read' });
-    const r = await request(app).post('/mcp').set('Authorization', `Bearer ${token.access_token}`).send({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
+    const r = await request(app).post('/mcp').set('Authorization', `Bearer ${token.access_token}`)
+      .send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: { _meta: { progressToken: 'list-tools' } } });
     expect(r.body.result.tools.map((x: any) => x.name)).toEqual(['codebegun_student_count', 'codebegun_students']);
     expect((await call(token.access_token, 'codebegun_calls')).body.error.code).toBe(-32003);
   });

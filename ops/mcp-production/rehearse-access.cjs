@@ -20,6 +20,13 @@ const operator = (action, request) => {
   const value = execFileSync(process.execPath, ['ops/mcp-production/operator.cjs', action], { encoding: 'utf8', stdio: 'pipe' });
   return JSON.parse(value.split('\n').find(s => s.startsWith('PRODUCTION_JSON=')).slice(16));
 };
+const diagnose = email => {
+  const value = execFileSync(process.execPath, ['-', email], {
+    input: fs.readFileSync('/verify/account-status.cjs', 'utf8'), encoding: 'utf8', stdio: 'pipe',
+  });
+  assert.ok(!value.includes(c.password), 'Diagnostic printed a runtime credential');
+  return JSON.parse(value.split('\n').find(s => s.startsWith('ACCOUNT_STATUS=')).slice(15));
+};
 async function request(path, options = {}) {
   return new Promise((resolve, reject) => {
     const req = http.request('http://127.0.0.1:5000' + path, { ...options, timeout: 10000,
@@ -54,6 +61,7 @@ async function main() {
     return;
   }
   assert.equal(baseline, fs.readFileSync('/verify/lms-digest', 'utf8'), 'Preparation/OAuth modified LMS records');
+  assert.deepEqual(diagnose('absent@mcp-test.invalid').reasons, ['ACCOUNT_NOT_FOUND']);
   const User = model('User'), Role = model('Role');
   const user = await User.findOne({ email: 'admin-a@mcp-test.invalid' }).lean();
   const staff = await User.findOne({ email: 'staff-a@mcp-test.invalid' }).lean();
@@ -69,6 +77,7 @@ async function main() {
   // Existing custom-role accounts must not be cloned: role-id-based lead
   // distribution and future shared-role permission changes must keep working.
   assert.throws(() => operator('access-plan', req));
+  assert.deepEqual(diagnose(user.email).reasons, ['CUSTOM_ROLE_ALREADY_ASSIGNED']);
   assert.equal(String((await User.findById(user._id)).customRoleId), String(shared._id));
   // A default student/staff must not acquire customRoleId just to connect MCP;
   // native LMS routes branch on its truthiness, beyond permission-array checks.
@@ -77,10 +86,19 @@ async function main() {
     await User.updateOne({ _id: account._id }, { $unset: { customRoleId: '' } });
     assert.throws(() => operator('access-plan', { ...req, email: account.email }));
     assert.ok(!(await User.findById(account._id)).customRoleId);
+    assert.deepEqual(diagnose(account.email).reasons, ['DEFAULT_SUPER_ADMIN_REQUIRED']);
   }
   assert.equal(await Role.countDocuments(), before);
   await User.updateOne({ _id: staff._id }, { $set: { customRoleId: shared._id } });
   await User.updateOne({ _id: user._id }, { $unset: { customRoleId: '' } });
+  const beforeDiagnostic = await User.findById(user._id).lean();
+  assert.equal(diagnose(user.email).initialOptInEligible, true);
+  assert.deepEqual(await User.findById(user._id).lean(), beforeDiagnostic, 'Diagnostic changed the account');
+  await User.updateOne({ _id: user._id }, { $set: { isActive: false } });
+  assert.deepEqual(diagnose(user.email).reasons, ['ACCOUNT_INACTIVE']);
+  await User.updateOne({ _id: user._id }, { $set: { isActive: true }, $unset: { tenantId: '' } });
+  assert.deepEqual(diagnose(user.email).reasons, ['TENANT_NOT_ASSIGNED']);
+  await User.updateOne({ _id: user._id }, { $set: { tenantId: user.tenantId } });
   const plan = operator('access-plan', req);
   assert.equal(await Role.countDocuments(), before);
   assert.ok(!(await User.findById(user._id)).customRoleId);
@@ -133,6 +151,7 @@ async function main() {
   assert.equal(await Role.countDocuments(), before);
   assert.equal((await rpc(token.body.access_token, 'tools/list')).status, 401);
   console.log('PASS: unchanged LMS records, rejected student/staff/custom-role opt-in, read-only access preview, stale-plan rejection, default-admin grant/recovery, limited-scope OAuth and revocation.');
+  console.log('PASS: read-only runtime-account diagnosis distinguishes missing/inactive accounts, custom roles, unsupported base roles and missing tenants without exposing credentials.');
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; }).finally(async () => {
   if (child && child.exitCode === null) {

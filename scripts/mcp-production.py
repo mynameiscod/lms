@@ -391,6 +391,54 @@ def disable():
     print('PASS: production MCP disabled; no LMS service was stopped and audit history is retained.')
 
 
+def live_permissions(s):
+    result = docker('exec', s['activeApp'], 'node', '-e',
+                   'console.log(JSON.stringify(require("/app/dist/middleware/roleGuard").ROLE_PERMISSIONS))', check=False)
+    require(result.returncode == 0, 'Could not read the permission map from the live LMS container. No account permissions were changed.')
+    try:
+        value = json.loads(result.stdout)
+    except ValueError:
+        raise m.MigrationError('The live LMS returned an invalid permission map. No account permissions were changed.')
+    require(isinstance(value, dict) and isinstance(value.get('SUPER_ADMIN'), list)
+            and value['SUPER_ADMIN'] and all(isinstance(x, str) for x in value['SUPER_ADMIN']),
+            'The live LMS Super Admin permission map is missing or invalid.')
+    return value
+
+
+def account_status(s, email):
+    require(bool(re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email)) and len(email) <= 254,
+            'Enter a valid existing LMS login email.')
+    current = inspect(CONTAINER)
+    require(current and current['State']['Running'] and current['Image'] == s['imageId']
+            and current['Config'].get('Labels', {}).get('codebegun.managed') == MARKER,
+            'The recorded production gateway must be running for read-only account diagnosis.')
+    result = subprocess.run(['docker', 'exec', '-i', '--workdir', '/app', CONTAINER, 'node', '-', email],
+                            input=(ROOT / 'ops/mcp-production/account-status.cjs').read_text(),
+                            text=True, capture_output=True, timeout=45)
+    lines = [line[len('ACCOUNT_STATUS='):] for line in result.stdout.splitlines() if line.startswith('ACCOUNT_STATUS=')]
+    require(len(lines) == 1, 'The account diagnostic could not run. Raw subprocess output was suppressed.')
+    status = json.loads(lines[0])
+    stages = ['configuration', 'database_connection', 'account_lookup', 'tenant_lookup']
+    failed_at = status.get('diagnosticFailedAt')
+    if failed_at in stages:
+        raise m.MigrationError('Read-only account diagnostic failed at ' + failed_at + '. No permissions were changed.')
+    require(result.returncode == 0 and isinstance(status.get('reasons'), list), 'The account diagnostic returned an invalid result.')
+    return status
+
+
+def diagnose_account(args):
+    s = state()
+    email = (args.email or input('Enter your existing production LMS login email: ')).strip().lower()
+    status = account_status(s, email)
+    try:
+        live_permissions(s)
+        status['liveLmsPermissionMap'] = 'available'
+    except m.MigrationError:
+        status['liveLmsPermissionMap'] = 'unavailable'
+    print(json.dumps(status, indent=2))
+    print('Read-only diagnosis complete. No account, role, token or deployment configuration was changed.')
+
+
 def access_command(args):
     s = state()
     # Revocation must work during an LMS outage or after a normal app/container
@@ -401,9 +449,11 @@ def access_command(args):
     if args.command == 'access-plan':
         email = (args.email or input('Enter your existing production LMS login email: ')).strip().lower()
         require(not (STATE / 'access-applied.json').exists(), 'An account has already been enabled. Review/revoke it before another individual grant.')
-        base = docker('exec', s['activeApp'], 'node', '-e',
-                      'console.log(JSON.stringify(require("/app/dist/middleware/roleGuard").ROLE_PERMISSIONS))').stdout
-        request = {'email': email, 'scopes': s['scopes'], 'basePermissions': json.loads(base),
+        status = account_status(s, email)
+        if not status.get('initialOptInEligible'):
+            print(json.dumps(status, indent=2))
+            raise m.MigrationError('This account does not meet the reviewed initial opt-in requirements shown above. No account permissions were changed.')
+        request = {'email': email, 'scopes': s['scopes'], 'basePermissions': live_permissions(s),
                    'newRoleId': secrets.token_hex(12), 'operationId': str(uuid.uuid4())}
         plan = operator(s, 'access-plan', request)
         write(path, {**request, **plan})
@@ -427,8 +477,8 @@ def access_command(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['plan', 'prepare', 'enable', 'verify', 'disable', 'access-plan', 'access-apply', 'access-revoke'])
-    parser.add_argument('--email', help='Existing LMS login email, used only by access-plan; never a password.')
+    parser.add_argument('command', choices=['plan', 'prepare', 'enable', 'verify', 'disable', 'diagnose-account', 'access-plan', 'access-apply', 'access-revoke'])
+    parser.add_argument('--email', help='Existing LMS login email for diagnose-account/access-plan; never a password.')
     parser.add_argument('--all-read-domains', action='store_true', help='prepare: allow all eight MCP read domains, including finance and CRM, instead of students/batches.')
     parser.add_argument('--upgrade-prepared', action='store_true', help='prepare: update a reviewed commit only before any gateway service, routes or account access have been installed; retain credentials/scopes.')
     args = parser.parse_args()
@@ -440,6 +490,7 @@ def main():
     elif args.command == 'enable': enable()
     elif args.command == 'verify': verify(state())
     elif args.command == 'disable': disable()
+    elif args.command == 'diagnose-account': diagnose_account(args)
     else: access_command(args)
 
 

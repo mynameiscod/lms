@@ -117,6 +117,30 @@ differently from a default student/staff role. Cloning an existing role also
 changes role-ID-based lead distribution and severs later shared-role edits.
 The initial operator refuses those transformations.
 
+### Diagnose an account preview failure
+
+If the endpoint verification passed but `access-plan` printed a generic operator
+failure, update the host checkout and run the read-only diagnostic:
+
+```sh
+cd /root/lms-mcp-test
+git pull --ff-only origin feature/mcp-role-permissions
+python3 scripts/mcp-production.py diagnose-account --email YOUR_EXISTING_LMS_EMAIL
+```
+
+This works with the already deployed `554a02a5` gateway; no image rebuild, service
+restart or preparation upgrade is needed. It uses that container's limited
+runtime database account and projects only account role/activity/tenant fields.
+It reports missing/inactive accounts or tenants, custom-role assignment, and
+whether the running LMS permission map can be loaded. It reads no password
+fields, prints no raw subprocess errors, and grants no access. `access-plan`
+also performs the diagnostic before running its administrator-backed preview.
+Retain the deployed image/state; the diagnostic checkout is not a service upgrade.
+
+Resolve the reported cause through a reviewed account decision. Do not remove a
+custom role, promote an account or invent tenant membership just to pass the
+initial opt-in check. The account's actual role and tenant determine the next step.
+
 ## Connect the production app
 
 Create a separate OAuth MCP connection with the endpoint/client ID above; leave

@@ -14,6 +14,39 @@ spec.loader.exec_module(p)
 
 
 class InstallerTests(unittest.TestCase):
+    def test_ineligible_account_does_not_call_admin_operator_or_save_plan(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            status = {'initialOptInEligible': False, 'reasons': ['CUSTOM_ROLE_ALREADY_ASSIGNED']}
+            with patch.object(p, 'STATE', directory), patch.object(p, 'state', return_value={}), \
+                    patch.object(p, 'unchanged_lms'), patch.object(p, 'account_status', return_value=status), \
+                    patch.object(p, 'live_permissions') as permissions, patch.object(p, 'operator') as operator:
+                with self.assertRaisesRegex(p.m.MigrationError, 'initial opt-in'):
+                    p.access_command(SimpleNamespace(command='access-plan', email='selected@example.test'))
+                operator.assert_not_called()
+                permissions.assert_not_called()
+                self.assertFalse((directory / 'access-plan.json').exists())
+
+    def test_permission_map_failure_is_explained_without_printing_secrets(self):
+        result = SimpleNamespace(returncode=1, stdout='mongodb://secret', stderr='private-password')
+        with patch.object(p, 'docker', return_value=result):
+            with self.assertRaises(p.m.MigrationError) as error: p.live_permissions({'activeApp': 'lms-server-blue'})
+            self.assertIn('permission map', str(error.exception))
+            self.assertNotIn('secret', str(error.exception))
+            self.assertNotIn('private-password', str(error.exception))
+
+    def test_diagnostic_failure_reports_only_allowlisted_stage(self):
+        container = {'State': {'Running': True}, 'Image': 'recorded',
+                     'Config': {'Labels': {'codebegun.managed': p.MARKER}}}
+        result = SimpleNamespace(returncode=1, stdout='ACCOUNT_STATUS={"diagnosticFailedAt":"database_connection"}\n',
+                                 stderr='mongodb://private-password')
+        with patch.object(p, 'inspect', return_value=container), patch.object(p.subprocess, 'run', return_value=result) as run:
+            with self.assertRaises(p.m.MigrationError) as error: p.account_status({'imageId': 'recorded'}, 'selected@example.test')
+            self.assertIn('database_connection', str(error.exception))
+            self.assertNotIn('private-password', str(error.exception))
+            self.assertEqual(run.call_args.args[0][-3:], ['node', '-', 'selected@example.test'])
+            self.assertNotIn('admin.json', run.call_args.kwargs['input'])
+
     def test_real_site_quotes_comments_and_idempotence(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'site'

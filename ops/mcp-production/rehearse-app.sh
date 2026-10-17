@@ -10,6 +10,8 @@ python3 ops/mcp-production/test-installer.py
 bash scripts/mcp-test.sh init
 scratch="$(mktemp -d)"
 chmod 700 "$scratch"
+cp ops/mcp-production/account-status.cjs "$scratch/account-status.cjs"
+chmod 444 "$scratch/account-status.cjs"
 compose=(docker compose --env-file /dev/null -p codebegun-mcp-test -f ops/mcp-test/compose.yaml -f "$scratch/mongo.yaml")
 cleanup() {
   docker rm -f mcp-production-ci mcp-production-tls-ci >/dev/null 2>&1 || true

@@ -173,6 +173,15 @@ jobs:
           docker rm -f mcp-staging-tls-verifier 2>/dev/null || true
           docker compose --env-file /dev/null -p codebegun-mcp-test -f ops/mcp-test/compose.yaml down --volumes --remove-orphans
 
+  mcp-production-migration:
+    name: Production MongoDB migration rehearsal (synthetic)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rehearse backup, conversion and rollback on MongoDB 8.2.7
+        run: sudo -E bash ops/mcp-production/rehearse.sh
+
   # ── client ────────────────────────────────────────────────────────────────
   client:
     name: Client

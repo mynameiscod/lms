@@ -59,15 +59,19 @@ async function login(account) {
     ui_locales: 'en-US', code_challenge: crypto.createHash('sha256').update(verifier).digest('base64url') });
   const start = await request('/mcp-oauth/authorize?' + query);
   check(start.status === 200 && !!csrf(start), 'Authorization page failed');
+  // no-referrer makes browsers send Origin: null on native form POSTs.
+  check(start.headers.get('referrer-policy') === 'same-origin', 'Login page suppresses the browser form origin');
   check(start.headers.get('set-cookie')?.includes('Secure') && start.headers.get('set-cookie')?.includes('HttpOnly'),
     'Secure browser cookie missing');
   const signed = await form('/mcp-oauth/login', { email: account + '@mcp-test.invalid',
     password: settings.secret('test_password'), csrf: csrf(start) }, { Cookie: cookie(start), Origin: settings.issuer });
   check(signed.status === 200 && signed.text.includes('Approve assistant access'), 'LMS login/consent failed');
+  check(signed.headers.get('referrer-policy') === 'same-origin', 'Consent page suppresses the browser form origin');
   check(cookie(start) !== cookie(signed), 'Browser session did not rotate');
   const consent = await form('/mcp-oauth/consent', { csrf: csrf(signed), decision: 'approve' },
     { Cookie: cookie(signed), Origin: settings.issuer });
-  check(consent.status === 303, 'Consent did not redirect');
+  check(consent.status === 303 && consent.headers.get('referrer-policy') === 'no-referrer',
+    'Consent did not redirect privately');
   const location = new URL(consent.headers.get('location'));
   check(location.origin + location.pathname === redirectUri && location.searchParams.get('state') === state &&
     location.searchParams.get('iss') === settings.issuer, 'OAuth state/issuer/redirect mismatch');
@@ -102,6 +106,12 @@ async function main() {
     check(r.status === 200 && r.json?.resource === settings.issuer + '/mcp', 'Resource discovery failed');
   }
   check((await rpc('invalid', 'tools/list')).status === 401, 'Anonymous MCP access was accepted');
+  for (const path of ['/mcp-oauth/login', '/mcp-oauth/consent']) {
+    for (const origin of ['null', 'https://untrusted.example']) {
+      const denied = await form(path, {}, { Origin: origin });
+      check(denied.status === 403 && denied.json?.error === 'invalid_origin', 'Untrusted form origin was accepted');
+    }
+  }
   const admin = await login('admin-a');
   const initialized = await rpc(admin.access_token, 'initialize', { protocolVersion: '2025-11-25',
     capabilities: {}, clientInfo: { name: 'codebegun-staging-smoke', version: '1.0' } });

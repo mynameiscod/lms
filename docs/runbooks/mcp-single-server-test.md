@@ -100,6 +100,12 @@ bash scripts/mcp-test.sh public
 
 The setup preserves `private/clients.json`, generated secrets and existing synthetic records. After the checks pass, start a fresh Connect attempt in ChatGPT so its OAuth state and PKCE verifier are current.
 
+### Browser sign-in returns `invalid_origin`
+
+The original HTML responses inherited `Referrer-Policy: no-referrer`. Browsers apply that policy to native form POSTs and send `Origin: null`, which the MCP transport correctly rejects before checking credentials. OAuth HTML pages now use `same-origin`; JSON and callback redirects retain `no-referrer`. The origin allowlist, CSRF checks and session protections remain enforced. Never add `null` to the origin allowlist.
+
+Rebuild using the update command above, then start a fresh ChatGPT Connect attempt. The Docker/private and public HTTPS verifiers now check login/consent headers and reject null/foreign form origins (93 checks). CI also runs Chrome over local HTTPS through login, consent to a different callback origin, token exchange, a student-count tool call, connection management, revocation and logout. The generated test password and registered ChatGPT client are preserved by the rebuild.
+
 ## Status, recovery and stop
 
 ```bash

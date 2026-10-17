@@ -5,6 +5,12 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import puppeteer from 'puppeteer';
+import https from 'https';
+import { mkdtempSync, readFileSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { execFileSync } from 'child_process';
 import mcpEndpoints from '../mcp';
 import User from '../models/User';
 import Tenant from '../models/Tenant';
@@ -154,6 +160,84 @@ beforeEach(async () => {
 });
 
 describe('OAuth HTTP flow with real transactional MongoDB', () => {
+  test('a real browser signs in, consents across origins, calls a tool and manages its connection', async () => {
+    const previous = { ...process.env };
+    const directory = mkdtempSync(join(tmpdir(), 'mcp-browser-'));
+    const key = join(directory, 'key.pem'), cert = join(directory, 'cert.pem');
+    let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
+    let server: https.Server | undefined, callback: https.Server | undefined;
+    try {
+      execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1',
+        '-subj', '/CN=127.0.0.1', '-addext', 'subjectAltName=IP:127.0.0.1', '-keyout', key, '-out', cert], { stdio: 'ignore' });
+      const tls = { key: readFileSync(key), cert: readFileSync(cert) };
+      const posts: Array<{ path: string; origin?: string; site?: string }> = [];
+      server = https.createServer(tls, (req, res) => {
+        if (req.method === 'POST') posts.push({ path: req.url || '', origin: req.headers.origin,
+          site: req.headers['sec-fetch-site'] as string | undefined });
+        app(req, res);
+      });
+      let callbackReferrer: string | undefined;
+      callback = https.createServer(tls, (req, res) => {
+        callbackReferrer = req.headers.referer;
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end('<h1>Assistant callback</h1>');
+      });
+      await new Promise<void>(resolve => server!.listen(0, '127.0.0.1', resolve));
+      await new Promise<void>(resolve => callback!.listen(0, '127.0.0.1', resolve));
+      const browserIssuer = `https://127.0.0.1:${(server.address() as any).port}`;
+      const browserRedirect = `https://127.0.0.1:${(callback.address() as any).port}/callback`;
+      const browserResource = `${browserIssuer}/mcp`;
+      process.env.MCP_ISSUER_URL = browserIssuer;
+      process.env.MCP_RESOURCE_URL = browserResource;
+      process.env.MCP_OAUTH_CLIENTS = JSON.stringify([{ id: clientId, name: 'Browser Assistant', applicationType: 'web',
+        redirectUris: [browserRedirect], scopes: Object.keys(SCOPE_LABELS), tokenEndpointAuthMethod: 'none' }]);
+      browser = await puppeteer.launch({ headless: true, acceptInsecureCerts: true, args: ['--no-sandbox'] });
+      const page = await browser.newPage();
+      page.setDefaultNavigationTimeout(10000);
+      const navigate = async (selector: string) => {
+        const [response] = await Promise.all([page.waitForNavigation({ waitUntil: 'domcontentloaded' }), page.click(selector)]);
+        expect(response?.status()).toBe(200);
+      };
+      const signIn = async () => {
+        await page.type('input[name="email"]', 'admin@example.test');
+        await page.type('input[name="password"]', password);
+        await navigate('button[type="submit"]');
+      };
+      await page.goto(`${browserIssuer}/mcp-oauth/authorize?${new URLSearchParams(authorization({
+        resource: browserResource, redirect_uri: browserRedirect, ui_locales: 'en-US',
+      }))}`);
+      await signIn();
+      expect(await page.$eval('h1', element => element.textContent)).toBe('Approve assistant access');
+      expect(await Access.countDocuments()).toBe(0);
+      await navigate('button[value="approve"]');
+      const location = new URL(page.url());
+      expect(location.origin + location.pathname).toBe(browserRedirect);
+      expect(location.searchParams.get('state')).toBe('state-preserved');
+      expect(location.searchParams.get('iss')).toBe(browserIssuer);
+      expect(callbackReferrer).toBeUndefined();
+      const token = await exchange(location.searchParams.get('code')!, { resource: browserResource, redirect_uri: browserRedirect });
+      expect(token.status).toBe(200);
+      expect(payload(await call(token.body.access_token, 'codebegun_student_count')).count).toBe(2);
+      await page.goto(`${browserIssuer}/mcp-oauth/connections`);
+      await signIn();
+      expect(await page.$eval('h1', element => element.textContent)).toBe('Connected assistants');
+      await navigate('form[action="/mcp-oauth/disconnect"] button');
+      expect((await call(token.body.access_token, 'codebegun_student_count')).status).toBe(401);
+      await navigate('form[action="/mcp-oauth/logout"] button');
+      expect(await page.$eval('h1', element => element.textContent)).toBe('Signed out');
+      expect(posts.map(post => post.path)).toEqual(['/mcp-oauth/login', '/mcp-oauth/consent',
+        '/mcp-oauth/login', '/mcp-oauth/disconnect', '/mcp-oauth/logout']);
+      expect(posts.every(post => post.origin === browserIssuer && post.site === 'same-origin')).toBe(true);
+    } finally {
+      if (browser) await browser.close();
+      for (const listener of [server, callback]) if (listener) {
+        listener.closeAllConnections();
+        await new Promise<void>(resolve => listener!.close(() => resolve()));
+      }
+      process.env = previous;
+      rmSync(directory, { recursive: true, force: true });
+    }
+  }, 60000);
   test('startup requires prepared indexes and rejects the prototype replay-breaking TTL', async () => {
     await expect(assertMcpReady()).resolves.toBeUndefined();
     await Code.collection.dropIndex('purgeAt_1');

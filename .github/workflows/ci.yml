@@ -109,6 +109,8 @@ jobs:
         env:
           PUPPETEER_SKIP_DOWNLOAD: 'true'
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      - name: Install Chrome for real OAuth browser regression
+        run: npx puppeteer browsers install chrome
       - uses: actions/cache@v4
         with:
           path: ~/.cache/mongodb-binaries

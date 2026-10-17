@@ -17,6 +17,7 @@ const parameters = {
   code_challenge_method: 'S256',
 };
 const app = express();
+app.use(express.urlencoded({ extended: false }));
 app.use('/mcp-oauth', oauthRouter);
 
 beforeAll(() => {
@@ -39,9 +40,24 @@ test.each([undefined, 'en-US', 'te-IN fr-CA en'])('shows the login page with opt
   const result = await request(app).get('/mcp-oauth/authorize').query(query);
   expect(result.status).toBe(200);
   expect(result.text).toContain('Sign in to CodeBegun');
+  expect(result.headers['referrer-policy']).toBe('same-origin');
   expect(result.headers['set-cookie'][0]).toContain('HttpOnly');
   expect(Session.create).toHaveBeenCalledWith(expect.objectContaining({ parameters }));
   expect((Session.create as jest.Mock).mock.calls[0][0].parameters).not.toHaveProperty('ui_locales');
+});
+
+test('connection management login preserves the first-party form origin', async () => {
+  const result = await request(app).get('/mcp-oauth/connections');
+  expect(result.status).toBe(200);
+  expect(result.headers['referrer-policy']).toBe('same-origin');
+});
+
+test.each(['null', 'https://evil.example'])('browser forms reject Origin=%s', async origin => {
+  for (const route of ['login', 'consent', 'disconnect', 'logout']) {
+    const result = await request(app).post(`/mcp-oauth/${route}`).set('Origin', origin).type('form').send({ csrf: 'test' });
+    expect(result.status).toBe(403);
+    expect(result.body).toEqual({ error: 'invalid_origin' });
+  }
 });
 
 test.each([

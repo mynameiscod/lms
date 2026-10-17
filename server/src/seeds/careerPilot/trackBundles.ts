@@ -53,6 +53,10 @@ import { TRACK_CS_OOP_BUNDLES } from './trackContentCsOop';
 import { TRACK_CS_COLLECTIONS_BUNDLES } from './trackContentCsCollections';
 import { TRACK_CS_ASYNC_DSA_BUNDLES } from './trackContentCsAsyncDsa';
 import { TRACK_CS_DSA_NONLINEAR_BUNDLES } from './trackContentCsDsaNonlinear';
+import { TRACK_CS_SQLSERVER_BUNDLES } from './trackContentCsSqlServer';
+import { TRACK_CS_ADONET_BUNDLES } from './trackContentCsAdoNet';
+import { TRACK_CS_EFCORE_BUNDLES } from './trackContentCsEfCore';
+import { TRACK_CS_DI_BUNDLES } from './trackContentCsDi';
 import { TRACK_IV_DJANGO_BUNDLES } from './trackContentIvDjango';
 import { TRACK_CODING_PYTHON_BUNDLES } from './trackContentCodingPython';
 import { TRACK_PLACE_PY_FS_BUNDLES } from './trackContentPlacePyFs';
@@ -131,4 +135,8 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_CS_COLLECTIONS_BUNDLES,
   ...TRACK_CS_ASYNC_DSA_BUNDLES,
   ...TRACK_CS_DSA_NONLINEAR_BUNDLES,
+  ...TRACK_CS_SQLSERVER_BUNDLES,
+  ...TRACK_CS_ADONET_BUNDLES,
+  ...TRACK_CS_EFCORE_BUNDLES,
+  ...TRACK_CS_DI_BUNDLES,
 ].map(balanced);

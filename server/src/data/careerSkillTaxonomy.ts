@@ -183,6 +183,16 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'CSHARP_ASYNC', name: 'Async C# & the .NET Runtime', parentKey: 'CSHARP', difficulty: 'ADVANCED', displayOrder: 60,
     description: 'Task, async and await, cancellation, thread safety, and how .NET manages memory.',
     prerequisiteKeys: ['CSHARP_OOP', 'CSHARP_COLLECTIONS'] },
+  // .NET Full Stack + AI, batch N2: C# reaching a database, and the container.
+  { key: 'ADO_NET', name: 'ADO.NET', parentKey: 'CSHARP', difficulty: 'INTERMEDIATE', displayOrder: 70,
+    description: 'SqlConnection, parameterised commands, data readers, transactions, pooling, and Dapper — C# talking to SQL Server directly.',
+    prerequisiteKeys: ['CSHARP_EXCEPTIONS', 'SQL_BASICS'] },
+  { key: 'EF_CORE', name: 'Entity Framework Core', parentKey: 'CSHARP', difficulty: 'ADVANCED', displayOrder: 80,
+    description: 'DbContext, mappings, migrations, LINQ queries, relationships, loading and N+1, change tracking and concurrency.',
+    prerequisiteKeys: ['ADO_NET', 'CSHARP_LINQ', 'DB_DESIGN'] },
+  { key: 'DOTNET_DI', name: '.NET Dependency Injection', parentKey: 'CSHARP', difficulty: 'INTERMEDIATE', displayOrder: 90,
+    description: 'The service container, lifetimes and captive dependencies, configuration and the options pattern, and ILogger.',
+    prerequisiteKeys: ['CSHARP_OOP'] },
 
   SUB('PYTHON', 'Python', 'PROGRAMMING', 30, 'The Python language and its standard library.'),
   { key: 'PYTHON_BASICS', name: 'Python Basics', parentKey: 'PYTHON', difficulty: 'FOUNDATION', displayOrder: 10,
@@ -321,6 +331,10 @@ export const CAREER_SKILL_TAXONOMY: SeedSkill[] = [
   { key: 'DB_TRANSACTIONS', name: 'Transactions', parentKey: 'DATABASES', difficulty: 'ADVANCED', displayOrder: 80,
     description: 'ACID properties, isolation levels and concurrent access.',
     prerequisiteKeys: ['DB_FUNDAMENTALS'] },
+  // .NET Full Stack + AI, batch N2.
+  { key: 'SQL_SERVER', name: 'SQL Server & T-SQL', parentKey: 'DATABASES', difficulty: 'INTERMEDIATE', displayOrder: 95,
+    description: 'SQL Server data types, IDENTITY and constraints, T-SQL paging, CTEs and window functions, indexes, plans and stored procedures.',
+    prerequisiteKeys: ['SQL_BASICS', 'DB_DESIGN'] },
   // Year-1 Data direction. Its own key so a draft topic's questions stay out of live papers until published.
   { key: 'DATA_WRANGLING', name: 'Working With Data', parentKey: 'DATABASES', difficulty: 'FOUNDATION', displayOrder: 90,
     description: 'Loading a table of data, cleaning it, summarising it and choosing the chart that answers a question.',

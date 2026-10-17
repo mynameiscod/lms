@@ -176,3 +176,83 @@ export const TRACK_DOTNET: Record<string, TopicSeed> = {
     ...ending('DSA in C#: Trees, Graphs and DP', 'DYNAMIC_PROGRAMMING', { minutes: [45, 75, 40, 45] }),
   ] },
 };
+
+/**
+ * Batch N2: SQL Server, ADO.NET, Entity Framework Core, and the .NET dependency-injection container.
+ *
+ * SQL itself — SELECT to joins, design, transactions and indexes — is taught by the years and reused
+ * through the SQL_SERVER pack; this adds what is particular to SQL Server and T-SQL, then C# reaching
+ * the database directly (ADO.NET) and through an ORM (EF Core), then the container every ASP.NET Core
+ * app is built on. No auto-graded exercises: the grader has no database.
+ */
+export const TRACK_DOTNET_DATA: Record<string, TopicSeed> = {
+  /* ── SQL Server and T-SQL ── */
+  JT_SQLSERVER: { category: 'UNIVERSAL', units: [
+    u('SETUP_SSMS', 'Installing SQL Server and Working in SSMS', 'Developer and Express editions, SQL Server in Docker, SSMS and Azure Data Studio, databases, logins and users.',
+      ['Install SQL Server, connect with SSMS, and create a database and a login for an application'], 40),
+    u('DATA_TYPES', 'SQL Server Data Types', 'INT and BIGINT, DECIMAL for money, NVARCHAR vs VARCHAR, DATETIME2 and DATE, BIT, UNIQUEIDENTIFIER, and Unicode.',
+      ['Choose SQL Server column types for real data, including money, dates and Unicode text'], 40, { after: ['SETUP_SSMS'] }),
+    u('IDENTITY_CONSTRAINTS', 'IDENTITY, Keys and Constraints', 'IDENTITY columns, PRIMARY and FOREIGN KEY, UNIQUE, CHECK, DEFAULT, and ON DELETE CASCADE.',
+      ['Create tables with identity keys, foreign keys and constraints that keep the data valid'], 40, { after: ['DATA_TYPES'] }),
+    u('TSQL', 'T-SQL: What Differs from Other SQL', 'TOP and OFFSET-FETCH paging, ISNULL and COALESCE, GETDATE and DATEADD, string functions, CTEs and window functions.',
+      ['Write T-SQL queries with paging, null handling, dates, CTEs and window functions'], 45, { after: ['IDENTITY_CONSTRAINTS'] }),
+    u('INDEXES_PLANS', 'Clustered and Nonclustered Indexes, and Execution Plans', 'How SQL Server stores a table, the two kinds of index, covering indexes, and reading an execution plan.',
+      ['Choose clustered and nonclustered indexes for a query and read its execution plan'], 45, { after: ['TSQL'] }),
+    u('PROCEDURES_VIEWS', 'Stored Procedures, Views, Functions and Triggers', 'What each is for, how to write one, transactions with TRY...CATCH, and why most application logic stays in C#.',
+      ['Write a stored procedure and a view, handle errors in T-SQL, and say when logic belongs in the database'], 45, { after: ['INDEXES_PLANS'] }),
+    ...ending('SQL Server', 'PROCEDURES_VIEWS', { minutes: [40, 55, 35, 40] }),
+  ] },
+
+  /* ── ADO.NET ── */
+  JT_ADONET: { category: 'UNIVERSAL', units: [
+    u('CONNECTION', 'SqlConnection and Connection Strings', 'Microsoft.Data.SqlClient, a connection string, opening and closing with using, and keeping secrets out of code.',
+      ['Connect a C# program to SQL Server and release the connection safely'], 40),
+    u('COMMANDS_PARAMETERS', 'SqlCommand, Parameters and SQL Injection', 'Why string-built SQL is an attack, and how parameters close it; ExecuteNonQuery and ExecuteScalar.',
+      ['Query and update SQL Server with parameterised commands'], 45, { after: ['CONNECTION'] }),
+    u('READER_MAPPING', 'Reading Results into Objects', 'SqlDataReader, reading columns by type, DBNull, and mapping rows to C# objects.',
+      ['Read rows with SqlDataReader into objects and handle NULL correctly'], 40, { after: ['COMMANDS_PARAMETERS'] }),
+    u('TRANSACTIONS', 'Transactions in ADO.NET', 'SqlTransaction, commit and rollback, TransactionScope, and keeping a transfer all-or-nothing.',
+      ['Group commands into a transaction and roll back on failure'], 40, { after: ['READER_MAPPING'] }),
+    u('ASYNC_POOLING', 'Async Data Access and Connection Pooling', 'OpenAsync and ExecuteReaderAsync, how pooling works, and why a leaked connection exhausts the pool.',
+      ['Write async data access and explain connection pooling and pool exhaustion'], 40, { after: ['TRANSACTIONS'] }),
+    u('REPOSITORY_DAPPER', 'The Repository Pattern and Dapper', 'Keeping SQL behind an interface, and Dapper — the micro-ORM that maps rows to objects with one call.',
+      ['Write a repository over ADO.NET and the same one with Dapper, and compare them'], 45, { after: ['ASYNC_POOLING'] }),
+    ...ending('ADO.NET', 'REPOSITORY_DAPPER', { project: ['MINI_PROJECT', 'Mini Project — An Inventory App on ADO.NET', 'A console inventory system on SQL Server through ADO.NET: products, suppliers and stock movements through a repository layer, parameterised commands, and a transaction for every stock transfer.'] }),
+  ] },
+
+  /* ── Entity Framework Core ── */
+  JT_EFCORE: { category: 'UNIVERSAL', units: [
+    u('ORM_DBCONTEXT', 'What EF Core Does, and the DbContext', 'Objects and tables, what an ORM saves and what it costs, DbContext and DbSet, and the SQL Server provider.',
+      ['Explain what EF Core does and set up a DbContext for SQL Server'], 40),
+    u('ENTITIES_MAPPING', 'Entities, Conventions, Annotations and the Fluent API', 'How EF Core maps a class to a table by convention, and overriding it with attributes or OnModelCreating.',
+      ['Map entities to tables with conventions, data annotations and the Fluent API'], 45, { after: ['ORM_DBCONTEXT'] }),
+    u('MIGRATIONS', 'Migrations', 'dotnet ef migrations add and database update, what a migration file contains, seeding, and migrations in a team.',
+      ['Create and apply migrations, read the SQL they generate, and seed data'], 40, { after: ['ENTITIES_MAPPING'] }),
+    u('QUERYING', 'Querying with LINQ', 'How a LINQ query becomes SQL, Where, Select projections, ordering and paging, and what cannot be translated.',
+      ['Write EF Core LINQ queries, project to DTOs, and read the SQL they produce'], 45, { after: ['MIGRATIONS'] }),
+    u('RELATIONSHIPS', 'Relationships: One-to-Many and Many-to-Many', 'Navigation properties, foreign keys, many-to-many with and without a join entity, and delete behaviour.',
+      ['Model one-to-many and many-to-many relationships and their delete behaviour'], 45, { after: ['QUERYING'] }),
+    u('LOADING', 'Loading Related Data and the N+1 Problem', 'Include and ThenInclude, explicit and lazy loading, split queries, and finding and fixing N+1.',
+      ['Load related data deliberately and fix an N+1 query'], 45, { after: ['RELATIONSHIPS'] }),
+    u('CHANGE_TRACKING', 'Change Tracking and SaveChanges', 'Entity states, how SaveChanges decides what to write, AsNoTracking, and updating a detached entity.',
+      ['Predict what SaveChanges writes, and use AsNoTracking for read-only queries'], 40, { after: ['LOADING'] }),
+    u('RAW_SQL_CONCURRENCY', 'Raw SQL, Bulk Updates, Transactions and Concurrency', 'FromSql and ExecuteUpdate, explicit transactions, and optimistic concurrency with a rowversion column.',
+      ['Run raw SQL safely, update in bulk, and handle a concurrency conflict'], 45, { after: ['CHANGE_TRACKING'] }),
+    ...ending('EF Core', 'RAW_SQL_CONCURRENCY', { project: ['MINI_PROJECT', 'Mini Project — The Inventory App on EF Core', 'The ADO.NET inventory app rebuilt on EF Core: entities and relationships, migrations, LINQ queries with projections, no N+1, and a concurrency check on stock updates.'] }),
+  ] },
+
+  /* ── Dependency injection, configuration and logging ── */
+  JT_DOTNET_DI: { category: 'UNIVERSAL', units: [
+    u('WHY_DI', 'Why Dependency Injection', 'The problems of wiring an application by hand, depending on interfaces, and what a container does for you.',
+      ['Explain dependency injection and why depending on interfaces makes code testable'], 35),
+    u('SERVICE_COLLECTION', 'Registering and Injecting Services', 'IServiceCollection, constructor injection, registering interfaces and implementations, and the generic host.',
+      ['Register services and receive them through constructors'], 40, { after: ['WHY_DI'] }),
+    u('LIFETIMES', 'Service Lifetimes: Singleton, Scoped and Transient', 'What each lifetime means, the request scope, and the captive-dependency bug.',
+      ['Choose the right lifetime for a service and spot a captive dependency'], 40, { after: ['SERVICE_COLLECTION'] }),
+    u('CONFIGURATION', 'Configuration, Environments and the Options Pattern', 'appsettings.json and environment-specific files, environment variables, user secrets, and IOptions<T>.',
+      ['Read settings per environment through the options pattern and keep secrets out of source'], 40, { after: ['LIFETIMES'] }),
+    u('LOGGING', 'Logging with ILogger', 'ILogger<T>, log levels, structured logging and message templates, and where logs go.',
+      ['Log with ILogger at the right level using structured message templates'], 35, { after: ['CONFIGURATION'] }),
+    ...ending('.NET Dependency Injection', 'LOGGING', { minutes: [40, 50, 40, 40] }),
+  ] },
+};

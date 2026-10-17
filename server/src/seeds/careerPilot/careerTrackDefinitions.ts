@@ -159,6 +159,18 @@ export const PACKS: PackDefinition[] = [
   { key: 'DSA_CSHARP', title: 'DSA in C#', kind: 'SKILL',
     description: 'The data structures and algorithms interviews ask, solved in C#.',
     topics: [['JT_CS_DSA_LINEAR', 'MUST'], ['JT_CS_DSA_NONLINEAR', 'MUST']] },
+
+  /* ── .NET Full Stack + AI, batch N2: SQL Server, data access and the container ── */
+  { key: 'SQL_SERVER', title: 'SQL Server', kind: 'SKILL',
+    description: 'SQL from the first SELECT to joins, design, transactions and indexes — and SQL Server and T-SQL themselves.',
+    topics: [['T_SQL', 'MUST'], ['T2_DB_QUERY', 'MUST'], ['T2_DB_DESIGN', 'MUST'], ['JT_SQLSERVER', 'MUST'],
+      ['T3_TRANSACTIONS_INTEGRITY', 'SHOULD'], ['T3_QUERY_PERF', 'SHOULD']] },
+  { key: 'DOTNET_DATA_ACCESS', title: 'ADO.NET and Entity Framework Core', kind: 'SKILL',
+    description: 'C# reaching SQL Server directly with ADO.NET and Dapper, then through Entity Framework Core.',
+    topics: [['JT_ADONET', 'MUST'], ['JT_EFCORE', 'MUST']] },
+  { key: 'DOTNET_DI', title: 'Dependency Injection and Configuration', kind: 'SKILL',
+    description: 'The .NET service container, lifetimes, configuration and the options pattern, and logging.',
+    topics: [['JT_DOTNET_DI', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -178,6 +190,6 @@ export const TRACKS: TrackDefinition[] = [
   { key: 'DOTNET_FULLSTACK_AI', name: '.NET Full Stack + AI', language: 'C#', order: 30,
     description: 'HTML, CSS, Bootstrap, JavaScript and React; C#, ASP.NET Core Web API and Entity Framework Core on SQL Server; then AI with the OpenAI .NET SDK and Semantic Kernel built into your own app.',
     /* Batches: N1 C# and DSA in C# (frontend packs shared with the other full-stack tracks); SQL Server, ASP.NET Core, AI and placement packs are appended as they land. */
-    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_CSHARP', 'DSA_CSHARP'],
+    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_CSHARP', 'DSA_CSHARP', 'SQL_SERVER', 'DOTNET_DATA_ACCESS', 'DOTNET_DI'],
     placementPacks: [] },
 ];

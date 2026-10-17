@@ -117,6 +117,24 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ .NET DATA — SQL Server, ADO.NET, EF Core and the container (batch N2) ══════════════ */
+  {
+    moduleCode: 'JT_DOTNET_DATA',
+    moduleName: 'SQL Server, ADO.NET and EF Core',
+    displayOrder: 160,
+    blurb: 'SQL Server and T-SQL, C# talking to it directly and through EF Core, and the dependency-injection container.',
+    topics: [
+      t('JT_SQLSERVER', 'SQL Server in Practice', ['SQL_SERVER'],
+        ['Install and work with SQL Server, choose its types and constraints, write T-SQL, index for a query and write a stored procedure.']),
+      t('JT_ADONET', 'ADO.NET: C# Talking to SQL Server', ['ADO_NET'],
+        ['Query and update SQL Server safely with parameters, map rows to objects, use transactions and pooling, and wrap it in a repository.']),
+      t('JT_EFCORE', 'Entity Framework Core', ['EF_CORE'],
+        ['Map entities, run migrations, query with LINQ, model relationships, avoid N+1, and handle change tracking and concurrency.']),
+      t('JT_DOTNET_DI', 'Dependency Injection, Configuration and Logging', ['DOTNET_DI'],
+        ['Register and inject services with the right lifetimes, read configuration through options, and log with ILogger.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

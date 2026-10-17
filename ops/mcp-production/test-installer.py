@@ -1,4 +1,4 @@
-"""Focused regression tests for live Nginx preservation and failed enablement."""
+"""Regression tests for active LMS rollouts, account plans and failed enablement."""
 import importlib.util
 import json
 from pathlib import Path
@@ -19,7 +19,7 @@ class InstallerTests(unittest.TestCase):
             directory = Path(directory)
             status = {'initialOptInEligible': False, 'reasons': ['CUSTOM_ROLE_ALREADY_ASSIGNED']}
             with patch.object(p, 'STATE', directory), patch.object(p, 'state', return_value={}), \
-                    patch.object(p, 'unchanged_lms'), patch.object(p, 'account_status', return_value=status), \
+                    patch.object(p, 'current_lms'), patch.object(p, 'account_status', return_value=status), \
                     patch.object(p, 'live_permissions') as permissions, patch.object(p, 'operator') as operator:
                 with self.assertRaisesRegex(p.m.MigrationError, 'initial opt-in'):
                     p.access_command(SimpleNamespace(command='access-plan', email='selected@example.test'))
@@ -29,11 +29,110 @@ class InstallerTests(unittest.TestCase):
 
     def test_permission_map_failure_is_explained_without_printing_secrets(self):
         result = SimpleNamespace(returncode=1, stdout='mongodb://secret', stderr='private-password')
-        with patch.object(p, 'docker', return_value=result):
+        active = {'id': 'current'}
+        with patch.object(p, 'current_lms', return_value=active), patch.object(p, 'active_lms', return_value=active), \
+                patch.object(p, 'docker', return_value=result):
             with self.assertRaises(p.m.MigrationError) as error: p.live_permissions({'activeApp': 'lms-server-blue'})
             self.assertIn('permission map', str(error.exception))
             self.assertNotIn('secret', str(error.exception))
             self.assertNotIn('private-password', str(error.exception))
+
+    def test_permission_map_follows_nginx_after_old_slot_stops(self):
+        for live, port in [('green', '5002'), ('blue', '5001')]:
+            with self.subTest(live=live), tempfile.TemporaryDirectory() as directory:
+                slot = Path(directory) / 'active-slot.conf'
+                slot.write_text('server 127.0.0.1:' + port + ';\n')
+                old = 'blue' if live == 'green' else 'green'
+                state = {'activeApp': 'lms-server-' + old, 'activeAppId': 'old-id', 'mongoId': 'mongo-id'}
+                original = dict(state)
+                app = {'Id': 'live-id', 'Image': 'live-image', 'State': {'Running': True},
+                       'NetworkSettings': {'Networks': {p.NETWORK: {}}},
+                       'HostConfig': {'PortBindings': {'5000/tcp': [{'HostIp': '127.0.0.1', 'HostPort': port}]}}}
+                containers = {'lms-mongodb': {'Id': 'mongo-id', 'State': {'Running': True}},
+                              'lms-server-' + old: {'Id': 'old-id', 'State': {'Running': False}},
+                              'lms-server-' + live: app}
+                permissions = {'SUPER_ADMIN': ['existing_native_permission']}
+                result = SimpleNamespace(returncode=0, stdout='startup log\nLMS_PERMISSIONS=' + json.dumps(permissions), stderr='')
+                with patch.object(p, 'ACTIVE_SLOT', slot), patch.object(p, 'inspect', side_effect=containers.get) as inspect, \
+                        patch.object(p, 'healthy'), patch.object(p, 'docker', return_value=result) as docker:
+                    self.assertEqual(p.live_permissions(state), permissions)
+                    self.assertEqual(docker.call_args.args[:3], ('exec', 'live-id', 'node'))
+                    self.assertNotIn(('lms-server-' + old,), [call.args for call in inspect.call_args_list])
+                    self.assertEqual(state, original)  # Deployment history is not rewritten.
+                    with self.assertRaisesRegex(p.m.MigrationError, 'active LMS container changed'):
+                        p.unchanged_lms(state)  # Service-installation guard remains strict.
+
+    def test_current_lms_refuses_unhealthy_or_unrecognized_targets(self):
+        for failure in ['unknown_slot', 'missing_app', 'stopped_app', 'paused_app', 'wrong_network',
+                        'wrong_port', 'missing_mongo', 'stopped_mongo', 'replaced_mongo']:
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
+                slot = Path(directory) / 'active-slot.conf'
+                slot.write_text('server 127.0.0.1:5999;' if failure == 'unknown_slot' else 'server 127.0.0.1:5002;')
+                app = {'Id': 'live', 'Image': 'image', 'State': {'Running': failure != 'stopped_app', 'Paused': failure == 'paused_app'},
+                       'NetworkSettings': {'Networks': {} if failure == 'wrong_network' else {p.NETWORK: {}}},
+                       'HostConfig': {'PortBindings': {'5000/tcp': [{'HostIp': '127.0.0.1',
+                                                                 'HostPort': '5001' if failure == 'wrong_port' else '5002'}]}}}
+                db = {'Id': 'different' if failure == 'replaced_mongo' else 'mongo',
+                      'State': {'Running': failure != 'stopped_mongo'}}
+                containers = {'lms-server-green': None if failure == 'missing_app' else app,
+                              'lms-mongodb': None if failure == 'missing_mongo' else db}
+                with patch.object(p, 'ACTIVE_SLOT', slot), patch.object(p, 'inspect', side_effect=containers.get), \
+                        patch.object(p, 'healthy'), patch.object(p, 'docker') as docker:
+                    with self.assertRaises(p.m.MigrationError): p.live_permissions({'mongoId': 'mongo'})
+                    docker.assert_not_called()
+
+    def test_slot_change_during_permission_read_refuses_stale_map(self):
+        before, after = {'id': 'green'}, {'id': 'blue'}
+        result = SimpleNamespace(returncode=0, stdout='LMS_PERMISSIONS={"SUPER_ADMIN":["native"]}', stderr='')
+        with patch.object(p, 'active_lms', side_effect=[before, after]), patch.object(p, 'docker', return_value=result):
+            with self.assertRaisesRegex(p.m.MigrationError, 'changed while reading'):
+                p.live_permissions({}, before)
+
+    def test_access_plan_and_apply_use_current_lms_without_upgrading_gateway(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            s = {'activeApp': 'lms-server-blue', 'activeAppId': 'stopped-blue', 'imageId': 'deployed-gateway',
+                 'scopes': ['mcp_connect', 'mcp_students_read', 'mcp_batches_read']}
+            active = {'name': 'lms-server-green', 'id': 'running-green', 'imageId': 'live-image'}
+            permissions = {'SUPER_ADMIN': ['live_native_permission']}
+            preview = {'email': 'selected@example.test', 'tenantName': 'Reviewed tenant', 'userId': 'user',
+                       'baseRole': 'SUPER_ADMIN', 'scopes': s['scopes']}
+            with patch.object(p, 'STATE', directory), patch.object(p, 'state', return_value=s), \
+                    patch.object(p, 'current_lms', return_value=active), patch.object(p, 'active_lms', return_value=active), \
+                    patch.object(p, 'account_status', return_value={'initialOptInEligible': True}), \
+                    patch.object(p, 'live_permissions', return_value=permissions), \
+                    patch.object(p, 'operator', side_effect=[preview, {'applied': True}]) as operator, \
+                    patch.object(p, 'save') as save:
+                p.access_command(SimpleNamespace(command='access-plan', email='selected@example.test'))
+                plan = json.loads((directory / 'access-plan.json').read_text())
+                self.assertEqual(plan['lmsSource'], active)
+                self.assertEqual(plan['basePermissions'], permissions)
+                self.assertFalse((directory / 'access-applied.json').exists())
+                p.access_command(SimpleNamespace(command='access-apply'))
+                self.assertEqual(operator.call_args_list[0].args[1], 'access-plan')
+                self.assertEqual(operator.call_args_list[1].args, (s, 'access-apply', plan))
+                self.assertTrue((directory / 'access-applied.json').exists())
+                self.assertEqual(s['imageId'], 'deployed-gateway')
+                save.assert_not_called()
+
+    def test_apply_refuses_plan_from_old_installer_changed_slot_or_changed_permissions(self):
+        active = {'name': 'lms-server-green', 'id': 'green-id', 'imageId': 'live-image'}
+        for failure in ['old_installer', 'new_slot', 'replaced_container', 'permission_change']:
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
+                directory = Path(directory)
+                request = {'lmsSource': dict(active), 'basePermissions': {'SUPER_ADMIN': ['old_native']}}
+                if failure == 'old_installer': request.pop('lmsSource')
+                if failure == 'new_slot': request['lmsSource']['name'] = 'lms-server-blue'
+                if failure == 'replaced_container': request['lmsSource']['id'] = 'old-green-id'
+                (directory / 'access-plan.json').write_text(json.dumps(request))
+                with patch.object(p, 'STATE', directory), patch.object(p, 'state', return_value={}), \
+                        patch.object(p, 'current_lms', return_value=active), \
+                        patch.object(p, 'live_permissions', return_value={'SUPER_ADMIN': ['new_native']}), \
+                        patch.object(p, 'operator') as operator:
+                    with self.assertRaisesRegex(p.m.MigrationError, 'fresh access-plan'):
+                        p.access_command(SimpleNamespace(command='access-apply'))
+                    operator.assert_not_called()
+                    self.assertFalse((directory / 'access-applied.json').exists())
 
     def test_diagnostic_failure_reports_only_allowlisted_stage(self):
         container = {'State': {'Running': True}, 'Image': 'recorded',
@@ -127,12 +226,38 @@ class InstallerTests(unittest.TestCase):
             directory = Path(directory)
             (directory / 'access-applied.json').write_text('{"userId":"reviewed-account"}')
             with patch.object(p, 'STATE', directory), patch.object(p, 'state', return_value={}), \
-                    patch.object(p, 'unchanged_lms', side_effect=p.m.MigrationError('LMS replaced')) as check, \
+                    patch.object(p, 'current_lms', side_effect=p.m.MigrationError('LMS replaced')) as check, \
                     patch.object(p, 'operator', return_value={'revoked': True}) as operator:
                 p.access_command(SimpleNamespace(command='access-revoke'))
                 check.assert_not_called()
                 operator.assert_called_once_with({}, 'access-revoke', {'userId': 'reviewed-account'})
                 self.assertFalse((directory / 'access-applied.json').exists())
+
+    def test_interrupted_apply_can_revoke_exact_saved_plan_after_lms_rollout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            plan = {'userId': 'reviewed-account', 'newRoleId': 'planned-role', 'lmsSource': {'id': 'previous-slot'}}
+            (directory / 'access-plan.json').write_text(json.dumps(plan))
+            with patch.object(p, 'STATE', directory), patch.object(p, 'state', return_value={}), \
+                    patch.object(p, 'current_lms', side_effect=p.m.MigrationError('LMS replaced')) as check, \
+                    patch.object(p, 'operator', return_value={'revoked': True}) as operator:
+                p.access_command(SimpleNamespace(command='access-revoke'))
+                check.assert_not_called()
+                operator.assert_called_once_with({}, 'access-revoke', plan)
+                self.assertFalse((directory / 'access-plan.json').exists())
+                self.assertEqual(len(list(directory.glob('access-revoked-*.json'))), 1)
+
+    def test_rejected_recovery_revoke_keeps_original_plan(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            path = directory / 'access-plan.json'
+            path.write_text('{"newRoleId":"never-assigned-or-subsequently-modified"}')
+            original = path.read_text()
+            with patch.object(p, 'STATE', directory), patch.object(p, 'state', return_value={}), \
+                    patch.object(p, 'operator', side_effect=p.m.MigrationError('Exact role verification refused')):
+                with self.assertRaises(p.m.MigrationError): p.access_command(SimpleNamespace(command='access-revoke'))
+                self.assertEqual(path.read_text(), original)
+                self.assertFalse(list(directory.glob('access-revoked-*.json')))
 
     def test_pre_enable_upgrade_preserves_runtime_credentials_and_scopes(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -30,6 +30,7 @@ STATE = Path('/root/lms-mcp-production/app')
 ISSUER = 'https://platform.codebegun.com'
 CONTAINER = 'codebegun-mcp-production'
 NETWORK = 'lms_lms-network'
+ACTIVE_SLOT = Path('/etc/nginx/active-slot.conf')
 MARKER = 'codebegun-production-mcp-v1'
 SNIPPET = Path('/etc/nginx/mcp-enabled/platform.codebegun.com/production.conf')
 INCLUDE = 'include /etc/nginx/mcp-enabled/platform.codebegun.com/*.conf;'
@@ -162,7 +163,7 @@ def preflight():
     require(NETWORK in db['NetworkSettings']['Networks'], 'Unexpected database network.')
     require(Path('/root/lms/docker-compose.override.yml').is_file(), 'Keep the MongoDB migration override before deploying MCP.')
     healthy()
-    active = Path('/etc/nginx/active-slot.conf').read_text().strip()
+    active = ACTIVE_SLOT.read_text().strip()
     require(active in ['server 127.0.0.1:5001;', 'server 127.0.0.1:5002;'], 'Unrecognized live LMS upstream.')
     app_name = 'lms-server-blue' if ':5001;' in active else 'lms-server-green'
     app = inspect(app_name)
@@ -273,10 +274,38 @@ def upgrade_prepared(s, current):
     print('Updating the never-enabled preparation; existing runtime credentials and scope configuration are retained.', flush=True)
 
 
-def unchanged_lms(s):
-    require(inspect(s['activeApp'])['Id'] == s['activeAppId'], 'The active LMS container changed; review the current deployment.')
-    require(inspect('lms-mongodb')['Id'] == s['mongoId'], 'The MongoDB container changed; review the current deployment.')
+def active_lms():
+    """Resolve the live slot, never a container recorded before a normal rollout."""
+    upstream = ACTIVE_SLOT.read_text().strip()
+    slots = {'server 127.0.0.1:5001;': ('lms-server-blue', '5001'),
+             'server 127.0.0.1:5002;': ('lms-server-green', '5002')}
+    require(upstream in slots, 'Unrecognized live LMS upstream; no account permissions were changed.')
+    name, port = slots[upstream]
+    app = inspect(name)
+    require(app and app['State']['Running'] and not app['State'].get('Paused'),
+            'The LMS container selected by Nginx is not running: ' + name + '.')
+    require(NETWORK in app['NetworkSettings']['Networks'], 'The live LMS is not on the production database network.')
+    require(app['HostConfig']['PortBindings'].get('5000/tcp') == [{'HostIp': '127.0.0.1', 'HostPort': port}],
+            'The live LMS port does not match the Nginx active slot.')
+    return {'name': name, 'id': app['Id'], 'imageId': app['Image']}
+
+
+def current_lms(s):
+    db = inspect('lms-mongodb')
+    require(db and db['State']['Running'] and db['Id'] == s['mongoId'],
+            'The MongoDB container changed or stopped; review the current deployment.')
+    active = active_lms()
     healthy()
+    require(active_lms() == active, 'The live LMS changed during verification; retry after deployment finishes.')
+    return active
+
+
+def unchanged_lms(s):
+    # Service installation still requires the originally reviewed LMS. Account
+    # operations and routine verification follow a later normal blue/green rollout.
+    active = current_lms(s)
+    require(active['name'] == s['activeApp'] and active['id'] == s['activeAppId'],
+            'The active LMS container changed; review the current deployment.')
 
 
 def local_ready():
@@ -290,7 +319,7 @@ def local_ready():
 
 
 def verify(s):
-    unchanged_lms(s)
+    active = current_lms(s)
     current = inspect(CONTAINER)
     require(current and current['State']['Running'] and current['Image'] == s['imageId'], 'The intended MCP image is not running.')
     require(current['HostConfig']['PortBindings'].get('5000/tcp') == [{'HostIp': '127.0.0.1', 'HostPort': '5011'}], 'Unexpected MCP port binding.')
@@ -305,7 +334,8 @@ def verify(s):
                       b'{"jsonrpc":"2.0","id":1,"method":"tools/list"}')
     require(status == 401, 'Anonymous production MCP was not rejected.')
     print(json.dumps(operator(s, 'verify'), indent=2))
-    print('PASS: production HTTPS discovery, anonymous denial, exact image, limited DB account, and unchanged live LMS.')
+    require(active_lms() == active, 'The live LMS changed during verification; retry after deployment finishes.')
+    print('PASS: production HTTPS discovery, anonymous denial, exact image, limited DB account, and healthy live LMS (' + active['name'] + ').')
 
 
 def enable():
@@ -391,17 +421,24 @@ def disable():
     print('PASS: production MCP disabled; no LMS service was stopped and audit history is retained.')
 
 
-def live_permissions(s):
-    result = docker('exec', s['activeApp'], 'node', '-e',
-                   'console.log(JSON.stringify(require("/app/dist/middleware/roleGuard").ROLE_PERMISSIONS))', check=False)
+def live_permissions(s, active=None):
+    active = active or current_lms(s)
+    require(active_lms() == active, 'The live LMS changed; run a fresh access-plan after deployment finishes.')
+    # Use the immutable container ID so a replacement cannot change the source
+    # between inspection and exec. Only the live LMS supplies native permissions.
+    result = docker('exec', active['id'], 'node', '-e',
+                   'console.log("LMS_PERMISSIONS=" + JSON.stringify(require("/app/dist/middleware/roleGuard").ROLE_PERMISSIONS))', check=False)
     require(result.returncode == 0, 'Could not read the permission map from the live LMS container. No account permissions were changed.')
+    lines = [line[len('LMS_PERMISSIONS='):] for line in result.stdout.splitlines() if line.startswith('LMS_PERMISSIONS=')]
+    require(len(lines) == 1, 'The live LMS returned no unique permission map. No account permissions were changed.')
     try:
-        value = json.loads(result.stdout)
+        value = json.loads(lines[0])
     except ValueError:
         raise m.MigrationError('The live LMS returned an invalid permission map. No account permissions were changed.')
     require(isinstance(value, dict) and isinstance(value.get('SUPER_ADMIN'), list)
             and value['SUPER_ADMIN'] and all(isinstance(x, str) for x in value['SUPER_ADMIN']),
             'The live LMS Super Admin permission map is missing or invalid.')
+    require(active_lms() == active, 'The live LMS changed while reading permissions; run a fresh access-plan.')
     return value
 
 
@@ -431,10 +468,13 @@ def diagnose_account(args):
     email = (args.email or input('Enter your existing production LMS login email: ')).strip().lower()
     status = account_status(s, email)
     try:
-        live_permissions(s)
+        active = current_lms(s)
+        live_permissions(s, active)
+        status['liveLmsContainer'] = active['name']
         status['liveLmsPermissionMap'] = 'available'
-    except m.MigrationError:
+    except m.MigrationError as error:
         status['liveLmsPermissionMap'] = 'unavailable'
+        status['liveLmsPermissionMapReason'] = str(error)
     print(json.dumps(status, indent=2))
     print('Read-only diagnosis complete. No account, role, token or deployment configuration was changed.')
 
@@ -444,7 +484,7 @@ def access_command(args):
     # Revocation must work during an LMS outage or after a normal app/container
     # replacement. The operator still authenticates to the configured replica
     # set and validates the exact user/tenant/role before restoring it.
-    if args.command != 'access-revoke': unchanged_lms(s)
+    active = current_lms(s) if args.command != 'access-revoke' else None
     path = STATE / 'access-plan.json'
     if args.command == 'access-plan':
         email = (args.email or input('Enter your existing production LMS login email: ')).strip().lower()
@@ -453,24 +493,37 @@ def access_command(args):
         if not status.get('initialOptInEligible'):
             print(json.dumps(status, indent=2))
             raise m.MigrationError('This account does not meet the reviewed initial opt-in requirements shown above. No account permissions were changed.')
-        request = {'email': email, 'scopes': s['scopes'], 'basePermissions': live_permissions(s),
+        request = {'email': email, 'scopes': s['scopes'], 'basePermissions': live_permissions(s, active),
+                   'lmsSource': active,
                    'newRoleId': secrets.token_hex(12), 'operationId': str(uuid.uuid4())}
         plan = operator(s, 'access-plan', request)
+        require(active_lms() == active, 'The live LMS changed during the preview; run a fresh access-plan.')
         write(path, {**request, **plan})
-        print(json.dumps({key: plan[key] for key in ['email', 'tenantName', 'userId', 'baseRole', 'scopes']}, indent=2))
+        print(json.dumps({**{key: plan[key] for key in ['email', 'tenantName', 'userId', 'baseRole', 'scopes']},
+                          'liveLmsContainer': active['name']}, indent=2))
         print('This default Super Admin will receive an individual MCP role with its existing native permission keys. Other account types are refused by this initial-production operator.')
         print('Read-only access plan saved. To grant the displayed access: python3 scripts/mcp-production.py access-apply')
     elif args.command == 'access-apply':
         require(path.exists() and not (STATE / 'access-applied.json').exists(), 'A fresh access-plan is required.')
         request = json.loads(path.read_text())
+        require(request.get('lmsSource') == active,
+                'The access plan belongs to an earlier LMS deployment or installer. Run a fresh access-plan before granting access.')
+        permissions = live_permissions(s, active)
+        require(sorted(permissions['SUPER_ADMIN']) == sorted(request['basePermissions']['SUPER_ADMIN']),
+                'The live LMS permission map changed since the preview. Run a fresh access-plan before granting access.')
         result = operator(s, 'access-apply', request)
         write(STATE / 'access-applied.json', result)
         print('PASS: explicit MCP access granted to the reviewed account; its existing native permissions are retained.')
     else:
         applied = STATE / 'access-applied.json'
-        require(applied.exists(), 'No saved individual grant to revoke.')
-        print(json.dumps(operator(s, 'access-revoke', json.loads(applied.read_text()))))
-        applied.rename(STATE / ('access-revoked-' + str(int(time.time())) + '.json'))
+        # A grant may commit before an interrupted terminal saves its result.
+        # The original plan contains the same role/account snapshot. The operator
+        # only revokes if that exact, unshared role is currently assigned; a plan
+        # which never committed fails those checks without any database writes.
+        record = applied if applied.exists() else path
+        require(record.exists(), 'No saved individual grant or interrupted access plan to revoke.')
+        print(json.dumps(operator(s, 'access-revoke', json.loads(record.read_text()))))
+        record.rename(STATE / ('access-revoked-' + str(int(time.time())) + '.json'))
         path.unlink(missing_ok=True)
         print('PASS: original role restored and this account\'s OAuth grants revoked.')
 

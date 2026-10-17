@@ -72,7 +72,8 @@ async function main() {
   await User.updateOne({ _id: user._id }, { $set: { role: 'SUPER_ADMIN' } });
   await User.updateMany({ _id: { $in: [user._id, staff._id] } }, { $set: { customRoleId: shared._id } });
   const scopes = ['mcp_connect', 'mcp_students_read', 'mcp_batches_read'];
-  const req = { email: user.email, basePermissions, scopes, newRoleId: new mongoose.Types.ObjectId().toString(), operationId: crypto.randomUUID() };
+  const req = { email: user.email, basePermissions, scopes, newRoleId: new mongoose.Types.ObjectId().toString(), operationId: crypto.randomUUID(),
+    lmsSource: { name: 'lms-server-green', id: 'synthetic-live-container', imageId: 'synthetic-live-image' } };
   const before = await Role.countDocuments();
   // Existing custom-role accounts must not be cloned: role-id-based lead
   // distribution and future shared-role permission changes must keep working.
@@ -100,6 +101,7 @@ async function main() {
   assert.deepEqual(diagnose(user.email).reasons, ['TENANT_NOT_ASSIGNED']);
   await User.updateOne({ _id: user._id }, { $set: { tenantId: user.tenantId } });
   const plan = operator('access-plan', req);
+  assert.throws(() => operator('access-revoke', { ...req, ...plan }), 'Uncommitted access plan was revoked');
   assert.equal(await Role.countDocuments(), before);
   assert.ok(!(await User.findById(user._id)).customRoleId);
   await User.updateOne({ _id: user._id }, { $set: { role: 'TENANT_ADMIN' } });
@@ -107,6 +109,7 @@ async function main() {
   assert.equal(await Role.countDocuments(), before);
   await User.updateOne({ _id: user._id }, { $set: { role: 'SUPER_ADMIN' } });
   const applied = operator('access-apply', { ...req, ...plan });
+  assert.equal(applied.applied, true);
   assert.equal(operator('access-apply', { ...req, ...plan }).applied, true, 'Committed grant recovery failed');
   const granted = await Role.findById(req.newRoleId).lean();
   assert.deepEqual(granted.permissions.filter(p => !p.startsWith('mcp_')).sort(), [...basePermissions.SUPER_ADMIN].sort());
@@ -146,7 +149,9 @@ async function main() {
   assert.equal(list.body.result.tools.length, 3);
   const count = await rpc(token.body.access_token, 'tools/call', { name: 'codebegun_student_count', arguments: {} });
   assert.equal(JSON.parse(count.body.result.content[0].text).count, 2);
-  assert.equal(operator('access-revoke', applied).revoked, true);
+  // Recover an interrupted apply with only the original plan, even if the LMS
+  // has subsequently deployed. The operator must verify the exact granted role.
+  assert.equal(operator('access-revoke', { ...req, ...plan }).revoked, true);
   assert.ok(!(await User.findById(user._id)).customRoleId);
   assert.equal(await Role.countDocuments(), before);
   assert.equal((await rpc(token.body.access_token, 'tools/list')).status, 401);

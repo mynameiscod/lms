@@ -137,6 +137,41 @@ fields, prints no raw subprocess errors, and grants no access. `access-plan`
 also performs the diagnostic before running its administrator-backed preview.
 Retain the deployed image/state; the diagnostic checkout is not a service upgrade.
 
+After a normal blue/green LMS deployment, the installer resolves the current
+container from `/etc/nginx/active-slot.conf`. It checks that this container is
+running on the expected localhost port and production network, that the saved
+MongoDB container is still running, and that public LMS readiness passes. The
+stopped slot recorded during initial gateway installation is not used for account
+previews or routine verification. Installation history and the gateway image stay
+unchanged.
+
+If the diagnostic previously reported `liveLmsPermissionMap: unavailable` because
+the saved blue container stopped after switching to green, pull the fix and create
+a fresh preview:
+
+```sh
+cd /root/lms-mcp-test
+git pull --ff-only origin feature/mcp-role-permissions
+python3 scripts/mcp-production.py access-plan --email YOUR_EXISTING_LMS_EMAIL
+```
+
+The preview prints `liveLmsContainer`. Review the account, tenant and scopes, then
+run `access-apply` as above. Each new plan records the live container ID/image and
+its permission map. Apply rechecks both before the administrator-backed grant; a
+slot/container or permission-map change requires a fresh plan. Plans from older
+installer versions also require a fresh preview. No `prepare`, `enable`, image
+rebuild, state-file editing or container restart is required for this host fix.
+
+If `access-apply` was interrupted and the LMS then deployed, preserve the original
+plan. If a new preview reports an existing custom role, the original grant may
+already have committed. Use the explicit `access-revoke` command to roll it back
+before starting a fresh preview. When the applied-result file is absent, revoke
+uses the original saved plan and the deployed operator still checks the exact
+current account, role ID, permission set and sole ownership before changing
+anything. An uncommitted plan or a subsequently modified/shared role is refused;
+the saved plan is retained on failure. This recovery never bypasses the new
+deployment checks to grant stale permissions.
+
 Resolve the reported cause through a reviewed account decision. Do not remove a
 custom role, promote an account or invent tenant membership just to pass the
 initial opt-in check. The account's actual role and tenant determine the next step.

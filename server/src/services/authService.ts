@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { ALL_MODULES } from '../config/tenantModules';
 import { assertSeats } from './tenantLimits';
 import { onboardTenant } from './tenantOnboardingService';
 import mongoose from 'mongoose';
@@ -43,7 +44,11 @@ export class AuthService {
       type: options?.type || 'institute',
     };
     if (options?.studentFeatures) tenantData.studentFeatures = options.studentFeatures;
-    if (options?.modules) tenantData.modules = options.modules;
+    // A new institute starts with every module OFF; the platform administrator switches on what it pays for.
+    tenantData.modules = {
+      ...Object.fromEntries(ALL_MODULES.map((k) => [k, false])),
+      ...(options?.modules || {}),
+    };
 
     const tenant = new Tenant(tenantData);
     await tenant.save();

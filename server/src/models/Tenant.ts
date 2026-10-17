@@ -87,6 +87,19 @@ export interface ITenantModules {
   codeVisualizer?: boolean;
   techBattles?: boolean;
   hackathons?: boolean;
+  // Institute-admin menu (see ADMIN_MODULES): unset reads as ON for institutes that existed before.
+  userManagement?: boolean;
+  rolesManagement?: boolean;
+  batchManagement?: boolean;
+  notifications?: boolean;
+  concerns?: boolean;
+  employees?: boolean;
+  expenses?: boolean;
+  aiSpend?: boolean;
+  apiLogs?: boolean;
+  integrations?: boolean;
+  branding?: boolean;
+  studentFeatures?: boolean;
 }
 
 // College-specific information (only populated when type = 'college')
@@ -303,6 +316,18 @@ const TenantSchema: Schema = new Schema(
       codeVisualizer: { type: Boolean },
       techBattles: { type: Boolean },
       hackathons: { type: Boolean },
+      userManagement: { type: Boolean },
+      rolesManagement: { type: Boolean },
+      batchManagement: { type: Boolean },
+      notifications: { type: Boolean },
+      concerns: { type: Boolean },
+      employees: { type: Boolean },
+      expenses: { type: Boolean },
+      aiSpend: { type: Boolean },
+      apiLogs: { type: Boolean },
+      integrations: { type: Boolean },
+      branding: { type: Boolean },
+      studentFeatures: { type: Boolean },
     },
     // College-specific info — all optional, existing tenants unaffected
     collegeInfo: {

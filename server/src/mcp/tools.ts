@@ -8,6 +8,7 @@ import Lead from '../models/Lead';
 import OutperoCall from '../models/OutperoCall';
 import { McpIdentity } from './identity';
 import { McpError } from './oauthPolicy';
+import { LMS_USERS_FILTER } from '../services/learnerAudience';
 
 const oid = (value: string) => new mongoose.Types.ObjectId(value);
 const idSchema = { type: 'string', pattern: '^[a-fA-F0-9]{24}$' };
@@ -27,8 +28,8 @@ function tool(name: string, description: string, domain: Domain, scope: string, 
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } };
 }
 export const tools: Tool[] = [
-  tool('codebegun_student_count', 'Count active students within your current LMS record scope.', 'students', 'mcp_students_read', true, academicProperties),
-  tool('codebegun_students', 'Read student names, batch and active status. No passwords, contact exports or private profile documents.', 'students', 'mcp_students_read', false, { ...pageProperties, ...academicProperties }),
+  tool('codebegun_student_count', 'Count active LMS students within your current record scope. Excludes CareerPilot-only members; the LMS Users card includes inactive students too.', 'students', 'mcp_students_read', true, academicProperties),
+  tool('codebegun_students', 'Read active LMS student names, batch and active status. Excludes CareerPilot-only members. No passwords, contact exports or private profile documents.', 'students', 'mcp_students_read', false, { ...pageProperties, ...academicProperties }),
   tool('codebegun_batches', 'Read permitted batch schedules and capacity.', 'batches', 'mcp_batches_read', false, { ...pageProperties, batchId: idSchema }),
   tool('codebegun_attendance_summary', 'Count attendance by status for your permitted students and batches.', 'attendance', 'mcp_attendance_read', true, { ...academicProperties, ...daysProperty }),
   tool('codebegun_attendance', 'Read permitted attendance records. Remarks are excluded.', 'attendance', 'mcp_attendance_read', false, { ...pageProperties, ...academicProperties, ...daysProperty }),
@@ -124,6 +125,9 @@ export async function executeTool(candidate: Tool, identity: McpIdentity, scopes
   if (args.batchId) constraints.push(domain === 'batches' ? { _id: oid(args.batchId) } : { batchId: oid(args.batchId) });
   if (args.studentId) constraints.push(['students', 'placements'].includes(domain) ? { _id: oid(args.studentId) } : { studentId: oid(args.studentId) });
   if (['students', 'placements'].includes(domain)) constraints.push({ role: 'STUDENT', isActive: true });
+  // Match the LMS Users audience: a CareerPilot member also enrolled in a
+  // batch remains an LMS student. Keep tenant, role and active checks intact.
+  if (domain === 'students') constraints.push(LMS_USERS_FILTER);
   if (domain === 'attendance') constraints.push({ date: { $gte: new Date(Date.now() - (args.days ?? 30) * 86400000) } });
   const match = { $and: constraints };
   switch (domain) {

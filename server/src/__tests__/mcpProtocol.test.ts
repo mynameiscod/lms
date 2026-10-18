@@ -3,6 +3,7 @@ import request from 'supertest';
 import router from '../mcp/router';
 import User from '../models/User';
 import * as auditStore from '../mcp/audit';
+import { LMS_USERS_FILTER } from '../services/learnerAudience';
 
 // Exercise the real protocol router, tool validation and tenant query builder;
 // OAuth identity resolution and database I/O have their own integration coverage.
@@ -46,7 +47,7 @@ test('metadata cannot change the tenant query or enter responses and audits', as
   const result = await call({ _meta: { tenantId: 'foreign-tenant', arguments: { studentId: 'foreign-student' },
     scopes: ['mcp_calls_read'], 'com.example/private': 'do-not-log-metadata' } });
   expect(result.body.error).toBeUndefined();
-  expect(User.countDocuments).toHaveBeenCalledWith({ $and: [{ tenantId }, {}, { role: 'STUDENT', isActive: true }] });
+  expect(User.countDocuments).toHaveBeenCalledWith({ $and: [{ tenantId }, {}, { role: 'STUDENT', isActive: true }, LMS_USERS_FILTER] });
   expect(JSON.stringify((auditStore.audit as jest.Mock).mock.calls)).not.toContain('do-not-log-metadata');
   expect(result.text).not.toContain('do-not-log-metadata');
 });

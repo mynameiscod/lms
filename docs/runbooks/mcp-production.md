@@ -261,6 +261,14 @@ Compare its active count to `activeStudentsFromMcpQuery`; the Users card uses
 Actual ChatGPT import, query and refresh behavior remain deployment acceptance
 checks; synthetic CI cannot certify the user's private ChatGPT connection.
 
+The student count and listing also reuse `LMS_USERS_FILTER`, the same audience
+filter as the LMS Users screen. Earlier MCP images counted active CareerPilot-only
+members too, which could produce a larger count than that screen. Members who
+also have an LMS batch remain included. Tenant, assigned-batch, student-self and
+active-status restrictions still apply. After updating, compare the diagnostic's
+`activeStudentsFromMcpQuery` with `lmsStudentsAllStatuses`: the latter may be larger
+because it includes inactive LMS students. Do not assume their totals are equal.
+
 ## Verification, interruption and rollback
 
 ```sh

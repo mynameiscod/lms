@@ -32,6 +32,7 @@ import { tools } from '../mcp/tools';
 import { SCOPE_LABELS } from '../mcp/oauthPolicy';
 import { tokenDigest } from '../mcp/oauthSecurity';
 import { assertMcpReady, mcpModels } from '../mcp/bootstrap';
+import { LMS_USERS_FILTER } from '../services/learnerAudience';
 
 const issuer = 'https://lms.example';
 const resource = `${issuer}/mcp`;
@@ -557,6 +558,32 @@ describe('OAuth resource, data isolation and audit boundary', () => {
     expect(payload(await call(token.access_token, 'codebegun_exam_summary'))[0].averagePercentage).toBe(150);
     expect(payload(await call(token.access_token, 'codebegun_student_count')).count).toBe(2);
     expect(payload(await call(token.access_token, 'codebegun_placement_summary')).groups).toEqual(expect.arrayContaining([expect.objectContaining({ _id: 'placed', count: 1, averageCtc: 7 })]));
+  });
+  test('student count and listing use the LMS audience, retain dual members, and exclude inactive and foreign students', async () => {
+    const memberMissingBatch = id(), memberNullBatch = id(), dualMember = id();
+    const base = { tenantId: tenantA, role: 'STUDENT', isActive: true, firstName: 'Audience', lastName: 'Fixture' };
+    await User.collection.insertMany([
+      { ...base, _id: memberMissingBatch, email: 'cp-only@example.test', passport: { product: 'career-pilot' } },
+      { ...base, _id: memberNullBatch, email: 'cp-null-batch@example.test', passport: { product: 'career-pilot' }, batchId: null },
+      { ...base, _id: dualMember, email: 'dual-member@example.test', passport: { product: 'career-pilot' }, batchId: batchA },
+      { ...base, email: 'inactive-lms@example.test', isActive: false, batchId: batchA },
+    ]);
+    // The Users card includes inactive LMS students; the MCP tool explicitly
+    // counts active LMS students. Neither should include CareerPilot-only users.
+    expect(await User.countDocuments({ tenantId: tenantA, role: 'STUDENT', ...LMS_USERS_FILTER })).toBe(4);
+    const token = await tokenFor();
+    expect(payload(await call(token.access_token, 'codebegun_student_count')).count).toBe(3);
+    const listed = payload(await call(token.access_token, 'codebegun_students'));
+    expect(listed.items.map((u: any) => u._id).sort()).toEqual([studentA, studentOther, dualMember].map(String).sort());
+    for (const excluded of [memberMissingBatch, memberNullBatch, studentB]) {
+      expect(payload(await call(token.access_token, 'codebegun_student_count', { studentId: String(excluded) })).count).toBe(0);
+      expect(payload(await call(token.access_token, 'codebegun_students', { recordId: String(excluded) })).items).toEqual([]);
+    }
+    expect(payload(await call(token.access_token, 'codebegun_student_count', { batchId: String(batchA) })).count).toBe(2);
+    const teacherToken = await tokenFor('instructor@example.test');
+    expect(payload(await call(teacherToken.access_token, 'codebegun_student_count')).count).toBe(2);
+    const studentToken = await tokenFor('student@example.test');
+    expect(payload(await call(studentToken.access_token, 'codebegun_student_count')).count).toBe(1);
   });
   test.each(['instructor@example.test', 'student@example.test'])('%s sees only assigned/own records across academic domains', async email => {
     const token = await tokenFor(email);

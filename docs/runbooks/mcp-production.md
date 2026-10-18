@@ -249,10 +249,25 @@ It checks up to ten recent valid grants. `hasStudentCountGrant` describes those
 grants; it cannot identify the access token currently held by ChatGPT, which may
 have narrower scopes. `currentClientTokenChecked` is therefore always false.
 
-After upgrading, open the CodeBegun Production app and refresh its tools. Complete
-the new OAuth consent if prompted; it must include student/batch read access.
-If the client keeps its old connect-only grant, disconnect/reconnect the app's
-connected account using the existing production LMS login, then refresh tools.
+After upgrading, open the CodeBegun Production app and reconnect its connected
+account using the existing production LMS login. Some saved clients still request
+only `mcp_connect`, even after discovery advertises the read scopes. The consent
+page now offers **Allow read access** for that case: review the student/batch reads
+and stay-connected permission, then choose that button. **Connect without data
+access** deliberately keeps the grant connect-only. A request that already asks
+for reads retains its exact requested scopes and the normal **Allow access** button.
+
+This is fresh user consent, not a token or database override. The offered scopes
+are saved in the login session, limited by client registration and current usable
+tools, and rechecked at consent. Existing grants and refresh tokens never acquire
+additional permissions. OAuth token responses report the actual approved scopes.
+The optional recovery includes `offline_access` only when registered and shown,
+so approving it permits refresh instead of requiring login again after 15 minutes.
+
+Run `diagnose-tools --email YOUR_EXISTING_LMS_EMAIL` after consent. Confirm
+`hasStudentCountGrant: true` and a grant with both `mcp_students_read` and
+`mcp_batches_read`; `gatewayImage` identifies the running release. Then refresh
+the app's tools. A connected-account badge alone does not prove read permission.
 Do not delete/regrant the LMS account's MCP role for this problem. The configured
 server URL and client ID remain unchanged. Confirm the three default tools appear,
 then invoke `codebegun_student_count` through **CodeBegun Production** with `{}`.

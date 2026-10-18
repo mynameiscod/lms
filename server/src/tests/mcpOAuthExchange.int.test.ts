@@ -162,7 +162,7 @@ beforeEach(async () => {
 });
 
 describe('OAuth HTTP flow with real transactional MongoDB', () => {
-  test('a real browser signs in, consents across origins, calls a tool and manages its connection', async () => {
+  test('a real browser explicitly adds read access to a connect-only request, calls a tool and manages its connection', async () => {
     const previous = { ...process.env };
     const directory = mkdtempSync(join(tmpdir(), 'mcp-browser-'));
     const key = join(directory, 'key.pem'), cert = join(directory, 'cert.pem');
@@ -207,14 +207,15 @@ describe('OAuth HTTP flow with real transactional MongoDB', () => {
         return navigate('button[type="submit"]');
       };
       const start = await page.goto(`${browserIssuer}/mcp-oauth/authorize?${new URLSearchParams(authorization({
-        resource: browserResource, redirect_uri: browserRedirect, ui_locales: 'en-US',
+        resource: browserResource, redirect_uri: browserRedirect, ui_locales: 'en-US', scope: 'mcp_connect',
       }))}`);
       expect(start!.headers()['content-security-policy']).toContain("form-action 'self';");
       const signed = await signIn();
       expect(signed.headers()['content-security-policy']).toContain(`form-action 'self' ${new URL(browserRedirect).origin};`);
       expect(await page.$eval('h1', element => element.textContent)).toBe('Approve assistant access');
       expect(await Access.countDocuments()).toBe(0);
-      await navigate('button[value="approve"]');
+      expect(await page.$eval('main', element => element.textContent)).toContain('Read permitted student profiles');
+      await navigate('button[value="approve_read"]');
       const location = new URL(page.url());
       expect(location.origin + location.pathname).toBe(browserRedirect);
       expect(location.searchParams.get('state')).toBe('state-preserved');
@@ -222,6 +223,8 @@ describe('OAuth HTTP flow with real transactional MongoDB', () => {
       expect(callbackReferrer).toBeUndefined();
       const token = await exchange(location.searchParams.get('code')!, { resource: browserResource, redirect_uri: browserRedirect });
       expect(token.status).toBe(200);
+      expect(token.body.scope.split(' ')).toContain('mcp_students_read');
+      expect(token.body.refresh_token).toHaveLength(43);
       expect(payload(await call(token.body.access_token, 'codebegun_student_count')).count).toBe(2);
       await page.goto(`${browserIssuer}/mcp-oauth/connections`);
       const management = await signIn();
@@ -290,6 +293,70 @@ describe('OAuth HTTP flow with real transactional MongoDB', () => {
     expect(new URL(r.headers.location).searchParams.get('error')).toBe('access_denied');
     expect(new URL(r.headers.location).searchParams.get('state')).toBe('state-preserved');
     expect(await Grant.countDocuments()).toBe(0);
+  });
+  test.each([undefined, 'mcp_connect'])('a request with scope=%s gains production reads only after the separate consent choice', async scope => {
+    const registrations = process.env.MCP_OAUTH_CLIENTS!;
+    const productionScopes = ['mcp_connect', 'mcp_students_read', 'mcp_batches_read', 'offline_access'];
+    try {
+      process.env.MCP_OAUTH_CLIENTS = JSON.stringify(JSON.parse(registrations).map((client: any) => ({ ...client, scopes: productionScopes })));
+      const original = await tokenFor('admin@example.test', { scope: 'mcp_connect' });
+      expect(original.scope).toBe('mcp_connect');
+      expect(original.refresh_token).toBeUndefined();
+      const { signed } = await login('admin@example.test', { scope });
+      expect(signed.text).toContain('Allow read access');
+      expect(signed.text).toContain('Connect without data access');
+      expect(signed.text).toContain('Read permitted student profiles');
+      expect(signed.text).toContain('Read permitted batches');
+      expect(signed.text).toContain('Stay connected');
+      expect(signed.text).not.toContain('Read permitted fees');
+      expect(await Grant.countDocuments()).toBe(1);
+      const consent = await request(app).post('/mcp-oauth/consent').set('Cookie', cookie(signed)).type('form')
+        .send({ csrf: csrf(signed), decision: 'approve_read' });
+      expect(consent.status).toBe(303);
+      const callback = new URL(consent.headers.location);
+      expect(callback.searchParams.get('state')).toBe('state-preserved');
+      const token = await exchange(callback.searchParams.get('code')!);
+      expect(token.status).toBe(200);
+      expect(token.body.scope.split(' ')).toEqual(productionScopes);
+      const list = await request(app).post('/mcp').set('Authorization', `Bearer ${token.body.access_token}`)
+        .send({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
+      expect(list.body.result.tools.map((t: any) => t.name)).toEqual(['codebegun_student_count', 'codebegun_students', 'codebegun_batches']);
+      expect(payload(await call(token.body.access_token, 'codebegun_student_count')).count).toBe(2);
+      const rotated = await refresh(token.body.refresh_token);
+      expect(rotated.status).toBe(200);
+      expect(rotated.body.scope.split(' ')).toEqual(productionScopes);
+      expect(payload(await call(rotated.body.access_token, 'codebegun_student_count')).count).toBe(2);
+      expect((await call(original.access_token, 'codebegun_student_count')).status).toBe(403);
+      expect((await Access.findOne({ tokenHash: tokenDigest(original.access_token) }).lean())?.scopes).toEqual(['mcp_connect']);
+    } finally { process.env.MCP_OAUTH_CLIENTS = registrations; }
+  });
+  test('read consent rejects a scope supplied by the browser or an offer never shown', async () => {
+    const { signed } = await login('admin@example.test', { scope: 'mcp_connect' });
+    const post = (extra: any = {}) => request(app).post('/mcp-oauth/consent').set('Cookie', cookie(signed)).type('form')
+      .send({ csrf: csrf(signed), decision: 'approve_read', ...extra });
+    expect((await post({ scope: scopes })).status).toBe(400);
+    expect((await post({ csrf: 'wrong' })).status).toBe(403);
+    await Session.updateMany({}, { $unset: { readConsentScopes: '' } });
+    expect((await post()).status).toBe(403);
+    expect(await Grant.countDocuments()).toBe(0);
+    expect(await Code.countDocuments()).toBe(0);
+  });
+  test('read consent rechecks permissions and cannot grant newly added scopes that were not shown', async () => {
+    await Role.updateOne({ _id: roleA }, { $pull: { permissions: 'mcp_batches_read' } });
+    const { signed } = await login('admin@example.test', { scope: 'mcp_connect' });
+    expect(signed.text).not.toContain('Read permitted batches');
+    await Role.updateOne({ _id: roleA }, { $push: { permissions: 'mcp_batches_read' } });
+    const consent = await request(app).post('/mcp-oauth/consent').set('Cookie', cookie(signed)).type('form')
+      .send({ csrf: csrf(signed), decision: 'approve_read' });
+    expect(consent.status).toBe(303);
+    const token = await exchange(new URL(consent.headers.location).searchParams.get('code')!);
+    expect(token.body.scope.split(' ')).not.toContain('mcp_batches_read');
+    const later = await login('admin@example.test', { scope: 'mcp_connect' });
+    await Role.updateOne({ _id: roleA }, { $pull: { permissions: 'mcp_students_read' } });
+    const rejected = await request(app).post('/mcp-oauth/consent').set('Cookie', cookie(later.signed)).type('form')
+      .send({ csrf: csrf(later.signed), decision: 'approve_read' });
+    expect(rejected.status).toBe(403);
+    expect(await Grant.countDocuments()).toBe(1);
   });
   test.each([
     { redirect_uri: `${redirect}/extra` }, { redirect_uri: 'https://evil.example/callback' }, { response_type: 'token' },

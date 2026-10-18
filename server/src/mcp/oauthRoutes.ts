@@ -11,6 +11,7 @@ import { authenticateClient, exchangeToken, issueCode, revokeGrant, inTransactio
 import { identityFor } from './identity';
 import { audit } from './audit';
 import { ipKey, rateLimit } from './rateLimit';
+import { acceptReadConsent, readConsentOffer } from './oauthConsent';
 
 export const oauthRouter = express.Router();
 const esc = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -130,28 +131,34 @@ oauthRouter.post('/login', endpoint('oauth_login', async (req, res) => {
   }
   const identity = await identityFor(credentials.user._id, credentials.user.tenantId);
   if (identity.credentialVersion !== tokenDigest(credentials.user.password)) throw new McpError('invalid_credentials', 401);
+  const authorization = browser.purpose === 'authorize' ? authorizationParameters(browser.parameters) : undefined;
+  const requested = authorization?.params.scope.split(' ') || [];
+  if (!requested.every(s => s === 'offline_access' || identity.permissions.includes(s))) throw new McpError('invalid_scope', 403);
+  const readConsentScopes = authorization ? readConsentOffer(identity, authorization.client, requested) : [];
   const token = generateOpaqueToken();
   const csrf = generateOpaqueToken();
   const updated = await McpOAuthSession.findOneAndUpdate({ _id: browser._id, tokenHash: browser.tokenHash, userId: null }, {
     $set: { tokenHash: tokenDigest(token), csrfHash: tokenDigest(csrf), userId: identity.user._id,
-      tenantId: identity.user.tenantId, credentialVersion: identity.credentialVersion, expiresAt: new Date(Date.now() + 600000) },
+      tenantId: identity.user.tenantId, credentialVersion: identity.credentialVersion, readConsentScopes,
+      expiresAt: new Date(Date.now() + 600000) },
   }, { new: true });
   if (!updated) throw new McpError('invalid_session', 403);
   await audit('oauth_login', 'allowed', 'authenticated', { userId: identity.user._id, tenantId: identity.user.tenantId }, res.locals.requestId);
   res.cookie(cookieName(), token, cookieOptions());
   if (browser.purpose === 'connections') return connectionsPage(res, identity, csrf);
-  const { params, client } = authorizationParameters(browser.parameters);
-  if (!params.scope.split(' ').every(s => s === 'offline_access' || identity.permissions.includes(s))) throw new McpError('invalid_scope', 403);
+  const { params, client } = authorization!;
   // Chrome also applies form-action to the consent POST's 303 callback redirect.
   // Allow only this validated callback origin, after password entry is complete.
   res.set('Content-Security-Policy', mcpContentSecurityPolicy(params.redirect_uri));
-  return page(res, 'Approve assistant access', `<p><strong>${esc(client.name)}</strong> wants to access <strong>${esc(identity.tenant.name)}</strong> as ${esc(identity.user.email)}.</p><ul>${params.scope.split(' ').map(s => `<li>${esc(SCOPE_LABELS[s])}</li>`).join('')}</ul><p>Your current LMS permissions and record restrictions apply to every request. You can disconnect at any time.</p><form method="post" action="/mcp-oauth/consent">${field('csrf', csrf)}<button name="decision" value="approve">Allow access</button><button class="secondary" name="decision" value="deny">Deny</button></form>`);
+  const recovery = readConsentScopes.length ? `<p>This assistant requested connection access only. That does not allow it to read LMS data.</p><p>You can also approve these permissions:</p><ul>${readConsentScopes.filter(s => s !== 'mcp_connect').map(s => `<li>${esc(SCOPE_LABELS[s])}</li>`).join('')}</ul>` : '';
+  const approve = readConsentScopes.length ? '<button name="decision" value="approve_read">Allow read access</button><button class="secondary" name="decision" value="approve">Connect without data access</button>' : '<button name="decision" value="approve">Allow access</button>';
+  return page(res, 'Approve assistant access', `<p><strong>${esc(client.name)}</strong> wants to access <strong>${esc(identity.tenant.name)}</strong> as ${esc(identity.user.email)}.</p><ul>${requested.map(s => `<li>${esc(SCOPE_LABELS[s])}</li>`).join('')}</ul>${recovery}<p>Your current LMS permissions and record restrictions apply to every request. You can disconnect at any time.</p><form method="post" action="/mcp-oauth/consent">${field('csrf', csrf)}${approve}<button class="secondary" name="decision" value="deny">Deny</button></form>`);
 }));
 
 oauthRouter.post('/consent', endpoint('oauth_consent', async (req, res) => {
   const body = scalarParameters(req.body, ['csrf', 'decision']);
   const browser = await browserSession(req, true);
-  if (browser.purpose !== 'authorize' || !['approve', 'deny'].includes(body.decision)) throw new McpError('invalid_request');
+  if (browser.purpose !== 'authorize' || !['approve', 'approve_read', 'deny'].includes(body.decision)) throw new McpError('invalid_request');
   const { params, client } = authorizationParameters(browser.parameters);
   const location = await inTransaction(async session => {
     const consumed = await McpOAuthSession.findOneAndDelete({ _id: browser._id, tokenHash: browser.tokenHash, expiresAt: { $gt: new Date() } }, { session });
@@ -166,7 +173,10 @@ oauthRouter.post('/consent', endpoint('oauth_consent', async (req, res) => {
       await audit('oauth_consent', 'denied', 'user_denied', { userId: browser.userId, tenantId: browser.tenantId, clientId: client.id }, res.locals.requestId, session);
       return url.toString();
     }
-    return issueCode(params, client, identity, session);
+    const approved = body.decision === 'approve_read' ? { ...params,
+      scope: acceptReadConsent(browser.readConsentScopes, identity, client, params.scope.split(' ')),
+    } : params;
+    return issueCode(approved, client, identity, session);
   });
   clearSessionCookie(res);
   return res.redirect(303, location);

@@ -20,11 +20,13 @@ type Domain = 'students' | 'batches' | 'attendance' | 'exams' | 'fees' | 'placem
 interface Tool {
   name: string; description: string; scope: string; domain: Domain; summary?: boolean;
   inputSchema: { type: string; properties: Record<string, any>; additionalProperties: boolean };
+  securitySchemes: { type: 'oauth2'; scopes: string[] }[];
   annotations: { readOnlyHint: boolean; destructiveHint: boolean; idempotentHint: boolean; openWorldHint: boolean };
 }
 function tool(name: string, description: string, domain: Domain, scope: string, summary = false, properties: Record<string, any> = {}): Tool {
   return { name, description, domain, scope, summary,
     inputSchema: { type: 'object', properties, additionalProperties: false },
+    securitySchemes: [{ type: 'oauth2', scopes: ['mcp_connect', scope] }],
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } };
 }
 export const tools: Tool[] = [

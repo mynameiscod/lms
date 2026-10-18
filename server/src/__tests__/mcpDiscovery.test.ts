@@ -47,6 +47,11 @@ test('following the unauthenticated challenge discovers the three configured pro
   expect(listed.body.result.tools.map((t: any) => t.name)).toEqual([
     'codebegun_student_count', 'codebegun_students', 'codebegun_batches',
   ]);
+  expect(listed.body.result.tools.map((t: any) => t.securitySchemes)).toEqual([
+    [{ type: 'oauth2', scopes: ['mcp_connect', 'mcp_students_read'] }],
+    [{ type: 'oauth2', scopes: ['mcp_connect', 'mcp_students_read'] }],
+    [{ type: 'oauth2', scopes: ['mcp_connect', 'mcp_batches_read'] }],
+  ]);
 });
 
 test.each(['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp'])(

@@ -5,6 +5,7 @@ const schema = new Schema({
   csrfHash: { type: String, required: true },
   purpose: { type: String, enum: ['authorize', 'connections'], required: true },
   parameters: { type: Map, of: String },
+  readConsentScopes: [String],
   userId: Schema.Types.ObjectId,
   tenantId: Schema.Types.ObjectId,
   credentialVersion: String,

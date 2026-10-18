@@ -151,16 +151,55 @@ async function main() {
     redirect_uri: 'http://127.0.0.1:8765/callback', resource: c.issuer + '/mcp', code_verifier: verifier,
     code: new URL(consent.headers.location).searchParams.get('code') });
   assert.equal(token.status, 200);
+  assert.deepEqual(token.body.scope.split(' '), scopes.concat('offline_access'));
   const list = await rpc(token.body.access_token, 'tools/list');
   assert.equal(list.body.result.tools.length, 3);
   const count = await rpc(token.body.access_token, 'tools/call', { name: 'codebegun_student_count', arguments: {} });
   assert.equal(JSON.parse(count.body.result.content[0].text).count, 2);
+  // Reproduce a cached connect-only authorization request with the exact
+  // production client allowlist. Extra permissions need a separate consent.
+  query.set('scope', 'mcp_connect');
+  let recovered;
+  for (const decision of ['approve', 'approve_read']) {
+    const recoveryStart = await request('/mcp-oauth/authorize?' + query);
+    assert.equal(recoveryStart.status, 200);
+    const recoveryLogin = await form('/mcp-oauth/login', {
+      email: user.email, password: fs.readFileSync('/run/secrets/test_password', 'utf8').trim(), csrf: csrf(recoveryStart),
+    }, { Cookie: cookie(recoveryStart) });
+    assert.equal(recoveryLogin.status, 200);
+    assert.ok(recoveryLogin.text.includes('Allow read access'));
+    assert.ok(recoveryLogin.text.includes('Read permitted student profiles'));
+    assert.ok(recoveryLogin.text.includes('Read permitted batches'));
+    assert.ok(!recoveryLogin.text.includes('Read permitted fees'));
+    const recoveryConsent = await form('/mcp-oauth/consent', { csrf: csrf(recoveryLogin), decision }, { Cookie: cookie(recoveryLogin) });
+    assert.equal(recoveryConsent.status, 303);
+    const recoveryToken = await form('/mcp-oauth/token', { grant_type: 'authorization_code', client_id: 'codebegun-mcp-smoke',
+      redirect_uri: 'http://127.0.0.1:8765/callback', resource: c.issuer + '/mcp', code_verifier: verifier,
+      code: new URL(recoveryConsent.headers.location).searchParams.get('code') });
+    assert.equal(recoveryToken.status, 200);
+    if (decision === 'approve') {
+      assert.equal(recoveryToken.body.scope, 'mcp_connect');
+      assert.equal(recoveryToken.body.refresh_token, undefined);
+      assert.equal((await rpc(recoveryToken.body.access_token, 'tools/list')).status, 403);
+    } else {
+      assert.deepEqual(recoveryToken.body.scope.split(' '), scopes.concat('offline_access'));
+      recovered = await form('/mcp-oauth/token', { grant_type: 'refresh_token', client_id: 'codebegun-mcp-smoke',
+        resource: c.issuer + '/mcp', refresh_token: recoveryToken.body.refresh_token });
+      assert.equal(recovered.status, 200);
+      assert.deepEqual(recovered.body.scope.split(' '), scopes.concat('offline_access'));
+      assert.equal((await rpc(recovered.body.access_token, 'tools/list')).body.result.tools.length, 3);
+      const result = await rpc(recovered.body.access_token, 'tools/call', { name: 'codebegun_student_count', arguments: {} });
+      assert.equal(JSON.parse(result.body.result.content[0].text).count, 2);
+    }
+  }
   // Recover an interrupted apply with only the original plan, even if the LMS
   // has subsequently deployed. The operator must verify the exact granted role.
   assert.equal(operator('access-revoke', { ...req, ...plan }).revoked, true);
   assert.ok(!(await User.findById(user._id)).customRoleId);
   assert.equal(await Role.countDocuments(), before);
   assert.equal((await rpc(token.body.access_token, 'tools/list')).status, 401);
+  assert.equal((await rpc(recovered.body.access_token, 'tools/list')).status, 401);
+  console.log('PASS: connect-only consent remains limited; explicit read consent lists three tools, counts students, refreshes and revokes.');
   console.log('PASS: unchanged LMS records, rejected student/staff/custom-role opt-in, read-only access preview, stale-plan rejection, default-admin grant/recovery, limited-scope OAuth and revocation.');
   console.log('PASS: read-only runtime-account diagnosis distinguishes missing/inactive accounts, custom roles, unsupported base roles and missing tenants without exposing credentials.');
 }

@@ -638,6 +638,7 @@ def diagnose_tools(args):
         raise m.MigrationError('Read-only tool diagnosis failed at ' + stage + '. No access was changed.')
     require(result.returncode == 0 and status.get('issuer') == ISSUER and status.get('database') == 'lms-saas'
             and isinstance(status.get('availableTools'), list), 'Tool diagnosis returned an invalid result.')
+    status['gatewayImage'] = current['Config']['Image']
     print(json.dumps(status, indent=2))
     print('Read-only production diagnosis complete. Counts come from the live runtime database; ChatGPT must still complete OAuth and invoke its own production tool.')
 

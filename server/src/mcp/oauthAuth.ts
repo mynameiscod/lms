@@ -1,13 +1,14 @@
 import { Response, NextFunction, Request } from 'express';
 import McpOAuthAccessToken from '../models/McpOAuthAccessToken';
-import { mcpConfig, McpError } from './oauthPolicy';
+import { mcpConfig, McpError, resourceScopes } from './oauthPolicy';
 import { tokenDigest } from './oauthSecurity';
 import { activeGrant } from './oauthEngine';
 import { audit } from './audit';
 import { rateLimit } from './rateLimit';
 
 export function challenge(error?: string) {
-  return `Bearer resource_metadata="${mcpConfig().issuer}/.well-known/oauth-protected-resource/mcp", scope="mcp_connect"${error ? `, error="${error}"` : ''}`;
+  const config = mcpConfig();
+  return `Bearer resource_metadata="${config.issuer}/.well-known/oauth-protected-resource/mcp", scope="${resourceScopes(config.clients).join(' ')}"${error ? `, error="${error}"` : ''}`;
 }
 
 /** OAuth is the only transport credential, in every environment. No LMS JWT bypass. */

@@ -1,7 +1,7 @@
 import express from 'express';
 import { mcpOAuthAuth } from './oauthAuth';
 import { tools, canUseTool, executeTool } from './tools';
-import { McpError, mcpConfig } from './oauthPolicy';
+import { McpError, mcpConfig, registeredClient } from './oauthPolicy';
 import { audit } from './audit';
 
 function validateToolParameters(params: Record<string, any> | undefined, allowed: string[]) {
@@ -57,10 +57,23 @@ router.all('/', async (req, res) => {
         break;
       }
       case 'ping': result = {}; break;
-      case 'tools/list':
+      case 'tools/list': {
         validateToolParameters(body.params, []);
-        result = { tools: tools.filter(t => canUseTool(context.identity, context.scopes, t)).map(({ scope, domain, summary, ...publicTool }) => publicTool) };
+        const visible = tools.filter(t => canUseTool(context.identity, context.scopes, t));
+        if (!visible.length) {
+          // Older discovery advertised mcp_connect alone. Ask for new consent
+          // only when both the current user and this registered client may use
+          // more tools. Never widen an existing token or disclose blocked tools.
+          const permitted = tools.filter(t => canUseTool(context.identity, registeredClient(context.clientId).scopes, t));
+          if (permitted.length) {
+            const scopes = ['mcp_connect', ...new Set(permitted.map(t => t.scope))];
+            res.set('WWW-Authenticate', `Bearer resource_metadata="${mcpConfig().issuer}/.well-known/oauth-protected-resource/mcp", error="insufficient_scope", scope="${scopes.join(' ')}"`);
+            throw new McpError('insufficient_scope', 403);
+          }
+        }
+        result = { tools: visible.map(({ scope, domain, summary, ...publicTool }) => publicTool) };
         break;
+      }
       case 'tools/call': {
         if (!body.params) throw new McpError('invalid_params');
         validateToolParameters(body.params, ['name', 'arguments']);

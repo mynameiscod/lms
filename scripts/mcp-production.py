@@ -5,6 +5,7 @@ See docs/runbooks/mcp-production.md. No synthetic preparer, application restart,
 Mongo recreation, credential rotation, repository reset, or implicit role grant.
 """
 import argparse
+import fcntl
 import hashlib
 import importlib.util
 import json
@@ -237,16 +238,7 @@ def prepare(args):
         write(STATE / 'runtime.json', config, 0o444)
         save(s)
     if 'imageId' not in s:
-        print('Building the reviewed commit with the committed workspace lockfile.', flush=True)
-        # Archive tracked committed files only: no .env, local credentials, test secrets or dirty files.
-        archive = subprocess.Popen(['git', '-C', str(ROOT), 'archive', '--format=tar', s['commit']], stdout=subprocess.PIPE)
-        try:
-            built = subprocess.run(['docker', 'build', '-f', 'ops/mcp-production/Dockerfile', '-t', s['image'], '-'], stdin=archive.stdout)
-            archive.stdout.close()
-            require(archive.wait() == 0 and built.returncode == 0, 'Production MCP image build failed.')
-        finally:
-            if archive.poll() is None: archive.terminate()
-        s['imageId'] = json.loads(docker('image', 'inspect', s['image']).stdout)[0]['Id']
+        s['imageId'] = build_image(s)
         save(s)
     print('Preparing MCP collections and its dedicated runtime account. Existing LMS records stay unchanged.', flush=True)
     operator(s, 'prepare')
@@ -254,6 +246,162 @@ def prepare(args):
     s['phase'] = 'prepared' if s['phase'] == 'preparing' else s['phase']
     save(s)
     print('PASS: production MCP image, indexes and limited runtime privileges prepared. No service or account access enabled.')
+
+
+def build_image(s):
+    print('Building the reviewed commit with the committed workspace lockfile.', flush=True)
+    # Only committed files enter the build: no local credentials or test secrets.
+    archive = subprocess.Popen(['git', '-C', str(ROOT), 'archive', '--format=tar', s['commit']], stdout=subprocess.PIPE)
+    try:
+        built = subprocess.run(['docker', 'build', '-f', 'ops/mcp-production/Dockerfile', '-t', s['image'], '-'], stdin=archive.stdout)
+        archive.stdout.close()
+        require(archive.wait() == 0 and built.returncode == 0, 'Production MCP image build failed.')
+    finally:
+        if archive.poll() is None: archive.terminate()
+    return json.loads(docker('image', 'inspect', s['image']).stdout)[0]['Id']
+
+
+def start_gateway(s, operation=None):
+    labels = ['--label', 'codebegun.upgrade=' + operation] if operation else []
+    docker('run', '-d', '--name', CONTAINER, '--label', 'codebegun.managed=' + MARKER, *labels,
+           '--restart', 'unless-stopped', '--network', NETWORK, '--read-only', '--cap-drop', 'ALL',
+           '--security-opt', 'no-new-privileges:true', '--memory', '1g', '--cpus', '1', '--pids-limit', '128',
+           '-e', 'NODE_OPTIONS=--max-old-space-size=768', '-p', '127.0.0.1:5011:5000',
+           '--mount', 'type=bind,source=' + str(STATE / 'runtime.json') + ',target=/run/mcp/runtime.json,readonly',
+           s['imageId'])
+
+
+def upgrade_container(s):
+    c = inspect(CONTAINER)
+    require(c and c['State']['Running'] and c['Image'] == s['imageId']
+            and c['Config'].get('Labels', {}).get('codebegun.managed') == MARKER, 'Recorded managed gateway is not running.')
+    require(c['Config']['User'] == 'node' and c['HostConfig']['ReadonlyRootfs']
+            and NETWORK in c['NetworkSettings']['Networks'], 'Gateway security or network configuration changed.')
+    require(c['HostConfig']['PortBindings'] == {'5000/tcp': [{'HostIp': '127.0.0.1', 'HostPort': '5011'}]},
+            'Gateway must use only the reviewed localhost port.')
+    mounts = c['Mounts']
+    require(len(mounts) == 1 and mounts[0]['Destination'] == '/run/mcp/runtime.json'
+            and mounts[0]['Source'] == str(STATE / 'runtime.json') and mounts[0]['Type'] == 'bind' and not mounts[0]['RW'],
+            'Gateway runtime mount changed.')
+    require(c['HostConfig']['RestartPolicy']['Name'] == 'unless-stopped', 'Gateway restart policy changed.')
+    return c
+
+
+def verify_discovery(s):
+    expected = set(s['scopes'])
+    for path in ['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp']:
+        status, body = fetch(ISSUER + path)
+        require(status == 200 and set(body.get('scopes_supported', [])) == expected,
+                'Production resource metadata does not advertise the installed read scopes.')
+    request = urllib.request.Request(ISSUER + '/mcp', method='POST',
+                                    data=b'{"jsonrpc":"2.0","id":1,"method":"tools/list"}',
+                                    headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
+    try:
+        with urllib.request.urlopen(request, timeout=15):
+            raise m.MigrationError('Anonymous production MCP was not rejected.')
+    except urllib.error.HTTPError as error:
+        scope = re.search(r'(?:^|,\s*)scope="([^"]+)"', error.headers.get('WWW-Authenticate', ''))
+        require(error.code == 401 and scope and set(scope[1].split()) == expected,
+                'Production login challenge does not request the installed read scopes.')
+
+
+def restore_upgrade(journal=None):
+    pending = STATE / 'upgrade-pending.json'
+    record = pending if pending.exists() else STATE / 'upgrade-previous.json'
+    if journal is None:
+        require(record.exists(), 'No saved gateway upgrade to recover.')
+        journal = json.loads(record.read_text())
+    require(journal.get('purpose') == MARKER, 'Unrecognized upgrade recovery record.')
+    current = inspect(CONTAINER)
+    replacement = current and current['Id'] != journal['oldContainerId']
+    if replacement:
+        require(current['Image'] == journal['newState']['imageId']
+                and current['Config'].get('Labels', {}).get('codebegun.managed') == MARKER
+                and current['Config'].get('Labels', {}).get('codebegun.upgrade') == journal['operation'],
+                'Another container owns the gateway name; it was not modified.')
+        # Stop our failed replacement even if configuration drift or a missing
+        # backup prevents restoration. Retain its journal for manual recovery.
+        try:
+            docker('update', '--restart=no', current['Id'])
+        finally:
+            docker('stop', current['Id'])
+    runtime = STATE / 'runtime.json'
+    require(runtime.exists() and digest(runtime.read_text()) == journal['runtimeDigest'],
+            'Upgrade runtime configuration changed; any identified replacement is stopped. Preserve the recovery record and restore the reviewed configuration before retrying upgrade-rollback.')
+    old = inspect(journal['oldContainerId'])
+    require(old and old['Image'] == journal['oldState']['imageId']
+            and old['Config'].get('Labels', {}).get('codebegun.managed') == MARKER,
+            'Recorded rollback gateway is missing or changed; any identified replacement is stopped. Preserve the recovery record for review.')
+    if replacement:
+        docker('rm', current['Id'])
+    if old['Name'] != '/' + CONTAINER:
+        docker('rename', old['Id'], CONTAINER)
+    docker('update', '--restart=unless-stopped', old['Id'])
+    docker('start', old['Id'])
+    # Recovery deliberately does not depend on live LMS health or new discovery.
+    restored = inspect(old['Id'])
+    require(restored and restored['State']['Running'], 'Previous gateway did not restart; retain the pending recovery record.')
+    save(journal['oldState'])
+    write(STATE / ('upgrade-recovered-' + journal['operation'] + '.json'), journal)
+    pending.unlink(missing_ok=True)
+    (STATE / 'upgrade-previous.json').unlink(missing_ok=True)
+    print('PASS: previous production MCP gateway restored; runtime credentials and account access retained.')
+
+
+def upgrade():
+    if (STATE / 'upgrade-pending.json').exists():
+        restore_upgrade()
+    s, current = state(), preflight()
+    require(s['phase'] == 'enabled' and current['mongoId'] == s['mongoId'] and current['site'] == s['site'],
+            'An enabled gateway on the recorded database/site is required for upgrade.')
+    require(SNIPPET.read_text() == routes(True), 'Enabled MCP routing changed; it was not modified.')
+    runtime_text = (STATE / 'runtime.json').read_text()
+    runtime_digest = digest(runtime_text)
+    config = json.loads(runtime_text)
+    require(config['purpose'] == MARKER and config['installation'] == s['installation']
+            and config['issuer'] == ISSUER and config['database'] == 'lms-saas'
+            and config['hostname'] == 'mongodb' and config['replica'] == 'lms-rs0'
+            and len(config['clients']) == 1 and config['clients'][0]['scopes'] == s['scopes'] + ['offline_access'],
+            'Runtime identity or installed scope configuration changed.')
+    old = upgrade_container(s)
+    active = current_lms(s)
+    if current['commit'] == s['commit']:
+        verify(s)
+        verify_discovery(s)
+        print('PASS: this production MCP commit is already running.')
+        return
+    candidate = {**s, **current, 'phase': 'enabled'}
+    candidate['imageId'] = build_image(candidate)
+    # verify mounts only runtime.json, authenticates as the limited runtime user,
+    # and uses nonmatching permission probes and a read-only transaction.
+    print(json.dumps(operator(candidate, 'verify'), indent=2))
+    require(current_lms(s) == active and upgrade_container(s)['Id'] == old['Id'],
+            'Live deployment changed during the build; retry the upgrade.')
+    require(digest((STATE / 'runtime.json').read_text()) == runtime_digest, 'Runtime configuration changed during the build; retry after review.')
+    operation = str(uuid.uuid4())
+    backup = CONTAINER + '-rollback-' + old['Id'][:12]
+    require(not inspect(backup), 'A rollback container with this name already exists.')
+    journal = {'purpose': MARKER, 'operation': operation, 'oldState': s, 'newState': candidate,
+               'oldContainerId': old['Id'], 'backupName': backup, 'runtimeDigest': runtime_digest}
+    write(STATE / 'upgrade-pending.json', journal)
+    print('Switching only the production MCP gateway; the previous container is retained for rollback.', flush=True)
+    try:
+        # A retained old container must not compete for port 5011 after reboot.
+        docker('update', '--restart=no', old['Id'])
+        docker('stop', old['Id'])
+        docker('rename', old['Id'], backup)
+        start_gateway(candidate, operation)
+        local_ready()
+        verify(candidate)
+        verify_discovery(candidate)
+        require(digest((STATE / 'runtime.json').read_text()) == journal['runtimeDigest'], 'Runtime configuration changed during upgrade.')
+        save(candidate)
+        write(STATE / 'upgrade-previous.json', journal)
+        (STATE / 'upgrade-pending.json').unlink()
+    except BaseException:
+        restore_upgrade(journal)
+        raise
+    print('PASS: production MCP upgraded and public read-scope discovery verified. Reauthorize the ChatGPT connection for the advertised read permissions.')
 
 
 def upgrade_prepared(s, current):
@@ -350,12 +498,7 @@ def enable():
     SNIPPET.parent.mkdir(parents=True, exist_ok=True)
     existing = inspect(CONTAINER)
     if not existing:
-        docker('run', '-d', '--name', CONTAINER, '--label', 'codebegun.managed=' + MARKER,
-               '--restart', 'unless-stopped', '--network', NETWORK, '--read-only', '--cap-drop', 'ALL',
-               '--security-opt', 'no-new-privileges:true', '--memory', '1g', '--cpus', '1', '--pids-limit', '128',
-               '-e', 'NODE_OPTIONS=--max-old-space-size=768', '-p', '127.0.0.1:5011:5000',
-               '--mount', 'type=bind,source=' + str(STATE / 'runtime.json') + ',target=/run/mcp/runtime.json,readonly',
-               s['imageId'])
+        start_gateway(s)
     else:
         require(existing['Image'] == s['imageId'], 'Existing MCP container uses a different image.')
         docker('start', CONTAINER)
@@ -479,6 +622,26 @@ def diagnose_account(args):
     print('Read-only diagnosis complete. No account, role, token or deployment configuration was changed.')
 
 
+def diagnose_tools(args):
+    s = state()
+    email = (args.email or input('Enter your existing production LMS login email: ')).strip().lower()
+    require(bool(re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email)) and len(email) <= 254, 'Enter a valid existing LMS login email.')
+    current = upgrade_container(s)
+    result = subprocess.run(['docker', 'exec', '-i', '--workdir', '/app', current['Id'], 'node', '-', email],
+                            input=(ROOT / 'ops/mcp-production/tools-status.cjs').read_text(),
+                            text=True, capture_output=True, timeout=60)
+    lines = [x[len('TOOL_STATUS='):] for x in result.stdout.splitlines() if x.startswith('TOOL_STATUS=')]
+    require(len(lines) == 1, 'Tool diagnosis could not run; raw output was suppressed.')
+    status = json.loads(lines[0])
+    stage = status.get('diagnosticFailedAt')
+    if stage in ['configuration', 'database_connection', 'account_access', 'connection_scopes', 'student_count']:
+        raise m.MigrationError('Read-only tool diagnosis failed at ' + stage + '. No access was changed.')
+    require(result.returncode == 0 and status.get('issuer') == ISSUER and status.get('database') == 'lms-saas'
+            and isinstance(status.get('availableTools'), list), 'Tool diagnosis returned an invalid result.')
+    print(json.dumps(status, indent=2))
+    print('Read-only production diagnosis complete. Counts come from the live runtime database; ChatGPT must still complete OAuth and invoke its own production tool.')
+
+
 def access_command(args):
     s = state()
     # Revocation must work during an LMS outage or after a normal app/container
@@ -530,12 +693,22 @@ def access_command(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['plan', 'prepare', 'enable', 'verify', 'disable', 'diagnose-account', 'access-plan', 'access-apply', 'access-revoke'])
-    parser.add_argument('--email', help='Existing LMS login email for diagnose-account/access-plan; never a password.')
+    parser.add_argument('command', choices=['plan', 'prepare', 'enable', 'verify', 'disable', 'upgrade', 'upgrade-rollback', 'diagnose-account', 'diagnose-tools', 'access-plan', 'access-apply', 'access-revoke'])
+    parser.add_argument('--email', help='Existing LMS login email for diagnose-account, diagnose-tools or access-plan; never a password.')
     parser.add_argument('--all-read-domains', action='store_true', help='prepare: allow all eight MCP read domains, including finance and CRM, instead of students/batches.')
     parser.add_argument('--upgrade-prepared', action='store_true', help='prepare: update a reviewed commit only before any gateway service, routes or account access have been installed; retain credentials/scopes.')
     args = parser.parse_args()
     require(os.geteuid() == 0, 'Run as root on the VPS.')
+    fd = os.open('/run/lock/codebegun-mcp-production.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        try: fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError: raise m.MigrationError('Another production MCP operation is running; wait for it to finish.')
+        dispatch(args)
+    finally:
+        os.close(fd)
+
+
+def dispatch(args):
     if args.command == 'plan':
         print(json.dumps(preflight(), indent=2))
         print('Read-only plan passed. Existing LMS, MongoDB, legacy MCP and test services are retained.')
@@ -543,7 +716,10 @@ def main():
     elif args.command == 'enable': enable()
     elif args.command == 'verify': verify(state())
     elif args.command == 'disable': disable()
+    elif args.command == 'upgrade': upgrade()
+    elif args.command == 'upgrade-rollback': restore_upgrade()
     elif args.command == 'diagnose-account': diagnose_account(args)
+    elif args.command == 'diagnose-tools': diagnose_tools(args)
     else: access_command(args)
 
 

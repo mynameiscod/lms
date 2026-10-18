@@ -7,6 +7,7 @@ if docker inspect lms-mongodb >/dev/null 2>&1; then
   exit 1
 fi
 python3 ops/mcp-production/test-installer.py
+python3 ops/mcp-production/test-upgrade.py
 bash scripts/mcp-test.sh init
 scratch="$(mktemp -d)"
 chmod 700 "$scratch"
@@ -98,5 +99,20 @@ docker run --rm --network host --read-only --cap-drop ALL --security-opt no-new-
   --add-host mcp-test.codebegun.com:127.0.0.1 -e NODE_EXTRA_CA_CERTS=/verify/fullchain.pem \
   -v "$scratch/fullchain.pem:/verify/fullchain.pem:ro" -v "$PWD/ops/mcp-test/private/test-password:/run/secrets/test_password:ro" \
   codebegun-mcp-test:local node ops/mcp-test/smoke.cjs --public
+docker exec -i --workdir /app mcp-production-ci node - admin-a@mcp-test.invalid codebegun-mcp-smoke \
+  < ops/mcp-production/tools-status.cjs > "$scratch/tool-status.txt"
+python3 - "$scratch/tool-status.txt" <<'PY'
+import json, sys
+from pathlib import Path
+rows = [line.removeprefix('TOOL_STATUS=') for line in Path(sys.argv[1]).read_text().splitlines() if line.startswith('TOOL_STATUS=')]
+assert len(rows) == 1
+data = json.loads(rows[0])
+assert data['database'] == 'lms-mcp-test'
+assert data['activeStudentsFromMcpQuery'] == 2 and data['lmsStudentsAllStatuses'] == 2
+assert 'codebegun_student_count' in data['availableTools']
+assert data['hasStudentCountGrant'] is False  # Smoke consent was explicitly revoked.
+assert data['currentClientTokenChecked'] is False
+print('PASS: read-only tool diagnosis separates actual scoped counts from revoked/missing client consent.')
+PY
 "${fixture[@]}"
 echo 'PASS: production image on MongoDB 8.2.7, private and HTTPS OAuth, runtime privileges, scoped account grant/revoke, and Nginx recovery.'

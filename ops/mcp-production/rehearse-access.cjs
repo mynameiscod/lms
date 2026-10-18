@@ -128,9 +128,15 @@ async function main() {
   }
   assert.ok(ready);
   assert.deepEqual((await request('/.well-known/oauth-authorization-server')).body.scopes_supported, scopes.concat('offline_access'));
+  const resourceMetadata = await request('/.well-known/oauth-protected-resource/mcp');
+  assert.deepEqual(resourceMetadata.body.scopes_supported, scopes);
+  const anonymous = await rpc('', 'tools/list');
+  assert.equal(anonymous.status, 401);
+  const advertised = /(?:^|,\s*)scope="([^"]+)"/.exec(anonymous.headers['www-authenticate'])?.[1].split(' ');
+  assert.deepEqual(advertised, scopes);
   const verifier = crypto.randomBytes(48).toString('base64url');
   const query = new URLSearchParams({ response_type: 'code', client_id: 'codebegun-mcp-smoke',
-    redirect_uri: 'http://127.0.0.1:8765/callback', scope: scopes.concat('offline_access').join(' '),
+    redirect_uri: 'http://127.0.0.1:8765/callback', scope: advertised.concat('offline_access').join(' '),
     resource: c.issuer + '/mcp', state: 'synthetic', code_challenge_method: 'S256',
     code_challenge: crypto.createHash('sha256').update(verifier).digest('base64url') });
   const start = await request('/mcp-oauth/authorize?' + query);

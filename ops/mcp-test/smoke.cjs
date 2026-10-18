@@ -7,8 +7,7 @@ const publicMode = process.argv.includes('--public');
 const base = publicMode ? settings.issuer : 'http://app:5000';
 const clientId = 'codebegun-mcp-smoke';
 const redirectUri = 'http://127.0.0.1:8765/callback';
-const scopes = ['mcp_connect', 'mcp_students_read', 'mcp_batches_read', 'mcp_attendance_read',
-  'mcp_assessments_read', 'mcp_finance_read', 'mcp_placements_read', 'mcp_leads_read', 'mcp_calls_read', 'offline_access'];
+let scopes;
 const tokens = new Set();
 let checks = 0;
 function check(value, message) { assert.ok(value, message); checks++; }
@@ -50,11 +49,11 @@ const form = (path, fields, headers = {}) => request(path, {
 });
 const cookie = r => r.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
 const csrf = r => /name="csrf" value="([A-Za-z0-9_-]+)"/.exec(r.text)?.[1];
-async function login(account) {
+async function login(account, requestedScopes = scopes) {
   const verifier = crypto.randomBytes(48).toString('base64url');
   const state = crypto.randomBytes(24).toString('base64url');
   const query = new URLSearchParams({ response_type: 'code', client_id: clientId, redirect_uri: redirectUri,
-    resource: settings.issuer + '/mcp', scope: scopes.join(' '), state, code_challenge_method: 'S256',
+    resource: settings.issuer + '/mcp', scope: requestedScopes.join(' '), state, code_challenge_method: 'S256',
     // Exercise the optional locale hint included by the actual ChatGPT client.
     ui_locales: 'en-US', code_challenge: crypto.createHash('sha256').update(verifier).digest('base64url') });
   const start = await request('/mcp-oauth/authorize?' + query);
@@ -109,14 +108,30 @@ async function main() {
   for (const path of ['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp']) {
     const r = await request(path);
     check(r.status === 200 && r.json?.resource === settings.issuer + '/mcp', 'Resource discovery failed');
+    check(r.json.scopes_supported.includes('mcp_students_read') && !r.json.scopes_supported.includes('offline_access'),
+      'Resource discovery omits usable read scopes or advertises an authorization-server-only scope');
+    scopes = r.json.scopes_supported;
   }
-  check((await rpc('invalid', 'tools/list')).status === 401, 'Anonymous MCP access was accepted');
+  const challenge = await rpc('invalid', 'tools/list');
+  check(challenge.status === 401, 'Anonymous MCP access was accepted');
+  const advertised = /(?:^|,\s*)scope="([^"]+)"/.exec(challenge.headers.get('www-authenticate') || '')?.[1].split(' ');
+  check(JSON.stringify(advertised) === JSON.stringify(scopes), 'Challenge and resource scopes disagree');
+  // Follow MCP scope selection; previous smoke tests hardcoded every read scope
+  // and therefore missed real clients receiving a connect-only empty catalog.
+  scopes = [...advertised, ...(metadata.json.scopes_supported.includes('offline_access') ? ['offline_access'] : [])];
   for (const path of ['/mcp-oauth/login', '/mcp-oauth/consent']) {
     for (const origin of ['null', 'https://untrusted.example']) {
       const denied = await form(path, {}, { Origin: origin });
       check(denied.status === 403 && denied.json?.error === 'invalid_origin', 'Untrusted form origin was accepted');
     }
   }
+  const legacy = await login('admin-a', ['mcp_connect', 'offline_access']);
+  const recover = await rpc(legacy.access_token, 'tools/list');
+  check(recover.status === 403 && recover.json?.error?.message === 'insufficient_scope' &&
+    recover.headers.get('www-authenticate')?.includes('mcp_students_read'),
+    'Connect-only grant did not receive explicit read-scope reauthorization guidance');
+  check((await rpc(legacy.access_token, 'tools/call', { name: 'codebegun_student_count', arguments: {} })).status === 403,
+    'Connect-only grant was silently widened');
   const admin = await login('admin-a');
   const initialized = await rpc(admin.access_token, 'initialize', { protocolVersion: '2025-11-25',
     capabilities: {}, clientInfo: { name: 'codebegun-staging-smoke', version: '1.0' } });

@@ -2,7 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import { randomUUID } from 'crypto';
 import mcpRouter from './router';
 import oauthRouter, { endpoint } from './oauthRoutes';
-import { McpError, mcpConfig } from './oauthPolicy';
+import { McpError, mcpConfig, resourceScopes } from './oauthPolicy';
 import { mcpContentSecurityPolicy } from './oauthSecurity';
 import { ipKey, rateLimit } from './rateLimit';
 import { audit } from './audit';
@@ -45,8 +45,8 @@ router.get('/.well-known/oauth-authorization-server', endpoint('oauth_metadata',
     scopes_supported: [...new Set(clients.flatMap(client => client.scopes))], authorization_response_iss_parameter_supported: true });
 }));
 router.get(['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp'], endpoint('resource_metadata', async (_req, res) => {
-  const { resource, issuer } = mcpConfig();
-  return res.json({ resource, authorization_servers: [issuer], scopes_supported: ['mcp_connect'], bearer_methods_supported: ['header'],
+  const { resource, issuer, clients } = mcpConfig();
+  return res.json({ resource, authorization_servers: [issuer], scopes_supported: resourceScopes(clients), bearer_methods_supported: ['header'],
     resource_name: 'CodeBegun Universal MCP' });
 }));
 router.use('/mcp-oauth', oauthRouter);

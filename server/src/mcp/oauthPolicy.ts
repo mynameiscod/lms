@@ -74,6 +74,13 @@ export function registeredClient(id: unknown): McpClient {
   return client;
 }
 
+/** Resource discovery must describe usable tools, not just transport access.
+ * offline_access belongs to authorization-server metadata and explicit consent.
+ */
+export function resourceScopes(clients = mcpConfig().clients): string[] {
+  return [...new Set(clients.flatMap(client => client.scopes))].filter(scope => scope !== 'offline_access');
+}
+
 export function parseScopes(value: unknown, client: McpClient): string[] {
   if (typeof value !== 'string' || value.length > 1000 || !/^[\x21-\x7e]+(?: [\x21-\x7e]+)*$/.test(value)) throw new McpError('invalid_scope');
   const scopes = [...new Set(value.split(' '))];

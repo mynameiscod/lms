@@ -190,6 +190,77 @@ and record restrictions. The existing test connection still returns synthetic
 data; select the production connection for this verification. Disconnect at
 `https://platform.codebegun.com/mcp-oauth/connections`.
 
+### Connected app with no tools: repair OAuth scope discovery
+
+The original gateway advertised only `mcp_connect` in both its anonymous
+`WWW-Authenticate` challenge and resource metadata. A client following those
+values could complete OAuth successfully but receive zero tools, because every
+tool also requires a domain read scope. The original smoke test hardcoded all
+read scopes and missed that real-client path. The corrected smoke test derives
+its scopes from discovery before completing real login, consent and PKCE.
+
+The fix advertises the existing configured resource scopes (students/batches by
+default). `offline_access` remains in authorization-server metadata and requires
+explicit consent. Existing tokens/grants are never broadened. If an older token
+has only connect access while the account and client are eligible for tools,
+`tools/list` returns a `403 insufficient_scope` challenge for those eligible
+domains, allowing the client to request new consent. Accounts with no eligible
+tools do not receive a misleading scope-upgrade prompt.
+
+For an already enabled production gateway, after the reviewed commit passes CI:
+
+```sh
+cd /root/lms-mcp-test &&
+git pull --ff-only origin feature/mcp-role-permissions &&
+python3 scripts/mcp-production.py upgrade &&
+python3 scripts/mcp-production.py diagnose-tools --email YOUR_EXISTING_LMS_EMAIL
+```
+
+`upgrade` builds the committed archive and verifies the new image's limited
+runtime DB privileges while the previous gateway remains running. It then
+briefly replaces only the MCP container on localhost 5011. The LMS, MongoDB,
+Nginx routes, credentials, account role and OAuth grants are retained. The old
+container is kept with automatic restart disabled. Startup, public verification
+or advertised-scope failures restore the old gateway. A journal written before
+cutover supports recovery after interruption; host operator commands use an
+exclusive lock. A runtime configuration change during the build aborts cutover.
+
+To recover an interrupted upgrade or roll back the latest completed upgrade:
+
+```sh
+python3 scripts/mcp-production.py upgrade-rollback
+```
+
+Recovery identifies the exact old and replacement containers and does not depend
+on public LMS health or the new discovery behavior. It never restores a database
+snapshot. Keep `/root/lms-mcp-production/app` and retained rollback containers.
+If runtime configuration changed after cutover or the retained container is
+missing, recovery stops the identified replacement and preserves the journal;
+restore the reviewed configuration/container before retrying recovery.
+
+The read-only `diagnose-tools` command also works before the image update. It
+streams a diagnostic into the existing gateway, uses its limited runtime account,
+and reports eligible tools, valid OAuth grant scopes, and the active student count
+from the same tenant-scoped query as the MCP tool. For tenant/super admins it also
+reports the LMS Users card's all-status student count. It prints no tokens,
+passwords or student records. Its output is **server diagnostic evidence**, not a
+claim that ChatGPT has successfully invoked the production tool.
+It checks up to ten recent valid grants. `hasStudentCountGrant` describes those
+grants; it cannot identify the access token currently held by ChatGPT, which may
+have narrower scopes. `currentClientTokenChecked` is therefore always false.
+
+After upgrading, open the CodeBegun Production app and refresh its tools. Complete
+the new OAuth consent if prompted; it must include student/batch read access.
+If the client keeps its old connect-only grant, disconnect/reconnect the app's
+connected account using the existing production LMS login, then refresh tools.
+Do not delete/regrant the LMS account's MCP role for this problem. The configured
+server URL and client ID remain unchanged. Confirm the three default tools appear,
+then invoke `codebegun_student_count` through **CodeBegun Production** with `{}`.
+Compare its active count to `activeStudentsFromMcpQuery`; the Users card uses
+`lmsStudentsAllStatuses`, so inactive students can produce a different total.
+Actual ChatGPT import, query and refresh behavior remain deployment acceptance
+checks; synthetic CI cannot certify the user's private ChatGPT connection.
+
 ## Verification, interruption and rollback
 
 ```sh

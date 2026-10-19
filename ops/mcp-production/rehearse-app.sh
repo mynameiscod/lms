@@ -8,6 +8,7 @@ if docker inspect lms-mongodb >/dev/null 2>&1; then
 fi
 python3 ops/mcp-production/test-installer.py
 python3 ops/mcp-production/test-upgrade.py
+python3 ops/mcp-production/test-scopes.py
 bash scripts/mcp-test.sh init
 scratch="$(mktemp -d)"
 chmod 700 "$scratch"
@@ -57,8 +58,10 @@ printf '{}' > "$scratch/request.json"
 chmod 444 "$scratch/request.json"
 fixture=(docker run --rm --user 0 --network codebegun-mcp-test_isolated --read-only
   -v "$scratch:/verify" -v "$scratch/runtime.json:/run/mcp/runtime.json:ro" -v "$scratch/admin.json:/run/mcp/admin.json:ro"
+  -v "$scratch/admin.json:/run/mcp/scope-admin.json:ro" -v "$scratch/request.json:/run/mcp/scope-request.json:ro"
   -v "$scratch/request.json:/run/mcp/request.json:ro" -v "$PWD/ops/mcp-test/private/test-password:/run/secrets/test_password:ro"
-  -v "$PWD/ops/mcp-production/rehearse-access.cjs:/app/rehearse-access.cjs:ro" mcp-production-ci node /app/rehearse-access.cjs)
+  -v "$PWD/ops/mcp-production/rehearse-access.cjs:/app/rehearse-access.cjs:ro"
+  -v "$PWD/ops/mcp-production/scopes.cjs:/app/ops/mcp-production/scopes.cjs:ro" mcp-production-ci node /app/rehearse-access.cjs)
 "${fixture[@]}" snapshot
 "${operator[@]}" prepare
 "${operator[@]}" prepare

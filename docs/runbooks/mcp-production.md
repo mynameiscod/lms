@@ -311,6 +311,9 @@ a failed connection. The original `access-applied.json` and `access-plan.json`
 must be retained and match the account. The workflow refuses a shared/modified
 role, a different account, disabled modules or missing native permissions. It
 never adds `manage_leads` or any other native business permission to satisfy MCP.
+The client allowlist applies to every account using that client. Other accounts
+still need their own domain/native permissions and fresh consent; only the
+selected individual role is modified by this operation.
 
 After reviewing and approving that exact preview, run the `scope-apply` command
 printed by it, including its exact `--plan-id`. The plan expires after one hour;

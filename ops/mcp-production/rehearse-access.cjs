@@ -22,7 +22,16 @@ const operator = (action, request) => {
 };
 const scopeOperator = (action, request) => {
   fs.writeFileSync('/verify/request.json', JSON.stringify(request));
-  const value = execFileSync(process.execPath, ['ops/mcp-production/scopes.cjs', action], { encoding: 'utf8', stdio: 'pipe' });
+  let value;
+  try {
+    value = execFileSync(process.execPath, ['ops/mcp-production/scopes.cjs', action], { encoding: 'utf8', stdio: 'pipe' });
+  } catch (error) {
+    // Surface only the operator's fixed reason code, never child output/secrets.
+    const row = String(error.stdout || '').split('\n').find(s => s.startsWith('SCOPE_JSON='));
+    const reason = row && JSON.parse(row.slice(11)).error;
+    throw new Error('Synthetic scope ' + action + ' failed: ' +
+      (typeof reason === 'string' && /^[a-z_]+$/.test(reason) ? reason : 'operator_failed'));
+  }
   assert.ok(!value.includes(c.password), 'Scope operator printed a runtime credential');
   return JSON.parse(value.split('\n').find(s => s.startsWith('SCOPE_JSON=')).slice(11));
 };

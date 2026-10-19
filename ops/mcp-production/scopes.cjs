@@ -9,6 +9,7 @@ const c = settings.load();
 mongoose.set('autoIndex', false); mongoose.set('autoCreate', false);
 const model = name => require('/app/server/dist/models/' + name).default;
 const { identityFor } = require('/app/server/dist/mcp/identity');
+const { mcpConfig } = require('/app/server/dist/mcp/oauthPolicy');
 const { tools, canUseTool } = require('/app/server/dist/mcp/tools');
 const action = process.argv[2];
 const sorted = values => [...new Set(values)].sort();
@@ -63,6 +64,7 @@ async function preview(r, session) {
 }
 
 async function main() {
+  mcpConfig();
   const r = JSON.parse(fs.readFileSync('/run/mcp/scope-request.json', 'utf8'));
   validate(r);
   const admin = action === 'plan' ? undefined : JSON.parse(fs.readFileSync('/run/mcp/scope-admin.json', 'utf8'));
@@ -83,11 +85,13 @@ async function main() {
       const row = await roleSnapshot(r, session);
       const isExpanded = same(row.role.permissions, row.after);
       if (action === 'apply' || isExpanded) {
+        stage = 'role_update';
         const changed = await model('Role').updateOne({ _id: row.role._id, tenantId: row.user.tenantId,
           permissions: row.role.permissions }, { $set: { permissions: action === 'apply' ? row.after : row.before } }, { session });
         check(changed.matchedCount === 1, 'concurrent_role_change');
       }
       if (action === 'rollback') {
+        stage = 'grant_revocation';
         // Prevent newly expanded grants from reviving after a future expansion.
         // Existing three-tool grants and grants for other clients stay intact.
         const additions = r.newScopes.filter(s => !r.oldScopes.includes(s));
@@ -95,6 +99,7 @@ async function main() {
           clientId: r.clientId, scopes: { $in: additions }, revokedAt: null },
         { $set: { revokedAt: new Date() }, $inc: { version: 1 } }, { session });
       }
+      stage = 'audit_write';
       await model('McpAuditEvent').create([{ userId: row.user._id, tenantId: row.user.tenantId,
         clientId: r.clientId, requestId: r.operationId, tool: 'operator_scope_' + action,
         reason: action === 'apply' ? 'explicit_scope_expansion' : 'scope_expansion_rollback', outcome: 'allowed' }], { session });

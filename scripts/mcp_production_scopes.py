@@ -128,8 +128,9 @@ class ScopeChange:
                     oldFiles=old_files, newFiles=new_files, request=request, preview=preview,
                     backupName=h.CONTAINER + '-scope-rollback-' + operation)
         h.write(self.path('scope-plan.json'), plan)
-        print(json.dumps(dict(planId=operation, operatorCommit=source_commit, email=email, tenant=preview['tenantName'],
+        print(json.dumps(dict(planId=operation, operatorCommit=source_commit, clientId=request['clientId'], email=email, tenant=preview['tenantName'],
                               currentScopes=s['scopes'], proposedScopes=target, toolsAfterConsent=preview['tools'],
+                              clientAllowlistAppliesToAllAccounts=True,
                               nativePermissionsChanged=False, existingTokensExpanded=False), indent=2))
         print('Preview only. Review the domains, account and tenant. Apply exactly this plan with:')
         print('python3 scripts/mcp-production.py scope-apply --plan-id ' + operation)

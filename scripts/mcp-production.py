@@ -21,6 +21,7 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parent.parent
 spec = importlib.util.spec_from_file_location('mongo_migration', ROOT / 'scripts/mcp-production-mongo.py')
@@ -694,9 +695,11 @@ def access_command(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['plan', 'prepare', 'enable', 'verify', 'disable', 'upgrade', 'upgrade-rollback', 'diagnose-account', 'diagnose-tools', 'access-plan', 'access-apply', 'access-revoke'])
+    parser.add_argument('command', choices=['plan', 'prepare', 'enable', 'verify', 'disable', 'upgrade', 'upgrade-rollback', 'diagnose-account', 'diagnose-tools', 'access-plan', 'access-apply', 'access-revoke', 'scope-plan', 'scope-apply', 'scope-rollback'])
     parser.add_argument('--email', help='Existing LMS login email for diagnose-account, diagnose-tools or access-plan; never a password.')
-    parser.add_argument('--all-read-domains', action='store_true', help='prepare: allow all eight MCP read domains, including finance and CRM, instead of students/batches.')
+    parser.add_argument('--all-read-domains', action='store_true', help='prepare or scope-plan: explicitly select all eight MCP read domains, including finance and CRM.')
+    parser.add_argument('--domains', help='scope-plan: comma-separated domains to add: students,batches,attendance,exams,fees,placements,leads,calls.')
+    parser.add_argument('--plan-id', help='scope-apply: exact ID from the reviewed scope-plan preview (valid for one hour).')
     parser.add_argument('--upgrade-prepared', action='store_true', help='prepare: update a reviewed commit only before any gateway service, routes or account access have been installed; retain credentials/scopes.')
     args = parser.parse_args()
     require(os.geteuid() == 0, 'Run as root on the VPS.')
@@ -710,6 +713,14 @@ def main():
 
 
 def dispatch(args):
+    if (STATE / 'scope-pending.json').exists():
+        require(args.command in ['scope-rollback', 'disable', 'diagnose-account', 'diagnose-tools'],
+                'A scope change needs recovery. Run scope-rollback before any other production change.')
+    if args.command.startswith('scope-'):
+        scope_spec = importlib.util.spec_from_file_location('mcp_scopes', ROOT / 'scripts/mcp_production_scopes.py')
+        scopes = importlib.util.module_from_spec(scope_spec)
+        scope_spec.loader.exec_module(scopes)
+        return scopes.command(SimpleNamespace(**globals()), args)
     if args.command == 'plan':
         print(json.dumps(preflight(), indent=2))
         print('Read-only plan passed. Existing LMS, MongoDB, legacy MCP and test services are retained.')

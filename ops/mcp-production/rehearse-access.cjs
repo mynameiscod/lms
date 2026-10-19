@@ -20,6 +20,12 @@ const operator = (action, request) => {
   const value = execFileSync(process.execPath, ['ops/mcp-production/operator.cjs', action], { encoding: 'utf8', stdio: 'pipe' });
   return JSON.parse(value.split('\n').find(s => s.startsWith('PRODUCTION_JSON=')).slice(16));
 };
+const scopeOperator = (action, request) => {
+  fs.writeFileSync('/verify/request.json', JSON.stringify(request));
+  const value = execFileSync(process.execPath, ['ops/mcp-production/scopes.cjs', action], { encoding: 'utf8', stdio: 'pipe' });
+  assert.ok(!value.includes(c.password), 'Scope operator printed a runtime credential');
+  return JSON.parse(value.split('\n').find(s => s.startsWith('SCOPE_JSON=')).slice(11));
+};
 const diagnose = email => {
   const value = execFileSync(process.execPath, ['-', email], {
     input: fs.readFileSync('/verify/account-status.cjs', 'utf8'), encoding: 'utf8', stdio: 'pipe',
@@ -194,6 +200,78 @@ async function main() {
   }
   // Recover an interrupted apply with only the original plan, even if the LMS
   // has subsequently deployed. The operator must verify the exact granted role.
+  const allScopes = ['mcp_connect', ...new Set(require('./server/dist/mcp/tools').tools.map(t => t.scope))];
+  const scopeRequest = { operationId: crypto.randomUUID(), email: user.email, clientId: 'codebegun-mcp-smoke',
+    access: applied, oldScopes: scopes, newScopes: allScopes };
+  const roleBeforeScope = await Role.findById(req.newRoleId).lean();
+  const grantsBeforeScope = await model('McpOAuthGrant').find({}).sort({ _id: 1 }).lean();
+  const scopePreview = scopeOperator('plan', scopeRequest);
+  assert.equal(scopePreview.tools.length, 15);
+  assert.deepEqual(await Role.findById(req.newRoleId).lean(), roleBeforeScope, 'Preview changed role');
+  assert.deepEqual(await model('McpOAuthGrant').find({}).sort({ _id: 1 }).lean(), grantsBeforeScope, 'Preview changed consent');
+  scopeRequest.fingerprint = scopePreview.fingerprint;
+  await User.updateOne({ _id: staff._id }, { $set: { customRoleId: req.newRoleId } });
+  assert.throws(() => scopeOperator('plan', scopeRequest), 'Shared role expansion was allowed');
+  await User.updateOne({ _id: staff._id }, { $set: { customRoleId: shared._id } });
+  await Role.updateOne({ _id: req.newRoleId }, { $pull: { permissions: 'view_fees' } });
+  assert.throws(() => scopeOperator('apply', scopeRequest), 'Changed role was overwritten');
+  await Role.updateOne({ _id: req.newRoleId }, { $set: { permissions: roleBeforeScope.permissions } });
+  const Tenant = model('Tenant');
+  const tenantBeforeScope = await Tenant.findById(user.tenantId).lean();
+  await Tenant.updateOne({ _id: user.tenantId }, { $set: { 'modules.attendance': false } });
+  assert.throws(() => scopeOperator('plan', scopeRequest), 'Disabled attendance module was bypassed');
+  await Tenant.updateOne({ _id: user.tenantId }, { $set: { modules: tenantBeforeScope.modules } });
+  assert.equal(scopeOperator('apply', scopeRequest).completed, 'apply');
+  const expandedRole = await Role.findById(req.newRoleId).lean();
+  assert.deepEqual(expandedRole.permissions.filter(s => !s.startsWith('mcp_')).sort(),
+    roleBeforeScope.permissions.filter(s => !s.startsWith('mcp_')).sort());
+  assert.equal(String((await User.findById(user._id)).customRoleId), req.newRoleId);
+  assert.deepEqual(await model('McpOAuthGrant').find({}).sort({ _id: 1 }).lean(), grantsBeforeScope, 'Expansion widened existing consent');
+  async function restartWithScopes(nextScopes) {
+    const stopped = new Promise(resolve => child.once('exit', resolve));
+    child.kill('SIGTERM'); await stopped;
+    c.clients[0].scopes = nextScopes.concat('offline_access');
+    fs.writeFileSync('/verify/runtime.json', JSON.stringify(c));
+    child = spawn(process.execPath, ['ops/mcp-production/serve.cjs'], { stdio: 'ignore' });
+    for (let attempt = 0; attempt < 100; attempt++) {
+      try { if ((await request('/healthz')).status === 200) return; } catch { /* startup */ }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    throw new Error('Synthetic scope gateway did not restart');
+  }
+  await restartWithScopes(allScopes);
+  assert.equal((await rpc(token.body.access_token, 'tools/list')).body.result.tools.length, 3, 'Old access token expanded');
+  const limitedRefresh = await form('/mcp-oauth/token', { grant_type: 'refresh_token', client_id: 'codebegun-mcp-smoke',
+    resource: c.issuer + '/mcp', refresh_token: token.body.refresh_token });
+  assert.equal(limitedRefresh.status, 200);
+  assert.deepEqual(limitedRefresh.body.scope.split(' '), scopes.concat('offline_access'), 'Refresh widened consent');
+  query.set('scope', allScopes.concat('offline_access').join(' '));
+  const expandedStart = await request('/mcp-oauth/authorize?' + query);
+  const expandedLogin = await form('/mcp-oauth/login', { email: user.email,
+    password: fs.readFileSync('/run/secrets/test_password', 'utf8').trim(), csrf: csrf(expandedStart) }, { Cookie: cookie(expandedStart) });
+  assert.equal(expandedLogin.status, 200);
+  const expandedConsent = await form('/mcp-oauth/consent', { csrf: csrf(expandedLogin), decision: 'approve' }, { Cookie: cookie(expandedLogin) });
+  const expandedToken = await form('/mcp-oauth/token', { grant_type: 'authorization_code', client_id: 'codebegun-mcp-smoke',
+    redirect_uri: 'http://127.0.0.1:8765/callback', resource: c.issuer + '/mcp', code_verifier: verifier,
+    code: new URL(expandedConsent.headers.location).searchParams.get('code') });
+  assert.equal(expandedToken.status, 200);
+  const expandedList = await rpc(expandedToken.body.access_token, 'tools/list');
+  assert.equal(expandedList.body.result.tools.length, 15);
+  for (const candidate of expandedList.body.result.tools) {
+    const response = await rpc(expandedToken.body.access_token, 'tools/call', { name: candidate.name,
+      arguments: candidate.inputSchema.properties.limit ? { limit: 1 } : {} });
+    assert.equal(response.status, 200);
+    assert.ok(response.body.result?.content, 'Expanded tool failed: ' + candidate.name);
+  }
+  assert.equal(scopeOperator('rollback', scopeRequest).completed, 'rollback');
+  assert.deepEqual((await Role.findById(req.newRoleId)).permissions.sort(), roleBeforeScope.permissions.sort());
+  assert.equal((await rpc(expandedToken.body.access_token, 'tools/list')).status, 401, 'Expanded grant survived rollback');
+  assert.equal((await rpc(limitedRefresh.body.access_token, 'tools/list')).body.result.tools.length, 3, 'Limited grant was revoked');
+  // The client still advertises all domains here: the expanded grant must not revive.
+  assert.equal((await rpc(expandedToken.body.access_token, 'tools/list')).status, 401);
+  await restartWithScopes(scopes);
+  assert.equal((await rpc(limitedRefresh.body.access_token, 'tools/list')).body.result.tools.length, 3);
+  console.log('PASS: read-only scope preview, shared/drifted-role and disabled-module refusal, unchanged native permissions/tokens, explicit 15-tool consent, and rollback preserving limited grants.');
   assert.equal(operator('access-revoke', { ...req, ...plan }).revoked, true);
   assert.ok(!(await User.findById(user._id)).customRoleId);
   assert.equal(await Role.countDocuments(), before);

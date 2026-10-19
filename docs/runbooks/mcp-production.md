@@ -286,6 +286,72 @@ because it includes inactive LMS students. Do not assume their totals are equal.
 
 ## Verification, interruption and rollback
 
+### Expanding the three-tool installation after enablement
+
+Use the reviewed `scope-plan` / `scope-apply` / `scope-rollback` workflow. This is
+separate from an image upgrade. It reuses the current image, runtime credential,
+client ID, callback, tenant and individual custom role. The full LMS, MongoDB
+roles, Nginx and native LMS permissions are not changed. Only the MCP gateway is
+briefly replaced to load its updated client scope allowlist.
+
+From the committed operator checkout, first preview the additional domains:
+
+```sh
+python3 scripts/mcp-production.py scope-plan --email codebegun@gmail.com --all-read-domains
+# Or request only the domains you need:
+python3 scripts/mcp-production.py scope-plan --email codebegun@gmail.com --domains attendance,exams
+```
+
+Choose one preview command. The preview uses the existing limited runtime DB
+account and makes no database or service changes. It saves a root-only local
+plan and prints the operator commit, account, tenant, exact scopes, expected tool
+list and a plan ID. All domains means students, batches, attendance, exams, fees,
+placements, leads and calls. It is an explicit owner decision, not a repair for
+a failed connection. The original `access-applied.json` and `access-plan.json`
+must be retained and match the account. The workflow refuses a shared/modified
+role, a different account, disabled modules or missing native permissions. It
+never adds `manage_leads` or any other native business permission to satisfy MCP.
+
+After reviewing and approving that exact preview, run the `scope-apply` command
+printed by it, including its exact `--plan-id`. The plan expires after one hour;
+source, container, files or account-policy changes require a fresh preview.
+Apply uses a short-lived administrator-backed operator for the existing role's
+MCP keys and an audit transaction. Administrator credentials are never mounted
+in the gateway. Existing grants, access tokens and refresh tokens are not
+broadened. Saved access-revocation records are updated together with the runtime
+and installation state, retaining the original role/native-permission snapshot.
+
+Then reconnect the CodeBegun Production account and explicitly approve the new
+domains. A client that requests only students/batches will still receive those
+scopes: request the expanded domains, or use the connect-only flow's displayed
+**Allow read access** offer. Confirm the consent page lists every intended read
+domain. Run `diagnose-tools --email codebegun@gmail.com`, refresh the app tools,
+and check `tools/list` using the actual connected account. Fifteen tools are
+expected only when all eight domains pass the role/module checks and fresh
+consent includes them. `currentClientTokenChecked: false` remains an intentional
+diagnostic limitation; an actual client invocation is still required.
+
+An interrupted/failed cutover retains `scope-pending.json` and attempts automatic
+rollback. To recover or roll back the latest completed scope change:
+
+```sh
+python3 scripts/mcp-production.py scope-rollback
+```
+
+Rollback restores the original role scopes, client configuration, saved access
+records and original gateway. It revokes grants for this client that include
+the removed domains, so they cannot revive during a future expansion; old
+limited grants are retained. It requires no public LMS health. It refuses later
+role/file/container changes rather than overwrite them, stops an identified
+replacement when recovery cannot safely finish, and preserves the recovery
+journal. Keep the root-only state directory, the exact reviewed operator source
+and retained gateway containers. An intervening image/role/configuration change
+can make an earlier scope rollback inapplicable and requires operator review.
+Emergency `disable` remains available; recovery does not override a subsequent
+disabled installation state. Pending scope recovery blocks other mutating
+operator commands. Do not use `prepare --all-read-domains`, `upgrade`, direct
+database edits or an LMS key rotation as substitutes for this workflow.
+
 ```sh
 python3 scripts/mcp-production.py verify
 # Disable only the new gateway and its external routes:

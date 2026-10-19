@@ -229,7 +229,10 @@ async function main() {
   const tenantBeforeScope = await Tenant.findById(user.tenantId).lean();
   await Tenant.updateOne({ _id: user.tenantId }, { $set: { 'modules.attendance': false } });
   assert.throws(() => scopeOperator('plan', scopeRequest), 'Disabled attendance module was bypassed');
-  await Tenant.updateOne({ _id: user.tenantId }, { $set: { modules: tenantBeforeScope.modules } });
+  await Tenant.updateOne({ _id: user.tenantId }, tenantBeforeScope.modules === undefined
+    ? { $unset: { modules: '' } } : { $set: { modules: tenantBeforeScope.modules } });
+  assert.equal(scopeOperator('plan', scopeRequest).fingerprint, scopeRequest.fingerprint,
+    'Synthetic tenant policy was not restored after the disabled-module probe');
   assert.equal(scopeOperator('apply', scopeRequest).completed, 'apply');
   const expandedRole = await Role.findById(req.newRoleId).lean();
   assert.deepEqual(expandedRole.permissions.filter(s => !s.startsWith('mcp_')).sort(),
@@ -271,6 +274,7 @@ async function main() {
       arguments: candidate.inputSchema.properties.limit ? { limit: 1 } : {} });
     assert.equal(response.status, 200);
     assert.ok(response.body.result?.content, 'Expanded tool failed: ' + candidate.name);
+    assert.notEqual(response.body.result.isError, true, 'Expanded tool returned an error: ' + candidate.name);
   }
   assert.equal(scopeOperator('rollback', scopeRequest).completed, 'rollback');
   assert.deepEqual((await Role.findById(req.newRoleId)).permissions.sort(), roleBeforeScope.permissions.sort());

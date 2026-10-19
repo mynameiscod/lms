@@ -696,7 +696,7 @@ def access_command(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command', choices=['plan', 'prepare', 'enable', 'verify', 'disable', 'upgrade', 'upgrade-rollback', 'diagnose-account', 'diagnose-tools', 'access-plan', 'access-apply', 'access-revoke', 'scope-plan', 'scope-apply', 'scope-rollback'])
-    parser.add_argument('--email', help='Existing LMS login email for diagnose-account, diagnose-tools or access-plan; never a password.')
+    parser.add_argument('--email', help='Existing LMS login email for diagnose-account, diagnose-tools, access-plan or scope-plan; never a password.')
     parser.add_argument('--all-read-domains', action='store_true', help='prepare or scope-plan: explicitly select all eight MCP read domains, including finance and CRM.')
     parser.add_argument('--domains', help='scope-plan: comma-separated domains to add: students,batches,attendance,exams,fees,placements,leads,calls.')
     parser.add_argument('--plan-id', help='scope-apply: exact ID from the reviewed scope-plan preview (valid for one hour).')

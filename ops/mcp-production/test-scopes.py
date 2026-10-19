@@ -36,7 +36,7 @@ class ScopeTests(unittest.TestCase):
                       clients=[dict(id='codebegun-production-chatgpt', scopes=self.old_state['scopes'] + ['offline_access'],
                                     redirectUris=['https://chatgpt.com/connector_platform_oauth_redirect'])])
         self.applied = dict(email='owner@example.com', userId='user', tenantId='tenant', newRoleId='role',
-                            nativePermissions=['view_fees'], scopes=self.old_state['scopes'], applied=True)
+                            nativePermissions=['view_fees'], scopes=sorted(self.old_state['scopes']), applied=True)
         for name, value in [('state.json', self.old_state), ('runtime.json', config),
                             ('access-applied.json', self.applied), ('access-plan.json', self.applied)]:
             p.write(self.directory / name, value)

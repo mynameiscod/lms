@@ -106,7 +106,7 @@ class ScopeChange:
         applied = json.loads(self.read('access-applied.json'))
         saved_plan = json.loads(self.read('access-plan.json'))
         h.require(applied.get('email') == email and applied.get('applied') is True and
-                  applied.get('scopes') == s['scopes'] and all(saved_plan.get(key) == applied.get(key)
+                  sorted(applied.get('scopes', [])) == sorted(s['scopes']) and all(saved_plan.get(key) == applied.get(key)
                   for key in ['userId', 'tenantId', 'newRoleId', 'nativePermissions', 'scopes']), 'Saved account recovery records do not match this installation.')
         operation = str(uuid.uuid4())
         request = dict(operationId=operation, email=email, clientId=runtime['clients'][0]['id'],

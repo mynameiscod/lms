@@ -712,11 +712,11 @@ def recording_storage(args):
         config.pop('recordingStorage', None)
     else:
         require(bool(re.fullmatch(r'[a-f0-9]{24}', account.get('tenantId', ''))), 'Invalid enabled tenant.')
-        host = args.storage_hostname or 'storage.bunnycdn.com'
-        zone = args.storage_zone or ''
+        require(sys.stdin.isatty(), 'Run interactively on the VPS; do not put the storage password in arguments or chat.')
+        zone = args.storage_zone or input('Existing Bunny Storage zone name: ').strip()
+        host = args.storage_hostname or input('Existing Bunny Storage hostname [storage.bunnycdn.com]: ').strip() or 'storage.bunnycdn.com'
         require(bool(re.fullmatch(r'(?:[a-z]{2,3}\.)?storage\.bunnycdn\.com', host)) and
                 bool(re.fullmatch(r'[a-zA-Z0-9_-]{1,100}', zone)), 'Supply the existing Bunny storage zone and regional hostname.')
-        require(sys.stdin.isatty(), 'Run interactively on the VPS; do not put the storage password in arguments or chat.')
         key = getpass.getpass('Existing Bunny storage READ-ONLY password (hidden): ')
         require(16 <= len(key) <= 512 and '\n' not in key and '\r' not in key, 'Invalid storage password format.')
         config['recordingStorage'] = dict(tenantId=account['tenantId'], hostname=host, zone=zone, readOnlyKey=key)

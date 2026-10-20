@@ -46,6 +46,15 @@ class RecordingStorageTests(unittest.TestCase):
         with redirect_stdout(output): p.recording_storage(self.args)
         self.assertEqual(json.loads((self.directory / 'runtime.json').read_text()), self.config)
 
+    def test_interactive_zone_and_hostname_do_not_require_shell_placeholders(self):
+        self.args.storage_zone = None
+        self.args.storage_hostname = None
+        with patch('builtins.input', side_effect=['existing-zone', '']), redirect_stdout(io.StringIO()):
+            p.recording_storage(self.args)
+        config = json.loads((self.directory / 'runtime.json').read_text())
+        self.assertEqual(config['recordingStorage']['hostname'], 'storage.bunnycdn.com')
+        self.assertEqual(config['recordingStorage']['zone'], 'existing-zone')
+
     def test_wrong_account_and_invalid_hosts_or_paths_do_not_change_config(self):
         for field, value in [('email', 'other@example.test'), ('storage_hostname', '127.0.0.1'), ('storage_hostname', 'storage.bunnycdn.com.evil.example'), ('storage_zone', '../other')]:
             old = getattr(self.args, field)

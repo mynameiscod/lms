@@ -16,13 +16,11 @@ Use the reviewed commit from this change's PR, with passing CI. These steps rest
 
 1. Fetch and check out the reviewed recording branch commit in `/root/lms-mcp-test`. Keep the previous deployment journal; do not reset or delete production state.
 2. Obtain the **existing storage zone's read-only password**, zone name and regional hostname from Bunny Storage. Use the zone holding `outpero-recordings/<tenantId>/<callId>`. Do not use the account API key or read/write storage password. Do not reset/rotate the LMS key. Bunny read-only passwords apply to the storage zone; the gateway further restricts all reads to this enabled account's tenant and canonical Outpero recording path.
-3. Stage the read-only storage configuration using the exact existing zone/hostname:
+3. Stage the read-only storage configuration. The command prompts for the existing zone, regional hostname and hidden password:
 
    ```bash
    python3 scripts/mcp-production.py recording-storage \
-     --email codebegun@gmail.com \
-     --storage-zone YOUR_EXISTING_BUNNY_ZONE \
-     --storage-hostname storage.bunnycdn.com
+     --email codebegun@gmail.com
    ```
 
    Use the existing regional hostname if different. The password is entered at a hidden terminal prompt, never in shell arguments or chat. This saves a private backup and changes no consent/roles. A successful save does not verify credential correctness or prove the entered password is read-only; confirm its source in Bunny. No write-probe is performed against customer storage.

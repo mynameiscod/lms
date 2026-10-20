@@ -129,6 +129,14 @@ class ScopeTests(unittest.TestCase):
         with self.assertRaises(p.m.MigrationError):
             self.change.plan(SimpleNamespace(email='owner@example.com', all_read_domains=False, domains=None))
 
+    def test_recordings_require_explicit_domain_and_do_not_follow_all_reads(self):
+        self.plan()
+        self.assertNotIn('mcp_recordings_read', self.plan_data['newState']['scopes'])
+        with redirect_stdout(io.StringIO()):
+            self.change.plan(SimpleNamespace(email='owner@example.com', all_read_domains=False, domains='recordings'))
+        plan = json.loads((self.directory / 'scope-plan.json').read_text())
+        self.assertEqual(set(plan['newState']['scopes']) - set(self.old_state['scopes']), {'mcp_recordings_read'})
+
     def test_success_uses_same_image_preserves_native_snapshot_and_old_credentials(self):
         self.plan(); self.apply()
         self.assertTrue(self.db_expanded)

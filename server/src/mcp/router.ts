@@ -2,6 +2,7 @@ import express from 'express';
 import { mcpOAuthAuth } from './oauthAuth';
 import { tools, canUseTool, executeTool } from './tools';
 import { McpError, mcpConfig, registeredClient } from './oauthPolicy';
+import { McpAudioResult } from './recordings';
 import { audit } from './audit';
 
 function validateToolParameters(params: Record<string, any> | undefined, allowed: string[]) {
@@ -85,9 +86,13 @@ router.all('/', async (req, res) => {
           throw new McpError('insufficient_scope', 403);
         }
         const data = await executeTool(candidate, context.identity, context.scopes, body.params.arguments ?? {});
-        const text = JSON.stringify(data);
-        if (Buffer.byteLength(text, 'utf8') > 128 * 1024) throw new McpError('result_too_large', 400);
-        result = { content: [{ type: 'text', text }] };
+        if (data instanceof McpAudioResult) {
+          result = data.toResult();
+        } else {
+          const text = JSON.stringify(data);
+          if (Buffer.byteLength(text, 'utf8') > 128 * 1024) throw new McpError('result_too_large', 400);
+          result = { content: [{ type: 'text', text }] };
+        }
         break;
       }
       default: throw new McpError('method_not_found');

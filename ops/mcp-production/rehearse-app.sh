@@ -9,6 +9,7 @@ fi
 python3 ops/mcp-production/test-installer.py
 python3 ops/mcp-production/test-upgrade.py
 python3 ops/mcp-production/test-scopes.py
+python3 ops/mcp-production/test-recordings.py
 bash scripts/mcp-test.sh init
 scratch="$(mktemp -d)"
 chmod 700 "$scratch"

@@ -19,6 +19,9 @@ function load(path = '/run/mcp/runtime.json') {
   process.env.MCP_RESOURCE_URL = c.issuer + '/mcp';
   process.env.MCP_OAUTH_CLIENTS = JSON.stringify(c.clients);
   process.env.MCP_ALLOWED_ORIGINS = '';
+  // Optional, separately provisioned read-only storage credentials. Never use LMS write keys.
+  if (c.recordingStorage) process.env.MCP_RECORDING_STORAGE = JSON.stringify(c.recordingStorage);
+  else delete process.env.MCP_RECORDING_STORAGE;
   delete process.env.MONGO_URL;
   delete process.env.MONGODB_URI;
   return c;

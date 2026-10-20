@@ -333,6 +333,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'mcp_assessments_read', label: 'Read permitted exams and assessments through MCP' },
       { key: 'mcp_leads_read', label: 'Read permitted CRM leads through MCP' },
       { key: 'mcp_calls_read', label: 'Read permitted Outpero call summaries through MCP' },
+      { key: 'mcp_recordings_read', label: 'Read permitted call recordings and transcripts through MCP' },
       { key: 'mcp_recordings_read', label: 'Access permitted call recordings and transcripts through MCP' },
       { key: 'mcp_finance_read', label: 'Read permitted financial information through MCP' },
       { key: 'mcp_placements_read', label: 'Read permitted placement records through MCP' },

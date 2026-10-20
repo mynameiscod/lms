@@ -37,6 +37,7 @@ export const activityAuthor = (a: { type: string; description: string; createdBy
   if (d.startsWith('🤖')) return 'Outpero AI';
   if (d.startsWith('📞 AI call')) return 'Outpero AI';
   if (d.startsWith('📣 Came from a WhatsApp ad')) return 'WhatsApp ad';
+  if (d.startsWith('⚠️ No call or note')) return 'System alert';
   if (a.type === 'whatsapp' && /^(Lead created from WhatsApp|WhatsApp:|WhatsApp qualification)/.test(d)) return 'WhatsApp (automatic)';
   if (a.type === 'created' && /synced from Meta/i.test(d)) return 'Meta lead form (automatic)';
   if (a.type === 'assignment' && /automatic|round robin/i.test(d)) return 'Auto-assignment';

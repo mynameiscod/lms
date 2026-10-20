@@ -543,11 +543,17 @@ const LeadDetailV2: React.FC = () => {
           <div className="ld2-stage-pipeline">
             <h3>Lead Stage</h3>
             <div className="ld2-stages">
-              {stages.slice(0, 6).map((stage, index) => (
+              {(() => {
+                // Only six stages fit. A lead sitting in a stage outside them (e.g. "With Outpero")
+                // must still show where it is, and must not turn the six shown into "done".
+                const currentIdx = stages.findIndex(s => s.name === lead.stage);
+                const hidden = currentIdx >= 6;
+                return hidden ? [...stages.slice(0, 5), stages[currentIdx]] : stages.slice(0, 6);
+              })().map((stage, index, shown) => (
                 <button
                   key={stage._id}
                   className={`ld2-stage-btn ${lead.stage === stage.name ? 'active' : ''} ${
-                    stages.findIndex(s => s.name === lead.stage) > index ? 'completed' : ''
+                    stages.findIndex(s => s.name === lead.stage) < 6 && shown.findIndex(s => s.name === lead.stage) > index ? 'completed' : ''
                   }`}
                   onClick={() => handleStageChange(stage.name)}
                   style={{ 

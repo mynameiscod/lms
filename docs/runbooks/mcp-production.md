@@ -254,8 +254,11 @@ account using the existing production LMS login. Some saved clients still reques
 only `mcp_connect`, even after discovery advertises the read scopes. The consent
 page now offers **Allow read access** for that case: review the student/batch reads
 and stay-connected permission, then choose that button. **Connect without data
-access** deliberately keeps the grant connect-only. A request that already asks
-for reads retains its exact requested scopes and the normal **Allow access** button.
+access** deliberately keeps the grant connect-only. When a saved client requests
+only some eligible read domains, the page offers **Allow listed read access** and
+**Allow requested access only**. The latter retains the exact original request;
+the former creates a new grant for the displayed, currently permitted domains.
+A request already covering every usable read domain keeps **Allow access**.
 
 This is fresh user consent, not a token or database override. The offered scopes
 are saved in the login session, limited by client registration and current usable
@@ -326,8 +329,9 @@ and installation state, retaining the original role/native-permission snapshot.
 
 Then reconnect the CodeBegun Production account and explicitly approve the new
 domains. A client that requests only students/batches will still receive those
-scopes: request the expanded domains, or use the connect-only flow's displayed
-**Allow read access** offer. Confirm the consent page lists every intended read
+scopes: request the expanded domains, or use the displayed **Allow read access**
+(connect-only) or **Allow listed read access** (partial read request) offer.
+Confirm the consent page lists every intended read
 domain. Run `diagnose-tools --email codebegun@gmail.com`, refresh the app tools,
 and check `tools/list` using the actual connected account. Fifteen tools are
 expected only when all eight domains pass the role/module checks and fresh
@@ -385,6 +389,73 @@ Keep the new include when installing other Nginx configuration, and the migrated
 `docker-compose.override.yml` during future LMS deployments. The gateway build
 does not run the live `deploy-image.sh` or change its executable bit. Full LMS
 upgrades and gateway commit/scope upgrades remain separately reviewed changes.
+
+### Fifteen eligible tools but fresh consent still grants only three
+
+This is a different failure from a missing deployment or account role. If
+`availableTools` contains fifteen names but the recent `validGrants` contain only
+`mcp_connect`, `mcp_students_read` and `mcp_batches_read`, those grants cannot
+authorize the additional twelve tools. Refreshing the tool catalog does not add
+consent. The diagnostic checks up to ten recent grants and cannot identify the
+token used by the current ChatGPT connection.
+
+The original `readConsentOffer` returned no optional expansion whenever the
+authorization request already contained a read scope. Thus a client retaining
+the initial student/batch request could repeatedly reconnect and keep receiving
+three tools even after a successful `scope-apply`. The prior production rehearsal
+requested every new domain directly and did not exercise this retained-request
+case. The corrected rehearsal submits the original three-tool request after the
+allowlist and individual role expansion, checks both consent choices and denial,
+then exchanges the explicitly expanded code and calls all fifteen tools.
+
+The fix offers additional **currently usable** domains on a fresh consent page
+for partial read requests too. It never expands existing grants or refresh tokens.
+The original **Allow requested access only** choice still issues the requested
+limited scopes. The **Allow listed read access** choice is bounded by the
+server-stored offer, current client registration, MCP domain permissions, native
+LMS permissions and enabled modules; client-supplied scopes are rejected.
+
+After reviewing the exact fix commit and its passing CI, the operator may deploy
+only the MCP gateway using the existing supported upgrade. This causes a brief
+MCP interruption and keeps the previous gateway for rollback. It does not run a
+full LMS deployment, repeat `scope-apply`, modify native permissions, change DB
+privileges, or alter existing OAuth grants. Substitute the reviewed full commit
+SHA from the fix PR; do not deploy an unreviewed moving branch head.
+
+```sh
+cd /root/lms-mcp-test &&
+git fetch origin fix/mcp-partial-scope-consent &&
+git switch --detach REVIEWED_FULL_COMMIT_SHA &&
+python3 scripts/mcp-production.py upgrade
+```
+
+Complete a fresh authorization from the existing CodeBegun Production app using
+the intended LMS account and tenant. If the client still requests students and
+batches, confirm the page now shows **Allow listed read access** and lists all
+eight intended domains before choosing it. If it requests every domain already,
+the normal **Allow access** screen should list them. Never paste login passwords,
+authorization URLs, codes or tokens into chat. A settings page saying Connected
+is not proof that this new consent completed.
+
+After consent, run `diagnose-tools --email codebegun@gmail.com`. Expect fifteen
+eligible tools and a recent grant covering all eight read domains. Then refresh
+the existing app's tools and verify the **actual newly authorized connection**:
+`tools/list` must return fifteen, and `codebegun_lead_summary` plus representative
+reads in the other domains must execute. If grants are broad but the client still
+lists three tools, investigate the selected connection and ChatGPT's saved tool
+catalog; repeating role expansion cannot fix that. Synthetic CI does not certify
+the private production OAuth callback or the ChatGPT account selection.
+
+If the gateway upgrade fails its checks, it attempts automatic restoration. For
+an interrupted upgrade or an explicit rollback use the same reviewed checkout:
+
+```sh
+python3 scripts/mcp-production.py upgrade-rollback
+```
+
+This restores the previous gateway image and retains the installed scopes and
+grant records. It is not a consent-revocation operation. Keep the protected state
+directory and retained rollback containers; do not prune them during validation.
 
 ### Updating a preparation before first enablement
 

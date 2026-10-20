@@ -257,16 +257,42 @@ async function main() {
     resource: c.issuer + '/mcp', refresh_token: token.body.refresh_token });
   assert.equal(limitedRefresh.status, 200);
   assert.deepEqual(limitedRefresh.body.scope.split(' '), scopes.concat('offline_access'), 'Refresh widened consent');
-  query.set('scope', allScopes.concat('offline_access').join(' '));
-  const expandedStart = await request('/mcp-oauth/authorize?' + query);
-  const expandedLogin = await form('/mcp-oauth/login', { email: user.email,
-    password: fs.readFileSync('/run/secrets/test_password', 'utf8').trim(), csrf: csrf(expandedStart) }, { Cookie: cookie(expandedStart) });
-  assert.equal(expandedLogin.status, 200);
-  const expandedConsent = await form('/mcp-oauth/consent', { csrf: csrf(expandedLogin), decision: 'approve' }, { Cookie: cookie(expandedLogin) });
-  const expandedToken = await form('/mcp-oauth/token', { grant_type: 'authorization_code', client_id: 'codebegun-mcp-smoke',
-    redirect_uri: 'http://127.0.0.1:8765/callback', resource: c.issuer + '/mcp', code_verifier: verifier,
-    code: new URL(expandedConsent.headers.location).searchParams.get('code') });
-  assert.equal(expandedToken.status, 200);
+  // Reproduce ChatGPT retaining the original students/batches request after
+  // expansion. A hardcoded all-domain request would miss this consent failure.
+  query.set('scope', scopes.join(' '));
+  let expandedToken;
+  for (const decision of ['approve', 'deny', 'approve_read']) {
+    const expandedStart = await request('/mcp-oauth/authorize?' + query);
+    const expandedLogin = await form('/mcp-oauth/login', { email: user.email,
+      password: fs.readFileSync('/run/secrets/test_password', 'utf8').trim(), csrf: csrf(expandedStart) }, { Cookie: cookie(expandedStart) });
+    assert.equal(expandedLogin.status, 200);
+    assert.ok(expandedLogin.text.includes('Allow listed read access'));
+    assert.ok(expandedLogin.text.includes('Allow requested access only'));
+    assert.ok(!expandedLogin.text.includes('Connect without data access'));
+    const labels = require('./server/dist/mcp/oauthPolicy').SCOPE_LABELS;
+    for (const scope of allScopes.concat('offline_access')) assert.ok(expandedLogin.text.includes(labels[scope]));
+    const expandedConsent = await form('/mcp-oauth/consent', { csrf: csrf(expandedLogin), decision }, { Cookie: cookie(expandedLogin) });
+    assert.equal(expandedConsent.status, 303);
+    const callback = new URL(expandedConsent.headers.location);
+    if (decision === 'deny') {
+      assert.equal(callback.searchParams.get('error'), 'access_denied');
+      assert.equal(callback.searchParams.get('code'), null);
+      continue;
+    }
+    const freshToken = await form('/mcp-oauth/token', { grant_type: 'authorization_code', client_id: 'codebegun-mcp-smoke',
+      redirect_uri: 'http://127.0.0.1:8765/callback', resource: c.issuer + '/mcp', code_verifier: verifier,
+      code: callback.searchParams.get('code') });
+    assert.equal(freshToken.status, 200);
+    if (decision === 'approve') {
+      assert.deepEqual(freshToken.body.scope.split(' '), scopes, 'Normal approval expanded the request');
+      assert.equal(freshToken.body.refresh_token, undefined);
+      assert.equal((await rpc(freshToken.body.access_token, 'tools/list')).body.result.tools.length, 3);
+    } else {
+      expandedToken = freshToken;
+      assert.deepEqual(expandedToken.body.scope.split(' '), allScopes.concat('offline_access'));
+    }
+  }
+  assert.equal((await rpc(limitedRefresh.body.access_token, 'tools/list')).body.result.tools.length, 3, 'New consent expanded an old token');
   const expandedList = await rpc(expandedToken.body.access_token, 'tools/list');
   assert.equal(expandedList.body.result.tools.length, 15);
   for (const candidate of expandedList.body.result.tools) {
@@ -284,7 +310,8 @@ async function main() {
   assert.equal((await rpc(expandedToken.body.access_token, 'tools/list')).status, 401);
   await restartWithScopes(scopes);
   assert.equal((await rpc(limitedRefresh.body.access_token, 'tools/list')).body.result.tools.length, 3);
-  console.log('PASS: read-only scope preview, shared/drifted-role and disabled-module refusal, unchanged native permissions/tokens, explicit 15-tool consent, and rollback preserving limited grants.');
+  console.log('PASS: cached three-tool request: limited approval stays at three, denial issues no code, explicit expanded consent calls all 15 tools, old tokens stay limited, and rollback revokes expanded grants.');
+  console.log('PASS: read-only scope preview, shared/drifted-role and disabled-module refusal, and unchanged native permissions.');
   assert.equal(operator('access-revoke', { ...req, ...plan }).revoked, true);
   assert.ok(!(await User.findById(user._id)).customRoleId);
   assert.equal(await Role.countDocuments(), before);

@@ -2,12 +2,12 @@ import { McpIdentity } from './identity';
 import { McpClient, McpError, parseScopes } from './oauthPolicy';
 import { canUseTool, tools } from './tools';
 
-/** A new, explicit consent choice for clients still requesting only connection
- * access. Never apply this offer to an existing grant or a refresh request. */
+/** A separate, explicit consent choice when a cached request omits usable read
+ * domains. The normal approval retains the exact request. Never apply this
+ * offer to an existing grant or a refresh request. */
 export function readConsentOffer(identity: McpIdentity, client: McpClient, requested: string[]) {
-  if (requested.some(scope => !['mcp_connect', 'offline_access'].includes(scope))) return [];
   const reads = [...new Set(tools.filter(tool => canUseTool(identity, client.scopes, tool)).map(tool => tool.scope))];
-  if (!reads.length) return [];
+  if (!reads.some(scope => !requested.includes(scope))) return [];
   return ['mcp_connect', ...reads, ...(client.scopes.includes('offline_access') ? ['offline_access'] : [])];
 }
 

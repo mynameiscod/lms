@@ -150,8 +150,12 @@ oauthRouter.post('/login', endpoint('oauth_login', async (req, res) => {
   // Chrome also applies form-action to the consent POST's 303 callback redirect.
   // Allow only this validated callback origin, after password entry is complete.
   res.set('Content-Security-Policy', mcpContentSecurityPolicy(params.redirect_uri));
-  const recovery = readConsentScopes.length ? `<p>This assistant requested connection access only. That does not allow it to read LMS data.</p><p>You can also approve these permissions:</p><ul>${readConsentScopes.filter(s => s !== 'mcp_connect').map(s => `<li>${esc(SCOPE_LABELS[s])}</li>`).join('')}</ul>` : '';
-  const approve = readConsentScopes.length ? '<button name="decision" value="approve_read">Allow read access</button><button class="secondary" name="decision" value="approve">Connect without data access</button>' : '<button name="decision" value="approve">Allow access</button>';
+  const requestedReads = requested.some(scope => scope !== 'mcp_connect' && scope !== 'offline_access');
+  const explanation = requestedReads
+    ? 'This assistant requested only some of your available read permissions.'
+    : 'This assistant requested connection access only. That does not allow it to read LMS data.';
+  const recovery = readConsentScopes.length ? `<p>${explanation}</p><p>You may instead approve the following read access:</p><ul>${readConsentScopes.filter(s => s !== 'mcp_connect').map(s => `<li>${esc(SCOPE_LABELS[s])}</li>`).join('')}</ul>` : '';
+  const approve = readConsentScopes.length ? `<button name="decision" value="approve_read">${requestedReads ? 'Allow listed read access' : 'Allow read access'}</button><button class="secondary" name="decision" value="approve">${requestedReads ? 'Allow requested access only' : 'Connect without data access'}</button>` : '<button name="decision" value="approve">Allow access</button>';
   return page(res, 'Approve assistant access', `<p><strong>${esc(client.name)}</strong> wants to access <strong>${esc(identity.tenant.name)}</strong> as ${esc(identity.user.email)}.</p><ul>${requested.map(s => `<li>${esc(SCOPE_LABELS[s])}</li>`).join('')}</ul>${recovery}<p>Your current LMS permissions and record restrictions apply to every request. You can disconnect at any time.</p><form method="post" action="/mcp-oauth/consent">${field('csrf', csrf)}${approve}<button class="secondary" name="decision" value="deny">Deny</button></form>`);
 }));
 

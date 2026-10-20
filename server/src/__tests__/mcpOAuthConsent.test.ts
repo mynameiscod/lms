@@ -15,9 +15,33 @@ test.each([['mcp_connect'], ['mcp_connect', 'offline_access']].map(requested => 
   expect(readConsentOffer(identity, client, requested)).toEqual(scopes);
 });
 
-test('a specific read request retains its chosen scope instead of offering more access', () => {
-  expect(readConsentOffer(identity, client, ['mcp_connect', 'mcp_students_read'])).toEqual([]);
-  expect(() => acceptReadConsent(scopes, identity, client, ['mcp_connect', 'mcp_students_read'])).toThrow('invalid_scope');
+test('a partial read request can explicitly approve additional usable reads', () => {
+  const requested = ['mcp_connect', 'mcp_students_read'];
+  expect(readConsentOffer(identity, client, requested)).toEqual(scopes);
+  expect(acceptReadConsent(scopes, identity, client, requested)).toBe(scopes.join(' '));
+  expect(requested).toEqual(['mcp_connect', 'mcp_students_read']);
+});
+
+test('the old three-tool request offers all eight domains after reviewed access expansion', () => {
+  const expanded = ['mcp_connect', 'mcp_students_read', 'mcp_batches_read', 'mcp_attendance_read',
+    'mcp_assessments_read', 'mcp_finance_read', 'mcp_placements_read', 'mcp_leads_read', 'mcp_calls_read'];
+  identity.permissions = [...expanded, 'manage_all_users', 'view_courses', 'view_attendance',
+    'view_exams', 'view_fees', 'view_placement', 'manage_leads'];
+  identity.modules = { courses: true, attendance: true, feeManagement: true, placement: true, leads: true };
+  client.scopes = [...expanded, 'offline_access'];
+  expect(readConsentOffer(identity, client, scopes.slice(0, 3))).toEqual(client.scopes);
+});
+
+test('requests already covering all usable reads have no expansion offer', () => {
+  for (const requested of [scopes, scopes.slice(0, 3)]) {
+    expect(readConsentOffer(identity, client, requested)).toEqual([]);
+    expect(() => acceptReadConsent(scopes, identity, client, requested)).toThrow('invalid_scope');
+  }
+});
+
+test('partial-request offers omit offline access unless the client allows it', () => {
+  client.scopes = scopes.slice(0, 3);
+  expect(readConsentOffer(identity, client, ['mcp_connect', 'mcp_students_read'])).toEqual(client.scopes);
 });
 
 test('read offers honor client registration, native permissions, role opt-in and enabled modules', () => {

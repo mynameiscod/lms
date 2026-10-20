@@ -216,6 +216,7 @@ export interface ILead extends Document {
   // NEW: SLA breach flag
   slaBreach?: boolean;
   slaBreachAt?: Date;
+  untouchedAlertAt?: Date | null;
 
   // P5: Fee & Payment tracking
   feeQuote?: number;
@@ -574,6 +575,7 @@ const LeadSchema: Schema = new Schema(
     // NEW: SLA breach
     slaBreach: { type: Boolean, default: false },
     slaBreachAt: { type: Date },
+    untouchedAlertAt: { type: Date, default: null },
 
     // P5: Fee & Payment tracking
     feeQuote: { type: Number },

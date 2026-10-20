@@ -36,7 +36,7 @@ export function getPolicy(tenantId: string): OutperoPolicy {
     sentStageId: settings.getStr('OUTPERO_SENT_STAGE', '', tenantId),
     fallbackHours: Math.max(1, Math.min(168, Number(settings.getStr('OUTPERO_FALLBACK_HOURS', '24', tenantId)) || 24)),
     // Off unless an admin turns it on: Outpero already sends its own summary, and listening to every call costs money.
-    callAnalysis: settings.getStr('OUTPERO_CALL_ANALYSIS', 'false', tenantId) === 'true',
+    callAnalysis: settings.getStr('OUTPERO_CALL_ANALYSIS', 'true', tenantId) !== 'false',
   };
 }
 /** Only leads actually eligible for automatic calling wait for feedback. */

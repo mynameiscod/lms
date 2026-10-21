@@ -3,6 +3,7 @@ import {
   PracticePolicy, PracticeDay, PracticeStanding, PracticeReminderLog, PRACTICE_TASKS, PracticeTask, TaskCounts, IPracticePolicy,
 } from '../models/PracticePass';
 import { EmailService } from './emailService';
+import { readinessHoldReason } from './communicationCoachService';
 import { estimateCost, purposeTemplate, sendByPurpose, waCostPerMessage } from './purposeMessaging';
 
 /**
@@ -268,8 +269,9 @@ export async function recomputeStudent(tenantId: string, studentId: string) {
  */
 export async function placementHoldReason(studentId: string): Promise<string | null> {
   const s: any = await PracticeStanding.findOne({ studentId: String(studentId) }).lean();
-  if (!s || !s.onHold) return null;
-  return `On placement hold: practice attendance is ${s.pct}% (needs ${s.thresholdPct}%). Complete the daily practice tasks to lift the hold.`;
+  if (s && s.onHold) return `On placement hold: practice attendance is ${s.pct}% (needs ${s.thresholdPct}%). Complete the daily practice tasks to lift the hold.`;
+  // Communication readiness: the other reason a student is not put in front of a company yet.
+  try { return await readinessHoldReason(String(studentId)); } catch { return null; }
 }
 
 /* ── Student view ─────────────────────────────────────────────────────────────────────────── */

@@ -11,8 +11,11 @@
  */
 import mongoose from 'mongoose';
 import CommunicationAttempt from '../models/CommunicationAttempt';
+import CommunicationProfile from '../models/CommunicationProfile';
+import CommunicationAuditLog from '../models/CommunicationAuditLog';
 import CommunicationChallenge from '../models/CommunicationChallenge';
 import User from '../models/User';
+import Tenant from '../models/Tenant';
 import { getAnthropic, getOpenAI, isAnthropicEnabled } from './aiClients';
 import { recordUsage } from './aiGateway';
 import * as settings from './settingsService';
@@ -202,7 +205,7 @@ export async function getCoachState(tenantId: string, studentId: string) {
     dailyLimit: MAX_COACH_ATTEMPTS_PER_DAY, tooMany: todayRows.length >= MAX_COACH_ATTEMPTS_PER_DAY,
     skills, weakestSkill: weakestSkill?.label || null, weakestArea: AREA_LABEL[weakestArea],
     hesitation: { latest: last?.hes ?? null, first: first[0]?.hes ?? null, trend: rows.slice(-14).map((r) => ({ date: r.practiceDate, hesitation: r.hes, score: r.overall })) },
-    totalRecordings: rows.length, baselineAreasDone: baselineDone.size, readiness,
+    totalRecordings: rows.length, baselineAreasDone: baselineDone.size, readiness, gate: gateInfo(tenantId),
   };
 }
 
@@ -367,16 +370,157 @@ export async function coachStudentDetail(tenantId: string, studentId: string) {
   const [state, recent] = await Promise.all([
     getCoachState(tenantId, studentId),
     CommunicationAttempt.find({ tenantId, studentId, kind: 'coach', status: 'completed' }).sort({ createdAt: -1 }).limit(20)
-      .select('practiceDate createdAt challengeTitle recordingDuration wordsPerMinute transcript evaluation.overallScore evaluation.dailyCoachMessage overriddenScore coach').lean(),
+      .select('practiceDate createdAt challengeTitle recordingType recordingDuration wordsPerMinute transcript evaluation.overallScore evaluation.dailyCoachMessage overriddenScore coach').lean(),
   ]);
   const { steps, ...picture } = state as any;
+  const compare = await coachCompare(tenantId, studentId);
+  const prof: any = await CommunicationProfile.findOne({ tenantId, studentId }).select('readinessOverrideUntil readinessOverrideReason').lean();
+  const override = prof?.readinessOverrideUntil && new Date(prof.readinessOverrideUntil) > new Date() ? { until: prof.readinessOverrideUntil, reason: prof.readinessOverrideReason || '' } : null;
   return {
+    override, compare,
     student: { id: String(u._id), name: u.name || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email, email: u.email },
     ...picture,
     recordings: (recent as any[]).map((a) => ({
-      id: String(a._id), date: a.practiceDate, title: a.challengeTitle, area: a.coach?.area, level: a.coach?.level, baseline: !!a.coach?.isBaseline,
+      id: String(a._id), date: a.practiceDate, title: a.challengeTitle, type: a.recordingType === 'video' ? 'video' : 'audio', area: a.coach?.area, level: a.coach?.level, baseline: !!a.coach?.isBaseline,
       score: a.overriddenScore ?? a.evaluation?.overallScore ?? 0, hesitation: a.coach?.signals?.hesitationIndex ?? null, signals: a.coach?.signals || null,
       tips: a.coach?.tips || [], seconds: a.recordingDuration, wordsPerMinute: a.wordsPerMinute, transcript: a.transcript || '', coachMessage: a.evaluation?.dailyCoachMessage || '',
     })),
   };
+}
+
+// ── The gate: not ready to face a company, not put in front of one ───────────
+
+/**
+ * Switched on by default, from a start date so students have a week to do the baseline first.
+ * Both are settings, so an institute can move the date or turn the gate off.
+ */
+export const GATE_DEFAULT_START = '2026-10-28';
+export function gateInfo(tenantId: string) {
+  const enabled = settings.getStr('COMMUNICATION_READINESS_GATE', 'true', tenantId) !== 'false';
+  const startsOn = settings.getStr('COMMUNICATION_GATE_START', GATE_DEFAULT_START, tenantId);
+  return { enabled, startsOn, active: enabled && coachToday() >= startsOn };
+}
+
+/**
+ * Why this student may not be put forward to a company, or null when they may. Same contract as
+ * the Practice Pass hold, and used in the same places (placementHoldReason).
+ */
+export async function readinessHoldReason(studentId: string): Promise<string | null> {
+  if (!mongoose.isValidObjectId(studentId)) return null;
+  const u: any = await User.findById(studentId).select('tenantId role').lean();
+  if (!u || u.role !== 'STUDENT') return null;
+  const tenantId = String(u.tenantId);
+  const g = gateInfo(tenantId);
+  if (!g.active) return null;
+  const t: any = await Tenant.findById(tenantId).select('modules').lean();
+  if (t?.modules?.aiCommunicationLab === false) return null;
+  const prof: any = await CommunicationProfile.findOne({ tenantId, studentId }).select('readinessOverrideUntil').lean();
+  if (prof?.readinessOverrideUntil && new Date(prof.readinessOverrideUntil) > new Date()) return null;
+  const r = await readinessFor(tenantId, studentId);
+  if (r.ready) return null;
+  return `Not ready to face a company yet: your communication readiness is ${r.score} (needs ${r.threshold}). ${r.reasons.slice(0, 3).join(' ')} Do your daily Communication Coach session to unlock applications.`;
+}
+
+/** An admin releases one student from the gate for some days, on the record. */
+export async function setReadinessOverride(tenantId: string, studentId: string, days: number, reason: string, byId: string) {
+  const d = Math.max(0, Math.min(60, Math.round(days)));
+  const until = d ? new Date(Date.now() + d * 86400_000) : undefined;
+  await CommunicationProfile.updateOne(
+    { tenantId, studentId },
+    d ? { $set: { readinessOverrideUntil: until, readinessOverrideReason: reason.slice(0, 300) } } : { $unset: { readinessOverrideUntil: '', readinessOverrideReason: '' } },
+    { upsert: true },
+  );
+  await CommunicationAuditLog.create({ tenantId, entityType: 'student', entityId: studentId, action: d ? 'readiness_gate_override' : 'readiness_gate_override_removed', performedBy: byId, newValue: d ? `${d} days` : 'removed', reason: reason.slice(0, 300) });
+  return { until: until || null };
+}
+
+// ── Daily reminders ──────────────────────────────────────────────────────────
+
+/** Students with no coach recording today, to be nudged. Pure data; the sending lives in the cron. */
+export async function studentsToRemind(tenantId: string, limit = 800) {
+  const students: any[] = await User.find({ tenantId, role: 'STUDENT', isActive: { $ne: false }, batchId: { $ne: null } }).select('firstName name phone').limit(limit).lean();
+  if (!students.length) return [];
+  const today = coachToday();
+  const did = new Set((await CommunicationAttempt.distinct('studentId', { tenantId, kind: 'coach', practiceDate: today, status: 'completed', studentId: { $in: students.map((s) => s._id) } })).map(String));
+  const baseline = await CommunicationAttempt.aggregate([
+    { $match: { tenantId: new mongoose.Types.ObjectId(tenantId), kind: 'coach', 'coach.isBaseline': true, status: 'completed', studentId: { $in: students.map((s) => s._id) } } },
+    { $group: { _id: '$studentId', n: { $addToSet: '$coach.area' } } },
+  ]);
+  const bmap = new Map(baseline.map((b: any) => [String(b._id), (b.n || []).length]));
+  return students.filter((s) => !did.has(String(s._id))).map((s) => {
+    const b = bmap.get(String(s._id)) || 0;
+    return { studentId: String(s._id), name: s.firstName || String(s.name || '').split(' ')[0] || 'there', phone: s.phone as string | undefined, status: b < AREAS.length ? `Start your baseline: ${b} of ${AREAS.length} questions done` : 'Today: 0 of 3 recordings done' };
+  });
+}
+
+// ── Yesterday vs today, this week vs last, this month vs last ────────────────
+
+const addDays = (d: string, n: number) => { const x = new Date(`${d}T00:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+const mean1 = (v: number[]) => (v.length ? Math.round((v.reduce((a, b) => a + b, 0) / v.length) * 10) / 10 : null);
+const num = (x: any) => (typeof x === 'number' && Number.isFinite(x) ? x : null);
+
+export interface PeriodAgg {
+  label: string; from: string; to: string; recordings: number; days: number; score: number | null; hesitation: number | null;
+  pausesPerMin: number | null; firstWordSec: number | null; fillerPer100: number | null; wpm: number | null; skills: Record<string, number | null>;
+}
+
+export function aggregate(label: string, from: string, to: string, rows: any[]): PeriodAgg {
+  const r = rows.filter((x) => x.practiceDate >= from && x.practiceDate <= to);
+  const col = (f: (x: any) => any) => r.map(f).map(num).filter((v): v is number => v !== null);
+  const skills: Record<string, number | null> = {};
+  for (const k of SKILLS) skills[k] = mean1(col((x) => x.coach?.skills?.[k]));
+  return {
+    label, from, to, recordings: r.length, days: new Set(r.map((x) => x.practiceDate)).size,
+    score: mean1(col((x) => x.overriddenScore ?? x.evaluation?.overallScore)), hesitation: mean1(col((x) => x.coach?.signals?.hesitationIndex)),
+    pausesPerMin: mean1(col((x) => (x.coach?.signals?.hasTiming ? x.coach.signals.pausesPerMinute : null))), firstWordSec: mean1(col((x) => (x.coach?.signals?.hasTiming ? x.coach.signals.timeToFirstWordSec : null))),
+    fillerPer100: mean1(col((x) => x.coach?.signals?.fillerPer100Words)), wpm: mean1(col((x) => x.wordsPerMinute)), skills,
+  };
+}
+
+/** [metric label, getter, true when a LOWER number is the better one] */
+const COMPARE_ROWS: [string, (a: PeriodAgg) => number | null, boolean][] = [
+  ['Recordings', (a) => a.recordings, false], ['Practice days', (a) => a.days, false], ['Average score', (a) => a.score, false],
+  ['Hesitation (lower is calmer)', (a) => a.hesitation, true], ['Silences per minute', (a) => a.pausesPerMin, true],
+  ['Seconds before first word', (a) => a.firstWordSec, true], ['Filler words per 100', (a) => a.fillerPer100, true],
+  ...SKILLS.map((k): [string, (a: PeriodAgg) => number | null, boolean] => [SKILL_LABEL[k], (a) => a.skills[k], false]),
+];
+
+export function compareTwo(key: string, label: string, cur: PeriodAgg, prev: PeriodAgg, noun: { now: string; before: string }) {
+  const rows = COMPARE_ROWS.map(([metric, get, lowerBetter]) => {
+    const c = get(cur); const p = get(prev);
+    const delta = c !== null && p !== null ? Math.round((c - p) * 10) / 10 : null;
+    const verdict = delta === null || delta === 0 ? (delta === 0 ? 'same' : null) : ((delta < 0) === lowerBetter ? 'better' : 'worse');
+    return { metric, current: c, previous: p, delta, verdict };
+  });
+  let headline: string;
+  if (!cur.recordings && !prev.recordings) headline = `No practice ${noun.now} or ${noun.before} yet.`;
+  else if (!cur.recordings) headline = `No practice ${noun.now} yet. ${noun.before[0].toUpperCase() + noun.before.slice(1)} you averaged ${prev.score ?? '—'}.`;
+  else if (!prev.recordings) headline = `Nothing to compare yet: no practice ${noun.before}. ${noun.now[0].toUpperCase() + noun.now.slice(1)} you averaged ${cur.score ?? '—'}.`;
+  else {
+    const sc = rows.find((r) => r.metric === 'Average score')!; const he = rows.find((r) => r.metric.startsWith('Hesitation'))!;
+    const parts: string[] = [];
+    if (sc.delta !== null) parts.push(sc.delta === 0 ? `score unchanged at ${cur.score}` : `score ${cur.score} (${sc.delta > 0 ? 'up' : 'down'} ${Math.abs(sc.delta)})`);
+    if (he.delta !== null) parts.push(he.delta === 0 ? 'steadiness unchanged' : he.delta < 0 ? `steadier: hesitation ${cur.hesitation} (down ${Math.abs(he.delta)})` : `more hesitant: ${cur.hesitation} (up ${he.delta})`);
+    headline = (parts.join(', ') || 'Not enough measurements to compare.').replace(/^./, (m) => m.toUpperCase()) + '.';
+  }
+  return { key, label, current: cur, previous: prev, rows, headline };
+}
+
+export async function coachCompare(tenantId: string, studentId: string) {
+  const today = coachToday();
+  const yesterday = addDays(today, -1);
+  const dow = new Date(`${today}T00:00:00Z`).getUTCDay();
+  const weekStart = addDays(today, -((dow + 6) % 7)); // Monday
+  const lastWeekStart = addDays(weekStart, -7); const lastWeekEnd = addDays(weekStart, -1);
+  const monthStart = `${today.slice(0, 7)}-01`;
+  const lastMonthEnd = addDays(monthStart, -1); const lastMonthStart = `${lastMonthEnd.slice(0, 7)}-01`;
+  const since = [lastMonthStart, lastWeekStart].sort()[0];
+  const rows: any[] = await CommunicationAttempt.find({ tenantId, studentId, kind: 'coach', status: 'completed', practiceDate: { $gte: since } })
+    .select('practiceDate wordsPerMinute evaluation.overallScore overriddenScore coach.signals coach.skills').lean();
+  const A = (l: string, f: string, t: string) => aggregate(l, f, t, rows);
+  return [
+    compareTwo('day', 'Today vs yesterday', A('Today', today, today), A('Yesterday', yesterday, yesterday), { now: 'today', before: 'yesterday' }),
+    compareTwo('week', 'This week vs last week', A('This week (so far)', weekStart, today), A('Last week', lastWeekStart, lastWeekEnd), { now: 'this week', before: 'last week' }),
+    compareTwo('month', 'This month vs last month', A('This month (so far)', monthStart, today), A('Last month', lastMonthStart, lastMonthEnd), { now: 'this month', before: 'last month' }),
+  ];
 }

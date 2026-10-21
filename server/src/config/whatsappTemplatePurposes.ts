@@ -78,6 +78,12 @@ export const WA_TEMPLATE_PURPOSES: WaTemplatePurpose[] = [
     help: 'Sent at 7 PM IST to students who have not finished today’s practice tasks. Only sent when a template is assigned here. Keep it UTILITY: a missed-practice reminder is transactional.',
   },
   {
+    key: 'COMMUNICATION_REMINDER', label: 'Communication Coach — daily reminder', module: 'Communication Lab',
+    settingsKey: 'WHATSAPP_TEMPLATE_COMMUNICATION_REMINDER',
+    variables: ['Student first name', 'Where they are (e.g. "Today: 0 of 3 recordings done")'],
+    help: 'Sent at 6 PM IST (not Sundays) to students who have not done a Communication Coach recording today. Only sent when a template is assigned here, so nothing is spent until you assign one. Keep it UTILITY: a practice reminder is transactional. The in-app reminder is always sent, free.',
+  },
+  {
     key: 'WEEKLY_REPORT', label: 'Weekly learning report', module: 'Reports',
     settingsKey: 'WHATSAPP_TEMPLATE_WEEKLY_REPORT',
     variables: ['Student first name', 'Week (e.g. 22–27 Sep)', 'Practice days (e.g. 4 of 6)', 'Practice attendance (e.g. 72%)', 'Overall score (e.g. 68/100)'],

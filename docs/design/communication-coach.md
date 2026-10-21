@@ -34,10 +34,14 @@ Measure → Diagnose → Prescribe → Practise → Prove.
 
 Readiness also appears on the Candidate Proof Profile (`communication.coachReadiness`, `coachReady`, `steadiness`).
 
-## Not in Phase 1 (planned)
+## Gate, daily session and reminders (added 2026-10-21)
 
-- **Hard gate on company submission.** Readiness is computed and shown to the trainer and on the proof profile; no placement action is blocked yet. Needs a decision on where "sent to a company" happens (Drives apply vs placement shortlist) and who may override.
-- WhatsApp daily reminder (needs a Meta-approved template; the in-app nudge and the lab gate's escalation exist).
+- **Gate.** `placementHoldReason` (every placement entry point: drive apply, shortlist, partner send, proof share) now also holds a student who is not ready (`readinessHoldReason`). On by default from **2026-10-28** (a week to finish the baseline); settings `COMMUNICATION_READINESS_GATE` (false turns it off) and `COMMUNICATION_GATE_START` per institute. Skipped when the Communication Lab module is off for the tenant. A trainer can release one student for 3, 7 or 14 days with a reason (audited in CommunicationAuditLog; stored on CommunicationProfile).
+- **Daily session for everyone.** The dashboard card now shows the session to every student. The Practice Pass counts coach recordings as its communication task, so switching Practice Pass on makes it mandatory with a placement hold on top.
+- **Reminders.** 6 PM IST daily (not Sundays): free in-app reminder to everyone with no coach recording today; WhatsApp too when a template is assigned to the new purpose `COMMUNICATION_REMINDER` (Admin → WhatsApp Templates → Where used). One per student per day (CommunicationReminderLog).
+
+## Not yet
+
 - Record company feedback per candidate, to calibrate scoring against real interview results.
 - AI mock interviewer with live follow-ups; voice-tremor and video (eye contact, posture) analysis.
 - Project content: model answers saved per student; trainer review queue for the weakest ten each week.

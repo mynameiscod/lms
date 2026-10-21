@@ -9,6 +9,9 @@ export interface ICommunicationProfile extends Document {
   tenantId: mongoose.Types.ObjectId;
   studentId: mongoose.Types.ObjectId;
   batchId?: mongoose.Types.ObjectId;
+  /** An admin's release from the placement readiness gate (a broken microphone, a sick week): until this date. */
+  readinessOverrideUntil?: Date;
+  readinessOverrideReason?: string;
 
   fullName?: string;
   currentCity?: string;
@@ -41,6 +44,8 @@ const CommunicationProfileSchema = new Schema<ICommunicationProfile>(
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
     studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     batchId: { type: Schema.Types.ObjectId, ref: 'Batch' },
+    readinessOverrideUntil: { type: Date },
+    readinessOverrideReason: { type: String, trim: true },
 
     fullName: { type: String, trim: true },
     currentCity: { type: String, trim: true },

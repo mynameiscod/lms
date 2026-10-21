@@ -28,6 +28,7 @@ router.use(authMiddleware, tenantMiddleware);
 router.get('/admin/coach/overview', VIEW, coach.adminCoachOverview);
 router.get('/admin/coach/readiness/:studentId', VIEW, coach.adminStudentReadiness);
 router.get('/admin/coach/students/:studentId', VIEW, coach.adminCoachStudent);
+router.post('/admin/coach/override', ADMIN, coach.adminReadinessOverride);
 router.get('/admin/dashboard', ADMIN, ctrl.adminDashboard);
 router.get('/admin/students', ADMIN, ctrl.adminStudents);
 router.get('/admin/students/:studentId', ADMIN, ctrl.adminStudentDetail);
@@ -44,6 +45,7 @@ router.delete('/admin/schedule/:id', ADMIN, ctrl.deleteCommSchedule);
 
 // Student
 router.get('/coach', coach.getCoach);
+router.get('/coach/compare', coach.getCoachCompare);
 router.post('/coach/submit', upload.single('recording'), coach.submitCoach);
 router.get('/today', ctrl.getToday);
 router.get('/profile', ctrl.getProfile);

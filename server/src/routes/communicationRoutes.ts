@@ -6,6 +6,7 @@ import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { roleGuard } from '../middleware/roleGuard';
 import * as ctrl from '../controllers/communicationController';
+import * as coach from '../controllers/communicationCoachController';
 
 const router = express.Router();
 const tmpDir = path.join(process.cwd(), 'uploads', 'communication-tmp');
@@ -22,6 +23,8 @@ const ADMIN = roleGuard(['manage_communication_lab', 'create_courses', 'edit_cou
 router.use(authMiddleware, tenantMiddleware);
 
 // Admin — monitoring + challenge management (declared before /:id student routes)
+router.get('/admin/coach/overview', ADMIN, coach.adminCoachOverview);
+router.get('/admin/coach/readiness/:studentId', ADMIN, coach.adminStudentReadiness);
 router.get('/admin/dashboard', ADMIN, ctrl.adminDashboard);
 router.get('/admin/students', ADMIN, ctrl.adminStudents);
 router.get('/admin/students/:studentId', ADMIN, ctrl.adminStudentDetail);
@@ -37,6 +40,8 @@ router.post('/admin/schedule', ADMIN, ctrl.scheduleCommChallenge);
 router.delete('/admin/schedule/:id', ADMIN, ctrl.deleteCommSchedule);
 
 // Student
+router.get('/coach', coach.getCoach);
+router.post('/coach/submit', upload.single('recording'), coach.submitCoach);
 router.get('/today', ctrl.getToday);
 router.get('/profile', ctrl.getProfile);
 router.put('/profile', ctrl.updateProfile);

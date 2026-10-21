@@ -74,6 +74,10 @@ export interface ICommunicationAttempt extends Document {
   failureReason?: string;
   evaluation?: IEvaluation;
 
+  kind?: 'daily' | 'coach';
+  /** Coach-session data: area, level, whether it was the baseline, the measured hesitation signals. */
+  coach?: any;
+
   overriddenScore?: number | null;   // instructor override (AI score kept in evaluation)
   instructorReviewed: boolean;
 
@@ -136,6 +140,8 @@ const CommunicationAttemptSchema = new Schema<ICommunicationAttempt>(
     status: { type: String, enum: ['uploading', 'transcribing', 'evaluating', 'completed', 'failed'], default: 'uploading', index: true },
     failureReason: { type: String },
     evaluation: { type: EvaluationSchema, default: undefined },
+    kind: { type: String, enum: ['daily', 'coach'], default: 'daily', index: true },
+    coach: { type: Schema.Types.Mixed },
     overriddenScore: { type: Number, default: null },
     instructorReviewed: { type: Boolean, default: false },
 

@@ -2,6 +2,7 @@ import MemberAudiencePicker, { emptyMemberAudience, audienceSummary } from '../.
 import React, { useCallback, useEffect, useState } from 'react';
 import { communicationApi, CommChallenge } from '../../api/communicationApi';
 import { batchApi } from '../../api';
+import CoachOverviewPanel from './CoachOverviewPanel';
 
 const todayStr = () => {
   const d = new Date();
@@ -30,7 +31,7 @@ const Stat: React.FC<{ label: string; value: React.ReactNode; color?: string }> 
 );
 
 const CommunicationLabAdmin: React.FC = () => {
-  const [tab, setTab] = useState<'dashboard' | 'challenges' | 'students'>('dashboard');
+  const [tab, setTab] = useState<'coach' | 'dashboard' | 'challenges' | 'students'>('coach');
   const [batches, setBatches] = useState<{ _id: string; name: string }[]>([]);
 
   // dashboard
@@ -90,8 +91,10 @@ const CommunicationLabAdmin: React.FC = () => {
       <p style={{ margin: '4px 0 16px', color: '#6b7280', fontSize: 14 }}>Control challenges, assign by batch, and monitor daily practice.</p>
 
       <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #e5e7eb', marginBottom: 20, flexWrap: 'wrap' }}>
-        {tabBtn('dashboard', 'Dashboard')}{tabBtn('challenges', 'Challenges')}{tabBtn('students', 'Students')}
+        {tabBtn('coach', 'Coach — who needs help')}{tabBtn('dashboard', 'Dashboard')}{tabBtn('challenges', 'Challenges')}{tabBtn('students', 'Students')}
       </div>
+
+      {tab === 'coach' && <CoachOverviewPanel batches={batches} />}
 
       {tab === 'dashboard' && (!dash ? <div style={{ color: '#9ca3af', padding: 40, textAlign: 'center' }}>Loading…</div> : (
         <div style={{ display: 'grid', gap: 16 }}>

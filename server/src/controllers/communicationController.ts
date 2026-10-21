@@ -99,7 +99,7 @@ export const getToday = async (req: Request, res: Response) => {
 
       const streakDoc = await CommunicationStreak.findOne({ tenantId, studentId: uId(req) }).lean();
       const attemptToday = await CommunicationAttempt.findOne({
-        tenantId, studentId: uId(req), practiceDate: today,
+        tenantId, studentId: uId(req), practiceDate: today, kind: { $ne: 'coach' },
       }).sort({ createdAt: -1 }).lean();
 
       // Today's task is the one they already started, so a page refresh mid-attempt does
@@ -163,7 +163,7 @@ export const getToday = async (req: Request, res: Response) => {
     const streak = await CommunicationStreak.findOne({ tenantId, studentId: uId(req) }).lean();
 
     // Already practised today? then today's challenge is that attempt's challenge.
-    const todaysAttempt = await CommunicationAttempt.findOne({ tenantId, studentId: uId(req), practiceDate: today })
+    const todaysAttempt = await CommunicationAttempt.findOne({ tenantId, studentId: uId(req), practiceDate: today, kind: { $ne: 'coach' } })
       .sort({ createdAt: -1 }).lean();
 
     const wStatus = windowStatus(sc, now.date, now.hm);
@@ -317,7 +317,7 @@ export const submit = async (req: Request, res: Response) => {
   }
 };
 
-async function bumpStreak(tenantId: string, studentId: string, practiceDate: string) {
+export async function bumpStreak(tenantId: string, studentId: string, practiceDate: string) {
   const s = await CommunicationStreak.findOne({ tenantId, studentId });
   if (!s) {
     await CommunicationStreak.create({ tenantId, studentId, currentStreak: 1, longestStreak: 1, totalCompletedDays: 1, lastCompletedDate: practiceDate, completedDates: [practiceDate] });
@@ -407,7 +407,7 @@ export const getProgress = async (req: Request, res: Response) => {
 export const listChallenges = async (req: Request, res: Response) => {
   try {
     await ensureSeedChallenges(tId(req), uId(req));
-    const items = await CommunicationChallenge.find({ tenantId: tId(req) }).sort({ challengeType: 1, sequenceNumber: 1 }).lean();
+    const items = await CommunicationChallenge.find({ tenantId: tId(req), isCoach: { $ne: true } }).sort({ challengeType: 1, sequenceNumber: 1 }).lean();
     res.json({ challenges: items });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };

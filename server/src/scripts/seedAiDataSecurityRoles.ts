@@ -3,6 +3,12 @@
  *
  *   npx ts-node src/scripts/seedAiDataSecurityRoles.ts <tenantId>            # plan only
  *   npx ts-node src/scripts/seedAiDataSecurityRoles.ts <tenantId> --apply
+ *   npx ts-node src/scripts/seedAiDataSecurityRoles.ts <tenantId> --skills-only [--apply]
+ *
+ * --skills-only adds the skills this file defines that the catalogue does not have yet, and
+ * nothing else: no blueprints (so it does not need the roles to exist), and a skill already in
+ * the catalogue is left exactly as it is. Career tracks (Data Analytics, Data Science, AI and ML)
+ * measure against these skills.
  *
  * ── WHAT IT FIXES ─────────────────────────────────────────────────────────────────────────
  *
@@ -37,6 +43,7 @@ const ACTOR = 'ai-data-security-seed';
 async function main() {
   const tenantId = process.argv[2];
   const apply = process.argv.includes('--apply');
+  const skillsOnly = process.argv.includes('--skills-only');
   if (!tenantId || tenantId.startsWith('--')) {
     console.error('Usage: seedAiDataSecurityRoles.ts <tenantId> [--apply]');
     process.exit(1);
@@ -58,6 +65,31 @@ async function main() {
   say(`    this seed defines    ${NEW_SKILLS.length}  across ${NEW_DOMAINS.map(d => d.key).join(', ')}`);
   say(`    already present      ${already}`);
   say(`    would create         ${toCreate.length}`);
+
+  if (skillsOnly) {
+    if (!apply) { say(`\n  SKILLS ONLY, PLAN — nothing written. Re-run with --apply.`); await mongoose.disconnect(); return; }
+    let inserted = 0;
+    for (const sk of toCreate) {
+      const res = await CareerSkill.updateOne(
+        { key: sk.key },
+        {
+          $setOnInsert: {
+            key: sk.key, name: sk.name, description: sk.description, domainKey: sk.domainKey,
+            nodeType: sk.nodeType, parentKey: sk.parentKey, difficulty: sk.difficulty,
+            prerequisiteKeys: sk.prerequisiteKeys || [],
+            assessable: sk.assessable !== false && sk.nodeType === 'SKILL',
+            learnable: sk.nodeType === 'SKILL',
+            aliases: sk.aliases || [], active: true, systemSkill: true, createdBy: ACTOR, updatedBy: ACTOR,
+          },
+        },
+        { upsert: true },
+      );
+      if ((res as any).upsertedCount) inserted++;
+    }
+    say(`\n  SKILLS ONLY: ${inserted} created; ${already} already present and left untouched; no blueprints written.`);
+    await mongoose.disconnect();
+    return;
+  }
 
   /* ── 2. every blueprint reference must resolve ───────────────────────────────────────── */
   const afterSkills = new Set<string>([...existingKeys, ...NEW_SKILLS.map(s => s.key)]);

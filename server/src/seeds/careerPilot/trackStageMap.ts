@@ -191,6 +191,24 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ DATA ANALYTICS — Excel and SQL for analysts (Data Analytics + AI, batch A1) ══════════════ */
+  {
+    moduleCode: 'DT_EXCEL_SQL',
+    moduleName: 'Excel and SQL for Analysts',
+    displayOrder: 200,
+    blurb: 'Excel from formulas to a dashboard, and SQL written to answer business questions — aggregation, joins, CTEs and window functions. The SQL basics are the years’ own topics.',
+    topics: [
+      t('DT_EXCEL_CORE', 'Excel: Formulas, Lookups and Cleaning', ['SPREADSHEET_ANALYSIS'],
+        ['Build a clean, well-structured workbook with correct references, conditional aggregation, lookups and repeatable cleaning.']),
+      t('DT_EXCEL_ANALYSIS', 'Excel: Pivots, Charts and Dashboards', ['SPREADSHEET_ANALYSIS'],
+        ['Summarise data with pivot tables, chart it honestly, model scenarios and build a dashboard that refreshes.']),
+      t('DT_SQL_ANALYST', 'SQL for Business Questions', ['SQL_AGGREGATION'],
+        ['Turn a business question into correct SQL with grouped and conditional aggregation, safe joins, CTEs and date handling.']),
+      t('DT_SQL_WINDOWS', 'SQL Window Functions for Analysis', ['SQL_WINDOW_FUNCTIONS'],
+        ['Use window functions for ranking, running totals, period-over-period change, cohorts, retention and funnels.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

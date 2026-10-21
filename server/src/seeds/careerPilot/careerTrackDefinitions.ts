@@ -202,6 +202,14 @@ export const PACKS: PackDefinition[] = [
   { key: 'PL_DOTNET_FS_CANDIDATE', title: 'The .NET Full-Stack Candidate', kind: 'PLACEMENT',
     description: 'A .NET full-stack resume and GitHub, the capstone defended, and a full .NET interview loop.',
     topics: [['JT_PLACE_DOTNET_FS', 'MUST']] },
+
+  /* ── Data Analytics + AI, batch A1: Excel and SQL for analysts ── */
+  { key: 'EXCEL', title: 'Excel for Analysts', kind: 'SKILL',
+    description: 'Excel from formulas, lookups and cleaning to pivot tables, honest charts, scenarios and a dashboard.',
+    topics: [['DT_EXCEL_CORE', 'MUST'], ['DT_EXCEL_ANALYSIS', 'MUST']] },
+  { key: 'SQL_ANALYTICS', title: 'SQL for Analysts', kind: 'SKILL',
+    description: 'SQL from the first SELECT — the years’ lessons — to the queries analysts are hired for: aggregation, joins, CTEs, window functions, cohorts and funnels.',
+    topics: [['T_SQL', 'MUST'], ['T2_DB_QUERY', 'MUST'], ['T2_DB_DESIGN', 'SHOULD'], ['DT_SQL_ANALYST', 'MUST'], ['DT_SQL_WINDOWS', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -224,4 +232,9 @@ export const TRACKS: TrackDefinition[] = [
     specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_CSHARP', 'DSA_CSHARP', 'SQL_SERVER', 'DOTNET_DATA_ACCESS', 'DOTNET_DI', 'ASPNET_CORE', 'FULLSTACK_DEPLOY_DOTNET', 'GENAI_DOTNET', 'AGENTIC_AI_DOTNET', 'CAPSTONE_DOTNET_AI'],
     placementPacks: ['PL_APTITUDE', 'PL_CODING_CSHARP', 'PL_DOTNET_INTERVIEW', 'PL_WEB_INTERVIEW', 'PL_AI_INTERVIEW', 'PL_CORE_CS',
       'PL_PROJECT_DESIGN', 'PL_DOTNET_FS_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
+  { key: 'DATA_ANALYTICS_AI', name: 'Data Analytics + AI', language: 'SQL, Python and Power BI', order: 40,
+    description: 'Excel, SQL and Python with pandas; statistics and A/B tests; Power BI dashboards; business metrics and storytelling; and AI used well in every step of the analysis.',
+    /* Batches: A1 Excel and SQL; Python for data, statistics, Power BI, AI for analysts and placement are appended as they land. */
+    specializePacks: ['EXCEL', 'SQL_ANALYTICS'],
+    placementPacks: [] },
 ];

@@ -129,3 +129,75 @@ export const TRACK_DATA_A2: Record<string, TopicSeed> = {
     ...ending('EDA and Visualisation', 'PRESENTING_FINDINGS', { project: ['MINI_PROJECT', 'Mini Project — An EDA Report on a Food-Delivery Dataset', 'Clean and explore a food-delivery orders dataset — delivery times, cancellations, cuisines, areas and hours — and deliver a notebook plus a two-page findings report with honest charts and stated caveats.'] }),
   ] },
 };
+
+/** Batch A3: statistics for decisions, A/B testing, and Power BI. Year 1's T_STATS is the base. */
+export const TRACK_DATA_A3: Record<string, TopicSeed> = {
+  /* ── Statistics for decisions ── */
+  DT_STATS_DECISIONS: { category: 'UNIVERSAL', units: [
+    u('DESCRIBE', 'Describing Data Honestly', 'Mean, median and mode on skewed business data, spread, percentiles and the five-number summary — computed in pandas.',
+      ['Summarise a business metric with the right centre and spread, and say what the summary hides'], 40),
+    u('DISTRIBUTIONS', 'Distributions in Business Data', 'Normal, skewed and long-tailed data, order values and delivery times, log scales, and why the average customer does not exist.',
+      ['Recognise the shape of a distribution and choose summaries and charts that fit it'], 40, { after: ['DESCRIBE'] }),
+    u('SAMPLING', 'Samples, Populations and Bias', 'Sampling, survey and survivorship bias, and the central limit theorem as an intuition rather than a formula.',
+      ['Spot a biased sample and explain why averages of samples behave predictably'], 40, { after: ['DISTRIBUTIONS'], skillKeys: ['PROBABILITY_BASICS'] }),
+    u('CONFIDENCE_INTERVALS', 'Confidence Intervals', 'Standard error, a 95% interval for a mean and a proportion, what "95%" does and does not mean, and margins of error in reports.',
+      ['Compute and correctly interpret a confidence interval for a mean and a proportion'], 45, { after: ['SAMPLING'], skillKeys: ['PROBABILITY_BASICS'] }),
+    u('CORRELATION_CAUSATION', 'Correlation, Causation and Confounders', 'Correlation coefficients, confounding variables, Simpson’s paradox, and the claims an observational dataset cannot support.',
+      ['Measure correlation and explain why it does not show cause, with a confounder from the data'], 40, { after: ['CONFIDENCE_INTERVALS'] }),
+    ...ending('Statistics for Decisions', 'CORRELATION_CAUSATION', { minutes: [40, 55, 35, 40] }),
+  ] },
+
+  /* ── Hypothesis tests and A/B testing ── */
+  DT_AB_TESTING: { category: 'UNIVERSAL', units: [
+    u('HYPOTHESES_PVALUES', 'Hypotheses and p-values', 'Null and alternative hypotheses, what a p-value is and is not, significance levels, and Type I and II errors.',
+      ['State hypotheses for a business question and interpret a p-value correctly'], 45),
+    u('TESTS', 'Choosing and Running a Test', 'Two-sample t-tests, tests of proportions and chi-square, run with SciPy, and which test fits which question.',
+      ['Choose the right test for a comparison and run it in Python'], 45, { after: ['HYPOTHESES_PVALUES'] }),
+    u('AB_DESIGN', 'Designing an A/B Test', 'One metric that matters, guardrail metrics, randomisation units, minimum detectable effect, sample size and duration.',
+      ['Design an A/B test with a primary metric, guardrails and a sample size that can detect the effect'], 45, { after: ['TESTS'] }),
+    u('AB_PITFALLS', 'A/B Testing Pitfalls', 'Peeking, many metrics and many variants, sample-ratio mismatch, novelty effects, and seasonality.',
+      ['Find the flaw in a badly run experiment and say how it should have been run'], 40, { after: ['AB_DESIGN'] }),
+    u('READING_RESULTS', 'Reading and Reporting Results', 'Statistical vs practical significance, confidence intervals for the lift, and writing the recommendation a manager can act on.',
+      ['Turn a test result into a clear, honest recommendation'], 40, { after: ['AB_PITFALLS'] }),
+    ...ending('A/B Testing', 'READING_RESULTS', { project: ['MINI_PROJECT', 'Mini Project — Analysing an A/B Test for a Checkout Change', 'An e-commerce company tested a one-page checkout against the old one. Check the experiment for sample-ratio mismatch, analyse conversion and order value with the right tests and intervals, check the guardrails, and write a one-page recommendation.'] }),
+  ] },
+
+  /* ── Power BI: data and the model ── */
+  DT_PBI_MODEL: { category: 'UNIVERSAL', units: [
+    u('POWERBI_TOUR', 'Power BI: Desktop, Service and the Workflow', 'Get data, transform, model, visualise, publish — what each part of Power BI is for and how a report reaches its readers.',
+      ['Describe the Power BI workflow and build a first report from a CSV'], 35),
+    u('POWER_QUERY', 'Power Query: Getting and Shaping Data', 'Connecting to Excel, CSV and SQL, applied steps, changing types, merging and appending queries, and refreshing.',
+      ['Clean and combine sources in Power Query so the same steps run on every refresh'], 45, { after: ['POWERBI_TOUR'] }),
+    u('STAR_SCHEMA', 'The Star Schema and Relationships', 'Fact and dimension tables, one-to-many relationships, cardinality, filter direction, and why one flat table causes trouble.',
+      ['Model data as a star schema with correct relationships and filter direction'], 45, { after: ['POWER_QUERY'] }),
+    u('DATE_TABLE', 'The Date Table', 'A proper calendar table, marking it as a date table, fiscal years, and why time intelligence needs it.',
+      ['Build and connect a date table that supports time intelligence'], 35, { after: ['STAR_SCHEMA'] }),
+    ...ending('Power BI Modelling', 'DATE_TABLE', { minutes: [40, 55, 35, 40] }),
+  ] },
+
+  /* ── Power BI: DAX ── */
+  DT_PBI_DAX: { category: 'UNIVERSAL', units: [
+    u('MEASURES_COLUMNS', 'Measures vs Calculated Columns', 'What each computes and when, SUM, COUNTROWS, DISTINCTCOUNT and DIVIDE, and why measures are usually right.',
+      ['Choose between a measure and a calculated column and write basic measures'], 40),
+    u('CALCULATE_CONTEXT', 'Filter Context and CALCULATE', 'Row context and filter context, CALCULATE, FILTER, ALL and REMOVEFILTERS, and percentage-of-total measures.',
+      ['Use CALCULATE to change filter context and write share-of-total measures'], 50, { after: ['MEASURES_COLUMNS'] }),
+    u('TIME_INTELLIGENCE', 'Time Intelligence', 'Year-to-date, previous period, same period last year, and month-over-month growth with the date table.',
+      ['Write YTD, previous-period and growth measures that respect the date table'], 45, { after: ['CALCULATE_CONTEXT'] }),
+    u('ITERATORS_VARIABLES', 'Iterators, Variables and Ranking', 'SUMX and AVERAGEX, VAR for readable measures, RANKX, and a measure that is too slow.',
+      ['Write readable measures with variables, iterators and ranking'], 45, { after: ['TIME_INTELLIGENCE'] }),
+    ...ending('DAX', 'ITERATORS_VARIABLES', { minutes: [45, 60, 35, 40] }),
+  ] },
+
+  /* ── Power BI: reports and dashboards ── */
+  DT_PBI_REPORTS: { category: 'UNIVERSAL', units: [
+    u('VISUALS', 'Choosing and Formatting Visuals', 'Cards, bar, line, matrix, maps and scatter in Power BI, conditional formatting, and what to leave out.',
+      ['Pick and format Power BI visuals that answer the reader’s question'], 40, { skillKeys: ['DATA_VISUALISATION'] }),
+    u('INTERACTIVITY', 'Slicers, Drill-Through, Tooltips and Bookmarks', 'Cross-filtering, slicers, drill-down and drill-through pages, report tooltips, and bookmarks for guided views.',
+      ['Make a report people can explore with slicers, drill-through and tooltips'], 45, { after: ['VISUALS'] }),
+    u('DASHBOARD_DESIGN', 'Designing a Dashboard for Its Audience', 'Who reads it and what they decide, KPIs first, layout, consistency, mobile layout, and performance.',
+      ['Design a dashboard around its audience’s decisions'], 40, { after: ['INTERACTIVITY'] }),
+    u('PUBLISH_SHARE', 'Publishing, Refresh and Row-Level Security', 'Workspaces and apps in the Power BI Service, scheduled refresh and the gateway, sharing, and row-level security.',
+      ['Publish a report, schedule its refresh, and restrict rows by user with RLS'], 40, { after: ['DASHBOARD_DESIGN'] }),
+    ...ending('Power BI Reports', 'PUBLISH_SHARE', { project: ['MINI_PROJECT', 'Mini Project — A Sales Performance Dashboard in Power BI', 'A Power BI report for a retail chain built from sales, stores, products and a date table: Power Query cleaning, a star schema, DAX measures for revenue, margin, growth and YTD, a KPI overview page, a drill-through store page, row-level security by region, and a published, refreshing report.'] }),
+  ] },
+};

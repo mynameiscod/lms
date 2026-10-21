@@ -216,6 +216,14 @@ export const PACKS: PackDefinition[] = [
     description: 'Python from the first variable — the years’ lessons — to pandas, cleaning data you can trust, and exploratory analysis with honest charts.',
     topics: [['T_VARIABLES', 'MUST'], ['T_CONDITIONS', 'MUST'], ['T_LOOPS', 'MUST'], ['T_FUNCTIONS', 'MUST'], ['T_ARRAYS', 'MUST'],
       ['T2_PY_ROBUST', 'SHOULD'], ['DT_PANDAS', 'MUST'], ['DT_DATA_CLEANING', 'MUST'], ['DT_EDA_VIZ', 'MUST']] },
+
+  /* ── Data Analytics + AI, batch A3: statistics, A/B tests and Power BI ── */
+  { key: 'STATISTICS_ANALYTICS', title: 'Statistics and A/B Testing', kind: 'SKILL',
+    description: 'Probability and statistics from Year 1, then statistics for business decisions, hypothesis tests and A/B testing.',
+    topics: [['T_STATS', 'MUST'], ['DT_STATS_DECISIONS', 'MUST'], ['DT_AB_TESTING', 'MUST']] },
+  { key: 'POWER_BI', title: 'Power BI', kind: 'SKILL',
+    description: 'Power BI from Power Query and the star schema to DAX measures, interactive reports and published, secured dashboards.',
+    topics: [['DT_PBI_MODEL', 'MUST'], ['DT_PBI_DAX', 'MUST'], ['DT_PBI_REPORTS', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -241,6 +249,6 @@ export const TRACKS: TrackDefinition[] = [
   { key: 'DATA_ANALYTICS_AI', name: 'Data Analytics + AI', language: 'SQL, Python and Power BI', order: 40,
     description: 'Excel, SQL and Python with pandas; statistics and A/B tests; Power BI dashboards; business metrics and storytelling; and AI used well in every step of the analysis.',
     /* Batches: A1 Excel and SQL; Python for data, statistics, Power BI, AI for analysts and placement are appended as they land. */
-    specializePacks: ['EXCEL', 'SQL_ANALYTICS', 'PYTHON_FOR_DATA'],
+    specializePacks: ['EXCEL', 'SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'POWER_BI'],
     placementPacks: [] },
 ];

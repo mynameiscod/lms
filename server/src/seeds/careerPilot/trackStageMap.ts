@@ -225,6 +225,26 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ STATISTICS AND POWER BI (Data Analytics + AI, batch A3) ══════════════ */
+  {
+    moduleCode: 'DT_STATS_BI',
+    moduleName: 'Statistics, A/B Testing and Power BI',
+    displayOrder: 220,
+    blurb: 'Statistics for business decisions and A/B tests, then Power BI from Power Query and the star schema to DAX and published dashboards. Year 1’s probability and statistics topic is the base.',
+    topics: [
+      t('DT_STATS_DECISIONS', 'Statistics for Decisions', ['STATISTICS_BASICS', 'PROBABILITY_BASICS'],
+        ['Describe business data honestly, reason about samples and intervals, and separate correlation from cause.']),
+      t('DT_AB_TESTING', 'Hypothesis Tests and A/B Testing', ['HYPOTHESIS_TESTING'],
+        ['Choose and run the right test, design an A/B test, catch a flawed one, and report the result a manager can act on.']),
+      t('DT_PBI_MODEL', 'Power BI: Power Query and the Data Model', ['DASHBOARDING'],
+        ['Shape sources in Power Query and model them as a star schema with a date table.']),
+      t('DT_PBI_DAX', 'Power BI: DAX', ['DASHBOARDING'],
+        ['Write DAX measures with CALCULATE, filter context, time intelligence, iterators and variables.']),
+      t('DT_PBI_REPORTS', 'Power BI: Reports and Dashboards', ['DASHBOARDING', 'DATA_VISUALISATION'],
+        ['Design interactive Power BI reports for their audience, publish them with refresh, and secure rows with RLS.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

@@ -54,20 +54,22 @@ export function weekKey(dateStr: string): string {
 }
 
 // Transcribe a recorded file (audio or video/webm) via OpenAI Whisper.
-export async function transcribeFile(filePath: string, tenantId?: string, module = 'whisper'): Promise<{ text: string; durationSec: number }> {
+export async function transcribeFile(filePath: string, tenantId?: string, module = 'whisper', opts: { words?: boolean } = {}): Promise<{ text: string; durationSec: number; words?: { word: string; start: number; end: number }[] }> {
   const apiKey = settings.getStr('OPENAI_API_KEY', process.env.OPENAI_API_KEY || '');
   if (!apiKey) throw new Error('OPENAI_API_KEY is not configured (needed for speech-to-text).');
   const form = new FormData();
   form.append('file', fs.createReadStream(filePath));
   form.append('model', 'whisper-1');
   form.append('response_format', 'verbose_json');
+  if (opts.words) form.append('timestamp_granularities[]', 'word'); // when each word starts and ends: the pauses
   const r = await axios.post('https://api.openai.com/v1/audio/transcriptions', form, {
     headers: { ...form.getHeaders(), Authorization: `Bearer ${apiKey}` },
     maxContentLength: Infinity, maxBodyLength: Infinity, timeout: 300_000,
   });
   const durationSec = Math.round(r.data?.duration || 0);
   await recordUsage({ tenantId, module, provider: 'whisper', model: 'whisper-1', audioSeconds: durationSec });
-  return { text: r.data?.text || '', durationSec };
+  const words = Array.isArray(r.data?.words) ? r.data.words.map((w: any) => ({ word: String(w.word || ''), start: Number(w.start), end: Number(w.end) })) : undefined;
+  return { text: r.data?.text || '', durationSec, ...(words ? { words } : {}) };
 }
 
 const stripJson = (s: string) => (s || '').replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();

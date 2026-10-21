@@ -58,6 +58,14 @@ export const communicationApi = {
     const { data } = await axios.post(`${BASE}/submit`, fd, { headers: { ...authHeader(), 'Content-Type': 'multipart/form-data' }, timeout: 300000 });
     return data.attempt;
   },
+  coach: async (): Promise<any> => (await axios.get(`${BASE}/coach`, { headers: authHeader() })).data,
+  coachSubmit: async (area: string, blob: Blob): Promise<{ attempt: any; next: any }> => {
+    const fd = new FormData();
+    fd.append('area', area); fd.append('recording', blob, 'coach.webm');
+    return (await axios.post(`${BASE}/coach/submit`, fd, { headers: { ...authHeader(), 'Content-Type': 'multipart/form-data' }, timeout: 300000 })).data;
+  },
+  adminCoachOverview: async (batchId?: string): Promise<any> => (await axios.get(`${BASE}/admin/coach/overview${batchId ? `?batchId=${batchId}` : ''}`, { headers: authHeader() })).data,
+  adminCoachStudent: async (studentId: string): Promise<any> => (await axios.get(`${BASE}/admin/coach/students/${studentId}`, { headers: authHeader() })).data,
   history: async (): Promise<CommAttempt[]> => (await axios.get(`${BASE}/history`, { headers: authHeader() })).data.attempts || [],
   progress: async (): Promise<CommProgress> => (await axios.get(`${BASE}/progress`, { headers: authHeader() })).data,
   attempt: async (id: string): Promise<CommAttempt> => (await axios.get(`${BASE}/attempts/${id}`, { headers: authHeader() })).data.attempt,

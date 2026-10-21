@@ -151,6 +151,8 @@ const JourneyDay: React.FC = () => {
    * the membership panel here would ask somebody to buy something they already own.
    */
   const [dayLock, setDayLock] = useState<string>('');
+  /** The lock is the welcome: the way on is the welcome days, not the day before. */
+  const [lockToWelcome, setLockToWelcome] = useState(false);
   /** Roadmap V2's foundation gate, when it holds this day: the bridge checks still to pass. */
   const [gate, setGate] = useState<{ passed: number; total: number; pending: { quizId: string; title: string; dayNumber: number; attempts: number }[]; flagged: any[] } | null>(null);
   const [error, setError] = useState('');
@@ -162,7 +164,7 @@ const JourneyDay: React.FC = () => {
   const { reload: reloadMember } = useMember();
 
   const load = useCallback(async () => {
-    setLoading(true); setError(''); setLocked(false); setDayLock(''); setGate(null);
+    setLoading(true); setError(''); setLocked(false); setDayLock(''); setLockToWelcome(false); setGate(null);
     try {
       const j = await passportApi.myFoundationJourney();
       setJourney(j);
@@ -191,6 +193,22 @@ const JourneyDay: React.FC = () => {
       // The server withholds a locked day's items; it also says which kind of lock it is.
       if (plan?.isLocked && plan?.lockReason === 'sequential') {
         setDayLock(`Finish day ${dayNumber - 1} before starting day ${dayNumber}.`);
+        setItems([]);
+        return;
+      }
+      /* One programme day per calendar day, and the welcome days before Day 1 (server-held). */
+      if (plan?.isLocked && plan?.lockReason === 'orientation') {
+        setDayLock('Finish your welcome days (0.1 to 0.5) first. Day 1 opens after them, one day at a time.');
+        setLockToWelcome(true);
+        setItems([]);
+        return;
+      }
+      if (plan?.isLocked && plan?.lockReason === 'not_today') {
+        const at = plan?.lockOpensAt ? new Date(plan.lockOpensAt) : null;
+        const when = at
+          ? at.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' })
+          : 'tomorrow';
+        setDayLock(`One day at a time: Day ${dayNumber} opens on ${when}. Today's day is the one to finish.`);
         setItems([]);
         return;
       }
@@ -318,7 +336,12 @@ const JourneyDay: React.FC = () => {
           <h2 style={{ margin: '0 0 6px', fontSize: 18 }}>Day {dayNumber} is not open yet</h2>
           <p>{dayLock}</p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {dayNumber > 1 && (
+            {lockToWelcome && (
+              <button type="button" className="jd-btn primary" onClick={() => nav('/careerpilot/plan')}>
+                Go to my welcome
+              </button>
+            )}
+            {!lockToWelcome && dayNumber > 1 && (
               <button type="button" className="jd-btn primary" onClick={() => nav(`/careerpilot/journey/day/${dayNumber - 1}`)}>
                 Go to day {dayNumber - 1}
               </button>

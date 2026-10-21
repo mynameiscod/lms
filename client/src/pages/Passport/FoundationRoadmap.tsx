@@ -162,7 +162,26 @@ const FoundationRoadmap: React.FC = () => {
                 <i className="bi bi-arrow-right" />
               </button>
             </>
-          ) : (
+          ) : orientation?.blocking && orientation.days.length > 0 ? (() => {
+            /* While the welcome is required, today is a welcome day, not Day 1 — which is still shut. */
+            const w = orientation.days.find(d => d.status === 'CURRENT') || orientation.days.find(d => d.status !== 'COMPLETED') || orientation.days[0];
+            return (
+              <>
+                <small>Today · Day {w.day} · before Day 1</small>
+                <b>{w.title}</b>
+                <span>Finish the welcome and Day 1 opens</span>
+                {w.locked ? (
+                  <button type="button" className="fjm-btn light" disabled>
+                    {w.lockedReason === 'NOT_TODAY_YET' ? 'Opens tomorrow' : 'Finish the day before'}
+                  </button>
+                ) : (
+                  <button type="button" className="fjm-btn light" onClick={() => nav(welcomeLinkFor(w.dayNumber))}>
+                    {`Start Day ${w.day}`} <i className="bi bi-arrow-right" />
+                  </button>
+                )}
+              </>
+            );
+          })() : (
             <>
               <small>{allDone ? 'Journey complete' : `Today · Day ${currentDay} of ${totalDays}`}</small>
               <b>{allDone ? 'You have completed every day' : today?.title || `Day ${currentDay}`}</b>

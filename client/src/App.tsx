@@ -311,7 +311,8 @@ const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
     'manage_event_apis', 'view_admin_dashboard', 'archive_leads'],
   'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments', 'manage_snippets', 'grade_snippets', 'manage_interview_templates', 'assign_interviews', 'evaluate_interviews',
     'manage_interview_hub', 'manage_practice_pass', 'manage_problem_bank', 'manage_visualizer', 'manage_learning_plans', 'manage_live_classes',
-    'manage_skill_assessment', 'manage_leave_requests', 'manage_thinking_lab', 'manage_resources', 'manage_speaking', 'manage_communication_lab', 'view_communication_progress'],
+    'manage_skill_assessment', 'manage_leave_requests', 'manage_thinking_lab', 'manage_resources', 'manage_speaking', 'manage_communication_lab', 'view_communication_progress',
+    'manage_passport_members', 'manage_passport_setup', 'manage_passport_pathways', 'manage_passport_career_map', 'manage_passport_assessment', 'manage_passport_content'],
   'ATTENDANCE_ADMIN': ['mark_attendance'],
   'STAFF': ['mark_attendance', 'view_attendance', 'view_reports', 'manage_tenant_users', 'create_courses', 'view_leads', 'create_leads', 'edit_leads', 'assign_leads', 'view_lead_analytics', 'export_leads', 'convert_leads'],
   'STUDENT': ['enroll_courses', 'submit_assignments', 'view_quiz', 'take_interviews', 'view_snippets', 'attempt_interviews'],
@@ -616,13 +617,13 @@ const AppRoutes: React.FC = () => {
 
       {/* ── CareerPilot (separate product) ── */}
       <Route path="/admin/passport/assessment-coverage" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><CareerPilotCoverage /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_assessment']}><Layout><CareerPilotCoverage /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/concepts" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><CareerPilotConcepts /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><CareerPilotConcepts /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/config" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminConfig /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_setup']}><Layout><PassportAdminConfig /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/careerpilot/staging" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><CareerPilotStaging /></Layout></ProtectedRoute>
@@ -631,7 +632,7 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><CareerPilotPaperDesign /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/students" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']} requiredPermissions={['manage_passport', 'manage_passport_members', 'view_passport_members']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
       } />
       {/* Why THIS member got THESE missions. The endpoint existed with no screen calling
           it, so the only way to answer that question was a database query. */}
@@ -639,34 +640,34 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudentRoadmap /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/analytics" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAnalytics /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_members']}><Layout><PassportAdminAnalytics /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/companies" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminCompanies /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><PassportAdminCompanies /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/news" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminNews /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_setup']}><Layout><PassportAdminNews /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/coins" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminCoins /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_setup']}><Layout><PassportAdminCoins /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/funnel" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminFunnel /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_members', 'view_passport_funnel']}><Layout><PassportAdminFunnel /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/curriculum" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminCurriculum /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><PassportAdminCurriculum /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/pathways" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminPathways /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_pathways']}><Layout><PassportAdminPathways /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/pathway-rules" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminPathwayRules /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_pathways']}><Layout><PassportAdminPathwayRules /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/career-roles" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminCareerRoles /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_career_map']}><Layout><PassportAdminCareerRoles /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/skills" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminSkillGraph /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_career_map']}><Layout><PassportAdminSkillGraph /></Layout></ProtectedRoute>
       } />
       {/* What a student with NO chosen role is measured against. The role blueprint
           answered that for everyone else; a first-year who says "not sure" had no list. */}
@@ -674,7 +675,7 @@ const AppRoutes: React.FC = () => {
           Sits beside Concept Bank rather than replacing it — the bank owns the material,
           this owns the sequence. */}
       <Route path="/admin/passport/learning-studio" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportLearningStudio /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><PassportLearningStudio /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/learning-studio/:skillKey" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportLearningUnit /></Layout></ProtectedRoute>
@@ -683,53 +684,53 @@ const AppRoutes: React.FC = () => {
           Learning Studio in the sidebar and in the workflow, because a unit resolves its bundle
           from published content rather than holding any. */}
       <Route path="/admin/passport/mega-curriculum" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportMegaCurriculum /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><PassportMegaCurriculum /></Layout></ProtectedRoute>
       } />
       {/* What people actually did, in order, including the visits that never became an
           account. Separate from /admin/logs, which answers "what went wrong for this
           student" and needs a student to answer it at all. */}
       <Route path="/admin/passport/activity" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminActivity /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_members']}><Layout><PassportAdminActivity /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/stage-skills" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminStageSkills /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_career_map']}><Layout><PassportAdminStageSkills /></Layout></ProtectedRoute>
       } />
       {/* One stage, whole: modules, topics, the skills each teaches, and the questions behind
           them. Joins what the curriculum teaches to what the stage can actually measure. */}
       <Route path="/admin/passport/stage-curriculum" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminStageCurriculum /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_career_map']}><Layout><PassportAdminStageCurriculum /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/role-blueprints" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminRoleBlueprint /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_career_map']}><Layout><PassportAdminRoleBlueprint /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/skill-evidence" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminSkillEvidence /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_career_map']}><Layout><PassportAdminSkillEvidence /></Layout></ProtectedRoute>
       } />
       {/* AI drafts questions; a person approves them. Nothing reaches a student unreviewed. */}
       <Route path="/admin/passport/question-drafts" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminQuestionDrafts /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_assessment']}><Layout><PassportAdminQuestionDrafts /></Layout></ProtectedRoute>
       } />
       {/* The approved bank. Drafting shows only what is still pending, so before this there
           was no screen that could reach a question once it had been approved. */}
       {/* Roadmap V2: who is on it, the daily study time, and each topic's priority. */}
       <Route path="/admin/passport/roadmap-v2" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminRoadmapV2 /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><PassportAdminRoadmapV2 /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/question-bank" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminQuestionBank /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_assessment']}><Layout><PassportAdminQuestionBank /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/assessment-preview" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAssessmentPreview /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_assessment']}><Layout><PassportAdminAssessmentPreview /></Layout></ProtectedRoute>
       } />
       {/* Paper shape per stage — question count, skills covered, difficulty mix, timer. */}
       <Route path="/admin/passport/assessment-shape" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAssessmentShape /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_assessment']}><Layout><PassportAdminAssessmentShape /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/assessment" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAssessment /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_assessment']}><Layout><PassportAdminAssessment /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/missions" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminMissions /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_pathways']}><Layout><PassportAdminMissions /></Layout></ProtectedRoute>
       } />
       {/* Student Passport surfaces — deliberately NOT the LMS Layout (separate product) */}
       {/* Layout route: MemberShell mounts ONCE here and only <Outlet/> swaps, so the
@@ -866,12 +867,12 @@ const AppRoutes: React.FC = () => {
       </Route>
       {/* The welcome every new member meets before Day 1. Outside the programme's length. */}
       <Route path="/admin/passport/orientation" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminOrientation /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><PassportAdminOrientation /></Layout></ProtectedRoute>
       } />
 
       {/* The day-by-day authoring screen: curriculum on the left, the member's day on the right. */}
       <Route path="/admin/passport/content-builder" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportContentBuilder /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']} requiredPermissions={['manage_passport', 'manage_passport_content']}><Layout><PassportContentBuilder /></Layout></ProtectedRoute>
       } />
 
       <Route

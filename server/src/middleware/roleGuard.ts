@@ -228,7 +228,15 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
   careerPassport: {
     label: 'CareerPilot',
     permissions: [
-      { key: 'manage_passport', label: 'Manage CareerPilot (Config, Pathways, Missions, Assessment Bank)' },
+      { key: 'manage_passport', label: 'Manage ALL of CareerPilot (every feature below, and anything added later)' },
+      // One feature each, so a role can run the member list without touching the assessment bank. manage_passport still
+      // opens all of them. The platform administrator decides which features an institute has at all.
+      { key: 'manage_passport_members', label: 'CareerPilot: edit members (create, edit, deactivate), activity and analytics' },
+      { key: 'manage_passport_setup', label: 'CareerPilot: setup, coins, rewards and news' },
+      { key: 'manage_passport_pathways', label: 'CareerPilot: pathways, pathway rules and missions' },
+      { key: 'manage_passport_career_map', label: 'CareerPilot: career roles, skill graph, role blueprints, stage curriculum' },
+      { key: 'manage_passport_assessment', label: 'CareerPilot: assessment shape, coverage, question drafting and bank' },
+      { key: 'manage_passport_content', label: 'CareerPilot: learning content, mega curriculum, concepts, company questions' },
       // Separate from manage_passport on purpose: changing a category's weight rewrites how
       // EVERY member's career score is computed, and deleting one can strand content. That
       // is a different level of trust from writing a question, so it can be withheld from
@@ -401,7 +409,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // AI Spend
     'view_ai_spend',
     // CareerPilot — full control, including granting membership without payment
-    'manage_passport', 'manage_passport_categories', 'view_passport_members', 'view_passport_funnel', 'convert_passport_member', 'reroute_passport_members', 'use_passport',
+    'manage_passport', 'manage_passport_members', 'manage_passport_setup', 'manage_passport_pathways', 'manage_passport_career_map', 'manage_passport_assessment', 'manage_passport_content', 'manage_passport_categories', 'view_passport_members', 'view_passport_funnel', 'convert_passport_member', 'reroute_passport_members', 'use_passport',
     // Tech Battles — full control, including exporting public registrant PII
     'manage_battles', 'view_battles', 'review_battle_registrations',
     // Hackathons — run the event, but exporting registrant PII stays with admins

@@ -75,6 +75,15 @@ export interface ITenantModules {
   // Added 2026-10-09. No schema default: until saved, each follows its parent module
   // (config/tenantModules.ts MODULE_PARENT) — read through effectiveModules(), never directly.
   skillAssessment?: boolean;
+  cpMembers?: boolean;
+  cpSetup?: boolean;
+  cpPathways?: boolean;
+  cpCareerMap?: boolean;
+  cpAssessment?: boolean;
+  cpContent?: boolean;
+  cpRoadmap?: boolean;
+  cpPractice?: boolean;
+  cpRewards?: boolean;
   whatsapp?: boolean;
   learningPlans?: boolean;
   certificates?: boolean;
@@ -304,6 +313,15 @@ const TenantSchema: Schema = new Schema(
       aiCommunicationLab: { type: Boolean, default: true },
       // No default on purpose — see ITenantModules.
       skillAssessment: { type: Boolean },
+      cpMembers: { type: Boolean },
+      cpSetup: { type: Boolean },
+      cpPathways: { type: Boolean },
+      cpCareerMap: { type: Boolean },
+      cpAssessment: { type: Boolean },
+      cpContent: { type: Boolean },
+      cpRoadmap: { type: Boolean },
+      cpPractice: { type: Boolean },
+      cpRewards: { type: Boolean },
       whatsapp: { type: Boolean },
       learningPlans: { type: Boolean },
       certificates: { type: Boolean },

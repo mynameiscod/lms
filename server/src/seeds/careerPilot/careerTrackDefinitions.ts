@@ -215,7 +215,7 @@ export const PACKS: PackDefinition[] = [
   { key: 'PYTHON_FOR_DATA', title: 'Python for Data', kind: 'SKILL',
     description: 'Python from the first variable — the years’ lessons — to pandas, cleaning data you can trust, and exploratory analysis with honest charts.',
     topics: [['T_VARIABLES', 'MUST'], ['T_CONDITIONS', 'MUST'], ['T_LOOPS', 'MUST'], ['T_FUNCTIONS', 'MUST'], ['T_ARRAYS', 'MUST'],
-      ['T2_PY_ROBUST', 'SHOULD'], ['T_DATA_WRANGLING', 'MUST'], ['DT_PANDAS', 'MUST'], ['DT_DATA_CLEANING', 'MUST'], ['DT_EDA_VIZ', 'MUST']] },
+      ['T2_PY_ROBUST', 'SHOULD'], ['DT_PANDAS', 'MUST'], ['DT_DATA_CLEANING', 'MUST'], ['DT_EDA_VIZ', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [

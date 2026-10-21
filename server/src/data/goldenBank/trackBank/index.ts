@@ -67,6 +67,20 @@ import { PROBABILITY_BASICS } from './probabilityBasics';
 import { HYPOTHESIS_TESTING } from './hypothesisTesting';
 import { DASHBOARDING } from './dashboarding';
 import { BUSINESS_METRICS } from './businessMetrics';
+// Data Science + AI (batch S6).
+import { ML_CONCEPTS } from './mlConcepts';
+import { ML_SUPERVISED } from './mlSupervised';
+import { ML_UNSUPERVISED } from './mlUnsupervised';
+import { ML_EVALUATION } from './mlEvaluation';
+import { ML_FEATURE_ENGINEERING } from './mlFeatureEngineering';
+import { ML_OVERFITTING } from './mlOverfitting';
+import { NEURAL_NETWORKS } from './neuralNetworks';
+import { DL_TRAINING } from './dlTraining';
+import { DL_TRANSFORMERS } from './dlTransformers';
+import { VECTOR_EMBEDDINGS } from './vectorEmbeddings';
+import { MODEL_DEPLOYMENT } from './modelDeployment';
+import { EXPERIMENT_TRACKING } from './experimentTracking';
+import { MODEL_MONITORING } from './modelMonitoring';
 
 export const TRACK_BANK: GoldenItem[] = [
   ...JAVA_BASICS,
@@ -125,4 +139,17 @@ export const TRACK_BANK: GoldenItem[] = [
   ...HYPOTHESIS_TESTING,
   ...DASHBOARDING,
   ...BUSINESS_METRICS,
+  ...ML_CONCEPTS,
+  ...ML_SUPERVISED,
+  ...ML_UNSUPERVISED,
+  ...ML_EVALUATION,
+  ...ML_FEATURE_ENGINEERING,
+  ...ML_OVERFITTING,
+  ...NEURAL_NETWORKS,
+  ...DL_TRAINING,
+  ...DL_TRANSFORMERS,
+  ...VECTOR_EMBEDDINGS,
+  ...MODEL_DEPLOYMENT,
+  ...EXPERIMENT_TRACKING,
+  ...MODEL_MONITORING,
 ];

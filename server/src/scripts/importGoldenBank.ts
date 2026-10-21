@@ -176,6 +176,8 @@ const DIMENSION: Record<string, AssessmentDimension> = {
   ADO_NET: 'core_stack', EF_CORE: 'core_stack', DOTNET_DI: 'core_stack', ASPNET_CORE: 'core_stack', ASPNET_SECURITY: 'core_stack', SQL_SERVER: 'core_stack',
   SPREADSHEET_ANALYSIS: 'core_stack', SQL_AGGREGATION: 'core_stack', SQL_WINDOW_FUNCTIONS: 'core_stack', DATA_CLEANING: 'core_stack', DATA_QUALITY: 'core_stack', EXPLORATORY_ANALYSIS: 'core_stack',
   DATA_VISUALISATION: 'core_stack', STATISTICS_BASICS: 'aptitude', PROBABILITY_BASICS: 'aptitude', HYPOTHESIS_TESTING: 'aptitude', DASHBOARDING: 'core_stack', BUSINESS_METRICS: 'problem_solving',
+  ML_CONCEPTS: 'core_stack', ML_SUPERVISED: 'core_stack', ML_UNSUPERVISED: 'core_stack', ML_EVALUATION: 'core_stack', ML_FEATURE_ENGINEERING: 'core_stack', ML_OVERFITTING: 'core_stack', NEURAL_NETWORKS: 'core_stack',
+  DL_TRAINING: 'core_stack', DL_TRANSFORMERS: 'core_stack', VECTOR_EMBEDDINGS: 'core_stack', MODEL_DEPLOYMENT: 'core_stack', EXPERIMENT_TRACKING: 'core_stack', MODEL_MONITORING: 'core_stack',
   APTITUDE_DATA_INTERPRETATION: 'aptitude',
   APTITUDE_REASONING_LOGIC: 'aptitude',
   APTITUDE_REASONING_SERIES: 'aptitude',

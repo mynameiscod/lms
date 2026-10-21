@@ -347,6 +347,26 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ DATA SCIENCE PLACEMENT (Data Science + AI, batch S5) ══════════════ */
+  {
+    moduleCode: 'DS_PLACE',
+    moduleName: 'Data Science Placement',
+    displayOrder: 340,
+    blurb: 'SQL and statistics interviews are Data Analytics’ topics, aptitude, HR, portfolio and mocks the shared packs; this adds ML, probability, ML case and coding rounds and the data-science candidate.',
+    topics: [
+      t('DS_IV_ML', 'Machine Learning Interview Questions', ['ML_OVERFITTING', 'ML_SUPERVISED', 'ML_EVALUATION', 'ML_FEATURE_ENGINEERING', 'NEURAL_NETWORKS', 'MODEL_DEPLOYMENT'],
+        ['Answer ML interview questions — fundamentals, algorithms, evaluation, features, deep learning, NLP and deployment — with the follow-up.']),
+      t('DS_IV_PROBABILITY', 'Probability and Statistics Interview Questions', ['PROBABILITY_BASICS', 'STATISTICS_BASICS'],
+        ['Work probability puzzles, distribution and Bayes questions, and estimation questions aloud.']),
+      t('DS_ML_CASE', 'ML Case and System-Design Interviews', ['ML_CONCEPTS'],
+        ['Frame and design an ML product end to end — data, features, metrics, model, deployment and monitoring — and complete a take-home.']),
+      t('DS_CODING_ML', 'Coding Rounds for Data Scientists', ['ML_CONCEPTS'],
+        ['Implement algorithms, data manipulation and evaluation metrics in plain Python under time.']),
+      t('DS_PLACE_FS', 'The Data Science Candidate', ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE', 'TECHNICAL_EXPLANATION', 'INTERVIEW_PERFORMANCE'],
+        ['Present a data-science resume, portfolio and capstone and get through a full interview loop.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

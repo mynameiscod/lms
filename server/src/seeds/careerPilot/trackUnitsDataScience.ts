@@ -1,6 +1,7 @@
 import { TopicSeed } from './year1MegaCurriculum';
 import { u } from './year4UnitKit';
 import { ending } from './trackUnitsWeb';
+import { interview } from './trackUnitsPlacement';
 
 /**
  * Career-track content for Data Science + AI. The track stands on Data Analytics + AI's SQL, pandas,
@@ -227,5 +228,73 @@ export const TRACK_DS_S4: Record<string, TopicSeed> = {
       ['Present the capstone and defend every modelling decision under questioning'], 45, { unitType: 'PRACTICE', after: ['BUILD_DEPLOY_AI'] }),
     u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
       ['Show data-science judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
+  ] },
+};
+
+/**
+ * Batch S5: Year-4 placement for data scientists — ML, probability, ML case and coding rounds, and the candidate. SQL
+ * and statistics/pandas interviews are Data Analytics' topics; aptitude, HR, portfolio and mocks are the shared packs.
+ */
+export const TRACK_DS_S5: Record<string, TopicSeed> = {
+  /* ── Machine learning at interview depth ── */
+  DS_IV_ML: { category: 'UNIVERSAL', units: interview('ML Interview', [
+    ['IV_FUNDAMENTALS', 'Fundamentals Interviewers Always Ask', 'Bias and variance, overfitting and regularisation, the curse of dimensionality, and parametric vs non-parametric models.', ['ML_OVERFITTING']],
+    ['IV_ALGORITHMS', 'How the Algorithms Work', 'Linear and logistic regression, trees, random forests, gradient boosting, kNN, SVM and Naive Bayes — explained, compared and their failure modes.', ['ML_SUPERVISED']],
+    ['IV_EVALUATION', 'Evaluation and Validation Questions', 'Choosing metrics, ROC vs PR curves, imbalance, calibration, cross-validation choices and leakage stories.', ['ML_EVALUATION']],
+    ['IV_FEATURES_UNSUP', 'Features and Unsupervised Learning Questions', 'Encoding and scaling choices, feature importance, k-means and PCA questions, and segmentation follow-ups.', ['ML_FEATURE_ENGINEERING']],
+    ['IV_DL_NLP', 'Deep Learning, NLP and LLM Questions', 'Backpropagation, overfitting in networks, transfer learning, embeddings, transformers, and when an LLM is the wrong tool.', ['NEURAL_NETWORKS']],
+    ['IV_DEPLOYMENT', 'Deployment and MLOps Questions', 'Serving, training–serving skew, monitoring and drift, retraining, and A/B testing a model in production.', ['MODEL_DEPLOYMENT']],
+  ]) },
+
+  /* ── Probability and statistics puzzles ── */
+  DS_IV_PROBABILITY: { category: 'UNIVERSAL', units: interview('Probability and Statistics Interview', [
+    ['IV_PROBABILITY_PUZZLES', 'Probability Puzzles', 'Dice, cards, coins and birthdays — conditional probability and expectation questions worked aloud.', ['PROBABILITY_BASICS']],
+    ['IV_DISTRIBUTIONS', 'Distributions and the Central Limit Theorem', 'Binomial, Poisson, normal and exponential in interview questions, and what the CLT does and does not promise.', ['PROBABILITY_BASICS']],
+    ['IV_BAYES', 'Bayes’ Rule in Interviews', 'Base rates, test accuracy, posterior reasoning and the classic medical-test and fraud-alert questions.', ['PROBABILITY_BASICS']],
+    ['IV_ESTIMATION', 'Estimation and Inference Questions', 'Bias of estimators, maximum likelihood in words, confidence intervals, and sample-size questions.', ['STATISTICS_BASICS']],
+  ]) },
+
+  /* ── ML case and system-design interviews ── */
+  DS_ML_CASE: { category: 'UNIVERSAL', units: [
+    u('FRAMING_CASES', 'Framing an ML Product Case', 'Recommendations, fraud, demand forecasting and churn: the objective, the label, the constraints and whether ML is needed at all.',
+      ['Frame an ML product problem aloud with a clear objective, label and constraints'], 45),
+    u('DATA_FEATURE_CASES', 'Data and Features in a Case', 'What data exists, labels that arrive late, features that leak, and cold start.',
+      ['Plan the data, labels and features for an ML case without leakage'], 40, { after: ['FRAMING_CASES'] }),
+    u('MODEL_METRIC_CASES', 'Model and Metric Choices in a Case', 'An offline metric that matches the business goal, a baseline, a model choice and how you would know it worked online.',
+      ['Choose offline and online metrics and a model for an ML case and justify them'], 45, { after: ['DATA_FEATURE_CASES'] }),
+    u('DEPLOY_MONITOR_CASES', 'Deployment and Monitoring in a Case', 'Batch vs real-time, latency budgets, monitoring, feedback loops and fairness — the end of an ML design answer.',
+      ['Finish an ML design answer with deployment, monitoring and risks'], 40, { after: ['MODEL_METRIC_CASES'] }),
+    u('TAKE_HOME', 'The Data Science Take-Home', 'Scoping the assignment, an honest validation, a clean notebook and a short report that wins the next round.',
+      ['Complete a data-science take-home to the standard that gets a call-back'], 45, { after: ['DEPLOY_MONITOR_CASES'] }),
+    u('TIMED_CASES', 'Timed ML Case Set', 'Two ML design cases under time, with model answers and how each is scored.',
+      ['Answer timed ML case questions with structure and clear trade-offs'], 50, { unitType: 'PRACTICE', after: ['TAKE_HOME'] }),
+    u('CHECKPOINT', 'ML Case Interviews — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Show structured ML design thinking at interview standard'], 40, { unitType: 'CHECKPOINT', after: ['TIMED_CASES'] }),
+  ] },
+
+  /* ── Coding rounds for data scientists ── */
+  DS_CODING_ML: { category: 'UNIVERSAL', units: [
+    u('CODING_FOR_DS', 'Coding Rounds for Data Scientists', 'What DS coding rounds ask — implement an algorithm, compute a metric, manipulate data — and writing it cleanly under time without libraries.',
+      ['Approach a data-science coding round and write clean library-free Python under time'], 40),
+    u('ROUND_FROM_SCRATCH', 'Coding Round — Algorithms from Scratch', 'Implementing a classic algorithm in plain Python: a decision stump, kNN, or logistic regression by gradient descent.',
+      ['Implement a classic ML algorithm from scratch in plain Python'], 55, { unitType: 'PRACTICE', after: ['CODING_FOR_DS'] }),
+    u('ROUND_DATA_MANIPULATION', 'Coding Round — Data Manipulation Without pandas', 'Grouping, joining, de-duplicating and windowing records in plain Python, as the round asks.',
+      ['Manipulate tabular records correctly in plain Python'], 50, { unitType: 'PRACTICE', after: ['ROUND_FROM_SCRATCH'] }),
+    u('ROUND_METRICS', 'Coding Round — Metrics and Evaluation', 'Computing ROC-AUC, log loss, precision at k or a train/test split by hand, with the edge cases.',
+      ['Compute evaluation metrics correctly by hand, including edge cases'], 50, { unitType: 'PRACTICE', after: ['ROUND_DATA_MANIPULATION'] }),
+    u('CHECKPOINT', 'Data Science Coding — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Read and reason about data-science code at coding-round standard'], 40, { unitType: 'CHECKPOINT', after: ['ROUND_METRICS'] }),
+  ] },
+
+  /* ── The data-science candidate ── */
+  DS_PLACE_FS: { category: 'UNIVERSAL', units: [
+    u('RESUME', 'A Data Science Resume and Portfolio', 'The skills line recruiters filter on, project bullets with metrics and business impact, a GitHub with clean notebooks, and a deployed demo.',
+      ['Write a data-science resume and portfolio whose every claim can be checked'], 45, { skillKeys: ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE'] }),
+    u('DEFEND_CAPSTONE', 'Defending Your Data Science Capstone', 'The problem, data, validation, model choice, deployment and the GenAI feature — and the follow-ups a panel asks about each.',
+      ['Defend the capstone end to end under follow-up questions'], 45, { after: ['RESUME'], skillKeys: ['TECHNICAL_EXPLANATION'] }),
+    u('MOCK_LOOP', 'The Data Science Interview Loop — Mock', 'Online test (aptitude, SQL, Python), an ML round, a statistics and case round, a hiring-manager round and HR — as one mock day.',
+      ['Go through a complete data-science interview loop and act on its debrief'], 60, { unitType: 'PRACTICE', after: ['DEFEND_CAPSTONE'], skillKeys: ['INTERVIEW_PERFORMANCE'] }),
+    u('CHECKPOINT', 'Data Science Placement — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Show the judgement a data-science hiring panel looks for'], 40, { unitType: 'CHECKPOINT', after: ['MOCK_LOOP'] }),
   ] },
 };

@@ -287,6 +287,23 @@ export const PACKS: PackDefinition[] = [
   { key: 'CAPSTONE_DS_AI', title: 'Capstone: Data Science + AI', kind: 'SKILL',
     description: 'One end-to-end ML project that proves the track: a validated, interpreted model, deployed, with a measured GenAI feature, presented and defended.',
     topics: [['DS_CAPSTONE', 'MUST']] },
+
+  /* ── Data Science + AI, batch S5: Year-4 data-science placement ── */
+  { key: 'PL_DS_ML', title: 'ML and Probability Interviews', kind: 'PLACEMENT',
+    description: 'Machine learning, deep learning and deployment at interview depth, and probability and statistics puzzles.',
+    topics: [['DS_IV_ML', 'MUST'], ['DS_IV_PROBABILITY', 'MUST']] },
+  { key: 'PL_DS_ANALYTICS_IV', title: 'SQL, Statistics and pandas Interviews', kind: 'PLACEMENT',
+    description: 'The SQL rounds and the statistics, A/B and pandas questions data-science interviews share with analyst interviews.',
+    topics: [['DT_IV_SQL_DA', 'MUST'], ['DT_IV_STATS_PYTHON', 'MUST']] },
+  { key: 'PL_DS_CASES', title: 'ML Case and System-Design Interviews', kind: 'PLACEMENT',
+    description: 'ML product cases end to end and the data-science take-home.',
+    topics: [['DS_ML_CASE', 'MUST']] },
+  { key: 'PL_DS_CODING', title: 'Coding Rounds for Data Scientists', kind: 'PLACEMENT',
+    description: 'Algorithms, data manipulation and metrics in plain Python, plus the DSA patterns and Python rounds many online tests include.',
+    topics: [['DS_CODING_ML', 'MUST'], ['T4_PL_DSA_PATTERNS', 'SHOULD'], ['JT_CODING_PYTHON', 'SHOULD']] },
+  { key: 'PL_DS_CANDIDATE', title: 'The Data Science Candidate', kind: 'PLACEMENT',
+    description: 'A data-science resume and portfolio, the capstone defended, and a full data-science interview loop.',
+    topics: [['T4_IV_METHOD', 'MUST'], ['T4_IV_PROJECT', 'MUST'], ['DS_PLACE_FS', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -318,5 +335,5 @@ export const TRACKS: TrackDefinition[] = [
     description: 'SQL, pandas and statistics; machine learning with scikit-learn from regression to ensembles and clustering; deep learning, NLP and GenAI; deploying a model; and a capstone you can defend.',
     /* Batches: S1 ML foundations, regression and classification (SQL, pandas and statistics are Data Analytics' packs); later ML, deep learning, deployment and placement packs are appended as they land. */
     specializePacks: ['SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'ML_FOUNDATIONS', 'SUPERVISED_ML', 'APPLIED_ML', 'UNSUPERVISED_ML', 'FORECASTING', 'DEEP_LEARNING_DS', 'NLP_GENAI_DS', 'ML_DEPLOYMENT', 'CAPSTONE_DS_AI'],
-    placementPacks: [] },
+    placementPacks: ['PL_APTITUDE', 'PL_DS_ML', 'PL_DS_ANALYTICS_IV', 'PL_DS_CASES', 'PL_DS_CODING', 'PL_AI_INTERVIEW', 'PL_DS_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
 ];

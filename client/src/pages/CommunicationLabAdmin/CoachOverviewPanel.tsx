@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { communicationApi } from '../../api/communicationApi';
+import { CompareCard } from '../CommunicationLab/CoachTab';
 
 /** Trainer view of the Communication Coach: who has never started, who went quiet, who sounds frozen, who is ready. */
 
@@ -46,6 +47,7 @@ const Detail: React.FC<{ id: string; onClose: () => void }> = ({ id, onClose }) 
             <b>Skills</b>{d.weakestSkill && <span style={{ color: '#b45309', marginLeft: 8, fontSize: 13 }}>weakest: {d.weakestSkill}</span>}
             {d.skills.map((k: any) => <div key={k.key} style={{ marginTop: 8, fontSize: 13.5 }}><div style={{ display: 'flex', justifyContent: 'space-between' }}><span>{k.label}</span><span>{k.start ? `${k.start} → ` : ''}<b>{k.now || '—'}</b></span></div>{bar(k.now, k.now >= 65 ? '#16a34a' : k.now >= 45 ? '#d97706' : '#dc2626')}</div>)}
           </div>
+          <div style={{ marginBottom: 12 }}><CompareCard data={d.compare} /></div>
           <div style={{ ...card, padding: 14, marginBottom: 12 }}>
             <b>Steadiness over time</b> <span style={{ color: '#6b7280', fontSize: 12.5 }}>(lower is calmer)</span>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 56, marginTop: 8 }}>{d.hesitation.trend.map((t: any, i: number) => <div key={i} title={`${t.date}: ${t.hesitation}`} style={{ flex: 1, minWidth: 6, height: `${Math.max(6, t.hesitation)}%`, background: hesColor(t.hesitation), borderRadius: 3 }} />)}</div>
@@ -56,7 +58,7 @@ const Detail: React.FC<{ id: string; onClose: () => void }> = ({ id, onClose }) 
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><b>{r.title}</b><span>{r.date} · <b>{r.score}</b>/100</span></div>
               <div style={{ color: '#6b7280', margin: '4px 0' }}>{r.signals ? `${r.signals.pauseCount} silences · longest ${r.signals.longestPauseSec}s · first word ${r.signals.timeToFirstWordSec}s · ${r.signals.restarts} restarts · hesitation ${r.hesitation}` : 'No timing data'}</div>
               {!!r.tips.length && <div style={{ color: '#475569' }}>{r.tips[0]}</div>}
-              <div style={{ marginTop: 6 }}>{play?.id === r.id ? <audio controls autoPlay src={play.url} style={{ width: '100%' }} /> : <button onClick={() => listen(r.id)} style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 6, padding: '3px 10px', cursor: 'pointer', fontSize: 12.5 }}>▶ Listen</button>}</div>
+              <div style={{ marginTop: 6 }}>{play?.id === r.id ? (r.type === 'video' ? <video controls autoPlay playsInline src={play.url} style={{ width: '100%', borderRadius: 8 }} /> : <audio controls autoPlay src={play.url} style={{ width: '100%' }} />) : <button onClick={() => listen(r.id)} style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 6, padding: '3px 10px', cursor: 'pointer', fontSize: 12.5 }}>▶ {r.type === 'video' ? 'Watch' : 'Listen'}</button>}</div>
               {r.transcript && <details style={{ marginTop: 6 }}><summary style={{ cursor: 'pointer', color: '#1a5490' }}>Transcript</summary><p style={{ whiteSpace: 'pre-wrap', margin: '6px 0 0', color: '#334155' }}>{r.transcript}</p></details>}
             </div>
           ))}

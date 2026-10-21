@@ -45,6 +45,7 @@ router.delete('/admin/schedule/:id', ADMIN, ctrl.deleteCommSchedule);
 
 // Student
 router.get('/coach', coach.getCoach);
+router.get('/coach/compare', coach.getCoachCompare);
 router.post('/coach/submit', upload.single('recording'), coach.submitCoach);
 router.get('/today', ctrl.getToday);
 router.get('/profile', ctrl.getProfile);

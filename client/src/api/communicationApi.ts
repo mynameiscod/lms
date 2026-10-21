@@ -59,9 +59,10 @@ export const communicationApi = {
     return data.attempt;
   },
   coach: async (): Promise<any> => (await axios.get(`${BASE}/coach`, { headers: authHeader() })).data,
-  coachSubmit: async (area: string, blob: Blob): Promise<{ attempt: any; next: any }> => {
+  coachCompare: async (): Promise<any[]> => (await axios.get(`${BASE}/coach/compare`, { headers: authHeader() })).data.comparisons || [],
+  coachSubmit: async (area: string, step: number, blob: Blob, mode: 'video' | 'audio'): Promise<{ attempt: any; next: any }> => {
     const fd = new FormData();
-    fd.append('area', area); fd.append('recording', blob, 'coach.webm');
+    fd.append('area', area); fd.append('step', String(step)); fd.append('recordingType', mode); fd.append('recording', blob, 'coach.webm');
     return (await axios.post(`${BASE}/coach/submit`, fd, { headers: { ...authHeader(), 'Content-Type': 'multipart/form-data' }, timeout: 300000 })).data;
   },
   adminCoachOverview: async (batchId?: string): Promise<any> => (await axios.get(`${BASE}/admin/coach/overview${batchId ? `?batchId=${batchId}` : ''}`, { headers: authHeader() })).data,

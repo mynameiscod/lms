@@ -64,3 +64,26 @@ describe('readiness gate settings', () => {
     expect(load({ COMMUNICATION_GATE_START: '2999-01-01' }).gateInfo('t').active).toBe(false);
   });
 });
+
+describe('comparison periods', () => {
+  const { aggregate, compareTwo } = require('../services/communicationCoachService');
+  const att = (date: string, score: number, hes: number) => ({ practiceDate: date, evaluation: { overallScore: score }, wordsPerMinute: 120, coach: { signals: { hesitationIndex: hes, hasTiming: true, pausesPerMinute: hes / 5, timeToFirstWordSec: 2, fillerPer100Words: 3 }, skills: { fluency: score, confidence: 100 - hes, clarity: score, structure: score, content: score, language: score } } });
+  const rows = [att('2026-10-20', 50, 60), att('2026-10-20', 54, 56), att('2026-10-21', 66, 35)];
+
+  it('averages each day and marks lower hesitation as better', () => {
+    const y = aggregate('Yesterday', '2026-10-20', '2026-10-20', rows);
+    const t = aggregate('Today', '2026-10-21', '2026-10-21', rows);
+    expect(y.recordings).toBe(2); expect(y.score).toBe(52); expect(t.score).toBe(66);
+    const c = compareTwo('day', 'x', t, y, { now: 'today', before: 'yesterday' });
+    expect(c.rows.find((r: any) => r.metric === 'Average score').verdict).toBe('better');
+    expect(c.rows.find((r: any) => r.metric.startsWith('Hesitation')).verdict).toBe('better');
+    expect(c.headline).toMatch(/up 14/); expect(c.headline).toMatch(/steadier/);
+  });
+
+  it('says so plainly when one side has no practice', () => {
+    const none = aggregate('Yesterday', '2026-10-19', '2026-10-19', rows);
+    const t = aggregate('Today', '2026-10-21', '2026-10-21', rows);
+    expect(compareTwo('day', 'x', t, none, { now: 'today', before: 'yesterday' }).headline).toMatch(/Nothing to compare yet/);
+    expect(compareTwo('day', 'x', none, t, { now: 'today', before: 'yesterday' }).headline).toMatch(/No practice today yet/);
+  });
+});

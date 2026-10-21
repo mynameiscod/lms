@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { communicationApi } from '../../api/communicationApi';
 
 /**
  * The Communication Coach page: where the student stands and what to do today.
@@ -23,6 +24,34 @@ export interface CoachState {
 const tone = (v: number, good = 65, ok = 45) => (v >= good ? '#16835d' : v >= ok ? '#b86b00' : '#c93737');
 const hesLabel = (h: number | null) => (h == null ? '—' : h >= 75 ? 'Freezing' : h >= 50 ? 'High hesitation' : h >= 25 ? 'Some hesitation' : 'Calm');
 const hesTone = (h: number | null) => (h == null ? '#94a3b8' : h >= 50 ? '#c93737' : h >= 25 ? '#b86b00' : '#16835d');
+
+/** Yesterday vs today, this week vs last week, this month vs last month. The server does the maths. */
+export const CompareCard: React.FC<{ data: any[] | null }> = ({ data }) => {
+  const [k, setK] = useState('day');
+  if (!data) return <section className="clx-card" style={{ padding: 16 }}>Loading your comparison…</section>;
+  const c = data.find((x) => x.key === k) || data[0];
+  if (!c) return null;
+  const col = (v: string | null) => (v === 'better' ? '#16835d' : v === 'worse' ? '#c93737' : '#64748b');
+  const fmt = (n: number | null) => (n === null ? '—' : n);
+  return <section className="clx-card" style={{ padding: 16 }}>
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+      {data.map((x) => <button key={x.key} className={`clx-btn ${x.key === k ? 'primary' : ''}`} onClick={() => setK(x.key)}>{x.label}</button>)}
+    </div>
+    <p style={{ margin: '0 0 10px', fontWeight: 700, color: '#0f172a' }}>{c.headline}</p>
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
+        <thead><tr style={{ textAlign: 'left', color: '#64748b', fontSize: 12 }}><th style={{ padding: '6px 8px' }} /><th style={{ padding: '6px 8px' }}>{c.current.label}<div style={{ fontWeight: 400 }}>{c.current.from === c.current.to ? c.current.from : `${c.current.from} → ${c.current.to}`}</div></th><th style={{ padding: '6px 8px' }}>{c.previous.label}<div style={{ fontWeight: 400 }}>{c.previous.from === c.previous.to ? c.previous.from : `${c.previous.from} → ${c.previous.to}`}</div></th><th style={{ padding: '6px 8px' }}>Change</th></tr></thead>
+        <tbody>
+          {c.rows.map((r: any) => <tr key={r.metric} style={{ borderTop: '1px solid #f1f5f9' }}>
+            <td style={{ padding: '6px 8px' }}>{r.metric}</td><td style={{ padding: '6px 8px', fontWeight: 700 }}>{fmt(r.current)}</td><td style={{ padding: '6px 8px' }}>{fmt(r.previous)}</td>
+            <td style={{ padding: '6px 8px', fontWeight: 700, color: col(r.verdict) }}>{r.delta === null ? '—' : r.delta === 0 ? '=' : `${r.delta > 0 ? '▲' : '▼'} ${Math.abs(r.delta)}`}{r.verdict === 'better' ? ' ✓' : ''}</td>
+          </tr>)}
+        </tbody>
+      </table>
+    </div>
+    <p style={{ margin: '8px 0 0', color: '#64748b', fontSize: 12 }}>✓ means better. For hesitation, silences, first word and fillers, lower is better. A week or month "so far" is an average, so it is fair against a full one.</p>
+  </section>;
+};
 
 export const CoachResult: React.FC<{ a: any; next: CoachState | null; onClose: () => void }> = ({ a, next, onClose }) => {
   const e = a.evaluation || {}; const c = a.coach || {}; const s = c.signals || {};
@@ -58,6 +87,9 @@ export const CoachResult: React.FC<{ a: any; next: CoachState | null; onClose: (
 };
 
 const CoachTab: React.FC<{ state: CoachState | null; loading: boolean; onStart: (s: CoachStep) => void }> = ({ state, loading, onStart }) => {
+  const [compare, setCompare] = useState<any[] | null>(null);
+  const recordings = state?.totalRecordings;
+  useEffect(() => { communicationApi.coachCompare().then(setCompare).catch(() => setCompare([])); }, [recordings]);
   if (loading && !state) return <div className="clx-card clx-empty">Loading your coach…</div>;
   if (!state) return <div className="clx-card clx-empty">The coach is not available right now. Please try again in a moment.</div>;
   const r = state.readiness;
@@ -91,9 +123,12 @@ const CoachTab: React.FC<{ state: CoachState | null; loading: boolean; onStart: 
         {!!s.prompt.guide.length && <ol style={{ margin: '0 0 8px', paddingLeft: 18, color: '#475569', fontSize: 13.5 }}>{s.prompt.guide.map((g, i) => <li key={i}>{g}</li>)}</ol>}
         {s.prompt.script && <details style={{ marginBottom: 8 }}><summary style={{ cursor: 'pointer', color: '#1a5490', fontWeight: 600 }}>Read this aloud</summary><p style={{ whiteSpace: 'pre-wrap', fontSize: 13.5, color: '#334155' }}>{s.prompt.script}</p></details>}
         {s.prompt.followUp && <p style={{ margin: '0 0 8px', fontSize: 13.5, color: '#b86b00' }}>Then answer straight away: "{s.prompt.followUp}"</p>}
-        {!s.done && !state.tooMany && <button className="clx-btn" onClick={() => onStart(s)}><i className="bi bi-mic" /> Record</button>}
+        {!s.done && !state.tooMany && <button className="clx-btn" onClick={() => onStart(s)}><i className="bi bi-camera-video" /> Record</button>}
+        {s.done && <p style={{ margin: 0, color: '#64748b', fontSize: 12.5 }}>Recorded. Each answer is recorded once.</p>}
       </section>)}
     </div>
+
+    {!!state.totalRecordings && <div style={{ marginTop: 14 }}><h3 style={{ margin: '0 0 8px' }}>How you are improving</h3><CompareCard data={compare} /></div>}
 
     <div className="clx-grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 14, marginTop: 14 }}>
       <section className="clx-card" style={{ padding: 16 }}>

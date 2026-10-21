@@ -234,8 +234,8 @@ const CommunicationLab: React.FC = () => {
     {tab === 'leaderboard' && <div className="clx-card">{!board ? <div className="clx-empty">Loading leaderboard…</div> : !board.enabled ? <div className="clx-empty"><i className="bi bi-bar-chart"/><h3>Leaderboard unavailable</h3><p>The leaderboard is turned off for your institute.</p></div> : board.rows?.length ? board.rows.map((r:any)=><div className={`clx-rank ${r.me?'me':''}`} key={r.studentId}><span className="place">{r.rank <= 3 ? <i className="bi bi-trophy-fill" /> : r.rank}</span><span className="name">{r.name}{r.me?' (You)':''}</span><span className="stat"><i className="bi bi-fire"/> {r.streak} · {r.days} days</span><strong style={{color:scoreColor(r.avg)}}>{r.avg}</strong></div>) : <div className="clx-empty"><i className="bi bi-people"/><h3>No rankings yet</h3><p>Complete a practice session to get started.</p></div>}</div>}
 
     {coachStep && <Recorder
-      today={{ date: todayStr(), challenge: { _id: 'coach', title: coachStep.prompt.title, description: coachStep.prompt.ask, recordingModes: ['audio'], minSeconds: 20, maxSeconds: 180 } }}
-      submitter={(blob) => communicationApi.coachSubmit(coachStep.area, blob)}
+      today={{ date: todayStr(), challenge: { _id: 'coach', title: coachStep.prompt.title, description: `${coachStep.prompt.ask} You can listen before you send. Once sent, this answer is final and cannot be redone.`, recordingModes: ['video', 'audio'], minSeconds: 20, maxSeconds: 180 } }}
+      submitter={(blob, mode) => communicationApi.coachSubmit(coachStep.area, coachStep.index, blob, mode)}
       onDone={(r: any) => { setCoachStep(null); setCoachResult({ a: r.attempt, next: r.next }); setCoach(r.next); loadOverview(); }}
       onClose={() => setCoachStep(null)} />}
     {recording && today?.challenge && <Recorder today={today} onDone={onDone} onClose={()=>setRecording(false)} />}

@@ -201,3 +201,52 @@ export const TRACK_DATA_A3: Record<string, TopicSeed> = {
     ...ending('Power BI Reports', 'PUBLISH_SHARE', { project: ['MINI_PROJECT', 'Mini Project — A Sales Performance Dashboard in Power BI', 'A Power BI report for a retail chain built from sales, stores, products and a date table: Power Query cleaning, a star schema, DAX measures for revenue, margin, growth and YTD, a KPI overview page, a drill-through store page, row-level security by region, and a published, refreshing report.'] }),
   ] },
 };
+
+/** Batch A4: business metrics and storytelling, AI for analysts, and the capstone. Year 1's T_GENAI is the base. */
+export const TRACK_DATA_A4: Record<string, TopicSeed> = {
+  /* ── Business metrics and storytelling ── */
+  DT_METRICS_STORY: { category: 'UNIVERSAL', units: [
+    u('KPIS', 'Choosing the Right Metrics', 'KPIs vs vanity metrics, a north-star metric, leading and lagging indicators, and defining a metric precisely enough to compute.',
+      ['Choose and precisely define the metrics that match a business goal'], 40),
+    u('UNIT_ECONOMICS', 'Funnels, Retention and Unit Economics', 'Conversion funnels, retention and churn, average order value, CAC and LTV — the numbers an e-commerce or SaaS manager watches.',
+      ['Compute and explain funnel, retention and unit-economics metrics for a business'], 45, { after: ['KPIS'] }),
+    u('ROOT_CAUSE', 'Why Did the Metric Move?', 'Checking the data first, then segmenting, decomposing a metric into its parts, and separating seasonality from a real change.',
+      ['Investigate a sudden change in a metric systematically and find its cause'], 45, { after: ['UNIT_ECONOMICS'] }),
+    u('STORYTELLING', 'Telling the Story in the Data', 'The one-line answer first, three supporting points, one chart per point, and what the reader should do next.',
+      ['Structure an analysis as a clear story with a recommendation'], 40, { after: ['ROOT_CAUSE'] }),
+    u('STAKEHOLDERS', 'Working With Stakeholders', 'Turning a vague request into a scoped question, ad-hoc requests vs dashboards, presenting to managers, and saying "the data cannot tell us that".',
+      ['Scope an analysis request with a stakeholder and present the result to them'], 35, { after: ['STORYTELLING'] }),
+    ...ending('Business Metrics and Storytelling', 'STAKEHOLDERS', { project: ['MINI_PROJECT', 'Mini Project — Diagnosing a Drop in Orders', 'Daily orders on a food-delivery app fell 18% in a week. Check the data, segment by city, platform, cuisine and new vs returning users, decompose the drop, find the cause, and present a five-slide story with a recommendation.'] }),
+  ] },
+
+  /* ── AI for analysts ── */
+  DT_AI_ANALYST: { category: 'UNIVERSAL', units: [
+    u('AI_IN_ANALYSIS', 'Where AI Helps an Analyst, and Where It Hurts', 'Drafting queries and code, explaining unfamiliar code, summarising — and confident wrong numbers, invented columns and leaked data.',
+      ['Say where AI speeds up analysis and where it must not be trusted without checking'], 35),
+    u('PROMPTING_FOR_DATA', 'Prompting for SQL, pandas and DAX', 'Giving the schema and sample rows, stating the grain and the business rule, asking for one step at a time, and asking for the reasoning.',
+      ['Write prompts that produce correct SQL, pandas and DAX for a described dataset'], 45, { after: ['AI_IN_ANALYSIS'], skillKeys: ['PROMPT_ENGINEERING'] }),
+    u('VERIFYING_AI', 'Verifying AI-Generated Analysis', 'Checking row counts and totals against a known number, testing a generated query on a case you can work by hand, and spotting a plausible-looking wrong answer.',
+      ['Verify AI-generated queries and code before their numbers reach anyone'], 45, { after: ['PROMPTING_FOR_DATA'] }),
+    u('COPILOTS', 'Copilot in Excel and Power BI, and Chat-Based Data Analysis', 'What Copilot and chat assistants can do with a workbook, report or uploaded file, their limits, and what company data may never be pasted in.',
+      ['Use AI assistants inside Excel and Power BI productively and within data-privacy rules'], 40, { after: ['VERIFYING_AI'] }),
+    u('LLM_API_AUTOMATION', 'Automating Analysis with an LLM API', 'Calling an LLM from Python to label, summarise or extract fields from text, asking for JSON, validating it, batching, and keeping the cost in view.',
+      ['Automate a text-labelling step with an LLM API, with validated structured output and a cost estimate'], 45, { after: ['COPILOTS'] }),
+    u('TEXT_ANALYSIS', 'Analysing Customer Feedback with AI', 'Categorising reviews and tickets with an LLM vs keyword rules, sentiment, checking a sample by hand, and measuring how often the AI is right.',
+      ['Categorise free-text feedback with an LLM and measure its accuracy against a hand-labelled sample'], 45, { after: ['LLM_API_AUTOMATION'] }),
+    ...ending('AI for Analysts', 'TEXT_ANALYSIS', { project: ['MINI_PROJECT', 'Mini Project — AI-Assisted Customer Feedback Analysis', 'Label 2,000 app-store reviews by theme and sentiment with an LLM, check the labels against a hand-labelled sample of 100, report the accuracy, and turn the results into a short findings report with the top three issues and their trend.'] }),
+  ] },
+
+  /* ── The capstone ── */
+  DT_CAPSTONE_DA: { category: 'UNIVERSAL', units: [
+    u('BRIEF', 'The Capstone: Scope, Data and Plan', 'A business problem from retail, food delivery or fintech: the questions, the data sources, the metrics, the deliverables and a plan.',
+      ['Scope an end-to-end analysis project and write a plan you can deliver in the time'], 45),
+    u('BUILD_ANALYSIS', 'Capstone Build — The Analysis', 'SQL to extract, pandas to clean and explore, statistics or an A/B test where the question needs one, and documented findings.',
+      ['Deliver a reproducible analysis that answers the business questions with evidence'], 300, { unitType: 'PROJECT', after: ['BRIEF'] }),
+    u('BUILD_DASHBOARD_AI', 'Capstone Build — The Dashboard and the AI Insights', 'A Power BI dashboard for the stakeholder, and AI used where it earns its place — feedback themes or narrative summaries — with its accuracy checked.',
+      ['Deliver a dashboard for the stakeholder and an AI-assisted insight whose accuracy is measured'], 240, { unitType: 'PROJECT', after: ['BUILD_ANALYSIS'], skillKeys: ['DASHBOARDING', 'LLM_APPLICATIONS'] }),
+    u('DEFENCE', 'Demo Day: Presenting the Capstone', 'A ten-minute presentation to a manager, the questions they ask about the numbers, and defending every method and caveat.',
+      ['Present the capstone as a story and defend its methods under questioning'], 45, { unitType: 'PRACTICE', after: ['BUILD_DASHBOARD_AI'] }),
+    u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
+      ['Show analyst judgement at the standard a hiring manager expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
+  ] },
+};

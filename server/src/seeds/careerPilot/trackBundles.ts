@@ -73,6 +73,8 @@ import { TRACK_DATA_CLEANING_EDA_BUNDLES } from './trackContentDataCleaningEda';
 import { TRACK_DATA_STATS_BUNDLES } from './trackContentDataStats';
 import { TRACK_DATA_PBI_MODEL_DAX_BUNDLES } from './trackContentDataPbiModelDax';
 import { TRACK_DATA_PBI_REPORTS_BUNDLES } from './trackContentDataPbiReports';
+import { TRACK_DATA_METRICS_CAPSTONE_BUNDLES } from './trackContentDataMetricsCapstone';
+import { TRACK_DATA_AI_ANALYST_BUNDLES } from './trackContentDataAiAnalyst';
 import { TRACK_IV_DJANGO_BUNDLES } from './trackContentIvDjango';
 import { TRACK_CODING_PYTHON_BUNDLES } from './trackContentCodingPython';
 import { TRACK_PLACE_PY_FS_BUNDLES } from './trackContentPlacePyFs';
@@ -171,4 +173,6 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_DATA_STATS_BUNDLES,
   ...TRACK_DATA_PBI_MODEL_DAX_BUNDLES,
   ...TRACK_DATA_PBI_REPORTS_BUNDLES,
+  ...TRACK_DATA_METRICS_CAPSTONE_BUNDLES,
+  ...TRACK_DATA_AI_ANALYST_BUNDLES,
 ].map(balanced);

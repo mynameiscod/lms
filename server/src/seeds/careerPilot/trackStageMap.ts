@@ -245,6 +245,22 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ METRICS, AI FOR ANALYSTS AND THE CAPSTONE (Data Analytics + AI, batch A4) ══════════════ */
+  {
+    moduleCode: 'DT_ANALYST_AI',
+    moduleName: 'Metrics, AI for Analysts and the Capstone',
+    displayOrder: 230,
+    blurb: 'Business metrics, root-cause analysis and storytelling; AI used well in every step of an analysis; and the capstone. Year 1’s generative-AI topic is the base.',
+    topics: [
+      t('DT_METRICS_STORY', 'Business Metrics and Storytelling', ['BUSINESS_METRICS'],
+        ['Choose and compute the right business metrics, find why a metric moved, and present the answer as a story a manager acts on.']),
+      t('DT_AI_ANALYST', 'AI for Analysts', ['LLM_APPLICATIONS', 'PROMPT_ENGINEERING'],
+        ['Use AI to draft SQL, pandas and DAX, verify what it produces, work within data-privacy rules, and automate text analysis with an LLM API.']),
+      t('DT_CAPSTONE_DA', 'Capstone: An End-to-End Analysis with AI', ['BUSINESS_METRICS', 'DASHBOARDING', 'LLM_APPLICATIONS'],
+        ['Plan, build, present and defend an end-to-end analysis with a dashboard and a measured AI-assisted insight.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

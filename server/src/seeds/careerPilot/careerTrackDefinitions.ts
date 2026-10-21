@@ -224,6 +224,17 @@ export const PACKS: PackDefinition[] = [
   { key: 'POWER_BI', title: 'Power BI', kind: 'SKILL',
     description: 'Power BI from Power Query and the star schema to DAX measures, interactive reports and published, secured dashboards.',
     topics: [['DT_PBI_MODEL', 'MUST'], ['DT_PBI_DAX', 'MUST'], ['DT_PBI_REPORTS', 'MUST']] },
+
+  /* ── Data Analytics + AI, batch A4: metrics, AI for analysts and the capstone ── */
+  { key: 'ANALYTICS_STORY', title: 'Business Metrics and Storytelling', kind: 'SKILL',
+    description: 'The metrics a business runs on, finding why one moved, and telling the story so a manager acts on it.',
+    topics: [['DT_METRICS_STORY', 'MUST']] },
+  { key: 'AI_FOR_ANALYSTS', title: 'AI for Analysts', kind: 'SKILL',
+    description: 'How generative AI works (Year 1), then AI used well in analysis: prompting for SQL, pandas and DAX, verifying it, Copilots, and LLM-powered text analysis.',
+    topics: [['T_GENAI', 'MUST'], ['DT_AI_ANALYST', 'CORE'], ['T3_AI_ASSISTED', 'SHOULD']] },
+  { key: 'CAPSTONE_DA_AI', title: 'Capstone: Data Analytics + AI', kind: 'SKILL',
+    description: 'One end-to-end analysis that proves the track: SQL, pandas and statistics, a Power BI dashboard, and a measured AI-assisted insight, presented and defended.',
+    topics: [['DT_CAPSTONE_DA', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -249,6 +260,6 @@ export const TRACKS: TrackDefinition[] = [
   { key: 'DATA_ANALYTICS_AI', name: 'Data Analytics + AI', language: 'SQL, Python and Power BI', order: 40,
     description: 'Excel, SQL and Python with pandas; statistics and A/B tests; Power BI dashboards; business metrics and storytelling; and AI used well in every step of the analysis.',
     /* Batches: A1 Excel and SQL; Python for data, statistics, Power BI, AI for analysts and placement are appended as they land. */
-    specializePacks: ['EXCEL', 'SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'POWER_BI'],
+    specializePacks: ['EXCEL', 'SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'POWER_BI', 'ANALYTICS_STORY', 'AI_FOR_ANALYSTS', 'CAPSTONE_DA_AI'],
     placementPacks: [] },
 ];

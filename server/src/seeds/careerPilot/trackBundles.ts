@@ -78,6 +78,8 @@ import { TRACK_DATA_AI_ANALYST_BUNDLES } from './trackContentDataAiAnalyst';
 import { TRACK_DATA_IV_SQL_BUNDLES } from './trackContentDataIvSql';
 import { TRACK_DATA_IV_TOOLS_STATS_BUNDLES } from './trackContentDataIvToolsStats';
 import { TRACK_DATA_CASES_CANDIDATE_BUNDLES } from './trackContentDataCasesCandidate';
+import { TRACK_DS_MATH_WORKFLOW_BUNDLES } from './trackContentDsMathWorkflow';
+import { TRACK_DS_SUPERVISED_BUNDLES } from './trackContentDsSupervised';
 import { TRACK_IV_DJANGO_BUNDLES } from './trackContentIvDjango';
 import { TRACK_CODING_PYTHON_BUNDLES } from './trackContentCodingPython';
 import { TRACK_PLACE_PY_FS_BUNDLES } from './trackContentPlacePyFs';
@@ -181,4 +183,6 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_DATA_IV_SQL_BUNDLES,
   ...TRACK_DATA_IV_TOOLS_STATS_BUNDLES,
   ...TRACK_DATA_CASES_CANDIDATE_BUNDLES,
+  ...TRACK_DS_MATH_WORKFLOW_BUNDLES,
+  ...TRACK_DS_SUPERVISED_BUNDLES,
 ].map(balanced);

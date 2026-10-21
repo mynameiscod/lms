@@ -281,6 +281,24 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ MACHINE LEARNING FOUNDATIONS (Data Science + AI, batch S1) ══════════════ */
+  {
+    moduleCode: 'DS_ML_CORE',
+    moduleName: 'Machine Learning Foundations',
+    displayOrder: 300,
+    blurb: 'The maths ML uses, the workflow that keeps a model honest, and regression and classification with scikit-learn. SQL, pandas and statistics are the Data Analytics packs; Year 1 introduced ML.',
+    topics: [
+      t('DS_MATH_ML', 'Maths for Machine Learning', ['ML_CONCEPTS'],
+        ['Use vectors, matrices, gradients, gradient descent and likelihood to explain how a model learns.']),
+      t('DS_ML_WORKFLOW', 'The Machine Learning Workflow', ['ML_CONCEPTS', 'ML_OVERFITTING'],
+        ['Frame an ML problem, split without leakage, beat a baseline, build pipelines, tune with cross-validation and diagnose overfitting.']),
+      t('DS_REGRESSION', 'Regression', ['ML_SUPERVISED'],
+        ['Build, regularise, measure and interpret regression models.']),
+      t('DS_CLASSIFICATION', 'Classification', ['ML_SUPERVISED'],
+        ['Build and interpret classifiers, handle imbalance, and choose a threshold from business costs.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

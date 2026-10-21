@@ -252,6 +252,14 @@ export const PACKS: PackDefinition[] = [
   { key: 'PL_DA_CODING', title: 'Coding in Analyst Online Tests', kind: 'PLACEMENT',
     description: 'The Python coding question many analyst online tests include: the common patterns, solved in Python.',
     topics: [['T4_PL_DSA_PATTERNS', 'SHOULD'], ['JT_CODING_PYTHON', 'SHOULD']] },
+
+  /* ── Data Science + AI, batch S1: machine learning foundations ── */
+  { key: 'ML_FOUNDATIONS', title: 'Machine Learning Foundations', kind: 'SKILL',
+    description: 'What machine learning is (Year 1), the maths it uses, and the workflow that keeps a model honest.',
+    topics: [['T_ML_INTRO', 'MUST'], ['DS_MATH_ML', 'MUST'], ['DS_ML_WORKFLOW', 'MUST']] },
+  { key: 'SUPERVISED_ML', title: 'Supervised Learning', kind: 'SKILL',
+    description: 'Regression and classification with scikit-learn, measured and interpreted for the business.',
+    topics: [['DS_REGRESSION', 'MUST'], ['DS_CLASSIFICATION', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -279,4 +287,9 @@ export const TRACKS: TrackDefinition[] = [
     /* Batches: A1 Excel and SQL; Python for data, statistics, Power BI, AI for analysts and placement are appended as they land. */
     specializePacks: ['EXCEL', 'SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'POWER_BI', 'ANALYTICS_STORY', 'AI_FOR_ANALYSTS', 'CAPSTONE_DA_AI'],
     placementPacks: ['PL_APTITUDE', 'PL_DA_SQL', 'PL_DA_TOOLS', 'PL_DA_CASES', 'PL_AI_INTERVIEW', 'PL_DA_CODING', 'PL_DA_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
+  { key: 'DATA_SCIENCE_AI', name: 'Data Science + AI', language: 'Python', order: 50,
+    description: 'SQL, pandas and statistics; machine learning with scikit-learn from regression to ensembles and clustering; deep learning, NLP and GenAI; deploying a model; and a capstone you can defend.',
+    /* Batches: S1 ML foundations, regression and classification (SQL, pandas and statistics are Data Analytics' packs); later ML, deep learning, deployment and placement packs are appended as they land. */
+    specializePacks: ['SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'ML_FOUNDATIONS', 'SUPERVISED_ML'],
+    placementPacks: [] },
 ];

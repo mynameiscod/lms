@@ -4,7 +4,7 @@ import { TRACK_JAVA } from './trackUnitsJava';
 import { TRACK_DATA_SPRING } from './trackUnitsDataSpring';
 import { TRACK_BOOT } from './trackUnitsBoot';
 import { TRACK_AI } from './trackUnitsAi';
-import { TRACK_PLACEMENT, TRACK_PLACEMENT_PY } from './trackUnitsPlacement';
+import { TRACK_PLACEMENT, TRACK_PLACEMENT_PY, TRACK_PLACEMENT_DOTNET } from './trackUnitsPlacement';
 import { TRACK_PYTHON, TRACK_DJANGO, TRACK_PY_STACK_AI } from './trackUnitsPython';
 import { TRACK_DOTNET, TRACK_DOTNET_DATA, TRACK_DOTNET_WEB, TRACK_DOTNET_AI } from './trackUnitsDotnet';
 
@@ -27,4 +27,5 @@ export const TRACK_CONTENT: Record<string, TopicSeed> = {
   ...TRACK_DOTNET_DATA,
   ...TRACK_DOTNET_WEB,
   ...TRACK_DOTNET_AI,
+  ...TRACK_PLACEMENT_DOTNET,
 };

@@ -190,6 +190,18 @@ export const PACKS: PackDefinition[] = [
   { key: 'CAPSTONE_DOTNET_AI', title: 'Capstone: .NET Full Stack + AI', kind: 'SKILL',
     description: 'One application that proves the track: React, ASP.NET Core and SQL Server with AI built in, deployed, with an assistant and an agent.',
     topics: [['JT_CAPSTONE_DOTNET', 'MUST']] },
+
+  /* ── .NET Full Stack + AI, batch N5: Year-4 placement (the rest is the shared placement packs) ── */
+  { key: 'PL_CODING_CSHARP', title: 'Coding Rounds in C#', kind: 'PLACEMENT',
+    description: 'The coding-round patterns, then timed problems solved in C#.',
+    topics: [['T4_PL_DSA_PATTERNS', 'MUST'], ['T4_PL_DSA_STRUCTURES', 'MUST'], ['T4_PL_COMPLEXITY', 'MUST'], ['JT_CODING_CSHARP', 'MUST'],
+      ['T4_PL_DSA_ADVANCED', 'SHOULD'], ['T4_PL_CODING_SETS', 'SHOULD']] },
+  { key: 'PL_DOTNET_INTERVIEW', title: 'C#, ASP.NET Core and EF Core Interviews', kind: 'PLACEMENT',
+    description: 'C#, ASP.NET Core, EF Core and SQL Server at interview depth, and the C# and .NET sections of online tests.',
+    topics: [['JT_IV_CSHARP', 'MUST'], ['JT_IV_ASPNET', 'MUST'], ['JT_MCQ_CSHARP_DOTNET', 'MUST']] },
+  { key: 'PL_DOTNET_FS_CANDIDATE', title: 'The .NET Full-Stack Candidate', kind: 'PLACEMENT',
+    description: 'A .NET full-stack resume and GitHub, the capstone defended, and a full .NET interview loop.',
+    topics: [['JT_PLACE_DOTNET_FS', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -210,5 +222,6 @@ export const TRACKS: TrackDefinition[] = [
     description: 'HTML, CSS, Bootstrap, JavaScript and React; C#, ASP.NET Core Web API and Entity Framework Core on SQL Server; then AI with the OpenAI .NET SDK and Semantic Kernel built into your own app.',
     /* Batches: N1 C# and DSA in C# (frontend packs shared with the other full-stack tracks); SQL Server, ASP.NET Core, AI and placement packs are appended as they land. */
     specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_CSHARP', 'DSA_CSHARP', 'SQL_SERVER', 'DOTNET_DATA_ACCESS', 'DOTNET_DI', 'ASPNET_CORE', 'FULLSTACK_DEPLOY_DOTNET', 'GENAI_DOTNET', 'AGENTIC_AI_DOTNET', 'CAPSTONE_DOTNET_AI'],
-    placementPacks: [] },
+    placementPacks: ['PL_APTITUDE', 'PL_CODING_CSHARP', 'PL_DOTNET_INTERVIEW', 'PL_WEB_INTERVIEW', 'PL_AI_INTERVIEW', 'PL_CORE_CS',
+      'PL_PROJECT_DESIGN', 'PL_DOTNET_FS_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
 ];

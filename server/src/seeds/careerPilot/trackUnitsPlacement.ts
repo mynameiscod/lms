@@ -188,3 +188,73 @@ export const TRACK_PLACEMENT_PY: Record<string, TopicSeed> = {
       ['Show the judgement a Python full-stack hiring panel looks for'], 40, { unitType: 'CHECKPOINT', after: ['MOCK_LOOP'] }),
   ] },
 };
+
+/**
+ * .NET Full Stack + AI, batch N5: what a .NET full-stack interview asks that the shared placement packs do
+ * not — C#, ASP.NET Core, EF Core and SQL Server at interview depth, coding rounds solved in C# (auto-graded
+ * on the Mono 6.12 runner: classic Main, about C# 7), the C# and .NET sections of online tests, and the .NET
+ * full-stack candidate. Web, SQL, AI, core CS, aptitude, HR and mocks are the shared packs.
+ */
+export const TRACK_PLACEMENT_DOTNET: Record<string, TopicSeed> = {
+  /* ── C# at interview depth ── */
+  JT_IV_CSHARP: { category: 'UNIVERSAL', units: interview('C# Interview', [
+    ['IV_LANGUAGE', 'Value Types, Reference Types and the Type System', 'Stack and heap, boxing, string immutability and interning, ref, out and in, nullable value and reference types.', ['CSHARP_BASICS']],
+    ['IV_OOP', 'OOP the C# Way', 'virtual, override and new, abstract classes vs interfaces and default interface methods, sealed, structs vs classes vs records.', ['CSHARP_OOP']],
+    ['IV_COLLECTIONS', 'Collections and Generics Inside', 'How List and Dictionary are built, the cost of each operation, hashing and GetHashCode, IEnumerable vs ICollection vs IList, and generic constraints.', ['CSHARP_COLLECTIONS']],
+    ['IV_LINQ_DELEGATES', 'Delegates, Events and LINQ', 'Func, Action and events, closures in loops, deferred execution, IEnumerable vs IQueryable, and the LINQ questions every round asks.', ['CSHARP_LINQ']],
+    ['IV_ASYNC', 'async, await, Tasks and Threads', 'What await really does, Task vs Thread vs ValueTask, deadlocks from .Result, ConfigureAwait, cancellation and thread safety.', ['CSHARP_ASYNC']],
+    ['IV_MEMORY_EXCEPTIONS', 'Memory, IDisposable and Exceptions', 'Garbage collection and generations, IDisposable vs the finaliser, using, throw vs throw ex, and exception filters.', ['CSHARP_EXCEPTIONS']],
+  ]) },
+
+  /* ── ASP.NET Core, EF Core and SQL Server at interview depth ── */
+  JT_IV_ASPNET: { category: 'UNIVERSAL', units: interview('ASP.NET Core and EF Core Interview', [
+    ['IV_PIPELINE', 'The Pipeline, Middleware and DI', 'The request pipeline and middleware order, the three service lifetimes and the captive dependency, configuration and options.', ['ASPNET_CORE']],
+    ['IV_WEBAPI', 'Web API Design in ASP.NET Core', 'Controllers vs minimal APIs, model binding and validation, filters vs middleware, ProblemDetails, versioning and status codes.', ['ASPNET_CORE']],
+    ['IV_EFCORE', 'EF Core Under Pressure', 'Change tracking and AsNoTracking, N+1 and Include, migrations in a team, raw SQL, transactions and concurrency tokens.', ['EF_CORE']],
+    ['IV_SECURITY', 'Security in ASP.NET Core', 'Authentication vs authorization, JWT bearer and its limits, Identity and password hashing, policies and resource-based checks, CORS and secrets.', ['ASPNET_SECURITY']],
+    ['IV_SQLSERVER', 'SQL Server in the Backend Round', 'Clustered vs nonclustered indexes, execution plans, isolation levels and locking, stored procedures vs ORM queries, and deadlocks.', ['SQL_SERVER']],
+    ['IV_ARCHITECTURE', 'Scaling and Running a .NET Backend', 'Caching, background services, logging and health checks, testing strategy, containers, and what breaks at ten times the users.', ['ASPNET_CORE']],
+  ]) },
+
+  /* ── Coding rounds, solved in C# ── */
+  JT_CODING_CSHARP: { category: 'UNIVERSAL', units: [
+    u('CSHARP_FOR_CODING', 'C# for Coding Rounds', 'Fast input and output, the collections a timed round needs, sorting with comparisons, overflow and long, and the C# mistakes that cost marks.',
+      ['Write contest-style C# quickly: reading input, choosing structures, and avoiding slow or overflowing code'], 40, { skillKeys: ['CSHARP_BASICS'] }),
+    u('ROUND_ARRAYS_STRINGS', 'Coding Round — Arrays and Strings', 'Prefix sums, two pointers and sliding windows on arrays and strings, under a clock, in C#.',
+      ['Solve array and string problems in C# within the time a coding round allows'], 50, { unitType: 'PRACTICE', after: ['CSHARP_FOR_CODING'], skillKeys: ['DSA_ARRAYS', 'DSA_STRINGS'] }),
+    u('ROUND_HASHING', 'Coding Round — Hashing and Counting', 'Dictionary and HashSet patterns: frequency, complements, grouping and first-unique, in C#.',
+      ['Solve hashing problems in C# and state their cost'], 50, { unitType: 'PRACTICE', after: ['ROUND_ARRAYS_STRINGS'], skillKeys: ['DSA_HASHING'] }),
+    u('ROUND_STACKS_LISTS', 'Coding Round — Stacks, Queues and Linked Lists', 'Stack<T> and Queue<T>, monotonic stacks, and linked-list pointer problems, in C#.',
+      ['Solve stack, queue and linked-list problems in C#'], 50, { unitType: 'PRACTICE', after: ['ROUND_HASHING'], skillKeys: ['DSA_STACK', 'DSA_LINKED_LIST'] }),
+    u('ROUND_TREES_GRAPHS', 'Coding Round — Trees and Graphs', 'Traversals, BFS on grids and graphs, and reading a graph from input, in C#.',
+      ['Solve tree and graph problems in C#'], 55, { unitType: 'PRACTICE', after: ['ROUND_STACKS_LISTS'], skillKeys: ['DSA_TREES', 'DSA_GRAPHS'] }),
+    u('ROUND_DP_GREEDY', 'Coding Round — Greedy and Dynamic Programming', 'Recognising greedy and DP problems, tables and memoisation with a Dictionary, in C#.',
+      ['Solve greedy and dynamic-programming problems in C#'], 55, { unitType: 'PRACTICE', after: ['ROUND_TREES_GRAPHS'], skillKeys: ['DSA_DP', 'DSA_GREEDY'] }),
+    u('CHECKPOINT', 'Coding Rounds in C# — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Read and reason about C# solutions at the standard a coding round expects'], 40, { unitType: 'CHECKPOINT', after: ['ROUND_DP_GREEDY'] }),
+  ] },
+
+  /* ── C# and .NET MCQ rounds ── */
+  JT_MCQ_CSHARP_DOTNET: { category: 'UNIVERSAL', units: [
+    u('MCQ_OUTPUT', 'What Does This C# Print?', 'Output-prediction questions: value vs reference copies, boxing, string identity, virtual vs new, closures in loops, deferred LINQ, exceptions and finally.',
+      ['Predict the output of short C# programs without running them'], 40, { skillKeys: ['CSHARP_BASICS', 'CSHARP_OOP'] }),
+    u('MCQ_DOTNET', 'ASP.NET Core and EF Core MCQs', 'The defaults, behaviours and settings online tests ask about in ASP.NET Core, dependency injection and EF Core.',
+      ['Answer ASP.NET Core and EF Core MCQs correctly and quickly'], 40, { after: ['MCQ_OUTPUT'], skillKeys: ['ASPNET_CORE', 'EF_CORE'] }),
+    u('TIMED_SET', 'Timed MCQ Set — C# and .NET', 'A timed mixed set in the format of a company online test, with the reasoning for each answer.',
+      ['Finish a timed C# and .NET MCQ set with accuracy'], 45, { unitType: 'PRACTICE', after: ['MCQ_DOTNET'] }),
+    u('CHECKPOINT', 'C# and .NET MCQs — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Show C# and .NET knowledge at online-test standard'], 40, { unitType: 'CHECKPOINT', after: ['TIMED_SET'] }),
+  ] },
+
+  /* ── The .NET full-stack candidate ── */
+  JT_PLACE_DOTNET_FS: { category: 'UNIVERSAL', units: [
+    u('RESUME', 'A .NET Full-Stack Resume and GitHub', 'The template, the skills line recruiters filter on (C#, ASP.NET Core, EF Core, SQL Server, React, Azure), project bullets with numbers, and a GitHub that backs them up.',
+      ['Write a .NET full-stack resume and GitHub profile whose every claim can be checked'], 45, { skillKeys: ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE'] }),
+    u('DEFEND_CAPSTONE', 'Defending Your .NET Full-Stack + AI Capstone', 'The architecture walk-through, why the AI lives inside the API, Semantic Kernel vs the raw SDK, how the AI is evaluated, and the questions panels ask.',
+      ['Defend the capstone end to end under follow-up questions'], 45, { after: ['RESUME'], skillKeys: ['TECHNICAL_EXPLANATION'] }),
+    u('MOCK_LOOP', 'The .NET Full-Stack Interview Loop — Mock', 'Online test, technical round one (C# and DSA), technical round two (ASP.NET Core, EF Core, React, SQL Server, the AI features), managerial and HR — as one mock day.',
+      ['Go through a complete .NET full-stack interview loop and act on its debrief'], 60, { unitType: 'PRACTICE', after: ['DEFEND_CAPSTONE'], skillKeys: ['INTERVIEW_PERFORMANCE'] }),
+    u('CHECKPOINT', '.NET Full-Stack Placement — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Show the judgement a .NET full-stack hiring panel looks for'], 40, { unitType: 'CHECKPOINT', after: ['MOCK_LOOP'] }),
+  ] },
+};

@@ -171,6 +171,26 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ .NET PLACEMENT — what a .NET full-stack interview asks that Year 4 does not (batch N5) ══════════════ */
+  {
+    moduleCode: 'JT_PLACE_DOTNET',
+    moduleName: '.NET Full-Stack Placement',
+    displayOrder: 190,
+    blurb: 'The web, SQL and AI interview topics are shared with every full-stack track; this adds C#, ASP.NET Core, EF Core and SQL Server interviews, coding in C#, and the .NET full-stack candidate.',
+    topics: [
+      t('JT_IV_CSHARP', 'C# Interview Questions', ['CSHARP_BASICS', 'CSHARP_OOP', 'CSHARP_COLLECTIONS', 'CSHARP_LINQ', 'CSHARP_ASYNC', 'CSHARP_EXCEPTIONS'],
+        ['Answer C# interview questions — the type system, OOP, collections, delegates and LINQ, async, memory and exceptions — with the follow-up.']),
+      t('JT_IV_ASPNET', 'ASP.NET Core, EF Core and SQL Server Interview Questions', ['ASPNET_CORE', 'EF_CORE', 'ASPNET_SECURITY', 'SQL_SERVER'],
+        ['Answer ASP.NET Core, EF Core, security and SQL Server interview questions at the depth a backend round expects.']),
+      t('JT_CODING_CSHARP', 'Coding Rounds in C#', ['CSHARP_BASICS', 'DSA_ARRAYS', 'DSA_STRINGS', 'DSA_HASHING', 'DSA_STACK', 'DSA_LINKED_LIST', 'DSA_TREES', 'DSA_GRAPHS', 'DSA_DP', 'DSA_GREEDY'],
+        ['Solve timed coding-round problems in C#, from arrays to dynamic programming.']),
+      t('JT_MCQ_CSHARP_DOTNET', 'C# and .NET MCQ Rounds', ['CSHARP_BASICS', 'CSHARP_OOP', 'ASPNET_CORE', 'EF_CORE'],
+        ['Clear the C# and .NET sections of a company online test.']),
+      t('JT_PLACE_DOTNET_FS', 'The .NET Full-Stack Candidate', ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE', 'TECHNICAL_EXPLANATION', 'INTERVIEW_PERFORMANCE'],
+        ['Present a .NET full-stack resume and capstone and get through a full interview loop.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

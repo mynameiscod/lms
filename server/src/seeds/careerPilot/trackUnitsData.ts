@@ -77,3 +77,55 @@ export const TRACK_DATA_A1: Record<string, TopicSeed> = {
     ...ending('SQL Window Functions', 'COHORTS_RETENTION', { project: ['MINI_PROJECT', 'Mini Project — An E-commerce Analysis in SQL', 'A set of SQL queries over an orders, customers and products database answering a manager’s brief: revenue by month and category, top products per region, repeat-customer share, monthly cohort retention and a checkout funnel — each query explained and its result checked.'] }),
   ] },
 };
+
+/** Batch A2: Python for data — pandas, cleaning, and exploratory analysis with charts. Python basics are the years’ own. */
+export const TRACK_DATA_A2: Record<string, TopicSeed> = {
+  /* ── NumPy and pandas ── */
+  DT_PANDAS: { category: 'UNIVERSAL', units: [
+    u('NOTEBOOKS', 'Jupyter Notebooks and Google Colab', 'Cells and kernels, running out of order and the bugs it causes, Colab vs a local Jupyter, and keeping a notebook reproducible.',
+      ['Work in a notebook that runs top to bottom and produces the same result every time'], 30),
+    u('NUMPY', 'NumPy Arrays and Vectorised Thinking', 'Arrays vs lists, dtypes, vectorised arithmetic, boolean masks, broadcasting, and aggregate functions.',
+      ['Replace Python loops with vectorised NumPy operations and masks'], 40, { after: ['NOTEBOOKS'] }),
+    u('SERIES_DATAFRAMES', 'Series, DataFrames and Reading Data', 'read_csv and read_excel with the options that matter, head, info, describe and dtypes, and the index.',
+      ['Load CSV and Excel data into pandas correctly and inspect what arrived'], 40, { after: ['NUMPY'] }),
+    u('SELECT_FILTER', 'Selecting and Filtering Rows and Columns', 'Columns, loc and iloc, boolean filters with & and |, isin and between, query, and the SettingWithCopy warning.',
+      ['Select exactly the rows and columns a question needs, without chained-assignment bugs'], 45, { after: ['SERIES_DATAFRAMES'] }),
+    u('GROUPBY_AGG', 'groupby, agg and pivot_table', 'Split-apply-combine, several aggregates at once, named aggregation, pivot_table and crosstab — SQL GROUP BY in pandas.',
+      ['Summarise data by groups with groupby, agg and pivot_table'], 45, { after: ['SELECT_FILTER'] }),
+    u('MERGE_RESHAPE', 'Merging, Concatenating and Reshaping', 'merge like a SQL join and the rows it multiplies, concat, and melt and pivot between long and wide.',
+      ['Combine and reshape DataFrames without losing or duplicating rows'], 45, { after: ['GROUPBY_AGG'] }),
+    u('DATES_TIME_SERIES', 'Dates and Time Series in pandas', 'to_datetime, the .dt accessor, resample by week or month, rolling windows, and period-over-period change.',
+      ['Analyse data over time with datetime columns, resampling and rolling windows'], 45, { after: ['MERGE_RESHAPE'] }),
+    ...ending('pandas', 'DATES_TIME_SERIES', { project: ['MINI_PROJECT', 'Mini Project — Analysing a Retail Dataset with pandas', 'A notebook that loads a retail chain’s sales, stores and products files, joins them, and answers a regional manager’s questions — sales by store and month, top categories, weekday patterns and month-over-month growth — with every step reproducible.'] }),
+  ] },
+
+  /* ── Cleaning and data quality ── */
+  DT_DATA_CLEANING: { category: 'UNIVERSAL', units: [
+    u('MISSING_VALUES', 'Missing Values', 'Finding them, why they are missing, dropping vs filling, and the analysis a careless fill quietly changes.',
+      ['Decide per column how to handle missing values and say what the choice does to the result'], 40),
+    u('TYPES_PARSING', 'Types and Parsing', 'Numbers stored as text, ₹ and commas, mixed date formats, categories, and to_numeric with errors.',
+      ['Convert messy columns to the right types without silently losing rows'], 40, { after: ['MISSING_VALUES'] }),
+    u('DUPLICATES_TEXT', 'Duplicates and Inconsistent Text', 'Exact and near duplicates, inconsistent spellings and cases, the .str methods, and mapping categories to one name.',
+      ['Remove duplicates and standardise inconsistent text categories'], 40, { after: ['TYPES_PARSING'] }),
+    u('OUTLIERS', 'Outliers: Errors or Real?', 'Spotting outliers with IQR and z-scores, telling a data error from a real extreme, and what to do with each.',
+      ['Detect outliers and decide, with reasons, whether to fix, keep or exclude them'], 40, { after: ['DUPLICATES_TEXT'] }),
+    u('QUALITY_CHECKS', 'Data Quality Checks You Can Rerun', 'Row counts, uniqueness, ranges and allowed values as assertions, a cleaning log, and a pipeline you can run on next month’s file.',
+      ['Write repeatable data quality checks and a cleaning log for a dataset'], 40, { after: ['OUTLIERS'], skillKeys: ['DATA_QUALITY'] }),
+    ...ending('Data Cleaning', 'QUALITY_CHECKS', { minutes: [40, 60, 35, 40] }),
+  ] },
+
+  /* ── Exploratory analysis and charts ── */
+  DT_EDA_VIZ: { category: 'UNIVERSAL', units: [
+    u('EDA_WORKFLOW', 'The EDA Workflow', 'Starting from questions, one variable at a time, then pairs, segments and time — and writing down what you find as you go.',
+      ['Explore an unfamiliar dataset systematically and record findings with evidence'], 40),
+    u('MATPLOTLIB', 'Charts with Matplotlib', 'Figure and axes, line, bar, histogram and scatter, labels and titles, and subplots.',
+      ['Draw clear, labelled charts with Matplotlib'], 40, { after: ['EDA_WORKFLOW'], skillKeys: ['DATA_VISUALISATION'] }),
+    u('SEABORN', 'Statistical Charts with Seaborn', 'Distributions, box and violin plots, relationships and heatmaps of correlation, and hue for segments.',
+      ['Show distributions, relationships and segments with Seaborn'], 40, { after: ['MATPLOTLIB'], skillKeys: ['DATA_VISUALISATION'] }),
+    u('HONEST_CHARTS', 'Choosing an Honest Chart', 'Matching the chart to the question, axes that start at zero (and when they need not), dual axes, pie charts, and colour.',
+      ['Choose the chart that answers the question and avoid the ones that mislead'], 35, { after: ['SEABORN'], skillKeys: ['DATA_VISUALISATION'] }),
+    u('PRESENTING_FINDINGS', 'From Notebook to Findings', 'A short report a manager reads: the question, three findings with one chart each, caveats, and what to do next.',
+      ['Turn an exploratory notebook into a short, honest findings report'], 40, { after: ['HONEST_CHARTS'] }),
+    ...ending('EDA and Visualisation', 'PRESENTING_FINDINGS', { project: ['MINI_PROJECT', 'Mini Project — An EDA Report on a Food-Delivery Dataset', 'Clean and explore a food-delivery orders dataset — delivery times, cancellations, cuisines, areas and hours — and deliver a notebook plus a two-page findings report with honest charts and stated caveats.'] }),
+  ] },
+};

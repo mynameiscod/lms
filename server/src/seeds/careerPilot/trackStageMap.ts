@@ -209,6 +209,22 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ PYTHON FOR DATA — pandas, cleaning and EDA (Data Analytics + AI, batch A2) ══════════════ */
+  {
+    moduleCode: 'DT_PYTHON_DATA',
+    moduleName: 'Python for Data',
+    displayOrder: 210,
+    blurb: 'NumPy and pandas, cleaning data you can trust, and exploratory analysis with honest charts. Python basics and the first data-wrangling topic are the years’ own.',
+    topics: [
+      t('DT_PANDAS', 'NumPy and pandas', ['DATA_WRANGLING'],
+        ['Load, select, filter, group, merge, reshape and resample data with pandas in a reproducible notebook.']),
+      t('DT_DATA_CLEANING', 'Data Cleaning and Quality', ['DATA_CLEANING', 'DATA_QUALITY'],
+        ['Handle missing values, types, duplicates, inconsistent text and outliers, and write quality checks you can rerun.']),
+      t('DT_EDA_VIZ', 'Exploratory Analysis and Visualisation', ['EXPLORATORY_ANALYSIS', 'DATA_VISUALISATION'],
+        ['Explore a dataset systematically, chart it honestly with Matplotlib and Seaborn, and present the findings.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

@@ -68,6 +68,8 @@ import { TRACK_CS_CODING_BUNDLES } from './trackContentCsCoding';
 import { TRACK_CS_PLACE_FS_BUNDLES } from './trackContentCsPlaceFs';
 import { TRACK_DATA_EXCEL_BUNDLES } from './trackContentDataExcel';
 import { TRACK_DATA_SQL_BUNDLES } from './trackContentDataSql';
+import { TRACK_DATA_PANDAS_BUNDLES } from './trackContentDataPandas';
+import { TRACK_DATA_CLEANING_EDA_BUNDLES } from './trackContentDataCleaningEda';
 import { TRACK_IV_DJANGO_BUNDLES } from './trackContentIvDjango';
 import { TRACK_CODING_PYTHON_BUNDLES } from './trackContentCodingPython';
 import { TRACK_PLACE_PY_FS_BUNDLES } from './trackContentPlacePyFs';
@@ -161,4 +163,6 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_CS_PLACE_FS_BUNDLES,
   ...TRACK_DATA_EXCEL_BUNDLES,
   ...TRACK_DATA_SQL_BUNDLES,
+  ...TRACK_DATA_PANDAS_BUNDLES,
+  ...TRACK_DATA_CLEANING_EDA_BUNDLES,
 ].map(balanced);

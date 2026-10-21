@@ -248,7 +248,10 @@ export const PACKS: PackDefinition[] = [
     topics: [['DT_CASE_INTERVIEWS', 'MUST']] },
   { key: 'PL_DA_CANDIDATE', title: 'The Analyst Candidate', kind: 'PLACEMENT',
     description: 'An analyst resume and portfolio, the capstone defended, and a full analyst interview loop.',
-    topics: [['T4_IV_PROJECT', 'MUST'], ['DT_PLACE_DA_FS', 'MUST']] },
+    topics: [['T4_IV_METHOD', 'MUST'], ['T4_IV_PROJECT', 'MUST'], ['DT_PLACE_DA_FS', 'MUST']] },
+  { key: 'PL_DA_CODING', title: 'Coding in Analyst Online Tests', kind: 'PLACEMENT',
+    description: 'The Python coding question many analyst online tests include: the common patterns, solved in Python.',
+    topics: [['T4_PL_DSA_PATTERNS', 'SHOULD'], ['JT_CODING_PYTHON', 'SHOULD']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -275,5 +278,5 @@ export const TRACKS: TrackDefinition[] = [
     description: 'Excel, SQL and Python with pandas; statistics and A/B tests; Power BI dashboards; business metrics and storytelling; and AI used well in every step of the analysis.',
     /* Batches: A1 Excel and SQL; Python for data, statistics, Power BI, AI for analysts and placement are appended as they land. */
     specializePacks: ['EXCEL', 'SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'POWER_BI', 'ANALYTICS_STORY', 'AI_FOR_ANALYSTS', 'CAPSTONE_DA_AI'],
-    placementPacks: ['PL_APTITUDE', 'PL_DA_SQL', 'PL_DA_TOOLS', 'PL_DA_CASES', 'PL_DA_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
+    placementPacks: ['PL_APTITUDE', 'PL_DA_SQL', 'PL_DA_TOOLS', 'PL_DA_CASES', 'PL_AI_INTERVIEW', 'PL_DA_CODING', 'PL_DA_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
 ];

@@ -11,8 +11,11 @@
  */
 import mongoose from 'mongoose';
 import CommunicationAttempt from '../models/CommunicationAttempt';
+import CommunicationProfile from '../models/CommunicationProfile';
+import CommunicationAuditLog from '../models/CommunicationAuditLog';
 import CommunicationChallenge from '../models/CommunicationChallenge';
 import User from '../models/User';
+import Tenant from '../models/Tenant';
 import { getAnthropic, getOpenAI, isAnthropicEnabled } from './aiClients';
 import { recordUsage } from './aiGateway';
 import * as settings from './settingsService';
@@ -202,7 +205,7 @@ export async function getCoachState(tenantId: string, studentId: string) {
     dailyLimit: MAX_COACH_ATTEMPTS_PER_DAY, tooMany: todayRows.length >= MAX_COACH_ATTEMPTS_PER_DAY,
     skills, weakestSkill: weakestSkill?.label || null, weakestArea: AREA_LABEL[weakestArea],
     hesitation: { latest: last?.hes ?? null, first: first[0]?.hes ?? null, trend: rows.slice(-14).map((r) => ({ date: r.practiceDate, hesitation: r.hes, score: r.overall })) },
-    totalRecordings: rows.length, baselineAreasDone: baselineDone.size, readiness,
+    totalRecordings: rows.length, baselineAreasDone: baselineDone.size, readiness, gate: gateInfo(tenantId),
   };
 }
 
@@ -370,7 +373,10 @@ export async function coachStudentDetail(tenantId: string, studentId: string) {
       .select('practiceDate createdAt challengeTitle recordingDuration wordsPerMinute transcript evaluation.overallScore evaluation.dailyCoachMessage overriddenScore coach').lean(),
   ]);
   const { steps, ...picture } = state as any;
+  const prof: any = await CommunicationProfile.findOne({ tenantId, studentId }).select('readinessOverrideUntil readinessOverrideReason').lean();
+  const override = prof?.readinessOverrideUntil && new Date(prof.readinessOverrideUntil) > new Date() ? { until: prof.readinessOverrideUntil, reason: prof.readinessOverrideReason || '' } : null;
   return {
+    override,
     student: { id: String(u._id), name: u.name || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email, email: u.email },
     ...picture,
     recordings: (recent as any[]).map((a) => ({
@@ -379,4 +385,69 @@ export async function coachStudentDetail(tenantId: string, studentId: string) {
       tips: a.coach?.tips || [], seconds: a.recordingDuration, wordsPerMinute: a.wordsPerMinute, transcript: a.transcript || '', coachMessage: a.evaluation?.dailyCoachMessage || '',
     })),
   };
+}
+
+// ── The gate: not ready to face a company, not put in front of one ───────────
+
+/**
+ * Switched on by default, from a start date so students have a week to do the baseline first.
+ * Both are settings, so an institute can move the date or turn the gate off.
+ */
+export const GATE_DEFAULT_START = '2026-10-28';
+export function gateInfo(tenantId: string) {
+  const enabled = settings.getStr('COMMUNICATION_READINESS_GATE', 'true', tenantId) !== 'false';
+  const startsOn = settings.getStr('COMMUNICATION_GATE_START', GATE_DEFAULT_START, tenantId);
+  return { enabled, startsOn, active: enabled && coachToday() >= startsOn };
+}
+
+/**
+ * Why this student may not be put forward to a company, or null when they may. Same contract as
+ * the Practice Pass hold, and used in the same places (placementHoldReason).
+ */
+export async function readinessHoldReason(studentId: string): Promise<string | null> {
+  if (!mongoose.isValidObjectId(studentId)) return null;
+  const u: any = await User.findById(studentId).select('tenantId role').lean();
+  if (!u || u.role !== 'STUDENT') return null;
+  const tenantId = String(u.tenantId);
+  const g = gateInfo(tenantId);
+  if (!g.active) return null;
+  const t: any = await Tenant.findById(tenantId).select('modules').lean();
+  if (t?.modules?.aiCommunicationLab === false) return null;
+  const prof: any = await CommunicationProfile.findOne({ tenantId, studentId }).select('readinessOverrideUntil').lean();
+  if (prof?.readinessOverrideUntil && new Date(prof.readinessOverrideUntil) > new Date()) return null;
+  const r = await readinessFor(tenantId, studentId);
+  if (r.ready) return null;
+  return `Not ready to face a company yet: your communication readiness is ${r.score} (needs ${r.threshold}). ${r.reasons.slice(0, 3).join(' ')} Do your daily Communication Coach session to unlock applications.`;
+}
+
+/** An admin releases one student from the gate for some days, on the record. */
+export async function setReadinessOverride(tenantId: string, studentId: string, days: number, reason: string, byId: string) {
+  const d = Math.max(0, Math.min(60, Math.round(days)));
+  const until = d ? new Date(Date.now() + d * 86400_000) : undefined;
+  await CommunicationProfile.updateOne(
+    { tenantId, studentId },
+    d ? { $set: { readinessOverrideUntil: until, readinessOverrideReason: reason.slice(0, 300) } } : { $unset: { readinessOverrideUntil: '', readinessOverrideReason: '' } },
+    { upsert: true },
+  );
+  await CommunicationAuditLog.create({ tenantId, entityType: 'student', entityId: studentId, action: d ? 'readiness_gate_override' : 'readiness_gate_override_removed', performedBy: byId, newValue: d ? `${d} days` : 'removed', reason: reason.slice(0, 300) });
+  return { until: until || null };
+}
+
+// ── Daily reminders ──────────────────────────────────────────────────────────
+
+/** Students with no coach recording today, to be nudged. Pure data; the sending lives in the cron. */
+export async function studentsToRemind(tenantId: string, limit = 800) {
+  const students: any[] = await User.find({ tenantId, role: 'STUDENT', isActive: { $ne: false }, batchId: { $ne: null } }).select('firstName name phone').limit(limit).lean();
+  if (!students.length) return [];
+  const today = coachToday();
+  const did = new Set((await CommunicationAttempt.distinct('studentId', { tenantId, kind: 'coach', practiceDate: today, status: 'completed', studentId: { $in: students.map((s) => s._id) } })).map(String));
+  const baseline = await CommunicationAttempt.aggregate([
+    { $match: { tenantId: new mongoose.Types.ObjectId(tenantId), kind: 'coach', 'coach.isBaseline': true, status: 'completed', studentId: { $in: students.map((s) => s._id) } } },
+    { $group: { _id: '$studentId', n: { $addToSet: '$coach.area' } } },
+  ]);
+  const bmap = new Map(baseline.map((b: any) => [String(b._id), (b.n || []).length]));
+  return students.filter((s) => !did.has(String(s._id))).map((s) => {
+    const b = bmap.get(String(s._id)) || 0;
+    return { studentId: String(s._id), name: s.firstName || String(s.name || '').split(' ')[0] || 'there', phone: s.phone as string | undefined, status: b < AREAS.length ? `Start your baseline: ${b} of ${AREAS.length} questions done` : 'Today: 0 of 3 recordings done' };
+  });
 }

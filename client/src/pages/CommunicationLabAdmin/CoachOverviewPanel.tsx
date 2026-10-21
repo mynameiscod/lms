@@ -16,7 +16,14 @@ const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7
 const Detail: React.FC<{ id: string; onClose: () => void }> = ({ id, onClose }) => {
   const [d, setD] = useState<any>(null);
   const [play, setPlay] = useState<{ id: string; url: string } | null>(null);
-  useEffect(() => { communicationApi.adminCoachStudent(id).then(setD).catch(() => setD({ error: true })); }, [id]);
+  const [msg, setMsg] = useState('');
+  const load = () => communicationApi.adminCoachStudent(id).then(setD).catch(() => setD({ error: true }));
+  useEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const release = async (days: number) => {
+    const reason = days ? window.prompt('Why is this student being released from the readiness gate? (kept on the record)') : 'removed';
+    if (days && !reason) return;
+    try { await communicationApi.adminReadinessOverride(id, days, reason || ''); setMsg(days ? `Released for ${days} days.` : 'Release removed.'); load(); } catch (e: any) { setMsg(e?.response?.data?.message || 'Could not save.'); }
+  };
   const listen = async (rid: string) => { try { setPlay({ id: rid, url: await communicationApi.playUrl(rid) }); } catch { /* nothing plays */ } };
   const bar = (v: number, c: string) => <div style={{ height: 7, background: '#e2e8f0', borderRadius: 4 }}><div style={{ width: `${v}%`, height: '100%', background: c, borderRadius: 4 }} /></div>;
   const hesColor = (h: number) => (h >= 50 ? '#dc2626' : h >= 25 ? '#d97706' : '#16a34a');
@@ -30,6 +37,10 @@ const Detail: React.FC<{ id: string; onClose: () => void }> = ({ id, onClose }) 
           <div style={{ ...card, padding: 14, marginBottom: 12 }}>
             <b style={{ fontSize: 28, color: d.readiness.ready ? '#16a34a' : '#b45309' }}>{d.readiness.score}</b> <span style={{ color: '#6b7280' }}>readiness · needs {d.readiness.threshold} · {d.readiness.ready ? 'READY' : 'not ready'}</span>
             {!d.readiness.ready && <ul style={{ margin: '8px 0 0', paddingLeft: 18, color: '#475569', fontSize: 13.5 }}>{d.readiness.reasons.map((r: string, i: number) => <li key={i}>{r}</li>)}</ul>}
+            {d.override
+              ? <p style={{ margin: '10px 0 0', fontSize: 13, color: '#166534' }}>Released from the gate until {new Date(d.override.until).toLocaleDateString('en-IN')}{d.override.reason ? ` (${d.override.reason})` : ''}. <button onClick={() => release(0)} style={{ border: 'none', background: 'none', color: '#b91c1c', cursor: 'pointer', textDecoration: 'underline', fontSize: 13 }}>Remove</button></p>
+              : !d.readiness.ready && <p style={{ margin: '10px 0 0', fontSize: 13 }}>Allow this student to apply anyway: {[3, 7, 14].map((n) => <button key={n} onClick={() => release(n)} style={{ marginLeft: 6, border: '1px solid #d1d5db', background: '#fff', borderRadius: 6, padding: '2px 9px', cursor: 'pointer', fontSize: 12.5 }}>{n} days</button>)}</p>}
+            {msg && <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#475569' }}>{msg}</p>}
           </div>
           <div style={{ ...card, padding: 14, marginBottom: 12 }}>
             <b>Skills</b>{d.weakestSkill && <span style={{ color: '#b45309', marginLeft: 8, fontSize: 13 }}>weakest: {d.weakestSkill}</span>}

@@ -44,3 +44,23 @@ describe('communication coach', () => {
     expect(signalTips(null)).toEqual([]);
   });
 });
+
+describe('readiness gate settings', () => {
+  const load = (vals: Record<string, string>) => {
+    jest.resetModules();
+    jest.doMock('../services/settingsService', () => ({ getStr: (k: string, d: string) => (k in vals ? vals[k] : d) }));
+    return require('../services/communicationCoachService');
+  };
+  afterEach(() => { jest.dontMock('../services/settingsService'); jest.resetModules(); });
+
+  it('is on by default, from a start date, so students get time to do the baseline', () => {
+    const g = load({}).gateInfo('t');
+    expect(g.enabled).toBe(true);
+    expect(g.startsOn).toBe('2026-10-28');
+  });
+  it('can be switched off, or moved, per institute', () => {
+    expect(load({ COMMUNICATION_READINESS_GATE: 'false' }).gateInfo('t').active).toBe(false);
+    expect(load({ COMMUNICATION_GATE_START: '2020-01-01' }).gateInfo('t').active).toBe(true);
+    expect(load({ COMMUNICATION_GATE_START: '2999-01-01' }).gateInfo('t').active).toBe(false);
+  });
+});

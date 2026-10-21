@@ -10,7 +10,7 @@ import * as bunny from '../services/bunnyStorageService';
 import { transcribeFile } from '../services/speakingService';
 import { computeSpeechMetrics } from '../services/communicationEvalService';
 import { computeSignals } from '../services/communicationSignalsService';
-import { coachStudentDetail } from '../services/communicationCoachService';
+import { coachStudentDetail, setReadinessOverride } from '../services/communicationCoachService';
 import {
   AREAS, AREA_TYPE, Area, MAX_COACH_ATTEMPTS_PER_DAY, buildPrompt, coachOverview, coachToday, ensureCoachChallenges, evaluateCoachAnswer,
   getCoachState, readinessFor, signalTips, skillsOf, toEvaluation,
@@ -110,5 +110,17 @@ export const adminCoachStudent = async (req: Request, res: Response) => {
     const d = await coachStudentDetail(tId(req), req.params.studentId);
     if (!d) return res.status(404).json({ message: 'Student not found' });
     res.json(d);
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+/** Trainer: release one student from the readiness gate for some days (0 removes it). Needs a reason; it is audited. */
+export const adminReadinessOverride = async (req: Request, res: Response) => {
+  try {
+    const { studentId, days, reason } = req.body || {};
+    if (!mongoose.isValidObjectId(studentId)) return res.status(400).json({ message: 'Invalid student' });
+    if (Number(days) > 0 && !String(reason || '').trim()) return res.status(400).json({ message: 'Give a reason: it is kept on the record.' });
+    const exists = await User.exists({ _id: studentId, tenantId: tId(req), role: 'STUDENT' });
+    if (!exists) return res.status(404).json({ message: 'Student not found' });
+    res.json(await setReadinessOverride(tId(req), studentId, Number(days) || 0, String(reason || ''), uId(req)));
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };

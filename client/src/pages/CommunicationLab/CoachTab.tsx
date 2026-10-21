@@ -16,6 +16,7 @@ export interface CoachState {
   weakestSkill: string | null; weakestArea: string;
   hesitation: { latest: number | null; first: number | null; trend: { date: string; hesitation: number; score: number }[] };
   totalRecordings: number; baselineAreasDone: number;
+  gate?: { enabled: boolean; startsOn: string; active: boolean };
   readiness: { score: number; ready: boolean; threshold: number; reasons: string[]; avgOverall: number; avgHesitation: number; practiceDays14: number };
 }
 
@@ -103,6 +104,7 @@ const CoachTab: React.FC<{ state: CoachState | null; loading: boolean; onStart: 
         </div>
         <p style={{ margin: '6px 0', fontWeight: 700, color: r.ready ? '#16835d' : '#b86b00' }}>{r.ready ? 'Ready to face a company.' : 'Not ready yet. Here is what is left:'}</p>
         {!r.ready && <ul style={{ paddingLeft: 18, margin: 0, color: '#475569' }}>{r.reasons.map((x, i) => <li key={i}>{x}</li>)}</ul>}
+        {state.gate?.enabled && !r.ready && <p style={{ margin: '10px 0 0', padding: '8px 10px', background: '#fffbeb', borderRadius: 8, color: '#92400e', fontSize: 13 }}>{state.gate.active ? 'Company interviews and drive applications stay locked until you are ready.' : `From ${new Date(state.gate.startsOn + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, company interviews and drive applications need you to be ready. Start now.`}</p>}
       </section>
 
       <section className="clx-card" style={{ padding: 16 }}>

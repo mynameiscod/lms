@@ -28,6 +28,7 @@ router.use(authMiddleware, tenantMiddleware);
 router.get('/admin/coach/overview', VIEW, coach.adminCoachOverview);
 router.get('/admin/coach/readiness/:studentId', VIEW, coach.adminStudentReadiness);
 router.get('/admin/coach/students/:studentId', VIEW, coach.adminCoachStudent);
+router.post('/admin/coach/override', ADMIN, coach.adminReadinessOverride);
 router.get('/admin/dashboard', ADMIN, ctrl.adminDashboard);
 router.get('/admin/students', ADMIN, ctrl.adminStudents);
 router.get('/admin/students/:studentId', ADMIN, ctrl.adminStudentDetail);

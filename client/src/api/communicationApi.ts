@@ -66,6 +66,7 @@ export const communicationApi = {
   },
   adminCoachOverview: async (batchId?: string): Promise<any> => (await axios.get(`${BASE}/admin/coach/overview${batchId ? `?batchId=${batchId}` : ''}`, { headers: authHeader() })).data,
   adminCoachStudent: async (studentId: string): Promise<any> => (await axios.get(`${BASE}/admin/coach/students/${studentId}`, { headers: authHeader() })).data,
+  adminReadinessOverride: async (studentId: string, days: number, reason: string): Promise<{ until: string | null }> => (await axios.post(`${BASE}/admin/coach/override`, { studentId, days, reason }, { headers: authHeader() })).data,
   history: async (): Promise<CommAttempt[]> => (await axios.get(`${BASE}/history`, { headers: authHeader() })).data.attempts || [],
   progress: async (): Promise<CommProgress> => (await axios.get(`${BASE}/progress`, { headers: authHeader() })).data,
   attempt: async (id: string): Promise<CommAttempt> => (await axios.get(`${BASE}/attempts/${id}`, { headers: authHeader() })).data.attempt,

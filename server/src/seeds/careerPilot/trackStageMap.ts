@@ -261,6 +261,26 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ ANALYST PLACEMENT (Data Analytics + AI, batch A5) ══════════════ */
+  {
+    moduleCode: 'DT_PLACE_DA',
+    moduleName: 'Analyst Placement',
+    displayOrder: 240,
+    blurb: 'Aptitude, HR, portfolio and mocks are the shared placement packs; this adds analyst SQL rounds, Excel and Power BI, statistics and pandas interviews, case interviews, and the analyst candidate.',
+    topics: [
+      t('DT_IV_SQL_DA', 'Analyst SQL Interview Rounds', ['SQL_AGGREGATION', 'SQL_WINDOW_FUNCTIONS'],
+        ['Write and explain correct SQL live for the aggregation, join, window and business-case questions analyst rounds ask.']),
+      t('DT_IV_EXCEL_BI', 'Excel and Power BI Interview Questions', ['SPREADSHEET_ANALYSIS', 'DASHBOARDING'],
+        ['Answer Excel, Power BI modelling, DAX and dashboard-design questions at the depth an analyst round expects.']),
+      t('DT_IV_STATS_PYTHON', 'Statistics, A/B Testing and pandas Interview Questions', ['STATISTICS_BASICS', 'HYPOTHESIS_TESTING', 'DATA_WRANGLING', 'DATA_CLEANING'],
+        ['Explain statistics and A/B testing in plain words and solve pandas and cleaning tasks live.']),
+      t('DT_CASE_INTERVIEWS', 'Case Interviews', ['BUSINESS_METRICS'],
+        ['Work guesstimates, metric cases, product cases and take-home assignments with structure and clear communication.']),
+      t('DT_PLACE_DA_FS', 'The Analyst Candidate', ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE', 'TECHNICAL_EXPLANATION', 'INTERVIEW_PERFORMANCE'],
+        ['Present an analyst resume, portfolio and capstone and get through a full interview loop.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

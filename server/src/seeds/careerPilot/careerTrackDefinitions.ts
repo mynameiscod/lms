@@ -235,6 +235,20 @@ export const PACKS: PackDefinition[] = [
   { key: 'CAPSTONE_DA_AI', title: 'Capstone: Data Analytics + AI', kind: 'SKILL',
     description: 'One end-to-end analysis that proves the track: SQL, pandas and statistics, a Power BI dashboard, and a measured AI-assisted insight, presented and defended.',
     topics: [['DT_CAPSTONE_DA', 'MUST']] },
+
+  /* ── Data Analytics + AI, batch A5: Year-4 analyst placement ── */
+  { key: 'PL_DA_SQL', title: 'Analyst SQL Rounds', kind: 'PLACEMENT',
+    description: 'The SQL questions analyst interviews ask, written live and explained.',
+    topics: [['DT_IV_SQL_DA', 'MUST'], ['JT_IV_SQL_MYSQL', 'SHOULD']] },
+  { key: 'PL_DA_TOOLS', title: 'Excel, Power BI, Statistics and pandas Interviews', kind: 'PLACEMENT',
+    description: 'Excel, Power BI and DAX, statistics and A/B testing, and pandas at interview depth.',
+    topics: [['DT_IV_EXCEL_BI', 'MUST'], ['DT_IV_STATS_PYTHON', 'MUST']] },
+  { key: 'PL_DA_CASES', title: 'Case Interviews', kind: 'PLACEMENT',
+    description: 'Guesstimates, metric and product cases, and take-home assignments.',
+    topics: [['DT_CASE_INTERVIEWS', 'MUST']] },
+  { key: 'PL_DA_CANDIDATE', title: 'The Analyst Candidate', kind: 'PLACEMENT',
+    description: 'An analyst resume and portfolio, the capstone defended, and a full analyst interview loop.',
+    topics: [['T4_IV_PROJECT', 'MUST'], ['DT_PLACE_DA_FS', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -261,5 +275,5 @@ export const TRACKS: TrackDefinition[] = [
     description: 'Excel, SQL and Python with pandas; statistics and A/B tests; Power BI dashboards; business metrics and storytelling; and AI used well in every step of the analysis.',
     /* Batches: A1 Excel and SQL; Python for data, statistics, Power BI, AI for analysts and placement are appended as they land. */
     specializePacks: ['EXCEL', 'SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'POWER_BI', 'ANALYTICS_STORY', 'AI_FOR_ANALYSTS', 'CAPSTONE_DA_AI'],
-    placementPacks: [] },
+    placementPacks: ['PL_APTITUDE', 'PL_DA_SQL', 'PL_DA_TOOLS', 'PL_DA_CASES', 'PL_DA_CANDIDATE', 'PL_HR_PORTFOLIO', 'PL_MOCKS'] },
 ];

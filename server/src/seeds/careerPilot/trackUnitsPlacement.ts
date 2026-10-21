@@ -14,7 +14,7 @@ import { u } from './year4UnitKit';
  * An interview topic is a few question sets (the questions, a strong answer, the follow-up), a
  * rapid-fire round, a mock round and a checkpoint.
  */
-const interview = (
+export const interview = (
   what: string,
   sets: [slug: string, title: string, description: string, skillKeys: string[]][],
 ): UnitSeed[] => {

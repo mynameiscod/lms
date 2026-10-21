@@ -1,6 +1,7 @@
 import { TopicSeed } from './year1MegaCurriculum';
 import { u } from './year4UnitKit';
 import { ending } from './trackUnitsWeb';
+import { interview } from './trackUnitsPlacement';
 
 /**
  * Career-track content for the data and AI tracks — Data Analytics + AI first, then Data Science + AI,
@@ -248,5 +249,63 @@ export const TRACK_DATA_A4: Record<string, TopicSeed> = {
       ['Present the capstone as a story and defend its methods under questioning'], 45, { unitType: 'PRACTICE', after: ['BUILD_DASHBOARD_AI'] }),
     u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
       ['Show analyst judgement at the standard a hiring manager expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
+  ] },
+};
+
+/**
+ * Batch A5: Year-4 placement for analysts — what an analyst interview asks that the shared aptitude, HR, portfolio and
+ * mock packs do not: SQL rounds, Excel and Power BI, statistics and pandas, case interviews, and the candidate.
+ */
+export const TRACK_DATA_A5: Record<string, TopicSeed> = {
+  /* ── SQL interview rounds for analysts ── */
+  DT_IV_SQL_DA: { category: 'UNIVERSAL', units: interview('Analyst SQL Interview', [
+    ['IV_AGGREGATES_JOINS', 'Aggregations and Joins Under Interview Pressure', 'GROUP BY and HAVING traps, COUNT(*) vs COUNT(col), joins that multiply rows, anti-joins, and NULLs in every one of them.', ['SQL_AGGREGATION']],
+    ['IV_WINDOWS', 'Window Functions in Interviews', 'Top-N per group, ties, running totals, LAG for change, and deduplication — the window questions every analyst round asks.', ['SQL_WINDOW_FUNCTIONS']],
+    ['IV_CASE_QUERIES', 'Business Case Queries', 'Month-over-month growth, second-highest, retention, repeat customers, and "users who did X but not Y", written live and explained.', ['SQL_AGGREGATION']],
+    ['IV_QUERY_HYGIENE', 'Writing SQL an Interviewer Trusts', 'Checking row counts, readable CTEs, testing on a small case, and explaining what an index does for a slow analyst query.', ['SQL_AGGREGATION']],
+  ]) },
+
+  /* ── Excel and Power BI at interview depth ── */
+  DT_IV_EXCEL_BI: { category: 'UNIVERSAL', units: interview('Excel and Power BI Interview', [
+    ['IV_EXCEL', 'Excel in the Analyst Round', 'Lookups and their failures, pivot tables, conditional aggregation, absolute references and the live Excel task.', ['SPREADSHEET_ANALYSIS']],
+    ['IV_PBI_MODEL', 'Power BI Modelling Questions', 'Star schema vs flat tables, relationships and filter direction, Power Query vs DAX, and import vs DirectQuery.', ['DASHBOARDING']],
+    ['IV_DAX', 'DAX Questions', 'Measures vs columns, filter context and CALCULATE, time intelligence, and the totals-row question.', ['DASHBOARDING']],
+    ['IV_DASHBOARD_DESIGN', 'Dashboard Design and Critique', 'Critiquing a dashboard in the interview, choosing KPIs for an audience, and explaining RLS and refresh.', ['DASHBOARDING']],
+  ]) },
+
+  /* ── Statistics, A/B testing and pandas at interview depth ── */
+  DT_IV_STATS_PYTHON: { category: 'UNIVERSAL', units: interview('Statistics and Python Interview', [
+    ['IV_STATS', 'Statistics Questions', 'Mean vs median, distributions, sampling bias, confidence intervals and correlation vs causation — explained in plain words.', ['STATISTICS_BASICS']],
+    ['IV_AB', 'A/B Testing Questions', 'p-values, power and sample size, what to do when the test is inconclusive, peeking and sample-ratio mismatch.', ['HYPOTHESIS_TESTING']],
+    ['IV_PANDAS', 'pandas in the Technical Round', 'groupby, merge, pivot, apply vs vectorised code, dates, and the pandas task done live.', ['DATA_WRANGLING']],
+    ['IV_CLEANING_EDA', 'Cleaning and EDA Questions', 'Missing values, outliers, duplicates and how you would explore a dataset you have never seen.', ['DATA_CLEANING']],
+  ]) },
+
+  /* ── Case interviews ── */
+  DT_CASE_INTERVIEWS: { category: 'UNIVERSAL', units: [
+    u('GUESSTIMATES', 'Guesstimates', 'Structuring an estimate (how many food orders in Pune a day?), stating assumptions, sanity checks, and talking through it.',
+      ['Structure and talk through a market-size or volume estimate with clear assumptions'], 40),
+    u('METRIC_CASES', 'Metric Cases', '"Orders dropped 10% — what do you do?", choosing a metric for a feature, and trade-offs between metrics.',
+      ['Work a metric investigation or metric-choice case aloud with a clear structure'], 45, { after: ['GUESSTIMATES'] }),
+    u('PRODUCT_BUSINESS_CASES', 'Product and Business Cases', 'Should we launch this, how would you measure this feature, and which segment to target — answered with data.',
+      ['Answer a product or business case with a structured, data-led recommendation'], 45, { after: ['METRIC_CASES'] }),
+    u('TAKE_HOME', 'The Take-Home Assignment', 'Reading the brief, scoping, cleaning, analysing, and the short report and notebook that win the next round.',
+      ['Complete a take-home analysis assignment to the standard that gets a call-back'], 45, { after: ['PRODUCT_BUSINESS_CASES'] }),
+    u('TIMED_CASES', 'Timed Case Set', 'A guesstimate, a metric case and a product case under time, with model answers and how each is scored.',
+      ['Solve a timed set of case questions with structure and clear communication'], 50, { unitType: 'PRACTICE', after: ['TAKE_HOME'] }),
+    u('CHECKPOINT', 'Case Interviews — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Show structured business thinking at case-interview standard'], 40, { unitType: 'CHECKPOINT', after: ['TIMED_CASES'] }),
+  ] },
+
+  /* ── The analyst candidate ── */
+  DT_PLACE_DA_FS: { category: 'UNIVERSAL', units: [
+    u('RESUME', 'An Analyst Resume and Portfolio', 'The skills line recruiters filter on (SQL, Excel, Power BI, Python, statistics), project bullets with business impact, and a portfolio of notebooks and a published dashboard.',
+      ['Write an analyst resume and portfolio whose every claim can be checked'], 45, { skillKeys: ['PLACEMENT_READINESS', 'PORTFOLIO_EVIDENCE'] }),
+    u('DEFEND_CAPSTONE', 'Defending Your Analytics Capstone', 'Walking a panel through the question, data, methods, findings and caveats, and the follow-ups they ask about the numbers and the AI.',
+      ['Defend the capstone analysis end to end under follow-up questions'], 45, { after: ['RESUME'], skillKeys: ['TECHNICAL_EXPLANATION'] }),
+    u('MOCK_LOOP', 'The Analyst Interview Loop — Mock', 'Online test (aptitude, SQL, Excel), a technical round, a case round, a hiring-manager round and HR — as one mock day.',
+      ['Go through a complete analyst interview loop and act on its debrief'], 60, { unitType: 'PRACTICE', after: ['DEFEND_CAPSTONE'], skillKeys: ['INTERVIEW_PERFORMANCE'] }),
+    u('CHECKPOINT', 'Analyst Placement — Checkpoint', 'Where you actually are on this, measured rather than felt.',
+      ['Show the judgement an analytics hiring panel looks for'], 40, { unitType: 'CHECKPOINT', after: ['MOCK_LOOP'] }),
   ] },
 };

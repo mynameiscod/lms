@@ -279,6 +279,14 @@ export const PACKS: PackDefinition[] = [
   { key: 'NLP_GENAI_DS', title: 'NLP and Generative AI for Data Science', kind: 'SKILL',
     description: 'How generative AI works (Year 1), then text from TF-IDF to transformers and LLMs, embeddings, and evaluating LLM output and RAG.',
     topics: [['T_GENAI', 'MUST'], ['DS_NLP_GENAI', 'CORE']] },
+
+  /* ── Data Science + AI, batch S4: deployment and the capstone ── */
+  { key: 'ML_DEPLOYMENT', title: 'Model Deployment and MLOps Basics', kind: 'SKILL',
+    description: 'Saving, serving with FastAPI, demoing with Streamlit, tracking with MLflow, packaging with Docker and monitoring for drift.',
+    topics: [['DS_DEPLOYMENT', 'MUST']] },
+  { key: 'CAPSTONE_DS_AI', title: 'Capstone: Data Science + AI', kind: 'SKILL',
+    description: 'One end-to-end ML project that proves the track: a validated, interpreted model, deployed, with a measured GenAI feature, presented and defended.',
+    topics: [['DS_CAPSTONE', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -309,6 +317,6 @@ export const TRACKS: TrackDefinition[] = [
   { key: 'DATA_SCIENCE_AI', name: 'Data Science + AI', language: 'Python', order: 50,
     description: 'SQL, pandas and statistics; machine learning with scikit-learn from regression to ensembles and clustering; deep learning, NLP and GenAI; deploying a model; and a capstone you can defend.',
     /* Batches: S1 ML foundations, regression and classification (SQL, pandas and statistics are Data Analytics' packs); later ML, deep learning, deployment and placement packs are appended as they land. */
-    specializePacks: ['SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'ML_FOUNDATIONS', 'SUPERVISED_ML', 'APPLIED_ML', 'UNSUPERVISED_ML', 'FORECASTING', 'DEEP_LEARNING_DS', 'NLP_GENAI_DS'],
+    specializePacks: ['SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'ML_FOUNDATIONS', 'SUPERVISED_ML', 'APPLIED_ML', 'UNSUPERVISED_ML', 'FORECASTING', 'DEEP_LEARNING_DS', 'NLP_GENAI_DS', 'ML_DEPLOYMENT', 'CAPSTONE_DS_AI'],
     placementPacks: [] },
 ];

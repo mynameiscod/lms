@@ -195,3 +195,37 @@ export const TRACK_DS_S3: Record<string, TopicSeed> = {
     ...ending('NLP and GenAI', 'RAG_BASICS', { project: ['MINI_PROJECT', 'Mini Project — Classifying Support Tickets Three Ways', 'Classify a fintech app’s support tickets with a TF-IDF model, a fine-tuned small transformer and a prompted LLM; compare accuracy, cost per thousand tickets and latency on the same held-out set; and recommend one with reasons.'] }),
   ] },
 };
+
+/** Batch S4: putting a model into use — deployment and MLOps basics — and the capstone. */
+export const TRACK_DS_S4: Record<string, TopicSeed> = {
+  /* ── Deployment and MLOps basics ── */
+  DS_DEPLOYMENT: { category: 'UNIVERSAL', units: [
+    u('SAVING_MODELS', 'Saving and Loading Models Safely', 'joblib, pickle and why loading one is running code, skops, saving the whole pipeline, and pinning library versions.',
+      ['Save and reload a full pipeline safely and reproducibly'], 35),
+    u('SERVING_API', 'Serving a Model with FastAPI', 'A prediction endpoint, validating input with Pydantic, loading the model once, batch vs single predictions, and testing it.',
+      ['Serve a trained pipeline behind a validated FastAPI endpoint and test it'], 45, { after: ['SAVING_MODELS'] }),
+    u('STREAMLIT_DEMO', 'A Demo App with Streamlit', 'Inputs, a prediction and an explanation on one page, caching the model, and what a demo is not.',
+      ['Build a Streamlit demo of a model for a non-technical audience'], 35, { after: ['SERVING_API'] }),
+    u('EXPERIMENT_TRACKING', 'Experiment Tracking with MLflow', 'Logging parameters, metrics and artefacts, comparing runs, and registering the model you ship.',
+      ['Track experiments with MLflow and choose a model to ship from logged runs'], 40, { after: ['STREAMLIT_DEMO'], skillKeys: ['EXPERIMENT_TRACKING'] }),
+    u('MONITORING_DRIFT', 'Monitoring and Drift', 'Data drift and concept drift, PSI and distribution checks, delayed labels, and when to retrain.',
+      ['Monitor a deployed model for drift and decide when it needs retraining'], 40, { after: ['EXPERIMENT_TRACKING'], skillKeys: ['MODEL_MONITORING'] }),
+    u('DOCKER_CLOUD', 'Packaging and Deploying', 'A Docker image for the API, configuration from the environment, deploying to a cloud host, and a health check.',
+      ['Containerise a model API and deploy it with configuration kept out of the code'], 40, { after: ['MONITORING_DRIFT'] }),
+    ...ending('Model Deployment', 'DOCKER_CLOUD', { project: ['MINI_PROJECT', 'Mini Project — Deploying the Churn Model', 'Take the churn model from S1: track the experiments in MLflow, save the chosen pipeline, serve it with FastAPI and Pydantic validation, add tests and a Streamlit demo, containerise it, and write a monitoring plan with drift checks and a retraining rule.'] }),
+  ] },
+
+  /* ── The capstone ── */
+  DS_CAPSTONE: { category: 'UNIVERSAL', units: [
+    u('BRIEF', 'The Capstone: Problem, Data and Plan', 'A real prediction problem from lending, retail, health or agriculture: the question, the data, the metric that matters to the business, and a plan.',
+      ['Scope an end-to-end ML project and write a plan you can deliver in the time'], 45),
+    u('BUILD_MODEL', 'Capstone Build — The Model', 'Data preparation, features without leakage, a baseline, two or three model families, honest validation, interpretation and error analysis.',
+      ['Deliver a validated, interpreted model that beats a baseline on the metric that matters'], 300, { unitType: 'PROJECT', after: ['BRIEF'] }),
+    u('BUILD_DEPLOY_AI', 'Capstone Build — Deployment and the GenAI Feature', 'The model behind an API with a demo, experiment tracking, a monitoring plan, and one GenAI feature that earns its place — measured.',
+      ['Deploy the model and add a measured GenAI feature to the product'], 240, { unitType: 'PROJECT', after: ['BUILD_MODEL'], skillKeys: ['MODEL_DEPLOYMENT', 'DL_TRANSFORMERS'] }),
+    u('DEFENCE', 'Demo Day: Presenting and Defending the Capstone', 'A ten-minute presentation, the model card, and the questions a panel asks about data, leakage, metrics, fairness and deployment.',
+      ['Present the capstone and defend every modelling decision under questioning'], 45, { unitType: 'PRACTICE', after: ['BUILD_DEPLOY_AI'] }),
+    u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
+      ['Show data-science judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
+  ] },
+};

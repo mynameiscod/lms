@@ -333,6 +333,20 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ DEPLOYMENT AND THE CAPSTONE (Data Science + AI, batch S4) ══════════════ */
+  {
+    moduleCode: 'DS_DEPLOY_CAPSTONE',
+    moduleName: 'Model Deployment and the Capstone',
+    displayOrder: 330,
+    blurb: 'Putting a model into use — saving, serving, demoing, tracking and monitoring it — and the capstone.',
+    topics: [
+      t('DS_DEPLOYMENT', 'Model Deployment and MLOps Basics', ['MODEL_DEPLOYMENT', 'EXPERIMENT_TRACKING', 'MODEL_MONITORING'],
+        ['Save, serve, demo, track, package and monitor a model so it keeps working after the notebook is closed.']),
+      t('DS_CAPSTONE', 'Capstone: An End-to-End ML Project with AI', ['ML_EVALUATION', 'MODEL_DEPLOYMENT', 'DL_TRANSFORMERS'],
+        ['Plan, build, deploy, present and defend an end-to-end machine-learning project with a measured GenAI feature.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

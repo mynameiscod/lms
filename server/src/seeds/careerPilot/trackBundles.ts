@@ -82,6 +82,9 @@ import { TRACK_DS_MATH_WORKFLOW_BUNDLES } from './trackContentDsMathWorkflow';
 import { TRACK_DS_SUPERVISED_BUNDLES } from './trackContentDsSupervised';
 import { TRACK_DS_ENSEMBLES_EVAL_BUNDLES } from './trackContentDsEnsemblesEval';
 import { TRACK_DS_FEATURES_UNSUP_BUNDLES } from './trackContentDsFeaturesUnsup';
+import { TRACK_DS_TIME_SERIES_BUNDLES } from './trackContentDsTimeSeries';
+import { TRACK_DS_DEEP_LEARNING_BUNDLES } from './trackContentDsDeepLearning';
+import { TRACK_DS_NLP_GENAI_BUNDLES } from './trackContentDsNlpGenai';
 import { TRACK_IV_DJANGO_BUNDLES } from './trackContentIvDjango';
 import { TRACK_CODING_PYTHON_BUNDLES } from './trackContentCodingPython';
 import { TRACK_PLACE_PY_FS_BUNDLES } from './trackContentPlacePyFs';
@@ -189,4 +192,7 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_DS_SUPERVISED_BUNDLES,
   ...TRACK_DS_ENSEMBLES_EVAL_BUNDLES,
   ...TRACK_DS_FEATURES_UNSUP_BUNDLES,
+  ...TRACK_DS_TIME_SERIES_BUNDLES,
+  ...TRACK_DS_DEEP_LEARNING_BUNDLES,
+  ...TRACK_DS_NLP_GENAI_BUNDLES,
 ].map(balanced);

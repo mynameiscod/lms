@@ -143,3 +143,55 @@ export const TRACK_DS_S2: Record<string, TopicSeed> = {
     ...ending('Unsupervised Learning', 'ANOMALY_DETECTION', { project: ['MINI_PROJECT', 'Mini Project — Segmenting Customers of a Retail Chain', 'Build RFM and basket features for a retail chain’s loyalty members, cluster them, choose and defend k, profile and name each segment, check stability across months, and recommend one action per segment.'] }),
   ] },
 };
+
+/** Batch S3: time series and forecasting, deep learning, and NLP and generative AI for data science. */
+export const TRACK_DS_S3: Record<string, TopicSeed> = {
+  /* ── Time series and forecasting ── */
+  DS_TIME_SERIES: { category: 'UNIVERSAL', units: [
+    u('TS_BASICS', 'Time Series: Trend, Seasonality and Stationarity', 'What makes time data different, decomposition, weekly and festival seasonality, autocorrelation and stationarity.',
+      ['Decompose a time series and describe its trend, seasonality and autocorrelation'], 45),
+    u('BASELINE_FORECASTS', 'Baseline Forecasts', 'Naive, seasonal-naive and moving-average forecasts — the numbers every forecasting model must beat.',
+      ['Build baseline forecasts and use them as the bar for any model'], 35, { after: ['TS_BASICS'] }),
+    u('ETS_ARIMA', 'Exponential Smoothing and ARIMA', 'Holt-Winters, ARIMA and SARIMA in statsmodels, choosing orders, and reading the residuals.',
+      ['Fit exponential-smoothing and ARIMA models and judge them by their residuals and errors'], 50, { after: ['BASELINE_FORECASTS'] }),
+    u('ML_FORECASTING', 'Forecasting with Machine Learning', 'Lag and rolling features, calendar and holiday features, gradient boosting for many series, and never using the future.',
+      ['Turn forecasting into supervised learning with lag features, without leaking the future'], 45, { after: ['ETS_ARIMA'] }),
+    u('FORECAST_EVALUATION', 'Evaluating Forecasts', 'MAE, MAPE and its traps, weighted errors, rolling-origin backtests, and prediction intervals.',
+      ['Backtest a forecast honestly and report its error and uncertainty'], 40, { after: ['ML_FORECASTING'] }),
+    ...ending('Time Series', 'FORECAST_EVALUATION', { project: ['MINI_PROJECT', 'Mini Project — Forecasting Daily Orders for a Cloud Kitchen', 'Forecast the next 28 days of orders for each outlet of a cloud-kitchen brand: baselines, a seasonal model and a gradient-boosted model with lag and festival features, a rolling backtest, prediction intervals, and a staffing recommendation.'] }),
+  ] },
+
+  /* ── Deep learning ── */
+  DS_DEEP_LEARNING: { category: 'UNIVERSAL', units: [
+    u('NEURONS_LAYERS', 'Neurons, Layers and Activations', 'A neuron as weighted sum plus activation, multilayer networks, ReLU, sigmoid and softmax, and why depth helps.',
+      ['Explain how a multilayer network turns inputs into a prediction'], 40),
+    u('BACKPROP', 'How a Network Learns: Backpropagation', 'Loss, gradients flowing backwards through layers, the chain rule as intuition, and mini-batch gradient descent.',
+      ['Explain backpropagation and mini-batch training without the heavy algebra'], 40, { after: ['NEURONS_LAYERS'] }),
+    u('PYTORCH_BASICS', 'PyTorch Basics', 'Tensors, autograd, nn.Module, a DataLoader, and the training loop written out step by step.',
+      ['Build and train a small network in PyTorch with a clear training loop'], 50, { after: ['BACKPROP'], skillKeys: ['DL_TRAINING'] }),
+    u('TRAINING_WELL', 'Training Networks Well', 'Optimisers and learning rates, batch size, overfitting, dropout and weight decay, early stopping, and reading loss curves.',
+      ['Diagnose and fix a network that will not train or that overfits'], 45, { after: ['PYTORCH_BASICS'], skillKeys: ['DL_TRAINING'] }),
+    u('CNN_TRANSFER', 'Images: CNNs and Transfer Learning', 'Convolutions and pooling as intuition, and fine-tuning a pretrained image model on a small dataset.',
+      ['Fine-tune a pretrained image model and explain why transfer learning works'], 45, { after: ['TRAINING_WELL'] }),
+    u('SEQUENCES', 'Sequences: From RNNs to Transformers', 'Why order matters, RNNs and LSTMs in brief, attention, and why transformers took over.',
+      ['Explain how sequence models evolved to transformers and what attention does'], 40, { after: ['CNN_TRANSFER'] }),
+    ...ending('Deep Learning', 'SEQUENCES', { project: ['MINI_PROJECT', 'Mini Project — Classifying Product Images with Transfer Learning', 'Fine-tune a pretrained image model to sort an e-commerce seller’s product photos into categories: a train/validation split by product, augmentation, a frozen-then-unfrozen schedule, a confusion matrix, and the misclassified images explained.'] }),
+  ] },
+
+  /* ── NLP and generative AI for data science ── */
+  DS_NLP_GENAI: { category: 'UNIVERSAL', units: [
+    u('TEXT_PREP', 'Working with Text', 'Tokenisation, cleaning without destroying meaning, Hinglish and mixed scripts, and TF-IDF with a linear model as the baseline.',
+      ['Prepare text and build a TF-IDF baseline classifier'], 40),
+    u('EMBEDDINGS', 'Embeddings and Similarity', 'Word and sentence embeddings, cosine similarity, semantic search and clustering of text.',
+      ['Use sentence embeddings for similarity, search and clustering'], 45, { after: ['TEXT_PREP'], skillKeys: ['VECTOR_EMBEDDINGS'] }),
+    u('TRANSFORMERS', 'Transformers and Hugging Face', 'Attention as intuition, encoder vs decoder models, tokenizers, and Hugging Face pipelines for classification and extraction.',
+      ['Run and explain transformer models for text tasks with Hugging Face'], 45, { after: ['EMBEDDINGS'] }),
+    u('FINE_TUNE_OR_PROMPT', 'Fine-Tune, Prompt or Train from Scratch?', 'When a TF-IDF model is enough, when to fine-tune a small transformer, when to prompt an LLM, and what each costs.',
+      ['Choose between a classic model, a fine-tuned transformer and a prompted LLM for a text task'], 40, { after: ['TRANSFORMERS'] }),
+    u('LLMS_FOR_DS', 'LLMs in a Data Scientist’s Work', 'Zero- and few-shot labelling, structured extraction, synthetic data and its risks, and evaluating an LLM against a labelled set.',
+      ['Use an LLM for labelling or extraction and measure it against a labelled sample'], 45, { after: ['FINE_TUNE_OR_PROMPT'] }),
+    u('RAG_BASICS', 'Retrieval-Augmented Generation, Briefly', 'Answering from your own documents: chunking, embedding, retrieving and grounding — and how a data scientist evaluates it.',
+      ['Explain RAG and evaluate a simple retrieval-augmented answerer'], 40, { after: ['LLMS_FOR_DS'] }),
+    ...ending('NLP and GenAI', 'RAG_BASICS', { project: ['MINI_PROJECT', 'Mini Project — Classifying Support Tickets Three Ways', 'Classify a fintech app’s support tickets with a TF-IDF model, a fine-tuned small transformer and a prompted LLM; compare accuracy, cost per thousand tickets and latency on the same held-out set; and recommend one with reasons.'] }),
+  ] },
+};

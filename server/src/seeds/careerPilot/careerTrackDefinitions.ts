@@ -268,6 +268,17 @@ export const PACKS: PackDefinition[] = [
   { key: 'UNSUPERVISED_ML', title: 'Unsupervised Learning', kind: 'SKILL',
     description: 'Clustering, dimensionality reduction, customer segmentation and anomaly detection.',
     topics: [['DS_UNSUPERVISED', 'MUST']] },
+
+  /* ── Data Science + AI, batch S3: forecasting, deep learning, NLP and GenAI ── */
+  { key: 'FORECASTING', title: 'Time Series and Forecasting', kind: 'SKILL',
+    description: 'Decomposition, baselines, exponential smoothing and ARIMA, ML forecasting with lag features, and honest backtests.',
+    topics: [['DS_TIME_SERIES', 'MUST']] },
+  { key: 'DEEP_LEARNING_DS', title: 'Deep Learning', kind: 'SKILL',
+    description: 'Neural networks and backpropagation, PyTorch, training well, transfer learning for images, and sequence models.',
+    topics: [['DS_DEEP_LEARNING', 'MUST']] },
+  { key: 'NLP_GENAI_DS', title: 'NLP and Generative AI for Data Science', kind: 'SKILL',
+    description: 'How generative AI works (Year 1), then text from TF-IDF to transformers and LLMs, embeddings, and evaluating LLM output and RAG.',
+    topics: [['T_GENAI', 'MUST'], ['DS_NLP_GENAI', 'CORE']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -298,6 +309,6 @@ export const TRACKS: TrackDefinition[] = [
   { key: 'DATA_SCIENCE_AI', name: 'Data Science + AI', language: 'Python', order: 50,
     description: 'SQL, pandas and statistics; machine learning with scikit-learn from regression to ensembles and clustering; deep learning, NLP and GenAI; deploying a model; and a capstone you can defend.',
     /* Batches: S1 ML foundations, regression and classification (SQL, pandas and statistics are Data Analytics' packs); later ML, deep learning, deployment and placement packs are appended as they land. */
-    specializePacks: ['SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'ML_FOUNDATIONS', 'SUPERVISED_ML', 'APPLIED_ML', 'UNSUPERVISED_ML'],
+    specializePacks: ['SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'ML_FOUNDATIONS', 'SUPERVISED_ML', 'APPLIED_ML', 'UNSUPERVISED_ML', 'FORECASTING', 'DEEP_LEARNING_DS', 'NLP_GENAI_DS'],
     placementPacks: [] },
 ];

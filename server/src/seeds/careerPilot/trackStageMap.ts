@@ -317,6 +317,22 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ FORECASTING, DEEP LEARNING AND NLP (Data Science + AI, batch S3) ══════════════ */
+  {
+    moduleCode: 'DS_ADVANCED',
+    moduleName: 'Forecasting, Deep Learning and NLP',
+    displayOrder: 320,
+    blurb: 'Time series and forecasting, deep learning with PyTorch, and NLP and generative AI as a data scientist uses them. Year 1’s generative-AI topic is the base.',
+    topics: [
+      t('DS_TIME_SERIES', 'Time Series and Forecasting', ['ML_SUPERVISED'],
+        ['Decompose time series, beat baselines with statistical and ML forecasts, and backtest them honestly.']),
+      t('DS_DEEP_LEARNING', 'Deep Learning', ['NEURAL_NETWORKS', 'DL_TRAINING'],
+        ['Explain how neural networks learn, train them in PyTorch, fine-tune pretrained models, and understand sequence models.']),
+      t('DS_NLP_GENAI', 'NLP and Generative AI for Data Science', ['DL_TRANSFORMERS', 'VECTOR_EMBEDDINGS'],
+        ['Work with text from TF-IDF to transformers and LLMs, choose between them on cost and accuracy, and evaluate LLM output and RAG.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

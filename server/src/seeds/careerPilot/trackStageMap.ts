@@ -155,6 +155,22 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ AI IN .NET AND THE CAPSTONE (batch N4) ══════════════ */
+  {
+    moduleCode: 'JT_DOTNET_AI',
+    moduleName: 'AI in .NET and the Capstone',
+    displayOrder: 180,
+    blurb: 'LLM features in ASP.NET Core with the OpenAI .NET SDK and Semantic Kernel, agents, and the capstone. The AI concepts are the shared language-free topics.',
+    topics: [
+      t('JT_AI_DOTNET', 'Generative AI in .NET', ['LLM_APPLICATIONS', 'RAG_SYSTEMS'],
+        ['Add LLM features in C#: the OpenAI .NET SDK, structured output, streaming to React, Semantic Kernel, and RAG over your own documents.']),
+      t('JT_AI_AGENTS_DOTNET', 'Building Agents in .NET', ['AI_AGENTS', 'LLM_APPLICATIONS'],
+        ['Build a bounded tool-calling agent with memory in C# and Semantic Kernel, connect it to MCP, and keep it safe.']),
+      t('JT_CAPSTONE_DOTNET', 'Capstone: A .NET Full-Stack App with AI', ['PRODUCTION_ENGINEERING', 'LLM_APPLICATIONS', 'AI_AGENTS'],
+        ['Plan, build, deploy and defend a React, ASP.NET Core and SQL Server application with an AI assistant and an agent.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

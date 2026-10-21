@@ -339,3 +339,52 @@ export const TRACK_DOTNET_WEB: Record<string, TopicSeed> = {
     ...ending('Full-Stack Integration', 'DEPLOY', { project: ['PROJECT', 'Project — A Full-Stack .NET App, Deployed', 'The React frontend and the secured ASP.NET Core API on SQL Server as one application: login, roles, CRUD, an upload, consistent errors, Docker, and a public URL.'] }),
   ] },
 };
+
+/**
+ * Batch N4: AI in .NET, then the capstone. The language-free AI lessons (how models work, prompting, RAG and
+ * agent concepts — JT_AI_CONCEPTS and JT_AI_AGENTS) are shared with the other tracks; this adds building with
+ * them in C#: the OpenAI .NET SDK first, to see what happens underneath, then Semantic Kernel.
+ */
+export const TRACK_DOTNET_AI: Record<string, TopicSeed> = {
+  /* ── Generative AI in .NET ── */
+  JT_AI_DOTNET: { category: 'UNIVERSAL', units: [
+    u('OPENAI_SDK', 'Calling a Model from ASP.NET Core with the OpenAI .NET SDK', 'The OpenAI and Azure OpenAI clients, chat messages and parameters, the key from configuration, timeouts, retries and cost.',
+      ['Call an LLM from an ASP.NET Core service with the key kept out of the code and the cost under control'], 45),
+    u('STRUCTURED_OUTPUT', 'Structured Output into C# Types', 'Asking for JSON against a schema, deserialising it with System.Text.Json, validating it, and failing safely when it does not parse.',
+      ['Turn a model answer into a validated C# object and handle the failure case'], 40, { after: ['OPENAI_SDK'] }),
+    u('STREAMING_REACT', 'Streaming a Chat Answer into React', 'Streaming completions as IAsyncEnumerable, server-sent events from ASP.NET Core, reading the stream in React, and cancelling it.',
+      ['Stream a chat answer from ASP.NET Core to a React UI token by token'], 45, { after: ['STRUCTURED_OUTPUT'] }),
+    u('SEMANTIC_KERNEL', 'Semantic Kernel: Kernel, Connectors and Prompt Functions', 'What Semantic Kernel adds over the raw SDK, building a Kernel with dependency injection, chat completion services, prompt templates and functions.',
+      ['Rebuild a raw SDK call with Semantic Kernel and say what the framework adds and costs'], 45, { after: ['STREAMING_REACT'] }),
+    u('EMBEDDINGS_VECTOR_STORE', 'Embeddings and a Vector Store in .NET', 'Embedding documents, chunking them, storing vectors (Azure AI Search, PostgreSQL pgvector or an in-memory store) and searching by meaning.',
+      ['Ingest documents into a vector store from C# and search them by meaning'], 45, { after: ['SEMANTIC_KERNEL'], skillKeys: ['RAG_SYSTEMS'] }),
+    u('RAG', 'RAG in .NET, by Hand and with Semantic Kernel', 'Retrieve, ground, cite — written by hand first, then with Semantic Kernel — and answering only from the app’s documents.',
+      ['Answer questions over your own documents in C#, citing what the answer used'], 50, { after: ['EMBEDDINGS_VECTOR_STORE'], skillKeys: ['RAG_SYSTEMS'] }),
+    ...ending('AI in .NET', 'RAG', { project: ['MINI_PROJECT', 'Mini Project — An AI Help Desk on ASP.NET Core', 'An ASP.NET Core endpoint that answers questions over a set of product documents with RAG — streamed to React, with cited sources, an "I don’t know" path and a small evaluation set.'] }),
+  ] },
+
+  /* ── Agents in .NET ── */
+  JT_AI_AGENTS_DOTNET: { category: 'UNIVERSAL', units: [
+    u('TOOLS_DOTNET', 'Tool Calling in C#', 'Tools as C# methods, the JSON schema the model sees, running the loop by hand with the OpenAI SDK, and checking every call against the user’s permissions.',
+      ['Give a model tools backed by your own services, with checks on every call'], 45),
+    u('SK_AGENTS', 'Plugins and Agents with Semantic Kernel', 'Plugins and [KernelFunction], automatic function calling with a step limit, filters as guardrails, and a human approval step before anything irreversible.',
+      ['Build a bounded tool-calling agent with Semantic Kernel, including an approval step'], 45, { after: ['TOOLS_DOTNET'] }),
+    u('MEMORY_MCP_DOTNET', 'Memory and MCP in .NET', 'Per-user chat history and its limits, and using or exposing tools over MCP with the C# SDK.',
+      ['Give an agent per-user memory and connect it to an MCP server'], 40, { after: ['SK_AGENTS'] }),
+    ...ending('.NET AI Agents', 'MEMORY_MCP_DOTNET', { minutes: [40, 50, 35, 40] }),
+  ] },
+
+  /* ── The capstone ── */
+  JT_CAPSTONE_DOTNET: { category: 'UNIVERSAL', units: [
+    u('BRIEF', 'The Capstone: Scope, Architecture and Plan', 'An e-commerce store or a job portal on React, ASP.NET Core and SQL Server with AI built in: the architecture, a design document and a plan.',
+      ['Scope the capstone, draw its architecture and write a plan you can deliver in the time'], 45),
+    u('BUILD_CORE', 'Capstone Build — The Full-Stack Application', 'React, ASP.NET Core Web API, EF Core and SQL Server: login and roles, the core features, tests, and a deployed first version.',
+      ['Build and deploy the core application to the standard of the earlier projects'], 300, { unitType: 'PROJECT', after: ['BRIEF'] }),
+    u('AI_FEATURES', 'Capstone Build — The AI Assistant and the Agent', 'A RAG assistant over the app’s own catalogue or listings, and a Semantic Kernel agent that acts for the user with approval.',
+      ['Add a grounded AI assistant and a guarded agent to the application and evaluate both'], 240, { unitType: 'PROJECT', after: ['BUILD_CORE'], skillKeys: ['LLM_APPLICATIONS', 'AI_AGENTS'] }),
+    u('DEFENCE', 'Demo Day: Presenting and Defending the Capstone', 'A five-minute demo, the architecture walk-through, and the questions a panel asks about it.',
+      ['Demo the capstone and defend every design decision under questioning'], 45, { unitType: 'PRACTICE', after: ['AI_FEATURES'] }),
+    u('CHECKPOINT', 'Capstone — Checkpoint', 'Where you actually are across the whole track, measured rather than felt.',
+      ['Show full-stack and AI judgement at the standard a hiring panel expects'], 40, { unitType: 'CHECKPOINT', after: ['DEFENCE'] }),
+  ] },
+};

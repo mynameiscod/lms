@@ -179,6 +179,17 @@ export const PACKS: PackDefinition[] = [
   { key: 'FULLSTACK_DEPLOY_DOTNET', title: 'React and ASP.NET Core: Integration and Deployment', kind: 'SKILL',
     description: 'React talking to ASP.NET Core — CORS, a JWT login flow, uploads and errors — then Docker and a deployed stack.',
     topics: [['JT_FULLSTACK_DOTNET', 'MUST']] },
+
+  /* ── .NET Full Stack + AI, batch N4: AI and the capstone ── */
+  { key: 'GENAI_DOTNET', title: 'Generative AI for .NET Developers', kind: 'SKILL',
+    description: 'How models work, prompting and RAG — then LLM features in your own ASP.NET Core and React app with the OpenAI .NET SDK and Semantic Kernel.',
+    topics: [['T_GENAI', 'MUST'], ['JT_AI_CONCEPTS', 'MUST'], ['JT_AI_DOTNET', 'MUST'], ['T3_AI_ASSISTED', 'SHOULD']] },
+  { key: 'AGENTIC_AI_DOTNET', title: 'Agentic AI in .NET', kind: 'SKILL',
+    description: 'Agents, tools, memory and MCP — when to build one, and building one in C# with Semantic Kernel and guardrails.',
+    topics: [['JT_AI_AGENTS', 'SHOULD'], ['JT_AI_AGENTS_DOTNET', 'SHOULD']] },
+  { key: 'CAPSTONE_DOTNET_AI', title: 'Capstone: .NET Full Stack + AI', kind: 'SKILL',
+    description: 'One application that proves the track: React, ASP.NET Core and SQL Server with AI built in, deployed, with an assistant and an agent.',
+    topics: [['JT_CAPSTONE_DOTNET', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -198,6 +209,6 @@ export const TRACKS: TrackDefinition[] = [
   { key: 'DOTNET_FULLSTACK_AI', name: '.NET Full Stack + AI', language: 'C#', order: 30,
     description: 'HTML, CSS, Bootstrap, JavaScript and React; C#, ASP.NET Core Web API and Entity Framework Core on SQL Server; then AI with the OpenAI .NET SDK and Semantic Kernel built into your own app.',
     /* Batches: N1 C# and DSA in C# (frontend packs shared with the other full-stack tracks); SQL Server, ASP.NET Core, AI and placement packs are appended as they land. */
-    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_CSHARP', 'DSA_CSHARP', 'SQL_SERVER', 'DOTNET_DATA_ACCESS', 'DOTNET_DI', 'ASPNET_CORE', 'FULLSTACK_DEPLOY_DOTNET'],
+    specializePacks: ['WEB_HTML', 'CSS_BOOTSTRAP', 'JAVASCRIPT', 'REACT', 'GIT_TOOLS', 'CORE_CSHARP', 'DSA_CSHARP', 'SQL_SERVER', 'DOTNET_DATA_ACCESS', 'DOTNET_DI', 'ASPNET_CORE', 'FULLSTACK_DEPLOY_DOTNET', 'GENAI_DOTNET', 'AGENTIC_AI_DOTNET', 'CAPSTONE_DOTNET_AI'],
     placementPacks: [] },
 ];

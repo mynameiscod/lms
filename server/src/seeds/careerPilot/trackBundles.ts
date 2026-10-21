@@ -61,6 +61,8 @@ import { TRACK_CS_ASPNET_API_BUNDLES } from './trackContentCsAspnetApi';
 import { TRACK_CS_ASPNET_DATA_SECURITY_BUNDLES } from './trackContentCsAspnetDataSecurity';
 import { TRACK_CS_ASPNET_TESTING_BUNDLES } from './trackContentCsAspnetTesting';
 import { TRACK_CS_FULLSTACK_BUNDLES } from './trackContentCsFullstack';
+import { TRACK_CS_AI_BUNDLES } from './trackContentCsAi';
+import { TRACK_CS_AGENTS_CAPSTONE_BUNDLES } from './trackContentCsAgentsCapstone';
 import { TRACK_IV_DJANGO_BUNDLES } from './trackContentIvDjango';
 import { TRACK_CODING_PYTHON_BUNDLES } from './trackContentCodingPython';
 import { TRACK_PLACE_PY_FS_BUNDLES } from './trackContentPlacePyFs';
@@ -147,4 +149,6 @@ export const ALL_TRACK_BUNDLES: PilotBundle[] = [
   ...TRACK_CS_ASPNET_DATA_SECURITY_BUNDLES,
   ...TRACK_CS_ASPNET_TESTING_BUNDLES,
   ...TRACK_CS_FULLSTACK_BUNDLES,
+  ...TRACK_CS_AI_BUNDLES,
+  ...TRACK_CS_AGENTS_CAPSTONE_BUNDLES,
 ].map(balanced);

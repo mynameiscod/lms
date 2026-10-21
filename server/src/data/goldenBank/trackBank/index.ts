@@ -54,6 +54,19 @@ import { DOTNET_DI } from './dotnetDi';
 import { ASPNET_CORE } from './aspnetCore';
 import { ASPNET_SECURITY } from './aspnetSecurity';
 import { SQL_SERVER } from './sqlServer';
+// Data Analytics + AI (batch A6).
+import { SPREADSHEET_ANALYSIS } from './spreadsheetAnalysis';
+import { SQL_AGGREGATION } from './sqlAggregation';
+import { SQL_WINDOW_FUNCTIONS } from './sqlWindowFunctions';
+import { DATA_CLEANING } from './dataCleaning';
+import { DATA_QUALITY } from './dataQuality';
+import { EXPLORATORY_ANALYSIS } from './exploratoryAnalysis';
+import { DATA_VISUALISATION } from './dataVisualisation';
+import { STATISTICS_BASICS } from './statisticsBasics';
+import { PROBABILITY_BASICS } from './probabilityBasics';
+import { HYPOTHESIS_TESTING } from './hypothesisTesting';
+import { DASHBOARDING } from './dashboarding';
+import { BUSINESS_METRICS } from './businessMetrics';
 
 export const TRACK_BANK: GoldenItem[] = [
   ...JAVA_BASICS,
@@ -100,4 +113,16 @@ export const TRACK_BANK: GoldenItem[] = [
   ...ASPNET_CORE,
   ...ASPNET_SECURITY,
   ...SQL_SERVER,
+  ...SPREADSHEET_ANALYSIS,
+  ...SQL_AGGREGATION,
+  ...SQL_WINDOW_FUNCTIONS,
+  ...DATA_CLEANING,
+  ...DATA_QUALITY,
+  ...EXPLORATORY_ANALYSIS,
+  ...DATA_VISUALISATION,
+  ...STATISTICS_BASICS,
+  ...PROBABILITY_BASICS,
+  ...HYPOTHESIS_TESTING,
+  ...DASHBOARDING,
+  ...BUSINESS_METRICS,
 ];

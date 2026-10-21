@@ -13,6 +13,7 @@
 import { TRACK_BANK } from '../data/goldenBank/trackBank';
 import { BANDS, PER_LEVEL_TOTAL, PER_SKILL_TOTAL, GoldenItem } from '../data/goldenBank/year2Bank/types';
 import { CAREER_SKILL_TAXONOMY } from '../data/careerSkillTaxonomy';
+import { NEW_SKILLS } from '../data/aiDataSecuritySkills';
 import { present } from '../data/goldenBank/trackBank/types';
 
 const skills = [...new Set(TRACK_BANK.map(i => i.skillKey))];
@@ -26,7 +27,8 @@ describe('the bank is structurally sound', () => {
   });
 
   it('names a skill that exists in the taxonomy', () => {
-    const known = new Set(CAREER_SKILL_TAXONOMY.map((s: any) => String(s.key)));
+    // The data and AI tracks measure the role catalogue's DATA / AI_ML skills (seedAiDataSecurityRoles --skills-only).
+    const known = new Set([...CAREER_SKILL_TAXONOMY, ...NEW_SKILLS].map((s: any) => String(s.key)));
     expect(skills.filter(k => !known.has(k))).toEqual([]);
   });
 

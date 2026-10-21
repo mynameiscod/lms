@@ -28,7 +28,7 @@ export interface TrackComposeOptions {
 }
 
 type Item = PlanItem<SelectedUnit>;
-const TIER_OF: Record<TrackPriority, V2Tier> = { MUST: 'MUST_EXTRA', SHOULD: 'SHOULD', OPTIONAL: 'OPTIONAL' };
+const TIER_OF: Record<TrackPriority, V2Tier> = { CORE: 'MUST_EXTRA', MUST: 'MUST_EXTRA', SHOULD: 'SHOULD', OPTIONAL: 'OPTIONAL' };
 const PROOF = ['CHECKPOINT', 'PROJECT'];
 const DRILLS = ['DEBUG', 'PRACTICE'];
 
@@ -95,14 +95,16 @@ export async function composeTrackRoadmap(
       for (const u of units) {
         const isClass = u.unitType === 'CONCEPT';
         if (isHeld && !full && !(isClass && firstClass) && !PROOF.includes(u.unitType)) continue;
-        const core = t.priority === 'MUST' && ((isClass && firstClass) || u.unitType === 'CHECKPOINT');
+        // A CORE topic keeps every lesson (the capstone builds on it); a MUST topic its first lesson and checkpoints.
+        const mustLike = t.priority === 'MUST' || t.priority === 'CORE';
+        const core = mustLike && ((isClass && (firstClass || t.priority === 'CORE')) || u.unitType === 'CHECKPOINT');
         if (isClass) firstClass = false;
         const drill = drillTier && t.priority !== 'OPTIONAL' && DRILLS.includes(u.unitType);
         mine.push({ ...item(u, 'YEAR', core ? 'ESSENTIAL' : drill ? 'DRILL' : TIER_OF[t.priority], isHeld), ...(drill ? { strength } : {}) });
       }
       // A MUST topic is never empty: a learner who holds a topic made only of practice (Year 4's
       // mocks) still gets its first unit, as the topic's core.
-      if (!mine.length && t.priority === 'MUST') mine.push(item(units[0], 'YEAR', 'ESSENTIAL', isHeld));
+      if (!mine.length && (t.priority === 'MUST' || t.priority === 'CORE')) mine.push(item(units[0], 'YEAR', 'ESSENTIAL', isHeld));
       if (drillTier) {
         // Ranked from the end of the topic, so an over-full year takes each topic's last first.
         // A project ranks after every lesson: the topic's proof is the last thing it gives up.

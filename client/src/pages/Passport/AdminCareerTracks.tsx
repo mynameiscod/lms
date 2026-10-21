@@ -14,7 +14,8 @@ import './adminCareerTracks.css';
  * what each lesson still lacks before the track goes live.
  */
 
-const PRIORITIES: TrackPriority[] = ['MUST', 'SHOULD', 'OPTIONAL'];
+/** CORE: every lesson kept even in an over-full year (what the capstone builds on); MUST keeps the first lesson and checkpoints. */
+const PRIORITIES: TrackPriority[] = ['CORE', 'MUST', 'SHOULD', 'OPTIONAL'];
 const pct = (n: number) => Math.round(n * 100);
 const errText = (e: any, fallback: string) => {
   const d = e?.response?.data;
@@ -200,6 +201,7 @@ const PackEditor: React.FC<{
         </label>
         <div className="rv2-field wide">
           <span className="rv2-label">Topics, in teaching order</span>
+          <small className="ct-hint">Core: every lesson is kept even when the year is full (use it for what the capstone builds on). Must: the first lesson and checkpoints are always kept. Should and Optional give way first.</small>
           <ol className="ct-order">
             {topics.map((t, i) => (
               <li key={t.topicCode}>

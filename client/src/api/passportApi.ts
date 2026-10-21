@@ -4254,7 +4254,7 @@ export interface RebuildJob {
 }
 
 // ── Career tracks (Year 3 and 4): role + language roadmaps ──────────────────────────────────────
-export type TrackPriority = 'MUST' | 'SHOULD' | 'OPTIONAL';
+export type TrackPriority = 'CORE' | 'MUST' | 'SHOULD' | 'OPTIONAL';
 export interface PackTopicRow { topicCode: string; title?: string | null; priority: TrackPriority }
 export interface SkillPackRow { key: string; title: string; kind: 'SKILL' | 'PLACEMENT'; description: string; topics: PackTopicRow[] }
 export interface CareerTrackRow {

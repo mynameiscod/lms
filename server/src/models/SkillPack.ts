@@ -14,7 +14,7 @@ export interface ISkillPack extends Document {
   title: string;
   description?: string;
   kind: 'SKILL' | 'PLACEMENT';
-  topics: { topicCode: string; title?: string; priority: 'MUST' | 'SHOULD' | 'OPTIONAL' }[];
+  topics: { topicCode: string; title?: string; priority: 'CORE' | 'MUST' | 'SHOULD' | 'OPTIONAL' }[];
   createdBy?: string;
   updatedBy?: string;
   createdAt: Date;
@@ -32,7 +32,7 @@ const SkillPackSchema = new Schema<ISkillPack>(
       type: [new Schema({
         topicCode: { type: String, required: true, trim: true },
         title:     { type: String },
-        priority:  { type: String, enum: ['MUST', 'SHOULD', 'OPTIONAL'], default: 'SHOULD' },
+        priority:  { type: String, enum: ['CORE', 'MUST', 'SHOULD', 'OPTIONAL'], default: 'SHOULD' },
       }, { _id: false })],
       default: [],
     },

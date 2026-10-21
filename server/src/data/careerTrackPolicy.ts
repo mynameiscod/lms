@@ -18,13 +18,18 @@
  * Pure and deterministic.
  */
 
-export type TrackPriority = 'MUST' | 'SHOULD' | 'OPTIONAL';
+/**
+ * CORE is MUST whose every lesson is kept (user decision, 2026-10-21): a topic the capstone builds on — an
+ * over-full year still gives up its drills, but never one of its lessons. MUST keeps only a topic's first
+ * lesson and its checkpoints whatever happens.
+ */
+export type TrackPriority = 'CORE' | 'MUST' | 'SHOULD' | 'OPTIONAL';
 export type TrackStage = 'specialize' | 'placement';
 export type PackKind = 'SKILL' | 'PLACEMENT';
 
 export const TRACK_STAGES: readonly TrackStage[] = ['specialize', 'placement'];
 export const PACK_KINDS: readonly PackKind[] = ['SKILL', 'PLACEMENT'];
-export const TRACK_PRIORITIES: readonly TrackPriority[] = ['MUST', 'SHOULD', 'OPTIONAL'];
+export const TRACK_PRIORITIES: readonly TrackPriority[] = ['CORE', 'MUST', 'SHOULD', 'OPTIONAL'];
 
 /** The pool new track content is written into; existing years' units are reused where they are. */
 export const TRACK_CONTENT_STAGE = 'track';
@@ -77,7 +82,7 @@ export function placementSplit(programDays: number, member: boolean, raw?: Parti
   return { trackDays, placementDays: days - trackDays };
 }
 
-const RANK: Record<TrackPriority, number> = { MUST: 0, SHOULD: 1, OPTIONAL: 2 };
+const RANK: Record<TrackPriority, number> = { CORE: -1, MUST: 0, SHOULD: 1, OPTIONAL: 2 };
 
 /**
  * The topics of a stage, in teaching order: the packs in the track's order, each pack's topics in
@@ -177,7 +182,7 @@ export function validatePackInput(input: any): { ok: true; value: PackDef } | { 
     const topicCode = String(t?.topicCode || '').trim();
     const priority = String(t?.priority || 'SHOULD').toUpperCase() as TrackPriority;
     if (!topicCode) { errors.push('Every topic needs a topicCode.'); continue; }
-    if (!TRACK_PRIORITIES.includes(priority)) { errors.push(`"${topicCode}": priority must be MUST, SHOULD or OPTIONAL.`); continue; }
+    if (!TRACK_PRIORITIES.includes(priority)) { errors.push(`"${topicCode}": priority must be CORE, MUST, SHOULD or OPTIONAL.`); continue; }
     if (seen.has(topicCode)) { errors.push(`"${topicCode}" is in the pack twice.`); continue; }
     seen.add(topicCode);
     topics.push({ topicCode, priority });

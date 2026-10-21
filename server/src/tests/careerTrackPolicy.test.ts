@@ -3,7 +3,7 @@ import {
   PackDef, DEFAULT_TRACK_SPLIT,
 } from '../data/careerTrackPolicy';
 
-const pack = (key: string, kind: 'SKILL' | 'PLACEMENT', topics: [string, 'MUST' | 'SHOULD' | 'OPTIONAL'][]): PackDef =>
+const pack = (key: string, kind: 'SKILL' | 'PLACEMENT', topics: [string, 'CORE' | 'MUST' | 'SHOULD' | 'OPTIONAL'][]): PackDef =>
   ({ key, title: key, kind, topics: topics.map(([topicCode, priority]) => ({ topicCode, priority })) });
 
 describe('Year 4: track days and placement days', () => {
@@ -43,6 +43,9 @@ describe('a stage\'s topics, in teaching order', () => {
   });
   it('skips a pack the catalogue does not hold', () => {
     expect(trackTopics(['NOPE', 'WEB'], packs).map(t => t.topicCode)).toEqual(['HTML', 'CSS']);
+  });  it('CORE outranks MUST when two packs share a topic', () => {
+    const core = new Map([['A', pack('A', 'SKILL', [['RAG', 'MUST']])], ['B', pack('B', 'SKILL', [['RAG', 'CORE']])]]);
+    expect(trackTopics(['A', 'B'], core)[0]).toMatchObject({ topicCode: 'RAG', priority: 'CORE' });
   });
 });
 

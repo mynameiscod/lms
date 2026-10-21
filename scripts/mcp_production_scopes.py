@@ -12,7 +12,7 @@ import uuid
 DOMAINS = dict(students='mcp_students_read', batches='mcp_batches_read',
                attendance='mcp_attendance_read', exams='mcp_assessments_read',
                fees='mcp_finance_read', placements='mcp_placements_read',
-               leads='mcp_leads_read', calls='mcp_calls_read')
+               leads='mcp_leads_read', calls='mcp_calls_read', recordings='mcp_recordings_read')
 
 
 class ScopeChange:
@@ -94,8 +94,8 @@ class ScopeChange:
                   len(runtime['clients']) == 1 and runtime['clients'][0]['id'] == 'codebegun-production-chatgpt' and
                   runtime['clients'][0]['scopes'] == s['scopes'] + ['offline_access'], 'Installed identity/scopes changed.')
         h.require(not (args.all_read_domains and args.domains), 'Choose --domains or --all-read-domains, not both.')
-        names = list(DOMAINS) if args.all_read_domains else [name.strip() for name in (args.domains or '').split(',') if name.strip()]
-        h.require(names and all(name in DOMAINS for name in names), 'Specify --domains students,batches,attendance,exams,fees,placements,leads,calls or --all-read-domains.')
+        names = [name for name in DOMAINS if name != 'recordings'] if args.all_read_domains else [name.strip() for name in (args.domains or '').split(',') if name.strip()]
+        h.require(names and all(name in DOMAINS for name in names), 'Specify --domains students,batches,attendance,exams,fees,placements,leads,calls,recordings or --all-read-domains (recordings require explicit --domains recordings).')
         selected = set(s['scopes']) | {DOMAINS[name] for name in names}
         h.require(set(s['scopes']) <= {'mcp_connect', *DOMAINS.values()} and 'mcp_connect' in s['scopes'], 'Unrecognized installed scopes.')
         target = ['mcp_connect'] + [scope for scope in DOMAINS.values() if scope in selected]

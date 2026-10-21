@@ -10,6 +10,7 @@ export const SCOPE_LABELS: Record<string, string> = {
   mcp_placements_read: 'Read permitted placement outcomes',
   mcp_leads_read: 'Read permitted CRM leads',
   mcp_calls_read: 'Read permitted Outpero call metadata and summaries',
+  mcp_recordings_read: 'Read permitted call recordings and full stored transcripts',
   offline_access: 'Stay connected for up to 30 days (revocable at any time)',
 };
 

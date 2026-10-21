@@ -36,7 +36,7 @@ describe('MCP tool permission intersection', () => {
     for (const candidate of tools) {
       expect(candidate.annotations.readOnlyHint).toBe(true);
       expect(candidate.inputSchema.additionalProperties).toBe(false);
-      if (!candidate.summary) expect(candidate.inputSchema.properties.limit.maximum).toBe(50);
+      if (candidate.inputSchema.properties.limit) expect(candidate.inputSchema.properties.limit.maximum).toBe(50);
     }
   });
   test.each([{ tenantId: '507f1f77bcf86cd799439011' }, { limit: 51 }, { limit: 0 }, { limit: '1' },

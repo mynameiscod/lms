@@ -7,6 +7,7 @@ Mongo recreation, credential rotation, repository reset, or implicit role grant.
 import argparse
 import fcntl
 import hashlib
+import getpass
 import importlib.util
 import json
 import os
@@ -693,12 +694,46 @@ def access_command(args):
         print('PASS: original role restored and this account\'s OAuth grants revoked.')
 
 
+def recording_storage(args):
+    """Stage a tenant-bound READ-ONLY storage password; activate with gateway upgrade."""
+    s = state()
+    require(s['phase'] == 'enabled', 'Enable the managed gateway first.')
+    require(not (STATE / 'upgrade-pending.json').exists(), 'Complete pending upgrade recovery first.')
+    upgrade_container(s)
+    current_lms(s)
+    path = STATE / 'runtime.json'
+    config = json.loads(path.read_text())
+    account = json.loads((STATE / 'access-applied.json').read_text())
+    require(account.get('applied') is True and (args.email or '').strip().lower() == account.get('email'),
+            'Use --email for the individually enabled LMS account.')
+    require(config.get('installation') == s['installation'] and config.get('purpose') == MARKER,
+            'Runtime installation changed.')
+    if args.command == 'recording-storage-remove':
+        config.pop('recordingStorage', None)
+    else:
+        require(bool(re.fullmatch(r'[a-f0-9]{24}', account.get('tenantId', ''))), 'Invalid enabled tenant.')
+        require(sys.stdin.isatty(), 'Run interactively on the VPS; do not put the storage password in arguments or chat.')
+        zone = args.storage_zone or input('Existing Bunny Storage zone name: ').strip()
+        host = args.storage_hostname or input('Existing Bunny Storage hostname [storage.bunnycdn.com]: ').strip() or 'storage.bunnycdn.com'
+        require(bool(re.fullmatch(r'(?:[a-z]{2,3}\.)?storage\.bunnycdn\.com', host)) and
+                bool(re.fullmatch(r'[a-zA-Z0-9_-]{1,100}', zone)), 'Supply the existing Bunny storage zone and regional hostname.')
+        key = getpass.getpass('Existing Bunny storage READ-ONLY password (hidden): ')
+        require(16 <= len(key) <= 512 and '\n' not in key and '\r' not in key, 'Invalid storage password format.')
+        config['recordingStorage'] = dict(tenantId=account['tenantId'], hostname=host, zone=zone, readOnlyKey=key)
+    write(STATE / ('runtime-before-recording-storage-' + str(uuid.uuid4()) + '.json'), path.read_text())
+    write(path, config, 0o444)
+    print('Recording storage configuration saved privately. No scopes, roles or existing tokens changed.')
+    print('Run upgrade to activate this configuration. Configuration alone does not prove storage access.')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['plan', 'prepare', 'enable', 'verify', 'disable', 'upgrade', 'upgrade-rollback', 'diagnose-account', 'diagnose-tools', 'access-plan', 'access-apply', 'access-revoke', 'scope-plan', 'scope-apply', 'scope-rollback'])
+    parser.add_argument('command', choices=['plan', 'prepare', 'enable', 'verify', 'disable', 'upgrade', 'upgrade-rollback', 'diagnose-account', 'diagnose-tools', 'access-plan', 'access-apply', 'access-revoke', 'scope-plan', 'scope-apply', 'scope-rollback', 'recording-storage', 'recording-storage-remove'])
     parser.add_argument('--email', help='Existing LMS login email for diagnose-account, diagnose-tools, access-plan or scope-plan; never a password.')
     parser.add_argument('--all-read-domains', action='store_true', help='prepare or scope-plan: explicitly select all eight MCP read domains, including finance and CRM.')
-    parser.add_argument('--domains', help='scope-plan: comma-separated domains to add: students,batches,attendance,exams,fees,placements,leads,calls.')
+    parser.add_argument('--domains', help='scope-plan: comma-separated domains to add: students,batches,attendance,exams,fees,placements,leads,calls,recordings. Recordings are excluded from --all-read-domains.')
+    parser.add_argument('--storage-zone', help='recording-storage: existing Bunny Storage zone name.')
+    parser.add_argument('--storage-hostname', help='recording-storage: existing regional storage hostname; default storage.bunnycdn.com.')
     parser.add_argument('--plan-id', help='scope-apply: exact ID from the reviewed scope-plan preview (valid for one hour).')
     parser.add_argument('--upgrade-prepared', action='store_true', help='prepare: update a reviewed commit only before any gateway service, routes or account access have been installed; retain credentials/scopes.')
     args = parser.parse_args()
@@ -730,6 +765,7 @@ def dispatch(args):
     elif args.command == 'disable': disable()
     elif args.command == 'upgrade': upgrade()
     elif args.command == 'upgrade-rollback': restore_upgrade()
+    elif args.command in ['recording-storage', 'recording-storage-remove']: recording_storage(args)
     elif args.command == 'diagnose-account': diagnose_account(args)
     elif args.command == 'diagnose-tools': diagnose_tools(args)
     else: access_command(args)

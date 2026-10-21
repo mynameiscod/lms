@@ -1,6 +1,6 @@
 # CodeBegun Universal MCP
 
-The server exposes 15 read-only tools at `POST /mcp` using stateless Streamable HTTP and JSON responses. It negotiates MCP 2025-03-26, 2025-06-18 and 2025-11-25. GET/SSE and DELETE sessions are not implemented and return 405. It does not claim support for later protocol versions, stdio, writes, bulk exports, recordings or transcripts.
+The server defines 18 read-only tools (the original 15 plus three separately consented recording tools) at `POST /mcp` using stateless Streamable HTTP and JSON responses. It negotiates MCP 2025-03-26, 2025-06-18 and 2025-11-25. GET/SSE and DELETE sessions are not implemented and return 405. It does not claim support for later protocol versions, stdio, writes or bulk exports. Recording access is separately opt-in; see [recording rollout](../runbooks/mcp-call-recordings.md).
 
 ## Identity and permission boundary
 
@@ -27,10 +27,12 @@ Every tool also requires `mcp_connect`. Tenant admins have tenant-wide academic 
 
 All data queries include the authenticated tenant. A supplied tenant header has no authority. Tool schemas reject unknown keys, objects in ID fields, arbitrary MongoDB operators, noninteger limits, and invalid date windows. List tools accept `limit` (1–50), `after` (the previous `nextCursor`) and `recordId`. Academic tools additionally accept `studentId` and/or `batchId` to narrow scope. Filters are ANDed with authorization constraints. Queries have a five-second server-side time budget and responses a 128 KiB cap.
 
-Projections exclude passwords, reset credentials, personal contact exports, identity documents, payment instruments/references, exam answer keys, raw webhooks, provider settings, recordings and transcripts. Call summaries are bounded to 1,200 characters and identified as untrusted source data; their natural-language content may still include personal information entered in the source system. They require explicit call consent and current lead-management permission.
+The original 15 tool projections exclude passwords, reset credentials, personal contact exports, identity documents, payment instruments/references, exam answer keys, raw webhooks, provider settings, recordings and transcripts. Call summaries are bounded to 1,200 characters and identified as untrusted source data; their natural-language content may still include personal information entered in the source system. They require explicit call consent and current lead-management permission.
 
 Audit records contain only generated request IDs, actor/tenant/client IDs, the server-selected operation, allowed/denied/failed outcome, reason code and timestamp. No arguments, response records, authorization code, token, password or full URL is logged by MCP. Data and tokens are withheld if an audit write fails. The isolated router is mounted before the legacy LMS access/error loggers and permissive CORS middleware.
 
 ## Operation
 
 Read [the OAuth design](mcp-chatgpt-oauth.md) and [the release gate](../runbooks/mcp-release-gate.md). The feature is disabled by default. No production rollout is performed by this branch or its CI.
+
+Recording tools require `mcp_recordings_read` and native `manage_leads`. They always join an active lead in the current tenant, including ALL users. Audio uses a separately provisioned tenant-bound read-only storage credential, a canonical stored key, no redirects, a 30-second deadline, two concurrent downloads and an 8 MiB cap. Transcripts paginate at 20,000 characters. Existing metadata consent does not grant recording content.

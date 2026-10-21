@@ -41,7 +41,8 @@ const clientId = 'integration-client';
 const secondClientId = 'second-client';
 const confidentialId = 'confidential-client';
 const clientSecret = 'test-only-confidential-secret-' + 'x'.repeat(32);
-const scopes = Object.keys(SCOPE_LABELS).join(' ');
+const legacyScopes = Object.keys(SCOPE_LABELS).filter(s => s !== 'mcp_recordings_read');
+const scopes = legacyScopes.join(' ');
 const verifier = 'test-verifier-' + 'a'.repeat(43);
 const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
 const password = 'Integration-Password-Only-42';
@@ -50,7 +51,7 @@ const tenantA = id(), tenantB = id(), admin = id(), instructor = id(), studentA 
 const batchA = id(), batchOther = id(), batchB = id(), roleA = id(), roleB = id();
 const leadA = id(), leadOther = id(), leadB = id(), leadTeam = id();
 const native = ['view_enrolled_students', 'view_courses', 'view_attendance', 'view_exams', 'view_fees', 'view_placement', 'view_leads', 'manage_leads'];
-const permissions = [...Object.keys(SCOPE_LABELS).filter(s => s !== 'offline_access'), ...native];
+const permissions = [...legacyScopes.filter(s => s !== 'offline_access'), 'mcp_recordings_read', ...native];
 const models = [User, Tenant, Role, Batch, Attendance, Exam, Fee, Lead, OutperoCall, Grant, Code, Access, Refresh, Session, Audit, McpRateLimit];
 let mongo: MongoMemoryReplSet;
 let hashedPassword: string;
@@ -103,7 +104,7 @@ beforeAll(async () => {
   process.env.MCP_RESOURCE_URL = resource;
   delete process.env.MCP_ALLOWED_ORIGINS;
   const registration = { name: 'Integration Assistant', applicationType: 'web',
-    redirectUris: [redirect], scopes: Object.keys(SCOPE_LABELS), tokenEndpointAuthMethod: 'none' };
+    redirectUris: [redirect], scopes: legacyScopes, tokenEndpointAuthMethod: 'none' };
   process.env.MCP_OAUTH_CLIENTS = JSON.stringify([
     { ...registration, id: clientId }, { ...registration, id: secondClientId },
     { ...registration, id: confidentialId, tokenEndpointAuthMethod: 'client_secret_basic', secretHash: tokenDigest(clientSecret) },
@@ -192,7 +193,7 @@ describe('OAuth HTTP flow with real transactional MongoDB', () => {
       process.env.MCP_ISSUER_URL = browserIssuer;
       process.env.MCP_RESOURCE_URL = browserResource;
       process.env.MCP_OAUTH_CLIENTS = JSON.stringify([{ id: clientId, name: 'Browser Assistant', applicationType: 'web',
-        redirectUris: [browserRedirect], scopes: Object.keys(SCOPE_LABELS), tokenEndpointAuthMethod: 'none' }]);
+        redirectUris: [browserRedirect], scopes: legacyScopes, tokenEndpointAuthMethod: 'none' }]);
       browser = await puppeteer.launch({ headless: true, acceptInsecureCerts: true, args: ['--no-sandbox'] });
       const page = await browser.newPage();
       page.setDefaultNavigationTimeout(10000);
@@ -228,7 +229,7 @@ describe('OAuth HTTP flow with real transactional MongoDB', () => {
       expect(callbackReferrer).toBeUndefined();
       const token = await exchange(location.searchParams.get('code')!, { resource: browserResource, redirect_uri: browserRedirect });
       expect(token.status).toBe(200);
-      expect(token.body.scope.split(' ')).toEqual(Object.keys(SCOPE_LABELS));
+      expect(token.body.scope.split(' ')).toEqual(legacyScopes);
       expect(token.body.refresh_token).toHaveLength(43);
       expect(payload(await call(token.body.access_token, 'codebegun_student_count')).count).toBe(2);
       expect((await call(token.body.access_token, 'codebegun_lead_summary')).status).toBe(200);
@@ -378,13 +379,13 @@ describe('OAuth HTTP flow with real transactional MongoDB', () => {
     expect(signed.text).toContain('Allow listed read access');
     expect(signed.text).toContain('Allow requested access only');
     expect(signed.text).not.toContain('Connect without data access');
-    for (const label of Object.values(SCOPE_LABELS)) expect(signed.text).toContain(label);
+    for (const label of legacyScopes.map(s => SCOPE_LABELS[s])) expect(signed.text).toContain(label);
     const consent = await request(app).post('/mcp-oauth/consent').set('Cookie', cookie(signed)).type('form')
       .send({ csrf: csrf(signed), decision: 'approve_read' });
     expect(consent.status).toBe(303);
     const expanded = await exchange(new URL(consent.headers.location).searchParams.get('code')!);
     expect(expanded.status).toBe(200);
-    expect(expanded.body.scope.split(' ')).toEqual(Object.keys(SCOPE_LABELS));
+    expect(expanded.body.scope.split(' ')).toEqual(legacyScopes);
     const expandedTools = (await list(expanded.body.access_token)).body.result.tools;
     expect(expandedTools).toHaveLength(15);
     for (const tool of expandedTools) {
@@ -663,7 +664,7 @@ describe('OAuth resource, data isolation and audit boundary', () => {
   });
   test('all tool domains execute real queries and remain in the authenticated tenant', async () => {
     const token = await tokenFor();
-    for (const candidate of tools) {
+    for (const candidate of tools.filter(t => t.scope !== 'mcp_recordings_read')) {
       const r = await call(token.access_token, candidate.name);
       expect(r.status).toBe(200);
       expect(r.body.error).toBeUndefined();
@@ -821,5 +822,78 @@ describe('OAuth resource, data isolation and audit boundary', () => {
     const r = await call(token.access_token, 'codebegun_students');
     expect(r.status).toBe(429);
     expect(r.headers['retry-after']).toBe('60');
+  });
+});
+
+describe('Explicit recording consent and content isolation', () => {
+  let previousClients: string;
+  beforeEach(() => { previousClients = process.env.MCP_OAUTH_CLIENTS!; });
+  afterEach(() => { process.env.MCP_OAUTH_CLIENTS = previousClients; });
+  function registerRecordings() {
+    process.env.MCP_OAUTH_CLIENTS = JSON.stringify(JSON.parse(process.env.MCP_OAUTH_CLIENTS!).map((c: any) => ({ ...c, scopes: [...c.scopes, 'mcp_recordings_read'] })));
+  }
+  const recordingScope = 'mcp_connect mcp_recordings_read';
+  test('old metadata tokens cannot list or retrieve content; an explicit new grant can', async () => {
+    const old = await tokenFor();
+    registerRecordings();
+    const own: any = await OutperoCall.findOne({ tenantId: tenantA, callId: 'own' }).lean();
+    for (const name of ['codebegun_call_recordings', 'codebegun_call_transcript', 'codebegun_call_audio']) {
+      expect((await call(old.access_token, name, name === 'codebegun_call_recordings' ? {} : { recordId: String(own._id) })).status).toBe(403);
+    }
+    const token = await tokenFor('admin@example.test', { scope: recordingScope });
+    const rows = payload(await call(token.access_token, 'codebegun_call_recordings')).items;
+    expect(rows.map((r: any) => r.callId).sort()).toEqual(['other', 'own', 'team']);
+    expect(JSON.stringify(rows)).not.toMatch(/private-|recordingKey|recordingUrl/);
+    const result = payload(await call(token.access_token, 'codebegun_call_transcript', { recordId: String(own._id) }));
+    expect(result.text).toBe('private-transcript');
+    await Role.updateOne({ _id: roleA }, { $pull: { permissions: 'mcp_recordings_read' } });
+    expect((await call(token.access_token, 'codebegun_call_transcript', { recordId: String(own._id) })).body.error.code).toBe(-32003);
+  });
+  test('OWN/TEAM, archived leads, foreign tenants and bad references restrict recording content', async () => {
+    registerRecordings();
+    const token = await tokenFor('staff@example.test', { scope: recordingScope });
+    expect(payload(await call(token.access_token, 'codebegun_call_recordings')).items.map((r: any) => r.callId)).toEqual(['own']);
+    for (const callId of ['other', 'team', 'foreign', 'bad-reference', 'unmatched']) {
+      const row: any = await OutperoCall.findOne({ callId }).lean();
+      const r = await call(token.access_token, 'codebegun_call_transcript', { recordId: String(row._id) });
+      expect(r.body.error.message).toBe('recording_not_found');
+    }
+    await User.updateOne({ _id: staff }, { $set: { leadDataScope: 'TEAM' } });
+    expect(payload(await call(token.access_token, 'codebegun_call_recordings')).items.map((r: any) => r.callId).sort()).toEqual(['own', 'team']);
+    await Lead.updateOne({ _id: leadA }, { $set: { archivedAt: new Date() } });
+    expect(payload(await call(token.access_token, 'codebegun_call_recordings')).items.map((r: any) => r.callId)).toEqual(['team']);
+  });
+  test('audio uses the same authorized query and releases no content when the audit fails', async () => {
+    registerRecordings();
+    const token = await tokenFor('staff@example.test', { scope: recordingScope });
+    const own: any = await OutperoCall.findOne({ callId: 'own' }).lean();
+    await OutperoCall.updateOne({ _id: own._id }, { $set: { recordingKey: `outpero-recordings/${tenantA}/own` } });
+    process.env.MCP_RECORDING_STORAGE = JSON.stringify({ tenantId: String(tenantA), hostname: 'storage.bunnycdn.com', zone: 'test-zone', readOnlyKey: 'synthetic-read-only-key' });
+    const fetcher = jest.spyOn(global, 'fetch').mockImplementation(async () => new Response(Buffer.from('ID3synthetic-audio')));
+    try {
+      const args = { recordId: String(own._id) };
+      const result = await call(token.access_token, 'codebegun_call_audio', args);
+      expect(result.body.result.content[1]).toEqual({ type: 'audio', mimeType: 'audio/mpeg', data: Buffer.from('ID3synthetic-audio').toString('base64') });
+      const other: any = await OutperoCall.findOne({ callId: 'other' }).lean();
+      fetcher.mockClear();
+      expect((await call(token.access_token, 'codebegun_call_audio', { recordId: String(other._id) })).body.error.message).toBe('recording_not_found');
+      expect(fetcher).not.toHaveBeenCalled();
+      const audit = jest.spyOn(Audit, 'create').mockRejectedValue(new Error('storage down'));
+      const failed = await call(token.access_token, 'codebegun_call_audio', args);
+      expect(failed.status).toBe(503);
+      expect(failed.body.result).toBeUndefined();
+      audit.mockRestore();
+    } finally { fetcher.mockRestore(); delete process.env.MCP_RECORDING_STORAGE; }
+  });
+  test('stored transcripts paginate without truncation and selected calls can be older than 90 days', async () => {
+    registerRecordings();
+    const token = await tokenFor('staff@example.test', { scope: recordingScope });
+    const own: any = await OutperoCall.findOne({ callId: 'own' }).lean();
+    await OutperoCall.updateOne({ _id: own._id }, { $set: { transcript: 'a'.repeat(20000) + 'remaining', createdAt: new Date(0) } }, { timestamps: false });
+    const first = payload(await call(token.access_token, 'codebegun_call_transcript', { recordId: String(own._id) }));
+    expect(first.nextOffset).toBe(20000);
+    const second = payload(await call(token.access_token, 'codebegun_call_transcript', { recordId: String(own._id), offset: first.nextOffset }));
+    expect(second.text).toBe('remaining');
+    expect(second.nextOffset).toBeNull();
   });
 });

@@ -209,7 +209,7 @@ async function main() {
   }
   // Recover an interrupted apply with only the original plan, even if the LMS
   // has subsequently deployed. The operator must verify the exact granted role.
-  const allScopes = ['mcp_connect', ...new Set(require('./server/dist/mcp/tools').tools.map(t => t.scope))];
+  const allScopes = ['mcp_connect', ...new Set(require('./server/dist/mcp/tools').tools.filter(t => t.scope !== 'mcp_recordings_read').map(t => t.scope))];
   const scopeRequest = { operationId: crypto.randomUUID(), email: user.email, clientId: 'codebegun-mcp-smoke',
     access: applied, oldScopes: scopes, newScopes: allScopes };
   const roleBeforeScope = await Role.findById(req.newRoleId).lean();

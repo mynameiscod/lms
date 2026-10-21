@@ -5,6 +5,7 @@ import AssessmentSubmission from '../models/AssessmentSubmission';
 import InterviewAttempt from '../models/InterviewAttempt';
 import CommunicationAttempt from '../models/CommunicationAttempt';
 import CommunicationStreak from '../models/CommunicationStreak';
+import { readinessFor } from './communicationCoachService';
 import CareerProfile from '../models/CareerProfile';
 import ProjectPlan from '../models/ProjectPlan';
 import Resume from '../models/Resume';
@@ -28,7 +29,7 @@ export interface ProofProfile {
   student: { name: string; firstName: string; avatar?: string; city?: string; targetRole?: string; batch?: string; tagline?: string };
   assessment?: { readiness?: number; percentile?: number; careerReadiness?: number; targetRole?: string; salaryBand?: string; subScores: { dimension: string; percentage: number }[] };
   interview?: { score?: number; percentage?: number; readinessLevel?: string; strengths: string[]; weaknesses: string[] };
-  communication?: { score?: number; readinessLevel?: string; currentStreak?: number; longestStreak?: number };
+  communication?: { score?: number; readinessLevel?: string; currentStreak?: number; longestStreak?: number; coachReadiness?: number; coachReady?: boolean; steadiness?: number };
   career?: { resumeScore?: number; githubScore?: number; linkedinScore?: number; githubUrl?: string; linkedinUrl?: string };
   projects: { title: string; techStack?: string[]; githubUrl?: string }[];
   resume?: { score?: number; url?: string };
@@ -124,6 +125,12 @@ export async function buildProofProfile(studentId: string, tenantId: string): Pr
       currentStreak: num((streak as any)?.currentStreak),
       longestStreak: num((streak as any)?.longestStreak),
     };
+  }
+
+  // Communication Coach: measured readiness (steadiness, consistency), the figure a company can trust more than one best take
+  const coachR: any = await readinessFor(String(tenantId), String(sid)).catch(() => null);
+  if (coachR && coachR.score > 0) {
+    out.communication = { ...(out.communication || {}), coachReadiness: coachR.score, coachReady: coachR.ready, steadiness: 100 - coachR.avgHesitation };
   }
 
   // Career pillars

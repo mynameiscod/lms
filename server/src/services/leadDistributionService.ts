@@ -9,6 +9,7 @@ import { assignViaScoringConfig } from './leadScoringService';
 import Lead from '../models/Lead';
 import LeadDistributionConfig from '../models/LeadDistributionConfig';
 import User from '../models/User';
+import { createFirstContactTask } from './leadFirstContactService';
 
 /**
  * Given a tenantId and a freshly created leadId, auto-assign it to an agent
@@ -29,6 +30,7 @@ export const autoAssignLead = async (tenantId: string, leadId: string, afterCall
       const viaScoring = await assignViaScoringConfig(lead, new mongoose.Types.ObjectId(tenantId));
       if (!viaScoring) return null;
       await Lead.updateOne({ _id: leadId, tenantId }, { $push: { activities: { type: 'assignment', description: 'Assigned by round robin after the AI call', createdBy: lead.createdBy, createdAt: new Date() } } });
+      await createFirstContactTask(tenantId, leadId, String(viaScoring));
       return String(viaScoring);
     }
 
@@ -47,6 +49,7 @@ export const autoAssignLead = async (tenantId: string, leadId: string, afterCall
     if (assignedUserId) {
       const updated = await Lead.findOneAndUpdate({ _id: leadId, tenantId, assignedTo: null, 'assignment.assignedTo': null }, { $set: { assignedTo: assignedUserId, 'assignment.assignedTo': assignedUserId, 'assignment.assignedAt': new Date() }, $push: { activities: { type: 'assignment', description: 'Assigned automatically by lead distribution', createdBy: lead.createdBy, createdAt: new Date() } } });
       if (!updated) return null;
+      await createFirstContactTask(tenantId, leadId, assignedUserId);
     }
     return assignedUserId;
   } catch (err) {

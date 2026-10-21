@@ -75,6 +75,15 @@ export interface ITenantModules {
   // Added 2026-10-09. No schema default: until saved, each follows its parent module
   // (config/tenantModules.ts MODULE_PARENT) — read through effectiveModules(), never directly.
   skillAssessment?: boolean;
+  cpMembers?: boolean;
+  cpSetup?: boolean;
+  cpPathways?: boolean;
+  cpCareerMap?: boolean;
+  cpAssessment?: boolean;
+  cpContent?: boolean;
+  cpRoadmap?: boolean;
+  cpPractice?: boolean;
+  cpRewards?: boolean;
   whatsapp?: boolean;
   learningPlans?: boolean;
   certificates?: boolean;
@@ -87,6 +96,19 @@ export interface ITenantModules {
   codeVisualizer?: boolean;
   techBattles?: boolean;
   hackathons?: boolean;
+  // Institute-admin menu (see ADMIN_MODULES): unset reads as ON for institutes that existed before.
+  userManagement?: boolean;
+  rolesManagement?: boolean;
+  batchManagement?: boolean;
+  notifications?: boolean;
+  concerns?: boolean;
+  employees?: boolean;
+  expenses?: boolean;
+  aiSpend?: boolean;
+  apiLogs?: boolean;
+  integrations?: boolean;
+  branding?: boolean;
+  studentFeatures?: boolean;
 }
 
 // College-specific information (only populated when type = 'college')
@@ -291,6 +313,15 @@ const TenantSchema: Schema = new Schema(
       aiCommunicationLab: { type: Boolean, default: true },
       // No default on purpose — see ITenantModules.
       skillAssessment: { type: Boolean },
+      cpMembers: { type: Boolean },
+      cpSetup: { type: Boolean },
+      cpPathways: { type: Boolean },
+      cpCareerMap: { type: Boolean },
+      cpAssessment: { type: Boolean },
+      cpContent: { type: Boolean },
+      cpRoadmap: { type: Boolean },
+      cpPractice: { type: Boolean },
+      cpRewards: { type: Boolean },
       whatsapp: { type: Boolean },
       learningPlans: { type: Boolean },
       certificates: { type: Boolean },
@@ -303,6 +334,18 @@ const TenantSchema: Schema = new Schema(
       codeVisualizer: { type: Boolean },
       techBattles: { type: Boolean },
       hackathons: { type: Boolean },
+      userManagement: { type: Boolean },
+      rolesManagement: { type: Boolean },
+      batchManagement: { type: Boolean },
+      notifications: { type: Boolean },
+      concerns: { type: Boolean },
+      employees: { type: Boolean },
+      expenses: { type: Boolean },
+      aiSpend: { type: Boolean },
+      apiLogs: { type: Boolean },
+      integrations: { type: Boolean },
+      branding: { type: Boolean },
+      studentFeatures: { type: Boolean },
     },
     // College-specific info — all optional, existing tenants unaffected
     collegeInfo: {

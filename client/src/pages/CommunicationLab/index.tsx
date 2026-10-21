@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { communicationApi, CommProfile, CommAttempt, CommProgress } from '../../api/communicationApi';
+import CoachTab, { CoachResult, CoachState, CoachStep } from './CoachTab';
 import './communicationLab.css';
 
 const todayStr = () => {
@@ -23,7 +24,7 @@ const pickMime = (video: boolean) => {
 };
 
 const TABS = [
-  ['daily', 'Daily Practice'], ['profile', 'My Profile'], ['history', 'History'],
+  ['coach', 'Coach'], ['daily', 'Daily Practice'], ['profile', 'My Profile'], ['history', 'History'],
   ['progress', 'Progress'], ['achievements', 'Achievements'], ['leaderboard', 'Leaderboard'],
 ] as const;
 
@@ -37,7 +38,7 @@ const ScoreCard: React.FC<{ label: string; value: number | null | undefined }> =
   <div className="clx-card clx-score-card"><b style={{ color: scoreColor(value) }}>{value ?? '—'}</b><span>{label}</span></div>
 );
 
-const Recorder: React.FC<{ today: any; onDone: (a: CommAttempt) => void; onClose: () => void }> = ({ today, onDone, onClose }) => {
+const Recorder: React.FC<{ today: any; onDone: (a: any) => void; onClose: () => void; submitter?: (blob: Blob, mode: 'video' | 'audio') => Promise<any> }> = ({ today, onDone, onClose, submitter }) => {
   const ch = today.challenge;
   const [mode, setMode] = useState<'video' | 'audio'>(ch?.recordingModes?.includes('video') ? 'video' : 'audio');
   const [phase, setPhase] = useState<'setup' | 'ready' | 'count' | 'rec' | 'done' | 'submitting'>('setup');
@@ -106,7 +107,7 @@ const Recorder: React.FC<{ today: any; onDone: (a: CommAttempt) => void; onClose
     if (!blobRef.current) return;
     if (elapsed < (ch?.minSeconds || 0)) { setErr(`Please speak for at least ${ch.minSeconds} seconds.`); return; }
     setPhase('submitting'); stopStream(); setErr('');
-    try { onDone(await communicationApi.submit(ch._id, today.date, mode, blobRef.current)); }
+    try { onDone(submitter ? await submitter(blobRef.current, mode) : await communicationApi.submit(ch._id, today.date, mode, blobRef.current)); }
     catch (e: any) { setErr(e?.response?.data?.message || 'Submission failed. Please try again.'); setPhase('done'); }
   };
 
@@ -168,7 +169,13 @@ const ResultView: React.FC<{ a: CommAttempt; onClose: () => void }> = ({ a, onCl
 };
 
 const CommunicationLab: React.FC = () => {
-  const [tab, setTab] = useState<Tab>('daily');
+  const [tab, setTab] = useState<Tab>('coach');
+  const [coach, setCoach] = useState<CoachState | null>(null);
+  const [coachLoading, setCoachLoading] = useState(true);
+  const [coachStep, setCoachStep] = useState<CoachStep | null>(null);
+  const [coachResult, setCoachResult] = useState<{ a: any; next: CoachState | null } | null>(null);
+  const loadCoach = useCallback(() => communicationApi.coach().then(setCoach).catch(() => setCoach(null)).finally(() => setCoachLoading(false)), []);
+  useEffect(() => { loadCoach(); }, [loadCoach]);
   const [today, setToday] = useState<any>(null);
   const [history, setHistory] = useState<CommAttempt[]>([]);
   const [progress, setProgress] = useState<CommProgress | null>(null);
@@ -216,12 +223,21 @@ const CommunicationLab: React.FC = () => {
       <div className="clx-grid"><section className="clx-card clx-section"><h2>Today's Practice Task</h2>{today?.challenge ? <div className="clx-task"><span className="clx-task-icon"><i className="bi bi-megaphone" /></span><div className="clx-task-main"><div className="clx-task-title"><b>{today.challenge.title}</b><span className="clx-badge">Daily</span></div><p>{today.challenge.description}</p><div className="clx-meta"><span><i className="bi bi-clock" /> {Math.max(1,Math.round((today.challenge.targetSeconds || 60)/60))} min</span><span><i className="bi bi-arrow-repeat" /> {today.challenge.maxAttempts || 1} attempts</span><span><i className="bi bi-calendar-check" /> Today</span></div></div><button className="clx-btn primary" disabled={completed} onClick={()=>setRecording(true)}>{completed?'Done':'Practice Now'} <i className="bi bi-arrow-right" /></button></div> : <div className="clx-empty"><i className="bi bi-calendar2-check" /><h3>No challenge available yet</h3><p>{today?.message || 'Please check back later for today’s communication challenge.'}</p></div>}</section><aside className="clx-side"><div className="clx-card clx-side-card"><h3><i className="bi bi-calendar3" /> Your Streak</h3><div className="clx-streak-days">{weekdays.map((d,i)=><div className={`clx-day ${i < daysDone ? 'done':''}`} key={`${d}-${i}`}><b>{d}</b><span><i className={`bi ${i < daysDone ? 'bi-check-lg':'bi-circle-fill'}`} /></span></div>)}</div><div className="clx-side-note">{streak ? `${streak} day${streak===1?'':'s'} in a row. Keep it going.` : 'Complete today’s practice to start your streak.'}</div></div><div className="clx-card clx-side-card"><div className="clx-tip"><i className="bi bi-lightbulb" /><div><h3>AI Communication Tip</h3><p>Speak clearly, use short pauses between ideas, and support key points with one concrete example.</p></div></div></div><div className="clx-card clx-side-card"><h3><i className="bi bi-clock-history" /> Recent Activity</h3><div className="clx-activity">{recent.length ? recent.map(a=><div className="clx-activity-row" key={a._id}><span className="check"><i className="bi bi-check2" /></span><div><b>{a.challengeTitle}</b><p>{a.practiceDate}</p></div><strong style={{ color:scoreColor(a.evaluation?.overallScore) }}>{a.evaluation?.overallScore ?? '—'}/100</strong></div>) : <p style={{ color:'#64748b',fontSize:12.5 }}>No completed sessions yet.</p>}</div></div></aside></div>
     </>)}
 
+    {tab === 'coach' && (coachResult
+      ? <CoachResult a={coachResult.a} next={coachResult.next} onClose={() => setCoachResult(null)} />
+      : <CoachTab state={coach} loading={coachLoading} onStart={setCoachStep} />)}
+
     {tab === 'profile' && <ProfileForm />}
     {tab === 'history' && <div className="clx-card clx-panel"><h2 style={{ marginTop:0,color:'#051d64' }}>Practice History</h2><div className="clx-list">{history.length ? history.map(a=><div className="clx-history-row" key={a._id}><div className="clx-score" style={{color:scoreColor(a.evaluation?.overallScore)}}>{a.evaluation?.overallScore ?? '—'}</div><div><b>{a.challengeTitle}</b><p>{a.practiceDate} · {a.recordingType} · {a.recordingDuration}s · {a.wordsPerMinute || 0} wpm</p></div><button className="clx-btn" disabled={!a.evaluation} onClick={()=>setResult(a)}>View</button></div>) : <div className="clx-empty"><i className="bi bi-clock-history"/><h3>No practice history yet</h3><p>Complete your first daily challenge and it will appear here.</p></div>}</div>{result && <div style={{marginTop:18}}><ResultView a={result} onClose={()=>setResult(null)}/></div>}</div>}
     {tab === 'progress' && <div>{progress ? <><div className="clx-progress-kpis"><div className="clx-card clx-mini"><i className="bi bi-fire"/><b>{progress.currentStreak}</b><span>Current streak</span></div><div className="clx-card clx-mini"><i className="bi bi-trophy"/><b>{progress.longestStreak}</b><span>Longest streak</span></div><div className="clx-card clx-mini"><i className="bi bi-calendar-check"/><b>{progress.totalPracticeDays}</b><span>Practice days</span></div><div className="clx-card clx-mini"><i className="bi bi-graph-up-arrow"/><b>{progress.improvement}</b><span>Improvement</span></div></div><div className="clx-card clx-panel" style={{marginTop:16}}><h3 style={{color:'#051d64'}}>Performance Summary</h3><p style={{color:'#64748b'}}>Best <strong>{progress.best}</strong> · Latest <strong>{progress.latest}</strong> · Average <strong>{progress.avg}</strong></p><p style={{color:'#64748b'}}>Strongest: <strong style={{color:'#16835d'}}>{progress.strongestSkill || '—'}</strong> · Focus next: <strong style={{color:'#b86b00'}}>{progress.weakestSkill || '—'}</strong></p></div></> : <div className="clx-card clx-empty">Loading progress…</div>}</div>}
     {tab === 'achievements' && <div className="clx-achievements">{achievements.length ? achievements.map((a:any)=><div className="clx-card clx-ach" key={a.code}><span className="icon"><i className={`bi ${a.earned?'bi-trophy-fill':'bi-award'}`} /></span><h3>{a.name}</h3><p>{a.description}</p>{a.earned?<span style={{color:'#16835d',fontSize:12,fontWeight:800}}><i className="bi bi-check-circle-fill"/> Earned</span>:<div className="clx-progress-track"><i style={{width:`${a.progress || 0}%`}}/></div>}</div>) : <div className="clx-card clx-empty"><i className="bi bi-award"/><h3>No achievements yet</h3><p>Keep practising to unlock communication achievements.</p></div>}</div>}
     {tab === 'leaderboard' && <div className="clx-card">{!board ? <div className="clx-empty">Loading leaderboard…</div> : !board.enabled ? <div className="clx-empty"><i className="bi bi-bar-chart"/><h3>Leaderboard unavailable</h3><p>The leaderboard is turned off for your institute.</p></div> : board.rows?.length ? board.rows.map((r:any)=><div className={`clx-rank ${r.me?'me':''}`} key={r.studentId}><span className="place">{r.rank <= 3 ? <i className="bi bi-trophy-fill" /> : r.rank}</span><span className="name">{r.name}{r.me?' (You)':''}</span><span className="stat"><i className="bi bi-fire"/> {r.streak} · {r.days} days</span><strong style={{color:scoreColor(r.avg)}}>{r.avg}</strong></div>) : <div className="clx-empty"><i className="bi bi-people"/><h3>No rankings yet</h3><p>Complete a practice session to get started.</p></div>}</div>}
 
+    {coachStep && <Recorder
+      today={{ date: todayStr(), challenge: { _id: 'coach', title: coachStep.prompt.title, description: `${coachStep.prompt.ask} You can listen before you send. Once sent, this answer is final and cannot be redone.`, recordingModes: ['video', 'audio'], minSeconds: 20, maxSeconds: 180 } }}
+      submitter={(blob, mode) => communicationApi.coachSubmit(coachStep.area, coachStep.index, blob, mode)}
+      onDone={(r: any) => { setCoachStep(null); setCoachResult({ a: r.attempt, next: r.next }); setCoach(r.next); loadOverview(); }}
+      onClose={() => setCoachStep(null)} />}
     {recording && today?.challenge && <Recorder today={today} onDone={onDone} onClose={()=>setRecording(false)} />}
   </div>;
 };

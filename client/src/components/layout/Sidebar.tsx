@@ -223,8 +223,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     // ── Hackathons (public team registrations, with a fee) ──
     { label: 'Hackathons', path: '/admin/hackathons', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-laptop-code', permissions: ['manage_hackathons', 'view_hackathons'] },
     // ── CareerPilot (separate product) ──
-    { label: 'CareerPilot Config', path: '/admin/passport/config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_passport'] },
-    { label: 'CareerPilot Members', path: '/admin/passport/students', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-id-card-clip', permissions: ['view_passport_members', 'manage_passport'] },
+    { label: 'CareerPilot Config', path: '/admin/passport/config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_passport', 'manage_passport_setup'] },
+    { label: 'CareerPilot Members', path: '/admin/passport/students', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-id-card-clip', permissions: ['view_passport_members', 'manage_passport', 'manage_passport_members'] },
     /* FIVE ENTRIES WERE REMOVED FROM HERE, NOT FIVE SCREENS.
        CareerPilot Missions, Learning Studio, Concept Bank, Career Stage Tagging and Paper
        Designer each write to a store nothing reads any more: missions need an ACTIVE
@@ -234,27 +234,27 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
        in any of them changed nothing a student saw.
        The ROUTES are left in place, so anyone who needs the legacy data can still reach them
        by URL. Their replacements are Content Builder, Skills by Stage and Assessment Shape. */
-    { label: 'Assessment Coverage', path: '/admin/passport/assessment-coverage', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-table-cells', permissions: ['manage_passport'] },
-    { label: 'Content Builder', path: '/admin/passport/content-builder', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport'] },
-    { label: 'Orientation', path: '/admin/passport/orientation', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-flag-checkered', permissions: ['manage_passport'] },
-    { label: 'Mega Curriculum', path: '/admin/passport/mega-curriculum', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-calendar-days', permissions: ['manage_passport'] },
-    { label: 'CareerPilot Coins', path: '/admin/passport/coins', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-coins', permissions: ['manage_passport'] },
-    { label: 'CareerPilot Drop-off', path: '/admin/passport/funnel', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-line', permissions: ['view_passport_funnel'] },
-    { label: 'CareerPilot Career Roles', path: '/admin/passport/career-roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-briefcase', permissions: ['manage_passport'] },
-    { label: 'CareerPilot Skill Graph', path: '/admin/passport/skills', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-diagram-project', permissions: ['manage_passport'] },
-    { label: 'CareerPilot Role Blueprint', path: '/admin/passport/role-blueprints', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-clipboard-list', permissions: ['manage_passport'] },
-    { label: 'Stage Curriculum', path: '/admin/passport/stage-curriculum', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sitemap', permissions: ['manage_passport'] },
-    { label: 'Skills by Stage', path: '/admin/passport/stage-skills', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport'] },
-    { label: 'Activity', path: '/admin/passport/activity', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-shoe-prints', permissions: ['manage_passport'] },
-    { label: 'CareerPilot Skill Evidence', path: '/admin/passport/skill-evidence', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-link', permissions: ['manage_passport'] },
-    { label: 'CareerPilot Assessment Preview', path: '/admin/passport/assessment-preview', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-wand-magic-sparkles', permissions: ['manage_passport'] },
-    { label: 'CareerPilot Assessment Shape', path: '/admin/passport/assessment-shape', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-ruler-combined', permissions: ['manage_passport'] },
-    { label: 'CareerPilot Question Drafting', path: '/admin/passport/question-drafts', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-wand-sparkles', permissions: ['manage_passport'] },
-    { label: 'CareerPilot Question Bank', path: '/admin/passport/question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-list-check', permissions: ['manage_passport'] },
-    { label: 'CareerPilot Roadmap V2', path: '/admin/passport/roadmap-v2', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-route', permissions: ['manage_passport'] },
-    { label: 'CareerPilot Career Tracks', path: '/admin/passport/career-tracks', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport'] },
-    { label: 'CareerPilot News', path: '/admin/passport/news', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-newspaper', permissions: ['manage_passport'] },
-    { label: 'Company Questions', path: '/admin/passport/companies', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-building', permissions: ['manage_passport'] },
+    { label: 'Assessment Coverage', path: '/admin/passport/assessment-coverage', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-table-cells', permissions: ['manage_passport', 'manage_passport_assessment'] },
+    { label: 'Content Builder', path: '/admin/passport/content-builder', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport', 'manage_passport_content'] },
+    { label: 'Orientation', path: '/admin/passport/orientation', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-flag-checkered', permissions: ['manage_passport', 'manage_passport_content'] },
+    { label: 'Mega Curriculum', path: '/admin/passport/mega-curriculum', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-calendar-days', permissions: ['manage_passport', 'manage_passport_content'] },
+    { label: 'CareerPilot Coins', path: '/admin/passport/coins', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-coins', permissions: ['manage_passport', 'manage_passport_setup'] },
+    { label: 'CareerPilot Drop-off', path: '/admin/passport/funnel', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-line', permissions: ['view_passport_funnel', 'manage_passport_members'] },
+    { label: 'CareerPilot Career Roles', path: '/admin/passport/career-roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-briefcase', permissions: ['manage_passport', 'manage_passport_career_map'] },
+    { label: 'CareerPilot Skill Graph', path: '/admin/passport/skills', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-diagram-project', permissions: ['manage_passport', 'manage_passport_career_map'] },
+    { label: 'CareerPilot Role Blueprint', path: '/admin/passport/role-blueprints', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-clipboard-list', permissions: ['manage_passport', 'manage_passport_career_map'] },
+    { label: 'Stage Curriculum', path: '/admin/passport/stage-curriculum', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sitemap', permissions: ['manage_passport', 'manage_passport_career_map'] },
+    { label: 'Skills by Stage', path: '/admin/passport/stage-skills', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport', 'manage_passport_career_map'] },
+    { label: 'Activity', path: '/admin/passport/activity', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-shoe-prints', permissions: ['manage_passport', 'manage_passport_members'] },
+    { label: 'CareerPilot Skill Evidence', path: '/admin/passport/skill-evidence', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-link', permissions: ['manage_passport', 'manage_passport_career_map'] },
+    { label: 'CareerPilot Assessment Preview', path: '/admin/passport/assessment-preview', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-wand-magic-sparkles', permissions: ['manage_passport', 'manage_passport_assessment'] },
+    { label: 'CareerPilot Assessment Shape', path: '/admin/passport/assessment-shape', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-ruler-combined', permissions: ['manage_passport', 'manage_passport_assessment'] },
+    { label: 'CareerPilot Question Drafting', path: '/admin/passport/question-drafts', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-wand-sparkles', permissions: ['manage_passport', 'manage_passport_assessment'] },
+    { label: 'CareerPilot Question Bank', path: '/admin/passport/question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-list-check', permissions: ['manage_passport', 'manage_passport_assessment'] },
+    { label: 'CareerPilot Roadmap V2', path: '/admin/passport/roadmap-v2', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-route', permissions: ['manage_passport', 'manage_passport_content'] },
+    { label: 'CareerPilot Career Tracks', path: '/admin/passport/career-tracks', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport', 'manage_passport_content'] },
+    { label: 'CareerPilot News', path: '/admin/passport/news', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-newspaper', permissions: ['manage_passport', 'manage_passport_setup'] },
+    { label: 'Company Questions', path: '/admin/passport/companies', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-building', permissions: ['manage_passport', 'manage_passport_content'] },
     /* Career Stage Tagging and Paper Designer stay removed — see the note above. Master still
        had them because that branch predates the removal, not because it disagreed. AI Spend
        keeps master's new `view_ai_spend` grant, which is the point of its Roles work. */
@@ -276,7 +276,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Speaking Practice', path: '/speaking-practice', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-microphone', moduleKey: 'speakingPractice', featureKey: 'speakingPractice' as keyof StudentFeatures, permissions: ['manage_speaking', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Live Classes', path: '/hms-classes', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-video', featureKey: 'liveClasses' as keyof StudentFeatures, permissions: ['manage_live_classes', 'enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'AI Communication Lab', path: '/ai-communication-lab', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-comment-dots', moduleKey: 'aiCommunicationLab', featureKey: 'aiCommunicationLab' as keyof StudentFeatures, permissions: ['use_communication_lab', 'manage_communication_lab'] },
-    { label: 'Communication Lab — Manage', path: '/admin/communication-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-headset', moduleKey: 'aiCommunicationLab', permissions: ['manage_communication_lab'] },
+    { label: 'Communication Lab — Manage', path: '/admin/communication-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-headset', moduleKey: 'aiCommunicationLab', permissions: ['manage_communication_lab', 'view_communication_progress'] },
     { label: 'Code Visualizer', path: '/visualizer', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-microscope', needsVisualizerGrant: true, featureKey: 'codeVisualizer' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'My Practice', path: '/my-practice', roles: ['STUDENT'], icon: 'fa-solid fa-fire', featureKey: 'myPractice' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
     { label: 'Employee Portal', path: '/employee', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-id-badge', needsEmployee: true },

@@ -299,6 +299,24 @@ export const TRACK_MODULES: FoundationModuleSeed[] = [
     ],
   },
 
+  /* ══════════════ APPLIED MACHINE LEARNING (Data Science + AI, batch S2) ══════════════ */
+  {
+    moduleCode: 'DS_ML_APPLIED',
+    moduleName: 'Applied Machine Learning',
+    displayOrder: 310,
+    blurb: 'Ensembles that win on tables, evaluation and interpretability, feature engineering, and unsupervised learning.',
+    topics: [
+      t('DS_ENSEMBLES', 'Ensembles: Forests and Boosting', ['ML_SUPERVISED'],
+        ['Train, tune and choose between random forests, gradient boosting, XGBoost and LightGBM.']),
+      t('DS_EVALUATION', 'Model Evaluation and Interpretability', ['ML_EVALUATION'],
+        ['Choose the right metric, show business value, calibrate, validate honestly, explain a model and find where it fails.']),
+      t('DS_FEATURE_ENG', 'Feature Engineering', ['ML_FEATURE_ENGINEERING'],
+        ['Encode, transform and build features — including aggregates from transactions — without leaking the future.']),
+      t('DS_UNSUPERVISED', 'Unsupervised Learning', ['ML_UNSUPERVISED'],
+        ['Cluster, reduce dimensions, segment customers and detect anomalies, and turn the results into decisions.']),
+    ],
+  },
+
   /* ══════════════ JAVA — the language, from the first program to the JVM ══════════════ */
   {
     moduleCode: 'JT_JAVA',

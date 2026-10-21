@@ -76,3 +76,70 @@ export const TRACK_DS_S1: Record<string, TopicSeed> = {
     ...ending('Classification', 'THRESHOLDS', { project: ['MINI_PROJECT', 'Mini Project — Predicting Customer Churn for a Telecom', 'Build a churn model for a telecom operator’s prepaid customers: framing, leakage checks, a baseline, logistic regression and a tree in pipelines, class imbalance handled, a threshold chosen from retention-offer costs, and a one-page summary for the retention team.'] }),
   ] },
 };
+
+/** Batch S2: ensembles, evaluation and interpretability, feature engineering, and unsupervised learning. */
+export const TRACK_DS_S2: Record<string, TopicSeed> = {
+  /* ── Ensembles ── */
+  DS_ENSEMBLES: { category: 'UNIVERSAL', units: [
+    u('BAGGING_FORESTS', 'Bagging and Random Forests', 'Many trees on bootstrapped samples, random feature subsets, out-of-bag error, and why averaging reduces variance.',
+      ['Train and tune a random forest and explain why it beats a single tree'], 45),
+    u('BOOSTING', 'Boosting: Learning from Mistakes', 'Gradient boosting as adding small trees that fix the residuals, learning rate and number of trees, and AdaBoost in brief.',
+      ['Explain gradient boosting and train a boosted model with scikit-learn'], 45, { after: ['BAGGING_FORESTS'] }),
+    u('XGBOOST_LIGHTGBM', 'XGBoost and LightGBM', 'The libraries that win on tables, their key parameters, categorical support, and the scikit-learn-style API.',
+      ['Train XGBoost and LightGBM models and set their key parameters sensibly'], 45, { after: ['BOOSTING'] }),
+    u('TUNING_EARLY_STOPPING', 'Tuning Ensembles and Early Stopping', 'Which parameters matter, randomised search, early stopping on a validation set, and not overfitting the validation set.',
+      ['Tune a boosted model efficiently with early stopping and honest validation'], 40, { after: ['XGBOOST_LIGHTGBM'] }),
+    u('CHOOSING_MODELS', 'Choosing a Model for Tabular Data', 'Linear vs trees vs boosting, interpretability vs accuracy, training cost, and stacking — and when the simple model wins.',
+      ['Choose a model family for a tabular problem and justify it'], 35, { after: ['TUNING_EARLY_STOPPING'] }),
+    ...ending('Ensembles', 'CHOOSING_MODELS', { project: ['MINI_PROJECT', 'Mini Project — Loan Default Prediction for an NBFC', 'Predict default on personal loans for a non-banking finance company: leakage checks, a logistic baseline, a random forest and a tuned LightGBM with early stopping, comparison on PR-AUC, and a short note on which applicants the model would decline and why.'] }),
+  ] },
+
+  /* ── Evaluation and interpretability ── */
+  DS_EVALUATION: { category: 'UNIVERSAL', units: [
+    u('CLASSIFIER_METRICS', 'Classifier Metrics in Depth', 'Precision, recall and F1, ROC-AUC vs PR-AUC, which to use when positives are rare, and the confusion matrix as money.',
+      ['Choose and interpret the right classifier metric for an imbalanced business problem'], 45),
+    u('LIFT_GAINS', 'Lift, Gains and Business Value', 'Ranking customers by score, lift and cumulative gains charts, and turning model quality into rupees.',
+      ['Explain a model’s value to the business with lift, gains and expected profit'], 40, { after: ['CLASSIFIER_METRICS'] }),
+    u('CALIBRATION', 'Calibration: Can You Trust the Probability?', 'Reliability curves, Brier score, Platt and isotonic calibration, and when calibrated probabilities matter.',
+      ['Check and fix a model’s calibration'], 40, { after: ['LIFT_GAINS'] }),
+    u('VALIDATION_STRATEGY', 'Validation Strategy', 'Time-series splits, group k-fold, nested cross-validation, and a validation set that looks like the future.',
+      ['Design a validation strategy that matches how the model will be used'], 40, { after: ['CALIBRATION'] }),
+    u('INTERPRETABILITY', 'Explaining a Model', 'Permutation importance, partial dependence, SHAP values for one prediction and for the model, and their traps.',
+      ['Explain what drives a model overall and for one prediction, and say where the explanation misleads'], 45, { after: ['VALIDATION_STRATEGY'] }),
+    u('ERROR_ANALYSIS', 'Error Analysis and Fairness', 'Where the model is wrong, slicing errors by segment, fairness across groups, and what to do about a model that fails one group.',
+      ['Find where a model fails by segment and check it for unfair errors'], 40, { after: ['INTERPRETABILITY'] }),
+    ...ending('Model Evaluation', 'ERROR_ANALYSIS', { minutes: [40, 60, 35, 40] }),
+  ] },
+
+  /* ── Feature engineering ── */
+  DS_FEATURE_ENG: { category: 'UNIVERSAL', units: [
+    u('ENCODING', 'Encoding Categories', 'One-hot, ordinal and target encoding, high-cardinality columns, and target encoding without leaking the label.',
+      ['Encode categorical features correctly, including high-cardinality ones, without leakage'], 45),
+    u('SCALING_TRANSFORMS', 'Scaling, Transforms and Binning', 'Standard and robust scaling, log and power transforms for skewed features, and when binning helps.',
+      ['Scale and transform numeric features for the model that will use them'], 35, { after: ['ENCODING'] }),
+    u('DATES_TEXT', 'Features from Dates and Text', 'Day of week, recency and seasonality from timestamps, and bag-of-words and TF-IDF from text.',
+      ['Engineer useful features from dates and short text'], 40, { after: ['SCALING_TRANSFORMS'] }),
+    u('MISSING_IN_MODELS', 'Missing Values Inside a Model', 'Imputers in pipelines, missing-indicator features, and models that handle missing values themselves.',
+      ['Handle missing values inside a pipeline so training and prediction agree'], 35, { after: ['DATES_TEXT'] }),
+    u('AGGREGATES', 'Aggregate Features from Transactions', 'Customer-level counts, sums, recency and trends from event tables — computed only from data before the prediction date.',
+      ['Build customer-level features from transactions without using the future'], 45, { after: ['MISSING_IN_MODELS'] }),
+    u('FEATURE_SELECTION', 'Feature Selection', 'Filter, wrapper and model-based selection, and why selecting features before the split leaks.',
+      ['Select features inside cross-validation and explain why outside it leaks'], 35, { after: ['AGGREGATES'] }),
+    ...ending('Feature Engineering', 'FEATURE_SELECTION', { minutes: [40, 60, 35, 40] }),
+  ] },
+
+  /* ── Unsupervised learning ── */
+  DS_UNSUPERVISED: { category: 'UNIVERSAL', units: [
+    u('KMEANS', 'k-Means Clustering', 'Centroids and assignments, choosing k with the elbow and silhouette, scaling, and what k-means assumes.',
+      ['Cluster data with k-means, choose k, and know when its assumptions fail'], 45),
+    u('HIERARCHICAL_DBSCAN', 'Hierarchical Clustering and DBSCAN', 'Dendrograms and linkage, density-based clusters, noise points, and clusters that are not round.',
+      ['Choose between k-means, hierarchical clustering and DBSCAN for a dataset'], 40, { after: ['KMEANS'] }),
+    u('PCA', 'Dimensionality Reduction with PCA', 'Principal components, explained variance, PCA for visualisation and compression, and what it throws away.',
+      ['Reduce dimensions with PCA and interpret explained variance'], 45, { after: ['HIERARCHICAL_DBSCAN'] }),
+    u('SEGMENTATION', 'Customer Segmentation in Practice', 'RFM features, clustering customers, naming and profiling segments, and checking that segments are stable and useful.',
+      ['Segment customers and turn clusters into profiles a marketing team can use'], 45, { after: ['PCA'] }),
+    u('ANOMALY_DETECTION', 'Anomaly Detection', 'Isolation Forest, distance- and density-based scores, choosing a contamination rate, and checking flagged cases with people.',
+      ['Flag unusual records with an anomaly detector and validate what it flags'], 40, { after: ['SEGMENTATION'] }),
+    ...ending('Unsupervised Learning', 'ANOMALY_DETECTION', { project: ['MINI_PROJECT', 'Mini Project — Segmenting Customers of a Retail Chain', 'Build RFM and basket features for a retail chain’s loyalty members, cluster them, choose and defend k, profile and name each segment, check stability across months, and recommend one action per segment.'] }),
+  ] },
+};

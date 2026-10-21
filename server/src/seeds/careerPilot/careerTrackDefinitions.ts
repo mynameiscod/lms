@@ -260,6 +260,14 @@ export const PACKS: PackDefinition[] = [
   { key: 'SUPERVISED_ML', title: 'Supervised Learning', kind: 'SKILL',
     description: 'Regression and classification with scikit-learn, measured and interpreted for the business.',
     topics: [['DS_REGRESSION', 'MUST'], ['DS_CLASSIFICATION', 'MUST']] },
+
+  /* ── Data Science + AI, batch S2: applied machine learning ── */
+  { key: 'APPLIED_ML', title: 'Applied Machine Learning', kind: 'SKILL',
+    description: 'Ensembles, evaluation and interpretability, and feature engineering — what turns a model into one a business can trust.',
+    topics: [['DS_FEATURE_ENG', 'MUST'], ['DS_ENSEMBLES', 'MUST'], ['DS_EVALUATION', 'MUST']] },
+  { key: 'UNSUPERVISED_ML', title: 'Unsupervised Learning', kind: 'SKILL',
+    description: 'Clustering, dimensionality reduction, customer segmentation and anomaly detection.',
+    topics: [['DS_UNSUPERVISED', 'MUST']] },
 ];
 
 export const TRACKS: TrackDefinition[] = [
@@ -290,6 +298,6 @@ export const TRACKS: TrackDefinition[] = [
   { key: 'DATA_SCIENCE_AI', name: 'Data Science + AI', language: 'Python', order: 50,
     description: 'SQL, pandas and statistics; machine learning with scikit-learn from regression to ensembles and clustering; deep learning, NLP and GenAI; deploying a model; and a capstone you can defend.',
     /* Batches: S1 ML foundations, regression and classification (SQL, pandas and statistics are Data Analytics' packs); later ML, deep learning, deployment and placement packs are appended as they land. */
-    specializePacks: ['SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'ML_FOUNDATIONS', 'SUPERVISED_ML'],
+    specializePacks: ['SQL_ANALYTICS', 'PYTHON_FOR_DATA', 'STATISTICS_ANALYTICS', 'ML_FOUNDATIONS', 'SUPERVISED_ML', 'APPLIED_ML', 'UNSUPERVISED_ML'],
     placementPacks: [] },
 ];

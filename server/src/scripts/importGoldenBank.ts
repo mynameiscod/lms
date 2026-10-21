@@ -122,28 +122,42 @@ interface BankProfile {
   tag: string;
 }
 
+/*
+ * WHERE THE MASTER CSV IS. From src (ts-node) it is three levels up; compiled in the production image
+ * the script is at /app/dist/scripts and the Dockerfile copies the CSVs to /app/docs/audit — two levels
+ * up — so the old fixed path looked in /docs/audit and refused the import. The first that exists wins.
+ */
+const auditCsv = (file: string): string => {
+  const candidates = [
+    path.join(__dirname, '../../../docs/audit', file),
+    path.join(__dirname, '../../docs/audit', file),
+    path.join(process.cwd(), 'docs/audit', file),
+  ];
+  return candidates.find(c => fs.existsSync(c)) || candidates[0];
+};
+
 const BANKS: Record<'foundation' | 'year2' | 'year3' | 'track', BankProfile> = {
   foundation: {
     label: 'FOUNDATION',
-    master: path.join(__dirname, '../../../docs/audit/foundation-golden-bank-master.csv'),
+    master: auditCsv('foundation-golden-bank-master.csv'),
     createdBy: 'foundation-golden-bank',
     tag: 'foundation',
   },
   year2: {
     label: 'YEAR 2',
-    master: path.join(__dirname, '../../../docs/audit/year2-golden-bank-master.csv'),
+    master: auditCsv('year2-golden-bank-master.csv'),
     createdBy: 'year2-golden-bank',
     tag: 'year2',
   },
   year3: {
     label: 'YEAR 3',
-    master: path.join(__dirname, '../../../docs/audit/year3-golden-bank-master.csv'),
+    master: auditCsv('year3-golden-bank-master.csv'),
     createdBy: 'year3-golden-bank',
     tag: 'year3',
   },
   track: {
     label: 'CAREER TRACK',
-    master: path.join(__dirname, '../../../docs/audit/track-golden-bank-master.csv'),
+    master: auditCsv('track-golden-bank-master.csv'),
     createdBy: 'track-golden-bank',
     tag: 'track',
   },

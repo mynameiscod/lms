@@ -35,7 +35,21 @@ import mongoose from 'mongoose';
 import CareerSkill from '../models/CareerSkill';
 import CareerRole from '../models/CareerRole';
 import RoleSkillBlueprint, { DEFAULT_WEIGHT } from '../models/RoleSkillBlueprint';
-import { NEW_SKILLS, NEW_DOMAINS } from '../data/aiDataSecuritySkills';
+import { NEW_SKILLS as ALL_NEW_SKILLS, NEW_DOMAINS } from '../data/aiDataSecuritySkills';
+import { CAREER_SKILL_TAXONOMY } from '../data/careerSkillTaxonomy';
+
+/*
+ * A KEY THE CAREER TAXONOMY DEFINES IS NEVER WRITTEN HERE.
+ *
+ * Nine keys appear in both files. Eight are skills in both; AI_AGENTS is an assessable SKILL in the
+ * career taxonomy (the career tracks measure it with fifty questions) but a non-assessable GROUP
+ * here. Run before seedCareerSkills on a tenant that lacked it, this script created the group, the
+ * career seed then saw the key "already present" and skipped it, and the track bank import was
+ * refused for a non-assessable skill (production, 2026-10-21). The career taxonomy owns its keys;
+ * this file only adds the ones it does not have, whatever order the two seeds run in.
+ */
+const CAREER_KEYS = new Set(CAREER_SKILL_TAXONOMY.map((k: any) => String(k.key)));
+const NEW_SKILLS = ALL_NEW_SKILLS.filter(sk => !CAREER_KEYS.has(sk.key));
 import { NEW_BLUEPRINTS } from '../data/aiDataSecurityBlueprints';
 
 const ACTOR = 'ai-data-security-seed';

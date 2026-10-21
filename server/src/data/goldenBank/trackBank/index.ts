@@ -41,6 +41,19 @@ import { PYTHON_DB } from './pythonDb';
 import { DJANGO } from './django';
 import { DJANGO_REST } from './djangoRest';
 import { FASTAPI } from './fastapi';
+// .NET Full Stack + AI (batch N6).
+import { CSHARP_BASICS } from './csharpBasics';
+import { CSHARP_OOP } from './csharpOop';
+import { CSHARP_EXCEPTIONS } from './csharpExceptions';
+import { CSHARP_COLLECTIONS } from './csharpCollections';
+import { CSHARP_LINQ } from './csharpLinq';
+import { CSHARP_ASYNC } from './csharpAsync';
+import { ADO_NET } from './adoNet';
+import { EF_CORE } from './efCore';
+import { DOTNET_DI } from './dotnetDi';
+import { ASPNET_CORE } from './aspnetCore';
+import { ASPNET_SECURITY } from './aspnetSecurity';
+import { SQL_SERVER } from './sqlServer';
 
 export const TRACK_BANK: GoldenItem[] = [
   ...JAVA_BASICS,
@@ -75,4 +88,16 @@ export const TRACK_BANK: GoldenItem[] = [
   ...DJANGO,
   ...DJANGO_REST,
   ...FASTAPI,
+  ...CSHARP_BASICS,
+  ...CSHARP_OOP,
+  ...CSHARP_EXCEPTIONS,
+  ...CSHARP_COLLECTIONS,
+  ...CSHARP_LINQ,
+  ...CSHARP_ASYNC,
+  ...ADO_NET,
+  ...EF_CORE,
+  ...DOTNET_DI,
+  ...ASPNET_CORE,
+  ...ASPNET_SECURITY,
+  ...SQL_SERVER,
 ];

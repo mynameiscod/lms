@@ -172,6 +172,8 @@ const DIMENSION: Record<string, AssessmentDimension> = {
   LLM_APPLICATIONS: 'core_stack', RAG_SYSTEMS: 'core_stack', AI_AGENTS: 'core_stack',
   PYTHON_FUNCTIONS: 'fundamentals', PYTHON_ADVANCED: 'core_stack', PYTHON_DB: 'core_stack',
   DJANGO: 'core_stack', DJANGO_REST: 'core_stack', FASTAPI: 'core_stack',
+  CSHARP_BASICS: 'fundamentals', CSHARP_OOP: 'core_stack', CSHARP_EXCEPTIONS: 'core_stack', CSHARP_COLLECTIONS: 'core_stack', CSHARP_LINQ: 'core_stack', CSHARP_ASYNC: 'core_stack',
+  ADO_NET: 'core_stack', EF_CORE: 'core_stack', DOTNET_DI: 'core_stack', ASPNET_CORE: 'core_stack', ASPNET_SECURITY: 'core_stack', SQL_SERVER: 'core_stack',
   APTITUDE_DATA_INTERPRETATION: 'aptitude',
   APTITUDE_REASONING_LOGIC: 'aptitude',
   APTITUDE_REASONING_SERIES: 'aptitude',

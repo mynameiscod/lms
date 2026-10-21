@@ -160,6 +160,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     label: 'AI Communication Lab',
     permissions: [
       { key: 'manage_communication_lab', label: 'Manage Communication Challenges & Monitor Students' },
+      { key: 'view_communication_progress', label: 'View Communication Coach Progress (who practised, steadiness, readiness)' },
       { key: 'use_communication_lab', label: 'Practise Communication Challenges' },
     ]
   },
@@ -388,7 +389,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // Speaking Practice
     'manage_speaking', 'use_speaking',
     // AI Communication Lab
-    'manage_communication_lab', 'use_communication_lab',
+    'manage_communication_lab', 'view_communication_progress', 'use_communication_lab',
     // Resource Library
     'manage_resources', 'view_resources',
     // CareerPilot
@@ -439,7 +440,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // Speaking Practice
     'manage_speaking', 'use_speaking',
     // AI Communication Lab
-    'manage_communication_lab', 'use_communication_lab',
+    'manage_communication_lab', 'view_communication_progress', 'use_communication_lab',
     // Resource Library
     'manage_resources', 'view_resources',
     // Certificates

@@ -359,3 +359,24 @@ export async function readinessFor(tenantId: string, studentId: string) {
   const areas = new Set(rr.filter((r) => r.baseline && r.area).map((r) => r.area)).size;
   return readinessOf(rr, areas, readyThreshold(tenantId));
 }
+
+/** One student, for the trainer: the same picture the student sees, plus recent recordings with their measurements. */
+export async function coachStudentDetail(tenantId: string, studentId: string) {
+  const u: any = await User.findOne({ _id: studentId, tenantId }).select('name firstName lastName email batchId').lean();
+  if (!u) return null;
+  const [state, recent] = await Promise.all([
+    getCoachState(tenantId, studentId),
+    CommunicationAttempt.find({ tenantId, studentId, kind: 'coach', status: 'completed' }).sort({ createdAt: -1 }).limit(20)
+      .select('practiceDate createdAt challengeTitle recordingDuration wordsPerMinute transcript evaluation.overallScore evaluation.dailyCoachMessage overriddenScore coach').lean(),
+  ]);
+  const { steps, ...picture } = state as any;
+  return {
+    student: { id: String(u._id), name: u.name || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email, email: u.email },
+    ...picture,
+    recordings: (recent as any[]).map((a) => ({
+      id: String(a._id), date: a.practiceDate, title: a.challengeTitle, area: a.coach?.area, level: a.coach?.level, baseline: !!a.coach?.isBaseline,
+      score: a.overriddenScore ?? a.evaluation?.overallScore ?? 0, hesitation: a.coach?.signals?.hesitationIndex ?? null, signals: a.coach?.signals || null,
+      tips: a.coach?.tips || [], seconds: a.recordingDuration, wordsPerMinute: a.wordsPerMinute, transcript: a.transcript || '', coachMessage: a.evaluation?.dailyCoachMessage || '',
+    })),
+  };
+}

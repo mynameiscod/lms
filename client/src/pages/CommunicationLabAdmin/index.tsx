@@ -3,6 +3,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { communicationApi, CommChallenge } from '../../api/communicationApi';
 import { batchApi } from '../../api';
 import CoachOverviewPanel from './CoachOverviewPanel';
+import { useAuth } from '../../hooks';
+import { userCan } from '../../utils/permissions';
 
 const todayStr = () => {
   const d = new Date();
@@ -31,6 +33,9 @@ const Stat: React.FC<{ label: string; value: React.ReactNode; color?: string }> 
 );
 
 const CommunicationLabAdmin: React.FC = () => {
+  const { user } = useAuth();
+  // Seeing progress is its own permission: someone ticked only for that sees the Coach tab and nothing that edits.
+  const canManage = userCan(user as any, ['manage_communication_lab', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'], ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']);
   const [tab, setTab] = useState<'coach' | 'dashboard' | 'challenges' | 'students'>('coach');
   const [batches, setBatches] = useState<{ _id: string; name: string }[]>([]);
 
@@ -91,7 +96,7 @@ const CommunicationLabAdmin: React.FC = () => {
       <p style={{ margin: '4px 0 16px', color: '#6b7280', fontSize: 14 }}>Control challenges, assign by batch, and monitor daily practice.</p>
 
       <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #e5e7eb', marginBottom: 20, flexWrap: 'wrap' }}>
-        {tabBtn('coach', 'Coach — who needs help')}{tabBtn('dashboard', 'Dashboard')}{tabBtn('challenges', 'Challenges')}{tabBtn('students', 'Students')}
+        {tabBtn('coach', 'Coach — who needs help')}{canManage && <>{tabBtn('dashboard', 'Dashboard')}{tabBtn('challenges', 'Challenges')}{tabBtn('students', 'Students')}</>}
       </div>
 
       {tab === 'coach' && <CoachOverviewPanel batches={batches} />}

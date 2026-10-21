@@ -25,7 +25,7 @@ const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
 const role = (req: Request) => (req as any).user?.role as string;
 const isAdminish = (req: Request) =>
-  allowedByRoleOrPermission((req as any).user, ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], ['manage_communication_lab', 'manage_tenant']);
+  allowedByRoleOrPermission((req as any).user, ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], ['manage_communication_lab', 'view_communication_progress', 'manage_tenant']);
 
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const validDate = (s: any) => (typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ymd(new Date()));

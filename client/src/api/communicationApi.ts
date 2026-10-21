@@ -65,6 +65,7 @@ export const communicationApi = {
     return (await axios.post(`${BASE}/coach/submit`, fd, { headers: { ...authHeader(), 'Content-Type': 'multipart/form-data' }, timeout: 300000 })).data;
   },
   adminCoachOverview: async (batchId?: string): Promise<any> => (await axios.get(`${BASE}/admin/coach/overview${batchId ? `?batchId=${batchId}` : ''}`, { headers: authHeader() })).data,
+  adminCoachStudent: async (studentId: string): Promise<any> => (await axios.get(`${BASE}/admin/coach/students/${studentId}`, { headers: authHeader() })).data,
   history: async (): Promise<CommAttempt[]> => (await axios.get(`${BASE}/history`, { headers: authHeader() })).data.attempts || [],
   progress: async (): Promise<CommProgress> => (await axios.get(`${BASE}/progress`, { headers: authHeader() })).data,
   attempt: async (id: string): Promise<CommAttempt> => (await axios.get(`${BASE}/attempts/${id}`, { headers: authHeader() })).data.attempt,

@@ -18,13 +18,16 @@ const upload = multer({
   }),
   limits: { fileSize: 200 * 1024 * 1024 }, // 200 MB per recording
 });
+// Seeing progress is its own permission, so a placement officer can follow who is ready without managing challenges.
+const VIEW = roleGuard(['view_communication_progress', 'manage_communication_lab', 'view_reports', 'manage_tenant']);
 const ADMIN = roleGuard(['manage_communication_lab', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
 
 router.use(authMiddleware, tenantMiddleware);
 
 // Admin — monitoring + challenge management (declared before /:id student routes)
-router.get('/admin/coach/overview', ADMIN, coach.adminCoachOverview);
-router.get('/admin/coach/readiness/:studentId', ADMIN, coach.adminStudentReadiness);
+router.get('/admin/coach/overview', VIEW, coach.adminCoachOverview);
+router.get('/admin/coach/readiness/:studentId', VIEW, coach.adminStudentReadiness);
+router.get('/admin/coach/students/:studentId', VIEW, coach.adminCoachStudent);
 router.get('/admin/dashboard', ADMIN, ctrl.adminDashboard);
 router.get('/admin/students', ADMIN, ctrl.adminStudents);
 router.get('/admin/students/:studentId', ADMIN, ctrl.adminStudentDetail);

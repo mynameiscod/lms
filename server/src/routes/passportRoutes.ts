@@ -6,6 +6,7 @@ import * as staging from '../controllers/careerStagingController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { roleGuard } from '../middleware/roleGuard';
+import { CP_FEATURES, cpFeatureForRouterPath } from '../config/careerPilotFeatures';
 // Applied only where a retry costs money: AI generation, interviews, payment and
 // redemption. Ordinary reads are deliberately unlimited — a dashboard that 429s
 // under normal use is a worse outage than the spend it was protecting.
@@ -144,6 +145,10 @@ router.use(authMiddleware, tenantMiddleware);
  * invisible to the Roles & Permissions screen.
  */
 const MANAGE = roleGuard(['manage_passport']);
+/** The write guard of one CareerPilot feature: the umbrella key, or that feature's own key (config/careerPilotFeatures.ts). */
+const MANAGE_FOR: Record<string, ReturnType<typeof roleGuard>> = Object.fromEntries(
+  CP_FEATURES.filter((f) => f.perm).map((f) => [f.key, roleGuard(['manage_passport', f.perm as string])]),
+);
 const MEMBER = roleGuard(['use_passport']);
 // Category edits change how every member's score is computed, so they carry their own
 // permission rather than riding on manage_passport.
@@ -170,19 +175,19 @@ const SUPER_ADMIN = (req: any, res: any, next: any) => {
 
 
 // Admin config + members
-router.get('/config',    MANAGE, ctrl.getConfig);
-router.put('/config',    MANAGE, ctrl.updateConfig);
+router.get('/config',    MANAGE_FOR.cpSetup, ctrl.getConfig);
+router.put('/config',    MANAGE_FOR.cpSetup, ctrl.updateConfig);
 // Roadmap V2: settings overview and topic priorities (settings themselves save through PUT /config).
-router.get('/admin/roadmap-v2',                          MANAGE, roadmapV2Admin.getOverview);
-router.get('/admin/topic-priorities/:stage',             MANAGE, roadmapV2Admin.listTopics);
-router.put('/admin/topic-priorities/:stage/:topicCode',  MANAGE, roadmapV2Admin.updateTopic);
-router.get('/admin/topic-priorities-draft',              MANAGE, roadmapV2Admin.previewDraft);
-router.post('/admin/topic-priorities-draft',             MANAGE, roadmapV2Admin.applyDraftNow);
+router.get('/admin/roadmap-v2',                          MANAGE_FOR.cpMembers, roadmapV2Admin.getOverview);
+router.get('/admin/topic-priorities/:stage',             MANAGE_FOR.cpContent, roadmapV2Admin.listTopics);
+router.put('/admin/topic-priorities/:stage/:topicCode',  MANAGE_FOR.cpContent, roadmapV2Admin.updateTopic);
+router.get('/admin/topic-priorities-draft',              MANAGE_FOR.cpContent, roadmapV2Admin.previewDraft);
+router.post('/admin/topic-priorities-draft',             MANAGE_FOR.cpContent, roadmapV2Admin.applyDraftNow);
 // Rebuild roadmaps as V2: one member (preview, then apply) or every V1 roadmap in the background.
-router.get('/admin/students/:studentId/roadmap-rebuild',  MANAGE, roadmapV2Admin.previewRebuild);
-router.post('/admin/students/:studentId/roadmap-rebuild', MANAGE, roadmapV2Admin.applyRebuild);
-router.get('/admin/roadmap-rebuild',                      MANAGE, roadmapV2Admin.bulkRebuildStatus);
-router.post('/admin/roadmap-rebuild',                     MANAGE, roadmapV2Admin.startBulkRebuildNow);
+router.get('/admin/students/:studentId/roadmap-rebuild',  MANAGE_FOR.cpMembers, roadmapV2Admin.previewRebuild);
+router.post('/admin/students/:studentId/roadmap-rebuild', MANAGE_FOR.cpMembers, roadmapV2Admin.applyRebuild);
+router.get('/admin/roadmap-rebuild',                      MANAGE_FOR.cpMembers, roadmapV2Admin.bulkRebuildStatus);
+router.post('/admin/roadmap-rebuild',                     MANAGE_FOR.cpMembers, roadmapV2Admin.startBulkRebuildNow);
 
 // ── Mock interview plans: how many sittings a member gets and how each is composed,
 //    targeted by year / course / branch / role. Ordinary CareerPilot configuration, so
@@ -191,39 +196,39 @@ router.post('/admin/roadmap-rebuild',                     MANAGE, roadmapV2Admin
 // ── Concept Learning Units: the ordered journey for a concept. MANAGE, like every other
 //    authoring surface — publishing one changes what students are taught. Saving is a whole
 //    unit at a time because reordering three steps is one intention, not three requests. ──
-router.get('/concept-learning-units/concepts',            MANAGE, learningUnits.listConcepts);
-router.get('/concept-learning-units/analytics',           MANAGE, learningUnits.analytics);
-router.get('/concept-learning-units/by-skill/:skillKey',  MANAGE, learningUnits.getBySkill);
-router.put('/concept-learning-units/by-skill/:skillKey',  MANAGE, learningUnits.saveBySkill);
-router.get('/concept-learning-units/:id/readiness',       MANAGE, learningUnits.readiness);
-router.get('/concept-learning-units/:id/preview',         MANAGE, learningUnits.preview);
-router.post('/concept-learning-units/:id/publish',        MANAGE, learningUnits.publish);
-router.post('/concept-learning-units/:id/archive',        MANAGE, learningUnits.archive);
+router.get('/concept-learning-units/concepts',            MANAGE_FOR.cpContent, learningUnits.listConcepts);
+router.get('/concept-learning-units/analytics',           MANAGE_FOR.cpContent, learningUnits.analytics);
+router.get('/concept-learning-units/by-skill/:skillKey',  MANAGE_FOR.cpContent, learningUnits.getBySkill);
+router.put('/concept-learning-units/by-skill/:skillKey',  MANAGE_FOR.cpContent, learningUnits.saveBySkill);
+router.get('/concept-learning-units/:id/readiness',       MANAGE_FOR.cpContent, learningUnits.readiness);
+router.get('/concept-learning-units/:id/preview',         MANAGE_FOR.cpContent, learningUnits.preview);
+router.post('/concept-learning-units/:id/publish',        MANAGE_FOR.cpContent, learningUnits.publish);
+router.post('/concept-learning-units/:id/archive',        MANAGE_FOR.cpContent, learningUnits.archive);
 // The member's own progress through a concept. MEMBER, and scoped to the caller.
 router.get('/me/concept-journey/:skillKey',               MEMBER, learningUnits.myJourney);
 
 // ── Activity trail: what a person actually did, in order, from the first page view.
 //    MANAGE, like every other admin surface here — it carries names, emails and addresses. ──
-router.get('/admin/activity/sessions',            MANAGE, activity.sessions);
-router.get('/admin/activity/summary',             MANAGE, activity.summary);
-router.get('/admin/activity/timeline/:visitorId', MANAGE, activity.timeline);
+router.get('/admin/activity/sessions',            MANAGE_FOR.cpMembers, activity.sessions);
+router.get('/admin/activity/summary',             MANAGE_FOR.cpMembers, activity.summary);
+router.get('/admin/activity/timeline/:visitorId', MANAGE_FOR.cpMembers, activity.timeline);
 // The beacon again, for members who ARE signed in: same handler, but this router has already
 // resolved the user, so the row is attributed rather than anonymous.
 router.post('/activity', activity.ingest);
 
-router.get('/interview-plans',          MANAGE, interviewPlans.list);
-router.get('/interview-plans/preview',  MANAGE, interviewPlans.preview);
-router.post('/interview-plans',         MANAGE, interviewPlans.create);
-router.put('/interview-plans/reorder',  MANAGE, interviewPlans.reorder);
-router.put('/interview-plans/:id',      MANAGE, interviewPlans.update);
-router.delete('/interview-plans/:id',   MANAGE, interviewPlans.remove);
+router.get('/interview-plans',          MANAGE_FOR.cpContent, interviewPlans.list);
+router.get('/interview-plans/preview',  MANAGE_FOR.cpContent, interviewPlans.preview);
+router.post('/interview-plans',         MANAGE_FOR.cpContent, interviewPlans.create);
+router.put('/interview-plans/reorder',  MANAGE_FOR.cpContent, interviewPlans.reorder);
+router.put('/interview-plans/:id',      MANAGE_FOR.cpContent, interviewPlans.update);
+router.delete('/interview-plans/:id',   MANAGE_FOR.cpContent, interviewPlans.remove);
 // ── Day-by-day curriculum per pathway. Authored days override the generator. ──
-router.get('/curriculum',                     MANAGE, curriculum.listPathwayCurricula);
-router.get('/curriculum/:pathwayKey',         MANAGE, curriculum.getPathwayCurriculum);
-router.put('/curriculum/:pathwayKey',         MANAGE, curriculum.savePathwayCurriculum);
-router.post('/curriculum/:pathwayKey/move',   MANAGE, curriculum.movePathwayDay);
-router.post('/curriculum/:pathwayKey/copy',   MANAGE, curriculum.copyPathwayCurriculum);
-router.post('/curriculum/:pathwayKey/draft',  MANAGE, curriculum.draftPathwayCurriculum);
+router.get('/curriculum',                     MANAGE_FOR.cpContent, curriculum.listPathwayCurricula);
+router.get('/curriculum/:pathwayKey',         MANAGE_FOR.cpContent, curriculum.getPathwayCurriculum);
+router.put('/curriculum/:pathwayKey',         MANAGE_FOR.cpContent, curriculum.savePathwayCurriculum);
+router.post('/curriculum/:pathwayKey/move',   MANAGE_FOR.cpContent, curriculum.movePathwayDay);
+router.post('/curriculum/:pathwayKey/copy',   MANAGE_FOR.cpContent, curriculum.copyPathwayCurriculum);
+router.post('/curriculum/:pathwayKey/draft',  MANAGE_FOR.cpContent, curriculum.draftPathwayCurriculum);
 
 // ── Who each pathway serves. Rules save through the content endpoint; these support
 //    writing them: the vocabulary, a dry-run against real members, and re-routing. ──
@@ -239,8 +244,8 @@ router.post('/curriculum/:pathwayKey/draft',  MANAGE, curriculum.draftPathwayCur
  * that question for everyone else; a first-year who says "I'm not sure yet" had no list at
  * all, and so no assessment and no roadmap.
  */
-router.get('/stage-skill-sets',         MANAGE,      stageSkills.list);
-router.get('/stage-skill-sets/:stage',  MANAGE,      stageSkills.get);
+router.get('/stage-skill-sets',         MANAGE_FOR.cpCareerMap,      stageSkills.list);
+router.get('/stage-skill-sets/:stage',  MANAGE_FOR.cpCareerMap,      stageSkills.get);
 router.put('/stage-skill-sets/:stage',  SUPER_ADMIN, stageSkills.save);
 
 /**
@@ -266,18 +271,18 @@ router.put('/stage-skill-sets/:stage',  SUPER_ADMIN, stageSkills.save);
  * The genuinely global routes below — the skill catalogue and the stage skill set — keep
  * SUPER_ADMIN, because for those the original argument still holds exactly.
  */
-router.get('/stage-curriculum',                              MANAGE, stageCurriculum.listStages);
-router.get('/stage-curriculum/:stage',                       MANAGE, stageCurriculum.getStage);
-router.put('/stage-curriculum/:stage/modules',               MANAGE, express.json(), stageCurriculum.putModule);
-router.post('/stage-curriculum/:stage/modules/reorder',      MANAGE, express.json(), stageCurriculum.postModuleOrder);
-router.delete('/stage-curriculum/:stage/modules/:moduleCode', MANAGE, stageCurriculum.removeModule);
-router.post('/stage-curriculum/:stage/topics',               MANAGE, express.json(), stageCurriculum.postTopic);
-router.post('/stage-curriculum/:stage/topics/reorder',       MANAGE, express.json(), stageCurriculum.postTopicOrder);
-router.put('/stage-curriculum/:stage/topics/:topicId',       MANAGE, express.json(), stageCurriculum.putTopic);
-router.delete('/stage-curriculum/:stage/topics/:topicId',    MANAGE, stageCurriculum.removeTopic);
+router.get('/stage-curriculum',                              MANAGE_FOR.cpCareerMap, stageCurriculum.listStages);
+router.get('/stage-curriculum/:stage',                       MANAGE_FOR.cpCareerMap, stageCurriculum.getStage);
+router.put('/stage-curriculum/:stage/modules',               MANAGE_FOR.cpCareerMap, express.json(), stageCurriculum.putModule);
+router.post('/stage-curriculum/:stage/modules/reorder',      MANAGE_FOR.cpCareerMap, express.json(), stageCurriculum.postModuleOrder);
+router.delete('/stage-curriculum/:stage/modules/:moduleCode', MANAGE_FOR.cpCareerMap, stageCurriculum.removeModule);
+router.post('/stage-curriculum/:stage/topics',               MANAGE_FOR.cpCareerMap, express.json(), stageCurriculum.postTopic);
+router.post('/stage-curriculum/:stage/topics/reorder',       MANAGE_FOR.cpCareerMap, express.json(), stageCurriculum.postTopicOrder);
+router.put('/stage-curriculum/:stage/topics/:topicId',       MANAGE_FOR.cpCareerMap, express.json(), stageCurriculum.putTopic);
+router.delete('/stage-curriculum/:stage/topics/:topicId',    MANAGE_FOR.cpCareerMap, stageCurriculum.removeTopic);
 
-router.get('/skills',             MANAGE,        careerSkills.listSkills);
-router.get('/skills/:key/usage',  MANAGE,        careerSkills.skillUsage);
+router.get('/skills',             MANAGE_FOR.cpCareerMap,        careerSkills.listSkills);
+router.get('/skills/:key/usage',  MANAGE_FOR.cpCareerMap,        careerSkills.skillUsage);
 router.post('/skills',            SUPER_ADMIN,   careerSkills.createSkill);
 router.put('/skills/:id',         SUPER_ADMIN,   careerSkills.updateSkill);
 router.delete('/skills/:id',      SUPER_ADMIN,   careerSkills.deleteSkill);
@@ -297,7 +302,7 @@ router.get('/me/readiness',                     MEMBER, readiness.getMyRoleReadi
  */
 router.get('/me/foundation-journey',            MEMBER, foundationJourney.getMyJourney);
 router.get('/me/foundation-journey/day/:dayNumber', MEMBER, foundationJourney.getMyJourneyDay);
-router.get('/students/:studentId/readiness',    MANAGE, readiness.getStudentRoleReadiness);
+router.get('/students/:studentId/readiness',    MANAGE_FOR.cpMembers, readiness.getStudentRoleReadiness);
 
 // ── 90-day roadmap (Module 9). The PLANNING layer: what to achieve over the window, in
 //    canonical skills. Distinct from `/roadmap` below, which is the mission journey — that
@@ -323,29 +328,29 @@ router.get('/me/rewards',                 MEMBER, rewards.getRewardCatalogue);
 router.post('/me/rewards/:key/redeem',    MEMBER, rateLimit('redemption'), rewards.redeemRewardForMe);
 router.get('/me/redemptions',             MEMBER, rewards.getMyRedemptions);
 
-router.get('/rewards/admin',                              MANAGE, rewardsAdmin.listRewardsAdmin);
-router.post('/rewards/admin',                             MANAGE, rewardsAdmin.createReward);
-router.put('/rewards/admin/:key',                         MANAGE, rewardsAdmin.updateReward);
-router.get('/rewards/admin/redemptions',                  MANAGE, rewardsAdmin.listRedemptions);
-router.post('/rewards/admin/redemptions/:id/fulfill',     MANAGE, rewardsAdmin.fulfill);
-router.post('/rewards/admin/redemptions/:id/cancel',      MANAGE, rewardsAdmin.cancel);
+router.get('/rewards/admin',                              MANAGE_FOR.cpSetup, rewardsAdmin.listRewardsAdmin);
+router.post('/rewards/admin',                             MANAGE_FOR.cpSetup, rewardsAdmin.createReward);
+router.put('/rewards/admin/:key',                         MANAGE_FOR.cpSetup, rewardsAdmin.updateReward);
+router.get('/rewards/admin/redemptions',                  MANAGE_FOR.cpSetup, rewardsAdmin.listRedemptions);
+router.post('/rewards/admin/redemptions/:id/fulfill',     MANAGE_FOR.cpSetup, rewardsAdmin.fulfill);
+router.post('/rewards/admin/redemptions/:id/cancel',      MANAGE_FOR.cpSetup, rewardsAdmin.cancel);
 // Recovery for a saga interrupted by a process failure. Re-runs the saga; never hand-edits.
-router.get('/rewards/admin/stranded',                     MANAGE, rewardsAdmin.listStranded);
-router.post('/rewards/admin/redemptions/:id/recover',     MANAGE, rewardsAdmin.recover);
+router.get('/rewards/admin/stranded',                     MANAGE_FOR.cpSetup, rewardsAdmin.listStranded);
+router.post('/rewards/admin/redemptions/:id/recover',     MANAGE_FOR.cpSetup, rewardsAdmin.recover);
 
 router.get('/me/gamification',            MEMBER, gamification.getMyGamification);
 router.get('/me/gamification/xp-history', MEMBER, gamification.getMyXpHistory);
 router.get('/me/leaderboard',             MEMBER, gamification.getMyLeaderboard);
 
-router.get('/gamification/admin',                       MANAGE, gamification.getAdminGamification);
-router.put('/gamification/admin/rules/:eventKey',       MANAGE, gamification.updateXpRule);
-router.put('/gamification/admin/badges/:key',           MANAGE, gamification.updateBadge);
-router.put('/gamification/admin/leaderboard',           MANAGE, gamification.updateLeaderboardSettings);
+router.get('/gamification/admin',                       MANAGE_FOR.cpSetup, gamification.getAdminGamification);
+router.put('/gamification/admin/rules/:eventKey',       MANAGE_FOR.cpSetup, gamification.updateXpRule);
+router.put('/gamification/admin/badges/:key',           MANAGE_FOR.cpSetup, gamification.updateBadge);
+router.put('/gamification/admin/leaderboard',           MANAGE_FOR.cpSetup, gamification.updateLeaderboardSettings);
 
 // Reward budget is a financial control: admin-only, and invisible to members.
-router.get('/gamification/admin/reward-budget',          MANAGE, rewardBudget.getRewardBudget);
-router.put('/gamification/admin/reward-budget',          MANAGE, rewardBudget.updateRewardBudget);
-router.post('/gamification/admin/reward-budget/preview', MANAGE, rewardBudget.previewRewardBudget);
+router.get('/gamification/admin/reward-budget',          MANAGE_FOR.cpSetup, rewardBudget.getRewardBudget);
+router.put('/gamification/admin/reward-budget',          MANAGE_FOR.cpSetup, rewardBudget.updateRewardBudget);
+router.post('/gamification/admin/reward-budget/preview', MANAGE_FOR.cpSetup, rewardBudget.previewRewardBudget);
 
 router.get('/me/plan/today',                    MEMBER, dailyPlan.getMyDailyPlan);
 router.post('/me/plan/complete',                MEMBER, dailyPlan.completeMyDailyMission);
@@ -408,7 +413,7 @@ const conceptAttach = (req: any, res: any, next: any) =>
     next();
   });
 
-router.post('/skill-resources/attachments', MANAGE, conceptAttach, skillResources.uploadAttachment);
+router.post('/skill-resources/attachments', MANAGE_FOR.cpCareerMap, conceptAttach, skillResources.uploadAttachment);
 /**
  * Readable by any signed-in member, not just an admin: the same file is what a student
  * opens from their daily plan, and a second route serving identical bytes would be one
@@ -426,13 +431,13 @@ router.post('/skill-resources/attachment-token', MEMBER, skillResources.issueAtt
  */
 router.get('/me/material/:id',            MEMBER, skillResources.getMemberMaterial);
 
-router.get('/skill-resources',            MANAGE, skillResources.listSkillResources);
-router.get('/skill-resources/concepts',   MANAGE, skillResources.listConcepts);
-router.get('/skill-resources/audience-options', MANAGE, skillResources.listAudienceOptions);
-router.get('/skill-resources/catalogue',  MANAGE, skillResources.listMappableResources);
-router.post('/skill-resources',           MANAGE, skillResources.createSkillResource);
-router.put('/skill-resources/:id',        MANAGE, skillResources.updateSkillResource);
-router.delete('/skill-resources/:id',     MANAGE, skillResources.deleteSkillResource);
+router.get('/skill-resources',            MANAGE_FOR.cpCareerMap, skillResources.listSkillResources);
+router.get('/skill-resources/concepts',   MANAGE_FOR.cpCareerMap, skillResources.listConcepts);
+router.get('/skill-resources/audience-options', MANAGE_FOR.cpCareerMap, skillResources.listAudienceOptions);
+router.get('/skill-resources/catalogue',  MANAGE_FOR.cpCareerMap, skillResources.listMappableResources);
+router.post('/skill-resources',           MANAGE_FOR.cpCareerMap, skillResources.createSkillResource);
+router.put('/skill-resources/:id',        MANAGE_FOR.cpCareerMap, skillResources.updateSkillResource);
+router.delete('/skill-resources/:id',     MANAGE_FOR.cpCareerMap, skillResources.deleteSkillResource);
 
 // ── Skill check-ins and adaptive replanning (Module 13). A check-in is the SAME Module 6
 //    generator aimed at fewer skills; it never writes a score and never replans. New evidence
@@ -444,8 +449,8 @@ router.get('/me/reassessment/history',             MEMBER, reassessment.getMyRea
 router.get('/me/reassessment/:attemptId/result',   MEMBER, reassessment.getMyReassessmentResult);
 router.get('/me/roadmap/replan-status',            MEMBER, reassessment.getReplanStatus);
 
-router.get('/students/:studentId/reassessment',           MANAGE, reassessment.getStudentReassessment);
-router.post('/students/:studentId/reassessment/override', MANAGE, reassessment.overrideReassessment);
+router.get('/students/:studentId/reassessment',           MANAGE_FOR.cpMembers, reassessment.getStudentReassessment);
+router.post('/students/:studentId/reassessment/override', MANAGE_FOR.cpMembers, reassessment.overrideReassessment);
 
 // ── Placement readiness (Module 14). THREE figures, never blended: can you do the job
 //    (Module 8), does your resume show it, and can you show it under interview conditions.
@@ -455,7 +460,7 @@ router.post('/students/:studentId/reassessment/override', MANAGE, reassessment.o
 router.get('/me/placement-readiness',    MEMBER, placement.getMyPlacementReadiness);
 router.get('/me/resume-readiness',       MEMBER, placement.getMyResumeReadiness);
 router.get('/me/interview/coverage',     MEMBER, placement.getMyInterviewCoverage);
-router.get('/students/:studentId/placement-readiness', MANAGE, placement.getStudentPlacementReadiness);
+router.get('/students/:studentId/placement-readiness', MANAGE_FOR.cpMembers, placement.getStudentPlacementReadiness);
 
 /**
  * The ninety-day spine. Read only — nothing here creates a plan, because there is nothing to
@@ -463,7 +468,7 @@ router.get('/students/:studentId/placement-readiness', MANAGE, placement.getStud
  */
 router.get('/me/spine',                         MEMBER, spine.getMySpine);
 /** For the people authoring the curriculum, not for a student. */
-router.get('/spine/coverage',                   MANAGE, spine.getSpineCoverage);
+router.get('/spine/coverage',                   MANAGE_FOR.cpCareerMap, spine.getSpineCoverage);
 
 /**
  * Authoring the mega curriculum's Learning Units. MANAGE throughout — these routes decide what
@@ -475,22 +480,22 @@ router.get('/spine/coverage',                   MANAGE, spine.getSpineCoverage);
  * NOTHING HERE SCHEDULES. There is no route that sets a day number, because a Learning Unit
  * belongs to the master curriculum and a day belongs to one student's plan.
  */
-router.get('/curriculum-units',                     MANAGE, learningUnits2.listUnits);
-router.get('/curriculum-units/options',             MANAGE, learningUnits2.unitOptions);
+router.get('/curriculum-units',                     MANAGE_FOR.cpContent, learningUnits2.listUnits);
+router.get('/curriculum-units/options',             MANAGE_FOR.cpContent, learningUnits2.unitOptions);
 // What a student of each direction actually receives — the personalisation gap, measured.
-router.get('/curriculum-units/direction-coverage', MANAGE, learningUnits2.directionCoverageReport);
-router.post('/curriculum-units/reorder',            MANAGE, express.json(), learningUnits2.reorderUnits);
-router.get('/curriculum-units/:unitCode',           MANAGE, learningUnits2.getUnit);
-router.put('/curriculum-units/:unitCode',           MANAGE, express.json(), learningUnits2.saveUnit);
-router.post('/curriculum-units/:unitCode/publish',  MANAGE, learningUnits2.publishUnit);
-router.post('/curriculum-units/:unitCode/status',   MANAGE, express.json(), learningUnits2.setUnitStatus);
-router.get('/curriculum-units/:unitCode/content',    MANAGE, learningUnits2.unitContent);
+router.get('/curriculum-units/direction-coverage', MANAGE_FOR.cpContent, learningUnits2.directionCoverageReport);
+router.post('/curriculum-units/reorder',            MANAGE_FOR.cpContent, express.json(), learningUnits2.reorderUnits);
+router.get('/curriculum-units/:unitCode',           MANAGE_FOR.cpContent, learningUnits2.getUnit);
+router.put('/curriculum-units/:unitCode',           MANAGE_FOR.cpContent, express.json(), learningUnits2.saveUnit);
+router.post('/curriculum-units/:unitCode/publish',  MANAGE_FOR.cpContent, learningUnits2.publishUnit);
+router.post('/curriculum-units/:unitCode/status',   MANAGE_FOR.cpContent, express.json(), learningUnits2.setUnitStatus);
+router.get('/curriculum-units/:unitCode/content',    MANAGE_FOR.cpContent, learningUnits2.unitContent);
 // Read-only: the day this unit gives a student, built as a journey day is built. Writes nothing.
-router.get('/curriculum-units/:unitCode/student-preview', MANAGE, learningUnits2.unitStudentPreview);
+router.get('/curriculum-units/:unitCode/student-preview', MANAGE_FOR.cpContent, learningUnits2.unitStudentPreview);
 /* Registered BEFORE the :contentId route below, or "reorder" is read as a content id. */
-router.post('/curriculum-units/:unitCode/content/reorder', MANAGE, express.json(), learningUnits2.reorderUnitContent);
-router.post('/curriculum-units/:unitCode/content/:contentId',   MANAGE, learningUnits2.attachContent);
-router.delete('/curriculum-units/:unitCode/content/:contentId', MANAGE, learningUnits2.detachContent);
+router.post('/curriculum-units/:unitCode/content/reorder', MANAGE_FOR.cpContent, express.json(), learningUnits2.reorderUnitContent);
+router.post('/curriculum-units/:unitCode/content/:contentId',   MANAGE_FOR.cpContent, learningUnits2.attachContent);
+router.delete('/curriculum-units/:unitCode/content/:contentId', MANAGE_FOR.cpContent, learningUnits2.detachContent);
 
 /**
  * ── What a unit MEASURES with ──
@@ -503,30 +508,30 @@ router.delete('/curriculum-units/:unitCode/content/:contentId', MANAGE, learning
  * could not be published, and no screen explained why. The rule is unchanged; the missing
  * half was the binding.
  */
-router.get('/curriculum-units/:unitCode/assessments',    MANAGE, learningUnits2.unitAssessments);
-router.post('/curriculum-units/:unitCode/assessments',   MANAGE, express.json(), learningUnits2.createUnitAssessment);
-router.post('/curriculum-units/:unitCode/quiz/:quizId',           MANAGE, learningUnits2.bindUnitQuiz);
-router.delete('/curriculum-units/:unitCode/quiz/:quizId',         MANAGE, learningUnits2.unbindUnitQuiz);
-router.post('/curriculum-units/:unitCode/assignment/:assignmentId',   MANAGE, learningUnits2.bindUnitAssignment);
-router.delete('/curriculum-units/:unitCode/assignment/:assignmentId', MANAGE, learningUnits2.unbindUnitAssignment);
+router.get('/curriculum-units/:unitCode/assessments',    MANAGE_FOR.cpContent, learningUnits2.unitAssessments);
+router.post('/curriculum-units/:unitCode/assessments',   MANAGE_FOR.cpContent, express.json(), learningUnits2.createUnitAssessment);
+router.post('/curriculum-units/:unitCode/quiz/:quizId',           MANAGE_FOR.cpContent, learningUnits2.bindUnitQuiz);
+router.delete('/curriculum-units/:unitCode/quiz/:quizId',         MANAGE_FOR.cpContent, learningUnits2.unbindUnitQuiz);
+router.post('/curriculum-units/:unitCode/assignment/:assignmentId',   MANAGE_FOR.cpContent, learningUnits2.bindUnitAssignment);
+router.delete('/curriculum-units/:unitCode/assignment/:assignmentId', MANAGE_FOR.cpContent, learningUnits2.unbindUnitAssignment);
 
-router.delete('/curriculum-units/:unitCode',        MANAGE, learningUnits2.deleteUnit);
+router.delete('/curriculum-units/:unitCode',        MANAGE_FOR.cpContent, learningUnits2.deleteUnit);
 
 router.get('/me/roadmap',                       MEMBER, careerRoadmap.getMyRoadmap);
 router.post('/me/roadmap/generate',             MEMBER, careerRoadmap.generateMyRoadmap);
 router.post('/me/roadmap/replan',               MEMBER, careerRoadmap.replanMyRoadmap);
-router.get('/students/:studentId/roadmap',      MANAGE, careerRoadmap.getStudentRoadmap);
-router.get('/students/:studentId/foundation-journey', MANAGE, foundationJourney.getStudentJourney);
+router.get('/students/:studentId/roadmap',      MANAGE_FOR.cpMembers, careerRoadmap.getStudentRoadmap);
+router.get('/students/:studentId/foundation-journey', MANAGE_FOR.cpMembers, foundationJourney.getStudentJourney);
 
 // ── Student skill evidence and Skill DNA (Module 7). Submitting grades the paper and
 //    projects it into canonical skill evidence; the projection is derived state and never
 //    costs a student their submission if it fails. Rebuild/reproject are admin recovery. ──
 router.post('/me/assessment/personalized/submit', MEMBER, skillDna.submitPersonalizedAssessment);
 router.get('/me/skills',                          MEMBER, skillDna.getMySkillDna);
-router.get('/students/:studentId/skills',                    MANAGE, skillDna.getStudentSkillDna);
-router.get('/students/:studentId/skills/:skillKey',          MANAGE, skillDna.explainStudentSkill);
-router.post('/students/:studentId/skills/rebuild',           MANAGE, skillDna.rebuildStudentSkillDna);
-router.post('/assessments/:assessmentId/reproject',          MANAGE, skillDna.reprojectAssessment);
+router.get('/students/:studentId/skills',                    MANAGE_FOR.cpMembers, skillDna.getStudentSkillDna);
+router.get('/students/:studentId/skills/:skillKey',          MANAGE_FOR.cpMembers, skillDna.explainStudentSkill);
+router.post('/students/:studentId/skills/rebuild',           MANAGE_FOR.cpMembers, skillDna.rebuildStudentSkillDna);
+router.post('/assessments/:assessmentId/reproject',          MANAGE_FOR.cpAssessment, skillDna.reprojectAssessment);
 
 // ── Personalised assessment generation (Module 6). A SEPARATE flow: the existing
 //    assessment endpoints are untouched, so incomplete evidence mapping cannot break a
@@ -541,9 +546,9 @@ router.post('/me/orientation/recording', MEMBER, orientationUpload.single('recor
 router.get('/me/orientation/recording/:day/:itemKey', MEMBER, orientation.streamRecording);
 router.post('/me/orientation/item',    MEMBER, orientation.completeItem);
 router.post('/me/orientation/day',     MEMBER, orientation.completeDay);
-router.get('/orientation',             MANAGE, orientation.getProgram);
-router.put('/orientation',             MANAGE, orientation.saveProgram);
-router.post('/orientation/reset',      MANAGE, orientation.resetProgram);
+router.get('/orientation',             MANAGE_FOR.cpContent, orientation.getProgram);
+router.put('/orientation',             MANAGE_FOR.cpContent, orientation.saveProgram);
+router.post('/orientation/reset',      MANAGE_FOR.cpContent, orientation.resetProgram);
 
 router.get('/me/placement-check/day/:day',  MEMBER, placementCheck.checkPlacementAvailability);
 router.post('/me/placement-check/start',     MEMBER, placementCheck.startPlacement);
@@ -553,19 +558,19 @@ router.post('/me/assessment/personalized/start', MEMBER, rateLimit('aiGenerate')
 // refresh, a dead battery or a shared machine cannot cost somebody a half-finished paper.
 router.put('/me/assessment/personalized/answers', MEMBER, personalized.savePersonalizedAnswers);
 router.get('/me/assessment/personalized',        MEMBER, personalized.getMyPersonalizedAssessment);
-router.post('/assessment/personalized/preview',  MANAGE, personalized.previewPersonalizedAssessment);
-router.get('/assessment/personalized/policies',  MANAGE, personalized.listPolicies);
+router.post('/assessment/personalized/preview',  MANAGE_FOR.cpAssessment, personalized.previewPersonalizedAssessment);
+router.get('/assessment/personalized/policies',  MANAGE_FOR.cpAssessment, personalized.listPolicies);
 // Admin-editable paper shape — question count, skill count, difficulty mix, optional timer.
-router.get('/assessment/policies/editable',      MANAGE, personalized.getEditablePolicies);
-router.put('/assessment/policies/editable',      MANAGE, personalized.saveEditablePolicies);
+router.get('/assessment/policies/editable',      MANAGE_FOR.cpAssessment, personalized.getEditablePolicies);
+router.put('/assessment/policies/editable',      MANAGE_FOR.cpAssessment, personalized.saveEditablePolicies);
 
 // ── Assessment skill evidence: which content measures which canonical skill. Additive
 //    configuration — the live assessment generator does not read it, so incomplete
 //    mapping can never break a working exam. Tenant-scoped, following the content. ──
-router.get('/skill-evidence',            MANAGE, skillEvidence.listEvidence);
-router.get('/skill-evidence/coverage',   MANAGE, skillEvidence.coverage);
-router.get('/skill-evidence/candidates', MANAGE, skillEvidence.candidates);
-router.get('/skill-evidence/skills',     MANAGE, skillEvidence.mappableSkills);
+router.get('/skill-evidence',            MANAGE_FOR.cpCareerMap, skillEvidence.listEvidence);
+router.get('/skill-evidence/coverage',   MANAGE_FOR.cpCareerMap, skillEvidence.coverage);
+router.get('/skill-evidence/candidates', MANAGE_FOR.cpCareerMap, skillEvidence.candidates);
+router.get('/skill-evidence/skills',     MANAGE_FOR.cpCareerMap, skillEvidence.mappableSkills);
 /**
  * AI question drafting. Generation spends money and is limited; review never is — an admin
  * halfway through a queue of forty drafts must not be interrupted by a 429.
@@ -577,75 +582,75 @@ router.get('/skill-evidence/skills',     MANAGE, skillEvidence.mappableSkills);
  * a draft was approved there was no route that could reach it again, so targeting could not
  * be changed and a typo could not be fixed.
  */
-router.get('/question-bank',                MANAGE, questionBank.list);
-router.post('/question-bank/targeting',     MANAGE, questionBank.bulkTargeting);
-router.post('/question-bank/active',        MANAGE, questionBank.setActive);
-router.post('/question-bank/:sourceId/copy', MANAGE, questionBank.copy);
+router.get('/question-bank',                MANAGE_FOR.cpAssessment, questionBank.list);
+router.post('/question-bank/targeting',     MANAGE_FOR.cpAssessment, questionBank.bulkTargeting);
+router.post('/question-bank/active',        MANAGE_FOR.cpAssessment, questionBank.setActive);
+router.post('/question-bank/:sourceId/copy', MANAGE_FOR.cpAssessment, questionBank.copy);
 // Registered after the fixed paths above so 'targeting' and 'active' are never read as ids.
-router.put('/question-bank/:sourceType/:sourceId',    MANAGE, questionBank.update);
-router.delete('/question-bank/:sourceType/:sourceId', MANAGE, questionBank.remove);
+router.put('/question-bank/:sourceType/:sourceId',    MANAGE_FOR.cpAssessment, questionBank.update);
+router.delete('/question-bank/:sourceType/:sourceId', MANAGE_FOR.cpAssessment, questionBank.remove);
 
-router.get('/question-drafts',              MANAGE, questionDrafts.list);
-router.get('/question-drafts/coverage',     MANAGE, questionDrafts.coverage);
-router.get('/question-drafts/role-coverage', MANAGE, questionDrafts.roleCoverage);
-router.post('/question-drafts/generate',    MANAGE, rateLimit('adminAi'), questionDrafts.generate);
+router.get('/question-drafts',              MANAGE_FOR.cpAssessment, questionDrafts.list);
+router.get('/question-drafts/coverage',     MANAGE_FOR.cpAssessment, questionDrafts.coverage);
+router.get('/question-drafts/role-coverage', MANAGE_FOR.cpAssessment, questionDrafts.roleCoverage);
+router.post('/question-drafts/generate',    MANAGE_FOR.cpAssessment, rateLimit('adminAi'), questionDrafts.generate);
 // Bulk approve and manual authoring sit BEFORE the '/:id/...' routes so 'approve-bulk'
 // and 'manual' are never captured as an id.
-router.get('/question-drafts/audiences',      MANAGE, questionDrafts.audiences);
-router.post('/question-drafts/approve-bulk', MANAGE, questionDrafts.approveBulk);
-router.post('/question-drafts/manual',       MANAGE, questionDrafts.createManual);
-router.post('/question-drafts/:id/approve', MANAGE, questionDrafts.approve);
-router.post('/question-drafts/:id/reject',  MANAGE, questionDrafts.reject);
+router.get('/question-drafts/audiences',      MANAGE_FOR.cpAssessment, questionDrafts.audiences);
+router.post('/question-drafts/approve-bulk', MANAGE_FOR.cpAssessment, questionDrafts.approveBulk);
+router.post('/question-drafts/manual',       MANAGE_FOR.cpAssessment, questionDrafts.createManual);
+router.post('/question-drafts/:id/approve', MANAGE_FOR.cpAssessment, questionDrafts.approve);
+router.post('/question-drafts/:id/reject',  MANAGE_FOR.cpAssessment, questionDrafts.reject);
 
-router.get('/skill-evidence/:sourceType/:sourceId', MANAGE, skillEvidence.getItemEvidence);
-router.put('/skill-evidence/:sourceType/:sourceId', MANAGE, skillEvidence.saveItemEvidence);
+router.get('/skill-evidence/:sourceType/:sourceId', MANAGE_FOR.cpCareerMap, skillEvidence.getItemEvidence);
+router.put('/skill-evidence/:sourceType/:sourceId', MANAGE_FOR.cpCareerMap, skillEvidence.saveItemEvidence);
 
 // ── Role skill blueprints: what each role expects. Tenant's own configuration, so
 //    MANAGE rather than the SUPER_ADMIN the shared skill catalogue requires — referencing
 //    a skill here grants nothing over the skill itself. ──
-router.get('/role-blueprints',                   MANAGE, roleBlueprints.listBlueprints);
-router.get('/role-blueprints/:roleKey',          MANAGE, roleBlueprints.getBlueprint);
-router.put('/role-blueprints/:roleKey',          MANAGE, roleBlueprints.saveBlueprint);
-router.post('/role-blueprints/:roleKey/publish', MANAGE, roleBlueprints.setPublished);
-router.post('/role-blueprints/seed',             MANAGE, roleBlueprints.seedBlueprints);
+router.get('/role-blueprints',                   MANAGE_FOR.cpCareerMap, roleBlueprints.listBlueprints);
+router.get('/role-blueprints/:roleKey',          MANAGE_FOR.cpCareerMap, roleBlueprints.getBlueprint);
+router.put('/role-blueprints/:roleKey',          MANAGE_FOR.cpCareerMap, roleBlueprints.saveBlueprint);
+router.post('/role-blueprints/:roleKey/publish', MANAGE_FOR.cpCareerMap, roleBlueprints.setPublished);
+router.post('/role-blueprints/seed',             MANAGE_FOR.cpCareerMap, roleBlueprints.seedBlueprints);
 
-router.get('/career-roles',            MANAGE, careerRoles.listRoles);
-router.get('/career-roles/:key/usage', MANAGE, careerRoles.roleUsage);
-router.post('/career-roles',           MANAGE, careerRoles.createRole);
-router.put('/career-roles/:id',        MANAGE, careerRoles.updateRole);
-router.delete('/career-roles/:id',     MANAGE, careerRoles.deleteRole);
+router.get('/career-roles',            MANAGE_FOR.cpCareerMap, careerRoles.listRoles);
+router.get('/career-roles/:key/usage', MANAGE_FOR.cpCareerMap, careerRoles.roleUsage);
+router.post('/career-roles',           MANAGE_FOR.cpCareerMap, careerRoles.createRole);
+router.put('/career-roles/:id',        MANAGE_FOR.cpCareerMap, careerRoles.updateRole);
+router.delete('/career-roles/:id',     MANAGE_FOR.cpCareerMap, careerRoles.deleteRole);
 
-router.get('/pathway-rules/vocabulary',  MANAGE, pathwayRules.getRuleVocabulary);
-router.post('/pathway-rules/preview',    MANAGE, pathwayRules.previewPathwayRules);
+router.get('/pathway-rules/vocabulary',  MANAGE_FOR.cpPathways, pathwayRules.getRuleVocabulary);
+router.post('/pathway-rules/preview',    MANAGE_FOR.cpPathways, pathwayRules.previewPathwayRules);
 // Two routes rather than one flag: seeing who WOULD move is a MANAGE act, actually
 // moving them is a different level of trust, and separate guards say so without
 // re-implementing permission resolution inside a controller.
-router.post('/pathway-rules/reevaluate',       MANAGE,  pathwayRules.reevaluatePathways);
+router.post('/pathway-rules/reevaluate',       MANAGE_FOR.cpPathways,  pathwayRules.reevaluatePathways);
 router.post('/pathway-rules/reevaluate/apply', REROUTE, pathwayRules.applyReevaluation);
-router.post('/pathway-rules/draft',      MANAGE, pathwayRules.draftPathwayRules);
+router.post('/pathway-rules/draft',      MANAGE_FOR.cpPathways, pathwayRules.draftPathwayRules);
 
 router.get('/funnel',                  FUNNEL, funnel.getFunnel);
 router.get('/funnel/:stage',           FUNNEL, funnel.getStageMembers);
 router.get('/funnel/:stage/export',    FUNNEL, funnel.exportStage);
 
-router.get('/students',  roleGuard(['view_passport_members', 'manage_passport']), ctrl.listStudents);
-router.get('/students/:studentId/answers', roleGuard(['view_passport_members', 'manage_passport']), ctrl.listStudentAnswers);
-router.get('/students/:studentId/interviews', roleGuard(['view_passport_members', 'manage_passport']), ctrl.listStudentInterviews);
+router.get('/students',  roleGuard(['view_passport_members', 'manage_passport', 'manage_passport_members']), ctrl.listStudents);
+router.get('/students/:studentId/answers', roleGuard(['view_passport_members', 'manage_passport', 'manage_passport_members']), ctrl.listStudentAnswers);
+router.get('/students/:studentId/interviews', roleGuard(['view_passport_members', 'manage_passport', 'manage_passport_members']), ctrl.listStudentInterviews);
 router.post('/convert',  roleGuard(['convert_passport_member']), ctrl.convertStudent);
 
 // Member management. Create/edit/deactivate sit with manage_passport; hard delete is
 // refused server-side for anyone who has paid or been assessed.
-router.post('/members',                MANAGE, ctrl.createMember);
-router.put('/members/:userId',         MANAGE, ctrl.updateMember);
-router.post('/members/:userId/active', MANAGE, ctrl.setMemberActive);
+router.post('/members',                MANAGE_FOR.cpMembers, ctrl.createMember);
+router.put('/members/:userId',         MANAGE_FOR.cpMembers, ctrl.updateMember);
+router.post('/members/:userId/active', MANAGE_FOR.cpMembers, ctrl.setMemberActive);
 /**
  * Complimentary membership. Separate from `/active` above, which controls LOGIN — these
  * are different facts and staff need both: a member can be deactivated while their
  * membership runs, or hold a grant while their login is disabled.
  */
-router.post('/members/:userId/grant',    MANAGE, ctrl.grantMembership);
-router.delete('/members/:userId/grant',  MANAGE, ctrl.revokeMembership);
-router.delete('/members/:userId',      MANAGE, ctrl.deleteMember);
+router.post('/members/:userId/grant',    MANAGE_FOR.cpMembers, ctrl.grantMembership);
+router.delete('/members/:userId/grant',  MANAGE_FOR.cpMembers, ctrl.revokeMembership);
+router.delete('/members/:userId',      MANAGE_FOR.cpMembers, ctrl.deleteMember);
 
 // Coins — the member's balance, and the admin's dials. Earning rules are data, so
 // switching an event on or changing what it pays needs no deploy.
@@ -679,20 +684,20 @@ router.get('/mock-test/:id',                      MEMBER, mt.getMockTest);
 router.put('/mock-test/:id/answer',               MEMBER, mt.saveAnswer);
 router.post('/mock-test/:id/submit',              MEMBER, mt.submitMockTest);
 
-router.get('/company-admin',                       MANAGE, cq.getAdmin);
-router.put('/company-admin/taxonomy',              MANAGE, cq.saveTaxonomy);
-router.post('/company-admin/companies',            MANAGE, cq.saveCompany);
-router.put('/company-admin/companies/:id',         MANAGE, cq.saveCompany);
-router.delete('/company-admin/companies/:id',      MANAGE, cq.deleteCompany);
-router.get('/company-admin/:slug/questions',       MANAGE, cq.adminQuestions);
-router.post('/company-admin/:slug/questions',      MANAGE, cq.saveQuestions);
-router.post('/company-admin/:slug/import',         MANAGE, cq.importQuestions);
-router.post('/company-admin/:slug/predict',        MANAGE, rateLimit('adminAi'), cq.predict);
-router.post('/company-admin/bulk',                 MANAGE, cq.bulkCreate);
-router.get('/company-admin/readiness',             MANAGE, cq.readinessBoard);
-router.post('/company-admin/:slug/draft-profile',  MANAGE, rateLimit('adminAi'), cq.draftProfile);
-router.put('/company-admin/:slug/verify',          MANAGE, cq.verifyFields);
-router.put('/company-admin/:slug/pattern',         MANAGE, cq.savePattern);
+router.get('/company-admin',                       MANAGE_FOR.cpContent, cq.getAdmin);
+router.put('/company-admin/taxonomy',              MANAGE_FOR.cpContent, cq.saveTaxonomy);
+router.post('/company-admin/companies',            MANAGE_FOR.cpContent, cq.saveCompany);
+router.put('/company-admin/companies/:id',         MANAGE_FOR.cpContent, cq.saveCompany);
+router.delete('/company-admin/companies/:id',      MANAGE_FOR.cpContent, cq.deleteCompany);
+router.get('/company-admin/:slug/questions',       MANAGE_FOR.cpContent, cq.adminQuestions);
+router.post('/company-admin/:slug/questions',      MANAGE_FOR.cpContent, cq.saveQuestions);
+router.post('/company-admin/:slug/import',         MANAGE_FOR.cpContent, cq.importQuestions);
+router.post('/company-admin/:slug/predict',        MANAGE_FOR.cpContent, rateLimit('adminAi'), cq.predict);
+router.post('/company-admin/bulk',                 MANAGE_FOR.cpContent, cq.bulkCreate);
+router.get('/company-admin/readiness',             MANAGE_FOR.cpContent, cq.readinessBoard);
+router.post('/company-admin/:slug/draft-profile',  MANAGE_FOR.cpContent, rateLimit('adminAi'), cq.draftProfile);
+router.put('/company-admin/:slug/verify',          MANAGE_FOR.cpContent, cq.verifyFields);
+router.put('/company-admin/:slug/pattern',         MANAGE_FOR.cpContent, cq.savePattern);
 
 // What a company expects, in canonical skills. Draft → publish, because a half-finished set
 // of weights must not move every student's company readiness the moment it is typed.
@@ -702,43 +707,43 @@ router.put('/company-admin/:slug/pattern',         MANAGE, cq.savePattern);
 // CareerPilot analytics. Admin-only, tenant from the token, grouped by the question an
 // admin is asking rather than by collection. Every response carries its range, generation
 // time and coverage — including which figures are unavailable and why.
-router.get('/admin/analytics/overview',       MANAGE, cpanalytics.overview);
-router.get('/admin/analytics/skills',         MANAGE, cpanalytics.skills);
-router.get('/admin/analytics/progress',       MANAGE, cpanalytics.progress);
-router.get('/admin/analytics/engagement',     MANAGE, cpanalytics.engagement);
-router.get('/admin/analytics/economy',        MANAGE, cpanalytics.economy);
-router.get('/admin/analytics/placement',      MANAGE, cpanalytics.placement);
+router.get('/admin/analytics/overview',       MANAGE_FOR.cpMembers, cpanalytics.overview);
+router.get('/admin/analytics/skills',         MANAGE_FOR.cpMembers, cpanalytics.skills);
+router.get('/admin/analytics/progress',       MANAGE_FOR.cpMembers, cpanalytics.progress);
+router.get('/admin/analytics/engagement',     MANAGE_FOR.cpMembers, cpanalytics.engagement);
+router.get('/admin/analytics/economy',        MANAGE_FOR.cpMembers, cpanalytics.economy);
+router.get('/admin/analytics/placement',      MANAGE_FOR.cpMembers, cpanalytics.placement);
 
-router.get('/admin/health/configuration',     MANAGE, cphealth.configuration);
-router.get('/admin/health/launch-readiness',  MANAGE, cphealth.launchReadiness);
-router.get('/admin/health/data-integrity',    MANAGE, cphealth.dataIntegrity);
+router.get('/admin/health/configuration',     MANAGE_FOR.cpMembers, cphealth.configuration);
+router.get('/admin/health/launch-readiness',  MANAGE_FOR.cpMembers, cphealth.launchReadiness);
+router.get('/admin/health/data-integrity',    MANAGE_FOR.cpMembers, cphealth.dataIntegrity);
 
-router.get('/company-admin/:slug/profiles',                 MANAGE, cprofile.listProfiles);
-router.put('/company-admin/:slug/profiles/:roleKey',        MANAGE, cprofile.saveDraft);
-router.post('/company-admin/:slug/profiles/:roleKey/publish', MANAGE, cprofile.publish);
-router.delete('/company-admin/:slug/profiles/:id',          MANAGE, cprofile.discardDraft);
-router.get('/company-admin/experiences',           MANAGE, cq.listExperiences);
-router.put('/company-admin/experiences/:id',       MANAGE, cq.moderateExperience);
-router.put('/company-admin/questions/:id',         MANAGE, cq.updateQuestion);
-router.delete('/company-admin/questions/:id',      MANAGE, cq.deleteQuestion);
+router.get('/company-admin/:slug/profiles',                 MANAGE_FOR.cpContent, cprofile.listProfiles);
+router.put('/company-admin/:slug/profiles/:roleKey',        MANAGE_FOR.cpContent, cprofile.saveDraft);
+router.post('/company-admin/:slug/profiles/:roleKey/publish', MANAGE_FOR.cpContent, cprofile.publish);
+router.delete('/company-admin/:slug/profiles/:id',          MANAGE_FOR.cpContent, cprofile.discardDraft);
+router.get('/company-admin/experiences',           MANAGE_FOR.cpContent, cq.listExperiences);
+router.put('/company-admin/experiences/:id',       MANAGE_FOR.cpContent, cq.moderateExperience);
+router.put('/company-admin/questions/:id',         MANAGE_FOR.cpContent, cq.updateQuestion);
+router.delete('/company-admin/questions/:id',      MANAGE_FOR.cpContent, cq.deleteQuestion);
 
 router.get('/news',                  MEMBER, news.feed);
-router.get('/news/admin',            MANAGE, news.list);
-router.post('/news/admin/draft',     MANAGE, news.draft);
-router.post('/news/admin',           MANAGE, news.create);
-router.put('/news/admin/:id',        MANAGE, news.update);
-router.delete('/news/admin/:id',     MANAGE, news.remove);
+router.get('/news/admin',            MANAGE_FOR.cpSetup, news.list);
+router.post('/news/admin/draft',     MANAGE_FOR.cpSetup, news.draft);
+router.post('/news/admin',           MANAGE_FOR.cpSetup, news.create);
+router.put('/news/admin/:id',        MANAGE_FOR.cpSetup, news.update);
+router.delete('/news/admin/:id',     MANAGE_FOR.cpSetup, news.remove);
 router.get('/coins',                MEMBER, coins.myCoins);
-router.get('/coins/admin',          MANAGE, coins.getAdmin);
-router.put('/coins/admin/config',   MANAGE, coins.saveConfig);
-router.put('/coins/admin/rules',    MANAGE, coins.saveRules);
-router.get('/coins/admin/ledger',   MANAGE, coins.adminLedger);
+router.get('/coins/admin',          MANAGE_FOR.cpSetup, coins.getAdmin);
+router.put('/coins/admin/config',   MANAGE_FOR.cpSetup, coins.saveConfig);
+router.put('/coins/admin/rules',    MANAGE_FOR.cpSetup, coins.saveRules);
+router.get('/coins/admin/ledger',   MANAGE_FOR.cpSetup, coins.adminLedger);
 
 // Admin content — Pathways + Mission pools (what the Passport admin screens edit)
-router.get('/content',            MANAGE, content.getContent);
-router.put('/content',            MANAGE, content.saveContent);
-router.post('/content/reset',     MANAGE, content.resetContent);
-router.post('/content/preview',   MANAGE, content.previewContent);
+router.get('/content',            MANAGE_FOR.cpContent, content.getContent);
+router.put('/content',            MANAGE_FOR.cpContent, content.saveContent);
+router.post('/content/reset',     MANAGE_FOR.cpContent, content.resetContent);
+router.post('/content/preview',   MANAGE_FOR.cpContent, content.previewContent);
 
 // Student
 router.get('/me',        MEMBER, ctrl.getMyStatus);
@@ -828,13 +833,13 @@ router.post('/resume/improve',   MEMBER, resume.improve);
 
 // Assessment — admin bank management
 // Career-stage tagging. Admin-only: it decides which students see which content.
-router.get('/staging', MANAGE, staging.getStaging);
-router.put('/staging', MANAGE, staging.setStaging);
+router.get('/staging', MANAGE_FOR.cpContent, staging.getStaging);
+router.put('/staging', MANAGE_FOR.cpContent, staging.setStaging);
 
-router.get('/assessment/paper-design', MANAGE, assess.getPaperDesign);
+router.get('/assessment/paper-design', MANAGE_FOR.cpAssessment, assess.getPaperDesign);
 router.put('/assessment/categories',   MANAGE_CATEGORIES, assess.saveCategories);
-router.get('/assessment/admin',  MANAGE, assess.getAssessmentAdmin);
-router.put('/assessment/admin',  MANAGE, assess.saveAssessment);
-router.post('/assessment/reset', MANAGE, assess.resetAssessment);
+router.get('/assessment/admin',  MANAGE_FOR.cpAssessment, assess.getAssessmentAdmin);
+router.put('/assessment/admin',  MANAGE_FOR.cpAssessment, assess.saveAssessment);
+router.post('/assessment/reset', MANAGE_FOR.cpAssessment, assess.resetAssessment);
 
 export default router;

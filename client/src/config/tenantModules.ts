@@ -12,6 +12,9 @@ export const ORIGINAL_MODULE_KEYS = [
   'careerPilot', 'aiCommunicationLab',
 ] as const;
 
+/** The CareerPilot features: parts of CareerPilot, never on while CareerPilot itself is off. */
+export const CAREERPILOT_FEATURE_KEYS = ['cpMembers', 'cpSetup', 'cpPathways', 'cpCareerMap', 'cpAssessment', 'cpContent', 'cpRoadmap', 'cpPractice', 'cpRewards'] as const;
+
 export const MODULE_PARENT = {
   skillAssessment: 'leads',
   whatsapp: 'leads',
@@ -26,6 +29,16 @@ export const MODULE_PARENT = {
   codeVisualizer: 'codeAssessments',
   techBattles: 'codeAssessments',
   hackathons: 'codeAssessments',
+  // CareerPilot, one feature at a time. Each follows careerPilot until the platform administrator sets it.
+  cpMembers: 'careerPilot',
+  cpSetup: 'careerPilot',
+  cpPathways: 'careerPilot',
+  cpCareerMap: 'careerPilot',
+  cpAssessment: 'careerPilot',
+  cpContent: 'careerPilot',
+  cpRoadmap: 'careerPilot',
+  cpPractice: 'careerPilot',
+  cpRewards: 'careerPilot',
 } as const;
 
 /** The institute-admin menu. Unset reads as ON for institutes that existed before; new ones start with all off. */
@@ -45,6 +58,7 @@ export function effectiveModules(stored?: Partial<Record<string, unknown>> | nul
   for (const [k, parent] of Object.entries(MODULE_PARENT) as [keyof typeof MODULE_PARENT, ModuleKey][]) {
     out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : out[parent];
   }
+  for (const k of CAREERPILOT_FEATURE_KEYS) out[k] = out.careerPilot && out[k];
   for (const k of ADMIN_MODULE_KEYS) out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : true;
   return out;
 }
@@ -80,6 +94,16 @@ export const MODULE_DEFS: ModuleDef[] = [
   { group: 'Careers & placement', key: 'interviewHub', label: 'Interview Hub', icon: 'fa-solid fa-comments', desc: 'Interview experiences & question books' },
   { group: 'Careers & placement', key: 'mockInterviews', label: 'Mock Interviews', icon: 'fa-solid fa-user-tie', desc: 'AI & scheduled mock interviews' },
   { group: 'Careers & placement', key: 'careerPilot', label: 'CareerPilot', icon: 'fa-solid fa-compass', desc: 'AI Mentor, Job Tracker, Project Builder, Career Profile' },
+
+  { group: 'CareerPilot features', key: 'cpMembers', label: 'CareerPilot: Members & activity', icon: 'fa-solid fa-id-card-clip', desc: 'Member list, activity, analytics, drop-off funnel, granting membership' },
+  { group: 'CareerPilot features', key: 'cpSetup', label: 'CareerPilot: Setup, coins & news', icon: 'fa-solid fa-sliders', desc: 'Configuration, coin rules, rewards and news' },
+  { group: 'CareerPilot features', key: 'cpPathways', label: 'CareerPilot: Pathways & missions', icon: 'fa-solid fa-route', desc: 'Pathways, pathway rules and daily missions' },
+  { group: 'CareerPilot features', key: 'cpCareerMap', label: 'CareerPilot: Roles & skills', icon: 'fa-solid fa-diagram-project', desc: 'Career roles, skill graph, role blueprints, skill evidence, stage curriculum' },
+  { group: 'CareerPilot features', key: 'cpAssessment', label: 'CareerPilot: Assessment & question bank', icon: 'fa-solid fa-list-check', desc: 'Assessment shape, coverage, preview, question drafting and bank' },
+  { group: 'CareerPilot features', key: 'cpContent', label: 'CareerPilot: Learning content', icon: 'fa-solid fa-layer-group', desc: 'Content builder, mega curriculum, orientation, learning studio, concepts, company questions' },
+  { group: 'CareerPilot features', key: 'cpRoadmap', label: 'CareerPilot: Member roadmap', icon: 'fa-solid fa-map', desc: 'Personal roadmap, plan and foundation journey for each member' },
+  { group: 'CareerPilot features', key: 'cpPractice', label: 'CareerPilot: Member practice & interviews', icon: 'fa-solid fa-microphone-lines', desc: 'Practice problems, mock tests, mock interviews, company prep' },
+  { group: 'CareerPilot features', key: 'cpRewards', label: 'CareerPilot: Member coins & rewards', icon: 'fa-solid fa-coins', desc: 'Coins, rewards, gamification and the leaderboard' },
 
   { group: 'Events', key: 'techBattles', label: 'Tech Battles', icon: 'fa-solid fa-trophy', desc: 'Public coding competitions' },
   { group: 'Events', key: 'hackathons', label: 'Hackathons', icon: 'fa-solid fa-laptop-code', desc: 'Paid team hackathons & exams' },
@@ -128,6 +152,8 @@ const PATH_MODULE: [string, ModuleKey][] = ([
   ['/admin/battles', 'techBattles'],
   ['/admin/hackathons', 'hackathons'],
   ['/admin/passport', 'careerPilot'], ['/admin/careerpilot', 'careerPilot'],
+  // each CareerPilot screen under its own switch (longest prefix wins)
+  ['/admin/passport/students', 'cpMembers'], ['/admin/passport/analytics', 'cpMembers'], ['/admin/passport/funnel', 'cpMembers'], ['/admin/passport/activity', 'cpMembers'], ['/admin/passport/config', 'cpSetup'], ['/admin/passport/coins', 'cpSetup'], ['/admin/passport/news', 'cpSetup'], ['/admin/passport/pathways', 'cpPathways'], ['/admin/passport/pathway-rules', 'cpPathways'], ['/admin/passport/missions', 'cpPathways'], ['/admin/passport/career-roles', 'cpCareerMap'], ['/admin/passport/skills', 'cpCareerMap'], ['/admin/passport/role-blueprints', 'cpCareerMap'], ['/admin/passport/skill-evidence', 'cpCareerMap'], ['/admin/passport/stage-skills', 'cpCareerMap'], ['/admin/passport/stage-curriculum', 'cpCareerMap'], ['/admin/passport/assessment', 'cpAssessment'], ['/admin/passport/assessment-coverage', 'cpAssessment'], ['/admin/passport/assessment-preview', 'cpAssessment'], ['/admin/passport/assessment-shape', 'cpAssessment'], ['/admin/passport/question-drafts', 'cpAssessment'], ['/admin/passport/question-bank', 'cpAssessment'], ['/admin/passport/content-builder', 'cpContent'], ['/admin/passport/mega-curriculum', 'cpContent'], ['/admin/passport/orientation', 'cpContent'], ['/admin/passport/learning-studio', 'cpContent'], ['/admin/passport/concepts', 'cpContent'], ['/admin/passport/curriculum', 'cpContent'], ['/admin/passport/roadmap-v2', 'cpContent'], ['/admin/passport/companies', 'cpContent'], ['/admin/careerpilot/staging', 'cpContent'], ['/admin/careerpilot/paper-design', 'cpAssessment'], ['/careerpilot/roadmap', 'cpRoadmap'], ['/careerpilot/practice', 'cpPractice'], ['/careerpilot/interview', 'cpPractice'], ['/careerpilot/coins', 'cpRewards'],
   ['/project-builder', 'careerPilot'], ['/job-tracker', 'careerPilot'], ['/ai-mentor', 'careerPilot'],
   ['/resume-builder', 'careerPilot'], ['/career-profile', 'careerPilot'], ['/admin/career-profiles', 'careerPilot'],
   ['/interview-question-bank', 'mockInterviews'], ['/scheduled-interviews', 'mockInterviews'], ['/my-interviews', 'mockInterviews'], ['/admin/interviews', 'mockInterviews'],

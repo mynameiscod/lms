@@ -8,6 +8,8 @@
  * module off gets none of the new ones. No data migration needed.
  */
 
+import { CP_API_PREFIXES, CP_API_BASES, CP_FEATURE_KEYS } from './careerPilotFeatures';
+
 export const ORIGINAL_MODULES = [
   'courses', 'attendance', 'quizzes', 'assignments', 'classRecordings', 'codeAssessments', 'mockInterviews',
   'placement', 'leads', 'marketing', 'feeManagement', 'thinkingLab', 'speakingPractice', 'resourceLibrary',
@@ -29,6 +31,16 @@ export const MODULE_PARENT = {
   codeVisualizer: 'codeAssessments',
   techBattles: 'codeAssessments',
   hackathons: 'codeAssessments',
+  // CareerPilot, one feature at a time (config/careerPilotFeatures.ts). Each follows careerPilot until set.
+  cpMembers: 'careerPilot',
+  cpSetup: 'careerPilot',
+  cpPathways: 'careerPilot',
+  cpCareerMap: 'careerPilot',
+  cpAssessment: 'careerPilot',
+  cpContent: 'careerPilot',
+  cpRoadmap: 'careerPilot',
+  cpPractice: 'careerPilot',
+  cpRewards: 'careerPilot',
 } as const;
 
 /**
@@ -53,6 +65,8 @@ export function effectiveModules(stored: Record<string, unknown> | null | undefi
   for (const [k, parent] of Object.entries(MODULE_PARENT) as [keyof typeof MODULE_PARENT, ModuleKey][]) {
     out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : out[parent];
   }
+  // A CareerPilot feature is part of CareerPilot: never on while CareerPilot itself is off.
+  for (const k of CP_FEATURE_KEYS) out[k as ModuleKey] = out.careerPilot && out[k as ModuleKey];
   for (const k of ADMIN_MODULES) out[k] = typeof raw[k] === 'boolean' ? (raw[k] as boolean) : true;
   return out;
 }
@@ -99,6 +113,9 @@ export const API_MODULE_PREFIXES: [string, ModuleKey][] = [
   ['/visualizer', 'codeVisualizer'],
   ['/battles', 'techBattles'],
   ['/hackathons', 'hackathons'], ['/hackathon-exams', 'hackathons'],
+  // CareerPilot: the whole product follows its module; each feature has its own switch on top (longest prefix wins)
+  ...CP_API_BASES.map((b): [string, ModuleKey] => [b, 'careerPilot']),
+  ...(CP_API_PREFIXES as [string, ModuleKey][]),
   ['/employees', 'employees'], ['/employee-portal', 'employees'], ['/employee-activity', 'employees'],
   ['/employee-expenses', 'expenses'], ['/company-expenses', 'expenses'],
   ['/ai-usage', 'aiSpend'], ['/admin/logs', 'apiLogs'], ['/tenant-integrations', 'integrations'], ['/concerns', 'concerns'],

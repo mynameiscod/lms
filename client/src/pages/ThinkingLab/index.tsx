@@ -77,6 +77,11 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
   const [submitResult, setSubmitResult] = useState<TLSubmitResult | null>(null);
   const [hints, setHints] = useState<string[]>([]);
   const [seconds, setSeconds] = useState(0);
+  /**
+   * CareerPilot opens on an overview of today's problem; the problem itself (and its timer) opens
+   * only when the member chooses "Start solving". The LMS keeps opening straight on the problem.
+   */
+  const [open, setOpen] = useState(!cp);
 
   const [tab, setTab] = useState<'challenge' | 'progress' | 'leaderboard' | 'analytics'>('challenge');
   const [celebration, setCelebration] = useState<TLSubmitResult | null>(null);
@@ -137,13 +142,14 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
 
   useEffect(() => { load(); }, [load]);
 
-  // Timer runs while an unsolved challenge is open.
+  // Timer runs while an unsolved challenge is open — in CareerPilot, only while its problem screen is on view.
+  const timing = !!challenge && !done && open && (!cp || tab === 'challenge');
   useEffect(() => {
-    if (challenge && !done) {
+    if (timing) {
       timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
       return () => clearInterval(timerRef.current);
     }
-  }, [challenge, done]);
+  }, [timing]);
 
   // Lazy-load Progress + Leaderboard when their tab opens.
   useEffect(() => { if (tab === 'progress' && !badges) thinkingLabApi.badges().then(setBadges).catch(() => setBadges([])); }, [tab, badges]);
@@ -258,7 +264,7 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
         // A member keeps today's solved problem on screen and is told when the next one comes.
         if (member) toast(r.message || 'Your next problem unlocks tomorrow.', 'info');
         else setEmpty('No more challenges right now — come back tomorrow!');
-      } else { hydrate(r.challenge); setSubmitResult(null); }
+      } else { hydrate(r.challenge); setSubmitResult(null); if (cp) setOpen(false); }
     }
     catch (e: any) { setErr(e?.response?.data?.message || 'Failed.'); }
     finally { setLoading(false); }
@@ -329,8 +335,20 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
         <div style={{ background: t.dangerSoft, color: t.danger, borderRadius: 8, padding: '10px 12px', fontSize: fz(t, 13), marginTop: 16 }}>{err}</div>
       )}
 
-      {tab === 'challenge' && p && challenge && (
+      {tab === 'challenge' && p && challenge && !open && (
+        <ChallengeOverview
+          challenge={challenge} position={memberPos} seconds={seconds} done={done} minWords={minWords}
+          onOpen={() => setOpen(true)}
+        />
+      )}
+
+      {tab === 'challenge' && p && challenge && open && (
         <>
+          {cp && (
+            <button type="button" className="tl-back" onClick={() => setOpen(false)}>
+              <i className="bi bi-arrow-left" aria-hidden /> Back to Thinking Lab{!done && <span> · the timer pauses</span>}
+            </button>
+          )}
           {/* Challenge top bar */}
           <div style={{ ...card, marginTop: 18, padding: '16px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div style={{ minWidth: 0 }}>
@@ -657,6 +675,77 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
       {celebration && <CelebrationModal result={celebration} onClose={() => setCelebration(null)} />}
     </div>
     </ThemeCtx.Provider>
+  );
+};
+
+/**
+ * TODAY'S PROBLEM, BEFORE IT STARTS.
+ *
+ * What the problem is, how big it is, and where the member stands on it — and one button that
+ * opens the problem screen, which is where the timer runs. Nothing here is invented: every figure
+ * is a field of the challenge the server sent.
+ */
+const ChallengeOverview: React.FC<{
+  challenge: TLChallenge; position: { position: number; total: number } | null; seconds: number; done: boolean; minWords: number; onOpen: () => void;
+}> = ({ challenge, position, seconds, done, minWords, onOpen }) => {
+  const t = useT();
+  const p = challenge.problem!;
+  const started = !done && (seconds > 0 || challenge.attempts > 0 || !!challenge.approach?.trim());
+  const solved = challenge.status === 'solved' || (done && challenge.passed);
+  const statement = String(p.statement || '').replace(/\s+/g, ' ').trim();
+  const preview = statement.length > 260 ? `${statement.slice(0, 257).trimEnd()}…` : statement;
+  const state = solved ? { label: 'Solved', cls: 'ok' } : done ? { label: 'Submitted', cls: 'ok' } : started ? { label: 'In progress', cls: 'go' } : { label: 'Not started', cls: '' };
+  const steps: [string, string, string][] = [
+    ['bi-lightbulb', 'Think first', `Explain your approach in plain words (at least ${minWords}). The editor unlocks after.`],
+    ['bi-code-slash', 'Code it', 'Any language — read from standard input, print the answer. Run it against the examples.'],
+    ['bi-stars', 'Get AI feedback', 'Submit for a score on thinking, code and communication.'],
+    ['bi-journal-text', 'Reflect', 'A short journal after solving builds your Thinking Profile.'],
+  ];
+  return (
+    <div className="tl-ov">
+      <section className="tl-ov-card">
+        <div className="tl-ov-main">
+          <div className="tl-ov-chips">
+            <span className="tl-ov-eyebrow">Today’s problem</span>
+            {position && position.position > 0 && <span className="tl-ov-chip">Problem {position.position} of {position.total}</span>}
+            <span className="tl-ov-chip diff" style={{ background: t.diff[p.difficulty] || t.primary }}>{p.difficulty}</span>
+            {p.category && <span className="tl-ov-chip soft">{p.category}</span>}
+          </div>
+          <h2>{p.title}</h2>
+          {preview && <p className="tl-ov-preview">{preview}</p>}
+          <div className="tl-ov-meta">
+            <span><i className="bi bi-lightning-charge-fill" aria-hidden /> {p.xp} XP</span>
+            {p.estimatedMinutes ? <span><i className="bi bi-clock" aria-hidden /> ~{p.estimatedMinutes} min</span> : null}
+            {(p.examples?.length || 0) > 0 && <span><i className="bi bi-list-check" aria-hidden /> {p.examples.length} example{p.examples.length === 1 ? '' : 's'}</span>}
+            {(p.totalHints || 0) > 0 && <span><i className="bi bi-life-preserver" aria-hidden /> {p.totalHints} hint{p.totalHints === 1 ? '' : 's'} available</span>}
+          </div>
+        </div>
+        <aside className="tl-ov-side">
+          <span className={`tl-ov-state ${state.cls}`}>{state.label}</span>
+          <div className="tl-ov-time">
+            <b>{fmtTime(seconds)}</b>
+            <small>{done ? 'time spent' : started ? 'spent so far' : 'timer not started'}</small>
+          </div>
+          {(challenge.attempts > 0 || challenge.hintsUsed > 0) && (
+            <div className="tl-ov-sub">{challenge.attempts} attempt{challenge.attempts === 1 ? '' : 's'} · {challenge.hintsUsed} hint{challenge.hintsUsed === 1 ? '' : 's'} used</div>
+          )}
+          {solved && challenge.xpEarned > 0 && <div className="tl-ov-sub ok">+{challenge.xpEarned} XP earned</div>}
+          <button type="button" className="tl-ov-start" onClick={onOpen}>
+            {done ? 'Review your solution' : started ? 'Continue solving' : 'Start solving'} <i className="bi bi-arrow-right" aria-hidden />
+          </button>
+          {!done && <small className="tl-ov-note">The timer starts when you open the problem.</small>}
+        </aside>
+      </section>
+
+      <section className="tl-ov-steps" aria-label="How Thinking Lab works">
+        {steps.map(([icon, title, text], i) => (
+          <div key={title} className="tl-ov-step">
+            <span className="tl-ov-step-ic"><i className={`bi ${icon}`} aria-hidden /></span>
+            <div><b><em>{i + 1}</em> {title}</b><span>{text}</span></div>
+          </div>
+        ))}
+      </section>
+    </div>
   );
 };
 

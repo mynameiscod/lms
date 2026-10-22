@@ -33,3 +33,48 @@
   .tl-stats { width: 100%; }
   .tl-stats > div { flex: 1 1 0; min-width: 0 !important; padding: 8px 6px !important; }
 }
+
+/* ── CareerPilot: today's problem, before it starts (ChallengeOverview) ───────────────────── */
+.tl-ov { margin-top: 18px; display: grid; gap: 16px; }
+.tl-ov-card { display: grid; grid-template-columns: minmax(0, 1fr) 280px; background: #fff; border: 1px solid #E2EAF2; border-radius: 20px; box-shadow: 0 6px 22px rgba(15, 46, 77, .07); overflow: hidden; }
+.tl-ov-main { padding: 26px 28px; min-width: 0; }
+.tl-ov-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tl-ov-eyebrow { font-size: 13px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #1B3C77; background: #EAF1FB; border-radius: 999px; padding: 6px 12px; }
+.tl-ov-chip { font-size: 13.5px; font-weight: 700; color: #051D64; background: #EEF3FB; border: 1px solid #C9D8E5; border-radius: 999px; padding: 5px 12px; }
+.tl-ov-chip.diff { color: #fff; border-color: transparent; text-transform: capitalize; }
+.tl-ov-chip.soft { color: #15596A; background: #EAF6F8; border-color: #B9E3EA; }
+.tl-root .tl-ov-main h2 { margin: 14px 0 0; font-size: 30px; line-height: 1.2; font-weight: 800; color: #051D64; }
+.tl-ov-preview { margin: 10px 0 0; max-width: 78ch; font-size: 16px; line-height: 1.6; color: #5B6B7F; }
+.tl-ov-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; font-size: 15px; font-weight: 600; color: #102A4F; }
+.tl-ov-meta i { color: #1F7A8C; margin-right: 4px; }
+.tl-ov-side { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 26px 24px; background: linear-gradient(160deg, #F4F8FC, #EAF1FB); border-left: 1px solid #E2EAF2; }
+.tl-ov-state { align-self: flex-start; font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #5B6B7F; background: #fff; border: 1px solid #C9D8E5; border-radius: 999px; padding: 5px 12px; }
+.tl-ov-state.go { color: #8A5000; background: #FFF7E8; border-color: #F3D9A6; }
+.tl-ov-state.ok { color: #17885D; background: #EAF8F1; border-color: #BFE6D3; }
+.tl-ov-time b { display: block; font-family: ui-monospace, monospace; font-size: 34px; font-weight: 800; color: #051D64; line-height: 1.1; }
+.tl-ov-time small { font-size: 13.5px; color: #5B6B7F; }
+.tl-ov-sub { font-size: 14px; color: #5B6B7F; }
+.tl-ov-sub.ok { color: #17885D; font-weight: 700; }
+.tl-ov-start { margin-top: auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; border: 0; border-radius: 12px; background: #051D64; color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 10px 22px rgba(5, 29, 100, .18); white-space: nowrap; }
+.tl-ov-start:hover { background: #0A2A7A; }
+.tl-ov-note { font-size: 13px; color: #5B6B7F; text-align: center; }
+.tl-ov-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tl-ov-step { display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 1px solid #E2EAF2; border-radius: 16px; padding: 16px; min-width: 0; }
+.tl-ov-step-ic { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: #EAF6F8; color: #1F7A8C; font-size: 19px; }
+.tl-ov-step b { display: block; font-size: 15.5px; font-weight: 800; color: #051D64; }
+.tl-ov-step b em { font-style: normal; color: #1F7A8C; margin-right: 2px; }
+.tl-ov-step span { display: block; margin-top: 3px; font-size: 14px; line-height: 1.5; color: #5B6B7F; }
+.tl-back { margin-top: 16px; display: inline-flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #C9D8E5; border-radius: 10px; padding: 8px 14px; font-size: 15px; font-weight: 700; color: #051D64; cursor: pointer; }
+.tl-back:hover { background: #F4F8FC; }
+.tl-back span { font-weight: 500; color: #5B6B7F; }
+#root .tl-ov-step-ic > i, .tl-ov-step-ic > i { display: block; font-size: 19px; line-height: 1; }
+@media (max-width: 1100px) { .tl-ov-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 860px) {
+  .tl-ov-card { grid-template-columns: minmax(0, 1fr); }
+  .tl-ov-side { border-left: 0; border-top: 1px solid #E2EAF2; }
+  .tl-root .tl-ov-main h2 { font-size: 24px; }
+}
+@media (max-width: 560px) {
+  .tl-ov-main, .tl-ov-side { padding: 20px 18px; }
+  .tl-ov-steps { grid-template-columns: minmax(0, 1fr); }
+}

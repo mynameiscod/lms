@@ -161,6 +161,7 @@ const MemberSupportTickets = lazy(() => import('./pages/Passport/MemberSupport')
 const MemberSupportTicket = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportTicket })));
 const MemberSupportArticle = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportArticle })));
 const MemberSupportBrowse = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportBrowse })));
+const MemberSupportAssistant = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportAssistant })));
 const PassportCompanies = lazy(() => import('./pages/Passport/Companies'));
 const PassportMockTest = lazy(() => import('./pages/Passport/MockTest'));
 const PassportAdminNews = lazy(() => import('./pages/Passport/AdminNews'));
@@ -879,6 +880,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/support/tickets/:id" element={<MemberSupportTicket />} />
         <Route path="/careerpilot/support/articles/:id" element={<MemberSupportArticle />} />
         <Route path="/careerpilot/support/browse" element={<MemberSupportBrowse />} />
+        <Route path="/careerpilot/support/assistant" element={<MemberSupportAssistant />} />
         <Route path="/careerpilot/companies" element={<PassportCompanies />} />
         <Route path="/careerpilot/companies/:slug" element={<PassportCompanies />} />
         <Route path="/careerpilot/mock-test/:id" element={<PassportMockTest />} />

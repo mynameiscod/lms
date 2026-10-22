@@ -53,7 +53,10 @@ export async function searchFaqs(actor: SupportActor, raw: string, opts: { categ
   if (opts.category) base.category = String(opts.category).slice(0, 60);
   const mod = oneOf(SUPPORT_MODULES, opts.module); if (mod) base.module = mod;
 
-  const text = await SupportFaq.find({ ...base, $text: { $search: q } }, { score: { $meta: 'textScore' } })
+  // $text reads "quoted words" as a required phrase and -word as an exclusion; a member's
+  // punctuation must never change what the search means, so both are neutralised.
+  const terms = q.replace(/["“”]/g, ' ').replace(/(^|\s)-+/g, '$1').trim();
+  const text = !terms ? [] : await SupportFaq.find({ ...base, $text: { $search: terms } }, { score: { $meta: 'textScore' } })
     .sort({ score: { $meta: 'textScore' } }).limit(limit).lean();
   if (text.length) return text.map((f: any) => ({ ...card(f), score: Number(f.score) || 0 }));
 

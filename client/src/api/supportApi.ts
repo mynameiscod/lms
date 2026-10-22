@@ -125,6 +125,14 @@ export interface AdminFaq {
 }
 export interface FaqInsights { days: number; unanswered: { query: string; count: number; people: number; last: string }[]; lowRated: AdminFaq[] }
 
+export interface ChatSource { id: string; title: string }
+export interface ChatReply {
+  sessionId: string; content: string; steps: string[]; sources: ChatSource[]; fallback: boolean; clarifying: boolean;
+  handoff: boolean; offerTicket: boolean; general: true; turnIndex: number;
+  draft?: { subject: string; module: string; category: string; summary: string };
+}
+export interface ChatTurn { index: number; role: 'user' | 'assistant'; content: string; steps: string[]; sources: ChatSource[]; fallback: boolean; helpful: boolean | null; at: string }
+
 export const supportApi = {
   me: async (): Promise<SupportMe> => (await axios.get(`${BASE}/me`, { headers: authHeader() })).data.data,
   create: async (body: NewTicket): Promise<{ ticket: SupportTicket; duplicate: boolean }> => {
@@ -154,6 +162,13 @@ export const supportApi = {
     (await axios.get(`${BASE}/faqs${qs(q)}`, { headers: authHeader() })).data.data,
   faq: async (id: string): Promise<FaqArticle> => (await axios.get(`${BASE}/faqs/${id}`, { headers: authHeader() })).data.data,
   vote: async (id: string, helpful: boolean) => (await axios.post(`${BASE}/faqs/${id}/vote`, { helpful }, { headers: authHeader() })).data.data,
+  // Assistant
+  chatSuggestions: async (): Promise<string[]> => (await axios.get(`${BASE}/chat/suggestions`, { headers: authHeader() })).data.data,
+  chatAsk: async (message: string, sessionId?: string): Promise<ChatReply> => (await axios.post(`${BASE}/chat`, { message, sessionId }, { headers: authHeader() })).data.data,
+  chatSession: async (id: string): Promise<{ sessionId: string; status: string; ticketId: string | null; turns: ChatTurn[] }> =>
+    (await axios.get(`${BASE}/chat/${id}`, { headers: authHeader() })).data.data,
+  chatFeedback: async (id: string, turnIndex: number, helpful: boolean) => (await axios.post(`${BASE}/chat/${id}/feedback`, { turnIndex, helpful }, { headers: authHeader() })).data.data,
+  chatClose: async (id: string) => (await axios.post(`${BASE}/chat/${id}/close`, {}, { headers: authHeader() })).data.data,
   // Managing articles
   adminFaqs: async (q: Record<string, unknown>): Promise<{ articles: AdminFaq[]; total: number; page: number; limit: number }> =>
     (await axios.get(`${BASE}/admin/faqs${qs(q)}`, { headers: authHeader() })).data.data,

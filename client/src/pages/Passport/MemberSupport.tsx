@@ -1,5 +1,6 @@
 import React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import SupportChat from '../Support/SupportChat';
 import PassportShell from './PassportShell';
 import TicketForm from '../Support/TicketForm';
 import MyTickets from '../Support/MyTickets';
@@ -25,16 +26,22 @@ export const SupportBrowse: React.FC = () => {
   return <PassportShell><FaqBrowse basePath={SUPPORT_BASE} category={p.get('category') || ''} /></PassportShell>;
 };
 
-export const SupportNew: React.FC = () => (
-  <PassportShell>
-    <div className="sp">
-      <BackTo to={SUPPORT_BASE} label="Help & Support" />
-      <h1>Report a problem</h1>
-      <p className="sp-sub">Tell us what went wrong. You will review it before it is sent.</p>
-      <TicketForm basePath={SUPPORT_BASE} />
-    </div>
-  </PassportShell>
-);
+export const SupportAssistant: React.FC = () => <PassportShell><SupportChat basePath={SUPPORT_BASE} /></PassportShell>;
+
+export const SupportNew: React.FC = () => {
+  // A draft handed over from the assistant ("Edit") arrives in router state.
+  const draft = (useLocation().state as any)?.draft;
+  return (
+    <PassportShell>
+      <div className="sp">
+        <BackTo to={SUPPORT_BASE} label="Help & Support" />
+        <h1>Report a problem</h1>
+        <p className="sp-sub">Tell us what went wrong. You will review it before it is sent.</p>
+        <TicketForm basePath={SUPPORT_BASE} draft={draft} />
+      </div>
+    </PassportShell>
+  );
+};
 
 export const SupportTickets: React.FC = () => {
   const nav = useNavigate();

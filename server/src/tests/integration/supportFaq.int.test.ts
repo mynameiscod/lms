@@ -120,6 +120,10 @@ describe('search', () => {
     expect(row.query).not.toContain('a.b@x.test');
   });
 
+  it("a member's quotes and dashes do not change what the search means", async () => {
+    expect((await request(app).get(`/support/faqs/search?q=${encodeURIComponent('"reset my" password -otp')}`).set(as('student'))).body.data.map((h: any) => h.id)).toContain(faqIds.reset);
+  });
+
   it('treats hostile input as text', async () => {
     expect((await request(app).get('/support/faqs/search?q=(.*)%5B%24ne%5D').set(as('student'))).status).toBe(200);
   });

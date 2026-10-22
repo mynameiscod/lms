@@ -6,6 +6,7 @@ import { rateLimit } from '../middleware/rateLimit';
 import { supportUpload, ATTACHMENT_LIMITS } from '../services/supportAttachments';
 import * as tickets from '../controllers/supportTicketController';
 import * as faqs from '../controllers/supportFaqController';
+import * as chat from '../controllers/supportAssistantController';
 
 /**
  * Help & Support (CareerPilot), mounted at /api/v1/support.
@@ -55,6 +56,13 @@ router.get('/faqs/categories', requireSupport('raise'), faqs.categories);
 router.get('/faqs', requireSupport('raise'), faqs.list);
 router.get('/faqs/:id', requireSupport('raise'), faqs.get);
 router.post('/faqs/:id/vote', requireSupport('raise'), rateLimit('supportTicketMessage'), faqs.vote);
+
+// The assistant: answers only from published articles; never creates a ticket itself.
+router.get('/chat/suggestions', requireSupport('raise'), chat.suggestions);
+router.post('/chat', requireSupport('raise'), rateLimit('supportChat'), chat.ask);
+router.get('/chat/:id', requireSupport('raise'), chat.session);
+router.post('/chat/:id/feedback', requireSupport('raise'), rateLimit('supportTicketMessage'), chat.feedback);
+router.post('/chat/:id/close', requireSupport('raise'), chat.close);
 
 // Managing articles (support managers)
 router.get('/admin/faqs/insights', requireSupport('manage'), faqs.adminInsights);

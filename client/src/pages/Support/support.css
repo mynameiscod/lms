@@ -151,3 +151,28 @@
 .sp-tab{padding:9px 14px;font-weight:600;color:var(--sp-muted);text-decoration:none;border-bottom:3px solid transparent;margin-bottom:-1px}
 .sp-tab:hover{color:var(--sp-ink)}
 .sp-tab.on{color:var(--sp-navy);border-bottom-color:var(--sp-teal)}
+
+/* Assistant */
+.sp-chat-log{min-height:340px;max-height:62vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;background:var(--sp-bg)}
+.sp-chat-empty{text-align:center;color:var(--sp-muted);padding:30px 10px}
+.sp-chat-empty>i{font-size:30px;color:var(--sp-teal)}
+.sp-bubble{max-width:82%;border-radius:14px;padding:11px 14px;line-height:1.55;border:1px solid var(--sp-border)}
+.sp-bubble-user{align-self:flex-end;background:var(--sp-navy);color:#fff;border-color:var(--sp-navy)}
+.sp-bubble-user .sp-msg-body{color:#fff}
+.sp-bubble-assistant{align-self:flex-start;background:#fff}
+.sp-bubble-failed{background:var(--sp-red-bg);border-color:#f3c9c9}
+.sp-general{display:inline-block;font-size:11.5px;font-weight:700;color:var(--sp-teal);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em}
+.sp-steps{margin:8px 0 0;padding-left:22px}
+.sp-steps li{margin:3px 0}
+.sp-rate{display:flex;gap:4px;margin-top:8px}
+.sp-rate button{background:none;border:1px solid var(--sp-border);border-radius:8px;width:32px;height:30px;cursor:pointer;color:var(--sp-muted)}
+.sp-rate button.on{background:var(--sp-teal);border-color:var(--sp-teal);color:#fff}
+.sp-typing{display:flex;gap:5px;align-items:center;min-height:38px}
+.sp-typing span{width:7px;height:7px;border-radius:50%;background:var(--sp-muted);animation:sp-dot 1.2s infinite ease-in-out}
+.sp-typing span:nth-child(2){animation-delay:.15s}.sp-typing span:nth-child(3){animation-delay:.3s}
+@keyframes sp-dot{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.sp-typing span{animation:none}}
+.sp-draft{border:2px solid var(--sp-teal);align-self:stretch}
+.sp-chat-input{display:flex;gap:8px;align-items:flex-end;margin-top:10px}
+.sp-chat-input .sp-textarea{min-height:48px}
+@media (max-width:640px){.sp-bubble{max-width:94%}.sp-chat-log{max-height:56vh}}

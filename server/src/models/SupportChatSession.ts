@@ -14,6 +14,10 @@ export interface ISupportChatTurn {
   sources?: { faqId: mongoose.Types.ObjectId; title: string }[];
   /** True when the assistant used the "couldn't confirm" fallback. */
   fallback?: boolean;
+  /** Numbered troubleshooting steps, kept apart from the prose so they render as a list. */
+  steps?: string[];
+  /** The member's thumbs up/down on this answer. */
+  helpful?: boolean | null;
   at: Date;
 }
 
@@ -37,6 +41,8 @@ const TurnSchema = new Schema<ISupportChatTurn>(
     content:  { type: String, required: true, maxlength: 8000 },
     sources:  { type: [{ faqId: { type: Schema.Types.ObjectId, ref: 'SupportFaq' }, title: String, _id: false }], default: undefined },
     fallback: { type: Boolean },
+    steps:    { type: [{ type: String, maxlength: 600 }], default: undefined },
+    helpful:  { type: Boolean, default: undefined },
     at:       { type: Date, default: () => new Date() },
   },
   { _id: false }

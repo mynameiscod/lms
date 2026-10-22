@@ -4,7 +4,7 @@ import ProblemSubmission from '../models/ProblemSubmission';
 import CodingProblem, { CodingProblemTestCase } from '../models/CodingProblem';
 import User from '../models/User';
 import Batch from '../models/Batch';
-import { judge, runCustom } from './problemJudgeService';
+import { judge, runCustom, isStarterUnchanged, STARTER_UNCHANGED_MESSAGE } from './problemJudgeService';
 import { PbError, visibilityFilter } from './problemBankService';
 import StudentGameStats from '../models/StudentGameStats';
 import * as game from './gamificationService';
@@ -199,6 +199,8 @@ export async function runSamples(p: any, marks: number, body: { language: string
   const lang = assertLanguage(p, body.language);
   const jp: any = judgeView(p.toObject(), marks);
   if (body.mode === 'custom') return { custom: await runCustom(jp, lang, body.code, String(body.stdin || '')) };
+  // "Run tests" on the untouched starter is how an optimise-this-program problem used to show Accepted with nothing written.
+  if (isStarterUnchanged(jp, lang, body.code)) throw new PbError(STARTER_UNCHANGED_MESSAGE);
   const samples = await CodingProblemTestCase.find({ problemId: p._id, isSample: true }).sort({ order: 1 }).lean();
   if (!samples.length) throw new PbError('This problem has no sample tests to run.');
   const r = await judge(jp, lang, body.code, samples.map((t) => ({ ...t, isSample: true })), { revealHidden: false });
@@ -220,6 +222,8 @@ export async function gradeAndRecord(
 ) {
   const lang = assertLanguage(p, body.language);
   if (String(body.code || '').length > 100_000) throw new PbError('Code is limited to 100 KB.');
+  // Not an attempt, and never a solve: the learner has written nothing.
+  if (isStarterUnchanged(judgeView(p.toObject(), marks) as any, lang, body.code)) throw new PbError(STARTER_UNCHANGED_MESSAGE);
   const tests = await CodingProblemTestCase.find({ problemId: p._id }).sort({ order: 1 }).lean();
   const r = await judge(judgeView(p.toObject(), marks) as any, lang, body.code, tests.map((t) => ({ ...t })), { revealHidden: false });
 

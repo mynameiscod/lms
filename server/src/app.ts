@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 import apiRoutes from './routes';
+import mcpEndpoints from './mcp';
 import { jsonExceptImports } from './routes/problemBankRoutes';
 import { ApiResponse } from './types';
 import { processDueMessages } from './services/whatsAppDripService';
@@ -118,6 +119,8 @@ app.use(compression({
 app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP to avoid blocking static assets
 }));
+// Isolated OAuth/MCP boundary: never log authorization queries, credentials or token bodies.
+app.use(mcpEndpoints);
 app.use(morgan('combined'));
 /**
  * THE PAYMENT CALLBACKS ARE NOT BROWSER XHR, AND CORS MUST NOT JUDGE THEM.
@@ -186,6 +189,7 @@ app.get(['/api/health', '/api/health/ready'], (_req: Request, res: Response<ApiR
  *
  * Nothing in the product called it. securityHardening.test.ts asserts it stays gone.
  */
+
 
 // API Routes - BEFORE static files and catch-all
 app.use('/api/v1', apiRoutes);

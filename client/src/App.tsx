@@ -146,7 +146,6 @@ const PassportPlacementReadiness = lazy(() => import('./pages/Passport/Placement
 const PassportSkillAssessment = lazy(() => import('./pages/Passport/SkillAssessment'));
 const PassportGamification = lazy(() => import('./pages/Passport/Gamification'));
 const PassportRewards = lazy(() => import('./pages/Passport/Rewards'));
-const PassportPractice = lazy(() => import('./pages/Passport/Practice'));
 const PassportPracticeItem = lazy(() => import('./pages/Passport/PracticeItem'));
 const PassportInterview = lazy(() => import('./pages/Passport/Interview'));
 const PassportResumeCenter = lazy(() => import('./pages/Passport/ResumeCenter'));

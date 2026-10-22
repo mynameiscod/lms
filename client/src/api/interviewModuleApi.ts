@@ -1,11 +1,6 @@
 // Types used by interview module API
 type IInterviewTemplateShared = Record<string, any>;
 type IInterviewQuestionShared = Record<string, any>;
-type IInterviewAttemptShared = Record<string, any>;
-type IInterviewAssignmentShared = Record<string, any>;
-type ISectionDefinitionShared = Record<string, any>;
-type InterviewCategory = string;
-type InterviewDifficulty = string;
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api/v1';
 const MODULE_URL = `${API_BASE_URL}/interview-module`;

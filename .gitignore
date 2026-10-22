@@ -55,3 +55,6 @@ __pycache__/
 
 # Participant lists and send artefacts — personal data, never committed.
 hackzen-send/
+# Generated synthetic staging secrets; never commit or include in build context.
+/ops/mcp-test/private/
+/ops/mcp-test/.private.*/

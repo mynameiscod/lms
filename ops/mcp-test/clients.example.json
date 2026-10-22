@@ -1,0 +1,10 @@
+[
+  {
+    "id": "codebegun-mcp-smoke",
+    "name": "CodeBegun synthetic staging checks",
+    "applicationType": "native",
+    "redirectUris": ["http://127.0.0.1:8765/callback"],
+    "tokenEndpointAuthMethod": "none",
+    "scopes": ["mcp_connect", "mcp_students_read", "mcp_batches_read", "mcp_attendance_read", "mcp_assessments_read", "mcp_finance_read", "mcp_placements_read", "mcp_leads_read", "mcp_calls_read", "offline_access"]
+  }
+]

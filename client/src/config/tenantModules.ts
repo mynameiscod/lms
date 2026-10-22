@@ -166,7 +166,7 @@ const PATH_MODULE: [string, ModuleKey][] = ([
   ['/problem-bank', 'problemBank'],
   ['/thinking-lab', 'thinkingLab'], ['/admin/thinking-lab', 'thinkingLab'], ['/lab-tracks', 'thinkingLab'],
   ['/users', 'userManagement'], ['/roles', 'rolesManagement'], ['/batches', 'batchManagement'], ['/notifications', 'notifications'],
-  ['/admin/concerns', 'concerns'], ['/admin/branding', 'branding'], ['/student-features', 'studentFeatures'], ['/admin/integrations', 'integrations'],
+  ['/admin/concerns', 'concerns'], ['/admin/support', 'careerPilot'], ['/admin/branding', 'branding'], ['/student-features', 'studentFeatures'], ['/admin/integrations', 'integrations'],
   ['/employee', 'employees'], ['/employees', 'employees'], ['/employee-activity', 'employees'], ['/employee-portal', 'employees'], ['/expenses', 'expenses'],
   ['/admin/ai-spend', 'aiSpend'], ['/admin/logs', 'apiLogs'],
   ['/leads', 'leads'], ['/follow-ups', 'leads'], ['/lead-', 'leads'], ['/team-activity', 'leads'], ['/sales-content', 'leads'],

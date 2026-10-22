@@ -66,7 +66,7 @@ const ROUTE_FEATURES: [string, CareerPilotFeatureKey][] = [
   ['/careerpilot/playground', 'playground'], ['/careerpilot/visualizer', 'visualizer'], ['/careerpilot/practice', 'practice'], ['/careerpilot/coding', 'coding'],
   ['/careerpilot/roadmap', 'roadmap'], ['/careerpilot/plan', 'plan'], ['/careerpilot/mentor', 'mentor'],
   ['/careerpilot/companies', 'companies'], ['/careerpilot/news', 'news'], ['/careerpilot/resume', 'resume'], ['/careerpilot/progress', 'progress'],
-  ['/careerpilot/industry-connect', 'industryConnect'],
+  ['/careerpilot/industry-connect', 'industryConnect'], ['/careerpilot/support', 'support'],
 ];
 const featureForRoute = (pathname: string) =>
   ROUTE_FEATURES.find(([p]) => pathname === p || pathname.startsWith(`${p}/`))?.[1];
@@ -99,6 +99,7 @@ const pageKeyFor = (pathname: string) => {
   if (pathname.startsWith('/careerpilot/readiness')) return 'readiness';
   if (pathname.startsWith('/careerpilot/news')) return 'news';
   if (pathname.startsWith('/careerpilot/industry-connect')) return 'industry';
+  if (pathname.startsWith('/careerpilot/support')) return 'support';
   return 'other';
 };
 

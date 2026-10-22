@@ -25,6 +25,8 @@ export interface ISupportTicket extends Document {
   source: TicketSource;
   status: TicketStatus;
   priority: TicketPriority;
+  /** 0 low … 3 critical, kept in step with priority so the queue can sort by urgency. */
+  priorityRank: number;
   assigneeId?: mongoose.Types.ObjectId | null;
   escalated: boolean;
   escalatedAt?: Date | null;
@@ -54,6 +56,7 @@ const SupportTicketSchema = new Schema<ISupportTicket>(
     source:        { type: String, enum: TICKET_SOURCES, default: 'help_center' },
     status:        { type: String, enum: TICKET_STATUSES, default: 'open' },
     priority:      { type: String, enum: TICKET_PRIORITIES, default: 'medium' },
+    priorityRank:  { type: Number, min: 0, max: 3, default: 1 },
     assigneeId:    { type: Schema.Types.ObjectId, ref: 'User', default: null },
     escalated:     { type: Boolean, default: false },
     escalatedAt:   { type: Date, default: null },
@@ -85,6 +88,8 @@ const SupportTicketSchema = new Schema<ISupportTicket>(
 
 // Diagnostics without consent are refused at the model, not just in the controller.
 SupportTicketSchema.pre('validate', function (next) {
+  const rank = TICKET_PRIORITIES.indexOf(this.priority);
+  if (rank >= 0) this.priorityRank = rank;
   if (!this.diagnosticsConsent && this.diagnostics) this.invalidate('diagnostics', 'Diagnostics need the member\'s consent');
   next();
 });
@@ -93,7 +98,7 @@ SupportTicketSchema.index({ tenantId: 1, requesterId: 1, createdAt: -1 });
 SupportTicketSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 SupportTicketSchema.index({ tenantId: 1, module: 1, createdAt: -1 });
 SupportTicketSchema.index({ assigneeId: 1, status: 1 });
-SupportTicketSchema.index({ status: 1, priority: 1, createdAt: -1 });
+SupportTicketSchema.index({ status: 1, priorityRank: -1, createdAt: -1 });
 SupportTicketSchema.index({ createdAt: -1 });
 
 export default mongoose.model<ISupportTicket>('SupportTicket', SupportTicketSchema);

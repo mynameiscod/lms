@@ -38,6 +38,7 @@ const ICONS: Record<string, string> = {
   db: 'database',
   brain: 'lightbulb',
   handshake: 'people-fill',
+  support: 'life-preserver',
 };
 
 export const Icon: React.FC<{ name: string }> = ({ name }) => (
@@ -379,6 +380,8 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {/* Not built yet: the page says what is coming. No section, so membership never locks a
               preview; the institute can still hide it (Student Features, CareerPilot tab). */}
           {navBtn('Industry Connect', 'handshake', '/careerpilot/industry-connect', undefined, 'industryConnect')}
+          {/* Never locked behind membership: anyone signed in must be able to ask for help, including about paying. */}
+          {navBtn('Help & Support', 'support', '/careerpilot/support', undefined, 'support')}
         </nav>
 
         {lockedSet.size > 0 && (

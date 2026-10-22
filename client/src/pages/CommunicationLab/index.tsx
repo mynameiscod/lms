@@ -54,7 +54,35 @@ const Recorder: React.FC<{ today: any; onDone: (a: any) => void; onClose: () => 
   const timerRef = useRef<any>(null);
   const [streamTick, setStreamTick] = useState(0);
 
-  const stopStream = () => { streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; };
+  // Is the microphone really picking up a voice? A live level bar before and during recording, and a check afterwards.
+  const [level, setLevel] = useState(0);
+  const [silent, setSilent] = useState(false);
+  const peakRef = useRef(0);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const rafRef = useRef(0);
+  const stopMeter = () => { cancelAnimationFrame(rafRef.current); audioCtxRef.current?.close().catch(() => {}); audioCtxRef.current = null; };
+  const startMeter = (stream: MediaStream) => {
+    try {
+      const AC = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx: AudioContext = new AC();
+      const an = ctx.createAnalyser(); an.fftSize = 1024;
+      ctx.createMediaStreamSource(stream).connect(an);
+      audioCtxRef.current = ctx;
+      const buf = new Uint8Array(an.fftSize); let last = 0;
+      const tick = (t: number) => {
+        an.getByteTimeDomainData(buf);
+        let sum = 0; for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; sum += v * v; }
+        const rms = Math.sqrt(sum / buf.length);
+        if (phaseRef.current === 'rec') peakRef.current = Math.max(peakRef.current, rms);
+        if (t - last > 90) { last = t; setLevel(Math.min(1, rms * 5)); }
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    } catch { /* no meter: the server still refuses a silent recording */ }
+  };
+  const stopStream = () => { stopMeter(); streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; };
   useEffect(() => () => { clearInterval(timerRef.current); stopStream(); if (playUrl) URL.revokeObjectURL(playUrl); }, [playUrl]);
 
   useEffect(() => {
@@ -69,7 +97,7 @@ const Recorder: React.FC<{ today: any; onDone: (a: any) => void; onClose: () => 
     setErr('');
     try {
       streamRef.current = await navigator.mediaDevices.getUserMedia({ video: mode === 'video', audio: true });
-      setStreamTick(x => x + 1); setPhase('ready');
+      startMeter(streamRef.current); setStreamTick(x => x + 1); setPhase('ready');
     } catch {
       setErr(mode === 'video' ? 'Camera or microphone access is blocked. Allow access and retry.' : 'Microphone access is blocked. Allow access and retry.');
     }
@@ -87,7 +115,9 @@ const Recorder: React.FC<{ today: any; onDone: (a: any) => void; onClose: () => 
       chunksRef.current = [];
       const rec = new MediaRecorder(streamRef.current!, mime ? { mimeType: mime } : undefined);
       rec.ondataavailable = e => { if (e.data.size) chunksRef.current.push(e.data); };
+      peakRef.current = 0; setSilent(false);
       rec.onstop = () => {
+        if (peakRef.current < 0.012) setSilent(true); // not a whisper, not a murmur: the microphone heard nothing
         const blob = new Blob(chunksRef.current, { type: mime || (mode === 'video' ? 'video/webm' : 'audio/webm') });
         blobRef.current = blob;
         setPlayUrl(URL.createObjectURL(blob));
@@ -135,10 +165,17 @@ const Recorder: React.FC<{ today: any; onDone: (a: any) => void; onClose: () => 
               {phase === 'count' && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.45)', color: '#fff', fontSize: 64, fontWeight: 900 }}>{count}</div>}
               {phase === 'rec' && <span className="clx-rec-status"><i className="bi bi-record-circle" /> REC {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>}
             </div>
+            {(phase === 'ready' || phase === 'rec') && (
+              <div style={{ margin: '4px 0 12px' }}>
+                <div style={{ height: 8, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}><div style={{ width: `${Math.round(level * 100)}%`, height: '100%', background: level > 0.08 ? '#16a34a' : '#f59e0b', transition: 'width .08s' }} /></div>
+                <small style={{ color: '#64748b' }}>{phase === 'ready' ? 'Say a few words: this bar should move. If it does not, your microphone is muted or the wrong one is selected.' : 'Microphone level'}</small>
+              </div>
+            )}
+            {phase === 'done' && silent && <div className="pm-msg err" style={{ marginBottom: 12 }}>We could not hear your voice in this recording. Check that your microphone is not muted and the right one is selected, then record again. A silent recording cannot be scored.</div>}
             <div className="clx-actions" style={{ justifyContent: 'center' }}>
               {phase === 'ready' && <button className="clx-btn primary" onClick={start}><i className="bi bi-mic-fill" /> Start recording</button>}
               {phase === 'rec' && <button className="clx-btn primary" onClick={() => recRef.current?.stop()}><i className="bi bi-stop-fill" /> Stop</button>}
-              {phase === 'done' && <><button className="clx-btn" onClick={() => { setPlayUrl(''); blobRef.current = null; setElapsed(0); setPhase('ready'); }}><i className="bi bi-arrow-counterclockwise" /> Re-record</button><button className="clx-btn teal" onClick={submit}><i className="bi bi-stars" /> Submit for AI feedback</button></>}
+              {phase === 'done' && <><button className="clx-btn" onClick={() => { setPlayUrl(''); blobRef.current = null; setElapsed(0); setSilent(false); setPhase('ready'); }}><i className="bi bi-arrow-counterclockwise" /> Re-record</button><button className="clx-btn teal" onClick={submit} disabled={silent} title={silent ? 'No voice was heard in this recording' : ''}><i className="bi bi-stars" /> Submit for AI feedback</button></>}
               {phase === 'submitting' && <span style={{ color: '#64748b', fontSize: 13 }}><i className="bi bi-hourglass-split" /> Transcribing and evaluating…</span>}
             </div>
           </>
@@ -228,7 +265,7 @@ const CommunicationLab: React.FC = () => {
       : <CoachTab state={coach} loading={coachLoading} onStart={setCoachStep} />)}
 
     {tab === 'profile' && <ProfileForm />}
-    {tab === 'history' && <div className="clx-card clx-panel"><h2 style={{ marginTop:0,color:'#051d64' }}>Practice History</h2><div className="clx-list">{history.length ? history.map(a=><div className="clx-history-row" key={a._id}><div className="clx-score" style={{color:scoreColor(a.evaluation?.overallScore)}}>{a.evaluation?.overallScore ?? '—'}</div><div><b>{a.challengeTitle}</b><p>{a.practiceDate} · {a.recordingType} · {a.recordingDuration}s · {a.wordsPerMinute || 0} wpm</p></div><button className="clx-btn" disabled={!a.evaluation} onClick={()=>setResult(a)}>View</button></div>) : <div className="clx-empty"><i className="bi bi-clock-history"/><h3>No practice history yet</h3><p>Complete your first daily challenge and it will appear here.</p></div>}</div>{result && <div style={{marginTop:18}}><ResultView a={result} onClose={()=>setResult(null)}/></div>}</div>}
+    {tab === 'history' && <div className="clx-card clx-panel"><h2 style={{ marginTop:0,color:'#051d64' }}>Practice History</h2><div className="clx-list">{history.length ? history.map(a=><div className="clx-history-row" key={a._id}>{(() => { const none = a.kind === 'coach' && ((a.recordingDuration || 0) < 5 || ((a.recordingDuration || 0) >= 15 && (a.wordCount ?? 0) <= 5)); return <><div className="clx-score" style={{color: none ? '#94a3b8' : scoreColor(a.evaluation?.overallScore)}}>{none ? '—' : (a.evaluation?.overallScore ?? '—')}</div><div><b>{a.challengeTitle}</b><p>{a.practiceDate} · {a.recordingType} · {a.recordingDuration}s{none ? ' · no voice was heard (not counted)' : ` · ${a.wordsPerMinute || 0} wpm`}</p></div><button className="clx-btn" disabled={!a.evaluation || none} onClick={()=>setResult(a)}>View</button></>; })()}</div>) : <div className="clx-empty"><i className="bi bi-clock-history"/><h3>No practice history yet</h3><p>Complete your first daily challenge and it will appear here.</p></div>}</div>{result && <div style={{marginTop:18}}>{(result as any).kind === 'coach' ? <CoachResult a={result} next={null} onClose={()=>setResult(null)}/> : <ResultView a={result} onClose={()=>setResult(null)}/>}</div>}</div>}
     {tab === 'progress' && <div>{progress ? <><div className="clx-progress-kpis"><div className="clx-card clx-mini"><i className="bi bi-fire"/><b>{progress.currentStreak}</b><span>Current streak</span></div><div className="clx-card clx-mini"><i className="bi bi-trophy"/><b>{progress.longestStreak}</b><span>Longest streak</span></div><div className="clx-card clx-mini"><i className="bi bi-calendar-check"/><b>{progress.totalPracticeDays}</b><span>Practice days</span></div><div className="clx-card clx-mini"><i className="bi bi-graph-up-arrow"/><b>{progress.improvement}</b><span>Improvement</span></div></div><div className="clx-card clx-panel" style={{marginTop:16}}><h3 style={{color:'#051d64'}}>Performance Summary</h3><p style={{color:'#64748b'}}>Best <strong>{progress.best}</strong> · Latest <strong>{progress.latest}</strong> · Average <strong>{progress.avg}</strong></p><p style={{color:'#64748b'}}>Strongest: <strong style={{color:'#16835d'}}>{progress.strongestSkill || '—'}</strong> · Focus next: <strong style={{color:'#b86b00'}}>{progress.weakestSkill || '—'}</strong></p></div></> : <div className="clx-card clx-empty">Loading progress…</div>}</div>}
     {tab === 'achievements' && <div className="clx-achievements">{achievements.length ? achievements.map((a:any)=><div className="clx-card clx-ach" key={a.code}><span className="icon"><i className={`bi ${a.earned?'bi-trophy-fill':'bi-award'}`} /></span><h3>{a.name}</h3><p>{a.description}</p>{a.earned?<span style={{color:'#16835d',fontSize:12,fontWeight:800}}><i className="bi bi-check-circle-fill"/> Earned</span>:<div className="clx-progress-track"><i style={{width:`${a.progress || 0}%`}}/></div>}</div>) : <div className="clx-card clx-empty"><i className="bi bi-award"/><h3>No achievements yet</h3><p>Keep practising to unlock communication achievements.</p></div>}</div>}
     {tab === 'leaderboard' && <div className="clx-card">{!board ? <div className="clx-empty">Loading leaderboard…</div> : !board.enabled ? <div className="clx-empty"><i className="bi bi-bar-chart"/><h3>Leaderboard unavailable</h3><p>The leaderboard is turned off for your institute.</p></div> : board.rows?.length ? board.rows.map((r:any)=><div className={`clx-rank ${r.me?'me':''}`} key={r.studentId}><span className="place">{r.rank <= 3 ? <i className="bi bi-trophy-fill" /> : r.rank}</span><span className="name">{r.name}{r.me?' (You)':''}</span><span className="stat"><i className="bi bi-fire"/> {r.streak} · {r.days} days</span><strong style={{color:scoreColor(r.avg)}}>{r.avg}</strong></div>) : <div className="clx-empty"><i className="bi bi-people"/><h3>No rankings yet</h3><p>Complete a practice session to get started.</p></div>}</div>}

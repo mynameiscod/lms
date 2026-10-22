@@ -39,7 +39,7 @@ export interface CommEvaluation {
 export interface CommAttempt {
   _id: string; challengeTitle: string; challengeType: string; practiceDate: string; attemptNumber: number;
   recordingType: 'audio' | 'video'; recordingDuration: number; wordsPerMinute?: number; wordCount?: number;
-  transcript?: string; status: string; evaluation?: CommEvaluation; createdAt: string;
+  transcript?: string; status: string; evaluation?: CommEvaluation; createdAt: string; kind?: string; coach?: any;
 }
 export interface CommProgress {
   timeline: { date: string; score: number }[]; totalPracticeDays: number; currentStreak: number; longestStreak: number;

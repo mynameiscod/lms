@@ -154,6 +154,7 @@ const PassportCoins = lazy(() => import('./pages/Passport/Coins'));
 const PassportLeaderboard = lazy(() => import('./pages/Passport/Leaderboard'));
 const PassportAchievements = lazy(() => import('./pages/Passport/Achievements'));
 const PassportNews = lazy(() => import('./pages/Passport/News'));
+const PassportIndustryConnect = lazy(() => import('./pages/Passport/IndustryConnect'));
 const PassportCompanies = lazy(() => import('./pages/Passport/Companies'));
 const PassportMockTest = lazy(() => import('./pages/Passport/MockTest'));
 const PassportAdminNews = lazy(() => import('./pages/Passport/AdminNews'));
@@ -862,6 +863,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/leaderboard" element={<PassportLeaderboard />} />
         <Route path="/careerpilot/achievements" element={<PassportAchievements />} />
         <Route path="/careerpilot/news" element={<PassportNews />} />
+        <Route path="/careerpilot/industry-connect" element={<PassportIndustryConnect />} />
         <Route path="/careerpilot/companies" element={<PassportCompanies />} />
         <Route path="/careerpilot/companies/:slug" element={<PassportCompanies />} />
         <Route path="/careerpilot/mock-test/:id" element={<PassportMockTest />} />

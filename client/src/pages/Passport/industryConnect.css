@@ -1,0 +1,15 @@
+/* Industry Connect (coming soon). CodeBegun colours: navy #051D64, teal #359AAD (memberCodebegun.css). */
+.icn{max-width:1040px;margin:0 auto;padding:8px 0 32px;color:var(--cb-text,#33475B)}
+.icn-hero{background:linear-gradient(135deg,var(--cb-navy,#051D64) 0%,var(--cb-navy-2,#0B2D72) 70%,var(--cb-teal,#359AAD) 140%);color:#fff;border-radius:16px;padding:36px 32px}
+.icn-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:600;letter-spacing:.02em}
+.icn-hero h1,#root .gd .icn .icn-hero h1{margin:14px 0 8px;font-size:30px;font-weight:700;color:#fff !important}
+.icn-hero p,#root .gd .icn .icn-hero p{margin:0;max-width:620px;font-size:16px;line-height:1.55;color:rgba(255,255,255,.88) !important}
+.icn-sub{margin:28px 0 12px;font-size:18px;font-weight:700;color:var(--cb-ink,#102A4F)}
+.icn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.icn-card{background:var(--cb-card,#fff);border:1px solid var(--cb-border,#E2EAF2);border-radius:14px;padding:20px}
+.icn-ic{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:12px;background:rgba(53,154,173,.12);color:var(--cb-teal,#359AAD);font-size:20px}
+.icn-card h3{margin:12px 0 6px;font-size:16px;font-weight:700;color:var(--cb-ink,#102A4F)}
+.icn-card p{margin:0;font-size:14px;line-height:1.5;color:var(--cb-muted,#64748B)}
+.icn-note{margin:22px 0 0;display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--cb-muted,#64748B)}
+@media (max-width:640px){.icn-hero{padding:26px 20px}.icn-hero h1,#root .gd .icn .icn-hero h1{font-size:24px}}
+/* The member shell colours every heading navy (dashboard-fidelity.css: .gd h1…); the hero is navy too. */

@@ -37,6 +37,7 @@ const ICONS: Record<string, string> = {
   code: 'code-slash',
   db: 'database',
   brain: 'lightbulb',
+  handshake: 'people-fill',
 };
 
 export const Icon: React.FC<{ name: string }> = ({ name }) => (
@@ -375,6 +376,9 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Tech News', 'news', '/careerpilot/news', 'news', 'news')}
           {navBtn('Resume', 'resume', '/careerpilot/resume', 'resume', 'resume')}
           {navBtn('My Progress', 'trophy', '/careerpilot/progress', 'progress', 'progress')}
+          {/* Not built yet: the page says what is coming. No section, so membership never locks a
+              preview; the institute can still hide it (Student Features, CareerPilot tab). */}
+          {navBtn('Industry Connect', 'handshake', '/careerpilot/industry-connect', undefined, 'industryConnect')}
         </nav>
 
         {lockedSet.size > 0 && (

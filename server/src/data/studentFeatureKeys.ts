@@ -25,6 +25,7 @@ export type StudentFeatureKey = typeof STUDENT_FEATURE_KEYS[number];
 export const CAREERPILOT_FEATURE_KEYS = [
   'plan', 'roadmap', 'practice', 'coding', 'playground', 'visualizer', 'thinkingLab', 'communication', 'interview',
   'experiences', 'questionBooks', 'mentor', 'companies', 'news', 'resume', 'progress',
+  'industryConnect',
 ] as const;
 
 export type CareerPilotFeatureKey = typeof CAREERPILOT_FEATURE_KEYS[number];

@@ -261,3 +261,21 @@
 @media (min-width: 1101px) and (max-width: 1280px) {
   .rc2 .rc2-hero .rc-hero-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ── The action bar stays put at the bottom of the screen ─────────────────────────────────────
+   It was sticky, but the page's bottom padding (here and on the shell's main) sat below it, so at
+   the end of the page it rode up into the middle of the screen. The padding goes on this page, and
+   the bar keeps the same 12px gap from the bottom whether scrolling or at the end. Phones keep it in
+   the flow: there the four buttons stack and a pinned bar would cover the form. */
+#root .gd .rc-page.rc2, .rc-page.rc2 { padding-bottom: 0 !important; }
+#root .gd .gd-main:has(.rc-sticky-actions) { padding-bottom: 0 !important; }
+#root .gd .rc2 .rc-sticky-actions, .rc2 .rc-sticky-actions { position: sticky; bottom: 12px; margin-bottom: 12px; z-index: 30; }
+@media (max-width: 760px) {
+  #root .gd .rc2 .rc-sticky-actions, .rc2 .rc-sticky-actions { position: static; margin-bottom: 16px; }
+}
+/* 761–1100px: the four actions on one line, the encouragement line dropped, so the pinned bar stays short. */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .rc2 .rc-sticky-actions > div:first-child { display: none; }
+  .rc2 .rc-sticky-actions > div:last-child { width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .rc2 .rc-sticky-actions .rc-btn { white-space: nowrap; padding-left: 8px; padding-right: 8px; }
+}

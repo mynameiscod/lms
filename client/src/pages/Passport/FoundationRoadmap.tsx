@@ -23,7 +23,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { FoundationJourney as Journey } from '../../api/passportApi';
 import FoundationJourneyPage from './FoundationJourney';
-import RoadmapPhaseBands from './RoadmapPhaseBands';
 import CareerTrackPicker from './CareerTrackPicker';
 import { useUnlock } from './SectionLock';
 import {
@@ -196,9 +195,7 @@ const FoundationRoadmap: React.FC = () => {
         </div>
       </section>
 
-      {/* Roadmap V2: why a day is locked, while earlier checkpoints hold it. The bridge/year split is admin-only. */}
       <CareerTrackPicker onPicked={() => window.location.reload()} />
-      <RoadmapPhaseBands gate={journey.gate} />
 
       <div className="fr-tools">
         <div className="fr-ranges" role="group" aria-label="Show days">

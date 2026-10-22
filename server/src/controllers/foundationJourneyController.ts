@@ -49,6 +49,7 @@ import { reconcileJourneyDayXp, xpForJourneyItem, journeyItemFinished, FOUNDATIO
 import { orientationBlocksLearning, orientationRoadmap, pacingClockFor } from '../services/orientationService';
 import { foundationGateFor, gateRefusal } from '../services/roadmapV2GateService';
 import { roadmapV2SettingFor } from '../services/roadmapV2SettingService';
+import { adoptSetupTrack } from '../services/roadmapRebuildService';
 
 /**
  * Which engine plans this student, for the screens that must show exactly one plan.
@@ -104,7 +105,7 @@ async function journeyOf(tenantId: string, studentId: string, stageKey?: string 
     personalizedFor: new mongoose.Types.ObjectId(studentId),
     adaptiveStage: String(stageKey || STAGE_FALLBACK),
     journeyKind: FOUNDATION_JOURNEY_KIND,
-  }).select('_id title createdAt totalDays roadmapVersion phaseDays v2Report rebuilds').lean() as any;
+  }).select('_id title createdAt totalDays roadmapVersion phaseDays v2Report rebuilds trackKey').lean() as any;
 }
 
 /**
@@ -511,6 +512,14 @@ export const getMyJourney = async (req: Request, res: Response) => {
           enrollmentId: null,
         });
       }
+    }
+
+    /*
+     * A Year 3/4 roadmap built before the member's setup track could be read is rebuilt on it now
+     * (not started only): setup's role + language decide the roadmap, nothing else.
+     */
+    if (engine === 'UNIT' && access.level === 'FULL' && await adoptSetupTrack(tenantId, String(studentId), stageKey, curriculum)) {
+      curriculum = await journeyOf(tenantId, studentId, stageKey) || curriculum;
     }
 
     const [days, enrollment] = await Promise.all([

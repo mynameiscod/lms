@@ -223,3 +223,42 @@ export async function startBulkRebuild(tenantId: string, opts: { stageKey?: stri
   })();
   return job;
 }
+
+/* ------------------------------------------------------------------ *
+ * The roadmap follows the track setup gives
+ * ------------------------------------------------------------------ */
+
+/** One attempt per member per ten minutes, so a rebuild V2 cannot make is not retried on every read. */
+const ADOPT_RETRY_MS = 10 * 60 * 1000;
+const adoptAttempts = new Map<string, number>();
+
+/**
+ * A Year 3/4 roadmap built WITHOUT the track the member's setup gives — before the track could be
+ * read from setup, or while it was not live — is rebuilt on that track, once, if the member has
+ * not completed a learning day. Software / Full Stack Engineer + Java is the Java Full Stack
+ * roadmap; + Python, Python Full Stack. A started roadmap is left as it is (an admin rebuilds it,
+ * completed days kept). Never throws: the roadmap is still served as it stands.
+ */
+export async function adoptSetupTrack(
+  tenantId: string, studentId: string, stageKey: string | null | undefined,
+  curriculum: { _id: mongoose.Types.ObjectId; trackKey?: string | null } | null,
+): Promise<boolean> {
+  if (!curriculum || curriculum.trackKey) return false;
+  if (!['specialize', 'placement'].includes(String(stageKey || ''))) return false;
+  if (!mongoose.Types.ObjectId.isValid(studentId)) return false;
+  const k = `${tenantId}:${studentId}`;
+  if (Date.now() - (adoptAttempts.get(k) || 0) < ADOPT_RETRY_MS) return false;
+  adoptAttempts.set(k, Date.now());
+  try {
+    const sid = new mongoose.Types.ObjectId(studentId);
+    const started = await CurriculumEnrollment.exists({ tenantId, curriculumId: curriculum._id, studentId: sid, completedDays: { $elemMatch: { $gt: 0 } } });
+    if (started) return false;
+    if (!(await trackForStudent(tenantId, studentId, stageKey))) return false;
+    const r = await rebuildRoadmap(tenantId, studentId, { apply: true, by: 'setup-track' });
+    if (!r.ok) console.error(`[career-track] could not rebuild ${studentId} on their setup track: ${r.reason}`);
+    return r.ok;
+  } catch (e: any) {
+    console.error('[career-track] adopting the setup track failed:', e?.message || e);
+    return false;
+  }
+}

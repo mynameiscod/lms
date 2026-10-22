@@ -48,6 +48,14 @@ const TicketConversation: React.FC<{ detail: TicketDetail; staff: boolean }> = (
   );
 };
 
+const ErrorLine: React.FC<{ e: { id: string; title: string; count: number; lastSeen: string }; canOpen: boolean }> = ({ e, canOpen }) => {
+  const nav = useNavigate();
+  const body = <><b>{e.title}</b><span className="sp-item-meta"> · {e.count}× · {fmtDateTime(e.lastSeen)}</span></>;
+  return canOpen
+    ? <button type="button" className="sp-linkbtn" style={{ display: 'block', fontWeight: 400, margin: '4px 0' }} onClick={() => nav(`/admin/support/errors/${e.id}`)}>{body}</button>
+    : <div style={{ margin: '4px 0' }}>{body}</div>;
+};
+
 const TicketDetails: React.FC<{ basePath: string; me: SupportMe | null; staffView?: boolean }> = ({ basePath, me, staffView = false }) => {
   const { id = '' } = useParams();
   const nav = useNavigate();
@@ -223,6 +231,16 @@ const TicketDetails: React.FC<{ basePath: string; me: SupportMe | null; staffVie
             </dl>
             {staffView && t.diagnostics?.summary && <pre className="sp-hint" style={{ whiteSpace: 'pre-wrap', marginTop: 10 }}>{t.diagnostics.summary}</pre>}
           </div>
+
+          {staffView && detail.errors && (detail.errors.linked.length > 0 || detail.errors.possiblyRelated.length > 0) && (
+            <div className="sp-card">
+              <h2>Detected errors</h2>
+              {detail.errors.linked.length > 0 && <p className="sp-hint">Linked by the request the member reported:</p>}
+              {detail.errors.linked.map(e => <ErrorLine key={e.id} e={e} canOpen={!!me?.canMonitor} />)}
+              {detail.errors.possiblyRelated.length > 0 && <p className="sp-hint" style={{ marginTop: 8 }}>Same area, within 30 minutes (possibly related):</p>}
+              {detail.errors.possiblyRelated.map(e => <ErrorLine key={e.id} e={e} canOpen={!!me?.canMonitor} />)}
+            </div>
+          )}
 
           <div className="sp-card">
             <h2>Activity</h2>

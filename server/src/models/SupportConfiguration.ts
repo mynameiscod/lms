@@ -23,6 +23,11 @@ export interface ISupportConfiguration extends Document {
   /** "Possible shared incident": this many tickets from this many people on one module within the window. */
   incident: { minTickets?: number | null; minDistinctUsers?: number | null; windowMinutes?: number | null };
   retention: { chatDays?: number | null; attachmentDays?: number | null };
+  /**
+   * Technical monitoring (platform document only). These are engineering thresholds, not promises
+   * to members, so empty falls back to the defaults in services/supportMonitoring.
+   */
+  monitoring?: { slowRequestMs?: number | null; slowQueryMs?: number | null; alertPerHour?: number | null; severity?: Record<string, string | null> };
   updatedBy?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
@@ -58,6 +63,16 @@ const SupportConfigurationSchema = new Schema<ISupportConfiguration>(
       type: {
         chatDays:       { type: Number, min: 1, max: 3650, default: null },
         attachmentDays: { type: Number, min: 1, max: 3650, default: null },
+      },
+      default: () => ({}),
+      _id: false,
+    },
+    monitoring: {
+      type: {
+        slowRequestMs: { type: Number, min: 200, max: 120_000, default: null },
+        slowQueryMs:   { type: Number, min: 50, max: 120_000, default: null },
+        alertPerHour:  { type: Number, min: 1, max: 100_000, default: null },
+        severity:      { type: Schema.Types.Mixed, default: undefined },
       },
       default: () => ({}),
       _id: false,

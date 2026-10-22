@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../types';
-import { resolveSupportActor } from '../services/supportAccess';
+import { resolveSupportActor, canMonitor } from '../services/supportAccess';
+import { permissionsOf } from './roleGuard';
 import { can, SupportActor, SupportCapability } from '../data/supportPolicy';
 
 export interface SupportRequest extends AuthenticatedRequest {
@@ -26,3 +27,16 @@ export const requireSupport = (cap: SupportCapability) =>
       next(err);
     }
   };
+
+/** The technical error screens (services/supportAccess.canMonitor). Nothing technical reaches anyone else. */
+export const requireMonitor = async (req: SupportRequest, res: Response, next: NextFunction) => {
+  if (!req.user?.id || !req.user.tenantId) return res.status(401).json({ success: false, message: 'Please sign in again.' });
+  try {
+    const actor = req.supportActor || await resolveSupportActor(req.user);
+    req.supportActor = actor;
+    if (!canMonitor(actor, await permissionsOf(req.user))) return res.status(403).json({ success: false, message: 'You do not have access to this.' });
+    next();
+  } catch (err) {
+    next(err);
+  }
+};

@@ -79,11 +79,20 @@ export interface SupportMessage {
   createdAt: string;
 }
 export interface TimelineEntry { action: string; at: string; by: string; changes?: Record<string, { from?: unknown; to?: unknown }> }
-export interface TicketDetail { ticket: SupportTicket; messages: SupportMessage[]; timeline: TimelineEntry[] }
+export interface ErrorRef { id: string; title: string; kind: string; count: number; lastSeen: string; status: string }
+export interface TicketDetail { ticket: SupportTicket; messages: SupportMessage[]; timeline: TimelineEntry[]; errors?: { linked: ErrorRef[]; possiblyRelated: ErrorRef[] } }
+export interface ErrorGroup {
+  id: string; kind: string; severity: string; configuredSeverity: string; severityOverride: string | null; title: string; message: string; route?: string; module: string;
+  topFrames: string[]; count: number; firstSeen: string; lastSeen: string; firstRelease?: string; lastRelease?: string; status: 'open' | 'resolved' | 'ignored';
+  collegeCount: number; linkedTickets: number;
+}
+export interface ErrorGroupDetail extends ErrorGroup { sampleRequestIds: string[]; tickets: { id: string; ticketNumber: string; subject: string; status: TicketStatus; createdAt: string }[] }
+export interface MonitorCounters { since: string; hours: number; counters: { key: string; total: number; byHour: { hour: string; count: number }[] }[] }
 export interface Paged<T> { tickets: T[]; total: number; page: number; limit: number }
 
 export interface SupportMe {
   userId: string;
+  canMonitor: boolean;
   kind: 'requester' | 'coordinator' | 'agent' | 'manager' | 'super_admin';
   allTenants: boolean;
   faculty: boolean;
@@ -218,6 +227,13 @@ export const supportApi = {
   resolveIncident: async (id: string) => (await axios.post(`${BASE}/incidents/${id}/resolve`, {}, { headers: authHeader() })).data.data,
   getConfig: async (scope?: 'platform'): Promise<SupportConfig> => (await axios.get(`${BASE}/admin/config${qs({ scope })}`, { headers: authHeader() })).data.data,
   saveConfig: async (body: Partial<SupportConfig>): Promise<SupportConfig> => (await axios.put(`${BASE}/admin/config`, body, { headers: authHeader() })).data.data,
+  // Technical monitoring
+  errors: async (q: Record<string, unknown>): Promise<{ groups: ErrorGroup[]; total: number; page: number; limit: number; sentry: boolean }> =>
+    (await axios.get(`${BASE}/admin/errors${qs(q)}`, { headers: authHeader() })).data.data,
+  error: async (id: string): Promise<ErrorGroupDetail> => (await axios.get(`${BASE}/admin/errors/${id}`, { headers: authHeader() })).data.data,
+  updateError: async (id: string, body: { status?: string; severityOverride?: string | null }): Promise<ErrorGroup> =>
+    (await axios.patch(`${BASE}/admin/errors/${id}`, body, { headers: authHeader() })).data.data,
+  monitorCounters: async (range: '24h' | '7d'): Promise<MonitorCounters> => (await axios.get(`${BASE}/admin/errors/counters${qs({ range })}`, { headers: authHeader() })).data.data,
   // Staff
   queue: async (q: Record<string, unknown>): Promise<Paged<SupportTicket>> => (await axios.get(`${BASE}/queue${qs(q)}`, { headers: authHeader() })).data.data,
   update: async (id: string, body: { status?: string; priority?: string; assigneeId?: string | null; escalated?: boolean }) =>

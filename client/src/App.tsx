@@ -274,6 +274,8 @@ const AdminSupportTicketPage = lazy(() => import('./pages/Support/AdminSupport')
 const AdminSupportFaqs = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportFaqs })));
 const AdminSupportDashboard = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportDashboard })));
 const AdminSupportSettings = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportSettings })));
+const AdminSupportErrors = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportErrors })));
+const AdminSupportErrorDetail = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportErrorDetail })));
 const QuizSession = lazy(() => import('./pages/QuizSession'));
 const AssessmentRegister = lazy(() => import('./pages/Assessment/Register'));
 const AssessmentLanding = lazy(() => import('./pages/Assessment/Landing'));
@@ -2692,6 +2694,22 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
             <Layout><AdminSupportDashboard /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/errors"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+            <Layout><AdminSupportErrors /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/errors/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+            <Layout><AdminSupportErrorDetail /></Layout>
           </ProtectedRoute>
         }
       />

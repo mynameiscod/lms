@@ -8,6 +8,7 @@ import { SupportError } from './supportTicketService';
 import { audit } from './supportAccess';
 import { redactText } from '../utils/redact';
 import { logger } from '../utils/logger';
+import { recordAiFailure } from './supportMonitoring';
 
 /**
  * The Help & Support assistant.
@@ -211,6 +212,7 @@ export async function ask(actor: SupportActor, body: unknown, ctx: { requestId?:
       rawReply = await callModel({ tenantId: actor.tenantId, userId: actor.userId, system: SYSTEM_PROMPT, user: buildUserPrompt(message, history, ordered) });
     } catch (e: any) {
       await SupportChatSession.updateOne({ _id: session._id }, { $inc: { failures: 1 }, $set: { lastActivityAt: new Date() } });
+      if (e instanceof AiTimeout) recordAiFailure({ module: 'support_assistant', cause: 'timeout' });
       logger.warn('[support] assistant call failed', { reason: e instanceof AiTimeout ? 'timeout' : (e?.status || 'error'), error: String(e?.message || '').slice(0, 160), requestId: ctx.requestId });
       throw new SupportError(503, UNAVAILABLE, e instanceof AiTimeout ? 'AI_TIMEOUT' : 'AI_UNAVAILABLE');
     }

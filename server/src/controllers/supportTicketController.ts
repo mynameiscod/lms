@@ -2,6 +2,8 @@ import { Response, NextFunction } from 'express';
 import { SupportRequest } from '../middleware/supportAccess';
 import * as svc from '../services/supportTicketService';
 import { can } from '../data/supportPolicy';
+import { canMonitor } from '../services/supportAccess';
+import { permissionsOf } from '../middleware/roleGuard';
 import { keepUploads, discardUploads, removeKept, attachmentPath, ATTACHMENT_LIMITS } from '../services/supportAttachments';
 
 /**
@@ -92,9 +94,11 @@ export const attachment = handle(async (req, res) => {
 });
 
 /** What the signed-in person may do in Help & Support, so the UI can show the right controls. The server still decides. */
-export const me = (req: SupportRequest, res: Response) => {
+export const me = async (req: SupportRequest, res: Response) => {
   const a = req.supportActor!;
+  const monitor = canMonitor(a, await permissionsOf(req.user!).catch(() => []));
   res.json({ success: true, message: 'OK', data: {
+    canMonitor: monitor,
     userId: a.userId, kind: a.kind, allTenants: a.allTenants, faculty: a.faculty,
     can: { viewCollege: can(a, 'viewCollege'), readInternal: can(a, 'readInternal'), work: can(a, 'work'), manage: can(a, 'manage') },
   } });

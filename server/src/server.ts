@@ -12,6 +12,7 @@ import http from 'http';
 import cluster from 'cluster';
 import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
+import { attachDbMonitoring, startMonitoring, recordRelease } from './services/supportMonitoring';
 import { assertSecretsPresent } from './config/secrets';
 import { initSettings } from './services/settingsService';
 import { initPlatformOwner } from './services/platformOwner';
@@ -68,6 +69,10 @@ const startServer = async () => {
     // Connect to database
     await connectDB();
     console.log('✅ MongoDB connection successful');
+    // Help & Support monitoring: record this release, watch the database, flush every 15 s.
+    attachDbMonitoring();
+    startMonitoring();
+    void recordRelease();
 
     // Load admin-managed configuration from DB (keys/models set in the UI).
     await initSettings();

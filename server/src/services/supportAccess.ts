@@ -58,6 +58,16 @@ export async function resolveSupportActor(user: ActorInput['user']): Promise<Sup
   return decideSupportActor({ user, permissions, collegeRole: (membership as any)?.collegeRole || null, hqTenantId: supportHqTenantId() });
 }
 
+/**
+ * Who may open the technical error screens. Errors are platform-wide engineering data, so a
+ * college's own staff never see them: only a super admin, or the support HQ's managers and
+ * people given "View API Logs & Student Activity" in the HQ tenant.
+ */
+export function canMonitor(actor: SupportActor, permissions: string[]): boolean {
+  if (actor.role === 'SUPER_ADMIN') return true;
+  return actor.allTenants && (actor.kind === 'manager' || permissions.includes('view_activity_logs'));
+}
+
 export interface AuditEntry {
   actor: SupportActor;
   entity: 'ticket' | 'message' | 'faq' | 'config' | 'chat';

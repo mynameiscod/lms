@@ -237,6 +237,11 @@ export const POLICIES = {
     max: 20, windowMs: 10 * 60_000,
     message: 'You have sent a lot of messages to the assistant in a few minutes.',
   },
+  /** Browser error reports. A broken page can loop; this keeps one tab from flooding the monitor. */
+  clientErrors: {
+    max: 30, windowMs: 60_000,
+    message: 'Too many error reports.',
+  },
   /** Help Center search, typed live as suggestions, so allowed to be busy. */
   supportSearch: {
     max: 120, windowMs: 60_000,

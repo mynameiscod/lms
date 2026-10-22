@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import supportApi, { MODULES, CATEGORIES, moduleLabel, categoryLabel, errorText, NewTicket } from '../../api/supportApi';
 import { fmtSize } from './supportUi';
+import { lastFailedRequestId } from '../../utils/clientMonitor';
 import './support.css';
 
 /**
@@ -34,7 +35,7 @@ const TicketForm: React.FC<{ basePath: string; draft?: TicketDraft; onCancel?: (
   const loc = useLocation();
   const params = new URLSearchParams(loc.search);
   const from = (loc.state as any)?.from || params.get('from') || draft?.route || undefined;
-  const relatedRequestId = (loc.state as any)?.requestId || draft?.relatedRequestId || undefined;
+  const relatedRequestId = (loc.state as any)?.requestId || draft?.relatedRequestId || lastFailedRequestId() || undefined;
 
   const [step, setStep] = useState<'edit' | 'review'>('edit');
   const [subject, setSubject] = useState(draft?.subject || '');

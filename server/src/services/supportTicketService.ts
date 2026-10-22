@@ -15,6 +15,7 @@ import { nextTicketNumber } from './supportTicketNumber';
 import { notifySupport } from './supportNotify';
 import { StoredAttachment } from './supportAttachments';
 import { redactText } from '../utils/redact';
+import { linkTicket, errorsForTicket } from './supportMonitoring';
 
 /**
  * Help & Support tickets. Every function takes the actor (built from the login by
@@ -175,6 +176,7 @@ export async function createTicket(actor: SupportActor, body: unknown, ctx: Requ
   if (chatSessionId) await SupportChatSession.updateOne({ _id: chatSessionId }, { $set: { ticketId: t._id, status: 'escalated' } });
 
   await audit({ actor, entity: 'ticket', entityId: t._id, tenantId: t.tenantId, action: 'created', requestId: ctx.requestId, changes: { status: { to: 'open' } } });
+  linkTicket(t._id, related);
   notifySupport({ event: 'created', tenantId: actor.tenantId, ticketId: String(t._id), ticketNumber: t.ticketNumber, to: [actor.userId], audience: 'member' });
   return { ticket: memberView(t.toObject(), null, actor), duplicate: false };
 }
@@ -227,8 +229,12 @@ export async function ticketDetail(actor: SupportActor, id: unknown, ctx: Reques
     await audit({ actor, entity: 'ticket', entityId: t._id, tenantId: t.tenantId, action: 'view', requestId: ctx.requestId });
   }
 
+  // Staff see the technical side: error groups linked by request id, and others nearby in time.
+  const errors = staff ? await errorsForTicket({ _id: t._id, module: t.module, createdAt: t.createdAt }).catch(() => ({ linked: [], possiblyRelated: [] })) : undefined;
+
   return {
     ticket: viewFor(populated, cfg, actor, (tenant as any)?.name),
+    errors,
     messages: messages.map((m: any) => ({
       id: String(m._id),
       authorKind: m.authorKind,

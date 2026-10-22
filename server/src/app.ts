@@ -12,6 +12,8 @@ import { ApiResponse } from './types';
 import { processDueMessages } from './services/whatsAppDripService';
 import { apiErrorLogger } from './middleware/errorLogger';
 import { requestId } from './middleware/requestId';
+import { requestMonitoring } from './middleware/monitoring';
+import { captureException } from './services/supportMonitoring';
 import { redactText } from './utils/redact';
 import { logger } from './utils/logger';
 import { readiness } from './services/healthService';
@@ -125,6 +127,8 @@ app.use(helmet({
 // Every request gets an id (X-Request-Id), first, so the access log, error log and any support
 // ticket raised about the request can be matched up.
 app.use(requestId);
+// Errors, slow requests and refusal counts for the support monitor (services/supportMonitoring).
+app.use(requestMonitoring);
 // The access log prints the URL as requested; a reset link or a provider callback carries its
 // token in the query, so the URL is scrubbed before it is written (utils/redact.ts).
 morgan.token('url', (req: Request) => redactText(req.originalUrl || req.url));
@@ -359,6 +363,8 @@ app.use((req: Request, res: Response<ApiResponse<any>>) => {
 // Error handling middleware
 app.use((err: any, req: Request, res: Response<ApiResponse<any>>, next: NextFunction) => {
   const reqId = (req as any).requestId;
+  (req as any).monitorCaptured = true; // the 5xx this becomes is the same problem
+  captureException(err, { method: req.method, route: (req as any).route?.path ? `${req.baseUrl || ''}${(req as any).route.path}` : req.originalUrl, requestId: reqId, tenantId: (req as any).user?.tenantId ? String((req as any).user.tenantId) : undefined });
   logger.error(`Unhandled exception: ${req.method} ${req.originalUrl}`, {
     error: err.message,
     stack: err.stack?.split('\n').slice(0, 5),

@@ -1,13 +1,14 @@
 import express from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
-import { requireSupport } from '../middleware/supportAccess';
+import { requireSupport, requireMonitor } from '../middleware/supportAccess';
 import { rateLimit } from '../middleware/rateLimit';
 import { supportUpload, ATTACHMENT_LIMITS } from '../services/supportAttachments';
 import * as tickets from '../controllers/supportTicketController';
 import * as faqs from '../controllers/supportFaqController';
 import * as chat from '../controllers/supportAssistantController';
 import * as analytics from '../controllers/supportAnalyticsController';
+import * as errorsCtl from '../controllers/supportErrorsController';
 
 /**
  * Help & Support (CareerPilot), mounted at /api/v1/support.
@@ -83,5 +84,13 @@ router.post('/incidents/:id/resolve', requireSupport('manage'), analytics.resolv
 // Settings (targets, reopen policy, incident rules, retention): empty until a manager sets them.
 router.get('/admin/config', requireSupport('manage'), analytics.getConfig);
 router.put('/admin/config', requireSupport('manage'), analytics.saveConfig);
+
+// Technical monitoring (/admin/errors): super admin and the support HQ's managers only.
+router.get('/admin/errors', requireMonitor, errorsCtl.list);
+router.get('/admin/errors/counters', requireMonitor, errorsCtl.counters);
+router.get('/admin/errors/config', requireMonitor, errorsCtl.getConfig);
+router.put('/admin/errors/config', requireMonitor, errorsCtl.saveConfig);
+router.get('/admin/errors/:id', requireMonitor, errorsCtl.detail);
+router.patch('/admin/errors/:id', requireMonitor, errorsCtl.update);
 
 export default router;

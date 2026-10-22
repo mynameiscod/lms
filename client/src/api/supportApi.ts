@@ -133,6 +133,38 @@ export interface ChatReply {
 }
 export interface ChatTurn { index: number; role: 'user' | 'assistant'; content: string; steps: string[]; sources: ChatSource[]; fallback: boolean; helpful: boolean | null; at: string }
 
+export interface SupportSummary {
+  range: { from: string; to: string };
+  current: { open: number; unassigned: number; highCritical: number; waitingOnUser: number; escalated: number };
+  period: { created: number; fromAssistant: number; reopened: number; resolved: number; avgFirstResponseMinutes: number | null; avgResolutionMinutes: number | null };
+  sla: { configured: false } | { configured: true; firstResponsePct: number | null; resolutionPct: number | null };
+  assistant: { sessions: number; resolved: number; escalated: number; failedSessions: number; resolutionRate: number | null; escalationRate: number | null; answers: number; fallbackAnswers: number; thumbsUp: number; thumbsDown: number };
+}
+export interface SupportTrends { series: { day: string; created: number; resolved: number }[]; releases: { version: string; day: string }[] }
+export interface KeyCount { key: string; count: number }
+export interface SupportBreakdown {
+  byModule: KeyCount[]; byCategory: KeyCount[]; bySource: KeyCount[]; byStatus: KeyCount[];
+  byCollege: { id: string; name: string; total: number }[];
+  heatmap: { colleges: { id: string; name: string }[]; modules: string[]; cells: { tenantId: string; module: string; count: number }[] };
+  unresolvedByModule: KeyCount[];
+  repeatedIssues: { module: string; category: string; tickets: number; people: number; last: string }[];
+  unansweredSearches: { query: string; count: number; people: number }[];
+}
+export interface SupportIncidents {
+  configured: boolean;
+  rules?: { minTickets: number; minDistinctUsers: number; windowMinutes: number };
+  possible: { module: string; tickets: number; people: number; colleges: number; first: string; label: string }[];
+  confirmed: { id: string; module: string; title: string; status: string; ticketCount: number; peopleCount: number; confirmedAt: string; notifiedCount: number }[];
+}
+type ByPriority = { low?: number | null; medium?: number | null; high?: number | null; critical?: number | null };
+export interface SupportConfig {
+  scope: 'institute' | 'platform';
+  firstResponseMinutes: ByPriority; resolutionMinutes: ByPriority;
+  reopen: { allowed?: boolean | null; windowDays?: number | null; maxReopens?: number | null };
+  incident: { minTickets?: number | null; minDistinctUsers?: number | null; windowMinutes?: number | null };
+  retention: { chatDays?: number | null; attachmentDays?: number | null };
+}
+
 export const supportApi = {
   me: async (): Promise<SupportMe> => (await axios.get(`${BASE}/me`, { headers: authHeader() })).data.data,
   create: async (body: NewTicket): Promise<{ ticket: SupportTicket; duplicate: boolean }> => {
@@ -177,6 +209,15 @@ export const supportApi = {
   adminFaqStatus: async (id: string, status: AdminFaq['status'], reviewed?: boolean): Promise<AdminFaq> =>
     (await axios.post(`${BASE}/admin/faqs/${id}/status`, { status, reviewed }, { headers: authHeader() })).data.data,
   adminFaqInsights: async (days = 30): Promise<FaqInsights> => (await axios.get(`${BASE}/admin/faqs/insights${qs({ days })}`, { headers: authHeader() })).data.data,
+  // Dashboard
+  summary: async (q: Record<string, unknown>): Promise<SupportSummary> => (await axios.get(`${BASE}/analytics/summary${qs(q)}`, { headers: authHeader() })).data.data,
+  trends: async (q: Record<string, unknown>): Promise<SupportTrends> => (await axios.get(`${BASE}/analytics/trends${qs(q)}`, { headers: authHeader() })).data.data,
+  breakdown: async (q: Record<string, unknown>): Promise<SupportBreakdown> => (await axios.get(`${BASE}/analytics/breakdown${qs(q)}`, { headers: authHeader() })).data.data,
+  incidents: async (q: Record<string, unknown> = {}): Promise<SupportIncidents> => (await axios.get(`${BASE}/incidents${qs(q)}`, { headers: authHeader() })).data.data,
+  confirmIncident: async (body: { module: string; title?: string; tenantId?: string; notify?: boolean }) => (await axios.post(`${BASE}/incidents`, body, { headers: authHeader() })).data.data,
+  resolveIncident: async (id: string) => (await axios.post(`${BASE}/incidents/${id}/resolve`, {}, { headers: authHeader() })).data.data,
+  getConfig: async (scope?: 'platform'): Promise<SupportConfig> => (await axios.get(`${BASE}/admin/config${qs({ scope })}`, { headers: authHeader() })).data.data,
+  saveConfig: async (body: Partial<SupportConfig>): Promise<SupportConfig> => (await axios.put(`${BASE}/admin/config`, body, { headers: authHeader() })).data.data,
   // Staff
   queue: async (q: Record<string, unknown>): Promise<Paged<SupportTicket>> => (await axios.get(`${BASE}/queue${qs(q)}`, { headers: authHeader() })).data.data,
   update: async (id: string, body: { status?: string; priority?: string; assigneeId?: string | null; escalated?: boolean }) =>

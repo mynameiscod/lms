@@ -176,3 +176,34 @@
 .sp-chat-input{display:flex;gap:8px;align-items:flex-end;margin-top:10px}
 .sp-chat-input .sp-textarea{min-height:48px}
 @media (max-width:640px){.sp-bubble{max-width:94%}.sp-chat-log{max-height:56vh}}
+
+/* Dashboard */
+.sp-metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.sp-metric{display:flex;flex-direction:column;gap:4px;text-align:left;background:#fff;border:1px solid var(--sp-border);border-radius:12px;padding:14px;font:inherit;color:inherit}
+button.sp-metric{cursor:pointer}
+button.sp-metric:hover{border-color:var(--sp-teal)}
+.sp-metric-label{font-size:12px;font-weight:700;color:var(--sp-muted);text-transform:uppercase;letter-spacing:.03em}
+.sp-metric-value{font-size:24px;font-weight:800;color:var(--sp-ink)}
+.sp-tone-warn{color:var(--sp-amber)}.sp-tone-err{color:var(--sp-red)}
+.sp-dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:16px;align-items:start}
+.sp-bars{list-style:none;margin:0;padding:0}
+.sp-bars button{display:grid;grid-template-columns:minmax(90px,140px) 1fr 36px;gap:8px;align-items:center;width:100%;background:none;border:0;padding:5px 0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.sp-bars button:disabled{cursor:default}
+.sp-bar-label{font-size:13px;color:var(--sp-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-bar-track{height:10px;background:#EEF1F5;border-radius:999px;overflow:hidden}
+.sp-bar-fill{display:block;height:100%;background:var(--sp-teal)}
+.sp-bar-n{font-weight:700;text-align:right;color:var(--sp-ink)}
+.sp-heat th[scope=row]{white-space:nowrap;color:var(--sp-ink);font-weight:600;background:#fff;text-transform:none;letter-spacing:0;font-size:13px}
+.sp-heat td{text-align:center;padding:6px}
+.sp-heat-cell{min-width:40px;border:0;border-radius:8px;padding:7px 8px;font-weight:700;cursor:pointer}
+.sp-banner{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-radius:12px;padding:12px 14px}
+.sp-banner>i{font-size:20px}
+.sp-banner-warn{background:var(--sp-amber-bg);color:#7A4A00;border:1px solid #F1D29A}
+.sp-banner-err{background:var(--sp-red-bg);color:#8E2020;border:1px solid #F3C9C9}
+.sp-legend{font-weight:700;color:var(--sp-ink);font-size:16px;padding:0 4px}
+fieldset.sp-card{margin:0;min-width:0}
+
+/* Admin app frame: the admin Layout gives pages no gutter of their own */
+.sp-admin{max-width:1280px;padding:20px 24px 40px}
+.sp-admin-pad{padding:20px 24px 40px}
+@media (max-width:640px){.sp-admin,.sp-admin-pad{padding:14px 16px 32px}}

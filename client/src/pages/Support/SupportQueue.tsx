@@ -64,6 +64,14 @@ const SupportQueue: React.FC<{ me: SupportMe | null; basePath: string }> = ({ me
 
   return (
     <div>
+      {canWork && (
+        <div className="sp-filters" role="group" aria-label="Queues">
+          {([['mine', 'My queue', { assignee: 'me', status: 'open,in_progress,waiting_on_user' }], ['unassigned', 'Unassigned', { assignee: 'none', status: 'open,in_progress,waiting_on_user' }], ['all', 'All tickets', {}]] as [string, string, Record<string, string>][]).map(([k, l, f]) => {
+            const on = Object.entries(f).every(([fk, fv]) => params.get(fk) === fv) && (k !== 'all' || !params.get('assignee'));
+            return <button key={k} type="button" className={`sp-chip${on ? ' on' : ''}`} aria-pressed={on} onClick={() => setParams(new URLSearchParams(f))}>{l}</button>;
+          })}
+        </div>
+      )}
       <form className="sp-filters" role="search" onSubmit={e => { e.preventDefault(); set('q', search.trim()); }}>
         <label className="sp-sr" htmlFor="sp-q">Search tickets</label>
         <input id="sp-q" className="sp-input" style={{ maxWidth: 260 }} placeholder="Ticket number or subject" value={search} onChange={e => setSearch(e.target.value)} />

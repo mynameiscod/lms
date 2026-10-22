@@ -7,6 +7,7 @@ import { supportUpload, ATTACHMENT_LIMITS } from '../services/supportAttachments
 import * as tickets from '../controllers/supportTicketController';
 import * as faqs from '../controllers/supportFaqController';
 import * as chat from '../controllers/supportAssistantController';
+import * as analytics from '../controllers/supportAnalyticsController';
 
 /**
  * Help & Support (CareerPilot), mounted at /api/v1/support.
@@ -70,5 +71,17 @@ router.get('/admin/faqs', requireSupport('manage'), faqs.adminList);
 router.post('/admin/faqs', requireSupport('manage'), faqs.adminCreate);
 router.patch('/admin/faqs/:id', requireSupport('manage'), faqs.adminUpdate);
 router.post('/admin/faqs/:id/status', requireSupport('manage'), faqs.adminStatus);
+
+// Dashboard: every number is a query over the caller's reach. Coordinators see their college only.
+router.get('/analytics/summary', requireSupport('viewCollege'), analytics.summary);
+router.get('/analytics/trends', requireSupport('viewCollege'), analytics.trends);
+router.get('/analytics/breakdown', requireSupport('viewCollege'), analytics.breakdown);
+router.get('/incidents', requireSupport('viewCollege'), analytics.incidents);
+router.post('/incidents', requireSupport('manage'), analytics.confirmIncident);
+router.post('/incidents/:id/resolve', requireSupport('manage'), analytics.resolveIncident);
+
+// Settings (targets, reopen policy, incident rules, retention): empty until a manager sets them.
+router.get('/admin/config', requireSupport('manage'), analytics.getConfig);
+router.put('/admin/config', requireSupport('manage'), analytics.saveConfig);
 
 export default router;

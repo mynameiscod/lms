@@ -5,6 +5,7 @@ import { requireSupport } from '../middleware/supportAccess';
 import { rateLimit } from '../middleware/rateLimit';
 import { supportUpload, ATTACHMENT_LIMITS } from '../services/supportAttachments';
 import * as tickets from '../controllers/supportTicketController';
+import * as faqs from '../controllers/supportFaqController';
 
 /**
  * Help & Support (CareerPilot), mounted at /api/v1/support.
@@ -46,5 +47,20 @@ router.post('/tickets/:id/messages', requireSupport('raise'), rateLimit('support
 router.post('/tickets/:id/reopen', requireSupport('raise'), rateLimit('supportTicketMessage'), tickets.reopen);
 router.get('/tickets/:id/attachments/:attachmentId', requireSupport('raise'), tickets.attachment);
 router.patch('/tickets/:id', requireSupport('work'), tickets.update);
+
+// Help Center articles: members see published ones for their audience only.
+router.get('/faqs/suggest', requireSupport('raise'), rateLimit('supportSearch'), faqs.suggest);
+router.get('/faqs/search', requireSupport('raise'), rateLimit('supportSearch'), faqs.search);
+router.get('/faqs/categories', requireSupport('raise'), faqs.categories);
+router.get('/faqs', requireSupport('raise'), faqs.list);
+router.get('/faqs/:id', requireSupport('raise'), faqs.get);
+router.post('/faqs/:id/vote', requireSupport('raise'), rateLimit('supportTicketMessage'), faqs.vote);
+
+// Managing articles (support managers)
+router.get('/admin/faqs/insights', requireSupport('manage'), faqs.adminInsights);
+router.get('/admin/faqs', requireSupport('manage'), faqs.adminList);
+router.post('/admin/faqs', requireSupport('manage'), faqs.adminCreate);
+router.patch('/admin/faqs/:id', requireSupport('manage'), faqs.adminUpdate);
+router.post('/admin/faqs/:id/status', requireSupport('manage'), faqs.adminStatus);
 
 export default router;

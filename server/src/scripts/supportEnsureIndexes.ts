@@ -17,10 +17,12 @@ import SupportFaq from '../models/SupportFaq';
 import SupportAuditLog from '../models/SupportAuditLog';
 import SupportConfiguration from '../models/SupportConfiguration';
 import SupportCounter from '../models/SupportCounter';
+import SupportSearchLog from '../models/SupportSearchLog';
+import SupportFaqVote from '../models/SupportFaqVote';
 
 dotenv.config();
 
-export const SUPPORT_MODELS = [SupportTicket, SupportMessage, SupportChatSession, SupportFaq, SupportAuditLog, SupportConfiguration, SupportCounter];
+export const SUPPORT_MODELS = [SupportTicket, SupportMessage, SupportChatSession, SupportFaq, SupportAuditLog, SupportConfiguration, SupportCounter, SupportSearchLog, SupportFaqVote];
 
 async function main() {
   await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI || '');

@@ -116,6 +116,15 @@ const qs = (q: Record<string, unknown>) => {
   return s ? `?${s}` : '';
 };
 
+export interface FaqHit { id: string; question: string; category: string; module: string; snippet: string }
+export interface FaqArticle { id: string; question: string; answer: string; category: string; module: string; updatedAt: string; myVote: boolean | null; related: FaqHit[] }
+export interface AdminFaq {
+  id: string; question: string; answer: string; category: string; module: string; audiences: string[]; keywords: string[];
+  status: 'draft' | 'published' | 'archived'; needsOwnerReview: boolean; platformWide: boolean; tenantId: string | null;
+  views: number; helpfulYes: number; helpfulNo: number; publishedAt?: string | null; updatedAt: string;
+}
+export interface FaqInsights { days: number; unanswered: { query: string; count: number; people: number; last: string }[]; lowRated: AdminFaq[] }
+
 export const supportApi = {
   me: async (): Promise<SupportMe> => (await axios.get(`${BASE}/me`, { headers: authHeader() })).data.data,
   create: async (body: NewTicket): Promise<{ ticket: SupportTicket; duplicate: boolean }> => {
@@ -136,6 +145,23 @@ export const supportApi = {
   /** Attachments need the login header, so they are fetched as a blob rather than linked. */
   attachment: async (ticketId: string, attachmentId: string): Promise<Blob> =>
     (await axios.get(`${BASE}/tickets/${ticketId}/attachments/${attachmentId}`, { headers: authHeader(), responseType: 'blob' })).data,
+  // Help Center
+  suggest: async (q: string): Promise<FaqHit[]> => (await axios.get(`${BASE}/faqs/suggest${qs({ q })}`, { headers: authHeader() })).data.data,
+  search: async (q: string, opts: { category?: string; module?: string } = {}): Promise<FaqHit[]> =>
+    (await axios.get(`${BASE}/faqs/search${qs({ q, ...opts })}`, { headers: authHeader() })).data.data,
+  categories: async (): Promise<{ category: string; count: number }[]> => (await axios.get(`${BASE}/faqs/categories`, { headers: authHeader() })).data.data,
+  faqs: async (q: { category?: string; module?: string; page?: number }): Promise<{ articles: FaqHit[]; total: number; page: number; limit: number }> =>
+    (await axios.get(`${BASE}/faqs${qs(q)}`, { headers: authHeader() })).data.data,
+  faq: async (id: string): Promise<FaqArticle> => (await axios.get(`${BASE}/faqs/${id}`, { headers: authHeader() })).data.data,
+  vote: async (id: string, helpful: boolean) => (await axios.post(`${BASE}/faqs/${id}/vote`, { helpful }, { headers: authHeader() })).data.data,
+  // Managing articles
+  adminFaqs: async (q: Record<string, unknown>): Promise<{ articles: AdminFaq[]; total: number; page: number; limit: number }> =>
+    (await axios.get(`${BASE}/admin/faqs${qs(q)}`, { headers: authHeader() })).data.data,
+  adminCreateFaq: async (body: Partial<AdminFaq>): Promise<AdminFaq> => (await axios.post(`${BASE}/admin/faqs`, body, { headers: authHeader() })).data.data,
+  adminUpdateFaq: async (id: string, body: Partial<AdminFaq>): Promise<AdminFaq> => (await axios.patch(`${BASE}/admin/faqs/${id}`, body, { headers: authHeader() })).data.data,
+  adminFaqStatus: async (id: string, status: AdminFaq['status'], reviewed?: boolean): Promise<AdminFaq> =>
+    (await axios.post(`${BASE}/admin/faqs/${id}/status`, { status, reviewed }, { headers: authHeader() })).data.data,
+  adminFaqInsights: async (days = 30): Promise<FaqInsights> => (await axios.get(`${BASE}/admin/faqs/insights${qs({ days })}`, { headers: authHeader() })).data.data,
   // Staff
   queue: async (q: Record<string, unknown>): Promise<Paged<SupportTicket>> => (await axios.get(`${BASE}/queue${qs(q)}`, { headers: authHeader() })).data.data,
   update: async (id: string, body: { status?: string; priority?: string; assigneeId?: string | null; escalated?: boolean }) =>

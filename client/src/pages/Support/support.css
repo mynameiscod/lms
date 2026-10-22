@@ -131,3 +131,23 @@
 .sp-linkbtn{background:none;border:0;padding:0;font:inherit;font-weight:700;color:var(--sp-ink);cursor:pointer;text-align:left}
 .sp-linkbtn:hover{color:var(--sp-teal);text-decoration:underline}
 .sp-nowrap{white-space:nowrap}
+
+/* Help Center search */
+.sp-hero{background:linear-gradient(135deg,var(--sp-navy) 0%,#0B2D72 75%,var(--sp-teal) 150%);border-radius:16px;padding:30px 28px;margin-bottom:18px}
+.sp-hero h1,#root .gd .sp .sp-hero h1{color:#fff !important;font-size:26px;margin-bottom:14px}
+.sp-search{position:relative;display:flex;align-items:center;gap:8px;background:#fff;border-radius:12px;padding:6px 6px 6px 14px;max-width:720px}
+.sp-search>i{color:var(--sp-muted)}
+.sp-search-input{flex:1;border:0;outline:0;font:inherit;font-size:15px;color:var(--sp-ink);min-width:0;padding:8px 0;background:transparent}
+.sp-suggest{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:30;list-style:none;margin:0;padding:6px;background:#fff;border:1px solid var(--sp-border);border-radius:12px;box-shadow:0 12px 30px rgba(5,29,100,.15)}
+.sp-suggest li{display:flex;gap:8px;align-items:center;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--sp-ink)}
+.sp-suggest li.on,.sp-suggest li:hover{background:var(--sp-bg)}
+.sp-suggest-ai{color:var(--sp-teal) !important;font-weight:600;border-top:1px solid var(--sp-border);margin-top:4px}
+@media (max-width:640px){.sp-hero{padding:22px 16px}.sp-search .sp-btn{padding:9px 12px}}
+.sp-answer{white-space:pre-wrap;word-break:break-word;line-height:1.65;color:var(--sp-text);margin-top:10px}
+.sp-helpful{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--sp-border)}
+
+/* Desk tabs */
+.sp-tabs{display:flex;gap:4px;border-bottom:1px solid var(--sp-border);margin:4px 0 16px}
+.sp-tab{padding:9px 14px;font-weight:600;color:var(--sp-muted);text-decoration:none;border-bottom:3px solid transparent;margin-bottom:-1px}
+.sp-tab:hover{color:var(--sp-ink)}
+.sp-tab.on{color:var(--sp-navy);border-bottom-color:var(--sp-teal)}

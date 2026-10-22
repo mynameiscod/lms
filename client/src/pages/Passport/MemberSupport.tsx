@@ -1,10 +1,11 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import PassportShell from './PassportShell';
 import TicketForm from '../Support/TicketForm';
 import MyTickets from '../Support/MyTickets';
 import TicketDetails from '../Support/TicketDetails';
-import HelpCenter from '../Support/HelpCenter';
+import HelpCenter, { FaqBrowse } from '../Support/HelpCenter';
+import FaqDetails from '../Support/FaqDetails';
 import { useSupportMe } from '../Support/useSupportMe';
 import '../Support/support.css';
 
@@ -16,6 +17,13 @@ import '../Support/support.css';
 export const SUPPORT_BASE = '/careerpilot/support';
 
 export const SupportHome: React.FC = () => <PassportShell><HelpCenter basePath={SUPPORT_BASE} /></PassportShell>;
+
+export const SupportArticle: React.FC = () => <PassportShell><FaqDetails basePath={SUPPORT_BASE} /></PassportShell>;
+
+export const SupportBrowse: React.FC = () => {
+  const [p] = useSearchParams();
+  return <PassportShell><FaqBrowse basePath={SUPPORT_BASE} category={p.get('category') || ''} /></PassportShell>;
+};
 
 export const SupportNew: React.FC = () => (
   <PassportShell>

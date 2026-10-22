@@ -159,6 +159,8 @@ const MemberSupportHome = lazy(() => import('./pages/Passport/MemberSupport').th
 const MemberSupportNew = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportNew })));
 const MemberSupportTickets = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportTickets })));
 const MemberSupportTicket = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportTicket })));
+const MemberSupportArticle = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportArticle })));
+const MemberSupportBrowse = lazy(() => import('./pages/Passport/MemberSupport').then(m => ({ default: m.SupportBrowse })));
 const PassportCompanies = lazy(() => import('./pages/Passport/Companies'));
 const PassportMockTest = lazy(() => import('./pages/Passport/MockTest'));
 const PassportAdminNews = lazy(() => import('./pages/Passport/AdminNews'));
@@ -268,6 +270,7 @@ const MyJourneyPage = lazy(() => import('./pages/MyLearningPlan/Journey'));
 const AdminConcernsPage = lazy(() => import('./pages/AdminConcerns'));
 const AdminSupportDesk = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportDesk })));
 const AdminSupportTicketPage = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportTicketPage })));
+const AdminSupportFaqs = lazy(() => import('./pages/Support/AdminSupport').then(m => ({ default: m.AdminSupportFaqs })));
 const QuizSession = lazy(() => import('./pages/QuizSession'));
 const AssessmentRegister = lazy(() => import('./pages/Assessment/Register'));
 const AssessmentLanding = lazy(() => import('./pages/Assessment/Landing'));
@@ -874,6 +877,8 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/support/new" element={<MemberSupportNew />} />
         <Route path="/careerpilot/support/tickets" element={<MemberSupportTickets />} />
         <Route path="/careerpilot/support/tickets/:id" element={<MemberSupportTicket />} />
+        <Route path="/careerpilot/support/articles/:id" element={<MemberSupportArticle />} />
+        <Route path="/careerpilot/support/browse" element={<MemberSupportBrowse />} />
         <Route path="/careerpilot/companies" element={<PassportCompanies />} />
         <Route path="/careerpilot/companies/:slug" element={<PassportCompanies />} />
         <Route path="/careerpilot/mock-test/:id" element={<PassportMockTest />} />
@@ -2675,6 +2680,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
             <Layout><AdminSupportDesk /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support/faqs"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR']}>
+            <Layout><AdminSupportFaqs /></Layout>
           </ProtectedRoute>
         }
       />

@@ -91,6 +91,21 @@ const BASE_FAQS: [string, string][] = [
   ['Can I change my target career later?', 'Yes. Career direction can evolve. CareerPilot is designed to help you reassess your goal and understand what changes in your roadmap.'],
 ];
 
+/**
+ * A field label whose required "*" can never wrap onto a line of its own: the last word and the
+ * star are kept together, so "Branch / Specialization *" breaks as "Branch /" + "Specialization *".
+ */
+const LabelText: React.FC<{ text: string; required?: boolean }> = ({ text, required }) => {
+  const words = String(text || '').trim().split(/\s+/);
+  const last = words.pop() || '';
+  return (
+    <>
+      {words.length ? `${words.join(' ')} ` : ''}
+      <span className="cpx-label-end">{last}{required ? <em>{'\u00a0'}*</em> : null}</span>
+    </>
+  );
+};
+
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export const toMobile = (raw: string) => raw.replace(/\D/g, '').slice(-10);
@@ -436,24 +451,24 @@ const PassportJoin: React.FC = () => {
                   {/* Two columns on a wide card — the same fields in about half the height. */}
                   <div className="cpx-fields">
                   <div className="cpx-field full">
-                    <label htmlFor="jn-name">Full Name <em>*</em></label>
+                    <label htmlFor="jn-name"><LabelText text="Full Name" required /></label>
                     <div className={`cpx-input${errFor('name') ? ' bad' : ''}`}><i className={`bi ${ICON.name}`} /><input id="jn-name" value={form.name || ''} autoComplete="name" aria-invalid={!!errFor('name')} aria-describedby={errFor('name') ? 'jn-name-err' : undefined} onBlur={() => blur('name')} onChange={e => set('name', e.target.value)} placeholder="Enter your full name" /></div>
                     {errFor('name') && <div className="cpx-fe" id="jn-name-err">{errFor('name')}</div>}
                   </div>
                   <div className="cpx-field">
-                    <label htmlFor="jn-mob">Mobile Number <em>*</em></label>
+                    <label htmlFor="jn-mob"><LabelText text="Mobile Number" required /></label>
                     <div className={`cpx-input${errFor('mobile') ? ' bad' : ''}`}><i className={`bi ${ICON.mobile}`} /><input id="jn-mob" value={form.mobile || ''} inputMode="numeric" autoComplete="tel" maxLength={10} aria-invalid={!!errFor('mobile')} aria-describedby={errFor('mobile') ? 'jn-mob-err' : undefined} onBlur={() => blur('mobile')} onChange={e => set('mobile', toMobile(e.target.value))} placeholder="10-digit number" /></div>
                     {errFor('mobile') && <div className="cpx-fe" id="jn-mob-err">{errFor('mobile')}</div>}
                   </div>
                   <div className="cpx-field">
-                    <label htmlFor="jn-mail">Email Address <em>*</em></label>
+                    <label htmlFor="jn-mail"><LabelText text="Email Address" required /></label>
                     <div className={`cpx-input${errFor('email') ? ' bad' : ''}`}><i className={`bi ${ICON.email}`} /><input id="jn-mail" type="email" value={form.email || ''} autoComplete="email" aria-invalid={!!errFor('email')} aria-describedby={errFor('email') ? 'jn-mail-err' : undefined} onBlur={() => blur('email')} onChange={e => set('email', e.target.value)} placeholder="you@example.com" /></div>
                     {errFor('email') && <div className="cpx-fe" id="jn-mail-err">{errFor('email')}</div>}
                   </div>
 
                   {extra.map((f, i) => (
                     <div className={`cpx-field${extra.length % 2 === 1 && i === extra.length - 1 ? ' full' : ''}`} key={f.key}>
-                      <label htmlFor={`jn-${f.key}`}>{f.label}{f.required ? <em> *</em> : null}</label>
+                      <label htmlFor={`jn-${f.key}`}><LabelText text={f.label} required={!!f.required} /></label>
                       <div className={`cpx-input plain${errFor(f.key) ? ' bad' : ''}`}>
                         {f.type === 'select' ? (
                           <select id={`jn-${f.key}`} value={form[f.key] || ''} aria-invalid={!!errFor(f.key)} onBlur={() => blur(f.key)} onChange={e => set(f.key, e.target.value)}>

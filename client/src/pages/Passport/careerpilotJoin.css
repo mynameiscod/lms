@@ -569,3 +569,10 @@
   .cpx-field > label { align-self: end; }
   .cpx-field > .cpx-fe:empty { display: none; }
 }
+/* The last word of a label and its required "*" wrap together (Join.tsx LabelText). */
+.cpx-label-end { white-space: nowrap; }
+/* Side-by-side fields: a slightly smaller label so "Branch / Specialization *" fits its column on
+   one line in the narrower card (laptop sizes / 125% display scaling). Full-width labels unchanged. */
+@media (max-width: 1700px) {
+  .cpx-fields .cpx-field:not(.full) > label { font-size: 13px; letter-spacing: -.01em; }
+}

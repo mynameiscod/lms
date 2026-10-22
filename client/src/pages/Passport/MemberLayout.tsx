@@ -55,6 +55,11 @@ const ROUTE_SECTIONS: { prefix: string; section: MemberSection }[] = [
   { prefix: '/careerpilot/interview-experiences', section: 'experiences' },
   { prefix: '/careerpilot/question-books',        section: 'questionBooks' },
   { prefix: '/careerpilot/mentor',                section: 'mentor' },
+  // Before membership these show the unlock page, never their content (the APIs refuse too).
+  { prefix: '/careerpilot/practice',              section: 'practice' },
+  { prefix: '/careerpilot/thinking-lab',          section: 'thinkingLab' },
+  { prefix: '/careerpilot/industry-connect',      section: 'industryConnect' },
+  { prefix: '/careerpilot/progress',              section: 'progress' },
 ];
 /**
  * Which menu switch (Student Features, CareerPilot tab) each page belongs to. Longest prefix first,

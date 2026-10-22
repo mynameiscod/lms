@@ -378,7 +378,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Coding Sets', 'code', '/careerpilot/coding', 'coding', 'coding')}
           {navBtn('Playground', 'terminal', '/careerpilot/playground', 'playground', 'playground')}
           {vzAllowed && navBtn('Code Visualizer', 'eye', '/careerpilot/visualizer', undefined, 'visualizer')}
-          {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'practice', 'thinkingLab')}
+          {navBtn('Thinking Lab', 'brain', '/careerpilot/thinking-lab', 'thinkingLab', 'thinkingLab')}
           {navBtn('Communication Lab', 'speech', '/careerpilot/communication', 'communication', 'communication')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview', 'interview', 'interview')}
           {navBtn('Interview Experiences', 'interview', '/careerpilot/interview-experiences', 'experiences', 'experiences')}
@@ -391,9 +391,9 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Tech News', 'news', '/careerpilot/news', 'news', 'news')}
           {navBtn('Resume', 'resume', '/careerpilot/resume', 'resume', 'resume')}
           {navBtn('My Progress', 'trophy', '/careerpilot/progress', 'progress', 'progress')}
-          {/* Not built yet: the page says what is coming. No section, so membership never locks a
-              preview; the institute can still hide it (Student Features, CareerPilot tab). */}
-          {navBtn('Industry Connect', 'handshake', '/careerpilot/industry-connect', undefined, 'industryConnect')}
+          {/* Membership-only like the rest of the product; the institute can also hide it
+              (Student Features, CareerPilot tab). */}
+          {navBtn('Industry Connect', 'handshake', '/careerpilot/industry-connect', 'industryConnect', 'industryConnect')}
           {/* Never locked behind membership: anyone signed in must be able to ask for help, including about paying. */}
           {navBtn('Help & Support', 'support', '/careerpilot/support', undefined, 'support', supportUnread)}
         </nav>

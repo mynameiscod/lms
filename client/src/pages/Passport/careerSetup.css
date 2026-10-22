@@ -299,3 +299,5 @@
   .cps * { transition: none !important; }
   .cps-role:hover { transform: none; }
 }
+/* A language that cannot be picked with the current choice (languageChoice.ts). */
+.cps-tech.off, .cps-tech:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }

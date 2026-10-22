@@ -24,6 +24,12 @@ jest.mock('../models/CareerRole', () => {
     },
   };
 });
+// Which data roles have a skill blueprint (they are offered only when they do).
+const blueprintRoles = jest.fn();
+jest.mock('../models/RoleSkillBlueprint', () => ({
+  __esModule: true,
+  default: { find: () => ({ distinct: async () => blueprintRoles() }) },
+}));
 jest.mock('../models/User', () => ({
   __esModule: true,
   default: { countDocuments: (...a: any[]) => countUsers(...a) },
@@ -60,15 +66,27 @@ beforeEach(() => {
   findOneRole.mockReturnValue(oneResult(null));
   insertManyRole.mockResolvedValue([]);
   countUsers.mockResolvedValue(0);
+  blueprintRoles.mockReturnValue([]);
 });
 
 describe('the shared role vocabulary', () => {
   it('carries exactly the keys Module 1 shipped, so stored values still resolve', () => {
     // A student holding any of these must land on a real record the moment this seeds.
     expect(SYSTEM_CAREER_ROLES.map(r => r.key).sort()).toEqual([
-      'BACKEND_ENGINEER', 'CLOUD_DEVOPS', 'FRONTEND_ENGINEER', 'FULLSTACK_ENGINEER',
+      'BACKEND_ENGINEER', 'CLOUD_DEVOPS', 'DATA_ANALYST', 'DATA_SCIENTIST', 'FRONTEND_ENGINEER', 'FULLSTACK_ENGINEER',
       'MOBILE_ENGINEER', 'QA_SDET', 'SOFTWARE_ENGINEER',
     ]);
+  });
+
+  it('offers the data roles only once their skill blueprint exists', async () => {
+    findRole.mockReturnValue(findResult(SYSTEM_CAREER_ROLES.map(r => ROLE(r))));
+    const without = (await getSelectableCareerRoles('t1', 'SOFTWARE_ENGINEERING')).map(r => r.key);
+    expect(without).not.toContain('DATA_ANALYST');
+    expect(without).toContain('SOFTWARE_ENGINEER');
+    blueprintRoles.mockReturnValue(['DATA_ANALYST']);
+    const withOne = (await getSelectableCareerRoles('t1', 'SOFTWARE_ENGINEERING')).map(r => r.key);
+    expect(withOne).toContain('DATA_ANALYST');
+    expect(withOne).not.toContain('DATA_SCIENTIST');
   });
 
   it('does not include NOT_SURE — it is an onboarding option, not a career', () => {

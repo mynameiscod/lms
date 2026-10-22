@@ -612,8 +612,8 @@ export const passportApi = {
     return data;
   },
   /** Saves progress without submitting — the paper stays open and nothing is graded. */
-  saveSkillAnswers: async (answers: { sourceType: string; sourceId: string; response: any }[]): Promise<{ saved: boolean; answered: number }> => {
-    const { data } = await axios.put(`${BASE}/me/assessment/personalized/answers`, { answers }, { headers: auth() });
+  saveSkillAnswers: async (answers: { sourceType: string; sourceId: string; response: any; dontKnow?: boolean }[], position?: number): Promise<{ saved: boolean; answered: number }> => {
+    const { data } = await axios.put(`${BASE}/me/assessment/personalized/answers`, { answers, position }, { headers: auth() });
     return data;
   },
   /** Today's roadmap-derived work. */
@@ -1962,7 +1962,8 @@ export interface SpineCoverage {
 export type MemberSection =
   | 'score' | 'roadmap' | 'missions' | 'progress'
   | 'practice' | 'interview' | 'resume' | 'companies' | 'news'
-  | 'coding' | 'playground' | 'communication' | 'experiences' | 'questionBooks' | 'mentor';
+  | 'coding' | 'playground' | 'communication' | 'experiences' | 'questionBooks' | 'mentor'
+  | 'thinkingLab' | 'industryConnect';
 
 export interface LockedSection {
   section: MemberSection;
@@ -3606,6 +3607,8 @@ export interface SkillAssessmentItem {
   points: number;
   /** What was saved earlier, so a resumed paper comes back filled in. */
   response?: any;
+  /** Saved as "I don't know". */
+  dontKnow?: boolean;
 }
 
 /* ── Orientation: the welcome days before Day 1 ── */
@@ -3695,6 +3698,8 @@ export interface PlacementResult {
 }
 
 export interface SkillAssessment {
+  /** The question the member was on when they last saved. */
+  lastPosition?: number;
   id: string;
   attemptNumber: number;
   /** 0 = untimed. */
@@ -4270,7 +4275,7 @@ export interface CoverageUnit {
 }
 export interface PackCoverage { key: string; topics: { topicCode: string; title: string | null; priority: TrackPriority; units: CoverageUnit[] }[] }
 export interface TopicHit { topicCode: string; title: string; stageKey: string; moduleCode: string }
-export interface MyTracks { stage: string | null; current: string | null; tracks: { key: string; name: string; language: string; description: string | null }[] }
+export interface MyTracks { stage: string | null; current: string | null; fixed?: boolean; canChange?: boolean; tracks: { key: string; name: string; language: string; description: string | null }[] }
 
 const keep500 = { validateStatus: (s: number) => s < 500 };
 export const careerTrackApi = {

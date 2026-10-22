@@ -1,6 +1,7 @@
 import React, { CSSProperties, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import passportApi, { AssessmentAvailability, CareerContext, CareerContextOptions } from '../../api/passportApi';
+import { toggleLanguage, languageBlocked } from './languageChoice';
 import { useMember } from './MemberLayout';
 import './careerSetup.css';
 import { copyrightLine } from '../../config/brand';
@@ -48,6 +49,7 @@ const LANG_META: Record<string, LangMeta> = {
   C: { label: 'C', tone: '#5c6bc0', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/c/c-original.svg' },
   'C++': { label: 'C++', tone: '#00599c', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-original.svg' },
   CPP: { label: 'C++', tone: '#00599c', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-original.svg' },
+  'C#': { label: 'C# (.NET)', tone: '#68217a', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/csharp/csharp-original.svg' },
   SQL: { label: 'SQL', tone: '#336791', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original.svg' },
   HTML: { label: 'HTML', tone: '#e34f26', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg' },
   CSS: { label: 'CSS', tone: '#1572b6', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg' },
@@ -188,12 +190,8 @@ const CareerSetup: React.FC = () => {
     return () => { alive = false; };
   }, [done]);
 
-  const toggleLang = (l: string) => setA(s => ({
-    ...s,
-    preferredProgrammingLanguages: s.preferredProgrammingLanguages.includes(l)
-      ? s.preferredProgrammingLanguages.filter(x => x !== l)
-      : [...s.preferredProgrammingLanguages, l],
-  }));
+  // "Not sure" stands alone; one main language at a time; JavaScript/TypeScript alongside (languageChoice.ts).
+  const toggleLang = (l: string) => setA(s => ({ ...s, preferredProgrammingLanguages: toggleLanguage(s.preferredProgrammingLanguages, l) }));
 
   if (err && !ctx) return <div className="cps cps-state"><div className="cps-err">{err}</div></div>;
   if (!ctx || !opts) return <div className="cps cps-state"><div className="cps-load">Loading your details…</div></div>;
@@ -430,13 +428,15 @@ const CareerSetup: React.FC = () => {
 
             {step === 'technology' && (
               <>
-                <div className="cps-question-head"><div className="cps-qicon"><i className="bi bi-code-slash" /></div><div><h2>Which technologies interest you?</h2><p>Pick as many as you like, or skip for now.</p></div></div>
+                <div className="cps-question-head"><div className="cps-qicon"><i className="bi bi-code-slash" /></div><div><h2>Which language do you want to build your career in?</h2><p>Choose one main language (Java, Python or C#). You can add JavaScript alongside it. Not sure yet? Choose “Not sure”.</p></div></div>
                 <div className="cps-tech-grid">
                   {opts.languages.map(l => {
                     const meta = languageMeta(l);
                     const selected = a.preferredProgrammingLanguages.includes(l);
+                    const blocked = languageBlocked(a.preferredProgrammingLanguages, l);
                     return (
-                      <button key={l} className={`cps-tech${selected ? ' on' : ''}`} style={{ ['--lang' as any]: meta.tone }} onClick={() => toggleLang(l)}>
+                      <button key={l} className={`cps-tech${selected ? ' on' : ''}${blocked ? ' off' : ''}`} style={{ ['--lang' as any]: meta.tone }}
+                        disabled={!!blocked} aria-disabled={!!blocked} title={blocked || undefined} aria-pressed={selected} onClick={() => toggleLang(l)}>
                         <span className="cps-tech-logo">{meta.icon ? <img src={meta.icon} alt="" /> : <i className="bi bi-question-circle" />}</span>
                         <span>{meta.label}</span>{selected && <i className="bi bi-check-circle-fill cps-tech-check" />}
                       </button>

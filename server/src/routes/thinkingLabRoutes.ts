@@ -6,6 +6,7 @@ import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { roleGuard } from '../middleware/roleGuard';
 import * as ctrl from '../controllers/thinkingLabController';
+import { requireCareerPilotFeature } from '../middleware/careerPilotEntitlement';
 
 const router = express.Router();
 router.use(authMiddleware, tenantMiddleware);
@@ -23,20 +24,22 @@ const voiceUpload = multer({
 });
 
 // Student — daily challenge loop
-router.get('/today', ctrl.getToday);
-router.post('/next', ctrl.nextChallenge);
-router.get('/stats', ctrl.stats);
-router.get('/badges', ctrl.badges);
-router.get('/leaderboard', ctrl.leaderboard);
-router.get('/profile', ctrl.getProfile);
-router.get('/analytics', ctrl.analytics);
-router.post('/:id/approach', ctrl.saveApproach);   // think-first gate (>=30 words)
-router.post('/:id/hint', ctrl.revealHint);
-router.post('/:id/run', ctrl.run);
-router.post('/:id/submit', ctrl.submit);
-router.post('/:id/voice', voiceUpload.single('recording'), ctrl.voiceExplain);
-router.post('/:id/journal', ctrl.saveJournal);
-router.post('/:id/explain', ctrl.explain);
+// A CareerPilot member needs membership (or a free 'thinking_lab' tier); LMS students are unaffected.
+const memberGate = requireCareerPilotFeature('thinking_lab');
+router.get('/today', memberGate, ctrl.getToday);
+router.post('/next', memberGate, ctrl.nextChallenge);
+router.get('/stats', memberGate, ctrl.stats);
+router.get('/badges', memberGate, ctrl.badges);
+router.get('/leaderboard', memberGate, ctrl.leaderboard);
+router.get('/profile', memberGate, ctrl.getProfile);
+router.get('/analytics', memberGate, ctrl.analytics);
+router.post('/:id/approach', memberGate, ctrl.saveApproach);   // think-first gate (>=30 words)
+router.post('/:id/hint', memberGate, ctrl.revealHint);
+router.post('/:id/run', memberGate, ctrl.run);
+router.post('/:id/submit', memberGate, ctrl.submit);
+router.post('/:id/voice', memberGate, voiceUpload.single('recording'), ctrl.voiceExplain);
+router.post('/:id/journal', memberGate, ctrl.saveJournal);
+router.post('/:id/explain', memberGate, ctrl.explain);
 
 // Admin / instructor — question bank
 const adminGuard = roleGuard(['manage_thinking_lab', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);

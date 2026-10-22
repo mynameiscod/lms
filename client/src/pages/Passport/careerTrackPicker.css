@@ -23,3 +23,8 @@
 .ctp-msg.ok { background: #ecfdf3; color: #106b3a; }
 .ctp-msg.err { background: #fef3f2; color: #b42318; }
 @media (max-width: 480px) { .ctp-grid { grid-template-columns: minmax(0, 1fr); } }
+/* Read-only track card: name and the line under it on their own lines; the button never squeezes the text. */
+.ctp-current b { display: block; }
+.ctp-current .ctp-desc { display: block; margin: 2px 0 0; }
+.ctp-current button { flex: none; white-space: nowrap; }
+@media (max-width: 560px) { .ctp-current { flex-wrap: wrap; } .ctp-current button { width: 100%; } }

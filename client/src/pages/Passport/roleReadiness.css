@@ -331,3 +331,21 @@
   .rr .rr-hero .rr-gauge { width: 96px; height: 96px; }
   .rr .rr-hero .rr-gauge > div { width: 76px; height: 76px; }
 }
+
+/* One row, three sections, from 981px up: overall readiness as a compact column (ring above text). */
+@media (min-width: 981px) and (max-width: 1280px) {
+  .rr .rr-hero { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, .72fr); }
+  .rr-momentum { border-right: 1px solid var(--line); padding: 0 20px; }
+  .rr .rr-hero .rr-hero-score { grid-column: auto; margin: 0 20px; padding: 0; border: 0; border-radius: 0; flex-direction: column; align-items: flex-start; gap: 12px; align-self: center; justify-self: stretch; }
+}
+/* 981–1150px: tighter columns; the strong / needs-work counts stack instead of wrapping word by word. */
+@media (min-width: 981px) and (max-width: 1150px) {
+  .rr .rr-hero-copy { padding: 0 18px; }
+  .rr-momentum { padding: 0 14px; gap: 10px; }
+  .rr .rr-hero .rr-hero-score { margin: 0 14px; }
+  .rr-split { padding: 12px; }
+  .rr-split-top { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .rr .rr-split-top b { font-size: 15px; white-space: nowrap; }
+  .rr .rr-split-top > span { font-size: 12.5px; white-space: nowrap; }
+  .rr .rr-split-foot { font-size: 12px; }
+}

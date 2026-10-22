@@ -372,3 +372,31 @@ button.md-jm:hover { border-color: #9DBBD0; box-shadow: 0 6px 16px rgba(15, 46, 
   .md-hero-copy { padding-left: 20px; padding-right: 20px; margin: 0; }
   .md-hero-score { margin: 18px 20px 0; padding: 18px 0 0; }
 }
+
+/* ── ONE ROW, three sections, from 981px up (user's request) ────────────────────────────────
+   Today's focus | Daily momentum | Coder score side by side at laptop sizes too. Below 1280px
+   the score column is compact: the ring above its text, so it fits a third of the card. */
+@media (min-width: 981px) and (max-width: 1280px) {
+  .md-hero { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, .72fr); }
+  .md-momentum { border-right: 1px solid var(--line); padding: 0 20px; }
+  .md-hero-copy { padding: 0 22px; }
+  .md-hero-score { grid-column: auto; margin: 0 20px; padding: 0; border: 0; border-radius: 0; flex-direction: column; align-items: flex-start; gap: 12px; align-self: center; }
+  .md .md-hero-score-copy b { font-size: 18px; }
+}
+/* 981–1150px: tighter so the momentum column keeps its track labels on one line. */
+@media (min-width: 981px) and (max-width: 1150px) {
+  .md-hero-copy { padding: 0 18px; }
+  .md-momentum { padding: 0 14px; gap: 10px; }
+  .md-hero-score { margin: 0 14px; }
+  .md-hero-score .md-score-ring { width: 84px; height: 84px; }
+  .md-hero-score .md-score-ring > div { width: 66px; height: 66px; }
+  .md-hero-score .md-score-ring strong { font-size: 24px; }
+  .md-streak { gap: 10px; padding: 12px; }
+  .md-streak .ic { width: 38px; height: 38px; font-size: 18px; }
+  .md-streak-art { display: none; }
+  .md .md-streak b { font-size: 15px; }
+  .md .md-streak > div span { font-size: 12.5px; }
+  .md-steps2 { padding: 0; }
+  .md-steps2 li { min-width: 0; }
+  .md-steps2 li span { font-size: 10px; letter-spacing: .02em; white-space: nowrap; }
+}

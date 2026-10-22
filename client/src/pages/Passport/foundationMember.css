@@ -334,3 +334,11 @@
   .fjm-hero > .fjm-ring { grid-area: ring; align-self: center; }
   .fjm-hero > .fjm-momentum { grid-area: mom; margin: 20px 22px 0; padding: 18px 0 0; border-left: 0; border-right: 0; border-top: 1px solid var(--line); }
 }
+
+/* One row, three sections, from 981px up (replaces the stacked 981–1150px layout above). */
+@media (min-width: 981px) and (max-width: 1280px) {
+  .fjm-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) auto; grid-template-areas: none; }
+  .fjm-hero > .fjm-hero-copy, .fjm-hero > .fjm-ring, .fjm-hero > .fjm-momentum { grid-area: auto; }
+  .fjm-hero > .fjm-momentum { margin: 0; padding: 0 20px; border-top: 0; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .fjm-hero > .fjm-ring { margin: 0 20px; align-self: center; }
+}

@@ -205,3 +205,17 @@
   .gam2 .gam2-hero .gam2-level { padding: 0 20px; }
   .gam2 .gam2-hero .gam2-wallet { margin: 0 20px; }
 }
+
+/* Five stat cards: one even row down to 981px (3 + 2 left a ragged last row); on tablets two
+   columns with the fifth card spanning both. */
+@media (min-width: 981px) and (max-width: 1100px) { .gam-five-metrics { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (min-width: 521px) and (max-width: 980px) {
+  .gam-five-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gam-five-metrics > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+/* The coins / XP / Rewards row at laptop widths: the button keeps its own width instead of being
+   squeezed until its label is clipped. */
+@media (min-width: 1101px) and (max-width: 1280px) {
+  .gam2 .gam2-hero .gam2-wallet { align-items: stretch; }
+  #root .gd .gam2 .gam2-wallet button, .gam2 .gam2-wallet button { flex: 0 0 auto; padding: 0 22px; white-space: nowrap; }
+}

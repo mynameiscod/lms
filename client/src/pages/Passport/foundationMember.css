@@ -218,15 +218,21 @@
 
 .fjm-hero .fjm-ring { margin: 0 26px; }
 @media (max-width: 1280px) {
-  .fjm-hero { grid-template-columns: minmax(0, 1fr) minmax(280px, .9fr); }
-  .fjm-hero .fjm-ring { grid-column: 1 / -1; justify-self: start; margin: 0 28px; padding-top: 20px; }
-  .fjm-momentum { border-right: 0; }
+  /* Three sections stay side by side down to tablet width: the ring is only a ring, so it
+     shrinks rather than dropping to a lonely row of its own (it read as misaligned). */
+  .fjm-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .fjm-hero-copy { padding: 0 22px; }
+  .fjm-momentum { padding: 0 20px; }
+  .fjm-hero .fjm-ring { margin: 0 22px; width: 112px; height: 112px; }
+  .fjm-hero .fjm-ring > div { width: 90px; height: 90px; }
+  .fjm-hero .fjm-ring strong { font-size: 26px; }
+  .fjm-hero .fjm-ring span { font-size: 11px; }
 }
 @media (max-width: 980px) {
   .fjm-hero { grid-template-columns: 1fr; padding: 24px 0; }
   .fjm-momentum { margin: 0 20px; padding: 18px 0 0; border-left: 0; border-top: 1px solid var(--line); }
   .fjm-hero-copy { padding-left: 20px; padding-right: 20px; }
-  .fjm-hero .fjm-ring { margin: 0 20px; padding-top: 4px; }
+  .fjm-hero .fjm-ring { margin: 18px 20px 0; justify-self: start; }
 }
 
 /* My Roadmap reuses this banner but has no momentum column, so it stays two columns and the
@@ -319,3 +325,12 @@
 /* The open chip is marked by the teal ring alone — the base sheet's indigo outline doubled it. */
 .fjm .fj-chip.open { outline: none; }
 .fjm .fj-chip:focus-visible { outline: 3px solid rgba(53, 154, 173, .6); outline-offset: 2px; }
+
+/* 981–1150px: three columns leave the middle one too narrow, so the title and the ring share the
+   top row and the momentum section runs full width beneath them, behind a straight divider. */
+@media (min-width: 981px) and (max-width: 1150px) {
+  .fjm-hero { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "copy ring" "mom mom"; row-gap: 0; }
+  .fjm-hero > .fjm-hero-copy { grid-area: copy; }
+  .fjm-hero > .fjm-ring { grid-area: ring; align-self: center; }
+  .fjm-hero > .fjm-momentum { grid-area: mom; margin: 20px 22px 0; padding: 18px 0 0; border-left: 0; border-right: 0; border-top: 1px solid var(--line); }
+}

@@ -332,3 +332,10 @@
 .ih-cb .ihx-panel h2 { font-size: 18px !important; color: #051D64 !important; font-weight: 800 !important; margin: 0 0 4px !important; }
 .ih-cb .pb-field-row { gap: 14px; }
 @media (max-width: 600px) { .ih-cb .ihx-stepper .l { font-size: 12px; } }
+
+/* ≤1280px: the banner stacks — title, text and buttons, then the three stats as one even row —
+   instead of squeezing the title into a narrow column beside them. */
+@media (max-width: 1280px) {
+  .ih-cb .ihx-hero { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .ih-cb .ihx-hero-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

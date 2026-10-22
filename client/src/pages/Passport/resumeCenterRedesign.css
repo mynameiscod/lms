@@ -248,3 +248,16 @@
   .rc2 .rc2-hero .rc-hero-copy { padding-left: 20px; padding-right: 20px; }
   .rc2 .rc2-hero .rc-score-card { margin: 20px 20px 0; }
 }
+
+/* Laptop widths (981–1280px): five step labels do not fit under five dots, so only the current
+   step is named (each dot keeps its full name as a tooltip); the four actions are one column of equal, full-width buttons. */
+@media (min-width: 981px) and (max-width: 1280px) {
+  #root .gd .rc2 .rc2-steps2 li:not(.current) span, .rc2-steps2 li:not(.current) span { visibility: hidden; }
+  #root .gd .rc2 .rc2-steps2 li.current span, .rc2-steps2 li.current span { white-space: nowrap; letter-spacing: 0; }
+  .rc2 .rc2-hero .rc-hero-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .rc2 .rc2-hero .rc-hero-actions .rc-action { width: 100%; min-width: 0; }
+}
+/* 1101–1280px has room for the four actions as an even 2×2; below that they stay one column. */
+@media (min-width: 1101px) and (max-width: 1280px) {
+  .rc2 .rc2-hero .rc-hero-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

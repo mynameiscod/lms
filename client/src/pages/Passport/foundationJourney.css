@@ -413,3 +413,12 @@
   padding-left: 12px;
   border-left: 1px dashed #cbd5e1;
 }
+
+/* The day summary: heading on the left, length + start button on the right; from 1280px down
+   the buttons move under the heading as one left-aligned row instead of a ragged right column. */
+.fj-day-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+.fj-day-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+@media (max-width: 1280px) {
+  .fj-day-head { grid-template-columns: 1fr; }
+  .fj-day-actions { flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 10px; }
+}

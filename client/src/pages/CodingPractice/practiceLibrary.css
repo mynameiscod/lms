@@ -119,3 +119,21 @@
   .pl-row { grid-template-columns: 24px 36px 1fr 90px; }
   .pl-row .hide-sm { display: none; }
 }
+
+/* Filters as a grid: every control the same height, labels on one line. Wide screens keep the
+   search in the row; from 1280px down it takes its own row and the four filters + Reset share
+   the next one evenly; phones get two columns. */
+.pl-filters { display: grid; grid-template-columns: minmax(220px, 2fr) repeat(4, minmax(0, 1fr)) auto; gap: 12px; align-items: end; }
+.pl-search { min-width: 0; }
+.pl-search input { height: 42px; padding-top: 0; padding-bottom: 0; }
+.pl-field { min-width: 0; }
+.pl-field select { width: 100%; max-width: none; min-width: 0; height: 42px; padding-top: 0; padding-bottom: 0; }
+.pl-filters > .pl-btn { height: 42px; white-space: nowrap; }
+@media (max-width: 1280px) {
+  .pl-filters { grid-template-columns: repeat(4, minmax(0, 1fr)) auto; }
+  .pl-search { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .pl-filters { grid-template-columns: 1fr 1fr; }
+  .pl-filters > .pl-btn { grid-column: 1 / -1; }
+}

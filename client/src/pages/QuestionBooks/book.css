@@ -283,3 +283,9 @@
   .qbk .qbk-filter button { flex: 1 1 auto; }
   .qbk .qbk-sheet-head .qbk-go, .qbk .qbk-sheet-head .pb-btn { flex: 1 1 100%; justify-content: center; }
 }
+
+/* ≤1280px: same as Interview Experiences — copy first, then the three stats as one row. */
+@media (max-width: 1280px) {
+  .qbk .qbk-hero { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .qbk .qbk-hero-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

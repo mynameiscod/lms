@@ -964,7 +964,7 @@ const FoundationJourneyPage: React.FC = () => {
                   <h2>Day {wd.day} · {wd.title}</h2>
                   {wd.blurb && <p className="fj-objective">{wd.blurb}</p>}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+                <div className="fj-day-actions">
                   {minutes > 0 && <span className="fj-mins">{mins(minutes)}</span>}
                   {!wd.locked && (
                     <button
@@ -1035,7 +1035,7 @@ const FoundationJourneyPage: React.FC = () => {
                 {/* The one piece of planning a student sees, in the unit's own words. */}
                 {day.objective && <p className="fj-objective">{day.objective}</p>}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+              <div className="fj-day-actions">
                 {day.minutes > 0 && <span className="fj-mins">{mins(day.minutes)}</span>}
                 {/* The day opens inside CareerPilot, where each lesson, checkpoint and project
                     is worked through without leaving the member rail. Locking stays the

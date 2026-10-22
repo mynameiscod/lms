@@ -274,3 +274,10 @@
 .aim2-starters button i { color: #B86B00; }
 .aim2-clear { background: #fff; border-color: #C9D8E5; color: var(--aim-navy); }
 .aim2-clear:hover { background: #F4F8FD; border-color: var(--aim-navy); }
+
+/* ≤1280px: a narrower profile panel, and the suggestion cards put the icon above the text, so
+   the text keeps the card's full width (it was wrapping one word per line). */
+@media (max-width: 1280px) and (min-width: 821px) {
+  .aim2-side { width: 250px; }
+  .aim2-topic { flex-direction: column; gap: 10px; }
+}

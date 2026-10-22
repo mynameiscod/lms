@@ -194,3 +194,17 @@
 @media (max-width: 560px) {
   .iv2-steps2 li span { font-size: 10.5px; letter-spacing: 0; }
 }
+
+/* ≤1280px: two even columns, then the readiness score as a full-width strip with a straight
+   divider and the same inset as the copy (it used to drop below as a stray ring with a curved line). */
+@media (max-width: 1280px) {
+  .iv2 .iv2-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  #root .gd .iv2 .iv2-hero .iv2-score, .iv2 .iv2-hero .iv2-score { grid-column: 1 / -1; margin: 22px 28px 0; padding: 20px 0 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; gap: 18px; justify-content: flex-start; }
+  .iv2 .iv2-hero .iv2-ring { width: 96px; height: 96px; }
+  .iv2 .iv2-hero .iv2-ring > div { width: 76px; height: 76px; }
+  .iv2 .iv2-hero .iv2-ring strong { font-size: 28px; }
+  .iv2-steps2 li span { font-size: 10.5px; letter-spacing: 0; white-space: normal; overflow: visible; text-overflow: clip; text-align: center; line-height: 1.25; max-width: 92px; overflow-wrap: anywhere; }
+}
+@media (max-width: 980px) {
+  #root .gd .iv2 .iv2-hero .iv2-score, .iv2 .iv2-hero .iv2-score { margin: 18px 20px 0; padding: 18px 0 0; }
+}

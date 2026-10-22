@@ -85,3 +85,19 @@
 .clx-hero2 .clx-kpi.amber i { background: #FFF4E5; color: #B86B00; }
 .clx .clx-hero2 .clx-kpi b { color: #051D64 !important; }
 .clx .clx-hero2 .clx-kpi span { color: #1B7D91 !important; }
+
+/* Laptop widths (≤1280px): the banner stacks — title and chips, then the three stats as one even
+   row — instead of squeezing the title into a narrow column. The tabs stay one row and scroll
+   sideways rather than leaving one tab alone on a second line. */
+@media (max-width: 1280px) {
+  .clx-hero2 { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .clx-hero2 .clx-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .clx-hero2 .clx-kpi { min-width: 0; }
+  .clx .clx-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
+  .clx .clx-tab { flex: none; }
+}
+
+/* Coach steps (CoachTab): --n columns, max four; 2×2 below 1440px; one column on phones. */
+.clx-steps-grid { display: grid; gap: 14px; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); }
+@media (max-width: 1440px) { .clx-steps-grid[data-n="4"] { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .clx-steps-grid { grid-template-columns: minmax(0, 1fr) !important; } }

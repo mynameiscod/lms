@@ -113,7 +113,8 @@ const CoachTab: React.FC<{ state: CoachState | null; loading: boolean; onStart: 
       </div>
     </section>
 
-    <div className="clx-grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 14 }}>
+    {/* An even grid: four in a row on wide screens, 2×2 on laptops — never three and a lone fourth. */}
+    <div className="clx-steps-grid" style={{ ['--n' as any]: Math.min(4, state.steps.length || 1) }} data-n={state.steps.length}>
       {state.steps.map(s => <section key={s.index} className="clx-card" style={{ padding: 16, opacity: s.done ? 0.65 : 1 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
           <b>{baseline ? `${s.index + 1}. ${s.areaLabel}` : `${s.role} · ${s.areaLabel}`}</b>

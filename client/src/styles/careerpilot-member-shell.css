@@ -254,9 +254,10 @@
   /* Roadmap hero: the Today card is a 380px desktop panel. In a single `1fr` column it could
      still be wider than the hero, which clips — so on a phone its left edge was cut off
      ("ODAY · DAY 1", "Jnderstanding"). It now fills the hero and never exceeds it. */
-  #root .gd .fjm-hero { grid-template-columns: minmax(0, 1fr) !important; }
+  #root .gd .frm .fjm-hero { grid-template-columns: minmax(0, 1fr) !important; }
   #root .gd .fjm-hero > * { min-width: 0; }
-  #root .gd .fjm-today { width: 100% !important; max-width: 100% !important; justify-self: stretch !important; box-sizing: border-box; margin-left: 0 !important; transform: none !important; }
+  /* Stretched to the banner's width but inset like the copy above it, never touching its edges. */
+  #root .gd .frm .fjm-today { width: auto !important; max-width: none !important; justify-self: stretch !important; box-sizing: border-box; margin: 0 22px !important; transform: none !important; }
 }
 @media (max-width: 480px) {
   #root .gd .fjm-hero { padding: 20px 16px !important; }
@@ -302,7 +303,7 @@
   /* Roadmap hero, stacked: the progress bar is the last line of the copy and the Today card
      the next grid row, with no row gap — so the card sat on the bar and the two read as one
      block. A clear gap, and the bar itself keeps its own breathing room. */
-  #root .gd .fjm-hero { row-gap: 20px !important; }
+  #root .gd .frm .fjm-hero { row-gap: 20px !important; }
   #root .gd .fjm-hero .fjm-hero-bar { margin-bottom: 4px; }
 }
 
@@ -509,4 +510,29 @@
   --pb-accent-ink: #051D64;
   --pb-accent-soft: #E8F1FB;
   --pb-accent-line: #C9D8E5;
+}
+
+/* ── 981–1280px (laptops, 1024/1200 windows) ─────────────────────────────────────────────────
+   The stats tray and the account chip shared one row and squeezed each other's labels into
+   "Day s…", "C…". In this range the tray shows badge + number only; each label stays in the
+   tooltip on hover/focus. */
+@media (max-width: 1280px) and (min-width: 981px) {
+  #root .gd .gd-stat-tx small { display: none; }
+  #root .gd .gd-stat { padding: 4px 10px 4px 6px; gap: 8px; }
+  #root .gd .gd-stat-bar { width: 64px; }
+}
+/* Shorter screens (a 1024×768 or 1366×768 laptop): a denser rail so every item fits without
+   scrolling the menu — at 900px tall the last seven items sat below the fold. */
+@media (min-width: 981px) and (max-height: 940px) {
+  #root .gd .gd-nav-btn { min-height: 34px !important; padding-top: 6px !important; padding-bottom: 6px !important; font-size: 13.5px !important; }
+  #root .gd .gd-logo.gd-logo-cp { min-height: 58px !important; padding: 8px 12px !important; margin-bottom: 10px !important; }
+  #root .gd .gd-logo.gd-logo-cp img { max-height: 42px !important; }
+  #root .gd .gd-goal { padding: 10px 12px !important; margin-top: 8px !important; }
+  #root .gd .gd-goal .note, #root .gd .gd-goal .cta { display: none !important; }
+}
+
+/* My 130 Days banner (three sections) stacks only on tablets and phones; from 981px it keeps its
+   three columns (foundationMember.css). The 1100px rules above are for the Roadmap banner (.frm). */
+@media (max-width: 980px) {
+  #root .gd .fjm-hero { grid-template-columns: minmax(0, 1fr) !important; row-gap: 0; }
 }

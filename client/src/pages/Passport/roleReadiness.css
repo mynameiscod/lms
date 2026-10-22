@@ -320,3 +320,14 @@
 .rr .rr-summary > div.muted { border-top-color: var(--border-strong); }
 /* "0 need work" in warning amber would read as a problem; with nothing below target the figure turns green. */
 .rr .rr-split-top > span.ok { color: #136B4A !important; }
+
+/* ≤1280px: two even columns, then the readiness score as a full-width strip with a straight
+   divider and the copy's inset — the same treatment as the Home, Mock Interview and My 130 Days
+   banners, so every three-part banner lines up the same way at laptop widths. */
+@media (min-width: 861px) and (max-width: 1280px) {
+  .rr .rr-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .rr-momentum { border-right: 0; }
+  .rr .rr-hero .rr-hero-score { grid-column: 1 / -1; margin: 22px 28px 0; padding: 20px 0 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; justify-self: stretch; justify-content: flex-start; }
+  .rr .rr-hero .rr-gauge { width: 96px; height: 96px; }
+  .rr .rr-hero .rr-gauge > div { width: 76px; height: 76px; }
+}

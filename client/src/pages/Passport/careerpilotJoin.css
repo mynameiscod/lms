@@ -557,3 +557,15 @@
 .cpx-input:has(textarea) { height: auto; padding: 10px 14px; align-items: stretch; }
 .cpx-input textarea { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 15px; color: var(--ink); resize: vertical; min-height: 64px; }
 .cpx-input textarea::placeholder { color: #9aa6ba; }
+
+/* Fields in one row line up: label row, input row and error row are shared across both columns,
+   so a label that wraps to two lines ("Branch / Specialization") no longer pushes its input below
+   its neighbour's. Browsers without subgrid line the inputs up at the bottom instead. */
+.cpx-fields { align-items: end; }
+@supports (grid-template-rows: subgrid) {
+  .cpx-fields { align-items: stretch; }
+  .cpx-field { display: grid; grid-row: span 3; grid-template-rows: subgrid; grid-template-columns: minmax(0, 1fr); row-gap: 0; align-content: start; min-width: 0; }
+  .cpx-field > .cpx-input { min-width: 0; }
+  .cpx-field > label { align-self: end; }
+  .cpx-field > .cpx-fe:empty { display: none; }
+}

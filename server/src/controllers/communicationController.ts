@@ -15,6 +15,7 @@ import * as bunny from '../services/bunnyStorageService';
 import { transcribeFile } from '../services/speakingService';
 import { evaluateIntroduction, computeSpeechMetrics, generateTemplate } from '../services/communicationEvalService';
 import { ensureSeedChallenges } from '../seed/communicationChallenges';
+import { isNoSpeechTranscript, isSilentAudio } from '../services/communicationCoachService';
 import { createNotifications } from '../notifications/notificationService';
 import { evaluateAchievements, getAchievementsForStudent, computeLeaderboard } from '../services/communicationGamificationService';
 import CommunicationInstructorFeedback from '../models/CommunicationInstructorFeedback';
@@ -275,6 +276,11 @@ export const submit = async (req: Request, res: Response) => {
     // 1) Transcribe (Whisper) from the temp file
     let transcript = ''; let durationSec = 0;
     try { const t = await transcribeFile(file.path, tenantId, 'communication_stt'); transcript = t.text; durationSec = t.durationSec; } catch { /* eval will note low content */ }
+    // A muted or wrong microphone records silence, which the speech service turns into "you you you": nothing to score.
+    if (transcript.trim().length < 10 || isNoSpeechTranscript(transcript, durationSec) || isSilentAudio(file.size, durationSec, recordingType === 'audio' ? 'audio' : 'video')) {
+      cleanup(file.path);
+      return res.status(422).json({ message: 'We could not hear your voice in that recording, so it was not counted. Check that your microphone is not muted and the right one is selected, then record again.' });
+    }
     const metrics = computeSpeechMetrics(transcript, durationSec);
 
     // 2) Upload to Bunny

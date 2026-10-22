@@ -417,16 +417,19 @@ const PreviewJourney: React.FC<{ journey: Journey; onUnlocked: () => void }> = (
  * Shows only what the roadmap already knows about the day (its number, title and topic). The day's
  * content is not fetched for it, and the server would refuse it if it were.
  */
-const LockedDay: React.FC<{ day: number; title?: string | null; topic?: string | null; currentDay: number; onBack: () => void }> =
-  ({ day, title, topic, currentDay, onBack }) => (
+const LockedDay: React.FC<{ day: number; title?: string | null; topic?: string | null; currentDay: number; onBack: () => void; welcomeLabel?: string | null }> =
+  ({ day, title, topic, currentDay, onBack, welcomeLabel }) => (
     <div className="fj-locked" role="status">
       <span className="fj-locked-icon" aria-hidden><i className="bi bi-lock-fill" /></span>
       <span className="fj-status s-locked">Locked</span>
       <h2>Day {day}{title ? ` · ${title}` : ''}</h2>
       {topic && <p className="fj-locked-topic">{topic}</p>}
       <p className="fj-locked-title">This learning day is locked</p>
-      <p className="fj-locked-text">Complete your current learning day to continue your journey.</p>
-      <button type="button" className="fj-start" onClick={onBack}>Back to current day (Day {currentDay})</button>
+      {/* While the welcome is owed, what holds a learning day is the welcome, not a learning day. */}
+      <p className="fj-locked-text">{welcomeLabel
+        ? 'Finish your welcome days first — Day 1 opens once they are done.'
+        : 'Complete your current learning day to continue your journey.'}</p>
+      <button type="button" className="fj-start" onClick={onBack}>Back to today (Day {welcomeLabel || currentDay})</button>
     </div>
   );
 
@@ -664,7 +667,7 @@ const FoundationJourneyPage: React.FC = () => {
      * open, that refusal is shown as the same locked card rather than as an empty panel.
      */
     const summary = (journey?.days || []).find(d => d.day === openDay);
-    if (summary && dayState(summary) === 'LOCKED') {
+    if (summary && dayState(summary, !!journey?.orientation?.blocking) === 'LOCKED') {
       setLockedDay({ day: summary.day, title: summary.title, topic: summary.topic });
       setDayLoading(false);
       return undefined;
@@ -738,6 +741,8 @@ const FoundationJourneyPage: React.FC = () => {
     ? journey.orientation.days.find(d => !d.day.startsWith('done') && d.status !== 'COMPLETED') || null
     : null;
   const onWelcome = !!welcomeOutstanding;
+  /** The welcome must be finished before Day 1 opens, so Day 1 is not "today" yet. */
+  const welcomeFirst = !!journey.orientation?.blocking && onWelcome;
   const welcomeLabel = welcomeOutstanding?.day || '0.1';
   /** The welcome day the panel is showing, from the view the page already holds. */
   const welcomeDay = openOrientationDay === null
@@ -890,7 +895,7 @@ const FoundationJourneyPage: React.FC = () => {
       {/* The ninety, as a strip you step through with the arrows either side (see DayStrip) —
           with range jumps, so the days beyond the edge are never a guess, and a lock on every
           day that cannot be opened yet. */}
-      <DayStrip totalDays={totalDays} label={`All ${totalDays} days`} focusDay={openDay}>
+      <DayStrip totalDays={totalDays} label={`All ${totalDays} days`} focusDay={openOrientationDay === null ? openDay : null}>
           {/*
             * The welcome days sit at the head of the strip, numbered 0.1 onward, so the plan
             * reads in the order it is actually met. They open the welcome screen rather than the
@@ -914,15 +919,17 @@ const FoundationJourneyPage: React.FC = () => {
             </li>
           ))}
           {days.map(d => {
-            const state = dayState(d);
+            const state = dayState(d, welcomeFirst);
+            /* Day 1 while the welcome is owed: the server calls it CURRENT, but today is the welcome day. */
+            const statusClass = d.status === 'CURRENT' && state === 'LOCKED' ? 'upcoming' : d.status.toLowerCase();
             return (
               <li key={d.day}>
                 <button
                   type="button"
                   id={`fj-chip-${d.day}`}
-                  className={`fj-chip s-${d.status.toLowerCase()}${state === 'LOCKED' ? ' s-locked' : ''}${openDay === d.day ? ' open' : ''}`}
+                  className={`fj-chip s-${statusClass}${state === 'LOCKED' ? ' s-locked' : ''}${openDay === d.day && openOrientationDay === null ? ' open' : ''}`}
                   onClick={() => selectDay(d.day)}
-                  aria-current={d.day === currentDay ? 'step' : undefined}
+                  aria-current={d.day === currentDay && !welcomeFirst ? 'step' : undefined}
                   aria-label={`Day ${d.day}, ${STATE_LABEL[state]}: ${d.title}`}
                   title={`Day ${d.day} — ${d.title} (${STATE_LABEL[state]})`}
                 >
@@ -1012,7 +1019,11 @@ const FoundationJourneyPage: React.FC = () => {
         {openOrientationDay === null && !dayLoading && lockedDay && (
           <LockedDay
             day={lockedDay.day} title={lockedDay.title} topic={lockedDay.topic}
-            currentDay={currentDay} onBack={() => selectDay(currentDay)}
+            currentDay={currentDay}
+            welcomeLabel={welcomeFirst && welcomeOutstanding ? welcomeOutstanding.day : null}
+            onBack={() => (welcomeFirst && welcomeOutstanding
+              ? nav(`/careerpilot/journey/welcome/${welcomeOutstanding.dayNumber}`)
+              : selectDay(currentDay))}
           />
         )}
 

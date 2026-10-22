@@ -68,7 +68,9 @@ const FoundationRoadmap: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const groups = useMemo(() => groupJourneyDays(journey?.days || []), [journey]);
+  /* While the welcome is required, today is a welcome day and Day 1 is shut — never a second "Today". */
+  const welcomeFirst = !!journey?.orientation?.blocking;
+  const groups = useMemo(() => groupJourneyDays(journey?.days || [], welcomeFirst), [journey, welcomeFirst]);
   const totalDays = journey?.totalDays ?? 90;
   /** The welcome days, 0.1–0.5. Open by default while they still have to be done. */
   const orientation = journey?.orientation || null;
@@ -341,7 +343,7 @@ const FoundationRoadmap: React.FC = () => {
                 {isOpen && (
                   <ol className="fr-days">
                     {g.days.map(d => {
-                      const state = preview ? 'LOCKED' : dayState(d);
+                      const state = preview ? 'LOCKED' : dayState(d, welcomeFirst);
                       const body = (
                         <>
                           <span className={`fr-dot small st-${state.toLowerCase()}`} aria-hidden><i className={`bi ${STATE_ICON[state]}`} /></span>

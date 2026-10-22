@@ -95,6 +95,7 @@ function memberView(t: any, cfg: EffectiveSupportConfig | null, actor: SupportAc
     context: t.context ? { route: t.context.route, requestId: t.context.requestId } : undefined,
     diagnosticsConsent: !!t.diagnosticsConsent,
     canReopen: String(t.requesterId?._id || t.requesterId) === actor.userId && reopen.ok,
+    unread: String(t.requesterId?._id || t.requesterId) === actor.userId && !!t.memberUpdatedAt && (!t.requesterSeenAt || new Date(t.memberUpdatedAt) > new Date(t.requesterSeenAt)),
     canReply: canWriteOnTicket(actor, { tenantId: t.tenantId, requesterId: t.requesterId?._id || t.requesterId }) && statusAfterRequesterReply(t.status) !== null,
     sla: cfg ? slaFor(t, cfg) : null,
   };
@@ -201,6 +202,15 @@ export async function myTickets(actor: SupportActor, q: any) {
   return { tickets: rows.map(t => memberView(t, null, actor)), total, page, limit };
 }
 
+/** How many of the member's tickets have something from support they have not opened yet. */
+export async function unreadCount(actor: SupportActor) {
+  const n = await SupportTicket.countDocuments({
+    tenantId: actor.tenantId, requesterId: actor.userId, memberUpdatedAt: { $ne: null },
+    $expr: { $gt: ['$memberUpdatedAt', { $ifNull: ['$requesterSeenAt', new Date(0)] }] },
+  });
+  return { unread: n };
+}
+
 /** Loads a ticket the actor may see, or throws not found. */
 async function loadInReach(actor: SupportActor, id: unknown) {
   if (!isId(id)) throw notFound();
@@ -224,6 +234,10 @@ export async function ticketDetail(actor: SupportActor, id: unknown, ctx: Reques
     staff ? SupportTicket.findById(t._id).populate('requesterId', 'firstName lastName email').populate('assigneeId', 'firstName lastName').lean() : t.toObject(),
     staff && actor.allTenants ? Tenant.findById(t.tenantId).select('name').lean() : null,
   ]);
+
+  if (String(t.requesterId) === actor.userId) {
+    await SupportTicket.updateOne({ _id: t._id }, { $set: { requesterSeenAt: new Date() } });
+  }
 
   if (actor.allTenants && String(t.tenantId) !== actor.tenantId) {
     await audit({ actor, entity: 'ticket', entityId: t._id, tenantId: t.tenantId, action: 'view', requestId: ctx.requestId });
@@ -307,6 +321,7 @@ export async function addMessage(actor: SupportActor, id: unknown, body: unknown
 
   t.lastActivityAt = new Date();
   if (next !== before) applyStatus(t, next);
+  if (asStaff && !isRequester && !internal) t.memberUpdatedAt = new Date();
   await t.save();
 
   if (internal) await audit({ actor, entity: 'message', entityId: msg._id, tenantId: t.tenantId, action: 'internal_note', requestId: ctx.requestId });
@@ -410,6 +425,7 @@ export async function updateTicket(actor: SupportActor, id: unknown, body: unkno
   if (!Object.keys(changes).length) return { changed: false, status: t.status };
 
   t.lastActivityAt = new Date();
+  if (changes.status) t.memberUpdatedAt = new Date();
   await t.save();
   for (const [field, c] of Object.entries(changes)) {
     await audit({ actor, entity: 'ticket', entityId: t._id, tenantId: t.tenantId, action: field === 'assignee' ? 'assigned' : field, requestId: ctx.requestId, changes: { [field]: c } });

@@ -58,7 +58,7 @@ const SupportChat: React.FC<{ basePath: string }> = ({ basePath }) => {
     }).catch(() => { store.set(''); setSessionId(''); });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [msgs, typing, draft]);
+  useEffect(() => { endRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'end' }); }, [msgs, typing, draft]);
 
   const send = async (text: string) => {
     const q = text.trim();

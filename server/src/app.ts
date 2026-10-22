@@ -132,6 +132,7 @@ app.use(requestMonitoring);
 // The access log prints the URL as requested; a reset link or a provider callback carries its
 // token in the query, so the URL is scrubbed before it is written (utils/redact.ts).
 morgan.token('url', (req: Request) => redactText(req.originalUrl || req.url));
+morgan.token('referrer', (req: Request) => redactText(String(req.headers.referer || req.headers.referrer || '')));
 app.use(morgan('combined'));
 /**
  * THE PAYMENT CALLBACKS ARE NOT BROWSER XHR, AND CORS MUST NOT JUDGE THEM.

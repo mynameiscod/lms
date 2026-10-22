@@ -31,6 +31,10 @@ export const mine = handle(async (req, res) => {
   res.json({ success: true, message: 'OK', data: await svc.myTickets(req.supportActor!, req.query) });
 });
 
+export const unread = handle(async (req, res) => {
+  res.json({ success: true, message: 'OK', data: await svc.unreadCount(req.supportActor!) });
+});
+
 export const detail = handle(async (req, res) => {
   res.json({ success: true, message: 'OK', data: await svc.ticketDetail(req.supportActor!, req.params.id, ctxOf(req)) });
 });

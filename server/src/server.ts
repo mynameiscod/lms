@@ -13,6 +13,8 @@ import cluster from 'cluster';
 import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
 import { attachDbMonitoring, startMonitoring, recordRelease } from './services/supportMonitoring';
+import { startSupportRetentionScheduler } from './services/supportRetention';
+import { registerSupportEmail } from './services/supportEmailChannel';
 import { assertSecretsPresent } from './config/secrets';
 import { initSettings } from './services/settingsService';
 import { initPlatformOwner } from './services/platformOwner';
@@ -73,6 +75,8 @@ const startServer = async () => {
     attachDbMonitoring();
     startMonitoring();
     void recordRelease();
+    // Support notices by e-mail, only when SUPPORT_EMAIL_NOTIFICATIONS=true.
+    registerSupportEmail();
 
     // Load admin-managed configuration from DB (keys/models set in the UI).
     await initSettings();
@@ -421,6 +425,9 @@ const startServer = async () => {
 
     // Add each month's recurring company costs (rent, subscriptions)
     startCompanyExpenseScheduler();
+
+    // Help & Support: delete chats and attachments past the retention the organisation set (if any).
+    startSupportRetentionScheduler();
 
     } // ── end background jobs (single process only) ─────────────────────────────
 

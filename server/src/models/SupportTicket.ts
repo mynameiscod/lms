@@ -39,6 +39,10 @@ export interface ISupportTicket extends Document {
   closedAt?: Date | null;
   reopenCount: number;
   lastActivityAt: Date;
+  /** Last time support did something the member should see (a public reply, a status change). */
+  memberUpdatedAt?: Date | null;
+  /** Last time the member opened the ticket. Unread = memberUpdatedAt after this. */
+  requesterSeenAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -82,6 +86,8 @@ const SupportTicketSchema = new Schema<ISupportTicket>(
     closedAt:        { type: Date, default: null },
     reopenCount:     { type: Number, default: 0, min: 0 },
     lastActivityAt:  { type: Date, default: () => new Date() },
+    memberUpdatedAt: { type: Date, default: null },
+    requesterSeenAt: { type: Date, default: () => new Date() },
   },
   { timestamps: true }
 );

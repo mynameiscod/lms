@@ -52,6 +52,7 @@ const MyTickets: React.FC<{ basePath: string; compact?: boolean; limit?: number 
                       <div className="sp-item-subj">{t.subject}</div>
                       <div className="sp-item-meta">{t.ticketNumber} · {moduleLabel(t.module)} · updated {fmtDate(t.lastActivityAt)}</div>
                     </div>
+                    {t.unread && <span className="sp-badge sp-new">New reply</span>}
                     <StatusBadge status={t.status} />
                     <i className="bi bi-chevron-right" aria-hidden />
                   </button>

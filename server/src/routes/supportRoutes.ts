@@ -38,6 +38,7 @@ router.get('/me', requireSupport('raise'), tickets.me);
 router.get('/limits', requireSupport('raise'), tickets.limits);
 router.post('/tickets', requireSupport('raise'), rateLimit('supportTicketCreate'), tickets.create);
 router.get('/tickets/mine', requireSupport('raise'), tickets.mine);
+router.get('/tickets/unread', requireSupport('raise'), tickets.unread);
 
 // Staff and coordinators (declared before /tickets/:id so 'queue' is never read as an id)
 router.get('/queue', requireSupport('viewCollege'), tickets.queue);

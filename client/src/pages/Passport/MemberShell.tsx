@@ -10,6 +10,7 @@ import ShareCardDialog from './ShareCardDialog';
 import { useUnlock } from './useUnlock';
 import { startActivityBeacon, trackPage } from './activityBeacon';
 import visualizerApi from '../../api/visualizerApi';
+import supportApi from '../../api/supportApi';
 import { studentProfileAPI } from '../../api/studentProfileAPI';
 
 const ICONS: Record<string, string> = {
@@ -130,6 +131,18 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
     visualizerApi.access().then(a => alive && setVzAllowed(!!a.allowed)).catch(() => alive && setVzAllowed(false));
     return () => { alive = false; };
   }, []);
+  /*
+   * Support replies the member has not opened. The member app has no notification bell, so the
+   * Help & Support item carries the count instead. Re-read on every page change, which is also
+   * when a ticket is opened and the count falls.
+   */
+  const [supportUnread, setSupportUnread] = useState(0);
+  const { pathname: shellPath } = useLocation();
+  useEffect(() => {
+    let alive = true;
+    supportApi.unread().then(n => alive && setSupportUnread(n)).catch(() => undefined);
+    return () => { alive = false; };
+  }, [shellPath]);
   useEffect(() => {
     if ((user as any)?.profilePicture) return;
     let alive = true;
@@ -258,7 +271,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
    * and it also makes the product look smaller than it is. It still navigates, because the
    * destination now explains itself rather than dead-ending.
    */
-  const navBtn = (label: string, icon: string, to: string, section?: MemberSection, feature?: CareerPilotFeatureKey) => {
+  const navBtn = (label: string, icon: string, to: string, section?: MemberSection, feature?: CareerPilotFeatureKey, badge = 0) => {
     // Switched off by the institute's admin (Student Features, CareerPilot tab): not shown at all.
     if (feature && hiddenSet.has(feature)) return null;
     const locked = !!section && lockedSet.has(section);
@@ -278,6 +291,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
       >
         <span className="ic"><Icon name={icon} /></span>
         <span className="lbl">{label}</span>
+        {badge > 0 && <span className="gd-nav-badge" aria-label={`${badge} new`}>{badge > 9 ? '9+' : badge}</span>}
         {locked && <span className="lk" aria-label="Membership"><i className="bi bi-lock-fill" /></span>}
       </button>
     );
@@ -381,7 +395,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
               preview; the institute can still hide it (Student Features, CareerPilot tab). */}
           {navBtn('Industry Connect', 'handshake', '/careerpilot/industry-connect', undefined, 'industryConnect')}
           {/* Never locked behind membership: anyone signed in must be able to ask for help, including about paying. */}
-          {navBtn('Help & Support', 'support', '/careerpilot/support', undefined, 'support')}
+          {navBtn('Help & Support', 'support', '/careerpilot/support', undefined, 'support', supportUnread)}
         </nav>
 
         {lockedSet.size > 0 && (

@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import Editor from '@monaco-editor/react';
 import { thinkingLabApi, TLChallenge, TLStats, TLRunResult, TLSubmitResult, TLBadge, TLLeaderRow, TLVoiceEval, TLProfile, TLAnalytics, TLExplanation, TL_LANGS, DIFF_COLORS, TL_TEMPLATES } from '../../api/thinkingLabApi';
 import { toast } from '../../components/feedback/appFeedback';
+import '../Passport/interviewDashboard.css';
 import './thinkingLab.css';
 
 /*
@@ -273,6 +274,16 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
   if (loading) return <div style={{ padding: 40, color: t.sub, fontSize: fz(t, 14) }}>Loading your challenge…</div>;
 
   const p = challenge?.problem;
+  const started = !!challenge && !done && (seconds > 0 || challenge.attempts > 0 || !!challenge.approach?.trim());
+  /* The problem set's size and how much of it is solved, for the banner's ring and bar. */
+  const setTotal = memberPos?.total || 0;
+  const setPct = setTotal ? Math.min(100, Math.round(((stats?.solvedTotal || 0) / setTotal) * 100)) : 0;
+  /* Where today's problem stands, in the lab's own four steps. */
+  const stepDone = [unlocked || done, (challenge?.attempts || 0) > 0 || done, done, journalSaved];
+  const firstOpen = stepDone.findIndex(x => !x);
+  const stepMarks = ['Think', 'Code', 'Submit', 'Reflect'].map((label, i) => ({
+    key: label, label, state: stepDone[i] ? 'done' : i === firstOpen ? 'current' : '',
+  }));
   const diffColor = p ? (t.diff[p.difficulty] || t.primary) : t.primary;
   const card: React.CSSProperties = { background: '#fff', border: `1px solid ${t.border}`, borderRadius: 16, padding: 20 };
   const btn = (bg: string, fg = '#fff'): React.CSSProperties => ({ background: bg, color: fg, border: 'none', borderRadius: 10, padding: '10px 16px', fontWeight: 700, fontSize: fz(t, 13.5), cursor: 'pointer' });
@@ -286,7 +297,72 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
   return (
     <ThemeCtx.Provider value={t}>
     <div className={`tl-root tl-${variant}`}>
-      {/* Header */}
+      {/* Header — CareerPilot uses the member pages' banner (the Mock Interview one, same classes), the LMS keeps its own. */}
+      {cp ? (
+        <div className="cp-iv-page iv2 tl-hero-wrap">
+          <section className="iv2-hero">
+            <div className="iv2-hero-copy">
+              <span className="iv2-eyebrow">Think first, then code</span>
+              <h1>Thinking <span>Lab</span></h1>
+              <p>One new problem every day. Explain your approach, code it in any language, and get AI feedback on how you think.</p>
+              <div className="iv2-chips">
+                <span><i className="bi bi-lightbulb" /> Think before you code</span>
+                <span><i className="bi bi-code-slash" /> Any language</span>
+                <span><i className="bi bi-stars" /> AI feedback</span>
+              </div>
+              <div className="iv2-actions">
+                {p && (
+                  <button className="iv2-btn light" onClick={() => { setTab('challenge'); setOpen(true); }}>
+                    <i className="bi bi-play-fill" /> {done ? 'Review today’s solution' : started ? 'Continue solving' : 'Start today’s problem'}
+                  </button>
+                )}
+                <button className="iv2-btn ghost" onClick={() => setTab('progress')}><i className="bi bi-graph-up-arrow" /> My progress</button>
+              </div>
+            </div>
+            {/* The member's own lab: problems solved, where today's problem stands, and today's problem itself. */}
+            <div className="iv2-momentum">
+              <span className="iv2-eyebrow">Your lab</span>
+              <div className={`iv2-strip${(stats?.solvedTotal || 0) > 0 ? ' on' : ''}`}>
+                <span className="ic"><i className="bi bi-lightbulb-fill" aria-hidden="true" /></span>
+                <div>
+                  <b>{stats?.solvedTotal ?? 0} problem{stats?.solvedTotal === 1 ? '' : 's'} solved</b>
+                  <span>{(stats?.streak || 0) > 0
+                    ? `${stats!.streak}-day lab streak · ${stats!.xpTotal} lab XP`
+                    : `${stats?.xpTotal ?? 0} lab XP · solve today’s problem to start a streak`}</span>
+                  {setTotal > 0 && <i className="iv2-strip-bar" aria-hidden="true"><em style={{ width: `${Math.max(4, setPct)}%` }} /></i>}
+                </div>
+              </div>
+              {challenge && (
+                <ol className="iv2-steps2">
+                  {stepMarks.map(m => <li key={m.key} className={m.state}><i /><span>{m.label}</span></li>)}
+                </ol>
+              )}
+              {p && (
+                <button type="button" className="iv2-next" onClick={() => { setTab('challenge'); setOpen(true); }}>
+                  <span className="ic"><i className={`bi ${done ? 'bi-check-lg' : 'bi-play-fill'}`} aria-hidden="true" /></span>
+                  <div>
+                    <b>Today’s problem</b>
+                    <span>{p.title}</span>
+                    <em>{p.difficulty ? p.difficulty.charAt(0).toUpperCase() + p.difficulty.slice(1) : ''} · {p.xp} XP{p.estimatedMinutes ? ` · ~${p.estimatedMinutes} min` : ''}</em>
+                  </div>
+                  <i className="bi bi-chevron-right" aria-hidden="true" />
+                </button>
+              )}
+            </div>
+            <div className="iv2-score">
+              <div className="iv2-ring" style={{ ['--iv2-deg' as any]: `${setPct * 3.6}deg` }}>
+                <div><strong>{stats?.solvedTotal ?? 0}</strong>{setTotal > 0 && <span>/{setTotal}</span>}</div>
+              </div>
+              <div className="iv2-score-copy">
+                <small>Problem set</small>
+                <b>{memberPos && memberPos.position > 0 ? `Problem ${memberPos.position} of ${memberPos.total}` : 'Your problems'}</b>
+                <span>{stats?.badgeCount ?? 0} badge{stats?.badgeCount === 1 ? '' : 's'} · best streak {stats?.longestStreak ?? 0}d</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : (
+        <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
           <h1 style={{ margin: 0, fontSize: fz(t, 26), color: t.ink, fontWeight: 800 }}>Thinking Lab</h1>
@@ -317,13 +393,23 @@ const ThinkingLab: React.FC<{ variant?: Variant }> = ({ variant = 'lms' }) => {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* Tabs */}
+      {cp ? (
+        <nav className="tl-cp-tabs" role="tablist" aria-label="Thinking Lab">
+          {([['challenge', 'Today’s Challenge'], ['progress', 'My Progress'], ['analytics', 'Analytics'], ['leaderboard', 'Leaderboard']] as [any, string][]).map(([k, l]) => (
+            <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
+          ))}
+        </nav>
+      ) : (
       <div className="tl-tabs" role="tablist" style={{ marginTop: 16, borderBottom: `1px solid ${t.border}` }}>
         {([['challenge', "Today's Challenge"], ['progress', 'My Progress'], ['analytics', 'Analytics'], ['leaderboard', 'Leaderboard']] as [any, string][]).map(([k, l]) => (
           <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} style={{ background: 'none', border: 'none', borderBottom: `2.5px solid ${tab === k ? t.primary : 'transparent'}`, color: tab === k ? t.primary : t.sub, fontWeight: 700, fontSize: fz(t, 14), padding: '10px 14px', cursor: 'pointer' }}>{l}</button>
         ))}
       </div>
+      )}
 
       {tab === 'challenge' && empty && (
         <div style={{ marginTop: 20, background: '#fff', border: `1px dashed ${t.field}`, borderRadius: 16, padding: 40, textAlign: 'center' }}>

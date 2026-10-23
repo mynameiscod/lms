@@ -571,3 +571,42 @@
   #root .gd .rr .rr-hero-score-copy { min-width: 0; flex: 1 1 140px; }
   #root .gd .rr .rr-hero-score-copy span { max-width: none; }
 }
+
+/* ── Phones, second pass ─────────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Top bar: every stat has its name under its number (it was icon + number only). */
+  #root .gd .gd-stat { flex-direction: column; justify-content: center; align-items: center; gap: 3px; padding: 6px 2px; min-height: 56px; }
+  #root .gd .gd-stat-ic { width: 26px; height: 26px; font-size: 13px; border-radius: 8px; }
+  #root .gd .gd-stat-tx { align-items: center; text-align: center; }
+  #root .gd .gd-stat-tx b { font-size: 14px; }
+  #root .gd .gd-stat-tx small { display: block !important; margin-top: 1px; font-size: 10.5px; font-weight: 700; max-width: 76px; color: #2F3F56; }
+  #root .gd .s-level .gd-stat-tx small, #root .gd .s-xp .gd-stat-tx small { display: none !important; }
+  #root .gd .s-level .gd-stat-tx::after { content: "Level"; display: block; font-size: 10.5px; font-weight: 700; color: #2F3F56; }
+  #root .gd .s-xp .gd-stat-tx::after { content: "XP"; display: block; font-size: 10.5px; font-weight: 700; color: #2F3F56; }
+  #root .gd .s-level .gd-stat-bar { display: none; }
+  #root .gd .gd-stat-short { display: none !important; }
+
+  /* Score rings centred on their card, with their text centred under them. */
+  #root .gd .md .md-hero-score, #root .gd .iv2 .iv2-hero .iv2-score, #root .gd .rr .rr-hero .rr-hero-score {
+    flex-direction: column !important; align-items: center !important; justify-content: center !important; text-align: center !important;
+  }
+  #root .gd .md .md-hero-score > *, #root .gd .iv2 .iv2-score-copy, #root .gd .rr .rr-hero-score-copy { text-align: center; align-items: center; }
+  /* The ring section was a shrink-wrapped grid item: ring off-centre, divider half the card wide. */
+  #root .gd .iv2 .iv2-hero .iv2-score { width: 100% !important; justify-self: stretch !important; min-height: 0 !important; height: auto !important; }
+  #root .gd .iv2 .iv2-hero .iv2-score > * { flex: 0 0 auto !important; }
+  /* Step labels such as COMMUNICATION were cut to "COMMUNICATIO…". */
+  #root .gd .iv2-steps2 li span { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: normal !important; word-break: normal !important; font-size: 9.5px !important; letter-spacing: 0 !important; text-align: center; }
+  #root .gd .fjm-hero .fjm-ring, #root .gd .md .md-score-ring, #root .gd .iv2 .iv2-ring, #root .gd .rr .rr-gauge { justify-self: center !important; align-self: center !important; margin-left: auto !important; margin-right: auto !important; }
+
+  /* Profile steps: a 3 × 2 grid that fits the phone (six fixed 112px steps made the page 670px wide). */
+  #root .gd .cb-member-profile .step-indicators.step-indicators { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 6px !important; padding: 12px 8px !important; overflow: visible !important; }
+  #root .gd .cb-member-profile .step-indicators .step-indicator.step-indicator { min-width: 0 !important; padding: 6px 2px !important; gap: 6px; }
+  #root .gd .cb-member-profile .step-indicators .step-indicator.step-indicator::after { display: none !important; }
+  #root .gd .cb-member-profile .step-indicators .step-number { width: 32px !important; height: 32px !important; font-size: 13px !important; }
+  #root .gd .cb-member-profile .step-indicators .step-label { font-size: 11.5px !important; text-align: center; line-height: 1.25; overflow-wrap: normal; word-break: normal; hyphens: none; }
+
+  /* Welcome day finished: trophy + text on top, the button full width below (the text was a
+     one-word-wide column squeezed beside the button). */
+  #root .gd .jdm-complete { display: grid !important; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px 14px; }
+  #root .gd .jdm-complete > button, #root .gd .jdm-complete .jd-btn { grid-column: 1 / -1; width: 100%; justify-content: center; }
+}

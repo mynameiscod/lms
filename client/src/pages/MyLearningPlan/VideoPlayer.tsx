@@ -18,7 +18,11 @@ import { youtubeIdOf, vimeoIdOf } from '../../components/content/videoUrl';
 
 const SKIP_SECONDS = 10;
 const BIG_SKIP_SECONDS = 30;
-const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
+export const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+const SPEED_KEY = 'cp.video.speed';
+/** The student's last chosen speed, kept across videos (a convenience; any failure means 1x). */
+export const savedSpeed = (): number => { try { const n = Number(localStorage.getItem(SPEED_KEY)); return SPEEDS.includes(n) ? n : 1; } catch { return 1; } };
+export const rememberSpeed = (s: number) => { try { localStorage.setItem(SPEED_KEY, String(s)); } catch { /* private mode */ } };
 
 function formatTime(secs: number): string {
   if (!secs || !isFinite(secs) || secs < 0) return '0:00';
@@ -64,8 +68,8 @@ const btnStyle: React.CSSProperties = {
   cursor: 'pointer', lineHeight: 1.2,
 };
 
-function SeekControls({
-  onSkip, currentTime, duration, speed, onSpeedChange, note,
+export function SeekControls({
+  onSkip, currentTime, duration, speed, onSpeedChange, note, videoRef,
 }: {
   onSkip: (delta: number) => void;
   currentTime: number;
@@ -73,7 +77,14 @@ function SeekControls({
   speed?: number;
   onSpeedChange?: (s: number) => void;
   note?: string;
+  /** When given, a picture-in-picture button floats the video while the student reads on. */
+  videoRef?: React.RefObject<HTMLVideoElement>;
 }) {
+  const pipOk = !!videoRef && typeof document !== 'undefined' && (document as any).pictureInPictureEnabled;
+  const togglePip = async () => {
+    const v = videoRef?.current; if (!v) return;
+    try { if ((document as any).pictureInPictureElement) await (document as any).exitPictureInPicture(); else await (v as any).requestPictureInPicture(); } catch { /* not allowed here */ }
+  };
   return (
     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
       <button
@@ -101,16 +112,22 @@ function SeekControls({
         </span>
       )}
 
+      {pipOk && (
+        <button type="button" style={btnStyle} onClick={togglePip} aria-label="Picture in picture" title="Keep the video floating while you read or code">
+          <i className="bi bi-pip" /> Float
+        </button>
+      )}
+
       {onSpeedChange && (
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginLeft: 'auto', fontSize: 12, color: '#64748b' }}>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginLeft: 'auto', fontSize: 12.5, color: '#2F3F56', fontWeight: 600 }}>
           Speed
           <select
             value={speed}
-            onChange={e => onSpeedChange(Number(e.target.value))}
+            onChange={e => { const v = Number(e.target.value); rememberSpeed(v); onSpeedChange(v); }}
             aria-label="Playback speed"
             style={{ border: '1px solid #e2e8f0', borderRadius: 7, padding: '4px 6px', fontSize: 12, color: '#334155', background: '#fff', cursor: 'pointer' }}
           >
-            {SPEEDS.map(s => <option key={s} value={s}>{s}x</option>)}
+            {SPEEDS.map(s => <option key={s} value={s}>{s === 1 ? 'Normal' : `${s}x`}</option>)}
           </select>
         </label>
       )}
@@ -131,7 +148,7 @@ function ProgressNote({ threshold, pct }: { threshold: number; pct: number }) {
 }
 
 /** Keys we take over. Ignored while the student is typing somewhere. */
-function useSeekKeys(onSkip: (delta: number) => void, onTogglePlay?: () => void) {
+export function useSeekKeys(onSkip: (delta: number) => void, onTogglePlay?: () => void) {
   return useCallback((e: React.KeyboardEvent) => {
     const el = e.target as HTMLElement;
     const tag = el?.tagName?.toLowerCase();
@@ -255,7 +272,7 @@ function BunnyPlayer({ content, threshold, onWatchEnough }: { content: any; thre
 
 function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; threshold: number; onWatchEnough: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState(savedSpeed);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [unseekable, setUnseekable] = useState(false);
@@ -322,6 +339,7 @@ function UploadedPlayer({ content, threshold, onWatchEnough }: { content: any; t
         duration={duration}
         speed={speed}
         onSpeedChange={changeSpeed}
+        videoRef={videoRef}
         note="Tip: the left and right arrow keys skip 10s (hold Shift for 30s), K plays and pauses."
       />
       {unseekable && (

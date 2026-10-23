@@ -474,3 +474,7 @@ body:has(.main-content > .cp-root), body:has(.cp-root.cp-full) { overflow: hidde
 /* The output panel and the shortcut hint sit on navy: their quiet text is a LIGHT grey, readable on dark. */
 .cp-output .muted { color: #A9B8CC; }
 .cp-kbd { color: #B7C4D6; }
+
+/* "Unsaved changes" beside Save: the code differs from what was last saved. */
+.cp-unsaved { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #9A5A00; white-space: nowrap; }
+.cp-unsaved i { font-size: 7px; }

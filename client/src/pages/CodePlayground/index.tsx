@@ -45,6 +45,7 @@ const LANGS: Lang[] = [
 ];
 const STARTERS = new Set(LANGS.map(l => l.starter));
 const byKey = (k: string) => LANGS.find(l => l.key === k) || LANGS[0];
+const LAST_PROGRAM_KEY = 'cp.playground.lastProgram';
 const kindFor = (lang: string) => (lang === 'web' ? 'web' : lang === 'sql' ? 'sql' : 'single');
 
 interface Framework { key: string; label: string; icon: string; url: string; }
@@ -93,6 +94,19 @@ const CodePlayground: React.FC = () => {
   const [ghConnecting, setGhConnecting] = useState(false);
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
+  /*
+   * SAVING THAT CAN BE SEEN, AND KEPT.
+   *
+   * The footer promised "Ctrl + S to save" but no key was ever bound, a save said nothing, and a
+   * reload opened the starter code — so a student who had saved believed they had lost their work.
+   * Ctrl+S / Ctrl+Enter are bound in the editor (through refs, so they always call the current
+   * handlers), a save says "Saved", Save shows when there are unsaved changes, and the last program
+   * opened or saved is reopened on return.
+   */
+  const saveRef = useRef<() => void>(() => {});
+  const runRef = useRef<() => void>(() => {});
+  const [savedCode, setSavedCode] = useState<string | null>(null);
+  const restored = useRef(false);
   const decoRef = useRef<string[]>([]);
   /**
    * The stylesheet sizes this page through `.main-content:has(> .cp-root)`, which exists only
@@ -214,6 +228,15 @@ const CodePlayground: React.FC = () => {
     try { const r = await playgroundApi.list(); setPrograms(r.data || []); } catch { /* ignore */ }
   }, []);
   useEffect(() => { loadList(); }, [loadList]);
+  /* On return, reopen the program last opened or saved — once, and only over an untouched editor. */
+  useEffect(() => {
+    if (restored.current || !programs.length) return;
+    restored.current = true;
+    let last: string | null = null;
+    try { last = localStorage.getItem(LAST_PROGRAM_KEY); } catch { /* private mode */ }
+    if (last && !currentId && programs.some((p: any) => p._id === last)) loadProgram(last);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [programs]);
 
   useEffect(() => {
     if (!toast) return;
@@ -287,11 +310,18 @@ const CodePlayground: React.FC = () => {
     try {
       const body = { title: title.trim() || 'Untitled', language, code, stdin, kind: kindFor(language) };
       const r = currentId ? await playgroundApi.update(currentId, body) : await playgroundApi.create(body);
-      setCurrentId(r.data?._id || currentId);
+      const id = r.data?._id || currentId;
+      setCurrentId(id);
+      setSavedCode(code);
+      try { if (id) localStorage.setItem(LAST_PROGRAM_KEY, id); } catch { /* private mode */ }
+      notify(currentId ? 'Saved — your changes are kept' : 'Saved to My programs', 'success');
       loadList();
     } catch (e: any) { notify(e.message || 'Could not save this program', 'error'); }
     finally { setSaving(false); }
   };
+
+  saveRef.current = () => { if (!language.startsWith('fw-')) handleSave(); };
+  runRef.current = () => { if (!language.startsWith('fw-')) handleRun(); };
 
   const loadProgram = async (id: string) => {
     setProgsOpen(false);
@@ -299,11 +329,14 @@ const CodePlayground: React.FC = () => {
       const r = await playgroundApi.get(id); const p = r.data;
       setCurrentId(p._id); setTitle(p.title); setLanguage(p.language);
       setCode(p.code || ''); setStdin(p.stdin || ''); setOutput(''); setError(''); setPreview(''); setSqlRows(null);
+      setSavedCode(p.code || '');
+      try { localStorage.setItem(LAST_PROGRAM_KEY, p._id); } catch { /* private mode */ }
     } catch { /* ignore */ }
   };
 
   const newProgram = () => {
-    setCurrentId(null); setTitle('Untitled');
+    setCurrentId(null); setTitle('Untitled'); setSavedCode(null);
+    try { localStorage.removeItem(LAST_PROGRAM_KEY); } catch { /* private mode */ }
     setCode(byKey(language.startsWith('fw-') ? 'java' : language).starter);
     setStdin(''); setOutput(''); setError(''); setPreview(''); setSqlRows(null);
   };
@@ -552,6 +585,7 @@ const CodePlayground: React.FC = () => {
 
         <div className="cp-toolbar-right">
           {!isFramework && <button className="cp-btn" onClick={share} title="Copy a link to this code"><i className="bi bi-link-45deg" />Share</button>}
+          {!isFramework && savedCode !== null && savedCode !== code && <span className="cp-unsaved" role="status"><i className="bi bi-circle-fill" /> Unsaved changes</span>}
           {!isFramework && <button className="cp-btn primary" onClick={handleSave} disabled={saving} title="Save (Ctrl + S)"><i className="bi bi-bookmark-fill" />{saving ? 'Saving…' : 'Save'}</button>}
           <button className={`cp-btn ${progsOpen ? 'on' : ''}`} onClick={() => setProgsOpen(o => !o)} title="Programs you have saved">
             <i className="bi bi-folder2-open" />My programs{programs.length > 0 && <b className="cp-count">{programs.length}</b>}
@@ -588,6 +622,8 @@ const CodePlayground: React.FC = () => {
               onChange={(v) => setCode(v ?? '')}
               onMount={(ed, monaco) => {
                 editorRef.current = ed; monacoRef.current = monaco;
+                ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => saveRef.current());
+                ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => runRef.current());
                 ed.onDidChangeCursorPosition((e: any) => setPos({ ln: e.position.lineNumber, col: e.position.column }));
                 ed.onMouseDown((e: any) => {
                   if (e.target?.type === monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN && e.target?.position) {

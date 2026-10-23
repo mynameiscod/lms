@@ -178,3 +178,8 @@
   .jdm-hero-copy { padding-left: 20px; padding-right: 20px; }
   .jdm-hero .jdm-daynav { margin-top: 16px; padding: 16px 20px 0; }
 }
+
+/* The "← My Plan" link sits on its own line above the day label; inline, the two ran together. */
+.jdm-hero .jdm-crumb, .jdm-crumb { display: flex; width: fit-content; margin-bottom: 12px; }
+/* The welcome day's description: grey on the white banner (it was white, left from the navy hero). */
+#root .gd .jdm .jdm-hero .jdm-blurb, .jdm .jdm-hero .jdm-blurb { color: #5D6E88 !important; }

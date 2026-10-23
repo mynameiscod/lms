@@ -152,7 +152,11 @@ const PassportAdminConfig: React.FC = () => {
       if (saved.engine) setEngine(saved.engine);
       if (saved.foundation) setFoundation(saved.foundation);
       if (saved.stageReadiness) setStageReadiness(saved.stageReadiness);
-      setMsg({ ok: true, text: 'Saved.' });
+      const resizing = Object.entries(saved.roadmapsResizing || {})
+        .map(([k, d]) => `${STAGE_YEARS.find(y => y.key === k)?.label || k} → ${d} days`);
+      setMsg({ ok: true, text: resizing.length
+        ? `Saved. Roadmaps are being rebuilt to the new length (${resizing.join(', ')}); completed days are kept.`
+        : 'Saved.' });
     } catch (e: any) {
       const errors: string[] = e?.response?.data?.errors || [];
       setMsg({ ok: false, text: errors.length ? `${e?.response?.data?.message} ${errors.join(' ')}` : (e?.response?.data?.message || 'Save failed') });
@@ -461,8 +465,8 @@ const PassportAdminConfig: React.FC = () => {
               ))}
             </div>
             <p className="cpc-years-note">
-              Price 0–100,000. Length 30–180 days, and it only changes journeys composed from now on —
-              a member already on a plan keeps the length theirs was built with.
+              Price 0–100,000. Length 30–180 days. Changing a year's days rebuilds that year's roadmaps
+              to the new length: days a member has completed, and the day they are on, stay as they are.
             </p>
           </section>
 

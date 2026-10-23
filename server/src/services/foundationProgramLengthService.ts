@@ -11,11 +11,11 @@
  *
  * ── THE TWO NUMBERS, AND WHICH ONE WINS ───────────────────────────────────────────────────
  *
- * The tenant setting decides the length of journeys that have not been composed yet. A journey
- * that exists carries its own `totalDays`, and that is what every reader must use: a student
- * part-way through ninety days must not wake up inside a hundred and twenty, with a finish line
- * moved and days they had already been shown rewritten. Changing the setting therefore changes
- * the next student, not the current one.
+ * The tenant setting decides the length of every journey of that year. A journey carries its own
+ * `totalDays`, and that is what every reader must use. When an admin changes the setting, the
+ * year's existing journeys are rebuilt to the new length in the background (resizeToProgramDays):
+ * the product owner decided the roadmap is always the admin's days. Days a student completed, and
+ * the day they are on, are never rewritten or cut.
  *
  * Bounds exist because the number is a promise a tenant has to keep: a journey shorter than a
  * month is not a programme, and one longer than half a year cannot be composed from any

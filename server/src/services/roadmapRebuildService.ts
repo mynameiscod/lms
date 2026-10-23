@@ -22,7 +22,8 @@ import { trackForStudent } from './careerTrackService';
  *   for the year. The student is on day 1 of something they have not opened.
  *
  *   STARTED: the days they completed and the day they are on stay exactly as they are; every later
- *   day is rebuilt by V2 (moveFutureToV2). The length stays what it was.
+ *   day is rebuilt by V2 (moveFutureToV2), and the roadmap ends at the admin's days for the year —
+ *   longer or shorter than it was (never before the day they are on).
  *
  * Always V2, whatever the switch says: an admin who presses Rebuild is choosing V2 for this
  * student. A preview writes nothing. If V2 cannot fill the days, the roadmap stays as it was and
@@ -101,9 +102,10 @@ export async function rebuildRoadmap(
     }
     : { version: 'NONE' as const, totalDays: 0, completedDays: 0, days: [] };
 
+  const programDays = await programDaysFor(tenantId, stageKey);
+
   // ── NOT STARTED: the whole roadmap, at the admin's days. ──
   if (!curriculum || !completed.length) {
-    const programDays = await programDaysFor(tenantId, stageKey);
     if (!opts.apply) {
       const { composition, v2 } = await composeFoundationJourney(tenantId, profile, {
         stageKey, programDays, source: 'PRODUCTION', studentId, roadmapV2: settings,
@@ -125,7 +127,7 @@ export async function rebuildRoadmap(
   }
 
   // ── STARTED: keep what they did, rebuild the rest. ──
-  const result = await moveFutureToV2(tenantId, sid, profile, curriculum._id, stageKey, { source: 'PRODUCTION' }, !opts.apply);
+  const result = await moveFutureToV2(tenantId, sid, profile, curriculum._id, stageKey, { source: 'PRODUCTION' }, !opts.apply, programDays);
   if (!result.ok) return { ok: false, reason: result.reason, studentId, stageKey, mode: 'FUTURE', before };
   if (!opts.apply) {
     const kept = await DayPlan.find({ curriculumId: curriculum._id, dayNumber: { $in: result.frozenDays } }).select('dayNumber phase title').sort({ dayNumber: 1 }).lean() as any[];
@@ -223,6 +225,62 @@ export async function startBulkRebuild(tenantId: string, opts: { stageKey?: stri
   })();
   return job;
 }
+
+/* ------------------------------------------------------------------ *
+ * The roadmap follows the admin's days for the year
+ * ------------------------------------------------------------------ */
+
+export interface ResizeJob { running: boolean; stages: Record<string, number>; total: number; done: number; resized: number; failed: { studentId: string; reason: string }[]; startedAt: Date; finishedAt: Date | null }
+const resizeJobs = new Map<string, ResizeJob>();
+export const resizeJobOf = (tenantId: string): ResizeJob | null => resizeJobs.get(tenantId) || null;
+
+/**
+ * When an admin changes a year's programme days, every roadmap of that year is rebuilt to the new
+ * length, in the background: one not started is built again at the new days; one started keeps
+ * its completed days and the day the member is on, and the rest is rebuilt to end at the new day.
+ * A roadmap already at the new length is left alone. If a job is still running, the stages are
+ * added to the next pass rather than run twice at once.
+ */
+export function resizeToProgramDays(tenantId: string, stages: Record<string, number>, by?: string | null): ResizeJob {
+  const current = resizeJobs.get(tenantId);
+  if (current?.running) {
+    Object.assign(current.stages, stages);
+    pendingResize.set(tenantId, { ...(pendingResize.get(tenantId) || {}), ...stages });
+    return current;
+  }
+  const job: ResizeJob = { running: true, stages: { ...stages }, total: 0, done: 0, resized: 0, failed: [], startedAt: new Date(), finishedAt: null };
+  resizeJobs.set(tenantId, job);
+  void (async () => {
+    try {
+      for (const [stageKey, days] of Object.entries(stages)) {
+        const list = await LearningCurriculum.find({
+          tenantId, journeyKind: FOUNDATION_JOURNEY_KIND, personalizedFor: { $ne: null }, adaptiveStage: stageKey, totalDays: { $ne: days },
+        }).select('personalizedFor').lean() as any[];
+        job.total += list.length;
+        for (const c of list) {
+          const studentId = String(c.personalizedFor);
+          try {
+            const r = await rebuildRoadmap(tenantId, studentId, { apply: true, by: by || 'programme-days' });
+            if (r.ok) job.resized++;
+            else job.failed.push({ studentId, reason: r.reason || 'Not rebuilt.' });
+          } catch (e: any) {
+            job.failed.push({ studentId, reason: String(e?.message || e) });
+          }
+          job.done++;
+        }
+      }
+    } finally {
+      job.running = false;
+      job.finishedAt = new Date();
+      console.log(`[programme-days] ${tenantId}: ${job.resized} of ${job.total} roadmaps resized to ${JSON.stringify(job.stages)}, ${job.failed.length} not`);
+      job.failed.slice(0, 5).forEach(f => console.log(`  ${f.studentId}: ${f.reason}`));
+      const next = pendingResize.get(tenantId);
+      if (next) { pendingResize.delete(tenantId); resizeToProgramDays(tenantId, next, by); }
+    }
+  })();
+  return job;
+}
+const pendingResize = new Map<string, Record<string, number>>();
 
 /* ------------------------------------------------------------------ *
  * The roadmap follows the track setup gives

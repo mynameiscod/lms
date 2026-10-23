@@ -175,6 +175,8 @@ export const passportApi = {
   updateConfig: async (patch: Partial<PassportConfig>): Promise<{
     config: PassportConfig; engine?: CurriculumEngineSummary;
     foundation?: FoundationReadiness; stageReadiness?: Record<string, StageReadiness>;
+    /** Years whose days changed, with the new length: their roadmaps are being resized. */
+    roadmapsResizing?: Record<string, number> | null;
   }> => {
     const { data } = await axios.put(`${BASE}/config`, patch, { headers: auth() });
     return data;
